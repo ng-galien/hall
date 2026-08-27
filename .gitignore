@@ -1,0 +1,13 @@
+node_modules/
+dist/
+packages/*/dist/
+packages/desktop/out/
+.env
+.DS_Store
+**/data/*.sqlite
+**/data/*.sqlite-shm
+**/data/*.sqlite-wal
+coverage/
+packages/client/playwright-report/
+packages/client/test-results/
+*.tsbuildinfo

@@ -1,0 +1,37 @@
+import { PlayRegular } from "@fluentui/react-icons";
+import type { MeetingAggregate } from "@mairie/domain";
+import { Link } from "react-router-dom";
+import { MeetingStatusBadge, PageHeader } from "../../components/Ui";
+import { useI18n } from "../../i18n/I18nProvider";
+
+export function MeetingInProgressHero({ aggregate }: { aggregate: MeetingAggregate }) {
+  const { t, formatDateTime, formatNumber, formatTime } = useI18n();
+  const { meeting } = aggregate;
+  const completedCount = aggregate.agendaItems.filter((item) => item.completedAt).length;
+  return (
+    <div className="page">
+      <PageHeader title={meeting.title} description={`${formatDateTime(meeting.startsAt)} · ${meeting.location}`} />
+      <div className="page-content">
+        <section className="live-resume-hero">
+          <span className="live-indicator" aria-hidden="true" />
+          <h2>{t("meeting.inProgressTitle")}</h2>
+          <p>
+            <MeetingStatusBadge status={meeting.status} />
+            {meeting.openedAt ? (
+              <> {t("meeting.inProgressSince").replace("{time}", formatTime(meeting.openedAt))}</>
+            ) : null}
+          </p>
+          <p>
+            {t("meeting.inProgressProgress")
+              .replace("{completed}", formatNumber(completedCount))
+              .replace("{total}", formatNumber(aggregate.agendaItems.length))}
+          </p>
+          <Link className="live-mode-link live-mode-link-large" to={`/meetings/${meeting.id}/live`}>
+            <PlayRegular aria-hidden="true" />
+            {t("meeting.resumeLiveMode")}
+          </Link>
+        </section>
+      </div>
+    </div>
+  );
+}

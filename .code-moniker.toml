@@ -1,0 +1,80 @@
+default_rules = false
+
+[rules.taxonomy]
+patterns = ["dependency", "ownership"]
+components = [
+  "domain",
+  "server",
+  "persistence@server",
+  "composition@server",
+  "client",
+  "desktop",
+  "database",
+  "state-machine@domain",
+]
+
+[exclude]
+uris = [
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/out/**",
+  "**/*.test.ts",
+  "**/*.test.tsx",
+]
+
+[aliases]
+dependency_import_ref = "kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports'"
+domain_source = "source ~ '**/dir:packages/dir:domain/dir:src/**'"
+client_source = "source ~ '**/dir:packages/dir:client/dir:src/**'"
+server_source = "source ~ '**/dir:packages/dir:server/dir:src/**'"
+desktop_source = "source ~ '**/dir:packages/dir:desktop/dir:src/**'"
+persistence_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:repositories/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:sqlite/**'"
+composition_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:core/module:container/**'"
+client_target = "target ~ '**/dir:packages/dir:client/dir:src/**'"
+server_target = "target ~ '**/dir:packages/dir:server/dir:src/**'"
+desktop_target = "target ~ '**/dir:packages/dir:desktop/dir:src/**'"
+database_target = "target.name = 'DatabaseSync' OR target ~ '**/dir:infrastructure/dir:sqlite/**'"
+state_machine_at_domain_source = "source ~ '**/dir:packages/dir:domain/dir:src/dir:state-machines/**'"
+state_machine_runtime_target = "target ~ '**/external_pkg:xstate/**'"
+
+[[refs.where]]
+id = "client-server-dependency-does-not-cross-runtime-boundary"
+severity = "error"
+rationale = "The React renderer and the server are separate runtime adapters. They share English domain contracts and communicate over HTTP; direct implementation imports would make shared-server mode impossible to preserve."
+expr = "($client_source OR $server_source) AND $dependency_import_ref => NOT (($client_source AND $server_target) OR ($server_source AND $client_target))"
+message = "Client/server compile-time dependencies must not cross the runtime boundary."
+
+[[refs.where]]
+id = "database-ownership-keeps-client-desktop-out-of-sqlite"
+severity = "error"
+rationale = "Only the authoritative server owns database access. Electron may start or connect to a server, but neither the desktop shell nor the React renderer may open SQLite directly; this is what allows multiple applications to share one database through one server."
+expr = "NOT (($client_source OR $desktop_source) AND (kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports') AND $database_target)"
+message = "Database adapters belong to the server; clients must use the HTTP boundary."
+
+[[refs.where]]
+id = "domain-server-client-desktop-dependency-points-outward-only"
+severity = "error"
+rationale = "The domain package is the shared contract at the center of the application. It may depend on validation libraries, but importing an HTTP server, React renderer, or Electron adapter would reverse the dependency direction and prevent independent reuse."
+expr = "NOT ($domain_source AND $dependency_import_ref AND ($server_target OR $client_target OR $desktop_target))"
+message = "The domain package must not import runtime adapters."
+
+[[refs.where]]
+id = "server-persistence@server-composition@server-database-ownership-is-confined"
+severity = "error"
+rationale = "SQLite is an adapter owned by server-side persistence and wired by the Awilix composition root. Keeping database imports out of HTTP and business services preserves a replaceable persistence boundary for a future shared database implementation."
+expr = "$server_source AND (kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports') AND $database_target => ($persistence_at_server_source OR $composition_at_server_source)"
+message = "Server database imports are limited to persistence and the composition root."
+
+[[refs.where]]
+id = "desktop-client-dependency-crosses-http-not-source"
+severity = "error"
+rationale = "Electron hosts or connects to the HTTP server and loads the built renderer as web assets. A source import from desktop into the React client would couple packaging to renderer internals and blur the same boundary used by remote clients."
+expr = "NOT ($desktop_source AND $dependency_import_ref AND $client_target)"
+message = "Electron must load the client over HTTP instead of importing renderer source."
+
+[[refs.where]]
+id = "state-machine@domain-ownership-is-exclusive"
+severity = "error"
+rationale = "Meeting, Topic, council-decision, and ballot lifecycles are auditable domain contracts. XState definitions belong in the domain state-machine package; server commands consume exported transitions, while clients consume resulting state over HTTP instead of creating parallel lifecycle authorities."
+expr = "(kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports') AND $state_machine_runtime_target => $state_machine_at_domain_source"
+message = "XState lifecycle definitions belong exclusively to packages/domain/src/state-machines."

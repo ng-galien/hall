@@ -1,0 +1,282 @@
+import type { DatabaseSync } from "node:sqlite";
+
+const schemaVersion = 2;
+
+function hasTable(database: DatabaseSync, name: string): boolean {
+  return Boolean(database.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name));
+}
+
+function readSchemaVersion(database: DatabaseSync): number {
+  if (!hasTable(database, "schema_migrations")) return 0;
+  return Number(
+    database.prepare("SELECT COALESCE(MAX(version), 0) AS version FROM schema_migrations").get()?.version ?? 0,
+  );
+}
+
+function assertSupportedSchemaVersion(version: number): void {
+  if (version > schemaVersion) {
+    throw new Error(`Database schema version ${version} is newer than supported version ${schemaVersion}`);
+  }
+}
+
+function createCurrentSchema(database: DatabaseSync): void {
+  database.exec(`
+    CREATE TABLE council_members (
+      id TEXT PRIMARY KEY,
+      first_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      email TEXT,
+      role TEXT NOT NULL CHECK (role IN ('mayor', 'deputyMayor', 'councillor')),
+      active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+      term_started_on TEXT NOT NULL,
+      term_ended_on TEXT
+    ) STRICT;
+
+    CREATE TABLE council_meetings (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      starts_at TEXT NOT NULL,
+      location TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'inProgress', 'closed', 'cancelled')),
+      chair_member_id TEXT REFERENCES council_members(id),
+      secretary_member_id TEXT REFERENCES council_members(id),
+      meeting_notice_sent_at TEXT,
+      meeting_notice_published_at TEXT,
+      is_urgent INTEGER NOT NULL DEFAULT 0 CHECK (is_urgent IN (0, 1)),
+      urgency_approved INTEGER CHECK (urgency_approved IN (0, 1)),
+      is_reconvened_meeting INTEGER NOT NULL DEFAULT 0 CHECK (is_reconvened_meeting IN (0, 1)),
+      previous_meeting_id TEXT REFERENCES council_meetings(id),
+      quorum_failure_evidence_json TEXT,
+      opened_at TEXT,
+      closed_at TEXT,
+      minutes_status TEXT NOT NULL DEFAULT 'notStarted' CHECK (minutes_status IN ('notStarted', 'draft', 'approved', 'signed', 'published')),
+      minutes_content TEXT NOT NULL DEFAULT '',
+      minutes_approved_at TEXT,
+      minutes_signed_at TEXT,
+      minutes_published_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    ) STRICT;
+
+    CREATE TABLE resources (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL CHECK (kind IN ('text', 'document')),
+      title TEXT NOT NULL,
+      folder_path TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      CHECK (
+        folder_path = '' OR (
+          folder_path NOT LIKE '/%'
+          AND folder_path NOT LIKE '%/'
+          AND folder_path NOT LIKE '%//%'
+        )
+      )
+    ) STRICT;
+
+    CREATE TABLE text_resources (
+      resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
+      content TEXT NOT NULL
+    ) STRICT;
+
+    CREATE TABLE resource_documents (
+      resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
+      meeting_id TEXT REFERENCES council_meetings(id) ON DELETE CASCADE,
+      file_name TEXT NOT NULL,
+      media_type TEXT NOT NULL,
+      byte_size INTEGER NOT NULL CHECK (byte_size >= 0),
+      category TEXT NOT NULL CHECK (category IN ('report', 'draftCouncilDecision', 'meetingNotice', 'minutes', 'proxy', 'supporting')),
+      content BLOB NOT NULL
+    ) STRICT;
+
+    CREATE TABLE resource_tags (
+      resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+      tag TEXT NOT NULL,
+      PRIMARY KEY (resource_id, tag)
+    ) STRICT;
+
+    CREATE TABLE attendance (
+      id TEXT PRIMARY KEY,
+      meeting_id TEXT NOT NULL REFERENCES council_meetings(id) ON DELETE CASCADE,
+      member_id TEXT NOT NULL REFERENCES council_members(id),
+      status TEXT NOT NULL CHECK (status IN ('present', 'represented', 'excused', 'absent')),
+      proxy_holder_member_id TEXT REFERENCES council_members(id),
+      proxy_document_id TEXT REFERENCES resource_documents(resource_id),
+      version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+      UNIQUE (meeting_id, member_id),
+      CHECK ((status = 'represented' AND proxy_holder_member_id IS NOT NULL) OR (status <> 'represented' AND proxy_holder_member_id IS NULL))
+    ) STRICT;
+
+    CREATE TABLE meeting_roster (
+      id TEXT PRIMARY KEY,
+      meeting_id TEXT NOT NULL REFERENCES council_meetings(id) ON DELETE CASCADE,
+      member_id TEXT NOT NULL REFERENCES council_members(id),
+      UNIQUE (meeting_id, member_id)
+    ) STRICT;
+
+    CREATE TABLE council_decisions (
+      id TEXT PRIMARY KEY,
+      number TEXT UNIQUE,
+      title TEXT NOT NULL,
+      draft_text TEXT NOT NULL DEFAULT '',
+      decision_text TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'ready', 'scheduled', 'adopted', 'rejected', 'enforceable')),
+      legality_review_required INTEGER NOT NULL DEFAULT 1 CHECK (legality_review_required IN (0, 1)),
+      submitted_for_legality_review_at TEXT,
+      published_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    ) STRICT;
+
+    CREATE TABLE topics (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL CHECK (kind IN ('subject', 'minutesApproval', 'openQuestion')),
+      council_decision_id TEXT REFERENCES council_decisions(id),
+      minutes_of_meeting_id TEXT REFERENCES council_meetings(id),
+      title TEXT NOT NULL,
+      report TEXT NOT NULL DEFAULT '',
+      folder_path TEXT NOT NULL DEFAULT '',
+      state TEXT NOT NULL DEFAULT 'toSchedule' CHECK (state IN ('toSchedule', 'scheduled', 'inProgress', 'examined', 'withdrawn')),
+      current_meeting_id TEXT REFERENCES council_meetings(id),
+      position INTEGER CHECK (position IS NULL OR position > 0),
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      CHECK (
+        (kind = 'subject' AND minutes_of_meeting_id IS NULL)
+        OR
+        (kind = 'minutesApproval' AND council_decision_id IS NULL AND minutes_of_meeting_id IS NOT NULL)
+        OR
+        (kind = 'openQuestion' AND council_decision_id IS NULL AND minutes_of_meeting_id IS NULL)
+      ),
+      CHECK (
+        (state IN ('scheduled', 'inProgress') AND current_meeting_id IS NOT NULL AND position IS NOT NULL)
+        OR
+        (state IN ('toSchedule', 'examined', 'withdrawn') AND current_meeting_id IS NULL AND position IS NULL)
+      )
+    ) STRICT;
+
+    CREATE TABLE topic_resources (
+      topic_id TEXT NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+      resource_id TEXT NOT NULL REFERENCES resources(id),
+      position INTEGER NOT NULL CHECK (position > 0),
+      PRIMARY KEY (topic_id, resource_id),
+      UNIQUE (topic_id, position)
+    ) STRICT;
+
+    CREATE TABLE agenda_items (
+      id TEXT PRIMARY KEY,
+      topic_id TEXT NOT NULL REFERENCES topics(id),
+      meeting_id TEXT NOT NULL REFERENCES council_meetings(id) ON DELETE CASCADE,
+      position INTEGER NOT NULL CHECK (position > 0),
+      discussion_summary TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'examined', 'postponed', 'withdrawn')),
+      started_at TEXT,
+      completed_at TEXT,
+      snapshot_kind TEXT CHECK (snapshot_kind IN ('subject', 'minutesApproval', 'openQuestion')),
+      snapshot_council_decision_id TEXT REFERENCES council_decisions(id),
+      snapshot_minutes_of_meeting_id TEXT REFERENCES council_meetings(id),
+      snapshot_title TEXT,
+      snapshot_report TEXT,
+      snapshot_folder_path TEXT,
+      snapshot_state TEXT CHECK (snapshot_state IN ('inProgress', 'examined', 'toSchedule', 'withdrawn')),
+      UNIQUE (meeting_id, position)
+    ) STRICT;
+
+    CREATE TABLE agenda_item_resources (
+      agenda_item_id TEXT NOT NULL REFERENCES agenda_items(id) ON DELETE CASCADE,
+      resource_id TEXT NOT NULL REFERENCES resources(id),
+      position INTEGER NOT NULL CHECK (position > 0),
+      PRIMARY KEY (agenda_item_id, resource_id),
+      UNIQUE (agenda_item_id, position)
+    ) STRICT;
+
+    CREATE TABLE ballots (
+      id TEXT PRIMARY KEY,
+      meeting_id TEXT NOT NULL REFERENCES council_meetings(id) ON DELETE CASCADE,
+      council_decision_id TEXT REFERENCES council_decisions(id),
+      agenda_item_id TEXT REFERENCES agenda_items(id) ON DELETE CASCADE,
+      method TEXT NOT NULL CHECK (method IN ('public', 'secret')),
+      result TEXT NOT NULL CHECK (result IN ('adopted', 'rejected')),
+      votes_for INTEGER NOT NULL CHECK (votes_for >= 0),
+      votes_against INTEGER NOT NULL CHECK (votes_against >= 0),
+      abstentions INTEGER NOT NULL CHECK (abstentions >= 0),
+      not_voting INTEGER NOT NULL CHECK (not_voting >= 0),
+      chair_tie_break_applied INTEGER NOT NULL DEFAULT 0 CHECK (chair_tie_break_applied IN (0, 1)),
+      idempotency_key TEXT,
+      command_fingerprint TEXT NOT NULL,
+      participation_evidence_json TEXT NOT NULL CHECK (json_valid(participation_evidence_json)),
+      recused_member_ids_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(recused_member_ids_json)),
+      cancelled_at TEXT,
+      created_at TEXT NOT NULL,
+      CHECK (
+        (council_decision_id IS NOT NULL AND agenda_item_id IS NULL)
+        OR
+        (council_decision_id IS NULL AND agenda_item_id IS NOT NULL)
+      )
+    ) STRICT;
+
+    CREATE TABLE votes (
+      id TEXT PRIMARY KEY,
+      ballot_id TEXT NOT NULL REFERENCES ballots(id) ON DELETE CASCADE,
+      member_id TEXT NOT NULL REFERENCES council_members(id),
+      cast_by_member_id TEXT NOT NULL REFERENCES council_members(id),
+      choice TEXT NOT NULL CHECK (choice IN ('for', 'against', 'abstain', 'notVoting')),
+      UNIQUE (ballot_id, member_id)
+    ) STRICT;
+
+    CREATE UNIQUE INDEX one_proxy_per_holder_per_meeting
+      ON attendance(meeting_id, proxy_holder_member_id)
+      WHERE proxy_holder_member_id IS NOT NULL;
+    CREATE INDEX meeting_roster_by_meeting ON meeting_roster(meeting_id);
+    CREATE UNIQUE INDEX ballots_by_idempotency_key ON ballots(idempotency_key) WHERE idempotency_key IS NOT NULL;
+    CREATE UNIQUE INDEX one_final_ballot_per_decision ON ballots(council_decision_id)
+      WHERE council_decision_id IS NOT NULL AND cancelled_at IS NULL;
+    CREATE UNIQUE INDEX one_ballot_per_agenda_item ON ballots(agenda_item_id)
+      WHERE agenda_item_id IS NOT NULL AND cancelled_at IS NULL;
+    CREATE INDEX ballots_by_meeting ON ballots(meeting_id, created_at);
+    CREATE UNIQUE INDEX one_minutes_approval_topic_per_meeting ON topics(minutes_of_meeting_id)
+      WHERE minutes_of_meeting_id IS NOT NULL;
+    CREATE UNIQUE INDEX one_topic_per_council_decision ON topics(council_decision_id)
+      WHERE council_decision_id IS NOT NULL;
+    CREATE INDEX topics_by_state ON topics(state, updated_at);
+    CREATE INDEX agenda_items_by_meeting ON agenda_items(meeting_id, position);
+    CREATE INDEX agenda_items_by_topic ON agenda_items(topic_id, meeting_id);
+    CREATE INDEX topic_resources_by_resource ON topic_resources(resource_id, topic_id);
+    CREATE INDEX agenda_item_resources_by_resource ON agenda_item_resources(resource_id, agenda_item_id);
+    CREATE INDEX resources_by_folder ON resources(folder_path, updated_at);
+    CREATE INDEX resource_tags_by_tag ON resource_tags(tag, resource_id);
+    CREATE INDEX resource_documents_by_meeting ON resource_documents(meeting_id, resource_id);
+    CREATE INDEX attendance_by_meeting ON attendance(meeting_id);
+  `);
+}
+
+export function initializeSchema(database: DatabaseSync): void {
+  database.exec(`
+    PRAGMA foreign_keys = ON;
+    PRAGMA journal_mode = WAL;
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    ) STRICT;
+  `);
+  const version = readSchemaVersion(database);
+  assertSupportedSchemaVersion(version);
+  if (version === schemaVersion) return;
+  const unexpectedTable = database
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT IN ('schema_migrations', 'sqlite_sequence') LIMIT 1",
+    )
+    .get();
+  if (unexpectedTable) throw new Error("The database uses an obsolete schema and must be reset");
+  database.exec("BEGIN IMMEDIATE");
+  try {
+    createCurrentSchema(database);
+    database
+      .prepare("INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)")
+      .run(schemaVersion, new Date().toISOString());
+    database.exec("COMMIT");
+  } catch (error) {
+    database.exec("ROLLBACK");
+    throw error;
+  }
+}

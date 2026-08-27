@@ -1,0 +1,36 @@
+@import "tailwindcss";
+@source "./";
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/components.css";
+@import "./styles/meeting-workspace.css";
+@import "./styles/live.css";
+
+@theme inline {
+  --color-bg: var(--mairie-color-canvas);
+  --color-surface: var(--mairie-color-surface);
+  --color-surface-subtle: var(--mairie-color-surface-subtle);
+  --color-surface-selected: var(--mairie-color-surface-selected);
+  --color-border: var(--mairie-color-border);
+  --color-border-strong: var(--mairie-color-border-strong);
+  --color-text: var(--mairie-color-text);
+  --color-muted: var(--mairie-color-text-muted);
+  --color-faint: var(--mairie-color-text-subtle);
+  --color-brand: var(--mairie-color-brand);
+  --color-on-brand: var(--mairie-color-on-brand);
+  --color-brand-soft: var(--mairie-color-brand-subtle);
+  --color-success: var(--mairie-color-success);
+  --color-warning: var(--mairie-color-warning);
+  --color-danger: var(--mairie-color-danger);
+  --font-sans: var(--mairie-font-family-sans);
+  --radius-small: var(--mairie-radius-small);
+  --radius-medium: var(--mairie-radius-medium);
+  --radius-large: var(--mairie-radius-large);
+  --spacing: var(--mairie-space-unit);
+  --text-xs: var(--mairie-font-size-caption);
+  --text-sm: var(--mairie-font-size-body);
+  --font-weight-medium: var(--mairie-font-weight-medium);
+  --font-weight-semibold: var(--mairie-font-weight-semibold);
+  --font-weight-bold: var(--mairie-font-weight-bold);
+  --tracking-brand: var(--mairie-letter-spacing-brand);
+}
