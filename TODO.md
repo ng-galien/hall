@@ -21,3 +21,7 @@ Ces points sont volontairement laissés au backlog. Le prototype conserve unique
 - Template de délibération.
 - Template de sujet.
 - Définir une nomenclature d’export configurable via un template de dossier.
+
+## Sujets du conseil
+
+- Permettre de définir une date limite sur un sujet du conseil.
