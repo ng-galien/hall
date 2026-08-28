@@ -1,13 +1,15 @@
+import { type ApiActionName, findSirenAction, type SirenEntity } from "@mairie/api-contract";
 import type { CouncilMeeting, MeetingAggregate, MeetingStatus } from "@mairie/domain";
 import { useCallback, useEffect, useState } from "react";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
+import { updateCouncilDecision } from "../services/councilDecisionsApi";
 import {
   cancelMeetingBallot,
   changeMeetingStatus,
   completeMeetingAgendaItem,
-  createMeetingAgendaItem,
+  createLateMeetingTopic,
   deleteMeetingAgendaItem,
-  getCouncilMeeting,
+  getCouncilMeetingSiren,
   type RecordBallotInput,
   reconveneCouncilMeeting,
   recordMeetingAttendance,
@@ -18,18 +20,28 @@ import {
   setMeetingOfficers,
   startMeetingAgendaItem,
   updateCouncilMeeting,
-  updateMeetingAgendaItem,
 } from "../services/councilMeetingsApi";
+import {
+  attachTopicDecision,
+  createTopic,
+  detachTopicDecision,
+  scheduleTopic,
+  updateTopic,
+} from "../services/topicsApi";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
+import { useTopicsStore } from "../stores/topicsStore";
 
 export function useCouncilMeeting(meetingId: string) {
   const [meeting, setMeeting] = useState<MeetingAggregate | null>(null);
+  const [representation, setRepresentation] = useState<SirenEntity<Record<string, unknown>> | null>(null);
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
   const load = useCallback(async () => {
     try {
-      setMeeting(await getCouncilMeeting(meetingId));
+      const result = await getCouncilMeetingSiren(meetingId);
+      setMeeting(result.data);
+      setRepresentation(result.representation);
       setError(null);
     } catch (loadFailure) {
       setError(apiErrorCode(loadFailure));
@@ -42,6 +54,20 @@ export function useCouncilMeeting(meetingId: string) {
 
   return {
     meeting,
+    can(actionName: ApiActionName, entityId?: string) {
+      if (!representation) return false;
+      if (!entityId) return Boolean(findSirenAction(representation, actionName));
+      return Boolean(
+        representation.entities?.some(
+          (entity) =>
+            "properties" in entity &&
+            entity.properties &&
+            "id" in entity.properties &&
+            entity.properties.id === entityId &&
+            findSirenAction(entity, actionName),
+        ),
+      );
+    },
     error,
     actionError,
     async updateMeeting(input: Record<string, unknown>) {
@@ -66,22 +92,72 @@ export function useCouncilMeeting(meetingId: string) {
         return false;
       }
     },
-    async addAgendaItem(input: Record<string, unknown>) {
+    async scheduleTopic(topicId: string, position: number) {
       setActionError(null);
       try {
-        await createMeetingAgendaItem(meetingId, input);
-        await load();
+        await scheduleTopic(topicId, meetingId, position);
+        await Promise.all([load(), useTopicsStore.getState().load()]);
         return true;
       } catch (actionFailure) {
         setActionError(apiErrorCode(actionFailure));
         return false;
       }
     },
-    async updateAgendaItem(itemId: string, input: Record<string, unknown>) {
+    async createAndScheduleTopic(input: Record<string, unknown>, position: number) {
       setActionError(null);
       try {
-        await updateMeetingAgendaItem(meetingId, itemId, input);
-        await load();
+        if (meeting?.meeting.status === "inProgress") {
+          await createLateMeetingTopic(meetingId, input);
+        } else {
+          const topic = await createTopic(input);
+          await scheduleTopic(topic.id, meetingId, position);
+        }
+        await Promise.all([load(), useTopicsStore.getState().load()]);
+        return true;
+      } catch (actionFailure) {
+        setActionError(apiErrorCode(actionFailure));
+        await Promise.all([load(), useTopicsStore.getState().load()]);
+        return false;
+      }
+    },
+    async updateTopic(topicId: string, input: Record<string, unknown>) {
+      setActionError(null);
+      try {
+        await updateTopic(topicId, input);
+        await Promise.all([load(), useTopicsStore.getState().load(), useCouncilDecisionsStore.getState().load()]);
+        return true;
+      } catch (actionFailure) {
+        setActionError(apiErrorCode(actionFailure));
+        return false;
+      }
+    },
+    async attachTopicDecision(topicId: string, draftText: string) {
+      setActionError(null);
+      try {
+        await attachTopicDecision(topicId, draftText);
+        await Promise.all([load(), useTopicsStore.getState().load(), useCouncilDecisionsStore.getState().load()]);
+        return true;
+      } catch (actionFailure) {
+        setActionError(apiErrorCode(actionFailure));
+        return false;
+      }
+    },
+    async detachTopicDecision(topicId: string) {
+      setActionError(null);
+      try {
+        await detachTopicDecision(topicId);
+        await Promise.all([load(), useTopicsStore.getState().load(), useCouncilDecisionsStore.getState().load()]);
+        return true;
+      } catch (actionFailure) {
+        setActionError(apiErrorCode(actionFailure));
+        return false;
+      }
+    },
+    async updateDecision(decisionId: string, input: { title: string; draftText: string }) {
+      setActionError(null);
+      try {
+        await updateCouncilDecision(decisionId, input);
+        await Promise.all([load(), useCouncilDecisionsStore.getState().load()]);
         return true;
       } catch (actionFailure) {
         setActionError(apiErrorCode(actionFailure));
@@ -92,7 +168,7 @@ export function useCouncilMeeting(meetingId: string) {
       setActionError(null);
       try {
         await deleteMeetingAgendaItem(meetingId, itemId);
-        await load();
+        await Promise.all([load(), useTopicsStore.getState().load()]);
         return true;
       } catch (actionFailure) {
         setActionError(apiErrorCode(actionFailure));
@@ -136,7 +212,7 @@ export function useCouncilMeeting(meetingId: string) {
       setActionError(null);
       try {
         await completeMeetingAgendaItem(meetingId, itemId, input);
-        await load();
+        await Promise.all([load(), useTopicsStore.getState().load()]);
         return true;
       } catch (actionFailure) {
         setActionError(apiErrorCode(actionFailure));

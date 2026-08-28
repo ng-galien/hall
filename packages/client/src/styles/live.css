@@ -79,8 +79,8 @@
     cursor: pointer;
     transition: background var(--mairie-motion-fast) var(--mairie-motion-curve-standard);
   }
-  .live-shell .live-primary-action { background: var(--mairie-color-ink-accent); color: var(--mairie-color-ink); }
-  .live-shell .live-primary-action:hover:not(:disabled) { background: var(--mairie-color-ink-text); }
+  .live-shell .live-primary-action { background: var(--mairie-color-ink-accent); color: var(--mairie-color-on-ink-accent); }
+  .live-shell .live-primary-action:hover:not(:disabled) { background: var(--mairie-color-ink-accent-hover); }
   .live-primary-action:disabled { opacity: var(--mairie-opacity-pulse); cursor: not-allowed; }
   .live-primary-action svg { font-size: var(--mairie-font-size-icon-large); }
 
@@ -315,6 +315,8 @@
     cursor: pointer;
   }
   .conduct-step-button:hover { background: var(--mairie-color-ink-raised); }
+  .conduct-step-static { cursor: default; }
+  .conduct-step-static:hover { background: transparent; }
   .conduct-step-selected { border-color: var(--mairie-color-ink-border); background: var(--mairie-color-ink-raised); }
   .conduct-step-marker {
     z-index: var(--mairie-z-content);
@@ -330,7 +332,7 @@
     font-variant-numeric: tabular-nums;
   }
   .conduct-step-done .conduct-step-marker { border-color: var(--mairie-color-success-on-ink); color: var(--mairie-color-success-on-ink); }
-  .conduct-step-active .conduct-step-marker { border-color: var(--mairie-color-ink-accent); color: var(--mairie-color-ink); background: var(--mairie-color-ink-accent); }
+  .conduct-step-active .conduct-step-marker { border-color: var(--mairie-color-ink-accent); color: var(--mairie-color-on-ink-accent); background: var(--mairie-color-ink-accent); }
   .conduct-step-copy { display: grid; min-width: 0; gap: var(--mairie-space-0-5); }
   .conduct-step-copy strong {
     overflow: hidden;
@@ -505,6 +507,7 @@
     cursor: pointer;
   }
   .conduct-document-chip:hover { border-color: var(--mairie-color-brand); color: var(--mairie-color-brand); }
+  .conduct-minutes-link { justify-self: start; text-decoration: none; }
   .conduct-notes {
     width: 100%;
     min-height: var(--mairie-size-textarea-min);

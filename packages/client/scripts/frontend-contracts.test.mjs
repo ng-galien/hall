@@ -20,11 +20,10 @@ test("file sizes are localized through Intl rather than visible unit literals", 
 
 test("every visible mutation prevents duplicate submissions and reports progress", () => {
   const mutationSurfaces = [
-    "src/pages/CaseFilePage.tsx",
-    "src/pages/CaseFilesPage.tsx",
     "src/pages/CouncilMembersPage.tsx",
-    "src/pages/DocumentsPage.tsx",
-    "src/pages/SettingsPage.tsx",
+    "src/pages/workspace/PathContents.tsx",
+    "src/pages/workspace/ResourceWorkbench.tsx",
+    "src/pages/workspace/TopicWorkbench.tsx",
     "src/pages/council-meetings/AgendaComposer.tsx",
     "src/pages/council-meetings/CouncilMeetingsPage.tsx",
     "src/pages/council-meetings/MeetingDetailsCard.tsx",
@@ -41,33 +40,62 @@ test("every visible mutation prevents duplicate submissions and reports progress
   }
 });
 
-test("server access is only confirmed after a successful authenticated reload", () => {
+test("the HTTP client consumes Siren capabilities without a legacy bearer token", () => {
   const settings = read("src/pages/SettingsPage.tsx");
-  const applicationData = read("src/hooks/useApplicationData.ts");
-  const applicationSync = read("src/stores/applicationSyncStore.ts");
-  const header = read("src/shell/AppHeader.tsx");
-  assert.match(settings, /const error = await reloadApplicationData\(\)/);
-  assert.match(settings, /setSaved\(error === null\)/);
-  assert.match(settings, /<RequestErrorBanner error=\{accessError\}/);
-  assert.match(applicationData, /Promise<ApiErrorCode \| null>/);
-  assert.match(header, /error === "authentication_required"/);
-  assert.match(header, /data-sync-state=\{phase\}/);
-  assert.match(applicationSync, /phase: "initializing"/);
+  const client = read("src/services/apiClient.ts");
+  assert.match(client, /SIREN_MEDIA_TYPE/);
+  assert.match(client, /credentials: "same-origin"/);
+  assert.match(client, /apiSirenRequest/);
+  assert.match(client, /submitSirenAction/);
+  assert.doesNotMatch(
+    client,
+    /for \(const entity of representation\.entities/,
+    "embedded collection entities must not replace complete detail representations in the capability cache",
+  );
+  assert.doesNotMatch(client, /Authorization|Bearer|apiToken/);
+  assert.doesNotMatch(settings, /apiToken|server-access-token/);
+});
+
+test("session expiry remounts the authentication gate and logout consumes its Siren action", () => {
+  const client = read("src/services/apiClient.ts");
+  const gate = read("src/components/AuthenticationGate.tsx");
+  const authentication = read("src/services/authApi.ts");
+  assert.match(client, /AUTHENTICATION_REQUIRED_EVENT/);
+  assert.match(client, /code === "authentication_required"/);
+  assert.match(gate, /addEventListener\(AUTHENTICATION_REQUIRED_EVENT/);
+  assert.match(authentication, /findSirenAction\(session\.representation, "session\.logout"\)/);
+  assert.match(authentication, /submitSirenAction\(session\.representation, "session\.logout"\)/);
+});
+
+test("document content navigation follows the Siren content link", () => {
+  const resources = read("src/services/resourcesApi.ts");
+  const editor = read("src/components/MarkdownEditor.tsx");
+  const topic = read("src/pages/workspace/TopicWorkbench.tsx");
+  assert.match(resources, /findSirenLink\(representation, "content"\)/);
+  assert.match(editor, /resourceContentHref\(resource\.id\)/);
+  assert.match(topic, /resourceContentHref\(created\.id\)/);
+  assert.doesNotMatch(`${resources}\n${editor}\n${topic}`, /resources\/\$\{[^}]+\}\/content/);
 });
 
 test("document category translations are exhaustive over the domain type", () => {
-  assert.match(read("src/pages/DocumentsPage.tsx"), /Record<DocumentMetadata\["category"\], TranslationKey>/);
+  assert.match(
+    read("src/pages/council-meetings/MeetingDetailsCard.tsx"),
+    /Record<DocumentResource\["category"\], TranslationKey>/,
+  );
+  const resourceWorkbench = read("src/pages/workspace/ResourceWorkbench.tsx");
+  assert.match(resourceWorkbench, /import \{ documentCategoryKeys \}/);
+  assert.match(resourceWorkbench, /documentCategoryKeys\[resource\.category\]/);
 });
 
 test("the complete ballot contract is exposed through the meeting UI", () => {
   const votePanel = read("src/pages/council-meetings/live/VotePanel.tsx");
-  const meetingReport = read("src/pages/council-meetings/MeetingReport.tsx");
+  const meetingProceedings = read("src/pages/council-meetings/MeetingProceedings.tsx");
   const meetingApi = read("src/services/councilMeetingsApi.ts");
   assert.match(votePanel, /method === "public"/);
   assert.match(votePanel, /totals: secretTotals/);
   assert.match(votePanel, /reconcileSecretBallotTotals/);
-  assert.match(meetingReport, /ballot\.method === "public"/);
-  assert.match(meetingReport, /ballot\.participationEvidence\.quorum/);
+  assert.match(meetingProceedings, /ballot\.method === "public"/);
+  assert.match(meetingProceedings, /ballot\.participationEvidence\.quorum/);
   assert.match(meetingApi, /recordMeetingBallot/);
 });
 
@@ -79,7 +107,15 @@ test("the client recognizes every stable upload error", () => {
 test("meeting mutations follow the lifecycle and fixed roster", () => {
   const preparation = read("src/pages/council-meetings/MeetingPreparation.tsx");
   assert.match(preparation, /aggregate\.rosterMemberIds\.includes\(member\.id\)/);
-  assert.match(preparation, /!meeting\.isReconvenedMeeting && !meeting\.quorumFailure/);
+  assert.match(preparation, /meetingActions\.can\("meeting\.reorder-agenda"\)/);
+  assert.match(preparation, /documentsEditable=\{canUpload\}/);
+  const workspace = read("src/pages/workspace/WorkspacePage.tsx");
+  assert.match(workspace, /canCreateTopic \?/);
+  assert.match(workspace, /canCreateText \?/);
+  assert.match(workspace, /canUpload \?/);
+  const resourceWorkbench = read("src/pages/workspace/ResourceWorkbench.tsx");
+  assert.match(resourceWorkbench, /findSirenAction\(result\.representation, "resource\.update"\)/);
+  assert.match(resourceWorkbench, /findSirenAction\(result\.representation, "resource\.delete"\)/);
   const livePage = read("src/pages/council-meetings/live/LiveMeetingPage.tsx");
   assert.match(livePage, /aggregate\.rosterMemberIds\.includes\(member\.id\)/);
   assert.match(read("src/pages/council-meetings/live/RollCallView.tsx"), /meetingOpeningBlock\(aggregate\)/);

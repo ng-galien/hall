@@ -1,18 +1,18 @@
 import { Button, Spinner } from "@fluentui/react-components";
 import { DismissRegular } from "@fluentui/react-icons";
-import type { DocumentMetadata } from "@mairie/domain";
+import type { DocumentResource } from "@mairie/domain";
 import { useEffect, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
-import { loadDocumentObjectUrl } from "../../services/documentsApi";
+import { loadResourceObjectUrl } from "../../services/resourcesApi";
 
 export function MeetingDocumentViewer({
   document,
   onClose,
   onDownload,
 }: {
-  document: DocumentMetadata | null;
+  document: DocumentResource | null;
   onClose(): void;
-  onDownload(document: DocumentMetadata): void;
+  onDownload(document: DocumentResource): void;
 }) {
   const { t } = useI18n();
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function MeetingDocumentViewer({
     let loadedUrl: string | null = null;
     setObjectUrl(null);
     setFailed(false);
-    void loadDocumentObjectUrl(document)
+    void loadResourceObjectUrl(document)
       .then((url) => {
         loadedUrl = url;
         if (active) setObjectUrl(url);

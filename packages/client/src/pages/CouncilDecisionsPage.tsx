@@ -13,7 +13,6 @@ import {
   useCollectionView,
 } from "../components/Ui";
 import { useI18n } from "../i18n/I18nProvider";
-import { useCaseFilesStore } from "../stores/caseFilesStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 
@@ -25,7 +24,6 @@ interface DecisionGroup {
 export function CouncilDecisionsPage() {
   const { t, formatDate } = useI18n();
   const { councilDecisions, error } = useCouncilDecisionsStore();
-  const { caseFiles } = useCaseFilesStore();
   const { meetings } = useCouncilMeetingsStore();
   const { layout, setLayout, query, setQuery } = useCollectionView();
   const visibleDecisions = councilDecisions.filter((decision) =>
@@ -48,9 +46,6 @@ export function CouncilDecisionsPage() {
     const unscheduled = byMeeting.get(null);
     return unscheduled ? [{ meeting: null, decisions: unscheduled }, ...meetingGroups] : meetingGroups;
   }, [visibleDecisions, meetings]);
-
-  const caseFileReference = (caseFileId: string) =>
-    caseFiles.find((caseFile) => caseFile.id === caseFileId)?.reference ?? null;
 
   return (
     <div className="page">
@@ -85,36 +80,52 @@ export function CouncilDecisionsPage() {
               </header>
               {layout === "cards" ? (
                 <div className="card-grid">
-                  {group.decisions.map((decision) => (
-                    <Link className="entity-card" key={decision.id} to={`/case-files/${decision.caseFileId}`}>
-                      <span className="entity-card-eyebrow">
-                        {decision.number ?? t("decisions.draft")}
-                        {caseFileReference(decision.caseFileId) ? ` · ${caseFileReference(decision.caseFileId)}` : ""}
-                      </span>
-                      <strong>{decision.title}</strong>
-                      <p>{decision.draftText || t("decisions.textIncomplete")}</p>
-                      <span className="entity-card-footer">
-                        <StatusBadge value={decision.status} />
-                      </span>
-                    </Link>
-                  ))}
+                  {group.decisions.map((decision) =>
+                    group.meeting ? (
+                      <Link className="entity-card" key={decision.id} to={`/meetings/${group.meeting.id}`}>
+                        <span className="entity-card-eyebrow">{decision.number ?? t("decisions.draft")}</span>
+                        <strong>{decision.title}</strong>
+                        <p>{decision.draftText || t("decisions.textIncomplete")}</p>
+                        <span className="entity-card-footer">
+                          <StatusBadge value={decision.status} />
+                        </span>
+                      </Link>
+                    ) : (
+                      <div className="entity-card" key={decision.id}>
+                        <span className="entity-card-eyebrow">{decision.number ?? t("decisions.draft")}</span>
+                        <strong>{decision.title}</strong>
+                        <p>{decision.draftText || t("decisions.textIncomplete")}</p>
+                        <span className="entity-card-footer">
+                          <StatusBadge value={decision.status} />
+                        </span>
+                      </div>
+                    ),
+                  )}
                 </div>
               ) : (
                 <div className="data-list">
-                  {group.decisions.map((decision) => (
-                    <Link className="data-row linked" key={decision.id} to={`/case-files/${decision.caseFileId}`}>
-                      <div>
-                        <strong>
-                          {decision.number ?? t("decisions.draft")} · {decision.title}
-                        </strong>
-                        <span>
-                          {caseFileReference(decision.caseFileId) ?? t("decisions.caseFile")}
-                          {decision.draftText ? ` · ${decision.draftText}` : ""}
-                        </span>
+                  {group.decisions.map((decision) => {
+                    const rowContent = (
+                      <>
+                        <div>
+                          <strong>
+                            {decision.number ?? t("decisions.draft")} · {decision.title}
+                          </strong>
+                          <span>{decision.draftText || t("decisions.textIncomplete")}</span>
+                        </div>
+                        <StatusBadge value={decision.status} />
+                      </>
+                    );
+                    return group.meeting ? (
+                      <Link className="data-row linked" key={decision.id} to={`/meetings/${group.meeting.id}`}>
+                        {rowContent}
+                      </Link>
+                    ) : (
+                      <div className="data-row" key={decision.id}>
+                        {rowContent}
                       </div>
-                      <StatusBadge value={decision.status} />
-                    </Link>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </section>

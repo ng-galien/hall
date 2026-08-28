@@ -166,6 +166,24 @@ export function createResourceRepository({ sqliteExecutor }: { sqliteExecutor: S
         ) as DocumentResource;
       });
     },
+    update(id, input) {
+      return sqliteExecutor.run((database) => {
+        database
+          .prepare("UPDATE resources SET title = ?, folder_path = ?, updated_at = ? WHERE id = ?")
+          .run(input.title, input.folderPath, new Date().toISOString(), id);
+        if (input.content !== undefined) {
+          database.prepare("UPDATE text_resources SET content = ? WHERE resource_id = ?").run(input.content, id);
+        }
+        database.prepare("DELETE FROM resource_tags WHERE resource_id = ?").run(id);
+        insertTags(database, id, input.tags);
+        return mapResource(database.prepare(`${resourceSelection} WHERE resources.id = ?`).get(id)!, input.tags);
+      });
+    },
+    isSnapshotted(id) {
+      return sqliteExecutor.run((database) =>
+        Boolean(database.prepare("SELECT 1 FROM agenda_item_resources WHERE resource_id = ? LIMIT 1").get(id)),
+      );
+    },
     delete(id) {
       return sqliteExecutor.run(
         (database) => database.prepare("DELETE FROM resources WHERE id = ?").run(id).changes > 0,

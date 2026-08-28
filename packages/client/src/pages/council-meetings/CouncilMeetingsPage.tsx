@@ -22,7 +22,7 @@ import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 export function CouncilMeetingsPage() {
   const { t, formatDateTime } = useI18n();
   const { submitting, run } = useSubmitting();
-  const { meetings, create, error } = useCouncilMeetingsStore();
+  const { meetings, create, error, canCreate } = useCouncilMeetingsStore();
   const { members } = useCouncilMembersStore();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const { layout, setLayout, query, setQuery } = useCollectionView();
@@ -87,12 +87,14 @@ export function CouncilMeetingsPage() {
         ) : null}
 
         <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
-          <Button appearance="primary" icon={<AddRegular />} onClick={() => setScheduleOpen(true)}>
-            {t("meetings.schedule")}
-          </Button>
+          {canCreate ? (
+            <Button appearance="primary" icon={<AddRegular />} onClick={() => setScheduleOpen(true)}>
+              {t("meetings.schedule")}
+            </Button>
+          ) : null}
         </CollectionToolbar>
 
-        <Modal open={scheduleOpen} title={t("meetings.schedule")} onClose={() => setScheduleOpen(false)}>
+        <Modal open={canCreate && scheduleOpen} title={t("meetings.schedule")} onClose={() => setScheduleOpen(false)}>
           <form className="modal-form" onSubmit={submit}>
             <Field label={t("meetings.name")} required>
               <Input name="title" placeholder={t("meetings.namePlaceholder")} required />

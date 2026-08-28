@@ -6,10 +6,9 @@ import { Input, MeetingStatusBadge, Modal, PageHeader, RequestErrorBanner } from
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
-import { useCaseFilesStore } from "../../stores/caseFilesStore";
-import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
-import { useDocumentsStore } from "../../stores/documentsStore";
+import { useResourcesStore } from "../../stores/resourcesStore";
+import { useTopicsStore } from "../../stores/topicsStore";
 import { AgendaComposer } from "./AgendaComposer";
 import { MeetingDetailsCard } from "./MeetingDetailsCard";
 import { MeetingStageBar } from "./MeetingStageBar";
@@ -20,9 +19,8 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const aggregate = meetingActions.meeting!;
   const { meeting } = aggregate;
   const { members } = useCouncilMembersStore();
-  const { councilDecisions } = useCouncilDecisionsStore();
-  const { caseFiles } = useCaseFilesStore();
-  const { documents } = useDocumentsStore();
+  const { topics } = useTopicsStore();
+  const { resources, canUpload } = useResourcesStore();
   const rosterMembers = useMemo(
     () =>
       meeting.status === "draft"
@@ -30,10 +28,10 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         : members.filter((member) => aggregate.rosterMemberIds.includes(member.id)),
     [meeting.status, members, aggregate.rosterMemberIds],
   );
-  const agendaEditable = !meeting.isReconvenedMeeting && !meeting.quorumFailure;
+  const agendaEditable = meetingActions.can("meeting.reorder-agenda");
   const attendanceRecorded = aggregate.attendance.length;
   const [editOpen, setEditOpen] = useState(false);
-  const detailsEditable = ["draft", "scheduled"].includes(meeting.status) && !meeting.quorumFailure;
+  const detailsEditable = meetingActions.can("meeting.update");
   const startsAtLocalValue = (() => {
     const date = new Date(meeting.startsAt);
     const pad = (value: number) => String(value).padStart(2, "0");
@@ -93,7 +91,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                   {t("meetings.edit")}
                 </Button>
               ) : null}
-              {meeting.status === "draft" ? (
+              {meetingActions.can("meeting.schedule") ? (
                 <Button
                   appearance="primary"
                   disabled={submitting}
@@ -142,18 +140,27 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         <div className="meeting-prep-layout">
           <AgendaComposer
             agendaItems={aggregate.agendaItems}
-            councilDecisions={councilDecisions}
-            caseFiles={caseFiles}
+            topics={topics}
+            decisions={aggregate.councilDecisions}
             editable={agendaEditable}
-            onAdd={meetingActions.addAgendaItem}
-            onUpdate={meetingActions.updateAgendaItem}
+            onSchedule={meetingActions.scheduleTopic}
+            onQuickCreate={(input, position) => meetingActions.createAndScheduleTopic(input, position)}
+            onUpdateTopic={meetingActions.updateTopic}
+            onAttachDecision={meetingActions.attachTopicDecision}
+            onDetachDecision={meetingActions.detachTopicDecision}
+            onSaveDecisionText={meetingActions.updateDecision}
             onRemove={meetingActions.removeAgendaItem}
             onReorder={meetingActions.reorderAgenda}
           />
           <MeetingDetailsCard
             aggregate={aggregate}
             members={rosterMembers}
-            documents={documents.filter((document) => document.meetingId === meeting.id)}
+            documents={resources.filter(
+              (resource): resource is Extract<typeof resource, { kind: "document" }> =>
+                resource.kind === "document" && resource.meetingId === meeting.id,
+            )}
+            officersEditable={meetingActions.can("meeting.set-officers")}
+            documentsEditable={canUpload}
             onSaveOfficers={meetingActions.setOfficers}
           />
         </div>

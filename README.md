@@ -7,6 +7,7 @@ votes, and the minutes lifecycle. The canonical functional design is [Design poi
 ## Architecture
 
 - `@mairie/domain`: shared English technical contracts and validation schemas.
+- `@mairie/api-contract`: Siren, Problem Details, action names, and security transport contracts shared over HTTP.
 - `@mairie/server`: Express application, Awilix services, asynchronous repository contracts, and SQLite adapter.
 - `@mairie/client`: React, Fluent UI, and Zustand renderer with English and French localization. CSS design tokens are
   the canonical theme source used by both Fluent UI and Tailwind.
@@ -19,11 +20,10 @@ Electron supports two runtime modes:
 
 Clients never open the database directly. Replacing SQLite therefore affects the server infrastructure layer only.
 
-Local loopback mode needs no token. A non-loopback shared server fails closed unless `MAIRIE_API_TOKEN` is configured
-and `MAIRIE_BEHIND_TLS_PROXY=true` confirms that a TLS reverse proxy protects the connection. Each client stores the
-administrator token from the Settings page and sends it as a bearer token. This initial access model grants access to
-the complete municipal-council administration surface; introduce individual user identities and narrower roles before
-opening the application to non-administrative users.
+The server exposes Siren representations and RFC 9457 Problem Details. Individual users authenticate through an
+`HttpOnly` session cookie. Server-owned roles grant broad permissions, while current domain state determines which
+Siren actions are advertised. An application user may optionally reference a council member; identity and municipal
+mandate remain separate concepts. Successful mutations are written to the audit log in the same database transaction.
 
 Uploaded files are served as downloads with a server-derived media type, `nosniff`, and a sandbox content policy.
 The product is still being constructed: the server accepts only its current SQLite schema and does not carry legacy
@@ -52,11 +52,17 @@ Requires Node 22 or newer. Desktop packaging uses the version pinned in `.deskto
 ```bash
 npm install
 npm run dev
+npm run -w @mairie/server seed:dev
 npm run desktop:dev
 npm run quality
 npm run desktop:package
 npm run smoke:package -w @mairie/desktop
 ```
 
-The HTTP server defaults to `http://127.0.0.1:3100`. Set `DATABASE_PATH` for its SQLite file. For a shared deployment,
-also configure `SERVER_HOST`, `MAIRIE_API_TOKEN`, and `MAIRIE_BEHIND_TLS_PROXY=true` behind a TLS reverse proxy.
+The HTTP server defaults to `http://127.0.0.1:3100`. The development command enables a loopback-only administrator
+with every permission so the UI can be developed without a login step. This mode is rejected outside loopback and in
+production. Set `DATABASE_PATH` for SQLite. For a shared deployment, configure `SERVER_HOST` and
+`MAIRIE_BEHIND_TLS_PROXY=true` behind a TLS reverse proxy, then bootstrap the first administrator through
+`POST /api/auth/bootstrap` with a private `MAIRIE_BOOTSTRAP_TOKEN` of at least 24 characters. Use
+`MAIRIE_ALLOWED_ORIGINS` only for explicit browser origins that must differ from the server origin; local Vite origins
+are enabled automatically in development.

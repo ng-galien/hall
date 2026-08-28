@@ -9,7 +9,6 @@ const mapCouncilDecision = (row: DatabaseRow): CouncilDecision => ({
   number: asNullableString(row.number),
   title: String(row.title),
   draftText: String(row.draft_text),
-  decisionText: String(row.decision_text),
   status: row.status as CouncilDecision["status"],
   legalityReviewRequired: asBoolean(row.legality_review_required),
   submittedForLegalityReviewAt: asNullableString(row.submitted_for_legality_review_at),
@@ -75,6 +74,11 @@ export function createCouncilDecisionRepository({
         database
           .prepare("UPDATE council_decisions SET status = ?, updated_at = ? WHERE id = ?")
           .run(status, new Date().toISOString(), id);
+      });
+    },
+    remove(id) {
+      return sqliteExecutor.run((database) => {
+        database.prepare("DELETE FROM council_decisions WHERE id = ?").run(id);
       });
     },
   };

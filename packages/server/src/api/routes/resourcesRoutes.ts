@@ -1,10 +1,12 @@
-import { createTextResourceSchema, folderPathSchema, resourceTagsSchema } from "@mairie/domain";
+import { createTextResourceSchema, folderPathSchema, resourceTagsSchema, updateResourceSchema } from "@mairie/domain";
 import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
 import { safeDocumentMediaType } from "../../domain/documentPolicy.js";
+import { requirePermission } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
+import { routeParameter } from "../routeParameter.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 const resourceKindSchema = z.enum(["text", "document"]);
@@ -40,7 +42,7 @@ function parseTags(value: unknown): string[] {
 export function createResourcesRouter({ resourceService }: Cradle): Router {
   const router = Router();
 
-  router.get("/", async (request, response) => {
+  router.get("/", requirePermission("workspace.read"), async (request, response) => {
     const folderPath =
       typeof request.query.folderPath === "string" ? folderPathSchema.parse(request.query.folderPath) : undefined;
     const kind = typeof request.query.kind === "string" ? resourceKindSchema.parse(request.query.kind) : undefined;
@@ -50,11 +52,11 @@ export function createResourcesRouter({ resourceService }: Cradle): Router {
     response.json(await resourceService.list({ folderPath, kind, meetingId, tags }));
   });
 
-  router.get("/paths", async (_request, response) => {
+  router.get("/paths", requirePermission("workspace.read"), async (_request, response) => {
     response.json(await resourceService.listFolderPaths());
   });
 
-  router.post("/texts", async (request, response) => {
+  router.post("/texts", requirePermission("workspace.write"), async (request, response) => {
     const { title, folderPath, tags, content } = createTextResourceSchema.parse({
       ...request.body,
       kind: "text",
@@ -62,7 +64,7 @@ export function createResourcesRouter({ resourceService }: Cradle): Router {
     response.status(201).json(await resourceService.createText({ title, folderPath, tags, content }));
   });
 
-  router.post("/documents", upload.single("file"), async (request, response) => {
+  router.post("/documents", requirePermission("workspace.write"), upload.single("file"), async (request, response) => {
     if (!request.file) throw new DomainError("invalid_request");
     const folderPath = folderPathSchema.parse(request.body.folderPath ?? "");
     const meetingId = request.body.meetingId ? z.string().uuid().parse(request.body.meetingId) : null;
@@ -84,8 +86,8 @@ export function createResourcesRouter({ resourceService }: Cradle): Router {
     );
   });
 
-  router.get("/:resourceId/content", async (request, response) => {
-    const resource = await resourceService.find(request.params.resourceId);
+  router.get("/:resourceId/content", requirePermission("workspace.read"), async (request, response) => {
+    const resource = await resourceService.find(routeParameter(request.params.resourceId));
     if (!resource) throw new DomainError("resource_not_found", 404);
     if (resource.kind !== "document") throw new DomainError("resource_content_unavailable", 409);
     response.setHeader("Content-Type", resource.mediaType);
@@ -95,12 +97,18 @@ export function createResourcesRouter({ resourceService }: Cradle): Router {
     response.send(resource.content);
   });
 
-  router.get("/:resourceId", async (request, response) => {
-    response.json(await resourceService.getDetails(request.params.resourceId));
+  router.get("/:resourceId", requirePermission("workspace.read"), async (request, response) => {
+    response.json(await resourceService.getDetails(routeParameter(request.params.resourceId)));
   });
 
-  router.delete("/:resourceId", async (request, response) => {
-    await resourceService.delete(request.params.resourceId);
+  router.put("/:resourceId", requirePermission("workspace.write"), async (request, response) => {
+    response.json(
+      await resourceService.update(routeParameter(request.params.resourceId), updateResourceSchema.parse(request.body)),
+    );
+  });
+
+  router.delete("/:resourceId", requirePermission("workspace.write"), async (request, response) => {
+    await resourceService.delete(routeParameter(request.params.resourceId));
     response.status(204).end();
   });
 

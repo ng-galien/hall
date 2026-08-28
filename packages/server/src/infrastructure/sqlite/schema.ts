@@ -1,23 +1,26 @@
 import type { DatabaseSync } from "node:sqlite";
 
-const schemaVersion = 2;
-
-function hasTable(database: DatabaseSync, name: string): boolean {
-  return Boolean(database.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name));
-}
-
-function readSchemaVersion(database: DatabaseSync): number {
-  if (!hasTable(database, "schema_migrations")) return 0;
-  return Number(
-    database.prepare("SELECT COALESCE(MAX(version), 0) AS version FROM schema_migrations").get()?.version ?? 0,
-  );
-}
-
-function assertSupportedSchemaVersion(version: number): void {
-  if (version > schemaVersion) {
-    throw new Error(`Database schema version ${version} is newer than supported version ${schemaVersion}`);
-  }
-}
+const currentTables = [
+  "agenda_item_resources",
+  "agenda_items",
+  "attendance",
+  "audit_events",
+  "ballots",
+  "council_decisions",
+  "council_meetings",
+  "council_members",
+  "meeting_roster",
+  "resource_documents",
+  "resource_tags",
+  "resources",
+  "sessions",
+  "text_resources",
+  "topic_resources",
+  "topics",
+  "user_roles",
+  "users",
+  "votes",
+] as const;
 
 function createCurrentSchema(database: DatabaseSync): void {
   database.exec(`
@@ -30,6 +33,43 @@ function createCurrentSchema(database: DatabaseSync): void {
       active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
       term_started_on TEXT NOT NULL,
       term_ended_on TEXT
+    ) STRICT;
+
+    CREATE TABLE users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
+      council_member_id TEXT UNIQUE REFERENCES council_members(id),
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    ) STRICT;
+
+    CREATE TABLE user_roles (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL CHECK (role IN ('administrator', 'clerk', 'contributor', 'meetingConductor', 'reader')),
+      PRIMARY KEY (user_id, role)
+    ) STRICT;
+
+    CREATE TABLE sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL
+    ) STRICT;
+
+    CREATE TABLE audit_events (
+      id TEXT PRIMARY KEY,
+      actor_user_id TEXT REFERENCES users(id),
+      request_id TEXT NOT NULL,
+      action TEXT NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id TEXT,
+      outcome TEXT NOT NULL CHECK (outcome IN ('succeeded', 'denied', 'failed')),
+      details_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(details_json)),
+      occurred_at TEXT NOT NULL
     ) STRICT;
 
     CREATE TABLE council_meetings (
@@ -119,7 +159,6 @@ function createCurrentSchema(database: DatabaseSync): void {
       number TEXT UNIQUE,
       title TEXT NOT NULL,
       draft_text TEXT NOT NULL DEFAULT '',
-      decision_text TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'ready', 'scheduled', 'adopted', 'rejected', 'enforceable')),
       legality_review_required INTEGER NOT NULL DEFAULT 1 CHECK (legality_review_required IN (0, 1)),
       submitted_for_legality_review_at TEXT,
@@ -168,12 +207,15 @@ function createCurrentSchema(database: DatabaseSync): void {
       topic_id TEXT NOT NULL REFERENCES topics(id),
       meeting_id TEXT NOT NULL REFERENCES council_meetings(id) ON DELETE CASCADE,
       position INTEGER NOT NULL CHECK (position > 0),
+      added_during_session INTEGER NOT NULL DEFAULT 0 CHECK (added_during_session IN (0, 1)),
       discussion_summary TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'examined', 'postponed', 'withdrawn')),
       started_at TEXT,
       completed_at TEXT,
       snapshot_kind TEXT CHECK (snapshot_kind IN ('subject', 'minutesApproval', 'openQuestion')),
       snapshot_council_decision_id TEXT REFERENCES council_decisions(id),
+      snapshot_council_decision_title TEXT,
+      snapshot_council_decision_draft_text TEXT,
       snapshot_minutes_of_meeting_id TEXT REFERENCES council_meetings(id),
       snapshot_title TEXT,
       snapshot_report TEXT,
@@ -227,6 +269,9 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE UNIQUE INDEX one_proxy_per_holder_per_meeting
       ON attendance(meeting_id, proxy_holder_member_id)
       WHERE proxy_holder_member_id IS NOT NULL;
+    CREATE UNIQUE INDEX one_proxy_document_per_meeting
+      ON attendance(meeting_id, proxy_document_id)
+      WHERE proxy_document_id IS NOT NULL;
     CREATE INDEX meeting_roster_by_meeting ON meeting_roster(meeting_id);
     CREATE UNIQUE INDEX ballots_by_idempotency_key ON ballots(idempotency_key) WHERE idempotency_key IS NOT NULL;
     CREATE UNIQUE INDEX one_final_ballot_per_decision ON ballots(council_decision_id)
@@ -247,6 +292,11 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE INDEX resource_tags_by_tag ON resource_tags(tag, resource_id);
     CREATE INDEX resource_documents_by_meeting ON resource_documents(meeting_id, resource_id);
     CREATE INDEX attendance_by_meeting ON attendance(meeting_id);
+    CREATE INDEX users_by_status ON users(status, display_name);
+    CREATE INDEX sessions_by_user ON sessions(user_id, expires_at);
+    CREATE INDEX sessions_by_expiry ON sessions(expires_at);
+    CREATE INDEX audit_events_by_actor ON audit_events(actor_user_id, occurred_at);
+    CREATE INDEX audit_events_by_target ON audit_events(target_type, target_id, occurred_at);
   `);
 }
 
@@ -254,26 +304,37 @@ export function initializeSchema(database: DatabaseSync): void {
   database.exec(`
     PRAGMA foreign_keys = ON;
     PRAGMA journal_mode = WAL;
-    CREATE TABLE IF NOT EXISTS schema_migrations (
-      version INTEGER PRIMARY KEY,
-      applied_at TEXT NOT NULL
-    ) STRICT;
   `);
-  const version = readSchemaVersion(database);
-  assertSupportedSchemaVersion(version);
-  if (version === schemaVersion) return;
-  const unexpectedTable = database
-    .prepare(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT IN ('schema_migrations', 'sqlite_sequence') LIMIT 1",
-    )
-    .get();
-  if (unexpectedTable) throw new Error("The database uses an obsolete schema and must be reset");
+  const existingTables = database
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name <> 'sqlite_sequence' ORDER BY name")
+    .all()
+    .map((row) => String(row.name));
+  if (existingTables.length > 0) {
+    const agendaColumns = new Set(
+      database
+        .prepare("PRAGMA table_info(agenda_items)")
+        .all()
+        .map((row) => String(row.name)),
+    );
+    const decisionColumns = new Set(
+      database
+        .prepare("PRAGMA table_info(council_decisions)")
+        .all()
+        .map((row) => String(row.name)),
+    );
+    if (
+      existingTables.join("\n") !== currentTables.join("\n") ||
+      !agendaColumns.has("added_during_session") ||
+      !agendaColumns.has("snapshot_council_decision_draft_text") ||
+      decisionColumns.has("decision_text")
+    ) {
+      throw new Error("The database uses an obsolete schema and must be reset");
+    }
+    return;
+  }
   database.exec("BEGIN IMMEDIATE");
   try {
     createCurrentSchema(database);
-    database
-      .prepare("INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)")
-      .run(schemaVersion, new Date().toISOString());
     database.exec("COMMIT");
   } catch (error) {
     database.exec("ROLLBACK");

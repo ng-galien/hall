@@ -1,12 +1,14 @@
+import { findSirenAction } from "@mairie/api-contract";
 import type { CouncilMember } from "@mairie/domain";
 import { create } from "zustand";
-import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
+import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../services/apiClient";
 import { createCouncilMember, listCouncilMembers } from "../services/councilMembersApi";
 
 interface CouncilMembersState {
   members: CouncilMember[];
   loading: boolean;
   error: ApiErrorCode | null;
+  canCreate: boolean;
   load(): Promise<void>;
   create(input: Record<string, unknown>): Promise<boolean>;
 }
@@ -15,10 +17,13 @@ export const useCouncilMembersStore = create<CouncilMembersState>((set, get) => 
   members: [],
   loading: false,
   error: null,
+  canCreate: false,
   async load() {
     set({ loading: true, error: null });
     try {
-      set({ members: await listCouncilMembers(), loading: false });
+      const members = await listCouncilMembers();
+      const representation = await sirenRepresentation("/council-members");
+      set({ members, canCreate: Boolean(findSirenAction(representation, "member.create")), loading: false });
     } catch (error) {
       set({ error: apiErrorCode(error), loading: false });
     }

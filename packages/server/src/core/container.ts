@@ -21,7 +21,10 @@ import { createCouncilMeetingRepository } from "../repositories/councilMeetingRe
 import { createCouncilMemberRepository } from "../repositories/councilMemberRepository.js";
 import { createMeetingRosterRepository } from "../repositories/meetingRosterRepository.js";
 import { createResourceRepository } from "../repositories/resourceRepository.js";
+import { createSecurityRepository, type SecurityRepository } from "../repositories/securityRepository.js";
 import { createTopicRepository } from "../repositories/topicRepository.js";
+import { RequestContextStore } from "../security/requestContext.js";
+import { type AuthService, createAuthService } from "../services/authService.js";
 import { type BallotService, createBallotService } from "../services/ballotService.js";
 import { type CouncilMeetingService, createCouncilMeetingService } from "../services/councilMeetingService.js";
 import { createMeetingAgendaService, type MeetingAgendaService } from "../services/meetingAgendaService.js";
@@ -36,6 +39,7 @@ import type { ServerConfig } from "./config.js";
 
 export interface Cradle {
   config: ServerConfig;
+  requestContext: RequestContextStore;
   sqliteExecutor: SqliteExecutor;
   unitOfWork: UnitOfWork;
   councilMemberRepository: CouncilMemberRepository;
@@ -47,6 +51,7 @@ export interface Cradle {
   resourceRepository: ResourceRepository;
   meetingRosterRepository: MeetingRosterRepository;
   topicRepository: TopicRepository;
+  securityRepository: SecurityRepository;
   councilMeetingService: CouncilMeetingService;
   meetingLifecycleService: MeetingLifecycleService;
   meetingAgendaService: MeetingAgendaService;
@@ -54,12 +59,14 @@ export interface Cradle {
   ballotService: BallotService;
   topicService: TopicService;
   resourceService: ResourceService;
+  authService: AuthService;
 }
 
 export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
   const container = createContainer<Cradle>({ injectionMode: InjectionMode.PROXY, strict: true });
   container.register({
     config: asValue(config),
+    requestContext: asFunction(() => new RequestContextStore()).singleton(),
     sqliteExecutor: asFunction(createSqliteExecutor).singleton(),
     unitOfWork: asFunction(({ sqliteExecutor }: { sqliteExecutor: SqliteExecutor }) => sqliteExecutor).singleton(),
     councilMemberRepository: asFunction(createCouncilMemberRepository).singleton(),
@@ -71,6 +78,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     resourceRepository: asFunction(createResourceRepository).singleton(),
     meetingRosterRepository: asFunction(createMeetingRosterRepository).singleton(),
     topicRepository: asFunction(createTopicRepository).singleton(),
+    securityRepository: asFunction(createSecurityRepository).singleton(),
     councilMeetingService: asFunction(createCouncilMeetingService).singleton(),
     meetingLifecycleService: asFunction(createMeetingLifecycleService).singleton(),
     meetingAgendaService: asFunction(createMeetingAgendaService).singleton(),
@@ -78,6 +86,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     ballotService: asFunction(createBallotService).singleton(),
     topicService: asFunction(createTopicService).singleton(),
     resourceService: asFunction(createResourceService).singleton(),
+    authService: asFunction(createAuthService).singleton(),
   });
   return container;
 }

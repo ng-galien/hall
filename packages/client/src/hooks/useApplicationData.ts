@@ -1,11 +1,11 @@
 import { useEffect } from "react";
 import type { ApiErrorCode } from "../services/apiClient";
 import { type ApplicationSyncPhase, useApplicationSyncStore } from "../stores/applicationSyncStore";
-import { useCaseFilesStore } from "../stores/caseFilesStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
-import { useDocumentsStore } from "../stores/documentsStore";
+import { useResourcesStore } from "../stores/resourcesStore";
+import { useTopicsStore } from "../stores/topicsStore";
 
 export function useApplicationData(): void {
   useEffect(() => {
@@ -18,16 +18,16 @@ export async function reloadApplicationData(): Promise<ApiErrorCode | null> {
   await Promise.all([
     useCouncilMembersStore.getState().load(),
     useCouncilMeetingsStore.getState().load(),
-    useCaseFilesStore.getState().load(),
+    useTopicsStore.getState().load(),
     useCouncilDecisionsStore.getState().load(),
-    useDocumentsStore.getState().load(),
+    useResourcesStore.getState().load(),
   ]);
   const error =
     useCouncilMembersStore.getState().error ??
     useCouncilMeetingsStore.getState().error ??
-    useCaseFilesStore.getState().error ??
+    useTopicsStore.getState().error ??
     useCouncilDecisionsStore.getState().error ??
-    useDocumentsStore.getState().error;
+    useResourcesStore.getState().error;
   useApplicationSyncStore.getState().finish(error);
   return error;
 }
@@ -37,9 +37,9 @@ export function useApplicationStatus(): { phase: ApplicationSyncPhase; error: Ap
   const states = [
     useCouncilMembersStore(),
     useCouncilMeetingsStore(),
-    useCaseFilesStore(),
+    useTopicsStore(),
     useCouncilDecisionsStore(),
-    useDocumentsStore(),
+    useResourcesStore(),
   ];
   const error = states.find((state) => state.error)?.error ?? synchronization.error;
   if (error) return { phase: "failed", error };

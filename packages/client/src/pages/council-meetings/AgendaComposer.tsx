@@ -6,9 +6,11 @@ import {
   ChevronDownRegular,
   ChevronRightRegular,
   DeleteRegular,
+  DocumentRegular,
+  GavelRegular,
   ReOrderDotsVerticalRegular,
 } from "@fluentui/react-icons";
-import type { AgendaItem, CaseFile, CouncilDecision } from "@mairie/domain";
+import type { AgendaItem, CouncilDecision, Topic } from "@mairie/domain";
 import { type DragEvent, type FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { MarkdownEditor } from "../../components/MarkdownEditor";
@@ -18,39 +20,59 @@ import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 
-export const agendaKindKeys: Record<AgendaItem["kind"], TranslationKey> = {
-  councilDecision: "agendaKind.councilDecision",
-  information: "agendaKind.information",
-  election: "agendaKind.election",
-  question: "agendaKind.question",
-  other: "agendaKind.other",
+export const topicKindKeys: Record<Topic["kind"], TranslationKey> = {
+  subject: "topicKind.subject",
+  minutesApproval: "topicKind.minutesApproval",
+  openQuestion: "topicKind.openQuestion",
 };
 
-const quickAddKinds: AgendaItem["kind"][] = ["information", "question", "election", "other"];
+const quickAddKinds: Topic["kind"][] = ["subject", "openQuestion"];
+
+export function topicUpdatePayload(topic: Topic, changes: { title?: string; report?: string }) {
+  return {
+    title: changes.title ?? topic.title,
+    report: changes.report ?? topic.report,
+    folderPath: topic.folderPath,
+    resourceIds: topic.resources.map((resource) => resource.id),
+  };
+}
 
 export function AgendaComposer({
   agendaItems,
-  councilDecisions,
-  caseFiles,
+  topics,
+  decisions,
   editable,
-  onAdd,
-  onUpdate,
+  onSchedule,
+  onQuickCreate,
+  onUpdateTopic,
+  onAttachDecision,
+  onDetachDecision,
+  onSaveDecisionText,
   onRemove,
   onReorder,
 }: {
   agendaItems: AgendaItem[];
-  councilDecisions: CouncilDecision[];
-  caseFiles: CaseFile[];
+  topics: Topic[];
+  decisions: CouncilDecision[];
   editable: boolean;
-  onAdd(input: Record<string, unknown>): Promise<boolean>;
-  onUpdate(itemId: string, input: Record<string, unknown>): Promise<boolean>;
+  onSchedule(topicId: string, position: number): Promise<boolean>;
+  onQuickCreate(input: Record<string, unknown>, position: number): Promise<boolean>;
+  onUpdateTopic(topicId: string, input: Record<string, unknown>): Promise<boolean>;
+  onAttachDecision(topicId: string, draftText: string): Promise<boolean>;
+  onDetachDecision(topicId: string): Promise<boolean>;
+  onSaveDecisionText(decisionId: string, input: { title: string; draftText: string }): Promise<boolean>;
   onRemove(itemId: string): Promise<boolean>;
   onReorder(itemIds: string[]): Promise<boolean>;
 }) {
-  const { t } = useI18n();
+  const { t, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [draftReport, setDraftReport] = useState("");
+  const [draftDecisionText, setDraftDecisionText] = useState("");
+  const decisionFor = (topic: Topic) =>
+    topic.kind === "subject" && topic.councilDecisionId
+      ? (decisions.find((decision) => decision.id === topic.councilDecisionId) ?? null)
+      : null;
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dropTargetItemId, setDropTargetItemId] = useState<string | null>(null);
   const orderedItems = useMemo(
@@ -58,33 +80,7 @@ export function AgendaComposer({
     [agendaItems],
   );
   const nextPosition = Math.max(0, ...agendaItems.map((item) => item.position)) + 1;
-  const scheduledDecisionIds = new Set(
-    agendaItems.flatMap((item) => (item.councilDecisionId ? [item.councilDecisionId] : [])),
-  );
-  const candidateDecisions = councilDecisions.filter(
-    (decision) => !scheduledDecisionIds.has(decision.id) && ["draft", "ready"].includes(decision.status),
-  );
-  const caseFileReference = (caseFileId: string | null) =>
-    caseFiles.find((caseFile) => caseFile.id === caseFileId)?.reference ?? null;
-  const attachedCaseFileIds = new Set(agendaItems.flatMap((item) => (item.caseFileId ? [item.caseFileId] : [])));
-  const candidateCaseFiles = caseFiles.filter(
-    (caseFile) => !attachedCaseFileIds.has(caseFile.id) && caseFile.status !== "archived",
-  );
-
-  const addCaseFileItem = (caseFileId: string) => {
-    const caseFile = caseFiles.find((candidate) => candidate.id === caseFileId);
-    if (!caseFile) return;
-    void run(() =>
-      onAdd({
-        position: nextPosition,
-        kind: "information",
-        title: caseFile.title,
-        report: caseFile.summary,
-        councilDecisionId: null,
-        caseFileId: caseFile.id,
-      }),
-    );
-  };
+  const candidateTopics = topics.filter((topic) => topic.state === "toSchedule");
 
   const moveItem = (itemId: string, offset: number) => {
     const ids = orderedItems.map((item) => item.id);
@@ -111,50 +107,46 @@ export function AgendaComposer({
     void run(() => onReorder(ids));
   };
 
-  const addDecision = (decision: CouncilDecision) =>
-    run(() =>
-      onAdd({
-        position: nextPosition,
-        kind: "councilDecision",
-        title: decision.title,
-        report: "",
-        councilDecisionId: decision.id,
-        caseFileId: decision.caseFileId,
-      }),
-    );
-
   const quickAdd = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formElement = event.currentTarget;
     await run(async () => {
       const form = new FormData(formElement);
-      const added = await onAdd({
-        position: nextPosition,
-        kind: form.get("kind"),
-        title: form.get("title"),
-        report: "",
-        councilDecisionId: null,
-        caseFileId: null,
-      });
+      const added = await onQuickCreate(
+        {
+          kind: form.get("kind"),
+          title: form.get("title"),
+          report: "",
+          folderPath: "",
+          resourceIds: [],
+        },
+        nextPosition,
+      );
       if (added) formElement.reset();
+      return added;
     });
   };
 
   const expandItem = (item: AgendaItem | null) => {
     setExpandedItemId(item?.id ?? null);
-    setDraftReport(item?.report ?? "");
+    setDraftReport(item?.topic.report ?? "");
+    setDraftDecisionText(item ? (decisionFor(item.topic)?.draftText ?? "") : "");
   };
 
   const saveItem = async (event: FormEvent<HTMLFormElement>, item: AgendaItem) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const title = String(form.get("title") ?? item.topic.title);
+    const decision = decisionFor(item.topic);
     await run(async () => {
-      const saved = await onUpdate(item.id, {
-        title: form.get("title"),
-        report: draftReport,
-        ...(item.kind !== "councilDecision" ? { caseFileId: form.get("caseFileId") || null } : {}),
-      });
-      if (saved) setExpandedItemId(null);
+      const saved = await onUpdateTopic(item.topic.id, topicUpdatePayload(item.topic, { title, report: draftReport }));
+      if (!saved) return false;
+      if (decision && draftDecisionText !== decision.draftText) {
+        const decisionSaved = await onSaveDecisionText(decision.id, { title, draftText: draftDecisionText });
+        if (!decisionSaved) return false;
+      }
+      setExpandedItemId(null);
+      return true;
     });
   };
 
@@ -173,7 +165,9 @@ export function AgendaComposer({
         <ol className="composer-list">
           {orderedItems.map((item, index) => {
             const expanded = expandedItemId === item.id;
-            const reference = caseFileReference(item.caseFileId);
+            const topic = item.topic;
+            const hasDecision = topic.kind === "subject" && Boolean(topic.councilDecisionId);
+            const documentCount = topic.resources.length;
             return (
               <li
                 className={`composer-item${dropTargetItemId === item.id ? " composer-item-drop" : ""}${draggedItemId === item.id ? " composer-item-dragging" : ""}`}
@@ -212,22 +206,37 @@ export function AgendaComposer({
                     onClick={() => expandItem(expanded ? null : item)}
                   >
                     <span className="composer-item-copy">
-                      <strong>{item.title}</strong>
+                      <strong>{topic.title}</strong>
                       <span>
-                        {t(agendaKindKeys[item.kind])}
-                        {reference ? ` · ${reference}` : ""}
+                        {t(topicKindKeys[topic.kind])}
+                        {hasDecision ? ` · ${t("meeting.itemHasDecision")}` : ""}
+                        {topic.folderPath ? ` · ${topic.folderPath}` : ""}
                       </span>
                     </span>
                     {expanded ? <ChevronDownRegular aria-hidden="true" /> : <ChevronRightRegular aria-hidden="true" />}
                   </button>
-                  {item.caseFileId ? (
+                  {hasDecision ? (
+                    <span className="decision-meeting-chip" title={t("meeting.itemHasDecision")}>
+                      <GavelRegular aria-hidden="true" />
+                    </span>
+                  ) : null}
+                  {topic.kind === "minutesApproval" ? (
                     <Link
-                      className="decision-meeting-chip composer-case-file-chip"
-                      to={`/case-files/${item.caseFileId}`}
-                      title={t("meeting.viewCaseFile")}
+                      className="decision-meeting-chip"
+                      to={`/meetings/${topic.minutesOfMeetingId}`}
+                      title={t("meeting.viewPreviousMeeting")}
                     >
-                      {reference ?? t("meeting.caseFileChip")}
+                      {t("meeting.previousMeetingChip")}
                     </Link>
+                  ) : null}
+                  {documentCount > 0 ? (
+                    <span
+                      className="decision-meeting-chip"
+                      title={t("meeting.itemResourceCount").replace("{count}", formatNumber(documentCount))}
+                    >
+                      <DocumentRegular aria-hidden="true" />
+                      {formatNumber(documentCount)}
+                    </span>
                   ) : null}
                   {editable ? (
                     <span className="composer-item-tools">
@@ -262,26 +271,46 @@ export function AgendaComposer({
                   editable ? (
                     <form className="composer-item-editor" onSubmit={(event) => void saveItem(event, item)}>
                       <Field label={t("meeting.subject")} required>
-                        <Input name="title" defaultValue={item.title} required />
+                        <Input name="title" defaultValue={topic.title} required />
                       </Field>
-                      {item.kind !== "councilDecision" ? (
-                        <Field label={t("meeting.linkedCaseFile")} hint={t("meeting.linkedCaseFileHint")}>
-                          <select name="caseFileId" defaultValue={item.caseFileId ?? ""}>
-                            <option value="">{t("common.none")}</option>
-                            {caseFiles
-                              .filter((caseFile) => caseFile.status !== "archived" || caseFile.id === item.caseFileId)
-                              .map((caseFile) => (
-                                <option key={caseFile.id} value={caseFile.id}>
-                                  {caseFile.reference} · {caseFile.title}
-                                </option>
-                              ))}
-                          </select>
-                        </Field>
-                      ) : null}
                       <Field label={t("meeting.report")} hint={t("meeting.reportHint")}>
-                        <MarkdownEditor markdown={item.report} onChange={setDraftReport} />
+                        <MarkdownEditor markdown={topic.report} onChange={setDraftReport} />
                       </Field>
+                      {topic.kind === "subject" ? (
+                        decisionFor(topic) ? (
+                          <Field label={t("meeting.draftDecision")} hint={t("meeting.decisionDraftTextHint")}>
+                            <MarkdownEditor
+                              markdown={decisionFor(topic)?.draftText ?? ""}
+                              onChange={setDraftDecisionText}
+                            />
+                          </Field>
+                        ) : null
+                      ) : null}
                       <div className="composer-editor-actions">
+                        {topic.kind === "subject" ? (
+                          decisionFor(topic) ? (
+                            <Button
+                              className="composer-vote-toggle"
+                              appearance="subtle"
+                              type="button"
+                              disabled={submitting}
+                              onClick={() => void run(() => onDetachDecision(topic.id))}
+                            >
+                              {t("meeting.withdrawVote")}
+                            </Button>
+                          ) : (
+                            <Button
+                              appearance="secondary"
+                              type="button"
+                              icon={<GavelRegular />}
+                              disabled={submitting}
+                              onClick={() => void run(() => onAttachDecision(topic.id, ""))}
+                            >
+                              {t("meeting.submitToVote")}
+                            </Button>
+                          )
+                        ) : null}
+                        <span className="composer-editor-spacer" />
                         <Button appearance="secondary" type="button" onClick={() => setExpandedItemId(null)}>
                           {t("common.cancel")}
                         </Button>
@@ -292,11 +321,16 @@ export function AgendaComposer({
                     </form>
                   ) : (
                     <div className="composer-item-editor">
-                      {item.report ? (
-                        <MarkdownView className="meeting-material-copy" markdown={item.report} />
+                      {topic.report ? (
+                        <MarkdownView className="meeting-material-copy" markdown={topic.report} />
                       ) : (
                         <p className="meeting-material-empty">{t("meeting.itemReportEmpty")}</p>
                       )}
+                      {decisionFor(topic)?.draftText ? (
+                        <blockquote className="composer-decision-preview">
+                          <MarkdownView markdown={decisionFor(topic)?.draftText ?? ""} />
+                        </blockquote>
+                      ) : null}
                     </div>
                   )
                 ) : null}
@@ -308,50 +342,30 @@ export function AgendaComposer({
 
       {editable ? (
         <div className="composer-add-zone">
-          <section className="composer-add-decisions" aria-labelledby="composer-decisions-heading">
-            <h3 id="composer-decisions-heading">{t("meeting.addDecisionHeading")}</h3>
-            {candidateDecisions.length === 0 ? (
-              <p className="composer-add-hint">{t("meeting.addDecisionEmpty")}</p>
+          <section className="composer-add-decisions" aria-labelledby="composer-topics-heading">
+            <h3 id="composer-topics-heading">{t("meeting.addTopicHeading")}</h3>
+            {candidateTopics.length === 0 ? (
+              <p className="composer-add-hint">{t("meeting.addTopicEmpty")}</p>
             ) : (
               <ul className="composer-decision-list">
-                {candidateDecisions.map((decision) => (
-                  <li key={decision.id}>
+                {candidateTopics.map((topic) => (
+                  <li key={topic.id}>
                     <span className="composer-item-copy">
-                      <strong>{decision.title}</strong>
-                      <span>{caseFileReference(decision.caseFileId) ?? t("decisions.draft")}</span>
+                      <strong>{topic.title}</strong>
+                      <span>
+                        {t(topicKindKeys[topic.kind])}
+                        {topic.kind === "subject" && topic.councilDecisionId
+                          ? ` · ${t("meeting.itemHasDecision")}`
+                          : ""}
+                        {topic.folderPath ? ` · ${topic.folderPath}` : ""}
+                      </span>
                     </span>
                     <Button
                       appearance="secondary"
                       size="small"
                       icon={<AddRegular />}
                       disabled={submitting}
-                      onClick={() => void addDecision(decision)}
-                    >
-                      {t("meeting.addToAgenda")}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          <section className="composer-add-decisions" aria-labelledby="composer-case-files-heading">
-            <h3 id="composer-case-files-heading">{t("meeting.addCaseFileHeading")}</h3>
-            {candidateCaseFiles.length === 0 ? (
-              <p className="composer-add-hint">{t("meeting.addCaseFileEmpty")}</p>
-            ) : (
-              <ul className="composer-decision-list">
-                {candidateCaseFiles.map((caseFile) => (
-                  <li key={caseFile.id}>
-                    <span className="composer-item-copy">
-                      <strong>{caseFile.title}</strong>
-                      <span>{caseFile.reference}</span>
-                    </span>
-                    <Button
-                      appearance="secondary"
-                      size="small"
-                      icon={<AddRegular />}
-                      disabled={submitting}
-                      onClick={() => addCaseFileItem(caseFile.id)}
+                      onClick={() => void run(() => onSchedule(topic.id, nextPosition))}
                     >
                       {t("meeting.addToAgenda")}
                     </Button>
@@ -363,10 +377,10 @@ export function AgendaComposer({
           <form className="composer-quick-add" onSubmit={quickAdd} aria-labelledby="composer-quick-add-heading">
             <h3 id="composer-quick-add-heading">{t("meeting.addOtherHeading")}</h3>
             <div className="composer-quick-add-fields">
-              <select name="kind" aria-label={t("meeting.type")} defaultValue="information">
+              <select name="kind" aria-label={t("meeting.type")} defaultValue="subject">
                 {quickAddKinds.map((kind) => (
                   <option key={kind} value={kind}>
-                    {t(agendaKindKeys[kind])}
+                    {t(topicKindKeys[kind])}
                   </option>
                 ))}
               </select>

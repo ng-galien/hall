@@ -50,6 +50,13 @@ export const createTextResourceSchema = z.object({
   content: z.string().default(""),
 });
 
+export const updateResourceSchema = z.object({
+  title: nonEmpty,
+  folderPath: folderPathSchema,
+  tags: resourceTagsSchema,
+  content: z.string().optional(),
+});
+
 export const createCouncilMemberSchema = z.object({
   firstName: nonEmpty,
   lastName: nonEmpty,
@@ -66,7 +73,9 @@ export const createCouncilMeetingSchema = z.object({
   secretaryMemberId: nullableId,
 });
 
-export const reconveneCouncilMeetingSchema = createCouncilMeetingSchema;
+export const reconveneCouncilMeetingSchema = createCouncilMeetingSchema.extend({
+  meetingNoticeSentAt: z.iso.datetime({ offset: true }),
+});
 
 export const updateCouncilMeetingSchema = z.object({
   title: nonEmpty,
@@ -128,9 +137,15 @@ export const updateTopicSchema = z.object({
   councilDecisionId: z.string().uuid().nullable().optional(),
 });
 
+export const reclassifyTopicSchema = z.object({ folderPath: folderPathSchema });
+
 export const scheduleTopicSchema = z.object({
   meetingId: z.string().uuid(),
   position: z.number().int().positive(),
+});
+
+export const attachTopicDecisionSchema = z.object({
+  draftText: z.string().default(""),
 });
 
 export const topicStateSchema = z.enum(["toSchedule", "scheduled", "inProgress", "examined", "withdrawn"]);

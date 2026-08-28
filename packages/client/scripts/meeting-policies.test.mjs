@@ -88,11 +88,9 @@ test("meeting opening requires complete attendance, quorum, and physically prese
 test("ballot candidates exclude decisions already final or recorded", () => {
   const decision = (id, status) => ({
     id,
-    caseFileId: "case-file",
     number: null,
     title: id,
     draftText: "Draft",
-    decisionText: "",
     status,
     legalityReviewRequired: true,
     submittedForLegalityReviewAt: null,
@@ -103,14 +101,25 @@ test("ballot candidates exclude decisions already final or recorded", () => {
   const agendaItems = ["ready", "adopted", "rejected", "recorded"].map((id, index) => ({
     id: `agenda-${id}`,
     meetingId: "meeting",
-    caseFileId: "case-file",
-    councilDecisionId: id,
     position: index + 1,
-    kind: "councilDecision",
-    title: id,
-    report: "",
     discussionSummary: "",
     status: "scheduled",
+    startedAt: null,
+    completedAt: null,
+    topic: {
+      id: `topic-${id}`,
+      kind: "subject",
+      councilDecisionId: id,
+      title: id,
+      report: "",
+      folderPath: "",
+      resources: [],
+      state: "scheduled",
+      currentMeetingId: "meeting",
+      position: index + 1,
+      createdAt: "2026-09-01T00:00:00.000Z",
+      updatedAt: "2026-09-01T00:00:00.000Z",
+    },
   }));
   const ballotAggregate = aggregate({
     agendaItems,

@@ -6,8 +6,36 @@ import { buildContainer } from "../core/container.js";
 
 export type TestAgent = ReturnType<typeof request.agent>;
 
-export async function createTestServer(apiToken?: string) {
-  const container = buildContainer({ host: "127.0.0.1", port: 0, databasePath: ":memory:", apiToken });
+// Deliberate assertion boundary: tests see the real HTTP representation and opt in to decoding it.
+// biome-ignore lint/suspicious/noExplicitAny: callers select the domain shape asserted by each acceptance test
+export function domainBody<T = any>(response: { body: unknown; headers: Record<string, string | undefined> }): T {
+  if (!response.headers["content-type"]?.startsWith("application/vnd.siren+json")) return response.body as T;
+  const representation = response.body as {
+    class?: string[];
+    properties?: Record<string, unknown>;
+    entities?: Array<{ properties?: unknown }>;
+  };
+  if (
+    representation.class?.some((name) => name.endsWith("-collection")) &&
+    Array.isArray(representation.entities) &&
+    representation.entities.every((entity) => entity.properties)
+  ) {
+    return representation.entities.map((entity) => entity.properties) as T;
+  }
+  const properties = representation.properties;
+  if (!properties) return response.body as T;
+  return (Array.isArray(properties.items) ? properties.items : properties) as T;
+}
+
+export async function createTestServer(options: { devAutoLogin?: boolean } = {}) {
+  const container = buildContainer({
+    host: "127.0.0.1",
+    port: 0,
+    databasePath: ":memory:",
+    devAutoLogin: options.devAutoLogin ?? true,
+    allowedOrigins: ["http://localhost:5174", "http://127.0.0.1:5174"],
+    environment: "test",
+  });
   const application = createHttpApplication(container);
   const server = await listen(application);
 
@@ -19,7 +47,8 @@ export async function createTestServer(apiToken?: string) {
     }
   });
 
-  return { agent: request.agent(server), container };
+  const agent = request.agent(server);
+  return { agent, rawAgent: agent, statelessAgent: request(server), container };
 }
 
 function listen(application: ReturnType<typeof createHttpApplication>): Promise<Server> {

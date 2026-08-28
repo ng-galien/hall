@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { validateServerConfig } from "../core/config.js";
-import { createTestServer, type TestAgent } from "./testServer.js";
+import { hasThreeClearDays } from "../services/reconvocationPolicy.js";
+import { createTestServer, domainBody, type TestAgent } from "./testServer.js";
 
 async function createMember(agent: TestAgent, firstName: string) {
   const response = await agent.post("/api/council-members").send({
@@ -10,8 +11,8 @@ async function createMember(agent: TestAgent, firstName: string) {
     role: "councillor",
     termStartedOn: "2026-03-22",
   });
-  expect(response.status, `${JSON.stringify(response.body)} ${response.text}`).toBe(201);
-  return response.body as { id: string };
+  expect(response.status, `${JSON.stringify(domainBody(response))} ${response.text}`).toBe(201);
+  return domainBody(response) as { id: string };
 }
 
 async function createMeeting(agent: TestAgent) {
@@ -21,10 +22,17 @@ async function createMeeting(agent: TestAgent) {
     location: "Council chamber",
   });
   expect(response.status).toBe(201);
-  return response.body as { id: string };
+  return domainBody(response) as { id: string };
 }
 
 describe("council meeting invariants", () => {
+  it("computes the three clear days of a second notice from local calendar dates", () => {
+    expect(hasThreeClearDays("2026-09-10T23:59:00+02:00", "2026-09-14T00:00:00+02:00")).toBe(true);
+    expect(hasThreeClearDays("2026-09-10T00:01:00+02:00", "2026-09-13T23:59:00+02:00")).toBe(false);
+    expect(hasThreeClearDays("2026-09-10T12:00:00+02:00", "2026-09-09T18:30:00+02:00")).toBe(false);
+    expect(hasThreeClearDays("2026-03-27T23:30:00+01:00", "2026-03-31T00:00:00+02:00")).toBe(true);
+  });
+
   it("freezes the serving council when the meeting is scheduled", async () => {
     const { agent } = await createTestServer();
     const first = await createMember(agent, "Alice");
@@ -39,13 +47,13 @@ describe("council meeting invariants", () => {
       .put(`/api/council-meetings/${meeting.id}/attendance`)
       .send({ memberId: lateMember.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null });
     expect(rejectedAttendance.status).toBe(404);
-    expect(rejectedAttendance.body.code).toBe("council_member_not_found");
+    expect(domainBody(rejectedAttendance).code).toBe("council_member_not_found");
 
     const firstAttendance = await agent
       .put(`/api/council-meetings/${meeting.id}/attendance`)
       .send({ memberId: first.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
       .expect(200);
-    expect(firstAttendance.body.version).toBe(1);
+    expect(domainBody(firstAttendance).version).toBe(1);
     const updatedAttendance = await agent
       .put(`/api/council-meetings/${meeting.id}/attendance`)
       .send({
@@ -56,7 +64,7 @@ describe("council meeting invariants", () => {
         expectedVersion: 1,
       })
       .expect(200);
-    expect(updatedAttendance.body.version).toBe(2);
+    expect(domainBody(updatedAttendance).version).toBe(2);
     const staleUpdate = await agent.put(`/api/council-meetings/${meeting.id}/attendance`).send({
       memberId: first.id,
       status: "present",
@@ -65,10 +73,10 @@ describe("council meeting invariants", () => {
       expectedVersion: 1,
     });
     expect(staleUpdate.status).toBe(409);
-    expect(staleUpdate.body.code).toBe("conflict");
+    expect(domainBody(staleUpdate).code).toBe("conflict");
     const aggregate = await agent.get(`/api/council-meetings/${meeting.id}`).expect(200);
-    expect(aggregate.body.rosterMemberIds).toHaveLength(3);
-    expect(aggregate.body.quorum).toMatchObject({
+    expect(domainBody(aggregate).rosterMemberIds).toHaveLength(3);
+    expect(domainBody(aggregate).quorum).toMatchObject({
       activeMembers: 3,
       physicallyPresent: 0,
       required: 2,
@@ -90,7 +98,10 @@ describe("council meeting invariants", () => {
         report: "",
       })
       .expect(201);
-    await agent.post(`/api/topics/${topic.body.id}/schedule`).send({ meetingId: meeting.id, position: 1 }).expect(201);
+    await agent
+      .post(`/api/topics/${domainBody(topic).id}/schedule`)
+      .send({ meetingId: meeting.id, position: 1 })
+      .expect(201);
     await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
     await agent
       .put(`/api/council-meetings/${meeting.id}/attendance`)
@@ -98,30 +109,47 @@ describe("council meeting invariants", () => {
       .expect(200);
     const incompleteFailure = await agent.post(`/api/council-meetings/${meeting.id}/quorum-failure`);
     expect(incompleteFailure.status).toBe(409);
-    expect(incompleteFailure.body.code).toBe("attendance_incomplete");
+    expect(domainBody(incompleteFailure).code).toBe("attendance_incomplete");
     for (const memberId of [second.id, third.id]) {
       const absentAttendance = await agent
         .put(`/api/council-meetings/${meeting.id}/attendance`)
         .send({ memberId, status: "absent", proxyHolderMemberId: null, proxyDocumentId: null });
-      expect(absentAttendance.status, JSON.stringify(absentAttendance.body)).toBe(200);
+      expect(absentAttendance.status, JSON.stringify(domainBody(absentAttendance))).toBe(200);
     }
 
     const reconvenedInput = {
       title: "Reconvened council meeting",
-      startsAt: "2026-09-12T18:30:00+02:00",
+      startsAt: "2026-09-14T00:00:00+02:00",
+      meetingNoticeSentAt: "2026-09-10T23:59:00+02:00",
       location: "Council chamber",
     };
     const prematureReconvocation = await agent
       .post(`/api/council-meetings/${meeting.id}/reconvene`)
       .send(reconvenedInput);
     expect(prematureReconvocation.status).toBe(409);
-    expect(prematureReconvocation.body.code).toBe("invalid_meeting_transition");
+    expect(domainBody(prematureReconvocation).code).toBe("invalid_meeting_transition");
 
     const failure = await agent.post(`/api/council-meetings/${meeting.id}/quorum-failure`).expect(201);
-    expect(failure.body.quorumFailure).toMatchObject({
+    expect(domainBody(failure).quorumFailure).toMatchObject({
       rosterMemberIds: expect.arrayContaining([first.id, second.id, third.id]),
       quorum: { activeMembers: 3, physicallyPresent: 1, required: 2, reached: false },
     });
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/reconvene`)
+      .send({ ...reconvenedInput, startsAt: "2026-09-13T23:59:00+02:00" })
+      .expect(409);
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/reconvene`)
+      .send({ ...reconvenedInput, startsAt: "2026-09-09T18:30:00+02:00" })
+      .expect(409);
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/reconvene`)
+      .send({
+        ...reconvenedInput,
+        meetingNoticeSentAt: "2020-01-01T12:00:00+01:00",
+        startsAt: "2026-09-14T00:00:00+02:00",
+      })
+      .expect(409);
 
     const lateTopic = await agent
       .post("/api/topics")
@@ -129,27 +157,27 @@ describe("council meeting invariants", () => {
       .expect(201);
 
     const [lateAgenda, reconvened] = await Promise.all([
-      agent.post(`/api/topics/${lateTopic.body.id}/schedule`).send({ meetingId: meeting.id, position: 2 }),
+      agent.post(`/api/topics/${domainBody(lateTopic).id}/schedule`).send({ meetingId: meeting.id, position: 2 }),
       agent.post(`/api/council-meetings/${meeting.id}/reconvene`).send(reconvenedInput),
     ]);
     expect(lateAgenda.status).toBe(409);
-    expect(lateAgenda.body.code).toBe("agenda_inconsistent");
+    expect(domainBody(lateAgenda).code).toBe("agenda_inconsistent");
     expect(reconvened.status).toBe(201);
-    expect(reconvened.body).toMatchObject({
+    expect(domainBody(reconvened)).toMatchObject({
       status: "scheduled",
       isReconvenedMeeting: true,
       previousMeetingId: meeting.id,
     });
-    expect(typeof reconvened.body.id, JSON.stringify(reconvened.body)).toBe("string");
+    expect(typeof domainBody(reconvened).id, JSON.stringify(domainBody(reconvened))).toBe("string");
 
-    const aggregate = await agent.get(`/api/council-meetings/${reconvened.body.id}`).expect(200);
-    expect(aggregate.body.rosterMemberIds).toHaveLength(3);
-    expect(aggregate.body.agendaItems).toHaveLength(1);
-    expect(aggregate.body.quorum.reached).toBe(true);
+    const aggregate = await agent.get(`/api/council-meetings/${domainBody(reconvened).id}`).expect(200);
+    expect(domainBody(aggregate).rosterMemberIds).toHaveLength(3);
+    expect(domainBody(aggregate).agendaItems).toHaveLength(1);
+    expect(domainBody(aggregate).quorum.reached).toBe(true);
     const previous = await agent.get(`/api/council-meetings/${meeting.id}`).expect(200);
-    expect(previous.body.meeting.status).toBe("closed");
-    expect(previous.body.meeting.quorumFailure.recordedAt).toBeTruthy();
-    expect(previous.body.agendaItems[0]).toMatchObject({ status: "postponed" });
+    expect(domainBody(previous).meeting.status).toBe("closed");
+    expect(domainBody(previous).meeting.quorumFailure.recordedAt).toBeTruthy();
+    expect(domainBody(previous).agendaItems[0]).toMatchObject({ status: "postponed" });
   });
 
   it("requires roster officers before a meeting starts", async () => {
@@ -169,8 +197,8 @@ describe("council meeting invariants", () => {
     const incompleteAttendance = await agent
       .put(`/api/council-meetings/${meeting.id}/status`)
       .send({ status: "inProgress" });
-    expect(incompleteAttendance.status, JSON.stringify(incompleteAttendance.body)).toBe(409);
-    expect(incompleteAttendance.body.code).toBe("attendance_incomplete");
+    expect(incompleteAttendance.status, JSON.stringify(domainBody(incompleteAttendance))).toBe(409);
+    expect(domainBody(incompleteAttendance).code).toBe("attendance_incomplete");
 
     await agent
       .put(`/api/council-meetings/${meeting.id}/attendance`)
@@ -180,8 +208,8 @@ describe("council meeting invariants", () => {
     const missingOfficers = await agent
       .put(`/api/council-meetings/${meeting.id}/status`)
       .send({ status: "inProgress" });
-    expect(missingOfficers.status, JSON.stringify(missingOfficers.body)).toBe(409);
-    expect(missingOfficers.body.code).toBe("meeting_officers_required");
+    expect(missingOfficers.status, JSON.stringify(domainBody(missingOfficers))).toBe(409);
+    expect(domainBody(missingOfficers).code).toBe("meeting_officers_required");
 
     await agent
       .put(`/api/council-meetings/${meeting.id}/officers`)
@@ -191,7 +219,7 @@ describe("council meeting invariants", () => {
       .put(`/api/council-meetings/${meeting.id}/status`)
       .send({ status: "inProgress" })
       .expect(200);
-    expect(opened.body).toMatchObject({ chairMemberId: chair.id, secretaryMemberId: secretary.id });
+    expect(domainBody(opened)).toMatchObject({ chairMemberId: chair.id, secretaryMemberId: secretary.id });
   });
 
   it("requires the chair and secretary to be physically present before a meeting starts", async () => {
@@ -217,8 +245,8 @@ describe("council meeting invariants", () => {
       .expect(200);
 
     const opened = await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "inProgress" });
-    expect(opened.status, JSON.stringify(opened.body)).toBe(409);
-    expect(opened.body.code).toBe("meeting_officers_required");
+    expect(opened.status, JSON.stringify(domainBody(opened))).toBe(409);
+    expect(domainBody(opened).code).toBe("meeting_officers_required");
   });
 
   it("requires a complete attendance sheet before opening a reconvened meeting", async () => {
@@ -243,16 +271,19 @@ describe("council meeting invariants", () => {
       .post(`/api/council-meetings/${meeting.id}/reconvene`)
       .send({
         title: "Reconvened council meeting",
-        startsAt: "2026-09-12T18:30:00+02:00",
+        startsAt: "2026-09-14T18:30:00+02:00",
+        meetingNoticeSentAt: "2026-09-10T18:30:00+02:00",
         location: "Council chamber",
         chairMemberId: chair.id,
         secretaryMemberId: secretary.id,
       })
       .expect(201);
 
-    const opened = await agent.put(`/api/council-meetings/${reconvened.body.id}/status`).send({ status: "inProgress" });
-    expect(opened.status, JSON.stringify(opened.body)).toBe(409);
-    expect(opened.body.code).toBe("attendance_incomplete");
+    const opened = await agent
+      .put(`/api/council-meetings/${domainBody(reconvened).id}/status`)
+      .send({ status: "inProgress" });
+    expect(opened.status, JSON.stringify(domainBody(opened))).toBe(409);
+    expect(domainBody(opened).code).toBe("attendance_incomplete");
   });
 
   it("returns proxy_invalid when one member would carry two proxies", async () => {
@@ -260,11 +291,16 @@ describe("council meeting invariants", () => {
     const holder = await createMember(agent, "Alice");
     const firstPrincipal = await createMember(agent, "Benoît");
     const secondPrincipal = await createMember(agent, "Claire");
+    const secondHolder = await createMember(agent, "David");
     const meeting = await createMeeting(agent);
     await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
     await agent
       .put(`/api/council-meetings/${meeting.id}/attendance`)
       .send({ memberId: holder.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
+      .expect(200);
+    await agent
+      .put(`/api/council-meetings/${meeting.id}/attendance`)
+      .send({ memberId: secondHolder.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
       .expect(200);
     const uploadProxy = () =>
       agent
@@ -280,17 +316,25 @@ describe("council meeting invariants", () => {
         memberId: firstPrincipal.id,
         status: "represented",
         proxyHolderMemberId: holder.id,
-        proxyDocumentId: firstDocument.body.id,
+        proxyDocumentId: domainBody(firstDocument).id,
       })
       .expect(200);
     const duplicate = await agent.put(`/api/council-meetings/${meeting.id}/attendance`).send({
       memberId: secondPrincipal.id,
       status: "represented",
       proxyHolderMemberId: holder.id,
-      proxyDocumentId: secondDocument.body.id,
+      proxyDocumentId: domainBody(secondDocument).id,
     });
     expect(duplicate.status).toBe(400);
-    expect(duplicate.body.code).toBe("proxy_invalid");
+    expect(domainBody(duplicate).code).toBe("proxy_invalid");
+    const reusedWrittenProxy = await agent.put(`/api/council-meetings/${meeting.id}/attendance`).send({
+      memberId: secondPrincipal.id,
+      status: "represented",
+      proxyHolderMemberId: secondHolder.id,
+      proxyDocumentId: domainBody(firstDocument).id,
+    });
+    expect(reusedWrittenProxy.status).toBe(400);
+    expect(domainBody(reusedWrittenProxy).code).toBe("proxy_invalid");
   });
 
   it("rolls back every repository change in a failed unit of work", async () => {
@@ -317,23 +361,22 @@ describe("council meeting invariants", () => {
       .expect(201);
     const topic = {
       kind: "subject",
-      councilDecisionId: decision.body.id,
+      councilDecisionId: domainBody(decision).id,
       title: "Unique decision topic",
       report: "",
     };
     await agent.post("/api/topics").send(topic).expect(201);
     const duplicate = await agent.post("/api/topics").send(topic);
     expect(duplicate.status).toBe(409);
-    expect(duplicate.body).toEqual({ code: "conflict" });
+    expect(domainBody(duplicate)).toMatchObject({ code: "conflict", status: 409 });
   });
 
-  it("protects the administrative API when a shared-server token is configured", async () => {
-    const { agent } = await createTestServer("shared-secret");
+  it("protects the administrative API when development access is disabled", async () => {
+    const { agent } = await createTestServer({ devAutoLogin: false });
     await agent.get("/api/health").expect(200);
     const unauthorized = await agent.get("/api/council-members");
     expect(unauthorized.status).toBe(401);
-    expect(unauthorized.body.code).toBe("authentication_required");
-    await agent.get("/api/council-members").set("Authorization", "Bearer shared-secret").expect(200);
+    expect(domainBody(unauthorized).code).toBe("authentication_required");
   });
 
   it("rejects a non-loopback listener without authentication and a TLS proxy", () => {
@@ -343,8 +386,8 @@ describe("council meeting invariants", () => {
         host: "0.0.0.0",
         port: 3100,
         databasePath: ":memory:",
-        apiToken: "shared-secret",
         behindTlsProxy: true,
+        bootstrapToken: "jeton-initialisation-partage-2026",
       }),
     ).not.toThrow();
   });

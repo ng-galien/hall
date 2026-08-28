@@ -1,6 +1,7 @@
-import { BuildingGovernmentRegular, PanelLeftContractRegular, PanelLeftExpandRegular } from "@fluentui/react-icons";
+import { PanelLeftContractRegular, PanelLeftExpandRegular } from "@fluentui/react-icons";
 import { useApplicationStatus } from "../hooks/useApplicationData";
 import { useI18n } from "../i18n/I18nProvider";
+import { HeaderBreadcrumb } from "./HeaderBreadcrumb";
 
 interface AppHeaderProps {
   compact: boolean;
@@ -40,9 +41,8 @@ export function AppHeader({ compact, onToggleSidebar }: AppHeaderProps) {
         <span className="text-sm font-bold tracking-brand text-text">{t("app.name")}</span>
       </a>
 
-      <div className="flex min-w-0 items-center gap-2 text-sm text-muted">
-        <BuildingGovernmentRegular className="text-base" />
-        <span className="truncate">{t("app.subtitle")}</span>
+      <div className="flex min-w-0 items-center">
+        <HeaderBreadcrumb />
       </div>
 
       <div

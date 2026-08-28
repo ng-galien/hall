@@ -34,16 +34,20 @@
   --mairie-color-danger-surface: #fdf0f0;
   --mairie-color-danger-surface-strong: #b42323;
   --mairie-color-focus: #4f73d9;
-  --mairie-color-ink: #0d0f2e;
-  --mairie-color-ink-raised: #171a45;
-  --mairie-color-ink-hover: #222663;
-  --mairie-color-ink-border: #2e3277;
-  --mairie-color-ink-text: #f4f5ff;
-  --mairie-color-ink-text-muted: #9ea3d9;
-  --mairie-color-ink-accent: #9ba0ff;
-  --mairie-color-success-on-ink: #62d395;
-  --mairie-color-danger-on-ink: #ff8f8f;
-  --mairie-color-warning-on-ink: #f2c672;
+  /* Couche « ink » du mode séance : alignée sur le thème clair.
+     Pour revenir à un mode séance sombre, il suffit de redéfinir ces dix tokens. */
+  --mairie-color-ink: var(--mairie-color-canvas);
+  --mairie-color-ink-raised: var(--mairie-color-surface);
+  --mairie-color-ink-hover: var(--mairie-color-surface-selected);
+  --mairie-color-ink-border: var(--mairie-color-border);
+  --mairie-color-ink-text: var(--mairie-color-text);
+  --mairie-color-ink-text-muted: var(--mairie-color-text-muted);
+  --mairie-color-ink-accent: var(--mairie-color-brand);
+  --mairie-color-on-ink-accent: var(--mairie-color-on-brand);
+  --mairie-color-ink-accent-hover: var(--mairie-color-brand-hover);
+  --mairie-color-success-on-ink: var(--mairie-color-success);
+  --mairie-color-danger-on-ink: var(--mairie-color-danger);
+  --mairie-color-warning-on-ink: var(--mairie-color-warning);
   --mairie-color-verdict-adopted: var(--mairie-color-success);
   --mairie-color-verdict-adopted-strong: var(--mairie-color-success-strong);
   --mairie-color-verdict-adopted-surface: var(--mairie-color-success-surface);
@@ -161,6 +165,17 @@
   --mairie-size-overlay-height: 88vh;
   --mairie-size-scrollbar: 10px;
   --mairie-size-scrollbar-border: 3px;
+  --mairie-size-tree-toggle: 24px;
+  --mairie-size-workspace-list: 320px;
+  --mairie-size-toolbar-attach: 420px;
+  --mairie-size-glyph: 28px;
+  --mairie-size-glyph-large: 40px;
+  --mairie-size-picker-panel: 360px;
+  --mairie-size-picker-panel-max: 380px;
+  --mairie-size-tree-max: 40vh;
+  --mairie-size-facet-label: 88px;
+  --mairie-size-hit-card: 260px;
+  --mairie-size-pin-title: 180px;
   --mairie-motion-distance: 3px;
   --mairie-motion-ultra-fast: 50ms;
   --mairie-motion-faster: 100ms;
@@ -174,5 +189,7 @@
   --mairie-opacity-empty-state: 60%;
   --mairie-opacity-backdrop: 42%;
   --mairie-z-content: 1;
+  --mairie-z-overlay: 40;
+  --mairie-z-popover: 50;
   --mairie-z-modal: 100;
 }

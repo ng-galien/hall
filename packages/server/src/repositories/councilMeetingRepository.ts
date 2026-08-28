@@ -53,8 +53,8 @@ export function createCouncilMeetingRepository({
         const now = new Date().toISOString();
         database
           .prepare(`INSERT INTO council_meetings
-            (id, title, starts_at, location, chair_member_id, secretary_member_id, is_reconvened_meeting, previous_meeting_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+            (id, title, starts_at, location, chair_member_id, secretary_member_id, meeting_notice_sent_at, is_reconvened_meeting, previous_meeting_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
           .run(
             id,
             input.title,
@@ -62,6 +62,7 @@ export function createCouncilMeetingRepository({
             input.location,
             input.chairMemberId ?? null,
             input.secretaryMemberId ?? null,
+            input.meetingNoticeSentAt ?? null,
             input.isReconvenedMeeting ? 1 : 0,
             input.previousMeetingId ?? null,
             now,

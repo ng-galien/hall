@@ -108,10 +108,13 @@ export interface AgendaItem {
   topic: Topic;
   meetingId: Identifier;
   position: number;
+  /** Point ajouté après l'ouverture : consultable et examinable, mais non soumis au vote. */
+  addedDuringSession: boolean;
   discussionSummary: string;
   status: AgendaItemStatus;
   startedAt: IsoDateTime | null;
   completedAt: IsoDateTime | null;
+  councilDecisionSnapshot: Pick<CouncilDecision, "id" | "title" | "draftText"> | null;
 }
 
 export type Topic = SubjectTopic | MinutesApprovalTopic | OpenQuestionTopic;
@@ -148,7 +151,6 @@ export interface CouncilDecision {
   number: string | null;
   title: string;
   draftText: string;
-  decisionText: string;
   status: CouncilDecisionStatus;
   legalityReviewRequired: boolean;
   submittedForLegalityReviewAt: IsoDateTime | null;
@@ -205,6 +207,7 @@ export type Ballot = PublicBallot | SecretBallot;
 
 export interface MeetingAggregate {
   meeting: CouncilMeeting;
+  activeMemberCount: number;
   rosterMemberIds: Identifier[];
   attendance: Attendance[];
   agendaItems: AgendaItem[];
@@ -227,4 +230,6 @@ export interface TopicDetails {
 export interface ResourceDetails {
   resource: Resource;
   topics: Topic[];
+  snapshotted: boolean;
+  usedAsProxy: boolean;
 }

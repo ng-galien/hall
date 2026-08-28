@@ -8,18 +8,18 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/Ui";
 import { useI18n } from "../i18n/I18nProvider";
-import { useCaseFilesStore } from "../stores/caseFilesStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
-import { useDocumentsStore } from "../stores/documentsStore";
+import { useResourcesStore } from "../stores/resourcesStore";
+import { useTopicsStore } from "../stores/topicsStore";
 
 export function DashboardPage() {
   const { t, formatDate, formatNumber } = useI18n();
   const { meetings, error: meetingsError } = useCouncilMeetingsStore();
-  const { caseFiles, error: caseFilesError } = useCaseFilesStore();
+  const { topics, error: topicsError } = useTopicsStore();
   const { councilDecisions, error: decisionsError } = useCouncilDecisionsStore();
-  const { documents, error: documentsError } = useDocumentsStore();
-  const error = meetingsError || caseFilesError || decisionsError || documentsError;
+  const { resources, error: resourcesError } = useResourcesStore();
+  const error = meetingsError || topicsError || decisionsError || resourcesError;
   const nextMeeting = [...meetings]
     .filter((item) => new Date(item.startsAt) >= new Date())
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
@@ -38,10 +38,10 @@ export function DashboardPage() {
           />
           <Metric
             icon={<BoardRegular />}
-            value={formatNumber(caseFiles.filter((item) => item.status !== "archived").length)}
-            label={t("dashboard.activeCaseFiles")}
+            value={formatNumber(topics.filter((topic) => ["toSchedule", "scheduled"].includes(topic.state)).length)}
+            label={t("dashboard.activeTopics")}
             detail={t("dashboard.preparationAndTracking")}
-            to="/case-files"
+            to="/workspace"
           />
           <Metric
             icon={<TextBulletListSquareRegular />}
@@ -52,10 +52,10 @@ export function DashboardPage() {
           />
           <Metric
             icon={<DocumentRegular />}
-            value={formatNumber(documents.length)}
-            label={t("dashboard.documents")}
-            detail={t("dashboard.attachedDocuments")}
-            to="/documents"
+            value={formatNumber(resources.length)}
+            label={t("dashboard.resources")}
+            detail={t("dashboard.attachedResources")}
+            to="/workspace"
           />
         </div>
       </div>

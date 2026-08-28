@@ -1,4 +1,4 @@
-import { Button, Field, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, Tooltip } from "@fluentui/react-components";
+import { Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, Tooltip } from "@fluentui/react-components";
 import {
   AddRegular,
   CheckmarkRegular,
@@ -14,8 +14,9 @@ import type {
   AgendaItem,
   BallotMethod,
   CouncilMember,
-  DocumentMetadata,
+  DocumentResource,
   MeetingAggregate,
+  TextResource,
   VoteChoice,
 } from "@mairie/domain";
 import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useState } from "react";
@@ -25,13 +26,13 @@ import { Input, Modal } from "../../../components/Ui";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import { useI18n } from "../../../i18n/I18nProvider";
-import { useCaseFilesStore } from "../../../stores/caseFilesStore";
-import { useCouncilDecisionsStore } from "../../../stores/councilDecisionsStore";
-import { useDocumentsStore } from "../../../stores/documentsStore";
-import { agendaKindKeys } from "../AgendaComposer";
-import { pendingBallotDecisions } from "../ballotDecisionPolicy";
+import { getCouncilMeeting } from "../../../services/councilMeetingsApi";
+import { useResourcesStore } from "../../../stores/resourcesStore";
+import { topicKindKeys } from "../AgendaComposer";
+import { agendaItemDecisionId, pendingBallotDecisions } from "../ballotDecisionPolicy";
 import { councilMemberName } from "../ballotParticipants";
 import { MeetingDocumentViewer } from "../MeetingDocumentViewer";
+import { MeetingProceedings } from "../MeetingProceedings";
 import type { SecretBallotTotals } from "../secretBallotTotals";
 import { VotePanel } from "./VotePanel";
 
@@ -71,9 +72,7 @@ export function ConductView({
 }) {
   const { t, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
-  const { caseFiles } = useCaseFilesStore();
-  const { councilDecisions } = useCouncilDecisionsStore();
-  const { documents, download } = useDocumentsStore();
+  const { download } = useResourcesStore();
   const orderedItems = useMemo(
     () => [...aggregate.agendaItems].sort((left, right) => left.position - right.position),
     [aggregate.agendaItems],
@@ -89,7 +88,18 @@ export function ConductView({
     assignments: Partial<Record<string, VoteChoice>>;
     secretTotals: SecretBallotTotals;
   } | null>(null);
-  const [viewedDocument, setViewedDocument] = useState<DocumentMetadata | null>(null);
+  const [viewedDocument, setViewedDocument] = useState<DocumentResource | null>(null);
+  const [viewedText, setViewedText] = useState<TextResource | null>(null);
+  const [minutesAggregate, setMinutesAggregate] = useState<MeetingAggregate | null>(null);
+  const [minutesOpen, setMinutesOpen] = useState(false);
+
+  const openMinutes = (meetingId: string) => {
+    setMinutesOpen(true);
+    if (minutesAggregate?.meeting.id !== meetingId) {
+      setMinutesAggregate(null);
+      void getCouncilMeeting(meetingId).then(setMinutesAggregate, () => setMinutesOpen(false));
+    }
+  };
   const [closeConfirming, setCloseConfirming] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [railCollapsed, setRailCollapsed] = useState(false);
@@ -119,13 +129,16 @@ export function ConductView({
     window.addEventListener("pointerup", onUp);
   };
 
-  const ballotForItem = (item: AgendaItem) =>
-    aggregate.ballots.find(
-      (ballot) =>
-        !ballot.cancelledAt &&
-        (ballot.agendaItemId === item.id ||
-          (item.councilDecisionId && ballot.councilDecisionId === item.councilDecisionId)),
-    ) ?? null;
+  const ballotForItem = (item: AgendaItem) => {
+    const decisionId = agendaItemDecisionId(item);
+    return (
+      aggregate.ballots.find(
+        (ballot) =>
+          !ballot.cancelledAt &&
+          (ballot.agendaItemId === item.id || (decisionId && ballot.councilDecisionId === decisionId)),
+      ) ?? null
+    );
+  };
 
   const selectedItem =
     orderedItems.find((item) => item.id === selectedItemId) ?? activeItem ?? nextItem ?? orderedItems.at(-1) ?? null;
@@ -162,21 +175,17 @@ export function ConductView({
     );
   }
 
-  const selectedDecision = selectedItem.councilDecisionId
-    ? (aggregate.councilDecisions.find((decision) => decision.id === selectedItem.councilDecisionId) ?? null)
+  const selectedDecisionId = agendaItemDecisionId(selectedItem);
+  const selectedDecision = selectedDecisionId
+    ? (aggregate.councilDecisions.find((decision) => decision.id === selectedDecisionId) ?? null)
     : null;
   const selectedBallot = ballotForItem(selectedItem);
-  const selectedCaseFile = selectedItem.caseFileId
-    ? (caseFiles.find((caseFile) => caseFile.id === selectedItem.caseFileId) ?? null)
-    : null;
-  const itemDocuments = selectedItem.caseFileId
-    ? documents.filter((document) => document.caseFileId === selectedItem.caseFileId)
-    : [];
+  const itemResources = selectedItem.topic.resources;
   const isActive = Boolean(selectedItem.startedAt && !selectedItem.completedAt);
   const isNext = !activeItem && nextItem?.id === selectedItem.id;
   const remainingCount = orderedItems.filter((item) => !item.completedAt).length;
 
-  const completeItem = (status: "discussed" | "postponed" | "withdrawn") =>
+  const completeItem = (status: "examined" | "postponed" | "withdrawn") =>
     run(async () => {
       const completed = await meetingActions.completeAgendaItem(selectedItem.id, {
         discussionSummary: notes,
@@ -186,17 +195,11 @@ export function ConductView({
       return completed;
     });
 
-  const scheduledDecisionIds = new Set(
-    aggregate.agendaItems.flatMap((item) => (item.councilDecisionId ? [item.councilDecisionId] : [])),
-  );
-  const candidateDecisions = councilDecisions.filter(
-    (decision) => !scheduledDecisionIds.has(decision.id) && ["draft", "ready"].includes(decision.status),
-  );
   const endPosition = Math.max(0, ...orderedItems.map((item) => item.position)) + 1;
 
-  const addSessionItem = (input: Record<string, unknown>) =>
+  const createSessionTopic = (input: Record<string, unknown>) =>
     run(async () => {
-      const added = await meetingActions.addAgendaItem(input);
+      const added = await meetingActions.createAndScheduleTopic(input, endPosition);
       if (added) setAddItemOpen(false);
       return added;
     });
@@ -265,12 +268,32 @@ export function ConductView({
           </button>
         </div>
         <ol className="conduct-timeline">
+          {aggregate.meeting.openedAt ? (
+            <li className="conduct-step conduct-step-done">
+              <div className="conduct-step-button conduct-step-static">
+                <span className="conduct-step-marker" aria-hidden="true">
+                  <CheckmarkRegular />
+                </span>
+                {!railCollapsed ? (
+                  <span className="conduct-step-copy">
+                    <strong>{t("live.openingStep")}</strong>
+                    <span>
+                      {formatTime(aggregate.meeting.openedAt)}
+                      {aggregate.meeting.chairMemberId
+                        ? ` · ${councilMemberName(members, aggregate.meeting.chairMemberId)}`
+                        : ""}
+                    </span>
+                  </span>
+                ) : null}
+              </div>
+            </li>
+          ) : null}
           {orderedItems.map((item, index) => {
             const itemActive = Boolean(item.startedAt && !item.completedAt);
             const itemDone = Boolean(item.completedAt);
             const state = itemActive ? "active" : itemDone ? "done" : "upcoming";
             const itemBallot = ballotForItem(item);
-            const voteRequired = Boolean(item.councilDecisionId) && !itemBallot && !itemDone;
+            const voteRequired = Boolean(agendaItemDecisionId(item)) && !itemBallot && !itemDone;
             const stepButton = (
               <button
                 className={`conduct-step-button${selectedItem.id === item.id ? " conduct-step-selected" : ""}`}
@@ -283,7 +306,7 @@ export function ConductView({
                 </span>
                 {!railCollapsed ? (
                   <span className="conduct-step-copy">
-                    <strong>{item.title}</strong>
+                    <strong>{item.topic.title}</strong>
                     <span>
                       {item.startedAt ? formatTime(item.startedAt) : t("meeting.subjectUpcoming")}
                       {item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}
@@ -302,7 +325,7 @@ export function ConductView({
                     ) : voteRequired ? (
                       <span className="conduct-step-flag">{t("live.voteRequired")}</span>
                     ) : null}
-                    {itemDone && item.status !== "discussed" ? (
+                    {itemDone && item.status !== "examined" ? (
                       <span className="conduct-step-state">
                         {t(item.status === "postponed" ? "status.postponed" : "status.withdrawn")}
                       </span>
@@ -319,7 +342,7 @@ export function ConductView({
                       className: "step-tooltip",
                       children: (
                         <span className="step-tooltip-body">
-                          <strong>{item.title}</strong>
+                          <strong>{item.topic.title}</strong>
                           <span>
                             {item.startedAt ? formatTime(item.startedAt) : t("meeting.subjectUpcoming")}
                             {item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}
@@ -333,7 +356,7 @@ export function ConductView({
                           ) : voteRequired ? (
                             <span className="step-tooltip-flag">{t("live.voteRequired")}</span>
                           ) : null}
-                          {itemDone && item.status !== "discussed" ? (
+                          {itemDone && item.status !== "examined" ? (
                             <span>{t(item.status === "postponed" ? "status.postponed" : "status.withdrawn")}</span>
                           ) : null}
                         </span>
@@ -341,7 +364,6 @@ export function ConductView({
                     }}
                     relationship="description"
                     positioning="after"
-                    appearance="inverted"
                     withArrow
                   >
                     {stepButton}
@@ -358,6 +380,7 @@ export function ConductView({
             className="conduct-rail-tool"
             type="button"
             title={railCollapsed ? t("live.addItem") : undefined}
+            disabled={!meetingActions.can("meeting.add-late-topic")}
             onClick={() => setAddItemOpen(true)}
           >
             <AddRegular aria-hidden="true" />
@@ -367,6 +390,7 @@ export function ConductView({
             className="conduct-rail-tool"
             type="button"
             title={railCollapsed ? t("live.adjustAttendance") : undefined}
+            disabled={!meetingActions.can("meeting.record-attendance")}
             onClick={onShowRollCall}
           >
             <PeopleRegular aria-hidden="true" />
@@ -375,7 +399,7 @@ export function ConductView({
           <button
             className={`conduct-rail-tool conduct-rail-close${closeConfirming ? " conduct-rail-close-confirm" : ""}`}
             type="button"
-            disabled={submitting}
+            disabled={submitting || !meetingActions.can("meeting.close")}
             title={railCollapsed ? t("meeting.action.close") : undefined}
             onClick={closeMeeting}
             onBlur={() => setCloseConfirming(false)}
@@ -394,7 +418,6 @@ export function ConductView({
           </button>
         </div>
         {!railCollapsed ? (
-          // biome-ignore lint/a11y/noStaticElementInteractions: pointer-only resize handle; keyboard users use the collapse toggle
           <div className="conduct-rail-resizer" aria-hidden="true" onPointerDown={startRailResize} />
         ) : null}
       </aside>
@@ -403,10 +426,10 @@ export function ConductView({
         <header className="conduct-stage-header">
           <span className="live-eyebrow">
             {t("live.itemEyebrow").replace("{position}", formatNumber(selectedItem.position))} ·{" "}
-            {t(agendaKindKeys[selectedItem.kind])}
-            {selectedCaseFile ? ` · ${selectedCaseFile.reference}` : ""}
+            {t(topicKindKeys[selectedItem.topic.kind])}
+            {selectedItem.topic.folderPath ? ` · ${selectedItem.topic.folderPath}` : ""}
           </span>
-          <h1 id="conduct-item-title">{selectedItem.title}</h1>
+          <h1 id="conduct-item-title">{selectedItem.topic.title}</h1>
           {isActive && selectedItem.startedAt ? (
             <div className="conduct-timer" role="timer">
               <span className="live-indicator" aria-hidden="true" />
@@ -416,10 +439,20 @@ export function ConductView({
         </header>
 
         <div className="conduct-stage-body">
-          {selectedItem.report ? (
+          {selectedItem.topic.kind === "minutesApproval" ? (
+            <button
+              className="conduct-document-chip conduct-minutes-link"
+              type="button"
+              onClick={() => openMinutes((selectedItem.topic as { minutesOfMeetingId: string }).minutesOfMeetingId)}
+            >
+              <DocumentRegular aria-hidden="true" />
+              {t("meeting.viewPreviousMeeting")}
+            </button>
+          ) : null}
+          {selectedItem.topic.report ? (
             <details className="conduct-block" open={!voteOpen} key={`report-${selectedItem.id}-${voteOpen}`}>
               <summary>{t("meeting.itemReport")}</summary>
-              <MarkdownView className="conduct-report" markdown={selectedItem.report} />
+              <MarkdownView className="conduct-report" markdown={selectedItem.topic.report} />
             </details>
           ) : null}
 
@@ -440,19 +473,21 @@ export function ConductView({
             </details>
           ) : null}
 
-          {itemDocuments.length > 0 ? (
+          {itemResources.length > 0 ? (
             <details className="conduct-block" open={!voteOpen} key={`documents-${selectedItem.id}-${voteOpen}`}>
               <summary>{t("meeting.supportingDocuments")}</summary>
               <div className="conduct-documents">
-                {itemDocuments.map((document) => (
+                {itemResources.map((resource) => (
                   <button
                     className="conduct-document-chip"
                     type="button"
-                    key={document.id}
-                    onClick={() => setViewedDocument(document)}
+                    key={resource.id}
+                    onClick={() =>
+                      resource.kind === "document" ? setViewedDocument(resource) : setViewedText(resource)
+                    }
                   >
                     <DocumentRegular aria-hidden="true" />
-                    {document.fileName}
+                    {resource.title}
                   </button>
                 ))}
               </div>
@@ -484,6 +519,7 @@ export function ConductView({
 
           {isActive &&
           !selectedBallot &&
+          meetingActions.can("ballot.record") &&
           (selectedDecision
             ? pendingBallotDecisions(aggregate).some((decision) => decision.id === selectedDecision.id)
             : true) ? (
@@ -518,7 +554,7 @@ export function ConductView({
                     </span>
                   </div>
                 </div>
-                {isActive ? (
+                {isActive && meetingActions.can("ballot.cancel", selectedBallot.id) ? (
                   <button
                     className={`conduct-result-revise${reviseConfirming ? " conduct-result-revise-confirm" : ""}`}
                     type="button"
@@ -604,7 +640,7 @@ export function ConductView({
         </div>
 
         <footer className="conduct-stage-actions">
-          {isNext ? (
+          {isNext && meetingActions.can("agenda-item.start", selectedItem.id) ? (
             <button
               className="live-primary-action"
               type="button"
@@ -615,7 +651,7 @@ export function ConductView({
               {t(submitting ? "common.saving" : "meeting.startSubject")}
             </button>
           ) : null}
-          {isActive ? (
+          {isActive && meetingActions.can("agenda-item.complete", selectedItem.id) ? (
             <>
               <Menu>
                 <MenuTrigger disableButtonEnhancement>
@@ -631,8 +667,8 @@ export function ConductView({
               <button
                 className="live-primary-action"
                 type="button"
-                disabled={submitting || (Boolean(selectedItem.councilDecisionId) && !selectedBallot)}
-                onClick={() => void completeItem("discussed")}
+                disabled={submitting || (Boolean(selectedDecisionId) && !selectedBallot)}
+                onClick={() => void completeItem("examined")}
               >
                 <CheckmarkRegular aria-hidden="true" />
                 {t(submitting ? "common.saving" : "meeting.completeAndNext")}
@@ -646,65 +682,24 @@ export function ConductView({
         <Modal open title={t("live.addItemTitle")} onClose={() => setAddItemOpen(false)}>
           <div className="modal-form">
             <p className="text-sm text-muted">{t("live.addItemHint")}</p>
-            {candidateDecisions.length > 0 ? (
-              <section aria-labelledby="session-add-decisions">
-                <h3 className="picker-heading" id="session-add-decisions">
-                  {t("meeting.addDecisionHeading")}
-                </h3>
-                <ul className="composer-decision-list">
-                  {candidateDecisions.map((decision) => (
-                    <li key={decision.id}>
-                      <span className="composer-item-copy">
-                        <strong>{decision.title}</strong>
-                        <span>
-                          {caseFiles.find((caseFile) => caseFile.id === decision.caseFileId)?.reference ??
-                            t("decisions.draft")}
-                        </span>
-                      </span>
-                      <Button
-                        appearance="secondary"
-                        size="small"
-                        icon={<AddRegular />}
-                        disabled={submitting}
-                        onClick={() =>
-                          void addSessionItem({
-                            position: endPosition,
-                            kind: "councilDecision",
-                            title: decision.title,
-                            report: "",
-                            councilDecisionId: decision.id,
-                            caseFileId: decision.caseFileId,
-                          })
-                        }
-                      >
-                        {t("meeting.addToAgenda")}
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
             <form
               onSubmit={(event) => {
                 event.preventDefault();
                 const form = new FormData(event.currentTarget);
-                void addSessionItem({
-                  position: endPosition,
+                void createSessionTopic({
                   kind: form.get("kind"),
                   title: form.get("title"),
                   report: "",
-                  councilDecisionId: null,
-                  caseFileId: null,
+                  folderPath: "",
+                  resourceIds: [],
                 });
               }}
             >
               <h3 className="picker-heading">{t("meeting.addOtherHeading")}</h3>
               <div className="composer-quick-add-fields">
-                <select name="kind" aria-label={t("meeting.type")} defaultValue="question">
-                  <option value="question">{t("agendaKind.question")}</option>
-                  <option value="information">{t("agendaKind.information")}</option>
-                  <option value="election">{t("agendaKind.election")}</option>
-                  <option value="other">{t("agendaKind.other")}</option>
+                <select name="kind" aria-label={t("meeting.type")} defaultValue="openQuestion">
+                  <option value="openQuestion">{t("topicKind.openQuestion")}</option>
+                  <option value="subject">{t("topicKind.subject")}</option>
                 </select>
                 <Input
                   name="title"
@@ -719,6 +714,48 @@ export function ConductView({
             </form>
           </div>
         </Modal>
+      ) : null}
+      {viewedText ? (
+        <Modal open title={viewedText.title} onClose={() => setViewedText(null)}>
+          <MarkdownView className="meeting-material-copy" markdown={viewedText.content} />
+        </Modal>
+      ) : null}
+      {minutesOpen ? (
+        // biome-ignore lint/a11y/noStaticElementInteractions: fermeture au clic sur le voile, Échap via le bouton Fermer
+        <div
+          className="document-viewer-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setMinutesOpen(false);
+          }}
+        >
+          <section
+            className="document-viewer proceedings-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="minutes-overlay-title"
+          >
+            <header>
+              <div>
+                <span>{t("meeting.timeline")}</span>
+                <h2 id="minutes-overlay-title">
+                  {minutesAggregate ? minutesAggregate.meeting.title : t("common.loading")}
+                </h2>
+              </div>
+              <div className="document-viewer-actions">
+                <Button
+                  appearance="subtle"
+                  icon={<DismissRegular />}
+                  aria-label={t("common.close")}
+                  onClick={() => setMinutesOpen(false)}
+                />
+              </div>
+            </header>
+            <div className="proceedings-overlay-content">
+              {minutesAggregate ? <MeetingProceedings aggregate={minutesAggregate} defaultCollapsed /> : null}
+            </div>
+          </section>
+        </div>
       ) : null}
       <MeetingDocumentViewer
         document={viewedDocument}

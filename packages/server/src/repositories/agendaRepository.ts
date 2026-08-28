@@ -11,11 +11,14 @@ const agendaSelection = `SELECT
   agenda_items.id,
   agenda_items.meeting_id,
   agenda_items.position,
+  agenda_items.added_during_session,
   agenda_items.discussion_summary,
   agenda_items.status,
   agenda_items.started_at,
   agenda_items.completed_at,
   agenda_items.snapshot_kind,
+  agenda_items.snapshot_council_decision_title,
+  agenda_items.snapshot_council_decision_draft_text,
   topics.id AS topic_id,
   COALESCE(agenda_items.snapshot_kind, topics.kind) AS topic_kind,
   CASE WHEN agenda_items.snapshot_kind IS NULL THEN topics.council_decision_id ELSE agenda_items.snapshot_council_decision_id END AS topic_council_decision_id,
@@ -66,17 +69,40 @@ const mapAgendaItem = (database: DatabaseSync, row: DatabaseRow): AgendaItem => 
   ),
   meetingId: String(row.meeting_id),
   position: Number(row.position),
+  addedDuringSession: Boolean(row.added_during_session),
   discussionSummary: String(row.discussion_summary),
   status: row.status as AgendaItem["status"],
   startedAt: asNullableString(row.started_at),
   completedAt: asNullableString(row.completed_at),
+  councilDecisionSnapshot:
+    row.topic_council_decision_id && typeof row.snapshot_council_decision_title === "string"
+      ? {
+          id: String(row.topic_council_decision_id),
+          title: String(row.snapshot_council_decision_title),
+          draftText: String(row.snapshot_council_decision_draft_text),
+        }
+      : null,
 });
 
-function snapshotAgendaItem(database: DatabaseSync, itemId: string, state: "inProgress" | "toSchedule" | "withdrawn") {
+function snapshotAgendaItem(
+  database: DatabaseSync,
+  itemId: string,
+  state: "scheduled" | "inProgress" | "toSchedule" | "withdrawn",
+) {
   database
     .prepare(`UPDATE agenda_items SET
       snapshot_kind = (SELECT kind FROM topics WHERE topics.id = agenda_items.topic_id),
       snapshot_council_decision_id = (SELECT council_decision_id FROM topics WHERE topics.id = agenda_items.topic_id),
+      snapshot_council_decision_title = (
+        SELECT council_decisions.title FROM topics
+        JOIN council_decisions ON council_decisions.id = topics.council_decision_id
+        WHERE topics.id = agenda_items.topic_id
+      ),
+      snapshot_council_decision_draft_text = (
+        SELECT council_decisions.draft_text FROM topics
+        JOIN council_decisions ON council_decisions.id = topics.council_decision_id
+        WHERE topics.id = agenda_items.topic_id
+      ),
       snapshot_minutes_of_meeting_id = (SELECT minutes_of_meeting_id FROM topics WHERE topics.id = agenda_items.topic_id),
       snapshot_title = (SELECT title FROM topics WHERE topics.id = agenda_items.topic_id),
       snapshot_report = (SELECT report FROM topics WHERE topics.id = agenda_items.topic_id),
@@ -124,8 +150,10 @@ export function createAgendaRepository({ sqliteExecutor }: { sqliteExecutor: Sql
       return sqliteExecutor.run((database) => {
         const id = randomUUID();
         database
-          .prepare("INSERT INTO agenda_items (id, topic_id, meeting_id, position) VALUES (?, ?, ?, ?)")
-          .run(id, input.topicId, meetingId, input.position);
+          .prepare(
+            "INSERT INTO agenda_items (id, topic_id, meeting_id, position, added_during_session) VALUES (?, ?, ?, ?, ?)",
+          )
+          .run(id, input.topicId, meetingId, input.position, input.addedDuringSession ? 1 : 0);
         return mapAgendaItem(database, database.prepare(`${agendaSelection} WHERE agenda_items.id = ?`).get(id)!);
       });
     },
@@ -189,6 +217,14 @@ export function createAgendaRepository({ sqliteExecutor }: { sqliteExecutor: Sql
           .prepare(`${agendaSelection} WHERE agenda_items.meeting_id = ? ORDER BY agenda_items.position`)
           .all(meetingId)
           .map((row) => mapAgendaItem(database, row));
+      });
+    },
+    snapshotOpenItems(meetingId) {
+      return sqliteExecutor.run((database) => {
+        const rows = database
+          .prepare("SELECT id FROM agenda_items WHERE meeting_id = ? AND completed_at IS NULL")
+          .all(meetingId);
+        for (const row of rows) snapshotAgendaItem(database, String(row.id), "toSchedule");
       });
     },
     copy(sourceMeetingId, targetMeetingId) {

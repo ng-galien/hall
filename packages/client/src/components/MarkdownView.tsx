@@ -15,6 +15,8 @@ const allowedElements = [
   "br",
   "code",
   "pre",
+  "a",
+  "img",
 ];
 
 export function MarkdownView({ markdown, className }: { markdown: string; className?: string }) {

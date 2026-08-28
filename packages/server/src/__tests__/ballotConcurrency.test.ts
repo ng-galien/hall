@@ -234,7 +234,8 @@ describe("ballot concurrency", () => {
     await meetingLifecycleService.recordQuorumFailure(firstMeeting.id);
     const reconvened = await meetingLifecycleService.reconveneMeeting(firstMeeting.id, {
       title: "Reconvened meeting",
-      startsAt: "2026-09-12T18:30:00+02:00",
+      startsAt: "2026-09-14T18:30:00+02:00",
+      meetingNoticeSentAt: "2026-09-10T18:31:00+02:00",
       location: "Council chamber",
       chairMemberId: members[0].id,
       secretaryMemberId: members[1].id,

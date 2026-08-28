@@ -4,7 +4,9 @@ default_rules = false
 patterns = ["dependency", "ownership"]
 components = [
   "domain",
+  "api-contract",
   "server",
+  "authorization@server",
   "persistence@server",
   "composition@server",
   "client",
@@ -25,17 +27,36 @@ uris = [
 [aliases]
 dependency_import_ref = "kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports'"
 domain_source = "source ~ '**/dir:packages/dir:domain/dir:src/**'"
+api_contract_source = "source ~ '**/dir:packages/dir:api-contract/dir:src/**'"
 client_source = "source ~ '**/dir:packages/dir:client/dir:src/**'"
 server_source = "source ~ '**/dir:packages/dir:server/dir:src/**'"
+authorization_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:security/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:api/module:accessControl/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:api/module:sirenRepresentation/**'"
 desktop_source = "source ~ '**/dir:packages/dir:desktop/dir:src/**'"
 persistence_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:repositories/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:sqlite/**'"
 composition_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:core/module:container/**'"
 client_target = "target ~ '**/dir:packages/dir:client/dir:src/**'"
+domain_target = "target ~ '**/dir:packages/dir:domain/dir:src/**'"
+api_contract_target = "target ~ '**/dir:packages/dir:api-contract/dir:src/**'"
 server_target = "target ~ '**/dir:packages/dir:server/dir:src/**'"
 desktop_target = "target ~ '**/dir:packages/dir:desktop/dir:src/**'"
 database_target = "target.name = 'DatabaseSync' OR target ~ '**/dir:infrastructure/dir:sqlite/**'"
 state_machine_at_domain_source = "source ~ '**/dir:packages/dir:domain/dir:src/dir:state-machines/**'"
 state_machine_runtime_target = "target ~ '**/external_pkg:xstate/**'"
+authorization_at_server_permission_catalog_target = "target.name = 'apiPermissions'"
+
+[[refs.where]]
+id = "api-contract-domain-server-client-desktop-dependency-remains-leaf"
+severity = "error"
+rationale = "The API contract is the transport vocabulary shared by server and client. It may depend on generic validation libraries, but importing domain or runtime adapters would turn it into a backdoor coupling layer and prevent either side from evolving behind the Siren boundary."
+expr = "NOT ($api_contract_source AND $dependency_import_ref AND ($domain_target OR $server_target OR $client_target OR $desktop_target))"
+message = "The shared API contract must not import domain or runtime adapters."
+
+[[refs.where]]
+id = "authorization@server-client-server-ownership-of-permission-catalog-is-confined"
+severity = "error"
+rationale = "Roles grant coarse permissions and server-side state projects the currently valid Siren actions. The executable check confines imports of the permission catalog to the server authorization boundary; clients must follow advertised actions instead of rebuilding authorization policy."
+expr = "($server_source OR $client_source) AND (kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports') AND $authorization_at_server_permission_catalog_target => $authorization_at_server_source"
+message = "The permission catalog may only be consumed by the server authorization boundary."
 
 [[refs.where]]
 id = "client-server-dependency-does-not-cross-runtime-boundary"

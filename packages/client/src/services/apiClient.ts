@@ -1,3 +1,13 @@
+import {
+  type ApiActionName,
+  findSirenAction,
+  findSirenLink,
+  PROBLEM_MEDIA_TYPE,
+  SIREN_MEDIA_TYPE,
+  type SirenEntity,
+  sirenData,
+} from "@mairie/api-contract";
+
 export type ApiErrorCode =
   | "agenda_ballot_required"
   | "agenda_inconsistent"
@@ -5,13 +15,18 @@ export type ApiErrorCode =
   | "agenda_sequence_invalid"
   | "attendance_incomplete"
   | "authentication_required"
+  | "permission_denied"
+  | "csrf_validation_failed"
+  | "invalid_credentials"
+  | "too_many_login_attempts"
+  | "bootstrap_unavailable"
+  | "last_administrator_required"
   | "ballot_already_recorded"
   | "ballot_not_found"
-  | "case_file_not_found"
+  | "ballot_voters_invalid"
   | "conflict"
   | "council_decision_not_found"
   | "council_member_not_found"
-  | "document_not_found"
   | "upload_too_large"
   | "invalid_request"
   | "invalid_meeting_transition"
@@ -21,7 +36,12 @@ export type ApiErrorCode =
   | "network_unavailable"
   | "proxy_invalid"
   | "quorum_not_reached"
+  | "request_too_large"
   | "request_failed"
+  | "resource_content_unavailable"
+  | "resource_not_found"
+  | "route_not_found"
+  | "attendance_not_found"
   | "topic_not_found";
 
 export class ApiError extends Error {
@@ -34,6 +54,23 @@ export class ApiError extends Error {
   }
 }
 
+export class SirenCapabilityUnavailable extends Error {
+  constructor(readonly capability: string) {
+    super(`Siren capability is not available: ${capability}`);
+    this.name = "SirenCapabilityUnavailable";
+  }
+}
+
+export const AUTHENTICATION_REQUIRED_EVENT = "mairie:authentication-required";
+
+export function apiPathFromHref(href: string): string {
+  const url = new URL(href, window.location.origin);
+  if (url.origin !== window.location.origin || !url.pathname.startsWith("/api")) {
+    throw new SirenCapabilityUnavailable(href);
+  }
+  return `${url.pathname.slice(4)}${url.search}`;
+}
+
 const apiErrorCodes = new Set<ApiErrorCode>([
   "agenda_ballot_required",
   "agenda_inconsistent",
@@ -41,13 +78,18 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "agenda_sequence_invalid",
   "attendance_incomplete",
   "authentication_required",
+  "permission_denied",
+  "csrf_validation_failed",
+  "invalid_credentials",
+  "too_many_login_attempts",
+  "bootstrap_unavailable",
+  "last_administrator_required",
   "ballot_already_recorded",
   "ballot_not_found",
-  "case_file_not_found",
+  "ballot_voters_invalid",
   "conflict",
   "council_decision_not_found",
   "council_member_not_found",
-  "document_not_found",
   "upload_too_large",
   "invalid_meeting_transition",
   "invalid_request",
@@ -57,7 +99,12 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "network_unavailable",
   "proxy_invalid",
   "quorum_not_reached",
+  "request_too_large",
   "request_failed",
+  "resource_content_unavailable",
+  "resource_not_found",
+  "route_not_found",
+  "attendance_not_found",
   "topic_not_found",
 ]);
 
@@ -68,13 +115,13 @@ export function apiErrorCode(error: unknown): ApiErrorCode {
 export async function apiResponse(path: string, init?: RequestInit): Promise<Response> {
   let response: Response;
   try {
-    const apiToken = getApiToken();
     const headers = new Headers(init?.headers);
+    headers.set("Accept", `${SIREN_MEDIA_TYPE}, ${PROBLEM_MEDIA_TYPE}`);
     if (!(init?.body instanceof FormData)) headers.set("Content-Type", "application/json");
-    if (apiToken) headers.set("Authorization", `Bearer ${apiToken}`);
     response = await fetch(`/api${path}`, {
       ...init,
       headers,
+      credentials: "same-origin",
     });
   } catch {
     throw new ApiError("network_unavailable", 0);
@@ -85,15 +132,88 @@ export async function apiResponse(path: string, init?: RequestInit): Promise<Res
       payload?.code && apiErrorCodes.has(payload.code as ApiErrorCode)
         ? (payload.code as ApiErrorCode)
         : "request_failed";
+    if (code === "authentication_required") {
+      representations.clear();
+      window.dispatchEvent(new Event(AUTHENTICATION_REQUIRED_EVENT));
+    }
     throw new ApiError(code, response.status);
   }
   return response;
 }
 
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await apiResponse(path, init);
-  if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  return (await apiSirenRequest<T>(path, init)).data;
 }
 
-import { getApiToken } from "./apiAccess";
+export interface SirenApiResult<T> {
+  data: T;
+  representation: SirenEntity<Record<string, unknown>> | null;
+}
+
+const representations = new Map<string, SirenEntity<Record<string, unknown>>>();
+
+function cacheRepresentation(
+  path: string,
+  representation: SirenEntity<Record<string, unknown>>,
+  cacheRequestPath: boolean,
+): void {
+  if (cacheRequestPath) representations.set(path.split("#", 1)[0], representation);
+  const self = findSirenLink(representation, "self");
+  if (self) representations.set(apiPathFromHref(self.href), representation);
+}
+
+export async function apiSirenRequest<T>(path: string, init?: RequestInit): Promise<SirenApiResult<T>> {
+  const response = await apiResponse(path, init);
+  const readRequest = !init?.method || init.method.toUpperCase() === "GET";
+  if (response.status === 204) {
+    representations.delete(path.split("#", 1)[0]);
+    return { data: undefined as T, representation: null };
+  }
+  const payload = (await response.json()) as SirenEntity<Record<string, unknown>>;
+  if (!response.headers.get("content-type")?.startsWith(SIREN_MEDIA_TYPE)) {
+    return { data: payload as T, representation: null };
+  }
+  cacheRepresentation(path, payload, readRequest);
+  return { data: sirenData<T>(payload), representation: payload };
+}
+
+export async function sirenRepresentation(path: string): Promise<SirenEntity<Record<string, unknown>>> {
+  const normalized = path.split("#", 1)[0];
+  const cached = representations.get(normalized);
+  if (cached) return cached;
+  const result = await apiSirenRequest<unknown>(normalized);
+  if (!result.representation) throw new SirenCapabilityUnavailable(normalized);
+  return result.representation;
+}
+
+export async function submitSirenActionAt<T>(
+  resourcePath: string,
+  name: ApiActionName,
+  input?: unknown,
+): Promise<SirenApiResult<T>> {
+  return submitSirenAction<T>(await sirenRepresentation(resourcePath), name, input);
+}
+
+export function followSirenLink<T>(entity: SirenEntity, rel: string): Promise<SirenApiResult<T>> {
+  const link = findSirenLink(entity, rel);
+  if (!link) throw new SirenCapabilityUnavailable(rel);
+  return apiSirenRequest<T>(apiPathFromHref(link.href));
+}
+
+export function submitSirenAction<T>(
+  entity: SirenEntity,
+  name: ApiActionName,
+  input?: unknown,
+): Promise<SirenApiResult<T>> {
+  const action = findSirenAction(entity, name);
+  if (!action) throw new SirenCapabilityUnavailable(name);
+  const defaults = Object.fromEntries(
+    (action.fields ?? []).filter((field) => field.value !== undefined).map((field) => [field.name, field.value]),
+  );
+  const body = input ?? (Object.keys(defaults).length > 0 ? defaults : undefined);
+  const requestBody = body instanceof FormData ? body : body === undefined ? undefined : JSON.stringify(body);
+  return apiSirenRequest<T>(apiPathFromHref(action.href), {
+    method: action.method ?? "GET",
+    body: requestBody,
+  });
+}

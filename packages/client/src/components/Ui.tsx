@@ -3,39 +3,21 @@ import { AppsListRegular, DismissRegular, GridRegular, SearchRegular } from "@fl
 import type {
   AgendaItemStatus,
   AttendanceStatus,
-  CaseFileStatus,
   CouncilDecisionStatus,
   MeetingStatus,
   MinutesStatus,
+  TopicState,
 } from "@mairie/domain";
 import { type ReactNode, useEffect, useId, useState } from "react";
-import { useLocation } from "react-router-dom";
 import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import type { ApiErrorCode } from "../services/apiClient";
-import { Breadcrumb, type BreadcrumbItem } from "./Breadcrumb";
 
-export function PageHeader({
-  title,
-  description,
-  breadcrumbs,
-}: {
-  title: string;
-  description: string;
-  breadcrumbs?: BreadcrumbItem[];
-}) {
-  const { t } = useI18n();
-  const { pathname } = useLocation();
-  const defaultBreadcrumbs: BreadcrumbItem[] = pathname.startsWith("/meetings/")
-    ? [{ label: t("app.name"), to: "/" }, { label: t("navigation.meetings"), to: "/meetings" }, { label: title }]
-    : [{ label: t("app.name"), to: "/" }, { label: title }];
+export function PageHeader({ title, description }: { title: string; description: string }) {
   return (
     <header className="border-b border-border bg-surface px-7 py-4">
-      <Breadcrumb items={breadcrumbs ?? defaultBreadcrumbs} />
-      <div className="mt-1">
-        <Title2 as="h1">{title}</Title2>
-        <p className="mt-1 text-sm text-muted">{description}</p>
-      </div>
+      <Title2 as="h1">{title}</Title2>
+      <p className="mt-1 text-sm text-muted">{description}</p>
     </header>
   );
 }
@@ -43,10 +25,10 @@ export function PageHeader({
 type StatusValue =
   | AgendaItemStatus
   | AttendanceStatus
-  | CaseFileStatus
   | CouncilDecisionStatus
   | MeetingStatus
   | MinutesStatus
+  | TopicState
   | "active"
   | "inactive";
 
@@ -67,10 +49,9 @@ export function StatusBadge({ value }: { value: StatusValue }) {
     cancelled: "status.cancelled",
     approved: "status.approved",
     signed: "status.signed",
-    discussed: "status.discussed",
+    examined: "status.examined",
     withdrawn: "status.withdrawn",
-    decided: "status.decided",
-    archived: "status.archived",
+    toSchedule: "status.toSchedule",
     adopted: "status.adopted",
     rejected: "status.rejected",
     postponed: "status.postponed",
@@ -243,13 +224,16 @@ const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   agenda_sequence_invalid: "error.agenda_sequence_invalid",
   attendance_incomplete: "error.attendance_incomplete",
   authentication_required: "error.authentication_required",
+  permission_denied: "error.permission_denied",
+  invalid_credentials: "error.invalid_credentials",
+  bootstrap_unavailable: "error.bootstrap_unavailable",
+  last_administrator_required: "error.last_administrator_required",
   ballot_already_recorded: "error.ballot_already_recorded",
   ballot_not_found: "error.ballot_not_found",
-  case_file_not_found: "error.case_file_not_found",
+  ballot_voters_invalid: "error.ballot_voters_invalid",
   conflict: "error.conflict",
   council_decision_not_found: "error.council_decision_not_found",
   council_member_not_found: "error.council_member_not_found",
-  document_not_found: "error.document_not_found",
   upload_too_large: "error.upload_too_large",
   invalid_request: "error.invalid_request",
   invalid_meeting_transition: "error.invalid_meeting_transition",
@@ -259,8 +243,15 @@ const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   network_unavailable: "error.network_unavailable",
   proxy_invalid: "error.proxy_invalid",
   quorum_not_reached: "error.quorum_not_reached",
+  request_too_large: "error.request_too_large",
   request_failed: "error.request_failed",
+  resource_content_unavailable: "error.resource_content_unavailable",
+  resource_not_found: "error.resource_not_found",
   topic_not_found: "error.topic_not_found",
+  attendance_not_found: "error.attendance_not_found",
+  csrf_validation_failed: "error.csrf_validation_failed",
+  route_not_found: "error.route_not_found",
+  too_many_login_attempts: "error.too_many_login_attempts",
 };
 
 export function RequestErrorBanner({ error }: { error: ApiErrorCode | null }) {

@@ -1,49 +1,60 @@
 import type { Ballot, CouncilMeeting, MeetingAggregate, MeetingStatus, VoteInput } from "@mairie/domain";
-import { apiRequest } from "./apiClient";
+import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
 export const listCouncilMeetings = () => apiRequest<CouncilMeeting[]>("/council-meetings");
 export const createCouncilMeeting = (input: Record<string, unknown>) =>
-  apiRequest<CouncilMeeting>("/council-meetings", { method: "POST", body: JSON.stringify(input) });
+  submitSirenActionAt<CouncilMeeting>("/council-meetings", "meeting.create", input).then((result) => result.data);
 export const getCouncilMeeting = (meetingId: string) => apiRequest<MeetingAggregate>(`/council-meetings/${meetingId}`);
+export const getCouncilMeetingSiren = (meetingId: string) =>
+  apiSirenRequest<MeetingAggregate>(`/council-meetings/${meetingId}`);
 export const updateCouncilMeeting = (meetingId: string, input: Record<string, unknown>) =>
-  apiRequest<CouncilMeeting>(`/council-meetings/${meetingId}`, { method: "PUT", body: JSON.stringify(input) });
+  submitSirenActionAt<CouncilMeeting>(`/council-meetings/${meetingId}`, "meeting.update", input).then(
+    (result) => result.data,
+  );
 export const recordMeetingAttendance = (meetingId: string, input: Record<string, unknown>) =>
-  apiRequest(`/council-meetings/${meetingId}/attendance`, { method: "PUT", body: JSON.stringify(input) });
-export const createMeetingAgendaItem = (meetingId: string, input: Record<string, unknown>) =>
-  apiRequest(`/council-meetings/${meetingId}/agenda-items`, { method: "POST", body: JSON.stringify(input) });
-export const updateMeetingAgendaItem = (meetingId: string, itemId: string, input: Record<string, unknown>) =>
-  apiRequest(`/council-meetings/${meetingId}/agenda-items/${itemId}`, {
-    method: "PUT",
-    body: JSON.stringify(input),
-  });
+  submitSirenActionAt(`/council-meetings/${meetingId}`, "meeting.record-attendance", input).then(
+    (result) => result.data,
+  );
 export const deleteMeetingAgendaItem = (meetingId: string, itemId: string) =>
-  apiRequest(`/council-meetings/${meetingId}/agenda-items/${itemId}`, { method: "DELETE" });
+  submitSirenActionAt(`/council-meetings/${meetingId}/agenda-items/${itemId}`, "agenda-item.remove").then(
+    (result) => result.data,
+  );
 export const reorderMeetingAgenda = (meetingId: string, itemIds: string[]) =>
-  apiRequest(`/council-meetings/${meetingId}/agenda-order`, { method: "PUT", body: JSON.stringify({ itemIds }) });
+  submitSirenActionAt(`/council-meetings/${meetingId}`, "meeting.reorder-agenda", { itemIds }).then(
+    (result) => result.data,
+  );
 export const startMeetingAgendaItem = (meetingId: string, itemId: string) =>
-  apiRequest(`/council-meetings/${meetingId}/agenda-items/${itemId}/start`, { method: "POST" });
+  submitSirenActionAt(`/council-meetings/${meetingId}/agenda-items/${itemId}`, "agenda-item.start").then(
+    (result) => result.data,
+  );
 export const saveMeetingAgendaItemNotes = (meetingId: string, itemId: string, discussionSummary: string) =>
-  apiRequest(`/council-meetings/${meetingId}/agenda-items/${itemId}/notes`, {
-    method: "PUT",
-    body: JSON.stringify({ discussionSummary }),
-  });
+  submitSirenActionAt(`/council-meetings/${meetingId}/agenda-items/${itemId}`, "agenda-item.save-notes", {
+    discussionSummary,
+  }).then((result) => result.data);
 export const completeMeetingAgendaItem = (meetingId: string, itemId: string, input: Record<string, unknown>) =>
-  apiRequest(`/council-meetings/${meetingId}/agenda-items/${itemId}/complete`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  submitSirenActionAt(`/council-meetings/${meetingId}/agenda-items/${itemId}`, "agenda-item.complete", input).then(
+    (result) => result.data,
+  );
 export const changeMeetingStatus = (meetingId: string, status: MeetingStatus) =>
-  apiRequest<CouncilMeeting>(`/council-meetings/${meetingId}/status`, {
-    method: "PUT",
-    body: JSON.stringify({ status }),
-  });
+  submitSirenActionAt<CouncilMeeting>(
+    `/council-meetings/${meetingId}`,
+    status === "scheduled"
+      ? "meeting.schedule"
+      : status === "inProgress"
+        ? "meeting.open"
+        : status === "closed"
+          ? "meeting.close"
+          : "meeting.cancel",
+    { status },
+  ).then((result) => result.data);
 export const setMeetingOfficers = (meetingId: string, input: Record<string, unknown>) =>
-  apiRequest<CouncilMeeting>(`/council-meetings/${meetingId}/officers`, {
-    method: "PUT",
-    body: JSON.stringify(input),
-  });
+  submitSirenActionAt<CouncilMeeting>(`/council-meetings/${meetingId}`, "meeting.set-officers", input).then(
+    (result) => result.data,
+  );
 export const recordMeetingQuorumFailure = (meetingId: string) =>
-  apiRequest<CouncilMeeting>(`/council-meetings/${meetingId}/quorum-failure`, { method: "POST" });
+  submitSirenActionAt<CouncilMeeting>(`/council-meetings/${meetingId}`, "meeting.record-quorum-failure").then(
+    (result) => result.data,
+  );
 export type BallotTarget = { councilDecisionId: string } | { agendaItemId: string };
 export type RecordBallotInput = BallotTarget &
   (
@@ -55,11 +66,15 @@ export type RecordBallotInput = BallotTarget &
       }
   );
 export const cancelMeetingBallot = (meetingId: string, ballotId: string) =>
-  apiRequest(`/council-meetings/${meetingId}/ballots/${ballotId}`, { method: "DELETE" });
+  submitSirenActionAt(`/council-meetings/${meetingId}/ballots/${ballotId}`, "ballot.cancel").then(
+    (result) => result.data,
+  );
 export const recordMeetingBallot = (meetingId: string, input: RecordBallotInput) =>
-  apiRequest<Ballot>(`/council-meetings/${meetingId}/ballots`, { method: "POST", body: JSON.stringify(input) });
+  submitSirenActionAt<Ballot>(`/council-meetings/${meetingId}`, "ballot.record", input).then((result) => result.data);
 export const reconveneCouncilMeeting = (meetingId: string, input: Record<string, unknown>) =>
-  apiRequest<CouncilMeeting>(`/council-meetings/${meetingId}/reconvene`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  submitSirenActionAt<CouncilMeeting>(`/council-meetings/${meetingId}`, "meeting.reconvene", input).then(
+    (result) => result.data,
+  );
+
+export const createLateMeetingTopic = (meetingId: string, input: Record<string, unknown>) =>
+  submitSirenActionAt(`/council-meetings/${meetingId}`, "meeting.add-late-topic", input).then((result) => result.data);

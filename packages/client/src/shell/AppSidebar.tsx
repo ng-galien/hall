@@ -1,20 +1,23 @@
-import { SettingsRegular } from "@fluentui/react-icons";
+import { ChevronDownRegular, ChevronRightRegular, SettingsRegular } from "@fluentui/react-icons";
 import { NavLink } from "react-router-dom";
 import { useI18n } from "../i18n/I18nProvider";
-import { useCaseFilesStore } from "../stores/caseFilesStore";
+import { useWorkspacePrefsStore } from "../pages/workspace/workspacePrefs";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
-import { useDocumentsStore } from "../stores/documentsStore";
+import { useResourcesStore } from "../stores/resourcesStore";
+import { useTopicsStore } from "../stores/topicsStore";
 import { navigationSections } from "./navigation";
+import { WorkspaceTree } from "./WorkspaceTree";
 
 export function AppSidebar({ compact }: { compact: boolean }) {
   const { t, formatNumber } = useI18n();
+  const { treeCollapsed, toggleTree } = useWorkspacePrefsStore();
   const counts = {
     meetings: useCouncilMeetingsStore((state) => state.meetings.length),
-    caseFiles: useCaseFilesStore((state) => state.caseFiles.length),
+    topics: useTopicsStore((state) => state.topics.length),
     councilDecisions: useCouncilDecisionsStore((state) => state.councilDecisions.length),
-    documents: useDocumentsStore((state) => state.documents.length),
+    resources: useResourcesStore((state) => state.resources.length),
     members: useCouncilMembersStore((state) => state.members.length),
   };
 
@@ -31,22 +34,37 @@ export function AppSidebar({ compact }: { compact: boolean }) {
               <span className="mx-auto my-2 h-px w-5 bg-border" />
             ) : null}
             {section.items.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === "/"}
-                title={compact ? t(item.labelKey) : undefined}
-                aria-label={compact ? t(item.labelKey) : undefined}
-                className={({ isActive }) =>
-                  `nav-row ${isActive ? "nav-row-active" : ""} ${compact ? "justify-center px-0" : ""}`
-                }
-              >
-                <span className="nav-icon">{item.icon}</span>
-                {!compact ? <span className="min-w-0 flex-1 truncate">{t(item.labelKey)}</span> : null}
-                {!compact && item.countKey ? (
-                  <span className="nav-count">{formatNumber(counts[item.countKey])}</span>
-                ) : null}
-              </NavLink>
+              <div className="flex flex-col" key={item.to}>
+                <div className="flex items-center gap-0.5">
+                  <NavLink
+                    to={item.to}
+                    end={item.to === "/"}
+                    title={compact ? t(item.labelKey) : undefined}
+                    aria-label={compact ? t(item.labelKey) : undefined}
+                    className={({ isActive }) =>
+                      `nav-row min-w-0 flex-1 ${isActive ? "nav-row-active" : ""} ${compact ? "justify-center px-0" : ""}`
+                    }
+                  >
+                    <span className="nav-icon">{item.icon}</span>
+                    {!compact ? <span className="min-w-0 flex-1 truncate">{t(item.labelKey)}</span> : null}
+                    {!compact && item.countKey ? (
+                      <span className="nav-count">{formatNumber(counts[item.countKey])}</span>
+                    ) : null}
+                  </NavLink>
+                  {!compact && item.workspaceTree ? (
+                    <button
+                      className="workspace-tree-fold"
+                      type="button"
+                      aria-expanded={!treeCollapsed}
+                      aria-label={t(treeCollapsed ? "workspace.expandTree" : "workspace.collapseTree")}
+                      onClick={toggleTree}
+                    >
+                      {treeCollapsed ? <ChevronRightRegular /> : <ChevronDownRegular />}
+                    </button>
+                  ) : null}
+                </div>
+                {item.workspaceTree && !compact && !treeCollapsed ? <WorkspaceTree /> : null}
+              </div>
             ))}
           </div>
         ))}

@@ -43,6 +43,7 @@ export interface CreateCouncilMeeting {
   location: string;
   chairMemberId?: string | null;
   secretaryMemberId?: string | null;
+  meetingNoticeSentAt?: string | null;
   isReconvenedMeeting?: boolean;
   previousMeetingId?: string | null;
 }
@@ -73,17 +74,20 @@ export interface RecordAttendance {
 
 export interface AttendanceRepository {
   listForMeeting(meetingId: string): Promise<Attendance[]>;
+  isProxyDocumentUsed(resourceId: string): Promise<boolean>;
   record(meetingId: string, input: RecordAttendance): Promise<RecordAttendanceResult>;
 }
 
 export type RecordAttendanceResult =
   | { status: "recorded"; attendance: Attendance }
   | { status: "versionConflict" }
-  | { status: "proxyHolderConflict" };
+  | { status: "proxyHolderConflict" }
+  | { status: "proxyDocumentConflict" };
 
 export interface CreateAgendaItem {
   topicId: string;
   position: number;
+  addedDuringSession?: boolean;
 }
 
 export type CreateTopic =
@@ -147,6 +151,7 @@ export interface AgendaRepository {
     input: { discussionSummary: string; status: Exclude<AgendaItem["status"], "scheduled">; completedAt: string },
   ): Promise<AgendaItem>;
   completeOpenItems(meetingId: string, status: "postponed" | "withdrawn", completedAt: string): Promise<AgendaItem[]>;
+  snapshotOpenItems(meetingId: string): Promise<void>;
   copy(sourceMeetingId: string, targetMeetingId: string): Promise<void>;
 }
 
@@ -162,6 +167,7 @@ export interface CouncilDecisionRepository {
   create(input: CreateCouncilDecision): Promise<CouncilDecision>;
   update(id: string, input: { title: string; draftText: string }): Promise<CouncilDecision>;
   setStatus(id: string, status: CouncilDecisionStatus): Promise<void>;
+  remove(id: string): Promise<void>;
 }
 
 export interface CreateBallot {
@@ -239,7 +245,16 @@ export interface ResourceRepository {
   listFolderPaths(): Promise<string[]>;
   createText(input: CreateTextResource): Promise<TextResource>;
   createDocument(input: CreateDocumentResource): Promise<DocumentResource>;
+  update(id: string, input: UpdateResource): Promise<Resource>;
+  isSnapshotted(id: string): Promise<boolean>;
   delete(id: string): Promise<boolean>;
+}
+
+export interface UpdateResource {
+  title: string;
+  folderPath: string;
+  tags: string[];
+  content?: string;
 }
 
 export interface UnitOfWork {

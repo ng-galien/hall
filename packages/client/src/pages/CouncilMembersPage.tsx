@@ -19,7 +19,7 @@ import { useCouncilMembersStore } from "../stores/councilMembersStore";
 export function CouncilMembersPage() {
   const { t, formatDate } = useI18n();
   const { submitting, run } = useSubmitting();
-  const { members, create: createMember, error } = useCouncilMembersStore();
+  const { members, create: createMember, error, canCreate } = useCouncilMembersStore();
   const [addOpen, setAddOpen] = useState(false);
   const { layout, setLayout, query, setQuery } = useCollectionView();
   const visibleMembers = members.filter((member) =>
@@ -50,11 +50,13 @@ export function CouncilMembersPage() {
       <div className="page-content">
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
-          <Button appearance="primary" icon={<AddRegular />} onClick={() => setAddOpen(true)}>
-            {t("members.add")}
-          </Button>
+          {canCreate ? (
+            <Button appearance="primary" icon={<AddRegular />} onClick={() => setAddOpen(true)}>
+              {t("members.add")}
+            </Button>
+          ) : null}
         </CollectionToolbar>
-        <Modal open={addOpen} title={t("members.add")} onClose={() => setAddOpen(false)}>
+        <Modal open={canCreate && addOpen} title={t("members.add")} onClose={() => setAddOpen(false)}>
           <form className="modal-form" onSubmit={submit}>
             <div className="form-grid">
               <Field label={t("members.firstName")} required>

@@ -172,12 +172,15 @@ export function createBallotService({
             (item) => item.topic.kind === "subject" && item.topic.councilDecisionId === command.councilDecisionId,
           );
           if (!agendaItem) throw new DomainError("agenda_inconsistent");
+          if (agendaItem.addedDuringSession) throw new DomainError("agenda_sequence_invalid", 409);
           if (!agendaItem.startedAt || agendaItem.completedAt || agendaItem.topic.state !== "inProgress") {
             throw new DomainError("agenda_sequence_invalid", 409);
           }
         } else {
           const agendaItem = await agendaRepository.find(meetingId, command.agendaItemId!);
           if (!agendaItem) throw new DomainError("agenda_item_not_found", 404);
+          if (agendaItem.addedDuringSession) throw new DomainError("agenda_sequence_invalid", 409);
+          if (agendaItem.topic.kind === "openQuestion") throw new DomainError("agenda_sequence_invalid", 409);
           if (agendaItem.topic.kind === "subject" && agendaItem.topic.councilDecisionId) {
             throw new DomainError("agenda_inconsistent");
           }

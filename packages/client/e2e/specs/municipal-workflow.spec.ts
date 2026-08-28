@@ -23,15 +23,14 @@ async function createMember(
 }
 
 test.describe("municipal council workflow", () => {
-  test("keeps one case-file mutation pending and ignores duplicate submissions", async ({ appPage: page }) => {
-    await primaryNavigationLink(page, "Dossiers").click();
-    await page.getByRole("button", { name: "Nouveau dossier", exact: true }).click();
+  test("keeps one topic mutation pending and ignores duplicate submissions", async ({ appPage: page }) => {
+    await primaryNavigationLink(page, "Topics").click();
+    await page.getByRole("button", { name: "Nouveau topic", exact: true }).click();
     const dialog = openDialog(page);
-    await formField(dialog, "reference").fill("E2E-PENDING-001");
-    await formField(dialog, "title").fill("Dossier soumis une seule fois");
+    await formField(dialog, "title").fill("Topic soumis une seule fois");
 
     let postCount = 0;
-    await page.route("**/api/case-files", async (route) => {
+    await page.route("**/api/topics", async (route) => {
       if (route.request().method() === "POST") {
         postCount += 1;
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -40,36 +39,28 @@ test.describe("municipal council workflow", () => {
     });
 
     const form = dialog.locator("form");
-    await dialog.getByRole("button", { name: "Créer", exact: true }).click();
+    await dialog.getByRole("button", { name: "Ajouter", exact: true }).click();
     await expect(dialog.getByRole("button", { name: "Enregistrement…", exact: true })).toBeDisabled();
     await form.evaluate((element) => {
       element.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
       element.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
 
-    await expect(page.getByText("E2E-PENDING-001 · Dossier soumis une seule fois", { exact: true })).toBeVisible();
+    await expect(page.getByText("Topic soumis une seule fois", { exact: true })).toBeVisible();
     expect(postCount).toBe(1);
   });
 
-  test("prepares a council decision, conducts the live meeting, and records the ballot", async ({ appPage: page }) => {
+  test("prepares topics, conducts the live meeting, and records the ballot", async ({ appPage: page }) => {
     await primaryNavigationLink(page, "Membres du conseil").click();
     await createMember(page, "Camille", "Martin", "mayor");
     await createMember(page, "Jules", "Bernard", "councillor");
 
-    await primaryNavigationLink(page, "Dossiers").click();
-    await page.getByRole("button", { name: "Nouveau dossier", exact: true }).click();
-    const caseFileDialog = openDialog(page);
-    await formField(caseFileDialog, "reference").fill("E2E-2026-042");
-    await formField(caseFileDialog, "title").fill("Rénovation de la salle du conseil");
-    await formField(caseFileDialog, "summary").fill("Préparation du programme et de son financement.");
-    await caseFileDialog.getByRole("button", { name: "Créer", exact: true }).click();
-
-    await page.getByText("E2E-2026-042 · Rénovation de la salle du conseil", { exact: true }).click();
-    await page.getByRole("button", { name: "Nouveau projet de délibération", exact: true }).click();
-    const decisionForm = page.locator(".case-file-decision-form");
-    await formField(decisionForm, "title").fill("Adoption du programme de rénovation");
-    await formField(decisionForm, "draftText").fill("Le conseil municipal approuve le programme proposé.");
-    await decisionForm.getByRole("button", { name: "Créer", exact: true }).click();
+    await primaryNavigationLink(page, "Topics").click();
+    await page.getByRole("button", { name: "Nouveau topic", exact: true }).click();
+    const topicDialog = openDialog(page);
+    await formField(topicDialog, "kind").selectOption("subject");
+    await formField(topicDialog, "title").fill("Adoption du programme de rénovation");
+    await topicDialog.getByRole("button", { name: "Ajouter", exact: true }).click();
     await expect(page.getByText("Adoption du programme de rénovation", { exact: true })).toBeVisible();
 
     await primaryNavigationLink(page, "Séances").click();
@@ -85,7 +76,7 @@ test.describe("municipal council workflow", () => {
     await page.getByRole("button", { name: "Inscrire", exact: true }).click();
     await expect(page.locator(".composer-list")).toContainText("Adoption du programme de rénovation");
     const quickAdd = page.locator(".composer-quick-add");
-    await quickAdd.getByRole("combobox").selectOption("question");
+    await quickAdd.getByRole("combobox").selectOption("openQuestion");
     await formField(quickAdd, "title").fill("Questions diverses");
     await quickAdd.getByRole("button", { name: "Ajouter", exact: true }).click();
     await expect(page.locator(".composer-list")).toContainText("Questions diverses");

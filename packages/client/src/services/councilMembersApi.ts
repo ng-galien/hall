@@ -1,6 +1,6 @@
 import type { CouncilMember } from "@mairie/domain";
-import { apiRequest } from "./apiClient";
+import { apiRequest, submitSirenActionAt } from "./apiClient";
 
 export const listCouncilMembers = () => apiRequest<CouncilMember[]>("/council-members");
 export const createCouncilMember = (input: Record<string, unknown>) =>
-  apiRequest<CouncilMember>("/council-members", { method: "POST", body: JSON.stringify(input) });
+  submitSirenActionAt<CouncilMember>("/council-members", "member.create", input).then((result) => result.data);

@@ -25,6 +25,11 @@ export function createAttendanceRepository({
         database.prepare("SELECT * FROM attendance WHERE meeting_id = ?").all(meetingId).map(mapAttendance),
       );
     },
+    isProxyDocumentUsed(resourceId) {
+      return sqliteExecutor.run((database) =>
+        Boolean(database.prepare("SELECT 1 FROM attendance WHERE proxy_document_id = ? LIMIT 1").get(resourceId)),
+      );
+    },
     record(meetingId, input) {
       return sqliteExecutor.run((database) => {
         const existing = database
@@ -60,6 +65,13 @@ export function createAttendanceRepository({
                 WHERE meeting_id = ? AND proxy_holder_member_id = ? AND member_id <> ?`)
               .get(meetingId, input.proxyHolderMemberId, input.memberId);
             if (conflictingProxy) return { status: "proxyHolderConflict" };
+          }
+          if (input.proxyDocumentId) {
+            const conflictingDocument = database
+              .prepare(`SELECT 1 FROM attendance
+                WHERE meeting_id = ? AND proxy_document_id = ? AND member_id <> ?`)
+              .get(meetingId, input.proxyDocumentId, input.memberId);
+            if (conflictingDocument) return { status: "proxyDocumentConflict" };
           }
           throw error;
         }

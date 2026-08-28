@@ -20,6 +20,7 @@ import type {
 } from "../repositories/contracts.js";
 import { DomainError } from "./errors.js";
 import { participationForMeeting, requireMeeting } from "./meetingContext.js";
+import { hasThreeClearDays } from "./reconvocationPolicy.js";
 
 export interface MeetingLifecycleService {
   changeStatus(meetingId: string, status: MeetingStatus): Promise<CouncilMeeting>;
@@ -80,6 +81,9 @@ export function createMeetingLifecycleService({
         const meeting = await requireMeeting(councilMeetingRepository, meetingId);
         const event = statusEvent(status);
         if (!event || transitionMeeting(meeting.status, event) !== status) {
+          throw new DomainError("invalid_meeting_transition", 409);
+        }
+        if (status === "cancelled" && meeting.quorumFailure) {
           throw new DomainError("invalid_meeting_transition", 409);
         }
         if (status === "scheduled") {
@@ -148,6 +152,7 @@ export function createMeetingLifecycleService({
           throw new DomainError("attendance_incomplete", 409);
         }
         if (evidence.quorum.reached) throw new DomainError("invalid_meeting_transition", 409);
+        await agendaRepository.snapshotOpenItems(meetingId);
         await councilMeetingRepository.recordQuorumFailure(meetingId, {
           ...evidence,
           recordedAt: new Date().toISOString(),
@@ -162,6 +167,13 @@ export function createMeetingLifecycleService({
           throw new DomainError("invalid_meeting_transition", 409);
         }
         if (!previousMeeting.quorumFailure || previousMeeting.quorumFailure.quorum.reached) {
+          throw new DomainError("invalid_meeting_transition", 409);
+        }
+        if (
+          !input.meetingNoticeSentAt ||
+          Date.parse(input.meetingNoticeSentAt) < Date.parse(previousMeeting.quorumFailure.recordedAt) ||
+          !hasThreeClearDays(input.meetingNoticeSentAt, input.startsAt)
+        ) {
           throw new DomainError("invalid_meeting_transition", 409);
         }
         const previousRoster = await meetingRosterRepository.listMemberIds(previousMeetingId);

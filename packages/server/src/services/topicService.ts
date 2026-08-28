@@ -1,6 +1,13 @@
-import { type Topic, type TopicDetails, type TopicState, transitionTopic } from "@mairie/domain";
+import {
+  type Topic,
+  type TopicDetails,
+  type TopicState,
+  transitionCouncilDecision,
+  transitionTopic,
+} from "@mairie/domain";
 import type {
   AgendaRepository,
+  BallotRepository,
   CouncilDecisionRepository,
   CouncilMeetingRepository,
   CreateTopic,
@@ -10,12 +17,16 @@ import type {
   UpdateTopic,
 } from "../repositories/contracts.js";
 import { DomainError } from "./errors.js";
+import { requireMutableAgendaContent } from "./meetingContentPolicy.js";
 
 export interface TopicService {
   list(filters?: { state?: TopicState; folderPath?: string; resourceId?: string }): Promise<Topic[]>;
   get(id: string): Promise<TopicDetails>;
   create(input: CreateTopic): Promise<Topic>;
   update(id: string, input: UpdateTopic): Promise<Topic>;
+  reclassify(id: string, folderPath: string): Promise<Topic>;
+  attachDecision(id: string, input: { draftText: string }): Promise<Topic>;
+  detachDecision(id: string): Promise<Topic>;
 }
 
 export function createTopicService({
@@ -25,6 +36,7 @@ export function createTopicService({
   resourceRepository,
   unitOfWork,
   agendaRepository,
+  ballotRepository,
 }: {
   topicRepository: TopicRepository;
   councilDecisionRepository: CouncilDecisionRepository;
@@ -32,6 +44,7 @@ export function createTopicService({
   resourceRepository: ResourceRepository;
   unitOfWork: UnitOfWork;
   agendaRepository: AgendaRepository;
+  ballotRepository: BallotRepository;
 }): TopicService {
   const validateResources = async (resourceIds: string[]) => {
     for (const resourceId of resourceIds) {
@@ -79,6 +92,7 @@ export function createTopicService({
       return unitOfWork.execute(async () => {
         const topic = await topicRepository.find(id);
         if (!topic) throw new DomainError("topic_not_found", 404);
+        await requireMutableAgendaContent(topic, councilMeetingRepository);
         if (transitionTopic(topic.state, { type: "EDIT" }) !== topic.state) {
           throw new DomainError("agenda_inconsistent", 409);
         }
@@ -99,7 +113,94 @@ export function createTopicService({
             throw new DomainError("agenda_inconsistent", 409);
           }
         }
-        return topicRepository.update(id, { ...input, councilDecisionId });
+        const updated = await topicRepository.update(id, { ...input, councilDecisionId });
+        if (councilDecisionId && input.title !== topic.title) {
+          const decision = await councilDecisionRepository.find(councilDecisionId);
+          if (decision && ["draft", "ready", "scheduled"].includes(decision.status)) {
+            await councilDecisionRepository.update(councilDecisionId, {
+              title: input.title,
+              draftText: decision.draftText,
+            });
+          }
+        }
+        return updated;
+      });
+    },
+    reclassify(id, folderPath) {
+      return unitOfWork.execute(async () => {
+        const topic = await topicRepository.find(id);
+        if (!topic) throw new DomainError("topic_not_found", 404);
+        return topicRepository.update(id, {
+          title: topic.title,
+          report: topic.report,
+          folderPath,
+          resourceIds: topic.resources.map((resource) => resource.id),
+          councilDecisionId: topic.kind === "subject" ? topic.councilDecisionId : null,
+        });
+      });
+    },
+    attachDecision(id, input) {
+      return unitOfWork.execute(async () => {
+        const topic = await topicRepository.find(id);
+        if (!topic) throw new DomainError("topic_not_found", 404);
+        await requireMutableAgendaContent(topic, councilMeetingRepository);
+        if (topic.kind !== "subject") throw new DomainError("invalid_request");
+        if (transitionTopic(topic.state, { type: "EDIT" }) !== topic.state) {
+          throw new DomainError("agenda_inconsistent", 409);
+        }
+        const currentOccurrence = (await agendaRepository.listForTopic(id)).find(
+          (item) => item.meetingId === topic.currentMeetingId,
+        );
+        if (currentOccurrence?.addedDuringSession) throw new DomainError("agenda_inconsistent", 409);
+        if (topic.councilDecisionId) throw new DomainError("conflict", 409);
+        const decision = await councilDecisionRepository.create({
+          title: topic.title,
+          draftText: input.draftText,
+          legalityReviewRequired: true,
+        });
+        if (topic.state === "scheduled") {
+          const next = transitionCouncilDecision(decision.status, { type: "SCHEDULE" });
+          if (next !== "scheduled") throw new DomainError("agenda_inconsistent", 409);
+          await councilDecisionRepository.setStatus(decision.id, next);
+        }
+        return topicRepository.update(id, {
+          title: topic.title,
+          report: topic.report,
+          folderPath: topic.folderPath,
+          resourceIds: topic.resources.map((resource) => resource.id),
+          councilDecisionId: decision.id,
+        });
+      });
+    },
+    detachDecision(id) {
+      return unitOfWork.execute(async () => {
+        const topic = await topicRepository.find(id);
+        if (!topic) throw new DomainError("topic_not_found", 404);
+        await requireMutableAgendaContent(topic, councilMeetingRepository);
+        if (topic.kind !== "subject" || !topic.councilDecisionId) {
+          throw new DomainError("council_decision_not_found", 404);
+        }
+        if (transitionTopic(topic.state, { type: "EDIT" }) !== topic.state) {
+          throw new DomainError("agenda_inconsistent", 409);
+        }
+        const decision = await councilDecisionRepository.find(topic.councilDecisionId);
+        if (!decision) throw new DomainError("council_decision_not_found", 404);
+        const returnable =
+          decision.status === "draft" ||
+          decision.status === "ready" ||
+          transitionCouncilDecision(decision.status, { type: "RETURN_TO_PREPARATION" }) !== null;
+        if (!returnable || (await ballotRepository.findFinalForDecision(decision.id))) {
+          throw new DomainError("ballot_already_recorded", 409);
+        }
+        const updated = await topicRepository.update(id, {
+          title: topic.title,
+          report: topic.report,
+          folderPath: topic.folderPath,
+          resourceIds: topic.resources.map((resource) => resource.id),
+          councilDecisionId: null,
+        });
+        await councilDecisionRepository.remove(decision.id);
+        return updated;
       });
     },
   };

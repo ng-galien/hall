@@ -8,14 +8,14 @@ import {
   PenRegular,
   WarningRegular,
 } from "@fluentui/react-icons";
-import type { Attendance, AttendanceStatus, CouncilMember, DocumentMetadata, MeetingAggregate } from "@mairie/domain";
+import type { Attendance, AttendanceStatus, CouncilMember, DocumentResource, MeetingAggregate } from "@mairie/domain";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input, Modal } from "../../../components/Ui";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import { useI18n } from "../../../i18n/I18nProvider";
-import { useDocumentsStore } from "../../../stores/documentsStore";
+import { useResourcesStore } from "../../../stores/resourcesStore";
 import { meetingOpeningBlock } from "../meetingOpeningPolicy";
 
 const directStatuses: AttendanceStatus[] = ["present", "excused", "absent"];
@@ -40,17 +40,17 @@ export function RollCallView({
   const { t, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const navigate = useNavigate();
-  const { documents, upload, load: reloadDocuments } = useDocumentsStore();
+  const { resources, upload, load: reloadResources } = useResourcesStore();
   const [proxyMemberId, setProxyMemberId] = useState<string | null>(null);
-  const { meeting, quorum } = aggregate;
+  const { meeting } = aggregate;
   const attendanceByMember = useMemo(
     () => new Map(aggregate.attendance.map((attendance) => [attendance.memberId, attendance])),
     [aggregate.attendance],
   );
-  const proxyDocuments = documents.filter(
-    (document) => document.meetingId === meeting.id && document.category === "proxy",
+  const proxyDocuments = resources.filter(
+    (resource): resource is DocumentResource =>
+      resource.kind === "document" && resource.meetingId === meeting.id && resource.category === "proxy",
   );
-  const attendanceComplete = members.length > 0 && aggregate.attendance.length >= members.length;
   const openingBlock = meetingOpeningBlock(aggregate);
 
   const record = (memberId: string, status: AttendanceStatus) =>
@@ -102,12 +102,12 @@ export function RollCallView({
     form.set("file", file);
     void run(async () => {
       const uploaded = await upload(form);
-      if (uploaded) await reloadDocuments();
+      if (uploaded) await reloadResources();
       return uploaded;
     });
   };
 
-  const officersEditable = meeting.status === "scheduled" && !meeting.quorumFailure;
+  const officersEditable = meetingActions.can("meeting.set-officers");
   const designateOfficer = (memberId: string, seat: "chair" | "secretary") => {
     const chairMemberId = seat === "chair" ? memberId : meeting.chairMemberId;
     const secretaryMemberId = seat === "secretary" ? memberId : meeting.secretaryMemberId;
@@ -129,6 +129,7 @@ export function RollCallView({
       const reconvenedMeeting = await meetingActions.reconvene({
         title: form.get("title"),
         startsAt: new Date(String(form.get("startsAt"))).toISOString(),
+        meetingNoticeSentAt: new Date(String(form.get("meetingNoticeSentAt"))).toISOString(),
         location: form.get("location"),
         chairMemberId: meeting.chairMemberId,
         secretaryMemberId: meeting.secretaryMemberId,
@@ -150,7 +151,7 @@ export function RollCallView({
           </p>
         </div>
         <div className="rollcall-header-actions">
-          {!meeting.quorumFailure ? (
+          {meetingActions.can("meeting.record-attendance") ? (
             <Button appearance="secondary" disabled={submitting} onClick={() => void markAllPresent()}>
               {t(submitting ? "common.saving" : "meeting.markAllPresent")}
             </Button>
@@ -280,7 +281,7 @@ export function RollCallView({
 
       {mode === "opening" ? (
         <footer className="rollcall-footer">
-          {meeting.quorumFailure ? (
+          {meetingActions.can("meeting.reconvene") ? (
             <form className="rollcall-reconvene" onSubmit={reconvene}>
               <div className="rollcall-reconvene-copy">
                 <WarningRegular aria-hidden="true" />
@@ -299,6 +300,9 @@ export function RollCallView({
                 </Field>
                 <Field label={t("meetings.dateTime")} required>
                   <Input name="startsAt" type="datetime-local" required />
+                </Field>
+                <Field label={t("meeting.noticeSentAt")} required>
+                  <Input name="meetingNoticeSentAt" type="datetime-local" required />
                 </Field>
                 <Field label={t("meetings.location")} required>
                   <Input name="location" defaultValue={meeting.location} required />
@@ -324,7 +328,7 @@ export function RollCallView({
                 )}
               </div>
               <div className="rollcall-footer-actions">
-                {attendanceComplete && !quorum.reached ? (
+                {meetingActions.can("meeting.record-quorum-failure") ? (
                   <Button
                     appearance="secondary"
                     disabled={submitting}
@@ -336,7 +340,7 @@ export function RollCallView({
                 <button
                   className="live-primary-action"
                   type="button"
-                  disabled={submitting || Boolean(openingBlock)}
+                  disabled={submitting || !meetingActions.can("meeting.open")}
                   onClick={() => void openMeeting()}
                 >
                   {t(submitting ? "common.saving" : "meeting.action.open")}
@@ -391,7 +395,7 @@ function ProxyModal({
   member: CouncilMember;
   current: Attendance | undefined;
   holderCandidates: { member: CouncilMember; alreadyHolding: boolean }[];
-  proxyDocuments: DocumentMetadata[];
+  proxyDocuments: DocumentResource[];
   submitting: boolean;
   onUploadFile(file: File): void;
   onSubmit(holderId: string, documentId: string): void;

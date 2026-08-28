@@ -1,12 +1,14 @@
+import { findSirenAction } from "@mairie/api-contract";
 import type { CouncilMeeting } from "@mairie/domain";
 import { create } from "zustand";
-import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
+import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../services/apiClient";
 import { createCouncilMeeting, listCouncilMeetings } from "../services/councilMeetingsApi";
 
 interface CouncilMeetingsState {
   meetings: CouncilMeeting[];
   loading: boolean;
   error: ApiErrorCode | null;
+  canCreate: boolean;
   load(): Promise<void>;
   create(input: Record<string, unknown>): Promise<boolean>;
 }
@@ -15,10 +17,13 @@ export const useCouncilMeetingsStore = create<CouncilMeetingsState>((set, get) =
   meetings: [],
   loading: false,
   error: null,
+  canCreate: false,
   async load() {
     set({ loading: true, error: null });
     try {
-      set({ meetings: await listCouncilMeetings(), loading: false });
+      const meetings = await listCouncilMeetings();
+      const representation = await sirenRepresentation("/council-meetings");
+      set({ meetings, canCreate: Boolean(findSirenAction(representation, "meeting.create")), loading: false });
     } catch (error) {
       set({ error: apiErrorCode(error), loading: false });
     }

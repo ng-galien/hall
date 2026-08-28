@@ -1,32 +1,17 @@
-import { Button, Input, Label } from "@fluentui/react-components";
-import { type FormEvent, useState } from "react";
-import { PageHeader, RequestErrorBanner } from "../components/Ui";
-import { reloadApplicationData } from "../hooks/useApplicationData";
-import { useSubmitting } from "../hooks/useSubmitting";
+import { Label } from "@fluentui/react-components";
+import { useEffect, useState } from "react";
+import { PageHeader } from "../components/Ui";
 import { type Locale, useI18n } from "../i18n/I18nProvider";
-import { getApiToken, saveApiToken } from "../services/apiAccess";
-import type { ApiErrorCode } from "../services/apiClient";
+import { canLogout, logout } from "../services/authApi";
 
 export function SettingsPage() {
   const { locale, setLocale, t } = useI18n();
-  const [apiToken, setApiToken] = useState(getApiToken);
-  const [saved, setSaved] = useState(false);
-  const [accessError, setAccessError] = useState<ApiErrorCode | null>(null);
-  const { submitting, run } = useSubmitting();
-  const saveAccess = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    await run(async () => {
-      try {
-        saveApiToken(apiToken);
-        const error = await reloadApplicationData();
-        setAccessError(error);
-        setSaved(error === null);
-      } catch {
-        setAccessError("request_failed");
-        setSaved(false);
-      }
-    });
-  };
+  const [logoutAvailable, setLogoutAvailable] = useState(false);
+  useEffect(() => {
+    void canLogout()
+      .then(setLogoutAvailable)
+      .catch(() => setLogoutAvailable(false));
+  }, []);
   return (
     <div className="page">
       <PageHeader title={t("settings.title")} description={t("settings.description")} />
@@ -44,27 +29,14 @@ export function SettingsPage() {
           </select>
           <p className="text-sm text-muted">{t("settings.languageDescription")}</p>
         </div>
-        <form className="creation-form" onSubmit={saveAccess}>
-          <h3>{t("settings.serverAccess")}</h3>
-          <Label htmlFor="server-access-token">{t("settings.apiToken")}</Label>
-          <Input
-            id="server-access-token"
-            type="password"
-            autoComplete="off"
-            value={apiToken}
-            onChange={(_event, data) => {
-              setApiToken(data.value);
-              setSaved(false);
-              setAccessError(null);
-            }}
-          />
-          <p className="text-sm text-muted">{t("settings.serverAccessDescription")}</p>
-          <Button type="submit" appearance="primary" disabled={submitting}>
-            {t(submitting ? "common.saving" : "settings.saveAccess")}
-          </Button>
-          <RequestErrorBanner error={accessError} />
-          {saved ? <p role="status">{t("settings.accessSaved")}</p> : null}
-        </form>
+        {logoutAvailable ? (
+          <div className="creation-form">
+            <h2>{t("settings.session")}</h2>
+            <button type="button" onClick={() => void logout()}>
+              {t("settings.logout")}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

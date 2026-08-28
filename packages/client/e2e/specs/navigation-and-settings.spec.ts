@@ -8,8 +8,8 @@ test.describe("navigation and settings", () => {
     const routes = [
       ["Séances", /\/app\/meetings$/, "Séances du conseil", "CouncilMeetingsPage.tsx"],
       ["Délibérations", /\/app\/council-decisions$/, "Délibérations", "CouncilDecisionsPage.tsx"],
-      ["Dossiers", /\/app\/case-files$/, "Dossiers préparatoires", "CaseFilesPage.tsx"],
-      ["Documents", /\/app\/documents$/, "Documents", "DocumentsPage.tsx"],
+      ["Topics", /\/app\/topics$/, "Topics", "TopicsPage.tsx"],
+      ["Ressources", /\/app\/resources$/, "Ressources", "ResourcesPage.tsx"],
       ["Membres du conseil", /\/app\/council-members$/, "Composition du conseil", "CouncilMembersPage.tsx"],
     ] as const;
 

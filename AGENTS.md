@@ -89,3 +89,7 @@ Pour voir l'application en live pendant le développement, utiliser **toujours**
 - Pour les agents Claude Code : la configuration `mairie` de `.claude/launch.json` lance ce serveur dans le panneau Browser (`preview_start` avec `name: "mairie"`). Réutiliser ce serveur au lieu d'en lancer un autre ; ne jamais lancer Vite ou le serveur via un Bash de fond.
 - Après une modification du package `@mairie/domain` ou du schéma SQLite : `npm run build -w @mairie/domain` puis redémarrer le serveur (nodemon ne surveille que `packages/server/src`).
 - Base SQLite de dev : `packages/server/data/mairie.sqlite`. L'application est en cours de création : aucune donnée n'est à préserver, la base peut être supprimée et re-seedée librement.
+
+### Données de démonstration
+
+`npm run -w @mairie/server seed:dev` peuple le serveur (via l'API, jamais en SQL direct) : membres, ressources classées par chemins (PDF générés inline), topics, délibérations, une séance passée entièrement déroulée (présences, pouvoir, scrutins publics sur délibération et sur point, clôture) et une séance à venir programmée. Le script exige une base vide ; pour repartir de zéro : `rm packages/server/data/mairie.sqlite*`, redémarrer le serveur (nodemon redémarre sur `touch packages/server/src/index.ts`), puis relancer le seed.

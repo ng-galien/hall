@@ -1,8 +1,5 @@
 import { test as base, expect, type Locator, type Page } from "@playwright/test";
 
-const apiToken = process.env.MAIRIE_E2E_API_TOKEN;
-if (!apiToken) throw new Error("MAIRIE_E2E_API_TOKEN must be set by the isolated E2E runner");
-
 interface ApplicationFixtures {
   appPage: Page;
 }
@@ -11,13 +8,9 @@ export const test = base.extend<ApplicationFixtures>({
   appPage: async ({ page }, use) => {
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
-    await page.addInitScript(
-      ({ token }) => {
-        if (!localStorage.getItem("mairie.apiToken")) localStorage.setItem("mairie.apiToken", token);
-        if (!localStorage.getItem("mairie.locale")) localStorage.setItem("mairie.locale", "fr");
-      },
-      { token: apiToken },
-    );
+    await page.addInitScript(() => {
+      if (!localStorage.getItem("mairie.locale")) localStorage.setItem("mairie.locale", "fr");
+    });
     await page.goto("/app/");
     const synchronizationStatus = page.getByRole("status").filter({ hasText: "Serveur connecté" });
     await expect(synchronizationStatus).toHaveAttribute("data-sync-state", "synchronized");

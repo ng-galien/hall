@@ -1,6 +1,5 @@
 import {
   BoardRegular,
-  DocumentRegular,
   GavelRegular,
   HomeRegular,
   PeopleRegular,
@@ -13,7 +12,9 @@ export interface NavigationItem {
   to: string;
   labelKey: TranslationKey;
   icon: ReactNode;
-  countKey?: "meetings" | "caseFiles" | "councilDecisions" | "documents" | "members";
+  countKey?: "meetings" | "topics" | "councilDecisions" | "resources" | "members";
+  /** Affiche l'arborescence des chemins de classement sous l'entrée. */
+  workspaceTree?: boolean;
 }
 
 export interface NavigationSection {
@@ -39,10 +40,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     labelKey: "navigation.preparation",
-    items: [
-      { to: "/case-files", labelKey: "navigation.caseFiles", icon: <BoardRegular />, countKey: "caseFiles" },
-      { to: "/documents", labelKey: "navigation.documents", icon: <DocumentRegular />, countKey: "documents" },
-    ],
+    items: [{ to: "/workspace", labelKey: "navigation.workspace", icon: <BoardRegular />, workspaceTree: true }],
   },
   {
     labelKey: "navigation.administration",

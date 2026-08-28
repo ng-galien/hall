@@ -8,18 +8,18 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build -w @mairie/domain && npm run build -w @mairie/server && npm run build -w @mairie/client && npm run build -w @mairie/desktop",
+    "build": "npm run build -w @mairie/api-contract && npm run build -w @mairie/domain && npm run build -w @mairie/server && npm run build -w @mairie/client && npm run build -w @mairie/desktop",
     "dev:server": "npm run dev -w @mairie/server",
     "dev:client": "npm run dev -w @mairie/client",
     "dev": "concurrently -k -n server,client -c blue,cyan \"npm run dev:server\" \"npm run dev:client\"",
-    "desktop:dev": "npm run build -w @mairie/domain && npm run build -w @mairie/server && concurrently -k -n client,desktop -c cyan,magenta \"npm run dev -w @mairie/client\" \"wait-on http://127.0.0.1:5174 && cross-env MAIRIE_RENDERER_URL=http://127.0.0.1:5174 npm run start -w @mairie/desktop\"",
+    "desktop:dev": "npm run build -w @mairie/api-contract && npm run build -w @mairie/domain && npm run build -w @mairie/server && concurrently -k -n client,desktop -c cyan,magenta \"npm run dev -w @mairie/client\" \"wait-on http://127.0.0.1:5174 && cross-env MAIRIE_RENDERER_URL=http://127.0.0.1:5174 npm run start -w @mairie/desktop\"",
     "desktop:package": "npm run build && npm run package -w @mairie/desktop",
     "desktop:make": "npm run build && npm run make -w @mairie/desktop",
-    "e2e:server": "npm run build -w @mairie/domain && npm run build -w @mairie/server && npm run start -w @mairie/server",
+    "e2e:server": "npm run build -w @mairie/api-contract && npm run build -w @mairie/domain && npm run build -w @mairie/server && npm run start -w @mairie/server",
     "test:e2e": "npm run test:e2e -w @mairie/client --",
     "lint": "biome check packages/*/src packages/*/*.ts packages/desktop/scripts packages/client/e2e packages/client/scripts",
     "lint:fix": "biome check --write packages/*/src packages/*/*.ts packages/desktop/scripts packages/client/e2e packages/client/scripts",
-    "typecheck": "npm run build -w @mairie/domain && npm run typecheck -w @mairie/server && npm run typecheck -w @mairie/client && npm run build -w @mairie/server && npm run typecheck -w @mairie/desktop",
+    "typecheck": "npm run build -w @mairie/api-contract && npm run build -w @mairie/domain && npm run typecheck -w @mairie/server && npm run typecheck -w @mairie/client && npm run build -w @mairie/server && npm run typecheck -w @mairie/desktop",
     "test": "npm run test --workspaces --if-present",
     "quality": "npm run lint && npm run typecheck && npm test",
     "quality:e2e": "npm run quality && npm run test:e2e"

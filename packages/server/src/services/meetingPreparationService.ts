@@ -11,6 +11,7 @@ import type {
   AttendanceRepository,
   CouncilDecisionRepository,
   CouncilMeetingRepository,
+  CreateTopic,
   MeetingRosterRepository,
   RecordAttendance,
   ResourceRepository,
@@ -23,6 +24,7 @@ import { requireMeeting } from "./meetingContext.js";
 export interface MeetingPreparationService {
   recordAttendance(meetingId: string, input: RecordAttendance): Promise<Attendance>;
   scheduleTopic(meetingId: string, topicId: string, position: number): Promise<AgendaItem>;
+  createLateTopic(meetingId: string, input: CreateTopic): Promise<AgendaItem>;
   removeAgendaItem(meetingId: string, itemId: string): Promise<void>;
   reorderAgenda(meetingId: string, itemIds: string[]): Promise<void>;
   setOfficers(meetingId: string, chairMemberId: string, secretaryMemberId: string): Promise<CouncilMeeting>;
@@ -59,7 +61,12 @@ export function createMeetingPreparationService({
     return meeting;
   };
 
-  const scheduleExistingTopic = async (meetingId: string, topicId: string, position: number) => {
+  const scheduleExistingTopic = async (
+    meetingId: string,
+    topicId: string,
+    position: number,
+    addedDuringSession = false,
+  ) => {
     const topic = await topicRepository.find(topicId);
     if (!topic) throw new DomainError("topic_not_found", 404);
     if (transitionTopic(topic.state, { type: "SCHEDULE" }) !== "scheduled") {
@@ -72,7 +79,7 @@ export function createMeetingPreparationService({
       if (nextDecisionStatus !== "scheduled") throw new DomainError("agenda_inconsistent", 409);
       await councilDecisionRepository.setStatus(decision.id, nextDecisionStatus);
     }
-    const item = await agendaRepository.create(meetingId, { topicId: topic.id, position });
+    const item = await agendaRepository.create(meetingId, { topicId: topic.id, position, addedDuringSession });
     await topicRepository.schedule(topic.id, meetingId, position);
     return item;
   };
@@ -101,19 +108,34 @@ export function createMeetingPreparationService({
         }
         const result = await attendanceRepository.record(meetingId, input);
         if (result.status === "versionConflict") throw new DomainError("conflict", 409);
-        if (result.status === "proxyHolderConflict") throw new DomainError("proxy_invalid");
+        if (result.status === "proxyHolderConflict" || result.status === "proxyDocumentConflict") {
+          throw new DomainError("proxy_invalid");
+        }
         return result.attendance;
       });
     },
     async scheduleTopic(meetingId, topicId, position) {
       return unitOfWork.execute(async () => {
+        await requireComposableMeeting(meetingId);
+        return scheduleExistingTopic(meetingId, topicId, position);
+      });
+    },
+    async createLateTopic(meetingId, input) {
+      return unitOfWork.execute(async () => {
+        if (input.kind === "minutesApproval" || (input.kind === "subject" && Boolean(input.councilDecisionId))) {
+          throw new DomainError("invalid_request");
+        }
         const meeting = await requireMeeting(councilMeetingRepository, meetingId);
-        const duringSession = meeting.status === "inProgress" && !meeting.quorumFailure;
-        if (!duringSession) await requireComposableMeeting(meetingId);
-        const actualPosition = duringSession
-          ? Math.max(0, ...(await agendaRepository.listForMeeting(meetingId)).map((item) => item.position)) + 1
-          : position;
-        return scheduleExistingTopic(meetingId, topicId, actualPosition);
+        if (meeting.status !== "inProgress" || meeting.quorumFailure) {
+          throw new DomainError("invalid_meeting_transition", 409);
+        }
+        for (const resourceId of input.resourceIds) {
+          if (!(await resourceRepository.findMetadata(resourceId))) throw new DomainError("resource_not_found", 404);
+        }
+        const topic = await topicRepository.create(input);
+        const position =
+          Math.max(0, ...(await agendaRepository.listForMeeting(meetingId)).map((item) => item.position)) + 1;
+        return scheduleExistingTopic(meetingId, topic.id, position, true);
       });
     },
     async removeAgendaItem(meetingId, itemId) {

@@ -10,7 +10,6 @@ const require = createRequire(import.meta.url);
 const clientDirectory = dirname(dirname(fileURLToPath(import.meta.url)));
 const playwrightCli = require.resolve("@playwright/test/cli");
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "mairie-playwright-"));
-const apiToken = "mairie-e2e-valid-token";
 
 function availablePort() {
   return new Promise((resolve, reject) => {
@@ -41,8 +40,7 @@ try {
         ...process.env,
         DATABASE_PATH: join(temporaryDirectory, "mairie-e2e.sqlite"),
         DOCUMENT_STORAGE_PATH: join(temporaryDirectory, "documents"),
-        MAIRIE_API_TOKEN: apiToken,
-        MAIRIE_E2E_API_TOKEN: apiToken,
+        MAIRIE_DEV_AUTO_LOGIN: "true",
         MAIRIE_E2E_CLIENT_PORT: clientPort,
         MAIRIE_E2E_SERVER_PORT: serverPort,
       },

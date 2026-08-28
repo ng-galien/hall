@@ -8,13 +8,14 @@ import type {
   CouncilMemberRepository,
   CreateCouncilMeeting,
   MeetingRosterRepository,
+  UnitOfWork,
 } from "../repositories/contracts.js";
 import { DomainError } from "./errors.js";
 import { requireMeeting } from "./meetingContext.js";
 
 export interface CouncilMeetingService {
   listMeetings(): Promise<CouncilMeeting[]>;
-  createMeeting(input: CreateCouncilMeeting): Promise<CouncilMeeting>;
+  createMeeting(input: CreateCouncilMeeting): Promise<CouncilMeeting & { activeMemberCount: number }>;
   updateMeeting(
     meetingId: string,
     input: { title: string; startsAt: string; location: string },
@@ -30,6 +31,7 @@ export function createCouncilMeetingService({
   agendaRepository,
   councilDecisionRepository,
   ballotRepository,
+  unitOfWork,
 }: {
   councilMeetingRepository: CouncilMeetingRepository;
   councilMemberRepository: CouncilMemberRepository;
@@ -38,33 +40,44 @@ export function createCouncilMeetingService({
   agendaRepository: AgendaRepository;
   councilDecisionRepository: CouncilDecisionRepository;
   ballotRepository: BallotRepository;
+  unitOfWork: UnitOfWork;
 }): CouncilMeetingService {
   return {
     listMeetings: () => councilMeetingRepository.list(),
     async createMeeting(input) {
-      for (const memberId of [input.chairMemberId, input.secretaryMemberId]) {
-        if (!memberId) continue;
-        const member = await councilMemberRepository.find(memberId);
-        if (!member?.active) throw new DomainError("council_member_not_found", 404);
-      }
-      return councilMeetingRepository.create({ ...input, isReconvenedMeeting: false, previousMeetingId: null });
+      return unitOfWork.execute(async () => {
+        for (const memberId of [input.chairMemberId, input.secretaryMemberId]) {
+          if (!memberId) continue;
+          const member = await councilMemberRepository.find(memberId);
+          if (!member?.active) throw new DomainError("council_member_not_found", 404);
+        }
+        const meeting = await councilMeetingRepository.create({
+          ...input,
+          isReconvenedMeeting: false,
+          previousMeetingId: null,
+        });
+        return { ...meeting, activeMemberCount: (await councilMemberRepository.listActive()).length };
+      });
     },
     async updateMeeting(meetingId, input) {
-      const meeting = await requireMeeting(councilMeetingRepository, meetingId);
-      if (!["draft", "scheduled"].includes(meeting.status) || meeting.quorumFailure) {
-        throw new DomainError("invalid_meeting_transition", 409);
-      }
-      await councilMeetingRepository.updateDetails(meetingId, input);
-      return (await councilMeetingRepository.find(meetingId))!;
+      return unitOfWork.execute(async () => {
+        const meeting = await requireMeeting(councilMeetingRepository, meetingId);
+        if (!["draft", "scheduled"].includes(meeting.status) || meeting.quorumFailure) {
+          throw new DomainError("invalid_meeting_transition", 409);
+        }
+        await councilMeetingRepository.updateDetails(meetingId, input);
+        return (await councilMeetingRepository.find(meetingId))!;
+      });
     },
     async getMeeting(meetingId) {
       const meeting = await requireMeeting(councilMeetingRepository, meetingId);
-      const [attendance, agendaItems, allCouncilDecisions, ballots, memberIds] = await Promise.all([
+      const [attendance, agendaItems, allCouncilDecisions, ballots, memberIds, activeMembers] = await Promise.all([
         attendanceRepository.listForMeeting(meetingId),
         agendaRepository.listForMeeting(meetingId),
         councilDecisionRepository.list(),
         ballotRepository.listForMeeting(meetingId),
         meetingRosterRepository.listMemberIds(meetingId),
+        councilMemberRepository.listActive(),
       ]);
       const councilDecisionIds = new Set(
         agendaItems.flatMap((item) =>
@@ -73,6 +86,7 @@ export function createCouncilMeetingService({
       );
       return {
         meeting,
+        activeMemberCount: activeMembers.length,
         rosterMemberIds: memberIds,
         attendance,
         agendaItems,

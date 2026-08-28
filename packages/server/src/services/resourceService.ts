@@ -1,5 +1,6 @@
 import type { DocumentResource, Resource, ResourceDetails, TextResource } from "@mairie/domain";
 import type {
+  AttendanceRepository,
   CouncilMeetingRepository,
   CreateDocumentResource,
   CreateTextResource,
@@ -7,6 +8,7 @@ import type {
   StoredResource,
   TopicRepository,
   UnitOfWork,
+  UpdateResource,
 } from "../repositories/contracts.js";
 import { DomainError } from "./errors.js";
 
@@ -22,6 +24,7 @@ export interface ResourceService {
   listFolderPaths(): Promise<string[]>;
   createText(input: CreateTextResource): Promise<TextResource>;
   createDocument(input: CreateDocumentResource): Promise<DocumentResource>;
+  update(id: string, input: UpdateResource): Promise<Resource>;
   delete(id: string): Promise<void>;
 }
 
@@ -30,11 +33,13 @@ export function createResourceService({
   councilMeetingRepository,
   unitOfWork,
   topicRepository,
+  attendanceRepository,
 }: {
   resourceRepository: ResourceRepository;
   councilMeetingRepository: CouncilMeetingRepository;
   unitOfWork: UnitOfWork;
   topicRepository: TopicRepository;
+  attendanceRepository: AttendanceRepository;
 }): ResourceService {
   return {
     list(filters) {
@@ -46,7 +51,12 @@ export function createResourceService({
     async getDetails(id) {
       const resource = await resourceRepository.findMetadata(id);
       if (!resource) throw new DomainError("resource_not_found", 404);
-      return { resource, topics: await topicRepository.list({ resourceId: id }) };
+      return {
+        resource,
+        topics: await topicRepository.list({ resourceId: id }),
+        snapshotted: await resourceRepository.isSnapshotted(id),
+        usedAsProxy: await attendanceRepository.isProxyDocumentUsed(id),
+      };
     },
     async listFolderPaths() {
       const storedPaths = [
@@ -72,6 +82,27 @@ export function createResourceService({
         }
         if (input.category === "proxy" && !input.meetingId) throw new DomainError("invalid_request");
         return resourceRepository.createDocument(input);
+      });
+    },
+    update(id, input) {
+      return unitOfWork.execute(async () => {
+        const resource = await resourceRepository.findMetadata(id);
+        if (!resource) throw new DomainError("resource_not_found", 404);
+        if (resource.kind !== "text" && input.content !== undefined) throw new DomainError("invalid_request");
+        const contentChanged =
+          resource.kind === "text" && input.content !== undefined && input.content !== resource.content;
+        const titleChanged = input.title !== resource.title;
+        // Une ressource photographiée dans une occurrence historique garde titre et contenu ;
+        // seul son classement (chemin, tags) reste modifiable.
+        if ((contentChanged || titleChanged) && (await resourceRepository.isSnapshotted(id))) {
+          throw new DomainError("conflict", 409);
+        }
+        return resourceRepository.update(id, {
+          title: input.title,
+          folderPath: input.folderPath,
+          tags: input.tags,
+          content: resource.kind === "text" ? (input.content ?? resource.content) : undefined,
+        });
       });
     },
     delete(id) {

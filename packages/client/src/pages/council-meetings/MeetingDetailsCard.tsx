@@ -1,15 +1,21 @@
 import { Button, Field } from "@fluentui/react-components";
-import { ArrowUploadRegular, DocumentRegular, OpenRegular } from "@fluentui/react-icons";
-import type { CouncilMember, DocumentMetadata, MeetingAggregate } from "@mairie/domain";
+import {
+  ArrowUploadRegular,
+  CheckmarkCircleRegular,
+  DocumentRegular,
+  OpenRegular,
+  WarningRegular,
+} from "@fluentui/react-icons";
+import type { CouncilMember, DocumentResource, MeetingAggregate } from "@mairie/domain";
 import { type FormEvent, useRef, useState } from "react";
 import { StatusBadge } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
-import { useDocumentsStore } from "../../stores/documentsStore";
+import { useResourcesStore } from "../../stores/resourcesStore";
 import { MeetingDocumentViewer } from "./MeetingDocumentViewer";
 
-const documentCategoryKeys: Record<DocumentMetadata["category"], TranslationKey> = {
+export const documentCategoryKeys: Record<DocumentResource["category"], TranslationKey> = {
   supporting: "documentCategory.supporting",
   report: "documentCategory.report",
   draftCouncilDecision: "documentCategory.draftCouncilDecision",
@@ -18,28 +24,31 @@ const documentCategoryKeys: Record<DocumentMetadata["category"], TranslationKey>
   proxy: "documentCategory.proxy",
 };
 
-const meetingDocumentCategories: DocumentMetadata["category"][] = ["meetingNotice", "proxy", "supporting", "minutes"];
+const meetingDocumentCategories: DocumentResource["category"][] = ["meetingNotice", "proxy", "supporting", "minutes"];
 
 export function MeetingDetailsCard({
   aggregate,
   members,
   documents,
+  officersEditable,
+  documentsEditable,
   onSaveOfficers,
 }: {
   aggregate: MeetingAggregate;
   members: CouncilMember[];
-  documents: DocumentMetadata[];
+  documents: DocumentResource[];
+  officersEditable: boolean;
+  documentsEditable: boolean;
   onSaveOfficers(input: Record<string, unknown>): Promise<boolean>;
 }) {
   const { t, formatFileSize } = useI18n();
   const { submitting, run } = useSubmitting();
-  const { upload, download } = useDocumentsStore();
+  const { upload, download } = useResourcesStore();
   const { meeting } = aggregate;
   const [officersSaved, setOfficersSaved] = useState(false);
-  const [viewedDocument, setViewedDocument] = useState<DocumentMetadata | null>(null);
+  const [viewedDocument, setViewedDocument] = useState<DocumentResource | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const categorySelect = useRef<HTMLSelectElement | null>(null);
-  const officersEditable = meeting.status === "scheduled" && !meeting.quorumFailure;
 
   const saveOfficers = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -119,6 +128,26 @@ export function MeetingDetailsCard({
       <section className="meeting-side-section" aria-labelledby="meeting-documents-heading">
         <h2 id="meeting-documents-heading">{t("meeting.meetingDocuments")}</h2>
         <p className="meeting-side-hint">{t("meeting.meetingDocumentsDescription")}</p>
+        {(() => {
+          const noticeAttached = documents.some((document) => document.category === "meetingNotice");
+          if (noticeAttached) {
+            return (
+              <p className="meeting-notice-status meeting-notice-status-ok" role="status">
+                <CheckmarkCircleRegular aria-hidden="true" />
+                {t("meeting.noticeAttached")}
+              </p>
+            );
+          }
+          if (["draft", "scheduled"].includes(meeting.status)) {
+            return (
+              <p className="meeting-notice-status meeting-notice-status-missing" role="status">
+                <WarningRegular aria-hidden="true" />
+                {t("meeting.noticeMissing")}
+              </p>
+            );
+          }
+          return null;
+        })()}
         {documents.length > 0 ? (
           <ul className="meeting-side-documents">
             {documents.map((document) => (
@@ -143,31 +172,33 @@ export function MeetingDetailsCard({
         ) : (
           <p className="meeting-side-hint">{t("meeting.meetingDocumentsEmpty")}</p>
         )}
-        <div className="meeting-side-upload">
-          <select ref={categorySelect} aria-label={t("documents.category")} defaultValue="meetingNotice">
-            {meetingDocumentCategories.map((category) => (
-              <option key={category} value={category}>
-                {t(documentCategoryKeys[category])}
-              </option>
-            ))}
-          </select>
-          <input
-            ref={fileInput}
-            type="file"
-            aria-label={t("documents.file")}
-            onChange={uploadMeetingDocument}
-            className="visually-hidden-input"
-            id="meeting-document-file"
-          />
-          <Button
-            appearance="secondary"
-            icon={<ArrowUploadRegular />}
-            disabled={submitting}
-            onClick={() => fileInput.current?.click()}
-          >
-            {t(submitting ? "common.saving" : "meeting.attachDocument")}
-          </Button>
-        </div>
+        {documentsEditable ? (
+          <div className="meeting-side-upload">
+            <select ref={categorySelect} aria-label={t("documents.category")} defaultValue="meetingNotice">
+              {meetingDocumentCategories.map((category) => (
+                <option key={category} value={category}>
+                  {t(documentCategoryKeys[category])}
+                </option>
+              ))}
+            </select>
+            <input
+              ref={fileInput}
+              type="file"
+              aria-label={t("documents.file")}
+              onChange={uploadMeetingDocument}
+              className="visually-hidden-input"
+              id="meeting-document-file"
+            />
+            <Button
+              appearance="secondary"
+              icon={<ArrowUploadRegular />}
+              disabled={submitting}
+              onClick={() => fileInput.current?.click()}
+            >
+              {t(submitting ? "common.saving" : "meeting.attachDocument")}
+            </Button>
+          </div>
+        ) : null}
       </section>
 
       <section className="meeting-side-section" aria-labelledby="minutes-heading">
