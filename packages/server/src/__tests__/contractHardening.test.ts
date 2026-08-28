@@ -372,7 +372,12 @@ describe("hardened HTTP and hypermedia contract", () => {
     await rawAgent.post("/api/topics").send({}).expect(403);
     const idleMeeting = await rawAgent.get(`/api/council-meetings/${meeting.id}`).expect(200);
     expect(actionNames(idleMeeting)).not.toContain("ballot.record");
-    await rawAgent.post(`/api/council-meetings/${meeting.id}/agenda-items/${preparedAgendaItem.id}/start`).expect(200);
+    const startedAgendaItem = await rawAgent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/${preparedAgendaItem.id}/start`)
+      .expect(200);
+    expect(actionNames(startedAgendaItem)).toEqual(
+      expect.arrayContaining(["agenda-item.save-notes", "agenda-item.complete"]),
+    );
     const examiningMeeting = await rawAgent.get(`/api/council-meetings/${meeting.id}`).expect(200);
     expect(actionNames(examiningMeeting)).toContain("ballot.record");
     await rawAgent

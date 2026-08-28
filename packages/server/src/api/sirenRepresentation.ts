@@ -225,7 +225,28 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
     const payload = value as Record<string, unknown>;
     const meeting = payload.meeting;
     const agendaItems = Array.isArray(payload.agendaItems) ? payload.agendaItems : [];
-    if (!meeting || typeof meeting !== "object") return [];
+    if (!meeting || typeof meeting !== "object") {
+      if (
+        permitted(request, "meetings.conduct") &&
+        typeof primary?.meetingId === "string" &&
+        primary.startedAt &&
+        !primary.completedAt
+      ) {
+        return [
+          action(
+            "agenda-item.save-notes",
+            "PUT",
+            `/api/council-meetings/${primary.meetingId}/agenda-items/${id}/notes`,
+          ),
+          action(
+            "agenda-item.complete",
+            "POST",
+            `/api/council-meetings/${primary.meetingId}/agenda-items/${id}/complete`,
+          ),
+        ];
+      }
+      return [];
+    }
     const meetingId = objectId(meeting);
     if (!meetingId) return [];
     const meetingStatus = "status" in meeting ? String(meeting.status) : "";
