@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
-const databasePath = resolve(scriptDirectory, "../data/mairie.sqlite");
+const databasePath = resolve(scriptDirectory, "../data/hall.sqlite");
 const databaseFiles = [databasePath, `${databasePath}-shm`, `${databasePath}-wal`];
 
 for (const path of databaseFiles) {

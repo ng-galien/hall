@@ -1,6 +1,6 @@
 import { Button } from "@fluentui/react-components";
 import { AddRegular, SearchRegular } from "@fluentui/react-icons";
-import type { Resource } from "@mairie/domain";
+import type { Resource } from "@hall/domain";
 import { useState } from "react";
 import { matchesQuery } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";

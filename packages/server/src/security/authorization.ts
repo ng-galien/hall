@@ -1,10 +1,4 @@
-import {
-  type ApiPermission,
-  type ApiPrincipal,
-  type ApiRole,
-  type ApiUser,
-  apiPermissions,
-} from "@mairie/api-contract";
+import { type ApiPermission, type ApiPrincipal, type ApiRole, type ApiUser, apiPermissions } from "@hall/api-contract";
 import type { NextFunction, Request, Response } from "express";
 import { sendProblem } from "../api/problemDetails.js";
 

@@ -1,28 +1,16 @@
 import { randomUUID } from "node:crypto";
-import type { ApiRole, ApiUser } from "@mairie/api-contract";
-import type { SqliteExecutor } from "../infrastructure/sqlite/executor.js";
-
-interface UserRow {
-  id: string;
-  email: string;
-  display_name: string;
-  password_hash: string;
-  status: ApiUser["status"];
-  council_member_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import type { ApiRole, ApiUser } from "@hall/api-contract";
+import type { SqlExecutor } from "../infrastructure/database/executor.js";
+import { type DatabaseRow, mapSequential } from "./row.js";
 
 export interface StoredUser extends ApiUser {
   passwordHash: string;
 }
-
 export interface StoredSession {
   id: string;
   userId: string;
   expiresAt: string;
 }
-
 export interface AuditEvent {
   id: string;
   actorUserId: string | null;
@@ -35,30 +23,27 @@ export interface AuditEvent {
   occurredAt: string;
 }
 
-function rolesFor(database: SqliteExecutor["database"], userId: string): ApiRole[] {
-  return database
-    .prepare("SELECT role FROM user_roles WHERE user_id = ? ORDER BY role")
-    .all(userId)
-    .map((row) => String(row.role) as ApiRole);
-}
-
-function mapUser(database: SqliteExecutor["database"], row: UserRow): StoredUser {
+async function mapUser(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<StoredUser> {
+  const roles = (await sqlExecutor.all("security.rolesForUser", { userId: String(row.id) })).map(
+    (role) => String(role.role) as ApiRole,
+  );
   return {
-    id: row.id,
-    email: row.email,
-    displayName: row.display_name,
-    passwordHash: row.password_hash,
-    status: row.status,
-    councilMemberId: row.council_member_id,
-    roles: rolesFor(database, row.id),
+    id: String(row.id),
+    email: String(row.email),
+    displayName: String(row.display_name),
+    passwordHash: String(row.password_hash),
+    status: row.status as ApiUser["status"],
+    councilMemberId: row.council_member_id ? String(row.council_member_id) : null,
+    roles,
     permissions: [],
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
   };
 }
 
-export function createSecurityRepository({ sqliteExecutor }: { sqliteExecutor: SqliteExecutor }) {
-  const mapAuditEvent = (row: Record<string, unknown>): AuditEvent => ({
+function mapAuditEvent(row: DatabaseRow): AuditEvent {
+  const details = typeof row.details_json === "string" ? JSON.parse(row.details_json) : row.details_json;
+  return {
     id: String(row.id),
     actorUserId: row.actor_user_id ? String(row.actor_user_id) : null,
     requestId: String(row.request_id),
@@ -66,40 +51,26 @@ export function createSecurityRepository({ sqliteExecutor }: { sqliteExecutor: S
     targetType: String(row.target_type),
     targetId: row.target_id ? String(row.target_id) : null,
     outcome: String(row.outcome) as AuditEvent["outcome"],
-    details: JSON.parse(String(row.details_json)) as Record<string, unknown>,
+    details: details as Record<string, unknown>,
     occurredAt: String(row.occurred_at),
-  });
-  const findUser = (clause: string, value: string) =>
-    sqliteExecutor.run((database) => {
-      const row = database.prepare(`SELECT * FROM users WHERE ${clause}`).get(value) as UserRow | undefined;
-      return row ? mapUser(database, row) : null;
-    });
+  };
+}
 
+export function createSecurityRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }) {
+  const findUser = async (name: "security.findUserById" | "security.findUserByEmail", value: string) => {
+    const row = await sqlExecutor.get(name, { value });
+    return row ? mapUser(sqlExecutor, row) : null;
+  };
   return {
-    countUsers: () =>
-      sqliteExecutor.run((database) =>
-        Number(database.prepare("SELECT COUNT(*) AS count FROM users").get()?.count ?? 0),
-      ),
-    countActiveAdministrators: () =>
-      sqliteExecutor.run((database) =>
-        Number(
-          database
-            .prepare(
-              `SELECT COUNT(*) AS count
-               FROM users JOIN user_roles ON user_roles.user_id = users.id
-               WHERE users.status = 'active' AND user_roles.role = 'administrator'`,
-            )
-            .get()?.count ?? 0,
-        ),
-      ),
-    listUsers: () =>
-      sqliteExecutor.run((database) =>
-        (database.prepare("SELECT * FROM users ORDER BY display_name, email").all() as unknown as UserRow[]).map(
-          (row) => mapUser(database, row),
-        ),
-      ),
-    findUserById: (id: string) => findUser("id = ?", id),
-    findUserByEmail: (email: string) => findUser("email = ?", email.toLowerCase()),
+    countUsers: async () => Number((await sqlExecutor.get("security.countUsers"))?.count ?? 0),
+    countActiveAdministrators: async () =>
+      Number((await sqlExecutor.get("security.countActiveAdministrators"))?.count ?? 0),
+    lockAdministratorInvariant: () => sqlExecutor.get("security.lockAdministratorInvariant").then(() => undefined),
+    async listUsers() {
+      return mapSequential(await sqlExecutor.all("security.listUsers"), (row) => mapUser(sqlExecutor, row));
+    },
+    findUserById: (id: string) => findUser("security.findUserById", id),
+    findUserByEmail: (email: string) => findUser("security.findUserByEmail", email.toLowerCase()),
     createUser(input: {
       email: string;
       displayName: string;
@@ -107,99 +78,87 @@ export function createSecurityRepository({ sqliteExecutor }: { sqliteExecutor: S
       roles: ApiRole[];
       councilMemberId: string | null;
     }) {
-      return sqliteExecutor.run((database) => {
+      return sqlExecutor.execute(async () => {
         const id = randomUUID();
         const now = new Date().toISOString();
-        database
-          .prepare(
-            `INSERT INTO users
-              (id, email, display_name, password_hash, council_member_id, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          )
-          .run(id, input.email.toLowerCase(), input.displayName, input.passwordHash, input.councilMemberId, now, now);
-        const insertRole = database.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, ?)");
-        for (const role of input.roles) insertRole.run(id, role);
-        return mapUser(database, database.prepare("SELECT * FROM users WHERE id = ?").get(id) as unknown as UserRow);
+        await sqlExecutor.run("security.insertUser", {
+          id,
+          email: input.email.toLowerCase(),
+          displayName: input.displayName,
+          passwordHash: input.passwordHash,
+          councilMemberId: input.councilMemberId,
+          createdAt: now,
+          updatedAt: now,
+        });
+        for (const role of input.roles) await sqlExecutor.run("security.insertRole", { userId: id, role });
+        return mapUser(sqlExecutor, (await sqlExecutor.get("security.findUserById", { value: id }))!);
       });
     },
     setRoles(id: string, roles: ApiRole[]) {
-      return sqliteExecutor.run((database) => {
-        database.prepare("DELETE FROM user_roles WHERE user_id = ?").run(id);
-        const insertRole = database.prepare("INSERT INTO user_roles (user_id, role) VALUES (?, ?)");
-        for (const role of roles) insertRole.run(id, role);
-        const row = database.prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow | undefined;
-        return row ? mapUser(database, row) : null;
+      return sqlExecutor.execute(async () => {
+        await sqlExecutor.run("security.deleteRoles", { userId: id });
+        for (const role of roles) await sqlExecutor.run("security.insertRole", { userId: id, role });
+        const row = await sqlExecutor.get("security.findUserById", { value: id });
+        return row ? mapUser(sqlExecutor, row) : null;
       });
     },
     disableUser(id: string) {
-      return sqliteExecutor.run((database) => {
-        const now = new Date().toISOString();
-        const result = database
-          .prepare("UPDATE users SET status = 'disabled', updated_at = ? WHERE id = ?")
-          .run(now, id);
-        database.prepare("DELETE FROM sessions WHERE user_id = ?").run(id);
+      return sqlExecutor.execute(async () => {
+        const result = await sqlExecutor.run("security.disableUser", { id, updatedAt: new Date().toISOString() });
+        await sqlExecutor.run("security.deleteSessionsForUser", { userId: id });
         if (result.changes === 0) return null;
-        return mapUser(database, database.prepare("SELECT * FROM users WHERE id = ?").get(id) as unknown as UserRow);
+        return mapUser(sqlExecutor, (await sqlExecutor.get("security.findUserById", { value: id }))!);
       });
     },
     createSession(userId: string, tokenHash: string, expiresAt: string) {
-      return sqliteExecutor.run((database) => {
+      return sqlExecutor.execute(async () => {
         const id = randomUUID();
-        database
-          .prepare("INSERT INTO sessions (id, user_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?)")
-          .run(id, userId, tokenHash, new Date().toISOString(), expiresAt);
+        await sqlExecutor.run("security.insertSession", {
+          id,
+          userId,
+          tokenHash,
+          createdAt: new Date().toISOString(),
+          expiresAt,
+        });
         return { id, userId, expiresAt } satisfies StoredSession;
       });
     },
-    findSession(tokenHash: string) {
-      return sqliteExecutor.run((database) => {
-        const row = database
-          .prepare("SELECT id, user_id, expires_at FROM sessions WHERE token_hash = ? AND expires_at > ?")
-          .get(tokenHash, new Date().toISOString()) as { id: string; user_id: string; expires_at: string } | undefined;
-        return row ? ({ id: row.id, userId: row.user_id, expiresAt: row.expires_at } satisfies StoredSession) : null;
-      });
+    async findSession(tokenHash: string) {
+      const row = await sqlExecutor.get("security.findSession", { tokenHash, now: new Date().toISOString() });
+      return row
+        ? ({
+            id: String(row.id),
+            userId: String(row.user_id),
+            expiresAt: String(row.expires_at),
+          } satisfies StoredSession)
+        : null;
     },
     deleteSession(id: string) {
-      return sqliteExecutor.run((database) => {
-        database.prepare("DELETE FROM sessions WHERE id = ?").run(id);
-      });
+      return sqlExecutor.run("security.deleteSession", { id }).then(() => undefined);
     },
-    listAuditEvents(limit = 200) {
-      return sqliteExecutor.run((database) =>
-        database
-          .prepare("SELECT * FROM audit_events ORDER BY occurred_at DESC LIMIT ?")
-          .all(limit)
-          .map((row) => mapAuditEvent(row)),
-      );
+    async listAuditEvents(limit = 200) {
+      return (await sqlExecutor.all("security.listAuditEvents", { limit })).map(mapAuditEvent);
     },
-    findAuditEvent(id: string) {
-      return sqliteExecutor.run((database) => {
-        const row = database.prepare("SELECT * FROM audit_events WHERE id = ?").get(id);
-        return row ? mapAuditEvent(row) : null;
-      });
+    async findAuditEvent(id: string) {
+      const row = await sqlExecutor.get("security.findAuditEvent", { id });
+      return row ? mapAuditEvent(row) : null;
     },
     recordAuditEvent(input: Omit<AuditEvent, "id" | "occurredAt">) {
-      return sqliteExecutor.run((database) => {
-        const storedActor = input.actorUserId
-          ? database.prepare("SELECT id FROM users WHERE id = ?").get(input.actorUserId)
+      return sqlExecutor.execute(async () => {
+        const actor = input.actorUserId
+          ? await sqlExecutor.get("security.actorExists", { actorUserId: input.actorUserId })
           : undefined;
-        database
-          .prepare(
-            `INSERT INTO audit_events
-              (id, actor_user_id, request_id, action, target_type, target_id, outcome, details_json, occurred_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          )
-          .run(
-            randomUUID(),
-            storedActor ? input.actorUserId : null,
-            input.requestId,
-            input.action,
-            input.targetType,
-            input.targetId,
-            input.outcome,
-            JSON.stringify(input.details),
-            new Date().toISOString(),
-          );
+        await sqlExecutor.run("security.insertAuditEvent", {
+          id: randomUUID(),
+          actorUserId: actor ? input.actorUserId : null,
+          requestId: input.requestId,
+          action: input.action,
+          targetType: input.targetType,
+          targetId: input.targetId,
+          outcome: input.outcome,
+          detailsJson: JSON.stringify(input.details),
+          occurredAt: new Date().toISOString(),
+        });
       });
     },
   };

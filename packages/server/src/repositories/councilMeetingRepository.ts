@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { CouncilMeeting } from "@mairie/domain";
-import type { SqliteExecutor } from "../infrastructure/sqlite/executor.js";
+import type { CouncilMeeting } from "@hall/domain";
+import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { CouncilMeetingRepository } from "./contracts.js";
 import { parseQuorumFailureEvidence } from "./evidenceMapping.js";
 import { asBoolean, asNullableString, type DatabaseRow } from "./row.js";
@@ -31,83 +31,66 @@ const mapMeeting = (row: DatabaseRow): CouncilMeeting => ({
 });
 
 export function createCouncilMeetingRepository({
-  sqliteExecutor,
+  sqlExecutor,
 }: {
-  sqliteExecutor: SqliteExecutor;
+  sqlExecutor: SqlExecutor;
 }): CouncilMeetingRepository {
   return {
     list() {
-      return sqliteExecutor.run((database) =>
-        database.prepare("SELECT * FROM council_meetings ORDER BY starts_at DESC").all().map(mapMeeting),
-      );
+      return sqlExecutor.all("meeting.list").then((rows) => rows.map(mapMeeting));
     },
     find(id) {
-      return sqliteExecutor.run((database) => {
-        const row = database.prepare("SELECT * FROM council_meetings WHERE id = ?").get(id);
-        return row ? mapMeeting(row) : null;
-      });
+      return sqlExecutor.get("meeting.find", { id }).then((row) => (row ? mapMeeting(row) : null));
     },
     create(input) {
-      return sqliteExecutor.run((database) => {
+      return sqlExecutor.execute(async () => {
         const id = randomUUID();
         const now = new Date().toISOString();
-        database
-          .prepare(`INSERT INTO council_meetings
-            (id, title, starts_at, location, chair_member_id, secretary_member_id, meeting_notice_sent_at, is_reconvened_meeting, previous_meeting_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .run(
-            id,
-            input.title,
-            input.startsAt,
-            input.location,
-            input.chairMemberId ?? null,
-            input.secretaryMemberId ?? null,
-            input.meetingNoticeSentAt ?? null,
-            input.isReconvenedMeeting ? 1 : 0,
-            input.previousMeetingId ?? null,
-            now,
-            now,
-          );
-        return mapMeeting(database.prepare("SELECT * FROM council_meetings WHERE id = ?").get(id)!);
+        await sqlExecutor.run("meeting.insert", {
+          id,
+          title: input.title,
+          startsAt: input.startsAt,
+          location: input.location,
+          chairMemberId: input.chairMemberId ?? null,
+          secretaryMemberId: input.secretaryMemberId ?? null,
+          meetingNoticeSentAt: input.meetingNoticeSentAt ?? null,
+          isReconvenedMeeting: input.isReconvenedMeeting ?? false,
+          previousMeetingId: input.previousMeetingId ?? null,
+          createdAt: now,
+          updatedAt: now,
+        });
+        return mapMeeting((await sqlExecutor.get("meeting.find", { id }))!);
       });
     },
     updateDetails(id, input) {
-      return sqliteExecutor.run((database) => {
-        database
-          .prepare("UPDATE council_meetings SET title = ?, starts_at = ?, location = ?, updated_at = ? WHERE id = ?")
-          .run(input.title, input.startsAt, input.location, new Date().toISOString(), id);
-      });
+      return sqlExecutor
+        .run("meeting.updateDetails", {
+          id,
+          title: input.title,
+          startsAt: input.startsAt,
+          location: input.location,
+          updatedAt: new Date().toISOString(),
+        })
+        .then(() => undefined);
     },
     setStatus(id, status) {
-      return sqliteExecutor.run((database) => {
-        const now = new Date().toISOString();
-        database
-          .prepare(`UPDATE council_meetings SET
-            status = ?,
-            opened_at = CASE WHEN ? = 'inProgress' AND opened_at IS NULL THEN ? ELSE opened_at END,
-            closed_at = CASE WHEN ? = 'closed' AND closed_at IS NULL THEN ? ELSE closed_at END,
-            updated_at = ?
-            WHERE id = ?`)
-          .run(status, status, now, status, now, now, id);
-      });
+      return sqlExecutor
+        .run("meeting.setStatus", { id, status, updatedAt: new Date().toISOString() })
+        .then(() => undefined);
     },
     setOfficers(id, chairMemberId, secretaryMemberId) {
-      return sqliteExecutor.run((database) => {
-        database
-          .prepare(
-            "UPDATE council_meetings SET chair_member_id = ?, secretary_member_id = ?, updated_at = ? WHERE id = ?",
-          )
-          .run(chairMemberId, secretaryMemberId, new Date().toISOString(), id);
-      });
+      return sqlExecutor
+        .run("meeting.setOfficers", { id, chairMemberId, secretaryMemberId, updatedAt: new Date().toISOString() })
+        .then(() => undefined);
     },
     recordQuorumFailure(id, evidence) {
-      return sqliteExecutor.run((database) => {
-        database
-          .prepare(
-            "UPDATE council_meetings SET quorum_failure_evidence_json = ?, updated_at = ? WHERE id = ? AND quorum_failure_evidence_json IS NULL",
-          )
-          .run(JSON.stringify(evidence), new Date().toISOString(), id);
-      });
+      return sqlExecutor
+        .run("meeting.recordQuorumFailure", {
+          id,
+          evidenceJson: JSON.stringify(evidence),
+          updatedAt: new Date().toISOString(),
+        })
+        .then(() => undefined);
     },
   };
 }

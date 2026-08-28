@@ -1,4 +1,4 @@
-import type { CouncilMember, MeetingAggregate } from "@mairie/domain";
+import type { CouncilMember, MeetingAggregate } from "@hall/domain";
 
 export interface BallotParticipant {
   memberId: string;

@@ -1,5 +1,5 @@
 import { ChevronDownRegular, ChevronRightRegular } from "@fluentui/react-icons";
-import type { AgendaItem, Attendance, Ballot, CouncilMember, MeetingAggregate, VoteChoice } from "@mairie/domain";
+import type { AgendaItem, Attendance, Ballot, CouncilMember, MeetingAggregate, VoteChoice } from "@hall/domain";
 import { useMemo, useState } from "react";
 import { MarkdownView } from "../../components/MarkdownView";
 import { StatusBadge } from "../../components/Ui";

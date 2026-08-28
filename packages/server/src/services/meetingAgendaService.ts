@@ -1,4 +1,4 @@
-import { type AgendaItem, type TopicEvent, transitionCouncilDecision, transitionTopic } from "@mairie/domain";
+import { type AgendaItem, type TopicEvent, transitionCouncilDecision, transitionTopic } from "@hall/domain";
 import type {
   AgendaRepository,
   BallotRepository,

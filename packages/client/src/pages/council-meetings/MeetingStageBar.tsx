@@ -1,4 +1,4 @@
-import type { MeetingStatus } from "@mairie/domain";
+import type { MeetingStatus } from "@hall/domain";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 

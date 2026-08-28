@@ -1,5 +1,5 @@
 import { GavelRegular } from "@fluentui/react-icons";
-import type { CouncilDecisionListEntry, CouncilMeeting } from "@mairie/domain";
+import type { CouncilDecisionListEntry, CouncilMeeting } from "@hall/domain";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import {

@@ -1,4 +1,4 @@
-import type { ParticipationEvidence, QuorumFailureEvidence } from "@mairie/domain";
+import type { ParticipationEvidence, QuorumFailureEvidence } from "@hall/domain";
 
 export const emptyParticipationEvidence: ParticipationEvidence = {
   rosterMemberIds: [],
@@ -7,9 +7,11 @@ export const emptyParticipationEvidence: ParticipationEvidence = {
 };
 
 export function parseParticipationEvidence(value: unknown): ParticipationEvidence {
-  return JSON.parse(String(value)) as ParticipationEvidence;
+  return (typeof value === "string" ? JSON.parse(value) : value) as ParticipationEvidence;
 }
 
 export function parseQuorumFailureEvidence(value: unknown): QuorumFailureEvidence | null {
-  return value === null || value === undefined ? null : (JSON.parse(String(value)) as QuorumFailureEvidence);
+  return value === null || value === undefined
+    ? null
+    : ((typeof value === "string" ? JSON.parse(value) : value) as QuorumFailureEvidence);
 }

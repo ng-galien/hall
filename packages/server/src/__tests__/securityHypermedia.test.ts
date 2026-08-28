@@ -1,4 +1,4 @@
-import { PROBLEM_MEDIA_TYPE, SIREN_MEDIA_TYPE } from "@mairie/api-contract";
+import { PROBLEM_MEDIA_TYPE, SIREN_MEDIA_TYPE } from "@hall/api-contract";
 import { describe, expect, it } from "vitest";
 import { createTestServer } from "./testServer.js";
 
@@ -39,7 +39,7 @@ describe("users, permissions, audit and Siren affordances", () => {
 
     await statelessAgent
       .post("/api/topics")
-      .set("Cookie", "mairie_session=%")
+      .set("Cookie", "hall_session=%")
       .send({ kind: "openQuestion", title: "Mutation refusée", report: "", folderPath: "", resourceIds: [] })
       .expect(401);
 
@@ -77,7 +77,7 @@ describe("users, permissions, audit and Siren affordances", () => {
       .post("/api/auth/login")
       .send({ email: administrator.email, password: administrator.password })
       .expect(200);
-    expect(login.headers["set-cookie"]?.[0]).toContain("mairie_session=");
+    expect(login.headers["set-cookie"]?.[0]).toContain("hall_session=");
 
     const member = await rawAgent
       .post("/api/council-members")
@@ -92,7 +92,7 @@ describe("users, permissions, audit and Siren affordances", () => {
     const councilMemberId = properties<{ id: string }>(member).id;
     const meeting = await rawAgent
       .post("/api/council-meetings")
-      .send({ title: "Conseil audité", startsAt: "2026-09-10T18:30:00.000Z", location: "Mairie" })
+      .send({ title: "Conseil audité", startsAt: "2026-09-10T18:30:00.000Z", location: "Hall" })
       .expect(201);
     expect(meeting.body.actions).toEqual(
       expect.arrayContaining([

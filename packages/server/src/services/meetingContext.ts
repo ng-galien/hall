@@ -1,4 +1,4 @@
-import type { CouncilMeeting } from "@mairie/domain";
+import type { CouncilMeeting } from "@hall/domain";
 import type {
   AttendanceRepository,
   CouncilMeetingRepository,

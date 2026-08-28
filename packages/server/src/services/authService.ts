@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import type { ApiRole, ApiUser } from "@mairie/api-contract";
+import type { ApiRole, ApiUser } from "@hall/api-contract";
 import type { CouncilMemberRepository, UnitOfWork } from "../repositories/contracts.js";
 import type { SecurityRepository, StoredUser } from "../repositories/securityRepository.js";
 import { permissionsForRoles, principalForUser } from "../security/authorization.js";
@@ -10,7 +10,7 @@ import { DomainError } from "./errors.js";
 const sessionDurationMs = 12 * 60 * 60 * 1000;
 const dummyPasswordHash = `scrypt$32768$8$1$${Buffer.alloc(16).toString("base64")}$${Buffer.alloc(32).toString("base64")}`;
 
-export const SESSION_COOKIE_NAME = "mairie_session";
+export const SESSION_COOKIE_NAME = "hall_session";
 
 export function hashSessionToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -142,6 +142,7 @@ export function createAuthService({
     },
     assignRoles(userId, roles) {
       return unitOfWork.execute(async () => {
+        await securityRepository.lockAdministratorInvariant();
         const current = await securityRepository.findUserById(userId);
         if (!current) throw new DomainError("user_not_found", 404);
         if (
@@ -159,6 +160,7 @@ export function createAuthService({
     },
     disableUser(userId) {
       return unitOfWork.execute(async () => {
+        await securityRepository.lockAdministratorInvariant();
         const current = await securityRepository.findUserById(userId);
         if (!current) throw new DomainError("user_not_found", 404);
         if (

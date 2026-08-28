@@ -1,4 +1,4 @@
-import type { Topic } from "@mairie/domain";
+import type { Topic } from "@hall/domain";
 import type { CouncilMeetingRepository, TopicRepository } from "../repositories/contracts.js";
 import { DomainError } from "./errors.js";
 

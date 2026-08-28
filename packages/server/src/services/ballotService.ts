@@ -8,7 +8,7 @@ import {
   transitionBallot,
   transitionCouncilDecision,
   type VoteInput,
-} from "@mairie/domain";
+} from "@hall/domain";
 import type {
   AgendaRepository,
   AttendanceRepository,

@@ -1,0 +1,261 @@
+import { randomUUID } from "node:crypto";
+import { Pool } from "pg";
+import { describe, expect, it } from "vitest";
+import { buildContainer } from "../core/container.js";
+
+const databaseUrl = process.env.TEST_DATABASE_URL;
+const postgres = databaseUrl ? describe : describe.skip;
+
+postgres("PostgreSQL persistence", () => {
+  it("runs the council workflow through the PostgreSQL adapter", async () => {
+    const setup = new Pool({ connectionString: databaseUrl });
+    await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
+    await setup.end();
+
+    const container = buildContainer({
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "postgres", url: databaseUrl! },
+      environment: "test",
+    });
+    const {
+      sqlExecutor,
+      councilMemberRepository,
+      councilDecisionRepository,
+      councilMeetingService,
+      meetingPreparationService,
+      meetingLifecycleService,
+      meetingAgendaService,
+      ballotService,
+      resourceRepository,
+      topicService,
+      securityRepository,
+    } = container.cradle;
+    await sqlExecutor.ready();
+    try {
+      const members = await Promise.all(
+        ["Alice", "Benoît", "Claire"].map((firstName) =>
+          councilMemberRepository.create({
+            firstName,
+            lastName: "Martin",
+            role: "councillor",
+            termStartedOn: "2026-03-22",
+          }),
+        ),
+      );
+      const text = await resourceRepository.createText({
+        title: "Summary",
+        folderPath: "associations/grants",
+        tags: ["finance", "grant"],
+        content: "Working note",
+      });
+      const document = await resourceRepository.createDocument({
+        title: "Report",
+        folderPath: "associations/grants",
+        tags: ["finance"],
+        fileName: "report.pdf",
+        mediaType: "application/pdf",
+        category: "report",
+        content: Buffer.from("pdf"),
+      });
+      expect(await resourceRepository.list({ tags: ["finance"] })).toHaveLength(2);
+
+      const decision = await councilDecisionRepository.create({
+        title: "Grant decision",
+        draftText: "The council decides...",
+        legalityReviewRequired: true,
+      });
+      const meeting = await councilMeetingService.createMeeting({
+        title: "Council meeting",
+        startsAt: "2026-09-10T18:30:00+02:00",
+        location: "Council chamber",
+        chairMemberId: members[0].id,
+        secretaryMemberId: members[1].id,
+      });
+      const topic = await topicService.create({
+        kind: "subject",
+        councilDecisionId: decision.id,
+        title: decision.title,
+        report: "Grant report",
+        folderPath: "associations/grants",
+        resourceIds: [text.id, document.id],
+      });
+      const agendaItem = await meetingPreparationService.scheduleTopic(meeting.id, topic.id, 1);
+      await meetingLifecycleService.changeStatus(meeting.id, "scheduled");
+      for (const member of members) {
+        await meetingPreparationService.recordAttendance(meeting.id, { memberId: member.id, status: "present" });
+      }
+      await meetingLifecycleService.changeStatus(meeting.id, "inProgress");
+      await meetingAgendaService.startItem(meeting.id, agendaItem.id);
+      const ballot = await ballotService.recordBallot(meeting.id, {
+        method: "public",
+        idempotencyKey: randomUUID(),
+        councilDecisionId: decision.id,
+        votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" })),
+      });
+      expect(ballot).toMatchObject({ result: "adopted", votesFor: 3 });
+      await meetingAgendaService.completeItem(meeting.id, agendaItem.id, {
+        discussionSummary: "Adopted unanimously",
+        status: "examined",
+      });
+      await meetingLifecycleService.changeStatus(meeting.id, "closed");
+
+      const secondContainer = buildContainer({
+        host: "127.0.0.1",
+        port: 0,
+        database: { kind: "postgres", url: databaseUrl! },
+        environment: "test",
+      });
+      await secondContainer.cradle.sqlExecutor.ready();
+      try {
+        const concurrentAttendance = await Promise.all([
+          container.cradle.attendanceRepository.record(meeting.id, {
+            memberId: members[2].id,
+            status: "present",
+            expectedVersion: 1,
+          }),
+          secondContainer.cradle.attendanceRepository.record(meeting.id, {
+            memberId: members[2].id,
+            status: "present",
+            expectedVersion: 1,
+          }),
+        ]);
+        expect(concurrentAttendance.map((result) => result.status).sort()).toEqual(["recorded", "versionConflict"]);
+      } finally {
+        await secondContainer.cradle.sqlExecutor.close();
+      }
+      expect(
+        await container.cradle.attendanceRepository.record(meeting.id, {
+          memberId: members[1].id,
+          status: "represented",
+          proxyHolderMemberId: members[0].id,
+          expectedVersion: 1,
+        }),
+      ).toMatchObject({ status: "recorded" });
+      expect(
+        await container.cradle.attendanceRepository.record(meeting.id, {
+          memberId: members[2].id,
+          status: "represented",
+          proxyHolderMemberId: members[0].id,
+          expectedVersion: 2,
+        }),
+      ).toEqual({ status: "proxyHolderConflict" });
+
+      const user = await securityRepository.createUser({
+        email: "clerk@hall.test",
+        displayName: "Council clerk",
+        passwordHash: "test-hash",
+        roles: ["clerk"],
+        councilMemberId: null,
+      });
+      const session = await securityRepository.createSession(user.id, "token-hash", "2099-01-01T00:00:00Z");
+      expect(await securityRepository.findSession("token-hash")).toEqual(session);
+      await securityRepository.recordAuditEvent({
+        actorUserId: user.id,
+        requestId: randomUUID(),
+        action: "test.postgres",
+        targetType: "meeting",
+        targetId: meeting.id,
+        outcome: "succeeded",
+        details: { dialect: "postgres" },
+      });
+      expect(await securityRepository.listAuditEvents()).toHaveLength(1);
+
+      const schedulingMeetings = await Promise.all(
+        ["First target meeting", "Second target meeting"].map((title, index) =>
+          councilMeetingService.createMeeting({
+            title,
+            startsAt: `2026-10-${10 + index}T18:30:00+02:00`,
+            location: "Council chamber",
+            chairMemberId: members[0].id,
+            secretaryMemberId: members[1].id,
+          }),
+        ),
+      );
+      const concurrentlyScheduledTopic = await topicService.create({
+        kind: "openQuestion",
+        title: "One topic, one meeting",
+        report: "",
+        folderPath: "",
+        resourceIds: [],
+      });
+      const schedulingContainer = buildContainer({
+        host: "127.0.0.1",
+        port: 0,
+        database: { kind: "postgres", url: databaseUrl! },
+        environment: "test",
+      });
+      await schedulingContainer.cradle.sqlExecutor.ready();
+      try {
+        const concurrentScheduling = await Promise.allSettled([
+          container.cradle.meetingPreparationService.scheduleTopic(
+            schedulingMeetings[0].id,
+            concurrentlyScheduledTopic.id,
+            1,
+          ),
+          schedulingContainer.cradle.meetingPreparationService.scheduleTopic(
+            schedulingMeetings[1].id,
+            concurrentlyScheduledTopic.id,
+            1,
+          ),
+        ]);
+        expect(concurrentScheduling.map((result) => result.status).sort()).toEqual(["fulfilled", "rejected"]);
+        const scheduledOccurrences = await Promise.all(
+          schedulingMeetings.map((target) => container.cradle.agendaRepository.listForMeeting(target.id)),
+        );
+        expect(scheduledOccurrences.flat()).toHaveLength(1);
+      } finally {
+        await schedulingContainer.cradle.sqlExecutor.close();
+      }
+
+      const administrators = await Promise.all(
+        ["first-admin@hall.test", "second-admin@hall.test"].map((email) =>
+          securityRepository.createUser({
+            email,
+            displayName: email,
+            passwordHash: "test-hash",
+            roles: ["administrator"],
+            councilMemberId: null,
+          }),
+        ),
+      );
+      const competingContainer = buildContainer({
+        host: "127.0.0.1",
+        port: 0,
+        database: { kind: "postgres", url: databaseUrl! },
+        environment: "test",
+      });
+      await competingContainer.cradle.sqlExecutor.ready();
+      try {
+        const concurrentRoleRemoval = await Promise.allSettled([
+          container.cradle.authService.assignRoles(administrators[0].id, ["reader"]),
+          competingContainer.cradle.authService.assignRoles(administrators[1].id, ["reader"]),
+        ]);
+        expect(concurrentRoleRemoval.map((result) => result.status).sort()).toEqual(["fulfilled", "rejected"]);
+        expect(await securityRepository.countActiveAdministrators()).toBe(1);
+
+        const remainingAdministrator = (
+          await Promise.all(administrators.map((administrator) => securityRepository.findUserById(administrator.id)))
+        ).find((administrator) => administrator?.roles.includes("administrator"));
+        if (!remainingAdministrator) throw new Error("Expected one remaining administrator");
+        const otherAdministrator = await securityRepository.createUser({
+          email: "third-admin@hall.test",
+          displayName: "Third administrator",
+          passwordHash: "test-hash",
+          roles: ["administrator"],
+          councilMemberId: null,
+        });
+        const concurrentDisableAndRemoval = await Promise.allSettled([
+          container.cradle.authService.disableUser(remainingAdministrator.id),
+          competingContainer.cradle.authService.assignRoles(otherAdministrator.id, ["reader"]),
+        ]);
+        expect(concurrentDisableAndRemoval.map((result) => result.status).sort()).toEqual(["fulfilled", "rejected"]);
+        expect(await securityRepository.countActiveAdministrators()).toBe(1);
+      } finally {
+        await competingContainer.cradle.sqlExecutor.close();
+      }
+    } finally {
+      await sqlExecutor.close();
+    }
+  });
+});

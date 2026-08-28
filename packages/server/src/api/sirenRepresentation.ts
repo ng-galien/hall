@@ -6,8 +6,8 @@ import {
   type SirenEmbeddedEntity,
   type SirenEntity,
   type SirenLink,
-} from "@mairie/api-contract";
-import { deriveBallotVoters, evaluateBallot, type MeetingAggregate } from "@mairie/domain";
+} from "@hall/api-contract";
+import { deriveBallotVoters, evaluateBallot, type MeetingAggregate } from "@hall/domain";
 import type { NextFunction, Request, Response } from "express";
 import { hasPermission } from "../security/authorization.js";
 
@@ -688,5 +688,5 @@ export function apiRootRepresentation(request: Request): SirenEntity<{ authentic
       links.push({ rel: ["audit-events"], href: "/api/audit-events", type: SIREN_MEDIA_TYPE });
     }
   }
-  return { class: ["mairie-api"], properties: { authenticated: Boolean(request.principal) }, links };
+  return { class: ["hall-api"], properties: { authenticated: Boolean(request.principal) }, links };
 }

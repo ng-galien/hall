@@ -1,6 +1,6 @@
 import { Button, Spinner } from "@fluentui/react-components";
 import { DismissRegular } from "@fluentui/react-icons";
-import type { DocumentResource } from "@mairie/domain";
+import type { DocumentResource } from "@hall/domain";
 import { useEffect, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
 import { loadResourceObjectUrl } from "../../services/resourcesApi";

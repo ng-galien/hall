@@ -1,4 +1,4 @@
-import { type ApiPrincipal, findSirenAction } from "@mairie/api-contract";
+import { type ApiPrincipal, findSirenAction } from "@hall/api-contract";
 import { AUTHENTICATION_REQUIRED_EVENT, apiSirenRequest, submitSirenAction } from "./apiClient";
 
 export interface AuthenticationStatus {

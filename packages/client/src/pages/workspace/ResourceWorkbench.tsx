@@ -1,7 +1,7 @@
 import { Button, Field, Tooltip } from "@fluentui/react-components";
 import { DeleteRegular, OpenRegular, PinFilled, PinRegular } from "@fluentui/react-icons";
-import { findSirenAction } from "@mairie/api-contract";
-import type { Resource, ResourceDetails } from "@mairie/domain";
+import { findSirenAction } from "@hall/api-contract";
+import type { Resource, ResourceDetails } from "@hall/domain";
 import { useCallback, useEffect, useState } from "react";
 import { MarkdownEditor } from "../../components/MarkdownEditor";
 import { Input, RequestErrorBanner, StatusBadge } from "../../components/Ui";

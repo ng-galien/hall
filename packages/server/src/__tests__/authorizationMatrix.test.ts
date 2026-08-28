@@ -1,4 +1,4 @@
-import { type ApiPermission, type ApiRole, apiPermissions } from "@mairie/api-contract";
+import { type ApiPermission, type ApiRole, apiPermissions } from "@hall/api-contract";
 import { describe, expect, it } from "vitest";
 import { permissionsForRoles } from "../security/authorization.js";
 

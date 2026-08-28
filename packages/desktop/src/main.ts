@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { type HttpServerHandle, startHttpServer } from "@mairie/server";
+import { type HttpServerHandle, startHttpServer } from "@hall/server";
 import { app, BrowserWindow, shell } from "electron";
 
 let mainWindow: BrowserWindow | null = null;
@@ -10,9 +10,9 @@ function applicationUrl(serverBaseUrl: string): string {
 }
 
 async function resolveRendererUrl(): Promise<string> {
-  const sharedServerUrl = process.env.MAIRIE_SERVER_URL;
+  const sharedServerUrl = process.env.HALL_SERVER_URL;
   if (sharedServerUrl) return applicationUrl(sharedServerUrl);
-  if (embeddedServer) return process.env.MAIRIE_RENDERER_URL ?? applicationUrl(embeddedServer.url);
+  if (embeddedServer) return process.env.HALL_RENDERER_URL ?? applicationUrl(embeddedServer.url);
 
   const clientDirectory = app.isPackaged
     ? join(process.resourcesPath, "dist")
@@ -20,15 +20,15 @@ async function resolveRendererUrl(): Promise<string> {
   embeddedServer = await startHttpServer({
     host: "127.0.0.1",
     port: 0,
-    databasePath: join(app.getPath("userData"), "mairie.sqlite"),
+    database: { kind: "sqlite", path: join(app.getPath("userData"), "hall.sqlite") },
     clientDirectory,
   });
-  return process.env.MAIRIE_RENDERER_URL ?? applicationUrl(embeddedServer.url);
+  return process.env.HALL_RENDERER_URL ?? applicationUrl(embeddedServer.url);
 }
 
 async function createMainWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
-    title: "Mairie",
+    title: "Hall",
     width: 1440,
     height: 960,
     minWidth: 1000,

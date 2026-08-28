@@ -1,5 +1,5 @@
-import { findSirenAction } from "@mairie/api-contract";
-import type { Topic } from "@mairie/domain";
+import { findSirenAction } from "@hall/api-contract";
+import type { Topic } from "@hall/domain";
 import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../services/apiClient";
 import { createTopic, listTopics, updateTopic } from "../services/topicsApi";

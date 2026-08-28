@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
 const run = promisify(execFile);
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const clientDirectory = dirname(dirname(fileURLToPath(import.meta.url)));
 const playwrightCli = require.resolve("@playwright/test/cli");
-const temporaryDirectory = mkdtempSync(join(tmpdir(), "mairie-playwright-"));
+const temporaryDirectory = mkdtempSync(join(tmpdir(), "hall-playwright-"));
 
 function availablePort() {
   return new Promise((resolve, reject) => {
@@ -27,8 +27,8 @@ function availablePort() {
   });
 }
 
-const serverPort = process.env.MAIRIE_E2E_SERVER_PORT ?? (await availablePort());
-const clientPort = process.env.MAIRIE_E2E_CLIENT_PORT ?? (await availablePort());
+const serverPort = process.env.HALL_E2E_SERVER_PORT ?? (await availablePort());
+const clientPort = process.env.HALL_E2E_CLIENT_PORT ?? (await availablePort());
 
 try {
   const result = spawnSync(
@@ -38,11 +38,11 @@ try {
       cwd: clientDirectory,
       env: {
         ...process.env,
-        DATABASE_PATH: join(temporaryDirectory, "mairie-e2e.sqlite"),
+        DATABASE_PATH: join(temporaryDirectory, "hall-e2e.sqlite"),
         DOCUMENT_STORAGE_PATH: join(temporaryDirectory, "documents"),
-        MAIRIE_DEV_AUTO_LOGIN: "true",
-        MAIRIE_E2E_CLIENT_PORT: clientPort,
-        MAIRIE_E2E_SERVER_PORT: serverPort,
+        HALL_DEV_AUTO_LOGIN: "true",
+        HALL_E2E_CLIENT_PORT: clientPort,
+        HALL_E2E_SERVER_PORT: serverPort,
       },
       stdio: "inherit",
     },

@@ -1,5 +1,5 @@
 {
-  "name": "@mairie/api-contract",
+  "name": "@hall/api-contract",
   "version": "0.1.0",
   "private": true,
   "type": "module",

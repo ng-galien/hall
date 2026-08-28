@@ -4,7 +4,7 @@ import {
   type TopicState,
   transitionCouncilDecision,
   transitionTopic,
-} from "@mairie/domain";
+} from "@hall/domain";
 import type {
   AgendaRepository,
   BallotRepository,

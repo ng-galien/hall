@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const clientPort = Number.parseInt(process.env.MAIRIE_E2E_CLIENT_PORT ?? "5175", 10);
-const serverPort = Number.parseInt(process.env.MAIRIE_E2E_SERVER_PORT ?? "3110", 10);
+const clientPort = Number.parseInt(process.env.HALL_E2E_CLIENT_PORT ?? "5175", 10);
+const serverPort = Number.parseInt(process.env.HALL_E2E_SERVER_PORT ?? "3110", 10);
 const clientUrl = `http://127.0.0.1:${clientPort}`;
 const serverUrl = `http://127.0.0.1:${serverPort}`;
 

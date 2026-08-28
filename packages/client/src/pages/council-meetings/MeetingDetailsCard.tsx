@@ -6,7 +6,7 @@ import {
   OpenRegular,
   WarningRegular,
 } from "@fluentui/react-icons";
-import type { CouncilMember, DocumentResource, MeetingAggregate } from "@mairie/domain";
+import type { CouncilMember, DocumentResource, MeetingAggregate } from "@hall/domain";
 import { type FormEvent, useRef, useState } from "react";
 import { StatusBadge } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";

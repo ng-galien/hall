@@ -1,6 +1,6 @@
 # Contexte métier
 
-Le projet Mairie accompagne l’activité du conseil municipal d’une commune française. Son premier périmètre ne cherche pas à couvrir toute l’administration municipale : il suit la préparation des décisions, le déroulement des séances et la conservation des actes qui en résultent.
+Le projet Hall accompagne l’activité du conseil municipal d’une commune française. Son premier périmètre ne cherche pas à couvrir toute l’administration municipale : il suit la préparation des décisions, le déroulement des séances et la conservation des actes qui en résultent.
 
 ## Périmètre initial
 
@@ -86,10 +86,10 @@ Pour voir l'application en live pendant le développement, utiliser **toujours**
 - Démarrage : `npm run dev` à la racine (lance le serveur Express sur `http://127.0.0.1:3100` et le client Vite sur `http://127.0.0.1:5174`, proxy `/api` inclus).
 - L'application se consulte sur **http://localhost:5174/app/**.
 - Le mode séance plein écran d'une séance : `http://localhost:5174/app/meetings/<id>/live`.
-- Pour les agents Claude Code : la configuration `mairie` de `.claude/launch.json` lance ce serveur dans le panneau Browser (`preview_start` avec `name: "mairie"`). Réutiliser ce serveur au lieu d'en lancer un autre ; ne jamais lancer Vite ou le serveur via un Bash de fond.
-- Après une modification du package `@mairie/domain` ou du schéma SQLite : `npm run build -w @mairie/domain` puis redémarrer le serveur (nodemon ne surveille que `packages/server/src`).
-- Base SQLite de dev : `packages/server/data/mairie.sqlite`. L'application est en cours de création : aucune donnée n'est à préserver, la base peut être supprimée et re-seedée librement.
+- Pour les agents Claude Code : la configuration `hall` de `.claude/launch.json` lance ce serveur dans le panneau Browser (`preview_start` avec `name: "hall"`). Réutiliser ce serveur au lieu d'en lancer un autre ; ne jamais lancer Vite ou le serveur via un Bash de fond.
+- Après une modification du package `@hall/domain` ou du schéma SQLite : `npm run build -w @hall/domain` puis redémarrer le serveur (nodemon ne surveille que `packages/server/src`).
+- Base SQLite de dev : `packages/server/data/hall.sqlite`. L'application est en cours de création : aucune donnée n'est à préserver, la base peut être supprimée et re-seedée librement.
 
 ### Données de démonstration
 
-`npm run -w @mairie/server seed:dev` peuple le serveur (via l'API, jamais en SQL direct) : membres, ressources classées par chemins (PDF générés inline), topics, délibérations, une séance passée entièrement déroulée (présences, pouvoir, scrutins publics sur délibération et sur point, clôture) et une séance à venir programmée. Le script exige une base vide ; pour repartir de zéro : `rm packages/server/data/mairie.sqlite*`, redémarrer le serveur (nodemon redémarre sur `touch packages/server/src/index.ts`), puis relancer le seed.
+`npm run -w @hall/server seed:dev` peuple le serveur (via l'API, jamais en SQL direct) : membres, ressources classées par chemins (PDF générés inline), topics, délibérations, une séance passée entièrement déroulée (présences, pouvoir, scrutins publics sur délibération et sur point, clôture) et une séance à venir programmée. Le script exige une base vide ; pour repartir de zéro : `rm packages/server/data/hall.sqlite*`, redémarrer le serveur (nodemon redémarre sur `touch packages/server/src/index.ts`), puis relancer le seed.

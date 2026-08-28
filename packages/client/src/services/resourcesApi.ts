@@ -1,5 +1,5 @@
-import { findSirenLink } from "@mairie/api-contract";
-import type { DocumentResource, Resource, ResourceDetails } from "@mairie/domain";
+import { findSirenLink } from "@hall/api-contract";
+import type { DocumentResource, Resource, ResourceDetails } from "@hall/domain";
 import {
   apiPathFromHref,
   apiRequest,

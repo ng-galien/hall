@@ -5,7 +5,7 @@ import {
   GavelRegular,
   ImageRegular,
 } from "@fluentui/react-icons";
-import type { Resource, Topic } from "@mairie/domain";
+import type { Resource, Topic } from "@hall/domain";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 

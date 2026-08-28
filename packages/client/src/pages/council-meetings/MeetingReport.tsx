@@ -1,4 +1,4 @@
-import type { MeetingAggregate } from "@mairie/domain";
+import type { MeetingAggregate } from "@hall/domain";
 import { PageHeader, StatusBadge } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";

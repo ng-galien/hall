@@ -1,4 +1,4 @@
-import type { Resource, Topic } from "@mairie/domain";
+import type { Resource, Topic } from "@hall/domain";
 
 export interface PathNode {
   path: string;

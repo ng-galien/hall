@@ -10,7 +10,7 @@ import {
   setMeetingOfficersSchema,
   updateCouncilMeetingSchema,
   updateMeetingStatusSchema,
-} from "@mairie/domain";
+} from "@hall/domain";
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
 import { hasPermission, requireAnyPermission, requirePermission } from "../../security/authorization.js";

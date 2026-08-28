@@ -1,4 +1,4 @@
-import type { AgendaItem, CouncilDecision, MeetingAggregate } from "@mairie/domain";
+import type { AgendaItem, CouncilDecision, MeetingAggregate } from "@hall/domain";
 
 const finalDecisionStatuses = new Set<CouncilDecision["status"]>(["adopted", "rejected"]);
 

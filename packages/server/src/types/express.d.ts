@@ -1,4 +1,4 @@
-import type { ApiPrincipal } from "@mairie/api-contract";
+import type { ApiPrincipal } from "@hall/api-contract";
 
 declare global {
   namespace Express {

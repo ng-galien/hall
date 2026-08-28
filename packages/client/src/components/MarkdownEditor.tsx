@@ -20,7 +20,7 @@ import {
   usePublisher,
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
-import type { Resource } from "@mairie/domain";
+import type { Resource } from "@hall/domain";
 import { useI18n } from "../i18n/I18nProvider";
 import { resourceContentHref } from "../services/resourcesApi";
 

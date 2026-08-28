@@ -6,7 +6,7 @@ import {
   SIREN_MEDIA_TYPE,
   type SirenEntity,
   sirenData,
-} from "@mairie/api-contract";
+} from "@hall/api-contract";
 
 export type ApiErrorCode =
   | "agenda_ballot_required"

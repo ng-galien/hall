@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { apiPermissions } from "@mairie/api-contract";
+import { apiPermissions } from "@hall/api-contract";
 import type { NextFunction, Request, Response } from "express";
 import type { ServerConfig } from "../core/config.js";
 import { logger } from "../core/logger.js";

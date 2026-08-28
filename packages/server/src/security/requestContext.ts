@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { ApiPrincipal } from "@mairie/api-contract";
+import type { ApiPrincipal } from "@hall/api-contract";
 
 export interface AuditIntent {
   action: string;

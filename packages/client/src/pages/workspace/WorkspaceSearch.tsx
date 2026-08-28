@@ -9,7 +9,7 @@ import {
   GridRegular,
   SearchRegular,
 } from "@fluentui/react-icons";
-import type { Resource, Topic } from "@mairie/domain";
+import type { Resource, Topic } from "@hall/domain";
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MeetingStatusBadge, matchesQuery, StatusBadge } from "../../components/Ui";

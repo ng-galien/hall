@@ -1,6 +1,6 @@
 import { Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger } from "@fluentui/react-components";
 import { FolderAddRegular, SearchRegular } from "@fluentui/react-icons";
-import type { Resource, Topic } from "@mairie/domain";
+import type { Resource, Topic } from "@hall/domain";
 import { type DragEvent, type FormEvent, type ReactNode, useState } from "react";
 import { matchesQuery, StatusBadge } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";

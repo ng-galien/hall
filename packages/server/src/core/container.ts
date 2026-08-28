@@ -1,6 +1,6 @@
 import { type AwilixContainer, asFunction, asValue, createContainer, InjectionMode } from "awilix";
-import { createSqliteExecutor } from "../infrastructure/sqlite/database.js";
-import type { SqliteExecutor } from "../infrastructure/sqlite/executor.js";
+import type { SqlExecutor } from "../infrastructure/database/executor.js";
+import { createSqlExecutor } from "../infrastructure/database/factory.js";
 import { createAgendaRepository } from "../repositories/agendaRepository.js";
 import { createAttendanceRepository } from "../repositories/attendanceRepository.js";
 import { createBallotRepository } from "../repositories/ballotRepository.js";
@@ -40,7 +40,7 @@ import type { ServerConfig } from "./config.js";
 export interface Cradle {
   config: ServerConfig;
   requestContext: RequestContextStore;
-  sqliteExecutor: SqliteExecutor;
+  sqlExecutor: SqlExecutor;
   unitOfWork: UnitOfWork;
   councilMemberRepository: CouncilMemberRepository;
   councilMeetingRepository: CouncilMeetingRepository;
@@ -67,8 +67,8 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
   container.register({
     config: asValue(config),
     requestContext: asFunction(() => new RequestContextStore()).singleton(),
-    sqliteExecutor: asFunction(createSqliteExecutor).singleton(),
-    unitOfWork: asFunction(({ sqliteExecutor }: { sqliteExecutor: SqliteExecutor }) => sqliteExecutor).singleton(),
+    sqlExecutor: asFunction(createSqlExecutor).singleton(),
+    unitOfWork: asFunction(({ sqlExecutor }: { sqlExecutor: SqlExecutor }) => sqlExecutor).singleton(),
     councilMemberRepository: asFunction(createCouncilMemberRepository).singleton(),
     councilMeetingRepository: asFunction(createCouncilMeetingRepository).singleton(),
     attendanceRepository: asFunction(createAttendanceRepository).singleton(),

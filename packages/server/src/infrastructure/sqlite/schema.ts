@@ -263,7 +263,9 @@ function createCurrentSchema(database: DatabaseSync): void {
       member_id TEXT NOT NULL REFERENCES council_members(id),
       cast_by_member_id TEXT NOT NULL REFERENCES council_members(id),
       choice TEXT NOT NULL CHECK (choice IN ('for', 'against', 'abstain', 'notVoting')),
-      UNIQUE (ballot_id, member_id)
+      position INTEGER NOT NULL CHECK (position > 0),
+      UNIQUE (ballot_id, member_id),
+      UNIQUE (ballot_id, position)
     ) STRICT;
 
     CREATE UNIQUE INDEX one_proxy_per_holder_per_meeting
@@ -304,6 +306,7 @@ export function initializeSchema(database: DatabaseSync): void {
   database.exec(`
     PRAGMA foreign_keys = ON;
     PRAGMA journal_mode = WAL;
+    PRAGMA busy_timeout = 5000;
   `);
   const existingTables = database
     .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name <> 'sqlite_sequence' ORDER BY name")
@@ -322,11 +325,18 @@ export function initializeSchema(database: DatabaseSync): void {
         .all()
         .map((row) => String(row.name)),
     );
+    const voteColumns = new Set(
+      database
+        .prepare("PRAGMA table_info(votes)")
+        .all()
+        .map((row) => String(row.name)),
+    );
     if (
       existingTables.join("\n") !== currentTables.join("\n") ||
       !agendaColumns.has("added_during_session") ||
       !agendaColumns.has("snapshot_council_decision_draft_text") ||
-      decisionColumns.has("decision_text")
+      decisionColumns.has("decision_text") ||
+      !voteColumns.has("position")
     ) {
       throw new Error("The database uses an obsolete schema and must be reset");
     }

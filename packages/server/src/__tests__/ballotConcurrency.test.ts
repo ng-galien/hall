@@ -8,7 +8,7 @@ import { DomainError } from "../services/errors.js";
 import { buildParticipationEvidence } from "../services/participationEvidence.js";
 
 async function prepareBallotScenario(databasePath = ":memory:") {
-  const container = buildContainer({ host: "127.0.0.1", port: 0, databasePath });
+  const container = buildContainer({ host: "127.0.0.1", port: 0, database: { kind: "sqlite", path: databasePath } });
   const {
     councilMemberRepository,
     councilDecisionRepository,
@@ -64,7 +64,7 @@ describe("ballot concurrency", () => {
   it("binds an idempotency key to one complete command", async () => {
     const { container, members, councilDecision, meeting, ballotService, ballotRepository } =
       await prepareBallotScenario();
-    onTestFinished(() => container.cradle.sqliteExecutor.close());
+    onTestFinished(() => container.cradle.sqlExecutor.close());
 
     const idempotencyKey = randomUUID();
     const baseCommand = {
@@ -99,7 +99,7 @@ describe("ballot concurrency", () => {
   it("atomically replays identical concurrent ballot commands", async () => {
     const { container, members, councilDecision, meeting, ballotService, ballotRepository } =
       await prepareBallotScenario();
-    onTestFinished(() => container.cradle.sqliteExecutor.close());
+    onTestFinished(() => container.cradle.sqlExecutor.close());
     const command = {
       method: "public" as const,
       idempotencyKey: randomUUID(),
@@ -117,12 +117,16 @@ describe("ballot concurrency", () => {
   });
 
   it("preserves idempotency across independent repository and unit-of-work instances", async () => {
-    const databasePath = join(mkdtempSync(join(tmpdir(), "mairie-ballot-connections-")), "mairie.sqlite");
+    const databasePath = join(mkdtempSync(join(tmpdir(), "hall-ballot-connections-")), "hall.sqlite");
     const { container: firstContainer, members, councilDecision, meeting } = await prepareBallotScenario(databasePath);
-    const secondContainer = buildContainer({ host: "127.0.0.1", port: 0, databasePath });
+    const secondContainer = buildContainer({
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "sqlite", path: databasePath },
+    });
     onTestFinished(async () => {
-      await firstContainer.cradle.sqliteExecutor.close();
-      await secondContainer.cradle.sqliteExecutor.close();
+      await firstContainer.cradle.sqlExecutor.close();
+      await secondContainer.cradle.sqlExecutor.close();
     });
     const aggregate = await firstContainer.cradle.councilMeetingService.getMeeting(meeting.id);
     const input = {
@@ -160,7 +164,7 @@ describe("ballot concurrency", () => {
 
   it("rejects a final decision from being voted again in another meeting", async () => {
     const { container, members, councilDecision, topic, meeting, ballotService } = await prepareBallotScenario();
-    onTestFinished(() => container.cradle.sqliteExecutor.close());
+    onTestFinished(() => container.cradle.sqlExecutor.close());
     const { councilMeetingService, meetingPreparationService } = container.cradle;
     await ballotService.recordBallot(meeting.id, {
       method: "public",
@@ -181,8 +185,8 @@ describe("ballot concurrency", () => {
   });
 
   it("requires complete current attendance at ballot time and allows an unvoted decision after reconvocation", async () => {
-    const container = buildContainer({ host: "127.0.0.1", port: 0, databasePath: ":memory:" });
-    onTestFinished(() => container.cradle.sqliteExecutor.close());
+    const container = buildContainer({ host: "127.0.0.1", port: 0, database: { kind: "sqlite", path: ":memory:" } });
+    onTestFinished(() => container.cradle.sqlExecutor.close());
     const {
       councilMemberRepository,
       councilDecisionRepository,
@@ -192,7 +196,7 @@ describe("ballot concurrency", () => {
       meetingLifecycleService,
       ballotService,
       topicService,
-      sqliteExecutor,
+      sqlExecutor,
     } = container.cradle;
     const members = await Promise.all(
       ["Alice", "Benoît", "Claire"].map((firstName) =>
@@ -248,11 +252,7 @@ describe("ballot concurrency", () => {
     await meetingLifecycleService.changeStatus(reconvened.id, "inProgress");
     const [agendaItem] = await container.cradle.agendaRepository.listForMeeting(reconvened.id);
     await meetingAgendaService.startItem(reconvened.id, agendaItem.id);
-    await sqliteExecutor.run((database) =>
-      database
-        .prepare("DELETE FROM attendance WHERE meeting_id = ? AND member_id = ?")
-        .run(reconvened.id, members[2].id),
-    );
+    await sqlExecutor.run("attendance.delete", { meetingId: reconvened.id, memberId: members[2].id });
     const command = {
       method: "public" as const,
       idempotencyKey: randomUUID(),
@@ -276,7 +276,7 @@ describe("ballot concurrency", () => {
 
   it("requires the chair and secretary to remain physically present when a ballot is recorded", async () => {
     const { container, members, councilDecision, meeting, ballotService } = await prepareBallotScenario();
-    onTestFinished(() => container.cradle.sqliteExecutor.close());
+    onTestFinished(() => container.cradle.sqlExecutor.close());
     await container.cradle.meetingPreparationService.recordAttendance(meeting.id, {
       memberId: members[0].id,
       status: "absent",

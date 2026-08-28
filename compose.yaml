@@ -1,0 +1,38 @@
+name: hall
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: hall
+      POSTGRES_USER: hall
+      POSTGRES_PASSWORD: hall-dev-only
+    ports:
+      - "127.0.0.1:54329:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hall -d hall"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - hall-postgres-data:/var/lib/postgresql/data
+
+  postgres-test:
+    image: postgres:17-alpine
+    profiles: ["test"]
+    environment:
+      POSTGRES_DB: hall_test
+      POSTGRES_USER: hall_test
+      POSTGRES_PASSWORD: hall-test-only
+    ports:
+      - "127.0.0.1:54330:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hall_test -d hall_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    tmpfs:
+      - /var/lib/postgresql/data
+
+volumes:
+  hall-postgres-data:

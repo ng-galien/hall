@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { PROBLEM_MEDIA_TYPE, SIREN_MEDIA_TYPE } from "@mairie/api-contract";
+import { PROBLEM_MEDIA_TYPE, SIREN_MEDIA_TYPE } from "@hall/api-contract";
 import { describe, expect, it } from "vitest";
 import { createTestServer } from "./testServer.js";
 
 const admin = {
-  email: "admin@mairie.test",
+  email: "admin@hall.test",
   displayName: "Administration",
   password: "Mot-de-passe-administration-2026!",
 };
@@ -44,7 +44,7 @@ describe("hardened HTTP and hypermedia contract", () => {
     const { rawAgent } = await createTestServer();
     const meeting = await rawAgent
       .post("/api/council-meetings")
-      .send({ title: "Conseil sans composition", startsAt: "2026-09-10T18:30:00+02:00", location: "Mairie" })
+      .send({ title: "Conseil sans composition", startsAt: "2026-09-10T18:30:00+02:00", location: "Hall" })
       .expect(201);
     const meetingId = properties<{ id: string }>(meeting).id;
     const details = await rawAgent.get(`/api/council-meetings/${meetingId}`).expect(200);
@@ -145,7 +145,7 @@ describe("hardened HTTP and hypermedia contract", () => {
       .send({
         title: "Conseil",
         startsAt: "2026-09-10T18:30:00+02:00",
-        location: "Mairie",
+        location: "Hall",
         chairMemberId: members[0].id,
         secretaryMemberId: members[1].id,
       })
@@ -232,7 +232,7 @@ describe("hardened HTTP and hypermedia contract", () => {
         title: "Conseil reconvoqué",
         startsAt: "2026-09-14T18:30:00+02:00",
         meetingNoticeSentAt: "2026-09-10T18:31:00+02:00",
-        location: "Mairie",
+        location: "Hall",
       })
       .expect(201);
     const reconvenedRepresentation = await rawAgent
@@ -271,7 +271,7 @@ describe("hardened HTTP and hypermedia contract", () => {
         .send({
           title: "Conseil en cours",
           startsAt: "2026-09-10T18:30:00+02:00",
-          location: "Mairie",
+          location: "Hall",
           chairMemberId: chair.id,
           secretaryMemberId: secretary.id,
         })
@@ -323,10 +323,10 @@ describe("hardened HTTP and hypermedia contract", () => {
     await rawAgent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "inProgress" }).expect(200);
 
     const profiles = [
-      ["clerk", "greffe@mairie.test"],
-      ["contributor", "contribution@mairie.test"],
-      ["meetingConductor", "conduite@mairie.test"],
-      ["reader", "lecture@mairie.test"],
+      ["clerk", "greffe@hall.test"],
+      ["contributor", "contribution@hall.test"],
+      ["meetingConductor", "conduite@hall.test"],
+      ["reader", "lecture@hall.test"],
     ] as const;
     for (const [role, email] of profiles) {
       await rawAgent
@@ -537,12 +537,12 @@ describe("hardened HTTP and hypermedia contract", () => {
     for (let attempt = 1; attempt < 5; attempt += 1) {
       await rawAgent
         .post("/api/auth/login")
-        .send({ email: "absent@mairie.test", password: "Mot-de-passe-erroné!" })
+        .send({ email: "absent@hall.test", password: "Mot-de-passe-erroné!" })
         .expect(401);
     }
     const blocked = await rawAgent
       .post("/api/auth/login")
-      .send({ email: "absent@mairie.test", password: "Mot-de-passe-erroné!" })
+      .send({ email: "absent@hall.test", password: "Mot-de-passe-erroné!" })
       .expect(429);
     expect(blocked.body.code).toBe("too_many_login_attempts");
   });
@@ -572,13 +572,13 @@ describe("hardened HTTP and hypermedia contract", () => {
     for (let attempt = 1; attempt < 20; attempt += 1) {
       await statelessAgent
         .post("/api/auth/login")
-        .send({ email: `absent-${attempt}@mairie.test`, password: "Mot-de-passe-erroné!" })
+        .send({ email: `absent-${attempt}@hall.test`, password: "Mot-de-passe-erroné!" })
         .expect(401);
     }
     await statelessAgent.post("/api/auth/login").send({ email: admin.email, password: admin.password }).expect(200);
     const blocked = await statelessAgent
       .post("/api/auth/login")
-      .send({ email: "encore-absent@mairie.test", password: "Mot-de-passe-erroné!" })
+      .send({ email: "encore-absent@hall.test", password: "Mot-de-passe-erroné!" })
       .expect(429);
 
     expect(blocked.body.code).toBe("too_many_login_attempts");

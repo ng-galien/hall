@@ -1,4 +1,4 @@
-import type { BallotMethod, CouncilMember, MeetingAggregate, VoteChoice } from "@mairie/domain";
+import type { BallotMethod, CouncilMember, MeetingAggregate, VoteChoice } from "@hall/domain";
 import { type DragEvent, useEffect, useRef, useState } from "react";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import type { TranslationKey } from "../../../i18n/en";

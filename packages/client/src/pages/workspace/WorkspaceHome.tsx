@@ -1,5 +1,5 @@
 import { FolderRegular } from "@fluentui/react-icons";
-import type { Topic } from "@mairie/domain";
+import type { Topic } from "@hall/domain";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";

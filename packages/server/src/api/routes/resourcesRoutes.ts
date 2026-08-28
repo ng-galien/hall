@@ -1,4 +1,4 @@
-import { createTextResourceSchema, folderPathSchema, resourceTagsSchema, updateResourceSchema } from "@mairie/domain";
+import { createTextResourceSchema, folderPathSchema, resourceTagsSchema, updateResourceSchema } from "@hall/domain";
 import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";

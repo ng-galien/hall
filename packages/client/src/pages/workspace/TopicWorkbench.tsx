@@ -11,8 +11,8 @@ import {
   PinFilled,
   PinRegular,
 } from "@fluentui/react-icons";
-import { findSirenAction, type SirenEntity } from "@mairie/api-contract";
-import type { DocumentResource, Topic, TopicDetails } from "@mairie/domain";
+import { findSirenAction, type SirenEntity } from "@hall/api-contract";
+import type { DocumentResource, Topic, TopicDetails } from "@hall/domain";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { MarkdownEditor } from "../../components/MarkdownEditor";

@@ -66,7 +66,7 @@ describe("documentary resources", () => {
     const meeting = domainBody<{ id: string }>(
       await agent
         .post("/api/council-meetings")
-        .send({ title: "Conseil", startsAt: "2026-09-10T18:30:00+02:00", location: "Mairie" })
+        .send({ title: "Conseil", startsAt: "2026-09-10T18:30:00+02:00", location: "Hall" })
         .expect(201),
     );
     const proxy = await agent

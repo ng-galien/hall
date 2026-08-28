@@ -1,4 +1,4 @@
-import { PROBLEM_MEDIA_TYPE, type ProblemDetails } from "@mairie/api-contract";
+import { PROBLEM_MEDIA_TYPE, type ProblemDetails } from "@hall/api-contract";
 import type { Request, Response } from "express";
 
 const titles: Record<string, string> = {

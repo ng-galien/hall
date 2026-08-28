@@ -31,7 +31,7 @@ export async function createTestServer(options: { devAutoLogin?: boolean } = {})
   const container = buildContainer({
     host: "127.0.0.1",
     port: 0,
-    databasePath: ":memory:",
+    database: { kind: "sqlite", path: ":memory:" },
     devAutoLogin: options.devAutoLogin ?? true,
     allowedOrigins: ["http://localhost:5174", "http://127.0.0.1:5174"],
     environment: "test",
@@ -43,7 +43,7 @@ export async function createTestServer(options: { devAutoLogin?: boolean } = {})
     try {
       await close(server);
     } finally {
-      await container.cradle.sqliteExecutor.close();
+      await container.cradle.sqlExecutor.close();
     }
   });
 

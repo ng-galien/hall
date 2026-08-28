@@ -1,4 +1,4 @@
-import type { MeetingAggregate } from "@mairie/domain";
+import type { MeetingAggregate } from "@hall/domain";
 
 export type MeetingOpeningBlock =
   | "attendanceIncomplete"

@@ -1,5 +1,5 @@
 import { PlayRegular } from "@fluentui/react-icons";
-import type { MeetingAggregate } from "@mairie/domain";
+import type { MeetingAggregate } from "@hall/domain";
 import { Link } from "react-router-dom";
 import { MeetingStatusBadge, PageHeader } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";

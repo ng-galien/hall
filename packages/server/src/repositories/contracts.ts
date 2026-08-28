@@ -20,7 +20,7 @@ import type {
   Topic,
   TopicState,
   VoteInput,
-} from "@mairie/domain";
+} from "@hall/domain";
 
 export interface CreateCouncilMember {
   firstName: string;

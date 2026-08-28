@@ -18,7 +18,7 @@ import type {
   MeetingAggregate,
   TextResource,
   VoteChoice,
-} from "@mairie/domain";
+} from "@hall/domain";
 import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useState } from "react";
 import { MarkdownEditor } from "../../../components/MarkdownEditor";
 import { MarkdownView } from "../../../components/MarkdownView";

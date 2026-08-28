@@ -1,6 +1,6 @@
 # Design point Mardang
 
-> Boussole fonctionnelle et technique du produit Mairie — 28 août 2026.
+> Boussole fonctionnelle et technique du produit Hall — 28 août 2026.
 
 Ce document fixe les décisions validées pendant la reprise du modèle. Il sert à orienter le backend et la future IHM, et à reconnaître les concepts devenus legacy. Il ne redessine pas le mode de conduite de séance, qui est conservé.
 
@@ -98,7 +98,7 @@ La liste des points votés n’est pas une nouvelle entité. Elle se déduit des
 
 Le backend expose `application/vnd.siren+json`. Chaque réponse porte ses liens et uniquement les actions actuellement
 autorisées par le rôle de l’utilisateur **et** l’état métier. Le frontend suit ces affordances ; il ne recalcule ni les
-permissions ni les transitions. Le package `@mairie/api-contract` partage les types Siren, les noms d’actions, les rôles
+permissions ni les transitions. Le package `@hall/api-contract` partage les types Siren, les noms d’actions, les rôles
 et le décodage entre serveur et client, sans importer le domaine ni un adaptateur d’exécution.
 
 Un lien `self` désigne toujours la ressource consultée par une route `GET` et conserve les filtres d’une collection, y compris pour un utilisateur, un membre, une présence,
@@ -122,7 +122,7 @@ Ces contrats permettent deux points d’entrée IHM sans créer deux modèles co
 ## Utilisateurs, droits et preuve
 
 Un `User` est une identité applicative ; il peut être rattaché à zéro ou un `CouncilMember`. Ce sont deux notions
-distinctes : un agent de mairie peut utiliser le logiciel sans mandat, et un élu peut exister sans compte.
+distinctes : un agent municipal peut utiliser le logiciel sans mandat, et un élu peut exister sans compte.
 
 Le contrôle d’accès reste volontairement simple : RBAC pour les droits larges, puis projection contextuelle des actions
 Siren à partir des machines d’état. Les rôles initiaux sont `administrator`, `clerk`, `contributor`,
@@ -147,7 +147,10 @@ chaque rôle, avec des rattachements représentatifs aux membres du conseil.
 
 ## Invariants backend
 
-- Le serveur possède seul SQLite ; les clients passent par HTTP. Le répertoire, la base et ses fichiers WAL/SHM sont privés au compte serveur.
+- Le serveur possède seul la base ; les clients passent par HTTP. Awilix injecte un exécuteur commun choisi au démarrage par `DATABASE_KIND=sqlite|postgres`.
+- SQLite reste le moteur embarqué et conserve son schéma `STRICT`, ses contrôles et ses fichiers WAL/SHM privés. PostgreSQL possède un schéma explicite avec ses types natifs (`BOOLEAN`, `JSONB`, `BYTEA`).
+- Les repositories utilisent exclusivement un catalogue central de requêtes nommées à paramètres. Une requête commune est la règle ; une variante SQLite ou PostgreSQL n’existe que lorsqu’un dialecte le demande.
+- Une transaction PostgreSQL conserve le même `PoolClient`, s’exécute en isolation `SERIALIZABLE` et rejoue de façon bornée les seuls conflits de sérialisation. Aucun driver brut ni SQL ad hoc ne remonte dans les services métier.
 - Les cycles de séance, Topic, délibération et scrutin sont centralisés dans les machines du domaine, jamais réécrits dans le frontend.
 - Les associations Topic–ressource et les snapshots sont ordonnés et persistés côté serveur.
 - Une ressource liée à un Topic ou à une occurrence historique ne peut pas être supprimée.

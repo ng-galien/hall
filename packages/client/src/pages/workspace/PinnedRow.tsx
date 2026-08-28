@@ -1,5 +1,5 @@
 import { DismissRegular, PinRegular } from "@fluentui/react-icons";
-import type { Resource, Topic } from "@mairie/domain";
+import type { Resource, Topic } from "@hall/domain";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { useTopicsStore } from "../../stores/topicsStore";

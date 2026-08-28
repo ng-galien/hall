@@ -1,4 +1,4 @@
-import type { CouncilDecisionListEntry } from "@mairie/domain";
+import type { CouncilDecisionListEntry } from "@hall/domain";
 import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import { createCouncilDecision, listCouncilDecisions, updateCouncilDecision } from "../services/councilDecisionsApi";

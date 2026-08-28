@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
-import type { DatabaseSync } from "node:sqlite";
-import type { Resource, Topic, TopicState } from "@mairie/domain";
-import type { SqliteExecutor } from "../infrastructure/sqlite/executor.js";
+import type { Resource, Topic, TopicState } from "@hall/domain";
+import type { SqlExecutor, SqlParameters } from "../infrastructure/database/executor.js";
+import type { SqlQueryName } from "../infrastructure/database/queries.js";
 import type { CreateTopic, TopicRepository, UpdateTopic } from "./contracts.js";
-import { mapResource, resourceSelection, tagsFor } from "./resourceRepository.js";
-import { asNullableString, type DatabaseRow } from "./row.js";
+import { mapStoredResource } from "./resourceRepository.js";
+import { asNullableString, type DatabaseRow, mapSequential } from "./row.js";
 
 export function mapTopic(row: DatabaseRow, resources: Resource[] = []): Topic {
   const common = {
@@ -15,163 +15,105 @@ export function mapTopic(row: DatabaseRow, resources: Resource[] = []): Topic {
     resources,
     state: row.state as TopicState,
     currentMeetingId: asNullableString(row.current_meeting_id),
-    position: row.position === null || row.position === undefined ? null : Number(row.position),
+    position: row.position == null ? null : Number(row.position),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
-  if (row.kind === "subject") {
-    return {
-      kind: "subject",
-      ...common,
-      councilDecisionId: asNullableString(row.council_decision_id),
-    };
-  }
-  if (row.kind === "minutesApproval") {
-    return {
-      kind: "minutesApproval",
-      ...common,
-      minutesOfMeetingId: String(row.minutes_of_meeting_id),
-    };
-  }
+  if (row.kind === "subject")
+    return { kind: "subject", ...common, councilDecisionId: asNullableString(row.council_decision_id) };
+  if (row.kind === "minutesApproval")
+    return { kind: "minutesApproval", ...common, minutesOfMeetingId: String(row.minutes_of_meeting_id) };
   return { kind: "openQuestion", ...common };
 }
 
-function resourcesForTopic(database: DatabaseSync, topicId: string): Resource[] {
-  return database
-    .prepare(`${resourceSelection}
-      JOIN topic_resources ON topic_resources.resource_id = resources.id
-      WHERE topic_resources.topic_id = ?
-      ORDER BY topic_resources.position`)
-    .all(topicId)
-    .map((row) => mapResource(row, tagsFor(database, String(row.id))));
+async function mapStoredTopic(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<Topic> {
+  const resources = await sqlExecutor.all("topic.resources", { topicId: String(row.id) });
+  return mapTopic(row, await mapSequential(resources, (resource) => mapStoredResource(sqlExecutor, resource)));
+}
+async function replaceResources(sqlExecutor: SqlExecutor, topicId: string, resourceIds: string[]): Promise<void> {
+  await sqlExecutor.run("topic.deleteResources", { topicId });
+  for (const [index, resourceId] of resourceIds.entries())
+    await sqlExecutor.run("topic.insertResource", { topicId, resourceId, position: index + 1 });
 }
 
-function mapStoredTopic(database: DatabaseSync, row: DatabaseRow): Topic {
-  return mapTopic(row, resourcesForTopic(database, String(row.id)));
-}
-
-function replaceTopicResources(database: DatabaseSync, topicId: string, resourceIds: string[]): void {
-  database.prepare("DELETE FROM topic_resources WHERE topic_id = ?").run(topicId);
-  const insert = database.prepare("INSERT INTO topic_resources (topic_id, resource_id, position) VALUES (?, ?, ?)");
-  resourceIds.forEach((resourceId, index) => {
-    insert.run(topicId, resourceId, index + 1);
-  });
-}
-
-function insertTopic(database: DatabaseSync, input: CreateTopic): Topic {
-  const id = randomUUID();
-  const now = new Date().toISOString();
-  const councilDecisionId = input.kind === "subject" ? (input.councilDecisionId ?? null) : null;
-  const minutesOfMeetingId = input.kind === "minutesApproval" ? input.minutesOfMeetingId : null;
-  database
-    .prepare(`INSERT INTO topics
-      (id, kind, council_decision_id, minutes_of_meeting_id, title, report, folder_path, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(id, input.kind, councilDecisionId, minutesOfMeetingId, input.title, input.report, input.folderPath, now, now);
-  replaceTopicResources(database, id, input.resourceIds);
-  return mapStoredTopic(database, database.prepare("SELECT * FROM topics WHERE id = ?").get(id)!);
-}
-
-export function createTopicRepository({ sqliteExecutor }: { sqliteExecutor: SqliteExecutor }): TopicRepository {
+export function createTopicRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }): TopicRepository {
+  const read = async (name: SqlQueryName, parameters: SqlParameters) => {
+    const row = await sqlExecutor.get(name, parameters);
+    return row ? mapStoredTopic(sqlExecutor, row) : null;
+  };
   return {
-    list(filters = {}) {
-      return sqliteExecutor.run((database) => {
-        const clauses: string[] = [];
-        const values: string[] = [];
-        if (filters.state) {
-          clauses.push("state = ?");
-          values.push(filters.state);
-        }
-        if (filters.folderPath !== undefined) {
-          clauses.push("folder_path = ?");
-          values.push(filters.folderPath);
-        }
-        if (filters.resourceId) {
-          clauses.push(
-            "EXISTS (SELECT 1 FROM topic_resources WHERE topic_resources.topic_id = topics.id AND topic_resources.resource_id = ?)",
-          );
-          values.push(filters.resourceId);
-        }
-        const where = clauses.length > 0 ? ` WHERE ${clauses.join(" AND ")}` : "";
-        return database
-          .prepare(`SELECT * FROM topics${where} ORDER BY updated_at DESC`)
-          .all(...values)
-          .map((row) => mapStoredTopic(database, row));
+    async list(filters = {}) {
+      const rows = await sqlExecutor.all("topic.list", {
+        state: filters.state ?? null,
+        folderPath: filters.folderPath ?? null,
+        resourceId: filters.resourceId ?? null,
       });
+      return mapSequential(rows, (row) => mapStoredTopic(sqlExecutor, row));
     },
     find(id) {
-      return sqliteExecutor.run((database) => {
-        const row = database.prepare("SELECT * FROM topics WHERE id = ?").get(id);
-        return row ? mapStoredTopic(database, row) : null;
-      });
+      return read("topic.find", { id });
     },
     findForCouncilDecision(councilDecisionId) {
-      return sqliteExecutor.run((database) => {
-        const row = database.prepare("SELECT * FROM topics WHERE council_decision_id = ?").get(councilDecisionId);
-        return row ? mapStoredTopic(database, row) : null;
-      });
+      return read("topic.findByDecision", { councilDecisionId });
     },
     findMinutesApprovalForMeeting(meetingId) {
-      return sqliteExecutor.run((database) => {
-        const row = database.prepare("SELECT * FROM topics WHERE minutes_of_meeting_id = ?").get(meetingId);
-        return row ? mapStoredTopic(database, row) : null;
+      return read("topic.findMinutesApproval", { meetingId });
+    },
+    create(input: CreateTopic) {
+      return sqlExecutor.execute(async () => {
+        const id = randomUUID();
+        const now = new Date().toISOString();
+        await sqlExecutor.run("topic.insert", {
+          id,
+          kind: input.kind,
+          councilDecisionId: input.kind === "subject" ? (input.councilDecisionId ?? null) : null,
+          minutesOfMeetingId: input.kind === "minutesApproval" ? input.minutesOfMeetingId : null,
+          title: input.title,
+          report: input.report,
+          folderPath: input.folderPath,
+          createdAt: now,
+          updatedAt: now,
+        });
+        await replaceResources(sqlExecutor, id, input.resourceIds);
+        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { id }))!);
       });
     },
-    create(input) {
-      return sqliteExecutor.run((database) => insertTopic(database, input));
-    },
     update(id, input: UpdateTopic) {
-      return sqliteExecutor.run((database) => {
-        database
-          .prepare(`UPDATE topics
-            SET title = ?, report = ?, folder_path = ?, council_decision_id = ?, updated_at = ?
-            WHERE id = ?`)
-          .run(
-            input.title,
-            input.report,
-            input.folderPath,
-            input.councilDecisionId ?? null,
-            new Date().toISOString(),
-            id,
-          );
-        replaceTopicResources(database, id, input.resourceIds);
-        return mapStoredTopic(database, database.prepare("SELECT * FROM topics WHERE id = ?").get(id)!);
+      return sqlExecutor.execute(async () => {
+        await sqlExecutor.run("topic.update", {
+          id,
+          title: input.title,
+          report: input.report,
+          folderPath: input.folderPath,
+          councilDecisionId: input.councilDecisionId ?? null,
+          updatedAt: new Date().toISOString(),
+        });
+        await replaceResources(sqlExecutor, id, input.resourceIds);
+        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { id }))!);
       });
     },
     schedule(id, meetingId, position) {
-      return sqliteExecutor.run((database) => {
-        database
-          .prepare(`UPDATE topics
-            SET state = 'scheduled', current_meeting_id = ?, position = ?, updated_at = ?
-            WHERE id = ?`)
-          .run(meetingId, position, new Date().toISOString(), id);
-        return mapStoredTopic(database, database.prepare("SELECT * FROM topics WHERE id = ?").get(id)!);
+      return sqlExecutor.execute(async () => {
+        await sqlExecutor.run("topic.schedule", { id, meetingId, position, updatedAt: new Date().toISOString() });
+        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { id }))!);
       });
     },
     setState(id, state) {
-      return sqliteExecutor.run((database) => {
-        database
-          .prepare(
-            "UPDATE topics SET state = ?, current_meeting_id = NULL, position = NULL, updated_at = ? WHERE id = ?",
-          )
-          .run(state, new Date().toISOString(), id);
-        return mapStoredTopic(database, database.prepare("SELECT * FROM topics WHERE id = ?").get(id)!);
+      return sqlExecutor.execute(async () => {
+        await sqlExecutor.run("topic.setState", { id, state, updatedAt: new Date().toISOString() });
+        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { id }))!);
       });
     },
     start(id) {
-      return sqliteExecutor.run((database) => {
-        database
-          .prepare("UPDATE topics SET state = 'inProgress', updated_at = ? WHERE id = ?")
-          .run(new Date().toISOString(), id);
-        return mapStoredTopic(database, database.prepare("SELECT * FROM topics WHERE id = ?").get(id)!);
+      return sqlExecutor.execute(async () => {
+        await sqlExecutor.run("topic.start", { id, updatedAt: new Date().toISOString() });
+        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { id }))!);
       });
     },
     setPosition(id, position) {
-      return sqliteExecutor.run((database) => {
-        database
-          .prepare("UPDATE topics SET position = ?, updated_at = ? WHERE id = ?")
-          .run(position, new Date().toISOString(), id);
-      });
+      return sqlExecutor
+        .run("topic.setPosition", { id, position, updatedAt: new Date().toISOString() })
+        .then(() => undefined);
     },
   };
 }

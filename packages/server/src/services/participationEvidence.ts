@@ -1,4 +1,4 @@
-import { type Attendance, calculateQuorum, type ParticipationEvidence } from "@mairie/domain";
+import { type Attendance, calculateQuorum, type ParticipationEvidence } from "@hall/domain";
 
 export function buildParticipationEvidence(
   rosterMemberIds: string[],

@@ -1,4 +1,4 @@
-import { type CouncilMeeting, calculateQuorum, type MeetingAggregate } from "@mairie/domain";
+import { type CouncilMeeting, calculateQuorum, type MeetingAggregate } from "@hall/domain";
 import type {
   AgendaRepository,
   AttendanceRepository,

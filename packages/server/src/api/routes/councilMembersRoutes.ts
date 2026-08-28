@@ -1,4 +1,4 @@
-import { createCouncilMemberSchema } from "@mairie/domain";
+import { createCouncilMemberSchema } from "@hall/domain";
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";

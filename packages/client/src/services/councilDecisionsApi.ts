@@ -1,4 +1,4 @@
-import type { CouncilDecision, CouncilDecisionListEntry } from "@mairie/domain";
+import type { CouncilDecision, CouncilDecisionListEntry } from "@hall/domain";
 import { apiRequest, submitSirenActionAt } from "./apiClient";
 
 export const listCouncilDecisions = () => apiRequest<CouncilDecisionListEntry[]>("/council-decisions");

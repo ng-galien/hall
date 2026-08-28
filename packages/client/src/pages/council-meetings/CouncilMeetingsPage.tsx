@@ -1,6 +1,6 @@
 import { Button, Field } from "@fluentui/react-components";
 import { AddRegular, CalendarLtrRegular, ChevronRightRegular, LocationRegular } from "@fluentui/react-icons";
-import type { CouncilMeeting } from "@mairie/domain";
+import type { CouncilMeeting } from "@hall/domain";
 import { type FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import {

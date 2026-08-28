@@ -1,5 +1,5 @@
-import { type ApiActionName, findSirenAction, type SirenEntity } from "@mairie/api-contract";
-import type { CouncilMeeting, MeetingAggregate, MeetingStatus } from "@mairie/domain";
+import { type ApiActionName, findSirenAction, type SirenEntity } from "@hall/api-contract";
+import type { CouncilMeeting, MeetingAggregate, MeetingStatus } from "@hall/domain";
 import { useCallback, useEffect, useState } from "react";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import { updateCouncilDecision } from "../services/councilDecisionsApi";

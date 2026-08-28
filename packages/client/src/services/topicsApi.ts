@@ -1,4 +1,4 @@
-import type { AgendaItem, Topic, TopicDetails, TopicState } from "@mairie/domain";
+import type { AgendaItem, Topic, TopicDetails, TopicState } from "@hall/domain";
 import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
 export interface TopicFilters {

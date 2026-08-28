@@ -1,5 +1,5 @@
-import { findSirenAction } from "@mairie/api-contract";
-import type { CouncilMeeting } from "@mairie/domain";
+import { findSirenAction } from "@hall/api-contract";
+import type { CouncilMeeting } from "@hall/domain";
 import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../services/apiClient";
 import { createCouncilMeeting, listCouncilMeetings } from "../services/councilMeetingsApi";

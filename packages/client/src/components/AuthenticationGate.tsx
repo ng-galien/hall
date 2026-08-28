@@ -1,4 +1,4 @@
-import type { ApiPrincipal, SirenEntity } from "@mairie/api-contract";
+import type { ApiPrincipal, SirenEntity } from "@hall/api-contract";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { ApiError, AUTHENTICATION_REQUIRED_EVENT, apiErrorCode } from "../services/apiClient";
 import { type AuthenticationStatus, authenticate, getAuthenticationStatus, getSession } from "../services/authApi";

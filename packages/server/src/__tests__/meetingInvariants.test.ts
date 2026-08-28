@@ -292,6 +292,7 @@ describe("council meeting invariants", () => {
     const firstPrincipal = await createMember(agent, "Benoît");
     const secondPrincipal = await createMember(agent, "Claire");
     const secondHolder = await createMember(agent, "David");
+    const stalePrincipal = await createMember(agent, "Élodie");
     const meeting = await createMeeting(agent);
     await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
     await agent
@@ -301,6 +302,20 @@ describe("council meeting invariants", () => {
     await agent
       .put(`/api/council-meetings/${meeting.id}/attendance`)
       .send({ memberId: secondHolder.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
+      .expect(200);
+    await agent
+      .put(`/api/council-meetings/${meeting.id}/attendance`)
+      .send({ memberId: stalePrincipal.id, status: "absent", proxyHolderMemberId: null, proxyDocumentId: null })
+      .expect(200);
+    await agent
+      .put(`/api/council-meetings/${meeting.id}/attendance`)
+      .send({
+        memberId: stalePrincipal.id,
+        status: "excused",
+        proxyHolderMemberId: null,
+        proxyDocumentId: null,
+        expectedVersion: 1,
+      })
       .expect(200);
     const uploadProxy = () =>
       agent
@@ -319,6 +334,15 @@ describe("council meeting invariants", () => {
         proxyDocumentId: domainBody(firstDocument).id,
       })
       .expect(200);
+    const staleProxyUpdate = await agent.put(`/api/council-meetings/${meeting.id}/attendance`).send({
+      memberId: stalePrincipal.id,
+      status: "represented",
+      proxyHolderMemberId: holder.id,
+      proxyDocumentId: domainBody(secondDocument).id,
+      expectedVersion: 1,
+    });
+    expect(staleProxyUpdate.status).toBe(409);
+    expect(domainBody(staleProxyUpdate).code).toBe("conflict");
     const duplicate = await agent.put(`/api/council-meetings/${meeting.id}/attendance`).send({
       memberId: secondPrincipal.id,
       status: "represented",
@@ -380,12 +404,14 @@ describe("council meeting invariants", () => {
   });
 
   it("rejects a non-loopback listener without authentication and a TLS proxy", () => {
-    expect(() => validateServerConfig({ host: "0.0.0.0", port: 3100, databasePath: ":memory:" })).toThrow();
+    expect(() =>
+      validateServerConfig({ host: "0.0.0.0", port: 3100, database: { kind: "sqlite", path: ":memory:" } }),
+    ).toThrow();
     expect(() =>
       validateServerConfig({
         host: "0.0.0.0",
         port: 3100,
-        databasePath: ":memory:",
+        database: { kind: "sqlite", path: ":memory:" },
         behindTlsProxy: true,
         bootstrapToken: "jeton-initialisation-partage-2026",
       }),

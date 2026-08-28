@@ -6,7 +6,7 @@ import {
   scheduleTopicSchema,
   topicStateSchema,
   updateTopicSchema,
-} from "@mairie/domain";
+} from "@hall/domain";
 import { Router } from "express";
 import { z } from "zod";
 import type { Cradle } from "../../core/container.js";

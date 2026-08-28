@@ -1,4 +1,4 @@
-import type { CouncilMember } from "@mairie/domain";
+import type { CouncilMember } from "@hall/domain";
 import { apiRequest, submitSirenActionAt } from "./apiClient";
 
 export const listCouncilMembers = () => apiRequest<CouncilMember[]>("/council-members");

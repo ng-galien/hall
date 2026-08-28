@@ -6,7 +6,7 @@ import {
   transitionCouncilDecision,
   transitionMeeting,
   transitionTopic,
-} from "@mairie/domain";
+} from "@hall/domain";
 import type {
   AgendaRepository,
   AttendanceRepository,

@@ -11,7 +11,7 @@
 import { randomUUID } from "node:crypto";
 
 const API = process.env.SEED_API ?? "http://127.0.0.1:3100/api";
-const DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? "Mairie-demo-2026!";
+const DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? "Hall-demo-2026!";
 
 function unwrapRepresentation(payload) {
   if (!payload || typeof payload !== "object" || !Array.isArray(payload.class)) return payload;
@@ -103,7 +103,7 @@ async function main() {
     get("/council-meetings"),
   ]);
   if (inspectedCollections.some((items) => items.length > 0)) {
-    console.error("La base n'est pas vide : seed annulé. Supprimez packages/server/data/mairie.sqlite et relancez.");
+    console.error("La base n'est pas vide : seed annulé. Supprimez packages/server/data/hall.sqlite et relancez.");
     process.exit(1);
   }
 
@@ -178,10 +178,7 @@ async function main() {
   for (const user of usersSpec) await post("/users", { ...user, password: DEMO_PASSWORD });
   for (const user of usersSpec) {
     const authenticated = await post("/auth/login", { email: user.email, password: DEMO_PASSWORD });
-    if (
-      authenticated.email !== user.email ||
-      user.roles.some((role) => !authenticated.roles.includes(role))
-    ) {
+    if (authenticated.email !== user.email || user.roles.some((role) => !authenticated.roles.includes(role))) {
       throw new Error(`Le compte de démonstration ${user.email} ne restitue pas les rôles attendus`);
     }
   }

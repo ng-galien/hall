@@ -6,7 +6,7 @@ import {
   loginSchema,
   SIREN_MEDIA_TYPE,
   type SirenEntity,
-} from "@mairie/api-contract";
+} from "@hall/api-contract";
 import { type Request, Router } from "express";
 import { isLoopbackHost } from "../../core/config.js";
 import type { Cradle } from "../../core/container.js";

@@ -8,7 +8,7 @@ import {
   PenRegular,
   WarningRegular,
 } from "@fluentui/react-icons";
-import type { Attendance, AttendanceStatus, CouncilMember, DocumentResource, MeetingAggregate } from "@mairie/domain";
+import type { Attendance, AttendanceStatus, CouncilMember, DocumentResource, MeetingAggregate } from "@hall/domain";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input, Modal } from "../../../components/Ui";

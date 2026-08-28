@@ -10,7 +10,7 @@ import {
   GavelRegular,
   ReOrderDotsVerticalRegular,
 } from "@fluentui/react-icons";
-import type { AgendaItem, CouncilDecision, Topic } from "@mairie/domain";
+import type { AgendaItem, CouncilDecision, Topic } from "@hall/domain";
 import { type DragEvent, type FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { MarkdownEditor } from "../../components/MarkdownEditor";

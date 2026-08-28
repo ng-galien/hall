@@ -1,4 +1,4 @@
-import type { DocumentResource, Resource, ResourceDetails, TextResource } from "@mairie/domain";
+import type { DocumentResource, Resource, ResourceDetails, TextResource } from "@hall/domain";
 import type {
   AttendanceRepository,
   CouncilMeetingRepository,

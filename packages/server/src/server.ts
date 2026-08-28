@@ -13,6 +13,7 @@ export interface HttpServerHandle {
 export async function startHttpServer(config: ServerConfig): Promise<HttpServerHandle> {
   validateServerConfig(config);
   const container = buildContainer(config);
+  await container.cradle.sqlExecutor.ready();
   const application = createHttpApplication(container);
 
   const server = await new Promise<Server>((resolve, reject) => {
@@ -21,7 +22,7 @@ export async function startHttpServer(config: ServerConfig): Promise<HttpServerH
   });
   const address = server.address() as AddressInfo;
   const url = `http://${config.host}:${address.port}`;
-  logger.info({ url, databasePath: config.databasePath }, "Municipal council server started");
+  logger.info({ url, databaseKind: config.database.kind }, "Municipal council server started");
 
   return {
     url,
@@ -30,7 +31,7 @@ export async function startHttpServer(config: ServerConfig): Promise<HttpServerH
         server.close((error) => {
           if (error) reject(error);
           else {
-            void container.cradle.sqliteExecutor.close().then(resolve, reject);
+            void container.cradle.sqlExecutor.close().then(resolve, reject);
           }
         });
       }),

@@ -1,6 +1,6 @@
 # API contract
 
-`@mairie/api-contract` is the runtime-neutral HTTP vocabulary shared by the server and clients.
+`@hall/api-contract` is the runtime-neutral HTTP vocabulary shared by the server and clients.
 
 - Success representations use Siren (`application/vnd.siren+json`).
 - Errors use RFC 9457 Problem Details (`application/problem+json`).

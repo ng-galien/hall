@@ -1,4 +1,4 @@
-import type { Ballot, CouncilMeeting, MeetingAggregate, MeetingStatus, VoteInput } from "@mairie/domain";
+import type { Ballot, CouncilMeeting, MeetingAggregate, MeetingStatus, VoteInput } from "@hall/domain";
 import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
 export const listCouncilMeetings = () => apiRequest<CouncilMeeting[]>("/council-meetings");

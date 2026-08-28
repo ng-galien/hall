@@ -7,7 +7,7 @@ import type {
   MeetingStatus,
   MinutesStatus,
   TopicState,
-} from "@mairie/domain";
+} from "@hall/domain";
 import { type ReactNode, useEffect, useId, useState } from "react";
 import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
