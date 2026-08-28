@@ -12,3 +12,11 @@ Ces points sont volontairement laissés au backlog. Le prototype conserve unique
 
 - Recetter tout le déroulé de séance sur un écran de vidéoprojection professionnel en affichage étendu, avec 1280 × 1024 comme résolution de référence pour le mode présentation.
 - Vérifier à cette résolution la lisibilité à distance, le scroll de l’appel, de la timeline, du contenu et du scrutin, ainsi que l’accès permanent aux actions de conduite.
+
+## Modèles documentaires
+
+- Template de pouvoir imprimé.
+- Template de la liste des délibérations.
+- Template de convocation.
+- Template de délibération.
+- Template de sujet.
