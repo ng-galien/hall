@@ -101,6 +101,7 @@ async function main() {
     get("/topics"),
     get("/council-decisions"),
     get("/council-meetings"),
+    get("/templates"),
   ]);
   if (inspectedCollections.some((items) => items.length > 0)) {
     console.error("La base n'est pas vide : seed annulé. Supprimez packages/server/data/hall.sqlite et relancez.");
@@ -524,6 +525,26 @@ async function main() {
       "L'ordre du jour comporte cinq points, dont l'approbation",
       "du proces-verbal de la seance precedente.",
     ],
+  });
+
+  console.log("— Templates PDF et Outlook");
+  await post("/templates", {
+    kind: "pdf",
+    documentType: "meeting-notice",
+    name: "Convocation au conseil municipal",
+    bodyMarkdown:
+      "# Convocation\n\nLe conseil municipal de **:field{name=hall.name}** se réunira le :field{name=meeting.startsAt}, à :field{name=meeting.location}.\n\n## Ordre du jour\n\nLes documents préparatoires sont joints à la présente convocation.",
+    stylesheet: "h1 { color: #102a83; }",
+    headerHtml: '<div style="font-size:10px">Commune de Saint-Aubin</div>',
+    footerHtml: '<div style="font-size:9px;width:100%;text-align:center">Conseil municipal</div>',
+  });
+  await post("/templates", {
+    kind: "message",
+    documentType: "meeting-notice-message",
+    name: "Message de convocation Outlook",
+    subject: ":field{name=meeting.title}",
+    bodyMarkdown:
+      "Bonjour,\n\nVous êtes convoqué au **:field{name=meeting.title}**, le :field{name=meeting.startsAt}, à :field{name=meeting.location}.\n\nLa convocation et les pièces préparatoires sont jointes à ce message.",
   });
 
   console.log("— Séance en préparation");

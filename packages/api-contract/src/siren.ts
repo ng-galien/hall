@@ -40,6 +40,11 @@ export const apiActionNames = [
   "user.disable",
   "user.assign-role",
   "settings.update",
+  "template.create",
+  "template.update",
+  "template.delete",
+  "template.preview",
+  "template.generate",
 ] as const;
 export type ApiActionName = (typeof apiActionNames)[number];
 

@@ -16,6 +16,7 @@ import { errorHandler } from "./errorHandler.js";
 import { sendProblem } from "./problemDetails.js";
 import { createAuditRouter } from "./routes/auditRoutes.js";
 import { createAuthRouter, createUsersRouter } from "./routes/authRoutes.js";
+import { createContentTemplatesRouter } from "./routes/contentTemplatesRoutes.js";
 import { createCouncilDecisionsRouter } from "./routes/councilDecisionsRoutes.js";
 import { createCouncilMeetingsRouter } from "./routes/councilMeetingsRoutes.js";
 import { createCouncilMembersRouter } from "./routes/councilMembersRoutes.js";
@@ -53,6 +54,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api/resources", createResourcesRouter(container.cradle));
   app.use("/api/topics", createTopicsRouter(container.cradle));
   app.use("/api/settings", createSettingsRouter(container.cradle));
+  app.use("/api/templates", createContentTemplatesRouter(container.cradle));
   app.use("/api", (request, response) => sendProblem(request, response, 404, "route_not_found"));
 
   if (config.clientDirectory && existsSync(join(config.clientDirectory, "index.html"))) {

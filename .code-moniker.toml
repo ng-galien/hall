@@ -5,6 +5,7 @@ patterns = ["dependency", "ownership"]
 components = [
   "domain",
   "api-contract",
+  "templating",
   "server",
   "authorization@server",
   "persistence@server",
@@ -26,8 +27,10 @@ uris = [
 
 [aliases]
 dependency_import_ref = "kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports'"
+import_ref = "kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports'"
 domain_source = "source ~ '**/dir:packages/dir:domain/dir:src/**'"
 api_contract_source = "source ~ '**/dir:packages/dir:api-contract/dir:src/**'"
+templating_source = "source ~ '**/dir:packages/dir:templating/dir:src/**'"
 client_source = "source ~ '**/dir:packages/dir:client/dir:src/**'"
 server_source = "source ~ '**/dir:packages/dir:server/dir:src/**'"
 authorization_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:security/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:api/module:accessControl/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:api/module:sirenRepresentation/**'"
@@ -37,12 +40,23 @@ composition_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir
 client_target = "target ~ '**/dir:packages/dir:client/dir:src/**'"
 domain_target = "target ~ '**/dir:packages/dir:domain/dir:src/**'"
 api_contract_target = "target ~ '**/dir:packages/dir:api-contract/dir:src/**'"
+templating_target = "target ~ '**/dir:packages/dir:templating/dir:src/**'"
+template_editor_at_client_source = "source ~ '**/dir:packages/dir:client/dir:src/dir:components/module:MarkdownEditor/**' OR source ~ '**/dir:packages/dir:client/dir:src/**/module:TemplateEditor/**'"
+template_rendering_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:services/module:templateRendering/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:services/module:contentTemplateService/**'"
 server_target = "target ~ '**/dir:packages/dir:server/dir:src/**'"
 desktop_target = "target ~ '**/dir:packages/dir:desktop/dir:src/**'"
 database_target = "target.name = 'DatabaseSync' OR target.name = 'Pool' OR target.name = 'PoolClient' OR target ~ '**/dir:infrastructure/dir:database/**' OR target ~ '**/dir:infrastructure/dir:sqlite/**' OR target ~ '**/dir:infrastructure/dir:postgres/**'"
 state_machine_at_domain_source = "source ~ '**/dir:packages/dir:domain/dir:src/dir:state-machines/**'"
 state_machine_runtime_target = "target ~ '**/external_pkg:xstate/**'"
 authorization_at_server_permission_catalog_target = "target.name = 'apiPermissions'"
+templating_grammar_runtime_target = "target ~ '**/external_pkg:unified/**' OR target ~ '**/external_pkg:remark-parse/**' OR target ~ '**/external_pkg:remark-stringify/**' OR target ~ '**/external_pkg:remark-directive/**' OR target ~ '**/external_pkg:remark-gfm/**' OR target ~ '**/external_pkg:remark-rehype/**' OR target ~ '**/external_pkg:rehype-stringify/**'"
+
+[[refs.where]]
+id = "templating-client-server-ownership-of-markdown-grammar-is-confined"
+severity = "error"
+rationale = "The template editor and authoritative template renderer must parse and validate exactly the same Markdown directives. The isomorphic templating package owns their unified/remark grammar; the generic Markdown viewer remains a separate presentation concern."
+expr = "($templating_source OR $template_editor_at_client_source OR $template_rendering_at_server_source) AND $import_ref AND $templating_grammar_runtime_target => $templating_source"
+message = "Markdown grammar runtimes belong exclusively to packages/templating."
 
 [[refs.where]]
 id = "api-contract-domain-server-client-desktop-dependency-remains-leaf"

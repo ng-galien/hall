@@ -46,6 +46,10 @@ const agendaSelection = `SELECT
 FROM agenda_items
 JOIN topics ON topics.id = agenda_items.topic_id`;
 
+const templateSelection = `SELECT id, kind, document_type, name, body_markdown, subject,
+  stylesheet, header_html, footer_html, created_at, updated_at
+FROM templates`;
+
 export const queries = {
   "agenda.resources.snapshot": `${resourceSelection}
     JOIN agenda_item_resources ON agenda_item_resources.resource_id = resources.id
@@ -352,6 +356,15 @@ export const queries = {
     SET state = :state, current_meeting_id = NULL, position = NULL, updated_at = :updatedAt WHERE id = :id`,
   "topic.start": `UPDATE topics SET state = 'inProgress', updated_at = :updatedAt WHERE id = :id`,
   "topic.setPosition": `UPDATE topics SET position = :position, updated_at = :updatedAt WHERE id = :id`,
+  "template.list": `${templateSelection} ORDER BY document_type, kind`,
+  "template.find": `${templateSelection} WHERE id = :id`,
+  "template.insert": `INSERT INTO templates
+    (id, kind, document_type, name, body_markdown, subject, stylesheet, header_html, footer_html, created_at, updated_at)
+    VALUES (:id, :kind, :documentType, :name, :bodyMarkdown, :subject, :stylesheet, :headerHtml, :footerHtml, :createdAt, :updatedAt)`,
+  "template.update": `UPDATE templates SET kind = :kind, document_type = :documentType, name = :name,
+    body_markdown = :bodyMarkdown, subject = :subject, stylesheet = :stylesheet,
+    header_html = :headerHtml, footer_html = :footerHtml, updated_at = :updatedAt WHERE id = :id`,
+  "template.delete": "DELETE FROM templates WHERE id = :id",
 } as const satisfies Record<string, QueryTemplate>;
 
 export type SqlQueryName = keyof typeof queries;

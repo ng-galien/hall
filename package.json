@@ -3,28 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/server && npm run build -w @hall/client && npm run build -w @hall/desktop",
+    "build": "npm run build -w @hall/api-contract && npm run build -w @hall/templating && npm run build -w @hall/domain && npm run build -w @hall/server && npm run build -w @hall/client && npm run build -w @hall/desktop",
     "dev:server": "npm run dev -w @hall/server",
     "dev:client": "npm run dev -w @hall/client",
     "dev:postgres": "cross-env DATABASE_KIND=postgres DATABASE_URL=postgresql://hall:hall-dev-only@127.0.0.1:54329/hall npm run dev",
     "postgres:up": "docker compose up -d --wait postgres",
     "postgres:down": "docker compose down",
-    "test:postgres": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && docker compose --profile test up -d --wait postgres-test && cross-env TEST_DATABASE_URL=postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test npm test -w @hall/server -- --run src/__tests__/postgresPersistence.test.ts",
-    "dev": "concurrently -k -n server,client -c blue,cyan \"npm run dev:server\" \"npm run dev:client\"",
+    "test:postgres": "npm run build -w @hall/api-contract && npm run build -w @hall/templating && npm run build -w @hall/domain && docker compose --profile test up -d --wait postgres-test && cross-env TEST_DATABASE_URL=postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test npm test -w @hall/server -- --run src/__tests__/postgresPersistence.test.ts",
+    "dev": "npm run build -w @hall/api-contract && npm run build -w @hall/templating && npm run build -w @hall/domain && concurrently -k -n server,client -c blue,cyan \"npm run dev:server\" \"npm run dev:client\"",
     "demo:restart": "node packages/server/scripts/stop-dev.mjs && node packages/server/scripts/reset-demo.mjs && concurrently --kill-others-on-fail -n app,seed -c cyan,yellow \"npm run dev\" \"wait-on http-get://127.0.0.1:3100/api/health && npm run seed:dev -w @hall/server\"",
-    "desktop:dev": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/server && concurrently -k -n client,desktop -c cyan,magenta \"npm run dev -w @hall/client\" \"wait-on http://127.0.0.1:5174 && cross-env HALL_RENDERER_URL=http://127.0.0.1:5174 npm run start -w @hall/desktop\"",
+    "desktop:dev": "npm run build -w @hall/api-contract && npm run build -w @hall/templating && npm run build -w @hall/domain && npm run build -w @hall/server && concurrently -k -n client,desktop -c cyan,magenta \"npm run dev -w @hall/client\" \"wait-on http://127.0.0.1:5174 && cross-env HALL_RENDERER_URL=http://127.0.0.1:5174 npm run start -w @hall/desktop\"",
     "desktop:package": "npm run build && npm run package -w @hall/desktop",
     "desktop:make": "npm run build && npm run make -w @hall/desktop",
-    "e2e:server": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/server && npm run start -w @hall/server",
+    "e2e:server": "npm run build -w @hall/api-contract && npm run build -w @hall/templating && npm run build -w @hall/domain && npm run build -w @hall/server && npm run start -w @hall/server",
     "test:e2e": "npm run test:e2e -w @hall/client --",
     "lint": "biome check packages/*/src packages/*/*.ts packages/desktop/scripts packages/client/e2e packages/client/scripts",
     "lint:fix": "biome check --write packages/*/src packages/*/*.ts packages/desktop/scripts packages/client/e2e packages/client/scripts",
-    "typecheck": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run typecheck -w @hall/server && npm run typecheck -w @hall/client && npm run build -w @hall/server && npm run typecheck -w @hall/desktop",
+    "typecheck": "npm run build -w @hall/api-contract && npm run build -w @hall/templating && npm run build -w @hall/domain && npm run typecheck -w @hall/server && npm run typecheck -w @hall/client && npm run build -w @hall/server && npm run typecheck -w @hall/desktop",
     "test": "npm run test --workspaces --if-present",
     "quality": "npm run lint && npm run typecheck && npm test",
     "quality:e2e": "npm run quality && npm run test:e2e"

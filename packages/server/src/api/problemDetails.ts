@@ -10,6 +10,8 @@ const titles: Record<string, string> = {
   route_not_found: "Route not found",
   too_many_login_attempts: "Too many login attempts",
   request_too_large: "Request body too large",
+  template_attachments_too_large: "Template attachments are too large",
+  template_generation_busy: "Template generation capacity is busy",
   request_failed: "Request failed",
   conflict: "Conflict",
   bootstrap_unavailable: "Bootstrap unavailable",

@@ -32,6 +32,11 @@ Siren actions are advertised. An application user may optionally reference a cou
 mandate remain separate concepts. Successful mutations are written to the audit log in the same database transaction.
 
 Uploaded files are served as downloads with a server-derived media type, `nosniff`, and a sandbox content policy.
+Document and message templates are stored in the database as Markdown. The isomorphic `@hall/templating` package is
+the only grammar used by the editor and server: it recognizes typed municipal references and a closed list of
+context fields. The server resolves them authoritatively, renders PDF templates with headless Chromium, appends
+selected PDF resources in order, and produces Outlook-compatible `.eml` message scenarios with attachments. Template
+definitions remain editable; generated PDF and EML bytes are standalone outputs and do not depend on Microsoft Graph.
 The product is still being constructed: the server accepts only its current database schema and does not carry legacy
 migrations or compatibility adapters. Development databases may be reset when the contract changes.
 

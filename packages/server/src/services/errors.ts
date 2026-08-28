@@ -26,6 +26,10 @@ export type ErrorCode =
   | "quorum_not_reached"
   | "resource_content_unavailable"
   | "resource_not_found"
+  | "template_invalid"
+  | "template_attachments_too_large"
+  | "template_generation_busy"
+  | "template_not_found"
   | "topic_not_found"
   | "too_many_login_attempts"
   | "user_not_found";

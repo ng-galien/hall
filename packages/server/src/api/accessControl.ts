@@ -189,6 +189,19 @@ function auditIntentFor(request: Request) {
     };
   }
   if (root === "settings") return { action: "settings.update", targetType: "hall-settings", targetId: "hall" };
+  if (root === "templates") {
+    const action =
+      id === "preview"
+        ? "template.preview"
+        : child === "generate"
+          ? "template.generate"
+          : !id
+            ? "template.create"
+            : request.method === "DELETE"
+              ? "template.delete"
+              : "template.update";
+    return { action, targetType: "template", targetId: id && id !== "preview" ? id : null };
+  }
   if (root === "auth") return { action: `session.${id ?? "unknown"}`, targetType: "session" };
   if (root === "council-members") return { action: "member.create", targetType: "council-member" };
   if (root === "council-decisions") {

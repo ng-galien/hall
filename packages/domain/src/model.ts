@@ -11,6 +11,7 @@ export type BallotMethod = "public" | "secret";
 export type BallotResult = "adopted" | "rejected";
 export type VoteChoice = "for" | "against" | "abstain" | "notVoting";
 export type TopicState = "toSchedule" | "scheduled" | "inProgress" | "examined" | "withdrawn";
+export type TemplateKind = "pdf" | "message";
 
 export interface HallSettings {
   name: string;
@@ -31,6 +32,27 @@ export interface HallSettings {
   outboundEmailSenderAddress: string | null;
   outboundEmailReplyToAddress: string | null;
   updatedAt: IsoDateTime | null;
+}
+
+/** A municipal document or message template. Its editable source remains Markdown. */
+export interface ContentTemplate {
+  id: Identifier;
+  kind: TemplateKind;
+  documentType: string;
+  name: string;
+  bodyMarkdown: string;
+  /** Only message templates carry a subject. It uses the same inline directive grammar. */
+  subject: string | null;
+  /** PDF-only presentation data, stored with the template rather than in application code. */
+  stylesheet: string;
+  headerHtml: string;
+  footerHtml: string;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface TemplateRenderContext {
+  meetingId?: Identifier;
 }
 
 export interface CouncilMember {

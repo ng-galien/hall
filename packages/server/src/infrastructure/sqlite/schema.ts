@@ -15,6 +15,7 @@ const currentTables = [
   "resource_tags",
   "resources",
   "sessions",
+  "templates",
   "text_resources",
   "topic_resources",
   "topics",
@@ -59,6 +60,23 @@ function createCurrentSchema(database: DatabaseSync): void {
     ) STRICT;
 
     INSERT INTO hall_settings (id) VALUES ('hall');
+
+    CREATE TABLE templates (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL CHECK (kind IN ('pdf', 'message')),
+      document_type TEXT NOT NULL,
+      name TEXT NOT NULL,
+      body_markdown TEXT NOT NULL,
+      subject TEXT,
+      stylesheet TEXT NOT NULL DEFAULT '',
+      header_html TEXT NOT NULL DEFAULT '',
+      footer_html TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE (kind, document_type),
+      CHECK ((kind = 'message' AND subject IS NOT NULL) OR (kind = 'pdf' AND subject IS NULL)),
+      CHECK ((kind = 'pdf') OR (stylesheet = '' AND header_html = '' AND footer_html = ''))
+    ) STRICT;
 
     CREATE TABLE users (
       id TEXT PRIMARY KEY,
@@ -322,6 +340,7 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE INDEX users_by_status ON users(status, display_name);
     CREATE INDEX sessions_by_user ON sessions(user_id, expires_at);
     CREATE INDEX sessions_by_expiry ON sessions(expires_at);
+    CREATE INDEX templates_by_document_type ON templates(document_type, kind);
     CREATE INDEX audit_events_by_actor ON audit_events(actor_user_id, occurred_at);
     CREATE INDEX audit_events_by_target ON audit_events(target_type, target_id, occurred_at);
   `);

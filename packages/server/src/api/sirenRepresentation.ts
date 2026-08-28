@@ -41,6 +41,9 @@ function classFromPath(request: Request, value: unknown): string {
   if (path.startsWith("/api/users")) return "user";
   if (path.startsWith("/api/audit-events")) return "audit-event";
   if (path.startsWith("/api/settings")) return "hall-settings";
+  if (path.startsWith("/api/templates/references")) return "template-reference";
+  if (path.startsWith("/api/templates/preview")) return "template-preview";
+  if (path.startsWith("/api/templates")) return "template";
   if (path.startsWith("/api/council-members")) return "council-member";
   if (path.startsWith("/api/council-decisions")) return "council-decision";
   if (path.startsWith("/api/topics")) return "topic";
@@ -96,6 +99,15 @@ function collectionActions(request: Request, entityClass: string): SirenAction[]
   }
   if (entityClass === "user" && permitted(request, "users.manage")) {
     return [action("user.create", "POST", "/api/users", "Create a user")];
+  }
+  if (entityClass === "template") {
+    const actions = permitted(request, "workspace.read")
+      ? [action("template.preview", "POST", "/api/templates/preview", "Preview a template")]
+      : [];
+    if (permitted(request, "workspace.write")) {
+      actions.unshift(action("template.create", "POST", "/api/templates", "Create a template"));
+    }
+    return actions;
   }
   return [];
 }
@@ -164,6 +176,18 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
       details.usedAsProxy === false
     ) {
       actions.push(action("resource.delete", "DELETE", `/api/resources/${id}`, "Delete the resource"));
+    }
+    return actions;
+  }
+  if (entityClass === "template" && id) {
+    const actions = permitted(request, "workspace.write")
+      ? [
+          action("template.update", "PUT", `/api/templates/${id}`, "Update the template"),
+          action("template.delete", "DELETE", `/api/templates/${id}`, "Delete the template"),
+        ]
+      : [];
+    if (permitted(request, "workspace.read")) {
+      actions.push(action("template.generate", "POST", `/api/templates/${id}/generate`, "Generate the output"));
     }
     return actions;
   }
@@ -471,6 +495,17 @@ function canonicalHref(request: Request, entityClass: string, value: unknown): s
   if (entityClass === "user") return `/api/users/${id}`;
   if (entityClass === "audit-event") return `/api/audit-events/${id}`;
   if (entityClass === "council-member") return `/api/council-members/${id}`;
+  if (entityClass === "template-reference" && primary && typeof primary.type === "string") {
+    const roots: Record<string, string> = {
+      member: "council-members",
+      resource: "resources",
+      topic: "topics",
+      decision: "council-decisions",
+      meeting: "council-meetings",
+    };
+    const root = roots[primary.type];
+    if (root) return `/api/${root}/${id}`;
+  }
   if (
     entityClass === "attendance" &&
     primary &&
@@ -490,6 +525,7 @@ function canonicalHref(request: Request, entityClass: string, value: unknown): s
     topic: "topics",
     "council-decision": "council-decisions",
     "council-meeting": "council-meetings",
+    template: "templates",
   };
   const root = roots[entityClass];
   return root ? `/api/${root}/${id}` : pathWithQuery(request);
@@ -684,6 +720,7 @@ export function apiRootRepresentation(request: Request): SirenEntity<{ authentic
       links.push(
         { rel: ["resources"], href: "/api/resources", type: SIREN_MEDIA_TYPE },
         { rel: ["topics"], href: "/api/topics", type: SIREN_MEDIA_TYPE },
+        { rel: ["templates"], href: "/api/templates", type: SIREN_MEDIA_TYPE },
       );
     }
     if (permitted(request, "users.manage")) {

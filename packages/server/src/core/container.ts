@@ -4,10 +4,12 @@ import { createSqlExecutor } from "../infrastructure/database/factory.js";
 import { createAgendaRepository } from "../repositories/agendaRepository.js";
 import { createAttendanceRepository } from "../repositories/attendanceRepository.js";
 import { createBallotRepository } from "../repositories/ballotRepository.js";
+import { createContentTemplateRepository } from "../repositories/contentTemplateRepository.js";
 import type {
   AgendaRepository,
   AttendanceRepository,
   BallotRepository,
+  ContentTemplateRepository,
   CouncilDecisionRepository,
   CouncilMeetingRepository,
   CouncilMemberRepository,
@@ -28,7 +30,9 @@ import { createTopicRepository } from "../repositories/topicRepository.js";
 import { RequestContextStore } from "../security/requestContext.js";
 import { type AuthService, createAuthService } from "../services/authService.js";
 import { type BallotService, createBallotService } from "../services/ballotService.js";
+import { type ContentTemplateService, createContentTemplateService } from "../services/contentTemplateService.js";
 import { type CouncilMeetingService, createCouncilMeetingService } from "../services/councilMeetingService.js";
+import { createDocumentRenderer, type DocumentRenderer } from "../services/documentRenderer.js";
 import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import { createMeetingAgendaService, type MeetingAgendaService } from "../services/meetingAgendaService.js";
 import { createMeetingLifecycleService, type MeetingLifecycleService } from "../services/meetingLifecycleService.js";
@@ -37,6 +41,7 @@ import {
   type MeetingPreparationService,
 } from "../services/meetingPreparationService.js";
 import { createResourceService, type ResourceService } from "../services/resourceService.js";
+import { createTemplateRenderingService, type TemplateRenderingService } from "../services/templateRendering.js";
 import { createTopicService, type TopicService } from "../services/topicService.js";
 import type { ServerConfig } from "./config.js";
 
@@ -55,6 +60,7 @@ export interface Cradle {
   resourceRepository: ResourceRepository;
   meetingRosterRepository: MeetingRosterRepository;
   topicRepository: TopicRepository;
+  contentTemplateRepository: ContentTemplateRepository;
   securityRepository: SecurityRepository;
   councilMeetingService: CouncilMeetingService;
   meetingLifecycleService: MeetingLifecycleService;
@@ -65,6 +71,9 @@ export interface Cradle {
   resourceService: ResourceService;
   authService: AuthService;
   hallSettingsService: HallSettingsService;
+  templateRenderingService: TemplateRenderingService;
+  documentRenderer: DocumentRenderer;
+  contentTemplateService: ContentTemplateService;
 }
 
 export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
@@ -84,6 +93,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     resourceRepository: asFunction(createResourceRepository).singleton(),
     meetingRosterRepository: asFunction(createMeetingRosterRepository).singleton(),
     topicRepository: asFunction(createTopicRepository).singleton(),
+    contentTemplateRepository: asFunction(createContentTemplateRepository).singleton(),
     securityRepository: asFunction(createSecurityRepository).singleton(),
     councilMeetingService: asFunction(createCouncilMeetingService).singleton(),
     meetingLifecycleService: asFunction(createMeetingLifecycleService).singleton(),
@@ -94,6 +104,9 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     resourceService: asFunction(createResourceService).singleton(),
     authService: asFunction(createAuthService).singleton(),
     hallSettingsService: asFunction(createHallSettingsService).singleton(),
+    templateRenderingService: asFunction(createTemplateRenderingService).singleton(),
+    documentRenderer: asFunction(createDocumentRenderer).singleton(),
+    contentTemplateService: asFunction(createContentTemplateService).singleton(),
   });
   return container;
 }

@@ -3,6 +3,12 @@ import { z } from "zod";
 const nonEmpty = z.string().trim().min(1);
 const nullableId = z.string().uuid().nullable().optional();
 const boundedText = (maximum: number) => z.string().trim().max(maximum);
+const templateTypeName = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .regex(/^[a-z][a-z0-9.-]*$/);
 
 const timeZoneSchema = nonEmpty.max(100).refine((timeZone) => {
   try {
@@ -44,6 +50,64 @@ export const updateHallSettingsSchema = z.object({
   outboundEmailSenderName: boundedText(160),
   outboundEmailSenderAddress: z.email().nullable(),
   outboundEmailReplyToAddress: z.email().nullable(),
+});
+
+const contentTemplateShape = {
+  documentType: templateTypeName,
+  name: nonEmpty.max(160),
+  bodyMarkdown: z.string().max(500_000),
+  subject: z.string().max(500).nullable().optional(),
+  stylesheet: z.string().max(100_000).default(""),
+  headerHtml: z.string().max(100_000).default(""),
+  footerHtml: z.string().max(100_000).default(""),
+};
+
+export const createContentTemplateSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("pdf"),
+    ...contentTemplateShape,
+    subject: z.null().optional().default(null),
+  }),
+  z.object({
+    kind: z.literal("message"),
+    ...contentTemplateShape,
+    subject: nonEmpty.max(500),
+    stylesheet: z.literal("").optional().default(""),
+    headerHtml: z.literal("").optional().default(""),
+    footerHtml: z.literal("").optional().default(""),
+  }),
+]);
+
+export const updateContentTemplateSchema = createContentTemplateSchema;
+
+export const templateRenderContextSchema = z.object({
+  meetingId: z.string().uuid().optional(),
+});
+
+export const previewContentTemplateSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("pdf"),
+    bodyMarkdown: z.string().max(500_000),
+    subject: z.null().optional().default(null),
+    stylesheet: z.string().max(100_000).default(""),
+    headerHtml: z.string().max(100_000).default(""),
+    footerHtml: z.string().max(100_000).default(""),
+    context: templateRenderContextSchema.default({}),
+  }),
+  z.object({
+    kind: z.literal("message"),
+    bodyMarkdown: z.string().max(500_000),
+    subject: z.string().max(500),
+    context: templateRenderContextSchema.default({}),
+  }),
+]);
+
+export const generateContentTemplateSchema = z.object({
+  context: templateRenderContextSchema.default({}),
+  attachmentResourceIds: z.array(z.string().uuid()).max(20).default([]),
+  to: z.array(z.email()).max(200).default([]),
+  cc: z.array(z.email()).max(200).default([]),
+  bcc: z.array(z.email()).max(200).default([]),
 });
 
 export const folderPathSchema = z

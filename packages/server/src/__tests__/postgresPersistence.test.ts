@@ -100,6 +100,7 @@ postgres("PostgreSQL persistence", () => {
       topicService,
       securityRepository,
       hallSettingsService,
+      contentTemplateRepository,
     } = container.cradle;
     await sqlExecutor.ready();
     try {
@@ -123,6 +124,18 @@ postgres("PostgreSQL persistence", () => {
         outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
       });
       expect(await hallSettingsService.get()).toEqual(hallSettings);
+
+      const contentTemplate = await contentTemplateRepository.create({
+        kind: "message",
+        documentType: "meeting-notice-message",
+        name: "Meeting notice",
+        bodyMarkdown: "Council meeting",
+        subject: "Notice",
+        stylesheet: "",
+        headerHtml: "",
+        footerHtml: "",
+      });
+      expect(await contentTemplateRepository.find(contentTemplate.id)).toEqual(contentTemplate);
 
       const members = await Promise.all(
         ["Alice", "Benoît", "Claire"].map((firstName) =>

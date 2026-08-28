@@ -5,6 +5,7 @@ import type {
   Ballot,
   BallotMethod,
   BallotResult,
+  ContentTemplate,
   CouncilDecision,
   CouncilDecisionListEntry,
   CouncilDecisionStatus,
@@ -22,6 +23,16 @@ import type {
   TopicState,
   VoteInput,
 } from "@hall/domain";
+
+export type SaveContentTemplate = Omit<ContentTemplate, "id" | "createdAt" | "updatedAt">;
+
+export interface ContentTemplateRepository {
+  list(): Promise<ContentTemplate[]>;
+  find(id: string): Promise<ContentTemplate | null>;
+  create(input: SaveContentTemplate): Promise<ContentTemplate>;
+  update(id: string, input: SaveContentTemplate): Promise<ContentTemplate | null>;
+  delete(id: string): Promise<boolean>;
+}
 
 export type UpdateHallSettings = Omit<HallSettings, "updatedAt">;
 
