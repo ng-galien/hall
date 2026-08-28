@@ -98,33 +98,34 @@ export class PostgresExecutor implements SqlExecutor {
   async #initialize(): Promise<void> {
     const client = await this.#pool.connect();
     try {
-      const result = await client.query<{ table_name: string }>(
-        `SELECT table_name FROM information_schema.tables
-         WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'
-         ORDER BY table_name`,
-      );
-      const tables = result.rows.map((row) => row.table_name);
-      if (tables.length === 0) {
-        await client.query("BEGIN");
-        try {
+      await client.query("BEGIN");
+      try {
+        await client.query("SELECT pg_advisory_xact_lock(hashtext('hall.schema.bootstrap'))");
+        const result = await client.query<{ table_name: string }>(
+          `SELECT table_name FROM information_schema.tables
+           WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'
+           ORDER BY table_name`,
+        );
+        const tables = result.rows.map((row) => row.table_name);
+        if (tables.length === 0) {
           await client.query(postgresSchema);
-          await client.query("COMMIT");
-        } catch (error) {
-          await client.query("ROLLBACK");
-          throw error;
+        } else {
+          const expected = [...postgresTables].sort();
+          if (tables.length !== expected.length || tables.some((table, index) => table !== expected[index])) {
+            throw new Error("Unsupported PostgreSQL schema: reset the database before starting Hall");
+          }
+          const votesColumns = await client.query<{ column_name: string }>(
+            `SELECT column_name FROM information_schema.columns
+             WHERE table_schema = current_schema() AND table_name = 'votes'`,
+          );
+          if (!votesColumns.rows.some((row) => row.column_name === "position")) {
+            throw new Error("Obsolete PostgreSQL schema: reset the database before starting Hall");
+          }
         }
-        return;
-      }
-      const expected = [...postgresTables].sort();
-      if (tables.length !== expected.length || tables.some((table, index) => table !== expected[index])) {
-        throw new Error("Unsupported PostgreSQL schema: reset the database before starting Hall");
-      }
-      const votesColumns = await client.query<{ column_name: string }>(
-        `SELECT column_name FROM information_schema.columns
-         WHERE table_schema = current_schema() AND table_name = 'votes'`,
-      );
-      if (!votesColumns.rows.some((row) => row.column_name === "position")) {
-        throw new Error("Obsolete PostgreSQL schema: reset the database before starting Hall");
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
       }
     } finally {
       client.release();

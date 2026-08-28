@@ -1,12 +1,81 @@
 import { randomUUID } from "node:crypto";
+import { createServer } from "node:net";
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 import { buildContainer } from "../core/container.js";
+import { startHttpServer } from "../server.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const postgres = databaseUrl ? describe : describe.skip;
 
 postgres("PostgreSQL persistence", () => {
+  it("serializes schema bootstrap across concurrent server instances", async () => {
+    const setup = new Pool({ connectionString: databaseUrl });
+    await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
+    await setup.end();
+
+    const config = {
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "postgres" as const, url: databaseUrl! },
+      environment: "test",
+    };
+    const first = buildContainer(config);
+    const second = buildContainer(config);
+    try {
+      await Promise.all([first.cradle.sqlExecutor.ready(), second.cradle.sqlExecutor.ready()]);
+    } finally {
+      await Promise.all([first.cradle.sqlExecutor.close(), second.cradle.sqlExecutor.close()]);
+    }
+  });
+
+  it("closes the PostgreSQL pool when the HTTP listener cannot start", async () => {
+    const setup = new Pool({ connectionString: databaseUrl });
+    await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
+    await setup.end();
+    const initialized = buildContainer({
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "postgres", url: databaseUrl! },
+      environment: "test",
+    });
+    await initialized.cradle.sqlExecutor.ready();
+    await initialized.cradle.sqlExecutor.close();
+
+    const occupied = createServer();
+    await new Promise<void>((resolve) => occupied.listen(0, "127.0.0.1", resolve));
+    const address = occupied.address();
+    if (!address || typeof address === "string") throw new Error("Expected an occupied TCP port");
+    const applicationName = `hall-startup-review-${randomUUID()}`;
+    const url = new URL(databaseUrl!);
+    url.searchParams.set("application_name", applicationName);
+    try {
+      await expect(
+        startHttpServer({
+          host: "127.0.0.1",
+          port: address.port,
+          database: { kind: "postgres", url: url.toString() },
+          environment: "test",
+        }),
+      ).rejects.toMatchObject({ code: "EADDRINUSE" });
+
+      const inspection = new Pool({ connectionString: databaseUrl });
+      const active = await inspection.query<{ count: string }>(
+        "SELECT COUNT(*) AS count FROM pg_stat_activity WHERE application_name = $1",
+        [applicationName],
+      );
+      await inspection.end();
+      expect(Number(active.rows[0]?.count ?? 0)).toBe(0);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        occupied.close((error) => {
+          if (error) reject(error);
+          else resolve();
+        }),
+      );
+    }
+  });
+
   it("runs the council workflow through the PostgreSQL adapter", async () => {
     const setup = new Pool({ connectionString: databaseUrl });
     await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");

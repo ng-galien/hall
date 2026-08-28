@@ -13,27 +13,41 @@ export interface HttpServerHandle {
 export async function startHttpServer(config: ServerConfig): Promise<HttpServerHandle> {
   validateServerConfig(config);
   const container = buildContainer(config);
-  await container.cradle.sqlExecutor.ready();
-  const application = createHttpApplication(container);
+  try {
+    await container.cradle.sqlExecutor.ready();
+    const application = createHttpApplication(container);
 
-  const server = await new Promise<Server>((resolve, reject) => {
-    const listening = application.listen(config.port, config.host, () => resolve(listening));
-    listening.once("error", reject);
-  });
-  const address = server.address() as AddressInfo;
-  const url = `http://${config.host}:${address.port}`;
-  logger.info({ url, databaseKind: config.database.kind }, "Municipal council server started");
+    const server = await new Promise<Server>((resolve, reject) => {
+      const listening = application.listen(config.port, config.host);
+      const handleError = (error: Error) => reject(error);
+      listening.once("error", handleError);
+      listening.once("listening", () => {
+        listening.off("error", handleError);
+        resolve(listening);
+      });
+    });
+    const address = server.address() as AddressInfo;
+    const url = `http://${config.host}:${address.port}`;
+    logger.info({ url, databaseKind: config.database.kind }, "Municipal council server started");
 
-  return {
-    url,
-    close: () =>
-      new Promise<void>((resolve, reject) => {
-        server.close((error) => {
-          if (error) reject(error);
-          else {
-            void container.cradle.sqlExecutor.close().then(resolve, reject);
-          }
-        });
-      }),
-  };
+    return {
+      url,
+      close: () =>
+        new Promise<void>((resolve, reject) => {
+          server.close((error) => {
+            if (error) reject(error);
+            else {
+              void container.cradle.sqlExecutor.close().then(resolve, reject);
+            }
+          });
+        }),
+    };
+  } catch (error) {
+    try {
+      await container.cradle.sqlExecutor.close();
+    } catch (closeError) {
+      logger.error({ closeError }, "Failed to close database after server startup failure");
+    }
+    throw error;
+  }
 }
