@@ -169,6 +169,28 @@ export const queries = {
   "decision.setStatus": `UPDATE council_decisions SET status = :status, updated_at = :updatedAt WHERE id = :id`,
   "decision.remove": "DELETE FROM council_decisions WHERE id = :id",
 
+  "settings.get": "SELECT * FROM hall_settings WHERE id = 'hall'",
+  "settings.update": `UPDATE hall_settings SET
+    name = :name,
+    insee_code = :inseeCode,
+    siren = :siren,
+    population = :population,
+    population_reference_date = :populationReferenceDate,
+    address_line_1 = :addressLine1,
+    address_line_2 = :addressLine2,
+    postal_code = :postalCode,
+    city = :city,
+    phone = :phone,
+    email = :email,
+    website = :website,
+    default_meeting_location = :defaultMeetingLocation,
+    time_zone = :timeZone,
+    outbound_email_sender_name = :outboundEmailSenderName,
+    outbound_email_sender_address = :outboundEmailSenderAddress,
+    outbound_email_reply_to_address = :outboundEmailReplyToAddress,
+    updated_at = :updatedAt
+    WHERE id = 'hall'`,
+
   "meeting.list": "SELECT * FROM council_meetings ORDER BY starts_at DESC",
   "meeting.find": "SELECT * FROM council_meetings WHERE id = :id",
   "meeting.insert": `INSERT INTO council_meetings

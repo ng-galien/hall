@@ -4,6 +4,11 @@ Desktop-first municipal council management. The first bounded scope covers class
 agenda topics, council meetings, attendance and proxies, historical agenda occurrences, council decisions, ballots,
 votes, and the minutes lifecycle. The canonical functional design is [Design point Mardang](docs/design-point-mardang.md).
 
+Each installation is single-tenant and represents one commune. `GET /api/settings` exposes its `HallSettings`; an
+administrator may update them through the advertised `settings.update` Siren action. These settings hold municipal
+identity, contact details, council defaults, and functional email addresses. SMTP credentials and other secrets stay
+in the deployment environment.
+
 ## Architecture
 
 - `@hall/domain`: shared English technical contracts and validation schemas.

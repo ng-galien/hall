@@ -40,6 +40,7 @@ function classFromPath(request: Request, value: unknown): string {
   }
   if (path.startsWith("/api/users")) return "user";
   if (path.startsWith("/api/audit-events")) return "audit-event";
+  if (path.startsWith("/api/settings")) return "hall-settings";
   if (path.startsWith("/api/council-members")) return "council-member";
   if (path.startsWith("/api/council-decisions")) return "council-decision";
   if (path.startsWith("/api/topics")) return "topic";
@@ -150,6 +151,9 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
   if (!value || typeof value !== "object") return [];
   const primary = primaryObject(entityClass, value);
   const id = objectId(primary);
+  if (entityClass === "hall-settings" && permitted(request, "settings.manage")) {
+    return [action("settings.update", "PUT", "/api/settings", "Update Hall settings")];
+  }
   if (entityClass === "resource" && id && permitted(request, "workspace.write")) {
     const details = value as { topics?: unknown[]; snapshotted?: boolean; usedAsProxy?: boolean };
     const actions = [action("resource.update", "PUT", `/api/resources/${id}`, "Update the resource")];
@@ -668,6 +672,7 @@ export function apiRootRepresentation(request: Request): SirenEntity<{ authentic
   ];
   if (request.principal) {
     links.push({ rel: ["session"], href: "/api/auth/session", type: SIREN_MEDIA_TYPE });
+    links.push({ rel: ["settings"], href: "/api/settings", type: SIREN_MEDIA_TYPE });
     if (permitted(request, "meetings.read")) {
       links.push(
         { rel: ["council-meetings"], href: "/api/council-meetings", type: SIREN_MEDIA_TYPE },

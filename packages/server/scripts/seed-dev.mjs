@@ -107,6 +107,27 @@ async function main() {
     process.exit(1);
   }
 
+  console.log("— Configuration de la commune");
+  await put("/settings", {
+    name: "Saint-Aubin",
+    inseeCode: "12345",
+    siren: "123456789",
+    population: 2_500,
+    populationReferenceDate: "2026-01-01",
+    addressLine1: "1 place de la Mairie",
+    addressLine2: "",
+    postalCode: "12345",
+    city: "Saint-Aubin",
+    phone: "+33 1 23 45 67 89",
+    email: "contact@saint-aubin.fr",
+    website: "https://saint-aubin.fr",
+    defaultMeetingLocation: "Salle du conseil",
+    timeZone: "Europe/Paris",
+    outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
+    outboundEmailSenderAddress: "conseil@saint-aubin.fr",
+    outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
+  });
+
   console.log("— Membres du conseil");
   const membersSpec = [
     ["Martine", "Delcourt", "mayor"],

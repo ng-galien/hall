@@ -188,6 +188,7 @@ function auditIntentFor(request: Request) {
       details,
     };
   }
+  if (root === "settings") return { action: "settings.update", targetType: "hall-settings", targetId: "hall" };
   if (root === "auth") return { action: `session.${id ?? "unknown"}`, targetType: "session" };
   if (root === "council-members") return { action: "member.create", targetType: "council-member" };
   if (root === "council-decisions") {

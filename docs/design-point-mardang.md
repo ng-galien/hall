@@ -119,6 +119,18 @@ Les principales navigations restent :
 
 Ces contrats permettent deux points d’entrée IHM sans créer deux modèles concurrents : l’espace de travail quotidien et la séance normative.
 
+## Configuration Hall
+
+Une installation Hall correspond à une seule commune : le produit reste monotenant et ne porte aucun `tenantId`.
+Le singleton `HallSettings` constitue la source commune pour l’identité de la commune, ses coordonnées, sa population
+de référence, le lieu de séance par défaut, le fuseau horaire et les adresses fonctionnelles d’expédition. Il sera
+étendu par des références explicites aux ressources servant de modèles lorsque les exports documentaires seront
+construits ; les modèles ne sont pas dupliqués dans la configuration.
+
+Tout utilisateur authentifié peut consulter `GET /api/settings`. Seul `settings.manage` permet `PUT /api/settings`,
+annoncé par l’action Siren `settings.update` et enregistré dans l’audit. Les mots de passe SMTP, clés et autres secrets
+d’infrastructure restent dans l’environnement du déploiement et ne sont jamais exposés par cette API.
+
 ## Utilisateurs, droits et preuve
 
 Un `User` est une identité applicative ; il peut être rattaché à zéro ou un `CouncilMember`. Ce sont deux notions

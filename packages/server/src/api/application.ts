@@ -20,6 +20,7 @@ import { createCouncilDecisionsRouter } from "./routes/councilDecisionsRoutes.js
 import { createCouncilMeetingsRouter } from "./routes/councilMeetingsRoutes.js";
 import { createCouncilMembersRouter } from "./routes/councilMembersRoutes.js";
 import { createResourcesRouter } from "./routes/resourcesRoutes.js";
+import { createSettingsRouter } from "./routes/settingsRoutes.js";
 import { createTopicsRouter } from "./routes/topicsRoutes.js";
 import { apiRootRepresentation, sirenResponses } from "./sirenRepresentation.js";
 
@@ -51,6 +52,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api/council-decisions", createCouncilDecisionsRouter(container.cradle));
   app.use("/api/resources", createResourcesRouter(container.cradle));
   app.use("/api/topics", createTopicsRouter(container.cradle));
+  app.use("/api/settings", createSettingsRouter(container.cradle));
   app.use("/api", (request, response) => sendProblem(request, response, 404, "route_not_found"));
 
   if (config.clientDirectory && existsSync(join(config.clientDirectory, "index.html"))) {

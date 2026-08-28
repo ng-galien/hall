@@ -9,6 +9,7 @@ const currentTables = [
   "council_decisions",
   "council_meetings",
   "council_members",
+  "hall_settings",
   "meeting_roster",
   "resource_documents",
   "resource_tags",
@@ -34,6 +35,30 @@ function createCurrentSchema(database: DatabaseSync): void {
       term_started_on TEXT NOT NULL,
       term_ended_on TEXT
     ) STRICT;
+
+    CREATE TABLE hall_settings (
+      id TEXT PRIMARY KEY CHECK (id = 'hall'),
+      name TEXT NOT NULL DEFAULT '',
+      insee_code TEXT,
+      siren TEXT,
+      population INTEGER CHECK (population IS NULL OR population >= 0),
+      population_reference_date TEXT,
+      address_line_1 TEXT NOT NULL DEFAULT '',
+      address_line_2 TEXT NOT NULL DEFAULT '',
+      postal_code TEXT NOT NULL DEFAULT '',
+      city TEXT NOT NULL DEFAULT '',
+      phone TEXT NOT NULL DEFAULT '',
+      email TEXT,
+      website TEXT,
+      default_meeting_location TEXT NOT NULL DEFAULT '',
+      time_zone TEXT NOT NULL DEFAULT 'Europe/Paris',
+      outbound_email_sender_name TEXT NOT NULL DEFAULT '',
+      outbound_email_sender_address TEXT,
+      outbound_email_reply_to_address TEXT,
+      updated_at TEXT
+    ) STRICT;
+
+    INSERT INTO hall_settings (id) VALUES ('hall');
 
     CREATE TABLE users (
       id TEXT PRIMARY KEY,

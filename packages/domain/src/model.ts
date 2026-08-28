@@ -12,6 +12,27 @@ export type BallotResult = "adopted" | "rejected";
 export type VoteChoice = "for" | "against" | "abstain" | "notVoting";
 export type TopicState = "toSchedule" | "scheduled" | "inProgress" | "examined" | "withdrawn";
 
+export interface HallSettings {
+  name: string;
+  inseeCode: string | null;
+  siren: string | null;
+  population: number | null;
+  populationReferenceDate: string | null;
+  addressLine1: string;
+  addressLine2: string;
+  postalCode: string;
+  city: string;
+  phone: string;
+  email: string | null;
+  website: string | null;
+  defaultMeetingLocation: string;
+  timeZone: string;
+  outboundEmailSenderName: string;
+  outboundEmailSenderAddress: string | null;
+  outboundEmailReplyToAddress: string | null;
+  updatedAt: IsoDateTime | null;
+}
+
 export interface CouncilMember {
   id: Identifier;
   firstName: string;

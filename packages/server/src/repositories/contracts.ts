@@ -12,6 +12,7 @@ import type {
   CouncilMember,
   CouncilRole,
   DocumentResource,
+  HallSettings,
   MeetingStatus,
   ParticipationEvidence,
   QuorumFailureEvidence,
@@ -21,6 +22,13 @@ import type {
   TopicState,
   VoteInput,
 } from "@hall/domain";
+
+export type UpdateHallSettings = Omit<HallSettings, "updatedAt">;
+
+export interface HallSettingsRepository {
+  get(): Promise<HallSettings>;
+  update(input: UpdateHallSettings): Promise<HallSettings>;
+}
 
 export interface CreateCouncilMember {
   firstName: string;

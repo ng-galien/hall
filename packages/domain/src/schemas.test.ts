@@ -1,5 +1,46 @@
 import { describe, expect, it } from "vitest";
-import { recordAttendanceSchema, recordBallotSchema } from "./schemas.js";
+import { recordAttendanceSchema, recordBallotSchema, updateHallSettingsSchema } from "./schemas.js";
+
+describe("updateHallSettingsSchema", () => {
+  const settings = {
+    name: "Saint-Aubin",
+    inseeCode: "12345",
+    siren: "123456789",
+    population: 2_500,
+    populationReferenceDate: "2026-01-01",
+    addressLine1: "1 place de la Mairie",
+    addressLine2: "",
+    postalCode: "12345",
+    city: "Saint-Aubin",
+    phone: "+33 1 23 45 67 89",
+    email: "contact@saint-aubin.fr",
+    website: "https://saint-aubin.fr",
+    defaultMeetingLocation: "Salle du conseil",
+    timeZone: "Europe/Paris",
+    outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
+    outboundEmailSenderAddress: "conseil@saint-aubin.fr",
+    outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
+  };
+
+  it("accepts a complete Hall configuration", () => {
+    expect(updateHallSettingsSchema.parse(settings)).toEqual(settings);
+  });
+
+  it("rejects invalid institutional identifiers and time zones", () => {
+    expect(() => updateHallSettingsSchema.parse({ ...settings, inseeCode: "1234" })).toThrow();
+    expect(() => updateHallSettingsSchema.parse({ ...settings, timeZone: "Paris" })).toThrow();
+  });
+
+  it("accepts Corsican INSEE codes", () => {
+    expect(updateHallSettingsSchema.parse({ ...settings, inseeCode: "2A004" }).inseeCode).toBe("2A004");
+    expect(updateHallSettingsSchema.parse({ ...settings, inseeCode: "2B033" }).inseeCode).toBe("2B033");
+  });
+
+  it("rejects non-web website protocols", () => {
+    expect(() => updateHallSettingsSchema.parse({ ...settings, website: "javascript:alert(1)" })).toThrow();
+    expect(() => updateHallSettingsSchema.parse({ ...settings, website: "ftp://saint-aubin.fr" })).toThrow();
+  });
+});
 
 describe("recordBallotSchema", () => {
   it("keeps named votes for a public ballot", () => {

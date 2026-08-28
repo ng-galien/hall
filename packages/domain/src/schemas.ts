@@ -2,6 +2,49 @@ import { z } from "zod";
 
 const nonEmpty = z.string().trim().min(1);
 const nullableId = z.string().uuid().nullable().optional();
+const boundedText = (maximum: number) => z.string().trim().max(maximum);
+
+const timeZoneSchema = nonEmpty.max(100).refine((timeZone) => {
+  try {
+    new Intl.DateTimeFormat("fr-FR", { timeZone }).format();
+    return true;
+  } catch {
+    return false;
+  }
+}, "Invalid IANA time zone");
+
+const webUrlSchema = z.url().refine((value) => {
+  const protocol = new URL(value).protocol;
+  return protocol === "http:" || protocol === "https:";
+}, "URL must use HTTP or HTTPS");
+
+export const updateHallSettingsSchema = z.object({
+  name: nonEmpty.max(160),
+  inseeCode: z
+    .string()
+    .trim()
+    .regex(/^(?:\d{5}|2[AB]\d{3})$/)
+    .nullable(),
+  siren: z
+    .string()
+    .trim()
+    .regex(/^\d{9}$/)
+    .nullable(),
+  population: z.number().int().nonnegative().nullable(),
+  populationReferenceDate: z.iso.date().nullable(),
+  addressLine1: boundedText(200),
+  addressLine2: boundedText(200),
+  postalCode: boundedText(16),
+  city: boundedText(160),
+  phone: boundedText(40),
+  email: z.email().nullable(),
+  website: webUrlSchema.nullable(),
+  defaultMeetingLocation: boundedText(200),
+  timeZone: timeZoneSchema,
+  outboundEmailSenderName: boundedText(160),
+  outboundEmailSenderAddress: z.email().nullable(),
+  outboundEmailReplyToAddress: z.email().nullable(),
+});
 
 export const folderPathSchema = z
   .string()

@@ -11,6 +11,7 @@ import type {
   CouncilDecisionRepository,
   CouncilMeetingRepository,
   CouncilMemberRepository,
+  HallSettingsRepository,
   MeetingRosterRepository,
   ResourceRepository,
   TopicRepository,
@@ -19,6 +20,7 @@ import type {
 import { createCouncilDecisionRepository } from "../repositories/councilDecisionRepository.js";
 import { createCouncilMeetingRepository } from "../repositories/councilMeetingRepository.js";
 import { createCouncilMemberRepository } from "../repositories/councilMemberRepository.js";
+import { createHallSettingsRepository } from "../repositories/hallSettingsRepository.js";
 import { createMeetingRosterRepository } from "../repositories/meetingRosterRepository.js";
 import { createResourceRepository } from "../repositories/resourceRepository.js";
 import { createSecurityRepository, type SecurityRepository } from "../repositories/securityRepository.js";
@@ -27,6 +29,7 @@ import { RequestContextStore } from "../security/requestContext.js";
 import { type AuthService, createAuthService } from "../services/authService.js";
 import { type BallotService, createBallotService } from "../services/ballotService.js";
 import { type CouncilMeetingService, createCouncilMeetingService } from "../services/councilMeetingService.js";
+import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import { createMeetingAgendaService, type MeetingAgendaService } from "../services/meetingAgendaService.js";
 import { createMeetingLifecycleService, type MeetingLifecycleService } from "../services/meetingLifecycleService.js";
 import {
@@ -43,6 +46,7 @@ export interface Cradle {
   sqlExecutor: SqlExecutor;
   unitOfWork: UnitOfWork;
   councilMemberRepository: CouncilMemberRepository;
+  hallSettingsRepository: HallSettingsRepository;
   councilMeetingRepository: CouncilMeetingRepository;
   attendanceRepository: AttendanceRepository;
   agendaRepository: AgendaRepository;
@@ -60,6 +64,7 @@ export interface Cradle {
   topicService: TopicService;
   resourceService: ResourceService;
   authService: AuthService;
+  hallSettingsService: HallSettingsService;
 }
 
 export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
@@ -70,6 +75,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     sqlExecutor: asFunction(createSqlExecutor).singleton(),
     unitOfWork: asFunction(({ sqlExecutor }: { sqlExecutor: SqlExecutor }) => sqlExecutor).singleton(),
     councilMemberRepository: asFunction(createCouncilMemberRepository).singleton(),
+    hallSettingsRepository: asFunction(createHallSettingsRepository).singleton(),
     councilMeetingRepository: asFunction(createCouncilMeetingRepository).singleton(),
     attendanceRepository: asFunction(createAttendanceRepository).singleton(),
     agendaRepository: asFunction(createAgendaRepository).singleton(),
@@ -87,6 +93,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     topicService: asFunction(createTopicService).singleton(),
     resourceService: asFunction(createResourceService).singleton(),
     authService: asFunction(createAuthService).singleton(),
+    hallSettingsService: asFunction(createHallSettingsService).singleton(),
   });
   return container;
 }
