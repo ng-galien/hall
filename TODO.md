@@ -20,3 +20,4 @@ Ces points sont volontairement laissés au backlog. Le prototype conserve unique
 - Template de convocation.
 - Template de délibération.
 - Template de sujet.
+- Définir une nomenclature d’export configurable via un template de dossier.
