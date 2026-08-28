@@ -2,7 +2,9 @@
   /* ===== Mode séance : encre profonde, scène blanche, type surdimensionné ===== */
   .live-shell {
     display: flex;
-    min-height: 100svh;
+    height: 100svh;
+    min-height: 0;
+    overflow: hidden;
     flex-direction: column;
     color: var(--mairie-color-ink-text);
     background: var(--mairie-color-ink);
@@ -240,6 +242,7 @@
     position: relative;
     display: flex;
     width: var(--mairie-size-live-rail);
+    min-height: 0;
     flex: none;
     flex-direction: column;
     border-right: var(--mairie-stroke-thin) solid var(--mairie-color-ink-border);
