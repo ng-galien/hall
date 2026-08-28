@@ -60,8 +60,8 @@ npm run smoke:package -w @mairie/desktop
 
 ### Repartir d’une démonstration vide
 
-Après avoir arrêté l’éventuel serveur en cours avec `Ctrl+C`, une seule commande supprime la base, redémarre le serveur
-et le client, attend l’API puis injecte toutes les données de démonstration :
+Une seule commande arrête les serveurs de ce projet déjà présents sur les ports de développement, supprime la base,
+redémarre le serveur et le client, attend l’API puis injecte toutes les données de démonstration :
 
 ```bash
 npm run demo:restart
