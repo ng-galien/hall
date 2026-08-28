@@ -52,12 +52,22 @@ Requires Node 22 or newer. Desktop packaging uses the version pinned in `.deskto
 ```bash
 npm install
 npm run dev
-npm run -w @mairie/server seed:dev
 npm run desktop:dev
 npm run quality
 npm run desktop:package
 npm run smoke:package -w @mairie/desktop
 ```
+
+### Repartir d’une démonstration vide
+
+Après avoir arrêté l’éventuel serveur en cours avec `Ctrl+C`, une seule commande supprime la base, redémarre le serveur
+et le client, attend l’API puis injecte toutes les données de démonstration :
+
+```bash
+npm run demo:restart
+```
+L’application est alors disponible sur <http://localhost:5174/app/>. Le reset ne touche qu’à
+`packages/server/data/mairie.sqlite` et à ses fichiers temporaires SQLite `-shm` et `-wal`.
 
 The HTTP server defaults to `http://127.0.0.1:3100`. The development command enables a loopback-only administrator
 with every permission so the UI can be developed without a login step. This mode is rejected outside loopback and in
