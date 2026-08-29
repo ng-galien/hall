@@ -23,7 +23,7 @@ test("every visible mutation prevents duplicate submissions and reports progress
     "src/pages/CouncilMembersPage.tsx",
     "src/pages/workspace/WorkspacePage.tsx",
     "src/pages/workspace/ResourceWorkbench.tsx",
-    "src/pages/workspace/TopicWorkbench.tsx",
+    "src/pages/workspace/CouncilBusinessWorkbench.tsx",
     "src/pages/council-meetings/AgendaComposer.tsx",
     "src/pages/council-meetings/CouncilMeetingsPage.tsx",
     "src/pages/council-meetings/MeetingDetailsCard.tsx",
@@ -69,14 +69,14 @@ test("session expiry remounts the authentication gate and logout consumes its Si
 
 test("document download and preview follow their distinct Siren links", () => {
   const resources = read("src/services/resourcesApi.ts");
-  const preview = read("src/components/ResourcePreview.tsx");
+  const preview = read("src/features/documents/ResourcePreview.tsx");
   assert.match(resources, /findSirenLink\(representation, "content"\)/);
   assert.match(resources, /findSirenLink\(representation, "preview"\)/);
   assert.match(resources, /response\.headers\.get\("content-type"\)/);
   assert.match(resources, /responseMediaType \|\| preview\.type/);
   assert.doesNotMatch(`${resources}\n${preview}`, /resources\/\$\{[^}]+\}\/(?:content|preview)/);
   assert.match(read("src/hooks/useDocumentPreview.ts"), /setAttempt\(\(current\) => current \+ 1\)/);
-  assert.match(read("src/components/DocumentPreviewFailure.tsx"), /resources\.previewFailed/);
+  assert.match(read("src/features/documents/DocumentPreviewFailure.tsx"), /resources\.previewFailed/);
 });
 
 test("document category translations are exhaustive over the domain type", () => {
@@ -110,9 +110,10 @@ test("meeting mutations follow the lifecycle and fixed roster", () => {
   const preparation = read("src/pages/council-meetings/MeetingPreparation.tsx");
   assert.match(preparation, /aggregate\.rosterMemberIds\.includes\(member\.id\)/);
   assert.match(preparation, /meetingActions\.can\("meeting\.reorder-agenda"\)/);
+  assert.match(preparation, /meetingActions\.can\("meeting\.schedule"\)/);
   assert.match(preparation, /documentsEditable=\{canUpload\}/);
   const workspace = read("src/pages/workspace/WorkspacePage.tsx");
-  assert.match(workspace, /canCreateTopic \?/);
+  assert.match(workspace, /canCreateCouncilBusiness \?/);
   assert.match(workspace, /canCreateText \?/);
   assert.match(workspace, /canUpload \?/);
   const resourceWorkbench = read("src/pages/workspace/ResourceWorkbench.tsx");

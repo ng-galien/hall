@@ -11,12 +11,12 @@ import {
 } from "@hall/templating";
 import sanitizeHtml from "sanitize-html";
 import type {
+  CouncilBusinessRepository,
   CouncilDecisionRepository,
   CouncilMeetingRepository,
   CouncilMemberRepository,
   HallSettingsRepository,
   ResourceRepository,
-  TopicRepository,
 } from "../repositories/contracts.js";
 
 type AstNode = {
@@ -132,14 +132,14 @@ export function createTemplateRenderingService({
   councilMemberRepository,
   councilMeetingRepository,
   councilDecisionRepository,
-  topicRepository,
+  councilBusinessRepository,
   resourceRepository,
 }: {
   hallSettingsRepository: HallSettingsRepository;
   councilMemberRepository: CouncilMemberRepository;
   councilMeetingRepository: CouncilMeetingRepository;
   councilDecisionRepository: CouncilDecisionRepository;
-  topicRepository: TopicRepository;
+  councilBusinessRepository: CouncilBusinessRepository;
   resourceRepository: ResourceRepository;
 }): TemplateRenderingService {
   const loadContext = async (context: TemplateRenderContext = {}): Promise<ResolvedContext> => ({
@@ -159,7 +159,9 @@ export function createTemplateRenderingService({
         if (id) {
           if (directive.name === "member") value = personName(await councilMemberRepository.find(id));
           if (directive.name === "meeting") value = (await councilMeetingRepository.find(id))?.title ?? null;
-          if (directive.name === "topic") value = (await topicRepository.find(id))?.title ?? null;
+          if (directive.name === "councilBusiness") {
+            value = (await councilBusinessRepository.find(id))?.title ?? null;
+          }
           if (directive.name === "decision") {
             const decision = await councilDecisionRepository.find(id);
             value = decision ? (decision.number ? `${decision.number} — ${decision.title}` : decision.title) : null;

@@ -38,7 +38,7 @@ describe("users, permissions, audit and Siren affordances", () => {
     await rawAgent.post("/api/auth/bootstrap").send(administrator).expect(201);
 
     await statelessAgent
-      .post("/api/topics")
+      .post("/api/council-business")
       .set("Cookie", "hall_session=%")
       .send({ kind: "openQuestion", title: "Mutation refusée", report: "", folderPath: "", resourceIds: [] })
       .expect(401);
@@ -54,7 +54,7 @@ describe("users, permissions, audit and Siren affordances", () => {
       ),
     ).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ action: "topic.create", outcome: "denied", actorUserId: null }),
+        expect.objectContaining({ action: "council-business.create", outcome: "denied", actorUserId: null }),
       ]),
     );
   });
@@ -173,12 +173,12 @@ describe("users, permissions, audit and Siren affordances", () => {
       .send({ email: "lecture@example.fr", password: "Mot-de-passe-lecture-2026!" })
       .expect(200);
 
-    const topics = await rawAgent.get("/api/topics").expect(200);
-    expect(topics.body.actions ?? []).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: "topic.create" })]),
+    const businesses = await rawAgent.get("/api/council-business").expect(200);
+    expect(businesses.body.actions ?? []).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "council-business.create" })]),
     );
     const forbidden = await rawAgent
-      .post("/api/topics")
+      .post("/api/council-business")
       .send({ kind: "openQuestion", title: "Question", report: "", folderPath: "", resourceIds: [] })
       .expect(403);
     expect(forbidden.headers["content-type"]).toContain(PROBLEM_MEDIA_TYPE);
@@ -200,7 +200,7 @@ describe("users, permissions, audit and Siren affordances", () => {
       ),
     ).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ action: "topic.create", actorUserId: readerUser.id, outcome: "denied" }),
+        expect.objectContaining({ action: "council-business.create", actorUserId: readerUser.id, outcome: "denied" }),
       ]),
     );
   });

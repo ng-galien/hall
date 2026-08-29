@@ -1,4 +1,4 @@
-import type { Resource, Topic } from "@hall/domain";
+import type { CouncilBusiness, Resource } from "@hall/domain";
 
 export interface PathNode {
   path: string;
@@ -8,10 +8,14 @@ export interface PathNode {
 }
 
 /** Tous les chemins connus (segments intermédiaires inclus), triés. */
-export function listAllPaths(topics: Topic[], resources: Resource[], extraPaths: string[] = []): string[] {
+export function listAllPaths(
+  businesses: CouncilBusiness[],
+  resources: Resource[],
+  extraPaths: string[] = [],
+): string[] {
   const known = new Set<string>();
   for (const folderPath of [
-    ...topics.map((topic) => topic.folderPath),
+    ...businesses.map((business) => business.folderPath),
     ...resources.map((resource) => resource.folderPath),
     ...extraPaths,
   ]) {
@@ -28,9 +32,16 @@ export function isUnderPath(folderPath: string, path: string): boolean {
   return folderPath === path || folderPath.startsWith(`${path}/`);
 }
 
-/** Arbre des chemins de classement, avec le nombre d'objets (topics + ressources) par sous-arbre. */
-export function buildPathTree(topics: Topic[], resources: Resource[], extraPaths: string[] = []): PathNode[] {
-  const folderPaths = [...topics.map((topic) => topic.folderPath), ...resources.map((resource) => resource.folderPath)];
+/** Arbre des chemins de classement, avec le nombre d'objets (businesses + ressources) par sous-arbre. */
+export function buildPathTree(
+  businesses: CouncilBusiness[],
+  resources: Resource[],
+  extraPaths: string[] = [],
+): PathNode[] {
+  const folderPaths = [
+    ...businesses.map((business) => business.folderPath),
+    ...resources.map((resource) => resource.folderPath),
+  ];
   const knownPaths = new Set<string>();
   for (const folderPath of [...folderPaths, ...extraPaths]) {
     const segments = folderPath.split("/").filter(Boolean);

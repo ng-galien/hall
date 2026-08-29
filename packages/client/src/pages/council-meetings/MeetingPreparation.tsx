@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EditIcon, PlayIcon } from "../../components/icons";
-import { MeetingStatusBadge, Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { useTopicsStore } from "../../stores/topicsStore";
 import { AgendaComposer } from "./AgendaComposer";
 import { MeetingDetailsCard } from "./MeetingDetailsCard";
 import { MeetingStageBar } from "./MeetingStageBar";
@@ -22,7 +23,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const aggregate = meetingActions.meeting!;
   const { meeting } = aggregate;
   const { members } = useCouncilMembersStore();
-  const { topics } = useTopicsStore();
+  const { businesses, schedulableIds } = useCouncilBusinessStore();
   const { resources, canUpload } = useResourcesStore();
   const rosterMembers = useMemo(
     () =>
@@ -31,7 +32,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         : members.filter((member) => aggregate.rosterMemberIds.includes(member.id)),
     [meeting.status, members, aggregate.rosterMemberIds],
   );
-  const agendaEditable = meetingActions.can("meeting.reorder-agenda");
+  const agendaEditable = meetingActions.can("meeting.reorder-agenda") || meetingActions.can("meeting.schedule");
   const attendanceRecorded = aggregate.attendance.length;
   const [editOpen, setEditOpen] = useState(false);
   const detailsEditable = meetingActions.can("meeting.update");
@@ -95,10 +96,10 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                   {t("meetings.edit")}
                 </Button>
               ) : null}
-              {meetingActions.can("meeting.schedule") ? (
+              {meeting.status === "draft" ? (
                 <Button
                   variant="default"
-                  disabled={submitting}
+                  disabled={submitting || !meetingActions.can("meeting.schedule")}
                   onClick={() => void run(() => meetingActions.changeStatus("scheduled"))}
                 >
                   {t(submitting ? "common.saving" : "meeting.action.schedule")}
@@ -111,6 +112,9 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               )}
             </div>
           </div>
+          {meeting.status === "draft" && !aggregate.agendaReady && aggregate.requiredMinutesOfMeetingId ? (
+            <p className="meeting-evidence">{t("meeting.agendaNotReady")}</p>
+          ) : null}
           {meeting.quorumFailure ? (
             <p className="meeting-evidence">
               {t("meeting.quorumFailureEvidence")
@@ -153,14 +157,14 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         <div className="meeting-prep-layout">
           <AgendaComposer
             agendaItems={aggregate.agendaItems}
-            topics={topics}
+            businesses={businesses.filter((business) => schedulableIds.includes(business.id))}
             decisions={aggregate.councilDecisions}
             editable={agendaEditable}
-            onSchedule={meetingActions.scheduleTopic}
-            onQuickCreate={(input, position) => meetingActions.createAndScheduleTopic(input, position)}
-            onUpdateTopic={meetingActions.updateTopic}
-            onAttachDecision={meetingActions.attachTopicDecision}
-            onDetachDecision={meetingActions.detachTopicDecision}
+            onSchedule={meetingActions.scheduleCouncilBusiness}
+            onQuickCreate={(input, position) => meetingActions.createAndScheduleBusiness(input, position)}
+            onUpdateBusiness={meetingActions.updateCouncilBusiness}
+            onAttachDecision={meetingActions.attachCouncilDecision}
+            onDetachDecision={meetingActions.detachCouncilDecision}
             onSaveDecisionText={meetingActions.updateDecision}
             onRemove={meetingActions.removeAgendaItem}
             onReorder={meetingActions.reorderAgenda}

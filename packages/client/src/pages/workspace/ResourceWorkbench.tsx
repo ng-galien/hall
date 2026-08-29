@@ -5,19 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { DocumentEmbed } from "../../components/DocumentEmbed";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { useMentionables } from "../../components/editor/useMentionables";
-import { DeleteIcon, OpenIcon, PinIcon, PinnedIcon } from "../../components/icons";
-import { ResourceGlyph, TopicGlyph, useResourceTypeLabel } from "../../components/ResourceGlyph";
+import { DeleteIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { TagInput } from "../../components/TagInput";
-import { RequestErrorBanner, StatusBadge } from "../../components/Ui";
+import { RequestErrorBanner } from "../../components/Ui";
+import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
+import { DocumentEmbed } from "../../features/documents/DocumentEmbed";
+import { ResourceGlyph, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
+import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { getResourceDetailsSiren } from "../../services/resourcesApi";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { topicKindKeys } from "../council-meetings/AgendaComposer";
 import { documentCategoryKeys } from "../council-meetings/MeetingDetailsCard";
 import { MeetingDocumentViewer } from "../council-meetings/MeetingDocumentViewer";
 import { useSaveStatusStore } from "./saveStatusStore";
@@ -31,7 +31,7 @@ export function ResourceWorkbench({
   resource: Resource;
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
-  const mentionables = useMentionables();
+  const mentionables = useReferenceMentionables();
   const { t, formatFileSize, formatDate } = useI18n();
   const { submitting, run } = useSubmitting();
   const resourcesStore = useResourcesStore();
@@ -64,26 +64,40 @@ export function ResourceWorkbench({
     void refreshDetails();
   }, [refreshDetails]);
 
-  const save = () =>
-    run(async () => {
-      setActionError(null);
-      setSaveStatus("saving");
-      const saved = await resourcesStore.update(resource.id, {
-        title,
-        folderPath: resource.folderPath,
-        tags,
-        ...(resource.kind === "text" ? { content } : {}),
-      });
-      if (!saved) {
-        setActionError(useResourcesStore.getState().error);
-        setSaveStatus("error");
-      } else {
-        onSelect({ kind: "resource", id: resource.id }, resource.folderPath);
-        await refreshDetails();
-        setSaveStatus("saved");
-      }
-      return saved;
-    });
+  const save = useCallback(
+    () =>
+      run(async () => {
+        setActionError(null);
+        setSaveStatus("saving");
+        const saved = await useResourcesStore.getState().update(resource.id, {
+          title,
+          folderPath: resource.folderPath,
+          tags,
+          ...(resource.kind === "text" ? { content } : {}),
+        });
+        if (!saved) {
+          setActionError(useResourcesStore.getState().error);
+          setSaveStatus("error");
+        } else {
+          onSelect({ kind: "resource", id: resource.id }, resource.folderPath);
+          await refreshDetails();
+          setSaveStatus("saved");
+        }
+        return saved;
+      }),
+    [
+      content,
+      onSelect,
+      refreshDetails,
+      resource.folderPath,
+      resource.id,
+      resource.kind,
+      run,
+      setSaveStatus,
+      tags,
+      title,
+    ],
+  );
 
   const remove = () =>
     run(async () => {
@@ -106,9 +120,7 @@ export function ResourceWorkbench({
     setSaveStatus("dirty");
     const timer = window.setTimeout(() => void save(), 1000);
     return () => window.clearTimeout(timer);
-    // save se recrée à chaque rendu : le déclencheur est la modification, pas la fonction.
-    // biome-ignore lint/correctness/useExhaustiveDependencies: déclenché par les champs édités
-  }, [dirty, title, tags, content, canUpdate]);
+  }, [canUpdate, details?.snapshotted, dirty, save, setSaveStatus]);
 
   useEffect(() => {
     // À l'arrivée sur un document (et au départ), la pastille repart de zéro.
@@ -161,19 +173,19 @@ export function ResourceWorkbench({
           <TagInput value={tags} onChange={setTags} readOnly={!canUpdate} label={t("workspace.tags")} />
         </div>
         <div className="workbench-meta">
-          <span className="workbench-meta-label">{t("workspace.resourceTopics")}</span>
-          {!details || details.topics.length === 0 ? (
-            <span className="workbench-meta-empty">{t("workspace.noResourceTopics")}</span>
+          <span className="workbench-meta-label">{t("workspace.relatedCouncilBusiness")}</span>
+          {!details || details.councilBusiness.length === 0 ? (
+            <span className="workbench-meta-empty">{t("workspace.noRelatedCouncilBusiness")}</span>
           ) : (
-            details.topics.map((topic) => (
+            details.councilBusiness.map((business) => (
               <button
-                key={topic.id}
-                className="workbench-topic-chip"
+                key={business.id}
+                className="workbench-business-chip"
                 type="button"
-                onClick={() => onSelect({ kind: "topic", id: topic.id })}
+                onClick={() => onSelect({ kind: "councilBusiness", id: business.id })}
               >
-                <TopicGlyph topic={topic} />
-                {topic.title}
+                <CouncilBusinessGlyph business={business} />
+                {business.title}
               </button>
             ))
           )}
@@ -218,7 +230,7 @@ export function ResourceWorkbench({
                 onClick={() => void remove()}
               >
                 <DeleteIcon />
-                {t("workspace.deleteResource")}
+                {t(submitting ? "common.saving" : "workspace.deleteResource")}
               </Button>
             ) : null}
             <span className="composer-editor-spacer" />

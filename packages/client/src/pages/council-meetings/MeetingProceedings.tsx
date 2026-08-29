@@ -2,11 +2,11 @@ import type { AgendaItem, Attendance, Ballot, CouncilMember, MeetingAggregate, V
 import { useMemo, useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
-import { StatusBadge } from "../../components/Ui";
+import { councilBusinessKindKeys } from "../../features/council-business/presentation";
+import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
-import { topicKindKeys } from "./AgendaComposer";
 import { agendaItemDecisionId } from "./ballotDecisionPolicy";
 import { councilMemberName } from "./ballotParticipants";
 
@@ -239,7 +239,7 @@ export function MeetingProceedings({
                   className={`report-timeline-marker report-timeline-marker-toggle${expanded ? "" : " report-timeline-marker-collapsed"}`}
                   type="button"
                   aria-expanded={expanded}
-                  aria-label={item.topic.title}
+                  aria-label={item.business.title}
                   onClick={() => toggleItem(item.id)}
                 >
                   <span>{index + 1}</span>
@@ -247,9 +247,9 @@ export function MeetingProceedings({
                 <div className="report-timeline-body">
                   <div className="report-timeline-heading">
                     <div className="report-timeline-title">
-                      <strong>{item.topic.title}</strong>
+                      <strong>{item.business.title}</strong>
                       <span>
-                        {t(topicKindKeys[item.topic.kind])}
+                        {t(councilBusinessKindKeys[item.business.kind])}
                         {item.startedAt ? ` · ${formatTime(item.startedAt)}` : ""}
                         {item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}
                       </span>
@@ -258,10 +258,10 @@ export function MeetingProceedings({
                   </div>
                   {expanded ? (
                     <>
-                      {item.topic.report ? (
+                      {item.business.report ? (
                         <details className="report-item-report">
                           <summary>{t("meeting.itemReport")}</summary>
-                          <MarkdownView className="report-timeline-notes" markdown={item.topic.report} />
+                          <MarkdownView className="report-timeline-notes" markdown={item.business.report} />
                         </details>
                       ) : null}
                       {item.councilDecisionSnapshot?.draftText ? (

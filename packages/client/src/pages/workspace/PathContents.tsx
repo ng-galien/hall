@@ -1,4 +1,4 @@
-import type { Resource, Topic } from "@hall/domain";
+import type { CouncilBusiness, Resource } from "@hall/domain";
 import { type DragEvent, type ReactNode, useState } from "react";
 import {
   DropdownMenu,
@@ -9,12 +9,12 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ResourceGlyph, TopicGlyph, useResourceTypeLabel } from "../../components/ResourceGlyph";
-import { StatusBadge } from "../../components/Ui";
+import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
+import { councilBusinessKindKeys } from "../../features/council-business/presentation";
+import { ResourceGlyph, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { useTopicsStore } from "../../stores/topicsStore";
-import { topicKindKeys } from "../council-meetings/AgendaComposer";
 import { listAllPaths } from "./paths";
 import type { WorkspaceSelection } from "./WorkspacePage";
 import { DRAG_TYPE, type DragPayload, encodeDragPayload, moveToPath, useWorkspaceOrgStore } from "./workspaceOrg";
@@ -79,62 +79,61 @@ function ContentRow({
 
 export function PathContents({
   path,
-  topics,
+  businesses,
   resources,
   selection,
   onSelect,
 }: {
   path: string;
-  topics: Topic[];
+  businesses: CouncilBusiness[];
   resources: Resource[];
   selection: WorkspaceSelection;
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
   const { t, formatFileSize } = useI18n();
   const typeLabel = useResourceTypeLabel();
-  const topicsStore = useTopicsStore();
+  const councilBusinessStore = useCouncilBusinessStore();
   const resourcesStore = useResourcesStore();
   const { pendingPaths } = useWorkspaceOrgStore();
 
-  const allPaths = listAllPaths(topicsStore.topics, resourcesStore.resources, pendingPaths);
-  const visibleTopics = topics;
+  const allPaths = listAllPaths(councilBusinessStore.businesses, resourcesStore.resources, pendingPaths);
+  const visibleBusinesses = businesses;
   const visibleResources = resources;
 
   const refresh = () => onSelect(selection);
 
   return (
     <div className="workspace-lists">
-      <section aria-labelledby="workspace-topics-heading">
-        <h2 className="workspace-list-heading" id="workspace-topics-heading">
-          {t("workspace.topicsHeading")}
+      <section aria-labelledby="workspace-businesses-heading">
+        <h2 className="workspace-list-heading" id="workspace-businesses-heading">
+          {t("workspace.councilBusinessHeading")}
         </h2>
-        {visibleTopics.length === 0 ? (
-          <p className="workspace-list-empty">{t("workspace.noTopics")}</p>
+        {visibleBusinesses.length === 0 ? (
+          <p className="workspace-list-empty">{t("workspace.noCouncilBusiness")}</p>
         ) : (
           <ul className="workspace-list">
-            {visibleTopics.map((topic) => (
+            {visibleBusinesses.map((business) => (
               <ContentRow
-                key={topic.id}
-                payload={{ kind: "topic", id: topic.id }}
-                movable={topicsStore.updatableIds.includes(topic.id)}
-                movePaths={allPaths.filter((candidate) => candidate !== topic.folderPath)}
-                onOpen={() => onSelect({ kind: "topic", id: topic.id })}
+                key={business.id}
+                payload={{ kind: "councilBusiness", id: business.id }}
+                movable={councilBusinessStore.updatableIds.includes(business.id)}
+                movePaths={allPaths.filter((candidate) => candidate !== business.folderPath)}
+                onOpen={() => onSelect({ kind: "councilBusiness", id: business.id })}
                 afterMove={refresh}
               >
                 <button
-                  className={`workspace-row${selection?.kind === "topic" && selection.id === topic.id ? " workspace-row-active" : ""}`}
+                  className={`workspace-row${selection?.kind === "councilBusiness" && selection.id === business.id ? " workspace-row-active" : ""}`}
                   type="button"
-                  onClick={() => onSelect({ kind: "topic", id: topic.id })}
+                  onClick={() => onSelect({ kind: "councilBusiness", id: business.id })}
                 >
-                  <TopicGlyph topic={topic} />
+                  <CouncilBusinessGlyph business={business} />
                   <span className="workspace-row-copy">
-                    <strong>{topic.title}</strong>
+                    <strong>{business.title}</strong>
                     <span>
-                      {t(topicKindKeys[topic.kind])}
-                      {topic.folderPath && topic.folderPath !== path ? ` · ${topic.folderPath}` : ""}
+                      {t(councilBusinessKindKeys[business.kind])}
+                      {business.folderPath && business.folderPath !== path ? ` · ${business.folderPath}` : ""}
                     </span>
                   </span>
-                  <StatusBadge value={topic.state} />
                 </button>
               </ContentRow>
             ))}

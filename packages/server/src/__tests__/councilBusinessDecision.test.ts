@@ -11,11 +11,11 @@ async function createMember(agent: TestAgent, firstName: string, role = "council
   ) as { id: string };
 }
 
-async function createSubjectTopic(agent: TestAgent, title: string) {
+async function createCouncilMatter(agent: TestAgent, title: string) {
   return domainBody(
     await agent
-      .post("/api/topics")
-      .send({ kind: "subject", title, report: "", folderPath: "", resourceIds: [] })
+      .post("/api/council-business")
+      .send({ kind: "matter", title, report: "", folderPath: "", resourceIds: [] })
       .expect(201),
   ) as { id: string; councilDecisionId: string | null };
 }
@@ -38,13 +38,16 @@ async function createScheduledMeeting(agent: TestAgent, title: string) {
   return { meeting, chair, secretary };
 }
 
-describe("topic decision attachment", () => {
-  it("attaches a draft decision to a topic in preparation and syncs its title", async () => {
+describe("business decision attachment", () => {
+  it("attaches a draft decision to a business in preparation and syncs its title", async () => {
     const { agent } = await createTestServer();
-    const topic = await createSubjectTopic(agent, "Cession de la parcelle AB 127");
+    const business = await createCouncilMatter(agent, "Cession de la parcelle AB 127");
 
     const attached = domainBody(
-      await agent.post(`/api/topics/${topic.id}/decision`).send({ draftText: "Le conseil décide." }).expect(201),
+      await agent
+        .post(`/api/council-business/${business.id}/decision`)
+        .send({ draftText: "Le conseil décide." })
+        .expect(201),
     ) as { councilDecisionId: string };
     expect(attached.councilDecisionId).toBeTruthy();
 
@@ -56,49 +59,56 @@ describe("topic decision attachment", () => {
     });
 
     await agent
-      .put(`/api/topics/${topic.id}`)
+      .put(`/api/council-business/${business.id}`)
       .send({ title: "Cession de la parcelle AB 127 — révisée", report: "", folderPath: "", resourceIds: [] })
       .expect(200);
     const renamed = domainBody(await agent.get(`/api/council-decisions/${attached.councilDecisionId}`).expect(200));
     expect(renamed.title).toBe("Cession de la parcelle AB 127 — révisée");
   });
 
-  it("schedules the decision through the machine when the topic is already on an agenda", async () => {
+  it("schedules the decision through the machine when the business is already on an agenda", async () => {
     const { agent } = await createTestServer();
     const { meeting } = await createScheduledMeeting(agent, "Conseil de septembre");
-    const topic = await createSubjectTopic(agent, "Subventions 2026");
-    await agent.post(`/api/topics/${topic.id}/schedule`).send({ meetingId: meeting.id, position: 1 }).expect(201);
+    const business = await createCouncilMatter(agent, "Subventions 2026");
+    await agent
+      .post(`/api/council-business/${business.id}/schedule`)
+      .send({ meetingId: meeting.id, position: 1 })
+      .expect(201);
 
-    const attached = domainBody(await agent.post(`/api/topics/${topic.id}/decision`).send({}).expect(201)) as {
+    const attached = domainBody(
+      await agent.post(`/api/council-business/${business.id}/decision`).send({}).expect(201),
+    ) as {
       councilDecisionId: string;
     };
     const decision = domainBody(await agent.get(`/api/council-decisions/${attached.councilDecisionId}`).expect(200));
     expect(decision.status).toBe("scheduled");
   });
 
-  it("refuses a second decision and any attachment on a non-subject topic", async () => {
+  it("refuses a second decision and any attachment on a non-matter council business", async () => {
     const { agent } = await createTestServer();
-    const topic = await createSubjectTopic(agent, "Sujet unique");
-    await agent.post(`/api/topics/${topic.id}/decision`).send({}).expect(201);
-    await agent.post(`/api/topics/${topic.id}/decision`).send({}).expect(409);
+    const business = await createCouncilMatter(agent, "Sujet unique");
+    await agent.post(`/api/council-business/${business.id}/decision`).send({}).expect(201);
+    await agent.post(`/api/council-business/${business.id}/decision`).send({}).expect(409);
 
     const question = domainBody(
       await agent
-        .post("/api/topics")
+        .post("/api/council-business")
         .send({ kind: "openQuestion", title: "Question", report: "", folderPath: "", resourceIds: [] })
         .expect(201),
     ) as { id: string };
-    await agent.post(`/api/topics/${question.id}/decision`).send({}).expect(400);
+    await agent.post(`/api/council-business/${question.id}/decision`).send({}).expect(400);
   });
 
   it("detaches and deletes the decision while nothing has been voted", async () => {
     const { agent } = await createTestServer();
-    const topic = await createSubjectTopic(agent, "Motion");
-    const attached = domainBody(await agent.post(`/api/topics/${topic.id}/decision`).send({}).expect(201)) as {
+    const business = await createCouncilMatter(agent, "Motion");
+    const attached = domainBody(
+      await agent.post(`/api/council-business/${business.id}/decision`).send({}).expect(201),
+    ) as {
       councilDecisionId: string;
     };
 
-    const detached = domainBody(await agent.delete(`/api/topics/${topic.id}/decision`).expect(200)) as {
+    const detached = domainBody(await agent.delete(`/api/council-business/${business.id}/decision`).expect(200)) as {
       councilDecisionId: string | null;
     };
     expect(detached.councilDecisionId).toBeNull();
@@ -108,11 +118,16 @@ describe("topic decision attachment", () => {
   it("keeps the decision attached once a ballot has settled it", async () => {
     const { agent } = await createTestServer();
     const { meeting, chair, secretary } = await createScheduledMeeting(agent, "Conseil votant");
-    const topic = await createSubjectTopic(agent, "Délibération votée");
-    const attached = domainBody(await agent.post(`/api/topics/${topic.id}/decision`).send({}).expect(201)) as {
+    const business = await createCouncilMatter(agent, "Délibération votée");
+    const attached = domainBody(
+      await agent.post(`/api/council-business/${business.id}/decision`).send({}).expect(201),
+    ) as {
       councilDecisionId: string;
     };
-    await agent.post(`/api/topics/${topic.id}/schedule`).send({ meetingId: meeting.id, position: 1 }).expect(201);
+    await agent
+      .post(`/api/council-business/${business.id}/schedule`)
+      .send({ meetingId: meeting.id, position: 1 })
+      .expect(201);
     await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
     for (const member of [chair, secretary]) {
       await agent
@@ -141,6 +156,6 @@ describe("topic decision attachment", () => {
       })
       .expect(201);
 
-    await agent.delete(`/api/topics/${topic.id}/decision`).expect(409);
+    await agent.delete(`/api/council-business/${business.id}/decision`).expect(409);
   });
 });

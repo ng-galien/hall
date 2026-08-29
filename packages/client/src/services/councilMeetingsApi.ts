@@ -76,5 +76,7 @@ export const reconveneCouncilMeeting = (meetingId: string, input: Record<string,
     (result) => result.data,
   );
 
-export const createLateMeetingTopic = (meetingId: string, input: Record<string, unknown>) =>
-  submitSirenActionAt(`/council-meetings/${meetingId}`, "meeting.add-late-topic", input).then((result) => result.data);
+export const createLateMeetingBusiness = (meetingId: string, input: Record<string, unknown>) =>
+  submitSirenActionAt(`/council-meetings/${meetingId}`, "meeting.add-late-business", input).then(
+    (result) => result.data,
+  );

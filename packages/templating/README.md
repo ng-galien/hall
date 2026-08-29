@@ -7,7 +7,7 @@ The initial contract deliberately stays small:
 ```markdown
 :member[Martine Delcourt]{#uuid}
 :resource[Rapport préparatoire]{#uuid}
-:topic[Subventions]{#uuid}
+:councilBusiness[Subventions]{#uuid}
 :decision[Délibération budgétaire]{#uuid}
 :meeting[Conseil de septembre]{#uuid}
 :field{name="meeting.startsAt"}

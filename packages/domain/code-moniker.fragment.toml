@@ -1,0 +1,15 @@
+fragment = "domain"
+
+[[refs.where]]
+id = "dependency-points-outward-only"
+severity = "error"
+rationale = "The domain package is the shared contract at the center of the application. It may depend on validation libraries, but importing an HTTP server, React renderer, or Electron adapter would reverse the dependency direction and prevent independent reuse."
+expr = "NOT ($domain_source AND $dependency_import_ref AND ($server_target OR $client_target OR $desktop_target))"
+message = "The domain package must not import runtime adapters."
+
+[[refs.where]]
+id = "state-machine-ownership-is-exclusive"
+severity = "error"
+rationale = "CouncilMeeting, AgendaItem, CouncilDecision, and Ballot lifecycles are auditable domain contracts. CouncilBusiness remains durable content without its own lifecycle. XState definitions belong in the domain state-machine package; server commands consume exported transitions, while clients consume resulting state over HTTP instead of creating parallel lifecycle authorities."
+expr = "$dependency_import_ref AND $state_machine_runtime_target => $state_machine_at_domain_source"
+message = "XState lifecycle definitions belong exclusively to packages/domain/src/state-machines."

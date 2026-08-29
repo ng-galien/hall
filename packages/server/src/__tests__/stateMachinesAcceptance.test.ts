@@ -18,7 +18,7 @@ async function createMember(agent: TestAgent, firstName: string) {
 }
 
 describe("state-machine-backed council workflow", () => {
-  it("moves topics, the meeting and its decision only through their machines", async () => {
+  it("moves agenda items, the meeting and its decision only through their machines", async () => {
     const { agent } = await createTestServer();
     const members = await Promise.all(["Alice", "Benoît", "Claire"].map((name) => createMember(agent, name)));
     const councilDecision = domainBody(
@@ -31,22 +31,22 @@ describe("state-machine-backed council workflow", () => {
         })
         .expect(201),
     );
-    const decisionTopic = domainBody(
+    const decisionBusiness = domainBody(
       await agent
-        .post("/api/topics")
+        .post("/api/council-business")
         .send({
-          kind: "subject",
+          kind: "matter",
           councilDecisionId: councilDecision.id,
           title: councilDecision.title,
           report: "Présentation du programme.",
         })
         .expect(201),
     );
-    const informationTopic = domainBody(
+    const informationBusiness = domainBody(
       await agent
-        .post("/api/topics")
+        .post("/api/council-business")
         .send({
-          kind: "subject",
+          kind: "matter",
           councilDecisionId: null,
           title: "Calendrier des travaux",
           report: "Point d’information.",
@@ -55,15 +55,13 @@ describe("state-machine-backed council workflow", () => {
     );
     const openQuestion = domainBody(
       await agent
-        .post("/api/topics")
+        .post("/api/council-business")
         .send({ kind: "openQuestion", title: "Questions ouvertes", report: "" })
         .expect(201),
     );
-    expect([decisionTopic.state, informationTopic.state, openQuestion.state]).toEqual([
-      "toSchedule",
-      "toSchedule",
-      "toSchedule",
-    ]);
+    for (const business of [decisionBusiness, informationBusiness, openQuestion]) {
+      expect(business).not.toHaveProperty("state");
+    }
 
     const meeting = domainBody(
       await agent
@@ -79,17 +77,17 @@ describe("state-machine-backed council workflow", () => {
     );
     const decisionAgendaItem = domainBody(
       await agent
-        .post(`/api/topics/${decisionTopic.id}/schedule`)
+        .post(`/api/council-business/${decisionBusiness.id}/schedule`)
         .send({ meetingId: meeting.id, position: 1 })
         .expect(201),
     );
     const informationAgendaItem = domainBody(
       await agent
-        .post(`/api/topics/${informationTopic.id}/schedule`)
+        .post(`/api/council-business/${informationBusiness.id}/schedule`)
         .send({ meetingId: meeting.id, position: 2 })
         .expect(201),
     );
-    expect(decisionAgendaItem.topic.id).toBe(decisionTopic.id);
+    expect(decisionAgendaItem.business.id).toBe(decisionBusiness.id);
 
     await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
     for (const member of members) {
@@ -110,8 +108,10 @@ describe("state-machine-backed council workflow", () => {
     expect(domainBody(prematureBallot).code).toBe("agenda_sequence_invalid");
 
     await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${decisionAgendaItem.id}/start`).expect(200);
-    const inProgressTopics = await agent.get("/api/topics?state=inProgress").expect(200);
-    expect(domainBody(inProgressTopics).map((topic: { id: string }) => topic.id)).toContain(decisionTopic.id);
+    const inProgressMeeting = domainBody(await agent.get(`/api/council-meetings/${meeting.id}`).expect(200)) as {
+      agendaItems: Array<{ id: string; status: string }>;
+    };
+    expect(inProgressMeeting.agendaItems.find((item) => item.id === decisionAgendaItem.id)?.status).toBe("inProgress");
     const rejectedRecusedVote = await agent.post(`/api/council-meetings/${meeting.id}/ballots`).send({
       method: "public",
       idempotencyKey: randomUUID(),
@@ -147,19 +147,27 @@ describe("state-machine-backed council workflow", () => {
       .post(`/api/council-meetings/${meeting.id}/agenda-items/${informationAgendaItem.id}/complete`)
       .send({ discussionSummary: "Le calendrier sera représenté.", status: "postponed" })
       .expect(200);
-    const provision = await agent.get("/api/topics?state=toSchedule").expect(200);
-    expect(domainBody(provision).map((topic: { id: string }) => topic.id)).toEqual(
-      expect.arrayContaining([informationTopic.id, openQuestion.id]),
-    );
+    const postponedDetails = domainBody(
+      await agent.get(`/api/council-business/${informationBusiness.id}`).expect(200),
+    ) as { occurrences: Array<{ agendaItem: { status: string } }> };
+    expect(postponedDetails.occurrences[0]?.agendaItem.status).toBe("postponed");
 
     await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "closed" }).expect(200);
-    const finalTopics = await agent.get("/api/topics").expect(200);
-    expect(domainBody(finalTopics)).toEqual(
+    const finalMeeting = domainBody(await agent.get(`/api/council-meetings/${meeting.id}`).expect(200)) as {
+      agendaItems: Array<{ id: string; status: string }>;
+    };
+    expect(finalMeeting.agendaItems).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: decisionTopic.id, state: "examined" }),
-        expect.objectContaining({ id: informationTopic.id, state: "toSchedule" }),
-        expect.objectContaining({ kind: "minutesApproval", minutesOfMeetingId: meeting.id, state: "toSchedule" }),
+        expect.objectContaining({ id: decisionAgendaItem.id, status: "examined" }),
+        expect.objectContaining({ id: informationAgendaItem.id, status: "postponed" }),
       ]),
+    );
+    const finalBusinesses = domainBody(await agent.get("/api/council-business").expect(200)) as Array<{
+      kind: string;
+      minutesOfMeetingId?: string;
+    }>;
+    expect(finalBusinesses).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: "minutesApproval", minutesOfMeetingId: meeting.id })]),
     );
     const decisions = await agent.get("/api/council-decisions").expect(200);
     expect(domainBody(decisions)).toEqual(
@@ -167,7 +175,7 @@ describe("state-machine-backed council workflow", () => {
     );
 
     const rejectedReschedule = await agent
-      .post(`/api/topics/${decisionTopic.id}/schedule`)
+      .post(`/api/council-business/${decisionBusiness.id}/schedule`)
       .send({ meetingId: meeting.id, position: 3 });
     expect(rejectedReschedule.status).toBe(409);
     expect(domainBody(rejectedReschedule).code).toBe("agenda_inconsistent");

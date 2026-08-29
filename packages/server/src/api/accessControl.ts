@@ -120,8 +120,8 @@ function auditIntentFor(request: Request) {
         targetId: childId ?? null,
       };
     }
-    if (child === "late-topics") {
-      return { action: "meeting.add-late-topic", targetType: "council-meeting", targetId: id };
+    if (child === "late-business") {
+      return { action: "meeting.add-late-business", targetType: "council-meeting", targetId: id };
     }
     if (child === "attendance") {
       return {
@@ -148,19 +148,31 @@ function auditIntentFor(request: Request) {
     };
     return { action: meetingActions[child] ?? `meeting.${child}`, targetType: "council-meeting", targetId: id };
   }
-  if (root === "topics") {
+  if (root === "council-business") {
     const action = !id
-      ? "topic.create"
+      ? "council-business.create"
       : child === "classification"
-        ? "topic.reclassify"
+        ? "council-business.reclassify"
         : child === "schedule"
-          ? "topic.schedule"
+          ? "council-business.schedule"
           : child === "decision"
             ? request.method === "DELETE"
-              ? "topic.detach-decision"
-              : "topic.attach-decision"
-            : "topic.update";
-    return { action, targetType: "topic", targetId };
+              ? "council-business.detach-decision"
+              : "council-business.attach-decision"
+            : "council-business.update";
+    return { action, targetType: "council-business", targetId };
+  }
+  if (root === "council-committees") {
+    const action = !id
+      ? "committee.create"
+      : child === "archive"
+        ? "committee.archive"
+        : child === "memberships"
+          ? operation === "end"
+            ? "committee.end-membership"
+            : "committee.add-membership"
+          : "committee.update";
+    return { action, targetType: "council-committee", targetId: childId ?? targetId };
   }
   if (root === "resources") {
     const action =

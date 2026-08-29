@@ -13,7 +13,7 @@
  */
 
 /** Les entités métier qu'un gabarit peut référencer. */
-export type ReferenceKind = "member" | "resource" | "topic" | "decision" | "meeting";
+export type ReferenceKind = "member" | "resource" | "councilBusiness" | "decision" | "meeting";
 
 /** Les familles de directives du contrat. */
 export type DirectiveKind = ReferenceKind | "field";
@@ -47,7 +47,7 @@ const reference = (name: ReferenceKind): DirectiveSpec => ({
 export const directiveSpecs: readonly DirectiveSpec[] = [
   reference("member"),
   reference("resource"),
-  reference("topic"),
+  reference("councilBusiness"),
   reference("decision"),
   reference("meeting"),
   {

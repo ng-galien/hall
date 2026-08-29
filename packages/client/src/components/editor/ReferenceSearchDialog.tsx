@@ -7,10 +7,9 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type Searchable, searchEntities, searchFacetTokens } from "../../lib/search";
 import { FolderIcon } from "../icons";
-import { toneLabelKeys } from "../ResourceGlyph";
 import { type Mentionable, mentionableIcon } from "./references";
 
-const kindOrder: readonly ReferenceKind[] = ["member", "resource", "topic", "meeting", "decision"];
+const kindOrder: readonly ReferenceKind[] = ["member", "resource", "councilBusiness", "meeting", "decision"];
 
 /**
  * L'aide de recherche : les jetons que l'utilisateur doit taper, typographiés comme des
@@ -59,7 +58,7 @@ export function ReferenceSearchDialog({
     () => ({
       member: t("editor.group.member"),
       resource: t("editor.group.resource"),
-      topic: t("editor.group.topic"),
+      councilBusiness: t("editor.group.councilBusiness"),
       meeting: t("editor.group.meeting"),
       decision: t("editor.group.decision"),
     }),
@@ -167,7 +166,7 @@ export function ReferenceSearchDialog({
                   index += 1;
                   const rowIndex = index;
                   const Icon = mentionableIcon(item);
-                  const tone = (item as Mentionable).tone;
+                  const metaLabel = (item as Mentionable).metaLabel;
                   return (
                     <button
                       key={`${item.kind}:${item.id}`}
@@ -178,7 +177,7 @@ export function ReferenceSearchDialog({
                       onClick={() => onPick(item)}
                     >
                       <Icon aria-hidden="true" /> {item.label}
-                      {tone ? <span className="reference-search-path">{t(toneLabelKeys[tone])}</span> : null}
+                      {metaLabel ? <span className="reference-search-path">{metaLabel}</span> : null}
                     </button>
                   );
                 })}

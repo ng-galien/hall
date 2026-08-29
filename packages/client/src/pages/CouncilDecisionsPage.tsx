@@ -5,13 +5,12 @@ import { GavelIcon } from "../components/icons";
 import {
   CollectionToolbar,
   EmptyState,
-  MeetingStatusBadge,
   matchesQuery,
   PageHeader,
   RequestErrorBanner,
-  StatusBadge,
   useCollectionView,
 } from "../components/Ui";
+import { MeetingStatusBadge, StatusBadge } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";

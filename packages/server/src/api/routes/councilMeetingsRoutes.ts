@@ -1,7 +1,7 @@
 import {
   completeAgendaItemSchema,
+  createCouncilBusinessSchema,
   createCouncilMeetingSchema,
-  createTopicSchema,
   reconveneCouncilMeetingSchema,
   recordAttendanceSchema,
   recordBallotSchema,
@@ -25,9 +25,9 @@ export function createCouncilMeetingsRouter({
   ballotService,
 }: Cradle): Router {
   const router = Router();
-  const createLateTopicSchema = createTopicSchema.refine(
-    (input) => input.kind === "openQuestion" || (input.kind === "subject" && !input.councilDecisionId),
-    { message: "A late topic must be informational" },
+  const createLateBusinessSchema = createCouncilBusinessSchema.refine(
+    (input) => input.kind === "openQuestion" || (input.kind === "matter" && !input.councilDecisionId),
+    { message: "Business added during a meeting must be informational" },
   );
 
   router.get("/", requirePermission("meetings.read"), async (_request, response) =>
@@ -96,13 +96,13 @@ export function createCouncilMeetingsRouter({
       ),
     );
   });
-  router.post("/:meetingId/late-topics", requirePermission("meetings.conduct"), async (request, response) => {
+  router.post("/:meetingId/late-business", requirePermission("meetings.conduct"), async (request, response) => {
     response
       .status(201)
       .json(
-        await meetingPreparationService.createLateTopic(
+        await meetingPreparationService.createLateBusiness(
           routeParameter(request.params.meetingId),
-          createLateTopicSchema.parse(request.body),
+          createLateBusinessSchema.parse(request.body),
         ),
       );
   });

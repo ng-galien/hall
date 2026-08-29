@@ -37,15 +37,15 @@ describe("municipal council flow", () => {
     });
     expect(meeting.status).toBe(201);
 
-    const topic = await agent.post("/api/topics").send({
-      kind: "subject",
+    const business = await agent.post("/api/council-business").send({
+      kind: "matter",
       councilDecisionId: domainBody(councilDecision).id,
       title: "Convention intercommunale",
       report: "Rapport préparatoire",
     });
-    expect(topic.status, JSON.stringify(domainBody(topic))).toBe(201);
+    expect(business.status, JSON.stringify(domainBody(business))).toBe(201);
     const agendaItem = await agent
-      .post(`/api/topics/${domainBody(topic).id}/schedule`)
+      .post(`/api/council-business/${domainBody(business).id}/schedule`)
       .send({ meetingId: domainBody(meeting).id, position: 1 });
     expect(agendaItem.status, JSON.stringify(domainBody(agendaItem))).toBe(201);
 
@@ -206,14 +206,14 @@ describe("municipal council flow", () => {
       chairMemberId: chair.id,
       secretaryMemberId: secretary.id,
     });
-    const topic = await agent.post("/api/topics").send({
-      kind: "subject",
+    const business = await agent.post("/api/council-business").send({
+      kind: "matter",
       councilDecisionId: domainBody(decision).id,
       title: "Secret decision",
       report: "",
     });
     const agendaItem = await agent
-      .post(`/api/topics/${domainBody(topic).id}/schedule`)
+      .post(`/api/council-business/${domainBody(business).id}/schedule`)
       .send({ meetingId: domainBody(meeting).id, position: 1 })
       .expect(201);
     await agent

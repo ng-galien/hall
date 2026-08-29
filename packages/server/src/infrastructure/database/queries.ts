@@ -34,21 +34,19 @@ const agendaSelection = `SELECT
   agenda_items.snapshot_kind,
   agenda_items.snapshot_council_decision_title,
   agenda_items.snapshot_council_decision_draft_text,
-  topics.id AS topic_id,
-  topics.slug AS topic_slug,
-  COALESCE(agenda_items.snapshot_kind, topics.kind) AS topic_kind,
-  CASE WHEN agenda_items.snapshot_kind IS NULL THEN topics.council_decision_id ELSE agenda_items.snapshot_council_decision_id END AS topic_council_decision_id,
-  CASE WHEN agenda_items.snapshot_kind IS NULL THEN topics.minutes_of_meeting_id ELSE agenda_items.snapshot_minutes_of_meeting_id END AS topic_minutes_of_meeting_id,
-  COALESCE(agenda_items.snapshot_title, topics.title) AS topic_title,
-  COALESCE(agenda_items.snapshot_report, topics.report) AS topic_report,
-  COALESCE(agenda_items.snapshot_folder_path, topics.folder_path) AS topic_folder_path,
-  COALESCE(agenda_items.snapshot_state, topics.state) AS topic_state,
-  CASE WHEN agenda_items.snapshot_kind IS NULL THEN topics.current_meeting_id ELSE NULL END AS topic_current_meeting_id,
-  CASE WHEN agenda_items.snapshot_kind IS NULL THEN topics.position ELSE NULL END AS topic_position,
-  topics.created_at AS topic_created_at,
-  topics.updated_at AS topic_updated_at
+  council_business.id AS business_id,
+  council_business.slug AS business_slug,
+  COALESCE(agenda_items.snapshot_kind, council_business.kind) AS business_kind,
+  CASE WHEN agenda_items.snapshot_kind IS NULL THEN council_business.council_decision_id ELSE agenda_items.snapshot_council_decision_id END AS business_council_decision_id,
+  CASE WHEN agenda_items.snapshot_kind IS NULL THEN council_business.committee_id ELSE agenda_items.snapshot_committee_id END AS business_committee_id,
+  CASE WHEN agenda_items.snapshot_kind IS NULL THEN council_business.minutes_of_meeting_id ELSE agenda_items.snapshot_minutes_of_meeting_id END AS business_minutes_of_meeting_id,
+  COALESCE(agenda_items.snapshot_title, council_business.title) AS business_title,
+  COALESCE(agenda_items.snapshot_report, council_business.report) AS business_report,
+  COALESCE(agenda_items.snapshot_folder_path, council_business.folder_path) AS business_folder_path,
+  council_business.created_at AS business_created_at,
+  council_business.updated_at AS business_updated_at
 FROM agenda_items
-JOIN topics ON topics.id = agenda_items.topic_id`;
+JOIN council_business ON council_business.id = agenda_items.business_id`;
 
 const templateSelection = `SELECT id, kind, document_type, name, body_markdown, subject,
   stylesheet, header_html, footer_html, created_at, updated_at
@@ -59,63 +57,73 @@ export const queries = {
     JOIN agenda_item_resources ON agenda_item_resources.resource_id = resources.id
     WHERE agenda_item_resources.agenda_item_id = :ownerId
     ORDER BY agenda_item_resources.position`,
-  "agenda.resources.topic": `${resourceSelection}
-    JOIN topic_resources ON topic_resources.resource_id = resources.id
-    WHERE topic_resources.topic_id = :ownerId
-    ORDER BY topic_resources.position`,
+  "agenda.resources.business": `${resourceSelection}
+    JOIN council_business_resources ON council_business_resources.resource_id = resources.id
+    WHERE council_business_resources.business_id = :ownerId
+    ORDER BY council_business_resources.position`,
   "agenda.listByMeeting": `${agendaSelection}
     WHERE agenda_items.meeting_id = :meetingId ORDER BY agenda_items.position`,
-  "agenda.listByTopic": `${agendaSelection}
-    WHERE agenda_items.topic_id = :topicId
+  "agenda.listByBusiness": `${agendaSelection}
+    WHERE agenda_items.business_id = :businessId
     ORDER BY agenda_items.completed_at DESC, agenda_items.started_at DESC`,
   "agenda.find": `${agendaSelection}
     WHERE agenda_items.meeting_id = :meetingId AND agenda_items.id = :itemId`,
   "agenda.findById": `${agendaSelection} WHERE agenda_items.id = :itemId`,
   "agenda.insert": `INSERT INTO agenda_items
-    (id, topic_id, meeting_id, position, added_during_session)
-    VALUES (:id, :topicId, :meetingId, :position, :addedDuringSession)`,
+    (id, business_id, meeting_id, position, added_during_session)
+    VALUES (:id, :businessId, :meetingId, :position, :addedDuringSession)`,
   "agenda.remove": "DELETE FROM agenda_items WHERE meeting_id = :meetingId AND id = :itemId",
   "agenda.shiftPositions": `UPDATE agenda_items SET position = position + :offset WHERE meeting_id = :meetingId`,
   "agenda.assignPosition": `UPDATE agenda_items SET position = :position WHERE meeting_id = :meetingId AND id = :itemId`,
   "agenda.snapshot": `UPDATE agenda_items SET
-    snapshot_kind = (SELECT kind FROM topics WHERE topics.id = agenda_items.topic_id),
-    snapshot_council_decision_id = (SELECT council_decision_id FROM topics WHERE topics.id = agenda_items.topic_id),
+    snapshot_kind = (SELECT kind FROM council_business WHERE council_business.id = agenda_items.business_id),
+    snapshot_council_decision_id = (SELECT council_decision_id FROM council_business WHERE council_business.id = agenda_items.business_id),
     snapshot_council_decision_title = (
-      SELECT council_decisions.title FROM topics
-      JOIN council_decisions ON council_decisions.id = topics.council_decision_id
-      WHERE topics.id = agenda_items.topic_id
+      SELECT council_decisions.title FROM council_business
+      JOIN council_decisions ON council_decisions.id = council_business.council_decision_id
+      WHERE council_business.id = agenda_items.business_id
     ),
     snapshot_council_decision_draft_text = (
-      SELECT council_decisions.draft_text FROM topics
-      JOIN council_decisions ON council_decisions.id = topics.council_decision_id
-      WHERE topics.id = agenda_items.topic_id
+      SELECT council_decisions.draft_text FROM council_business
+      JOIN council_decisions ON council_decisions.id = council_business.council_decision_id
+      WHERE council_business.id = agenda_items.business_id
     ),
-    snapshot_minutes_of_meeting_id = (SELECT minutes_of_meeting_id FROM topics WHERE topics.id = agenda_items.topic_id),
-    snapshot_title = (SELECT title FROM topics WHERE topics.id = agenda_items.topic_id),
-    snapshot_report = (SELECT report FROM topics WHERE topics.id = agenda_items.topic_id),
-    snapshot_folder_path = (SELECT folder_path FROM topics WHERE topics.id = agenda_items.topic_id),
-    snapshot_state = :state
+    snapshot_committee_id = (SELECT committee_id FROM council_business WHERE council_business.id = agenda_items.business_id),
+    snapshot_minutes_of_meeting_id = (SELECT minutes_of_meeting_id FROM council_business WHERE council_business.id = agenda_items.business_id),
+    snapshot_title = (SELECT title FROM council_business WHERE council_business.id = agenda_items.business_id),
+    snapshot_report = (SELECT report FROM council_business WHERE council_business.id = agenda_items.business_id),
+    snapshot_folder_path = (SELECT folder_path FROM council_business WHERE council_business.id = agenda_items.business_id)
     WHERE id = :itemId AND snapshot_kind IS NULL`,
   "agenda.snapshotResources": `INSERT INTO agenda_item_resources (agenda_item_id, resource_id, position)
-    SELECT :itemId, resource_id, position FROM topic_resources
-    WHERE topic_id = (SELECT topic_id FROM agenda_items WHERE id = :itemId)
+    SELECT :itemId, resource_id, position FROM council_business_resources
+    WHERE business_id = (SELECT business_id FROM agenda_items WHERE id = :itemId)
     ON CONFLICT DO NOTHING`,
-  "agenda.start": `UPDATE agenda_items SET started_at = :startedAt
+  "agenda.start": `UPDATE agenda_items SET status = 'inProgress', started_at = :startedAt
     WHERE meeting_id = :meetingId AND id = :itemId`,
   "agenda.saveNotes": `UPDATE agenda_items SET discussion_summary = :discussionSummary
     WHERE meeting_id = :meetingId AND id = :itemId`,
   "agenda.complete": `UPDATE agenda_items
-    SET discussion_summary = :discussionSummary, status = :status, completed_at = :completedAt, snapshot_state = :snapshotState
+    SET discussion_summary = :discussionSummary, status = :status, completed_at = :completedAt
     WHERE meeting_id = :meetingId AND id = :itemId`,
   "agenda.openIds": `SELECT id FROM agenda_items WHERE meeting_id = :meetingId AND completed_at IS NULL`,
   "agenda.completeOpen": `UPDATE agenda_items
-    SET status = :status, completed_at = :completedAt, snapshot_state = :snapshotState
+    SET status = :status, completed_at = :completedAt
     WHERE meeting_id = :meetingId AND completed_at IS NULL`,
-  "agenda.copySource": `SELECT topic_id, position FROM agenda_items
+  "agenda.copySource": `SELECT id, business_id, position, snapshot_kind, snapshot_council_decision_id,
+      snapshot_council_decision_title, snapshot_council_decision_draft_text, snapshot_committee_id,
+      snapshot_minutes_of_meeting_id, snapshot_title, snapshot_report, snapshot_folder_path
+    FROM agenda_items
     WHERE meeting_id = :meetingId ORDER BY position`,
   "agenda.insertCopy": `INSERT INTO agenda_items
-    (id, topic_id, meeting_id, position, discussion_summary, status)
-    VALUES (:id, :topicId, :meetingId, :position, '', 'scheduled')`,
+    (id, business_id, meeting_id, position, discussion_summary, status, snapshot_kind,
+      snapshot_council_decision_id, snapshot_council_decision_title, snapshot_council_decision_draft_text,
+      snapshot_committee_id, snapshot_minutes_of_meeting_id, snapshot_title, snapshot_report, snapshot_folder_path)
+    VALUES (:id, :businessId, :meetingId, :position, '', 'scheduled', :snapshotKind,
+      :snapshotCouncilDecisionId, :snapshotCouncilDecisionTitle, :snapshotCouncilDecisionDraftText,
+      :snapshotCommitteeId, :snapshotMinutesOfMeetingId, :snapshotTitle, :snapshotReport, :snapshotFolderPath)`,
+  "agenda.copyResources": `INSERT INTO agenda_item_resources (agenda_item_id, resource_id, position)
+    SELECT :targetItemId, resource_id, position FROM agenda_item_resources
+    WHERE agenda_item_id = :sourceItemId`,
 
   "attendance.listByMeeting": "SELECT * FROM attendance WHERE meeting_id = :meetingId",
   "attendance.proxyDocumentUsed": `SELECT 1 FROM attendance WHERE proxy_document_id = :resourceId LIMIT 1`,
@@ -162,9 +170,9 @@ export const queries = {
 
   "decision.list": `SELECT council_decisions.*, (
       SELECT agenda_items.meeting_id FROM agenda_items
-      JOIN topics ON topics.id = agenda_items.topic_id
+      JOIN council_business ON council_business.id = agenda_items.business_id
       JOIN council_meetings ON council_meetings.id = agenda_items.meeting_id
-      WHERE topics.council_decision_id = council_decisions.id
+      WHERE council_business.council_decision_id = council_decisions.id
       ORDER BY council_meetings.starts_at DESC LIMIT 1
     ) AS agenda_meeting_id
     FROM council_decisions ORDER BY updated_at DESC`,
@@ -240,6 +248,35 @@ export const queries = {
   "member.insert": `INSERT INTO council_members
     (id, first_name, last_name, email, role, term_started_on)
     VALUES (:id, :firstName, :lastName, :email, :role, :termStartedOn)`,
+
+  "committee.list": {
+    default: `SELECT * FROM council_committees
+      WHERE (:includeArchived = 1 OR archived_at IS NULL)
+      ORDER BY name`,
+    postgres: `SELECT * FROM council_committees
+      WHERE (CAST(:includeArchived AS boolean) = TRUE OR archived_at IS NULL)
+      ORDER BY name`,
+  },
+  "committee.find": "SELECT * FROM council_committees WHERE id = :reference OR slug = :reference",
+  "committee.slugExists": "SELECT 1 FROM council_committees WHERE slug = :slug OR id = :slug",
+  "committee.insert": `INSERT INTO council_committees
+    (id, slug, name, description, created_at, updated_at)
+    VALUES (:id, :slug, :name, :description, :createdAt, :updatedAt)`,
+  "committee.update": `UPDATE council_committees
+    SET name = :name, description = :description, updated_at = :updatedAt
+    WHERE id = :id`,
+  "committee.archive": `UPDATE council_committees
+    SET archived_at = :archivedAt, updated_at = :archivedAt
+    WHERE id = :id`,
+
+  "committeeMembership.list": `SELECT * FROM committee_memberships
+    WHERE committee_id = :committeeId ORDER BY started_on, id`,
+  "committeeMembership.find": "SELECT * FROM committee_memberships WHERE id = :id",
+  "committeeMembership.insert": `INSERT INTO committee_memberships
+    (id, committee_id, council_member_id, role, started_on)
+    VALUES (:id, :committeeId, :councilMemberId, :role, :startedOn)`,
+  "committeeMembership.end": `UPDATE committee_memberships SET ended_on = :endedOn
+    WHERE id = :id AND ended_on IS NULL`,
 
   "roster.listMemberIds": `SELECT member_id FROM meeting_roster WHERE meeting_id = :meetingId ORDER BY member_id`,
   "roster.insert": `INSERT INTO meeting_roster (id, meeting_id, member_id) VALUES (:id, :meetingId, :memberId)`,
@@ -342,49 +379,42 @@ export const queries = {
     (id, actor_user_id, request_id, action, target_type, target_id, outcome, details_json, occurred_at)
     VALUES (:id, :actorUserId, :requestId, :action, :targetType, :targetId, :outcome, :detailsJson, :occurredAt)`,
 
-  "topic.resources": `${resourceSelection}
-    JOIN topic_resources ON topic_resources.resource_id = resources.id
-    WHERE topic_resources.topic_id = :topicId
-    ORDER BY topic_resources.position`,
-  "topic.list": {
-    default: `SELECT * FROM topics
-    WHERE (:state IS NULL OR state = :state)
-      AND (:folderPath IS NULL OR folder_path = :folderPath)
+  "councilBusiness.resources": `${resourceSelection}
+    JOIN council_business_resources ON council_business_resources.resource_id = resources.id
+    WHERE council_business_resources.business_id = :businessId
+    ORDER BY council_business_resources.position`,
+  "councilBusiness.list": {
+    default: `SELECT * FROM council_business
+    WHERE (:folderPath IS NULL OR folder_path = :folderPath)
       AND (:resourceId IS NULL OR EXISTS (
-        SELECT 1 FROM topic_resources
-        WHERE topic_resources.topic_id = topics.id AND topic_resources.resource_id = :resourceId
+        SELECT 1 FROM council_business_resources
+        WHERE council_business_resources.business_id = council_business.id
+          AND council_business_resources.resource_id = :resourceId
       ))
     ORDER BY updated_at DESC`,
-    postgres: `SELECT * FROM topics
-    WHERE (CAST(:state AS text) IS NULL OR state = CAST(:state AS text))
-      AND (CAST(:folderPath AS text) IS NULL OR folder_path = CAST(:folderPath AS text))
+    postgres: `SELECT * FROM council_business
+    WHERE (CAST(:folderPath AS text) IS NULL OR folder_path = CAST(:folderPath AS text))
       AND (CAST(:resourceId AS text) IS NULL OR EXISTS (
-        SELECT 1 FROM topic_resources
-        WHERE topic_resources.topic_id = topics.id AND topic_resources.resource_id = CAST(:resourceId AS text)
+        SELECT 1 FROM council_business_resources
+        WHERE council_business_resources.business_id = council_business.id
+          AND council_business_resources.resource_id = CAST(:resourceId AS text)
       ))
     ORDER BY updated_at DESC`,
   },
-  "topic.find": "SELECT * FROM topics WHERE id = :reference OR slug = :reference",
-  "topic.slugExists": "SELECT 1 FROM topics WHERE slug = :slug OR id = :slug",
-  "topic.findByDecision": "SELECT * FROM topics WHERE council_decision_id = :councilDecisionId",
-  "topic.findMinutesApproval": "SELECT * FROM topics WHERE minutes_of_meeting_id = :meetingId",
-  "topic.insert": `INSERT INTO topics
-    (id, slug, kind, council_decision_id, minutes_of_meeting_id, title, report, folder_path, created_at, updated_at)
-    VALUES (:id, :slug, :kind, :councilDecisionId, :minutesOfMeetingId, :title, :report, :folderPath, :createdAt, :updatedAt)`,
-  "topic.update": `UPDATE topics
+  "councilBusiness.find": "SELECT * FROM council_business WHERE id = :reference OR slug = :reference",
+  "councilBusiness.slugExists": "SELECT 1 FROM council_business WHERE slug = :slug OR id = :slug",
+  "councilBusiness.findByDecision": "SELECT * FROM council_business WHERE council_decision_id = :councilDecisionId",
+  "councilBusiness.findMinutesApproval": "SELECT * FROM council_business WHERE minutes_of_meeting_id = :meetingId",
+  "councilBusiness.insert": `INSERT INTO council_business
+    (id, slug, kind, council_decision_id, committee_id, minutes_of_meeting_id, title, report, folder_path, created_at, updated_at)
+    VALUES (:id, :slug, :kind, :councilDecisionId, :committeeId, :minutesOfMeetingId, :title, :report, :folderPath, :createdAt, :updatedAt)`,
+  "councilBusiness.update": `UPDATE council_business
     SET title = :title, report = :report, folder_path = :folderPath,
-      council_decision_id = :councilDecisionId, updated_at = :updatedAt
+      council_decision_id = :councilDecisionId, committee_id = :committeeId, updated_at = :updatedAt
     WHERE id = :id`,
-  "topic.deleteResources": "DELETE FROM topic_resources WHERE topic_id = :topicId",
-  "topic.insertResource": `INSERT INTO topic_resources (topic_id, resource_id, position)
-    VALUES (:topicId, :resourceId, :position)`,
-  "topic.schedule": `UPDATE topics
-    SET state = 'scheduled', current_meeting_id = :meetingId, position = :position, updated_at = :updatedAt
-    WHERE id = :id`,
-  "topic.setState": `UPDATE topics
-    SET state = :state, current_meeting_id = NULL, position = NULL, updated_at = :updatedAt WHERE id = :id`,
-  "topic.start": `UPDATE topics SET state = 'inProgress', updated_at = :updatedAt WHERE id = :id`,
-  "topic.setPosition": `UPDATE topics SET position = :position, updated_at = :updatedAt WHERE id = :id`,
+  "councilBusiness.deleteResources": "DELETE FROM council_business_resources WHERE business_id = :businessId",
+  "councilBusiness.insertResource": `INSERT INTO council_business_resources (business_id, resource_id, position)
+    VALUES (:businessId, :resourceId, :position)`,
   "template.list": `${templateSelection} ORDER BY document_type, kind`,
   "template.find": `${templateSelection} WHERE id = :id`,
   "template.insert": `INSERT INTO templates

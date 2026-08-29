@@ -36,6 +36,10 @@ describe("current SQLite schema", () => {
       "attendance",
       "audit_events",
       "ballots",
+      "committee_memberships",
+      "council_business",
+      "council_business_resources",
+      "council_committees",
       "council_decisions",
       "council_meetings",
       "council_members",
@@ -49,29 +53,25 @@ describe("current SQLite schema", () => {
       "sessions",
       "templates",
       "text_resources",
-      "topic_resources",
-      "topics",
       "user_roles",
       "users",
       "votes",
     ]);
 
-    const topicColumns = database
-      .prepare("PRAGMA table_info(topics)")
+    const businessColumns = database
+      .prepare("PRAGMA table_info(council_business)")
       .all()
       .map((row) => String(row.name));
-    expect(topicColumns).toEqual([
+    expect(businessColumns).toEqual([
       "id",
       "slug",
       "kind",
       "council_decision_id",
+      "committee_id",
       "minutes_of_meeting_id",
       "title",
       "report",
       "folder_path",
-      "state",
-      "current_meeting_id",
-      "position",
       "created_at",
       "updated_at",
     ]);

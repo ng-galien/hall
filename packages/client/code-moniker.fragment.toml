@@ -1,0 +1,12 @@
+fragment = "client"
+
+[aliases]
+technical_ui_source = "source ~ '**/dir:packages/dir:client/dir:src/dir:components/dir:ui/**' OR source ~ '**/dir:packages/dir:client/dir:src/dir:components/dir:editor/**'"
+application_adapter_target = "target ~ '**/dir:packages/dir:client/dir:src/dir:features/**' OR target ~ '**/dir:packages/dir:client/dir:src/dir:hooks/**' OR target ~ '**/dir:packages/dir:client/dir:src/dir:pages/**' OR target ~ '**/dir:packages/dir:client/dir:src/dir:services/**' OR target ~ '**/dir:packages/dir:client/dir:src/dir:stores/**'"
+
+[[refs.where]]
+id = "technical-ui-dependency-remains-domain-agnostic"
+severity = "error"
+rationale = "The editor and low-level UI primitives implement technical interaction patterns. Hall domain types, application stores, HTTP services, pages, hooks, and business presentation adapters are supplied from the outside so these components do not become a second home for municipal policy."
+expr = "$technical_ui_source AND $dependency_import_ref => NOT ($domain_target OR $application_adapter_target)"
+message = "Technical client UI must receive domain behavior through props or providers instead of importing application adapters."

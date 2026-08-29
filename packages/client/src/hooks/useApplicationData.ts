@@ -1,11 +1,11 @@
 import { useEffect } from "react";
 import type { ApiErrorCode } from "../services/apiClient";
 import { type ApplicationSyncPhase, useApplicationSyncStore } from "../stores/applicationSyncStore";
+import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { useResourcesStore } from "../stores/resourcesStore";
-import { useTopicsStore } from "../stores/topicsStore";
 
 export function useApplicationData(): void {
   useEffect(() => {
@@ -18,14 +18,14 @@ export async function reloadApplicationData(): Promise<ApiErrorCode | null> {
   await Promise.all([
     useCouncilMembersStore.getState().load(),
     useCouncilMeetingsStore.getState().load(),
-    useTopicsStore.getState().load(),
+    useCouncilBusinessStore.getState().load(),
     useCouncilDecisionsStore.getState().load(),
     useResourcesStore.getState().load(),
   ]);
   const error =
     useCouncilMembersStore.getState().error ??
     useCouncilMeetingsStore.getState().error ??
-    useTopicsStore.getState().error ??
+    useCouncilBusinessStore.getState().error ??
     useCouncilDecisionsStore.getState().error ??
     useResourcesStore.getState().error;
   useApplicationSyncStore.getState().finish(error);
@@ -37,7 +37,7 @@ export function useApplicationStatus(): { phase: ApplicationSyncPhase; error: Ap
   const states = [
     useCouncilMembersStore(),
     useCouncilMeetingsStore(),
-    useTopicsStore(),
+    useCouncilBusinessStore(),
     useCouncilDecisionsStore(),
     useResourcesStore(),
   ];

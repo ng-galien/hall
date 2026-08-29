@@ -1,6 +1,6 @@
 import { type CouncilMeeting, calculateQuorum, type MeetingAggregate } from "@hall/domain";
 import type {
-  AgendaRepository,
+  AgendaItemRepository,
   AttendanceRepository,
   BallotRepository,
   CouncilDecisionRepository,
@@ -10,12 +10,19 @@ import type {
   MeetingRosterRepository,
   UnitOfWork,
 } from "../repositories/contracts.js";
+import { agendaReadiness } from "./agendaOrderPolicy.js";
 import { DomainError } from "./errors.js";
 import { requireMeeting } from "./meetingContext.js";
 
 export interface CouncilMeetingService {
   listMeetings(): Promise<CouncilMeeting[]>;
-  createMeeting(input: CreateCouncilMeeting): Promise<CouncilMeeting & { activeMemberCount: number }>;
+  createMeeting(input: CreateCouncilMeeting): Promise<
+    CouncilMeeting & {
+      activeMemberCount: number;
+      agendaReady: boolean;
+      requiredMinutesOfMeetingId: string | null;
+    }
+  >;
   updateMeeting(
     meetingId: string,
     input: { title: string; startsAt: string; location: string },
@@ -28,7 +35,7 @@ export function createCouncilMeetingService({
   councilMemberRepository,
   meetingRosterRepository,
   attendanceRepository,
-  agendaRepository,
+  agendaItemRepository,
   councilDecisionRepository,
   ballotRepository,
   unitOfWork,
@@ -37,7 +44,7 @@ export function createCouncilMeetingService({
   councilMemberRepository: CouncilMemberRepository;
   meetingRosterRepository: MeetingRosterRepository;
   attendanceRepository: AttendanceRepository;
-  agendaRepository: AgendaRepository;
+  agendaItemRepository: AgendaItemRepository;
   councilDecisionRepository: CouncilDecisionRepository;
   ballotRepository: BallotRepository;
   unitOfWork: UnitOfWork;
@@ -56,7 +63,11 @@ export function createCouncilMeetingService({
           isReconvenedMeeting: false,
           previousMeetingId: null,
         });
-        return { ...meeting, activeMemberCount: (await councilMemberRepository.listActive()).length };
+        return {
+          ...meeting,
+          activeMemberCount: (await councilMemberRepository.listActive()).length,
+          ...agendaReadiness(meeting, [], await councilMeetingRepository.list()),
+        };
       });
     },
     async updateMeeting(meetingId, input) {
@@ -75,21 +86,24 @@ export function createCouncilMeetingService({
     async getMeeting(meetingId) {
       const meeting = await requireMeeting(councilMeetingRepository, meetingId);
       const id = meeting.id;
-      const [attendance, agendaItems, allCouncilDecisions, ballots, memberIds, activeMembers] = await Promise.all([
-        attendanceRepository.listForMeeting(id),
-        agendaRepository.listForMeeting(id),
-        councilDecisionRepository.list(),
-        ballotRepository.listForMeeting(id),
-        meetingRosterRepository.listMemberIds(id),
-        councilMemberRepository.listActive(),
-      ]);
+      const [attendance, agendaItems, allCouncilDecisions, ballots, memberIds, activeMembers, meetings] =
+        await Promise.all([
+          attendanceRepository.listForMeeting(id),
+          agendaItemRepository.listForMeeting(id),
+          councilDecisionRepository.list(),
+          ballotRepository.listForMeeting(id),
+          meetingRosterRepository.listMemberIds(id),
+          councilMemberRepository.listActive(),
+          councilMeetingRepository.list(),
+        ]);
       const councilDecisionIds = new Set(
         agendaItems.flatMap((item) =>
-          item.topic.kind === "subject" && item.topic.councilDecisionId ? [item.topic.councilDecisionId] : [],
+          item.business.kind === "matter" && item.business.councilDecisionId ? [item.business.councilDecisionId] : [],
         ),
       );
       return {
         meeting,
+        ...agendaReadiness(meeting, agendaItems, meetings),
         activeMemberCount: activeMembers.length,
         rosterMemberIds: memberIds,
         attendance,

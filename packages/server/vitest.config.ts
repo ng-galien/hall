@@ -38,7 +38,7 @@ export default defineConfig({
             functions: 98,
             lines: 94,
           },
-        "src/services/{resourceService,topicService}.ts": {
+        "src/services/{resourceService,councilBusinessService}.ts": {
           statements: 85,
           branches: 79,
           functions: 94,

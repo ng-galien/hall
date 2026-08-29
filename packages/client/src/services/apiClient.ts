@@ -12,6 +12,7 @@ export type ApiErrorCode =
   | "agenda_ballot_required"
   | "agenda_inconsistent"
   | "agenda_item_not_found"
+  | "agenda_order_invalid"
   | "agenda_sequence_invalid"
   | "attendance_incomplete"
   | "authentication_required"
@@ -32,6 +33,7 @@ export type ApiErrorCode =
   | "invalid_meeting_transition"
   | "meeting_not_found"
   | "meeting_officers_required"
+  | "minutes_approval_required"
   | "meeting_roster_locked"
   | "network_unavailable"
   | "proxy_invalid"
@@ -43,9 +45,11 @@ export type ApiErrorCode =
   | "resource_preview_conversion_unavailable"
   | "resource_preview_unavailable"
   | "resource_not_found"
+  | "council_committee_not_found"
+  | "committee_membership_not_found"
   | "route_not_found"
   | "attendance_not_found"
-  | "topic_not_found";
+  | "council_business_not_found";
 
 export class ApiError extends Error {
   constructor(
@@ -78,6 +82,7 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "agenda_ballot_required",
   "agenda_inconsistent",
   "agenda_item_not_found",
+  "agenda_order_invalid",
   "agenda_sequence_invalid",
   "attendance_incomplete",
   "authentication_required",
@@ -98,6 +103,7 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "invalid_request",
   "meeting_not_found",
   "meeting_officers_required",
+  "minutes_approval_required",
   "meeting_roster_locked",
   "network_unavailable",
   "proxy_invalid",
@@ -109,9 +115,11 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "resource_preview_conversion_unavailable",
   "resource_preview_unavailable",
   "resource_not_found",
+  "council_committee_not_found",
+  "committee_membership_not_found",
   "route_not_found",
   "attendance_not_found",
-  "topic_not_found",
+  "council_business_not_found",
 ]);
 
 export function apiErrorCode(error: unknown): ApiErrorCode {

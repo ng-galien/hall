@@ -220,7 +220,7 @@ function useMentionGroupLabels() {
   return {
     member: t("editor.group.member"),
     resource: t("editor.group.resource"),
-    topic: t("editor.group.topic"),
+    councilBusiness: t("editor.group.councilBusiness"),
     meeting: t("editor.group.meeting"),
     decision: t("editor.group.decision"),
   };

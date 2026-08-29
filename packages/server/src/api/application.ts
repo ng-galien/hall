@@ -17,12 +17,13 @@ import { sendProblem } from "./problemDetails.js";
 import { createAuditRouter } from "./routes/auditRoutes.js";
 import { createAuthRouter, createUsersRouter } from "./routes/authRoutes.js";
 import { createContentTemplatesRouter } from "./routes/contentTemplatesRoutes.js";
+import { createCouncilBusinessRouter } from "./routes/councilBusinessRoutes.js";
+import { createCouncilCommitteesRouter } from "./routes/councilCommitteesRoutes.js";
 import { createCouncilDecisionsRouter } from "./routes/councilDecisionsRoutes.js";
 import { createCouncilMeetingsRouter } from "./routes/councilMeetingsRoutes.js";
 import { createCouncilMembersRouter } from "./routes/councilMembersRoutes.js";
 import { createResourcesRouter } from "./routes/resourcesRoutes.js";
 import { createSettingsRouter } from "./routes/settingsRoutes.js";
-import { createTopicsRouter } from "./routes/topicsRoutes.js";
 import { apiRootRepresentation, sirenResponses } from "./sirenRepresentation.js";
 
 export function createHttpApplication(container: AwilixContainer<Cradle>) {
@@ -49,10 +50,11 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api/users", createUsersRouter(container.cradle));
   app.use("/api/audit-events", createAuditRouter(container.cradle));
   app.use("/api/council-members", createCouncilMembersRouter(container.cradle));
+  app.use("/api/council-committees", createCouncilCommitteesRouter(container.cradle));
   app.use("/api/council-meetings", createCouncilMeetingsRouter(container.cradle));
   app.use("/api/council-decisions", createCouncilDecisionsRouter(container.cradle));
   app.use("/api/resources", createResourcesRouter(container.cradle));
-  app.use("/api/topics", createTopicsRouter(container.cradle));
+  app.use("/api/council-business", createCouncilBusinessRouter(container.cradle));
   app.use("/api/settings", createSettingsRouter(container.cradle));
   app.use("/api/templates", createContentTemplatesRouter(container.cradle));
   app.use("/api", (request, response) => sendProblem(request, response, 404, "route_not_found"));

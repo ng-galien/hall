@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MarkdownEditor } from "../../../components/editor/MarkdownEditor";
-import { useMentionables } from "../../../components/editor/useMentionables";
 import {
   AddIcon,
   CheckIcon,
@@ -33,12 +32,13 @@ import {
 } from "../../../components/icons";
 import { MarkdownView } from "../../../components/MarkdownView";
 import { Modal } from "../../../components/Ui";
+import { councilBusinessKindKeys } from "../../../features/council-business/presentation";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
+import { useReferenceMentionables } from "../../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { getCouncilMeeting } from "../../../services/councilMeetingsApi";
 import { useResourcesStore } from "../../../stores/resourcesStore";
-import { topicKindKeys } from "../AgendaComposer";
 import { agendaItemDecisionId, pendingBallotDecisions } from "../ballotDecisionPolicy";
 import { councilMemberName } from "../ballotParticipants";
 import { MeetingDocumentViewer } from "../MeetingDocumentViewer";
@@ -91,7 +91,7 @@ export function ConductView({
   const nextItem = orderedItems.find((item) => !item.completedAt) ?? null;
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
-  const mentionables = useMentionables();
+  const mentionables = useReferenceMentionables();
   const [voteOpen, setVoteOpen] = useState(false);
   const [reviseConfirming, setReviseConfirming] = useState(false);
   const [revisionSeed, setRevisionSeed] = useState<{
@@ -191,7 +191,7 @@ export function ConductView({
     ? (aggregate.councilDecisions.find((decision) => decision.id === selectedDecisionId) ?? null)
     : null;
   const selectedBallot = ballotForItem(selectedItem);
-  const itemResources = selectedItem.topic.resources;
+  const itemResources = selectedItem.business.resources;
   const isActive = Boolean(selectedItem.startedAt && !selectedItem.completedAt);
   const isNext = !activeItem && nextItem?.id === selectedItem.id;
   const remainingCount = orderedItems.filter((item) => !item.completedAt).length;
@@ -208,9 +208,9 @@ export function ConductView({
 
   const endPosition = Math.max(0, ...orderedItems.map((item) => item.position)) + 1;
 
-  const createSessionTopic = (input: Record<string, unknown>) =>
+  const createSessionBusiness = (input: Record<string, unknown>) =>
     run(async () => {
-      const added = await meetingActions.createAndScheduleTopic(input, endPosition);
+      const added = await meetingActions.createAndScheduleBusiness(input, endPosition);
       if (added) setAddItemOpen(false);
       return added;
     });
@@ -317,7 +317,7 @@ export function ConductView({
                 </span>
                 {!railCollapsed ? (
                   <span className="conduct-step-copy">
-                    <strong>{item.topic.title}</strong>
+                    <strong>{item.business.title}</strong>
                     <span>
                       {item.startedAt ? formatTime(item.startedAt) : t("meeting.subjectUpcoming")}
                       {item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}
@@ -352,7 +352,7 @@ export function ConductView({
                     <TooltipTrigger asChild>{stepButton}</TooltipTrigger>
                     <TooltipContent className="step-tooltip" side="right">
                       <span className="step-tooltip-body">
-                        <strong>{item.topic.title}</strong>
+                        <strong>{item.business.title}</strong>
                         <span>
                           {item.startedAt ? formatTime(item.startedAt) : t("meeting.subjectUpcoming")}
                           {item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}
@@ -384,7 +384,7 @@ export function ConductView({
             className="conduct-rail-tool"
             type="button"
             title={railCollapsed ? t("live.addItem") : undefined}
-            disabled={!meetingActions.can("meeting.add-late-topic")}
+            disabled={!meetingActions.can("meeting.add-late-business")}
             onClick={() => setAddItemOpen(true)}
           >
             <AddIcon aria-hidden="true" />
@@ -430,10 +430,10 @@ export function ConductView({
         <header className="conduct-stage-header">
           <span className="live-eyebrow">
             {t("live.itemEyebrow").replace("{position}", formatNumber(selectedItem.position))} ·{" "}
-            {t(topicKindKeys[selectedItem.topic.kind])}
-            {selectedItem.topic.folderPath ? ` · ${selectedItem.topic.folderPath}` : ""}
+            {t(councilBusinessKindKeys[selectedItem.business.kind])}
+            {selectedItem.business.folderPath ? ` · ${selectedItem.business.folderPath}` : ""}
           </span>
-          <h1 id="conduct-item-title">{selectedItem.topic.title}</h1>
+          <h1 id="conduct-item-title">{selectedItem.business.title}</h1>
           {isActive && selectedItem.startedAt ? (
             <div className="conduct-timer" role="timer">
               <span className="live-indicator" aria-hidden="true" />
@@ -443,20 +443,20 @@ export function ConductView({
         </header>
 
         <div className="conduct-stage-body">
-          {selectedItem.topic.kind === "minutesApproval" ? (
+          {selectedItem.business.kind === "minutesApproval" ? (
             <button
               className="conduct-document-chip conduct-minutes-link"
               type="button"
-              onClick={() => openMinutes((selectedItem.topic as { minutesOfMeetingId: string }).minutesOfMeetingId)}
+              onClick={() => openMinutes((selectedItem.business as { minutesOfMeetingId: string }).minutesOfMeetingId)}
             >
               <FileIcon aria-hidden="true" />
               {t("meeting.viewPreviousMeeting")}
             </button>
           ) : null}
-          {selectedItem.topic.report ? (
+          {selectedItem.business.report ? (
             <details className="conduct-block" open={!voteOpen} key={`report-${selectedItem.id}-${voteOpen}`}>
               <summary>{t("meeting.itemReport")}</summary>
-              <MarkdownView className="conduct-report" markdown={selectedItem.topic.report} />
+              <MarkdownView className="conduct-report" markdown={selectedItem.business.report} />
             </details>
           ) : null}
 
@@ -695,7 +695,7 @@ export function ConductView({
               onSubmit={(event) => {
                 event.preventDefault();
                 const form = new FormData(event.currentTarget);
-                void createSessionTopic({
+                void createSessionBusiness({
                   kind: form.get("kind"),
                   title: form.get("title"),
                   report: "",
@@ -712,8 +712,8 @@ export function ConductView({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="openQuestion">{t("topicKind.openQuestion")}</SelectItem>
-                    <SelectItem value="subject">{t("topicKind.subject")}</SelectItem>
+                    <SelectItem value="openQuestion">{t("councilBusinessKind.openQuestion")}</SelectItem>
+                    <SelectItem value="matter">{t("councilBusinessKind.matter")}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Input

@@ -23,14 +23,15 @@ async function createMember(
 }
 
 test.describe("municipal council workflow", () => {
-  test("keeps one topic mutation pending and ignores duplicate submissions", async ({ appPage: page }) => {
-    await primaryNavigationLink(page, "Topics").click();
-    await page.getByRole("button", { name: "Nouveau topic", exact: true }).click();
+  test("keeps one council business mutation pending and ignores duplicate submissions", async ({ appPage: page }) => {
+    await primaryNavigationLink(page, "Espace de travail").click();
+    await page.getByRole("button", { name: "Nouveau", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Nouveau sujet", exact: true }).click();
     const dialog = openDialog(page);
-    await formField(dialog, "title").fill("Topic soumis une seule fois");
+    await formField(dialog, "title").fill("Sujet soumis une seule fois");
 
     let postCount = 0;
-    await page.route("**/api/topics", async (route) => {
+    await page.route("**/api/council-business", async (route) => {
       if (route.request().method() === "POST") {
         postCount += 1;
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -39,28 +40,28 @@ test.describe("municipal council workflow", () => {
     });
 
     const form = dialog.locator("form");
-    await dialog.getByRole("button", { name: "Ajouter", exact: true }).click();
+    await dialog.getByRole("button", { name: "Créer", exact: true }).click();
     await expect(dialog.getByRole("button", { name: "Enregistrement…", exact: true })).toBeDisabled();
     await form.evaluate((element) => {
       element.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
       element.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
 
-    await expect(page.getByText("Topic soumis une seule fois", { exact: true })).toBeVisible();
+    await expect(page.getByText("Sujet soumis une seule fois", { exact: true })).toBeVisible();
     expect(postCount).toBe(1);
   });
 
-  test("prepares topics, conducts the live meeting, and records the ballot", async ({ appPage: page }) => {
+  test("prepares council business, conducts the live meeting, and records the ballot", async ({ appPage: page }) => {
     await primaryNavigationLink(page, "Membres du conseil").click();
     await createMember(page, "Camille", "Martin", "mayor");
     await createMember(page, "Jules", "Bernard", "councillor");
 
-    await primaryNavigationLink(page, "Topics").click();
-    await page.getByRole("button", { name: "Nouveau topic", exact: true }).click();
-    const topicDialog = openDialog(page);
-    await formField(topicDialog, "kind").selectOption("subject");
-    await formField(topicDialog, "title").fill("Adoption du programme de rénovation");
-    await topicDialog.getByRole("button", { name: "Ajouter", exact: true }).click();
+    await primaryNavigationLink(page, "Espace de travail").click();
+    await page.getByRole("button", { name: "Nouveau", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Nouveau sujet", exact: true }).click();
+    const businessDialog = openDialog(page);
+    await formField(businessDialog, "title").fill("Adoption du programme de rénovation");
+    await businessDialog.getByRole("button", { name: "Créer", exact: true }).click();
     await expect(page.getByText("Adoption du programme de rénovation", { exact: true })).toBeVisible();
 
     await primaryNavigationLink(page, "Séances").click();

@@ -1,7 +1,7 @@
 import type { DocumentResource } from "@hall/domain";
 import { Button } from "@/components/ui/button";
-import { DocumentPreviewFailure } from "../../components/DocumentPreviewFailure";
 import { CloseIcon } from "../../components/icons";
+import { DocumentPreviewFailure } from "../../features/documents/DocumentPreviewFailure";
 import { useDocumentPreview } from "../../hooks/useDocumentPreview";
 import { useI18n } from "../../i18n/I18nProvider";
 

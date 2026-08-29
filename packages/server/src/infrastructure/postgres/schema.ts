@@ -4,6 +4,10 @@ export const postgresTables = [
   "attendance",
   "audit_events",
   "ballots",
+  "committee_memberships",
+  "council_business",
+  "council_business_resources",
+  "council_committees",
   "council_decisions",
   "council_meetings",
   "council_members",
@@ -17,8 +21,6 @@ export const postgresTables = [
   "sessions",
   "templates",
   "text_resources",
-  "topic_resources",
-  "topics",
   "user_roles",
   "users",
   "votes",
@@ -46,6 +48,27 @@ export const postgresSchema = `
     active BOOLEAN NOT NULL DEFAULT TRUE,
     term_started_on TEXT NOT NULL,
     term_ended_on TEXT
+  );
+
+  CREATE TABLE council_committees (
+    id TEXT PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    archived_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE committee_memberships (
+    id TEXT PRIMARY KEY,
+    committee_id TEXT NOT NULL REFERENCES council_committees(id) ON DELETE CASCADE,
+    council_member_id TEXT NOT NULL REFERENCES council_members(id),
+    role TEXT NOT NULL CHECK (role IN ('chair', 'viceChair', 'member')),
+    started_on TEXT NOT NULL,
+    ended_on TEXT,
+    UNIQUE (committee_id, council_member_id, started_on),
+    CHECK (ended_on IS NULL OR ended_on >= started_on)
   );
 
   CREATE TABLE hall_settings (
@@ -236,61 +259,54 @@ export const postgresSchema = `
     updated_at TEXT NOT NULL
   );
 
-  CREATE TABLE topics (
+  CREATE TABLE council_business (
     id TEXT PRIMARY KEY,
     slug TEXT NOT NULL UNIQUE,
-    kind TEXT NOT NULL CHECK (kind IN ('subject', 'minutesApproval', 'openQuestion')),
+    kind TEXT NOT NULL CHECK (kind IN ('matter', 'minutesApproval', 'openQuestion')),
     council_decision_id TEXT REFERENCES council_decisions(id),
+    committee_id TEXT REFERENCES council_committees(id),
     minutes_of_meeting_id TEXT REFERENCES council_meetings(id),
     title TEXT NOT NULL,
     report TEXT NOT NULL DEFAULT '',
     folder_path TEXT NOT NULL DEFAULT '',
-    state TEXT NOT NULL DEFAULT 'toSchedule' CHECK (state IN ('toSchedule', 'scheduled', 'inProgress', 'examined', 'withdrawn')),
-    current_meeting_id TEXT REFERENCES council_meetings(id),
-    position INTEGER CHECK (position IS NULL OR position > 0),
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     CHECK (
-      (kind = 'subject' AND minutes_of_meeting_id IS NULL)
+      (kind = 'matter' AND minutes_of_meeting_id IS NULL)
       OR
-      (kind = 'minutesApproval' AND council_decision_id IS NULL AND minutes_of_meeting_id IS NOT NULL)
+      (kind = 'minutesApproval' AND council_decision_id IS NULL AND committee_id IS NULL AND minutes_of_meeting_id IS NOT NULL)
       OR
-      (kind = 'openQuestion' AND council_decision_id IS NULL AND minutes_of_meeting_id IS NULL)
-    ),
-    CHECK (
-      (state IN ('scheduled', 'inProgress') AND current_meeting_id IS NOT NULL AND position IS NOT NULL)
-      OR
-      (state IN ('toSchedule', 'examined', 'withdrawn') AND current_meeting_id IS NULL AND position IS NULL)
+      (kind = 'openQuestion' AND council_decision_id IS NULL AND committee_id IS NULL AND minutes_of_meeting_id IS NULL)
     )
   );
 
-  CREATE TABLE topic_resources (
-    topic_id TEXT NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+  CREATE TABLE council_business_resources (
+    business_id TEXT NOT NULL REFERENCES council_business(id) ON DELETE CASCADE,
     resource_id TEXT NOT NULL REFERENCES resources(id),
     position INTEGER NOT NULL CHECK (position > 0),
-    PRIMARY KEY (topic_id, resource_id),
-    UNIQUE (topic_id, position)
+    PRIMARY KEY (business_id, resource_id),
+    UNIQUE (business_id, position)
   );
 
   CREATE TABLE agenda_items (
     id TEXT PRIMARY KEY,
-    topic_id TEXT NOT NULL REFERENCES topics(id),
+    business_id TEXT NOT NULL REFERENCES council_business(id),
     meeting_id TEXT NOT NULL REFERENCES council_meetings(id) ON DELETE CASCADE,
     position INTEGER NOT NULL CHECK (position > 0),
     added_during_session BOOLEAN NOT NULL DEFAULT FALSE,
     discussion_summary TEXT NOT NULL DEFAULT '',
-    status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'examined', 'postponed', 'withdrawn')),
+    status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'inProgress', 'examined', 'postponed', 'withdrawn')),
     started_at TEXT,
     completed_at TEXT,
-    snapshot_kind TEXT CHECK (snapshot_kind IN ('subject', 'minutesApproval', 'openQuestion')),
+    snapshot_kind TEXT CHECK (snapshot_kind IN ('matter', 'minutesApproval', 'openQuestion')),
     snapshot_council_decision_id TEXT REFERENCES council_decisions(id),
     snapshot_council_decision_title TEXT,
     snapshot_council_decision_draft_text TEXT,
+    snapshot_committee_id TEXT REFERENCES council_committees(id),
     snapshot_minutes_of_meeting_id TEXT REFERENCES council_meetings(id),
     snapshot_title TEXT,
     snapshot_report TEXT,
     snapshot_folder_path TEXT,
-    snapshot_state TEXT CHECK (snapshot_state IN ('inProgress', 'examined', 'toSchedule', 'withdrawn')),
     UNIQUE (meeting_id, position)
   );
 
@@ -351,14 +367,18 @@ export const postgresSchema = `
   CREATE UNIQUE INDEX one_ballot_per_agenda_item ON ballots(agenda_item_id)
     WHERE agenda_item_id IS NOT NULL AND cancelled_at IS NULL;
   CREATE INDEX ballots_by_meeting ON ballots(meeting_id, created_at);
-  CREATE UNIQUE INDEX one_minutes_approval_topic_per_meeting ON topics(minutes_of_meeting_id)
+  CREATE UNIQUE INDEX one_active_membership_per_committee_member
+    ON committee_memberships(committee_id, council_member_id) WHERE ended_on IS NULL;
+  CREATE UNIQUE INDEX one_minutes_approval_business_per_meeting ON council_business(minutes_of_meeting_id)
     WHERE minutes_of_meeting_id IS NOT NULL;
-  CREATE UNIQUE INDEX one_topic_per_council_decision ON topics(council_decision_id)
+  CREATE UNIQUE INDEX one_business_per_council_decision ON council_business(council_decision_id)
     WHERE council_decision_id IS NOT NULL;
-  CREATE INDEX topics_by_state ON topics(state, updated_at);
   CREATE INDEX agenda_items_by_meeting ON agenda_items(meeting_id, position);
-  CREATE INDEX agenda_items_by_topic ON agenda_items(topic_id, meeting_id);
-  CREATE INDEX topic_resources_by_resource ON topic_resources(resource_id, topic_id);
+  CREATE UNIQUE INDEX one_open_agenda_item_per_business ON agenda_items(business_id)
+    WHERE status IN ('scheduled', 'inProgress');
+  CREATE INDEX agenda_items_by_business ON agenda_items(business_id, meeting_id);
+  CREATE INDEX council_business_resources_by_resource
+    ON council_business_resources(resource_id, business_id);
   CREATE INDEX agenda_item_resources_by_resource ON agenda_item_resources(resource_id, agenda_item_id);
   CREATE INDEX resources_by_folder ON resources(folder_path, updated_at);
   CREATE INDEX resource_tags_by_tag ON resource_tags(tag, resource_id);

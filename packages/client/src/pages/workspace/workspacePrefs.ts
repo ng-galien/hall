@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface WorkspacePin {
-  kind: "topic" | "resource";
+  kind: "councilBusiness" | "resource";
   id: string;
 }
 

@@ -9,15 +9,14 @@ const corpus = [
   { kind: "resource", id: "r2", label: "Critères d'attribution", folderPath: "finances/subventions" },
   { kind: "resource", id: "r3", label: "Plan de l'école", folderPath: "travaux/ecole" },
   {
-    kind: "topic",
-    id: "t1",
+    kind: "councilBusiness",
+    id: "b1",
     label: "Subventions aux associations",
     folderPath: "finances/subventions",
-    state: "scheduled",
   },
-  { kind: "topic", id: "t2", label: "Réfection du préau", folderPath: "travaux/ecole", state: "toSchedule" },
+  { kind: "councilBusiness", id: "b2", label: "Réfection du préau", folderPath: "travaux/ecole" },
   { kind: "meeting", id: "s1", label: "Séance de septembre", extra: ["2026-09"] },
-  { kind: "decision", id: "d1", label: "Délibération budgétaire", extra: ["2026-014"] },
+  { kind: "decision", id: "d1", label: "Délibération budgétaire", extra: ["2026-014"], state: "adopted" },
 ];
 
 test("la normalisation ignore casse et accents", () => {
@@ -48,14 +47,14 @@ test("une facette inconnue redevient un terme ordinaire", () => {
 
 test("la facette dossier filtre par sous-arbre", () => {
   const { results } = searchEntities(corpus, "dossier:finances");
-  assert.deepEqual(results.map((entry) => entry.id).sort(), ["r1", "r2", "t1"]);
+  assert.deepEqual(results.map((entry) => entry.id).sort(), ["b1", "r1", "r2"]);
 });
 
-test("la facette état filtre les sujets, alias français compris", () => {
-  const { results } = searchEntities(corpus, "sujet: état:planifié");
+test("la facette état filtre les entités qui possèdent un cycle de vie", () => {
+  const { results } = searchEntities(corpus, "délib: state:adopted");
   assert.deepEqual(
     results.map((entry) => entry.id),
-    ["t1"],
+    ["d1"],
   );
 });
 
@@ -76,7 +75,7 @@ test("le contexte de dossier fait remonter les entités adjacentes", () => {
       .slice(0, 2)
       .map((entry) => entry.id)
       .sort(),
-    ["r3", "t2"],
+    ["b2", "r3"],
   );
 });
 

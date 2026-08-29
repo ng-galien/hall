@@ -1,13 +1,4 @@
-import type {
-  AgendaItemStatus,
-  AttendanceStatus,
-  CouncilDecisionStatus,
-  MeetingStatus,
-  MinutesStatus,
-  TopicState,
-} from "@hall/domain";
 import { type ReactNode, useEffect, useId, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
@@ -22,74 +13,6 @@ export function PageHeader({ title, description }: { title: string; description:
       <p className="mt-1 text-sm text-muted">{description}</p>
     </header>
   );
-}
-
-type StatusValue =
-  | AgendaItemStatus
-  | AttendanceStatus
-  | CouncilDecisionStatus
-  | MeetingStatus
-  | MinutesStatus
-  | TopicState
-  | "active"
-  | "inactive";
-
-export function StatusBadge({ value }: { value: StatusValue }) {
-  const { t } = useI18n();
-  const variant = ["adopted", "enforceable", "ready", "present", "published"].includes(value)
-    ? "success"
-    : ["rejected", "cancelled", "absent"].includes(value)
-      ? "destructive"
-      : "secondary";
-  const labelKeys: Record<StatusValue, TranslationKey> = {
-    draft: "status.draft",
-    notStarted: "status.notStarted",
-    ready: "status.ready",
-    scheduled: "status.scheduled",
-    inProgress: "status.inProgress",
-    closed: "status.closed",
-    cancelled: "status.cancelled",
-    approved: "status.approved",
-    signed: "status.signed",
-    examined: "status.examined",
-    withdrawn: "status.withdrawn",
-    toSchedule: "status.toSchedule",
-    adopted: "status.adopted",
-    rejected: "status.rejected",
-    postponed: "status.postponed",
-    enforceable: "status.enforceable",
-    present: "status.present",
-    represented: "status.represented",
-    excused: "status.excused",
-    absent: "status.absent",
-    active: "status.active",
-    inactive: "status.inactive",
-    published: "status.published",
-  };
-  return <Badge variant={variant}>{t(labelKeys[value])}</Badge>;
-}
-
-const meetingStatusKeys: Record<MeetingStatus, TranslationKey> = {
-  draft: "meetingStatus.draft",
-  scheduled: "meetingStatus.scheduled",
-  inProgress: "meetingStatus.inProgress",
-  closed: "meetingStatus.closed",
-  cancelled: "meetingStatus.cancelled",
-};
-
-export function MeetingStatusBadge({ status }: { status: MeetingStatus }) {
-  const { t } = useI18n();
-  const variant =
-    status === "inProgress"
-      ? "success"
-      : status === "cancelled"
-        ? "destructive"
-        : status === "scheduled"
-          ? "brand"
-          : status === "draft"
-            ? "warning"
-            : "secondary";
-  return <Badge variant={variant}>{t(meetingStatusKeys[status])}</Badge>;
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
@@ -212,6 +135,7 @@ const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   agenda_ballot_required: "error.agenda_ballot_required",
   agenda_inconsistent: "error.agenda_inconsistent",
   agenda_item_not_found: "error.agenda_item_not_found",
+  agenda_order_invalid: "error.agenda_order_invalid",
   agenda_sequence_invalid: "error.agenda_sequence_invalid",
   attendance_incomplete: "error.attendance_incomplete",
   authentication_required: "error.authentication_required",
@@ -230,6 +154,7 @@ const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   invalid_meeting_transition: "error.invalid_meeting_transition",
   meeting_not_found: "error.meeting_not_found",
   meeting_officers_required: "error.meeting_officers_required",
+  minutes_approval_required: "error.minutes_approval_required",
   meeting_roster_locked: "error.meeting_roster_locked",
   network_unavailable: "error.network_unavailable",
   proxy_invalid: "error.proxy_invalid",
@@ -241,7 +166,9 @@ const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   resource_preview_conversion_unavailable: "error.resource_preview_conversion_unavailable",
   resource_preview_unavailable: "error.resource_preview_unavailable",
   resource_not_found: "error.resource_not_found",
-  topic_not_found: "error.topic_not_found",
+  council_business_not_found: "error.council_business_not_found",
+  council_committee_not_found: "error.council_committee_not_found",
+  committee_membership_not_found: "error.committee_membership_not_found",
   attendance_not_found: "error.attendance_not_found",
   csrf_validation_failed: "error.csrf_validation_failed",
   route_not_found: "error.route_not_found",

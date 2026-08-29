@@ -172,6 +172,25 @@ export const createCouncilMemberSchema = z.object({
   termStartedOn: z.iso.date(),
 });
 
+export const committeeRoleSchema = z.enum(["chair", "viceChair", "member"]);
+
+export const createCouncilCommitteeSchema = z.object({
+  name: nonEmpty.max(160),
+  description: z.string().trim().max(10_000).default(""),
+});
+
+export const updateCouncilCommitteeSchema = createCouncilCommitteeSchema;
+
+export const addCommitteeMembershipSchema = z.object({
+  councilMemberId: z.string().uuid(),
+  role: committeeRoleSchema.default("member"),
+  startedOn: z.iso.date(),
+});
+
+export const endCommitteeMembershipSchema = z.object({
+  endedOn: z.iso.date(),
+});
+
 export const createCouncilMeetingSchema = z.object({
   title: nonEmpty,
   startsAt: z.iso.datetime({ offset: true }),
@@ -210,10 +229,11 @@ export const createCouncilDecisionSchema = z.object({
   legalityReviewRequired: z.boolean().optional().default(true),
 });
 
-export const createTopicSchema = z.discriminatedUnion("kind", [
+export const createCouncilBusinessSchema = z.discriminatedUnion("kind", [
   z.object({
-    kind: z.literal("subject"),
+    kind: z.literal("matter"),
     councilDecisionId: z.string().uuid().nullable().optional(),
+    committeeId: z.string().uuid().nullable().optional(),
     title: nonEmpty,
     report: z.string().default(""),
     folderPath: folderPathSchema.default(""),
@@ -236,26 +256,26 @@ export const createTopicSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const updateTopicSchema = z.object({
-  title: nonEmpty,
-  report: z.string(),
-  folderPath: folderPathSchema,
-  resourceIds: resourceIdsSchema,
-  councilDecisionId: z.string().uuid().nullable().optional(),
-});
+export const updateCouncilBusinessSchema = z
+  .object({
+    title: nonEmpty,
+    report: z.string(),
+    folderPath: folderPathSchema,
+    resourceIds: resourceIdsSchema,
+    committeeId: z.string().uuid().nullable().optional(),
+  })
+  .strict();
 
-export const reclassifyTopicSchema = z.object({ folderPath: folderPathSchema });
+export const reclassifyCouncilBusinessSchema = z.object({ folderPath: folderPathSchema });
 
-export const scheduleTopicSchema = z.object({
+export const scheduleCouncilBusinessSchema = z.object({
   meetingId: z.string().uuid(),
   position: z.number().int().positive(),
 });
 
-export const attachTopicDecisionSchema = z.object({
+export const attachCouncilBusinessDecisionSchema = z.object({
   draftText: z.string().default(""),
 });
-
-export const topicStateSchema = z.enum(["toSchedule", "scheduled", "inProgress", "examined", "withdrawn"]);
 
 export const reorderAgendaSchema = z.object({
   itemIds: z.array(z.string().uuid()).min(1),

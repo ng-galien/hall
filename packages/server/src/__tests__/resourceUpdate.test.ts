@@ -66,10 +66,10 @@ describe("resource update", () => {
         .send({ title: "Rapport présenté", folderPath: "travaux", tags: [], content: "Présenté en séance" })
         .expect(201),
     ) as { id: string };
-    const topic = domainBody(
+    const business = domainBody(
       await agent
-        .post("/api/topics")
-        .send({ kind: "subject", title: "Sujet", report: "", folderPath: "travaux", resourceIds: [text.id] })
+        .post("/api/council-business")
+        .send({ kind: "matter", title: "Sujet", report: "", folderPath: "travaux", resourceIds: [text.id] })
         .expect(201),
     ) as { id: string };
 
@@ -87,7 +87,10 @@ describe("resource update", () => {
         })
         .expect(201),
     ) as { id: string };
-    await agent.post(`/api/topics/${topic.id}/schedule`).send({ meetingId: meeting.id, position: 1 }).expect(201);
+    await agent
+      .post(`/api/council-business/${business.id}/schedule`)
+      .send({ meetingId: meeting.id, position: 1 })
+      .expect(201);
     await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
     for (const member of [chair, secretary]) {
       await agent

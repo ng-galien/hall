@@ -16,7 +16,7 @@ async function prepareBallotScenario(databasePath = ":memory:") {
     meetingPreparationService,
     meetingAgendaService,
     meetingLifecycleService,
-    topicService,
+    councilBusinessService,
     ballotService,
     ballotRepository,
   } = container.cradle;
@@ -42,15 +42,15 @@ async function prepareBallotScenario(databasePath = ":memory:") {
     chairMemberId: members[0].id,
     secretaryMemberId: members[1].id,
   });
-  const topic = await topicService.create({
-    kind: "subject",
+  const business = await councilBusinessService.create({
+    kind: "matter",
     councilDecisionId: councilDecision.id,
     title: "Concurrent decision",
     report: "",
     folderPath: "",
     resourceIds: [],
   });
-  const agendaItem = await meetingPreparationService.scheduleTopic(meeting.id, topic.id, 1);
+  const agendaItem = await meetingPreparationService.scheduleBusiness(meeting.id, business.id, 1);
   await meetingLifecycleService.changeStatus(meeting.id, "scheduled");
   for (const member of members) {
     await meetingPreparationService.recordAttendance(meeting.id, { memberId: member.id, status: "present" });
@@ -61,7 +61,7 @@ async function prepareBallotScenario(databasePath = ":memory:") {
     container,
     members,
     councilDecision,
-    topic,
+    business,
     meeting,
     agendaItem,
     ballotService,
@@ -205,7 +205,7 @@ describe("ballot concurrency", () => {
   });
 
   it("rejects a final decision from being voted again in another meeting", async () => {
-    const { container, members, councilDecision, topic, meeting, ballotService } = await prepareBallotScenario();
+    const { container, members, councilDecision, business, meeting, ballotService } = await prepareBallotScenario();
     onTestFinished(() => container.cradle.sqlExecutor.close());
     const { councilMeetingService, meetingPreparationService } = container.cradle;
     await ballotService.recordBallot(meeting.id, {
@@ -221,7 +221,7 @@ describe("ballot concurrency", () => {
       chairMemberId: members[0].id,
       secretaryMemberId: members[1].id,
     });
-    await expect(meetingPreparationService.scheduleTopic(secondMeeting.id, topic.id, 1)).rejects.toMatchObject({
+    await expect(meetingPreparationService.scheduleBusiness(secondMeeting.id, business.id, 1)).rejects.toMatchObject({
       code: "agenda_inconsistent",
     });
   });
@@ -237,7 +237,7 @@ describe("ballot concurrency", () => {
       meetingAgendaService,
       meetingLifecycleService,
       ballotService,
-      topicService,
+      councilBusinessService,
       sqlExecutor,
     } = container.cradle;
     const members = await Promise.all(
@@ -262,15 +262,15 @@ describe("ballot concurrency", () => {
       chairMemberId: members[0].id,
       secretaryMemberId: members[1].id,
     });
-    const topic = await topicService.create({
-      kind: "subject",
+    const business = await councilBusinessService.create({
+      kind: "matter",
       councilDecisionId: decision.id,
       title: decision.title,
       report: "",
       folderPath: "",
       resourceIds: [],
     });
-    await meetingPreparationService.scheduleTopic(firstMeeting.id, topic.id, 1);
+    await meetingPreparationService.scheduleBusiness(firstMeeting.id, business.id, 1);
     await meetingLifecycleService.changeStatus(firstMeeting.id, "scheduled");
     for (const [member, status] of members.map(
       (member, index) => [member, index === 0 ? "present" : "absent"] as const,
@@ -292,7 +292,7 @@ describe("ballot concurrency", () => {
       await meetingPreparationService.recordAttendance(reconvened.id, { memberId: member.id, status });
     }
     await meetingLifecycleService.changeStatus(reconvened.id, "inProgress");
-    const [agendaItem] = await container.cradle.agendaRepository.listForMeeting(reconvened.id);
+    const [agendaItem] = await container.cradle.agendaItemRepository.listForMeeting(reconvened.id);
     await meetingAgendaService.startItem(reconvened.id, agendaItem.id);
     await sqlExecutor.run("attendance.delete", { meetingId: reconvened.id, memberId: members[2].id });
     const command = {

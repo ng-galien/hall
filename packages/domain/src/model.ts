@@ -5,12 +5,11 @@ export type CouncilRole = "mayor" | "deputyMayor" | "councillor";
 export type MeetingStatus = "draft" | "scheduled" | "inProgress" | "closed" | "cancelled";
 export type MinutesStatus = "notStarted" | "draft" | "approved" | "signed" | "published";
 export type AttendanceStatus = "present" | "represented" | "excused" | "absent";
-export type AgendaItemStatus = "scheduled" | "examined" | "postponed" | "withdrawn";
+export type AgendaItemStatus = "scheduled" | "inProgress" | "examined" | "postponed" | "withdrawn";
 export type CouncilDecisionStatus = "draft" | "ready" | "scheduled" | "adopted" | "rejected" | "enforceable";
 export type BallotMethod = "public" | "secret";
 export type BallotResult = "adopted" | "rejected";
 export type VoteChoice = "for" | "against" | "abstain" | "notVoting";
-export type TopicState = "toSchedule" | "scheduled" | "inProgress" | "examined" | "withdrawn";
 export type TemplateKind = "pdf" | "message";
 
 export interface HallSettings {
@@ -64,6 +63,27 @@ export interface CouncilMember {
   active: boolean;
   termStartedOn: string;
   termEndedOn: string | null;
+}
+
+export type CommitteeRole = "chair" | "viceChair" | "member";
+
+export interface CouncilCommittee {
+  id: Identifier;
+  slug: string;
+  name: string;
+  description: string;
+  archivedAt: IsoDateTime | null;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface CommitteeMembership {
+  id: Identifier;
+  committeeId: Identifier;
+  councilMemberId: Identifier;
+  role: CommitteeRole;
+  startedOn: string;
+  endedOn: string | null;
 }
 
 export interface CouncilMeeting {
@@ -138,16 +158,7 @@ export interface TextResource extends ResourceBase {
   content: string;
 }
 
-export type DocumentFormat =
-  | "pdf"
-  | "jpeg"
-  | "png"
-  | "docx"
-  | "odt"
-  | "xlsx"
-  | "pptx"
-  | "txt"
-  | "csv";
+export type DocumentFormat = "pdf" | "jpeg" | "png" | "docx" | "odt" | "xlsx" | "pptx" | "txt" | "csv";
 
 export interface DocumentResource extends ResourceBase {
   kind: "document";
@@ -164,7 +175,7 @@ export type Resource = TextResource | DocumentResource;
 
 export interface AgendaItem {
   id: Identifier;
-  topic: Topic;
+  business: CouncilBusiness;
   meetingId: Identifier;
   position: number;
   /** Point ajouté après l'ouverture : consultable et examinable, mais non soumis au vote. */
@@ -176,33 +187,31 @@ export interface AgendaItem {
   councilDecisionSnapshot: Pick<CouncilDecision, "id" | "title" | "draftText"> | null;
 }
 
-export type Topic = SubjectTopic | MinutesApprovalTopic | OpenQuestionTopic;
+export type CouncilBusiness = CouncilMatter | MinutesApproval | OpenQuestion;
 
-interface TopicBase {
+interface CouncilBusinessBase {
   id: Identifier;
   slug: string;
   title: string;
   report: string;
   folderPath: FolderPath;
   resources: Resource[];
-  state: TopicState;
-  currentMeetingId: Identifier | null;
-  position: number | null;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
 }
 
-export interface SubjectTopic extends TopicBase {
-  kind: "subject";
+export interface CouncilMatter extends CouncilBusinessBase {
+  kind: "matter";
   councilDecisionId: Identifier | null;
+  committeeId: Identifier | null;
 }
 
-export interface MinutesApprovalTopic extends TopicBase {
+export interface MinutesApproval extends CouncilBusinessBase {
   kind: "minutesApproval";
   minutesOfMeetingId: Identifier;
 }
 
-export interface OpenQuestionTopic extends TopicBase {
+export interface OpenQuestion extends CouncilBusinessBase {
   kind: "openQuestion";
 }
 
@@ -268,6 +277,8 @@ export type Ballot = PublicBallot | SecretBallot;
 
 export interface MeetingAggregate {
   meeting: CouncilMeeting;
+  agendaReady: boolean;
+  requiredMinutesOfMeetingId: Identifier | null;
   activeMemberCount: number;
   rosterMemberIds: Identifier[];
   attendance: Attendance[];
@@ -277,20 +288,20 @@ export interface MeetingAggregate {
   quorum: { activeMembers: number; physicallyPresent: number; required: number; reached: boolean };
 }
 
-export interface TopicOccurrence {
+export interface CouncilBusinessOccurrence {
   meeting: CouncilMeeting;
   agendaItem: AgendaItem;
 }
 
-export interface TopicDetails {
-  topic: Topic;
+export interface CouncilBusinessDetails {
+  business: CouncilBusiness;
   councilDecision: CouncilDecision | null;
-  occurrences: TopicOccurrence[];
+  occurrences: CouncilBusinessOccurrence[];
 }
 
 export interface ResourceDetails {
   resource: Resource;
-  topics: Topic[];
+  councilBusiness: CouncilBusiness[];
   snapshotted: boolean;
   usedAsProxy: boolean;
 }

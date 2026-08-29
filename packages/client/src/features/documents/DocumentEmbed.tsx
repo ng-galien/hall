@@ -1,8 +1,8 @@
 import type { DocumentResource } from "@hall/domain";
-import { useDocumentPreview } from "../hooks/useDocumentPreview";
-import { useI18n } from "../i18n/I18nProvider";
+import { FullscreenIcon } from "../../components/icons";
+import { useDocumentPreview } from "../../hooks/useDocumentPreview";
+import { useI18n } from "../../i18n/I18nProvider";
 import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
-import { FullscreenIcon } from "./icons";
 
 /**
  * L'aperçu embarqué d'un document : le PDF ou l'image se lit sur place, dans l'établi,

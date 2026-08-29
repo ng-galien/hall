@@ -2,8 +2,8 @@ import type { Resource } from "@hall/domain";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AddIcon, SearchIcon } from "../../components/icons";
-import { ResourceGlyph, useResourceTypeLabel } from "../../components/ResourceGlyph";
 import { matchesQuery } from "../../components/Ui";
+import { ResourceGlyph, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
 
 function PickerGroup({

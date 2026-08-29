@@ -90,16 +90,16 @@ describe("council meeting invariants", () => {
     const second = await createMember(agent, "Benoît");
     const third = await createMember(agent, "Claire");
     const meeting = await createMeeting(agent);
-    const topic = await agent
-      .post("/api/topics")
+    const business = await agent
+      .post("/api/council-business")
       .send({
-        kind: "subject",
+        kind: "matter",
         title: "Information",
         report: "",
       })
       .expect(201);
     await agent
-      .post(`/api/topics/${domainBody(topic).id}/schedule`)
+      .post(`/api/council-business/${domainBody(business).id}/schedule`)
       .send({ meetingId: meeting.id, position: 1 })
       .expect(201);
     await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
@@ -151,13 +151,15 @@ describe("council meeting invariants", () => {
       })
       .expect(409);
 
-    const lateTopic = await agent
-      .post("/api/topics")
+    const lateBusiness = await agent
+      .post("/api/council-business")
       .send({ kind: "openQuestion", title: "Late information", report: "" })
       .expect(201);
 
     const [lateAgenda, reconvened] = await Promise.all([
-      agent.post(`/api/topics/${domainBody(lateTopic).id}/schedule`).send({ meetingId: meeting.id, position: 2 }),
+      agent
+        .post(`/api/council-business/${domainBody(lateBusiness).id}/schedule`)
+        .send({ meetingId: meeting.id, position: 2 }),
       agent.post(`/api/council-meetings/${meeting.id}/reconvene`).send(reconvenedInput),
     ]);
     expect(lateAgenda.status).toBe(409);
@@ -384,16 +386,16 @@ describe("council meeting invariants", () => {
     const { agent } = await createTestServer();
     const decision = await agent
       .post("/api/council-decisions")
-      .send({ title: "Unique topic decision", draftText: "", legalityReviewRequired: false })
+      .send({ title: "Unique business decision", draftText: "", legalityReviewRequired: false })
       .expect(201);
-    const topic = {
-      kind: "subject",
+    const business = {
+      kind: "matter",
       councilDecisionId: domainBody(decision).id,
-      title: "Unique decision topic",
+      title: "Unique decision business",
       report: "",
     };
-    await agent.post("/api/topics").send(topic).expect(201);
-    const duplicate = await agent.post("/api/topics").send(topic);
+    await agent.post("/api/council-business").send(business).expect(201);
+    const duplicate = await agent.post("/api/council-business").send(business);
     expect(duplicate.status).toBe(409);
     expect(domainBody(duplicate)).toMatchObject({ code: "conflict", status: 409 });
   });

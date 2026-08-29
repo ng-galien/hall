@@ -165,7 +165,7 @@
   }
   .workbench-meta-empty { color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-caption); }
   .workbench-meta .tag-input { min-width: 220px; }
-  .workbench-topic-chip {
+  .workbench-business-chip {
     display: inline-flex;
     align-items: center;
     gap: var(--hall-space-1-5);
@@ -177,7 +177,7 @@
     font-size: var(--hall-font-size-small);
     cursor: pointer;
   }
-  .workbench-topic-chip:hover { border-color: var(--hall-color-brand); color: var(--hall-color-brand); }
+  .workbench-business-chip:hover { border-color: var(--hall-color-brand); color: var(--hall-color-brand); }
 
   /* ---- tags en pastilles (composant commun) ----
      Hauteurs verrouillées : pastilles et champ partagent le même gabarit, la rangée ne
@@ -604,7 +604,7 @@
   .workspace-glyph-csv { color: var(--hall-color-success); background: var(--hall-color-success-surface); }
   .workspace-glyph-presentation { color: var(--hall-color-warning); background: var(--hall-color-warning-surface); }
   .workspace-glyph-file { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); }
-  .workspace-glyph-topic { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); }
+  .workspace-glyph-business { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); }
   .workspace-glyph-decision { color: var(--hall-color-seal); background: var(--hall-color-seal-surface); }
 
   /* ---- sélecteur de ressource ---- */

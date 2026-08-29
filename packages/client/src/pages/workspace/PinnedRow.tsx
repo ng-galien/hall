@@ -1,9 +1,10 @@
-import type { Resource, Topic } from "@hall/domain";
+import type { CouncilBusiness, Resource } from "@hall/domain";
 import { CloseIcon, PinIcon } from "../../components/icons";
-import { ResourceGlyph, TopicGlyph } from "../../components/ResourceGlyph";
+import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
+import { ResourceGlyph } from "../../features/documents/ResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { useTopicsStore } from "../../stores/topicsStore";
 import type { WorkspaceSelection } from "./WorkspacePage";
 import { useWorkspacePrefsStore, type WorkspacePin } from "./workspacePrefs";
 
@@ -17,18 +18,18 @@ export function PinnedRow({
 }) {
   const { t } = useI18n();
   const { pins, togglePin } = useWorkspacePrefsStore();
-  const { topics } = useTopicsStore();
+  const { businesses } = useCouncilBusinessStore();
   const { resources } = useResourcesStore();
 
   interface PinEntry {
     pin: WorkspacePin;
-    topic?: Topic;
+    business?: CouncilBusiness;
     resource?: Resource;
   }
   const entries = pins.flatMap((pin): PinEntry[] => {
-    if (pin.kind === "topic") {
-      const topic = topics.find((candidate) => candidate.id === pin.id);
-      return topic ? [{ pin, topic }] : [];
+    if (pin.kind === "councilBusiness") {
+      const business = businesses.find((candidate) => candidate.id === pin.id);
+      return business ? [{ pin, business }] : [];
     }
     const resource = resources.find((candidate) => candidate.id === pin.id);
     return resource ? [{ pin, resource }] : [];
@@ -39,17 +40,21 @@ export function PinnedRow({
   return (
     <div className="wpins" role="toolbar" aria-label={t("workspace.pinned")}>
       <PinIcon aria-hidden="true" className="app-icon wpins-icon" />
-      {entries.map(({ pin, topic, resource }) => {
-        const title = topic?.title ?? resource?.title ?? "";
+      {entries.map(({ pin, business, resource }) => {
+        const title = business?.title ?? resource?.title ?? "";
         const isActive = selection !== null && selection.kind === pin.kind && selection.id === pin.id;
         return (
           <span className={`wpins-chip${isActive ? " wpins-chip-active" : ""}`} key={`${pin.kind}:${pin.id}`}>
             <button
               className="wpins-open"
               type="button"
-              onClick={() => onSelect(pin, topic?.folderPath ?? resource?.folderPath)}
+              onClick={() => onSelect(pin, business?.folderPath ?? resource?.folderPath)}
             >
-              {topic ? <TopicGlyph topic={topic} /> : resource ? <ResourceGlyph resource={resource} /> : null}
+              {business ? (
+                <CouncilBusinessGlyph business={business} />
+              ) : resource ? (
+                <ResourceGlyph resource={resource} />
+              ) : null}
               <span className="wpins-title">{title}</span>
             </button>
             <button

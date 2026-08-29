@@ -6,8 +6,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useI18n } from "../../i18n/I18nProvider";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { useTopicsStore } from "../../stores/topicsStore";
 import { listAllPaths } from "./paths";
 import { type SaveStatus, useSaveStatusStore } from "./saveStatusStore";
 import type { WorkspaceSelection } from "./WorkspacePage";
@@ -85,10 +85,10 @@ export function WorkspaceBreadcrumb({
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
   const { t } = useI18n();
-  const { topics } = useTopicsStore();
+  const { businesses } = useCouncilBusinessStore();
   const { resources } = useResourcesStore();
   const { pendingPaths } = useWorkspaceOrgStore();
-  const allPaths = listAllPaths(topics, resources, pendingPaths);
+  const allPaths = listAllPaths(businesses, resources, pendingPaths);
   const saveStatus = useSaveStatusStore((state) => state.status);
   const saveStatusLabels: Record<Exclude<SaveStatus, "idle">, string> = {
     dirty: t("workspace.saveDirty"),

@@ -2,13 +2,26 @@ import { isReferenceKind, type ReferenceKind } from "@hall/templating";
 import { Extension, mergeAttributes, Node } from "@tiptap/core";
 import { type NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from "@tiptap/react";
 import { exitSuggestion, Suggestion, type SuggestionProps } from "@tiptap/suggestion";
-import { forwardRef, type ReactNode, useImperativeHandle, useState } from "react";
+import { createContext, forwardRef, type ReactNode, useContext, useImperativeHandle, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type Searchable, searchEntities } from "../../lib/search";
 import { CalendarIcon, FileIcon, GavelIcon, MemberIcon, SearchIcon, TextDocumentIcon } from "../icons";
-import { type ResourceTone, toneIcons } from "../ResourceGlyph";
-import { ResourcePreview } from "../ResourcePreview";
+
+type ResourcePreviewRenderer = (id: string, onClose: () => void) => ReactNode;
+
+const ResourcePreviewContext = createContext<ResourcePreviewRenderer | null>(null);
+
+/** Adaptateur de présentation fourni par l'application ; l'éditeur reste indépendant des ressources Hall. */
+export function ReferencePresentationProvider({
+  renderResourcePreview,
+  children,
+}: {
+  renderResourcePreview: ResourcePreviewRenderer;
+  children: ReactNode;
+}) {
+  return <ResourcePreviewContext.Provider value={renderResourcePreview}>{children}</ResourcePreviewContext.Provider>;
+}
 
 /**
  * Les références métier du contrat `@hall/templating`, dans l'éditeur.
@@ -21,7 +34,7 @@ import { ResourcePreview } from "../ResourcePreview";
 export const referenceIcons: Record<ReferenceKind, typeof MemberIcon> = {
   member: MemberIcon,
   resource: FileIcon,
-  topic: TextDocumentIcon,
+  councilBusiness: TextDocumentIcon,
   decision: GavelIcon,
   meeting: CalendarIcon,
 };
@@ -41,14 +54,15 @@ export function ReferenceBadge({
 }) {
   const { t } = useI18n();
   const [previewing, setPreviewing] = useState(false);
+  const renderResourcePreview = useContext(ResourcePreviewContext);
   const kindLabels: Record<ReferenceKind, string> = {
     member: t("editor.kind.member"),
     resource: t("editor.kind.resource"),
-    topic: t("editor.kind.topic"),
+    councilBusiness: t("editor.kind.councilBusiness"),
     meeting: t("editor.kind.meeting"),
     decision: t("editor.kind.decision"),
   };
-  const openable = kind === "resource" && id !== null;
+  const openable = kind === "resource" && id !== null && renderResourcePreview !== null;
   const className = `editor-reference editor-reference-${kind}`;
   return (
     <>
@@ -67,7 +81,7 @@ export function ReferenceBadge({
           {openable ? ` · ${t("editor.openHint")}` : null}
         </TooltipContent>
       </Tooltip>
-      {previewing && id !== null ? <ResourcePreview slug={id} onClose={() => setPreviewing(false)} /> : null}
+      {previewing && id !== null ? renderResourcePreview?.(id, () => setPreviewing(false)) : null}
     </>
   );
 }
@@ -157,16 +171,16 @@ export const Reference = Node.create({
  * (texte, PDF, image, fichier), la nomenclature commune de l'application.
  */
 export interface Mentionable extends Searchable {
-  tone?: ResourceTone;
+  icon?: typeof MemberIcon;
+  metaLabel?: string;
 }
 
-/** L'icône d'une entité : le type précis pour une pièce, l'espèce pour le reste. */
+/** L'appelant peut préciser l'icône ; sinon l'espèce de référence fournit le repli. */
 export function mentionableIcon(item: Mentionable) {
-  if (item.kind === "resource" && item.tone) return toneIcons[item.tone];
-  return referenceIcons[item.kind];
+  return item.icon ?? referenceIcons[item.kind];
 }
 
-const kindOrder: readonly ReferenceKind[] = ["member", "resource", "topic", "meeting", "decision"];
+const kindOrder: readonly ReferenceKind[] = ["member", "resource", "councilBusiness", "meeting", "decision"];
 
 interface MentionListHandle {
   onKeyDown(event: KeyboardEvent): boolean;
@@ -292,7 +306,7 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
       groupLabels: {
         member: "Membres",
         resource: "Pièces",
-        topic: "Sujets",
+        councilBusiness: "Sujets",
         meeting: "Séances",
         decision: "Délibérations",
       },

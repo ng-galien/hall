@@ -9,13 +9,13 @@ import { AddIcon, CalendarIcon, ChevronRightIcon, LocationIcon } from "../../com
 import {
   CollectionToolbar,
   EmptyState,
-  MeetingStatusBadge,
   Modal,
   matchesQuery,
   PageHeader,
   RequestErrorBanner,
   useCollectionView,
 } from "../../components/Ui";
+import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";

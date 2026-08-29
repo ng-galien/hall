@@ -2,12 +2,19 @@ import { type ApiActionName, findSirenAction, type SirenEntity } from "@hall/api
 import type { CouncilMeeting, MeetingAggregate, MeetingStatus } from "@hall/domain";
 import { useCallback, useEffect, useState } from "react";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
+import {
+  attachCouncilDecision,
+  createCouncilBusiness,
+  detachCouncilDecision,
+  scheduleCouncilBusiness,
+  updateCouncilBusiness,
+} from "../services/councilBusinessApi";
 import { updateCouncilDecision } from "../services/councilDecisionsApi";
 import {
   cancelMeetingBallot,
   changeMeetingStatus,
   completeMeetingAgendaItem,
-  createLateMeetingTopic,
+  createLateMeetingBusiness,
   deleteMeetingAgendaItem,
   getCouncilMeetingSiren,
   type RecordBallotInput,
@@ -21,16 +28,9 @@ import {
   startMeetingAgendaItem,
   updateCouncilMeeting,
 } from "../services/councilMeetingsApi";
-import {
-  attachTopicDecision,
-  createTopic,
-  detachTopicDecision,
-  scheduleTopic,
-  updateTopic,
-} from "../services/topicsApi";
+import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
-import { useTopicsStore } from "../stores/topicsStore";
 
 export function useCouncilMeeting(meetingId: string) {
   const [meeting, setMeeting] = useState<MeetingAggregate | null>(null);
@@ -92,61 +92,73 @@ export function useCouncilMeeting(meetingId: string) {
         return false;
       }
     },
-    async scheduleTopic(topicId: string, position: number) {
+    async scheduleCouncilBusiness(businessId: string, position: number) {
       setActionError(null);
       try {
-        await scheduleTopic(topicId, meetingId, position);
-        await Promise.all([load(), useTopicsStore.getState().load()]);
+        await scheduleCouncilBusiness(businessId, meetingId, position);
+        await Promise.all([load(), useCouncilBusinessStore.getState().load()]);
         return true;
       } catch (actionFailure) {
         setActionError(apiErrorCode(actionFailure));
         return false;
       }
     },
-    async createAndScheduleTopic(input: Record<string, unknown>, position: number) {
+    async createAndScheduleBusiness(input: Record<string, unknown>, position: number) {
       setActionError(null);
       try {
         if (meeting?.meeting.status === "inProgress") {
-          await createLateMeetingTopic(meetingId, input);
+          await createLateMeetingBusiness(meetingId, input);
         } else {
-          const topic = await createTopic(input);
-          await scheduleTopic(topic.id, meetingId, position);
+          const business = await createCouncilBusiness(input);
+          await scheduleCouncilBusiness(business.id, meetingId, position);
         }
-        await Promise.all([load(), useTopicsStore.getState().load()]);
+        await Promise.all([load(), useCouncilBusinessStore.getState().load()]);
         return true;
       } catch (actionFailure) {
         setActionError(apiErrorCode(actionFailure));
-        await Promise.all([load(), useTopicsStore.getState().load()]);
+        await Promise.all([load(), useCouncilBusinessStore.getState().load()]);
         return false;
       }
     },
-    async updateTopic(topicId: string, input: Record<string, unknown>) {
+    async updateCouncilBusiness(businessId: string, input: Record<string, unknown>) {
       setActionError(null);
       try {
-        await updateTopic(topicId, input);
-        await Promise.all([load(), useTopicsStore.getState().load(), useCouncilDecisionsStore.getState().load()]);
-        return true;
-      } catch (actionFailure) {
-        setActionError(apiErrorCode(actionFailure));
-        return false;
-      }
-    },
-    async attachTopicDecision(topicId: string, draftText: string) {
-      setActionError(null);
-      try {
-        await attachTopicDecision(topicId, draftText);
-        await Promise.all([load(), useTopicsStore.getState().load(), useCouncilDecisionsStore.getState().load()]);
+        await updateCouncilBusiness(businessId, input);
+        await Promise.all([
+          load(),
+          useCouncilBusinessStore.getState().load(),
+          useCouncilDecisionsStore.getState().load(),
+        ]);
         return true;
       } catch (actionFailure) {
         setActionError(apiErrorCode(actionFailure));
         return false;
       }
     },
-    async detachTopicDecision(topicId: string) {
+    async attachCouncilDecision(businessId: string, draftText: string) {
       setActionError(null);
       try {
-        await detachTopicDecision(topicId);
-        await Promise.all([load(), useTopicsStore.getState().load(), useCouncilDecisionsStore.getState().load()]);
+        await attachCouncilDecision(businessId, draftText);
+        await Promise.all([
+          load(),
+          useCouncilBusinessStore.getState().load(),
+          useCouncilDecisionsStore.getState().load(),
+        ]);
+        return true;
+      } catch (actionFailure) {
+        setActionError(apiErrorCode(actionFailure));
+        return false;
+      }
+    },
+    async detachCouncilDecision(businessId: string) {
+      setActionError(null);
+      try {
+        await detachCouncilDecision(businessId);
+        await Promise.all([
+          load(),
+          useCouncilBusinessStore.getState().load(),
+          useCouncilDecisionsStore.getState().load(),
+        ]);
         return true;
       } catch (actionFailure) {
         setActionError(apiErrorCode(actionFailure));
@@ -168,7 +180,7 @@ export function useCouncilMeeting(meetingId: string) {
       setActionError(null);
       try {
         await deleteMeetingAgendaItem(meetingId, itemId);
-        await Promise.all([load(), useTopicsStore.getState().load()]);
+        await Promise.all([load(), useCouncilBusinessStore.getState().load()]);
         return true;
       } catch (actionFailure) {
         setActionError(apiErrorCode(actionFailure));
@@ -212,7 +224,7 @@ export function useCouncilMeeting(meetingId: string) {
       setActionError(null);
       try {
         await completeMeetingAgendaItem(meetingId, itemId, input);
-        await Promise.all([load(), useTopicsStore.getState().load()]);
+        await Promise.all([load(), useCouncilBusinessStore.getState().load()]);
         return true;
       } catch (actionFailure) {
         setActionError(apiErrorCode(actionFailure));

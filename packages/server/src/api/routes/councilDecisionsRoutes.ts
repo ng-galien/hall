@@ -2,20 +2,26 @@ import { createCouncilDecisionSchema, updateCouncilDecisionSchema } from "@hall/
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
 import { requireAnyPermission, requirePermission } from "../../security/authorization.js";
+import { decisionContentIsFrozen } from "../../services/councilDecisionContentPolicy.js";
 import { DomainError } from "../../services/errors.js";
-import { decisionContentIsFrozen } from "../../services/meetingContentPolicy.js";
 import { routeParameter } from "../routeParameter.js";
 
 export function createCouncilDecisionsRouter({
   councilDecisionRepository,
   councilMeetingRepository,
-  topicRepository,
+  councilBusinessRepository,
+  agendaItemRepository,
   unitOfWork,
 }: Cradle): Router {
   const router = Router();
   const withEditability = async <T extends { id: string }>(decision: T) => ({
     ...decision,
-    contentEditable: !(await decisionContentIsFrozen(decision.id, topicRepository, councilMeetingRepository)),
+    contentEditable: !(await decisionContentIsFrozen(
+      decision.id,
+      councilBusinessRepository,
+      agendaItemRepository,
+      councilMeetingRepository,
+    )),
   });
   router.get("/", requireAnyPermission("workspace.read", "meetings.read"), async (_request, response) => {
     response.json(await Promise.all((await councilDecisionRepository.list()).map(withEditability)));
@@ -39,7 +45,14 @@ export function createCouncilDecisionsRouter({
         if (!["draft", "ready", "scheduled"].includes(decision.status)) {
           throw new DomainError("ballot_already_recorded", 409);
         }
-        if (await decisionContentIsFrozen(decision.id, topicRepository, councilMeetingRepository)) {
+        if (
+          await decisionContentIsFrozen(
+            decision.id,
+            councilBusinessRepository,
+            agendaItemRepository,
+            councilMeetingRepository,
+          )
+        ) {
           throw new DomainError("agenda_inconsistent", 409);
         }
         return withEditability(await councilDecisionRepository.update(decision.id, input));

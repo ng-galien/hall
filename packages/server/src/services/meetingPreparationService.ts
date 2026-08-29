@@ -4,27 +4,27 @@ import {
   type CouncilMeeting,
   type MeetingStatus,
   transitionCouncilDecision,
-  transitionTopic,
 } from "@hall/domain";
 import type {
-  AgendaRepository,
+  AgendaItemRepository,
   AttendanceRepository,
+  CouncilBusinessRepository,
   CouncilDecisionRepository,
   CouncilMeetingRepository,
-  CreateTopic,
+  CreateCouncilBusiness,
   MeetingRosterRepository,
   RecordAttendance,
   ResourceRepository,
-  TopicRepository,
   UnitOfWork,
 } from "../repositories/contracts.js";
+import { agendaReadiness, isPartialAgendaValid, normalizedAgendaItemIds } from "./agendaOrderPolicy.js";
 import { DomainError } from "./errors.js";
 import { requireMeeting } from "./meetingContext.js";
 
 export interface MeetingPreparationService {
   recordAttendance(meetingId: string, input: RecordAttendance): Promise<Attendance>;
-  scheduleTopic(meetingId: string, topicId: string, position: number): Promise<AgendaItem>;
-  createLateTopic(meetingId: string, input: CreateTopic): Promise<AgendaItem>;
+  scheduleBusiness(meetingId: string, businessId: string, position: number): Promise<AgendaItem>;
+  createLateBusiness(meetingId: string, input: CreateCouncilBusiness): Promise<AgendaItem>;
   removeAgendaItem(meetingId: string, itemId: string): Promise<void>;
   reorderAgenda(meetingId: string, itemIds: string[]): Promise<void>;
   setOfficers(meetingId: string, chairMemberId: string, secretaryMemberId: string): Promise<CouncilMeeting>;
@@ -35,18 +35,18 @@ export function createMeetingPreparationService({
   meetingRosterRepository,
   attendanceRepository,
   councilDecisionRepository,
-  agendaRepository,
+  agendaItemRepository,
   resourceRepository,
-  topicRepository,
+  councilBusinessRepository,
   unitOfWork,
 }: {
   councilMeetingRepository: CouncilMeetingRepository;
   meetingRosterRepository: MeetingRosterRepository;
   attendanceRepository: AttendanceRepository;
   councilDecisionRepository: CouncilDecisionRepository;
-  agendaRepository: AgendaRepository;
+  agendaItemRepository: AgendaItemRepository;
   resourceRepository: ResourceRepository;
-  topicRepository: TopicRepository;
+  councilBusinessRepository: CouncilBusinessRepository;
   unitOfWork: UnitOfWork;
 }): MeetingPreparationService {
   const requireComposableMeeting = async (meetingId: string) => {
@@ -61,27 +61,52 @@ export function createMeetingPreparationService({
     return meeting;
   };
 
-  const scheduleExistingTopic = async (
+  const scheduleExistingBusiness = async (
     meetingId: string,
-    topicId: string,
+    businessId: string,
     position: number,
     addedDuringSession = false,
   ) => {
-    const topic = await topicRepository.find(topicId);
-    if (!topic) throw new DomainError("topic_not_found", 404);
-    if (transitionTopic(topic.state, { type: "SCHEDULE" }) !== "scheduled") {
+    const business = await councilBusinessRepository.find(businessId);
+    if (!business) throw new DomainError("council_business_not_found", 404);
+    const openOccurrence = (await agendaItemRepository.listForBusiness(business.id)).find((item) =>
+      ["scheduled", "inProgress"].includes(item.status),
+    );
+    if (openOccurrence) {
       throw new DomainError("agenda_inconsistent", 409);
     }
-    if (topic.kind === "subject" && topic.councilDecisionId) {
-      const decision = await councilDecisionRepository.find(topic.councilDecisionId);
+    const currentAgenda = await agendaItemRepository.listForMeeting(meetingId);
+    if (business.kind === "minutesApproval") {
+      const meeting = await requireMeeting(councilMeetingRepository, meetingId);
+      const readiness = agendaReadiness(meeting, currentAgenda, await councilMeetingRepository.list());
+      if (
+        !readiness.requiredMinutesOfMeetingId ||
+        business.minutesOfMeetingId !== readiness.requiredMinutesOfMeetingId ||
+        currentAgenda.some((item) => item.business.kind === "minutesApproval")
+      ) {
+        throw new DomainError("agenda_order_invalid", 409);
+      }
+    }
+    if (business.kind === "matter" && business.councilDecisionId) {
+      const decision = await councilDecisionRepository.find(business.councilDecisionId);
       if (!decision) throw new DomainError("agenda_inconsistent", 409);
       const nextDecisionStatus = transitionCouncilDecision(decision.status, { type: "SCHEDULE" });
       if (nextDecisionStatus !== "scheduled") throw new DomainError("agenda_inconsistent", 409);
       await councilDecisionRepository.setStatus(decision.id, nextDecisionStatus);
     }
-    const item = await agendaRepository.create(meetingId, { topicId: topic.id, position, addedDuringSession });
-    await topicRepository.schedule(topic.id, meetingId, position);
-    return item;
+    const appendedPosition = Math.max(0, ...currentAgenda.map((item) => item.position)) + 1;
+    const created = await agendaItemRepository.create(meetingId, {
+      businessId: business.id,
+      position: appendedPosition,
+      addedDuringSession,
+    });
+    const preferredAgenda = [...currentAgenda];
+    preferredAgenda.splice(Math.max(0, Math.min(position - 1, preferredAgenda.length)), 0, created);
+    const normalizedIds = normalizedAgendaItemIds(
+      preferredAgenda.map((item, index) => ({ ...item, position: index + 1 })),
+    );
+    await agendaItemRepository.reorder(meetingId, normalizedIds);
+    return (await agendaItemRepository.find(meetingId, created.id))!;
   };
   return {
     async recordAttendance(meetingId, input) {
@@ -115,15 +140,15 @@ export function createMeetingPreparationService({
         return result.attendance;
       });
     },
-    async scheduleTopic(meetingId, topicId, position) {
+    async scheduleBusiness(meetingId, businessId, position) {
       return unitOfWork.execute(async () => {
         const meeting = await requireComposableMeeting(meetingId);
-        return scheduleExistingTopic(meeting.id, topicId, position);
+        return scheduleExistingBusiness(meeting.id, businessId, position);
       });
     },
-    async createLateTopic(meetingId, input) {
+    async createLateBusiness(meetingId, input) {
       return unitOfWork.execute(async () => {
-        if (input.kind === "minutesApproval" || (input.kind === "subject" && Boolean(input.councilDecisionId))) {
+        if (input.kind === "minutesApproval" || (input.kind === "matter" && Boolean(input.councilDecisionId))) {
           throw new DomainError("invalid_request");
         }
         const meeting = await requireMeeting(councilMeetingRepository, meetingId);
@@ -134,30 +159,42 @@ export function createMeetingPreparationService({
         for (const resourceId of input.resourceIds) {
           if (!(await resourceRepository.findMetadata(resourceId))) throw new DomainError("resource_not_found", 404);
         }
-        const topic = await topicRepository.create(input);
-        const position = Math.max(0, ...(await agendaRepository.listForMeeting(id)).map((item) => item.position)) + 1;
-        return scheduleExistingTopic(id, topic.id, position, true);
+        const currentAgenda = await agendaItemRepository.listForMeeting(id);
+        if (
+          input.kind === "matter" &&
+          currentAgenda.some((item) => item.business.kind === "openQuestion" && item.startedAt)
+        ) {
+          throw new DomainError("agenda_order_invalid", 409);
+        }
+        const business = await councilBusinessRepository.create(input);
+        const position = Math.max(0, ...currentAgenda.map((item) => item.position)) + 1;
+        return scheduleExistingBusiness(id, business.id, position, true);
       });
     },
     async removeAgendaItem(meetingId, itemId) {
       return unitOfWork.execute(async () => {
         const meeting = await requireComposableMeeting(meetingId);
         const id = meeting.id;
-        const item = await agendaRepository.find(id, itemId);
+        const item = await agendaItemRepository.find(id, itemId);
         if (!item) throw new DomainError("agenda_item_not_found", 404);
-        const topic = item.topic;
-        if (transitionTopic(topic.state, { type: "UNSCHEDULE" }) !== "toSchedule") {
+        if (item.status !== "scheduled") {
           throw new DomainError("agenda_inconsistent", 409);
         }
-        await topicRepository.setState(topic.id, "toSchedule");
-        if (topic.kind === "subject" && topic.councilDecisionId) {
-          const decision = await councilDecisionRepository.find(topic.councilDecisionId);
+        const business = item.business;
+        if (business.kind === "matter" && business.councilDecisionId) {
+          const decision = await councilDecisionRepository.find(business.councilDecisionId);
           const next = decision ? transitionCouncilDecision(decision.status, { type: "RETURN_TO_PREPARATION" }) : null;
           if (decision && next) await councilDecisionRepository.setStatus(decision.id, next);
         }
-        await agendaRepository.remove(id, itemId);
-        const remaining = await agendaRepository.listForMeeting(id);
-        await agendaRepository.reorder(
+        await agendaItemRepository.remove(id, itemId);
+        const remaining = await agendaItemRepository.listForMeeting(id);
+        if (
+          meeting.status === "scheduled" &&
+          !agendaReadiness(meeting, remaining, await councilMeetingRepository.list()).agendaReady
+        ) {
+          throw new DomainError("minutes_approval_required", 409);
+        }
+        await agendaItemRepository.reorder(
           id,
           remaining.map((item) => item.id),
         );
@@ -167,7 +204,7 @@ export function createMeetingPreparationService({
       return unitOfWork.execute(async () => {
         const meeting = await requireComposableMeeting(meetingId);
         const id = meeting.id;
-        const agenda = await agendaRepository.listForMeeting(id);
+        const agenda = await agendaItemRepository.listForMeeting(id);
         const knownIds = new Set(agenda.map((item) => item.id));
         const uniqueIds = new Set(itemIds);
         if (
@@ -177,12 +214,15 @@ export function createMeetingPreparationService({
         ) {
           throw new DomainError("agenda_inconsistent", 409);
         }
-        await agendaRepository.reorder(id, itemIds);
-        const byId = new Map(agenda.map((item) => [item.id, item]));
-        for (const [index, itemId] of itemIds.entries()) {
-          const topicId = byId.get(itemId)?.topic.id;
-          if (topicId) await topicRepository.setPosition(topicId, index + 1);
+        const orderedAgenda = itemIds.map((itemId) => agenda.find((item) => item.id === itemId)!);
+        if (!isPartialAgendaValid(orderedAgenda)) throw new DomainError("agenda_order_invalid", 409);
+        if (
+          meeting.status === "scheduled" &&
+          !agendaReadiness(meeting, orderedAgenda, await councilMeetingRepository.list()).agendaReady
+        ) {
+          throw new DomainError("minutes_approval_required", 409);
         }
+        await agendaItemRepository.reorder(id, itemIds);
       });
     },
     async setOfficers(meetingId, chairMemberId, secretaryMemberId) {

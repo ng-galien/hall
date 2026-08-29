@@ -19,7 +19,7 @@ export interface Searchable {
   /** Champs secondaires où la requête porte aussi : numéro, nom de fichier, rôle… */
   extra?: readonly (string | null | undefined)[];
   folderPath?: string;
-  /** État d'un sujet, pour la facette `état:`. */
+  /** État facultatif d'une entité dotée d'un cycle de vie, pour la facette `état:`. */
   state?: string;
 }
 
@@ -42,9 +42,10 @@ const kindAliases: Record<string, SearchableKind> = {
   doc: "resource",
   document: "resource",
   resource: "resource",
-  s: "topic",
-  sujet: "topic",
-  topic: "topic",
+  s: "councilBusiness",
+  sujet: "councilBusiness",
+  subject: "councilBusiness",
+  topic: "councilBusiness",
   seance: "meeting",
   meeting: "meeting",
   d: "decision",
@@ -56,7 +57,7 @@ const kindAliases: Record<string, SearchableKind> = {
 const folderKeys = new Set(["dossier", "chemin", "folder"]);
 const stateKeys = new Set(["etat", "state"]);
 
-/* Les valeurs de la facette `état:`, alignées sur les états des sujets. */
+/* Les valeurs canoniques les plus courantes de la facette `état:`. */
 const stateAliases: Record<string, string> = {
   "a-planifier": "toSchedule",
   aplanifier: "toSchedule",
@@ -70,7 +71,7 @@ const stateAliases: Record<string, string> = {
 /** Les préfixes à enseigner à l'utilisateur, dans la langue de l'interface. */
 export const searchFacetTokens: Record<"fr" | "en", readonly string[]> = {
   fr: ["membre:", "doc:", "sujet:", "séance:", "délib:", "dossier:", "état:"],
-  en: ["member:", "doc:", "topic:", "meeting:", "decision:", "folder:", "state:"],
+  en: ["member:", "doc:", "subject:", "meeting:", "decision:", "folder:", "state:"],
 };
 
 export interface ParsedQuery {

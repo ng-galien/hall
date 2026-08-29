@@ -6,7 +6,7 @@ export interface NavigationItem {
   to: string;
   labelKey: TranslationKey;
   icon: ReactNode;
-  countKey?: "meetings" | "topics" | "councilDecisions" | "resources" | "members";
+  countKey?: "meetings" | "councilBusiness" | "councilDecisions" | "resources" | "members";
   /** Affiche l'arborescence des chemins de classement sous l'entrée. */
   workspaceTree?: boolean;
 }

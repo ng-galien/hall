@@ -3,18 +3,18 @@ import { Link } from "react-router-dom";
 import { AgendaIcon, DecisionsIcon, FileIcon, WorkspaceIcon } from "../components/icons";
 import { PageHeader } from "../components/Ui";
 import { useI18n } from "../i18n/I18nProvider";
+import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useResourcesStore } from "../stores/resourcesStore";
-import { useTopicsStore } from "../stores/topicsStore";
 
 export function DashboardPage() {
   const { t, formatDate, formatNumber } = useI18n();
   const { meetings, error: meetingsError } = useCouncilMeetingsStore();
-  const { topics, error: topicsError } = useTopicsStore();
+  const { businesses, error: councilBusinessError } = useCouncilBusinessStore();
   const { councilDecisions, error: decisionsError } = useCouncilDecisionsStore();
   const { resources, error: resourcesError } = useResourcesStore();
-  const error = meetingsError || topicsError || decisionsError || resourcesError;
+  const error = meetingsError || councilBusinessError || decisionsError || resourcesError;
   const nextMeeting = [...meetings]
     .filter((item) => new Date(item.startsAt) >= new Date())
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
@@ -33,8 +33,8 @@ export function DashboardPage() {
           />
           <Metric
             icon={<WorkspaceIcon />}
-            value={formatNumber(topics.filter((topic) => ["toSchedule", "scheduled"].includes(topic.state)).length)}
-            label={t("dashboard.activeTopics")}
+            value={formatNumber(businesses.length)}
+            label={t("dashboard.councilBusinessCount")}
             detail={t("dashboard.preparationAndTracking")}
             to="/workspace"
           />

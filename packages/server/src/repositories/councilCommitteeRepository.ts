@@ -1,0 +1,68 @@
+import { randomUUID } from "node:crypto";
+import type { CouncilCommittee } from "@hall/domain";
+import type { SqlExecutor } from "../infrastructure/database/executor.js";
+import type { CouncilCommitteeRepository } from "./contracts.js";
+import { uniqueSlug } from "./publicIdentifiers.js";
+import { asNullableString, type DatabaseRow } from "./row.js";
+
+const mapCouncilCommittee = (row: DatabaseRow): CouncilCommittee => ({
+  id: String(row.id),
+  slug: String(row.slug),
+  name: String(row.name),
+  description: String(row.description),
+  archivedAt: asNullableString(row.archived_at),
+  createdAt: String(row.created_at),
+  updatedAt: String(row.updated_at),
+});
+
+export function createCouncilCommitteeRepository({
+  sqlExecutor,
+}: {
+  sqlExecutor: SqlExecutor;
+}): CouncilCommitteeRepository {
+  const read = async (reference: string) => {
+    const row = await sqlExecutor.get("committee.find", { reference });
+    return row ? mapCouncilCommittee(row) : null;
+  };
+  return {
+    list(options = {}) {
+      return sqlExecutor
+        .all("committee.list", { includeArchived: options.includeArchived ?? false })
+        .then((rows) => rows.map(mapCouncilCommittee));
+    },
+    find: read,
+    create(input) {
+      return sqlExecutor.execute(async () => {
+        const id = randomUUID();
+        const now = new Date().toISOString();
+        const slug = await uniqueSlug(sqlExecutor, "committee.slugExists", input.name);
+        await sqlExecutor.run("committee.insert", {
+          id,
+          slug,
+          name: input.name,
+          description: input.description,
+          createdAt: now,
+          updatedAt: now,
+        });
+        return (await read(id))!;
+      });
+    },
+    update(id, input) {
+      return sqlExecutor.execute(async () => {
+        await sqlExecutor.run("committee.update", {
+          id,
+          name: input.name,
+          description: input.description,
+          updatedAt: new Date().toISOString(),
+        });
+        return (await read(id))!;
+      });
+    },
+    archive(id, archivedAt) {
+      return sqlExecutor.execute(async () => {
+        await sqlExecutor.run("committee.archive", { id, archivedAt });
+        return (await read(id))!;
+      });
+    },
+  };
+}

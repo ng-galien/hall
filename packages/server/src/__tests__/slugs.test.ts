@@ -13,7 +13,7 @@ function selfHref(response: { body: { links?: Array<{ rel: string[]; href: strin
 }
 
 describe("public slugs and business numbering", () => {
-  it("creates readable meeting, topic, decision and resource slugs and resolves their canonical URLs", async () => {
+  it("creates readable meeting, business, decision and resource slugs and resolves their canonical URLs", async () => {
     const { rawAgent } = await createTestServer();
 
     const meeting = await rawAgent
@@ -52,19 +52,19 @@ describe("public slugs and business numbering", () => {
       .expect(201);
     expect(properties(uuidTitleResource)).toMatchObject({ slug: `${createdResource.id}-2` });
 
-    const topic = await rawAgent
-      .post("/api/topics")
+    const business = await rawAgent
+      .post("/api/council-business")
       .send({
-        kind: "subject",
+        kind: "matter",
         title: "Éclairage public",
         report: "Rapport",
         folderPath: "conseil",
         resourceIds: [],
       })
       .expect(201);
-    expect(properties(topic)).toMatchObject({ slug: "eclairage-public" });
-    expect(selfHref(topic)).toBe("/api/topics/eclairage-public");
-    await rawAgent.get(selfHref(topic)).expect(200);
+    expect(properties(business)).toMatchObject({ slug: "eclairage-public" });
+    expect(selfHref(business)).toBe("/api/council-business/eclairage-public");
+    await rawAgent.get(selfHref(business)).expect(200);
 
     const decision = await rawAgent
       .post("/api/council-decisions")
@@ -104,11 +104,11 @@ describe("public slugs and business numbering", () => {
         .send({ title: "Subventions aux associations", draftText: "Texte", legalityReviewRequired: true })
         .expect(201),
     );
-    const topic = properties<{ id: string }>(
+    const business = properties<{ id: string }>(
       await rawAgent
-        .post("/api/topics")
+        .post("/api/council-business")
         .send({
-          kind: "subject",
+          kind: "matter",
           councilDecisionId: decision.id,
           title: "Subventions aux associations",
           report: "Rapport",
@@ -130,7 +130,7 @@ describe("public slugs and business numbering", () => {
         .expect(201),
     );
     const scheduledItem = await rawAgent
-      .post(`/api/topics/${topic.id}/schedule`)
+      .post(`/api/council-business/${business.id}/schedule`)
       .send({ meetingId: meeting.id, position: 1 })
       .expect(201);
     const item = properties<{ id: string }>(scheduledItem);

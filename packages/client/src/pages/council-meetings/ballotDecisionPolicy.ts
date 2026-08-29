@@ -3,7 +3,7 @@ import type { AgendaItem, CouncilDecision, MeetingAggregate } from "@hall/domain
 const finalDecisionStatuses = new Set<CouncilDecision["status"]>(["adopted", "rejected"]);
 
 export function agendaItemDecisionId(item: AgendaItem): string | null {
-  return item.topic.kind === "subject" ? item.topic.councilDecisionId : null;
+  return item.business.kind === "matter" ? item.business.councilDecisionId : null;
 }
 
 export function pendingBallotDecisions(aggregate: MeetingAggregate): CouncilDecision[] {

@@ -1,13 +1,10 @@
-import type { Topic } from "@hall/domain";
 import { useMemo, useState } from "react";
 import { FolderIcon } from "../../components/icons";
-import { TopicGlyph } from "../../components/ResourceGlyph";
-import { StatusBadge } from "../../components/Ui";
+import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
+import { councilBusinessKindKeys } from "../../features/council-business/presentation";
 import { useI18n } from "../../i18n/I18nProvider";
-import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { useTopicsStore } from "../../stores/topicsStore";
-import { topicKindKeys } from "../council-meetings/AgendaComposer";
 import { buildPathTree } from "./paths";
 import type { WorkspaceSelection } from "./WorkspacePage";
 
@@ -17,20 +14,16 @@ const FOLDER_LIMIT = 10;
 /** Accueil de l'espace de travail : derniers sujets travaillés, dossiers par volume. */
 export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelection, path?: string): void }) {
   const { t, formatNumber, formatDate } = useI18n();
-  const { topics } = useTopicsStore();
+  const { businesses } = useCouncilBusinessStore();
   const { resources } = useResourcesStore();
-  const { meetings } = useCouncilMeetingsStore();
   const [allFolders, setAllFolders] = useState(false);
 
-  const recentTopics = useMemo(
-    () => [...topics].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)).slice(0, RECENT_LIMIT),
-    [topics],
+  const recentBusinesses = useMemo(
+    () => [...businesses].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)).slice(0, RECENT_LIMIT),
+    [businesses],
   );
-  const folders = useMemo(() => buildPathTree(topics, resources), [topics, resources]);
+  const folders = useMemo(() => buildPathTree(businesses, resources), [businesses, resources]);
   const visibleFolders = allFolders ? folders : folders.slice(0, FOLDER_LIMIT);
-
-  const meetingChip = (topic: Topic) =>
-    topic.currentMeetingId ? (meetings.find((meeting) => meeting.id === topic.currentMeetingId)?.title ?? null) : null;
 
   return (
     <div className="whome">
@@ -38,28 +31,27 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
         <div className="whome-heading">
           <h2 id="whome-recent">{t("workspace.recentSubjects")}</h2>
         </div>
-        {recentTopics.length === 0 ? (
+        {recentBusinesses.length === 0 ? (
           <p className="workspace-list-empty">{t("workspace.emptyBench")}</p>
         ) : (
           <div className="whome-cards">
-            {recentTopics.map((topic) => (
+            {recentBusinesses.map((business) => (
               <button
                 className="whome-card"
                 type="button"
-                key={topic.id}
-                onClick={() => onSelect({ kind: "topic", id: topic.id }, topic.folderPath)}
+                key={business.id}
+                onClick={() => onSelect({ kind: "councilBusiness", id: business.id }, business.folderPath)}
               >
                 <div className="whome-card-head">
-                  <TopicGlyph topic={topic} />
-                  <StatusBadge value={topic.state} />
+                  <CouncilBusinessGlyph business={business} />
                 </div>
-                <strong>{topic.title}</strong>
+                <strong>{business.title}</strong>
                 <span className="whome-card-meta">
-                  {t(topicKindKeys[topic.kind])}
-                  {topic.folderPath ? ` · ${topic.folderPath}` : ""}
+                  {t(councilBusinessKindKeys[business.kind])}
+                  {business.folderPath ? ` · ${business.folderPath}` : ""}
                 </span>
                 <span className="whome-card-foot">
-                  {meetingChip(topic) ?? t("workspace.updatedOn").replace("{date}", formatDate(topic.updatedAt))}
+                  {t("workspace.updatedOn").replace("{date}", formatDate(business.updatedAt))}
                 </span>
               </button>
             ))}

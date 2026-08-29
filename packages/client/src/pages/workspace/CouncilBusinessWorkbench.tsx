@@ -1,5 +1,5 @@
 import { findSirenAction, type SirenEntity } from "@hall/api-contract";
-import type { DocumentResource, Topic, TopicDetails } from "@hall/domain";
+import type { CouncilBusiness, CouncilBusinessDetails, DocumentResource } from "@hall/domain";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { useMentionables } from "../../components/editor/useMentionables";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -22,76 +21,83 @@ import {
   PinnedIcon,
 } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
-import { ResourceGlyph, useResourceTypeLabel } from "../../components/ResourceGlyph";
-import { MeetingStatusBadge, RequestErrorBanner, StatusBadge } from "../../components/Ui";
+import { RequestErrorBanner } from "../../components/Ui";
+import { councilBusinessKindKeys } from "../../features/council-business/presentation";
+import { ResourceGlyph, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
+import { MeetingStatusBadge, StatusBadge } from "../../features/status/DomainStatusBadge";
+import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import {
+  attachCouncilDecision,
+  detachCouncilDecision,
+  getCouncilBusinessDetailsSiren,
+  scheduleCouncilBusiness,
+  updateCouncilBusiness,
+} from "../../services/councilBusinessApi";
 import { updateCouncilDecision } from "../../services/councilDecisionsApi";
 import { deleteMeetingAgendaItem, getCouncilMeeting } from "../../services/councilMeetingsApi";
-import {
-  attachTopicDecision,
-  detachTopicDecision,
-  getTopicDetailsSiren,
-  scheduleTopic,
-  updateTopic,
-} from "../../services/topicsApi";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { useTopicsStore } from "../../stores/topicsStore";
-import { topicKindKeys } from "../council-meetings/AgendaComposer";
 import { MeetingDocumentViewer } from "../council-meetings/MeetingDocumentViewer";
 import { ResourcePicker } from "./ResourcePicker";
 import type { WorkspaceSelection } from "./WorkspacePage";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 
-export function TopicWorkbench({
-  topic,
+export function CouncilBusinessWorkbench({
+  business,
   onSelect,
 }: {
-  topic: Topic;
+  business: CouncilBusiness;
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
-  const mentionables = useMentionables();
+  const mentionables = useReferenceMentionables();
   const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const { resources, download } = useResourcesStore();
   const { meetings } = useCouncilMeetingsStore();
   const typeLabel = useResourceTypeLabel();
-  const [details, setDetails] = useState<TopicDetails | null>(null);
+  const [details, setDetails] = useState<CouncilBusinessDetails | null>(null);
   const [representation, setRepresentation] = useState<SirenEntity<Record<string, unknown>> | null>(null);
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
-  const [title, setTitle] = useState(topic.title);
-  const [report, setReport] = useState(topic.report);
+  const [title, setTitle] = useState(business.title);
+  const [report, setReport] = useState(business.report);
   const [draftText, setDraftText] = useState("");
   const [meetingChoice, setMeetingChoice] = useState("");
   const [viewedDocument, setViewedDocument] = useState<DocumentResource | null>(null);
   const titleFieldId = useId();
   const can = (
-    name: "topic.update" | "topic.schedule" | "topic.attach-decision" | "topic.detach-decision" | "agenda-item.remove",
+    name:
+      | "council-business.update"
+      | "council-business.schedule"
+      | "council-business.attach-decision"
+      | "council-business.detach-decision"
+      | "agenda-item.remove",
   ) => Boolean(representation && findSirenAction(representation, name));
-  const editable = can("topic.update");
+  const editable = can("council-business.update");
   const { isPinned, togglePin } = useWorkspacePrefsStore();
-  const pinned = isPinned({ kind: "topic", id: topic.id });
+  const pinned = isPinned({ kind: "councilBusiness", id: business.id });
 
   const reloadStores = () =>
     Promise.all([
-      useTopicsStore.getState().load(),
+      useCouncilBusinessStore.getState().load(),
       useCouncilDecisionsStore.getState().load(),
       useResourcesStore.getState().load(),
     ]);
 
   const refreshDetails = useCallback(async () => {
     try {
-      const fresh = await getTopicDetailsSiren(topic.id);
+      const fresh = await getCouncilBusinessDetailsSiren(business.id);
       setDetails(fresh.data);
       setRepresentation(fresh.representation);
       setDraftText(fresh.data.councilDecision?.draftText ?? "");
     } catch (failure) {
       setActionError(apiErrorCode(failure));
     }
-  }, [topic.id]);
+  }, [business.id]);
 
   useEffect(() => {
     void refreshDetails();
@@ -110,74 +116,79 @@ export function TopicWorkbench({
       }
     });
 
-  const topicPayload = (overrides: Partial<{ title: string; report: string; resourceIds: string[] }>) => ({
-    title: overrides.title ?? topic.title,
-    report: overrides.report ?? topic.report,
-    folderPath: topic.folderPath,
-    resourceIds: overrides.resourceIds ?? topic.resources.map((resource) => resource.id),
+  const businessPayload = (overrides: Partial<{ title: string; report: string; resourceIds: string[] }>) => ({
+    title: overrides.title ?? business.title,
+    report: overrides.report ?? business.report,
+    folderPath: business.folderPath,
+    resourceIds: overrides.resourceIds ?? business.resources.map((resource) => resource.id),
   });
 
   const decision = details?.councilDecision ?? null;
-  const infoDirty = title !== topic.title || report !== topic.report;
+  const businessDirty = title !== business.title || report !== business.report;
   const decisionDirty = decision ? draftText !== decision.draftText : false;
 
   const saveInfo = () =>
     act(async () => {
-      await updateTopic(topic.id, topicPayload({ title, report }));
-      if (decision && (decisionDirty || title !== topic.title)) {
+      await updateCouncilBusiness(business.id, businessPayload({ title, report }));
+      if (decision && (decisionDirty || title !== business.title)) {
         await updateCouncilDecision(decision.id, { title, draftText });
       }
     });
 
   const moveResource = (resourceId: string, offset: number) => {
-    const ids = topic.resources.map((resource) => resource.id);
+    const ids = business.resources.map((resource) => resource.id);
     const index = ids.indexOf(resourceId);
     const target = index + offset;
     if (target < 0 || target >= ids.length) return;
     [ids[index], ids[target]] = [ids[target], ids[index]];
-    void act(() => updateTopic(topic.id, topicPayload({ resourceIds: ids })));
+    void act(() => updateCouncilBusiness(business.id, businessPayload({ resourceIds: ids })));
   };
 
   const removeResource = (resourceId: string) =>
     act(() =>
-      updateTopic(
-        topic.id,
-        topicPayload({ resourceIds: topic.resources.filter((r) => r.id !== resourceId).map((r) => r.id) }),
+      updateCouncilBusiness(
+        business.id,
+        businessPayload({ resourceIds: business.resources.filter((r) => r.id !== resourceId).map((r) => r.id) }),
       ),
     );
 
   const associateResource = (resourceId: string) =>
-    act(() => updateTopic(topic.id, topicPayload({ resourceIds: [...topic.resources.map((r) => r.id), resourceId] })));
+    act(() =>
+      updateCouncilBusiness(
+        business.id,
+        businessPayload({ resourceIds: [...business.resources.map((r) => r.id), resourceId] }),
+      ),
+    );
 
-  const associatedIds = useMemo(() => new Set(topic.resources.map((resource) => resource.id)), [topic.resources]);
+  const associatedIds = useMemo(() => new Set(business.resources.map((resource) => resource.id)), [business.resources]);
   const candidateResources = resources.filter((resource) => !associatedIds.has(resource.id));
-  const suggestions = candidateResources.filter((resource) => resource.folderPath === topic.folderPath);
-  const otherCandidates = candidateResources.filter((resource) => resource.folderPath !== topic.folderPath);
+  const suggestions = candidateResources.filter((resource) => resource.folderPath === business.folderPath);
+  const otherCandidates = candidateResources.filter((resource) => resource.folderPath !== business.folderPath);
 
   const composableMeetings = meetings.filter(
     (meeting) => ["draft", "scheduled"].includes(meeting.status) && !meeting.isReconvenedMeeting,
   );
-  const currentOccurrence = details?.occurrences.find((occurrence) => occurrence.meeting.id === topic.currentMeetingId);
-  const currentMeeting = topic.currentMeetingId
-    ? (meetings.find((meeting) => meeting.id === topic.currentMeetingId) ?? null)
-    : null;
+  const currentOccurrence = details?.occurrences.find((occurrence) =>
+    ["scheduled", "inProgress"].includes(occurrence.agendaItem.status),
+  );
+  const currentMeeting = currentOccurrence?.meeting ?? null;
 
   const schedule = () => {
     if (!meetingChoice) return;
     void act(async () => {
       const aggregate = await getCouncilMeeting(meetingChoice);
       const position = Math.max(0, ...aggregate.agendaItems.map((item) => item.position)) + 1;
-      await scheduleTopic(topic.id, meetingChoice, position);
+      await scheduleCouncilBusiness(business.id, meetingChoice, position);
       setMeetingChoice("");
     });
   };
 
   const unschedule = () => {
-    if (!topic.currentMeetingId || !currentOccurrence) return;
-    void act(() => deleteMeetingAgendaItem(topic.currentMeetingId as string, currentOccurrence.agendaItem.id));
+    if (!currentOccurrence) return;
+    void act(() => deleteMeetingAgendaItem(currentOccurrence.meeting.id, currentOccurrence.agendaItem.id));
   };
 
-  const openResource = (resource: Topic["resources"][number]) =>
+  const openResource = (resource: CouncilBusiness["resources"][number]) =>
     resource.kind === "document" ? setViewedDocument(resource) : onSelect({ kind: "resource", id: resource.id });
 
   return (
@@ -185,10 +196,10 @@ export function TopicWorkbench({
       <header className="workbench-header">
         <div className="workbench-header-copy">
           <span className="workbench-eyebrow">
-            {t(topicKindKeys[topic.kind])}
-            {topic.folderPath ? ` · ${topic.folderPath}` : ""}
+            {t(councilBusinessKindKeys[business.kind])}
+            {business.folderPath ? ` · ${business.folderPath}` : ""}
           </span>
-          <h1>{topic.title}</h1>
+          <h1>{business.title}</h1>
           <span className={`workbench-edit-hint${editable ? "" : " workbench-edit-hint-locked"}`}>
             {editable ? <EditIcon aria-hidden="true" /> : <LockIcon aria-hidden="true" />}
             {t(editable ? "workspace.editableHint" : "workspace.lockedHint")}
@@ -202,14 +213,14 @@ export function TopicWorkbench({
                 size="icon"
                 aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
                 aria-pressed={pinned}
-                onClick={() => togglePin({ kind: "topic", id: topic.id })}
+                onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
               >
                 {pinned ? <PinnedIcon /> : <PinIcon />}
               </Button>
             </TooltipTrigger>
             <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
           </Tooltip>
-          <StatusBadge value={topic.state} />
+          {currentOccurrence ? <StatusBadge value={currentOccurrence.agendaItem.status} /> : null}
         </div>
       </header>
       <RequestErrorBanner error={actionError} />
@@ -231,48 +242,48 @@ export function TopicWorkbench({
               <div className="grid gap-1.5">
                 <Label>{t("meeting.report")}</Label>
                 <MarkdownEditor
-                  title={`${t("meeting.report")} — ${topic.title}`}
-                  markdown={topic.report}
+                  title={`${t("meeting.report")} — ${business.title}`}
+                  markdown={business.report}
                   onChange={setReport}
                   mentionables={mentionables}
-                  searchContext={topic.folderPath}
+                  searchContext={business.folderPath}
                 />
                 <p className="text-xs text-muted">{t("meeting.reportHint")}</p>
               </div>
-              {topic.kind === "subject" && decision ? (
+              {business.kind === "matter" && decision ? (
                 <div className="workbench-decision-block">
                   <div className="grid gap-1.5">
                     <Label>{t("meeting.draftDecision")}</Label>
                     <MarkdownEditor
                       key={decision.id}
-                      title={`${t("meeting.draftDecision")} — ${topic.title}`}
+                      title={`${t("meeting.draftDecision")} — ${business.title}`}
                       markdown={decision.draftText}
                       onChange={setDraftText}
                       mentionables={mentionables}
-                      searchContext={topic.folderPath}
+                      searchContext={business.folderPath}
                     />
                     <p className="text-xs text-muted">{t("meeting.decisionDraftTextHint")}</p>
                   </div>
                 </div>
               ) : null}
               <div className="workbench-actions">
-                {topic.kind === "subject" ? (
-                  decision && can("topic.detach-decision") ? (
+                {business.kind === "matter" ? (
+                  decision && can("council-business.detach-decision") ? (
                     <Button
                       className="composer-vote-toggle"
                       variant="ghost"
                       disabled={submitting}
-                      onClick={() => void act(() => detachTopicDecision(topic.id))}
+                      onClick={() => void act(() => detachCouncilDecision(business.id))}
                     >
                       {t("meeting.withdrawVote")}
                     </Button>
-                  ) : !decision && can("topic.attach-decision") ? (
+                  ) : !decision && can("council-business.attach-decision") ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
                           variant="outline"
                           disabled={submitting}
-                          onClick={() => void act(() => attachTopicDecision(topic.id, ""))}
+                          onClick={() => void act(() => attachCouncilDecision(business.id, ""))}
                         >
                           <GavelIcon />
                           {t("meeting.submitToVote")}
@@ -285,7 +296,7 @@ export function TopicWorkbench({
                 <span className="composer-editor-spacer" />
                 <Button
                   variant="default"
-                  disabled={submitting || (!infoDirty && !decisionDirty)}
+                  disabled={submitting || (!businessDirty && !decisionDirty)}
                   onClick={() => void saveInfo()}
                 >
                   {t(submitting ? "common.saving" : "common.save")}
@@ -294,8 +305,8 @@ export function TopicWorkbench({
             </section>
           ) : (
             <section className="workbench-section" aria-labelledby="workbench-readonly">
-              {topic.report ? (
-                <MarkdownView markdown={topic.report} />
+              {business.report ? (
+                <MarkdownView markdown={business.report} />
               ) : (
                 <p className="workspace-list-empty">{t("meeting.itemReportEmpty")}</p>
               )}
@@ -309,10 +320,10 @@ export function TopicWorkbench({
         </div>
 
         <aside className="workbench-aside">
-          {can("topic.schedule") || currentMeeting ? (
+          {can("council-business.schedule") || currentMeeting ? (
             <section className="workbench-card" aria-labelledby="workbench-schedule">
               <h2 id="workbench-schedule">{t("workspace.scheduling")}</h2>
-              {topic.state === "toSchedule" ? (
+              {can("council-business.schedule") ? (
                 <div className="workbench-schedule-stack">
                   {/* Une valeur vide affiche l'invite : aucune réunion n'est encore choisie. */}
                   <Select value={meetingChoice} onValueChange={setMeetingChoice}>
@@ -339,8 +350,8 @@ export function TopicWorkbench({
                       <strong>{currentMeeting.title}</strong>
                       <span>
                         {formatDate(currentMeeting.startsAt)}
-                        {topic.position
-                          ? ` · ${t("workspace.agendaPosition").replace("{position}", formatNumber(topic.position))}`
+                        {currentOccurrence?.agendaItem.position
+                          ? ` · ${t("workspace.agendaPosition").replace("{position}", formatNumber(currentOccurrence.agendaItem.position))}`
                           : ""}
                       </span>
                     </span>
@@ -358,11 +369,11 @@ export function TopicWorkbench({
 
           <section className="workbench-card" aria-labelledby="workbench-resources">
             <h2 id="workbench-resources">{t("workspace.associatedResources")}</h2>
-            {topic.resources.length === 0 ? (
+            {business.resources.length === 0 ? (
               <p className="workspace-list-empty">{t("workspace.noAssociatedResources")}</p>
             ) : (
               <ul className="workbench-resource-list">
-                {topic.resources.map((resource, index) => (
+                {business.resources.map((resource, index) => (
                   <li key={resource.id}>
                     <ResourceGlyph resource={resource} />
                     <button className="workbench-resource-open" type="button" onClick={() => openResource(resource)}>
@@ -386,7 +397,7 @@ export function TopicWorkbench({
                           variant="ghost"
                           size="icon-sm"
                           aria-label={t("meeting.moveDown")}
-                          disabled={submitting || index === topic.resources.length - 1}
+                          disabled={submitting || index === business.resources.length - 1}
                           onClick={() => moveResource(resource.id, 1)}
                         >
                           <ArrowDownIcon />

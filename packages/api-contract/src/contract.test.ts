@@ -26,8 +26,8 @@ describe("shared HTTP contract", () => {
     const schema = sirenEntitySchema(z.object({}));
     expect(() =>
       schema.parse({
-        actions: [{ name: "topic.update", method: "RUN", href: "/api/topics/topic-1" }],
-        links: [{ rel: ["self"], href: "/api/topics/topic-1" }],
+        actions: [{ name: "council-business.update", method: "RUN", href: "/api/council-business/business-1" }],
+        links: [{ rel: ["self"], href: "/api/council-business/business-1" }],
       }),
     ).toThrow();
   });
@@ -45,21 +45,21 @@ describe("shared HTTP contract", () => {
 
   it("decodes collection entities while preserving discoverable actions", () => {
     const representation = {
-      class: ["topic-collection"],
+      class: ["council-business-collection"],
       properties: { count: 1 },
       entities: [
         {
           rel: ["item"],
-          class: ["topic"],
-          properties: { id: "topic-1" },
-          links: [{ rel: ["self"], href: "/api/topics/topic-1" }],
+          class: ["council-business"],
+          properties: { id: "business-1" },
+          links: [{ rel: ["self"], href: "/api/council-business/business-1" }],
         },
       ],
-      actions: [{ name: "topic.create" as const, method: "POST" as const, href: "/api/topics" }],
-      links: [{ rel: ["self"], href: "/api/topics" }],
+      actions: [{ name: "council-business.create" as const, method: "POST" as const, href: "/api/council-business" }],
+      links: [{ rel: ["self"], href: "/api/council-business" }],
     };
 
-    expect(sirenData<Array<{ id: string }>>(representation)).toEqual([{ id: "topic-1" }]);
-    expect(findSirenAction(representation, "topic.create")?.href).toBe("/api/topics");
+    expect(sirenData<Array<{ id: string }>>(representation)).toEqual([{ id: "business-1" }]);
+    expect(findSirenAction(representation, "council-business.create")?.href).toBe("/api/council-business");
   });
 });

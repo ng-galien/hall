@@ -1,17 +1,16 @@
-import type { Resource, Topic } from "@hall/domain";
-import type { TranslationKey } from "../i18n/en";
-import { useI18n } from "../i18n/I18nProvider";
+import type { Resource } from "@hall/domain";
 import {
   CsvIcon,
   FileIcon,
-  GavelIcon,
   ImageIcon,
   PdfIcon,
   PresentationDocumentIcon,
   SpreadsheetDocumentIcon,
   TextDocumentIcon,
   WordDocumentIcon,
-} from "./icons";
+} from "../../components/icons";
+import type { TranslationKey } from "../../i18n/en";
+import { useI18n } from "../../i18n/I18nProvider";
 
 export type ResourceTone = "text" | "pdf" | "image" | "document" | "spreadsheet" | "presentation" | "csv" | "file";
 
@@ -76,19 +75,6 @@ export function ResourceGlyph({ resource, large }: { resource: Resource; large?:
       aria-hidden="true"
     >
       <Icon />
-    </span>
-  );
-}
-
-/** Pastille d'un topic : marteau si une délibération est attachée. */
-export function TopicGlyph({ topic }: { topic: Topic }) {
-  const withDecision = topic.kind === "subject" && Boolean(topic.councilDecisionId);
-  return (
-    <span
-      className={`workspace-glyph ${withDecision ? "workspace-glyph-decision" : "workspace-glyph-topic"}`}
-      aria-hidden="true"
-    >
-      {withDecision ? <GavelIcon /> : <TextDocumentIcon />}
     </span>
   );
 }

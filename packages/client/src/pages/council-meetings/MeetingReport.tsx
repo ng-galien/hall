@@ -1,5 +1,6 @@
 import type { MeetingAggregate } from "@hall/domain";
-import { PageHeader, StatusBadge } from "../../components/Ui";
+import { PageHeader } from "../../components/Ui";
+import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { councilMemberName } from "./ballotParticipants";

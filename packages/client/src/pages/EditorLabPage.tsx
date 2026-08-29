@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { MarkdownEditor } from "../components/editor/MarkdownEditor";
 import type { Mentionable } from "../components/editor/references";
 import { MarkdownView } from "../components/MarkdownView";
-import { resourceTone } from "../components/ResourceGlyph";
 import { PageHeader } from "../components/Ui";
+import { resourceTone, toneIcons, toneLabelKeys } from "../features/documents/ResourceGlyph";
+import { useI18n } from "../i18n/I18nProvider";
+import { listCouncilBusinesses } from "../services/councilBusinessApi";
 import { listCouncilDecisions } from "../services/councilDecisionsApi";
 import { listCouncilMeetings } from "../services/councilMeetingsApi";
 import { listCouncilMembers } from "../services/councilMembersApi";
 import { listResources } from "../services/resourcesApi";
-import { listTopics } from "../services/topicsApi";
 
 /**
  * Banc d'essai de l'éditeur.
@@ -37,6 +38,7 @@ const sample = [
 ].join("\n");
 
 export function EditorLabPage() {
+  const { t } = useI18n();
   const [markdown, setMarkdown] = useState(sample);
   const [mentionables, setMentionables] = useState<Mentionable[]>([]);
 
@@ -46,30 +48,33 @@ export function EditorLabPage() {
     void Promise.all([
       listCouncilMembers(),
       listResources(),
-      listTopics(),
+      listCouncilBusinesses(),
       listCouncilMeetings(),
       listCouncilDecisions(),
-    ]).then(([members, allResources, topics, meetings, decisions]) => {
+    ]).then(([members, allResources, businesses, meetings, decisions]) => {
       setMentionables([
         ...members.map((member) => ({
           kind: "member" as const,
           id: member.id,
           label: `${member.firstName} ${member.lastName}`,
         })),
-        ...allResources.map((resource) => ({
-          kind: "resource" as const,
-          id: resource.slug,
-          label: resource.title,
-          folderPath: resource.folderPath,
-          tone: resourceTone(resource),
-          extra: resource.kind === "document" ? [resource.fileName] : [],
-        })),
-        ...topics.map((topic) => ({
-          kind: "topic" as const,
-          id: topic.slug,
-          label: topic.title,
-          folderPath: topic.folderPath,
-          state: topic.state,
+        ...allResources.map((resource) => {
+          const tone = resourceTone(resource);
+          return {
+            kind: "resource" as const,
+            id: resource.slug,
+            label: resource.title,
+            folderPath: resource.folderPath,
+            icon: toneIcons[tone],
+            metaLabel: t(toneLabelKeys[tone]),
+            extra: resource.kind === "document" ? [resource.fileName] : [],
+          };
+        }),
+        ...businesses.map((business) => ({
+          kind: "councilBusiness" as const,
+          id: business.slug,
+          label: business.title,
+          folderPath: business.folderPath,
         })),
         ...meetings.map((meeting) => ({
           kind: "meeting" as const,
@@ -85,7 +90,7 @@ export function EditorLabPage() {
         })),
       ]);
     });
-  }, []);
+  }, [t]);
 
   return (
     <div className="page">

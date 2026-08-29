@@ -1,4 +1,4 @@
-import type { CouncilDecisionListEntry, CouncilMeeting, Resource, Topic } from "@hall/domain";
+import type { CouncilBusiness, CouncilDecisionListEntry, CouncilMeeting, Resource } from "@hall/domain";
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,40 +13,35 @@ import {
   ListViewIcon,
   SearchIcon,
 } from "../../components/icons";
-import { ResourceGlyph, TopicGlyph, useResourceTypeLabel } from "../../components/ResourceGlyph";
-import { MeetingStatusBadge, StatusBadge } from "../../components/Ui";
+import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
+import { councilBusinessKindKeys } from "../../features/council-business/presentation";
+import { ResourceGlyph, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
+import { MeetingStatusBadge, StatusBadge } from "../../features/status/DomainStatusBadge";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type Searchable, searchEntities } from "../../lib/search";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { useTopicsStore } from "../../stores/topicsStore";
-import { topicKindKeys } from "../council-meetings/AgendaComposer";
 import type { WorkspaceSelection } from "./WorkspacePage";
 
 /* Un seul champ qui mêle texte libre et facettes (inspiré du FilterBox de Trust) :
    les facettes actives sont des puces dans le champ, un panneau liste les groupes avec compteurs,
    le texte tapé atteint aussi les facettes. */
 
-type FacetKind = "type" | "folder" | "state";
-type ResultType = "topic" | "resource" | "meeting" | "decision";
+type FacetKind = "type" | "folder";
+type ResultType = "councilBusiness" | "resource" | "meeting" | "decision";
 
 const typeOptions: { value: ResultType; labelKey: TranslationKey }[] = [
-  { value: "topic", labelKey: "workspace.topicsHeading" },
+  { value: "councilBusiness", labelKey: "workspace.councilBusinessHeading" },
   { value: "resource", labelKey: "workspace.resourcesHeading" },
   { value: "meeting", labelKey: "navigation.meetings" },
   { value: "decision", labelKey: "navigation.decisions" },
 ];
 
-const stateOptions: { value: Topic["state"]; labelKey: TranslationKey }[] = [
-  { value: "toSchedule", labelKey: "status.toSchedule" },
-  { value: "scheduled", labelKey: "status.scheduled" },
-  { value: "examined", labelKey: "status.examined" },
-];
-
 const facetTokenByType: Record<ResultType, string> = {
-  topic: "sujet",
+  councilBusiness: "sujet",
   resource: "doc",
   meeting: "seance",
   decision: "delib",
@@ -55,7 +50,7 @@ const facetTokenByType: Record<ResultType, string> = {
 /** Une entrée du corpus : l'entité d'origine voyage avec ses champs cherchables. */
 interface WorkspaceHit extends Searchable {
   entity:
-    | { entityKind: "topic"; topic: Topic }
+    | { entityKind: "councilBusiness"; business: CouncilBusiness }
     | { entityKind: "resource"; resource: Resource }
     | { entityKind: "meeting"; meeting: CouncilMeeting }
     | { entityKind: "decision"; decision: CouncilDecisionListEntry };
@@ -65,15 +60,12 @@ export interface WorkspaceSearchState {
   query: string;
   types: ResultType[];
   folders: string[];
-  states: Topic["state"][];
 }
 
-export const emptySearch: WorkspaceSearchState = { query: "", types: [], folders: [], states: [] };
+export const emptySearch: WorkspaceSearchState = { query: "", types: [], folders: [] };
 
 export function isSearchActive(search: WorkspaceSearchState): boolean {
-  return (
-    search.query.trim().length > 0 || search.types.length > 0 || search.folders.length > 0 || search.states.length > 0
-  );
+  return search.query.trim().length > 0 || search.types.length > 0 || search.folders.length > 0;
 }
 
 function toggleValue<T>(values: T[], value: T): T[] {
@@ -95,7 +87,7 @@ export function WorkspaceSearch({
   const { t, formatNumber, formatDate, formatFileSize } = useI18n();
   const navigate = useNavigate();
   const typeLabel = useResourceTypeLabel();
-  const { topics } = useTopicsStore();
+  const { businesses } = useCouncilBusinessStore();
   const { resources } = useResourcesStore();
   const { meetings } = useCouncilMeetingsStore();
   const { councilDecisions } = useCouncilDecisionsStore();
@@ -108,42 +100,34 @@ export function WorkspaceSearch({
   const topFolders = useMemo(() => {
     const counts = new Map<string, number>();
     for (const folderPath of [
-      ...topics.map((topic) => topic.folderPath),
+      ...businesses.map((business) => business.folderPath),
       ...resources.map((resource) => resource.folderPath),
     ]) {
       const top = folderPath.split("/").filter(Boolean)[0];
       if (top) counts.set(top, (counts.get(top) ?? 0) + 1);
     }
     return [...counts.entries()].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], "fr-FR"));
-  }, [topics, resources]);
+  }, [businesses, resources]);
 
   const chips: { kind: FacetKind; value: string; label: string }[] = [
     ...search.types.map((value) => ({
       kind: "type" as const,
       value,
-      label: t(typeOptions.find((option) => option.value === value)?.labelKey ?? "workspace.topicsHeading"),
+      label: t(typeOptions.find((option) => option.value === value)?.labelKey ?? "workspace.councilBusinessHeading"),
     })),
     ...search.folders.map((value) => ({ kind: "folder" as const, value, label: value })),
-    ...search.states.map((value) => ({
-      kind: "state" as const,
-      value,
-      label: t(stateOptions.find((option) => option.value === value)?.labelKey ?? "status.toSchedule"),
-    })),
   ];
 
   const removeChip = (chip: { kind: FacetKind; value: string }) => {
     if (chip.kind === "type") onSearch({ ...search, types: toggleValue(search.types, chip.value as ResultType) });
-    else if (chip.kind === "folder") onSearch({ ...search, folders: toggleValue(search.folders, chip.value) });
-    else onSearch({ ...search, states: toggleValue(search.states, chip.value as Topic["state"]) });
+    else onSearch({ ...search, folders: toggleValue(search.folders, chip.value) });
   };
 
   const toggleFacet = (chip: { kind: FacetKind; value: string }, reachedByTyping: boolean) => {
     const next =
       chip.kind === "type"
         ? { ...search, types: toggleValue(search.types, chip.value as ResultType) }
-        : chip.kind === "folder"
-          ? { ...search, folders: toggleValue(search.folders, chip.value) }
-          : { ...search, states: toggleValue(search.states, chip.value as Topic["state"]) };
+        : { ...search, folders: toggleValue(search.folders, chip.value) };
     onSearch(reachedByTyping ? { ...next, query: "" } : next);
     input.current?.focus();
   };
@@ -153,14 +137,13 @@ export function WorkspaceSearch({
      celui qu'on peut taper au clavier (`doc:budget dossier:travaux état:planifié`). */
   const corpus = useMemo<WorkspaceHit[]>(
     () => [
-      ...topics.map((topic) => ({
-        kind: "topic" as const,
-        id: topic.slug,
-        label: topic.title,
-        extra: [topic.report],
-        folderPath: topic.folderPath,
-        state: topic.state,
-        entity: { entityKind: "topic" as const, topic },
+      ...businesses.map((business) => ({
+        kind: "councilBusiness" as const,
+        id: business.slug,
+        label: business.title,
+        extra: [business.report],
+        folderPath: business.folderPath,
+        entity: { entityKind: "councilBusiness" as const, business },
       })),
       ...resources.map((resource) => ({
         kind: "resource" as const,
@@ -185,13 +168,12 @@ export function WorkspaceSearch({
         entity: { entityKind: "decision" as const, decision },
       })),
     ],
-    [topics, resources, meetings, councilDecisions],
+    [businesses, resources, meetings, councilDecisions],
   );
 
   const facetTokens = [
     ...search.types.map((type) => `${facetTokenByType[type]}:`),
     ...search.folders.map((folder) => `dossier:${folder}`),
-    ...search.states.map((state) => `etat:${state}`),
   ];
   const effectiveQuery = [...facetTokens, query].join(" ").trim();
   const hits = useMemo(
@@ -200,26 +182,26 @@ export function WorkspaceSearch({
   );
   const total = hits.length;
 
-  const pickTopic = (topic: Topic) => {
+  const pickBusiness = (business: CouncilBusiness) => {
     onSearch(emptySearch);
-    onSelect({ kind: "topic", id: topic.id }, topic.folderPath);
+    onSelect({ kind: "councilBusiness", id: business.id }, business.folderPath);
   };
   const pickResource = (resource: Resource) => {
     onSearch(emptySearch);
     onSelect({ kind: "resource", id: resource.id }, resource.folderPath);
   };
   const pickDecision = (decisionId: string) => {
-    const topic = topics.find(
-      (candidate) => candidate.kind === "subject" && candidate.councilDecisionId === decisionId,
+    const business = businesses.find(
+      (candidate) => candidate.kind === "matter" && candidate.councilDecisionId === decisionId,
     );
-    if (topic) pickTopic(topic);
+    if (business) pickBusiness(business);
   };
 
   /* En liste, la même organisation que la recherche de l'éditeur : des sections par
      dossier d'abord, puis les espèces sans dossier. Les cartes restent à plat. */
   const sections = useMemo(() => {
     const kindHeadings: Record<string, TranslationKey> = {
-      topic: "workspace.topicsHeading",
+      councilBusiness: "workspace.councilBusinessHeading",
       resource: "workspace.resourcesHeading",
       meeting: "navigation.meetings",
       decision: "navigation.decisions",
@@ -245,19 +227,18 @@ export function WorkspaceSearch({
   }, [hits, t]);
 
   const renderHit = (hit: WorkspaceHit) => {
-    if (hit.entity.entityKind === "topic") {
-      const topic = hit.entity.topic;
+    if (hit.entity.entityKind === "councilBusiness") {
+      const business = hit.entity.business;
       return (
-        <button className="wsearch-hit" type="button" key={`t-${topic.id}`} onClick={() => pickTopic(topic)}>
-          <TopicGlyph topic={topic} />
+        <button className="wsearch-hit" type="button" key={`t-${business.id}`} onClick={() => pickBusiness(business)}>
+          <CouncilBusinessGlyph business={business} />
           <span className="workspace-row-copy">
-            <strong>{topic.title}</strong>
+            <strong>{business.title}</strong>
             <span>
-              {t(topicKindKeys[topic.kind])}
-              {topic.folderPath ? ` · ${topic.folderPath}` : ""}
+              {t(councilBusinessKindKeys[business.kind])}
+              {business.folderPath ? ` · ${business.folderPath}` : ""}
             </span>
           </span>
-          <StatusBadge value={topic.state} />
         </button>
       );
     }
@@ -327,9 +308,7 @@ export function WorkspaceSearch({
   const facetMatches = (label: string) => needle === "" || label.toLocaleLowerCase("fr-FR").includes(needle);
   const visibleTypeOptions = typeOptions.filter((option) => facetMatches(t(option.labelKey)));
   const visibleFolderOptions = topFolders.filter(([folder]) => facetMatches(folder));
-  const visibleStateOptions = stateOptions.filter((option) => facetMatches(t(option.labelKey)));
-  const noFacetMatch =
-    visibleTypeOptions.length === 0 && visibleFolderOptions.length === 0 && visibleStateOptions.length === 0;
+  const noFacetMatch = visibleTypeOptions.length === 0 && visibleFolderOptions.length === 0;
 
   return (
     <div className="wsearch">
@@ -424,29 +403,6 @@ export function WorkspaceSearch({
                       {isActive ? <CheckIcon aria-hidden="true" /> : null}
                       {folder}
                       <small>{formatNumber(count)}</small>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-          {visibleStateOptions.length > 0 ? (
-            <div className="wsearch-panel-group">
-              <span className="workspace-list-heading">{t("workspace.facetState")}</span>
-              <div className="wsearch-options">
-                {visibleStateOptions.map((option) => {
-                  const isActive = search.states.includes(option.value);
-                  return (
-                    <button
-                      className={`wsearch-option${isActive ? " wsearch-option-active" : ""}`}
-                      type="button"
-                      role="menuitemcheckbox"
-                      aria-checked={isActive}
-                      key={option.value}
-                      onClick={() => toggleFacet({ kind: "state", value: option.value }, query !== "")}
-                    >
-                      {isActive ? <CheckIcon aria-hidden="true" /> : null}
-                      {t(option.labelKey)}
                     </button>
                   );
                 })}

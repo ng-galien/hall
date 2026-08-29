@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node ../../scripts/clean-package-dist.mjs && tsc -p tsconfig.json",
     "dev": "cross-env HALL_DEV_AUTO_LOGIN=true nodemon --watch src --ext ts --exec 'node --import tsx src/index.ts'",
     "start": "node dist/index.js",
     "seed:dev": "node scripts/seed-dev.mjs",

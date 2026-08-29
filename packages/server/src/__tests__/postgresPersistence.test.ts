@@ -97,7 +97,9 @@ postgres("PostgreSQL persistence", () => {
       meetingAgendaService,
       ballotService,
       resourceRepository,
-      topicService,
+      councilBusinessService,
+      councilCommitteeRepository,
+      committeeMembershipRepository,
       securityRepository,
       hallSettingsService,
       contentTemplateRepository,
@@ -147,6 +149,18 @@ postgres("PostgreSQL persistence", () => {
           }),
         ),
       );
+      const committee = await councilCommitteeRepository.create({
+        name: "Finance committee",
+        description: "Prepares financial matters",
+      });
+      const membership = await committeeMembershipRepository.add(committee.id, {
+        councilMemberId: members[0].id,
+        role: "chair",
+        startedOn: "2026-03-22",
+      });
+      expect(await councilCommitteeRepository.find(committee.slug)).toEqual(committee);
+      expect(await committeeMembershipRepository.listForCommittee(committee.id)).toEqual([membership]);
+
       const text = await resourceRepository.createText({
         title: "Summary",
         folderPath: "associations/grants",
@@ -204,15 +218,17 @@ postgres("PostgreSQL persistence", () => {
         number: "2026-001",
         slug: "2026-09-10-001-council-meeting",
       });
-      const topic = await topicService.create({
-        kind: "subject",
+      const business = await councilBusinessService.create({
+        kind: "matter",
+        committeeId: committee.id,
         councilDecisionId: decision.id,
         title: decision.title,
         report: "Grant report",
         folderPath: "associations/grants",
         resourceIds: [text.id, document.id],
       });
-      const agendaItem = await meetingPreparationService.scheduleTopic(meeting.id, topic.id, 1);
+      expect(business).toMatchObject({ committeeId: committee.id });
+      const agendaItem = await meetingPreparationService.scheduleBusiness(meeting.id, business.id, 1);
       await meetingLifecycleService.changeStatus(meeting.id, "scheduled");
       for (const member of members) {
         await meetingPreparationService.recordAttendance(meeting.id, { memberId: member.id, status: "present" });
@@ -314,9 +330,9 @@ postgres("PostgreSQL persistence", () => {
           }),
         ),
       );
-      const concurrentlyScheduledTopic = await topicService.create({
+      const concurrentlyScheduledBusiness = await councilBusinessService.create({
         kind: "openQuestion",
-        title: "One topic, one meeting",
+        title: "One business, one meeting",
         report: "",
         folderPath: "",
         resourceIds: [],
@@ -330,20 +346,20 @@ postgres("PostgreSQL persistence", () => {
       await schedulingContainer.cradle.sqlExecutor.ready();
       try {
         const concurrentScheduling = await Promise.allSettled([
-          container.cradle.meetingPreparationService.scheduleTopic(
+          container.cradle.meetingPreparationService.scheduleBusiness(
             schedulingMeetings[0].id,
-            concurrentlyScheduledTopic.id,
+            concurrentlyScheduledBusiness.id,
             1,
           ),
-          schedulingContainer.cradle.meetingPreparationService.scheduleTopic(
+          schedulingContainer.cradle.meetingPreparationService.scheduleBusiness(
             schedulingMeetings[1].id,
-            concurrentlyScheduledTopic.id,
+            concurrentlyScheduledBusiness.id,
             1,
           ),
         ]);
         expect(concurrentScheduling.map((result) => result.status).sort()).toEqual(["fulfilled", "rejected"]);
         const scheduledOccurrences = await Promise.all(
-          schedulingMeetings.map((target) => container.cradle.agendaRepository.listForMeeting(target.id)),
+          schedulingMeetings.map((target) => container.cradle.agendaItemRepository.listForMeeting(target.id)),
         );
         expect(scheduledOccurrences.flat()).toHaveLength(1);
       } finally {

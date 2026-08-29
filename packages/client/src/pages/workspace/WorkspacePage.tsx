@@ -14,25 +14,25 @@ import { AddIcon, FolderAddIcon, TextDocumentIcon, UploadIcon, WorkspaceIcon } f
 import { RequestErrorBanner } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { useTopicsStore } from "../../stores/topicsStore";
+import { CouncilBusinessWorkbench } from "./CouncilBusinessWorkbench";
 import { PathContents } from "./PathContents";
 import { PinnedRow } from "./PinnedRow";
 import { isUnderPath, listAllPaths } from "./paths";
 import { ResourceWorkbench } from "./ResourceWorkbench";
-import { TopicWorkbench } from "./TopicWorkbench";
 import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb";
 import { WorkspaceHome } from "./WorkspaceHome";
 import { emptySearch, isSearchActive, WorkspaceSearch, type WorkspaceSearchState } from "./WorkspaceSearch";
 import { useWorkspaceOrgStore } from "./workspaceOrg";
 
-export type WorkspaceSelection = { kind: "topic"; id: string } | { kind: "resource"; id: string } | null;
+export type WorkspaceSelection = { kind: "councilBusiness"; id: string } | { kind: "resource"; id: string } | null;
 
-type QuickCreate = "topic" | "text" | "path" | null;
+type QuickCreate = "councilMatter" | "text" | "path" | null;
 
 const quickCreateLabels = {
-  topic: { title: "workspace.createTopic", placeholder: "workspace.newTopicPlaceholder" },
+  councilMatter: { title: "workspace.createCouncilMatter", placeholder: "workspace.newCouncilMatterPlaceholder" },
   text: { title: "workspace.createText", placeholder: "workspace.newTextPlaceholder" },
   path: { title: "workspace.createPath", placeholder: "workspace.newPathPlaceholder" },
 } as const;
@@ -41,9 +41,9 @@ export function WorkspacePage() {
   const { t } = useI18n();
   const { submitting, run } = useSubmitting();
   const [searchParams, setSearchParams] = useSearchParams();
-  const topicsStore = useTopicsStore();
+  const councilBusinessStore = useCouncilBusinessStore();
   const resourcesStore = useResourcesStore();
-  const { topics, error: topicsError, canCreate: canCreateTopic } = topicsStore;
+  const { businesses, error: councilBusinessError, canCreate: canCreateCouncilBusiness } = councilBusinessStore;
   const { resources, error: resourcesError, canCreateText, canUpload } = resourcesStore;
   const { error: decisionsError } = useCouncilDecisionsStore();
   const [search, setSearch] = useState<WorkspaceSearchState>(emptySearch);
@@ -51,33 +51,38 @@ export function WorkspacePage() {
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   const path = searchParams.get("path") ?? "";
-  const selection: WorkspaceSelection = searchParams.get("topic")
-    ? { kind: "topic", id: searchParams.get("topic") as string }
+  const selection: WorkspaceSelection = searchParams.get("councilBusiness")
+    ? { kind: "councilBusiness", id: searchParams.get("councilBusiness") as string }
     : searchParams.get("resource")
       ? { kind: "resource", id: searchParams.get("resource") as string }
       : null;
 
   useEffect(() => {
-    useWorkspaceOrgStore.getState().prunePendingPaths(listAllPaths(topics, resources));
-  }, [topics, resources]);
+    useWorkspaceOrgStore.getState().prunePendingPaths(listAllPaths(businesses, resources));
+  }, [businesses, resources]);
 
   const select = (next: WorkspaceSelection, nextPath?: string) => {
     const params = new URLSearchParams();
     const targetPath = nextPath ?? path;
     if (targetPath) params.set("path", targetPath);
-    if (next?.kind === "topic") params.set("topic", next.id);
+    if (next?.kind === "councilBusiness") params.set("councilBusiness", next.id);
     if (next?.kind === "resource") params.set("resource", next.id);
     setSearchParams(params, { replace: true });
   };
 
-  const pathTopics = useMemo(() => topics.filter((topic) => isUnderPath(topic.folderPath, path)), [topics, path]);
+  const pathBusinesses = useMemo(
+    () => businesses.filter((business) => isUnderPath(business.folderPath, path)),
+    [businesses, path],
+  );
   const pathResources = useMemo(
     () => resources.filter((resource) => isUnderPath(resource.folderPath, path)),
     [resources, path],
   );
 
-  const selectedTopic =
-    selection?.kind === "topic" ? (topics.find((topic) => topic.id === selection.id) ?? null) : null;
+  const selectedBusiness =
+    selection?.kind === "councilBusiness"
+      ? (businesses.find((business) => business.id === selection.id) ?? null)
+      : null;
   const selectedResource =
     selection?.kind === "resource" ? (resources.find((resource) => resource.id === selection.id) ?? null) : null;
 
@@ -94,17 +99,17 @@ export function WorkspacePage() {
       return;
     }
     await run(async () => {
-      if (creating === "topic") {
-        const topic = await topicsStore.create({
-          kind: "subject",
+      if (creating === "councilMatter") {
+        const business = await councilBusinessStore.create({
+          kind: "matter",
           title,
           report: "",
           folderPath: path,
           resourceIds: [],
         });
-        if (topic) select({ kind: "topic", id: topic.id });
+        if (business) select({ kind: "councilBusiness", id: business.id });
         setCreating(null);
-        return Boolean(topic);
+        return Boolean(business);
       }
       const created = await resourcesStore.createText({ title, folderPath: path, tags: [], content: "" });
       if (created) {
@@ -140,14 +145,14 @@ export function WorkspacePage() {
   return (
     <div className="page workspace-page">
       <div className="workspace">
-        <RequestErrorBanner error={topicsError ?? resourcesError ?? decisionsError} />
+        <RequestErrorBanner error={councilBusinessError ?? resourcesError ?? decisionsError} />
         <div className="workspace-topzone">
           <div className="workspace-bar-row">
             <div className="workspace-bar-search">
               <WorkspaceSearch search={search} onSearch={setSearch} onSelect={select} context={path} />
             </div>
             <div className="workspace-bar-actions">
-              {canCreateTopic || canCreateText || canUpload ? (
+              {canCreateCouncilBusiness || canCreateText || canUpload ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline">
@@ -155,9 +160,9 @@ export function WorkspacePage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {canCreateTopic ? (
-                      <DropdownMenuItem onSelect={() => setCreating("topic")}>
-                        <WorkspaceIcon /> {t("workspace.createTopic")}
+                    {canCreateCouncilBusiness ? (
+                      <DropdownMenuItem onSelect={() => setCreating("councilMatter")}>
+                        <WorkspaceIcon /> {t("workspace.createCouncilMatter")}
                       </DropdownMenuItem>
                     ) : null}
                     {canCreateText ? (
@@ -228,16 +233,16 @@ export function WorkspacePage() {
           <section className="workspace-contents" aria-label={t("workspace.contents")}>
             <header className="workspace-contents-header">
               <WorkspaceBreadcrumb
-                path={selectedTopic?.folderPath ?? selectedResource?.folderPath ?? path}
-                currentLabel={selectedTopic?.title ?? selectedResource?.title}
+                path={selectedBusiness?.folderPath ?? selectedResource?.folderPath ?? path}
+                currentLabel={selectedBusiness?.title ?? selectedResource?.title}
                 onSelect={select}
               />
             </header>
             <div className="workspace-container-body">
-              {selectedTopic || selectedResource ? (
+              {selectedBusiness || selectedResource ? (
                 <section className="workspace-bench workspace-bench-full" aria-label={t("workspace.bench")}>
-                  {selectedTopic ? (
-                    <TopicWorkbench key={selectedTopic.id} topic={selectedTopic} onSelect={select} />
+                  {selectedBusiness ? (
+                    <CouncilBusinessWorkbench key={selectedBusiness.id} business={selectedBusiness} onSelect={select} />
                   ) : selectedResource ? (
                     <ResourceWorkbench key={selectedResource.id} resource={selectedResource} onSelect={select} />
                   ) : null}
@@ -245,7 +250,7 @@ export function WorkspacePage() {
               ) : path ? (
                 <PathContents
                   path={path}
-                  topics={pathTopics}
+                  businesses={pathBusinesses}
                   resources={pathResources}
                   selection={selection}
                   onSelect={select}

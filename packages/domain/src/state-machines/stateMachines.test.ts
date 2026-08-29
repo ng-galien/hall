@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  agendaItemMachineDefinition,
   type BallotSubmission,
   ballotMachineDefinition,
   councilDecisionMachineDefinition,
@@ -8,11 +9,10 @@ import {
   deriveBallotVoters,
   evaluateBallot,
   meetingMachineDefinition,
-  topicMachineDefinition,
+  transitionAgendaItem,
   transitionBallot,
   transitionCouncilDecision,
   transitionMeeting,
-  transitionTopic,
 } from "./index.js";
 
 function validPublicSubmission(): Extract<BallotSubmission, { method: "public" }> {
@@ -62,7 +62,7 @@ function validPublicSubmission(): Extract<BallotSubmission, { method: "public" }
 describe("auditable state machines", () => {
   it("keeps every definition serializable", () => {
     expect(() => JSON.stringify(meetingMachineDefinition)).not.toThrow();
-    expect(() => JSON.stringify(topicMachineDefinition)).not.toThrow();
+    expect(() => JSON.stringify(agendaItemMachineDefinition)).not.toThrow();
     expect(() => JSON.stringify(councilDecisionMachineDefinition)).not.toThrow();
     expect(() => JSON.stringify(ballotMachineDefinition)).not.toThrow();
   });
@@ -75,14 +75,12 @@ describe("auditable state machines", () => {
     expect(transitionMeeting("closed", { type: "OPEN" })).toBeNull();
   });
 
-  it("returns a postponed topic to the provision", () => {
-    expect(transitionTopic("toSchedule", { type: "SCHEDULE" })).toBe("scheduled");
-    expect(transitionTopic("scheduled", { type: "EDIT" })).toBe("scheduled");
-    expect(transitionTopic("scheduled", { type: "START" })).toBe("inProgress");
-    expect(transitionTopic("inProgress", { type: "COMPLETE" })).toBe("examined");
-    expect(transitionTopic("inProgress", { type: "POSTPONE" })).toBe("toSchedule");
-    expect(transitionTopic("examined", { type: "SCHEDULE" })).toBeNull();
-    expect(transitionTopic("inProgress", { type: "EDIT" })).toBeNull();
+  it("returns a postponed agenda item to the provision", () => {
+    expect(transitionAgendaItem("scheduled", { type: "START" })).toBe("inProgress");
+    expect(transitionAgendaItem("inProgress", { type: "COMPLETE" })).toBe("examined");
+    expect(transitionAgendaItem("inProgress", { type: "POSTPONE" })).toBe("postponed");
+    expect(transitionAgendaItem("scheduled", { type: "WITHDRAW" })).toBe("withdrawn");
+    expect(transitionAgendaItem("examined", { type: "START" })).toBeNull();
   });
 
   it("locks the council decision lifecycle", () => {

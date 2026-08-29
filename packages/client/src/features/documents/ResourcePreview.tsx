@@ -1,12 +1,12 @@
 import type { Resource } from "@hall/domain";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useDocumentPreview } from "../hooks/useDocumentPreview";
-import { useI18n } from "../i18n/I18nProvider";
-import { downloadResourceDocument, getResourceDetails } from "../services/resourcesApi";
+import { CloseIcon } from "../../components/icons";
+import { MarkdownView } from "../../components/MarkdownView";
+import { useDocumentPreview } from "../../hooks/useDocumentPreview";
+import { useI18n } from "../../i18n/I18nProvider";
+import { downloadResourceDocument, getResourceDetails } from "../../services/resourcesApi";
 import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
-import { CloseIcon } from "./icons";
-import { MarkdownView } from "./MarkdownView";
 
 /**
  * Aperçu d'une pièce depuis sa référence : le même panneau que le visionneur de documents

@@ -17,7 +17,7 @@ async function createMember(agent: TestAgent, firstName: string, role = "council
   ) as { id: string };
 }
 
-async function createOpenMeeting(agent: TestAgent, title: string, topicId: string) {
+async function createOpenMeeting(agent: TestAgent, title: string, businessId: string) {
   const members = await Promise.all([
     createMember(agent, `${title} — maire`, "mayor"),
     createMember(agent, `${title} — secrétaire`),
@@ -37,7 +37,10 @@ async function createOpenMeeting(agent: TestAgent, title: string, topicId: strin
   ) as { id: string };
   await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
   const agendaItem = domainBody(
-    await agent.post(`/api/topics/${topicId}/schedule`).send({ meetingId: meeting.id, position: 1 }).expect(201),
+    await agent
+      .post(`/api/council-business/${businessId}/schedule`)
+      .send({ meetingId: meeting.id, position: 1 })
+      .expect(201),
   ) as { id: string };
   for (const member of members) {
     await agent
@@ -58,8 +61,8 @@ async function createTextResource(agent: TestAgent, title: string, folderPath: s
   ) as { id: string };
 }
 
-describe("topic occurrences and history", () => {
-  it("exposes the snapshotted topic and resources with the voted agenda item", async () => {
+describe("business occurrences and history", () => {
+  it("exposes the snapshotted business and resources with the voted agenda item", async () => {
     const { agent } = await createTestServer();
     const firstResource = await createTextResource(agent, "Note initiale", "Associations/Sport");
     const presentedResource = await createTextResource(agent, "Note présentée", "Associations/Sport");
@@ -73,11 +76,11 @@ describe("topic occurrences and history", () => {
         })
         .expect(201),
     );
-    const topic = domainBody(
+    const business = domainBody(
       await agent
-        .post("/api/topics")
+        .post("/api/council-business")
         .send({
-          kind: "subject",
+          kind: "matter",
           councilDecisionId: decision.id,
           title: "Projet de subvention",
           report: "Première rédaction",
@@ -86,10 +89,10 @@ describe("topic occurrences and history", () => {
         })
         .expect(201),
     );
-    const { meeting, members, agendaItem } = await createOpenMeeting(agent, "Conseil des associations", topic.id);
+    const { meeting, members, agendaItem } = await createOpenMeeting(agent, "Conseil des associations", business.id);
 
-    const editedTopic = await agent
-      .put(`/api/topics/${topic.id}`)
+    const editedBusiness = await agent
+      .put(`/api/council-business/${business.id}`)
       .send({
         title: "Subvention à l’association sportive",
         report: "Version effectivement présentée",
@@ -97,31 +100,31 @@ describe("topic occurrences and history", () => {
         resourceIds: [presentedResource.id],
       })
       .expect(200);
-    expect(domainBody(editedTopic).resources.map((resource: { id: string }) => resource.id)).toEqual([
+    expect(domainBody(editedBusiness).resources.map((resource: { id: string }) => resource.id)).toEqual([
       presentedResource.id,
     ]);
 
     const started = await agent
       .post(`/api/council-meetings/${meeting.id}/agenda-items/${agendaItem.id}/start`)
       .expect(200);
-    expect(domainBody(started).topic).toMatchObject({
+    expect(domainBody(started).business).toMatchObject({
       title: "Subvention à l’association sportive",
       report: "Version effectivement présentée",
       folderPath: "Associations/Sport",
     });
-    expect(domainBody(started).topic.resources.map((resource: { id: string }) => resource.id)).toEqual([
+    expect(domainBody(started).business.resources.map((resource: { id: string }) => resource.id)).toEqual([
       presentedResource.id,
     ]);
 
     await agent
-      .put(`/api/topics/${topic.id}`)
+      .put(`/api/council-business/${business.id}`)
       .send({
         title: "Modification trop tardive",
         report: "",
         folderPath: "Associations/Sport",
         resourceIds: [],
       })
-      .expect(409);
+      .expect(200);
 
     await agent
       .post(`/api/council-meetings/${meeting.id}/ballots`)
@@ -141,15 +144,14 @@ describe("topic occurrences and history", () => {
     expect(domainBody(archive).agendaItems[0]).toMatchObject({
       status: "examined",
       discussionSummary: "Subvention adoptée.",
-      topic: {
-        state: "examined",
+      business: {
         title: "Subvention à l’association sportive",
         report: "Version effectivement présentée",
       },
     });
-    expect(domainBody(archive).agendaItems[0].topic.resources.map((resource: { id: string }) => resource.id)).toEqual([
-      presentedResource.id,
-    ]);
+    expect(
+      domainBody(archive).agendaItems[0].business.resources.map((resource: { id: string }) => resource.id),
+    ).toEqual([presentedResource.id]);
     expect(domainBody(archive).ballots).toHaveLength(1);
     expect(domainBody(archive).councilDecisions).toEqual([
       expect.objectContaining({ id: decision.id, status: "adopted" }),
@@ -159,20 +161,18 @@ describe("topic occurrences and history", () => {
     expect(domainBody(paths)).toContain("Associations");
     expect(domainBody(paths)).toContain("Associations/Sport");
     const resourceDetails = await agent.get(`/api/resources/${presentedResource.id}`).expect(200);
-    expect(domainBody(resourceDetails).topics).toEqual([
-      expect.objectContaining({ id: topic.id, title: "Subvention à l’association sportive" }),
-    ]);
-    const topicsInFolder = await agent
-      .get("/api/topics")
+    expect(domainBody(resourceDetails).councilBusiness).toEqual([]);
+    const businessesInFolder = await agent
+      .get("/api/council-business")
       .query({ folderPath: "Associations/Sport", resourceId: presentedResource.id })
       .expect(200);
-    expect(domainBody(topicsInFolder)).toEqual([expect.objectContaining({ id: topic.id })]);
-    const topicDetails = await agent.get(`/api/topics/${topic.id}`).expect(200);
-    expect(domainBody(topicDetails)).toMatchObject({
-      topic: { id: topic.id, state: "examined" },
+    expect(domainBody(businessesInFolder)).toEqual([]);
+    const businessDetails = await agent.get(`/api/council-business/${business.id}`).expect(200);
+    expect(domainBody(businessDetails)).toMatchObject({
+      business: { id: business.id, title: "Modification trop tardive" },
       councilDecision: { id: decision.id, status: "adopted" },
     });
-    expect(domainBody(topicDetails).occurrences).toEqual([
+    expect(domainBody(businessDetails).occurrences).toEqual([
       expect.objectContaining({
         meeting: expect.objectContaining({ id: meeting.id }),
         agendaItem: expect.objectContaining({ id: agendaItem.id, status: "examined" }),
@@ -199,15 +199,15 @@ describe("topic occurrences and history", () => {
       );
 
     const reclassified = await agent
-      .put(`/api/topics/${topic.id}/classification`)
+      .put(`/api/council-business/${business.id}/classification`)
       .send({ folderPath: "Associations/Sport/Subventions" })
       .expect(200);
     expect(domainBody(reclassified).folderPath).toBe("Associations/Sport/Subventions");
     const archiveAfterReclassification = await agent.get(`/api/council-meetings/${meeting.id}`).expect(200);
-    expect(domainBody(archiveAfterReclassification).agendaItems[0].topic.folderPath).toBe("Associations/Sport");
+    expect(domainBody(archiveAfterReclassification).agendaItems[0].business.folderPath).toBe("Associations/Sport");
   });
 
-  it("keeps the first occurrence unchanged when a postponed topic is rewritten", async () => {
+  it("keeps the first occurrence unchanged when a postponed business is rewritten", async () => {
     const { agent } = await createTestServer();
     const originalResource = await createTextResource(agent, "Pièce de première séance", "Voirie");
     const replacementResource = await createTextResource(agent, "Pièce de resoumission", "Voirie/Travaux");
@@ -217,11 +217,11 @@ describe("topic occurrences and history", () => {
         .send({ title: "Travaux de voirie", draftText: "Projet initial présenté", legalityReviewRequired: true })
         .expect(201),
     );
-    const topic = domainBody(
+    const business = domainBody(
       await agent
-        .post("/api/topics")
+        .post("/api/council-business")
         .send({
-          kind: "subject",
+          kind: "matter",
           councilDecisionId: decision.id,
           title: "Travaux de voirie — première présentation",
           report: "Rapport initial",
@@ -230,7 +230,7 @@ describe("topic occurrences and history", () => {
         })
         .expect(201),
     );
-    const { meeting, agendaItem } = await createOpenMeeting(agent, "Premier conseil voirie", topic.id);
+    const { meeting, agendaItem } = await createOpenMeeting(agent, "Premier conseil voirie", business.id);
     await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${agendaItem.id}/start`).expect(200);
     await agent
       .post(`/api/council-meetings/${meeting.id}/agenda-items/${agendaItem.id}/complete`)
@@ -243,7 +243,7 @@ describe("topic occurrences and history", () => {
       .expect(200);
 
     const rewritten = await agent
-      .put(`/api/topics/${topic.id}`)
+      .put(`/api/council-business/${business.id}`)
       .send({
         title: "Travaux de voirie — dossier complété",
         report: "Nouveau rapport",
@@ -252,7 +252,6 @@ describe("topic occurrences and history", () => {
       })
       .expect(200);
     expect(domainBody(rewritten)).toMatchObject({
-      state: "toSchedule",
       title: "Travaux de voirie — dossier complété",
       folderPath: "Voirie/Travaux",
     });
@@ -260,8 +259,7 @@ describe("topic occurrences and history", () => {
     const firstMeetingArchive = await agent.get(`/api/council-meetings/${meeting.id}`).expect(200);
     expect(domainBody(firstMeetingArchive).agendaItems[0]).toMatchObject({
       status: "postponed",
-      topic: {
-        state: "toSchedule",
+      business: {
         title: "Travaux de voirie — première présentation",
         report: "Rapport initial",
         folderPath: "Voirie",
@@ -273,7 +271,7 @@ describe("topic occurrences and history", () => {
       },
     });
     expect(
-      domainBody(firstMeetingArchive).agendaItems[0].topic.resources.map((resource: { id: string }) => resource.id),
+      domainBody(firstMeetingArchive).agendaItems[0].business.resources.map((resource: { id: string }) => resource.id),
     ).toEqual([originalResource.id]);
     const protectedHistoricalResource = await agent.delete(`/api/resources/${originalResource.id}`);
     expect(protectedHistoricalResource.status).toBe(409);

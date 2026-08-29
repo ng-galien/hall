@@ -10,7 +10,7 @@ import {
   type VoteInput,
 } from "@hall/domain";
 import type {
-  AgendaRepository,
+  AgendaItemRepository,
   AttendanceRepository,
   BallotRepository,
   CouncilDecisionRepository,
@@ -98,7 +98,7 @@ export function createBallotService({
   councilMeetingRepository,
   meetingRosterRepository,
   attendanceRepository,
-  agendaRepository,
+  agendaItemRepository,
   councilDecisionRepository,
   ballotRepository,
   unitOfWork,
@@ -106,7 +106,7 @@ export function createBallotService({
   councilMeetingRepository: CouncilMeetingRepository;
   meetingRosterRepository: MeetingRosterRepository;
   attendanceRepository: AttendanceRepository;
-  agendaRepository: AgendaRepository;
+  agendaItemRepository: AgendaItemRepository;
   councilDecisionRepository: CouncilDecisionRepository;
   ballotRepository: BallotRepository;
   unitOfWork: UnitOfWork;
@@ -124,11 +124,11 @@ export function createBallotService({
         if (!ballot || ballot.meetingId !== id || ballot.cancelledAt) {
           throw new DomainError("ballot_not_found", 404);
         }
-        const agenda = await agendaRepository.listForMeeting(id);
+        const agenda = await agendaItemRepository.listForMeeting(id);
         const agendaItem = agenda.find((item) =>
           ballot.agendaItemId
             ? item.id === ballot.agendaItemId
-            : item.topic.kind === "subject" && item.topic.councilDecisionId === ballot.councilDecisionId,
+            : item.business.kind === "matter" && item.business.councilDecisionId === ballot.councilDecisionId,
         );
         if (agendaItem?.completedAt) throw new DomainError("agenda_sequence_invalid", 409);
         await ballotRepository.cancel(ballotId, new Date().toISOString());
@@ -172,23 +172,23 @@ export function createBallotService({
           if (existingBallot || councilDecision.status === "adopted" || councilDecision.status === "rejected") {
             throw new DomainError("ballot_already_recorded", 409);
           }
-          const agendaItem = (await agendaRepository.listForMeeting(meetingId)).find(
-            (item) => item.topic.kind === "subject" && item.topic.councilDecisionId === command.councilDecisionId,
+          const agendaItem = (await agendaItemRepository.listForMeeting(meetingId)).find(
+            (item) => item.business.kind === "matter" && item.business.councilDecisionId === command.councilDecisionId,
           );
           if (!agendaItem) throw new DomainError("agenda_inconsistent");
           if (agendaItem.addedDuringSession) throw new DomainError("agenda_sequence_invalid", 409);
-          if (!agendaItem.startedAt || agendaItem.completedAt || agendaItem.topic.state !== "inProgress") {
+          if (agendaItem.status !== "inProgress" || !agendaItem.startedAt || agendaItem.completedAt) {
             throw new DomainError("agenda_sequence_invalid", 409);
           }
         } else {
-          const agendaItem = await agendaRepository.find(meetingId, command.agendaItemId!);
+          const agendaItem = await agendaItemRepository.find(meetingId, command.agendaItemId!);
           if (!agendaItem) throw new DomainError("agenda_item_not_found", 404);
           if (agendaItem.addedDuringSession) throw new DomainError("agenda_sequence_invalid", 409);
-          if (agendaItem.topic.kind === "openQuestion") throw new DomainError("agenda_sequence_invalid", 409);
-          if (agendaItem.topic.kind === "subject" && agendaItem.topic.councilDecisionId) {
+          if (agendaItem.business.kind === "openQuestion") throw new DomainError("agenda_sequence_invalid", 409);
+          if (agendaItem.business.kind === "matter" && agendaItem.business.councilDecisionId) {
             throw new DomainError("agenda_inconsistent");
           }
-          if (!agendaItem.startedAt || agendaItem.completedAt || agendaItem.topic.state !== "inProgress") {
+          if (agendaItem.status !== "inProgress" || !agendaItem.startedAt || agendaItem.completedAt) {
             throw new DomainError("agenda_sequence_invalid", 409);
           }
           if (await ballotRepository.findForAgendaItem(agendaItem.id)) {

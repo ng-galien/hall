@@ -11,7 +11,7 @@ import { requirePermission } from "../../security/authorization.js";
 import { routeParameter } from "../routeParameter.js";
 
 const referenceQuerySchema = z.object({
-  type: z.enum(["member", "resource", "topic", "decision", "meeting"]),
+  type: z.enum(["member", "resource", "councilBusiness", "decision", "meeting"]),
   query: z.string().trim().max(160).default(""),
 });
 
@@ -25,7 +25,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
     councilMemberRepository,
     councilMeetingRepository,
     councilDecisionRepository,
-    topicRepository,
+    councilBusinessRepository,
     resourceRepository,
   } = cradle;
   const router = Router();
@@ -51,8 +51,12 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
         label: meeting.title,
       }));
     }
-    if (type === "topic") {
-      references = (await topicRepository.list()).map((topic) => ({ type, id: topic.id, label: topic.title }));
+    if (type === "councilBusiness") {
+      references = (await councilBusinessRepository.list()).map((business) => ({
+        type,
+        id: business.id,
+        label: business.title,
+      }));
     }
     if (type === "decision") {
       references = (await councilDecisionRepository.list()).map((decision) => ({

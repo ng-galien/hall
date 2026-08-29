@@ -2,8 +2,10 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthenticationGate } from "./components/AuthenticationGate";
+import { ReferencePresentationProvider } from "./components/editor/references";
 import { IconDefaults } from "./components/icons";
 import { Layout } from "./components/Layout";
+import { ResourcePreview } from "./features/documents/ResourcePreview";
 import { useApplicationData } from "./hooks/useApplicationData";
 import { useI18n } from "./i18n/I18nProvider";
 
@@ -65,11 +67,15 @@ export function App() {
   return (
     <IconDefaults>
       <TooltipProvider>
-        <BrowserRouter basename="/app">
-          <AuthenticationGate>
-            <AuthenticatedApplication />
-          </AuthenticationGate>
-        </BrowserRouter>
+        <ReferencePresentationProvider
+          renderResourcePreview={(id, onClose) => <ResourcePreview slug={id} onClose={onClose} />}
+        >
+          <BrowserRouter basename="/app">
+            <AuthenticationGate>
+              <AuthenticatedApplication />
+            </AuthenticationGate>
+          </BrowserRouter>
+        </ReferencePresentationProvider>
       </TooltipProvider>
     </IconDefaults>
   );

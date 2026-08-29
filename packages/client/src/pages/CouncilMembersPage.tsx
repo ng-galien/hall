@@ -11,9 +11,9 @@ import {
   matchesQuery,
   PageHeader,
   RequestErrorBanner,
-  StatusBadge,
   useCollectionView,
 } from "../components/Ui";
+import { StatusBadge } from "../features/status/DomainStatusBadge";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";

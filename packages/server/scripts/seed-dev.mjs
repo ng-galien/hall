@@ -2,7 +2,7 @@
  * Seed de développement — commune fictive de Saint-Aubin.
  *
  * Peuple le serveur via l'API HTTP (jamais en SQL direct) :
- * membres, ressources classées par chemins, topics, délibérations,
+ * membres, ressources classées par chemins, travaux du conseil, délibérations,
  * une séance passée entièrement déroulée (présences, pouvoirs, scrutins),
  * une séance à venir programmée et une séance en préparation.
  *
@@ -279,9 +279,10 @@ const daysFromNow = (days, hour = 18, minute = 30) => {
 async function main() {
   const inspectedCollections = await Promise.all([
     get("/council-members"),
+    get("/council-committees"),
     get("/users"),
     get("/resources"),
-    get("/topics"),
+    get("/council-business"),
     get("/council-decisions"),
     get("/council-meetings"),
     get("/templates"),
@@ -346,6 +347,36 @@ async function main() {
       termStartedOn: "2026-03-15",
     });
   }
+
+  console.log("— Commissions municipales");
+  const schoolCommittee = await post("/council-committees", {
+    name: "Commission affaires scolaires",
+    description: "Prépare les sujets relatifs aux écoles et à la restauration scolaire.",
+  });
+  const communityLifeCommittee = await post("/council-committees", {
+    name: "Commission vie associative",
+    description: "Examine les demandes des associations et prépare les propositions de soutien.",
+  });
+  await post(`/council-committees/${schoolCommittee.id}/memberships`, {
+    councilMemberId: members.Renaud.id,
+    role: "chair",
+    startedOn: "2026-03-15",
+  });
+  await post(`/council-committees/${schoolCommittee.id}/memberships`, {
+    councilMemberId: members.Charpentier.id,
+    role: "member",
+    startedOn: "2026-03-15",
+  });
+  await post(`/council-committees/${communityLifeCommittee.id}/memberships`, {
+    councilMemberId: members.Morel.id,
+    role: "chair",
+    startedOn: "2026-03-15",
+  });
+  await post(`/council-committees/${communityLifeCommittee.id}/memberships`, {
+    councilMemberId: members.Baudry.id,
+    role: "member",
+    startedOn: "2026-03-15",
+  });
 
   console.log("— Utilisateurs, rôles et rattachements au conseil");
   const usersSpec = [
@@ -471,11 +502,11 @@ async function main() {
     ],
   });
 
-  console.log("— Topics et délibérations (« soumettre au vote »)");
-  const submitToVote = async (topic, draftText) =>
-    Object.assign(topic, await post(`/topics/${topic.id}/decision`, { draftText }));
-  const topicCession = await post("/topics", {
-    kind: "subject",
+  console.log("— Travaux du conseil et délibérations (« soumettre au vote »)");
+  const submitToVote = async (business, draftText) =>
+    Object.assign(business, await post(`/council-business/${business.id}/decision`, { draftText }));
+  const businessCession = await post("/council-business", {
+    kind: "matter",
     title: "Cession de la parcelle AB 127",
     report:
       "La commune n'a pas d'usage de cette parcelle enclavée. Un riverain s'est porté acquéreur au prix de l'avis des Domaines.",
@@ -483,11 +514,12 @@ async function main() {
     resourceIds: [avisDomaines.id],
   });
   await submitToVote(
-    topicCession,
+    businessCession,
     "**Le conseil municipal**, vu l'avis des Domaines du 12 juin 2026,\n\n**décide** de céder la parcelle AB 127 (1 240 m²) au prix de 62 000 €, et **autorise** madame la maire à signer l'acte authentique.",
   );
-  const topicCantine = await post("/topics", {
-    kind: "subject",
+  const businessCantine = await post("/council-business", {
+    kind: "matter",
+    committeeId: schoolCommittee.id,
     title: "Tarifs de la restauration scolaire 2026-2027",
     report:
       "Le prestataire augmente ses prix de 4,1 %. La commission scolaire propose de ne répercuter qu'une partie de la hausse.",
@@ -495,26 +527,26 @@ async function main() {
     resourceIds: [noteTarifs.id, reglementCantine.id],
   });
   await submitToVote(
-    topicCantine,
+    businessCantine,
     "**Le conseil municipal décide** :\n\n- de geler le tarif de la première tranche de quotient familial ;\n- d'appliquer une hausse de 2 % aux autres tranches à compter du 1er septembre 2026.",
   );
-  const topicMotion = await post("/topics", {
-    kind: "subject",
+  const businessMotion = await post("/council-business", {
+    kind: "matter",
     title: "Motion de soutien au commerce de proximité",
     report:
       "Suite à la fermeture annoncée du dernier commerce alimentaire, il est proposé au conseil d'adopter une motion de soutien.",
     folderPath: "",
     resourceIds: [],
   });
-  const topicQuestionsPassees = await post("/topics", {
+  const businessQuestionsPassees = await post("/council-business", {
     kind: "openQuestion",
     title: "Questions diverses",
     report: "",
     folderPath: "",
     resourceIds: [],
   });
-  const topicEclairage = await post("/topics", {
-    kind: "subject",
+  const businessEclairage = await post("/council-business", {
+    kind: "matter",
     title: "Éclairage public — engagement de la tranche 2",
     report:
       "Après la tranche 1 achevée au printemps, la tranche 2 couvre le centre-bourg et les abords de l'école. Le plan de financement intègre la subvention du SDE.",
@@ -522,28 +554,29 @@ async function main() {
     resourceIds: [noteCadrage.id, rapportEclairage.id, planFinancement.id],
   });
   await submitToVote(
-    topicEclairage,
+    businessEclairage,
     "**Le conseil municipal approuve** le programme de la tranche 2 pour un montant de 186 000 € HT, **sollicite** la subvention du SDE à hauteur de 40 %, et **autorise** madame la maire à signer les marchés correspondants.",
   );
-  const topicSubventions = await post("/topics", {
-    kind: "subject",
+  const businessSubventions = await post("/council-business", {
+    kind: "matter",
+    committeeId: communityLifeCommittee.id,
     title: "Subventions aux associations 2026",
     report: "La commission vie associative a examiné les huit dossiers reçus. Cinq demandes sont retenues.",
     folderPath: "finances/subventions",
     resourceIds: [tableauSubventions.id],
   });
   await submitToVote(
-    topicSubventions,
+    businessSubventions,
     "**Le conseil municipal attribue** les subventions conformément au tableau annexé, pour un montant total de **9 800 €**, inscrit au budget 2026.",
   );
-  const topicRentree = await post("/topics", {
-    kind: "subject",
+  const businessRentree = await post("/council-business", {
+    kind: "matter",
     title: "Rentrée scolaire — bilan et effectifs",
     report: "Point d'information : 142 élèves inscrits (+6), ouverture d'un poste d'ATSEM à mi-temps.",
     folderPath: "ecole",
     resourceIds: [],
   });
-  const topicQuestions = await post("/topics", {
+  const businessQuestions = await post("/council-business", {
     kind: "openQuestion",
     title: "Questions diverses",
     report: "",
@@ -551,14 +584,14 @@ async function main() {
     resourceIds: [],
   });
   // Restent volontairement « à inscrire » (backlog de préparation).
-  await post("/topics", {
-    kind: "subject",
+  await post("/council-business", {
+    kind: "matter",
     title: "Rénovation de la salle des fêtes — étude préalable",
     report: "Lancement d'une étude de programmation (toiture, chauffage, accessibilité).",
     folderPath: "travaux/salle-des-fetes",
     resourceIds: [],
   });
-  await post("/topics", {
+  await post("/council-business", {
     kind: "openQuestion",
     title: "Stationnement rue des Tilleuls",
     report: "",
@@ -572,9 +605,9 @@ async function main() {
     startsAt: daysFromNow(-14),
     location: "Salle du conseil",
   });
-  const pastAgenda = [topicCession, topicCantine, topicMotion, topicQuestionsPassees];
-  for (const [index, topic] of pastAgenda.entries()) {
-    await post(`/topics/${topic.id}/schedule`, { meetingId: pastMeeting.id, position: index + 1 });
+  const pastAgenda = [businessCession, businessCantine, businessMotion, businessQuestionsPassees];
+  for (const [index, business] of pastAgenda.entries()) {
+    await post(`/council-business/${business.id}/schedule`, { meetingId: pastMeeting.id, position: index + 1 });
   }
   await put(`/council-meetings/${pastMeeting.id}/status`, { status: "scheduled" });
   await put(`/council-meetings/${pastMeeting.id}/officers`, {
@@ -630,36 +663,36 @@ async function main() {
       }));
 
   const aggregate = await get(`/council-meetings/${pastMeeting.id}`);
-  const itemFor = (topic) => aggregate.agendaItems.find((item) => item.topic.id === topic.id);
+  const itemFor = (business) => aggregate.agendaItems.find((item) => item.business.id === business.id);
 
   const conduct = [
     {
-      topic: topicCession,
-      ballot: { councilDecisionId: topicCession.councilDecisionId },
+      business: businessCession,
+      ballot: { councilDecisionId: businessCession.councilDecisionId },
       choices: { [members.Benali.id]: "against", [members.Rousseau.id]: "abstain" },
       notes:
         "Présentation de l'avis des Domaines. M. Benali estime le prix insuffisant ; Mme Rousseau s'interroge sur l'accès à la parcelle voisine.",
     },
     {
-      topic: topicCantine,
-      ballot: { councilDecisionId: topicCantine.councilDecisionId },
+      business: businessCantine,
+      ballot: { councilDecisionId: businessCantine.councilDecisionId },
       choices: { [members.Marchand.id]: "against" },
       notes: "Débat sur la répartition de la hausse entre les tranches. Le gel de la première tranche fait consensus.",
     },
     {
-      topic: topicMotion,
+      business: businessMotion,
       ballot: { agendaItemId: null }, // renseigné après démarrage
       choices: { [members.Morel.id]: "abstain" },
       notes: "Lecture de la motion. Le conseil souhaite y associer la chambre de commerce.",
     },
     {
-      topic: topicQuestionsPassees,
+      business: businessQuestionsPassees,
       ballot: null,
       notes: "Mme Petit signale un dépôt sauvage chemin des Carrières ; les services techniques interviendront.",
     },
   ];
   for (const step of conduct) {
-    const item = itemFor(step.topic);
+    const item = itemFor(step.business);
     await post(`/council-meetings/${pastMeeting.id}/agenda-items/${item.id}/start`, {});
     if (step.ballot) {
       const target = step.ballot.councilDecisionId
@@ -685,11 +718,11 @@ async function main() {
     startsAt: daysFromNow(9),
     location: "Salle du conseil",
   });
-  const minutesTopics = await get("/topics?state=toSchedule");
-  const minutesApproval = minutesTopics.find((topic) => topic.kind === "minutesApproval");
-  const upcomingAgenda = [minutesApproval, topicEclairage, topicSubventions, topicRentree, topicQuestions];
-  for (const [index, topic] of upcomingAgenda.entries()) {
-    await post(`/topics/${topic.id}/schedule`, { meetingId: upcomingMeeting.id, position: index + 1 });
+  const councilBusiness = await get("/council-business");
+  const minutesApproval = councilBusiness.find((business) => business.kind === "minutesApproval");
+  const upcomingAgenda = [minutesApproval, businessEclairage, businessSubventions, businessRentree, businessQuestions];
+  for (const [index, business] of upcomingAgenda.entries()) {
+    await post(`/council-business/${business.id}/schedule`, { meetingId: upcomingMeeting.id, position: index + 1 });
   }
   await put(`/council-meetings/${upcomingMeeting.id}/status`, { status: "scheduled" });
   await put(`/council-meetings/${upcomingMeeting.id}/officers`, {

@@ -2,11 +2,11 @@ import { NavLink } from "react-router-dom";
 import { ChevronDownIcon, ChevronRightIcon, SettingsIcon } from "../components/icons";
 import { useI18n } from "../i18n/I18nProvider";
 import { useWorkspacePrefsStore } from "../pages/workspace/workspacePrefs";
+import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { useResourcesStore } from "../stores/resourcesStore";
-import { useTopicsStore } from "../stores/topicsStore";
 import { navigationSections } from "./navigation";
 import { WorkspaceTree } from "./WorkspaceTree";
 
@@ -15,7 +15,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
   const { treeCollapsed, toggleTree } = useWorkspacePrefsStore();
   const counts = {
     meetings: useCouncilMeetingsStore((state) => state.meetings.length),
-    topics: useTopicsStore((state) => state.topics.length),
+    councilBusiness: useCouncilBusinessStore((state) => state.businesses.length),
     councilDecisions: useCouncilDecisionsStore((state) => state.councilDecisions.length),
     resources: useResourcesStore((state) => state.resources.length),
     members: useCouncilMembersStore((state) => state.members.length),
@@ -28,7 +28,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
     >
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-3">
         {navigationSections.map((section, sectionIndex) => (
-          <div className="flex flex-col gap-0.5" key={section.labelKey ?? "overview"}>
+          <div className="flex flex-col gap-0.5" key={section.labelKey ?? section.items[0].to}>
             {section.labelKey && !compact ? <span className="nav-section-label">{t(section.labelKey)}</span> : null}
             {section.labelKey && compact && sectionIndex > 0 ? (
               <span className="mx-auto my-2 h-px w-5 bg-border" />

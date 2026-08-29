@@ -30,14 +30,14 @@ describe("hardened HTTP and hypermedia contract", () => {
   it("accepts mutations from the configured local Vite proxy", async () => {
     const { rawAgent } = await createTestServer();
 
-    const topic = await rawAgent
-      .post("/api/topics")
+    const business = await rawAgent
+      .post("/api/council-business")
       .set("Origin", "http://localhost:5174")
       .set("Sec-Fetch-Site", "same-site")
       .send({ kind: "openQuestion", title: "Question locale", report: "", folderPath: "", resourceIds: [] })
       .expect(201);
 
-    expect(properties<{ title: string }>(topic).title).toBe("Question locale");
+    expect(properties<{ title: string }>(business).title).toBe("Question locale");
   });
 
   it("does not advertise scheduling before the council has an active roster", async () => {
@@ -60,7 +60,7 @@ describe("hardened HTTP and hypermedia contract", () => {
     const { rawAgent } = await createTestServer();
 
     const malformed = await rawAgent
-      .post("/api/topics")
+      .post("/api/council-business")
       .set("Content-Type", "application/json")
       .send('{"kind":')
       .expect(400);
@@ -69,7 +69,7 @@ describe("hardened HTTP and hypermedia contract", () => {
     expect(malformed.body.requestId).toBeTruthy();
 
     const oversized = await rawAgent
-      .post("/api/topics")
+      .post("/api/council-business")
       .send({
         kind: "openQuestion",
         title: "Trop grand",
@@ -80,7 +80,7 @@ describe("hardened HTTP and hypermedia contract", () => {
       .expect(413);
     expect(oversized.body).toMatchObject({ code: "request_too_large", status: 413 });
 
-    const malformedPath = await rawAgent.get("/api/topics/%").expect(400);
+    const malformedPath = await rawAgent.get("/api/council-business/%").expect(400);
     expect(malformedPath.body).toMatchObject({ code: "invalid_request", status: 400 });
 
     const missing = await rawAgent.get("/api/route-that-does-not-exist").expect(404);
@@ -88,7 +88,7 @@ describe("hardened HTTP and hypermedia contract", () => {
     expect(missing.body).toMatchObject({ code: "route_not_found", status: 404 });
 
     const crossOrigin = await rawAgent
-      .post("/api/topics")
+      .post("/api/council-business")
       .set("Origin", "https://hostile.example")
       .send({ kind: "openQuestion", title: "Intrusion", report: "", folderPath: "", resourceIds: [] })
       .expect(403);
@@ -97,7 +97,9 @@ describe("hardened HTTP and hypermedia contract", () => {
     const audit = await rawAgent.get("/api/audit-events").expect(200);
     expect(
       audit.body.entities.map((entity: { properties: { action: string; outcome: string } }) => entity.properties),
-    ).toEqual(expect.arrayContaining([expect.objectContaining({ action: "topic.create", outcome: "denied" })]));
+    ).toEqual(
+      expect.arrayContaining([expect.objectContaining({ action: "council-business.create", outcome: "denied" })]),
+    );
     const auditSelf = audit.body.entities[0].links.find((link: { rel: string[] }) => link.rel.includes("self"));
     expect(auditSelf.href).toMatch(/^\/api\/audit-events\//);
     await rawAgent.get(auditSelf.href).expect(200);
@@ -127,10 +129,10 @@ describe("hardened HTTP and hypermedia contract", () => {
       .send({ title: "Note présentée", folderPath: "conseil", tags: ["séance"], content: "Contenu présenté" })
       .expect(201);
     const resourceId = properties<{ id: string }>(resource).id;
-    const topic = await rawAgent
-      .post("/api/topics")
+    const business = await rawAgent
+      .post("/api/council-business")
       .send({
-        kind: "subject",
+        kind: "matter",
         councilDecisionId: decisionId,
         title: "Question",
         report: "Rapport présenté",
@@ -138,8 +140,8 @@ describe("hardened HTTP and hypermedia contract", () => {
         resourceIds: [resourceId],
       })
       .expect(201);
-    const topicId = properties<{ id: string }>(topic).id;
-    await expectSelfToResolve(rawAgent, topic);
+    const businessId = properties<{ id: string }>(business).id;
+    await expectSelfToResolve(rawAgent, business);
     const meeting = await rawAgent
       .post("/api/council-meetings")
       .send({
@@ -153,7 +155,7 @@ describe("hardened HTTP and hypermedia contract", () => {
     const meetingId = properties<{ id: string }>(meeting).id;
     await expectSelfToResolve(rawAgent, meeting);
     const agendaItem = await rawAgent
-      .post(`/api/topics/${topicId}/schedule`)
+      .post(`/api/council-business/${businessId}/schedule`)
       .send({ meetingId, position: 1 })
       .expect(201);
     await expectSelfToResolve(rawAgent, agendaItem);
@@ -193,25 +195,25 @@ describe("hardened HTTP and hypermedia contract", () => {
     expect((failedAgenda.actions ?? []).map((candidate: { name: string }) => candidate.name)).not.toContain(
       "agenda-item.remove",
     );
-    const frozenTopic = await rawAgent.get(`/api/topics/${topicId}`).expect(200);
-    expect(actionNames(frozenTopic)).toEqual(["topic.reclassify"]);
-    const frozenTopicInCollection = (await rawAgent.get("/api/topics").expect(200)).body.entities.find(
-      (entity: { properties: { id: string } }) => entity.properties.id === topicId,
+    const frozenBusiness = await rawAgent.get(`/api/council-business/${businessId}`).expect(200);
+    expect(actionNames(frozenBusiness)).toEqual(["council-business.reclassify", "council-business.update"]);
+    const frozenBusinessInCollection = (await rawAgent.get("/api/council-business").expect(200)).body.entities.find(
+      (entity: { properties: { id: string } }) => entity.properties.id === businessId,
     );
-    expect((frozenTopicInCollection.actions ?? []).map((candidate: { name: string }) => candidate.name)).toEqual([
-      "topic.reclassify",
+    expect((frozenBusinessInCollection.actions ?? []).map((candidate: { name: string }) => candidate.name)).toEqual([
+      "council-business.reclassify",
+      "council-business.update",
     ]);
     await rawAgent
-      .put(`/api/topics/${topicId}`)
+      .put(`/api/council-business/${businessId}`)
       .send({
         title: "Question réécrite",
         report: "Rapport réécrit",
         folderPath: "conseil",
         resourceIds: [resourceId],
-        councilDecisionId: decisionId,
       })
-      .expect(409);
-    await rawAgent.delete(`/api/topics/${topicId}/decision`).expect(409);
+      .expect(200);
+    await rawAgent.delete(`/api/council-business/${businessId}/decision`).expect(409);
     const frozenDecision = await rawAgent.get(`/api/council-decisions/${decisionId}`).expect(200);
     expect(actionNames(frozenDecision)).not.toContain("decision.update");
     await rawAgent
@@ -222,7 +224,10 @@ describe("hardened HTTP and hypermedia contract", () => {
       .put(`/api/resources/${resourceId}`)
       .send({ title: "Note réécrite", folderPath: "conseil", tags: ["séance"], content: "Nouveau contenu" })
       .expect(409);
-    await rawAgent.put(`/api/topics/${topicId}/classification`).send({ folderPath: "archives/conseil" }).expect(200);
+    await rawAgent
+      .put(`/api/council-business/${businessId}/classification`)
+      .send({ folderPath: "archives/conseil" })
+      .expect(200);
     const reconvene = failed.body.actions[0];
     expect(reconvene.href).toBe(
       `/api/council-meetings/${properties<{ meeting: { slug: string } }>(failed).meeting.slug}/reconvene`,
@@ -241,18 +246,20 @@ describe("hardened HTTP and hypermedia contract", () => {
       .get(`/api/council-meetings/${properties<{ id: string }>(reconvened).id}`)
       .expect(200);
     expect(actionNames(reconvenedRepresentation)).not.toContain("meeting.reorder-agenda");
-    expect(actionNames(await rawAgent.get(`/api/topics/${topicId}`).expect(200))).toEqual(["topic.reclassify"]);
+    expect(actionNames(await rawAgent.get(`/api/council-business/${businessId}`).expect(200))).toEqual(
+      expect.arrayContaining(["council-business.reclassify", "council-business.update"]),
+    );
   });
 
   it("keeps collection filters in Siren self links", async () => {
     const { rawAgent } = await createTestServer();
-    const topics = await rawAgent.get("/api/topics?state=toSchedule&folderPath=travaux%2Feclairage").expect(200);
-    expect(topics.body.links).toContainEqual(
-      expect.objectContaining({ rel: ["self"], href: "/api/topics?state=toSchedule&folderPath=travaux%2Feclairage" }),
+    const businesses = await rawAgent.get("/api/council-business?folderPath=travaux%2Feclairage").expect(200);
+    expect(businesses.body.links).toContainEqual(
+      expect.objectContaining({ rel: ["self"], href: "/api/council-business?folderPath=travaux%2Feclairage" }),
     );
   });
 
-  it("enforces every role at the server boundary and permits an atomic late topic to the conductor", async () => {
+  it("enforces every role at the server boundary and permits an atomic late business to the conductor", async () => {
     const { rawAgent } = await createTestServer({ devAutoLogin: false });
     await rawAgent.post("/api/auth/bootstrap").send(admin).expect(201);
     const chair = properties<{ id: string }>(
@@ -279,27 +286,27 @@ describe("hardened HTTP and hypermedia contract", () => {
         })
         .expect(201),
     );
-    const preparedTopic = properties<{ id: string }>(
+    const preparedBusiness = properties<{ id: string }>(
       await rawAgent
-        .post("/api/topics")
-        .send({ kind: "subject", title: "Point convoqué", report: "", folderPath: "", resourceIds: [] })
+        .post("/api/council-business")
+        .send({ kind: "matter", title: "Point convoqué", report: "", folderPath: "", resourceIds: [] })
         .expect(201),
     );
     const preparedAgendaItem = properties<{ id: string }>(
       await rawAgent
-        .post(`/api/topics/${preparedTopic.id}/schedule`)
+        .post(`/api/council-business/${preparedBusiness.id}/schedule`)
         .send({ meetingId: meeting.id, position: 1 })
         .expect(201),
     );
     const preparedOpenQuestion = properties<{ id: string }>(
       await rawAgent
-        .post("/api/topics")
+        .post("/api/council-business")
         .send({ kind: "openQuestion", title: "Question ouverte", report: "", folderPath: "", resourceIds: [] })
         .expect(201),
     );
     const preparedOpenQuestionItem = properties<{ id: string }>(
       await rawAgent
-        .post(`/api/topics/${preparedOpenQuestion.id}/schedule`)
+        .post(`/api/council-business/${preparedOpenQuestion.id}/schedule`)
         .send({ meetingId: meeting.id, position: 2 })
         .expect(201),
     );
@@ -344,12 +351,12 @@ describe("hardened HTTP and hypermedia contract", () => {
       .expect(200);
     const provisioned = properties<{ id: string }>(
       await rawAgent
-        .post("/api/topics")
+        .post("/api/council-business")
         .send({ kind: "openQuestion", title: "Provision", report: "", folderPath: "", resourceIds: [] })
         .expect(201),
     );
     await rawAgent
-      .post(`/api/topics/${provisioned.id}/schedule`)
+      .post(`/api/council-business/${provisioned.id}/schedule`)
       .send({ meetingId: meeting.id, position: 3 })
       .expect(409);
     await rawAgent.post("/api/council-meetings").send({}).expect(400);
@@ -361,7 +368,7 @@ describe("hardened HTTP and hypermedia contract", () => {
       .send({ email: profiles[1][1], password: "Mot-de-passe-role-2026!" })
       .expect(200);
     await rawAgent
-      .post("/api/topics")
+      .post("/api/council-business")
       .send({ kind: "openQuestion", title: "Contribution", report: "", folderPath: "", resourceIds: [] })
       .expect(201);
     await rawAgent.post("/api/council-meetings").send({}).expect(403);
@@ -371,7 +378,7 @@ describe("hardened HTTP and hypermedia contract", () => {
       .post("/api/auth/login")
       .send({ email: profiles[2][1], password: "Mot-de-passe-role-2026!" })
       .expect(200);
-    await rawAgent.post("/api/topics").send({}).expect(403);
+    await rawAgent.post("/api/council-business").send({}).expect(403);
     const idleMeeting = await rawAgent.get(`/api/council-meetings/${meeting.id}`).expect(200);
     expect(actionNames(idleMeeting)).not.toContain("ballot.record");
     const startedAgendaItem = await rawAgent
@@ -474,9 +481,9 @@ describe("hardened HTTP and hypermedia contract", () => {
       .expect(200);
 
     await rawAgent
-      .post(`/api/council-meetings/${meeting.id}/late-topics`)
+      .post(`/api/council-meetings/${meeting.id}/late-business`)
       .send({
-        kind: "subject",
+        kind: "matter",
         councilDecisionId: randomUUID(),
         title: "Délibération tardive",
         report: "",
@@ -485,26 +492,26 @@ describe("hardened HTTP and hypermedia contract", () => {
       })
       .expect(400);
 
-    const lateTopic = await rawAgent
-      .post(`/api/council-meetings/${meeting.id}/late-topics`)
-      .send({ kind: "subject", title: "Ajout en séance", report: "", folderPath: "", resourceIds: [] })
+    const lateBusiness = await rawAgent
+      .post(`/api/council-meetings/${meeting.id}/late-business`)
+      .send({ kind: "openQuestion", title: "Ajout en séance", report: "", folderPath: "", resourceIds: [] })
       .expect(201);
     const lateAgendaItem = properties<{
       id: string;
       position: number;
       addedDuringSession: boolean;
-      topic: { id: string };
-    }>(lateTopic);
+      business: { id: string };
+    }>(lateBusiness);
     expect(lateAgendaItem).toMatchObject({ position: 3, addedDuringSession: true });
-    const topicsCollection = await rawAgent.get("/api/topics").expect(200);
-    const lateEmbedded = topicsCollection.body.entities.find(
-      (entity: { properties?: { id?: string } }) => entity.properties?.id === lateAgendaItem.topic.id,
+    const businessesCollection = await rawAgent.get("/api/council-business").expect(200);
+    const lateEmbedded = businessesCollection.body.entities.find(
+      (entity: { properties?: { id?: string } }) => entity.properties?.id === lateAgendaItem.business.id,
     );
     expect((lateEmbedded.actions ?? []).map((candidate: { name: string }) => candidate.name)).not.toContain(
-      "topic.attach-decision",
+      "council-business.attach-decision",
     );
-    const lateDetails = await rawAgent.get(`/api/topics/${lateAgendaItem.topic.id}`).expect(200);
-    expect(actionNames(lateDetails)).not.toContain("topic.attach-decision");
+    const lateDetails = await rawAgent.get(`/api/council-business/${lateAgendaItem.business.id}`).expect(200);
+    expect(actionNames(lateDetails)).not.toContain("council-business.attach-decision");
     await rawAgent.post(`/api/council-meetings/${meeting.id}/agenda-items/${lateAgendaItem.id}/start`).expect(200);
     const lateMeeting = await rawAgent.get(`/api/council-meetings/${meeting.id}`).expect(200);
     expect(actionNames(lateMeeting)).not.toContain("ballot.record");
@@ -529,7 +536,7 @@ describe("hardened HTTP and hypermedia contract", () => {
       .send({ email: profiles[3][1], password: "Mot-de-passe-role-2026!" })
       .expect(200);
     await rawAgent.get(`/api/council-meetings/${meeting.id}`).expect(200);
-    await rawAgent.post("/api/topics").send({}).expect(403);
+    await rawAgent.post("/api/council-business").send({}).expect(403);
   });
 
   it("throttles repeated failed logins without disclosing whether the account exists", async () => {

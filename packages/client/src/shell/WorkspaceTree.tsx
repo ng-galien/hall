@@ -4,8 +4,8 @@ import { ChevronDownIcon, ChevronRightIcon } from "../components/icons";
 import { useI18n } from "../i18n/I18nProvider";
 import { buildPathTree, type PathNode } from "../pages/workspace/paths";
 import { DRAG_TYPE, decodeDragPayload, moveToPath, useWorkspaceOrgStore } from "../pages/workspace/workspaceOrg";
+import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useResourcesStore } from "../stores/resourcesStore";
-import { useTopicsStore } from "../stores/topicsStore";
 
 function activePathFrom(search: string, pathname: string): string | null {
   if (pathname !== "/workspace") return null;
@@ -86,12 +86,12 @@ function TreeNode({
 
 /** Arborescence des chemins de classement, intégrée à la sidebar sous « Espace de travail ». */
 export function WorkspaceTree() {
-  const { topics } = useTopicsStore();
+  const { businesses } = useCouncilBusinessStore();
   const { resources } = useResourcesStore();
   const { pendingPaths } = useWorkspaceOrgStore();
   const location = useLocation();
   const activePath = activePathFrom(location.search, location.pathname);
-  const tree = useMemo(() => buildPathTree(topics, resources, pendingPaths), [topics, resources, pendingPaths]);
+  const tree = useMemo(() => buildPathTree(businesses, resources, pendingPaths), [businesses, resources, pendingPaths]);
   const [toggled, setToggled] = useState<{ opened: Set<string>; closed: Set<string> }>({
     opened: new Set(),
     closed: new Set(),

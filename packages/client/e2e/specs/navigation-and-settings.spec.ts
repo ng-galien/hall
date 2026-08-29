@@ -8,15 +8,14 @@ test.describe("navigation and settings", () => {
     const routes = [
       ["Séances", /\/app\/meetings$/, "Séances du conseil", "CouncilMeetingsPage.tsx"],
       ["Délibérations", /\/app\/council-decisions$/, "Délibérations", "CouncilDecisionsPage.tsx"],
-      ["Topics", /\/app\/topics$/, "Topics", "TopicsPage.tsx"],
-      ["Ressources", /\/app\/resources$/, "Ressources", "ResourcesPage.tsx"],
+      ["Espace de travail", /\/app\/workspace$/, null, "WorkspacePage.tsx"],
       ["Membres du conseil", /\/app\/council-members$/, "Composition du conseil", "CouncilMembersPage.tsx"],
     ] as const;
 
     for (const [linkName, url, heading, moduleName] of routes) {
       await primaryNavigationLink(page, linkName).click();
       await expect(page).toHaveURL(url);
-      await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+      if (heading) await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       expect(loadedModules.some((loadedUrl) => loadedUrl.includes(moduleName))).toBe(true);
     }
 

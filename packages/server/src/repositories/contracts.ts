@@ -5,7 +5,11 @@ import type {
   Ballot,
   BallotMethod,
   BallotResult,
+  CommitteeMembership,
+  CommitteeRole,
   ContentTemplate,
+  CouncilBusiness,
+  CouncilCommittee,
   CouncilDecision,
   CouncilDecisionListEntry,
   CouncilDecisionStatus,
@@ -19,8 +23,6 @@ import type {
   QuorumFailureEvidence,
   Resource,
   TextResource,
-  Topic,
-  TopicState,
   VoteInput,
 } from "@hall/domain";
 
@@ -54,6 +56,31 @@ export interface CouncilMemberRepository {
   listActive(): Promise<CouncilMember[]>;
   find(id: string): Promise<CouncilMember | null>;
   create(input: CreateCouncilMember): Promise<CouncilMember>;
+}
+
+export interface CreateCouncilCommittee {
+  name: string;
+  description: string;
+}
+
+export interface CouncilCommitteeRepository {
+  list(options?: { includeArchived?: boolean }): Promise<CouncilCommittee[]>;
+  find(reference: string): Promise<CouncilCommittee | null>;
+  create(input: CreateCouncilCommittee): Promise<CouncilCommittee>;
+  update(id: string, input: CreateCouncilCommittee): Promise<CouncilCommittee>;
+  archive(id: string, archivedAt: string): Promise<CouncilCommittee>;
+}
+
+export interface AddCommitteeMembership {
+  councilMemberId: string;
+  role: CommitteeRole;
+  startedOn: string;
+}
+
+export interface CommitteeMembershipRepository {
+  listForCommittee(committeeId: string): Promise<CommitteeMembership[]>;
+  add(committeeId: string, input: AddCommitteeMembership): Promise<CommitteeMembership>;
+  end(id: string, endedOn: string): Promise<CommitteeMembership>;
 }
 
 export interface CreateCouncilMeeting {
@@ -104,15 +131,16 @@ export type RecordAttendanceResult =
   | { status: "proxyDocumentConflict" };
 
 export interface CreateAgendaItem {
-  topicId: string;
+  businessId: string;
   position: number;
   addedDuringSession?: boolean;
 }
 
-export type CreateTopic =
+export type CreateCouncilBusiness =
   | {
-      kind: "subject";
+      kind: "matter";
       councilDecisionId?: string | null;
+      committeeId?: string | null;
       title: string;
       report: string;
       folderPath: string;
@@ -134,30 +162,30 @@ export type CreateTopic =
       resourceIds: string[];
     };
 
-export interface UpdateTopic {
+export interface UpdateCouncilBusinessContent {
   title: string;
   report: string;
   folderPath: string;
   resourceIds: string[];
+  committeeId?: string | null;
+}
+
+export interface SaveCouncilBusiness extends UpdateCouncilBusinessContent {
   councilDecisionId?: string | null;
 }
 
-export interface TopicRepository {
-  list(filters?: { state?: TopicState; folderPath?: string; resourceId?: string }): Promise<Topic[]>;
-  find(id: string): Promise<Topic | null>;
-  findForCouncilDecision(councilDecisionId: string): Promise<Topic | null>;
-  findMinutesApprovalForMeeting(meetingId: string): Promise<Topic | null>;
-  create(input: CreateTopic): Promise<Topic>;
-  update(id: string, input: UpdateTopic): Promise<Topic>;
-  schedule(id: string, meetingId: string, position: number): Promise<Topic>;
-  setState(id: string, state: Exclude<TopicState, "scheduled" | "inProgress">): Promise<Topic>;
-  start(id: string): Promise<Topic>;
-  setPosition(id: string, position: number): Promise<void>;
+export interface CouncilBusinessRepository {
+  list(filters?: { folderPath?: string; resourceId?: string }): Promise<CouncilBusiness[]>;
+  find(id: string): Promise<CouncilBusiness | null>;
+  findForCouncilDecision(councilDecisionId: string): Promise<CouncilBusiness | null>;
+  findMinutesApprovalForMeeting(meetingId: string): Promise<CouncilBusiness | null>;
+  create(input: CreateCouncilBusiness): Promise<CouncilBusiness>;
+  update(id: string, input: SaveCouncilBusiness): Promise<CouncilBusiness>;
 }
 
-export interface AgendaRepository {
+export interface AgendaItemRepository {
   listForMeeting(meetingId: string): Promise<AgendaItem[]>;
-  listForTopic(topicId: string): Promise<AgendaItem[]>;
+  listForBusiness(businessId: string): Promise<AgendaItem[]>;
   find(meetingId: string, itemId: string): Promise<AgendaItem | null>;
   create(meetingId: string, input: CreateAgendaItem): Promise<AgendaItem>;
   remove(meetingId: string, itemId: string): Promise<void>;
@@ -167,7 +195,11 @@ export interface AgendaRepository {
   complete(
     meetingId: string,
     itemId: string,
-    input: { discussionSummary: string; status: Exclude<AgendaItem["status"], "scheduled">; completedAt: string },
+    input: {
+      discussionSummary: string;
+      status: Extract<AgendaItem["status"], "examined" | "postponed" | "withdrawn">;
+      completedAt: string;
+    },
   ): Promise<AgendaItem>;
   completeOpenItems(meetingId: string, status: "postponed" | "withdrawn", completedAt: string): Promise<AgendaItem[]>;
   snapshotOpenItems(meetingId: string): Promise<void>;

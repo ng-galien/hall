@@ -3,21 +3,22 @@ import {
   isAttendanceComplete,
   type MeetingEvent,
   type MeetingStatus,
+  transitionAgendaItem,
   transitionCouncilDecision,
   transitionMeeting,
-  transitionTopic,
 } from "@hall/domain";
 import type {
-  AgendaRepository,
+  AgendaItemRepository,
   AttendanceRepository,
+  CouncilBusinessRepository,
   CouncilDecisionRepository,
   CouncilMeetingRepository,
   CouncilMemberRepository,
   CreateCouncilMeeting,
   MeetingRosterRepository,
-  TopicRepository,
   UnitOfWork,
 } from "../repositories/contracts.js";
+import { agendaReadiness } from "./agendaOrderPolicy.js";
 import { DomainError } from "./errors.js";
 import { participationForMeeting, requireMeeting } from "./meetingContext.js";
 import { hasThreeClearDays } from "./reconvocationPolicy.js";
@@ -33,18 +34,18 @@ export function createMeetingLifecycleService({
   councilMemberRepository,
   meetingRosterRepository,
   attendanceRepository,
-  agendaRepository,
+  agendaItemRepository,
   councilDecisionRepository,
-  topicRepository,
+  councilBusinessRepository,
   unitOfWork,
 }: {
   councilMeetingRepository: CouncilMeetingRepository;
   councilMemberRepository: CouncilMemberRepository;
   meetingRosterRepository: MeetingRosterRepository;
   attendanceRepository: AttendanceRepository;
-  agendaRepository: AgendaRepository;
+  agendaItemRepository: AgendaItemRepository;
   councilDecisionRepository: CouncilDecisionRepository;
-  topicRepository: TopicRepository;
+  councilBusinessRepository: CouncilBusinessRepository;
   unitOfWork: UnitOfWork;
 }): MeetingLifecycleService {
   const statusEvent = (status: MeetingStatus): MeetingEvent | null => {
@@ -55,23 +56,22 @@ export function createMeetingLifecycleService({
     return null;
   };
 
-  const releaseOpenTopics = async (meetingId: string, agendaStatus: "postponed" | "withdrawn") => {
-    const agenda = await agendaRepository.listForMeeting(meetingId);
+  const releaseOpenAgendaItems = async (meetingId: string, agendaStatus: "postponed" | "withdrawn") => {
+    const agenda = await agendaItemRepository.listForMeeting(meetingId);
     const openItems = agenda.filter((item) => !item.completedAt);
     for (const item of openItems) {
-      const topic = item.topic;
-      const event = topic.state === "inProgress" ? { type: "POSTPONE" as const } : { type: "UNSCHEDULE" as const };
-      if (transitionTopic(topic.state, event) !== "toSchedule") throw new DomainError("agenda_inconsistent", 409);
-      if (topic.kind === "subject" && topic.councilDecisionId) {
-        const decision = await councilDecisionRepository.find(topic.councilDecisionId);
+      const event = agendaStatus === "postponed" ? ({ type: "POSTPONE" } as const) : ({ type: "WITHDRAW" } as const);
+      if (transitionAgendaItem(item.status, event) !== agendaStatus) throw new DomainError("agenda_inconsistent", 409);
+      const business = item.business;
+      if (business.kind === "matter" && business.councilDecisionId) {
+        const decision = await councilDecisionRepository.find(business.councilDecisionId);
         const next = decision ? transitionCouncilDecision(decision.status, { type: "RETURN_TO_PREPARATION" }) : null;
         if (!decision || !next) throw new DomainError("agenda_inconsistent", 409);
         await councilDecisionRepository.setStatus(decision.id, next);
       }
-      await topicRepository.setState(topic.id, "toSchedule");
     }
     if (openItems.length > 0) {
-      await agendaRepository.completeOpenItems(meetingId, agendaStatus, new Date().toISOString());
+      await agendaItemRepository.completeOpenItems(meetingId, agendaStatus, new Date().toISOString());
     }
   };
 
@@ -88,6 +88,14 @@ export function createMeetingLifecycleService({
           throw new DomainError("invalid_meeting_transition", 409);
         }
         if (status === "scheduled") {
+          const agendaItems = await agendaItemRepository.listForMeeting(id);
+          const readiness = agendaReadiness(meeting, agendaItems, await councilMeetingRepository.list());
+          if (!readiness.agendaReady) {
+            throw new DomainError(
+              readiness.requiredMinutesOfMeetingId ? "minutes_approval_required" : "agenda_order_invalid",
+              409,
+            );
+          }
           const roster = await councilMemberRepository.listActive();
           if (roster.length === 0) throw new DomainError("meeting_roster_locked", 409);
           for (const officerId of [meeting.chairMemberId, meeting.secretaryMemberId]) {
@@ -123,13 +131,13 @@ export function createMeetingLifecycleService({
             throw new DomainError("meeting_officers_required", 409);
           }
         }
-        if (status === "closed") await releaseOpenTopics(id, "postponed");
-        if (status === "cancelled") await releaseOpenTopics(id, "withdrawn");
+        if (status === "closed") await releaseOpenAgendaItems(id, "postponed");
+        if (status === "cancelled") await releaseOpenAgendaItems(id, "withdrawn");
         await councilMeetingRepository.setStatus(id, status);
         if (status === "closed" && meeting.status === "inProgress") {
-          const existing = await topicRepository.findMinutesApprovalForMeeting(id);
+          const existing = await councilBusinessRepository.findMinutesApprovalForMeeting(id);
           if (!existing) {
-            await topicRepository.create({
+            await councilBusinessRepository.create({
               kind: "minutesApproval",
               minutesOfMeetingId: id,
               title: `Approbation du procès-verbal — ${meeting.title}`,
@@ -154,7 +162,7 @@ export function createMeetingLifecycleService({
           throw new DomainError("attendance_incomplete", 409);
         }
         if (evidence.quorum.reached) throw new DomainError("invalid_meeting_transition", 409);
-        await agendaRepository.snapshotOpenItems(id);
+        await agendaItemRepository.snapshotOpenItems(id);
         await councilMeetingRepository.recordQuorumFailure(id, {
           ...evidence,
           recordedAt: new Date().toISOString(),
@@ -195,19 +203,12 @@ export function createMeetingLifecycleService({
           previousMeetingId: sourceId,
         });
         await meetingRosterRepository.copy(sourceId, meeting.id);
-        await agendaRepository.copy(sourceId, meeting.id);
-        await agendaRepository.completeOpenItems(sourceId, "postponed", new Date().toISOString());
+        await agendaItemRepository.completeOpenItems(sourceId, "postponed", new Date().toISOString());
+        await agendaItemRepository.copy(sourceId, meeting.id);
         if (transitionMeeting(meeting.status, { type: "SCHEDULE" }) !== "scheduled") {
           throw new DomainError("invalid_meeting_transition", 409);
         }
         await councilMeetingRepository.setStatus(meeting.id, "scheduled");
-        for (const item of await agendaRepository.listForMeeting(meeting.id)) {
-          const topic = item.topic;
-          if (transitionTopic(topic.state, { type: "RESCHEDULE" }) !== "scheduled") {
-            throw new DomainError("agenda_inconsistent", 409);
-          }
-          await topicRepository.schedule(topic.id, meeting.id, item.position);
-        }
         return (await councilMeetingRepository.find(meeting.id))!;
       });
     },

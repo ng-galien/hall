@@ -1,15 +1,15 @@
 import { randomUUID } from "node:crypto";
 import type { AgendaItem } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
-import type { AgendaRepository } from "./contracts.js";
+import type { AgendaItemRepository } from "./contracts.js";
+import { mapCouncilBusiness } from "./councilBusinessRepository.js";
 import { mapStoredResource } from "./resourceRepository.js";
 import { asBoolean, asNullableString, type DatabaseRow, mapSequential } from "./row.js";
-import { mapTopic } from "./topicRepository.js";
 
 async function mapAgendaItem(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<AgendaItem> {
   const snapshot = row.snapshot_kind != null;
-  const resources = await sqlExecutor.all(snapshot ? "agenda.resources.snapshot" : "agenda.resources.topic", {
-    ownerId: snapshot ? String(row.id) : String(row.topic_id),
+  const resources = await sqlExecutor.all(snapshot ? "agenda.resources.snapshot" : "agenda.resources.business", {
+    ownerId: snapshot ? String(row.id) : String(row.business_id),
   });
   return {
     id: String(row.id),
@@ -20,28 +20,26 @@ async function mapAgendaItem(sqlExecutor: SqlExecutor, row: DatabaseRow): Promis
     status: row.status as AgendaItem["status"],
     startedAt: asNullableString(row.started_at),
     completedAt: asNullableString(row.completed_at),
-    topic: mapTopic(
+    business: mapCouncilBusiness(
       {
-        id: row.topic_id,
-        slug: row.topic_slug,
-        kind: row.topic_kind,
-        council_decision_id: row.topic_council_decision_id,
-        minutes_of_meeting_id: row.topic_minutes_of_meeting_id,
-        title: row.topic_title,
-        report: row.topic_report,
-        folder_path: row.topic_folder_path,
-        state: row.topic_state,
-        current_meeting_id: row.topic_current_meeting_id,
-        position: row.topic_position,
-        created_at: row.topic_created_at,
-        updated_at: row.topic_updated_at,
+        id: row.business_id,
+        slug: row.business_slug,
+        kind: row.business_kind,
+        council_decision_id: row.business_council_decision_id,
+        committee_id: row.business_committee_id,
+        minutes_of_meeting_id: row.business_minutes_of_meeting_id,
+        title: row.business_title,
+        report: row.business_report,
+        folder_path: row.business_folder_path,
+        created_at: row.business_created_at,
+        updated_at: row.business_updated_at,
       },
       await mapSequential(resources, (resource) => mapStoredResource(sqlExecutor, resource)),
     ),
     councilDecisionSnapshot:
-      row.topic_council_decision_id && typeof row.snapshot_council_decision_title === "string"
+      row.business_council_decision_id && typeof row.snapshot_council_decision_title === "string"
         ? {
-            id: String(row.topic_council_decision_id),
+            id: String(row.business_council_decision_id),
             title: String(row.snapshot_council_decision_title),
             draftText: String(row.snapshot_council_decision_draft_text),
           }
@@ -49,26 +47,22 @@ async function mapAgendaItem(sqlExecutor: SqlExecutor, row: DatabaseRow): Promis
   };
 }
 
-async function snapshot(
-  sqlExecutor: SqlExecutor,
-  itemId: string,
-  state: "scheduled" | "inProgress" | "toSchedule" | "withdrawn",
-): Promise<void> {
-  await sqlExecutor.run("agenda.snapshot", { itemId, state });
+async function snapshot(sqlExecutor: SqlExecutor, itemId: string): Promise<void> {
+  await sqlExecutor.run("agenda.snapshot", { itemId });
   await sqlExecutor.run("agenda.snapshotResources", { itemId });
 }
 async function readById(sqlExecutor: SqlExecutor, itemId: string): Promise<AgendaItem> {
   return mapAgendaItem(sqlExecutor, (await sqlExecutor.get("agenda.findById", { itemId }))!);
 }
 
-export function createAgendaRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }): AgendaRepository {
+export function createAgendaItemRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }): AgendaItemRepository {
   return {
     async listForMeeting(meetingId) {
       const rows = await sqlExecutor.all("agenda.listByMeeting", { meetingId });
       return mapSequential(rows, (row) => mapAgendaItem(sqlExecutor, row));
     },
-    async listForTopic(topicId) {
-      const rows = await sqlExecutor.all("agenda.listByTopic", { topicId });
+    async listForBusiness(businessId) {
+      const rows = await sqlExecutor.all("agenda.listByBusiness", { businessId });
       return mapSequential(rows, (row) => mapAgendaItem(sqlExecutor, row));
     },
     async find(meetingId, itemId) {
@@ -80,7 +74,7 @@ export function createAgendaRepository({ sqlExecutor }: { sqlExecutor: SqlExecut
         const id = randomUUID();
         await sqlExecutor.run("agenda.insert", {
           id,
-          topicId: input.topicId,
+          businessId: input.businessId,
           meetingId,
           position: input.position,
           addedDuringSession: input.addedDuringSession ?? false,
@@ -100,7 +94,7 @@ export function createAgendaRepository({ sqlExecutor }: { sqlExecutor: SqlExecut
     },
     start(meetingId, itemId, startedAt) {
       return sqlExecutor.execute(async () => {
-        await snapshot(sqlExecutor, itemId, "inProgress");
+        await snapshot(sqlExecutor, itemId);
         await sqlExecutor.run("agenda.start", { meetingId, itemId, startedAt });
         return readById(sqlExecutor, itemId);
       });
@@ -113,15 +107,12 @@ export function createAgendaRepository({ sqlExecutor }: { sqlExecutor: SqlExecut
     },
     complete(meetingId, itemId, input) {
       return sqlExecutor.execute(async () => {
-        const snapshotState =
-          input.status === "examined" ? "examined" : input.status === "postponed" ? "toSchedule" : "withdrawn";
         await sqlExecutor.run("agenda.complete", {
           meetingId,
           itemId,
           discussionSummary: input.discussionSummary,
           status: input.status,
           completedAt: input.completedAt,
-          snapshotState,
         });
         return readById(sqlExecutor, itemId);
       });
@@ -129,9 +120,8 @@ export function createAgendaRepository({ sqlExecutor }: { sqlExecutor: SqlExecut
     completeOpenItems(meetingId, status, completedAt) {
       return sqlExecutor.execute(async () => {
         const rows = await sqlExecutor.all("agenda.openIds", { meetingId });
-        const snapshotState = status === "postponed" ? "toSchedule" : "withdrawn";
-        for (const row of rows) await snapshot(sqlExecutor, String(row.id), snapshotState);
-        await sqlExecutor.run("agenda.completeOpen", { meetingId, status, completedAt, snapshotState });
+        for (const row of rows) await snapshot(sqlExecutor, String(row.id));
+        await sqlExecutor.run("agenda.completeOpen", { meetingId, status, completedAt });
         const items = await sqlExecutor.all("agenda.listByMeeting", { meetingId });
         return mapSequential(items, (row) => mapAgendaItem(sqlExecutor, row));
       });
@@ -139,19 +129,34 @@ export function createAgendaRepository({ sqlExecutor }: { sqlExecutor: SqlExecut
     snapshotOpenItems(meetingId) {
       return sqlExecutor.execute(async () => {
         const rows = await sqlExecutor.all("agenda.openIds", { meetingId });
-        for (const row of rows) await snapshot(sqlExecutor, String(row.id), "toSchedule");
+        for (const row of rows) await snapshot(sqlExecutor, String(row.id));
       });
     },
     copy(sourceMeetingId, targetMeetingId) {
       return sqlExecutor.execute(async () => {
         const rows = await sqlExecutor.all("agenda.copySource", { meetingId: sourceMeetingId });
-        for (const row of rows)
+        for (const row of rows) {
+          const targetItemId = randomUUID();
           await sqlExecutor.run("agenda.insertCopy", {
-            id: randomUUID(),
-            topicId: String(row.topic_id),
+            id: targetItemId,
+            businessId: String(row.business_id),
             meetingId: targetMeetingId,
             position: Number(row.position),
+            snapshotKind: asNullableString(row.snapshot_kind),
+            snapshotCouncilDecisionId: asNullableString(row.snapshot_council_decision_id),
+            snapshotCouncilDecisionTitle: asNullableString(row.snapshot_council_decision_title),
+            snapshotCouncilDecisionDraftText: asNullableString(row.snapshot_council_decision_draft_text),
+            snapshotCommitteeId: asNullableString(row.snapshot_committee_id),
+            snapshotMinutesOfMeetingId: asNullableString(row.snapshot_minutes_of_meeting_id),
+            snapshotTitle: asNullableString(row.snapshot_title),
+            snapshotReport: asNullableString(row.snapshot_report),
+            snapshotFolderPath: asNullableString(row.snapshot_folder_path),
           });
+          await sqlExecutor.run("agenda.copyResources", {
+            sourceItemId: String(row.id),
+            targetItemId,
+          });
+        }
       });
     },
   };

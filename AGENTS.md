@@ -70,11 +70,12 @@ Les échanges métier et les libellés de l’IHM sont en français ; le code, l
 | Ressource texte | `TextResource` | Contenu éditable classé dans un dossier. |
 | Document ou pièce | `DocumentResource` | Fichier original classé, éventuellement accompagné de représentations techniques dérivées. |
 
-Cette matrice exprime le vocabulaire cible du produit. Le code emploie encore `Topic`, `SubjectTopic`, `MinutesApprovalTopic` et `OpenQuestionTopic` : la reprise du modèle les fera converger vers les noms métier retenus dans la matrice. Dans l’IHM française, employer « sujet » pour `CouncilMatter` et « point à l’ordre du jour » pour `AgendaItem`.
+Cette matrice exprime le vocabulaire effectif du domaine et sert de référence pour les types, fichiers, contrats HTTP, services, repositories, requêtes et tables. Dans l’IHM française, employer « sujet » pour `CouncilMatter` et « point à l’ordre du jour » pour `AgendaItem`.
 
 ## Règles structurantes
 
 - La convocation est faite par le maire. Elle indique les questions portées à l’ordre du jour et doit permettre de conserver la preuve de sa transmission et, le cas échéant, de sa publication.
+- L’ordre du jour commence par l’approbation du procès-verbal de la séance précédente, qui est obligatoire et unique lorsqu’une séance précédente existe. Viennent ensuite les points soumis au vote, les sujets d’information sans vote, puis les questions diverses en dernier.
 - Les délais de convocation et l’obligation d’une note explicative de synthèse dépendent notamment de la population de la commune et d’une éventuelle procédure d’urgence. Ils ne doivent pas être traités comme une règle uniforme pour toutes les communes.
 - Le quorum se calcule à partir des membres en exercice physiquement présents. Les conseillers représentés par pouvoir ne sont pas comptés parmi les présents pour ce calcul.
 - Après une première séance sans quorum, une seconde convocation relève d’un régime particulier qui doit rester identifiable dans le dossier de séance.
@@ -126,4 +127,4 @@ Pour voir l'application en live pendant le développement, utiliser **toujours**
 
 ### Données de démonstration
 
-`npm run -w @hall/server seed:dev` peuple le serveur (via l’API, jamais en SQL direct) : membres, ressources classées par chemins (PDF générés inline), sujets du conseil, délibérations, une séance passée entièrement déroulée (présences, pouvoir, scrutins publics sur délibération et sur point, clôture) et une séance à venir programmée. Le script exige une base vide ; pour repartir de zéro : `rm packages/server/data/hall.sqlite*`, redémarrer le serveur (nodemon redémarre sur `touch packages/server/src/index.ts`), puis relancer le seed.
+`npm run -w @hall/server seed:dev` peuple le serveur (via l’API, jamais en SQL direct) : membres, commissions et appartenances datées, ressources classées par chemins (PDF générés inline), affaires du conseil, délibérations, une séance passée entièrement déroulée (présences, pouvoir, scrutins publics sur délibération et sur point, clôture) et une séance à venir programmée. Le script exige une base vide ; pour repartir de zéro : `rm packages/server/data/hall.sqlite*`, redémarrer le serveur (nodemon redémarre sur `touch packages/server/src/index.ts`), puis relancer le seed.

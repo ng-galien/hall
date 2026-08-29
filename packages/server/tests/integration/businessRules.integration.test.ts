@@ -31,21 +31,21 @@ async function createMeeting(agent: TestAgent, input: { chairMemberId?: string; 
   );
 }
 
-async function createTopic(agent: TestAgent, title: string, extra: Record<string, unknown> = {}) {
+async function createBusiness(agent: TestAgent, title: string, extra: Record<string, unknown> = {}) {
   return domainBody<{ id: string }>(
     await agent
-      .post("/api/topics")
-      .send({ kind: "subject", title, report: "", folderPath: "", resourceIds: [], ...extra })
+      .post("/api/council-business")
+      .send({ kind: "matter", title, report: "", folderPath: "", resourceIds: [], ...extra })
       .expect(201),
   );
 }
 
 describe("backend business-rule coverage", () => {
-  it("validates topic references and keeps scheduled decisions stable", async () => {
+  it("validates business references and keeps scheduled decisions stable", async () => {
     const { agent } = await createTestServer();
 
-    const missingResource = await agent.post("/api/topics").send({
-      kind: "subject",
+    const missingResource = await agent.post("/api/council-business").send({
+      kind: "matter",
       title: "Pièce inexistante",
       report: "",
       folderPath: "",
@@ -54,7 +54,7 @@ describe("backend business-rule coverage", () => {
     expect(missingResource.status).toBe(404);
     expect(domainBody(missingResource).code).toBe("resource_not_found");
 
-    const missingMeeting = await agent.post("/api/topics").send({
+    const missingMeeting = await agent.post("/api/council-business").send({
       kind: "minutesApproval",
       minutesOfMeetingId: randomUUID(),
       title: "Procès-verbal inconnu",
@@ -67,11 +67,11 @@ describe("backend business-rule coverage", () => {
 
     const openQuestion = domainBody<{ id: string }>(
       await agent
-        .post("/api/topics")
+        .post("/api/council-business")
         .send({ kind: "openQuestion", title: "Question libre", report: "", folderPath: "", resourceIds: [] })
         .expect(201),
     );
-    const invalidQuestionUpdate = await agent.put(`/api/topics/${openQuestion.id}`).send({
+    const invalidQuestionUpdate = await agent.put(`/api/council-business/${openQuestion.id}`).send({
       title: "Question libre",
       report: "",
       folderPath: "",
@@ -81,8 +81,8 @@ describe("backend business-rule coverage", () => {
     expect(invalidQuestionUpdate.status).toBe(400);
     expect(domainBody(invalidQuestionUpdate).code).toBe("invalid_request");
 
-    const noDecisionTopic = await createTopic(agent, "Sujet sans délibération");
-    await agent.delete(`/api/topics/${noDecisionTopic.id}/decision`).expect(404);
+    const noDecisionBusiness = await createBusiness(agent, "Sujet sans délibération");
+    await agent.delete(`/api/council-business/${noDecisionBusiness.id}/decision`).expect(404);
 
     const decisions = [];
     for (const title of ["Première décision", "Seconde décision"]) {
@@ -95,38 +95,41 @@ describe("backend business-rule coverage", () => {
         ),
       );
     }
-    const scheduledTopic = await createTopic(agent, "Décision programmée", {
+    const scheduledBusiness = await createBusiness(agent, "Décision programmée", {
       councilDecisionId: decisions[0].id,
     });
     const meeting = await createMeeting(agent);
     await agent
-      .post(`/api/topics/${scheduledTopic.id}/schedule`)
+      .post(`/api/council-business/${scheduledBusiness.id}/schedule`)
       .send({ meetingId: meeting.id, position: 1 })
       .expect(201);
-    const changedDecision = await agent.put(`/api/topics/${scheduledTopic.id}`).send({
+    const changedDecision = await agent.put(`/api/council-business/${scheduledBusiness.id}`).send({
       title: "Décision programmée",
       report: "",
       folderPath: "",
       resourceIds: [],
       councilDecisionId: decisions[1].id,
     });
-    expect(changedDecision.status).toBe(409);
-    expect(domainBody(changedDecision).code).toBe("agenda_inconsistent");
+    expect(changedDecision.status).toBe(400);
+    expect(domainBody(changedDecision).code).toBe("invalid_request");
   });
 
   it("rejects malformed preparation commands before they can alter the agenda", async () => {
     const { agent } = await createTestServer();
     const members = await Promise.all(["Alice", "Benoît", "Claire"].map((name) => createMember(agent, name)));
     const meeting = await createMeeting(agent);
-    const firstTopic = await createTopic(agent, "Premier point");
-    const secondTopic = await createTopic(agent, "Second point");
+    const firstBusiness = await createBusiness(agent, "Premier point");
+    const secondBusiness = await createBusiness(agent, "Second point");
     const firstItem = domainBody<{ id: string }>(
       await agent
-        .post(`/api/topics/${firstTopic.id}/schedule`)
+        .post(`/api/council-business/${firstBusiness.id}/schedule`)
         .send({ meetingId: meeting.id, position: 1 })
         .expect(201),
     );
-    await agent.post(`/api/topics/${secondTopic.id}/schedule`).send({ meetingId: meeting.id, position: 2 }).expect(201);
+    await agent
+      .post(`/api/council-business/${secondBusiness.id}/schedule`)
+      .send({ meetingId: meeting.id, position: 2 })
+      .expect(201);
 
     const duplicateOrder = await agent
       .put(`/api/council-meetings/${meeting.id}/agenda-order`)
@@ -151,11 +154,11 @@ describe("backend business-rule coverage", () => {
     expect(selfProxy.status).toBe(400);
     expect(domainBody(selfProxy).code).toBe("proxy_invalid");
 
-    const prematureLateTopic = await agent
-      .post(`/api/council-meetings/${meeting.id}/late-topics`)
+    const prematureLateBusiness = await agent
+      .post(`/api/council-meetings/${meeting.id}/late-business`)
       .send({ kind: "openQuestion", title: "Trop tôt", report: "", resourceIds: [] });
-    expect(prematureLateTopic.status).toBe(409);
-    expect(domainBody(prematureLateTopic).code).toBe("invalid_meeting_transition");
+    expect(prematureLateBusiness.status).toBe(409);
+    expect(domainBody(prematureLateBusiness).code).toBe("invalid_meeting_transition");
 
     await agent
       .put(`/api/council-meetings/${meeting.id}/officers`)
@@ -169,7 +172,7 @@ describe("backend business-rule coverage", () => {
     }
     await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "inProgress" }).expect(200);
 
-    const generatedMinutes = await agent.post(`/api/council-meetings/${meeting.id}/late-topics`).send({
+    const generatedMinutes = await agent.post(`/api/council-meetings/${meeting.id}/late-business`).send({
       kind: "minutesApproval",
       minutesOfMeetingId: meeting.id,
       title: "Approbation du procès-verbal",
@@ -179,7 +182,7 @@ describe("backend business-rule coverage", () => {
     expect(generatedMinutes.status).toBe(400);
     expect(domainBody(generatedMinutes).code).toBe("invalid_request");
 
-    const missingResource = await agent.post(`/api/council-meetings/${meeting.id}/late-topics`).send({
+    const missingResource = await agent.post(`/api/council-meetings/${meeting.id}/late-business`).send({
       kind: "openQuestion",
       title: "Pièce absente",
       report: "",
@@ -187,6 +190,123 @@ describe("backend business-rule coverage", () => {
     });
     expect(missingResource.status).toBe(404);
     expect(domainBody(missingResource).code).toBe("resource_not_found");
+  });
+
+  it("keeps minutes first and unique, followed by votes, information, and open questions", async () => {
+    const { agent } = await createTestServer();
+    const members = await Promise.all(["Alice", "Benoît", "Claire"].map((name) => createMember(agent, name)));
+    const previousMeeting = domainBody<{ id: string }>(
+      await agent
+        .post("/api/council-meetings")
+        .send({
+          title: "Conseil précédent",
+          startsAt: "2026-10-01T18:30:00+02:00",
+          location: "Salle du conseil",
+        })
+        .expect(201),
+    );
+    await agent.put(`/api/council-meetings/${previousMeeting.id}/status`).send({ status: "scheduled" }).expect(200);
+    await agent
+      .put(`/api/council-meetings/${previousMeeting.id}/officers`)
+      .send({ chairMemberId: members[0].id, secretaryMemberId: members[1].id })
+      .expect(200);
+    for (const member of members) {
+      await agent
+        .put(`/api/council-meetings/${previousMeeting.id}/attendance`)
+        .send({ memberId: member.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
+        .expect(200);
+    }
+    await agent.put(`/api/council-meetings/${previousMeeting.id}/status`).send({ status: "inProgress" }).expect(200);
+    await agent.put(`/api/council-meetings/${previousMeeting.id}/status`).send({ status: "closed" }).expect(200);
+
+    const minutesBusiness = domainBody<Array<{ id: string; kind: string; minutesOfMeetingId?: string }>>(
+      await agent.get("/api/council-business").expect(200),
+    ).find((business) => business.kind === "minutesApproval" && business.minutesOfMeetingId === previousMeeting.id)!;
+    const meeting = await createMeeting(agent);
+    const laterMeeting = domainBody<{
+      agendaReady: boolean;
+      requiredMinutesOfMeetingId: string | null;
+    }>(
+      await agent
+        .post("/api/council-meetings")
+        .send({
+          title: "Conseil suivant déjà en préparation",
+          startsAt: "2026-12-10T18:30:00+01:00",
+          location: "Salle du conseil",
+        })
+        .expect(201),
+    );
+    expect(laterMeeting).toMatchObject({ agendaReady: false, requiredMinutesOfMeetingId: meeting.id });
+    const informationBusiness = await createBusiness(agent, "Information sans vote");
+    const openQuestion = domainBody<{ id: string }>(
+      await agent
+        .post("/api/council-business")
+        .send({ kind: "openQuestion", title: "Questions diverses", report: "", folderPath: "", resourceIds: [] })
+        .expect(201),
+    );
+    const decision = domainBody<{ id: string }>(
+      await agent
+        .post("/api/council-decisions")
+        .send({ title: "Décision à voter", draftText: "Décision", legalityReviewRequired: false })
+        .expect(201),
+    );
+    const votingBusiness = await createBusiness(agent, "Décision à voter", { councilDecisionId: decision.id });
+
+    for (const business of [openQuestion, informationBusiness, votingBusiness]) {
+      await agent
+        .post(`/api/council-business/${business.id}/schedule`)
+        .send({ meetingId: meeting.id, position: 99 })
+        .expect(201);
+    }
+    const missingMinutes = await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" });
+    expect(missingMinutes.status).toBe(409);
+    expect(domainBody(missingMinutes).code).toBe("minutes_approval_required");
+
+    const minutesItem = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-business/${minutesBusiness.id}/schedule`)
+        .send({ meetingId: meeting.id, position: 99 })
+        .expect(201),
+    );
+    const aggregate = domainBody<{
+      agendaReady: boolean;
+      requiredMinutesOfMeetingId: string | null;
+      agendaItems: Array<{
+        id: string;
+        business: { kind: string; councilDecisionId?: string | null };
+      }>;
+    }>(await agent.get(`/api/council-meetings/${meeting.id}`).expect(200));
+    expect(aggregate.agendaReady).toBe(true);
+    expect(aggregate.requiredMinutesOfMeetingId).toBe(previousMeeting.id);
+    expect(
+      aggregate.agendaItems.map((item) =>
+        item.business.kind === "matter" && item.business.councilDecisionId ? "vote" : item.business.kind,
+      ),
+    ).toEqual(["minutesApproval", "vote", "matter", "openQuestion"]);
+
+    const duplicateResult = await agent.post("/api/council-business").send({
+      kind: "minutesApproval",
+      minutesOfMeetingId: previousMeeting.id,
+      title: "Doublon du procès-verbal",
+      report: "",
+      folderPath: "",
+      resourceIds: [],
+    });
+    expect(duplicateResult.status).toBe(409);
+    expect(domainBody(duplicateResult).code).toBe("conflict");
+
+    const invalidOrder = await agent.put(`/api/council-meetings/${meeting.id}/agenda-order`).send({
+      itemIds: [minutesItem.id, aggregate.agendaItems[2].id, aggregate.agendaItems[1].id, aggregate.agendaItems[3].id],
+    });
+    expect(invalidOrder.status).toBe(409);
+    expect(domainBody(invalidOrder).code).toBe("agenda_order_invalid");
+
+    await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
+    const removeRequiredMinutes = await agent.delete(
+      `/api/council-meetings/${meeting.id}/agenda-items/${minutesItem.id}`,
+    );
+    expect(removeRequiredMinutes.status).toBe(409);
+    expect(domainBody(removeRequiredMinutes).code).toBe("minutes_approval_required");
   });
 
   it("locks quorum failure and reconvocation invariants", async () => {
@@ -247,17 +367,17 @@ describe("backend business-rule coverage", () => {
         .send({ title: "Décision à voter", draftText: "Texte", legalityReviewRequired: false })
         .expect(201),
     );
-    const decisionTopic = await createTopic(agent, "Décision à voter", { councilDecisionId: decision.id });
-    const plainTopic = await createTopic(agent, "Avis sans délibération");
+    const decisionBusiness = await createBusiness(agent, "Décision à voter", { councilDecisionId: decision.id });
+    const plainBusiness = await createBusiness(agent, "Avis sans délibération");
     const decisionItem = domainBody<{ id: string }>(
       await agent
-        .post(`/api/topics/${decisionTopic.id}/schedule`)
+        .post(`/api/council-business/${decisionBusiness.id}/schedule`)
         .send({ meetingId: meeting.id, position: 1 })
         .expect(201),
     );
     const plainItem = domainBody<{ id: string }>(
       await agent
-        .post(`/api/topics/${plainTopic.id}/schedule`)
+        .post(`/api/council-business/${plainBusiness.id}/schedule`)
         .send({ meetingId: meeting.id, position: 2 })
         .expect(201),
     );
@@ -325,7 +445,7 @@ describe("backend business-rule coverage", () => {
         })
         .expect(201),
     );
-    const detachFinalDecision = await agent.delete(`/api/topics/${decisionTopic.id}/decision`);
+    const detachFinalDecision = await agent.delete(`/api/council-business/${decisionBusiness.id}/decision`);
     expect(detachFinalDecision.status).toBe(409);
     expect(domainBody(detachFinalDecision).code).toBe("agenda_inconsistent");
     await agent.delete(`/api/council-meetings/${meeting.id}/ballots/${randomUUID()}`).expect(404);

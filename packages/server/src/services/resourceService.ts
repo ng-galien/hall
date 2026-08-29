@@ -2,12 +2,12 @@ import type { DocumentResource, Resource, ResourceDetails, TextResource } from "
 import { inspectDocument } from "../domain/documentPolicy.js";
 import type {
   AttendanceRepository,
+  CouncilBusinessRepository,
   CouncilMeetingRepository,
   CreateDocumentResource,
   CreateTextResource,
   ResourceRepository,
   StoredResource,
-  TopicRepository,
   UnitOfWork,
   UpdateResource,
 } from "../repositories/contracts.js";
@@ -33,13 +33,13 @@ export function createResourceService({
   resourceRepository,
   councilMeetingRepository,
   unitOfWork,
-  topicRepository,
+  councilBusinessRepository,
   attendanceRepository,
 }: {
   resourceRepository: ResourceRepository;
   councilMeetingRepository: CouncilMeetingRepository;
   unitOfWork: UnitOfWork;
-  topicRepository: TopicRepository;
+  councilBusinessRepository: CouncilBusinessRepository;
   attendanceRepository: AttendanceRepository;
 }): ResourceService {
   return {
@@ -54,7 +54,7 @@ export function createResourceService({
       if (!resource) throw new DomainError("resource_not_found", 404);
       return {
         resource,
-        topics: await topicRepository.list({ resourceId: resource.id }),
+        councilBusiness: await councilBusinessRepository.list({ resourceId: resource.id }),
         snapshotted: await resourceRepository.isSnapshotted(resource.id),
         usedAsProxy: await attendanceRepository.isProxyDocumentUsed(resource.id),
       };
@@ -62,7 +62,7 @@ export function createResourceService({
     async listFolderPaths() {
       const storedPaths = [
         ...(await resourceRepository.listFolderPaths()),
-        ...(await topicRepository.list()).map((topic) => topic.folderPath),
+        ...(await councilBusinessRepository.list()).map((business) => business.folderPath),
       ];
       const paths = new Set<string>();
       for (const storedPath of storedPaths) {

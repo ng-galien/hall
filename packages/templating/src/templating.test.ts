@@ -9,7 +9,7 @@ describe("sérialisation canonique", () => {
     for (const source of [
       ":member[Martine Delcourt]{#7c1e}",
       ":resource[Rapport préparatoire]{#d90a}",
-      ":topic[Subventions]{#b21c}",
+      ":councilBusiness[Subventions]{#b21c}",
       ":decision[Délibération budgétaire]{#c44d}",
       ":meeting[Conseil du 12 septembre]{#a3f0}",
     ]) {
@@ -145,7 +145,7 @@ describe("registre", () => {
     expect(directiveSpecs.map((spec) => spec.name)).toEqual([
       "member",
       "resource",
-      "topic",
+      "councilBusiness",
       "decision",
       "meeting",
       "field",
