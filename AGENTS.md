@@ -44,6 +44,34 @@ La comptabilité, la paie, l’état civil, l’urbanisme métier et les autres 
 - **Publicité** : formalité rendant un acte accessible et participant à son caractère exécutoire.
 - **Contrôle de légalité** : transmission de certains actes au représentant de l’État, distincte de leur publicité.
 
+## Langage ubiquitaire bilingue
+
+Les échanges métier et les libellés de l’IHM sont en français ; le code, les contrats API et le schéma utilisent l’anglais. Chaque concept possède une seule correspondance normative : ne pas traduire littéralement un mot français lorsqu’un terme anglais reconnu existe, et ne pas introduire de synonyme technique concurrent.
+
+| Français métier et IHM | Anglais dans le code | Sens retenu |
+| --- | --- | --- |
+| Hall | `Hall` | Le produit et sa racine de configuration ; ne pas employer `Municipality` pour le remplacer. |
+| Paramètres de la commune | `HallSettings` | Configuration monotenant de la commune exploitant Hall. |
+| Membre du conseil | `CouncilMember` | Élu appartenant au conseil municipal pendant son mandat. |
+| Commission municipale | `CouncilCommittee` | Groupe d’élus chargé d’étudier certaines questions ; `Commission` serait ici un faux ami. |
+| Appartenance à une commission | `CommitteeMembership` | Rattachement daté d’un membre du conseil à une commission, avec sa fonction éventuelle. |
+| Affaires du conseil | `CouncilBusiness` | Union des différentes natures de sujets susceptibles d’être traités par le conseil. |
+| Sujet | `CouncilMatter` | Sujet ordinaire constitué dans l’espace de travail, éventuellement étudié par une commission et associé à une délibération. |
+| Approbation du procès-verbal | `MinutesApproval` | Cas administratif spécifique soumis au conseil. |
+| Question ouverte | `OpenQuestion` | Sujet autonome sans délibération obligatoire. |
+| Point à l’ordre du jour | `AgendaItem` | Occurrence ordonnée d’un élément de `CouncilBusiness` dans une séance déterminée. |
+| Ordre du jour | `AgendaItem[]` ordonné | Composition des points d’une séance ; ce n’est pas un second sujet durable. |
+| Séance du conseil | `CouncilMeeting` | Réunion formelle pendant laquelle l’ordre du jour est examiné. |
+| Délibération | `CouncilDecision` | Décision préparée puis prise par le conseil, avec son propre cycle de vie. |
+| Scrutin | `Ballot` | Procédure de recueil des suffrages, publique ou secrète. |
+| Vote individuel | `Vote` | Choix exprimé ou absence de participation d’un votant dans un scrutin public. |
+| Procès-verbal | `Minutes` | Document retraçant une séance et suivant son cycle d’approbation et de publication. |
+| Dossier | `FolderPath` | Classement documentaire par chemin ; ce n’est pas un objet doté d’un cycle de vie. |
+| Ressource texte | `TextResource` | Contenu éditable classé dans un dossier. |
+| Document ou pièce | `DocumentResource` | Fichier original classé, éventuellement accompagné de représentations techniques dérivées. |
+
+Cette matrice exprime le vocabulaire cible du produit. Le code emploie encore `Topic`, `SubjectTopic`, `MinutesApprovalTopic` et `OpenQuestionTopic` : la reprise du modèle les fera converger vers les noms métier retenus dans la matrice. Dans l’IHM française, employer « sujet » pour `CouncilMatter` et « point à l’ordre du jour » pour `AgendaItem`.
+
 ## Règles structurantes
 
 - La convocation est faite par le maire. Elle indique les questions portées à l’ordre du jour et doit permettre de conserver la preuve de sa transmission et, le cas échéant, de sa publication.
@@ -98,4 +126,4 @@ Pour voir l'application en live pendant le développement, utiliser **toujours**
 
 ### Données de démonstration
 
-`npm run -w @hall/server seed:dev` peuple le serveur (via l'API, jamais en SQL direct) : membres, ressources classées par chemins (PDF générés inline), topics, délibérations, une séance passée entièrement déroulée (présences, pouvoir, scrutins publics sur délibération et sur point, clôture) et une séance à venir programmée. Le script exige une base vide ; pour repartir de zéro : `rm packages/server/data/hall.sqlite*`, redémarrer le serveur (nodemon redémarre sur `touch packages/server/src/index.ts`), puis relancer le seed.
+`npm run -w @hall/server seed:dev` peuple le serveur (via l’API, jamais en SQL direct) : membres, ressources classées par chemins (PDF générés inline), sujets du conseil, délibérations, une séance passée entièrement déroulée (présences, pouvoir, scrutins publics sur délibération et sur point, clôture) et une séance à venir programmée. Le script exige une base vide ; pour repartir de zéro : `rm packages/server/data/hall.sqlite*`, redémarrer le serveur (nodemon redémarre sur `touch packages/server/src/index.ts`), puis relancer le seed.
