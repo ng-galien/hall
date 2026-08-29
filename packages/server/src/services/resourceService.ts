@@ -53,9 +53,9 @@ export function createResourceService({
       if (!resource) throw new DomainError("resource_not_found", 404);
       return {
         resource,
-        topics: await topicRepository.list({ resourceId: id }),
-        snapshotted: await resourceRepository.isSnapshotted(id),
-        usedAsProxy: await attendanceRepository.isProxyDocumentUsed(id),
+        topics: await topicRepository.list({ resourceId: resource.id }),
+        snapshotted: await resourceRepository.isSnapshotted(resource.id),
+        usedAsProxy: await attendanceRepository.isProxyDocumentUsed(resource.id),
       };
     },
     async listFolderPaths() {
@@ -94,10 +94,10 @@ export function createResourceService({
         const titleChanged = input.title !== resource.title;
         // Une ressource photographiée dans une occurrence historique garde titre et contenu ;
         // seul son classement (chemin, tags) reste modifiable.
-        if ((contentChanged || titleChanged) && (await resourceRepository.isSnapshotted(id))) {
+        if ((contentChanged || titleChanged) && (await resourceRepository.isSnapshotted(resource.id))) {
           throw new DomainError("conflict", 409);
         }
-        return resourceRepository.update(id, {
+        return resourceRepository.update(resource.id, {
           title: input.title,
           folderPath: input.folderPath,
           tags: input.tags,
@@ -107,7 +107,10 @@ export function createResourceService({
     },
     delete(id) {
       return unitOfWork.execute(async () => {
-        if (!(await resourceRepository.delete(id))) throw new DomainError("resource_not_found", 404);
+        const resource = await resourceRepository.findMetadata(id);
+        if (!resource || !(await resourceRepository.delete(resource.id))) {
+          throw new DomainError("resource_not_found", 404);
+        }
       });
     },
   };

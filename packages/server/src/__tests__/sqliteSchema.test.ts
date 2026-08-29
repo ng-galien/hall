@@ -41,6 +41,7 @@ describe("current SQLite schema", () => {
       "council_members",
       "hall_settings",
       "meeting_roster",
+      "number_sequences",
       "resource_documents",
       "resource_tags",
       "resources",
@@ -60,6 +61,7 @@ describe("current SQLite schema", () => {
       .map((row) => String(row.name));
     expect(topicColumns).toEqual([
       "id",
+      "slug",
       "kind",
       "council_decision_id",
       "minutes_of_meeting_id",

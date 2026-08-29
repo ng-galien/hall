@@ -68,6 +68,8 @@ export interface CouncilMember {
 
 export interface CouncilMeeting {
   id: Identifier;
+  number: string;
+  slug: string;
   title: string;
   startsAt: IsoDateTime;
   location: string;
@@ -123,6 +125,7 @@ export type FolderPath = string;
 
 interface ResourceBase {
   id: Identifier;
+  slug: string;
   title: string;
   folderPath: FolderPath;
   tags: string[];
@@ -164,6 +167,7 @@ export type Topic = SubjectTopic | MinutesApprovalTopic | OpenQuestionTopic;
 
 interface TopicBase {
   id: Identifier;
+  slug: string;
   title: string;
   report: string;
   folderPath: FolderPath;
@@ -192,6 +196,7 @@ export interface OpenQuestionTopic extends TopicBase {
 export interface CouncilDecision {
   id: Identifier;
   number: string | null;
+  slug: string;
   title: string;
   draftText: string;
   status: CouncilDecisionStatus;

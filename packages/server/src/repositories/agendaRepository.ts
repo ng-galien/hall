@@ -23,6 +23,7 @@ async function mapAgendaItem(sqlExecutor: SqlExecutor, row: DatabaseRow): Promis
     topic: mapTopic(
       {
         id: row.topic_id,
+        slug: row.topic_slug,
         kind: row.topic_kind,
         council_decision_id: row.topic_council_decision_id,
         minutes_of_meeting_id: row.topic_minutes_of_meeting_id,

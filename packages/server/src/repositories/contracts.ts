@@ -185,6 +185,7 @@ export interface CouncilDecisionRepository {
   find(id: string): Promise<CouncilDecision | null>;
   create(input: CreateCouncilDecision): Promise<CouncilDecision>;
   update(id: string, input: { title: string; draftText: string }): Promise<CouncilDecision>;
+  assignNumber(id: string, year: number): Promise<CouncilDecision>;
   setStatus(id: string, status: CouncilDecisionStatus): Promise<void>;
   remove(id: string): Promise<void>;
 }

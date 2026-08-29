@@ -13,7 +13,11 @@ import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
 import { routeParameter } from "../routeParameter.js";
 
-export function createTopicsRouter({ topicService, meetingPreparationService }: Cradle): Router {
+export function createTopicsRouter({
+  topicService,
+  meetingPreparationService,
+  councilMeetingRepository,
+}: Cradle): Router {
   const router = Router();
   router.get("/", requirePermission("workspace.read"), async (request, response) => {
     const state = typeof request.query.state === "string" ? topicStateSchema.parse(request.query.state) : undefined;
@@ -40,15 +44,14 @@ export function createTopicsRouter({ topicService, meetingPreparationService }: 
   });
   router.post("/:topicId/schedule", requirePermission("meetings.prepare"), async (request, response) => {
     const input = scheduleTopicSchema.parse(request.body);
-    response
-      .status(201)
-      .json(
-        await meetingPreparationService.scheduleTopic(
-          input.meetingId,
-          routeParameter(request.params.topicId),
-          input.position,
-        ),
-      );
+    const item = await meetingPreparationService.scheduleTopic(
+      input.meetingId,
+      routeParameter(request.params.topicId),
+      input.position,
+    );
+    const meeting = await councilMeetingRepository.find(item.meetingId);
+    response.locals.meetingReference = meeting?.slug;
+    response.status(201).json(item);
   });
   router.post("/:topicId/decision", requirePermission("workspace.write"), async (request, response) => {
     const input = attachTopicDecisionSchema.parse(request.body ?? {});

@@ -224,7 +224,9 @@ describe("hardened HTTP and hypermedia contract", () => {
       .expect(409);
     await rawAgent.put(`/api/topics/${topicId}/classification`).send({ folderPath: "archives/conseil" }).expect(200);
     const reconvene = failed.body.actions[0];
-    expect(reconvene.href).toBe(`/api/council-meetings/${meetingId}/reconvene`);
+    expect(reconvene.href).toBe(
+      `/api/council-meetings/${properties<{ meeting: { slug: string } }>(failed).meeting.slug}/reconvene`,
+    );
     await rawAgent.put(`/api/council-meetings/${meetingId}/status`).send({ status: "cancelled" }).expect(409);
     const reconvened = await rawAgent
       .post(`/api/council-meetings/${meetingId}/reconvene`)

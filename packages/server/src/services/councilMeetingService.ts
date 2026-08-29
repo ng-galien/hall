@@ -65,18 +65,22 @@ export function createCouncilMeetingService({
         if (!["draft", "scheduled"].includes(meeting.status) || meeting.quorumFailure) {
           throw new DomainError("invalid_meeting_transition", 409);
         }
-        await councilMeetingRepository.updateDetails(meetingId, input);
-        return (await councilMeetingRepository.find(meetingId))!;
+        if (meeting.startsAt.slice(0, 10) !== input.startsAt.slice(0, 10)) {
+          throw new DomainError("invalid_meeting_transition", 409);
+        }
+        await councilMeetingRepository.updateDetails(meeting.id, input);
+        return (await councilMeetingRepository.find(meeting.id))!;
       });
     },
     async getMeeting(meetingId) {
       const meeting = await requireMeeting(councilMeetingRepository, meetingId);
+      const id = meeting.id;
       const [attendance, agendaItems, allCouncilDecisions, ballots, memberIds, activeMembers] = await Promise.all([
-        attendanceRepository.listForMeeting(meetingId),
-        agendaRepository.listForMeeting(meetingId),
+        attendanceRepository.listForMeeting(id),
+        agendaRepository.listForMeeting(id),
         councilDecisionRepository.list(),
-        ballotRepository.listForMeeting(meetingId),
-        meetingRosterRepository.listMemberIds(meetingId),
+        ballotRepository.listForMeeting(id),
+        meetingRosterRepository.listMemberIds(id),
         councilMemberRepository.listActive(),
       ]);
       const councilDecisionIds = new Set(

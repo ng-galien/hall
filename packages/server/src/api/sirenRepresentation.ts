@@ -25,6 +25,12 @@ function pathWithQuery(request: Request): string {
   return request.originalUrl.split("#", 1)[0] || request.path;
 }
 
+function meetingReferenceFromRequest(request: Request): string | null {
+  const contextualReference = request.res?.locals.meetingReference;
+  if (typeof contextualReference === "string") return contextualReference;
+  return pathWithoutQuery(request).match(/\/api\/council-meetings\/([^/]+)/)?.[1] ?? null;
+}
+
 function classFromPath(request: Request, value: unknown): string {
   const path = pathWithoutQuery(request);
   if (path.endsWith("/auth/status")) return "authentication-status";
@@ -116,6 +122,17 @@ function objectId(value: unknown): string | null {
   return value && typeof value === "object" && "id" in value && typeof value.id === "string" ? value.id : null;
 }
 
+function publicReference(entityClass: string, value: Record<string, unknown> | null): string | null {
+  if (
+    value &&
+    ["resource", "topic", "council-decision", "council-meeting"].includes(entityClass) &&
+    typeof value.slug === "string"
+  ) {
+    return value.slug;
+  }
+  return objectId(value);
+}
+
 function primaryObject(entityClass: string, value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object") return null;
   const object = value as Record<string, unknown>;
@@ -163,19 +180,20 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
   if (!value || typeof value !== "object") return [];
   const primary = primaryObject(entityClass, value);
   const id = objectId(primary);
+  const reference = publicReference(entityClass, primary);
   if (entityClass === "hall-settings" && permitted(request, "settings.manage")) {
     return [action("settings.update", "PUT", "/api/settings", "Update Hall settings")];
   }
-  if (entityClass === "resource" && id && permitted(request, "workspace.write")) {
+  if (entityClass === "resource" && id && reference && permitted(request, "workspace.write")) {
     const details = value as { topics?: unknown[]; snapshotted?: boolean; usedAsProxy?: boolean };
-    const actions = [action("resource.update", "PUT", `/api/resources/${id}`, "Update the resource")];
+    const actions = [action("resource.update", "PUT", `/api/resources/${reference}`, "Update the resource")];
     if (
       Array.isArray(details.topics) &&
       details.topics.length === 0 &&
       details.snapshotted === false &&
       details.usedAsProxy === false
     ) {
-      actions.push(action("resource.delete", "DELETE", `/api/resources/${id}`, "Delete the resource"));
+      actions.push(action("resource.delete", "DELETE", `/api/resources/${reference}`, "Delete the resource"));
     }
     return actions;
   }
@@ -191,13 +209,21 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
     }
     return actions;
   }
-  if (entityClass === "topic" && id && permitted(request, "workspace.write")) {
+  if (entityClass === "topic" && id && reference && permitted(request, "workspace.write")) {
     const topic = primary as { state?: string; kind?: string; councilDecisionId?: string | null };
-    const actions = [action("topic.reclassify", "PUT", `/api/topics/${id}/classification`, "Reclassify the topic")];
+    const actions = [
+      action("topic.reclassify", "PUT", `/api/topics/${reference}/classification`, "Reclassify the topic"),
+    ];
     if (!["toSchedule", "scheduled"].includes(topic.state ?? "")) return actions;
     const details = value as {
       occurrences?: Array<{
-        meeting?: { id?: string; status?: string; quorumFailure?: boolean; isReconvenedMeeting?: boolean };
+        meeting?: {
+          id?: string;
+          slug?: string;
+          status?: string;
+          quorumFailure?: boolean;
+          isReconvenedMeeting?: boolean;
+        };
         agendaItem?: { id?: string; addedDuringSession?: boolean };
       }>;
     };
@@ -206,10 +232,10 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
     );
     if (topic.state === "scheduled" && !Array.isArray(details.occurrences)) return actions;
     if (occurrence?.meeting?.isReconvenedMeeting || occurrence?.meeting?.quorumFailure) return actions;
-    actions.push(action("topic.update", "PUT", `/api/topics/${id}`, "Update the topic"));
+    actions.push(action("topic.update", "PUT", `/api/topics/${reference}`, "Update the topic"));
     if (topic.state === "toSchedule" && permitted(request, "meetings.prepare")) {
       actions.push({
-        ...action("topic.schedule", "POST", `/api/topics/${id}/schedule`, "Schedule the topic"),
+        ...action("topic.schedule", "POST", `/api/topics/${reference}/schedule`, "Schedule the topic"),
         fields: [
           { name: "meetingId", type: "text" },
           { name: "position", type: "number" },
@@ -229,7 +255,7 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
         action(
           "agenda-item.remove",
           "DELETE",
-          `/api/council-meetings/${occurrence.meeting.id}/agenda-items/${occurrence.agendaItem.id}`,
+          `/api/council-meetings/${occurrence.meeting.slug ?? occurrence.meeting.id}/agenda-items/${occurrence.agendaItem.id}`,
           "Remove from the agenda",
         ),
       );
@@ -237,16 +263,16 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
     if (topic.kind === "subject" && Array.isArray(details.occurrences) && !occurrence?.agendaItem?.addedDuringSession) {
       actions.push(
         topic.councilDecisionId
-          ? action("topic.detach-decision", "DELETE", `/api/topics/${id}/decision`, "Detach the decision")
-          : action("topic.attach-decision", "POST", `/api/topics/${id}/decision`, "Submit to a vote"),
+          ? action("topic.detach-decision", "DELETE", `/api/topics/${reference}/decision`, "Detach the decision")
+          : action("topic.attach-decision", "POST", `/api/topics/${reference}/decision`, "Submit to a vote"),
       );
     }
     return actions;
   }
-  if (entityClass === "council-decision" && id && permitted(request, "workspace.write")) {
+  if (entityClass === "council-decision" && id && reference && permitted(request, "workspace.write")) {
     const status = primary && "status" in primary ? String(primary.status) : "";
     return ["draft", "ready", "scheduled"].includes(status) && primary?.contentEditable !== false
-      ? [action("decision.update", "PUT", `/api/council-decisions/${id}`, "Update the decision")]
+      ? [action("decision.update", "PUT", `/api/council-decisions/${reference}`, "Update the decision")]
       : [];
   }
   if (entityClass === "agenda-item" && id) {
@@ -264,19 +290,20 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
           action(
             "agenda-item.save-notes",
             "PUT",
-            `/api/council-meetings/${primary.meetingId}/agenda-items/${id}/notes`,
+            `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary.meetingId}/agenda-items/${id}/notes`,
           ),
           action(
             "agenda-item.complete",
             "POST",
-            `/api/council-meetings/${primary.meetingId}/agenda-items/${id}/complete`,
+            `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary.meetingId}/agenda-items/${id}/complete`,
           ),
         ];
       }
       return [];
     }
     const meetingId = objectId(meeting);
-    if (!meetingId) return [];
+    const meetingReference = publicReference("council-meeting", meeting as Record<string, unknown>);
+    if (!meetingId || !meetingReference) return [];
     const meetingStatus = "status" in meeting ? String(meeting.status) : "";
     const meetingComposable =
       ["draft", "scheduled"].includes(meetingStatus) &&
@@ -287,7 +314,7 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
         action(
           "agenda-item.remove",
           "DELETE",
-          `/api/council-meetings/${meetingId}/agenda-items/${id}`,
+          `/api/council-meetings/${meetingReference}/agenda-items/${id}`,
           "Remove from the agenda",
         ),
       ];
@@ -297,49 +324,60 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
     if (item.completedAt) return [];
     if (item.startedAt) {
       return [
-        action("agenda-item.save-notes", "PUT", `/api/council-meetings/${meetingId}/agenda-items/${id}/notes`),
-        action("agenda-item.complete", "POST", `/api/council-meetings/${meetingId}/agenda-items/${id}/complete`),
+        action("agenda-item.save-notes", "PUT", `/api/council-meetings/${meetingReference}/agenda-items/${id}/notes`),
+        action("agenda-item.complete", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${id}/complete`),
       ];
     }
     const firstOpenItem = agendaItems.find(
       (candidate) => candidate && typeof candidate === "object" && !(candidate as Record<string, unknown>).completedAt,
     );
     return firstOpenItem && typeof firstOpenItem === "object" && objectId(firstOpenItem) === id
-      ? [action("agenda-item.start", "POST", `/api/council-meetings/${meetingId}/agenda-items/${id}/start`)]
+      ? [action("agenda-item.start", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${id}/start`)]
       : [];
   }
   if (entityClass === "council-meeting") {
     const payload = value as Record<string, unknown>;
     const aggregate = primary ?? payload;
     const meetingId = objectId(aggregate);
-    if (!meetingId) return [];
+    const meetingReference = publicReference("council-meeting", aggregate);
+    if (!meetingId || !meetingReference) return [];
     const status = "status" in aggregate ? String(aggregate.status) : "";
     const actions: SirenAction[] = [];
     const reconvened = Boolean(aggregate.isReconvenedMeeting);
     if (status === "draft" && permitted(request, "meetings.prepare")) {
-      actions.push(action("meeting.update", "PUT", `/api/council-meetings/${meetingId}`, "Update the meeting"));
+      actions.push(action("meeting.update", "PUT", `/api/council-meetings/${meetingReference}`, "Update the meeting"));
       if (typeof payload.activeMemberCount === "number" && payload.activeMemberCount > 0) {
         actions.push(
           statusAction(
             "meeting.schedule",
-            `/api/council-meetings/${meetingId}/status`,
+            `/api/council-meetings/${meetingReference}/status`,
             "scheduled",
             "Schedule the meeting",
           ),
         );
       }
       actions.push(
-        statusAction("meeting.cancel", `/api/council-meetings/${meetingId}/status`, "cancelled", "Cancel the meeting"),
+        statusAction(
+          "meeting.cancel",
+          `/api/council-meetings/${meetingReference}/status`,
+          "cancelled",
+          "Cancel the meeting",
+        ),
       );
     }
     const quorumFailure = Boolean(aggregate.quorumFailure);
     if (status === "scheduled" && !quorumFailure && permitted(request, "meetings.prepare")) {
       actions.push(
-        action("meeting.update", "PUT", `/api/council-meetings/${meetingId}`, "Update the meeting"),
-        statusAction("meeting.cancel", `/api/council-meetings/${meetingId}/status`, "cancelled", "Cancel the meeting"),
+        action("meeting.update", "PUT", `/api/council-meetings/${meetingReference}`, "Update the meeting"),
+        statusAction(
+          "meeting.cancel",
+          `/api/council-meetings/${meetingReference}/status`,
+          "cancelled",
+          "Cancel the meeting",
+        ),
       );
       if (!reconvened) {
-        actions.push(action("meeting.reorder-agenda", "PUT", `/api/council-meetings/${meetingId}/agenda-order`));
+        actions.push(action("meeting.reorder-agenda", "PUT", `/api/council-meetings/${meetingReference}/agenda-order`));
       }
     }
     if (
@@ -347,13 +385,13 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
       !quorumFailure &&
       (permitted(request, "meetings.prepare") || permitted(request, "meetings.conduct"))
     ) {
-      actions.push(action("meeting.set-officers", "PUT", `/api/council-meetings/${meetingId}/officers`));
+      actions.push(action("meeting.set-officers", "PUT", `/api/council-meetings/${meetingReference}/officers`));
     }
     if (status === "scheduled" && quorumFailure && permitted(request, "meetings.conduct")) {
-      actions.push(action("meeting.reconvene", "POST", `/api/council-meetings/${meetingId}/reconvene`));
+      actions.push(action("meeting.reconvene", "POST", `/api/council-meetings/${meetingReference}/reconvene`));
     }
     if (status === "scheduled" && !quorumFailure && permitted(request, "meetings.conduct")) {
-      actions.push(action("meeting.record-attendance", "PUT", `/api/council-meetings/${meetingId}/attendance`));
+      actions.push(action("meeting.record-attendance", "PUT", `/api/council-meetings/${meetingReference}/attendance`));
       const roster = Array.isArray(payload.rosterMemberIds) ? payload.rosterMemberIds : [];
       const attendance = Array.isArray(payload.attendance) ? payload.attendance : [];
       const complete =
@@ -367,7 +405,7 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
         payload.quorum && typeof payload.quorum === "object" ? (payload.quorum as { reached?: unknown }) : null;
       if (complete && quorum?.reached === false) {
         actions.push(
-          action("meeting.record-quorum-failure", "POST", `/api/council-meetings/${meetingId}/quorum-failure`),
+          action("meeting.record-quorum-failure", "POST", `/api/council-meetings/${meetingReference}/quorum-failure`),
         );
       }
       const physicallyPresent = new Set(
@@ -389,13 +427,18 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
         physicallyPresent.has(aggregate.secretaryMemberId)
       ) {
         actions.push(
-          statusAction("meeting.open", `/api/council-meetings/${meetingId}/status`, "inProgress", "Open the meeting"),
+          statusAction(
+            "meeting.open",
+            `/api/council-meetings/${meetingReference}/status`,
+            "inProgress",
+            "Open the meeting",
+          ),
         );
       }
     }
     if (status === "inProgress" && permitted(request, "meetings.conduct")) {
-      actions.push(action("meeting.record-attendance", "PUT", `/api/council-meetings/${meetingId}/attendance`));
-      actions.push(action("meeting.add-late-topic", "POST", `/api/council-meetings/${meetingId}/late-topics`));
+      actions.push(action("meeting.record-attendance", "PUT", `/api/council-meetings/${meetingReference}/attendance`));
+      actions.push(action("meeting.add-late-topic", "POST", `/api/council-meetings/${meetingReference}/late-topics`));
       const agendaItems = Array.isArray(payload.agendaItems) ? payload.agendaItems : [];
       const activeItem = agendaItems.find(
         (item) =>
@@ -429,10 +472,15 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
         activeTopic?.kind !== "openQuestion" &&
         !finalBallotExists
       ) {
-        actions.push(action("ballot.record", "POST", `/api/council-meetings/${meetingId}/ballots`));
+        actions.push(action("ballot.record", "POST", `/api/council-meetings/${meetingReference}/ballots`));
       }
       actions.push(
-        statusAction("meeting.close", `/api/council-meetings/${meetingId}/status`, "closed", "Close the meeting"),
+        statusAction(
+          "meeting.close",
+          `/api/council-meetings/${meetingReference}/status`,
+          "closed",
+          "Close the meeting",
+        ),
       );
     }
     return actions;
@@ -457,6 +505,8 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
       return [];
     }
     const ballot = primary as Record<string, unknown>;
+    const meetingReference = publicReference("council-meeting", meeting as Record<string, unknown>);
+    if (!meetingReference) return [];
     const matchingItem = agendaItems.find((candidate) => {
       if (!candidate || typeof candidate !== "object") return false;
       const item = candidate as Record<string, unknown>;
@@ -472,13 +522,7 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
       typeof matchingItem === "object" &&
       (matchingItem as Record<string, unknown>).startedAt &&
       !(matchingItem as Record<string, unknown>).completedAt
-      ? [
-          action(
-            "ballot.cancel",
-            "DELETE",
-            `/api/council-meetings/${(meeting as Record<string, unknown>).id}/ballots/${id}`,
-          ),
-        ]
+      ? [action("ballot.cancel", "DELETE", `/api/council-meetings/${meetingReference}/ballots/${id}`)]
       : [];
   }
   if (entityClass === "session") {
@@ -512,13 +556,21 @@ function canonicalHref(request: Request, entityClass: string, value: unknown): s
     typeof primary.meetingId === "string" &&
     typeof primary.memberId === "string"
   ) {
-    return `/api/council-meetings/${primary.meetingId}/attendance/${primary.memberId}`;
+    return `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary.meetingId}/attendance/${primary.memberId}`;
   }
-  if (entityClass === "agenda-item" && primary && typeof primary.meetingId === "string") {
-    return `/api/council-meetings/${primary.meetingId}/agenda-items/${id}`;
+  const payloadMeeting =
+    value && typeof value === "object" && "meeting" in value && value.meeting && typeof value.meeting === "object"
+      ? (value.meeting as Record<string, unknown>)
+      : null;
+  const meetingReference =
+    publicReference("council-meeting", payloadMeeting) ??
+    meetingReferenceFromRequest(request) ??
+    (primary && typeof primary.meetingId === "string" ? primary.meetingId : null);
+  if (entityClass === "agenda-item" && meetingReference) {
+    return `/api/council-meetings/${meetingReference}/agenda-items/${id}`;
   }
-  if (entityClass === "ballot" && primary && typeof primary.meetingId === "string") {
-    return `/api/council-meetings/${primary.meetingId}/ballots/${id}`;
+  if (entityClass === "ballot" && meetingReference) {
+    return `/api/council-meetings/${meetingReference}/ballots/${id}`;
   }
   const roots: Record<string, string> = {
     resource: "resources",
@@ -528,7 +580,8 @@ function canonicalHref(request: Request, entityClass: string, value: unknown): s
     template: "templates",
   };
   const root = roots[entityClass];
-  return root ? `/api/${root}/${id}` : pathWithQuery(request);
+  const reference = publicReference(entityClass, primary);
+  return root && reference ? `/api/${root}/${reference}` : pathWithQuery(request);
 }
 
 function objectLinks(request: Request, entityClass: string, value: unknown): SirenLink[] {
@@ -537,8 +590,9 @@ function objectLinks(request: Request, entityClass: string, value: unknown): Sir
   ];
   const primary = primaryObject(entityClass, value);
   const id = objectId(primary);
-  if (entityClass === "resource" && id && primary?.kind === "document") {
-    links.push({ rel: ["content"], href: `/api/resources/${id}/content`, type: String(primary.mediaType) });
+  const reference = publicReference(entityClass, primary);
+  if (entityClass === "resource" && id && reference && primary?.kind === "document") {
+    links.push({ rel: ["content"], href: `/api/resources/${reference}/content`, type: String(primary.mediaType) });
   }
   return links;
 }
@@ -559,7 +613,8 @@ function meetingEntities(request: Request, payload: Record<string, unknown>): Si
   const agendaItems = payload.agendaItems;
   if (!meeting || typeof meeting !== "object" || !Array.isArray(agendaItems)) return undefined;
   const meetingId = objectId(meeting);
-  if (!meetingId) return undefined;
+  const meetingReference = publicReference("council-meeting", meeting as Record<string, unknown>);
+  if (!meetingId || !meetingReference) return undefined;
   const meetingStatus = "status" in meeting ? String(meeting.status) : "";
   const meetingComposable =
     ["draft", "scheduled"].includes(meetingStatus) &&
@@ -580,7 +635,7 @@ function meetingEntities(request: Request, payload: Record<string, unknown>): Si
         action(
           "agenda-item.remove",
           "DELETE",
-          `/api/council-meetings/${meetingId}/agenda-items/${itemId}`,
+          `/api/council-meetings/${meetingReference}/agenda-items/${itemId}`,
           "Remove from the agenda",
         ),
       );
@@ -588,12 +643,20 @@ function meetingEntities(request: Request, payload: Record<string, unknown>): Si
     if (meetingStatus === "inProgress" && permitted(request, "meetings.conduct") && !item.completedAt) {
       if (item.startedAt) {
         actions.push(
-          action("agenda-item.save-notes", "PUT", `/api/council-meetings/${meetingId}/agenda-items/${itemId}/notes`),
-          action("agenda-item.complete", "POST", `/api/council-meetings/${meetingId}/agenda-items/${itemId}/complete`),
+          action(
+            "agenda-item.save-notes",
+            "PUT",
+            `/api/council-meetings/${meetingReference}/agenda-items/${itemId}/notes`,
+          ),
+          action(
+            "agenda-item.complete",
+            "POST",
+            `/api/council-meetings/${meetingReference}/agenda-items/${itemId}/complete`,
+          ),
         );
       } else if (firstOpenItem === item) {
         actions.push(
-          action("agenda-item.start", "POST", `/api/council-meetings/${meetingId}/agenda-items/${itemId}/start`),
+          action("agenda-item.start", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${itemId}/start`),
         );
       }
     }
@@ -606,7 +669,7 @@ function meetingEntities(request: Request, payload: Record<string, unknown>): Si
         links: [
           {
             rel: ["self"],
-            href: `/api/council-meetings/${meetingId}/agenda-items/${itemId}`,
+            href: `/api/council-meetings/${meetingReference}/agenda-items/${itemId}`,
             type: SIREN_MEDIA_TYPE,
           },
         ],
@@ -645,7 +708,7 @@ function meetingEntities(request: Request, payload: Record<string, unknown>): Si
           (matchingItem as Record<string, unknown>).startedAt &&
           !(matchingItem as Record<string, unknown>).completedAt &&
           permitted(request, "meetings.conduct")
-            ? [action("ballot.cancel", "DELETE", `/api/council-meetings/${meetingId}/ballots/${ballotId}`)]
+            ? [action("ballot.cancel", "DELETE", `/api/council-meetings/${meetingReference}/ballots/${ballotId}`)]
             : undefined;
         return [
           {
@@ -656,7 +719,7 @@ function meetingEntities(request: Request, payload: Record<string, unknown>): Si
             links: [
               {
                 rel: ["self"],
-                href: `/api/council-meetings/${meetingId}/ballots/${ballotId}`,
+                href: `/api/council-meetings/${meetingReference}/ballots/${ballotId}`,
                 type: SIREN_MEDIA_TYPE,
               },
             ],

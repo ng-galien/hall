@@ -57,7 +57,17 @@ async function prepareBallotScenario(databasePath = ":memory:") {
   }
   await meetingLifecycleService.changeStatus(meeting.id, "inProgress");
   await meetingAgendaService.startItem(meeting.id, agendaItem.id);
-  return { container, members, councilDecision, topic, meeting, ballotService, ballotRepository };
+  return {
+    container,
+    members,
+    councilDecision,
+    topic,
+    meeting,
+    agendaItem,
+    ballotService,
+    ballotRepository,
+    councilDecisionRepository,
+  };
 }
 
 describe("ballot concurrency", () => {
@@ -114,6 +124,38 @@ describe("ballot concurrency", () => {
 
     expect(second.id).toBe(first.id);
     expect(await ballotRepository.listForMeeting(meeting.id)).toHaveLength(1);
+  });
+
+  it("does not number a decision before the agenda item is final when a ballot is revised", async () => {
+    const { container, members, councilDecision, meeting, ballotService, councilDecisionRepository } =
+      await prepareBallotScenario();
+    onTestFinished(() => container.cradle.sqlExecutor.close());
+
+    const adoptedBallot = await ballotService.recordBallot(meeting.id, {
+      method: "public",
+      idempotencyKey: randomUUID(),
+      councilDecisionId: councilDecision.id,
+      votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" })),
+    });
+    expect(await councilDecisionRepository.find(councilDecision.id)).toMatchObject({
+      number: null,
+      slug: councilDecision.slug,
+      status: "adopted",
+    });
+
+    await ballotService.cancelBallot(meeting.id, adoptedBallot.id);
+    await ballotService.recordBallot(meeting.id, {
+      method: "public",
+      idempotencyKey: randomUUID(),
+      councilDecisionId: councilDecision.id,
+      votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "against" })),
+    });
+
+    expect(await councilDecisionRepository.find(councilDecision.id)).toMatchObject({
+      number: null,
+      slug: councilDecision.slug,
+      status: "rejected",
+    });
   });
 
   it("preserves idempotency across independent repository and unit-of-work instances", async () => {

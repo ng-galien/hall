@@ -3,12 +3,14 @@ import type { Resource, Topic, TopicState } from "@hall/domain";
 import type { SqlExecutor, SqlParameters } from "../infrastructure/database/executor.js";
 import type { SqlQueryName } from "../infrastructure/database/queries.js";
 import type { CreateTopic, TopicRepository, UpdateTopic } from "./contracts.js";
+import { uniqueSlug } from "./publicIdentifiers.js";
 import { mapStoredResource } from "./resourceRepository.js";
 import { asNullableString, type DatabaseRow, mapSequential } from "./row.js";
 
 export function mapTopic(row: DatabaseRow, resources: Resource[] = []): Topic {
   const common = {
     id: String(row.id),
+    slug: String(row.slug),
     title: String(row.title),
     report: String(row.report),
     folderPath: String(row.folder_path),
@@ -50,8 +52,8 @@ export function createTopicRepository({ sqlExecutor }: { sqlExecutor: SqlExecuto
       });
       return mapSequential(rows, (row) => mapStoredTopic(sqlExecutor, row));
     },
-    find(id) {
-      return read("topic.find", { id });
+    find(reference) {
+      return read("topic.find", { reference });
     },
     findForCouncilDecision(councilDecisionId) {
       return read("topic.findByDecision", { councilDecisionId });
@@ -63,8 +65,10 @@ export function createTopicRepository({ sqlExecutor }: { sqlExecutor: SqlExecuto
       return sqlExecutor.execute(async () => {
         const id = randomUUID();
         const now = new Date().toISOString();
+        const slug = await uniqueSlug(sqlExecutor, "topic.slugExists", input.title);
         await sqlExecutor.run("topic.insert", {
           id,
+          slug,
           kind: input.kind,
           councilDecisionId: input.kind === "subject" ? (input.councilDecisionId ?? null) : null,
           minutesOfMeetingId: input.kind === "minutesApproval" ? input.minutesOfMeetingId : null,
@@ -75,7 +79,7 @@ export function createTopicRepository({ sqlExecutor }: { sqlExecutor: SqlExecuto
           updatedAt: now,
         });
         await replaceResources(sqlExecutor, id, input.resourceIds);
-        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { id }))!);
+        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { reference: id }))!);
       });
     },
     update(id, input: UpdateTopic) {
@@ -89,25 +93,25 @@ export function createTopicRepository({ sqlExecutor }: { sqlExecutor: SqlExecuto
           updatedAt: new Date().toISOString(),
         });
         await replaceResources(sqlExecutor, id, input.resourceIds);
-        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { id }))!);
+        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { reference: id }))!);
       });
     },
     schedule(id, meetingId, position) {
       return sqlExecutor.execute(async () => {
         await sqlExecutor.run("topic.schedule", { id, meetingId, position, updatedAt: new Date().toISOString() });
-        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { id }))!);
+        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { reference: id }))!);
       });
     },
     setState(id, state) {
       return sqlExecutor.execute(async () => {
         await sqlExecutor.run("topic.setState", { id, state, updatedAt: new Date().toISOString() });
-        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { id }))!);
+        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { reference: id }))!);
       });
     },
     start(id) {
       return sqlExecutor.execute(async () => {
         await sqlExecutor.run("topic.start", { id, updatedAt: new Date().toISOString() });
-        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { id }))!);
+        return mapStoredTopic(sqlExecutor, (await sqlExecutor.get("topic.find", { reference: id }))!);
       });
     },
     setPosition(id, position) {

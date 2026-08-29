@@ -58,7 +58,7 @@ export function createTopicService({
     async get(id) {
       const topic = await topicRepository.find(id);
       if (!topic) throw new DomainError("topic_not_found", 404);
-      const agendaItems = await agendaRepository.listForTopic(id);
+      const agendaItems = await agendaRepository.listForTopic(topic.id);
       const occurrences = await Promise.all(
         agendaItems.map(async (agendaItem) => {
           const meeting = await councilMeetingRepository.find(agendaItem.meetingId);
@@ -113,7 +113,7 @@ export function createTopicService({
             throw new DomainError("agenda_inconsistent", 409);
           }
         }
-        const updated = await topicRepository.update(id, { ...input, councilDecisionId });
+        const updated = await topicRepository.update(topic.id, { ...input, councilDecisionId });
         if (councilDecisionId && input.title !== topic.title) {
           const decision = await councilDecisionRepository.find(councilDecisionId);
           if (decision && ["draft", "ready", "scheduled"].includes(decision.status)) {
@@ -130,7 +130,7 @@ export function createTopicService({
       return unitOfWork.execute(async () => {
         const topic = await topicRepository.find(id);
         if (!topic) throw new DomainError("topic_not_found", 404);
-        return topicRepository.update(id, {
+        return topicRepository.update(topic.id, {
           title: topic.title,
           report: topic.report,
           folderPath,
@@ -148,7 +148,7 @@ export function createTopicService({
         if (transitionTopic(topic.state, { type: "EDIT" }) !== topic.state) {
           throw new DomainError("agenda_inconsistent", 409);
         }
-        const currentOccurrence = (await agendaRepository.listForTopic(id)).find(
+        const currentOccurrence = (await agendaRepository.listForTopic(topic.id)).find(
           (item) => item.meetingId === topic.currentMeetingId,
         );
         if (currentOccurrence?.addedDuringSession) throw new DomainError("agenda_inconsistent", 409);
@@ -163,7 +163,7 @@ export function createTopicService({
           if (next !== "scheduled") throw new DomainError("agenda_inconsistent", 409);
           await councilDecisionRepository.setStatus(decision.id, next);
         }
-        return topicRepository.update(id, {
+        return topicRepository.update(topic.id, {
           title: topic.title,
           report: topic.report,
           folderPath: topic.folderPath,
@@ -192,7 +192,7 @@ export function createTopicService({
         if (!returnable || (await ballotRepository.findFinalForDecision(decision.id))) {
           throw new DomainError("ballot_already_recorded", 409);
         }
-        const updated = await topicRepository.update(id, {
+        const updated = await topicRepository.update(topic.id, {
           title: topic.title,
           report: topic.report,
           folderPath: topic.folderPath,

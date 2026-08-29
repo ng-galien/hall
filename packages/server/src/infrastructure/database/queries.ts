@@ -4,6 +4,7 @@ type QueryTemplate = string | { default: string; sqlite?: string; postgres?: str
 
 const resourceSelection = `SELECT
   resources.id,
+  resources.slug,
   resources.kind,
   resources.title,
   resources.folder_path,
@@ -32,6 +33,7 @@ const agendaSelection = `SELECT
   agenda_items.snapshot_council_decision_title,
   agenda_items.snapshot_council_decision_draft_text,
   topics.id AS topic_id,
+  topics.slug AS topic_slug,
   COALESCE(agenda_items.snapshot_kind, topics.kind) AS topic_kind,
   CASE WHEN agenda_items.snapshot_kind IS NULL THEN topics.council_decision_id ELSE agenda_items.snapshot_council_decision_id END AS topic_council_decision_id,
   CASE WHEN agenda_items.snapshot_kind IS NULL THEN topics.minutes_of_meeting_id ELSE agenda_items.snapshot_minutes_of_meeting_id END AS topic_minutes_of_meeting_id,
@@ -164,14 +166,23 @@ export const queries = {
       ORDER BY council_meetings.starts_at DESC LIMIT 1
     ) AS agenda_meeting_id
     FROM council_decisions ORDER BY updated_at DESC`,
-  "decision.find": "SELECT * FROM council_decisions WHERE id = :id",
+  "decision.find": "SELECT * FROM council_decisions WHERE id = :reference OR slug = :reference",
+  "decision.slugExists": "SELECT 1 FROM council_decisions WHERE slug = :slug OR id = :slug",
   "decision.insert": `INSERT INTO council_decisions
-    (id, title, draft_text, legality_review_required, created_at, updated_at)
-    VALUES (:id, :title, :draftText, :legalityReviewRequired, :createdAt, :updatedAt)`,
+    (id, slug, title, draft_text, legality_review_required, created_at, updated_at)
+    VALUES (:id, :slug, :title, :draftText, :legalityReviewRequired, :createdAt, :updatedAt)`,
   "decision.update": `UPDATE council_decisions SET title = :title, draft_text = :draftText, updated_at = :updatedAt
     WHERE id = :id`,
   "decision.setStatus": `UPDATE council_decisions SET status = :status, updated_at = :updatedAt WHERE id = :id`,
+  "decision.assignNumber": `UPDATE council_decisions
+    SET number = :number, updated_at = :updatedAt
+    WHERE id = :id AND number IS NULL`,
   "decision.remove": "DELETE FROM council_decisions WHERE id = :id",
+
+  "numberSequence.next": `INSERT INTO number_sequences (kind, year, last_value)
+    VALUES (:kind, :year, 1)
+    ON CONFLICT (kind, year) DO UPDATE SET last_value = number_sequences.last_value + 1
+    RETURNING last_value`,
 
   "settings.get": "SELECT * FROM hall_settings WHERE id = 'hall'",
   "settings.update": `UPDATE hall_settings SET
@@ -196,11 +207,12 @@ export const queries = {
     WHERE id = 'hall'`,
 
   "meeting.list": "SELECT * FROM council_meetings ORDER BY starts_at DESC",
-  "meeting.find": "SELECT * FROM council_meetings WHERE id = :id",
+  "meeting.find": "SELECT * FROM council_meetings WHERE id = :reference OR slug = :reference",
+  "meeting.slugExists": "SELECT 1 FROM council_meetings WHERE slug = :slug OR id = :slug",
   "meeting.insert": `INSERT INTO council_meetings
-    (id, title, starts_at, location, chair_member_id, secretary_member_id, meeting_notice_sent_at,
+    (id, number, slug, title, starts_at, location, chair_member_id, secretary_member_id, meeting_notice_sent_at,
      is_reconvened_meeting, previous_meeting_id, created_at, updated_at)
-    VALUES (:id, :title, :startsAt, :location, :chairMemberId, :secretaryMemberId, :meetingNoticeSentAt,
+    VALUES (:id, :number, :slug, :title, :startsAt, :location, :chairMemberId, :secretaryMemberId, :meetingNoticeSentAt,
       :isReconvenedMeeting, :previousMeetingId, :createdAt, :updatedAt)`,
   "meeting.updateDetails": `UPDATE council_meetings
     SET title = :title, starts_at = :startsAt, location = :location, updated_at = :updatedAt WHERE id = :id`,
@@ -263,15 +275,16 @@ export const queries = {
         )
       ORDER BY resources.updated_at DESC`,
   },
-  "resource.findMetadata": `${resourceSelection} WHERE resources.id = :id`,
+  "resource.findMetadata": `${resourceSelection} WHERE resources.id = :reference OR resources.slug = :reference`,
+  "resource.slugExists": "SELECT 1 FROM resources WHERE slug = :slug OR id = :slug",
   "resource.documentContent": "SELECT content FROM resource_documents WHERE resource_id = :id",
   "resource.folderPaths": `SELECT DISTINCT folder_path FROM resources WHERE folder_path <> '' ORDER BY folder_path`,
   "resource.insertTextBase": `INSERT INTO resources
-    (id, kind, title, folder_path, created_at, updated_at)
-    VALUES (:id, 'text', :title, :folderPath, :createdAt, :updatedAt)`,
+    (id, slug, kind, title, folder_path, created_at, updated_at)
+    VALUES (:id, :slug, 'text', :title, :folderPath, :createdAt, :updatedAt)`,
   "resource.insertDocumentBase": `INSERT INTO resources
-    (id, kind, title, folder_path, created_at, updated_at)
-    VALUES (:id, 'document', :title, :folderPath, :createdAt, :updatedAt)`,
+    (id, slug, kind, title, folder_path, created_at, updated_at)
+    VALUES (:id, :slug, 'document', :title, :folderPath, :createdAt, :updatedAt)`,
   "resource.insertText": "INSERT INTO text_resources (resource_id, content) VALUES (:id, :content)",
   "resource.insertDocument": `INSERT INTO resource_documents
     (resource_id, meeting_id, file_name, media_type, byte_size, category, content)
@@ -336,12 +349,13 @@ export const queries = {
       ))
     ORDER BY updated_at DESC`,
   },
-  "topic.find": "SELECT * FROM topics WHERE id = :id",
+  "topic.find": "SELECT * FROM topics WHERE id = :reference OR slug = :reference",
+  "topic.slugExists": "SELECT 1 FROM topics WHERE slug = :slug OR id = :slug",
   "topic.findByDecision": "SELECT * FROM topics WHERE council_decision_id = :councilDecisionId",
   "topic.findMinutesApproval": "SELECT * FROM topics WHERE minutes_of_meeting_id = :meetingId",
   "topic.insert": `INSERT INTO topics
-    (id, kind, council_decision_id, minutes_of_meeting_id, title, report, folder_path, created_at, updated_at)
-    VALUES (:id, :kind, :councilDecisionId, :minutesOfMeetingId, :title, :report, :folderPath, :createdAt, :updatedAt)`,
+    (id, slug, kind, council_decision_id, minutes_of_meeting_id, title, report, folder_path, created_at, updated_at)
+    VALUES (:id, :slug, :kind, :councilDecisionId, :minutesOfMeetingId, :title, :report, :folderPath, :createdAt, :updatedAt)`,
   "topic.update": `UPDATE topics
     SET title = :title, report = :report, folder_path = :folderPath,
       council_decision_id = :councilDecisionId, updated_at = :updatedAt

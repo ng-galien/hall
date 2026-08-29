@@ -11,6 +11,7 @@ const currentTables = [
   "council_members",
   "hall_settings",
   "meeting_roster",
+  "number_sequences",
   "resource_documents",
   "resource_tags",
   "resources",
@@ -60,6 +61,13 @@ function createCurrentSchema(database: DatabaseSync): void {
     ) STRICT;
 
     INSERT INTO hall_settings (id) VALUES ('hall');
+
+    CREATE TABLE number_sequences (
+      kind TEXT NOT NULL CHECK (kind IN ('meeting', 'decision')),
+      year INTEGER NOT NULL CHECK (year >= 2000 AND year <= 9999),
+      last_value INTEGER NOT NULL CHECK (last_value > 0),
+      PRIMARY KEY (kind, year)
+    ) STRICT;
 
     CREATE TABLE templates (
       id TEXT PRIMARY KEY,
@@ -117,6 +125,8 @@ function createCurrentSchema(database: DatabaseSync): void {
 
     CREATE TABLE council_meetings (
       id TEXT PRIMARY KEY,
+      number TEXT NOT NULL UNIQUE,
+      slug TEXT NOT NULL UNIQUE,
       title TEXT NOT NULL,
       starts_at TEXT NOT NULL,
       location TEXT NOT NULL,
@@ -143,6 +153,7 @@ function createCurrentSchema(database: DatabaseSync): void {
 
     CREATE TABLE resources (
       id TEXT PRIMARY KEY,
+      slug TEXT NOT NULL UNIQUE,
       kind TEXT NOT NULL CHECK (kind IN ('text', 'document')),
       title TEXT NOT NULL,
       folder_path TEXT NOT NULL DEFAULT '',
@@ -200,6 +211,7 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE TABLE council_decisions (
       id TEXT PRIMARY KEY,
       number TEXT UNIQUE,
+      slug TEXT NOT NULL UNIQUE,
       title TEXT NOT NULL,
       draft_text TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'ready', 'scheduled', 'adopted', 'rejected', 'enforceable')),
@@ -212,6 +224,7 @@ function createCurrentSchema(database: DatabaseSync): void {
 
     CREATE TABLE topics (
       id TEXT PRIMARY KEY,
+      slug TEXT NOT NULL UNIQUE,
       kind TEXT NOT NULL CHECK (kind IN ('subject', 'minutesApproval', 'openQuestion')),
       council_decision_id TEXT REFERENCES council_decisions(id),
       minutes_of_meeting_id TEXT REFERENCES council_meetings(id),

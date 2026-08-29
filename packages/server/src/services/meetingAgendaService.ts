@@ -40,6 +40,7 @@ export function createMeetingAgendaService({
   const requireActiveMeeting = async (meetingId: string) => {
     const meeting = await requireMeeting(councilMeetingRepository, meetingId);
     if (meeting.status !== "inProgress") throw new DomainError("agenda_sequence_invalid", 409);
+    return meeting;
   };
   const requireItem = async (meetingId: string, itemId: string) => {
     const item = await agendaRepository.find(meetingId, itemId);
@@ -50,9 +51,9 @@ export function createMeetingAgendaService({
   return {
     async startItem(meetingId, itemId) {
       return unitOfWork.execute(async () => {
-        await requireActiveMeeting(meetingId);
-        const item = await requireItem(meetingId, itemId);
-        const agenda = await agendaRepository.listForMeeting(meetingId);
+        const meeting = await requireActiveMeeting(meetingId);
+        const item = await requireItem(meeting.id, itemId);
+        const agenda = await agendaRepository.listForMeeting(meeting.id);
         const activeItem = agenda.find((candidate) => candidate.startedAt && !candidate.completedAt);
         const nextItem = agenda.find((candidate) => !candidate.completedAt);
         if (activeItem || nextItem?.id !== item.id || item.status !== "scheduled" || item.startedAt) {
@@ -62,26 +63,28 @@ export function createMeetingAgendaService({
           throw new DomainError("agenda_inconsistent", 409);
         }
         await topicRepository.start(item.topic.id);
-        return agendaRepository.start(meetingId, itemId, new Date().toISOString());
+        return agendaRepository.start(meeting.id, itemId, new Date().toISOString());
       });
     },
     async saveNotes(meetingId, itemId, discussionSummary) {
       return unitOfWork.execute(async () => {
-        await requireActiveMeeting(meetingId);
-        const item = await requireItem(meetingId, itemId);
+        const meeting = await requireActiveMeeting(meetingId);
+        const item = await requireItem(meeting.id, itemId);
         if (!item.startedAt || item.completedAt) throw new DomainError("agenda_sequence_invalid", 409);
-        return agendaRepository.saveNotes(meetingId, itemId, discussionSummary);
+        return agendaRepository.saveNotes(meeting.id, itemId, discussionSummary);
       });
     },
     async completeItem(meetingId, itemId, input) {
       return unitOfWork.execute(async () => {
-        await requireActiveMeeting(meetingId);
-        const item = await requireItem(meetingId, itemId);
+        const meeting = await requireActiveMeeting(meetingId);
+        const item = await requireItem(meeting.id, itemId);
         if (!item.startedAt || item.completedAt) throw new DomainError("agenda_sequence_invalid", 409);
         const councilDecisionId = item.topic.kind === "subject" ? item.topic.councilDecisionId : null;
+        let finalBallot = null;
         if (councilDecisionId && input.status === "examined") {
-          const ballot = await ballotRepository.findFinalForDecision(councilDecisionId);
-          if (!ballot || ballot.meetingId !== meetingId) throw new DomainError("agenda_ballot_required", 409);
+          finalBallot = await ballotRepository.findFinalForDecision(councilDecisionId);
+          if (!finalBallot || finalBallot.meetingId !== meeting.id)
+            throw new DomainError("agenda_ballot_required", 409);
         }
         const topicEvent: TopicEvent =
           input.status === "examined"
@@ -100,8 +103,11 @@ export function createMeetingAgendaService({
           if (!decision || !nextDecisionState) throw new DomainError("agenda_inconsistent", 409);
           await councilDecisionRepository.setStatus(decision.id, nextDecisionState);
         }
+        if (councilDecisionId && finalBallot?.result === "adopted") {
+          await councilDecisionRepository.assignNumber(councilDecisionId, Number(meeting.startsAt.slice(0, 4)));
+        }
         await topicRepository.setState(topic.id, nextTopicState as "toSchedule" | "examined" | "withdrawn");
-        return agendaRepository.complete(meetingId, itemId, {
+        return agendaRepository.complete(meeting.id, itemId, {
           ...input,
           completedAt: new Date().toISOString(),
         });

@@ -79,6 +79,7 @@ export function createMeetingLifecycleService({
     async changeStatus(meetingId, status) {
       return unitOfWork.execute(async () => {
         const meeting = await requireMeeting(councilMeetingRepository, meetingId);
+        const id = meeting.id;
         const event = statusEvent(status);
         if (!event || transitionMeeting(meeting.status, event) !== status) {
           throw new DomainError("invalid_meeting_transition", 409);
@@ -122,15 +123,15 @@ export function createMeetingLifecycleService({
             throw new DomainError("meeting_officers_required", 409);
           }
         }
-        if (status === "closed") await releaseOpenTopics(meetingId, "postponed");
-        if (status === "cancelled") await releaseOpenTopics(meetingId, "withdrawn");
-        await councilMeetingRepository.setStatus(meetingId, status);
+        if (status === "closed") await releaseOpenTopics(id, "postponed");
+        if (status === "cancelled") await releaseOpenTopics(id, "withdrawn");
+        await councilMeetingRepository.setStatus(id, status);
         if (status === "closed" && meeting.status === "inProgress") {
-          const existing = await topicRepository.findMinutesApprovalForMeeting(meetingId);
+          const existing = await topicRepository.findMinutesApprovalForMeeting(id);
           if (!existing) {
             await topicRepository.create({
               kind: "minutesApproval",
-              minutesOfMeetingId: meetingId,
+              minutesOfMeetingId: id,
               title: `Approbation du procès-verbal — ${meeting.title}`,
               report: "",
               folderPath: "",
@@ -138,12 +139,13 @@ export function createMeetingLifecycleService({
             });
           }
         }
-        return (await councilMeetingRepository.find(meetingId))!;
+        return (await councilMeetingRepository.find(id))!;
       });
     },
     async recordQuorumFailure(meetingId) {
       return unitOfWork.execute(async () => {
         const meeting = await requireMeeting(councilMeetingRepository, meetingId);
+        const id = meeting.id;
         if (meeting.status !== "scheduled" || meeting.quorumFailure) {
           throw new DomainError("invalid_meeting_transition", 409);
         }
@@ -152,17 +154,18 @@ export function createMeetingLifecycleService({
           throw new DomainError("attendance_incomplete", 409);
         }
         if (evidence.quorum.reached) throw new DomainError("invalid_meeting_transition", 409);
-        await agendaRepository.snapshotOpenItems(meetingId);
-        await councilMeetingRepository.recordQuorumFailure(meetingId, {
+        await agendaRepository.snapshotOpenItems(id);
+        await councilMeetingRepository.recordQuorumFailure(id, {
           ...evidence,
           recordedAt: new Date().toISOString(),
         });
-        return (await councilMeetingRepository.find(meetingId))!;
+        return (await councilMeetingRepository.find(id))!;
       });
     },
     async reconveneMeeting(previousMeetingId, input) {
       return unitOfWork.execute(async () => {
         const previousMeeting = await requireMeeting(councilMeetingRepository, previousMeetingId);
+        const sourceId = previousMeeting.id;
         if (previousMeeting.isReconvenedMeeting || previousMeeting.status !== "scheduled") {
           throw new DomainError("invalid_meeting_transition", 409);
         }
@@ -176,7 +179,7 @@ export function createMeetingLifecycleService({
         ) {
           throw new DomainError("invalid_meeting_transition", 409);
         }
-        const previousRoster = await meetingRosterRepository.listMemberIds(previousMeetingId);
+        const previousRoster = await meetingRosterRepository.listMemberIds(sourceId);
         for (const officerId of [input.chairMemberId, input.secretaryMemberId]) {
           if (officerId && !previousRoster.includes(officerId)) {
             throw new DomainError("council_member_not_found", 409);
@@ -185,15 +188,15 @@ export function createMeetingLifecycleService({
         if (transitionMeeting(previousMeeting.status, { type: "CLOSE_AFTER_QUORUM_FAILURE" }) !== "closed") {
           throw new DomainError("invalid_meeting_transition", 409);
         }
-        await councilMeetingRepository.setStatus(previousMeetingId, "closed");
+        await councilMeetingRepository.setStatus(sourceId, "closed");
         const meeting = await councilMeetingRepository.create({
           ...input,
           isReconvenedMeeting: true,
-          previousMeetingId,
+          previousMeetingId: sourceId,
         });
-        await meetingRosterRepository.copy(previousMeetingId, meeting.id);
-        await agendaRepository.copy(previousMeetingId, meeting.id);
-        await agendaRepository.completeOpenItems(previousMeetingId, "postponed", new Date().toISOString());
+        await meetingRosterRepository.copy(sourceId, meeting.id);
+        await agendaRepository.copy(sourceId, meeting.id);
+        await agendaRepository.completeOpenItems(sourceId, "postponed", new Date().toISOString());
         if (transitionMeeting(meeting.status, { type: "SCHEDULE" }) !== "scheduled") {
           throw new DomainError("invalid_meeting_transition", 409);
         }

@@ -3,10 +3,13 @@ import type { CouncilMeeting } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { CouncilMeetingRepository } from "./contracts.js";
 import { parseQuorumFailureEvidence } from "./evidenceMapping.js";
+import { nextAnnualNumber, slugify } from "./publicIdentifiers.js";
 import { asBoolean, asNullableString, type DatabaseRow } from "./row.js";
 
 const mapMeeting = (row: DatabaseRow): CouncilMeeting => ({
   id: String(row.id),
+  number: String(row.number),
+  slug: String(row.slug),
   title: String(row.title),
   startsAt: String(row.starts_at),
   location: String(row.location),
@@ -39,15 +42,21 @@ export function createCouncilMeetingRepository({
     list() {
       return sqlExecutor.all("meeting.list").then((rows) => rows.map(mapMeeting));
     },
-    find(id) {
-      return sqlExecutor.get("meeting.find", { id }).then((row) => (row ? mapMeeting(row) : null));
+    find(reference) {
+      return sqlExecutor.get("meeting.find", { reference }).then((row) => (row ? mapMeeting(row) : null));
     },
     create(input) {
       return sqlExecutor.execute(async () => {
         const id = randomUUID();
         const now = new Date().toISOString();
+        const date = input.startsAt.slice(0, 10);
+        const year = Number(date.slice(0, 4));
+        const number = await nextAnnualNumber(sqlExecutor, "meeting", year);
+        const slug = `${date}-${String(number.sequence).padStart(3, "0")}-${slugify(input.title)}`;
         await sqlExecutor.run("meeting.insert", {
           id,
+          number: number.value,
+          slug,
           title: input.title,
           startsAt: input.startsAt,
           location: input.location,
@@ -59,7 +68,7 @@ export function createCouncilMeetingRepository({
           createdAt: now,
           updatedAt: now,
         });
-        return mapMeeting((await sqlExecutor.get("meeting.find", { id }))!);
+        return mapMeeting((await sqlExecutor.get("meeting.find", { reference: id }))!);
       });
     },
     updateDetails(id, input) {

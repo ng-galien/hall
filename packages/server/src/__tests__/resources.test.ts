@@ -38,9 +38,10 @@ describe("documentary resources", () => {
       tags: ["sport", "juridique"],
       fileName: "convention.pdf",
     });
+    const storedDocument = domainBody<{ id: string; slug: string }>(document);
     expect(document.body.links).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rel: ["content"], href: `/api/resources/${domainBody(document).id}/content` }),
+        expect.objectContaining({ rel: ["content"], href: `/api/resources/${storedDocument.slug}/content` }),
       ]),
     );
 

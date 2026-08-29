@@ -7,11 +7,13 @@ import type {
   ResourceRepository,
   StoredDocumentResource,
 } from "./contracts.js";
+import { uniqueSlug } from "./publicIdentifiers.js";
 import { asNullableString, type DatabaseRow, mapSequential } from "./row.js";
 
 export function mapResource(row: DatabaseRow, tags: string[]): Resource {
   const common = {
     id: String(row.id),
+    slug: String(row.slug),
     title: String(row.title),
     folderPath: String(row.folder_path),
     tags,
@@ -53,16 +55,16 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
       });
       return mapSequential(rows, (row) => mapStoredResource(sqlExecutor, row));
     },
-    async find(id) {
-      const row = await sqlExecutor.get("resource.findMetadata", { id });
+    async find(reference) {
+      const row = await sqlExecutor.get("resource.findMetadata", { reference });
       if (!row) return null;
       const resource = await mapStoredResource(sqlExecutor, row);
       if (resource.kind === "text") return resource;
-      const documentRow = await sqlExecutor.get("resource.documentContent", { id });
+      const documentRow = await sqlExecutor.get("resource.documentContent", { id: resource.id });
       return { ...resource, content: Buffer.from(documentRow!.content as Uint8Array) } satisfies StoredDocumentResource;
     },
-    async findMetadata(id) {
-      const row = await sqlExecutor.get("resource.findMetadata", { id });
+    async findMetadata(reference) {
+      const row = await sqlExecutor.get("resource.findMetadata", { reference });
       return row ? mapStoredResource(sqlExecutor, row) : null;
     },
     async listFolderPaths() {
@@ -72,8 +74,10 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
       return sqlExecutor.execute(async () => {
         const id = randomUUID();
         const now = new Date().toISOString();
+        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
         await sqlExecutor.run("resource.insertTextBase", {
           id,
+          slug,
           title: input.title,
           folderPath: input.folderPath,
           createdAt: now,
@@ -81,15 +85,20 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         });
         await sqlExecutor.run("resource.insertText", { id, content: input.content });
         await insertTags(sqlExecutor, id, input.tags);
-        return mapResource((await sqlExecutor.get("resource.findMetadata", { id }))!, input.tags) as TextResource;
+        return mapResource(
+          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
+          input.tags,
+        ) as TextResource;
       });
     },
     createDocument(input: CreateDocumentResource) {
       return sqlExecutor.execute(async () => {
         const id = randomUUID();
         const now = new Date().toISOString();
+        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
         await sqlExecutor.run("resource.insertDocumentBase", {
           id,
+          slug,
           title: input.title,
           folderPath: input.folderPath,
           createdAt: now,
@@ -105,7 +114,10 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           content: input.content,
         });
         await insertTags(sqlExecutor, id, input.tags);
-        return mapResource((await sqlExecutor.get("resource.findMetadata", { id }))!, input.tags) as DocumentResource;
+        return mapResource(
+          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
+          input.tags,
+        ) as DocumentResource;
       });
     },
     update(id, input) {
@@ -119,7 +131,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         if (input.content !== undefined) await sqlExecutor.run("resource.updateText", { id, content: input.content });
         await sqlExecutor.run("resource.deleteTags", { id });
         await insertTags(sqlExecutor, id, input.tags);
-        return mapResource((await sqlExecutor.get("resource.findMetadata", { id }))!, input.tags);
+        return mapResource((await sqlExecutor.get("resource.findMetadata", { reference: id }))!, input.tags);
       });
     },
     isSnapshotted(id) {

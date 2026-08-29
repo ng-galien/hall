@@ -116,14 +116,15 @@ export function createBallotService({
       return unitOfWork.execute(async () => {
         const meeting = await councilMeetingRepository.find(meetingId);
         if (!meeting) throw new DomainError("meeting_not_found", 404);
+        const id = meeting.id;
         if (transitionBallot("recorded", { type: "CANCEL", meetingStatus: meeting.status }) !== "cancelled") {
           throw new DomainError("invalid_meeting_transition", 409);
         }
         const ballot = await ballotRepository.findById(ballotId);
-        if (!ballot || ballot.meetingId !== meetingId || ballot.cancelledAt) {
+        if (!ballot || ballot.meetingId !== id || ballot.cancelledAt) {
           throw new DomainError("ballot_not_found", 404);
         }
-        const agenda = await agendaRepository.listForMeeting(meetingId);
+        const agenda = await agendaRepository.listForMeeting(id);
         const agendaItem = agenda.find((item) =>
           ballot.agendaItemId
             ? item.id === ballot.agendaItemId
@@ -141,7 +142,10 @@ export function createBallotService({
         }
       });
     },
-    async recordBallot(meetingId, command) {
+    async recordBallot(meetingReference, command) {
+      const referencedMeeting = await councilMeetingRepository.find(meetingReference);
+      if (!referencedMeeting) throw new DomainError("meeting_not_found", 404);
+      const meetingId = referencedMeeting.id;
       const fingerprint = commandFingerprint(meetingId, command);
       const previousAttempt = await ballotRepository.findByIdempotencyKey(command.idempotencyKey);
       if (previousAttempt) {

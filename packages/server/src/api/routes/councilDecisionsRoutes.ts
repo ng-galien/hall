@@ -39,10 +39,10 @@ export function createCouncilDecisionsRouter({
         if (!["draft", "ready", "scheduled"].includes(decision.status)) {
           throw new DomainError("ballot_already_recorded", 409);
         }
-        if (await decisionContentIsFrozen(decisionId, topicRepository, councilMeetingRepository)) {
+        if (await decisionContentIsFrozen(decision.id, topicRepository, councilMeetingRepository)) {
           throw new DomainError("agenda_inconsistent", 409);
         }
-        return withEditability(await councilDecisionRepository.update(decisionId, input));
+        return withEditability(await councilDecisionRepository.update(decision.id, input));
       }),
     );
   });

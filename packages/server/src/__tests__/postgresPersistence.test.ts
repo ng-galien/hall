@@ -162,6 +162,8 @@ postgres("PostgreSQL persistence", () => {
         category: "report",
         content: Buffer.from("pdf"),
       });
+      expect(text.slug).toBe("summary");
+      expect(document.slug).toBe("report");
       expect(await resourceRepository.list({ tags: ["finance"] })).toHaveLength(2);
 
       const decision = await councilDecisionRepository.create({
@@ -169,12 +171,17 @@ postgres("PostgreSQL persistence", () => {
         draftText: "The council decides...",
         legalityReviewRequired: true,
       });
+      expect(decision).toMatchObject({ number: null, slug: "grant-decision" });
       const meeting = await councilMeetingService.createMeeting({
         title: "Council meeting",
         startsAt: "2026-09-10T18:30:00+02:00",
         location: "Council chamber",
         chairMemberId: members[0].id,
         secretaryMemberId: members[1].id,
+      });
+      expect(meeting).toMatchObject({
+        number: "2026-001",
+        slug: "2026-09-10-001-council-meeting",
       });
       const topic = await topicService.create({
         kind: "subject",
@@ -198,9 +205,19 @@ postgres("PostgreSQL persistence", () => {
         votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" })),
       });
       expect(ballot).toMatchObject({ result: "adopted", votesFor: 3 });
+      expect(await councilDecisionRepository.find(decision.id)).toMatchObject({
+        number: null,
+        slug: "grant-decision",
+        status: "adopted",
+      });
       await meetingAgendaService.completeItem(meeting.id, agendaItem.id, {
         discussionSummary: "Adopted unanimously",
         status: "examined",
+      });
+      expect(await councilDecisionRepository.find(decision.id)).toMatchObject({
+        number: "2026-001",
+        slug: "grant-decision",
+        status: "adopted",
       });
       await meetingLifecycleService.changeStatus(meeting.id, "closed");
 
