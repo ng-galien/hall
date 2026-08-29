@@ -89,6 +89,7 @@ postgres("PostgreSQL persistence", () => {
     });
     const {
       sqlExecutor,
+      agendaItemRepository,
       councilMemberRepository,
       councilDecisionRepository,
       councilMeetingService,
@@ -208,7 +209,6 @@ postgres("PostgreSQL persistence", () => {
       });
       expect(decision).toMatchObject({ number: null, slug: "grant-decision" });
       const meeting = await councilMeetingService.createMeeting({
-        title: "Council meeting",
         startsAt: "2026-09-10T18:30:00+02:00",
         location: "Council chamber",
         chairMemberId: members[0].id,
@@ -216,7 +216,7 @@ postgres("PostgreSQL persistence", () => {
       });
       expect(meeting).toMatchObject({
         number: "2026-001",
-        slug: "2026-09-10-001-council-meeting",
+        slug: "2026-09-10-001",
       });
       const business = await councilBusinessService.create({
         kind: "matter",
@@ -257,6 +257,19 @@ postgres("PostgreSQL persistence", () => {
         status: "adopted",
       });
       await meetingLifecycleService.changeStatus(meeting.id, "closed");
+      expect(await meetingLifecycleService.finalizeMinutesDraft(meeting.id)).toMatchObject({
+        minutesStatus: "ready",
+      });
+      const automaticallyPreparedMeeting = await councilMeetingService.createMeeting({
+        startsAt: "2026-09-20T18:30:00+02:00",
+        location: "Council chamber",
+      });
+      const automaticallyPreparedAgenda = await agendaItemRepository.listForMeeting(automaticallyPreparedMeeting.id);
+      expect(automaticallyPreparedAgenda).toHaveLength(1);
+      expect(automaticallyPreparedAgenda[0]?.business).toMatchObject({
+        kind: "minutesApproval",
+        minutesOfMeetingId: meeting.id,
+      });
 
       const secondContainer = buildContainer({
         host: "127.0.0.1",
@@ -320,9 +333,8 @@ postgres("PostgreSQL persistence", () => {
       expect(await securityRepository.listAuditEvents()).toHaveLength(1);
 
       const schedulingMeetings = await Promise.all(
-        ["First target meeting", "Second target meeting"].map((title, index) =>
+        [0, 1].map((index) =>
           councilMeetingService.createMeeting({
-            title,
             startsAt: `2026-10-${10 + index}T18:30:00+02:00`,
             location: "Council chamber",
             chairMemberId: members[0].id,

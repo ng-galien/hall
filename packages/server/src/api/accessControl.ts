@@ -145,6 +145,7 @@ function auditIntentFor(request: Request) {
       "agenda-order": "meeting.reorder-agenda",
       "quorum-failure": "meeting.record-quorum-failure",
       reconvene: "meeting.reconvene",
+      minutes: "meeting.finalize-minutes",
     };
     return { action: meetingActions[child] ?? `meeting.${child}`, targetType: "council-meeting", targetId: id };
   }
@@ -170,9 +171,15 @@ function auditIntentFor(request: Request) {
         : child === "memberships"
           ? operation === "end"
             ? "committee.end-membership"
-            : "committee.add-membership"
+            : childId
+              ? "committee.update-membership"
+              : "committee.add-membership"
           : "committee.update";
-    return { action, targetType: "council-committee", targetId: childId ?? targetId };
+    return {
+      action,
+      targetType: childId ? "committee-membership" : "council-committee",
+      targetId: childId ?? targetId,
+    };
   }
   if (root === "resources") {
     const action =
@@ -215,7 +222,9 @@ function auditIntentFor(request: Request) {
     return { action, targetType: "template", targetId: id && id !== "preview" ? id : null };
   }
   if (root === "auth") return { action: `session.${id ?? "unknown"}`, targetType: "session" };
-  if (root === "council-members") return { action: "member.create", targetType: "council-member" };
+  if (root === "council-members") {
+    return { action: id ? "member.update" : "member.create", targetType: "council-member", targetId };
+  }
   if (root === "council-decisions") {
     return { action: id ? "decision.update" : "decision.create", targetType: "council-decision", targetId };
   }

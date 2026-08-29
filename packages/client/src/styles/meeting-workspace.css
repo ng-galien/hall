@@ -392,7 +392,7 @@
   .entity-card-detail { word-break: break-word; }
   .entity-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: var(--hall-space-2); }
   .entity-card-footer-actions span { display: flex; align-items: center; gap: var(--hall-space-2); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
-  .entity-card-member { align-items: center; text-align: center; }
+  .entity-card-member { align-items: stretch; text-align: left; }
   .member-avatar-large { width: var(--hall-size-metric-icon); height: var(--hall-size-metric-icon); font-size: var(--hall-font-size-small); }
 
   .data-row-side { display: flex; flex: none; align-items: center; gap: var(--hall-space-3); color: var(--hall-color-text-subtle); }
@@ -755,6 +755,7 @@
   .meeting-minutes-status { display: flex; }
 
   .member-identity { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2-5); }
+  .data-row > .member-identity { display: flex; min-width: var(--hall-size-entity-card); }
   .member-avatar {
     display: grid;
     width: var(--hall-size-member-avatar);
@@ -769,6 +770,77 @@
   }
   .member-identity > div { display: grid; min-width: 0; }
   .member-identity > div span { overflow: hidden; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); text-overflow: ellipsis; white-space: nowrap; }
+  .member-identity-card { align-items: center; }
+  .member-identity-card > div { min-width: 0; }
+  .council-member-card-heading {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--hall-space-2);
+  }
+  .council-member-name {
+    overflow: hidden;
+    color: var(--hall-color-text);
+    font-size: var(--hall-font-size-subtitle);
+    font-weight: var(--hall-font-weight-semibold);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .council-member-edit-action { flex: none; color: var(--hall-color-text-muted); }
+  .council-member-contact {
+    display: grid;
+    min-width: 0;
+    gap: var(--hall-space-1);
+    color: var(--hall-color-text-muted);
+    font-size: var(--hall-font-size-caption);
+  }
+  .council-member-contact > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .council-member-contact a:hover { color: var(--hall-color-brand); text-decoration: underline; }
+  .council-member-list-contact { flex: 1; }
+  .council-member-list-committees { min-width: 0; flex: 1; }
+  .council-member-committee-links { display: flex; min-width: 0; flex-wrap: wrap; gap: var(--hall-space-1-5); }
+  .council-member-committee-links a {
+    display: inline-flex;
+    max-width: 100%;
+    overflow: hidden;
+    padding: var(--hall-space-0-5) var(--hall-space-1-5);
+    border: var(--hall-stroke-thin) solid var(--hall-color-border);
+    border-radius: var(--hall-radius-circular);
+    color: var(--hall-color-brand);
+    font-size: var(--hall-font-size-caption-small);
+    font-weight: var(--hall-font-weight-semibold);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .council-member-committee-links a:hover { border-color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
+  .council-member-no-committees { color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-caption); }
+  .council-member-list-status {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--hall-space-2);
+  }
+  .council-member-mandate {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--hall-space-1-5);
+    color: var(--hall-color-text-muted);
+    font-size: var(--hall-font-size-caption);
+  }
+
+  @media (max-width: 1000px) {
+    .council-member-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      row-gap: var(--hall-space-2);
+    }
+    .data-row > .member-identity { min-width: 0; }
+    .data-row > .council-member-list-contact { display: grid; grid-column: 1; grid-row: 2; }
+    .council-member-list-committees { grid-column: 2; grid-row: 2; justify-self: end; }
+    .council-member-list-status { grid-column: 2; grid-row: 1; }
+  }
 
   /* ---- meeting report ---- */
   .report-timeline-list { display: grid; margin: 0; padding: 0; list-style: none; }

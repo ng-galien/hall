@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Mentionable } from "../components/editor/references";
+import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { resourceTone, toneIcons, toneLabelKeys } from "../features/documents/ResourceGlyph";
 import { useI18n } from "../i18n/I18nProvider";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
@@ -15,7 +16,7 @@ import { useResourcesStore } from "../stores/resourcesStore";
  * par slug le sont par slug dans les directives ; les membres n'en ont pas et gardent leur id.
  */
 export function useReferenceMentionables(): Mentionable[] {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
   const { members } = useCouncilMembersStore();
   const { resources } = useResourcesStore();
   const { businesses } = useCouncilBusinessStore();
@@ -50,7 +51,7 @@ export function useReferenceMentionables(): Mentionable[] {
       ...meetings.map((meeting) => ({
         kind: "meeting" as const,
         id: meeting.slug,
-        label: meeting.title,
+        label: formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
         extra: [meeting.number],
       })),
       ...councilDecisions.map((decision) => ({
@@ -60,6 +61,6 @@ export function useReferenceMentionables(): Mentionable[] {
         extra: [decision.number],
       })),
     ],
-    [members, resources, businesses, meetings, councilDecisions, t],
+    [members, resources, businesses, meetings, councilDecisions, t, formatDate],
   );
 }

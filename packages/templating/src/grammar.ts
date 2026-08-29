@@ -71,7 +71,6 @@ export const directiveSpecs: readonly DirectiveSpec[] = [
  */
 export const fieldNames = [
   "hall.name",
-  "meeting.title",
   "meeting.startsAt",
   "meeting.location",
   "meeting.chair",

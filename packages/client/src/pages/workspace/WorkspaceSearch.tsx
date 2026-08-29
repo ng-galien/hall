@@ -15,6 +15,7 @@ import {
 } from "../../components/icons";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { councilBusinessKindKeys } from "../../features/council-business/presentation";
+import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { ResourceGlyph, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
 import { MeetingStatusBadge, StatusBadge } from "../../features/status/DomainStatusBadge";
 import type { TranslationKey } from "../../i18n/en";
@@ -156,7 +157,7 @@ export function WorkspaceSearch({
       ...meetings.map((meeting) => ({
         kind: "meeting" as const,
         id: meeting.slug,
-        label: meeting.title,
+        label: formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
         extra: [meeting.location, meeting.number],
         entity: { entityKind: "meeting" as const, meeting },
       })),
@@ -168,7 +169,7 @@ export function WorkspaceSearch({
         entity: { entityKind: "decision" as const, decision },
       })),
     ],
-    [businesses, resources, meetings, councilDecisions],
+    [businesses, resources, meetings, councilDecisions, t, formatDate],
   );
 
   const facetTokens = [
@@ -271,7 +272,7 @@ export function WorkspaceSearch({
             <GavelIcon />
           </span>
           <span className="workspace-row-copy">
-            <strong>{meeting.title}</strong>
+            <strong>{formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}</strong>
             <span>
               {formatDate(meeting.startsAt)} · {meeting.location}
             </span>

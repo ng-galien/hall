@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { AgendaIcon, DecisionsIcon, FileIcon, WorkspaceIcon } from "../components/icons";
 import { PageHeader } from "../components/Ui";
+import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { useI18n } from "../i18n/I18nProvider";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
@@ -28,7 +29,11 @@ export function DashboardPage() {
             icon={<AgendaIcon />}
             value={nextMeeting ? formatDate(nextMeeting.startsAt) : t("dashboard.toSchedule")}
             label={t("dashboard.nextMeeting")}
-            detail={nextMeeting?.title ?? t("dashboard.noMeeting")}
+            detail={
+              nextMeeting
+                ? formatMeetingLabel(nextMeeting, t("meetings.occurrenceLabel"), formatDate)
+                : t("dashboard.noMeeting")
+            }
             to={nextMeeting ? `/meetings/${nextMeeting.slug}` : "/meetings"}
           />
           <Metric

@@ -33,6 +33,7 @@ import {
 import { MarkdownView } from "../../../components/MarkdownView";
 import { Modal } from "../../../components/Ui";
 import { councilBusinessKindKeys } from "../../../features/council-business/presentation";
+import { formatMeetingLabel } from "../../../features/council-meetings/meetingPresentation";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useReferenceMentionables } from "../../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../../hooks/useSubmitting";
@@ -80,7 +81,7 @@ export function ConductView({
   meetingActions: ReturnType<typeof useCouncilMeeting>;
   onShowRollCall(): void;
 }) {
-  const { t, formatTime, formatNumber } = useI18n();
+  const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const { download } = useResourcesStore();
   const orderedItems = useMemo(
@@ -755,7 +756,9 @@ export function ConductView({
               <div>
                 <span>{t("meeting.timeline")}</span>
                 <h2 id="minutes-overlay-title">
-                  {minutesAggregate ? minutesAggregate.meeting.title : t("common.loading")}
+                  {minutesAggregate
+                    ? formatMeetingLabel(minutesAggregate.meeting, t("meetings.occurrenceLabel"), formatDate)
+                    : t("common.loading")}
                 </h2>
               </div>
               <div className="document-viewer-actions">

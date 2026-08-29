@@ -36,7 +36,6 @@ async function prepareBallotScenario(databasePath = ":memory:") {
     legalityReviewRequired: true,
   });
   const meeting = await councilMeetingService.createMeeting({
-    title: "Concurrent meeting",
     startsAt: "2026-09-10T18:30:00+02:00",
     location: "Council chamber",
     chairMemberId: members[0].id,
@@ -215,7 +214,6 @@ describe("ballot concurrency", () => {
       votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" })),
     });
     const secondMeeting = await councilMeetingService.createMeeting({
-      title: "Second meeting",
       startsAt: "2026-09-17T18:30:00+02:00",
       location: "Council chamber",
       chairMemberId: members[0].id,
@@ -256,7 +254,6 @@ describe("ballot concurrency", () => {
       legalityReviewRequired: false,
     });
     const firstMeeting = await councilMeetingService.createMeeting({
-      title: "First meeting",
       startsAt: "2026-09-10T18:30:00+02:00",
       location: "Council chamber",
       chairMemberId: members[0].id,
@@ -279,7 +276,6 @@ describe("ballot concurrency", () => {
     }
     await meetingLifecycleService.recordQuorumFailure(firstMeeting.id);
     const reconvened = await meetingLifecycleService.reconveneMeeting(firstMeeting.id, {
-      title: "Reconvened meeting",
       startsAt: "2026-09-14T18:30:00+02:00",
       meetingNoticeSentAt: "2026-09-10T18:31:00+02:00",
       location: "Council chamber",

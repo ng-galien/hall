@@ -48,7 +48,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
       references = (await councilMeetingRepository.list()).map((meeting) => ({
         type,
         id: meeting.id,
-        label: meeting.title,
+        label: `${meeting.number} — ${meeting.startsAt.slice(0, 10)}`,
       }));
     }
     if (type === "councilBusiness") {

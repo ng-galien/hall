@@ -67,12 +67,11 @@ test.describe("municipal council workflow", () => {
     await primaryNavigationLink(page, "Séances").click();
     await page.getByRole("button", { name: "Planifier une séance", exact: true }).click();
     const meetingDialog = openDialog(page);
-    await formField(meetingDialog, "title").fill("Conseil municipal E2E");
     await formField(meetingDialog, "startsAt").fill("2026-09-10T18:30");
     await formField(meetingDialog, "secretaryMemberId").selectOption({ label: "Jules Bernard" });
     await expect(formField(meetingDialog, "chairMemberId")).toHaveValue(/.+/);
     await meetingDialog.getByRole("button", { name: "Créer", exact: true }).click();
-    await page.getByRole("link", { name: /Conseil municipal E2E/ }).click();
+    await page.getByRole("link", { name: /Conseil municipal .*10\/09\/2026/ }).click();
 
     await page.getByRole("button", { name: "Inscrire", exact: true }).click();
     await expect(page.locator(".composer-list")).toContainText("Adoption du programme de rénovation");

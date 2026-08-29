@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BackIcon } from "../../../components/icons";
 import { RequestErrorBanner } from "../../../components/Ui";
+import { formatMeetingLabel } from "../../../features/council-meetings/meetingPresentation";
 import { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { useCouncilMembersStore } from "../../../stores/councilMembersStore";
@@ -20,7 +21,7 @@ export function LiveClock() {
 
 export function LiveMeetingPage() {
   const { meetingId = "" } = useParams();
-  const { t, formatNumber } = useI18n();
+  const { t, formatDate, formatNumber } = useI18n();
   const meetingActions = useCouncilMeeting(meetingId);
   const { meeting: aggregate, error, actionError } = meetingActions;
   const { members } = useCouncilMembersStore();
@@ -54,7 +55,7 @@ export function LiveMeetingPage() {
         </Link>
         <div className="live-header-title">
           <span className="live-eyebrow">{t("live.eyebrow")}</span>
-          <strong>{meeting.title}</strong>
+          <strong>{formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}</strong>
         </div>
         <div className="live-header-status">
           <span

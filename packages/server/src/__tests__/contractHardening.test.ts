@@ -44,7 +44,7 @@ describe("hardened HTTP and hypermedia contract", () => {
     const { rawAgent } = await createTestServer();
     const meeting = await rawAgent
       .post("/api/council-meetings")
-      .send({ title: "Conseil sans composition", startsAt: "2026-09-10T18:30:00+02:00", location: "Hall" })
+      .send({ startsAt: "2026-09-10T18:30:00+02:00", location: "Hall" })
       .expect(201);
     const meetingId = properties<{ id: string }>(meeting).id;
     const details = await rawAgent.get(`/api/council-meetings/${meetingId}`).expect(200);
@@ -145,7 +145,6 @@ describe("hardened HTTP and hypermedia contract", () => {
     const meeting = await rawAgent
       .post("/api/council-meetings")
       .send({
-        title: "Conseil",
         startsAt: "2026-09-10T18:30:00+02:00",
         location: "Hall",
         chairMemberId: members[0].id,
@@ -236,7 +235,6 @@ describe("hardened HTTP and hypermedia contract", () => {
     const reconvened = await rawAgent
       .post(`/api/council-meetings/${meetingId}/reconvene`)
       .send({
-        title: "Conseil reconvoqué",
         startsAt: "2026-09-14T18:30:00+02:00",
         meetingNoticeSentAt: "2026-09-10T18:31:00+02:00",
         location: "Hall",
@@ -278,7 +276,6 @@ describe("hardened HTTP and hypermedia contract", () => {
       await rawAgent
         .post("/api/council-meetings")
         .send({
-          title: "Conseil en cours",
           startsAt: "2026-09-10T18:30:00+02:00",
           location: "Hall",
           chairMemberId: chair.id,

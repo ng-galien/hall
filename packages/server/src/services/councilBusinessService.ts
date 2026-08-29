@@ -113,6 +113,11 @@ export function createCouncilBusinessService({
       return unitOfWork.execute(async () => {
         const business = await councilBusinessRepository.find(id);
         if (!business) throw new DomainError("council_business_not_found", 404);
+        if (business.kind === "minutesApproval") {
+          const sourceMeeting = await councilMeetingRepository.find(business.minutesOfMeetingId);
+          if (!sourceMeeting) throw new DomainError("meeting_not_found", 404);
+          if (sourceMeeting.minutesStatus !== "draft") throw new DomainError("minutes_not_ready", 409);
+        }
         await validateResources(input.resourceIds);
         if (business.kind !== "matter" && input.committeeId !== undefined) {
           throw new DomainError("invalid_request");

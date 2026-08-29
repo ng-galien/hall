@@ -72,6 +72,26 @@ Les échanges métier et les libellés de l’IHM sont en français ; le code, l
 
 Cette matrice exprime le vocabulaire effectif du domaine et sert de référence pour les types, fichiers, contrats HTTP, services, repositories, requêtes et tables. Dans l’IHM française, employer « sujet » pour `CouncilMatter` et « point à l’ordre du jour » pour `AgendaItem`.
 
+## Sémantique du backend et libellés traduits
+
+Le backend modélise les concepts, leurs données et leurs invariants ; il ne transforme pas un libellé d’interface en constante métier. Une formulation telle que « toutes les séances ont le même nom » signifie qu’il n’existe pas de titre métier libre à persister, et non que le domaine doit stocker la chaîne française « Conseil municipal ».
+
+- Les noms de types, états, événements, champs, constantes et valeurs discriminantes du code sont en anglais.
+- Un invariant porte sur la nature d’un objet, jamais sur la traduction utilisée pour le présenter.
+- Une `CouncilMeeting` est déjà une séance du conseil par son type. Son occurrence est identifiée par son identifiant, sa date et son numéro ; elle ne reçoit pas un second champ ou une constante de titre uniquement pour répéter sa nature.
+- Les slugs et identifiants techniques ne dépendent pas d’un libellé traduit. Le slug d’une séance est construit à partir de sa date et de son numéro.
+- Les libellés de l’IHM relèvent de l’i18n du frontend. Les formulations présentes dans les PDF, courriers et messages relèvent des templates et de la configuration de Hall.
+- Les contenus réellement saisis par l’utilisateur peuvent naturellement être en français ; ils restent des données, pas du vocabulaire technique codé en dur.
+- Lorsqu’un champ ne porte plus d’information métier, le retirer de bout en bout — domaine, API, serveur, SQL, seed et tests — au lieu de le conserver ignoré pour compatibilité. Le projet étant en construction, aucune compatibilité legacy ne doit être inventée sans demande explicite.
+
+Avant de stabiliser un nouveau concept backend, vérifier séparément : sa nature métier, les données variables de chaque occurrence, son identité technique et son libellé de présentation. Ne jamais utiliser l’un pour remplacer l’autre.
+
+## Travail frontend
+
+Tout agent qui modifie `packages/client` doit lire et appliquer [`docs/frontend-guidelines.md`](docs/frontend-guidelines.md) avant d’agir. Ce guide fixe notamment le contrat d’autosave, la séparation entre le fil d’Ariane global et celui du Workbench, l’usage de formulaires cohérents, l’absence de doublons d’information, la stabilité des tokens CSS et la frontière entre composants métier et primitives techniques.
+
+Une évolution du client doit prolonger ces principes. Lorsqu’un écran existant n’y est pas encore conforme, ne pas reproduire l’écart dans un nouvel écran et rendre explicite le réalignement restant.
+
 ## Règles structurantes
 
 - La convocation est faite par le maire. Elle indique les questions portées à l’ordre du jour et doit permettre de conserver la preuve de sa transmission et, le cas échéant, de sa publication.

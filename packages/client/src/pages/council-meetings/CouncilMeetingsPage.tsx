@@ -15,6 +15,7 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../../components/Ui";
+import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -31,24 +32,25 @@ function officerId(value: FormDataEntryValue | null): string | null {
 }
 
 export function CouncilMeetingsPage() {
-  const { t, formatDateTime } = useI18n();
+  const { t, formatDate, formatDateTime } = useI18n();
   const { submitting, run } = useSubmitting();
   const { meetings, create, error, canCreate } = useCouncilMeetingsStore();
   const { members } = useCouncilMembersStore();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const { layout, setLayout, query, setQuery } = useCollectionView();
-  const titleFieldId = useId();
   const startsAtFieldId = useId();
   const locationFieldId = useId();
   const chairFieldId = useId();
   const secretaryFieldId = useId();
   const defaultChair = members.find((member) => member.role === "mayor" && member.active) ?? null;
+  const meetingLabel = (meeting: CouncilMeeting) =>
+    formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate);
 
   const upcomingMeetings = [...meetings]
     .filter((meeting) => ["draft", "scheduled", "inProgress"].includes(meeting.status))
     .sort((left, right) => left.startsAt.localeCompare(right.startsAt));
   const nextMeeting = upcomingMeetings[0] ?? null;
-  const matches = (meeting: CouncilMeeting) => matchesQuery(query, meeting.title, meeting.location);
+  const matches = (meeting: CouncilMeeting) => matchesQuery(query, meetingLabel(meeting), meeting.location);
   const visibleUpcoming = upcomingMeetings.filter((meeting) => meeting.id !== nextMeeting?.id && matches(meeting));
   const pastMeetings = [...meetings]
     .filter((meeting) => ["closed", "cancelled"].includes(meeting.status))
@@ -61,7 +63,6 @@ export function CouncilMeetingsPage() {
     const form = new FormData(formElement);
     await run(async () => {
       const created = await create({
-        title: form.get("title"),
         startsAt: new Date(String(form.get("startsAt"))).toISOString(),
         location: form.get("location"),
         chairMemberId: officerId(form.get("chairMemberId")),
@@ -85,7 +86,7 @@ export function CouncilMeetingsPage() {
           <Link className="next-meeting-hero" to={`/meetings/${nextMeeting.slug}`}>
             <div className="next-meeting-copy">
               <span className="entity-card-eyebrow">{t("dashboard.nextMeeting")}</span>
-              <strong>{nextMeeting.title}</strong>
+              <strong>{meetingLabel(nextMeeting)}</strong>
               <span className="next-meeting-facts">
                 <span>
                   <CalendarIcon aria-hidden="true" /> {formatDateTime(nextMeeting.startsAt)}
@@ -113,10 +114,6 @@ export function CouncilMeetingsPage() {
 
         <Modal open={canCreate && scheduleOpen} title={t("meetings.schedule")} onClose={() => setScheduleOpen(false)}>
           <form className="modal-form" onSubmit={submit}>
-            <div className="grid gap-1.5">
-              <Label htmlFor={titleFieldId}>{t("meetings.name")}</Label>
-              <Input id={titleFieldId} name="title" placeholder={t("meetings.namePlaceholder")} required />
-            </div>
             <div className="form-grid">
               <div className="grid gap-1.5">
                 <Label htmlFor={startsAtFieldId}>{t("meetings.dateTime")}</Label>
@@ -177,6 +174,7 @@ export function CouncilMeetingsPage() {
                 meetings={visibleUpcoming}
                 layout={layout}
                 formatDateTime={formatDateTime}
+                meetingLabel={meetingLabel}
               />
             ) : null}
             {pastMeetings.length > 0 ? (
@@ -185,6 +183,7 @@ export function CouncilMeetingsPage() {
                 meetings={pastMeetings}
                 layout={layout}
                 formatDateTime={formatDateTime}
+                meetingLabel={meetingLabel}
               />
             ) : null}
             {visibleUpcoming.length === 0 && pastMeetings.length === 0 && !nextMeeting ? (
@@ -202,11 +201,13 @@ function MeetingGroup({
   meetings,
   layout,
   formatDateTime,
+  meetingLabel,
 }: {
   title: string;
   meetings: CouncilMeeting[];
   layout: "list" | "cards";
   formatDateTime(value: string): string;
+  meetingLabel(meeting: CouncilMeeting): string;
 }) {
   return (
     <section className="decision-group">
@@ -222,7 +223,7 @@ function MeetingGroup({
           {meetings.map((meeting) => (
             <Link className="entity-card" key={meeting.id} to={`/meetings/${meeting.slug}`}>
               <span className="entity-card-eyebrow">{formatDateTime(meeting.startsAt)}</span>
-              <strong>{meeting.title}</strong>
+              <strong>{meetingLabel(meeting)}</strong>
               <p>{meeting.location}</p>
               <span className="entity-card-footer">
                 <MeetingStatusBadge status={meeting.status} />
@@ -235,7 +236,7 @@ function MeetingGroup({
           {meetings.map((meeting) => (
             <Link className="data-row linked" key={meeting.id} to={`/meetings/${meeting.slug}`}>
               <div>
-                <strong>{meeting.title}</strong>
+                <strong>{meetingLabel(meeting)}</strong>
                 <span>
                   {formatDateTime(meeting.startsAt)} · {meeting.location}
                 </span>

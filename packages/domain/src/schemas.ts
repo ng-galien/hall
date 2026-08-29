@@ -168,9 +168,19 @@ export const createCouncilMemberSchema = z.object({
   firstName: nonEmpty,
   lastName: nonEmpty,
   email: z.email().nullable().optional(),
+  phone: z.preprocess((value) => (value === "" ? null : value), z.string().trim().min(3).max(40).nullable().optional()),
   role: z.enum(["mayor", "deputyMayor", "councillor"]),
   termStartedOn: z.iso.date(),
 });
+
+export const updateCouncilMemberSchema = createCouncilMemberSchema
+  .extend({
+    termEndedOn: z.iso.date().nullable(),
+  })
+  .refine((value) => value.termEndedOn === null || value.termEndedOn >= value.termStartedOn, {
+    message: "The term end date cannot precede its start date",
+    path: ["termEndedOn"],
+  });
 
 export const committeeRoleSchema = z.enum(["chair", "viceChair", "member"]);
 
@@ -187,27 +197,40 @@ export const addCommitteeMembershipSchema = z.object({
   startedOn: z.iso.date(),
 });
 
+export const updateCommitteeMembershipSchema = z
+  .object({
+    role: committeeRoleSchema,
+    startedOn: z.iso.date(),
+    endedOn: z.iso.date().nullable(),
+  })
+  .refine((value) => value.endedOn === null || value.endedOn >= value.startedOn, {
+    message: "The membership end date cannot precede its start date",
+    path: ["endedOn"],
+  });
+
 export const endCommitteeMembershipSchema = z.object({
   endedOn: z.iso.date(),
 });
 
-export const createCouncilMeetingSchema = z.object({
-  title: nonEmpty,
-  startsAt: z.iso.datetime({ offset: true }),
-  location: nonEmpty,
-  chairMemberId: nullableId,
-  secretaryMemberId: nullableId,
-});
+export const createCouncilMeetingSchema = z
+  .object({
+    startsAt: z.iso.datetime({ offset: true }),
+    location: nonEmpty,
+    chairMemberId: nullableId,
+    secretaryMemberId: nullableId,
+  })
+  .strict();
 
 export const reconveneCouncilMeetingSchema = createCouncilMeetingSchema.extend({
   meetingNoticeSentAt: z.iso.datetime({ offset: true }),
 });
 
-export const updateCouncilMeetingSchema = z.object({
-  title: nonEmpty,
-  startsAt: z.iso.datetime({ offset: true }),
-  location: nonEmpty,
-});
+export const updateCouncilMeetingSchema = z
+  .object({
+    startsAt: z.iso.datetime({ offset: true }),
+    location: nonEmpty,
+  })
+  .strict();
 
 export const updateCouncilDecisionSchema = z.object({
   title: nonEmpty,

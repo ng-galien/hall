@@ -22,7 +22,6 @@ async function createMeeting(agent: TestAgent) {
     await agent
       .post("/api/council-meetings")
       .send({
-        title: "Conseil municipal d’intégration",
         startsAt: "2026-11-12T18:30:00+01:00",
         location: "Salle du conseil",
       })
@@ -40,6 +39,41 @@ async function createBusiness(agent: TestAgent, title: string, kind: "matter" | 
 }
 
 describe("meeting preparation integration", () => {
+  it("does not insert a late matter after questions diverses have started", async () => {
+    const { agent } = await createTestServer();
+    const members = await Promise.all(["Alice", "Benoît", "Claire"].map((name) => createMember(agent, name)));
+    const meeting = await createMeeting(agent);
+    const openQuestion = await createBusiness(agent, "Questions diverses", "openQuestion");
+    const openQuestionItem = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-business/${openQuestion.id}/schedule`)
+        .send({ meetingId: meeting.id, position: 1 })
+        .expect(201),
+    );
+    await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
+    await agent
+      .put(`/api/council-meetings/${meeting.id}/officers`)
+      .send({ chairMemberId: members[0].id, secretaryMemberId: members[1].id })
+      .expect(200);
+    for (const member of members) {
+      await agent
+        .put(`/api/council-meetings/${meeting.id}/attendance`)
+        .send({ memberId: member.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
+        .expect(200);
+    }
+    await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "inProgress" }).expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${openQuestionItem.id}/start`).expect(200);
+
+    const response = await agent.post(`/api/council-meetings/${meeting.id}/late-business`).send({
+      kind: "matter",
+      title: "Point tardif",
+      report: "",
+      resourceIds: [],
+    });
+    expect(response.status).toBe(409);
+    expect(domainBody(response)).toMatchObject({ code: "agenda_order_invalid" });
+  });
+
   it("reorders, removes and adds agenda items through the HTTP contract", async () => {
     const { agent } = await createTestServer();
     const members = await Promise.all(["Alice", "Benoît", "Claire"].map((name) => createMember(agent, name)));
@@ -52,7 +86,6 @@ describe("meeting preparation integration", () => {
     await agent
       .put(`/api/council-meetings/${meeting.slug}`)
       .send({
-        title: "Conseil municipal d’intégration — mise à jour",
         startsAt: "2026-11-12T19:00:00+01:00",
         location: "Grande salle",
       })
@@ -129,7 +162,6 @@ describe("meeting preparation integration", () => {
     await agent
       .put(`/api/council-meetings/${meeting.slug}`)
       .send({
-        title: "Modification tardive",
         startsAt: "2026-11-12T20:00:00+01:00",
         location: "Grande salle",
       })

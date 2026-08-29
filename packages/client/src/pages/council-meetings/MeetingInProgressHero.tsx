@@ -2,16 +2,20 @@ import type { MeetingAggregate } from "@hall/domain";
 import { Link } from "react-router-dom";
 import { PlayIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
+import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 
 export function MeetingInProgressHero({ aggregate }: { aggregate: MeetingAggregate }) {
-  const { t, formatDateTime, formatNumber, formatTime } = useI18n();
+  const { t, formatDate, formatDateTime, formatNumber, formatTime } = useI18n();
   const { meeting } = aggregate;
   const completedCount = aggregate.agendaItems.filter((item) => item.completedAt).length;
   return (
     <div className="page">
-      <PageHeader title={meeting.title} description={`${formatDateTime(meeting.startsAt)} · ${meeting.location}`} />
+      <PageHeader
+        title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
+        description={`${formatDateTime(meeting.startsAt)} · ${meeting.location}`}
+      />
       <div className="page-content">
         <section className="live-resume-hero">
           <span className="live-indicator" aria-hidden="true" />

@@ -22,7 +22,6 @@ async function createMeeting(agent: TestAgent, input: { chairMemberId?: string; 
     await agent
       .post("/api/council-meetings")
       .send({
-        title: "Conseil des invariants",
         startsAt: "2026-11-12T18:30:00+01:00",
         location: "Salle du conseil",
         ...input,
@@ -199,7 +198,6 @@ describe("backend business-rule coverage", () => {
       await agent
         .post("/api/council-meetings")
         .send({
-          title: "Conseil précédent",
           startsAt: "2026-10-01T18:30:00+02:00",
           location: "Salle du conseil",
         })
@@ -218,10 +216,8 @@ describe("backend business-rule coverage", () => {
     }
     await agent.put(`/api/council-meetings/${previousMeeting.id}/status`).send({ status: "inProgress" }).expect(200);
     await agent.put(`/api/council-meetings/${previousMeeting.id}/status`).send({ status: "closed" }).expect(200);
+    await agent.post(`/api/council-meetings/${previousMeeting.id}/minutes/finalize`).expect(200);
 
-    const minutesBusiness = domainBody<Array<{ id: string; kind: string; minutesOfMeetingId?: string }>>(
-      await agent.get("/api/council-business").expect(200),
-    ).find((business) => business.kind === "minutesApproval" && business.minutesOfMeetingId === previousMeeting.id)!;
     const meeting = await createMeeting(agent);
     const laterMeeting = domainBody<{
       agendaReady: boolean;
@@ -230,7 +226,6 @@ describe("backend business-rule coverage", () => {
       await agent
         .post("/api/council-meetings")
         .send({
-          title: "Conseil suivant déjà en préparation",
           startsAt: "2026-12-10T18:30:00+01:00",
           location: "Salle du conseil",
         })
@@ -258,16 +253,6 @@ describe("backend business-rule coverage", () => {
         .send({ meetingId: meeting.id, position: 99 })
         .expect(201);
     }
-    const missingMinutes = await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" });
-    expect(missingMinutes.status).toBe(409);
-    expect(domainBody(missingMinutes).code).toBe("minutes_approval_required");
-
-    const minutesItem = domainBody<{ id: string }>(
-      await agent
-        .post(`/api/council-business/${minutesBusiness.id}/schedule`)
-        .send({ meetingId: meeting.id, position: 99 })
-        .expect(201),
-    );
     const aggregate = domainBody<{
       agendaReady: boolean;
       requiredMinutesOfMeetingId: string | null;
@@ -278,6 +263,7 @@ describe("backend business-rule coverage", () => {
     }>(await agent.get(`/api/council-meetings/${meeting.id}`).expect(200));
     expect(aggregate.agendaReady).toBe(true);
     expect(aggregate.requiredMinutesOfMeetingId).toBe(previousMeeting.id);
+    const minutesItem = aggregate.agendaItems.find((item) => item.business.kind === "minutesApproval")!;
     expect(
       aggregate.agendaItems.map((item) =>
         item.business.kind === "matter" && item.business.councilDecisionId ? "vote" : item.business.kind,
@@ -314,7 +300,6 @@ describe("backend business-rule coverage", () => {
     const members = await Promise.all(["Alice", "Benoît", "Claire"].map((name) => createMember(agent, name)));
 
     const invalidOfficerMeeting = await agent.post("/api/council-meetings").send({
-      title: "Conseil avec président inconnu",
       startsAt: "2026-11-12T18:30:00+01:00",
       location: "Salle du conseil",
       chairMemberId: randomUUID(),
@@ -337,7 +322,6 @@ describe("backend business-rule coverage", () => {
     await agent.post(`/api/council-meetings/${meeting.id}/quorum-failure`).expect(409);
 
     const reconvocation = {
-      title: "Conseil reconvoqué",
       startsAt: "2026-11-16T18:30:00+01:00",
       meetingNoticeSentAt: "2026-11-12T18:30:00+01:00",
       location: "Salle du conseil",

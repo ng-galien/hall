@@ -27,7 +27,6 @@ async function createMemberAndMeeting(agent: Awaited<ReturnType<typeof createTes
     await agent
       .post("/api/council-meetings")
       .send({
-        title: "Conseil de septembre",
         startsAt: "2026-09-10T18:30:00+02:00",
         location: "Salle du conseil",
         chairMemberId: member.id,
@@ -48,25 +47,25 @@ describe("content templates", () => {
         kind: "message",
         documentType: "meeting-notice-message",
         name: "Message de convocation",
-        subject: ":field{name=meeting.title}",
+        subject: ":field{name=meeting.startsAt}",
         bodyMarkdown: `Bonjour :member[Ancien libellé]{#${member.id}}, rendez-vous le :field{name=meeting.startsAt}.`,
       })
       .expect(201);
     const template = domainBody<{ id: string; subject: string }>(created);
-    expect(template.subject).toBe(':field{name="meeting.title"}');
+    expect(template.subject).toBe(':field{name="meeting.startsAt"}');
     expect((created.body.actions ?? []).map((item: { name: string }) => item.name)).toContain("template.generate");
 
     const previewResponse = await agent
       .post("/api/templates/preview")
       .send({
         kind: "message",
-        subject: ":field{name=meeting.title}",
+        subject: ":field{name=meeting.startsAt}",
         bodyMarkdown: `Bonjour :member[Ancien libellé]{#${member.id}}.`,
         context: { meetingId: meeting.id },
       })
       .expect(200);
     const preview = domainBody<{ html: string; subject: string; diagnostics: unknown[] }>(previewResponse);
-    expect(preview.subject).toBe("Conseil de septembre");
+    expect(preview.subject).toContain("10 septembre 2026");
     expect(preview.html).toContain("Martine Delcourt");
     expect(preview.html).not.toContain("Ancien libellé");
     expect(preview.diagnostics).toEqual([]);
@@ -123,7 +122,7 @@ describe("content templates", () => {
           kind: "pdf",
           documentType: "meeting-notice",
           name: "Convocation PDF",
-          bodyMarkdown: "# :field{name=meeting.title}\n\nLieu : :field{name=meeting.location}",
+          bodyMarkdown: "# Convocation\n\nLieu : :field{name=meeting.location}",
           stylesheet: "h1 { color: #102a83; }",
           headerHtml: "<div>Hall</div>",
           footerHtml: "<div>Conseil municipal</div>",
@@ -147,7 +146,7 @@ describe("content templates", () => {
           kind: "message",
           documentType: "meeting-notice-email",
           name: "Convocation Outlook",
-          subject: ":field{name=meeting.title}",
+          subject: "Convocation au conseil municipal",
           bodyMarkdown: `Bonjour :member[Martine]{#${member.id}}`,
         })
         .expect(201),
@@ -164,7 +163,7 @@ describe("content templates", () => {
       .expect(200)) as Response & { body: Buffer };
     const eml = emlResponse.body.toString("utf8");
     expect(emlResponse.headers["content-type"]).toContain("message/rfc822");
-    expect(eml).toContain("Subject: Conseil de septembre");
+    expect(eml).toContain("Subject: Convocation au conseil municipal");
     expect(eml).toContain("destinataire@example.test");
     expect(eml.match(/filename=annexe\.pdf/g)).toHaveLength(1);
 

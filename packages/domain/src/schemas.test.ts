@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { recordAttendanceSchema, recordBallotSchema, updateHallSettingsSchema } from "./schemas.js";
+import {
+  createCouncilMeetingSchema,
+  recordAttendanceSchema,
+  recordBallotSchema,
+  updateCouncilMeetingSchema,
+  updateHallSettingsSchema,
+} from "./schemas.js";
 
 describe("updateHallSettingsSchema", () => {
   const settings = {
@@ -66,6 +72,14 @@ describe("recordBallotSchema", () => {
 });
 
 describe("meeting command schemas", () => {
+  it("models a meeting occurrence without a presentation title", () => {
+    const occurrence = { startsAt: "2026-09-10T18:30:00+02:00", location: "Salle du conseil" };
+    expect(createCouncilMeetingSchema.parse(occurrence)).toMatchObject(occurrence);
+    expect(updateCouncilMeetingSchema.parse(occurrence)).toMatchObject(occurrence);
+    expect(() => createCouncilMeetingSchema.parse({ ...occurrence, title: "Conseil municipal" })).toThrow();
+    expect(() => updateCouncilMeetingSchema.parse({ ...occurrence, title: "Conseil municipal" })).toThrow();
+  });
+
   it("requires both the holder and document for a represented member", () => {
     expect(() =>
       recordAttendanceSchema.parse({

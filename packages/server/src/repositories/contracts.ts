@@ -47,8 +47,13 @@ export interface CreateCouncilMember {
   firstName: string;
   lastName: string;
   email?: string | null;
+  phone?: string | null;
   role: CouncilRole;
   termStartedOn: string;
+}
+
+export interface UpdateCouncilMember extends CreateCouncilMember {
+  termEndedOn: string | null;
 }
 
 export interface CouncilMemberRepository {
@@ -56,6 +61,7 @@ export interface CouncilMemberRepository {
   listActive(): Promise<CouncilMember[]>;
   find(id: string): Promise<CouncilMember | null>;
   create(input: CreateCouncilMember): Promise<CouncilMember>;
+  update(id: string, input: UpdateCouncilMember): Promise<CouncilMember>;
 }
 
 export interface CreateCouncilCommittee {
@@ -77,14 +83,20 @@ export interface AddCommitteeMembership {
   startedOn: string;
 }
 
+export interface UpdateCommitteeMembership {
+  role: CommitteeRole;
+  startedOn: string;
+  endedOn: string | null;
+}
+
 export interface CommitteeMembershipRepository {
   listForCommittee(committeeId: string): Promise<CommitteeMembership[]>;
   add(committeeId: string, input: AddCommitteeMembership): Promise<CommitteeMembership>;
+  update(id: string, input: UpdateCommitteeMembership): Promise<CommitteeMembership>;
   end(id: string, endedOn: string): Promise<CommitteeMembership>;
 }
 
 export interface CreateCouncilMeeting {
-  title: string;
   startsAt: string;
   location: string;
   chairMemberId?: string | null;
@@ -98,10 +110,16 @@ export interface CouncilMeetingRepository {
   list(): Promise<CouncilMeeting[]>;
   find(id: string): Promise<CouncilMeeting | null>;
   create(input: CreateCouncilMeeting): Promise<CouncilMeeting>;
-  updateDetails(id: string, input: { title: string; startsAt: string; location: string }): Promise<void>;
+  updateDetails(id: string, input: { startsAt: string; location: string }): Promise<void>;
   setStatus(id: string, status: MeetingStatus): Promise<void>;
   setOfficers(id: string, chairMemberId: string, secretaryMemberId: string): Promise<void>;
   recordQuorumFailure(id: string, evidence: QuorumFailureEvidence): Promise<void>;
+  setMinutes(
+    id: string,
+    status: CouncilMeeting["minutesStatus"],
+    content: string | null,
+    occurredAt: string,
+  ): Promise<void>;
 }
 
 export interface MeetingRosterRepository {

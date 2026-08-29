@@ -9,10 +9,12 @@ import {
   deriveBallotVoters,
   evaluateBallot,
   meetingMachineDefinition,
+  minutesMachineDefinition,
   transitionAgendaItem,
   transitionBallot,
   transitionCouncilDecision,
   transitionMeeting,
+  transitionMinutes,
 } from "./index.js";
 
 function validPublicSubmission(): Extract<BallotSubmission, { method: "public" }> {
@@ -62,6 +64,7 @@ function validPublicSubmission(): Extract<BallotSubmission, { method: "public" }
 describe("auditable state machines", () => {
   it("keeps every definition serializable", () => {
     expect(() => JSON.stringify(meetingMachineDefinition)).not.toThrow();
+    expect(() => JSON.stringify(minutesMachineDefinition)).not.toThrow();
     expect(() => JSON.stringify(agendaItemMachineDefinition)).not.toThrow();
     expect(() => JSON.stringify(councilDecisionMachineDefinition)).not.toThrow();
     expect(() => JSON.stringify(ballotMachineDefinition)).not.toThrow();
@@ -73,6 +76,13 @@ describe("auditable state machines", () => {
     expect(transitionMeeting("inProgress", { type: "CLOSE" })).toBe("closed");
     expect(transitionMeeting("draft", { type: "OPEN" })).toBeNull();
     expect(transitionMeeting("closed", { type: "OPEN" })).toBeNull();
+  });
+
+  it("keeps minutes drafting, finalization and approval distinct", () => {
+    expect(transitionMinutes("notStarted", { type: "GENERATE_DRAFT" })).toBe("draft");
+    expect(transitionMinutes("draft", { type: "APPROVE" })).toBeNull();
+    expect(transitionMinutes("draft", { type: "FINALIZE" })).toBe("ready");
+    expect(transitionMinutes("ready", { type: "APPROVE" })).toBe("approved");
   });
 
   it("returns a postponed agenda item to the provision", () => {

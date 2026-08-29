@@ -332,7 +332,7 @@ async function main() {
     ["Sylvie", "Garnier", "councillor"],
   ];
   const members = {};
-  for (const [firstName, lastName, role] of membersSpec) {
+  for (const [memberIndex, [firstName, lastName, role]] of membersSpec.entries()) {
     members[lastName] = await post("/council-members", {
       firstName,
       lastName,
@@ -344,6 +344,7 @@ async function main() {
         .toLowerCase()
         .normalize("NFD")
         .replace(/[^a-z-]/g, "")}@saint-aubin.fr`,
+      phone: `+33 6 10 20 30 ${String(memberIndex + 1).padStart(2, "0")}`,
       termStartedOn: "2026-03-15",
     });
   }
@@ -601,7 +602,6 @@ async function main() {
 
   console.log("— Séance passée : préparation");
   const pastMeeting = await post("/council-meetings", {
-    title: "Conseil municipal — séance de juin",
     startsAt: daysFromNow(-14),
     location: "Salle du conseil",
   });
@@ -711,16 +711,14 @@ async function main() {
     });
   }
   await put(`/council-meetings/${pastMeeting.id}/status`, { status: "closed" });
+  await post(`/council-meetings/${pastMeeting.id}/minutes/finalize`, {});
 
   console.log("— Séance à venir : ordre du jour et convocation");
   const upcomingMeeting = await post("/council-meetings", {
-    title: "Conseil municipal — séance de septembre",
     startsAt: daysFromNow(9),
     location: "Salle du conseil",
   });
-  const councilBusiness = await get("/council-business");
-  const minutesApproval = councilBusiness.find((business) => business.kind === "minutesApproval");
-  const upcomingAgenda = [minutesApproval, businessEclairage, businessSubventions, businessRentree, businessQuestions];
+  const upcomingAgenda = [businessEclairage, businessSubventions, businessRentree, businessQuestions];
   for (const [index, business] of upcomingAgenda.entries()) {
     await post(`/council-business/${business.id}/schedule`, { meetingId: upcomingMeeting.id, position: index + 1 });
   }
@@ -1197,14 +1195,13 @@ async function main() {
     kind: "message",
     documentType: "meeting-notice-message",
     name: "Message de convocation Outlook",
-    subject: ":field{name=meeting.title}",
+    subject: "Convocation au conseil municipal",
     bodyMarkdown:
-      "Bonjour,\n\nVous êtes convoqué au **:field{name=meeting.title}**, le :field{name=meeting.startsAt}, à :field{name=meeting.location}.\n\nLa convocation et les pièces préparatoires sont jointes à ce message.",
+      "Bonjour,\n\nVous êtes convoqué au **conseil municipal**, le :field{name=meeting.startsAt}, à :field{name=meeting.location}.\n\nLa convocation et les pièces préparatoires sont jointes à ce message.",
   });
 
   console.log("— Séance en préparation");
   await post("/council-meetings", {
-    title: "Conseil municipal — séance de novembre",
     startsAt: daysFromNow(65),
     location: "Salle du conseil",
   });

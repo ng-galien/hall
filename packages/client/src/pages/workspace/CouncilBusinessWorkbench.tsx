@@ -23,6 +23,7 @@ import {
 import { MarkdownView } from "../../components/MarkdownView";
 import { RequestErrorBanner } from "../../components/Ui";
 import { councilBusinessKindKeys } from "../../features/council-business/presentation";
+import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { ResourceGlyph, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
 import { MeetingStatusBadge, StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
@@ -333,7 +334,7 @@ export function CouncilBusinessWorkbench({
                     <SelectContent>
                       {composableMeetings.map((meeting) => (
                         <SelectItem key={meeting.id} value={meeting.id}>
-                          {meeting.title} — {formatDate(meeting.startsAt)}
+                          {formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -347,7 +348,7 @@ export function CouncilBusinessWorkbench({
                 <div className="workbench-schedule-stack">
                   <Link className="workbench-meeting-link" to={`/meetings/${currentMeeting.slug}`}>
                     <span className="workspace-row-copy">
-                      <strong>{currentMeeting.title}</strong>
+                      <strong>{formatMeetingLabel(currentMeeting, t("meetings.occurrenceLabel"), formatDate)}</strong>
                       <span>
                         {formatDate(currentMeeting.startsAt)}
                         {currentOccurrence?.agendaItem.position
@@ -437,7 +438,9 @@ export function CouncilBusinessWorkbench({
                   <li key={occurrence.agendaItem.id}>
                     <Link className="workbench-occurrence" to={`/meetings/${occurrence.meeting.slug}`}>
                       <span className="workspace-row-copy">
-                        <strong>{occurrence.meeting.title}</strong>
+                        <strong>
+                          {formatMeetingLabel(occurrence.meeting, t("meetings.occurrenceLabel"), formatDate)}
+                        </strong>
                         <span>
                           {formatDate(occurrence.meeting.startsAt)}
                           {occurrence.agendaItem.startedAt ? ` · ${formatTime(occurrence.agendaItem.startedAt)}` : ""}

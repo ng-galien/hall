@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import { DecisionsIcon, GavelIcon, HomeIcon, MembersIcon, WorkspaceIcon } from "../components/icons";
+import { CommitteeIcon, DecisionsIcon, GavelIcon, HomeIcon, MembersIcon, WorkspaceIcon } from "../components/icons";
 import type { TranslationKey } from "../i18n/en";
 
 export interface NavigationItem {
   to: string;
   labelKey: TranslationKey;
   icon: ReactNode;
-  countKey?: "meetings" | "councilBusiness" | "councilDecisions" | "resources" | "members";
+  countKey?: "meetings" | "councilBusiness" | "councilDecisions" | "resources" | "members" | "committees";
   /** Affiche l'arborescence des chemins de classement sous l'entrée. */
   workspaceTree?: boolean;
 }
@@ -38,6 +38,14 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     labelKey: "navigation.administration",
-    items: [{ to: "/council-members", labelKey: "navigation.members", icon: <MembersIcon />, countKey: "members" }],
+    items: [
+      { to: "/council-members", labelKey: "navigation.members", icon: <MembersIcon />, countKey: "members" },
+      {
+        to: "/council-committees",
+        labelKey: "navigation.committees",
+        icon: <CommitteeIcon />,
+        countKey: "committees",
+      },
+    ],
   },
 ];

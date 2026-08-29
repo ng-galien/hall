@@ -25,6 +25,7 @@ export type ErrorCode =
   | "meeting_not_found"
   | "meeting_officers_required"
   | "minutes_approval_required"
+  | "minutes_not_ready"
   | "meeting_roster_locked"
   | "last_administrator_required"
   | "permission_denied"

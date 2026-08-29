@@ -53,6 +53,9 @@ function classFromPath(request: Request, value: unknown): string {
   if (path.startsWith("/api/templates")) return "template";
   if (path.startsWith("/api/council-members")) return "council-member";
   if (path.startsWith("/api/council-decisions")) return "council-decision";
+  if (path.startsWith("/api/council-committees") && path.includes("/memberships/")) {
+    return "committee-membership";
+  }
   if (path.startsWith("/api/council-committees")) return "council-committee";
   if (path.startsWith("/api/council-business")) return "council-business";
   if (path.startsWith("/api/resources")) return "resource";
@@ -318,6 +321,9 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
     }
     return actions;
   }
+  if (entityClass === "council-member" && id && permitted(request, "members.manage")) {
+    return [action("member.update", "PUT", `/api/council-members/${id}`, "Update the council member")];
+  }
   if (entityClass === "council-committee" && id && reference && permitted(request, "meetings.prepare")) {
     if (primary?.archivedAt) return [];
     return [
@@ -552,6 +558,16 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
         ),
       );
     }
+    if (status === "closed" && aggregate.minutesStatus === "draft" && permitted(request, "meetings.prepare")) {
+      actions.push(
+        action(
+          "meeting.finalize-minutes",
+          "POST",
+          `/api/council-meetings/${meetingReference}/minutes/finalize`,
+          "Finalize the minutes draft",
+        ),
+      );
+    }
     return actions;
   }
   if (entityClass === "user" && id && permitted(request, "users.manage")) {
@@ -608,6 +624,10 @@ function canonicalHref(request: Request, entityClass: string, value: unknown): s
   if (entityClass === "user") return `/api/users/${id}`;
   if (entityClass === "audit-event") return `/api/audit-events/${id}`;
   if (entityClass === "council-member") return `/api/council-members/${id}`;
+  if (entityClass === "committee-membership") {
+    const committeeReference = pathWithoutQuery(request).match(/\/api\/council-committees\/([^/]+)/)?.[1];
+    if (committeeReference) return `/api/council-committees/${committeeReference}/memberships/${id}`;
+  }
   if (entityClass === "template-reference" && primary && typeof primary.type === "string") {
     const roots: Record<string, string> = {
       member: "council-members",
@@ -807,6 +827,40 @@ function meetingEntities(request: Request, payload: Record<string, unknown>): Si
   return [...agendaEntities, ...attendanceEntities, ...ballotEntities];
 }
 
+function committeeMembershipEntities(
+  request: Request,
+  payload: Record<string, unknown>,
+): SirenEmbeddedEntity[] | undefined {
+  const committee = payload.committee;
+  const memberships = payload.memberships;
+  if (!committee || typeof committee !== "object" || !Array.isArray(memberships)) return undefined;
+  const committeeReference = publicReference("council-committee", committee as Record<string, unknown>);
+  if (!committeeReference) return undefined;
+  const mutable = !(committee as Record<string, unknown>).archivedAt && permitted(request, "meetings.prepare");
+  return memberships.flatMap((candidate) => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const membership = candidate as Record<string, unknown>;
+    const membershipId = objectId(membership);
+    if (!membershipId) return [];
+    const href = `/api/council-committees/${committeeReference}/memberships/${membershipId}`;
+    const actions: SirenAction[] = mutable
+      ? [action("committee.update-membership", "PUT", href, "Update the committee membership")]
+      : [];
+    if (mutable && !membership.endedOn) {
+      actions.push(action("committee.end-membership", "POST", `${href}/end`, "End the committee membership"));
+    }
+    return [
+      {
+        rel: ["committee-membership"],
+        class: ["committee-membership"],
+        properties: membership,
+        actions: actions.length > 0 ? actions : undefined,
+        links: [{ rel: ["self"], href, type: SIREN_MEDIA_TYPE }],
+      },
+    ];
+  });
+}
+
 export function toSirenRepresentation(request: Request, payload: unknown): SirenEntity {
   const entityClass = classFromPath(request, payload);
   const collection = Array.isArray(payload);
@@ -825,7 +879,9 @@ export function toSirenRepresentation(request: Request, payload: unknown): Siren
       ? payload.map((item) => embeddedEntity(request, entityClass, item as Record<string, unknown>))
       : !collection && entityClass === "council-meeting"
         ? meetingEntities(request, payload as Record<string, unknown>)
-        : undefined,
+        : !collection && entityClass === "council-committee"
+          ? committeeMembershipEntities(request, payload as Record<string, unknown>)
+          : undefined,
     actions: actions.length > 0 ? actions : undefined,
     links,
   };

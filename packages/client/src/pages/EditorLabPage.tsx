@@ -3,6 +3,7 @@ import { MarkdownEditor } from "../components/editor/MarkdownEditor";
 import type { Mentionable } from "../components/editor/references";
 import { MarkdownView } from "../components/MarkdownView";
 import { PageHeader } from "../components/Ui";
+import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { resourceTone, toneIcons, toneLabelKeys } from "../features/documents/ResourceGlyph";
 import { useI18n } from "../i18n/I18nProvider";
 import { listCouncilBusinesses } from "../services/councilBusinessApi";
@@ -38,7 +39,7 @@ const sample = [
 ].join("\n");
 
 export function EditorLabPage() {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
   const [markdown, setMarkdown] = useState(sample);
   const [mentionables, setMentionables] = useState<Mentionable[]>([]);
 
@@ -79,7 +80,7 @@ export function EditorLabPage() {
         ...meetings.map((meeting) => ({
           kind: "meeting" as const,
           id: meeting.slug,
-          label: meeting.title,
+          label: formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
           extra: [meeting.number],
         })),
         ...decisions.map((decision) => ({
@@ -90,7 +91,7 @@ export function EditorLabPage() {
         })),
       ]);
     });
-  }, [t]);
+  }, [t, formatDate]);
 
   return (
     <div className="page">

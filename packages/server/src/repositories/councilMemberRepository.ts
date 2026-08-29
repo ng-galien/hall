@@ -9,6 +9,7 @@ const mapMember = (row: DatabaseRow): CouncilMember => ({
   firstName: String(row.first_name),
   lastName: String(row.last_name),
   email: asNullableString(row.email),
+  phone: asNullableString(row.phone),
   role: row.role as CouncilMember["role"],
   active: asBoolean(row.active),
   termStartedOn: String(row.term_started_on),
@@ -34,8 +35,21 @@ export function createCouncilMemberRepository({ sqlExecutor }: { sqlExecutor: Sq
           firstName: input.firstName,
           lastName: input.lastName,
           email: input.email ?? null,
+          phone: input.phone ?? null,
           role: input.role,
           termStartedOn: input.termStartedOn,
+        });
+        return mapMember((await sqlExecutor.get("member.find", { id }))!);
+      });
+    },
+    update(id, input) {
+      return sqlExecutor.execute(async () => {
+        await sqlExecutor.run("member.update", {
+          id,
+          ...input,
+          email: input.email ?? null,
+          phone: input.phone ?? null,
+          active: input.termEndedOn === null,
         });
         return mapMember((await sqlExecutor.get("member.find", { id }))!);
       });

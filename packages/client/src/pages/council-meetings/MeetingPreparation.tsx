@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EditIcon, PlayIcon } from "../../components/icons";
 import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -17,7 +18,7 @@ import { MeetingDetailsCard } from "./MeetingDetailsCard";
 import { MeetingStageBar } from "./MeetingStageBar";
 
 export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnType<typeof useCouncilMeeting> }) {
-  const { t, formatDateTime, formatNumber } = useI18n();
+  const { t, formatDate, formatDateTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const detailsFieldId = useId();
   const aggregate = meetingActions.meeting!;
@@ -47,7 +48,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
     const form = new FormData(event.currentTarget);
     await run(async () => {
       const saved = await meetingActions.updateMeeting({
-        title: form.get("title"),
         startsAt: new Date(String(form.get("startsAt"))).toISOString(),
         location: form.get("location"),
       });
@@ -58,7 +58,10 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
 
   return (
     <div className="page">
-      <PageHeader title={meeting.title} description={`${formatDateTime(meeting.startsAt)} · ${meeting.location}`} />
+      <PageHeader
+        title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
+        description={`${formatDateTime(meeting.startsAt)} · ${meeting.location}`}
+      />
       <div className="page-content meeting-page-content">
         <RequestErrorBanner error={meetingActions.actionError} />
 
@@ -128,10 +131,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
 
         <Modal open={editOpen} title={t("meetings.edit")} onClose={() => setEditOpen(false)}>
           <form className="modal-form" onSubmit={submitDetails}>
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${detailsFieldId}-title`}>{t("meetings.name")}</Label>
-              <Input id={`${detailsFieldId}-title`} name="title" defaultValue={meeting.title} required />
-            </div>
             <div className="form-grid">
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-startsAt`}>{t("meetings.dateTime")}</Label>

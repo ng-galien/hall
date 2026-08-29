@@ -89,6 +89,7 @@ export {
   UploadSimple as UploadIcon,
   User as MemberIcon,
   Users as MembersIcon,
+  UsersThree as CommitteeIcon,
   Warning as WarningIcon,
   X as CloseIcon,
 } from "@phosphor-icons/react";

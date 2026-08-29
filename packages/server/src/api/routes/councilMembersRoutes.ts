@@ -1,4 +1,4 @@
-import { createCouncilMemberSchema } from "@hall/domain";
+import { createCouncilMemberSchema, updateCouncilMemberSchema } from "@hall/domain";
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
@@ -21,6 +21,17 @@ export function createCouncilMembersRouter({ councilMemberRepository, unitOfWork
       .json(
         await unitOfWork.execute(() => councilMemberRepository.create(createCouncilMemberSchema.parse(request.body))),
       );
+  });
+  router.put("/:memberId", requirePermission("members.manage"), async (request, response) => {
+    const memberId = routeParameter(request.params.memberId);
+    response.json(
+      await unitOfWork.execute(async () => {
+        if (!(await councilMemberRepository.find(memberId))) {
+          throw new DomainError("council_member_not_found", 404);
+        }
+        return councilMemberRepository.update(memberId, updateCouncilMemberSchema.parse(request.body));
+      }),
+    );
   });
   return router;
 }

@@ -29,7 +29,6 @@ describe("municipal council flow", () => {
     expect(councilDecision.status, `${JSON.stringify(domainBody(councilDecision))} ${councilDecision.text}`).toBe(201);
 
     const meeting = await agent.post("/api/council-meetings").send({
-      title: "Conseil municipal de septembre",
       startsAt: "2026-09-10T18:30:00+02:00",
       location: "Salle du conseil",
       chairMemberId: mayor.id,
@@ -200,7 +199,6 @@ describe("municipal council flow", () => {
       legalityReviewRequired: false,
     });
     const meeting = await agent.post("/api/council-meetings").send({
-      title: "Secret ballot meeting",
       startsAt: "2026-10-10T18:30:00+02:00",
       location: "Council chamber",
       chairMemberId: chair.id,

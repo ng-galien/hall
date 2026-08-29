@@ -10,6 +10,7 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../components/Ui";
+import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge, StatusBadge } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
@@ -62,7 +63,7 @@ export function CouncilDecisionsPage() {
                   <Link className="decision-group-title" to={`/meetings/${group.meeting.slug}`}>
                     <GavelIcon aria-hidden="true" />
                     <span>
-                      <strong>{group.meeting.title}</strong>
+                      <strong>{formatMeetingLabel(group.meeting, t("meetings.occurrenceLabel"), formatDate)}</strong>
                       <span className="decision-group-meta">
                         {formatDate(group.meeting.startsAt)} · <MeetingStatusBadge status={group.meeting.status} />
                       </span>

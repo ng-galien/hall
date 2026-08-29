@@ -6,6 +6,7 @@ import type {
   CouncilMemberRepository,
   CreateCouncilCommittee,
   UnitOfWork,
+  UpdateCommitteeMembership,
 } from "../repositories/contracts.js";
 import { DomainError } from "./errors.js";
 
@@ -20,7 +21,13 @@ export interface CouncilCommitteeService {
   create(input: CreateCouncilCommittee): Promise<CouncilCommittee>;
   update(reference: string, input: CreateCouncilCommittee): Promise<CouncilCommittee>;
   archive(reference: string): Promise<CouncilCommittee>;
+  getMembership(reference: string, membershipId: string): Promise<CommitteeMembership>;
   addMembership(reference: string, input: AddCommitteeMembership): Promise<CommitteeMembership>;
+  updateMembership(
+    reference: string,
+    membershipId: string,
+    input: UpdateCommitteeMembership,
+  ): Promise<CommitteeMembership>;
   endMembership(reference: string, membershipId: string, endedOn: string): Promise<CommitteeMembership>;
 }
 
@@ -39,6 +46,13 @@ export function createCouncilCommitteeService({
     const committee = await councilCommitteeRepository.find(reference);
     if (!committee) throw new DomainError("council_committee_not_found", 404);
     return committee;
+  };
+  const requireMembership = async (committeeId: string, membershipId: string) => {
+    const membership = (await committeeMembershipRepository.listForCommittee(committeeId)).find(
+      (candidate) => candidate.id === membershipId,
+    );
+    if (!membership) throw new DomainError("committee_membership_not_found", 404);
+    return membership;
   };
   return {
     list: (includeArchived = false) => councilCommitteeRepository.list({ includeArchived }),
@@ -64,6 +78,10 @@ export function createCouncilCommitteeService({
         return councilCommitteeRepository.archive(committee.id, new Date().toISOString());
       });
     },
+    async getMembership(reference, membershipId) {
+      const committee = await requireCommittee(reference);
+      return requireMembership(committee.id, membershipId);
+    },
     addMembership(reference, input) {
       return unitOfWork.execute(async () => {
         const committee = await requireCommittee(reference);
@@ -80,13 +98,18 @@ export function createCouncilCommitteeService({
         return committeeMembershipRepository.add(committee.id, input);
       });
     },
+    updateMembership(reference, membershipId, input) {
+      return unitOfWork.execute(async () => {
+        const committee = await requireCommittee(reference);
+        if (committee.archivedAt) throw new DomainError("conflict", 409);
+        await requireMembership(committee.id, membershipId);
+        return committeeMembershipRepository.update(membershipId, input);
+      });
+    },
     endMembership(reference, membershipId, endedOn) {
       return unitOfWork.execute(async () => {
         const committee = await requireCommittee(reference);
-        const membership = (await committeeMembershipRepository.listForCommittee(committee.id)).find(
-          (candidate) => candidate.id === membershipId,
-        );
-        if (!membership) throw new DomainError("committee_membership_not_found", 404);
+        const membership = await requireMembership(committee.id, membershipId);
         if (membership.endedOn) return membership;
         if (endedOn < membership.startedOn) throw new DomainError("invalid_request");
         return committeeMembershipRepository.end(membership.id, endedOn);

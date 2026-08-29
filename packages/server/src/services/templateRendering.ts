@@ -72,6 +72,10 @@ function personName(member: { firstName: string; lastName: string } | null): str
   return member ? `${member.firstName} ${member.lastName}` : null;
 }
 
+function meetingReference(meeting: { number: string; startsAt: string } | null): string | null {
+  return meeting ? `${meeting.number} — ${meeting.startsAt.slice(0, 10)}` : null;
+}
+
 function textFromTree(node: AstNode): string {
   if (node.type === "text") return node.value ?? "";
   const content = (node.children ?? []).map(textFromTree).join("");
@@ -158,7 +162,7 @@ export function createTemplateRenderingService({
         let value: string | null = null;
         if (id) {
           if (directive.name === "member") value = personName(await councilMemberRepository.find(id));
-          if (directive.name === "meeting") value = (await councilMeetingRepository.find(id))?.title ?? null;
+          if (directive.name === "meeting") value = meetingReference(await councilMeetingRepository.find(id));
           if (directive.name === "councilBusiness") {
             value = (await councilBusinessRepository.find(id))?.title ?? null;
           }
@@ -181,7 +185,6 @@ export function createTemplateRenderingService({
         if (!name || !isFieldName(name)) continue;
         const fields: Record<typeof name, string | null> = {
           "hall.name": context.hall.name,
-          "meeting.title": context.meeting?.title ?? null,
           "meeting.startsAt": context.meeting
             ? formatMeetingDate(context.meeting.startsAt, context.hall.timeZone)
             : null,

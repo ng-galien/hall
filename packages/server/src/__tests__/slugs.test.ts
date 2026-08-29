@@ -19,16 +19,15 @@ describe("public slugs and business numbering", () => {
     const meeting = await rawAgent
       .post("/api/council-meetings")
       .send({
-        title: "Conseil municipal de rentrée",
         startsAt: "2026-09-17T18:30:00+02:00",
         location: "Salle du conseil",
       })
       .expect(201);
     expect(properties(meeting)).toMatchObject({
       number: "2026-001",
-      slug: "2026-09-17-001-conseil-municipal-de-rentree",
+      slug: "2026-09-17-001",
     });
-    expect(selfHref(meeting)).toBe("/api/council-meetings/2026-09-17-001-conseil-municipal-de-rentree");
+    expect(selfHref(meeting)).toBe("/api/council-meetings/2026-09-17-001");
     await rawAgent.get(selfHref(meeting)).expect(200);
 
     const resource = await rawAgent
@@ -77,7 +76,6 @@ describe("public slugs and business numbering", () => {
     await rawAgent
       .put(selfHref(meeting))
       .send({
-        title: "Conseil municipal de rentrée",
         startsAt: "2026-09-24T18:30:00+02:00",
         location: "Salle du conseil",
       })
@@ -121,7 +119,6 @@ describe("public slugs and business numbering", () => {
       await rawAgent
         .post("/api/council-meetings")
         .send({
-          title: "Conseil municipal",
           startsAt: "2026-09-17T18:30:00+02:00",
           location: "Salle du conseil",
           chairMemberId: members[0].id,

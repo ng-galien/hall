@@ -3,7 +3,7 @@ export type IsoDateTime = string;
 
 export type CouncilRole = "mayor" | "deputyMayor" | "councillor";
 export type MeetingStatus = "draft" | "scheduled" | "inProgress" | "closed" | "cancelled";
-export type MinutesStatus = "notStarted" | "draft" | "approved" | "signed" | "published";
+export type MinutesStatus = "notStarted" | "draft" | "ready" | "approved" | "signed" | "published";
 export type AttendanceStatus = "present" | "represented" | "excused" | "absent";
 export type AgendaItemStatus = "scheduled" | "inProgress" | "examined" | "postponed" | "withdrawn";
 export type CouncilDecisionStatus = "draft" | "ready" | "scheduled" | "adopted" | "rejected" | "enforceable";
@@ -59,6 +59,7 @@ export interface CouncilMember {
   firstName: string;
   lastName: string;
   email: string | null;
+  phone: string | null;
   role: CouncilRole;
   active: boolean;
   termStartedOn: string;
@@ -90,7 +91,6 @@ export interface CouncilMeeting {
   id: Identifier;
   number: string;
   slug: string;
-  title: string;
   startsAt: IsoDateTime;
   location: string;
   status: MeetingStatus;
@@ -106,6 +106,7 @@ export interface CouncilMeeting {
   openedAt: IsoDateTime | null;
   closedAt: IsoDateTime | null;
   minutesStatus: MinutesStatus;
+  minutesContent: string;
   minutesApprovedAt: IsoDateTime | null;
   minutesSignedAt: IsoDateTime | null;
   minutesPublishedAt: IsoDateTime | null;

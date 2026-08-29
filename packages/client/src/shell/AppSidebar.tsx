@@ -3,6 +3,7 @@ import { ChevronDownIcon, ChevronRightIcon, SettingsIcon } from "../components/i
 import { useI18n } from "../i18n/I18nProvider";
 import { useWorkspacePrefsStore } from "../pages/workspace/workspacePrefs";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
+import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
@@ -19,6 +20,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
     councilDecisions: useCouncilDecisionsStore((state) => state.councilDecisions.length),
     resources: useResourcesStore((state) => state.resources.length),
     members: useCouncilMembersStore((state) => state.members.length),
+    committees: useCouncilCommitteesStore((state) => state.committees.length),
   };
 
   return (

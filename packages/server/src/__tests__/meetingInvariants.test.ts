@@ -17,7 +17,6 @@ async function createMember(agent: TestAgent, firstName: string) {
 
 async function createMeeting(agent: TestAgent) {
   const response = await agent.post("/api/council-meetings").send({
-    title: "Council meeting",
     startsAt: "2026-09-10T18:30:00+02:00",
     location: "Council chamber",
   });
@@ -118,7 +117,6 @@ describe("council meeting invariants", () => {
     }
 
     const reconvenedInput = {
-      title: "Reconvened council meeting",
       startsAt: "2026-09-14T00:00:00+02:00",
       meetingNoticeSentAt: "2026-09-10T23:59:00+02:00",
       location: "Council chamber",
@@ -272,7 +270,6 @@ describe("council meeting invariants", () => {
     const reconvened = await agent
       .post(`/api/council-meetings/${meeting.id}/reconvene`)
       .send({
-        title: "Reconvened council meeting",
         startsAt: "2026-09-14T18:30:00+02:00",
         meetingNoticeSentAt: "2026-09-10T18:30:00+02:00",
         location: "Council chamber",

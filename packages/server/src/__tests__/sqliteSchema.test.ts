@@ -75,6 +75,11 @@ describe("current SQLite schema", () => {
       "created_at",
       "updated_at",
     ]);
+    const meetingColumns = database
+      .prepare("PRAGMA table_info(council_meetings)")
+      .all()
+      .map((row) => String(row.name));
+    expect(meetingColumns).not.toContain("title");
     database.close();
   });
 });

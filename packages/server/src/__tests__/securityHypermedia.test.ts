@@ -92,7 +92,7 @@ describe("users, permissions, audit and Siren affordances", () => {
     const councilMemberId = properties<{ id: string }>(member).id;
     const meeting = await rawAgent
       .post("/api/council-meetings")
-      .send({ title: "Conseil audité", startsAt: "2026-09-10T18:30:00.000Z", location: "Hall" })
+      .send({ startsAt: "2026-09-10T18:30:00.000Z", location: "Hall" })
       .expect(201);
     expect(meeting.body.actions).toEqual(
       expect.arrayContaining([

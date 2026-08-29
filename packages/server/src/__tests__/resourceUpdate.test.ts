@@ -79,7 +79,6 @@ describe("resource update", () => {
       await agent
         .post("/api/council-meetings")
         .send({
-          title: "Séance",
           startsAt: "2026-09-10T18:30:00+02:00",
           location: "Salle du conseil",
           chairMemberId: chair.id,

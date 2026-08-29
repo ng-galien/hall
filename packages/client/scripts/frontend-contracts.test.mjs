@@ -124,3 +124,53 @@ test("meeting mutations follow the lifecycle and fixed roster", () => {
   assert.match(read("src/pages/council-meetings/live/RollCallView.tsx"), /meetingOpeningBlock\(aggregate\)/);
   assert.match(read("src/pages/council-meetings/live/ConductView.tsx"), /pendingBallotDecisions\(aggregate\)/);
 });
+
+test("council administration follows committee Siren capabilities", () => {
+  const api = read("src/services/councilCommitteesApi.ts");
+  const store = read("src/stores/councilCommitteesStore.ts");
+  const committeePage = read("src/pages/CouncilCommitteePage.tsx");
+  const memberApi = read("src/services/councilMembersApi.ts");
+  const memberStore = read("src/stores/councilMembersStore.ts");
+  const memberPage = read("src/pages/CouncilMemberPage.tsx");
+  assert.match(api, /"committee\.create"/);
+  assert.match(api, /"committee\.update"/);
+  assert.match(api, /"committee\.archive"/);
+  assert.match(api, /"committee\.add-membership"/);
+  assert.match(api, /submitSirenAction<CommitteeMembership>\(representation, "committee\.update-membership"/);
+  assert.match(api, /submitSirenAction<CommitteeMembership>\(representation, "committee\.end-membership"/);
+  assert.match(store, /findSirenAction\(result\.representation, "committee\.update"\)/);
+  assert.match(store, /findSirenAction\(result\.representation, "committee\.add-membership"\)/);
+  assert.match(store, /entity\.class\?\.includes\("committee-membership"\)/);
+  assert.match(committeePage, /findSirenAction\(representation, "committee\.update-membership"\)/);
+  assert.match(committeePage, /findSirenAction\(representation, "committee\.end-membership"\)/);
+  assert.match(committeePage, /const addSelectedMembers = \(role: CommitteeRole\)/);
+  assert.match(committeePage, /const moveMembership = \(membership: CommitteeMembership, role: CommitteeRole\)/);
+  assert.match(committeePage, /onDragStart=/);
+  assert.match(committeePage, /onDrop:/);
+  assert.match(committeePage, /aria-pressed=\{selected\}/);
+  assert.match(committeePage, /capability\?\.canUpdate/);
+  assert.match(committeePage, /capability\?\.canAddMembership/);
+  assert.match(committeePage, /window\.setTimeout\(\(\) => void save\(\), 1000\)/);
+  assert.match(memberApi, /submitSirenAction<CouncilMember>\(representation, "member\.update"/);
+  assert.match(memberStore, /findSirenAction\(result\.representation, "member\.update"\)/);
+  assert.match(memberPage, /window\.setTimeout\(\(\) => void save\(\), 1000\)/);
+  assert.doesNotMatch(
+    `${api}\n${memberApi}\n${committeePage}\n${memberPage}`,
+    /fetch\(|method:\s*["'](?:POST|PUT|DELETE)/,
+  );
+});
+
+test("council member collections expose distinct semantic destinations", () => {
+  const page = read("src/pages/CouncilMembersPage.tsx");
+  assert.match(page, /className="council-member-name"/);
+  assert.match(page, /aria-label=\{label\}/);
+  assert.match(page, /<EditIcon \/>/);
+  assert.match(page, /to={`\/council-members\/\$\{member\.id\}`}/);
+  assert.match(page, /href={`mailto:\$\{member\.email\}`}/);
+  assert.match(page, /href={phoneHref\(member\.phone\)}/);
+  assert.match(page, /to={`\/council-committees\/\$\{committee\.slug\}`}/);
+  assert.match(page, /to={`\/council-members\/\$\{memberId\}#committees`}/);
+  assert.doesNotMatch(page, /<Link className="(?:entity-card|data-row)/);
+  assert.doesNotMatch(page, /<Link className="council-member-name/);
+  assert.doesNotMatch(page, /committeeCountLabel|committees\.count/);
+});

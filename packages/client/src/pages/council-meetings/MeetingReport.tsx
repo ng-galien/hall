@@ -1,5 +1,6 @@
 import type { MeetingAggregate } from "@hall/domain";
 import { PageHeader } from "../../components/Ui";
+import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
@@ -8,7 +9,7 @@ import { MeetingProceedings } from "./MeetingProceedings";
 import { MeetingStageBar } from "./MeetingStageBar";
 
 export function MeetingReport({ aggregate }: { aggregate: MeetingAggregate }) {
-  const { t, formatDateTime, formatTime, formatNumber } = useI18n();
+  const { t, formatDate, formatDateTime, formatTime, formatNumber } = useI18n();
   const { members } = useCouncilMembersStore();
   const { meeting } = aggregate;
   const attendanceCounts = aggregate.attendance.reduce(
@@ -31,7 +32,10 @@ export function MeetingReport({ aggregate }: { aggregate: MeetingAggregate }) {
 
   return (
     <div className="page">
-      <PageHeader title={meeting.title} description={`${formatDateTime(meeting.startsAt)} · ${meeting.location}`} />
+      <PageHeader
+        title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
+        description={`${formatDateTime(meeting.startsAt)} · ${meeting.location}`}
+      />
       <div className="page-content meeting-page-content">
         <div className="meeting-console">
           <MeetingStageBar status={meeting.status} />

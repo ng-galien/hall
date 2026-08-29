@@ -67,7 +67,6 @@ describe("state-machine-backed council workflow", () => {
       await agent
         .post("/api/council-meetings")
         .send({
-          title: "Conseil municipal du 17 septembre 2026",
           startsAt: "2026-09-17T18:30:00+02:00",
           location: "Salle du conseil",
           chairMemberId: members[0].id,

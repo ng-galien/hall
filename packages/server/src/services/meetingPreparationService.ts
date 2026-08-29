@@ -1,6 +1,7 @@
 import {
   type AgendaItem,
   type Attendance,
+  type CouncilBusiness,
   type CouncilMeeting,
   type MeetingStatus,
   transitionCouncilDecision,
@@ -17,7 +18,12 @@ import type {
   ResourceRepository,
   UnitOfWork,
 } from "../repositories/contracts.js";
-import { agendaReadiness, isPartialAgendaValid, normalizedAgendaItemIds } from "./agendaOrderPolicy.js";
+import {
+  agendaReadiness,
+  isPartialAgendaValid,
+  normalizedAgendaItemIds,
+  previousCouncilMeeting,
+} from "./agendaOrderPolicy.js";
 import { DomainError } from "./errors.js";
 import { requireMeeting } from "./meetingContext.js";
 
@@ -28,6 +34,7 @@ export interface MeetingPreparationService {
   removeAgendaItem(meetingId: string, itemId: string): Promise<void>;
   reorderAgenda(meetingId: string, itemIds: string[]): Promise<void>;
   setOfficers(meetingId: string, chairMemberId: string, secretaryMemberId: string): Promise<CouncilMeeting>;
+  provisionFromPreviousMeeting(meetingId: string): Promise<AgendaItem[]>;
 }
 
 export function createMeetingPreparationService({
@@ -78,8 +85,10 @@ export function createMeetingPreparationService({
     const currentAgenda = await agendaItemRepository.listForMeeting(meetingId);
     if (business.kind === "minutesApproval") {
       const meeting = await requireMeeting(councilMeetingRepository, meetingId);
+      const minutesMeeting = await requireMeeting(councilMeetingRepository, business.minutesOfMeetingId);
       const readiness = agendaReadiness(meeting, currentAgenda, await councilMeetingRepository.list());
       if (
+        minutesMeeting.minutesStatus !== "ready" ||
         !readiness.requiredMinutesOfMeetingId ||
         business.minutesOfMeetingId !== readiness.requiredMinutesOfMeetingId ||
         currentAgenda.some((item) => item.business.kind === "minutesApproval")
@@ -238,6 +247,38 @@ export function createMeetingPreparationService({
         }
         await councilMeetingRepository.setOfficers(id, chairMemberId, secretaryMemberId);
         return (await councilMeetingRepository.find(id))!;
+      });
+    },
+    async provisionFromPreviousMeeting(meetingId) {
+      return unitOfWork.execute(async () => {
+        const meeting = await requireMeeting(councilMeetingRepository, meetingId);
+        if (meeting.status !== "draft" || meeting.isReconvenedMeeting || meeting.quorumFailure) {
+          return agendaItemRepository.listForMeeting(meeting.id);
+        }
+        const previous = previousCouncilMeeting(await councilMeetingRepository.list(), meeting);
+        if (previous?.status !== "closed") return agendaItemRepository.listForMeeting(meeting.id);
+
+        const candidates: CouncilBusiness[] = [];
+        if (previous.minutesStatus === "ready") {
+          const minutesApproval = await councilBusinessRepository.findMinutesApprovalForMeeting(previous.id);
+          if (minutesApproval) candidates.push(minutesApproval);
+        }
+        const previousAgenda = await agendaItemRepository.listForMeeting(previous.id);
+        candidates.push(
+          ...previousAgenda
+            .filter((item) => item.status === "postponed" && item.business.kind !== "minutesApproval")
+            .map((item) => item.business),
+        );
+
+        for (const business of candidates) {
+          const alreadyOpen = (await agendaItemRepository.listForBusiness(business.id)).some((item) =>
+            ["scheduled", "inProgress"].includes(item.status),
+          );
+          if (alreadyOpen) continue;
+          const position = (await agendaItemRepository.listForMeeting(meeting.id)).length + 1;
+          await scheduleExistingBusiness(meeting.id, business.id, position);
+        }
+        return agendaItemRepository.listForMeeting(meeting.id);
       });
     },
   };

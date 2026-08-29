@@ -88,6 +88,9 @@ export function createCouncilMeetingsRouter({
         ),
       );
   });
+  router.post("/:meetingId/minutes/finalize", requirePermission("meetings.prepare"), async (request, response) => {
+    response.json(await meetingLifecycleService.finalizeMinutesDraft(routeParameter(request.params.meetingId)));
+  });
   router.put("/:meetingId/attendance", requirePermission("meetings.conduct"), async (request, response) => {
     response.json(
       await meetingPreparationService.recordAttendance(

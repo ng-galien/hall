@@ -17,6 +17,18 @@ export function previousCouncilMeeting(
   );
 }
 
+export function followingCouncilMeeting(
+  meetings: readonly CouncilMeeting[],
+  meeting: CouncilMeeting,
+): CouncilMeeting | null {
+  return (
+    meetings
+      .filter((candidate) => candidate.id !== meeting.id && candidate.status !== "cancelled")
+      .filter((candidate) => candidate.startsAt > meeting.startsAt)
+      .sort((left, right) => left.startsAt.localeCompare(right.startsAt))[0] ?? null
+  );
+}
+
 export function agendaReadiness(
   meeting: CouncilMeeting,
   agendaItems: readonly AgendaItem[],

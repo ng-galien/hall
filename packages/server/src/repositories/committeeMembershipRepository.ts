@@ -35,6 +35,12 @@ export function createCommitteeMembershipRepository({
         return (await read(id))!;
       });
     },
+    update(id, input) {
+      return sqlExecutor.execute(async () => {
+        await sqlExecutor.run("committeeMembership.update", { id, ...input });
+        return (await read(id))!;
+      });
+    },
     end(id, endedOn) {
       return sqlExecutor.execute(async () => {
         await sqlExecutor.run("committeeMembership.end", { id, endedOn });

@@ -18,6 +18,15 @@ const CouncilDecisionsPage = lazy(() =>
 const CouncilMembersPage = lazy(() =>
   import("./pages/CouncilMembersPage").then((module) => ({ default: module.CouncilMembersPage })),
 );
+const CouncilMemberPage = lazy(() =>
+  import("./pages/CouncilMemberPage").then((module) => ({ default: module.CouncilMemberPage })),
+);
+const CouncilCommitteesPage = lazy(() =>
+  import("./pages/CouncilCommitteesPage").then((module) => ({ default: module.CouncilCommitteesPage })),
+);
+const CouncilCommitteePage = lazy(() =>
+  import("./pages/CouncilCommitteePage").then((module) => ({ default: module.CouncilCommitteePage })),
+);
 const CouncilMeetingPage = lazy(() =>
   import("./pages/council-meetings/CouncilMeetingPage").then((module) => ({ default: module.CouncilMeetingPage })),
 );
@@ -55,6 +64,9 @@ function AuthenticatedApplication() {
         <Route path="workspace" element={<WorkspacePage />} />
         <Route path="council-decisions" element={<CouncilDecisionsPage />} />
         <Route path="council-members" element={<CouncilMembersPage />} />
+        <Route path="council-members/:memberId" element={<CouncilMemberPage />} />
+        <Route path="council-committees" element={<CouncilCommitteesPage />} />
+        <Route path="council-committees/:committeeId" element={<CouncilCommitteePage />} />
         <Route path="settings" element={<SettingsPage />} />
         {/* Banc d'essai de l'éditeur, hors navigation : on y va par l'adresse. */}
         <Route path="editor-lab" element={<EditorLabPage />} />

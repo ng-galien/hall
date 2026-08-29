@@ -1,13 +1,18 @@
 import { useLocation } from "react-router-dom";
 import { Breadcrumb, type BreadcrumbItem } from "../components/Breadcrumb";
+import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { useI18n } from "../i18n/I18nProvider";
+import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
+import { useCouncilMembersStore } from "../stores/councilMembersStore";
 
 /** Fil d'Ariane global de la barre d'en-tête, dérivé de la route courante. */
 export function HeaderBreadcrumb() {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
   const location = useLocation();
   const { meetings } = useCouncilMeetingsStore();
+  const members = useCouncilMembersStore((state) => state.members);
+  const committees = useCouncilCommitteesStore((state) => state.committees);
 
   const items: BreadcrumbItem[] = [{ label: t("app.name"), to: "/" }];
   const segments = location.pathname.split("/").filter(Boolean);
@@ -18,12 +23,27 @@ export function HeaderBreadcrumb() {
     items.push({ label: t("navigation.meetings"), to: "/meetings" });
     if (segments[1]) {
       const meeting = meetings.find((candidate) => candidate.id === segments[1] || candidate.slug === segments[1]);
-      if (meeting) items.push({ label: meeting.title, to: `/meetings/${meeting.slug}` });
+      if (meeting) {
+        items.push({
+          label: formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
+          to: `/meetings/${meeting.slug}`,
+        });
+      }
     }
   } else if (segments[0] === "council-decisions") {
     items.push({ label: t("navigation.decisions") });
   } else if (segments[0] === "council-members") {
-    items.push({ label: t("navigation.members") });
+    items.push({ label: t("navigation.members"), to: "/council-members" });
+    if (segments[1]) {
+      const member = members.find((candidate) => candidate.id === segments[1]);
+      if (member) items.push({ label: `${member.firstName} ${member.lastName}` });
+    }
+  } else if (segments[0] === "council-committees") {
+    items.push({ label: t("navigation.committees"), to: "/council-committees" });
+    if (segments[1]) {
+      const committee = committees.find((candidate) => candidate.id === segments[1] || candidate.slug === segments[1]);
+      if (committee) items.push({ label: committee.name });
+    }
   } else if (segments[0] === "settings") {
     items.push({ label: t("common.settings") });
   } else if (segments[0] === "workspace") {

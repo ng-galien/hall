@@ -2,6 +2,7 @@ import {
   addCommitteeMembershipSchema,
   createCouncilCommitteeSchema,
   endCommitteeMembershipSchema,
+  updateCommitteeMembershipSchema,
   updateCouncilCommitteeSchema,
 } from "@hall/domain";
 import { Router } from "express";
@@ -41,6 +42,31 @@ export function createCouncilCommitteesRouter({ councilCommitteeService }: Cradl
         ),
       );
   });
+  router.get(
+    "/:committeeId/memberships/:membershipId",
+    requirePermission("meetings.read"),
+    async (request, response) => {
+      response.json(
+        await councilCommitteeService.getMembership(
+          routeParameter(request.params.committeeId),
+          routeParameter(request.params.membershipId),
+        ),
+      );
+    },
+  );
+  router.put(
+    "/:committeeId/memberships/:membershipId",
+    requirePermission("meetings.prepare"),
+    async (request, response) => {
+      response.json(
+        await councilCommitteeService.updateMembership(
+          routeParameter(request.params.committeeId),
+          routeParameter(request.params.membershipId),
+          updateCommitteeMembershipSchema.parse(request.body),
+        ),
+      );
+    },
+  );
   router.post(
     "/:committeeId/memberships/:membershipId/end",
     requirePermission("meetings.prepare"),

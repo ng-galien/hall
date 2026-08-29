@@ -50,7 +50,6 @@ export function RollCallView({
   const navigate = useNavigate();
   const { resources, upload, load: reloadResources } = useResourcesStore();
   const [proxyMemberId, setProxyMemberId] = useState<string | null>(null);
-  const reconveneTitleId = useId();
   const reconveneStartsAtId = useId();
   const reconveneNoticeId = useId();
   const reconveneLocationId = useId();
@@ -139,7 +138,6 @@ export function RollCallView({
     const form = new FormData(event.currentTarget);
     await run(async () => {
       const reconvenedMeeting = await meetingActions.reconvene({
-        title: form.get("title"),
         startsAt: new Date(String(form.get("startsAt"))).toISOString(),
         meetingNoticeSentAt: new Date(String(form.get("meetingNoticeSentAt"))).toISOString(),
         location: form.get("location"),
@@ -302,15 +300,6 @@ export function RollCallView({
                 </div>
               </div>
               <div className="rollcall-reconvene-fields">
-                <div className="grid gap-1.5">
-                  <Label htmlFor={reconveneTitleId}>{t("meetings.name")}</Label>
-                  <Input
-                    id={reconveneTitleId}
-                    name="title"
-                    defaultValue={t("meeting.reconvenedName").replace("{title}", meeting.title)}
-                    required
-                  />
-                </div>
                 <div className="grid gap-1.5">
                   <Label htmlFor={reconveneStartsAtId}>{t("meetings.dateTime")}</Label>
                   <Input id={reconveneStartsAtId} name="startsAt" type="datetime-local" required />

@@ -1,4 +1,10 @@
-import { type AgendaItem, type AgendaItemEvent, transitionAgendaItem, transitionCouncilDecision } from "@hall/domain";
+import {
+  type AgendaItem,
+  type AgendaItemEvent,
+  transitionAgendaItem,
+  transitionCouncilDecision,
+  transitionMinutes,
+} from "@hall/domain";
 import type {
   AgendaItemRepository,
   BallotRepository,
@@ -91,6 +97,20 @@ export function createMeetingAgendaService({
         const nextAgendaStatus = transitionAgendaItem(item.status, agendaItemEvent);
         if (nextAgendaStatus !== input.status) throw new DomainError("agenda_inconsistent", 409);
         const business = item.business;
+        if (business.kind === "minutesApproval") {
+          if (input.status !== "examined") throw new DomainError("minutes_approval_required", 409);
+          const minutesMeeting = await councilMeetingRepository.find(business.minutesOfMeetingId);
+          const nextMinutesStatus = minutesMeeting
+            ? transitionMinutes(minutesMeeting.minutesStatus, { type: "APPROVE" })
+            : null;
+          if (!minutesMeeting || nextMinutesStatus !== "approved") throw new DomainError("minutes_not_ready", 409);
+          await councilMeetingRepository.setMinutes(
+            minutesMeeting.id,
+            nextMinutesStatus,
+            null,
+            new Date().toISOString(),
+          );
+        }
         if (business.kind === "matter" && business.councilDecisionId && input.status !== "examined") {
           const decision = await councilDecisionRepository.find(business.councilDecisionId);
           const nextDecisionState = decision

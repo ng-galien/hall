@@ -220,12 +220,12 @@ export const queries = {
   "meeting.find": "SELECT * FROM council_meetings WHERE id = :reference OR slug = :reference",
   "meeting.slugExists": "SELECT 1 FROM council_meetings WHERE slug = :slug OR id = :slug",
   "meeting.insert": `INSERT INTO council_meetings
-    (id, number, slug, title, starts_at, location, chair_member_id, secretary_member_id, meeting_notice_sent_at,
+    (id, number, slug, starts_at, location, chair_member_id, secretary_member_id, meeting_notice_sent_at,
      is_reconvened_meeting, previous_meeting_id, created_at, updated_at)
-    VALUES (:id, :number, :slug, :title, :startsAt, :location, :chairMemberId, :secretaryMemberId, :meetingNoticeSentAt,
+    VALUES (:id, :number, :slug, :startsAt, :location, :chairMemberId, :secretaryMemberId, :meetingNoticeSentAt,
       :isReconvenedMeeting, :previousMeetingId, :createdAt, :updatedAt)`,
   "meeting.updateDetails": `UPDATE council_meetings
-    SET title = :title, starts_at = :startsAt, location = :location, updated_at = :updatedAt WHERE id = :id`,
+    SET starts_at = :startsAt, location = :location, updated_at = :updatedAt WHERE id = :id`,
   "meeting.setStatus": `UPDATE council_meetings SET
     status = :status,
     opened_at = CASE WHEN :status = 'inProgress' AND opened_at IS NULL THEN :updatedAt ELSE opened_at END,
@@ -238,6 +238,14 @@ export const queries = {
   "meeting.recordQuorumFailure": `UPDATE council_meetings
     SET quorum_failure_evidence_json = :evidenceJson, updated_at = :updatedAt
     WHERE id = :id AND quorum_failure_evidence_json IS NULL`,
+  "meeting.setMinutes": `UPDATE council_meetings SET
+    minutes_status = :status,
+    minutes_content = COALESCE(:content, minutes_content),
+    minutes_approved_at = CASE WHEN :status = 'approved' THEN :occurredAt ELSE minutes_approved_at END,
+    minutes_signed_at = CASE WHEN :status = 'signed' THEN :occurredAt ELSE minutes_signed_at END,
+    minutes_published_at = CASE WHEN :status = 'published' THEN :occurredAt ELSE minutes_published_at END,
+    updated_at = :occurredAt
+    WHERE id = :id`,
 
   "member.list": "SELECT * FROM council_members ORDER BY active DESC, role, last_name, first_name",
   "member.listActive": {
@@ -246,8 +254,12 @@ export const queries = {
   },
   "member.find": "SELECT * FROM council_members WHERE id = :id",
   "member.insert": `INSERT INTO council_members
-    (id, first_name, last_name, email, role, term_started_on)
-    VALUES (:id, :firstName, :lastName, :email, :role, :termStartedOn)`,
+    (id, first_name, last_name, email, phone, role, term_started_on)
+    VALUES (:id, :firstName, :lastName, :email, :phone, :role, :termStartedOn)`,
+  "member.update": `UPDATE council_members SET
+    first_name = :firstName, last_name = :lastName, email = :email, phone = :phone, role = :role,
+    active = :active, term_started_on = :termStartedOn, term_ended_on = :termEndedOn
+    WHERE id = :id`,
 
   "committee.list": {
     default: `SELECT * FROM council_committees
@@ -275,6 +287,9 @@ export const queries = {
   "committeeMembership.insert": `INSERT INTO committee_memberships
     (id, committee_id, council_member_id, role, started_on)
     VALUES (:id, :committeeId, :councilMemberId, :role, :startedOn)`,
+  "committeeMembership.update": `UPDATE committee_memberships
+    SET role = :role, started_on = :startedOn, ended_on = :endedOn
+    WHERE id = :id`,
   "committeeMembership.end": `UPDATE committee_memberships SET ended_on = :endedOn
     WHERE id = :id AND ended_on IS NULL`,
 

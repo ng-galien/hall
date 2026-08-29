@@ -13,6 +13,7 @@ import type {
 import { agendaReadiness } from "./agendaOrderPolicy.js";
 import { DomainError } from "./errors.js";
 import { requireMeeting } from "./meetingContext.js";
+import type { MeetingPreparationService } from "./meetingPreparationService.js";
 
 export interface CouncilMeetingService {
   listMeetings(): Promise<CouncilMeeting[]>;
@@ -23,10 +24,7 @@ export interface CouncilMeetingService {
       requiredMinutesOfMeetingId: string | null;
     }
   >;
-  updateMeeting(
-    meetingId: string,
-    input: { title: string; startsAt: string; location: string },
-  ): Promise<CouncilMeeting>;
+  updateMeeting(meetingId: string, input: { startsAt: string; location: string }): Promise<CouncilMeeting>;
   getMeeting(meetingId: string): Promise<MeetingAggregate>;
 }
 
@@ -38,6 +36,7 @@ export function createCouncilMeetingService({
   agendaItemRepository,
   councilDecisionRepository,
   ballotRepository,
+  meetingPreparationService,
   unitOfWork,
 }: {
   councilMeetingRepository: CouncilMeetingRepository;
@@ -47,6 +46,7 @@ export function createCouncilMeetingService({
   agendaItemRepository: AgendaItemRepository;
   councilDecisionRepository: CouncilDecisionRepository;
   ballotRepository: BallotRepository;
+  meetingPreparationService: MeetingPreparationService;
   unitOfWork: UnitOfWork;
 }): CouncilMeetingService {
   return {
@@ -63,10 +63,11 @@ export function createCouncilMeetingService({
           isReconvenedMeeting: false,
           previousMeetingId: null,
         });
+        const agendaItems = await meetingPreparationService.provisionFromPreviousMeeting(meeting.id);
         return {
           ...meeting,
           activeMemberCount: (await councilMemberRepository.listActive()).length,
-          ...agendaReadiness(meeting, [], await councilMeetingRepository.list()),
+          ...agendaReadiness(meeting, agendaItems, await councilMeetingRepository.list()),
         };
       });
     },
