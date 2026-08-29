@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { DocumentResource, Resource, TextResource } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type {
-  CreateDocumentResource,
   CreateTextResource,
+  PersistDocumentResource,
   ResourceRepository,
   StoredDocumentResource,
 } from "./contracts.js";
@@ -26,8 +26,10 @@ export function mapResource(row: DatabaseRow, tags: string[]): Resource {
     ...common,
     meetingId: asNullableString(row.meeting_id),
     fileName: String(row.file_name),
+    format: row.format as DocumentResource["format"],
     mediaType: String(row.media_type),
     byteSize: Number(row.byte_size),
+    contentSha256: String(row.content_sha256),
     category: row.category as DocumentResource["category"],
   } satisfies DocumentResource;
 }
@@ -91,7 +93,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         ) as TextResource;
       });
     },
-    createDocument(input: CreateDocumentResource) {
+    createDocument(input: PersistDocumentResource) {
       return sqlExecutor.execute(async () => {
         const id = randomUUID();
         const now = new Date().toISOString();
@@ -108,8 +110,10 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           id,
           meetingId: input.meetingId ?? null,
           fileName: input.fileName,
+          format: input.format,
           mediaType: input.mediaType,
           byteSize: input.content.byteLength,
+          contentSha256: input.contentSha256,
           category: input.category,
           content: input.content,
         });

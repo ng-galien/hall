@@ -242,9 +242,14 @@ export interface CreateDocumentResource {
   tags: string[];
   meetingId?: string | null;
   fileName: string;
-  mediaType: string;
   category: DocumentResource["category"];
   content: Buffer;
+}
+
+export interface PersistDocumentResource extends CreateDocumentResource {
+  format: DocumentResource["format"];
+  mediaType: string;
+  contentSha256: string;
 }
 
 export interface StoredDocumentResource extends DocumentResource {
@@ -264,7 +269,7 @@ export interface ResourceRepository {
   findMetadata(id: string): Promise<Resource | null>;
   listFolderPaths(): Promise<string[]>;
   createText(input: CreateTextResource): Promise<TextResource>;
-  createDocument(input: CreateDocumentResource): Promise<DocumentResource>;
+  createDocument(input: PersistDocumentResource): Promise<DocumentResource>;
   update(id: string, input: UpdateResource): Promise<Resource>;
   isSnapshotted(id: string): Promise<boolean>;
   delete(id: string): Promise<boolean>;

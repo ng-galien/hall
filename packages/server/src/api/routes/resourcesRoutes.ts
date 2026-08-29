@@ -3,7 +3,6 @@ import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
-import { safeDocumentMediaType } from "../../domain/documentPolicy.js";
 import { requirePermission } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
 import { routeParameter } from "../routeParameter.js";
@@ -79,7 +78,6 @@ export function createResourcesRouter({ resourceService }: Cradle): Router {
         tags: parseTags(request.body.tags),
         meetingId,
         fileName: request.file.originalname,
-        mediaType: safeDocumentMediaType(request.file.originalname),
         category: documentCategorySchema.parse(request.body.category ?? "supporting"),
         content: request.file.buffer,
       }),
@@ -92,6 +90,7 @@ export function createResourcesRouter({ resourceService }: Cradle): Router {
     if (resource.kind !== "document") throw new DomainError("resource_content_unavailable", 409);
     response.setHeader("Content-Type", resource.mediaType);
     response.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(resource.fileName)}`);
+    response.setHeader("ETag", `"${resource.contentSha256}"`);
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Content-Security-Policy", "sandbox");
     response.send(resource.content);

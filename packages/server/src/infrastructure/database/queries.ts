@@ -13,8 +13,10 @@ const resourceSelection = `SELECT
   text_resources.content AS text_content,
   resource_documents.meeting_id,
   resource_documents.file_name,
+  resource_documents.format,
   resource_documents.media_type,
   resource_documents.byte_size,
+  resource_documents.content_sha256,
   resource_documents.category
 FROM resources
 LEFT JOIN text_resources ON text_resources.resource_id = resources.id
@@ -287,8 +289,8 @@ export const queries = {
     VALUES (:id, :slug, 'document', :title, :folderPath, :createdAt, :updatedAt)`,
   "resource.insertText": "INSERT INTO text_resources (resource_id, content) VALUES (:id, :content)",
   "resource.insertDocument": `INSERT INTO resource_documents
-    (resource_id, meeting_id, file_name, media_type, byte_size, category, content)
-    VALUES (:id, :meetingId, :fileName, :mediaType, :byteSize, :category, :content)`,
+    (resource_id, meeting_id, file_name, format, media_type, byte_size, content_sha256, category, content)
+    VALUES (:id, :meetingId, :fileName, :format, :mediaType, :byteSize, :contentSha256, :category, :content)`,
   "resource.insertTag": "INSERT INTO resource_tags (resource_id, tag) VALUES (:resourceId, :tag)",
   "resource.update": `UPDATE resources SET title = :title, folder_path = :folderPath, updated_at = :updatedAt WHERE id = :id`,
   "resource.updateText": "UPDATE text_resources SET content = :content WHERE resource_id = :id",

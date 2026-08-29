@@ -6,6 +6,8 @@ const titles: Record<string, string> = {
   permission_denied: "Permission denied",
   invalid_credentials: "Invalid credentials",
   invalid_request: "Invalid request",
+  unsupported_document_format: "Unsupported document format",
+  document_content_mismatch: "Document content does not match its format",
   csrf_validation_failed: "Cross-origin request rejected",
   route_not_found: "Route not found",
   too_many_login_attempts: "Too many login attempts",

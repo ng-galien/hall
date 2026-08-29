@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createServer } from "node:net";
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
@@ -153,18 +153,29 @@ postgres("PostgreSQL persistence", () => {
         tags: ["finance", "grant"],
         content: "Working note",
       });
+      const documentContent = Buffer.from("pdf");
+      const contentSha256 = createHash("sha256").update(documentContent).digest("hex");
       const document = await resourceRepository.createDocument({
         title: "Report",
         folderPath: "associations/grants",
         tags: ["finance"],
         fileName: "report.pdf",
+        format: "pdf",
         mediaType: "application/pdf",
+        contentSha256,
         category: "report",
-        content: Buffer.from("pdf"),
+        content: documentContent,
       });
       expect(text.slug).toBe("summary");
       expect(document.slug).toBe("report");
       expect(await resourceRepository.list({ tags: ["finance"] })).toHaveLength(2);
+      expect(await resourceRepository.find(document.id)).toMatchObject({
+        id: document.id,
+        format: "pdf",
+        mediaType: "application/pdf",
+        contentSha256,
+        content: documentContent,
+      });
 
       const decision = await councilDecisionRepository.create({
         title: "Grant decision",

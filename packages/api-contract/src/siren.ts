@@ -63,6 +63,7 @@ export interface SirenActionField {
   type?: string;
   value?: unknown;
   title?: string;
+  accept?: string;
 }
 
 export interface SirenAction<TName extends string = ApiActionName> {

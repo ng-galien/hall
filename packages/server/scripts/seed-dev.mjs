@@ -9,6 +9,7 @@
  * Prérequis : serveur de dev démarré (npm run dev) sur une base vide.
  */
 import { randomUUID } from "node:crypto";
+import { deflateSync } from "node:zlib";
 
 const API = process.env.SEED_API ?? "http://127.0.0.1:3100/api";
 const DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? "Hall-demo-2026!";
@@ -76,14 +77,129 @@ function makePdf(title, lines) {
   return Buffer.from(pdf, "latin1");
 }
 
-async function uploadPdf({ title, fileName, folderPath = "", meetingId, category, lines }) {
+function crc32(value) {
+  let crc = 0xffffffff;
+  for (const byte of value) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function makeStoredZip(entries) {
+  const localEntries = [];
+  const centralEntries = [];
+  let localOffset = 0;
+  for (const [name, rawContent] of entries) {
+    const nameBytes = Buffer.from(name);
+    const content = Buffer.from(rawContent);
+    const checksum = crc32(content);
+    const localHeader = Buffer.alloc(30);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt32LE(checksum, 14);
+    localHeader.writeUInt32LE(content.length, 18);
+    localHeader.writeUInt32LE(content.length, 22);
+    localHeader.writeUInt16LE(nameBytes.length, 26);
+    const localEntry = Buffer.concat([localHeader, nameBytes, content]);
+    localEntries.push(localEntry);
+
+    const centralHeader = Buffer.alloc(46);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt32LE(checksum, 16);
+    centralHeader.writeUInt32LE(content.length, 20);
+    centralHeader.writeUInt32LE(content.length, 24);
+    centralHeader.writeUInt16LE(nameBytes.length, 28);
+    centralHeader.writeUInt32LE(localOffset, 42);
+    centralEntries.push(Buffer.concat([centralHeader, nameBytes]));
+    localOffset += localEntry.length;
+  }
+  const centralDirectory = Buffer.concat(centralEntries);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(centralDirectory.length, 12);
+  end.writeUInt32LE(localOffset, 16);
+  return Buffer.concat([...localEntries, centralDirectory, end]);
+}
+
+function makeDocx(text) {
+  const mainType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml";
+  return makeStoredZip([
+    [
+      "[Content_Types].xml",
+      `<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="${mainType}"/></Types>`,
+    ],
+    [
+      "_rels/.rels",
+      '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
+    ],
+    [
+      "word/document.xml",
+      `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>${text}</w:t></w:r></w:p></w:body></w:document>`,
+    ],
+  ]);
+}
+
+function pngChunk(type, data) {
+  const name = Buffer.from(type);
+  const chunk = Buffer.alloc(12 + data.length);
+  chunk.writeUInt32BE(data.length, 0);
+  name.copy(chunk, 4);
+  data.copy(chunk, 8);
+  chunk.writeUInt32BE(crc32(Buffer.concat([name, data])), 8 + data.length);
+  return chunk;
+}
+
+function makePng() {
+  const width = 320;
+  const height = 180;
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8;
+  header[9] = 2;
+  const scanlines = Buffer.alloc((width * 3 + 1) * height);
+  for (let y = 0; y < height; y += 1) {
+    const row = y * (width * 3 + 1);
+    for (let x = 0; x < width; x += 1) {
+      const pixel = row + 1 + x * 3;
+      scanlines[pixel] = 30 + Math.round((x / width) * 50);
+      scanlines[pixel + 1] = 90 + Math.round((y / height) * 80);
+      scanlines[pixel + 2] = 150;
+    }
+  }
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk("IHDR", header),
+    pngChunk("IDAT", deflateSync(scanlines)),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+async function uploadDocument({ title, fileName, folderPath = "", meetingId, category, content, mediaType }) {
   const form = new FormData();
   form.set("title", title);
   form.set("folderPath", folderPath);
   if (meetingId) form.set("meetingId", meetingId);
   form.set("category", category);
-  form.set("file", new File([makePdf(title, lines)], fileName, { type: "application/pdf" }));
+  form.set("file", new File([content], fileName, { type: mediaType }));
   return request("POST", "/resources/documents", form);
+}
+
+async function uploadPdf({ title, fileName, folderPath = "", meetingId, category, lines }) {
+  return uploadDocument({
+    title,
+    fileName,
+    folderPath,
+    meetingId,
+    category,
+    content: makePdf(title, lines),
+    mediaType: "application/pdf",
+  });
 }
 
 const daysFromNow = (days, hour = 18, minute = 30) => {
@@ -526,6 +642,112 @@ async function main() {
       "du proces-verbal de la seance precedente.",
     ],
   });
+
+  console.log("— Fonds documentaire (plan de classement complet)");
+  /* Volume réaliste : l'arborescence de l'espace de travail se replie au-delà de six dossiers,
+     et la recherche à facettes n'a d'intérêt qu'avec de la matière. Ce fonds sert à travailler
+     ces deux écrans à l'échelle, pas seulement à remplir la base. */
+  const libraryTexts = [
+    ["administration/arretes", "Arrêté de voirie — rue des Écoles", ["arrêté", "voirie"], "Le stationnement est interdit rue des Écoles du 3 au 14 mars pour permettre la réfection du trottoir.\n\nUne déviation piétonne est mise en place par la place de la Mairie."],
+    ["administration/arretes", "Arrêté d'ouverture de la bibliothèque", ["arrêté", "culture"], "Horaires d'ouverture au public à compter du 1er septembre : mardi et jeudi de 16 h à 18 h 30, samedi de 10 h à 12 h 30."],
+    ["administration/personnel", "Tableau des effectifs communaux", ["personnel"], "## Effectifs au 1er janvier\n\n- Filière administrative : 4 agents\n- Filière technique : 6 agents\n- Filière animation : 3 agents"],
+    ["administration/personnel", "Régime indemnitaire — note de cadrage", ["personnel", "finances"], "La refonte du régime indemnitaire doit être délibérée avant le vote du budget primitif, après avis du comité social territorial."],
+    ["administration/courriers", "Modèle de réponse à réclamation", ["courrier"], "Réponse type aux réclamations relatives à la voirie communale, à adapter au cas signalé et à viser par le maire."],
+    ["etat-civil", "Procédure de délivrance des actes", ["état civil"], "Les actes de naissance et de mariage de moins de cent ans sont délivrés aux seuls intéressés, ascendants et descendants, sur justification d'identité."],
+    ["elections", "Organisation du bureau de vote", ["élections"], "## Composition\n\nLe bureau comprend un président, au moins deux assesseurs et un secrétaire.\n\n## Ouverture\n\nScrutin ouvert de 8 h à 18 h, salle du conseil."],
+    ["elections", "Tableau des assesseurs", ["élections"], "Répartition des permanences sur les deux tours, à confirmer par les conseillers un mois avant le scrutin."],
+    ["finances/budget", "Rapport d'orientation budgétaire 2027", ["budget"], "## Contexte\n\nLa capacité d'autofinancement se maintient malgré la hausse des charges d'énergie.\n\n## Priorités\n\n- Achèvement de l'éclairage public\n- Réfection de la voirie du centre-bourg"],
+    ["finances/budget", "Note de synthèse — budget primitif", ["budget"], "Le budget primitif est présenté en équilibre réel, sections de fonctionnement et d'investissement, conformément au cadre M57."],
+    ["finances/subventions", "Critères d'attribution des subventions", ["subventions"], "## Recevabilité\n\nDossier complet déposé avant le 31 janvier, comptes de l'exercice précédent joints.\n\n## Instruction\n\nAvis de la commission vie associative, puis délibération du conseil."],
+    ["finances/subventions", "Bilan des subventions 2025", ["subventions"], "Quatorze associations ont été soutenues pour un montant total de 21 400 €, dont 9 800 € au titre du sport.\n\n| Association | Objet | Montant |\n| --- | --- | ---: |\n| Les Tilleuls | Animation seniors | 2 400 € |\n| Club sportif | Encadrement jeunes | 4 800 € |\n| Comité des fêtes | Fête communale | 3 200 € |\n| Bibliothèque pour tous | Achat de livres | 1 500 € |"],
+    ["finances/emprunts", "État de la dette au 31 décembre", ["dette"], "Encours de 412 000 € réparti sur trois emprunts à taux fixe, extinction du plus ancien prévue en 2029."],
+    ["finances/marches", "Procédure adaptée — seuils applicables", ["marchés"], "En deçà du seuil de procédure formalisée, la commune retient une procédure adaptée avec publicité sur le profil d'acheteur."],
+    ["finances/marches", "Grille d'analyse des offres", ["marchés"], "Prix 40 %, valeur technique 40 %, délai 20 %. La grille est annexée au règlement de consultation."],
+    ["urbanisme/plu", "Orientations d'aménagement — secteur nord", ["urbanisme", "PLU"], "Le secteur nord est destiné à une opération d'ensemble à dominante d'habitat, avec maintien d'une frange plantée le long du chemin rural."],
+    ["urbanisme/plu", "Note sur la modification simplifiée du PLU", ["urbanisme", "PLU"], "La modification simplifiée permet de rectifier une erreur matérielle sans enquête publique, après mise à disposition du dossier pendant un mois."],
+    ["urbanisme/permis", "Instruction des permis — circuit interne", ["urbanisme"], "Dépôt en mairie, complétude sous un mois, instruction par le service mutualisé, décision signée par le maire."],
+    ["urbanisme/cessions", "Note sur la cession de la parcelle AB 127", ["urbanisme", "cession"], "La parcelle, classée en zone UB, n'est plus affectée à l'usage du public. Sa cession suppose un déclassement préalable."],
+    ["travaux/eclairage", "Diagnostic des points lumineux", ["travaux", "éclairage"], "Sur 612 points recensés, 240 restent équipés de lampes à vapeur de sodium, dont 96 dans le périmètre de la tranche 2."],
+    ["travaux/voirie", "Programme de réfection 2027", ["travaux", "voirie"], "## Priorités\n\n1. Chemin de la Fontaine\n2. Rue des Écoles\n3. Place du Marché"],
+    ["travaux/batiments", "Diagnostic énergétique de la mairie", ["travaux", "énergie"], "L'isolation des combles et le remplacement de la chaudière réduiraient la consommation de près de moitié."],
+    ["travaux/salle-des-fetes", "Règlement de mise à disposition", ["salle des fêtes"], "La salle est mise à disposition des associations communales à titre gratuit une fois par an, puis selon le tarif voté."],
+    ["ecole/cantine", "Tarifs de la restauration scolaire", ["école", "cantine"], "Les tarifs sont établis selon le quotient familial, de 2,10 € à 4,60 € le repas, révisés chaque année en juin."],
+    ["ecole/periscolaire", "Organisation des temps périscolaires", ["école"], "Accueil de 7 h 30 à 8 h 30 et de 16 h 30 à 18 h 30, encadrement assuré par trois agents d'animation."],
+    ["ecole/effectifs", "Prévision des effectifs — rentrée 2027", ["école"], "Cent trente-huit élèves attendus sur six classes, soit une hausse de quatre élèves qui ne remet pas en cause la carte scolaire."],
+    ["social/ccas", "Rapport d'activité du CCAS", ["CCAS", "social"], "## Aides accordées\n\nQuarante-deux dossiers instruits, dont vingt-huit aides énergie et neuf aides alimentaires."],
+    ["social/ccas", "Aide facultative — barème", ["CCAS", "social"], "L'aide facultative est plafonnée à 300 € par foyer et par année civile, sur décision du conseil d'administration."],
+    ["social/logement", "Attribution des logements communaux", ["logement"], "Trois logements communaux sont attribués sur critères de ressources, après examen en commission."],
+    ["culture/bibliotheque", "Charte des collections", ["bibliothèque"], "La bibliothèque acquiert chaque année environ trois cents titres, avec une attention particulière au fonds local."],
+    ["culture/bibliotheque", "Programme d'animations", ["bibliothèque"], "Heure du conte mensuelle, deux rencontres d'auteurs et une exposition estivale consacrée au patrimoine communal."],
+    ["culture/associations", "Convention type d'objectifs", ["associations"], "Toute subvention supérieure à 23 000 € donne lieu à une convention précisant l'objet, le montant et les conditions d'utilisation."],
+    ["culture/festivites", "Organisation de la fête communale", ["festivités"], "Le comité des fêtes assure l'organisation ; la commune met à disposition le matériel et prend en charge la sécurité."],
+    ["environnement/dechets", "Collecte des déchets — nouveaux horaires", ["déchets"], "La collecte des ordures ménagères passe au mardi matin ; les emballages restent collectés le vendredi des semaines paires."],
+    ["environnement/espaces-verts", "Plan de gestion différenciée", ["espaces verts"], "Trois niveaux d'entretien sont définis, du fauchage tardif des abords à la tonte régulière des espaces de centre-bourg."],
+    ["environnement/eau", "Rapport annuel sur le prix de l'eau", ["eau"], "Le rapport annuel est présenté au conseil avant le 30 septembre et mis à disposition du public en mairie."],
+    ["securite/police-municipale", "Convention de coordination", ["sécurité"], "La convention précise la répartition des missions entre la police municipale et la brigade de gendarmerie."],
+    ["securite/risques", "Plan communal de sauvegarde — synthèse", ["sécurité", "risques"], "Le plan recense les risques d'inondation et de tempête, et désigne les responsables de chaque cellule de crise."],
+    ["sport/equipements", "Planning d'occupation du gymnase", ["sport"], "Créneaux scolaires en journée, créneaux associatifs en soirée et le samedi matin."],
+    ["sport/clubs", "Conventions avec les clubs", ["sport", "associations"], "Chaque club signataire s'engage à accueillir les scolaires sur au moins deux créneaux hebdomadaires."],
+    ["cimetiere", "Règlement du cimetière", ["cimetière"], "Les concessions sont accordées pour quinze, trente ou cinquante ans, renouvelables dans l'année suivant leur échéance."],
+    ["voirie", "Recensement de la voirie communale", ["voirie"], "La voirie communale représente 27,4 km, dont 6,1 km de chemins ruraux entretenus par la commune."],
+  ];
+  for (const [folderPath, title, tags, content] of libraryTexts) {
+    await post("/resources/texts", { title, folderPath, tags, content });
+  }
+  console.log(`  ${libraryTexts.length} textes classés`);
+
+  /* Les lignes de PDF restent sans accent : la police Helvetica du generateur est encodee en
+     WinAnsi et le rendu des caracteres composes n'est pas garanti. */
+  const libraryPdfs = [
+    ["administration/arretes", "Arrêté n° 2026-014", "arrete-2026-014.pdf", ["Commune de Saint-Aubin", "Arrete portant reglementation temporaire de la circulation", "rue des Ecoles, du 3 au 14 mars."]],
+    ["elections", "Liste électorale — extrait", "liste-electorale-extrait.pdf", ["Extrait de la liste electorale generale", "Arrete au 28 fevrier - 1 842 electeurs inscrits."]],
+    ["finances/budget", "Budget primitif 2026 — annexes", "budget-primitif-2026-annexes.pdf", ["Annexes au budget primitif 2026", "Etat de la dette, personnel, subventions versees,", "engagements hors bilan."]],
+    ["finances/budget", "Compte administratif 2025", "compte-administratif-2025.pdf", ["Compte administratif de l'exercice 2025", "Fonctionnement : excedent de 118 400 EUR", "Investissement : deficit de 42 900 EUR"]],
+    ["finances/subventions", "Dossiers de demande 2026", "dossiers-subventions-2026.pdf", ["Recueil des demandes de subvention", "Quatorze associations, montant sollicite : 26 300 EUR."]],
+    ["finances/marches", "Avis d'appel public à la concurrence", "aapc-eclairage.pdf", ["Avis d'appel public a la concurrence", "Objet : renovation de l'eclairage public, tranche 2", "Remise des offres : 15 avril, 12 h."]],
+    ["urbanisme/plu", "Règlement graphique — extrait", "plu-reglement-graphique.pdf", ["Plan local d'urbanisme", "Extrait du reglement graphique, secteur nord."]],
+    ["urbanisme/permis", "Recueil des avis ABF", "avis-abf.pdf", ["Avis de l'architecte des Batiments de France", "Trois dossiers situes dans le perimetre protege."]],
+    ["travaux/voirie", "Devis — chemin de la Fontaine", "devis-chemin-fontaine.pdf", ["Devis de refection de chaussee", "Chemin de la Fontaine - 620 metres lineaires", "Montant : 48 200 EUR HT"]],
+    ["travaux/batiments", "Audit énergétique — mairie", "audit-energetique-mairie.pdf", ["Audit energetique du batiment de la mairie", "Consommation actuelle : 218 kWh/m2/an", "Objectif apres travaux : 112 kWh/m2/an"]],
+    ["ecole/effectifs", "Constat de rentrée", "constat-rentree.pdf", ["Constat de rentree scolaire", "134 eleves repartis sur six classes."]],
+    ["social/ccas", "Compte de gestion du CCAS", "compte-gestion-ccas.pdf", ["Compte de gestion du centre communal d'action sociale", "Exercice clos au 31 decembre."]],
+    ["culture/bibliotheque", "Statistiques de fréquentation", "statistiques-bibliotheque.pdf", ["Frequentation de la bibliotheque municipale", "4 120 prets, 318 inscrits actifs."]],
+    ["environnement/dechets", "Rapport du SICTOM", "rapport-sictom.pdf", ["Rapport annuel du syndicat de collecte", "Tonnage collecte et cout du service par habitant."]],
+    ["environnement/eau", "Analyse sanitaire du réseau", "analyse-sanitaire-eau.pdf", ["Controle sanitaire des eaux destinees", "a la consommation humaine - conforme."]],
+    ["securite/risques", "Plan communal de sauvegarde", "plan-communal-sauvegarde.pdf", ["Plan communal de sauvegarde", "Recensement des risques et organisation de crise."]],
+    ["sport/equipements", "Diagnostic du gymnase", "diagnostic-gymnase.pdf", ["Diagnostic technique du gymnase municipal", "Charpente et couverture a reprendre sous cinq ans."]],
+    ["cimetiere", "Plan du cimetière", "plan-cimetiere.pdf", ["Plan de reperage des concessions", "Trois carres, 412 emplacements."]],
+  ];
+  for (const [folderPath, title, fileName, lines] of libraryPdfs) {
+    await uploadPdf({ title, fileName, folderPath, category: "supporting", lines });
+  }
+  console.log(`  ${libraryPdfs.length} documents PDF classés`);
+
+  await uploadDocument({
+    title: "Esquisse du plan de circulation",
+    fileName: "plan-circulation.png",
+    folderPath: "travaux/voirie",
+    category: "supporting",
+    content: makePng(),
+    mediaType: "image/png",
+  });
+  await uploadDocument({
+    title: "Convention de mise à disposition",
+    fileName: "convention-mise-a-disposition.docx",
+    folderPath: "culture/associations",
+    category: "supporting",
+    content: makeDocx("Convention de mise à disposition — document de démonstration Hall"),
+    mediaType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  });
+  await uploadDocument({
+    title: "Export des subventions 2026",
+    fileName: "subventions-2026.csv",
+    folderPath: "finances/subventions",
+    category: "supporting",
+    content: Buffer.from("association;montant\nClub sportif;4800\nComité des fêtes;3200\n"),
+    mediaType: "text/csv",
+  });
+  console.log("  3 documents multi-formats classés (PNG, DOCX, CSV)");
 
   console.log("— Templates PDF et Outlook");
   await post("/templates", {

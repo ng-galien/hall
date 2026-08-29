@@ -194,7 +194,9 @@ describe("content templates", () => {
         folderPath: "",
         tags: [],
         fileName: `annexe-${index}.pdf`,
+        format: "pdf",
         mediaType: "application/pdf",
+        contentSha256: "0".repeat(64),
         category: "supporting",
         content: chunk,
       });
@@ -227,7 +229,9 @@ describe("content templates", () => {
       folderPath: "",
       tags: [],
       fileName: "annexe.pdf",
+      format: "pdf",
       mediaType: "application/pdf",
+      contentSha256: "0".repeat(64),
       category: "supporting",
       content: Buffer.from("annexe"),
     });

@@ -174,8 +174,10 @@ export const postgresSchema = `
     resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
     meeting_id TEXT REFERENCES council_meetings(id) ON DELETE CASCADE,
     file_name TEXT NOT NULL,
+    format TEXT NOT NULL CHECK (format IN ('pdf', 'jpeg', 'png', 'docx', 'odt', 'xlsx', 'pptx', 'txt', 'csv')),
     media_type TEXT NOT NULL,
     byte_size BIGINT NOT NULL CHECK (byte_size >= 0),
+    content_sha256 TEXT NOT NULL CHECK (length(content_sha256) = 64),
     category TEXT NOT NULL CHECK (category IN ('report', 'draftCouncilDecision', 'meetingNotice', 'minutes', 'proxy', 'supporting')),
     content BYTEA NOT NULL
   );

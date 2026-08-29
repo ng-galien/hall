@@ -138,12 +138,25 @@ export interface TextResource extends ResourceBase {
   content: string;
 }
 
+export type DocumentFormat =
+  | "pdf"
+  | "jpeg"
+  | "png"
+  | "docx"
+  | "odt"
+  | "xlsx"
+  | "pptx"
+  | "txt"
+  | "csv";
+
 export interface DocumentResource extends ResourceBase {
   kind: "document";
   meetingId: Identifier | null;
   fileName: string;
+  format: DocumentFormat;
   mediaType: string;
   byteSize: number;
+  contentSha256: string;
   category: "report" | "draftCouncilDecision" | "meetingNotice" | "minutes" | "proxy" | "supporting";
 }
 

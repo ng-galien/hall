@@ -64,7 +64,7 @@ describe("municipal council flow", () => {
       .post("/api/resources/documents")
       .field("meetingId", domainBody(meeting).id)
       .field("category", "proxy")
-      .attach("file", Buffer.from("Written proxy"), { filename: "proxy.pdf", contentType: "text/html" });
+      .attach("file", Buffer.from("%PDF-1.7\nWritten proxy"), { filename: "proxy.pdf", contentType: "text/html" });
     expect(proxyDocument.status, `${JSON.stringify(domainBody(proxyDocument))} ${proxyDocument.text}`).toBe(201);
     expect(domainBody(proxyDocument).mediaType).toBe("application/pdf");
 

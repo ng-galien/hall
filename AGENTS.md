@@ -79,15 +79,21 @@ Les textes en vigueur priment toujours sur le modèle fonctionnel et doivent êt
 - Préserver la confidentialité des dossiers et des scrutins qui l’exigent, tout en permettant la publicité obligatoire des actes et documents concernés.
 - Employer un vocabulaire métier stable et explicite, sans confondre le dossier préparatoire, la délibération, la séance, le procès-verbal et l’acte rendu exécutoire.
 
-## Serveur de développement (à réutiliser systématiquement)
+## Environnement runtime de développement (à réutiliser systématiquement)
 
-Pour voir l'application en live pendant le développement, utiliser **toujours** le même serveur :
+Pour voir l'application en live pendant le développement, utiliser **toujours** le même runtime partagé. Sur les postes disposant de `tmux`, la session durable s'appelle `hall-dev`, utilise le socket isolé `hall-mairie` et survit aux appels d'outils des agents :
 
-- Démarrage : `npm run dev` à la racine (lance le serveur Express sur `http://127.0.0.1:3100` et le client Vite sur `http://127.0.0.1:5174`, proxy `/api` inclus).
+- Démarrage ou réutilisation : `npm run dev:session`.
+- Redémarrage du runtime sans effacer les données : `npm run dev:restart`.
+- État : `npm run dev:status` ; derniers journaux : `npm run dev:logs` ; arrêt : `npm run dev:stop`.
+- Remise à zéro complète de la démonstration, redémarrage et seed : `npm run demo:restart`. Cette commande rend la main une fois le front, le back et les données prêts.
+- Sans `tmux`, utiliser `npm run dev` au premier plan à la racine. Cette commande lance le même serveur Express sur `http://127.0.0.1:3100` et le client Vite sur `http://127.0.0.1:5174`, proxy `/api` inclus.
 - L'application se consulte sur **http://localhost:5174/app/**.
 - Le mode séance plein écran d'une séance : `http://localhost:5174/app/meetings/<id>/live`.
 - Pour les agents Claude Code : la configuration `hall` de `.claude/launch.json` lance ce serveur dans le panneau Browser (`preview_start` avec `name: "hall"`). Réutiliser ce serveur au lieu d'en lancer un autre ; ne jamais lancer Vite ou le serveur via un Bash de fond.
 - Après une modification du package `@hall/domain` ou du schéma SQLite : `npm run build -w @hall/domain` puis redémarrer le serveur (nodemon ne surveille que `packages/server/src`).
+- Les suites de tests utilisent leurs propres serveurs et bases éphémères. Elles ne doivent ni arrêter ni remplacer la session `hall-dev`. Le test PostgreSQL utilise le conteneur isolé `postgres-test` via `npm run test:postgres`.
+- Les tests de rendu PDF lancent un vrai Chromium. Sous la sandbox macOS, un refus `MachPortRendezvousServer`/`EPERM` est une limitation d'exécution : relancer ce test hors sandbox, sans ajouter de retry ni masquer une erreur HTTP 500.
 - Base SQLite de dev : `packages/server/data/hall.sqlite`. L'application est en cours de création : aucune donnée n'est à préserver, la base peut être supprimée et re-seedée librement.
 
 ### Données de démonstration

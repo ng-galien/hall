@@ -121,6 +121,16 @@ export class PostgresExecutor implements SqlExecutor {
           if (!votesColumns.rows.some((row) => row.column_name === "position")) {
             throw new Error("Obsolete PostgreSQL schema: reset the database before starting Hall");
           }
+          const documentColumns = await client.query<{ column_name: string }>(
+            `SELECT column_name FROM information_schema.columns
+             WHERE table_schema = current_schema() AND table_name = 'resource_documents'`,
+          );
+          if (
+            !documentColumns.rows.some((row) => row.column_name === "format") ||
+            !documentColumns.rows.some((row) => row.column_name === "content_sha256")
+          ) {
+            throw new Error("Obsolete PostgreSQL schema: reset the database before starting Hall");
+          }
         }
         await client.query("COMMIT");
       } catch (error) {

@@ -9,6 +9,7 @@ import {
 } from "@hall/api-contract";
 import { deriveBallotVoters, evaluateBallot, type MeetingAggregate } from "@hall/domain";
 import type { NextFunction, Request, Response } from "express";
+import { acceptedDocumentExtensions } from "../domain/documentPolicy.js";
 import { hasPermission } from "../security/authorization.js";
 
 function isSirenEntity(value: unknown): value is SirenEntity {
@@ -88,6 +89,18 @@ function collectionActions(request: Request, entityClass: string): SirenAction[]
       {
         ...action("resource.create-document", "POST", "/api/resources/documents", "Upload a document"),
         type: "multipart/form-data",
+        fields: [
+          {
+            name: "file",
+            type: "file",
+            accept: acceptedDocumentExtensions.join(","),
+          },
+          { name: "title", type: "text" },
+          { name: "folderPath", type: "text", value: "" },
+          { name: "tags", type: "text", value: "" },
+          { name: "meetingId", type: "text" },
+          { name: "category", type: "text", value: "supporting" },
+        ],
       },
     ];
   }

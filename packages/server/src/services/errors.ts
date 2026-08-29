@@ -14,6 +14,7 @@ export type ErrorCode =
   | "council_decision_not_found"
   | "council_member_not_found"
   | "bootstrap_unavailable"
+  | "document_content_mismatch"
   | "invalid_credentials"
   | "invalid_request"
   | "invalid_meeting_transition"
@@ -32,6 +33,7 @@ export type ErrorCode =
   | "template_not_found"
   | "topic_not_found"
   | "too_many_login_attempts"
+  | "unsupported_document_format"
   | "user_not_found";
 
 export class DomainError extends Error {

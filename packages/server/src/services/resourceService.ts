@@ -1,4 +1,5 @@
 import type { DocumentResource, Resource, ResourceDetails, TextResource } from "@hall/domain";
+import { inspectDocument } from "../domain/documentPolicy.js";
 import type {
   AttendanceRepository,
   CouncilMeetingRepository,
@@ -81,7 +82,10 @@ export function createResourceService({
           throw new DomainError("meeting_not_found", 404);
         }
         if (input.category === "proxy" && !input.meetingId) throw new DomainError("invalid_request");
-        return resourceRepository.createDocument(input);
+        return resourceRepository.createDocument({
+          ...input,
+          ...(await inspectDocument(input.fileName, input.content)),
+        });
       });
     },
     update(id, input) {

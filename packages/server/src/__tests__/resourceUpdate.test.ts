@@ -41,7 +41,7 @@ describe("resource update", () => {
         .post("/api/resources/documents")
         .field("title", "Pièce")
         .field("folderPath", "travaux")
-        .attach("file", Buffer.from("pdf"), { filename: "piece.pdf", contentType: "application/pdf" })
+        .attach("file", Buffer.from("%PDF-1.7\npdf"), { filename: "piece.pdf", contentType: "application/pdf" })
         .expect(201),
     ) as { id: string };
 

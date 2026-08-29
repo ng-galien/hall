@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createTestServer, domainBody } from "./testServer.js";
 
@@ -20,7 +21,7 @@ describe("documentary resources", () => {
       .field("folderPath", "Associations/Sport")
       .field("tags", "sport,juridique")
       .field("category", "supporting")
-      .attach("file", Buffer.from("Convention signée"), {
+      .attach("file", Buffer.from("%PDF-1.7\nConvention signée"), {
         filename: "convention.pdf",
         contentType: "application/pdf",
       })
@@ -37,6 +38,9 @@ describe("documentary resources", () => {
       folderPath: "Associations/Sport",
       tags: ["sport", "juridique"],
       fileName: "convention.pdf",
+      format: "pdf",
+      mediaType: "application/pdf",
+      contentSha256: createHash("sha256").update("%PDF-1.7\nConvention signée").digest("hex"),
     });
     const storedDocument = domainBody<{ id: string; slug: string }>(document);
     expect(document.body.links).toEqual(
@@ -44,11 +48,28 @@ describe("documentary resources", () => {
         expect.objectContaining({ rel: ["content"], href: `/api/resources/${storedDocument.slug}/content` }),
       ]),
     );
+    const content = await agent.get(`/api/resources/${storedDocument.slug}/content`).expect(200);
+    expect(content.headers.etag).toBe(`"${domainBody<{ contentSha256: string }>(document).contentSha256}"`);
 
     const folder = await agent.get("/api/resources").query({ folderPath: "/Associations/Sport/" }).expect(200);
     expect(domainBody(folder).map((resource: { id: string }) => resource.id)).toEqual(
       expect.arrayContaining([domainBody(text).id, domainBody(document).id]),
     );
+    const createDocumentAction = folder.body.actions.find(
+      (candidate: { name: string }) => candidate.name === "resource.create-document",
+    );
+    expect(createDocumentAction).toMatchObject({
+      type: "multipart/form-data",
+      fields: expect.arrayContaining([{ name: "file", type: "file", accept: expect.stringContaining(".pdf") }]),
+    });
+    expect(createDocumentAction.fields.map((field: { name: string }) => field.name)).toEqual([
+      "file",
+      "title",
+      "folderPath",
+      "tags",
+      "meetingId",
+      "category",
+    ]);
   });
 
   it("does not advertise deletion for a written proxy already used by attendance", async () => {
@@ -75,7 +96,7 @@ describe("documentary resources", () => {
       .field("title", "Pouvoir écrit")
       .field("meetingId", meeting.id)
       .field("category", "proxy")
-      .attach("file", Buffer.from("Pouvoir"), { filename: "pouvoir.pdf", contentType: "application/pdf" })
+      .attach("file", Buffer.from("%PDF-1.7\nPouvoir"), { filename: "pouvoir.pdf", contentType: "application/pdf" })
       .expect(201);
     const proxyId = domainBody<{ id: string }>(proxy).id;
     await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
@@ -111,7 +132,7 @@ describe("documentary resources", () => {
       .post("/api/resources/documents")
       .field("folderPath", "Associations")
       .field("tags", "sport,juridique")
-      .attach("file", Buffer.from("document"), { filename: "piece.pdf", contentType: "application/pdf" })
+      .attach("file", Buffer.from("%PDF-1.7\ndocument"), { filename: "piece.pdf", contentType: "application/pdf" })
       .expect(201);
 
     const allTagged = await agent.get("/api/resources").query({ tags: "sport,juridique" }).expect(200);
@@ -133,6 +154,21 @@ describe("documentary resources", () => {
     const response = await agent.get(`/api/resources/${domainBody(text).id}/content`);
     expect(response.status).toBe(409);
     expect(domainBody(response)).toMatchObject({ code: "resource_content_unavailable", status: 409 });
+  });
+
+  it("rejects unsupported extensions and mismatched file signatures", async () => {
+    const { agent } = await createTestServer();
+    const unsupported = await agent
+      .post("/api/resources/documents")
+      .attach("file", Buffer.from("<html></html>"), { filename: "piece.html", contentType: "text/html" });
+    expect(unsupported.status).toBe(415);
+    expect(domainBody(unsupported)).toMatchObject({ code: "unsupported_document_format", status: 415 });
+
+    const mismatch = await agent
+      .post("/api/resources/documents")
+      .attach("file", Buffer.from("not a pdf"), { filename: "piece.pdf", contentType: "application/pdf" });
+    expect(mismatch.status).toBe(422);
+    expect(domainBody(mismatch)).toMatchObject({ code: "document_content_mismatch", status: 422 });
   });
 
   it("rejects paths that cannot denote a folder", async () => {

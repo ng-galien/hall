@@ -322,7 +322,10 @@ describe("council meeting invariants", () => {
         .post("/api/resources/documents")
         .field("meetingId", meeting.id)
         .field("category", "proxy")
-        .attach("file", Buffer.from("Written proxy"), { filename: "proxy.pdf", contentType: "application/pdf" });
+        .attach("file", Buffer.from("%PDF-1.7\nWritten proxy"), {
+          filename: "proxy.pdf",
+          contentType: "application/pdf",
+        });
     const firstDocument = await uploadProxy();
     const secondDocument = await uploadProxy();
     await agent
