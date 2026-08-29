@@ -1,8 +1,10 @@
 import type { Resource } from "@hall/domain";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useDocumentPreview } from "../hooks/useDocumentPreview";
 import { useI18n } from "../i18n/I18nProvider";
-import { downloadResourceDocument, getResourceDetails, loadResourceObjectUrl } from "../services/resourcesApi";
+import { downloadResourceDocument, getResourceDetails } from "../services/resourcesApi";
+import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
 import { CloseIcon } from "./icons";
 import { MarkdownView } from "./MarkdownView";
 
@@ -14,30 +16,24 @@ import { MarkdownView } from "./MarkdownView";
 export function ResourcePreview({ slug, onClose }: { slug: string; onClose(): void }) {
   const { t } = useI18n();
   const [resource, setResource] = useState<Resource | null>(null);
-  const [objectUrl, setObjectUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [detailsFailed, setDetailsFailed] = useState(false);
+  const document = resource?.kind === "document" ? resource : null;
+  const { objectUrl, mediaType, failed: previewFailed, retry } = useDocumentPreview(document);
 
   useEffect(() => {
     let active = true;
-    let loadedUrl: string | null = null;
     setResource(null);
-    setObjectUrl(null);
-    setFailed(false);
+    setDetailsFailed(false);
     void getResourceDetails(slug)
-      .then(async (details) => {
+      .then((details) => {
         if (!active) return;
         setResource(details.resource);
-        if (details.resource.kind === "document") {
-          loadedUrl = await loadResourceObjectUrl(details.resource);
-          if (active) setObjectUrl(loadedUrl);
-        }
       })
       .catch(() => {
-        if (active) setFailed(true);
+        if (active) setDetailsFailed(true);
       });
     return () => {
       active = false;
-      if (loadedUrl) URL.revokeObjectURL(loadedUrl);
     };
   }, [slug]);
 
@@ -68,19 +64,20 @@ export function ResourcePreview({ slug, onClose }: { slug: string; onClose(): vo
           </div>
         </header>
         <div className="document-viewer-content">
-          {!resource && !failed ? (
+          {!resource && !detailsFailed ? (
             <span className="spinner" role="status">
               {t("common.loading")}
             </span>
           ) : null}
-          {failed ? <p role="alert">{t("common.requestFailed")}</p> : null}
+          {detailsFailed ? <p role="alert">{t("common.requestFailed")}</p> : null}
           {resource?.kind === "text" ? (
             <div className="resource-preview-text">
               <MarkdownView markdown={resource.content} />
             </div>
           ) : null}
-          {objectUrl && resource?.kind === "document" ? (
-            <object data={objectUrl} type={resource.mediaType} aria-label={resource.fileName} />
+          {previewFailed ? <DocumentPreviewFailure onRetry={retry} /> : null}
+          {objectUrl && mediaType && resource?.kind === "document" ? (
+            <object data={objectUrl} type={mediaType} aria-label={resource.fileName} />
           ) : null}
         </div>
       </section>

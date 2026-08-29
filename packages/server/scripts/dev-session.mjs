@@ -9,6 +9,10 @@ const socketName = "hall-mairie";
 const command = process.argv[2] ?? "start";
 const healthUrls = ["http://127.0.0.1:3100/api/health", "http://127.0.0.1:5174/app/"];
 
+function ensureDocumentPreviewConverter() {
+  run("docker", ["compose", "up", "-d", "--wait", "gotenberg"]);
+}
+
 function run(program, args, options = {}) {
   const result = spawnSync(program, args, {
     cwd: projectRoot,
@@ -66,6 +70,7 @@ function stopProjectListeners() {
 
 async function start() {
   requireTmux();
+  ensureDocumentPreviewConverter();
   if (hasSession()) {
     if (await healthReady()) {
       console.log(`Session ${sessionName} déjà active : http://127.0.0.1:5174/app/`);

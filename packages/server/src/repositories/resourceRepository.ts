@@ -5,6 +5,7 @@ import type {
   CreateTextResource,
   PersistDocumentResource,
   ResourceRepository,
+  StoredDocumentPreview,
   StoredDocumentResource,
 } from "./contracts.js";
 import { uniqueSlug } from "./publicIdentifiers.js";
@@ -47,6 +48,14 @@ async function insertTags(sqlExecutor: SqlExecutor, resourceId: string, tags: st
 }
 
 export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }): ResourceRepository {
+  const mapPreview = (row: DatabaseRow): StoredDocumentPreview => ({
+    sourceContentSha256: String(row.source_content_sha256),
+    sourceFormat: row.source_format as DocumentResource["format"],
+    contentSha256: String(row.content_sha256),
+    byteSize: Number(row.byte_size),
+    content: Buffer.from(row.content as Uint8Array),
+    createdAt: String(row.created_at),
+  });
   return {
     async list(filters = {}) {
       const rows = await sqlExecutor.all("resource.list", {
@@ -68,6 +77,25 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
     async findMetadata(reference) {
       const row = await sqlExecutor.get("resource.findMetadata", { reference });
       return row ? mapStoredResource(sqlExecutor, row) : null;
+    },
+    async findPreview(sourceContentSha256, sourceFormat) {
+      const row = await sqlExecutor.get("resource.preview", { sourceContentSha256, sourceFormat });
+      return row ? mapPreview(row) : null;
+    },
+    async savePreview(preview) {
+      await sqlExecutor.run("resource.insertPreview", {
+        sourceContentSha256: preview.sourceContentSha256,
+        sourceFormat: preview.sourceFormat,
+        contentSha256: preview.contentSha256,
+        byteSize: preview.byteSize,
+        content: preview.content,
+        createdAt: preview.createdAt,
+      });
+      const stored = await sqlExecutor.get("resource.preview", {
+        sourceContentSha256: preview.sourceContentSha256,
+        sourceFormat: preview.sourceFormat,
+      });
+      return mapPreview(stored!);
     },
     async listFolderPaths() {
       return (await sqlExecutor.all("resource.folderPaths")).map((row) => String(row.folder_path));
@@ -141,8 +169,16 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
     isSnapshotted(id) {
       return sqlExecutor.get("resource.isSnapshotted", { id }).then(Boolean);
     },
-    delete(id) {
-      return sqlExecutor.run("resource.delete", { id }).then((result) => result.changes > 0);
+    async delete(id) {
+      const row = await sqlExecutor.get("resource.findMetadata", { reference: id });
+      const result = await sqlExecutor.run("resource.delete", { id });
+      if (result.changes > 0 && row?.kind === "document") {
+        await sqlExecutor.run("resource.deletePreviewIfUnused", {
+          sourceContentSha256: String(row.content_sha256),
+          sourceFormat: String(row.format),
+        });
+      }
+      return result.changes > 0;
     },
   };
 }

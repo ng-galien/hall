@@ -39,6 +39,7 @@ describe("current SQLite schema", () => {
       "council_decisions",
       "council_meetings",
       "council_members",
+      "document_previews",
       "hall_settings",
       "meeting_roster",
       "number_sequences",

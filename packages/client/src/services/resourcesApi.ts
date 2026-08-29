@@ -53,6 +53,26 @@ async function resourceContentResponse(resourceId: string): Promise<Response> {
   return apiResponse(apiPathFromHref(await resourceContentHref(resourceId)));
 }
 
+export interface ResourcePreviewObjectUrl {
+  url: string;
+  mediaType: string;
+}
+
+export async function loadResourcePreviewObjectUrl(resourceId: string): Promise<ResourcePreviewObjectUrl> {
+  const representation = await sirenRepresentation(`/resources/${resourceId}`);
+  const preview = findSirenLink(representation, "preview");
+  if (!preview) throw new SirenCapabilityUnavailable("preview");
+  const response = await apiResponse(apiPathFromHref(preview.href), {
+    headers: preview.type ? { Accept: preview.type } : undefined,
+  });
+  const blob = await response.blob();
+  const responseMediaType = response.headers.get("content-type")?.split(";", 1)[0]?.trim();
+  return {
+    url: URL.createObjectURL(blob),
+    mediaType: responseMediaType || preview.type || blob.type || "application/octet-stream",
+  };
+}
+
 export async function downloadResourceDocument(resource: DocumentResource): Promise<void> {
   const response = await resourceContentResponse(resource.id);
   const url = URL.createObjectURL(await response.blob());
@@ -61,9 +81,4 @@ export async function downloadResourceDocument(resource: DocumentResource): Prom
   link.download = resource.fileName;
   link.click();
   URL.revokeObjectURL(url);
-}
-
-export async function loadResourceObjectUrl(resource: DocumentResource): Promise<string> {
-  const response = await resourceContentResponse(resource.id);
-  return URL.createObjectURL(await response.blob());
 }

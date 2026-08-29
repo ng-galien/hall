@@ -1,9 +1,9 @@
 import type { DocumentResource } from "@hall/domain";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DocumentPreviewFailure } from "../../components/DocumentPreviewFailure";
 import { CloseIcon } from "../../components/icons";
+import { useDocumentPreview } from "../../hooks/useDocumentPreview";
 import { useI18n } from "../../i18n/I18nProvider";
-import { loadResourceObjectUrl } from "../../services/resourcesApi";
 
 export function MeetingDocumentViewer({
   document,
@@ -15,28 +15,7 @@ export function MeetingDocumentViewer({
   onDownload(document: DocumentResource): void;
 }) {
   const { t } = useI18n();
-  const [objectUrl, setObjectUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    if (!document) return;
-    let active = true;
-    let loadedUrl: string | null = null;
-    setObjectUrl(null);
-    setFailed(false);
-    void loadResourceObjectUrl(document)
-      .then((url) => {
-        loadedUrl = url;
-        if (active) setObjectUrl(url);
-      })
-      .catch(() => {
-        if (active) setFailed(true);
-      });
-    return () => {
-      active = false;
-      if (loadedUrl) URL.revokeObjectURL(loadedUrl);
-    };
-  }, [document]);
+  const { objectUrl, mediaType, failed, retry } = useDocumentPreview(document);
 
   if (!document) return null;
   return (
@@ -69,8 +48,8 @@ export function MeetingDocumentViewer({
               {t("common.loading")}
             </span>
           ) : null}
-          {failed ? <p role="alert">{t("common.requestFailed")}</p> : null}
-          {objectUrl ? <object data={objectUrl} type={document.mediaType} aria-label={document.fileName} /> : null}
+          {failed ? <DocumentPreviewFailure onRetry={retry} /> : null}
+          {objectUrl && mediaType ? <object data={objectUrl} type={mediaType} aria-label={document.fileName} /> : null}
         </div>
       </section>
     </div>

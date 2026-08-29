@@ -7,7 +7,7 @@ import type { RequestContextStore } from "../../security/requestContext.js";
 import { translatePersistenceError } from "../database/errors.js";
 import { compileQuery, type SqlExecutor, type SqlParameters, type SqlRunResult } from "../database/executor.js";
 import type { SqlQueryName } from "../database/queries.js";
-import { postgresSchema, postgresTables } from "./schema.js";
+import { postgresDocumentPreviewsSchema, postgresSchema, postgresTables } from "./schema.js";
 
 export class PostgresExecutor implements SqlExecutor {
   readonly dialect = "postgres" as const;
@@ -106,11 +106,16 @@ export class PostgresExecutor implements SqlExecutor {
            WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'
            ORDER BY table_name`,
         );
-        const tables = result.rows.map((row) => row.table_name);
+        let tables = result.rows.map((row) => row.table_name);
         if (tables.length === 0) {
           await client.query(postgresSchema);
         } else {
           const expected = [...postgresTables].sort();
+          const previous = expected.filter((table) => table !== "document_previews");
+          if (tables.length === previous.length && tables.every((table, index) => table === previous[index])) {
+            await client.query(postgresDocumentPreviewsSchema);
+            tables = expected;
+          }
           if (tables.length !== expected.length || tables.some((table, index) => table !== expected[index])) {
             throw new Error("Unsupported PostgreSQL schema: reset the database before starting Hall");
           }

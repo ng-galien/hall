@@ -258,6 +258,15 @@
     background: var(--hall-color-surface-subtle);
   }
   .document-embed object { width: 100%; height: 100%; }
+  .document-preview-failure {
+    display: grid;
+    max-width: 32rem;
+    justify-items: center;
+    gap: var(--hall-space-3);
+    padding: var(--hall-space-5);
+    text-align: center;
+    color: var(--hall-color-text-muted);
+  }
   .document-embed-expand {
     position: absolute;
     top: var(--hall-space-2);

@@ -1,8 +1,10 @@
 import type { Server } from "node:http";
+import { asValue } from "awilix";
 import request from "supertest";
 import { onTestFinished } from "vitest";
 import { createHttpApplication } from "../api/application.js";
 import { buildContainer } from "../core/container.js";
+import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
 
 export type TestAgent = ReturnType<typeof request.agent>;
 
@@ -27,7 +29,9 @@ export function domainBody<T = any>(response: { body: unknown; headers: Record<s
   return (Array.isArray(properties.items) ? properties.items : properties) as T;
 }
 
-export async function createTestServer(options: { devAutoLogin?: boolean } = {}) {
+export async function createTestServer(
+  options: { devAutoLogin?: boolean; documentPreviewConverter?: DocumentPreviewConverter } = {},
+) {
   const container = buildContainer({
     host: "127.0.0.1",
     port: 0,
@@ -36,6 +40,9 @@ export async function createTestServer(options: { devAutoLogin?: boolean } = {})
     allowedOrigins: ["http://localhost:5174", "http://127.0.0.1:5174"],
     environment: "test",
   });
+  if (options.documentPreviewConverter) {
+    container.register({ documentPreviewConverter: asValue(options.documentPreviewConverter) });
+  }
   const application = createHttpApplication(container);
   const server = await listen(application);
 

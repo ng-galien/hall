@@ -605,7 +605,14 @@ function objectLinks(request: Request, entityClass: string, value: unknown): Sir
   const id = objectId(primary);
   const reference = publicReference(entityClass, primary);
   if (entityClass === "resource" && id && reference && primary?.kind === "document") {
-    links.push({ rel: ["content"], href: `/api/resources/${reference}/content`, type: String(primary.mediaType) });
+    const contentHref = `/api/resources/${reference}/content`;
+    links.push({ rel: ["content"], href: contentHref, type: String(primary.mediaType) });
+    const format = String(primary.format);
+    if (["pdf", "jpeg", "png"].includes(format)) {
+      links.push({ rel: ["preview"], href: contentHref, type: String(primary.mediaType) });
+    } else if (["docx", "odt", "xlsx", "pptx", "txt", "csv"].includes(format)) {
+      links.push({ rel: ["preview"], href: `/api/resources/${reference}/preview`, type: "application/pdf" });
+    }
   }
   return links;
 }

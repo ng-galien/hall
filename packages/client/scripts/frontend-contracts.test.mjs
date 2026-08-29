@@ -67,12 +67,16 @@ test("session expiry remounts the authentication gate and logout consumes its Si
   assert.match(authentication, /submitSirenAction\(session\.representation, "session\.logout"\)/);
 });
 
-test("document content navigation follows the Siren content link", () => {
+test("document download and preview follow their distinct Siren links", () => {
   const resources = read("src/services/resourcesApi.ts");
   const preview = read("src/components/ResourcePreview.tsx");
   assert.match(resources, /findSirenLink\(representation, "content"\)/);
-  assert.match(preview, /loadResourceObjectUrl\(details\.resource\)/);
-  assert.doesNotMatch(`${resources}\n${preview}`, /resources\/\$\{[^}]+\}\/content/);
+  assert.match(resources, /findSirenLink\(representation, "preview"\)/);
+  assert.match(resources, /response\.headers\.get\("content-type"\)/);
+  assert.match(resources, /responseMediaType \|\| preview\.type/);
+  assert.doesNotMatch(`${resources}\n${preview}`, /resources\/\$\{[^}]+\}\/(?:content|preview)/);
+  assert.match(read("src/hooks/useDocumentPreview.ts"), /setAttempt\(\(current\) => current \+ 1\)/);
+  assert.match(read("src/components/DocumentPreviewFailure.tsx"), /resources\.previewFailed/);
 });
 
 test("document category translations are exhaustive over the domain type", () => {

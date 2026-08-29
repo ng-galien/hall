@@ -7,6 +7,7 @@ export const postgresTables = [
   "council_decisions",
   "council_meetings",
   "council_members",
+  "document_previews",
   "hall_settings",
   "meeting_roster",
   "number_sequences",
@@ -22,6 +23,18 @@ export const postgresTables = [
   "users",
   "votes",
 ] as const;
+
+export const postgresDocumentPreviewsSchema = `
+  CREATE TABLE document_previews (
+    source_content_sha256 TEXT NOT NULL CHECK (length(source_content_sha256) = 64),
+    source_format TEXT NOT NULL CHECK (source_format IN ('docx', 'odt', 'xlsx', 'pptx', 'txt', 'csv')),
+    content_sha256 TEXT NOT NULL CHECK (length(content_sha256) = 64),
+    byte_size BIGINT NOT NULL CHECK (byte_size >= 0),
+    content BYTEA NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (source_content_sha256, source_format)
+  );
+`;
 
 export const postgresSchema = `
   CREATE TABLE council_members (
@@ -181,6 +194,8 @@ export const postgresSchema = `
     category TEXT NOT NULL CHECK (category IN ('report', 'draftCouncilDecision', 'meetingNotice', 'minutes', 'proxy', 'supporting')),
     content BYTEA NOT NULL
   );
+
+  ${postgresDocumentPreviewsSchema}
 
   CREATE TABLE resource_tags (
     resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,

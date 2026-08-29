@@ -38,7 +38,7 @@ function parseTags(value: unknown): string[] {
   return resourceTagsSchema.parse(tags);
 }
 
-export function createResourcesRouter({ resourceService }: Cradle): Router {
+export function createResourcesRouter({ resourceService, documentPreviewService }: Cradle): Router {
   const router = Router();
 
   router.get("/", requirePermission("workspace.read"), async (request, response) => {
@@ -94,6 +94,17 @@ export function createResourcesRouter({ resourceService }: Cradle): Router {
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Content-Security-Policy", "sandbox");
     response.send(resource.content);
+  });
+
+  router.get("/:resourceId/preview", requirePermission("workspace.read"), async (request, response) => {
+    const preview = await documentPreviewService.get(routeParameter(request.params.resourceId));
+    response.setHeader("Content-Type", "application/pdf");
+    response.setHeader("Content-Disposition", "inline");
+    response.setHeader("Content-Length", String(preview.byteSize));
+    response.setHeader("ETag", `"${preview.contentSha256}"`);
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.setHeader("Content-Security-Policy", "sandbox");
+    response.send(preview.content);
   });
 
   router.get("/:resourceId", requirePermission("workspace.read"), async (request, response) => {

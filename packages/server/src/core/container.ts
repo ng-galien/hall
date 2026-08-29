@@ -1,6 +1,7 @@
 import { type AwilixContainer, asFunction, asValue, createContainer, InjectionMode } from "awilix";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import { createSqlExecutor } from "../infrastructure/database/factory.js";
+import { createGotenbergDocumentPreviewConverter } from "../infrastructure/documents/gotenbergDocumentPreviewConverter.js";
 import { createAgendaRepository } from "../repositories/agendaRepository.js";
 import { createAttendanceRepository } from "../repositories/attendanceRepository.js";
 import { createBallotRepository } from "../repositories/ballotRepository.js";
@@ -32,6 +33,8 @@ import { type AuthService, createAuthService } from "../services/authService.js"
 import { type BallotService, createBallotService } from "../services/ballotService.js";
 import { type ContentTemplateService, createContentTemplateService } from "../services/contentTemplateService.js";
 import { type CouncilMeetingService, createCouncilMeetingService } from "../services/councilMeetingService.js";
+import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
+import { createDocumentPreviewService, type DocumentPreviewService } from "../services/documentPreviewService.js";
 import { createDocumentRenderer, type DocumentRenderer } from "../services/documentRenderer.js";
 import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import { createMeetingAgendaService, type MeetingAgendaService } from "../services/meetingAgendaService.js";
@@ -73,6 +76,8 @@ export interface Cradle {
   hallSettingsService: HallSettingsService;
   templateRenderingService: TemplateRenderingService;
   documentRenderer: DocumentRenderer;
+  documentPreviewConverter: DocumentPreviewConverter;
+  documentPreviewService: DocumentPreviewService;
   contentTemplateService: ContentTemplateService;
 }
 
@@ -106,6 +111,8 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     hallSettingsService: asFunction(createHallSettingsService).singleton(),
     templateRenderingService: asFunction(createTemplateRenderingService).singleton(),
     documentRenderer: asFunction(createDocumentRenderer).singleton(),
+    documentPreviewConverter: asFunction(createGotenbergDocumentPreviewConverter).singleton(),
+    documentPreviewService: asFunction(createDocumentPreviewService).singleton(),
     contentTemplateService: asFunction(createContentTemplateService).singleton(),
   });
   return container;

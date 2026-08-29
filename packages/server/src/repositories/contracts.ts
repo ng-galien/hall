@@ -256,6 +256,15 @@ export interface StoredDocumentResource extends DocumentResource {
   content: Buffer;
 }
 
+export interface StoredDocumentPreview {
+  sourceContentSha256: string;
+  sourceFormat: DocumentResource["format"];
+  contentSha256: string;
+  byteSize: number;
+  content: Buffer;
+  createdAt: string;
+}
+
 export type StoredResource = TextResource | StoredDocumentResource;
 
 export interface ResourceRepository {
@@ -267,6 +276,11 @@ export interface ResourceRepository {
   }): Promise<Resource[]>;
   find(id: string): Promise<StoredResource | null>;
   findMetadata(id: string): Promise<Resource | null>;
+  findPreview(
+    sourceContentSha256: string,
+    sourceFormat: DocumentResource["format"],
+  ): Promise<StoredDocumentPreview | null>;
+  savePreview(preview: StoredDocumentPreview): Promise<StoredDocumentPreview>;
   listFolderPaths(): Promise<string[]>;
   createText(input: CreateTextResource): Promise<TextResource>;
   createDocument(input: PersistDocumentResource): Promise<DocumentResource>;

@@ -1,7 +1,7 @@
 import type { DocumentResource } from "@hall/domain";
-import { useEffect, useState } from "react";
+import { useDocumentPreview } from "../hooks/useDocumentPreview";
 import { useI18n } from "../i18n/I18nProvider";
-import { loadResourceObjectUrl } from "../services/resourcesApi";
+import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
 import { FullscreenIcon } from "./icons";
 
 /**
@@ -10,27 +10,7 @@ import { FullscreenIcon } from "./icons";
  */
 export function DocumentEmbed({ resource, onOpenFull }: { resource: DocumentResource; onOpenFull?(): void }) {
   const { t } = useI18n();
-  const [objectUrl, setObjectUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    let loadedUrl: string | null = null;
-    setObjectUrl(null);
-    setFailed(false);
-    void loadResourceObjectUrl(resource)
-      .then((url) => {
-        loadedUrl = url;
-        if (active) setObjectUrl(url);
-      })
-      .catch(() => {
-        if (active) setFailed(true);
-      });
-    return () => {
-      active = false;
-      if (loadedUrl) URL.revokeObjectURL(loadedUrl);
-    };
-  }, [resource]);
+  const { objectUrl, mediaType, failed, retry } = useDocumentPreview(resource);
 
   return (
     <div className="document-embed">
@@ -39,8 +19,8 @@ export function DocumentEmbed({ resource, onOpenFull }: { resource: DocumentReso
           {t("common.loading")}
         </span>
       ) : null}
-      {failed ? <p role="alert">{t("common.requestFailed")}</p> : null}
-      {objectUrl ? <object data={objectUrl} type={resource.mediaType} aria-label={resource.fileName} /> : null}
+      {failed ? <DocumentPreviewFailure onRetry={retry} /> : null}
+      {objectUrl && mediaType ? <object data={objectUrl} type={mediaType} aria-label={resource.fileName} /> : null}
       {onOpenFull ? (
         <button
           type="button"

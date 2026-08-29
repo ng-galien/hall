@@ -39,6 +39,9 @@ export type ApiErrorCode =
   | "request_too_large"
   | "request_failed"
   | "resource_content_unavailable"
+  | "resource_preview_conversion_failed"
+  | "resource_preview_conversion_unavailable"
+  | "resource_preview_unavailable"
   | "resource_not_found"
   | "route_not_found"
   | "attendance_not_found"
@@ -102,6 +105,9 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "request_too_large",
   "request_failed",
   "resource_content_unavailable",
+  "resource_preview_conversion_failed",
+  "resource_preview_conversion_unavailable",
+  "resource_preview_unavailable",
   "resource_not_found",
   "route_not_found",
   "attendance_not_found",
@@ -116,7 +122,7 @@ export async function apiResponse(path: string, init?: RequestInit): Promise<Res
   let response: Response;
   try {
     const headers = new Headers(init?.headers);
-    headers.set("Accept", `${SIREN_MEDIA_TYPE}, ${PROBLEM_MEDIA_TYPE}`);
+    if (!headers.has("Accept")) headers.set("Accept", `${SIREN_MEDIA_TYPE}, ${PROBLEM_MEDIA_TYPE}`);
     if (!(init?.body instanceof FormData)) headers.set("Content-Type", "application/json");
     response = await fetch(`/api${path}`, {
       ...init,

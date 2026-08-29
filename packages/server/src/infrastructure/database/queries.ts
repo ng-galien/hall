@@ -280,6 +280,19 @@ export const queries = {
   "resource.findMetadata": `${resourceSelection} WHERE resources.id = :reference OR resources.slug = :reference`,
   "resource.slugExists": "SELECT 1 FROM resources WHERE slug = :slug OR id = :slug",
   "resource.documentContent": "SELECT content FROM resource_documents WHERE resource_id = :id",
+  "resource.preview": `SELECT source_content_sha256, source_format, content_sha256, byte_size, content, created_at
+    FROM document_previews
+    WHERE source_content_sha256 = :sourceContentSha256 AND source_format = :sourceFormat`,
+  "resource.insertPreview": `INSERT INTO document_previews
+    (source_content_sha256, source_format, content_sha256, byte_size, content, created_at)
+    VALUES (:sourceContentSha256, :sourceFormat, :contentSha256, :byteSize, :content, :createdAt)
+    ON CONFLICT (source_content_sha256, source_format) DO NOTHING`,
+  "resource.deletePreviewIfUnused": `DELETE FROM document_previews
+    WHERE source_content_sha256 = :sourceContentSha256 AND source_format = :sourceFormat
+      AND NOT EXISTS (
+        SELECT 1 FROM resource_documents
+        WHERE content_sha256 = :sourceContentSha256 AND format = :sourceFormat
+      )`,
   "resource.folderPaths": `SELECT DISTINCT folder_path FROM resources WHERE folder_path <> '' ORDER BY folder_path`,
   "resource.insertTextBase": `INSERT INTO resources
     (id, slug, kind, title, folder_path, created_at, updated_at)

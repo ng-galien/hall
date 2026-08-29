@@ -176,6 +176,16 @@ postgres("PostgreSQL persistence", () => {
         contentSha256,
         content: documentContent,
       });
+      const previewContent = Buffer.from("%PDF-1.7\npreview");
+      const preview = await resourceRepository.savePreview({
+        sourceContentSha256: contentSha256,
+        sourceFormat: "docx",
+        contentSha256: createHash("sha256").update(previewContent).digest("hex"),
+        byteSize: previewContent.byteLength,
+        content: previewContent,
+        createdAt: new Date().toISOString(),
+      });
+      expect(await resourceRepository.findPreview(contentSha256, "docx")).toEqual(preview);
 
       const decision = await councilDecisionRepository.create({
         title: "Grant decision",
