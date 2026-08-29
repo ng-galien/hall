@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  type BallotSubmission,
   ballotMachineDefinition,
   councilDecisionMachineDefinition,
+  countVoteChoices,
   decideBallot,
+  deriveBallotVoters,
   evaluateBallot,
   meetingMachineDefinition,
   topicMachineDefinition,
@@ -11,6 +14,50 @@ import {
   transitionMeeting,
   transitionTopic,
 } from "./index.js";
+
+function validPublicSubmission(): Extract<BallotSubmission, { method: "public" }> {
+  return {
+    type: "SUBMIT",
+    meetingStatus: "inProgress",
+    isReconvenedMeeting: false,
+    chairMemberId: "mayor",
+    secretaryMemberId: "secretary",
+    recusedMemberIds: [],
+    method: "public",
+    votes: [
+      { memberId: "mayor", castByMemberId: "mayor", choice: "for" },
+      { memberId: "secretary", castByMemberId: "secretary", choice: "against" },
+      { memberId: "third", castByMemberId: "third", choice: "abstain" },
+    ],
+    participationEvidence: {
+      rosterMemberIds: ["mayor", "secretary", "third"],
+      attendance: [
+        {
+          memberId: "mayor",
+          status: "present",
+          proxyHolderMemberId: null,
+          proxyDocumentId: null,
+          version: 1,
+        },
+        {
+          memberId: "secretary",
+          status: "present",
+          proxyHolderMemberId: null,
+          proxyDocumentId: null,
+          version: 1,
+        },
+        {
+          memberId: "third",
+          status: "present",
+          proxyHolderMemberId: null,
+          proxyDocumentId: null,
+          version: 1,
+        },
+      ],
+      quorum: { activeMembers: 3, physicallyPresent: 3, required: 2, reached: true },
+    },
+  };
+}
 
 describe("auditable state machines", () => {
   it("keeps every definition serializable", () => {
@@ -209,5 +256,99 @@ describe("auditable state machines", () => {
     expect(transitionBallot("recordable", { type: "RECORD" })).toBe("recorded");
     expect(transitionBallot("recorded", { type: "CANCEL", meetingStatus: "scheduled" })).toBeNull();
     expect(transitionBallot("recorded", { type: "CANCEL", meetingStatus: "inProgress" })).toBe("cancelled");
+  });
+
+  it("classifies every invalid ballot prerequisite before recording", () => {
+    const valid = validPublicSubmission();
+    expect(evaluateBallot({ ...valid, meetingStatus: "scheduled" })).toBe("meetingNotInProgress");
+    expect(
+      evaluateBallot({
+        ...valid,
+        participationEvidence: {
+          ...valid.participationEvidence,
+          attendance: valid.participationEvidence.attendance.slice(0, 2),
+        },
+      }),
+    ).toBe("attendanceIncomplete");
+    expect(
+      evaluateBallot({
+        ...valid,
+        participationEvidence: {
+          ...valid.participationEvidence,
+          quorum: { ...valid.participationEvidence.quorum, physicallyPresent: 2 },
+        },
+      }),
+    ).toBe("quorumEvidenceInvalid");
+    expect(evaluateBallot({ ...valid, chairMemberId: null })).toBe("officersMissing");
+
+    const represented = {
+      memberId: "third",
+      status: "represented" as const,
+      proxyHolderMemberId: "secretary",
+      proxyDocumentId: null,
+      version: 1,
+    };
+    expect(
+      evaluateBallot({
+        ...valid,
+        participationEvidence: {
+          ...valid.participationEvidence,
+          attendance: [...valid.participationEvidence.attendance.slice(0, 2), represented],
+          quorum: { activeMembers: 3, physicallyPresent: 2, required: 2, reached: true },
+        },
+      }),
+    ).toBe("proxyInvalid");
+    expect(evaluateBallot({ ...valid, recusedMemberIds: ["third", "third"] })).toBe("recusalsInvalid");
+    expect(evaluateBallot({ ...valid, recusedMemberIds: ["absent"] })).toBe("recusalsInvalid");
+    expect(evaluateBallot({ ...valid, votes: valid.votes.slice(0, 2) })).toBe("votesInvalid");
+    expect(
+      evaluateBallot({
+        ...valid,
+        votes: valid.votes.map((vote) => (vote.memberId === "third" ? { ...vote, castByMemberId: "secretary" } : vote)),
+      }),
+    ).toBe("votesInvalid");
+  });
+
+  it("covers aggregate secret ballots, voter derivation and vote totals", () => {
+    const valid = validPublicSubmission();
+    expect(
+      evaluateBallot({
+        ...valid,
+        method: "secret",
+        totals: { votesFor: 1, votesAgainst: 1, abstentions: 1, notVoting: 0 },
+      }),
+    ).toBe("recordable");
+    expect(
+      evaluateBallot({
+        ...valid,
+        method: "secret",
+        totals: { votesFor: 1, votesAgainst: 1, abstentions: 0, notVoting: 0 },
+      }),
+    ).toBe("votesInvalid");
+    expect(deriveBallotVoters({ ...valid, recusedMemberIds: ["third"] })).toEqual([
+      { kind: "present", memberId: "mayor", castByMemberId: "mayor" },
+      { kind: "present", memberId: "secretary", castByMemberId: "secretary" },
+    ]);
+    expect(
+      deriveBallotVoters({
+        ...valid,
+        participationEvidence: {
+          ...valid.participationEvidence,
+          attendance: [
+            ...valid.participationEvidence.attendance.slice(0, 2),
+            { ...valid.participationEvidence.attendance[2], status: "absent" },
+          ],
+        },
+      }),
+    ).toHaveLength(2);
+    expect(countVoteChoices(valid.votes)).toEqual({ for: 1, against: 1, abstain: 1, notVoting: 0 });
+    expect(decideBallot({ method: "public", votesFor: 1, votesAgainst: 1, chairVote: "against" })).toEqual({
+      result: "rejected",
+      chairTieBreakApplied: true,
+    });
+    expect(decideBallot({ method: "public", votesFor: 2, votesAgainst: 1, chairVote: "against" })).toEqual({
+      result: "adopted",
+      chairTieBreakApplied: false,
+    });
   });
 });

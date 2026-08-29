@@ -64,12 +64,17 @@ Requires Node 22 or newer. Desktop packaging uses the version pinned in `.deskto
 npm install
 npm run dev
 npm run postgres:up && npm run dev:postgres
+npm run test:backend
 npm run test:postgres
 npm run desktop:dev
 npm run quality
 npm run desktop:package
 npm run smoke:package -w @hall/desktop
 ```
+
+The backend test levels and coverage gates are documented in
+[Backend testing strategy](docs/backend-testing.md). Integration and coverage runs use isolated servers and databases;
+they never reuse the shared development server or its demo data.
 
 ### Repartir d’une démonstration vide
 
