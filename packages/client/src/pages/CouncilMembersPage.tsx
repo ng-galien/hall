@@ -133,7 +133,6 @@ export function CouncilMembersPage() {
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${fieldId}-role`}>{t("members.role")}</Label>
-                {/* Champ non contrôlé : `name` fait rendre à Radix un champ caché lu par FormData. */}
                 <Select name="role" required defaultValue="councillor">
                   <SelectTrigger id={`${fieldId}-role`} className="w-full">
                     <SelectValue />

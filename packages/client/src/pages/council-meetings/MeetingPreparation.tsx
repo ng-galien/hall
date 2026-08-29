@@ -1,3 +1,4 @@
+import type { DocumentaryResource } from "@hall/domain";
 import { type FormEvent, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -172,8 +173,8 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             aggregate={aggregate}
             members={rosterMembers}
             documents={resources.filter(
-              (resource): resource is Extract<typeof resource, { kind: "document" }> =>
-                resource.kind === "document" && resource.meetingId === meeting.id,
+              (resource): resource is DocumentaryResource =>
+                resource.kind === "document" && resource.usage === "document" && resource.meetingId === meeting.id,
             )}
             officersEditable={meetingActions.can("meeting.set-officers")}
             documentsEditable={canUpload}

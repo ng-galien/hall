@@ -12,6 +12,7 @@ import type {
   UpdateCouncilBusinessContent,
 } from "../repositories/contracts.js";
 import { normalizedAgendaItemIds } from "./agendaOrderPolicy.js";
+import type { EditorAssetService } from "./editorAssetService.js";
 import { DomainError } from "./errors.js";
 
 export interface CouncilBusinessService {
@@ -33,6 +34,7 @@ export function createCouncilBusinessService({
   unitOfWork,
   agendaItemRepository,
   ballotRepository,
+  editorAssetService,
 }: {
   councilBusinessRepository: CouncilBusinessRepository;
   councilCommitteeRepository: CouncilCommitteeRepository;
@@ -42,12 +44,15 @@ export function createCouncilBusinessService({
   unitOfWork: UnitOfWork;
   agendaItemRepository: AgendaItemRepository;
   ballotRepository: BallotRepository;
+  editorAssetService: EditorAssetService;
 }): CouncilBusinessService {
   const validateResources = async (resourceIds: string[]) => {
     for (const resourceId of resourceIds) {
-      if (!(await resourceRepository.findMetadata(resourceId))) {
+      const resource = await resourceRepository.findMetadata(resourceId);
+      if (!resource) {
         throw new DomainError("resource_not_found", 404);
       }
+      if (resource.kind === "document" && resource.usage === "editorAsset") throw new DomainError("conflict", 409);
     }
   };
   const validateCommittee = async (committeeId: string | null | undefined) => {
@@ -106,7 +111,9 @@ export function createCouncilBusinessService({
         if (input.kind === "minutesApproval" && !(await councilMeetingRepository.find(input.minutesOfMeetingId))) {
           throw new DomainError("meeting_not_found", 404);
         }
-        return councilBusinessRepository.create(input);
+        const business = await councilBusinessRepository.create(input);
+        await editorAssetService.reconcile({ kind: "councilBusinessReport", id: business.id }, business.report);
+        return business;
       });
     },
     update(id, input) {
@@ -135,6 +142,7 @@ export function createCouncilBusinessService({
           councilDecisionId,
           committeeId,
         });
+        await editorAssetService.reconcile({ kind: "councilBusinessReport", id: updated.id }, updated.report);
         if (councilDecisionId && input.title !== business.title && !(await decisionBindingIsFrozen(business.id))) {
           const decision = await councilDecisionRepository.find(councilDecisionId);
           if (decision && ["draft", "ready", "scheduled"].includes(decision.status)) {
@@ -178,6 +186,7 @@ export function createCouncilBusinessService({
           draftText: input.draftText,
           legalityReviewRequired: true,
         });
+        await editorAssetService.reconcile({ kind: "councilDecisionDraft", id: decision.id }, decision.draftText);
         if (currentOccurrence?.status === "scheduled") {
           const next = transitionCouncilDecision(decision.status, { type: "SCHEDULE" });
           if (next !== "scheduled") throw new DomainError("agenda_inconsistent", 409);
@@ -223,6 +232,7 @@ export function createCouncilBusinessService({
           committeeId: business.committeeId,
         });
         await normalizeCurrentAgenda(business.id);
+        await editorAssetService.purgeOwner({ kind: "councilDecisionDraft", id: decision.id });
         await councilDecisionRepository.remove(decision.id);
         return updated;
       });

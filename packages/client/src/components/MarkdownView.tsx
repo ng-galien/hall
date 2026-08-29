@@ -1,4 +1,4 @@
-import { isReferenceKind } from "@hall/templating";
+import { isImageAlignment, isImageDirective, isImageWidth, isReferenceKind } from "@hall/templating";
 import type { Root } from "mdast";
 import type { ComponentProps } from "react";
 import ReactMarkdown from "react-markdown";
@@ -6,6 +6,7 @@ import rehypeRaw from "rehype-raw";
 import remarkDirective from "remark-directive";
 import remarkGfm from "remark-gfm";
 import { visit } from "unist-util-visit";
+import { ResourceImageFigure } from "./editor/images";
 import { ReferenceBadge } from "./editor/references";
 
 const allowedElements = [
@@ -25,6 +26,7 @@ const allowedElements = [
   "pre",
   "a",
   "img",
+  "figure",
   "span",
   "table",
   "thead",
@@ -36,11 +38,7 @@ const allowedElements = [
   "col",
 ];
 
-/**
- * Les références du contrat (`:member[…]{#id}`…) s'affichent en puces, comme dans l'éditeur.
- * Une directive hors contrat n'est pas rendue : remark-directive la retire du texte, ce qui
- * suit la règle du contrat — préservée à la sérialisation, non rendue.
- */
+/** Renders contract reference directives as badges; other directives are dropped from the output. */
 function remarkReferences() {
   return (tree: Root) => {
     visit(tree, "textDirective", (node) => {
@@ -54,10 +52,30 @@ function remarkReferences() {
         },
       };
     });
+    visit(tree, "leafDirective", (node) => {
+      if (!isImageDirective(node.name)) return;
+      const id = node.attributes?.id;
+      const align = node.attributes?.align;
+      const width = node.attributes?.width;
+      const alt = node.children
+        .flatMap((child) => (child.type === "text" ? [child.value] : []))
+        .join("")
+        .trim();
+      if (!id || !alt || typeof align !== "string" || typeof width !== "string") return;
+      if (!isImageAlignment(align) || !isImageWidth(width)) return;
+      node.data = {
+        hName: "figure",
+        hProperties: {
+          "data-resource-image": id,
+          "data-image-alt": alt,
+          "data-image-align": align,
+          "data-image-width": Number(width),
+        },
+      };
+    });
   };
 }
 
-/** La même puce que dans l'éditeur : les deux vues montrent le même document. */
 function ReferenceSpan({ node, children, ...props }: ComponentProps<"span"> & { node?: unknown }) {
   const raw = props as Record<string, unknown>;
   const kind = raw["data-kind"];
@@ -72,18 +90,33 @@ function ReferenceSpan({ node, children, ...props }: ComponentProps<"span"> & { 
   return <span {...props}>{children}</span>;
 }
 
+function ImageFigure({ node, ...props }: ComponentProps<"figure"> & { node?: unknown }) {
+  const raw = props as Record<string, unknown>;
+  const id = raw["data-resource-image"];
+  const alt = raw["data-image-alt"];
+  const align = raw["data-image-align"];
+  const width = raw["data-image-width"];
+  if (
+    typeof id === "string" &&
+    typeof alt === "string" &&
+    typeof align === "string" &&
+    isImageAlignment(align) &&
+    isImageWidth(String(width))
+  ) {
+    return <ResourceImageFigure id={id} alt={alt} align={align} width={Number(width)} />;
+  }
+  return null;
+}
+
 export function MarkdownView({ markdown, className }: { markdown: string; className?: string }) {
   return (
     <div className={className ? `markdown-content ${className}` : "markdown-content"}>
-      {/* GFM : sans lui un tableau saisi dans l'éditeur s'afficherait ici en barres verticales.
-          rehype-raw : une table riche (fusions, largeurs) voyage en HTML embarqué dans le
-          markdown — même contrat que le rendu serveur ; l'allowlist ci-dessus reste le filtre. */}
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkDirective, remarkReferences]}
         rehypePlugins={[rehypeRaw]}
         allowedElements={allowedElements}
         unwrapDisallowed
-        components={{ span: ReferenceSpan }}
+        components={{ span: ReferenceSpan, figure: ImageFigure }}
       >
         {markdown}
       </ReactMarkdown>

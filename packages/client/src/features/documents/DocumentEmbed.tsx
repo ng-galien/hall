@@ -4,10 +4,7 @@ import { useDocumentPreview } from "../../hooks/useDocumentPreview";
 import { useI18n } from "../../i18n/I18nProvider";
 import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
 
-/**
- * L'aperçu embarqué d'un document : le PDF ou l'image se lit sur place, dans l'établi,
- * au lieu d'un lien à suivre. Le plein écran reste à un clic.
- */
+/** Inline document preview; PDFs and images render in place, with an optional full-screen action. */
 export function DocumentEmbed({ resource, onOpenFull }: { resource: DocumentResource; onOpenFull?(): void }) {
   const { t } = useI18n();
   const { objectUrl, mediaType, failed, retry } = useDocumentPreview(resource);

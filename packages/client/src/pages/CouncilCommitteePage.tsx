@@ -513,7 +513,7 @@ export function CouncilCommitteePage() {
                         <Link className="admin-membership-link" to={`/council-members/${membership.councilMemberId}`}>
                           <strong>{memberName(member, t("members.unknownMember"))}</strong>
                           <span>
-                            {t(`committeeRole.${membership.role}`)} · {formatDate(membership.startedOn)} —{" "}
+                            {t(`committeeRole.${membership.role}`)} · {formatDate(membership.startedOn)} -{" "}
                             {membership.endedOn ? formatDate(membership.endedOn) : ""}
                           </span>
                         </Link>

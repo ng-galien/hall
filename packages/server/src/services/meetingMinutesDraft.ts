@@ -50,7 +50,7 @@ export function renderMeetingMinutesDraft(aggregate: MeetingAggregate, members: 
     const proxy = attendance.proxyHolderMemberId
       ? ` par ${memberName(attendance.proxyHolderMemberId)}${attendance.proxyDocumentId ? " (pouvoir écrit enregistré)" : ""}`
       : "";
-    lines.push(`- ${memberName(attendance.memberId)} — ${attendanceLabels[attendance.status]}${proxy}`);
+    lines.push(`- ${memberName(attendance.memberId)} - ${attendanceLabels[attendance.status]}${proxy}`);
   }
   if (aggregate.attendance.length === 0) lines.push("- Aucune présence consignée.");
 

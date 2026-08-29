@@ -58,7 +58,7 @@ describe("document policy", () => {
       "png",
       "image/png",
     ],
-    ["note.txt", Buffer.from("Texte UTF-8 — mairie"), "txt", "text/plain; charset=utf-8"],
+    ["note.txt", Buffer.from("Texte UTF-8 - mairie"), "txt", "text/plain; charset=utf-8"],
     ["table.csv", Buffer.from("nom;voix\nAlice;1"), "csv", "text/csv; charset=utf-8"],
     [
       "rapport.docx",

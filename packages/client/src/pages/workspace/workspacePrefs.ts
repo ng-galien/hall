@@ -16,7 +16,7 @@ interface WorkspacePrefsState {
 
 const samePin = (left: WorkspacePin, right: WorkspacePin) => left.kind === right.kind && left.id === right.id;
 
-/** Préférences locales de l'espace de travail (repli de l'arbre, épinglés). */
+/** Local workspace preferences (tree collapse, pins). */
 export const useWorkspacePrefsStore = create<WorkspacePrefsState>()(
   persist(
     (set, get) => ({

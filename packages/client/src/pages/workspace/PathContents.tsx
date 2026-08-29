@@ -49,7 +49,6 @@ function ContentRow({
       }}
     >
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-        {/* Déclencheur invisible : le menu s'ouvre au clic droit sur la ligne et s'ancre ici. */}
         <DropdownMenuTrigger asChild>
           <span aria-hidden="true" className="sr-only" tabIndex={-1} />
         </DropdownMenuTrigger>

@@ -5,7 +5,21 @@
   "linter": {
     "rules": {
       "recommended": true,
-      "style": { "noNonNullAssertion": "off" }
+      "complexity": { "noUselessCatch": "error" },
+      "correctness": {
+        "noUnusedImports": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noUnusedVariables": "error"
+      },
+      "style": {
+        "noNonNullAssertion": "off",
+        "useThrowOnlyError": "error"
+      },
+      "suspicious": {
+        "noEmptyBlockStatements": "error",
+        "noExplicitAny": "error",
+        "noSkippedTests": "error"
+      }
     }
   },
   "javascript": { "formatter": { "quoteStyle": "double", "trailingCommas": "all" } }

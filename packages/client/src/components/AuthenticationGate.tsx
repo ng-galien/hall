@@ -3,14 +3,17 @@ import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ApiError, AUTHENTICATION_REQUIRED_EVENT, apiErrorCode } from "../services/apiClient";
+import { useI18n } from "../i18n/I18nProvider";
+import { ApiError, type ApiErrorCode, AUTHENTICATION_REQUIRED_EVENT, apiErrorCode } from "../services/apiClient";
 import { type AuthenticationStatus, authenticate, getAuthenticationStatus, getSession } from "../services/authApi";
+import { errorTranslationKeys } from "./Ui";
 
 export function AuthenticationGate({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<AuthenticationStatus | null>(null);
   const [representation, setRepresentation] = useState<SirenEntity<Record<string, unknown>> | null>(null);
   const [principal, setPrincipal] = useState<ApiPrincipal | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiErrorCode | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -59,32 +62,32 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
   };
 
   if (principal) return children;
-  if (!status && !error) return <main className="authentication-shell">Chargement…</main>;
+  if (!status && !error) return <main className="authentication-shell">{t("common.loading")}</main>;
   return (
     <main className="authentication-shell">
       <form className="authentication-panel" onSubmit={submit}>
-        <p className="eyebrow">Conseil municipal</p>
-        <h1>{status?.bootstrapRequired ? "Créer le premier administrateur" : "Connexion"}</h1>
+        <p className="eyebrow">{t("navigation.council")}</p>
+        <h1>{t(status?.bootstrapRequired ? "auth.bootstrapTitle" : "auth.signInTitle")}</h1>
         {status?.bootstrapRequired ? (
           <>
             <div className="grid gap-1.5">
-              <Label htmlFor="auth-display-name">Nom affiché</Label>
+              <Label htmlFor="auth-display-name">{t("auth.displayName")}</Label>
               <Input id="auth-display-name" name="displayName" autoComplete="name" required />
             </div>
             {status.bootstrapTokenRequired ? (
               <div className="grid gap-1.5">
-                <Label htmlFor="auth-setup-token">Jeton d’initialisation</Label>
+                <Label htmlFor="auth-setup-token">{t("auth.setupToken")}</Label>
                 <Input id="auth-setup-token" name="setupToken" type="password" autoComplete="off" required />
               </div>
             ) : null}
           </>
         ) : null}
         <div className="grid gap-1.5">
-          <Label htmlFor="auth-email">Adresse électronique</Label>
+          <Label htmlFor="auth-email">{t("auth.email")}</Label>
           <Input id="auth-email" name="email" type="email" autoComplete="username" required />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="auth-password">Mot de passe</Label>
+          <Label htmlFor="auth-password">{t("auth.password")}</Label>
           <Input
             id="auth-password"
             name="password"
@@ -94,9 +97,9 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
             required
           />
         </div>
-        {error ? <p className="form-error">{error}</p> : null}
+        {error ? <p className="form-error">{t(errorTranslationKeys[error])}</p> : null}
         <Button type="submit" disabled={submitting || !representation}>
-          {submitting ? "Validation…" : status?.bootstrapRequired ? "Initialiser" : "Se connecter"}
+          {t(submitting ? "auth.submitting" : status?.bootstrapRequired ? "auth.bootstrapSubmit" : "auth.signInSubmit")}
         </Button>
       </form>
     </main>

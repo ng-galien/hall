@@ -19,9 +19,9 @@ async function createMember(agent: TestAgent, firstName: string, role = "council
 
 async function createOpenMeeting(agent: TestAgent, title: string, businessId: string) {
   const members = await Promise.all([
-    createMember(agent, `${title} — maire`, "mayor"),
-    createMember(agent, `${title} — secrétaire`),
-    createMember(agent, `${title} — conseiller`),
+    createMember(agent, `${title} - maire`, "mayor"),
+    createMember(agent, `${title} - secrétaire`),
+    createMember(agent, `${title} - conseiller`),
   ]);
   const meeting = domainBody(
     await agent
@@ -55,7 +55,7 @@ async function createTextResource(agent: TestAgent, title: string, folderPath: s
   return domainBody(
     await agent
       .post("/api/resources/texts")
-      .send({ title, folderPath, tags: [], content: `${title} — contenu` })
+      .send({ title, folderPath, tags: [], content: `${title} - contenu` })
       .expect(201),
   ) as { id: string };
 }
@@ -222,7 +222,7 @@ describe("business occurrences and history", () => {
         .send({
           kind: "matter",
           councilDecisionId: decision.id,
-          title: "Travaux de voirie — première présentation",
+          title: "Travaux de voirie - première présentation",
           report: "Rapport initial",
           folderPath: "Voirie",
           resourceIds: [originalResource.id],
@@ -244,14 +244,14 @@ describe("business occurrences and history", () => {
     const rewritten = await agent
       .put(`/api/council-business/${business.id}`)
       .send({
-        title: "Travaux de voirie — dossier complété",
+        title: "Travaux de voirie - dossier complété",
         report: "Nouveau rapport",
         folderPath: "Voirie/Travaux",
         resourceIds: [replacementResource.id],
       })
       .expect(200);
     expect(domainBody(rewritten)).toMatchObject({
-      title: "Travaux de voirie — dossier complété",
+      title: "Travaux de voirie - dossier complété",
       folderPath: "Voirie/Travaux",
     });
 
@@ -259,7 +259,7 @@ describe("business occurrences and history", () => {
     expect(domainBody(firstMeetingArchive).agendaItems[0]).toMatchObject({
       status: "postponed",
       business: {
-        title: "Travaux de voirie — première présentation",
+        title: "Travaux de voirie - première présentation",
         report: "Rapport initial",
         folderPath: "Voirie",
       },

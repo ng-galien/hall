@@ -1,12 +1,11 @@
 /**
- * Seed de développement — commune fictive de Saint-Aubin.
+ * Development seed for the fictional municipality of Saint-Aubin.
  *
- * Peuple le serveur via l'API HTTP (jamais en SQL direct) :
- * membres, ressources classées par chemins, travaux du conseil, délibérations,
- * une séance passée entièrement déroulée (présences, pouvoirs, scrutins),
- * une séance à venir programmée et une séance en préparation.
+ * Populates the server through its HTTP API, never through direct SQL: members,
+ * classified resources, council business, decisions, one completed meeting,
+ * one scheduled meeting, and one meeting in preparation.
  *
- * Prérequis : serveur de dev démarré (npm run dev) sur une base vide.
+ * Requires a running development server backed by an empty database.
  */
 import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
@@ -40,11 +39,11 @@ const get = (path) => request("GET", path);
 const post = (path, body) => request("POST", path, body);
 const put = (path, body) => request("PUT", path, body);
 
-/** Génère un PDF A4 d'une page (Helvetica, WinAnsi) sans dépendance. */
+/** Generates a dependency-free, single-page A4 PDF using Helvetica and WinAnsi. */
 function makePdf(title, lines) {
   const esc = (text) =>
     text
-      .replace(/—/g, "-")
+      .replace(/\u2014/g, "-")
       .replace(/’/g, "'")
       .replace(/œ/g, "oe")
       .replace(/…/g, "...")
@@ -292,7 +291,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("— Configuration de la commune");
+  console.log("- Configuration de la commune");
   await put("/settings", {
     name: "Saint-Aubin",
     inseeCode: "12345",
@@ -313,7 +312,7 @@ async function main() {
     outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
   });
 
-  console.log("— Membres du conseil");
+  console.log("- Membres du conseil");
   const membersSpec = [
     ["Martine", "Delcourt", "mayor"],
     ["Bernard", "Lefèvre", "deputyMayor"],
@@ -349,7 +348,7 @@ async function main() {
     });
   }
 
-  console.log("— Commissions municipales");
+  console.log("- Commissions municipales");
   const schoolCommittee = await post("/council-committees", {
     name: "Commission affaires scolaires",
     description: "Prépare les sujets relatifs aux écoles et à la restauration scolaire.",
@@ -379,7 +378,7 @@ async function main() {
     startedOn: "2026-03-15",
   });
 
-  console.log("— Utilisateurs, rôles et rattachements au conseil");
+  console.log("- Utilisateurs, rôles et rattachements au conseil");
   const usersSpec = [
     {
       email: "martine.delcourt@saint-aubin.fr",
@@ -421,9 +420,9 @@ async function main() {
   }
   console.log(`  Mot de passe de démonstration : ${DEMO_PASSWORD}`);
 
-  console.log("— Ressources (textes et documents)");
+  console.log("- Ressources (textes et documents)");
   const noteCadrage = await post("/resources/texts", {
-    title: "Note de cadrage — éclairage public",
+    title: "Note de cadrage - éclairage public",
     folderPath: "travaux/eclairage",
     tags: ["travaux", "éclairage"],
     content:
@@ -437,7 +436,7 @@ async function main() {
       "## Inscription\n\nL'inscription se fait au trimestre via le portail famille.\n\n## Tarification\n\nLes tarifs sont fixés par délibération du conseil municipal selon le quotient familial.",
   });
   const rapportEclairage = await uploadPdf({
-    title: "Rapport — éclairage public tranche 2",
+    title: "Rapport - éclairage public tranche 2",
     fileName: "rapport-eclairage-tranche2.pdf",
     folderPath: "travaux/eclairage",
     category: "report",
@@ -453,7 +452,7 @@ async function main() {
     ],
   });
   const planFinancement = await uploadPdf({
-    title: "Plan de financement — éclairage",
+    title: "Plan de financement - éclairage",
     fileName: "plan-financement-eclairage.pdf",
     folderPath: "travaux/eclairage",
     category: "supporting",
@@ -478,7 +477,7 @@ async function main() {
     ],
   });
   const avisDomaines = await uploadPdf({
-    title: "Avis des Domaines — parcelle AB 127",
+    title: "Avis des Domaines - parcelle AB 127",
     fileName: "avis-domaines-AB127.pdf",
     folderPath: "urbanisme/cessions",
     category: "supporting",
@@ -503,7 +502,7 @@ async function main() {
     ],
   });
 
-  console.log("— Travaux du conseil et délibérations (« soumettre au vote »)");
+  console.log("- Travaux du conseil et délibérations (« soumettre au vote »)");
   const submitToVote = async (business, draftText) =>
     Object.assign(business, await post(`/council-business/${business.id}/decision`, { draftText }));
   const businessCession = await post("/council-business", {
@@ -548,7 +547,7 @@ async function main() {
   });
   const businessEclairage = await post("/council-business", {
     kind: "matter",
-    title: "Éclairage public — engagement de la tranche 2",
+    title: "Éclairage public - engagement de la tranche 2",
     report:
       "Après la tranche 1 achevée au printemps, la tranche 2 couvre le centre-bourg et les abords de l'école. Le plan de financement intègre la subvention du SDE.",
     folderPath: "travaux/eclairage",
@@ -572,7 +571,7 @@ async function main() {
   );
   const businessRentree = await post("/council-business", {
     kind: "matter",
-    title: "Rentrée scolaire — bilan et effectifs",
+    title: "Rentrée scolaire - bilan et effectifs",
     report: "Point d'information : 142 élèves inscrits (+6), ouverture d'un poste d'ATSEM à mi-temps.",
     folderPath: "ecole",
     resourceIds: [],
@@ -584,10 +583,9 @@ async function main() {
     folderPath: "",
     resourceIds: [],
   });
-  // Restent volontairement « à inscrire » (backlog de préparation).
   await post("/council-business", {
     kind: "matter",
-    title: "Rénovation de la salle des fêtes — étude préalable",
+    title: "Rénovation de la salle des fêtes - étude préalable",
     report: "Lancement d'une étude de programmation (toiture, chauffage, accessibilité).",
     folderPath: "travaux/salle-des-fetes",
     resourceIds: [],
@@ -600,7 +598,7 @@ async function main() {
     resourceIds: [],
   });
 
-  console.log("— Séance passée : préparation");
+  console.log("- Séance passée : préparation");
   const pastMeeting = await post("/council-meetings", {
     startsAt: daysFromNow(-14),
     location: "Salle du conseil",
@@ -615,9 +613,9 @@ async function main() {
     secretaryMemberId: members.Renaud.id,
   });
 
-  console.log("— Séance passée : présences et pouvoirs");
+  console.log("- Séance passée : présences et pouvoirs");
   const proxyDocument = await uploadPdf({
-    title: "Pouvoir — Olivier Fontaine",
+    title: "Pouvoir - Olivier Fontaine",
     fileName: "pouvoir-fontaine.pdf",
     meetingId: pastMeeting.id,
     category: "proxy",
@@ -652,7 +650,7 @@ async function main() {
   });
   await put(`/council-meetings/${pastMeeting.id}/status`, { status: "inProgress" });
 
-  console.log("— Séance passée : déroulé, scrutins, clôture");
+  console.log("- Séance passée : déroulé, scrutins, clôture");
   const publicVotes = (aggregate, choiceByMemberId = {}) =>
     aggregate.attendance
       .filter((attendance) => ["present", "represented"].includes(attendance.status))
@@ -681,7 +679,7 @@ async function main() {
     },
     {
       business: businessMotion,
-      ballot: { agendaItemId: null }, // renseigné après démarrage
+      ballot: { agendaItemId: null },
       choices: { [members.Morel.id]: "abstain" },
       notes: "Lecture de la motion. Le conseil souhaite y associer la chambre de commerce.",
     },
@@ -713,7 +711,7 @@ async function main() {
   await put(`/council-meetings/${pastMeeting.id}/status`, { status: "closed" });
   await post(`/council-meetings/${pastMeeting.id}/minutes/finalize`, {});
 
-  console.log("— Séance à venir : ordre du jour et convocation");
+  console.log("- Séance à venir : ordre du jour et convocation");
   const upcomingMeeting = await post("/council-meetings", {
     startsAt: daysFromNow(9),
     location: "Salle du conseil",
@@ -728,7 +726,7 @@ async function main() {
     secretaryMemberId: members.Renaud.id,
   });
   await uploadPdf({
-    title: "Convocation — séance de septembre",
+    title: "Convocation - séance de septembre",
     fileName: "convocation-septembre.pdf",
     meetingId: upcomingMeeting.id,
     category: "meetingNotice",
@@ -741,14 +739,11 @@ async function main() {
     ],
   });
 
-  console.log("— Fonds documentaire (plan de classement complet)");
-  /* Volume réaliste : l'arborescence de l'espace de travail se replie au-delà de six dossiers,
-     et la recherche à facettes n'a d'intérêt qu'avec de la matière. Ce fonds sert à travailler
-     ces deux écrans à l'échelle, pas seulement à remplir la base. */
+  console.log("- Fonds documentaire (plan de classement complet)");
   const libraryTexts = [
     [
       "administration/arretes",
-      "Arrêté de voirie — rue des Écoles",
+      "Arrêté de voirie - rue des Écoles",
       ["arrêté", "voirie"],
       "Le stationnement est interdit rue des Écoles du 3 au 14 mars pour permettre la réfection du trottoir.\n\nUne déviation piétonne est mise en place par la place de la Mairie.",
     ],
@@ -766,7 +761,7 @@ async function main() {
     ],
     [
       "administration/personnel",
-      "Régime indemnitaire — note de cadrage",
+      "Régime indemnitaire - note de cadrage",
       ["personnel", "finances"],
       "La refonte du régime indemnitaire doit être délibérée avant le vote du budget primitif, après avis du comité social territorial.",
     ],
@@ -802,7 +797,7 @@ async function main() {
     ],
     [
       "finances/budget",
-      "Note de synthèse — budget primitif",
+      "Note de synthèse - budget primitif",
       ["budget"],
       "Le budget primitif est présenté en équilibre réel, sections de fonctionnement et d'investissement, conformément au cadre M57.",
     ],
@@ -826,7 +821,7 @@ async function main() {
     ],
     [
       "finances/marches",
-      "Procédure adaptée — seuils applicables",
+      "Procédure adaptée - seuils applicables",
       ["marchés"],
       "En deçà du seuil de procédure formalisée, la commune retient une procédure adaptée avec publicité sur le profil d'acheteur.",
     ],
@@ -838,7 +833,7 @@ async function main() {
     ],
     [
       "urbanisme/plu",
-      "Orientations d'aménagement — secteur nord",
+      "Orientations d'aménagement - secteur nord",
       ["urbanisme", "PLU"],
       "Le secteur nord est destiné à une opération d'ensemble à dominante d'habitat, avec maintien d'une frange plantée le long du chemin rural.",
     ],
@@ -850,7 +845,7 @@ async function main() {
     ],
     [
       "urbanisme/permis",
-      "Instruction des permis — circuit interne",
+      "Instruction des permis - circuit interne",
       ["urbanisme"],
       "Dépôt en mairie, complétude sous un mois, instruction par le service mutualisé, décision signée par le maire.",
     ],
@@ -898,7 +893,7 @@ async function main() {
     ],
     [
       "ecole/effectifs",
-      "Prévision des effectifs — rentrée 2027",
+      "Prévision des effectifs - rentrée 2027",
       ["école"],
       "Cent trente-huit élèves attendus sur six classes, soit une hausse de quatre élèves qui ne remet pas en cause la carte scolaire.",
     ],
@@ -910,7 +905,7 @@ async function main() {
     ],
     [
       "social/ccas",
-      "Aide facultative — barème",
+      "Aide facultative - barème",
       ["CCAS", "social"],
       "L'aide facultative est plafonnée à 300 € par foyer et par année civile, sur décision du conseil d'administration.",
     ],
@@ -946,7 +941,7 @@ async function main() {
     ],
     [
       "environnement/dechets",
-      "Collecte des déchets — nouveaux horaires",
+      "Collecte des déchets - nouveaux horaires",
       ["déchets"],
       "La collecte des ordures ménagères passe au mardi matin ; les emballages restent collectés le vendredi des semaines paires.",
     ],
@@ -970,7 +965,7 @@ async function main() {
     ],
     [
       "securite/risques",
-      "Plan communal de sauvegarde — synthèse",
+      "Plan communal de sauvegarde - synthèse",
       ["sécurité", "risques"],
       "Le plan recense les risques d'inondation et de tempête, et désigne les responsables de chaque cellule de crise.",
     ],
@@ -1004,8 +999,6 @@ async function main() {
   }
   console.log(`  ${libraryTexts.length} textes classés`);
 
-  /* Les lignes de PDF restent sans accent : la police Helvetica du generateur est encodee en
-     WinAnsi et le rendu des caracteres composes n'est pas garanti. */
   const libraryPdfs = [
     [
       "administration/arretes",
@@ -1019,13 +1012,13 @@ async function main() {
     ],
     [
       "elections",
-      "Liste électorale — extrait",
+      "Liste électorale - extrait",
       "liste-electorale-extrait.pdf",
       ["Extrait de la liste electorale generale", "Arrete au 28 fevrier - 1 842 electeurs inscrits."],
     ],
     [
       "finances/budget",
-      "Budget primitif 2026 — annexes",
+      "Budget primitif 2026 - annexes",
       "budget-primitif-2026-annexes.pdf",
       [
         "Annexes au budget primitif 2026",
@@ -1061,7 +1054,7 @@ async function main() {
     ],
     [
       "urbanisme/plu",
-      "Règlement graphique — extrait",
+      "Règlement graphique - extrait",
       "plu-reglement-graphique.pdf",
       ["Plan local d'urbanisme", "Extrait du reglement graphique, secteur nord."],
     ],
@@ -1073,13 +1066,13 @@ async function main() {
     ],
     [
       "travaux/voirie",
-      "Devis — chemin de la Fontaine",
+      "Devis - chemin de la Fontaine",
       "devis-chemin-fontaine.pdf",
       ["Devis de refection de chaussee", "Chemin de la Fontaine - 620 metres lineaires", "Montant : 48 200 EUR HT"],
     ],
     [
       "travaux/batiments",
-      "Audit énergétique — mairie",
+      "Audit énergétique - mairie",
       "audit-energetique-mairie.pdf",
       [
         "Audit energetique du batiment de la mairie",
@@ -1154,7 +1147,7 @@ async function main() {
     fileName: "convention-mise-a-disposition.docx",
     folderPath: "culture/associations",
     category: "supporting",
-    content: makeDocx("Convention de mise à disposition — document de démonstration Hall"),
+    content: makeDocx("Convention de mise à disposition - document de démonstration Hall"),
     mediaType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
   await uploadDocument({
@@ -1180,7 +1173,7 @@ async function main() {
   });
   console.log("  4 documents multi-formats classés (PNG, DOCX, CSV, XLSX)");
 
-  console.log("— Templates PDF et Outlook");
+  console.log("- Templates PDF et Outlook");
   await post("/templates", {
     kind: "pdf",
     documentType: "meeting-notice",
@@ -1200,7 +1193,7 @@ async function main() {
       "Bonjour,\n\nVous êtes convoqué au **conseil municipal**, le :field{name=meeting.startsAt}, à :field{name=meeting.location}.\n\nLa convocation et les pièces préparatoires sont jointes à ce message.",
   });
 
-  console.log("— Séance en préparation");
+  console.log("- Séance en préparation");
   await post("/council-meetings", {
     startsAt: daysFromNow(65),
     location: "Salle du conseil",

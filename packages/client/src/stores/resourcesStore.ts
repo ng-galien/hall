@@ -8,6 +8,7 @@ import {
   downloadResourceDocument,
   listResources,
   updateResource,
+  uploadEditorAsset,
   uploadResourceDocument,
 } from "../services/resourcesApi";
 
@@ -17,11 +18,13 @@ interface ResourcesState {
   error: ApiErrorCode | null;
   canCreateText: boolean;
   canUpload: boolean;
+  canUploadEditorAsset: boolean;
   updatableIds: string[];
   load(): Promise<void>;
   createText(input: Record<string, unknown>): Promise<boolean>;
   update(resourceId: string, input: Record<string, unknown>): Promise<boolean>;
-  upload(form: FormData): Promise<boolean>;
+  upload(form: FormData): Promise<Resource | null>;
+  uploadEditorAsset(form: FormData): Promise<Resource | null>;
   download(resource: DocumentResource): Promise<boolean>;
   remove(resourceId: string): Promise<boolean>;
 }
@@ -32,6 +35,7 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
   error: null,
   canCreateText: false,
   canUpload: false,
+  canUploadEditorAsset: false,
   updatableIds: [],
   async load() {
     set({ loading: true, error: null });
@@ -50,6 +54,7 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
         resources,
         canCreateText: Boolean(findSirenAction(representation, "resource.create-text")),
         canUpload: Boolean(findSirenAction(representation, "resource.create-document")),
+        canUploadEditorAsset: Boolean(findSirenAction(representation, "resource.create-editor-asset")),
         updatableIds,
         loading: false,
       });
@@ -82,12 +87,21 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
   async upload(form) {
     set({ error: null });
     try {
-      await uploadResourceDocument(form);
+      const created = await uploadResourceDocument(form);
       await get().load();
-      return true;
+      return created;
     } catch (error) {
       set({ error: apiErrorCode(error) });
-      return false;
+      return null;
+    }
+  },
+  async uploadEditorAsset(form) {
+    set({ error: null });
+    try {
+      return await uploadEditorAsset(form);
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
+      return null;
     }
   },
   async download(resource) {

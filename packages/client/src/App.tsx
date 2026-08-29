@@ -2,12 +2,14 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthenticationGate } from "./components/AuthenticationGate";
+import { ResourceImagePresentationProvider } from "./components/editor/images";
 import { ReferencePresentationProvider } from "./components/editor/references";
 import { IconDefaults } from "./components/icons";
 import { Layout } from "./components/Layout";
 import { ResourcePreview } from "./features/documents/ResourcePreview";
 import { useApplicationData } from "./hooks/useApplicationData";
 import { useI18n } from "./i18n/I18nProvider";
+import { resourceContentHref } from "./services/resourcesApi";
 
 const WorkspacePage = lazy(() =>
   import("./pages/workspace/WorkspacePage").then((module) => ({ default: module.WorkspacePage })),
@@ -36,7 +38,9 @@ const CouncilMeetingsPage = lazy(() =>
 const LiveMeetingPage = lazy(() =>
   import("./pages/council-meetings/live/LiveMeetingPage").then((module) => ({ default: module.LiveMeetingPage })),
 );
-const EditorLabPage = lazy(() => import("./pages/EditorLabPage").then((module) => ({ default: module.EditorLabPage })));
+const EditorLabPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/EditorLabPage").then((module) => ({ default: module.EditorLabPage })))
+  : null;
 const DashboardPage = lazy(() => import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
 const SettingsPage = lazy(() => import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 
@@ -68,25 +72,30 @@ function AuthenticatedApplication() {
         <Route path="council-committees" element={<CouncilCommitteesPage />} />
         <Route path="council-committees/:committeeId" element={<CouncilCommitteePage />} />
         <Route path="settings" element={<SettingsPage />} />
-        {/* Banc d'essai de l'éditeur, hors navigation : on y va par l'adresse. */}
-        <Route path="editor-lab" element={<EditorLabPage />} />
+        {EditorLabPage ? <Route path="editor-lab" element={<EditorLabPage />} /> : null}
       </Route>
     </Routes>
   );
 }
 
 export function App() {
+  const renderResourcePreview = (id: string, onClose: () => void) => (
+    <ResourcePreview resourceId={id} onClose={onClose} />
+  );
   return (
     <IconDefaults>
       <TooltipProvider>
-        <ReferencePresentationProvider
-          renderResourcePreview={(id, onClose) => <ResourcePreview slug={id} onClose={onClose} />}
-        >
-          <BrowserRouter basename="/app">
-            <AuthenticationGate>
-              <AuthenticatedApplication />
-            </AuthenticationGate>
-          </BrowserRouter>
+        <ReferencePresentationProvider renderResourcePreview={renderResourcePreview}>
+          <ResourceImagePresentationProvider
+            resolveContentHref={resourceContentHref}
+            renderResourcePreview={renderResourcePreview}
+          >
+            <BrowserRouter basename="/app">
+              <AuthenticationGate>
+                <AuthenticatedApplication />
+              </AuthenticationGate>
+            </BrowserRouter>
+          </ResourceImagePresentationProvider>
         </ReferencePresentationProvider>
       </TooltipProvider>
     </IconDefaults>

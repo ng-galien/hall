@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { Mentionable } from "../components/editor/references";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { resourceTone, toneIcons, toneLabelKeys } from "../features/documents/ResourceGlyph";
+import { imagePresentationTitle } from "../features/documents/useResourceImageUpload";
 import { useI18n } from "../i18n/I18nProvider";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
@@ -9,12 +10,7 @@ import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { useResourcesStore } from "../stores/resourcesStore";
 
-/**
- * Les entités référençables de l'application, prêtes pour la recherche `@` de l'éditeur.
- *
- * Une seule source pour tous les établis : les stores déjà chargés. Les entités adressables
- * par slug le sont par slug dans les directives ; les membres n'en ont pas et gardent leur id.
- */
+/** Mentionable entities for the editor `@` search; each carries the immutable entity id, never the slug. */
 export function useReferenceMentionables(): Mentionable[] {
   const { t, formatDate } = useI18n();
   const { members } = useCouncilMembersStore();
@@ -32,31 +28,35 @@ export function useReferenceMentionables(): Mentionable[] {
       })),
       ...resources.map((resource) => {
         const tone = resourceTone(resource);
+        const isImage = resource.kind === "document" && tone === "image";
         return {
           kind: "resource" as const,
-          id: resource.slug,
-          label: resource.title,
+          id: resource.id,
+          label: isImage
+            ? imagePresentationTitle(resource.title, resource.fileName, t("editor.imageImported"))
+            : resource.title,
           folderPath: resource.folderPath,
+          media: isImage ? ("image" as const) : undefined,
           icon: toneIcons[tone],
-          metaLabel: t(toneLabelKeys[tone]),
-          extra: resource.kind === "document" ? [resource.fileName] : [],
+          metaLabel: isImage ? `${t(toneLabelKeys[tone])} · ${resource.format.toUpperCase()}` : t(toneLabelKeys[tone]),
+          extra: resource.kind === "document" ? [resource.fileName, resource.format] : [],
         };
       }),
       ...businesses.map((business) => ({
         kind: "councilBusiness" as const,
-        id: business.slug,
+        id: business.id,
         label: business.title,
         folderPath: business.folderPath,
       })),
       ...meetings.map((meeting) => ({
         kind: "meeting" as const,
-        id: meeting.slug,
+        id: meeting.id,
         label: formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
         extra: [meeting.number],
       })),
       ...councilDecisions.map((decision) => ({
         kind: "decision" as const,
-        id: decision.slug,
+        id: decision.id,
         label: decision.title,
         extra: [decision.number],
       })),

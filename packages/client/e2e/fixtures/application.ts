@@ -9,10 +9,10 @@ export const test = base.extend<ApplicationFixtures>({
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.addInitScript(() => {
-      if (!localStorage.getItem("mairie.locale")) localStorage.setItem("mairie.locale", "fr");
+      if (!localStorage.getItem("mairie.locale")) localStorage.setItem("mairie.locale", "en");
     });
     await page.goto("/app/");
-    const synchronizationStatus = page.getByRole("status").filter({ hasText: "Serveur connecté" });
+    const synchronizationStatus = page.getByRole("status").filter({ hasText: "Server connected" });
     await expect(synchronizationStatus).toHaveAttribute("data-sync-state", "synchronized");
     await use(page);
     expect(pageErrors, "The application must not emit uncaught browser errors").toEqual([]);
@@ -34,9 +34,8 @@ export function primaryNavigationLink(page: Page, name: string): Locator {
 }
 
 /**
- * Les sélecteurs ne sont plus des `<select>` natifs depuis le passage à shadcn : ce sont des
- * boutons qui ouvrent une liste en surimpression. `selectOption` ne s'y applique pas, il faut
- * ouvrir puis choisir l'option par son libellé.
+ * Shadcn selectors are buttons that open an overlay rather than native select elements.
+ * Open the overlay and choose the option by label instead of using selectOption.
  */
 export async function chooseOption(trigger: Locator, optionLabel: string): Promise<void> {
   await trigger.click();
@@ -45,11 +44,7 @@ export async function chooseOption(trigger: Locator, optionLabel: string): Promi
 }
 
 /**
- * Un contrôle de l'éditeur, désigné par son libellé.
- *
- * MDXEditor étiquette ses commandes tantôt par `aria-label`, tantôt par `title`, et ses bascules
- * sont des éléments de groupe (`role="radio"`) et non des boutons : viser l'attribut plutôt que le
- * rôle évite d'avoir à connaître le détail de chaque contrôle.
+ * Finds an editor control by the accessible label exposed through aria-label or title.
  */
 export function editorControl(scope: Locator, label: string): Locator {
   return scope.locator(`[aria-label="${label}"], [title="${label}"]`);

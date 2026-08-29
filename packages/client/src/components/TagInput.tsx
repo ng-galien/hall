@@ -2,13 +2,7 @@ import { type KeyboardEvent, useState } from "react";
 import { useI18n } from "../i18n/I18nProvider";
 import { CloseIcon } from "./icons";
 
-/**
- * Le champ de tags commun : des pastilles, une saisie légère.
- *
- * Entrée ou virgule pose la pastille, Retour arrière sur champ vide reprend la dernière.
- * Autonome et réutilisable : tout écran qui tague passe par ici, jamais par un champ texte
- * à virgules.
- */
+/** Tag field: Enter or comma commits a tag, Backspace on an empty draft removes the last one. */
 export function TagInput({
   value,
   onChange,
@@ -18,7 +12,7 @@ export function TagInput({
   value: string[];
   onChange(next: string[]): void;
   readOnly?: boolean;
-  /** Nom accessible du champ de saisie. */
+  /** Accessible name for the text input. */
   label: string;
 }) {
   const { t } = useI18n();
@@ -41,7 +35,6 @@ export function TagInput({
   };
 
   return (
-    /* Une étiquette englobante : cliquer le cadre donne le focus au champ, sans script. */
     <label className={`tag-input${readOnly ? " tag-input-readonly" : ""}`}>
       {value.map((tag) => (
         <span className="tag-chip" key={tag}>

@@ -7,7 +7,7 @@ export interface NavigationItem {
   labelKey: TranslationKey;
   icon: ReactNode;
   countKey?: "meetings" | "councilBusiness" | "councilDecisions" | "resources" | "members" | "committees";
-  /** Affiche l'arborescence des chemins de classement sous l'entrée. */
+  /** Renders the filing path tree under this entry. */
   workspaceTree?: boolean;
 }
 
@@ -33,7 +33,6 @@ export const navigationSections: NavigationSection[] = [
     ],
   },
   {
-    // L'espace de travail se suffit : pas d'intitulé de section pour une entrée seule.
     items: [{ to: "/workspace", labelKey: "navigation.workspace", icon: <WorkspaceIcon />, workspaceTree: true }],
   },
   {

@@ -9,10 +9,15 @@ import { compileQuery, type SqlExecutor, type SqlParameters, type SqlRunResult }
 import type { SqlQueryName } from "../database/queries.js";
 import { postgresDocumentPreviewsSchema, postgresSchema, postgresTables } from "./schema.js";
 
+type TransactionContext = {
+  client: PoolClient;
+  queue: Promise<void>;
+};
+
 export class PostgresExecutor implements SqlExecutor {
   readonly dialect = "postgres" as const;
   readonly #pool: Pool;
-  readonly #transaction = new AsyncLocalStorage<PoolClient>();
+  readonly #transaction = new AsyncLocalStorage<TransactionContext>();
   readonly #ready: Promise<void>;
 
   constructor(
@@ -27,7 +32,7 @@ export class PostgresExecutor implements SqlExecutor {
     await this.#ready;
     const query = compileQuery(name, this.dialect, parameters);
     try {
-      const result = await this.#client().query<QueryResultRow>(query.text, query.values);
+      const result = await this.#query<QueryResultRow>(query.text, query.values);
       return result.rows as Row[];
     } catch (error) {
       throw translatePersistenceError(error);
@@ -45,7 +50,7 @@ export class PostgresExecutor implements SqlExecutor {
     await this.#ready;
     const query = compileQuery(name, this.dialect, parameters);
     try {
-      const result = await this.#client().query(query.text, query.values);
+      const result = await this.#query(query.text, query.values);
       return { changes: result.rowCount ?? 0 };
     } catch (error) {
       throw translatePersistenceError(error);
@@ -63,7 +68,7 @@ export class PostgresExecutor implements SqlExecutor {
       try {
         await client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
         try {
-          return await this.#transaction.run(client, async () => {
+          return await this.#transaction.run({ client, queue: Promise.resolve() }, async () => {
             const result = await operation();
             await this.#recordAudit(result);
             await client.query("COMMIT");
@@ -91,8 +96,15 @@ export class PostgresExecutor implements SqlExecutor {
     await this.#pool.end();
   }
 
-  #client(): Pool | PoolClient {
-    return this.#transaction.getStore() ?? this.#pool;
+  #query<Row extends QueryResultRow = QueryResultRow>(text: string, values?: unknown[]) {
+    const transaction = this.#transaction.getStore();
+    if (!transaction) return this.#pool.query<Row>(text, values);
+    const result = transaction.queue.then(() => transaction.client.query<Row>(text, values));
+    transaction.queue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
   }
 
   async #initialize(): Promise<void> {

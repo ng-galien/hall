@@ -1,37 +1,26 @@
-/**
- * La grammaire du contrat de templating.
- *
- * Ce fichier est la source unique : le serveur et le client en dérivent tous deux leur
- * comportement. Le client NE redéfinit PAS sa propre grammaire — il lit ce registre pour
- * construire ses descripteurs d'éditeur, son menu d'insertion et son autocomplétion.
- *
- * Périmètre initial arrêté en commun : cinq références métier et des champs contextuels
- * pris dans une liste fermée. Pas d'expression, pas de fonction, pas d'interpolation libre,
- * pas de navigation dynamique. `snippet` est hors périmètre et n'est donc pas déclaré ici :
- * rencontré dans un document il est préservé à la sérialisation, mais diagnostiqué comme
- * directive inconnue et non rendu.
- */
-
-/** Les entités métier qu'un gabarit peut référencer. */
+/** Business entities a template can reference. */
 export type ReferenceKind = "member" | "resource" | "councilBusiness" | "decision" | "meeting";
 
-/** Les familles de directives du contrat. */
-export type DirectiveKind = ReferenceKind | "field";
+export type ImageAlignment = "left" | "center";
 
-/**
- * Ce qu'une directive accepte. Le client s'en sert pour générer ses descripteurs sans
- * dupliquer la connaissance ; le serveur pour valider.
- */
+export const imageAlignments: readonly ImageAlignment[] = ["left", "center"];
+export const imageWidthRange = { min: 25, max: 100, default: 100 } as const;
+
+export type DirectiveKind = ReferenceKind | "image" | "field";
+
+/** What a directive accepts. */
 export interface DirectiveSpec {
   name: DirectiveKind;
-  /** `textDirective` = `:nom[…]`, `leafDirective` = `::nom[…]` (bloc, sans enfants). */
+  /** `textDirective` is `:name[...]`, `leafDirective` is `::name[...]`. */
   node: "textDirective" | "leafDirective";
-  /** Un libellé lisible entre crochets est-il attendu ? */
+  /** Whether a bracketed label is expected. */
   label: boolean;
-  /** Attributs acceptés. `id` s'écrit avec le raccourci `{#valeur}`. */
+  /** Whether the label is mandatory. */
+  labelRequired?: boolean;
+  /** Accepted attributes; `id` uses the `{#value}` shorthand. */
   attributes: readonly string[];
   attributesRequired: readonly string[];
-  /** L'entité résolue par le serveur, s'il s'agit d'une référence métier. */
+  /** The entity the server resolves for a business reference. */
   reference?: ReferenceKind;
 }
 
@@ -51,7 +40,14 @@ export const directiveSpecs: readonly DirectiveSpec[] = [
   reference("decision"),
   reference("meeting"),
   {
-    // Valeur contextuelle résolue au rendu, prise dans `fieldNames`.
+    name: "image",
+    node: "leafDirective",
+    label: true,
+    labelRequired: true,
+    attributes: ["id", "align", "width"],
+    attributesRequired: ["id", "align", "width"],
+  },
+  {
     name: "field",
     node: "textDirective",
     label: false,
@@ -60,15 +56,7 @@ export const directiveSpecs: readonly DirectiveSpec[] = [
   },
 ] as const;
 
-/**
- * La liste fermée des champs contextuels.
- *
- * Fermée veut dire que `name` doit correspondre exactement à une de ces entrées : ce n'est
- * pas un chemin d'accès évalué, et rien n'est résolu dynamiquement. Le client la lit pour
- * proposer l'autocomplétion et refuser un nom hors liste dès la frappe ; le serveur reste
- * autoritaire pour produire les valeurs. Toute entrée nouvelle s'ajoute ici, des deux côtés
- * d'un coup — c'est l'intérêt du paquet partagé.
- */
+/** Closed list of contextual field names accepted by the `field` directive. */
 export const fieldNames = [
   "hall.name",
   "meeting.startsAt",
@@ -88,6 +76,20 @@ export function directiveSpec(name: string): DirectiveSpec | undefined {
 
 export function isReferenceKind(name: string): name is ReferenceKind {
   return directiveSpec(name)?.reference !== undefined;
+}
+
+export function isImageDirective(name: string): name is "image" {
+  return name === "image";
+}
+
+export function isImageAlignment(value: string): value is ImageAlignment {
+  return imageAlignments.includes(value as ImageAlignment);
+}
+
+export function isImageWidth(value: string): boolean {
+  if (!/^\d+$/.test(value)) return false;
+  const width = Number(value);
+  return width >= imageWidthRange.min && width <= imageWidthRange.max;
 }
 
 export function isFieldName(name: string): name is FieldName {

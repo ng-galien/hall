@@ -1,8 +1,6 @@
-/* Espace de travail quotidien : arbre sidebar, contenu de chemin, établi. */
+/* Workspace: sidebar tree, folder contents, workbench. */
 @layer components {
-  /* ---- arbre des chemins (sidebar) ---- */
-  /* La gouttière des chevrons s'aligne sous la colonne d'icônes des entrées de navigation :
-     les noms de dossiers tombent ainsi au même fil que les libellés du menu. */
+  /* ---- Folder tree ---- */
   .workspace-tree { display: flex; flex-direction: column; margin: 0 0 var(--hall-space-1); padding: 0 0 0 var(--hall-space-2); list-style: none; }
   .workspace-tree-children { margin: 0; padding: 0; list-style: none; }
   .workspace-tree-row {
@@ -42,10 +40,10 @@
   .workspace-tree-name { overflow: hidden; flex: 1; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
   .workspace-tree-count { color: var(--hall-color-text-subtle); font-variant-numeric: tabular-nums; }
 
-  /* ---- page ---- */
+  /* ---- Page ---- */
   .workspace-page { display: flex; flex-direction: column; height: 100%; }
   .workspace { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: var(--hall-space-4); gap: var(--hall-space-3); }
-  /* ---- contenu du chemin (vue dossier, pleine largeur) ---- */
+  /* ---- Folder contents ---- */
   .workspace-contents {
     display: flex;
     flex: 1;
@@ -78,7 +76,6 @@
     cursor: pointer;
   }
   .workspace-crumb:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
-  /* Séparateur inerte : même glyphe que le sélecteur, même gabarit, sans action. */
   .workspace-crumb-sep {
     display: inline-grid;
     place-items: center;
@@ -88,7 +85,6 @@
     font-size: var(--hall-font-size-icon-small);
   }
   .workspace-crumb-group { display: inline-flex; align-items: center; }
-  /* Le chevron d'un cran : la porte vers ses sous-dossiers. */
   .workspace-crumb-children {
     display: inline-grid;
     place-items: center;
@@ -109,14 +105,14 @@
   }
   .workspace-crumb-current {
     overflow: hidden;
-    max-width: 40ch;
+    max-width: var(--hall-size-crumb-max);
     padding: var(--hall-space-0-5) var(--hall-space-1);
     color: var(--hall-color-text);
     font-weight: var(--hall-font-weight-semibold);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  /* La pastille d'état d'enregistrement : discrète, elle raconte le cycle de l'auto-sauvegarde. */
+  /* Autosave status dot. */
   .workspace-save-dot {
     flex: none;
     width: var(--hall-space-2);
@@ -125,17 +121,16 @@
     border-radius: var(--hall-radius-circular);
   }
   .workspace-save-dirty { background: var(--hall-color-warning); }
-  .workspace-save-saving { background: var(--hall-color-text-subtle); animation: workspace-save-pulse 1s ease-in-out infinite; }
+  .workspace-save-saving { background: var(--hall-color-text-subtle); animation: workspace-save-pulse var(--hall-motion-pulse) var(--hall-motion-curve-standard) infinite; }
   .workspace-save-saved { background: var(--hall-color-success); }
   .workspace-save-error { background: var(--hall-color-danger); }
   @keyframes workspace-save-pulse {
-    50% { opacity: 0.3; }
+    50% { opacity: var(--hall-opacity-pulse-deep); }
   }
   @media (prefers-reduced-motion: reduce) {
     .workspace-save-saving { animation: none; }
   }
 
-  /* Le corps du conteneur permanent : l'établi embarqué abandonne sa propre carte. */
   .workspace-container-body {
     display: flex;
     flex: 1;
@@ -148,7 +143,7 @@
     border-radius: 0;
     box-shadow: none;
   }
-  /* ---- rangée méta d'établi : tags et rattachements, à l'horizontale, sans colonne ---- */
+  /* ---- Workbench meta row ---- */
   .workbench-meta-row {
     display: flex;
     flex-wrap: wrap;
@@ -164,7 +159,7 @@
     text-transform: uppercase;
   }
   .workbench-meta-empty { color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-caption); }
-  .workbench-meta .tag-input { min-width: 220px; }
+  .workbench-meta .tag-input { min-width: var(--hall-size-tag-input-min); }
   .workbench-business-chip {
     display: inline-flex;
     align-items: center;
@@ -174,16 +169,14 @@
     border-radius: var(--hall-radius-circular);
     color: var(--hall-color-text);
     background: var(--hall-color-surface);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
     cursor: pointer;
   }
   .workbench-business-chip:hover { border-color: var(--hall-color-brand); color: var(--hall-color-brand); }
 
-  /* ---- tags en pastilles (composant commun) ----
-     Hauteurs verrouillées : pastilles et champ partagent le même gabarit, la rangée ne
-     bouge pas d'un pixel qu'elle soit vide, pleine, ou en cours de saisie. */
-  /* `label.tag-input` : plus spécifique que `.workbench label`, qui met les libellés de
-     formulaires en petites capitales — le composant garde sa propre voix partout. */
+  /* ---- Tag chips ----
+     Chips and field share one height, so the row never shifts.
+     More specific than `.workbench label`, which uppercases form labels. */
   label.tag-input,
   .workbench label.tag-input {
     display: flex;
@@ -196,7 +189,7 @@
     border-radius: var(--hall-radius-medium);
     color: var(--hall-color-text);
     background: var(--hall-color-surface);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
     font-weight: var(--hall-font-weight-regular);
     letter-spacing: normal;
     text-transform: none;
@@ -206,13 +199,13 @@
   label.tag-input.tag-input-readonly { border-color: var(--hall-color-border); background: var(--hall-color-surface-subtle); cursor: default; }
   .tag-input input {
     flex: 1;
-    min-width: 80px;
+    min-width: var(--hall-size-tag-input-field-min);
     height: var(--hall-size-tag-chip);
     padding: 0;
     border: 0;
     background: transparent;
     font: inherit;
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
     outline: none;
   }
   .tag-chip {
@@ -226,14 +219,14 @@
     background: var(--hall-color-brand-subtle);
     font-size: var(--hall-font-size-caption);
     font-weight: var(--hall-font-weight-medium);
-    line-height: 1;
+    line-height: var(--hall-line-height-none);
     white-space: nowrap;
   }
   .tag-chip button {
     display: inline-grid;
     place-items: center;
-    width: var(--hall-space-3-5);
-    height: var(--hall-space-3-5);
+    width: var(--hall-space-3);
+    height: var(--hall-space-3);
     padding: 0;
     border: 0;
     border-radius: var(--hall-radius-circular);
@@ -243,15 +236,15 @@
     cursor: pointer;
   }
   .tag-chip button:hover { color: var(--hall-color-on-brand); background: var(--hall-color-brand); }
-  /* `.app-icon` impose 18 px à toutes les icônes : la croix d'une pastille se recadre ici. */
+  /* `.app-icon` sizes every icon, so the chip cross is resized here. */
   .tag-chip button .app-icon { font-size: var(--hall-font-size-caption-small); }
 
-  /* ---- aperçu de document embarqué ---- */
+  /* ---- Embedded document preview ---- */
   .document-embed {
     position: relative;
     display: grid;
     place-items: center;
-    height: min(62vh, 680px);
+    height: min(var(--hall-size-embed-height), var(--hall-size-embed-height-max));
     overflow: hidden;
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-medium);
@@ -260,7 +253,7 @@
   .document-embed object { width: 100%; height: 100%; }
   .document-preview-failure {
     display: grid;
-    max-width: 32rem;
+    max-width: var(--hall-size-preview-failure);
     justify-items: center;
     gap: var(--hall-space-3);
     padding: var(--hall-space-5);
@@ -306,7 +299,7 @@
     letter-spacing: var(--hall-letter-spacing-section);
     text-transform: uppercase;
   }
-  .workspace-list-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-small); }
+  .workspace-list-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .workspace-list { display: flex; flex-direction: column; gap: var(--hall-space-1); margin: 0; padding: 0; list-style: none; }
   .workspace-row {
     display: flex;
@@ -343,7 +336,7 @@
     font: inherit;
   }
 
-  /* ---- arbre : repli, limite, défilement ---- */
+  /* ---- Tree folding ---- */
   .workspace-tree-fold {
     display: inline-flex;
     flex: none;
@@ -374,7 +367,7 @@
     cursor: pointer;
   }
 
-  /* ---- barre globale : recherche à facettes, création, épinglés ---- */
+  /* ---- Top bar: faceted search, creation, pins ---- */
   .workspace-topzone { display: flex; flex-direction: column; gap: var(--hall-space-2); }
   .workspace-bar-row { display: flex; align-items: flex-start; gap: var(--hall-space-2); }
   .workspace-bar-search { flex: 1; min-width: 0; }
@@ -393,7 +386,7 @@
   }
   .wsearch-field:focus-within { border-color: var(--hall-color-brand); }
   .wsearch-icon { flex: none; color: var(--hall-color-text-subtle); }
-  .wsearch-field input { flex: 1; min-width: 120px; border: 0; color: var(--hall-color-text); background: transparent; font: inherit; outline: none; }
+  .wsearch-field input { flex: 1; min-width: var(--hall-size-search-field-min); border: 0; color: var(--hall-color-text); background: transparent; font: inherit; outline: none; }
   .wsearch-chip {
     display: inline-flex;
     align-items: center;
@@ -467,7 +460,6 @@
   .wsearch-layout { display: inline-flex; gap: var(--hall-space-0-5); }
   .wsearch-list { display: flex; flex-direction: column; gap: var(--hall-space-3); }
   .wsearch-section { display: flex; flex-direction: column; gap: var(--hall-space-1); }
-  /* Une section de dossier : le chemin en fil d'Ariane discret, comme dans l'éditeur. */
   .wsearch-section-folder {
     display: flex;
     align-items: center;
@@ -516,8 +508,8 @@
     font-size: var(--hall-font-size-caption);
     cursor: pointer;
   }
-  .wpins-open .workspace-glyph { width: 20px; height: 20px; }
-  .wpins-open .workspace-glyph svg { width: 12px; height: 12px; }
+  .wpins-open .workspace-glyph { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); }
+  .wpins-open .workspace-glyph svg { width: var(--hall-size-glyph-mark-compact); height: var(--hall-size-glyph-mark-compact); }
   .wpins-title { max-width: var(--hall-size-pin-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .wpins-remove {
     display: inline-flex;
@@ -531,7 +523,7 @@
   }
   .wpins-remove:hover { color: var(--hall-color-danger); }
 
-  /* ---- accueil ---- */
+  /* ---- Home ---- */
   .whome { display: flex; flex-direction: column; gap: var(--hall-space-5); overflow-y: auto; }
   .whome-heading { display: flex; align-items: baseline; gap: var(--hall-space-2); margin-bottom: var(--hall-space-2); }
   .whome-heading h2 {
@@ -581,7 +573,7 @@
   .whome-tile:hover { border-color: var(--hall-color-brand); color: var(--hall-color-brand); }
   .whome-tile-more { color: var(--hall-color-brand); border-style: dashed; }
 
-  /* ---- pastilles typées ---- */
+  /* ---- Type glyphs ---- */
   .workspace-glyph {
     display: inline-flex;
     flex: none;
@@ -593,9 +585,9 @@
     color: var(--hall-color-text-muted);
     background: var(--hall-color-surface-subtle);
   }
-  .workspace-glyph svg { width: 16px; height: 16px; }
+  .workspace-glyph svg { width: var(--hall-size-glyph-mark); height: var(--hall-size-glyph-mark); }
   .workspace-glyph-large { width: var(--hall-size-glyph-large); height: var(--hall-size-glyph-large); }
-  .workspace-glyph-large svg { width: 22px; height: 22px; }
+  .workspace-glyph-large svg { width: var(--hall-size-glyph-mark-large); height: var(--hall-size-glyph-mark-large); }
   .workspace-glyph-text { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
   .workspace-glyph-pdf { color: var(--hall-color-danger); background: var(--hall-color-danger-surface); }
   .workspace-glyph-image { color: var(--hall-color-success); background: var(--hall-color-success-surface); }
@@ -607,7 +599,7 @@
   .workspace-glyph-business { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); }
   .workspace-glyph-decision { color: var(--hall-color-seal); background: var(--hall-color-seal-surface); }
 
-  /* ---- sélecteur de ressource ---- */
+  /* ---- Resource picker ---- */
   .resource-picker { position: relative; }
   .resource-picker-backdrop { position: fixed; z-index: var(--hall-z-overlay); inset: 0; }
   .resource-picker-panel {
@@ -643,7 +635,7 @@
   }
   .resource-picker-row:hover { background: var(--hall-color-surface-subtle); }
 
-  /* ---- établi ---- */
+  /* ---- Workbench ---- */
   .workspace-bench {
     min-width: 0;
     min-height: 0;
@@ -661,12 +653,12 @@
     align-items: center;
     justify-content: center;
     color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
   }
   .workbench { display: flex; flex-direction: column; gap: var(--hall-space-4); padding: var(--hall-space-5); }
   .workbench-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    grid-template-columns: minmax(0, 1fr) minmax(var(--hall-size-workbench-aside-min), var(--hall-size-workbench-aside-max));
     gap: var(--hall-space-5);
     align-items: start;
   }
@@ -701,9 +693,8 @@
     color: var(--hall-color-success);
     font-size: var(--hall-font-size-caption);
   }
-  .workbench-edit-hint svg { width: 14px; height: 14px; }
+  .workbench-edit-hint svg { width: var(--hall-size-glyph-mark-compact); height: var(--hall-size-glyph-mark-compact); }
   .workbench-edit-hint-locked { color: var(--hall-color-text-muted); }
-  /* Formulaires de l'établi : labels en petites capitales, titre saillant, décision démarquée. */
   .workbench label {
     color: var(--hall-color-text-muted);
     font-size: var(--hall-font-size-caption);
@@ -712,7 +703,7 @@
     text-transform: uppercase;
   }
   .workbench-title-input input {
-    font-size: var(--hall-font-size-subtitle);
+    font-size: var(--hall-font-size-title);
     font-weight: var(--hall-font-weight-semibold);
   }
   .workbench-decision-block {
@@ -751,15 +742,10 @@
   }
   .workbench-document-tile:hover { border-color: var(--hall-color-border-strong); }
   .workbench-document-tile .workspace-row-copy { flex: 1; }
-  .workbench-eyebrow {
-    color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-caption);
-    letter-spacing: var(--hall-letter-spacing-section);
-    text-transform: uppercase;
-  }
+  .workbench-eyebrow { color: var(--hall-color-text-muted); }
   .workbench-header-side { display: flex; flex: none; align-items: center; gap: var(--hall-space-2); }
   .workbench-section { display: grid; gap: var(--hall-space-3); }
-  .workbench-section > h2 { font-size: var(--hall-font-size-subtitle); font-weight: var(--hall-font-weight-semibold); }
+  .workbench-section > h2 { font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-semibold); }
   .workbench-actions { display: flex; align-items: center; gap: var(--hall-space-2); }
   .workbench-resource-list { display: flex; flex-direction: column; gap: var(--hall-space-1); margin: 0; padding: 0; list-style: none; }
   .workbench-resource-list li {
@@ -810,7 +796,7 @@
   .workbench-occurrence:hover { border-color: var(--hall-color-border-strong); }
   .workbench-occurrence-side { display: flex; flex: none; align-items: center; gap: var(--hall-space-2); color: var(--hall-color-text-subtle); }
 
-  /* ---- éditeur : bouton « insérer une pièce » ---- */
+  /* ---- Editor attach button ---- */
   .markdown-toolbar-attach {
     max-width: var(--hall-size-toolbar-attach);
     margin-left: var(--hall-space-1);

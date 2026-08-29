@@ -8,12 +8,8 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { downloadResourceDocument, getResourceDetails } from "../../services/resourcesApi";
 import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
 
-/**
- * Aperçu d'une pièce depuis sa référence : le même panneau que le visionneur de documents
- * des séances, mais adressé par slug — c'est tout ce qu'une puce connaît. Un document
- * s'affiche dans le lecteur natif du navigateur, un texte est rendu comme partout ailleurs.
- */
-export function ResourcePreview({ slug, onClose }: { slug: string; onClose(): void }) {
+/** Preview panel for a resource; `resourceId` is the immutable entity id, never the navigation slug. */
+export function ResourcePreview({ resourceId, onClose }: { resourceId: string; onClose(): void }) {
   const { t } = useI18n();
   const [resource, setResource] = useState<Resource | null>(null);
   const [detailsFailed, setDetailsFailed] = useState(false);
@@ -24,7 +20,7 @@ export function ResourcePreview({ slug, onClose }: { slug: string; onClose(): vo
     let active = true;
     setResource(null);
     setDetailsFailed(false);
-    void getResourceDetails(slug)
+    void getResourceDetails(resourceId)
       .then((details) => {
         if (!active) return;
         setResource(details.resource);
@@ -35,18 +31,17 @@ export function ResourcePreview({ slug, onClose }: { slug: string; onClose(): vo
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [resourceId]);
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: fermer au clic sur le fond, comme le bouton.
-    <div
-      className="document-viewer-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <section className="document-viewer" role="dialog" aria-modal="true" aria-labelledby="resource-preview-title">
+    <div className="document-viewer-backdrop" role="presentation">
+      <section
+        className="document-viewer"
+        data-testid="resource-preview"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="resource-preview-title"
+      >
         <header>
           <div>
             <span>{t("editor.kind.resource")}</span>
@@ -58,7 +53,13 @@ export function ResourcePreview({ slug, onClose }: { slug: string; onClose(): vo
                 {t("common.download")}
               </Button>
             ) : null}
-            <Button size="icon" variant="ghost" aria-label={t("common.close")} onClick={onClose}>
+            <Button
+              data-testid="resource-preview-close"
+              size="icon"
+              variant="ghost"
+              aria-label={t("common.close")}
+              onClick={onClose}
+            >
               <CloseIcon />
             </Button>
           </div>
@@ -77,7 +78,12 @@ export function ResourcePreview({ slug, onClose }: { slug: string; onClose(): vo
           ) : null}
           {previewFailed ? <DocumentPreviewFailure onRetry={retry} /> : null}
           {objectUrl && mediaType && resource?.kind === "document" ? (
-            <object data={objectUrl} type={mediaType} aria-label={resource.fileName} />
+            <object
+              data-testid="resource-preview-object"
+              data={objectUrl}
+              type={mediaType}
+              aria-label={resource.fileName}
+            />
           ) : null}
         </div>
       </section>

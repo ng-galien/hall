@@ -1,29 +1,21 @@
-/**
- * Le moteur de recherche commun — la spec vit dans docs/spec-recherche-unifiee.md.
- *
- * Une seule grammaire (`[facette:]* termes`), une seule normalisation (casse et accents
- * ignorés), un seul classement (proximité de dossier, puis qualité de correspondance,
- * puis alphabétique). Le menu `@` de l'éditeur, la recherche de l'espace de travail et
- * les filtres de listes consomment ce module : aucune surface ne réimplémente la sienne.
- */
-
 import type { ReferenceKind } from "@hall/templating";
 
-/** Les types cherchables sont exactement les références du contrat de templating. */
 export type SearchableKind = ReferenceKind;
 
 export interface Searchable {
   kind: SearchableKind;
   id: string;
   label: string;
-  /** Champs secondaires où la requête porte aussi : numéro, nom de fichier, rôle… */
+  /** Secondary fields the query also matches: number, file name, role. */
   extra?: readonly (string | null | undefined)[];
   folderPath?: string;
-  /** État facultatif d'une entité dotée d'un cycle de vie, pour la facette `état:`. */
+  /** Optional lifecycle state, matched by the state facet. */
   state?: string;
+  /** Document subtype, matched by the image facet. */
+  media?: "image";
 }
 
-/** La normalisation du contrat : minuscules, décomposition NFD, diacritiques supprimés. */
+/** Lowercases, decomposes to NFD and strips diacritics. */
 export function normalizeForSearch(value: string): string {
   return value
     .toLowerCase()
@@ -31,8 +23,7 @@ export function normalizeForSearch(value: string): string {
     .replace(/\p{Diacritic}/gu, "");
 }
 
-/* Les alias de la facette de type — le français courant et l'anglais, sans accents
-   puisque la clé est normalisée avant d'être résolue. */
+// Keys are normalized before lookup: lowercase, no accents.
 const kindAliases: Record<string, SearchableKind> = {
   m: "member",
   membre: "member",
@@ -57,7 +48,6 @@ const kindAliases: Record<string, SearchableKind> = {
 const folderKeys = new Set(["dossier", "chemin", "folder"]);
 const stateKeys = new Set(["etat", "state"]);
 
-/* Les valeurs canoniques les plus courantes de la facette `état:`. */
 const stateAliases: Record<string, string> = {
   "a-planifier": "toSchedule",
   aplanifier: "toSchedule",
@@ -68,28 +58,40 @@ const stateAliases: Record<string, string> = {
   examined: "examined",
 };
 
-/** Les préfixes à enseigner à l'utilisateur, dans la langue de l'interface. */
+/** Facet prefixes shown to the user, per interface language. */
 export const searchFacetTokens: Record<"fr" | "en", readonly string[]> = {
-  fr: ["membre:", "doc:", "sujet:", "séance:", "délib:", "dossier:", "état:"],
-  en: ["member:", "doc:", "subject:", "meeting:", "decision:", "folder:", "state:"],
+  fr: ["membre:", "doc:", "image:", "sujet:", "séance:", "délib:", "dossier:", "état:"],
+  en: ["member:", "doc:", "image:", "subject:", "meeting:", "decision:", "folder:", "state:"],
 };
 
 export interface ParsedQuery {
   kinds: SearchableKind[];
+  media: "image"[];
   folders: string[];
   states: string[];
   terms: string[];
 }
 
-/** Une facette inconnue n'est pas une erreur : le jeton redevient un terme ordinaire. */
+/** Parses a query; an unknown facet falls back to a plain term. */
 export function parseQuery(raw: string): ParsedQuery {
-  const parsed: ParsedQuery = { kinds: [], folders: [], states: [], terms: [] };
+  const parsed: ParsedQuery = { kinds: [], media: [], folders: [], states: [], terms: [] };
   for (const token of normalizeForSearch(raw).split(/\s+/)) {
     if (!token) continue;
+    if (token === "image" || token === "img") {
+      parsed.kinds.push("resource");
+      parsed.media.push("image");
+      continue;
+    }
     const separator = token.indexOf(":");
     if (separator > 0) {
       const key = token.slice(0, separator);
       const value = token.slice(separator + 1);
+      if (key === "image" || key === "img") {
+        parsed.kinds.push("resource");
+        parsed.media.push("image");
+        if (value) parsed.terms.push(value);
+        continue;
+      }
       const kind = kindAliases[key];
       if (kind) {
         parsed.kinds.push(kind);
@@ -110,7 +112,7 @@ export function parseQuery(raw: string): ParsedQuery {
   return parsed;
 }
 
-/** Préfixe du libellé > début de mot > inclusion > champ secondaire seulement. */
+/** Scores a term: label prefix 3, word start 2, substring 1, secondary field 0.5, no match 0. */
 function termQuality(term: string, label: string, extra: string): number {
   if (label.startsWith(term)) return 3;
   if (label.includes(` ${term}`) || label.includes(`'${term}`) || label.includes(`-${term}`)) return 2;
@@ -119,7 +121,7 @@ function termQuality(term: string, label: string, extra: string): number {
   return 0;
 }
 
-/** Même dossier : 2 ; même sous-arbre (dans un sens ou l'autre) : 1 ; sinon 0. */
+/** Scores folder nearness: same folder 2, same subtree either way 1, otherwise 0. */
 function proximity(context: string | undefined, folderPath: string | undefined): number {
   if (!context || !folderPath) return 0;
   const here = normalizeForSearch(context);
@@ -130,14 +132,14 @@ function proximity(context: string | undefined, folderPath: string | undefined):
 }
 
 export interface SearchOptions {
-  /** Le dossier « d'où l'on cherche » : ce qui en est proche remonte en premier. */
+  /** Folder used to rank nearby entries first. */
   context?: string;
   limit?: number;
 }
 
 export interface SearchOutcome<T extends Searchable> {
   results: T[];
-  /** Le nombre total de correspondances, avant la coupe — l'interface doit l'annoncer. */
+  /** Total match count before `limit` is applied. */
   total: number;
 }
 
@@ -151,6 +153,7 @@ export function searchEntities<T extends Searchable>(
 
   for (const candidate of candidates) {
     if (query.kinds.length > 0 && !query.kinds.includes(candidate.kind)) continue;
+    if (query.media.length > 0 && candidate.media !== "image") continue;
     const folder = candidate.folderPath ? normalizeForSearch(candidate.folderPath) : "";
     if (query.folders.length > 0 && !query.folders.some((f) => folder === f || folder.startsWith(`${f}/`))) continue;
     if (query.states.length > 0 && (!candidate.state || !query.states.includes(candidate.state))) continue;

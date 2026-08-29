@@ -8,10 +8,10 @@ const serverUrl = `http://127.0.0.1:${serverPort}`;
 export default defineConfig({
   testDir: "./e2e/specs",
   outputDir: "./test-results/e2e",
-  timeout: 120_000,
-  expect: { timeout: 10_000 },
-  fullyParallel: false,
-  workers: 1,
+  timeout: 30_000,
+  expect: { timeout: 5_000 },
+  fullyParallel: true,
+  workers: 3,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
@@ -22,11 +22,11 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   projects: [
-    // Le seed s'exécute une fois, après le démarrage des serveurs et avant les specs.
+    // The seed runs once after both servers start and before the browser specifications.
     { name: "seed", testMatch: /seed\.setup\.ts/ },
     {
       name: "chromium",
-      testIgnore: /seed\.setup\.ts/,
+      testMatch: /markdown-editor\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
       dependencies: ["seed"],
     },
@@ -37,6 +37,7 @@ export default defineConfig({
       cwd: "../..",
       env: {
         ...process.env,
+        HALL_ALLOWED_ORIGINS: clientUrl,
         SERVER_HOST: "127.0.0.1",
         SERVER_PORT: String(serverPort),
       },

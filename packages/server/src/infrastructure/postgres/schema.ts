@@ -18,6 +18,7 @@ export const postgresTables = [
   "resource_documents",
   "resource_tags",
   "resources",
+  "rich_text_resource_references",
   "sessions",
   "templates",
   "text_resources",
@@ -214,8 +215,23 @@ export const postgresSchema = `
     media_type TEXT NOT NULL,
     byte_size BIGINT NOT NULL CHECK (byte_size >= 0),
     content_sha256 TEXT NOT NULL CHECK (length(content_sha256) = 64),
-    category TEXT NOT NULL CHECK (category IN ('report', 'draftCouncilDecision', 'meetingNotice', 'minutes', 'proxy', 'supporting')),
-    content BYTEA NOT NULL
+    category TEXT CHECK (category IN ('report', 'draftCouncilDecision', 'meetingNotice', 'minutes', 'proxy', 'supporting')),
+    usage TEXT NOT NULL DEFAULT 'document' CHECK (usage IN ('document', 'editorAsset')),
+    editor_owner_kind TEXT CHECK (editor_owner_kind IN ('textResourceContent', 'councilBusinessReport', 'councilDecisionDraft', 'agendaItemDiscussionSummary')),
+    editor_owner_id TEXT,
+    content BYTEA NOT NULL,
+    CHECK (
+      (usage = 'document' AND category IS NOT NULL AND editor_owner_kind IS NULL AND editor_owner_id IS NULL)
+      OR
+      (usage = 'editorAsset' AND category IS NULL AND meeting_id IS NULL AND format IN ('jpeg', 'png') AND editor_owner_kind IS NOT NULL AND editor_owner_id IS NOT NULL)
+    )
+  );
+
+  CREATE TABLE rich_text_resource_references (
+    owner_kind TEXT NOT NULL CHECK (owner_kind IN ('textResourceContent', 'councilBusinessReport', 'councilDecisionDraft', 'agendaItemDiscussionSummary')),
+    owner_id TEXT NOT NULL,
+    resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE RESTRICT,
+    PRIMARY KEY (owner_kind, owner_id, resource_id)
   );
 
   ${postgresDocumentPreviewsSchema}
@@ -383,6 +399,10 @@ export const postgresSchema = `
   CREATE INDEX resources_by_folder ON resources(folder_path, updated_at);
   CREATE INDEX resource_tags_by_tag ON resource_tags(tag, resource_id);
   CREATE INDEX resource_documents_by_meeting ON resource_documents(meeting_id, resource_id);
+  CREATE INDEX resource_documents_by_editor_owner
+    ON resource_documents(usage, editor_owner_kind, editor_owner_id, resource_id);
+  CREATE INDEX rich_text_resource_references_by_resource
+    ON rich_text_resource_references(resource_id, owner_kind, owner_id);
   CREATE INDEX attendance_by_meeting ON attendance(meeting_id);
   CREATE INDEX users_by_status ON users(status, display_name);
   CREATE INDEX sessions_by_user ON sessions(user_id, expires_at);

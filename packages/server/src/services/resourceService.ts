@@ -1,4 +1,4 @@
-import type { DocumentResource, Resource, ResourceDetails, TextResource } from "@hall/domain";
+import type { DocumentResource, EditorAssetOwner, Resource, ResourceDetails, TextResource } from "@hall/domain";
 import { inspectDocument } from "../domain/documentPolicy.js";
 import type {
   AttendanceRepository,
@@ -11,6 +11,7 @@ import type {
   UnitOfWork,
   UpdateResource,
 } from "../repositories/contracts.js";
+import type { EditorAssetService } from "./editorAssetService.js";
 import { DomainError } from "./errors.js";
 
 export interface ResourceService {
@@ -19,6 +20,8 @@ export interface ResourceService {
     tags?: string[];
     kind?: Resource["kind"];
     meetingId?: string;
+    usage?: "document" | "editorAsset";
+    editorOwner?: EditorAssetOwner;
   }): Promise<Resource[]>;
   find(id: string): Promise<StoredResource | null>;
   getDetails(id: string): Promise<ResourceDetails>;
@@ -35,12 +38,14 @@ export function createResourceService({
   unitOfWork,
   councilBusinessRepository,
   attendanceRepository,
+  editorAssetService,
 }: {
   resourceRepository: ResourceRepository;
   councilMeetingRepository: CouncilMeetingRepository;
   unitOfWork: UnitOfWork;
   councilBusinessRepository: CouncilBusinessRepository;
   attendanceRepository: AttendanceRepository;
+  editorAssetService: EditorAssetService;
 }): ResourceService {
   return {
     list(filters) {
@@ -57,6 +62,7 @@ export function createResourceService({
         councilBusiness: await councilBusinessRepository.list({ resourceId: resource.id }),
         snapshotted: await resourceRepository.isSnapshotted(resource.id),
         usedAsProxy: await attendanceRepository.isProxyDocumentUsed(resource.id),
+        referencedByContent: await resourceRepository.isReferencedByRichText(resource.id),
       };
     },
     async listFolderPaths() {
@@ -74,7 +80,11 @@ export function createResourceService({
       return [...paths].sort((left, right) => left.localeCompare(right, "fr-FR"));
     },
     createText(input) {
-      return unitOfWork.execute(() => resourceRepository.createText(input));
+      return unitOfWork.execute(async () => {
+        const resource = await resourceRepository.createText(input);
+        await editorAssetService.reconcile({ kind: "textResourceContent", id: resource.id }, resource.content);
+        return resource;
+      });
     },
     createDocument(input) {
       return unitOfWork.execute(async () => {
@@ -92,26 +102,35 @@ export function createResourceService({
       return unitOfWork.execute(async () => {
         const resource = await resourceRepository.findMetadata(id);
         if (!resource) throw new DomainError("resource_not_found", 404);
+        if (resource.kind === "document" && resource.usage === "editorAsset") throw new DomainError("conflict", 409);
         if (resource.kind !== "text" && input.content !== undefined) throw new DomainError("invalid_request");
         const contentChanged =
           resource.kind === "text" && input.content !== undefined && input.content !== resource.content;
         const titleChanged = input.title !== resource.title;
-        // Une ressource photographiée dans une occurrence historique garde titre et contenu ;
-        // seul son classement (chemin, tags) reste modifiable.
         if ((contentChanged || titleChanged) && (await resourceRepository.isSnapshotted(resource.id))) {
           throw new DomainError("conflict", 409);
         }
-        return resourceRepository.update(resource.id, {
+        const updated = await resourceRepository.update(resource.id, {
           title: input.title,
           folderPath: input.folderPath,
           tags: input.tags,
           content: resource.kind === "text" ? (input.content ?? resource.content) : undefined,
         });
+        if (updated.kind === "text") {
+          await editorAssetService.reconcile({ kind: "textResourceContent", id: updated.id }, updated.content);
+        }
+        return updated;
       });
     },
     delete(id) {
       return unitOfWork.execute(async () => {
         const resource = await resourceRepository.findMetadata(id);
+        if (resource?.kind === "document" && resource.usage === "editorAsset") throw new DomainError("conflict", 409);
+        if (resource && (await resourceRepository.isReferencedByRichText(resource.id)))
+          throw new DomainError("conflict", 409);
+        if (resource?.kind === "text") {
+          await editorAssetService.purgeOwner({ kind: "textResourceContent", id: resource.id });
+        }
         if (!resource || !(await resourceRepository.delete(resource.id))) {
           throw new DomainError("resource_not_found", 404);
         }

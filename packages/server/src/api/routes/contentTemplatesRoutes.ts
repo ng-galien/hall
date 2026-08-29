@@ -2,6 +2,7 @@ import {
   createContentTemplateSchema,
   generateContentTemplateSchema,
   previewContentTemplateSchema,
+  previewPdfSchema,
   updateContentTemplateSchema,
 } from "@hall/domain";
 import { Router } from "express";
@@ -48,7 +49,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
       references = (await councilMeetingRepository.list()).map((meeting) => ({
         type,
         id: meeting.id,
-        label: `${meeting.number} — ${meeting.startsAt.slice(0, 10)}`,
+        label: `${meeting.number} - ${meeting.startsAt.slice(0, 10)}`,
       }));
     }
     if (type === "councilBusiness") {
@@ -62,7 +63,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
       references = (await councilDecisionRepository.list()).map((decision) => ({
         type,
         id: decision.id,
-        label: decision.number ? `${decision.number} — ${decision.title}` : decision.title,
+        label: decision.number ? `${decision.number} - ${decision.title}` : decision.title,
       }));
     }
     if (type === "resource") {
@@ -79,6 +80,17 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
     const input = previewContentTemplateSchema.parse(request.body);
     const preview = await contentTemplateService.preview(input, input.context);
     response.json({ html: preview.html, subject: preview.subject, diagnostics: preview.diagnostics });
+  });
+
+  router.post("/preview-pdf", requirePermission("workspace.read"), async (request, response) => {
+    const input = previewPdfSchema.parse(request.body);
+    const content = await contentTemplateService.previewPdf(input.bodyMarkdown, input.context);
+    response.setHeader("Content-Type", "application/pdf");
+    response.setHeader("Content-Disposition", "inline; filename=preview.pdf");
+    response.setHeader("Content-Length", String(content.byteLength));
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.setHeader("Content-Security-Policy", "sandbox");
+    response.send(content);
   });
 
   router.post("/", requirePermission("workspace.write"), async (request, response) => {

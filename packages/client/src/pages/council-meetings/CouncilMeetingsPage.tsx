@@ -22,10 +22,9 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 
-/** Valeur sentinelle de l'entrée « non désigné » : SelectItem interdit une valeur vide. */
+/** Sentinel for an unassigned officer; SelectItem forbids an empty value. */
 const UNDESIGNATED = "none";
 
-/** Ramène la sentinelle « non désigné » sur null avant l'envoi au serveur. */
 function officerId(value: FormDataEntryValue | null): string | null {
   const id = typeof value === "string" ? value : "";
   return id && id !== UNDESIGNATED ? id : null;

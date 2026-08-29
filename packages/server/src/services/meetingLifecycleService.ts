@@ -163,7 +163,7 @@ export function createMeetingLifecycleService({
             await councilBusinessRepository.create({
               kind: "minutesApproval",
               minutesOfMeetingId: id,
-              title: `Approbation du procès-verbal — ${meeting.startsAt.slice(0, 10)}`,
+              title: `Approbation du procès-verbal - ${meeting.startsAt.slice(0, 10)}`,
               report: minutesDraft,
               folderPath: "",
               resourceIds: [],

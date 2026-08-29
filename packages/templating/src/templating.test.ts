@@ -4,8 +4,8 @@ import { directiveSpecs, fieldNames } from "./grammar.js";
 
 const roundTrip = (markdown: string) => serialize(parse(markdown)).trim();
 
-describe("sérialisation canonique", () => {
-  it("conserve le raccourci d'identifiant des références métier", () => {
+describe("canonical serialization", () => {
+  it("preserves the identifier shorthand for business references", () => {
     for (const source of [
       ":member[Martine Delcourt]{#7c1e}",
       ":resource[Rapport préparatoire]{#d90a}",
@@ -17,15 +17,15 @@ describe("sérialisation canonique", () => {
     }
   });
 
-  it("normalise les attributs nommés en forme entre guillemets", () => {
-    // La forme canonique est celle que produit remark : l'écrire autrement ferait réécrire
-    // le document à chaque enregistrement.
+  it("normalizes named attributes to their quoted form", () => {
     expect(roundTrip(":field{name=meeting.startsAt}")).toBe(':field{name="meeting.startsAt"}');
     expect(roundTrip(':field{name="meeting.startsAt"}')).toBe(':field{name="meeting.startsAt"}');
+    expect(roundTrip("::image[Vue de la mairie]{#37e4df8e-831e-4af2-a4cb-ec1352ae9677 align=center width=60}")).toBe(
+      '::image[Vue de la mairie]{#37e4df8e-831e-4af2-a4cb-ec1352ae9677 align="center" width="60"}',
+    );
   });
 
-  it("préserve une directive hors contrat au lieu de la mutiler", () => {
-    // Vaut pour un type d'une version plus récente comme pour `snippet`, hors périmètre initial.
+  it("preserves an unsupported directive instead of corrupting it", () => {
     expect(roundTrip(":futur[Quelque chose]{#zz}")).toBe(":futur[Quelque chose]{#zz}");
     expect(roundTrip("::snippet[Signature du maire]{#signature-maire}")).toBe(
       "::snippet[Signature du maire]{#signature-maire}",
@@ -33,14 +33,38 @@ describe("sérialisation canonique", () => {
   });
 });
 
-describe("rendu partagé", () => {
-  it("rend les tableaux GFM sans accepter de HTML brut", () => {
+describe("shared rendering", () => {
+  it("renders GFM tables without accepting raw HTML", () => {
     const html = renderHtml(parse("| Nom | Voix |\n| --- | ---: |\n| Alice | 1 |\n\n<script>alert(1)</script>"));
     expect(html).toContain("<table>");
     expect(html).not.toContain("<script>");
   });
 
-  it("retire les protocoles actifs et les images distantes", () => {
+  it("allows only generated image markup with a data source", () => {
+    const html = renderHtml({
+      type: "root",
+      children: [
+        {
+          type: "image",
+          url: "data:image/png;base64,iVBORw0KGgo=",
+          alt: "Plan de circulation",
+          data: {
+            hProperties: {
+              className: ["hall-template-image", "hall-template-image-center"],
+              style: "width:75%",
+              onClick: "alert(1)",
+            },
+          },
+        },
+      ],
+    });
+    expect(html).toContain('src="data:image/png;base64,iVBORw0KGgo="');
+    expect(html).toContain('class="hall-template-image hall-template-image-center"');
+    expect(html).toContain('style="width: 75%"');
+    expect(html).not.toContain("onclick");
+  });
+
+  it("removes active protocols and remote images", () => {
     const html = renderHtml(
       parse(
         "[dangereux](javascript:alert(1)) [site](https://example.fr) ![traceur](https://tracker.example/pixel.png)",
@@ -52,37 +76,86 @@ describe("rendu partagé", () => {
   });
 });
 
-describe("tableaux GFM", () => {
+describe("GFM tables", () => {
   const table = ["| Association | Montant |", "| --- | ---: |", "| Les Tilleuls | 1 200 € |"].join("\n");
 
-  it("reconnaît un tableau et retient l'alignement de chaque colonne", () => {
+  it("recognizes a table and retains each column alignment", () => {
     const [node] = parse(table).children;
     expect(node.type).toBe("table");
     expect((node as { align?: unknown }).align).toEqual([null, "right"]);
   });
 
-  it("aligne les colonnes à la sérialisation, puis n'y touche plus", () => {
-    // La première écriture normalise le remplissage ; les suivantes sont identiques, donc
-    // aucune réécriture parasite dans les diffs au-delà de cette passe.
+  it("aligns columns during serialization and then leaves them stable", () => {
     const once = serialize(parse(table));
     expect(serialize(parse(once))).toBe(once);
   });
 
-  it("accepte une référence métier dans une cellule", () => {
+  it("accepts a business reference in a cell", () => {
     const votes = ["| Élu | Vote |", "| --- | --- |", "| :member[Martine Delcourt]{#7c1e} | Pour |"].join("\n");
     const [directive] = collectDirectives(parse(votes));
     expect([directive.name, directive.label, directive.attributes.id]).toEqual(["member", "Martine Delcourt", "7c1e"]);
     expect(validateStructure(parse(votes))).toEqual([]);
   });
 
-  it("préserve une barre verticale échappée dans une cellule", () => {
+  it("preserves an escaped vertical bar in a cell", () => {
     const escaped = ["| A |", "| --- |", "| a \\| b |"].join("\n");
     expect(serialize(parse(escaped))).toContain("a \\| b");
   });
+
+  it("preserves and renders the HTML subset produced by rich Tiptap tables", () => {
+    const richTable = [
+      '<table style="min-width: 75px; width: 100%">',
+      '<colgroup><col style="min-width: 25px; width: 40%"><col style="width: 60%"></colgroup>',
+      '<thead><tr><th colspan="2" rowspan="1" style="text-align: center">Budget</th></tr></thead>',
+      '<tbody><tr><td style="text-align: left">Voirie</td><td style="text-align: right">12 000 €</td></tr></tbody>',
+      "</table>",
+    ].join("");
+
+    expect(serialize(parse(richTable)).trim()).toBe(richTable);
+    const html = renderHtml(parse(richTable));
+    expect(html).toContain("<table");
+    expect(html).toContain("<colgroup>");
+    expect(html).toContain('colspan="2"');
+    expect(html).toContain("text-align: right");
+    expect(html).toContain("width: 40%");
+  });
+
+  it("sanitizes active HTML and arbitrary styles from rich tables", () => {
+    const html = renderHtml(
+      parse(
+        [
+          '<table onclick="alert(1)" style="background-image: url(https://tracker.example/x); min-width: 999999px; width: 100%">',
+          '<colgroup><col style="width: 40%; background: red"></colgroup>',
+          '<tbody><tr><td colspan="2" rowspan="2" colwidth="40,60" align="center" ',
+          'style="position: fixed; text-align: center">',
+          '<iframe src="https://tracker.example/frame"></iframe>',
+          '<a href="javascript:alert(1)" onmouseover="alert(1)">Valeur</a>',
+          '<img src="https://tracker.example/pixel" onerror="alert(1)">',
+          "<script>alert(1)</script></td></tr></tbody></table>",
+        ].join(""),
+      ),
+    );
+    expect(html).toContain("<table");
+    expect(html).toContain("width: 100%");
+    expect(html).toContain("width: 40%");
+    expect(html).toContain("text-align: center");
+    expect(html).toContain('colspan="2"');
+    expect(html).toContain('rowspan="2"');
+    expect(html).toContain('colwidth="40,60"');
+    expect(html).toContain('align="center"');
+    expect(html).not.toMatch(/on(?:click|error|mouseover)=/);
+    expect(html).not.toContain("script");
+    expect(html).not.toContain("iframe");
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain("position");
+    expect(html).not.toContain("tracker.example");
+    expect(html).not.toContain("background");
+    expect(html).not.toContain("999999px");
+  });
 });
 
-describe("relevé des directives", () => {
-  it("numérote les occurrences par nom, dans l'ordre du document", () => {
+describe("directive collection", () => {
+  it("numbers occurrences by name in document order", () => {
     const found = collectDirectives(parse(":member[Alice]{#a} puis :member[Bernard]{#b} et :decision[Budget]{#c}"));
     expect(found.map((d) => [d.name, d.occurrence, d.label, d.attributes.id])).toEqual([
       ["member", 0, "Alice", "a"],
@@ -91,76 +164,94 @@ describe("relevé des directives", () => {
     ]);
   });
 
-  it("expose une position source exploitable", () => {
+  it("exposes a usable source position", () => {
     const [directive] = collectDirectives(parse(":member[Alice]{#a}"));
     expect(directive.position?.start.line).toBe(1);
   });
 });
 
-describe("validation structurelle", () => {
-  it("accepte les formes du périmètre initial", () => {
+describe("structural validation", () => {
+  it("accepts the initial scope forms", () => {
     const markdown = ':member[Martine Delcourt]{#7c1e} ouvre la séance du :field{name="meeting.startsAt"}.';
     expect(validateStructure(parse(markdown))).toEqual([]);
   });
 
-  it("signale une directive inconnue", () => {
+  it("reports an unknown directive", () => {
     const [diagnostic] = validateStructure(parse(":inconnue[X]{#a}"));
     expect(diagnostic.code).toBe("unknown_directive");
     expect(diagnostic.severity).toBe("error");
     expect(diagnostic.anchor.directive).toBe("inconnue");
   });
 
-  it("traite snippet comme hors contrat tant qu'il n'est pas au périmètre", () => {
+  it("treats snippet as unsupported while it remains outside the scope", () => {
     const [diagnostic] = validateStructure(parse("::snippet[Signature]{#signature-maire}"));
     expect(diagnostic.code).toBe("unknown_directive");
   });
 
-  it("signale un identifiant manquant sur une référence", () => {
+  it("reports a missing identifier on a reference", () => {
     const [diagnostic] = validateStructure(parse(":member[Martine Delcourt]"));
     expect(diagnostic.code).toBe("missing_attribute");
     expect(diagnostic.severity).toBe("error");
     expect(diagnostic.anchor.occurrence).toBe(0);
   });
 
-  it("refuse un champ hors de la liste fermée", () => {
+  it("rejects a field outside the closed list", () => {
     const [diagnostic] = validateStructure(parse(':field{name="meeting.inexistant"}'));
     expect(diagnostic.code).toBe("unknown_field");
     expect(diagnostic.severity).toBe("error");
   });
 
-  it("refuse une navigation dynamique déguisée en nom de champ", () => {
-    // La liste est fermée : `name` n'est pas un chemin évalué.
+  it("rejects dynamic navigation disguised as a field name", () => {
     expect(validateStructure(parse(':field{name="meeting.chair.firstName"}'))[0].code).toBe("unknown_field");
   });
 
-  it("signale un attribut hors contrat sans bloquer", () => {
+  it("reports an unsupported attribute without blocking", () => {
     const [diagnostic] = validateStructure(parse(":member[Martine]{#a role=maire}"));
     expect(diagnostic.code).toBe("unexpected_attribute");
     expect(diagnostic.severity).toBe("warning");
   });
+
+  it("validates an archived image with alternative text, alignment and width", () => {
+    expect(
+      validateStructure(
+        parse('::image[Vue de la mairie]{#37e4df8e-831e-4af2-a4cb-ec1352ae9677 align="center" width="60"}'),
+      ),
+    ).toEqual([]);
+  });
+
+  it("requires alternative text for an image", () => {
+    const diagnostics = validateStructure(parse('::image[]{#mairie align="left" width="100"}'));
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toContain("missing_label");
+  });
+
+  it("constrains image alignment and width", () => {
+    const diagnostics = validateStructure(parse('::image[Vue]{#mairie align="right" width="120"}'));
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["invalid_attribute", "invalid_attribute"]);
+  });
 });
 
-describe("registre", () => {
-  it("n'expose que le périmètre initial", () => {
+describe("registry", () => {
+  it("exposes only the initial scope", () => {
     expect(directiveSpecs.map((spec) => spec.name)).toEqual([
       "member",
       "resource",
       "councilBusiness",
       "decision",
       "meeting",
+      "image",
       "field",
     ]);
   });
 
-  it("n'expose pas snippet, hors périmètre", () => {
+  it("does not expose snippet while it remains outside the scope", () => {
     expect(directiveSpecs.some((spec) => spec.name === ("snippet" as never))).toBe(false);
   });
 
-  it("ne déclare aucune directive de bloc dans ce périmètre", () => {
-    expect(directiveSpecs.every((spec) => spec.node === "textDirective")).toBe(true);
+  it("reserves the block directive for archived images", () => {
+    expect(directiveSpecs.filter((spec) => spec.node === "leafDirective").map((spec) => spec.name)).toEqual(["image"]);
   });
 
-  it("expose la liste fermée des champs contextuels", () => {
+  it("exposes the closed list of contextual fields", () => {
     expect(fieldNames).toContain("hall.name");
     expect(fieldNames).toContain("meeting.startsAt");
   });

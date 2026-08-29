@@ -11,7 +11,7 @@ import type { WorkspaceSelection } from "./WorkspacePage";
 const RECENT_LIMIT = 6;
 const FOLDER_LIMIT = 10;
 
-/** Accueil de l'espace de travail : derniers sujets travaillés, dossiers par volume. */
+/** Workspace home: recently worked matters, folders by volume. */
 export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelection, path?: string): void }) {
   const { t, formatNumber, formatDate } = useI18n();
   const { businesses } = useCouncilBusinessStore();

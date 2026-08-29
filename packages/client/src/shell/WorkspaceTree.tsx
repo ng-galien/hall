@@ -30,23 +30,10 @@ function TreeNode({
   const isExpanded = expanded.has(node.path);
   const isActive = activePath === node.path;
   return (
-    <li className="workspace-tree-node">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: drop target; navigation and expansion remain keyboard-accessible children */}
+    <li>
       <div
         className={`workspace-tree-row${isActive ? " workspace-tree-row-active" : ""}${dropping ? " workspace-tree-row-drop" : ""}`}
         style={{ paddingLeft: `calc(${depth} * var(--hall-space-3))` }}
-        onDragOver={(event: DragEvent) => {
-          if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
-          event.preventDefault();
-          setDropping(true);
-        }}
-        onDragLeave={() => setDropping(false)}
-        onDrop={(event: DragEvent) => {
-          event.preventDefault();
-          setDropping(false);
-          const payload = decodeDragPayload(event.dataTransfer.getData(DRAG_TYPE));
-          if (payload) void moveToPath(payload, node.path);
-        }}
       >
         {node.children.length > 0 ? (
           <button
@@ -61,7 +48,22 @@ function TreeNode({
         ) : (
           <span className="workspace-tree-toggle" aria-hidden="true" />
         )}
-        <Link className="workspace-tree-link" to={`/workspace?path=${encodeURIComponent(node.path)}`}>
+        <Link
+          className="workspace-tree-link"
+          to={`/workspace?path=${encodeURIComponent(node.path)}`}
+          onDragOver={(event: DragEvent) => {
+            if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
+            event.preventDefault();
+            setDropping(true);
+          }}
+          onDragLeave={() => setDropping(false)}
+          onDrop={(event: DragEvent) => {
+            event.preventDefault();
+            setDropping(false);
+            const payload = decodeDragPayload(event.dataTransfer.getData(DRAG_TYPE));
+            if (payload) void moveToPath(payload, node.path);
+          }}
+        >
           <span className="workspace-tree-name">{node.name}</span>
           <span className="workspace-tree-count">{formatNumber(node.count)}</span>
         </Link>
@@ -84,7 +86,7 @@ function TreeNode({
   );
 }
 
-/** Arborescence des chemins de classement, intégrée à la sidebar sous « Espace de travail ». */
+/** Filing path tree rendered in the sidebar under the workspace entry. */
 export function WorkspaceTree() {
   const { businesses } = useCouncilBusinessStore();
   const { resources } = useResourcesStore();
@@ -135,7 +137,6 @@ export function WorkspaceTree() {
   let hiddenCount = 0;
   if (!showAll && tree.length > VISIBLE_LIMIT + 1) {
     visible = tree.slice(0, VISIBLE_LIMIT);
-    // Le dossier actif reste visible même s'il est au-delà de la limite.
     if (activeTop && !visible.some((node) => node.path === activeTop)) {
       const active = tree.find((node) => node.path === activeTop);
       if (active) visible = [...visible, active];

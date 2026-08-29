@@ -1,6 +1,4 @@
-/* Seule source des valeurs visuelles de l'application : aucun autre fichier ne porte de couleur
-   littérale (test theme-tokens). Le ton sombre, en bas de fichier, ne redéfinit que des valeurs —
-   jamais un rôle, jamais une structure. */
+/* Single source of the visual values. No other file carries a literal colour or measurement. */
 :root {
   color-scheme: light;
 
@@ -13,15 +11,14 @@
   --hall-color-text: #161a20;
   --hall-color-text-muted: #5b6472;
   --hall-color-text-subtle: #646d7a;
-  /* Indigo-marine : famille du bleu institutionnel français, valeur distincte du bleu France
-     #000091, qui est le marqueur d'identité visuelle de l'État. */
+  /* Distinct from #000091, which is reserved to the French state identity. */
   --hall-color-brand: #1b2a78;
   --hall-color-brand-hover: #24369a;
   --hall-color-brand-pressed: #131e58;
   --hall-color-on-brand: #ffffff;
   --hall-color-brand-subtle: #eceefa;
   --hall-color-brand-border: #c3caec;
-  /* Accent « sceau » : réservé aux marques d'officialité (référence d'acte, sujet mis au vote). */
+  /* Reserved to marks of officiality. */
   --hall-color-seal: #7b2d3b;
   --hall-color-seal-strong: #5e2029;
   --hall-color-seal-surface: #f7ebed;
@@ -44,8 +41,7 @@
   --hall-color-danger-surface: #fdf0f0;
   --hall-color-danger-surface-strong: #b42323;
   --hall-color-focus: #4a63c8;
-  /* Couche « ink » du mode séance : alias de la palette, donc elle suit le ton actif sans
-     redéfinition. Pour donner au mode séance un ton propre, redéfinir ces douze tokens. */
+  /* Meeting mode layer, aliased so it follows the active theme. */
   --hall-color-ink: var(--hall-color-canvas);
   --hall-color-ink-raised: var(--hall-color-surface);
   --hall-color-ink-hover: var(--hall-color-surface-selected);
@@ -73,68 +69,63 @@
   --hall-color-disabled-text: #8a93a1;
   --hall-color-transparent: transparent;
 
+  /* 4px grid, with a 2px half step. */
   --hall-space-unit: 4px;
   --hall-space-0-5: 2px;
   --hall-space-1: 4px;
-  --hall-space-1-25: 5px;
   --hall-space-1-5: 6px;
   --hall-space-2: 8px;
   --hall-space-2-5: 10px;
   --hall-space-3: 12px;
-  --hall-space-3-5: 14px;
   --hall-space-4: 16px;
-  --hall-space-4-5: 18px;
   --hall-space-5: 20px;
   --hall-space-6: 24px;
   --hall-space-7: 28px;
   --hall-space-10: 40px;
-  --hall-space-10-5: 42px;
 
-  /* Trois voix : le registre (titres et textes qui font foi), l'interface, et les chiffres. */
   --hall-font-family-display: Spectral, Georgia, "Times New Roman", serif;
   --hall-font-family-sans: "Archivo Variable", Archivo, ui-sans-serif, system-ui, sans-serif;
   --hall-font-family-monospace: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --hall-font-size-caption: 12px;
+  /* Type scale: 10, 12, 14, 16, 20, 24, 28, 32, 40. */
   --hall-font-size-caption-small: 10px;
-  --hall-font-size-small: 13px;
+  --hall-font-size-caption: 12px;
   --hall-font-size-body: 14px;
-  --hall-font-size-subtitle: 15px;
   --hall-font-size-title: 16px;
-  /* Les glyphes Phosphor occupent davantage leur cadre que les anciens : à cadre égal ils
-     paraissent plus gros, d'où une échelle d'icônes d'un cran en dessous. */
-  --hall-font-size-icon-small: 14px;
-  --hall-font-size-icon: 18px;
-  --hall-font-size-icon-large: 20px;
   --hall-font-size-heading: 20px;
   --hall-font-size-heading-large: 24px;
-  --hall-font-size-metric: 25px;
   --hall-font-size-display-small: 28px;
   --hall-font-size-display: 32px;
   --hall-font-size-display-large: 40px;
-  --hall-font-size-hero: 68px;
+  /* Relative to the surrounding text. */
+  --hall-font-size-code-inline: 0.92em;
+  /* Phosphor glyphs fill their box, so icons sit one step below the type scale. */
+  --hall-font-size-icon-small: 12px;
+  --hall-font-size-icon: 16px;
+  --hall-font-size-icon-large: 20px;
   --hall-font-weight-medium: 500;
   --hall-font-weight-regular: 400;
   --hall-font-weight-semibold: 650;
   --hall-font-weight-bold: 700;
+  --hall-line-height-none: 1;
   --hall-line-height-compact: 1.1;
   --hall-line-height-body: 1.45;
-  --hall-line-height-caption-small: 14px;
+  /* One line height per type step, all multiples of 4. */
+  --hall-line-height-caption-small: 16px;
   --hall-line-height-caption: 16px;
   --hall-line-height-body-small: 20px;
-  --hall-line-height-body-large: 22px;
+  --hall-line-height-body-large: 24px;
   --hall-line-height-heading: 28px;
   --hall-line-height-heading-large: 32px;
   --hall-line-height-display-small: 36px;
   --hall-line-height-display: 40px;
   --hall-line-height-display-large: 52px;
-  --hall-line-height-hero: 92px;
   --hall-letter-spacing-section: 0.08em;
   --hall-letter-spacing-brand: 0.18em;
 
   --hall-radius-none: 0;
   --hall-radius-small: 4px;
-  --hall-radius-medium: 6px;
-  --hall-radius-large: 10px;
+  --hall-radius-medium: 8px;
+  --hall-radius-large: 12px;
   --hall-radius-circular: 9999px;
   --hall-shadow-small: 0 1px 2px rgb(22 26 32 / 6%);
   --hall-shadow-medium: 0 2px 6px rgb(22 26 32 / 10%);
@@ -145,88 +136,123 @@
   --hall-stroke-heavy: 3px;
   --hall-stamp-rotation: -2deg;
 
-  --hall-size-control: 32px;
-  --hall-size-control-small: 26px;
-  --hall-size-navigation-count: 24px;
-  --hall-size-navigation-row: 34px;
-  --hall-size-metric-icon: 38px;
-  --hall-size-data-row: 58px;
-  --hall-size-card: 116px;
-  --hall-size-header: 52px;
-  --hall-size-sidebar: 248px;
-  --hall-size-sidebar-compact: 52px;
-  --hall-size-content-max: 1500px;
-  --hall-size-application-min: 720px;
-  --hall-size-textarea-min: 72px;
-  --hall-size-observations-min: 220px;
-  --hall-size-member-avatar: 32px;
-  --hall-size-timeline-marker: 28px;
-  --hall-size-meeting-sidebar: 360px;
-  --hall-size-agenda-rail: 320px;
-  --hall-size-live-rail: 380px;
-  --hall-size-live-rail-collapsed: 64px;
-  --hall-size-live-header: 60px;
-  --hall-size-live-stage-max: 1080px;
-  --hall-size-rollcall-tile: 250px;
-  --hall-size-rollcall-tile-height: 128px;
-  --hall-size-entity-card: 240px;
-  --hall-size-search-max: 360px;
-  --hall-size-vote-zone-min: 118px;
-  --hall-size-markdown-min: 120px;
-  /* MDXEditor calibre sa barre d'outils à 24 px d'icône dans des boutons de 28 : nettement
-     au-dessus de l'échelle de l'application, d'où ce recalage. */
-  --hall-size-editor-toolbar-control: 24px;
-  --hall-font-size-editor-icon: 16px;
-  --hall-size-editor-dialog: 1120px;
-  --hall-size-table-handle-long: 22px;
-  --hall-size-table-handle-short: 14px;
-  --hall-size-table-extend: 18px;
-  --hall-size-crumb-chevron: 22px;
+  /* Controls: 4px grid, below 120px. */
+  --hall-size-resize-handle: 4px;
+  --hall-size-scrollbar-border: 4px;
+  --hall-size-scrollbar: 12px;
+  --hall-size-glyph-mark-compact: 12px;
+  --hall-size-table-handle-short: 12px;
+  --hall-size-glyph-mark: 16px;
+  --hall-size-glyph-compact: 20px;
   --hall-size-tag-chip: 20px;
-  --hall-size-editor-dialog-min: 60vh;
-  --hall-size-editor-measure: 74ch;
-  --hall-size-modal: 680px;
-  --hall-size-document-viewer: 1200px;
-  --hall-size-overlay-width: 92vw;
-  --hall-size-viewer-width: 97vw;
-  --hall-size-viewer-height: 95vh;
-  --hall-size-overlay-height: 88vh;
-  --hall-size-scrollbar: 10px;
-  --hall-size-scrollbar-border: 3px;
+  --hall-size-table-handle-long: 20px;
+  --hall-size-table-extend: 20px;
+  --hall-size-crumb-chevron: 20px;
+  --hall-size-glyph-mark-large: 24px;
+  --hall-size-navigation-count: 24px;
   --hall-size-tree-toggle: 24px;
-  --hall-size-workspace-list: 320px;
-  --hall-size-toolbar-attach: 420px;
+  --hall-size-editor-toolbar-control: 24px;
+  --hall-size-control-small: 28px;
   --hall-size-glyph: 28px;
+  --hall-size-timeline-marker: 28px;
+  --hall-size-control: 32px;
+  --hall-size-navigation-row: 32px;
+  --hall-size-member-avatar: 32px;
   --hall-size-glyph-large: 40px;
-  --hall-size-picker-panel: 360px;
-  --hall-size-picker-panel-max: 380px;
-  --hall-size-tree-max: 40vh;
+  --hall-size-metric-icon: 40px;
+  --hall-size-table-column-step: 40px;
+  --hall-size-header: 52px;
+  --hall-size-sidebar-compact: 52px;
+  --hall-size-data-row: 56px;
+  --hall-size-live-header: 60px;
+  --hall-size-table-column-min: 60px;
+  --hall-size-live-rail-collapsed: 64px;
+  --hall-size-textarea-min: 72px;
+  --hall-size-tag-input-field-min: 80px;
   --hall-size-facet-label: 88px;
-  --hall-size-hit-card: 260px;
+
+  /* Layout: 20px step. */
+  --hall-size-card: 120px;
+  --hall-size-vote-zone-min: 120px;
+  --hall-size-markdown-min: 120px;
+  --hall-size-search-field-min: 120px;
+  --hall-size-rollcall-tile-height: 120px;
   --hall-size-pin-title: 180px;
-  --hall-motion-distance: 3px;
+  --hall-size-observations-min: 220px;
+  --hall-size-tag-input-min: 220px;
+  --hall-size-entity-card: 240px;
+  --hall-size-sidebar: 240px;
+  --hall-size-rollcall-tile: 240px;
+  --hall-size-hit-card: 260px;
+  --hall-size-mention-menu: 280px;
+  --hall-size-rail-min: 280px;
+  --hall-size-workbench-aside-min: 280px;
+  --hall-size-agenda-rail: 320px;
+  --hall-size-workspace-list: 320px;
+  --hall-size-workbench-aside-max: 340px;
+  --hall-size-meeting-sidebar: 360px;
+  --hall-size-picker-panel: 360px;
+  --hall-size-mention-menu-max: 360px;
+  --hall-size-search-max: 360px;
+  --hall-size-live-rail: 380px;
+  --hall-size-picker-panel-max: 380px;
+  --hall-size-toolbar-attach: 420px;
+  --hall-size-auth-panel: 440px;
+  --hall-size-preview-failure: 520px;
+  --hall-size-rail-max: 560px;
+  --hall-size-table-column-max: 600px;
+  --hall-size-dialog-height-max: 640px;
+  --hall-size-modal: 680px;
+  --hall-size-embed-height-max: 680px;
+  --hall-size-application-min: 720px;
+  --hall-size-live-stage-max: 1080px;
+  --hall-size-editor-dialog: 1120px;
+  --hall-size-document-viewer: 1200px;
+  --hall-size-content-max: 1500px;
+
+  /* Breakpoints are 760, 1000, 1280. A CSS variable is not readable inside a media query,
+     so they stay literal in the sheets. */
+
+  /* Viewport and text relative, off grid by nature. */
+  --hall-size-editor-dialog-min: 60vh;
+  --hall-size-embed-height: 62vh;
+  --hall-size-dialog-height: 70vh;
+  --hall-size-overlay-height: 88vh;
+  --hall-size-overlay-width: 92vw;
+  --hall-size-viewer-height: 95vh;
+  --hall-size-viewer-width: 97vw;
+  --hall-size-image-control-max: 45vw;
+  --hall-size-tree-max: 40vh;
+  --hall-size-crumb-max: 40ch;
+  --hall-size-editor-measure: 74ch;
+  --hall-motion-distance: 4px;
   --hall-motion-ultra-fast: 50ms;
   --hall-motion-faster: 100ms;
   --hall-motion-fast: 140ms;
   --hall-motion-normal: 200ms;
   --hall-motion-status: 2000ms;
   --hall-motion-spinner: 800ms;
+  --hall-motion-pulse: 1000ms;
   --hall-motion-curve-accelerate: cubic-bezier(0.7, 0, 1, 0.5);
   --hall-motion-curve-decelerate: cubic-bezier(0.1, 0.9, 0.2, 1);
   --hall-motion-curve-standard: cubic-bezier(0.33, 0, 0.67, 1);
   --hall-opacity-pulse: 0.55;
+  --hall-opacity-pulse-deep: 0.3;
+  --hall-opacity-disabled: 0.4;
+  --hall-opacity-guide: 0.5;
   --hall-opacity-empty-state: 60%;
   --hall-opacity-backdrop: 42%;
   --hall-z-content: 1;
+  /* Both stay below the overlays. */
+  --hall-z-editor-guide: 5;
+  --hall-z-editor-handle: 10;
   --hall-z-overlay: 40;
   --hall-z-popover: 50;
   --hall-z-modal: 100;
   --hall-z-editor-popup: 150;
 }
 
-/* Ton sombre. Le jeu de rôles est celui du ton clair : on ne redéfinit ici que les valeurs
-   littérales, jamais un alias — la couche « ink », les verdicts et le pont Fluent suivent donc
-   d'eux-mêmes. L'attribut data-theme est posé par themePrefs, qui résout aussi le mode « auto ». */
+/* Dark theme. Literal values only, never an alias, so the derived layers follow. */
 :root[data-theme="dark"] {
   color-scheme: dark;
 

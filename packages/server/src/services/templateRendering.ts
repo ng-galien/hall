@@ -23,6 +23,11 @@ type AstNode = {
   type: string;
   name?: string;
   value?: string;
+  url?: string;
+  alt?: string;
+  data?: {
+    hProperties?: Record<string, unknown>;
+  };
   children?: AstNode[];
 };
 
@@ -73,21 +78,22 @@ function personName(member: { firstName: string; lastName: string } | null): str
 }
 
 function meetingReference(meeting: { number: string; startsAt: string } | null): string | null {
-  return meeting ? `${meeting.number} — ${meeting.startsAt.slice(0, 10)}` : null;
+  return meeting ? `${meeting.number} - ${meeting.startsAt.slice(0, 10)}` : null;
 }
 
 function textFromTree(node: AstNode): string {
   if (node.type === "text") return node.value ?? "";
+  if (node.type === "image") return node.alt ?? "";
   const content = (node.children ?? []).map(textFromTree).join("");
   return ["paragraph", "heading", "listItem", "blockquote"].includes(node.type) ? `${content}\n` : content;
 }
 
-function replaceDirectives(node: AstNode, values: Map<string, string>, counters = new Map<string, number>()): AstNode {
+function replaceDirectives(node: AstNode, values: Map<string, AstNode>, counters = new Map<string, number>()): AstNode {
   if (["textDirective", "leafDirective", "containerDirective"].includes(node.type)) {
     const name = node.name ?? "";
     const occurrence = counters.get(name) ?? 0;
     counters.set(name, occurrence + 1);
-    return { type: "text", value: values.get(`${name}:${occurrence}`) ?? "" };
+    return values.get(`${name}:${occurrence}`) ?? { type: "text", value: "" };
   }
   if (!node.children) return { ...node };
   return { ...node, children: node.children.map((child) => replaceDirectives(child, values, counters)) };
@@ -154,9 +160,42 @@ export function createTemplateRenderingService({
   const renderSource = async (source: string, context: ResolvedContext) => {
     const tree = parse(source);
     const diagnostics = validateStructure(tree);
-    const values = new Map<string, string>();
+    const values = new Map<string, AstNode>();
     for (const directive of collectDirectives(tree)) {
       const key = `${directive.name}:${directive.occurrence}`;
+      if (directive.name === "image") {
+        const id = directive.attributes.id;
+        const resource = id ? await resourceRepository.find(id) : null;
+        if (resource?.kind !== "document" || !["image/jpeg", "image/png"].includes(resource.mediaType)) {
+          values.set(key, { type: "text", value: directive.label });
+          if (id) {
+            diagnostics.push(
+              diagnostic(
+                "unresolved_reference",
+                resource ? `Resource ${id} is not a JPEG or PNG image` : `Image reference not found: ${id}`,
+                directive,
+              ),
+            );
+          }
+          continue;
+        }
+        const align = directive.attributes.align === "left" ? "left" : "center";
+        const requestedWidth = Number(directive.attributes.width);
+        const width =
+          Number.isInteger(requestedWidth) && requestedWidth >= 25 && requestedWidth <= 100 ? requestedWidth : 100;
+        values.set(key, {
+          type: "image",
+          url: `data:${resource.mediaType};base64,${resource.content.toString("base64")}`,
+          alt: directive.label || resource.title,
+          data: {
+            hProperties: {
+              className: ["hall-template-image", `hall-template-image-${align}`],
+              style: `width:${width}%`,
+            },
+          },
+        });
+        continue;
+      }
       if (isReferenceKind(directive.name)) {
         const id = directive.attributes.id;
         let value: string | null = null;
@@ -168,14 +207,14 @@ export function createTemplateRenderingService({
           }
           if (directive.name === "decision") {
             const decision = await councilDecisionRepository.find(id);
-            value = decision ? (decision.number ? `${decision.number} — ${decision.title}` : decision.title) : null;
+            value = decision ? (decision.number ? `${decision.number} - ${decision.title}` : decision.title) : null;
           }
           if (directive.name === "resource") value = (await resourceRepository.findMetadata(id))?.title ?? null;
         }
-        values.set(key, value ?? directive.label);
+        values.set(key, { type: "text", value: value ?? directive.label });
         if (id && value === null) {
           diagnostics.push(
-            diagnostic("unresolved_reference", `Référence ${directive.name} introuvable : ${id}`, directive),
+            diagnostic("unresolved_reference", `${directive.name} reference not found: ${id}`, directive),
           );
         }
         continue;
@@ -197,7 +236,7 @@ export function createTemplateRenderingService({
             : null,
         };
         const value = fields[name];
-        values.set(key, value ?? "");
+        values.set(key, { type: "text", value: value ?? "" });
         if (value === null) {
           diagnostics.push(diagnostic("unresolved_reference", `Contexte requis pour le champ ${name}`, directive));
         }

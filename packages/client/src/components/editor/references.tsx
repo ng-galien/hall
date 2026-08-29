@@ -1,4 +1,4 @@
-import { isReferenceKind, type ReferenceKind } from "@hall/templating";
+import { imageWidthRange, isReferenceKind, type ReferenceKind } from "@hall/templating";
 import { Extension, mergeAttributes, Node } from "@tiptap/core";
 import { type NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from "@tiptap/react";
 import { exitSuggestion, Suggestion, type SuggestionProps } from "@tiptap/suggestion";
@@ -12,7 +12,11 @@ type ResourcePreviewRenderer = (id: string, onClose: () => void) => ReactNode;
 
 const ResourcePreviewContext = createContext<ResourcePreviewRenderer | null>(null);
 
-/** Adaptateur de présentation fourni par l'application ; l'éditeur reste indépendant des ressources Hall. */
+export function useResourcePreviewRenderer() {
+  return useContext(ResourcePreviewContext);
+}
+
+/** Supplies the resource preview renderer used by reference badges. */
 export function ReferencePresentationProvider({
   renderResourcePreview,
   children,
@@ -23,14 +27,6 @@ export function ReferencePresentationProvider({
   return <ResourcePreviewContext.Provider value={renderResourcePreview}>{children}</ResourcePreviewContext.Provider>;
 }
 
-/**
- * Les références métier du contrat `@hall/templating`, dans l'éditeur.
- *
- * Une référence est un atome insécable : `:member[Jean Dupont]{#uuid}` dans le markdown,
- * une puce dans le texte. Le nœud est unique pour les cinq espèces — c'est la grammaire
- * partagée qui fait foi, pas une liste locale.
- */
-
 export const referenceIcons: Record<ReferenceKind, typeof MemberIcon> = {
   member: MemberIcon,
   resource: FileIcon,
@@ -39,10 +35,7 @@ export const referenceIcons: Record<ReferenceKind, typeof MemberIcon> = {
   meeting: CalendarIcon,
 };
 
-/**
- * La puce d'une référence — la même dans l'éditeur et dans le rendu, c'est le même document.
- * Sobre : pas d'icône dans le texte ; le survol dit ce qu'elle est, le clic ouvre une pièce.
- */
+/** Renders a reference inline; resource references open a preview on click. */
 export function ReferenceBadge({
   kind,
   id,
@@ -164,18 +157,13 @@ export const Reference = Node.create({
   renderMarkdown: (node) => `:${node.attrs?.kind}[${node.attrs?.label}]{#${node.attrs?.id}}`,
 });
 
-/**
- * Ce que la recherche `@` propose : une entité du moteur commun (`lib/search`), prête à
- * devenir une référence. La grammaire, la normalisation sans accents et le classement
- * viennent de là — le menu ne fait qu'afficher. Une pièce porte en plus son type
- * (texte, PDF, image, fichier), la nomenclature commune de l'application.
- */
+/** A searchable entity that can be inserted as a reference. */
 export interface Mentionable extends Searchable {
   icon?: typeof MemberIcon;
   metaLabel?: string;
 }
 
-/** L'appelant peut préciser l'icône ; sinon l'espèce de référence fournit le repli. */
+/** Returns the item icon, falling back to the icon for its reference kind. */
 export function mentionableIcon(item: Mentionable) {
   return item.icon ?? referenceIcons[item.kind];
 }
@@ -186,7 +174,7 @@ interface MentionListHandle {
   onKeyDown(event: KeyboardEvent): boolean;
 }
 
-/** Certains claviers synthétiques (tests, outils d'accessibilité) n'envoient que `keyCode`. */
+/** Reads the key name, falling back to `keyCode` for synthetic keyboards. */
 function keyOf(event: KeyboardEvent): string {
   if (event.key) return event.key;
   if (event.keyCode === 13) return "Enter";
@@ -198,11 +186,11 @@ function keyOf(event: KeyboardEvent): string {
 
 type MentionListProps = SuggestionProps<Mentionable> & {
   groupLabels: Record<ReferenceKind, string>;
-  /** Correspondances au-delà de la coupe — la liste doit annoncer ce qu'elle ne montre pas. */
+  /** Total match count before truncation. */
   total: number;
   searchAllLabel: string;
   hint: ReactNode;
-  /** Ouvre la recherche complète, pré-remplie avec la requête courante. */
+  /** Opens the full search, prefilled with the current query. */
   onOpenFull(): void;
 };
 
@@ -211,7 +199,6 @@ const MentionList = forwardRef<MentionListHandle, MentionListProps>(function Men
   ref,
 ) {
   const [rawActive, setActive] = useState(0);
-  // La liste change à chaque frappe : l'index actif reste borné plutôt que réinitialisé par effet.
   const active = Math.min(rawActive, Math.max(items.length - 1, 0));
   useImperativeHandle(ref, () => ({
     onKeyDown(event) {
@@ -233,7 +220,6 @@ const MentionList = forwardRef<MentionListHandle, MentionListProps>(function Men
   }));
   return (
     <div className="mention-suggestions">
-      {/* En tête, toujours visibles : la porte vers la recherche complète, puis la syntaxe. */}
       <button
         type="button"
         className="mention-suggestion-browse"
@@ -275,28 +261,22 @@ function placeSuggestions(element: HTMLElement, clientRect: (() => DOMRect | nul
   element.style.position = "fixed";
   element.style.left = `${rect.left}px`;
   element.style.top = `${rect.bottom + 4}px`;
-  // Au-dessus de la surimpression d'édition enrichie, elle-même à z-50.
   element.style.zIndex = "60";
 }
 
 export interface ReferenceMentionOptions {
-  /** Un accesseur, pas une liste : les sources peuvent arriver après le montage de l'éditeur. */
+  /** Accessor: sources may arrive after the editor mounts. */
   mentionables(): Mentionable[];
-  /** Intitulés des groupes du menu, fournis par l'appelant — la surcouche i18n est à lui. */
   groupLabels: Record<ReferenceKind, string>;
-  /** Le dossier « d'où l'on écrit » : la proximité fait remonter ce qui en est proche. */
+  /** Folder used to rank nearby entries first. */
   context?(): string | undefined;
   searchAllLabel: string;
-  /** Le rappel de la syntaxe de recherche, affiché sous l'en-tête du menu. */
   searchHint?: ReactNode;
-  /** Ouvre la recherche complète — la requête et la plage `@…` à remplacer sont fournies. */
+  /** Opens the full search with the query and the `@` range to replace. */
   onOpenFull?(query: string, range: { from: number; to: number }): void;
 }
 
-/**
- * `@` cherche parmi toutes les entités référençables et insère la référence typée.
- * `@terme` cherche partout ; `@catégorie:terme` restreint (`@doc:budget`, `@membre:dup`).
- */
+/** `@` mention menu: `@term` searches every kind, `@kind:term` narrows to one. */
 export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
   name: "referenceMention",
 
@@ -304,42 +284,50 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
     return {
       mentionables: () => [],
       groupLabels: {
-        member: "Membres",
-        resource: "Pièces",
-        councilBusiness: "Sujets",
-        meeting: "Séances",
-        decision: "Délibérations",
+        member: "Members",
+        resource: "Attachments",
+        councilBusiness: "Subjects",
+        meeting: "Meetings",
+        decision: "Decisions",
       },
-      searchAllLabel: "Tout parcourir",
+      searchAllLabel: "Browse all",
       searchHint: null,
     };
   },
 
   addProseMirrorPlugins() {
-    /* Le total de la dernière recherche voyage de `items` vers le rendu : la liste
-       annonce ce qu'elle ne montre pas au lieu de couper en silence. */
     const lastTotal = { value: 0 };
     return [
       Suggestion<Mentionable>({
         editor: this.editor,
         char: "@",
-        // La plage `@requête` se teinte comme une puce naissante : on voit qu'on cherche.
         decorationClass: "mention-query",
         items: ({ query }) => {
           const outcome = searchEntities(this.options.mentionables(), query, {
             context: this.options.context?.(),
-            // Sans requête, une coupe globale ne montrerait que le début de l'alphabet :
-            // on échantillonne chaque catégorie. Dès qu'on tape, le classement tranche.
             limit: query.trim() ? 12 : undefined,
           });
           lastTotal.value = outcome.total;
           const results = query.trim()
             ? outcome.results
             : kindOrder.flatMap((kind) => outcome.results.filter((entry) => entry.kind === kind).slice(0, 3));
-          // Le classement décide de qui entre dans la coupe ; l'affichage regroupe par type.
           return [...results].sort((a, b) => kindOrder.indexOf(a.kind) - kindOrder.indexOf(b.kind));
         },
         command: ({ editor, range, props }) => {
+          if (props.media === "image") {
+            editor
+              .chain()
+              .focus()
+              .insertContentAt(range, [
+                {
+                  type: "resourceImage",
+                  attrs: { id: props.id, alt: props.label, align: "left", width: imageWidthRange.default },
+                },
+                { type: "paragraph" },
+              ])
+              .run();
+            return;
+          }
           editor
             .chain()
             .focus()
@@ -361,7 +349,6 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
             searchAllLabel,
             hint,
             onOpenFull: () => {
-              // Le menu se retire avant que la recherche complète prenne la main.
               exitSuggestion(props.editor.view);
               openFull?.(props.query, props.range);
             },

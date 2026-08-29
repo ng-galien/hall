@@ -21,7 +21,7 @@ export function EmptyState({ children }: { children: ReactNode }) {
 
 export type CollectionLayout = "list" | "cards";
 
-/** La correspondance simple des listes ; la normalisation est celle du moteur commun. */
+/** Substring match over fields using the shared search normalization; an empty query matches. */
 export function matchesQuery(query: string, ...fields: (string | null | undefined)[]): boolean {
   const needle = normalizeForSearch(query.trim());
   if (!needle) return true;
@@ -110,14 +110,7 @@ export function Modal({
   }, [onClose, open]);
   if (!open) return null;
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: closing on backdrop click complements the Escape key handler
-    <div
-      className="modal-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <div className="modal-backdrop" role="presentation">
       <section className="modal-surface" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header className="modal-header">
           <h2 id={titleId}>{title}</h2>
@@ -131,7 +124,7 @@ export function Modal({
   );
 }
 
-const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
+export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   agenda_ballot_required: "error.agenda_ballot_required",
   agenda_inconsistent: "error.agenda_inconsistent",
   agenda_item_not_found: "error.agenda_item_not_found",

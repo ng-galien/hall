@@ -161,7 +161,15 @@ export interface TextResource extends ResourceBase {
 
 export type DocumentFormat = "pdf" | "jpeg" | "png" | "docx" | "odt" | "xlsx" | "pptx" | "txt" | "csv";
 
-export interface DocumentResource extends ResourceBase {
+export type DocumentCategory = "report" | "draftCouncilDecision" | "meetingNotice" | "minutes" | "proxy" | "supporting";
+
+export type EditorAssetOwner =
+  | { kind: "textResourceContent"; id: Identifier }
+  | { kind: "councilBusinessReport"; id: Identifier }
+  | { kind: "councilDecisionDraft"; id: Identifier }
+  | { kind: "agendaItemDiscussionSummary"; id: Identifier };
+
+interface DocumentResourceBase extends ResourceBase {
   kind: "document";
   meetingId: Identifier | null;
   fileName: string;
@@ -169,8 +177,21 @@ export interface DocumentResource extends ResourceBase {
   mediaType: string;
   byteSize: number;
   contentSha256: string;
-  category: "report" | "draftCouncilDecision" | "meetingNotice" | "minutes" | "proxy" | "supporting";
 }
+
+export interface DocumentaryResource extends DocumentResourceBase {
+  usage: "document";
+  category: DocumentCategory;
+  editorOwner: null;
+}
+
+export interface EditorAssetResource extends DocumentResourceBase {
+  usage: "editorAsset";
+  category: null;
+  editorOwner: EditorAssetOwner;
+}
+
+export type DocumentResource = DocumentaryResource | EditorAssetResource;
 
 export type Resource = TextResource | DocumentResource;
 
@@ -179,7 +200,7 @@ export interface AgendaItem {
   business: CouncilBusiness;
   meetingId: Identifier;
   position: number;
-  /** Point ajouté après l'ouverture : consultable et examinable, mais non soumis au vote. */
+  /** Item added after opening: it can be reviewed but cannot be submitted to a ballot. */
   addedDuringSession: boolean;
   discussionSummary: string;
   status: AgendaItemStatus;
@@ -255,10 +276,10 @@ interface BallotBase {
   votesAgainst: number;
   abstentions: number;
   notVoting: number;
-  /** Suffrages exprimés (CGCT L2121-20) : pour + contre, calculés par le serveur. */
+  /** Votes cast under CGCT L2121-20: votes for plus votes against, computed by the server. */
   votesCast: number;
   chairTieBreakApplied: boolean;
-  /** Conseillers déportés pour ce point : présents à la séance, mais exclus du collège des votants. */
+  /** Recused members remain present at the meeting but are excluded from this ballot. */
   recusedMemberIds: Identifier[];
   participationEvidence: ParticipationEvidence;
   createdAt: IsoDateTime;
@@ -305,4 +326,5 @@ export interface ResourceDetails {
   councilBusiness: CouncilBusiness[];
   snapshotted: boolean;
   usedAsProxy: boolean;
+  referencedByContent: boolean;
 }

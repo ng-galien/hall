@@ -1,120 +1,113 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { serializeImageDirective } from "../components/editor/images";
 import { MarkdownEditor } from "../components/editor/MarkdownEditor";
-import type { Mentionable } from "../components/editor/references";
+import { PdfIcon } from "../components/icons";
 import { MarkdownView } from "../components/MarkdownView";
 import { PageHeader } from "../components/Ui";
-import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
-import { resourceTone, toneIcons, toneLabelKeys } from "../features/documents/ResourceGlyph";
+import { useReferenceMentionables } from "../hooks/useReferenceMentionables";
 import { useI18n } from "../i18n/I18nProvider";
-import { listCouncilBusinesses } from "../services/councilBusinessApi";
-import { listCouncilDecisions } from "../services/councilDecisionsApi";
-import { listCouncilMeetings } from "../services/councilMeetingsApi";
-import { listCouncilMembers } from "../services/councilMembersApi";
-import { listResources } from "../services/resourcesApi";
-
-/**
- * Banc d'essai de l'éditeur.
- *
- * Une page isolée pour travailler l'éditeur sans traverser l'application : ce qu'on écrit à
- * gauche, le rendu réel à droite, et le markdown produit en dessous. C'est ici qu'on juge le
- * comportement des tableaux, des liens et des styles avant de les retrouver dans les établis.
- */
-const sample = [
-  "## Subventions aux associations",
-  "",
-  "La commission a examiné les huit dossiers reçus. Cinq demandes sont retenues.",
-  "",
-  "Rapporteur : :member[Camille Bernard]{#demo-member}, sur pièce :resource[Bilan des subventions 2025]{#demo-piece}.",
-  "",
-  "| Association | Objet | Montant |",
-  "| --- | --- | ---: |",
-  "| Les Tilleuls | Animation seniors | 2 400 € |",
-  "| Club sportif | Encadrement jeunes | 4 800 € |",
-  "| Comité des fêtes | Fête communale | 3 200 € |",
-  "",
-  "> Le conseil se prononcera lors de la séance de septembre.",
-  "",
-  "- Crédits inscrits au chapitre 65",
-  "- Versement en une fois après notification",
-].join("\n");
+import { previewTemplatePdf } from "../services/templatesApi";
 
 export function EditorLabPage() {
-  const { t, formatDate } = useI18n();
-  const [markdown, setMarkdown] = useState(sample);
-  const [mentionables, setMentionables] = useState<Mentionable[]>([]);
+  const { t } = useI18n();
+  const [markdown, setMarkdown] = useState(() => t("editor.lab.sample"));
+  const [demoReady, setDemoReady] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const pdfUrlRef = useRef<string | null>(null);
+  const [pdfStatus, setPdfStatus] = useState<"idle" | "loading" | "failed">("idle");
+  const mentionables = useReferenceMentionables();
 
-  /* Le banc travaille sur les vraies données du seed. Les entités adressables par slug le
-     sont par slug dans les directives ; les membres n'en ont pas et restent sur leur id. */
   useEffect(() => {
-    void Promise.all([
-      listCouncilMembers(),
-      listResources(),
-      listCouncilBusinesses(),
-      listCouncilMeetings(),
-      listCouncilDecisions(),
-    ]).then(([members, allResources, businesses, meetings, decisions]) => {
-      setMentionables([
-        ...members.map((member) => ({
-          kind: "member" as const,
-          id: member.id,
-          label: `${member.firstName} ${member.lastName}`,
-        })),
-        ...allResources.map((resource) => {
-          const tone = resourceTone(resource);
-          return {
-            kind: "resource" as const,
-            id: resource.slug,
-            label: resource.title,
-            folderPath: resource.folderPath,
-            icon: toneIcons[tone],
-            metaLabel: t(toneLabelKeys[tone]),
-            extra: resource.kind === "document" ? [resource.fileName] : [],
-          };
-        }),
-        ...businesses.map((business) => ({
-          kind: "councilBusiness" as const,
-          id: business.slug,
-          label: business.title,
-          folderPath: business.folderPath,
-        })),
-        ...meetings.map((meeting) => ({
-          kind: "meeting" as const,
-          id: meeting.slug,
-          label: formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
-          extra: [meeting.number],
-        })),
-        ...decisions.map((decision) => ({
-          kind: "decision" as const,
-          id: decision.slug,
-          label: decision.title,
-          extra: [decision.number],
-        })),
-      ]);
-    });
-  }, [t, formatDate]);
+    const demoImage = mentionables.find((item) => item.media === "image");
+    if (!demoImage) return;
+    setMarkdown((current) =>
+      current.includes("::image[")
+        ? current
+        : `${serializeImageDirective({ id: demoImage.id, alt: demoImage.label, align: "center", width: 75 })}\n\n${current}`,
+    );
+    setDemoReady(true);
+  }, [mentionables]);
+
+  useEffect(
+    () => () => {
+      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+    },
+    [],
+  );
+
+  const openPdfPreview = async () => {
+    setPdfStatus("loading");
+    try {
+      const next = URL.createObjectURL(await previewTemplatePdf(markdown));
+      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+      pdfUrlRef.current = next;
+      setPdfUrl(next);
+      setPdfStatus("idle");
+    } catch {
+      setPdfStatus("failed");
+    }
+  };
 
   return (
-    <div className="page">
-      <PageHeader
-        title="Banc d'essai de l'éditeur"
-        description="Écrire à gauche, voir le rendu à droite, et lire le markdown produit."
-      />
+    <div className="page" data-testid="editor-lab-page">
+      <PageHeader title={t("editor.lab.title")} description={t("editor.lab.description")} />
       <div className="page-content editor-lab">
+        <div className="editor-lab-actions">
+          <Button
+            data-testid="editor-pdf-preview"
+            variant="outline"
+            disabled={pdfStatus === "loading"}
+            onClick={() => void openPdfPreview()}
+          >
+            <PdfIcon />
+            {t(pdfStatus === "loading" ? "editor.pdfPreviewLoading" : "editor.pdfPreview")}
+          </Button>
+          {pdfStatus === "failed" ? <p role="alert">{t("editor.pdfPreviewFailed")}</p> : null}
+        </div>
+        {pdfUrl ? (
+          <section className="editor-lab-pdf-preview" data-testid="editor-pdf-native-viewer">
+            <object data={pdfUrl} type="application/pdf" aria-label={t("editor.pdfPreview")} />
+          </section>
+        ) : null}
         <section className="editor-lab-pane" aria-labelledby="editor-lab-write">
-          <h2 id="editor-lab-write">Écriture</h2>
-          <MarkdownEditor title="Banc d'essai" markdown={markdown} onChange={setMarkdown} mentionables={mentionables} />
+          <h2 id="editor-lab-write">{t("editor.lab.writing")}</h2>
+          {demoReady ? (
+            <MarkdownEditor
+              title={t("editor.lab.editorTitle")}
+              markdown={markdown}
+              onChange={setMarkdown}
+              mentionables={mentionables}
+              searchContext="culture"
+            />
+          ) : (
+            <span className="spinner" role="status">
+              {t("editor.lab.preparing")}
+            </span>
+          )}
         </section>
 
         <section className="editor-lab-pane" aria-labelledby="editor-lab-render">
-          <h2 id="editor-lab-render">Rendu</h2>
-          <div className="editor-lab-render">
+          <h2 id="editor-lab-render">{t("editor.lab.rendering")}</h2>
+          <div className="editor-lab-render" data-testid="editor-lab-rendered-document">
             <MarkdownView markdown={markdown} />
           </div>
         </section>
 
         <section className="editor-lab-pane editor-lab-source" aria-labelledby="editor-lab-source">
-          <h2 id="editor-lab-source">Markdown produit</h2>
-          <pre>{markdown}</pre>
+          <h2 id="editor-lab-source">{t("editor.lab.source")}</h2>
+          <pre data-testid="editor-lab-markdown-source">{markdown}</pre>
+        </section>
+
+        <section className="editor-lab-pane editor-lab-recipe" aria-labelledby="editor-lab-recipe">
+          <h2 id="editor-lab-recipe">{t("editor.lab.imageRecipe")}</h2>
+          <ol>
+            <li>{t("editor.lab.imageRecipeMention")}</li>
+            <li>{t("editor.lab.imageRecipePicker")}</li>
+            <li>{t("editor.lab.imageRecipeAlignment")}</li>
+            <li>{t("editor.lab.imageRecipeResize")}</li>
+            <li>{t("editor.lab.imageRecipeViewer")}</li>
+          </ol>
         </section>
       </div>
     </div>

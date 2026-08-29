@@ -1,5 +1,5 @@
 import type { Resource } from "@hall/domain";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AddIcon, SearchIcon } from "../../components/icons";
 import { matchesQuery } from "../../components/Ui";
@@ -37,7 +37,7 @@ function PickerGroup({
   );
 }
 
-/** Sélecteur de ressource : recherche, suggestions du dossier courant en tête. */
+/** Resource picker: search, with current-folder suggestions first. */
 export function ResourcePicker({
   suggestions,
   others,
@@ -52,6 +52,11 @@ export function ResourcePicker({
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const searchInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) searchInput.current?.focus();
+  }, [open]);
 
   const filter = (resources: Resource[]) =>
     resources.filter((resource) => matchesQuery(query, resource.title, resource.folderPath, resource.tags.join(" ")));
@@ -78,9 +83,12 @@ export function ResourcePicker({
       </Button>
       {open ? (
         <>
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: voile de fermeture à la souris ; le clavier ferme via Échap sur le panneau */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: idem — l'équivalent clavier est Échap, géré sur le panneau focalisé */}
-          <div className="resource-picker-backdrop" onClick={() => setOpen(false)} />
+          <button
+            className="resource-picker-backdrop"
+            type="button"
+            aria-label={t("common.close")}
+            onClick={() => setOpen(false)}
+          />
           <div
             className="resource-picker-panel"
             role="dialog"
@@ -92,8 +100,7 @@ export function ResourcePicker({
             <div className="workspace-search">
               <SearchIcon aria-hidden="true" />
               <input
-                // biome-ignore lint/a11y/noAutofocus: le panneau s'ouvre à la demande, le focus suit l'intention
-                autoFocus
+                ref={searchInput}
                 type="search"
                 value={query}
                 placeholder={t("workspace.pickerSearch")}

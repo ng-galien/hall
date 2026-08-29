@@ -1,6 +1,6 @@
-# Browser acceptance tests
+# Editor acceptance tests
 
-The Playwright suite drives the real React application against the real HTTP server and SQLite repositories. The runner creates a new temporary database and document directory for every invocation, sets a dedicated API token, allocates two free loopback ports, and removes the temporary data when Playwright exits. It never opens an interactive browser profile or uses the development database.
+The maintained Playwright baseline covers the Editor Lab against the real React application, HTTP server, and SQLite repositories. The runner creates a new temporary database and document directory for every invocation, sets a dedicated API token, allocates two free loopback ports, and removes the temporary data when Playwright exits. It never opens an interactive browser profile or uses the development database.
 
 Install the Chromium runtime once after installing dependencies:
 
@@ -24,4 +24,4 @@ npm run quality:e2e
 
 Retries are deliberately disabled because the real server owns mutable SQLite state for the duration of a run. A failure is reported against its original deterministic database instead of being retried against partially written data.
 
-The municipal workflow covers the commands currently available in the UI: creating and reading council members, classified resources, council business prepared for the agenda, draft council decisions, and meetings, followed by meeting scheduling, attendance, officers, public and secret ballots, immutable participation evidence, meeting closure, quorum failure, and reconvening. No council-business deletion command is exposed by the current React application, so the suite does not manufacture a deletion path outside the product contract.
+`municipal-workflow.spec.ts` and `navigation-and-settings.spec.ts` are retained as legacy scenarios but are excluded from the maintained baseline. They must be realigned with the current domain and UI contracts before being re-enabled. The active Chromium project runs only `markdown-editor.spec.ts`.

@@ -42,6 +42,7 @@ import { type CouncilMeetingService, createCouncilMeetingService } from "../serv
 import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
 import { createDocumentPreviewService, type DocumentPreviewService } from "../services/documentPreviewService.js";
 import { createDocumentRenderer, type DocumentRenderer } from "../services/documentRenderer.js";
+import { createEditorAssetService, type EditorAssetService } from "../services/editorAssetService.js";
 import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import { createMeetingAgendaService, type MeetingAgendaService } from "../services/meetingAgendaService.js";
 import { createMeetingLifecycleService, type MeetingLifecycleService } from "../services/meetingLifecycleService.js";
@@ -86,6 +87,7 @@ export interface Cradle {
   documentRenderer: DocumentRenderer;
   documentPreviewConverter: DocumentPreviewConverter;
   documentPreviewService: DocumentPreviewService;
+  editorAssetService: EditorAssetService;
   contentTemplateService: ContentTemplateService;
 }
 
@@ -124,6 +126,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     documentRenderer: asFunction(createDocumentRenderer).singleton(),
     documentPreviewConverter: asFunction(createGotenbergDocumentPreviewConverter).singleton(),
     documentPreviewService: asFunction(createDocumentPreviewService).singleton(),
+    editorAssetService: asFunction(createEditorAssetService).singleton(),
     contentTemplateService: asFunction(createContentTemplateService).singleton(),
   });
   return container;

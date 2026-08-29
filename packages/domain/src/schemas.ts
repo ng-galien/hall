@@ -102,6 +102,11 @@ export const previewContentTemplateSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
+export const previewPdfSchema = z.object({
+  bodyMarkdown: z.string().max(500_000),
+  context: templateRenderContextSchema.default({}),
+});
+
 export const generateContentTemplateSchema = z.object({
   context: templateRenderContextSchema.default({}),
   attachmentResourceIds: z.array(z.string().uuid()).max(20).default([]),
@@ -162,6 +167,20 @@ export const updateResourceSchema = z.object({
   folderPath: folderPathSchema,
   tags: resourceTagsSchema,
   content: z.string().optional(),
+});
+
+export const editorAssetOwnerKindSchema = z.enum([
+  "textResourceContent",
+  "councilBusinessReport",
+  "councilDecisionDraft",
+  "agendaItemDiscussionSummary",
+]);
+
+export const promoteEditorAssetSchema = z.object({
+  title: nonEmpty,
+  folderPath: folderPathSchema,
+  tags: resourceTagsSchema,
+  category: z.enum(["report", "draftCouncilDecision", "meetingNotice", "minutes", "proxy", "supporting"]),
 });
 
 export const createCouncilMemberSchema = z.object({

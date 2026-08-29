@@ -41,7 +41,6 @@ function DialogContent({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
-  /** Nom accessible du bouton de fermeture : l'application est bilingue, il doit être traduit. */
   closeLabel?: string;
 }) {
   return (

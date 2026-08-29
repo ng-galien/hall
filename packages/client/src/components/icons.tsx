@@ -1,10 +1,3 @@
-/**
- * Vocabulaire d'icônes de l'application.
- *
- * Les écrans n'importent jamais une bibliothèque d'icônes directement : ils passent par
- * ce module, qui nomme chaque glyphe par son rôle et non par son dessin. Changer de jeu
- * d'icônes se fait donc ici, sans toucher aux écrans.
- */
 import { IconContext, PushPin } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
@@ -94,15 +87,11 @@ export {
   X as CloseIcon,
 } from "@phosphor-icons/react";
 
-/** Épingle posée : même glyphe que `PinIcon`, en plein pour marquer l'état actif. */
 export function PinnedIcon(props: { className?: string }) {
   return <PushPin weight="fill" {...props} />;
 }
 
-/**
- * Défauts de rendu des icônes. La taille est exprimée en `1em` pour que le CSS existant
- * pilote chaque glyphe par sa `font-size`, et `.app-icon` fixe la taille de repli.
- */
+/** Icon rendering defaults; size is `1em` so CSS `font-size` drives each glyph. */
 export function IconDefaults({ children }: { children: ReactNode }) {
   return (
     <IconContext.Provider value={{ size: "1em", weight: "regular", className: "app-icon" }}>

@@ -9,6 +9,7 @@ const styleFiles = [
   "styles.css",
   "styles/base.css",
   "styles/components.css",
+  "styles/editor.css",
   "styles/live.css",
   "styles/meeting-workspace.css",
   "styles/workspace.css",
@@ -25,8 +26,7 @@ function sourceFiles(directory) {
 
 const allFiles = sourceFiles(sourceRoot);
 const applicationSource = allFiles.map((path) => readFileSync(path, "utf8")).join("\n");
-/* Les composants de components/ui viennent de shadcn : on les possède mais on ne les a pas écrits,
-   et ils s'autorisent des utilitaires Tailwind bruts. Les règles de discipline ne visent que notre code. */
+/* Shadcn components are vendored and may use raw Tailwind utilities. Project rules target authored code. */
 const authoredSource = allFiles
   .filter((path) => !path.includes(`${"components"}/ui/`))
   .map((path) => readFileSync(path, "utf8"))
@@ -34,6 +34,27 @@ const authoredSource = allFiles
 
 test("visual values have one CSS token source", () => {
   assert.doesNotMatch(styles, /#[0-9a-f]{3,8}\b|rgba?\(|oklch\(/i);
+});
+
+test("measurements come from the token scale, never from a literal", () => {
+  const measurement = /(?<![\w-])-?\d+(?:\.\d+)?(?:px|rem|em|ch)\b/g;
+  const offenders = [];
+  for (const path of styleFiles) {
+    const source = readFileSync(join(sourceRoot, path), "utf8").replace(/\/\*[\s\S]*?\*\//g, (comment) =>
+      comment.replace(/[^\n]/g, " "),
+    );
+    for (const [index, line] of source.split("\n").entries()) {
+      if (/@(?:media|container)\s*\(/.test(line)) continue;
+      for (const match of line.matchAll(measurement)) offenders.push(`${path}:${index + 1} ${match[0]}`);
+    }
+  }
+  assert.deepEqual(offenders, []);
+});
+
+test("breakpoints follow the three-step ladder", () => {
+  const ladder = new Set(["760px", "1000px", "1280px"]);
+  const used = [...styles.matchAll(/@(?:media|container)\s*\((?:min|max)-width:\s*([^)]+)\)/g)].map((m) => m[1].trim());
+  assert.deepEqual([...new Set(used.filter((width) => !ladder.has(width)))], []);
 });
 
 test("every CSS variable used by the styles or the components resolves", () => {
@@ -51,19 +72,17 @@ test("Tailwind bridges to the Hall token namespace", () => {
 });
 
 test("shadcn variables are aliases of Hall tokens, never literal values", () => {
-  // Les composants copiés dans components/ui sont stylés par ces variables : si l'une d'elles
-  // portait une valeur littérale, l'identité de l'application cesserait d'être pilotée par tokens.css.
   const bridge = styles.match(/:root \{\n(\s*--background:[\s\S]*?)\n\}/)?.[1];
-  assert.ok(bridge, "le pont shadcn → tokens Hall est introuvable dans styles.css");
+  assert.ok(bridge, "The shadcn to Hall token bridge is missing from styles.css");
   for (const declaration of bridge.matchAll(/(--[\w-]+):\s*([^;]+);/g)) {
-    assert.match(declaration[2], /^var\(--hall-/, `${declaration[1]} doit être un alias d'un token Hall`);
+    assert.match(declaration[2], /^var\(--hall-/, `${declaration[1]} must alias a Hall token`);
   }
   for (const required of ["--primary", "--background", "--foreground", "--border", "--ring"]) {
-    assert.match(bridge, new RegExp(`\\${required}:`), `${required} manque au pont shadcn`);
+    assert.match(bridge, new RegExp(`\\${required}:`), `${required} is missing from the shadcn bridge`);
   }
 });
 
 test("the abandoned component libraries leave no trace", () => {
-  assert.doesNotMatch(applicationSource, /@fluentui\//, "Fluent UI ne doit plus être importé");
-  assert.doesNotMatch(applicationSource, /from "lucide-react"/, "les icônes viennent du module Phosphor maison");
+  assert.doesNotMatch(applicationSource, /@fluentui\//, "Fluent UI must not be imported");
+  assert.doesNotMatch(applicationSource, /from "lucide-react"/, "Icons must come from the local Phosphor module");
 });

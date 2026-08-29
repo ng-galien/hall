@@ -25,6 +25,7 @@ import { RequestErrorBanner } from "../../components/Ui";
 import { councilBusinessKindKeys } from "../../features/council-business/presentation";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { ResourceGlyph, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
+import { useResourceImageUpload } from "../../features/documents/useResourceImageUpload";
 import { MeetingStatusBadge, StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -56,6 +57,7 @@ export function CouncilBusinessWorkbench({
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
   const mentionables = useReferenceMentionables();
+  const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
   const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const { resources, download } = useResourcesStore();
@@ -243,11 +245,16 @@ export function CouncilBusinessWorkbench({
               <div className="grid gap-1.5">
                 <Label>{t("meeting.report")}</Label>
                 <MarkdownEditor
-                  title={`${t("meeting.report")} — ${business.title}`}
+                  title={`${t("meeting.report")} : ${business.title}`}
                   markdown={business.report}
                   onChange={setReport}
                   mentionables={mentionables}
                   searchContext={business.folderPath}
+                  onUploadImage={
+                    canUploadImage
+                      ? (file) => uploadImage(file, { kind: "councilBusinessReport", id: business.id })
+                      : undefined
+                  }
                 />
                 <p className="text-xs text-muted">{t("meeting.reportHint")}</p>
               </div>
@@ -257,11 +264,16 @@ export function CouncilBusinessWorkbench({
                     <Label>{t("meeting.draftDecision")}</Label>
                     <MarkdownEditor
                       key={decision.id}
-                      title={`${t("meeting.draftDecision")} — ${business.title}`}
+                      title={`${t("meeting.draftDecision")} : ${business.title}`}
                       markdown={decision.draftText}
                       onChange={setDraftText}
                       mentionables={mentionables}
                       searchContext={business.folderPath}
+                      onUploadImage={
+                        canUploadImage
+                          ? (file) => uploadImage(file, { kind: "councilDecisionDraft", id: decision.id })
+                          : undefined
+                      }
                     />
                     <p className="text-xs text-muted">{t("meeting.decisionDraftTextHint")}</p>
                   </div>
@@ -326,7 +338,6 @@ export function CouncilBusinessWorkbench({
               <h2 id="workbench-schedule">{t("workspace.scheduling")}</h2>
               {can("council-business.schedule") ? (
                 <div className="workbench-schedule-stack">
-                  {/* Une valeur vide affiche l'invite : aucune réunion n'est encore choisie. */}
                   <Select value={meetingChoice} onValueChange={setMeetingChoice}>
                     <SelectTrigger className="w-full" aria-label={t("workspace.chooseMeeting")}>
                       <SelectValue placeholder={t("workspace.chooseMeeting")} />

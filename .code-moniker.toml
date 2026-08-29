@@ -1,8 +1,9 @@
 default_rules = false
 
 [rules.taxonomy]
-patterns = ["dependency", "ownership"]
+patterns = ["dependency", "hygiene", "ownership"]
 components = [
+  "code",
   "domain",
   "api-contract",
   "templating",
@@ -17,6 +18,41 @@ components = [
   "database",
   "state-machine@domain",
 ]
+
+[[shape.annotation.where]]
+id = "code-hygiene-rejects-em-dashes"
+severity = "error"
+rationale = "Comments and generated or user-visible strings use simple punctuation. Rejecting em dashes keeps source prose consistent and prevents the typographic habit from spreading through copied text."
+expr = "text !~ \\u{2014}"
+message = "Replace the em dash with a comma, colon, semicolon, parentheses, or a plain hyphen as appropriate."
+
+[[shape.annotation.where]]
+id = "code-hygiene-rejects-comments-inside-callables"
+severity = "error"
+rationale = "Comments inside executable bodies usually restate control flow and let unclear agent-generated code accumulate. Hall keeps explanations at module or API boundaries and requires callable bodies to remain readable from names and structure."
+expr = "parent.shape != 'callable'"
+message = "Remove the comment from the function or method body. Make the code self-explanatory instead."
+
+[[shape.value.where]]
+id = "code-hygiene-rejects-em-dashes"
+severity = "error"
+rationale = "Comments and generated or user-visible strings use simple punctuation. Rejecting em dashes keeps source prose consistent and prevents the typographic habit from spreading through copied text."
+expr = "text !~ \\u{2014}"
+message = "Replace the em dash with a comma, colon, semicolon, parentheses, or a plain hyphen as appropriate."
+
+[[shape.callable.where]]
+id = "code-hygiene-rejects-em-dashes"
+severity = "error"
+rationale = "Comments and generated or user-visible strings use simple punctuation. Rejecting em dashes keeps source prose consistent and prevents the typographic habit from spreading through copied text."
+expr = "text !~ \\u{2014}"
+message = "Replace the em dash with a comma, colon, semicolon, parentheses, or a plain hyphen as appropriate."
+
+[[shape.type.where]]
+id = "code-hygiene-rejects-em-dashes"
+severity = "error"
+rationale = "Comments and generated or user-visible strings use simple punctuation. Rejecting em dashes keeps source prose consistent and prevents the typographic habit from spreading through copied text."
+expr = "text !~ \\u{2014}"
+message = "Replace the em dash with a comma, colon, semicolon, parentheses, or a plain hyphen as appropriate."
 
 [exclude]
 uris = [

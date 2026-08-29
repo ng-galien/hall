@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import type { DocumentResource, Resource, TextResource } from "@hall/domain";
+import type { DocumentCategory, DocumentResource, EditorAssetOwner, Resource, TextResource } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type {
   CreateTextResource,
   PersistDocumentResource,
+  PersistEditorAssetResource,
   ResourceRepository,
   StoredDocumentPreview,
   StoredDocumentResource,
@@ -22,7 +23,7 @@ export function mapResource(row: DatabaseRow, tags: string[]): Resource {
     updatedAt: String(row.updated_at),
   };
   if (row.kind === "text") return { kind: "text", ...common, content: String(row.text_content) } satisfies TextResource;
-  return {
+  const document = {
     kind: "document",
     ...common,
     meetingId: asNullableString(row.meeting_id),
@@ -31,8 +32,14 @@ export function mapResource(row: DatabaseRow, tags: string[]): Resource {
     mediaType: String(row.media_type),
     byteSize: Number(row.byte_size),
     contentSha256: String(row.content_sha256),
-    category: row.category as DocumentResource["category"],
-  } satisfies DocumentResource;
+    usage: String(row.usage) as DocumentResource["usage"],
+    category: row.category === null ? null : (String(row.category) as DocumentCategory),
+    editorOwner:
+      row.editor_owner_kind === null || row.editor_owner_id === null
+        ? null
+        : { kind: String(row.editor_owner_kind), id: String(row.editor_owner_id) },
+  };
+  return document as DocumentResource;
 }
 
 export async function tagsFor(sqlExecutor: SqlExecutor, resourceId: string): Promise<string[]> {
@@ -62,6 +69,9 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         folderPath: filters.folderPath ?? null,
         kind: filters.kind ?? null,
         meetingId: filters.meetingId ?? null,
+        usage: filters.usage ?? null,
+        editorOwnerKind: filters.editorOwner?.kind ?? null,
+        editorOwnerId: filters.editorOwner?.id ?? null,
         tagsJson: JSON.stringify(filters.tags ?? []),
       });
       return mapSequential(rows, (row) => mapStoredResource(sqlExecutor, row));
@@ -143,6 +153,9 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           byteSize: input.content.byteLength,
           contentSha256: input.contentSha256,
           category: input.category,
+          usage: "document",
+          editorOwnerKind: null,
+          editorOwnerId: null,
           content: input.content,
         });
         await insertTags(sqlExecutor, id, input.tags);
@@ -151,6 +164,84 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           input.tags,
         ) as DocumentResource;
       });
+    },
+    createEditorAsset(input: PersistEditorAssetResource) {
+      return sqlExecutor.execute(async () => {
+        const id = randomUUID();
+        const now = new Date().toISOString();
+        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
+        await sqlExecutor.run("resource.insertDocumentBase", {
+          id,
+          slug,
+          title: input.title,
+          folderPath: input.folderPath,
+          createdAt: now,
+          updatedAt: now,
+        });
+        await sqlExecutor.run("resource.insertDocument", {
+          id,
+          meetingId: null,
+          fileName: input.fileName,
+          format: input.format,
+          mediaType: input.mediaType,
+          byteSize: input.content.byteLength,
+          contentSha256: input.contentSha256,
+          category: null,
+          usage: "editorAsset",
+          editorOwnerKind: input.owner.kind,
+          editorOwnerId: input.owner.id,
+          content: input.content,
+        });
+        return mapResource(
+          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
+          [],
+        ) as DocumentResource;
+      });
+    },
+    promoteEditorAsset(id, input) {
+      return sqlExecutor.execute(async () => {
+        await sqlExecutor.run("resource.update", {
+          id,
+          title: input.title,
+          folderPath: input.folderPath,
+          updatedAt: new Date().toISOString(),
+        });
+        const result = await sqlExecutor.run("resource.promoteEditorAsset", { id, category: input.category });
+        if (result.changes === 0) return null;
+        await sqlExecutor.run("resource.deleteTags", { id });
+        await insertTags(sqlExecutor, id, input.tags);
+        return mapResource(
+          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
+          input.tags,
+        ) as DocumentResource;
+      });
+    },
+    reconcileEditorAssets(owner: EditorAssetOwner, referencedIds: string[]) {
+      return sqlExecutor.execute(async () => {
+        await sqlExecutor.run("resource.deleteRichTextReferences", { ownerKind: owner.kind, ownerId: owner.id });
+        for (const resourceId of referencedIds) {
+          await sqlExecutor.run("resource.insertRichTextReference", {
+            ownerKind: owner.kind,
+            ownerId: owner.id,
+            resourceId,
+          });
+        }
+        const assets = await sqlExecutor.all("resource.editorAssetsForOwner", {
+          ownerKind: owner.kind,
+          ownerId: owner.id,
+        });
+        const referenced = new Set(referencedIds);
+        const removed: string[] = [];
+        for (const row of assets) {
+          const assetId = String(row.resource_id);
+          if (referenced.has(assetId)) continue;
+          if ((await sqlExecutor.run("resource.delete", { id: assetId })).changes > 0) removed.push(assetId);
+        }
+        return removed;
+      });
+    },
+    isReferencedByRichText(id) {
+      return sqlExecutor.get("resource.isReferencedByRichText", { id }).then(Boolean);
     },
     update(id, input) {
       return sqlExecutor.execute(async () => {

@@ -70,7 +70,7 @@
     letter-spacing: var(--hall-letter-spacing-section);
     text-transform: uppercase;
   }
-  .picker-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-small); font-style: italic; }
+  .picker-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-style: italic; }
   .picker-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(calc(var(--hall-size-entity-card) - var(--hall-space-10)), 1fr));
@@ -103,7 +103,7 @@
   .picker-card-copy { display: grid; min-width: 0; }
   .picker-card-copy strong {
     overflow: hidden;
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
     font-weight: var(--hall-font-weight-semibold);
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -125,10 +125,10 @@
   .picker-card:disabled .rollcall-avatar { color: var(--hall-color-disabled-text); background: var(--hall-color-surface-selected); }
   .picker-card:disabled .picker-card-copy span { color: var(--hall-color-warning-strong); }
 
-  /* ---- verdict stamp ---- */
+  /* ---- Verdict stamp ---- */
   .verdict-stamp {
     display: inline-block;
-    padding: var(--hall-space-1) var(--hall-space-3-5);
+    padding: var(--hall-space-1) var(--hall-space-3);
     border: var(--hall-stroke-heavy) solid currentColor;
     border-radius: var(--hall-radius-small);
     box-shadow: inset 0 0 0 var(--hall-stroke-thin) currentColor;
@@ -142,7 +142,7 @@
   .verdict-stamp-small {
     padding: var(--hall-space-0-5) var(--hall-space-2-5);
     border-width: var(--hall-stroke-thick);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
     line-height: var(--hall-line-height-body-small);
   }
   .verdict-stamp-adopted {
@@ -154,8 +154,7 @@
     background: color-mix(in srgb, var(--hall-color-verdict-rejected-surface) 70%, transparent);
   }
 
-  /* ---- markdown editing & rendering ---- */
-  /* Notre conteneur, pas la racine de MDXEditor : ses popups ne descendent pas d'ici. */
+  /* ---- Markdown editing and rendering ---- */
   .markdown-editor {
     overflow: hidden;
     border: var(--hall-stroke-thin) solid var(--hall-color-border-strong);
@@ -173,7 +172,6 @@
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
     background: var(--hall-color-surface-subtle);
   }
-  /* Pousse l'agrandissement à l'opposé des outils d'écriture. */
   .markdown-toolbar-end { margin-left: auto; }
   .markdown-toolbar-button {
     display: inline-grid;
@@ -184,16 +182,19 @@
     border-radius: var(--hall-radius-small);
     color: var(--hall-color-text-muted);
     background: transparent;
-    font-size: var(--hall-font-size-editor-icon);
+    font-size: var(--hall-font-size-icon);
     cursor: pointer;
   }
   .markdown-toolbar-button:hover { color: var(--hall-color-text); background: var(--hall-color-surface-selected); }
   .markdown-editor .markdown-content { min-height: var(--hall-size-markdown-min); }
 
-  /* ---- banc d'essai de l'éditeur ---- */
+  /* ---- Editor lab ---- */
   .editor-lab { display: grid; gap: var(--hall-space-5); }
-  /* Sans quoi le markdown produit — HTML sérialisé sur une seule ligne — dicte la largeur
-     de la grille entière et élargit l'éditeur avec elle. */
+  .editor-lab-actions { display: flex; align-items: center; gap: var(--hall-space-3); }
+  .editor-lab-actions [role="alert"] { margin: 0; color: var(--hall-color-danger); font-size: var(--hall-font-size-caption); }
+  .editor-lab-pdf-preview { grid-column: 1 / -1; height: min(75vh, 900px); min-height: 560px; overflow: hidden; border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface-subtle); }
+  .editor-lab-pdf-preview object { width: 100%; height: 100%; border: 0; }
+  /* Serialized HTML is one long line, which would otherwise drive the grid width. */
   .editor-lab-pane { min-width: 0; }
   .editor-lab-pane > h2 {
     margin-bottom: var(--hall-space-2);
@@ -220,6 +221,15 @@
   @container (min-width: 760px) {
     .editor-lab { grid-template-columns: 1fr 1fr; }
     .editor-lab-source { grid-column: 1 / -1; }
+    .editor-lab-recipe { grid-column: 1 / -1; }
+  }
+
+  .editor-lab-recipe ol {
+    display: grid;
+    gap: var(--hall-space-1);
+    margin: 0;
+    padding-left: var(--hall-space-6);
+    color: var(--hall-color-text-muted);
   }
 
   .markdown-content { line-height: var(--hall-line-height-body); }
@@ -239,10 +249,10 @@
   }
   .markdown-content h3 {
     margin: var(--hall-space-3) 0 var(--hall-space-1-5);
-    font-size: var(--hall-font-size-subtitle);
+    font-size: var(--hall-font-size-title);
     font-weight: var(--hall-font-weight-semibold);
   }
-  /* Tableaux : lus autant qu'édités, donc mêmes règles dans l'éditeur et dans l'affichage. */
+  /* Same rules in the editor and in the rendered view. */
   .markdown-content table {
     display: table;
     width: 100%;
@@ -250,7 +260,7 @@
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-small);
     border-collapse: collapse;
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
   }
   .markdown-content th,
   .markdown-content td {
@@ -264,7 +274,7 @@
     font-weight: var(--hall-font-weight-semibold);
     text-align: left;
   }
-  /* Les colonnes alignées à droite portent des montants : chiffres à chasse fixe pour qu'ils s'empilent. */
+  /* Right aligned columns carry amounts. */
   .markdown-content td[align="right"],
   .markdown-content th[align="right"] { font-variant-numeric: tabular-nums; }
 
@@ -292,7 +302,7 @@
     white-space: nowrap;
   }
 
-  /* ---- collection toolbar, cards, search ---- */
+  /* ---- Collection toolbar, cards, search ---- */
   .collection-toolbar {
     display: flex;
     align-items: center;
@@ -359,7 +369,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--hall-space-2);
-    padding: var(--hall-space-4-5);
+    padding: var(--hall-space-4);
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-large);
     background: var(--hall-color-surface);
@@ -373,19 +383,13 @@
     box-shadow: var(--hall-shadow-medium);
     transform: translateY(calc(var(--hall-motion-distance) * -1));
   }
-  .entity-card-eyebrow {
-    color: var(--hall-color-brand);
-    font-size: var(--hall-font-size-caption);
-    font-weight: var(--hall-font-weight-semibold);
-    letter-spacing: var(--hall-letter-spacing-section);
-    text-transform: uppercase;
-  }
-  .entity-card strong { font-size: var(--hall-font-size-subtitle); line-height: var(--hall-line-height-body); }
+  .entity-card-eyebrow { color: var(--hall-color-brand); }
+  .entity-card strong { font-size: var(--hall-font-size-title); line-height: var(--hall-line-height-body); }
   .entity-card p {
     display: -webkit-box;
     overflow: hidden;
     color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
@@ -393,7 +397,7 @@
   .entity-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: var(--hall-space-2); }
   .entity-card-footer-actions span { display: flex; align-items: center; gap: var(--hall-space-2); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .entity-card-member { align-items: stretch; text-align: left; }
-  .member-avatar-large { width: var(--hall-size-metric-icon); height: var(--hall-size-metric-icon); font-size: var(--hall-font-size-small); }
+  .member-avatar-large { width: var(--hall-size-metric-icon); height: var(--hall-size-metric-icon); font-size: var(--hall-font-size-caption); }
 
   .data-row-side { display: flex; flex: none; align-items: center; gap: var(--hall-space-3); color: var(--hall-color-text-subtle); }
   .data-row-open {
@@ -428,11 +432,11 @@
   .next-meeting-hero:hover { box-shadow: var(--hall-shadow-medium); }
   .next-meeting-copy { display: grid; gap: var(--hall-space-1-5); min-width: 0; }
   .next-meeting-copy > strong { font-size: var(--hall-font-size-heading); line-height: var(--hall-line-height-heading); }
-  .next-meeting-facts { display: flex; flex-wrap: wrap; gap: var(--hall-space-5); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-small); }
+  .next-meeting-facts { display: flex; flex-wrap: wrap; gap: var(--hall-space-5); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .next-meeting-facts span { display: inline-flex; align-items: center; gap: var(--hall-space-1-5); }
   .next-meeting-side { display: flex; flex: none; align-items: center; gap: var(--hall-space-3); color: var(--hall-color-text-subtle); }
 
-  /* ---- decision registry ---- */
+  /* ---- Decision registry ---- */
   .decision-group { margin-bottom: var(--hall-space-6); }
   .decision-group-heading { margin-bottom: var(--hall-space-3); }
   .decision-group-title { display: inline-flex; align-items: flex-start; gap: var(--hall-space-2-5); color: inherit; }
@@ -441,7 +445,7 @@
   a.decision-group-title:hover strong { text-decoration: underline; }
   .decision-group-meta { display: inline-flex; align-items: center; gap: var(--hall-space-2); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
 
-  /* ---- meeting hub ---- */
+  /* ---- Meeting hub ---- */
   .meeting-page-content { padding-top: var(--hall-space-5); }
   .meeting-console {
     overflow: hidden;
@@ -467,7 +471,7 @@
     padding: var(--hall-space-3) var(--hall-space-4);
     border-right: var(--hall-stroke-thin) solid var(--hall-color-border);
     color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
   }
   .meeting-stage:last-child { border-right: 0; }
   .meeting-stage[data-complete="true"] { color: var(--hall-color-success-strong); }
@@ -491,10 +495,10 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--hall-space-4);
-    padding: var(--hall-space-3-5) var(--hall-space-4);
+    padding: var(--hall-space-3) var(--hall-space-4);
   }
   .meeting-prep-actions { display: flex; flex: none; align-items: center; gap: var(--hall-space-2-5); }
-  .meeting-prep-facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2-5); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-small); }
+  .meeting-prep-facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2-5); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .meeting-prep-facts strong { color: var(--hall-color-text); }
   .meeting-facts {
     display: grid;
@@ -536,7 +540,7 @@
     border-top: var(--hall-stroke-thin) solid var(--hall-color-warning-border);
     color: var(--hall-color-warning-strong);
     background: var(--hall-color-warning-surface);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
   }
 
   .live-mode-link {
@@ -574,7 +578,7 @@
     gap: var(--hall-space-5);
   }
 
-  /* ---- agenda composer ---- */
+  /* ---- Agenda composer ---- */
   .agenda-composer,
   .report-timeline,
   .report-opening {
@@ -586,7 +590,7 @@
     box-shadow: var(--hall-shadow-small);
   }
   .report-main { display: grid; min-width: 0; gap: var(--hall-space-4); align-content: start; }
-  .report-opening h2 { font-size: var(--hall-font-size-subtitle); }
+  .report-opening h2 { font-size: var(--hall-font-size-title); }
   .report-opening p { margin-top: var(--hall-space-3); line-height: var(--hall-line-height-body); }
   .report-roll-call { display: grid; gap: var(--hall-space-2); margin: var(--hall-space-3) 0 0; }
   .report-roll-call dt {
@@ -687,7 +691,7 @@
     display: flex;
     align-items: center;
     gap: var(--hall-space-1);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
   }
   .meeting-notice-status svg { flex: none; }
   .meeting-notice-status-ok { color: var(--hall-color-success); }
@@ -711,7 +715,7 @@
     letter-spacing: var(--hall-letter-spacing-section);
     text-transform: uppercase;
   }
-  .composer-add-hint { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-small); }
+  .composer-add-hint { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .composer-decision-list { display: grid; gap: var(--hall-space-2); margin: 0; padding: 0; list-style: none; }
   .composer-decision-list li {
     display: flex;
@@ -725,7 +729,7 @@
   .composer-quick-add-fields { display: flex; gap: var(--hall-space-2); }
   .composer-quick-add-fields .fui-Input { flex: 1; }
 
-  /* ---- side column ---- */
+  /* ---- Side column ---- */
   .meeting-side-column { display: grid; gap: var(--hall-space-4); min-width: 0; align-content: start; }
   .meeting-side-section {
     overflow: hidden;
@@ -782,7 +786,7 @@
   .council-member-name {
     overflow: hidden;
     color: var(--hall-color-text);
-    font-size: var(--hall-font-size-subtitle);
+    font-size: var(--hall-font-size-title);
     font-weight: var(--hall-font-weight-semibold);
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -842,7 +846,7 @@
     .council-member-list-status { grid-column: 2; grid-row: 1; }
   }
 
-  /* ---- meeting report ---- */
+  /* ---- Meeting report ---- */
   .report-timeline-list { display: grid; margin: 0; padding: 0; list-style: none; }
   .report-timeline-item {
     position: relative;
@@ -879,7 +883,7 @@
   .report-timeline-marker-toggle:hover { border-color: var(--hall-color-brand); color: var(--hall-color-brand); }
   .report-timeline-marker-collapsed { border-width: var(--hall-stroke-thick); border-color: var(--hall-color-border-strong); }
   .report-timeline-title { display: grid; gap: var(--hall-space-0-5); min-width: 0; }
-  .report-timeline-title strong { font-size: var(--hall-font-size-subtitle); }
+  .report-timeline-title strong { font-size: var(--hall-font-size-title); }
   .report-timeline-title > span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-variant-numeric: tabular-nums; }
   .report-ballot-toggle {
     width: 100%;
@@ -903,14 +907,14 @@
   }
   .report-timeline-body { display: grid; min-width: 0; gap: var(--hall-space-3); }
   .report-timeline-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--hall-space-3); }
-  .report-timeline-heading h3 { font-size: var(--hall-font-size-subtitle); }
+  .report-timeline-heading h3 { font-size: var(--hall-font-size-title); }
   .report-timeline-heading p { margin-top: var(--hall-space-0-5); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-variant-numeric: tabular-nums; }
   .report-timeline-notes {
     padding: var(--hall-space-3);
     border-left: var(--hall-stroke-thick) solid var(--hall-color-border-strong);
     color: var(--hall-color-text-muted);
     background: var(--hall-color-surface-subtle);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
     white-space: pre-wrap;
   }
   .report-ballot {
@@ -963,7 +967,7 @@
     gap: var(--hall-space-2);
     padding: var(--hall-space-1-5) 0;
     border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
   }
 
   .decision-meeting-chip {
@@ -981,13 +985,13 @@
   a.decision-meeting-chip:hover { background: var(--hall-color-brand-border); }
   .decision-meeting-chip-none { color: var(--hall-color-text-muted); background: var(--hall-color-surface-selected); }
 
-  /* ---- document viewer ---- */
+  /* ---- Document viewer ---- */
   .document-viewer { width: var(--hall-size-viewer-width); height: var(--hall-size-viewer-height); overflow: hidden; border-radius: var(--hall-radius-large); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-large); }
   .document-viewer header > div:first-child { display: grid; }
   .document-viewer header span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .document-viewer-actions { display: flex; gap: var(--hall-space-2); }
   .document-viewer-content { display: grid; height: calc(100% - var(--hall-size-header)); place-items: center; background: var(--hall-color-surface-subtle); }
-  .document-viewer-content object { width: 100%; height: 100%; border: 0; }
+  .document-viewer-content object, .document-viewer-content iframe { width: 100%; height: 100%; border: 0; }
 
   .live-indicator {
     width: var(--hall-space-3);
@@ -1000,7 +1004,7 @@
   @media (max-width: 1280px) {
     .meeting-prep-layout { grid-template-columns: minmax(0, 1fr); }
   }
-  @media (max-width: 980px) {
+  @media (max-width: 1000px) {
     .composer-add-zone { grid-template-columns: 1fr; }
     .meeting-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--hall-space-3); }
     .meeting-facts > div { padding: 0; border: 0; }

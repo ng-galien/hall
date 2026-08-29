@@ -1,3 +1,5 @@
+import { imageWidthRange } from "@hall/templating";
+import { NodeSelection, Selection } from "@tiptap/pm/state";
 import { type Editor, EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { type FormEvent, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "../../i18n/I18nProvider";
 import {
   BoldIcon,
+  CodeIcon,
   FullscreenIcon,
   ItalicIcon,
   LinkIcon,
@@ -16,38 +19,46 @@ import {
   RedoIcon,
   ReferenceIcon,
   TableIcon,
-  UnderlineIcon,
   UndoIcon,
 } from "../icons";
 import { editorExtensions } from "./extensions";
+import type { ResourceImageAttributes } from "./images";
 import { EditorReferenceSearch, type FullSearchRequest, SearchSyntaxHint } from "./ReferenceSearchDialog";
 import type { Mentionable } from "./references";
 import { TableControls } from "./TableControls";
 
 export interface MarkdownEditorProps {
   markdown: string;
-  /** Ce qu'on est en train d'écrire. C'est ce que la surimpression annonce — pas le nom du mode. */
+  /** Heading shown by the enriched overlay. */
   title?: string;
   placeholder?: string;
   onChange(markdown: string): void;
   onBlur?(): void;
-  /** Entités proposées par la recherche `@` — membres, pièces, sujets, séances, délibérations. */
+  /** Entities offered by the `@` search. */
   mentionables?: Mentionable[];
-  /** Le dossier du document en cours d'écriture : ce qui en est proche remonte en premier. */
+  /** Folder used to rank nearby entries first. */
   searchContext?: string;
-  /** Active le téléversement d'images ; retourne l'adresse de l'image stockée. */
-  onUploadImage?(image: File): Promise<string>;
+  /** Enables image upload; resolves to the archived resource id and label. */
+  onUploadImage?(image: File): Promise<{ id: string; label: string }>;
   readOnly?: boolean;
+}
+
+const acceptedImageTypes = new Set(["image/jpeg", "image/png"]);
+
+function imageAttributes(image: { id: string; label: string }): ResourceImageAttributes {
+  return { id: image.id, alt: image.label, align: "left", width: imageWidthRange.default };
 }
 
 function ToolbarButton({
   label,
+  testId,
   active,
   disabled,
   onClick,
   children,
 }: {
   label: string;
+  testId: string;
   active?: boolean;
   disabled?: boolean;
   onClick(): void;
@@ -56,12 +67,12 @@ function ToolbarButton({
   return (
     <button
       type="button"
+      data-testid={testId}
       className={cn("markdown-toolbar-button", active && "is-active")}
       title={label}
       aria-label={label}
       aria-pressed={active}
       disabled={disabled}
-      // Garde le focus dans la zone de texte : un clic d'outil agit sur la sélection courante.
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
     >
@@ -70,7 +81,6 @@ function ToolbarButton({
   );
 }
 
-/** Ce que la barre d'outils reflète de la sélection courante. */
 function useToolbarState(editor: Editor | null) {
   return useEditorState({
     editor,
@@ -79,8 +89,8 @@ function useToolbarState(editor: Editor | null) {
       if (!current) return null;
       return {
         bold: current.isActive("bold"),
+        code: current.isActive("code"),
         italic: current.isActive("italic"),
-        underline: current.isActive("underline"),
         bulletList: current.isActive("bulletList"),
         orderedList: current.isActive("orderedList"),
         link: current.isActive("link"),
@@ -98,7 +108,6 @@ function useToolbarState(editor: Editor | null) {
   });
 }
 
-/** Choix du style de bloc : paragraphe, titres autorisés, citation. */
 function BlockTypeSelect({ editor, value }: { editor: Editor; value: string }) {
   const { t } = useI18n();
   const apply = (next: string) => {
@@ -112,20 +121,27 @@ function BlockTypeSelect({ editor, value }: { editor: Editor; value: string }) {
   };
   return (
     <Select value={value} onValueChange={apply}>
-      <SelectTrigger size="sm" aria-label={t("editor.blockType")} className="markdown-toolbar-select">
+      <SelectTrigger data-testid="editor-block-style" size="sm" aria-label={t("editor.blockType")}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="p">{t("editor.paragraph")}</SelectItem>
-        <SelectItem value="h2">{t("editor.heading2")}</SelectItem>
-        <SelectItem value="h3">{t("editor.heading3")}</SelectItem>
-        <SelectItem value="quote">{t("editor.quote")}</SelectItem>
+        <SelectItem data-testid="editor-block-p" value="p">
+          {t("editor.paragraph")}
+        </SelectItem>
+        <SelectItem data-testid="editor-block-h2" value="h2">
+          {t("editor.heading2")}
+        </SelectItem>
+        <SelectItem data-testid="editor-block-h3" value="h3">
+          {t("editor.heading3")}
+        </SelectItem>
+        <SelectItem data-testid="editor-block-quote" value="quote">
+          {t("editor.quote")}
+        </SelectItem>
       </SelectContent>
     </Select>
   );
 }
 
-/** Pose ou retire un lien sur la sélection, adresse saisie en survol du bouton. */
 function LinkControl({ editor, active }: { editor: Editor; active: boolean }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -155,6 +171,7 @@ function LinkControl({ editor, active }: { editor: Editor; active: boolean }) {
       <PopoverTrigger asChild>
         <button
           type="button"
+          data-testid="editor-link"
           className={cn("markdown-toolbar-button", active && "is-active")}
           title={t("editor.link")}
           aria-label={t("editor.link")}
@@ -198,6 +215,7 @@ function MarksButtons({ editor, state }: { editor: Editor; state: NonNullable<Re
     <>
       <ToolbarButton
         label={t("editor.bold")}
+        testId="editor-bold"
         active={state.bold}
         onClick={() => editor.chain().focus().toggleBold().run()}
       >
@@ -205,16 +223,24 @@ function MarksButtons({ editor, state }: { editor: Editor; state: NonNullable<Re
       </ToolbarButton>
       <ToolbarButton
         label={t("editor.italic")}
+        testId="editor-italic"
         active={state.italic}
         onClick={() => editor.chain().focus().toggleItalic().run()}
       >
         <ItalicIcon />
       </ToolbarButton>
+      <ToolbarButton
+        label={t("editor.code")}
+        testId="editor-code"
+        active={state.code}
+        onClick={() => editor.chain().focus().toggleCode().run()}
+      >
+        <CodeIcon />
+      </ToolbarButton>
     </>
   );
 }
 
-/** Les intitulés des groupes du menu `@`, dans la langue de l'interface. */
 function useMentionGroupLabels() {
   const { t } = useI18n();
   return {
@@ -226,11 +252,7 @@ function useMentionGroupLabels() {
   };
 }
 
-/**
- * Deux modalités d'écriture, pour ne pas imposer une barre d'outils complète sur chaque champ :
- * en ligne on écrit vite, avec le strict minimum ; l'édition enrichie s'ouvre en surimpression.
- * Les deux modifient le même markdown et remontent leurs changements au même `onChange`.
- */
+/** Markdown editor with a compact inline mode and an enriched overlay, both editing the same markdown. */
 export function MarkdownEditor({
   markdown,
   title,
@@ -239,19 +261,16 @@ export function MarkdownEditor({
   onBlur,
   mentionables,
   searchContext,
+  onUploadImage,
   readOnly = false,
 }: MarkdownEditorProps) {
   const { t } = useI18n();
   const [enriched, setEnriched] = useState(false);
-  /* L'appelant tient souvent sa prop `markdown` à la valeur persistée : la suivre après le
-     montage effacerait la saisie en cours. On garde donc la dernière version écrite ici, et
-     c'est elle qui circule entre les deux modalités. */
+  const [imageStatus, setImageStatus] = useState<"idle" | "uploading" | "failed">("idle");
   const latest = useRef(markdown);
   const inlineCanvas = useRef<HTMLDivElement>(null);
   const callbacks = useRef({ onChange, onBlur });
   callbacks.current = { onChange, onBlur };
-  /* Les listes arrivent souvent après le montage : l'éditeur lit cet accesseur au moment
-     du `@`, jamais une valeur figée à la création. */
   const members = useRef<Mentionable[]>([]);
   members.current = mentionables ?? [];
   const context = useRef<string | undefined>(searchContext);
@@ -261,6 +280,7 @@ export function MarkdownEditor({
 
   const inline = useEditor({
     extensions: editorExtensions({
+      imageControls: true,
       placeholder,
       mentionables: () => members.current,
       mentionGroupLabels: groupLabels,
@@ -290,12 +310,13 @@ export function MarkdownEditor({
 
   return (
     <>
-      <div className="markdown-editor markdown-editor-compact">
+      <div className="markdown-editor markdown-editor-compact" data-testid="markdown-editor-compact">
         <div role="toolbar" aria-orientation="vertical" aria-label={t("editor.writeArea")}>
           {inline && state ? <MarksButtons editor={inline} state={state} /> : null}
           {inline && state ? (
             <ToolbarButton
               label={t("editor.bulletList")}
+              testId="editor-bullet-list"
               active={state.bulletList}
               onClick={() => inline.chain().focus().toggleBulletList().run()}
             >
@@ -303,13 +324,17 @@ export function MarkdownEditor({
             </ToolbarButton>
           ) : null}
           {inline && !readOnly ? (
-            <ToolbarButton label={t("editor.searchReferences")} onClick={() => setFullSearch({ query: "" })}>
+            <ToolbarButton
+              label={t("editor.searchReferences")}
+              testId="editor-insert-reference"
+              onClick={() => setFullSearch({ query: "" })}
+            >
               <ReferenceIcon />
             </ToolbarButton>
           ) : null}
           {readOnly ? null : (
             <span className="markdown-toolbar-end">
-              <ToolbarButton label={t("editor.enrich")} onClick={() => setEnriched(true)}>
+              <ToolbarButton label={t("editor.enrich")} testId="editor-open-enriched" onClick={() => setEnriched(true)}>
                 <FullscreenIcon />
               </ToolbarButton>
             </span>
@@ -333,12 +358,11 @@ export function MarkdownEditor({
         open={enriched}
         onOpenChange={(open) => {
           setEnriched(open);
-          // Au retour, l'éditeur en ligne adopte le texte écrit en surimpression.
           if (!open) inline?.commands.setContent(latest.current, { contentType: "markdown" });
         }}
       >
         <DialogContent className="markdown-editor-dialog" closeLabel={t("common.close")}>
-          <DialogHeader className="markdown-editor-dialog-header">
+          <DialogHeader>
             <DialogTitle>{title ?? t("editor.enrich")}</DialogTitle>
           </DialogHeader>
           {enriched ? (
@@ -347,6 +371,9 @@ export function MarkdownEditor({
               placeholder={placeholder}
               members={members}
               context={context}
+              onUploadImage={onUploadImage}
+              imageStatus={imageStatus}
+              onImageStatus={setImageStatus}
               onChange={(next) => {
                 latest.current = next;
                 callbacks.current.onChange(next);
@@ -359,18 +386,23 @@ export function MarkdownEditor({
   );
 }
 
-/** L'éditeur de la surimpression : barre complète en haut, il naît et meurt avec elle. */
 function EnrichedEditor({
   initial,
   placeholder,
   members,
   context,
+  onUploadImage,
+  imageStatus,
+  onImageStatus,
   onChange,
 }: {
   initial: string;
   placeholder?: string;
   members: RefObject<Mentionable[]>;
   context: RefObject<string | undefined>;
+  onUploadImage?: (image: File) => Promise<{ id: string; label: string }>;
+  imageStatus: "idle" | "uploading" | "failed";
+  onImageStatus(status: "idle" | "uploading" | "failed"): void;
   onChange(markdown: string): void;
 }) {
   const { t } = useI18n();
@@ -379,9 +411,12 @@ function EnrichedEditor({
   callback.current = onChange;
   const groupLabels = useMentionGroupLabels();
   const [fullSearch, setFullSearch] = useState<FullSearchRequest | null>(null);
+  const imageUpload = useRef(onUploadImage);
+  imageUpload.current = onUploadImage;
 
   const editor = useEditor({
     extensions: editorExtensions({
+      imageControls: true,
       placeholder,
       mentionables: () => members.current,
       mentionGroupLabels: groupLabels,
@@ -395,6 +430,46 @@ function EnrichedEditor({
     autofocus: true,
     editorProps: {
       attributes: { class: "markdown-content", "aria-label": t("editor.writeArea") },
+      handleDrop: (view, event) => {
+        const file = event.dataTransfer
+          ? [...event.dataTransfer.files].find((candidate) => candidate.type.startsWith("image/"))
+          : undefined;
+        if (!file) return false;
+        event.preventDefault();
+        const upload = imageUpload.current;
+        if (!upload || !acceptedImageTypes.has(file.type)) {
+          onImageStatus("failed");
+          return true;
+        }
+        const dropPosition = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
+        onImageStatus("uploading");
+        void upload(file).then(
+          (image) => {
+            const position = Math.min(dropPosition ?? view.state.selection.from, view.state.doc.content.size);
+            const node = view.state.schema.nodes.resourceImage.create(imageAttributes(image));
+            const transaction = view.state.tr
+              .setSelection(Selection.near(view.state.doc.resolve(position)))
+              .replaceSelectionWith(node);
+            let insertedPosition: number | null = null;
+            transaction.doc.descendants((candidate, candidatePosition) => {
+              if (candidate.type === node.type && candidate.attrs.id === image.id) {
+                insertedPosition = candidatePosition;
+                return false;
+              }
+              return true;
+            });
+            if (insertedPosition === null) {
+              onImageStatus("failed");
+              return;
+            }
+            transaction.setSelection(NodeSelection.create(transaction.doc, insertedPosition));
+            view.dispatch(transaction);
+            onImageStatus("idle");
+          },
+          () => onImageStatus("failed"),
+        );
+        return true;
+      },
     },
     onUpdate: ({ editor: current }) => callback.current(current.getMarkdown()),
   });
@@ -402,12 +477,13 @@ function EnrichedEditor({
   const state = useToolbarState(editor);
 
   return (
-    <div className="markdown-editor markdown-editor-large">
+    <div className="markdown-editor markdown-editor-large" data-testid="markdown-editor-enriched">
       <div role="toolbar" aria-label={t("editor.enrich")}>
         {editor && state ? (
           <>
             <ToolbarButton
               label={t("editor.undo")}
+              testId="editor-undo"
               disabled={!state.canUndo}
               onClick={() => editor.chain().focus().undo().run()}
             >
@@ -415,6 +491,7 @@ function EnrichedEditor({
             </ToolbarButton>
             <ToolbarButton
               label={t("editor.redo")}
+              testId="editor-redo"
               disabled={!state.canRedo}
               onClick={() => editor.chain().focus().redo().run()}
             >
@@ -424,16 +501,10 @@ function EnrichedEditor({
             <BlockTypeSelect editor={editor} value={state.blockType} />
             <span className="markdown-toolbar-separator" />
             <MarksButtons editor={editor} state={state} />
-            <ToolbarButton
-              label={t("editor.underline")}
-              active={state.underline}
-              onClick={() => editor.chain().focus().toggleUnderline().run()}
-            >
-              <UnderlineIcon />
-            </ToolbarButton>
             <span className="markdown-toolbar-separator" />
             <ToolbarButton
               label={t("editor.bulletList")}
+              testId="editor-bullet-list"
               active={state.bulletList}
               onClick={() => editor.chain().focus().toggleBulletList().run()}
             >
@@ -441,6 +512,7 @@ function EnrichedEditor({
             </ToolbarButton>
             <ToolbarButton
               label={t("editor.numberedList")}
+              testId="editor-numbered-list"
               active={state.orderedList}
               onClick={() => editor.chain().focus().toggleOrderedList().run()}
             >
@@ -450,11 +522,16 @@ function EnrichedEditor({
             <LinkControl editor={editor} active={state.link} />
             <ToolbarButton
               label={t("editor.insertTable")}
+              testId="editor-insert-table"
               onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
             >
               <TableIcon />
             </ToolbarButton>
-            <ToolbarButton label={t("editor.searchReferences")} onClick={() => setFullSearch({ query: "" })}>
+            <ToolbarButton
+              label={t("editor.searchReferences")}
+              testId="editor-insert-reference"
+              onClick={() => setFullSearch({ query: "" })}
+            >
               <ReferenceIcon />
             </ToolbarButton>
           </>
@@ -464,6 +541,11 @@ function EnrichedEditor({
         <EditorContent editor={editor} className="markdown-editor-content" />
         {editor ? <TableControls editor={editor} canvasRef={canvas} /> : null}
       </div>
+      {imageStatus !== "idle" ? (
+        <p className="markdown-image-status" role={imageStatus === "failed" ? "alert" : "status"}>
+          {t(imageStatus === "uploading" ? "editor.imageUploading" : "editor.imageUploadFailed")}
+        </p>
+      ) : null}
       {fullSearch && editor ? (
         <EditorReferenceSearch
           editor={editor}

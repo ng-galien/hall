@@ -10,13 +10,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Le variant sombre de Tailwind suit l'attribut posé par themePrefs. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* La voix du registre : elle est réservée aux documents et aux écrans de séance qui font foi.
-   L'interface — titres de page compris — reste en sans : une seule police pour l'outil.
-   Qualifiée par le nom d'élément parce que shadcn et les bibliothèques tierces posent des classes
-   à spécificité équivalente plus tard dans la cascade. */
+/* Display face, restricted to documents of record and meeting screens. */
 .live-closed h1,
 .rollcall-header h1,
 .conduct-stage-header h1,
@@ -34,7 +30,7 @@
 }
 
 .authentication-panel {
-  width: min(100%, 28rem);
+  width: min(100%, var(--hall-size-auth-panel));
   display: grid;
   gap: var(--hall-space-4);
   padding: var(--hall-space-10);
@@ -127,9 +123,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Pont shadcn → tokens Hall : les composants copiés dans components/ui héritent ainsi de
-   notre identité, et le ton sombre les suit sans qu'ils aient à le savoir. Aucune valeur
-   littérale ici — tokens.css reste la seule source. */
+/* shadcn variables, aliases only, never literal values. */
 :root {
   --background: var(--hall-color-canvas);
   --foreground: var(--hall-color-text);

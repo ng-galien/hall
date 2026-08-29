@@ -15,7 +15,13 @@ export {
   directiveSpecs,
   type FieldName,
   fieldNames,
+  type ImageAlignment,
+  imageAlignments,
+  imageWidthRange,
   isFieldName,
+  isImageAlignment,
+  isImageDirective,
+  isImageWidth,
   isReferenceKind,
   type ReferenceKind,
 } from "./grammar.js";

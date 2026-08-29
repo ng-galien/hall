@@ -65,7 +65,7 @@ export function useResourceTypeLabel(): (resource: Resource) => string {
   return (resource) => (resource.kind === "document" ? resource.format.toUpperCase() : t("workspace.type.text"));
 }
 
-/** Pastille typée d'une ressource : texte, PDF, image ou fichier générique. */
+/** Typed badge for a resource: text, PDF, image or generic file. */
 export function ResourceGlyph({ resource, large }: { resource: Resource; large?: boolean }) {
   const tone = resourceTone(resource);
   const Icon = toneIcons[tone];

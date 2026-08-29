@@ -37,8 +37,8 @@ export function createSqliteExecutor({
   } catch (error) {
     try {
       database.close();
-    } catch {
-      // The database may already be closed after an initialization failure.
+    } catch (closeError) {
+      throw new AggregateError([error, closeError], "SQLite initialization and cleanup failed");
     }
     throw error;
   }

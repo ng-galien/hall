@@ -12,6 +12,7 @@ import type {
   CouncilMeetingRepository,
   UnitOfWork,
 } from "../repositories/contracts.js";
+import type { EditorAssetService } from "./editorAssetService.js";
 import { DomainError } from "./errors.js";
 import { requireMeeting } from "./meetingContext.js";
 
@@ -33,12 +34,14 @@ export function createMeetingAgendaService({
   ballotRepository,
   councilDecisionRepository,
   unitOfWork,
+  editorAssetService,
 }: {
   councilMeetingRepository: CouncilMeetingRepository;
   agendaItemRepository: AgendaItemRepository;
   ballotRepository: BallotRepository;
   councilDecisionRepository: CouncilDecisionRepository;
   unitOfWork: UnitOfWork;
+  editorAssetService: EditorAssetService;
 }): MeetingAgendaService {
   const requireActiveMeeting = async (meetingId: string) => {
     const meeting = await requireMeeting(councilMeetingRepository, meetingId);
@@ -73,7 +76,12 @@ export function createMeetingAgendaService({
         const meeting = await requireActiveMeeting(meetingId);
         const item = await requireItem(meeting.id, itemId);
         if (!item.startedAt || item.completedAt) throw new DomainError("agenda_sequence_invalid", 409);
-        return agendaItemRepository.saveNotes(meeting.id, itemId, discussionSummary);
+        const updated = await agendaItemRepository.saveNotes(meeting.id, itemId, discussionSummary);
+        await editorAssetService.reconcile(
+          { kind: "agendaItemDiscussionSummary", id: updated.id },
+          updated.discussionSummary,
+        );
+        return updated;
       });
     },
     async completeItem(meetingId, itemId, input) {
@@ -122,10 +130,15 @@ export function createMeetingAgendaService({
         if (councilDecisionId && finalBallot?.result === "adopted") {
           await councilDecisionRepository.assignNumber(councilDecisionId, Number(meeting.startsAt.slice(0, 4)));
         }
-        return agendaItemRepository.complete(meeting.id, itemId, {
+        const updated = await agendaItemRepository.complete(meeting.id, itemId, {
           ...input,
           completedAt: new Date().toISOString(),
         });
+        await editorAssetService.reconcile(
+          { kind: "agendaItemDiscussionSummary", id: updated.id },
+          updated.discussionSummary,
+        );
+        return updated;
       });
     },
   };

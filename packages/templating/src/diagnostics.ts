@@ -3,30 +3,27 @@ import type { DirectiveKind } from "./grammar.js";
 export type DiagnosticSeverity = "error" | "warning";
 
 export type DiagnosticCode =
-  /** Directive dont le nom n'appartient pas au contrat. */
+  /** Directive name outside the contract. */
   | "unknown_directive"
-  /** Attribut obligatoire absent (`id`, `name`…). */
+  /** A required attribute is missing. */
   | "missing_attribute"
-  /** Attribut hors de la liste acceptée par la directive. */
+  /** A required label is missing. */
+  | "missing_label"
+  /** Attribute value outside the domain the directive allows. */
+  | "invalid_attribute"
+  /** Attribute outside the list the directive accepts. */
   | "unexpected_attribute"
-  /** La directive est bien formée mais l'entité référencée n'existe pas (autorité serveur). */
+  /** The directive is well formed but the referenced entity does not exist. */
   | "unresolved_reference"
-  /** Champ hors de la liste fermée `fieldNames` — vérifiable des deux côtés. */
+  /** Field name outside the closed `fieldNames` list. */
   | "unknown_field";
 
-/**
- * Où porte un diagnostic.
- *
- * La position source est fournie parce qu'elle est disponible et utile côté serveur ; mais le
- * client édite un arbre Lexical, pas la chaîne markdown, et remonter d'un offset vers un nœud
- * d'éditeur est fragile. C'est `occurrence` qu'il utilise pour surligner : le n-ième nœud de ce
- * type dans le document, un repère stable des deux côtés.
- */
+/** Where a diagnostic applies. */
 export interface DiagnosticAnchor {
   directive: DirectiveKind | string;
-  /** Index de l'occurrence parmi les directives du même nom, dans l'ordre du document. */
+  /** Index among directives of the same name, in document order. */
   occurrence: number;
-  /** Identifiant visé, quand la directive en porte un. */
+  /** The targeted identifier, when the directive carries one. */
   id?: string;
   position?: {
     start: { line: number; column: number; offset?: number };
@@ -37,7 +34,7 @@ export interface DiagnosticAnchor {
 export interface Diagnostic {
   code: DiagnosticCode;
   severity: DiagnosticSeverity;
-  /** Message technique, non traduit : l'affichage passe par les catalogues i18n du client. */
+  /** Technical, untranslated message. */
   message: string;
   anchor: DiagnosticAnchor;
 }

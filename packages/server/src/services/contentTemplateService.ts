@@ -43,6 +43,7 @@ export interface ContentTemplateService {
   update(id: string, input: SaveContentTemplate): Promise<ContentTemplate>;
   delete(id: string): Promise<void>;
   preview(draft: TemplateDraft, context: TemplateRenderContext): Promise<TemplatePreview>;
+  previewPdf(bodyMarkdown: string, context: TemplateRenderContext): Promise<Buffer>;
   generate(id: string, input: GenerateTemplateInput): Promise<GeneratedFile>;
 }
 
@@ -160,9 +161,27 @@ export function createContentTemplateService({
         },
         context,
       );
-      // The expensive rendering is complete before opening the short transaction used to
-      // persist the successful audit event.
       return unitOfWork.execute(async () => preview);
+    },
+    previewPdf(bodyMarkdown, context) {
+      return withGenerationSlot(async () => {
+        const preview = await templateRenderingService.preview(
+          {
+            bodyMarkdown,
+            subject: null,
+            stylesheet: "",
+            headerHtml: "",
+            footerHtml: "",
+          },
+          context,
+        );
+        assertRenderable(preview.diagnostics);
+        return documentRenderer.pdf({
+          html: preview.printHtml,
+          headerHtml: preview.headerHtml,
+          footerHtml: preview.footerHtml,
+        });
+      });
     },
     generate(id, input) {
       return withGenerationSlot(async () => {

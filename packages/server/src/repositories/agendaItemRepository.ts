@@ -69,6 +69,10 @@ export function createAgendaItemRepository({ sqlExecutor }: { sqlExecutor: SqlEx
       const row = await sqlExecutor.get("agenda.find", { meetingId, itemId });
       return row ? mapAgendaItem(sqlExecutor, row) : null;
     },
+    async findById(itemId) {
+      const row = await sqlExecutor.get("agenda.findById", { itemId });
+      return row ? mapAgendaItem(sqlExecutor, row) : null;
+    },
     create(meetingId, input) {
       return sqlExecutor.execute(async () => {
         const id = randomUUID();

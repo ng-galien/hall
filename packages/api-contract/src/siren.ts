@@ -17,6 +17,8 @@ export const apiActionNames = [
   "decision.update",
   "resource.create-text",
   "resource.create-document",
+  "resource.create-editor-asset",
+  "resource.promote-editor-asset",
   "resource.update",
   "resource.delete",
   "council-business.create",
@@ -52,6 +54,7 @@ export const apiActionNames = [
   "template.update",
   "template.delete",
   "template.preview",
+  "template.preview-pdf",
   "template.generate",
 ] as const;
 export type ApiActionName = (typeof apiActionNames)[number];

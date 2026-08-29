@@ -20,6 +20,7 @@ import {
 import { MarkdownView } from "../../components/MarkdownView";
 import { EmptyState } from "../../components/Ui";
 import { councilBusinessKindKeys } from "../../features/council-business/presentation";
+import { useResourceImageUpload } from "../../features/documents/useResourceImageUpload";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -64,6 +65,7 @@ export function AgendaComposer({
   onReorder(itemIds: string[]): Promise<boolean>;
 }) {
   const { t, formatNumber } = useI18n();
+  const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
   const { meetings } = useCouncilMeetingsStore();
   const { submitting, run } = useSubmitting();
   const fieldId = useId();
@@ -315,13 +317,18 @@ export function AgendaComposer({
                         <Label htmlFor={`${fieldId}-title`}>{t("meeting.subject")}</Label>
                         <Input id={`${fieldId}-title`} name="title" defaultValue={business.title} required />
                       </div>
-                      {/* L'éditeur Markdown n'expose pas de champ natif : l'étiquette reste sans `htmlFor`. */}
                       <div className="grid gap-1.5">
                         <Label>{t("meeting.report")}</Label>
                         <MarkdownEditor
                           markdown={business.report}
                           onChange={setDraftReport}
                           mentionables={mentionables}
+                          searchContext={business.folderPath}
+                          onUploadImage={
+                            canUploadImage
+                              ? (file) => uploadImage(file, { kind: "councilBusinessReport", id: business.id })
+                              : undefined
+                          }
                         />
                         <p className="text-xs text-muted">{t("meeting.reportHint")}</p>
                       </div>
@@ -333,6 +340,16 @@ export function AgendaComposer({
                               markdown={decisionFor(business)?.draftText ?? ""}
                               onChange={setDraftDecisionText}
                               mentionables={mentionables}
+                              searchContext={business.folderPath}
+                              onUploadImage={
+                                canUploadImage
+                                  ? (file) =>
+                                      uploadImage(file, {
+                                        kind: "councilDecisionDraft",
+                                        id: decisionFor(business)!.id,
+                                      })
+                                  : undefined
+                              }
                             />
                             <p className="text-xs text-muted">{t("meeting.decisionDraftTextHint")}</p>
                           </div>
@@ -429,8 +446,6 @@ export function AgendaComposer({
           <form className="composer-quick-add" onSubmit={quickAdd} aria-labelledby="composer-quick-add-heading">
             <h3 id="composer-quick-add-heading">{t("meeting.addOtherHeading")}</h3>
             <div className="composer-quick-add-fields">
-              {/* Contrôlé : `formElement.reset()` ne remet pas l'état interne de Radix à zéro,
-                  il faut donc le repositionner nous-mêmes après un ajout réussi. */}
               <Select
                 name="kind"
                 value={quickAddKind}

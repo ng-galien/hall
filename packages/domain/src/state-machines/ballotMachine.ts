@@ -51,7 +51,7 @@ export interface BallotOutcome {
   votesAgainst: number;
   abstentions: number;
   notVoting: number;
-  /** Suffrages exprimés : uniquement les voix pour et contre. */
+  /** Votes cast include only votes for and votes against. */
   votesCast: number;
   chairTieBreakApplied: boolean;
 }

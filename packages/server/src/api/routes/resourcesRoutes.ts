@@ -1,4 +1,11 @@
-import { createTextResourceSchema, folderPathSchema, resourceTagsSchema, updateResourceSchema } from "@hall/domain";
+import {
+  createTextResourceSchema,
+  editorAssetOwnerKindSchema,
+  folderPathSchema,
+  promoteEditorAssetSchema,
+  resourceTagsSchema,
+  updateResourceSchema,
+} from "@hall/domain";
 import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
@@ -17,6 +24,14 @@ const documentCategorySchema = z.enum([
   "proxy",
   "supporting",
 ]);
+const resourceUsageSchema = z.enum(["document", "editorAsset"]);
+const editorAssetTitleSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .refine((title) => !z.string().uuid().safeParse(title).success)
+  .refine((title) => !/^(?:codex[-_ ]?)?clipboard[-_ ][0-9a-f-]{16,}(?:\.[a-z0-9]+)?$/i.test(title));
 
 function parseTags(value: unknown): string[] {
   if (value === undefined || value === null || value === "") return [];
@@ -38,8 +53,21 @@ function parseTags(value: unknown): string[] {
   return resourceTagsSchema.parse(tags);
 }
 
-export function createResourcesRouter({ resourceService, documentPreviewService }: Cradle): Router {
+export function createResourcesRouter({
+  resourceService,
+  documentPreviewService,
+  editorAssetService,
+  requestContext,
+}: Cradle): Router {
   const router = Router();
+  const uploadFile: ReturnType<typeof upload.single> = (request, response, next) => {
+    const context = requestContext.current();
+    upload.single("file")(request, response, (error) => {
+      const resume = () => (error ? next(error) : next());
+      if (context) requestContext.run(context, resume);
+      else resume();
+    });
+  };
 
   router.get("/", requirePermission("workspace.read"), async (request, response) => {
     const folderPath =
@@ -48,7 +76,27 @@ export function createResourcesRouter({ resourceService, documentPreviewService 
     const meetingId =
       typeof request.query.meetingId === "string" ? z.string().uuid().parse(request.query.meetingId) : undefined;
     const tags = request.query.tags === undefined ? undefined : parseTags(request.query.tags);
-    response.json(await resourceService.list({ folderPath, kind, meetingId, tags }));
+    let usage = typeof request.query.usage === "string" ? resourceUsageSchema.parse(request.query.usage) : undefined;
+    const editorOwnerKind =
+      typeof request.query.editorOwnerKind === "string"
+        ? editorAssetOwnerKindSchema.parse(request.query.editorOwnerKind)
+        : undefined;
+    const editorOwnerId =
+      typeof request.query.editorOwnerId === "string"
+        ? z.string().uuid().parse(request.query.editorOwnerId)
+        : undefined;
+    if ((editorOwnerKind === undefined) !== (editorOwnerId === undefined)) throw new DomainError("invalid_request");
+    if (editorOwnerKind && editorOwnerId) usage = usage ?? "editorAsset";
+    response.json(
+      await resourceService.list({
+        folderPath,
+        kind,
+        meetingId,
+        tags,
+        usage,
+        editorOwner: editorOwnerKind && editorOwnerId ? { kind: editorOwnerKind, id: editorOwnerId } : undefined,
+      }),
+    );
   });
 
   router.get("/paths", requirePermission("workspace.read"), async (_request, response) => {
@@ -63,7 +111,7 @@ export function createResourcesRouter({ resourceService, documentPreviewService 
     response.status(201).json(await resourceService.createText({ title, folderPath, tags, content }));
   });
 
-  router.post("/documents", requirePermission("workspace.write"), upload.single("file"), async (request, response) => {
+  router.post("/documents", requirePermission("workspace.write"), uploadFile, async (request, response) => {
     if (!request.file) throw new DomainError("invalid_request");
     const folderPath = folderPathSchema.parse(request.body.folderPath ?? "");
     const meetingId = request.body.meetingId ? z.string().uuid().parse(request.body.meetingId) : null;
@@ -81,6 +129,30 @@ export function createResourcesRouter({ resourceService, documentPreviewService 
         category: documentCategorySchema.parse(request.body.category ?? "supporting"),
         content: request.file.buffer,
       }),
+    );
+  });
+
+  router.post("/editor-assets", requirePermission("workspace.write"), uploadFile, async (request, response) => {
+    if (!request.file) throw new DomainError("invalid_request");
+    response.status(201).json(
+      await editorAssetService.create({
+        title: editorAssetTitleSchema.parse(request.body.title),
+        fileName: request.file.originalname,
+        owner: {
+          kind: editorAssetOwnerKindSchema.parse(request.body.ownerKind),
+          id: z.string().uuid().parse(request.body.ownerId),
+        },
+        content: request.file.buffer,
+      }),
+    );
+  });
+
+  router.post("/:resourceId/promote", requirePermission("workspace.write"), async (request, response) => {
+    response.json(
+      await editorAssetService.promote(
+        routeParameter(request.params.resourceId),
+        promoteEditorAssetSchema.parse(request.body),
+      ),
     );
   });
 

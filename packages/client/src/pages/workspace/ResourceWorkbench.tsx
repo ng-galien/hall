@@ -12,6 +12,7 @@ import { RequestErrorBanner } from "../../components/Ui";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentEmbed } from "../../features/documents/DocumentEmbed";
 import { ResourceGlyph, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
+import { useResourceImageUpload } from "../../features/documents/useResourceImageUpload";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -32,6 +33,7 @@ export function ResourceWorkbench({
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
   const mentionables = useReferenceMentionables();
+  const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
   const { t, formatFileSize, formatDate } = useI18n();
   const { submitting, run } = useSubmitting();
   const resourcesStore = useResourcesStore();
@@ -113,8 +115,6 @@ export function ResourceWorkbench({
     tags.join("\u0000") !== resource.tags.join("\u0000") ||
     (resource.kind === "text" && content !== resource.content);
 
-  /* Auto-sauvegarde : une seconde après la dernière modification. La pastille du fil
-     d'Ariane raconte le cycle — modifié, enregistrement, enregistré. */
   useEffect(() => {
     if (!dirty || !canUpdate || details?.snapshotted) return;
     setSaveStatus("dirty");
@@ -123,7 +123,6 @@ export function ResourceWorkbench({
   }, [canUpdate, details?.snapshotted, dirty, save, setSaveStatus]);
 
   useEffect(() => {
-    // À l'arrivée sur un document (et au départ), la pastille repart de zéro.
     setSaveStatus("idle");
     return () => setSaveStatus("idle");
   }, [setSaveStatus]);
@@ -136,7 +135,9 @@ export function ResourceWorkbench({
           <div className="workbench-header-copy">
             <span className="workbench-eyebrow">
               {typeLabel(resource)}
-              {resource.kind === "document" ? ` · ${t(documentCategoryKeys[resource.category])}` : ""}
+              {resource.kind === "document" && resource.usage === "document"
+                ? ` · ${t(documentCategoryKeys[resource.category])}`
+                : ""}
               {resource.kind === "document" ? ` · ${formatFileSize(resource.byteSize)}` : ""}
               {` · ${formatDate(resource.createdAt)}`}
             </span>
@@ -207,7 +208,6 @@ export function ResourceWorkbench({
           </div>
           {resource.kind === "text" ? (
             <div className="grid gap-1.5">
-              {/* L'éditeur Markdown n'expose pas d'identifiant : l'étiquette reste descriptive. */}
               <Label>{t("resources.textContent")}</Label>
               <MarkdownEditor
                 title={resource.title}
@@ -215,6 +215,11 @@ export function ResourceWorkbench({
                 onChange={setContent}
                 mentionables={mentionables}
                 searchContext={resource.folderPath}
+                onUploadImage={
+                  canUploadImage
+                    ? (file) => uploadImage(file, { kind: "textResourceContent", id: resource.id })
+                    : undefined
+                }
                 readOnly={!canUpdate || Boolean(details?.snapshotted)}
               />
             </div>

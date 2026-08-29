@@ -47,7 +47,7 @@ test.describe("municipal council workflow", () => {
       element.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
 
-    await expect(page.getByText("Sujet soumis une seule fois", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sujet soumis une seule fois", exact: true })).toBeVisible();
     expect(postCount).toBe(1);
   });
 
@@ -62,18 +62,22 @@ test.describe("municipal council workflow", () => {
     const businessDialog = openDialog(page);
     await formField(businessDialog, "title").fill("Adoption du programme de rénovation");
     await businessDialog.getByRole("button", { name: "Créer", exact: true }).click();
-    await expect(page.getByText("Adoption du programme de rénovation", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Adoption du programme de rénovation", exact: true })).toBeVisible();
 
     await primaryNavigationLink(page, "Séances").click();
     await page.getByRole("button", { name: "Planifier une séance", exact: true }).click();
     const meetingDialog = openDialog(page);
-    await formField(meetingDialog, "startsAt").fill("2026-09-10T18:30");
+    await formField(meetingDialog, "startsAt").fill("2026-09-01T18:30");
     await formField(meetingDialog, "secretaryMemberId").selectOption({ label: "Jules Bernard" });
     await expect(formField(meetingDialog, "chairMemberId")).toHaveValue(/.+/);
     await meetingDialog.getByRole("button", { name: "Créer", exact: true }).click();
-    await page.getByRole("link", { name: /Conseil municipal .*10\/09\/2026/ }).click();
+    await page.getByRole("link", { name: /Conseil municipal .*01\/09\/2026/ }).click();
 
-    await page.getByRole("button", { name: "Inscrire", exact: true }).click();
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: "Adoption du programme de rénovation" })
+      .getByRole("button", { name: "Inscrire", exact: true })
+      .click();
     await expect(page.locator(".composer-list")).toContainText("Adoption du programme de rénovation");
     const quickAdd = page.locator(".composer-quick-add");
     await quickAdd.getByRole("combobox").selectOption("openQuestion");
@@ -101,6 +105,12 @@ test.describe("municipal council workflow", () => {
 
     await page.getByRole("button", { name: "Clôturer et passer au sujet suivant", exact: true }).click();
     await page.getByRole("button", { name: "Démarrer ce sujet", exact: true }).click();
+    await page.getByRole("button", { name: "Passer au vote", exact: true }).click();
+    await page.getByRole("button", { name: "Tous les restants votent pour", exact: true }).click();
+    await page.getByRole("button", { name: "Enregistrer le résultat", exact: true }).click();
+    await expect(page.locator(".conduct-result")).toContainText("Adoptée");
+    await page.getByRole("button", { name: "Clôturer et passer au sujet suivant", exact: true }).click();
+    await page.getByRole("button", { name: "Démarrer ce sujet", exact: true }).click();
     await page.getByRole("button", { name: "Clôturer et passer au sujet suivant", exact: true }).click();
 
     await page.getByRole("button", { name: "Clore la séance", exact: true }).click();
@@ -122,12 +132,11 @@ test.describe("municipal council workflow", () => {
     await primaryNavigationLink(page, "Séances").click();
     await page.getByRole("button", { name: "Planifier une séance", exact: true }).click();
     const meetingDialog = openDialog(page);
-    await formField(meetingDialog, "title").fill("Conseil sans quorum E2E");
-    await formField(meetingDialog, "startsAt").fill("2026-10-08T18:30");
+    await formField(meetingDialog, "startsAt").fill("2026-08-30T18:30");
     await formField(meetingDialog, "chairMemberId").selectOption({ label: "Anne Petit" });
     await formField(meetingDialog, "secretaryMemberId").selectOption({ label: "Louis Roche" });
     await meetingDialog.getByRole("button", { name: "Créer", exact: true }).click();
-    await page.getByRole("link", { name: /Conseil sans quorum E2E/ }).click();
+    await page.getByRole("link", { name: /Conseil municipal .*30\/08\/2026/ }).click();
 
     await page.getByRole("button", { name: "Figer la composition et programmer", exact: true }).click();
     await page.getByRole("link", { name: "Passer en mode séance", exact: true }).click();
@@ -140,13 +149,11 @@ test.describe("municipal council workflow", () => {
     await page.getByRole("button", { name: "Constater l’absence de quorum", exact: true }).click();
     await expect(page.getByText("L’absence de quorum a été formellement constatée.", { exact: true })).toBeVisible();
 
-    await formField(page.locator(".rollcall-reconvene"), "startsAt").fill("2026-10-15T18:30");
+    await formField(page.locator(".rollcall-reconvene"), "startsAt").fill("2026-08-31T18:30");
     await page.getByRole("button", { name: "Créer la seconde convocation", exact: true }).click();
 
     await expect(page).toHaveURL(/\/app\/meetings\/[0-9a-f-]+$/);
-    await expect(
-      page.getByRole("heading", { name: "Conseil sans quorum E2E — seconde convocation", exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Conseil municipal .*31\/08\/2026/ })).toBeVisible();
     await expect(
       page.getByText("L’ordre du jour de cette séance ne peut plus être modifié.", { exact: true }),
     ).toBeVisible();

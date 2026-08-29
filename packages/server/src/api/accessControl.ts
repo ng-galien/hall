@@ -81,7 +81,8 @@ function auditIntentFor(request: Request) {
   const segments = path.split("/").filter(Boolean);
   const [root, id, child, childId, operation] = segments;
   const targetType = root ?? "api";
-  const targetId = id && !["texts", "documents", "bootstrap", "login", "logout"].includes(id) ? id : null;
+  const targetId =
+    id && !["texts", "documents", "editor-assets", "bootstrap", "login", "logout"].includes(id) ? id : null;
 
   if (root === "council-meetings") {
     if (!id) return { action: "meeting.create", targetType: "council-meeting" };
@@ -187,9 +188,13 @@ function auditIntentFor(request: Request) {
         ? "resource.create-text"
         : id === "documents"
           ? "resource.create-document"
-          : request.method === "DELETE"
-            ? "resource.delete"
-            : "resource.update";
+          : id === "editor-assets"
+            ? "resource.create-editor-asset"
+            : child === "promote"
+              ? "resource.promote-editor-asset"
+              : request.method === "DELETE"
+                ? "resource.delete"
+                : "resource.update";
     return { action, targetType: "resource", targetId };
   }
   if (root === "users") {
@@ -209,6 +214,7 @@ function auditIntentFor(request: Request) {
   }
   if (root === "settings") return { action: "settings.update", targetType: "hall-settings", targetId: "hall" };
   if (root === "templates") {
+    if (id === "preview-pdf") return null;
     const action =
       id === "preview"
         ? "template.preview"

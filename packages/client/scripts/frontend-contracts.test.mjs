@@ -79,13 +79,44 @@ test("document download and preview follow their distinct Siren links", () => {
   assert.match(read("src/features/documents/DocumentPreviewFailure.tsx"), /resources\.previewFailed/);
 });
 
-test("document category translations are exhaustive over the domain type", () => {
-  assert.match(
-    read("src/pages/council-meetings/MeetingDetailsCard.tsx"),
-    /Record<DocumentResource\["category"\], TranslationKey>/,
+test("editor images keep immutable resource references and follow document capabilities", () => {
+  const editor = read("src/components/editor/MarkdownEditor.tsx");
+  const images = read("src/components/editor/images.tsx");
+  const mentions = read("src/hooks/useReferenceMentionables.ts");
+  const api = read("src/services/resourcesApi.ts");
+  const app = read("src/App.tsx");
+  const styles = read("src/styles/editor.css");
+  assert.match(images, /::image\[\$\{escapeLabel\(attributes\.alt\)\}\]\{#\$\{attributes\.id\}/);
+  assert.match(images, /role="slider"/);
+  assert.match(images, /aria-valuemin=\{imageWidthRange\.min\}/);
+  assert.match(images, /useContext\(ResourceImagePreviewContext\)/);
+  assert.match(editor, /handleDrop:/);
+  assert.match(editor, /imageUpload\.current/);
+  assert.match(editor, /type="file"[\s\S]{0,80}accept="image\/png,image\/jpeg"/);
+  assert.doesNotMatch(`${editor}\n${images}`, /FileReader|readAsDataURL|blob:/);
+  assert.doesNotMatch(mentions, /id:\s*(?:resource|business|meeting|decision)\.slug/);
+  assert.match(api, /findSirenLink\(representation, "content"\)/);
+  assert.match(app, /ResourceImagePresentationProvider[\s\S]{0,160}resolveContentHref=\{resourceContentHref\}/);
+  assert.match(app, /ResourceImagePresentationProvider[\s\S]{0,220}renderResourcePreview=\{renderResourcePreview\}/);
+  assert.match(app, /const EditorLabPage = import\.meta\.env\.DEV/);
+  assert.match(styles, /\.hall-template-image[\s\S]*height: auto/);
+  const compactEditor = editor.slice(
+    editor.indexOf('<div className="markdown-editor markdown-editor-compact"'),
+    editor.indexOf("<Dialog"),
   );
+  const enrichedEditor = editor.slice(editor.indexOf("function EnrichedEditor"));
+  assert.ok(compactEditor.length > 0);
+  assert.ok(enrichedEditor.length > 0);
+  assert.doesNotMatch(compactEditor, /<ImageControl|handleDrop:/);
+  assert.match(enrichedEditor, /<ImageControl/);
+  assert.match(enrichedEditor, /handleDrop:/);
+});
+
+test("document category translations are exhaustive over the domain type", () => {
+  assert.match(read("src/pages/council-meetings/MeetingDetailsCard.tsx"), /Record<DocumentCategory, TranslationKey>/);
   const resourceWorkbench = read("src/pages/workspace/ResourceWorkbench.tsx");
   assert.match(resourceWorkbench, /import \{ documentCategoryKeys \}/);
+  assert.match(resourceWorkbench, /resource\.usage === "document"/);
   assert.match(resourceWorkbench, /documentCategoryKeys\[resource\.category\]/);
 });
 

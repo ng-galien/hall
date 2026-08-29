@@ -16,7 +16,9 @@ import type {
   CouncilMeeting,
   CouncilMember,
   CouncilRole,
+  DocumentCategory,
   DocumentResource,
+  EditorAssetOwner,
   HallSettings,
   MeetingStatus,
   ParticipationEvidence,
@@ -205,6 +207,7 @@ export interface AgendaItemRepository {
   listForMeeting(meetingId: string): Promise<AgendaItem[]>;
   listForBusiness(businessId: string): Promise<AgendaItem[]>;
   find(meetingId: string, itemId: string): Promise<AgendaItem | null>;
+  findById(itemId: string): Promise<AgendaItem | null>;
   create(meetingId: string, input: CreateAgendaItem): Promise<AgendaItem>;
   remove(meetingId: string, itemId: string): Promise<void>;
   reorder(meetingId: string, itemIds: string[]): Promise<void>;
@@ -292,7 +295,14 @@ export interface CreateDocumentResource {
   tags: string[];
   meetingId?: string | null;
   fileName: string;
-  category: DocumentResource["category"];
+  category: DocumentCategory;
+  content: Buffer;
+}
+
+export interface CreateEditorAssetResource {
+  title: string;
+  fileName: string;
+  owner: EditorAssetOwner;
   content: Buffer;
 }
 
@@ -302,9 +312,14 @@ export interface PersistDocumentResource extends CreateDocumentResource {
   contentSha256: string;
 }
 
-export interface StoredDocumentResource extends DocumentResource {
-  content: Buffer;
+export interface PersistEditorAssetResource extends CreateEditorAssetResource {
+  folderPath: string;
+  format: "jpeg" | "png";
+  mediaType: "image/jpeg" | "image/png";
+  contentSha256: string;
 }
+
+export type StoredDocumentResource = DocumentResource & { content: Buffer };
 
 export interface StoredDocumentPreview {
   sourceContentSha256: string;
@@ -323,6 +338,8 @@ export interface ResourceRepository {
     tags?: string[];
     kind?: Resource["kind"];
     meetingId?: string;
+    usage?: "document" | "editorAsset";
+    editorOwner?: EditorAssetOwner;
   }): Promise<Resource[]>;
   find(id: string): Promise<StoredResource | null>;
   findMetadata(id: string): Promise<Resource | null>;
@@ -334,6 +351,13 @@ export interface ResourceRepository {
   listFolderPaths(): Promise<string[]>;
   createText(input: CreateTextResource): Promise<TextResource>;
   createDocument(input: PersistDocumentResource): Promise<DocumentResource>;
+  createEditorAsset(input: PersistEditorAssetResource): Promise<DocumentResource>;
+  promoteEditorAsset(
+    id: string,
+    input: { title: string; folderPath: string; tags: string[]; category: DocumentCategory },
+  ): Promise<DocumentResource | null>;
+  reconcileEditorAssets(owner: EditorAssetOwner, referencedIds: string[]): Promise<string[]>;
+  isReferencedByRichText(id: string): Promise<boolean>;
   update(id: string, input: UpdateResource): Promise<Resource>;
   isSnapshotted(id: string): Promise<boolean>;
   delete(id: string): Promise<boolean>;

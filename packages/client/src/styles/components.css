@@ -1,8 +1,6 @@
 @layer components {
-  /* Taille de repli des icônes : les glyphes sont dimensionnés en `1em`, donc pilotables
-     par la `font-size` de leur contexte partout où une règle plus précise s'applique. */
+  /* Glyphs are sized in 1em, so any more specific font-size drives them. */
   .app-icon { font-size: var(--hall-font-size-icon); }
-  /* Les chevrons sont des affordances, pas du contenu : un cran plus petit que les icônes. */
   .workspace-tree-toggle svg,
   .workspace-tree-fold svg,
   .wsearch-filters svg:last-child { font-size: var(--hall-font-size-icon-small); }
@@ -13,7 +11,7 @@
     align-items: center;
     gap: var(--hall-space-2);
     color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
   }
   .spinner::before {
     content: "";
@@ -40,7 +38,7 @@
   .icon-button:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
 
   .nav-section-label {
-    padding: var(--hall-space-4) var(--hall-space-2) var(--hall-space-1-25);
+    padding: var(--hall-space-4) var(--hall-space-2) var(--hall-space-1);
     color: var(--hall-color-text-muted);
     font-size: var(--hall-font-size-caption);
     font-weight: var(--hall-font-weight-semibold);
@@ -57,7 +55,7 @@
     border-radius: var(--hall-radius-medium);
     color: var(--hall-color-text);
     background: transparent;
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
     text-align: left;
     cursor: pointer;
   }
@@ -78,6 +76,23 @@
 
   .page { min-height: 100%; animation: page-enter var(--hall-motion-fast) var(--hall-motion-curve-decelerate); }
   .page-content { width: 100%; max-width: var(--hall-size-content-max); padding: var(--hall-space-7); }
+  /* Tailwind preflight resets h1 to the body size. */
+  .page-title {
+    font-size: var(--hall-font-size-heading);
+    font-weight: var(--hall-font-weight-semibold);
+    line-height: var(--hall-line-height-heading);
+  }
+  /* Variants later in the cascade override colour only. */
+  .eyebrow,
+  .entity-card-eyebrow,
+  .live-eyebrow,
+  .workbench-eyebrow {
+    color: var(--hall-color-text-muted);
+    font-size: var(--hall-font-size-caption);
+    font-weight: var(--hall-font-weight-semibold);
+    letter-spacing: var(--hall-letter-spacing-section);
+    text-transform: uppercase;
+  }
   @keyframes page-enter { from { opacity: 0; transform: translateY(var(--hall-motion-distance)); } to { opacity: 1; transform: none; } }
   .connection-status-pending {
     animation: connection-status-pulse var(--hall-motion-status) var(--hall-motion-curve-standard) infinite;
@@ -94,8 +109,8 @@
     min-height: var(--hall-size-card);
     grid-template-columns: var(--hall-size-metric-icon) 1fr;
     align-items: start;
-    gap: var(--hall-space-3-5);
-    padding: var(--hall-space-4-5);
+    gap: var(--hall-space-3);
+    padding: var(--hall-space-4);
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-large);
     background: var(--hall-color-surface);
@@ -111,8 +126,8 @@
     background: var(--hall-color-surface-subtle);
     font-size: var(--hall-font-size-icon-large);
   }
-  .metric-value { display: block; color: var(--hall-color-text); font-size: var(--hall-font-size-metric); font-weight: var(--hall-font-weight-bold); line-height: var(--hall-line-height-compact); }
-  .metric-label { display: block; margin-top: var(--hall-space-1); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-small); }
+  .metric-value { display: block; color: var(--hall-color-text); font-size: var(--hall-font-size-heading-large); font-weight: var(--hall-font-weight-bold); line-height: var(--hall-line-height-compact); }
+  .metric-label { display: block; margin-top: var(--hall-space-1); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .metric-detail { display: block; margin-top: var(--hall-space-0-5); color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-caption); }
 
   .creation-form {
@@ -123,8 +138,8 @@
     background: var(--hall-color-surface);
     box-shadow: var(--hall-shadow-small);
   }
-  .creation-form h3 { margin: 0 0 var(--hall-space-4); font-size: var(--hall-font-size-subtitle); font-weight: var(--hall-font-weight-semibold); }
-  .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-3-5); margin-bottom: var(--hall-space-4); }
+  .creation-form h3 { margin: 0 0 var(--hall-space-4); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-semibold); }
+  .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-3); margin-bottom: var(--hall-space-4); }
   .creation-form > .fui-Field { margin-bottom: var(--hall-space-3); }
   .creation-form textarea { min-height: var(--hall-size-textarea-min); }
   select, input[type="file"] {
@@ -165,7 +180,7 @@
 
   .empty-state {
     margin-bottom: var(--hall-space-7);
-    padding: var(--hall-space-10-5);
+    padding: var(--hall-space-10);
     border: var(--hall-stroke-thin) dashed var(--hall-color-border-strong);
     border-radius: var(--hall-radius-large);
     color: var(--hall-color-text-muted);
@@ -179,6 +194,14 @@
     border-radius: var(--hall-radius-medium);
     color: var(--hall-color-danger);
     background: var(--hall-color-danger-surface);
+  }
+  .form-error {
+    padding: var(--hall-space-2) var(--hall-space-3);
+    border: var(--hall-stroke-thin) solid var(--hall-color-danger-border);
+    border-radius: var(--hall-radius-medium);
+    color: var(--hall-color-danger);
+    background: var(--hall-color-danger-surface);
+    font-size: var(--hall-font-size-caption);
   }
   .preparation-status {
     margin-bottom: var(--hall-space-5);
@@ -214,12 +237,12 @@
     gap: var(--hall-space-5);
   }
   .admin-record-heading h2,
-  .admin-section-heading h2 { font-size: var(--hall-font-size-subtitle); }
+  .admin-section-heading h2 { font-size: var(--hall-font-size-title); }
   .admin-record-heading span,
   .admin-section-heading p,
   .admin-danger-zone p {
     color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
   }
   .admin-edit-grid,
   .admin-definition-grid {
@@ -264,7 +287,7 @@
     border-radius: var(--hall-radius-medium);
     color: var(--hall-color-text-muted);
     background: var(--hall-color-surface-subtle);
-    font-size: var(--hall-font-size-small);
+    font-size: var(--hall-font-size-caption);
     text-align: center;
   }
   .admin-member-palette {
@@ -359,14 +382,14 @@
     background: var(--hall-color-surface-selected);
   }
   .admin-membership-toolbar > span { display: grid; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
-  .admin-membership-toolbar > span strong { color: var(--hall-color-text); font-size: var(--hall-font-size-small); }
-  .admin-membership-toolbar a { color: var(--hall-color-brand); font-size: var(--hall-font-size-small); font-weight: var(--hall-font-weight-semibold); }
-  .admin-membership-history { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-small); }
+  .admin-membership-toolbar > span strong { color: var(--hall-color-text); font-size: var(--hall-font-size-caption); }
+  .admin-membership-toolbar a { color: var(--hall-color-brand); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-semibold); }
+  .admin-membership-history { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .admin-membership-history summary { cursor: pointer; font-weight: var(--hall-font-weight-semibold); }
   .admin-membership-history[open] summary { margin-bottom: var(--hall-space-3); }
   .admin-dialog-actions { justify-content: space-between; }
   .admin-dialog-actions > :last-child { margin-left: auto; }
-  .admin-dialog-description { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-small); }
+  .admin-dialog-description { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .admin-phone-link { color: var(--hall-color-brand); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-semibold); }
   .admin-definition-grid > div { display: grid; gap: var(--hall-space-1); }
   .admin-definition-grid dt {
@@ -398,7 +421,7 @@
     padding: var(--hall-space-4) var(--hall-space-5);
     background: var(--hall-color-danger-surface);
   }
-  @media (max-width: 900px) {
+  @media (max-width: 1000px) {
     .admin-edit-grid,
     .admin-definition-grid,
     .admin-member-edit-grid { grid-template-columns: 1fr; }
@@ -416,11 +439,11 @@
   }
   .meeting-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .meeting-summary .fui-Card { min-height: var(--hall-size-card); border-color: var(--hall-color-border); box-shadow: var(--hall-shadow-small); }
-  .meeting-summary strong { display: block; font-size: var(--hall-font-size-metric); line-height: var(--hall-line-height-compact); }
+  .meeting-summary strong { display: block; font-size: var(--hall-font-size-heading-large); line-height: var(--hall-line-height-compact); }
   .meeting-summary .meeting-officer-name { font-size: var(--hall-font-size-body); }
   .meeting-summary span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
 
-  @media (max-width: 1100px) {
+  @media (max-width: 1280px) {
     .form-grid { grid-template-columns: 1fr 1fr; }
     .metric-grid { grid-template-columns: 1fr 1fr; }
   }

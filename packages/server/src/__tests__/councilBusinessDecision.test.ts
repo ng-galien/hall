@@ -21,8 +21,8 @@ async function createCouncilMatter(agent: TestAgent, title: string) {
 }
 
 async function createScheduledMeeting(agent: TestAgent, title: string) {
-  const chair = await createMember(agent, `${title} — maire`, "mayor");
-  const secretary = await createMember(agent, `${title} — secrétaire`);
+  const chair = await createMember(agent, `${title} - maire`, "mayor");
+  const secretary = await createMember(agent, `${title} - secrétaire`);
   const meeting = domainBody(
     await agent
       .post("/api/council-meetings")
@@ -59,10 +59,10 @@ describe("business decision attachment", () => {
 
     await agent
       .put(`/api/council-business/${business.id}`)
-      .send({ title: "Cession de la parcelle AB 127 — révisée", report: "", folderPath: "", resourceIds: [] })
+      .send({ title: "Cession de la parcelle AB 127 - révisée", report: "", folderPath: "", resourceIds: [] })
       .expect(200);
     const renamed = domainBody(await agent.get(`/api/council-decisions/${attached.councilDecisionId}`).expect(200));
-    expect(renamed.title).toBe("Cession de la parcelle AB 127 — révisée");
+    expect(renamed.title).toBe("Cession de la parcelle AB 127 - révisée");
   });
 
   it("schedules the decision through the machine when the business is already on an agenda", async () => {

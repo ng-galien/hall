@@ -6,7 +6,7 @@ import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 
-/** Fil d'Ariane global de la barre d'en-tête, dérivé de la route courante. */
+/** Global header breadcrumb derived from the current route. */
 export function HeaderBreadcrumb() {
   const { t, formatDate } = useI18n();
   const location = useLocation();
@@ -47,9 +47,6 @@ export function HeaderBreadcrumb() {
   } else if (segments[0] === "settings") {
     items.push({ label: t("common.settings") });
   } else if (segments[0] === "workspace") {
-    /* La barre d'en-tête s'arrête à l'espace de travail : la navigation fine — chemins de
-       dossiers, document ouvert — appartient à l'écran lui-même et à son propre fil d'Ariane.
-       Deux systèmes qui racontent le même chemin, c'est un de trop. */
     items.push({ label: t("navigation.workspace") });
   }
 

@@ -24,7 +24,7 @@ export function BallotOutcome({
 }: {
   ballot: Ballot;
   members: CouncilMember[];
-  /** Ne montre que le tampon et les totaux ; le détail (notes, votes nominatifs) se déplie. */
+  /** Shows only the stamp and totals; details expand on demand. */
   defaultCollapsed?: boolean;
 }) {
   const { t, formatNumber } = useI18n();
@@ -81,7 +81,7 @@ export function BallotOutcome({
               .replace("{roster}", formatNumber(ballot.participationEvidence.quorum.activeMembers))}
           </p>
           {ballot.method === "public" ? (
-            <div className="report-ballot-votes">
+            <div>
               <button className="report-votes-toggle" type="button" onClick={() => setVotesVisible((value) => !value)}>
                 {t(votesVisible ? "ballot.hidePublicVotes" : "ballot.showPublicVotes")}
               </button>
@@ -108,13 +108,13 @@ export function BallotOutcome({
   );
 }
 
-/** Le déroulé complet d'une séance (ouverture formelle, points, scrutins, clôture) — autonome et réutilisable. */
+/** Full proceedings of a meeting: opening, agenda items, ballots and closing. */
 export function MeetingProceedings({
   aggregate,
   defaultCollapsed = false,
 }: {
   aggregate: MeetingAggregate;
-  /** Replie le corps des points par défaut (consultation rapide, ex. surimpression en séance). */
+  /** Collapses agenda item bodies by default. */
   defaultCollapsed?: boolean;
 }) {
   const { t, formatTime, formatNumber } = useI18n();
@@ -284,7 +284,7 @@ export function MeetingProceedings({
         </ol>
       </section>
       {meeting.closedAt ? (
-        <section className="report-opening report-closing" aria-labelledby="report-closing-heading">
+        <section className="report-opening" aria-labelledby="report-closing-heading">
           <h2 id="report-closing-heading">{t("report.closingHeading")}</h2>
           <p>{t("report.closedStatement").replace("{time}", formatTime(meeting.closedAt))}</p>
         </section>

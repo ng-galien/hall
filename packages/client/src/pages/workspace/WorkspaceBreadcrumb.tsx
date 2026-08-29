@@ -13,10 +13,6 @@ import { type SaveStatus, useSaveStatusStore } from "./saveStatusStore";
 import type { WorkspaceSelection } from "./WorkspacePage";
 import { useWorkspaceOrgStore } from "./workspaceOrg";
 
-/**
- * Le sélecteur d'un cran du fil d'Ariane : un chevron qui liste les sous-dossiers du
- * niveau, pour descendre ou changer de branche sans repasser par l'arbre.
- */
 function CrumbChildren({
   parent,
   allPaths,
@@ -25,7 +21,7 @@ function CrumbChildren({
 }: {
   parent: string;
   allPaths: string[];
-  /** En bout de fil, un chevron sans sous-dossiers ne sépare rien : il disparaît. */
+  /** Last crumb: a chevron with no children renders nothing. */
   trailing: boolean;
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
@@ -36,8 +32,6 @@ function CrumbChildren({
     .map((candidate) => candidate.slice(prefix.length).split("/")[0])
     .filter((name, index, names) => names.indexOf(name) === index)
     .sort((left, right) => left.localeCompare(right, "fr"));
-  /* Une seule modalité de séparateur : le chevron. Interactif quand le niveau a des
-     sous-dossiers, simple jalon entre deux crans sinon — et rien en bout de fil. */
   if (children.length === 0) {
     if (trailing) return null;
     return (
@@ -69,18 +63,14 @@ function CrumbChildren({
   );
 }
 
-/**
- * Le fil d'Ariane de l'espace de travail — permanent, quel que soit le contenu du
- * conteneur : liste d'un dossier ou établi d'un élément ouvert. Cliquer un cran remonte
- * au dossier (et referme l'élément) ; l'élément ouvert est le dernier cran, inerte.
- */
+/** Workspace breadcrumb; selecting a crumb opens that folder and closes the open item. */
 export function WorkspaceBreadcrumb({
   path,
   currentLabel,
   onSelect,
 }: {
   path: string;
-  /** Le titre de l'élément ouvert dans le conteneur, s'il y en a un. */
+  /** Title of the item currently open, if any. */
   currentLabel?: string;
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
@@ -130,6 +120,8 @@ export function WorkspaceBreadcrumb({
       {currentLabel ? <span className="workspace-crumb-current">{currentLabel}</span> : null}
       {currentLabel && saveStatus !== "idle" ? (
         <span
+          data-testid="workspace-save-status"
+          data-state={saveStatus}
           className={`workspace-save-dot workspace-save-${saveStatus}`}
           role="status"
           title={saveStatusLabels[saveStatus]}

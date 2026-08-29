@@ -5,7 +5,7 @@ import { updateResource } from "../../services/resourcesApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
 
-/** Chemins créés à la main, pas encore matérialisés par un objet. */
+/** Paths created by hand, not yet materialized by an object. */
 interface WorkspaceOrgState {
   pendingPaths: string[];
   addPendingPath(path: string): void;
@@ -37,7 +37,7 @@ export function decodeDragPayload(raw: string): DragPayload | null {
   return null;
 }
 
-/** Reclasse un business ou une ressource vers un chemin. Retourne un code d'erreur ou null. */
+/** Moves a business or a resource to a path. Returns an error code, or null on success. */
 export async function moveToPath(payload: DragPayload, targetPath: string): Promise<ApiErrorCode | null> {
   try {
     if (payload.kind === "resource") {

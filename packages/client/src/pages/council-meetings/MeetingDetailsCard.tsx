@@ -1,4 +1,4 @@
-import type { CouncilMember, DocumentResource, MeetingAggregate } from "@hall/domain";
+import type { CouncilMember, DocumentaryResource, DocumentCategory, MeetingAggregate } from "@hall/domain";
 import { type FormEvent, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { MeetingDocumentViewer } from "./MeetingDocumentViewer";
 
-export const documentCategoryKeys: Record<DocumentResource["category"], TranslationKey> = {
+export const documentCategoryKeys: Record<DocumentCategory, TranslationKey> = {
   supporting: "documentCategory.supporting",
   report: "documentCategory.report",
   draftCouncilDecision: "documentCategory.draftCouncilDecision",
@@ -20,12 +20,9 @@ export const documentCategoryKeys: Record<DocumentResource["category"], Translat
   proxy: "documentCategory.proxy",
 };
 
-const meetingDocumentCategories: DocumentResource["category"][] = ["meetingNotice", "proxy", "supporting", "minutes"];
+const meetingDocumentCategories: DocumentCategory[] = ["meetingNotice", "proxy", "supporting", "minutes"];
 
-/**
- * Valeur sentinelle des listes d'officiers : `SelectItem` interdit la chaîne vide,
- * qui reste pourtant la forme attendue par l'API pour « non désigné ».
- */
+/** Sentinel for an unassigned officer; SelectItem forbids an empty value, the API expects "". */
 const noOfficer = "none";
 const officerToField = (memberId: string | null | undefined) => memberId ?? noOfficer;
 const officerFromField = (value: FormDataEntryValue | null) => (value === noOfficer ? "" : value);
@@ -40,7 +37,7 @@ export function MeetingDetailsCard({
 }: {
   aggregate: MeetingAggregate;
   members: CouncilMember[];
-  documents: DocumentResource[];
+  documents: DocumentaryResource[];
   officersEditable: boolean;
   documentsEditable: boolean;
   onSaveOfficers(input: Record<string, unknown>): Promise<boolean>;
@@ -50,9 +47,9 @@ export function MeetingDetailsCard({
   const { upload, download } = useResourcesStore();
   const { meeting } = aggregate;
   const [officersSaved, setOfficersSaved] = useState(false);
-  const [viewedDocument, setViewedDocument] = useState<DocumentResource | null>(null);
+  const [viewedDocument, setViewedDocument] = useState<DocumentaryResource | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
-  const [uploadCategory, setUploadCategory] = useState<DocumentResource["category"]>("meetingNotice");
+  const [uploadCategory, setUploadCategory] = useState<DocumentCategory>("meetingNotice");
   const officersFieldId = useId();
 
   const saveOfficers = async (event: FormEvent<HTMLFormElement>) => {
@@ -89,7 +86,6 @@ export function MeetingDetailsCard({
         <form className="officers-form" onSubmit={saveOfficers} onChange={() => setOfficersSaved(false)}>
           <div className="grid gap-1.5">
             <Label htmlFor={`${officersFieldId}-chair`}>{t("meetings.chair")}</Label>
-            {/* Champ non contrôlé : `name` fait rendre à Radix un champ caché lu par FormData. */}
             <Select
               name="chairMemberId"
               defaultValue={officerToField(meeting.chairMemberId)}
@@ -193,10 +189,7 @@ export function MeetingDetailsCard({
         )}
         {documentsEditable ? (
           <div className="meeting-side-upload">
-            <Select
-              value={uploadCategory}
-              onValueChange={(value) => setUploadCategory(value as DocumentResource["category"])}
-            >
+            <Select value={uploadCategory} onValueChange={(value) => setUploadCategory(value as DocumentCategory)}>
               <SelectTrigger aria-label={t("documents.category")}>
                 <SelectValue />
               </SelectTrigger>

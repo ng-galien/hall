@@ -7,7 +7,7 @@ export interface PathNode {
   children: PathNode[];
 }
 
-/** Tous les chemins connus (segments intermédiaires inclus), triés. */
+/** All known paths, intermediate segments included, sorted. */
 export function listAllPaths(
   businesses: CouncilBusiness[],
   resources: Resource[],
@@ -32,7 +32,7 @@ export function isUnderPath(folderPath: string, path: string): boolean {
   return folderPath === path || folderPath.startsWith(`${path}/`);
 }
 
-/** Arbre des chemins de classement, avec le nombre d'objets (businesses + ressources) par sous-arbre. */
+/** Path tree with the object count (businesses + resources) per subtree. */
 export function buildPathTree(
   businesses: CouncilBusiness[],
   resources: Resource[],
@@ -62,7 +62,6 @@ export function buildPathTree(
         count: countFor(path),
         children: childrenOf(path),
       }))
-      // Les dossiers les plus vivants d'abord ; à volume égal, alphabétique.
       .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name, "fr-FR"));
   return childrenOf("");
 }

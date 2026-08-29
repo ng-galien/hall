@@ -15,9 +15,11 @@ import {
   AlignCenterIcon,
   AlignLeftIcon,
   AlignRightIcon,
+  CollapseIcon,
   ColumnAfterIcon,
   ColumnBeforeIcon,
   DeleteIcon,
+  ExpandIcon,
   MergeCellsIcon,
   MoreIcon,
   MoreVerticalIcon,
@@ -27,7 +29,7 @@ import {
   SumIcon,
 } from "../icons";
 
-/** Où poser les poignées : géométrie de la cellule courante, en coordonnées du canevas. */
+/** Handle geometry for the current cell, in canvas coordinates. */
 interface TableTarget {
   tableTop: number;
   tableLeft: number;
@@ -35,12 +37,11 @@ interface TableTarget {
   tableBottom: number;
   columnCenter: number;
   rowCenter: number;
-  /** Position du nœud cellule dans le document, pour bâtir les sélections de colonne. */
+  /** Cell node position in the document. */
   cellPos: number;
   columnAlign: string | null;
-  /** Plusieurs cellules sélectionnées : on propose la fusion, sous la sélection. */
+  columnWidth: number;
   canMerge: boolean;
-  /** La cellule courante est fusionnée : on propose de la scinder. */
   canSplit: boolean;
   selectionCenterX: number;
   selectionBottom: number;
@@ -98,6 +99,7 @@ function findTarget(editor: Editor, canvas: HTMLElement): TableTarget | null {
     rowCenter: toY(cellRect.top + cellRect.height / 2),
     cellPos,
     columnAlign: (cellNode?.attrs.align as string | undefined) ?? null,
+    columnWidth: (cellNode?.attrs.colwidth as number[] | undefined)?.[0] ?? Math.round(cellRect.width),
     canMerge,
     canSplit,
     selectionCenterX: toX((selectionLeft + selectionRight) / 2),
@@ -105,7 +107,7 @@ function findTarget(editor: Editor, canvas: HTMLElement): TableTarget | null {
   };
 }
 
-/** Lit « 2 400 € », « 1 234,56 » ou « -12 » ; refuse tout le reste. */
+/** Parses an amount with optional euro sign, space grouping and comma decimals; null otherwise. */
 function parseAmount(text: string): { value: number; decimals: number; euro: boolean } | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
@@ -119,14 +121,7 @@ function parseAmount(text: string): { value: number; decimals: number; euro: boo
   };
 }
 
-/**
- * Contrôles de tableau discrets, à la sélection.
- *
- * Rien n'est affiché tant qu'on n'écrit pas dans un tableau. Le curseur posé dans une cellule
- * fait apparaître deux poignées — au-dessus de la colonne, à gauche de la ligne — qui portent
- * chacune leur menu, et deux boutons « + » en bordure pour étendre le tableau. Tout le reste
- * (naviguer au Tab, taper, sélectionner des plages de cellules) est du texte ordinaire.
- */
+/** Selection-anchored table handles: column and row menus, plus buttons to extend the table. */
 export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef: RefObject<HTMLDivElement | null> }) {
   const { locale, t } = useI18n();
   const [target, setTarget] = useState<TableTarget | null>(null);
@@ -147,7 +142,6 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
 
   if (!target) return null;
 
-  /** Étend la sélection à la colonne courante avant une commande de colonne entière. */
   const selectColumn = () => {
     const { state, view } = editor;
     view.dispatch(state.tr.setSelection(CellSelection.colSelection(state.doc.resolve(target.cellPos))));
@@ -160,8 +154,12 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
       .setCellAttribute("align", align === "left" ? null : align)
       .run();
   };
+  const resizeColumn = (delta: number) => {
+    selectColumn();
+    const width = Math.min(600, Math.max(60, target.columnWidth + delta));
+    editor.chain().focus().setCellAttribute("colwidth", [width]).run();
+  };
 
-  /** Pose la sélection sur la dernière cellule de la ligne ou de la colonne, puis étend. */
   const extend = (direction: "column" | "row") => {
     const { state, view } = editor;
     const $cell = state.doc.resolve(target.cellPos);
@@ -180,11 +178,6 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
 
   const run = (command: () => void) => () => command();
 
-  /**
-   * Somme la colonne courante et l'écrit dans une ligne « Total » en bas du tableau —
-   * une valeur posée, pas une formule : le markdown transporte des données, l'auteur
-   * reclique pour recalculer. Une ligne de total existante est remplacée.
-   */
   const insertTotalRow = () => {
     const { state, view } = editor;
     const $cell = state.doc.resolve(target.cellPos);
@@ -254,6 +247,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
         <DropdownMenuTrigger asChild>
           <button
             type="button"
+            data-testid="editor-table-column-menu"
             className="table-handle table-handle-column"
             style={{ left: target.columnCenter, top: target.tableTop }}
             aria-label={t("editor.table.columnMenu")}
@@ -273,11 +267,18 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
           <DropdownMenuItem onSelect={run(() => alignColumn("left"))}>
             <AlignLeftIcon /> {t("editor.table.alignLeft")}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={run(() => alignColumn("center"))}>
+          <DropdownMenuItem data-testid="editor-table-align-center" onSelect={run(() => alignColumn("center"))}>
             <AlignCenterIcon /> {t("editor.table.alignCenter")}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={run(() => alignColumn("right"))}>
             <AlignRightIcon /> {t("editor.table.alignRight")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={run(() => resizeColumn(-40))}>
+            <CollapseIcon /> {t("editor.table.narrowColumn")}
+          </DropdownMenuItem>
+          <DropdownMenuItem data-testid="editor-table-widen-column" onSelect={run(() => resizeColumn(40))}>
+            <ExpandIcon /> {t("editor.table.widenColumn")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={run(insertTotalRow)}>
@@ -322,6 +323,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
       {target.canMerge || target.canSplit ? (
         <button
           type="button"
+          data-testid={target.canMerge ? "editor-table-merge" : "editor-table-split"}
           className="table-action-pill"
           style={{ left: target.selectionCenterX, top: target.selectionBottom }}
           onMouseDown={(event) => event.preventDefault()}
@@ -343,7 +345,8 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
 
       <button
         type="button"
-        className="table-extend table-extend-column"
+        data-testid="editor-table-add-column"
+        className="table-extend"
         style={{ left: target.tableRight, top: (target.tableTop + target.tableBottom) / 2 }}
         aria-label={t("editor.table.addColumn")}
         title={t("editor.table.addColumn")}
@@ -354,7 +357,8 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
       </button>
       <button
         type="button"
-        className="table-extend table-extend-row"
+        data-testid="editor-table-add-row"
+        className="table-extend"
         style={{ left: (target.tableLeft + target.tableRight) / 2, top: target.tableBottom }}
         aria-label={t("editor.table.addRow")}
         title={t("editor.table.addRow")}

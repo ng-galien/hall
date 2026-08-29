@@ -171,6 +171,30 @@ describe("content templates", () => {
     expect(audit).toEqual(expect.arrayContaining([expect.objectContaining({ action: "template.generate" })]));
   });
 
+  it("renders an ad hoc PDF preview without persisting or auditing a template", async () => {
+    const { agent } = await createTestServer();
+    const templatesBefore = domainBody<unknown[]>(await agent.get("/api/templates").expect(200));
+    const response = (await agent
+      .post("/api/templates/preview-pdf")
+      .send({ bodyMarkdown: "# Aperçu\n\nContenu courant de l’éditeur." })
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(200)) as Response & { body: Buffer };
+    expect(response.headers["content-type"]).toContain("application/pdf");
+    expect(response.headers["content-disposition"]).toBe("inline; filename=preview.pdf");
+    expect(response.body.subarray(0, 4).toString()).toBe("%PDF");
+    expect(domainBody<unknown[]>(await agent.get("/api/templates").expect(200))).toEqual(templatesBefore);
+    expect(domainBody<Array<{ action: string }>>(await agent.get("/api/audit-events").expect(200))).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ action: "template.preview-pdf" })]),
+    );
+
+    const invalid = await agent
+      .post("/api/templates/preview-pdf")
+      .send({ bodyMarkdown: "::snippet[Hors contrat]{#signature}" })
+      .expect(422);
+    expect(domainBody<{ code: string }>(invalid)).toMatchObject({ code: "template_invalid" });
+  });
+
   it("caps the cumulative attachment payload", async () => {
     const { agent, container } = await createTestServer();
     const template = domainBody<{ id: string }>(
@@ -297,7 +321,10 @@ describe("content templates", () => {
 
     const templates = await rawAgent.get("/api/templates").expect(200);
     expect(templates.body.actions).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: "template.preview" })]),
+      expect.arrayContaining([
+        expect.objectContaining({ name: "template.preview" }),
+        expect.objectContaining({ name: "template.preview-pdf" }),
+      ]),
     );
     expect(templates.body.actions).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ name: "template.create" })]),

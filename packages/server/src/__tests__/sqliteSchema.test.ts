@@ -50,6 +50,7 @@ describe("current SQLite schema", () => {
       "resource_documents",
       "resource_tags",
       "resources",
+      "rich_text_resource_references",
       "sessions",
       "templates",
       "text_resources",

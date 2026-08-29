@@ -279,7 +279,7 @@ export function CouncilMemberPage() {
                       <strong>{committee.name}</strong>
                       <span>
                         {t(`committeeRole.${membership.role}`)} · {formatDate(membership.startedOn)}
-                        {membership.endedOn ? ` — ${formatDate(membership.endedOn)}` : ""}
+                        {membership.endedOn ? ` - ${formatDate(membership.endedOn)}` : ""}
                       </span>
                     </div>
                     <Badge variant={membership.endedOn ? "outline" : "success"}>

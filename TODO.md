@@ -1,120 +1,173 @@
-# Backlog Hall
+# Feuille de route Hall
 
-Ce document ordonne les prochains chantiers. Les détails d’implémentation doivent rester cohérents avec le langage ubiquitaire défini dans `AGENTS.md` et avec les capacités Siren exposées par le serveur.
+Cette feuille de route ordonne les travaux par valeur produit et par dépendance. Elle respecte le langage ubiquitaire de `AGENTS.md` et les capacités Siren exposées par le serveur.
 
-## Acquis récents
+## Lecture
 
-- Le domaine distingue désormais le sujet durable (`CouncilMatter`), le point inscrit à une séance (`AgendaItem`), l’approbation d’un procès-verbal et la question diverse.
-- Le cycle de vie appartient au point d’ordre du jour, à la délibération et à la séance ; le sujet reste un contenu de travail durable.
-- L’ordre du jour est verrouillé côté serveur : procès-verbal précédent unique, sujets soumis au vote, sujets sans vote, puis questions diverses.
-- Les commissions, leurs appartenances datées et leurs rôles existent dans le backend.
-- Les permissions, l’audit et les actions hypermédia Siren constituent la source des capacités du frontend.
-- Les ressources documentaires distinguent les textes et les fichiers, avec chemins de classement, tags, formats et pipeline d’aperçu.
-- Le moteur de recherche partagé, l’éditeur Tiptap et le paquet isomorphe `@hall/templating` fournissent les fondations communes.
-- Les règles Code Moniker sont réparties entre le socle et les fragments propres aux packages.
+- [x] Acquis présent et vérifié dans le checkout
+- [ ] Travail restant
+- `[BACK]` : domaine, API, serveur, SQL ou génération documentaire
+- `[FRONT]` : parcours, composants React, accessibilité ou présentation
+- `[FULL]` : contrat backend puis intégration frontend
+- `[OPS]` : environnement, qualité et outillage
 
-## 1 — Administration du conseil — terminé
+Un chantier n'est coché que lorsque son critère de sortie est satisfait. Un simple prototype ou un test isolé ne suffit pas.
 
-Réaligner le frontend sur les capacités déjà disponibles dans le backend.
+## P0 : consolider l'alpha démontrable
 
-- Créer une liste et une fiche éditable pour chaque membre du conseil.
-- Créer une liste et une fiche éditable pour chaque commission.
-- Ajouter, modifier et terminer une appartenance à une commission avec son rôle et ses dates.
-- Naviguer facilement entre une commission et ses membres grâce à des liens, badges et compteurs.
-- Afficher les commissions auxquelles appartient un membre depuis sa fiche.
-- N’exposer une action d’édition que lorsque la représentation Siren l’autorise.
-- Compléter les données de démonstration et les tests d’intégration de ce parcours.
-- Conserver `CouncilMember` comme notion métier ; ne créer une entité générique `Contact` que si des contacts non élus deviennent réellement nécessaires.
+### Stabiliser le lot éditeur et documents
 
-Critère de sortie : l’administration peut gérer les membres, les commissions et leurs appartenances sans appel manuel à l’API.
+Objectif : figer le travail actuellement non committé avant d'ajouter une nouvelle fonction.
 
-## 2 — Préparation automatique des séances — terminé
+- [x] `[BACK]` Distinguer les documents durables des `editorAsset` appartenant à un contenu.
+- [x] `[BACK]` Créer, rechercher, promouvoir et purger les `editorAsset` par les commandes serveur.
+- [x] `[BACK]` Produire l'aperçu PDF autoritaire avec Chromium sans persistance parasite.
+- [x] `[BACK]` Accepter les tables riches Tiptap dans le rendu sécurisé et le PDF.
+- [x] `[FRONT]` Insérer une image archivée ou importée, conserver son identifiant, son ratio, son alignement et sa largeur.
+- [x] `[FRONT]` Conserver le bouton Code et retirer le souligné non pris en charge par la grammaire commune.
+- [x] `[FRONT]` Couvrir l'Editor Lab avec sa recette Playwright ciblée. Ne pas élargir cette recette aux autres parcours.
+- [ ] `[FRONT]` Rendre l'action d'ouverture d'une image clairement visible et accessible dans l'éditeur compact.
+- [ ] `[FULL]` Vérifier que l'image, le tableau et les retours à la ligne sont identiques dans l'éditeur, l'aperçu HTML et le PDF.
+- [ ] `[FULL]` Valider la pagination, les sauts de page, les en-têtes et les pieds de page sur un document de démonstration réaliste.
+- [x] `[OPS]` Faire une revue finale du diff éditeur et documents, puis isoler ce lot dans un commit cohérent.
 
-- Identifier automatiquement la séance précédente dans la chronologie du conseil.
-- Générer l’approbation de son procès-verbal à la clôture et la provisionner pour la séance suivante.
-- Étudier la création automatique d’une prochaine séance en brouillon, sans la programmer prématurément.
-- Reporter automatiquement les points ajournés ou non examinés lorsque la règle métier le permet.
-- Présenter clairement les éléments manquants avant la programmation : procès-verbal, ordre du jour, convocation et autres pièces nécessaires.
-- Garantir que les automatismes passent par les mêmes commandes et invariants serveur que les actions manuelles.
+Critère de sortie : un document comprenant texte, références, image et tableau est sauvegardé, rechargé, prévisualisé et exporté en PDF sans perte.
 
-Critère de sortie : après la clôture d’une séance, la préparation de la suivante est amorcée sans créer de doublon ni contourner les règles d’ordre du jour.
+### Corriger la cohérence visuelle et linguistique
 
-## 3 — Éditeur et fidélité documentaire
+Statut : en cours côté frontend avec Claude. L'audit détaillé se trouve dans `docs/revue-frontend-i18n-theme.md`.
 
-- Réintroduire l’insertion d’images dans Tiptap à partir d’une ressource existante ou d’un import autorisé.
-- Conserver un lien stable entre l’image insérée et la ressource documentaire.
-- Stabiliser les tables : création, collage Excel ou Word, fusion et scission, alignement, largeur des colonnes et lignes de total.
-- Garantir un aller-retour stable entre le contenu édité et sa forme sérialisée.
-- Partager la feuille de style entre l’éditeur, l’aperçu HTML et le PDF Chromium.
-- Tester la pagination, les sauts de page, les images, les tableaux, les en-têtes et les pieds de page.
-- Rebrancher sujets, séances et délibérations comme sources de références dans l’éditeur.
-- Trancher le souligné `++texte++` : prise en charge par la grammaire commune ou retrait du bouton.
-- Ajouter progressivement le menu `/`, la poignée de déplacement des blocs, la typographie française et les encadrés `:::note`.
+- [ ] `[FRONT]` Traduire complètement l'écran d'authentification et ne plus afficher les codes d'erreur techniques.
+- [ ] `[FRONT]` Restaurer une hiérarchie typographique stable pour les titres de page.
+- [ ] `[FRONT]` Remplacer les chaînes visibles en dur et supprimer les clés de traduction mortes.
+- [ ] `[FRONT]` Exposer la locale et les outils `Intl` depuis un seul contexte i18n.
+- [ ] `[FRONT]` Rationaliser les séparateurs, nombres, pluriels et formats de date sans logique locale dispersée.
+- [ ] `[FRONT]` Aligner les écrans sur les tokens CSS et supprimer les intentions visuelles sans règle associée.
+- [ ] `[FRONT]` Garder les contrôles d'image et de table petits, discrets, accessibles et cohérents avec les autres contrôles Hall.
+- [ ] `[FRONT]` Retirer les quadratins des chaînes et commentaires couverts par la règle Code Moniker.
+- [ ] `[OPS]` Conserver les tests statiques de parité i18n et de résolution des tokens.
 
-Critère de sortie : un document comportant texte, références, image et tableau produit un aperçu et un PDF fidèles.
+Critère de sortie : les principaux écrans utilisent la même hiérarchie, les mêmes tokens et la même infrastructure de traduction, sans code d'erreur brut ni quadratin.
 
-## 4 — Modèles, exports et synchronisation disque
+### Garantir la démonstration complète d'une séance
 
-- Fournir des modèles configurables pour :
-  - le pouvoir imprimé ;
-  - la liste des délibérations ;
-  - la convocation ;
-  - la délibération ;
-  - le sujet ou rapport présenté au conseil ;
-  - le procès-verbal et les autres documents de séance retenus.
-- Configurer les modèles, leurs en-têtes, pieds de page et styles sans les coder dans l’application.
-- Définir une nomenclature d’export et un template de chemin de dossier.
-- Construire l’arborescence miroir par séance à partir de sa date, son numéro et son slug.
-- Générer les PDF, assembler les pièces jointes nécessaires et préparer les scénarios de message Outlook.
-- Écrire les exports de manière atomique, traçable et régénérable sans multiplier les copies ambiguës.
-- Relier chaque fichier produit à sa séance, son modèle et son événement de génération.
-- Stabiliser le test Chromium de génération PDF qui échoue encore de manière opérationnelle.
+Le déroulement de séance est conservé. Ce lot vise sa fiabilité, pas son redesign.
 
-Critère de sortie : les documents obligatoires d’une séance peuvent être générés puis retrouvés sur le disque sans manipulation manuelle de fichiers.
+- [ ] `[BACK]` Rejouer les invariants d'ouverture, de présence, de quorum, de pouvoir, de vote et de clôture sur la base de démonstration.
+- [ ] `[FRONT]` Vérifier manuellement le parcours complet, de l'appel des membres à la clôture de la séance.
+- [ ] `[FRONT]` Vérifier le scroll de l'appel, de la timeline, du contenu et du scrutin.
+- [ ] `[FRONT]` Recetter le mode présentation en affichage étendu à 1280 x 1024.
+- [ ] `[FRONT]` Garantir la lisibilité à distance et l'accès permanent aux actions de conduite.
+- [ ] `[FULL]` Corriger uniquement les blocages qui empêchent la démonstration de bout en bout.
+- [ ] `[OPS]` Documenter une recette courte et reproductible de la démonstration, sans lancer une suite Playwright globale.
 
-## 5 — Ergonomie de l’espace de travail
+Critère de sortie : la séance de démonstration peut être conduite de bout en bout sans erreur bloquante, avec un affichage exploitable sur vidéoprojecteur.
 
-- Conserver le classement simple par `folderPath` ; ne créer une entité dossier que si les dossiers vides, leur renommage ou leur ordre propre deviennent indispensables.
-- Fluidifier la navigation entre chemin, ressources, sujet, délibération et occurrences en séance.
-- Réduire les changements de page et conserver le contexte de travail dans l’établi.
-- Améliorer la sélection des pièces associées à un sujet, en proposant d’abord celles du même chemin sans imposer cette proximité.
-- Consolider les tags, les filtres, les épingles, les badges de rattachement et la recherche contextuelle.
-- Basculer les listes de séances, délibérations et membres sur le moteur de recherche partagé.
-- Permettre de définir une date limite sur un sujet du conseil.
+### Finaliser les garde-fous Code Moniker
 
-Critère de sortie : depuis un dossier, l’utilisateur peut constituer un sujet, lui associer ses pièces et comprendre immédiatement son devenir au conseil.
+- [x] `[OPS]` Déclarer une règle de niveau erreur interdisant les quadratins dans les commentaires et portées de code indexées.
+- [x] `[OPS]` Déclarer une règle de niveau erreur interdisant les commentaires dans les fonctions et méthodes.
+- [x] `[OPS]` Générer les hooks projet pour Claude et Codex.
+- [ ] `[OPS]` Approuver le hook projet dans les réglages de l'application Codex.
+- [x] `[OPS]` Aligner le MCP Codex installé sur la version 0.9.2 du binaire.
+- [x] `[OPS]` Corriger les violations existantes sans modifier le sens des textes métier.
+- [x] `[OPS]` Rejouer `code-moniker check . --report` et conserver le rapport final.
 
-## Backlog transversal conservé
+Critère de sortie : les hooks Claude et Codex exécutent le même corpus et la règle ne remonte plus aucune violation.
 
-### Mandatures et historique du conseil — différé
+## P1 : prochains chantiers produit
 
-Le fonctionnement de la mandature actuellement en exercice reste prioritaire. Ne pas bloquer l’alpha sur la gestion de plusieurs conseils municipaux successifs.
+### Illustrations cartographiques IGN
 
-- Introduire ultérieurement `CouncilTerm`, affiché « Mandature » dans l’IHM.
-- Distinguer la date du tour ayant élu le conseil au complet, la date de la séance d’installation et la date de fin effective.
-- Conserver l’effectif légal attendu de la mandature.
-- Rattacher les membres, les commissions et les séances à leur mandature, sans confondre les dates collectives avec les dates individuelles d’exercice d’un membre.
-- Garantir qu’une commission et ses appartenances relèvent de la même mandature.
-- Ajouter une vue complémentaire de la mandature actuelle et, ensuite seulement, la navigation vers les mandatures précédentes.
+Ordre de réalisation : contrat backend, sélecteur frontend, intégration éditeur, recette de rendu.
 
-Critère de lancement : le parcours membres/commissions et le déroulé complet d’une séance fonctionnent pour le conseil actuellement en exercice.
+- [ ] `[BACK]` Définir la commande de capture avec propriétaire, titre, cadrage, couche et dimensions de sortie.
+- [ ] `[BACK]` Restreindre les hôtes, couches et systèmes de coordonnées autorisés.
+- [ ] `[BACK]` Produire une image PNG figée depuis une source IGN et contrôler délai, taille, MIME et signature.
+- [ ] `[BACK]` Enregistrer la capture comme `editorAsset` du contenu courant.
+- [ ] `[BACK]` Conserver la provenance : fournisseur, fond ou couche, emprise, zoom, date de capture et licence.
+- [ ] `[FRONT]` Ajouter un cadrage temporaire OpenLayers utilisant prioritairement Plan IGN V2.
+- [ ] `[FRONT]` Permettre de positionner la vue puis de confirmer la capture, sans carte interactive persistante.
+- [ ] `[FRONT]` Insérer le résultat avec la directive existante `::image`.
+- [ ] `[FULL]` Garantir que l'aperçu et le PDF utilisent uniquement l'image locale, sans appel réseau à l'IGN au rendu.
+- [ ] `[FULL]` Vérifier sauvegarde, rechargement, purge et promotion de la capture.
 
-### Convocations et règles juridiques
+Critère de sortie : l'utilisateur cadre une vue IGN, insère sa capture et retrouve la même illustration après rechargement, dans l'aperçu et dans le PDF.
 
-- Revalider avec les textes et la pratique communale la date de référence d’une convocation, le calcul des jours francs et le fuseau horaire applicable.
-- Revalider la seconde convocation après défaut de quorum : preuve d’envoi, chronologie et délai avant la nouvelle réunion.
-- Modéliser les preuves d’envoi et de publication ainsi que les variantes liées à la population et à l’urgence lorsque le parcours sera stabilisé.
+### Ergonomie de l'espace de travail
 
-Ces points restent au backlog tant qu’ils ne sont pas nécessaires à l’alpha. Le serveur doit néanmoins empêcher les chronologies manifestement incohérentes.
+- [x] `[BACK]` Conserver le classement simple par `folderPath` sans créer une entité dossier artificielle.
+- [ ] `[BACK]` Ajouter une date limite facultative à `CouncilMatter` et l'exposer dans Siren.
+- [ ] `[FRONT]` Fluidifier la navigation entre chemin, ressource, sujet, délibération et occurrence en séance.
+- [ ] `[FRONT]` Conserver le contexte de travail dans l'établi et réduire les changements de page.
+- [ ] `[FRONT]` Proposer d'abord les pièces du même chemin lors de leur association à un sujet, sans imposer cette proximité.
+- [ ] `[FRONT]` Rendre tags, filtres, épingles et badges de rattachement réellement actionnables.
+- [ ] `[FULL]` Passer le contexte du dossier courant aux recherches de références.
+- [ ] `[FRONT]` Rendre les références métier cliquables de manière homogène.
+- [ ] `[FRONT]` Basculer les listes de séances, délibérations et membres sur le moteur de recherche partagé lorsque cela améliore réellement le parcours.
 
-### Mode présentation
+Critère de sortie : depuis un chemin de travail, l'utilisateur constitue un sujet, lui associe ses pièces et comprend immédiatement son devenir au conseil.
 
-- Recetter tout le déroulé de séance sur un vidéoprojecteur professionnel en affichage étendu, avec 1280 × 1024 comme résolution de référence.
-- Vérifier la lisibilité à distance, le scroll de l’appel, de la timeline, du contenu et du scrutin, ainsi que l’accès permanent aux actions de conduite.
-- Recenser puis corriger les erreurs fonctionnelles restantes du déroulé complet de démonstration.
+### Modèles de documents et exports de séance
 
-### Recherche et références
+Ordre de réalisation : moteur et stockage, premier modèle vertical, arborescence disque, autres modèles.
 
-- Passer le contexte du dossier courant à toutes les recherches de références.
-- Rendre les références métier cliquables de manière homogène dans les vues de l’application.
-- Préserver les directives inconnues et continuer d’utiliser `@hall/templating` comme grammaire unique.
+- [x] `[BACK]` Stocker les modèles en base et partager la grammaire avec `@hall/templating`.
+- [x] `[BACK]` Disposer d'un rendu HTML et PDF Chromium autoritaire.
+- [ ] `[BACK]` Choisir le premier modèle vertical de référence, recommandé : la convocation.
+- [ ] `[BACK]` Gérer en-tête, pied de page, styles et données de commune sans les coder dans le modèle.
+- [ ] `[BACK]` Définir une nomenclature d'export et un template de chemin de dossier.
+- [ ] `[BACK]` Construire l'arborescence miroir par séance à partir de sa date, son numéro et son slug.
+- [ ] `[BACK]` Écrire les exports de manière atomique, traçable et régénérable.
+- [ ] `[BACK]` Relier chaque fichier produit à sa séance, son modèle et son événement de génération.
+- [ ] `[BACK]` Assembler au PDF les pièces jointes nécessaires.
+- [ ] `[BACK]` Préparer un scénario de message Outlook sans rendre Microsoft Graph obligatoire.
+- [ ] `[FRONT]` Fournir une prévisualisation et une action de génération guidée par les capacités Siren.
+- [ ] `[FULL]` Ajouter ensuite les modèles de pouvoir, liste des délibérations, délibération, rapport de sujet et procès-verbal.
+
+Critère de sortie : un document réglementaire de séance est généré depuis son modèle, retrouvé dans l'arborescence disque et régénéré sans copie ambiguë.
+
+## P2 : après l'alpha
+
+### Mandatures et historique du conseil
+
+- [ ] `[BACK]` Introduire `CouncilTerm`, affiché « Mandature » dans l'interface.
+- [ ] `[BACK]` Distinguer la date de l'élection du conseil complet, la séance d'installation et la fin effective.
+- [ ] `[BACK]` Conserver l'effectif légal attendu.
+- [ ] `[BACK]` Rattacher membres, commissions et séances à leur mandature.
+- [ ] `[BACK]` Garantir la cohérence entre commission, appartenances et mandature.
+- [ ] `[FRONT]` Ajouter une vue de la mandature actuelle puis la navigation vers les mandatures précédentes.
+
+Critère de lancement : le parcours de la mandature actuelle et la démonstration complète d'une séance sont fiables.
+
+### Convocations et règles juridiques avancées
+
+- [ ] `[BACK]` Revalider la date de référence, les jours francs et le fuseau horaire d'une convocation.
+- [ ] `[BACK]` Modéliser le régime de seconde convocation après défaut de quorum.
+- [ ] `[BACK]` Modéliser les preuves d'envoi et de publication.
+- [ ] `[BACK]` Prendre en compte les variantes liées à la population et à l'urgence uniquement après validation juridique.
+
+Le serveur doit dès maintenant empêcher les chronologies manifestement incohérentes, sans prétendre automatiser toutes les variantes légales.
+
+### Extensions avancées de l'éditeur
+
+- [ ] `[FRONT]` Ajouter un menu `/`.
+- [ ] `[FRONT]` Ajouter une poignée de déplacement des blocs.
+- [ ] `[FULL]` Ajouter les encadrés `:::note` dans la grammaire commune et dans les trois rendus.
+- [ ] `[FRONT]` Consolider la typographie française sans réintroduire de ponctuation interdite.
+- [ ] `[FRONT]` Ajouter les lignes de total de table avec un contrat compatible avec les locales prises en charge.
+
+Ces fonctions ne doivent pas retarder la consolidation de l'éditeur actuel.
+
+## Acquis structurants
+
+- [x] Le domaine distingue `CouncilMatter`, `AgendaItem`, l'approbation d'un procès-verbal et la question diverse.
+- [x] Les cycles de vie appartiennent aux séances, points d'ordre du jour, délibérations et scrutins.
+- [x] L'ordre du jour impose le procès-verbal précédent au début, les questions diverses à la fin et l'unicité des éléments obligatoires.
+- [x] Les commissions, leurs appartenances datées et leurs rôles existent côté backend.
+- [x] Les membres et commissions disposent de parcours d'administration côté frontend.
+- [x] Les permissions, l'audit et les actions Siren constituent la source des capacités du frontend.
+- [x] Les ressources documentaires distinguent textes, documents et actifs temporaires d'éditeur.
+- [x] SQLite reste le moteur de développement et PostgreSQL le moteur de production, derrière la même frontière de persistance.
+- [x] Le moteur de recherche partagé, Tiptap et `@hall/templating` fournissent les fondations communes.
+- [x] La préparation de la séance suivante réutilise les commandes et invariants du serveur.

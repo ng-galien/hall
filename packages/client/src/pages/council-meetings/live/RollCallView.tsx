@@ -319,7 +319,7 @@ export function RollCallView({
             </form>
           ) : (
             <>
-              <div className="rollcall-checklist" role="status">
+              <div role="status">
                 {openingBlock ? (
                   <span className="rollcall-check rollcall-check-pending">
                     <WarningIcon aria-hidden="true" />

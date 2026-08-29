@@ -92,6 +92,14 @@ Tout agent qui modifie `packages/client` doit lire et appliquer [`docs/frontend-
 
 Une évolution du client doit prolonger ces principes. Lorsqu’un écran existant n’y est pas encore conforme, ne pas reproduire l’écart dans un nouvel écran et rendre explicite le réalignement restant.
 
+### Contrat Playwright
+
+- Tout contrôle interactif et toute cible fonctionnelle utilisés par un test Playwright doivent exposer un `data-testid` stable et être localisés par ce contrat.
+- Un test fonctionnel ne doit jamais localiser une cible par un libellé traduit, un placeholder, un `title` ou un `aria-label`. Une modification de traduction ne doit pas casser un parcours fonctionnel.
+- Les rôles ARIA et le texte visible restent réservés aux assertions qui vérifient explicitement la sémantique, l’accessibilité ou la traduction.
+- Les `data-testid` décrivent la fonction stable du contrôle, pas son texte affiché ni sa position dans le DOM.
+- Après un échec, relancer uniquement le test concerné avec `--grep`. La suite complète n’est relancée qu’une fois les tests ciblés verts.
+
 ## Règles structurantes
 
 - La convocation est faite par le maire. Elle indique les questions portées à l’ordre du jour et doit permettre de conserver la preuve de sa transmission et, le cas échéant, de sa publication.

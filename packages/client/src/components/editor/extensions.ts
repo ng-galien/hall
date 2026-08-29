@@ -6,14 +6,10 @@ import { Plugin } from "@tiptap/pm/state";
 import { TableMap } from "@tiptap/pm/tables";
 import StarterKit from "@tiptap/starter-kit";
 import type { ReactNode } from "react";
+import { ResourceImage } from "./images";
 import { type Mentionable, Reference, ReferenceMention, type ReferenceMentionOptions } from "./references";
 
-/**
- * Une table GFM ne transporte qu'une grille régulière de cellules d'une ligne de texte,
- * avec une seule ligne d'en-tête. Tout ce qui déborde — fusion, largeurs de colonnes,
- * en-tête latérale, cellule à plusieurs blocs — fait basculer la table entière en HTML
- * embarqué dans le markdown, que la chaîne remark/rehype du contrat sait transporter.
- */
+/** True when the table exceeds GFM: merged cells, column widths, extra header rows, or multi-block cells. */
 function tableExceedsGfm(table: JSONContent): boolean {
   return (table.content ?? []).some((row, rowIndex) =>
     (row.content ?? []).some((cell) => {
@@ -27,7 +23,7 @@ function tableExceedsGfm(table: JSONContent): boolean {
   );
 }
 
-/** Schéma servant uniquement à produire le HTML d'une table riche — jamais monté dans un éditeur. */
+/** Schema used only to render tables to HTML, never mounted in an editor. */
 let tableHtmlSchema: (Extension | typeof StarterKit)[] | undefined;
 function schemaForTableHtml() {
   tableHtmlSchema ??= [StarterKit, TableKit];
@@ -41,14 +37,7 @@ const markdownTable = Table.extend({
   },
 });
 
-/**
- * En GFM, l'alignement est une propriété de colonne ; dans l'éditeur, il vit sur chaque
- * cellule. Sans entretien, une cellule née après coup (nouvelle ligne, Tab en fin de
- * tableau, collage) s'affiche à gauche alors que le rendu final l'alignera : l'éditeur
- * mentirait. Cette extension rétablit l'invariant après chaque changement de document,
- * en propageant l'alignement de la colonne — sa première cellule alignée — aux cellules
- * qui n'en ont pas.
- */
+/** Propagates each column's alignment to its unaligned cells, since GFM aligns by column. */
 const columnAlignment = Extension.create({
   name: "columnAlignment",
   addProseMirrorPlugins() {
@@ -75,7 +64,6 @@ const columnAlignment = Extension.create({
               for (let row = 0; row < map.height; row++) {
                 const cellPosition = start + map.map[row * map.width + column];
                 const cell = newState.doc.nodeAt(cellPosition);
-                // Une cellule fusionnée couvre plusieurs colonnes : alignement ambigu, on la laisse.
                 if (!cell || cell.attrs.colspan > 1 || cell.attrs.align === alignment) continue;
                 transaction.setNodeAttribute(cellPosition, "align", alignment);
                 changed = true;
@@ -90,13 +78,7 @@ const columnAlignment = Extension.create({
   },
 });
 
-/**
- * Jeu d'extensions commun aux deux modalités d'écriture.
- *
- * Le contenu vit en markdown : l'extension Markdown officielle assure l'aller-retour
- * (GFM, tableaux compris) et c'est elle qui garantit que ce qu'on édite ici reste
- * conforme au contrat @hall/templating partagé avec le serveur.
- */
+/** Extension set shared by both editing modes; content round-trips through markdown. */
 export function editorExtensions({
   placeholder,
   mentionables,
@@ -105,31 +87,29 @@ export function editorExtensions({
   mentionSearchHint,
   mentionContext,
   mentionOpenFull,
+  imageControls = false,
 }: {
   placeholder?: string;
-  /** Accesseur vers les entités référençables — les listes peuvent arriver après le montage. */
+  /** Accessor: sources may arrive after the editor mounts. */
   mentionables?: () => Mentionable[];
   mentionGroupLabels?: ReferenceMentionOptions["groupLabels"];
   mentionSearchAllLabel?: string;
   mentionSearchHint?: ReactNode;
-  /** Le dossier d'où l'on écrit, pour la proximité du classement. */
+  /** Folder used to rank nearby entries first. */
   mentionContext?: () => string | undefined;
-  /** Ouvre la recherche complète depuis le pied du menu `@`. */
   mentionOpenFull?: ReferenceMentionOptions["onOpenFull"];
+  imageControls?: boolean;
 }) {
   return [
     StarterKit.configure({
-      // Le titre de page appartient à l'écran, pas au texte : on n'offre que deux niveaux.
       heading: { levels: [2, 3] },
-      // Cliquer un lien en édition doit poser le curseur, pas naviguer.
       link: { openOnClick: false },
     }),
     Markdown,
-    // Notre table remplace celle du kit : même nœud, mais sa sérialisation choisit
-    // entre GFM et HTML embarqué selon la richesse de la table.
     TableKit.configure({ table: false }),
     markdownTable.configure({ resizable: true }),
     columnAlignment,
+    ResourceImage.configure({ controls: imageControls }),
     Reference,
     ReferenceMention.configure({
       mentionables: mentionables ?? (() => []),

@@ -91,7 +91,6 @@ export function WorkspacePage() {
     const title = String(new FormData(event.currentTarget).get("title") ?? "").trim();
     if (!title) return;
     if (creating === "path") {
-      // Un dossier n'existe qu'à travers son contenu : on le retient localement et on s'y place.
       const target = [path, title].filter(Boolean).join("/");
       useWorkspaceOrgStore.getState().addPendingPath(target);
       setCreating(null);
@@ -227,8 +226,6 @@ export function WorkspacePage() {
           {!searchActive ? <PinnedRow selection={selection} onSelect={select} /> : null}
         </div>
 
-        {/* Le cadre est permanent : recherche puis fil d'Ariane puis conteneur.
-            Seul le contenu du conteneur change — liste du dossier, établi, accueil. */}
         {searchActive ? null : (
           <section className="workspace-contents" aria-label={t("workspace.contents")}>
             <header className="workspace-contents-header">

@@ -8,7 +8,7 @@ import { useResourcesStore } from "../../stores/resourcesStore";
 import type { WorkspaceSelection } from "./WorkspacePage";
 import { useWorkspacePrefsStore, type WorkspacePin } from "./workspacePrefs";
 
-/** Rangée des sujets et documents épinglés, sous la barre de recherche. */
+/** Row of pinned matters and documents, below the search bar. */
 export function PinnedRow({
   selection,
   onSelect,

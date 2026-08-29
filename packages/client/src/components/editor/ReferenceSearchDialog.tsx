@@ -1,4 +1,4 @@
-import type { ReferenceKind } from "@hall/templating";
+import { imageWidthRange, type ReferenceKind } from "@hall/templating";
 import type { Editor } from "@tiptap/react";
 import { type KeyboardEvent, type RefObject, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -7,14 +7,12 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type Searchable, searchEntities, searchFacetTokens } from "../../lib/search";
 import { FolderIcon } from "../icons";
+import { insertResourceImage } from "./images";
 import { type Mentionable, mentionableIcon } from "./references";
 
 const kindOrder: readonly ReferenceKind[] = ["member", "resource", "councilBusiness", "meeting", "decision"];
 
-/**
- * L'aide de recherche : les jetons que l'utilisateur doit taper, typographiés comme des
- * jetons — pas une phrase grise. Partagée entre le menu `@` et la recherche complète.
- */
+/** Search syntax hint shared by the `@` menu and the full search. */
 export function SearchSyntaxHint() {
   const { locale, t } = useI18n();
   return (
@@ -29,13 +27,7 @@ export function SearchSyntaxHint() {
   );
 }
 
-/**
- * La recherche complète de références : le grand frère du menu `@`.
- *
- * Même moteur, même grammaire ; s'y ajoutent la liste entière, des filtres de catégorie
- * avec compteurs, et le rappel de la syntaxe. S'ouvre depuis la barre d'outils ou depuis
- * le pied du menu `@`, et insère la référence choisie là où l'on écrivait.
- */
+/** Full reference search: whole list, kind filters with counts, and the syntax hint. */
 export function ReferenceSearchDialog({
   initialQuery,
   mentionables,
@@ -65,7 +57,6 @@ export function ReferenceSearchDialog({
     [t],
   );
 
-  /* Une seule recherche non filtrée donne la liste ET les compteurs par catégorie. */
   const matches = useMemo(
     () => searchEntities(mentionables, query, { context }).results,
     [mentionables, query, context],
@@ -75,13 +66,8 @@ export function ReferenceSearchDialog({
     for (const item of matches) byKind.set(item.kind, (byKind.get(item.kind) ?? 0) + 1);
     return byKind;
   }, [matches]);
-  /* L'organisation qui fait sens est celle des dossiers : les pièces et sujets sont
-     sectionnés par chemin ; ce qui n'a pas de dossier (membres, séances, délibérations)
-     garde sa section d'espèce, après les dossiers. */
   const sections = useMemo(() => {
     const pool = kindFilter ? matches.filter((item) => item.kind === kindFilter) : matches;
-    /* Les sections suivent l'ordre du classement (première apparition) : la proximité
-       du dossier courant garde le dessus, l'alphabet ne reprend pas la main. */
     const ordered = new Map<string, { key: string; title: string; folder: boolean; items: Searchable[] }>();
     for (const item of pool) {
       const key = item.folderPath ? `folder:${item.folderPath}` : `kind:${item.kind}`;
@@ -118,11 +104,16 @@ export function ReferenceSearchDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="reference-search-dialog" closeLabel={t("common.close")}>
+      <DialogContent
+        data-testid="reference-search-dialog"
+        className="reference-search-dialog"
+        closeLabel={t("common.close")}
+      >
         <DialogHeader>
           <DialogTitle>{t("editor.searchReferences")}</DialogTitle>
         </DialogHeader>
         <Input
+          data-testid="reference-search-input"
           type="search"
           value={query}
           placeholder={t("common.searchPlaceholder")}
@@ -137,6 +128,7 @@ export function ReferenceSearchDialog({
         <div className="reference-search-filters">
           <button
             type="button"
+            data-testid="reference-kind-all"
             className={cn("reference-search-filter", kindFilter === null && "is-active")}
             onClick={() => setKindFilter(null)}
           >
@@ -146,6 +138,7 @@ export function ReferenceSearchDialog({
             <button
               key={kind}
               type="button"
+              data-testid={`reference-kind-${kind}`}
               className={cn("reference-search-filter", kindFilter === kind && "is-active")}
               onClick={() => setKindFilter(kindFilter === kind ? null : kind)}
             >
@@ -171,6 +164,7 @@ export function ReferenceSearchDialog({
                     <button
                       key={`${item.kind}:${item.id}`}
                       type="button"
+                      data-testid="reference-result"
                       role="option"
                       aria-selected={rowIndex === active}
                       className={cn("mention-suggestion-item", rowIndex === active && "is-active")}
@@ -193,11 +187,11 @@ export function ReferenceSearchDialog({
 
 export interface FullSearchRequest {
   query: string;
-  /** La plage `@requête` à remplacer quand on vient du menu ; absente depuis la barre d'outils. */
+  /** The `@` query range to replace when opened from the mention menu. */
   range?: { from: number; to: number };
 }
 
-/** Le pont entre un éditeur et la recherche complète : ouvre, insère au bon endroit, referme. */
+/** Bridges an editor to the full search: opens it, inserts at the caret, closes. */
 export function EditorReferenceSearch({
   editor,
   request,
@@ -220,12 +214,22 @@ export function EditorReferenceSearch({
       onPick={(item) => {
         const chain = editor.chain().focus();
         if (request.range) chain.deleteRange(request.range);
-        chain
-          .insertContent([
-            { type: "reference", attrs: { kind: item.kind, id: item.id, label: item.label } },
-            { type: "text", text: " " },
-          ])
-          .run();
+        if (item.media === "image") {
+          if (request.range) chain.run();
+          insertResourceImage(editor, {
+            id: item.id,
+            alt: item.label,
+            align: "left",
+            width: imageWidthRange.default,
+          });
+        } else {
+          chain
+            .insertContent([
+              { type: "reference", attrs: { kind: item.kind, id: item.id, label: item.label } },
+              { type: "text", text: " " },
+            ])
+            .run();
+        }
         onClose();
       }}
     />

@@ -191,6 +191,36 @@ postgres("PostgreSQL persistence", () => {
         contentSha256,
         content: documentContent,
       });
+      const editorAsset = await resourceRepository.createEditorAsset({
+        title: "Pasted plan",
+        folderPath: text.folderPath,
+        fileName: "clipboard.png",
+        format: "png",
+        mediaType: "image/png",
+        contentSha256,
+        owner: { kind: "textResourceContent", id: text.id },
+        content: documentContent,
+      });
+      expect(editorAsset).toMatchObject({
+        usage: "editorAsset",
+        category: null,
+        editorOwner: { kind: "textResourceContent", id: text.id },
+      });
+      expect(await resourceRepository.list()).toHaveLength(2);
+      expect(
+        await resourceRepository.list({
+          usage: "editorAsset",
+          editorOwner: { kind: "textResourceContent", id: text.id },
+        }),
+      ).toEqual([expect.objectContaining({ id: editorAsset.id })]);
+      expect(
+        await resourceRepository.reconcileEditorAssets({ kind: "textResourceContent", id: text.id }, [editorAsset.id]),
+      ).toEqual([]);
+      expect(await resourceRepository.isReferencedByRichText(editorAsset.id)).toBe(true);
+      expect(await resourceRepository.reconcileEditorAssets({ kind: "textResourceContent", id: text.id }, [])).toEqual([
+        editorAsset.id,
+      ]);
+      expect(await resourceRepository.findMetadata(editorAsset.id)).toBeNull();
       const previewContent = Buffer.from("%PDF-1.7\npreview");
       const preview = await resourceRepository.savePreview({
         sourceContentSha256: contentSha256,

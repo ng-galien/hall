@@ -69,7 +69,9 @@ export class SqliteExecutor implements SqlExecutor {
     );
   }
 
-  async ready(): Promise<void> {}
+  ready(): Promise<void> {
+    return Promise.resolve();
+  }
 
   async close(): Promise<void> {
     await this.#enqueue(() => this.database.close());

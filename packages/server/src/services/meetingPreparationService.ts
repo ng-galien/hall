@@ -24,6 +24,7 @@ import {
   normalizedAgendaItemIds,
   previousCouncilMeeting,
 } from "./agendaOrderPolicy.js";
+import type { EditorAssetService } from "./editorAssetService.js";
 import { DomainError } from "./errors.js";
 import { requireMeeting } from "./meetingContext.js";
 
@@ -46,6 +47,7 @@ export function createMeetingPreparationService({
   resourceRepository,
   councilBusinessRepository,
   unitOfWork,
+  editorAssetService,
 }: {
   councilMeetingRepository: CouncilMeetingRepository;
   meetingRosterRepository: MeetingRosterRepository;
@@ -55,6 +57,7 @@ export function createMeetingPreparationService({
   resourceRepository: ResourceRepository;
   councilBusinessRepository: CouncilBusinessRepository;
   unitOfWork: UnitOfWork;
+  editorAssetService: EditorAssetService;
 }): MeetingPreparationService {
   const requireComposableMeeting = async (meetingId: string) => {
     const meeting = await requireMeeting(councilMeetingRepository, meetingId);
@@ -195,6 +198,7 @@ export function createMeetingPreparationService({
           const next = decision ? transitionCouncilDecision(decision.status, { type: "RETURN_TO_PREPARATION" }) : null;
           if (decision && next) await councilDecisionRepository.setStatus(decision.id, next);
         }
+        await editorAssetService.purgeOwner({ kind: "agendaItemDiscussionSummary", id: item.id });
         await agendaItemRepository.remove(id, itemId);
         const remaining = await agendaItemRepository.listForMeeting(id);
         if (

@@ -11,16 +11,13 @@ interface ThemePrefsState {
 
 const darkQuery = () => (typeof window === "undefined" ? null : window.matchMedia("(prefers-color-scheme: dark)"));
 
-/** Le ton effectivement rendu : « auto » suit le réglage du système. */
+/** Effective rendered tone; "auto" follows the system setting. */
 export function resolveTone(preference: ThemePreference): ThemeTone {
   if (preference !== "auto") return preference;
   return darkQuery()?.matches ? "dark" : "light";
 }
 
-/**
- * Pose le ton sur la racine du document. Le CSS ne connaît que `data-theme="dark"` : le ton clair
- * est la définition de base des tokens, donc l'attribut est retiré plutôt que mis à « light ».
- */
+/** Sets the tone on the document root; light removes `data-theme` instead of setting it. */
 function applyTone(tone: ThemeTone): void {
   const root = document.documentElement;
   if (tone === "dark") root.dataset.theme = "dark";
@@ -43,10 +40,7 @@ export const useThemePrefsStore = create<ThemePrefsState>()(
   ),
 );
 
-/**
- * Applique le ton au démarrage et suit le système tant que la préférence est « auto ».
- * Appelé une fois depuis le point d'entrée, avant le rendu.
- */
+/** Applies the tone once at startup and tracks the system while the preference is "auto"; call before render. */
 export function startThemeTone(): void {
   applyTone(resolveTone(useThemePrefsStore.getState().preference));
   darkQuery()?.addEventListener("change", () => {

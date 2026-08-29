@@ -106,6 +106,16 @@ function collectionActions(request: Request, entityClass: string): SirenAction[]
           { name: "category", type: "text", value: "supporting" },
         ],
       },
+      {
+        ...action("resource.create-editor-asset", "POST", "/api/resources/editor-assets", "Upload an editor asset"),
+        type: "multipart/form-data",
+        fields: [
+          { name: "file", type: "file", accept: ".jpg,.jpeg,.png" },
+          { name: "title", type: "text" },
+          { name: "ownerKind", type: "text" },
+          { name: "ownerId", type: "text" },
+        ],
+      },
     ];
   }
   if (entityClass === "council-business" && permitted(request, "workspace.write")) {
@@ -128,7 +138,13 @@ function collectionActions(request: Request, entityClass: string): SirenAction[]
   }
   if (entityClass === "template") {
     const actions = permitted(request, "workspace.read")
-      ? [action("template.preview", "POST", "/api/templates/preview", "Preview a template")]
+      ? [
+          action("template.preview", "POST", "/api/templates/preview", "Preview a template"),
+          {
+            ...action("template.preview-pdf", "POST", "/api/templates/preview-pdf", "Preview a PDF"),
+            fields: [{ name: "bodyMarkdown", type: "text" }],
+          },
+        ]
       : [];
     if (permitted(request, "workspace.write")) {
       actions.unshift(action("template.create", "POST", "/api/templates", "Create a template"));
@@ -210,13 +226,29 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
     return [action("settings.update", "PUT", "/api/settings", "Update Hall settings")];
   }
   if (entityClass === "resource" && id && reference && permitted(request, "workspace.write")) {
-    const details = value as { councilBusiness?: unknown[]; snapshotted?: boolean; usedAsProxy?: boolean };
+    if (primary?.kind === "document" && primary.usage === "editorAsset") {
+      return [
+        action(
+          "resource.promote-editor-asset",
+          "POST",
+          `/api/resources/${reference}/promote`,
+          "Promote the editor asset to a document",
+        ),
+      ];
+    }
+    const details = value as {
+      councilBusiness?: unknown[];
+      snapshotted?: boolean;
+      usedAsProxy?: boolean;
+      referencedByContent?: boolean;
+    };
     const actions = [action("resource.update", "PUT", `/api/resources/${reference}`, "Update the resource")];
     if (
       Array.isArray(details.councilBusiness) &&
       details.councilBusiness.length === 0 &&
       details.snapshotted === false &&
-      details.usedAsProxy === false
+      details.usedAsProxy === false &&
+      details.referencedByContent === false
     ) {
       actions.push(action("resource.delete", "DELETE", `/api/resources/${reference}`, "Delete the resource"));
     }

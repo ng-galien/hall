@@ -43,6 +43,7 @@ terme     := mot libre
 | Clé | Alias acceptés | Effet |
 | --- | --- | --- |
 | `type:` | les alias directs `membre:` `m:` `pièce:` `doc:` `p:` `sujet:` `s:` `séance:` `délib:` `d:` (+ anglais) | restreint au type d'entité |
+| `image:` | `img:` ; dans l’éditeur, le raccourci direct `image` ou `img` après `@` | restreint aux pièces image archivées |
 | `dossier:` | `chemin:`, `folder:` | restreint au sous-arbre de dossiers (`dossier:finances`) |
 | `état:` | `state:` | restreint à l'état d'un sujet (`état:planifié`) |
 

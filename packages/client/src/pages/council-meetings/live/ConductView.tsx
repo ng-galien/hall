@@ -7,7 +7,7 @@ import type {
   TextResource,
   VoteChoice,
 } from "@hall/domain";
-import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -34,6 +34,7 @@ import { MarkdownView } from "../../../components/MarkdownView";
 import { Modal } from "../../../components/Ui";
 import { councilBusinessKindKeys } from "../../../features/council-business/presentation";
 import { formatMeetingLabel } from "../../../features/council-meetings/meetingPresentation";
+import { useResourceImageUpload } from "../../../features/documents/useResourceImageUpload";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useReferenceMentionables } from "../../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../../hooks/useSubmitting";
@@ -56,9 +57,18 @@ function storedRailWidth(): number {
     const stored = Number(localStorage.getItem(RAIL_WIDTH_KEY));
     if (Number.isFinite(stored) && stored >= RAIL_MIN_WIDTH) return Math.min(stored, RAIL_MAX_WIDTH);
   } catch {
-    /* storage unavailable */
+    return 380;
   }
   return 380;
+}
+
+function persistRailWidth(width: number): boolean {
+  try {
+    localStorage.setItem(RAIL_WIDTH_KEY, String(width));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function elapsedSince(startedAt: string, now: number): string {
@@ -81,6 +91,7 @@ export function ConductView({
   meetingActions: ReturnType<typeof useCouncilMeeting>;
   onShowRollCall(): void;
 }) {
+  const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
   const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const { download } = useResourcesStore();
@@ -129,11 +140,7 @@ export function ConductView({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       setRailWidth((width) => {
-        try {
-          localStorage.setItem(RAIL_WIDTH_KEY, String(width));
-        } catch {
-          /* storage unavailable */
-        }
+        persistRailWidth(width);
         return width;
       });
     };
@@ -156,9 +163,11 @@ export function ConductView({
     orderedItems.find((item) => item.id === selectedItemId) ?? activeItem ?? nextItem ?? orderedItems.at(-1) ?? null;
 
   const selectedItemId2 = selectedItem?.id ?? null;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: notes reset only when another item is selected, not on background saves
+  const selectedItemRef = useRef(selectedItem);
+  selectedItemRef.current = selectedItem;
   useEffect(() => {
-    setNotes(selectedItem?.discussionSummary ?? "");
+    if (selectedItemRef.current?.id !== selectedItemId2) return;
+    setNotes(selectedItemRef.current?.discussionSummary ?? "");
     setVoteOpen(false);
     setRevisionSeed(null);
     setReviseConfirming(false);
@@ -511,6 +520,12 @@ export function ConductView({
               <summary>{t("meeting.observations")}</summary>
               <MarkdownEditor
                 mentionables={mentionables}
+                searchContext={selectedItem.business.folderPath}
+                onUploadImage={
+                  canUploadImage
+                    ? (file) => uploadImage(file, { kind: "agendaItemDiscussionSummary", id: selectedItem.id })
+                    : undefined
+                }
                 markdown={notes}
                 placeholder={t("meeting.observationsDescription")}
                 onChange={setNotes}
@@ -707,7 +722,6 @@ export function ConductView({
             >
               <h3 className="picker-heading">{t("meeting.addOtherHeading")}</h3>
               <div className="composer-quick-add-fields">
-                {/* Champ non contrôlé : `name` fait rendre à Radix un champ caché lu par FormData. */}
                 <Select name="kind" defaultValue="openQuestion">
                   <SelectTrigger aria-label={t("meeting.type")}>
                     <SelectValue />
@@ -738,14 +752,7 @@ export function ConductView({
         </Modal>
       ) : null}
       {minutesOpen ? (
-        // biome-ignore lint/a11y/noStaticElementInteractions: fermeture au clic sur le voile, Échap via le bouton Fermer
-        <div
-          className="document-viewer-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setMinutesOpen(false);
-          }}
-        >
+        <div className="document-viewer-backdrop" role="presentation">
           <section
             className="document-viewer proceedings-overlay"
             role="dialog"

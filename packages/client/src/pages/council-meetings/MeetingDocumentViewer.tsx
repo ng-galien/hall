@@ -19,14 +19,7 @@ export function MeetingDocumentViewer({
 
   if (!document) return null;
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: closing on backdrop click mirrors the close button
-    <div
-      className="document-viewer-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <div className="document-viewer-backdrop" role="presentation">
       <section className="document-viewer" role="dialog" aria-modal="true" aria-labelledby="document-viewer-title">
         <header>
           <div>
@@ -49,7 +42,13 @@ export function MeetingDocumentViewer({
             </span>
           ) : null}
           {failed ? <DocumentPreviewFailure onRetry={retry} /> : null}
-          {objectUrl && mediaType ? <object data={objectUrl} type={mediaType} aria-label={document.fileName} /> : null}
+          {objectUrl && mediaType ? (
+            mediaType === "application/pdf" ? (
+              <iframe data-testid="meeting-document-frame" src={objectUrl} title={document.fileName} />
+            ) : (
+              <object data={objectUrl} type={mediaType} aria-label={document.fileName} />
+            )
+          ) : null}
         </div>
       </section>
     </div>

@@ -27,10 +27,6 @@ import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import type { WorkspaceSelection } from "./WorkspacePage";
 
-/* Un seul champ qui mêle texte libre et facettes (inspiré du FilterBox de Trust) :
-   les facettes actives sont des puces dans le champ, un panneau liste les groupes avec compteurs,
-   le texte tapé atteint aussi les facettes. */
-
 type FacetKind = "type" | "folder";
 type ResultType = "councilBusiness" | "resource" | "meeting" | "decision";
 
@@ -48,7 +44,7 @@ const facetTokenByType: Record<ResultType, string> = {
   decision: "delib",
 };
 
-/** Une entrée du corpus : l'entité d'origine voyage avec ses champs cherchables. */
+/** A corpus entry: the source entity travels with its searchable fields. */
 interface WorkspaceHit extends Searchable {
   entity:
     | { entityKind: "councilBusiness"; business: CouncilBusiness }
@@ -82,7 +78,7 @@ export function WorkspaceSearch({
   search: WorkspaceSearchState;
   onSearch(next: WorkspaceSearchState): void;
   onSelect(selection: WorkspaceSelection, path?: string): void;
-  /** Le dossier ouvert : ce qui en est proche remonte en premier. */
+  /** Open folder; results close to it rank first. */
   context?: string;
 }) {
   const { t, formatNumber, formatDate, formatFileSize } = useI18n();
@@ -133,9 +129,6 @@ export function WorkspaceSearch({
     input.current?.focus();
   };
 
-  /* Le corpus du moteur commun : chaque entité devient cherchable avec ses champs
-     secondaires ; les facettes de l'interface se traduisent en jetons du même DSL que
-     celui qu'on peut taper au clavier (`doc:budget dossier:travaux état:planifié`). */
   const corpus = useMemo<WorkspaceHit[]>(
     () => [
       ...businesses.map((business) => ({
@@ -198,8 +191,6 @@ export function WorkspaceSearch({
     if (business) pickBusiness(business);
   };
 
-  /* En liste, la même organisation que la recherche de l'éditeur : des sections par
-     dossier d'abord, puis les espèces sans dossier. Les cartes restent à plat. */
   const sections = useMemo(() => {
     const kindHeadings: Record<string, TranslationKey> = {
       councilBusiness: "workspace.councilBusinessHeading",
@@ -207,12 +198,13 @@ export function WorkspaceSearch({
       meeting: "navigation.meetings",
       decision: "navigation.decisions",
     };
-    /* Les sections suivent l'ordre du classement (première apparition) : la proximité
-       du dossier courant garde le dessus, l'alphabet ne reprend pas la main. */
-    const ordered = new Map<string, { key: string; title: string; folder: boolean; items: WorkspaceHit[] }>();
+    const sectionsInRankOrder = new Map<
+      string,
+      { key: string; title: string; folder: boolean; items: WorkspaceHit[] }
+    >();
     for (const hit of hits) {
       const key = hit.folderPath ? `folder:${hit.folderPath}` : `kind:${hit.kind}`;
-      let section = ordered.get(key);
+      let section = sectionsInRankOrder.get(key);
       if (!section) {
         section = {
           key,
@@ -220,11 +212,11 @@ export function WorkspaceSearch({
           folder: Boolean(hit.folderPath),
           items: [],
         };
-        ordered.set(key, section);
+        sectionsInRankOrder.set(key, section);
       }
       section.items.push(hit);
     }
-    return [...ordered.values()];
+    return [...sectionsInRankOrder.values()];
   }, [hits, t]);
 
   const renderHit = (hit: WorkspaceHit) => {

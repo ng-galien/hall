@@ -1,5 +1,5 @@
 import { findSirenLink } from "@hall/api-contract";
-import type { DocumentResource, Resource, ResourceDetails } from "@hall/domain";
+import type { DocumentResource, EditorAssetOwner, Resource, ResourceDetails } from "@hall/domain";
 import {
   apiPathFromHref,
   apiRequest,
@@ -15,6 +15,8 @@ export interface ResourceFilters {
   kind?: "text" | "document";
   meetingId?: string;
   tags?: string[];
+  usage?: "document" | "editorAsset";
+  editorOwner?: EditorAssetOwner;
 }
 
 const resourceQuery = (filters: ResourceFilters = {}) => {
@@ -23,6 +25,11 @@ const resourceQuery = (filters: ResourceFilters = {}) => {
   if (filters.kind) params.set("kind", filters.kind);
   if (filters.meetingId) params.set("meetingId", filters.meetingId);
   if (filters.tags?.length) params.set("tags", filters.tags.join(","));
+  if (filters.usage) params.set("usage", filters.usage);
+  if (filters.editorOwner) {
+    params.set("editorOwnerKind", filters.editorOwner.kind);
+    params.set("editorOwnerId", filters.editorOwner.id);
+  }
   const query = params.toString();
   return query ? `?${query}` : "";
 };
@@ -34,6 +41,8 @@ export const createTextResource = (input: Record<string, unknown>) =>
   submitSirenActionAt<Resource>("/resources", "resource.create-text", input).then((result) => result.data);
 export const uploadResourceDocument = (form: FormData) =>
   submitSirenActionAt<Resource>("/resources", "resource.create-document", form).then((result) => result.data);
+export const uploadEditorAsset = (form: FormData) =>
+  submitSirenActionAt<Resource>("/resources", "resource.create-editor-asset", form).then((result) => result.data);
 export const getResourceDetails = (resourceId: string) => apiRequest<ResourceDetails>(`/resources/${resourceId}`);
 export const getResourceDetailsSiren = (resourceId: string) =>
   apiSirenRequest<ResourceDetails>(`/resources/${resourceId}`);
