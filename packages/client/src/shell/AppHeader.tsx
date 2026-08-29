@@ -1,4 +1,4 @@
-import { PanelLeftContractRegular, PanelLeftExpandRegular } from "@fluentui/react-icons";
+import { SidebarCollapseIcon, SidebarExpandIcon } from "../components/icons";
 import { useApplicationStatus } from "../hooks/useApplicationData";
 import { useI18n } from "../i18n/I18nProvider";
 import { HeaderBreadcrumb } from "./HeaderBreadcrumb";
@@ -23,7 +23,7 @@ export function AppHeader({ compact, onToggleSidebar }: AppHeaderProps) {
   const pending = phase === "initializing" || phase === "synchronizing";
 
   return (
-    <header className="flex h-(--mairie-size-header) shrink-0 items-center gap-5 border-b border-border bg-surface px-3">
+    <header className="flex h-(--hall-size-header) shrink-0 items-center gap-5 border-b border-border bg-surface px-3">
       <button
         type="button"
         className="icon-button"
@@ -31,7 +31,7 @@ export function AppHeader({ compact, onToggleSidebar }: AppHeaderProps) {
         aria-expanded={!compact}
         onClick={onToggleSidebar}
       >
-        {compact ? <PanelLeftExpandRegular /> : <PanelLeftContractRegular />}
+        {compact ? <SidebarExpandIcon /> : <SidebarCollapseIcon />}
       </button>
 
       <a href="/app/" className="flex w-52 shrink-0 items-center gap-2.5" aria-label={t("app.home")}>

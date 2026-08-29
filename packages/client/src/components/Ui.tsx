@@ -1,5 +1,3 @@
-import { Badge, Button, Field, Input, Textarea, Title2 } from "@fluentui/react-components";
-import { AppsListRegular, DismissRegular, GridRegular, SearchRegular } from "@fluentui/react-icons";
 import type {
   AgendaItemStatus,
   AttendanceStatus,
@@ -9,14 +7,18 @@ import type {
   TopicState,
 } from "@hall/domain";
 import { type ReactNode, useEffect, useId, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
+import { normalizeForSearch } from "../lib/search";
 import type { ApiErrorCode } from "../services/apiClient";
+import { CardViewIcon, CloseIcon, ListViewIcon, SearchIcon } from "./icons";
 
 export function PageHeader({ title, description }: { title: string; description: string }) {
   return (
     <header className="border-b border-border bg-surface px-7 py-4">
-      <Title2 as="h1">{title}</Title2>
+      <h1 className="page-title">{title}</h1>
       <p className="mt-1 text-sm text-muted">{description}</p>
     </header>
   );
@@ -34,11 +36,11 @@ type StatusValue =
 
 export function StatusBadge({ value }: { value: StatusValue }) {
   const { t } = useI18n();
-  const color = ["adopted", "enforceable", "ready", "present", "published"].includes(value)
+  const variant = ["adopted", "enforceable", "ready", "present", "published"].includes(value)
     ? "success"
     : ["rejected", "cancelled", "absent"].includes(value)
-      ? "danger"
-      : "informative";
+      ? "destructive"
+      : "secondary";
   const labelKeys: Record<StatusValue, TranslationKey> = {
     draft: "status.draft",
     notStarted: "status.notStarted",
@@ -64,11 +66,7 @@ export function StatusBadge({ value }: { value: StatusValue }) {
     inactive: "status.inactive",
     published: "status.published",
   };
-  return (
-    <Badge color={color} appearance="tint">
-      {t(labelKeys[value])}
-    </Badge>
-  );
+  return <Badge variant={variant}>{t(labelKeys[value])}</Badge>;
 }
 
 const meetingStatusKeys: Record<MeetingStatus, TranslationKey> = {
@@ -81,21 +79,17 @@ const meetingStatusKeys: Record<MeetingStatus, TranslationKey> = {
 
 export function MeetingStatusBadge({ status }: { status: MeetingStatus }) {
   const { t } = useI18n();
-  const color =
+  const variant =
     status === "inProgress"
       ? "success"
       : status === "cancelled"
-        ? "danger"
+        ? "destructive"
         : status === "scheduled"
           ? "brand"
           : status === "draft"
             ? "warning"
-            : "informative";
-  return (
-    <Badge color={color} appearance={status === "closed" ? "outline" : "tint"}>
-      {t(meetingStatusKeys[status])}
-    </Badge>
-  );
+            : "secondary";
+  return <Badge variant={variant}>{t(meetingStatusKeys[status])}</Badge>;
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
@@ -104,12 +98,7 @@ export function EmptyState({ children }: { children: ReactNode }) {
 
 export type CollectionLayout = "list" | "cards";
 
-const normalizeForSearch = (value: string) =>
-  value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "");
-
+/** La correspondance simple des listes ; la normalisation est celle du moteur commun. */
 export function matchesQuery(query: string, ...fields: (string | null | undefined)[]): boolean {
   const needle = normalizeForSearch(query.trim());
   if (!needle) return true;
@@ -139,7 +128,7 @@ export function CollectionToolbar({
   return (
     <div className="collection-toolbar">
       <div className="collection-search">
-        <SearchRegular aria-hidden="true" />
+        <SearchIcon aria-hidden="true" />
         <input
           type="search"
           value={query}
@@ -157,7 +146,7 @@ export function CollectionToolbar({
             className={layout === "list" ? "collection-layout-active" : undefined}
             onClick={() => onLayoutChange("list")}
           >
-            <AppsListRegular aria-hidden="true" />
+            <ListViewIcon aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -166,7 +155,7 @@ export function CollectionToolbar({
             className={layout === "cards" ? "collection-layout-active" : undefined}
             onClick={() => onLayoutChange("cards")}
           >
-            <GridRegular aria-hidden="true" />
+            <CardViewIcon aria-hidden="true" />
           </button>
         </div>
         {children}
@@ -209,7 +198,9 @@ export function Modal({
       <section className="modal-surface" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header className="modal-header">
           <h2 id={titleId}>{title}</h2>
-          <Button appearance="subtle" icon={<DismissRegular />} aria-label={t("common.close")} onClick={onClose} />
+          <Button size="icon" variant="ghost" aria-label={t("common.close")} onClick={onClose}>
+            <CloseIcon />
+          </Button>
         </header>
         <div className="modal-content">{children}</div>
       </section>
@@ -262,5 +253,3 @@ export function RequestErrorBanner({ error }: { error: ApiErrorCode | null }) {
     </div>
   ) : null;
 }
-
-export { Field, Input, Textarea };

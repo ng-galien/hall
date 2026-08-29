@@ -21,7 +21,7 @@ test("file sizes are localized through Intl rather than visible unit literals", 
 test("every visible mutation prevents duplicate submissions and reports progress", () => {
   const mutationSurfaces = [
     "src/pages/CouncilMembersPage.tsx",
-    "src/pages/workspace/PathContents.tsx",
+    "src/pages/workspace/WorkspacePage.tsx",
     "src/pages/workspace/ResourceWorkbench.tsx",
     "src/pages/workspace/TopicWorkbench.tsx",
     "src/pages/council-meetings/AgendaComposer.tsx",
@@ -69,12 +69,10 @@ test("session expiry remounts the authentication gate and logout consumes its Si
 
 test("document content navigation follows the Siren content link", () => {
   const resources = read("src/services/resourcesApi.ts");
-  const editor = read("src/components/MarkdownEditor.tsx");
-  const topic = read("src/pages/workspace/TopicWorkbench.tsx");
+  const preview = read("src/components/ResourcePreview.tsx");
   assert.match(resources, /findSirenLink\(representation, "content"\)/);
-  assert.match(editor, /resourceContentHref\(resource\.id\)/);
-  assert.match(topic, /resourceContentHref\(created\.id\)/);
-  assert.doesNotMatch(`${resources}\n${editor}\n${topic}`, /resources\/\$\{[^}]+\}\/content/);
+  assert.match(preview, /loadResourceObjectUrl\(details\.resource\)/);
+  assert.doesNotMatch(`${resources}\n${preview}`, /resources\/\$\{[^}]+\}\/content/);
 });
 
 test("document category translations are exhaustive over the domain type", () => {

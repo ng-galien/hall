@@ -1,6 +1,6 @@
-import { ArrowLeftRegular } from "@fluentui/react-icons";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { BackIcon } from "../../../components/icons";
 import { RequestErrorBanner } from "../../../components/Ui";
 import { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useI18n } from "../../../i18n/I18nProvider";
@@ -31,7 +31,7 @@ export function LiveMeetingPage() {
       <div className="live-shell live-shell-empty">
         <RequestErrorBanner error={error} />
         <Link className="live-exit" to="/meetings">
-          <ArrowLeftRegular aria-hidden="true" />
+          <BackIcon aria-hidden="true" />
           {t("live.backToMeetings")}
         </Link>
       </div>
@@ -48,8 +48,8 @@ export function LiveMeetingPage() {
   return (
     <div className="live-shell">
       <header className="live-header">
-        <Link className="live-exit" to={`/meetings/${meeting.id}`}>
-          <ArrowLeftRegular aria-hidden="true" />
+        <Link className="live-exit" to={`/meetings/${meeting.slug}`}>
+          <BackIcon aria-hidden="true" />
           {t("live.exit")}
         </Link>
         <div className="live-header-title">
@@ -77,7 +77,7 @@ export function LiveMeetingPage() {
           <section className="live-closed">
             <h1>{t("live.closedTitle")}</h1>
             <p>{t("live.closedDescription")}</p>
-            <Link className="live-mode-link live-mode-link-large" to={`/meetings/${meeting.id}`}>
+            <Link className="live-mode-link live-mode-link-large" to={`/meetings/${meeting.slug}`}>
               {t("live.viewReport")}
             </Link>
           </section>

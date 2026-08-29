@@ -1,6 +1,6 @@
-import { ChevronDownRegular, ChevronRightRegular } from "@fluentui/react-icons";
 import { type DragEvent, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { ChevronDownIcon, ChevronRightIcon } from "../components/icons";
 import { useI18n } from "../i18n/I18nProvider";
 import { buildPathTree, type PathNode } from "../pages/workspace/paths";
 import { DRAG_TYPE, decodeDragPayload, moveToPath, useWorkspaceOrgStore } from "../pages/workspace/workspaceOrg";
@@ -34,7 +34,7 @@ function TreeNode({
       {/* biome-ignore lint/a11y/noStaticElementInteractions: drop target; navigation and expansion remain keyboard-accessible children */}
       <div
         className={`workspace-tree-row${isActive ? " workspace-tree-row-active" : ""}${dropping ? " workspace-tree-row-drop" : ""}`}
-        style={{ paddingLeft: `calc(${depth} * var(--mairie-space-3))` }}
+        style={{ paddingLeft: `calc(${depth} * var(--hall-space-3))` }}
         onDragOver={(event: DragEvent) => {
           if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
           event.preventDefault();
@@ -56,7 +56,7 @@ function TreeNode({
             aria-label={node.name}
             onClick={() => onToggle(node.path)}
           >
-            {isExpanded ? <ChevronDownRegular /> : <ChevronRightRegular />}
+            {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
           </button>
         ) : (
           <span className="workspace-tree-toggle" aria-hidden="true" />

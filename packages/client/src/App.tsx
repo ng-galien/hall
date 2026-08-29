@@ -1,11 +1,11 @@
-import { FluentProvider } from "@fluentui/react-components";
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthenticationGate } from "./components/AuthenticationGate";
+import { IconDefaults } from "./components/icons";
 import { Layout } from "./components/Layout";
 import { useApplicationData } from "./hooks/useApplicationData";
 import { useI18n } from "./i18n/I18nProvider";
-import { mairieLightTheme } from "./theme/fluentTheme";
 
 const WorkspacePage = lazy(() =>
   import("./pages/workspace/WorkspacePage").then((module) => ({ default: module.WorkspacePage })),
@@ -25,6 +25,7 @@ const CouncilMeetingsPage = lazy(() =>
 const LiveMeetingPage = lazy(() =>
   import("./pages/council-meetings/live/LiveMeetingPage").then((module) => ({ default: module.LiveMeetingPage })),
 );
+const EditorLabPage = lazy(() => import("./pages/EditorLabPage").then((module) => ({ default: module.EditorLabPage })));
 const DashboardPage = lazy(() => import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
 const SettingsPage = lazy(() => import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 
@@ -53,6 +54,8 @@ function AuthenticatedApplication() {
         <Route path="council-decisions" element={<CouncilDecisionsPage />} />
         <Route path="council-members" element={<CouncilMembersPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        {/* Banc d'essai de l'éditeur, hors navigation : on y va par l'adresse. */}
+        <Route path="editor-lab" element={<EditorLabPage />} />
       </Route>
     </Routes>
   );
@@ -60,12 +63,14 @@ function AuthenticatedApplication() {
 
 export function App() {
   return (
-    <FluentProvider theme={mairieLightTheme}>
-      <BrowserRouter basename="/app">
-        <AuthenticationGate>
-          <AuthenticatedApplication />
-        </AuthenticationGate>
-      </BrowserRouter>
-    </FluentProvider>
+    <IconDefaults>
+      <TooltipProvider>
+        <BrowserRouter basename="/app">
+          <AuthenticationGate>
+            <AuthenticatedApplication />
+          </AuthenticationGate>
+        </BrowserRouter>
+      </TooltipProvider>
+    </IconDefaults>
   );
 }

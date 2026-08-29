@@ -4,70 +4,169 @@
 @import "./styles/base.css";
 @import "./styles/components.css";
 @import "./styles/meeting-workspace.css";
+@import "./styles/editor.css";
 @import "./styles/workspace.css";
 @import "./styles/live.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Le variant sombre de Tailwind suit l'attribut posé par themePrefs. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* La voix du registre : elle est réservée aux documents et aux écrans de séance qui font foi.
+   L'interface — titres de page compris — reste en sans : une seule police pour l'outil.
+   Qualifiée par le nom d'élément parce que shadcn et les bibliothèques tierces posent des classes
+   à spécificité équivalente plus tard dans la cascade. */
+.live-closed h1,
+.rollcall-header h1,
+.conduct-stage-header h1,
+.report-opening h2,
+.report-timeline-title strong {
+  font-family: var(--hall-font-family-display);
+}
 
 .authentication-shell {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: var(--mairie-space-10);
-  background: var(--mairie-color-canvas);
+  padding: var(--hall-space-10);
+  background: var(--hall-color-canvas);
 }
 
 .authentication-panel {
   width: min(100%, 28rem);
   display: grid;
-  gap: var(--mairie-space-4);
-  padding: var(--mairie-space-10);
-  background: var(--mairie-color-surface);
-  border: var(--mairie-stroke-thin) solid var(--mairie-color-border);
-  border-radius: var(--mairie-radius-large);
+  gap: var(--hall-space-4);
+  padding: var(--hall-space-10);
+  background: var(--hall-color-surface);
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-large);
 }
 
 .authentication-panel label {
   display: grid;
-  gap: var(--mairie-space-1-5);
+  gap: var(--hall-space-1-5);
 }
 
 .authentication-panel input,
 .authentication-panel button {
-  min-height: var(--mairie-size-control);
-  padding: var(--mairie-space-2-5) var(--mairie-space-3);
+  min-height: var(--hall-size-control);
+  padding: var(--hall-space-2-5) var(--hall-space-3);
 }
 
 .authentication-panel button {
-  color: var(--mairie-color-on-brand);
-  background: var(--mairie-color-brand);
+  color: var(--hall-color-on-brand);
+  background: var(--hall-color-brand);
   border: 0;
-  border-radius: var(--mairie-radius-medium);
+  border-radius: var(--hall-radius-medium);
 }
 
 @theme inline {
-  --color-bg: var(--mairie-color-canvas);
-  --color-surface: var(--mairie-color-surface);
-  --color-surface-subtle: var(--mairie-color-surface-subtle);
-  --color-surface-selected: var(--mairie-color-surface-selected);
-  --color-border: var(--mairie-color-border);
-  --color-border-strong: var(--mairie-color-border-strong);
-  --color-text: var(--mairie-color-text);
-  --color-muted: var(--mairie-color-text-muted);
-  --color-faint: var(--mairie-color-text-subtle);
-  --color-brand: var(--mairie-color-brand);
-  --color-on-brand: var(--mairie-color-on-brand);
-  --color-brand-soft: var(--mairie-color-brand-subtle);
-  --color-success: var(--mairie-color-success);
-  --color-warning: var(--mairie-color-warning);
-  --color-danger: var(--mairie-color-danger);
-  --font-sans: var(--mairie-font-family-sans);
-  --radius-small: var(--mairie-radius-small);
-  --radius-medium: var(--mairie-radius-medium);
-  --radius-large: var(--mairie-radius-large);
-  --spacing: var(--mairie-space-unit);
-  --text-xs: var(--mairie-font-size-caption);
-  --text-sm: var(--mairie-font-size-body);
-  --font-weight-medium: var(--mairie-font-weight-medium);
-  --font-weight-semibold: var(--mairie-font-weight-semibold);
-  --font-weight-bold: var(--mairie-font-weight-bold);
-  --tracking-brand: var(--mairie-letter-spacing-brand);
+  --color-bg: var(--hall-color-canvas);
+  --color-surface: var(--hall-color-surface);
+  --color-surface-subtle: var(--hall-color-surface-subtle);
+  --color-surface-selected: var(--hall-color-surface-selected);
+  --color-border: var(--hall-color-border);
+  --color-border-strong: var(--hall-color-border-strong);
+  --color-text: var(--hall-color-text);
+  --color-muted: var(--hall-color-text-muted);
+  --color-faint: var(--hall-color-text-subtle);
+  --color-brand: var(--hall-color-brand);
+  --color-on-brand: var(--hall-color-on-brand);
+  --color-brand-soft: var(--hall-color-brand-subtle);
+  --color-success: var(--hall-color-success);
+  --color-warning: var(--hall-color-warning);
+  --color-danger: var(--hall-color-danger);
+  --font-sans: var(--hall-font-family-sans);
+  --radius-small: var(--hall-radius-small);
+  --radius-medium: var(--hall-radius-medium);
+  --radius-large: var(--hall-radius-large);
+  --spacing: var(--hall-space-unit);
+  --text-xs: var(--hall-font-size-caption);
+  --text-sm: var(--hall-font-size-body);
+  --font-weight-medium: var(--hall-font-weight-medium);
+  --font-weight-semibold: var(--hall-font-weight-semibold);
+  --font-weight-bold: var(--hall-font-weight-bold);
+  --tracking-brand: var(--hall-letter-spacing-brand);
+  --font-heading: var(--hall-font-family-display);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Pont shadcn → tokens Hall : les composants copiés dans components/ui héritent ainsi de
+   notre identité, et le ton sombre les suit sans qu'ils aient à le savoir. Aucune valeur
+   littérale ici — tokens.css reste la seule source. */
+:root {
+  --background: var(--hall-color-canvas);
+  --foreground: var(--hall-color-text);
+  --card: var(--hall-color-surface);
+  --card-foreground: var(--hall-color-text);
+  --popover: var(--hall-color-surface);
+  --popover-foreground: var(--hall-color-text);
+  --primary: var(--hall-color-brand);
+  --primary-foreground: var(--hall-color-on-brand);
+  --secondary: var(--hall-color-surface-subtle);
+  --secondary-foreground: var(--hall-color-text);
+  --muted: var(--hall-color-surface-subtle);
+  --muted-foreground: var(--hall-color-text-muted);
+  --accent: var(--hall-color-brand-subtle);
+  --accent-foreground: var(--hall-color-brand);
+  --destructive: var(--hall-color-danger);
+  --border: var(--hall-color-border);
+  --input: var(--hall-color-border-strong);
+  --ring: var(--hall-color-focus);
+  --radius: var(--hall-radius-large);
+  --sidebar: var(--hall-color-surface);
+  --sidebar-foreground: var(--hall-color-text);
+  --sidebar-primary: var(--hall-color-brand);
+  --sidebar-primary-foreground: var(--hall-color-on-brand);
+  --sidebar-accent: var(--hall-color-surface-selected);
+  --sidebar-accent-foreground: var(--hall-color-text);
+  --sidebar-border: var(--hall-color-border);
+  --sidebar-ring: var(--hall-color-focus);
+  --chart-1: var(--hall-color-brand);
+  --chart-2: var(--hall-color-seal);
+  --chart-3: var(--hall-color-success);
+  --chart-4: var(--hall-color-warning);
+  --chart-5: var(--hall-color-danger);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
 }

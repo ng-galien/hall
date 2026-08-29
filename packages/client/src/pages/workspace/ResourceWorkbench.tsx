@@ -1,10 +1,17 @@
-import { Button, Field, Tooltip } from "@fluentui/react-components";
-import { DeleteRegular, OpenRegular, PinFilled, PinRegular } from "@fluentui/react-icons";
 import { findSirenAction } from "@hall/api-contract";
 import type { Resource, ResourceDetails } from "@hall/domain";
-import { useCallback, useEffect, useState } from "react";
-import { MarkdownEditor } from "../../components/MarkdownEditor";
-import { Input, RequestErrorBanner, StatusBadge } from "../../components/Ui";
+import { useCallback, useEffect, useId, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DocumentEmbed } from "../../components/DocumentEmbed";
+import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
+import { useMentionables } from "../../components/editor/useMentionables";
+import { DeleteIcon, OpenIcon, PinIcon, PinnedIcon } from "../../components/icons";
+import { ResourceGlyph, TopicGlyph, useResourceTypeLabel } from "../../components/ResourceGlyph";
+import { TagInput } from "../../components/TagInput";
+import { RequestErrorBanner, StatusBadge } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -13,7 +20,7 @@ import { useResourcesStore } from "../../stores/resourcesStore";
 import { topicKindKeys } from "../council-meetings/AgendaComposer";
 import { documentCategoryKeys } from "../council-meetings/MeetingDetailsCard";
 import { MeetingDocumentViewer } from "../council-meetings/MeetingDocumentViewer";
-import { ResourceGlyph, TopicGlyph, useResourceTypeLabel } from "./ResourceGlyph";
+import { useSaveStatusStore } from "./saveStatusStore";
 import type { WorkspaceSelection } from "./WorkspacePage";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 
@@ -24,6 +31,7 @@ export function ResourceWorkbench({
   resource: Resource;
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
+  const mentionables = useMentionables();
   const { t, formatFileSize, formatDate } = useI18n();
   const { submitting, run } = useSubmitting();
   const resourcesStore = useResourcesStore();
@@ -33,12 +41,13 @@ export function ResourceWorkbench({
   const [canDelete, setCanDelete] = useState(false);
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
   const [title, setTitle] = useState(resource.title);
-  const [folderPath, setFolderPath] = useState(resource.folderPath);
-  const [tags, setTags] = useState(resource.tags.join(", "));
+  const [tags, setTags] = useState<string[]>(resource.tags);
   const [content, setContent] = useState(resource.kind === "text" ? resource.content : "");
   const [viewerOpen, setViewerOpen] = useState(false);
+  const titleFieldId = useId();
   const { isPinned, togglePin } = useWorkspacePrefsStore();
   const pinned = isPinned({ kind: "resource", id: resource.id });
+  const setSaveStatus = useSaveStatusStore((state) => state.setStatus);
 
   const refreshDetails = useCallback(async () => {
     try {
@@ -58,19 +67,20 @@ export function ResourceWorkbench({
   const save = () =>
     run(async () => {
       setActionError(null);
+      setSaveStatus("saving");
       const saved = await resourcesStore.update(resource.id, {
         title,
-        folderPath,
-        tags: tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean),
+        folderPath: resource.folderPath,
+        tags,
         ...(resource.kind === "text" ? { content } : {}),
       });
-      if (!saved) setActionError(useResourcesStore.getState().error);
-      else {
-        onSelect({ kind: "resource", id: resource.id }, folderPath);
+      if (!saved) {
+        setActionError(useResourcesStore.getState().error);
+        setSaveStatus("error");
+      } else {
+        onSelect({ kind: "resource", id: resource.id }, resource.folderPath);
         await refreshDetails();
+        setSaveStatus("saved");
       }
       return saved;
     });
@@ -86,9 +96,25 @@ export function ResourceWorkbench({
 
   const dirty =
     title !== resource.title ||
-    folderPath !== resource.folderPath ||
-    tags !== resource.tags.join(", ") ||
+    tags.join("\u0000") !== resource.tags.join("\u0000") ||
     (resource.kind === "text" && content !== resource.content);
+
+  /* Auto-sauvegarde : une seconde après la dernière modification. La pastille du fil
+     d'Ariane raconte le cycle — modifié, enregistrement, enregistré. */
+  useEffect(() => {
+    if (!dirty || !canUpdate || details?.snapshotted) return;
+    setSaveStatus("dirty");
+    const timer = window.setTimeout(() => void save(), 1000);
+    return () => window.clearTimeout(timer);
+    // save se recrée à chaque rendu : le déclencheur est la modification, pas la fonction.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: déclenché par les champs édités
+  }, [dirty, title, tags, content, canUpdate]);
+
+  useEffect(() => {
+    // À l'arrivée sur un document (et au départ), la pastille repart de zéro.
+    setSaveStatus("idle");
+    return () => setSaveStatus("idle");
+  }, [setSaveStatus]);
 
   return (
     <div className="workbench">
@@ -106,122 +132,98 @@ export function ResourceWorkbench({
           </div>
         </div>
         <div className="workbench-header-side">
-          <Tooltip content={t(pinned ? "workspace.unpinShort" : "workspace.pin")} relationship="label">
-            <Button
-              appearance="subtle"
-              icon={pinned ? <PinFilled /> : <PinRegular />}
-              aria-pressed={pinned}
-              onClick={() => togglePin({ kind: "resource", id: resource.id })}
-            />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
+                aria-pressed={pinned}
+                onClick={() => togglePin({ kind: "resource", id: resource.id })}
+              >
+                {pinned ? <PinnedIcon /> : <PinIcon />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
           </Tooltip>
           {resource.kind === "document" ? (
-            <>
-              <Button appearance="secondary" icon={<OpenRegular />} onClick={() => setViewerOpen(true)}>
-                {t("workspace.viewDocument")}
-              </Button>
-              <Button appearance="secondary" onClick={() => void resourcesStore.download(resource)}>
-                {t("common.download")}
-              </Button>
-            </>
+            <Button variant="outline" onClick={() => void resourcesStore.download(resource)}>
+              {t("common.download")}
+            </Button>
           ) : null}
         </div>
       </header>
       <RequestErrorBanner error={actionError} />
 
-      <div className="workbench-grid">
-        <div className="workbench-main">
-          <section className="workbench-section" aria-labelledby="resource-info">
-            <Field label={t("resources.textTitle")} required>
-              <Input
-                className="workbench-title-input"
-                value={title}
-                readOnly={!canUpdate || Boolean(details?.snapshotted)}
-                onChange={(event) => setTitle(event.target.value)}
-                required
-              />
-            </Field>
-            {resource.kind === "text" ? (
-              <Field label={t("resources.textContent")}>
-                <MarkdownEditor
-                  markdown={resource.kind === "text" ? resource.content : ""}
-                  onChange={setContent}
-                  readOnly={!canUpdate || Boolean(details?.snapshotted)}
-                />
-              </Field>
-            ) : (
-              <button className="workbench-document-tile" type="button" onClick={() => setViewerOpen(true)}>
-                <ResourceGlyph resource={resource} large />
-                <span className="workspace-row-copy">
-                  <strong>{resource.fileName}</strong>
-                  <span>
-                    {typeLabel(resource)} · {formatFileSize(resource.byteSize)}
-                  </span>
-                </span>
-                <OpenRegular aria-hidden="true" />
-              </button>
-            )}
-            <div className="workbench-actions">
-              {canDelete ? (
-                <Button
-                  className="composer-vote-toggle"
-                  appearance="subtle"
-                  icon={<DeleteRegular />}
-                  disabled={submitting}
-                  onClick={() => void remove()}
-                >
-                  {t("workspace.deleteResource")}
-                </Button>
-              ) : null}
-              <span className="composer-editor-spacer" />
-              {canUpdate ? (
-                <Button appearance="primary" disabled={submitting || !dirty} onClick={() => void save()}>
-                  {t(submitting ? "common.saving" : "common.save")}
-                </Button>
-              ) : null}
-            </div>
-          </section>
+      <div className="workbench-meta-row">
+        <div className="workbench-meta">
+          <span className="workbench-meta-label">{t("workspace.tags")}</span>
+          <TagInput value={tags} onChange={setTags} readOnly={!canUpdate} label={t("workspace.tags")} />
         </div>
+        <div className="workbench-meta">
+          <span className="workbench-meta-label">{t("workspace.resourceTopics")}</span>
+          {!details || details.topics.length === 0 ? (
+            <span className="workbench-meta-empty">{t("workspace.noResourceTopics")}</span>
+          ) : (
+            details.topics.map((topic) => (
+              <button
+                key={topic.id}
+                className="workbench-topic-chip"
+                type="button"
+                onClick={() => onSelect({ kind: "topic", id: topic.id })}
+              >
+                <TopicGlyph topic={topic} />
+                {topic.title}
+              </button>
+            ))
+          )}
+        </div>
+      </div>
 
-        <aside className="workbench-aside">
-          <section className="workbench-card" aria-labelledby="resource-filing">
-            <h2 id="resource-filing">{t("workspace.filing")}</h2>
-            <Field label={t("resources.folderPath")} hint={t("resources.folderPathHint")}>
-              <Input value={folderPath} readOnly={!canUpdate} onChange={(event) => setFolderPath(event.target.value)} />
-            </Field>
-            <Field label={t("workspace.tags")} hint={t("workspace.tagsHint")}>
-              <Input value={tags} readOnly={!canUpdate} onChange={(event) => setTags(event.target.value)} />
-            </Field>
-          </section>
-
-          <section className="workbench-card" aria-labelledby="resource-topics">
-            <h2 id="resource-topics">{t("workspace.resourceTopics")}</h2>
-            {!details || details.topics.length === 0 ? (
-              <p className="workspace-list-empty">{t("workspace.noResourceTopics")}</p>
-            ) : (
-              <ul className="workbench-occurrence-list">
-                {details.topics.map((topic) => (
-                  <li key={topic.id}>
-                    <button
-                      className="workbench-occurrence"
-                      type="button"
-                      onClick={() => onSelect({ kind: "topic", id: topic.id })}
-                    >
-                      <TopicGlyph topic={topic} />
-                      <span className="workspace-row-copy">
-                        <strong>{topic.title}</strong>
-                        <span>{t(topicKindKeys[topic.kind])}</span>
-                      </span>
-                      <span className="workbench-occurrence-side">
-                        <StatusBadge value={topic.state} />
-                        <OpenRegular aria-hidden="true" />
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </aside>
+      <div className="workbench-main">
+        <section className="workbench-section" aria-labelledby="resource-info">
+          <div className="grid gap-1.5">
+            <Label htmlFor={titleFieldId}>{t("resources.textTitle")}</Label>
+            <Input
+              id={titleFieldId}
+              className="workbench-title-input"
+              value={title}
+              readOnly={!canUpdate || Boolean(details?.snapshotted)}
+              onChange={(event) => setTitle(event.target.value)}
+              required
+            />
+          </div>
+          {resource.kind === "text" ? (
+            <div className="grid gap-1.5">
+              {/* L'éditeur Markdown n'expose pas d'identifiant : l'étiquette reste descriptive. */}
+              <Label>{t("resources.textContent")}</Label>
+              <MarkdownEditor
+                title={resource.title}
+                markdown={resource.kind === "text" ? resource.content : ""}
+                onChange={setContent}
+                mentionables={mentionables}
+                searchContext={resource.folderPath}
+                readOnly={!canUpdate || Boolean(details?.snapshotted)}
+              />
+            </div>
+          ) : (
+            <DocumentEmbed resource={resource} onOpenFull={() => setViewerOpen(true)} />
+          )}
+          <div className="workbench-actions">
+            {canDelete ? (
+              <Button
+                className="composer-vote-toggle"
+                variant="ghost"
+                disabled={submitting}
+                onClick={() => void remove()}
+              >
+                <DeleteIcon />
+                {t("workspace.deleteResource")}
+              </Button>
+            ) : null}
+            <span className="composer-editor-spacer" />
+          </div>
+        </section>
       </div>
 
       {resource.kind === "document" && viewerOpen ? (

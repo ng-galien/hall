@@ -1,0 +1,111 @@
+/**
+ * Vocabulaire d'icônes de l'application.
+ *
+ * Les écrans n'importent jamais une bibliothèque d'icônes directement : ils passent par
+ * ce module, qui nomme chaque glyphe par son rôle et non par son dessin. Changer de jeu
+ * d'icônes se fait donc ici, sans toucher aux écrans.
+ */
+import { IconContext, PushPin } from "@phosphor-icons/react";
+import type { ReactNode } from "react";
+
+export {
+  ArrowClockwise as RedoIcon,
+  ArrowCounterClockwise as UndoIcon,
+  ArrowDown as ArrowDownIcon,
+  ArrowLeft as BackIcon,
+  ArrowSquareOut as OpenIcon,
+  ArrowsInLineHorizontal as MergeCellsIcon,
+  ArrowsOut as FullscreenIcon,
+  ArrowsOutLineHorizontal as SplitCellIcon,
+  ArrowUp as ArrowUpIcon,
+  At as ReferenceIcon,
+  CalendarBlank as CalendarIcon,
+  CalendarDots as AgendaIcon,
+  CalendarPlus as CalendarAddIcon,
+  CaretDoubleLeft as CollapseIcon,
+  CaretDoubleRight as ExpandIcon,
+  CaretDown as ChevronDownIcon,
+  CaretRight as ChevronRightIcon,
+  CaretUp as ChevronUpIcon,
+  Check as CheckIcon,
+  CheckCircle as CheckCircleIcon,
+  Code as CodeIcon,
+  Columns as ColumnIcon,
+  ColumnsPlusLeft as ColumnBeforeIcon,
+  ColumnsPlusRight as ColumnAfterIcon,
+  Copy as CopyIcon,
+  DotsSixVertical as DragHandleIcon,
+  DotsThree as MoreIcon,
+  DotsThreeVertical as MoreVerticalIcon,
+  File as FileIcon,
+  FileCsv as CsvIcon,
+  FileDoc as WordDocumentIcon,
+  FilePdf as PdfIcon,
+  FilePpt as PresentationDocumentIcon,
+  FileText as TextDocumentIcon,
+  FileXls as SpreadsheetDocumentIcon,
+  Folder as FolderIcon,
+  FolderPlus as FolderAddIcon,
+  Funnel as FilterIcon,
+  Gavel as GavelIcon,
+  Gear as SettingsIcon,
+  Highlighter as HighlightIcon,
+  House as HomeIcon,
+  Image as ImageIcon,
+  ImageSquare as InsertImageIcon,
+  Kanban as WorkspaceIcon,
+  LinkBreak as LinkOffIcon,
+  LinkSimple as LinkIcon,
+  ListBullets as DecisionsIcon,
+  ListBullets as ListBulletedIcon,
+  ListNumbers as ListNumberedIcon,
+  Lock as LockIcon,
+  MagnifyingGlass as SearchIcon,
+  MapPin as LocationIcon,
+  Minus as RuleIcon,
+  PencilSimple as EditIcon,
+  PencilSimpleLine as SignIcon,
+  Play as PlayIcon,
+  Plus as AddIcon,
+  PushPin as PinIcon,
+  Quotes as QuoteIcon,
+  Rows as ListViewIcon,
+  Rows as RowIcon,
+  RowsPlusBottom as RowAfterIcon,
+  RowsPlusTop as RowBeforeIcon,
+  Sidebar as SidebarExpandIcon,
+  SidebarSimple as SidebarCollapseIcon,
+  Sigma as SumIcon,
+  SquaresFour as CardViewIcon,
+  Table as TableIcon,
+  TextAlignCenter as AlignCenterIcon,
+  TextAlignLeft as AlignLeftIcon,
+  TextAlignRight as AlignRightIcon,
+  TextB as BoldIcon,
+  TextItalic as ItalicIcon,
+  TextStrikethrough as StrikethroughIcon,
+  TextUnderline as UnderlineIcon,
+  Trash as DeleteIcon,
+  UploadSimple as UploadIcon,
+  User as MemberIcon,
+  Users as MembersIcon,
+  Warning as WarningIcon,
+  X as CloseIcon,
+} from "@phosphor-icons/react";
+
+/** Épingle posée : même glyphe que `PinIcon`, en plein pour marquer l'état actif. */
+export function PinnedIcon(props: { className?: string }) {
+  return <PushPin weight="fill" {...props} />;
+}
+
+/**
+ * Défauts de rendu des icônes. La taille est exprimée en `1em` pour que le CSS existant
+ * pilote chaque glyphe par sa `font-size`, et `.app-icon` fixe la taille de repli.
+ */
+export function IconDefaults({ children }: { children: ReactNode }) {
+  return (
+    <IconContext.Provider value={{ size: "1em", weight: "regular", className: "app-icon" }}>
+      {children}
+    </IconContext.Provider>
+  );
+}

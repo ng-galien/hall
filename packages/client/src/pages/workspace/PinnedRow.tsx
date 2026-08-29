@@ -1,9 +1,9 @@
-import { DismissRegular, PinRegular } from "@fluentui/react-icons";
 import type { Resource, Topic } from "@hall/domain";
+import { CloseIcon, PinIcon } from "../../components/icons";
+import { ResourceGlyph, TopicGlyph } from "../../components/ResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { useTopicsStore } from "../../stores/topicsStore";
-import { ResourceGlyph, TopicGlyph } from "./ResourceGlyph";
 import type { WorkspaceSelection } from "./WorkspacePage";
 import { useWorkspacePrefsStore, type WorkspacePin } from "./workspacePrefs";
 
@@ -38,7 +38,7 @@ export function PinnedRow({
 
   return (
     <div className="wpins" role="toolbar" aria-label={t("workspace.pinned")}>
-      <PinRegular aria-hidden="true" className="wpins-icon" />
+      <PinIcon aria-hidden="true" className="app-icon wpins-icon" />
       {entries.map(({ pin, topic, resource }) => {
         const title = topic?.title ?? resource?.title ?? "";
         const isActive = selection !== null && selection.kind === pin.kind && selection.id === pin.id;
@@ -58,7 +58,7 @@ export function PinnedRow({
               aria-label={t("workspace.unpin").replace("{name}", title)}
               onClick={() => togglePin(pin)}
             >
-              <DismissRegular />
+              <CloseIcon />
             </button>
           </span>
         );

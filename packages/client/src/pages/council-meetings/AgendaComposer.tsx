@@ -1,24 +1,29 @@
-import { Button, Field } from "@fluentui/react-components";
-import {
-  AddRegular,
-  ArrowDownRegular,
-  ArrowUpRegular,
-  ChevronDownRegular,
-  ChevronRightRegular,
-  DeleteRegular,
-  DocumentRegular,
-  GavelRegular,
-  ReOrderDotsVerticalRegular,
-} from "@fluentui/react-icons";
 import type { AgendaItem, CouncilDecision, Topic } from "@hall/domain";
-import { type DragEvent, type FormEvent, useMemo, useState } from "react";
+import { type DragEvent, type FormEvent, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { MarkdownEditor } from "../../components/MarkdownEditor";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
+import { useMentionables } from "../../components/editor/useMentionables";
+import {
+  AddIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  DeleteIcon,
+  DragHandleIcon,
+  FileIcon,
+  GavelIcon,
+} from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
-import { EmptyState, Input } from "../../components/Ui";
+import { EmptyState } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
+import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 
 export const topicKindKeys: Record<Topic["kind"], TranslationKey> = {
   subject: "topicKind.subject",
@@ -65,9 +70,13 @@ export function AgendaComposer({
   onReorder(itemIds: string[]): Promise<boolean>;
 }) {
   const { t, formatNumber } = useI18n();
+  const { meetings } = useCouncilMeetingsStore();
   const { submitting, run } = useSubmitting();
+  const fieldId = useId();
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [quickAddKind, setQuickAddKind] = useState<Topic["kind"]>(quickAddKinds[0]);
   const [draftReport, setDraftReport] = useState("");
+  const mentionables = useMentionables();
   const [draftDecisionText, setDraftDecisionText] = useState("");
   const decisionFor = (topic: Topic) =>
     topic.kind === "subject" && topic.councilDecisionId
@@ -114,7 +123,7 @@ export function AgendaComposer({
       const form = new FormData(formElement);
       const added = await onQuickCreate(
         {
-          kind: form.get("kind"),
+          kind: quickAddKind,
           title: form.get("title"),
           report: "",
           folderPath: "",
@@ -122,7 +131,10 @@ export function AgendaComposer({
         },
         nextPosition,
       );
-      if (added) formElement.reset();
+      if (added) {
+        formElement.reset();
+        setQuickAddKind(quickAddKinds[0]);
+      }
       return added;
     });
   };
@@ -166,6 +178,10 @@ export function AgendaComposer({
           {orderedItems.map((item, index) => {
             const expanded = expandedItemId === item.id;
             const topic = item.topic;
+            const minutesMeeting =
+              topic.kind === "minutesApproval"
+                ? meetings.find((meeting) => meeting.id === topic.minutesOfMeetingId)
+                : null;
             const hasDecision = topic.kind === "subject" && Boolean(topic.councilDecisionId);
             const documentCount = topic.resources.length;
             return (
@@ -195,7 +211,7 @@ export function AgendaComposer({
                 <div className="composer-item-row">
                   {editable ? (
                     <span className="composer-grip" aria-hidden="true">
-                      <ReOrderDotsVerticalRegular />
+                      <DragHandleIcon />
                     </span>
                   ) : null}
                   <span className="composer-position">{index + 1}</span>
@@ -213,17 +229,17 @@ export function AgendaComposer({
                         {topic.folderPath ? ` · ${topic.folderPath}` : ""}
                       </span>
                     </span>
-                    {expanded ? <ChevronDownRegular aria-hidden="true" /> : <ChevronRightRegular aria-hidden="true" />}
+                    {expanded ? <ChevronDownIcon aria-hidden="true" /> : <ChevronRightIcon aria-hidden="true" />}
                   </button>
                   {hasDecision ? (
                     <span className="decision-meeting-chip" title={t("meeting.itemHasDecision")}>
-                      <GavelRegular aria-hidden="true" />
+                      <GavelIcon aria-hidden="true" />
                     </span>
                   ) : null}
                   {topic.kind === "minutesApproval" ? (
                     <Link
                       className="decision-meeting-chip"
-                      to={`/meetings/${topic.minutesOfMeetingId}`}
+                      to={`/meetings/${minutesMeeting?.slug ?? topic.minutesOfMeetingId}`}
                       title={t("meeting.viewPreviousMeeting")}
                     >
                       {t("meeting.previousMeetingChip")}
@@ -234,56 +250,66 @@ export function AgendaComposer({
                       className="decision-meeting-chip"
                       title={t("meeting.itemResourceCount").replace("{count}", formatNumber(documentCount))}
                     >
-                      <DocumentRegular aria-hidden="true" />
+                      <FileIcon aria-hidden="true" />
                       {formatNumber(documentCount)}
                     </span>
                   ) : null}
                   {editable ? (
                     <span className="composer-item-tools">
                       <Button
-                        appearance="subtle"
-                        size="small"
-                        icon={<ArrowUpRegular />}
+                        variant="ghost"
+                        size="sm"
                         aria-label={t("meeting.moveUp")}
                         disabled={submitting || index === 0}
                         onClick={() => moveItem(item.id, -1)}
-                      />
+                      >
+                        <ArrowUpIcon />
+                      </Button>
                       <Button
-                        appearance="subtle"
-                        size="small"
-                        icon={<ArrowDownRegular />}
+                        variant="ghost"
+                        size="sm"
                         aria-label={t("meeting.moveDown")}
                         disabled={submitting || index === orderedItems.length - 1}
                         onClick={() => moveItem(item.id, 1)}
-                      />
+                      >
+                        <ArrowDownIcon />
+                      </Button>
                       <Button
-                        appearance="subtle"
-                        size="small"
-                        icon={<DeleteRegular />}
+                        variant="ghost"
+                        size="sm"
                         aria-label={t("meeting.removeItem")}
                         disabled={submitting}
                         onClick={() => void run(() => onRemove(item.id))}
-                      />
+                      >
+                        <DeleteIcon />
+                      </Button>
                     </span>
                   ) : null}
                 </div>
                 {expanded ? (
                   editable ? (
                     <form className="composer-item-editor" onSubmit={(event) => void saveItem(event, item)}>
-                      <Field label={t("meeting.subject")} required>
-                        <Input name="title" defaultValue={topic.title} required />
-                      </Field>
-                      <Field label={t("meeting.report")} hint={t("meeting.reportHint")}>
-                        <MarkdownEditor markdown={topic.report} onChange={setDraftReport} />
-                      </Field>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor={`${fieldId}-title`}>{t("meeting.subject")}</Label>
+                        <Input id={`${fieldId}-title`} name="title" defaultValue={topic.title} required />
+                      </div>
+                      {/* L'éditeur Markdown n'expose pas de champ natif : l'étiquette reste sans `htmlFor`. */}
+                      <div className="grid gap-1.5">
+                        <Label>{t("meeting.report")}</Label>
+                        <MarkdownEditor markdown={topic.report} onChange={setDraftReport} mentionables={mentionables} />
+                        <p className="text-xs text-muted">{t("meeting.reportHint")}</p>
+                      </div>
                       {topic.kind === "subject" ? (
                         decisionFor(topic) ? (
-                          <Field label={t("meeting.draftDecision")} hint={t("meeting.decisionDraftTextHint")}>
+                          <div className="grid gap-1.5">
+                            <Label>{t("meeting.draftDecision")}</Label>
                             <MarkdownEditor
                               markdown={decisionFor(topic)?.draftText ?? ""}
                               onChange={setDraftDecisionText}
+                              mentionables={mentionables}
                             />
-                          </Field>
+                            <p className="text-xs text-muted">{t("meeting.decisionDraftTextHint")}</p>
+                          </div>
                         ) : null
                       ) : null}
                       <div className="composer-editor-actions">
@@ -291,7 +317,7 @@ export function AgendaComposer({
                           decisionFor(topic) ? (
                             <Button
                               className="composer-vote-toggle"
-                              appearance="subtle"
+                              variant="ghost"
                               type="button"
                               disabled={submitting}
                               onClick={() => void run(() => onDetachDecision(topic.id))}
@@ -300,21 +326,21 @@ export function AgendaComposer({
                             </Button>
                           ) : (
                             <Button
-                              appearance="secondary"
+                              variant="outline"
                               type="button"
-                              icon={<GavelRegular />}
                               disabled={submitting}
                               onClick={() => void run(() => onAttachDecision(topic.id, ""))}
                             >
+                              <GavelIcon />
                               {t("meeting.submitToVote")}
                             </Button>
                           )
                         ) : null}
                         <span className="composer-editor-spacer" />
-                        <Button appearance="secondary" type="button" onClick={() => setExpandedItemId(null)}>
+                        <Button variant="outline" type="button" onClick={() => setExpandedItemId(null)}>
                           {t("common.cancel")}
                         </Button>
-                        <Button appearance="primary" type="submit" disabled={submitting}>
+                        <Button variant="default" type="submit" disabled={submitting}>
                           {t(submitting ? "common.saving" : "common.save")}
                         </Button>
                       </div>
@@ -361,12 +387,12 @@ export function AgendaComposer({
                       </span>
                     </span>
                     <Button
-                      appearance="secondary"
-                      size="small"
-                      icon={<AddRegular />}
+                      variant="outline"
+                      size="sm"
                       disabled={submitting}
                       onClick={() => void run(() => onSchedule(topic.id, nextPosition))}
                     >
+                      <AddIcon />
                       {t("meeting.addToAgenda")}
                     </Button>
                   </li>
@@ -377,20 +403,28 @@ export function AgendaComposer({
           <form className="composer-quick-add" onSubmit={quickAdd} aria-labelledby="composer-quick-add-heading">
             <h3 id="composer-quick-add-heading">{t("meeting.addOtherHeading")}</h3>
             <div className="composer-quick-add-fields">
-              <select name="kind" aria-label={t("meeting.type")} defaultValue="subject">
-                {quickAddKinds.map((kind) => (
-                  <option key={kind} value={kind}>
-                    {t(topicKindKeys[kind])}
-                  </option>
-                ))}
-              </select>
+              {/* Contrôlé : `formElement.reset()` ne remet pas l'état interne de Radix à zéro,
+                  il faut donc le repositionner nous-mêmes après un ajout réussi. */}
+              <Select name="kind" value={quickAddKind} onValueChange={(kind) => setQuickAddKind(kind as Topic["kind"])}>
+                <SelectTrigger aria-label={t("meeting.type")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {quickAddKinds.map((kind) => (
+                    <SelectItem key={kind} value={kind}>
+                      {t(topicKindKeys[kind])}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 name="title"
                 placeholder={t("meeting.subjectPlaceholder")}
                 aria-label={t("meeting.subject")}
                 required
               />
-              <Button appearance="primary" type="submit" icon={<AddRegular />} disabled={submitting}>
+              <Button variant="default" type="submit" disabled={submitting}>
+                <AddIcon />
                 {t(submitting ? "common.saving" : "common.add")}
               </Button>
             </div>

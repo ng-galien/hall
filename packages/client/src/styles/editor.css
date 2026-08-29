@@ -1,0 +1,428 @@
+/* ---- Éditeur de texte (Tiptap) ----
+   Tiptap est « headless » : tout ce qui se voit ici est à nous. Le cadre `.markdown-editor`
+   et la typographie `.markdown-content` restent définis dans meeting-workspace.css ; ce
+   fichier ne porte que la disposition propre à l'éditeur. Hors @layer : certaines règles
+   doivent l'emporter sur les utilitaires shadcn posés sur les mêmes éléments. */
+
+/* La surimpression d'édition enrichie occupe presque tout l'écran. */
+.markdown-editor-dialog {
+  display: flex;
+  width: var(--hall-size-viewer-width);
+  max-width: var(--hall-size-editor-dialog);
+  height: var(--hall-size-viewer-height);
+  max-height: var(--hall-size-viewer-height);
+  flex-direction: column;
+}
+
+.markdown-editor {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Écriture rapide : la barre passe en colonne à gauche plutôt qu'en bandeau au-dessus,
+   pour ne pas coûter de hauteur sur chaque champ. */
+.markdown-editor-compact {
+  flex-direction: row;
+  align-items: stretch;
+}
+.markdown-editor-compact > [role="toolbar"] {
+  flex-direction: column;
+  border-bottom: 0;
+  border-right: var(--hall-stroke-thin) solid var(--hall-color-border);
+}
+.markdown-editor-compact .markdown-toolbar-end {
+  margin-top: auto;
+  margin-left: 0;
+}
+
+/* Le canevas porte les poignées de tableau : elles sont positionnées dans son repère et
+   défilent avec le texte, puisqu'elles vivent dedans. */
+.markdown-editor-canvas {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.markdown-editor-content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+.markdown-editor-content > [contenteditable] {
+  flex: 1;
+  min-width: 0;
+  padding: var(--hall-space-2-5) var(--hall-space-3);
+  outline: none;
+}
+
+/* La surimpression donne toute la hauteur restante au texte, qui défile seul. */
+.markdown-editor-large {
+  flex: 1;
+  min-height: 0;
+}
+.markdown-editor-large .markdown-editor-canvas {
+  overflow-y: auto;
+}
+
+/* ---- Poignées de tableau ----
+   Discrètes par contrat : elles n'existent que lorsque la sélection est dans un tableau,
+   posées à cheval sur ses bords, et portent chacune leur menu. */
+.table-handle,
+.table-extend {
+  position: absolute;
+  z-index: 10;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: var(--hall-stroke-thin) solid var(--hall-color-border-strong);
+  border-radius: var(--hall-radius-circular);
+  color: var(--hall-color-text-subtle);
+  background: var(--hall-color-surface);
+  font-size: var(--hall-font-size-caption);
+  cursor: pointer;
+}
+.table-handle:hover,
+.table-handle[data-state="open"],
+.table-extend:hover {
+  border-color: var(--hall-color-brand);
+  color: var(--hall-color-brand);
+  background: var(--hall-color-brand-subtle);
+}
+.table-handle-column {
+  width: var(--hall-size-table-handle-long);
+  height: var(--hall-size-table-handle-short);
+}
+.table-handle-row {
+  width: var(--hall-size-table-handle-short);
+  height: var(--hall-size-table-handle-long);
+}
+.table-extend {
+  width: var(--hall-size-table-extend);
+  height: var(--hall-size-table-extend);
+}
+
+/* Fusion et scission : une pastille unique, sous la sélection de cellules. */
+.table-action-pill {
+  position: absolute;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hall-space-1);
+  padding: var(--hall-space-1) var(--hall-space-2);
+  transform: translate(-50%, -50%);
+  border: var(--hall-stroke-thin) solid var(--hall-color-border-strong);
+  border-radius: var(--hall-radius-circular);
+  color: var(--hall-color-text-muted);
+  background: var(--hall-color-surface);
+  font-size: var(--hall-font-size-caption);
+  cursor: pointer;
+}
+.table-action-pill:hover {
+  border-color: var(--hall-color-brand);
+  color: var(--hall-color-brand);
+  background: var(--hall-color-brand-subtle);
+}
+
+/* La poignée s'ajoute en fin de cellule : le dernier paragraphe n'est alors plus
+   `:last-child` et récupérait sa marge basse — toutes les lignes gonflaient au survol. */
+.markdown-content th > p:has(+ .column-resize-handle),
+.markdown-content td > p:has(+ .column-resize-handle) {
+  margin-bottom: 0;
+}
+
+/* Redimensionnement de colonnes (prosemirror-tables). */
+.markdown-editor .markdown-content th,
+.markdown-editor .markdown-content td {
+  position: relative;
+}
+.markdown-content .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  z-index: 5;
+  width: 4px;
+  background: var(--hall-color-brand);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.markdown-editor .resize-cursor {
+  cursor: col-resize;
+}
+.markdown-content .tableWrapper {
+  overflow-x: auto;
+}
+
+/* ---- Références (`:member[…]{#id}`…) ----
+   La même puce dans l'éditeur et dans le rendu : icône, libellé, teinte de la marque.
+   Une pièce est cliquable — elle ouvre le document. */
+/* Une seule apparence, dans l'éditeur comme dans le rendu : c'est le même document. */
+.editor-reference,
+.markdown-reference {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--hall-space-1);
+  padding: 0 var(--hall-space-1-5);
+  border: 0;
+  border-radius: var(--hall-radius-small);
+  color: var(--hall-color-brand);
+  background: var(--hall-color-brand-subtle);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: var(--hall-font-weight-medium);
+  line-height: inherit;
+  white-space: nowrap;
+}
+.editor-reference.is-openable {
+  cursor: pointer;
+}
+.editor-reference.is-openable:hover {
+  text-decoration: underline;
+}
+.editor-reference-wrapper {
+  display: inline;
+}
+/* L'atome sélectionné se signale, comme du texte surligné. */
+.editor-reference-wrapper.ProseMirror-selectednode .editor-reference {
+  outline: var(--hall-stroke-thin) solid var(--hall-color-brand);
+}
+
+/* La plage `@requête` en cours de frappe : teintée comme la puce qu'elle va devenir. */
+.markdown-content .mention-query {
+  padding: 0 var(--hall-space-1);
+  border-radius: var(--hall-radius-small);
+  color: var(--hall-color-brand);
+  background: var(--hall-color-brand-subtle);
+}
+
+/* ---- Menu de recherche du `@` ---- */
+.mention-suggestions {
+  display: flex;
+  min-width: 280px;
+  max-height: 360px;
+  flex-direction: column;
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-medium);
+  background: var(--hall-color-surface);
+  box-shadow: var(--hall-shadow-large);
+}
+/* Seule la liste défile ; l'aide et la porte vers la recherche complète restent en pied. */
+.mention-suggestion-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--hall-space-1);
+}
+/* En tête du menu : la porte vers la recherche complète, avec son compteur. */
+.mention-suggestion-browse {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--hall-space-2);
+  padding: var(--hall-space-1-5) var(--hall-space-2);
+  border: 0;
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+  color: var(--hall-color-text);
+  background: transparent;
+  font-size: var(--hall-font-size-body);
+  text-align: left;
+  cursor: pointer;
+}
+.mention-suggestion-browse:hover {
+  color: var(--hall-color-brand);
+  background: var(--hall-color-surface-selected);
+}
+.mention-suggestion-count {
+  margin-left: auto;
+  color: var(--hall-color-text-subtle);
+  font-size: var(--hall-font-size-caption);
+}
+.mention-suggestion-hint {
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+}
+
+/* ---- L'aide de recherche ----
+   Ce que l'utilisateur doit taper est typographié en jeton, le reste s'efface :
+   l'aide s'apprend d'un coup d'œil. */
+.search-syntax-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hall-space-1);
+  padding: var(--hall-space-1-5) var(--hall-space-2);
+  color: var(--hall-color-text-subtle);
+  font-size: var(--hall-font-size-caption);
+}
+.search-syntax-label {
+  margin-right: var(--hall-space-1);
+  color: var(--hall-color-text-muted);
+  font-weight: var(--hall-font-weight-semibold);
+  letter-spacing: var(--hall-letter-spacing-section);
+  text-transform: uppercase;
+}
+.search-syntax-hint kbd {
+  padding: 0 var(--hall-space-1-5);
+  border: var(--hall-stroke-thin) solid var(--hall-color-border-strong);
+  border-radius: var(--hall-radius-small);
+  color: var(--hall-color-text);
+  background: var(--hall-color-surface-subtle);
+  font-family: var(--hall-font-family-monospace);
+  font-size: var(--hall-font-size-caption);
+}
+.mention-suggestion-group {
+  padding: var(--hall-space-1) var(--hall-space-2);
+  color: var(--hall-color-text-subtle);
+  font-size: var(--hall-font-size-caption);
+  font-weight: var(--hall-font-weight-semibold);
+  letter-spacing: var(--hall-letter-spacing-section);
+  text-transform: uppercase;
+}
+.mention-suggestion-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--hall-space-2);
+  padding: var(--hall-space-1-5) var(--hall-space-2);
+  border: 0;
+  border-radius: var(--hall-radius-small);
+  color: var(--hall-color-text);
+  background: transparent;
+  font-size: var(--hall-font-size-body);
+  text-align: left;
+  cursor: pointer;
+}
+.mention-suggestion-item.is-active,
+.mention-suggestion-item:hover {
+  background: var(--hall-color-surface-selected);
+}
+/* ---- Recherche complète de références ---- */
+.reference-search-dialog {
+  display: flex;
+  width: min(680px, 92vw);
+  max-width: min(680px, 92vw);
+  height: min(70vh, 640px);
+  flex-direction: column;
+}
+.reference-search-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hall-space-1);
+}
+.reference-search-filter {
+  padding: var(--hall-space-1) var(--hall-space-2);
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-circular);
+  color: var(--hall-color-text-muted);
+  background: transparent;
+  font-size: var(--hall-font-size-caption);
+  cursor: pointer;
+}
+.reference-search-filter:hover {
+  border-color: var(--hall-color-brand);
+  color: var(--hall-color-brand);
+}
+.reference-search-filter.is-active {
+  border-color: var(--hall-color-brand);
+  color: var(--hall-color-brand);
+  background: var(--hall-color-brand-subtle);
+}
+.reference-search-results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-medium);
+  padding: var(--hall-space-1);
+}
+.reference-search-path {
+  margin-left: auto;
+  padding-left: var(--hall-space-3);
+  color: var(--hall-color-text-subtle);
+  font-size: var(--hall-font-size-caption);
+}
+/* Une section de dossier : le chemin, en fil d'Ariane discret. */
+.reference-search-folder {
+  display: flex;
+  align-items: center;
+  gap: var(--hall-space-1);
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: var(--hall-font-family-monospace);
+}
+
+/* Aperçu d'une pièce texte : la copie respire et défile dans le panneau du visionneur. */
+.resource-preview-text {
+  width: 100%;
+  max-width: var(--hall-size-editor-measure);
+  margin-inline: auto;
+  padding: var(--hall-space-6);
+  overflow-y: auto;
+}
+
+.markdown-toolbar-button.is-active {
+  color: var(--hall-color-brand);
+  background: var(--hall-color-brand-subtle);
+}
+.markdown-toolbar-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.markdown-toolbar-separator {
+  width: var(--hall-stroke-thin);
+  align-self: stretch;
+  margin-block: var(--hall-space-1);
+  margin-inline: var(--hall-space-0-5);
+  background: var(--hall-color-border);
+}
+
+/* Invite de saisie sur texte vide (extension Placeholder). */
+.markdown-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--hall-color-text-subtle);
+  pointer-events: none;
+}
+
+/* Sélection multi-cellules d'un tableau. */
+.markdown-content .selectedCell {
+  background: var(--hall-color-brand-subtle);
+}
+
+.markdown-link-popover form {
+  display: grid;
+  gap: var(--hall-space-2-5);
+}
+.markdown-link-popover label {
+  display: grid;
+  gap: var(--hall-space-1);
+  color: var(--hall-color-text-muted);
+  font-size: var(--hall-font-size-caption);
+}
+.markdown-link-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--hall-space-2);
+}
+.markdown-toolbar-text-button {
+  padding: var(--hall-space-1) var(--hall-space-2);
+  border: 0;
+  border-radius: var(--hall-radius-small);
+  color: var(--hall-color-text-muted);
+  background: transparent;
+  font-size: var(--hall-font-size-caption);
+  cursor: pointer;
+}
+.markdown-toolbar-text-button:hover {
+  color: var(--hall-color-text);
+  background: var(--hall-color-surface-selected);
+}
+.markdown-toolbar-text-button.is-primary {
+  color: var(--hall-color-on-brand);
+  background: var(--hall-color-brand);
+}
+.markdown-toolbar-text-button.is-primary:hover {
+  background: var(--hall-color-brand-hover);
+}

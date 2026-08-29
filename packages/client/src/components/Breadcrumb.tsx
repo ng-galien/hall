@@ -1,7 +1,7 @@
-import { ChevronRightRegular } from "@fluentui/react-icons";
 import { Fragment } from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "../i18n/I18nProvider";
+import { ChevronRightIcon } from "./icons";
 
 export interface BreadcrumbItem {
   label: string;
@@ -17,7 +17,7 @@ export function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
         const content = <span className={`truncate ${last ? "font-semibold text-text" : ""}`}>{item.label}</span>;
         return (
           <Fragment key={item.to ?? item.label}>
-            {index > 0 ? <ChevronRightRegular className="shrink-0 text-xs text-faint" /> : null}
+            {index > 0 ? <ChevronRightIcon className="app-icon shrink-0 text-xs text-faint" /> : null}
             {item.to && !last ? (
               <Link to={item.to} className="hover:text-text">
                 {content}

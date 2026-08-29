@@ -1,12 +1,14 @@
-import { Button, Field } from "@fluentui/react-components";
-import { AddRegular, CalendarLtrRegular, ChevronRightRegular, LocationRegular } from "@fluentui/react-icons";
 import type { CouncilMeeting } from "@hall/domain";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AddIcon, CalendarIcon, ChevronRightIcon, LocationIcon } from "../../components/icons";
 import {
   CollectionToolbar,
   EmptyState,
-  Input,
   MeetingStatusBadge,
   Modal,
   matchesQuery,
@@ -19,6 +21,15 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 
+/** Valeur sentinelle de l'entrée « non désigné » : SelectItem interdit une valeur vide. */
+const UNDESIGNATED = "none";
+
+/** Ramène la sentinelle « non désigné » sur null avant l'envoi au serveur. */
+function officerId(value: FormDataEntryValue | null): string | null {
+  const id = typeof value === "string" ? value : "";
+  return id && id !== UNDESIGNATED ? id : null;
+}
+
 export function CouncilMeetingsPage() {
   const { t, formatDateTime } = useI18n();
   const { submitting, run } = useSubmitting();
@@ -26,6 +37,11 @@ export function CouncilMeetingsPage() {
   const { members } = useCouncilMembersStore();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const { layout, setLayout, query, setQuery } = useCollectionView();
+  const titleFieldId = useId();
+  const startsAtFieldId = useId();
+  const locationFieldId = useId();
+  const chairFieldId = useId();
+  const secretaryFieldId = useId();
   const defaultChair = members.find((member) => member.role === "mayor" && member.active) ?? null;
 
   const upcomingMeetings = [...meetings]
@@ -48,8 +64,8 @@ export function CouncilMeetingsPage() {
         title: form.get("title"),
         startsAt: new Date(String(form.get("startsAt"))).toISOString(),
         location: form.get("location"),
-        chairMemberId: form.get("chairMemberId") || null,
-        secretaryMemberId: form.get("secretaryMemberId") || null,
+        chairMemberId: officerId(form.get("chairMemberId")),
+        secretaryMemberId: officerId(form.get("secretaryMemberId")),
       });
       if (created) {
         formElement.reset();
@@ -66,29 +82,30 @@ export function CouncilMeetingsPage() {
         <RequestErrorBanner error={error} />
 
         {nextMeeting ? (
-          <Link className="next-meeting-hero" to={`/meetings/${nextMeeting.id}`}>
+          <Link className="next-meeting-hero" to={`/meetings/${nextMeeting.slug}`}>
             <div className="next-meeting-copy">
               <span className="entity-card-eyebrow">{t("dashboard.nextMeeting")}</span>
               <strong>{nextMeeting.title}</strong>
               <span className="next-meeting-facts">
                 <span>
-                  <CalendarLtrRegular aria-hidden="true" /> {formatDateTime(nextMeeting.startsAt)}
+                  <CalendarIcon aria-hidden="true" /> {formatDateTime(nextMeeting.startsAt)}
                 </span>
                 <span>
-                  <LocationRegular aria-hidden="true" /> {nextMeeting.location}
+                  <LocationIcon aria-hidden="true" /> {nextMeeting.location}
                 </span>
               </span>
             </div>
             <span className="next-meeting-side">
               <MeetingStatusBadge status={nextMeeting.status} />
-              <ChevronRightRegular aria-hidden="true" />
+              <ChevronRightIcon aria-hidden="true" />
             </span>
           </Link>
         ) : null}
 
         <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
           {canCreate ? (
-            <Button appearance="primary" icon={<AddRegular />} onClick={() => setScheduleOpen(true)}>
+            <Button variant="default" onClick={() => setScheduleOpen(true)}>
+              <AddIcon />
               {t("meetings.schedule")}
             </Button>
           ) : null}
@@ -96,40 +113,55 @@ export function CouncilMeetingsPage() {
 
         <Modal open={canCreate && scheduleOpen} title={t("meetings.schedule")} onClose={() => setScheduleOpen(false)}>
           <form className="modal-form" onSubmit={submit}>
-            <Field label={t("meetings.name")} required>
-              <Input name="title" placeholder={t("meetings.namePlaceholder")} required />
-            </Field>
-            <div className="form-grid">
-              <Field label={t("meetings.dateTime")} required>
-                <Input name="startsAt" type="datetime-local" required />
-              </Field>
-              <Field label={t("meetings.location")} required>
-                <Input name="location" defaultValue={t("meetings.locationDefault")} required />
-              </Field>
+            <div className="grid gap-1.5">
+              <Label htmlFor={titleFieldId}>{t("meetings.name")}</Label>
+              <Input id={titleFieldId} name="title" placeholder={t("meetings.namePlaceholder")} required />
             </div>
             <div className="form-grid">
-              <Field label={t("meetings.chair")} required>
-                <select name="chairMemberId" defaultValue={defaultChair?.id ?? ""} required>
-                  <option value="">{t("meetings.chairUndesignated")}</option>
-                  {members.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.firstName} {member.lastName}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label={t("meetings.secretary")} required>
-                <select name="secretaryMemberId" required>
-                  <option value="">{t("meetings.secretaryUndesignated")}</option>
-                  {members.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.firstName} {member.lastName}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <div className="grid gap-1.5">
+                <Label htmlFor={startsAtFieldId}>{t("meetings.dateTime")}</Label>
+                <Input id={startsAtFieldId} name="startsAt" type="datetime-local" required />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={locationFieldId}>{t("meetings.location")}</Label>
+                <Input id={locationFieldId} name="location" defaultValue={t("meetings.locationDefault")} required />
+              </div>
             </div>
-            <Button appearance="primary" type="submit" disabled={submitting}>
+            <div className="form-grid">
+              <div className="grid gap-1.5">
+                <Label htmlFor={chairFieldId}>{t("meetings.chair")}</Label>
+                <Select name="chairMemberId" defaultValue={defaultChair?.id ?? UNDESIGNATED} required>
+                  <SelectTrigger id={chairFieldId} className="w-full">
+                    <SelectValue placeholder={t("meetings.chairUndesignated")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UNDESIGNATED}>{t("meetings.chairUndesignated")}</SelectItem>
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.firstName} {member.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={secretaryFieldId}>{t("meetings.secretary")}</Label>
+                <Select name="secretaryMemberId" defaultValue={UNDESIGNATED} required>
+                  <SelectTrigger id={secretaryFieldId} className="w-full">
+                    <SelectValue placeholder={t("meetings.secretaryUndesignated")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UNDESIGNATED}>{t("meetings.secretaryUndesignated")}</SelectItem>
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.firstName} {member.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button variant="default" type="submit" disabled={submitting}>
               {t(submitting ? "common.saving" : "common.create")}
             </Button>
           </form>
@@ -188,7 +220,7 @@ function MeetingGroup({
       {layout === "cards" ? (
         <div className="card-grid">
           {meetings.map((meeting) => (
-            <Link className="entity-card" key={meeting.id} to={`/meetings/${meeting.id}`}>
+            <Link className="entity-card" key={meeting.id} to={`/meetings/${meeting.slug}`}>
               <span className="entity-card-eyebrow">{formatDateTime(meeting.startsAt)}</span>
               <strong>{meeting.title}</strong>
               <p>{meeting.location}</p>
@@ -201,7 +233,7 @@ function MeetingGroup({
       ) : (
         <div className="data-list">
           {meetings.map((meeting) => (
-            <Link className="data-row linked" key={meeting.id} to={`/meetings/${meeting.id}`}>
+            <Link className="data-row linked" key={meeting.id} to={`/meetings/${meeting.slug}`}>
               <div>
                 <strong>{meeting.title}</strong>
                 <span>

@@ -1,6 +1,6 @@
-import { ChevronDownRegular, ChevronRightRegular } from "@fluentui/react-icons";
 import type { AgendaItem, Attendance, Ballot, CouncilMember, MeetingAggregate, VoteChoice } from "@hall/domain";
 import { useMemo, useState } from "react";
+import { ChevronDownIcon, ChevronRightIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { StatusBadge } from "../../components/Ui";
 import type { TranslationKey } from "../../i18n/en";
@@ -46,7 +46,7 @@ export function BallotOutcome({
           {formatNumber(ballot.votesFor)} · {formatNumber(ballot.votesAgainst)} · {formatNumber(ballot.abstentions)} ·{" "}
           {formatNumber(ballot.notVoting)}
         </span>
-        {detailsVisible ? <ChevronDownRegular aria-hidden="true" /> : <ChevronRightRegular aria-hidden="true" />}
+        {detailsVisible ? <ChevronDownIcon aria-hidden="true" /> : <ChevronRightIcon aria-hidden="true" />}
       </button>
       {detailsVisible ? (
         <>

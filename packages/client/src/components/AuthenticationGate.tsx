@@ -1,5 +1,8 @@
 import type { ApiPrincipal, SirenEntity } from "@hall/api-contract";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ApiError, AUTHENTICATION_REQUIRED_EVENT, apiErrorCode } from "../services/apiClient";
 import { type AuthenticationStatus, authenticate, getAuthenticationStatus, getSession } from "../services/authApi";
 
@@ -64,36 +67,37 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
         <h1>{status?.bootstrapRequired ? "Créer le premier administrateur" : "Connexion"}</h1>
         {status?.bootstrapRequired ? (
           <>
-            <label>
-              Nom affiché
-              <input name="displayName" autoComplete="name" required />
-            </label>
+            <div className="grid gap-1.5">
+              <Label htmlFor="auth-display-name">Nom affiché</Label>
+              <Input id="auth-display-name" name="displayName" autoComplete="name" required />
+            </div>
             {status.bootstrapTokenRequired ? (
-              <label>
-                Jeton d’initialisation
-                <input name="setupToken" type="password" autoComplete="off" required />
-              </label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="auth-setup-token">Jeton d’initialisation</Label>
+                <Input id="auth-setup-token" name="setupToken" type="password" autoComplete="off" required />
+              </div>
             ) : null}
           </>
         ) : null}
-        <label>
-          Adresse électronique
-          <input name="email" type="email" autoComplete="username" required />
-        </label>
-        <label>
-          Mot de passe
-          <input
+        <div className="grid gap-1.5">
+          <Label htmlFor="auth-email">Adresse électronique</Label>
+          <Input id="auth-email" name="email" type="email" autoComplete="username" required />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="auth-password">Mot de passe</Label>
+          <Input
+            id="auth-password"
             name="password"
             type="password"
             autoComplete={status?.bootstrapRequired ? "new-password" : "current-password"}
             minLength={12}
             required
           />
-        </label>
+        </div>
         {error ? <p className="form-error">{error}</p> : null}
-        <button type="submit" disabled={submitting || !representation}>
+        <Button type="submit" disabled={submitting || !representation}>
           {submitting ? "Validation…" : status?.bootstrapRequired ? "Initialiser" : "Se connecter"}
-        </button>
+        </Button>
       </form>
     </main>
   );

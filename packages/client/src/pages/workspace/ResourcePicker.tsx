@@ -1,10 +1,10 @@
-import { Button } from "@fluentui/react-components";
-import { AddRegular, SearchRegular } from "@fluentui/react-icons";
 import type { Resource } from "@hall/domain";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { AddIcon, SearchIcon } from "../../components/icons";
+import { ResourceGlyph, useResourceTypeLabel } from "../../components/ResourceGlyph";
 import { matchesQuery } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
-import { ResourceGlyph, useResourceTypeLabel } from "./ResourceGlyph";
 
 function PickerGroup({
   headingKey,
@@ -68,12 +68,12 @@ export function ResourcePicker({
   return (
     <div className="resource-picker">
       <Button
-        appearance="secondary"
-        icon={<AddRegular />}
+        variant="outline"
         disabled={disabled || (suggestions.length === 0 && others.length === 0)}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
+        <AddIcon />
         {t("workspace.addResource")}
       </Button>
       {open ? (
@@ -90,7 +90,7 @@ export function ResourcePicker({
             }}
           >
             <div className="workspace-search">
-              <SearchRegular aria-hidden="true" />
+              <SearchIcon aria-hidden="true" />
               <input
                 // biome-ignore lint/a11y/noAutofocus: le panneau s'ouvre à la demande, le focus suit l'intention
                 autoFocus

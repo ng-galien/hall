@@ -1,8 +1,10 @@
-import { Button, Field } from "@fluentui/react-components";
-import { EditRegular, PlayRegular } from "@fluentui/react-icons";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Input, MeetingStatusBadge, Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { EditIcon, PlayIcon } from "../../components/icons";
+import { MeetingStatusBadge, Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -16,6 +18,7 @@ import { MeetingStageBar } from "./MeetingStageBar";
 export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnType<typeof useCouncilMeeting> }) {
   const { t, formatDateTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
+  const detailsFieldId = useId();
   const aggregate = meetingActions.meeting!;
   const { meeting } = aggregate;
   const { members } = useCouncilMembersStore();
@@ -87,21 +90,22 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             </div>
             <div className="meeting-prep-actions">
               {detailsEditable ? (
-                <Button appearance="secondary" icon={<EditRegular />} onClick={() => setEditOpen(true)}>
+                <Button variant="outline" onClick={() => setEditOpen(true)}>
+                  <EditIcon />
                   {t("meetings.edit")}
                 </Button>
               ) : null}
               {meetingActions.can("meeting.schedule") ? (
                 <Button
-                  appearance="primary"
+                  variant="default"
                   disabled={submitting}
                   onClick={() => void run(() => meetingActions.changeStatus("scheduled"))}
                 >
                   {t(submitting ? "common.saving" : "meeting.action.schedule")}
                 </Button>
               ) : (
-                <Link className="live-mode-link" to={`/meetings/${meeting.id}/live`}>
-                  <PlayRegular aria-hidden="true" />
+                <Link className="live-mode-link" to={`/meetings/${meeting.slug}/live`}>
+                  <PlayIcon aria-hidden="true" />
                   {t("meeting.enterLiveMode")}
                 </Link>
               )}
@@ -120,18 +124,27 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
 
         <Modal open={editOpen} title={t("meetings.edit")} onClose={() => setEditOpen(false)}>
           <form className="modal-form" onSubmit={submitDetails}>
-            <Field label={t("meetings.name")} required>
-              <Input name="title" defaultValue={meeting.title} required />
-            </Field>
-            <div className="form-grid">
-              <Field label={t("meetings.dateTime")} required>
-                <Input name="startsAt" type="datetime-local" defaultValue={startsAtLocalValue} required />
-              </Field>
-              <Field label={t("meetings.location")} required>
-                <Input name="location" defaultValue={meeting.location} required />
-              </Field>
+            <div className="grid gap-1.5">
+              <Label htmlFor={`${detailsFieldId}-title`}>{t("meetings.name")}</Label>
+              <Input id={`${detailsFieldId}-title`} name="title" defaultValue={meeting.title} required />
             </div>
-            <Button appearance="primary" type="submit" disabled={submitting}>
+            <div className="form-grid">
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${detailsFieldId}-startsAt`}>{t("meetings.dateTime")}</Label>
+                <Input
+                  id={`${detailsFieldId}-startsAt`}
+                  name="startsAt"
+                  type="datetime-local"
+                  defaultValue={startsAtLocalValue}
+                  required
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${detailsFieldId}-location`}>{t("meetings.location")}</Label>
+                <Input id={`${detailsFieldId}-location`} name="location" defaultValue={meeting.location} required />
+              </div>
+            </div>
+            <Button variant="default" type="submit" disabled={submitting}>
               {t(submitting ? "common.saving" : "common.save")}
             </Button>
           </form>

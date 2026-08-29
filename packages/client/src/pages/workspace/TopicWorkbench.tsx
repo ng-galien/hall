@@ -1,29 +1,34 @@
-import { Button, Field, Tooltip } from "@fluentui/react-components";
-import {
-  ArrowDownRegular,
-  ArrowUpRegular,
-  CalendarAddRegular,
-  DismissRegular,
-  EditRegular,
-  GavelRegular,
-  LockClosedRegular,
-  OpenRegular,
-  PinFilled,
-  PinRegular,
-} from "@fluentui/react-icons";
 import { findSirenAction, type SirenEntity } from "@hall/api-contract";
 import type { DocumentResource, Topic, TopicDetails } from "@hall/domain";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { MarkdownEditor } from "../../components/MarkdownEditor";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
+import { useMentionables } from "../../components/editor/useMentionables";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CalendarAddIcon,
+  CloseIcon,
+  EditIcon,
+  GavelIcon,
+  LockIcon,
+  OpenIcon,
+  PinIcon,
+  PinnedIcon,
+} from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
-import { Input, MeetingStatusBadge, RequestErrorBanner, StatusBadge } from "../../components/Ui";
+import { ResourceGlyph, useResourceTypeLabel } from "../../components/ResourceGlyph";
+import { MeetingStatusBadge, RequestErrorBanner, StatusBadge } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { updateCouncilDecision } from "../../services/councilDecisionsApi";
 import { deleteMeetingAgendaItem, getCouncilMeeting } from "../../services/councilMeetingsApi";
-import { resourceContentHref, uploadResourceDocument } from "../../services/resourcesApi";
 import {
   attachTopicDecision,
   detachTopicDecision,
@@ -37,7 +42,6 @@ import { useResourcesStore } from "../../stores/resourcesStore";
 import { useTopicsStore } from "../../stores/topicsStore";
 import { topicKindKeys } from "../council-meetings/AgendaComposer";
 import { MeetingDocumentViewer } from "../council-meetings/MeetingDocumentViewer";
-import { ResourceGlyph, useResourceTypeLabel } from "./ResourceGlyph";
 import { ResourcePicker } from "./ResourcePicker";
 import type { WorkspaceSelection } from "./WorkspacePage";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
@@ -49,6 +53,7 @@ export function TopicWorkbench({
   topic: Topic;
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
+  const mentionables = useMentionables();
   const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const { resources, download } = useResourcesStore();
@@ -62,6 +67,7 @@ export function TopicWorkbench({
   const [draftText, setDraftText] = useState("");
   const [meetingChoice, setMeetingChoice] = useState("");
   const [viewedDocument, setViewedDocument] = useState<DocumentResource | null>(null);
+  const titleFieldId = useId();
   const can = (
     name: "topic.update" | "topic.schedule" | "topic.attach-decision" | "topic.detach-decision" | "agenda-item.remove",
   ) => Boolean(representation && findSirenAction(representation, name));
@@ -148,18 +154,6 @@ export function TopicWorkbench({
   const suggestions = candidateResources.filter((resource) => resource.folderPath === topic.folderPath);
   const otherCandidates = candidateResources.filter((resource) => resource.folderPath !== topic.folderPath);
 
-  const uploadEditorImage = async (image: File) => {
-    const form = new FormData();
-    form.set("title", image.name);
-    form.set("folderPath", topic.folderPath);
-    form.set("category", "supporting");
-    form.set("file", image);
-    const created = await uploadResourceDocument(form);
-    await updateTopic(topic.id, topicPayload({ resourceIds: [...topic.resources.map((r) => r.id), created.id] }));
-    await reloadStores();
-    return resourceContentHref(created.id);
-  };
-
   const composableMeetings = meetings.filter(
     (meeting) => ["draft", "scheduled"].includes(meeting.status) && !meeting.isReconvenedMeeting,
   );
@@ -196,18 +190,24 @@ export function TopicWorkbench({
           </span>
           <h1>{topic.title}</h1>
           <span className={`workbench-edit-hint${editable ? "" : " workbench-edit-hint-locked"}`}>
-            {editable ? <EditRegular aria-hidden="true" /> : <LockClosedRegular aria-hidden="true" />}
+            {editable ? <EditIcon aria-hidden="true" /> : <LockIcon aria-hidden="true" />}
             {t(editable ? "workspace.editableHint" : "workspace.lockedHint")}
           </span>
         </div>
         <div className="workbench-header-side">
-          <Tooltip content={t(pinned ? "workspace.unpinShort" : "workspace.pin")} relationship="label">
-            <Button
-              appearance="subtle"
-              icon={pinned ? <PinFilled /> : <PinRegular />}
-              aria-pressed={pinned}
-              onClick={() => togglePin({ kind: "topic", id: topic.id })}
-            />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
+                aria-pressed={pinned}
+                onClick={() => togglePin({ kind: "topic", id: topic.id })}
+              >
+                {pinned ? <PinnedIcon /> : <PinIcon />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
           </Tooltip>
           <StatusBadge value={topic.state} />
         </div>
@@ -218,32 +218,41 @@ export function TopicWorkbench({
         <div className="workbench-main">
           {editable ? (
             <section className="workbench-section" aria-labelledby="workbench-info">
-              <Field label={t("meeting.subject")} required>
+              <div className="grid gap-1.5">
+                <Label htmlFor={titleFieldId}>{t("meeting.subject")}</Label>
                 <Input
+                  id={titleFieldId}
                   className="workbench-title-input"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   required
                 />
-              </Field>
-              <Field label={t("meeting.report")} hint={t("meeting.reportHint")}>
+              </div>
+              <div className="grid gap-1.5">
+                <Label>{t("meeting.report")}</Label>
                 <MarkdownEditor
+                  title={`${t("meeting.report")} — ${topic.title}`}
                   markdown={topic.report}
                   onChange={setReport}
-                  attachableResources={topic.resources}
-                  onUploadImage={uploadEditorImage}
+                  mentionables={mentionables}
+                  searchContext={topic.folderPath}
                 />
-              </Field>
+                <p className="text-xs text-muted">{t("meeting.reportHint")}</p>
+              </div>
               {topic.kind === "subject" && decision ? (
                 <div className="workbench-decision-block">
-                  <Field label={t("meeting.draftDecision")} hint={t("meeting.decisionDraftTextHint")}>
+                  <div className="grid gap-1.5">
+                    <Label>{t("meeting.draftDecision")}</Label>
                     <MarkdownEditor
                       key={decision.id}
+                      title={`${t("meeting.draftDecision")} — ${topic.title}`}
                       markdown={decision.draftText}
                       onChange={setDraftText}
-                      attachableResources={topic.resources}
+                      mentionables={mentionables}
+                      searchContext={topic.folderPath}
                     />
-                  </Field>
+                    <p className="text-xs text-muted">{t("meeting.decisionDraftTextHint")}</p>
+                  </div>
                 </div>
               ) : null}
               <div className="workbench-actions">
@@ -251,28 +260,31 @@ export function TopicWorkbench({
                   decision && can("topic.detach-decision") ? (
                     <Button
                       className="composer-vote-toggle"
-                      appearance="subtle"
+                      variant="ghost"
                       disabled={submitting}
                       onClick={() => void act(() => detachTopicDecision(topic.id))}
                     >
                       {t("meeting.withdrawVote")}
                     </Button>
                   ) : !decision && can("topic.attach-decision") ? (
-                    <Tooltip content={t("workspace.submitToVoteHint")} relationship="description">
-                      <Button
-                        appearance="secondary"
-                        icon={<GavelRegular />}
-                        disabled={submitting}
-                        onClick={() => void act(() => attachTopicDecision(topic.id, ""))}
-                      >
-                        {t("meeting.submitToVote")}
-                      </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          disabled={submitting}
+                          onClick={() => void act(() => attachTopicDecision(topic.id, ""))}
+                        >
+                          <GavelIcon />
+                          {t("meeting.submitToVote")}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{t("workspace.submitToVoteHint")}</TooltipContent>
                     </Tooltip>
                   ) : null
                 ) : null}
                 <span className="composer-editor-spacer" />
                 <Button
-                  appearance="primary"
+                  variant="default"
                   disabled={submitting || (!infoDirty && !decisionDirty)}
                   onClick={() => void saveInfo()}
                 >
@@ -302,30 +314,27 @@ export function TopicWorkbench({
               <h2 id="workbench-schedule">{t("workspace.scheduling")}</h2>
               {topic.state === "toSchedule" ? (
                 <div className="workbench-schedule-stack">
-                  <select
-                    aria-label={t("workspace.chooseMeeting")}
-                    value={meetingChoice}
-                    onChange={(event) => setMeetingChoice(event.target.value)}
-                  >
-                    <option value="">{t("workspace.chooseMeeting")}</option>
-                    {composableMeetings.map((meeting) => (
-                      <option key={meeting.id} value={meeting.id}>
-                        {meeting.title} — {formatDate(meeting.startsAt)}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    appearance="primary"
-                    icon={<CalendarAddRegular />}
-                    disabled={submitting || !meetingChoice}
-                    onClick={schedule}
-                  >
+                  {/* Une valeur vide affiche l'invite : aucune réunion n'est encore choisie. */}
+                  <Select value={meetingChoice} onValueChange={setMeetingChoice}>
+                    <SelectTrigger className="w-full" aria-label={t("workspace.chooseMeeting")}>
+                      <SelectValue placeholder={t("workspace.chooseMeeting")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {composableMeetings.map((meeting) => (
+                        <SelectItem key={meeting.id} value={meeting.id}>
+                          {meeting.title} — {formatDate(meeting.startsAt)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="default" disabled={submitting || !meetingChoice} onClick={schedule}>
+                    <CalendarAddIcon />
                     {t(submitting ? "common.saving" : "meeting.addToAgenda")}
                   </Button>
                 </div>
               ) : currentMeeting ? (
                 <div className="workbench-schedule-stack">
-                  <Link className="workbench-meeting-link" to={`/meetings/${currentMeeting.id}`}>
+                  <Link className="workbench-meeting-link" to={`/meetings/${currentMeeting.slug}`}>
                     <span className="workspace-row-copy">
                       <strong>{currentMeeting.title}</strong>
                       <span>
@@ -338,7 +347,7 @@ export function TopicWorkbench({
                     <MeetingStatusBadge status={currentMeeting.status} />
                   </Link>
                   {can("agenda-item.remove") ? (
-                    <Button appearance="secondary" disabled={submitting} onClick={unschedule}>
+                    <Button variant="outline" disabled={submitting} onClick={unschedule}>
                       {t("workspace.unschedule")}
                     </Button>
                   ) : null}
@@ -365,29 +374,32 @@ export function TopicWorkbench({
                     {editable ? (
                       <span className="workbench-resource-tools">
                         <Button
-                          appearance="subtle"
-                          size="small"
-                          icon={<ArrowUpRegular />}
+                          variant="ghost"
+                          size="icon-sm"
                           aria-label={t("meeting.moveUp")}
                           disabled={submitting || index === 0}
                           onClick={() => moveResource(resource.id, -1)}
-                        />
+                        >
+                          <ArrowUpIcon />
+                        </Button>
                         <Button
-                          appearance="subtle"
-                          size="small"
-                          icon={<ArrowDownRegular />}
+                          variant="ghost"
+                          size="icon-sm"
                           aria-label={t("meeting.moveDown")}
                           disabled={submitting || index === topic.resources.length - 1}
                           onClick={() => moveResource(resource.id, 1)}
-                        />
+                        >
+                          <ArrowDownIcon />
+                        </Button>
                         <Button
-                          appearance="subtle"
-                          size="small"
-                          icon={<DismissRegular />}
+                          variant="ghost"
+                          size="icon-sm"
                           aria-label={t("workspace.dissociate").replace("{name}", resource.title)}
                           disabled={submitting}
                           onClick={() => void removeResource(resource.id)}
-                        />
+                        >
+                          <CloseIcon />
+                        </Button>
                       </span>
                     ) : null}
                   </li>
@@ -412,7 +424,7 @@ export function TopicWorkbench({
               <ul className="workbench-occurrence-list">
                 {details.occurrences.map((occurrence) => (
                   <li key={occurrence.agendaItem.id}>
-                    <Link className="workbench-occurrence" to={`/meetings/${occurrence.meeting.id}`}>
+                    <Link className="workbench-occurrence" to={`/meetings/${occurrence.meeting.slug}`}>
                       <span className="workspace-row-copy">
                         <strong>{occurrence.meeting.title}</strong>
                         <span>
@@ -422,7 +434,7 @@ export function TopicWorkbench({
                       </span>
                       <span className="workbench-occurrence-side">
                         <StatusBadge value={occurrence.agendaItem.status} />
-                        <OpenRegular aria-hidden="true" />
+                        <OpenIcon aria-hidden="true" />
                       </span>
                     </Link>
                   </li>

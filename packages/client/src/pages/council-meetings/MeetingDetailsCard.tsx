@@ -1,13 +1,9 @@
-import { Button, Field } from "@fluentui/react-components";
-import {
-  ArrowUploadRegular,
-  CheckmarkCircleRegular,
-  DocumentRegular,
-  OpenRegular,
-  WarningRegular,
-} from "@fluentui/react-icons";
 import type { CouncilMember, DocumentResource, MeetingAggregate } from "@hall/domain";
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useId, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckCircleIcon, FileIcon, OpenIcon, UploadIcon, WarningIcon } from "../../components/icons";
 import { StatusBadge } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
@@ -25,6 +21,14 @@ export const documentCategoryKeys: Record<DocumentResource["category"], Translat
 };
 
 const meetingDocumentCategories: DocumentResource["category"][] = ["meetingNotice", "proxy", "supporting", "minutes"];
+
+/**
+ * Valeur sentinelle des listes d'officiers : `SelectItem` interdit la chaîne vide,
+ * qui reste pourtant la forme attendue par l'API pour « non désigné ».
+ */
+const noOfficer = "none";
+const officerToField = (memberId: string | null | undefined) => memberId ?? noOfficer;
+const officerFromField = (value: FormDataEntryValue | null) => (value === noOfficer ? "" : value);
 
 export function MeetingDetailsCard({
   aggregate,
@@ -48,15 +52,16 @@ export function MeetingDetailsCard({
   const [officersSaved, setOfficersSaved] = useState(false);
   const [viewedDocument, setViewedDocument] = useState<DocumentResource | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
-  const categorySelect = useRef<HTMLSelectElement | null>(null);
+  const [uploadCategory, setUploadCategory] = useState<DocumentResource["category"]>("meetingNotice");
+  const officersFieldId = useId();
 
   const saveOfficers = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     await run(async () => {
       const saved = await onSaveOfficers({
-        chairMemberId: form.get("chairMemberId"),
-        secretaryMemberId: form.get("secretaryMemberId"),
+        chairMemberId: officerFromField(form.get("chairMemberId")),
+        secretaryMemberId: officerFromField(form.get("secretaryMemberId")),
       });
       setOfficersSaved(saved);
     });
@@ -67,7 +72,7 @@ export function MeetingDetailsCard({
     if (!file) return;
     const form = new FormData();
     form.set("meetingId", meeting.id);
-    form.set("category", categorySelect.current?.value ?? "supporting");
+    form.set("category", uploadCategory);
     form.set("file", file);
     void run(async () => {
       const uploaded = await upload(form);
@@ -82,40 +87,53 @@ export function MeetingDetailsCard({
         <h2 id="officers-heading">{t("meeting.officers")}</h2>
         <p className="meeting-side-hint">{t("meeting.officersDescription")}</p>
         <form className="officers-form" onSubmit={saveOfficers} onChange={() => setOfficersSaved(false)}>
-          <Field label={t("meetings.chair")}>
-            <select
+          <div className="grid gap-1.5">
+            <Label htmlFor={`${officersFieldId}-chair`}>{t("meetings.chair")}</Label>
+            {/* Champ non contrôlé : `name` fait rendre à Radix un champ caché lu par FormData. */}
+            <Select
               name="chairMemberId"
-              defaultValue={meeting.chairMemberId ?? ""}
+              defaultValue={officerToField(meeting.chairMemberId)}
               disabled={!officersEditable}
               required
             >
-              <option value="">{t("meetings.chairUndesignated")}</option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.firstName} {member.lastName}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t("meetings.secretary")}>
-            <select
+              <SelectTrigger id={`${officersFieldId}-chair`} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={noOfficer}>{t("meetings.chairUndesignated")}</SelectItem>
+                {members.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.firstName} {member.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor={`${officersFieldId}-secretary`}>{t("meetings.secretary")}</Label>
+            <Select
               name="secretaryMemberId"
-              defaultValue={meeting.secretaryMemberId ?? ""}
+              defaultValue={officerToField(meeting.secretaryMemberId)}
               disabled={!officersEditable}
               required
             >
-              <option value="">{t("meetings.secretaryUndesignated")}</option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.firstName} {member.lastName}
-                </option>
-              ))}
-            </select>
-          </Field>
+              <SelectTrigger id={`${officersFieldId}-secretary`} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={noOfficer}>{t("meetings.secretaryUndesignated")}</SelectItem>
+                {members.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.firstName} {member.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           {officersEditable ? (
             <div className="officers-form-actions">
               {officersSaved ? <span role="status">{t("meeting.officersSaved")}</span> : null}
-              <Button appearance="secondary" type="submit" disabled={submitting}>
+              <Button variant="outline" type="submit" disabled={submitting}>
                 {t(submitting ? "common.saving" : "meeting.saveOfficers")}
               </Button>
             </div>
@@ -133,7 +151,7 @@ export function MeetingDetailsCard({
           if (noticeAttached) {
             return (
               <p className="meeting-notice-status meeting-notice-status-ok" role="status">
-                <CheckmarkCircleRegular aria-hidden="true" />
+                <CheckCircleIcon aria-hidden="true" />
                 {t("meeting.noticeAttached")}
               </p>
             );
@@ -141,7 +159,7 @@ export function MeetingDetailsCard({
           if (["draft", "scheduled"].includes(meeting.status)) {
             return (
               <p className="meeting-notice-status meeting-notice-status-missing" role="status">
-                <WarningRegular aria-hidden="true" />
+                <WarningIcon aria-hidden="true" />
                 {t("meeting.noticeMissing")}
               </p>
             );
@@ -152,7 +170,7 @@ export function MeetingDetailsCard({
           <ul className="meeting-side-documents">
             {documents.map((document) => (
               <li key={document.id}>
-                <DocumentRegular aria-hidden="true" />
+                <FileIcon aria-hidden="true" />
                 <span className="composer-item-copy">
                   <strong>{document.fileName}</strong>
                   <span>
@@ -160,12 +178,13 @@ export function MeetingDetailsCard({
                   </span>
                 </span>
                 <Button
-                  appearance="subtle"
-                  size="small"
-                  icon={<OpenRegular />}
+                  variant="ghost"
+                  size="sm"
                   aria-label={t("meeting.viewDocument").replace("{name}", document.fileName)}
                   onClick={() => setViewedDocument(document)}
-                />
+                >
+                  <OpenIcon />
+                </Button>
               </li>
             ))}
           </ul>
@@ -174,13 +193,21 @@ export function MeetingDetailsCard({
         )}
         {documentsEditable ? (
           <div className="meeting-side-upload">
-            <select ref={categorySelect} aria-label={t("documents.category")} defaultValue="meetingNotice">
-              {meetingDocumentCategories.map((category) => (
-                <option key={category} value={category}>
-                  {t(documentCategoryKeys[category])}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={uploadCategory}
+              onValueChange={(value) => setUploadCategory(value as DocumentResource["category"])}
+            >
+              <SelectTrigger aria-label={t("documents.category")}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {meetingDocumentCategories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {t(documentCategoryKeys[category])}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <input
               ref={fileInput}
               type="file"
@@ -189,12 +216,8 @@ export function MeetingDetailsCard({
               className="visually-hidden-input"
               id="meeting-document-file"
             />
-            <Button
-              appearance="secondary"
-              icon={<ArrowUploadRegular />}
-              disabled={submitting}
-              onClick={() => fileInput.current?.click()}
-            >
+            <Button variant="outline" disabled={submitting} onClick={() => fileInput.current?.click()}>
+              <UploadIcon />
               {t(submitting ? "common.saving" : "meeting.attachDocument")}
             </Button>
           </div>

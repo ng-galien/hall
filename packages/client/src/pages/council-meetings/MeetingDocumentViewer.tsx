@@ -1,7 +1,7 @@
-import { Button, Spinner } from "@fluentui/react-components";
-import { DismissRegular } from "@fluentui/react-icons";
 import type { DocumentResource } from "@hall/domain";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { CloseIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { loadResourceObjectUrl } from "../../services/resourcesApi";
 
@@ -55,14 +55,20 @@ export function MeetingDocumentViewer({
             <h2 id="document-viewer-title">{document.fileName}</h2>
           </div>
           <div className="document-viewer-actions">
-            <Button appearance="secondary" onClick={() => onDownload(document)}>
+            <Button variant="outline" onClick={() => onDownload(document)}>
               {t("common.download")}
             </Button>
-            <Button appearance="subtle" icon={<DismissRegular />} aria-label={t("common.close")} onClick={onClose} />
+            <Button size="icon" variant="ghost" aria-label={t("common.close")} onClick={onClose}>
+              <CloseIcon />
+            </Button>
           </div>
         </header>
         <div className="document-viewer-content">
-          {!objectUrl && !failed ? <Spinner label={t("common.loading")} /> : null}
+          {!objectUrl && !failed ? (
+            <span className="spinner" role="status">
+              {t("common.loading")}
+            </span>
+          ) : null}
           {failed ? <p role="alert">{t("common.requestFailed")}</p> : null}
           {objectUrl ? <object data={objectUrl} type={document.mediaType} aria-label={document.fileName} /> : null}
         </div>

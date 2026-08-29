@@ -1,15 +1,3 @@
-import { Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, Tooltip } from "@fluentui/react-components";
-import {
-  AddRegular,
-  CheckmarkRegular,
-  ChevronDoubleLeftRegular,
-  ChevronDoubleRightRegular,
-  DismissRegular,
-  DocumentRegular,
-  MoreHorizontalRegular,
-  PeopleRegular,
-  PlayRegular,
-} from "@fluentui/react-icons";
 import type {
   AgendaItem,
   BallotMethod,
@@ -20,9 +8,31 @@ import type {
   VoteChoice,
 } from "@hall/domain";
 import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useState } from "react";
-import { MarkdownEditor } from "../../../components/MarkdownEditor";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { MarkdownEditor } from "../../../components/editor/MarkdownEditor";
+import { useMentionables } from "../../../components/editor/useMentionables";
+import {
+  AddIcon,
+  CheckIcon,
+  CloseIcon,
+  CollapseIcon,
+  ExpandIcon,
+  FileIcon,
+  MembersIcon,
+  MoreIcon,
+  PlayIcon,
+} from "../../../components/icons";
 import { MarkdownView } from "../../../components/MarkdownView";
-import { Input, Modal } from "../../../components/Ui";
+import { Modal } from "../../../components/Ui";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import { useI18n } from "../../../i18n/I18nProvider";
@@ -81,6 +91,7 @@ export function ConductView({
   const nextItem = orderedItems.find((item) => !item.completedAt) ?? null;
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const mentionables = useMentionables();
   const [voteOpen, setVoteOpen] = useState(false);
   const [reviseConfirming, setReviseConfirming] = useState(false);
   const [revisionSeed, setRevisionSeed] = useState<{
@@ -264,7 +275,7 @@ export function ConductView({
             aria-label={t(railCollapsed ? "live.railExpand" : "live.railCollapse")}
             onClick={() => setRailCollapsed((collapsed) => !collapsed)}
           >
-            {railCollapsed ? <ChevronDoubleRightRegular /> : <ChevronDoubleLeftRegular />}
+            {railCollapsed ? <ExpandIcon /> : <CollapseIcon />}
           </button>
         </div>
         <ol className="conduct-timeline">
@@ -272,7 +283,7 @@ export function ConductView({
             <li className="conduct-step conduct-step-done">
               <div className="conduct-step-button conduct-step-static">
                 <span className="conduct-step-marker" aria-hidden="true">
-                  <CheckmarkRegular />
+                  <CheckIcon />
                 </span>
                 {!railCollapsed ? (
                   <span className="conduct-step-copy">
@@ -302,7 +313,7 @@ export function ConductView({
                 onClick={() => setSelectedItemId(item.id)}
               >
                 <span className="conduct-step-marker" aria-hidden="true">
-                  {itemDone ? <CheckmarkRegular /> : itemActive ? <PlayRegular /> : index + 1}
+                  {itemDone ? <CheckIcon /> : itemActive ? <PlayIcon /> : index + 1}
                 </span>
                 {!railCollapsed ? (
                   <span className="conduct-step-copy">
@@ -314,9 +325,9 @@ export function ConductView({
                     {itemBallot ? (
                       <span className={`conduct-step-ballot conduct-step-ballot-${itemBallot.result}`}>
                         {itemBallot.result === "adopted" ? (
-                          <CheckmarkRegular aria-hidden="true" />
+                          <CheckIcon aria-hidden="true" />
                         ) : (
-                          <DismissRegular aria-hidden="true" />
+                          <CloseIcon aria-hidden="true" />
                         )}
                         {t(itemBallot.result === "adopted" ? "live.adopted" : "live.rejected")}{" "}
                         {formatNumber(itemBallot.votesFor)} · {formatNumber(itemBallot.votesAgainst)} ·{" "}
@@ -337,36 +348,29 @@ export function ConductView({
             return (
               <li className={`conduct-step conduct-step-${state}`} key={item.id}>
                 {railCollapsed ? (
-                  <Tooltip
-                    content={{
-                      className: "step-tooltip",
-                      children: (
-                        <span className="step-tooltip-body">
-                          <strong>{item.topic.title}</strong>
-                          <span>
-                            {item.startedAt ? formatTime(item.startedAt) : t("meeting.subjectUpcoming")}
-                            {item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}
-                          </span>
-                          {itemBallot ? (
-                            <span className={`step-tooltip-ballot step-tooltip-ballot-${itemBallot.result}`}>
-                              {t(itemBallot.result === "adopted" ? "live.adopted" : "live.rejected")}{" "}
-                              {formatNumber(itemBallot.votesFor)} · {formatNumber(itemBallot.votesAgainst)} ·{" "}
-                              {formatNumber(itemBallot.abstentions)}
-                            </span>
-                          ) : voteRequired ? (
-                            <span className="step-tooltip-flag">{t("live.voteRequired")}</span>
-                          ) : null}
-                          {itemDone && item.status !== "examined" ? (
-                            <span>{t(item.status === "postponed" ? "status.postponed" : "status.withdrawn")}</span>
-                          ) : null}
+                  <Tooltip>
+                    <TooltipTrigger asChild>{stepButton}</TooltipTrigger>
+                    <TooltipContent className="step-tooltip" side="right">
+                      <span className="step-tooltip-body">
+                        <strong>{item.topic.title}</strong>
+                        <span>
+                          {item.startedAt ? formatTime(item.startedAt) : t("meeting.subjectUpcoming")}
+                          {item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}
                         </span>
-                      ),
-                    }}
-                    relationship="description"
-                    positioning="after"
-                    withArrow
-                  >
-                    {stepButton}
+                        {itemBallot ? (
+                          <span className={`step-tooltip-ballot step-tooltip-ballot-${itemBallot.result}`}>
+                            {t(itemBallot.result === "adopted" ? "live.adopted" : "live.rejected")}{" "}
+                            {formatNumber(itemBallot.votesFor)} · {formatNumber(itemBallot.votesAgainst)} ·{" "}
+                            {formatNumber(itemBallot.abstentions)}
+                          </span>
+                        ) : voteRequired ? (
+                          <span className="step-tooltip-flag">{t("live.voteRequired")}</span>
+                        ) : null}
+                        {itemDone && item.status !== "examined" ? (
+                          <span>{t(item.status === "postponed" ? "status.postponed" : "status.withdrawn")}</span>
+                        ) : null}
+                      </span>
+                    </TooltipContent>
                   </Tooltip>
                 ) : (
                   stepButton
@@ -383,7 +387,7 @@ export function ConductView({
             disabled={!meetingActions.can("meeting.add-late-topic")}
             onClick={() => setAddItemOpen(true)}
           >
-            <AddRegular aria-hidden="true" />
+            <AddIcon aria-hidden="true" />
             {!railCollapsed ? t("live.addItem") : null}
           </button>
           <button
@@ -393,7 +397,7 @@ export function ConductView({
             disabled={!meetingActions.can("meeting.record-attendance")}
             onClick={onShowRollCall}
           >
-            <PeopleRegular aria-hidden="true" />
+            <MembersIcon aria-hidden="true" />
             {!railCollapsed ? t("live.adjustAttendance") : null}
           </button>
           <button
@@ -405,7 +409,7 @@ export function ConductView({
             onBlur={() => setCloseConfirming(false)}
           >
             {railCollapsed ? (
-              <DismissRegular aria-hidden="true" />
+              <CloseIcon aria-hidden="true" />
             ) : closeConfirming ? (
               remainingCount > 0 ? (
                 t("live.confirmCloseRemaining").replace("{count}", formatNumber(remainingCount))
@@ -445,7 +449,7 @@ export function ConductView({
               type="button"
               onClick={() => openMinutes((selectedItem.topic as { minutesOfMeetingId: string }).minutesOfMeetingId)}
             >
-              <DocumentRegular aria-hidden="true" />
+              <FileIcon aria-hidden="true" />
               {t("meeting.viewPreviousMeeting")}
             </button>
           ) : null}
@@ -486,7 +490,7 @@ export function ConductView({
                       resource.kind === "document" ? setViewedDocument(resource) : setViewedText(resource)
                     }
                   >
-                    <DocumentRegular aria-hidden="true" />
+                    <FileIcon aria-hidden="true" />
                     {resource.title}
                   </button>
                 ))}
@@ -505,6 +509,7 @@ export function ConductView({
             <details className="conduct-block" open={!voteOpen} key={`notes-${selectedItem.id}-${voteOpen}`}>
               <summary>{t("meeting.observations")}</summary>
               <MarkdownEditor
+                mentionables={mentionables}
                 markdown={notes}
                 placeholder={t("meeting.observationsDescription")}
                 onChange={setNotes}
@@ -647,30 +652,34 @@ export function ConductView({
               disabled={submitting}
               onClick={() => void run(() => meetingActions.startAgendaItem(selectedItem.id))}
             >
-              <PlayRegular aria-hidden="true" />
+              <PlayIcon aria-hidden="true" />
               {t(submitting ? "common.saving" : "meeting.startSubject")}
             </button>
           ) : null}
           {isActive && meetingActions.can("agenda-item.complete", selectedItem.id) ? (
             <>
-              <Menu>
-                <MenuTrigger disableButtonEnhancement>
-                  <Button appearance="subtle" icon={<MoreHorizontalRegular />} aria-label={t("live.moreActions")} />
-                </MenuTrigger>
-                <MenuPopover>
-                  <MenuList>
-                    <MenuItem onClick={() => void completeItem("postponed")}>{t("meeting.postponeSubject")}</MenuItem>
-                    <MenuItem onClick={() => void completeItem("withdrawn")}>{t("meeting.withdrawSubject")}</MenuItem>
-                  </MenuList>
-                </MenuPopover>
-              </Menu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" aria-label={t("live.moreActions")}>
+                    <MoreIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onSelect={() => void completeItem("postponed")}>
+                    {t("meeting.postponeSubject")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => void completeItem("withdrawn")}>
+                    {t("meeting.withdrawSubject")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <button
                 className="live-primary-action"
                 type="button"
                 disabled={submitting || (Boolean(selectedDecisionId) && !selectedBallot)}
                 onClick={() => void completeItem("examined")}
               >
-                <CheckmarkRegular aria-hidden="true" />
+                <CheckIcon aria-hidden="true" />
                 {t(submitting ? "common.saving" : "meeting.completeAndNext")}
               </button>
             </>
@@ -697,17 +706,24 @@ export function ConductView({
             >
               <h3 className="picker-heading">{t("meeting.addOtherHeading")}</h3>
               <div className="composer-quick-add-fields">
-                <select name="kind" aria-label={t("meeting.type")} defaultValue="openQuestion">
-                  <option value="openQuestion">{t("topicKind.openQuestion")}</option>
-                  <option value="subject">{t("topicKind.subject")}</option>
-                </select>
+                {/* Champ non contrôlé : `name` fait rendre à Radix un champ caché lu par FormData. */}
+                <Select name="kind" defaultValue="openQuestion">
+                  <SelectTrigger aria-label={t("meeting.type")}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="openQuestion">{t("topicKind.openQuestion")}</SelectItem>
+                    <SelectItem value="subject">{t("topicKind.subject")}</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input
                   name="title"
                   placeholder={t("meeting.subjectPlaceholder")}
                   aria-label={t("meeting.subject")}
                   required
                 />
-                <Button appearance="primary" type="submit" icon={<AddRegular />} disabled={submitting}>
+                <Button variant="default" type="submit" disabled={submitting}>
+                  <AddIcon />
                   {t(submitting ? "common.saving" : "common.add")}
                 </Button>
               </div>
@@ -744,11 +760,13 @@ export function ConductView({
               </div>
               <div className="document-viewer-actions">
                 <Button
-                  appearance="subtle"
-                  icon={<DismissRegular />}
+                  size="icon"
+                  variant="ghost"
                   aria-label={t("common.close")}
                   onClick={() => setMinutesOpen(false)}
-                />
+                >
+                  <CloseIcon />
+                </Button>
               </div>
             </header>
             <div className="proceedings-overlay-content">

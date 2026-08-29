@@ -1,17 +1,25 @@
-import { Button, Field, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger } from "@fluentui/react-components";
-import {
-  ArrowUploadRegular,
-  CheckmarkCircleRegular,
-  DocumentRegular,
-  GavelRegular,
-  MoreHorizontalRegular,
-  PenRegular,
-  WarningRegular,
-} from "@fluentui/react-icons";
 import type { Attendance, AttendanceStatus, CouncilMember, DocumentResource, MeetingAggregate } from "@hall/domain";
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input, Modal } from "../../../components/Ui";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  CheckCircleIcon,
+  FileIcon,
+  GavelIcon,
+  MoreIcon,
+  SignIcon,
+  UploadIcon,
+  WarningIcon,
+} from "../../../components/icons";
+import { Modal } from "../../../components/Ui";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import { useI18n } from "../../../i18n/I18nProvider";
@@ -42,6 +50,10 @@ export function RollCallView({
   const navigate = useNavigate();
   const { resources, upload, load: reloadResources } = useResourcesStore();
   const [proxyMemberId, setProxyMemberId] = useState<string | null>(null);
+  const reconveneTitleId = useId();
+  const reconveneStartsAtId = useId();
+  const reconveneNoticeId = useId();
+  const reconveneLocationId = useId();
   const { meeting } = aggregate;
   const attendanceByMember = useMemo(
     () => new Map(aggregate.attendance.map((attendance) => [attendance.memberId, attendance])),
@@ -134,7 +146,7 @@ export function RollCallView({
         chairMemberId: meeting.chairMemberId,
         secretaryMemberId: meeting.secretaryMemberId,
       });
-      if (reconvenedMeeting) await navigate(`/meetings/${reconvenedMeeting.id}`);
+      if (reconvenedMeeting) await navigate(`/meetings/${reconvenedMeeting.slug}`);
       return Boolean(reconvenedMeeting);
     });
   };
@@ -152,12 +164,12 @@ export function RollCallView({
         </div>
         <div className="rollcall-header-actions">
           {meetingActions.can("meeting.record-attendance") ? (
-            <Button appearance="secondary" disabled={submitting} onClick={() => void markAllPresent()}>
+            <Button variant="outline" disabled={submitting} onClick={() => void markAllPresent()}>
               {t(submitting ? "common.saving" : "meeting.markAllPresent")}
             </Button>
           ) : null}
           {mode === "adjust" ? (
-            <Button appearance="primary" onClick={onDone}>
+            <Button variant="default" onClick={onDone}>
               {t("live.backToConduct")}
             </Button>
           ) : null}
@@ -191,7 +203,7 @@ export function RollCallView({
                         className={`rollcall-officer-chip${officerAbsent ? " rollcall-officer-chip-warning" : ""}`}
                         title={officerAbsent ? t("live.officerMustBePresent") : undefined}
                       >
-                        {officerAbsent ? <WarningRegular aria-hidden="true" /> : <GavelRegular aria-hidden="true" />}
+                        {officerAbsent ? <WarningIcon aria-hidden="true" /> : <GavelIcon aria-hidden="true" />}
                         {t("live.chairChip")}
                       </span>
                     ) : null}
@@ -200,42 +212,41 @@ export function RollCallView({
                         className={`rollcall-officer-chip${officerAbsent ? " rollcall-officer-chip-warning" : ""}`}
                         title={officerAbsent ? t("live.officerMustBePresent") : undefined}
                       >
-                        {officerAbsent ? <WarningRegular aria-hidden="true" /> : <PenRegular aria-hidden="true" />}
+                        {officerAbsent ? <WarningIcon aria-hidden="true" /> : <SignIcon aria-hidden="true" />}
                         {t("live.secretaryChip")}
                       </span>
                     ) : null}
                   </span>
                 </div>
                 {officersEditable ? (
-                  <Menu>
-                    <MenuTrigger disableButtonEnhancement>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                       <Button
                         className="rollcall-tile-menu"
-                        appearance="subtle"
-                        size="small"
-                        icon={<MoreHorizontalRegular />}
+                        variant="ghost"
+                        size="icon"
                         aria-label={t("live.tileMenu")}
-                      />
-                    </MenuTrigger>
-                    <MenuPopover>
-                      <MenuList>
-                        <MenuItem
-                          icon={<GavelRegular />}
-                          disabled={isChair || !meeting.secretaryMemberId}
-                          onClick={() => designateOfficer(member.id, "chair")}
-                        >
-                          {t("live.makeChair")}
-                        </MenuItem>
-                        <MenuItem
-                          icon={<PenRegular />}
-                          disabled={isSecretary || !meeting.chairMemberId}
-                          onClick={() => designateOfficer(member.id, "secretary")}
-                        >
-                          {t("live.makeSecretary")}
-                        </MenuItem>
-                      </MenuList>
-                    </MenuPopover>
-                  </Menu>
+                      >
+                        <MoreIcon />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem
+                        disabled={isChair || !meeting.secretaryMemberId}
+                        onSelect={() => designateOfficer(member.id, "chair")}
+                      >
+                        <GavelIcon />
+                        {t("live.makeChair")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={isSecretary || !meeting.chairMemberId}
+                        onSelect={() => designateOfficer(member.id, "secretary")}
+                      >
+                        <SignIcon />
+                        {t("live.makeSecretary")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 ) : null}
               </div>
 
@@ -284,31 +295,36 @@ export function RollCallView({
           {meetingActions.can("meeting.reconvene") ? (
             <form className="rollcall-reconvene" onSubmit={reconvene}>
               <div className="rollcall-reconvene-copy">
-                <WarningRegular aria-hidden="true" />
+                <WarningIcon aria-hidden="true" />
                 <div>
                   <strong>{t("meeting.quorumFailureRecorded")}</strong>
                   <p>{t("meeting.reconveneDescription")}</p>
                 </div>
               </div>
               <div className="rollcall-reconvene-fields">
-                <Field label={t("meetings.name")} required>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={reconveneTitleId}>{t("meetings.name")}</Label>
                   <Input
+                    id={reconveneTitleId}
                     name="title"
                     defaultValue={t("meeting.reconvenedName").replace("{title}", meeting.title)}
                     required
                   />
-                </Field>
-                <Field label={t("meetings.dateTime")} required>
-                  <Input name="startsAt" type="datetime-local" required />
-                </Field>
-                <Field label={t("meeting.noticeSentAt")} required>
-                  <Input name="meetingNoticeSentAt" type="datetime-local" required />
-                </Field>
-                <Field label={t("meetings.location")} required>
-                  <Input name="location" defaultValue={meeting.location} required />
-                </Field>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={reconveneStartsAtId}>{t("meetings.dateTime")}</Label>
+                  <Input id={reconveneStartsAtId} name="startsAt" type="datetime-local" required />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={reconveneNoticeId}>{t("meeting.noticeSentAt")}</Label>
+                  <Input id={reconveneNoticeId} name="meetingNoticeSentAt" type="datetime-local" required />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={reconveneLocationId}>{t("meetings.location")}</Label>
+                  <Input id={reconveneLocationId} name="location" defaultValue={meeting.location} required />
+                </div>
               </div>
-              <Button appearance="primary" type="submit" disabled={submitting}>
+              <Button variant="default" type="submit" disabled={submitting}>
                 {t(submitting ? "common.saving" : "meeting.reconveneAction")}
               </Button>
             </form>
@@ -317,12 +333,12 @@ export function RollCallView({
               <div className="rollcall-checklist" role="status">
                 {openingBlock ? (
                   <span className="rollcall-check rollcall-check-pending">
-                    <WarningRegular aria-hidden="true" />
+                    <WarningIcon aria-hidden="true" />
                     {t(`meeting.opening.${openingBlock}`)}
                   </span>
                 ) : (
                   <span className="rollcall-check rollcall-check-ready">
-                    <CheckmarkCircleRegular aria-hidden="true" />
+                    <CheckCircleIcon aria-hidden="true" />
                     {t("live.readyToOpen")}
                   </span>
                 )}
@@ -330,7 +346,7 @@ export function RollCallView({
               <div className="rollcall-footer-actions">
                 {meetingActions.can("meeting.record-quorum-failure") ? (
                   <Button
-                    appearance="secondary"
+                    variant="outline"
                     disabled={submitting}
                     onClick={() => void run(meetingActions.recordQuorumFailure)}
                   >
@@ -469,7 +485,7 @@ function ProxyModal({
                 onClick={() => setDocumentId(document.id)}
                 key={document.id}
               >
-                <DocumentRegular aria-hidden="true" />
+                <FileIcon aria-hidden="true" />
                 <span className="picker-card-copy">
                   <strong>{document.fileName}</strong>
                   <span>{formatFileSize(document.byteSize)}</span>
@@ -477,7 +493,7 @@ function ProxyModal({
               </button>
             ))}
             <button className="picker-card picker-card-upload" type="button" onClick={() => fileInput.current?.click()}>
-              <ArrowUploadRegular aria-hidden="true" />
+              <UploadIcon aria-hidden="true" />
               <span className="picker-card-copy">
                 <strong>{t("live.uploadProxy")}</strong>
                 <span>{t("live.uploadProxyHint")}</span>
@@ -498,11 +514,11 @@ function ProxyModal({
         </section>
 
         <div className="rollcall-proxy-actions">
-          <Button appearance="secondary" type="button" onClick={onClose}>
+          <Button variant="outline" type="button" onClick={onClose}>
             {t("common.cancel")}
           </Button>
           <Button
-            appearance="primary"
+            variant="default"
             disabled={submitting || !holderId || !documentId}
             onClick={() => holderId && documentId && onSubmit(holderId, documentId)}
           >

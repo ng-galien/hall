@@ -1,12 +1,18 @@
-import { Label } from "@fluentui/react-components";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "../components/Ui";
 import { type Locale, useI18n } from "../i18n/I18nProvider";
 import { canLogout, logout } from "../services/authApi";
+import { type ThemePreference, useThemePrefsStore } from "../theme/themePrefs";
 
 export function SettingsPage() {
   const { locale, setLocale, t } = useI18n();
+  const { preference, setPreference } = useThemePrefsStore();
   const [logoutAvailable, setLogoutAvailable] = useState(false);
+  const localeId = useId();
+  const themeId = useId();
   useEffect(() => {
     void canLogout()
       .then(setLogoutAvailable)
@@ -17,24 +23,40 @@ export function SettingsPage() {
       <PageHeader title={t("settings.title")} description={t("settings.description")} />
       <div className="page-content">
         <div className="creation-form">
-          <Label htmlFor="interface-language">{t("settings.language")}</Label>
-          <select
-            id="interface-language"
-            aria-label={t("settings.language")}
-            value={locale}
-            onChange={(event) => setLocale(event.target.value as Locale)}
-          >
-            <option value="fr">{t("settings.french")}</option>
-            <option value="en">{t("settings.english")}</option>
-          </select>
-          <p className="text-sm text-muted">{t("settings.languageDescription")}</p>
+          <div className="grid gap-1.5">
+            <Label htmlFor={localeId}>{t("settings.language")}</Label>
+            <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
+              <SelectTrigger id={localeId} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fr">{t("settings.french")}</SelectItem>
+                <SelectItem value="en">{t("settings.english")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted">{t("settings.languageDescription")}</p>
+          </div>
+        </div>
+        <div className="creation-form">
+          <div className="grid gap-1.5">
+            <Label htmlFor={themeId}>{t("settings.theme")}</Label>
+            <Select value={preference} onValueChange={(value) => setPreference(value as ThemePreference)}>
+              <SelectTrigger id={themeId} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">{t("settings.themeAuto")}</SelectItem>
+                <SelectItem value="light">{t("settings.themeLight")}</SelectItem>
+                <SelectItem value="dark">{t("settings.themeDark")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted">{t("settings.themeDescription")}</p>
+          </div>
         </div>
         {logoutAvailable ? (
           <div className="creation-form">
-            <h2>{t("settings.session")}</h2>
-            <button type="button" onClick={() => void logout()}>
-              {t("settings.logout")}
-            </button>
+            <h3>{t("settings.session")}</h3>
+            <Button onClick={() => void logout()}>{t("settings.logout")}</Button>
           </div>
         ) : null}
       </div>

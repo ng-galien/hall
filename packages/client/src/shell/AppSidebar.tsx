@@ -1,5 +1,5 @@
-import { ChevronDownRegular, ChevronRightRegular, SettingsRegular } from "@fluentui/react-icons";
 import { NavLink } from "react-router-dom";
+import { ChevronDownIcon, ChevronRightIcon, SettingsIcon } from "../components/icons";
 import { useI18n } from "../i18n/I18nProvider";
 import { useWorkspacePrefsStore } from "../pages/workspace/workspacePrefs";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
@@ -24,7 +24,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
   return (
     <aside
       aria-label={t("common.primaryNavigation")}
-      className={`flex h-full shrink-0 flex-col overflow-hidden border-r border-border bg-surface transition-[width] duration-(--mairie-motion-fast) ease-(--mairie-motion-curve-standard) ${compact ? "w-(--mairie-size-sidebar-compact)" : "w-(--mairie-size-sidebar)"}`}
+      className={`flex h-full shrink-0 flex-col overflow-hidden border-r border-border bg-surface transition-[width] duration-(--hall-motion-fast) ease-(--hall-motion-curve-standard) ${compact ? "w-(--hall-size-sidebar-compact)" : "w-(--hall-size-sidebar)"}`}
     >
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-3">
         {navigationSections.map((section, sectionIndex) => (
@@ -59,7 +59,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
                       aria-label={t(treeCollapsed ? "workspace.expandTree" : "workspace.collapseTree")}
                       onClick={toggleTree}
                     >
-                      {treeCollapsed ? <ChevronRightRegular /> : <ChevronDownRegular />}
+                      {treeCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
                     </button>
                   ) : null}
                 </div>
@@ -78,7 +78,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
           aria-label={compact ? t("common.settings") : undefined}
         >
           <span className="nav-icon">
-            <SettingsRegular />
+            <SettingsIcon />
           </span>
           {!compact ? <span>{t("common.settings")}</span> : null}
         </NavLink>

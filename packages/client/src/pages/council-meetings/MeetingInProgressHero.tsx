@@ -1,6 +1,6 @@
-import { PlayRegular } from "@fluentui/react-icons";
 import type { MeetingAggregate } from "@hall/domain";
 import { Link } from "react-router-dom";
+import { PlayIcon } from "../../components/icons";
 import { MeetingStatusBadge, PageHeader } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
 
@@ -26,8 +26,8 @@ export function MeetingInProgressHero({ aggregate }: { aggregate: MeetingAggrega
               .replace("{completed}", formatNumber(completedCount))
               .replace("{total}", formatNumber(aggregate.agendaItems.length))}
           </p>
-          <Link className="live-mode-link live-mode-link-large" to={`/meetings/${meeting.id}/live`}>
-            <PlayRegular aria-hidden="true" />
+          <Link className="live-mode-link live-mode-link-large" to={`/meetings/${meeting.slug}/live`}>
+            <PlayIcon aria-hidden="true" />
             {t("meeting.resumeLiveMode")}
           </Link>
         </section>

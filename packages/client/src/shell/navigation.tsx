@@ -1,11 +1,5 @@
-import {
-  BoardRegular,
-  GavelRegular,
-  HomeRegular,
-  PeopleRegular,
-  TextBulletListSquareRegular,
-} from "@fluentui/react-icons";
 import type { ReactNode } from "react";
+import { DecisionsIcon, GavelIcon, HomeIcon, MembersIcon, WorkspaceIcon } from "../components/icons";
 import type { TranslationKey } from "../i18n/en";
 
 export interface NavigationItem {
@@ -24,26 +18,26 @@ export interface NavigationSection {
 
 export const navigationSections: NavigationSection[] = [
   {
-    items: [{ to: "/", labelKey: "navigation.overview", icon: <HomeRegular /> }],
+    items: [{ to: "/", labelKey: "navigation.overview", icon: <HomeIcon /> }],
   },
   {
     labelKey: "navigation.council",
     items: [
-      { to: "/meetings", labelKey: "navigation.meetings", icon: <GavelRegular />, countKey: "meetings" },
+      { to: "/meetings", labelKey: "navigation.meetings", icon: <GavelIcon />, countKey: "meetings" },
       {
         to: "/council-decisions",
         labelKey: "navigation.decisions",
-        icon: <TextBulletListSquareRegular />,
+        icon: <DecisionsIcon />,
         countKey: "councilDecisions",
       },
     ],
   },
   {
-    labelKey: "navigation.preparation",
-    items: [{ to: "/workspace", labelKey: "navigation.workspace", icon: <BoardRegular />, workspaceTree: true }],
+    // L'espace de travail se suffit : pas d'intitulé de section pour une entrée seule.
+    items: [{ to: "/workspace", labelKey: "navigation.workspace", icon: <WorkspaceIcon />, workspaceTree: true }],
   },
   {
     labelKey: "navigation.administration",
-    items: [{ to: "/council-members", labelKey: "navigation.members", icon: <PeopleRegular />, countKey: "members" }],
+    items: [{ to: "/council-members", labelKey: "navigation.members", icon: <MembersIcon />, countKey: "members" }],
   },
 ];

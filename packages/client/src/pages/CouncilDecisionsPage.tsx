@@ -1,7 +1,7 @@
-import { GavelRegular } from "@fluentui/react-icons";
 import type { CouncilDecisionListEntry, CouncilMeeting } from "@hall/domain";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { GavelIcon } from "../components/icons";
 import {
   CollectionToolbar,
   EmptyState,
@@ -60,8 +60,8 @@ export function CouncilDecisionsPage() {
             <section className="decision-group" key={group.meeting?.id ?? "unscheduled"}>
               <header className="decision-group-heading">
                 {group.meeting ? (
-                  <Link className="decision-group-title" to={`/meetings/${group.meeting.id}`}>
-                    <GavelRegular aria-hidden="true" />
+                  <Link className="decision-group-title" to={`/meetings/${group.meeting.slug}`}>
+                    <GavelIcon aria-hidden="true" />
                     <span>
                       <strong>{group.meeting.title}</strong>
                       <span className="decision-group-meta">
@@ -82,7 +82,7 @@ export function CouncilDecisionsPage() {
                 <div className="card-grid">
                   {group.decisions.map((decision) =>
                     group.meeting ? (
-                      <Link className="entity-card" key={decision.id} to={`/meetings/${group.meeting.id}`}>
+                      <Link className="entity-card" key={decision.id} to={`/meetings/${group.meeting.slug}`}>
                         <span className="entity-card-eyebrow">{decision.number ?? t("decisions.draft")}</span>
                         <strong>{decision.title}</strong>
                         <p>{decision.draftText || t("decisions.textIncomplete")}</p>
@@ -117,7 +117,7 @@ export function CouncilDecisionsPage() {
                       </>
                     );
                     return group.meeting ? (
-                      <Link className="data-row linked" key={decision.id} to={`/meetings/${group.meeting.id}`}>
+                      <Link className="data-row linked" key={decision.id} to={`/meetings/${group.meeting.slug}`}>
                         {rowContent}
                       </Link>
                     ) : (

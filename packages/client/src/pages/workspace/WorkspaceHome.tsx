@@ -1,6 +1,7 @@
-import { FolderRegular } from "@fluentui/react-icons";
 import type { Topic } from "@hall/domain";
 import { useMemo, useState } from "react";
+import { FolderIcon } from "../../components/icons";
+import { TopicGlyph } from "../../components/ResourceGlyph";
 import { StatusBadge } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
@@ -8,7 +9,6 @@ import { useResourcesStore } from "../../stores/resourcesStore";
 import { useTopicsStore } from "../../stores/topicsStore";
 import { topicKindKeys } from "../council-meetings/AgendaComposer";
 import { buildPathTree } from "./paths";
-import { TopicGlyph } from "./ResourceGlyph";
 import type { WorkspaceSelection } from "./WorkspacePage";
 
 const RECENT_LIMIT = 6;
@@ -75,7 +75,7 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
         <div className="whome-tiles">
           {visibleFolders.map((folder) => (
             <button className="whome-tile" type="button" key={folder.path} onClick={() => onSelect(null, folder.path)}>
-              <FolderRegular aria-hidden="true" />
+              <FolderIcon aria-hidden="true" />
               {folder.name}
               <small>{formatNumber(folder.count)}</small>
             </button>

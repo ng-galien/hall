@@ -1,10 +1,12 @@
-import { Button, Field } from "@fluentui/react-components";
-import { AddRegular } from "@fluentui/react-icons";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AddIcon } from "../components/icons";
 import {
   CollectionToolbar,
   EmptyState,
-  Input,
   Modal,
   matchesQuery,
   PageHeader,
@@ -22,6 +24,7 @@ export function CouncilMembersPage() {
   const { members, create: createMember, error, canCreate } = useCouncilMembersStore();
   const [addOpen, setAddOpen] = useState(false);
   const { layout, setLayout, query, setQuery } = useCollectionView();
+  const fieldId = useId();
   const visibleMembers = members.filter((member) =>
     matchesQuery(query, member.firstName, member.lastName, member.email, t(`role.${member.role}`)),
   );
@@ -51,7 +54,8 @@ export function CouncilMembersPage() {
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
           {canCreate ? (
-            <Button appearance="primary" icon={<AddRegular />} onClick={() => setAddOpen(true)}>
+            <Button variant="default" onClick={() => setAddOpen(true)}>
+              <AddIcon />
               {t("members.add")}
             </Button>
           ) : null}
@@ -59,27 +63,38 @@ export function CouncilMembersPage() {
         <Modal open={canCreate && addOpen} title={t("members.add")} onClose={() => setAddOpen(false)}>
           <form className="modal-form" onSubmit={submit}>
             <div className="form-grid">
-              <Field label={t("members.firstName")} required>
-                <Input name="firstName" required />
-              </Field>
-              <Field label={t("members.lastName")} required>
-                <Input name="lastName" required />
-              </Field>
-              <Field label={t("members.role")} required>
-                <select name="role" required>
-                  <option value="councillor">{t("role.councillor")}</option>
-                  <option value="deputyMayor">{t("role.deputyMayor")}</option>
-                  <option value="mayor">{t("role.mayor")}</option>
-                </select>
-              </Field>
-              <Field label={t("members.email")}>
-                <Input name="email" type="email" />
-              </Field>
-              <Field label={t("members.termStart")} required>
-                <Input name="termStartedOn" type="date" required />
-              </Field>
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${fieldId}-firstName`}>{t("members.firstName")}</Label>
+                <Input id={`${fieldId}-firstName`} name="firstName" required />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${fieldId}-lastName`}>{t("members.lastName")}</Label>
+                <Input id={`${fieldId}-lastName`} name="lastName" required />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${fieldId}-role`}>{t("members.role")}</Label>
+                {/* Champ non contrôlé : `name` fait rendre à Radix un champ caché lu par FormData. */}
+                <Select name="role" required defaultValue="councillor">
+                  <SelectTrigger id={`${fieldId}-role`} className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="councillor">{t("role.councillor")}</SelectItem>
+                    <SelectItem value="deputyMayor">{t("role.deputyMayor")}</SelectItem>
+                    <SelectItem value="mayor">{t("role.mayor")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${fieldId}-email`}>{t("members.email")}</Label>
+                <Input id={`${fieldId}-email`} name="email" type="email" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${fieldId}-termStartedOn`}>{t("members.termStart")}</Label>
+                <Input id={`${fieldId}-termStartedOn`} name="termStartedOn" type="date" required />
+              </div>
             </div>
-            <Button appearance="primary" type="submit" disabled={submitting}>
+            <Button variant="default" type="submit" disabled={submitting}>
               {t(submitting ? "common.saving" : "common.create")}
             </Button>
           </form>

@@ -1,26 +1,28 @@
-import { Button } from "@fluentui/react-components";
-import {
-  AppsListRegular,
-  CheckmarkRegular,
-  ChevronDownRegular,
-  DismissRegular,
-  FilterRegular,
-  GavelRegular,
-  GridRegular,
-  SearchRegular,
-} from "@fluentui/react-icons";
-import type { Resource, Topic } from "@hall/domain";
+import type { CouncilDecisionListEntry, CouncilMeeting, Resource, Topic } from "@hall/domain";
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MeetingStatusBadge, matchesQuery, StatusBadge } from "../../components/Ui";
+import { Button } from "@/components/ui/button";
+import {
+  CardViewIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  CloseIcon,
+  FilterIcon,
+  FolderIcon,
+  GavelIcon,
+  ListViewIcon,
+  SearchIcon,
+} from "../../components/icons";
+import { ResourceGlyph, TopicGlyph, useResourceTypeLabel } from "../../components/ResourceGlyph";
+import { MeetingStatusBadge, StatusBadge } from "../../components/Ui";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
+import { type Searchable, searchEntities } from "../../lib/search";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { useTopicsStore } from "../../stores/topicsStore";
 import { topicKindKeys } from "../council-meetings/AgendaComposer";
-import { ResourceGlyph, TopicGlyph, useResourceTypeLabel } from "./ResourceGlyph";
 import type { WorkspaceSelection } from "./WorkspacePage";
 
 /* Un seul champ qui mêle texte libre et facettes (inspiré du FilterBox de Trust) :
@@ -42,6 +44,22 @@ const stateOptions: { value: Topic["state"]; labelKey: TranslationKey }[] = [
   { value: "scheduled", labelKey: "status.scheduled" },
   { value: "examined", labelKey: "status.examined" },
 ];
+
+const facetTokenByType: Record<ResultType, string> = {
+  topic: "sujet",
+  resource: "doc",
+  meeting: "seance",
+  decision: "delib",
+};
+
+/** Une entrée du corpus : l'entité d'origine voyage avec ses champs cherchables. */
+interface WorkspaceHit extends Searchable {
+  entity:
+    | { entityKind: "topic"; topic: Topic }
+    | { entityKind: "resource"; resource: Resource }
+    | { entityKind: "meeting"; meeting: CouncilMeeting }
+    | { entityKind: "decision"; decision: CouncilDecisionListEntry };
+}
 
 export interface WorkspaceSearchState {
   query: string;
@@ -66,10 +84,13 @@ export function WorkspaceSearch({
   search,
   onSearch,
   onSelect,
+  context,
 }: {
   search: WorkspaceSearchState;
   onSearch(next: WorkspaceSearchState): void;
   onSelect(selection: WorkspaceSelection, path?: string): void;
+  /** Le dossier ouvert : ce qui en est proche remonte en premier. */
+  context?: string;
 }) {
   const { t, formatNumber, formatDate, formatFileSize } = useI18n();
   const navigate = useNavigate();
@@ -127,42 +148,57 @@ export function WorkspaceSearch({
     input.current?.focus();
   };
 
-  const typeShown = (type: ResultType) => search.types.length === 0 || search.types.includes(type);
-  const underFolders = (folderPath: string) => {
-    if (search.folders.length === 0) return true;
-    const top = folderPath.split("/").filter(Boolean)[0] ?? "";
-    return search.folders.includes(top);
-  };
+  /* Le corpus du moteur commun : chaque entité devient cherchable avec ses champs
+     secondaires ; les facettes de l'interface se traduisent en jetons du même DSL que
+     celui qu'on peut taper au clavier (`doc:budget dossier:travaux état:planifié`). */
+  const corpus = useMemo<WorkspaceHit[]>(
+    () => [
+      ...topics.map((topic) => ({
+        kind: "topic" as const,
+        id: topic.slug,
+        label: topic.title,
+        extra: [topic.report],
+        folderPath: topic.folderPath,
+        state: topic.state,
+        entity: { entityKind: "topic" as const, topic },
+      })),
+      ...resources.map((resource) => ({
+        kind: "resource" as const,
+        id: resource.slug,
+        label: resource.title,
+        extra: [...resource.tags, resource.kind === "document" ? resource.fileName : null],
+        folderPath: resource.folderPath,
+        entity: { entityKind: "resource" as const, resource },
+      })),
+      ...meetings.map((meeting) => ({
+        kind: "meeting" as const,
+        id: meeting.slug,
+        label: meeting.title,
+        extra: [meeting.location, meeting.number],
+        entity: { entityKind: "meeting" as const, meeting },
+      })),
+      ...councilDecisions.map((decision) => ({
+        kind: "decision" as const,
+        id: decision.slug,
+        label: decision.title,
+        extra: [decision.number, decision.draftText],
+        entity: { entityKind: "decision" as const, decision },
+      })),
+    ],
+    [topics, resources, meetings, councilDecisions],
+  );
 
-  const foundTopics = topics.filter(
-    (topic) =>
-      typeShown("topic") &&
-      underFolders(topic.folderPath) &&
-      (search.states.length === 0 || search.states.includes(topic.state)) &&
-      matchesQuery(query, topic.title, topic.report, topic.folderPath),
+  const facetTokens = [
+    ...search.types.map((type) => `${facetTokenByType[type]}:`),
+    ...search.folders.map((folder) => `dossier:${folder}`),
+    ...search.states.map((state) => `etat:${state}`),
+  ];
+  const effectiveQuery = [...facetTokens, query].join(" ").trim();
+  const hits = useMemo(
+    () => searchEntities(corpus, effectiveQuery, { context }).results,
+    [corpus, effectiveQuery, context],
   );
-  const foundResources = resources.filter(
-    (resource) =>
-      typeShown("resource") &&
-      underFolders(resource.folderPath) &&
-      search.states.length === 0 &&
-      matchesQuery(query, resource.title, resource.folderPath, resource.tags.join(" ")),
-  );
-  const foundMeetings = meetings.filter(
-    (meeting) =>
-      typeShown("meeting") &&
-      search.folders.length === 0 &&
-      search.states.length === 0 &&
-      matchesQuery(query, meeting.title, meeting.location),
-  );
-  const foundDecisions = councilDecisions.filter(
-    (decision) =>
-      typeShown("decision") &&
-      search.folders.length === 0 &&
-      search.states.length === 0 &&
-      matchesQuery(query, decision.number ?? "", decision.title, decision.draftText),
-  );
-  const total = foundTopics.length + foundResources.length + foundMeetings.length + foundDecisions.length;
+  const total = hits.length;
 
   const pickTopic = (topic: Topic) => {
     onSearch(emptySearch);
@@ -179,6 +215,114 @@ export function WorkspaceSearch({
     if (topic) pickTopic(topic);
   };
 
+  /* En liste, la même organisation que la recherche de l'éditeur : des sections par
+     dossier d'abord, puis les espèces sans dossier. Les cartes restent à plat. */
+  const sections = useMemo(() => {
+    const kindHeadings: Record<string, TranslationKey> = {
+      topic: "workspace.topicsHeading",
+      resource: "workspace.resourcesHeading",
+      meeting: "navigation.meetings",
+      decision: "navigation.decisions",
+    };
+    /* Les sections suivent l'ordre du classement (première apparition) : la proximité
+       du dossier courant garde le dessus, l'alphabet ne reprend pas la main. */
+    const ordered = new Map<string, { key: string; title: string; folder: boolean; items: WorkspaceHit[] }>();
+    for (const hit of hits) {
+      const key = hit.folderPath ? `folder:${hit.folderPath}` : `kind:${hit.kind}`;
+      let section = ordered.get(key);
+      if (!section) {
+        section = {
+          key,
+          title: hit.folderPath || t(kindHeadings[hit.kind]),
+          folder: Boolean(hit.folderPath),
+          items: [],
+        };
+        ordered.set(key, section);
+      }
+      section.items.push(hit);
+    }
+    return [...ordered.values()];
+  }, [hits, t]);
+
+  const renderHit = (hit: WorkspaceHit) => {
+    if (hit.entity.entityKind === "topic") {
+      const topic = hit.entity.topic;
+      return (
+        <button className="wsearch-hit" type="button" key={`t-${topic.id}`} onClick={() => pickTopic(topic)}>
+          <TopicGlyph topic={topic} />
+          <span className="workspace-row-copy">
+            <strong>{topic.title}</strong>
+            <span>
+              {t(topicKindKeys[topic.kind])}
+              {topic.folderPath ? ` · ${topic.folderPath}` : ""}
+            </span>
+          </span>
+          <StatusBadge value={topic.state} />
+        </button>
+      );
+    }
+    if (hit.entity.entityKind === "resource") {
+      const resource = hit.entity.resource;
+      return (
+        <button className="wsearch-hit" type="button" key={`r-${resource.id}`} onClick={() => pickResource(resource)}>
+          <ResourceGlyph resource={resource} />
+          <span className="workspace-row-copy">
+            <strong>{resource.title}</strong>
+            <span>
+              {typeLabel(resource)}
+              {resource.kind === "document" ? ` · ${formatFileSize(resource.byteSize)}` : ""}
+              {resource.folderPath ? ` · ${resource.folderPath}` : ""}
+            </span>
+          </span>
+        </button>
+      );
+    }
+    if (hit.entity.entityKind === "meeting") {
+      const meeting = hit.entity.meeting;
+      return (
+        <button
+          className="wsearch-hit"
+          type="button"
+          key={`m-${meeting.id}`}
+          onClick={() => navigate(`/meetings/${meeting.slug}`)}
+        >
+          <span className="workspace-glyph workspace-glyph-decision" aria-hidden="true">
+            <GavelIcon />
+          </span>
+          <span className="workspace-row-copy">
+            <strong>{meeting.title}</strong>
+            <span>
+              {formatDate(meeting.startsAt)} · {meeting.location}
+            </span>
+          </span>
+          <MeetingStatusBadge status={meeting.status} />
+        </button>
+      );
+    }
+    const decision = hit.entity.decision;
+    const decisionMeeting = meetings.find((meeting) => meeting.id === decision.meetingId);
+    return (
+      <button
+        className="wsearch-hit"
+        type="button"
+        key={`d-${decision.id}`}
+        onClick={() => (decisionMeeting ? navigate(`/meetings/${decisionMeeting.slug}`) : pickDecision(decision.id))}
+      >
+        <span className="workspace-glyph workspace-glyph-decision" aria-hidden="true">
+          <GavelIcon />
+        </span>
+        <span className="workspace-row-copy">
+          <strong>{decision.title}</strong>
+          <span>
+            {t("navigation.decisions")}
+            {decision.number ? ` · ${decision.number}` : ""}
+          </span>
+        </span>
+        <StatusBadge value={decision.status} />
+      </button>
+    );
+  };
+
   const needle = query.toLocaleLowerCase("fr-FR");
   const facetMatches = (label: string) => needle === "" || label.toLocaleLowerCase("fr-FR").includes(needle);
   const visibleTypeOptions = typeOptions.filter((option) => facetMatches(t(option.labelKey)));
@@ -190,12 +334,12 @@ export function WorkspaceSearch({
   return (
     <div className="wsearch">
       <div className="wsearch-field">
-        <SearchRegular aria-hidden="true" className="wsearch-icon" />
+        <SearchIcon aria-hidden="true" className="app-icon wsearch-icon" />
         {chips.map((chip) => (
           <span className="wsearch-chip" key={`${chip.kind}:${chip.value}`}>
             {chip.label}
             <button type="button" aria-label={`${t("common.cancel")} ${chip.label}`} onClick={() => removeChip(chip)}>
-              <DismissRegular />
+              <CloseIcon />
             </button>
           </span>
         ))}
@@ -221,7 +365,7 @@ export function WorkspaceSearch({
             aria-label={t("workspace.clearSearch")}
             onClick={() => onSearch(emptySearch)}
           >
-            <DismissRegular />
+            <CloseIcon />
           </button>
         ) : null}
         <button
@@ -230,9 +374,9 @@ export function WorkspaceSearch({
           aria-expanded={panelOpen}
           onClick={() => setPanelOpen((open) => !open)}
         >
-          <FilterRegular aria-hidden="true" />
+          <FilterIcon aria-hidden="true" />
           {t("workspace.filters")}
-          <ChevronDownRegular aria-hidden="true" />
+          <ChevronDownIcon aria-hidden="true" />
         </button>
       </div>
 
@@ -254,7 +398,7 @@ export function WorkspaceSearch({
                       key={option.value}
                       onClick={() => toggleFacet({ kind: "type", value: option.value }, query !== "")}
                     >
-                      {isActive ? <CheckmarkRegular aria-hidden="true" /> : null}
+                      {isActive ? <CheckIcon aria-hidden="true" /> : null}
                       {t(option.labelKey)}
                     </button>
                   );
@@ -277,7 +421,7 @@ export function WorkspaceSearch({
                       key={folder}
                       onClick={() => toggleFacet({ kind: "folder", value: folder }, query !== "")}
                     >
-                      {isActive ? <CheckmarkRegular aria-hidden="true" /> : null}
+                      {isActive ? <CheckIcon aria-hidden="true" /> : null}
                       {folder}
                       <small>{formatNumber(count)}</small>
                     </button>
@@ -301,7 +445,7 @@ export function WorkspaceSearch({
                       key={option.value}
                       onClick={() => toggleFacet({ kind: "state", value: option.value }, query !== "")}
                     >
-                      {isActive ? <CheckmarkRegular aria-hidden="true" /> : null}
+                      {isActive ? <CheckIcon aria-hidden="true" /> : null}
                       {t(option.labelKey)}
                     </button>
                   );
@@ -320,98 +464,39 @@ export function WorkspaceSearch({
             </span>
             <span className="wsearch-layout">
               <Button
-                appearance={layout === "list" ? "primary" : "subtle"}
-                size="small"
-                icon={<AppsListRegular />}
+                variant={layout === "list" ? "default" : "ghost"}
+                size="icon-sm"
                 aria-label={t("common.layoutList")}
                 aria-pressed={layout === "list"}
                 onClick={() => setLayout("list")}
-              />
+              >
+                <ListViewIcon />
+              </Button>
               <Button
-                appearance={layout === "cards" ? "primary" : "subtle"}
-                size="small"
-                icon={<GridRegular />}
+                variant={layout === "cards" ? "default" : "ghost"}
+                size="icon-sm"
                 aria-label={t("common.layoutCards")}
                 aria-pressed={layout === "cards"}
                 onClick={() => setLayout("cards")}
-              />
+              >
+                <CardViewIcon />
+              </Button>
             </span>
           </div>
           {total === 0 ? (
             <p className="workspace-list-empty">{t("workspace.noResults")}</p>
+          ) : layout === "cards" ? (
+            <div className="wsearch-grid">{hits.map(renderHit)}</div>
           ) : (
-            <div className={layout === "cards" ? "wsearch-grid" : "wsearch-list"}>
-              {foundTopics.map((topic) => (
-                <button className="wsearch-hit" type="button" key={`t-${topic.id}`} onClick={() => pickTopic(topic)}>
-                  <TopicGlyph topic={topic} />
-                  <span className="workspace-row-copy">
-                    <strong>{topic.title}</strong>
-                    <span>
-                      {t(topicKindKeys[topic.kind])}
-                      {topic.folderPath ? ` · ${topic.folderPath}` : ""}
-                    </span>
-                  </span>
-                  <StatusBadge value={topic.state} />
-                </button>
-              ))}
-              {foundResources.map((resource) => (
-                <button
-                  className="wsearch-hit"
-                  type="button"
-                  key={`r-${resource.id}`}
-                  onClick={() => pickResource(resource)}
-                >
-                  <ResourceGlyph resource={resource} />
-                  <span className="workspace-row-copy">
-                    <strong>{resource.title}</strong>
-                    <span>
-                      {typeLabel(resource)}
-                      {resource.kind === "document" ? ` · ${formatFileSize(resource.byteSize)}` : ""}
-                      {resource.folderPath ? ` · ${resource.folderPath}` : ""}
-                    </span>
-                  </span>
-                </button>
-              ))}
-              {foundMeetings.map((meeting) => (
-                <button
-                  className="wsearch-hit"
-                  type="button"
-                  key={`m-${meeting.id}`}
-                  onClick={() => navigate(`/meetings/${meeting.id}`)}
-                >
-                  <span className="workspace-glyph workspace-glyph-decision" aria-hidden="true">
-                    <GavelRegular />
-                  </span>
-                  <span className="workspace-row-copy">
-                    <strong>{meeting.title}</strong>
-                    <span>
-                      {formatDate(meeting.startsAt)} · {meeting.location}
-                    </span>
-                  </span>
-                  <MeetingStatusBadge status={meeting.status} />
-                </button>
-              ))}
-              {foundDecisions.map((decision) => (
-                <button
-                  className="wsearch-hit"
-                  type="button"
-                  key={`d-${decision.id}`}
-                  onClick={() =>
-                    decision.meetingId ? navigate(`/meetings/${decision.meetingId}`) : pickDecision(decision.id)
-                  }
-                >
-                  <span className="workspace-glyph workspace-glyph-decision" aria-hidden="true">
-                    <GavelRegular />
-                  </span>
-                  <span className="workspace-row-copy">
-                    <strong>{decision.title}</strong>
-                    <span>
-                      {t("navigation.decisions")}
-                      {decision.number ? ` · ${decision.number}` : ""}
-                    </span>
-                  </span>
-                  <StatusBadge value={decision.status} />
-                </button>
+            <div className="wsearch-list">
+              {sections.map((section) => (
+                <div className="wsearch-section" key={section.key}>
+                  <div className={`workspace-list-heading${section.folder ? " wsearch-section-folder" : ""}`}>
+                    {section.folder ? <FolderIcon aria-hidden="true" /> : null}
+                    {section.title}
+                  </div>
+                  {section.items.map(renderHit)}
+                </div>
               ))}
             </div>
           )}

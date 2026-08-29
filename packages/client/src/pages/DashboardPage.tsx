@@ -1,11 +1,6 @@
-import {
-  BoardRegular,
-  CalendarAgendaRegular,
-  DocumentRegular,
-  TextBulletListSquareRegular,
-} from "@fluentui/react-icons";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { AgendaIcon, DecisionsIcon, FileIcon, WorkspaceIcon } from "../components/icons";
 import { PageHeader } from "../components/Ui";
 import { useI18n } from "../i18n/I18nProvider";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
@@ -30,28 +25,28 @@ export function DashboardPage() {
         {error && <div className="error-banner">{t("common.requestFailed")}</div>}
         <div className="metric-grid">
           <Metric
-            icon={<CalendarAgendaRegular />}
+            icon={<AgendaIcon />}
             value={nextMeeting ? formatDate(nextMeeting.startsAt) : t("dashboard.toSchedule")}
             label={t("dashboard.nextMeeting")}
             detail={nextMeeting?.title ?? t("dashboard.noMeeting")}
-            to={nextMeeting ? `/meetings/${nextMeeting.id}` : "/meetings"}
+            to={nextMeeting ? `/meetings/${nextMeeting.slug}` : "/meetings"}
           />
           <Metric
-            icon={<BoardRegular />}
+            icon={<WorkspaceIcon />}
             value={formatNumber(topics.filter((topic) => ["toSchedule", "scheduled"].includes(topic.state)).length)}
             label={t("dashboard.activeTopics")}
             detail={t("dashboard.preparationAndTracking")}
             to="/workspace"
           />
           <Metric
-            icon={<TextBulletListSquareRegular />}
+            icon={<DecisionsIcon />}
             value={formatNumber(councilDecisions.length)}
             label={t("dashboard.decisions")}
             detail={t("dashboard.decisionLifecycle")}
             to="/council-decisions"
           />
           <Metric
-            icon={<DocumentRegular />}
+            icon={<FileIcon />}
             value={formatNumber(resources.length)}
             label={t("dashboard.resources")}
             detail={t("dashboard.attachedResources")}

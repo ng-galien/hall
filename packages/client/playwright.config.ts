@@ -22,9 +22,13 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   projects: [
+    // Le seed s'exécute une fois, après le démarrage des serveurs et avant les specs.
+    { name: "seed", testMatch: /seed\.setup\.ts/ },
     {
       name: "chromium",
+      testIgnore: /seed\.setup\.ts/,
       use: { ...devices["Desktop Chrome"] },
+      dependencies: ["seed"],
     },
   ],
   webServer: [
