@@ -10,6 +10,7 @@ import type {
   ResourceRepository,
   UnitOfWork,
   UpdateCouncilBusinessContent,
+  WorkspaceFolderRepository,
 } from "../repositories/contracts.js";
 import { normalizedAgendaItemIds } from "./agendaOrderPolicy.js";
 import type { EditorAssetService } from "./editorAssetService.js";
@@ -35,6 +36,7 @@ export function createCouncilBusinessService({
   agendaItemRepository,
   ballotRepository,
   editorAssetService,
+  workspaceFolderRepository,
 }: {
   councilBusinessRepository: CouncilBusinessRepository;
   councilCommitteeRepository: CouncilCommitteeRepository;
@@ -45,6 +47,7 @@ export function createCouncilBusinessService({
   agendaItemRepository: AgendaItemRepository;
   ballotRepository: BallotRepository;
   editorAssetService: EditorAssetService;
+  workspaceFolderRepository: WorkspaceFolderRepository;
 }): CouncilBusinessService {
   const validateResources = async (resourceIds: string[]) => {
     for (const resourceId of resourceIds) {
@@ -137,6 +140,9 @@ export function createCouncilBusinessService({
               : input.committeeId
             : null;
         await validateCommittee(committeeId);
+        if (business.folderPath && business.folderPath !== input.folderPath) {
+          await workspaceFolderRepository.ensure(business.folderPath, new Date().toISOString());
+        }
         const updated = await councilBusinessRepository.update(business.id, {
           ...input,
           councilDecisionId,
@@ -159,6 +165,9 @@ export function createCouncilBusinessService({
       return unitOfWork.execute(async () => {
         const business = await councilBusinessRepository.find(id);
         if (!business) throw new DomainError("council_business_not_found", 404);
+        if (business.folderPath && business.folderPath !== folderPath) {
+          await workspaceFolderRepository.ensure(business.folderPath, new Date().toISOString());
+        }
         const updated = await councilBusinessRepository.update(business.id, {
           title: business.title,
           report: business.report,

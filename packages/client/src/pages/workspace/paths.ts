@@ -11,13 +11,13 @@ export interface PathNode {
 export function listAllPaths(
   businesses: CouncilBusiness[],
   resources: Resource[],
-  extraPaths: string[] = [],
+  persistedPaths: string[] = [],
 ): string[] {
   const known = new Set<string>();
   for (const folderPath of [
+    ...persistedPaths,
     ...businesses.map((business) => business.folderPath),
     ...resources.map((resource) => resource.folderPath),
-    ...extraPaths,
   ]) {
     const segments = folderPath.split("/").filter(Boolean);
     segments.forEach((_segment, index) => {
@@ -36,14 +36,14 @@ export function isUnderPath(folderPath: string, path: string): boolean {
 export function buildPathTree(
   businesses: CouncilBusiness[],
   resources: Resource[],
-  extraPaths: string[] = [],
+  persistedPaths: string[] = [],
 ): PathNode[] {
   const folderPaths = [
     ...businesses.map((business) => business.folderPath),
     ...resources.map((resource) => resource.folderPath),
   ];
   const knownPaths = new Set<string>();
-  for (const folderPath of [...folderPaths, ...extraPaths]) {
+  for (const folderPath of [...persistedPaths, ...folderPaths]) {
     const segments = folderPath.split("/").filter(Boolean);
     segments.forEach((_segment, index) => {
       knownPaths.add(segments.slice(0, index + 1).join("/"));

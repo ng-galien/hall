@@ -2,7 +2,7 @@
 
 Desktop-first municipal council management. The first bounded scope covers classified documentary resources, living
 agenda topics, council meetings, attendance and proxies, historical agenda occurrences, council decisions, ballots,
-votes, and the minutes lifecycle. The canonical functional design is [Design point Mardang](docs/design-point-mardang.md).
+votes, and the minutes lifecycle.
 
 Each installation is single-tenant and represents one commune. `GET /api/settings` exposes its `HallSettings`; an
 administrator may update them through the advertised `settings.update` Siren action. These settings hold municipal
@@ -71,10 +71,6 @@ npm run quality
 npm run desktop:package
 npm run smoke:package -w @hall/desktop
 ```
-
-The backend test levels and coverage gates are documented in
-[Backend testing strategy](docs/backend-testing.md). Integration and coverage runs use isolated servers and databases;
-they never reuse the shared development server or its demo data.
 
 ### Repartir d’une démonstration vide
 

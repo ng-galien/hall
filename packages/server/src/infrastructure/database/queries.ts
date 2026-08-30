@@ -10,6 +10,7 @@ const resourceSelection = `SELECT
   resources.folder_path,
   resources.created_at,
   resources.updated_at,
+  remote_resources.url AS remote_url,
   text_resources.content AS text_content,
   resource_documents.meeting_id,
   resource_documents.file_name,
@@ -22,6 +23,7 @@ const resourceSelection = `SELECT
   resource_documents.editor_owner_kind,
   resource_documents.editor_owner_id
 FROM resources
+LEFT JOIN remote_resources ON remote_resources.resource_id = resources.id
 LEFT JOIN text_resources ON text_resources.resource_id = resources.id
 LEFT JOIN resource_documents ON resource_documents.resource_id = resources.id`;
 
@@ -306,7 +308,7 @@ export const queries = {
       WHERE (:folderPath IS NULL OR resources.folder_path = :folderPath)
         AND (:kind IS NULL OR resources.kind = :kind)
         AND (:meetingId IS NULL OR resource_documents.meeting_id = :meetingId)
-        AND ((:usage IS NULL AND (resources.kind = 'text' OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
+        AND ((:usage IS NULL AND (resources.kind IN ('text', 'remote') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
         AND (:editorOwnerKind IS NULL OR resource_documents.editor_owner_kind = :editorOwnerKind)
         AND (:editorOwnerId IS NULL OR resource_documents.editor_owner_id = :editorOwnerId)
       ORDER BY resources.updated_at DESC`,
@@ -314,7 +316,7 @@ export const queries = {
       WHERE (:folderPath IS NULL OR resources.folder_path = :folderPath)
         AND (:kind IS NULL OR resources.kind = :kind)
         AND (:meetingId IS NULL OR resource_documents.meeting_id = :meetingId)
-        AND ((:usage IS NULL AND (resources.kind = 'text' OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
+        AND ((:usage IS NULL AND (resources.kind IN ('text', 'remote') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
         AND (:editorOwnerKind IS NULL OR resource_documents.editor_owner_kind = :editorOwnerKind)
         AND (:editorOwnerId IS NULL OR resource_documents.editor_owner_id = :editorOwnerId)
         AND NOT EXISTS (
@@ -329,7 +331,7 @@ export const queries = {
       WHERE (CAST(:folderPath AS text) IS NULL OR resources.folder_path = CAST(:folderPath AS text))
         AND (CAST(:kind AS text) IS NULL OR resources.kind = CAST(:kind AS text))
         AND (CAST(:meetingId AS text) IS NULL OR resource_documents.meeting_id = CAST(:meetingId AS text))
-        AND ((CAST(:usage AS text) IS NULL AND (resources.kind = 'text' OR resource_documents.usage = 'document')) OR resource_documents.usage = CAST(:usage AS text))
+        AND ((CAST(:usage AS text) IS NULL AND (resources.kind IN ('text', 'remote') OR resource_documents.usage = 'document')) OR resource_documents.usage = CAST(:usage AS text))
         AND (CAST(:editorOwnerKind AS text) IS NULL OR resource_documents.editor_owner_kind = CAST(:editorOwnerKind AS text))
         AND (CAST(:editorOwnerId AS text) IS NULL OR resource_documents.editor_owner_id = CAST(:editorOwnerId AS text))
         AND NOT EXISTS (
@@ -359,21 +361,36 @@ export const queries = {
       )`,
   "resource.folderPaths": `SELECT DISTINCT resources.folder_path FROM resources
     LEFT JOIN resource_documents ON resource_documents.resource_id = resources.id
-    WHERE resources.folder_path <> '' AND (resources.kind = 'text' OR resource_documents.usage = 'document')
+    WHERE resources.folder_path <> '' AND (resources.kind IN ('text', 'remote') OR resource_documents.usage = 'document')
     ORDER BY resources.folder_path`,
+  "resource.hasFolderPathPrefix": `SELECT 1 FROM resources
+    WHERE folder_path = :folderPath OR substr(folder_path, 1, length(:folderPrefix)) = :folderPrefix
+    LIMIT 1`,
+  "resource.renameFolder": `UPDATE resources
+    SET folder_path = CASE
+      WHEN folder_path = :sourcePath THEN :targetPath
+      ELSE :targetPath || substr(folder_path, length(:sourcePath) + 1)
+    END,
+    updated_at = :updatedAt
+    WHERE folder_path = :sourcePath OR substr(folder_path, 1, length(:sourcePrefix)) = :sourcePrefix`,
   "resource.insertTextBase": `INSERT INTO resources
     (id, slug, kind, title, folder_path, created_at, updated_at)
     VALUES (:id, :slug, 'text', :title, :folderPath, :createdAt, :updatedAt)`,
+  "resource.insertRemoteBase": `INSERT INTO resources
+    (id, slug, kind, title, folder_path, created_at, updated_at)
+    VALUES (:id, :slug, 'remote', :title, :folderPath, :createdAt, :updatedAt)`,
   "resource.insertDocumentBase": `INSERT INTO resources
     (id, slug, kind, title, folder_path, created_at, updated_at)
     VALUES (:id, :slug, 'document', :title, :folderPath, :createdAt, :updatedAt)`,
   "resource.insertText": "INSERT INTO text_resources (resource_id, content) VALUES (:id, :content)",
+  "resource.insertRemote": "INSERT INTO remote_resources (resource_id, url) VALUES (:id, :url)",
   "resource.insertDocument": `INSERT INTO resource_documents
     (resource_id, meeting_id, file_name, format, media_type, byte_size, content_sha256, category, usage, editor_owner_kind, editor_owner_id, content)
     VALUES (:id, :meetingId, :fileName, :format, :mediaType, :byteSize, :contentSha256, :category, :usage, :editorOwnerKind, :editorOwnerId, :content)`,
   "resource.insertTag": "INSERT INTO resource_tags (resource_id, tag) VALUES (:resourceId, :tag)",
   "resource.update": `UPDATE resources SET title = :title, folder_path = :folderPath, updated_at = :updatedAt WHERE id = :id`,
   "resource.updateText": "UPDATE text_resources SET content = :content WHERE resource_id = :id",
+  "resource.updateRemote": "UPDATE remote_resources SET url = :url WHERE resource_id = :id",
   "resource.deleteTags": "DELETE FROM resource_tags WHERE resource_id = :id",
   "resource.isSnapshotted": `SELECT 1 FROM agenda_item_resources WHERE resource_id = :id LIMIT 1`,
   "resource.isReferencedByRichText": `SELECT 1 FROM rich_text_resource_references WHERE resource_id = :id LIMIT 1`,
@@ -387,6 +404,19 @@ export const queries = {
     usage = 'document', category = :category, editor_owner_kind = NULL, editor_owner_id = NULL
     WHERE resource_id = :id AND usage = 'editorAsset'`,
   "resource.delete": "DELETE FROM resources WHERE id = :id",
+
+  "workspaceFolder.list": "SELECT path FROM workspace_folders ORDER BY path",
+  "workspaceFolder.existsPrefix": `SELECT 1 FROM workspace_folders
+    WHERE path = :folderPath OR substr(path, 1, length(:folderPrefix)) = :folderPrefix
+    LIMIT 1`,
+  "workspaceFolder.insert": `INSERT INTO workspace_folders (path, created_at)
+    VALUES (:path, :createdAt) ON CONFLICT (path) DO NOTHING`,
+  "workspaceFolder.rename": `UPDATE workspace_folders
+    SET path = CASE
+      WHEN path = :sourcePath THEN :targetPath
+      ELSE :targetPath || substr(path, length(:sourcePath) + 1)
+    END
+    WHERE path = :sourcePath OR substr(path, 1, length(:sourcePrefix)) = :sourcePrefix`,
 
   "security.rolesForUser": "SELECT role FROM user_roles WHERE user_id = :userId ORDER BY role",
   "security.findUserById": "SELECT * FROM users WHERE id = :value",
@@ -442,6 +472,16 @@ export const queries = {
     ORDER BY updated_at DESC`,
   },
   "councilBusiness.find": "SELECT * FROM council_business WHERE id = :reference OR slug = :reference",
+  "councilBusiness.hasFolderPathPrefix": `SELECT 1 FROM council_business
+    WHERE folder_path = :folderPath OR substr(folder_path, 1, length(:folderPrefix)) = :folderPrefix
+    LIMIT 1`,
+  "councilBusiness.renameFolder": `UPDATE council_business
+    SET folder_path = CASE
+      WHEN folder_path = :sourcePath THEN :targetPath
+      ELSE :targetPath || substr(folder_path, length(:sourcePath) + 1)
+    END,
+    updated_at = :updatedAt
+    WHERE folder_path = :sourcePath OR substr(folder_path, 1, length(:sourcePrefix)) = :sourcePrefix`,
   "councilBusiness.slugExists": "SELECT 1 FROM council_business WHERE slug = :slug OR id = :slug",
   "councilBusiness.findByDecision": "SELECT * FROM council_business WHERE council_decision_id = :councilDecisionId",
   "councilBusiness.findMinutesApproval": "SELECT * FROM council_business WHERE minutes_of_meeting_id = :meetingId",

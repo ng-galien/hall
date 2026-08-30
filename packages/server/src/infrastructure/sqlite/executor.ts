@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import type { DatabaseRow } from "../../repositories/row.js";
-import type { RequestContextStore } from "../../security/requestContext.js";
+import { inferAuditTargetId, type RequestContextStore } from "../../security/requestContext.js";
 import { translatePersistenceError } from "../database/errors.js";
 import {
   compileQuery,
@@ -108,8 +108,7 @@ export class SqliteExecutor implements SqlExecutor {
     if (!context?.audit || context.auditRecorded) return;
     const actorId = context.principal?.id;
     const storedActor = actorId ? await this.get("security.actorExists", { actorUserId: actorId }) : undefined;
-    const inferredTargetId =
-      result && typeof result === "object" && "id" in result && typeof result.id === "string" ? result.id : null;
+    const inferredTargetId = inferAuditTargetId(context.audit, result);
     await this.run("security.insertAuditEvent", {
       id: randomUUID(),
       actorUserId: storedActor ? (actorId ?? null) : null,

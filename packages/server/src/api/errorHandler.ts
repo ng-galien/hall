@@ -28,7 +28,12 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
     return;
   }
   if (error instanceof PersistenceError) {
-    sendProblem(request, response, 409, error.code);
+    const code =
+      error.constraint === "one_resource_title_per_folder" ||
+      error.constraint === "one_council_business_title_per_folder"
+        ? "workspace_title_conflict"
+        : error.code;
+    sendProblem(request, response, 409, code);
     return;
   }
   if (error instanceof MulterError) {

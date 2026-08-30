@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ChevronDownIcon, ChevronRightIcon } from "../components/icons";
 import { useI18n } from "../i18n/I18nProvider";
 import { buildPathTree, type PathNode } from "../pages/workspace/paths";
-import { DRAG_TYPE, decodeDragPayload, moveToPath, useWorkspaceOrgStore } from "../pages/workspace/workspaceOrg";
+import { DRAG_TYPE, decodeDragPayload, moveToPath } from "../pages/workspace/workspaceOrg";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useResourcesStore } from "../stores/resourcesStore";
 
@@ -25,7 +25,6 @@ function TreeNode({
   expanded: Set<string>;
   onToggle(path: string): void;
 }) {
-  const { formatNumber } = useI18n();
   const [dropping, setDropping] = useState(false);
   const isExpanded = expanded.has(node.path);
   const isActive = activePath === node.path;
@@ -65,7 +64,6 @@ function TreeNode({
           }}
         >
           <span className="workspace-tree-name">{node.name}</span>
-          <span className="workspace-tree-count">{formatNumber(node.count)}</span>
         </Link>
       </div>
       {isExpanded && node.children.length > 0 ? (
@@ -89,11 +87,13 @@ function TreeNode({
 /** Filing path tree rendered in the sidebar under the workspace entry. */
 export function WorkspaceTree() {
   const { businesses } = useCouncilBusinessStore();
-  const { resources } = useResourcesStore();
-  const { pendingPaths } = useWorkspaceOrgStore();
+  const { resources, folderPaths } = useResourcesStore();
   const location = useLocation();
   const activePath = activePathFrom(location.search, location.pathname);
-  const tree = useMemo(() => buildPathTree(businesses, resources, pendingPaths), [businesses, resources, pendingPaths]);
+  const tree = useMemo(
+    () => buildPathTree(businesses, resources, folderPaths),
+    [businesses, folderPaths, resources],
+  );
   const [toggled, setToggled] = useState<{ opened: Set<string>; closed: Set<string> }>({
     opened: new Set(),
     closed: new Set(),

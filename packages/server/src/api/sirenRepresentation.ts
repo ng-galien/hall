@@ -91,6 +91,29 @@ function collectionActions(request: Request, entityClass: string): SirenAction[]
     return [
       action("resource.create-text", "POST", "/api/resources/texts", "Create a text"),
       {
+        ...action("resource.create-remote", "POST", "/api/resources/remotes", "Create a remote resource"),
+        fields: [
+          { name: "title", type: "text" },
+          { name: "url", type: "url" },
+          { name: "folderPath", type: "text", value: "" },
+          { name: "tags", type: "text", value: "" },
+        ],
+      },
+      {
+        ...action("workspace.create-folder", "POST", "/api/resources/paths", "Create a folder"),
+        fields: [
+          { name: "parentPath", type: "text", value: "" },
+          { name: "name", type: "text" },
+        ],
+      },
+      {
+        ...action("workspace.rename-folder", "PUT", "/api/resources/paths", "Rename a folder"),
+        fields: [
+          { name: "folderPath", type: "text" },
+          { name: "name", type: "text" },
+        ],
+      },
+      {
         ...action("resource.create-document", "POST", "/api/resources/documents", "Upload a document"),
         type: "multipart/form-data",
         fields: [

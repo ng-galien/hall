@@ -26,7 +26,7 @@ test.describe("municipal council workflow", () => {
   test("keeps one council business mutation pending and ignores duplicate submissions", async ({ appPage: page }) => {
     await primaryNavigationLink(page, "Espace de travail").click();
     await page.getByRole("button", { name: "Nouveau", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Nouveau sujet", exact: true }).click();
+    await page.getByTestId("workspace-create-business").click();
     const dialog = openDialog(page);
     await formField(dialog, "title").fill("Sujet soumis une seule fois");
 
@@ -58,7 +58,7 @@ test.describe("municipal council workflow", () => {
 
     await primaryNavigationLink(page, "Espace de travail").click();
     await page.getByRole("button", { name: "Nouveau", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Nouveau sujet", exact: true }).click();
+    await page.getByTestId("workspace-create-business").click();
     const businessDialog = openDialog(page);
     await formField(businessDialog, "title").fill("Adoption du programme de rénovation");
     await businessDialog.getByRole("button", { name: "Créer", exact: true }).click();

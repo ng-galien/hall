@@ -22,6 +22,7 @@ import type {
   MeetingRosterRepository,
   ResourceRepository,
   UnitOfWork,
+  WorkspaceFolderRepository,
 } from "../repositories/contracts.js";
 import { createCouncilBusinessRepository } from "../repositories/councilBusinessRepository.js";
 import { createCouncilCommitteeRepository } from "../repositories/councilCommitteeRepository.js";
@@ -31,6 +32,7 @@ import { createCouncilMemberRepository } from "../repositories/councilMemberRepo
 import { createHallSettingsRepository } from "../repositories/hallSettingsRepository.js";
 import { createMeetingRosterRepository } from "../repositories/meetingRosterRepository.js";
 import { createResourceRepository } from "../repositories/resourceRepository.js";
+import { createWorkspaceFolderRepository } from "../repositories/workspaceFolderRepository.js";
 import { createSecurityRepository, type SecurityRepository } from "../repositories/securityRepository.js";
 import { RequestContextStore } from "../security/requestContext.js";
 import { type AuthService, createAuthService } from "../services/authService.js";
@@ -69,6 +71,7 @@ export interface Cradle {
   ballotRepository: BallotRepository;
   councilDecisionRepository: CouncilDecisionRepository;
   resourceRepository: ResourceRepository;
+  workspaceFolderRepository: WorkspaceFolderRepository;
   meetingRosterRepository: MeetingRosterRepository;
   councilBusinessRepository: CouncilBusinessRepository;
   contentTemplateRepository: ContentTemplateRepository;
@@ -108,6 +111,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     ballotRepository: asFunction(createBallotRepository).singleton(),
     councilDecisionRepository: asFunction(createCouncilDecisionRepository).singleton(),
     resourceRepository: asFunction(createResourceRepository).singleton(),
+    workspaceFolderRepository: asFunction(createWorkspaceFolderRepository).singleton(),
     meetingRosterRepository: asFunction(createMeetingRosterRepository).singleton(),
     councilBusinessRepository: asFunction(createCouncilBusinessRepository).singleton(),
     contentTemplateRepository: asFunction(createContentTemplateRepository).singleton(),

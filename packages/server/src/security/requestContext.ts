@@ -8,6 +8,15 @@ export interface AuditIntent {
   details?: Record<string, unknown>;
 }
 
+export function inferAuditTargetId(intent: AuditIntent, result: unknown): string | null {
+  if (!result || typeof result !== "object") return null;
+  if ("id" in result && typeof result.id === "string") return result.id;
+  if (intent.targetType === "workspace-folder" && "path" in result && typeof result.path === "string") {
+    return result.path;
+  }
+  return null;
+}
+
 export interface RequestContext {
   requestId: string;
   principal?: ApiPrincipal;

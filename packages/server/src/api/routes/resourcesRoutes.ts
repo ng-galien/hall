@@ -1,8 +1,11 @@
 import {
   createTextResourceSchema,
+  createFolderSchema,
+  createRemoteResourceSchema,
   editorAssetOwnerKindSchema,
   folderPathSchema,
   promoteEditorAssetSchema,
+  renameFolderSchema,
   resourceTagsSchema,
   updateResourceSchema,
 } from "@hall/domain";
@@ -15,7 +18,7 @@ import { DomainError } from "../../services/errors.js";
 import { routeParameter } from "../routeParameter.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
-const resourceKindSchema = z.enum(["text", "document"]);
+const resourceKindSchema = z.enum(["text", "document", "remote"]);
 const documentCategorySchema = z.enum([
   "report",
   "draftCouncilDecision",
@@ -103,12 +106,30 @@ export function createResourcesRouter({
     response.json(await resourceService.listFolderPaths());
   });
 
+  router.post("/paths", requirePermission("workspace.write"), async (request, response) => {
+    const { parentPath, name } = createFolderSchema.parse(request.body);
+    response.status(201).json(await resourceService.createFolder(parentPath, name));
+  });
+
+  router.put("/paths", requirePermission("workspace.write"), async (request, response) => {
+    const { folderPath, name } = renameFolderSchema.parse(request.body);
+    response.json(await resourceService.renameFolder(folderPath, name));
+  });
+
   router.post("/texts", requirePermission("workspace.write"), async (request, response) => {
     const { title, folderPath, tags, content } = createTextResourceSchema.parse({
       ...request.body,
       kind: "text",
     });
     response.status(201).json(await resourceService.createText({ title, folderPath, tags, content }));
+  });
+
+  router.post("/remotes", requirePermission("workspace.write"), async (request, response) => {
+    const { title, folderPath, tags, url } = createRemoteResourceSchema.parse({
+      ...request.body,
+      kind: "remote",
+    });
+    response.status(201).json(await resourceService.createRemote({ title, folderPath, tags, url }));
   });
 
   router.post("/documents", requirePermission("workspace.write"), uploadFile, async (request, response) => {

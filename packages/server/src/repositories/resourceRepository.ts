@@ -1,8 +1,16 @@
 import { randomUUID } from "node:crypto";
-import type { DocumentCategory, DocumentResource, EditorAssetOwner, Resource, TextResource } from "@hall/domain";
+import type {
+  DocumentCategory,
+  DocumentResource,
+  EditorAssetOwner,
+  RemoteResource,
+  Resource,
+  TextResource,
+} from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type {
   CreateTextResource,
+  CreateRemoteResource,
   PersistDocumentResource,
   PersistEditorAssetResource,
   ResourceRepository,
@@ -23,6 +31,7 @@ export function mapResource(row: DatabaseRow, tags: string[]): Resource {
     updatedAt: String(row.updated_at),
   };
   if (row.kind === "text") return { kind: "text", ...common, content: String(row.text_content) } satisfies TextResource;
+  if (row.kind === "remote") return { kind: "remote", ...common, url: String(row.remote_url) } satisfies RemoteResource;
   const document = {
     kind: "document",
     ...common,
@@ -80,7 +89,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
       const row = await sqlExecutor.get("resource.findMetadata", { reference });
       if (!row) return null;
       const resource = await mapStoredResource(sqlExecutor, row);
-      if (resource.kind === "text") return resource;
+      if (resource.kind !== "document") return resource;
       const documentRow = await sqlExecutor.get("resource.documentContent", { id: resource.id });
       return { ...resource, content: Buffer.from(documentRow!.content as Uint8Array) } satisfies StoredDocumentResource;
     },
@@ -110,6 +119,21 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
     async listFolderPaths() {
       return (await sqlExecutor.all("resource.folderPaths")).map((row) => String(row.folder_path));
     },
+    hasFolderPathPrefix(folderPath) {
+      return sqlExecutor
+        .get("resource.hasFolderPathPrefix", { folderPath, folderPrefix: `${folderPath}/` })
+        .then(Boolean);
+    },
+    renameFolder(sourcePath, targetPath, updatedAt) {
+      return sqlExecutor
+        .run("resource.renameFolder", {
+          sourcePath,
+          sourcePrefix: `${sourcePath}/`,
+          targetPath,
+          updatedAt,
+        })
+        .then((result) => result.changes);
+    },
     createText(input: CreateTextResource) {
       return sqlExecutor.execute(async () => {
         const id = randomUUID();
@@ -129,6 +153,27 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
           input.tags,
         ) as TextResource;
+      });
+    },
+    createRemote(input: CreateRemoteResource) {
+      return sqlExecutor.execute(async () => {
+        const id = randomUUID();
+        const now = new Date().toISOString();
+        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
+        await sqlExecutor.run("resource.insertRemoteBase", {
+          id,
+          slug,
+          title: input.title,
+          folderPath: input.folderPath,
+          createdAt: now,
+          updatedAt: now,
+        });
+        await sqlExecutor.run("resource.insertRemote", { id, url: input.url });
+        await insertTags(sqlExecutor, id, input.tags);
+        return mapResource(
+          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
+          input.tags,
+        ) as RemoteResource;
       });
     },
     createDocument(input: PersistDocumentResource) {
@@ -252,6 +297,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           updatedAt: new Date().toISOString(),
         });
         if (input.content !== undefined) await sqlExecutor.run("resource.updateText", { id, content: input.content });
+        if (input.url !== undefined) await sqlExecutor.run("resource.updateRemote", { id, url: input.url });
         await sqlExecutor.run("resource.deleteTags", { id });
         await insertTags(sqlExecutor, id, input.tags);
         return mapResource((await sqlExecutor.get("resource.findMetadata", { reference: id }))!, input.tags);

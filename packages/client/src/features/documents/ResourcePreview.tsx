@@ -7,6 +7,7 @@ import { useDocumentPreview } from "../../hooks/useDocumentPreview";
 import { useI18n } from "../../i18n/I18nProvider";
 import { downloadResourceDocument, getResourceDetails } from "../../services/resourcesApi";
 import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
+import { RemoteResourceEmbed } from "./RemoteResourceEmbed";
 
 /** Preview panel for a resource; `resourceId` is the immutable entity id, never the navigation slug. */
 export function ResourcePreview({ resourceId, onClose }: { resourceId: string; onClose(): void }) {
@@ -76,6 +77,7 @@ export function ResourcePreview({ resourceId, onClose }: { resourceId: string; o
               <MarkdownView markdown={resource.content} />
             </div>
           ) : null}
+          {resource?.kind === "remote" ? <RemoteResourceEmbed resource={resource} /> : null}
           {previewFailed ? <DocumentPreviewFailure onRetry={retry} /> : null}
           {objectUrl && mediaType && resource?.kind === "document" ? (
             <object

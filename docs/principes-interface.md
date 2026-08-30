@@ -1,6 +1,6 @@
-# Guide de conception du frontend
+# Principes d’interface de Hall
 
-Ce document fixe les principes communs applicables au client Hall. Il complète le langage ubiquitaire et les règles métier d’[`AGENTS.md`](../AGENTS.md) sans les remplacer.
+Ce document fixe les principes durables de l’interface de Hall.
 
 ## 1. Autosave par défaut
 
@@ -67,20 +67,3 @@ Les tests `theme-tokens.test.mjs` protègent cette frontière et doivent rester 
 - Une action absente du contrat Siren n’est pas simulée ou réinventée dans le client.
 - Les contrôles restent accessibles au clavier, correctement nommés et associés à leurs champs.
 - Le mode séance conserve son autonomie visuelle et fonctionnelle ; ses contraintes d’affichage ne justifient pas de dupliquer les règles métier dans le frontend.
-
-## État actuel et points à aligner
-
-Les fondations sont déjà présentes : autosave de `ResourceWorkbench`, autosave des notes de `ConductView`, séparation entre `HeaderBreadcrumb` et `WorkspaceBreadcrumb`, catalogue de tokens contrôlé et capacités Siren.
-
-Deux écarts doivent guider les prochains changements : l’édition de `CouncilBusinessWorkbench` utilise encore une sauvegarde manuelle, et la protection d’une modification en attente lors d’une navigation n’est pas encore centralisée. Une nouvelle fonctionnalité ne doit pas étendre ces écarts.
-
-Pour le chantier d’administration du conseil, les fiches de membres et de commissions suivent l’autosave. La création et les opérations structurées d’appartenance restent des actions explicites ; chaque membre ou badge ne reçoit pas son propre micro-formulaire.
-
-## Contrôle avant livraison
-
-- Vérifier quel composant possède déjà l’information, la navigation et l’action concernées.
-- Vérifier les capacités Siren avant d’ajouter une commande.
-- Vérifier l’autosave, y compris l’erreur et la navigation pendant un enregistrement en attente.
-- Vérifier l’absence d’information et de formulaire dupliqués sur le même écran.
-- Réutiliser les tokens et composants existants.
-- Exécuter les tests du client, le typecheck et les contrôles d’architecture proportionnés aux fichiers touchés.

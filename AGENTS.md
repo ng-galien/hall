@@ -88,7 +88,7 @@ Avant de stabiliser un nouveau concept backend, vérifier séparément : sa natu
 
 ## Travail frontend
 
-Tout agent qui modifie `packages/client` doit lire et appliquer [`docs/frontend-guidelines.md`](docs/frontend-guidelines.md) avant d’agir. Ce guide fixe notamment le contrat d’autosave, la séparation entre le fil d’Ariane global et celui du Workbench, l’usage de formulaires cohérents, l’absence de doublons d’information, la stabilité des tokens CSS et la frontière entre composants métier et primitives techniques.
+Tout agent qui modifie `packages/client` doit lire et appliquer [`docs/principes-interface.md`](docs/principes-interface.md) avant d’agir. Ce document fixe notamment le contrat d’autosave, la séparation entre le fil d’Ariane global et celui du Workbench, l’usage de formulaires cohérents, l’absence de doublons d’information, la stabilité des tokens CSS et la frontière entre composants métier et primitives techniques.
 
 Une évolution du client doit prolonger ces principes. Lorsqu’un écran existant n’y est pas encore conforme, ne pas reproduire l’écart dans un nouvel écran et rendre explicite le réalignement restant.
 

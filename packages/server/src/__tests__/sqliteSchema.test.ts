@@ -47,6 +47,7 @@ describe("current SQLite schema", () => {
       "hall_settings",
       "meeting_roster",
       "number_sequences",
+      "remote_resources",
       "resource_documents",
       "resource_tags",
       "resources",
@@ -57,6 +58,7 @@ describe("current SQLite schema", () => {
       "user_roles",
       "users",
       "votes",
+      "workspace_folders",
     ]);
 
     const businessColumns = database

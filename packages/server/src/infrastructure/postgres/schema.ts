@@ -15,6 +15,7 @@ export const postgresTables = [
   "hall_settings",
   "meeting_roster",
   "number_sequences",
+  "remote_resources",
   "resource_documents",
   "resource_tags",
   "resources",
@@ -25,6 +26,7 @@ export const postgresTables = [
   "user_roles",
   "users",
   "votes",
+  "workspace_folders",
 ] as const;
 
 export const postgresDocumentPreviewsSchema = `
@@ -37,6 +39,13 @@ export const postgresDocumentPreviewsSchema = `
     created_at TEXT NOT NULL,
     PRIMARY KEY (source_content_sha256, source_format)
   );
+`;
+
+export const postgresWorkspaceTitleUniquenessSchema = `
+  CREATE UNIQUE INDEX IF NOT EXISTS one_resource_title_per_folder
+    ON resources(folder_path, title);
+  CREATE UNIQUE INDEX IF NOT EXISTS one_council_business_title_per_folder
+    ON council_business(folder_path, title);
 `;
 
 export const postgresSchema = `
@@ -188,7 +197,7 @@ export const postgresSchema = `
   CREATE TABLE resources (
     id TEXT PRIMARY KEY,
     slug TEXT NOT NULL UNIQUE,
-    kind TEXT NOT NULL CHECK (kind IN ('text', 'document')),
+    kind TEXT NOT NULL CHECK (kind IN ('text', 'document', 'remote')),
     title TEXT NOT NULL,
     folder_path TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
@@ -200,6 +209,11 @@ export const postgresSchema = `
         AND folder_path NOT LIKE '%//%'
       )
     )
+  );
+
+  CREATE TABLE remote_resources (
+    resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
+    url TEXT NOT NULL CHECK (url <> '')
   );
 
   CREATE TABLE text_resources (
@@ -240,6 +254,17 @@ export const postgresSchema = `
     resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
     tag TEXT NOT NULL,
     PRIMARY KEY (resource_id, tag)
+  );
+
+  CREATE TABLE workspace_folders (
+    path TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    CHECK (
+      path <> ''
+      AND path NOT LIKE '/%'
+      AND path NOT LIKE '%/'
+      AND path NOT LIKE '%//%'
+    )
   );
 
   CREATE TABLE attendance (

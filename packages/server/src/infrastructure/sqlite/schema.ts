@@ -12,6 +12,13 @@ const documentPreviewsSchema = `
   ) STRICT;
 `;
 
+const workspaceTitleUniquenessSchema = `
+  CREATE UNIQUE INDEX IF NOT EXISTS one_resource_title_per_folder
+    ON resources(folder_path, title);
+  CREATE UNIQUE INDEX IF NOT EXISTS one_council_business_title_per_folder
+    ON council_business(folder_path, title);
+`;
+
 const currentTables = [
   "agenda_item_resources",
   "agenda_items",
@@ -29,6 +36,7 @@ const currentTables = [
   "hall_settings",
   "meeting_roster",
   "number_sequences",
+  "remote_resources",
   "resource_documents",
   "resource_tags",
   "resources",
@@ -39,6 +47,7 @@ const currentTables = [
   "user_roles",
   "users",
   "votes",
+  "workspace_folders",
 ] as const;
 
 function createCurrentSchema(database: DatabaseSync): void {
@@ -191,7 +200,7 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE TABLE resources (
       id TEXT PRIMARY KEY,
       slug TEXT NOT NULL UNIQUE,
-      kind TEXT NOT NULL CHECK (kind IN ('text', 'document')),
+      kind TEXT NOT NULL CHECK (kind IN ('text', 'document', 'remote')),
       title TEXT NOT NULL,
       folder_path TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL,
@@ -203,6 +212,11 @@ function createCurrentSchema(database: DatabaseSync): void {
           AND folder_path NOT LIKE '%//%'
         )
       )
+    ) STRICT;
+
+    CREATE TABLE remote_resources (
+      resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
+      url TEXT NOT NULL CHECK (url <> '')
     ) STRICT;
 
     CREATE TABLE text_resources (
@@ -243,6 +257,17 @@ function createCurrentSchema(database: DatabaseSync): void {
       resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
       tag TEXT NOT NULL,
       PRIMARY KEY (resource_id, tag)
+    ) STRICT;
+
+    CREATE TABLE workspace_folders (
+      path TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL,
+      CHECK (
+        path <> ''
+        AND path NOT LIKE '/%'
+        AND path NOT LIKE '%/'
+        AND path NOT LIKE '%//%'
+      )
     ) STRICT;
 
     CREATE TABLE attendance (
@@ -414,6 +439,7 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE INDEX audit_events_by_actor ON audit_events(actor_user_id, occurred_at);
     CREATE INDEX audit_events_by_target ON audit_events(target_type, target_id, occurred_at);
   `);
+  database.exec(workspaceTitleUniquenessSchema);
 }
 
 export function initializeSchema(database: DatabaseSync): void {
@@ -473,6 +499,7 @@ export function initializeSchema(database: DatabaseSync): void {
     ) {
       throw new Error("The database uses an obsolete schema and must be reset");
     }
+    database.exec(workspaceTitleUniquenessSchema);
     return;
   }
   database.exec("BEGIN IMMEDIATE");

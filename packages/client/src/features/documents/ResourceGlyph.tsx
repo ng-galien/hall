@@ -7,15 +7,26 @@ import {
   PresentationDocumentIcon,
   SpreadsheetDocumentIcon,
   TextDocumentIcon,
+  WebIcon,
   WordDocumentIcon,
 } from "../../components/icons";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 
-export type ResourceTone = "text" | "pdf" | "image" | "document" | "spreadsheet" | "presentation" | "csv" | "file";
+export type ResourceTone =
+  | "text"
+  | "remote"
+  | "pdf"
+  | "image"
+  | "document"
+  | "spreadsheet"
+  | "presentation"
+  | "csv"
+  | "file";
 
 export function resourceTone(resource: Resource): ResourceTone {
   if (resource.kind === "text") return "text";
+  if (resource.kind === "remote") return "remote";
   switch (resource.format) {
     case "pdf":
       return "pdf";
@@ -40,6 +51,7 @@ export function resourceTone(resource: Resource): ResourceTone {
 
 export const toneLabelKeys: Record<ResourceTone, TranslationKey> = {
   text: "workspace.type.text",
+  remote: "workspace.type.remote",
   pdf: "workspace.type.pdf",
   image: "workspace.type.image",
   document: "workspace.type.file",
@@ -51,6 +63,7 @@ export const toneLabelKeys: Record<ResourceTone, TranslationKey> = {
 
 export const toneIcons = {
   text: TextDocumentIcon,
+  remote: WebIcon,
   pdf: PdfIcon,
   image: ImageIcon,
   document: WordDocumentIcon,
@@ -62,7 +75,10 @@ export const toneIcons = {
 
 export function useResourceTypeLabel(): (resource: Resource) => string {
   const { t } = useI18n();
-  return (resource) => (resource.kind === "document" ? resource.format.toUpperCase() : t("workspace.type.text"));
+  return (resource) =>
+    resource.kind === "document"
+      ? resource.format.toUpperCase()
+      : t(resource.kind === "remote" ? "workspace.type.remote" : "workspace.type.text");
 }
 
 /** Typed badge for a resource: text, PDF, image or generic file. */

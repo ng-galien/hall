@@ -1,5 +1,5 @@
 import { findSirenAction } from "@hall/api-contract";
-import type { CouncilBusiness } from "@hall/domain";
+import type { CouncilBusiness, FolderRenameResult } from "@hall/domain";
 import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../services/apiClient";
 import {
@@ -15,10 +15,12 @@ interface CouncilBusinessStoreState {
   error: ApiErrorCode | null;
   canCreate: boolean;
   updatableIds: string[];
+  renamableIds: string[];
   schedulableIds: string[];
   load(): Promise<void>;
   create(input: Record<string, unknown>): Promise<CouncilBusiness | null>;
   update(businessId: string, input: Record<string, unknown>): Promise<boolean>;
+  applyFolderRename(result: FolderRenameResult): void;
 }
 
 export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, get) => ({
@@ -27,6 +29,7 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
   error: null,
   canCreate: false,
   updatableIds: [],
+  renamableIds: [],
   schedulableIds: [],
   async load() {
     set({ loading: true, error: null });
@@ -42,6 +45,9 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
       const updatableIds = capabilities.flatMap(({ id, representation: details }) =>
         details && findSirenAction(details, "council-business.reclassify") ? [id] : [],
       );
+      const renamableIds = capabilities.flatMap(({ id, representation: details }) =>
+        details && findSirenAction(details, "council-business.update") ? [id] : [],
+      );
       const schedulableIds = capabilities.flatMap(({ id, representation: details }) =>
         details && findSirenAction(details, "council-business.schedule") ? [id] : [],
       );
@@ -49,6 +55,7 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
         businesses,
         canCreate: Boolean(findSirenAction(representation, "council-business.create")),
         updatableIds,
+        renamableIds,
         schedulableIds,
         loading: false,
       });
@@ -77,5 +84,18 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
       set({ error: apiErrorCode(error) });
       return false;
     }
+  },
+  applyFolderRename(result) {
+    const prefix = `${result.sourcePath}/`;
+    set((state) => ({
+      businesses: state.businesses.map((business) => {
+        if (business.folderPath !== result.sourcePath && !business.folderPath.startsWith(prefix)) return business;
+        return {
+          ...business,
+          folderPath: `${result.targetPath}${business.folderPath.slice(result.sourcePath.length)}`,
+          updatedAt: result.updatedAt,
+        };
+      }),
+    }));
   },
 }));

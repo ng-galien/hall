@@ -1,9 +1,8 @@
 import { findSirenAction, type SirenEntity } from "@hall/api-contract";
 import type { CouncilBusiness, CouncilBusinessDetails, DocumentResource } from "@hall/domain";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -21,8 +20,7 @@ import {
   PinnedIcon,
 } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
-import { RequestErrorBanner } from "../../components/Ui";
-import { councilBusinessKindKeys } from "../../features/council-business/presentation";
+import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { ResourceGlyph, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
 import { useResourceImageUpload } from "../../features/documents/useResourceImageUpload";
@@ -46,6 +44,7 @@ import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { MeetingDocumentViewer } from "../council-meetings/MeetingDocumentViewer";
 import { ResourcePicker } from "./ResourcePicker";
+import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceSelection } from "./WorkspacePage";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 
@@ -71,7 +70,6 @@ export function CouncilBusinessWorkbench({
   const [draftText, setDraftText] = useState("");
   const [meetingChoice, setMeetingChoice] = useState("");
   const [viewedDocument, setViewedDocument] = useState<DocumentResource | null>(null);
-  const titleFieldId = useId();
   const can = (
     name:
       | "council-business.update"
@@ -194,54 +192,56 @@ export function CouncilBusinessWorkbench({
   const openResource = (resource: CouncilBusiness["resources"][number]) =>
     resource.kind === "document" ? setViewedDocument(resource) : onSelect({ kind: "resource", id: resource.id });
 
+  const renameBusiness = async (nextTitle: string) => {
+    const renamed = Boolean(
+      await act(async () => {
+        await updateCouncilBusiness(business.id, businessPayload({ title: nextTitle }));
+      }),
+    );
+    if (renamed) setTitle(nextTitle);
+    return renamed;
+  };
+
   return (
-    <div className="workbench">
-      <header className="workbench-header">
-        <div className="workbench-header-copy">
-          <span className="workbench-eyebrow">
-            {t(councilBusinessKindKeys[business.kind])}
-            {business.folderPath ? ` · ${business.folderPath}` : ""}
-          </span>
-          <h1>{business.title}</h1>
+    <div className="workbench workspace-business-workbench">
+      <WorkspaceWorkbenchHeader
+        icon={<CouncilBusinessGlyph business={business} large />}
+        title={title}
+        titleLabel={t("meeting.subject")}
+        date={editable ? { kind: "updated", value: business.updatedAt } : { kind: "created", value: business.createdAt }}
+        onTitleChange={editable ? renameBusiness : undefined}
+        hint={
           <span className={`workbench-edit-hint${editable ? "" : " workbench-edit-hint-locked"}`}>
             {editable ? <EditIcon aria-hidden="true" /> : <LockIcon aria-hidden="true" />}
             {t(editable ? "workspace.editableHint" : "workspace.lockedHint")}
           </span>
-        </div>
-        <div className="workbench-header-side">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
-                aria-pressed={pinned}
-                onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
-              >
-                {pinned ? <PinnedIcon /> : <PinIcon />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
-          </Tooltip>
-          {currentOccurrence ? <StatusBadge value={currentOccurrence.agendaItem.status} /> : null}
-        </div>
-      </header>
-      <RequestErrorBanner error={actionError} />
+        }
+        actions={
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
+                  aria-pressed={pinned}
+                  onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
+                >
+                  {pinned ? <PinnedIcon /> : <PinIcon />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
+            </Tooltip>
+            {currentOccurrence ? <StatusBadge value={currentOccurrence.agendaItem.status} /> : null}
+          </>
+        }
+        actionError={actionError}
+      />
 
       <div className="workbench-grid">
         <div className="workbench-main">
           {editable ? (
             <section className="workbench-section" aria-labelledby="workbench-info">
-              <div className="grid gap-1.5">
-                <Label htmlFor={titleFieldId}>{t("meeting.subject")}</Label>
-                <Input
-                  id={titleFieldId}
-                  className="workbench-title-input"
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  required
-                />
-              </div>
               <div className="grid gap-1.5">
                 <Label>{t("meeting.report")}</Label>
                 <MarkdownEditor

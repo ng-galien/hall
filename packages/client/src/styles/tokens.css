@@ -18,6 +18,8 @@
   --hall-color-on-brand: #ffffff;
   --hall-color-brand-subtle: #eceefa;
   --hall-color-brand-border: #c3caec;
+  --hall-color-selection-subtle: #f5f6fc;
+  --hall-color-selection-border: #d9def3;
   /* Reserved to marks of officiality. */
   --hall-color-seal: #7b2d3b;
   --hall-color-seal-strong: #5e2029;
@@ -169,6 +171,7 @@
   --hall-size-live-rail-collapsed: 64px;
   --hall-size-textarea-min: 72px;
   --hall-size-tag-input-field-min: 80px;
+  --hall-size-business-progress: 80px;
   --hall-size-facet-label: 88px;
 
   /* Layout: 20px step. */
@@ -200,11 +203,13 @@
   --hall-size-auth-panel: 440px;
   --hall-size-preview-failure: 520px;
   --hall-size-rail-max: 560px;
+  --hall-size-editor-pdf-preview-min: 560px;
   --hall-size-table-column-max: 600px;
   --hall-size-dialog-height-max: 640px;
   --hall-size-modal: 680px;
   --hall-size-embed-height-max: 680px;
   --hall-size-application-min: 720px;
+  --hall-size-editor-pdf-preview-max: 900px;
   --hall-size-live-stage-max: 1080px;
   --hall-size-editor-dialog: 1120px;
   --hall-size-document-viewer: 1200px;
@@ -271,6 +276,8 @@
   --hall-color-on-brand: #0c1030;
   --hall-color-brand-subtle: #1d2244;
   --hall-color-brand-border: #383f6e;
+  --hall-color-selection-subtle: #1c2030;
+  --hall-color-selection-border: #343b5e;
   --hall-color-seal: #d38f9a;
   --hall-color-seal-strong: #e3adb6;
   --hall-color-seal-surface: #2c1e22;

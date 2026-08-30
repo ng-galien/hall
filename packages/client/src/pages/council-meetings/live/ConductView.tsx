@@ -4,6 +4,7 @@ import type {
   CouncilMember,
   DocumentResource,
   MeetingAggregate,
+  RemoteResource,
   TextResource,
   VoteChoice,
 } from "@hall/domain";
@@ -35,6 +36,7 @@ import { Modal } from "../../../components/Ui";
 import { councilBusinessKindKeys } from "../../../features/council-business/presentation";
 import { formatMeetingLabel } from "../../../features/council-meetings/meetingPresentation";
 import { useResourceImageUpload } from "../../../features/documents/useResourceImageUpload";
+import { RemoteResourceEmbed } from "../../../features/documents/RemoteResourceEmbed";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useReferenceMentionables } from "../../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../../hooks/useSubmitting";
@@ -113,6 +115,7 @@ export function ConductView({
   } | null>(null);
   const [viewedDocument, setViewedDocument] = useState<DocumentResource | null>(null);
   const [viewedText, setViewedText] = useState<TextResource | null>(null);
+  const [viewedRemote, setViewedRemote] = useState<RemoteResource | null>(null);
   const [minutesAggregate, setMinutesAggregate] = useState<MeetingAggregate | null>(null);
   const [minutesOpen, setMinutesOpen] = useState(false);
 
@@ -496,9 +499,11 @@ export function ConductView({
                     className="conduct-document-chip"
                     type="button"
                     key={resource.id}
-                    onClick={() =>
-                      resource.kind === "document" ? setViewedDocument(resource) : setViewedText(resource)
-                    }
+                    onClick={() => {
+                      if (resource.kind === "document") setViewedDocument(resource);
+                      else if (resource.kind === "text") setViewedText(resource);
+                      else setViewedRemote(resource);
+                    }}
                   >
                     <FileIcon aria-hidden="true" />
                     {resource.title}
@@ -749,6 +754,11 @@ export function ConductView({
       {viewedText ? (
         <Modal open title={viewedText.title} onClose={() => setViewedText(null)}>
           <MarkdownView className="meeting-material-copy" markdown={viewedText.content} />
+        </Modal>
+      ) : null}
+      {viewedRemote ? (
+        <Modal open title={viewedRemote.title} onClose={() => setViewedRemote(null)}>
+          <RemoteResourceEmbed resource={viewedRemote} />
         </Modal>
       ) : null}
       {minutesOpen ? (

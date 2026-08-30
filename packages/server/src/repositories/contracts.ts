@@ -23,6 +23,7 @@ import type {
   MeetingStatus,
   ParticipationEvidence,
   QuorumFailureEvidence,
+  RemoteResource,
   Resource,
   TextResource,
   VoteInput,
@@ -196,6 +197,8 @@ export interface SaveCouncilBusiness extends UpdateCouncilBusinessContent {
 
 export interface CouncilBusinessRepository {
   list(filters?: { folderPath?: string; resourceId?: string }): Promise<CouncilBusiness[]>;
+  hasFolderPathPrefix(folderPath: string): Promise<boolean>;
+  renameFolder(sourcePath: string, targetPath: string, updatedAt: string): Promise<number>;
   find(id: string): Promise<CouncilBusiness | null>;
   findForCouncilDecision(councilDecisionId: string): Promise<CouncilBusiness | null>;
   findMinutesApprovalForMeeting(meetingId: string): Promise<CouncilBusiness | null>;
@@ -289,6 +292,13 @@ export interface CreateTextResource {
   content: string;
 }
 
+export interface CreateRemoteResource {
+  title: string;
+  folderPath: string;
+  tags: string[];
+  url: string;
+}
+
 export interface CreateDocumentResource {
   title: string;
   folderPath: string;
@@ -330,7 +340,14 @@ export interface StoredDocumentPreview {
   createdAt: string;
 }
 
-export type StoredResource = TextResource | StoredDocumentResource;
+export type StoredResource = TextResource | StoredDocumentResource | RemoteResource;
+
+export interface WorkspaceFolderRepository {
+  list(): Promise<string[]>;
+  hasPrefix(folderPath: string): Promise<boolean>;
+  ensure(folderPath: string, createdAt: string): Promise<void>;
+  rename(sourcePath: string, targetPath: string): Promise<number>;
+}
 
 export interface ResourceRepository {
   list(filters?: {
@@ -349,7 +366,10 @@ export interface ResourceRepository {
   ): Promise<StoredDocumentPreview | null>;
   savePreview(preview: StoredDocumentPreview): Promise<StoredDocumentPreview>;
   listFolderPaths(): Promise<string[]>;
+  hasFolderPathPrefix(folderPath: string): Promise<boolean>;
+  renameFolder(sourcePath: string, targetPath: string, updatedAt: string): Promise<number>;
   createText(input: CreateTextResource): Promise<TextResource>;
+  createRemote(input: CreateRemoteResource): Promise<RemoteResource>;
   createDocument(input: PersistDocumentResource): Promise<DocumentResource>;
   createEditorAsset(input: PersistEditorAssetResource): Promise<DocumentResource>;
   promoteEditorAsset(
@@ -368,6 +388,7 @@ export interface UpdateResource {
   folderPath: string;
   tags: string[];
   content?: string;
+  url?: string;
 }
 
 export interface UnitOfWork {

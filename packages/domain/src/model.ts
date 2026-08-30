@@ -144,6 +144,20 @@ export interface QuorumFailureEvidence extends ParticipationEvidence {
 
 export type FolderPath = string;
 
+export interface FolderCreateResult {
+  path: FolderPath;
+  createdAt: IsoDateTime;
+}
+
+export interface FolderRenameResult {
+  sourcePath: FolderPath;
+  targetPath: FolderPath;
+  folderCount: number;
+  resourceCount: number;
+  councilBusinessCount: number;
+  updatedAt: IsoDateTime;
+}
+
 interface ResourceBase {
   id: Identifier;
   slug: string;
@@ -157,6 +171,11 @@ interface ResourceBase {
 export interface TextResource extends ResourceBase {
   kind: "text";
   content: string;
+}
+
+export interface RemoteResource extends ResourceBase {
+  kind: "remote";
+  url: string;
 }
 
 export type DocumentFormat = "pdf" | "jpeg" | "png" | "docx" | "odt" | "xlsx" | "pptx" | "txt" | "csv";
@@ -193,7 +212,7 @@ export interface EditorAssetResource extends DocumentResourceBase {
 
 export type DocumentResource = DocumentaryResource | EditorAssetResource;
 
-export type Resource = TextResource | DocumentResource;
+export type Resource = TextResource | DocumentResource | RemoteResource;
 
 export interface AgendaItem {
   id: Identifier;

@@ -1,27 +1,8 @@
-import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { reclassifyCouncilBusiness } from "../../services/councilBusinessApi";
 import { updateResource } from "../../services/resourcesApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-
-/** Paths created by hand, not yet materialized by an object. */
-interface WorkspaceOrgState {
-  pendingPaths: string[];
-  addPendingPath(path: string): void;
-  prunePendingPaths(materialized: Iterable<string>): void;
-}
-
-export const useWorkspaceOrgStore = create<WorkspaceOrgState>((set) => ({
-  pendingPaths: [],
-  addPendingPath(path) {
-    set((state) => (state.pendingPaths.includes(path) ? state : { pendingPaths: [...state.pendingPaths, path] }));
-  },
-  prunePendingPaths(materialized) {
-    const existing = new Set(materialized);
-    set((state) => ({ pendingPaths: state.pendingPaths.filter((path) => !existing.has(path)) }));
-  },
-}));
 
 export const DRAG_TYPE = "application/x-mairie-item";
 

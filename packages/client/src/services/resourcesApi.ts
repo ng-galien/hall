@@ -1,5 +1,13 @@
 import { findSirenLink } from "@hall/api-contract";
-import type { DocumentResource, EditorAssetOwner, Resource, ResourceDetails } from "@hall/domain";
+import type {
+  DocumentResource,
+  EditorAssetOwner,
+  FolderCreateResult,
+  FolderRenameResult,
+  RemoteResource,
+  Resource,
+  ResourceDetails,
+} from "@hall/domain";
 import {
   apiPathFromHref,
   apiRequest,
@@ -12,7 +20,7 @@ import {
 
 export interface ResourceFilters {
   folderPath?: string;
-  kind?: "text" | "document";
+  kind?: "text" | "document" | "remote";
   meetingId?: string;
   tags?: string[];
   usage?: "document" | "editorAsset";
@@ -37,8 +45,18 @@ const resourceQuery = (filters: ResourceFilters = {}) => {
 export const listResources = (filters?: ResourceFilters) =>
   apiRequest<Resource[]>(`/resources${resourceQuery(filters)}`);
 export const listFolderPaths = () => apiRequest<string[]>("/resources/paths");
+export const createFolder = (parentPath: string, name: string) =>
+  submitSirenActionAt<FolderCreateResult>("/resources", "workspace.create-folder", { parentPath, name }).then(
+    (result) => result.data,
+  );
+export const renameFolder = (folderPath: string, name: string) =>
+  submitSirenActionAt<FolderRenameResult>("/resources", "workspace.rename-folder", { folderPath, name }).then(
+    (result) => result.data,
+  );
 export const createTextResource = (input: Record<string, unknown>) =>
   submitSirenActionAt<Resource>("/resources", "resource.create-text", input).then((result) => result.data);
+export const createRemoteResource = (input: Record<string, unknown>) =>
+  submitSirenActionAt<RemoteResource>("/resources", "resource.create-remote", input).then((result) => result.data);
 export const uploadResourceDocument = (form: FormData) =>
   submitSirenActionAt<Resource>("/resources", "resource.create-document", form).then((result) => result.data);
 export const uploadEditorAsset = (form: FormData) =>

@@ -60,6 +60,21 @@ export function createCouncilBusinessRepository({
       });
       return mapSequential(rows, (row) => mapStoredCouncilBusiness(sqlExecutor, row));
     },
+    hasFolderPathPrefix(folderPath) {
+      return sqlExecutor
+        .get("councilBusiness.hasFolderPathPrefix", { folderPath, folderPrefix: `${folderPath}/` })
+        .then(Boolean);
+    },
+    renameFolder(sourcePath, targetPath, updatedAt) {
+      return sqlExecutor
+        .run("councilBusiness.renameFolder", {
+          sourcePath,
+          sourcePrefix: `${sourcePath}/`,
+          targetPath,
+          updatedAt,
+        })
+        .then((result) => result.changes);
+    },
     find(reference) {
       return read("councilBusiness.find", { reference });
     },

@@ -183,9 +183,27 @@ function auditIntentFor(request: Request) {
     };
   }
   if (root === "resources") {
+    if (id === "paths" && request.method === "POST") {
+      return {
+        action: "workspace.create-folder",
+        targetType: "workspace-folder",
+        targetId: null,
+        details: { parentPath: request.body?.parentPath, name: request.body?.name },
+      };
+    }
+    if (id === "paths" && request.method === "PUT") {
+      return {
+        action: "workspace.rename-folder",
+        targetType: "workspace-folder",
+        targetId: typeof request.body?.folderPath === "string" ? request.body.folderPath : null,
+        details: { name: request.body?.name },
+      };
+    }
     const action =
       id === "texts"
         ? "resource.create-text"
+        : id === "remotes"
+          ? "resource.create-remote"
         : id === "documents"
           ? "resource.create-document"
           : id === "editor-assets"

@@ -420,7 +420,14 @@ async function main() {
   }
   console.log(`  Mot de passe de démonstration : ${DEMO_PASSWORD}`);
 
-  console.log("- Ressources (textes et documents)");
+  console.log("- Ressources (textes, documents et liens web)");
+  await post("/resources/remotes", {
+    title: "Code général des collectivités territoriales",
+    folderPath: "administration/conseil-municipal",
+    tags: ["droit", "conseil municipal", "référence"],
+    url: "https://www.legifrance.gouv.fr/codes/id/LEGITEXT000006070633/",
+  });
+  await post("/resources/paths", { parentPath: "travaux", name: "a-classer" });
   const noteCadrage = await post("/resources/texts", {
     title: "Note de cadrage - éclairage public",
     folderPath: "travaux/eclairage",
@@ -540,7 +547,7 @@ async function main() {
   });
   const businessQuestionsPassees = await post("/council-business", {
     kind: "openQuestion",
-    title: "Questions diverses",
+    title: "Questions diverses (séance précédente)",
     report: "",
     folderPath: "",
     resourceIds: [],
@@ -578,7 +585,7 @@ async function main() {
   });
   const businessQuestions = await post("/council-business", {
     kind: "openQuestion",
-    title: "Questions diverses",
+    title: "Questions diverses (prochaine séance)",
     report: "",
     folderPath: "",
     resourceIds: [],
@@ -802,6 +809,24 @@ async function main() {
       "Le budget primitif est présenté en équilibre réel, sections de fonctionnement et d'investissement, conformément au cadre M57.",
     ],
     [
+      "finances/budget/2026/preparation",
+      "Calendrier de préparation budgétaire 2026",
+      ["budget", "préparation"],
+      "## Jalons\n\n- 15 janvier : remontée des besoins des services\n- 12 février : arbitrages de l'exécutif\n- 5 mars : finalisation des annexes\n- 26 mars : vote du budget primitif",
+    ],
+    [
+      "finances/budget/2026/preparation/arbitrages",
+      "Synthèse des arbitrages de fonctionnement",
+      ["budget", "arbitrages"],
+      "Les arbitrages retiennent la maîtrise des charges courantes, le maintien des services aux habitants et une réserve pour l'évolution des coûts de l'énergie.",
+    ],
+    [
+      "finances/budget/2026/investissement/programmes/voirie",
+      "Programmation pluriannuelle de la voirie",
+      ["budget", "investissement", "voirie"],
+      "## Programmation\n\n- 2026 : chemin de la Fontaine\n- 2027 : rue des Écoles\n- 2028 : route du Moulin\n\nLes montants seront actualisés après réception des études et des offres.",
+    ],
+    [
       "finances/subventions",
       "Critères d'attribution des subventions",
       ["subventions"],
@@ -812,6 +837,18 @@ async function main() {
       "Bilan des subventions 2025",
       ["subventions"],
       "Quatorze associations ont été soutenues pour un montant total de 21 400 €, dont 9 800 € au titre du sport.\n\n| Association | Objet | Montant |\n| --- | --- | ---: |\n| Les Tilleuls | Animation seniors | 2 400 € |\n| Club sportif | Encadrement jeunes | 4 800 € |\n| Comité des fêtes | Fête communale | 3 200 € |\n| Bibliothèque pour tous | Achat de livres | 1 500 € |",
+    ],
+    [
+      "finances/subventions/2026/instruction/sport",
+      "Note d'instruction - Club sportif",
+      ["subventions", "sport", "instruction"],
+      "Le dossier est complet. La demande porte sur l'encadrement des jeunes et les déplacements en compétition. Proposition : 4 800 €.",
+    ],
+    [
+      "finances/subventions/2026/instruction/culture",
+      "Note d'instruction - Harmonie municipale",
+      ["subventions", "culture", "instruction"],
+      "Le dossier est complet. La demande porte sur les concerts publics et le renouvellement des partitions. Proposition : 1 800 €.",
     ],
     [
       "finances/emprunts",
@@ -1037,10 +1074,36 @@ async function main() {
       ],
     ],
     [
+      "finances/budget/2026/preparation/annexes",
+      "État prévisionnel de la dette 2026",
+      "etat-previsionnel-dette-2026.pdf",
+      [
+        "Etat previsionnel de la dette 2026",
+        "Capital restant du au 1er janvier : 412 000 EUR",
+        "Annuites prevues sur l'exercice : 58 600 EUR.",
+      ],
+    ],
+    [
+      "finances/budget/2026/investissement/programmes/batiments",
+      "Plan de financement - rénovation de la mairie",
+      "plan-financement-mairie-2026.pdf",
+      [
+        "Renovation energetique de la mairie",
+        "Montant previsionnel : 284 000 EUR HT",
+        "Subventions sollicitees : DETR et Fonds vert.",
+      ],
+    ],
+    [
       "finances/subventions",
       "Dossiers de demande 2026",
       "dossiers-subventions-2026.pdf",
       ["Recueil des demandes de subvention", "Quatorze associations, montant sollicite : 26 300 EUR."],
+    ],
+    [
+      "finances/subventions/2026/instruction/sport/pieces",
+      "Budget prévisionnel - Club sportif",
+      "budget-club-sportif-2026.pdf",
+      ["Club sportif de Saint-Aubin", "Budget previsionnel 2026", "Demande de subvention communale : 6 000 EUR."],
     ],
     [
       "finances/marches",

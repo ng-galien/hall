@@ -3,11 +3,16 @@ import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 import { PersistenceError } from "../../repositories/errors.js";
 import type { DatabaseRow } from "../../repositories/row.js";
-import type { RequestContextStore } from "../../security/requestContext.js";
+import { inferAuditTargetId, type RequestContextStore } from "../../security/requestContext.js";
 import { translatePersistenceError } from "../database/errors.js";
 import { compileQuery, type SqlExecutor, type SqlParameters, type SqlRunResult } from "../database/executor.js";
 import type { SqlQueryName } from "../database/queries.js";
-import { postgresDocumentPreviewsSchema, postgresSchema, postgresTables } from "./schema.js";
+import {
+  postgresDocumentPreviewsSchema,
+  postgresSchema,
+  postgresTables,
+  postgresWorkspaceTitleUniquenessSchema,
+} from "./schema.js";
 
 type TransactionContext = {
   client: PoolClient;
@@ -149,6 +154,7 @@ export class PostgresExecutor implements SqlExecutor {
             throw new Error("Obsolete PostgreSQL schema: reset the database before starting Hall");
           }
         }
+        await client.query(postgresWorkspaceTitleUniquenessSchema);
         await client.query("COMMIT");
       } catch (error) {
         await client.query("ROLLBACK");
@@ -164,8 +170,7 @@ export class PostgresExecutor implements SqlExecutor {
     if (!context?.audit || context.auditRecorded) return;
     const actorId = context.principal?.id;
     const storedActor = actorId ? await this.get("security.actorExists", { actorUserId: actorId }) : undefined;
-    const inferredTargetId =
-      result && typeof result === "object" && "id" in result && typeof result.id === "string" ? result.id : null;
+    const inferredTargetId = inferAuditTargetId(context.audit, result);
     await this.run("security.insertAuditEvent", {
       id: randomUUID(),
       actorUserId: storedActor ? (actorId ?? null) : null,

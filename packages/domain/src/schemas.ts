@@ -134,6 +134,26 @@ export const folderPathSchema = z
       .join("/"),
   );
 
+export const folderNameSchema = z.string().trim().min(1).max(200).refine((value) => !value.includes("/"));
+
+export const createFolderSchema = z
+  .object({
+    parentPath: folderPathSchema.default(""),
+    name: folderNameSchema,
+  })
+  .strict()
+  .refine(
+    ({ parentPath, name }) => folderPathSchema.safeParse(parentPath ? `${parentPath}/${name}` : name).success,
+    "Invalid folder path",
+  );
+
+export const renameFolderSchema = z
+  .object({
+    folderPath: folderPathSchema.refine((value) => value.length > 0),
+    name: folderNameSchema,
+  })
+  .strict();
+
 const resourceTagSchema = z
   .string()
   .trim()
@@ -162,11 +182,20 @@ export const createTextResourceSchema = z.object({
   content: z.string().default(""),
 });
 
+export const createRemoteResourceSchema = z.object({
+  kind: z.literal("remote"),
+  title: nonEmpty,
+  folderPath: folderPathSchema.default(""),
+  tags: resourceTagsSchema,
+  url: webUrlSchema,
+});
+
 export const updateResourceSchema = z.object({
   title: nonEmpty,
   folderPath: folderPathSchema,
   tags: resourceTagsSchema,
   content: z.string().optional(),
+  url: webUrlSchema.optional(),
 });
 
 export const editorAssetOwnerKindSchema = z.enum([

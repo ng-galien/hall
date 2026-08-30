@@ -363,9 +363,7 @@ test.describe("Markdown editor", () => {
     expect(Math.abs(after - before.natural)).toBeLessThan(0.02);
 
     const source = markdownSource(page);
-    await expect(source).toContainText(
-      /::image\[[^\]]+\]\{#[0-9a-f-]{36} align="center" width="90"\}/,
-    );
+    await expect(source).toContainText(/::image\[[^\]]+\]\{#[0-9a-f-]{36} align="center" width="90"\}/);
     const resourceId = /#([0-9a-f-]{36})/.exec((await source.textContent()) ?? "")?.[1];
     expect(resourceId).toBeTruthy();
     await expect(editor).not.toContainText(resourceId ?? "Missing UUID");

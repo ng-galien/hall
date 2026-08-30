@@ -35,8 +35,6 @@ Critère de sortie : un document comprenant texte, références, image et tablea
 
 ### Corriger la cohérence visuelle et linguistique
 
-Statut : en cours côté frontend avec Claude. L'audit détaillé se trouve dans `docs/revue-frontend-i18n-theme.md`.
-
 - [ ] `[FRONT]` Traduire complètement l'écran d'authentification et ne plus afficher les codes d'erreur techniques.
 - [ ] `[FRONT]` Restaurer une hiérarchie typographique stable pour les titres de page.
 - [ ] `[FRONT]` Remplacer les chaînes visibles en dur et supprimer les clés de traduction mortes.
@@ -84,15 +82,21 @@ Ordre de réalisation : contrat backend, sélecteur frontend, intégration édit
 - [ ] `[BACK]` Définir la commande de capture avec propriétaire, titre, cadrage, couche et dimensions de sortie.
 - [ ] `[BACK]` Restreindre les hôtes, couches et systèmes de coordonnées autorisés.
 - [ ] `[BACK]` Produire une image PNG figée depuis une source IGN et contrôler délai, taille, MIME et signature.
-- [ ] `[BACK]` Enregistrer la capture comme `editorAsset` du contenu courant.
-- [ ] `[BACK]` Conserver la provenance : fournisseur, fond ou couche, emprise, zoom, date de capture et licence.
+- [ ] `[BACK]` Enregistrer le PNG comme `DocumentResource` durable dans le dossier courant afin qu'il apparaisse dans l'arbre.
+- [ ] `[BACK]` Conserver la provenance cartographique : fournisseur, fond ou couche, emprise, zoom, date de capture et licence.
 - [ ] `[FRONT]` Ajouter un cadrage temporaire OpenLayers utilisant prioritairement Plan IGN V2.
 - [ ] `[FRONT]` Permettre de positionner la vue puis de confirmer la capture, sans carte interactive persistante.
-- [ ] `[FRONT]` Insérer le résultat avec la directive existante `::image`.
+- [ ] `[FRONT]` Permettre d'insérer facultativement cette ressource dans l'éditeur avec la directive existante `::image`.
 - [ ] `[FULL]` Garantir que l'aperçu et le PDF utilisent uniquement l'image locale, sans appel réseau à l'IGN au rendu.
-- [ ] `[FULL]` Vérifier sauvegarde, rechargement, purge et promotion de la capture.
+- [ ] `[FULL]` Vérifier création dans l'arbre, sauvegarde, rechargement et insertion facultative dans l'éditeur.
 
-Critère de sortie : l'utilisateur cadre une vue IGN, insère sa capture et retrouve la même illustration après rechargement, dans l'aperçu et dans le PDF.
+Critère de sortie : l'utilisateur crée une ressource cartographique IGN, la retrouve dans l'arbre et peut l'insérer dans un contenu sans dépendance réseau dans l'aperçu ou le PDF.
+
+Étude de cadrage des ressources cartographiques IGN : [rapport complet](etude-ressources-cartographiques-ign.md).
+
+### Ressources juridiques officielles
+
+Étude de cadrage des ressources juridiques officielles : [rapport complet](etude-ressources-juridiques-officielles.md).
 
 ### Ergonomie de l'espace de travail
 

@@ -26,6 +26,9 @@ export type ApiErrorCode =
   | "ballot_not_found"
   | "ballot_voters_invalid"
   | "conflict"
+  | "workspace_title_conflict"
+  | "workspace_folder_conflict"
+  | "workspace_folder_not_found"
   | "council_decision_not_found"
   | "council_member_not_found"
   | "upload_too_large"
@@ -96,6 +99,9 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "ballot_not_found",
   "ballot_voters_invalid",
   "conflict",
+  "workspace_title_conflict",
+  "workspace_folder_conflict",
+  "workspace_folder_not_found",
   "council_decision_not_found",
   "council_member_not_found",
   "upload_too_large",

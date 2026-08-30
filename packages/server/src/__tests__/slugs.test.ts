@@ -41,7 +41,7 @@ describe("public slugs and business numbering", () => {
 
     const duplicateResource = await rawAgent
       .post("/api/resources/texts")
-      .send({ title: "Note de synthèse", folderPath: "conseil", tags: [], content: "Autre texte" })
+      .send({ title: "Note de synthèse", folderPath: "archives", tags: [], content: "Autre texte" })
       .expect(201);
     expect(properties(duplicateResource)).toMatchObject({ slug: "note-de-synthese-2" });
 

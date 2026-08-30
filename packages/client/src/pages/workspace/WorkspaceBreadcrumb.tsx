@@ -1,4 +1,4 @@
-import { ChevronRightIcon, FolderIcon } from "@/components/icons";
+import { ChevronRightIcon, CloseIcon, FolderIcon } from "@/components/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,6 @@ import { useResourcesStore } from "../../stores/resourcesStore";
 import { listAllPaths } from "./paths";
 import { type SaveStatus, useSaveStatusStore } from "./saveStatusStore";
 import type { WorkspaceSelection } from "./WorkspacePage";
-import { useWorkspaceOrgStore } from "./workspaceOrg";
 
 function CrumbChildren({
   parent,
@@ -67,18 +66,21 @@ function CrumbChildren({
 export function WorkspaceBreadcrumb({
   path,
   currentLabel,
+  originPath,
+  onClose,
   onSelect,
 }: {
   path: string;
   /** Title of the item currently open, if any. */
   currentLabel?: string;
+  originPath?: string;
+  onClose?(): void;
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
   const { t } = useI18n();
   const { businesses } = useCouncilBusinessStore();
-  const { resources } = useResourcesStore();
-  const { pendingPaths } = useWorkspaceOrgStore();
-  const allPaths = listAllPaths(businesses, resources, pendingPaths);
+  const { resources, folderPaths } = useResourcesStore();
+  const allPaths = listAllPaths(businesses, resources, folderPaths);
   const saveStatus = useSaveStatusStore((state) => state.status);
   const saveStatusLabels: Record<Exclude<SaveStatus, "idle">, string> = {
     dirty: t("workspace.saveDirty"),
@@ -89,7 +91,11 @@ export function WorkspaceBreadcrumb({
 
   return (
     <nav className="workspace-breadcrumb" aria-label={t("workspace.pathBreadcrumb")}>
-      <button className="workspace-crumb" type="button" onClick={() => onSelect(null, "")}>
+      <button
+        className={`workspace-crumb${originPath === "" ? " workspace-crumb-origin" : ""}`}
+        type="button"
+        onClick={() => onSelect(null, "")}
+      >
         {t("workspace.allPaths")}
       </button>
       <CrumbChildren
@@ -105,7 +111,11 @@ export function WorkspaceBreadcrumb({
           const target = segments.slice(0, index + 1).join("/");
           return (
             <span className="workspace-crumb-group" key={target}>
-              <button className="workspace-crumb" type="button" onClick={() => onSelect(null, target)}>
+              <button
+                className={`workspace-crumb${originPath === target ? " workspace-crumb-origin" : ""}`}
+                type="button"
+                onClick={() => onSelect(null, target)}
+              >
                 {segment}
               </button>
               <CrumbChildren
@@ -127,6 +137,18 @@ export function WorkspaceBreadcrumb({
           title={saveStatusLabels[saveStatus]}
           aria-label={saveStatusLabels[saveStatus]}
         />
+      ) : null}
+      {onClose ? (
+        <button
+          className="workspace-breadcrumb-close"
+          data-testid="workspace-breadcrumb-close"
+          type="button"
+          title={t("common.close")}
+          aria-label={t("common.close")}
+          onClick={onClose}
+        >
+          <CloseIcon aria-hidden="true" />
+        </button>
       ) : null}
     </nav>
   );

@@ -192,7 +192,7 @@
   .editor-lab { display: grid; gap: var(--hall-space-5); }
   .editor-lab-actions { display: flex; align-items: center; gap: var(--hall-space-3); }
   .editor-lab-actions [role="alert"] { margin: 0; color: var(--hall-color-danger); font-size: var(--hall-font-size-caption); }
-  .editor-lab-pdf-preview { grid-column: 1 / -1; height: min(75vh, 900px); min-height: 560px; overflow: hidden; border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface-subtle); }
+  .editor-lab-pdf-preview { grid-column: 1 / -1; height: min(75vh, var(--hall-size-editor-pdf-preview-max)); min-height: var(--hall-size-editor-pdf-preview-min); overflow: hidden; border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface-subtle); }
   .editor-lab-pdf-preview object { width: 100%; height: 100%; border: 0; }
   /* Serialized HTML is one long line, which would otherwise drive the grid width. */
   .editor-lab-pane { min-width: 0; }

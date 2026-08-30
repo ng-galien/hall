@@ -92,7 +92,7 @@ test("editor images keep immutable resource references and follow document capab
   assert.match(images, /useContext\(ResourceImagePreviewContext\)/);
   assert.match(editor, /handleDrop:/);
   assert.match(editor, /imageUpload\.current/);
-  assert.match(editor, /type="file"[\s\S]{0,80}accept="image\/png,image\/jpeg"/);
+  assert.doesNotMatch(editor, /type="file"[\s\S]{0,80}accept="image\/png,image\/jpeg"/);
   assert.doesNotMatch(`${editor}\n${images}`, /FileReader|readAsDataURL|blob:/);
   assert.doesNotMatch(mentions, /id:\s*(?:resource|business|meeting|decision)\.slug/);
   assert.match(api, /findSirenLink\(representation, "content"\)/);
@@ -108,7 +108,7 @@ test("editor images keep immutable resource references and follow document capab
   assert.ok(compactEditor.length > 0);
   assert.ok(enrichedEditor.length > 0);
   assert.doesNotMatch(compactEditor, /<ImageControl|handleDrop:/);
-  assert.match(enrichedEditor, /<ImageControl/);
+  assert.doesNotMatch(enrichedEditor, /<ImageControl/);
   assert.match(enrichedEditor, /handleDrop:/);
 });
 

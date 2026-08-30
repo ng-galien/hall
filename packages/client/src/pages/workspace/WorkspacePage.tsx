@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -6,11 +6,17 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { AddIcon, FolderAddIcon, TextDocumentIcon, UploadIcon, WorkspaceIcon } from "../../components/icons";
+import {
+  AddIcon,
+  FolderAddIcon,
+  TextDocumentIcon,
+  UploadIcon,
+  WebIcon,
+  WorkspaceIcon,
+} from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -20,21 +26,20 @@ import { useResourcesStore } from "../../stores/resourcesStore";
 import { CouncilBusinessWorkbench } from "./CouncilBusinessWorkbench";
 import { PathContents } from "./PathContents";
 import { PinnedRow } from "./PinnedRow";
-import { isUnderPath, listAllPaths } from "./paths";
+import { isUnderPath } from "./paths";
 import { ResourceWorkbench } from "./ResourceWorkbench";
 import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb";
 import { WorkspaceHome } from "./WorkspaceHome";
 import { emptySearch, isSearchActive, WorkspaceSearch, type WorkspaceSearchState } from "./WorkspaceSearch";
-import { useWorkspaceOrgStore } from "./workspaceOrg";
 
 export type WorkspaceSelection = { kind: "councilBusiness"; id: string } | { kind: "resource"; id: string } | null;
 
-type QuickCreate = "councilMatter" | "text" | "path" | null;
+type QuickCreate = "councilMatter" | "text" | "remote" | null;
 
 const quickCreateLabels = {
   councilMatter: { title: "workspace.createCouncilMatter", placeholder: "workspace.newCouncilMatterPlaceholder" },
   text: { title: "workspace.createText", placeholder: "workspace.newTextPlaceholder" },
-  path: { title: "workspace.createPath", placeholder: "workspace.newPathPlaceholder" },
+  remote: { title: "workspace.createRemote", placeholder: "workspace.newRemotePlaceholder" },
 } as const;
 
 export function WorkspacePage() {
@@ -44,10 +49,18 @@ export function WorkspacePage() {
   const councilBusinessStore = useCouncilBusinessStore();
   const resourcesStore = useResourcesStore();
   const { businesses, error: councilBusinessError, canCreate: canCreateCouncilBusiness } = councilBusinessStore;
-  const { resources, error: resourcesError, canCreateText, canUpload } = resourcesStore;
+  const {
+    resources,
+    error: resourcesError,
+    canCreateText,
+    canCreateRemote,
+    canCreateFolder,
+    canUpload,
+  } = resourcesStore;
   const { error: decisionsError } = useCouncilDecisionsStore();
   const [search, setSearch] = useState<WorkspaceSearchState>(emptySearch);
   const [creating, setCreating] = useState<QuickCreate>(null);
+  const [folderCreateRequest, setFolderCreateRequest] = useState(0);
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   const path = searchParams.get("path") ?? "";
@@ -56,10 +69,6 @@ export function WorkspacePage() {
     : searchParams.get("resource")
       ? { kind: "resource", id: searchParams.get("resource") as string }
       : null;
-
-  useEffect(() => {
-    useWorkspaceOrgStore.getState().prunePendingPaths(listAllPaths(businesses, resources));
-  }, [businesses, resources]);
 
   const select = (next: WorkspaceSelection, nextPath?: string) => {
     const params = new URLSearchParams();
@@ -90,13 +99,6 @@ export function WorkspacePage() {
     event.preventDefault();
     const title = String(new FormData(event.currentTarget).get("title") ?? "").trim();
     if (!title) return;
-    if (creating === "path") {
-      const target = [path, title].filter(Boolean).join("/");
-      useWorkspaceOrgStore.getState().addPendingPath(target);
-      setCreating(null);
-      select(null, target);
-      return;
-    }
     await run(async () => {
       if (creating === "councilMatter") {
         const business = await councilBusinessStore.create({
@@ -109,6 +111,13 @@ export function WorkspacePage() {
         if (business) select({ kind: "councilBusiness", id: business.id });
         setCreating(null);
         return Boolean(business);
+      }
+      if (creating === "remote") {
+        const url = String(new FormData(event.currentTarget).get("url") ?? "").trim();
+        const created = await resourcesStore.createRemote({ title, url, folderPath: path, tags: [] });
+        if (created) select({ kind: "resource", id: created.id });
+        setCreating(null);
+        return Boolean(created);
       }
       const created = await resourcesStore.createText({ title, folderPath: path, tags: [], content: "" });
       if (created) {
@@ -140,7 +149,6 @@ export function WorkspacePage() {
   };
 
   const searchActive = isSearchActive(search);
-
   return (
     <div className="page workspace-page">
       <div className="workspace">
@@ -151,7 +159,7 @@ export function WorkspacePage() {
               <WorkspaceSearch search={search} onSearch={setSearch} onSelect={select} context={path} />
             </div>
             <div className="workspace-bar-actions">
-              {canCreateCouncilBusiness || canCreateText || canUpload ? (
+              {canCreateCouncilBusiness || canCreateText || canCreateRemote || canCreateFolder || canUpload ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline">
@@ -160,7 +168,10 @@ export function WorkspacePage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {canCreateCouncilBusiness ? (
-                      <DropdownMenuItem onSelect={() => setCreating("councilMatter")}>
+                      <DropdownMenuItem
+                        data-testid="workspace-create-business"
+                        onSelect={() => setCreating("councilMatter")}
+                      >
                         <WorkspaceIcon /> {t("workspace.createCouncilMatter")}
                       </DropdownMenuItem>
                     ) : null}
@@ -169,15 +180,26 @@ export function WorkspacePage() {
                         <TextDocumentIcon /> {t("workspace.createText")}
                       </DropdownMenuItem>
                     ) : null}
+                    {canCreateRemote ? (
+                      <DropdownMenuItem onSelect={() => setCreating("remote")}>
+                        <WebIcon /> {t("workspace.createRemote")}
+                      </DropdownMenuItem>
+                    ) : null}
+                    {canCreateFolder ? (
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          select(null);
+                          setFolderCreateRequest((current) => current + 1);
+                        }}
+                      >
+                        <FolderAddIcon /> {t("workspace.createFolder")}
+                      </DropdownMenuItem>
+                    ) : null}
                     {canUpload ? (
                       <DropdownMenuItem onSelect={() => fileInput.current?.click()} disabled={submitting}>
                         <UploadIcon /> {t("workspace.uploadDocument")}
                       </DropdownMenuItem>
                     ) : null}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => setCreating("path")}>
-                      <FolderAddIcon /> {t("workspace.createPath")}
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : null}
@@ -197,7 +219,12 @@ export function WorkspacePage() {
             </div>
           </div>
           {creating ? (
-            <Dialog open onOpenChange={(open) => !open && setCreating(null)}>
+            <Dialog
+              open
+              onOpenChange={(open) => {
+                if (!open) setCreating(null);
+              }}
+            >
               <DialogContent className="workspace-create-dialog" closeLabel={t("common.close")}>
                 <DialogHeader>
                   <DialogTitle>{t(quickCreateLabels[creating].title)}</DialogTitle>
@@ -211,6 +238,15 @@ export function WorkspacePage() {
                     aria-label={t(quickCreateLabels[creating].title)}
                     required
                   />
+                  {creating === "remote" ? (
+                    <Input
+                      name="url"
+                      type="url"
+                      placeholder={t("workspace.remoteUrlPlaceholder")}
+                      aria-label={t("workspace.remoteUrl")}
+                      required
+                    />
+                  ) : null}
                   <div className="workspace-create-dialog-actions">
                     <Button variant="outline" type="button" onClick={() => setCreating(null)}>
                       {t("common.cancel")}
@@ -232,10 +268,26 @@ export function WorkspacePage() {
               <WorkspaceBreadcrumb
                 path={selectedBusiness?.folderPath ?? selectedResource?.folderPath ?? path}
                 currentLabel={selectedBusiness?.title ?? selectedResource?.title}
+                originPath={selectedBusiness || selectedResource ? path : undefined}
+                onClose={selectedBusiness || selectedResource ? () => select(null) : undefined}
                 onSelect={select}
               />
             </header>
             <div className="workspace-container-body">
+              {path ? (
+                <PathContents
+                  path={path}
+                  businesses={pathBusinesses}
+                  resources={pathResources}
+                  createFolderRequest={folderCreateRequest}
+                  selection={selection}
+                  onSelect={select}
+                  onPreview={(resource) => select({ kind: "resource", id: resource.id })}
+                  hidden={Boolean(selectedBusiness || selectedResource)}
+                />
+              ) : selectedBusiness || selectedResource ? null : (
+                <WorkspaceHome onSelect={select} />
+              )}
               {selectedBusiness || selectedResource ? (
                 <section className="workspace-bench workspace-bench-full" aria-label={t("workspace.bench")}>
                   {selectedBusiness ? (
@@ -244,17 +296,7 @@ export function WorkspacePage() {
                     <ResourceWorkbench key={selectedResource.id} resource={selectedResource} onSelect={select} />
                   ) : null}
                 </section>
-              ) : path ? (
-                <PathContents
-                  path={path}
-                  businesses={pathBusinesses}
-                  resources={pathResources}
-                  selection={selection}
-                  onSelect={select}
-                />
-              ) : (
-                <WorkspaceHome onSelect={select} />
-              )}
+              ) : null}
             </div>
           </section>
         )}
