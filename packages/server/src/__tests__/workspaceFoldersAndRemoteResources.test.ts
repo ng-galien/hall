@@ -23,9 +23,7 @@ describe("workspace folders and remote resources", () => {
       });
 
     const paths = domainBody<string[]>(await agent.get("/api/resources/paths").expect(200));
-    expect(paths).toEqual(
-      expect.arrayContaining(["travaux", "travaux/voirie", "travaux/voirie/a-classer"]),
-    );
+    expect(paths).toEqual(expect.arrayContaining(["travaux", "travaux/voirie", "travaux/voirie/a-classer"]));
   });
 
   it("audits the canonical path of a successfully created folder", async () => {
@@ -41,9 +39,7 @@ describe("workspace folders and remote resources", () => {
       await agent.get("/api/audit-events").expect(200),
     );
     expect(audit).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ action: "workspace.create-folder", targetId: created.path }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ action: "workspace.create-folder", targetId: created.path })]),
     );
   });
 
@@ -65,7 +61,7 @@ describe("workspace folders and remote resources", () => {
     expect(paths).toEqual(expect.arrayContaining(["travaux/unique", "travaux/classe"]));
   });
 
-  it("creates, lists and updates an HTTP remote resource", async () => {
+  it("creates an incomplete remote resource and becomes ready once its HTTP URL is configured", async () => {
     const { agent } = await createTestServer();
     const created = domainBody<RemoteResource>(
       await agent
@@ -74,16 +70,20 @@ describe("workspace folders and remote resources", () => {
           title: "Code général des collectivités territoriales",
           folderPath: "administration/conseil-municipal",
           tags: ["droit"],
-          url: "https://www.legifrance.gouv.fr/codes/id/LEGITEXT000006070633/",
         })
         .expect(201),
     );
-    expect(created).toMatchObject({ kind: "remote", tags: ["droit"] });
+    expect(created).toMatchObject({
+      kind: "remote",
+      tags: ["droit"],
+      url: null,
+      state: { readiness: "incomplete", availability: null },
+    });
 
     const remotes = domainBody<RemoteResource[]>(
       await agent.get("/api/resources").query({ kind: "remote" }).expect(200),
     );
-    expect(remotes).toEqual(expect.arrayContaining([expect.objectContaining({ id: created.id, url: created.url })]));
+    expect(remotes).toEqual(expect.arrayContaining([expect.objectContaining({ id: created.id, url: null })]));
 
     const updated = domainBody<RemoteResource>(
       await agent
@@ -92,11 +92,16 @@ describe("workspace folders and remote resources", () => {
           title: "CGCT sur Légifrance",
           folderPath: created.folderPath,
           tags: created.tags,
-          url: created.url,
+          url: "https://www.legifrance.gouv.fr/codes/id/LEGITEXT000006070633/",
         })
         .expect(200),
     );
-    expect(updated).toMatchObject({ kind: "remote", title: "CGCT sur Légifrance", url: created.url });
+    expect(updated).toMatchObject({
+      kind: "remote",
+      title: "CGCT sur Légifrance",
+      url: "https://www.legifrance.gouv.fr/codes/id/LEGITEXT000006070633/",
+      state: { readiness: "ready", availability: "unchecked" },
+    });
 
     await agent
       .post("/api/resources/remotes")

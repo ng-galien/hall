@@ -3,22 +3,54 @@ import type {
   DocumentCategory,
   DocumentResource,
   EditorAssetOwner,
+  GeographicLayer,
+  GeographicResource,
+  GeographicResourceData,
+  GeographicView,
+  HallGeoJsonFeatureCollection,
+  LegalReferenceResolvedResource,
+  LegalReferenceResource,
+  LegalReferenceSnapshot,
   RemoteResource,
   Resource,
   TextResource,
 } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type {
-  CreateTextResource,
+  CreateGeographicResource,
+  CreateLegalReferenceDraft,
+  CreateLegalReferenceResource,
   CreateRemoteResource,
+  CreateTextResource,
   PersistDocumentResource,
   PersistEditorAssetResource,
   ResourceRepository,
   StoredDocumentPreview,
   StoredDocumentResource,
+  UpdateGeographicResource,
 } from "./contracts.js";
 import { uniqueSlug } from "./publicIdentifiers.js";
 import { asNullableString, type DatabaseRow, mapSequential } from "./row.js";
+
+function structuredValue<T>(value: unknown): T {
+  return (typeof value === "string" ? JSON.parse(value) : value) as T;
+}
+
+function mapLegalSnapshot(row: DatabaseRow): LegalReferenceSnapshot {
+  return {
+    id: String(row.id),
+    commonId: String(row.common_id),
+    versionId: String(row.version_id),
+    effectiveAt: asNullableString(row.effective_at),
+    fetchedAt: String(row.fetched_at),
+    validFrom: asNullableString(row.valid_from),
+    validTo: asNullableString(row.valid_to),
+    legalStatus: String(row.legal_status),
+    normalizedContent: String(row.normalized_content),
+    contentHash: String(row.content_hash),
+    snapshotHash: String(row.snapshot_hash),
+  };
+}
 
 export function mapResource(row: DatabaseRow, tags: string[]): Resource {
   const common = {
@@ -30,11 +62,74 @@ export function mapResource(row: DatabaseRow, tags: string[]): Resource {
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
-  if (row.kind === "text") return { kind: "text", ...common, content: String(row.text_content) } satisfies TextResource;
-  if (row.kind === "remote") return { kind: "remote", ...common, url: String(row.remote_url) } satisfies RemoteResource;
+  if (row.kind === "text") {
+    const content = String(row.text_content);
+    return {
+      kind: "text",
+      ...common,
+      state: { readiness: content.trim() ? "ready" : "empty", availability: null },
+      content,
+    } satisfies TextResource;
+  }
+  if (row.kind === "remote") {
+    const url = asNullableString(row.remote_url);
+    return {
+      kind: "remote",
+      ...common,
+      state: { readiness: url ? "ready" : "incomplete", availability: url ? "unchecked" : null },
+      url,
+    } satisfies RemoteResource;
+  }
+  if (row.kind === "geographic") {
+    return {
+      kind: "geographic",
+      ...common,
+      state: { readiness: "ready", availability: "unchecked" },
+      provider: "ign",
+      version: Number(row.geographic_version),
+    } satisfies GeographicResource;
+  }
+  if (row.kind === "legalReference") {
+    if (row.legal_common_id === null) {
+      return {
+        kind: "legalReference",
+        ...common,
+        state: { readiness: "incomplete", availability: null },
+        resolutionStatus: "draft",
+        provider: "legifrance",
+        referenceKind: "article",
+      } satisfies LegalReferenceResource;
+    }
+    return {
+      kind: "legalReference",
+      ...common,
+      state: {
+        readiness: "ready",
+        availability: row.legal_verification_status === "current" ? "available" : "unavailable",
+      },
+      resolutionStatus: "resolved",
+      provider: "legifrance",
+      referenceKind: "article",
+      fund: String(row.legal_fund) as LegalReferenceResolvedResource["fund"],
+      commonId: String(row.legal_common_id),
+      versionId: String(row.legal_version_id),
+      effectiveAt: asNullableString(row.legal_effective_at),
+      legalStatus: String(row.legal_status),
+      sourceUrl: String(row.legal_source_url),
+      fetchedAt: String(row.legal_fetched_at),
+      providerUpdatedAt: asNullableString(row.legal_provider_updated_at),
+      citationLabel: String(row.legal_citation_label),
+      attribution: String(row.legal_attribution),
+      snapshotHash: String(row.legal_snapshot_hash),
+      verificationDueAt: new Date(Date.parse(String(row.legal_fetched_at)) + 24 * 60 * 60 * 1000).toISOString(),
+      verificationStatus: String(row.legal_verification_status) as LegalReferenceResolvedResource["verificationStatus"],
+      verificationFailedAt: asNullableString(row.legal_verification_failed_at),
+    } satisfies LegalReferenceResource;
+  }
   const document = {
     kind: "document",
     ...common,
+    state: { readiness: "ready", availability: null },
     meetingId: asNullableString(row.meeting_id),
     fileName: String(row.file_name),
     format: row.format as DocumentResource["format"],
@@ -96,6 +191,25 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
     async findMetadata(reference) {
       const row = await sqlExecutor.get("resource.findMetadata", { reference });
       return row ? mapStoredResource(sqlExecutor, row) : null;
+    },
+    async findGeographicData(id) {
+      const row = await sqlExecutor.get("resource.geographicData", { id });
+      if (!row) return null;
+      return {
+        view: structuredValue<GeographicView>(row.view_json),
+        layers: structuredValue<GeographicLayer[]>(row.layers_json),
+        hallLayer: structuredValue<HallGeoJsonFeatureCollection>(row.hall_layer_json),
+        provenance: {
+          attribution: String(row.attribution),
+          license: "Licence Ouverte 2.0",
+          metadataUrl: String(row.metadata_url),
+          configuredAt: String(row.configured_at),
+          sourceUpdatedAt: asNullableString(row.source_updated_at),
+        },
+      } satisfies GeographicResourceData;
+    },
+    async listLegalReferenceSnapshots(id) {
+      return (await sqlExecutor.all("resource.legalReferenceSnapshots", { resourceId: id })).map(mapLegalSnapshot);
     },
     async findPreview(sourceContentSha256, sourceFormat) {
       const row = await sqlExecutor.get("resource.preview", { sourceContentSha256, sourceFormat });
@@ -175,6 +289,173 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           input.tags,
         ) as RemoteResource;
       });
+    },
+    createGeographic(input: CreateGeographicResource) {
+      return sqlExecutor.execute(async () => {
+        const id = randomUUID();
+        const now = new Date().toISOString();
+        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
+        await sqlExecutor.run("resource.insertGeographicBase", {
+          id,
+          slug,
+          title: input.title,
+          folderPath: input.folderPath,
+          createdAt: now,
+          updatedAt: now,
+        });
+        await sqlExecutor.run("resource.insertGeographic", {
+          id,
+          viewJson: JSON.stringify(input.view),
+          layersJson: JSON.stringify(input.layers),
+          hallLayerJson: JSON.stringify(input.hallLayer),
+          attribution: "Source : IGN",
+          metadataUrl:
+            "https://cartes.gouv.fr/aide/fr/partenaires/ign/representations-cartographiques-souveraines/decouverte-offre-produit/",
+          configuredAt: now,
+          sourceUpdatedAt: null,
+        });
+        await insertTags(sqlExecutor, id, input.tags);
+        return (await mapStoredResource(
+          sqlExecutor,
+          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
+        )) as GeographicResource;
+      });
+    },
+    updateGeographic(id: string, input: UpdateGeographicResource) {
+      return sqlExecutor.execute(async () => {
+        const stored = await sqlExecutor.get("resource.findMetadata", { reference: id });
+        if (stored?.kind !== "geographic") return { status: "notFound" } as const;
+        const result = await sqlExecutor.run("resource.updateGeographic", {
+          id: String(stored.id),
+          viewJson: JSON.stringify(input.view),
+          layersJson: JSON.stringify(input.layers),
+          hallLayerJson: JSON.stringify(input.hallLayer),
+          expectedVersion: input.expectedVersion,
+        });
+        if (result.changes === 0) return { status: "versionConflict" } as const;
+        await sqlExecutor.run("resource.update", {
+          id: String(stored.id),
+          title: String(stored.title),
+          folderPath: String(stored.folder_path),
+          updatedAt: new Date().toISOString(),
+        });
+        const updated = await sqlExecutor.get("resource.findMetadata", { reference: id });
+        return {
+          status: "updated",
+          resource: (await mapStoredResource(sqlExecutor, updated!)) as GeographicResource,
+        } as const;
+      });
+    },
+    createLegalReferenceDraft(input: CreateLegalReferenceDraft) {
+      return sqlExecutor.execute(async () => {
+        const id = randomUUID();
+        const now = new Date().toISOString();
+        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
+        await sqlExecutor.run("resource.insertLegalReferenceBase", {
+          id,
+          slug,
+          title: input.title,
+          folderPath: input.folderPath,
+          createdAt: now,
+          updatedAt: now,
+        });
+        await sqlExecutor.run("resource.insertLegalReferenceDraft", { id });
+        await insertTags(sqlExecutor, id, input.tags);
+        return (await mapStoredResource(
+          sqlExecutor,
+          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
+        )) as LegalReferenceResource;
+      });
+    },
+    resolveLegalReference(id: string, input: CreateLegalReferenceResource) {
+      return sqlExecutor.execute(async () => {
+        const stored = await sqlExecutor.get("resource.findMetadata", { reference: id });
+        if (stored?.kind !== "legalReference" || stored.legal_common_id !== null) return null;
+        const result = await sqlExecutor.run("resource.resolveLegalReference", {
+          id,
+          fund: input.fund,
+          commonId: input.snapshot.commonId,
+          versionId: input.snapshot.versionId,
+          effectiveAt: input.snapshot.effectiveAt,
+          legalStatus: input.snapshot.legalStatus,
+          sourceUrl: input.sourceUrl,
+          fetchedAt: input.snapshot.fetchedAt,
+          providerUpdatedAt: input.providerUpdatedAt,
+          citationLabel: input.citationLabel,
+          attribution: input.attribution,
+          snapshotHash: input.snapshot.snapshotHash,
+        });
+        if (result.changes === 0) return null;
+        await sqlExecutor.run("resource.insertLegalReferenceSnapshot", {
+          snapshotId: randomUUID(),
+          resourceId: id,
+          ...input.snapshot,
+        });
+        await sqlExecutor.run("resource.update", {
+          id,
+          title: input.title,
+          folderPath: input.folderPath,
+          updatedAt: input.snapshot.fetchedAt,
+        });
+        return (await mapStoredResource(
+          sqlExecutor,
+          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
+        )) as LegalReferenceResource;
+      });
+    },
+    refreshLegalReference(id, expectedSnapshotHash, input) {
+      return sqlExecutor.execute(async () => {
+        const stored = await sqlExecutor.get("resource.findMetadata", { reference: id });
+        if (stored?.kind !== "legalReference") return { status: "notFound" } as const;
+        const latestSnapshot = await sqlExecutor.get("resource.latestLegalReferenceSnapshot", { resourceId: id });
+        const snapshotUnchanged =
+          latestSnapshot !== null &&
+          String(latestSnapshot.common_id) === input.snapshot.commonId &&
+          String(latestSnapshot.version_id) === input.snapshot.versionId &&
+          asNullableString(latestSnapshot.effective_at) === input.snapshot.effectiveAt &&
+          asNullableString(latestSnapshot.valid_from) === input.snapshot.validFrom &&
+          asNullableString(latestSnapshot.valid_to) === input.snapshot.validTo &&
+          String(latestSnapshot.legal_status) === input.snapshot.legalStatus &&
+          String(latestSnapshot.content_hash) === input.snapshot.contentHash;
+        const result = await sqlExecutor.run("resource.updateLegalReference", {
+          id: String(stored.id),
+          expectedSnapshotHash,
+          commonId: input.snapshot.commonId,
+          versionId: input.snapshot.versionId,
+          effectiveAt: input.snapshot.effectiveAt,
+          legalStatus: input.snapshot.legalStatus,
+          sourceUrl: input.sourceUrl,
+          fetchedAt: input.snapshot.fetchedAt,
+          providerUpdatedAt: input.providerUpdatedAt,
+          citationLabel: input.citationLabel,
+          attribution: input.attribution,
+          snapshotHash: input.snapshot.snapshotHash,
+        });
+        if (result.changes === 0) return { status: "versionConflict" } as const;
+        if (!snapshotUnchanged) {
+          await sqlExecutor.run("resource.insertLegalReferenceSnapshot", {
+            snapshotId: randomUUID(),
+            resourceId: String(stored.id),
+            ...input.snapshot,
+          });
+        }
+        await sqlExecutor.run("resource.update", {
+          id: String(stored.id),
+          title: String(stored.title),
+          folderPath: String(stored.folder_path),
+          updatedAt: input.snapshot.fetchedAt,
+        });
+        const updated = await sqlExecutor.get("resource.findMetadata", { reference: id });
+        return {
+          status: "updated",
+          resource: (await mapStoredResource(sqlExecutor, updated!)) as LegalReferenceResource,
+        } as const;
+      });
+    },
+    markLegalReferenceVerificationFailed(id, expectedSnapshotHash, failedAt) {
+      return sqlExecutor
+        .run("resource.failLegalReferenceVerification", { id, expectedSnapshotHash, failedAt })
+        .then(() => undefined);
     },
     createDocument(input: PersistDocumentResource) {
       return sqlExecutor.execute(async () => {

@@ -7,7 +7,7 @@ import {
   type SirenEntity,
   type SirenLink,
 } from "@hall/api-contract";
-import { deriveBallotVoters, evaluateBallot, type MeetingAggregate } from "@hall/domain";
+import { deriveBallotVoters, evaluateBallot, geographicLayerOptions, type MeetingAggregate } from "@hall/domain";
 import type { NextFunction, Request, Response } from "express";
 import { acceptedDocumentExtensions } from "../domain/documentPolicy.js";
 import { hasPermission } from "../security/authorization.js";
@@ -87,6 +87,22 @@ function permitted(request: Request, permission: ApiPermission): boolean {
 }
 
 function collectionActions(request: Request, entityClass: string): SirenAction[] {
+  if (entityClass === "resource" && permitted(request, "workspace.read") && !permitted(request, "workspace.write")) {
+    return [
+      {
+        ...action(
+          "resource.search-legal-references",
+          "POST",
+          "/api/resources/legal-references/search",
+          "Search official legal references",
+        ),
+        fields: [
+          { name: "query", type: "search" },
+          { name: "effectiveAt", type: "date" },
+        ],
+      },
+    ];
+  }
   if (entityClass === "resource" && permitted(request, "workspace.write")) {
     return [
       action("resource.create-text", "POST", "/api/resources/texts", "Create a text"),
@@ -99,6 +115,41 @@ function collectionActions(request: Request, entityClass: string): SirenAction[]
           { name: "tags", type: "text", value: "" },
         ],
       },
+      {
+        ...action("resource.create-geographic", "POST", "/api/resources/geographic", "Create a geographic resource"),
+        fields: [
+          { name: "title", type: "text" },
+          { name: "folderPath", type: "text", value: "" },
+          { name: "tags", type: "text", value: "" },
+          { name: "provider", type: "text", value: "ign" },
+          {
+            name: "layers",
+            type: "text",
+            value: [{ id: geographicLayerOptions[0].id, visible: true, opacity: 1 }],
+            options: geographicLayerOptions.map(({ id, title }) => ({ value: id, title })),
+          },
+          { name: "view", type: "text" },
+          { name: "hallLayer", type: "text", value: { type: "FeatureCollection", features: [] } },
+        ],
+      },
+      {
+        ...action(
+          "resource.search-legal-references",
+          "POST",
+          "/api/resources/legal-references/search",
+          "Search official legal references",
+        ),
+        fields: [
+          { name: "query", type: "search" },
+          { name: "effectiveAt", type: "date" },
+        ],
+      },
+      action(
+        "resource.create-legal-reference",
+        "POST",
+        "/api/resources/legal-references",
+        "Create an official legal reference",
+      ),
       {
         ...action("workspace.create-folder", "POST", "/api/resources/paths", "Create a folder"),
         fields: [
@@ -266,6 +317,47 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
       referencedByContent?: boolean;
     };
     const actions = [action("resource.update", "PUT", `/api/resources/${reference}`, "Update the resource")];
+    if (primary?.kind === "geographic") {
+      actions.push({
+        ...action(
+          "resource.update-geography",
+          "PUT",
+          `/api/resources/${reference}/geography`,
+          "Update the geographic view, IGN layers and Hall GeoJSON layer",
+        ),
+        fields: [
+          {
+            name: "layers",
+            type: "text",
+            options: geographicLayerOptions.map(({ id, title }) => ({ value: id, title })),
+          },
+          { name: "view", type: "text" },
+          { name: "hallLayer", type: "text" },
+          { name: "expectedVersion", type: "number", value: primary.version },
+        ],
+      });
+    }
+    if (primary?.kind === "legalReference" && primary.resolutionStatus === "draft") {
+      actions.push(
+        action(
+          "resource.resolve-legal-reference",
+          "POST",
+          `/api/resources/${reference}/legal-reference/resolve`,
+          "Resolve the official legal reference",
+        ),
+      );
+    }
+    if (primary?.kind === "legalReference" && primary.resolutionStatus === "resolved") {
+      actions.push({
+        ...action(
+          "resource.refresh-legal-reference",
+          "POST",
+          `/api/resources/${reference}/legal-reference/refresh`,
+          "Refresh the official legal snapshot",
+        ),
+        fields: [{ name: "expectedSnapshotHash", type: "text", value: primary.snapshotHash }],
+      });
+    }
     if (
       Array.isArray(details.councilBusiness) &&
       details.councilBusiness.length === 0 &&

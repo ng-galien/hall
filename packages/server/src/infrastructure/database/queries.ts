@@ -21,11 +21,30 @@ const resourceSelection = `SELECT
   resource_documents.category,
   resource_documents.usage,
   resource_documents.editor_owner_kind,
-  resource_documents.editor_owner_id
+  resource_documents.editor_owner_id,
+  geographic_resources.provider AS geographic_provider,
+  geographic_resources.version AS geographic_version,
+  legal_reference_resources.provider AS legal_provider,
+  legal_reference_resources.reference_kind AS legal_reference_kind,
+  legal_reference_resources.fund AS legal_fund,
+  legal_reference_resources.common_id AS legal_common_id,
+  legal_reference_resources.version_id AS legal_version_id,
+  legal_reference_resources.effective_at AS legal_effective_at,
+  legal_reference_resources.legal_status,
+  legal_reference_resources.source_url AS legal_source_url,
+  legal_reference_resources.fetched_at AS legal_fetched_at,
+  legal_reference_resources.provider_updated_at AS legal_provider_updated_at,
+  legal_reference_resources.citation_label AS legal_citation_label,
+  legal_reference_resources.attribution AS legal_attribution,
+  legal_reference_resources.snapshot_hash AS legal_snapshot_hash,
+  legal_reference_resources.verification_status AS legal_verification_status,
+  legal_reference_resources.verification_failed_at AS legal_verification_failed_at
 FROM resources
 LEFT JOIN remote_resources ON remote_resources.resource_id = resources.id
 LEFT JOIN text_resources ON text_resources.resource_id = resources.id
-LEFT JOIN resource_documents ON resource_documents.resource_id = resources.id`;
+LEFT JOIN resource_documents ON resource_documents.resource_id = resources.id
+LEFT JOIN geographic_resources ON geographic_resources.resource_id = resources.id
+LEFT JOIN legal_reference_resources ON legal_reference_resources.resource_id = resources.id`;
 
 const agendaSelection = `SELECT
   agenda_items.id,
@@ -210,6 +229,8 @@ export const queries = {
     address_line_2 = :addressLine2,
     postal_code = :postalCode,
     city = :city,
+    geographic_longitude = :geographicLongitude,
+    geographic_latitude = :geographicLatitude,
     phone = :phone,
     email = :email,
     website = :website,
@@ -308,7 +329,7 @@ export const queries = {
       WHERE (:folderPath IS NULL OR resources.folder_path = :folderPath)
         AND (:kind IS NULL OR resources.kind = :kind)
         AND (:meetingId IS NULL OR resource_documents.meeting_id = :meetingId)
-        AND ((:usage IS NULL AND (resources.kind IN ('text', 'remote') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
+        AND ((:usage IS NULL AND (resources.kind IN ('text', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
         AND (:editorOwnerKind IS NULL OR resource_documents.editor_owner_kind = :editorOwnerKind)
         AND (:editorOwnerId IS NULL OR resource_documents.editor_owner_id = :editorOwnerId)
       ORDER BY resources.updated_at DESC`,
@@ -316,7 +337,7 @@ export const queries = {
       WHERE (:folderPath IS NULL OR resources.folder_path = :folderPath)
         AND (:kind IS NULL OR resources.kind = :kind)
         AND (:meetingId IS NULL OR resource_documents.meeting_id = :meetingId)
-        AND ((:usage IS NULL AND (resources.kind IN ('text', 'remote') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
+        AND ((:usage IS NULL AND (resources.kind IN ('text', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
         AND (:editorOwnerKind IS NULL OR resource_documents.editor_owner_kind = :editorOwnerKind)
         AND (:editorOwnerId IS NULL OR resource_documents.editor_owner_id = :editorOwnerId)
         AND NOT EXISTS (
@@ -331,7 +352,7 @@ export const queries = {
       WHERE (CAST(:folderPath AS text) IS NULL OR resources.folder_path = CAST(:folderPath AS text))
         AND (CAST(:kind AS text) IS NULL OR resources.kind = CAST(:kind AS text))
         AND (CAST(:meetingId AS text) IS NULL OR resource_documents.meeting_id = CAST(:meetingId AS text))
-        AND ((CAST(:usage AS text) IS NULL AND (resources.kind IN ('text', 'remote') OR resource_documents.usage = 'document')) OR resource_documents.usage = CAST(:usage AS text))
+        AND ((CAST(:usage AS text) IS NULL AND (resources.kind IN ('text', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = CAST(:usage AS text))
         AND (CAST(:editorOwnerKind AS text) IS NULL OR resource_documents.editor_owner_kind = CAST(:editorOwnerKind AS text))
         AND (CAST(:editorOwnerId AS text) IS NULL OR resource_documents.editor_owner_id = CAST(:editorOwnerId AS text))
         AND NOT EXISTS (
@@ -344,6 +365,9 @@ export const queries = {
       ORDER BY resources.updated_at DESC`,
   },
   "resource.findMetadata": `${resourceSelection} WHERE resources.id = :reference OR resources.slug = :reference`,
+  "resource.geographicData": `SELECT view_json, layers_json, hall_layer_json, attribution, license,
+    metadata_url, configured_at, source_updated_at
+    FROM geographic_resources WHERE resource_id = :id`,
   "resource.slugExists": "SELECT 1 FROM resources WHERE slug = :slug OR id = :slug",
   "resource.documentContent": "SELECT content FROM resource_documents WHERE resource_id = :id",
   "resource.preview": `SELECT source_content_sha256, source_format, content_sha256, byte_size, content, created_at
@@ -361,7 +385,7 @@ export const queries = {
       )`,
   "resource.folderPaths": `SELECT DISTINCT resources.folder_path FROM resources
     LEFT JOIN resource_documents ON resource_documents.resource_id = resources.id
-    WHERE resources.folder_path <> '' AND (resources.kind IN ('text', 'remote') OR resource_documents.usage = 'document')
+    WHERE resources.folder_path <> '' AND (resources.kind IN ('text', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')
     ORDER BY resources.folder_path`,
   "resource.hasFolderPathPrefix": `SELECT 1 FROM resources
     WHERE folder_path = :folderPath OR substr(folder_path, 1, length(:folderPrefix)) = :folderPrefix
@@ -382,8 +406,57 @@ export const queries = {
   "resource.insertDocumentBase": `INSERT INTO resources
     (id, slug, kind, title, folder_path, created_at, updated_at)
     VALUES (:id, :slug, 'document', :title, :folderPath, :createdAt, :updatedAt)`,
+  "resource.insertGeographicBase": `INSERT INTO resources
+    (id, slug, kind, title, folder_path, created_at, updated_at)
+    VALUES (:id, :slug, 'geographic', :title, :folderPath, :createdAt, :updatedAt)`,
+  "resource.insertLegalReferenceBase": `INSERT INTO resources
+    (id, slug, kind, title, folder_path, created_at, updated_at)
+    VALUES (:id, :slug, 'legalReference', :title, :folderPath, :createdAt, :updatedAt)`,
   "resource.insertText": "INSERT INTO text_resources (resource_id, content) VALUES (:id, :content)",
   "resource.insertRemote": "INSERT INTO remote_resources (resource_id, url) VALUES (:id, :url)",
+  "resource.insertGeographic": `INSERT INTO geographic_resources
+    (resource_id, provider, view_json, layers_json, hall_layer_json, attribution, license,
+      metadata_url, configured_at, source_updated_at, version)
+    VALUES (:id, 'ign', :viewJson, :layersJson, :hallLayerJson,
+      :attribution, 'Licence Ouverte 2.0', :metadataUrl, :configuredAt, :sourceUpdatedAt, 1)`,
+  "resource.updateGeographic": `UPDATE geographic_resources SET
+    view_json = :viewJson, layers_json = :layersJson, hall_layer_json = :hallLayerJson, version = version + 1
+    WHERE resource_id = :id AND version = :expectedVersion`,
+  "resource.insertLegalReference": `INSERT INTO legal_reference_resources
+    (resource_id, provider, reference_kind, fund, common_id, version_id, effective_at, legal_status, source_url,
+      fetched_at, provider_updated_at, citation_label, attribution, snapshot_hash, verification_status,
+      verification_failed_at)
+    VALUES (:id, 'legifrance', 'article', :fund, :commonId, :versionId, :effectiveAt, :legalStatus, :sourceUrl,
+      :fetchedAt, :providerUpdatedAt, :citationLabel, :attribution, :snapshotHash, 'current', NULL)`,
+  "resource.insertLegalReferenceDraft": `INSERT INTO legal_reference_resources
+    (resource_id, provider, reference_kind)
+    VALUES (:id, 'legifrance', 'article')`,
+  "resource.resolveLegalReference": `UPDATE legal_reference_resources SET
+    fund = :fund, common_id = :commonId, version_id = :versionId, effective_at = :effectiveAt,
+    legal_status = :legalStatus, source_url = :sourceUrl, fetched_at = :fetchedAt,
+    provider_updated_at = :providerUpdatedAt, citation_label = :citationLabel, attribution = :attribution,
+    snapshot_hash = :snapshotHash, verification_status = 'current', verification_failed_at = NULL
+    WHERE resource_id = :id AND common_id IS NULL`,
+  "resource.updateLegalReference": `UPDATE legal_reference_resources SET
+    common_id = :commonId, version_id = :versionId, effective_at = :effectiveAt, legal_status = :legalStatus,
+    source_url = :sourceUrl, fetched_at = :fetchedAt, provider_updated_at = :providerUpdatedAt,
+    citation_label = :citationLabel, attribution = :attribution, snapshot_hash = :snapshotHash,
+    verification_status = 'current', verification_failed_at = NULL
+    WHERE resource_id = :id AND snapshot_hash = :expectedSnapshotHash`,
+  "resource.failLegalReferenceVerification": `UPDATE legal_reference_resources SET
+    verification_status = 'verificationUnavailable', verification_failed_at = :failedAt
+    WHERE resource_id = :id AND snapshot_hash = :expectedSnapshotHash`,
+  "resource.insertLegalReferenceSnapshot": `INSERT INTO legal_reference_snapshots
+    (id, resource_id, common_id, version_id, effective_at, fetched_at, valid_from, valid_to, legal_status,
+      raw_provider_payload, normalized_content, content_hash, snapshot_hash)
+    VALUES (:snapshotId, :resourceId, :commonId, :versionId, :effectiveAt, :fetchedAt, :validFrom, :validTo,
+      :legalStatus, :rawProviderPayload, :normalizedContent, :contentHash, :snapshotHash)`,
+  "resource.legalReferenceSnapshots": `SELECT id, common_id, version_id, effective_at, fetched_at,
+    valid_from, valid_to, legal_status, normalized_content, content_hash, snapshot_hash
+    FROM legal_reference_snapshots WHERE resource_id = :resourceId ORDER BY fetched_at, id`,
+  "resource.latestLegalReferenceSnapshot": `SELECT common_id, version_id, effective_at, valid_from, valid_to,
+    legal_status, content_hash
+    FROM legal_reference_snapshots WHERE resource_id = :resourceId ORDER BY fetched_at DESC, id DESC LIMIT 1`,
   "resource.insertDocument": `INSERT INTO resource_documents
     (resource_id, meeting_id, file_name, format, media_type, byte_size, content_sha256, category, usage, editor_owner_kind, editor_owner_id, content)
     VALUES (:id, :meetingId, :fileName, :format, :mediaType, :byteSize, :contentSha256, :category, :usage, :editorOwnerKind, :editorOwnerId, :content)`,

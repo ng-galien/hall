@@ -1,9 +1,19 @@
 import { findSirenAction } from "@hall/api-contract";
-import type { DocumentResource, FolderRenameResult, RemoteResource, Resource } from "@hall/domain";
+import type {
+  DocumentResource,
+  FolderRenameResult,
+  GeographicResource,
+  LegalReferenceResource,
+  RemoteResource,
+  Resource,
+  TextResource,
+} from "@hall/domain";
 import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../services/apiClient";
 import {
   createFolder,
+  createGeographicResource,
+  createLegalReferenceResource,
   createRemoteResource,
   createTextResource,
   deleteResource,
@@ -22,14 +32,19 @@ interface ResourcesState {
   error: ApiErrorCode | null;
   canCreateText: boolean;
   canCreateRemote: boolean;
+  canCreateGeographic: boolean;
+  canSearchLegalReferences: boolean;
+  canCreateLegalReference: boolean;
   canCreateFolder: boolean;
   canUpload: boolean;
   canUploadEditorAsset: boolean;
   canRenameFolder: boolean;
   updatableIds: string[];
   load(): Promise<void>;
-  createText(input: Record<string, unknown>): Promise<boolean>;
+  createText(input: Record<string, unknown>): Promise<TextResource | null>;
   createRemote(input: Record<string, unknown>): Promise<RemoteResource | null>;
+  createGeographic(input: Record<string, unknown>): Promise<GeographicResource | null>;
+  createLegalReference(input: Record<string, unknown>): Promise<LegalReferenceResource | null>;
   createFolder(parentPath: string, name: string): Promise<string | null>;
   update(resourceId: string, input: Record<string, unknown>): Promise<boolean>;
   upload(form: FormData): Promise<Resource | null>;
@@ -46,6 +61,9 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
   error: null,
   canCreateText: false,
   canCreateRemote: false,
+  canCreateGeographic: false,
+  canSearchLegalReferences: false,
+  canCreateLegalReference: false,
   canCreateFolder: false,
   canUpload: false,
   canUploadEditorAsset: false,
@@ -72,6 +90,9 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
         folderPaths,
         canCreateText: Boolean(findSirenAction(representation, "resource.create-text")),
         canCreateRemote: Boolean(findSirenAction(representation, "resource.create-remote")),
+        canCreateGeographic: Boolean(findSirenAction(representation, "resource.create-geographic")),
+        canSearchLegalReferences: Boolean(findSirenAction(representation, "resource.search-legal-references")),
+        canCreateLegalReference: Boolean(findSirenAction(representation, "resource.create-legal-reference")),
         canCreateFolder: Boolean(findSirenAction(representation, "workspace.create-folder")),
         canUpload: Boolean(findSirenAction(representation, "resource.create-document")),
         canUploadEditorAsset: Boolean(findSirenAction(representation, "resource.create-editor-asset")),
@@ -86,18 +107,40 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
   async createText(input) {
     set({ error: null });
     try {
-      await createTextResource(input);
+      const created = (await createTextResource(input)) as TextResource;
       await get().load();
-      return true;
+      return created;
     } catch (error) {
       set({ error: apiErrorCode(error) });
-      return false;
+      return null;
     }
   },
   async createRemote(input) {
     set({ error: null });
     try {
       const created = await createRemoteResource(input);
+      await get().load();
+      return created;
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
+      return null;
+    }
+  },
+  async createGeographic(input) {
+    set({ error: null });
+    try {
+      const created = await createGeographicResource(input);
+      await get().load();
+      return created;
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
+      return null;
+    }
+  },
+  async createLegalReference(input) {
+    set({ error: null });
+    try {
+      const created = await createLegalReferenceResource(input);
       await get().load();
       return created;
     } catch (error) {

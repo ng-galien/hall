@@ -82,7 +82,12 @@ function auditIntentFor(request: Request) {
   const [root, id, child, childId, operation] = segments;
   const targetType = root ?? "api";
   const targetId =
-    id && !["texts", "documents", "editor-assets", "bootstrap", "login", "logout"].includes(id) ? id : null;
+    id &&
+    !["texts", "documents", "editor-assets", "geographic", "legal-references", "bootstrap", "login", "logout"].includes(
+      id,
+    )
+      ? id
+      : null;
 
   if (root === "council-meetings") {
     if (!id) return { action: "meeting.create", targetType: "council-meeting" };
@@ -204,15 +209,27 @@ function auditIntentFor(request: Request) {
         ? "resource.create-text"
         : id === "remotes"
           ? "resource.create-remote"
-        : id === "documents"
-          ? "resource.create-document"
-          : id === "editor-assets"
-            ? "resource.create-editor-asset"
-            : child === "promote"
-              ? "resource.promote-editor-asset"
-              : request.method === "DELETE"
-                ? "resource.delete"
-                : "resource.update";
+          : id === "geographic"
+            ? "resource.create-geographic"
+            : id === "legal-references" && child === "search"
+              ? "resource.search-legal-references"
+              : id === "legal-references"
+                ? "resource.create-legal-reference"
+                : id === "documents"
+                  ? "resource.create-document"
+                  : id === "editor-assets"
+                    ? "resource.create-editor-asset"
+                    : child === "promote"
+                      ? "resource.promote-editor-asset"
+                      : child === "geography"
+                        ? "resource.update-geography"
+                        : child === "legal-reference" && childId === "resolve"
+                          ? "resource.resolve-legal-reference"
+                          : child === "legal-reference" && childId === "refresh"
+                            ? "resource.refresh-legal-reference"
+                            : request.method === "DELETE"
+                              ? "resource.delete"
+                              : "resource.update";
     return { action, targetType: "resource", targetId };
   }
   if (root === "users") {

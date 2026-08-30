@@ -39,6 +39,9 @@ export type ApiErrorCode =
   | "minutes_approval_required"
   | "meeting_roster_locked"
   | "network_unavailable"
+  | "official_source_access_denied"
+  | "official_source_invalid_response"
+  | "official_source_unavailable"
   | "proxy_invalid"
   | "quorum_not_reached"
   | "request_too_large"
@@ -112,6 +115,9 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "minutes_approval_required",
   "meeting_roster_locked",
   "network_unavailable",
+  "official_source_access_denied",
+  "official_source_invalid_response",
+  "official_source_unavailable",
   "proxy_invalid",
   "quorum_not_reached",
   "request_too_large",

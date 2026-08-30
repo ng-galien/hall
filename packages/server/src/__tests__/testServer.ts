@@ -5,6 +5,7 @@ import { onTestFinished } from "vitest";
 import { createHttpApplication } from "../api/application.js";
 import { buildContainer } from "../core/container.js";
 import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
+import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
 
 export type TestAgent = ReturnType<typeof request.agent>;
 
@@ -30,7 +31,11 @@ export function domainBody<T = any>(response: { body: unknown; headers: Record<s
 }
 
 export async function createTestServer(
-  options: { devAutoLogin?: boolean; documentPreviewConverter?: DocumentPreviewConverter } = {},
+  options: {
+    devAutoLogin?: boolean;
+    documentPreviewConverter?: DocumentPreviewConverter;
+    legalReferenceProvider?: LegalReferenceProvider;
+  } = {},
 ) {
   const container = buildContainer({
     host: "127.0.0.1",
@@ -42,6 +47,9 @@ export async function createTestServer(
   });
   if (options.documentPreviewConverter) {
     container.register({ documentPreviewConverter: asValue(options.documentPreviewConverter) });
+  }
+  if (options.legalReferenceProvider) {
+    container.register({ legalReferenceProvider: asValue(options.legalReferenceProvider) });
   }
   const application = createHttpApplication(container);
   const server = await listen(application);

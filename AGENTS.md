@@ -100,6 +100,20 @@ Une évolution du client doit prolonger ces principes. Lorsqu’un écran exista
 - Les `data-testid` décrivent la fonction stable du contrôle, pas son texte affiché ni sa position dans le DOM.
 - Après un échec, relancer uniquement le test concerné avec `--grep`. La suite complète n’est relancée qu’une fois les tests ciblés verts.
 
+### Interaction manuelle dans le navigateur intégré
+
+Pour les menus contextuels imbriqués de l’arbre, garder l’ouverture du sous-menu, le choix de l’action et la vérification du résultat dans un même appel au navigateur. Un appel intermédiaire de snapshot ou une nouvelle commande peut laisser le menu porté par Radix se fermer et produire un faux échec.
+
+Parcours vérifié pour créer une ressource dans le dossier courant :
+
+1. retrouver la racine avec `workspace-tree-root`, puis faire un clic droit ;
+2. ouvrir `workspace-tree-create` avec `ArrowRight` ;
+3. activer le type voulu avec `Enter`, par exemple `workspace-tree-create-legal-reference` ;
+4. attendre le rendu React, puis vérifier la présence de `workspace-tree-create-input` avant de saisir ;
+5. valider avec `Enter` ou annuler avec `Escape`, et vérifier explicitement la disparition de l’input.
+
+Après une navigation ou un rerender de l’arbre, recréer les locators au lieu de réutiliser une référence potentiellement périmée. Les `data-testid` constituent le contrat stable de cette interaction ; ne pas piloter ces menus par leur texte traduit.
+
 ## Règles structurantes
 
 - La convocation est faite par le maire. Elle indique les questions portées à l’ordre du jour et doit permettre de conserver la preuve de sa transmission et, le cas échéant, de sa publication.

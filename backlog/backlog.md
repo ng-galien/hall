@@ -75,26 +75,31 @@ Critère de sortie : les hooks Claude et Codex exécutent le même corpus et la 
 
 ## P1 : prochains chantiers produit
 
-### Illustrations cartographiques IGN
+### Ressources géographiques IGN
 
-Ordre de réalisation : contrat backend, sélecteur frontend, intégration éditeur, recette de rendu.
+Ordre de réalisation : ressource durable, couche Hall GeoJSON, couches IGN, vue cartographique, manipulation dans l'arbre.
 
-- [ ] `[BACK]` Définir la commande de capture avec propriétaire, titre, cadrage, couche et dimensions de sortie.
-- [ ] `[BACK]` Restreindre les hôtes, couches et systèmes de coordonnées autorisés.
-- [ ] `[BACK]` Produire une image PNG figée depuis une source IGN et contrôler délai, taille, MIME et signature.
-- [ ] `[BACK]` Enregistrer le PNG comme `DocumentResource` durable dans le dossier courant afin qu'il apparaisse dans l'arbre.
-- [ ] `[BACK]` Conserver la provenance cartographique : fournisseur, fond ou couche, emprise, zoom, date de capture et licence.
-- [ ] `[FRONT]` Ajouter un cadrage temporaire OpenLayers utilisant prioritairement Plan IGN V2.
-- [ ] `[FRONT]` Permettre de positionner la vue puis de confirmer la capture, sans carte interactive persistante.
-- [ ] `[FRONT]` Permettre d'insérer facultativement cette ressource dans l'éditeur avec la directive existante `::image`.
-- [ ] `[FULL]` Garantir que l'aperçu et le PDF utilisent uniquement l'image locale, sans appel réseau à l'IGN au rendu.
-- [ ] `[FULL]` Vérifier création dans l'arbre, sauvegarde, rechargement et insertion facultative dans l'éditeur.
+- [x] `[BACK]` Introduire une `GeographicResource` durable et visible dans l'arbre avec fournisseur, couches IGN ordonnées, cadrage, zoom et provenance.
+- [x] `[BACK]` Garantir les mêmes opérations de classement, renommage, tags et rattachement que pour les autres ressources.
+- [x] `[BACK]` Restreindre les couches IGN à l'allowlist Hall, sans URL libre, et persister leur ordre, visibilité et opacité avec au moins une couche visible.
+- [x] `[BACK]` Persister `hallLayer` comme une `FeatureCollection` GeoJSON RFC 7946 en WGS84 avec repères, lignes et zones simples, identifiants UUID stables et styles bornés.
+- [x] `[FRONT]` Ouvrir la ressource dans une vue OpenLayers, permettre de modifier son cadrage et de choisir les couches IGN proposées par le contrat.
+- [x] `[FRONT]` Permettre d'ajouter, modifier et retirer les features de `hallLayer`.
+- [x] `[FRONT]` Représenter clairement la ressource géographique dans l'arbre et dans son en-tête commun.
+- [ ] `[FULL]` Vérifier création, déplacement, renommage, rechargement, recadrage et rattachement de la ressource.
 
-Critère de sortie : l'utilisateur crée une ressource cartographique IGN, la retrouve dans l'arbre et peut l'insérer dans un contenu sans dépendance réseau dans l'aperçu ou le PDF.
+Critère de sortie : l'utilisateur crée une ressource géographique IGN, choisit ses couches, la manipule dans l'arbre, retrouve son cadrage et enrichit sa couche Hall GeoJSON sans nouvelle recherche.
 
 Étude de cadrage des ressources cartographiques IGN : [rapport complet](etude-ressources-cartographiques-ign.md).
 
 ### Ressources juridiques officielles
+
+- [x] `[BACK]` Intégrer l'authentification PISTE côté serveur, la recherche CGCT et la consultation d'un article par CID.
+- [x] `[BACK]` Persister la référence, son snapshot courant et son historique sans ajouter de révision lorsque le contenu juridique est inchangé.
+- [x] `[BACK]` Protéger l'actualisation par concurrence optimiste et conserver l'état courant en cas d'échec tardif.
+- [x] `[FRONT]` Créer une référence Légifrance vide dans l'arbre, rechercher un article puis la résoudre avec un nom proposé.
+- [x] `[FRONT]` Afficher l'état de l'actualisation, le contenu structuré et un lien direct vers Légifrance.
+- [ ] `[FULL]` Recetter le parcours complet sur une application PISTE de production et préciser la politique de péremption.
 
 Étude de cadrage des ressources juridiques officielles : [rapport complet](etude-ressources-juridiques-officielles.md).
 
@@ -160,6 +165,8 @@ Le serveur doit dès maintenant empêcher les chronologies manifestement incohé
 - [ ] `[FULL]` Ajouter les encadrés `:::note` dans la grammaire commune et dans les trois rendus.
 - [ ] `[FRONT]` Consolider la typographie française sans réintroduire de ponctuation interdite.
 - [ ] `[FRONT]` Ajouter les lignes de total de table avec un contrat compatible avec les locales prises en charge.
+- [ ] `[BACK]` Produire une représentation PNG figée d'une ressource géographique avec attribution et empreinte.
+- [ ] `[FULL]` Permettre d'insérer cette représentation dans l'éditeur et le PDF sans appel réseau à l'IGN au rendu.
 
 Ces fonctions ne doivent pas retarder la consolidation de l'éditeur actuel.
 

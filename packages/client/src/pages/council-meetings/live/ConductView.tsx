@@ -35,8 +35,8 @@ import { MarkdownView } from "../../../components/MarkdownView";
 import { Modal } from "../../../components/Ui";
 import { councilBusinessKindKeys } from "../../../features/council-business/presentation";
 import { formatMeetingLabel } from "../../../features/council-meetings/meetingPresentation";
-import { useResourceImageUpload } from "../../../features/documents/useResourceImageUpload";
 import { RemoteResourceEmbed } from "../../../features/documents/RemoteResourceEmbed";
+import { useResourceImageUpload } from "../../../features/documents/useResourceImageUpload";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useReferenceMentionables } from "../../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../../hooks/useSubmitting";
@@ -502,7 +502,7 @@ export function ConductView({
                     onClick={() => {
                       if (resource.kind === "document") setViewedDocument(resource);
                       else if (resource.kind === "text") setViewedText(resource);
-                      else setViewedRemote(resource);
+                      else if (resource.kind === "remote") setViewedRemote(resource);
                     }}
                   >
                     <FileIcon aria-hidden="true" />

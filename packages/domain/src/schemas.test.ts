@@ -1,11 +1,44 @@
 import { describe, expect, it } from "vitest";
 import {
   createCouncilMeetingSchema,
+  createGeographicResourceSchema,
   recordAttendanceSchema,
   recordBallotSchema,
   updateCouncilMeetingSchema,
   updateHallSettingsSchema,
 } from "./schemas.js";
+
+describe("geographic resource colors", () => {
+  const resource = {
+    title: "Repérage",
+    folderPath: "travaux",
+    tags: [],
+    provider: "ign",
+    layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
+    hallLayer: {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          id: "11111111-1111-4111-8111-111111111111",
+          properties: { kind: "marker", label: null, style: { color: "#3a72c4", size: "medium" } },
+          geometry: { type: "Point", coordinates: [2.3522, 48.8566] },
+        },
+      ],
+    },
+  };
+
+  it("accepts a custom hexadecimal color and defaults feature visibility", () => {
+    const parsed = createGeographicResourceSchema.parse(resource);
+    expect(parsed.hallLayer.features[0]?.properties).toMatchObject({ visible: true, style: { color: "#3a72c4" } });
+  });
+
+  it("rejects a non-color value", () => {
+    const invalid = structuredClone(resource);
+    invalid.hallLayer.features[0]!.properties.style.color = "blue";
+    expect(() => createGeographicResourceSchema.parse(invalid)).toThrow();
+  });
+});
 
 describe("updateHallSettingsSchema", () => {
   const settings = {
@@ -18,6 +51,7 @@ describe("updateHallSettingsSchema", () => {
     addressLine2: "",
     postalCode: "12345",
     city: "Saint-Aubin",
+    geographicPosition: [2.3522, 48.8566],
     phone: "+33 1 23 45 67 89",
     email: "contact@saint-aubin.fr",
     website: "https://saint-aubin.fr",
@@ -35,6 +69,11 @@ describe("updateHallSettingsSchema", () => {
   it("rejects invalid institutional identifiers and time zones", () => {
     expect(() => updateHallSettingsSchema.parse({ ...settings, inseeCode: "1234" })).toThrow();
     expect(() => updateHallSettingsSchema.parse({ ...settings, timeZone: "Paris" })).toThrow();
+  });
+
+  it("rejects invalid geographic positions", () => {
+    expect(() => updateHallSettingsSchema.parse({ ...settings, geographicPosition: [181, 48.8566] })).toThrow();
+    expect(() => updateHallSettingsSchema.parse({ ...settings, geographicPosition: [2.3522, 91] })).toThrow();
   });
 
   it("accepts Corsican INSEE codes", () => {

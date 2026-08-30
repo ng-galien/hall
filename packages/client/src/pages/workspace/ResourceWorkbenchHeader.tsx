@@ -8,8 +8,8 @@ import { ResourceGlyph } from "../../features/documents/ResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceSelection } from "./WorkspacePage";
+import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 
 export function ResourceWorkbenchHeader({
@@ -44,7 +44,7 @@ export function ResourceWorkbenchHeader({
       title={title}
       titleLabel={t("resources.textTitle")}
       date={
-        resource.kind === "text"
+        resource.kind === "text" || resource.kind === "geographic"
           ? { kind: "updated", value: resource.updatedAt }
           : { kind: "created", value: resource.createdAt }
       }

@@ -1,12 +1,18 @@
 import {
-  createTextResourceSchema,
   createFolderSchema,
+  createGeographicResourceSchema,
+  createLegalReferenceResourceSchema,
   createRemoteResourceSchema,
+  createTextResourceSchema,
   editorAssetOwnerKindSchema,
   folderPathSchema,
   promoteEditorAssetSchema,
+  refreshLegalReferenceSchema,
   renameFolderSchema,
+  resolveLegalReferenceResourceSchema,
   resourceTagsSchema,
+  searchLegalReferencesSchema,
+  updateGeographicResourceSchema,
   updateResourceSchema,
 } from "@hall/domain";
 import { Router } from "express";
@@ -18,7 +24,7 @@ import { DomainError } from "../../services/errors.js";
 import { routeParameter } from "../routeParameter.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
-const resourceKindSchema = z.enum(["text", "document", "remote"]);
+const resourceKindSchema = z.enum(["text", "document", "remote", "geographic", "legalReference"]);
 const documentCategorySchema = z.enum([
   "report",
   "draftCouncilDecision",
@@ -131,6 +137,55 @@ export function createResourcesRouter({
     });
     response.status(201).json(await resourceService.createRemote({ title, folderPath, tags, url }));
   });
+
+  router.post("/geographic", requirePermission("workspace.write"), async (request, response) => {
+    response
+      .status(201)
+      .json(await resourceService.createGeographic(createGeographicResourceSchema.parse(request.body)));
+  });
+
+  router.post("/legal-references/search", requirePermission("workspace.read"), async (request, response) => {
+    response.json(await resourceService.searchLegalReferences(searchLegalReferencesSchema.parse(request.body)));
+  });
+
+  router.post("/legal-references", requirePermission("workspace.write"), async (request, response) => {
+    response
+      .status(201)
+      .json(await resourceService.createLegalReference(createLegalReferenceResourceSchema.parse(request.body)));
+  });
+
+  router.post(
+    "/:resourceId/legal-reference/resolve",
+    requirePermission("workspace.write"),
+    async (request, response) => {
+      response.json(
+        await resourceService.resolveLegalReference(
+          routeParameter(request.params.resourceId),
+          resolveLegalReferenceResourceSchema.parse(request.body),
+        ),
+      );
+    },
+  );
+
+  router.put("/:resourceId/geography", requirePermission("workspace.write"), async (request, response) => {
+    response.json(
+      await resourceService.updateGeographic(
+        routeParameter(request.params.resourceId),
+        updateGeographicResourceSchema.parse(request.body),
+      ),
+    );
+  });
+
+  router.post(
+    "/:resourceId/legal-reference/refresh",
+    requirePermission("workspace.write"),
+    async (request, response) => {
+      const { expectedSnapshotHash } = refreshLegalReferenceSchema.parse(request.body);
+      response.json(
+        await resourceService.refreshLegalReference(routeParameter(request.params.resourceId), expectedSnapshotHash),
+      );
+    },
+  );
 
   router.post("/documents", requirePermission("workspace.write"), uploadFile, async (request, response) => {
     if (!request.file) throw new DomainError("invalid_request");

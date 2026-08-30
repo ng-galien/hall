@@ -12,7 +12,10 @@ export const postgresTables = [
   "council_meetings",
   "council_members",
   "document_previews",
+  "geographic_resources",
   "hall_settings",
+  "legal_reference_resources",
+  "legal_reference_snapshots",
   "meeting_roster",
   "number_sequences",
   "remote_resources",
@@ -93,6 +96,8 @@ export const postgresSchema = `
     address_line_2 TEXT NOT NULL DEFAULT '',
     postal_code TEXT NOT NULL DEFAULT '',
     city TEXT NOT NULL DEFAULT '',
+    geographic_longitude DOUBLE PRECISION,
+    geographic_latitude DOUBLE PRECISION,
     phone TEXT NOT NULL DEFAULT '',
     email TEXT,
     website TEXT,
@@ -101,7 +106,10 @@ export const postgresSchema = `
     outbound_email_sender_name TEXT NOT NULL DEFAULT '',
     outbound_email_sender_address TEXT,
     outbound_email_reply_to_address TEXT,
-    updated_at TEXT
+    updated_at TEXT,
+    CHECK ((geographic_longitude IS NULL) = (geographic_latitude IS NULL)),
+    CHECK (geographic_longitude IS NULL OR geographic_longitude BETWEEN -180 AND 180),
+    CHECK (geographic_latitude IS NULL OR geographic_latitude BETWEEN -90 AND 90)
   );
 
   INSERT INTO hall_settings (id) VALUES ('hall');
@@ -197,7 +205,7 @@ export const postgresSchema = `
   CREATE TABLE resources (
     id TEXT PRIMARY KEY,
     slug TEXT NOT NULL UNIQUE,
-    kind TEXT NOT NULL CHECK (kind IN ('text', 'document', 'remote')),
+    kind TEXT NOT NULL CHECK (kind IN ('text', 'document', 'remote', 'geographic', 'legalReference')),
     title TEXT NOT NULL,
     folder_path TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
@@ -213,12 +221,72 @@ export const postgresSchema = `
 
   CREATE TABLE remote_resources (
     resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-    url TEXT NOT NULL CHECK (url <> '')
+    url TEXT CHECK (url IS NULL OR url <> '')
   );
 
   CREATE TABLE text_resources (
     resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
     content TEXT NOT NULL
+  );
+
+  CREATE TABLE geographic_resources (
+    resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
+    provider TEXT NOT NULL CHECK (provider = 'ign'),
+    view_json JSONB NOT NULL,
+    layers_json JSONB NOT NULL,
+    hall_layer_json JSONB NOT NULL,
+    attribution TEXT NOT NULL,
+    license TEXT NOT NULL CHECK (license = 'Licence Ouverte 2.0'),
+    metadata_url TEXT NOT NULL,
+    configured_at TEXT NOT NULL,
+    source_updated_at TEXT,
+    version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
+  );
+
+  CREATE TABLE legal_reference_resources (
+    resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
+    provider TEXT NOT NULL CHECK (provider = 'legifrance'),
+    reference_kind TEXT NOT NULL CHECK (reference_kind = 'article'),
+    fund TEXT CHECK (fund IN ('CODE_ETAT', 'CODE_DATE')),
+    common_id TEXT,
+    version_id TEXT,
+    effective_at TEXT,
+    legal_status TEXT,
+    source_url TEXT,
+    fetched_at TEXT,
+    provider_updated_at TEXT,
+    citation_label TEXT,
+    attribution TEXT,
+    snapshot_hash TEXT CHECK (snapshot_hash IS NULL OR length(snapshot_hash) = 64),
+    verification_status TEXT CHECK (verification_status IN ('current', 'verificationUnavailable')),
+    verification_failed_at TEXT,
+    CHECK (
+      (common_id IS NULL AND fund IS NULL AND version_id IS NULL AND effective_at IS NULL
+        AND legal_status IS NULL AND source_url IS NULL AND fetched_at IS NULL
+        AND citation_label IS NULL AND attribution IS NULL AND snapshot_hash IS NULL
+        AND verification_status IS NULL)
+      OR
+      (common_id IS NOT NULL AND version_id IS NOT NULL AND legal_status IS NOT NULL
+        AND source_url IS NOT NULL AND fetched_at IS NOT NULL AND citation_label IS NOT NULL
+        AND attribution IS NOT NULL AND snapshot_hash IS NOT NULL AND verification_status IS NOT NULL
+        AND ((fund = 'CODE_ETAT' AND effective_at IS NULL) OR (fund = 'CODE_DATE' AND effective_at IS NOT NULL)))
+    )
+  );
+
+  CREATE TABLE legal_reference_snapshots (
+    id TEXT PRIMARY KEY,
+    resource_id TEXT NOT NULL REFERENCES legal_reference_resources(resource_id) ON DELETE CASCADE,
+    common_id TEXT NOT NULL,
+    version_id TEXT NOT NULL,
+    effective_at TEXT,
+    fetched_at TEXT NOT NULL,
+    valid_from TEXT,
+    valid_to TEXT,
+    legal_status TEXT NOT NULL,
+    raw_provider_payload JSONB NOT NULL,
+    normalized_content TEXT NOT NULL,
+    content_hash TEXT NOT NULL CHECK (length(content_hash) = 64),
+    snapshot_hash TEXT NOT NULL CHECK (length(snapshot_hash) = 64)
   );
 
   CREATE TABLE resource_documents (

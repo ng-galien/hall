@@ -14,9 +14,14 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { type InlineRenameEndReason, InlineRenameField } from "@/components/ui/inline-rename-field";
 import {
+  AddIcon,
   ChevronRightIcon,
   DragHandleIcon,
   EditIcon,
@@ -24,11 +29,12 @@ import {
   FolderIcon,
   FolderOpenIcon,
   SearchIcon,
+  WorkspaceIcon,
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { councilBusinessKindKeys } from "../../features/council-business/presentation";
-import { ResourceGlyph } from "../../features/documents/ResourceGlyph";
+import { ResourceGlyph, toneIcons } from "../../features/documents/ResourceGlyph";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -39,32 +45,31 @@ import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { listAllPaths } from "./paths";
-import { InlineRenameField, type InlineRenameEndReason } from "./InlineRenameField";
-import type { WorkspaceSelection } from "./WorkspacePage";
-import {
-  DRAG_TYPE,
-  type DragPayload,
-  decodeDragPayload,
-  encodeDragPayload,
-  moveToPath,
-} from "./workspaceOrg";
+import type { WorkspaceCreateKind, WorkspaceSelection } from "./WorkspacePage";
+import { DRAG_TYPE, type DragPayload, decodeDragPayload, encodeDragPayload, moveToPath } from "./workspaceOrg";
 
 export type WorkspaceViewMode = "all" | "businesses" | "resources";
 type RenameTarget = DragPayload | { kind: "folder"; path: string };
+type InlineCreateKind = Exclude<WorkspaceCreateKind, "document">;
+type CreateTarget = { kind: InlineCreateKind; folderPath: string };
+
+const TextResourceIcon = toneIcons.text;
+const RemoteResourceIcon = toneIcons.remote;
+const GeographicResourceIcon = toneIcons.geographic;
+const LegalReferenceResourceIcon = toneIcons.legalReference;
+const DocumentResourceIcon = toneIcons.file;
 
 function RenameContextMenu({
   children,
   enabled,
   onRename,
-  onCreateFolder,
 }: {
   children: ReactElement;
   enabled: boolean;
   onRename(): void;
-  onCreateFolder?(): void;
 }) {
   const { t } = useI18n();
-  if (!enabled && !onCreateFolder) return children;
+  if (!enabled) return children;
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
@@ -74,12 +79,6 @@ function RenameContextMenu({
             <EditIcon aria-hidden="true" />
             {t("common.rename")}
             <ContextMenuShortcut>F2</ContextMenuShortcut>
-          </ContextMenuItem>
-        ) : null}
-        {onCreateFolder ? (
-          <ContextMenuItem data-testid="workspace-tree-create-folder" onSelect={onCreateFolder}>
-            <FolderAddIcon aria-hidden="true" />
-            {t("workspace.createSubfolder")}
           </ContextMenuItem>
         ) : null}
       </ContextMenuContent>
@@ -144,18 +143,18 @@ export function PathContents({
   path,
   businesses,
   resources,
-  createFolderRequest,
   selection,
   onSelect,
+  onCreate,
   onPreview,
   hidden = false,
 }: {
   path: string;
   businesses: CouncilBusiness[];
   resources: Resource[];
-  createFolderRequest: number;
   selection: WorkspaceSelection;
   onSelect(selection: WorkspaceSelection, path?: string): void;
+  onCreate(kind: WorkspaceCreateKind, folderPath: string, title?: string): Promise<WorkspaceSelection>;
   onPreview(resource: Resource): void;
   hidden?: boolean;
 }) {
@@ -168,7 +167,6 @@ export function PathContents({
   const folderClickTimers = useRef(new Map<string, number>());
   const renameTargetRef = useRef<RenameTarget | null>(null);
   const renameSessionRef = useRef(0);
-  const handledCreateFolderRequestRef = useRef(createFolderRequest);
   const [mode, setMode] = useState<WorkspaceViewMode>("all");
   const [query, setQuery] = useState("");
   const [folderExpansion, setFolderExpansion] = useState<Map<string, boolean>>(() => new Map());
@@ -180,12 +178,9 @@ export function PathContents({
   const [renameSession, setRenameSession] = useState(0);
   const [renameError, setRenameError] = useState<ApiErrorCode | null>(null);
   const [creatingFolderParent, setCreatingFolderParent] = useState<string | null>(null);
+  const [createTarget, setCreateTarget] = useState<CreateTarget | null>(null);
 
-  const allPaths = listAllPaths(
-    councilBusinessStore.businesses,
-    resourcesStore.resources,
-    resourcesStore.folderPaths,
-  );
+  const allPaths = listAllPaths(councilBusinessStore.businesses, resourcesStore.resources, resourcesStore.folderPaths);
   const paths = useMemo(
     () => allPaths.filter((candidate) => candidate === path || candidate.startsWith(`${path}/`)),
     [allPaths, path],
@@ -221,12 +216,6 @@ export function PathContents({
     },
     [],
   );
-
-  useEffect(() => {
-    if (createFolderRequest === handledCreateFolderRequestRef.current) return;
-    handledCreateFolderRequestRef.current = createFolderRequest;
-    setCreatingFolderParent(path);
-  }, [createFolderRequest, path]);
 
   const itemKey = (target: RenameTarget) => {
     if (target.kind === "folder") return `folder:${target.path}`;
@@ -277,9 +266,7 @@ export function PathContents({
     setActiveRename(null);
     if (reason === "blur") return;
     window.requestAnimationFrame(() => {
-      const node = treeRef.current?.querySelector<HTMLButtonElement>(
-        `button[data-workspace-node-key="${key}"]`,
-      );
+      const node = treeRef.current?.querySelector<HTMLButtonElement>(`button[data-workspace-node-key="${key}"]`);
       node?.focus({ preventScroll: true });
     });
   };
@@ -321,10 +308,7 @@ export function PathContents({
         folderPath: business.folderPath,
         resourceIds: business.resources.map((resource) => resource.id),
       });
-      await Promise.all([
-        useCouncilBusinessStore.getState().load(),
-        useCouncilDecisionsStore.getState().load(),
-      ]);
+      await Promise.all([useCouncilBusinessStore.getState().load(), useCouncilDecisionsStore.getState().load()]);
       return true;
     } catch (failure) {
       if (renameSessionRef.current === session) setRenameError(apiErrorCode(failure));
@@ -377,6 +361,51 @@ export function PathContents({
     setCreatingFolderParent(parentPath);
   };
 
+  const startInlineCreate = (kind: InlineCreateKind, folderPath: string) => {
+    setActiveRename(null);
+    setRenameError(null);
+    setCreatingFolderParent(null);
+    setFolderExpansion((current) => new Map(current).set(folderPath, true));
+    setCreateTarget({ kind, folderPath });
+  };
+
+  const afterContextMenuCloses = (action: () => void) => {
+    window.setTimeout(action, 0);
+  };
+
+  const proposedName = (kind: InlineCreateKind) =>
+    t(
+      kind === "councilMatter"
+        ? "workspace.createCouncilMatter"
+        : kind === "text"
+          ? "workspace.createText"
+          : kind === "remote"
+            ? "workspace.createRemote"
+            : kind === "geographic"
+              ? "workspace.createGeographic"
+              : "workspace.createLegalReference",
+    );
+
+  const createInlineEntry = async (target: CreateTarget, title: string) => {
+    const created = await onCreate(target.kind, target.folderPath, title);
+    if (!created) {
+      setRenameError(
+        target.kind === "councilMatter" ? useCouncilBusinessStore.getState().error : useResourcesStore.getState().error,
+      );
+      return false;
+    }
+    const key = created.kind === "resource" ? `resource:${created.id}` : `business:${created.id}`;
+    setCreateTarget(null);
+    setSelectedKey(key);
+    setFeedback(t("workspace.createdFeedback").replace("{name}", title));
+    window.requestAnimationFrame(() => {
+      treeRef.current
+        ?.querySelector<HTMLButtonElement>(`button[data-workspace-node-key="${key}"]`)
+        ?.focus({ preventScroll: true });
+    });
+    return true;
+  };
+
   const createFolderPath = async (parentPath: string, name: string) => {
     setRenameError(null);
     const createdPath = await resourcesStore.createFolder(parentPath, name);
@@ -417,6 +446,148 @@ export function PathContents({
         </fieldset>
       </li>
     ) : null;
+
+  const renderInlineCreation = (folderPath: string) => {
+    if (!createTarget || createTarget.folderPath !== folderPath) return null;
+    const target = createTarget;
+    const Icon =
+      target.kind === "councilMatter"
+        ? WorkspaceIcon
+        : target.kind === "text"
+          ? TextResourceIcon
+          : target.kind === "remote"
+            ? RemoteResourceIcon
+            : target.kind === "geographic"
+              ? GeographicResourceIcon
+              : LegalReferenceResourceIcon;
+    return (
+      <li className="workspace-explorer-item workspace-explorer-creating workspace-explorer-selected">
+        <div className="workspace-explorer-row">
+          <span className="workspace-glyph" aria-hidden="true">
+            <Icon />
+          </span>
+          <span className="workspace-explorer-copy">
+            <InlineRenameField
+              value={proposedName(target.kind)}
+              editing
+              commitUnchanged
+              commitOnBlur={false}
+              onEditingChange={(editing) => {
+                if (!editing) setCreateTarget(null);
+              }}
+              onCommit={(title) => createInlineEntry(target, title)}
+              label={t("common.create")}
+              className="workspace-explorer-rename-input"
+              testId="workspace-tree-create-input"
+            >
+              <span />
+            </InlineRenameField>
+          </span>
+        </div>
+      </li>
+    );
+  };
+
+  const withFolderContextMenu = (children: ReactElement, folderPath: string, onRename?: () => void): ReactElement => {
+    const canCreateLegalReference = resourcesStore.canSearchLegalReferences && resourcesStore.canCreateLegalReference;
+    const hasCreateActions =
+      resourcesStore.canCreateFolder ||
+      councilBusinessStore.canCreate ||
+      resourcesStore.canCreateText ||
+      resourcesStore.canCreateRemote ||
+      resourcesStore.canCreateGeographic ||
+      canCreateLegalReference ||
+      resourcesStore.canUpload;
+    const hasActions = Boolean(onRename) || hasCreateActions;
+    if (!hasActions) return children;
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+        <ContextMenuContent>
+          {hasCreateActions ? (
+            <ContextMenuSub>
+              <ContextMenuSubTrigger data-testid="workspace-tree-create">
+                <AddIcon aria-hidden="true" />
+                {t("common.create")}
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent>
+                {resourcesStore.canCreateFolder ? (
+                  <ContextMenuItem
+                    data-testid="workspace-tree-create-folder"
+                    onSelect={() => afterContextMenuCloses(() => startCreateFolder(folderPath))}
+                  >
+                    <FolderAddIcon aria-hidden="true" />
+                    {t("workspace.createSubfolder")}
+                  </ContextMenuItem>
+                ) : null}
+                {councilBusinessStore.canCreate ? (
+                  <ContextMenuItem
+                    data-testid="workspace-tree-create-business"
+                    onSelect={() => afterContextMenuCloses(() => startInlineCreate("councilMatter", folderPath))}
+                  >
+                    <WorkspaceIcon aria-hidden="true" />
+                    {t("workspace.createCouncilMatter")}
+                  </ContextMenuItem>
+                ) : null}
+                {resourcesStore.canCreateText ? (
+                  <ContextMenuItem
+                    data-testid="workspace-tree-create-text"
+                    onSelect={() => afterContextMenuCloses(() => startInlineCreate("text", folderPath))}
+                  >
+                    <TextResourceIcon aria-hidden="true" />
+                    {t("workspace.createText")}
+                  </ContextMenuItem>
+                ) : null}
+                {resourcesStore.canCreateRemote ? (
+                  <ContextMenuItem
+                    data-testid="workspace-tree-create-remote"
+                    onSelect={() => afterContextMenuCloses(() => startInlineCreate("remote", folderPath))}
+                  >
+                    <RemoteResourceIcon aria-hidden="true" />
+                    {t("workspace.createRemote")}
+                  </ContextMenuItem>
+                ) : null}
+                {resourcesStore.canCreateGeographic ? (
+                  <ContextMenuItem
+                    data-testid="workspace-tree-create-geographic"
+                    onSelect={() => afterContextMenuCloses(() => startInlineCreate("geographic", folderPath))}
+                  >
+                    <GeographicResourceIcon aria-hidden="true" />
+                    {t("workspace.createGeographic")}
+                  </ContextMenuItem>
+                ) : null}
+                {canCreateLegalReference ? (
+                  <ContextMenuItem
+                    data-testid="workspace-tree-create-legal-reference"
+                    onSelect={() => afterContextMenuCloses(() => startInlineCreate("legalReference", folderPath))}
+                  >
+                    <LegalReferenceResourceIcon aria-hidden="true" />
+                    {t("workspace.createLegalReference")}
+                  </ContextMenuItem>
+                ) : null}
+                {resourcesStore.canUpload ? (
+                  <ContextMenuItem
+                    data-testid="workspace-tree-upload-document"
+                    onSelect={() => void onCreate("document", folderPath)}
+                  >
+                    <DocumentResourceIcon aria-hidden="true" />
+                    {t("workspace.uploadDocument")}
+                  </ContextMenuItem>
+                ) : null}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+          ) : null}
+          {onRename ? (
+            <ContextMenuItem data-testid="workspace-tree-rename" onSelect={onRename}>
+              <EditIcon aria-hidden="true" />
+              {t("common.rename")}
+              <ContextMenuShortcut>F2</ContextMenuShortcut>
+            </ContextMenuItem>
+          ) : null}
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  };
 
   const handleTreeKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
     const tree = treeRef.current;
@@ -605,6 +776,11 @@ export function PathContents({
                 >
                   <strong>{resource.title}</strong>
                 </InlineRenameField>
+                {resource.state.readiness !== "ready" ? (
+                  <span className={`workspace-resource-state workspace-resource-state-${resource.state.readiness}`}>
+                    {t(`workspace.resourceState.${resource.state.readiness}`)}
+                  </span>
+                ) : null}
               </span>
             </>
           );
@@ -736,16 +912,11 @@ export function PathContents({
     );
     return (
       <li className="workspace-explorer-folder" key={folderPath}>
-        <RenameContextMenu
-          enabled={resourcesStore.canRenameFolder}
-          onRename={() => startRename(target)}
-          onCreateFolder={resourcesStore.canCreateFolder ? () => startCreateFolder(folderPath) : undefined}
-        >
-          {row}
-        </RenameContextMenu>
+        {withFolderContextMenu(row, folderPath, resourcesStore.canRenameFolder ? () => startRename(target) : undefined)}
         {isExpanded ? (
           <ul className="workspace-explorer-branch">
             {renderFolderCreation(folderPath)}
+            {renderInlineCreation(folderPath)}
             {renderItems(folderPath)}
             {children.map(renderFolder)}
           </ul>
@@ -755,11 +926,18 @@ export function PathContents({
   };
 
   const rootChildren = directChildrenOf(path, paths).filter(branchHasVisibleItems);
-  const empty =
-    visibleBusinesses.length === 0 &&
-    visibleResources.length === 0 &&
-    rootChildren.length === 0 &&
-    creatingFolderParent !== path;
+  const rootHasDirectItems =
+    visibleBusinesses.some((business) => business.folderPath === path) ||
+    visibleResources.some((resource) => resource.folderPath === path);
+  const rootName = path.split("/").at(-1) ?? path;
+  const rootRow = (
+    <fieldset className="workspace-explorer-folder-row workspace-explorer-root-row" data-testid="workspace-tree-root">
+      <span className="workspace-explorer-folder-marker" aria-hidden="true">
+        <FolderOpenIcon />
+      </span>
+      <span className="workspace-explorer-folder-name">{rootName}</span>
+    </fieldset>
+  );
   return (
     <div className="workspace-explorer" hidden={hidden}>
       <div className="workspace-explorer-toolbar">
@@ -794,20 +972,28 @@ export function PathContents({
       <p className="sr-only" aria-live="polite">
         {feedback}
       </p>
-      {empty ? (
-        <p className="workspace-explorer-empty">{t("workspace.noVisibleItems")}</p>
-      ) : (
-        <ul
-          ref={treeRef}
-          className="workspace-explorer-tree"
-          aria-label={t("workspace.contents")}
-          onKeyDown={handleTreeKeyDown}
-        >
-          {renderFolderCreation(path)}
-          {renderItems(path)}
-          {rootChildren.map(renderFolder)}
-        </ul>
-      )}
+      <ul
+        ref={treeRef}
+        className="workspace-explorer-tree"
+        aria-label={t("workspace.contents")}
+        onKeyDown={handleTreeKeyDown}
+      >
+        <li className="workspace-explorer-folder workspace-explorer-root">
+          {withFolderContextMenu(rootRow, path)}
+          <ul className="workspace-explorer-branch">
+            {renderFolderCreation(path)}
+            {renderInlineCreation(path)}
+            {renderItems(path)}
+            {rootChildren.map(renderFolder)}
+            {!rootHasDirectItems &&
+            rootChildren.length === 0 &&
+            creatingFolderParent !== path &&
+            createTarget?.folderPath !== path ? (
+              <li className="workspace-explorer-empty">{t("workspace.noVisibleItems")}</li>
+            ) : null}
+          </ul>
+        </li>
+      </ul>
     </div>
   );
 }

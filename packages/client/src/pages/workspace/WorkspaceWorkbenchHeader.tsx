@@ -1,9 +1,9 @@
 import { type ReactNode, useState } from "react";
+import { InlineRenameField } from "@/components/ui/inline-rename-field";
 import { EditIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
-import { InlineRenameField } from "./InlineRenameField";
 
 export function WorkspaceWorkbenchHeader({
   icon,

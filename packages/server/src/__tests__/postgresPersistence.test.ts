@@ -117,6 +117,7 @@ postgres("PostgreSQL persistence", () => {
         addressLine2: "",
         postalCode: "12345",
         city: "Saint-Aubin",
+        geographicPosition: [2.3522, 48.8566] as [number, number],
         phone: "+33 1 23 45 67 89",
         email: "contact@saint-aubin.fr",
         website: "https://saint-aubin.fr",
@@ -191,6 +192,90 @@ postgres("PostgreSQL persistence", () => {
         contentSha256,
         content: documentContent,
       });
+      const geographic = await resourceRepository.createGeographic({
+        title: "Project area",
+        folderPath: "associations/grants",
+        tags: ["map"],
+        provider: "ign",
+        layers: [
+          { id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 },
+          { id: "ORTHOIMAGERY.ORTHOPHOTOS", visible: false, opacity: 0.6 },
+        ],
+        view: { kind: "center", center: [2.15, 48.15], zoom: 15 },
+        hallLayer: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              id: randomUUID(),
+              properties: {
+                kind: "marker",
+                visible: true,
+                label: "Town hall",
+                style: { color: "#1b2a78", size: "medium" },
+              },
+              geometry: { type: "Point", coordinates: [2.15, 48.15] },
+            },
+          ],
+        },
+      });
+      expect(await resourceRepository.findMetadata(geographic.id)).toMatchObject({
+        id: geographic.id,
+        kind: "geographic",
+        version: 1,
+      });
+      expect(await resourceRepository.findGeographicData(geographic.id)).toMatchObject({
+        view: { kind: "center", center: [2.15, 48.15], zoom: 15 },
+        layers: [
+          { id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 },
+          { id: "ORTHOIMAGERY.ORTHOPHOTOS", visible: false, opacity: 0.6 },
+        ],
+        hallLayer: {
+          type: "FeatureCollection",
+          features: [expect.objectContaining({ properties: expect.objectContaining({ kind: "marker" }) })],
+        },
+      });
+      const legalDraft = await resourceRepository.createLegalReferenceDraft({
+        title: "CGCT L2121-10",
+        folderPath: "associations/grants",
+        tags: ["law"],
+        provider: "legifrance",
+        referenceKind: "article",
+      });
+      const legal = await resourceRepository.resolveLegalReference(legalDraft.id, {
+        title: legalDraft.title,
+        folderPath: legalDraft.folderPath,
+        tags: legalDraft.tags,
+        provider: "legifrance",
+        referenceKind: "article",
+        fund: "CODE_ETAT",
+        sourceUrl: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041410274",
+        providerUpdatedAt: null,
+        citationLabel: "CGCT, article L2121-10",
+        attribution: "Source : DILA - Légifrance. Licence Ouverte 2.0.",
+        snapshot: {
+          commonId: "CID-L2121-10",
+          versionId: "LEGIARTI000041410274",
+          effectiveAt: null,
+          fetchedAt: "2026-08-30T10:00:00.000Z",
+          validFrom: "2020-01-01",
+          validTo: null,
+          legalStatus: "VIGUEUR",
+          rawProviderPayload: JSON.stringify({ id: "LEGIARTI000041410274" }),
+          normalizedContent: "Toute convocation est faite par le maire.",
+          contentHash: createHash("sha256").update("Toute convocation est faite par le maire.").digest("hex"),
+          snapshotHash: createHash("sha256").update("snapshot-v1").digest("hex"),
+        },
+      });
+      expect(legal).not.toBeNull();
+      if (!legal) throw new Error("Expected the legal reference draft to resolve");
+      expect(await resourceRepository.findMetadata(legal.id)).toMatchObject({
+        id: legal.id,
+        kind: "legalReference",
+      });
+      expect(await resourceRepository.listLegalReferenceSnapshots(legal.id)).toEqual([
+        expect.objectContaining({ versionId: "LEGIARTI000041410274" }),
+      ]);
       const editorAsset = await resourceRepository.createEditorAsset({
         title: "Pasted plan",
         folderPath: text.folderPath,
@@ -206,7 +291,7 @@ postgres("PostgreSQL persistence", () => {
         category: null,
         editorOwner: { kind: "textResourceContent", id: text.id },
       });
-      expect(await resourceRepository.list()).toHaveLength(2);
+      expect(await resourceRepository.list()).toHaveLength(4);
       expect(
         await resourceRepository.list({
           usage: "editorAsset",

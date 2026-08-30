@@ -4,6 +4,9 @@ import type {
   EditorAssetOwner,
   FolderCreateResult,
   FolderRenameResult,
+  GeographicResource,
+  LegalReferenceResource,
+  LegalReferenceSearchResult,
   RemoteResource,
   Resource,
   ResourceDetails,
@@ -20,7 +23,7 @@ import {
 
 export interface ResourceFilters {
   folderPath?: string;
-  kind?: "text" | "document" | "remote";
+  kind?: "text" | "document" | "remote" | "geographic" | "legalReference";
   meetingId?: string;
   tags?: string[];
   usage?: "document" | "editorAsset";
@@ -57,6 +60,24 @@ export const createTextResource = (input: Record<string, unknown>) =>
   submitSirenActionAt<Resource>("/resources", "resource.create-text", input).then((result) => result.data);
 export const createRemoteResource = (input: Record<string, unknown>) =>
   submitSirenActionAt<RemoteResource>("/resources", "resource.create-remote", input).then((result) => result.data);
+export const createGeographicResource = (input: Record<string, unknown>) =>
+  submitSirenActionAt<GeographicResource>("/resources", "resource.create-geographic", input).then(
+    (result) => result.data,
+  );
+export const searchLegalReferences = (input: { query: string; effectiveAt: string | null }) =>
+  submitSirenActionAt<LegalReferenceSearchResult[]>("/resources", "resource.search-legal-references", input).then(
+    (result) => result.data,
+  );
+export const createLegalReferenceResource = (input: Record<string, unknown>) =>
+  submitSirenActionAt<LegalReferenceResource>("/resources", "resource.create-legal-reference", input).then(
+    (result) => result.data,
+  );
+export const resolveLegalReferenceResource = (resourceId: string, input: Record<string, unknown>) =>
+  submitSirenActionAt<LegalReferenceResource>(
+    `/resources/${resourceId}`,
+    "resource.resolve-legal-reference",
+    input,
+  ).then((result) => result.data);
 export const uploadResourceDocument = (form: FormData) =>
   submitSirenActionAt<Resource>("/resources", "resource.create-document", form).then((result) => result.data);
 export const uploadEditorAsset = (form: FormData) =>
@@ -66,6 +87,14 @@ export const getResourceDetailsSiren = (resourceId: string) =>
   apiSirenRequest<ResourceDetails>(`/resources/${resourceId}`);
 export const updateResource = (resourceId: string, input: Record<string, unknown>) =>
   submitSirenActionAt<Resource>(`/resources/${resourceId}`, "resource.update", input).then((result) => result.data);
+export const updateGeographicResource = (resourceId: string, input: Record<string, unknown>) =>
+  submitSirenActionAt<GeographicResource>(`/resources/${resourceId}`, "resource.update-geography", input).then(
+    (result) => result.data,
+  );
+export const refreshLegalReferenceResource = (resourceId: string, expectedSnapshotHash: string) =>
+  submitSirenActionAt<LegalReferenceResource>(`/resources/${resourceId}`, "resource.refresh-legal-reference", {
+    expectedSnapshotHash,
+  }).then((result) => result.data);
 export const deleteResource = (resourceId: string) =>
   submitSirenActionAt(`/resources/${resourceId}`, "resource.delete").then((result) => result.data);
 

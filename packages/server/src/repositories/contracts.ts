@@ -19,7 +19,15 @@ import type {
   DocumentCategory,
   DocumentResource,
   EditorAssetOwner,
+  GeographicLayer,
+  GeographicResource,
+  GeographicResourceData,
+  GeographicView,
+  HallGeoJsonFeatureCollection,
   HallSettings,
+  LegalReferenceFund,
+  LegalReferenceResource,
+  LegalReferenceSnapshot,
   MeetingStatus,
   ParticipationEvidence,
   QuorumFailureEvidence,
@@ -296,7 +304,60 @@ export interface CreateRemoteResource {
   title: string;
   folderPath: string;
   tags: string[];
-  url: string;
+  url: string | null;
+}
+
+export interface CreateGeographicResource {
+  title: string;
+  folderPath: string;
+  tags: string[];
+  provider: "ign";
+  layers: GeographicLayer[];
+  view: GeographicView;
+  hallLayer: HallGeoJsonFeatureCollection;
+}
+
+export interface UpdateGeographicResource {
+  view: GeographicView;
+  layers: GeographicLayer[];
+  hallLayer: HallGeoJsonFeatureCollection;
+  expectedVersion: number;
+}
+
+export interface PersistLegalReferenceSnapshot {
+  commonId: string;
+  versionId: string;
+  effectiveAt: string | null;
+  fetchedAt: string;
+  validFrom: string | null;
+  validTo: string | null;
+  legalStatus: string;
+  rawProviderPayload: string;
+  normalizedContent: string;
+  contentHash: string;
+  snapshotHash: string;
+}
+
+export interface CreateLegalReferenceResource {
+  title: string;
+  folderPath: string;
+  tags: string[];
+  provider: "legifrance";
+  referenceKind: "article";
+  fund: LegalReferenceFund;
+  sourceUrl: string;
+  providerUpdatedAt: string | null;
+  citationLabel: string;
+  attribution: string;
+  snapshot: PersistLegalReferenceSnapshot;
+}
+
+export interface CreateLegalReferenceDraft {
+  title: string;
+  folderPath: string;
+  tags: string[];
+  provider: "legifrance";
+  referenceKind: "article";
 }
 
 export interface CreateDocumentResource {
@@ -340,7 +401,12 @@ export interface StoredDocumentPreview {
   createdAt: string;
 }
 
-export type StoredResource = TextResource | StoredDocumentResource | RemoteResource;
+export type StoredResource =
+  | TextResource
+  | StoredDocumentResource
+  | RemoteResource
+  | GeographicResource
+  | LegalReferenceResource;
 
 export interface WorkspaceFolderRepository {
   list(): Promise<string[]>;
@@ -360,6 +426,8 @@ export interface ResourceRepository {
   }): Promise<Resource[]>;
   find(id: string): Promise<StoredResource | null>;
   findMetadata(id: string): Promise<Resource | null>;
+  findGeographicData(id: string): Promise<GeographicResourceData | null>;
+  listLegalReferenceSnapshots(id: string): Promise<LegalReferenceSnapshot[]>;
   findPreview(
     sourceContentSha256: string,
     sourceFormat: DocumentResource["format"],
@@ -370,6 +438,23 @@ export interface ResourceRepository {
   renameFolder(sourcePath: string, targetPath: string, updatedAt: string): Promise<number>;
   createText(input: CreateTextResource): Promise<TextResource>;
   createRemote(input: CreateRemoteResource): Promise<RemoteResource>;
+  createGeographic(input: CreateGeographicResource): Promise<GeographicResource>;
+  updateGeographic(
+    id: string,
+    input: UpdateGeographicResource,
+  ): Promise<
+    { status: "updated"; resource: GeographicResource } | { status: "versionConflict" } | { status: "notFound" }
+  >;
+  createLegalReferenceDraft(input: CreateLegalReferenceDraft): Promise<LegalReferenceResource>;
+  resolveLegalReference(id: string, input: CreateLegalReferenceResource): Promise<LegalReferenceResource | null>;
+  refreshLegalReference(
+    id: string,
+    expectedSnapshotHash: string,
+    input: Omit<CreateLegalReferenceResource, "title" | "folderPath" | "tags" | "provider" | "referenceKind" | "fund">,
+  ): Promise<
+    { status: "updated"; resource: LegalReferenceResource } | { status: "versionConflict" } | { status: "notFound" }
+  >;
+  markLegalReferenceVerificationFailed(id: string, expectedSnapshotHash: string, failedAt: string): Promise<void>;
   createDocument(input: PersistDocumentResource): Promise<DocumentResource>;
   createEditorAsset(input: PersistEditorAssetResource): Promise<DocumentResource>;
   promoteEditorAsset(
@@ -388,7 +473,7 @@ export interface UpdateResource {
   folderPath: string;
   tags: string[];
   content?: string;
-  url?: string;
+  url?: string | null;
 }
 
 export interface UnitOfWork {

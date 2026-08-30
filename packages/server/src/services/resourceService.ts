@@ -1,8 +1,12 @@
+import { createHash } from "node:crypto";
 import type {
   DocumentResource,
   EditorAssetOwner,
   FolderCreateResult,
   FolderRenameResult,
+  GeographicResource,
+  LegalReferenceResource,
+  LegalReferenceSearchResult,
   RemoteResource,
   Resource,
   ResourceDetails,
@@ -15,16 +19,27 @@ import type {
   CouncilBusinessRepository,
   CouncilMeetingRepository,
   CreateDocumentResource,
+  CreateGeographicResource,
+  CreateLegalReferenceResource,
   CreateRemoteResource,
   CreateTextResource,
+  HallSettingsRepository,
   ResourceRepository,
   StoredResource,
   UnitOfWork,
+  UpdateGeographicResource,
   UpdateResource,
   WorkspaceFolderRepository,
 } from "../repositories/contracts.js";
 import type { EditorAssetService } from "./editorAssetService.js";
 import { DomainError } from "./errors.js";
+import {
+  type LegalReferenceProvider,
+  type LegalReferenceProviderSnapshot,
+  OfficialSourceError,
+} from "./legalReferenceProvider.js";
+
+const DEFAULT_GEOGRAPHIC_RESOURCE_ZOOM = 15;
 
 export interface ResourceService {
   list(filters?: {
@@ -42,6 +57,22 @@ export interface ResourceService {
   renameFolder(folderPath: string, name: string): Promise<FolderRenameResult>;
   createText(input: CreateTextResource): Promise<TextResource>;
   createRemote(input: CreateRemoteResource): Promise<RemoteResource>;
+  createGeographic(
+    input: Omit<CreateGeographicResource, "view"> & { view?: CreateGeographicResource["view"] },
+  ): Promise<GeographicResource>;
+  updateGeographic(id: string, input: UpdateGeographicResource): Promise<GeographicResource>;
+  searchLegalReferences(input: { query: string; effectiveAt: string | null }): Promise<LegalReferenceSearchResult[]>;
+  createLegalReference(
+    input: Pick<CreateLegalReferenceResource, "title" | "folderPath" | "tags" | "provider" | "referenceKind">,
+  ): Promise<LegalReferenceResource>;
+  resolveLegalReference(
+    id: string,
+    input: Pick<CreateLegalReferenceResource, "title" | "provider" | "referenceKind" | "fund"> & {
+      versionId: string;
+      effectiveAt: string | null;
+    },
+  ): Promise<LegalReferenceResource>;
+  refreshLegalReference(id: string, expectedSnapshotHash: string): Promise<LegalReferenceResource>;
   createDocument(input: CreateDocumentResource): Promise<DocumentResource>;
   update(id: string, input: UpdateResource): Promise<Resource>;
   delete(id: string): Promise<void>;
@@ -55,6 +86,8 @@ export function createResourceService({
   attendanceRepository,
   editorAssetService,
   workspaceFolderRepository,
+  hallSettingsRepository,
+  legalReferenceProvider,
 }: {
   resourceRepository: ResourceRepository;
   councilMeetingRepository: CouncilMeetingRepository;
@@ -63,7 +96,76 @@ export function createResourceService({
   attendanceRepository: AttendanceRepository;
   editorAssetService: EditorAssetService;
   workspaceFolderRepository: WorkspaceFolderRepository;
+  hallSettingsRepository: HallSettingsRepository;
+  legalReferenceProvider: LegalReferenceProvider;
 }): ResourceService {
+  const officialSourceFailure = (error: unknown): DomainError => {
+    if (error instanceof OfficialSourceError && error.reason === "accessDenied") {
+      return new DomainError("official_source_access_denied", 503);
+    }
+    if (error instanceof OfficialSourceError && error.reason === "invalidResponse") {
+      return new DomainError("official_source_invalid_response", 502);
+    }
+    return new DomainError("official_source_unavailable", 503);
+  };
+  const snapshotHash = (snapshot: LegalReferenceProviderSnapshot): string =>
+    createHash("sha256")
+      .update(
+        JSON.stringify({
+          commonId: snapshot.commonId,
+          versionId: snapshot.versionId,
+          effectiveAt: snapshot.effectiveAt,
+          fetchedAt: snapshot.fetchedAt,
+          validFrom: snapshot.validFrom,
+          validTo: snapshot.validTo,
+          legalStatus: snapshot.legalStatus,
+          normalizedContent: snapshot.normalizedContent,
+        }),
+      )
+      .digest("hex");
+  const providerSnapshot = async (
+    input:
+      | {
+          fund: CreateLegalReferenceResource["fund"];
+          versionId: string;
+          effectiveAt: string | null;
+        }
+      | {
+          fund: CreateLegalReferenceResource["fund"];
+          commonId: string;
+          effectiveAt: string | null;
+        },
+  ) => {
+    const snapshot =
+      "versionId" in input
+        ? await legalReferenceProvider.fetchArticle(input)
+        : await legalReferenceProvider.refreshArticle(input);
+    if (
+      ("versionId" in input ? snapshot.versionId !== input.versionId : snapshot.commonId !== input.commonId) ||
+      snapshot.effectiveAt !== input.effectiveAt
+    ) {
+      throw new OfficialSourceError("invalidResponse");
+    }
+    return {
+      sourceUrl: snapshot.sourceUrl,
+      providerUpdatedAt: snapshot.providerUpdatedAt,
+      citationLabel: snapshot.citationLabel,
+      attribution: snapshot.attribution,
+      snapshot: {
+        commonId: snapshot.commonId,
+        versionId: snapshot.versionId,
+        effectiveAt: snapshot.effectiveAt,
+        fetchedAt: snapshot.fetchedAt,
+        validFrom: snapshot.validFrom,
+        validTo: snapshot.validTo,
+        legalStatus: snapshot.legalStatus,
+        rawProviderPayload: JSON.stringify(snapshot.rawProviderPayload),
+        normalizedContent: snapshot.normalizedContent,
+        contentHash: createHash("sha256").update(snapshot.normalizedContent).digest("hex"),
+        snapshotHash: snapshotHash(snapshot),
+      },
+    };
+  };
   return {
     list(filters) {
       return resourceRepository.list(filters);
@@ -76,6 +178,9 @@ export function createResourceService({
       if (!resource) throw new DomainError("resource_not_found", 404);
       return {
         resource,
+        geography: resource.kind === "geographic" ? await resourceRepository.findGeographicData(resource.id) : null,
+        legalSnapshots:
+          resource.kind === "legalReference" ? await resourceRepository.listLegalReferenceSnapshots(resource.id) : null,
         councilBusiness: await councilBusinessRepository.list({ resourceId: resource.id }),
         snapshotted: await resourceRepository.isSnapshotted(resource.id),
         usedAsProxy: await attendanceRepository.isProxyDocumentUsed(resource.id),
@@ -151,6 +256,82 @@ export function createResourceService({
     },
     createRemote(input) {
       return unitOfWork.execute(() => resourceRepository.createRemote(input));
+    },
+    async createGeographic(input) {
+      const hall = await hallSettingsRepository.get();
+      const view =
+        input.view ??
+        (hall.geographicPosition
+          ? { kind: "center" as const, center: hall.geographicPosition, zoom: DEFAULT_GEOGRAPHIC_RESOURCE_ZOOM }
+          : { kind: "center" as const, center: [2.2137, 46.2276] as [number, number], zoom: 6 });
+      return unitOfWork.execute(() => resourceRepository.createGeographic({ ...input, view }));
+    },
+    async updateGeographic(id, input) {
+      const result = await unitOfWork.execute(() => resourceRepository.updateGeographic(id, input));
+      if (result.status === "notFound") throw new DomainError("resource_not_found", 404);
+      if (result.status === "versionConflict") throw new DomainError("conflict", 409);
+      return result.resource;
+    },
+    async searchLegalReferences(input) {
+      try {
+        return await legalReferenceProvider.search(input);
+      } catch (error) {
+        throw officialSourceFailure(error);
+      }
+    },
+    createLegalReference(input) {
+      return unitOfWork.execute(() => resourceRepository.createLegalReferenceDraft(input));
+    },
+    async resolveLegalReference(id, input) {
+      const resource = await resourceRepository.findMetadata(id);
+      if (resource?.kind !== "legalReference") throw new DomainError("resource_not_found", 404);
+      if (resource.resolutionStatus !== "draft") throw new DomainError("conflict", 409);
+      let fetched: Awaited<ReturnType<typeof providerSnapshot>>;
+      try {
+        fetched = await providerSnapshot(input);
+      } catch (error) {
+        throw officialSourceFailure(error);
+      }
+      const resolved = await unitOfWork.execute(() =>
+        resourceRepository.resolveLegalReference(resource.id, {
+          title: input.title,
+          folderPath: resource.folderPath,
+          tags: resource.tags,
+          provider: "legifrance",
+          referenceKind: "article",
+          fund: input.fund,
+          ...fetched,
+        }),
+      );
+      if (!resolved) throw new DomainError("conflict", 409);
+      return resolved;
+    },
+    async refreshLegalReference(id, expectedSnapshotHash) {
+      const resource = await resourceRepository.findMetadata(id);
+      if (resource?.kind !== "legalReference") throw new DomainError("resource_not_found", 404);
+      if (resource.resolutionStatus !== "resolved") throw new DomainError("conflict", 409);
+      if (resource.snapshotHash !== expectedSnapshotHash) throw new DomainError("conflict", 409);
+      let fetched: Awaited<ReturnType<typeof providerSnapshot>>;
+      try {
+        fetched = await providerSnapshot({
+          fund: resource.fund,
+          commonId: resource.commonId,
+          effectiveAt: resource.effectiveAt,
+        });
+      } catch (error) {
+        await resourceRepository.markLegalReferenceVerificationFailed(
+          resource.id,
+          expectedSnapshotHash,
+          new Date().toISOString(),
+        );
+        throw officialSourceFailure(error);
+      }
+      const result = await unitOfWork.execute(() =>
+        resourceRepository.refreshLegalReference(resource.id, expectedSnapshotHash, fetched),
+      );
+      if (result.status === "notFound") throw new DomainError("resource_not_found", 404);
+      if (result.status === "versionConflict") throw new DomainError("conflict", 409);
+      return result.resource;
     },
     createDocument(input) {
       return unitOfWork.execute(async () => {

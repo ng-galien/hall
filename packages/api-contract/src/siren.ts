@@ -17,6 +17,12 @@ export const apiActionNames = [
   "decision.update",
   "resource.create-text",
   "resource.create-remote",
+  "resource.create-geographic",
+  "resource.update-geography",
+  "resource.search-legal-references",
+  "resource.create-legal-reference",
+  "resource.resolve-legal-reference",
+  "resource.refresh-legal-reference",
   "resource.create-document",
   "resource.create-editor-asset",
   "resource.promote-editor-asset",
@@ -78,6 +84,7 @@ export interface SirenActionField {
   value?: unknown;
   title?: string;
   accept?: string;
+  options?: Array<{ value: string; title: string }>;
 }
 
 export interface SirenAction<TName extends string = ApiActionName> {
@@ -132,6 +139,7 @@ export const sirenActionSchema = z.object({
         type: z.string().optional(),
         value: z.unknown().optional(),
         title: z.string().optional(),
+        options: z.array(z.object({ value: z.string(), title: z.string() }).strict()).optional(),
       }),
     )
     .optional(),

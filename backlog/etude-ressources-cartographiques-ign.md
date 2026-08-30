@@ -1,14 +1,15 @@
-# Étude des ressources cartographiques IGN
+# Étude des ressources géographiques IGN
 
-Conclusion : privilégier un sélecteur cartographique temporaire, puis matérialiser immédiatement une image. Il ne faut aucune carte navigable dans le document, la vue de lecture ou le PDF.
+Conclusion : la carte est une `GeographicResource` durable et structurée dans l’arbre. Le PNG n’est qu’une représentation dérivée et figée destinée à l’aperçu, à l’éditeur ou au PDF.
 
 ### Recommandation
 
-1. Ouvrir un dialogue de cadrage basé sur **OpenLayers core**.
-2. Afficher **Plan IGN V2** depuis le WMTS public Géoplateforme.
-3. Au clic « Insérer la carte », envoyer le cadrage au backend.
-4. Le backend demande une seule image à **WMS GetMap**, ajoute la géométrie simple et l’attribution, puis stocke le PNG comme `DocumentResource`.
-5. Le contenu éditorial référence cette ressource figée. « Modifier le cadrage » rouvre le dialogue depuis les paramètres conservés et crée une nouvelle version de l’image.
+1. Créer une ressource géographique dans un dossier de l’espace de travail.
+2. L’ouvrir dans une vue basée sur **OpenLayers core** affichant les couches IGN autorisées depuis le WMTS public Géoplateforme.
+3. Conserver durablement son cadrage, son zoom, l’ordre, la visibilité et l’opacité de ses couches, ainsi que sa provenance.
+4. Conserver `hallLayer` comme une `FeatureCollection` GeoJSON RFC 7946 en WGS84 contenant des repères, lignes et zones simples.
+5. Permettre de modifier cette même ressource sans créer une nouvelle identité par défaut.
+6. Traiter ultérieurement la production d’une image par **WMS GetMap** pour l’aperçu, l’éditeur ou le PDF.
 
 C’est adapté à Hall : son Chromium PDF désactive JavaScript et bloque toutes les URL autres que `about:` et `data:` dans [documentRenderer.ts](/Users/user/dev/projects/mairie/packages/server/src/services/documentRenderer.ts:17). Une carte distante ou interactive ne peut donc pas constituer le rendu imprimable.
 
@@ -16,27 +17,28 @@ C’est adapté à Hall : son Chromium PDF désactive JavaScript et bloque toute
 
 Oui, il faut une opération propre à la cartographie en plus de l’upload générique d’images :
 
-`MapSnapshotSpec -> PNG DocumentResource + provenance`
+`GeographicResource -> vue durable + couches IGN + couche Hall GeoJSON`
 
 Entrée minimale :
 
-- fournisseur et fond pris dans une liste fermée, par exemple `ign / plan-ign-v2` ;
+- fournisseur IGN et couches prises dans l’allowlist Hall : `GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2`, `ORTHOIMAGERY.ORTHOPHOTOS` et `CADASTRALPARCELS.PARCELLAIRE_EXPRESS`, sans URL libre ;
+- ordre, visibilité et opacité bornée de chaque couche, avec au moins une couche visible ;
 - emprise canonique, de préférence en WGS84, et niveau de zoom servant à réouvrir le sélecteur ;
-- géométrie optionnelle limitée à `Point`, `LineString` ou `Polygon`, en GeoJSON WGS84 ;
-- dimensions ou ratio de sortie ;
-- version du style de surimpression Hall.
+- `hallLayer` strictement conforme à une `FeatureCollection` GeoJSON RFC 7946 en WGS84, limitée à `Point`, `LineString` ou `Polygon` ;
+- identifiant UUID stable, ordre et propriétés Hall de style bornées pour chaque feature.
 
-Métadonnées à conserver avec l’image :
+État durable à conserver avec la ressource :
 
-- couche technique `GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2` ;
-- date de capture et date de révision obtenue dans la métadonnée CSW ;
+- couches techniques autorisées avec leur ordre, visibilité et opacité ;
+- date de révision obtenue dans la métadonnée CSW ;
 - attribution, licence et URL de métadonnée ;
-- empreinte SHA-256 du PNG, déjà prévue pour les documents Hall ;
-- paramètres de cadrage, sans URL libre ni clé.
+- paramètres de cadrage, sans URL libre ni clé ;
+- `hallLayer` ordonnée avec identifiants stables ;
+- dates de création et de modification de la ressource.
 
-Le modèle actuel de [DocumentResource](/Users/user/dev/projects/mairie/packages/domain/src/model.ts:164) n’a pas de métadonnée de dérivation : il faudra un petit sidecar technique ou un objet `MapIllustration` lié à la ressource. Le PNG original doit rester la vérité durable, car Plan IGN est mis à jour continuellement et une régénération ultérieure ne sera pas identique.
+Le modèle actuel de [DocumentResource](/Users/user/dev/projects/mairie/packages/domain/src/model.ts:164) ne représente pas cette identité. Il faut un nouveau type `GeographicResource`. Une représentation PNG pourra être produite plus tard par une action explicite de l’utilisateur ou à la sortie de page, jamais à chaque modification. Chaque PNG dérivé conserve son instant de génération, son attribution et son empreinte, sans devenir la source de vérité de la carte.
 
-Pour le PDF, la ressource doit être résolue en `data:` avant `page.setContent`, conformément au filtre actuel de [@hall/templating](/Users/user/dev/projects/mairie/packages/templating/src/document.ts:28).
+La future représentation destinée au PDF devra être résolue en `data:` avant `page.setContent`, conformément au filtre actuel de [@hall/templating](/Users/user/dev/projects/mairie/packages/templating/src/document.ts:28).
 
 ### Comparaison
 
@@ -72,10 +74,14 @@ Pendant le seul dialogue de cadrage :
 - aucune iframe ni CDN ;
 - `blob:` seulement si une prévisualisation locale l’exige.
 
-Après insertion, lecture et PDF ne contactent plus l’IGN.
+La vue interactive de la ressource contacte l’IGN. Les représentations déjà insérées, la lecture documentaire et le PDF ne contactent plus l’IGN.
 
-Si le réseau est indisponible, les cartes déjà insérées restent visibles et imprimables. La création ou le recadrage affiche une erreur avec réessai et ne remplace jamais le dernier snapshot valide. La solution de repli fonctionnel est l’insertion d’un plan déjà disponible comme image locale.
+Si le réseau est indisponible, la ressource reste classée et ses dernières représentations dérivées restent visibles et imprimables. La création ou le recadrage affiche une erreur avec réessai et ne remplace jamais le dernier état valide. La solution de repli fonctionnel est l’insertion d’un plan déjà disponible comme image locale.
 
 Le backend doit impérativement interdire toute URL, couche ou CRS arbitraire : fournisseur et couches en allowlist, emprise et taille bornées, géométrie validée. Cela évite SSRF, images excessives et fuite future de clés privées. Utiliser `EPSG:3857` pour la requête WMS évite aussi les ambiguïtés d’ordre des axes de WMS 1.3.
 
-Aucun fichier ni commit n’a été produit par cette exploration.
+## État livré au 30 août 2026
+
+La ressource durable, son cadrage et son zoom propres, les couches IGN autorisées, leur ordre, visibilité et opacité, ainsi que la couche Hall GeoJSON sont implémentés. La vue permet le zoom et le déplacement à la souris, la composition de points, lignes et zones, leur renommage, leur couleur, leur visibilité et le recentrage sur la composition.
+
+Restent au backlog la génération explicite d’un PNG figé et son insertion dans l’éditeur ou le PDF.

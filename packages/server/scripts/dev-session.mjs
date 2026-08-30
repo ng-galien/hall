@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -8,6 +10,20 @@ const sessionName = "hall-dev";
 const socketName = "hall-mairie";
 const command = process.argv[2] ?? "start";
 const healthUrls = ["http://127.0.0.1:3100/api/health", "http://127.0.0.1:5174/app/"];
+
+function loadHallEnvironment() {
+  const environmentPath = resolve(homedir(), ".hall", "environment");
+  if (!existsSync(environmentPath)) return;
+  for (const line of readFileSync(environmentPath, "utf8").split(/\r?\n/)) {
+    const match = /^\s*(?:export\s+)?(HALL_[A-Z0-9_]+)=(.*)\s*$/.exec(line);
+    if (!match || process.env[match[1]] !== undefined) continue;
+    const rawValue = match[2].trim();
+    const quoted = rawValue.match(/^(['"])(.*)\1$/);
+    process.env[match[1]] = quoted ? quoted[2] : rawValue;
+  }
+}
+
+loadHallEnvironment();
 
 function ensureDocumentPreviewConverter() {
   run("docker", ["compose", "up", "-d", "--wait", "gotenberg"]);

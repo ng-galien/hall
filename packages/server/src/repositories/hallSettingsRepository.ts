@@ -14,6 +14,10 @@ function mapHallSettings(row: DatabaseRow): HallSettings {
     addressLine2: String(row.address_line_2),
     postalCode: String(row.postal_code),
     city: String(row.city),
+    geographicPosition:
+      row.geographic_longitude == null || row.geographic_latitude == null
+        ? null
+        : [Number(row.geographic_longitude), Number(row.geographic_latitude)],
     phone: String(row.phone),
     email: asNullableString(row.email),
     website: asNullableString(row.website),
@@ -35,8 +39,11 @@ export function createHallSettingsRepository({ sqlExecutor }: { sqlExecutor: Sql
   return {
     get,
     async update(input: UpdateHallSettings) {
+      const { geographicPosition, ...settings } = input;
       const result = await sqlExecutor.run("settings.update", {
-        ...input,
+        ...settings,
+        geographicLongitude: geographicPosition?.[0] ?? null,
+        geographicLatitude: geographicPosition?.[1] ?? null,
         updatedAt: new Date().toISOString(),
       });
       if (result.changes !== 1) throw new Error("Hall settings singleton is missing");

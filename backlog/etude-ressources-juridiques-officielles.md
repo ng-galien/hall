@@ -19,7 +19,7 @@ L’API stable Légifrance est gratuite après inscription à PISTE. Elle couvre
 | Sujet | Constat vérifié |
 |---|---|
 | Accès | Inscription PISTE, acceptation des CGU PISTE et Légifrance, activation de l’API dans l’application. |
-| Authentification | OAuth 2.0, flux `client_credentials`. Jeton d’une durée annoncée de 3 600 secondes. |
+| Authentification | OAuth 2.0, flux `client_credentials` avec `scope=openid`. Jeton d’une durée annoncée de 3 600 secondes. |
 | Sandbox | API : `https://sandbox-api.piste.gouv.fr/dila/legifrance/lf-engine-app` ; OAuth : `https://sandbox-oauth.piste.gouv.fr/api/oauth/token`. |
 | Production | API : `https://api.piste.gouv.fr/dila/legifrance/lf-engine-app` ; OAuth : `https://oauth.piste.gouv.fr/api/oauth/token`. Application de production à créer séparément. |
 | Secrets | `client_id` et `client_secret` sont propres à chaque environnement et ne doivent jamais être exposés à un tiers. |
@@ -35,8 +35,10 @@ Sources : [API Légifrance sur data.gouv.fr](https://www.data.gouv.fr/dataservic
 
 - `POST /search` :
   - recherche par mots ou expression ;
+  - filtres, pagination, opérateurs et tri placés dans `recherche` ;
   - filtre par nom de code, numéro d’article, numéro de texte, statut juridique ;
-  - recherche à une date avec `DATE_VERSION` ;
+  - recherche à une date avec un filtre `DATE_VERSION` et `singleDate` ;
+  - résultats de titre lus dans `results[].titles[]` ;
   - fonds `CODE_ETAT` pour l’état juridique courant ;
   - fonds `CODE_DATE` pour une version à une date ;
   - fonds `LODA_ETAT` / `LODA_DATE` pour les textes consolidés ;
@@ -118,7 +120,7 @@ Ce sont des décisions produit, pas des délais imposés par la DILA :
 - Référence « en vigueur actuellement » :
   - revalidation à l’ouverture si la copie a plus de 24 heures ;
   - affichage permanent de « consulté sur Légifrance le… » ;
-  - état visible `à jour`, `mise à jour disponible`, `vérification impossible`.
+  - état visible limité au MVP à `à jour` ou `vérification impossible` ; aucune vérification distincte ne produit encore un état intermédiaire.
 - Référence « à la date de l’affaire » :
   - `effectiveAt` explicite et immuable ;
   - pas de remplacement silencieux ;
@@ -161,6 +163,27 @@ Attribution minimale visible :
 
 Sources : [organisation DGCL](https://www.data.gouv.fr/organizations/direction-generale-des-collectivites-locales/datasets), [Open Collectivités](https://www.data.gouv.fr/organizations/open-collectivites/dataservices), [fiches Service-Public.gouv.fr](https://www.data.gouv.fr/datasets/fiches-pratiques-et-ressources-de-service-public-gouv-fr-particuliers), [API Annuaire de l’administration](https://www.data.gouv.fr/dataservices/api-annuaire-de-ladministration-et-des-services-publics), [API catalogue data.gouv.fr](https://www.data.gouv.fr/dataservices/api-catalogue-des-donnees-ouvertes-data-gouv-fr), [API Entreprise](https://entreprise.api.gouv.fr/).
 
+## Créer et raccorder un compte PISTE
+
+1. Ouvrir [Créer un compte PISTE](https://piste.gouv.fr/registration), renseigner un compte nominatif et accepter les CGU du portail. Le mot de passe doit comporter au moins 12 caractères, avec chiffre, minuscule, majuscule et caractère spécial. Le champ `Code de l'organisation` n'est pas obligatoire : le laisser vide sauf si une organisation PISTE existante a explicitement fourni un code de rattachement.
+2. Confirmer l’adresse électronique puis se connecter à PISTE. Une application sandbox est créée automatiquement avec le compte.
+3. Dans `API > Consentement CGU API`, accepter séparément les CGU de l’API Légifrance pour l’environnement sandbox. Sans ce consentement, l’API répond notamment `403 Access denied`.
+4. Dans `Applications`, ouvrir l’application sandbox, choisir `Modifier l’application`, puis cocher l’API **Légifrance** dans `Sélectionner les API`.
+5. Revenir dans l’application et relever les deux valeurs sous `API souscrites > Identifiants OAuth` : `Client_Id` et `Client_Secret`.
+6. Ne jamais mettre ces valeurs dans Git, dans le client web, dans une capture ou dans un message. Les fournir uniquement au serveur Hall par son environnement :
+
+   ```text
+   HALL_LEGIFRANCE_ENVIRONMENT=sandbox
+   HALL_LEGIFRANCE_CLIENT_ID=...
+   HALL_LEGIFRANCE_CLIENT_SECRET=...
+   ```
+
+7. Redémarrer le runtime Hall après avoir configuré ces variables. Le serveur utilisera le flux OAuth 2.0 `client_credentials`, avec le point d’obtention de jeton sandbox `https://sandbox-oauth.piste.gouv.fr/api/oauth/token` et l’API `https://sandbox-api.piste.gouv.fr/dila/legifrance/lf-engine-app`.
+8. Valider d’abord la recherche et la consultation d’un article CGCT en sandbox. Cette étape reste obligatoire pour confronter les schémas documentés aux réponses réelles du compte PISTE.
+9. Pour la production, créer ensuite une application distincte dans `Applications > Créer une application`, accepter les CGU de production et souscrire à nouveau à Légifrance. Les identifiants et les URL de production sont distincts de ceux du sandbox.
+
+Références opérationnelles : [FAQ officielle de l’API Légifrance](https://www.legifrance.gouv.fr/contenu/pied-de-page/foire-aux-questions-api), [guide utilisateur PISTE](https://piste.gouv.fr/images/com_apiportal/documentation/UserGuide_navigation_FR.pdf), [API et conditions de réutilisation](https://www.legifrance.gouv.fr/contenu/pied-de-page/open-data-et-api).
+
 ## MVP recommandé
 
 1. Créer un compte PISTE et une application sandbox.
@@ -176,8 +199,14 @@ Sources : [organisation DGCL](https://www.data.gouv.fr/organizations/direction-g
    - création de la ressource dans l’arbre ;
    - affichage structuré avec source, version, statut et dates ;
    - ouverture sur Légifrance.
-5. Conserver le snapshot reçu et son hash.
+5. Conserver le snapshot reçu et un hash canonique couvrant son identité, sa version, sa date d’effet, sa validité, son statut et son contenu normalisé.
 6. Tester ensuite les changements de version et l’indisponibilité API avant d’ouvrir d’autres fonds.
+
+## État livré au 30 août 2026
+
+Le connecteur PISTE est intégré côté serveur pour la recherche CGCT et la consultation d’un article. Hall permet de créer une référence vide dans l’arbre, de rechercher puis sélectionner un article, de proposer son nom, d’afficher le snapshot structuré et d’ouvrir la source Légifrance. L’actualisation expose son état, conserve un historique seulement lorsque le contenu juridique change et utilise un jeton de concurrence qui avance à chaque consultation réussie.
+
+La production PISTE, la politique de péremption et l’ouverture à d’autres fonds restent à traiter.
 
 ## Décisions produit encore nécessaires
 

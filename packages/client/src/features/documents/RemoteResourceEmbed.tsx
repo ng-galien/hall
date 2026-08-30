@@ -5,6 +5,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 /** Direct browser preview for an external web resource; Hall never fetches the remote content server-side. */
 export function RemoteResourceEmbed({ resource }: { resource: RemoteResource }) {
   const { t } = useI18n();
+  if (!resource.url) return null;
   return (
     <div className="remote-resource-embed">
       <div className="remote-resource-toolbar">

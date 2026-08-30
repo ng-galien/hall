@@ -177,6 +177,13 @@ describe("users, permissions, audit and Siren affordances", () => {
     expect(businesses.body.actions ?? []).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ name: "council-business.create" })]),
     );
+    const resources = await rawAgent.get("/api/resources").expect(200);
+    expect(resources.body.actions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "resource.search-legal-references" })]),
+    );
+    expect(resources.body.actions).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "resource.create-legal-reference" })]),
+    );
     const forbidden = await rawAgent
       .post("/api/council-business")
       .send({ kind: "openQuestion", title: "Question", report: "", folderPath: "", resourceIds: [] })

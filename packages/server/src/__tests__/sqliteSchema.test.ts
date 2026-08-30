@@ -44,7 +44,10 @@ describe("current SQLite schema", () => {
       "council_meetings",
       "council_members",
       "document_previews",
+      "geographic_resources",
       "hall_settings",
+      "legal_reference_resources",
+      "legal_reference_snapshots",
       "meeting_roster",
       "number_sequences",
       "remote_resources",
@@ -83,6 +86,10 @@ describe("current SQLite schema", () => {
       .all()
       .map((row) => String(row.name));
     expect(meetingColumns).not.toContain("title");
+    const legalReferenceSchema = database
+      .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'legal_reference_resources'")
+      .get();
+    expect(String(legalReferenceSchema?.sql)).not.toContain("updateAvailable");
     database.close();
   });
 });

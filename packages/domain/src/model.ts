@@ -1,4 +1,5 @@
 export type Identifier = string;
+export type IsoDate = string;
 export type IsoDateTime = string;
 
 export type CouncilRole = "mayor" | "deputyMayor" | "councillor";
@@ -22,6 +23,7 @@ export interface HallSettings {
   addressLine2: string;
   postalCode: string;
   city: string;
+  geographicPosition: GeographicPosition | null;
   phone: string;
   email: string | null;
   website: string | null;
@@ -158,12 +160,21 @@ export interface FolderRenameResult {
   updatedAt: IsoDateTime;
 }
 
+export type ResourceReadiness = "incomplete" | "empty" | "ready";
+export type ResourceAvailability = "unchecked" | "available" | "unavailable";
+
+export interface ResourceState {
+  readiness: ResourceReadiness;
+  availability: ResourceAvailability | null;
+}
+
 interface ResourceBase {
   id: Identifier;
   slug: string;
   title: string;
   folderPath: FolderPath;
   tags: string[];
+  state: ResourceState;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
 }
@@ -175,8 +186,162 @@ export interface TextResource extends ResourceBase {
 
 export interface RemoteResource extends ResourceBase {
   kind: "remote";
-  url: string;
+  url: string | null;
 }
+
+export type GeographicPosition = [number, number];
+
+export type GeographicGeometry =
+  | { type: "Point"; coordinates: GeographicPosition }
+  | { type: "LineString"; coordinates: GeographicPosition[] }
+  | { type: "Polygon"; coordinates: GeographicPosition[][] };
+
+export type GeographicColor = string;
+
+export const geographicLayerIds = [
+  "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2",
+  "ORTHOIMAGERY.ORTHOPHOTOS",
+  "CADASTRALPARCELS.PARCELLAIRE_EXPRESS",
+] as const;
+
+export const geographicLayerOptions = [
+  { id: geographicLayerIds[0], title: "IGN" },
+  { id: geographicLayerIds[1], title: "Aérien" },
+  { id: geographicLayerIds[2], title: "Cadastre" },
+] as const;
+
+export type GeographicLayerId = (typeof geographicLayerIds)[number];
+
+export interface GeographicLayer {
+  id: GeographicLayerId;
+  visible: boolean;
+  opacity: number;
+}
+
+export type HallGeoJsonFeature =
+  | {
+      type: "Feature";
+      id: Identifier;
+      properties: {
+        kind: "marker";
+        visible: boolean;
+        label: string | null;
+        style: { color: GeographicColor; size: "small" | "medium" | "large" };
+      };
+      geometry: Extract<GeographicGeometry, { type: "Point" }>;
+    }
+  | {
+      type: "Feature";
+      id: Identifier;
+      properties: {
+        kind: "line";
+        visible: boolean;
+        label: string | null;
+        style: { color: GeographicColor; width: number };
+      };
+      geometry: Extract<GeographicGeometry, { type: "LineString" }>;
+    }
+  | {
+      type: "Feature";
+      id: Identifier;
+      properties: {
+        kind: "area";
+        visible: boolean;
+        label: string | null;
+        style: { fillColor: GeographicColor; strokeColor: GeographicColor; strokeWidth: number; fillOpacity: number };
+      };
+      geometry: Extract<GeographicGeometry, { type: "Polygon" }>;
+    };
+
+export interface HallGeoJsonFeatureCollection {
+  type: "FeatureCollection";
+  features: HallGeoJsonFeature[];
+}
+
+export type GeographicView =
+  | { kind: "center"; center: GeographicPosition; zoom: number }
+  | { kind: "extent"; extent: [number, number, number, number]; zoom: number };
+
+export interface GeographicProvenance {
+  attribution: string;
+  license: "Licence Ouverte 2.0";
+  metadataUrl: string;
+  configuredAt: IsoDateTime;
+  sourceUpdatedAt: IsoDateTime | null;
+}
+
+export interface GeographicResource extends ResourceBase {
+  kind: "geographic";
+  provider: "ign";
+  version: number;
+}
+
+export interface GeographicResourceData {
+  view: GeographicView;
+  layers: GeographicLayer[];
+  hallLayer: HallGeoJsonFeatureCollection;
+  provenance: GeographicProvenance;
+}
+
+export type LegalReferenceKind = "article";
+export type LegalReferenceFund = "CODE_ETAT" | "CODE_DATE";
+export type LegalReferenceVerificationStatus = "current" | "verificationUnavailable";
+
+export interface LegalReferenceSearchResult {
+  provider: "legifrance";
+  referenceKind: "article";
+  fund: LegalReferenceFund;
+  versionId: string;
+  title: string;
+  citationLabel: string;
+  effectiveAt: IsoDate | null;
+  legalStatus: string;
+  sourceUrl: string;
+}
+
+export interface LegalReferenceSnapshot {
+  id: Identifier;
+  commonId: string;
+  versionId: string;
+  effectiveAt: IsoDate | null;
+  fetchedAt: IsoDateTime;
+  validFrom: IsoDate | null;
+  validTo: IsoDate | null;
+  legalStatus: string;
+  normalizedContent: string;
+  contentHash: string;
+  snapshotHash: string;
+}
+
+export interface LegalReferenceDraftResource extends ResourceBase {
+  kind: "legalReference";
+  resolutionStatus: "draft";
+  provider: "legifrance";
+  referenceKind: LegalReferenceKind;
+}
+
+export interface LegalReferenceResolvedResource extends ResourceBase {
+  kind: "legalReference";
+  resolutionStatus: "resolved";
+  provider: "legifrance";
+  referenceKind: LegalReferenceKind;
+  fund: LegalReferenceFund;
+  commonId: string;
+  versionId: string;
+  effectiveAt: IsoDate | null;
+  legalStatus: string;
+  sourceUrl: string;
+  fetchedAt: IsoDateTime;
+  providerUpdatedAt: IsoDateTime | null;
+  citationLabel: string;
+  attribution: string;
+  snapshotHash: string;
+  verificationDueAt: IsoDateTime;
+  verificationStatus: LegalReferenceVerificationStatus;
+  verificationFailedAt: IsoDateTime | null;
+}
+
+export type LegalReferenceResource = LegalReferenceDraftResource | LegalReferenceResolvedResource;
 
 export type DocumentFormat = "pdf" | "jpeg" | "png" | "docx" | "odt" | "xlsx" | "pptx" | "txt" | "csv";
 
@@ -212,7 +377,7 @@ export interface EditorAssetResource extends DocumentResourceBase {
 
 export type DocumentResource = DocumentaryResource | EditorAssetResource;
 
-export type Resource = TextResource | DocumentResource | RemoteResource;
+export type Resource = TextResource | DocumentResource | RemoteResource | GeographicResource | LegalReferenceResource;
 
 export interface AgendaItem {
   id: Identifier;
@@ -342,6 +507,8 @@ export interface CouncilBusinessDetails {
 
 export interface ResourceDetails {
   resource: Resource;
+  geography: GeographicResourceData | null;
+  legalSnapshots: LegalReferenceSnapshot[] | null;
   councilBusiness: CouncilBusiness[];
   snapshotted: boolean;
   usedAsProxy: boolean;

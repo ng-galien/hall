@@ -1,6 +1,36 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
+
+import { cn } from "@/lib/utils";
 
 export type InlineRenameEndReason = "blur" | "cancel" | "commit";
+
+export function InlineRenameInput({
+  className,
+  onClick,
+  onDoubleClick,
+  onDragStart,
+  ...props
+}: ComponentProps<"input">) {
+  return (
+    <input
+      {...props}
+      className={cn("inline-rename-input", className)}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick?.(event);
+      }}
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        onDoubleClick?.(event);
+      }}
+      onDragStart={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onDragStart?.(event);
+      }}
+    />
+  );
+}
 
 export function InlineRenameField({
   value,
@@ -10,6 +40,8 @@ export function InlineRenameField({
   label,
   className,
   testId,
+  commitUnchanged = false,
+  commitOnBlur = true,
   children,
 }: {
   value: string;
@@ -19,6 +51,8 @@ export function InlineRenameField({
   label: string;
   className: string;
   testId: string;
+  commitUnchanged?: boolean;
+  commitOnBlur?: boolean;
   children: ReactNode;
 }) {
   const [draft, setDraft] = useState(value);
@@ -42,7 +76,7 @@ export function InlineRenameField({
   const commit = async (reason: "blur" | "commit") => {
     if (commitActive.current) return;
     const nextValue = draft.trim();
-    if (!nextValue || nextValue === value) {
+    if (!nextValue || (!commitUnchanged && nextValue === value)) {
       setDraft(value);
       onEditingChange(false, reason);
       return;
@@ -60,7 +94,7 @@ export function InlineRenameField({
   if (!editing) return children;
 
   return (
-    <input
+    <InlineRenameInput
       ref={inputRef}
       autoFocus
       className={className}
@@ -70,12 +104,9 @@ export function InlineRenameField({
       disabled={saving}
       onChange={(event) => setDraft(event.currentTarget.value)}
       onFocus={(event) => event.currentTarget.select()}
-      onBlur={() => void commit("blur")}
-      onClick={(event) => event.stopPropagation()}
-      onDoubleClick={(event) => event.stopPropagation()}
-      onDragStart={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
+      onBlur={() => {
+        if (commitOnBlur) void commit("blur");
+        else onEditingChange(false, "cancel");
       }}
       onKeyDown={(event) => {
         event.stopPropagation();

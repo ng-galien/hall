@@ -302,6 +302,7 @@ async function main() {
     addressLine2: "",
     postalCode: "12345",
     city: "Saint-Aubin",
+    geographicPosition: [2.1402, 48.7152],
     phone: "+33 1 23 45 67 89",
     email: "contact@saint-aubin.fr",
     website: "https://saint-aubin.fr",
@@ -420,13 +421,127 @@ async function main() {
   }
   console.log(`  Mot de passe de démonstration : ${DEMO_PASSWORD}`);
 
-  console.log("- Ressources (textes, documents et liens web)");
+  console.log("- Ressources (textes, documents, carte et liens web)");
   await post("/resources/remotes", {
     title: "Code général des collectivités territoriales",
     folderPath: "administration/conseil-municipal",
     tags: ["droit", "conseil municipal", "référence"],
     url: "https://www.legifrance.gouv.fr/codes/id/LEGITEXT000006070633/",
   });
+  await post("/resources/geographic", {
+    title: "Repérage de la rénovation de l'éclairage public",
+    folderPath: "travaux/eclairage",
+    tags: ["travaux", "éclairage", "repérage"],
+    provider: "ign",
+    layers: [
+      { id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 },
+      { id: "CADASTRALPARCELS.PARCELLAIRE_EXPRESS", visible: true, opacity: 0.65 },
+    ],
+    hallLayer: {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          id: randomUUID(),
+          properties: {
+            kind: "marker",
+            visible: true,
+            label: "Départ de la tranche 2",
+            style: { color: "#1b2a78", size: "medium" },
+          },
+          geometry: { type: "Point", coordinates: [2.3508, 48.8572] },
+        },
+        {
+          type: "Feature",
+          id: randomUUID(),
+          properties: {
+            kind: "line",
+            visible: true,
+            label: "Secteur à rénover",
+            style: { color: "#a2620b", width: 3 },
+          },
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [2.3508, 48.8572],
+              [2.353, 48.8568],
+              [2.3541, 48.8557],
+            ],
+          },
+        },
+      ],
+    },
+  });
+
+  console.log("- Dossier seed de repérage des types de ressources");
+  const seedFolderPath = "seed";
+  await post("/resources/paths", { parentPath: "", name: seedFolderPath });
+  await post("/resources/paths", { parentPath: seedFolderPath, name: "dossier-vide" });
+  const seedResources = [];
+  seedResources.push(
+    await post("/resources/texts", {
+      title: "Ressource texte",
+      folderPath: seedFolderPath,
+      tags: ["seed", "texte"],
+      content: "Cette note éditable sert de repère pour la ressource texte dans l’espace de travail.",
+    }),
+  );
+  seedResources.push(
+    await uploadPdf({
+      title: "Document PDF",
+      fileName: "document-seed.pdf",
+      folderPath: seedFolderPath,
+      category: "supporting",
+      lines: ["Document de démonstration Hall", "Repère du type document PDF dans l'espace de travail."],
+    }),
+  );
+  seedResources.push(
+    await post("/resources/remotes", {
+      title: "Ressource web",
+      folderPath: seedFolderPath,
+      tags: ["seed", "web"],
+      url: "https://www.collectivites-locales.gouv.fr/",
+    }),
+  );
+  seedResources.push(
+    await post("/resources/geographic", {
+      title: "Ressource cartographique",
+      folderPath: seedFolderPath,
+      tags: ["seed", "carte"],
+      provider: "ign",
+      layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
+      view: { kind: "center", center: [2.1402, 48.7152], zoom: 15 },
+      hallLayer: { type: "FeatureCollection", features: [] },
+    }),
+  );
+  try {
+    const legalMatches = await post("/resources/legal-references/search", {
+      query: "L2121-10",
+      effectiveAt: null,
+    });
+    const legalMatch = legalMatches[0];
+    if (!legalMatch) throw new Error("Aucun résultat Légifrance pour L2121-10");
+    const legalDraft = await post("/resources/legal-references", {
+      title: legalMatch.title,
+      folderPath: seedFolderPath,
+      tags: ["seed", "droit"],
+      provider: legalMatch.provider,
+      referenceKind: legalMatch.referenceKind,
+    });
+    seedResources.push(
+      await post(`/resources/${legalDraft.id}/legal-reference/resolve`, {
+        title: legalMatch.title,
+        provider: legalMatch.provider,
+        referenceKind: legalMatch.referenceKind,
+        fund: legalMatch.fund,
+        commonId: legalMatch.commonId,
+        versionId: legalMatch.versionId,
+        effectiveAt: legalMatch.effectiveAt,
+      }),
+    );
+  } catch (error) {
+    console.warn(`  Référence juridique non créée : ${error instanceof Error ? error.message : String(error)}`);
+  }
   await post("/resources/paths", { parentPath: "travaux", name: "a-classer" });
   const noteCadrage = await post("/resources/texts", {
     title: "Note de cadrage - éclairage public",
@@ -512,6 +627,13 @@ async function main() {
   console.log("- Travaux du conseil et délibérations (« soumettre au vote »)");
   const submitToVote = async (business, draftText) =>
     Object.assign(business, await post(`/council-business/${business.id}/decision`, { draftText }));
+  await post("/council-business", {
+    kind: "matter",
+    title: "Affaire de démonstration",
+    report: "Cette affaire sert de repère pour distinguer une affaire du conseil des ressources du dossier seed.",
+    folderPath: seedFolderPath,
+    resourceIds: seedResources.map(({ id }) => id),
+  });
   const businessCession = await post("/council-business", {
     kind: "matter",
     title: "Cession de la parcelle AB 127",

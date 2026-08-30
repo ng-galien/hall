@@ -12,6 +12,7 @@ const settingsInput = {
   addressLine2: "",
   postalCode: "12345",
   city: "Saint-Aubin",
+  geographicPosition: [2.3522, 48.8566],
   phone: "+33 1 23 45 67 89",
   email: "contact@saint-aubin.fr",
   website: "https://saint-aubin.fr",
@@ -36,6 +37,24 @@ describe("Hall settings", () => {
     const updated = await agent.put("/api/settings").send(settingsInput).expect(200);
     expect(domainBody(updated)).toEqual({ ...settingsInput, updatedAt: expect.any(String) });
     expect(domainBody(await agent.get("/api/settings").expect(200))).toEqual(domainBody(updated));
+
+    const map = domainBody<{ id: string }>(
+      await agent
+        .post("/api/resources/geographic")
+        .send({
+          title: "Carte centrée sur la mairie",
+          folderPath: "travaux",
+          tags: [],
+          provider: "ign",
+          layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
+          hallLayer: { type: "FeatureCollection", features: [] },
+        })
+        .expect(201),
+    );
+    expect(
+      domainBody<{ geography: { view: unknown } }>(await agent.get(`/api/resources/${map.id}`).expect(200)).geography
+        .view,
+    ).toEqual({ kind: "center", center: settingsInput.geographicPosition, zoom: 15 });
 
     const root = await agent.get("/api").expect(200);
     expect(root.body.links).toEqual(

@@ -1,8 +1,12 @@
 import { z } from "zod";
+import { geographicLayerIds } from "./model.js";
 
 const nonEmpty = z.string().trim().min(1);
 const nullableId = z.string().uuid().nullable().optional();
 const boundedText = (maximum: number) => z.string().trim().max(maximum);
+const longitudeSchema = z.number().finite().min(-180).max(180);
+const latitudeSchema = z.number().finite().min(-90).max(90);
+const geographicPositionSchema = z.tuple([longitudeSchema, latitudeSchema]);
 const templateTypeName = z
   .string()
   .trim()
@@ -42,6 +46,7 @@ export const updateHallSettingsSchema = z.object({
   addressLine2: boundedText(200),
   postalCode: boundedText(16),
   city: boundedText(160),
+  geographicPosition: geographicPositionSchema.nullable(),
   phone: boundedText(40),
   email: z.email().nullable(),
   website: webUrlSchema.nullable(),
@@ -134,7 +139,12 @@ export const folderPathSchema = z
       .join("/"),
   );
 
-export const folderNameSchema = z.string().trim().min(1).max(200).refine((value) => !value.includes("/"));
+export const folderNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .refine((value) => !value.includes("/"));
 
 export const createFolderSchema = z
   .object({
@@ -187,16 +197,234 @@ export const createRemoteResourceSchema = z.object({
   title: nonEmpty,
   folderPath: folderPathSchema.default(""),
   tags: resourceTagsSchema,
-  url: webUrlSchema,
+  url: webUrlSchema.nullable().default(null),
 });
 
-export const updateResourceSchema = z.object({
-  title: nonEmpty,
-  folderPath: folderPathSchema,
-  tags: resourceTagsSchema,
-  content: z.string().optional(),
-  url: webUrlSchema.optional(),
-});
+const geographicColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+const geographicLabelSchema = z.string().trim().min(1).max(160).nullable().default(null);
+
+function ringSignedArea(ring: Array<[number, number]>): number {
+  return ring.slice(0, -1).reduce((area, position, index) => {
+    const next = ring[index + 1];
+    return next ? area + position[0] * next[1] - next[0] * position[1] : area;
+  }, 0);
+}
+
+function orientedRing(ring: Array<[number, number]>, counterclockwise: boolean): Array<[number, number]> {
+  const isCounterclockwise = ringSignedArea(ring) > 0;
+  return isCounterclockwise === counterclockwise ? ring : [...ring].reverse();
+}
+
+const geographicPointSchema = z
+  .object({
+    type: z.literal("Point"),
+    coordinates: geographicPositionSchema,
+  })
+  .strict();
+
+const geographicLineStringSchema = z
+  .object({
+    type: z.literal("LineString"),
+    coordinates: z.array(geographicPositionSchema).min(2).max(500),
+  })
+  .strict();
+
+const geographicPolygonSchema = z
+  .object({
+    type: z.literal("Polygon"),
+    coordinates: z.array(z.array(geographicPositionSchema).min(4).max(500)).min(1).max(10),
+  })
+  .strict()
+  .refine(
+    ({ coordinates }) =>
+      coordinates.every((ring) => {
+        const first = ring[0];
+        const last = ring.at(-1);
+        return first !== undefined && last !== undefined && first[0] === last[0] && first[1] === last[1];
+      }),
+    "Polygon rings must be closed",
+  )
+  .refine(
+    ({ coordinates }) => coordinates.reduce((count, ring) => count + ring.length, 0) <= 1_000,
+    "Polygon exceeds the coordinate limit",
+  )
+  .refine(({ coordinates }) => coordinates.every((ring) => ringSignedArea(ring) !== 0), "Polygon rings need an area")
+  .transform(({ type, coordinates }) => ({
+    type,
+    coordinates: coordinates.map((ring, index) => orientedRing(ring, index === 0)),
+  }));
+
+const hallGeoJsonFeatureSchema = z.union([
+  z
+    .object({
+      type: z.literal("Feature"),
+      id: z.string().uuid(),
+      properties: z
+        .object({
+          kind: z.literal("marker"),
+          visible: z.boolean().default(true),
+          label: geographicLabelSchema,
+          style: z.object({ color: geographicColorSchema, size: z.enum(["small", "medium", "large"]) }).strict(),
+        })
+        .strict(),
+      geometry: geographicPointSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("Feature"),
+      id: z.string().uuid(),
+      properties: z
+        .object({
+          kind: z.literal("line"),
+          visible: z.boolean().default(true),
+          label: geographicLabelSchema,
+          style: z.object({ color: geographicColorSchema, width: z.number().int().min(1).max(8) }).strict(),
+        })
+        .strict(),
+      geometry: geographicLineStringSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("Feature"),
+      id: z.string().uuid(),
+      properties: z
+        .object({
+          kind: z.literal("area"),
+          visible: z.boolean().default(true),
+          label: geographicLabelSchema,
+          style: z
+            .object({
+              fillColor: geographicColorSchema,
+              strokeColor: geographicColorSchema,
+              strokeWidth: z.number().int().min(1).max(8),
+              fillOpacity: z.number().min(0.05).max(0.8),
+            })
+            .strict(),
+        })
+        .strict(),
+      geometry: geographicPolygonSchema,
+    })
+    .strict(),
+]);
+
+const geographicZoomSchema = z.number().min(0).max(22);
+
+export const geographicViewSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("center"), center: geographicPositionSchema, zoom: geographicZoomSchema }).strict(),
+  z
+    .object({
+      kind: z.literal("extent"),
+      extent: z.tuple([longitudeSchema, latitudeSchema, longitudeSchema, latitudeSchema]),
+      zoom: geographicZoomSchema,
+    })
+    .strict()
+    .refine(({ extent }) => extent[0] < extent[2] && extent[1] < extent[3], "Invalid geographic extent"),
+]);
+
+export const geographicLayersSchema = z
+  .array(
+    z
+      .object({
+        id: z.enum(geographicLayerIds),
+        visible: z.boolean(),
+        opacity: z.number().finite().min(0).max(1),
+      })
+      .strict(),
+  )
+  .min(1)
+  .max(geographicLayerIds.length)
+  .refine((layers) => new Set(layers.map(({ id }) => id)).size === layers.length, {
+    message: "Geographic layer identifiers must be unique",
+  })
+  .refine((layers) => layers.some(({ visible, opacity }) => visible && opacity > 0), {
+    message: "At least one geographic layer must be visible",
+  });
+
+export const hallGeoJsonFeatureCollectionSchema = z
+  .object({
+    type: z.literal("FeatureCollection"),
+    features: z.array(hallGeoJsonFeatureSchema).max(100),
+  })
+  .strict()
+  .refine(({ features }) => new Set(features.map(({ id }) => id)).size === features.length, {
+    message: "Hall GeoJSON feature identifiers must be unique",
+  })
+  .refine(
+    ({ features }) =>
+      features.reduce((count, feature) => {
+        if (feature.geometry.type === "Point") return count + 1;
+        if (feature.geometry.type === "LineString") return count + feature.geometry.coordinates.length;
+        return count + feature.geometry.coordinates.reduce((polygonCount, ring) => polygonCount + ring.length, 0);
+      }, 0) <= 5_000,
+    "Hall GeoJSON layer exceeds the coordinate limit",
+  );
+
+export const createGeographicResourceSchema = z
+  .object({
+    title: nonEmpty.max(200),
+    folderPath: folderPathSchema.default(""),
+    tags: resourceTagsSchema,
+    provider: z.literal("ign"),
+    layers: geographicLayersSchema,
+    view: geographicViewSchema.optional(),
+    hallLayer: hallGeoJsonFeatureCollectionSchema.default({ type: "FeatureCollection", features: [] }),
+  })
+  .strict();
+
+export const updateGeographicResourceSchema = z
+  .object({
+    view: geographicViewSchema,
+    layers: geographicLayersSchema,
+    hallLayer: hallGeoJsonFeatureCollectionSchema,
+    expectedVersion: z.number().int().positive(),
+  })
+  .strict();
+
+export const searchLegalReferencesSchema = z
+  .object({ query: nonEmpty.max(200), effectiveAt: z.iso.date().nullable().default(null) })
+  .strict();
+
+export const createLegalReferenceResourceSchema = z
+  .object({
+    title: nonEmpty.max(200),
+    folderPath: folderPathSchema.default(""),
+    tags: resourceTagsSchema,
+    provider: z.literal("legifrance"),
+    referenceKind: z.literal("article"),
+  })
+  .strict();
+
+export const resolveLegalReferenceResourceSchema = z
+  .object({
+    title: nonEmpty.max(200),
+    provider: z.literal("legifrance"),
+    referenceKind: z.literal("article"),
+    fund: z.enum(["CODE_ETAT", "CODE_DATE"]),
+    versionId: z
+      .string()
+      .trim()
+      .regex(/^LEGIARTI[0-9A-Z]+$/),
+    effectiveAt: z.iso.date().nullable().default(null),
+  })
+  .strict()
+  .refine(({ fund, effectiveAt }) => (fund === "CODE_ETAT" ? effectiveAt === null : effectiveAt !== null), {
+    message: "CODE_DATE requires an effective date and CODE_ETAT forbids it",
+    path: ["effectiveAt"],
+  });
+
+export const refreshLegalReferenceSchema = z.object({ expectedSnapshotHash: z.string().length(64) }).strict();
+
+export const updateResourceSchema = z
+  .object({
+    title: nonEmpty,
+    folderPath: folderPathSchema,
+    tags: resourceTagsSchema,
+    content: z.string().optional(),
+    url: webUrlSchema.nullable().optional(),
+  })
+  .strict();
 
 export const editorAssetOwnerKindSchema = z.enum([
   "textResourceContent",

@@ -14,6 +14,11 @@ export interface ServerConfig {
   environment?: string;
   documentPreviewConverterUrl?: string;
   documentPreviewTimeoutMs?: number;
+  legifranceEnvironment?: "sandbox" | "production";
+  legifranceClientId?: string;
+  legifranceClientSecret?: string;
+  officialSourceTimeoutMs?: number;
+  officialSourceMaximumBytes?: number;
 }
 
 const loopbackHosts = new Set(["127.0.0.1", "::1", "localhost"]);
@@ -52,6 +57,14 @@ export function configFromEnvironment(): ServerConfig {
     environment,
     documentPreviewConverterUrl: process.env.HALL_GOTENBERG_URL,
     documentPreviewTimeoutMs: Number.parseInt(process.env.HALL_DOCUMENT_PREVIEW_TIMEOUT_MS ?? "30000", 10),
+    legifranceEnvironment: process.env.HALL_LEGIFRANCE_ENVIRONMENT === "production" ? "production" : "sandbox",
+    legifranceClientId: process.env.HALL_LEGIFRANCE_CLIENT_ID,
+    legifranceClientSecret: process.env.HALL_LEGIFRANCE_CLIENT_SECRET,
+    officialSourceTimeoutMs: Number.parseInt(process.env.HALL_OFFICIAL_SOURCE_TIMEOUT_MS ?? "5000", 10),
+    officialSourceMaximumBytes: Number.parseInt(
+      process.env.HALL_OFFICIAL_SOURCE_MAXIMUM_BYTES ?? String(2 * 1024 * 1024),
+      10,
+    ),
   };
 }
 
@@ -100,5 +113,24 @@ export function validateServerConfig(config: ServerConfig): void {
     (!Number.isSafeInteger(config.documentPreviewTimeoutMs) || config.documentPreviewTimeoutMs <= 0)
   ) {
     throw new Error("HALL_DOCUMENT_PREVIEW_TIMEOUT_MS must be a positive integer");
+  }
+  if (Boolean(config.legifranceClientId) !== Boolean(config.legifranceClientSecret)) {
+    throw new Error("HALL_LEGIFRANCE_CLIENT_ID and HALL_LEGIFRANCE_CLIENT_SECRET must be configured together");
+  }
+  if (
+    config.officialSourceTimeoutMs !== undefined &&
+    (!Number.isSafeInteger(config.officialSourceTimeoutMs) ||
+      config.officialSourceTimeoutMs <= 0 ||
+      config.officialSourceTimeoutMs > 30_000)
+  ) {
+    throw new Error("HALL_OFFICIAL_SOURCE_TIMEOUT_MS must be an integer between 1 and 30000");
+  }
+  if (
+    config.officialSourceMaximumBytes !== undefined &&
+    (!Number.isSafeInteger(config.officialSourceMaximumBytes) ||
+      config.officialSourceMaximumBytes <= 0 ||
+      config.officialSourceMaximumBytes > 10 * 1024 * 1024)
+  ) {
+    throw new Error("HALL_OFFICIAL_SOURCE_MAXIMUM_BYTES must be an integer between 1 and 10485760");
   }
 }
