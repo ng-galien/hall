@@ -4,12 +4,19 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthenticationGate } from "./components/AuthenticationGate";
 import { ResourceImagePresentationProvider } from "./components/editor/images";
 import { ReferencePresentationProvider } from "./components/editor/references";
+import { ResourceEmbedPresentationProvider } from "./components/editor/resourceEmbeds";
 import { IconDefaults } from "./components/icons";
 import { Layout } from "./components/Layout";
 import { ResourcePreview } from "./features/documents/ResourcePreview";
+import { ResourceGlyph, resourceTone, toneIcons, toneLabelKeys } from "./features/documents/ResourceGlyph";
+import {
+  loadResourceEmbedTableOptions,
+  ResourceEmbedPresentation,
+} from "./features/resources/ResourceEmbedPresentation";
 import { useApplicationData } from "./hooks/useApplicationData";
 import { useI18n } from "./i18n/I18nProvider";
 import { resourceContentHref } from "./services/resourcesApi";
+import { useResourcesStore } from "./stores/resourcesStore";
 
 const WorkspacePage = lazy(() =>
   import("./pages/workspace/WorkspacePage").then((module) => ({ default: module.WorkspacePage })),
@@ -42,6 +49,7 @@ const EditorLabPage = import.meta.env.DEV
   ? lazy(() => import("./pages/EditorLabPage").then((module) => ({ default: module.EditorLabPage })))
   : null;
 const DashboardPage = lazy(() => import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
+const DocsArea = lazy(() => import("./docs/DocsArea").then((module) => ({ default: module.DocsArea })));
 const SettingsPage = lazy(() => import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 
 function LiveFallback() {
@@ -72,6 +80,7 @@ function AuthenticatedApplication() {
         <Route path="council-committees" element={<CouncilCommitteesPage />} />
         <Route path="council-committees/:committeeId" element={<CouncilCommitteePage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="docs/*" element={<DocsArea />} />
         {EditorLabPage ? <Route path="editor-lab" element={<EditorLabPage />} /> : null}
       </Route>
     </Routes>
@@ -79,23 +88,45 @@ function AuthenticatedApplication() {
 }
 
 export function App() {
+  const { t } = useI18n();
+  const resources = useResourcesStore((state) => state.resources);
   const renderResourcePreview = (id: string, onClose: () => void) => (
     <ResourcePreview resourceId={id} onClose={onClose} />
   );
+  const resourceAppearance = (id: string) => {
+    const resource = resources.find((candidate) => candidate.id === id);
+    if (!resource) return null;
+    const tone = resourceTone(resource);
+    const Icon = toneIcons[tone];
+    return {
+      tone,
+      icon: <Icon aria-hidden="true" />,
+      glyph: <ResourceGlyph resource={resource} />,
+      tooltip: t(toneLabelKeys[tone]),
+    };
+  };
   return (
     <IconDefaults>
       <TooltipProvider>
-        <ReferencePresentationProvider renderResourcePreview={renderResourcePreview}>
-          <ResourceImagePresentationProvider
-            resolveContentHref={resourceContentHref}
-            renderResourcePreview={renderResourcePreview}
+        <ReferencePresentationProvider
+          renderResourcePreview={renderResourcePreview}
+          resourceAppearance={resourceAppearance}
+        >
+          <ResourceEmbedPresentationProvider
+            renderResourceEmbed={(attributes) => <ResourceEmbedPresentation attributes={attributes} />}
+            loadTableOptions={loadResourceEmbedTableOptions}
           >
-            <BrowserRouter basename="/app">
-              <AuthenticationGate>
-                <AuthenticatedApplication />
-              </AuthenticationGate>
-            </BrowserRouter>
-          </ResourceImagePresentationProvider>
+            <ResourceImagePresentationProvider
+              resolveContentHref={resourceContentHref}
+              renderResourcePreview={renderResourcePreview}
+            >
+              <BrowserRouter basename="/app">
+                <AuthenticationGate>
+                  <AuthenticatedApplication />
+                </AuthenticationGate>
+              </BrowserRouter>
+            </ResourceImagePresentationProvider>
+          </ResourceEmbedPresentationProvider>
         </ReferencePresentationProvider>
       </TooltipProvider>
     </IconDefaults>

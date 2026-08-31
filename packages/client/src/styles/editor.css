@@ -156,9 +156,7 @@
 /* ---- References ---- */
 .editor-reference,
 .markdown-reference {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--hall-space-1);
+  display: inline-block;
   padding: 0 var(--hall-space-1-5);
   border: 0;
   border-radius: var(--hall-radius-small);
@@ -168,6 +166,7 @@
   font-size: inherit;
   font-weight: var(--hall-font-weight-medium);
   line-height: inherit;
+  vertical-align: baseline;
   white-space: nowrap;
 }
 .editor-reference.is-openable {
@@ -175,6 +174,32 @@
 }
 .editor-reference.is-openable:hover {
   text-decoration: underline;
+}
+.editor-reference-resource > svg {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: var(--hall-space-1);
+  vertical-align: -0.125em;
+}
+.editor-reference-tone-pdf {
+  color: var(--hall-color-danger);
+  background: var(--hall-color-danger-surface);
+}
+.editor-reference-tone-image,
+.editor-reference-tone-spreadsheet,
+.editor-reference-tone-spreadsheetFile,
+.editor-reference-tone-csv {
+  color: var(--hall-color-success);
+  background: var(--hall-color-success-surface);
+}
+.editor-reference-tone-legalReference {
+  color: var(--hall-color-seal);
+  background: var(--hall-color-seal-surface);
+}
+.editor-reference-tone-presentation {
+  color: var(--hall-color-warning);
+  background: var(--hall-color-warning-surface);
 }
 .editor-reference-wrapper {
   display: inline;

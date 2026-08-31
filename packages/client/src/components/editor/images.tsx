@@ -14,10 +14,13 @@ import {
   type PointerEvent as ReactPointerEvent,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
-import { AlignCenterIcon, AlignLeftIcon, FullscreenIcon } from "../icons";
+import { AlignCenterIcon, AlignLeftIcon } from "../icons";
+import { EditorMediaOverlay } from "./EditorMediaOverlay";
+import { useResourceAppearance } from "./references";
 
 export interface ResourceImageAttributes {
   id: string;
@@ -166,15 +169,19 @@ function ResourceImageNodeView({
   selected,
   editor,
   controls,
+  deleteNode,
 }: NodeViewProps & { controls: boolean }) {
   const { t } = useI18n();
   const attributes = node.attrs as ResourceImageAttributes;
   const [previewing, setPreviewing] = useState(false);
+  const previewTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const previewScrollRef = useRef({ x: 0, y: 0 });
   const editable = useEditorState({
     editor,
     selector: ({ editor: current }) => current?.isEditable ?? false,
   });
   const renderResourcePreview = useContext(ResourceImagePreviewContext);
+  const resourceAppearance = useResourceAppearance(attributes.id);
   const updateWidth = (width: number) =>
     updateAttributes({ width: Math.round(Math.min(imageWidthRange.max, Math.max(imageWidthRange.min, width))) });
   const startResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -198,14 +205,30 @@ function ResourceImageNodeView({
       data-selected={(controls && selected) || undefined}
     >
       <figure
-        className={`editor-image-frame hall-template-image-${attributes.align}`}
+        className={`editor-image-frame editor-media-overlay-host hall-template-image-${attributes.align}`}
         style={{ width: `${attributes.width}%` }}
       >
         <ResourceImageFigure {...attributes} width={100} />
-        {controls && selected && editable ? (
-          <div className="editor-image-controls" data-testid="editor-image-controls" contentEditable={false}>
-            <fieldset className="editor-image-alignment">
-              <legend className="sr-only">{t("editor.imageAlignment")}</legend>
+        {controls && editable ? (
+          <EditorMediaOverlay
+            icon={resourceAppearance?.glyph ?? null}
+            title={attributes.alt}
+            testId="editor-image-controls"
+            titleTestId={renderResourcePreview ? "editor-image-open" : undefined}
+            titleAriaLabel={t("editor.imageOpen")}
+            titleRef={previewTriggerRef}
+            onTitleClick={
+              renderResourcePreview
+                ? () => {
+                    previewScrollRef.current = { x: window.scrollX, y: window.scrollY };
+                    setPreviewing(true);
+                  }
+                : undefined
+            }
+            onDelete={deleteNode}
+            deleteLabel={t("common.delete")}
+            deleteTestId="editor-image-delete"
+          >
               <button
                 type="button"
                 data-testid="editor-image-align-left"
@@ -226,21 +249,7 @@ function ResourceImageNodeView({
                 <AlignCenterIcon />
                 <span className="sr-only">{t("editor.imageAlignCenter")}</span>
               </button>
-            </fieldset>
-            {renderResourcePreview ? (
-              <button
-                type="button"
-                data-testid="editor-image-open"
-                className="editor-image-open"
-                aria-label={t("editor.imageOpen")}
-                title={t("editor.imageOpen")}
-                onClick={() => setPreviewing(true)}
-              >
-                <FullscreenIcon />
-                <span className="sr-only">{t("editor.imageOpen")}</span>
-              </button>
-            ) : null}
-          </div>
+          </EditorMediaOverlay>
         ) : null}
         {controls && selected && editable ? (
           <button
@@ -262,7 +271,15 @@ function ResourceImageNodeView({
           />
         ) : null}
       </figure>
-      {controls && previewing ? renderResourcePreview?.(attributes.id, () => setPreviewing(false)) : null}
+      {controls && previewing
+        ? renderResourcePreview?.(attributes.id, () => {
+            setPreviewing(false);
+            window.requestAnimationFrame(() => {
+              previewTriggerRef.current?.focus({ preventScroll: true });
+              window.scrollTo(previewScrollRef.current.x, previewScrollRef.current.y);
+            });
+          })
+        : null}
     </NodeViewWrapper>
   );
 }

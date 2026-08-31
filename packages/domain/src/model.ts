@@ -174,6 +174,7 @@ interface ResourceBase {
   title: string;
   folderPath: FolderPath;
   tags: string[];
+  autosaveEnabled: boolean;
   state: ResourceState;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;

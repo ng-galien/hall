@@ -66,7 +66,7 @@ export const toneLabelKeys: Record<ResourceTone, TranslationKey> = {
   pdf: "workspace.type.pdf",
   image: "workspace.type.image",
   document: "workspace.type.file",
-  spreadsheet: "workspace.type.file",
+  spreadsheet: "workspace.type.spreadsheet",
   spreadsheetFile: "workspace.type.file",
   presentation: "workspace.type.file",
   csv: "workspace.type.file",

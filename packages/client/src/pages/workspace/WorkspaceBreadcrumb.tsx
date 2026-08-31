@@ -1,3 +1,4 @@
+import type { ReactNode, RefObject } from "react";
 import { ChevronRightIcon, CloseIcon, FolderIcon } from "@/components/icons";
 import {
   DropdownMenu,
@@ -69,13 +70,21 @@ export function WorkspaceBreadcrumb({
   originPath,
   onClose,
   onSelect,
+  interactive = true,
+  showSaveStatus = true,
+  closeButtonRef,
+  statusControl,
 }: {
   path: string;
   /** Title of the item currently open, if any. */
   currentLabel?: string;
   originPath?: string;
   onClose?(): void;
-  onSelect(selection: WorkspaceSelection, path?: string): void;
+  onSelect?(selection: WorkspaceSelection, path?: string): void;
+  interactive?: boolean;
+  showSaveStatus?: boolean;
+  closeButtonRef?: RefObject<HTMLButtonElement | null>;
+  statusControl?: ReactNode;
 }) {
   const { t } = useI18n();
   const { businesses } = useCouncilBusinessStore();
@@ -88,13 +97,52 @@ export function WorkspaceBreadcrumb({
     saved: t("workspace.saved"),
     error: t("common.requestFailed"),
   };
+  const segments = path.split("/").filter(Boolean);
+
+  if (!interactive) {
+    return (
+      <nav className="workspace-breadcrumb" aria-label={t("workspace.pathBreadcrumb")}>
+        <span className="workspace-crumb">{t("workspace.allPaths")}</span>
+        {segments.map((segment, index) => (
+          <span className="workspace-crumb-group" key={segments.slice(0, index + 1).join("/")}>
+            <span className="workspace-crumb-sep" aria-hidden="true">
+              <ChevronRightIcon />
+            </span>
+            <span className="workspace-crumb">{segment}</span>
+          </span>
+        ))}
+        {currentLabel ? (
+          <>
+            <span className="workspace-crumb-sep" aria-hidden="true">
+              <ChevronRightIcon />
+            </span>
+            <span className="workspace-crumb-current">{currentLabel}</span>
+          </>
+        ) : null}
+        {statusControl}
+        {onClose ? (
+          <button
+            ref={closeButtonRef}
+            className="workspace-breadcrumb-close"
+            data-testid="workspace-breadcrumb-close"
+            type="button"
+            title={t("common.close")}
+            aria-label={t("common.close")}
+            onClick={onClose}
+          >
+            <CloseIcon aria-hidden="true" />
+          </button>
+        ) : null}
+      </nav>
+    );
+  }
 
   return (
     <nav className="workspace-breadcrumb" aria-label={t("workspace.pathBreadcrumb")}>
       <button
         className={`workspace-crumb${originPath === "" ? " workspace-crumb-origin" : ""}`}
         type="button"
-        onClick={() => onSelect(null, "")}
+        onClick={() => onSelect?.(null, "")}
       >
         {t("workspace.allPaths")}
       </button>
@@ -102,7 +150,7 @@ export function WorkspaceBreadcrumb({
         parent=""
         allPaths={allPaths}
         trailing={path.split("/").filter(Boolean).length === 0 && !currentLabel}
-        onSelect={onSelect}
+        onSelect={onSelect!}
       />
       {path
         .split("/")
@@ -114,7 +162,7 @@ export function WorkspaceBreadcrumb({
               <button
                 className={`workspace-crumb${originPath === target ? " workspace-crumb-origin" : ""}`}
                 type="button"
-                onClick={() => onSelect(null, target)}
+                onClick={() => onSelect?.(null, target)}
               >
                 {segment}
               </button>
@@ -122,13 +170,14 @@ export function WorkspaceBreadcrumb({
                 parent={target}
                 allPaths={allPaths}
                 trailing={index === segments.length - 1 && !currentLabel}
-                onSelect={onSelect}
+                onSelect={onSelect!}
               />
             </span>
           );
         })}
       {currentLabel ? <span className="workspace-crumb-current">{currentLabel}</span> : null}
-      {currentLabel && saveStatus !== "idle" ? (
+      {statusControl}
+      {!statusControl && showSaveStatus && currentLabel && saveStatus !== "idle" ? (
         <span
           data-testid="workspace-save-status"
           data-state={saveStatus}
@@ -140,6 +189,7 @@ export function WorkspaceBreadcrumb({
       ) : null}
       {onClose ? (
         <button
+          ref={closeButtonRef}
           className="workspace-breadcrumb-close"
           data-testid="workspace-breadcrumb-close"
           type="button"

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { CloseIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
+import { NativeDocumentFrame } from "./NativeDocumentFrame";
+import "./DocumentViewer.css";
 
 /** Shared viewer shell for an already loaded document representation. */
 export function DocumentObjectViewer({
@@ -43,11 +45,7 @@ export function DocumentObjectViewer({
           </div>
         </header>
         <div className="document-viewer-content">
-          {mediaType === "application/pdf" ? (
-            <iframe data-testid="document-object-frame" src={objectUrl} title={title} />
-          ) : (
-            <object data={objectUrl} type={mediaType} aria-label={title} />
-          )}
+          <NativeDocumentFrame url={objectUrl} mediaType={mediaType} title={title} testId="document-object-frame" />
         </div>
       </section>
     </div>

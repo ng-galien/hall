@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { ChevronDownIcon, ChevronRightIcon, SettingsIcon } from "../components/icons";
+import { ChevronDownIcon, ChevronRightIcon, DebugIcon, DocsIcon, SettingsIcon } from "../components/icons";
 import { useI18n } from "../i18n/I18nProvider";
 import { useWorkspacePrefsStore } from "../pages/workspace/workspacePrefs";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
@@ -73,6 +73,33 @@ export function AppSidebar({ compact }: { compact: boolean }) {
       </nav>
 
       <div className="border-t border-border p-2">
+        {import.meta.env.DEV ? (
+          <NavLink
+            to="/editor-lab"
+            data-testid="navigation-editor-lab"
+            className={({ isActive }) =>
+              `nav-row w-full ${isActive ? "nav-row-active" : ""} ${compact ? "justify-center px-0" : ""}`
+            }
+            title={compact ? t("navigation.lab") : undefined}
+            aria-label={compact ? t("navigation.lab") : undefined}
+          >
+            <span className="nav-icon">
+              <DebugIcon />
+            </span>
+            {!compact ? <span>{t("navigation.lab")}</span> : null}
+          </NavLink>
+        ) : null}
+        <NavLink
+          to="/docs"
+          className={`nav-row w-full ${compact ? "justify-center px-0" : ""}`}
+          title={compact ? t("navigation.documentation") : undefined}
+          aria-label={compact ? t("navigation.documentation") : undefined}
+        >
+          <span className="nav-icon">
+            <DocsIcon />
+          </span>
+          {!compact ? <span>{t("navigation.documentation")}</span> : null}
+        </NavLink>
         <NavLink
           to="/settings"
           className={`nav-row w-full ${compact ? "justify-center px-0" : ""}`}

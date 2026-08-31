@@ -2,6 +2,7 @@ import type { DocumentResource } from "@hall/domain";
 import { Button } from "@/components/ui/button";
 import { CloseIcon } from "../../components/icons";
 import { DocumentPreviewFailure } from "../../features/documents/DocumentPreviewFailure";
+import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
 import { useDocumentPreview } from "../../hooks/useDocumentPreview";
 import { useI18n } from "../../i18n/I18nProvider";
 
@@ -43,11 +44,12 @@ export function MeetingDocumentViewer({
           ) : null}
           {failed ? <DocumentPreviewFailure onRetry={retry} /> : null}
           {objectUrl && mediaType ? (
-            mediaType === "application/pdf" ? (
-              <iframe data-testid="meeting-document-frame" src={objectUrl} title={document.fileName} />
-            ) : (
-              <object data={objectUrl} type={mediaType} aria-label={document.fileName} />
-            )
+            <NativeDocumentFrame
+              url={objectUrl}
+              mediaType={mediaType}
+              title={document.fileName}
+              testId="meeting-document-frame"
+            />
           ) : null}
         </div>
       </section>

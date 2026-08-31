@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RequestErrorBanner } from "../../components/Ui";
+import { ResourceAutosaveToggle } from "../../features/resources/ResourceAutosaveToggle";
 import { createEmptySpreadsheetDocument } from "../../features/spreadsheet/univerWorkbook";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
+import { updateResource } from "../../services/resourcesApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
@@ -12,6 +14,7 @@ import { PathContents } from "./PathContents";
 import { PinnedRow } from "./PinnedRow";
 import { isUnderPath } from "./paths";
 import { ResourceWorkbench } from "./ResourceWorkbench";
+import { useSaveStatusStore } from "./saveStatusStore";
 import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb";
 import { WorkspaceHome } from "./WorkspaceHome";
 import { emptySearch, isSearchActive, WorkspaceSearch, type WorkspaceSearchState } from "./WorkspaceSearch";
@@ -37,8 +40,11 @@ export function WorkspacePage() {
   const { resources, error: resourcesError, canUpload } = resourcesStore;
   const { error: decisionsError } = useCouncilDecisionsStore();
   const [search, setSearch] = useState<WorkspaceSearchState>(emptySearch);
+  const [autosaveUpdating, setAutosaveUpdating] = useState(false);
   const creationFolderPathRef = useRef("");
   const fileInput = useRef<HTMLInputElement | null>(null);
+  const saveStatus = useSaveStatusStore((state) => state.status);
+  const setSaveStatus = useSaveStatusStore((state) => state.setStatus);
 
   const path = searchParams.get("path") ?? "";
   const selection: WorkspaceSelection = searchParams.get("councilBusiness")
@@ -71,6 +77,29 @@ export function WorkspacePage() {
       : null;
   const selectedResource =
     selection?.kind === "resource" ? (resources.find((resource) => resource.id === selection.id) ?? null) : null;
+  const selectedResourceSupportsAutosave =
+    selectedResource?.kind === "text" ||
+    selectedResource?.kind === "remote" ||
+    selectedResource?.kind === "geographic" ||
+    selectedResource?.kind === "spreadsheet";
+
+  const updateSelectedResourceAutosave = (enabled: boolean) => {
+    if (!selectedResource || autosaveUpdating) return;
+    setAutosaveUpdating(true);
+    setSaveStatus("saving");
+    void updateResource(selectedResource.id, {
+      title: selectedResource.title,
+      folderPath: selectedResource.folderPath,
+      tags: selectedResource.tags,
+      autosaveEnabled: enabled,
+    })
+      .then(async () => {
+        await resourcesStore.load();
+        setSaveStatus(enabled ? "saved" : "idle");
+      })
+      .catch(() => setSaveStatus("error"))
+      .finally(() => setAutosaveUpdating(false));
+  };
 
   const createInFolder = async (
     kind: WorkspaceCreateKind,
@@ -200,6 +229,17 @@ export function WorkspacePage() {
                 originPath={selectedBusiness || selectedResource ? path : undefined}
                 onClose={selectedBusiness || selectedResource ? () => select(null) : undefined}
                 onSelect={select}
+                showSaveStatus={!selectedResource}
+                statusControl={
+                  selectedResource && selectedResourceSupportsAutosave ? (
+                    <ResourceAutosaveToggle
+                      enabled={selectedResource.autosaveEnabled}
+                      status={saveStatus}
+                      disabled={autosaveUpdating}
+                      onChange={updateSelectedResourceAutosave}
+                    />
+                  ) : null
+                }
               />
             </header>
             <div className="workspace-container-body">

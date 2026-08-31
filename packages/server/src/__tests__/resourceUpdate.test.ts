@@ -11,6 +11,30 @@ async function createMember(agent: TestAgent, firstName: string, role = "council
 }
 
 describe("resource update", () => {
+  it("enables autosave by default and persists the resource preference", async () => {
+    const { agent } = await createTestServer();
+    const text = domainBody(
+      await agent
+        .post("/api/resources/texts")
+        .send({ title: "Brouillon", folderPath: "seed", tags: [], content: "Texte" })
+        .expect(201),
+    ) as { id: string; autosaveEnabled: boolean };
+
+    expect(text.autosaveEnabled).toBe(true);
+    const updated = domainBody(
+      await agent
+        .put(`/api/resources/${text.id}`)
+        .send({ title: "Brouillon", folderPath: "seed", tags: [], autosaveEnabled: false })
+        .expect(200),
+    ) as { autosaveEnabled: boolean };
+    expect(updated.autosaveEnabled).toBe(false);
+
+    const details = domainBody(await agent.get(`/api/resources/${text.id}`).expect(200)) as {
+      resource: { autosaveEnabled: boolean };
+    };
+    expect(details.resource.autosaveEnabled).toBe(false);
+  });
+
   it("updates a text resource in place, tags and content included", async () => {
     const { agent } = await createTestServer();
     const text = domainBody(

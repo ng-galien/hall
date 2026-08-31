@@ -209,6 +209,7 @@ export const postgresSchema = `
     kind TEXT NOT NULL CHECK (kind IN ('text', 'spreadsheet', 'document', 'remote', 'geographic', 'legalReference')),
     title TEXT NOT NULL,
     folder_path TEXT NOT NULL DEFAULT '',
+    autosave_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     CHECK (

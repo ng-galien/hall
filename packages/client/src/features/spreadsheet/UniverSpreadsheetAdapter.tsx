@@ -62,6 +62,7 @@ export function UniverSpreadsheetAdapter({
     });
     const preset = UniverSheetsCorePreset({
       container: instanceHost,
+      ribbonType: "collapsed",
       formulaBar: true,
       formula: { initialFormulaComputing: CalculationMode.FORCED },
     });

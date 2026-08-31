@@ -183,6 +183,19 @@ describe("content templates", () => {
     expect(response.headers["content-type"]).toContain("application/pdf");
     expect(response.headers["content-disposition"]).toBe("inline; filename=preview.pdf");
     expect(response.body.subarray(0, 4).toString()).toBe("%PDF");
+    const createdPreview = await agent
+      .post("/api/templates/preview-pdf?delivery=url")
+      .send({ bodyMarkdown: "# Aperçu navigable\n\nContenu réellement affiché." })
+      .expect(201);
+    const previewUrl = domainBody<{ url: string }>(createdPreview).url;
+    const navigatedPreview = (await agent
+      .get(previewUrl)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(200)) as Response & { body: Buffer };
+    expect(navigatedPreview.headers["content-type"]).toContain("application/pdf");
+    expect(navigatedPreview.headers["content-disposition"]).toBe("inline; filename=preview.pdf");
+    expect(navigatedPreview.body.subarray(0, 4).toString()).toBe("%PDF");
     expect(domainBody<unknown[]>(await agent.get("/api/templates").expect(200))).toEqual(templatesBefore);
     expect(domainBody<Array<{ action: string }>>(await agent.get("/api/audit-events").expect(200))).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ action: "template.preview-pdf" })]),

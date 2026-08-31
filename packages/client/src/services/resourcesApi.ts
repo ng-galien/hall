@@ -131,14 +131,9 @@ export async function loadResourcePreviewObjectUrl(resourceId: string): Promise<
   const representation = await sirenRepresentation(`/resources/${resourceId}`);
   const preview = findSirenLink(representation, "preview");
   if (!preview) throw new SirenCapabilityUnavailable("preview");
-  const response = await apiResponse(apiPathFromHref(preview.href), {
-    headers: preview.type ? { Accept: preview.type } : undefined,
-  });
-  const blob = await response.blob();
-  const responseMediaType = response.headers.get("content-type")?.split(";", 1)[0]?.trim();
   return {
-    url: URL.createObjectURL(blob),
-    mediaType: responseMediaType || preview.type || blob.type || "application/octet-stream",
+    url: preview.href,
+    mediaType: preview.type || "application/octet-stream",
   };
 }
 

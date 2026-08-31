@@ -121,11 +121,11 @@ function colorWithOpacity(color: string, opacity: number): number[] {
   return parsed;
 }
 
-function featureStyle(feature: FeatureLike): Style {
+function featureStyle(feature: FeatureLike, fallbackLabel?: string): Style {
   if (!(feature instanceof Feature)) return new Style();
   const properties = feature.get("style") as Record<string, unknown> | undefined;
   if (feature.get("visible") === false) return new Style({});
-  const label = feature.get("label") as string | null | undefined;
+  const label = (feature.get("label") as string | null | undefined) ?? fallbackLabel;
   const kind = feature.get("kind") as "marker" | "line" | "area" | undefined;
   const text = label
     ? new Text({
@@ -165,15 +165,15 @@ function featureStyle(feature: FeatureLike): Style {
   });
 }
 
-function initialProperties(mode: Exclude<DrawTool, "select">) {
+function initialProperties(mode: Exclude<DrawTool, "select">, label: string) {
   const color = cssToken("--hall-color-brand") as GeographicColor;
   if (mode === "marker")
-    return { kind: "marker", visible: true, label: null, style: { color, size: "medium" } };
-  if (mode === "line") return { kind: "line", visible: true, label: null, style: { color, width: 3 } };
+    return { kind: "marker", visible: true, label, style: { color, size: "medium" } };
+  if (mode === "line") return { kind: "line", visible: true, label, style: { color, width: 3 } };
   return {
     kind: "area",
     visible: true,
-    label: null,
+    label,
     style: { fillColor: color, strokeColor: color, strokeWidth: 2, fillOpacity: 0.2 },
   };
 }
@@ -190,12 +190,18 @@ export function GeographicResourceMap({
   resource,
   data,
   canUpdate,
+  autosaveEnabled = true,
   onError,
+  onRegisterFlush,
+  embedded = false,
 }: {
   resource: GeographicResource;
   data: GeographicResourceData;
   canUpdate: boolean;
+  autosaveEnabled?: boolean;
   onError(error: ApiErrorCode | null): void;
+  onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
+  embedded?: boolean;
 }) {
   const { t } = useI18n();
   const setSaveStatus = useSaveStatusStore((state) => state.setStatus);
@@ -210,8 +216,9 @@ export function GeographicResourceMap({
   const tileLayersRef = useRef(new globalThis.Map<GeographicLayerId, TileLayer<XYZ>>());
   const latestDraftRef = useRef<GeographicResourceData>(data);
   const latestVersionRef = useRef(resource.version);
-  const savingRef = useRef(false);
+  const savePromiseRef = useRef<Promise<boolean> | null>(null);
   const conflictRef = useRef(false);
+  const autosaveEnabledRef = useRef(autosaveEnabled);
   const savedSignatureRef = useRef(JSON.stringify({ ...data, layers: completeLayers(data.layers) }));
   const saveRef = useRef<(() => Promise<boolean>) | null>(null);
   const [draft, setDraft] = useState<GeographicResourceData>(() => ({ ...data, layers: completeLayers(data.layers) }));
@@ -234,6 +241,7 @@ export function GeographicResourceMap({
 
   const draftSignature = useMemo(() => JSON.stringify(draft), [draft]);
   const dirty = draftSignature !== savedSignature;
+  autosaveEnabledRef.current = autosaveEnabled;
 
   const updateDraft = useCallback((update: (current: GeographicResourceData) => GeographicResourceData) => {
     const next = update(latestDraftRef.current);
@@ -323,12 +331,31 @@ export function GeographicResourceMap({
     const vectorSource = new VectorSource<Feature<Geometry>>({
       features: geoJson.readFeatures(data.hallLayer, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }),
     });
-    const vectorLayer = new VectorLayer({ source: vectorSource, style: featureStyle, zIndex: 100, visible: true });
+    const vectorLayer = new VectorLayer({
+      source: vectorSource,
+      style: (feature) => {
+        const kind = feature.get("kind") as "marker" | "line" | "area" | undefined;
+        const index = Math.max(0, vectorSource.getFeatures().indexOf(feature as Feature<Geometry>));
+        const fallbackLabel = kind
+          ? `${t(
+              kind === "marker"
+                ? "geographic.featureMarker"
+                : kind === "line"
+                  ? "geographic.featureLine"
+                  : "geographic.featureArea",
+            )} ${index + 1}`
+          : undefined;
+        return featureStyle(feature, fallbackLabel);
+      },
+      zIndex: 100,
+      visible: true,
+    });
     const map = new OlMap({
       target: mapElementRef.current,
       layers: [...mapLayers, vectorLayer],
       view,
-      controls: defaultControls({ zoom: false }),
+      controls: embedded ? [] : defaultControls({ zoom: false }),
+      interactions: embedded ? [] : undefined,
     });
     const select = new Select({ layers: [vectorLayer] });
     const modify = new Modify({ source: vectorSource });
@@ -344,6 +371,7 @@ export function GeographicResourceMap({
     });
     modify.on("modifyend", syncHallLayer);
     map.on("moveend", () => {
+      if (embedded) return;
       const projectedCenter = view.getCenter();
       if (!projectedCenter) return;
       const position = toLonLat(projectedCenter);
@@ -358,7 +386,26 @@ export function GeographicResourceMap({
     selectRef.current = select;
     modifyRef.current = modify;
     tileLayersRef.current = tileLayers;
+    let resizeObserver: ResizeObserver | null = null;
+    if (embedded) {
+      const fitEmbeddedExtent = () => {
+        map.updateSize();
+        const size = map.getSize();
+        if (!size || vectorSource.isEmpty()) return;
+        const extent = vectorSource.getExtent();
+        if (!extent) return;
+        map.getView().fit(extent, {
+          size,
+          padding: [24, 24, 24, 24],
+          maxZoom: 18,
+        });
+      };
+      window.requestAnimationFrame(fitEmbeddedExtent);
+      resizeObserver = new ResizeObserver(fitEmbeddedExtent);
+      resizeObserver.observe(mapElementRef.current);
+    }
     return () => {
+      resizeObserver?.disconnect();
       map.setTarget(undefined);
       mapRef.current = null;
       vectorSourceRef.current = null;
@@ -367,7 +414,7 @@ export function GeographicResourceMap({
       modifyRef.current = null;
       tileLayersRef.current = new globalThis.Map();
     };
-  }, [canUpdate, data.hallLayer, data.layers, data.view, syncHallLayer, updateDraft]);
+  }, [canUpdate, data.hallLayer, data.layers, data.view, embedded, syncHallLayer, t, updateDraft]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -377,7 +424,17 @@ export function GeographicResourceMap({
     const draw = new Draw({ source, type });
     draw.on("drawend", (event) => {
       event.feature.setId(crypto.randomUUID());
-      event.feature.setProperties(initialProperties(drawTool));
+      const existingCount = latestDraftRef.current.hallLayer.features.filter(
+        (feature) => feature.properties.kind === drawTool,
+      ).length;
+      const kindLabel = t(
+        drawTool === "marker"
+          ? "geographic.featureMarker"
+          : drawTool === "line"
+            ? "geographic.featureLine"
+            : "geographic.featureArea",
+      );
+      event.feature.setProperties(initialProperties(drawTool, `${kindLabel} ${existingCount + 1}`));
       window.setTimeout(() => {
         syncHallLayer();
         selectRef.current?.getFeatures().clear();
@@ -392,7 +449,7 @@ export function GeographicResourceMap({
     return () => {
       map.removeInteraction(draw);
     };
-  }, [canUpdate, drawTool, syncHallLayer, workspaceMode]);
+  }, [canUpdate, drawTool, syncHallLayer, t, workspaceMode]);
 
   useEffect(() => {
     const editingSelection = canUpdate && workspaceMode === "draw" && drawTool === "select";
@@ -419,42 +476,51 @@ export function GeographicResourceMap({
     });
   }, [draft.layers]);
 
-  const save = useCallback(async () => {
-    if (!canUpdate || savingRef.current || conflictRef.current) return false;
-    const payload = latestDraftRef.current;
-    const signature = JSON.stringify(payload);
-    if (signature === savedSignatureRef.current) return true;
-    savingRef.current = true;
-    onError(null);
-    setSaveStatus("saving");
-    try {
-      const updated = await updateGeographicResource(resource.id, {
-        view: payload.view,
-        layers: payload.layers,
-        hallLayer: payload.hallLayer,
-        expectedVersion: latestVersionRef.current,
-      });
-      latestVersionRef.current = updated.version;
-      savedSignatureRef.current = signature;
-      setSavedSignature(signature);
-      await useResourcesStore.getState().load();
-      setSaveStatus("saved");
-      return true;
-    } catch (failure) {
-      if (failure instanceof ApiError && failure.status === 409) {
-        const latest = await getResourceDetailsSiren(resource.id).catch(() => null);
-        if (latest?.data.resource.kind === "geographic") latestVersionRef.current = latest.data.resource.version;
-        conflictRef.current = true;
-        setConflict(true);
+  const save = useCallback(() => {
+    if (!canUpdate) return Promise.resolve(true);
+    if (conflictRef.current) return Promise.resolve(false);
+    if (savePromiseRef.current) return savePromiseRef.current;
+    const run = async () => {
+      while (true) {
+        const payload = latestDraftRef.current;
+        const signature = JSON.stringify(payload);
+        if (signature === savedSignatureRef.current) {
+          await useResourcesStore.getState().load();
+          setSaveStatus("saved");
+          return true;
+        }
         onError(null);
-      } else {
-        onError(apiErrorCode(failure));
+        setSaveStatus("saving");
+        try {
+          const updated = await updateGeographicResource(resource.id, {
+            view: payload.view,
+            layers: payload.layers,
+            hallLayer: payload.hallLayer,
+            expectedVersion: latestVersionRef.current,
+          });
+          latestVersionRef.current = updated.version;
+          savedSignatureRef.current = signature;
+          setSavedSignature(signature);
+        } catch (failure) {
+          if (failure instanceof ApiError && failure.status === 409) {
+            const latest = await getResourceDetailsSiren(resource.id).catch(() => null);
+            if (latest?.data.resource.kind === "geographic") latestVersionRef.current = latest.data.resource.version;
+            conflictRef.current = true;
+            setConflict(true);
+            onError(null);
+          } else {
+            onError(apiErrorCode(failure));
+          }
+          setSaveStatus("error");
+          return false;
+        }
       }
-      setSaveStatus("error");
-      return false;
-    } finally {
-      savingRef.current = false;
-    }
+    };
+    const pending = run().finally(() => {
+      if (savePromiseRef.current === pending) savePromiseRef.current = null;
+    });
+    savePromiseRef.current = pending;
+    return pending;
   }, [canUpdate, onError, resource.id, setSaveStatus]);
 
   useEffect(() => {
@@ -462,15 +528,28 @@ export function GeographicResourceMap({
   }, [save]);
 
   useEffect(() => {
+    onRegisterFlush?.(() => (autosaveEnabledRef.current ? save() : Promise.resolve(true)));
+    return () => onRegisterFlush?.(null);
+  }, [onRegisterFlush, save]);
+
+  useEffect(() => {
+    if (!autosaveEnabled) {
+      setSaveStatus("idle");
+      return;
+    }
     if (!dirty || !canUpdate || conflict) return;
     setSaveStatus("dirty");
     const timer = window.setTimeout(() => void save(), GEOGRAPHIC_SAVE_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [canUpdate, conflict, dirty, save, setSaveStatus]);
+  }, [autosaveEnabled, canUpdate, conflict, dirty, save, setSaveStatus]);
 
   useEffect(
     () => () => {
-      if (!conflictRef.current && JSON.stringify(latestDraftRef.current) !== savedSignatureRef.current) {
+      if (
+        autosaveEnabledRef.current &&
+        !conflictRef.current &&
+        JSON.stringify(latestDraftRef.current) !== savedSignatureRef.current
+      ) {
         void saveRef.current?.();
       }
     },
@@ -651,6 +730,14 @@ export function GeographicResourceMap({
         height: compositionLayout.height,
       } satisfies CSSProperties)
     : undefined;
+
+  if (embedded) {
+    return (
+      <div className="geographic-resource" data-testid="geographic-resource-map" data-geographic-mode="embedded">
+        <div ref={mapElementRef} className="geographic-map" />
+      </div>
+    );
+  }
 
   return (
     <div className="geographic-resource" data-testid="geographic-resource-map">

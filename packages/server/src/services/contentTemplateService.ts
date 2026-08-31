@@ -175,7 +175,6 @@ export function createContentTemplateService({
           },
           context,
         );
-        assertRenderable(preview.diagnostics);
         return documentRenderer.pdf({
           html: preview.printHtml,
           headerHtml: preview.headerHtml,

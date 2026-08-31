@@ -79,6 +79,26 @@ test("document download and preview follow their distinct Siren links", () => {
   assert.match(read("src/features/documents/DocumentPreviewFailure.tsx"), /resources\.previewFailed/);
 });
 
+test("the common resource modal reuses Workbench bodies without nested viewers", () => {
+  const body = read("src/features/resources/ResourcePresentationBody.tsx");
+  const preview = read("src/features/documents/ResourcePreview.tsx");
+  const workbench = read("src/pages/workspace/ResourceWorkbench.tsx");
+  const spreadsheet = read("src/features/spreadsheet/SpreadsheetResourceEditor.tsx");
+  const references = read("src/components/editor/references.tsx");
+  const images = read("src/components/editor/images.tsx");
+
+  assert.match(body, /export function ResourcePresentationBody/);
+  assert.match(body, /mode: ResourcePresentationMode/);
+  assert.match(preview, /<ResourcePresentationBody/);
+  assert.match(workbench, /<ResourcePresentationBody/);
+  assert.match(preview, /findSirenAction\(representation, "resource\.update-geography"\)/);
+  assert.match(preview, /findSirenAction\(representation, "resource\.update-spreadsheet"\)/);
+  assert.match(preview, /data-resource-mode=\{mode\}/);
+  assert.doesNotMatch(spreadsheet, /<Dialog|spreadsheet-fullscreen-dialog/);
+  assert.match(references, /focus\(\{ preventScroll: true \}\)/);
+  assert.match(images, /focus\(\{ preventScroll: true \}\)/);
+});
+
 test("editor images keep immutable resource references and follow document capabilities", () => {
   const editor = read("src/components/editor/MarkdownEditor.tsx");
   const images = read("src/components/editor/images.tsx");

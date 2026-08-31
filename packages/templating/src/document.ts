@@ -17,6 +17,8 @@ import {
   isImageAlignment,
   isImageDirective,
   isImageWidth,
+  isResourceEmbedDirective,
+  isResourcePresentationKind,
 } from "./grammar.js";
 
 const processor = unified().use(remarkParse).use(remarkGfm).use(remarkDirective).use(remarkStringify);
@@ -55,6 +57,11 @@ function safeStyle(tagName: string, value: unknown): string | undefined {
         (property === "width" || property === "min-width") &&
         isTableLength(propertyValue)) ||
       ((tagName === "th" || tagName === "td") && property === "text-align" && tableAlignment.test(propertyValue)) ||
+      ((tagName === "th" || tagName === "td") &&
+        (property === "color" || property === "background-color") &&
+        /^#[0-9a-f]{6}$/i.test(propertyValue)) ||
+      ((tagName === "th" || tagName === "td") && property === "font-weight" && propertyValue === "bold") ||
+      ((tagName === "th" || tagName === "td") && property === "font-style" && propertyValue === "italic") ||
       (tagName === "img" && property === "width" && imageWidth.test(propertyValue));
     if (allowed) declarations.push(`${property}: ${propertyValue}`);
   }
@@ -174,6 +181,14 @@ export interface TemplateDirective {
   position?: Diagnostic["anchor"]["position"];
 }
 
+export interface ResourceReference {
+  id: string;
+  directive: "resource" | "image" | "resource-embed";
+  occurrence: number;
+  presentation?: string;
+  position?: Diagnostic["anchor"]["position"];
+}
+
 function textOf(node: { children?: unknown[] }): string {
   let text = "";
   visit(node as never, "text", (child: { value: string }) => {
@@ -211,6 +226,24 @@ export function collectDirectives(tree: TemplateAst): TemplateDirective[] {
     });
   });
   return found;
+}
+
+/** Collects every directive that keeps a durable link to a Hall resource. */
+export function collectResourceReferences(tree: TemplateAst): ResourceReference[] {
+  const references: ResourceReference[] = [];
+  for (const directive of collectDirectives(tree)) {
+    if (directive.name !== "resource" && directive.name !== "image" && directive.name !== "resource-embed") continue;
+    const id = directive.attributes.id;
+    if (!id) continue;
+    references.push({
+      id,
+      directive: directive.name,
+      occurrence: directive.occurrence,
+      ...(directive.name === "resource-embed" ? { presentation: directive.attributes.presentation } : {}),
+      position: directive.position,
+    });
+  }
+  return references;
 }
 
 /** Validates a tree against the grammar, without resolving referenced entities. */
@@ -280,6 +313,83 @@ export function validateStructure(tree: TemplateAst): Diagnostic[] {
           message: `The "width" attribute on :image must be an integer between 25 and 100`,
           anchor,
         });
+      }
+    }
+    if (isResourceEmbedDirective(spec.name)) {
+      const presentation = directive.attributes.presentation;
+      if (presentation && !isResourcePresentationKind(presentation)) {
+        diagnostics.push({
+          code: "invalid_attribute",
+          severity: "error",
+          message: `The "presentation" attribute on :resource-embed is not supported`,
+          anchor,
+        });
+      }
+      const allowedByPresentation: Record<string, readonly string[]> = {
+        image: ["id", "presentation", "align", "width"],
+        document: ["id", "presentation"],
+        link: ["id", "presentation"],
+        "legal-citation": ["id", "presentation"],
+        map: ["id", "presentation", "align", "width"],
+        table: ["id", "presentation", "sheet", "range"],
+      };
+      if (presentation && isResourcePresentationKind(presentation)) {
+        for (const key of Object.keys(directive.attributes)) {
+          if (!allowedByPresentation[presentation].includes(key)) {
+            diagnostics.push({
+              code: "unexpected_attribute",
+              severity: "error",
+              message: `Attribute "${key}" is not supported by the "${presentation}" resource presentation`,
+              anchor,
+            });
+          }
+        }
+      }
+      if (presentation === "image" || presentation === "map") {
+        const align = directive.attributes.align;
+        if (align && !isImageAlignment(align)) {
+          diagnostics.push({
+            code: "invalid_attribute",
+            severity: "error",
+            message: `The "align" attribute on :resource-embed must be "left" or "center"`,
+            anchor,
+          });
+        }
+        const width = directive.attributes.width;
+        if (width && !isImageWidth(width)) {
+          diagnostics.push({
+            code: "invalid_attribute",
+            severity: "error",
+            message: `The "width" attribute on :resource-embed must be an integer between 25 and 100`,
+            anchor,
+          });
+        }
+      }
+      if (presentation === "table") {
+        if (!directive.attributes.sheet) {
+          diagnostics.push({
+            code: "missing_attribute",
+            severity: "error",
+            message: `Attribute "sheet" is required by the "table" resource presentation`,
+            anchor,
+          });
+        }
+        const range = directive.attributes.range;
+        if (!range) {
+          diagnostics.push({
+            code: "missing_attribute",
+            severity: "error",
+            message: `Attribute "range" is required by the "table" resource presentation`,
+            anchor,
+          });
+        } else if (!/^\$?[A-Z]{1,3}\$?[1-9]\d*:\$?[A-Z]{1,3}\$?[1-9]\d*$/i.test(range)) {
+          diagnostics.push({
+            code: "invalid_attribute",
+            severity: "error",
+            message: `The "range" attribute on :resource-embed must be a rectangular A1 range`,
+            anchor,
+          });
+        }
       }
     }
     for (const key of Object.keys(directive.attributes)) {

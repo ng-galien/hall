@@ -511,6 +511,7 @@ export const updateResourceSchema = z
     title: nonEmpty,
     folderPath: folderPathSchema,
     tags: resourceTagsSchema,
+    autosaveEnabled: z.boolean().optional(),
     content: z.string().optional(),
     url: webUrlSchema.nullable().optional(),
   })

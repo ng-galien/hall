@@ -43,6 +43,7 @@ import {
 } from "./legalReferenceProvider.js";
 
 const DEFAULT_GEOGRAPHIC_RESOURCE_ZOOM = 15;
+type UpdateResourceInput = Omit<UpdateResource, "autosaveEnabled"> & { autosaveEnabled?: boolean };
 
 export interface ResourceService {
   list(filters?: {
@@ -79,7 +80,7 @@ export interface ResourceService {
   ): Promise<LegalReferenceResource>;
   refreshLegalReference(id: string, expectedSnapshotHash: string): Promise<LegalReferenceResource>;
   createDocument(input: CreateDocumentResource): Promise<DocumentResource>;
-  update(id: string, input: UpdateResource): Promise<Resource>;
+  update(id: string, input: UpdateResourceInput): Promise<Resource>;
   delete(id: string): Promise<void>;
 }
 
@@ -383,6 +384,7 @@ export function createResourceService({
           title: input.title,
           folderPath: input.folderPath,
           tags: input.tags,
+          autosaveEnabled: input.autosaveEnabled ?? resource.autosaveEnabled,
           content: resource.kind === "text" ? (input.content ?? resource.content) : undefined,
           url: resource.kind === "remote" ? (input.url ?? resource.url) : undefined,
         });

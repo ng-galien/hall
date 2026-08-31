@@ -63,6 +63,7 @@ export function mapResource(row: DatabaseRow, tags: string[]): Resource {
     title: String(row.title),
     folderPath: String(row.folder_path),
     tags,
+    autosaveEnabled: row.autosave_enabled === true || Number(row.autosave_enabled) === 1,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -341,6 +342,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           id: String(stored.id),
           title: String(stored.title),
           folderPath: String(stored.folder_path),
+          autosaveEnabled: null,
           updatedAt: new Date().toISOString(),
         });
         return {
@@ -399,6 +401,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           id: String(stored.id),
           title: String(stored.title),
           folderPath: String(stored.folder_path),
+          autosaveEnabled: null,
           updatedAt: new Date().toISOString(),
         });
         const updated = await sqlExecutor.get("resource.findMetadata", { reference: id });
@@ -457,6 +460,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           id,
           title: input.title,
           folderPath: input.folderPath,
+          autosaveEnabled: null,
           updatedAt: input.snapshot.fetchedAt,
         });
         return (await mapStoredResource(
@@ -505,6 +509,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           id: String(stored.id),
           title: String(stored.title),
           folderPath: String(stored.folder_path),
+          autosaveEnabled: null,
           updatedAt: input.snapshot.fetchedAt,
         });
         const updated = await sqlExecutor.get("resource.findMetadata", { reference: id });
@@ -592,6 +597,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           id,
           title: input.title,
           folderPath: input.folderPath,
+          autosaveEnabled: null,
           updatedAt: new Date().toISOString(),
         });
         const result = await sqlExecutor.run("resource.promoteEditorAsset", { id, category: input.category });
@@ -637,6 +643,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           id,
           title: input.title,
           folderPath: input.folderPath,
+          autosaveEnabled: input.autosaveEnabled,
           updatedAt: new Date().toISOString(),
         });
         if (input.content !== undefined) await sqlExecutor.run("resource.updateText", { id, content: input.content });

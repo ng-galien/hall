@@ -212,6 +212,7 @@ function createCurrentSchema(database: DatabaseSync): void {
       kind TEXT NOT NULL CHECK (kind IN ('text', 'spreadsheet', 'document', 'remote', 'geographic', 'legalReference')),
       title TEXT NOT NULL,
       folder_path TEXT NOT NULL DEFAULT '',
+      autosave_enabled INTEGER NOT NULL DEFAULT 1 CHECK (autosave_enabled IN (0, 1)),
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       CHECK (
@@ -566,6 +567,12 @@ export function initializeSchema(database: DatabaseSync): void {
         .all()
         .map((row) => String(row.name)),
     );
+    const resourceColumns = new Set(
+      database
+        .prepare("PRAGMA table_info(resources)")
+        .all()
+        .map((row) => String(row.name)),
+    );
     if (
       existingTables.join("\n") !== currentTables.join("\n") ||
       !agendaColumns.has("added_during_session") ||
@@ -577,6 +584,7 @@ export function initializeSchema(database: DatabaseSync): void {
       !documentColumns.has("format") ||
       !documentColumns.has("content_sha256") ||
       !documentColumns.has("usage") ||
+      !resourceColumns.has("autosave_enabled") ||
       !hallSettingsColumns.has("geographic_longitude") ||
       !hallSettingsColumns.has("geographic_latitude")
     ) {

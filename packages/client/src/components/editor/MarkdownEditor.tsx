@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "../../i18n/I18nProvider";
 import {
   BoldIcon,
+  CardViewIcon,
   CodeIcon,
   FullscreenIcon,
   ItalicIcon,
@@ -25,6 +26,7 @@ import { editorExtensions } from "./extensions";
 import type { ResourceImageAttributes } from "./images";
 import { EditorReferenceSearch, type FullSearchRequest, SearchSyntaxHint } from "./ReferenceSearchDialog";
 import type { Mentionable } from "./references";
+import { EditorResourceEmbedSearch } from "./resourceEmbeds";
 import { TableControls } from "./TableControls";
 
 export interface MarkdownEditorProps {
@@ -41,6 +43,8 @@ export interface MarkdownEditorProps {
   /** Enables image upload; resolves to the archived resource id and label. */
   onUploadImage?(image: File): Promise<{ id: string; label: string }>;
   readOnly?: boolean;
+  /** Renders the enriched body directly when an outer surface already provides the extended envelope. */
+  variant?: "compact" | "enriched";
 }
 
 const acceptedImageTypes = new Set(["image/jpeg", "image/png"]);
@@ -263,6 +267,7 @@ export function MarkdownEditor({
   searchContext,
   onUploadImage,
   readOnly = false,
+  variant = "compact",
 }: MarkdownEditorProps) {
   const { t } = useI18n();
   const [enriched, setEnriched] = useState(false);
@@ -307,6 +312,24 @@ export function MarkdownEditor({
   }, [inline, readOnly]);
 
   const state = useToolbarState(inline);
+
+  if (variant === "enriched" && !readOnly) {
+    return (
+      <EnrichedEditor
+        initial={latest.current}
+        placeholder={placeholder}
+        members={members}
+        context={context}
+        onUploadImage={onUploadImage}
+        imageStatus={imageStatus}
+        onImageStatus={setImageStatus}
+        onChange={(next) => {
+          latest.current = next;
+          callbacks.current.onChange(next);
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -411,6 +434,7 @@ function EnrichedEditor({
   callback.current = onChange;
   const groupLabels = useMentionGroupLabels();
   const [fullSearch, setFullSearch] = useState<FullSearchRequest | null>(null);
+  const [embedSearch, setEmbedSearch] = useState<FullSearchRequest | null>(null);
   const imageUpload = useRef(onUploadImage);
   imageUpload.current = onUploadImage;
 
@@ -534,6 +558,13 @@ function EnrichedEditor({
             >
               <ReferenceIcon />
             </ToolbarButton>
+            <ToolbarButton
+              label={t("editor.embedResource")}
+              testId="editor-insert-resource-embed"
+              onClick={() => setEmbedSearch({ query: "" })}
+            >
+              <CardViewIcon />
+            </ToolbarButton>
           </>
         ) : null}
       </div>
@@ -553,6 +584,15 @@ function EnrichedEditor({
           mentionables={members}
           context={context}
           onClose={() => setFullSearch(null)}
+        />
+      ) : null}
+      {embedSearch && editor ? (
+        <EditorResourceEmbedSearch
+          editor={editor}
+          request={embedSearch}
+          mentionables={members}
+          context={context}
+          onClose={() => setEmbedSearch(null)}
         />
       ) : null}
     </div>

@@ -15,6 +15,7 @@ export function WorkspaceWorkbenchHeader({
   actions,
   actionError,
   metadata,
+  titleId,
 }: {
   icon?: ReactNode;
   title: string;
@@ -25,6 +26,7 @@ export function WorkspaceWorkbenchHeader({
   actions?: ReactNode;
   actionError: ApiErrorCode | null;
   metadata?: ReactNode;
+  titleId?: string;
 }) {
   const { t, formatDate } = useI18n();
   const [editingTitle, setEditingTitle] = useState(false);
@@ -46,10 +48,10 @@ export function WorkspaceWorkbenchHeader({
                   className="workbench-title-inline-input"
                   testId="workspace-workbench-title-input"
                 >
-                  <h1>{title}</h1>
+                  <h1 id={titleId}>{title}</h1>
                 </InlineRenameField>
               ) : (
-                <h1>{title}</h1>
+                <h1 id={titleId}>{title}</h1>
               )}
               {onTitleChange && !editingTitle ? (
                 <button

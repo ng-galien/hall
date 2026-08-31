@@ -32,12 +32,18 @@ export function ReferenceSearchDialog({
   initialQuery,
   mentionables,
   context,
+  allowedKinds = kindOrder,
+  title,
+  testId = "reference-search-dialog",
   onPick,
   onClose,
 }: {
   initialQuery: string;
   mentionables: Searchable[];
   context?: string;
+  allowedKinds?: readonly ReferenceKind[];
+  title?: string;
+  testId?: string;
   onPick(item: Searchable): void;
   onClose(): void;
 }) {
@@ -58,8 +64,8 @@ export function ReferenceSearchDialog({
   );
 
   const matches = useMemo(
-    () => searchEntities(mentionables, query, { context }).results,
-    [mentionables, query, context],
+    () => searchEntities(mentionables, query, { context }).results.filter((item) => allowedKinds.includes(item.kind)),
+    [allowedKinds, mentionables, query, context],
   );
   const counts = useMemo(() => {
     const byKind = new Map<ReferenceKind, number>();
@@ -104,13 +110,9 @@ export function ReferenceSearchDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        data-testid="reference-search-dialog"
-        className="reference-search-dialog"
-        closeLabel={t("common.close")}
-      >
+      <DialogContent data-testid={testId} className="reference-search-dialog" closeLabel={t("common.close")}>
         <DialogHeader>
-          <DialogTitle>{t("editor.searchReferences")}</DialogTitle>
+          <DialogTitle>{title ?? t("editor.searchReferences")}</DialogTitle>
         </DialogHeader>
         <Input
           data-testid="reference-search-input"
@@ -134,17 +136,19 @@ export function ReferenceSearchDialog({
           >
             {t("editor.allTypes")} · {matches.length}
           </button>
-          {kindOrder.map((kind) => (
-            <button
-              key={kind}
-              type="button"
-              data-testid={`reference-kind-${kind}`}
-              className={cn("reference-search-filter", kindFilter === kind && "is-active")}
-              onClick={() => setKindFilter(kindFilter === kind ? null : kind)}
-            >
-              {groupLabels[kind]} · {counts.get(kind) ?? 0}
-            </button>
-          ))}
+          {kindOrder
+            .filter((kind) => allowedKinds.includes(kind))
+            .map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                data-testid={`reference-kind-${kind}`}
+                className={cn("reference-search-filter", kindFilter === kind && "is-active")}
+                onClick={() => setKindFilter(kindFilter === kind ? null : kind)}
+              >
+                {groupLabels[kind]} · {counts.get(kind) ?? 0}
+              </button>
+            ))}
         </div>
         <div className="reference-search-results" role="listbox">
           {(() => {

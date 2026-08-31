@@ -1,7 +1,9 @@
 export type { Diagnostic, DiagnosticAnchor, DiagnosticCode, DiagnosticSeverity } from "./diagnostics.js";
 export {
   collectDirectives,
+  collectResourceReferences,
   parse,
+  type ResourceReference,
   renderHtml,
   serialize,
   type TemplateAst,
@@ -23,6 +25,14 @@ export {
   isImageDirective,
   isImageWidth,
   isReferenceKind,
+  isResourceEmbedDirective,
+  isResourcePresentationKind,
+  mapPresentationDefaults,
+  parseResourceEmbedDirective,
   type ReferenceKind,
+  type ResourceEmbedAttributes,
+  type ResourcePresentationKind,
+  resourcePresentationKinds,
+  serializeResourceEmbedDirective,
 } from "./grammar.js";
 export { baseRenderStylesheet } from "./styles.js";

@@ -1,5 +1,5 @@
 import type { DocumentCategory, DocumentResource, EditorAssetOwner } from "@hall/domain";
-import { collectDirectives, parse } from "@hall/templating";
+import { collectResourceReferences, parse } from "@hall/templating";
 import { inspectDocument } from "../domain/documentPolicy.js";
 import type {
   AgendaItemRepository,
@@ -54,21 +54,17 @@ export function createEditorAssetService({
 
   const referencedResourceIds = async (owner: EditorAssetOwner, markdown: string): Promise<string[]> => {
     const ids = new Set<string>();
-    for (const directive of collectDirectives(parse(markdown))) {
-      if (directive.name !== "image" && directive.name !== "resource") continue;
-      const id = directive.attributes.id;
-      if (!id) continue;
-      const resource = await resourceRepository.findMetadata(id);
+    for (const reference of collectResourceReferences(parse(markdown))) {
+      const resource = await resourceRepository.findMetadata(reference.id);
       if (!resource) throw new DomainError("resource_not_found", 404);
-      if (directive.name === "image" && (resource.kind !== "document" || !["jpeg", "png"].includes(resource.format))) {
+      const isImagePresentation =
+        reference.directive === "image" ||
+        (reference.directive === "resource-embed" && reference.presentation === "image");
+      if (isImagePresentation && (resource.kind !== "document" || !["jpeg", "png"].includes(resource.format))) {
         throw new DomainError("invalid_request");
       }
       if (resource.kind === "document" && resource.usage === "editorAsset") {
-        if (
-          directive.name !== "image" ||
-          resource.editorOwner.kind !== owner.kind ||
-          resource.editorOwner.id !== owner.id
-        ) {
+        if (!isImagePresentation || resource.editorOwner.kind !== owner.kind || resource.editorOwner.id !== owner.id) {
           throw new DomainError("conflict", 409);
         }
       }

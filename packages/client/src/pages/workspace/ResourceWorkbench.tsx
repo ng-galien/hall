@@ -1,33 +1,20 @@
 import { findSirenAction } from "@hall/api-contract";
 import type { Resource, ResourceDetails } from "@hall/domain";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { DeleteIcon } from "../../components/icons";
-import { DocumentEmbed } from "../../features/documents/DocumentEmbed";
-import { RemoteResourceEmbed } from "../../features/documents/RemoteResourceEmbed";
+import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useResourceImageUpload } from "../../features/documents/useResourceImageUpload";
-import { GeographicResourceMap } from "../../features/geographic/GeographicResourceMap";
-import { LegalReferenceResolver } from "../../features/legal/LegalReferenceResolver";
-import { LegalReferenceResourceView } from "../../features/legal/LegalReferenceResourceView";
+import { ResourcePresentationBody } from "../../features/resources/ResourcePresentationBody";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { getResourceDetailsSiren, refreshLegalReferenceResource, updateResource } from "../../services/resourcesApi";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { MeetingDocumentViewer } from "../council-meetings/MeetingDocumentViewer";
 import { ResourceWorkbenchHeader } from "./ResourceWorkbenchHeader";
 import { useSaveStatusStore } from "./saveStatusStore";
 import type { WorkspaceSelection } from "./WorkspacePage";
-
-const SpreadsheetResourceEditor = lazy(() =>
-  import("../../features/spreadsheet/SpreadsheetResourceEditor").then((module) => ({
-    default: module.SpreadsheetResourceEditor,
-  })),
-);
 
 export function ResourceWorkbench({
   resource,
@@ -44,6 +31,7 @@ export function ResourceWorkbench({
   const [details, setDetails] = useState<ResourceDetails | null>(null);
   const [canUpdate, setCanUpdate] = useState(false);
   const [canUpdateGeography, setCanUpdateGeography] = useState(false);
+  const [canUpdateSpreadsheet, setCanUpdateSpreadsheet] = useState(false);
   const [canRefreshLegalReference, setCanRefreshLegalReference] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
   const [refreshConflict, setRefreshConflict] = useState(false);
@@ -52,7 +40,9 @@ export function ResourceWorkbench({
   const [tags, setTags] = useState<string[]>(resource.tags);
   const [content, setContent] = useState(resource.kind === "text" ? resource.content : "");
   const [remoteUrl, setRemoteUrl] = useState(resource.kind === "remote" ? (resource.url ?? "") : "");
+  const [autosaveEnabled, setAutosaveEnabled] = useState(resource.autosaveEnabled);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const extendedViewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const setSaveStatus = useSaveStatusStore((state) => state.setStatus);
 
   const refreshDetails = useCallback(async () => {
@@ -62,6 +52,9 @@ export function ResourceWorkbench({
       setCanUpdate(Boolean(result.representation && findSirenAction(result.representation, "resource.update")));
       setCanUpdateGeography(
         Boolean(result.representation && findSirenAction(result.representation, "resource.update-geography")),
+      );
+      setCanUpdateSpreadsheet(
+        Boolean(result.representation && findSirenAction(result.representation, "resource.update-spreadsheet")),
       );
       setCanRefreshLegalReference(
         Boolean(result.representation && findSirenAction(result.representation, "resource.refresh-legal-reference")),
@@ -76,6 +69,10 @@ export function ResourceWorkbench({
     void refreshDetails();
   }, [refreshDetails]);
 
+  useEffect(() => {
+    setAutosaveEnabled(resource.autosaveEnabled);
+  }, [resource.autosaveEnabled]);
+
   const save = useCallback(
     (nextTitle = title) =>
       run(async () => {
@@ -86,6 +83,7 @@ export function ResourceWorkbench({
             title: nextTitle,
             folderPath: resource.folderPath,
             tags,
+            autosaveEnabled,
             ...(resource.kind === "text" ? { content } : {}),
             ...(resource.kind === "remote" ? { url: remoteUrl || null } : {}),
           });
@@ -101,6 +99,7 @@ export function ResourceWorkbench({
         }
       }),
     [
+      autosaveEnabled,
       content,
       onSelect,
       refreshDetails,
@@ -162,11 +161,15 @@ export function ResourceWorkbench({
     (resource.kind === "text" && content !== resource.content);
 
   useEffect(() => {
+    if (!autosaveEnabled) {
+      setSaveStatus("idle");
+      return;
+    }
     if (!dirty || !canUpdate || details?.snapshotted) return;
     setSaveStatus("dirty");
     const timer = window.setTimeout(() => void save(), 1000);
     return () => window.clearTimeout(timer);
-  }, [canUpdate, details?.snapshotted, dirty, save, setSaveStatus]);
+  }, [autosaveEnabled, canUpdate, details?.snapshotted, dirty, save, setSaveStatus]);
 
   useEffect(() => {
     setSaveStatus("idle");
@@ -188,102 +191,42 @@ export function ResourceWorkbench({
         tags={tags}
         onTagsChange={setTags}
         onSelect={onSelect}
+        onOpenExtended={() => setViewerOpen(true)}
+        extendedViewTriggerRef={extendedViewTriggerRef}
       />
 
       <div className="workbench-main">
         <section className="workbench-section" aria-labelledby="resource-info">
-          {resource.kind === "text" ? (
-            <div className="grid gap-1.5">
-              <Label>{t("resources.textContent")}</Label>
-              <MarkdownEditor
-                title={resource.title}
-                markdown={resource.kind === "text" ? resource.content : ""}
-                onChange={setContent}
-                mentionables={mentionables}
-                searchContext={resource.folderPath}
-                onUploadImage={
-                  canUploadImage
-                    ? (file) => uploadImage(file, { kind: "textResourceContent", id: resource.id })
-                    : undefined
-                }
-                readOnly={!canUpdate || Boolean(details?.snapshotted)}
-              />
-            </div>
-          ) : resource.kind === "remote" && resource.url ? (
-            <RemoteResourceEmbed resource={resource} />
-          ) : resource.kind === "remote" ? (
-            <form
-              className="remote-resource-setup"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (remoteUrl.trim()) void save();
-              }}
-            >
-              <div>
-                <h2>{t("workspace.remoteSetupTitle")}</h2>
-                <p>{t("workspace.remoteSetupDescription")}</p>
-              </div>
-              <Label htmlFor="remote-resource-url">{t("workspace.remoteUrl")}</Label>
-              <div className="remote-resource-setup-field">
-                <Input
-                  id="remote-resource-url"
-                  data-testid="remote-resource-url-input"
-                  type="url"
-                  value={remoteUrl}
-                  placeholder={t("workspace.remoteUrlPlaceholder")}
-                  onChange={(event) => setRemoteUrl(event.currentTarget.value)}
-                  required
-                />
-                <Button type="submit" disabled={submitting || !remoteUrl.trim()}>
-                  {t(submitting ? "common.saving" : "common.save")}
-                </Button>
-              </div>
-            </form>
-          ) : resource.kind === "document" ? (
-            <DocumentEmbed resource={resource} onOpenFull={() => setViewerOpen(true)} />
-          ) : resource.kind === "geographic" && details?.geography ? (
-            <GeographicResourceMap
-              resource={resource}
-              data={details.geography}
-              canUpdate={canUpdateGeography}
-              onError={setActionError}
-            />
-          ) : resource.kind === "geographic" ? (
-            <p>{t("geographic.loading")}</p>
-          ) : resource.kind === "spreadsheet" && details?.spreadsheet ? (
-            <Suspense fallback={<p>{t("spreadsheet.loading")}</p>}>
-              <SpreadsheetResourceEditor
-                resource={resource}
-                document={details.spreadsheet}
-                snapshotted={details.snapshotted}
-                onError={setActionError}
-              />
-            </Suspense>
-          ) : resource.kind === "spreadsheet" ? (
-            <p>{t("spreadsheet.loading")}</p>
-          ) : resource.kind === "legalReference" && resource.resolutionStatus === "draft" ? (
-            <LegalReferenceResolver
-              resource={resource}
-              onResolved={(resolved) => {
-                setTitle(resolved.title);
-                onSelect({ kind: "resource", id: resolved.id }, resolved.folderPath);
-                void refreshDetails();
-              }}
-            />
-          ) : resource.kind === "legalReference" &&
-            resource.resolutionStatus === "resolved" &&
-            details?.legalSnapshots ? (
-            <LegalReferenceResourceView
-              resource={resource}
-              snapshots={details.legalSnapshots}
-              canRefresh={canRefreshLegalReference}
-              refreshing={submitting}
-              refreshConflict={refreshConflict}
-              onRefresh={refreshLegalReference}
-            />
-          ) : resource.kind === "legalReference" ? (
-            <p>{t("legalReference.loading")}</p>
-          ) : null}
+          <ResourcePresentationBody
+            resource={resource}
+            details={details}
+            mode="edit"
+            layout="workbench"
+            capabilities={{
+              updateResource: canUpdate,
+              updateGeography: canUpdateGeography,
+              updateSpreadsheet: canUpdateSpreadsheet,
+              refreshLegalReference: canRefreshLegalReference,
+            }}
+            content={content}
+            remoteUrl={remoteUrl}
+            mentionables={mentionables}
+            canUploadImage={canUploadImage}
+            submitting={submitting}
+            refreshConflict={refreshConflict}
+            onContentChange={setContent}
+            onRemoteUrlChange={setRemoteUrl}
+            onRemoteSubmit={() => void save()}
+            onUploadImage={(file) => uploadImage(file, { kind: "textResourceContent", id: resource.id })}
+            onResolvedLegalReference={(resolved) => {
+              setTitle(resolved.title);
+              onSelect({ kind: "resource", id: resolved.id }, resolved.folderPath);
+              void refreshDetails();
+            }}
+            onRefreshLegalReference={refreshLegalReference}
+            onError={setActionError}
+            autosaveEnabled={autosaveEnabled}
+          />
           <div className="workbench-actions">
             {canDelete ? (
               <Button
@@ -301,11 +244,13 @@ export function ResourceWorkbench({
         </section>
       </div>
 
-      {resource.kind === "document" && viewerOpen ? (
-        <MeetingDocumentViewer
-          document={resource}
-          onClose={() => setViewerOpen(false)}
-          onDownload={(document) => void resourcesStore.download(document)}
+      {viewerOpen ? (
+        <ResourcePreview
+          resourceId={resource.id}
+          onClose={() => {
+            setViewerOpen(false);
+            window.requestAnimationFrame(() => extendedViewTriggerRef.current?.focus({ preventScroll: true }));
+          }}
         />
       ) : null}
     </div>

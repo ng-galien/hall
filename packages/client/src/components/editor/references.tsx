@@ -1,30 +1,44 @@
-import { imageWidthRange, isReferenceKind, type ReferenceKind } from "@hall/templating";
+import { imageWidthRange, isReferenceKind, type ReferenceKind, type ResourcePresentationKind } from "@hall/templating";
 import { Extension, mergeAttributes, Node } from "@tiptap/core";
 import { type NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from "@tiptap/react";
 import { exitSuggestion, Suggestion, type SuggestionProps } from "@tiptap/suggestion";
-import { createContext, forwardRef, type ReactNode, useContext, useImperativeHandle, useState } from "react";
+import { createContext, forwardRef, type ReactNode, useContext, useImperativeHandle, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type Searchable, searchEntities } from "../../lib/search";
 import { CalendarIcon, FileIcon, GavelIcon, MemberIcon, SearchIcon, TextDocumentIcon } from "../icons";
 
 type ResourcePreviewRenderer = (id: string, onClose: () => void) => ReactNode;
+export type ResourceReferenceAppearance = { tone: string; icon: ReactNode; glyph: ReactNode; tooltip: string };
 
-const ResourcePreviewContext = createContext<ResourcePreviewRenderer | null>(null);
+const ResourcePreviewContext = createContext<{
+  renderResourcePreview: ResourcePreviewRenderer;
+  resourceAppearance(id: string): ResourceReferenceAppearance | null;
+} | null>(null);
 
 export function useResourcePreviewRenderer() {
-  return useContext(ResourcePreviewContext);
+  return useContext(ResourcePreviewContext)?.renderResourcePreview ?? null;
+}
+
+export function useResourceAppearance(id: string): ResourceReferenceAppearance | null {
+  return useContext(ResourcePreviewContext)?.resourceAppearance(id) ?? null;
 }
 
 /** Supplies the resource preview renderer used by reference badges. */
 export function ReferencePresentationProvider({
   renderResourcePreview,
+  resourceAppearance,
   children,
 }: {
   renderResourcePreview: ResourcePreviewRenderer;
+  resourceAppearance(id: string): ResourceReferenceAppearance | null;
   children: ReactNode;
 }) {
-  return <ResourcePreviewContext.Provider value={renderResourcePreview}>{children}</ResourcePreviewContext.Provider>;
+  return (
+    <ResourcePreviewContext.Provider value={{ renderResourcePreview, resourceAppearance }}>
+      {children}
+    </ResourcePreviewContext.Provider>
+  );
 }
 
 export const referenceIcons: Record<ReferenceKind, typeof MemberIcon> = {
@@ -47,7 +61,10 @@ export function ReferenceBadge({
 }) {
   const { t } = useI18n();
   const [previewing, setPreviewing] = useState(false);
-  const renderResourcePreview = useContext(ResourcePreviewContext);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const scrollRef = useRef({ x: 0, y: 0 });
+  const presentation = useContext(ResourcePreviewContext);
+  const appearance = kind === "resource" && id ? presentation?.resourceAppearance(id) : null;
   const kindLabels: Record<ReferenceKind, string> = {
     member: t("editor.kind.member"),
     resource: t("editor.kind.resource"),
@@ -55,26 +72,49 @@ export function ReferenceBadge({
     meeting: t("editor.kind.meeting"),
     decision: t("editor.kind.decision"),
   };
-  const openable = kind === "resource" && id !== null && renderResourcePreview !== null;
-  const className = `editor-reference editor-reference-${kind}`;
+  const openable = kind === "resource" && id !== null && presentation !== null;
+  const className = `editor-reference editor-reference-${kind}${appearance ? ` editor-reference-tone-${appearance.tone}` : ""}`;
+  const content = (
+    <>
+      {appearance?.icon}
+      {children}
+    </>
+  );
   return (
     <>
       <Tooltip>
         <TooltipTrigger asChild>
           {openable ? (
-            <button type="button" className={`${className} is-openable`} onClick={() => setPreviewing(true)}>
-              {children}
+            <button
+              ref={triggerRef}
+              type="button"
+              className={`${className} is-openable`}
+              data-testid={`editor-resource-reference-${id}`}
+              onClick={() => {
+                scrollRef.current = { x: window.scrollX, y: window.scrollY };
+                setPreviewing(true);
+              }}
+            >
+              {content}
             </button>
           ) : (
-            <span className={className}>{children}</span>
+            <span className={className}>{content}</span>
           )}
         </TooltipTrigger>
         <TooltipContent>
-          {kindLabels[kind]}
+          {appearance?.tooltip ?? kindLabels[kind]}
           {openable ? ` · ${t("editor.openHint")}` : null}
         </TooltipContent>
       </Tooltip>
-      {previewing && id !== null ? renderResourcePreview?.(id, () => setPreviewing(false)) : null}
+      {previewing && id !== null
+        ? presentation?.renderResourcePreview(id, () => {
+            setPreviewing(false);
+            window.requestAnimationFrame(() => {
+              triggerRef.current?.focus({ preventScroll: true });
+              window.scrollTo(scrollRef.current.x, scrollRef.current.y);
+            });
+          })
+        : null}
     </>
   );
 }
@@ -161,6 +201,8 @@ export const Reference = Node.create({
 export interface Mentionable extends Searchable {
   icon?: typeof MemberIcon;
   metaLabel?: string;
+  /** Recommended block representation when this resource can be included. */
+  resourcePresentation?: ResourcePresentationKind;
 }
 
 /** Returns the item icon, falling back to the icon for its reference kind. */

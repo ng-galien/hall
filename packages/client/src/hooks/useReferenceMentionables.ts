@@ -10,6 +10,15 @@ import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { useResourcesStore } from "../stores/resourcesStore";
 
+function resourcePresentation(resource: ReturnType<typeof useResourcesStore.getState>["resources"][number]) {
+  if (resource.kind === "text") return undefined;
+  if (resource.kind === "spreadsheet") return "table" as const;
+  if (resource.kind === "remote") return undefined;
+  if (resource.kind === "geographic") return "map" as const;
+  if (resource.kind === "legalReference") return "legal-citation" as const;
+  return resourceTone(resource) === "image" ? ("image" as const) : undefined;
+}
+
 /** Mentionable entities for the editor `@` search; each carries the immutable entity id, never the slug. */
 export function useReferenceMentionables(): Mentionable[] {
   const { t, formatDate } = useI18n();
@@ -37,6 +46,7 @@ export function useReferenceMentionables(): Mentionable[] {
             : resource.title,
           folderPath: resource.folderPath,
           media: isImage ? ("image" as const) : undefined,
+          resourcePresentation: resourcePresentation(resource),
           icon: toneIcons[tone],
           metaLabel: isImage ? `${t(toneLabelKeys[tone])} · ${resource.format.toUpperCase()}` : t(toneLabelKeys[tone]),
           extra: resource.kind === "document" ? [resource.fileName, resource.format] : [],

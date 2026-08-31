@@ -11,7 +11,10 @@ body { margin: 0; }
 h1, h2, h3 { break-after: avoid; }
 p, li { orphans: 3; widows: 3; }
 table { width: 100%; border-collapse: collapse; }
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
 th, td { padding: 0.35rem 0.5rem; border: 1px solid #73777f; vertical-align: top; }
+blockquote { break-inside: avoid; margin-inline: 0; padding-inline-start: 1rem; border-inline-start: 3px solid #73777f; }
 img { max-width: 100%; height: auto; }
 .hall-template-image { display: block; }
 .hall-template-image-left { margin-inline: 0 auto; }

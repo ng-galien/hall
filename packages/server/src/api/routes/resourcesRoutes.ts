@@ -283,8 +283,13 @@ export function createResourcesRouter({
   });
 
   router.get("/:resourceId/preview", requirePermission("workspace.read"), async (request, response) => {
-    const preview = await documentPreviewService.get(routeParameter(request.params.resourceId));
-    response.setHeader("Content-Type", "application/pdf");
+    const resourceId = routeParameter(request.params.resourceId);
+    const resource = await resourceService.find(resourceId);
+    if (!resource) throw new DomainError("resource_not_found", 404);
+    if (resource.kind !== "document") throw new DomainError("resource_preview_unavailable", 409);
+    const native = ["pdf", "jpeg", "png"].includes(resource.format);
+    const preview = native ? resource : await documentPreviewService.get(resourceId);
+    response.setHeader("Content-Type", native ? resource.mediaType : "application/pdf");
     response.setHeader("Content-Disposition", "inline");
     response.setHeader("Content-Length", String(preview.byteSize));
     response.setHeader("ETag", `"${preview.contentSha256}"`);

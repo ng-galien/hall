@@ -1,0 +1,38 @@
+.spreadsheet-editor {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-medium);
+  background: var(--hall-color-surface);
+}
+
+.spreadsheet-grid-slot,
+.spreadsheet-grid {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.spreadsheet-grid.univer-spreadsheet,
+.univer-spreadsheet-instance {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.spreadsheet-save-error {
+  position: absolute;
+  z-index: var(--hall-z-editor-popup);
+  top: var(--hall-space-2);
+  right: var(--hall-space-2);
+}

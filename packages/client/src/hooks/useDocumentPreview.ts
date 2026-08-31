@@ -25,7 +25,7 @@ export function useDocumentPreview(resource: DocumentResource | null) {
     void loadResourcePreviewObjectUrl(request.resourceId)
       .then((preview) => {
         if (!active) {
-          URL.revokeObjectURL(preview.url);
+          if (preview.url.startsWith("blob:")) URL.revokeObjectURL(preview.url);
           return;
         }
         loadedUrl = preview.url;
@@ -37,7 +37,7 @@ export function useDocumentPreview(resource: DocumentResource | null) {
       });
     return () => {
       active = false;
-      if (loadedUrl) URL.revokeObjectURL(loadedUrl);
+      if (loadedUrl?.startsWith("blob:")) URL.revokeObjectURL(loadedUrl);
     };
   }, [request]);
 

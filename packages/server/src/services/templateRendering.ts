@@ -1,4 +1,11 @@
-import type { ContentTemplate, HallSettings, TemplateRenderContext } from "@hall/domain";
+import type {
+  ContentTemplate,
+  HallSettings,
+  JsonObject,
+  JsonValue,
+  SpreadsheetDocument,
+  TemplateRenderContext,
+} from "@hall/domain";
 import {
   baseRenderStylesheet,
   collectDirectives,
@@ -31,6 +38,8 @@ type AstNode = {
   children?: AstNode[];
 };
 
+type TemplateDirective = ReturnType<typeof collectDirectives>[number];
+
 export interface TemplatePreview {
   html: string;
   /** HTML without preview-only header/footer; used as Chromium's printable page body. */
@@ -62,6 +71,364 @@ function diagnostic(
       id: directive.attributes.id,
       position: directive.position,
     },
+  };
+}
+
+function textNode(value: string): AstNode {
+  return { type: "text", value };
+}
+
+function paragraph(children: AstNode[]): AstNode {
+  return { type: "paragraph", children };
+}
+
+function fallbackPresentation(directive: TemplateDirective, detail?: string): AstNode {
+  return paragraph([textNode(detail ? `${directive.label} - ${detail}` : directive.label)]);
+}
+
+function resourceDiagnostic(
+  code: "unresolved_reference" | "incompatible_resource" | "resource_representation_unavailable",
+  message: string,
+  directive: TemplateDirective,
+): Diagnostic {
+  return diagnostic(code, message, directive);
+}
+
+function documentLabel(format: string): string {
+  if (format === "pdf") return "Document PDF";
+  return `Document ${format.toUpperCase()}`;
+}
+
+function parseA1Range(
+  value: string,
+): { startRow: number; startColumn: number; endRow: number; endColumn: number } | null {
+  const match = /^\$?([A-Z]{1,3})\$?([1-9]\d*):\$?([A-Z]{1,3})\$?([1-9]\d*)$/i.exec(value);
+  if (!match) return null;
+  const column = (label: string) => {
+    let result = 0;
+    for (const character of label.toUpperCase()) result = result * 26 + character.charCodeAt(0) - 64;
+    return result - 1;
+  };
+  const range = {
+    startRow: Number(match[2]) - 1,
+    startColumn: column(match[1]),
+    endRow: Number(match[4]) - 1,
+    endColumn: column(match[3]),
+  };
+  return range.startRow <= range.endRow && range.startColumn <= range.endColumn ? range : null;
+}
+
+function objectValue(value: JsonValue | undefined): JsonObject | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+
+function stringValue(value: JsonValue | undefined): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function numberValue(value: JsonValue | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function spreadsheetCellValue(cell: JsonObject): JsonValue | undefined {
+  return cell.v;
+}
+
+function decimalPlaces(pattern: string): number {
+  const match = /\.(0+)/.exec(pattern);
+  return match?.[1].length ?? 0;
+}
+
+function formattedSpreadsheetValue(cell: JsonObject): string | null {
+  const value = spreadsheetCellValue(cell);
+  if (value === undefined || value === null) return cell.f ? null : "";
+  if (typeof value === "boolean") return value ? "VRAI" : "FAUX";
+  if (typeof value === "string") return value;
+  if (typeof value !== "number") return JSON.stringify(value);
+  const style = objectValue(cell.s);
+  const numberFormat = objectValue(style?.n);
+  const pattern = stringValue(numberFormat?.pattern) ?? "";
+  const digits = decimalPlaces(pattern);
+  if (pattern.includes("%")) {
+    return new Intl.NumberFormat("fr-FR", {
+      style: "percent",
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }).format(value);
+  }
+  if (pattern.includes("€")) {
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }).format(value);
+  }
+  if (/[dmy]/i.test(pattern)) {
+    const date = new Date((value - 25_569) * 86_400_000);
+    if (Number.isFinite(date.getTime())) return new Intl.DateTimeFormat("fr-FR").format(date);
+  }
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 20 }).format(value);
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function spreadsheetCellStyle(cell: JsonObject): string {
+  const style = objectValue(cell.s);
+  if (!style) return "";
+  const declarations: string[] = [];
+  if (style.bl === 1) declarations.push("font-weight: bold");
+  if (style.it === 1) declarations.push("font-style: italic");
+  const foreground = stringValue(objectValue(style.cl)?.rgb);
+  const background = stringValue(objectValue(style.bg)?.rgb);
+  if (foreground && /^#[0-9a-f]{6}$/i.test(foreground)) declarations.push(`color: ${foreground}`);
+  if (background && /^#[0-9a-f]{6}$/i.test(background)) declarations.push(`background-color: ${background}`);
+  if (style.ht === 2) declarations.push("text-align: center");
+  if (style.ht === 3) declarations.push("text-align: right");
+  return declarations.length ? ` style="${declarations.join("; ")}"` : "";
+}
+
+function spreadsheetTable(
+  document: SpreadsheetDocument,
+  sheetId: string,
+  rangeLabel: string,
+): { node: AstNode | null; error: string | null } {
+  const workbook = document.workbook;
+  const sheets = objectValue(workbook.sheets);
+  const sheet = sheets ? objectValue(sheets[sheetId]) : null;
+  const range = parseA1Range(rangeLabel);
+  if (!sheet) return { node: null, error: `Spreadsheet sheet not found: ${sheetId}` };
+  if (!range) return { node: null, error: `Invalid spreadsheet range: ${rangeLabel}` };
+  const rowCount = numberValue(sheet.rowCount) ?? 0;
+  const columnCount = numberValue(sheet.columnCount) ?? 0;
+  if (range.endRow >= rowCount || range.endColumn >= columnCount) {
+    return { node: null, error: `Spreadsheet range ${rangeLabel} exceeds sheet bounds` };
+  }
+  const selectedRows = range.endRow - range.startRow + 1;
+  const selectedColumns = range.endColumn - range.startColumn + 1;
+  if (selectedColumns > 50 || selectedRows * selectedColumns > 10_000) {
+    return { node: null, error: `Spreadsheet range ${rangeLabel} is too large for a readable PDF` };
+  }
+  const cellData = objectValue(sheet.cellData) ?? {};
+  const renderedRows: string[] = [];
+  for (let rowIndex = range.startRow; rowIndex <= range.endRow; rowIndex += 1) {
+    const row = objectValue(cellData[String(rowIndex)]) ?? {};
+    const cells: string[] = [];
+    for (let columnIndex = range.startColumn; columnIndex <= range.endColumn; columnIndex += 1) {
+      const cell = objectValue(row[String(columnIndex)]) ?? {};
+      const value = formattedSpreadsheetValue(cell);
+      if (value === null) {
+        return {
+          node: null,
+          error: `Spreadsheet range ${rangeLabel} contains a formula without a persisted calculated value`,
+        };
+      }
+      const tag = rowIndex === range.startRow ? "th" : "td";
+      cells.push(`<${tag}${spreadsheetCellStyle(cell)}>${escapeHtml(value)}</${tag}>`);
+    }
+    renderedRows.push(`<tr>${cells.join("")}</tr>`);
+  }
+  const name = stringValue(sheet.name) ?? sheetId;
+  const first = renderedRows.shift() ?? "";
+  const html = [
+    `<p><strong>${escapeHtml(name)}</strong> - ${escapeHtml(rangeLabel.toUpperCase())}</p>`,
+    `<table><thead>${first}</thead><tbody>${renderedRows.join("")}</tbody></table>`,
+  ].join("");
+  return { node: { type: "html", value: html }, error: null };
+}
+
+async function renderResourceEmbed(
+  directive: TemplateDirective,
+  resourceRepository: ResourceRepository,
+): Promise<{ node: AstNode; diagnostics: Diagnostic[] }> {
+  const id = directive.attributes.id;
+  if (!id) return { node: fallbackPresentation(directive), diagnostics: [] };
+  const resource = await resourceRepository.find(id);
+  if (!resource) {
+    return {
+      node: fallbackPresentation(directive, "ressource introuvable"),
+      diagnostics: [resourceDiagnostic("unresolved_reference", `Resource presentation not found: ${id}`, directive)],
+    };
+  }
+  const presentation = directive.attributes.presentation;
+  const incompatible = (expected: string) => ({
+    node: fallbackPresentation(directive, "présentation incompatible"),
+    diagnostics: [
+      resourceDiagnostic(
+        "incompatible_resource",
+        `The "${presentation}" presentation requires ${expected}; resource ${id} is ${resource.kind}`,
+        directive,
+      ),
+    ],
+  });
+
+  if (presentation === "image") {
+    if (resource.kind !== "document" || !["image/jpeg", "image/png"].includes(resource.mediaType)) {
+      return incompatible("a JPEG or PNG DocumentResource");
+    }
+    const align = directive.attributes.align === "left" ? "left" : "center";
+    const requestedWidth = Number(directive.attributes.width);
+    const width =
+      Number.isInteger(requestedWidth) && requestedWidth >= 25 && requestedWidth <= 100 ? requestedWidth : 100;
+    return {
+      node: {
+        type: "image",
+        url: `data:${resource.mediaType};base64,${resource.content.toString("base64")}`,
+        alt: directive.label || resource.title,
+        data: {
+          hProperties: {
+            className: ["hall-template-image", `hall-template-image-${align}`],
+            style: `width:${width}%`,
+          },
+        },
+      },
+      diagnostics: [],
+    };
+  }
+
+  if (presentation === "document") {
+    if (resource.kind !== "document") return incompatible("a DocumentResource");
+    return {
+      node: paragraph([
+        { type: "strong", children: [textNode(resource.title)] },
+        textNode(` (${documentLabel(resource.format)})`),
+      ]),
+      diagnostics: [],
+    };
+  }
+
+  if (presentation === "link") {
+    if (resource.kind !== "remote") return incompatible("a RemoteResource");
+    if (!resource.url) {
+      return {
+        node: fallbackPresentation(directive, "URL indisponible"),
+        diagnostics: [
+          resourceDiagnostic(
+            "resource_representation_unavailable",
+            `Remote resource ${id} has no persisted URL`,
+            directive,
+          ),
+        ],
+      };
+    }
+    return {
+      node: paragraph([
+        { type: "strong", children: [textNode(resource.title)] },
+        textNode(": "),
+        { type: "link", url: resource.url, children: [textNode(resource.url)] },
+      ]),
+      diagnostics: [],
+    };
+  }
+
+  if (presentation === "legal-citation") {
+    if (resource.kind !== "legalReference") return incompatible("a LegalReferenceResource");
+    if (resource.resolutionStatus !== "resolved") {
+      return {
+        node: fallbackPresentation(directive, "référence juridique non résolue"),
+        diagnostics: [
+          resourceDiagnostic(
+            "resource_representation_unavailable",
+            `Legal reference ${id} has no authoritative snapshot`,
+            directive,
+          ),
+        ],
+      };
+    }
+    const snapshots = await resourceRepository.listLegalReferenceSnapshots(id);
+    const snapshot = snapshots.find((candidate) => candidate.snapshotHash === resource.snapshotHash) ?? null;
+    if (!snapshot) {
+      return {
+        node: fallbackPresentation(directive, "snapshot juridique indisponible"),
+        diagnostics: [
+          resourceDiagnostic(
+            "resource_representation_unavailable",
+            `Legal reference ${id} snapshot ${resource.snapshotHash} is unavailable`,
+            directive,
+          ),
+        ],
+      };
+    }
+    const versionDate = snapshot.effectiveAt ?? snapshot.validFrom ?? snapshot.fetchedAt.slice(0, 10);
+    return {
+      node: {
+        type: "blockquote",
+        children: [
+          paragraph([{ type: "strong", children: [textNode(resource.citationLabel)] }]),
+          paragraph([textNode(snapshot.normalizedContent)]),
+          paragraph([
+            textNode(
+              `Statut : ${snapshot.legalStatus}. Version : ${versionDate}. Source consultée le ${snapshot.fetchedAt.slice(0, 10)} : `,
+            ),
+            { type: "link", url: resource.sourceUrl, children: [textNode(resource.sourceUrl)] },
+          ]),
+          paragraph([textNode(resource.attribution)]),
+        ],
+      },
+      diagnostics: [],
+    };
+  }
+
+  if (presentation === "map") {
+    if (resource.kind !== "geographic") return incompatible("a GeographicResource");
+    const geography = await resourceRepository.findGeographicData(id);
+    const detail = geography
+      ? `${geography.provenance.attribution}; image statique indisponible`
+      : "données cartographiques indisponibles";
+    return {
+      node: fallbackPresentation(directive, detail),
+      diagnostics: [
+        resourceDiagnostic(
+          "resource_representation_unavailable",
+          `Geographic resource ${id} has no persisted authoritative PNG representation`,
+          directive,
+        ),
+      ],
+    };
+  }
+
+  if (presentation === "table") {
+    if (resource.kind !== "spreadsheet") return incompatible("a SpreadsheetResource");
+    const document = await resourceRepository.findSpreadsheetDocument(id);
+    if (!document) {
+      return {
+        node: fallbackPresentation(directive, "snapshot du tableur indisponible"),
+        diagnostics: [
+          resourceDiagnostic(
+            "resource_representation_unavailable",
+            `Spreadsheet resource ${id} has no persisted snapshot`,
+            directive,
+          ),
+        ],
+      };
+    }
+    const rendered = spreadsheetTable(document, directive.attributes.sheet ?? "", directive.attributes.range ?? "");
+    if (!rendered.node) {
+      return {
+        node: fallbackPresentation(directive, "plage du tableur indisponible"),
+        diagnostics: [
+          resourceDiagnostic(
+            "resource_representation_unavailable",
+            rendered.error ?? `Spreadsheet resource ${id} cannot render the requested range`,
+            directive,
+          ),
+        ],
+      };
+    }
+    return { node: rendered.node, diagnostics: [] };
+  }
+
+  return {
+    node: fallbackPresentation(directive, "présentation inconnue"),
+    diagnostics: [
+      resourceDiagnostic(
+        "resource_representation_unavailable",
+        `Resource ${id} has no renderable presentation named "${presentation}"`,
+        directive,
+      ),
+    ],
   };
 }
 
@@ -163,6 +530,12 @@ export function createTemplateRenderingService({
     const values = new Map<string, AstNode>();
     for (const directive of collectDirectives(tree)) {
       const key = `${directive.name}:${directive.occurrence}`;
+      if (directive.name === "resource-embed") {
+        const rendered = await renderResourceEmbed(directive, resourceRepository);
+        values.set(key, rendered.node);
+        diagnostics.push(...rendered.diagnostics);
+        continue;
+      }
       if (directive.name === "image") {
         const id = directive.attributes.id;
         const resource = id ? await resourceRepository.find(id) : null;

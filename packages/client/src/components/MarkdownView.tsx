@@ -1,4 +1,11 @@
-import { isImageAlignment, isImageDirective, isImageWidth, isReferenceKind } from "@hall/templating";
+import {
+  isImageAlignment,
+  isImageDirective,
+  isImageWidth,
+  isReferenceKind,
+  isResourceEmbedDirective,
+  isResourcePresentationKind,
+} from "@hall/templating";
 import type { Root } from "mdast";
 import type { ComponentProps } from "react";
 import ReactMarkdown from "react-markdown";
@@ -8,6 +15,7 @@ import remarkGfm from "remark-gfm";
 import { visit } from "unist-util-visit";
 import { ResourceImageFigure } from "./editor/images";
 import { ReferenceBadge } from "./editor/references";
+import { ResourceEmbedReadView } from "./editor/resourceEmbeds";
 
 const allowedElements = [
   "p",
@@ -53,6 +61,28 @@ function remarkReferences() {
       };
     });
     visit(tree, "leafDirective", (node) => {
+      if (isResourceEmbedDirective(node.name)) {
+        const id = node.attributes?.id;
+        const presentation = node.attributes?.presentation;
+        if (!id || typeof presentation !== "string" || !isResourcePresentationKind(presentation)) return;
+        const label = node.children
+          .flatMap((child) => (child.type === "text" ? [child.value] : []))
+          .join("")
+          .trim();
+        node.data = {
+          hName: "figure",
+          hProperties: {
+            "data-resource-embed": id,
+            "data-resource-label": label,
+            "data-resource-presentation": presentation,
+            "data-resource-align": node.attributes?.align,
+            "data-resource-width": node.attributes?.width,
+            "data-resource-sheet": node.attributes?.sheet,
+            "data-resource-range": node.attributes?.range,
+          },
+        };
+        return;
+      }
       if (!isImageDirective(node.name)) return;
       const id = node.attributes?.id;
       const align = node.attributes?.align;
@@ -92,6 +122,27 @@ function ReferenceSpan({ node, children, ...props }: ComponentProps<"span"> & { 
 
 function ImageFigure({ node, ...props }: ComponentProps<"figure"> & { node?: unknown }) {
   const raw = props as Record<string, unknown>;
+  const resourceId = raw["data-resource-embed"];
+  const presentation = raw["data-resource-presentation"];
+  if (typeof resourceId === "string" && typeof presentation === "string" && isResourcePresentationKind(presentation)) {
+    const rawAlign = raw["data-resource-align"];
+    const rawWidth = raw["data-resource-width"];
+    const align = typeof rawAlign === "string" && isImageAlignment(rawAlign) ? rawAlign : undefined;
+    const width = typeof rawWidth === "string" && isImageWidth(rawWidth) ? Number(rawWidth) : undefined;
+    return (
+      <ResourceEmbedReadView
+        attributes={{
+          id: resourceId,
+          label: typeof raw["data-resource-label"] === "string" ? raw["data-resource-label"] : "",
+          presentation,
+          ...(align ? { align } : {}),
+          ...(width ? { width } : {}),
+          ...(typeof raw["data-resource-sheet"] === "string" ? { sheet: raw["data-resource-sheet"] } : {}),
+          ...(typeof raw["data-resource-range"] === "string" ? { range: raw["data-resource-range"] } : {}),
+        }}
+      />
+    );
+  }
   const id = raw["data-resource-image"];
   const alt = raw["data-image-alt"];
   const align = raw["data-image-align"];

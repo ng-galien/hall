@@ -1,15 +1,14 @@
 import { findSirenAction } from "@hall/api-contract";
-import { apiPathFromHref, apiResponse, SirenCapabilityUnavailable, sirenRepresentation } from "./apiClient";
+import { apiPathFromHref, apiRequest, SirenCapabilityUnavailable, sirenRepresentation } from "./apiClient";
 
-/** Renders ad hoc Markdown to a PDF blob through the Siren template preview action. */
-export async function previewTemplatePdf(bodyMarkdown: string): Promise<Blob> {
+/** Renders ad hoc Markdown and returns a navigable URL for the native PDF viewer. */
+export async function previewTemplatePdf(bodyMarkdown: string): Promise<string> {
   const representation = await sirenRepresentation("/templates");
   const action = findSirenAction(representation, "template.preview-pdf");
   if (!action) throw new SirenCapabilityUnavailable("template.preview-pdf");
-  const response = await apiResponse(apiPathFromHref(action.href), {
+  const preview = await apiRequest<{ url: string }>(`${apiPathFromHref(action.href)}?delivery=url`, {
     method: action.method,
-    headers: { Accept: "application/pdf" },
     body: JSON.stringify({ bodyMarkdown }),
   });
-  return response.blob();
+  return preview.url;
 }

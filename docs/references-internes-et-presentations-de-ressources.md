@@ -4,6 +4,8 @@
 
 Cette note fixe la direction fonctionnelle et les frontières d'architecture retenues pour intégrer les ressources Hall dans les contenus riches. Elle prépare un chantier ultérieur ; elle ne décrit pas une fonction déjà complètement implémentée.
 
+La spec comportementale normative est [`editeur-riche-references-ressources-spec.md`](editeur-riche-references-ressources-spec.md). Elle décrit l’ergonomie cible en édition, en lecture et à l’impression.
+
 Le mot « snippet » est employé dans les échanges pour parler d'un élément inséré dans une note. Dans le code, il faut distinguer une référence, une présentation de ressource et un actif appartenant au contenu. Ne pas introduire un type métier générique `Snippet` qui confondrait ces responsabilités.
 
 ## Contenus concernés
@@ -59,7 +61,7 @@ Une représentation figée est l'artefact produit pour un export ou un document 
 ## Décisions fonctionnelles
 
 1. Hall conserve au maximum les références internes. Une inclusion visuelle reste une référence à une ressource Hall.
-2. La référence inline et l'inclusion en bloc sont deux choix explicites proposés après la sélection d'une ressource.
+2. La référence inline et l'inclusion en bloc sont deux choix explicites et convertibles. `@` cite rapidement ; la commande d’inclusion crée un bloc riche.
 3. Le contenu d'une ressource durable n'est pas recopié dans le Markdown de la note.
 4. Une présentation en cours de rédaction suit la version courante de la ressource.
 5. Un export formel ou une occurrence figée doit être reproductible à partir d'une version, d'une empreinte ou d'une représentation immuable.
@@ -78,7 +80,7 @@ Une représentation figée est l'artefact produit pour un export ou un document 
 - Le rendu serveur des modèles remplace actuellement une référence de ressource par son titre ; il ne produit pas une inclusion riche.
 - `rich_text_resource_references` conserve la relation entre le propriétaire du contenu et la ressource. Cette relation protège notamment la suppression, mais ne porte ni présentation ni version.
 - Le snapshot actuel d'un point à l'ordre du jour conserve l'association aux ressources, pas une copie versionnée de tous leurs contenus.
-- La ressource tableur est en cours d'implémentation dans le workspace et ne doit pas être considérée comme acquise avant ses vérifications finales.
+- La ressource tableur est éditable et persistée dans le workspace ; son aperçu et son inclusion dans un contenu riche restent à construire.
 
 ## Frontières des packages partagés
 
@@ -120,6 +122,7 @@ Une ressource peut annoncer, selon son état et les permissions :
 - la consultation de sa référence ;
 - les présentations qu'elle permet ;
 - la lecture de ses données de présentation ;
+- la modification de son contenu dans son éditeur propre ;
 - l'accès à une représentation statique ou imprimable.
 
 ### Serveur
@@ -141,19 +144,24 @@ Le serveur ne doit pas charger une page web distante pour fabriquer un aperçu. 
 Le client reste responsable de l'interaction :
 
 - rechercher et sélectionner une ressource ;
-- proposer « Référencer » ou « Inclure » selon les capacités Siren ;
+- appliquer l’intention choisie par le point d’entrée et permettre ensuite de convertir « Référencer » en « Inclure » selon les capacités Siren ;
 - recueillir une plage, un cadrage ou une autre option bornée ;
-- afficher la présentation interactive ou en lecture seule ;
-- permettre l'ouverture de la ressource source.
+- afficher la ressource dans une modal commune, d’abord en lecture ;
+- activer son éditeur propre dans cette même modal lorsque l’action Siren de modification existe ;
+- restituer le scroll, la sélection et le focus du contenu à la fermeture, sans changer de route.
 
 Les composants techniques de `packages/client/src/components/editor` restent agnostiques du domaine. Ils reçoivent les présentations et actions par propriétés ou providers. Les composants propres aux cartes, références juridiques et tableurs restent dans leurs features.
+
+Le corps de présentation de chaque ressource est partagé entre le Workspace et la modal. Ces deux surfaces ne sont que des enveloppes ; elles ne doivent pas maintenir deux viewers ou deux éditeurs divergents pour une même ressource.
 
 ## Présentation attendue par type de ressource
 
 | Type de ressource | Dans Hall | Dans un export PDF |
 | --- | --- | --- |
-| `TextResource` | Référence ou extrait/contenu en bloc | Markdown rendu ; profondeur bornée et cycles refusés |
-| `DocumentResource` | Carte, aperçu et ouverture | Carte documentaire ; ajout du PDF en annexe seulement sur choix explicite |
+| `TextResource` | Référence ; lecture ou édition du texte dans la modal commune | Titre de la ressource |
+| `DocumentResource` image | Image inline et aperçu agrandi | Image embarquée |
+| `DocumentResource` PDF | Lien ou carte et viewer PDF | Titre ; ajout des pages en annexe seulement sur choix explicite |
+| Autre `DocumentResource` | Lien titré et téléchargement ; ce n’est pas une nouvelle nature de ressource | Titre et format |
 | `RemoteResource` | Carte et ouverture de l'URL | Titre, domaine et URL ; aucun iframe et aucun chargement distant |
 | `LegalReferenceResource` | Citation, état, extrait officiel et ouverture | Snapshot juridique, source, date et attribution |
 | `GeographicResource` | Carte liée à la ressource | PNG figé avec cadrage, empreinte et attribution, sans réseau au rendu final |
@@ -183,11 +191,11 @@ Une ressource juridique doit pointer le snapshot juridique utilisé. Une carte d
 
 ## Parcours IHM cible
 
-1. L'utilisateur ouvre la recherche de références existante.
-2. Il sélectionne une ressource interne.
-3. Hall propose « Référencer » et, lorsque le serveur l'autorise, « Inclure ».
-4. Pour une inclusion, Hall demande uniquement les options utiles au type de ressource.
-5. L'éditeur insère un bloc portant l'identifiant interne et les options validées.
+1. Pour citer, l’utilisateur tape `@` ou ouvre la recherche de références, puis sélectionne une entité. Hall insère immédiatement une référence inline.
+2. Pour présenter une ressource, il active `Inclure une ressource`, puis utilise la même recherche filtrée sur les présentations disponibles.
+3. Pour une inclusion, Hall demande uniquement les options utiles au type de ressource.
+4. L'éditeur insère un bloc portant l'identifiant interne et les options validées.
+5. Une référence et une inclusion restent convertibles sans rechercher à nouveau la source.
 6. Le bloc affiche le titre, le type, son état et une action d'ouverture sans dupliquer les informations déjà propriétaires ailleurs.
 7. En cas d'échec de résolution, le contenu Markdown reste conservé et le bloc affiche une erreur exploitable.
 
@@ -195,15 +203,14 @@ Tous les contrôles fonctionnels introduits dans ce parcours doivent posséder u
 
 ## Ordre de réalisation recommandé
 
-1. Étendre l'aperçu de référence pour couvrir toutes les ressources existantes en lecture seule.
-2. Stabiliser dans `@hall/templating` le contrat d'une présentation en bloc.
-3. Étendre la collecte des références et la protection contre la suppression aux nouvelles directives.
-4. Créer côté serveur un registre de renderers par type de ressource.
-5. Ajouter le node Tiptap technique et son provider de présentation.
-6. Implémenter d'abord les cartes documentaires, ressources web et références juridiques.
-7. Ajouter la représentation PNG des cartes.
-8. Ajouter la sélection et le rendu d'une plage de tableur.
-9. Construire l'export PDF autoritaire des notes avec son manifeste de versions et d'empreintes.
+1. Extraire de chaque Workbench un corps de ressource réutilisable en lecture ou en édition.
+2. Faire de `ResourcePreview` la modal commune qui héberge ces mêmes corps sans changer de route.
+3. Stabiliser dans `@hall/templating` le contrat d'une présentation en bloc.
+4. Étendre la collecte des références et la protection contre la suppression aux nouvelles directives.
+5. Créer côté serveur un registre de renderers par type de ressource.
+6. Ajouter le node Tiptap technique et son provider de présentation.
+7. Ajouter la représentation PNG des cartes et le tableau HTML des plages de tableur.
+8. Construire l'export PDF autoritaire des notes avec son manifeste de versions et d'empreintes.
 
 ## Hors périmètre initial
 

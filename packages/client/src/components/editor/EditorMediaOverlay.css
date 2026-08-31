@@ -1,0 +1,133 @@
+.editor-media-overlay {
+  position: absolute;
+  top: var(--hall-space-2);
+  right: var(--hall-space-2);
+  z-index: calc(var(--hall-z-editor-handle) + 2);
+  display: flex;
+  max-width: min(30rem, calc(100% - 2 * var(--hall-space-2)));
+  align-items: center;
+  gap: var(--hall-space-2);
+  padding: var(--hall-space-1);
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-medium);
+  background: color-mix(in srgb, var(--hall-color-surface) 94%, transparent);
+  box-shadow: var(--hall-shadow-small);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(calc(-1 * var(--hall-space-1)));
+  transition:
+    opacity var(--hall-transition-fast),
+    transform var(--hall-transition-fast);
+  user-select: none;
+}
+
+.editor-media-overlay-host:hover > .editor-media-overlay,
+.editor-media-overlay-host:focus-within > .editor-media-overlay {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.editor-media-overlay-icon {
+  display: inline-flex;
+  width: var(--hall-size-glyph-compact);
+  height: var(--hall-size-glyph-compact);
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--hall-color-text);
+}
+
+.editor-media-overlay-icon > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.editor-media-overlay-icon > .workspace-glyph {
+  width: var(--hall-size-glyph-compact);
+  height: var(--hall-size-glyph-compact);
+  border-radius: var(--hall-radius-small);
+}
+
+.editor-media-overlay-icon > .workspace-glyph > svg {
+  width: var(--hall-size-glyph-mark-compact);
+  height: var(--hall-size-glyph-mark-compact);
+}
+
+.editor-media-overlay-title {
+  display: block;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: var(--hall-font-size-body-small);
+  line-height: var(--hall-line-height-body-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-media-overlay-title-link {
+  padding: 0;
+  border: 0;
+  color: var(--hall-color-text);
+  background: transparent;
+  font: inherit;
+  font-weight: var(--hall-font-weight-semibold);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.editor-media-overlay-title-link:hover {
+  color: var(--hall-color-text);
+  text-decoration: underline;
+  text-decoration-thickness: var(--hall-stroke-thin);
+  text-underline-offset: 0.15em;
+}
+
+.editor-media-overlay-title-link:focus-visible {
+  outline: none;
+  box-shadow: var(--hall-focus-ring);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.editor-media-overlay-actions {
+  display: flex;
+  flex: none;
+  gap: var(--hall-space-1);
+}
+
+.editor-media-overlay-actions button {
+  display: inline-flex;
+  width: var(--hall-size-control-small);
+  height: var(--hall-size-control-small);
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hall-radius-small);
+  color: var(--hall-color-text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.editor-media-overlay-actions button:hover,
+.editor-media-overlay-actions button[aria-pressed="true"] {
+  color: var(--hall-color-brand);
+  background: var(--hall-color-brand-subtle);
+}
+
+.editor-media-overlay-actions .editor-media-overlay-delete:hover {
+  color: var(--hall-color-danger);
+  background: var(--hall-color-danger-surface);
+}
+
+.editor-media-overlay-actions button > svg {
+  width: var(--hall-size-glyph-mark);
+  height: var(--hall-size-glyph-mark);
+}
+
+.editor-media-overlay-actions button:focus-visible {
+  outline: none;
+  box-shadow: var(--hall-focus-ring);
+}

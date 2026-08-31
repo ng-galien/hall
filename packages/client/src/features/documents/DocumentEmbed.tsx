@@ -2,10 +2,19 @@ import type { DocumentResource } from "@hall/domain";
 import { FullscreenIcon } from "../../components/icons";
 import { useDocumentPreview } from "../../hooks/useDocumentPreview";
 import { useI18n } from "../../i18n/I18nProvider";
+import { NativeDocumentFrame } from "./NativeDocumentFrame";
 import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
 
 /** Inline document preview; PDFs and images render in place, with an optional full-screen action. */
-export function DocumentEmbed({ resource, onOpenFull }: { resource: DocumentResource; onOpenFull?(): void }) {
+export function DocumentEmbed({
+  resource,
+  onOpenFull,
+  objectTestId,
+}: {
+  resource: DocumentResource;
+  onOpenFull?(): void;
+  objectTestId?: string;
+}) {
   const { t } = useI18n();
   const { objectUrl, mediaType, failed, retry } = useDocumentPreview(resource);
 
@@ -17,7 +26,9 @@ export function DocumentEmbed({ resource, onOpenFull }: { resource: DocumentReso
         </span>
       ) : null}
       {failed ? <DocumentPreviewFailure onRetry={retry} /> : null}
-      {objectUrl && mediaType ? <object data={objectUrl} type={mediaType} aria-label={resource.fileName} /> : null}
+      {objectUrl && mediaType ? (
+        <NativeDocumentFrame url={objectUrl} mediaType={mediaType} title={resource.fileName} testId={objectTestId} />
+      ) : null}
       {onOpenFull ? (
         <button
           type="button"

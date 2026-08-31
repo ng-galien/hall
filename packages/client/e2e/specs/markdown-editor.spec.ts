@@ -66,6 +66,25 @@ async function openWorkspaceText(page: Page, resourceIndex = 0): Promise<{ id: s
   return resource;
 }
 
+async function createWorkspaceText(
+  page: Page,
+  title: string,
+  content = "Contenu initial du test.",
+): Promise<{ id: string; slug: string; title: string }> {
+  const created = await page.request.post("/api/resources/texts", {
+    data: { title, folderPath: "seed", tags: ["seed", "e2e"], content },
+  });
+  expect(created.ok()).toBe(true);
+  const response = await page.request.get("/api/resources?kind=text");
+  expect(response.ok()).toBe(true);
+  const representation = (await response.json()) as {
+    entities: Array<{ properties: { id: string; slug: string; title: string } }>;
+  };
+  const resource = representation.entities.map(({ properties }) => properties).find((item) => item.title === title);
+  expect(resource).toBeTruthy();
+  return resource!;
+}
+
 async function persistedResourceContent(page: Page, slug: string): Promise<string> {
   const response = await page.request.get(`/api/resources/${slug}`);
   expect(response.ok()).toBe(true);
@@ -85,6 +104,44 @@ async function openReferenceSearch(editor: Locator): Promise<Locator> {
   const dialog = editor.page().getByTestId("reference-search-dialog");
   await expect(dialog).toBeVisible();
   return dialog;
+}
+
+async function openResourceEmbedSearch(editor: Locator): Promise<Locator> {
+  await editor.getByTestId("editor-insert-resource-embed").click();
+  const dialog = editor.page().getByTestId("resource-embed-search-dialog");
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+async function firstPdfResource(page: Page): Promise<{ id: string; title: string }> {
+  const response = await page.request.get("/api/resources?kind=document");
+  expect(response.ok()).toBe(true);
+  const representation = (await response.json()) as {
+    entities: Array<{ properties: { id: string; title: string; mediaType: string } }>;
+  };
+  const resource = representation.entities
+    .map(({ properties }) => properties)
+    .find(({ mediaType }) => mediaType === "application/pdf");
+  expect(resource).toBeTruthy();
+  return resource!;
+}
+
+async function firstSpreadsheetResource(page: Page): Promise<{ id: string; title: string; sheetId: string }> {
+  const response = await page.request.get("/api/resources?kind=spreadsheet");
+  expect(response.ok()).toBe(true);
+  const representation = (await response.json()) as {
+    entities: Array<{ properties: { id: string; title: string } }>;
+  };
+  const resource = representation.entities.map(({ properties }) => properties)[0];
+  expect(resource).toBeTruthy();
+  const detailsResponse = await page.request.get(`/api/resources/${resource!.id}`);
+  expect(detailsResponse.ok()).toBe(true);
+  const details = (await detailsResponse.json()) as {
+    properties: { spreadsheet: { workbook: { sheetOrder: string[] } } };
+  };
+  const sheetId = details.properties.spreadsheet.workbook.sheetOrder[0];
+  expect(sheetId).toBeTruthy();
+  return { ...resource!, sheetId };
 }
 
 async function dropEditorFile(
@@ -142,6 +199,7 @@ test.describe("Markdown editor", () => {
       "editor-link",
       "editor-insert-table",
       "editor-insert-reference",
+      "editor-insert-resource-embed",
     ]) {
       await expect(enriched.getByTestId(testId)).toBeVisible();
     }
@@ -326,6 +384,185 @@ test.describe("Markdown editor", () => {
     const markdown = await source.textContent();
     expect(markdown).not.toContain("/api/");
     expect(markdown).not.toContain("slug=");
+  });
+
+  test("opens a text resource in the common modal, edits in place, and returns to the snippet", async ({
+    appPage: page,
+  }) => {
+    const resource = await createWorkspaceText(page, "Texte modal E2E");
+
+    await openEditorLab(page);
+    const editor = await openEnrichedEditor(page);
+    const search = await openReferenceSearch(editor);
+    await search.getByTestId("reference-kind-resource").click();
+    await search.getByTestId("reference-search-input").fill(resource.title);
+    await search.getByTestId("reference-result").first().click();
+    await closeEnrichedEditor(page);
+
+    const trigger = compactEditor(page).getByTestId(`editor-resource-reference-${resource.id}`);
+    await expect(trigger).toBeVisible();
+    const routeBefore = page.url();
+    await trigger.click();
+    const modal = page.getByTestId("resource-preview");
+    await expect(modal).toHaveAttribute("data-resource-mode", "read");
+    await expect(modal.getByTestId("resource-presentation-text-read")).toBeVisible();
+    await modal.getByTestId("resource-preview-edit").click();
+    await expect(modal).toHaveAttribute("data-resource-mode", "edit");
+    const modalEditor = modal.getByTestId("markdown-editor-enriched");
+    await expect(modalEditor).toBeVisible();
+    await expect(modal.locator('[data-testid="spreadsheet-fullscreen-dialog"]')).toHaveCount(0);
+    const updatedContent = "Texte modifié depuis la vue étendue";
+    await replaceEditorText(modalEditor, updatedContent);
+    await expect
+      .poll(() => persistedResourceContent(page, resource.slug), { timeout: 15_000 })
+      .toContain(updatedContent);
+    await modal.getByTestId("resource-preview-close").click();
+    await expect(modal).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    expect(page.url()).toBe(routeBefore);
+    await trigger.click();
+    await expect(page.getByTestId("resource-presentation-text-read")).toContainText(updatedContent);
+  });
+
+  test("inserts a PDF resource block, persists its canonical Markdown and reopens the common modal", async ({
+    appPage: page,
+  }) => {
+    const pdf = await firstPdfResource(page);
+    const text = await createWorkspaceText(page, "Inclusion PDF E2E");
+    await page.goto(`/app/workspace?path=seed&resource=${encodeURIComponent(text.id)}`);
+    await expect(compactEditor(page)).toBeVisible();
+    const editor = await openEnrichedEditor(page);
+    const search = await openResourceEmbedSearch(editor);
+    await search.getByTestId("reference-search-input").fill(pdf.title);
+    await search.getByTestId("reference-result").first().click();
+
+    await expect(editor.getByTestId(`editor-resource-embed-${pdf.id}`)).toBeVisible();
+    await expect(editor.getByTestId("resource-embed-presentation-document")).toBeVisible();
+    await closeEnrichedEditor(page);
+
+    const directive = `::resource-embed[${pdf.title}]{#${pdf.id} presentation="document"}`;
+    await expect.poll(() => persistedResourceContent(page, text.slug), { timeout: 15_000 }).toContain(directive);
+    await page.reload();
+
+    const block = compactEditor(page).getByTestId(`editor-resource-embed-${pdf.id}`);
+    await expect(block).toBeVisible();
+    const nativePdfResponse = page.waitForResponse(
+      (response) =>
+        /\/api\/resources\/[^/]+\/preview$/.test(response.url()) && response.request().method() === "GET",
+    );
+    await block.click();
+    const modal = page.getByTestId("resource-preview");
+    const loadedPdf = await nativePdfResponse;
+    expect(loadedPdf.status()).toBe(200);
+    expect(loadedPdf.headers()["content-type"]).toContain("application/pdf");
+    await expect(modal.getByTestId("resource-preview-object")).toHaveAttribute("src", /\/preview$/);
+    await modal.getByTestId("resource-preview-close").click();
+    await expect(modal).toHaveCount(0);
+    await expect(block).toBeFocused();
+    await block.press("Enter");
+    await expect(page.getByTestId("resource-preview")).toBeVisible();
+  });
+
+  test("sends an inserted resource presentation to the authoritative PDF preview", async ({ appPage: page }) => {
+    const pdf = await firstPdfResource(page);
+    await openEditorLab(page);
+    const editor = await openEnrichedEditor(page);
+    const search = await openResourceEmbedSearch(editor);
+    await search.getByTestId("reference-search-input").fill(pdf.title);
+    await search.getByTestId("reference-result").first().click();
+
+    await expect(markdownSource(page)).toContainText(
+      `::resource-embed[${pdf.title}]{#${pdf.id} presentation="document"}`,
+    );
+    await closeEnrichedEditor(page);
+    const creationResponse = page.waitForResponse(
+      (response) => response.url().includes("/api/templates/preview-pdf?delivery=url") && response.request().method() === "POST",
+    );
+    const nativePdfResponse = page.waitForResponse(
+      (response) => /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/.test(response.url()) && response.request().method() === "GET",
+    );
+    await page.getByTestId("editor-pdf-preview").click();
+    expect((await creationResponse).status()).toBe(201);
+    const loadedPdf = await nativePdfResponse;
+    expect(loadedPdf.status()).toBe(200);
+    expect(loadedPdf.headers()["content-type"]).toContain("application/pdf");
+    await expect(page.getByTestId("editor-pdf-native-viewer").locator("iframe")).toHaveAttribute(
+      "src",
+      /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/,
+    );
+  });
+
+  test("includes a bounded spreadsheet range, opens the common editor, and exports it to PDF", async ({
+    appPage: page,
+  }) => {
+    const spreadsheet = await firstSpreadsheetResource(page);
+    await openEditorLab(page);
+    const editor = await openEnrichedEditor(page);
+    const search = await openResourceEmbedSearch(editor);
+    await search.getByTestId("reference-search-input").fill(spreadsheet.title);
+    await search.getByTestId("reference-result").first().click();
+
+    const options = page.getByTestId("resource-embed-table-options");
+    await expect(options).toBeVisible();
+    await expect(options.getByTestId("resource-embed-table-sheet")).not.toHaveText("");
+    await expect(options.getByTestId("resource-embed-table-range")).toHaveValue(/^[A-Z]+\d+:[A-Z]+\d+$/);
+    await options.getByTestId("resource-embed-table-submit").click();
+
+    const block = editor.getByTestId(`editor-resource-embed-${spreadsheet.id}`);
+    await expect(block).toBeVisible();
+    await expect(editor.getByTestId("resource-embed-presentation-table")).toBeVisible();
+    await expect(markdownSource(page)).toHaveText(
+      new RegExp(
+        `::resource-embed\\[${spreadsheet.title}\\]\\{#${spreadsheet.id} presentation="table" sheet="[^"]+" range="[A-Z]+\\d+:[A-Z]+\\d+"\\}`,
+      ),
+    );
+
+    const routeBefore = page.url();
+    const table = editor.getByTestId("resource-embed-presentation-table");
+    const modal = page.getByTestId("resource-preview");
+    await table.click();
+    await expect(modal).toHaveCount(0);
+    await table.hover();
+    await expect(editor.getByTestId(`editor-resource-embed-${spreadsheet.id}-info`)).toBeVisible();
+    await block.click();
+    await expect(modal).toHaveAttribute("data-resource-mode", "read");
+    await modal.getByTestId("resource-preview-edit").click();
+    await expect(modal).toHaveAttribute("data-resource-mode", "edit");
+    await expect(modal.getByTestId("spreadsheet-editor")).toBeVisible();
+    await expect(modal.getByTestId("spreadsheet-fullscreen-dialog")).toHaveCount(0);
+    await modal.getByTestId("resource-preview-close").click();
+    await expect(modal).toHaveCount(0);
+    await expect(block).toBeFocused();
+    expect(page.url()).toBe(routeBefore);
+
+    await closeEnrichedEditor(page);
+    const creationResponse = page.waitForResponse(
+      (response) => response.url().includes("/api/templates/preview-pdf?delivery=url") && response.request().method() === "POST",
+    );
+    const nativePdfResponse = page.waitForResponse(
+      (response) => /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/.test(response.url()) && response.request().method() === "GET",
+    );
+    await page.getByTestId("editor-pdf-preview").click();
+    expect((await creationResponse).status()).toBe(201);
+    const loadedPdf = await nativePdfResponse;
+    expect(loadedPdf.status()).toBe(200);
+    expect(loadedPdf.headers()["content-type"]).toContain("application/pdf");
+    await expect(page.getByTestId("editor-pdf-native-viewer").locator("iframe")).toHaveAttribute(
+      "src",
+      /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/,
+    );
+  });
+
+  test("rejects a stored oversized spreadsheet range before rendering cells", async ({ appPage: page }) => {
+    const spreadsheet = await firstSpreadsheetResource(page);
+    const directive = `::resource-embed[${spreadsheet.title}]{#${spreadsheet.id} presentation="table" sheet="${spreadsheet.sheetId}" range="A1:A999999999"}`;
+    const text = await createWorkspaceText(page, "Plage tableur invalide E2E", directive);
+    await page.goto(`/app/workspace?path=seed&resource=${encodeURIComponent(text.id)}`);
+
+    const editor = compactEditor(page);
+    await expect(editor.getByTestId(`editor-resource-embed-${spreadsheet.id}`)).toBeVisible();
+    await expect(editor.locator(".editor-resource-embed-unavailable")).toBeVisible();
+    await expect(editor.getByTestId("resource-embed-presentation-table")).toHaveCount(0);
   });
 
   test("inserts and selects an archived image and resizes it without distortion or render drift", async ({

@@ -8,6 +8,7 @@ const resourceSelection = `SELECT
   resources.kind,
   resources.title,
   resources.folder_path,
+  resources.autosave_enabled,
   resources.created_at,
   resources.updated_at,
   remote_resources.url AS remote_url,
@@ -473,7 +474,12 @@ export const queries = {
     (resource_id, meeting_id, file_name, format, media_type, byte_size, content_sha256, category, usage, editor_owner_kind, editor_owner_id, content)
     VALUES (:id, :meetingId, :fileName, :format, :mediaType, :byteSize, :contentSha256, :category, :usage, :editorOwnerKind, :editorOwnerId, :content)`,
   "resource.insertTag": "INSERT INTO resource_tags (resource_id, tag) VALUES (:resourceId, :tag)",
-  "resource.update": `UPDATE resources SET title = :title, folder_path = :folderPath, updated_at = :updatedAt WHERE id = :id`,
+  "resource.update": `UPDATE resources SET
+    title = :title,
+    folder_path = :folderPath,
+    autosave_enabled = CASE WHEN :autosaveEnabled IS NULL THEN autosave_enabled ELSE :autosaveEnabled END,
+    updated_at = :updatedAt
+    WHERE id = :id`,
   "resource.updateText": "UPDATE text_resources SET content = :content WHERE resource_id = :id",
   "resource.updateRemote": "UPDATE remote_resources SET url = :url WHERE resource_id = :id",
   "resource.deleteTags": "DELETE FROM resource_tags WHERE resource_id = :id",

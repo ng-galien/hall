@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { collectDirectives, parse, renderHtml, serialize, validateStructure } from "./document.js";
-import { directiveSpecs, fieldNames } from "./grammar.js";
+import {
+  collectDirectives,
+  collectResourceReferences,
+  parse,
+  renderHtml,
+  serialize,
+  validateStructure,
+} from "./document.js";
+import {
+  directiveSpecs,
+  fieldNames,
+  parseResourceEmbedDirective,
+  resourcePresentationKinds,
+  serializeResourceEmbedDirective,
+} from "./grammar.js";
 
 const roundTrip = (markdown: string) => serialize(parse(markdown)).trim();
 
@@ -22,6 +35,25 @@ describe("canonical serialization", () => {
     expect(roundTrip(':field{name="meeting.startsAt"}')).toBe(':field{name="meeting.startsAt"}');
     expect(roundTrip("::image[Vue de la mairie]{#37e4df8e-831e-4af2-a4cb-ec1352ae9677 align=center width=60}")).toBe(
       '::image[Vue de la mairie]{#37e4df8e-831e-4af2-a4cb-ec1352ae9677 align="center" width="60"}',
+    );
+    expect(roundTrip("::resource-embed[Budget]{#budget presentation=table sheet=sheet-1 range=A1:F20}")).toBe(
+      '::resource-embed[Budget]{#budget presentation="table" sheet="sheet-1" range="A1:F20"}',
+    );
+  });
+
+  it("shares the resource block parser and canonical serializer with rich editors", () => {
+    const parsed = parseResourceEmbedDirective(
+      '::resource-embed[Budget \\] 2026]{#sheet presentation="table" sheet="sheet-1" range="a1:f20"}',
+    );
+    expect(parsed).toMatchObject({
+      id: "sheet",
+      label: "Budget ] 2026",
+      presentation: "table",
+      sheet: "sheet-1",
+      range: "a1:f20",
+    });
+    expect(serializeResourceEmbedDirective(parsed!)).toBe(
+      '::resource-embed[Budget \\] 2026]{#sheet presentation="table" sheet="sheet-1" range="A1:F20"}',
     );
   });
 
@@ -168,6 +200,23 @@ describe("directive collection", () => {
     const [directive] = collectDirectives(parse(":member[Alice]{#a}"));
     expect(directive.position?.start.line).toBe(1);
   });
+
+  it("collects every durable resource link, including block presentations", () => {
+    const references = collectResourceReferences(
+      parse(
+        [
+          ":resource[Rapport]{#report}",
+          '::image[Plan]{#image align="center" width="75"}',
+          '::resource-embed[Budget]{#sheet presentation="table" sheet="sheet-1" range="A1:C4"}',
+        ].join("\n\n"),
+      ),
+    );
+    expect(references).toEqual([
+      expect.objectContaining({ id: "report", directive: "resource", occurrence: 0 }),
+      expect.objectContaining({ id: "image", directive: "image", occurrence: 0 }),
+      expect.objectContaining({ id: "sheet", directive: "resource-embed", occurrence: 0, presentation: "table" }),
+    ]);
+  });
 });
 
 describe("structural validation", () => {
@@ -228,10 +277,36 @@ describe("structural validation", () => {
     const diagnostics = validateStructure(parse('::image[Vue]{#mairie align="right" width="120"}'));
     expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["invalid_attribute", "invalid_attribute"]);
   });
+
+  it("accepts the closed resource presentation contract", () => {
+    const examples = [
+      '::resource-embed[Plan]{#image presentation="image" align="center" width="60"}',
+      '::resource-embed[Annexe]{#pdf presentation="document"}',
+      '::resource-embed[Site]{#remote presentation="link"}',
+      '::resource-embed[Article]{#legal presentation="legal-citation"}',
+      '::resource-embed[Parcelles]{#map presentation="map"}',
+      '::resource-embed[Budget]{#sheet presentation="table" sheet="sheet-1" range="A1:F20"}',
+    ];
+    for (const markdown of examples) expect(validateStructure(parse(markdown))).toEqual([]);
+  });
+
+  it("rejects unknown presentations, presentation-specific options and malformed table ranges", () => {
+    expect(validateStructure(parse('::resource-embed[X]{#id presentation="iframe"}'))[0]).toMatchObject({
+      code: "invalid_attribute",
+      severity: "error",
+    });
+    expect(validateStructure(parse('::resource-embed[X]{#id presentation="map" range="A1:B2"}'))[0]).toMatchObject({
+      code: "unexpected_attribute",
+      severity: "error",
+    });
+    expect(validateStructure(parse('::resource-embed[X]{#id presentation="table" sheet="s" range="A0:B"}'))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "invalid_attribute", severity: "error" })]),
+    );
+  });
 });
 
 describe("registry", () => {
-  it("exposes only the initial scope", () => {
+  it("exposes the resource presentation directive", () => {
     expect(directiveSpecs.map((spec) => spec.name)).toEqual([
       "member",
       "resource",
@@ -239,6 +314,7 @@ describe("registry", () => {
       "decision",
       "meeting",
       "image",
+      "resource-embed",
       "field",
     ]);
   });
@@ -247,8 +323,12 @@ describe("registry", () => {
     expect(directiveSpecs.some((spec) => spec.name === ("snippet" as never))).toBe(false);
   });
 
-  it("reserves the block directive for archived images", () => {
-    expect(directiveSpecs.filter((spec) => spec.node === "leafDirective").map((spec) => spec.name)).toEqual(["image"]);
+  it("reserves block directives for archived images and resource presentations", () => {
+    expect(directiveSpecs.filter((spec) => spec.node === "leafDirective").map((spec) => spec.name)).toEqual([
+      "image",
+      "resource-embed",
+    ]);
+    expect(resourcePresentationKinds).toEqual(["image", "document", "link", "legal-citation", "map", "table"]);
   });
 
   it("exposes the closed list of contextual fields", () => {

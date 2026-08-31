@@ -8,6 +8,7 @@ import StarterKit from "@tiptap/starter-kit";
 import type { ReactNode } from "react";
 import { ResourceImage } from "./images";
 import { type Mentionable, Reference, ReferenceMention, type ReferenceMentionOptions } from "./references";
+import { ResourceEmbed } from "./resourceEmbeds";
 
 /** True when the table exceeds GFM: merged cells, column widths, extra header rows, or multi-block cells. */
 function tableExceedsGfm(table: JSONContent): boolean {
@@ -110,6 +111,7 @@ export function editorExtensions({
     markdownTable.configure({ resizable: true }),
     columnAlignment,
     ResourceImage.configure({ controls: imageControls }),
+    ResourceEmbed,
     Reference,
     ReferenceMention.configure({
       mentionables: mentionables ?? (() => []),

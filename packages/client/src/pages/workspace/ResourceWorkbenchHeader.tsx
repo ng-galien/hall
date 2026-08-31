@@ -1,7 +1,8 @@
 import type { Resource, ResourceDetails } from "@hall/domain";
+import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PinIcon, PinnedIcon } from "../../components/icons";
+import { FullscreenIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { TagInput } from "../../components/TagInput";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { ResourceGlyph } from "../../features/documents/ResourceGlyph";
@@ -22,6 +23,8 @@ export function ResourceWorkbenchHeader({
   tags,
   onTagsChange,
   onSelect,
+  onOpenExtended,
+  extendedViewTriggerRef,
 }: {
   resource: Resource;
   details: ResourceDetails | null;
@@ -32,6 +35,8 @@ export function ResourceWorkbenchHeader({
   tags: string[];
   onTagsChange(tags: string[]): void;
   onSelect(selection: WorkspaceSelection, path?: string): void;
+  onOpenExtended(): void;
+  extendedViewTriggerRef: RefObject<HTMLButtonElement | null>;
 }) {
   const { t } = useI18n();
   const resourcesStore = useResourcesStore();
@@ -51,6 +56,21 @@ export function ResourceWorkbenchHeader({
       onTitleChange={canUpdate && !details?.snapshotted ? onTitleChange : undefined}
       actions={
         <>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                ref={extendedViewTriggerRef}
+                variant="ghost"
+                size="icon"
+                data-testid="resource-open-extended"
+                aria-label={t("common.fullscreen")}
+                onClick={onOpenExtended}
+              >
+                <FullscreenIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("common.fullscreen")}</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

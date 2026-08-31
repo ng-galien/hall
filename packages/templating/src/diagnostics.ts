@@ -15,6 +15,10 @@ export type DiagnosticCode =
   | "unexpected_attribute"
   /** The directive is well formed but the referenced entity does not exist. */
   | "unresolved_reference"
+  /** The referenced resource exists but does not support the requested presentation. */
+  | "incompatible_resource"
+  /** The requested static representation is not available to the authoritative renderer. */
+  | "resource_representation_unavailable"
   /** Field name outside the closed `fieldNames` list. */
   | "unknown_field";
 

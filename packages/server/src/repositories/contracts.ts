@@ -495,6 +495,7 @@ export interface UpdateResource {
   title: string;
   folderPath: string;
   tags: string[];
+  autosaveEnabled: boolean;
   content?: string;
   url?: string | null;
 }

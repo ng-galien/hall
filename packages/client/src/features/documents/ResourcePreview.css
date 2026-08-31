@@ -1,0 +1,43 @@
+.resource-preview-shell-header {
+  display: grid;
+  min-width: 0;
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+  background: var(--hall-color-surface);
+}
+
+.resource-preview-shell-header > .workspace-breadcrumb {
+  padding: var(--hall-space-2) var(--hall-space-5);
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+}
+
+.resource-preview-shell-header > .workspace-workbench-header,
+.resource-preview-loading-header {
+  padding: var(--hall-space-4) var(--hall-space-5);
+}
+
+.resource-preview-loading-header h2 {
+  font-size: var(--hall-font-size-title);
+}
+
+.resource-preview-content {
+  display: block;
+  min-height: 0;
+  padding: var(--hall-space-5);
+  overflow: auto;
+  place-items: initial;
+}
+
+.resource-preview-content-fill > * {
+  width: 100%;
+  height: 100%;
+}
+
+.resource-preview-content-fill {
+  padding: 0;
+  overflow: hidden;
+}
+
+.resource-preview-content > .document-embed {
+  border: 0;
+  border-radius: 0;
+}

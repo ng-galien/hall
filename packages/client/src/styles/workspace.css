@@ -280,7 +280,8 @@
     border-radius: var(--hall-radius-medium);
     background: var(--hall-color-surface-subtle);
   }
-  .document-embed object { width: 100%; height: 100%; }
+  .document-embed object,
+  .document-embed iframe { width: 100%; height: 100%; border: 0; }
   .document-preview-failure {
     display: grid;
     max-width: var(--hall-size-preview-failure);
@@ -1492,7 +1493,6 @@
     flex: 1;
     flex-direction: column;
   }
-  .resource-workbench-spreadsheet .spreadsheet-editor { min-height: 0; flex: 1; }
   .workspace-workbench-header { display: grid; gap: var(--hall-space-4); }
   .workbench-grid {
     display: grid;
@@ -1621,28 +1621,6 @@
   .workbench-header-side { display: flex; flex: none; align-items: center; gap: var(--hall-space-2); }
   .workbench-section { display: grid; gap: var(--hall-space-3); }
   .workbench-section > h2 { font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-semibold); }
-  .spreadsheet-editor {
-    position: relative;
-    display: flex;
-    min-height: var(--hall-size-editor-pdf-preview-min);
-    flex-direction: column;
-    min-width: 0;
-    overflow: hidden;
-    border: var(--hall-stroke-thin) solid var(--hall-color-border);
-    border-radius: var(--hall-radius-medium);
-    background: var(--hall-color-surface);
-  }
-  .spreadsheet-grid { flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
-  .spreadsheet-grid.univer-spreadsheet { width: 100%; height: 100%; }
-  .univer-spreadsheet-instance { width: 100%; height: 100%; }
-  .spreadsheet-expand {
-    position: absolute;
-    z-index: var(--hall-z-editor-popup);
-    top: var(--hall-space-2);
-    right: var(--hall-space-2);
-  }
-  .spreadsheet-grid-slot { display: flex; min-width: 0; min-height: 0; flex: 1; }
-  .spreadsheet-editor-expanded { flex: 1; min-height: 0; }
   .workbench-actions { display: flex; align-items: center; gap: var(--hall-space-2); }
   .workbench-resource-list { display: flex; flex-direction: column; gap: var(--hall-space-1); margin: 0; padding: 0; list-style: none; }
   .workbench-resource-list li {
@@ -1701,14 +1679,4 @@
   }
   .markdown-content img { max-width: 100%; border-radius: var(--hall-radius-medium); }
   .markdown-content a { color: var(--hall-color-brand); }
-}
-
-/* This dialog shell must override the utility dimensions carried by DialogContent. */
-.spreadsheet-editor-dialog {
-  display: flex;
-  width: var(--hall-size-viewer-width);
-  max-width: var(--hall-size-editor-dialog);
-  height: var(--hall-size-viewer-height);
-  max-height: var(--hall-size-viewer-height);
-  flex-direction: column;
 }

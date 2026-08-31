@@ -46,6 +46,8 @@ export function HeaderBreadcrumb() {
     }
   } else if (segments[0] === "settings") {
     items.push({ label: t("common.settings") });
+  } else if (segments[0] === "docs") {
+    items.push({ label: t("navigation.documentation") });
   } else if (segments[0] === "workspace") {
     items.push({ label: t("navigation.workspace") });
   }

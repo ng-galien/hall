@@ -17,18 +17,13 @@
     transform: translateY(calc(var(--hall-motion-distance) * -1));
   }
 
-  .modal-backdrop,
-  .document-viewer-backdrop {
+  .modal-backdrop {
     position: fixed;
     z-index: var(--hall-z-modal);
     inset: 0;
     display: grid;
     place-items: center;
     padding: var(--hall-space-6);
-  }
-  .document-viewer-backdrop {
-    padding: var(--hall-space-2);
-    background: color-mix(in srgb, var(--hall-color-text) var(--hall-opacity-backdrop), transparent);
   }
   .modal-surface {
     width: min(var(--hall-size-modal), var(--hall-size-overlay-width));
@@ -39,8 +34,7 @@
     background: var(--hall-color-surface);
     box-shadow: var(--hall-shadow-large);
   }
-  .modal-header,
-  .document-viewer header {
+  .modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -48,8 +42,7 @@
     padding: var(--hall-space-4) var(--hall-space-5);
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
-  .modal-header h2,
-  .document-viewer h2 { font-size: var(--hall-font-size-title); }
+  .modal-header h2 { font-size: var(--hall-font-size-title); }
   .modal-content { padding: var(--hall-space-5); }
   .modal-form {
     display: grid;
@@ -192,8 +185,10 @@
   .editor-lab { display: grid; gap: var(--hall-space-5); }
   .editor-lab-actions { display: flex; align-items: center; gap: var(--hall-space-3); }
   .editor-lab-actions [role="alert"] { margin: 0; color: var(--hall-color-danger); font-size: var(--hall-font-size-caption); }
-  .editor-lab-pdf-preview { grid-column: 1 / -1; height: min(75vh, var(--hall-size-editor-pdf-preview-max)); min-height: var(--hall-size-editor-pdf-preview-min); overflow: hidden; border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface-subtle); }
-  .editor-lab-pdf-preview object { width: 100%; height: 100%; border: 0; }
+  .editor-lab-pdf-preview { height: min(75vh, var(--hall-size-editor-pdf-preview-max)); min-height: var(--hall-size-editor-pdf-preview-min); overflow: hidden; border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface-subtle); }
+  .editor-lab-pdf-dialog .editor-lab-pdf-preview { height: 100%; min-height: 0; }
+  .editor-lab-pdf-preview object,
+  .editor-lab-pdf-preview iframe { width: 100%; height: 100%; border: 0; }
   /* Serialized HTML is one long line, which would otherwise drive the grid width. */
   .editor-lab-pane { min-width: 0; }
   .editor-lab-pane > h2 {
@@ -984,14 +979,6 @@
   }
   a.decision-meeting-chip:hover { background: var(--hall-color-brand-border); }
   .decision-meeting-chip-none { color: var(--hall-color-text-muted); background: var(--hall-color-surface-selected); }
-
-  /* ---- Document viewer ---- */
-  .document-viewer { width: var(--hall-size-viewer-width); height: var(--hall-size-viewer-height); overflow: hidden; border-radius: var(--hall-radius-large); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-large); }
-  .document-viewer header > div:first-child { display: grid; }
-  .document-viewer header span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
-  .document-viewer-actions { display: flex; gap: var(--hall-space-2); }
-  .document-viewer-content { display: grid; height: calc(100% - var(--hall-size-header)); place-items: center; background: var(--hall-color-surface-subtle); }
-  .document-viewer-content object, .document-viewer-content iframe { width: 100%; height: 100%; border: 0; }
 
   .live-indicator {
     width: var(--hall-space-3);

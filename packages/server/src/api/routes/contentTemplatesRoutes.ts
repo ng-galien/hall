@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   createContentTemplateSchema,
   generateContentTemplateSchema,
@@ -16,6 +17,8 @@ const referenceQuerySchema = z.object({
   query: z.string().trim().max(160).default(""),
 });
 
+const PDF_PREVIEW_TTL_MS = 5 * 60 * 1_000;
+
 function contains(label: string, query: string): boolean {
   return label.toLocaleLowerCase("fr-FR").includes(query.toLocaleLowerCase("fr-FR"));
 }
@@ -30,6 +33,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
     resourceRepository,
   } = cradle;
   const router = Router();
+  const pdfPreviews = new Map<string, { content: Buffer; expiresAt: number }>();
 
   router.get("/", requirePermission("workspace.read"), async (_request, response) => {
     response.json(await contentTemplateService.list());
@@ -85,12 +89,35 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
   router.post("/preview-pdf", requirePermission("workspace.read"), async (request, response) => {
     const input = previewPdfSchema.parse(request.body);
     const content = await contentTemplateService.previewPdf(input.bodyMarkdown, input.context);
+    if (request.query.delivery === "url") {
+      const now = Date.now();
+      for (const [id, preview] of pdfPreviews) if (preview.expiresAt <= now) pdfPreviews.delete(id);
+      const id = randomUUID();
+      pdfPreviews.set(id, { content, expiresAt: now + PDF_PREVIEW_TTL_MS });
+      response.status(201).json({ url: `/api/templates/preview-pdf/${id}` });
+      return;
+    }
     response.setHeader("Content-Type", "application/pdf");
     response.setHeader("Content-Disposition", "inline; filename=preview.pdf");
     response.setHeader("Content-Length", String(content.byteLength));
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Content-Security-Policy", "sandbox");
     response.send(content);
+  });
+
+  router.get("/preview-pdf/:previewId", requirePermission("workspace.read"), (request, response) => {
+    const id = routeParameter(request.params.previewId);
+    const preview = pdfPreviews.get(id);
+    if (!preview || preview.expiresAt <= Date.now()) {
+      pdfPreviews.delete(id);
+      response.status(404).json({ code: "template_preview_not_found", status: 404 });
+      return;
+    }
+    response.setHeader("Content-Type", "application/pdf");
+    response.setHeader("Content-Disposition", "inline; filename=preview.pdf");
+    response.setHeader("Content-Length", String(preview.content.byteLength));
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.send(preview.content);
   });
 
   router.post("/", requirePermission("workspace.write"), async (request, response) => {

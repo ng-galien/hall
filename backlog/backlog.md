@@ -151,6 +151,23 @@ Ordre de réalisation : moteur et stockage, premier modèle vertical, arborescen
 
 Critère de sortie : un document réglementaire de séance est généré depuis son modèle, retrouvé dans l'arborescence disque et régénéré sans copie ambiguë.
 
+### Documentation intégrée
+
+Stack MDX calqué sur le projet adjacent Trust : pages MDX par langue dans le client, zone `/docs` dans l'application, site autonome mono-fichier exportable. Le français est la langue de référence ; une page sans traduction retombe dessus. Fonctionnement détaillé : `docs/documentation-integree.md`.
+
+- [x] `[OPS]` Brancher le pipeline MDX (frontmatter, GFM, ancres de titres, texte de recherche) dans les deux configurations Vite.
+- [x] `[FRONT]` Livrer la zone `/docs` : arbre des pages, article, sommaire « Sur cette page », recherche plein texte, fil d'Ariane, entrée de navigation à côté des Paramètres, chargement différé.
+- [x] `[FRONT]` Fournir les blocs de rédaction Callout, Steps, PageCards, Compare, Details, Figure et Legend, stylés par les tokens en clair et en sombre.
+- [x] `[OPS]` Produire le site autonome mono-fichier (`build:docs`) et son archive à envoyer (`zip:docs`).
+- [x] `[FRONT]` Poser la structure de départ (prise en main, concepts, écrans) avec les pages trois temps, sujets et délibérations, vote par zones ; marquer en brouillon celles à compléter.
+- [ ] `[FRONT]` Compléter les pages marquées brouillon et valider le contenu avec le propriétaire du produit.
+- [ ] `[OPS]` Automatiser les captures d'écran de l'application seedée (projet Playwright dédié, clair et sombre, français et anglais, comme `docs-capture` de Trust) et livrer le composant `Screenshot`.
+- [ ] `[FRONT]` Illustrer les pages de la section Écrans avec ces captures légendées.
+- [ ] `[FRONT]` Relier chaque écran à sa page de documentation par une aide contextuelle, en réutilisant le frontmatter `screen` déjà en place.
+- [ ] `[FRONT]` Traduire les pages en anglais une fois le contenu français stabilisé.
+
+Critère de sortie : chaque écran principal dispose d'une page à jour et illustrée, accessible depuis l'application, et le site autonome se régénère en un seul fichier fidèle au contenu courant.
+
 ## P2 : après l'alpha
 
 ### Mandatures et historique du conseil
