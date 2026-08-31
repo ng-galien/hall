@@ -1,6 +1,6 @@
 import { findSirenAction } from "@hall/api-contract";
 import type { Resource, ResourceDetails } from "@hall/domain";
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,6 @@ import { useResourceImageUpload } from "../../features/documents/useResourceImag
 import { GeographicResourceMap } from "../../features/geographic/GeographicResourceMap";
 import { LegalReferenceResolver } from "../../features/legal/LegalReferenceResolver";
 import { LegalReferenceResourceView } from "../../features/legal/LegalReferenceResourceView";
-import { SpreadsheetResourceEditor } from "../../features/spreadsheet/SpreadsheetResourceEditor";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -23,6 +22,12 @@ import { MeetingDocumentViewer } from "../council-meetings/MeetingDocumentViewer
 import { ResourceWorkbenchHeader } from "./ResourceWorkbenchHeader";
 import { useSaveStatusStore } from "./saveStatusStore";
 import type { WorkspaceSelection } from "./WorkspacePage";
+
+const SpreadsheetResourceEditor = lazy(() =>
+  import("../../features/spreadsheet/SpreadsheetResourceEditor").then((module) => ({
+    default: module.SpreadsheetResourceEditor,
+  })),
+);
 
 export function ResourceWorkbench({
   resource,
@@ -246,12 +251,14 @@ export function ResourceWorkbench({
           ) : resource.kind === "geographic" ? (
             <p>{t("geographic.loading")}</p>
           ) : resource.kind === "spreadsheet" && details?.spreadsheet ? (
-            <SpreadsheetResourceEditor
-              resource={resource}
-              document={details.spreadsheet}
-              snapshotted={details.snapshotted}
-              onError={setActionError}
-            />
+            <Suspense fallback={<p>{t("spreadsheet.loading")}</p>}>
+              <SpreadsheetResourceEditor
+                resource={resource}
+                document={details.spreadsheet}
+                snapshotted={details.snapshotted}
+                onError={setActionError}
+              />
+            </Suspense>
           ) : resource.kind === "spreadsheet" ? (
             <p>{t("spreadsheet.loading")}</p>
           ) : resource.kind === "legalReference" && resource.resolutionStatus === "draft" ? (

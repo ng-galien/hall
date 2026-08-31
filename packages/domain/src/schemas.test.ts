@@ -43,36 +43,72 @@ describe("geographic resource colors", () => {
 
 describe("spreadsheet resource document", () => {
   const budget = {
-    schemaVersion: 1 as const,
-    rowCount: 3,
-    columnCount: 3,
-    cells: [
-      ["Quantité", "Prix unitaire", "Total"],
-      [2, 12.5, "=ROUND(A2*B2,2)"],
-      [null, null, "=SUM(C2:C2)"],
-    ],
-    rowHeights: [28, 24, 24],
-    columns: [
-      { width: 100, format: "number" as const },
-      { width: 140, format: "currency" as const },
-      { width: 140, format: "currency" as const },
-    ],
-    styles: [],
-    merges: [],
+    schemaVersion: 2 as const,
+    workbook: {
+      id: "budget-workbook",
+      name: "Budget",
+      sheetOrder: ["budget", "notes"],
+      sheets: {
+        budget: {
+          id: "budget",
+          name: "Budget",
+          rowCount: 20,
+          columnCount: 8,
+          cellData: { 1: { 2: { f: "=ROUND(A2*B2,2)" } } },
+        },
+        notes: { id: "notes", name: "Notes", rowCount: 20, columnCount: 8, cellData: {} },
+      },
+    },
   };
 
-  it("keeps a versioned budget document with formulas", () => {
+  it("keeps a complete multi-sheet workbook snapshot", () => {
     expect(spreadsheetDocumentSchema.parse(budget)).toEqual(budget);
   });
 
-  it("rejects inconsistent dimensions", () => {
-    expect(() => spreadsheetDocumentSchema.parse({ ...budget, rowCount: 4 })).toThrow();
+  it("rejects a sheet order that references a missing sheet", () => {
+    expect(() =>
+      spreadsheetDocumentSchema.parse({
+        ...budget,
+        workbook: { ...budget.workbook, sheetOrder: ["budget", "missing"] },
+      }),
+    ).toThrow();
   });
 
-  it("rejects styles and merges outside the sheet", () => {
-    expect(() => spreadsheetDocumentSchema.parse({ ...budget, styles: [{ cell: "D1", bold: true }] })).toThrow();
+  it("rejects duplicate sheet ids", () => {
     expect(() =>
-      spreadsheetDocumentSchema.parse({ ...budget, merges: [{ cell: "C3", colspan: 2, rowspan: 1 }] }),
+      spreadsheetDocumentSchema.parse({
+        ...budget,
+        workbook: { ...budget.workbook, sheetOrder: ["budget", "budget"] },
+      }),
+    ).toThrow();
+  });
+
+  it.each([
+    ["a null sheet", { budget: null, notes: budget.workbook.sheets.notes }],
+    [
+      "a mismatched sheet id",
+      { budget: { ...budget.workbook.sheets.budget, id: "other" }, notes: budget.workbook.sheets.notes },
+    ],
+    [
+      "missing dimensions",
+      { budget: { id: "budget", name: "Budget", cellData: {} }, notes: budget.workbook.sheets.notes },
+    ],
+  ])("rejects %s", (_label, sheets) => {
+    expect(() => spreadsheetDocumentSchema.parse({ ...budget, workbook: { ...budget.workbook, sheets } })).toThrow();
+  });
+
+  it("rejects a sheet outside the declared order", () => {
+    expect(() =>
+      spreadsheetDocumentSchema.parse({
+        ...budget,
+        workbook: {
+          ...budget.workbook,
+          sheets: {
+            ...budget.workbook.sheets,
+            orphan: { id: "orphan", name: "Orphan", rowCount: 20, columnCount: 8, cellData: {} },
+          },
+        },
+      }),
     ).toThrow();
   });
 });

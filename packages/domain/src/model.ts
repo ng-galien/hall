@@ -184,44 +184,12 @@ export interface TextResource extends ResourceBase {
   content: string;
 }
 
-export type SpreadsheetColumnFormat = "text" | "number" | "currency" | "percentage" | "date";
-export type SpreadsheetCellValue = string | number | null;
-
-export interface SpreadsheetColumn {
-  width: number;
-  format: SpreadsheetColumnFormat;
-}
-
-export interface SpreadsheetCellStyle {
-  cell: string;
-  bold?: boolean;
-  italic?: boolean;
-  underline?: boolean;
-  wrap?: boolean;
-  align?: "left" | "center" | "right" | "justify";
-  verticalAlign?: "top" | "middle" | "bottom";
-  fontFamily?: "Verdana" | "Arial" | "Courier New";
-  fontSize?: "x-small" | "small" | "medium" | "large" | "x-large";
-  textColor?: string;
-  backgroundColor?: string;
-  borders?: { top?: boolean; right?: boolean; bottom?: boolean; left?: boolean };
-}
-
-export interface SpreadsheetMerge {
-  cell: string;
-  colspan: number;
-  rowspan: number;
-}
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+export type JsonObject = { [key: string]: JsonValue };
 
 export interface SpreadsheetDocument {
-  schemaVersion: 1;
-  rowCount: number;
-  columnCount: number;
-  cells: SpreadsheetCellValue[][];
-  rowHeights: number[];
-  columns: SpreadsheetColumn[];
-  styles: SpreadsheetCellStyle[];
-  merges: SpreadsheetMerge[];
+  schemaVersion: 2;
+  workbook: JsonObject;
 }
 
 export interface SpreadsheetResource extends ResourceBase {

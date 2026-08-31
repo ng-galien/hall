@@ -97,7 +97,7 @@ type ResourcePresentation =
   | { kind: "tableRange"; range: string };
 ```
 
-Cet exemple fixe la forme générale, pas les noms définitifs. Le domaine ne doit importer ni React, ni Jspreadsheet, ni OpenLayers, ni Chromium.
+Cet exemple fixe la forme générale, pas les noms définitifs. Le domaine ne doit importer ni React, ni Univer, ni OpenLayers, ni Chromium.
 
 ### `@hall/templating`
 
@@ -179,7 +179,7 @@ Le manifeste d'un rendu formel doit au minimum identifier :
 - l'empreinte de la représentation produite ;
 - la date de génération.
 
-Une ressource juridique doit pointer le snapshot juridique utilisé. Une carte doit employer une image avec attribution déjà disponible lors du rendu final. Un tableur doit rendre les valeurs calculées par le moteur sûr de Hall et ne jamais exécuter les formules de Jspreadsheet dans Chromium.
+Une ressource juridique doit pointer le snapshot juridique utilisé. Une carte doit employer une image avec attribution déjà disponible lors du rendu final. Un tableur doit rendre une représentation figée de son snapshot et ne pas recalculer ses formules pendant la production d’un document formel.
 
 ## Parcours IHM cible
 

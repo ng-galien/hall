@@ -6,21 +6,22 @@ describe("documentary resources", () => {
   it("creates, reloads and version-checks a spreadsheet", async () => {
     const { agent } = await createTestServer();
     const document = {
-      schemaVersion: 1,
-      rowCount: 2,
-      columnCount: 3,
-      cells: [
-        ["Quantité", "Prix unitaire", "Total"],
-        [2, 12.5, "=ROUND(A2*B2,2)"],
-      ],
-      rowHeights: [28, 24],
-      columns: [
-        { width: 100, format: "number" },
-        { width: 140, format: "currency" },
-        { width: 140, format: "currency" },
-      ],
-      styles: [],
-      merges: [],
+      schemaVersion: 2,
+      workbook: {
+        id: "budget-workbook",
+        name: "Budget",
+        sheetOrder: ["budget", "notes"],
+        sheets: {
+          budget: {
+            id: "budget",
+            name: "Budget",
+            rowCount: 20,
+            columnCount: 8,
+            cellData: { 1: { 2: { f: "=ROUND(A2*B2,2)" } } },
+          },
+          notes: { id: "notes", name: "Notes", rowCount: 20, columnCount: 8, cellData: {} },
+        },
+      },
     };
     const createdResponse = await agent
       .post("/api/resources/spreadsheets")
@@ -38,7 +39,19 @@ describe("documentary resources", () => {
       expect.arrayContaining([expect.objectContaining({ name: "resource.update-spreadsheet" })]),
     );
 
-    const changed = { ...document, cells: [document.cells[0], [3, 12.5, "=ROUND(A2*B2,2)"]] };
+    const changed = {
+      ...document,
+      workbook: {
+        ...document.workbook,
+        sheets: {
+          ...document.workbook.sheets,
+          budget: {
+            ...document.workbook.sheets.budget,
+            cellData: { 1: { 0: { v: 3 }, 2: { f: "=ROUND(A2*B2,2)" } } },
+          },
+        },
+      },
+    };
     const updatedResponse = await agent
       .put(`/api/resources/${created.id}/spreadsheet`)
       .send({ document: changed, expectedVersion: 1 })

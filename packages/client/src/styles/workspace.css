@@ -1622,6 +1622,7 @@
   .workbench-section { display: grid; gap: var(--hall-space-3); }
   .workbench-section > h2 { font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-semibold); }
   .spreadsheet-editor {
+    position: relative;
     display: flex;
     min-height: var(--hall-size-editor-pdf-preview-min);
     flex-direction: column;
@@ -1632,259 +1633,16 @@
     background: var(--hall-color-surface);
   }
   .spreadsheet-grid { flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
+  .spreadsheet-grid.univer-spreadsheet { width: 100%; height: 100%; }
+  .univer-spreadsheet-instance { width: 100%; height: 100%; }
+  .spreadsheet-expand {
+    position: absolute;
+    z-index: var(--hall-z-editor-popup);
+    top: var(--hall-space-2);
+    right: var(--hall-space-2);
+  }
   .spreadsheet-grid-slot { display: flex; min-width: 0; min-height: 0; flex: 1; }
-  .spreadsheet-grid.jss_spreadsheet {
-    display: flex;
-    flex-direction: column;
-  }
-  .spreadsheet-grid > .jss_toolbar {
-    position: relative;
-    z-index: var(--hall-z-editor-popup);
-    flex: none;
-    margin: 0;
-    border: 0;
-    border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
-    background: var(--hall-color-surface-subtle);
-  }
-  .spreadsheet-formula-bar {
-    display: grid;
-    min-height: var(--hall-size-control);
-    flex: none;
-    grid-template-columns:
-      var(--hall-size-table-column-min)
-      var(--hall-size-control)
-      var(--hall-size-control)
-      var(--hall-size-control)
-      minmax(0, 1fr)
-      var(--hall-size-control);
-    align-items: stretch;
-    border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
-    background: var(--hall-color-surface);
-  }
-  .spreadsheet-cell-address {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-right: var(--hall-stroke-thin) solid var(--hall-color-border);
-    color: var(--hall-color-text);
-    font-size: var(--hall-font-size-caption);
-    font-weight: var(--hall-font-weight-medium);
-    font-variant-numeric: tabular-nums;
-    width: 100%;
-    padding: 0 var(--hall-space-1);
-    border-top: 0;
-    border-bottom: 0;
-    border-left: 0;
-    outline: 0;
-    text-align: center;
-  }
-  .spreadsheet-cell-address:focus { box-shadow: inset 0 0 0 var(--hall-stroke-thick) var(--hall-color-brand); }
-  .spreadsheet-formula-symbol {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    border: 0;
-    color: var(--hall-color-text-muted);
-    background: transparent;
-    font-family: var(--hall-font-family-display);
-    font-size: var(--hall-font-size-body);
-    font-style: italic;
-    font-weight: var(--hall-font-weight-semibold);
-    cursor: pointer;
-  }
-  .spreadsheet-formula-symbol:hover { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .spreadsheet-formula-control,
-  .spreadsheet-formula-expand {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    border: 0;
-    border-right: var(--hall-stroke-thin) solid var(--hall-color-border);
-    color: var(--hall-color-text-muted);
-    background: transparent;
-    font: inherit;
-    cursor: pointer;
-  }
-  .spreadsheet-formula-control { visibility: hidden; pointer-events: none; }
-  .spreadsheet-formula-bar.is-editing .spreadsheet-formula-control { visibility: visible; pointer-events: auto; }
-  .spreadsheet-formula-cancel:hover { color: var(--hall-color-danger); background: var(--hall-color-danger-surface); }
-  .spreadsheet-formula-validate:hover { color: var(--hall-color-success); background: var(--hall-color-success-surface); }
-  .spreadsheet-formula-expand { border-right: 0; border-left: var(--hall-stroke-thin) solid var(--hall-color-border); }
-  .spreadsheet-formula-expand:hover { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .spreadsheet-formula-picker { position: relative; border-right: var(--hall-stroke-thin) solid var(--hall-color-border); }
-  .spreadsheet-formula-input-shell { position: relative; min-width: 0; overflow: visible; }
-  .spreadsheet-formula-highlight,
-  .spreadsheet-formula-input {
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    margin: 0;
-    padding: 0 var(--hall-space-2);
-    border: 0;
-    outline: 0;
-    font: inherit;
-    font-variant-numeric: tabular-nums;
-    line-height: var(--hall-size-control);
-    white-space: pre;
-  }
-  .spreadsheet-formula-highlight { position: absolute; inset: 0; overflow: hidden; color: var(--hall-color-text); pointer-events: none; }
-  .spreadsheet-formula-input { position: relative; color: transparent; caret-color: var(--hall-color-text); background: transparent; -webkit-text-fill-color: transparent; }
-  .spreadsheet-formula-input { resize: none; overflow: hidden; }
-  .spreadsheet-formula-input:focus { box-shadow: inset 0 0 0 var(--hall-stroke-thick) var(--hall-color-brand); }
-  .spreadsheet-formula-input:read-only { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); }
-  .spreadsheet-formula-bar.is-expanded .spreadsheet-formula-input-shell,
-  .spreadsheet-formula-bar.is-expanded .spreadsheet-formula-highlight,
-  .spreadsheet-formula-bar.is-expanded .spreadsheet-formula-input { min-height: calc(var(--hall-size-control) * 4); }
-  .spreadsheet-formula-bar.is-expanded .spreadsheet-formula-highlight,
-  .spreadsheet-formula-bar.is-expanded .spreadsheet-formula-input {
-    overflow: auto;
-    line-height: var(--hall-line-height-body);
-    white-space: pre-wrap;
-  }
-  .spreadsheet-formula-token-function { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-semibold); }
-  .spreadsheet-formula-token-function.is-unsupported { color: var(--hall-color-danger); text-decoration: underline; }
-  .spreadsheet-formula-token-cell { color: var(--hall-color-success); font-weight: var(--hall-font-weight-medium); }
-  .spreadsheet-formula-token-number { color: var(--hall-color-warning-strong); }
-  .spreadsheet-formula-token-string { color: var(--hall-color-seal); }
-  .spreadsheet-formula-token-operator,
-  .spreadsheet-formula-token-equals { color: var(--hall-color-text-muted); font-weight: var(--hall-font-weight-semibold); }
-  .spreadsheet-formula-suggestions {
-    position: absolute;
-    z-index: var(--hall-z-editor-popup);
-    top: calc(100% + var(--hall-space-1));
-    left: 0;
-    display: none;
-    width: var(--hall-size-mention-menu);
-    max-height: var(--hall-size-picker-panel);
-    overflow-y: auto;
-    padding: var(--hall-space-1);
-    border: var(--hall-stroke-thin) solid var(--hall-color-border-strong);
-    border-radius: var(--hall-radius-medium);
-    background: var(--hall-color-surface);
-    box-shadow: var(--hall-shadow-large);
-  }
-  .spreadsheet-formula-suggestions.is-open { display: grid; }
-  .spreadsheet-formula-suggestion-heading {
-    padding: var(--hall-space-1-5) var(--hall-space-2) var(--hall-space-1);
-    border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
-    color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-caption);
-    font-weight: var(--hall-font-weight-semibold);
-  }
-  .spreadsheet-formula-suggestion-heading:first-child { border-top: 0; }
-  .spreadsheet-auto-formula-action { font-family: var(--hall-font-family-sans); font-weight: var(--hall-font-weight-medium); }
-  .spreadsheet-auto-sum-toolbar { position: relative; display: inline-flex; align-items: stretch; width: auto; padding: 0; }
-  .spreadsheet-auto-sum-button,
-  .spreadsheet-auto-sum-menu-button {
-    min-width: var(--hall-size-control);
-    padding: 0 var(--hall-space-1);
-    border: 0;
-    color: inherit;
-    background: transparent;
-    font: inherit;
-    cursor: pointer;
-  }
-  .spreadsheet-auto-sum-button { font-size: var(--hall-font-size-title); }
-  .spreadsheet-auto-sum-menu-button { min-width: var(--hall-space-4); padding: 0; font-size: var(--hall-font-size-caption); }
-  .spreadsheet-auto-sum-button:hover,
-  .spreadsheet-auto-sum-menu-button:hover { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .spreadsheet-auto-sum-suggestions { right: auto; left: 0; text-align: left; }
-  .spreadsheet-formula-suggestion {
-    display: grid;
-    padding: var(--hall-space-1-5) var(--hall-space-2);
-    border: 0;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-text);
-    background: transparent;
-    font: inherit;
-    font-family: var(--hall-font-family-monospace);
-    text-align: left;
-    cursor: pointer;
-  }
-  .spreadsheet-formula-suggestion code { color: var(--hall-color-text); font-size: var(--hall-font-size-caption); }
-  .spreadsheet-formula-suggestion small { color: var(--hall-color-text-muted); font-family: var(--hall-font-family-sans); line-height: var(--hall-line-height-compact); }
-  .spreadsheet-formula-suggestion:hover,
-  .spreadsheet-formula-suggestion:focus-visible { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); outline: 0; }
   .spreadsheet-editor-expanded { flex: 1; min-height: 0; }
-  .spreadsheet-grid > .jtabs-content { flex: 1; min-height: 0; }
-  .spreadsheet-grid > .jtabs-content > .jss_container { min-height: 0; }
-  .spreadsheet-grid .material-icons {
-    display: inline-block;
-    font-family: "Material Icons";
-    font-size: 20px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: 1;
-    letter-spacing: normal;
-    text-transform: none;
-    white-space: nowrap;
-    word-wrap: normal;
-    direction: ltr;
-    -webkit-font-feature-settings: "liga";
-    -webkit-font-smoothing: antialiased;
-  }
-  .spreadsheet-grid .jss_spreadsheet,
-  .spreadsheet-grid .jss_container,
-  .spreadsheet-grid .jss_content { width: 100%; height: 100%; }
-  .spreadsheet-grid .jss_container { color: var(--hall-color-text); font-family: var(--hall-font-family-sans); }
-  .spreadsheet-grid .jss_content { border: 0; box-shadow: none; }
-  .spreadsheet-grid .jss_worksheet > thead > tr > td {
-    color: var(--hall-color-text-muted);
-    background: var(--hall-color-surface-subtle);
-    font-size: var(--hall-font-size-caption);
-    font-weight: var(--hall-font-weight-medium);
-  }
-  .spreadsheet-grid .jss_worksheet td {
-    border-color: var(--hall-color-border);
-    font-size: var(--hall-font-size-body);
-  }
-  .spreadsheet-grid .jss_worksheet tbody td.highlight,
-  .spreadsheet-grid .jss_worksheet tbody td.highlight-left,
-  .spreadsheet-grid .jss_worksheet tbody td.highlight-right,
-  .spreadsheet-grid .jss_worksheet tbody td.highlight-top,
-  .spreadsheet-grid .jss_worksheet tbody td.highlight-bottom {
-    border-color: var(--hall-color-brand);
-  }
-  .spreadsheet-grid .jss_worksheet tbody td.highlight-selected {
-    box-shadow: inset 0 0 0 var(--hall-stroke-thick) var(--hall-color-brand);
-  }
-  .spreadsheet-formula-reference-0 { --spreadsheet-reference-color: var(--hall-color-success); }
-  .spreadsheet-formula-reference-1 { --spreadsheet-reference-color: var(--hall-color-brand); }
-  .spreadsheet-formula-reference-2 { --spreadsheet-reference-color: var(--hall-color-warning-strong); }
-  .spreadsheet-formula-reference-3 { --spreadsheet-reference-color: var(--hall-color-seal); }
-  .spreadsheet-formula-reference-4 { --spreadsheet-reference-color: var(--hall-color-danger); }
-  .spreadsheet-formula-reference-5 { --spreadsheet-reference-color: var(--hall-color-text-muted); }
-  .spreadsheet-formula-token[class*="spreadsheet-formula-reference-"] {
-    color: var(--spreadsheet-reference-color);
-    font-weight: var(--hall-font-weight-semibold);
-  }
-  .spreadsheet-grid .jss_worksheet tbody td.spreadsheet-formula-reference {
-    position: relative;
-    background: color-mix(in srgb, var(--spreadsheet-reference-color) 9%, transparent);
-  }
-  /* Jspreadsheet writes selection borders inline; referenced ranges must keep their Excel-like color. */
-  .spreadsheet-grid .jss_worksheet tbody td.spreadsheet-formula-reference.reference-top { border-top: var(--hall-stroke-thick) solid var(--spreadsheet-reference-color) !important; }
-  .spreadsheet-grid .jss_worksheet tbody td.spreadsheet-formula-reference.reference-right { border-right: var(--hall-stroke-thick) solid var(--spreadsheet-reference-color) !important; }
-  .spreadsheet-grid .jss_worksheet tbody td.spreadsheet-formula-reference.reference-bottom { border-bottom: var(--hall-stroke-thick) solid var(--spreadsheet-reference-color) !important; }
-  .spreadsheet-grid .jss_worksheet tbody td.spreadsheet-formula-reference.reference-left { border-left: var(--hall-stroke-thick) solid var(--spreadsheet-reference-color) !important; }
-  .spreadsheet-grid .jss_worksheet tbody td.spreadsheet-formula-reference.is-active-reference { background: color-mix(in srgb, var(--spreadsheet-reference-color) 16%, transparent); }
-  .spreadsheet-formula-range-handle {
-    position: absolute;
-    right: -5px;
-    bottom: -5px;
-    z-index: 4;
-    width: 10px;
-    height: 10px;
-    padding: 0;
-    border: var(--hall-stroke-thin) solid var(--hall-color-surface);
-    border-radius: 0;
-    background: var(--spreadsheet-reference-color);
-    cursor: nwse-resize;
-  }
-  .spreadsheet-grid .jss_about { display: none; }
   .workbench-actions { display: flex; align-items: center; gap: var(--hall-space-2); }
   .workbench-resource-list { display: flex; flex-direction: column; gap: var(--hall-space-1); margin: 0; padding: 0; list-style: none; }
   .workbench-resource-list li {
@@ -1953,9 +1711,4 @@
   height: var(--hall-size-viewer-height);
   max-height: var(--hall-size-viewer-height);
   flex-direction: column;
-}
-.spreadsheet-editor-dialog .spreadsheet-dialog-close {
-  position: absolute;
-  top: var(--hall-space-3);
-  right: var(--hall-space-12);
 }

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RequestErrorBanner } from "../../components/Ui";
+import { createEmptySpreadsheetDocument } from "../../features/spreadsheet/univerWorkbook";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
@@ -27,7 +28,7 @@ export type WorkspaceCreateKind =
   | "document";
 
 export function WorkspacePage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const { run } = useSubmitting();
   const [searchParams, setSearchParams] = useSearchParams();
   const councilBusinessStore = useCouncilBusinessStore();
@@ -98,22 +99,11 @@ export function WorkspacePage() {
       return created ? { kind: "resource", id: created.id } : null;
     }
     if (kind === "spreadsheet") {
-      const columnCount = 8;
-      const rowCount = 20;
       const created = await resourcesStore.createSpreadsheet({
         title: normalizedTitle,
         folderPath,
         tags: [],
-        document: {
-          schemaVersion: 1,
-          rowCount,
-          columnCount,
-          cells: Array.from({ length: rowCount }, () => Array.from({ length: columnCount }, () => null)),
-          rowHeights: Array.from({ length: rowCount }, () => 24),
-          columns: Array.from({ length: columnCount }, () => ({ width: 120, format: "text" })),
-          styles: [],
-          merges: [],
-        },
+        document: createEmptySpreadsheetDocument(normalizedTitle, locale),
       });
       return created ? { kind: "resource", id: created.id } : null;
     }

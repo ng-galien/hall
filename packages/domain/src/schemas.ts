@@ -192,106 +192,79 @@ export const createTextResourceSchema = z.object({
   content: z.string().default(""),
 });
 
-const spreadsheetCellValueSchema = z.union([z.string().max(10_000), z.number().finite(), z.null()]);
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(jsonValueSchema), z.record(z.string(), jsonValueSchema)]),
+);
+function isJsonObject(value: JsonValue | undefined): value is { [key: string]: JsonValue } {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
 
-const spreadsheetCellReferenceSchema = z.string().regex(/^[A-Z]+[1-9][0-9]*$/);
-const spreadsheetColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
-const spreadsheetCellStyleSchema = z
-  .object({
-    cell: spreadsheetCellReferenceSchema,
-    bold: z.boolean().optional(),
-    italic: z.boolean().optional(),
-    underline: z.boolean().optional(),
-    wrap: z.boolean().optional(),
-    align: z.enum(["left", "center", "right", "justify"]).optional(),
-    verticalAlign: z.enum(["top", "middle", "bottom"]).optional(),
-    fontFamily: z.enum(["Verdana", "Arial", "Courier New"]).optional(),
-    fontSize: z.enum(["x-small", "small", "medium", "large", "x-large"]).optional(),
-    textColor: spreadsheetColorSchema.optional(),
-    backgroundColor: spreadsheetColorSchema.optional(),
-    borders: z
-      .object({
-        top: z.boolean().optional(),
-        right: z.boolean().optional(),
-        bottom: z.boolean().optional(),
-        left: z.boolean().optional(),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict();
-const spreadsheetMergeSchema = z
-  .object({
-    cell: spreadsheetCellReferenceSchema,
-    colspan: z.number().int().min(1).max(100),
-    rowspan: z.number().int().min(1).max(500),
-  })
-  .strict()
-  .refine(({ colspan, rowspan }) => colspan > 1 || rowspan > 1, { message: "A merge must contain multiple cells" });
+const spreadsheetWorkbookSchema = z.record(z.string(), jsonValueSchema).superRefine((workbook, context) => {
+  if (typeof workbook.id !== "string" || !workbook.id.trim()) {
+    context.addIssue({ code: "custom", message: "Spreadsheet workbook must have an id", path: ["id"] });
+  }
+  if (typeof workbook.name !== "string") {
+    context.addIssue({ code: "custom", message: "Spreadsheet workbook must have a name", path: ["name"] });
+  }
+  const sheetOrder = workbook.sheetOrder;
+  const sheets = workbook.sheets;
+  if (!Array.isArray(sheetOrder) || sheetOrder.length === 0 || sheetOrder.length > 100) {
+    context.addIssue({ code: "custom", message: "Spreadsheet workbook must contain between 1 and 100 sheets", path: ["sheetOrder"] });
+    return;
+  }
+  if (!sheets || Array.isArray(sheets) || typeof sheets !== "object") {
+    context.addIssue({ code: "custom", message: "Spreadsheet workbook sheets must be an object", path: ["sheets"] });
+    return;
+  }
+  const uniqueSheetIds = new Set<string>();
+  for (const sheetId of sheetOrder) {
+    if (typeof sheetId !== "string" || !sheetId || uniqueSheetIds.has(sheetId) || !(sheetId in sheets)) {
+      context.addIssue({ code: "custom", message: "Spreadsheet sheet order must contain unique existing sheet ids", path: ["sheetOrder"] });
+      return;
+    }
+    uniqueSheetIds.add(sheetId);
+    const sheet = sheets[sheetId];
+    if (!isJsonObject(sheet)) {
+      context.addIssue({ code: "custom", message: "Spreadsheet sheets must be objects", path: ["sheets", sheetId] });
+      continue;
+    }
+    if (sheet.id !== sheetId) {
+      context.addIssue({ code: "custom", message: "Spreadsheet sheet id must match its key", path: ["sheets", sheetId, "id"] });
+    }
+    if (typeof sheet.name !== "string" || !sheet.name.trim()) {
+      context.addIssue({ code: "custom", message: "Spreadsheet sheet must have a name", path: ["sheets", sheetId, "name"] });
+    }
+    if (!Number.isInteger(sheet.rowCount) || Number(sheet.rowCount) < 1 || Number(sheet.rowCount) > 1_048_576) {
+      context.addIssue({ code: "custom", message: "Spreadsheet sheet row count is invalid", path: ["sheets", sheetId, "rowCount"] });
+    }
+    if (!Number.isInteger(sheet.columnCount) || Number(sheet.columnCount) < 1 || Number(sheet.columnCount) > 16_384) {
+      context.addIssue({ code: "custom", message: "Spreadsheet sheet column count is invalid", path: ["sheets", sheetId, "columnCount"] });
+    }
+    for (const property of ["cellData", "rowData", "columnData"] as const) {
+      if (sheet[property] !== undefined && !isJsonObject(sheet[property])) {
+        context.addIssue({ code: "custom", message: `Spreadsheet sheet ${property} must be an object`, path: ["sheets", sheetId, property] });
+      }
+    }
+    if (sheet.mergeData !== undefined && !Array.isArray(sheet.mergeData)) {
+      context.addIssue({ code: "custom", message: "Spreadsheet sheet mergeData must be an array", path: ["sheets", sheetId, "mergeData"] });
+    }
+  }
+  for (const sheetId of Object.keys(sheets)) {
+    if (!uniqueSheetIds.has(sheetId)) {
+      context.addIssue({ code: "custom", message: "Spreadsheet workbook contains an unordered sheet", path: ["sheets", sheetId] });
+    }
+  }
+});
 
 export const spreadsheetDocumentSchema = z
   .object({
-    schemaVersion: z.literal(1),
-    rowCount: z.number().int().min(1).max(500),
-    columnCount: z.number().int().min(1).max(100),
-    cells: z.array(z.array(spreadsheetCellValueSchema).max(100)).max(500),
-    rowHeights: z.array(z.number().int().min(16).max(400)).max(500),
-    columns: z.array(
-      z
-        .object({
-          width: z.number().int().min(20).max(2_000),
-          format: z.enum(["text", "number", "currency", "percentage", "date"]),
-        })
-        .strict(),
-    ),
-    styles: z.array(spreadsheetCellStyleSchema).max(10_000),
-    merges: z.array(spreadsheetMergeSchema).max(1_000),
+    schemaVersion: z.literal(2),
+    workbook: spreadsheetWorkbookSchema,
   })
   .strict()
   .superRefine((document, context) => {
-    const { rowCount, columnCount, cells, rowHeights, columns, styles, merges } = document;
-    if (cells.length !== rowCount || cells.some((row) => row.length !== columnCount)) {
-      context.addIssue({ code: "custom", message: "Spreadsheet dimensions must match its cells", path: ["cells"] });
-    }
-    if (columns.length !== columnCount) {
-      context.addIssue({ code: "custom", message: "Spreadsheet dimensions must match its columns", path: ["columns"] });
-    }
-    if (rowHeights.length !== rowCount) {
-      context.addIssue({
-        code: "custom",
-        message: "Spreadsheet dimensions must match its row heights",
-        path: ["rowHeights"],
-      });
-    }
-    const coordinates = (reference: string) => {
-      const match = /^([A-Z]+)([1-9][0-9]*)$/.exec(reference);
-      let column = 0;
-      for (const letter of match?.[1] ?? "") column = column * 26 + letter.charCodeAt(0) - 64;
-      return { column: column - 1, row: Number(match?.[2] ?? 0) - 1 };
-    };
-    const styleCells = new Set<string>();
-    for (const style of styles) {
-      const { column, row } = coordinates(style.cell);
-      if (column >= columnCount || row >= rowCount) {
-        context.addIssue({ code: "custom", message: "Spreadsheet style is outside its dimensions", path: ["styles"] });
-      }
-      if (styleCells.has(style.cell)) {
-        context.addIssue({ code: "custom", message: "Spreadsheet styles must target unique cells", path: ["styles"] });
-      }
-      styleCells.add(style.cell);
-    }
-    const mergeCells = new Set<string>();
-    for (const merge of merges) {
-      const { column, row } = coordinates(merge.cell);
-      if (column + merge.colspan > columnCount || row + merge.rowspan > rowCount) {
-        context.addIssue({ code: "custom", message: "Spreadsheet merge is outside its dimensions", path: ["merges"] });
-      }
-      if (mergeCells.has(merge.cell)) {
-        context.addIssue({ code: "custom", message: "Spreadsheet merges must target unique cells", path: ["merges"] });
-      }
-      mergeCells.add(merge.cell);
-    }
-    if (new TextEncoder().encode(JSON.stringify(document)).byteLength > 1_500_000) {
+    if (new TextEncoder().encode(JSON.stringify(document)).byteLength > 10_000_000) {
       context.addIssue({ code: "custom", message: "Spreadsheet document is too large" });
     }
   });

@@ -77,16 +77,14 @@ Critère de sortie : les hooks Claude et Codex exécutent le même corpus et la 
 
 ### Ressources tableur
 
-Choix d'intégration : Jspreadsheet CE 5.0.4, isolé derrière un adaptateur Hall afin de conserver une frontière remplaçable.
+Choix d'intégration : Univer OSS, chargé à la demande derrière l'adaptateur Hall. Le document durable est le snapshot JSON complet du classeur, enveloppé par `schemaVersion: 2`.
 
-- [ ] `[BACK]` Introduire une `SpreadsheetResource` durable, classée dans l'arbre et soumise aux mêmes opérations de renommage, déplacement, tags, rattachement et audit que les autres ressources.
-- [ ] `[BACK]` Persister la représentation JSON native de Jspreadsheet lorsqu'elle constitue un document stable et complet ; l'envelopper uniquement avec les métadonnées Hall nécessaires, notamment la version du schéma et la version de concurrence optimiste.
-- [ ] `[BACK]` Définir et valider un format qui reste lisible, versionné et migrable si la représentation native ne suffit pas ou évolue.
-- [ ] `[BACK]` Prendre en charge une feuille, les références A1, les opérations arithmétiques et les fonctions comptables usuelles `SUM`, `ROUND`, `AVERAGE`, `MIN` et `MAX`.
-- [ ] `[BACK]` Garantir que l'évaluation des formules n'exécute aucun code arbitraire et n'accède ni au réseau, ni au DOM, ni aux objets globaux.
-- [ ] `[FRONT]` Créer et ouvrir une ressource « Tableur » dans l'établi avec les formats texte, nombre, devise, pourcentage et date.
-- [ ] `[FRONT]` Appliquer le contrat d'enregistrement automatique commun, avec états visible, enregistrement, enregistré, conflit et erreur.
-- [ ] `[FULL]` Exposer dans Siren les capacités de consultation et de modification, puis vérifier le mode lecture seule, les conflits et les snapshots.
+- [x] `[BACK]` Introduire une `SpreadsheetResource` durable, classée dans l'arbre et soumise aux mêmes opérations de renommage, déplacement, tags, rattachement et audit que les autres ressources.
+- [x] `[BACK]` Persister le snapshot Univer complet avec toutes ses feuilles, leur ordre, les cellules, formules, formats et dimensions.
+- [x] `[BACK]` Valider le squelette du classeur et conserver les propriétés Univer supplémentaires sans transformation.
+- [x] `[FRONT]` Créer et ouvrir une ressource « Tableur » dans l'établi avec le moteur de formules et les outils natifs Univer.
+- [x] `[FRONT]` Appliquer le contrat d'enregistrement automatique commun et sérialiser les sauvegardes rapprochées sans perte.
+- [x] `[FULL]` Exposer dans Siren les capacités de consultation et de modification avec concurrence optimiste et snapshots.
 - [ ] `[FULL]` Recetter la création, l'édition de données comptables simples, le recalcul, le rechargement et le classement de la ressource sur SQLite et PostgreSQL.
 - [ ] `[FULL]` Étudier l'import XLSX après stabilisation du format interne ; ne pas faire de l'export XLSX un critère de sortie.
 

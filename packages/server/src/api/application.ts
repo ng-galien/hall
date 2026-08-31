@@ -41,7 +41,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
     prepareAudit(requestContext),
     persistFailedAudit(requestContext, securityRepository),
     enforceSameOrigin(config),
-    express.json({ limit: "2mb" }),
+    express.json({ limit: "12mb" }),
     prepareAudit(requestContext),
   );
   app.use("/api/auth", createAuthRouter(container.cradle));

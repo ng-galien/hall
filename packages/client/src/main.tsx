@@ -1,5 +1,4 @@
 import "@fontsource-variable/archivo";
-import "@fontsource/material-icons";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "@fontsource/spectral/400.css";

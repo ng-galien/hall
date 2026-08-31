@@ -236,21 +236,21 @@ postgres("PostgreSQL persistence", () => {
         },
       });
       const spreadsheetDocument = {
-        schemaVersion: 1 as const,
-        rowCount: 2,
-        columnCount: 3,
-        cells: [
-          ["Quantity", "Unit price", "Total"],
-          [2, 12.5, "=ROUND(A2*B2,2)"],
-        ],
-        rowHeights: [28, 24],
-        columns: [
-          { width: 100, format: "number" as const },
-          { width: 140, format: "currency" as const },
-          { width: 140, format: "currency" as const },
-        ],
-        styles: [],
-        merges: [],
+        schemaVersion: 2 as const,
+        workbook: {
+          id: "budget-workbook",
+          name: "Budget",
+          sheetOrder: ["budget"],
+          sheets: {
+            budget: {
+              id: "budget",
+              name: "Budget",
+              rowCount: 20,
+              columnCount: 8,
+              cellData: { 1: { 2: { f: "=ROUND(A2*B2,2)" } } },
+            },
+          },
+        },
       };
       const spreadsheet = await resourceRepository.createSpreadsheet({
         title: "Budget",
@@ -261,7 +261,18 @@ postgres("PostgreSQL persistence", () => {
       expect(await resourceRepository.findSpreadsheetDocument(spreadsheet.id)).toEqual(spreadsheetDocument);
       expect(
         await resourceRepository.updateSpreadsheet(spreadsheet.id, {
-          document: { ...spreadsheetDocument, cells: [spreadsheetDocument.cells[0], [3, 12.5, "=ROUND(A2*B2,2)"]] },
+          document: {
+            ...spreadsheetDocument,
+            workbook: {
+              ...spreadsheetDocument.workbook,
+              sheets: {
+                budget: {
+                  ...spreadsheetDocument.workbook.sheets.budget,
+                  cellData: { 1: { 0: { v: 3 }, 2: { f: "=ROUND(A2*B2,2)" } } },
+                },
+              },
+            },
+          },
           expectedVersion: 1,
         }),
       ).toMatchObject({ status: "updated", resource: { version: 2 } });

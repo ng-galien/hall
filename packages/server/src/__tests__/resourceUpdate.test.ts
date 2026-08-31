@@ -67,14 +67,21 @@ describe("resource update", () => {
         .expect(201),
     ) as { id: string };
     const spreadsheetDocument = {
-      schemaVersion: 1,
-      rowCount: 1,
-      columnCount: 1,
-      cells: [["Budget présenté"]],
-      rowHeights: [24],
-      columns: [{ width: 140, format: "currency" }],
-      styles: [],
-      merges: [],
+      schemaVersion: 2,
+      workbook: {
+        id: "budget-workbook",
+        name: "Budget présenté",
+        sheetOrder: ["budget"],
+        sheets: {
+          budget: {
+            id: "budget",
+            name: "Budget",
+            rowCount: 20,
+            columnCount: 8,
+            cellData: { 0: { 0: { v: "Budget présenté" } } },
+          },
+        },
+      },
     };
     const spreadsheet = domainBody(
       await agent
