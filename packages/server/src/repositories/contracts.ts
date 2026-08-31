@@ -33,6 +33,8 @@ import type {
   QuorumFailureEvidence,
   RemoteResource,
   Resource,
+  SpreadsheetDocument,
+  SpreadsheetResource,
   TextResource,
   VoteInput,
 } from "@hall/domain";
@@ -307,6 +309,18 @@ export interface CreateRemoteResource {
   url: string | null;
 }
 
+export interface CreateSpreadsheetResource {
+  title: string;
+  folderPath: string;
+  tags: string[];
+  document: SpreadsheetDocument;
+}
+
+export interface UpdateSpreadsheetResource {
+  document: SpreadsheetDocument;
+  expectedVersion: number;
+}
+
 export interface CreateGeographicResource {
   title: string;
   folderPath: string;
@@ -403,6 +417,7 @@ export interface StoredDocumentPreview {
 
 export type StoredResource =
   | TextResource
+  | SpreadsheetResource
   | StoredDocumentResource
   | RemoteResource
   | GeographicResource
@@ -427,6 +442,7 @@ export interface ResourceRepository {
   find(id: string): Promise<StoredResource | null>;
   findMetadata(id: string): Promise<Resource | null>;
   findGeographicData(id: string): Promise<GeographicResourceData | null>;
+  findSpreadsheetDocument(id: string): Promise<SpreadsheetDocument | null>;
   listLegalReferenceSnapshots(id: string): Promise<LegalReferenceSnapshot[]>;
   findPreview(
     sourceContentSha256: string,
@@ -437,6 +453,13 @@ export interface ResourceRepository {
   hasFolderPathPrefix(folderPath: string): Promise<boolean>;
   renameFolder(sourcePath: string, targetPath: string, updatedAt: string): Promise<number>;
   createText(input: CreateTextResource): Promise<TextResource>;
+  createSpreadsheet(input: CreateSpreadsheetResource): Promise<SpreadsheetResource>;
+  updateSpreadsheet(
+    id: string,
+    input: UpdateSpreadsheetResource,
+  ): Promise<
+    { status: "updated"; resource: SpreadsheetResource } | { status: "versionConflict" } | { status: "notFound" }
+  >;
   createRemote(input: CreateRemoteResource): Promise<RemoteResource>;
   createGeographic(input: CreateGeographicResource): Promise<GeographicResource>;
   updateGeographic(

@@ -10,6 +10,7 @@ import type {
   RemoteResource,
   Resource,
   ResourceDetails,
+  SpreadsheetResource,
   TextResource,
 } from "@hall/domain";
 import { folderPathSchema } from "@hall/domain";
@@ -22,6 +23,7 @@ import type {
   CreateGeographicResource,
   CreateLegalReferenceResource,
   CreateRemoteResource,
+  CreateSpreadsheetResource,
   CreateTextResource,
   HallSettingsRepository,
   ResourceRepository,
@@ -29,6 +31,7 @@ import type {
   UnitOfWork,
   UpdateGeographicResource,
   UpdateResource,
+  UpdateSpreadsheetResource,
   WorkspaceFolderRepository,
 } from "../repositories/contracts.js";
 import type { EditorAssetService } from "./editorAssetService.js";
@@ -56,6 +59,8 @@ export interface ResourceService {
   createFolder(parentPath: string, name: string): Promise<FolderCreateResult>;
   renameFolder(folderPath: string, name: string): Promise<FolderRenameResult>;
   createText(input: CreateTextResource): Promise<TextResource>;
+  createSpreadsheet(input: CreateSpreadsheetResource): Promise<SpreadsheetResource>;
+  updateSpreadsheet(id: string, input: UpdateSpreadsheetResource): Promise<SpreadsheetResource>;
   createRemote(input: CreateRemoteResource): Promise<RemoteResource>;
   createGeographic(
     input: Omit<CreateGeographicResource, "view"> & { view?: CreateGeographicResource["view"] },
@@ -179,6 +184,8 @@ export function createResourceService({
       return {
         resource,
         geography: resource.kind === "geographic" ? await resourceRepository.findGeographicData(resource.id) : null,
+        spreadsheet:
+          resource.kind === "spreadsheet" ? await resourceRepository.findSpreadsheetDocument(resource.id) : null,
         legalSnapshots:
           resource.kind === "legalReference" ? await resourceRepository.listLegalReferenceSnapshots(resource.id) : null,
         councilBusiness: await councilBusinessRepository.list({ resourceId: resource.id }),
@@ -256,6 +263,16 @@ export function createResourceService({
     },
     createRemote(input) {
       return unitOfWork.execute(() => resourceRepository.createRemote(input));
+    },
+    createSpreadsheet(input) {
+      return unitOfWork.execute(() => resourceRepository.createSpreadsheet(input));
+    },
+    async updateSpreadsheet(id, input) {
+      if (await resourceRepository.isSnapshotted(id)) throw new DomainError("conflict", 409);
+      const result = await unitOfWork.execute(() => resourceRepository.updateSpreadsheet(id, input));
+      if (result.status === "notFound") throw new DomainError("resource_not_found", 404);
+      if (result.status === "versionConflict") throw new DomainError("conflict", 409);
+      return result.resource;
     },
     async createGeographic(input) {
       const hall = await hallSettingsRepository.get();

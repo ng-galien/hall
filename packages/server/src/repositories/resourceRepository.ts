@@ -13,6 +13,8 @@ import type {
   LegalReferenceSnapshot,
   RemoteResource,
   Resource,
+  SpreadsheetDocument,
+  SpreadsheetResource,
   TextResource,
 } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
@@ -21,6 +23,7 @@ import type {
   CreateLegalReferenceDraft,
   CreateLegalReferenceResource,
   CreateRemoteResource,
+  CreateSpreadsheetResource,
   CreateTextResource,
   PersistDocumentResource,
   PersistEditorAssetResource,
@@ -28,6 +31,7 @@ import type {
   StoredDocumentPreview,
   StoredDocumentResource,
   UpdateGeographicResource,
+  UpdateSpreadsheetResource,
 } from "./contracts.js";
 import { uniqueSlug } from "./publicIdentifiers.js";
 import { asNullableString, type DatabaseRow, mapSequential } from "./row.js";
@@ -79,6 +83,14 @@ export function mapResource(row: DatabaseRow, tags: string[]): Resource {
       state: { readiness: url ? "ready" : "incomplete", availability: url ? "unchecked" : null },
       url,
     } satisfies RemoteResource;
+  }
+  if (row.kind === "spreadsheet") {
+    return {
+      kind: "spreadsheet",
+      ...common,
+      state: { readiness: "ready", availability: null },
+      version: Number(row.spreadsheet_version),
+    } satisfies SpreadsheetResource;
   }
   if (row.kind === "geographic") {
     return {
@@ -208,6 +220,10 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         },
       } satisfies GeographicResourceData;
     },
+    async findSpreadsheetDocument(id) {
+      const row = await sqlExecutor.get("resource.spreadsheetDocument", { id });
+      return row ? structuredValue<SpreadsheetDocument>(row.document_json) : null;
+    },
     async listLegalReferenceSnapshots(id) {
       return (await sqlExecutor.all("resource.legalReferenceSnapshots", { resourceId: id })).map(mapLegalSnapshot);
     },
@@ -288,6 +304,52 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
           input.tags,
         ) as RemoteResource;
+      });
+    },
+    createSpreadsheet(input: CreateSpreadsheetResource) {
+      return sqlExecutor.execute(async () => {
+        const id = randomUUID();
+        const now = new Date().toISOString();
+        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
+        await sqlExecutor.run("resource.insertSpreadsheetBase", {
+          id,
+          slug,
+          title: input.title,
+          folderPath: input.folderPath,
+          createdAt: now,
+          updatedAt: now,
+        });
+        await sqlExecutor.run("resource.insertSpreadsheet", { id, documentJson: JSON.stringify(input.document) });
+        await insertTags(sqlExecutor, id, input.tags);
+        return (await mapStoredResource(
+          sqlExecutor,
+          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
+        )) as SpreadsheetResource;
+      });
+    },
+    updateSpreadsheet(id: string, input: UpdateSpreadsheetResource) {
+      return sqlExecutor.execute(async () => {
+        const stored = await sqlExecutor.get("resource.findMetadata", { reference: id });
+        if (stored?.kind !== "spreadsheet") return { status: "notFound" } as const;
+        const result = await sqlExecutor.run("resource.updateSpreadsheet", {
+          id: String(stored.id),
+          documentJson: JSON.stringify(input.document),
+          expectedVersion: input.expectedVersion,
+        });
+        if (result.changes === 0) return { status: "versionConflict" } as const;
+        await sqlExecutor.run("resource.update", {
+          id: String(stored.id),
+          title: String(stored.title),
+          folderPath: String(stored.folder_path),
+          updatedAt: new Date().toISOString(),
+        });
+        return {
+          status: "updated",
+          resource: (await mapStoredResource(
+            sqlExecutor,
+            (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
+          )) as SpreadsheetResource,
+        } as const;
       });
     },
     createGeographic(input: CreateGeographicResource) {
@@ -409,7 +471,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         if (stored?.kind !== "legalReference") return { status: "notFound" } as const;
         const latestSnapshot = await sqlExecutor.get("resource.latestLegalReferenceSnapshot", { resourceId: id });
         const snapshotUnchanged =
-          latestSnapshot !== null &&
+          latestSnapshot != null &&
           String(latestSnapshot.common_id) === input.snapshot.commonId &&
           String(latestSnapshot.version_id) === input.snapshot.versionId &&
           asNullableString(latestSnapshot.effective_at) === input.snapshot.effectiveAt &&

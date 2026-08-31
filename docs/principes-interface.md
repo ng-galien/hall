@@ -66,4 +66,8 @@ Les tests `theme-tokens.test.mjs` protègent cette frontière et doivent rester 
 - Toute mutation empêche les doubles soumissions, montre sa progression et restitue une erreur exploitable.
 - Une action absente du contrat Siren n’est pas simulée ou réinventée dans le client.
 - Les contrôles restent accessibles au clavier, correctement nommés et associés à leurs champs.
-- Le mode séance conserve son autonomie visuelle et fonctionnelle ; ses contraintes d’affichage ne justifient pas de dupliquer les règles métier dans le frontend.
+- Le mode séance conserve son autonomie visuelle et fonctionnelle ; ses contraintes d'affichage ne justifient pas de dupliquer les règles métier dans le frontend.
+
+## 8. Références et présentations de ressources
+
+La distinction entre contenu local, actif temporaire d'éditeur, référence interne et inclusion visuelle d'une ressource est définie dans [`references-internes-et-presentations-de-ressources.md`](references-internes-et-presentations-de-ressources.md). Toute évolution des références ou des blocs de ressource doit appliquer cette frontière et conserver `@hall/templating` comme autorité de grammaire.

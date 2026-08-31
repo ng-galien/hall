@@ -6,6 +6,7 @@ import type {
   LegalReferenceResource,
   RemoteResource,
   Resource,
+  SpreadsheetResource,
   TextResource,
 } from "@hall/domain";
 import { create } from "zustand";
@@ -15,6 +16,7 @@ import {
   createGeographicResource,
   createLegalReferenceResource,
   createRemoteResource,
+  createSpreadsheetResource,
   createTextResource,
   deleteResource,
   downloadResourceDocument,
@@ -32,6 +34,7 @@ interface ResourcesState {
   error: ApiErrorCode | null;
   canCreateText: boolean;
   canCreateRemote: boolean;
+  canCreateSpreadsheet: boolean;
   canCreateGeographic: boolean;
   canSearchLegalReferences: boolean;
   canCreateLegalReference: boolean;
@@ -43,6 +46,7 @@ interface ResourcesState {
   load(): Promise<void>;
   createText(input: Record<string, unknown>): Promise<TextResource | null>;
   createRemote(input: Record<string, unknown>): Promise<RemoteResource | null>;
+  createSpreadsheet(input: Record<string, unknown>): Promise<SpreadsheetResource | null>;
   createGeographic(input: Record<string, unknown>): Promise<GeographicResource | null>;
   createLegalReference(input: Record<string, unknown>): Promise<LegalReferenceResource | null>;
   createFolder(parentPath: string, name: string): Promise<string | null>;
@@ -61,6 +65,7 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
   error: null,
   canCreateText: false,
   canCreateRemote: false,
+  canCreateSpreadsheet: false,
   canCreateGeographic: false,
   canSearchLegalReferences: false,
   canCreateLegalReference: false,
@@ -90,6 +95,7 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
         folderPaths,
         canCreateText: Boolean(findSirenAction(representation, "resource.create-text")),
         canCreateRemote: Boolean(findSirenAction(representation, "resource.create-remote")),
+        canCreateSpreadsheet: Boolean(findSirenAction(representation, "resource.create-spreadsheet")),
         canCreateGeographic: Boolean(findSirenAction(representation, "resource.create-geographic")),
         canSearchLegalReferences: Boolean(findSirenAction(representation, "resource.search-legal-references")),
         canCreateLegalReference: Boolean(findSirenAction(representation, "resource.create-legal-reference")),
@@ -119,6 +125,17 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
     set({ error: null });
     try {
       const created = await createRemoteResource(input);
+      await get().load();
+      return created;
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
+      return null;
+    }
+  },
+  async createSpreadsheet(input) {
+    set({ error: null });
+    try {
+      const created = await createSpreadsheetResource(input);
       await get().load();
       return created;
     } catch (error) {

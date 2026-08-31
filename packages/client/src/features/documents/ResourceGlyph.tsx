@@ -8,6 +8,7 @@ import {
   PdfIcon,
   PresentationDocumentIcon,
   SpreadsheetDocumentIcon,
+  TableIcon,
   TextDocumentIcon,
   WebIcon,
   WordDocumentIcon,
@@ -24,12 +25,14 @@ export type ResourceTone =
   | "image"
   | "document"
   | "spreadsheet"
+  | "spreadsheetFile"
   | "presentation"
   | "csv"
   | "file";
 
 export function resourceTone(resource: Resource): ResourceTone {
   if (resource.kind === "text") return "text";
+  if (resource.kind === "spreadsheet") return "spreadsheet";
   if (resource.kind === "remote") return "remote";
   if (resource.kind === "geographic") return "geographic";
   if (resource.kind === "legalReference") return "legalReference";
@@ -43,7 +46,7 @@ export function resourceTone(resource: Resource): ResourceTone {
     case "odt":
       return "document";
     case "xlsx":
-      return "spreadsheet";
+      return "spreadsheetFile";
     case "pptx":
       return "presentation";
     case "csv":
@@ -64,6 +67,7 @@ export const toneLabelKeys: Record<ResourceTone, TranslationKey> = {
   image: "workspace.type.image",
   document: "workspace.type.file",
   spreadsheet: "workspace.type.file",
+  spreadsheetFile: "workspace.type.file",
   presentation: "workspace.type.file",
   csv: "workspace.type.file",
   file: "workspace.type.file",
@@ -77,7 +81,8 @@ export const toneIcons = {
   pdf: PdfIcon,
   image: ImageIcon,
   document: WordDocumentIcon,
-  spreadsheet: SpreadsheetDocumentIcon,
+  spreadsheet: TableIcon,
+  spreadsheetFile: SpreadsheetDocumentIcon,
   presentation: PresentationDocumentIcon,
   csv: CsvIcon,
   file: FileIcon,
@@ -88,6 +93,7 @@ export function useResourceTypeLabel(): (resource: Resource) => string {
   return (resource) => {
     if (resource.kind === "document") return resource.format.toUpperCase();
     if (resource.kind === "remote") return t("workspace.type.remote");
+    if (resource.kind === "spreadsheet") return t("workspace.type.spreadsheet");
     if (resource.kind === "geographic") return t("workspace.type.geographic");
     if (resource.kind === "legalReference") return t("workspace.type.legalReference");
     return t("workspace.type.text");

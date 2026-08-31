@@ -17,7 +17,14 @@ import { emptySearch, isSearchActive, WorkspaceSearch, type WorkspaceSearchState
 
 export type WorkspaceSelection = { kind: "councilBusiness"; id: string } | { kind: "resource"; id: string } | null;
 
-export type WorkspaceCreateKind = "councilMatter" | "text" | "remote" | "geographic" | "legalReference" | "document";
+export type WorkspaceCreateKind =
+  | "councilMatter"
+  | "text"
+  | "spreadsheet"
+  | "remote"
+  | "geographic"
+  | "legalReference"
+  | "document";
 
 export function WorkspacePage() {
   const { t } = useI18n();
@@ -88,6 +95,26 @@ export function WorkspacePage() {
     }
     if (kind === "remote") {
       const created = await resourcesStore.createRemote({ title: normalizedTitle, url: null, folderPath, tags: [] });
+      return created ? { kind: "resource", id: created.id } : null;
+    }
+    if (kind === "spreadsheet") {
+      const columnCount = 8;
+      const rowCount = 20;
+      const created = await resourcesStore.createSpreadsheet({
+        title: normalizedTitle,
+        folderPath,
+        tags: [],
+        document: {
+          schemaVersion: 1,
+          rowCount,
+          columnCount,
+          cells: Array.from({ length: rowCount }, () => Array.from({ length: columnCount }, () => null)),
+          rowHeights: Array.from({ length: rowCount }, () => 24),
+          columns: Array.from({ length: columnCount }, () => ({ width: 120, format: "text" })),
+          styles: [],
+          merges: [],
+        },
+      });
       return created ? { kind: "resource", id: created.id } : null;
     }
     if (kind === "geographic") {

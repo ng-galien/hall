@@ -54,6 +54,7 @@ type InlineCreateKind = Exclude<WorkspaceCreateKind, "document">;
 type CreateTarget = { kind: InlineCreateKind; folderPath: string };
 
 const TextResourceIcon = toneIcons.text;
+const SpreadsheetResourceIcon = toneIcons.spreadsheet;
 const RemoteResourceIcon = toneIcons.remote;
 const GeographicResourceIcon = toneIcons.geographic;
 const LegalReferenceResourceIcon = toneIcons.legalReference;
@@ -379,11 +380,13 @@ export function PathContents({
         ? "workspace.createCouncilMatter"
         : kind === "text"
           ? "workspace.createText"
-          : kind === "remote"
-            ? "workspace.createRemote"
-            : kind === "geographic"
-              ? "workspace.createGeographic"
-              : "workspace.createLegalReference",
+          : kind === "spreadsheet"
+            ? "workspace.createSpreadsheet"
+            : kind === "remote"
+              ? "workspace.createRemote"
+              : kind === "geographic"
+                ? "workspace.createGeographic"
+                : "workspace.createLegalReference",
     );
 
   const createInlineEntry = async (target: CreateTarget, title: string) => {
@@ -455,11 +458,13 @@ export function PathContents({
         ? WorkspaceIcon
         : target.kind === "text"
           ? TextResourceIcon
-          : target.kind === "remote"
-            ? RemoteResourceIcon
-            : target.kind === "geographic"
-              ? GeographicResourceIcon
-              : LegalReferenceResourceIcon;
+          : target.kind === "spreadsheet"
+            ? SpreadsheetResourceIcon
+            : target.kind === "remote"
+              ? RemoteResourceIcon
+              : target.kind === "geographic"
+                ? GeographicResourceIcon
+                : LegalReferenceResourceIcon;
     return (
       <li className="workspace-explorer-item workspace-explorer-creating workspace-explorer-selected">
         <div className="workspace-explorer-row">
@@ -494,6 +499,7 @@ export function PathContents({
       resourcesStore.canCreateFolder ||
       councilBusinessStore.canCreate ||
       resourcesStore.canCreateText ||
+      resourcesStore.canCreateSpreadsheet ||
       resourcesStore.canCreateRemote ||
       resourcesStore.canCreateGeographic ||
       canCreateLegalReference ||
@@ -536,6 +542,15 @@ export function PathContents({
                   >
                     <TextResourceIcon aria-hidden="true" />
                     {t("workspace.createText")}
+                  </ContextMenuItem>
+                ) : null}
+                {resourcesStore.canCreateSpreadsheet ? (
+                  <ContextMenuItem
+                    data-testid="workspace-tree-create-spreadsheet"
+                    onSelect={() => afterContextMenuCloses(() => startInlineCreate("spreadsheet", folderPath))}
+                  >
+                    <SpreadsheetResourceIcon aria-hidden="true" />
+                    {t("workspace.createSpreadsheet")}
                   </ContextMenuItem>
                 ) : null}
                 {resourcesStore.canCreateRemote ? (
@@ -757,8 +772,9 @@ export function PathContents({
           const key = itemKey(payload);
           const renaming = renameTarget?.kind === payload.kind && renameTarget.id === payload.id;
           const renamable = resourcesStore.updatableIds.includes(resource.id);
-          const isNote = resource.kind === "text";
-          const open = () => (isNote ? onSelect({ kind: "resource", id: resource.id }) : onPreview(resource));
+          const isWorkbenchResource = resource.kind === "text" || resource.kind === "spreadsheet";
+          const open = () =>
+            isWorkbenchResource ? onSelect({ kind: "resource", id: resource.id }) : onPreview(resource);
           const rowContents = (
             <>
               <ResourceGlyph resource={resource} />
@@ -807,7 +823,7 @@ export function PathContents({
               payload={payload}
               movable={!renaming && renamable}
               testId={`workspace-resource-${resource.id}`}
-              className={`workspace-explorer-item ${isNote ? "workspace-explorer-note" : "workspace-explorer-document"}${selectedKey === key ? " workspace-explorer-selected" : ""}`}
+              className={`workspace-explorer-item ${isWorkbenchResource ? "workspace-explorer-note" : "workspace-explorer-document"}${selectedKey === key ? " workspace-explorer-selected" : ""}`}
             >
               <RenameContextMenu enabled={renamable} onRename={() => startRename(payload)}>
                 {row}

@@ -170,3 +170,5 @@ Pour voir l'application en live pendant le développement, utiliser **toujours**
 ### Données de démonstration
 
 `npm run -w @hall/server seed:dev` peuple le serveur (via l’API, jamais en SQL direct) : membres, commissions et appartenances datées, ressources classées par chemins (PDF générés inline), affaires du conseil, délibérations, une séance passée entièrement déroulée (présences, pouvoir, scrutins publics sur délibération et sur point, clôture) et une séance à venir programmée. Le script exige une base vide ; pour repartir de zéro : `rm packages/server/data/hall.sqlite*`, redémarrer le serveur (nodemon redémarre sur `touch packages/server/src/index.ts`), puis relancer le seed.
+
+Le dossier fonctionnel `seed` de l'espace de travail regroupe les exemples de démonstration de chaque type de ressource pris en charge par Hall. Toute nouvelle nature de ressource doit y disposer d'un exemple créé par `seed:dev` via l'API publique. Les recettes manuelles et les vérifications dans le navigateur intégré doivent également créer leurs ressources d'essai dans `seed`, et non dans un dossier métier comme `finances` ou `travaux`.

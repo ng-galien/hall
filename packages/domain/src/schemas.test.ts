@@ -4,6 +4,7 @@ import {
   createGeographicResourceSchema,
   recordAttendanceSchema,
   recordBallotSchema,
+  spreadsheetDocumentSchema,
   updateCouncilMeetingSchema,
   updateHallSettingsSchema,
 } from "./schemas.js";
@@ -37,6 +38,42 @@ describe("geographic resource colors", () => {
     const invalid = structuredClone(resource);
     invalid.hallLayer.features[0]!.properties.style.color = "blue";
     expect(() => createGeographicResourceSchema.parse(invalid)).toThrow();
+  });
+});
+
+describe("spreadsheet resource document", () => {
+  const budget = {
+    schemaVersion: 1 as const,
+    rowCount: 3,
+    columnCount: 3,
+    cells: [
+      ["Quantité", "Prix unitaire", "Total"],
+      [2, 12.5, "=ROUND(A2*B2,2)"],
+      [null, null, "=SUM(C2:C2)"],
+    ],
+    rowHeights: [28, 24, 24],
+    columns: [
+      { width: 100, format: "number" as const },
+      { width: 140, format: "currency" as const },
+      { width: 140, format: "currency" as const },
+    ],
+    styles: [],
+    merges: [],
+  };
+
+  it("keeps a versioned budget document with formulas", () => {
+    expect(spreadsheetDocumentSchema.parse(budget)).toEqual(budget);
+  });
+
+  it("rejects inconsistent dimensions", () => {
+    expect(() => spreadsheetDocumentSchema.parse({ ...budget, rowCount: 4 })).toThrow();
+  });
+
+  it("rejects styles and merges outside the sheet", () => {
+    expect(() => spreadsheetDocumentSchema.parse({ ...budget, styles: [{ cell: "D1", bold: true }] })).toThrow();
+    expect(() =>
+      spreadsheetDocumentSchema.parse({ ...budget, merges: [{ cell: "C3", colspan: 2, rowspan: 1 }] }),
+    ).toThrow();
   });
 });
 

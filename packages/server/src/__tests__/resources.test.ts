@@ -3,6 +3,53 @@ import { describe, expect, it } from "vitest";
 import { createTestServer, domainBody } from "./testServer.js";
 
 describe("documentary resources", () => {
+  it("creates, reloads and version-checks a spreadsheet", async () => {
+    const { agent } = await createTestServer();
+    const document = {
+      schemaVersion: 1,
+      rowCount: 2,
+      columnCount: 3,
+      cells: [
+        ["Quantité", "Prix unitaire", "Total"],
+        [2, 12.5, "=ROUND(A2*B2,2)"],
+      ],
+      rowHeights: [28, 24],
+      columns: [
+        { width: 100, format: "number" },
+        { width: 140, format: "currency" },
+        { width: 140, format: "currency" },
+      ],
+      styles: [],
+      merges: [],
+    };
+    const createdResponse = await agent
+      .post("/api/resources/spreadsheets")
+      .send({ title: "Budget", folderPath: "Finances", tags: ["budget"], document })
+      .expect(201);
+    const created = domainBody<{ id: string; kind: string; version: number }>(createdResponse);
+    expect(created).toMatchObject({ kind: "spreadsheet", version: 1 });
+    expect(domainBody<Array<{ id: string }>>(await agent.get("/api/resources").expect(200))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: created.id })]),
+    );
+
+    const detailsResponse = await agent.get(`/api/resources/${created.id}`).expect(200);
+    expect(domainBody<{ spreadsheet: unknown }>(detailsResponse).spreadsheet).toEqual(document);
+    expect(detailsResponse.body.actions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "resource.update-spreadsheet" })]),
+    );
+
+    const changed = { ...document, cells: [document.cells[0], [3, 12.5, "=ROUND(A2*B2,2)"]] };
+    const updatedResponse = await agent
+      .put(`/api/resources/${created.id}/spreadsheet`)
+      .send({ document: changed, expectedVersion: 1 })
+      .expect(200);
+    expect(domainBody<{ version: number }>(updatedResponse).version).toBe(2);
+    await agent.put(`/api/resources/${created.id}/spreadsheet`).send({ document, expectedVersion: 1 }).expect(409);
+    expect(
+      domainBody<{ spreadsheet: unknown }>(await agent.get(`/api/resources/${created.id}`).expect(200)).spreadsheet,
+    ).toEqual(changed);
+  });
+
   it("stores both resource variants under normalized folder paths", async () => {
     const { agent } = await createTestServer();
     const text = await agent

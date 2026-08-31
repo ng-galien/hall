@@ -106,6 +106,7 @@ function collectionActions(request: Request, entityClass: string): SirenAction[]
   if (entityClass === "resource" && permitted(request, "workspace.write")) {
     return [
       action("resource.create-text", "POST", "/api/resources/texts", "Create a text"),
+      action("resource.create-spreadsheet", "POST", "/api/resources/spreadsheets", "Create a spreadsheet"),
       {
         ...action("resource.create-remote", "POST", "/api/resources/remotes", "Create a remote resource"),
         fields: [
@@ -333,6 +334,20 @@ function objectActions(request: Request, entityClass: string, value: unknown): S
           },
           { name: "view", type: "text" },
           { name: "hallLayer", type: "text" },
+          { name: "expectedVersion", type: "number", value: primary.version },
+        ],
+      });
+    }
+    if (primary?.kind === "spreadsheet" && details.snapshotted === false) {
+      actions.push({
+        ...action(
+          "resource.update-spreadsheet",
+          "PUT",
+          `/api/resources/${reference}/spreadsheet`,
+          "Update the spreadsheet document",
+        ),
+        fields: [
+          { name: "document", type: "text" },
           { name: "expectedVersion", type: "number", value: primary.version },
         ],
       });

@@ -235,6 +235,42 @@ postgres("PostgreSQL persistence", () => {
           features: [expect.objectContaining({ properties: expect.objectContaining({ kind: "marker" }) })],
         },
       });
+      const spreadsheetDocument = {
+        schemaVersion: 1 as const,
+        rowCount: 2,
+        columnCount: 3,
+        cells: [
+          ["Quantity", "Unit price", "Total"],
+          [2, 12.5, "=ROUND(A2*B2,2)"],
+        ],
+        rowHeights: [28, 24],
+        columns: [
+          { width: 100, format: "number" as const },
+          { width: 140, format: "currency" as const },
+          { width: 140, format: "currency" as const },
+        ],
+        styles: [],
+        merges: [],
+      };
+      const spreadsheet = await resourceRepository.createSpreadsheet({
+        title: "Budget",
+        folderPath: "associations/grants",
+        tags: ["finance"],
+        document: spreadsheetDocument,
+      });
+      expect(await resourceRepository.findSpreadsheetDocument(spreadsheet.id)).toEqual(spreadsheetDocument);
+      expect(
+        await resourceRepository.updateSpreadsheet(spreadsheet.id, {
+          document: { ...spreadsheetDocument, cells: [spreadsheetDocument.cells[0], [3, 12.5, "=ROUND(A2*B2,2)"]] },
+          expectedVersion: 1,
+        }),
+      ).toMatchObject({ status: "updated", resource: { version: 2 } });
+      expect(
+        await resourceRepository.updateSpreadsheet(spreadsheet.id, {
+          document: spreadsheetDocument,
+          expectedVersion: 1,
+        }),
+      ).toEqual({ status: "versionConflict" });
       const legalDraft = await resourceRepository.createLegalReferenceDraft({
         title: "CGCT L2121-10",
         folderPath: "associations/grants",
@@ -291,7 +327,7 @@ postgres("PostgreSQL persistence", () => {
         category: null,
         editorOwner: { kind: "textResourceContent", id: text.id },
       });
-      expect(await resourceRepository.list()).toHaveLength(4);
+      expect(await resourceRepository.list()).toHaveLength(5);
       expect(
         await resourceRepository.list({
           usage: "editorAsset",

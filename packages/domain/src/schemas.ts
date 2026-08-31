@@ -192,6 +192,123 @@ export const createTextResourceSchema = z.object({
   content: z.string().default(""),
 });
 
+const spreadsheetCellValueSchema = z.union([z.string().max(10_000), z.number().finite(), z.null()]);
+
+const spreadsheetCellReferenceSchema = z.string().regex(/^[A-Z]+[1-9][0-9]*$/);
+const spreadsheetColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+const spreadsheetCellStyleSchema = z
+  .object({
+    cell: spreadsheetCellReferenceSchema,
+    bold: z.boolean().optional(),
+    italic: z.boolean().optional(),
+    underline: z.boolean().optional(),
+    wrap: z.boolean().optional(),
+    align: z.enum(["left", "center", "right", "justify"]).optional(),
+    verticalAlign: z.enum(["top", "middle", "bottom"]).optional(),
+    fontFamily: z.enum(["Verdana", "Arial", "Courier New"]).optional(),
+    fontSize: z.enum(["x-small", "small", "medium", "large", "x-large"]).optional(),
+    textColor: spreadsheetColorSchema.optional(),
+    backgroundColor: spreadsheetColorSchema.optional(),
+    borders: z
+      .object({
+        top: z.boolean().optional(),
+        right: z.boolean().optional(),
+        bottom: z.boolean().optional(),
+        left: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+const spreadsheetMergeSchema = z
+  .object({
+    cell: spreadsheetCellReferenceSchema,
+    colspan: z.number().int().min(1).max(100),
+    rowspan: z.number().int().min(1).max(500),
+  })
+  .strict()
+  .refine(({ colspan, rowspan }) => colspan > 1 || rowspan > 1, { message: "A merge must contain multiple cells" });
+
+export const spreadsheetDocumentSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    rowCount: z.number().int().min(1).max(500),
+    columnCount: z.number().int().min(1).max(100),
+    cells: z.array(z.array(spreadsheetCellValueSchema).max(100)).max(500),
+    rowHeights: z.array(z.number().int().min(16).max(400)).max(500),
+    columns: z.array(
+      z
+        .object({
+          width: z.number().int().min(20).max(2_000),
+          format: z.enum(["text", "number", "currency", "percentage", "date"]),
+        })
+        .strict(),
+    ),
+    styles: z.array(spreadsheetCellStyleSchema).max(10_000),
+    merges: z.array(spreadsheetMergeSchema).max(1_000),
+  })
+  .strict()
+  .superRefine((document, context) => {
+    const { rowCount, columnCount, cells, rowHeights, columns, styles, merges } = document;
+    if (cells.length !== rowCount || cells.some((row) => row.length !== columnCount)) {
+      context.addIssue({ code: "custom", message: "Spreadsheet dimensions must match its cells", path: ["cells"] });
+    }
+    if (columns.length !== columnCount) {
+      context.addIssue({ code: "custom", message: "Spreadsheet dimensions must match its columns", path: ["columns"] });
+    }
+    if (rowHeights.length !== rowCount) {
+      context.addIssue({
+        code: "custom",
+        message: "Spreadsheet dimensions must match its row heights",
+        path: ["rowHeights"],
+      });
+    }
+    const coordinates = (reference: string) => {
+      const match = /^([A-Z]+)([1-9][0-9]*)$/.exec(reference);
+      let column = 0;
+      for (const letter of match?.[1] ?? "") column = column * 26 + letter.charCodeAt(0) - 64;
+      return { column: column - 1, row: Number(match?.[2] ?? 0) - 1 };
+    };
+    const styleCells = new Set<string>();
+    for (const style of styles) {
+      const { column, row } = coordinates(style.cell);
+      if (column >= columnCount || row >= rowCount) {
+        context.addIssue({ code: "custom", message: "Spreadsheet style is outside its dimensions", path: ["styles"] });
+      }
+      if (styleCells.has(style.cell)) {
+        context.addIssue({ code: "custom", message: "Spreadsheet styles must target unique cells", path: ["styles"] });
+      }
+      styleCells.add(style.cell);
+    }
+    const mergeCells = new Set<string>();
+    for (const merge of merges) {
+      const { column, row } = coordinates(merge.cell);
+      if (column + merge.colspan > columnCount || row + merge.rowspan > rowCount) {
+        context.addIssue({ code: "custom", message: "Spreadsheet merge is outside its dimensions", path: ["merges"] });
+      }
+      if (mergeCells.has(merge.cell)) {
+        context.addIssue({ code: "custom", message: "Spreadsheet merges must target unique cells", path: ["merges"] });
+      }
+      mergeCells.add(merge.cell);
+    }
+    if (new TextEncoder().encode(JSON.stringify(document)).byteLength > 1_500_000) {
+      context.addIssue({ code: "custom", message: "Spreadsheet document is too large" });
+    }
+  });
+
+export const createSpreadsheetResourceSchema = z
+  .object({
+    title: nonEmpty.max(200),
+    folderPath: folderPathSchema.default(""),
+    tags: resourceTagsSchema,
+    document: spreadsheetDocumentSchema,
+  })
+  .strict();
+
+export const updateSpreadsheetResourceSchema = z
+  .object({ document: spreadsheetDocumentSchema, expectedVersion: z.number().int().positive() })
+  .strict();
+
 export const createRemoteResourceSchema = z.object({
   kind: z.literal("remote"),
   title: nonEmpty,

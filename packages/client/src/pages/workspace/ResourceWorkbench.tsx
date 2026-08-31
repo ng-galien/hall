@@ -12,6 +12,7 @@ import { useResourceImageUpload } from "../../features/documents/useResourceImag
 import { GeographicResourceMap } from "../../features/geographic/GeographicResourceMap";
 import { LegalReferenceResolver } from "../../features/legal/LegalReferenceResolver";
 import { LegalReferenceResourceView } from "../../features/legal/LegalReferenceResourceView";
+import { SpreadsheetResourceEditor } from "../../features/spreadsheet/SpreadsheetResourceEditor";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -168,7 +169,10 @@ export function ResourceWorkbench({
   }, [setSaveStatus]);
 
   return (
-    <div className="workbench resource-workbench">
+    <div
+      className={`workbench resource-workbench${resource.kind === "spreadsheet" ? " resource-workbench-spreadsheet" : ""}`}
+      data-testid="resource-workbench"
+    >
       <ResourceWorkbenchHeader
         resource={resource}
         details={details}
@@ -241,6 +245,15 @@ export function ResourceWorkbench({
             />
           ) : resource.kind === "geographic" ? (
             <p>{t("geographic.loading")}</p>
+          ) : resource.kind === "spreadsheet" && details?.spreadsheet ? (
+            <SpreadsheetResourceEditor
+              resource={resource}
+              document={details.spreadsheet}
+              snapshotted={details.snapshotted}
+              onError={setActionError}
+            />
+          ) : resource.kind === "spreadsheet" ? (
+            <p>{t("spreadsheet.loading")}</p>
           ) : resource.kind === "legalReference" && resource.resolutionStatus === "draft" ? (
             <LegalReferenceResolver
               resource={resource}

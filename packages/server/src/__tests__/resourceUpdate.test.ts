@@ -66,10 +66,32 @@ describe("resource update", () => {
         .send({ title: "Rapport présenté", folderPath: "travaux", tags: [], content: "Présenté en séance" })
         .expect(201),
     ) as { id: string };
+    const spreadsheetDocument = {
+      schemaVersion: 1,
+      rowCount: 1,
+      columnCount: 1,
+      cells: [["Budget présenté"]],
+      rowHeights: [24],
+      columns: [{ width: 140, format: "currency" }],
+      styles: [],
+      merges: [],
+    };
+    const spreadsheet = domainBody(
+      await agent
+        .post("/api/resources/spreadsheets")
+        .send({ title: "Budget présenté", folderPath: "travaux", tags: [], document: spreadsheetDocument })
+        .expect(201),
+    ) as { id: string };
     const business = domainBody(
       await agent
         .post("/api/council-business")
-        .send({ kind: "matter", title: "Sujet", report: "", folderPath: "travaux", resourceIds: [text.id] })
+        .send({
+          kind: "matter",
+          title: "Sujet",
+          report: "",
+          folderPath: "travaux",
+          resourceIds: [text.id, spreadsheet.id],
+        })
         .expect(201),
     ) as { id: string };
 
@@ -109,6 +131,14 @@ describe("resource update", () => {
       .put(`/api/resources/${text.id}`)
       .send({ title: "Rapport présenté", folderPath: "travaux", tags: [], content: "Réécrit après coup" })
       .expect(409);
+    await agent
+      .put(`/api/resources/${spreadsheet.id}/spreadsheet`)
+      .send({ document: spreadsheetDocument, expectedVersion: 1 })
+      .expect(409);
+    const spreadsheetDetails = await agent.get(`/api/resources/${spreadsheet.id}`).expect(200);
+    expect((spreadsheetDetails.body.actions ?? []).map((candidate: { name: string }) => candidate.name)).not.toContain(
+      "resource.update-spreadsheet",
+    );
     await agent
       .put(`/api/resources/${text.id}`)
       .send({ title: "Rapport modifié", folderPath: "travaux", tags: [], content: "Présenté en séance" })

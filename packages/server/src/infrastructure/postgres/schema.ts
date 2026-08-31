@@ -26,6 +26,7 @@ export const postgresTables = [
   "sessions",
   "templates",
   "text_resources",
+  "spreadsheet_resources",
   "user_roles",
   "users",
   "votes",
@@ -205,7 +206,7 @@ export const postgresSchema = `
   CREATE TABLE resources (
     id TEXT PRIMARY KEY,
     slug TEXT NOT NULL UNIQUE,
-    kind TEXT NOT NULL CHECK (kind IN ('text', 'document', 'remote', 'geographic', 'legalReference')),
+    kind TEXT NOT NULL CHECK (kind IN ('text', 'spreadsheet', 'document', 'remote', 'geographic', 'legalReference')),
     title TEXT NOT NULL,
     folder_path TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
@@ -227,6 +228,12 @@ export const postgresSchema = `
   CREATE TABLE text_resources (
     resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
     content TEXT NOT NULL
+  );
+
+  CREATE TABLE spreadsheet_resources (
+    resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
+    document_json JSONB NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
   );
 
   CREATE TABLE geographic_resources (

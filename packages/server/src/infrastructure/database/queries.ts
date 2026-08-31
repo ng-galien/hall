@@ -12,6 +12,8 @@ const resourceSelection = `SELECT
   resources.updated_at,
   remote_resources.url AS remote_url,
   text_resources.content AS text_content,
+  spreadsheet_resources.document_json AS spreadsheet_document_json,
+  spreadsheet_resources.version AS spreadsheet_version,
   resource_documents.meeting_id,
   resource_documents.file_name,
   resource_documents.format,
@@ -42,6 +44,7 @@ const resourceSelection = `SELECT
 FROM resources
 LEFT JOIN remote_resources ON remote_resources.resource_id = resources.id
 LEFT JOIN text_resources ON text_resources.resource_id = resources.id
+LEFT JOIN spreadsheet_resources ON spreadsheet_resources.resource_id = resources.id
 LEFT JOIN resource_documents ON resource_documents.resource_id = resources.id
 LEFT JOIN geographic_resources ON geographic_resources.resource_id = resources.id
 LEFT JOIN legal_reference_resources ON legal_reference_resources.resource_id = resources.id`;
@@ -329,7 +332,7 @@ export const queries = {
       WHERE (:folderPath IS NULL OR resources.folder_path = :folderPath)
         AND (:kind IS NULL OR resources.kind = :kind)
         AND (:meetingId IS NULL OR resource_documents.meeting_id = :meetingId)
-        AND ((:usage IS NULL AND (resources.kind IN ('text', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
+        AND ((:usage IS NULL AND (resources.kind IN ('text', 'spreadsheet', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
         AND (:editorOwnerKind IS NULL OR resource_documents.editor_owner_kind = :editorOwnerKind)
         AND (:editorOwnerId IS NULL OR resource_documents.editor_owner_id = :editorOwnerId)
       ORDER BY resources.updated_at DESC`,
@@ -337,7 +340,7 @@ export const queries = {
       WHERE (:folderPath IS NULL OR resources.folder_path = :folderPath)
         AND (:kind IS NULL OR resources.kind = :kind)
         AND (:meetingId IS NULL OR resource_documents.meeting_id = :meetingId)
-        AND ((:usage IS NULL AND (resources.kind IN ('text', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
+        AND ((:usage IS NULL AND (resources.kind IN ('text', 'spreadsheet', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
         AND (:editorOwnerKind IS NULL OR resource_documents.editor_owner_kind = :editorOwnerKind)
         AND (:editorOwnerId IS NULL OR resource_documents.editor_owner_id = :editorOwnerId)
         AND NOT EXISTS (
@@ -352,7 +355,7 @@ export const queries = {
       WHERE (CAST(:folderPath AS text) IS NULL OR resources.folder_path = CAST(:folderPath AS text))
         AND (CAST(:kind AS text) IS NULL OR resources.kind = CAST(:kind AS text))
         AND (CAST(:meetingId AS text) IS NULL OR resource_documents.meeting_id = CAST(:meetingId AS text))
-        AND ((CAST(:usage AS text) IS NULL AND (resources.kind IN ('text', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = CAST(:usage AS text))
+        AND ((CAST(:usage AS text) IS NULL AND (resources.kind IN ('text', 'spreadsheet', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = CAST(:usage AS text))
         AND (CAST(:editorOwnerKind AS text) IS NULL OR resource_documents.editor_owner_kind = CAST(:editorOwnerKind AS text))
         AND (CAST(:editorOwnerId AS text) IS NULL OR resource_documents.editor_owner_id = CAST(:editorOwnerId AS text))
         AND NOT EXISTS (
@@ -403,6 +406,9 @@ export const queries = {
   "resource.insertRemoteBase": `INSERT INTO resources
     (id, slug, kind, title, folder_path, created_at, updated_at)
     VALUES (:id, :slug, 'remote', :title, :folderPath, :createdAt, :updatedAt)`,
+  "resource.insertSpreadsheetBase": `INSERT INTO resources
+    (id, slug, kind, title, folder_path, created_at, updated_at)
+    VALUES (:id, :slug, 'spreadsheet', :title, :folderPath, :createdAt, :updatedAt)`,
   "resource.insertDocumentBase": `INSERT INTO resources
     (id, slug, kind, title, folder_path, created_at, updated_at)
     VALUES (:id, :slug, 'document', :title, :folderPath, :createdAt, :updatedAt)`,
@@ -413,6 +419,12 @@ export const queries = {
     (id, slug, kind, title, folder_path, created_at, updated_at)
     VALUES (:id, :slug, 'legalReference', :title, :folderPath, :createdAt, :updatedAt)`,
   "resource.insertText": "INSERT INTO text_resources (resource_id, content) VALUES (:id, :content)",
+  "resource.insertSpreadsheet": `INSERT INTO spreadsheet_resources (resource_id, document_json, version)
+    VALUES (:id, :documentJson, 1)`,
+  "resource.updateSpreadsheet": `UPDATE spreadsheet_resources SET
+    document_json = :documentJson, version = version + 1
+    WHERE resource_id = :id AND version = :expectedVersion`,
+  "resource.spreadsheetDocument": `SELECT document_json FROM spreadsheet_resources WHERE resource_id = :id`,
   "resource.insertRemote": "INSERT INTO remote_resources (resource_id, url) VALUES (:id, :url)",
   "resource.insertGeographic": `INSERT INTO geographic_resources
     (resource_id, provider, view_json, layers_json, hall_layer_json, attribution, license,

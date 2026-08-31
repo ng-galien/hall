@@ -184,6 +184,51 @@ export interface TextResource extends ResourceBase {
   content: string;
 }
 
+export type SpreadsheetColumnFormat = "text" | "number" | "currency" | "percentage" | "date";
+export type SpreadsheetCellValue = string | number | null;
+
+export interface SpreadsheetColumn {
+  width: number;
+  format: SpreadsheetColumnFormat;
+}
+
+export interface SpreadsheetCellStyle {
+  cell: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  wrap?: boolean;
+  align?: "left" | "center" | "right" | "justify";
+  verticalAlign?: "top" | "middle" | "bottom";
+  fontFamily?: "Verdana" | "Arial" | "Courier New";
+  fontSize?: "x-small" | "small" | "medium" | "large" | "x-large";
+  textColor?: string;
+  backgroundColor?: string;
+  borders?: { top?: boolean; right?: boolean; bottom?: boolean; left?: boolean };
+}
+
+export interface SpreadsheetMerge {
+  cell: string;
+  colspan: number;
+  rowspan: number;
+}
+
+export interface SpreadsheetDocument {
+  schemaVersion: 1;
+  rowCount: number;
+  columnCount: number;
+  cells: SpreadsheetCellValue[][];
+  rowHeights: number[];
+  columns: SpreadsheetColumn[];
+  styles: SpreadsheetCellStyle[];
+  merges: SpreadsheetMerge[];
+}
+
+export interface SpreadsheetResource extends ResourceBase {
+  kind: "spreadsheet";
+  version: number;
+}
+
 export interface RemoteResource extends ResourceBase {
   kind: "remote";
   url: string | null;
@@ -377,7 +422,13 @@ export interface EditorAssetResource extends DocumentResourceBase {
 
 export type DocumentResource = DocumentaryResource | EditorAssetResource;
 
-export type Resource = TextResource | DocumentResource | RemoteResource | GeographicResource | LegalReferenceResource;
+export type Resource =
+  | TextResource
+  | SpreadsheetResource
+  | DocumentResource
+  | RemoteResource
+  | GeographicResource
+  | LegalReferenceResource;
 
 export interface AgendaItem {
   id: Identifier;
@@ -508,6 +559,7 @@ export interface CouncilBusinessDetails {
 export interface ResourceDetails {
   resource: Resource;
   geography: GeographicResourceData | null;
+  spreadsheet: SpreadsheetDocument | null;
   legalSnapshots: LegalReferenceSnapshot[] | null;
   councilBusiness: CouncilBusiness[];
   snapshotted: boolean;

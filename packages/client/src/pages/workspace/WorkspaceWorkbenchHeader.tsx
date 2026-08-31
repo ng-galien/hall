@@ -30,7 +30,7 @@ export function WorkspaceWorkbenchHeader({
   const [editingTitle, setEditingTitle] = useState(false);
 
   return (
-    <div className="workspace-workbench-header">
+    <div className="workspace-workbench-header" data-testid="resource-workbench-header">
       <header className="workbench-header">
         <div className="workbench-header-identity">
           {icon}

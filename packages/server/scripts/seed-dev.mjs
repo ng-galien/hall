@@ -487,6 +487,45 @@ async function main() {
     }),
   );
   seedResources.push(
+    await post("/resources/spreadsheets", {
+      title: "Ressource tableur",
+      folderPath: seedFolderPath,
+      tags: ["seed", "tableur", "budget"],
+      document: {
+        schemaVersion: 1,
+        rowCount: 5,
+        columnCount: 6,
+        cells: [
+          ["Poste", "Quantité", "Prix unitaire HT", "Total HT", "TVA", "Date prévisionnelle"],
+          ["Tables pliantes", 12, 89.9, "=ROUND(B2*C2,2)", 0.2, "2026-10-15"],
+          ["Chaises", 48, 34.5, "=ROUND(B3*C3,2)", 0.2, "2026-10-15"],
+          ["Chariot de rangement", 2, 279, "=ROUND(B4*C4,2)", 0.2, "2026-11-02"],
+          ["Total", null, null, "=ROUND(SUM(D2:D4),2)", null, null],
+        ],
+        rowHeights: [30, 24, 24, 24, 26],
+        columns: [
+          { width: 210, format: "text" },
+          { width: 90, format: "number" },
+          { width: 140, format: "currency" },
+          { width: 140, format: "currency" },
+          { width: 90, format: "percentage" },
+          { width: 150, format: "date" },
+        ],
+        styles: [
+          { cell: "A1", bold: true, backgroundColor: "#e7eaf8" },
+          { cell: "B1", bold: true, align: "center", backgroundColor: "#e7eaf8" },
+          { cell: "C1", bold: true, align: "right", backgroundColor: "#e7eaf8" },
+          { cell: "D1", bold: true, align: "right", backgroundColor: "#e7eaf8" },
+          { cell: "E1", bold: true, align: "center", backgroundColor: "#e7eaf8" },
+          { cell: "F1", bold: true, align: "center", backgroundColor: "#e7eaf8" },
+          { cell: "A5", bold: true },
+          { cell: "D5", bold: true, textColor: "#1b2a78" },
+        ],
+        merges: [{ cell: "A5", colspan: 3, rowspan: 1 }],
+      },
+    }),
+  );
+  seedResources.push(
     await uploadPdf({
       title: "Document PDF",
       fileName: "document-seed.pdf",
@@ -1338,7 +1377,7 @@ async function main() {
   await uploadDocument({
     title: "Export des subventions 2026",
     fileName: "subventions-2026.csv",
-    folderPath: "finances/subventions",
+    folderPath: "seed",
     category: "supporting",
     content: Buffer.from("association;montant\nClub sportif;4800\nComité des fêtes;3200\n"),
     mediaType: "text/csv",
@@ -1346,7 +1385,7 @@ async function main() {
   await uploadDocument({
     title: "Suivi détaillé des subventions 2026",
     fileName: "suivi-subventions-2026.xlsx",
-    folderPath: "finances/subventions",
+    folderPath: "seed",
     category: "supporting",
     content: makeXlsx([
       ["Association", "Montant accordé (€)", "Objet"],

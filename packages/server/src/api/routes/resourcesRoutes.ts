@@ -3,6 +3,7 @@ import {
   createGeographicResourceSchema,
   createLegalReferenceResourceSchema,
   createRemoteResourceSchema,
+  createSpreadsheetResourceSchema,
   createTextResourceSchema,
   editorAssetOwnerKindSchema,
   folderPathSchema,
@@ -14,6 +15,7 @@ import {
   searchLegalReferencesSchema,
   updateGeographicResourceSchema,
   updateResourceSchema,
+  updateSpreadsheetResourceSchema,
 } from "@hall/domain";
 import { Router } from "express";
 import multer from "multer";
@@ -24,7 +26,7 @@ import { DomainError } from "../../services/errors.js";
 import { routeParameter } from "../routeParameter.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
-const resourceKindSchema = z.enum(["text", "document", "remote", "geographic", "legalReference"]);
+const resourceKindSchema = z.enum(["text", "spreadsheet", "document", "remote", "geographic", "legalReference"]);
 const documentCategorySchema = z.enum([
   "report",
   "draftCouncilDecision",
@@ -138,6 +140,12 @@ export function createResourcesRouter({
     response.status(201).json(await resourceService.createRemote({ title, folderPath, tags, url }));
   });
 
+  router.post("/spreadsheets", requirePermission("workspace.write"), async (request, response) => {
+    response
+      .status(201)
+      .json(await resourceService.createSpreadsheet(createSpreadsheetResourceSchema.parse(request.body)));
+  });
+
   router.post("/geographic", requirePermission("workspace.write"), async (request, response) => {
     response
       .status(201)
@@ -172,6 +180,15 @@ export function createResourcesRouter({
       await resourceService.updateGeographic(
         routeParameter(request.params.resourceId),
         updateGeographicResourceSchema.parse(request.body),
+      ),
+    );
+  });
+
+  router.put("/:resourceId/spreadsheet", requirePermission("workspace.write"), async (request, response) => {
+    response.json(
+      await resourceService.updateSpreadsheet(
+        routeParameter(request.params.resourceId),
+        updateSpreadsheetResourceSchema.parse(request.body),
       ),
     );
   });

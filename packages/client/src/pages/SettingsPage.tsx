@@ -26,12 +26,12 @@ export function SettingsPage() {
           <div className="grid gap-1.5">
             <Label htmlFor={localeId}>{t("settings.language")}</Label>
             <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
-              <SelectTrigger id={localeId} className="w-full">
+              <SelectTrigger id={localeId} className="w-full" data-testid="settings-language">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="fr">{t("settings.french")}</SelectItem>
-                <SelectItem value="en">{t("settings.english")}</SelectItem>
+                <SelectItem value="fr" data-testid="settings-language-fr">{t("settings.french")}</SelectItem>
+                <SelectItem value="en" data-testid="settings-language-en">{t("settings.english")}</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted">{t("settings.languageDescription")}</p>

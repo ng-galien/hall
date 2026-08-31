@@ -45,6 +45,7 @@ const currentTables = [
   "resources",
   "rich_text_resource_references",
   "sessions",
+  "spreadsheet_resources",
   "templates",
   "text_resources",
   "user_roles",
@@ -208,7 +209,7 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE TABLE resources (
       id TEXT PRIMARY KEY,
       slug TEXT NOT NULL UNIQUE,
-      kind TEXT NOT NULL CHECK (kind IN ('text', 'document', 'remote', 'geographic', 'legalReference')),
+      kind TEXT NOT NULL CHECK (kind IN ('text', 'spreadsheet', 'document', 'remote', 'geographic', 'legalReference')),
       title TEXT NOT NULL,
       folder_path TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL,
@@ -230,6 +231,12 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE TABLE text_resources (
       resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
       content TEXT NOT NULL
+    ) STRICT;
+
+    CREATE TABLE spreadsheet_resources (
+      resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
+      document_json TEXT NOT NULL CHECK (json_valid(document_json)),
+      version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
     ) STRICT;
 
     CREATE TABLE geographic_resources (

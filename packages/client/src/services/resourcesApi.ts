@@ -10,6 +10,7 @@ import type {
   RemoteResource,
   Resource,
   ResourceDetails,
+  SpreadsheetResource,
 } from "@hall/domain";
 import {
   apiPathFromHref,
@@ -23,7 +24,7 @@ import {
 
 export interface ResourceFilters {
   folderPath?: string;
-  kind?: "text" | "document" | "remote" | "geographic" | "legalReference";
+  kind?: "text" | "spreadsheet" | "document" | "remote" | "geographic" | "legalReference";
   meetingId?: string;
   tags?: string[];
   usage?: "document" | "editorAsset";
@@ -64,6 +65,10 @@ export const createGeographicResource = (input: Record<string, unknown>) =>
   submitSirenActionAt<GeographicResource>("/resources", "resource.create-geographic", input).then(
     (result) => result.data,
   );
+export const createSpreadsheetResource = (input: Record<string, unknown>) =>
+  submitSirenActionAt<SpreadsheetResource>("/resources", "resource.create-spreadsheet", input).then(
+    (result) => result.data,
+  );
 export const searchLegalReferences = (input: { query: string; effectiveAt: string | null }) =>
   submitSirenActionAt<LegalReferenceSearchResult[]>("/resources", "resource.search-legal-references", input).then(
     (result) => result.data,
@@ -89,6 +94,10 @@ export const updateResource = (resourceId: string, input: Record<string, unknown
   submitSirenActionAt<Resource>(`/resources/${resourceId}`, "resource.update", input).then((result) => result.data);
 export const updateGeographicResource = (resourceId: string, input: Record<string, unknown>) =>
   submitSirenActionAt<GeographicResource>(`/resources/${resourceId}`, "resource.update-geography", input).then(
+    (result) => result.data,
+  );
+export const updateSpreadsheetResource = (resourceId: string, input: Record<string, unknown>) =>
+  submitSirenActionAt<SpreadsheetResource>(`/resources/${resourceId}`, "resource.update-spreadsheet", input).then(
     (result) => result.data,
   );
 export const refreshLegalReferenceResource = (resourceId: string, expectedSnapshotHash: string) =>
