@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it } from "vitest";
 import { createTestServer } from "./testServer.js";
 
@@ -10,7 +11,61 @@ const template = (bodyMarkdown: string) => ({
   footerHtml: "",
 });
 
+async function extractedPdfText(content: Buffer): Promise<string> {
+  const document = await getDocument({ data: new Uint8Array(content) }).promise;
+  const pages: string[] = [];
+  for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+    const page = await document.getPage(pageNumber);
+    const text = await page.getTextContent();
+    pages.push(text.items.map((item) => ("str" in item ? item.str : "")).join(" "));
+  }
+  return pages.join("\n");
+}
+
 describe("authoritative resource presentation rendering", () => {
+  it("appends inline PDF resources once in first-appearance order", async () => {
+    const appendedIds: string[] = [];
+    const { container } = await createTestServer({
+      documentRenderer: {
+        async pdf() {
+          return Buffer.from("body");
+        },
+        async appendPdfs(primary, attachments) {
+          appendedIds.push(...attachments.map((attachment) => attachment.id));
+          return primary;
+        },
+      },
+    });
+    const repository = container.cradle.resourceRepository;
+    const createPdf = (title: string) => {
+      const content = Buffer.from(title);
+      return repository.createDocument({
+        title,
+        folderPath: "seed",
+        tags: [],
+        fileName: `${title}.pdf`,
+        format: "pdf",
+        mediaType: "application/pdf",
+        contentSha256: createHash("sha256").update(content).digest("hex"),
+        category: "supporting",
+        content,
+      });
+    };
+    const first = await createPdf("Premier");
+    const second = await createPdf("Second");
+
+    await container.cradle.contentTemplateService.previewPdf(
+      [
+        `:resource[Second]{#${second.id}}`,
+        `:resource[Premier]{#${first.id}}`,
+        `:resource[Second encore]{#${second.id}}`,
+      ].join("\n\n"),
+      {},
+    );
+
+    expect(appendedIds).toEqual([second.id, first.id]);
+  });
+
   it("feeds the exact authoritative preview body to the PDF renderer", async () => {
     let renderedHtml = "";
     const { container } = await createTestServer({
@@ -147,6 +202,8 @@ describe("authoritative resource presentation rendering", () => {
       template(
         [
           `Texte : :resource[Ancien titre]{#${text.id}}`,
+          `PDF inline : :resource[Ancien PDF]{#${pdf.id}}`,
+          `Web inline : :resource[Ancien lien]{#${remote.id}}`,
           `::resource-embed[Plan]{#${image.id} presentation="image" align="center" width="60"}`,
           `::resource-embed[Annexe]{#${pdf.id} presentation="document"}`,
           `::resource-embed[Lien]{#${remote.id} presentation="link"}`,
@@ -160,10 +217,16 @@ describe("authoritative resource presentation rendering", () => {
     expect(preview.printHtml).toContain("Rapport renommé");
     expect(preview.printHtml).not.toContain("Contenu qui ne doit pas être recopié");
     expect(preview.printHtml).toContain(`data:image/png;base64,${imageContent.toString("base64")}`);
-    expect(preview.printHtml).toContain("<strong>Annexe financière</strong> (Document PDF)");
+    expect(preview.printHtml).toContain(`href="https://hall.invalid/pdf-attachments/${pdf.id}"`);
+    expect(preview.printHtml).toContain(">Annexe financière</a>");
+    expect(preview.pdfAttachments.map((resource) => resource.id)).toEqual([pdf.id]);
     expect(preview.printHtml).toContain("https://example.fr/dossier?version=1&#x26;lang=fr");
+    expect(preview.printHtml).toContain(">Portail institutionnel</a>");
+    expect(preview.printHtml).toContain('target="_blank"');
+    expect(preview.printHtml).toContain(">CGCT, article L2121-10</a>");
     expect(preview.printHtml).toContain("Toute convocation est faite par le maire.");
-    expect(preview.printHtml).toContain("VIGUEUR");
+    expect(preview.printHtml).not.toContain("VIGUEUR");
+    expect(preview.printHtml).not.toContain("Licence Ouverte 2.0");
     expect(preview.printHtml).toContain("<strong>Dépenses</strong> - A1:B2");
     expect(preview.printHtml).toContain("Mobilier");
     expect(preview.printHtml).toContain("120,00");
@@ -172,7 +235,60 @@ describe("authoritative resource presentation rendering", () => {
     expect(preview.html).toContain(preview.printHtml.match(/<main[^>]*>([\s\S]*)<\/main>/)?.[1] ?? "missing");
   });
 
-  it("diagnoses missing, incompatible and unavailable static representations at the block", async () => {
+  it("keeps the legal citation and article text in the final Chromium PDF", async () => {
+    const { container } = await createTestServer();
+    const repository = container.cradle.resourceRepository;
+    const draft = await repository.createLegalReferenceDraft({
+      title: "CGCT, article L2121-10",
+      folderPath: "seed",
+      tags: [],
+      provider: "legifrance",
+      referenceKind: "article",
+    });
+    const legalContent = "Toute convocation est faite par le maire. Elle indique les questions portées à l'ordre du jour.";
+    const contentHash = createHash("sha256").update(legalContent).digest("hex");
+    const snapshotHash = createHash("sha256").update(`snapshot:${legalContent}`).digest("hex");
+    const legal = await repository.resolveLegalReference(draft.id, {
+      title: "CGCT, article L2121-10",
+      folderPath: "seed",
+      tags: [],
+      provider: "legifrance",
+      referenceKind: "article",
+      fund: "CODE_DATE",
+      sourceUrl: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041410274",
+      providerUpdatedAt: null,
+      citationLabel: "CGCT, article L2121-10",
+      attribution: "Source : DILA - Légifrance. Licence Ouverte 2.0.",
+      snapshot: {
+        commonId: "CID-L2121-10",
+        versionId: "LEGIARTI000041410274",
+        effectiveAt: "2020-01-01",
+        fetchedAt: "2026-08-31T10:00:00.000Z",
+        validFrom: "2020-01-01",
+        validTo: null,
+        legalStatus: "VIGUEUR",
+        rawProviderPayload: "{}",
+        normalizedContent: legalContent,
+        contentHash,
+        snapshotHash,
+      },
+    });
+    expect(legal).not.toBeNull();
+
+    const pdf = await container.cradle.contentTemplateService.previewPdf(
+      `::resource-embed[Article]{#${legal!.id} presentation="legal-citation"}`,
+      {},
+    );
+    const text = await extractedPdfText(pdf);
+
+    expect(text).toContain("CGCT, article L2121-10");
+    expect(text).toContain(legalContent);
+    expect(text).not.toContain("VIGUEUR");
+    expect(text).not.toContain("Licence Ouverte 2.0");
+    expect(text).not.toContain("DILA");
+  });
+
+  it("diagnoses missing and incompatible resources while rendering the persisted map", async () => {
     const { container } = await createTestServer();
     const repository = container.cradle.resourceRepository;
     const text = await repository.createText({
@@ -210,16 +326,12 @@ describe("authoritative resource presentation rendering", () => {
         code: "incompatible_resource",
         anchor: expect.objectContaining({ directive: "resource-embed", occurrence: 1, id: text.id }),
       }),
-      expect.objectContaining({
-        code: "resource_representation_unavailable",
-        message: expect.stringContaining("no persisted authoritative PNG"),
-        anchor: expect.objectContaining({ directive: "resource-embed", occurrence: 2, id: geography.id }),
-      }),
     ]);
-    expect(preview.printHtml).toContain("image statique indisponible");
+    expect(preview.printHtml).toContain("data:image/svg+xml;base64,");
+    expect(preview.printHtml).not.toContain("image statique indisponible");
   });
 
-  it("still generates the real PDF preview when a block has an explicit diagnostic presentation", async () => {
+  it("feeds the rendered map image to the real PDF preview pipeline", async () => {
     let renderedHtml = "";
     const { container } = await createTestServer({
       documentRenderer: {
@@ -248,7 +360,8 @@ describe("authoritative resource presentation rendering", () => {
         {},
       ),
     ).resolves.toEqual(Buffer.from("%PDF-preview"));
-    expect(renderedHtml).toContain("image statique indisponible");
+    expect(renderedHtml).toContain("data:image/svg+xml;base64,");
+    expect(renderedHtml).not.toContain("image statique indisponible");
   });
 
   it("never recalculates a spreadsheet formula that has no persisted value", async () => {

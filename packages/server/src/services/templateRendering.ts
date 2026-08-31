@@ -24,7 +24,10 @@ import type {
   CouncilMemberRepository,
   HallSettingsRepository,
   ResourceRepository,
+  StoredDocumentResource,
 } from "../repositories/contracts.js";
+import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
+import { pdfAttachmentHref } from "./documentRenderer.js";
 
 type AstNode = {
   type: string;
@@ -49,6 +52,8 @@ export interface TemplatePreview {
   diagnostics: Diagnostic[];
   headerHtml: string;
   footerHtml: string;
+  /** Referenced PDFs, deduplicated in first-appearance order. */
+  pdfAttachments: StoredDocumentResource[];
 }
 
 interface ResolvedContext {
@@ -80,6 +85,15 @@ function textNode(value: string): AstNode {
 
 function paragraph(children: AstNode[]): AstNode {
   return { type: "paragraph", children };
+}
+
+function externalLink(url: string, label: string): AstNode {
+  return {
+    type: "link",
+    url,
+    children: [textNode(label)],
+    data: { hProperties: { target: "_blank", rel: "noopener noreferrer" } },
+  };
 }
 
 function fallbackPresentation(directive: TemplateDirective, detail?: string): AstNode {
@@ -242,6 +256,8 @@ function spreadsheetTable(
 async function renderResourceEmbed(
   directive: TemplateDirective,
   resourceRepository: ResourceRepository,
+  geographicMapRenderer: GeographicMapRenderer,
+  registerPdfAttachment: (resource: StoredDocumentResource) => void,
 ): Promise<{ node: AstNode; diagnostics: Diagnostic[] }> {
   const id = directive.attributes.id;
   if (!id) return { node: fallbackPresentation(directive), diagnostics: [] };
@@ -290,6 +306,19 @@ async function renderResourceEmbed(
 
   if (presentation === "document") {
     if (resource.kind !== "document") return incompatible("a DocumentResource");
+    if (resource.mediaType === "application/pdf") {
+      registerPdfAttachment(resource);
+      return {
+        node: paragraph([
+          {
+            type: "link",
+            url: pdfAttachmentHref(resource.id),
+            children: [textNode(resource.title)],
+          },
+        ]),
+        diagnostics: [],
+      };
+    }
     return {
       node: paragraph([
         { type: "strong", children: [textNode(resource.title)] },
@@ -317,7 +346,7 @@ async function renderResourceEmbed(
       node: paragraph([
         { type: "strong", children: [textNode(resource.title)] },
         textNode(": "),
-        { type: "link", url: resource.url, children: [textNode(resource.url)] },
+        externalLink(resource.url, resource.url),
       ]),
       diagnostics: [],
     };
@@ -351,20 +380,12 @@ async function renderResourceEmbed(
         ],
       };
     }
-    const versionDate = snapshot.effectiveAt ?? snapshot.validFrom ?? snapshot.fetchedAt.slice(0, 10);
     return {
       node: {
         type: "blockquote",
         children: [
-          paragraph([{ type: "strong", children: [textNode(resource.citationLabel)] }]),
+          paragraph([{ type: "strong", children: [externalLink(resource.sourceUrl, resource.citationLabel)] }]),
           paragraph([textNode(snapshot.normalizedContent)]),
-          paragraph([
-            textNode(
-              `Statut : ${snapshot.legalStatus}. Version : ${versionDate}. Source consultée le ${snapshot.fetchedAt.slice(0, 10)} : `,
-            ),
-            { type: "link", url: resource.sourceUrl, children: [textNode(resource.sourceUrl)] },
-          ]),
-          paragraph([textNode(resource.attribution)]),
         ],
       },
       diagnostics: [],
@@ -374,18 +395,36 @@ async function renderResourceEmbed(
   if (presentation === "map") {
     if (resource.kind !== "geographic") return incompatible("a GeographicResource");
     const geography = await resourceRepository.findGeographicData(id);
-    const detail = geography
-      ? `${geography.provenance.attribution}; image statique indisponible`
-      : "données cartographiques indisponibles";
+    if (!geography) {
+      return {
+        node: fallbackPresentation(directive, "données cartographiques indisponibles"),
+        diagnostics: [
+          resourceDiagnostic(
+            "resource_representation_unavailable",
+            `Geographic resource ${id} has no persisted geographic data`,
+            directive,
+          ),
+        ],
+      };
+    }
+    const image = await geographicMapRenderer.render(geography, resource.title);
+    const align = directive.attributes.align === "left" ? "left" : "center";
+    const requestedWidth = Number(directive.attributes.width);
+    const width =
+      Number.isInteger(requestedWidth) && requestedWidth >= 25 && requestedWidth <= 100 ? requestedWidth : 100;
     return {
-      node: fallbackPresentation(directive, detail),
-      diagnostics: [
-        resourceDiagnostic(
-          "resource_representation_unavailable",
-          `Geographic resource ${id} has no persisted authoritative PNG representation`,
-          directive,
-        ),
-      ],
+      node: {
+        type: "image",
+        url: image,
+        alt: directive.label || resource.title,
+        data: {
+          hProperties: {
+            className: ["hall-template-map", `hall-template-image-${align}`],
+            style: `width:${width}%`,
+          },
+        },
+      },
+      diagnostics: [],
     };
   }
 
@@ -511,6 +550,7 @@ export function createTemplateRenderingService({
   councilDecisionRepository,
   councilBusinessRepository,
   resourceRepository,
+  geographicMapRenderer,
 }: {
   hallSettingsRepository: HallSettingsRepository;
   councilMemberRepository: CouncilMemberRepository;
@@ -518,6 +558,7 @@ export function createTemplateRenderingService({
   councilDecisionRepository: CouncilDecisionRepository;
   councilBusinessRepository: CouncilBusinessRepository;
   resourceRepository: ResourceRepository;
+  geographicMapRenderer: GeographicMapRenderer;
 }): TemplateRenderingService {
   const loadContext = async (context: TemplateRenderContext = {}): Promise<ResolvedContext> => ({
     hall: await hallSettingsRepository.get(),
@@ -528,10 +569,19 @@ export function createTemplateRenderingService({
     const tree = parse(source);
     const diagnostics = validateStructure(tree);
     const values = new Map<string, AstNode>();
+    const pdfAttachments = new Map<string, StoredDocumentResource>();
+    const registerPdfAttachment = (resource: StoredDocumentResource) => {
+      if (!pdfAttachments.has(resource.id)) pdfAttachments.set(resource.id, resource);
+    };
     for (const directive of collectDirectives(tree)) {
       const key = `${directive.name}:${directive.occurrence}`;
       if (directive.name === "resource-embed") {
-        const rendered = await renderResourceEmbed(directive, resourceRepository);
+        const rendered = await renderResourceEmbed(
+          directive,
+          resourceRepository,
+          geographicMapRenderer,
+          registerPdfAttachment,
+        );
         values.set(key, rendered.node);
         diagnostics.push(...rendered.diagnostics);
         continue;
@@ -571,21 +621,39 @@ export function createTemplateRenderingService({
       }
       if (isReferenceKind(directive.name)) {
         const id = directive.attributes.id;
-        let value: string | null = null;
+        let node: AstNode | null = null;
         if (id) {
-          if (directive.name === "member") value = personName(await councilMemberRepository.find(id));
-          if (directive.name === "meeting") value = meetingReference(await councilMeetingRepository.find(id));
+          if (directive.name === "member") {
+            const value = personName(await councilMemberRepository.find(id));
+            if (value) node = textNode(value);
+          }
+          if (directive.name === "meeting") {
+            const value = meetingReference(await councilMeetingRepository.find(id));
+            if (value) node = textNode(value);
+          }
           if (directive.name === "councilBusiness") {
-            value = (await councilBusinessRepository.find(id))?.title ?? null;
+            const value = (await councilBusinessRepository.find(id))?.title ?? null;
+            if (value) node = textNode(value);
           }
           if (directive.name === "decision") {
             const decision = await councilDecisionRepository.find(id);
-            value = decision ? (decision.number ? `${decision.number} - ${decision.title}` : decision.title) : null;
+            const value = decision ? (decision.number ? `${decision.number} - ${decision.title}` : decision.title) : null;
+            if (value) node = textNode(value);
           }
-          if (directive.name === "resource") value = (await resourceRepository.findMetadata(id))?.title ?? null;
+          if (directive.name === "resource") {
+            const resource = await resourceRepository.find(id);
+            if (resource?.kind === "document" && resource.mediaType === "application/pdf") {
+              registerPdfAttachment(resource);
+              node = { type: "link", url: pdfAttachmentHref(resource.id), children: [textNode(resource.title)] };
+            } else if (resource?.kind === "remote" && resource.url) {
+              node = externalLink(resource.url, resource.title);
+            } else if (resource) {
+              node = textNode(resource.title);
+            }
+          }
         }
-        values.set(key, { type: "text", value: value ?? directive.label });
-        if (id && value === null) {
+        values.set(key, node ?? textNode(directive.label));
+        if (id && node === null) {
           diagnostics.push(
             diagnostic("unresolved_reference", `${directive.name} reference not found: ${id}`, directive),
           );
@@ -620,6 +688,7 @@ export function createTemplateRenderingService({
       bodyHtml: renderHtml(resolvedTree as never),
       text: textFromTree(resolvedTree).trim(),
       diagnostics,
+      pdfAttachments: [...pdfAttachments.values()],
     };
   };
 
@@ -638,6 +707,7 @@ export function createTemplateRenderingService({
         diagnostics: [...body.diagnostics, ...(subject?.diagnostics ?? [])],
         headerHtml,
         footerHtml,
+        pdfAttachments: body.pdfAttachments,
       };
     },
   };

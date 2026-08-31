@@ -17,6 +17,7 @@ th, td { padding: 0.35rem 0.5rem; border: 1px solid #73777f; vertical-align: top
 blockquote { break-inside: avoid; margin-inline: 0; padding-inline-start: 1rem; border-inline-start: 3px solid #73777f; }
 img { max-width: 100%; height: auto; }
 .hall-template-image { display: block; }
+.hall-template-map { display: block; width: 100%; break-inside: avoid; }
 .hall-template-image-left { margin-inline: 0 auto; }
 .hall-template-image-center { margin-inline: auto; }
 `;

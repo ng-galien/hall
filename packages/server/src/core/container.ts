@@ -47,6 +47,7 @@ import { createDocumentPreviewService, type DocumentPreviewService } from "../se
 import { createDocumentRenderer, type DocumentRenderer } from "../services/documentRenderer.js";
 import { createEditorAssetService, type EditorAssetService } from "../services/editorAssetService.js";
 import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
+import { createGeographicMapRenderer, type GeographicMapRenderer } from "../services/geographicMapRenderer.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
 import { createMeetingAgendaService, type MeetingAgendaService } from "../services/meetingAgendaService.js";
 import { createMeetingLifecycleService, type MeetingLifecycleService } from "../services/meetingLifecycleService.js";
@@ -90,6 +91,7 @@ export interface Cradle {
   spreadsheetImportService: SpreadsheetImportService;
   authService: AuthService;
   hallSettingsService: HallSettingsService;
+  geographicMapRenderer: GeographicMapRenderer;
   templateRenderingService: TemplateRenderingService;
   documentRenderer: DocumentRenderer;
   documentPreviewConverter: DocumentPreviewConverter;
@@ -132,6 +134,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     spreadsheetImportService: asFunction(createSpreadsheetImportService).singleton(),
     authService: asFunction(createAuthService).singleton(),
     hallSettingsService: asFunction(createHallSettingsService).singleton(),
+    geographicMapRenderer: asFunction(createGeographicMapRenderer).singleton(),
     templateRenderingService: asFunction(createTemplateRenderingService).singleton(),
     documentRenderer: asFunction(createDocumentRenderer).singleton(),
     documentPreviewConverter: asFunction(createGotenbergDocumentPreviewConverter).singleton(),

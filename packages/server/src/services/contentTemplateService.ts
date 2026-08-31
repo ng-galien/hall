@@ -175,11 +175,16 @@ export function createContentTemplateService({
           },
           context,
         );
-        return documentRenderer.pdf({
+        assertRenderable(preview.diagnostics);
+        const generated = await documentRenderer.pdf({
           html: preview.printHtml,
           headerHtml: preview.headerHtml,
           footerHtml: preview.footerHtml,
         });
+        return documentRenderer.appendPdfs(
+          generated,
+          preview.pdfAttachments.map((resource) => ({ id: resource.id, content: resource.content })),
+        );
       });
     },
     generate(id, input) {
@@ -198,10 +203,13 @@ export function createContentTemplateService({
             headerHtml: preview.headerHtml,
             footerHtml: preview.footerHtml,
           });
-          const content = await documentRenderer.appendPdfs(
-            generated,
-            selected.map((resource) => resource.content),
-          );
+          const referencedIds = new Set(preview.pdfAttachments.map((resource) => resource.id));
+          const content = await documentRenderer.appendPdfs(generated, [
+            ...preview.pdfAttachments.map((resource) => ({ id: resource.id, content: resource.content })),
+            ...selected
+              .filter((resource) => !referencedIds.has(resource.id))
+              .map((resource) => ({ id: resource.id, content: resource.content })),
+          ]);
           const result = { content, fileName: `${stem}.pdf`, mediaType: "application/pdf" };
           return unitOfWork.execute(async () => result);
         }

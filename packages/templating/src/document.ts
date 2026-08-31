@@ -132,7 +132,7 @@ const safeHtmlSchema: SanitizeSchema = {
     "ul",
   ],
   attributes: {
-    a: ["href", "title"],
+    a: ["href", "title", "target", "rel"],
     code: [["className", /^language-[a-z0-9-]+$/i]],
     col: ["style", "width"],
     img: ["alt", "className", "src", "style", "title"],
