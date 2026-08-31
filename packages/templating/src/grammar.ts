@@ -1,5 +1,7 @@
-/** Business entities a template can reference. */
-export type ReferenceKind = "member" | "resource" | "councilBusiness" | "decision" | "meeting";
+/** Business entities a template can reference, in their canonical UI order. */
+export const referenceKinds = ["member", "resource", "councilBusiness", "decision", "meeting"] as const;
+
+export type ReferenceKind = (typeof referenceKinds)[number];
 
 export type ImageAlignment = "left" | "center";
 
@@ -49,11 +51,7 @@ const reference = (name: ReferenceKind): DirectiveSpec => ({
 });
 
 export const directiveSpecs: readonly DirectiveSpec[] = [
-  reference("member"),
-  reference("resource"),
-  reference("councilBusiness"),
-  reference("decision"),
-  reference("meeting"),
+  ...referenceKinds.map(reference),
   {
     name: "image",
     node: "leafDirective",

@@ -8,13 +8,13 @@ import {
 import { mergeAttributes, Node } from "@tiptap/core";
 import { type Editor, type NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import {
-  createContext,
   type CSSProperties,
+  createContext,
   type FormEvent,
   Fragment,
   type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
   type RefObject,
   useContext,
   useRef,
@@ -24,15 +24,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  AlignCenterIcon,
-  AlignLeftIcon,
-  CheckIcon,
-  CopyIcon,
-} from "../icons";
 import { useI18n } from "../../i18n/I18nProvider";
-import { type FullSearchRequest, ReferenceSearchDialog } from "./ReferenceSearchDialog";
+import { AlignCenterIcon, AlignLeftIcon, CheckIcon, CopyIcon } from "../icons";
 import { EditorMediaOverlay } from "./EditorMediaOverlay";
+import { type FullSearchRequest, ReferenceSearchDialog } from "./ReferenceSearchDialog";
 import type { Mentionable } from "./references";
 import { useResourceAppearance, useResourcePreviewRenderer } from "./references";
 import "./resourceEmbeds.css";
@@ -147,44 +142,46 @@ function ResourceEmbedBlock({
           ref={containerRef}
           className={`editor-resource-embed-trigger${hasFloatingInfo ? " has-floating-info" : ""}${hasInlineOverlay ? " editor-media-overlay-host" : ""}`}
         >
-        {!hasFloatingInfo ? (
-          <button
-            ref={triggerRef}
-            type="button"
-            className="editor-resource-embed-open"
-            data-testid={testId}
-            aria-label={`${attributes.label} · ${t("editor.openHint")}`}
-            onClick={open}
-          />
-        ) : null}
-        <Fragment key={presentationRevision}>
-          {presentation?.render(attributes) ?? <div className="editor-resource-embed-fallback">{attributes.label}</div>}
-        </Fragment>
-        {hasInlineOverlay ? (
-          <EditorMediaOverlay
-            icon={resourceAppearance?.glyph ?? null}
-            title={attributes.label}
-            testId={`${testId}-info`}
-            titleTestId={testId}
-            titleAriaLabel={`${t("workspace.open")} · ${attributes.label}`}
-            titleRef={triggerRef}
-            onTitleClick={open}
-            onDelete={editable ? onDelete : undefined}
-            deleteLabel={t("common.delete")}
-            deleteTestId={`${testId}-delete`}
-          >
-            {attributes.presentation === "legal-citation" ? (
-              <button
-                type="button"
-                data-testid={`${testId}-copy`}
-                aria-label={t(copied ? "common.copied" : "common.copy")}
-                onClick={() => void copyLegalText()}
-              >
-                {copied ? <CheckIcon aria-hidden="true" /> : <CopyIcon aria-hidden="true" />}
-              </button>
-            ) : null}
-          </EditorMediaOverlay>
-        ) : null}
+          {!hasFloatingInfo ? (
+            <button
+              ref={triggerRef}
+              type="button"
+              className="editor-resource-embed-open"
+              data-testid={testId}
+              aria-label={`${attributes.label} · ${t("editor.openHint")}`}
+              onClick={open}
+            />
+          ) : null}
+          <Fragment key={presentationRevision}>
+            {presentation?.render(attributes) ?? (
+              <div className="editor-resource-embed-fallback">{attributes.label}</div>
+            )}
+          </Fragment>
+          {hasInlineOverlay ? (
+            <EditorMediaOverlay
+              icon={resourceAppearance?.glyph ?? null}
+              title={attributes.label}
+              testId={`${testId}-info`}
+              titleTestId={testId}
+              titleAriaLabel={`${t("workspace.open")} · ${attributes.label}`}
+              titleRef={triggerRef}
+              onTitleClick={open}
+              onDelete={editable ? onDelete : undefined}
+              deleteLabel={t("common.delete")}
+              deleteTestId={`${testId}-delete`}
+            >
+              {attributes.presentation === "legal-citation" ? (
+                <button
+                  type="button"
+                  data-testid={`${testId}-copy`}
+                  aria-label={t(copied ? "common.copied" : "common.copy")}
+                  onClick={() => void copyLegalText()}
+                >
+                  {copied ? <CheckIcon aria-hidden="true" /> : <CopyIcon aria-hidden="true" />}
+                </button>
+              ) : null}
+            </EditorMediaOverlay>
+          ) : null}
         </div>
         {isResizableMap ? (
           <EditorMediaOverlay

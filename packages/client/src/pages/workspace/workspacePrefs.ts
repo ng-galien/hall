@@ -1,10 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export interface WorkspacePin {
-  kind: "councilBusiness" | "resource";
-  id: string;
-}
+export type WorkspacePin = { kind: "councilBusiness"; id: string } | { kind: "resource"; id: string };
 
 interface WorkspacePrefsState {
   treeCollapsed: boolean;

@@ -160,11 +160,11 @@ Le corps de présentation de chaque ressource est partagé entre le Workspace et
 | --- | --- | --- |
 | `TextResource` | Référence ; lecture ou édition du texte dans la modal commune | Titre de la ressource |
 | `DocumentResource` image | Image inline et aperçu agrandi | Image embarquée |
-| `DocumentResource` PDF | Lien ou carte et viewer PDF | Titre ; ajout des pages en annexe seulement sur choix explicite |
+| `DocumentResource` PDF | Lien inline et viewer PDF | Lien interne dans le corps ; pages ajoutées à la fin, une fois, dans l’ordre de première apparition |
 | Autre `DocumentResource` | Lien titré et téléchargement ; ce n’est pas une nouvelle nature de ressource | Titre et format |
-| `RemoteResource` | Carte et ouverture de l'URL | Titre, domaine et URL ; aucun iframe et aucun chargement distant |
-| `LegalReferenceResource` | Citation, état, extrait officiel et ouverture | Snapshot juridique, source, date et attribution |
-| `GeographicResource` | Carte liée à la ressource | PNG figé avec cadrage, empreinte et attribution, sans réseau au rendu final |
+| `RemoteResource` | Lien inline et ouverture de l'URL | Lien externe actif, demandé dans une nouvelle fenêtre |
+| `LegalReferenceResource` | Citation, état, extrait officiel et ouverture | Bloc avec le libellé lié à la source officielle et le texte de l’article, sans métadonnées techniques |
+| `GeographicResource` | Carte liée à la ressource | Image 16:9 avec fond cartographique, géométries et libellés ; largeur et alignement conservés |
 | `SpreadsheetResource` | Plage sélectionnée et ouverture du tableur | Tableau HTML paginable avec valeurs calculées et formats |
 | Image `editorAsset` | Image intégrée avec contrôles de taille et alignement | Image embarquée, liée à son propriétaire |
 
@@ -187,7 +187,7 @@ Le manifeste d'un rendu formel doit au minimum identifier :
 - l'empreinte de la représentation produite ;
 - la date de génération.
 
-Une ressource juridique doit pointer le snapshot juridique utilisé. Une carte doit employer une image avec attribution déjà disponible lors du rendu final. Un tableur doit rendre une représentation figée de son snapshot et ne pas recalculer ses formules pendant la production d’un document formel.
+Une ressource juridique doit pointer le snapshot juridique utilisé ; le PDF en imprime le libellé et le texte, sans les métadonnées techniques. Une carte doit embarquer l’image produite lors de la génération afin que le PDF final ne dépende plus du réseau. Un tableur doit rendre une représentation figée de son snapshot et ne pas recalculer ses formules pendant la production d’un document formel.
 
 ## Parcours IHM cible
 

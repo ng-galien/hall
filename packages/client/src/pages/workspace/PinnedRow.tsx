@@ -1,4 +1,4 @@
-import type { CouncilBusiness, Resource } from "@hall/domain";
+import { type CouncilBusiness, matchDiscriminated, type Resource } from "@hall/domain";
 import { CloseIcon, PinIcon } from "../../components/icons";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { ResourceGlyph } from "../../features/documents/ResourceGlyph";
@@ -27,12 +27,16 @@ export function PinnedRow({
     resource?: Resource;
   }
   const entries = pins.flatMap((pin): PinEntry[] => {
-    if (pin.kind === "councilBusiness") {
-      const business = businesses.find((candidate) => candidate.id === pin.id);
-      return business ? [{ pin, business }] : [];
-    }
-    const resource = resources.find((candidate) => candidate.id === pin.id);
-    return resource ? [{ pin, resource }] : [];
+    return matchDiscriminated(pin, "kind", {
+      councilBusiness: (entry) => {
+        const business = businesses.find((candidate) => candidate.id === entry.id);
+        return business ? [{ pin, business }] : [];
+      },
+      resource: (entry) => {
+        const resource = resources.find((candidate) => candidate.id === entry.id);
+        return resource ? [{ pin, resource }] : [];
+      },
+    });
   });
 
   if (entries.length === 0) return null;

@@ -24,7 +24,7 @@ import {
 } from "../icons";
 import { editorExtensions } from "./extensions";
 import type { ResourceImageAttributes } from "./images";
-import { EditorReferenceSearch, type FullSearchRequest, SearchSyntaxHint } from "./ReferenceSearchDialog";
+import { EditorReferenceSearch, type FullSearchRequest } from "./ReferenceSearchDialog";
 import type { Mentionable } from "./references";
 import { EditorResourceEmbedSearch } from "./resourceEmbeds";
 import { TableControls } from "./TableControls";
@@ -256,6 +256,15 @@ function useMentionGroupLabels() {
   };
 }
 
+function useMentionFacetLabels() {
+  const { t } = useI18n();
+  return {
+    type: t("workspace.facetType"),
+    folder: t("workspace.facetFolder"),
+    tag: t("search.facetTag"),
+  };
+}
+
 /** Markdown editor with a compact inline mode and an enriched overlay, both editing the same markdown. */
 export function MarkdownEditor({
   markdown,
@@ -281,6 +290,7 @@ export function MarkdownEditor({
   const context = useRef<string | undefined>(searchContext);
   context.current = searchContext;
   const groupLabels = useMentionGroupLabels();
+  const facetLabels = useMentionFacetLabels();
   const [fullSearch, setFullSearch] = useState<FullSearchRequest | null>(null);
 
   const inline = useEditor({
@@ -289,8 +299,8 @@ export function MarkdownEditor({
       placeholder,
       mentionables: () => members.current,
       mentionGroupLabels: groupLabels,
+      mentionFacetLabels: facetLabels,
       mentionSearchAllLabel: t("editor.searchAll"),
-      mentionSearchHint: <SearchSyntaxHint />,
       mentionContext: () => context.current,
       mentionOpenFull: (query, range) => setFullSearch({ query, range }),
     }),
@@ -433,6 +443,7 @@ function EnrichedEditor({
   const callback = useRef(onChange);
   callback.current = onChange;
   const groupLabels = useMentionGroupLabels();
+  const facetLabels = useMentionFacetLabels();
   const [fullSearch, setFullSearch] = useState<FullSearchRequest | null>(null);
   const [embedSearch, setEmbedSearch] = useState<FullSearchRequest | null>(null);
   const imageUpload = useRef(onUploadImage);
@@ -444,8 +455,8 @@ function EnrichedEditor({
       placeholder,
       mentionables: () => members.current,
       mentionGroupLabels: groupLabels,
+      mentionFacetLabels: facetLabels,
       mentionSearchAllLabel: t("editor.searchAll"),
-      mentionSearchHint: <SearchSyntaxHint />,
       mentionContext: () => context.current,
       mentionOpenFull: (query, range) => setFullSearch({ query, range }),
     }),

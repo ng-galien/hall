@@ -1,14 +1,17 @@
-import { lazy, Suspense } from "react";
+import { matchLiteral } from "@hall/domain";
+import type { ReferenceKind } from "@hall/templating";
+import { lazy, type ReactNode, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthenticationGate } from "./components/AuthenticationGate";
 import { ResourceImagePresentationProvider } from "./components/editor/images";
-import { ReferencePresentationProvider } from "./components/editor/references";
+import { ReferencePresentationProvider, type ReferenceTarget } from "./components/editor/references";
 import { ResourceEmbedPresentationProvider } from "./components/editor/resourceEmbeds";
 import { IconDefaults } from "./components/icons";
 import { Layout } from "./components/Layout";
-import { ResourcePreview } from "./features/documents/ResourcePreview";
+import { formatMeetingLabel } from "./features/council-meetings/meetingPresentation";
 import { ResourceGlyph, resourceTone, toneIcons, toneLabelKeys } from "./features/documents/ResourceGlyph";
+import { ResourcePreview } from "./features/documents/ResourcePreview";
 import {
   loadResourceEmbedTableOptions,
   ResourceEmbedPresentation,
@@ -16,6 +19,10 @@ import {
 import { useApplicationData } from "./hooks/useApplicationData";
 import { useI18n } from "./i18n/I18nProvider";
 import { resourceContentHref } from "./services/resourcesApi";
+import { useCouncilBusinessStore } from "./stores/councilBusinessStore";
+import { useCouncilDecisionsStore } from "./stores/councilDecisionsStore";
+import { useCouncilMeetingsStore } from "./stores/councilMeetingsStore";
+import { useCouncilMembersStore } from "./stores/councilMembersStore";
 import { useResourcesStore } from "./stores/resourcesStore";
 
 const WorkspacePage = lazy(() =>
@@ -87,9 +94,13 @@ function AuthenticatedApplication() {
   );
 }
 
-export function App() {
-  const { t } = useI18n();
+function ApplicationPresentationProviders({ children }: { children: ReactNode }) {
+  const { t, formatDate } = useI18n();
   const resources = useResourcesStore((state) => state.resources);
+  const businesses = useCouncilBusinessStore((state) => state.businesses);
+  const decisions = useCouncilDecisionsStore((state) => state.councilDecisions);
+  const meetings = useCouncilMeetingsStore((state) => state.meetings);
+  const members = useCouncilMembersStore((state) => state.members);
   const renderResourcePreview = (id: string, onClose: () => void) => (
     <ResourcePreview resourceId={id} onClose={onClose} />
   );
@@ -105,29 +116,103 @@ export function App() {
       tooltip: t(toneLabelKeys[tone]),
     };
   };
+  const workspaceHref = (folderPath: string, businessId: string) => {
+    const params = new URLSearchParams();
+    if (folderPath) params.set("path", folderPath);
+    params.set("councilBusiness", businessId);
+    return `/workspace?${params.toString()}`;
+  };
+  const referenceTarget = (kind: ReferenceKind, id: string): ReferenceTarget | null => {
+    return matchLiteral(kind, {
+      member: () => {
+        const member = members.find((candidate) => candidate.id === id);
+        return member
+          ? {
+              label: `${member.firstName} ${member.lastName}`,
+              tooltip: t("editor.kind.member"),
+              open: { kind: "route" as const, href: `/council-members/${member.id}` },
+            }
+          : null;
+      },
+      resource: () => {
+        const resource = resources.find((candidate) => candidate.id === id);
+        return resource
+          ? {
+              label: resource.title,
+              tooltip: t(toneLabelKeys[resourceTone(resource)]),
+              open: { kind: "resourcePreview" as const },
+            }
+          : null;
+      },
+      councilBusiness: () => {
+        const business = businesses.find((candidate) => candidate.id === id);
+        return business
+          ? {
+              label: business.title,
+              tooltip: t("editor.kind.councilBusiness"),
+              open: { kind: "route" as const, href: workspaceHref(business.folderPath, business.id) },
+            }
+          : null;
+      },
+      meeting: () => {
+        const meeting = meetings.find((candidate) => candidate.id === id);
+        return meeting
+          ? {
+              label: formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
+              tooltip: t("editor.kind.meeting"),
+              open: { kind: "route" as const, href: `/meetings/${meeting.slug}` },
+            }
+          : null;
+      },
+      decision: () => {
+        const decision = decisions.find((candidate) => candidate.id === id);
+        if (!decision) return null;
+        const carrier = businesses.find(
+          (candidate) => candidate.kind === "matter" && candidate.councilDecisionId === decision.id,
+        );
+        return {
+          label: decision.title,
+          tooltip: t("editor.kind.decision"),
+          open: {
+            kind: "route" as const,
+            href: carrier ? workspaceHref(carrier.folderPath, carrier.id) : "/council-decisions",
+          },
+        };
+      },
+    });
+  };
+  return (
+    <ReferencePresentationProvider
+      renderResourcePreview={renderResourcePreview}
+      resourceAppearance={resourceAppearance}
+      referenceTarget={referenceTarget}
+    >
+      <ResourceEmbedPresentationProvider
+        renderResourceEmbed={(attributes) => <ResourceEmbedPresentation attributes={attributes} />}
+        loadTableOptions={loadResourceEmbedTableOptions}
+      >
+        <ResourceImagePresentationProvider
+          resolveContentHref={resourceContentHref}
+          renderResourcePreview={renderResourcePreview}
+        >
+          {children}
+        </ResourceImagePresentationProvider>
+      </ResourceEmbedPresentationProvider>
+    </ReferencePresentationProvider>
+  );
+}
+
+export function App() {
   return (
     <IconDefaults>
       <TooltipProvider>
-        <ReferencePresentationProvider
-          renderResourcePreview={renderResourcePreview}
-          resourceAppearance={resourceAppearance}
-        >
-          <ResourceEmbedPresentationProvider
-            renderResourceEmbed={(attributes) => <ResourceEmbedPresentation attributes={attributes} />}
-            loadTableOptions={loadResourceEmbedTableOptions}
-          >
-            <ResourceImagePresentationProvider
-              resolveContentHref={resourceContentHref}
-              renderResourcePreview={renderResourcePreview}
-            >
-              <BrowserRouter basename="/app">
-                <AuthenticationGate>
-                  <AuthenticatedApplication />
-                </AuthenticationGate>
-              </BrowserRouter>
-            </ResourceImagePresentationProvider>
-          </ResourceEmbedPresentationProvider>
-        </ReferencePresentationProvider>
+        <BrowserRouter basename="/app">
+          <AuthenticationGate>
+            <ApplicationPresentationProviders>
+              <AuthenticatedApplication />
+            </ApplicationPresentationProviders>
+          </AuthenticationGate>
+        </BrowserRouter>
       </TooltipProvider>
     </IconDefaults>
   );

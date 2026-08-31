@@ -1,13 +1,4 @@
-import type {
-  AgendaItem,
-  BallotMethod,
-  CouncilMember,
-  DocumentResource,
-  MeetingAggregate,
-  RemoteResource,
-  TextResource,
-  VoteChoice,
-} from "@hall/domain";
+import type { AgendaItem, BallotMethod, CouncilMember, MeetingAggregate, VoteChoice } from "@hall/domain";
 import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,17 +26,15 @@ import { MarkdownView } from "../../../components/MarkdownView";
 import { Modal } from "../../../components/Ui";
 import { councilBusinessKindKeys } from "../../../features/council-business/presentation";
 import { formatMeetingLabel } from "../../../features/council-meetings/meetingPresentation";
-import { RemoteResourceEmbed } from "../../../features/documents/RemoteResourceEmbed";
+import { ResourcePreview } from "../../../features/documents/ResourcePreview";
 import { useResourceImageUpload } from "../../../features/documents/useResourceImageUpload";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useReferenceMentionables } from "../../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { getCouncilMeeting } from "../../../services/councilMeetingsApi";
-import { useResourcesStore } from "../../../stores/resourcesStore";
 import { agendaItemDecisionId, pendingBallotDecisions } from "../ballotDecisionPolicy";
 import { councilMemberName } from "../ballotParticipants";
-import { MeetingDocumentViewer } from "../MeetingDocumentViewer";
 import { MeetingProceedings } from "../MeetingProceedings";
 import type { SecretBallotTotals } from "../secretBallotTotals";
 import { VotePanel } from "./VotePanel";
@@ -96,7 +85,6 @@ export function ConductView({
   const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
   const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
-  const { download } = useResourcesStore();
   const orderedItems = useMemo(
     () => [...aggregate.agendaItems].sort((left, right) => left.position - right.position),
     [aggregate.agendaItems],
@@ -113,9 +101,7 @@ export function ConductView({
     assignments: Partial<Record<string, VoteChoice>>;
     secretTotals: SecretBallotTotals;
   } | null>(null);
-  const [viewedDocument, setViewedDocument] = useState<DocumentResource | null>(null);
-  const [viewedText, setViewedText] = useState<TextResource | null>(null);
-  const [viewedRemote, setViewedRemote] = useState<RemoteResource | null>(null);
+  const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
   const [minutesAggregate, setMinutesAggregate] = useState<MeetingAggregate | null>(null);
   const [minutesOpen, setMinutesOpen] = useState(false);
 
@@ -499,11 +485,7 @@ export function ConductView({
                     className="conduct-document-chip"
                     type="button"
                     key={resource.id}
-                    onClick={() => {
-                      if (resource.kind === "document") setViewedDocument(resource);
-                      else if (resource.kind === "text") setViewedText(resource);
-                      else if (resource.kind === "remote") setViewedRemote(resource);
-                    }}
+                    onClick={() => setViewedResourceId(resource.id)}
                   >
                     <FileIcon aria-hidden="true" />
                     {resource.title}
@@ -751,16 +733,6 @@ export function ConductView({
           </div>
         </Modal>
       ) : null}
-      {viewedText ? (
-        <Modal open title={viewedText.title} onClose={() => setViewedText(null)}>
-          <MarkdownView className="meeting-material-copy" markdown={viewedText.content} />
-        </Modal>
-      ) : null}
-      {viewedRemote ? (
-        <Modal open title={viewedRemote.title} onClose={() => setViewedRemote(null)}>
-          <RemoteResourceEmbed resource={viewedRemote} />
-        </Modal>
-      ) : null}
       {minutesOpen ? (
         <div className="document-viewer-backdrop" role="presentation">
           <section
@@ -795,11 +767,9 @@ export function ConductView({
           </section>
         </div>
       ) : null}
-      <MeetingDocumentViewer
-        document={viewedDocument}
-        onClose={() => setViewedDocument(null)}
-        onDownload={(document) => void download(document)}
-      />
+      {viewedResourceId ? (
+        <ResourcePreview resourceId={viewedResourceId} onClose={() => setViewedResourceId(null)} />
+      ) : null}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import {
   countVoteChoices,
   decideBallot,
   evaluateBallot,
+  matchLiteral,
   transitionBallot,
   transitionCouncilDecision,
   type VoteInput,
@@ -72,26 +73,44 @@ function commandFingerprint(meetingId: string, command: BallotCommand): string {
 }
 
 function throwBallotValidationError(state: BallotMachineState): never {
-  switch (state) {
-    case "meetingNotInProgress":
+  return matchLiteral(state, {
+    draft: () => {
+      throw new DomainError("conflict", 409);
+    },
+    recordable: () => {
+      throw new DomainError("conflict", 409);
+    },
+    recorded: () => {
+      throw new DomainError("conflict", 409);
+    },
+    cancelled: () => {
+      throw new DomainError("conflict", 409);
+    },
+    meetingNotInProgress: () => {
       throw new DomainError("invalid_meeting_transition", 409);
-    case "attendanceIncomplete":
+    },
+    attendanceIncomplete: () => {
       throw new DomainError("attendance_incomplete", 409);
-    case "quorumEvidenceInvalid":
+    },
+    quorumEvidenceInvalid: () => {
       throw new DomainError("conflict", 409);
-    case "quorumNotReached":
+    },
+    quorumNotReached: () => {
       throw new DomainError("quorum_not_reached", 409);
-    case "officersMissing":
+    },
+    officersMissing: () => {
       throw new DomainError("meeting_officers_required", 409);
-    case "proxyInvalid":
+    },
+    proxyInvalid: () => {
       throw new DomainError("proxy_invalid", 409);
-    case "recusalsInvalid":
+    },
+    recusalsInvalid: () => {
       throw new DomainError("ballot_voters_invalid", 409);
-    case "votesInvalid":
+    },
+    votesInvalid: () => {
       throw new DomainError("conflict");
-    default:
-      throw new DomainError("conflict", 409);
-  }
+    },
+  });
 }
 
 export function createBallotService({

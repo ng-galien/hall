@@ -384,6 +384,33 @@ test.describe("Markdown editor", () => {
     const markdown = await source.textContent();
     expect(markdown).not.toContain("/api/");
     expect(markdown).not.toContain("slug=");
+
+    const ids = Object.fromEntries(
+      kinds.map((kind) => {
+        const id = new RegExp(`:${kind}\\[[^\\]]+\\]\\{#([0-9a-f-]{36})\\}`).exec(markdown ?? "")?.[1];
+        expect(id, `${kind} reference id`).toBeTruthy();
+        return [kind, id as string];
+      }),
+    ) as Record<(typeof kinds)[number], string>;
+    await closeEnrichedEditor(page);
+    const rendered = compactEditor(page);
+    await expect(rendered.getByTestId(`editor-resource-reference-${ids.resource}`)).toBeVisible();
+    await expect(rendered.getByTestId(`editor-member-reference-${ids.member}`)).toHaveAttribute(
+      "href",
+      new RegExp(`/app/council-members/${ids.member}$`),
+    );
+    await expect(rendered.getByTestId(`editor-councilBusiness-reference-${ids.councilBusiness}`)).toHaveAttribute(
+      "href",
+      /\/app\/workspace\?.*councilBusiness=/,
+    );
+    await expect(rendered.getByTestId(`editor-meeting-reference-${ids.meeting}`)).toHaveAttribute(
+      "href",
+      /\/app\/meetings\//,
+    );
+    await expect(rendered.getByTestId(`editor-decision-reference-${ids.decision}`)).toHaveAttribute(
+      "href",
+      /\/app\/workspace\?.*councilBusiness=/,
+    );
   });
 
   test("opens a text resource in the common modal, edits in place, and returns to the snippet", async ({
@@ -404,9 +431,6 @@ test.describe("Markdown editor", () => {
     const routeBefore = page.url();
     await trigger.click();
     const modal = page.getByTestId("resource-preview");
-    await expect(modal).toHaveAttribute("data-resource-mode", "read");
-    await expect(modal.getByTestId("resource-presentation-text-read")).toBeVisible();
-    await modal.getByTestId("resource-preview-edit").click();
     await expect(modal).toHaveAttribute("data-resource-mode", "edit");
     const modalEditor = modal.getByTestId("markdown-editor-enriched");
     await expect(modalEditor).toBeVisible();
@@ -416,12 +440,12 @@ test.describe("Markdown editor", () => {
     await expect
       .poll(() => persistedResourceContent(page, resource.slug), { timeout: 15_000 })
       .toContain(updatedContent);
-    await modal.getByTestId("resource-preview-close").click();
+    await modal.getByTestId("workspace-breadcrumb-close").click();
     await expect(modal).toHaveCount(0);
     await expect(trigger).toBeFocused();
     expect(page.url()).toBe(routeBefore);
     await trigger.click();
-    await expect(page.getByTestId("resource-presentation-text-read")).toContainText(updatedContent);
+    await expect(page.getByTestId("markdown-editor-enriched")).toContainText(updatedContent);
   });
 
   test("inserts a PDF resource block, persists its canonical Markdown and reopens the common modal", async ({
@@ -447,8 +471,7 @@ test.describe("Markdown editor", () => {
     const block = compactEditor(page).getByTestId(`editor-resource-embed-${pdf.id}`);
     await expect(block).toBeVisible();
     const nativePdfResponse = page.waitForResponse(
-      (response) =>
-        /\/api\/resources\/[^/]+\/preview$/.test(response.url()) && response.request().method() === "GET",
+      (response) => /\/api\/resources\/[^/]+\/preview$/.test(response.url()) && response.request().method() === "GET",
     );
     await block.click();
     const modal = page.getByTestId("resource-preview");
@@ -456,7 +479,7 @@ test.describe("Markdown editor", () => {
     expect(loadedPdf.status()).toBe(200);
     expect(loadedPdf.headers()["content-type"]).toContain("application/pdf");
     await expect(modal.getByTestId("resource-preview-object")).toHaveAttribute("src", /\/preview$/);
-    await modal.getByTestId("resource-preview-close").click();
+    await modal.getByTestId("workspace-breadcrumb-close").click();
     await expect(modal).toHaveCount(0);
     await expect(block).toBeFocused();
     await block.press("Enter");
@@ -476,10 +499,12 @@ test.describe("Markdown editor", () => {
     );
     await closeEnrichedEditor(page);
     const creationResponse = page.waitForResponse(
-      (response) => response.url().includes("/api/templates/preview-pdf?delivery=url") && response.request().method() === "POST",
+      (response) =>
+        response.url().includes("/api/templates/preview-pdf?delivery=url") && response.request().method() === "POST",
     );
     const nativePdfResponse = page.waitForResponse(
-      (response) => /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/.test(response.url()) && response.request().method() === "GET",
+      (response) =>
+        /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/.test(response.url()) && response.request().method() === "GET",
     );
     await page.getByTestId("editor-pdf-preview").click();
     expect((await creationResponse).status()).toBe(201);
@@ -537,10 +562,12 @@ test.describe("Markdown editor", () => {
 
     await closeEnrichedEditor(page);
     const creationResponse = page.waitForResponse(
-      (response) => response.url().includes("/api/templates/preview-pdf?delivery=url") && response.request().method() === "POST",
+      (response) =>
+        response.url().includes("/api/templates/preview-pdf?delivery=url") && response.request().method() === "POST",
     );
     const nativePdfResponse = page.waitForResponse(
-      (response) => /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/.test(response.url()) && response.request().method() === "GET",
+      (response) =>
+        /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/.test(response.url()) && response.request().method() === "GET",
     );
     await page.getByTestId("editor-pdf-preview").click();
     expect((await creationResponse).status()).toBe(201);

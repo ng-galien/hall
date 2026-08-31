@@ -5,7 +5,6 @@ import { Markdown } from "@tiptap/markdown";
 import { Plugin } from "@tiptap/pm/state";
 import { TableMap } from "@tiptap/pm/tables";
 import StarterKit from "@tiptap/starter-kit";
-import type { ReactNode } from "react";
 import { ResourceImage } from "./images";
 import { type Mentionable, Reference, ReferenceMention, type ReferenceMentionOptions } from "./references";
 import { ResourceEmbed } from "./resourceEmbeds";
@@ -84,8 +83,8 @@ export function editorExtensions({
   placeholder,
   mentionables,
   mentionGroupLabels,
+  mentionFacetLabels,
   mentionSearchAllLabel,
-  mentionSearchHint,
   mentionContext,
   mentionOpenFull,
   imageControls = false,
@@ -94,8 +93,8 @@ export function editorExtensions({
   /** Accessor: sources may arrive after the editor mounts. */
   mentionables?: () => Mentionable[];
   mentionGroupLabels?: ReferenceMentionOptions["groupLabels"];
+  mentionFacetLabels?: ReferenceMentionOptions["facetLabels"];
   mentionSearchAllLabel?: string;
-  mentionSearchHint?: ReactNode;
   /** Folder used to rank nearby entries first. */
   mentionContext?: () => string | undefined;
   mentionOpenFull?: ReferenceMentionOptions["onOpenFull"];
@@ -116,8 +115,8 @@ export function editorExtensions({
     ReferenceMention.configure({
       mentionables: mentionables ?? (() => []),
       ...(mentionGroupLabels ? { groupLabels: mentionGroupLabels } : {}),
+      ...(mentionFacetLabels ? { facetLabels: mentionFacetLabels } : {}),
       ...(mentionSearchAllLabel ? { searchAllLabel: mentionSearchAllLabel } : {}),
-      ...(mentionSearchHint ? { searchHint: mentionSearchHint } : {}),
       ...(mentionContext ? { context: mentionContext } : {}),
       ...(mentionOpenFull ? { onOpenFull: mentionOpenFull } : {}),
     }),

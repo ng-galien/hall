@@ -226,6 +226,13 @@
   background: var(--hall-color-surface);
   box-shadow: var(--hall-shadow-large);
 }
+.mention-suggestion-facets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hall-space-1);
+  padding: var(--hall-space-1) var(--hall-space-2);
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+}
 .mention-suggestion-list {
   flex: 1;
   min-height: 0;
@@ -253,36 +260,6 @@
 .mention-suggestion-count {
   margin-left: auto;
   color: var(--hall-color-text-subtle);
-  font-size: var(--hall-font-size-caption);
-}
-.mention-suggestion-hint {
-  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
-}
-
-/* ---- Search syntax hint ---- */
-.search-syntax-hint {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--hall-space-1);
-  padding: var(--hall-space-1-5) var(--hall-space-2);
-  color: var(--hall-color-text-subtle);
-  font-size: var(--hall-font-size-caption);
-}
-.search-syntax-label {
-  margin-right: var(--hall-space-1);
-  color: var(--hall-color-text-muted);
-  font-weight: var(--hall-font-weight-semibold);
-  letter-spacing: var(--hall-letter-spacing-section);
-  text-transform: uppercase;
-}
-.search-syntax-hint kbd {
-  padding: 0 var(--hall-space-1-5);
-  border: var(--hall-stroke-thin) solid var(--hall-color-border-strong);
-  border-radius: var(--hall-radius-small);
-  color: var(--hall-color-text);
-  background: var(--hall-color-surface-subtle);
-  font-family: var(--hall-font-family-monospace);
   font-size: var(--hall-font-size-caption);
 }
 .mention-suggestion-group {

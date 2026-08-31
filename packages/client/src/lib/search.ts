@@ -11,6 +11,8 @@ export interface Searchable {
   folderPath?: string;
   /** Optional lifecycle state, matched by the state facet. */
   state?: string;
+  /** Classification tags, matched by the tag facet. */
+  tags?: readonly string[];
   /** Document subtype, matched by the image facet. */
   media?: "image";
 }
@@ -23,7 +25,14 @@ export function normalizeForSearch(value: string): string {
     .replace(/\p{Diacritic}/gu, "");
 }
 
-// Keys are normalized before lookup: lowercase, no accents.
+export interface ParsedQuery {
+  kinds: SearchableKind[];
+  media: "image"[];
+  folders: string[];
+  states: string[];
+  terms: string[];
+}
+
 const kindAliases: Record<string, SearchableKind> = {
   m: "member",
   membre: "member",
@@ -47,7 +56,6 @@ const kindAliases: Record<string, SearchableKind> = {
 
 const folderKeys = new Set(["dossier", "chemin", "folder"]);
 const stateKeys = new Set(["etat", "state"]);
-
 const stateAliases: Record<string, string> = {
   "a-planifier": "toSchedule",
   aplanifier: "toSchedule",
@@ -58,25 +66,11 @@ const stateAliases: Record<string, string> = {
   examined: "examined",
 };
 
-/** Facet prefixes shown to the user, per interface language. */
-export const searchFacetTokens: Record<"fr" | "en", readonly string[]> = {
-  fr: ["membre:", "doc:", "image:", "sujet:", "séance:", "délib:", "dossier:", "état:"],
-  en: ["member:", "doc:", "image:", "subject:", "meeting:", "decision:", "folder:", "state:"],
-};
-
-export interface ParsedQuery {
-  kinds: SearchableKind[];
-  media: "image"[];
-  folders: string[];
-  states: string[];
-  terms: string[];
-}
-
-/** Parses a query; an unknown facet falls back to a plain term. */
+/** Parses direct aliases while leaving `#fragment` completion to SearchBox. */
 export function parseQuery(raw: string): ParsedQuery {
   const parsed: ParsedQuery = { kinds: [], media: [], folders: [], states: [], terms: [] };
   for (const token of normalizeForSearch(raw).split(/\s+/)) {
-    if (!token) continue;
+    if (!token || token.startsWith("#")) continue;
     if (token === "image" || token === "img") {
       parsed.kinds.push("resource");
       parsed.media.push("image");
@@ -135,6 +129,14 @@ export interface SearchOptions {
   /** Folder used to rank nearby entries first. */
   context?: string;
   limit?: number;
+  /** Type facets. */
+  kinds?: readonly string[];
+  /** Folder facets; an entry matches when it lives at or under one of them. */
+  folders?: readonly string[];
+  /** Tag facets; an entry matches when it carries every one of them. */
+  tags?: readonly string[];
+  /** Restricts to entries of this media subtype. */
+  media?: "image";
 }
 
 export interface SearchOutcome<T extends Searchable> {
@@ -149,14 +151,23 @@ export function searchEntities<T extends Searchable>(
   options: SearchOptions = {},
 ): SearchOutcome<T> {
   const query = parseQuery(rawQuery);
+  const kinds = options.kinds ?? [];
+  const folders = (options.folders ?? []).map(normalizeForSearch);
+  const tags = (options.tags ?? []).map(normalizeForSearch);
   const scored: { item: T; quality: number; nearness: number; label: string }[] = [];
 
   for (const candidate of candidates) {
     if (query.kinds.length > 0 && !query.kinds.includes(candidate.kind)) continue;
-    if (query.media.length > 0 && candidate.media !== "image") continue;
+    if (kinds.length > 0 && !kinds.includes(candidate.kind)) continue;
+    if ((query.media.length > 0 || options.media) && candidate.media !== "image") continue;
     const folder = candidate.folderPath ? normalizeForSearch(candidate.folderPath) : "";
     if (query.folders.length > 0 && !query.folders.some((f) => folder === f || folder.startsWith(`${f}/`))) continue;
+    if (folders.length > 0 && !folders.some((f) => folder === f || folder.startsWith(`${f}/`))) continue;
     if (query.states.length > 0 && (!candidate.state || !query.states.includes(candidate.state))) continue;
+    if (tags.length > 0) {
+      const carried = (candidate.tags ?? []).map(normalizeForSearch);
+      if (!tags.every((tag) => carried.includes(tag))) continue;
+    }
 
     const label = normalizeForSearch(candidate.label);
     const extra = normalizeForSearch((candidate.extra ?? []).filter(Boolean).join(" "));

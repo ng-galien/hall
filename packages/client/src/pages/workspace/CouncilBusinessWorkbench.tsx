@@ -1,5 +1,5 @@
 import { findSirenAction, type SirenEntity } from "@hall/api-contract";
-import type { CouncilBusiness, CouncilBusinessDetails, DocumentResource } from "@hall/domain";
+import type { CouncilBusiness, CouncilBusinessDetails } from "@hall/domain";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { MarkdownView } from "../../components/MarkdownView";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { ResourceGlyph, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
+import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useResourceImageUpload } from "../../features/documents/useResourceImageUpload";
 import { MeetingStatusBadge, StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
@@ -42,24 +43,16 @@ import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { MeetingDocumentViewer } from "../council-meetings/MeetingDocumentViewer";
 import { ResourcePicker } from "./ResourcePicker";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
-import type { WorkspaceSelection } from "./WorkspacePage";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 
-export function CouncilBusinessWorkbench({
-  business,
-  onSelect,
-}: {
-  business: CouncilBusiness;
-  onSelect(selection: WorkspaceSelection, path?: string): void;
-}) {
+export function CouncilBusinessWorkbench({ business }: { business: CouncilBusiness }) {
   const mentionables = useReferenceMentionables();
   const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
   const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
-  const { resources, download } = useResourcesStore();
+  const { resources } = useResourcesStore();
   const { meetings } = useCouncilMeetingsStore();
   const typeLabel = useResourceTypeLabel();
   const [details, setDetails] = useState<CouncilBusinessDetails | null>(null);
@@ -69,7 +62,7 @@ export function CouncilBusinessWorkbench({
   const [report, setReport] = useState(business.report);
   const [draftText, setDraftText] = useState("");
   const [meetingChoice, setMeetingChoice] = useState("");
-  const [viewedDocument, setViewedDocument] = useState<DocumentResource | null>(null);
+  const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
   const can = (
     name:
       | "council-business.update"
@@ -189,8 +182,7 @@ export function CouncilBusinessWorkbench({
     void act(() => deleteMeetingAgendaItem(currentOccurrence.meeting.id, currentOccurrence.agendaItem.id));
   };
 
-  const openResource = (resource: CouncilBusiness["resources"][number]) =>
-    resource.kind === "document" ? setViewedDocument(resource) : onSelect({ kind: "resource", id: resource.id });
+  const openResource = (resource: CouncilBusiness["resources"][number]) => setViewedResourceId(resource.id);
 
   const renameBusiness = async (nextTitle: string) => {
     const renamed = Boolean(
@@ -208,7 +200,9 @@ export function CouncilBusinessWorkbench({
         icon={<CouncilBusinessGlyph business={business} large />}
         title={title}
         titleLabel={t("meeting.subject")}
-        date={editable ? { kind: "updated", value: business.updatedAt } : { kind: "created", value: business.createdAt }}
+        date={
+          editable ? { kind: "updated", value: business.updatedAt } : { kind: "created", value: business.createdAt }
+        }
         onTitleChange={editable ? renameBusiness : undefined}
         hint={
           <span className={`workbench-edit-hint${editable ? "" : " workbench-edit-hint-locked"}`}>
@@ -470,11 +464,9 @@ export function CouncilBusinessWorkbench({
         </aside>
       </div>
 
-      <MeetingDocumentViewer
-        document={viewedDocument}
-        onClose={() => setViewedDocument(null)}
-        onDownload={(document) => void download(document)}
-      />
+      {viewedResourceId ? (
+        <ResourcePreview resourceId={viewedResourceId} onClose={() => setViewedResourceId(null)} />
+      ) : null}
     </div>
   );
 }

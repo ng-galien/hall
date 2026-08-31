@@ -1,19 +1,20 @@
 import { createHash } from "node:crypto";
-import type {
-  DocumentResource,
-  EditorAssetOwner,
-  FolderCreateResult,
-  FolderRenameResult,
-  GeographicResource,
-  LegalReferenceResource,
-  LegalReferenceSearchResult,
-  RemoteResource,
-  Resource,
-  ResourceDetails,
-  SpreadsheetResource,
-  TextResource,
+import {
+  type DocumentResource,
+  type EditorAssetOwner,
+  type FolderCreateResult,
+  type FolderRenameResult,
+  folderPathSchema,
+  type GeographicResource,
+  type LegalReferenceResource,
+  type LegalReferenceSearchResult,
+  matchDiscriminated,
+  type RemoteResource,
+  type Resource,
+  type ResourceDetails,
+  type SpreadsheetResource,
+  type TextResource,
 } from "@hall/domain";
-import { folderPathSchema } from "@hall/domain";
 import { inspectDocument } from "../domain/documentPolicy.js";
 import type {
   AttendanceRepository,
@@ -44,6 +45,46 @@ import {
 
 const DEFAULT_GEOGRAPHIC_RESOURCE_ZOOM = 15;
 type UpdateResourceInput = Omit<UpdateResource, "autosaveEnabled"> & { autosaveEnabled?: boolean };
+
+function resourceUpdateFields(resource: Resource, input: UpdateResourceInput) {
+  return matchDiscriminated(resource, "kind", {
+    text: (entry) => {
+      if (input.url !== undefined) throw new DomainError("invalid_request");
+      return {
+        contentChanged: input.content !== undefined && input.content !== entry.content,
+        urlChanged: false,
+        content: input.content ?? entry.content,
+        url: undefined,
+      };
+    },
+    remote: (entry) => {
+      if (input.content !== undefined) throw new DomainError("invalid_request");
+      return {
+        contentChanged: false,
+        urlChanged: input.url !== undefined && input.url !== entry.url,
+        content: undefined,
+        url: input.url ?? entry.url,
+      };
+    },
+    document: (entry) => {
+      if (entry.usage === "editorAsset") throw new DomainError("conflict", 409);
+      if (input.content !== undefined || input.url !== undefined) throw new DomainError("invalid_request");
+      return { contentChanged: false, urlChanged: false, content: undefined, url: undefined };
+    },
+    spreadsheet: () => {
+      if (input.content !== undefined || input.url !== undefined) throw new DomainError("invalid_request");
+      return { contentChanged: false, urlChanged: false, content: undefined, url: undefined };
+    },
+    geographic: () => {
+      if (input.content !== undefined || input.url !== undefined) throw new DomainError("invalid_request");
+      return { contentChanged: false, urlChanged: false, content: undefined, url: undefined };
+    },
+    legalReference: () => {
+      if (input.content !== undefined || input.url !== undefined) throw new DomainError("invalid_request");
+      return { contentChanged: false, urlChanged: false, content: undefined, url: undefined };
+    },
+  });
+}
 
 export interface ResourceService {
   list(filters?: {
@@ -182,13 +223,31 @@ export function createResourceService({
     async getDetails(id) {
       const resource = await resourceRepository.findMetadata(id);
       if (!resource) throw new DomainError("resource_not_found", 404);
+      const { geography, spreadsheet, legalSnapshots } = await matchDiscriminated(resource, "kind", {
+        geographic: async (entry) => ({
+          geography: await resourceRepository.findGeographicData(entry.id),
+          spreadsheet: null,
+          legalSnapshots: null,
+        }),
+        spreadsheet: async (entry) => ({
+          geography: null,
+          spreadsheet: await resourceRepository.findSpreadsheetDocument(entry.id),
+          legalSnapshots: null,
+        }),
+        legalReference: async (entry) => ({
+          geography: null,
+          spreadsheet: null,
+          legalSnapshots: await resourceRepository.listLegalReferenceSnapshots(entry.id),
+        }),
+        text: async () => ({ geography: null, spreadsheet: null, legalSnapshots: null }),
+        document: async () => ({ geography: null, spreadsheet: null, legalSnapshots: null }),
+        remote: async () => ({ geography: null, spreadsheet: null, legalSnapshots: null }),
+      });
       return {
         resource,
-        geography: resource.kind === "geographic" ? await resourceRepository.findGeographicData(resource.id) : null,
-        spreadsheet:
-          resource.kind === "spreadsheet" ? await resourceRepository.findSpreadsheetDocument(resource.id) : null,
-        legalSnapshots:
-          resource.kind === "legalReference" ? await resourceRepository.listLegalReferenceSnapshots(resource.id) : null,
+        geography,
+        spreadsheet,
+        legalSnapshots,
         councilBusiness: await councilBusinessRepository.list({ resourceId: resource.id }),
         snapshotted: await resourceRepository.isSnapshotted(resource.id),
         usedAsProxy: await attendanceRepository.isProxyDocumentUsed(resource.id),
@@ -367,14 +426,12 @@ export function createResourceService({
       return unitOfWork.execute(async () => {
         const resource = await resourceRepository.findMetadata(id);
         if (!resource) throw new DomainError("resource_not_found", 404);
-        if (resource.kind === "document" && resource.usage === "editorAsset") throw new DomainError("conflict", 409);
-        if (resource.kind !== "text" && input.content !== undefined) throw new DomainError("invalid_request");
-        if (resource.kind !== "remote" && input.url !== undefined) throw new DomainError("invalid_request");
-        const contentChanged =
-          resource.kind === "text" && input.content !== undefined && input.content !== resource.content;
-        const urlChanged = resource.kind === "remote" && input.url !== undefined && input.url !== resource.url;
+        const fields = resourceUpdateFields(resource, input);
         const titleChanged = input.title !== resource.title;
-        if ((contentChanged || urlChanged || titleChanged) && (await resourceRepository.isSnapshotted(resource.id))) {
+        if (
+          (fields.contentChanged || fields.urlChanged || titleChanged) &&
+          (await resourceRepository.isSnapshotted(resource.id))
+        ) {
           throw new DomainError("conflict", 409);
         }
         if (resource.folderPath && resource.folderPath !== input.folderPath) {
@@ -385,8 +442,8 @@ export function createResourceService({
           folderPath: input.folderPath,
           tags: input.tags,
           autosaveEnabled: input.autosaveEnabled ?? resource.autosaveEnabled,
-          content: resource.kind === "text" ? (input.content ?? resource.content) : undefined,
-          url: resource.kind === "remote" ? (input.url ?? resource.url) : undefined,
+          content: fields.content,
+          url: fields.url,
         });
         if (updated.kind === "text") {
           await editorAssetService.reconcile({ kind: "textResourceContent", id: updated.id }, updated.content);

@@ -97,6 +97,54 @@ describe("content templates", () => {
     );
   });
 
+  it("resolves every closed reference kind from current server data", async () => {
+    const { agent } = await createTestServer();
+    const { member, meeting } = await createMemberAndMeeting(agent);
+    const decision = domainBody<{ id: string }>(
+      await agent
+        .post("/api/council-decisions")
+        .send({ title: "Décision actuelle", draftText: "Projet", legalityReviewRequired: false })
+        .expect(201),
+    );
+    const business = domainBody<{ id: string }>(
+      await agent
+        .post("/api/council-business")
+        .send({
+          kind: "matter",
+          councilDecisionId: decision.id,
+          title: "Sujet actuel",
+          report: "Rapport",
+          folderPath: "seed",
+        })
+        .expect(201),
+    );
+    const resource = domainBody<{ id: string }>(
+      await agent
+        .post("/api/resources/texts")
+        .send({ title: "Ressource actuelle", folderPath: "seed", tags: [], content: "Contenu" })
+        .expect(201),
+    );
+
+    const bodyMarkdown = [
+      `:member[ancien membre]{#${member.id}}`,
+      `:resource[ancienne ressource]{#${resource.id}}`,
+      `:councilBusiness[ancien sujet]{#${business.id}}`,
+      `:meeting[ancienne séance]{#${meeting.id}}`,
+      `:decision[ancienne décision]{#${decision.id}}`,
+    ].join(" · ");
+    const preview = domainBody<{ html: string; diagnostics: unknown[] }>(
+      await agent.post("/api/templates/preview").send({ kind: "pdf", bodyMarkdown, context: {} }).expect(200),
+    );
+
+    expect(preview.html).toContain("Martine Delcourt");
+    expect(preview.html).toContain("Ressource actuelle");
+    expect(preview.html).toContain("Sujet actuel");
+    expect(preview.html).toContain("2026-09-10");
+    expect(preview.html).toContain("Décision actuelle");
+    expect(preview.html).not.toMatch(/ancien(?:ne)?/);
+    expect(preview.diagnostics).toEqual([]);
+  });
+
   it("generates a Chromium PDF packet and an Outlook-compatible EML", async () => {
     const { agent } = await createTestServer();
     const { member, meeting } = await createMemberAndMeeting(agent);
@@ -188,11 +236,9 @@ describe("content templates", () => {
       .send({ bodyMarkdown: "# Aperçu navigable\n\nContenu réellement affiché." })
       .expect(201);
     const previewUrl = domainBody<{ url: string }>(createdPreview).url;
-    const navigatedPreview = (await agent
-      .get(previewUrl)
-      .buffer(true)
-      .parse(binaryParser)
-      .expect(200)) as Response & { body: Buffer };
+    const navigatedPreview = (await agent.get(previewUrl).buffer(true).parse(binaryParser).expect(200)) as Response & {
+      body: Buffer;
+    };
     expect(navigatedPreview.headers["content-type"]).toContain("application/pdf");
     expect(navigatedPreview.headers["content-disposition"]).toBe("inline; filename=preview.pdf");
     expect(navigatedPreview.body.subarray(0, 4).toString()).toBe("%PDF");

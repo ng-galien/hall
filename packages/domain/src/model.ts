@@ -1,3 +1,5 @@
+import { defineExhaustiveLiterals } from "./match.js";
+
 export type Identifier = string;
 export type IsoDate = string;
 export type IsoDateTime = string;
@@ -357,7 +359,9 @@ export interface LegalReferenceResolvedResource extends ResourceBase {
 
 export type LegalReferenceResource = LegalReferenceDraftResource | LegalReferenceResolvedResource;
 
-export type DocumentFormat = "pdf" | "jpeg" | "png" | "docx" | "odt" | "xlsx" | "pptx" | "txt" | "csv";
+export const documentFormats = ["pdf", "jpeg", "png", "docx", "odt", "xlsx", "pptx", "txt", "csv"] as const;
+
+export type DocumentFormat = (typeof documentFormats)[number];
 
 export type DocumentCategory = "report" | "draftCouncilDecision" | "meetingNotice" | "minutes" | "proxy" | "supporting";
 
@@ -398,6 +402,17 @@ export type Resource =
   | RemoteResource
   | GeographicResource
   | LegalReferenceResource;
+
+export type ResourceKind = Resource["kind"];
+
+export const resourceKinds = defineExhaustiveLiterals<ResourceKind>()([
+  "text",
+  "spreadsheet",
+  "document",
+  "remote",
+  "geographic",
+  "legalReference",
+] as const);
 
 export interface AgendaItem {
   id: Identifier;

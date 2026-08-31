@@ -1,5 +1,6 @@
 import { Suspense, useState } from "react";
 import { Outlet } from "react-router-dom";
+import { GlobalSearchPalette } from "../features/search/GlobalSearchPalette";
 import { useI18n } from "../i18n/I18nProvider";
 import { AppHeader } from "../shell/AppHeader";
 import { AppSidebar } from "../shell/AppSidebar";
@@ -18,6 +19,7 @@ export function Layout() {
           </Suspense>
         </main>
       </div>
+      <GlobalSearchPalette />
     </div>
   );
 }

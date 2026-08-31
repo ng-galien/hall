@@ -229,26 +229,26 @@ function ResourceImageNodeView({
             deleteLabel={t("common.delete")}
             deleteTestId="editor-image-delete"
           >
-              <button
-                type="button"
-                data-testid="editor-image-align-left"
-                aria-label={t("editor.imageAlignLeft")}
-                aria-pressed={attributes.align === "left"}
-                onClick={() => updateAttributes({ align: "left" })}
-              >
-                <AlignLeftIcon />
-                <span className="sr-only">{t("editor.imageAlignLeft")}</span>
-              </button>
-              <button
-                type="button"
-                data-testid="editor-image-align-center"
-                aria-label={t("editor.imageAlignCenter")}
-                aria-pressed={attributes.align === "center"}
-                onClick={() => updateAttributes({ align: "center" })}
-              >
-                <AlignCenterIcon />
-                <span className="sr-only">{t("editor.imageAlignCenter")}</span>
-              </button>
+            <button
+              type="button"
+              data-testid="editor-image-align-left"
+              aria-label={t("editor.imageAlignLeft")}
+              aria-pressed={attributes.align === "left"}
+              onClick={() => updateAttributes({ align: "left" })}
+            >
+              <AlignLeftIcon />
+              <span className="sr-only">{t("editor.imageAlignLeft")}</span>
+            </button>
+            <button
+              type="button"
+              data-testid="editor-image-align-center"
+              aria-label={t("editor.imageAlignCenter")}
+              aria-pressed={attributes.align === "center"}
+              onClick={() => updateAttributes({ align: "center" })}
+            >
+              <AlignCenterIcon />
+              <span className="sr-only">{t("editor.imageAlignCenter")}</span>
+            </button>
           </EditorMediaOverlay>
         ) : null}
         {controls && selected && editable ? (

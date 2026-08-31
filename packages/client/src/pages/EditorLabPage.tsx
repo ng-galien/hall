@@ -17,7 +17,6 @@ import { useResourcesStore } from "../stores/resourcesStore";
 export function EditorLabPage() {
   const { t } = useI18n();
   const [markdown, setMarkdown] = useState(() => t("editor.lab.sample"));
-  const [demoReady, setDemoReady] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfStatus, setPdfStatus] = useState<"idle" | "loading" | "failed">("idle");
   const mentionables = useReferenceMentionables();
@@ -60,7 +59,6 @@ export function EditorLabPage() {
           current,
         ].join("\n\n");
       });
-      setDemoReady(true);
     };
     void prepare();
     return () => {
@@ -112,19 +110,13 @@ export function EditorLabPage() {
         </Dialog>
         <section className="editor-lab-pane" aria-labelledby="editor-lab-write">
           <h2 id="editor-lab-write">{t("editor.lab.writing")}</h2>
-          {demoReady ? (
-            <MarkdownEditor
-              title={t("editor.lab.editorTitle")}
-              markdown={markdown}
-              onChange={setMarkdown}
-              mentionables={mentionables}
-              searchContext="culture"
-            />
-          ) : (
-            <span className="spinner" role="status">
-              {t("editor.lab.preparing")}
-            </span>
-          )}
+          <MarkdownEditor
+            title={t("editor.lab.editorTitle")}
+            markdown={markdown}
+            onChange={setMarkdown}
+            mentionables={mentionables}
+            searchContext="culture"
+          />
         </section>
 
         <section className="editor-lab-pane" aria-labelledby="editor-lab-render">

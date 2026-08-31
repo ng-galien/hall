@@ -1,4 +1,4 @@
-import type { CouncilBusiness, Resource } from "@hall/domain";
+import { type CouncilBusiness, matchDiscriminated, matchLiteral, type Resource } from "@hall/domain";
 import {
   type DragEvent,
   type KeyboardEvent,
@@ -218,10 +218,12 @@ export function PathContents({
     [],
   );
 
-  const itemKey = (target: RenameTarget) => {
-    if (target.kind === "folder") return `folder:${target.path}`;
-    return target.kind === "resource" ? `resource:${target.id}` : `business:${target.id}`;
-  };
+  const itemKey = (target: RenameTarget) =>
+    matchDiscriminated(target, "kind", {
+      folder: (entry) => `folder:${entry.path}`,
+      resource: (entry) => `resource:${entry.id}`,
+      councilBusiness: (entry) => `business:${entry.id}`,
+    });
   const setActiveRename = (target: RenameTarget | null) => {
     renameTargetRef.current = target;
     setRenameTarget(target);
@@ -289,28 +291,31 @@ export function PathContents({
   const rename = async (payload: DragPayload, nextTitle: string, session: number) => {
     setRenameError(null);
     try {
-      if (payload.kind === "resource") {
-        const resource = resourcesStore.resources.find((candidate) => candidate.id === payload.id);
-        if (!resource) return false;
-        await updateResource(resource.id, {
-          title: nextTitle,
-          folderPath: resource.folderPath,
-          tags: resource.tags,
-          ...(resource.kind === "text" ? { content: resource.content } : {}),
-        });
-        await useResourcesStore.getState().load();
-        return true;
-      }
-      const business = councilBusinessStore.businesses.find((candidate) => candidate.id === payload.id);
-      if (!business) return false;
-      await updateCouncilBusiness(business.id, {
-        title: nextTitle,
-        report: business.report,
-        folderPath: business.folderPath,
-        resourceIds: business.resources.map((resource) => resource.id),
+      return await matchDiscriminated(payload, "kind", {
+        resource: async (entry) => {
+          const resource = resourcesStore.resources.find((candidate) => candidate.id === entry.id);
+          if (!resource) return false;
+          await updateResource(resource.id, {
+            title: nextTitle,
+            folderPath: resource.folderPath,
+            tags: resource.tags,
+          });
+          await useResourcesStore.getState().load();
+          return true;
+        },
+        councilBusiness: async (entry) => {
+          const business = councilBusinessStore.businesses.find((candidate) => candidate.id === entry.id);
+          if (!business) return false;
+          await updateCouncilBusiness(business.id, {
+            title: nextTitle,
+            report: business.report,
+            folderPath: business.folderPath,
+            resourceIds: business.resources.map((resource) => resource.id),
+          });
+          await Promise.all([useCouncilBusinessStore.getState().load(), useCouncilDecisionsStore.getState().load()]);
+          return true;
+        },
       });
-      await Promise.all([useCouncilBusinessStore.getState().load(), useCouncilDecisionsStore.getState().load()]);
-      return true;
     } catch (failure) {
       if (renameSessionRef.current === session) setRenameError(apiErrorCode(failure));
       return false;
@@ -376,28 +381,35 @@ export function PathContents({
 
   const proposedName = (kind: InlineCreateKind) =>
     t(
-      kind === "councilMatter"
-        ? "workspace.createCouncilMatter"
-        : kind === "text"
-          ? "workspace.createText"
-          : kind === "spreadsheet"
-            ? "workspace.createSpreadsheet"
-            : kind === "remote"
-              ? "workspace.createRemote"
-              : kind === "geographic"
-                ? "workspace.createGeographic"
-                : "workspace.createLegalReference",
+      matchLiteral(kind, {
+        councilMatter: () => "workspace.createCouncilMatter" as const,
+        text: () => "workspace.createText" as const,
+        spreadsheet: () => "workspace.createSpreadsheet" as const,
+        remote: () => "workspace.createRemote" as const,
+        geographic: () => "workspace.createGeographic" as const,
+        legalReference: () => "workspace.createLegalReference" as const,
+      }),
     );
 
   const createInlineEntry = async (target: CreateTarget, title: string) => {
     const created = await onCreate(target.kind, target.folderPath, title);
     if (!created) {
       setRenameError(
-        target.kind === "councilMatter" ? useCouncilBusinessStore.getState().error : useResourcesStore.getState().error,
+        matchLiteral(target.kind, {
+          councilMatter: () => useCouncilBusinessStore.getState().error,
+          text: () => useResourcesStore.getState().error,
+          spreadsheet: () => useResourcesStore.getState().error,
+          remote: () => useResourcesStore.getState().error,
+          geographic: () => useResourcesStore.getState().error,
+          legalReference: () => useResourcesStore.getState().error,
+        }),
       );
       return false;
     }
-    const key = created.kind === "resource" ? `resource:${created.id}` : `business:${created.id}`;
+    const key = matchDiscriminated(created, "kind", {
+      resource: (entry) => `resource:${entry.id}`,
+      councilBusiness: (entry) => `business:${entry.id}`,
+    });
     setCreateTarget(null);
     setSelectedKey(key);
     setFeedback(t("workspace.createdFeedback").replace("{name}", title));
@@ -453,18 +465,14 @@ export function PathContents({
   const renderInlineCreation = (folderPath: string) => {
     if (!createTarget || createTarget.folderPath !== folderPath) return null;
     const target = createTarget;
-    const Icon =
-      target.kind === "councilMatter"
-        ? WorkspaceIcon
-        : target.kind === "text"
-          ? TextResourceIcon
-          : target.kind === "spreadsheet"
-            ? SpreadsheetResourceIcon
-            : target.kind === "remote"
-              ? RemoteResourceIcon
-              : target.kind === "geographic"
-                ? GeographicResourceIcon
-                : LegalReferenceResourceIcon;
+    const Icon = matchLiteral(target.kind, {
+      councilMatter: () => WorkspaceIcon,
+      text: () => TextResourceIcon,
+      spreadsheet: () => SpreadsheetResourceIcon,
+      remote: () => RemoteResourceIcon,
+      geographic: () => GeographicResourceIcon,
+      legalReference: () => LegalReferenceResourceIcon,
+    });
     return (
       <li className="workspace-explorer-item workspace-explorer-creating workspace-explorer-selected">
         <div className="workspace-explorer-row">
@@ -864,6 +872,9 @@ export function PathContents({
             toggle(folderPath);
           }, 220);
           folderClickTimers.current.set(folderPath, timer);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") selectTreeItem(key);
         }}
         onContextMenu={() => selectTreeItem(key)}
         onDoubleClick={(event) => {

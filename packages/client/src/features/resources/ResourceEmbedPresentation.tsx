@@ -1,4 +1,12 @@
-import type { JsonObject, JsonValue, Resource, ResourceDetails, SpreadsheetDocument } from "@hall/domain";
+import {
+  type JsonObject,
+  type JsonValue,
+  matchDiscriminated,
+  matchLiteral,
+  type Resource,
+  type ResourceDetails,
+  type SpreadsheetDocument,
+} from "@hall/domain";
 import type { ResourcePresentationKind } from "@hall/templating";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { ResourceImageFigure } from "../../components/editor/images";
@@ -88,12 +96,15 @@ export async function loadResourceEmbedTableOptions(resourceId: string): Promise
 }
 
 function expectedPresentation(resource: Resource): ResourcePresentationKind | null {
-  if (resource.kind === "text") return null;
-  if (resource.kind === "spreadsheet") return "table";
-  if (resource.kind === "remote") return null;
-  if (resource.kind === "geographic") return "map";
-  if (resource.kind === "legalReference") return "legal-citation";
-  return ["image/jpeg", "image/png"].includes(resource.mediaType) ? "image" : null;
+  return matchDiscriminated(resource, "kind", {
+    text: () => null,
+    remote: () => null,
+    spreadsheet: () => "table" as const,
+    geographic: () => "map" as const,
+    legalReference: () => "legal-citation" as const,
+    document: (entry) =>
+      ["image/jpeg", "image/png"].includes(entry.mediaType) ? ("image" as const) : ("document" as const),
+  });
 }
 
 function ignorePresentationError() {
@@ -216,62 +227,79 @@ function ResourceEmbedBody({ details, attributes }: { details: ResourceDetails; 
   if (expectedPresentation(resource) !== attributes.presentation) {
     return <p className="editor-resource-embed-unavailable">{t("editor.embedIncompatible")}</p>;
   }
-  if (attributes.presentation === "image" && resource.kind === "document") {
-    return (
-      <ResourceImageFigure
-        id={resource.id}
-        alt={attributes.label || resource.title}
-        align={attributes.align ?? "left"}
-        width={attributes.width ?? 100}
-        className="resource-embed-image"
-      />
-    );
-  }
-  if (attributes.presentation === "legal-citation" && resource.kind === "legalReference") {
-    if (resource.resolutionStatus !== "resolved") {
-      return <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p>;
-    }
-    const snapshot =
-      details.legalSnapshots?.find((candidate) => candidate.snapshotHash === resource.snapshotHash) ?? null;
-    const validity = snapshot?.validFrom
-      ? t("legalReference.validFrom").replace("{date}", formatDate(snapshot.validFrom))
-      : resource.effectiveAt
-        ? `${t("legalReference.effectiveVersion")} : ${formatDate(resource.effectiveAt)}`
-        : null;
-    return (
-      <blockquote className="resource-embed-legal" data-testid="resource-embed-presentation-legal">
-        <strong>{resource.citationLabel}</strong>
-        <p>{snapshot?.normalizedContent ?? t("editor.embedUnavailable")}</p>
-        <footer>
-          {legalStatusLabel(resource.legalStatus, t)}
-          {validity ? ` · ${validity}` : null}
-        </footer>
-      </blockquote>
-    );
-  }
-  if (attributes.presentation === "map" && resource.kind === "geographic" && details.geography) {
-    return (
-      <div className="resource-embed-map" data-testid="resource-embed-presentation-map">
-        <GeographicResourceMap
-          resource={resource}
-          data={details.geography}
-          canUpdate={false}
-          onError={ignorePresentationError}
-          embedded
+  const unavailable = <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p>;
+  const presentation = attributes.presentation;
+  return matchLiteral(presentation, {
+    image: () =>
+      resource.kind === "document" ? (
+        <ResourceImageFigure
+          id={resource.id}
+          alt={attributes.label || resource.title}
+          align={attributes.align ?? "left"}
+          width={attributes.width ?? 100}
+          className="resource-embed-image"
         />
-      </div>
-    );
-  }
-  if (
-    attributes.presentation === "table" &&
-    resource.kind === "spreadsheet" &&
-    details.spreadsheet &&
-    attributes.sheet &&
-    attributes.range
-  ) {
-    return <SpreadsheetRangeTable document={details.spreadsheet} sheetId={attributes.sheet} range={attributes.range} />;
-  }
-  return <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p>;
+      ) : (
+        unavailable
+      ),
+    document: () =>
+      resource.kind === "document" ? (
+        <span className="resource-embed-document" data-testid="resource-embed-presentation-document">
+          <ResourceGlyph resource={resource} />
+          <span>{resource.title}</span>
+        </span>
+      ) : (
+        unavailable
+      ),
+    link: () =>
+      resource.kind === "remote" && resource.url ? (
+        <a href={resource.url} target="_blank" rel="noreferrer" data-testid="resource-embed-presentation-link">
+          {resource.title}
+        </a>
+      ) : (
+        unavailable
+      ),
+    "legal-citation": () => {
+      if (resource.kind !== "legalReference" || resource.resolutionStatus !== "resolved") return unavailable;
+      const snapshot =
+        details.legalSnapshots?.find((candidate) => candidate.snapshotHash === resource.snapshotHash) ?? null;
+      const validity = snapshot?.validFrom
+        ? t("legalReference.validFrom").replace("{date}", formatDate(snapshot.validFrom))
+        : resource.effectiveAt
+          ? `${t("legalReference.effectiveVersion")} : ${formatDate(resource.effectiveAt)}`
+          : null;
+      return (
+        <blockquote className="resource-embed-legal" data-testid="resource-embed-presentation-legal">
+          <strong>{resource.citationLabel}</strong>
+          <p>{snapshot?.normalizedContent ?? t("editor.embedUnavailable")}</p>
+          <footer>
+            {legalStatusLabel(resource.legalStatus, t)}
+            {validity ? ` · ${validity}` : null}
+          </footer>
+        </blockquote>
+      );
+    },
+    map: () =>
+      resource.kind === "geographic" && details.geography ? (
+        <div className="resource-embed-map" data-testid="resource-embed-presentation-map">
+          <GeographicResourceMap
+            resource={resource}
+            data={details.geography}
+            canUpdate={false}
+            onError={ignorePresentationError}
+            embedded
+          />
+        </div>
+      ) : (
+        unavailable
+      ),
+    table: () =>
+      resource.kind === "spreadsheet" && details.spreadsheet && attributes.sheet && attributes.range ? (
+        <SpreadsheetRangeTable document={details.spreadsheet} sheetId={attributes.sheet} range={attributes.range} />
+      ) : (
+        unavailable
+      ),
+  });
 }
 
 /** Current, type-aware resource presentation used by editor nodes and read-only Markdown. */

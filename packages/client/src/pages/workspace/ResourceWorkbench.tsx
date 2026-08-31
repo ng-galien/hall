@@ -6,6 +6,11 @@ import { DeleteIcon } from "../../components/icons";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useResourceImageUpload } from "../../features/documents/useResourceImageUpload";
 import { ResourcePresentationBody } from "../../features/resources/ResourcePresentationBody";
+import {
+  resourceContentDirty,
+  resourceEditorState,
+  resourceSpecificUpdate,
+} from "../../features/resources/resourceEditorPolicy";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -38,8 +43,9 @@ export function ResourceWorkbench({
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
   const [title, setTitle] = useState(resource.title);
   const [tags, setTags] = useState<string[]>(resource.tags);
-  const [content, setContent] = useState(resource.kind === "text" ? resource.content : "");
-  const [remoteUrl, setRemoteUrl] = useState(resource.kind === "remote" ? (resource.url ?? "") : "");
+  const initialEditorState = resourceEditorState(resource);
+  const [content, setContent] = useState(initialEditorState.content);
+  const [remoteUrl, setRemoteUrl] = useState(initialEditorState.remoteUrl);
   const [autosaveEnabled, setAutosaveEnabled] = useState(resource.autosaveEnabled);
   const [viewerOpen, setViewerOpen] = useState(false);
   const extendedViewTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -70,8 +76,13 @@ export function ResourceWorkbench({
   }, [refreshDetails]);
 
   useEffect(() => {
+    const next = resourceEditorState(resource);
+    setTitle(resource.title);
+    setTags(resource.tags);
+    setContent(next.content);
+    setRemoteUrl(next.remoteUrl);
     setAutosaveEnabled(resource.autosaveEnabled);
-  }, [resource.autosaveEnabled]);
+  }, [resource]);
 
   const save = useCallback(
     (nextTitle = title) =>
@@ -84,8 +95,7 @@ export function ResourceWorkbench({
             folderPath: resource.folderPath,
             tags,
             autosaveEnabled,
-            ...(resource.kind === "text" ? { content } : {}),
-            ...(resource.kind === "remote" ? { url: remoteUrl || null } : {}),
+            ...resourceSpecificUpdate(resource, { content, remoteUrl }),
           });
           await useResourcesStore.getState().load();
           onSelect({ kind: "resource", id: resource.id }, resource.folderPath);
@@ -98,20 +108,7 @@ export function ResourceWorkbench({
           return false;
         }
       }),
-    [
-      autosaveEnabled,
-      content,
-      onSelect,
-      refreshDetails,
-      resource.folderPath,
-      resource.id,
-      resource.kind,
-      remoteUrl,
-      run,
-      setSaveStatus,
-      tags,
-      title,
-    ],
+    [autosaveEnabled, content, onSelect, refreshDetails, resource, remoteUrl, run, setSaveStatus, tags, title],
   );
 
   const renameResource = async (nextTitle: string) => {
@@ -158,7 +155,7 @@ export function ResourceWorkbench({
   const dirty =
     title !== resource.title ||
     tags.join("\u0000") !== resource.tags.join("\u0000") ||
-    (resource.kind === "text" && content !== resource.content);
+    resourceContentDirty(resource, { content, remoteUrl });
 
   useEffect(() => {
     if (!autosaveEnabled) {

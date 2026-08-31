@@ -32,6 +32,7 @@ export {
   type ReferenceKind,
   type ResourceEmbedAttributes,
   type ResourcePresentationKind,
+  referenceKinds,
   resourcePresentationKinds,
   serializeResourceEmbedDirective,
 } from "./grammar.js";

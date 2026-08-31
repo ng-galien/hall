@@ -1,10 +1,12 @@
-import type {
-  ContentTemplate,
-  HallSettings,
-  JsonObject,
-  JsonValue,
-  SpreadsheetDocument,
-  TemplateRenderContext,
+import {
+  type ContentTemplate,
+  type HallSettings,
+  type JsonObject,
+  type JsonValue,
+  matchDiscriminated,
+  matchLiteral,
+  type SpreadsheetDocument,
+  type TemplateRenderContext,
 } from "@hall/domain";
 import {
   baseRenderStylesheet,
@@ -12,7 +14,9 @@ import {
   type Diagnostic,
   isFieldName,
   isReferenceKind,
+  isResourcePresentationKind,
   parse,
+  type ReferenceKind,
   renderHtml,
   validateStructure,
 } from "@hall/templating";
@@ -26,8 +30,8 @@ import type {
   ResourceRepository,
   StoredDocumentResource,
 } from "../repositories/contracts.js";
-import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
 import { pdfAttachmentHref } from "./documentRenderer.js";
+import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
 
 type AstNode = {
   type: string;
@@ -42,6 +46,27 @@ type AstNode = {
 };
 
 type TemplateDirective = ReturnType<typeof collectDirectives>[number];
+
+function resourceReferenceNode(
+  resource: Awaited<ReturnType<ResourceRepository["find"]>>,
+  registerPdfAttachment: (resource: StoredDocumentResource) => void,
+): AstNode | null {
+  if (!resource) return null;
+  return matchDiscriminated(resource, "kind", {
+    document: (entry) => {
+      if (entry.mediaType === "application/pdf") {
+        registerPdfAttachment(entry);
+        return { type: "link", url: pdfAttachmentHref(entry.id), children: [textNode(entry.title)] };
+      }
+      return textNode(entry.title);
+    },
+    remote: (entry) => (entry.url ? externalLink(entry.url, entry.title) : textNode(entry.title)),
+    text: (entry) => textNode(entry.title),
+    spreadsheet: (entry) => textNode(entry.title),
+    geographic: (entry) => textNode(entry.title),
+    legalReference: (entry) => textNode(entry.title),
+  });
+}
 
 export interface TemplatePreview {
   html: string;
@@ -96,8 +121,8 @@ function externalLink(url: string, label: string): AstNode {
   };
 }
 
-function fallbackPresentation(directive: TemplateDirective, detail?: string): AstNode {
-  return paragraph([textNode(detail ? `${directive.label} - ${detail}` : directive.label)]);
+function fallbackPresentation(directive: TemplateDirective): AstNode {
+  return paragraph([textNode(directive.label)]);
 }
 
 function resourceDiagnostic(
@@ -156,7 +181,7 @@ function decimalPlaces(pattern: string): number {
 function formattedSpreadsheetValue(cell: JsonObject): string | null {
   const value = spreadsheetCellValue(cell);
   if (value === undefined || value === null) return cell.f ? null : "";
-  if (typeof value === "boolean") return value ? "VRAI" : "FAUX";
+  if (typeof value === "boolean") return value ? "TRUE" : "FALSE";
   if (typeof value === "string") return value;
   if (typeof value !== "number") return JSON.stringify(value);
   const style = objectValue(cell.s);
@@ -264,13 +289,26 @@ async function renderResourceEmbed(
   const resource = await resourceRepository.find(id);
   if (!resource) {
     return {
-      node: fallbackPresentation(directive, "ressource introuvable"),
+      node: fallbackPresentation(directive),
       diagnostics: [resourceDiagnostic("unresolved_reference", `Resource presentation not found: ${id}`, directive)],
     };
   }
-  const presentation = directive.attributes.presentation;
+  const rawPresentation = directive.attributes.presentation;
+  if (!rawPresentation || !isResourcePresentationKind(rawPresentation)) {
+    return {
+      node: fallbackPresentation(directive),
+      diagnostics: [
+        resourceDiagnostic(
+          "resource_representation_unavailable",
+          `Resource ${id} has no renderable presentation named "${rawPresentation ?? ""}"`,
+          directive,
+        ),
+      ],
+    };
+  }
+  const presentation = rawPresentation;
   const incompatible = (expected: string) => ({
-    node: fallbackPresentation(directive, "présentation incompatible"),
+    node: fallbackPresentation(directive),
     diagnostics: [
       resourceDiagnostic(
         "incompatible_resource",
@@ -280,195 +318,186 @@ async function renderResourceEmbed(
     ],
   });
 
-  if (presentation === "image") {
-    if (resource.kind !== "document" || !["image/jpeg", "image/png"].includes(resource.mediaType)) {
-      return incompatible("a JPEG or PNG DocumentResource");
-    }
-    const align = directive.attributes.align === "left" ? "left" : "center";
-    const requestedWidth = Number(directive.attributes.width);
-    const width =
-      Number.isInteger(requestedWidth) && requestedWidth >= 25 && requestedWidth <= 100 ? requestedWidth : 100;
-    return {
-      node: {
-        type: "image",
-        url: `data:${resource.mediaType};base64,${resource.content.toString("base64")}`,
-        alt: directive.label || resource.title,
-        data: {
-          hProperties: {
-            className: ["hall-template-image", `hall-template-image-${align}`],
-            style: `width:${width}%`,
+  return matchLiteral(presentation, {
+    image: async () => {
+      if (resource.kind !== "document" || !["image/jpeg", "image/png"].includes(resource.mediaType)) {
+        return incompatible("a JPEG or PNG DocumentResource");
+      }
+      const align = directive.attributes.align === "left" ? "left" : "center";
+      const requestedWidth = Number(directive.attributes.width);
+      const width =
+        Number.isInteger(requestedWidth) && requestedWidth >= 25 && requestedWidth <= 100 ? requestedWidth : 100;
+      return {
+        node: {
+          type: "image",
+          url: `data:${resource.mediaType};base64,${resource.content.toString("base64")}`,
+          alt: directive.label || resource.title,
+          data: {
+            hProperties: {
+              className: ["hall-template-image", `hall-template-image-${align}`],
+              style: `width:${width}%`,
+            },
           },
         },
-      },
-      diagnostics: [],
-    };
-  }
+        diagnostics: [],
+      };
+    },
 
-  if (presentation === "document") {
-    if (resource.kind !== "document") return incompatible("a DocumentResource");
-    if (resource.mediaType === "application/pdf") {
-      registerPdfAttachment(resource);
+    document: async () => {
+      if (resource.kind !== "document") return incompatible("a DocumentResource");
+      if (resource.mediaType === "application/pdf") {
+        registerPdfAttachment(resource);
+        return {
+          node: paragraph([
+            {
+              type: "link",
+              url: pdfAttachmentHref(resource.id),
+              children: [textNode(resource.title)],
+            },
+          ]),
+          diagnostics: [],
+        };
+      }
       return {
         node: paragraph([
-          {
-            type: "link",
-            url: pdfAttachmentHref(resource.id),
-            children: [textNode(resource.title)],
-          },
+          { type: "strong", children: [textNode(resource.title)] },
+          textNode(` (${documentLabel(resource.format)})`),
         ]),
         diagnostics: [],
       };
-    }
-    return {
-      node: paragraph([
-        { type: "strong", children: [textNode(resource.title)] },
-        textNode(` (${documentLabel(resource.format)})`),
-      ]),
-      diagnostics: [],
-    };
-  }
+    },
 
-  if (presentation === "link") {
-    if (resource.kind !== "remote") return incompatible("a RemoteResource");
-    if (!resource.url) {
+    link: async () => {
+      if (resource.kind !== "remote") return incompatible("a RemoteResource");
+      if (!resource.url) {
+        return {
+          node: fallbackPresentation(directive),
+          diagnostics: [
+            resourceDiagnostic(
+              "resource_representation_unavailable",
+              `Remote resource ${id} has no persisted URL`,
+              directive,
+            ),
+          ],
+        };
+      }
       return {
-        node: fallbackPresentation(directive, "URL indisponible"),
-        diagnostics: [
-          resourceDiagnostic(
-            "resource_representation_unavailable",
-            `Remote resource ${id} has no persisted URL`,
-            directive,
-          ),
-        ],
+        node: paragraph([
+          { type: "strong", children: [textNode(resource.title)] },
+          textNode(": "),
+          externalLink(resource.url, resource.url),
+        ]),
+        diagnostics: [],
       };
-    }
-    return {
-      node: paragraph([
-        { type: "strong", children: [textNode(resource.title)] },
-        textNode(": "),
-        externalLink(resource.url, resource.url),
-      ]),
-      diagnostics: [],
-    };
-  }
+    },
 
-  if (presentation === "legal-citation") {
-    if (resource.kind !== "legalReference") return incompatible("a LegalReferenceResource");
-    if (resource.resolutionStatus !== "resolved") {
+    "legal-citation": async () => {
+      if (resource.kind !== "legalReference") return incompatible("a LegalReferenceResource");
+      if (resource.resolutionStatus !== "resolved") {
+        return {
+          node: fallbackPresentation(directive),
+          diagnostics: [
+            resourceDiagnostic(
+              "resource_representation_unavailable",
+              `Legal reference ${id} has no authoritative snapshot`,
+              directive,
+            ),
+          ],
+        };
+      }
+      const snapshots = await resourceRepository.listLegalReferenceSnapshots(id);
+      const snapshot = snapshots.find((candidate) => candidate.snapshotHash === resource.snapshotHash) ?? null;
+      if (!snapshot) {
+        return {
+          node: fallbackPresentation(directive),
+          diagnostics: [
+            resourceDiagnostic(
+              "resource_representation_unavailable",
+              `Legal reference ${id} snapshot ${resource.snapshotHash} is unavailable`,
+              directive,
+            ),
+          ],
+        };
+      }
       return {
-        node: fallbackPresentation(directive, "référence juridique non résolue"),
-        diagnostics: [
-          resourceDiagnostic(
-            "resource_representation_unavailable",
-            `Legal reference ${id} has no authoritative snapshot`,
-            directive,
-          ),
-        ],
+        node: {
+          type: "blockquote",
+          children: [
+            paragraph([{ type: "strong", children: [externalLink(resource.sourceUrl, resource.citationLabel)] }]),
+            paragraph([textNode(snapshot.normalizedContent)]),
+          ],
+        },
+        diagnostics: [],
       };
-    }
-    const snapshots = await resourceRepository.listLegalReferenceSnapshots(id);
-    const snapshot = snapshots.find((candidate) => candidate.snapshotHash === resource.snapshotHash) ?? null;
-    if (!snapshot) {
-      return {
-        node: fallbackPresentation(directive, "snapshot juridique indisponible"),
-        diagnostics: [
-          resourceDiagnostic(
-            "resource_representation_unavailable",
-            `Legal reference ${id} snapshot ${resource.snapshotHash} is unavailable`,
-            directive,
-          ),
-        ],
-      };
-    }
-    return {
-      node: {
-        type: "blockquote",
-        children: [
-          paragraph([{ type: "strong", children: [externalLink(resource.sourceUrl, resource.citationLabel)] }]),
-          paragraph([textNode(snapshot.normalizedContent)]),
-        ],
-      },
-      diagnostics: [],
-    };
-  }
+    },
 
-  if (presentation === "map") {
-    if (resource.kind !== "geographic") return incompatible("a GeographicResource");
-    const geography = await resourceRepository.findGeographicData(id);
-    if (!geography) {
+    map: async () => {
+      if (resource.kind !== "geographic") return incompatible("a GeographicResource");
+      const geography = await resourceRepository.findGeographicData(id);
+      if (!geography) {
+        return {
+          node: fallbackPresentation(directive),
+          diagnostics: [
+            resourceDiagnostic(
+              "resource_representation_unavailable",
+              `Geographic resource ${id} has no persisted geographic data`,
+              directive,
+            ),
+          ],
+        };
+      }
+      const image = await geographicMapRenderer.render(geography, resource.title);
+      const align = directive.attributes.align === "left" ? "left" : "center";
+      const requestedWidth = Number(directive.attributes.width);
+      const width =
+        Number.isInteger(requestedWidth) && requestedWidth >= 25 && requestedWidth <= 100 ? requestedWidth : 100;
       return {
-        node: fallbackPresentation(directive, "données cartographiques indisponibles"),
-        diagnostics: [
-          resourceDiagnostic(
-            "resource_representation_unavailable",
-            `Geographic resource ${id} has no persisted geographic data`,
-            directive,
-          ),
-        ],
-      };
-    }
-    const image = await geographicMapRenderer.render(geography, resource.title);
-    const align = directive.attributes.align === "left" ? "left" : "center";
-    const requestedWidth = Number(directive.attributes.width);
-    const width =
-      Number.isInteger(requestedWidth) && requestedWidth >= 25 && requestedWidth <= 100 ? requestedWidth : 100;
-    return {
-      node: {
-        type: "image",
-        url: image,
-        alt: directive.label || resource.title,
-        data: {
-          hProperties: {
-            className: ["hall-template-map", `hall-template-image-${align}`],
-            style: `width:${width}%`,
+        node: {
+          type: "image",
+          url: image,
+          alt: directive.label || resource.title,
+          data: {
+            hProperties: {
+              className: ["hall-template-map", `hall-template-image-${align}`],
+              style: `width:${width}%`,
+            },
           },
         },
-      },
-      diagnostics: [],
-    };
-  }
-
-  if (presentation === "table") {
-    if (resource.kind !== "spreadsheet") return incompatible("a SpreadsheetResource");
-    const document = await resourceRepository.findSpreadsheetDocument(id);
-    if (!document) {
-      return {
-        node: fallbackPresentation(directive, "snapshot du tableur indisponible"),
-        diagnostics: [
-          resourceDiagnostic(
-            "resource_representation_unavailable",
-            `Spreadsheet resource ${id} has no persisted snapshot`,
-            directive,
-          ),
-        ],
+        diagnostics: [],
       };
-    }
-    const rendered = spreadsheetTable(document, directive.attributes.sheet ?? "", directive.attributes.range ?? "");
-    if (!rendered.node) {
-      return {
-        node: fallbackPresentation(directive, "plage du tableur indisponible"),
-        diagnostics: [
-          resourceDiagnostic(
-            "resource_representation_unavailable",
-            rendered.error ?? `Spreadsheet resource ${id} cannot render the requested range`,
-            directive,
-          ),
-        ],
-      };
-    }
-    return { node: rendered.node, diagnostics: [] };
-  }
+    },
 
-  return {
-    node: fallbackPresentation(directive, "présentation inconnue"),
-    diagnostics: [
-      resourceDiagnostic(
-        "resource_representation_unavailable",
-        `Resource ${id} has no renderable presentation named "${presentation}"`,
-        directive,
-      ),
-    ],
-  };
+    table: async () => {
+      if (resource.kind !== "spreadsheet") return incompatible("a SpreadsheetResource");
+      const document = await resourceRepository.findSpreadsheetDocument(id);
+      if (!document) {
+        return {
+          node: fallbackPresentation(directive),
+          diagnostics: [
+            resourceDiagnostic(
+              "resource_representation_unavailable",
+              `Spreadsheet resource ${id} has no persisted snapshot`,
+              directive,
+            ),
+          ],
+        };
+      }
+      const rendered = spreadsheetTable(document, directive.attributes.sheet ?? "", directive.attributes.range ?? "");
+      if (!rendered.node) {
+        return {
+          node: fallbackPresentation(directive),
+          diagnostics: [
+            resourceDiagnostic(
+              "resource_representation_unavailable",
+              rendered.error ?? `Spreadsheet resource ${id} cannot render the requested range`,
+              directive,
+            ),
+          ],
+        };
+      }
+      return { node: rendered.node, diagnostics: [] };
+    },
+  });
 }
 
 function formatMeetingDate(value: string, timeZone: string): string {
@@ -623,34 +652,31 @@ export function createTemplateRenderingService({
         const id = directive.attributes.id;
         let node: AstNode | null = null;
         if (id) {
-          if (directive.name === "member") {
-            const value = personName(await councilMemberRepository.find(id));
-            if (value) node = textNode(value);
-          }
-          if (directive.name === "meeting") {
-            const value = meetingReference(await councilMeetingRepository.find(id));
-            if (value) node = textNode(value);
-          }
-          if (directive.name === "councilBusiness") {
-            const value = (await councilBusinessRepository.find(id))?.title ?? null;
-            if (value) node = textNode(value);
-          }
-          if (directive.name === "decision") {
-            const decision = await councilDecisionRepository.find(id);
-            const value = decision ? (decision.number ? `${decision.number} - ${decision.title}` : decision.title) : null;
-            if (value) node = textNode(value);
-          }
-          if (directive.name === "resource") {
-            const resource = await resourceRepository.find(id);
-            if (resource?.kind === "document" && resource.mediaType === "application/pdf") {
-              registerPdfAttachment(resource);
-              node = { type: "link", url: pdfAttachmentHref(resource.id), children: [textNode(resource.title)] };
-            } else if (resource?.kind === "remote" && resource.url) {
-              node = externalLink(resource.url, resource.title);
-            } else if (resource) {
-              node = textNode(resource.title);
-            }
-          }
+          const referenceKind: ReferenceKind = directive.name;
+          node = await matchLiteral(referenceKind, {
+            member: async () => {
+              const value = personName(await councilMemberRepository.find(id));
+              return value ? textNode(value) : null;
+            },
+            meeting: async () => {
+              const value = meetingReference(await councilMeetingRepository.find(id));
+              return value ? textNode(value) : null;
+            },
+            councilBusiness: async () => {
+              const value = (await councilBusinessRepository.find(id))?.title ?? null;
+              return value ? textNode(value) : null;
+            },
+            decision: async () => {
+              const decision = await councilDecisionRepository.find(id);
+              const value = decision
+                ? decision.number
+                  ? `${decision.number} - ${decision.title}`
+                  : decision.title
+                : null;
+              return value ? textNode(value) : null;
+            },
+            resource: async () => resourceReferenceNode(await resourceRepository.find(id), registerPdfAttachment),
+          });
         }
         values.set(key, node ?? textNode(directive.label));
         if (id && node === null) {
@@ -679,7 +705,9 @@ export function createTemplateRenderingService({
         const value = fields[name];
         values.set(key, { type: "text", value: value ?? "" });
         if (value === null) {
-          diagnostics.push(diagnostic("unresolved_reference", `Contexte requis pour le champ ${name}`, directive));
+          diagnostics.push(
+            diagnostic("unresolved_reference", `Required context is unavailable for field ${name}`, directive),
+          );
         }
       }
     }

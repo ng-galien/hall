@@ -1,4 +1,4 @@
-import type { Resource } from "@hall/domain";
+import { matchDiscriminated, matchLiteral, type Resource } from "@hall/domain";
 import {
   CsvIcon,
   FileIcon,
@@ -31,31 +31,25 @@ export type ResourceTone =
   | "file";
 
 export function resourceTone(resource: Resource): ResourceTone {
-  if (resource.kind === "text") return "text";
-  if (resource.kind === "spreadsheet") return "spreadsheet";
-  if (resource.kind === "remote") return "remote";
-  if (resource.kind === "geographic") return "geographic";
-  if (resource.kind === "legalReference") return "legalReference";
-  switch (resource.format) {
-    case "pdf":
-      return "pdf";
-    case "jpeg":
-    case "png":
-      return "image";
-    case "docx":
-    case "odt":
-      return "document";
-    case "xlsx":
-      return "spreadsheetFile";
-    case "pptx":
-      return "presentation";
-    case "csv":
-      return "csv";
-    case "txt":
-      return "text";
-    default:
-      return "file";
-  }
+  return matchDiscriminated(resource, "kind", {
+    text: () => "text" as const,
+    spreadsheet: () => "spreadsheet" as const,
+    remote: () => "remote" as const,
+    geographic: () => "geographic" as const,
+    legalReference: () => "legalReference" as const,
+    document: (entry) =>
+      matchLiteral(entry.format, {
+        pdf: () => "pdf" as const,
+        jpeg: () => "image" as const,
+        png: () => "image" as const,
+        docx: () => "document" as const,
+        odt: () => "document" as const,
+        xlsx: () => "spreadsheetFile" as const,
+        pptx: () => "presentation" as const,
+        csv: () => "csv" as const,
+        txt: () => "text" as const,
+      }),
+  });
 }
 
 export const toneLabelKeys: Record<ResourceTone, TranslationKey> = {
@@ -88,16 +82,28 @@ export const toneIcons = {
   file: FileIcon,
 } as const;
 
+export function resourceDate(resource: Resource): { kind: "updated" | "created"; value: string } {
+  return matchDiscriminated(resource, "kind", {
+    text: (entry) => ({ kind: "updated" as const, value: entry.updatedAt }),
+    geographic: (entry) => ({ kind: "updated" as const, value: entry.updatedAt }),
+    document: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
+    remote: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
+    spreadsheet: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
+    legalReference: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
+  });
+}
+
 export function useResourceTypeLabel(): (resource: Resource) => string {
   const { t } = useI18n();
-  return (resource) => {
-    if (resource.kind === "document") return resource.format.toUpperCase();
-    if (resource.kind === "remote") return t("workspace.type.remote");
-    if (resource.kind === "spreadsheet") return t("workspace.type.spreadsheet");
-    if (resource.kind === "geographic") return t("workspace.type.geographic");
-    if (resource.kind === "legalReference") return t("workspace.type.legalReference");
-    return t("workspace.type.text");
-  };
+  return (resource) =>
+    matchDiscriminated(resource, "kind", {
+      document: (entry) => entry.format.toUpperCase(),
+      remote: () => t("workspace.type.remote"),
+      spreadsheet: () => t("workspace.type.spreadsheet"),
+      geographic: () => t("workspace.type.geographic"),
+      legalReference: () => t("workspace.type.legalReference"),
+      text: () => t("workspace.type.text"),
+    });
 }
 
 /** Typed badge for a resource: text, PDF, image or generic file. */

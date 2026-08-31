@@ -2,6 +2,10 @@
 
 Le projet Hall accompagne l’activité du conseil municipal d’une commune française. Son premier périmètre ne cherche pas à couvrir toute l’administration municipale : il suit la préparation des décisions, le déroulement des séances et la conservation des actes qui en résultent.
 
+## Principe de code prioritaire
+
+Tout agent qui modifie le code doit lire et appliquer [`docs/principes-code.md`](docs/principes-code.md) avant d’agir. Les unions discriminées fermées, leurs autorités et leurs matchers exhaustifs y sont définis comme une carte du logiciel : un dispatch de comportement ne doit pas être dispersé dans des `if/else` ou des `switch` concurrents, et l’ajout d’une variante doit révéler à la compilation tous les comportements à compléter.
+
 ## Périmètre initial
 
 Le produit doit permettre de gérer :

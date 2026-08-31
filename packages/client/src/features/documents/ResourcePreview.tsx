@@ -1,13 +1,13 @@
 import { findSirenAction } from "@hall/api-contract";
-import type { Resource, ResourceDetails } from "@hall/domain";
+import { matchDiscriminated, type Resource, type ResourceDetails } from "@hall/domain";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
+import { useSaveStatusStore } from "../../pages/workspace/saveStatusStore";
 import { WorkspaceBreadcrumb } from "../../pages/workspace/WorkspaceBreadcrumb";
 import { WorkspaceWorkbenchHeader } from "../../pages/workspace/WorkspaceWorkbenchHeader";
-import { useSaveStatusStore } from "../../pages/workspace/saveStatusStore";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import {
   downloadResourceDocument,
@@ -16,12 +16,15 @@ import {
   updateResource,
 } from "../../services/resourcesApi";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import {
-  ResourcePresentationBody,
-  type ResourcePresentationCapabilities,
-} from "../resources/ResourcePresentationBody";
 import { ResourceAutosaveToggle } from "../resources/ResourceAutosaveToggle";
-import { ResourceGlyph } from "./ResourceGlyph";
+import { ResourcePresentationBody, type ResourcePresentationCapabilities } from "../resources/ResourcePresentationBody";
+import {
+  resourceContentDirty,
+  resourceEditorState,
+  resourceFillsExtendedView,
+  resourceSpecificUpdate,
+} from "../resources/resourceEditorPolicy";
+import { ResourceGlyph, resourceDate } from "./ResourceGlyph";
 import { useResourceImageUpload } from "./useResourceImageUpload";
 import "./DocumentViewer.css";
 import "./ResourcePreview.css";
@@ -34,11 +37,14 @@ function canEditResource(
   canResolveLegalReference: boolean,
 ): boolean {
   if (details.snapshotted) return false;
-  if (resource.kind === "text" || resource.kind === "remote") return canUpdate;
-  if (resource.kind === "geographic") return capabilities.updateGeography;
-  if (resource.kind === "spreadsheet") return capabilities.updateSpreadsheet;
-  if (resource.kind === "legalReference") return resource.resolutionStatus === "draft" && canResolveLegalReference;
-  return false;
+  return matchDiscriminated(resource, "kind", {
+    text: () => canUpdate,
+    remote: () => canUpdate,
+    geographic: () => capabilities.updateGeography,
+    spreadsheet: () => capabilities.updateSpreadsheet,
+    legalReference: (entry) => entry.resolutionStatus === "draft" && canResolveLegalReference,
+    document: () => false,
+  });
 }
 
 /** Common resource modal. It hosts the same type-specific body as the Workspace and never changes route. */
@@ -75,9 +81,10 @@ export function ResourcePreview({ resourceId, onClose }: { resourceId: string; o
   const load = useCallback(async () => {
     const result = await getResourceDetailsSiren(resourceId);
     const representation = result.representation;
+    const editorValues = resourceEditorState(result.data.resource);
     setDetails(result.data);
-    setContent(result.data.resource.kind === "text" ? result.data.resource.content : "");
-    setRemoteUrl(result.data.resource.kind === "remote" ? (result.data.resource.url ?? "") : "");
+    setContent(editorValues.content);
+    setRemoteUrl(editorValues.remoteUrl);
     setCanUpdate(Boolean(representation && findSirenAction(representation, "resource.update")));
     setCanResolveLegalReference(
       Boolean(representation && findSirenAction(representation, "resource.resolve-legal-reference")),
@@ -109,13 +116,8 @@ export function ResourcePreview({ resourceId, onClose }: { resourceId: string; o
   }, []);
 
   const resource = details?.resource ?? null;
-  const fillsPreview =
-    resource?.kind === "document" || resource?.kind === "geographic" || resource?.kind === "spreadsheet";
-  const dirty = Boolean(
-    resource &&
-      ((resource.kind === "text" && content !== resource.content) ||
-        (resource.kind === "remote" && remoteUrl !== (resource.url ?? ""))),
-  );
+  const fillsPreview = resource ? resourceFillsExtendedView(resource) : false;
+  const dirty = resource ? resourceContentDirty(resource, { content, remoteUrl }) : false;
   const editable = useMemo(
     () =>
       Boolean(
@@ -139,8 +141,7 @@ export function ResourcePreview({ resourceId, onClose }: { resourceId: string; o
           folderPath: current.folderPath,
           tags: current.tags,
           autosaveEnabled: current.autosaveEnabled,
-          ...(current.kind === "text" ? { content } : {}),
-          ...(current.kind === "remote" ? { url: remoteUrl || null } : {}),
+          ...resourceSpecificUpdate(current, { content, remoteUrl }),
         });
         setDetails((value) => (value ? { ...value, resource: updated } : value));
         await useResourcesStore.getState().load();
@@ -295,13 +296,7 @@ export function ResourcePreview({ resourceId, onClose }: { resourceId: string; o
               title={resource.title}
               titleId="resource-preview-title"
               titleLabel={t("resources.textTitle")}
-              date={{
-                kind: resource.kind === "text" || resource.kind === "geographic" ? "updated" : "created",
-                value:
-                  resource.kind === "text" || resource.kind === "geographic"
-                    ? resource.updatedAt
-                    : resource.createdAt,
-              }}
+              date={resourceDate(resource)}
               actions={
                 resource.kind === "document" ? (
                   <Button variant="outline" onClick={() => void downloadResourceDocument(resource)}>

@@ -1,3 +1,4 @@
+import { matchDiscriminated } from "@hall/domain";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { reclassifyCouncilBusiness } from "../../services/councilBusinessApi";
 import { updateResource } from "../../services/resourcesApi";
@@ -6,7 +7,7 @@ import { useResourcesStore } from "../../stores/resourcesStore";
 
 export const DRAG_TYPE = "application/x-mairie-item";
 
-export type DragPayload = { kind: "councilBusiness" | "resource"; id: string };
+export type DragPayload = { kind: "councilBusiness"; id: string } | { kind: "resource"; id: string };
 
 export function encodeDragPayload(payload: DragPayload): string {
   return `${payload.kind}:${payload.id}`;
@@ -21,25 +22,28 @@ export function decodeDragPayload(raw: string): DragPayload | null {
 /** Moves a business or a resource to a path. Returns an error code, or null on success. */
 export async function moveToPath(payload: DragPayload, targetPath: string): Promise<ApiErrorCode | null> {
   try {
-    if (payload.kind === "resource") {
-      const resource = useResourcesStore.getState().resources.find((candidate) => candidate.id === payload.id);
-      if (!resource) return "resource_not_found";
-      if (resource.folderPath === targetPath) return null;
-      await updateResource(resource.id, {
-        title: resource.title,
-        folderPath: targetPath,
-        tags: resource.tags,
-        ...(resource.kind === "text" ? { content: resource.content } : {}),
-      });
-      await useResourcesStore.getState().load();
-      return null;
-    }
-    const business = useCouncilBusinessStore.getState().businesses.find((candidate) => candidate.id === payload.id);
-    if (!business) return "council_business_not_found";
-    if (business.folderPath === targetPath) return null;
-    await reclassifyCouncilBusiness(business.id, targetPath);
-    await useCouncilBusinessStore.getState().load();
-    return null;
+    return await matchDiscriminated(payload, "kind", {
+      resource: async (entry) => {
+        const resource = useResourcesStore.getState().resources.find((candidate) => candidate.id === entry.id);
+        if (!resource) return "resource_not_found";
+        if (resource.folderPath === targetPath) return null;
+        await updateResource(resource.id, {
+          title: resource.title,
+          folderPath: targetPath,
+          tags: resource.tags,
+        });
+        await useResourcesStore.getState().load();
+        return null;
+      },
+      councilBusiness: async (entry) => {
+        const business = useCouncilBusinessStore.getState().businesses.find((candidate) => candidate.id === entry.id);
+        if (!business) return "council_business_not_found";
+        if (business.folderPath === targetPath) return null;
+        await reclassifyCouncilBusiness(business.id, targetPath);
+        await useCouncilBusinessStore.getState().load();
+        return null;
+      },
+    });
   } catch (failure) {
     return apiErrorCode(failure);
   }

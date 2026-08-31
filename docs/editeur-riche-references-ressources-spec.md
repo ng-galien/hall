@@ -37,10 +37,10 @@ La modal s’ouvre en lecture. Si la ressource possède une action de modificati
 | --- | --- | --- | --- | --- |
 | `TextResource` | référence avec icône et titre ; le texte n’est pas recopié | texte complet rendu | oui, par `Modifier`, avec l’éditeur texte existant | titre de la ressource |
 | `DocumentResource` image | image inline, avec texte alternatif et légende éventuelle | image agrandie | non pour le fichier ; seules les métadonnées autorisées peuvent évoluer | image embarquée |
-| `DocumentResource` PDF | lien ou carte avec icône, titre et mention PDF | viewer PDF existant | non pour le fichier ; téléchargement disponible | titre ; pages jointes seulement comme annexe explicite |
+| `DocumentResource` PDF | lien inline avec icône et titre | viewer PDF existant | non pour le fichier ; téléchargement disponible | lien vers sa première page en annexe ; pages jointes automatiquement en fin de document |
 | `DocumentResource` DOCX, ODT, PPTX ou autre | simple lien avec icône, titre et format | aperçu technique lorsqu’il existe, sinon fiche de téléchargement | non pour le fichier | titre et format |
-| `RemoteResource` | lien avec icône, titre et domaine | fiche du lien et action d’ouverture externe | oui pour le titre et l’URL | titre et URL |
-| `LegalReferenceResource` | zone de citation : libellé, extrait court et source | référence complète, version et historique | pas de réécriture libre ; action de rafraîchissement lorsqu’elle est disponible | citation et version figée |
+| `RemoteResource` | lien avec icône, titre et domaine | fiche du lien et action d’ouverture externe | oui pour le titre et l’URL | lien externe actif, ouvert séparément du PDF |
+| `LegalReferenceResource` | zone de citation : libellé, extrait court et source | référence complète, version et historique | pas de réécriture libre ; action de rafraîchissement lorsqu’elle est disponible | bloc avec libellé lié et texte de l’article, sans métadonnées techniques |
 | `GeographicResource` | carte inline non modifiable, avec titre et légende | carte complète | oui, par `Modifier`, avec l’éditeur cartographique existant | image statique de la carte |
 | `SpreadsheetResource` | feuille et plage converties en tableau HTML non modifiable | tableur complet positionné sur la plage | oui, par `Modifier`, avec l’éditeur de tableur existant | tableau HTML paginable |
 
@@ -91,10 +91,11 @@ Un comportement de référence ou d’inclusion doit être cohérent sur toutes 
 | Membre, sujet, séance, délibération | badge inline | badge inline | libellé résolu en texte |
 | `TextResource` | badge `resource` | aperçu Markdown au clic | titre seulement |
 | Image `DocumentResource` | bloc image | image et aperçu plein écran | image embarquée |
-| PDF et autre document | badge `resource` | viewer au clic | titre seulement ; annexe séparée sur choix explicite |
-| `RemoteResource` | badge `resource` | carte de lien dans l’aperçu | titre seulement |
-| `LegalReferenceResource` | badge `resource` | aperçu vide | titre seulement |
-| `GeographicResource` | badge `resource` | aperçu vide | titre seulement |
+| PDF `DocumentResource` | lien inline | viewer au clic | lien interne et pages annexées dans l’ordre d’apparition |
+| Autre `DocumentResource` | badge `resource` | viewer ou téléchargement au clic | titre et format |
+| `RemoteResource` | lien inline | fiche de lien dans l’aperçu | lien externe actif |
+| `LegalReferenceResource` | citation en bloc | référence complète au clic | libellé lié et texte de l’article, sans statut, licence ni attribution |
+| `GeographicResource` | carte inline | carte complète au clic | image 16:9 avec fond, géométries et libellés |
 | `SpreadsheetResource` | présenté comme « Fichier », puis badge `resource` | aperçu vide | titre seulement |
 
 Il n’existe pas encore d’inclusion générique de ressource en bloc. La recherche ne demande pas si l’utilisateur veut citer ou inclure. Le libellé conservé dans le Markdown est affiché tel quel dans l’éditeur et peut donc devenir obsolète après un renommage. Les erreurs de résolution ne disposent pas encore d’un état visuel commun.
@@ -201,10 +202,10 @@ Le passage compact/étendu ne crée pas deux documents. La sélection, le curseu
 
 #### PDF
 
-- référence ou carte documentaire avec titre, type, nombre de pages lorsqu’il est connu et action d’aperçu ;
-- l’inclusion n’embarque pas silencieusement toutes les pages dans le corps ;
-- l’ajout du PDF en annexe reste un choix distinct lors de la génération ;
-- l’impression d’une carte conserve le titre et la mention `Document PDF`, sans contrôle interactif.
+- référence inline avec titre et action d’aperçu ;
+- les pages ne sont jamais injectées au milieu du corps ;
+- chaque PDF référencé est ajouté une seule fois en fin de document, dans l’ordre de sa première apparition ;
+- la référence du corps est un lien interne vers la première page de son annexe.
 
 #### DOCX, ODT, PPTX et autres fichiers
 
@@ -266,17 +267,17 @@ Le PDF ne reproduit ni la modal ni les éditeurs. Le serveur transforme chaque r
 | Membre, sujet, séance ou délibération | libellé résolu | identifiant et libellé utilisés |
 | `TextResource` | titre de la ressource | identifiant, version et titre |
 | Image `DocumentResource` ou actif local | image embarquée, texte alternatif et légende | octets ou empreinte de l’image |
-| PDF `DocumentResource` | titre et mention PDF dans le corps | identifiant et empreinte ; pages uniquement si annexe explicite |
+| PDF `DocumentResource` | lien interne vers la première page de l’annexe ; pages concaténées en fin de document dans l’ordre d’apparition | identifiant, empreinte et première page d’annexe |
 | Autre `DocumentResource` | titre et format | identifiant et empreinte du fichier |
-| `RemoteResource` | titre et URL complète | titre et URL utilisés |
-| `LegalReferenceResource` | citation, source, statut et date de version | snapshot juridique identifié |
-| `GeographicResource` | PNG produit par le serveur, avec attribution | image, cadrage et empreinte |
+| `RemoteResource` | lien externe actif demandé dans une nouvelle fenêtre | titre et URL utilisés |
+| `LegalReferenceResource` | bloc avec libellé lié à la source officielle et texte de l’article | snapshot juridique identifié |
+| `GeographicResource` | image 16:9 produite par le serveur, avec fond, géométries et libellés | image, cadrage et empreinte |
 | `SpreadsheetResource` | tableau HTML paginable, valeurs calculées et formats | feuille, plage et snapshot du tableur |
 
 Règles communes :
 
 - l’aperçu PDF et l’export formel utilisent le même renderer serveur ;
-- l’export n’exécute ni JavaScript, ni accès réseau, ni recalcul de formule ;
+- l’export n’exécute ni JavaScript de ressource ni recalcul de formule ; le serveur peut récupérer le fond cartographique pendant la génération, puis l’embarque dans le PDF ;
 - les routes internes, contrôles d’édition et boutons de modal ne sont jamais imprimés ;
 - une inclusion absente, interdite ou incompatible bloque l’export formel avec un diagnostic relié au bloc ;
 - l’aperçu peut afficher ce diagnostic sans créer de snapshot formel ;
@@ -449,21 +450,24 @@ Et le texte n’est pas recopié dans le contenu courant
 Et l’action Modifier active son éditeur dans la même modal lorsque l’utilisateur y est autorisé
 ```
 
-### EDR-DOC-001 — Distinguer carte et annexe
+### EDR-DOC-001 — Relier la référence PDF à son annexe
 
 ```gherkin
-Étant donné un PDF inclus comme carte documentaire
+Étant donné plusieurs références vers des PDF dans un contenu riche
 Quand le document est imprimé
-Alors la carte apparaît dans le corps
-Et les pages du PDF ne sont ajoutées qu’en cas de choix explicite comme annexe
+Alors chaque référence reste inline dans le corps
+Et chaque PDF est ajouté une seule fois à la fin dans l’ordre de première apparition
+Et chaque référence ouvre la première page de son PDF annexé
 ```
 
-### EDR-LEGAL-001 — Imprimer une citation traçable
+### EDR-LEGAL-001 — Imprimer l’article sans métadonnées techniques
 
 ```gherkin
 Étant donné une inclusion de référence juridique résolue
 Quand un document formel est généré
-Alors l’extrait, son statut, sa date de version, sa source et son attribution sont imprimés
+Alors le libellé de l’article est imprimé comme lien vers la source officielle
+Et le texte de l’article est imprimé sous ce libellé
+Et le statut, la licence et l’attribution ne sont pas imprimés
 Et le manifeste identifie le snapshot juridique utilisé
 ```
 
@@ -475,6 +479,9 @@ Quand l’utilisateur active la carte
 Alors Hall ouvre une vue cartographique étendue en lecture seule
 Et aucune modification ne se produit dans le contenu riche
 Et l’action Modifier active l’éditeur cartographique dans la même modal
+Quand ce document est imprimé
+Alors la carte conserve son ratio 16:9, sa largeur et son alignement
+Et le fond cartographique, les géométries et leurs libellés sont embarqués dans le PDF
 ```
 
 ### EDR-SHEET-001 — Consulter une plage de tableur

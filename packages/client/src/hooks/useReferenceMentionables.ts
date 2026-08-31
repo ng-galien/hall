@@ -1,3 +1,5 @@
+import { matchDiscriminated, type Resource } from "@hall/domain";
+import type { ResourcePresentationKind } from "@hall/templating";
 import { useMemo } from "react";
 import type { Mentionable } from "../components/editor/references";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
@@ -10,13 +12,15 @@ import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { useResourcesStore } from "../stores/resourcesStore";
 
-function resourcePresentation(resource: ReturnType<typeof useResourcesStore.getState>["resources"][number]) {
-  if (resource.kind === "text") return undefined;
-  if (resource.kind === "spreadsheet") return "table" as const;
-  if (resource.kind === "remote") return undefined;
-  if (resource.kind === "geographic") return "map" as const;
-  if (resource.kind === "legalReference") return "legal-citation" as const;
-  return resourceTone(resource) === "image" ? ("image" as const) : undefined;
+function resourcePresentation(resource: Resource): ResourcePresentationKind | undefined {
+  return matchDiscriminated(resource, "kind", {
+    text: () => undefined,
+    remote: () => undefined,
+    spreadsheet: () => "table" as const,
+    geographic: () => "map" as const,
+    legalReference: () => "legal-citation" as const,
+    document: (entry) => (resourceTone(entry) === "image" ? ("image" as const) : ("document" as const)),
+  });
 }
 
 /** Mentionable entities for the editor `@` search; each carries the immutable entity id, never the slug. */
@@ -45,6 +49,7 @@ export function useReferenceMentionables(): Mentionable[] {
             ? imagePresentationTitle(resource.title, resource.fileName, t("editor.imageImported"))
             : resource.title,
           folderPath: resource.folderPath,
+          tags: resource.tags,
           media: isImage ? ("image" as const) : undefined,
           resourcePresentation: resourcePresentation(resource),
           icon: toneIcons[tone],

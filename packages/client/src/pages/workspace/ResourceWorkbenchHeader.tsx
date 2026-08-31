@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { FullscreenIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { TagInput } from "../../components/TagInput";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
-import { ResourceGlyph } from "../../features/documents/ResourceGlyph";
+import { ResourceGlyph, resourceDate } from "../../features/documents/ResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { useResourcesStore } from "../../stores/resourcesStore";
@@ -48,11 +48,7 @@ export function ResourceWorkbenchHeader({
       icon={<ResourceGlyph resource={resource} large />}
       title={title}
       titleLabel={t("resources.textTitle")}
-      date={
-        resource.kind === "text" || resource.kind === "geographic"
-          ? { kind: "updated", value: resource.updatedAt }
-          : { kind: "created", value: resource.createdAt }
-      }
+      date={resourceDate(resource)}
       onTitleChange={canUpdate && !details?.snapshotted ? onTitleChange : undefined}
       actions={
         <>

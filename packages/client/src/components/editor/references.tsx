@@ -1,19 +1,39 @@
-import { imageWidthRange, isReferenceKind, type ReferenceKind, type ResourcePresentationKind } from "@hall/templating";
+import {
+  imageWidthRange,
+  isReferenceKind,
+  type ReferenceKind,
+  type ResourcePresentationKind,
+  referenceKinds,
+} from "@hall/templating";
 import { Extension, mergeAttributes, Node } from "@tiptap/core";
 import { type NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from "@tiptap/react";
 import { exitSuggestion, Suggestion, type SuggestionProps } from "@tiptap/suggestion";
 import { createContext, forwardRef, type ReactNode, useContext, useImperativeHandle, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type Searchable, searchEntities } from "../../lib/search";
-import { CalendarIcon, FileIcon, GavelIcon, MemberIcon, SearchIcon, TextDocumentIcon } from "../icons";
+import { FolderIcon, type MemberIcon, SearchIcon, TagIcon } from "../icons";
+import {
+  type FacetSuggestion,
+  facetHashPattern,
+  facetOptionsFrom,
+  facetSuggestionsFor,
+} from "../search/facetSuggestions";
+import { kindIcons } from "../search/kindPresentation";
 
 type ResourcePreviewRenderer = (id: string, onClose: () => void) => ReactNode;
 export type ResourceReferenceAppearance = { tone: string; icon: ReactNode; glyph: ReactNode; tooltip: string };
+export type ReferenceTarget = {
+  label: string;
+  tooltip: string;
+  open: { kind: "resourcePreview" } | { kind: "route"; href: string } | null;
+};
 
 const ResourcePreviewContext = createContext<{
   renderResourcePreview: ResourcePreviewRenderer;
   resourceAppearance(id: string): ResourceReferenceAppearance | null;
+  referenceTarget(kind: ReferenceKind, id: string): ReferenceTarget | null;
 } | null>(null);
 
 export function useResourcePreviewRenderer() {
@@ -28,26 +48,22 @@ export function useResourceAppearance(id: string): ResourceReferenceAppearance |
 export function ReferencePresentationProvider({
   renderResourcePreview,
   resourceAppearance,
+  referenceTarget,
   children,
 }: {
   renderResourcePreview: ResourcePreviewRenderer;
   resourceAppearance(id: string): ResourceReferenceAppearance | null;
+  referenceTarget(kind: ReferenceKind, id: string): ReferenceTarget | null;
   children: ReactNode;
 }) {
   return (
-    <ResourcePreviewContext.Provider value={{ renderResourcePreview, resourceAppearance }}>
+    <ResourcePreviewContext.Provider value={{ renderResourcePreview, resourceAppearance, referenceTarget }}>
       {children}
     </ResourcePreviewContext.Provider>
   );
 }
 
-export const referenceIcons: Record<ReferenceKind, typeof MemberIcon> = {
-  member: MemberIcon,
-  resource: FileIcon,
-  councilBusiness: TextDocumentIcon,
-  decision: GavelIcon,
-  meeting: CalendarIcon,
-};
+export const referenceIcons = kindIcons;
 
 /** Renders a reference inline; resource references open a preview on click. */
 export function ReferenceBadge({
@@ -64,6 +80,7 @@ export function ReferenceBadge({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const scrollRef = useRef({ x: 0, y: 0 });
   const presentation = useContext(ResourcePreviewContext);
+  const target = id ? presentation?.referenceTarget(kind, id) : null;
   const appearance = kind === "resource" && id ? presentation?.resourceAppearance(id) : null;
   const kindLabels: Record<ReferenceKind, string> = {
     member: t("editor.kind.member"),
@@ -72,19 +89,20 @@ export function ReferenceBadge({
     meeting: t("editor.kind.meeting"),
     decision: t("editor.kind.decision"),
   };
-  const openable = kind === "resource" && id !== null && presentation !== null;
+  const open = target?.open ?? null;
+  const openable = open !== null;
   const className = `editor-reference editor-reference-${kind}${appearance ? ` editor-reference-tone-${appearance.tone}` : ""}`;
   const content = (
     <>
       {appearance?.icon}
-      {children}
+      {target?.label ?? children}
     </>
   );
   return (
     <>
       <Tooltip>
         <TooltipTrigger asChild>
-          {openable ? (
+          {open?.kind === "resourcePreview" ? (
             <button
               ref={triggerRef}
               type="button"
@@ -97,16 +115,20 @@ export function ReferenceBadge({
             >
               {content}
             </button>
+          ) : open?.kind === "route" ? (
+            <Link to={open.href} className={`${className} is-openable`} data-testid={`editor-${kind}-reference-${id}`}>
+              {content}
+            </Link>
           ) : (
             <span className={className}>{content}</span>
           )}
         </TooltipTrigger>
         <TooltipContent>
-          {appearance?.tooltip ?? kindLabels[kind]}
+          {target?.tooltip ?? appearance?.tooltip ?? kindLabels[kind]}
           {openable ? ` · ${t("editor.openHint")}` : null}
         </TooltipContent>
       </Tooltip>
-      {previewing && id !== null
+      {previewing && id !== null && open?.kind === "resourcePreview"
         ? presentation?.renderResourcePreview(id, () => {
             setPreviewing(false);
             window.requestAnimationFrame(() => {
@@ -185,7 +207,7 @@ export const Reference = Node.create({
     level: "inline",
     start: (src: string) => src.indexOf(":"),
     tokenize: (src: string) => {
-      const match = /^:([a-z]+)\[([^\]]*)\]\{([^}]*)\}/.exec(src);
+      const match = /^:([A-Za-z][A-Za-z0-9-]*)\[([^\]]*)\]\{([^}]*)\}/.exec(src);
       if (!match || !isReferenceKind(match[1])) return undefined;
       const id = /#([^\s}]+)/.exec(match[3])?.[1] ?? /id="([^"]*)"/.exec(match[3])?.[1];
       if (!id) return undefined;
@@ -210,8 +232,6 @@ export function mentionableIcon(item: Mentionable) {
   return item.icon ?? referenceIcons[item.kind];
 }
 
-const kindOrder: readonly ReferenceKind[] = ["member", "resource", "councilBusiness", "meeting", "decision"];
-
 interface MentionListHandle {
   onKeyDown(event: KeyboardEvent): boolean;
 }
@@ -231,29 +251,40 @@ type MentionListProps = SuggestionProps<Mentionable> & {
   /** Total match count before truncation. */
   total: number;
   searchAllLabel: string;
-  hint: ReactNode;
+  facetLabels: Record<"type" | "folder" | "tag", string>;
+  /** `#` criteria for the fragment being typed; when present they replace the entity list. */
+  facets: FacetSuggestion[];
+  /** Facets already applied to this suggestion session. */
+  activeFacets: FacetSuggestion[];
+  onPickFacet(facet: FacetSuggestion): void;
   /** Opens the full search, prefilled with the current query. */
   onOpenFull(): void;
 };
 
 const MentionList = forwardRef<MentionListHandle, MentionListProps>(function MentionList(
-  { items, command, groupLabels, total, searchAllLabel, hint, onOpenFull },
+  { items, command, groupLabels, total, searchAllLabel, facetLabels, facets, activeFacets, onPickFacet, onOpenFull },
   ref,
 ) {
   const [rawActive, setActive] = useState(0);
-  const active = Math.min(rawActive, Math.max(items.length - 1, 0));
+  const facetMode = facets.length > 0;
+  const count = facetMode ? facets.length : items.length;
+  const active = Math.min(rawActive, Math.max(count - 1, 0));
   useImperativeHandle(ref, () => ({
     onKeyDown(event) {
       const key = keyOf(event);
       if (key === "ArrowDown") {
-        setActive((active + 1) % Math.max(items.length, 1));
+        setActive((active + 1) % Math.max(count, 1));
         return true;
       }
       if (key === "ArrowUp") {
-        setActive((active - 1 + Math.max(items.length, 1)) % Math.max(items.length, 1));
+        setActive((active - 1 + Math.max(count, 1)) % Math.max(count, 1));
         return true;
       }
-      if (key === "Enter") {
+      if (key === "Enter" || (facetMode && event.key === "Tab")) {
+        if (facetMode) {
+          if (facets[active]) onPickFacet(facets[active]);
+          return facets.length > 0;
+        }
         if (items[active]) command(items[active]);
         return items.length > 0;
       }
@@ -271,27 +302,59 @@ const MentionList = forwardRef<MentionListHandle, MentionListProps>(function Men
         <SearchIcon aria-hidden="true" /> {searchAllLabel}
         <span className="mention-suggestion-count">{total}</span>
       </button>
-      <div className="mention-suggestion-hint">{hint}</div>
+      {activeFacets.length > 0 ? (
+        <div className="mention-suggestion-facets">
+          {activeFacets.map((facet) => (
+            <span className="wsearch-chip" key={`${facet.facet}:${facet.value}`}>
+              {facet.facet === "folder" ? <FolderIcon aria-hidden="true" /> : null}
+              {facet.facet === "tag" ? <TagIcon aria-hidden="true" /> : null}
+              {facet.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
       <div className="mention-suggestion-list" role="listbox">
-        {items.map((item, index) => {
-          const Icon = mentionableIcon(item);
-          const firstOfKind = index === 0 || items[index - 1].kind !== item.kind;
-          return (
-            <div key={`${item.kind}:${item.id}`}>
-              {firstOfKind ? <div className="mention-suggestion-group">{groupLabels[item.kind]}</div> : null}
+        {facetMode
+          ? facets.map((facet, index) => (
               <button
+                key={`${facet.facet}:${facet.value}`}
                 type="button"
                 role="option"
                 aria-selected={index === active}
-                className={index === active ? "mention-suggestion-item is-active" : "mention-suggestion-item"}
+                className={`searchbox-suggestion${index === active ? " is-active" : ""}`}
                 onMouseDown={(event) => event.preventDefault()}
-                onClick={() => command(item)}
+                onMouseEnter={() => setActive(index)}
+                onClick={() => onPickFacet(facet)}
               >
-                <Icon aria-hidden="true" /> {item.label}
+                <span className="searchbox-suggestion-facet">
+                  {facet.facet === "folder" ? <FolderIcon aria-hidden="true" /> : null}
+                  {facet.facet === "tag" ? <TagIcon aria-hidden="true" /> : null}
+                  {facetLabels[facet.facet]}
+                </span>
+                <span className="searchbox-suggestion-label">{facet.label}</span>
+                {facet.count !== undefined ? <span className="searchbox-suggestion-count">{facet.count}</span> : null}
+                <kbd>Tab</kbd>
               </button>
-            </div>
-          );
-        })}
+            ))
+          : items.map((item, index) => {
+              const Icon = mentionableIcon(item);
+              const firstOfKind = index === 0 || items[index - 1].kind !== item.kind;
+              return (
+                <div key={`${item.kind}:${item.id}`}>
+                  {firstOfKind ? <div className="mention-suggestion-group">{groupLabels[item.kind]}</div> : null}
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={index === active}
+                    className={index === active ? "mention-suggestion-item is-active" : "mention-suggestion-item"}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => command(item)}
+                  >
+                    <Icon aria-hidden="true" /> {item.label}
+                  </button>
+                </div>
+              );
+            })}
       </div>
     </div>
   );
@@ -310,10 +373,10 @@ export interface ReferenceMentionOptions {
   /** Accessor: sources may arrive after the editor mounts. */
   mentionables(): Mentionable[];
   groupLabels: Record<ReferenceKind, string>;
+  facetLabels: Record<"type" | "folder" | "tag", string>;
   /** Folder used to rank nearby entries first. */
   context?(): string | undefined;
   searchAllLabel: string;
-  searchHint?: ReactNode;
   /** Opens the full search with the query and the `@` range to replace. */
   onOpenFull?(query: string, range: { from: number; to: number }): void;
 }
@@ -332,13 +395,23 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
         meeting: "Meetings",
         decision: "Decisions",
       },
+      facetLabels: { type: "Type", folder: "Folder", tag: "Tag" },
       searchAllLabel: "Browse all",
-      searchHint: null,
     };
   },
 
   addProseMirrorPlugins() {
     const lastTotal = { value: 0 };
+    const session: { types: FacetSuggestion[]; folders: string[]; tags: string[] } = {
+      types: [],
+      folders: [],
+      tags: [],
+    };
+    const resetSession = () => {
+      session.types = [];
+      session.folders = [];
+      session.tags = [];
+    };
     return [
       Suggestion<Mentionable>({
         editor: this.editor,
@@ -347,13 +420,16 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
         items: ({ query }) => {
           const outcome = searchEntities(this.options.mentionables(), query, {
             context: this.options.context?.(),
+            kinds: session.types.map((facet) => facet.value),
+            folders: session.folders,
+            tags: session.tags,
             limit: query.trim() ? 12 : undefined,
           });
           lastTotal.value = outcome.total;
           const results = query.trim()
             ? outcome.results
-            : kindOrder.flatMap((kind) => outcome.results.filter((entry) => entry.kind === kind).slice(0, 3));
-          return [...results].sort((a, b) => kindOrder.indexOf(a.kind) - kindOrder.indexOf(b.kind));
+            : referenceKinds.flatMap((kind) => outcome.results.filter((entry) => entry.kind === kind).slice(0, 3));
+          return [...results].sort((a, b) => referenceKinds.indexOf(a.kind) - referenceKinds.indexOf(b.kind));
         },
         command: ({ editor, range, props }) => {
           if (props.media === "image") {
@@ -382,19 +458,51 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
         render: () => {
           let component: ReactRenderer<MentionListHandle, MentionListProps> | null = null;
           const groupLabels = this.options.groupLabels;
+          const facetLabels = this.options.facetLabels;
           const searchAllLabel = this.options.searchAllLabel;
-          const hint = this.options.searchHint;
           const openFull = this.options.onOpenFull;
-          const extras = (props: SuggestionProps<Mentionable>) => ({
-            groupLabels,
-            total: lastTotal.value,
-            searchAllLabel,
-            hint,
-            onOpenFull: () => {
-              exitSuggestion(props.editor.view);
-              openFull?.(props.query, props.range);
-            },
-          });
+          const mentionables = this.options.mentionables;
+          const extras = (props: SuggestionProps<Mentionable>) => {
+            const hashMatch = facetHashPattern.exec(props.query);
+            const selectedTypes = session.types.map((facet) => facet.value);
+            const facets = hashMatch
+              ? facetSuggestionsFor(
+                  hashMatch[1],
+                  facetOptionsFrom(mentionables(), (kind) => groupLabels[kind as ReferenceKind]),
+                ).filter(
+                  (facet) =>
+                    (facet.facet !== "type" || !selectedTypes.includes(facet.value)) &&
+                    (facet.facet !== "folder" || !session.folders.includes(facet.value)) &&
+                    (facet.facet !== "tag" || !session.tags.includes(facet.value)),
+                )
+              : [];
+            const activeFacets = [
+              ...session.types,
+              ...session.folders.map((value) => ({ facet: "folder" as const, value, label: value })),
+              ...session.tags.map((value) => ({ facet: "tag" as const, value, label: value })),
+            ];
+            return {
+              groupLabels,
+              facetLabels,
+              total: lastTotal.value,
+              searchAllLabel,
+              facets,
+              activeFacets,
+              onPickFacet: (facet: FacetSuggestion) => {
+                if (facet.facet === "type") session.types = [...session.types, facet];
+                else if (facet.facet === "folder") session.folders = [...session.folders, facet.value];
+                else session.tags = [...session.tags, facet.value];
+                const fragmentIndex = props.query.lastIndexOf("#");
+                const from = props.range.from + 1 + fragmentIndex;
+                const to = props.range.from + 1 + props.query.length;
+                props.editor.chain().focus().deleteRange({ from, to }).run();
+              },
+              onOpenFull: () => {
+                exitSuggestion(props.editor.view);
+                openFull?.(props.query, props.range);
+              },
+            };
+          };
           return {
             onStart: (props) => {
               component = new ReactRenderer(MentionList, {
@@ -413,6 +521,7 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
               return component?.ref?.onKeyDown(props.event) ?? false;
             },
             onExit: () => {
+              resetSession();
               component?.element.remove();
               component?.destroy();
               component = null;
