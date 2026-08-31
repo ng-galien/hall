@@ -19,6 +19,7 @@ export const apiActionNames = [
   "resource.create-remote",
   "resource.create-geographic",
   "resource.create-spreadsheet",
+  "resource.import-spreadsheet",
   "resource.update-geography",
   "resource.update-spreadsheet",
   "resource.search-legal-references",

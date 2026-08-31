@@ -20,6 +20,7 @@ import {
   createTextResource,
   deleteResource,
   downloadResourceDocument,
+  importSpreadsheetResource,
   listFolderPaths,
   listResources,
   updateResource,
@@ -35,6 +36,7 @@ interface ResourcesState {
   canCreateText: boolean;
   canCreateRemote: boolean;
   canCreateSpreadsheet: boolean;
+  canImportSpreadsheet: boolean;
   canCreateGeographic: boolean;
   canSearchLegalReferences: boolean;
   canCreateLegalReference: boolean;
@@ -47,6 +49,7 @@ interface ResourcesState {
   createText(input: Record<string, unknown>): Promise<TextResource | null>;
   createRemote(input: Record<string, unknown>): Promise<RemoteResource | null>;
   createSpreadsheet(input: Record<string, unknown>): Promise<SpreadsheetResource | null>;
+  importSpreadsheet(form: FormData): Promise<SpreadsheetResource | null>;
   createGeographic(input: Record<string, unknown>): Promise<GeographicResource | null>;
   createLegalReference(input: Record<string, unknown>): Promise<LegalReferenceResource | null>;
   createFolder(parentPath: string, name: string): Promise<string | null>;
@@ -66,6 +69,7 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
   canCreateText: false,
   canCreateRemote: false,
   canCreateSpreadsheet: false,
+  canImportSpreadsheet: false,
   canCreateGeographic: false,
   canSearchLegalReferences: false,
   canCreateLegalReference: false,
@@ -96,6 +100,7 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
         canCreateText: Boolean(findSirenAction(representation, "resource.create-text")),
         canCreateRemote: Boolean(findSirenAction(representation, "resource.create-remote")),
         canCreateSpreadsheet: Boolean(findSirenAction(representation, "resource.create-spreadsheet")),
+        canImportSpreadsheet: Boolean(findSirenAction(representation, "resource.import-spreadsheet")),
         canCreateGeographic: Boolean(findSirenAction(representation, "resource.create-geographic")),
         canSearchLegalReferences: Boolean(findSirenAction(representation, "resource.search-legal-references")),
         canCreateLegalReference: Boolean(findSirenAction(representation, "resource.create-legal-reference")),
@@ -136,6 +141,17 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
     set({ error: null });
     try {
       const created = await createSpreadsheetResource(input);
+      await get().load();
+      return created;
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
+      return null;
+    }
+  },
+  async importSpreadsheet(form) {
+    set({ error: null });
+    try {
+      const created = await importSpreadsheetResource(form);
       await get().load();
       return created;
     } catch (error) {

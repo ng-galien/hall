@@ -5,10 +5,11 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
   const resourcesResponse = await page.request.get("/api/resources");
   expect(resourcesResponse.ok()).toBeTruthy();
   const resources = (await resourcesResponse.json()) as {
-    entities: Array<{ properties: { id: string; kind: string; folderPath: string } }>;
+    entities: Array<{ properties: { id: string; kind: string; title: string; folderPath: string } }>;
   };
   const spreadsheet = resources.entities.find(
-    ({ properties }) => properties.kind === "spreadsheet" && properties.folderPath === "seed",
+    ({ properties }) =>
+      properties.kind === "spreadsheet" && properties.title === "Ressource tableur" && properties.folderPath === "seed",
   )?.properties;
   expect(spreadsheet).toBeTruthy();
   const resourceId = spreadsheet!.id;
@@ -82,6 +83,54 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
     properties: { spreadsheet: { workbook: typeof finalWorkbook } };
   };
   expect(details.properties.spreadsheet.workbook).toMatchObject(finalWorkbook);
+});
+
+test("imports a CSV file as an editable spreadsheet resource", async ({ appPage: page }) => {
+  await page.goto("/app/workspace?path=seed");
+  await page.getByTestId("workspace-tree-root").click({ button: "right" });
+  await page.getByTestId("workspace-tree-create").press("ArrowRight");
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("workspace-tree-import-file").press("Enter");
+  const fileChooser = await fileChooserPromise;
+  const importResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" && response.url().endsWith("/api/resources/spreadsheets/import"),
+  );
+  await fileChooser.setFiles({
+    name: "suivi-budgetaire.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("Poste;Quantité;Montant\nMobilier;2;150\nTotal;;;=SUM(C2:C2)\n", "utf8"),
+  });
+
+  const importResponse = await importResponsePromise;
+  expect(importResponse.status()).toBe(201);
+  const importedRepresentation = (await importResponse.json()) as {
+    properties: { id: string; kind: string; title: string; folderPath: string };
+  };
+  expect(importedRepresentation.properties).toMatchObject({
+    kind: "spreadsheet",
+    title: "suivi-budgetaire",
+    folderPath: "seed",
+  });
+  await expect(page.getByTestId("spreadsheet-grid")).toBeVisible();
+
+  const detailsResponse = await page.request.get(`/api/resources/${importedRepresentation.properties.id}`);
+  expect(detailsResponse.ok()).toBeTruthy();
+  const details = (await detailsResponse.json()) as {
+    properties: {
+      spreadsheet: {
+        workbook: {
+          sheetOrder: string[];
+          sheets: Record<string, { cellData: Record<string, Record<string, { v?: unknown; f?: string }>> }>;
+        };
+      };
+    };
+  };
+  const workbook = details.properties.spreadsheet.workbook;
+  const importedSheet = workbook.sheets[workbook.sheetOrder[0]];
+  expect(importedSheet.cellData[1][0].v).toBe("Mobilier");
+  expect(importedSheet.cellData[1][2].v).toBe(150);
+  expect(importedSheet.cellData[2][3].f).toBe("=SUM(C2:C2)");
 });
 
 test.describe("workspace explorer", () => {

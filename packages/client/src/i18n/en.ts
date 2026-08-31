@@ -197,7 +197,7 @@ export const en = {
   "workspace.linkedDocuments": "{count} linked",
   "workspace.dropToAttach": "Drop to attach",
   "workspace.unschedule": "Remove from agenda",
-  "workspace.uploadDocument": "Import a file",
+  "workspace.importFile": "Import a file",
   "workspace.viewDocument": "View document",
   "workspace.type.text": "Text",
   "workspace.type.spreadsheet": "Spreadsheet",

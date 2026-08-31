@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { acceptedDocumentExtensions, inspectDocument } from "../domain/documentPolicy.js";
+import {
+  acceptedDocumentExtensions,
+  acceptedSpreadsheetImportExtensions,
+  inspectDocument,
+  inspectSpreadsheetImport,
+} from "../domain/documentPolicy.js";
 
 function storedZip(entries: Array<[name: string, content: string]>): Buffer {
   const localEntries: Buffer[] = [];
@@ -59,18 +64,11 @@ describe("document policy", () => {
       "image/png",
     ],
     ["note.txt", Buffer.from("Texte UTF-8 - mairie"), "txt", "text/plain; charset=utf-8"],
-    ["table.csv", Buffer.from("nom;voix\nAlice;1"), "csv", "text/csv; charset=utf-8"],
     [
       "rapport.docx",
       openXml("word", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
       "docx",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ],
-    [
-      "budget.xlsx",
-      openXml("xl", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-      "xlsx",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ],
     [
       "support.pptx",
@@ -101,6 +99,33 @@ describe("document policy", () => {
       code: "unsupported_document_format",
       statusCode: 415,
     });
+    await expect(inspectDocument("table.csv", Buffer.from("nom;voix\nAlice;1"))).rejects.toMatchObject({
+      code: "unsupported_document_format",
+      statusCode: 415,
+    });
+    await expect(
+      inspectDocument(
+        "budget.xlsx",
+        openXml("xl", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+      ),
+    ).rejects.toMatchObject({ code: "unsupported_document_format", statusCode: 415 });
+  });
+
+  it("reserves CSV and XLSX files for spreadsheet import", async () => {
+    const csv = Buffer.from("nom;voix\nAlice;1");
+    const xlsx = openXml("xl", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    await expect(inspectSpreadsheetImport("table.csv", csv)).resolves.toMatchObject({
+      format: "csv",
+      mediaType: "text/csv; charset=utf-8",
+    });
+    await expect(inspectSpreadsheetImport("budget.xlsx", xlsx)).resolves.toMatchObject({
+      format: "xlsx",
+      mediaType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    await expect(inspectSpreadsheetImport("note.txt", Buffer.from("texte"))).rejects.toMatchObject({
+      code: "unsupported_document_format",
+      statusCode: 415,
+    });
   });
 
   it("rejects malformed containers and bytes that do not match the selected format", async () => {
@@ -123,17 +148,7 @@ describe("document policy", () => {
   });
 
   it("publishes a stable allow-list for the HTTP contract", () => {
-    expect(acceptedDocumentExtensions).toEqual([
-      ".pdf",
-      ".jpg",
-      ".jpeg",
-      ".png",
-      ".docx",
-      ".odt",
-      ".xlsx",
-      ".pptx",
-      ".txt",
-      ".csv",
-    ]);
+    expect(acceptedDocumentExtensions).toEqual([".pdf", ".jpg", ".jpeg", ".png", ".docx", ".odt", ".pptx", ".txt"]);
+    expect(acceptedSpreadsheetImportExtensions).toEqual([".csv", ".xlsx"]);
   });
 });

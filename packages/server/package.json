@@ -26,6 +26,7 @@
     "@hall/domain": "*",
     "@hall/templating": "*",
     "awilix": "^13.0.3",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "file-type": "^22.0.2",
     "multer": "^2.1.1",

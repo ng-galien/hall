@@ -50,7 +50,7 @@ import { DRAG_TYPE, type DragPayload, decodeDragPayload, encodeDragPayload, move
 
 export type WorkspaceViewMode = "all" | "businesses" | "resources";
 type RenameTarget = DragPayload | { kind: "folder"; path: string };
-type InlineCreateKind = Exclude<WorkspaceCreateKind, "document">;
+type InlineCreateKind = Exclude<WorkspaceCreateKind, "file">;
 type CreateTarget = { kind: InlineCreateKind; folderPath: string };
 
 const TextResourceIcon = toneIcons.text;
@@ -580,13 +580,13 @@ export function PathContents({
                     {t("workspace.createLegalReference")}
                   </ContextMenuItem>
                 ) : null}
-                {resourcesStore.canUpload ? (
+                {resourcesStore.canUpload || resourcesStore.canImportSpreadsheet ? (
                   <ContextMenuItem
-                    data-testid="workspace-tree-upload-document"
-                    onSelect={() => void onCreate("document", folderPath)}
+                    data-testid="workspace-tree-import-file"
+                    onSelect={() => void onCreate("file", folderPath)}
                   >
                     <DocumentResourceIcon aria-hidden="true" />
-                    {t("workspace.uploadDocument")}
+                    {t("workspace.importFile")}
                   </ContextMenuItem>
                 ) : null}
               </ContextMenuSubContent>

@@ -9,7 +9,7 @@ import {
 } from "@hall/api-contract";
 import { deriveBallotVoters, evaluateBallot, geographicLayerOptions, type MeetingAggregate } from "@hall/domain";
 import type { NextFunction, Request, Response } from "express";
-import { acceptedDocumentExtensions } from "../domain/documentPolicy.js";
+import { acceptedDocumentExtensions, acceptedSpreadsheetImportExtensions } from "../domain/documentPolicy.js";
 import { hasPermission } from "../security/authorization.js";
 
 function isSirenEntity(value: unknown): value is SirenEntity {
@@ -107,6 +107,16 @@ function collectionActions(request: Request, entityClass: string): SirenAction[]
     return [
       action("resource.create-text", "POST", "/api/resources/texts", "Create a text"),
       action("resource.create-spreadsheet", "POST", "/api/resources/spreadsheets", "Create a spreadsheet"),
+      {
+        ...action("resource.import-spreadsheet", "POST", "/api/resources/spreadsheets/import", "Import a spreadsheet"),
+        type: "multipart/form-data",
+        fields: [
+          { name: "file", type: "file", accept: acceptedSpreadsheetImportExtensions.join(",") },
+          { name: "title", type: "text" },
+          { name: "folderPath", type: "text", value: "" },
+          { name: "tags", type: "text", value: "" },
+        ],
+      },
       {
         ...action("resource.create-remote", "POST", "/api/resources/remotes", "Create a remote resource"),
         fields: [

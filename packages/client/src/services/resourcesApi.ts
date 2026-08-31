@@ -69,6 +69,10 @@ export const createSpreadsheetResource = (input: Record<string, unknown>) =>
   submitSirenActionAt<SpreadsheetResource>("/resources", "resource.create-spreadsheet", input).then(
     (result) => result.data,
   );
+export const importSpreadsheetResource = (form: FormData) =>
+  submitSirenActionAt<SpreadsheetResource>("/resources", "resource.import-spreadsheet", form).then(
+    (result) => result.data,
+  );
 export const searchLegalReferences = (input: { query: string; effectiveAt: string | null }) =>
   submitSirenActionAt<LegalReferenceSearchResult[]>("/resources", "resource.search-legal-references", input).then(
     (result) => result.data,

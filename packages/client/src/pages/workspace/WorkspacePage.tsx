@@ -25,7 +25,7 @@ export type WorkspaceCreateKind =
   | "remote"
   | "geographic"
   | "legalReference"
-  | "document";
+  | "file";
 
 export function WorkspacePage() {
   const { locale, t } = useI18n();
@@ -78,7 +78,7 @@ export function WorkspacePage() {
     title?: string,
   ): Promise<WorkspaceSelection> => {
     creationFolderPathRef.current = folderPath;
-    if (kind === "document") {
+    if (kind === "file") {
       fileInput.current?.click();
       return null;
     }
@@ -141,12 +141,17 @@ export function WorkspacePage() {
     return created ? { kind: "resource", id: created.id } : null;
   };
 
-  const uploadDocument = (file: File) => {
+  const importFile = (file: File) => {
     const form = new FormData();
     form.set("folderPath", creationFolderPathRef.current);
-    form.set("category", "supporting");
     form.set("file", file);
     void run(async () => {
+      if (/\.(?:csv|xlsx)$/i.test(file.name)) {
+        const spreadsheet = await resourcesStore.importSpreadsheet(form);
+        if (spreadsheet) select({ kind: "resource", id: spreadsheet.id });
+        return spreadsheet;
+      }
+      form.set("category", "supporting");
       const uploaded = await resourcesStore.upload(form);
       if (uploaded) {
         const fresh = useResourcesStore
@@ -169,15 +174,16 @@ export function WorkspacePage() {
               <WorkspaceSearch search={search} onSearch={setSearch} onSelect={select} context={path} />
             </div>
           </div>
-          {canUpload ? (
+          {canUpload || resourcesStore.canImportSpreadsheet ? (
             <input
               ref={fileInput}
               type="file"
               className="visually-hidden-input"
+              data-testid="workspace-file-input"
               aria-label={t("documents.file")}
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0];
-                if (file) uploadDocument(file);
+                if (file) importFile(file);
                 event.currentTarget.value = "";
               }}
             />

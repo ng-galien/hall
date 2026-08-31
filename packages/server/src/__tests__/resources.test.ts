@@ -224,6 +224,17 @@ describe("documentary resources", () => {
     expect(unsupported.status).toBe(415);
     expect(domainBody(unsupported)).toMatchObject({ code: "unsupported_document_format", status: 415 });
 
+    for (const [fileName, content] of [
+      ["table.csv", Buffer.from("poste;montant\nMobilier;150")],
+      ["table.xlsx", Buffer.from("not an xlsx")],
+    ] as const) {
+      const spreadsheetAsDocument = await agent
+        .post("/api/resources/documents")
+        .attach("file", content, { filename: fileName });
+      expect(spreadsheetAsDocument.status).toBe(415);
+      expect(domainBody(spreadsheetAsDocument)).toMatchObject({ code: "unsupported_document_format", status: 415 });
+    }
+
     const mismatch = await agent
       .post("/api/resources/documents")
       .attach("file", Buffer.from("not a pdf"), { filename: "piece.pdf", contentType: "application/pdf" });

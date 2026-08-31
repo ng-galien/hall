@@ -256,6 +256,14 @@ async function uploadDocument({ title, fileName, folderPath = "", meetingId, cat
   return request("POST", "/resources/documents", form);
 }
 
+async function importSpreadsheet({ title, fileName, folderPath = "", content, mediaType }) {
+  const form = new FormData();
+  form.set("title", title);
+  form.set("folderPath", folderPath);
+  form.set("file", new File([content], fileName, { type: mediaType }));
+  return request("POST", "/resources/spreadsheets/import", form);
+}
+
 async function uploadPdf({ title, fileName, folderPath = "", meetingId, category, lines }) {
   return uploadDocument({
     title,
@@ -562,7 +570,10 @@ async function main() {
               rowCount: 20,
               columnCount: 8,
               cellData: {
-                0: { 0: { v: "Hypothèse", s: { bl: 1, bg: { rgb: "#e7eaf8" } } }, 1: { v: "Valeur", s: { bl: 1, bg: { rgb: "#e7eaf8" } } } },
+                0: {
+                  0: { v: "Hypothèse", s: { bl: 1, bg: { rgb: "#e7eaf8" } } },
+                  1: { v: "Valeur", s: { bl: 1, bg: { rgb: "#e7eaf8" } } },
+                },
                 1: { 0: { v: "Taux de TVA" }, 1: { v: 0.2, s: { n: { pattern: "0.00%" } } } },
               },
               rowData: {},
@@ -1424,19 +1435,17 @@ async function main() {
     content: makeDocx("Convention de mise à disposition - document de démonstration Hall"),
     mediaType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
-  await uploadDocument({
+  await importSpreadsheet({
     title: "Export des subventions 2026",
     fileName: "subventions-2026.csv",
     folderPath: "seed",
-    category: "supporting",
     content: Buffer.from("association;montant\nClub sportif;4800\nComité des fêtes;3200\n"),
     mediaType: "text/csv",
   });
-  await uploadDocument({
+  await importSpreadsheet({
     title: "Suivi détaillé des subventions 2026",
     fileName: "suivi-subventions-2026.xlsx",
     folderPath: "seed",
-    category: "supporting",
     content: makeXlsx([
       ["Association", "Montant accordé (€)", "Objet"],
       ["Club sportif", 4800, "École de sport et déplacements"],
@@ -1445,7 +1454,7 @@ async function main() {
     ]),
     mediaType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  console.log("  4 documents multi-formats classés (PNG, DOCX, CSV, XLSX)");
+  console.log("  2 documents multi-formats classés (PNG, DOCX) et 2 tableurs importés (CSV, XLSX)");
 
   console.log("- Templates PDF et Outlook");
   await post("/templates", {

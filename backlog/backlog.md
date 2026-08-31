@@ -86,7 +86,7 @@ Choix d'intégration : Univer OSS, chargé à la demande derrière l'adaptateur 
 - [x] `[FRONT]` Appliquer le contrat d'enregistrement automatique commun et sérialiser les sauvegardes rapprochées sans perte.
 - [x] `[FULL]` Exposer dans Siren les capacités de consultation et de modification avec concurrence optimiste et snapshots.
 - [ ] `[FULL]` Recetter la création, l'édition de données comptables simples, le recalcul, le rechargement et le classement de la ressource sur SQLite et PostgreSQL.
-- [ ] `[FULL]` Étudier l'import XLSX après stabilisation du format interne ; ne pas faire de l'export XLSX un critère de sortie.
+- [x] `[FULL]` Importer les fichiers CSV et XLSX comme ressources tableur éditables ; un classeur XLSX conserve toutes ses feuilles. L’export XLSX ne constitue pas un critère de sortie.
 
 Critère de sortie : l'utilisateur crée une ressource tableur, saisit et formate des données, utilise les formules minimales, puis retrouve sans perte le même document après enregistrement automatique et rechargement.
 

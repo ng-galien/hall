@@ -55,6 +55,7 @@ import {
   type MeetingPreparationService,
 } from "../services/meetingPreparationService.js";
 import { createResourceService, type ResourceService } from "../services/resourceService.js";
+import { createSpreadsheetImportService, type SpreadsheetImportService } from "../services/spreadsheetImportService.js";
 import { createTemplateRenderingService, type TemplateRenderingService } from "../services/templateRendering.js";
 import type { ServerConfig } from "./config.js";
 
@@ -86,6 +87,7 @@ export interface Cradle {
   ballotService: BallotService;
   councilBusinessService: CouncilBusinessService;
   resourceService: ResourceService;
+  spreadsheetImportService: SpreadsheetImportService;
   authService: AuthService;
   hallSettingsService: HallSettingsService;
   templateRenderingService: TemplateRenderingService;
@@ -127,6 +129,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     ballotService: asFunction(createBallotService).singleton(),
     councilBusinessService: asFunction(createCouncilBusinessService).singleton(),
     resourceService: asFunction(createResourceService).singleton(),
+    spreadsheetImportService: asFunction(createSpreadsheetImportService).singleton(),
     authService: asFunction(createAuthService).singleton(),
     hallSettingsService: asFunction(createHallSettingsService).singleton(),
     templateRenderingService: asFunction(createTemplateRenderingService).singleton(),

@@ -201,7 +201,7 @@ export const fr: Messages = {
   "workspace.linkedDocuments": "{count} pièces",
   "workspace.dropToAttach": "Déposer pour rattacher",
   "workspace.unschedule": "Retirer de l’ordre du jour",
-  "workspace.uploadDocument": "Importer un fichier",
+  "workspace.importFile": "Importer un fichier",
   "workspace.viewDocument": "Voir le document",
   "workspace.type.text": "Texte",
   "workspace.type.spreadsheet": "Tableur",

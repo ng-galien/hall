@@ -1,3 +1,4 @@
+import { basename, extname } from "node:path";
 import {
   createFolderSchema,
   createGeographicResourceSchema,
@@ -66,6 +67,7 @@ function parseTags(value: unknown): string[] {
 
 export function createResourcesRouter({
   resourceService,
+  spreadsheetImportService,
   documentPreviewService,
   editorAssetService,
   requestContext,
@@ -144,6 +146,25 @@ export function createResourcesRouter({
     response
       .status(201)
       .json(await resourceService.createSpreadsheet(createSpreadsheetResourceSchema.parse(request.body)));
+  });
+
+  router.post("/spreadsheets/import", requirePermission("workspace.write"), uploadFile, async (request, response) => {
+    if (!request.file) throw new DomainError("invalid_request");
+    const fallbackTitle = basename(request.file.originalname, extname(request.file.originalname));
+    response.status(201).json(
+      await spreadsheetImportService.import({
+        title: z
+          .string()
+          .trim()
+          .min(1)
+          .max(200)
+          .parse(request.body.title || fallbackTitle),
+        folderPath: folderPathSchema.parse(request.body.folderPath ?? ""),
+        tags: parseTags(request.body.tags),
+        fileName: request.file.originalname,
+        content: request.file.buffer,
+      }),
+    );
   });
 
   router.post("/geographic", requirePermission("workspace.write"), async (request, response) => {
