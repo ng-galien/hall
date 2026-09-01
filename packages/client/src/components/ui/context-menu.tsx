@@ -31,7 +31,7 @@ function ContextMenuItem({ className, ...props }: React.ComponentProps<typeof Co
     <ContextMenuPrimitive.Item
       data-slot="context-menu-item"
       className={cn(
-        "group/context-menu-item relative flex cursor-default select-none items-center gap-1.5 rounded-[var(--hall-radius-small)] px-1.5 py-1 text-sm outline-hidden focus:bg-[var(--hall-color-surface-subtle)] focus:text-[var(--hall-color-text)] data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+        "group/context-menu-item relative flex cursor-default select-none items-center gap-1.5 px-1.5 py-1 text-sm outline-hidden focus:bg-[var(--hall-color-surface-subtle)] focus:text-[var(--hall-color-text)] data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
         className,
       )}
       {...props}
@@ -65,7 +65,7 @@ function ContextMenuSubTrigger({
     <ContextMenuPrimitive.SubTrigger
       data-slot="context-menu-sub-trigger"
       className={cn(
-        "flex cursor-default select-none items-center gap-1.5 rounded-[var(--hall-radius-small)] px-1.5 py-1 text-sm outline-hidden focus:bg-[var(--hall-color-surface-subtle)] focus:text-[var(--hall-color-text)] data-open:bg-[var(--hall-color-surface-subtle)] data-open:text-[var(--hall-color-text)] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+        "flex cursor-default select-none items-center gap-1.5 px-1.5 py-1 text-sm outline-hidden focus:bg-[var(--hall-color-surface-subtle)] focus:text-[var(--hall-color-text)] data-open:bg-[var(--hall-color-surface-subtle)] data-open:text-[var(--hall-color-text)] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
         className,
       )}
       {...props}

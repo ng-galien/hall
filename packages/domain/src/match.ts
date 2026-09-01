@@ -41,12 +41,7 @@ export function matchVariant<
   P extends keyof T,
   D extends keyof T[P],
   H extends NestedDiscriminatedHandlers<T, P, D>,
->(
-  value: T,
-  profile: P,
-  discriminator: D,
-  handlers: H,
-): HandlerResult<H> {
+>(value: T, profile: P, discriminator: D, handlers: H): HandlerResult<H> {
   const key = value[profile][discriminator] as Extract<T[P][D], PropertyKey>;
   const handler = handlers[key] as (matched: never) => HandlerResult<H>;
   return handler(value as never);

@@ -511,7 +511,6 @@
 .editor-image-alignment button:focus-visible,
 .editor-image-open:focus-visible {
   outline: none;
-  box-shadow: var(--hall-focus-ring);
 }
 .markdown-image-status {
   margin: var(--hall-space-2) var(--hall-space-3);

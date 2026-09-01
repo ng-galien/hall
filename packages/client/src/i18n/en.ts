@@ -182,7 +182,7 @@ export const en = {
   "workspace.chooseMeeting": "Choose a meeting",
   "workspace.contents": "Contents",
   "workspace.new": "New",
-  "workspace.browseSubfolders": "Subfolders",
+  "workspace.browseFolder": "Browse folder",
   "workspace.createText": "New text",
   "workspace.createSpreadsheet": "New spreadsheet",
   "workspace.createRemote": "New web resource",

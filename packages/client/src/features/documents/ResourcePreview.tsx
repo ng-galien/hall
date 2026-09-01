@@ -69,6 +69,8 @@ export function ResourcePreviewWithSession({
           <WorkspaceBreadcrumb
             path={resource?.folderPath ?? ""}
             currentLabel={resource?.title}
+            currentIcon={resource ? <ResourceGlyph resource={resource} /> : undefined}
+            currentSelection={resource ? { kind: "resource", id: resource.id } : null}
             interactive={false}
             showSaveStatus={false}
             closeButtonRef={closeButtonRef}

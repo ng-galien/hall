@@ -1,5 +1,5 @@
-import type { HallGeoJsonFeature } from "./model.js";
 import { matchVariant } from "./match.js";
+import type { HallGeoJsonFeature } from "./model.js";
 
 export type HallGeoJsonFeatureKind = HallGeoJsonFeature["properties"]["kind"];
 

@@ -90,7 +90,6 @@
   .picker-card-active {
     border-color: var(--hall-color-brand);
     background: var(--hall-color-brand-subtle);
-    box-shadow: var(--hall-focus-ring);
   }
   .picker-card-active > svg { color: var(--hall-color-brand); }
   .picker-card-copy { display: grid; min-width: 0; }
@@ -625,7 +624,7 @@
   }
   .composer-item:hover { border-color: var(--hall-color-border-strong); }
   .composer-item-dragging { opacity: var(--hall-opacity-pulse); }
-  .composer-item-drop { border-color: var(--hall-color-brand); box-shadow: var(--hall-focus-ring); }
+  .composer-item-drop { border-color: var(--hall-color-brand); }
   .composer-item-row {
     display: flex;
     align-items: center;

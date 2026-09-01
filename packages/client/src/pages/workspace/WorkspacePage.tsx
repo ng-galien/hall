@@ -2,6 +2,8 @@ import { matchDiscriminated, matchLiteral } from "@hall/domain";
 import { useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RequestErrorBanner } from "../../components/Ui";
+import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
+import { ResourceGlyph } from "../../features/documents/ResourceGlyph";
 import { ResourceAutosaveToggle } from "../../features/resources/ResourceAutosaveToggle";
 import { useResourceSession } from "../../features/resources/useResourceSession";
 import { createEmptySpreadsheetDocument } from "../../features/spreadsheet/univerWorkbook";
@@ -222,6 +224,14 @@ export function WorkspacePage() {
               <WorkspaceBreadcrumb
                 path={selectedBusiness?.folderPath ?? presentedResource?.folderPath ?? path}
                 currentLabel={selectedBusiness?.title ?? presentedResource?.title}
+                currentIcon={
+                  selectedBusiness ? (
+                    <CouncilBusinessGlyph business={selectedBusiness} />
+                  ) : presentedResource ? (
+                    <ResourceGlyph resource={presentedResource} />
+                  ) : undefined
+                }
+                currentSelection={selection}
                 originPath={selectedBusiness || selectedResource ? path : undefined}
                 onClose={selectedBusiness || selectedResource ? () => select(null) : undefined}
                 onSelect={select}

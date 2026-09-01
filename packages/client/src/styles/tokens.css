@@ -132,7 +132,6 @@
   --hall-shadow-small: 0 1px 2px rgb(22 26 32 / 6%);
   --hall-shadow-medium: 0 2px 6px rgb(22 26 32 / 10%);
   --hall-shadow-large: 0 6px 18px rgb(22 26 32 / 14%);
-  --hall-focus-ring: 0 0 0 2px var(--hall-color-surface), 0 0 0 4px var(--hall-color-focus);
   --hall-stroke-thin: 1px;
   --hall-stroke-thick: 2px;
   --hall-stroke-heavy: 3px;

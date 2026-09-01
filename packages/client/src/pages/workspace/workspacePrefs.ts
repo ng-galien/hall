@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { sameWorkspaceItem, type WorkspaceItemReference } from "./workspaceItemReference";
+import { isWorkspaceItemReference, sameWorkspaceItem, type WorkspaceItemReference } from "./workspaceItemReference";
 
 export type WorkspacePin = WorkspaceItemReference;
 
@@ -32,6 +32,16 @@ export const useWorkspacePrefsStore = create<WorkspacePrefsState>()(
         }));
       },
     }),
-    { name: "mairie.workspace.prefs" },
+    {
+      name: "mairie.workspace.prefs",
+      merge(persisted, current) {
+        const stored = persisted && typeof persisted === "object" ? (persisted as Record<string, unknown>) : {};
+        return {
+          ...current,
+          treeCollapsed: typeof stored.treeCollapsed === "boolean" ? stored.treeCollapsed : current.treeCollapsed,
+          pins: Array.isArray(stored.pins) ? stored.pins.filter(isWorkspaceItemReference) : [],
+        };
+      },
+    },
   ),
 );

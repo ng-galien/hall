@@ -17,14 +17,10 @@
     background var(--hall-motion-fast) var(--hall-motion-curve-standard);
 }
 
-.resource-autosave-toggle:hover:not(:disabled) {
+.resource-autosave-toggle:hover:not(:disabled),
+.resource-autosave-toggle:focus-visible {
   color: var(--hall-color-brand);
   background: var(--hall-color-surface-subtle);
-}
-
-.resource-autosave-toggle:focus-visible {
-  outline: var(--hall-stroke-thick) solid var(--hall-color-focus);
-  outline-offset: var(--hall-space-0-5);
 }
 
 .resource-autosave-toggle:disabled {

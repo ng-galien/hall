@@ -186,7 +186,7 @@ export const fr: Messages = {
   "workspace.chooseMeeting": "Choisir une séance",
   "workspace.contents": "Contenu",
   "workspace.new": "Nouveau",
-  "workspace.browseSubfolders": "Sous-dossiers",
+  "workspace.browseFolder": "Parcourir le dossier",
   "workspace.createText": "Nouveau texte",
   "workspace.createSpreadsheet": "Nouveau tableur",
   "workspace.createRemote": "Nouvelle ressource web",

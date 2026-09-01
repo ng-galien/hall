@@ -17,7 +17,7 @@
   button, input, select, textarea { font: inherit; }
   a { color: inherit; text-decoration: none; }
   h1, h2, h3, p { margin: 0; }
-  :focus-visible { outline: none; box-shadow: var(--hall-focus-ring); }
+  :focus-visible { outline: none; }
   ::-webkit-scrollbar { width: var(--hall-size-scrollbar); height: var(--hall-size-scrollbar); }
   ::-webkit-scrollbar-thumb {
     border: var(--hall-size-scrollbar-border) solid transparent;

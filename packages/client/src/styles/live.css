@@ -720,7 +720,7 @@
   }
   .vote-card:hover { box-shadow: var(--hall-shadow-medium); }
   .vote-card-dragging { opacity: var(--hall-opacity-pulse); }
-  .vote-card-selected { border-color: var(--hall-color-brand); box-shadow: var(--hall-focus-ring); }
+  .vote-card-selected { border-color: var(--hall-color-brand); }
   .vote-card-avatar {
     display: grid;
     width: var(--hall-size-navigation-count);

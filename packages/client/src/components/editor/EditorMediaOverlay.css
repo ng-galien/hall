@@ -86,7 +86,6 @@
 
 .editor-media-overlay-title-link:focus-visible {
   outline: none;
-  box-shadow: var(--hall-focus-ring);
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }
@@ -129,5 +128,4 @@
 
 .editor-media-overlay-actions button:focus-visible {
   outline: none;
-  box-shadow: var(--hall-focus-ring);
 }
