@@ -38,6 +38,70 @@ async function createScheduledMeeting(agent: TestAgent, title: string) {
 }
 
 describe("business decision attachment", () => {
+  it("rejects unknown committees and committee classification on non-matter business", async () => {
+    const { agent } = await createTestServer();
+    await agent
+      .post("/api/council-business")
+      .send({
+        kind: "matter",
+        committeeId: randomUUID(),
+        title: "Dossier sans commission",
+        report: "",
+        folderPath: "",
+        resourceIds: [],
+      })
+      .expect(404);
+
+    const question = domainBody<{ id: string }>(
+      await agent
+        .post("/api/council-business")
+        .send({ kind: "openQuestion", title: "Question", report: "", folderPath: "", resourceIds: [] })
+        .expect(201),
+    );
+    await agent
+      .put(`/api/council-business/${question.id}`)
+      .send({
+        title: question.id,
+        report: "",
+        folderPath: "",
+        resourceIds: [],
+        committeeId: randomUUID(),
+      })
+      .expect(400);
+  });
+
+  it("preserves attached resources while attaching and detaching a decision", async () => {
+    const { agent } = await createTestServer();
+    const resource = domainBody<{ id: string }>(
+      await agent
+        .post("/api/resources/texts")
+        .send({ title: "Rapport", folderPath: "seed", tags: [], content: "Rapport" })
+        .expect(201),
+    );
+    const business = domainBody<{ id: string }>(
+      await agent
+        .post("/api/council-business")
+        .send({
+          kind: "matter",
+          title: "Dossier documenté",
+          report: "",
+          folderPath: "seed",
+          resourceIds: [resource.id],
+        })
+        .expect(201),
+    );
+
+    const attached = domainBody<{ resources: Array<{ id: string }> }>(
+      await agent.post(`/api/council-business/${business.id}/decision`).send({}).expect(201),
+    );
+    expect(attached.resources.map(({ id }) => id)).toEqual([resource.id]);
+
+    const detached = domainBody<{ resources: Array<{ id: string }> }>(
+      await agent.delete(`/api/council-business/${business.id}/decision`).expect(200),
+    );
+    expect(detached.resources.map(({ id }) => id)).toEqual([resource.id]);
+  });
+
   it("attaches a draft decision to a business in preparation and syncs its title", async () => {
     const { agent } = await createTestServer();
     const business = await createCouncilMatter(agent, "Cession de la parcelle AB 127");

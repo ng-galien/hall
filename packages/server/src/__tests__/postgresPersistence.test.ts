@@ -4,11 +4,152 @@ import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 import { buildContainer } from "../core/container.js";
 import { startHttpServer } from "../server.js";
+import { defineBallotPersistenceContract } from "./support/ballotPersistenceContract.js";
+import { prepareBallotScenario } from "./support/ballotScenario.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const postgres = databaseUrl ? describe : describe.skip;
 
+async function resetPostgres(): Promise<void> {
+  const setup = new Pool({ connectionString: databaseUrl });
+  await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
+  await setup.end();
+}
+
+async function waitForTransactionLock(pool: Pool, processId: number): Promise<void> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const activity = await pool.query<{ wait_event_type: string | null }>(
+      "SELECT wait_event_type FROM pg_stat_activity WHERE pid = $1",
+      [processId],
+    );
+    if (activity.rows[0]?.wait_event_type === "Lock") return;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`PostgreSQL backend ${processId} never waited on the expected transaction lock`);
+}
+
+async function createEmptyPublicBallot() {
+  await resetPostgres();
+  const scenario = await prepareBallotScenario({ kind: "postgres", url: databaseUrl! });
+  const ballotId = randomUUID();
+  const memberIds = scenario.members.map((member) => member.id);
+  await scenario.container.cradle.sqlExecutor.run("ballot.insert", {
+    id: ballotId,
+    meetingId: scenario.meeting.id,
+    councilDecisionId: null,
+    agendaItemId: scenario.agendaItem.id,
+    idempotencyKey: randomUUID(),
+    commandFingerprint: randomUUID(),
+    method: "public",
+    result: "adopted",
+    votesFor: 1,
+    votesAgainst: 0,
+    abstentions: 0,
+    notVoting: 0,
+    chairTieBreakApplied: false,
+    recusedMemberIdsJson: "[]",
+    participationEvidenceJson: JSON.stringify({
+      rosterMemberIds: memberIds,
+      attendance: memberIds.map((memberId) => ({
+        memberId,
+        status: "present",
+        proxyHolderMemberId: null,
+        proxyDocumentId: null,
+        version: 1,
+      })),
+      quorum: { activeMembers: memberIds.length, physicallyPresent: memberIds.length, required: 2, reached: true },
+    }),
+    createdAt: new Date().toISOString(),
+  });
+  return { scenario, ballotId };
+}
+
 postgres("PostgreSQL persistence", () => {
+  defineBallotPersistenceContract("shared ballot persistence contract", async () => {
+    const setup = new Pool({ connectionString: databaseUrl });
+    await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
+    await setup.end();
+    return { kind: "postgres", url: databaseUrl! };
+  });
+
+  it("blocks a public-to-secret update behind an uncommitted vote and rejects it after commit", async () => {
+    const { scenario, ballotId } = await createEmptyPublicBallot();
+    const pool = new Pool({ connectionString: databaseUrl });
+    const voteWriter = await pool.connect();
+    const methodWriter = await pool.connect();
+    const methodWriterProcessId = (await methodWriter.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0]
+      ?.pid;
+    if (!methodWriterProcessId) throw new Error("Expected the PostgreSQL method-writer process id");
+    try {
+      await voteWriter.query("BEGIN");
+      await voteWriter.query(
+        `INSERT INTO votes (id, ballot_id, member_id, cast_by_member_id, choice, position)
+         VALUES ($1, $2, $3, $3, 'for', 1)`,
+        [randomUUID(), ballotId, scenario.members[0]?.id],
+      );
+      await methodWriter.query("BEGIN");
+      const methodUpdate = methodWriter.query("UPDATE ballots SET method = 'secret' WHERE id = $1", [ballotId]);
+      await waitForTransactionLock(pool, methodWriterProcessId);
+      await voteWriter.query("COMMIT");
+      await expect(methodUpdate).rejects.toMatchObject({ code: "23514" });
+      await methodWriter.query("ROLLBACK");
+
+      const invariant = await pool.query<{ method: string; vote_count: string }>(
+        `SELECT ballots.method, COUNT(votes.id)::text AS vote_count
+         FROM ballots LEFT JOIN votes ON votes.ballot_id = ballots.id
+         WHERE ballots.id = $1 GROUP BY ballots.id`,
+        [ballotId],
+      );
+      expect(invariant.rows).toEqual([{ method: "public", vote_count: "1" }]);
+    } finally {
+      await voteWriter.query("ROLLBACK").catch(() => undefined);
+      await methodWriter.query("ROLLBACK").catch(() => undefined);
+      voteWriter.release();
+      methodWriter.release();
+      await pool.end();
+      await scenario.container.cradle.sqlExecutor.close();
+    }
+  });
+
+  it("blocks a vote behind an uncommitted secret method and rejects it after commit", async () => {
+    const { scenario, ballotId } = await createEmptyPublicBallot();
+    const pool = new Pool({ connectionString: databaseUrl });
+    const methodWriter = await pool.connect();
+    const voteWriter = await pool.connect();
+    const voteWriterProcessId = (await voteWriter.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0]
+      ?.pid;
+    if (!voteWriterProcessId) throw new Error("Expected the PostgreSQL vote-writer process id");
+    try {
+      await methodWriter.query("BEGIN");
+      await methodWriter.query("UPDATE ballots SET method = 'secret' WHERE id = $1", [ballotId]);
+      await voteWriter.query("BEGIN");
+      const voteInsert = voteWriter.query(
+        `INSERT INTO votes (id, ballot_id, member_id, cast_by_member_id, choice, position)
+         VALUES ($1, $2, $3, $3, 'for', 1)`,
+        [randomUUID(), ballotId, scenario.members[0]?.id],
+      );
+      await waitForTransactionLock(pool, voteWriterProcessId);
+      await methodWriter.query("COMMIT");
+      await expect(voteInsert).rejects.toMatchObject({ code: "23514" });
+      await voteWriter.query("ROLLBACK");
+
+      const invariant = await pool.query<{ method: string; vote_count: string }>(
+        `SELECT ballots.method, COUNT(votes.id)::text AS vote_count
+         FROM ballots LEFT JOIN votes ON votes.ballot_id = ballots.id
+         WHERE ballots.id = $1 GROUP BY ballots.id`,
+        [ballotId],
+      );
+      expect(invariant.rows).toEqual([{ method: "secret", vote_count: "0" }]);
+    } finally {
+      await methodWriter.query("ROLLBACK").catch(() => undefined);
+      await voteWriter.query("ROLLBACK").catch(() => undefined);
+      methodWriter.release();
+      voteWriter.release();
+      await pool.end();
+      await scenario.container.cradle.sqlExecutor.close();
+    }
+  });
+
   it("serializes schema bootstrap across concurrent server instances", async () => {
     const setup = new Pool({ connectionString: databaseUrl });
     await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");

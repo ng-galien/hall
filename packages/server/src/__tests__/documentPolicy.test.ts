@@ -153,6 +153,14 @@ describe("document policy", () => {
       code: "document_content_mismatch",
       statusCode: 422,
     });
+    await expect(inspectDocument("invalid-utf8.txt", Buffer.from([0xc3, 0x28]))).rejects.toMatchObject({
+      code: "document_content_mismatch",
+      statusCode: 422,
+    });
+    await expect(inspectDocument("binary.txt", Buffer.from([0x41, 0x00, 0x42]))).rejects.toMatchObject({
+      code: "document_content_mismatch",
+      statusCode: 422,
+    });
   });
 
   it("rejects macro-enabled Office content renamed with an allowed extension", async () => {

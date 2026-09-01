@@ -1,12 +1,19 @@
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  addCommitteeMembershipSchema,
   createCouncilMeetingSchema,
+  createCouncilMemberSchema,
   createGeographicResourceSchema,
+  geographicViewSchema,
   recordAttendanceSchema,
   recordBallotSchema,
+  resolveLegalReferenceResourceSchema,
   resourceTagsSchema,
   spreadsheetDocumentSchema,
+  updateCommitteeMembershipSchema,
   updateCouncilMeetingSchema,
+  updateCouncilMemberSchema,
   updateHallSettingsSchema,
 } from "./schemas.js";
 
@@ -45,6 +52,56 @@ describe("geographic resource colors", () => {
     const invalid = structuredClone(resource);
     invalid.hallLayer.features[0]!.properties.style.color = "blue";
     expect(() => createGeographicResourceSchema.parse(invalid)).toThrow();
+  });
+
+  it("accepts line and area geometries and canonicalizes polygon ring orientation", () => {
+    const outerRing = [
+      [2, 48],
+      [3, 48],
+      [3, 49],
+      [2, 48],
+    ];
+    const parsed = createGeographicResourceSchema.parse({
+      ...resource,
+      hallLayer: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            id: "22222222-2222-4222-8222-222222222222",
+            properties: { kind: "line", label: "Rue", style: { color: "#3a72c4", width: 2 } },
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [2, 48],
+                [3, 49],
+              ],
+            },
+          },
+          {
+            type: "Feature",
+            id: "33333333-3333-4333-8333-333333333333",
+            properties: {
+              kind: "area",
+              label: "Zone",
+              style: { fillColor: "#3a72c4", strokeColor: "#112233", strokeWidth: 2, fillOpacity: 0.4 },
+            },
+            geometry: { type: "Polygon", coordinates: [outerRing] },
+          },
+        ],
+      },
+    });
+
+    expect(parsed.hallLayer.features.map(({ properties }) => properties.kind)).toEqual(["line", "area"]);
+    expect(parsed.hallLayer.features[1]?.geometry).toMatchObject({ type: "Polygon", coordinates: [outerRing] });
+  });
+
+  it("requires a geographic extent to have increasing bounds", () => {
+    expect(geographicViewSchema.parse({ kind: "extent", extent: [2, 48, 3, 49], zoom: 12 })).toMatchObject({
+      kind: "extent",
+      extent: [2, 48, 3, 49],
+    });
+    expect(() => geographicViewSchema.parse({ kind: "extent", extent: [3, 49, 2, 48], zoom: 12 })).toThrow();
   });
 });
 
@@ -168,6 +225,9 @@ describe("updateHallSettingsSchema", () => {
 });
 
 describe("recordBallotSchema", () => {
+  const idempotencyKey = "33333333-3333-4333-8333-333333333333";
+  const councilDecisionId = "22222222-2222-4222-8222-222222222222";
+
   it("keeps named votes for a public ballot", () => {
     const memberId = "11111111-1111-4111-8111-111111111111";
     const result = recordBallotSchema.parse({
@@ -187,6 +247,53 @@ describe("recordBallotSchema", () => {
       totals: { votesFor: 5, votesAgainst: 2, abstentions: 1 },
     });
     expect(result).toMatchObject({ method: "secret", totals: { notVoting: 0 } });
+  });
+
+  it("rejects generated non-natural secret totals at the HTTP boundary", () => {
+    const malformedTotal = fc.oneof(
+      fc.integer({ max: -1 }),
+      fc.double({ noNaN: true, noDefaultInfinity: true }).filter((value) => !Number.isInteger(value)),
+      fc.constant(Number.NaN),
+      fc.constant(Number.POSITIVE_INFINITY),
+      fc.constant(Number.NEGATIVE_INFINITY),
+    );
+    fc.assert(
+      fc.property(
+        malformedTotal,
+        fc.constantFrom("votesFor", "votesAgainst", "abstentions", "notVoting"),
+        (value, field) => {
+          const totals = { votesFor: 1, votesAgainst: 1, abstentions: 0, notVoting: 0, [field]: value };
+          expect(
+            recordBallotSchema.safeParse({
+              method: "secret",
+              idempotencyKey,
+              councilDecisionId,
+              totals,
+            }).success,
+          ).toBe(false);
+        },
+      ),
+      { numRuns: 1_000 },
+    );
+  });
+
+  it("rejects every generated missing or ambiguous ballot target", () => {
+    fc.assert(
+      fc.property(fc.boolean(), (withBothTargets) => {
+        const target = withBothTargets
+          ? { councilDecisionId, agendaItemId: "44444444-4444-4444-8444-444444444444" }
+          : {};
+        expect(
+          recordBallotSchema.safeParse({
+            method: "secret",
+            idempotencyKey,
+            ...target,
+            totals: { votesFor: 1, votesAgainst: 1, abstentions: 0, notVoting: 0 },
+          }).success,
+        ).toBe(false);
+      }),
+      { numRuns: 100 },
+    );
   });
 });
 
@@ -208,5 +315,64 @@ describe("meeting command schemas", () => {
         proxyDocumentId: null,
       }),
     ).toThrow();
+  });
+});
+
+describe("legal reference resolution", () => {
+  const reference = {
+    title: "Article L2121-10",
+    provider: "legifrance" as const,
+    referenceKind: "article" as const,
+    versionId: "LEGIARTI000041410274",
+  };
+
+  it("requires an effective date only for a dated code lookup", () => {
+    expect(
+      resolveLegalReferenceResourceSchema.parse({ ...reference, fund: "CODE_ETAT", effectiveAt: null }),
+    ).toMatchObject({ fund: "CODE_ETAT", effectiveAt: null });
+    expect(() =>
+      resolveLegalReferenceResourceSchema.parse({ ...reference, fund: "CODE_ETAT", effectiveAt: "2026-09-01" }),
+    ).toThrow();
+
+    expect(
+      resolveLegalReferenceResourceSchema.parse({ ...reference, fund: "CODE_DATE", effectiveAt: "2026-09-01" }),
+    ).toMatchObject({ fund: "CODE_DATE", effectiveAt: "2026-09-01" });
+    expect(() =>
+      resolveLegalReferenceResourceSchema.parse({ ...reference, fund: "CODE_DATE", effectiveAt: null }),
+    ).toThrow();
+  });
+});
+
+describe("council member and committee membership dates", () => {
+  const member = {
+    firstName: "Alice",
+    lastName: "Martin",
+    email: null,
+    role: "councillor" as const,
+    termStartedOn: "2026-03-01",
+  };
+
+  it("normalizes an empty phone number to null", () => {
+    expect(createCouncilMemberSchema.parse({ ...member, phone: "" }).phone).toBeNull();
+    expect(createCouncilMemberSchema.parse({ ...member, phone: " 01 23 45 67 89 " }).phone).toBe("01 23 45 67 89");
+  });
+
+  it("accepts a member term end on or after its start and rejects an earlier end", () => {
+    expect(updateCouncilMemberSchema.parse({ ...member, termEndedOn: null }).termEndedOn).toBeNull();
+    expect(updateCouncilMemberSchema.parse({ ...member, termEndedOn: "2026-03-01" }).termEndedOn).toBe("2026-03-01");
+    expect(() => updateCouncilMemberSchema.parse({ ...member, termEndedOn: "2026-02-28" })).toThrow();
+  });
+
+  it("accepts an open or chronologically valid committee membership and rejects an earlier end", () => {
+    const membership = { role: "member" as const, startedOn: "2026-03-01" };
+    expect(
+      addCommitteeMembershipSchema.parse({
+        councilMemberId: "11111111-1111-4111-8111-111111111111",
+        ...membership,
+      }),
+    ).toMatchObject(membership);
+    expect(updateCommitteeMembershipSchema.parse({ ...membership, endedOn: null }).endedOn).toBeNull();
+    expect(updateCommitteeMembershipSchema.parse({ ...membership, endedOn: "2026-03-01" }).endedOn).toBe("2026-03-01");
+    expect(() => updateCommitteeMembershipSchema.parse({ ...membership, endedOn: "2026-02-28" })).toThrow();
   });
 });

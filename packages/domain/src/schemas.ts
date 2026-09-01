@@ -834,22 +834,26 @@ const requireExactlyOneBallotTarget = (
 
 export const recordBallotSchema = z
   .discriminatedUnion("method", [
-    z.object({
-      method: z.literal("public"),
-      idempotencyKey: z.string().uuid(),
-      ...ballotTargetShape,
-      votes: z.array(voteSchema).min(1),
-    }),
-    z.object({
-      method: z.literal("secret"),
-      idempotencyKey: z.string().uuid(),
-      ...ballotTargetShape,
-      totals: z.object({
-        votesFor: z.number().int().nonnegative(),
-        votesAgainst: z.number().int().nonnegative(),
-        abstentions: z.number().int().nonnegative(),
-        notVoting: z.number().int().nonnegative().default(0),
-      }),
-    }),
+    z
+      .object({
+        method: z.literal("public"),
+        idempotencyKey: z.string().uuid(),
+        ...ballotTargetShape,
+        votes: z.array(voteSchema).min(1),
+      })
+      .strict(),
+    z
+      .object({
+        method: z.literal("secret"),
+        idempotencyKey: z.string().uuid(),
+        ...ballotTargetShape,
+        totals: z.object({
+          votesFor: z.number().int().nonnegative(),
+          votesAgainst: z.number().int().nonnegative(),
+          abstentions: z.number().int().nonnegative(),
+          notVoting: z.number().int().nonnegative().default(0),
+        }),
+      })
+      .strict(),
   ])
   .superRefine(requireExactlyOneBallotTarget);

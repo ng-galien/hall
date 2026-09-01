@@ -52,6 +52,56 @@ export const postgresWorkspaceTitleUniquenessSchema = `
     ON council_business(folder_path, title);
 `;
 
+export const postgresBallotVoteConfidentialitySchema = `
+  CREATE OR REPLACE FUNCTION enforce_public_ballot_votes()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  AS $$
+  DECLARE
+    ballot_method TEXT;
+  BEGIN
+    SELECT method INTO ballot_method
+    FROM ballots
+    WHERE id = NEW.ballot_id
+    FOR UPDATE;
+
+    IF ballot_method <> 'public' THEN
+      RAISE EXCEPTION 'votes require a public ballot'
+        USING ERRCODE = '23514', CONSTRAINT = 'votes_require_public_ballot';
+    END IF;
+    RETURN NEW;
+  END;
+  $$;
+
+  DROP TRIGGER IF EXISTS votes_require_public_ballot ON votes;
+  CREATE TRIGGER votes_require_public_ballot
+  BEFORE INSERT OR UPDATE ON votes
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_public_ballot_votes();
+
+  CREATE OR REPLACE FUNCTION enforce_public_method_for_ballots_with_votes()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  AS $$
+  BEGIN
+    IF NEW.method <> 'public' AND EXISTS (
+      SELECT 1 FROM votes
+      WHERE ballot_id = OLD.id
+    ) THEN
+      RAISE EXCEPTION 'ballots with votes require the public method'
+        USING ERRCODE = '23514', CONSTRAINT = 'ballots_with_votes_require_public_method';
+    END IF;
+    RETURN NEW;
+  END;
+  $$;
+
+  DROP TRIGGER IF EXISTS ballots_with_votes_require_public_method ON ballots;
+  CREATE TRIGGER ballots_with_votes_require_public_method
+  BEFORE UPDATE OF method ON ballots
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_public_method_for_ballots_with_votes();
+`;
+
 export const postgresSchema = `
   CREATE TABLE council_members (
     id TEXT PRIMARY KEY,

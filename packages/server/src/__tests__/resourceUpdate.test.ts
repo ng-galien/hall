@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createTestServer, domainBody, type TestAgent } from "./testServer.js";
 
@@ -11,6 +12,87 @@ async function createMember(agent: TestAgent, firstName: string, role = "council
 }
 
 describe("resource update", () => {
+  it("keeps structured resources behind their dedicated update contracts", async () => {
+    const { agent } = await createTestServer();
+    const spreadsheet = domainBody<{ id: string }>(
+      await agent
+        .post("/api/resources/spreadsheets")
+        .send({
+          title: "Budget",
+          folderPath: "seed",
+          tags: [],
+          document: {
+            schemaVersion: 2,
+            workbook: {
+              id: "budget",
+              name: "Budget",
+              sheetOrder: ["sheet"],
+              sheets: {
+                sheet: { id: "sheet", name: "Budget", rowCount: 1, columnCount: 1, cellData: {} },
+              },
+            },
+          },
+        })
+        .expect(201),
+    );
+    const geographic = domainBody<{ id: string }>(
+      await agent
+        .post("/api/resources/geographic")
+        .send({
+          title: "Périmètre",
+          folderPath: "seed",
+          tags: [],
+          provider: "ign",
+          layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
+          hallLayer: { type: "FeatureCollection", features: [] },
+        })
+        .expect(201),
+    );
+    const legalReference = domainBody<{ id: string }>(
+      await agent
+        .post("/api/resources/legal-references")
+        .send({
+          title: "CGCT, article L2121-10",
+          folderPath: "seed",
+          tags: [],
+          provider: "legifrance",
+          referenceKind: "article",
+        })
+        .expect(201),
+    );
+
+    for (const resource of [spreadsheet, geographic, legalReference]) {
+      await agent
+        .put(`/api/resources/${resource.id}`)
+        .send({ title: "Altération", folderPath: "seed", tags: [], content: "interdit" })
+        .expect(400);
+    }
+
+    const remote = domainBody<{ id: string; title: string; folderPath: string; tags: string[]; url: string }>(
+      await agent
+        .post("/api/resources/remotes")
+        .send({ title: "Site officiel", folderPath: "seed", tags: [], url: "https://example.test/source" })
+        .expect(201),
+    );
+    await agent.get(`/api/resources/${remote.id}`).expect(200);
+    const renamed = domainBody<{ url: string }>(
+      await agent
+        .put(`/api/resources/${remote.id}`)
+        .send({ title: "Site officiel renommé", folderPath: remote.folderPath, tags: remote.tags })
+        .expect(200),
+    );
+    expect(renamed.url).toBe(remote.url);
+
+    await agent
+      .post("/api/resources/documents")
+      .field("title", "Pièce orpheline")
+      .field("folderPath", "seed")
+      .field("meetingId", randomUUID())
+      .attach("file", Buffer.from("%PDF-1.7\npdf"), { filename: "piece.pdf", contentType: "application/pdf" })
+      .expect(404);
+    await agent.delete(`/api/resources/${randomUUID()}`).expect(404);
+  });
+
   it("enables autosave by default and persists the resource preference", async () => {
     const { agent } = await createTestServer();
     const text = domainBody(

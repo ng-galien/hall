@@ -1,5 +1,5 @@
 import { getNextSnapshot, setup } from "xstate";
-import { matchLiteral } from "../match.js";
+import { defineExhaustiveLiterals, matchLiteral } from "../match.js";
 import type { CouncilDecisionStatus } from "../model.js";
 
 export type CouncilDecisionEvent =
@@ -10,6 +10,16 @@ export type CouncilDecisionEvent =
   | { type: "RECORD_REJECTION" }
   | { type: "REOPEN_BALLOT" }
   | { type: "MAKE_ENFORCEABLE" };
+
+export const councilDecisionEventTypes = defineExhaustiveLiterals<CouncilDecisionEvent["type"]>()([
+  "MARK_READY",
+  "SCHEDULE",
+  "RETURN_TO_PREPARATION",
+  "RECORD_ADOPTION",
+  "RECORD_REJECTION",
+  "REOPEN_BALLOT",
+  "MAKE_ENFORCEABLE",
+] as const);
 
 export const councilDecisionMachineDefinition = {
   id: "councilDecision",
@@ -49,12 +59,14 @@ export const councilDecisionMachineDefinition = {
   },
 } as const;
 
+/* Stryker disable ObjectLiteral: XState types are compile-time metadata erased from the runtime machine. */
 export const councilDecisionMachine = setup({
   types: {
     context: {} as Record<string, never>,
     events: {} as CouncilDecisionEvent,
   },
 }).createMachine(councilDecisionMachineDefinition);
+/* Stryker restore ObjectLiteral */
 
 export function transitionCouncilDecision(
   status: CouncilDecisionStatus,

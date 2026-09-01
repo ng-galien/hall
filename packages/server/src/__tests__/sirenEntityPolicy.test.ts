@@ -130,4 +130,34 @@ describe("Siren entity class authority", () => {
     expect(embeddedAgendaActions).toEqual(objectActions(currentRequest, "agenda-item", { ...aggregate, agendaItem }));
     expect(embeddedBallotActions).toEqual(objectActions(currentRequest, "ballot", { ...aggregate, ballot }));
   });
+
+  it("keeps sparse aggregate and collection representations structurally valid", () => {
+    const primitiveCollection = toSirenRepresentation(request("/api/resources", []), ["seed", "finances"]);
+    expect(primitiveCollection).toMatchObject({
+      class: ["resource-collection"],
+      properties: { items: ["seed", "finances"] },
+      entities: undefined,
+    });
+
+    const emptyObjectCollection = toSirenRepresentation(request("/api/resources", []), []);
+    expect(emptyObjectCollection.entities).toEqual([]);
+
+    const incompleteMeeting = toSirenRepresentation(request("/api/council-meetings/meeting", []), {
+      meeting: { id: "meeting-id", slug: "meeting" },
+      agendaItems: [null, {}, { id: "agenda-item-id" }],
+    });
+    expect(incompleteMeeting.entities).toHaveLength(1);
+    expect(incompleteMeeting.entities?.[0]).toMatchObject({ class: ["agenda-item"] });
+
+    const archivedCommittee = toSirenRepresentation(request("/api/council-committees/committee", []), {
+      committee: { id: "committee-id", slug: "committee", archivedAt: "2026-09-01T10:00:00.000Z" },
+      memberships: [null, {}, { id: "membership-id", endedOn: null }],
+    });
+    expect(archivedCommittee.entities).toEqual([
+      expect.objectContaining({ class: ["committee-membership"], actions: undefined }),
+    ]);
+
+    const unclassified = toSirenRepresentation(request("/api/unknown", []), {});
+    expect(unclassified.actions).toBeUndefined();
+  });
 });

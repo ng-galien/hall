@@ -5,9 +5,10 @@ import {
 } from "@hall/domain";
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
-import { requireAnyPermission, requirePermission } from "../../security/authorization.js";
+import { requireAnyPermission } from "../../security/authorization.js";
 import { decisionContentIsFrozen } from "../../services/councilDecisionContentPolicy.js";
 import { DomainError } from "../../services/errors.js";
+import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
 export function createCouncilDecisionsRouter({
@@ -36,7 +37,7 @@ export function createCouncilDecisionsRouter({
     if (!decision) throw new DomainError("council_decision_not_found", 404);
     response.json(await withEditability(decision));
   });
-  router.post("/", requirePermission("workspace.write"), async (request, response) => {
+  router.post("/", requireActionPermission("decision.create"), async (request, response) => {
     const input = createCouncilDecisionSchema.parse(request.body);
     response.status(201).json(
       await unitOfWork.execute(async () => {
@@ -46,7 +47,7 @@ export function createCouncilDecisionsRouter({
       }),
     );
   });
-  router.put("/:decisionId", requirePermission("workspace.write"), async (request, response) => {
+  router.put("/:decisionId", requireActionPermission("decision.update"), async (request, response) => {
     const decisionId = routeParameter(request.params.decisionId);
     const input = updateCouncilDecisionSchema.parse(request.body);
     response.json(

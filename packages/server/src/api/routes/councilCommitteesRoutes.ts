@@ -8,6 +8,7 @@ import {
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
+import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
 export function createCouncilCommitteesRouter({ councilCommitteeService }: Cradle): Router {
@@ -15,13 +16,13 @@ export function createCouncilCommitteesRouter({ councilCommitteeService }: Cradl
   router.get("/", requirePermission("meetings.read"), async (request, response) => {
     response.json(await councilCommitteeService.list(request.query.includeArchived === "true"));
   });
-  router.post("/", requirePermission("meetings.prepare"), async (request, response) => {
+  router.post("/", requireActionPermission("committee.create"), async (request, response) => {
     response.status(201).json(await councilCommitteeService.create(createCouncilCommitteeSchema.parse(request.body)));
   });
   router.get("/:committeeId", requirePermission("meetings.read"), async (request, response) => {
     response.json(await councilCommitteeService.get(routeParameter(request.params.committeeId)));
   });
-  router.put("/:committeeId", requirePermission("meetings.prepare"), async (request, response) => {
+  router.put("/:committeeId", requireActionPermission("committee.update"), async (request, response) => {
     response.json(
       await councilCommitteeService.update(
         routeParameter(request.params.committeeId),
@@ -29,19 +30,23 @@ export function createCouncilCommitteesRouter({ councilCommitteeService }: Cradl
       ),
     );
   });
-  router.post("/:committeeId/archive", requirePermission("meetings.prepare"), async (request, response) => {
+  router.post("/:committeeId/archive", requireActionPermission("committee.archive"), async (request, response) => {
     response.json(await councilCommitteeService.archive(routeParameter(request.params.committeeId)));
   });
-  router.post("/:committeeId/memberships", requirePermission("meetings.prepare"), async (request, response) => {
-    response
-      .status(201)
-      .json(
-        await councilCommitteeService.addMembership(
-          routeParameter(request.params.committeeId),
-          addCommitteeMembershipSchema.parse(request.body),
-        ),
-      );
-  });
+  router.post(
+    "/:committeeId/memberships",
+    requireActionPermission("committee.add-membership"),
+    async (request, response) => {
+      response
+        .status(201)
+        .json(
+          await councilCommitteeService.addMembership(
+            routeParameter(request.params.committeeId),
+            addCommitteeMembershipSchema.parse(request.body),
+          ),
+        );
+    },
+  );
   router.get(
     "/:committeeId/memberships/:membershipId",
     requirePermission("meetings.read"),
@@ -56,7 +61,7 @@ export function createCouncilCommitteesRouter({ councilCommitteeService }: Cradl
   );
   router.put(
     "/:committeeId/memberships/:membershipId",
-    requirePermission("meetings.prepare"),
+    requireActionPermission("committee.update-membership"),
     async (request, response) => {
       response.json(
         await councilCommitteeService.updateMembership(
@@ -69,7 +74,7 @@ export function createCouncilCommitteesRouter({ councilCommitteeService }: Cradl
   );
   router.post(
     "/:committeeId/memberships/:membershipId/end",
-    requirePermission("meetings.prepare"),
+    requireActionPermission("committee.end-membership"),
     async (request, response) => {
       const input = endCommitteeMembershipSchema.parse(request.body);
       response.json(

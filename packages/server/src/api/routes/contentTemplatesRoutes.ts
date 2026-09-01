@@ -11,6 +11,7 @@ import { Router } from "express";
 import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
+import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
 const referenceQuerySchema = z.object({
@@ -44,13 +45,13 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
     );
   });
 
-  router.post("/preview", requirePermission("workspace.read"), async (request, response) => {
+  router.post("/preview", requireActionPermission("template.preview"), async (request, response) => {
     const input = previewContentTemplateSchema.parse(request.body);
     const preview = await contentTemplateService.preview(input, input.context);
     response.json({ html: preview.html, subject: preview.subject, diagnostics: preview.diagnostics });
   });
 
-  router.post("/preview-pdf", requirePermission("workspace.read"), async (request, response) => {
+  router.post("/preview-pdf", requireActionPermission("template.preview-pdf"), async (request, response) => {
     const input = previewPdfSchema.parse(request.body);
     const content = await contentTemplateService.previewPdf(input.bodyMarkdown, input.context);
     if (request.query.delivery === "url") {
@@ -84,7 +85,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
     response.send(preview.content);
   });
 
-  router.post("/", requirePermission("workspace.write"), async (request, response) => {
+  router.post("/", requireActionPermission("template.create"), async (request, response) => {
     response.status(201).json(await contentTemplateService.create(createContentTemplateSchema.parse(request.body)));
   });
 
@@ -92,7 +93,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
     response.json(await contentTemplateService.find(routeParameter(request.params.templateId)));
   });
 
-  router.put("/:templateId", requirePermission("workspace.write"), async (request, response) => {
+  router.put("/:templateId", requireActionPermission("template.update"), async (request, response) => {
     response.json(
       await contentTemplateService.update(
         routeParameter(request.params.templateId),
@@ -101,12 +102,12 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
     );
   });
 
-  router.delete("/:templateId", requirePermission("workspace.write"), async (request, response) => {
+  router.delete("/:templateId", requireActionPermission("template.delete"), async (request, response) => {
     await contentTemplateService.delete(routeParameter(request.params.templateId));
     response.status(204).end();
   });
 
-  router.post("/:templateId/generate", requirePermission("workspace.read"), async (request, response) => {
+  router.post("/:templateId/generate", requireActionPermission("template.generate"), async (request, response) => {
     const generated = await contentTemplateService.generate(
       routeParameter(request.params.templateId),
       generateContentTemplateSchema.parse(request.body),

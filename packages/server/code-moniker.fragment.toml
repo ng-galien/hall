@@ -3,10 +3,11 @@ fragment = "server"
 [aliases]
 persistence_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:repositories/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:database/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:sqlite/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:postgres/**'"
 composition_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:core/module:container/**'"
+database_test_support_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:__tests__/dir:support/**'"
 
 [[refs.where]]
 id = "database-ownership-is-confined"
 severity = "error"
 rationale = "SQLite and PostgreSQL are adapters owned by server-side persistence and wired by the Awilix composition root. Keeping database imports out of HTTP and business services preserves one authoritative persistence boundary."
-expr = "$server_source AND $dependency_import_ref AND $database_target => ($persistence_source OR $composition_source)"
-message = "Server database imports are limited to persistence and the composition root."
+expr = "$server_source AND $dependency_import_ref AND $database_target => ($persistence_source OR $composition_source OR $database_test_support_source)"
+message = "Server database imports are limited to persistence, the composition root, and dedicated test support."

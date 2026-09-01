@@ -3,6 +3,10 @@ import { z } from "zod";
 export const apiRoles = ["administrator", "clerk", "contributor", "meetingConductor", "reader"] as const;
 export type ApiRole = (typeof apiRoles)[number];
 export const apiRoleSchema = z.enum(apiRoles);
+const apiRoleListSchema = z
+  .array(apiRoleSchema)
+  .min(1)
+  .refine((roles) => new Set(roles).size === roles.length, "Roles must be unique");
 
 export const apiUserStatuses = ["active", "disabled"] as const;
 export type ApiUserStatus = (typeof apiUserStatuses)[number];
@@ -51,10 +55,10 @@ export const loginSchema = z.object({
 });
 
 export const createUserSchema = bootstrapUserSchema.extend({
-  roles: z.array(apiRoleSchema).min(1),
+  roles: apiRoleListSchema,
   councilMemberId: z.string().uuid().nullable().default(null),
 });
 
 export const assignUserRolesSchema = z.object({
-  roles: z.array(apiRoleSchema).min(1),
+  roles: apiRoleListSchema,
 });

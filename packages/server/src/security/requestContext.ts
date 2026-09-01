@@ -1,12 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { ApiPrincipal } from "@hall/api-contract";
-
-export interface AuditIntent {
-  action: string;
-  targetType: string;
-  targetId?: string | null;
-  details?: Record<string, unknown>;
-}
+import type { AuditIntent } from "../api/apiCommandResolution.js";
 
 export function inferAuditTargetId(intent: AuditIntent, result: unknown): string | null {
   if (!result || typeof result !== "object") return null;

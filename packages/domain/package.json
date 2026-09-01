@@ -15,7 +15,9 @@
     "build": "node ../../scripts/clean-package-dist.mjs && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:mutation": "stryker run",
+    "test:mutation:lifecycle": "stryker run stryker.lifecycle.config.mjs"
   },
   "dependencies": {
     "xstate": "^5.32.5",
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.11",
+    "fast-check": "^4.9.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.2"
   }

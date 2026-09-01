@@ -139,11 +139,13 @@ export function createContentTemplateService({
   return {
     list: () => contentTemplateRepository.list(),
     find,
-    create: (input) => contentTemplateRepository.create(canonicalTemplate(input)),
+    create: (input) => unitOfWork.execute(() => contentTemplateRepository.create(canonicalTemplate(input))),
     async update(id, input) {
-      const template = await contentTemplateRepository.update(id, canonicalTemplate(input));
-      if (!template) throw new DomainError("template_not_found", 404);
-      return template;
+      return unitOfWork.execute(async () => {
+        const template = await contentTemplateRepository.update(id, canonicalTemplate(input));
+        if (!template) throw new DomainError("template_not_found", 404);
+        return template;
+      });
     },
     delete(id) {
       return unitOfWork.execute(async () => {

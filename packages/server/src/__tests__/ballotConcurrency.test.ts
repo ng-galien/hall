@@ -4,125 +4,91 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, onTestFinished } from "vitest";
 import { buildContainer } from "../core/container.js";
+import type { BallotRepository, CouncilDecisionRepository } from "../repositories/contracts.js";
+import { createBallotService } from "../services/ballotService.js";
 import { DomainError } from "../services/errors.js";
 import { buildParticipationEvidence } from "../services/participationEvidence.js";
-
-async function prepareBallotScenario(databasePath = ":memory:") {
-  const container = buildContainer({ host: "127.0.0.1", port: 0, database: { kind: "sqlite", path: databasePath } });
-  const {
-    councilMemberRepository,
-    councilDecisionRepository,
-    councilMeetingService,
-    meetingPreparationService,
-    meetingAgendaService,
-    meetingLifecycleService,
-    councilBusinessService,
-    ballotService,
-    ballotRepository,
-  } = container.cradle;
-  const members = await Promise.all(
-    ["Alice", "Benoît", "Claire"].map((firstName) =>
-      councilMemberRepository.create({
-        firstName,
-        lastName: "Martin",
-        role: "councillor",
-        termStartedOn: "2026-03-22",
-      }),
-    ),
-  );
-  const councilDecision = await councilDecisionRepository.create({
-    title: "Concurrent decision",
-    draftText: "",
-    legalityReviewRequired: true,
-  });
-  const meeting = await councilMeetingService.createMeeting({
-    startsAt: "2026-09-10T18:30:00+02:00",
-    location: "Council chamber",
-    chairMemberId: members[0].id,
-    secretaryMemberId: members[1].id,
-  });
-  const business = await councilBusinessService.create({
-    kind: "matter",
-    councilDecisionId: councilDecision.id,
-    title: "Concurrent decision",
-    report: "",
-    folderPath: "",
-    resourceIds: [],
-  });
-  const agendaItem = await meetingPreparationService.scheduleBusiness(meeting.id, business.id, 1);
-  await meetingLifecycleService.changeStatus(meeting.id, "scheduled");
-  for (const member of members) {
-    await meetingPreparationService.recordAttendance(meeting.id, { memberId: member.id, status: "present" });
-  }
-  await meetingLifecycleService.changeStatus(meeting.id, "inProgress");
-  await meetingAgendaService.startItem(meeting.id, agendaItem.id);
-  return {
-    container,
-    members,
-    councilDecision,
-    business,
-    meeting,
-    agendaItem,
-    ballotService,
-    ballotRepository,
-    councilDecisionRepository,
-  };
-}
+import { prepareBallotScenario } from "./support/ballotScenario.js";
 
 describe("ballot concurrency", () => {
-  it("binds an idempotency key to one complete command", async () => {
-    const { container, members, councilDecision, meeting, ballotService, ballotRepository } =
+  it("rolls back the complete ballot when a failure happens after persistence", async () => {
+    const { container, members, councilDecision, meeting, ballotRepository, councilDecisionRepository } =
       await prepareBallotScenario();
     onTestFinished(() => container.cradle.sqlExecutor.close());
-
-    const idempotencyKey = randomUUID();
-    const baseCommand = {
-      method: "public" as const,
-      idempotencyKey,
-      councilDecisionId: councilDecision.id,
+    const failAfterPersistence: BallotRepository = {
+      ...ballotRepository,
+      async recordFinal(input) {
+        await ballotRepository.recordFinal(input);
+        throw new Error("injected failure after ballot persistence");
+      },
     };
-    const results = await Promise.allSettled([
-      ballotService.recordBallot(meeting.id, {
-        ...baseCommand,
-        votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" as const })),
-      }),
-      ballotService.recordBallot(meeting.id, {
-        ...baseCommand,
-        votes: members.map((member, index) => ({
-          memberId: member.id,
-          castByMemberId: member.id,
-          choice: index === 0 ? ("against" as const) : ("for" as const),
-        })),
-      }),
-    ]);
+    const ballotService = createBallotService({
+      ...container.cradle,
+      ballotRepository: failAfterPersistence,
+    });
 
-    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
-    const rejected = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
-    expect(rejected).toBeDefined();
-    expect(rejected?.reason).toBeInstanceOf(DomainError);
-    if (!rejected) throw new Error("Expected one rejected concurrent ballot");
-    expect((rejected.reason as DomainError).code).toBe("conflict");
-    expect(await ballotRepository.listForMeeting(meeting.id)).toHaveLength(1);
+    await expect(
+      ballotService.recordBallot(meeting.id, {
+        method: "public",
+        idempotencyKey: randomUUID(),
+        councilDecisionId: councilDecision.id,
+        votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" })),
+      }),
+    ).rejects.toThrow("injected failure after ballot persistence");
+
+    expect(await ballotRepository.listForMeeting(meeting.id)).toEqual([]);
+    expect(await councilDecisionRepository.find(councilDecision.id)).toMatchObject({ status: "scheduled" });
   });
 
-  it("atomically replays identical concurrent ballot commands", async () => {
-    const { container, members, councilDecision, meeting, ballotService, ballotRepository } =
+  it("rolls back cancellation when reopening the decision fails", async () => {
+    const { container, members, councilDecision, meeting, ballotRepository, councilDecisionRepository, ballotService } =
       await prepareBallotScenario();
     onTestFinished(() => container.cradle.sqlExecutor.close());
-    const command = {
-      method: "public" as const,
+    const ballot = await ballotService.recordBallot(meeting.id, {
+      method: "public",
       idempotencyKey: randomUUID(),
       councilDecisionId: councilDecision.id,
-      votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" as const })),
+      votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" })),
+    });
+    const failDecisionTransition: CouncilDecisionRepository = {
+      ...councilDecisionRepository,
+      async setStatus() {
+        throw new Error("injected reopening failure");
+      },
     };
+    const failingService = createBallotService({
+      ...container.cradle,
+      councilDecisionRepository: failDecisionTransition,
+    });
 
-    const [first, second] = await Promise.all([
-      ballotService.recordBallot(meeting.id, command),
-      ballotService.recordBallot(meeting.id, command),
-    ]);
+    await expect(failingService.cancelBallot(meeting.id, ballot.id)).rejects.toThrow("injected reopening failure");
+    expect(await ballotRepository.findById(ballot.id)).toMatchObject({ cancelledAt: null });
+    expect(await councilDecisionRepository.find(councilDecision.id)).toMatchObject({ status: "adopted" });
+  });
 
-    expect(second.id).toBe(first.id);
-    expect(await ballotRepository.listForMeeting(meeting.id)).toHaveLength(1);
+  it("cancels an agenda-item ballot without applying a decision transition", async () => {
+    const {
+      container,
+      members,
+      councilDecision,
+      meeting,
+      agendaItem,
+      ballotService,
+      ballotRepository,
+      councilDecisionRepository,
+    } = await prepareBallotScenario({ kind: "sqlite", path: ":memory:" }, "agendaItem");
+    onTestFinished(() => container.cradle.sqlExecutor.close());
+    const ballot = await ballotService.recordBallot(meeting.id, {
+      method: "public",
+      idempotencyKey: randomUUID(),
+      agendaItemId: agendaItem.id,
+      votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" })),
+    });
+
+    await expect(ballotService.cancelBallot(meeting.id, ballot.id)).resolves.toBeUndefined();
+
+    expect(await ballotRepository.findById(ballot.id)).toMatchObject({ cancelledAt: expect.any(String) });
+    expect(await councilDecisionRepository.find(councilDecision.id)).toMatchObject({ status: "draft" });
   });
 
   it("does not number a decision before the agenda item is final when a ballot is revised", async () => {
@@ -159,7 +125,15 @@ describe("ballot concurrency", () => {
 
   it("preserves idempotency across independent repository and unit-of-work instances", async () => {
     const databasePath = join(mkdtempSync(join(tmpdir(), "hall-ballot-connections-")), "hall.sqlite");
-    const { container: firstContainer, members, councilDecision, meeting } = await prepareBallotScenario(databasePath);
+    const {
+      container: firstContainer,
+      members,
+      councilDecision,
+      meeting,
+    } = await prepareBallotScenario({
+      kind: "sqlite",
+      path: databasePath,
+    });
     const secondContainer = buildContainer({
       host: "127.0.0.1",
       port: 0,
@@ -200,6 +174,87 @@ describe("ballot concurrency", () => {
     if (!("ballot" in first) || !("ballot" in second)) throw new Error("Expected recorded ballots");
     expect(second.ballot.id).toBe(first.ballot.id);
     expect(await secondContainer.cradle.ballotRepository.listForMeeting(meeting.id)).toHaveLength(1);
+  });
+
+  it("linearizes a burst of identical service commands across independent SQLite connections", async () => {
+    const databasePath = join(mkdtempSync(join(tmpdir(), "hall-ballot-burst-replay-")), "hall.sqlite");
+    const {
+      container: first,
+      members,
+      councilDecision,
+      meeting,
+    } = await prepareBallotScenario({
+      kind: "sqlite",
+      path: databasePath,
+    });
+    const containers = [
+      first,
+      ...Array.from({ length: 5 }, () =>
+        buildContainer({ host: "127.0.0.1", port: 0, database: { kind: "sqlite", path: databasePath } }),
+      ),
+    ];
+    onTestFinished(async () => {
+      await Promise.all(containers.map((container) => container.cradle.sqlExecutor.close()));
+    });
+    const command = {
+      method: "public" as const,
+      idempotencyKey: randomUUID(),
+      councilDecisionId: councilDecision.id,
+      votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" as const })),
+    };
+
+    const ballots = await Promise.all(
+      containers.map((container) => container.cradle.ballotService.recordBallot(meeting.id, command)),
+    );
+
+    expect(new Set(ballots.map((ballot) => ballot.id))).toEqual(new Set([ballots[0].id]));
+    expect(await first.cradle.ballotRepository.listForMeeting(meeting.id)).toHaveLength(1);
+  });
+
+  it("linearizes competing commands so exactly one final ballot claims the target", async () => {
+    const databasePath = join(mkdtempSync(join(tmpdir(), "hall-ballot-burst-conflict-")), "hall.sqlite");
+    const {
+      container: first,
+      members,
+      councilDecision,
+      meeting,
+    } = await prepareBallotScenario({
+      kind: "sqlite",
+      path: databasePath,
+    });
+    const containers = [
+      first,
+      ...Array.from({ length: 5 }, () =>
+        buildContainer({ host: "127.0.0.1", port: 0, database: { kind: "sqlite", path: databasePath } }),
+      ),
+    ];
+    onTestFinished(async () => {
+      await Promise.all(containers.map((container) => container.cradle.sqlExecutor.close()));
+    });
+
+    const results = await Promise.allSettled(
+      containers.map((container, contender) =>
+        container.cradle.ballotService.recordBallot(meeting.id, {
+          method: "public",
+          idempotencyKey: randomUUID(),
+          councilDecisionId: councilDecision.id,
+          votes: members.map((member, index) => ({
+            memberId: member.id,
+            castByMemberId: member.id,
+            choice: index === contender % members.length ? ("against" as const) : ("for" as const),
+          })),
+        }),
+      ),
+    );
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    const rejected = results.filter((result): result is PromiseRejectedResult => result.status === "rejected");
+    expect(rejected).toHaveLength(containers.length - 1);
+    for (const result of rejected) {
+      expect(result.reason).toBeInstanceOf(DomainError);
+      expect((result.reason as DomainError).code).toBe("ballot_already_recorded");
+    }
+    expect(await first.cradle.ballotRepository.listForMeeting(meeting.id)).toHaveLength(1);
   });
 
   it("rejects a final decision from being voted again in another meeting", async () => {

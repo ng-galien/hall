@@ -18,10 +18,12 @@ export function calculateQuorum(
 }
 
 export function isAttendanceComplete(evidence: ParticipationEvidence): boolean {
+  const rosterMemberIds = new Set(evidence.rosterMemberIds);
   const attendedMemberIds = new Set(evidence.attendance.map((item) => item.memberId));
   return (
     evidence.rosterMemberIds.length > 0 &&
-    attendedMemberIds.size === evidence.rosterMemberIds.length &&
+    rosterMemberIds.size === evidence.rosterMemberIds.length &&
+    evidence.attendance.length === evidence.rosterMemberIds.length &&
     evidence.rosterMemberIds.every((memberId) => attendedMemberIds.has(memberId))
   );
 }

@@ -8,7 +8,8 @@ import {
 import { documentFormatSchema, matchLiteral } from "@hall/domain";
 import type { NextFunction, Request, Response } from "express";
 import { documentPreviewMode } from "../domain/documentPolicy.js";
-import { action, collectionActions, objectActions, permitted } from "./sirenActionPolicy.js";
+import { hasPermission } from "../security/authorization.js";
+import { action, collectionActions, objectActions } from "./sirenActionPolicy.js";
 import {
   canonicalHref,
   classifySirenEntity,
@@ -166,7 +167,8 @@ function committeeMembershipEntities(
   if (!committee || typeof committee !== "object" || !Array.isArray(memberships)) return undefined;
   const committeeReference = publicReference("council-committee", committee as Record<string, unknown>);
   if (!committeeReference) return undefined;
-  const mutable = !(committee as Record<string, unknown>).archivedAt && permitted(request, "meetings.prepare");
+  const mutable =
+    !(committee as Record<string, unknown>).archivedAt && hasPermission(request.principal, "meetings.prepare");
   return memberships.flatMap((candidate) => {
     if (!candidate || typeof candidate !== "object") return [];
     const membership = candidate as Record<string, unknown>;
@@ -262,27 +264,27 @@ export function apiRootRepresentation(request: Request): SirenEntity<{ authentic
   if (request.principal) {
     links.push({ rel: ["session"], href: "/api/auth/session", type: SIREN_MEDIA_TYPE });
     links.push({ rel: ["settings"], href: "/api/settings", type: SIREN_MEDIA_TYPE });
-    if (permitted(request, "meetings.read")) {
+    if (hasPermission(request.principal, "meetings.read")) {
       links.push(
         { rel: ["council-meetings"], href: "/api/council-meetings", type: SIREN_MEDIA_TYPE },
         { rel: ["council-decisions"], href: "/api/council-decisions", type: SIREN_MEDIA_TYPE },
         { rel: ["council-members"], href: "/api/council-members", type: SIREN_MEDIA_TYPE },
       );
     }
-    if (permitted(request, "workspace.read")) {
+    if (hasPermission(request.principal, "workspace.read")) {
       links.push(
         { rel: ["resources"], href: "/api/resources", type: SIREN_MEDIA_TYPE },
         { rel: ["council-business"], href: "/api/council-business", type: SIREN_MEDIA_TYPE },
         { rel: ["templates"], href: "/api/templates", type: SIREN_MEDIA_TYPE },
       );
     }
-    if (permitted(request, "meetings.read")) {
+    if (hasPermission(request.principal, "meetings.read")) {
       links.push({ rel: ["council-committees"], href: "/api/council-committees", type: SIREN_MEDIA_TYPE });
     }
-    if (permitted(request, "users.manage")) {
+    if (hasPermission(request.principal, "users.manage")) {
       links.push({ rel: ["users"], href: "/api/users", type: SIREN_MEDIA_TYPE });
     }
-    if (permitted(request, "audit.read")) {
+    if (hasPermission(request.principal, "audit.read")) {
       links.push({ rel: ["audit-events"], href: "/api/audit-events", type: SIREN_MEDIA_TYPE });
     }
   }

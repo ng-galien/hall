@@ -479,7 +479,7 @@ export const queries = {
   "resource.update": `UPDATE resources SET
     title = :title,
     folder_path = :folderPath,
-    autosave_enabled = CASE WHEN :autosaveEnabled IS NULL THEN autosave_enabled ELSE :autosaveEnabled END,
+    autosave_enabled = COALESCE(:autosaveEnabled, autosave_enabled),
     updated_at = :updatedAt
     WHERE id = :id`,
   "resource.updateText": "UPDATE text_resources SET content = :content WHERE resource_id = :id",

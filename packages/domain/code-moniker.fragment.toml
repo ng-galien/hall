@@ -8,8 +8,8 @@ expr = "NOT ($domain_source AND $dependency_import_ref AND ($server_target OR $c
 message = "The domain package must not import runtime adapters."
 
 [[refs.where]]
-id = "state-machine-ownership-is-exclusive"
+id = "state-machine@domain-ownership-is-exclusive"
 severity = "error"
-rationale = "CouncilMeeting, AgendaItem, CouncilDecision, and Ballot lifecycles are auditable domain contracts. CouncilBusiness remains durable content without its own lifecycle. XState definitions belong in the domain state-machine package; server commands consume exported transitions, while clients consume resulting state over HTTP instead of creating parallel lifecycle authorities."
+rationale = "CouncilMeeting, AgendaItem, CouncilDecision, Minutes, and Ballot lifecycles are auditable domain contracts. CouncilBusiness remains durable content without its own lifecycle. XState definitions belong in the domain state-machine package; server commands consume exported transitions, while clients consume resulting state over HTTP instead of creating parallel lifecycle authorities."
 expr = "$dependency_import_ref AND $state_machine_runtime_target => $state_machine_at_domain_source"
 message = "XState lifecycle definitions belong exclusively to packages/domain/src/state-machines."

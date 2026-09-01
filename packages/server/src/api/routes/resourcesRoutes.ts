@@ -29,6 +29,7 @@ import type { Cradle } from "../../core/container.js";
 import { documentPreviewMode } from "../../domain/documentPolicy.js";
 import { requirePermission } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
+import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
@@ -111,17 +112,17 @@ export function createResourcesRouter({
     response.json(await resourceService.listFolderPaths());
   });
 
-  router.post("/paths", requirePermission("workspace.write"), async (request, response) => {
+  router.post("/paths", requireActionPermission("workspace.create-folder"), async (request, response) => {
     const { parentPath, name } = createFolderSchema.parse(request.body);
     response.status(201).json(await resourceService.createFolder(parentPath, name));
   });
 
-  router.put("/paths", requirePermission("workspace.write"), async (request, response) => {
+  router.put("/paths", requireActionPermission("workspace.rename-folder"), async (request, response) => {
     const { folderPath, name } = renameFolderSchema.parse(request.body);
     response.json(await resourceService.renameFolder(folderPath, name));
   });
 
-  router.post("/texts", requirePermission("workspace.write"), async (request, response) => {
+  router.post("/texts", requireActionPermission("resource.create-text"), async (request, response) => {
     const { title, folderPath, tags, content } = createTextResourceSchema.parse({
       ...request.body,
       kind: "text",
@@ -129,7 +130,7 @@ export function createResourcesRouter({
     response.status(201).json(await resourceService.createText({ title, folderPath, tags, content }));
   });
 
-  router.post("/remotes", requirePermission("workspace.write"), async (request, response) => {
+  router.post("/remotes", requireActionPermission("resource.create-remote"), async (request, response) => {
     const { title, folderPath, tags, url } = createRemoteResourceSchema.parse({
       ...request.body,
       kind: "remote",
@@ -137,50 +138,63 @@ export function createResourcesRouter({
     response.status(201).json(await resourceService.createRemote({ title, folderPath, tags, url }));
   });
 
-  router.post("/spreadsheets", requirePermission("workspace.write"), async (request, response) => {
+  router.post("/spreadsheets", requireActionPermission("resource.create-spreadsheet"), async (request, response) => {
     response
       .status(201)
       .json(await resourceService.createSpreadsheet(createSpreadsheetResourceSchema.parse(request.body)));
   });
 
-  router.post("/spreadsheets/import", requirePermission("workspace.write"), uploadFile, async (request, response) => {
-    if (!request.file) throw new DomainError("invalid_request");
-    const fallbackTitle = basename(request.file.originalname, extname(request.file.originalname));
-    response.status(201).json(
-      await spreadsheetImportService.import({
-        title: z
-          .string()
-          .trim()
-          .min(1)
-          .max(200)
-          .parse(request.body.title || fallbackTitle),
-        folderPath: folderPathSchema.parse(request.body.folderPath ?? ""),
-        tags: parseTags(request.body.tags),
-        fileName: request.file.originalname,
-        content: request.file.buffer,
-      }),
-    );
-  });
+  router.post(
+    "/spreadsheets/import",
+    requireActionPermission("resource.import-spreadsheet"),
+    uploadFile,
+    async (request, response) => {
+      if (!request.file) throw new DomainError("invalid_request");
+      const fallbackTitle = basename(request.file.originalname, extname(request.file.originalname));
+      response.status(201).json(
+        await spreadsheetImportService.import({
+          title: z
+            .string()
+            .trim()
+            .min(1)
+            .max(200)
+            .parse(request.body.title || fallbackTitle),
+          folderPath: folderPathSchema.parse(request.body.folderPath ?? ""),
+          tags: parseTags(request.body.tags),
+          fileName: request.file.originalname,
+          content: request.file.buffer,
+        }),
+      );
+    },
+  );
 
-  router.post("/geographic", requirePermission("workspace.write"), async (request, response) => {
+  router.post("/geographic", requireActionPermission("resource.create-geographic"), async (request, response) => {
     response
       .status(201)
       .json(await resourceService.createGeographic(createGeographicResourceSchema.parse(request.body)));
   });
 
-  router.post("/legal-references/search", requirePermission("workspace.read"), async (request, response) => {
-    response.json(await resourceService.searchLegalReferences(searchLegalReferencesSchema.parse(request.body)));
-  });
+  router.post(
+    "/legal-references/search",
+    requireActionPermission("resource.search-legal-references"),
+    async (request, response) => {
+      response.json(await resourceService.searchLegalReferences(searchLegalReferencesSchema.parse(request.body)));
+    },
+  );
 
-  router.post("/legal-references", requirePermission("workspace.write"), async (request, response) => {
-    response
-      .status(201)
-      .json(await resourceService.createLegalReference(createLegalReferenceResourceSchema.parse(request.body)));
-  });
+  router.post(
+    "/legal-references",
+    requireActionPermission("resource.create-legal-reference"),
+    async (request, response) => {
+      response
+        .status(201)
+        .json(await resourceService.createLegalReference(createLegalReferenceResourceSchema.parse(request.body)));
+    },
+  );
 
   router.post(
     "/:resourceId/legal-reference/resolve",
-    requirePermission("workspace.write"),
+    requireActionPermission("resource.resolve-legal-reference"),
     async (request, response) => {
       response.json(
         await resourceService.resolveLegalReference(
@@ -191,27 +205,35 @@ export function createResourcesRouter({
     },
   );
 
-  router.put("/:resourceId/geography", requirePermission("workspace.write"), async (request, response) => {
-    response.json(
-      await resourceService.updateGeographic(
-        routeParameter(request.params.resourceId),
-        updateGeographicResourceSchema.parse(request.body),
-      ),
-    );
-  });
+  router.put(
+    "/:resourceId/geography",
+    requireActionPermission("resource.update-geography"),
+    async (request, response) => {
+      response.json(
+        await resourceService.updateGeographic(
+          routeParameter(request.params.resourceId),
+          updateGeographicResourceSchema.parse(request.body),
+        ),
+      );
+    },
+  );
 
-  router.put("/:resourceId/spreadsheet", requirePermission("workspace.write"), async (request, response) => {
-    response.json(
-      await resourceService.updateSpreadsheet(
-        routeParameter(request.params.resourceId),
-        updateSpreadsheetResourceSchema.parse(request.body),
-      ),
-    );
-  });
+  router.put(
+    "/:resourceId/spreadsheet",
+    requireActionPermission("resource.update-spreadsheet"),
+    async (request, response) => {
+      response.json(
+        await resourceService.updateSpreadsheet(
+          routeParameter(request.params.resourceId),
+          updateSpreadsheetResourceSchema.parse(request.body),
+        ),
+      );
+    },
+  );
 
   router.post(
     "/:resourceId/legal-reference/refresh",
-    requirePermission("workspace.write"),
+    requireActionPermission("resource.refresh-legal-reference"),
     async (request, response) => {
       const { expectedSnapshotHash } = refreshLegalReferenceSchema.parse(request.body);
       response.json(
@@ -220,50 +242,64 @@ export function createResourcesRouter({
     },
   );
 
-  router.post("/documents", requirePermission("workspace.write"), uploadFile, async (request, response) => {
-    if (!request.file) throw new DomainError("invalid_request");
-    const folderPath = folderPathSchema.parse(request.body.folderPath ?? "");
-    const meetingId = request.body.meetingId ? z.string().uuid().parse(request.body.meetingId) : null;
-    response.status(201).json(
-      await resourceService.createDocument({
-        title: z
-          .string()
-          .trim()
-          .min(1)
-          .parse(request.body.title ?? request.file.originalname),
-        folderPath,
-        tags: parseTags(request.body.tags),
-        meetingId,
-        fileName: request.file.originalname,
-        category: documentCategorySchema.parse(request.body.category ?? "supporting"),
-        content: request.file.buffer,
-      }),
-    );
-  });
+  router.post(
+    "/documents",
+    requireActionPermission("resource.create-document"),
+    uploadFile,
+    async (request, response) => {
+      if (!request.file) throw new DomainError("invalid_request");
+      const folderPath = folderPathSchema.parse(request.body.folderPath ?? "");
+      const meetingId = request.body.meetingId ? z.string().uuid().parse(request.body.meetingId) : null;
+      response.status(201).json(
+        await resourceService.createDocument({
+          title: z
+            .string()
+            .trim()
+            .min(1)
+            .parse(request.body.title ?? request.file.originalname),
+          folderPath,
+          tags: parseTags(request.body.tags),
+          meetingId,
+          fileName: request.file.originalname,
+          category: documentCategorySchema.parse(request.body.category ?? "supporting"),
+          content: request.file.buffer,
+        }),
+      );
+    },
+  );
 
-  router.post("/editor-assets", requirePermission("workspace.write"), uploadFile, async (request, response) => {
-    if (!request.file) throw new DomainError("invalid_request");
-    response.status(201).json(
-      await editorAssetService.create({
-        title: editorAssetTitleSchema.parse(request.body.title),
-        fileName: request.file.originalname,
-        owner: {
-          kind: editorAssetOwnerKindSchema.parse(request.body.ownerKind),
-          id: z.string().uuid().parse(request.body.ownerId),
-        },
-        content: request.file.buffer,
-      }),
-    );
-  });
+  router.post(
+    "/editor-assets",
+    requireActionPermission("resource.create-editor-asset"),
+    uploadFile,
+    async (request, response) => {
+      if (!request.file) throw new DomainError("invalid_request");
+      response.status(201).json(
+        await editorAssetService.create({
+          title: editorAssetTitleSchema.parse(request.body.title),
+          fileName: request.file.originalname,
+          owner: {
+            kind: editorAssetOwnerKindSchema.parse(request.body.ownerKind),
+            id: z.string().uuid().parse(request.body.ownerId),
+          },
+          content: request.file.buffer,
+        }),
+      );
+    },
+  );
 
-  router.post("/:resourceId/promote", requirePermission("workspace.write"), async (request, response) => {
-    response.json(
-      await editorAssetService.promote(
-        routeParameter(request.params.resourceId),
-        promoteEditorAssetSchema.parse(request.body),
-      ),
-    );
-  });
+  router.post(
+    "/:resourceId/promote",
+    requireActionPermission("resource.promote-editor-asset"),
+    async (request, response) => {
+      response.json(
+        await editorAssetService.promote(
+          routeParameter(request.params.resourceId),
+          promoteEditorAssetSchema.parse(request.body),
+        ),
+      );
+    },
+  );
 
   router.get("/:resourceId/content", requirePermission("workspace.read"), async (request, response) => {
     const resource = await resourceService.find(routeParameter(request.params.resourceId));
@@ -306,13 +342,13 @@ export function createResourcesRouter({
     response.json(await resourceService.getDetails(routeParameter(request.params.resourceId)));
   });
 
-  router.put("/:resourceId", requirePermission("workspace.write"), async (request, response) => {
+  router.put("/:resourceId", requireActionPermission("resource.update"), async (request, response) => {
     response.json(
       await resourceService.update(routeParameter(request.params.resourceId), updateResourceSchema.parse(request.body)),
     );
   });
 
-  router.delete("/:resourceId", requirePermission("workspace.write"), async (request, response) => {
+  router.delete("/:resourceId", requireActionPermission("resource.delete"), async (request, response) => {
     await resourceService.delete(routeParameter(request.params.resourceId));
     response.status(204).end();
   });

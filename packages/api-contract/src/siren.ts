@@ -3,6 +3,7 @@ import { z } from "zod";
 export const SIREN_MEDIA_TYPE = "application/vnd.siren+json" as const;
 
 export const apiActionNames = [
+  "session.bootstrap",
   "session.login",
   "session.logout",
   "member.create",
@@ -41,6 +42,7 @@ export const apiActionNames = [
   "council-business.detach-decision",
   "meeting.create",
   "meeting.update",
+  "meeting.change-status",
   "meeting.schedule",
   "meeting.open",
   "meeting.close",
@@ -70,6 +72,7 @@ export const apiActionNames = [
   "template.generate",
 ] as const;
 export type ApiActionName = (typeof apiActionNames)[number];
+export const apiActionNameSchema = z.enum(apiActionNames);
 
 export type SirenMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -130,7 +133,7 @@ export const sirenLinkSchema = z.object({
 });
 
 export const sirenActionSchema = z.object({
-  name: z.string().min(1),
+  name: apiActionNameSchema,
   href: z.string().min(1),
   method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]).optional(),
   title: z.string().optional(),

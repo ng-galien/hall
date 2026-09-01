@@ -61,6 +61,13 @@ describe("documentary resources", () => {
     expect(
       domainBody<{ spreadsheet: unknown }>(await agent.get(`/api/resources/${created.id}`).expect(200)).spreadsheet,
     ).toEqual(changed);
+
+    const auditActions = domainBody<Array<{ action: string }>>(await agent.get("/api/audit-events").expect(200)).map(
+      ({ action }) => action,
+    );
+    expect(auditActions).toEqual(
+      expect.arrayContaining(["resource.create-spreadsheet", "resource.update-spreadsheet"]),
+    );
   });
 
   it("stores both resource variants under normalized folder paths", async () => {

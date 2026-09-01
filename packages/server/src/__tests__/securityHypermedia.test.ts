@@ -37,6 +37,16 @@ describe("users, permissions, audit and Siren affordances", () => {
     const { rawAgent, statelessAgent } = await createTestServer({ devAutoLogin: false });
     await rawAgent.post("/api/auth/bootstrap").send(administrator).expect(201);
 
+    const unauthenticatedRead = await statelessAgent.get("/api/resources").expect(401);
+    expect(unauthenticatedRead.body.code).toBe("authentication_required");
+    const unauthenticatedAlternativeRead = await statelessAgent.get("/api/council-decisions").expect(401);
+    expect(unauthenticatedAlternativeRead.body.code).toBe("authentication_required");
+    const unauthenticatedCommand = await statelessAgent
+      .post("/api/council-business")
+      .send({ kind: "openQuestion", title: "Mutation anonyme", report: "", folderPath: "", resourceIds: [] })
+      .expect(401);
+    expect(unauthenticatedCommand.body.code).toBe("authentication_required");
+
     await statelessAgent
       .post("/api/council-business")
       .set("Cookie", "hall_session=%")
@@ -61,6 +71,11 @@ describe("users, permissions, audit and Siren affordances", () => {
 
   it("authenticates users, filters actions by role and records successful changes", async () => {
     const { rawAgent } = await createTestServer({ devAutoLogin: false });
+
+    const initialStatus = await rawAgent.get("/api/auth/status").expect(200);
+    expect(initialStatus.body.actions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "session.bootstrap", href: "/api/auth/bootstrap" })]),
+    );
 
     const bootstrap = await rawAgent.post("/api/auth/bootstrap").send(administrator).expect(201);
     const administratorId = properties<{ id: string }>(bootstrap).id;
@@ -138,10 +153,16 @@ describe("users, permissions, audit and Siren affordances", () => {
 
     const audit = await rawAgent.get("/api/audit-events").expect(200);
     const auditEvents = audit.body.entities.map(
-      (entity: { properties: { action: string; actorUserId: string } }) => entity.properties,
+      (entity: { properties: { action: string; actorUserId: string; targetType: string; targetId: string | null } }) =>
+        entity.properties,
     );
     expect(auditEvents).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          action: "session.bootstrap",
+          targetType: "user",
+          targetId: administratorId,
+        }),
         expect.objectContaining({ action: "member.create", actorUserId: administratorId }),
         expect.objectContaining({ action: "meeting.create", actorUserId: administratorId }),
         expect.objectContaining({ action: "user.create", actorUserId: administratorId }),
@@ -190,7 +211,8 @@ describe("users, permissions, audit and Siren affordances", () => {
       .expect(403);
     expect(forbidden.headers["content-type"]).toContain(PROBLEM_MEDIA_TYPE);
     expect(forbidden.body.code).toBe("permission_denied");
-    await rawAgent.get("/api/users").expect(403);
+    const forbiddenUsers = await rawAgent.get("/api/users").expect(403);
+    expect(forbiddenUsers.body.code).toBe("permission_denied");
 
     const root = await rawAgent.get("/api").expect(200);
     expect(root.body.links).not.toEqual(expect.arrayContaining([expect.objectContaining({ rel: ["users"] })]));
@@ -201,13 +223,40 @@ describe("users, permissions, audit and Siren affordances", () => {
       .send({ email: administrator.email, password: administrator.password })
       .expect(200);
     const auditAfterDenial = await rawAgent.get("/api/audit-events").expect(200);
-    expect(
-      auditAfterDenial.body.entities.map(
-        (entity: { properties: { action: string; actorUserId: string; outcome: string } }) => entity.properties,
-      ),
-    ).toEqual(
+    const auditEventsAfterDenial: Array<{
+      action: string;
+      actorUserId: string;
+      outcome: string;
+      targetType: string;
+      targetId: string | null;
+    }> = auditAfterDenial.body.entities.map(
+      (entity: {
+        properties: {
+          action: string;
+          actorUserId: string;
+          outcome: string;
+          targetType: string;
+          targetId: string | null;
+        };
+      }) => entity.properties,
+    );
+    expect(auditEventsAfterDenial).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ action: "council-business.create", actorUserId: readerUser.id, outcome: "denied" }),
+      ]),
+    );
+    const readerSessionId = auditEventsAfterDenial.find(
+      (event) => event.action === "session.login" && event.actorUserId === readerUser.id,
+    )?.targetId;
+    expect(readerSessionId).toEqual(expect.any(String));
+    expect(auditEventsAfterDenial).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: "session.logout",
+          actorUserId: readerUser.id,
+          targetType: "session",
+          targetId: readerSessionId,
+        }),
       ]),
     );
   });

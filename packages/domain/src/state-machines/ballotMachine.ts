@@ -1,4 +1,5 @@
 import { getNextSnapshot, setup } from "xstate";
+import { matchLiteral } from "../match.js";
 import type {
   BallotMethod,
   BallotResult,
@@ -22,6 +23,8 @@ export type BallotMachineState =
   | "proxyInvalid"
   | "recusalsInvalid"
   | "votesInvalid";
+
+export type BallotEvaluationState = Exclude<BallotMachineState, "draft" | "recorded" | "cancelled">;
 
 export type BallotVoter =
   | { kind: "present"; memberId: string; castByMemberId: string }
@@ -60,40 +63,46 @@ function proxiesAreValid(event: BallotSubmission): boolean {
   const attendanceByMember = new Map(event.participationEvidence.attendance.map((item) => [item.memberId, item]));
   const proxyCountByHolder = new Map<string, number>();
   for (const item of event.participationEvidence.attendance) {
+    const fieldsAreValid = matchLiteral(item.status, {
+      present: () => item.proxyHolderMemberId === null && item.proxyDocumentId === null,
+      absent: () => item.proxyHolderMemberId === null && item.proxyDocumentId === null,
+      excused: () => item.proxyHolderMemberId === null && item.proxyDocumentId === null,
+      represented: () => Boolean(item.proxyHolderMemberId && item.proxyDocumentId),
+    });
+    if (!fieldsAreValid) return false;
     if (item.status !== "represented" || !item.proxyHolderMemberId) continue;
     proxyCountByHolder.set(item.proxyHolderMemberId, (proxyCountByHolder.get(item.proxyHolderMemberId) ?? 0) + 1);
   }
   if ([...proxyCountByHolder.values()].some((count) => count > 1)) return false;
-  return event.participationEvidence.attendance
-    .filter((item) => item.status === "present" || item.status === "represented")
-    .every((item) => {
-      const attendance = attendanceByMember.get(item.memberId)!;
-      if (attendance.status !== "represented") return true;
-      const holder = attendance.proxyHolderMemberId
-        ? attendanceByMember.get(attendance.proxyHolderMemberId)
-        : undefined;
-      return Boolean(attendance.proxyDocumentId && holder?.status === "present");
-    });
+  return event.participationEvidence.attendance.every((item) => {
+    if (item.status !== "represented") return true;
+    const holder = item.proxyHolderMemberId ? attendanceByMember.get(item.proxyHolderMemberId) : undefined;
+    return holder?.status === "present";
+  });
 }
 
 export function deriveBallotVoters(event: BallotSubmission): BallotVoter[] {
   const recused = new Set(event.recusedMemberIds);
   return event.participationEvidence.attendance.flatMap((attendance): BallotVoter[] => {
     if (recused.has(attendance.memberId)) return [];
-    if (attendance.status === "present") {
-      return [{ kind: "present", memberId: attendance.memberId, castByMemberId: attendance.memberId }];
-    }
-    if (attendance.status === "represented" && attendance.proxyHolderMemberId && attendance.proxyDocumentId) {
-      return [
-        {
-          kind: "represented",
-          memberId: attendance.memberId,
-          castByMemberId: attendance.proxyHolderMemberId,
-          proxyDocumentId: attendance.proxyDocumentId,
-        },
-      ];
-    }
-    return [];
+    return matchLiteral(attendance.status, {
+      present: (): BallotVoter[] => [
+        { kind: "present", memberId: attendance.memberId, castByMemberId: attendance.memberId },
+      ],
+      absent: (): BallotVoter[] => [],
+      excused: (): BallotVoter[] => [],
+      represented: (): BallotVoter[] =>
+        attendance.proxyHolderMemberId && attendance.proxyDocumentId
+          ? [
+              {
+                kind: "represented",
+                memberId: attendance.memberId,
+                castByMemberId: attendance.proxyHolderMemberId,
+                proxyDocumentId: attendance.proxyDocumentId,
+              },
+            ]
+          : [],
+    });
   });
 }
 
@@ -114,7 +123,11 @@ function votesAreValid(event: BallotSubmission): boolean {
   const eligibleByMember = new Map(eligibleVoters.map((voter) => [voter.memberId, voter]));
   if (event.method === "secret") {
     const { votesFor, votesAgainst, abstentions, notVoting } = event.totals;
-    return votesFor + votesAgainst + abstentions + notVoting === eligibleVoters.length;
+    const totals = [votesFor, votesAgainst, abstentions, notVoting];
+    return (
+      totals.every((total) => Number.isSafeInteger(total) && total >= 0) &&
+      votesFor + votesAgainst + abstentions + notVoting === eligibleVoters.length
+    );
   }
 
   const seenMembers = new Set<string>();
@@ -124,7 +137,7 @@ function votesAreValid(event: BallotSubmission): boolean {
     seenMembers.add(vote.memberId);
     if (vote.castByMemberId !== voter.castByMemberId) return false;
   }
-  return seenMembers.size === eligibleVoters.length && eligibleVoters.every((voter) => seenMembers.has(voter.memberId));
+  return seenMembers.size === eligibleVoters.length;
 }
 
 export const ballotMachineDefinition = {
@@ -195,8 +208,8 @@ export function transitionBallot(state: BallotMachineState, event: BallotEvent):
   return getNextSnapshot(ballotMachine, current, event).value as BallotMachineState;
 }
 
-export function evaluateBallot(event: BallotSubmission): BallotMachineState {
-  return transitionBallot("draft", event) ?? "votesInvalid";
+export function evaluateBallot(event: BallotSubmission): BallotEvaluationState {
+  return (transitionBallot("draft", event) as BallotEvaluationState | null) ?? "votesInvalid";
 }
 
 export function countVoteChoices(votes: VoteInput[]): Record<VoteChoice, number> {

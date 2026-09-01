@@ -88,10 +88,25 @@ describe("content templates", () => {
     );
     expect(invalidPreview.diagnostics).toEqual([expect.objectContaining({ code: "unknown_directive" })]);
 
+    await agent
+      .put(`/api/templates/${template.id}`)
+      .send({
+        kind: "message",
+        documentType: "meeting-notice-message",
+        name: "Message de convocation actualisé",
+        subject: ":field{name=meeting.startsAt}",
+        bodyMarkdown: `Bonjour :member[Ancien libellé]{#${member.id}}.`,
+      })
+      .expect(200);
+
     await agent.delete(`/api/templates/${template.id}`).expect(204);
-    const audit = domainBody<Array<{ action: string }>>(await agent.get("/api/audit-events").expect(200));
+    const audit = domainBody<Array<{ action: string; targetType: string; targetId: string | null }>>(
+      await agent.get("/api/audit-events").expect(200),
+    );
     expect(audit).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({ action: "template.create", targetType: "template", targetId: template.id }),
+        expect.objectContaining({ action: "template.update", targetType: "template", targetId: template.id }),
         expect.objectContaining({ action: "template.preview" }),
         expect.objectContaining({ action: "template.delete" }),
       ]),

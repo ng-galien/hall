@@ -71,6 +71,9 @@ describe("spreadsheet import", () => {
     );
     expect(resources).toEqual([expect.objectContaining({ id: imported.id, kind: "spreadsheet" })]);
     expect(resources.some(({ kind }) => kind === "document")).toBe(false);
+    expect(domainBody<Array<{ action: string }>>(await agent.get("/api/audit-events").expect(200))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ action: "resource.import-spreadsheet" })]),
+    );
   });
 
   it("detects a comma delimiter after an initial title row", async () => {

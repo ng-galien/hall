@@ -7,6 +7,7 @@ import type {
   CouncilDecisionRepository,
   CreateEditorAssetResource,
   ResourceRepository,
+  UnitOfWork,
 } from "../repositories/contracts.js";
 import { DomainError } from "./errors.js";
 
@@ -25,11 +26,13 @@ export function createEditorAssetService({
   councilBusinessRepository,
   councilDecisionRepository,
   agendaItemRepository,
+  unitOfWork,
 }: {
   resourceRepository: ResourceRepository;
   councilBusinessRepository: CouncilBusinessRepository;
   councilDecisionRepository: CouncilDecisionRepository;
   agendaItemRepository: AgendaItemRepository;
+  unitOfWork: UnitOfWork;
 }): EditorAssetService {
   const ownerFolderPath = (owner: EditorAssetOwner): Promise<string> =>
     matchDiscriminated(owner, "kind", {
@@ -82,19 +85,24 @@ export function createEditorAssetService({
       if (inspection.format !== "jpeg" && inspection.format !== "png") {
         throw new DomainError("unsupported_document_format", 415);
       }
-      return resourceRepository.createEditorAsset({
-        ...input,
-        folderPath: await ownerFolderPath(input.owner),
-        format: inspection.format,
-        mediaType: inspection.format === "jpeg" ? "image/jpeg" : "image/png",
-        contentSha256: inspection.contentSha256,
-      });
+      const format = inspection.format;
+      return unitOfWork.execute(async () =>
+        resourceRepository.createEditorAsset({
+          ...input,
+          folderPath: await ownerFolderPath(input.owner),
+          format,
+          mediaType: format === "jpeg" ? "image/jpeg" : "image/png",
+          contentSha256: inspection.contentSha256,
+        }),
+      );
     },
     async promote(id, input) {
       if (input.category === "proxy") throw new DomainError("invalid_request");
-      const promoted = await resourceRepository.promoteEditorAsset(id, input);
-      if (!promoted) throw new DomainError("resource_not_found", 404);
-      return promoted;
+      return unitOfWork.execute(async () => {
+        const promoted = await resourceRepository.promoteEditorAsset(id, input);
+        if (!promoted) throw new DomainError("resource_not_found", 404);
+        return promoted;
+      });
     },
     async reconcile(owner, markdown) {
       await ownerFolderPath(owner);

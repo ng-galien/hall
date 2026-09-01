@@ -1,4 +1,4 @@
-import type { ApiActionName, ApiPermission, SirenAction } from "@hall/api-contract";
+import type { ApiActionName, SirenAction } from "@hall/api-contract";
 import {
   agendaItemIsOpen,
   agendaItemStatusSchema,
@@ -17,7 +17,7 @@ import {
 } from "@hall/domain";
 import type { Request } from "express";
 import { acceptedDocumentExtensions, acceptedSpreadsheetImportExtensions } from "../domain/documentPolicy.js";
-import { hasPermission } from "../security/authorization.js";
+import { actionIsPermitted } from "./apiCommandAuthorization.js";
 import {
   meetingReferenceFromRequest,
   objectId,
@@ -39,128 +39,113 @@ function statusAction(
   return { ...action(name, "PUT", href, title), fields: [{ name: "status", type: "text", value: status }] };
 }
 
-export function permitted(request: Request, permission: ApiPermission): boolean {
-  return hasPermission(request.principal, permission);
+function canExecuteAction(request: Request, actionName: ApiActionName): boolean {
+  return actionIsPermitted(request.principal, actionName);
+}
+
+function authorizedActions(request: Request, actions: SirenAction[]): SirenAction[] {
+  return actions.filter((candidate) => canExecuteAction(request, candidate.name));
 }
 
 function resourceCollectionActions(request: Request): SirenAction[] {
-  if (permitted(request, "workspace.read") && !permitted(request, "workspace.write")) {
-    return [
-      {
-        ...action(
-          "resource.search-legal-references",
-          "POST",
-          "/api/resources/legal-references/search",
-          "Search official legal references",
-        ),
-        fields: [
-          { name: "query", type: "search" },
-          { name: "effectiveAt", type: "date" },
-        ],
-      },
-    ];
-  }
-  if (permitted(request, "workspace.write")) {
-    return [
-      action("resource.create-text", "POST", "/api/resources/texts", "Create a text"),
-      action("resource.create-spreadsheet", "POST", "/api/resources/spreadsheets", "Create a spreadsheet"),
-      {
-        ...action("resource.import-spreadsheet", "POST", "/api/resources/spreadsheets/import", "Import a spreadsheet"),
-        type: "multipart/form-data",
-        fields: [
-          { name: "file", type: "file", accept: acceptedSpreadsheetImportExtensions.join(",") },
-          { name: "title", type: "text" },
-          { name: "folderPath", type: "text", value: "" },
-          { name: "tags", type: "text", value: "" },
-        ],
-      },
-      {
-        ...action("resource.create-remote", "POST", "/api/resources/remotes", "Create a remote resource"),
-        fields: [
-          { name: "title", type: "text" },
-          { name: "url", type: "url" },
-          { name: "folderPath", type: "text", value: "" },
-          { name: "tags", type: "text", value: "" },
-        ],
-      },
-      {
-        ...action("resource.create-geographic", "POST", "/api/resources/geographic", "Create a geographic resource"),
-        fields: [
-          { name: "title", type: "text" },
-          { name: "folderPath", type: "text", value: "" },
-          { name: "tags", type: "text", value: "" },
-          { name: "provider", type: "text", value: "ign" },
-          {
-            name: "layers",
-            type: "text",
-            value: [{ id: geographicLayerOptions[0].id, visible: true, opacity: 1 }],
-            options: geographicLayerOptions.map(({ id, title }) => ({ value: id, title })),
-          },
-          { name: "view", type: "text" },
-          { name: "hallLayer", type: "text", value: { type: "FeatureCollection", features: [] } },
-        ],
-      },
-      {
-        ...action(
-          "resource.search-legal-references",
-          "POST",
-          "/api/resources/legal-references/search",
-          "Search official legal references",
-        ),
-        fields: [
-          { name: "query", type: "search" },
-          { name: "effectiveAt", type: "date" },
-        ],
-      },
-      action(
-        "resource.create-legal-reference",
+  return authorizedActions(request, [
+    action("resource.create-text", "POST", "/api/resources/texts", "Create a text"),
+    action("resource.create-spreadsheet", "POST", "/api/resources/spreadsheets", "Create a spreadsheet"),
+    {
+      ...action("resource.import-spreadsheet", "POST", "/api/resources/spreadsheets/import", "Import a spreadsheet"),
+      type: "multipart/form-data",
+      fields: [
+        { name: "file", type: "file", accept: acceptedSpreadsheetImportExtensions.join(",") },
+        { name: "title", type: "text" },
+        { name: "folderPath", type: "text", value: "" },
+        { name: "tags", type: "text", value: "" },
+      ],
+    },
+    {
+      ...action("resource.create-remote", "POST", "/api/resources/remotes", "Create a remote resource"),
+      fields: [
+        { name: "title", type: "text" },
+        { name: "url", type: "url" },
+        { name: "folderPath", type: "text", value: "" },
+        { name: "tags", type: "text", value: "" },
+      ],
+    },
+    {
+      ...action("resource.create-geographic", "POST", "/api/resources/geographic", "Create a geographic resource"),
+      fields: [
+        { name: "title", type: "text" },
+        { name: "folderPath", type: "text", value: "" },
+        { name: "tags", type: "text", value: "" },
+        { name: "provider", type: "text", value: "ign" },
+        {
+          name: "layers",
+          type: "text",
+          value: [{ id: geographicLayerOptions[0].id, visible: true, opacity: 1 }],
+          options: geographicLayerOptions.map(({ id, title }) => ({ value: id, title })),
+        },
+        { name: "view", type: "text" },
+        { name: "hallLayer", type: "text", value: { type: "FeatureCollection", features: [] } },
+      ],
+    },
+    {
+      ...action(
+        "resource.search-legal-references",
         "POST",
-        "/api/resources/legal-references",
-        "Create an official legal reference",
+        "/api/resources/legal-references/search",
+        "Search official legal references",
       ),
-      {
-        ...action("workspace.create-folder", "POST", "/api/resources/paths", "Create a folder"),
-        fields: [
-          { name: "parentPath", type: "text", value: "" },
-          { name: "name", type: "text" },
-        ],
-      },
-      {
-        ...action("workspace.rename-folder", "PUT", "/api/resources/paths", "Rename a folder"),
-        fields: [
-          { name: "folderPath", type: "text" },
-          { name: "name", type: "text" },
-        ],
-      },
-      {
-        ...action("resource.create-document", "POST", "/api/resources/documents", "Upload a document"),
-        type: "multipart/form-data",
-        fields: [
-          {
-            name: "file",
-            type: "file",
-            accept: acceptedDocumentExtensions.join(","),
-          },
-          { name: "title", type: "text" },
-          { name: "folderPath", type: "text", value: "" },
-          { name: "tags", type: "text", value: "" },
-          { name: "meetingId", type: "text" },
-          { name: "category", type: "text", value: "supporting" },
-        ],
-      },
-      {
-        ...action("resource.create-editor-asset", "POST", "/api/resources/editor-assets", "Upload an editor asset"),
-        type: "multipart/form-data",
-        fields: [
-          { name: "file", type: "file", accept: ".jpg,.jpeg,.png" },
-          { name: "title", type: "text" },
-          { name: "ownerKind", type: "text" },
-          { name: "ownerId", type: "text" },
-        ],
-      },
-    ];
-  }
-  return [];
+      fields: [
+        { name: "query", type: "search" },
+        { name: "effectiveAt", type: "date" },
+      ],
+    },
+    action(
+      "resource.create-legal-reference",
+      "POST",
+      "/api/resources/legal-references",
+      "Create an official legal reference",
+    ),
+    {
+      ...action("workspace.create-folder", "POST", "/api/resources/paths", "Create a folder"),
+      fields: [
+        { name: "parentPath", type: "text", value: "" },
+        { name: "name", type: "text" },
+      ],
+    },
+    {
+      ...action("workspace.rename-folder", "PUT", "/api/resources/paths", "Rename a folder"),
+      fields: [
+        { name: "folderPath", type: "text" },
+        { name: "name", type: "text" },
+      ],
+    },
+    {
+      ...action("resource.create-document", "POST", "/api/resources/documents", "Upload a document"),
+      type: "multipart/form-data",
+      fields: [
+        {
+          name: "file",
+          type: "file",
+          accept: acceptedDocumentExtensions.join(","),
+        },
+        { name: "title", type: "text" },
+        { name: "folderPath", type: "text", value: "" },
+        { name: "tags", type: "text", value: "" },
+        { name: "meetingId", type: "text" },
+        { name: "category", type: "text", value: "supporting" },
+      ],
+    },
+    {
+      ...action("resource.create-editor-asset", "POST", "/api/resources/editor-assets", "Upload an editor asset"),
+      type: "multipart/form-data",
+      fields: [
+        { name: "file", type: "file", accept: ".jpg,.jpeg,.png" },
+        { name: "title", type: "text" },
+        { name: "ownerKind", type: "text" },
+        { name: "ownerId", type: "text" },
+      ],
+    },
+  ]);
 }
 
 export function collectionActions(request: Request, entityClass: SirenEntityClass): SirenAction[] {
@@ -173,48 +158,42 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
     ballot: () => [],
     "committee-membership": () => [],
     "council-business": () =>
-      permitted(request, "workspace.write")
+      canExecuteAction(request, "council-business.create")
         ? [action("council-business.create", "POST", "/api/council-business", "Create council business")]
         : [],
     "council-committee": () =>
-      permitted(request, "meetings.prepare")
+      canExecuteAction(request, "committee.create")
         ? [action("committee.create", "POST", "/api/council-committees", "Create a committee")]
         : [],
     "council-decision": () =>
-      permitted(request, "workspace.write")
+      canExecuteAction(request, "decision.create")
         ? [action("decision.create", "POST", "/api/council-decisions", "Create a council decision")]
         : [],
     "council-meeting": () =>
-      permitted(request, "meetings.prepare")
+      canExecuteAction(request, "meeting.create")
         ? [action("meeting.create", "POST", "/api/council-meetings", "Create a meeting")]
         : [],
     "council-member": () =>
-      permitted(request, "members.manage")
+      canExecuteAction(request, "member.create")
         ? [action("member.create", "POST", "/api/council-members", "Create a council member")]
         : [],
     entity: () => [],
     "hall-settings": () => [],
     resource: () => resourceCollectionActions(request),
     session: () => [],
-    template: () => {
-      const actions = permitted(request, "workspace.read")
-        ? [
-            action("template.preview", "POST", "/api/templates/preview", "Preview a template"),
-            {
-              ...action("template.preview-pdf", "POST", "/api/templates/preview-pdf", "Preview a PDF"),
-              fields: [{ name: "bodyMarkdown", type: "text" }],
-            },
-          ]
-        : [];
-      if (permitted(request, "workspace.write")) {
-        actions.unshift(action("template.create", "POST", "/api/templates", "Create a template"));
-      }
-      return actions;
-    },
+    template: () =>
+      authorizedActions(request, [
+        action("template.create", "POST", "/api/templates", "Create a template"),
+        action("template.preview", "POST", "/api/templates/preview", "Preview a template"),
+        {
+          ...action("template.preview-pdf", "POST", "/api/templates/preview-pdf", "Preview a PDF"),
+          fields: [{ name: "bodyMarkdown", type: "text" }],
+        },
+      ]),
     "template-preview": () => [],
     "template-reference": () => [],
     user: () =>
-      permitted(request, "users.manage") ? [action("user.create", "POST", "/api/users", "Create a user")] : [],
+      canExecuteAction(request, "user.create") ? [action("user.create", "POST", "/api/users", "Create a user")] : [],
   });
 }
 
@@ -249,16 +228,16 @@ interface ObjectActionContext {
 }
 
 function resourceActions({ request, value, primary, id, reference }: ObjectActionContext): SirenAction[] {
-  if (!id || !reference || !permitted(request, "workspace.write")) return [];
+  if (!id || !reference) return [];
   if (primary?.kind === "document" && primary.usage === "editorAsset") {
-    return [
+    return authorizedActions(request, [
       action(
         "resource.promote-editor-asset",
         "POST",
         `/api/resources/${reference}/promote`,
         "Promote the editor asset to a document",
       ),
-    ];
+    ]);
   }
   const details = value as {
     councilBusiness?: unknown[];
@@ -331,11 +310,11 @@ function resourceActions({ request, value, primary, id, reference }: ObjectActio
   ) {
     actions.push(action("resource.delete", "DELETE", `/api/resources/${reference}`, "Delete the resource"));
   }
-  return actions;
+  return authorizedActions(request, actions);
 }
 
 function councilBusinessActions({ request, value, primary, id, reference }: ObjectActionContext): SirenAction[] {
-  if (!id || !reference || !permitted(request, "workspace.write")) return [];
+  if (!id || !reference) return [];
   const business = primary as { kind?: string; councilDecisionId?: string | null };
   const businessKind = councilBusinessKindSchema.safeParse(business.kind);
   const actions = [
@@ -369,7 +348,7 @@ function councilBusinessActions({ request, value, primary, id, reference }: Obje
     Boolean(openOccurrence?.meeting?.isReconvenedMeeting) ||
     Boolean(openOccurrence?.meeting?.quorumFailure);
   const openMeetingStatus = meetingStatusSchema.safeParse(openOccurrence?.meeting?.status);
-  if (occurrencesKnown && !openOccurrence && permitted(request, "meetings.prepare")) {
+  if (occurrencesKnown && !openOccurrence && canExecuteAction(request, "council-business.schedule")) {
     actions.push({
       ...action("council-business.schedule", "POST", `/api/council-business/${reference}/schedule`, "Add to an agenda"),
       fields: [
@@ -386,7 +365,7 @@ function councilBusinessActions({ request, value, primary, id, reference }: Obje
     meetingAgendaCanChange(openMeetingStatus.data) &&
     !openOccurrence.meeting.quorumFailure &&
     !openOccurrence.meeting.isReconvenedMeeting &&
-    permitted(request, "meetings.prepare")
+    canExecuteAction(request, "agenda-item.remove")
   ) {
     actions.push(
       action(
@@ -420,7 +399,7 @@ function councilBusinessActions({ request, value, primary, id, reference }: Obje
           ),
     );
   }
-  return actions;
+  return authorizedActions(request, actions);
 }
 
 function agendaItemActions({ request, value, primary, id }: ObjectActionContext): SirenAction[] {
@@ -429,13 +408,8 @@ function agendaItemActions({ request, value, primary, id }: ObjectActionContext)
   const meeting = payload.meeting;
   const agendaItems = Array.isArray(payload.agendaItems) ? payload.agendaItems : [];
   if (!meeting || typeof meeting !== "object") {
-    if (
-      permitted(request, "meetings.conduct") &&
-      typeof primary?.meetingId === "string" &&
-      primary.startedAt &&
-      !primary.completedAt
-    ) {
-      return [
+    if (typeof primary?.meetingId === "string" && primary.startedAt && !primary.completedAt) {
+      return authorizedActions(request, [
         action(
           "agenda-item.save-notes",
           "PUT",
@@ -446,7 +420,7 @@ function agendaItemActions({ request, value, primary, id }: ObjectActionContext)
           "POST",
           `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary.meetingId}/agenda-items/${id}/complete`,
         ),
-      ];
+      ]);
     }
     return [];
   }
@@ -459,7 +433,7 @@ function agendaItemActions({ request, value, primary, id }: ObjectActionContext)
     meetingAgendaCanChange(meetingStatus.data) &&
     !(meeting as Record<string, unknown>).quorumFailure &&
     !(meeting as Record<string, unknown>).isReconvenedMeeting;
-  if (meetingComposable && permitted(request, "meetings.prepare")) {
+  if (meetingComposable && canExecuteAction(request, "agenda-item.remove")) {
     return [
       action(
         "agenda-item.remove",
@@ -469,23 +443,26 @@ function agendaItemActions({ request, value, primary, id }: ObjectActionContext)
       ),
     ];
   }
-  if (!meetingStatus.success || meetingStatus.data !== "inProgress" || !permitted(request, "meetings.conduct")) {
+  if (!meetingStatus.success || meetingStatus.data !== "inProgress") {
     return [];
   }
   const item = primary as Record<string, unknown>;
   if (item.completedAt) return [];
   if (item.startedAt) {
-    return [
+    return authorizedActions(request, [
       action("agenda-item.save-notes", "PUT", `/api/council-meetings/${meetingReference}/agenda-items/${id}/notes`),
       action("agenda-item.complete", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${id}/complete`),
-    ];
+    ]);
   }
   const firstOpenItem = agendaItems.find(
     (candidate) => candidate && typeof candidate === "object" && !(candidate as Record<string, unknown>).completedAt,
   );
-  return firstOpenItem && typeof firstOpenItem === "object" && objectId(firstOpenItem) === id
-    ? [action("agenda-item.start", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${id}/start`)]
-    : [];
+  return authorizedActions(
+    request,
+    firstOpenItem && typeof firstOpenItem === "object" && objectId(firstOpenItem) === id
+      ? [action("agenda-item.start", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${id}/start`)]
+      : [],
+  );
 }
 
 function councilMeetingActions({ request, value, primary }: ObjectActionContext): SirenAction[] {
@@ -498,7 +475,7 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
   const status = parsedStatus.success ? parsedStatus.data : null;
   const actions: SirenAction[] = [];
   const reconvened = Boolean(aggregate.isReconvenedMeeting);
-  if (status === "draft" && permitted(request, "meetings.prepare")) {
+  if (status === "draft") {
     actions.push(action("meeting.update", "PUT", `/api/council-meetings/${meetingReference}`, "Update the meeting"));
     if (
       typeof payload.activeMemberCount === "number" &&
@@ -525,15 +502,10 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
     );
   }
   const quorumFailure = Boolean(aggregate.quorumFailure);
-  if (
-    status &&
-    meetingAttendanceCanChange(status) &&
-    (status === "inProgress" || !quorumFailure) &&
-    permitted(request, "meetings.conduct")
-  ) {
+  if (status && meetingAttendanceCanChange(status) && (status === "inProgress" || !quorumFailure)) {
     actions.push(action("meeting.record-attendance", "PUT", `/api/council-meetings/${meetingReference}/attendance`));
   }
-  if (status === "scheduled" && !quorumFailure && permitted(request, "meetings.prepare")) {
+  if (status === "scheduled" && !quorumFailure) {
     actions.push(
       action("meeting.update", "PUT", `/api/council-meetings/${meetingReference}`, "Update the meeting"),
       statusAction(
@@ -547,17 +519,13 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
       actions.push(action("meeting.reorder-agenda", "PUT", `/api/council-meetings/${meetingReference}/agenda-order`));
     }
   }
-  if (
-    status === "scheduled" &&
-    !quorumFailure &&
-    (permitted(request, "meetings.prepare") || permitted(request, "meetings.conduct"))
-  ) {
+  if (status === "scheduled" && !quorumFailure) {
     actions.push(action("meeting.set-officers", "PUT", `/api/council-meetings/${meetingReference}/officers`));
   }
-  if (status === "scheduled" && quorumFailure && permitted(request, "meetings.conduct")) {
+  if (status === "scheduled" && quorumFailure) {
     actions.push(action("meeting.reconvene", "POST", `/api/council-meetings/${meetingReference}/reconvene`));
   }
-  if (status === "scheduled" && !quorumFailure && permitted(request, "meetings.conduct")) {
+  if (status === "scheduled" && !quorumFailure) {
     const roster = Array.isArray(payload.rosterMemberIds) ? payload.rosterMemberIds : [];
     const attendance = Array.isArray(payload.attendance) ? payload.attendance : [];
     const complete =
@@ -602,7 +570,7 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
       );
     }
   }
-  if (status === "inProgress" && permitted(request, "meetings.conduct")) {
+  if (status === "inProgress") {
     actions.push(
       action("meeting.add-late-business", "POST", `/api/council-meetings/${meetingReference}/late-business`),
     );
@@ -648,7 +616,7 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
       statusAction("meeting.close", `/api/council-meetings/${meetingReference}/status`, "closed", "Close the meeting"),
     );
   }
-  if (status === "closed" && aggregate.minutesStatus === "draft" && permitted(request, "meetings.prepare")) {
+  if (status === "closed" && aggregate.minutesStatus === "draft") {
     actions.push(
       action(
         "meeting.finalize-minutes",
@@ -658,11 +626,11 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
       ),
     );
   }
-  return actions;
+  return authorizedActions(request, actions);
 }
 
 function ballotActions({ request, value, primary, id }: ObjectActionContext): SirenAction[] {
-  if (!id || !permitted(request, "meetings.conduct")) return [];
+  if (!id || !canExecuteAction(request, "ballot.cancel")) return [];
   const payload = value as Record<string, unknown>;
   const meeting = payload.meeting;
   const agendaItems = Array.isArray(payload.agendaItems) ? payload.agendaItems : [];
@@ -712,8 +680,8 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
     "committee-membership": () => [],
     "council-business": () => councilBusinessActions(context),
     "council-committee": () => {
-      if (!id || !reference || !permitted(request, "meetings.prepare") || primary?.archivedAt) return [];
-      return [
+      if (!id || !reference || primary?.archivedAt) return [];
+      return authorizedActions(request, [
         action("committee.update", "PUT", `/api/council-committees/${reference}`, "Update the committee"),
         action("committee.archive", "POST", `/api/council-committees/${reference}/archive`, "Archive the committee"),
         action(
@@ -722,10 +690,10 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
           `/api/council-committees/${reference}/memberships`,
           "Add a committee member",
         ),
-      ];
+      ]);
     },
     "council-decision": () => {
-      if (!id || !reference || !permitted(request, "workspace.write")) return [];
+      if (!id || !reference || !canExecuteAction(request, "decision.update")) return [];
       const status = councilDecisionStatusSchema.safeParse(primary?.status);
       return status.success && councilDecisionContentCanChange(status.data) && primary?.contentEditable !== false
         ? [action("decision.update", "PUT", `/api/council-decisions/${reference}`, "Update the decision")]
@@ -733,38 +701,33 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
     },
     "council-meeting": () => councilMeetingActions(context),
     "council-member": () =>
-      id && permitted(request, "members.manage")
+      id && canExecuteAction(request, "member.update")
         ? [action("member.update", "PUT", `/api/council-members/${id}`, "Update the council member")]
         : [],
     entity: () => [],
     "hall-settings": () =>
-      permitted(request, "settings.manage")
+      canExecuteAction(request, "settings.update")
         ? [action("settings.update", "PUT", "/api/settings", "Update Hall settings")]
         : [],
     resource: () => resourceActions(context),
     session: () => (request.sessionId ? [action("session.logout", "POST", "/api/auth/logout", "Sign out")] : []),
     template: () => {
       if (!id) return [];
-      const actions = permitted(request, "workspace.write")
-        ? [
-            action("template.update", "PUT", `/api/templates/${id}`, "Update the template"),
-            action("template.delete", "DELETE", `/api/templates/${id}`, "Delete the template"),
-          ]
-        : [];
-      if (permitted(request, "workspace.read")) {
-        actions.push(action("template.generate", "POST", `/api/templates/${id}/generate`, "Generate the output"));
-      }
-      return actions;
+      return authorizedActions(request, [
+        action("template.update", "PUT", `/api/templates/${id}`, "Update the template"),
+        action("template.delete", "DELETE", `/api/templates/${id}`, "Delete the template"),
+        action("template.generate", "POST", `/api/templates/${id}/generate`, "Generate the output"),
+      ]);
     },
     "template-preview": () => [],
     "template-reference": () => [],
     user: () => {
-      if (!id || !permitted(request, "users.manage")) return [];
+      if (!id) return [];
       const actions = [action("user.assign-role", "PUT", `/api/users/${id}/roles`, "Assign roles")];
       if (!primary?.protectedFromDisable && primary?.status === "active") {
         actions.push(action("user.disable", "POST", `/api/users/${id}/disable`, "Disable the user"));
       }
-      return actions;
+      return authorizedActions(request, actions);
     },
   });
 }

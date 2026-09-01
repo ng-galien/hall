@@ -3,6 +3,7 @@ import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
+import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
 export function createCouncilMembersRouter({ councilMemberRepository, unitOfWork }: Cradle): Router {
@@ -15,14 +16,14 @@ export function createCouncilMembersRouter({ councilMemberRepository, unitOfWork
     if (!member) throw new DomainError("council_member_not_found", 404);
     response.json(member);
   });
-  router.post("/", requirePermission("members.manage"), async (request, response) => {
+  router.post("/", requireActionPermission("member.create"), async (request, response) => {
     response
       .status(201)
       .json(
         await unitOfWork.execute(() => councilMemberRepository.create(createCouncilMemberSchema.parse(request.body))),
       );
   });
-  router.put("/:memberId", requirePermission("members.manage"), async (request, response) => {
+  router.put("/:memberId", requireActionPermission("member.update"), async (request, response) => {
     const memberId = routeParameter(request.params.memberId);
     response.json(
       await unitOfWork.execute(async () => {

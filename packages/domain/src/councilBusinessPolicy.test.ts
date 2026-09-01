@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   councilBusinessAgendaProfile,
   councilBusinessCanCarryForwardAfterPostponement,
+  councilBusinessDecisionId,
+  councilBusinessIsMatter,
 } from "./councilBusinessPolicy.js";
 import type { CouncilBusiness } from "./model.js";
 
@@ -53,5 +55,22 @@ describe("council business agenda profile", () => {
     [{ kind: "openQuestion", ...common }, true],
   ] as const)("decides whether $kind can be carried forward after postponement", (business, expected) => {
     expect(councilBusinessCanCarryForwardAfterPostponement(business as CouncilBusiness)).toBe(expected);
+  });
+
+  it("projects the linked decision id without rediscovering business variants", () => {
+    expect(
+      councilBusinessDecisionId({
+        kind: "matter",
+        ...common,
+        councilDecisionId: "decision-1",
+        committeeId: null,
+      }),
+    ).toBe("decision-1");
+    expect(councilBusinessDecisionId({ kind: "openQuestion", ...common })).toBeNull();
+  });
+
+  it("recognizes the ordinary matter kind at the closed-union boundary", () => {
+    expect(councilBusinessIsMatter("matter")).toBe(true);
+    expect(councilBusinessIsMatter("openQuestion")).toBe(false);
   });
 });

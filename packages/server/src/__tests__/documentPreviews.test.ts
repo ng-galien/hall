@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Response } from "superagent";
 import { describe, expect, it } from "vitest";
 import { DocumentPreviewConverterFailedError } from "../services/documentPreviewConverter.js";
@@ -68,6 +68,80 @@ async function uploadDocx(agent: Awaited<ReturnType<typeof createTestServer>>["a
 }
 
 describe("derived document previews", () => {
+  it("rejects missing, non-document, native and malformed derived previews at the service boundary", async () => {
+    const { agent, container } = await createTestServer({
+      documentPreviewConverter: {
+        async convertToPdf() {
+          return Buffer.from("not a PDF");
+        },
+      },
+    });
+
+    await expect(container.cradle.documentPreviewService.get(randomUUID())).rejects.toMatchObject({
+      code: "resource_not_found",
+      statusCode: 404,
+    });
+    const text = domainBody<{ id: string }>(
+      await agent
+        .post("/api/resources/texts")
+        .send({ title: "Note", folderPath: "seed", tags: [], content: "Note" })
+        .expect(201),
+    );
+    await expect(container.cradle.documentPreviewService.get(text.id)).rejects.toMatchObject({
+      code: "resource_preview_unavailable",
+      statusCode: 409,
+    });
+
+    const nativePdf = domainBody<{ id: string }>(
+      await agent
+        .post("/api/resources/documents")
+        .field("title", "PDF natif")
+        .attach("file", Buffer.from("%PDF-1.7\nnative"), { filename: "native.pdf", contentType: "application/pdf" })
+        .expect(201),
+    );
+    await expect(container.cradle.documentPreviewService.get(nativePdf.id)).rejects.toMatchObject({
+      code: "resource_preview_unavailable",
+      statusCode: 409,
+    });
+
+    const convertible = domainBody<{ id: string }>(await uploadDocx(agent, "Malformed derived preview"));
+    await expect(container.cradle.documentPreviewService.get(convertible.id)).rejects.toMatchObject({
+      code: "resource_preview_conversion_failed",
+      statusCode: 502,
+    });
+  });
+
+  it("coalesces concurrent conversion requests for the same original", async () => {
+    let conversions = 0;
+    let releaseConversion: (() => void) | undefined;
+    const conversionStarted = new Promise<void>((resolve) => {
+      releaseConversion = resolve;
+    });
+    let allowCompletion: (() => void) | undefined;
+    const completion = new Promise<void>((resolve) => {
+      allowCompletion = resolve;
+    });
+    const { agent, container } = await createTestServer({
+      documentPreviewConverter: {
+        async convertToPdf() {
+          conversions += 1;
+          releaseConversion?.();
+          await completion;
+          return Buffer.from("%PDF-1.7\ncoalesced");
+        },
+      },
+    });
+    const document = domainBody<{ id: string }>(await uploadDocx(agent, "Concurrent"));
+
+    const first = container.cradle.documentPreviewService.get(document.id);
+    await conversionStarted;
+    const second = container.cradle.documentPreviewService.get(document.id);
+    allowCompletion?.();
+
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+    expect(conversions).toBe(1);
+  });
+
   it("keeps the original authoritative and reuses one PDF by source SHA-256", async () => {
     const pdf = Buffer.from("%PDF-1.7\nderived preview");
     let conversions = 0;

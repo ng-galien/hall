@@ -14,6 +14,7 @@ import { hasPermission, requirePermission } from "../../security/authorization.j
 import { principalForSession, SESSION_COOKIE_NAME } from "../../services/authService.js";
 import { DomainError } from "../../services/errors.js";
 import { requireAuthentication } from "../accessControl.js";
+import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
 const sessionMaxAgeSeconds = 12 * 60 * 60;
@@ -125,7 +126,7 @@ export function createAuthRouter({ authService, config }: Cradle): Router {
           : [
               bootstrapRequired
                 ? {
-                    name: "user.create",
+                    name: "session.bootstrap",
                     title: "Create the first administrator",
                     method: "POST",
                     href: "/api/auth/bootstrap",
@@ -219,17 +220,18 @@ export function createUsersRouter({ authService }: Cradle): Router {
     }
     response.json(await authService.getUser(userId));
   });
-  router.use(requirePermission("users.manage"));
-  router.get("/", async (_request, response) => response.json(await authService.listUsers()));
-  router.post("/", async (request, response) => {
+  router.get("/", requirePermission("users.manage"), async (_request, response) =>
+    response.json(await authService.listUsers()),
+  );
+  router.post("/", requireActionPermission("user.create"), async (request, response) => {
     response.status(201).json(await authService.createUser(createUserSchema.parse(request.body)));
   });
-  router.put("/:userId/roles", async (request, response) => {
+  router.put("/:userId/roles", requireActionPermission("user.assign-role"), async (request, response) => {
     const { roles } = assignUserRolesSchema.parse(request.body);
-    response.json(await authService.assignRoles(request.params.userId, roles));
+    response.json(await authService.assignRoles(routeParameter(request.params.userId), roles));
   });
-  router.post("/:userId/disable", async (request, response) => {
-    response.json(await authService.disableUser(request.params.userId));
+  router.post("/:userId/disable", requireActionPermission("user.disable"), async (request, response) => {
+    response.json(await authService.disableUser(routeParameter(request.params.userId)));
   });
   return router;
 }

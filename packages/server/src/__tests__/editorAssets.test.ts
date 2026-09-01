@@ -138,10 +138,22 @@ describe("editor assets", () => {
     expect(domainBody<Array<{ id: string }>>(await agent.get("/api/resources").expect(200))).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: asset.id })]),
     );
-    expect(domainBody<Array<{ action: string }>>(await agent.get("/api/audit-events").expect(200))).toEqual(
+    expect(
+      domainBody<Array<{ action: string; targetType: string; targetId: string | null }>>(
+        await agent.get("/api/audit-events").expect(200),
+      ),
+    ).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ action: "resource.create-editor-asset" }),
-        expect.objectContaining({ action: "resource.promote-editor-asset" }),
+        expect.objectContaining({
+          action: "resource.create-editor-asset",
+          targetType: "resource",
+          targetId: asset.id,
+        }),
+        expect.objectContaining({
+          action: "resource.promote-editor-asset",
+          targetType: "resource",
+          targetId: asset.id,
+        }),
       ]),
     );
   });

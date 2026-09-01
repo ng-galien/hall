@@ -8,6 +8,7 @@ import { translatePersistenceError } from "../database/errors.js";
 import { compileQuery, type SqlExecutor, type SqlParameters, type SqlRunResult } from "../database/executor.js";
 import type { SqlQueryName } from "../database/queries.js";
 import {
+  postgresBallotVoteConfidentialitySchema,
   postgresDocumentPreviewsSchema,
   postgresSchema,
   postgresTables,
@@ -154,6 +155,7 @@ export class PostgresExecutor implements SqlExecutor {
             throw new Error("Obsolete PostgreSQL schema: reset the database before starting Hall");
           }
         }
+        await client.query(postgresBallotVoteConfidentialitySchema);
         await client.query(postgresWorkspaceTitleUniquenessSchema);
         await client.query("COMMIT");
       } catch (error) {

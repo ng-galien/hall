@@ -286,7 +286,7 @@ describe("council meeting invariants", () => {
   });
 
   it("returns proxy_invalid when one member would carry two proxies", async () => {
-    const { agent } = await createTestServer();
+    const { agent, container } = await createTestServer();
     const holder = await createMember(agent, "Alice");
     const firstPrincipal = await createMember(agent, "Benoît");
     const secondPrincipal = await createMember(agent, "Claire");
@@ -306,6 +306,14 @@ describe("council meeting invariants", () => {
       .put(`/api/council-meetings/${meeting.id}/attendance`)
       .send({ memberId: stalePrincipal.id, status: "absent", proxyHolderMemberId: null, proxyDocumentId: null })
       .expect(200);
+    await expect(
+      container.cradle.meetingPreparationService.recordAttendance(meeting.id, {
+        memberId: secondPrincipal.id,
+        status: "represented",
+        proxyHolderMemberId: holder.id,
+        proxyDocumentId: null,
+      }),
+    ).rejects.toMatchObject({ code: "proxy_invalid", statusCode: 400 });
     await agent
       .put(`/api/council-meetings/${meeting.id}/attendance`)
       .send({

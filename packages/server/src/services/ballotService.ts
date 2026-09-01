@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   type Ballot,
-  type BallotMachineState,
+  type BallotEvaluationState,
   ballotTargetOf,
   type CouncilMeeting,
   councilBusinessAgendaProfile,
@@ -10,7 +10,6 @@ import {
   decideBallot,
   evaluateBallot,
   matchDiscriminated,
-  matchLiteral,
   type ParticipationEvidence,
   transitionBallot,
   transitionCouncilDecision,
@@ -25,7 +24,7 @@ import type {
   MeetingRosterRepository,
   UnitOfWork,
 } from "../repositories/contracts.js";
-import { DomainError } from "./errors.js";
+import { DomainError, type ErrorCode } from "./errors.js";
 import { participationForMeeting } from "./meetingContext.js";
 
 interface BallotTarget {
@@ -118,45 +117,22 @@ function ballotCommandExecution(
   });
 }
 
-function throwBallotValidationError(state: BallotMachineState): never {
-  return matchLiteral(state, {
-    draft: () => {
-      throw new DomainError("conflict", 409);
-    },
-    recordable: () => {
-      throw new DomainError("conflict", 409);
-    },
-    recorded: () => {
-      throw new DomainError("conflict", 409);
-    },
-    cancelled: () => {
-      throw new DomainError("conflict", 409);
-    },
-    meetingNotInProgress: () => {
-      throw new DomainError("invalid_meeting_transition", 409);
-    },
-    attendanceIncomplete: () => {
-      throw new DomainError("attendance_incomplete", 409);
-    },
-    quorumEvidenceInvalid: () => {
-      throw new DomainError("conflict", 409);
-    },
-    quorumNotReached: () => {
-      throw new DomainError("quorum_not_reached", 409);
-    },
-    officersMissing: () => {
-      throw new DomainError("meeting_officers_required", 409);
-    },
-    proxyInvalid: () => {
-      throw new DomainError("proxy_invalid", 409);
-    },
-    recusalsInvalid: () => {
-      throw new DomainError("ballot_voters_invalid", 409);
-    },
-    votesInvalid: () => {
-      throw new DomainError("conflict");
-    },
-  });
+type BallotValidationFailure = Exclude<BallotEvaluationState, "recordable">;
+
+const ballotValidationErrors = {
+  meetingNotInProgress: { code: "invalid_meeting_transition", status: 409 },
+  attendanceIncomplete: { code: "attendance_incomplete", status: 409 },
+  quorumEvidenceInvalid: { code: "conflict", status: 409 },
+  quorumNotReached: { code: "quorum_not_reached", status: 409 },
+  officersMissing: { code: "meeting_officers_required", status: 409 },
+  proxyInvalid: { code: "proxy_invalid", status: 409 },
+  recusalsInvalid: { code: "ballot_voters_invalid", status: 409 },
+  votesInvalid: { code: "conflict", status: 400 },
+} as const satisfies Record<BallotValidationFailure, { code: ErrorCode; status: number }>;
+
+function throwBallotValidationError(state: BallotValidationFailure): never {
+  const error = ballotValidationErrors[state];
+  throw new DomainError(error.code, error.status);
 }
 
 export function createBallotService({

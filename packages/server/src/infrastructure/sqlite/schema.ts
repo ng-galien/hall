@@ -19,6 +19,41 @@ const workspaceTitleUniquenessSchema = `
     ON council_business(folder_path, title);
 `;
 
+const ballotVoteConfidentialitySchema = `
+  CREATE TRIGGER IF NOT EXISTS votes_require_public_ballot
+  BEFORE INSERT ON votes
+  FOR EACH ROW
+  WHEN EXISTS (
+    SELECT 1 FROM ballots
+    WHERE id = NEW.ballot_id AND method <> 'public'
+  )
+  BEGIN
+    SELECT RAISE(ABORT, 'votes require a public ballot');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS vote_updates_require_public_ballot
+  BEFORE UPDATE ON votes
+  FOR EACH ROW
+  WHEN EXISTS (
+    SELECT 1 FROM ballots
+    WHERE id = NEW.ballot_id AND method <> 'public'
+  )
+  BEGIN
+    SELECT RAISE(ABORT, 'votes require a public ballot');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS ballots_with_votes_require_public_method
+  BEFORE UPDATE OF method ON ballots
+  FOR EACH ROW
+  WHEN NEW.method <> 'public' AND EXISTS (
+    SELECT 1 FROM votes
+    WHERE ballot_id = OLD.id
+  )
+  BEGIN
+    SELECT RAISE(ABORT, 'ballots with votes require the public method');
+  END;
+`;
+
 const currentTables = [
   "agenda_item_resources",
   "agenda_items",
@@ -591,11 +626,13 @@ export function initializeSchema(database: DatabaseSync): void {
       throw new Error("The database uses an obsolete schema and must be reset");
     }
     database.exec(workspaceTitleUniquenessSchema);
+    database.exec(ballotVoteConfidentialitySchema);
     return;
   }
   database.exec("BEGIN IMMEDIATE");
   try {
     createCurrentSchema(database);
+    database.exec(ballotVoteConfidentialitySchema);
     database.exec("COMMIT");
   } catch (error) {
     database.exec("ROLLBACK");

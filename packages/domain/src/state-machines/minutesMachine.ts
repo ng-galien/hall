@@ -1,4 +1,5 @@
 import { getNextSnapshot, setup } from "xstate";
+import { defineExhaustiveLiterals } from "../match.js";
 import type { MinutesStatus } from "../model.js";
 
 export type MinutesEvent =
@@ -7,6 +8,14 @@ export type MinutesEvent =
   | { type: "APPROVE" }
   | { type: "SIGN" }
   | { type: "PUBLISH" };
+
+export const minutesEventTypes = defineExhaustiveLiterals<MinutesEvent["type"]>()([
+  "GENERATE_DRAFT",
+  "FINALIZE",
+  "APPROVE",
+  "SIGN",
+  "PUBLISH",
+] as const);
 
 export const minutesMachineDefinition = {
   id: "minutes",
@@ -22,12 +31,14 @@ export const minutesMachineDefinition = {
   },
 } as const;
 
+/* Stryker disable ObjectLiteral: XState types are compile-time metadata erased from the runtime machine. */
 export const minutesMachine = setup({
   types: {
     context: {} as Record<string, never>,
     events: {} as MinutesEvent,
   },
 }).createMachine(minutesMachineDefinition);
+/* Stryker restore ObjectLiteral */
 
 export function transitionMinutes(status: MinutesStatus, event: MinutesEvent): MinutesStatus | null {
   const current = minutesMachine.resolveState({ value: status, context: {} });

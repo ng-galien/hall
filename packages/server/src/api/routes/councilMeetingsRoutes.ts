@@ -13,8 +13,10 @@ import {
 } from "@hall/domain";
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
-import { hasPermission, requireAnyPermission, requirePermission } from "../../security/authorization.js";
+import { requirePermission } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
+import { actionIsPermitted, requireActionPermission } from "../apiCommandAuthorization.js";
+import { meetingStatusAction } from "../apiCommandResolution.js";
 import { routeParameter } from "../routeParameter.js";
 
 export function createCouncilMeetingsRouter({
@@ -33,7 +35,7 @@ export function createCouncilMeetingsRouter({
   router.get("/", requirePermission("meetings.read"), async (_request, response) =>
     response.json(await councilMeetingService.listMeetings()),
   );
-  router.post("/", requirePermission("meetings.prepare"), async (request, response) => {
+  router.post("/", requireActionPermission("meeting.create"), async (request, response) => {
     response
       .status(201)
       .json(await councilMeetingService.createMeeting(createCouncilMeetingSchema.parse(request.body)));
@@ -41,7 +43,7 @@ export function createCouncilMeetingsRouter({
   router.get("/:meetingId", requirePermission("meetings.read"), async (request, response) => {
     response.json(await councilMeetingService.getMeeting(routeParameter(request.params.meetingId)));
   });
-  router.put("/:meetingId", requirePermission("meetings.prepare"), async (request, response) => {
+  router.put("/:meetingId", requireActionPermission("meeting.update"), async (request, response) => {
     response.json(
       await councilMeetingService.updateMeeting(
         routeParameter(request.params.meetingId),
@@ -49,36 +51,33 @@ export function createCouncilMeetingsRouter({
       ),
     );
   });
-  router.put(
-    "/:meetingId/status",
-    requireAnyPermission("meetings.prepare", "meetings.conduct"),
-    async (request, response) => {
-      const { status } = updateMeetingStatusSchema.parse(request.body);
-      const permission = ["scheduled", "cancelled"].includes(status) ? "meetings.prepare" : "meetings.conduct";
-      if (!hasPermission(request.principal, permission)) throw new DomainError("permission_denied", 403);
-      response.json(await meetingLifecycleService.changeStatus(routeParameter(request.params.meetingId), status));
-    },
-  );
-  router.put(
-    "/:meetingId/officers",
-    requireAnyPermission("meetings.prepare", "meetings.conduct"),
-    async (request, response) => {
-      const officers = setMeetingOfficersSchema.parse(request.body);
-      response.json(
-        await meetingPreparationService.setOfficers(
-          routeParameter(request.params.meetingId),
-          officers.chairMemberId,
-          officers.secretaryMemberId,
-        ),
-      );
-    },
-  );
-  router.post("/:meetingId/quorum-failure", requirePermission("meetings.conduct"), async (request, response) => {
-    response
-      .status(201)
-      .json(await meetingLifecycleService.recordQuorumFailure(routeParameter(request.params.meetingId)));
+  router.put("/:meetingId/status", requireActionPermission("meeting.change-status"), async (request, response) => {
+    const { status } = updateMeetingStatusSchema.parse(request.body);
+    if (!actionIsPermitted(request.principal, meetingStatusAction(status))) {
+      throw new DomainError("permission_denied", 403);
+    }
+    response.json(await meetingLifecycleService.changeStatus(routeParameter(request.params.meetingId), status));
   });
-  router.post("/:meetingId/reconvene", requirePermission("meetings.conduct"), async (request, response) => {
+  router.put("/:meetingId/officers", requireActionPermission("meeting.set-officers"), async (request, response) => {
+    const officers = setMeetingOfficersSchema.parse(request.body);
+    response.json(
+      await meetingPreparationService.setOfficers(
+        routeParameter(request.params.meetingId),
+        officers.chairMemberId,
+        officers.secretaryMemberId,
+      ),
+    );
+  });
+  router.post(
+    "/:meetingId/quorum-failure",
+    requireActionPermission("meeting.record-quorum-failure"),
+    async (request, response) => {
+      response
+        .status(201)
+        .json(await meetingLifecycleService.recordQuorumFailure(routeParameter(request.params.meetingId)));
+    },
+  );
+  router.post("/:meetingId/reconvene", requireActionPermission("meeting.reconvene"), async (request, response) => {
     response
       .status(201)
       .json(
@@ -88,27 +87,39 @@ export function createCouncilMeetingsRouter({
         ),
       );
   });
-  router.post("/:meetingId/minutes/finalize", requirePermission("meetings.prepare"), async (request, response) => {
-    response.json(await meetingLifecycleService.finalizeMinutesDraft(routeParameter(request.params.meetingId)));
-  });
-  router.put("/:meetingId/attendance", requirePermission("meetings.conduct"), async (request, response) => {
-    response.json(
-      await meetingPreparationService.recordAttendance(
-        routeParameter(request.params.meetingId),
-        recordAttendanceSchema.parse(request.body),
-      ),
-    );
-  });
-  router.post("/:meetingId/late-business", requirePermission("meetings.conduct"), async (request, response) => {
-    response
-      .status(201)
-      .json(
-        await meetingPreparationService.createLateBusiness(
+  router.post(
+    "/:meetingId/minutes/finalize",
+    requireActionPermission("meeting.finalize-minutes"),
+    async (request, response) => {
+      response.json(await meetingLifecycleService.finalizeMinutesDraft(routeParameter(request.params.meetingId)));
+    },
+  );
+  router.put(
+    "/:meetingId/attendance",
+    requireActionPermission("meeting.record-attendance"),
+    async (request, response) => {
+      response.json(
+        await meetingPreparationService.recordAttendance(
           routeParameter(request.params.meetingId),
-          createLateBusinessSchema.parse(request.body),
+          recordAttendanceSchema.parse(request.body),
         ),
       );
-  });
+    },
+  );
+  router.post(
+    "/:meetingId/late-business",
+    requireActionPermission("meeting.add-late-business"),
+    async (request, response) => {
+      response
+        .status(201)
+        .json(
+          await meetingPreparationService.createLateBusiness(
+            routeParameter(request.params.meetingId),
+            createLateBusinessSchema.parse(request.body),
+          ),
+        );
+    },
+  );
   router.get("/:meetingId/attendance/:memberId", requirePermission("meetings.read"), async (request, response) => {
     const meetingId = routeParameter(request.params.meetingId);
     const memberId = routeParameter(request.params.memberId);
@@ -136,7 +147,7 @@ export function createCouncilMeetingsRouter({
   });
   router.delete(
     "/:meetingId/agenda-items/:itemId",
-    requirePermission("meetings.prepare"),
+    requireActionPermission("agenda-item.remove"),
     async (request, response) => {
       await meetingPreparationService.removeAgendaItem(
         routeParameter(request.params.meetingId),
@@ -145,14 +156,18 @@ export function createCouncilMeetingsRouter({
       response.status(204).end();
     },
   );
-  router.put("/:meetingId/agenda-order", requirePermission("meetings.prepare"), async (request, response) => {
-    const { itemIds } = reorderAgendaSchema.parse(request.body);
-    await meetingPreparationService.reorderAgenda(routeParameter(request.params.meetingId), itemIds);
-    response.status(204).end();
-  });
+  router.put(
+    "/:meetingId/agenda-order",
+    requireActionPermission("meeting.reorder-agenda"),
+    async (request, response) => {
+      const { itemIds } = reorderAgendaSchema.parse(request.body);
+      await meetingPreparationService.reorderAgenda(routeParameter(request.params.meetingId), itemIds);
+      response.status(204).end();
+    },
+  );
   router.post(
     "/:meetingId/agenda-items/:itemId/start",
-    requirePermission("meetings.conduct"),
+    requireActionPermission("agenda-item.start"),
     async (request, response) => {
       response.json(
         await meetingAgendaService.startItem(
@@ -164,7 +179,7 @@ export function createCouncilMeetingsRouter({
   );
   router.put(
     "/:meetingId/agenda-items/:itemId/notes",
-    requirePermission("meetings.conduct"),
+    requireActionPermission("agenda-item.save-notes"),
     async (request, response) => {
       const { discussionSummary } = saveAgendaItemNotesSchema.parse(request.body);
       response.json(
@@ -178,7 +193,7 @@ export function createCouncilMeetingsRouter({
   );
   router.post(
     "/:meetingId/agenda-items/:itemId/complete",
-    requirePermission("meetings.conduct"),
+    requireActionPermission("agenda-item.complete"),
     async (request, response) => {
       response.json(
         await meetingAgendaService.completeItem(
@@ -189,11 +204,18 @@ export function createCouncilMeetingsRouter({
       );
     },
   );
-  router.delete("/:meetingId/ballots/:ballotId", requirePermission("meetings.conduct"), async (request, response) => {
-    await ballotService.cancelBallot(routeParameter(request.params.meetingId), routeParameter(request.params.ballotId));
-    response.status(204).end();
-  });
-  router.post("/:meetingId/ballots", requirePermission("meetings.conduct"), async (request, response) => {
+  router.delete(
+    "/:meetingId/ballots/:ballotId",
+    requireActionPermission("ballot.cancel"),
+    async (request, response) => {
+      await ballotService.cancelBallot(
+        routeParameter(request.params.meetingId),
+        routeParameter(request.params.ballotId),
+      );
+      response.status(204).end();
+    },
+  );
+  router.post("/:meetingId/ballots", requireActionPermission("ballot.record"), async (request, response) => {
     response
       .status(201)
       .json(
