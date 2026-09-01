@@ -1,8 +1,8 @@
 fragment = "api-contract"
 
 [[refs.where]]
-id = "dependency-remains-leaf"
+id = "api-contract-dependency-remains-leaf"
 severity = "error"
 rationale = "The API contract is the transport vocabulary shared by server and client. It may depend on generic validation libraries, but importing domain or runtime adapters would turn it into a backdoor coupling layer and prevent either side from evolving behind the Siren boundary."
-expr = "NOT ($api_contract_source AND $dependency_import_ref AND ($domain_target OR $server_target OR $client_target OR $desktop_target))"
+expr = "$api_contract_source AND $dependency_import_ref => NOT ($domain_target OR $server_target OR $client_target OR $desktop_target)"
 message = "The shared API contract must not import domain or runtime adapters."

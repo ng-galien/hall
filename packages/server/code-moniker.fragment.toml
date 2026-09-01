@@ -1,13 +1,30 @@
 fragment = "server"
 
 [aliases]
-persistence_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:repositories/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:database/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:sqlite/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:postgres/**'"
-composition_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:core/module:container/**'"
+persistence_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:repositories/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:database/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:sqlite/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:postgres/**'"
+composition_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:core/module:container/**'"
 database_test_support_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:__tests__/dir:support/**'"
+persistence_at_server_decoder_target = "target ~ '**/dir:packages/dir:server/dir:src/dir:repositories/module:row/**' OR target ~ '**/dir:packages/dir:server/dir:src/dir:repositories/module:resourceRowMapping/**' OR target ~ '**/dir:packages/dir:server/dir:src/dir:repositories/module:evidenceMapping/**'"
+editor_asset_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:services/module:editorAssetService/**'"
+editor_asset_at_server_reconciliation_target = "kind = 'method_call' AND target.name = 'reconcileEditorAssets'"
 
 [[refs.where]]
-id = "database-ownership-is-confined"
+id = "persistence@server-composition@server-ownership-confines-database"
 severity = "error"
 rationale = "SQLite and PostgreSQL are adapters owned by server-side persistence and wired by the Awilix composition root. Keeping database imports out of HTTP and business services preserves one authoritative persistence boundary."
-expr = "$server_source AND $dependency_import_ref AND $database_target => ($persistence_source OR $composition_source OR $database_test_support_source)"
+expr = "$server_source AND $dependency_import_ref AND $database_target => ($persistence_at_server_source OR $composition_at_server_source OR $database_test_support_source)"
 message = "Server database imports are limited to persistence, the composition root, and dedicated test support."
+
+[[refs.where]]
+id = "persistence@server-ownership-confines-row-decoding"
+severity = "error"
+rationale = "Database rows and serialized discriminants are external data. Repository mappers validate them once before services receive domain values; importing those decoders from HTTP or business services would leak storage representation beyond persistence."
+expr = "$server_source AND $dependency_import_ref AND $persistence_at_server_decoder_target => $persistence_at_server_source"
+message = "Persisted row decoders may only be imported by server persistence adapters."
+
+[[refs.where]]
+id = "editor-asset@server-ownership-confines-reconciliation"
+severity = "error"
+rationale = "Editor asset reconciliation combines owner validation, referenced-id extraction, folder ownership, and transactional cleanup. Only EditorAssetService may invoke the repository reconciliation primitive so no caller can bypass those invariants."
+expr = "$editor_asset_at_server_reconciliation_target => $editor_asset_at_server_source"
+message = "Editor asset reconciliation must go through EditorAssetService."

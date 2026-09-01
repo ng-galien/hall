@@ -1,4 +1,5 @@
 import type { HallGeoJsonFeature } from "./model.js";
+import { matchVariant } from "./match.js";
 
 export type HallGeoJsonFeatureKind = HallGeoJsonFeature["properties"]["kind"];
 
@@ -15,6 +16,5 @@ export function matchHallGeoJsonFeature<Result>(
   feature: HallGeoJsonFeature,
   handlers: HallGeoJsonFeatureHandlers<Result>,
 ): Result {
-  const handler = handlers[feature.properties.kind] as (matched: never) => Result;
-  return handler(feature as never);
+  return matchVariant(feature, "properties", "kind", handlers);
 }

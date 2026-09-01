@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { defineExhaustiveLiterals, matchDiscriminated, matchLiteral } from "./match.js";
+import { defineExhaustiveLiterals, matchDiscriminated, matchLiteral, matchVariant } from "./match.js";
+
+if (false) {
+  matchVariant({ properties: { kind: "circle" as const }, radius: 1 }, "properties", "kind", {
+    // @ts-expect-error A circle cannot be dispatched through a square handler.
+    square: (value: { properties: { kind: "square" }; side: number }) => value.side,
+  });
+}
 
 describe("closed union matchers", () => {
   it("selects the correlated handler for a discriminated union", () => {

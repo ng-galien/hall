@@ -31,6 +31,27 @@ export function matchLiteral<T extends PropertyKey, H extends LiteralHandlers<T>
   return handlers[value]() as HandlerResult<H>;
 }
 
+export type NestedDiscriminatedHandlers<T, P extends keyof T, D extends keyof T[P]> = {
+  [K in Extract<T[P][D], PropertyKey>]: (value: Extract<T, Record<P, Record<D, K>>>) => unknown;
+};
+
+/** Exhaustive fold when a domain union exposes its discriminator through a nested profile. */
+export function matchVariant<
+  T,
+  P extends keyof T,
+  D extends keyof T[P],
+  H extends NestedDiscriminatedHandlers<T, P, D>,
+>(
+  value: T,
+  profile: P,
+  discriminator: D,
+  handlers: H,
+): HandlerResult<H> {
+  const key = value[profile][discriminator] as Extract<T[P][D], PropertyKey>;
+  const handler = handlers[key] as (matched: never) => HandlerResult<H>;
+  return handler(value as never);
+}
+
 /** Declares a runtime list that must contain every member of a closed literal union. */
 export function defineExhaustiveLiterals<T extends PropertyKey>() {
   return <const Values extends readonly T[]>(

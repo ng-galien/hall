@@ -1,10 +1,10 @@
 fragment = "domain"
 
 [[refs.where]]
-id = "dependency-points-outward-only"
+id = "domain-dependency-points-outward-only"
 severity = "error"
 rationale = "The domain package is the shared contract at the center of the application. It may depend on validation libraries, but importing an HTTP server, React renderer, or Electron adapter would reverse the dependency direction and prevent independent reuse."
-expr = "NOT ($domain_source AND $dependency_import_ref AND ($server_target OR $client_target OR $desktop_target))"
+expr = "$domain_source AND $dependency_import_ref => NOT ($server_target OR $client_target OR $desktop_target)"
 message = "The domain package must not import runtime adapters."
 
 [[refs.where]]
