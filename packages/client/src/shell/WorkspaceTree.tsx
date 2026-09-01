@@ -90,10 +90,7 @@ export function WorkspaceTree() {
   const { resources, folderPaths } = useResourcesStore();
   const location = useLocation();
   const activePath = activePathFrom(location.search, location.pathname);
-  const tree = useMemo(
-    () => buildPathTree(businesses, resources, folderPaths),
-    [businesses, folderPaths, resources],
-  );
+  const tree = useMemo(() => buildPathTree(businesses, resources, folderPaths), [businesses, folderPaths, resources]);
   const [toggled, setToggled] = useState<{ opened: Set<string>; closed: Set<string> }>({
     opened: new Set(),
     closed: new Set(),

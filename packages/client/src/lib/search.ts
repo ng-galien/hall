@@ -1,20 +1,23 @@
-import type { ReferenceKind } from "@hall/templating";
+import type { CouncilDecisionStatus, MeetingStatus, ReferenceEntityKind } from "@hall/domain";
 
-export type SearchableKind = ReferenceKind;
+export type SearchableKind = ReferenceEntityKind;
+export type SearchableState = CouncilDecisionStatus | MeetingStatus;
+export const searchableMedia = ["image"] as const;
+export type SearchableMedia = (typeof searchableMedia)[number];
 
-export interface Searchable {
-  kind: SearchableKind;
+export interface Searchable<TKind extends SearchableKind = SearchableKind> {
+  kind: TKind;
   id: string;
   label: string;
   /** Secondary fields the query also matches: number, file name, role. */
   extra?: readonly (string | null | undefined)[];
   folderPath?: string;
-  /** Optional lifecycle state, matched by the state facet. */
-  state?: string;
   /** Classification tags, matched by the tag facet. */
   tags?: readonly string[];
+  /** Persisted lifecycle state, matched by the state facet. */
+  state?: SearchableState;
   /** Document subtype, matched by the image facet. */
-  media?: "image";
+  media?: SearchableMedia;
 }
 
 /** Lowercases, decomposes to NFD and strips diacritics. */
@@ -25,85 +28,11 @@ export function normalizeForSearch(value: string): string {
     .replace(/\p{Diacritic}/gu, "");
 }
 
-export interface ParsedQuery {
-  kinds: SearchableKind[];
-  media: "image"[];
-  folders: string[];
-  states: string[];
-  terms: string[];
-}
-
-const kindAliases: Record<string, SearchableKind> = {
-  m: "member",
-  membre: "member",
-  member: "member",
-  p: "resource",
-  piece: "resource",
-  doc: "resource",
-  document: "resource",
-  resource: "resource",
-  s: "councilBusiness",
-  sujet: "councilBusiness",
-  subject: "councilBusiness",
-  topic: "councilBusiness",
-  seance: "meeting",
-  meeting: "meeting",
-  d: "decision",
-  delib: "decision",
-  deliberation: "decision",
-  decision: "decision",
-};
-
-const folderKeys = new Set(["dossier", "chemin", "folder"]);
-const stateKeys = new Set(["etat", "state"]);
-const stateAliases: Record<string, string> = {
-  "a-planifier": "toSchedule",
-  aplanifier: "toSchedule",
-  toschedule: "toSchedule",
-  planifie: "scheduled",
-  scheduled: "scheduled",
-  examine: "examined",
-  examined: "examined",
-};
-
-/** Parses direct aliases while leaving `#fragment` completion to SearchBox. */
-export function parseQuery(raw: string): ParsedQuery {
-  const parsed: ParsedQuery = { kinds: [], media: [], folders: [], states: [], terms: [] };
-  for (const token of normalizeForSearch(raw).split(/\s+/)) {
-    if (!token || token.startsWith("#")) continue;
-    if (token === "image" || token === "img") {
-      parsed.kinds.push("resource");
-      parsed.media.push("image");
-      continue;
-    }
-    const separator = token.indexOf(":");
-    if (separator > 0) {
-      const key = token.slice(0, separator);
-      const value = token.slice(separator + 1);
-      if (key === "image" || key === "img") {
-        parsed.kinds.push("resource");
-        parsed.media.push("image");
-        if (value) parsed.terms.push(value);
-        continue;
-      }
-      const kind = kindAliases[key];
-      if (kind) {
-        parsed.kinds.push(kind);
-        if (value) parsed.terms.push(value);
-        continue;
-      }
-      if (folderKeys.has(key) && value) {
-        parsed.folders.push(value);
-        continue;
-      }
-      if (stateKeys.has(key) && value) {
-        parsed.states.push(stateAliases[value] ?? value);
-        continue;
-      }
-    }
-    parsed.terms.push(token);
-  }
-  return parsed;
+/** Plain text terms; a trailing `#fragment` belongs to SearchBox facet completion. */
+function searchTerms(raw: string): string[] {
+  return normalizeForSearch(raw)
+    .split(/\s+/)
+    .filter((term) => term.length > 0 && !term.startsWith("#"));
 }
 
 /** Scores a term: label prefix 3, word start 2, substring 1, secondary field 0.5, no match 0. */
@@ -129,14 +58,16 @@ export interface SearchOptions {
   /** Folder used to rank nearby entries first. */
   context?: string;
   limit?: number;
-  /** Type facets. */
-  kinds?: readonly string[];
+  /** Type facets selected through the structured search state. */
+  kinds?: readonly SearchableKind[];
   /** Folder facets; an entry matches when it lives at or under one of them. */
   folders?: readonly string[];
   /** Tag facets; an entry matches when it carries every one of them. */
   tags?: readonly string[];
-  /** Restricts to entries of this media subtype. */
-  media?: "image";
+  /** Lifecycle-state facets selected through the structured search state. */
+  states?: readonly SearchableState[];
+  /** Media facets selected through the structured search state. */
+  media?: readonly SearchableMedia[];
 }
 
 export interface SearchOutcome<T extends Searchable> {
@@ -150,20 +81,20 @@ export function searchEntities<T extends Searchable>(
   rawQuery: string,
   options: SearchOptions = {},
 ): SearchOutcome<T> {
-  const query = parseQuery(rawQuery);
+  const terms = searchTerms(rawQuery);
   const kinds = options.kinds ?? [];
   const folders = (options.folders ?? []).map(normalizeForSearch);
   const tags = (options.tags ?? []).map(normalizeForSearch);
+  const states = options.states ?? [];
+  const media = options.media ?? [];
   const scored: { item: T; quality: number; nearness: number; label: string }[] = [];
 
   for (const candidate of candidates) {
-    if (query.kinds.length > 0 && !query.kinds.includes(candidate.kind)) continue;
     if (kinds.length > 0 && !kinds.includes(candidate.kind)) continue;
-    if ((query.media.length > 0 || options.media) && candidate.media !== "image") continue;
+    if (states.length > 0 && (!candidate.state || !states.includes(candidate.state))) continue;
+    if (media.length > 0 && (!candidate.media || !media.includes(candidate.media))) continue;
     const folder = candidate.folderPath ? normalizeForSearch(candidate.folderPath) : "";
-    if (query.folders.length > 0 && !query.folders.some((f) => folder === f || folder.startsWith(`${f}/`))) continue;
     if (folders.length > 0 && !folders.some((f) => folder === f || folder.startsWith(`${f}/`))) continue;
-    if (query.states.length > 0 && (!candidate.state || !query.states.includes(candidate.state))) continue;
     if (tags.length > 0) {
       const carried = (candidate.tags ?? []).map(normalizeForSearch);
       if (!tags.every((tag) => carried.includes(tag))) continue;
@@ -173,7 +104,7 @@ export function searchEntities<T extends Searchable>(
     const extra = normalizeForSearch((candidate.extra ?? []).filter(Boolean).join(" "));
     let quality = 0;
     let matchesAll = true;
-    for (const term of query.terms) {
+    for (const term of terms) {
       const termScore = termQuality(term, label, extra);
       if (termScore === 0) {
         matchesAll = false;

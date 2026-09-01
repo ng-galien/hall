@@ -26,6 +26,8 @@ import { createResourcesRouter } from "./routes/resourcesRoutes.js";
 import { createSettingsRouter } from "./routes/settingsRoutes.js";
 import { apiRootRepresentation, sirenResponses } from "./sirenRepresentation.js";
 
+export const API_JSON_BODY_LIMIT_BYTES = 12 * 1024 * 1024;
+
 export function createHttpApplication(container: AwilixContainer<Cradle>) {
   const app = express();
   const { authService, config, requestContext, securityRepository } = container.cradle;
@@ -41,7 +43,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
     prepareAudit(requestContext),
     persistFailedAudit(requestContext, securityRepository),
     enforceSameOrigin(config),
-    express.json({ limit: "12mb" }),
+    express.json({ limit: API_JSON_BODY_LIMIT_BYTES }),
     prepareAudit(requestContext),
   );
   app.use("/api/auth", createAuthRouter(container.cradle));

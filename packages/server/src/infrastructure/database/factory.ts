@@ -1,3 +1,4 @@
+import { matchDiscriminated } from "@hall/domain";
 import type { ServerConfig } from "../../core/config.js";
 import type { RequestContextStore } from "../../security/requestContext.js";
 import { createPostgresExecutor } from "../postgres/database.js";
@@ -11,7 +12,8 @@ export function createSqlExecutor({
   config: ServerConfig;
   requestContext: RequestContextStore;
 }): SqlExecutor {
-  return config.database.kind === "postgres"
-    ? createPostgresExecutor({ config, requestContext })
-    : createSqliteExecutor({ config, requestContext });
+  return matchDiscriminated(config.database, "kind", {
+    postgres: () => createPostgresExecutor({ config, requestContext }),
+    sqlite: () => createSqliteExecutor({ config, requestContext }),
+  });
 }

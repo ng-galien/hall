@@ -15,11 +15,7 @@ function SearchInput({ className, status, ...props }: SearchInputProps) {
         aria-hidden="true"
         className="pointer-events-none absolute top-1/2 left-2 z-10 size-4 -translate-y-1/2 text-muted-foreground"
       />
-      <Input
-        className={cn("pr-24 pl-7", !status && "pr-2.5", className)}
-        type="text"
-        {...props}
-      />
+      <Input className={cn("pr-24 pl-7", !status && "pr-2.5", className)} type="text" {...props} />
       {status ? (
         <span
           className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs text-muted-foreground"

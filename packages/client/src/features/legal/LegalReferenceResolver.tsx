@@ -1,8 +1,4 @@
-import type {
-  LegalReferenceResolvedResource,
-  LegalReferenceSearchResult,
-  LegalReferenceResource,
-} from "@hall/domain";
+import type { LegalReferenceResolvedResource, LegalReferenceResource, LegalReferenceSearchResult } from "@hall/domain";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";

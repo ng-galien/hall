@@ -1,5 +1,11 @@
 import { findSirenAction, type SirenEntity } from "@hall/api-contract";
-import type { CouncilBusiness, CouncilBusinessDetails } from "@hall/domain";
+import {
+  agendaItemIsOpen,
+  type CouncilBusiness,
+  type CouncilBusinessDetails,
+  councilBusinessIsMatter,
+  meetingAgendaCanChange,
+} from "@hall/domain";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -160,11 +166,9 @@ export function CouncilBusinessWorkbench({ business }: { business: CouncilBusine
   const otherCandidates = candidateResources.filter((resource) => resource.folderPath !== business.folderPath);
 
   const composableMeetings = meetings.filter(
-    (meeting) => ["draft", "scheduled"].includes(meeting.status) && !meeting.isReconvenedMeeting,
+    (meeting) => meetingAgendaCanChange(meeting.status) && !meeting.isReconvenedMeeting,
   );
-  const currentOccurrence = details?.occurrences.find((occurrence) =>
-    ["scheduled", "inProgress"].includes(occurrence.agendaItem.status),
-  );
+  const currentOccurrence = details?.occurrences.find((occurrence) => agendaItemIsOpen(occurrence.agendaItem.status));
   const currentMeeting = currentOccurrence?.meeting ?? null;
 
   const schedule = () => {
@@ -252,7 +256,7 @@ export function CouncilBusinessWorkbench({ business }: { business: CouncilBusine
                 />
                 <p className="text-xs text-muted">{t("meeting.reportHint")}</p>
               </div>
-              {business.kind === "matter" && decision ? (
+              {councilBusinessIsMatter(business) && decision ? (
                 <div className="workbench-decision-block">
                   <div className="grid gap-1.5">
                     <Label>{t("meeting.draftDecision")}</Label>
@@ -274,7 +278,7 @@ export function CouncilBusinessWorkbench({ business }: { business: CouncilBusine
                 </div>
               ) : null}
               <div className="workbench-actions">
-                {business.kind === "matter" ? (
+                {councilBusinessIsMatter(business) ? (
                   decision && can("council-business.detach-decision") ? (
                     <Button
                       className="composer-vote-toggle"

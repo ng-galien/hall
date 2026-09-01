@@ -1,8 +1,29 @@
+import { agendaItemIsOpen } from "@hall/domain";
 import type {
   AgendaItemRepository,
   CouncilBusinessRepository,
   CouncilMeetingRepository,
 } from "../repositories/contracts.js";
+
+interface DecisionOccurrenceRepositories {
+  agendaItemRepository: AgendaItemRepository;
+  councilMeetingRepository: CouncilMeetingRepository;
+}
+
+/** A scheduled/in-progress occurrence freezes both the decision link and its editable content. */
+export async function councilBusinessDecisionBindingIsFrozen(
+  businessId: string,
+  { agendaItemRepository, councilMeetingRepository }: DecisionOccurrenceRepositories,
+): Promise<boolean> {
+  const occurrences = await agendaItemRepository.listForBusiness(businessId);
+  for (const occurrence of occurrences) {
+    if (!agendaItemIsOpen(occurrence.status)) continue;
+    if (occurrence.status === "inProgress") return true;
+    const meeting = await councilMeetingRepository.find(occurrence.meetingId);
+    if (meeting?.quorumFailure || meeting?.isReconvenedMeeting) return true;
+  }
+  return false;
+}
 
 export async function decisionContentIsFrozen(
   councilDecisionId: string,
@@ -12,12 +33,5 @@ export async function decisionContentIsFrozen(
 ): Promise<boolean> {
   const business = await councilBusinessRepository.findForCouncilDecision(councilDecisionId);
   if (!business) return false;
-  const occurrences = await agendaItemRepository.listForBusiness(business.id);
-  for (const occurrence of occurrences) {
-    if (occurrence.status === "inProgress") return true;
-    if (occurrence.status !== "scheduled") continue;
-    const meeting = await councilMeetingRepository.find(occurrence.meetingId);
-    if (meeting?.quorumFailure || meeting?.isReconvenedMeeting) return true;
-  }
-  return false;
+  return councilBusinessDecisionBindingIsFrozen(business.id, { agendaItemRepository, councilMeetingRepository });
 }

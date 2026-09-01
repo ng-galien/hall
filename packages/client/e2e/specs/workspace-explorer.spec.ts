@@ -59,8 +59,23 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
   await grid.click({ position: { x: 100, y: 265 } });
   await editActiveCell("Première sauvegarde");
   await firstSaveStarted;
+  const firstNextAddress = await grid
+    .locator("input")
+    .evaluateAll((inputs) =>
+      inputs.map((input) => (input as HTMLInputElement).value).find((value) => /^A\d+$/.test(value)),
+    );
+  const firstRow = Number(firstNextAddress?.slice(1)) - 2;
+  expect(putBodies[0]!.document.workbook.sheets.budget?.cellData[String(firstRow)]?.["0"]?.v).toBe(
+    "Première sauvegarde",
+  );
 
   await editActiveCell("Dernière sauvegarde");
+  const secondNextAddress = await grid
+    .locator("input")
+    .evaluateAll((inputs) =>
+      inputs.map((input) => (input as HTMLInputElement).value).find((value) => /^A\d+$/.test(value)),
+    );
+  const secondRow = Number(secondNextAddress?.slice(1)) - 2;
   await page.waitForTimeout(1_200);
   expect(putBodies).toHaveLength(1);
   await page.getByTestId("workspace-breadcrumb-close").click();
@@ -71,8 +86,8 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
 
   const finalWorkbook = putBodies[1]!.document.workbook;
   expect(finalWorkbook.sheetOrder).toEqual(["budget", "hypotheses"]);
-  expect(finalWorkbook.sheets.budget?.cellData["5"]?.["0"]?.v).toBe("Première sauvegarde");
-  expect(finalWorkbook.sheets.budget?.cellData["6"]?.["0"]?.v).toBe("Dernière sauvegarde");
+  expect(finalWorkbook.sheets.budget?.cellData[String(firstRow)]?.["0"]?.v).toBe("Première sauvegarde");
+  expect(finalWorkbook.sheets.budget?.cellData[String(secondRow)]?.["0"]?.v).toBe("Dernière sauvegarde");
   expect(finalWorkbook.sheets.hypotheses?.cellData["1"]?.["0"]?.v).toBe("Taux de TVA");
 
   await page.goto(`/app/workspace?path=seed&resource=${resourceId}`);
@@ -137,7 +152,7 @@ test.describe("workspace explorer", () => {
   test("keeps the workspace home focused on active council work", async ({ appPage: page }) => {
     await page.goto("/app/workspace");
 
-    await expect(page.getByTestId("workspace-home-active-count")).toContainText("7");
+    await expect(page.getByTestId("workspace-home-active-count")).toContainText("8");
     await expect(page.getByText("Subventions aux associations 2026", { exact: true })).toBeVisible();
     await expect(page.getByText("Éclairage public - engagement de la tranche 2", { exact: true })).toBeVisible();
     await expect(page.getByText("Cession de la parcelle AB 127", { exact: true })).toHaveCount(0);
@@ -174,9 +189,9 @@ test.describe("workspace explorer", () => {
     await expect(page.locator('[data-testid^="workspace-resource-open-"]')).toHaveCount(1);
 
     await document.click();
-    await expect(page.getByTestId("resource-preview")).toBeVisible();
-    await expect(page.getByTestId("resource-preview-object")).toBeVisible();
-    await page.getByTestId("resource-preview-close").click();
-    await expect(page.getByTestId("resource-preview")).toHaveCount(0);
+    await expect(page.getByTestId("resource-workbench")).toBeVisible();
+    await expect(page.getByTestId("resource-workbench-object")).toBeVisible();
+    await page.getByTestId("workspace-breadcrumb-close").click();
+    await expect(page.getByTestId("resource-workbench")).toHaveCount(0);
   });
 });

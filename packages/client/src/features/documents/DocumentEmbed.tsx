@@ -2,8 +2,8 @@ import type { DocumentResource } from "@hall/domain";
 import { FullscreenIcon } from "../../components/icons";
 import { useDocumentPreview } from "../../hooks/useDocumentPreview";
 import { useI18n } from "../../i18n/I18nProvider";
-import { NativeDocumentFrame } from "./NativeDocumentFrame";
 import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
+import { NativeDocumentFrame } from "./NativeDocumentFrame";
 
 /** Inline document preview; PDFs and images render in place, with an optional full-screen action. */
 export function DocumentEmbed({

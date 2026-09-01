@@ -25,6 +25,7 @@ import {
 import { editorExtensions } from "./extensions";
 import type { ResourceImageAttributes } from "./images";
 import { EditorReferenceSearch, type FullSearchRequest } from "./ReferenceSearchDialog";
+import { referenceKindPresentations } from "./referenceKindPresentation";
 import type { Mentionable } from "./references";
 import { EditorResourceEmbedSearch } from "./resourceEmbeds";
 import { TableControls } from "./TableControls";
@@ -248,11 +249,11 @@ function MarksButtons({ editor, state }: { editor: Editor; state: NonNullable<Re
 function useMentionGroupLabels() {
   const { t } = useI18n();
   return {
-    member: t("editor.group.member"),
-    resource: t("editor.group.resource"),
-    councilBusiness: t("editor.group.councilBusiness"),
-    meeting: t("editor.group.meeting"),
-    decision: t("editor.group.decision"),
+    member: t(referenceKindPresentations.member.groupLabelKey),
+    resource: t(referenceKindPresentations.resource.groupLabelKey),
+    councilBusiness: t(referenceKindPresentations.councilBusiness.groupLabelKey),
+    meeting: t(referenceKindPresentations.meeting.groupLabelKey),
+    decision: t(referenceKindPresentations.decision.groupLabelKey),
   };
 }
 
@@ -262,6 +263,8 @@ function useMentionFacetLabels() {
     type: t("workspace.facetType"),
     folder: t("workspace.facetFolder"),
     tag: t("search.facetTag"),
+    state: t("workspace.facetState"),
+    media: t("search.facetMedia"),
   };
 }
 
@@ -316,6 +319,21 @@ export function MarkdownEditor({
     },
     onBlur: () => callbacks.current.onBlur?.(),
   });
+
+  useEffect(() => {
+    if (!inline || markdown === latest.current) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      latest.current = markdown;
+      if (inline.getMarkdown() !== markdown) {
+        inline.commands.setContent(markdown, { contentType: "markdown", emitUpdate: false });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [inline, markdown]);
 
   useEffect(() => {
     inline?.setEditable(!readOnly);

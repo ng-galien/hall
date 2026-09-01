@@ -1,7 +1,6 @@
 import { matchDiscriminated, matchLiteral, type Resource } from "@hall/domain";
 import {
   CsvIcon,
-  FileIcon,
   ImageIcon,
   LegalReferenceIcon,
   MapIcon,
@@ -27,8 +26,7 @@ export type ResourceTone =
   | "spreadsheet"
   | "spreadsheetFile"
   | "presentation"
-  | "csv"
-  | "file";
+  | "csv";
 
 export function resourceTone(resource: Resource): ResourceTone {
   return matchDiscriminated(resource, "kind", {
@@ -64,7 +62,6 @@ export const toneLabelKeys: Record<ResourceTone, TranslationKey> = {
   spreadsheetFile: "workspace.type.file",
   presentation: "workspace.type.file",
   csv: "workspace.type.file",
-  file: "workspace.type.file",
 };
 
 export const toneIcons = {
@@ -79,7 +76,6 @@ export const toneIcons = {
   spreadsheetFile: SpreadsheetDocumentIcon,
   presentation: PresentationDocumentIcon,
   csv: CsvIcon,
-  file: FileIcon,
 } as const;
 
 export function resourceDate(resource: Resource): { kind: "updated" | "created"; value: string } {

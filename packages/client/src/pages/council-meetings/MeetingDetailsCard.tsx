@@ -1,4 +1,10 @@
-import type { CouncilMember, DocumentaryResource, DocumentCategory, MeetingAggregate } from "@hall/domain";
+import {
+  type CouncilMember,
+  type DocumentaryResource,
+  type DocumentCategory,
+  type MeetingAggregate,
+  meetingAgendaCanChange,
+} from "@hall/domain";
 import { type FormEvent, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -152,7 +158,7 @@ export function MeetingDetailsCard({
               </p>
             );
           }
-          if (["draft", "scheduled"].includes(meeting.status)) {
+          if (meetingAgendaCanChange(meeting.status)) {
             return (
               <p className="meeting-notice-status meeting-notice-status-missing" role="status">
                 <WarningIcon aria-hidden="true" />

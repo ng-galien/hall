@@ -1,10 +1,5 @@
-import {
-  imageWidthRange,
-  isReferenceKind,
-  type ReferenceKind,
-  type ResourcePresentationKind,
-  referenceKinds,
-} from "@hall/templating";
+import { matchDiscriminated, type ReferenceEntityKind, referenceEntityKinds } from "@hall/domain";
+import { imageWidthRange, isReferenceKind, type ResourcePresentationKind } from "@hall/templating";
 import { Extension, mergeAttributes, Node } from "@tiptap/core";
 import { type NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from "@tiptap/react";
 import { exitSuggestion, Suggestion, type SuggestionProps } from "@tiptap/suggestion";
@@ -12,15 +7,16 @@ import { createContext, forwardRef, type ReactNode, useContext, useImperativeHan
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "../../i18n/I18nProvider";
-import { type Searchable, searchEntities } from "../../lib/search";
-import { FolderIcon, type MemberIcon, SearchIcon, TagIcon } from "../icons";
+import { type Searchable, type SearchableMedia, type SearchableState, searchEntities } from "../../lib/search";
+import { FilterIcon, FolderIcon, ImageIcon, type MemberIcon, SearchIcon, TagIcon } from "../icons";
 import {
   type FacetSuggestion,
+  type FacetValueLabels,
   facetHashPattern,
   facetOptionsFrom,
   facetSuggestionsFor,
 } from "../search/facetSuggestions";
-import { kindIcons } from "../search/kindPresentation";
+import { isReferenceEntityKind, referenceKindPresentations } from "./referenceKindPresentation";
 
 type ResourcePreviewRenderer = (id: string, onClose: () => void) => ReactNode;
 export type ResourceReferenceAppearance = { tone: string; icon: ReactNode; glyph: ReactNode; tooltip: string };
@@ -33,7 +29,7 @@ export type ReferenceTarget = {
 const ResourcePreviewContext = createContext<{
   renderResourcePreview: ResourcePreviewRenderer;
   resourceAppearance(id: string): ResourceReferenceAppearance | null;
-  referenceTarget(kind: ReferenceKind, id: string): ReferenceTarget | null;
+  referenceTarget(kind: ReferenceEntityKind, id: string): ReferenceTarget | null;
 } | null>(null);
 
 export function useResourcePreviewRenderer() {
@@ -53,7 +49,7 @@ export function ReferencePresentationProvider({
 }: {
   renderResourcePreview: ResourcePreviewRenderer;
   resourceAppearance(id: string): ResourceReferenceAppearance | null;
-  referenceTarget(kind: ReferenceKind, id: string): ReferenceTarget | null;
+  referenceTarget(kind: ReferenceEntityKind, id: string): ReferenceTarget | null;
   children: ReactNode;
 }) {
   return (
@@ -63,15 +59,13 @@ export function ReferencePresentationProvider({
   );
 }
 
-export const referenceIcons = kindIcons;
-
 /** Renders a reference inline; resource references open a preview on click. */
 export function ReferenceBadge({
   kind,
   id,
   children,
 }: {
-  kind: ReferenceKind;
+  kind: ReferenceEntityKind;
   id: string | null;
   children: ReactNode;
 }) {
@@ -82,13 +76,6 @@ export function ReferenceBadge({
   const presentation = useContext(ResourcePreviewContext);
   const target = id ? presentation?.referenceTarget(kind, id) : null;
   const appearance = kind === "resource" && id ? presentation?.resourceAppearance(id) : null;
-  const kindLabels: Record<ReferenceKind, string> = {
-    member: t("editor.kind.member"),
-    resource: t("editor.kind.resource"),
-    councilBusiness: t("editor.kind.councilBusiness"),
-    meeting: t("editor.kind.meeting"),
-    decision: t("editor.kind.decision"),
-  };
   const open = target?.open ?? null;
   const openable = open !== null;
   const className = `editor-reference editor-reference-${kind}${appearance ? ` editor-reference-tone-${appearance.tone}` : ""}`;
@@ -124,7 +111,7 @@ export function ReferenceBadge({
           )}
         </TooltipTrigger>
         <TooltipContent>
-          {target?.tooltip ?? appearance?.tooltip ?? kindLabels[kind]}
+          {target?.tooltip ?? appearance?.tooltip ?? t(referenceKindPresentations[kind].labelKey)}
           {openable ? ` · ${t("editor.openHint")}` : null}
         </TooltipContent>
       </Tooltip>
@@ -142,11 +129,16 @@ export function ReferenceBadge({
 }
 
 function ReferenceChip({ node }: NodeViewProps) {
-  const kind = node.attrs.kind as ReferenceKind;
+  const kind = node.attrs.kind;
+  const id = typeof node.attrs.id === "string" ? node.attrs.id : null;
+  const label = typeof node.attrs.label === "string" ? node.attrs.label : "";
+  if (!isReferenceEntityKind(kind)) {
+    return <NodeViewWrapper as="span">{label}</NodeViewWrapper>;
+  }
   return (
     <NodeViewWrapper as="span" className="editor-reference-wrapper">
-      <ReferenceBadge kind={kind} id={node.attrs.id as string | null}>
-        {node.attrs.label as string}
+      <ReferenceBadge kind={kind} id={id}>
+        {label}
       </ReferenceBadge>
     </NodeViewWrapper>
   );
@@ -171,26 +163,33 @@ export const Reference = Node.create({
     return [
       {
         tag: "span[data-reference]",
-        getAttrs: (element) => ({
-          kind: element.getAttribute("data-kind"),
-          id: element.getAttribute("data-id"),
-          label: element.getAttribute("data-label") ?? element.textContent,
-        }),
+        getAttrs: (element) => {
+          const kind = element.getAttribute("data-kind");
+          if (!isReferenceEntityKind(kind)) return false;
+          return {
+            kind,
+            id: element.getAttribute("data-id"),
+            label: element.getAttribute("data-label") ?? element.textContent,
+          };
+        },
       },
     ];
   },
 
   renderHTML({ node, HTMLAttributes }) {
+    const kind = node.attrs.kind;
+    const label = typeof node.attrs.label === "string" ? node.attrs.label : "";
+    if (!isReferenceEntityKind(kind)) return ["span", mergeAttributes(HTMLAttributes), label];
     return [
       "span",
       mergeAttributes(HTMLAttributes, {
         "data-reference": "",
-        "data-kind": node.attrs.kind,
+        "data-kind": kind,
         "data-id": node.attrs.id,
         "data-label": node.attrs.label,
-        class: `editor-reference editor-reference-${node.attrs.kind}`,
+        class: `editor-reference editor-reference-${kind}`,
       }),
-      node.attrs.label,
+      label,
     ];
   },
 
@@ -216,20 +215,35 @@ export const Reference = Node.create({
   },
   parseMarkdown: (token, helpers) =>
     helpers.createNode("reference", { kind: token.kind, id: token.id, label: token.label }),
-  renderMarkdown: (node) => `:${node.attrs?.kind}[${node.attrs?.label}]{#${node.attrs?.id}}`,
+  renderMarkdown: (node) => {
+    const kind = node.attrs?.kind;
+    return isReferenceEntityKind(kind)
+      ? `:${kind}[${node.attrs?.label}]{#${node.attrs?.id}}`
+      : String(node.attrs?.label ?? "");
+  },
 });
 
 /** A searchable entity that can be inserted as a reference. */
 export interface Mentionable extends Searchable {
   icon?: typeof MemberIcon;
   metaLabel?: string;
+  stateLabel?: string;
+  mediaLabel?: string;
   /** Recommended block representation when this resource can be included. */
   resourcePresentation?: ResourcePresentationKind;
 }
 
 /** Returns the item icon, falling back to the icon for its reference kind. */
 export function mentionableIcon(item: Mentionable) {
-  return item.icon ?? referenceIcons[item.kind];
+  return item.icon ?? referenceKindPresentations[item.kind].icon;
+}
+
+/** Facet value presentation is injected by mentionable producers, not reconstructed by the technical editor. */
+export function mentionableFacetValueLabels(items: readonly Mentionable[]): FacetValueLabels {
+  return {
+    state: (value) => items.find((item) => item.state === value)?.stateLabel ?? value,
+    media: (value) => items.find((item) => item.media === value)?.mediaLabel ?? value,
+  };
 }
 
 interface MentionListHandle {
@@ -247,19 +261,29 @@ function keyOf(event: KeyboardEvent): string {
 }
 
 type MentionListProps = SuggestionProps<Mentionable> & {
-  groupLabels: Record<ReferenceKind, string>;
+  groupLabels: Record<ReferenceEntityKind, string>;
   /** Total match count before truncation. */
   total: number;
   searchAllLabel: string;
-  facetLabels: Record<"type" | "folder" | "tag", string>;
+  facetLabels: Record<FacetSuggestion["facet"], string>;
   /** `#` criteria for the fragment being typed; when present they replace the entity list. */
-  facets: FacetSuggestion[];
+  facets: FacetSuggestion<ReferenceEntityKind>[];
   /** Facets already applied to this suggestion session. */
-  activeFacets: FacetSuggestion[];
-  onPickFacet(facet: FacetSuggestion): void;
+  activeFacets: FacetSuggestion<ReferenceEntityKind>[];
+  onPickFacet(facet: FacetSuggestion<ReferenceEntityKind>): void;
   /** Opens the full search, prefilled with the current query. */
   onOpenFull(): void;
 };
+
+function facetIcon(facet: FacetSuggestion<ReferenceEntityKind>): ReactNode {
+  return matchDiscriminated(facet, "facet", {
+    type: () => null,
+    folder: () => <FolderIcon aria-hidden="true" />,
+    tag: () => <TagIcon aria-hidden="true" />,
+    state: () => <FilterIcon aria-hidden="true" />,
+    media: () => <ImageIcon aria-hidden="true" />,
+  });
+}
 
 const MentionList = forwardRef<MentionListHandle, MentionListProps>(function MentionList(
   { items, command, groupLabels, total, searchAllLabel, facetLabels, facets, activeFacets, onPickFacet, onOpenFull },
@@ -306,8 +330,7 @@ const MentionList = forwardRef<MentionListHandle, MentionListProps>(function Men
         <div className="mention-suggestion-facets">
           {activeFacets.map((facet) => (
             <span className="wsearch-chip" key={`${facet.facet}:${facet.value}`}>
-              {facet.facet === "folder" ? <FolderIcon aria-hidden="true" /> : null}
-              {facet.facet === "tag" ? <TagIcon aria-hidden="true" /> : null}
+              {facetIcon(facet)}
               {facet.label}
             </span>
           ))}
@@ -327,8 +350,7 @@ const MentionList = forwardRef<MentionListHandle, MentionListProps>(function Men
                 onClick={() => onPickFacet(facet)}
               >
                 <span className="searchbox-suggestion-facet">
-                  {facet.facet === "folder" ? <FolderIcon aria-hidden="true" /> : null}
-                  {facet.facet === "tag" ? <TagIcon aria-hidden="true" /> : null}
+                  {facetIcon(facet)}
                   {facetLabels[facet.facet]}
                 </span>
                 <span className="searchbox-suggestion-label">{facet.label}</span>
@@ -372,8 +394,8 @@ function placeSuggestions(element: HTMLElement, clientRect: (() => DOMRect | nul
 export interface ReferenceMentionOptions {
   /** Accessor: sources may arrive after the editor mounts. */
   mentionables(): Mentionable[];
-  groupLabels: Record<ReferenceKind, string>;
-  facetLabels: Record<"type" | "folder" | "tag", string>;
+  groupLabels: Record<ReferenceEntityKind, string>;
+  facetLabels: Record<FacetSuggestion["facet"], string>;
   /** Folder used to rank nearby entries first. */
   context?(): string | undefined;
   searchAllLabel: string;
@@ -381,7 +403,7 @@ export interface ReferenceMentionOptions {
   onOpenFull?(query: string, range: { from: number; to: number }): void;
 }
 
-/** `@` mention menu: `@term` searches every kind, `@kind:term` narrows to one. */
+/** `@` mention menu: plain text searches every kind; `#` adds structured facets. */
 export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
   name: "referenceMention",
 
@@ -395,22 +417,32 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
         meeting: "Meetings",
         decision: "Decisions",
       },
-      facetLabels: { type: "Type", folder: "Folder", tag: "Tag" },
+      facetLabels: { type: "Type", folder: "Folder", tag: "Tag", state: "State", media: "Media" },
       searchAllLabel: "Browse all",
     };
   },
 
   addProseMirrorPlugins() {
     const lastTotal = { value: 0 };
-    const session: { types: FacetSuggestion[]; folders: string[]; tags: string[] } = {
+    const session: {
+      types: Array<Extract<FacetSuggestion<ReferenceEntityKind>, { facet: "type" }>>;
+      folders: string[];
+      tags: string[];
+      states: SearchableState[];
+      media: SearchableMedia[];
+    } = {
       types: [],
       folders: [],
       tags: [],
+      states: [],
+      media: [],
     };
     const resetSession = () => {
       session.types = [];
       session.folders = [];
       session.tags = [];
+      session.states = [];
+      session.media = [];
     };
     return [
       Suggestion<Mentionable>({
@@ -423,13 +455,19 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
             kinds: session.types.map((facet) => facet.value),
             folders: session.folders,
             tags: session.tags,
+            states: session.states,
+            media: session.media,
             limit: query.trim() ? 12 : undefined,
           });
           lastTotal.value = outcome.total;
           const results = query.trim()
             ? outcome.results
-            : referenceKinds.flatMap((kind) => outcome.results.filter((entry) => entry.kind === kind).slice(0, 3));
-          return [...results].sort((a, b) => referenceKinds.indexOf(a.kind) - referenceKinds.indexOf(b.kind));
+            : referenceEntityKinds.flatMap((kind) =>
+                outcome.results.filter((entry) => entry.kind === kind).slice(0, 3),
+              );
+          return [...results].sort(
+            (a, b) => referenceEntityKinds.indexOf(a.kind) - referenceEntityKinds.indexOf(b.kind),
+          );
         },
         command: ({ editor, range, props }) => {
           if (props.media === "image") {
@@ -463,23 +501,33 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
           const openFull = this.options.onOpenFull;
           const mentionables = this.options.mentionables;
           const extras = (props: SuggestionProps<Mentionable>) => {
+            const candidates = mentionables();
             const hashMatch = facetHashPattern.exec(props.query);
             const selectedTypes = session.types.map((facet) => facet.value);
             const facets = hashMatch
               ? facetSuggestionsFor(
                   hashMatch[1],
-                  facetOptionsFrom(mentionables(), (kind) => groupLabels[kind as ReferenceKind]),
+                  facetOptionsFrom(
+                    candidates,
+                    (kind) => groupLabels[kind],
+                    undefined,
+                    mentionableFacetValueLabels(candidates),
+                  ),
                 ).filter(
                   (facet) =>
                     (facet.facet !== "type" || !selectedTypes.includes(facet.value)) &&
                     (facet.facet !== "folder" || !session.folders.includes(facet.value)) &&
-                    (facet.facet !== "tag" || !session.tags.includes(facet.value)),
+                    (facet.facet !== "tag" || !session.tags.includes(facet.value)) &&
+                    (facet.facet !== "state" || !session.states.includes(facet.value)) &&
+                    (facet.facet !== "media" || !session.media.includes(facet.value)),
                 )
               : [];
             const activeFacets = [
               ...session.types,
               ...session.folders.map((value) => ({ facet: "folder" as const, value, label: value })),
               ...session.tags.map((value) => ({ facet: "tag" as const, value, label: value })),
+              ...session.states.map((value) => ({ facet: "state" as const, value, label: value })),
+              ...session.media.map((value) => ({ facet: "media" as const, value, label: value })),
             ];
             return {
               groupLabels,
@@ -488,10 +536,24 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
               searchAllLabel,
               facets,
               activeFacets,
-              onPickFacet: (facet: FacetSuggestion) => {
-                if (facet.facet === "type") session.types = [...session.types, facet];
-                else if (facet.facet === "folder") session.folders = [...session.folders, facet.value];
-                else session.tags = [...session.tags, facet.value];
+              onPickFacet: (facet: FacetSuggestion<ReferenceEntityKind>) => {
+                matchDiscriminated(facet, "facet", {
+                  type: (entry) => {
+                    session.types = [...session.types, entry];
+                  },
+                  folder: (entry) => {
+                    session.folders = [...session.folders, entry.value];
+                  },
+                  tag: (entry) => {
+                    session.tags = [...session.tags, entry.value];
+                  },
+                  state: (entry) => {
+                    session.states = [...session.states, entry.value];
+                  },
+                  media: (entry) => {
+                    session.media = [...session.media, entry.value];
+                  },
+                });
                 const fragmentIndex = props.query.lastIndexOf("#");
                 const from = props.range.from + 1 + fragmentIndex;
                 const to = props.range.from + 1 + props.query.length;

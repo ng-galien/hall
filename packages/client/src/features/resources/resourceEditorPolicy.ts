@@ -1,9 +1,25 @@
-import { matchDiscriminated, type Resource } from "@hall/domain";
+import { matchDiscriminated, type Resource, type ResourceDetails, type ResourceKind } from "@hall/domain";
+import type { ResourceCapabilities } from "./resourceCapabilities";
 
 export interface ResourceEditorState {
   content: string;
   remoteUrl: string;
 }
+
+interface StaticResourceEditorPolicy {
+  fillsExtendedView: boolean;
+  supportsAutosave: boolean;
+}
+
+/** Static editor behavior owned by ResourceKind; payload-dependent operations stay in their exhaustive functions. */
+const resourceKindEditorPolicies: Record<ResourceKind, StaticResourceEditorPolicy> = {
+  text: { fillsExtendedView: false, supportsAutosave: true },
+  spreadsheet: { fillsExtendedView: true, supportsAutosave: true },
+  document: { fillsExtendedView: true, supportsAutosave: false },
+  remote: { fillsExtendedView: false, supportsAutosave: true },
+  geographic: { fillsExtendedView: true, supportsAutosave: true },
+  legalReference: { fillsExtendedView: false, supportsAutosave: false },
+};
 
 /** Values owned by the generic resource editor for each resource kind. */
 export function resourceEditorState(resource: Resource): ResourceEditorState {
@@ -41,23 +57,26 @@ export function resourceContentDirty(resource: Resource, state: ResourceEditorSt
 }
 
 export function resourceFillsExtendedView(resource: Resource): boolean {
-  return matchDiscriminated(resource, "kind", {
-    document: () => true,
-    geographic: () => true,
-    spreadsheet: () => true,
-    text: () => false,
-    remote: () => false,
-    legalReference: () => false,
-  });
+  return resourceKindEditorPolicies[resource.kind].fillsExtendedView;
 }
 
 export function resourceSupportsAutosave(resource: Resource): boolean {
+  return resourceKindEditorPolicies[resource.kind].supportsAutosave;
+}
+
+/** Editability is a product policy constrained by the actions granted for this representation. */
+export function resourceCanEdit(
+  resource: Resource,
+  details: ResourceDetails,
+  capabilities: ResourceCapabilities,
+): boolean {
+  if (details.snapshotted) return false;
   return matchDiscriminated(resource, "kind", {
-    text: () => true,
-    remote: () => true,
-    geographic: () => true,
-    spreadsheet: () => true,
+    text: () => capabilities.updateResource,
+    remote: () => capabilities.updateResource,
+    geographic: () => capabilities.updateGeography,
+    spreadsheet: () => capabilities.updateSpreadsheet,
+    legalReference: (entry) => entry.resolutionStatus === "draft" && capabilities.resolveLegalReference,
     document: () => false,
-    legalReference: () => false,
   });
 }

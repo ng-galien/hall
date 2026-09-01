@@ -1,4 +1,11 @@
-import type { CouncilMember, MeetingAggregate, VoteChoice } from "@hall/domain";
+import {
+  type CouncilMember,
+  councilBusinessDecisionId,
+  type MeetingAggregate,
+  matchDiscriminated,
+  matchLiteral,
+  type VoteChoice,
+} from "@hall/domain";
 
 const attendanceLabels = {
   present: "Présent",
@@ -69,27 +76,42 @@ export function renderMeetingMinutesDraft(aggregate: MeetingAggregate, members: 
       item.discussionSummary.trim() || "Aucune synthèse de discussion n’a été consignée.",
     );
 
+    const councilDecisionId = councilBusinessDecisionId(item.business);
     const ballot = aggregate.ballots.find(
       (candidate) =>
         !candidate.cancelledAt &&
-        (candidate.agendaItemId === item.id ||
-          (item.business.kind === "matter" && candidate.councilDecisionId === item.business.councilDecisionId)),
+        matchDiscriminated(candidate.target, "kind", {
+          agendaItem: (target) => target.id === item.id,
+          councilDecision: (target) => councilDecisionId !== null && target.id === councilDecisionId,
+        }),
     );
     if (ballot) {
+      const methodLabel = matchLiteral(ballot.method, {
+        public: () => "scrutin public",
+        secret: () => "scrutin secret",
+      });
+      const resultLabel = matchLiteral(ballot.result, {
+        adopted: () => "adopté",
+        rejected: () => "rejeté",
+      });
       lines.push(
         "",
         "#### Scrutin",
         "",
-        `- Modalité : ${ballot.method === "public" ? "scrutin public" : "scrutin secret"}`,
-        `- Résultat : ${ballot.result === "adopted" ? "adopté" : "rejeté"}`,
+        `- Modalité : ${methodLabel}`,
+        `- Résultat : ${resultLabel}`,
         `- Pour : ${ballot.votesFor} ; contre : ${ballot.votesAgainst} ; abstentions : ${ballot.abstentions} ; ne prennent pas part au vote : ${ballot.notVoting}`,
       );
-      if (ballot.method === "public") {
-        for (const vote of ballot.votes) {
-          const proxy = vote.castByMemberId !== vote.memberId ? `, exprimé par ${memberName(vote.castByMemberId)}` : "";
-          lines.push(`- ${memberName(vote.memberId)} : ${voteLabels[vote.choice]}${proxy}`);
-        }
-      }
+      matchDiscriminated(ballot, "method", {
+        secret: () => undefined,
+        public: (publicBallot) => {
+          for (const vote of publicBallot.votes) {
+            const proxy =
+              vote.castByMemberId !== vote.memberId ? `, exprimé par ${memberName(vote.castByMemberId)}` : "";
+            lines.push(`- ${memberName(vote.memberId)} : ${voteLabels[vote.choice]}${proxy}`);
+          }
+        },
+      });
     }
     lines.push("");
   }

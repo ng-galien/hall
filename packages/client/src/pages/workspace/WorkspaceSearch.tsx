@@ -12,19 +12,16 @@ import {
 } from "../../components/search/SearchBox";
 import { SearchHitRow } from "../../features/search/SearchHitRow";
 import {
-  type SearchEntityType,
-  type SearchHit,
   searchTypeLabelKeys,
   useSearchCorpus,
-  useSearchFolderOptions,
-  useSearchTagOptions,
-  useSearchTypeOptions,
+  useSearchFacetOptions,
+  type WorkspaceSearchHit,
 } from "../../features/search/searchCorpus";
 import { useI18n } from "../../i18n/I18nProvider";
 import { searchEntities } from "../../lib/search";
-import type { WorkspaceSelection } from "./WorkspacePage";
+import type { WorkspaceSelection } from "./workspaceItemReference";
 
-export type WorkspaceSearchState = SearchBoxState;
+export type WorkspaceSearchState = SearchBoxState<WorkspaceSearchHit["kind"]>;
 
 export const emptySearch: WorkspaceSearchState = emptySearchBoxState;
 
@@ -46,13 +43,11 @@ export function WorkspaceSearch({
 }) {
   const { t, formatNumber } = useI18n();
   const [layout, setLayout] = useState<"list" | "cards">("list");
-  const [preview, setPreview] = useState<SearchBoxState | null>(null);
+  const [preview, setPreview] = useState<WorkspaceSearchState | null>(null);
   const [rawActiveRow, setActiveRow] = useState(0);
 
   const corpus = useSearchCorpus("workspace");
-  const typeOptions = useSearchTypeOptions(corpus);
-  const folderOptions = useSearchFolderOptions(corpus);
-  const tagOptions = useSearchTagOptions(corpus);
+  const facetOptions = useSearchFacetOptions(corpus);
 
   const effective = preview ?? search;
   const active = isSearchActive(effective);
@@ -63,18 +58,17 @@ export function WorkspaceSearch({
         kinds: effective.types,
         folders: effective.folders,
         tags: effective.tags,
+        states: effective.states,
+        media: effective.media,
       }).results,
     [corpus, effective, context],
   );
-  const sections = useMemo(
-    () => folderSections(hits, (kind) => t(searchTypeLabelKeys[kind as SearchEntityType])),
-    [hits, t],
-  );
+  const sections = useMemo(() => folderSections(hits, (kind) => t(searchTypeLabelKeys[kind])), [hits, t]);
   const shown = useMemo(() => sectionItems(sections), [sections]);
   const total = hits.length;
   const activeRow = Math.min(rawActiveRow, Math.max(total - 1, 0));
 
-  const pick = (hit: SearchHit) => {
+  const pick = (hit: WorkspaceSearchHit) => {
     const entity = hit.entity;
     return matchDiscriminated(entity, "entityKind", {
       councilBusiness: (entry) => {
@@ -84,15 +78,6 @@ export function WorkspaceSearch({
       resource: (entry) => {
         onSearch(emptySearch);
         onSelect({ kind: "resource", id: entry.resource.id }, entry.resource.folderPath);
-      },
-      member: () => {
-        throw new Error("Unexpected member result in workspace search");
-      },
-      meeting: () => {
-        throw new Error("Unexpected meeting result in workspace search");
-      },
-      decision: () => {
-        throw new Error("Unexpected decision result in workspace search");
       },
     });
   };
@@ -111,7 +96,7 @@ export function WorkspaceSearch({
     }
   };
 
-  const onPreview = useCallback((next: SearchBoxState | null) => setPreview(next), []);
+  const onPreview = useCallback((next: WorkspaceSearchState | null) => setPreview(next), []);
 
   return (
     <div className="wsearch">
@@ -121,9 +106,11 @@ export function WorkspaceSearch({
           onSearch(next);
           setActiveRow(0);
         }}
-        typeOptions={typeOptions}
-        folderOptions={folderOptions}
-        tagOptions={tagOptions}
+        typeOptions={facetOptions.types}
+        folderOptions={facetOptions.folders}
+        tagOptions={facetOptions.tags}
+        stateOptions={facetOptions.states}
+        mediaOptions={facetOptions.media}
         placeholder={t("workspace.searchEverywhere")}
         onPreview={onPreview}
         onResultsKey={onResultsKey}

@@ -1,13 +1,11 @@
 import {
   type JsonObject,
   type JsonValue,
-  matchDiscriminated,
   matchLiteral,
-  type Resource,
   type ResourceDetails,
   type SpreadsheetDocument,
 } from "@hall/domain";
-import type { ResourcePresentationKind } from "@hall/templating";
+import { resourceSupportsPresentation } from "@hall/templating";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { ResourceImageFigure } from "../../components/editor/images";
 import {
@@ -93,18 +91,6 @@ export async function loadResourceEmbedTableOptions(resourceId: string): Promise
     columnCount: numberValue(sheet.columnCount) ?? 1,
     defaultRange: defaultRange(sheet),
   }));
-}
-
-function expectedPresentation(resource: Resource): ResourcePresentationKind | null {
-  return matchDiscriminated(resource, "kind", {
-    text: () => null,
-    remote: () => null,
-    spreadsheet: () => "table" as const,
-    geographic: () => "map" as const,
-    legalReference: () => "legal-citation" as const,
-    document: (entry) =>
-      ["image/jpeg", "image/png"].includes(entry.mediaType) ? ("image" as const) : ("document" as const),
-  });
 }
 
 function ignorePresentationError() {
@@ -224,7 +210,7 @@ function SpreadsheetRangeTable({
 function ResourceEmbedBody({ details, attributes }: { details: ResourceDetails; attributes: ResourceEmbedAttributes }) {
   const { t, formatDate } = useI18n();
   const resource = details.resource;
-  if (expectedPresentation(resource) !== attributes.presentation) {
+  if (!resourceSupportsPresentation(resource, attributes.presentation)) {
     return <p className="editor-resource-embed-unavailable">{t("editor.embedIncompatible")}</p>;
   }
   const unavailable = <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p>;

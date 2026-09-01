@@ -1,36 +1,39 @@
 import { randomUUID } from "node:crypto";
-import type { CouncilMeeting } from "@hall/domain";
+import { type CouncilMeeting, identifierSchema, meetingStatusSchema, minutesStatusSchema } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { CouncilMeetingRepository } from "./contracts.js";
 import { parseQuorumFailureEvidence } from "./evidenceMapping.js";
 import { nextAnnualNumber } from "./publicIdentifiers.js";
-import { asBoolean, asNullableString, type DatabaseRow } from "./row.js";
+import { asBoolean, asNullableBoolean, asNullableString, asString, type DatabaseRow } from "./row.js";
 
 const mapMeeting = (row: DatabaseRow): CouncilMeeting => ({
-  id: String(row.id),
-  number: String(row.number),
-  slug: String(row.slug),
-  startsAt: String(row.starts_at),
-  location: String(row.location),
-  status: row.status as CouncilMeeting["status"],
-  chairMemberId: asNullableString(row.chair_member_id),
-  secretaryMemberId: asNullableString(row.secretary_member_id),
-  meetingNoticeSentAt: asNullableString(row.meeting_notice_sent_at),
-  meetingNoticePublishedAt: asNullableString(row.meeting_notice_published_at),
-  isUrgent: asBoolean(row.is_urgent),
-  urgencyApproved: row.urgency_approved === null ? null : asBoolean(row.urgency_approved),
-  isReconvenedMeeting: asBoolean(row.is_reconvened_meeting),
-  previousMeetingId: asNullableString(row.previous_meeting_id),
+  id: identifierSchema.parse(row.id),
+  number: asString(row.number, "council_meeting.number"),
+  slug: asString(row.slug, "council_meeting.slug"),
+  startsAt: asString(row.starts_at, "council_meeting.starts_at"),
+  location: asString(row.location, "council_meeting.location"),
+  status: meetingStatusSchema.parse(row.status),
+  chairMemberId: identifierSchema.nullable().parse(row.chair_member_id),
+  secretaryMemberId: identifierSchema.nullable().parse(row.secretary_member_id),
+  meetingNoticeSentAt: asNullableString(row.meeting_notice_sent_at, "council_meeting.meeting_notice_sent_at"),
+  meetingNoticePublishedAt: asNullableString(
+    row.meeting_notice_published_at,
+    "council_meeting.meeting_notice_published_at",
+  ),
+  isUrgent: asBoolean(row.is_urgent, "council_meeting.is_urgent"),
+  urgencyApproved: asNullableBoolean(row.urgency_approved, "council_meeting.urgency_approved"),
+  isReconvenedMeeting: asBoolean(row.is_reconvened_meeting, "council_meeting.is_reconvened_meeting"),
+  previousMeetingId: identifierSchema.nullable().parse(row.previous_meeting_id),
   quorumFailure: parseQuorumFailureEvidence(row.quorum_failure_evidence_json),
-  openedAt: asNullableString(row.opened_at),
-  closedAt: asNullableString(row.closed_at),
-  minutesStatus: row.minutes_status as CouncilMeeting["minutesStatus"],
-  minutesContent: String(row.minutes_content),
-  minutesApprovedAt: asNullableString(row.minutes_approved_at),
-  minutesSignedAt: asNullableString(row.minutes_signed_at),
-  minutesPublishedAt: asNullableString(row.minutes_published_at),
-  createdAt: String(row.created_at),
-  updatedAt: String(row.updated_at),
+  openedAt: asNullableString(row.opened_at, "council_meeting.opened_at"),
+  closedAt: asNullableString(row.closed_at, "council_meeting.closed_at"),
+  minutesStatus: minutesStatusSchema.parse(row.minutes_status),
+  minutesContent: asString(row.minutes_content, "council_meeting.minutes_content"),
+  minutesApprovedAt: asNullableString(row.minutes_approved_at, "council_meeting.minutes_approved_at"),
+  minutesSignedAt: asNullableString(row.minutes_signed_at, "council_meeting.minutes_signed_at"),
+  minutesPublishedAt: asNullableString(row.minutes_published_at, "council_meeting.minutes_published_at"),
+  createdAt: asString(row.created_at, "council_meeting.created_at"),
+  updatedAt: asString(row.updated_at, "council_meeting.updated_at"),
 });
 
 export function createCouncilMeetingRepository({

@@ -16,22 +16,21 @@ import {
   isReferenceKind,
   isResourcePresentationKind,
   parse,
-  type ReferenceKind,
   renderHtml,
+  resourceSupportsPresentation,
   validateStructure,
 } from "@hall/templating";
 import sanitizeHtml from "sanitize-html";
 import type {
-  CouncilBusinessRepository,
-  CouncilDecisionRepository,
   CouncilMeetingRepository,
-  CouncilMemberRepository,
   HallSettingsRepository,
   ResourceRepository,
   StoredDocumentResource,
+  StoredResource,
 } from "../repositories/contracts.js";
 import { pdfAttachmentHref } from "./documentRenderer.js";
 import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
+import type { ReferenceEntityResolver } from "./referenceEntityResolver.js";
 
 type AstNode = {
   type: string;
@@ -48,23 +47,23 @@ type AstNode = {
 type TemplateDirective = ReturnType<typeof collectDirectives>[number];
 
 function resourceReferenceNode(
-  resource: Awaited<ReturnType<ResourceRepository["find"]>>,
+  resource: StoredResource,
+  label: string,
   registerPdfAttachment: (resource: StoredDocumentResource) => void,
-): AstNode | null {
-  if (!resource) return null;
+): AstNode {
   return matchDiscriminated(resource, "kind", {
     document: (entry) => {
       if (entry.mediaType === "application/pdf") {
         registerPdfAttachment(entry);
-        return { type: "link", url: pdfAttachmentHref(entry.id), children: [textNode(entry.title)] };
+        return { type: "link", url: pdfAttachmentHref(entry.id), children: [textNode(label)] };
       }
-      return textNode(entry.title);
+      return textNode(label);
     },
-    remote: (entry) => (entry.url ? externalLink(entry.url, entry.title) : textNode(entry.title)),
-    text: (entry) => textNode(entry.title),
-    spreadsheet: (entry) => textNode(entry.title),
-    geographic: (entry) => textNode(entry.title),
-    legalReference: (entry) => textNode(entry.title),
+    remote: (entry) => (entry.url ? externalLink(entry.url, label) : textNode(label)),
+    text: () => textNode(label),
+    spreadsheet: () => textNode(label),
+    geographic: () => textNode(label),
+    legalReference: () => textNode(label),
   });
 }
 
@@ -318,6 +317,18 @@ async function renderResourceEmbed(
     ],
   });
 
+  if (!resourceSupportsPresentation(resource, presentation)) {
+    const expected = matchLiteral(presentation, {
+      image: () => "a JPEG or PNG DocumentResource",
+      document: () => "a DocumentResource",
+      link: () => "a RemoteResource",
+      "legal-citation": () => "a LegalReferenceResource",
+      map: () => "a GeographicResource",
+      table: () => "a SpreadsheetResource",
+    });
+    return incompatible(expected);
+  }
+
   return matchLiteral(presentation, {
     image: async () => {
       if (resource.kind !== "document" || !["image/jpeg", "image/png"].includes(resource.mediaType)) {
@@ -508,14 +519,6 @@ function formatMeetingDate(value: string, timeZone: string): string {
   }).format(new Date(value));
 }
 
-function personName(member: { firstName: string; lastName: string } | null): string | null {
-  return member ? `${member.firstName} ${member.lastName}` : null;
-}
-
-function meetingReference(meeting: { number: string; startsAt: string } | null): string | null {
-  return meeting ? `${meeting.number} - ${meeting.startsAt.slice(0, 10)}` : null;
-}
-
 function textFromTree(node: AstNode): string {
   if (node.type === "text") return node.value ?? "";
   if (node.type === "image") return node.alt ?? "";
@@ -574,20 +577,16 @@ export interface TemplateRenderingService {
 
 export function createTemplateRenderingService({
   hallSettingsRepository,
-  councilMemberRepository,
   councilMeetingRepository,
-  councilDecisionRepository,
-  councilBusinessRepository,
   resourceRepository,
   geographicMapRenderer,
+  referenceEntityResolver,
 }: {
   hallSettingsRepository: HallSettingsRepository;
-  councilMemberRepository: CouncilMemberRepository;
   councilMeetingRepository: CouncilMeetingRepository;
-  councilDecisionRepository: CouncilDecisionRepository;
-  councilBusinessRepository: CouncilBusinessRepository;
   resourceRepository: ResourceRepository;
   geographicMapRenderer: GeographicMapRenderer;
+  referenceEntityResolver: ReferenceEntityResolver;
 }): TemplateRenderingService {
   const loadContext = async (context: TemplateRenderContext = {}): Promise<ResolvedContext> => ({
     hall: await hallSettingsRepository.get(),
@@ -652,31 +651,16 @@ export function createTemplateRenderingService({
         const id = directive.attributes.id;
         let node: AstNode | null = null;
         if (id) {
-          const referenceKind: ReferenceKind = directive.name;
-          node = await matchLiteral(referenceKind, {
-            member: async () => {
-              const value = personName(await councilMemberRepository.find(id));
-              return value ? textNode(value) : null;
-            },
-            meeting: async () => {
-              const value = meetingReference(await councilMeetingRepository.find(id));
-              return value ? textNode(value) : null;
-            },
-            councilBusiness: async () => {
-              const value = (await councilBusinessRepository.find(id))?.title ?? null;
-              return value ? textNode(value) : null;
-            },
-            decision: async () => {
-              const decision = await councilDecisionRepository.find(id);
-              const value = decision
-                ? decision.number
-                  ? `${decision.number} - ${decision.title}`
-                  : decision.title
-                : null;
-              return value ? textNode(value) : null;
-            },
-            resource: async () => resourceReferenceNode(await resourceRepository.find(id), registerPdfAttachment),
-          });
+          const reference = await referenceEntityResolver.resolve(directive.name, id);
+          node = reference
+            ? matchDiscriminated(reference, "type", {
+                member: (entry) => textNode(entry.label),
+                meeting: (entry) => textNode(entry.label),
+                councilBusiness: (entry) => textNode(entry.label),
+                decision: (entry) => textNode(entry.label),
+                resource: (entry) => resourceReferenceNode(entry.target, entry.label, registerPdfAttachment),
+              })
+            : null;
         }
         values.set(key, node ?? textNode(directive.label));
         if (id && node === null) {
@@ -696,10 +680,10 @@ export function createTemplateRenderingService({
             : null,
           "meeting.location": context.meeting?.location ?? null,
           "meeting.chair": context.meeting?.chairMemberId
-            ? personName(await councilMemberRepository.find(context.meeting.chairMemberId))
+            ? ((await referenceEntityResolver.resolve("member", context.meeting.chairMemberId))?.label ?? null)
             : null,
           "meeting.secretary": context.meeting?.secretaryMemberId
-            ? personName(await councilMemberRepository.find(context.meeting.secretaryMemberId))
+            ? ((await referenceEntityResolver.resolve("member", context.meeting.secretaryMemberId))?.label ?? null)
             : null,
         };
         const value = fields[name];

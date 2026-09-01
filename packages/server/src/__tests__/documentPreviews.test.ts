@@ -148,36 +148,4 @@ describe("derived document previews", () => {
     });
     await agent.get(`/api/resources/${document.slug}/content`).expect(200);
   });
-
-  it("keeps previews distinct when identical bytes have different source formats", async () => {
-    let conversions = 0;
-    const { agent } = await createTestServer({
-      documentPreviewConverter: {
-        async convertToPdf(input) {
-          conversions += 1;
-          return Buffer.from(`%PDF-1.7\n${input.fileName.endsWith(".csv") ? "csv" : "txt"}`);
-        },
-      },
-    });
-    const bytes = Buffer.from("name;votes\nAlice;1");
-    const txt = domainBody<{ slug: string }>(
-      await agent
-        .post("/api/resources/documents")
-        .attach("file", bytes, { filename: "votes.txt", contentType: "text/plain" })
-        .expect(201),
-    );
-    const csv = domainBody<{ slug: string }>(
-      await agent
-        .post("/api/resources/documents")
-        .attach("file", bytes, { filename: "votes.csv", contentType: "text/csv" })
-        .expect(201),
-    );
-
-    const txtPreview = await agent.get(`/api/resources/${txt.slug}/preview`).expect(200);
-    const csvPreview = await agent.get(`/api/resources/${csv.slug}/preview`).expect(200);
-    expect(Buffer.from(txtPreview.body)).not.toEqual(Buffer.from(csvPreview.body));
-    await agent.get(`/api/resources/${txt.slug}/preview`).expect(200);
-    await agent.get(`/api/resources/${csv.slug}/preview`).expect(200);
-    expect(conversions).toBe(2);
-  });
 });

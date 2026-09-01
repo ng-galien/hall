@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 
 export type DatabaseConfig = { kind: "sqlite"; path: string } | { kind: "postgres"; url: string };
+export type DatabaseKind = DatabaseConfig["kind"];
 
 export interface ServerConfig {
   host: string;

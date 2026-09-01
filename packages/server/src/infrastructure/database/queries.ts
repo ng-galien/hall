@@ -1,4 +1,6 @@
-export type SqlDialect = "sqlite" | "postgres";
+import type { DatabaseKind } from "../../core/config.js";
+
+export type SqlDialect = DatabaseKind;
 
 type QueryTemplate = string | { default: string; sqlite?: string; postgres?: string };
 

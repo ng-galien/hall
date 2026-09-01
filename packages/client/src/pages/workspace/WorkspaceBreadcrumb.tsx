@@ -11,7 +11,7 @@ import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { listAllPaths } from "./paths";
 import { type SaveStatus, useSaveStatusStore } from "./saveStatusStore";
-import type { WorkspaceSelection } from "./WorkspacePage";
+import type { WorkspaceSelection } from "./workspaceItemReference";
 
 function CrumbChildren({
   parent,
@@ -73,6 +73,7 @@ export function WorkspaceBreadcrumb({
   interactive = true,
   showSaveStatus = true,
   closeButtonRef,
+  closeTestId = "workspace-breadcrumb-close",
   statusControl,
 }: {
   path: string;
@@ -84,6 +85,7 @@ export function WorkspaceBreadcrumb({
   interactive?: boolean;
   showSaveStatus?: boolean;
   closeButtonRef?: RefObject<HTMLButtonElement | null>;
+  closeTestId?: string;
   statusControl?: ReactNode;
 }) {
   const { t } = useI18n();
@@ -124,7 +126,7 @@ export function WorkspaceBreadcrumb({
           <button
             ref={closeButtonRef}
             className="workspace-breadcrumb-close"
-            data-testid="workspace-breadcrumb-close"
+            data-testid={closeTestId}
             type="button"
             title={t("common.close")}
             aria-label={t("common.close")}
@@ -191,7 +193,7 @@ export function WorkspaceBreadcrumb({
         <button
           ref={closeButtonRef}
           className="workspace-breadcrumb-close"
-          data-testid="workspace-breadcrumb-close"
+          data-testid={closeTestId}
           type="button"
           title={t("common.close")}
           aria-label={t("common.close")}

@@ -1,5 +1,6 @@
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { WorkspaceFolderRepository } from "./contracts.js";
+import { asString } from "./row.js";
 
 export function createWorkspaceFolderRepository({
   sqlExecutor,
@@ -8,7 +9,7 @@ export function createWorkspaceFolderRepository({
 }): WorkspaceFolderRepository {
   return {
     async list() {
-      return (await sqlExecutor.all("workspaceFolder.list")).map((row) => String(row.path));
+      return (await sqlExecutor.all("workspaceFolder.list")).map((row) => asString(row.path, "workspace_folder.path"));
     },
     hasPrefix(folderPath) {
       return sqlExecutor

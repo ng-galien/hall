@@ -56,14 +56,14 @@ export function ColorPicker({
         </button>
       </PopoverTrigger>
       <PopoverContent className="color-picker-popover w-auto p-2" align="end">
-        <div className="color-picker-presets" role="radiogroup" aria-label={ariaLabel}>
+        <fieldset className="color-picker-presets">
+          <legend className="sr-only">{ariaLabel}</legend>
           {presets.map((preset) => (
             <button
               key={preset.value}
               type="button"
               className="color-picker-preset"
-              role="radio"
-              aria-checked={preset.value.toLowerCase() === draftValue.toLowerCase()}
+              aria-pressed={preset.value.toLowerCase() === draftValue.toLowerCase()}
               aria-label={preset.label}
               title={preset.label}
               style={swatchStyle(preset.value)}
@@ -72,7 +72,7 @@ export function ColorPicker({
               <span className="color-picker-swatch" />
             </button>
           ))}
-        </div>
+        </fieldset>
         <label className="color-picker-custom">
           <span>{customLabel}</span>
           <input

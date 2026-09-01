@@ -6,12 +6,16 @@ import {
   createRemoteResourceSchema,
   createSpreadsheetResourceSchema,
   createTextResourceSchema,
+  documentCategorySchema,
+  documentUsageSchema,
   editorAssetOwnerKindSchema,
   folderPathSchema,
+  matchLiteral,
   promoteEditorAssetSchema,
   refreshLegalReferenceSchema,
   renameFolderSchema,
   resolveLegalReferenceResourceSchema,
+  resourceKindSchema,
   resourceTagsSchema,
   searchLegalReferencesSchema,
   updateGeographicResourceSchema,
@@ -22,21 +26,12 @@ import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
+import { documentPreviewMode } from "../../domain/documentPolicy.js";
 import { requirePermission } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
 import { routeParameter } from "../routeParameter.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
-const resourceKindSchema = z.enum(["text", "spreadsheet", "document", "remote", "geographic", "legalReference"]);
-const documentCategorySchema = z.enum([
-  "report",
-  "draftCouncilDecision",
-  "meetingNotice",
-  "minutes",
-  "proxy",
-  "supporting",
-]);
-const resourceUsageSchema = z.enum(["document", "editorAsset"]);
 const editorAssetTitleSchema = z
   .string()
   .trim()
@@ -89,7 +84,7 @@ export function createResourcesRouter({
     const meetingId =
       typeof request.query.meetingId === "string" ? z.string().uuid().parse(request.query.meetingId) : undefined;
     const tags = request.query.tags === undefined ? undefined : parseTags(request.query.tags);
-    let usage = typeof request.query.usage === "string" ? resourceUsageSchema.parse(request.query.usage) : undefined;
+    let usage = typeof request.query.usage === "string" ? documentUsageSchema.parse(request.query.usage) : undefined;
     const editorOwnerKind =
       typeof request.query.editorOwnerKind === "string"
         ? editorAssetOwnerKindSchema.parse(request.query.editorOwnerKind)
@@ -287,9 +282,18 @@ export function createResourcesRouter({
     const resource = await resourceService.find(resourceId);
     if (!resource) throw new DomainError("resource_not_found", 404);
     if (resource.kind !== "document") throw new DomainError("resource_preview_unavailable", 409);
-    const native = ["pdf", "jpeg", "png"].includes(resource.format);
-    const preview = native ? resource : await documentPreviewService.get(resourceId);
-    response.setHeader("Content-Type", native ? resource.mediaType : "application/pdf");
+    const previewMode = documentPreviewMode(resource.format);
+    const { preview, mediaType } = await matchLiteral(previewMode, {
+      native: async () => ({ preview: resource, mediaType: resource.mediaType }),
+      convertible: async () => ({
+        preview: await documentPreviewService.get(resourceId),
+        mediaType: "application/pdf",
+      }),
+      unavailable: async () => {
+        throw new DomainError("resource_preview_unavailable", 409);
+      },
+    });
+    response.setHeader("Content-Type", mediaType);
     response.setHeader("Content-Disposition", "inline");
     response.setHeader("Content-Length", String(preview.byteSize));
     response.setHeader("ETag", `"${preview.contentSha256}"`);

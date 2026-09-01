@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
-import type { ApiRole, ApiUser } from "@hall/api-contract";
+import { type ApiRole, type ApiUser, apiRoleSchema, apiUserStatusSchema } from "@hall/api-contract";
+import { identifierSchema } from "@hall/domain";
+import { z } from "zod";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
-import { type DatabaseRow, mapSequential } from "./row.js";
+import { asInteger, asNullableString, asString, type DatabaseRow, mapSequential } from "./row.js";
 
 export interface StoredUser extends ApiUser {
   passwordHash: string;
@@ -18,41 +20,49 @@ export interface AuditEvent {
   action: string;
   targetType: string;
   targetId: string | null;
-  outcome: "succeeded" | "denied" | "failed";
+  outcome: AuditOutcome;
   details: Record<string, unknown>;
   occurredAt: string;
 }
 
+const auditOutcomes = ["succeeded", "denied", "failed"] as const;
+type AuditOutcome = (typeof auditOutcomes)[number];
+const auditOutcomeSchema = z.enum(auditOutcomes);
+const auditDetailsSchema = z.record(z.string(), z.unknown());
+
 async function mapUser(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<StoredUser> {
-  const roles = (await sqlExecutor.all("security.rolesForUser", { userId: String(row.id) })).map(
-    (role) => String(role.role) as ApiRole,
+  const id = identifierSchema.parse(row.id);
+  const roles = (await sqlExecutor.all("security.rolesForUser", { userId: id })).map((role) =>
+    apiRoleSchema.parse(role.role),
   );
   return {
-    id: String(row.id),
-    email: String(row.email),
-    displayName: String(row.display_name),
-    passwordHash: String(row.password_hash),
-    status: row.status as ApiUser["status"],
-    councilMemberId: row.council_member_id ? String(row.council_member_id) : null,
+    id,
+    email: asString(row.email, "security_user.email"),
+    displayName: asString(row.display_name, "security_user.display_name"),
+    passwordHash: asString(row.password_hash, "security_user.password_hash"),
+    status: apiUserStatusSchema.parse(row.status),
+    councilMemberId: identifierSchema.nullable().parse(row.council_member_id),
     roles,
     permissions: [],
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
+    createdAt: asString(row.created_at, "security_user.created_at"),
+    updatedAt: asString(row.updated_at, "security_user.updated_at"),
   };
 }
 
 function mapAuditEvent(row: DatabaseRow): AuditEvent {
-  const details = typeof row.details_json === "string" ? JSON.parse(row.details_json) : row.details_json;
+  const details = auditDetailsSchema.parse(
+    typeof row.details_json === "string" ? JSON.parse(row.details_json) : row.details_json,
+  );
   return {
-    id: String(row.id),
-    actorUserId: row.actor_user_id ? String(row.actor_user_id) : null,
-    requestId: String(row.request_id),
-    action: String(row.action),
-    targetType: String(row.target_type),
-    targetId: row.target_id ? String(row.target_id) : null,
-    outcome: String(row.outcome) as AuditEvent["outcome"],
-    details: details as Record<string, unknown>,
-    occurredAt: String(row.occurred_at),
+    id: identifierSchema.parse(row.id),
+    actorUserId: identifierSchema.nullable().parse(row.actor_user_id),
+    requestId: asString(row.request_id, "audit_event.request_id"),
+    action: asString(row.action, "audit_event.action"),
+    targetType: asString(row.target_type, "audit_event.target_type"),
+    targetId: asNullableString(row.target_id, "audit_event.target_id"),
+    outcome: auditOutcomeSchema.parse(row.outcome),
+    details,
+    occurredAt: asString(row.occurred_at, "audit_event.occurred_at"),
   };
 }
 
@@ -62,9 +72,9 @@ export function createSecurityRepository({ sqlExecutor }: { sqlExecutor: SqlExec
     return row ? mapUser(sqlExecutor, row) : null;
   };
   return {
-    countUsers: async () => Number((await sqlExecutor.get("security.countUsers"))?.count ?? 0),
+    countUsers: async () => asInteger((await sqlExecutor.get("security.countUsers"))?.count, "security_user.count"),
     countActiveAdministrators: async () =>
-      Number((await sqlExecutor.get("security.countActiveAdministrators"))?.count ?? 0),
+      asInteger((await sqlExecutor.get("security.countActiveAdministrators"))?.count, "security_user.admin_count"),
     lockAdministratorInvariant: () => sqlExecutor.get("security.lockAdministratorInvariant").then(() => undefined),
     async listUsers() {
       return mapSequential(await sqlExecutor.all("security.listUsers"), (row) => mapUser(sqlExecutor, row));
@@ -127,9 +137,9 @@ export function createSecurityRepository({ sqlExecutor }: { sqlExecutor: SqlExec
       const row = await sqlExecutor.get("security.findSession", { tokenHash, now: new Date().toISOString() });
       return row
         ? ({
-            id: String(row.id),
-            userId: String(row.user_id),
-            expiresAt: String(row.expires_at),
+            id: identifierSchema.parse(row.id),
+            userId: identifierSchema.parse(row.user_id),
+            expiresAt: asString(row.expires_at, "security_session.expires_at"),
           } satisfies StoredSession)
         : null;
     },

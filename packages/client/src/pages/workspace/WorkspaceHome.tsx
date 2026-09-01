@@ -1,4 +1,13 @@
-import type { CouncilBusiness, CouncilDecisionListEntry, CouncilMeeting, MeetingAggregate } from "@hall/domain";
+import {
+  agendaItemIsOpen,
+  type CouncilBusiness,
+  type CouncilDecisionListEntry,
+  type CouncilMeeting,
+  councilBusinessDecisionId,
+  councilDecisionContentCanChange,
+  type MeetingAggregate,
+  meetingIsFinished,
+} from "@hall/domain";
 import { useEffect, useMemo, useState } from "react";
 import { CalendarIcon, ChevronRightIcon, FolderIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -7,7 +16,7 @@ import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import type { WorkspaceSelection } from "./WorkspacePage";
+import type { WorkspaceSelection } from "./workspaceItemReference";
 
 type BusinessOccurrence = {
   meeting: CouncilMeeting;
@@ -28,9 +37,6 @@ type ActiveFolder = {
   businessCount: number;
   resourceCount: number;
 };
-
-const FINAL_DECISION_STATUSES = new Set(["adopted", "rejected", "enforceable"]);
-const CLOSED_OCCURRENCE_STATUSES = new Set(["examined", "withdrawn"]);
 
 function topFolder(path: string) {
   return path.split("/").filter(Boolean)[0] ?? "";
@@ -88,18 +94,18 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
   const activeBusinesses = useMemo<ActiveBusiness[]>(() => {
     return businesses
       .flatMap((business) => {
-        const decision =
-          business.kind === "matter" && business.councilDecisionId
-            ? (councilDecisions.find((candidate) => candidate.id === business.councilDecisionId) ?? null)
-            : null;
-        if (decision && FINAL_DECISION_STATUSES.has(decision.status)) return [];
+        const decisionId = councilBusinessDecisionId(business);
+        const decision = decisionId
+          ? (councilDecisions.find((candidate) => candidate.id === decisionId) ?? null)
+          : null;
+        if (decision && !councilDecisionContentCanChange(decision.status)) return [];
 
         const businessOccurrences = occurrences.get(business.id) ?? [];
         const activeOccurrence = businessOccurrences.find(
-          ({ meeting, status }) => !["closed", "cancelled"].includes(meeting.status) || status === "postponed",
+          ({ meeting, status }) => !meetingIsFinished(meeting.status) || status === "postponed",
         );
         const closedOccurrence = businessOccurrences.some(
-          ({ meeting, status }) => meeting.status === "closed" && CLOSED_OCCURRENCE_STATUSES.has(status),
+          ({ meeting, status }) => meeting.status === "closed" && !agendaItemIsOpen(status) && status !== "postponed",
         );
         if (meetingAggregates && closedOccurrence && !activeOccurrence) return [];
 

@@ -500,16 +500,10 @@
     width: var(--hall-size-glyph);
     height: var(--hall-size-glyph);
     border-radius: var(--hall-radius-none);
-    color: var(--hall-color-text-subtle);
+    color: var(--resource-tone-color, var(--hall-color-text-subtle));
     background: transparent;
   }
   .workspace-business-mark .workspace-glyph { color: var(--hall-color-seal-strong); }
-  .workspace-explorer-row > .workspace-glyph-legalReference { color: var(--hall-color-seal); }
-  .workspace-explorer-row > .workspace-glyph-pdf { color: var(--hall-color-danger); }
-  .workspace-explorer-row > .workspace-glyph-image,
-  .workspace-explorer-row > .workspace-glyph-spreadsheet,
-  .workspace-explorer-row > .workspace-glyph-spreadsheetFile,
-  .workspace-explorer-row > .workspace-glyph-csv { color: var(--hall-color-success); }
   .workspace-business-mark .workspace-glyph svg,
   .workspace-explorer-row > .workspace-glyph svg {
     width: var(--hall-font-size-icon-large);
@@ -818,31 +812,19 @@
     width: var(--hall-size-glyph);
     height: var(--hall-size-glyph);
     border-radius: var(--hall-radius-medium);
-    color: var(--hall-color-text-muted);
-    background: var(--hall-color-surface-subtle);
+    color: var(--resource-tone-color, var(--hall-color-text-muted));
+    background: var(--resource-tone-surface, var(--hall-color-surface-subtle));
   }
   .workspace-glyph svg { width: var(--hall-size-glyph-mark); height: var(--hall-size-glyph-mark); }
   .workspace-glyph-large { width: var(--hall-size-glyph-large); height: var(--hall-size-glyph-large); }
   .workspace-glyph-large svg { width: var(--hall-size-glyph-mark-large); height: var(--hall-size-glyph-mark-large); }
-  .workspace-glyph-text { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .workspace-glyph-remote { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .workspace-glyph-geographic { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .workspace-glyph-legalReference { color: var(--hall-color-seal); background: var(--hall-color-seal-surface); }
-  .workspace-glyph-pdf { color: var(--hall-color-danger); background: var(--hall-color-danger-surface); }
-  .workspace-glyph-image { color: var(--hall-color-success); background: var(--hall-color-success-surface); }
-  .workspace-glyph-document { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .workspace-glyph-spreadsheet,
-  .workspace-glyph-spreadsheetFile,
-  .workspace-glyph-csv { color: var(--hall-color-success); background: var(--hall-color-success-surface); }
-  .workspace-glyph-presentation { color: var(--hall-color-warning); background: var(--hall-color-warning-surface); }
-  .workspace-glyph-file { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); }
-  .workspace-glyph-business { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); }
-  .workspace-glyph-decision { color: var(--hall-color-seal); background: var(--hall-color-seal-surface); }
-  .workspace-glyph-kind-member { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .workspace-glyph-kind-meeting { color: var(--hall-color-seal); background: var(--hall-color-seal-surface); }
-  .workspace-glyph-kind-decision { color: var(--hall-color-seal); background: var(--hall-color-seal-surface); }
-  .workspace-glyph-kind-councilBusiness { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); }
+  .workspace-glyph-business,
+  .workspace-glyph-kind-councilBusiness,
   .workspace-glyph-kind-resource { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); }
+  .workspace-glyph-decision,
+  .workspace-glyph-kind-meeting,
+  .workspace-glyph-kind-decision { color: var(--hall-color-seal); background: var(--hall-color-seal-surface); }
+  .workspace-glyph-kind-member { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
 
   .remote-resource-embed {
     display: flex;
@@ -899,7 +881,7 @@
     background: var(--hall-color-surface);
   }
   .remote-resource-setup h2,
-  .legal-reference-setup h2 { margin: 0; font-size: var(--hall-font-size-title-small); }
+  .legal-reference-setup h2 { margin: 0; font-size: var(--hall-font-size-title); }
   .remote-resource-setup p,
   .legal-reference-setup p { margin: var(--hall-space-1) 0 0; color: var(--hall-color-text-muted); }
   .remote-resource-setup-field { display: flex; align-items: center; gap: var(--hall-space-2); }
@@ -940,6 +922,8 @@
     padding: var(--hall-space-1);
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-medium);
+    margin: 0;
+    min-inline-size: 0;
   }
   .geographic-mode-switch button {
     display: inline-flex;
@@ -993,6 +977,8 @@
     padding: var(--hall-space-1);
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-medium);
+    margin: 0;
+    min-inline-size: 0;
   }
   .geographic-zoom-tools button {
     color: var(--hall-color-text);
@@ -1039,6 +1025,11 @@
     border-top: var(--hall-stroke-thin) solid transparent;
     border-bottom: var(--hall-stroke-thin) solid transparent;
     transition: border-color var(--hall-motion-fast), background var(--hall-motion-fast), opacity var(--hall-motion-fast);
+  }
+  .geographic-layers-panel,
+  .geographic-composition-list {
+    margin: 0;
+    list-style: none;
   }
   .geographic-layer-row + .geographic-layer-row { border-top-color: var(--hall-color-border); }
   .geographic-layer-fixed { background: var(--hall-color-surface-subtle); }
@@ -1151,8 +1142,7 @@
     overflow-y: auto;
     padding: var(--hall-space-1);
   }
-  .geographic-composition-list > p {
-    margin: 0;
+  .geographic-composition-empty {
     padding: var(--hall-space-2);
     color: var(--hall-color-text-subtle);
     font-size: var(--hall-font-size-caption);

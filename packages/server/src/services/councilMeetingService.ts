@@ -1,4 +1,10 @@
-import { type CouncilMeeting, calculateQuorum, type MeetingAggregate } from "@hall/domain";
+import {
+  type CouncilMeeting,
+  calculateQuorum,
+  councilBusinessDecisionId,
+  type MeetingAggregate,
+  meetingAgendaCanChange,
+} from "@hall/domain";
 import type {
   AgendaItemRepository,
   AttendanceRepository,
@@ -74,7 +80,7 @@ export function createCouncilMeetingService({
     async updateMeeting(meetingId, input) {
       return unitOfWork.execute(async () => {
         const meeting = await requireMeeting(councilMeetingRepository, meetingId);
-        if (!["draft", "scheduled"].includes(meeting.status) || meeting.quorumFailure) {
+        if (!meetingAgendaCanChange(meeting.status) || meeting.quorumFailure) {
           throw new DomainError("invalid_meeting_transition", 409);
         }
         if (meeting.startsAt.slice(0, 10) !== input.startsAt.slice(0, 10)) {
@@ -98,9 +104,10 @@ export function createCouncilMeetingService({
           councilMeetingRepository.list(),
         ]);
       const councilDecisionIds = new Set(
-        agendaItems.flatMap((item) =>
-          item.business.kind === "matter" && item.business.councilDecisionId ? [item.business.councilDecisionId] : [],
-        ),
+        agendaItems.flatMap((item) => {
+          const councilDecisionId = councilBusinessDecisionId(item.business);
+          return councilDecisionId ? [councilDecisionId] : [];
+        }),
       );
       return {
         meeting,

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { inspectDocument } from "../domain/documentPolicy.js";
+import { matchLiteral } from "@hall/domain";
+import { documentPreviewMode, inspectDocument } from "../domain/documentPolicy.js";
 import type { ResourceRepository, StoredDocumentPreview } from "../repositories/contracts.js";
 import { type DocumentPreviewConverter, DocumentPreviewConverterUnavailableError } from "./documentPreviewConverter.js";
 import { DomainError } from "./errors.js";
@@ -7,8 +8,6 @@ import { DomainError } from "./errors.js";
 export interface DocumentPreviewService {
   get(resourceId: string): Promise<StoredDocumentPreview>;
 }
-
-const convertibleFormats = new Set(["docx", "odt", "xlsx", "pptx", "txt", "csv"]);
 
 export function createDocumentPreviewService({
   resourceRepository,
@@ -22,9 +21,16 @@ export function createDocumentPreviewService({
   async function convert(resourceId: string): Promise<StoredDocumentPreview> {
     const resource = await resourceRepository.find(resourceId);
     if (!resource) throw new DomainError("resource_not_found", 404);
-    if (resource.kind !== "document" || !convertibleFormats.has(resource.format)) {
-      throw new DomainError("resource_preview_unavailable", 409);
-    }
+    if (resource.kind !== "document") throw new DomainError("resource_preview_unavailable", 409);
+    matchLiteral(documentPreviewMode(resource.format), {
+      convertible: () => undefined,
+      native: () => {
+        throw new DomainError("resource_preview_unavailable", 409);
+      },
+      unavailable: () => {
+        throw new DomainError("resource_preview_unavailable", 409);
+      },
+    });
     const cached = await resourceRepository.findPreview(resource.contentSha256, resource.format);
     if (cached) return cached;
     let content: Buffer;

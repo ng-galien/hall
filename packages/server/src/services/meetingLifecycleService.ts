@@ -1,5 +1,6 @@
 import {
   type CouncilMeeting,
+  councilBusinessAgendaProfile,
   isAttendanceComplete,
   type MeetingEvent,
   type MeetingStatus,
@@ -68,15 +69,18 @@ export function createMeetingLifecycleService({
   const releaseOpenAgendaItems = async (meetingId: string, agendaStatus: "postponed" | "withdrawn") => {
     const agenda = await agendaItemRepository.listForMeeting(meetingId);
     const openItems = agenda.filter((item) => !item.completedAt);
-    if (agendaStatus === "postponed" && openItems.some((item) => item.business.kind === "minutesApproval")) {
+    if (
+      agendaStatus === "postponed" &&
+      openItems.some((item) => councilBusinessAgendaProfile(item.business).role === "minutesApproval")
+    ) {
       throw new DomainError("minutes_approval_required", 409);
     }
     for (const item of openItems) {
       const event = agendaStatus === "postponed" ? ({ type: "POSTPONE" } as const) : ({ type: "WITHDRAW" } as const);
       if (transitionAgendaItem(item.status, event) !== agendaStatus) throw new DomainError("agenda_inconsistent", 409);
-      const business = item.business;
-      if (business.kind === "matter" && business.councilDecisionId) {
-        const decision = await councilDecisionRepository.find(business.councilDecisionId);
+      const councilDecisionId = councilBusinessAgendaProfile(item.business).councilDecisionId;
+      if (councilDecisionId) {
+        const decision = await councilDecisionRepository.find(councilDecisionId);
         const next = decision ? transitionCouncilDecision(decision.status, { type: "RETURN_TO_PREPARATION" }) : null;
         if (!decision || !next) throw new DomainError("agenda_inconsistent", 409);
         await councilDecisionRepository.setStatus(decision.id, next);

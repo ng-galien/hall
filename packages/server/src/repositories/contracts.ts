@@ -5,6 +5,7 @@ import type {
   Ballot,
   BallotMethod,
   BallotResult,
+  BallotTarget,
   CommitteeMembership,
   CommitteeRole,
   ContentTemplate,
@@ -18,6 +19,7 @@ import type {
   CouncilRole,
   DocumentCategory,
   DocumentResource,
+  DocumentUsage,
   EditorAssetOwner,
   GeographicLayer,
   GeographicResource,
@@ -258,8 +260,7 @@ export interface CouncilDecisionRepository {
 
 export interface CreateBallot {
   meetingId: string;
-  councilDecisionId: string | null;
-  agendaItemId: string | null;
+  target: BallotTarget;
   idempotencyKey: string;
   commandFingerprint: string;
   method: BallotMethod;
@@ -436,7 +437,7 @@ export interface ResourceRepository {
     tags?: string[];
     kind?: Resource["kind"];
     meetingId?: string;
-    usage?: "document" | "editorAsset";
+    usage?: DocumentUsage;
     editorOwner?: EditorAssetOwner;
   }): Promise<Resource[]>;
   find(id: string): Promise<StoredResource | null>;

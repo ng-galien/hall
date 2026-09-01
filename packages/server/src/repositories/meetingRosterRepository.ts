@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { identifierSchema } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { MeetingRosterRepository } from "./contracts.js";
 
@@ -7,7 +8,7 @@ export function createMeetingRosterRepository({ sqlExecutor }: { sqlExecutor: Sq
     listMemberIds(meetingId) {
       return sqlExecutor
         .all("roster.listMemberIds", { meetingId })
-        .then((rows) => rows.map((row) => String(row.member_id)));
+        .then((rows) => rows.map((row) => identifierSchema.parse(row.member_id)));
     },
     snapshot(meetingId, memberIds) {
       return sqlExecutor.execute(async () => {
@@ -22,7 +23,7 @@ export function createMeetingRosterRepository({ sqlExecutor }: { sqlExecutor: Sq
           await sqlExecutor.run("roster.insert", {
             id: randomUUID(),
             meetingId: targetMeetingId,
-            memberId: String(row.member_id),
+            memberId: identifierSchema.parse(row.member_id),
           });
       });
     },

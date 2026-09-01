@@ -258,7 +258,7 @@ describe("municipal council flow", () => {
     expect(domainBody(uploaded)).toMatchObject({
       kind: "document",
       folderPath: "Voirie/Travaux",
-      tags: ["rapport", "budget"],
+      tags: ["budget", "rapport"],
     });
     const content = await agent.get(`/api/resources/${domainBody(uploaded).id}/content`);
     expect(content.status).toBe(200);

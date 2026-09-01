@@ -1,6 +1,6 @@
-import type { SaveStatus } from "../../pages/workspace/saveStatusStore";
 import { AutosaveOffIcon, AutosaveOnIcon, AutosaveSavingIcon, WarningIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { SaveStatus } from "../../pages/workspace/saveStatusStore";
 import "./ResourceAutosaveToggle.css";
 
 export function ResourceAutosaveToggle({

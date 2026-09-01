@@ -1,6 +1,7 @@
 import {
   type AgendaItem,
   type AgendaItemEvent,
+  councilBusinessAgendaProfile,
   transitionAgendaItem,
   transitionCouncilDecision,
   transitionMinutes,
@@ -89,7 +90,8 @@ export function createMeetingAgendaService({
         const meeting = await requireActiveMeeting(meetingId);
         const item = await requireItem(meeting.id, itemId);
         if (!item.startedAt || item.completedAt) throw new DomainError("agenda_sequence_invalid", 409);
-        const councilDecisionId = item.business.kind === "matter" ? item.business.councilDecisionId : null;
+        const businessProfile = councilBusinessAgendaProfile(item.business);
+        const councilDecisionId = businessProfile.councilDecisionId;
         let finalBallot = null;
         if (councilDecisionId && input.status === "examined") {
           finalBallot = await ballotRepository.findFinalForDecision(councilDecisionId);
@@ -104,10 +106,9 @@ export function createMeetingAgendaService({
               : { type: "WITHDRAW" };
         const nextAgendaStatus = transitionAgendaItem(item.status, agendaItemEvent);
         if (nextAgendaStatus !== input.status) throw new DomainError("agenda_inconsistent", 409);
-        const business = item.business;
-        if (business.kind === "minutesApproval") {
+        if (businessProfile.role === "minutesApproval") {
           if (input.status !== "examined") throw new DomainError("minutes_approval_required", 409);
-          const minutesMeeting = await councilMeetingRepository.find(business.minutesOfMeetingId);
+          const minutesMeeting = await councilMeetingRepository.find(businessProfile.minutesOfMeetingId);
           const nextMinutesStatus = minutesMeeting
             ? transitionMinutes(minutesMeeting.minutesStatus, { type: "APPROVE" })
             : null;
@@ -119,8 +120,8 @@ export function createMeetingAgendaService({
             new Date().toISOString(),
           );
         }
-        if (business.kind === "matter" && business.councilDecisionId && input.status !== "examined") {
-          const decision = await councilDecisionRepository.find(business.councilDecisionId);
+        if (councilDecisionId && input.status !== "examined") {
+          const decision = await councilDecisionRepository.find(councilDecisionId);
           const nextDecisionState = decision
             ? transitionCouncilDecision(decision.status, { type: "RETURN_TO_PREPARATION" })
             : null;

@@ -1,21 +1,15 @@
 import { randomUUID } from "node:crypto";
-import type {
-  DocumentCategory,
-  DocumentResource,
-  EditorAssetOwner,
-  GeographicLayer,
-  GeographicResource,
-  GeographicResourceData,
-  GeographicView,
-  HallGeoJsonFeatureCollection,
-  LegalReferenceResolvedResource,
-  LegalReferenceResource,
-  LegalReferenceSnapshot,
-  RemoteResource,
-  Resource,
-  SpreadsheetDocument,
-  SpreadsheetResource,
-  TextResource,
+import {
+  documentFormatSchema,
+  type EditorAssetOwner,
+  type GeographicResourceData,
+  geographicLayersSchema,
+  geographicViewSchema,
+  hallGeoJsonFeatureCollectionSchema,
+  identifierSchema,
+  type Resource,
+  resourceKindSchema,
+  spreadsheetDocumentSchema,
 } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type {
@@ -28,158 +22,71 @@ import type {
   PersistDocumentResource,
   PersistEditorAssetResource,
   ResourceRepository,
-  StoredDocumentPreview,
   StoredDocumentResource,
   UpdateGeographicResource,
   UpdateSpreadsheetResource,
 } from "./contracts.js";
 import { uniqueSlug } from "./publicIdentifiers.js";
-import { asNullableString, type DatabaseRow, mapSequential } from "./row.js";
-
-function structuredValue<T>(value: unknown): T {
-  return (typeof value === "string" ? JSON.parse(value) : value) as T;
-}
-
-function mapLegalSnapshot(row: DatabaseRow): LegalReferenceSnapshot {
-  return {
-    id: String(row.id),
-    commonId: String(row.common_id),
-    versionId: String(row.version_id),
-    effectiveAt: asNullableString(row.effective_at),
-    fetchedAt: String(row.fetched_at),
-    validFrom: asNullableString(row.valid_from),
-    validTo: asNullableString(row.valid_to),
-    legalStatus: String(row.legal_status),
-    normalizedContent: String(row.normalized_content),
-    contentHash: String(row.content_hash),
-    snapshotHash: String(row.snapshot_hash),
-  };
-}
-
-export function mapResource(row: DatabaseRow, tags: string[]): Resource {
-  const common = {
-    id: String(row.id),
-    slug: String(row.slug),
-    title: String(row.title),
-    folderPath: String(row.folder_path),
-    tags,
-    autosaveEnabled: row.autosave_enabled === true || Number(row.autosave_enabled) === 1,
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
-  };
-  if (row.kind === "text") {
-    const content = String(row.text_content);
-    return {
-      kind: "text",
-      ...common,
-      state: { readiness: content.trim() ? "ready" : "empty", availability: null },
-      content,
-    } satisfies TextResource;
-  }
-  if (row.kind === "remote") {
-    const url = asNullableString(row.remote_url);
-    return {
-      kind: "remote",
-      ...common,
-      state: { readiness: url ? "ready" : "incomplete", availability: url ? "unchecked" : null },
-      url,
-    } satisfies RemoteResource;
-  }
-  if (row.kind === "spreadsheet") {
-    return {
-      kind: "spreadsheet",
-      ...common,
-      state: { readiness: "ready", availability: null },
-      version: Number(row.spreadsheet_version),
-    } satisfies SpreadsheetResource;
-  }
-  if (row.kind === "geographic") {
-    return {
-      kind: "geographic",
-      ...common,
-      state: { readiness: "ready", availability: "unchecked" },
-      provider: "ign",
-      version: Number(row.geographic_version),
-    } satisfies GeographicResource;
-  }
-  if (row.kind === "legalReference") {
-    if (row.legal_common_id === null) {
-      return {
-        kind: "legalReference",
-        ...common,
-        state: { readiness: "incomplete", availability: null },
-        resolutionStatus: "draft",
-        provider: "legifrance",
-        referenceKind: "article",
-      } satisfies LegalReferenceResource;
-    }
-    return {
-      kind: "legalReference",
-      ...common,
-      state: {
-        readiness: "ready",
-        availability: row.legal_verification_status === "current" ? "available" : "unavailable",
-      },
-      resolutionStatus: "resolved",
-      provider: "legifrance",
-      referenceKind: "article",
-      fund: String(row.legal_fund) as LegalReferenceResolvedResource["fund"],
-      commonId: String(row.legal_common_id),
-      versionId: String(row.legal_version_id),
-      effectiveAt: asNullableString(row.legal_effective_at),
-      legalStatus: String(row.legal_status),
-      sourceUrl: String(row.legal_source_url),
-      fetchedAt: String(row.legal_fetched_at),
-      providerUpdatedAt: asNullableString(row.legal_provider_updated_at),
-      citationLabel: String(row.legal_citation_label),
-      attribution: String(row.legal_attribution),
-      snapshotHash: String(row.legal_snapshot_hash),
-      verificationDueAt: new Date(Date.parse(String(row.legal_fetched_at)) + 24 * 60 * 60 * 1000).toISOString(),
-      verificationStatus: String(row.legal_verification_status) as LegalReferenceResolvedResource["verificationStatus"],
-      verificationFailedAt: asNullableString(row.legal_verification_failed_at),
-    } satisfies LegalReferenceResource;
-  }
-  const document = {
-    kind: "document",
-    ...common,
-    state: { readiness: "ready", availability: null },
-    meetingId: asNullableString(row.meeting_id),
-    fileName: String(row.file_name),
-    format: row.format as DocumentResource["format"],
-    mediaType: String(row.media_type),
-    byteSize: Number(row.byte_size),
-    contentSha256: String(row.content_sha256),
-    usage: String(row.usage) as DocumentResource["usage"],
-    category: row.category === null ? null : (String(row.category) as DocumentCategory),
-    editorOwner:
-      row.editor_owner_kind === null || row.editor_owner_id === null
-        ? null
-        : { kind: String(row.editor_owner_kind), id: String(row.editor_owner_id) },
-  };
-  return document as DocumentResource;
-}
-
-export async function tagsFor(sqlExecutor: SqlExecutor, resourceId: string): Promise<string[]> {
-  return (await sqlExecutor.all("resource.tags", { resourceId })).map((row) => String(row.tag));
-}
-
-export async function mapStoredResource(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<Resource> {
-  return mapResource(row, await tagsFor(sqlExecutor, String(row.id)));
-}
+import {
+  assertResourceKind,
+  binaryValue,
+  mapDocumentPreview,
+  mapLegalSnapshot,
+  mapStoredResource,
+  requiredRow,
+  structuredValue,
+} from "./resourceRowMapping.js";
+import { asNullableString, asString, mapSequential } from "./row.js";
 
 async function insertTags(sqlExecutor: SqlExecutor, resourceId: string, tags: string[]): Promise<void> {
   for (const tag of tags) await sqlExecutor.run("resource.insertTag", { resourceId, tag });
 }
 
+type ResourceBaseInsertQuery =
+  | "resource.insertTextBase"
+  | "resource.insertRemoteBase"
+  | "resource.insertSpreadsheetBase"
+  | "resource.insertDocumentBase"
+  | "resource.insertGeographicBase"
+  | "resource.insertLegalReferenceBase";
+
 export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }): ResourceRepository {
-  const mapPreview = (row: DatabaseRow): StoredDocumentPreview => ({
-    sourceContentSha256: String(row.source_content_sha256),
-    sourceFormat: row.source_format as DocumentResource["format"],
-    contentSha256: String(row.content_sha256),
-    byteSize: Number(row.byte_size),
-    content: Buffer.from(row.content as Uint8Array),
-    createdAt: String(row.created_at),
-  });
+  const insertResourceBase = async (
+    query: ResourceBaseInsertQuery,
+    input: { title: string; folderPath: string },
+  ): Promise<{ id: string; createdAt: string }> => {
+    const id = randomUUID();
+    const createdAt = new Date().toISOString();
+    const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
+    await sqlExecutor.run(query, {
+      id,
+      slug,
+      title: input.title,
+      folderPath: input.folderPath,
+      createdAt,
+      updatedAt: createdAt,
+    });
+    return { id, createdAt };
+  };
+
+  const loadResource = async <K extends Resource["kind"]>(
+    id: string,
+    kind: K,
+    context: string,
+  ): Promise<Extract<Resource, { kind: K }>> => {
+    const resource = await mapStoredResource(
+      sqlExecutor,
+      requiredRow(await sqlExecutor.get("resource.findMetadata", { reference: id }), context),
+    );
+    assertResourceKind(resource, kind);
+    return resource;
+  };
+
+  const replaceTags = async (resourceId: string, tags: string[]): Promise<void> => {
+    await sqlExecutor.run("resource.deleteTags", { id: resourceId });
+    await insertTags(sqlExecutor, resourceId, tags);
+  };
+
   return {
     async list(filters = {}) {
       const rows = await sqlExecutor.all("resource.list", {
@@ -199,7 +106,10 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
       const resource = await mapStoredResource(sqlExecutor, row);
       if (resource.kind !== "document") return resource;
       const documentRow = await sqlExecutor.get("resource.documentContent", { id: resource.id });
-      return { ...resource, content: Buffer.from(documentRow!.content as Uint8Array) } satisfies StoredDocumentResource;
+      return {
+        ...resource,
+        content: Buffer.from(binaryValue(requiredRow(documentRow, "loading document content").content)),
+      } satisfies StoredDocumentResource;
     },
     async findMetadata(reference) {
       const row = await sqlExecutor.get("resource.findMetadata", { reference });
@@ -209,28 +119,28 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
       const row = await sqlExecutor.get("resource.geographicData", { id });
       if (!row) return null;
       return {
-        view: structuredValue<GeographicView>(row.view_json),
-        layers: structuredValue<GeographicLayer[]>(row.layers_json),
-        hallLayer: structuredValue<HallGeoJsonFeatureCollection>(row.hall_layer_json),
+        view: structuredValue(row.view_json, geographicViewSchema),
+        layers: structuredValue(row.layers_json, geographicLayersSchema),
+        hallLayer: structuredValue(row.hall_layer_json, hallGeoJsonFeatureCollectionSchema),
         provenance: {
-          attribution: String(row.attribution),
+          attribution: asString(row.attribution, "geographic_resource.attribution"),
           license: "Licence Ouverte 2.0",
-          metadataUrl: String(row.metadata_url),
-          configuredAt: String(row.configured_at),
-          sourceUpdatedAt: asNullableString(row.source_updated_at),
+          metadataUrl: asString(row.metadata_url, "geographic_resource.metadata_url"),
+          configuredAt: asString(row.configured_at, "geographic_resource.configured_at"),
+          sourceUpdatedAt: asNullableString(row.source_updated_at, "geographic_resource.source_updated_at"),
         },
       } satisfies GeographicResourceData;
     },
     async findSpreadsheetDocument(id) {
       const row = await sqlExecutor.get("resource.spreadsheetDocument", { id });
-      return row ? structuredValue<SpreadsheetDocument>(row.document_json) : null;
+      return row ? structuredValue(row.document_json, spreadsheetDocumentSchema) : null;
     },
     async listLegalReferenceSnapshots(id) {
       return (await sqlExecutor.all("resource.legalReferenceSnapshots", { resourceId: id })).map(mapLegalSnapshot);
     },
     async findPreview(sourceContentSha256, sourceFormat) {
       const row = await sqlExecutor.get("resource.preview", { sourceContentSha256, sourceFormat });
-      return row ? mapPreview(row) : null;
+      return row ? mapDocumentPreview(row) : null;
     },
     async savePreview(preview) {
       await sqlExecutor.run("resource.insertPreview", {
@@ -245,10 +155,12 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         sourceContentSha256: preview.sourceContentSha256,
         sourceFormat: preview.sourceFormat,
       });
-      return mapPreview(stored!);
+      return mapDocumentPreview(requiredRow(stored, "saving document preview"));
     },
     async listFolderPaths() {
-      return (await sqlExecutor.all("resource.folderPaths")).map((row) => String(row.folder_path));
+      return (await sqlExecutor.all("resource.folderPaths")).map((row) =>
+        asString(row.folder_path, "resource.folder_path"),
+      );
     },
     hasFolderPathPrefix(folderPath) {
       return sqlExecutor
@@ -267,106 +179,55 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
     },
     createText(input: CreateTextResource) {
       return sqlExecutor.execute(async () => {
-        const id = randomUUID();
-        const now = new Date().toISOString();
-        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
-        await sqlExecutor.run("resource.insertTextBase", {
-          id,
-          slug,
-          title: input.title,
-          folderPath: input.folderPath,
-          createdAt: now,
-          updatedAt: now,
-        });
+        const { id } = await insertResourceBase("resource.insertTextBase", input);
         await sqlExecutor.run("resource.insertText", { id, content: input.content });
         await insertTags(sqlExecutor, id, input.tags);
-        return mapResource(
-          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
-          input.tags,
-        ) as TextResource;
+        return loadResource(id, "text", "creating text resource");
       });
     },
     createRemote(input: CreateRemoteResource) {
       return sqlExecutor.execute(async () => {
-        const id = randomUUID();
-        const now = new Date().toISOString();
-        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
-        await sqlExecutor.run("resource.insertRemoteBase", {
-          id,
-          slug,
-          title: input.title,
-          folderPath: input.folderPath,
-          createdAt: now,
-          updatedAt: now,
-        });
+        const { id } = await insertResourceBase("resource.insertRemoteBase", input);
         await sqlExecutor.run("resource.insertRemote", { id, url: input.url });
         await insertTags(sqlExecutor, id, input.tags);
-        return mapResource(
-          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
-          input.tags,
-        ) as RemoteResource;
+        return loadResource(id, "remote", "creating remote resource");
       });
     },
     createSpreadsheet(input: CreateSpreadsheetResource) {
       return sqlExecutor.execute(async () => {
-        const id = randomUUID();
-        const now = new Date().toISOString();
-        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
-        await sqlExecutor.run("resource.insertSpreadsheetBase", {
-          id,
-          slug,
-          title: input.title,
-          folderPath: input.folderPath,
-          createdAt: now,
-          updatedAt: now,
-        });
+        const { id } = await insertResourceBase("resource.insertSpreadsheetBase", input);
         await sqlExecutor.run("resource.insertSpreadsheet", { id, documentJson: JSON.stringify(input.document) });
         await insertTags(sqlExecutor, id, input.tags);
-        return (await mapStoredResource(
-          sqlExecutor,
-          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
-        )) as SpreadsheetResource;
+        return loadResource(id, "spreadsheet", "creating spreadsheet resource");
       });
     },
     updateSpreadsheet(id: string, input: UpdateSpreadsheetResource) {
       return sqlExecutor.execute(async () => {
         const stored = await sqlExecutor.get("resource.findMetadata", { reference: id });
-        if (stored?.kind !== "spreadsheet") return { status: "notFound" } as const;
+        if (!stored || resourceKindSchema.parse(stored.kind) !== "spreadsheet") return { status: "notFound" } as const;
         const result = await sqlExecutor.run("resource.updateSpreadsheet", {
-          id: String(stored.id),
+          id: identifierSchema.parse(stored.id),
           documentJson: JSON.stringify(input.document),
           expectedVersion: input.expectedVersion,
         });
         if (result.changes === 0) return { status: "versionConflict" } as const;
         await sqlExecutor.run("resource.update", {
-          id: String(stored.id),
-          title: String(stored.title),
-          folderPath: String(stored.folder_path),
+          id: identifierSchema.parse(stored.id),
+          title: asString(stored.title, "resource.title"),
+          folderPath: asString(stored.folder_path, "resource.folder_path"),
           autosaveEnabled: null,
           updatedAt: new Date().toISOString(),
         });
+        const resource = await loadResource(id, "spreadsheet", "updating spreadsheet resource");
         return {
           status: "updated",
-          resource: (await mapStoredResource(
-            sqlExecutor,
-            (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
-          )) as SpreadsheetResource,
+          resource,
         } as const;
       });
     },
     createGeographic(input: CreateGeographicResource) {
       return sqlExecutor.execute(async () => {
-        const id = randomUUID();
-        const now = new Date().toISOString();
-        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
-        await sqlExecutor.run("resource.insertGeographicBase", {
-          id,
-          slug,
-          title: input.title,
-          folderPath: input.folderPath,
-          createdAt: now,
-          updatedAt: now,
-        });
+        const { id, createdAt } = await insertResourceBase("resource.insertGeographicBase", input);
         await sqlExecutor.run("resource.insertGeographic", {
           id,
           viewJson: JSON.stringify(input.view),
@@ -375,22 +236,19 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           attribution: "Source : IGN",
           metadataUrl:
             "https://cartes.gouv.fr/aide/fr/partenaires/ign/representations-cartographiques-souveraines/decouverte-offre-produit/",
-          configuredAt: now,
+          configuredAt: createdAt,
           sourceUpdatedAt: null,
         });
         await insertTags(sqlExecutor, id, input.tags);
-        return (await mapStoredResource(
-          sqlExecutor,
-          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
-        )) as GeographicResource;
+        return loadResource(id, "geographic", "creating geographic resource");
       });
     },
     updateGeographic(id: string, input: UpdateGeographicResource) {
       return sqlExecutor.execute(async () => {
         const stored = await sqlExecutor.get("resource.findMetadata", { reference: id });
-        if (stored?.kind !== "geographic") return { status: "notFound" } as const;
+        if (!stored || resourceKindSchema.parse(stored.kind) !== "geographic") return { status: "notFound" } as const;
         const result = await sqlExecutor.run("resource.updateGeographic", {
-          id: String(stored.id),
+          id: identifierSchema.parse(stored.id),
           viewJson: JSON.stringify(input.view),
           layersJson: JSON.stringify(input.layers),
           hallLayerJson: JSON.stringify(input.hallLayer),
@@ -398,44 +256,32 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         });
         if (result.changes === 0) return { status: "versionConflict" } as const;
         await sqlExecutor.run("resource.update", {
-          id: String(stored.id),
-          title: String(stored.title),
-          folderPath: String(stored.folder_path),
+          id: identifierSchema.parse(stored.id),
+          title: asString(stored.title, "resource.title"),
+          folderPath: asString(stored.folder_path, "resource.folder_path"),
           autosaveEnabled: null,
           updatedAt: new Date().toISOString(),
         });
-        const updated = await sqlExecutor.get("resource.findMetadata", { reference: id });
+        const resource = await loadResource(id, "geographic", "updating geographic resource");
         return {
           status: "updated",
-          resource: (await mapStoredResource(sqlExecutor, updated!)) as GeographicResource,
+          resource,
         } as const;
       });
     },
     createLegalReferenceDraft(input: CreateLegalReferenceDraft) {
       return sqlExecutor.execute(async () => {
-        const id = randomUUID();
-        const now = new Date().toISOString();
-        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
-        await sqlExecutor.run("resource.insertLegalReferenceBase", {
-          id,
-          slug,
-          title: input.title,
-          folderPath: input.folderPath,
-          createdAt: now,
-          updatedAt: now,
-        });
+        const { id } = await insertResourceBase("resource.insertLegalReferenceBase", input);
         await sqlExecutor.run("resource.insertLegalReferenceDraft", { id });
         await insertTags(sqlExecutor, id, input.tags);
-        return (await mapStoredResource(
-          sqlExecutor,
-          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
-        )) as LegalReferenceResource;
+        return loadResource(id, "legalReference", "creating legal reference");
       });
     },
     resolveLegalReference(id: string, input: CreateLegalReferenceResource) {
       return sqlExecutor.execute(async () => {
         const stored = await sqlExecutor.get("resource.findMetadata", { reference: id });
-        if (stored?.kind !== "legalReference" || stored.legal_common_id !== null) return null;
+        if (!stored || resourceKindSchema.parse(stored.kind) !== "legalReference") return null;
+        if (asNullableString(stored.legal_common_id, "resource.legal_common_id") !== null) return null;
         const result = await sqlExecutor.run("resource.resolveLegalReference", {
           id,
           fund: input.fund,
@@ -463,28 +309,29 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           autosaveEnabled: null,
           updatedAt: input.snapshot.fetchedAt,
         });
-        return (await mapStoredResource(
-          sqlExecutor,
-          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
-        )) as LegalReferenceResource;
+        return loadResource(id, "legalReference", "resolving legal reference");
       });
     },
     refreshLegalReference(id, expectedSnapshotHash, input) {
       return sqlExecutor.execute(async () => {
         const stored = await sqlExecutor.get("resource.findMetadata", { reference: id });
-        if (stored?.kind !== "legalReference") return { status: "notFound" } as const;
+        if (!stored || resourceKindSchema.parse(stored.kind) !== "legalReference")
+          return { status: "notFound" } as const;
         const latestSnapshot = await sqlExecutor.get("resource.latestLegalReferenceSnapshot", { resourceId: id });
         const snapshotUnchanged =
           latestSnapshot != null &&
-          String(latestSnapshot.common_id) === input.snapshot.commonId &&
-          String(latestSnapshot.version_id) === input.snapshot.versionId &&
-          asNullableString(latestSnapshot.effective_at) === input.snapshot.effectiveAt &&
-          asNullableString(latestSnapshot.valid_from) === input.snapshot.validFrom &&
-          asNullableString(latestSnapshot.valid_to) === input.snapshot.validTo &&
-          String(latestSnapshot.legal_status) === input.snapshot.legalStatus &&
-          String(latestSnapshot.content_hash) === input.snapshot.contentHash;
+          asString(latestSnapshot.common_id, "legal_reference_snapshot.common_id") === input.snapshot.commonId &&
+          asString(latestSnapshot.version_id, "legal_reference_snapshot.version_id") === input.snapshot.versionId &&
+          asNullableString(latestSnapshot.effective_at, "legal_reference_snapshot.effective_at") ===
+            input.snapshot.effectiveAt &&
+          asNullableString(latestSnapshot.valid_from, "legal_reference_snapshot.valid_from") ===
+            input.snapshot.validFrom &&
+          asNullableString(latestSnapshot.valid_to, "legal_reference_snapshot.valid_to") === input.snapshot.validTo &&
+          asString(latestSnapshot.legal_status, "legal_reference_snapshot.legal_status") ===
+            input.snapshot.legalStatus &&
+          asString(latestSnapshot.content_hash, "legal_reference_snapshot.content_hash") === input.snapshot.contentHash;
         const result = await sqlExecutor.run("resource.updateLegalReference", {
-          id: String(stored.id),
+          id: identifierSchema.parse(stored.id),
           expectedSnapshotHash,
           commonId: input.snapshot.commonId,
           versionId: input.snapshot.versionId,
@@ -501,21 +348,21 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         if (!snapshotUnchanged) {
           await sqlExecutor.run("resource.insertLegalReferenceSnapshot", {
             snapshotId: randomUUID(),
-            resourceId: String(stored.id),
+            resourceId: identifierSchema.parse(stored.id),
             ...input.snapshot,
           });
         }
         await sqlExecutor.run("resource.update", {
-          id: String(stored.id),
-          title: String(stored.title),
-          folderPath: String(stored.folder_path),
+          id: identifierSchema.parse(stored.id),
+          title: asString(stored.title, "resource.title"),
+          folderPath: asString(stored.folder_path, "resource.folder_path"),
           autosaveEnabled: null,
           updatedAt: input.snapshot.fetchedAt,
         });
-        const updated = await sqlExecutor.get("resource.findMetadata", { reference: id });
+        const resource = await loadResource(id, "legalReference", "refreshing legal reference");
         return {
           status: "updated",
-          resource: (await mapStoredResource(sqlExecutor, updated!)) as LegalReferenceResource,
+          resource,
         } as const;
       });
     },
@@ -526,17 +373,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
     },
     createDocument(input: PersistDocumentResource) {
       return sqlExecutor.execute(async () => {
-        const id = randomUUID();
-        const now = new Date().toISOString();
-        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
-        await sqlExecutor.run("resource.insertDocumentBase", {
-          id,
-          slug,
-          title: input.title,
-          folderPath: input.folderPath,
-          createdAt: now,
-          updatedAt: now,
-        });
+        const { id } = await insertResourceBase("resource.insertDocumentBase", input);
         await sqlExecutor.run("resource.insertDocument", {
           id,
           meetingId: input.meetingId ?? null,
@@ -552,25 +389,12 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           content: input.content,
         });
         await insertTags(sqlExecutor, id, input.tags);
-        return mapResource(
-          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
-          input.tags,
-        ) as DocumentResource;
+        return loadResource(id, "document", "creating document resource");
       });
     },
     createEditorAsset(input: PersistEditorAssetResource) {
       return sqlExecutor.execute(async () => {
-        const id = randomUUID();
-        const now = new Date().toISOString();
-        const slug = await uniqueSlug(sqlExecutor, "resource.slugExists", input.title);
-        await sqlExecutor.run("resource.insertDocumentBase", {
-          id,
-          slug,
-          title: input.title,
-          folderPath: input.folderPath,
-          createdAt: now,
-          updatedAt: now,
-        });
+        const { id } = await insertResourceBase("resource.insertDocumentBase", input);
         await sqlExecutor.run("resource.insertDocument", {
           id,
           meetingId: null,
@@ -585,10 +409,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           editorOwnerId: input.owner.id,
           content: input.content,
         });
-        return mapResource(
-          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
-          [],
-        ) as DocumentResource;
+        return loadResource(id, "document", "creating editor asset");
       });
     },
     promoteEditorAsset(id, input) {
@@ -602,12 +423,8 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         });
         const result = await sqlExecutor.run("resource.promoteEditorAsset", { id, category: input.category });
         if (result.changes === 0) return null;
-        await sqlExecutor.run("resource.deleteTags", { id });
-        await insertTags(sqlExecutor, id, input.tags);
-        return mapResource(
-          (await sqlExecutor.get("resource.findMetadata", { reference: id }))!,
-          input.tags,
-        ) as DocumentResource;
+        await replaceTags(id, input.tags);
+        return loadResource(id, "document", "promoting editor asset");
       });
     },
     reconcileEditorAssets(owner: EditorAssetOwner, referencedIds: string[]) {
@@ -627,7 +444,7 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         const referenced = new Set(referencedIds);
         const removed: string[] = [];
         for (const row of assets) {
-          const assetId = String(row.resource_id);
+          const assetId = identifierSchema.parse(row.resource_id);
           if (referenced.has(assetId)) continue;
           if ((await sqlExecutor.run("resource.delete", { id: assetId })).changes > 0) removed.push(assetId);
         }
@@ -648,9 +465,11 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         });
         if (input.content !== undefined) await sqlExecutor.run("resource.updateText", { id, content: input.content });
         if (input.url !== undefined) await sqlExecutor.run("resource.updateRemote", { id, url: input.url });
-        await sqlExecutor.run("resource.deleteTags", { id });
-        await insertTags(sqlExecutor, id, input.tags);
-        return mapResource((await sqlExecutor.get("resource.findMetadata", { reference: id }))!, input.tags);
+        await replaceTags(id, input.tags);
+        return mapStoredResource(
+          sqlExecutor,
+          requiredRow(await sqlExecutor.get("resource.findMetadata", { reference: id }), "updating resource"),
+        );
       });
     },
     isSnapshotted(id) {
@@ -658,11 +477,12 @@ export function createResourceRepository({ sqlExecutor }: { sqlExecutor: SqlExec
     },
     async delete(id) {
       const row = await sqlExecutor.get("resource.findMetadata", { reference: id });
+      const kind = row ? resourceKindSchema.parse(row.kind) : null;
       const result = await sqlExecutor.run("resource.delete", { id });
-      if (result.changes > 0 && row?.kind === "document") {
+      if (result.changes > 0 && kind === "document" && row) {
         await sqlExecutor.run("resource.deletePreviewIfUnused", {
-          sourceContentSha256: String(row.content_sha256),
-          sourceFormat: String(row.format),
+          sourceContentSha256: asString(row.content_sha256, "resource.content_sha256"),
+          sourceFormat: documentFormatSchema.parse(row.format),
         });
       }
       return result.changes > 0;

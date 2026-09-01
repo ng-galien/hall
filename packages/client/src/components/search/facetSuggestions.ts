@@ -1,40 +1,51 @@
-import type { Searchable } from "../../lib/search";
+import type { Searchable, SearchableMedia, SearchableState } from "../../lib/search";
 import { normalizeForSearch } from "../../lib/search";
 
 /* The `#` facet autocompletion shared by every search surface: typing `#` lists the available
-   criteria (types, folders, tags), the fragment after `#` filters them, and applying one adds
-   the facet to the surface's structured search state. */
+   criteria (types, folders, tags, states and media), the fragment after `#` filters them, and
+   applying one adds the facet to the surface's structured search state. */
 
-export interface FacetOption {
-  value: string;
+export interface FacetOption<TValue extends string = string> {
+  value: TValue;
   label: string;
   count?: number;
 }
 
-export interface FacetOptionSets {
-  types: FacetOption[];
+export interface FacetOptionSets<TKind extends string = string> {
+  types: FacetOption<TKind>[];
   folders: FacetOption[];
   tags: FacetOption[];
+  states: FacetOption<SearchableState>[];
+  media: FacetOption<SearchableMedia>[];
 }
 
-export interface FacetSuggestion {
-  facet: "type" | "folder" | "tag";
-  value: string;
-  label: string;
-  count?: number;
+export type FacetSuggestion<TKind extends string = string> =
+  | { facet: "type"; value: TKind; label: string; count?: number }
+  | { facet: "folder"; value: string; label: string; count?: number }
+  | { facet: "tag"; value: string; label: string; count?: number }
+  | { facet: "state"; value: SearchableState; label: string; count?: number }
+  | { facet: "media"; value: SearchableMedia; label: string; count?: number };
+
+export interface FacetValueLabels {
+  state(value: SearchableState): string;
+  media(value: SearchableMedia): string;
 }
 
 /** The `#fragment` being typed at the end of the query, if any. */
 export const facetHashPattern = /#([^\s#]*)$/;
 
 /** Facet options with counts, derived from any searchable corpus. */
-export function facetOptionsFrom(
-  candidates: readonly Searchable[],
-  typeLabel: (kind: string) => string,
-): FacetOptionSets {
-  const typeCounts = new Map<string, number>();
+export function facetOptionsFrom<TKind extends Searchable["kind"]>(
+  candidates: readonly (Searchable & { kind: TKind })[],
+  typeLabel: (kind: TKind) => string,
+  typeOrder?: readonly TKind[],
+  valueLabels: FacetValueLabels = { state: (value) => value, media: (value) => value },
+): FacetOptionSets<TKind> {
+  const typeCounts = new Map<TKind, number>();
   const folderCounts = new Map<string, number>();
   const tagCounts = new Map<string, number>();
+  const stateCounts = new Map<SearchableState, number>();
+  const mediaCounts = new Map<SearchableMedia, number>();
   for (const candidate of candidates) {
     typeCounts.set(candidate.kind, (typeCounts.get(candidate.kind) ?? 0) + 1);
     if (candidate.folderPath) {
@@ -45,20 +56,32 @@ export function facetOptionsFrom(
       }
     }
     for (const tag of candidate.tags ?? []) tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+    if (candidate.state) stateCounts.set(candidate.state, (stateCounts.get(candidate.state) ?? 0) + 1);
+    if (candidate.media) mediaCounts.set(candidate.media, (mediaCounts.get(candidate.media) ?? 0) + 1);
   }
   const descending = (counts: Map<string, number>) =>
     [...counts.entries()]
       .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], "fr"))
       .map(([value, count]) => ({ value, label: value, count }));
+  const orderedTypes = typeOrder ?? [...typeCounts.keys()];
   return {
-    types: [...typeCounts.entries()].map(([value, count]) => ({ value, label: typeLabel(value), count })),
+    types: orderedTypes.map((value) => ({ value, label: typeLabel(value), count: typeCounts.get(value) ?? 0 })),
     folders: descending(folderCounts),
     tags: descending(tagCounts),
+    states: [...stateCounts.entries()]
+      .sort((left, right) => valueLabels.state(left[0]).localeCompare(valueLabels.state(right[0]), "fr"))
+      .map(([value, count]) => ({ value, label: valueLabels.state(value), count })),
+    media: [...mediaCounts.entries()]
+      .sort((left, right) => valueLabels.media(left[0]).localeCompare(valueLabels.media(right[0]), "fr"))
+      .map(([value, count]) => ({ value, label: valueLabels.media(value), count })),
   };
 }
 
 /** The suggestions for a `#` fragment, best first, capped for display. */
-export function facetSuggestionsFor(fragment: string, options: FacetOptionSets): FacetSuggestion[] {
+export function facetSuggestionsFor<TKind extends string>(
+  fragment: string,
+  options: FacetOptionSets<TKind>,
+): FacetSuggestion<TKind>[] {
   const needle = normalizeForSearch(fragment.trim());
   const matches = (label: string) => !needle || normalizeForSearch(label).includes(needle);
   const types = options.types
@@ -72,5 +95,11 @@ export function facetSuggestionsFor(fragment: string, options: FacetOptionSets):
     .filter((option) => matches(option.value))
     .slice(0, 5)
     .map((option) => ({ facet: "tag" as const, value: option.value, label: option.value, count: option.count }));
-  return [...types, ...folders, ...tags].slice(0, 14);
+  const states = options.states
+    .filter((option) => matches(option.label))
+    .map((option) => ({ facet: "state" as const, ...option }));
+  const media = options.media
+    .filter((option) => matches(option.label))
+    .map((option) => ({ facet: "media" as const, ...option }));
+  return [...types, ...states, ...media, ...folders, ...tags].slice(0, 14);
 }

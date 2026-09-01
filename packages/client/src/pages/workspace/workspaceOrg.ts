@@ -4,10 +4,11 @@ import { reclassifyCouncilBusiness } from "../../services/councilBusinessApi";
 import { updateResource } from "../../services/resourcesApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
+import type { WorkspaceItemReference } from "./workspaceItemReference";
 
 export const DRAG_TYPE = "application/x-mairie-item";
 
-export type DragPayload = { kind: "councilBusiness"; id: string } | { kind: "resource"; id: string };
+export type DragPayload = WorkspaceItemReference;
 
 export function encodeDragPayload(payload: DragPayload): string {
   return `${payload.kind}:${payload.id}`;

@@ -11,16 +11,16 @@ import type { SearchHit } from "./searchCorpus";
 /* The one way a search hit renders, whatever the surface. The default row borrows the
    workspace explorer classes so both stay visually identical; `card` keeps the grid card. */
 
-export function SearchHitRow({
+export function SearchHitRow<THit extends SearchHit>({
   hit,
   active = false,
   card = false,
   onPick,
 }: {
-  hit: SearchHit;
+  hit: THit;
   active?: boolean;
   card?: boolean;
-  onPick(hit: SearchHit): void;
+  onPick(hit: THit): void;
 }) {
   const { t, formatDate, formatFileSize } = useI18n();
   const typeLabel = useResourceTypeLabel();

@@ -1,4 +1,11 @@
-import { type CouncilBusiness, matchDiscriminated, matchLiteral, type Resource } from "@hall/domain";
+import {
+  type CouncilBusiness,
+  councilBusinessDecisionId,
+  councilBusinessIsMatter,
+  matchDiscriminated,
+  matchLiteral,
+  type Resource,
+} from "@hall/domain";
 import {
   type DragEvent,
   type KeyboardEvent,
@@ -34,7 +41,7 @@ import {
 import { RequestErrorBanner } from "../../components/Ui";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { councilBusinessKindKeys } from "../../features/council-business/presentation";
-import { ResourceGlyph, toneIcons } from "../../features/documents/ResourceGlyph";
+import { ResourceGlyph, resourceDate, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -45,7 +52,8 @@ import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { listAllPaths } from "./paths";
-import type { WorkspaceCreateKind, WorkspaceSelection } from "./WorkspacePage";
+import { type WorkspaceCreateKind, workspaceCreateKindIcons } from "./workspaceCreateKind";
+import type { WorkspaceSelection } from "./workspaceItemReference";
 import { DRAG_TYPE, type DragPayload, decodeDragPayload, encodeDragPayload, moveToPath } from "./workspaceOrg";
 
 export type WorkspaceViewMode = "all" | "businesses" | "resources";
@@ -53,12 +61,12 @@ type RenameTarget = DragPayload | { kind: "folder"; path: string };
 type InlineCreateKind = Exclude<WorkspaceCreateKind, "file">;
 type CreateTarget = { kind: InlineCreateKind; folderPath: string };
 
-const TextResourceIcon = toneIcons.text;
-const SpreadsheetResourceIcon = toneIcons.spreadsheet;
-const RemoteResourceIcon = toneIcons.remote;
-const GeographicResourceIcon = toneIcons.geographic;
-const LegalReferenceResourceIcon = toneIcons.legalReference;
-const DocumentResourceIcon = toneIcons.file;
+const TextResourceIcon = workspaceCreateKindIcons.text;
+const SpreadsheetResourceIcon = workspaceCreateKindIcons.spreadsheet;
+const RemoteResourceIcon = workspaceCreateKindIcons.remote;
+const GeographicResourceIcon = workspaceCreateKindIcons.geographic;
+const LegalReferenceResourceIcon = workspaceCreateKindIcons.legalReference;
+const DocumentResourceIcon = workspaceCreateKindIcons.file;
 
 function RenameContextMenu({
   children,
@@ -160,6 +168,7 @@ export function PathContents({
   hidden?: boolean;
 }) {
   const { t, formatDate } = useI18n();
+  const resourceTypeLabel = useResourceTypeLabel();
   const councilBusinessStore = useCouncilBusinessStore();
   const { councilDecisions } = useCouncilDecisionsStore();
   const { meetings } = useCouncilMeetingsStore();
@@ -465,14 +474,7 @@ export function PathContents({
   const renderInlineCreation = (folderPath: string) => {
     if (!createTarget || createTarget.folderPath !== folderPath) return null;
     const target = createTarget;
-    const Icon = matchLiteral(target.kind, {
-      councilMatter: () => WorkspaceIcon,
-      text: () => TextResourceIcon,
-      spreadsheet: () => SpreadsheetResourceIcon,
-      remote: () => RemoteResourceIcon,
-      geographic: () => GeographicResourceIcon,
-      legalReference: () => LegalReferenceResourceIcon,
-    });
+    const Icon = workspaceCreateKindIcons[target.kind];
     return (
       <li className="workspace-explorer-item workspace-explorer-creating workspace-explorer-selected">
         <div className="workspace-explorer-row">
@@ -688,10 +690,8 @@ export function PathContents({
           const key = itemKey(payload);
           const renaming = renameTarget?.kind === payload.kind && renameTarget.id === payload.id;
           const renamable = councilBusinessStore.renamableIds.includes(business.id);
-          const decision =
-            business.kind === "matter" && business.councilDecisionId
-              ? councilDecisions.find((candidate) => candidate.id === business.councilDecisionId)
-              : null;
+          const decisionId = councilBusinessDecisionId(business);
+          const decision = decisionId ? councilDecisions.find((candidate) => candidate.id === decisionId) : null;
           const meeting = decision?.meetingId
             ? (meetings.find((candidate) => candidate.id === decision.meetingId) ?? null)
             : null;
@@ -706,7 +706,7 @@ export function PathContents({
               <span className="workspace-business-body">
                 <span className="workspace-business-eyebrow">
                   {t("workspace.businessLeaf")}
-                  {business.kind === "matter" ? "" : ` · ${t(councilBusinessKindKeys[business.kind])}`}
+                  {councilBusinessIsMatter(business) ? "" : ` · ${t(councilBusinessKindKeys[business.kind])}`}
                 </span>
                 <InlineRenameField
                   value={business.title}
@@ -800,6 +800,9 @@ export function PathContents({
                 >
                   <strong>{resource.title}</strong>
                 </InlineRenameField>
+                <span data-testid={`workspace-resource-metadata-${resource.id}`}>
+                  {resourceTypeLabel(resource)} · {formatDate(resourceDate(resource).value)}
+                </span>
                 {resource.state.readiness !== "ready" ? (
                   <span className={`workspace-resource-state workspace-resource-state-${resource.state.readiness}`}>
                     {t(`workspace.resourceState.${resource.state.readiness}`)}
@@ -817,9 +820,11 @@ export function PathContents({
               data-workspace-tree-node
               data-testid={`workspace-resource-open-${resource.id}`}
               type="button"
-              onClick={() => selectTreeItem(key)}
+              onClick={() => {
+                selectTreeItem(key);
+                open();
+              }}
               onContextMenu={() => selectTreeItem(key)}
-              onDoubleClick={open}
               onFocus={() => selectTreeItem(key)}
             >
               {rowContents}

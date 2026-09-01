@@ -21,8 +21,6 @@ test("file sizes are localized through Intl rather than visible unit literals", 
 test("every visible mutation prevents duplicate submissions and reports progress", () => {
   const mutationSurfaces = [
     "src/pages/CouncilMembersPage.tsx",
-    "src/pages/workspace/WorkspacePage.tsx",
-    "src/pages/workspace/ResourceWorkbench.tsx",
     "src/pages/workspace/CouncilBusinessWorkbench.tsx",
     "src/pages/council-meetings/AgendaComposer.tsx",
     "src/pages/council-meetings/CouncilMeetingsPage.tsx",
@@ -72,8 +70,8 @@ test("document download and preview follow their distinct Siren links", () => {
   const preview = read("src/features/documents/ResourcePreview.tsx");
   assert.match(resources, /findSirenLink\(representation, "content"\)/);
   assert.match(resources, /findSirenLink\(representation, "preview"\)/);
-  assert.match(resources, /response\.headers\.get\("content-type"\)/);
-  assert.match(resources, /responseMediaType \|\| preview\.type/);
+  assert.match(resources, /mediaType: preview\.type \|\| "application\/octet-stream"/);
+  assert.match(resources, /resourceContentResponse\(resource\.id\)/);
   assert.doesNotMatch(`${resources}\n${preview}`, /resources\/\$\{[^}]+\}\/(?:content|preview)/);
   assert.match(read("src/hooks/useDocumentPreview.ts"), /setAttempt\(\(current\) => current \+ 1\)/);
   assert.match(read("src/features/documents/DocumentPreviewFailure.tsx"), /resources\.previewFailed/);
@@ -83,6 +81,12 @@ test("the common resource modal reuses Workbench bodies without nested viewers",
   const body = read("src/features/resources/ResourcePresentationBody.tsx");
   const preview = read("src/features/documents/ResourcePreview.tsx");
   const workbench = read("src/pages/workspace/ResourceWorkbench.tsx");
+  const workspace = read("src/pages/workspace/WorkspacePage.tsx");
+  const session = read("src/features/resources/useResourceSession.ts");
+  const persistence = read("src/features/resources/useResourcePersistence.ts");
+  const capabilities = read("src/features/resources/resourceCapabilities.ts");
+  const editorPolicy = read("src/features/resources/resourceEditorPolicy.ts");
+  const geographicPolicy = read("src/features/geographic/geographicFeatureKindPolicy.tsx");
   const spreadsheet = read("src/features/spreadsheet/SpreadsheetResourceEditor.tsx");
   const references = read("src/components/editor/references.tsx");
   const images = read("src/components/editor/images.tsx");
@@ -91,9 +95,30 @@ test("the common resource modal reuses Workbench bodies without nested viewers",
   assert.match(body, /mode: ResourcePresentationMode/);
   assert.match(preview, /<ResourcePresentationBody/);
   assert.match(workbench, /<ResourcePresentationBody/);
-  assert.match(preview, /findSirenAction\(representation, "resource\.update-geography"\)/);
-  assert.match(preview, /findSirenAction\(representation, "resource\.update-spreadsheet"\)/);
-  assert.match(preview, /data-resource-mode=\{mode\}/);
+  assert.match(preview, /useResourceSession\(\{ resourceId \}\)/);
+  assert.match(preview, /export function ResourcePreviewWithSession/);
+  assert.match(workbench, /<ResourcePreviewWithSession[\s\S]*session=\{session\}/);
+  assert.match(workbench, /if \(!\(await session\.flush\(\)\)\) return;[\s\S]*await session\.reload\(\)/);
+  assert.match(workbench, /!viewerOpen \? \([\s\S]*<ResourcePresentationBody/);
+  assert.match(preview, /refreshSessionOnClose && !\(await session\.reload\(\)\)/);
+  assert.match(preview, /closeTestId="resource-preview-close"/);
+  assert.match(workbench, /session: ResourceSession/);
+  assert.match(workspace, /useResourceSession\(\{[\s\S]*resourceId: selectedResource\?\.id \?\? null/);
+  assert.match(workspace, /<ResourceWorkbench[\s\S]*session=\{resourceSession\}/);
+  assert.match(session, /export function useResourceSession/);
+  assert.match(session, /resourceCanEdit\(resource, details, capabilities\)/);
+  assert.match(session, /resourceSupportsAutosave\(resource\)/);
+  assert.match(session, /useResourcePersistence/);
+  assert.match(persistence, /bodyFlushRef/);
+  assert.match(persistence, /savePromiseRef/);
+  assert.match(capabilities, /findSirenAction\(representation, "resource\.update-geography"\)/);
+  assert.match(capabilities, /findSirenAction\(representation, "resource\.update-spreadsheet"\)/);
+  assert.match(capabilities, /findSirenAction\(representation, "resource\.resolve-legal-reference"\)/);
+  assert.match(editorPolicy, /legalReference:[\s\S]*capabilities\.resolveLegalReference/);
+  assert.match(geographicPolicy, /satisfies Record<HallGeoJsonFeatureKind, GeographicFeatureKindPolicy>/);
+  assert.match(geographicPolicy, /defineExhaustiveLiterals<HallGeoJsonFeatureKind>/);
+  assert.match(body, /editing && capabilities\.resolveLegalReference/);
+  assert.match(preview, /data-resource-mode=\{session\.mode\}/);
   assert.doesNotMatch(spreadsheet, /<Dialog|spreadsheet-fullscreen-dialog/);
   assert.match(references, /focus\(\{ preventScroll: true \}\)/);
   assert.match(images, /focus\(\{ preventScroll: true \}\)/);
@@ -134,10 +159,6 @@ test("editor images keep immutable resource references and follow document capab
 
 test("document category translations are exhaustive over the domain type", () => {
   assert.match(read("src/pages/council-meetings/MeetingDetailsCard.tsx"), /Record<DocumentCategory, TranslationKey>/);
-  const resourceWorkbench = read("src/pages/workspace/ResourceWorkbench.tsx");
-  assert.match(resourceWorkbench, /import \{ documentCategoryKeys \}/);
-  assert.match(resourceWorkbench, /resource\.usage === "document"/);
-  assert.match(resourceWorkbench, /documentCategoryKeys\[resource\.category\]/);
 });
 
 test("the complete ballot contract is exposed through the meeting UI", () => {
@@ -163,13 +184,13 @@ test("meeting mutations follow the lifecycle and fixed roster", () => {
   assert.match(preparation, /meetingActions\.can\("meeting\.reorder-agenda"\)/);
   assert.match(preparation, /meetingActions\.can\("meeting\.schedule"\)/);
   assert.match(preparation, /documentsEditable=\{canUpload\}/);
-  const workspace = read("src/pages/workspace/WorkspacePage.tsx");
-  assert.match(workspace, /canCreateCouncilBusiness \?/);
-  assert.match(workspace, /canCreateText \?/);
-  assert.match(workspace, /canUpload \?/);
-  const resourceWorkbench = read("src/pages/workspace/ResourceWorkbench.tsx");
-  assert.match(resourceWorkbench, /findSirenAction\(result\.representation, "resource\.update"\)/);
-  assert.match(resourceWorkbench, /findSirenAction\(result\.representation, "resource\.delete"\)/);
+  const pathContents = read("src/pages/workspace/PathContents.tsx");
+  assert.match(pathContents, /councilBusinessStore\.canCreate \?/);
+  assert.match(pathContents, /resourcesStore\.canCreateText \?/);
+  assert.match(pathContents, /resourcesStore\.canUpload \|\| resourcesStore\.canImportSpreadsheet/);
+  const resourceCapabilities = read("src/features/resources/resourceCapabilities.ts");
+  assert.match(resourceCapabilities, /findSirenAction\(representation, "resource\.update"\)/);
+  assert.match(resourceCapabilities, /findSirenAction\(representation, "resource\.delete"\)/);
   const livePage = read("src/pages/council-meetings/live/LiveMeetingPage.tsx");
   assert.match(livePage, /aggregate\.rosterMemberIds\.includes\(member\.id\)/);
   assert.match(read("src/pages/council-meetings/live/RollCallView.tsx"), /meetingOpeningBlock\(aggregate\)/);
@@ -224,4 +245,26 @@ test("council member collections expose distinct semantic destinations", () => {
   assert.doesNotMatch(page, /<Link className="(?:entity-card|data-row)/);
   assert.doesNotMatch(page, /<Link className="council-member-name/);
   assert.doesNotMatch(page, /committeeCountLabel|committees\.count/);
+});
+
+test("editor references use one validated presentation and navigation authority", () => {
+  const authority = read("src/components/editor/referenceKindPresentation.ts");
+  const references = read("src/components/editor/references.tsx");
+  const dialog = read("src/components/editor/ReferenceSearchDialog.tsx");
+  const kindPresentation = read("src/components/search/kindPresentation.tsx");
+  const app = read("src/App.tsx");
+  const tones = read("src/styles/components.css");
+  assert.match(authority, /Record<ReferenceEntityKind, ReferenceKindPresentation>/);
+  assert.match(authority, /isReferenceEntityKind/);
+  assert.match(references, /if \(!isReferenceEntityKind\(kind\)\) return false/);
+  assert.match(references, /return isReferenceEntityKind\(kind\)/);
+  assert.doesNotMatch(references, /attrs\.kind as ReferenceEntityKind|data-kind[^\n]+as ReferenceEntityKind/);
+  assert.match(references, /mentionableFacetValueLabels\(candidates\)/);
+  assert.match(dialog, /referenceKindPresentations\[kind\]\.groupLabelKey/);
+  assert.match(dialog, /mentionableFacetValueLabels\(pool\)/);
+  assert.doesNotMatch(dialog, /as Mentionable/);
+  assert.match(kindPresentation, /referenceKindPresentations\[kind\]\.icon/);
+  assert.match(app, /resolveReferencePresentation/);
+  assert.match(tones, /--resource-tone-color/);
+  assert.match(tones, /--resource-tone-surface/);
 });

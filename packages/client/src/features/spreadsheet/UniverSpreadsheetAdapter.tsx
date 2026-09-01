@@ -14,7 +14,6 @@ export function UniverSpreadsheetAdapter({
   mountElement,
   document,
   readOnly,
-  instanceKey,
   locale,
   onChange,
   onEditingChange,
@@ -22,7 +21,6 @@ export function UniverSpreadsheetAdapter({
   mountElement: HTMLDivElement | null;
   document: SpreadsheetDocument;
   readOnly: boolean;
-  instanceKey: string;
   locale: "fr" | "en";
   onChange(document: SpreadsheetDocument): void;
   onEditingChange(editing: boolean): void;
@@ -30,6 +28,7 @@ export function UniverSpreadsheetAdapter({
   const onChangeRef = useRef(onChange);
   const onEditingChangeRef = useRef(onEditingChange);
   const readOnlyRef = useRef(readOnly);
+  const initialDocumentRef = useRef(document);
   onChangeRef.current = onChange;
   onEditingChangeRef.current = onEditingChange;
   readOnlyRef.current = readOnly;
@@ -71,8 +70,9 @@ export function UniverSpreadsheetAdapter({
       else univer.registerPlugin(plugin);
     }
     const univerAPI = FUniver.newAPI(univer);
-    const workbook = univerAPI.createWorkbook(workbookFromSpreadsheetDocument(document));
-    let lastSnapshot = JSON.stringify(document.workbook);
+    const initialDocument = initialDocumentRef.current;
+    const workbook = univerAPI.createWorkbook(workbookFromSpreadsheetDocument(initialDocument));
+    let lastSnapshot = JSON.stringify(initialDocument.workbook);
     let snapshotTimer: number | null = null;
     const publishSnapshot = () => {
       if (snapshotTimer !== null) window.clearTimeout(snapshotTimer);
@@ -111,7 +111,7 @@ export function UniverSpreadsheetAdapter({
       instanceHost.remove();
       window.setTimeout(() => univer.dispose(), 0);
     };
-  }, [host, instanceKey, locale]);
+  }, [host, locale]);
 
   return null;
 }

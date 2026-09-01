@@ -17,6 +17,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@hall/domain": "*",
     "mdast-util-directive": "^3.1.0",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",

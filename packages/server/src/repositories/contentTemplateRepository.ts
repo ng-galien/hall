@@ -1,22 +1,22 @@
 import { randomUUID } from "node:crypto";
-import type { ContentTemplate } from "@hall/domain";
+import { type ContentTemplate, identifierSchema, templateKindSchema } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { ContentTemplateRepository, SaveContentTemplate } from "./contracts.js";
-import type { DatabaseRow } from "./row.js";
+import { asNullableString, asString, type DatabaseRow } from "./row.js";
 
 function mapTemplate(row: DatabaseRow): ContentTemplate {
   return {
-    id: String(row.id),
-    kind: row.kind as ContentTemplate["kind"],
-    documentType: String(row.document_type),
-    name: String(row.name),
-    bodyMarkdown: String(row.body_markdown),
-    subject: row.subject == null ? null : String(row.subject),
-    stylesheet: String(row.stylesheet),
-    headerHtml: String(row.header_html),
-    footerHtml: String(row.footer_html),
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
+    id: identifierSchema.parse(row.id),
+    kind: templateKindSchema.parse(row.kind),
+    documentType: asString(row.document_type, "content_template.document_type"),
+    name: asString(row.name, "content_template.name"),
+    bodyMarkdown: asString(row.body_markdown, "content_template.body_markdown"),
+    subject: asNullableString(row.subject, "content_template.subject"),
+    stylesheet: asString(row.stylesheet, "content_template.stylesheet"),
+    headerHtml: asString(row.header_html, "content_template.header_html"),
+    footerHtml: asString(row.footer_html, "content_template.footer_html"),
+    createdAt: asString(row.created_at, "content_template.created_at"),
+    updatedAt: asString(row.updated_at, "content_template.updated_at"),
   };
 }
 

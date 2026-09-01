@@ -1,42 +1,62 @@
 import { randomUUID } from "node:crypto";
-import type { Ballot, Vote } from "@hall/domain";
+import {
+  type Ballot,
+  ballotMethodSchema,
+  ballotResultSchema,
+  ballotTargetOf,
+  identifierListSchema,
+  identifierSchema,
+  matchLiteral,
+  storedBallotTarget,
+  type Vote,
+  voteChoiceSchema,
+} from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { BallotRepository } from "./contracts.js";
 import { parseParticipationEvidence } from "./evidenceMapping.js";
-import { asBoolean, asNullableString, type DatabaseRow, mapSequential } from "./row.js";
+import { asBoolean, asInteger, asNullableString, asString, type DatabaseRow, mapSequential } from "./row.js";
 
 function jsonArray(value: unknown): string[] {
-  return (typeof value === "string" ? JSON.parse(value) : (value ?? [])) as string[];
+  return identifierListSchema.parse(typeof value === "string" ? JSON.parse(value) : value);
 }
 async function mapBallot(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<Ballot> {
+  const target = ballotTargetOf({
+    councilDecisionId: identifierSchema.nullable().parse(row.council_decision_id),
+    agendaItemId: identifierSchema.nullable().parse(row.agenda_item_id),
+  });
+  const storedTarget = storedBallotTarget(target);
   const common = {
-    id: String(row.id),
-    meetingId: String(row.meeting_id),
-    councilDecisionId: asNullableString(row.council_decision_id),
-    agendaItemId: asNullableString(row.agenda_item_id),
-    result: row.result as Ballot["result"],
-    votesFor: Number(row.votes_for),
-    votesAgainst: Number(row.votes_against),
-    abstentions: Number(row.abstentions),
-    notVoting: Number(row.not_voting),
-    votesCast: Number(row.votes_for) + Number(row.votes_against),
-    chairTieBreakApplied: asBoolean(row.chair_tie_break_applied),
+    id: identifierSchema.parse(row.id),
+    meetingId: identifierSchema.parse(row.meeting_id),
+    target,
+    ...storedTarget,
+    result: ballotResultSchema.parse(row.result),
+    votesFor: asInteger(row.votes_for, "ballot.votes_for"),
+    votesAgainst: asInteger(row.votes_against, "ballot.votes_against"),
+    abstentions: asInteger(row.abstentions, "ballot.abstentions"),
+    notVoting: asInteger(row.not_voting, "ballot.not_voting"),
+    votesCast: asInteger(row.votes_for, "ballot.votes_for") + asInteger(row.votes_against, "ballot.votes_against"),
+    chairTieBreakApplied: asBoolean(row.chair_tie_break_applied, "ballot.chair_tie_break_applied"),
     recusedMemberIds: jsonArray(row.recused_member_ids_json),
     participationEvidence: parseParticipationEvidence(row.participation_evidence_json),
-    createdAt: String(row.created_at),
-    cancelledAt: asNullableString(row.cancelled_at),
+    createdAt: asString(row.created_at, "ballot.created_at"),
+    cancelledAt: asNullableString(row.cancelled_at, "ballot.cancelled_at"),
   };
-  if (row.method === "secret") return { ...common, method: "secret" };
-  const votes = (await sqlExecutor.all("ballot.votes", { ballotId: common.id })).map(
-    (vote): Vote => ({
-      id: String(vote.id),
-      ballotId: String(vote.ballot_id),
-      memberId: String(vote.member_id),
-      castByMemberId: String(vote.cast_by_member_id),
-      choice: vote.choice as Vote["choice"],
-    }),
-  );
-  return { ...common, method: "public", votes };
+  return matchLiteral(ballotMethodSchema.parse(row.method), {
+    secret: () => ({ ...common, method: "secret" as const }),
+    public: async () => {
+      const votes = (await sqlExecutor.all("ballot.votes", { ballotId: common.id })).map(
+        (vote): Vote => ({
+          id: identifierSchema.parse(vote.id),
+          ballotId: identifierSchema.parse(vote.ballot_id),
+          memberId: identifierSchema.parse(vote.member_id),
+          castByMemberId: identifierSchema.parse(vote.cast_by_member_id),
+          choice: voteChoiceSchema.parse(vote.choice),
+        }),
+      );
+      return { ...common, method: "public" as const, votes };
+    },
+  });
 }
 
 export function createBallotRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }): BallotRepository {
@@ -66,17 +86,22 @@ export function createBallotRepository({ sqlExecutor }: { sqlExecutor: SqlExecut
     },
     async findByIdempotencyKey(idempotencyKey) {
       const found = await mapped("ballot.findByIdempotencyKey", { idempotencyKey });
-      return found ? { ballot: found.ballot, commandFingerprint: String(found.row.command_fingerprint) } : null;
+      return found
+        ? {
+            ballot: found.ballot,
+            commandFingerprint: asString(found.row.command_fingerprint, "ballot.command_fingerprint"),
+          }
+        : null;
     },
     recordFinal(input) {
       return sqlExecutor.execute(async () => {
         const id = randomUUID();
         const createdAt = new Date().toISOString();
+        const storedTarget = storedBallotTarget(input.target);
         const insert = await sqlExecutor.run("ballot.insert", {
           id,
           meetingId: input.meetingId,
-          councilDecisionId: input.councilDecisionId,
-          agendaItemId: input.agendaItemId,
+          ...storedTarget,
           idempotencyKey: input.idempotencyKey,
           commandFingerprint: input.commandFingerprint,
           method: input.method,
@@ -93,12 +118,14 @@ export function createBallotRepository({ sqlExecutor }: { sqlExecutor: SqlExecut
         if (insert.changes === 0) {
           const replay = await mapped("ballot.findByIdempotencyKey", { idempotencyKey: input.idempotencyKey });
           if (replay)
-            return String(replay.row.command_fingerprint) === input.commandFingerprint
+            return asString(replay.row.command_fingerprint, "ballot.command_fingerprint") === input.commandFingerprint
               ? { status: "replayed" as const, ballot: replay.ballot }
               : { status: "idempotencyConflict" as const };
-          const claimed = input.councilDecisionId
-            ? await sqlExecutor.get("ballot.targetClaimedByDecision", { councilDecisionId: input.councilDecisionId })
-            : await sqlExecutor.get("ballot.targetClaimedByAgendaItem", { agendaItemId: input.agendaItemId! });
+          const claimed = await matchLiteral(input.target.kind, {
+            councilDecision: () =>
+              sqlExecutor.get("ballot.targetClaimedByDecision", { councilDecisionId: input.target.id }),
+            agendaItem: () => sqlExecutor.get("ballot.targetClaimedByAgendaItem", { agendaItemId: input.target.id }),
+          });
           if (claimed) return { status: "decisionAlreadyFinalized" as const };
           throw new Error("Ballot insert was ignored without a known repository conflict");
         }

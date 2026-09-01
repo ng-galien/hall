@@ -1,6 +1,7 @@
 import { findSirenLink } from "@hall/api-contract";
 import type {
   DocumentResource,
+  DocumentUsage,
   EditorAssetOwner,
   FolderCreateResult,
   FolderRenameResult,
@@ -10,6 +11,7 @@ import type {
   RemoteResource,
   Resource,
   ResourceDetails,
+  ResourceKind,
   SpreadsheetResource,
 } from "@hall/domain";
 import {
@@ -24,10 +26,10 @@ import {
 
 export interface ResourceFilters {
   folderPath?: string;
-  kind?: "text" | "spreadsheet" | "document" | "remote" | "geographic" | "legalReference";
+  kind?: ResourceKind;
   meetingId?: string;
   tags?: string[];
-  usage?: "document" | "editorAsset";
+  usage?: DocumentUsage;
   editorOwner?: EditorAssetOwner;
 }
 

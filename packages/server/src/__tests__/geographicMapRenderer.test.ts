@@ -7,9 +7,9 @@ describe("geographic map PDF rendering", () => {
 
   it("embeds the GeoPF background and the persisted feature labels in one printable image", async () => {
     const background = Buffer.from("png-background");
-    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(background, { status: 200, headers: { "content-type": "image/png" } }),
-    );
+    const request = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(background, { status: 200, headers: { "content-type": "image/png" } }));
     const data: GeographicResourceData = {
       view: { kind: "center", center: [2.15, 48.15], zoom: 14 },
       layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],

@@ -1,9 +1,13 @@
-import type { AgendaItem, CouncilDecision, MeetingAggregate } from "@hall/domain";
-
-const finalDecisionStatuses = new Set<CouncilDecision["status"]>(["adopted", "rejected"]);
+import {
+  type AgendaItem,
+  type CouncilDecision,
+  councilBusinessDecisionId,
+  councilDecisionContentCanChange,
+  type MeetingAggregate,
+} from "@hall/domain";
 
 export function agendaItemDecisionId(item: AgendaItem): string | null {
-  return item.business.kind === "matter" ? item.business.councilDecisionId : null;
+  return councilBusinessDecisionId(item.business);
 }
 
 export function pendingBallotDecisions(aggregate: MeetingAggregate): CouncilDecision[] {
@@ -20,6 +24,6 @@ export function pendingBallotDecisions(aggregate: MeetingAggregate): CouncilDeci
     (decision) =>
       scheduledDecisionIds.has(decision.id) &&
       !recordedDecisionIds.has(decision.id) &&
-      !finalDecisionStatuses.has(decision.status),
+      councilDecisionContentCanChange(decision.status),
   );
 }

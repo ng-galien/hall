@@ -4,6 +4,7 @@ import {
   generateContentTemplateSchema,
   previewContentTemplateSchema,
   previewPdfSchema,
+  referenceEntityKinds,
   updateContentTemplateSchema,
 } from "@hall/domain";
 import { Router } from "express";
@@ -13,7 +14,7 @@ import { requirePermission } from "../../security/authorization.js";
 import { routeParameter } from "../routeParameter.js";
 
 const referenceQuerySchema = z.object({
-  type: z.enum(["member", "resource", "councilBusiness", "decision", "meeting"]),
+  type: z.enum(referenceEntityKinds),
   query: z.string().trim().max(160).default(""),
 });
 
@@ -24,14 +25,7 @@ function contains(label: string, query: string): boolean {
 }
 
 export function createContentTemplatesRouter(cradle: Cradle): Router {
-  const {
-    contentTemplateService,
-    councilMemberRepository,
-    councilMeetingRepository,
-    councilDecisionRepository,
-    councilBusinessRepository,
-    resourceRepository,
-  } = cradle;
+  const { contentTemplateService, referenceEntityResolver } = cradle;
   const router = Router();
   const pdfPreviews = new Map<string, { content: Buffer; expiresAt: number }>();
 
@@ -41,43 +35,13 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
 
   router.get("/references", requirePermission("workspace.read"), async (request, response) => {
     const { type, query } = referenceQuerySchema.parse(request.query);
-    let references: Array<{ type: typeof type; id: string; label: string }> = [];
-    if (type === "member") {
-      references = (await councilMemberRepository.list()).map((member) => ({
-        type,
-        id: member.id,
-        label: `${member.firstName} ${member.lastName}`,
-      }));
-    }
-    if (type === "meeting") {
-      references = (await councilMeetingRepository.list()).map((meeting) => ({
-        type,
-        id: meeting.id,
-        label: `${meeting.number} - ${meeting.startsAt.slice(0, 10)}`,
-      }));
-    }
-    if (type === "councilBusiness") {
-      references = (await councilBusinessRepository.list()).map((business) => ({
-        type,
-        id: business.id,
-        label: business.title,
-      }));
-    }
-    if (type === "decision") {
-      references = (await councilDecisionRepository.list()).map((decision) => ({
-        type,
-        id: decision.id,
-        label: decision.number ? `${decision.number} - ${decision.title}` : decision.title,
-      }));
-    }
-    if (type === "resource") {
-      references = (await resourceRepository.list()).map((resource) => ({
-        type,
-        id: resource.id,
-        label: resource.title,
-      }));
-    }
-    response.json(references.filter((reference) => contains(reference.label, query)).slice(0, 30));
+    const references = await referenceEntityResolver.list(type);
+    response.json(
+      references
+        .filter((reference) => contains(reference.label, query))
+        .slice(0, 30)
+        .map(({ type: referenceType, id, label }) => ({ type: referenceType, id, label })),
+    );
   });
 
   router.post("/preview", requirePermission("workspace.read"), async (request, response) => {

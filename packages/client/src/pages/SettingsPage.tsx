@@ -30,8 +30,12 @@ export function SettingsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="fr" data-testid="settings-language-fr">{t("settings.french")}</SelectItem>
-                <SelectItem value="en" data-testid="settings-language-en">{t("settings.english")}</SelectItem>
+                <SelectItem value="fr" data-testid="settings-language-fr">
+                  {t("settings.french")}
+                </SelectItem>
+                <SelectItem value="en" data-testid="settings-language-en">
+                  {t("settings.english")}
+                </SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted">{t("settings.languageDescription")}</p>

@@ -161,7 +161,10 @@ export function buildLegifranceProvider(config: ServerConfig, fetchImpl: FetchLi
   const provider: LegalReferenceProvider = {
     async search({ query, effectiveAt }) {
       const fund: LegalReferenceFund = effectiveAt ? "CODE_DATE" : "CODE_ETAT";
-      const normalizedArticleNumber = query.trim().replace(/\s+/g, "").replace(/^([A-Z])\./i, "$1");
+      const normalizedArticleNumber = query
+        .trim()
+        .replace(/\s+/g, "")
+        .replace(/^([A-Z])\./i, "$1");
       const isArticleNumber = /^[A-Z][0-9]+(?:-[0-9]+)+(?:[A-Z0-9-]*)?$/i.test(normalizedArticleNumber);
       const filters: Array<Record<string, unknown>> = [
         {
@@ -302,7 +305,9 @@ export function buildLegifranceProvider(config: ServerConfig, fetchImpl: FetchLi
               candidate.validFrom <= effectiveTimestamp! &&
               (candidate.validTo === null || effectiveTimestamp! < candidate.validTo),
         )
-        .sort((left, right) => (right.validFrom ?? Number.NEGATIVE_INFINITY) - (left.validFrom ?? Number.NEGATIVE_INFINITY))[0];
+        .sort(
+          (left, right) => (right.validFrom ?? Number.NEGATIVE_INFINITY) - (left.validFrom ?? Number.NEGATIVE_INFINITY),
+        )[0];
       if (!match) throw new OfficialSourceError("invalidResponse");
       return provider.fetchArticle({ fund, versionId: match.versionId, effectiveAt });
     },

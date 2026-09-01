@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { extname } from "node:path";
-import type { DocumentFormat } from "@hall/domain";
+import { type DocumentFormat, matchLiteral } from "@hall/domain";
 import { fileTypeFromBuffer } from "file-type";
 import { DomainError } from "../services/errors.js";
 
@@ -23,6 +23,26 @@ interface TextDocumentPolicy {
 }
 
 type DocumentFormatPolicy = BinaryDocumentPolicy | TextDocumentPolicy;
+
+export type DocumentPreviewMode = "native" | "convertible" | "unavailable";
+
+/**
+ * Single exhaustive authority for document preview support. Routes and Siren
+ * representations must consult this policy instead of maintaining format lists.
+ */
+export function documentPreviewMode(format: DocumentFormat): DocumentPreviewMode {
+  return matchLiteral(format, {
+    pdf: () => "native" as const,
+    jpeg: () => "native" as const,
+    png: () => "native" as const,
+    docx: () => "convertible" as const,
+    odt: () => "convertible" as const,
+    xlsx: () => "convertible" as const,
+    pptx: () => "convertible" as const,
+    txt: () => "convertible" as const,
+    csv: () => "convertible" as const,
+  });
+}
 
 function isUtf8Text(content: Buffer): boolean {
   if (content.includes(0)) return false;

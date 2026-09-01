@@ -1,4 +1,5 @@
 import { getNextSnapshot, setup } from "xstate";
+import { matchLiteral } from "../match.js";
 import type { MeetingStatus } from "../model.js";
 
 export type MeetingEvent =
@@ -47,4 +48,37 @@ export function transitionMeeting(status: MeetingStatus, event: MeetingEvent): M
   const current = meetingMachine.resolveState({ value: status, context: {} });
   if (!current.can(event)) return null;
   return getNextSnapshot(meetingMachine, current, event).value as MeetingStatus;
+}
+
+/** Preparation may still change the agenda before the meeting starts. */
+export function meetingAgendaCanChange(status: MeetingStatus): boolean {
+  return matchLiteral(status, {
+    draft: () => true,
+    scheduled: () => true,
+    inProgress: () => false,
+    closed: () => false,
+    cancelled: () => false,
+  });
+}
+
+/** Attendance remains correctable from roll call until the meeting closes. */
+export function meetingAttendanceCanChange(status: MeetingStatus): boolean {
+  return matchLiteral(status, {
+    draft: () => false,
+    scheduled: () => true,
+    inProgress: () => true,
+    closed: () => false,
+    cancelled: () => false,
+  });
+}
+
+/** Closed and cancelled meetings belong to the historical collection. */
+export function meetingIsFinished(status: MeetingStatus): boolean {
+  return matchLiteral(status, {
+    draft: () => false,
+    scheduled: () => false,
+    inProgress: () => false,
+    closed: () => true,
+    cancelled: () => true,
+  });
 }

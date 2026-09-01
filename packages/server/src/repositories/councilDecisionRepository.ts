@@ -1,22 +1,30 @@
 import { randomUUID } from "node:crypto";
-import type { CouncilDecision, CouncilDecisionListEntry } from "@hall/domain";
+import {
+  type CouncilDecision,
+  type CouncilDecisionListEntry,
+  councilDecisionStatusSchema,
+  identifierSchema,
+} from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { CouncilDecisionRepository } from "./contracts.js";
 import { nextAnnualNumber, uniqueSlug } from "./publicIdentifiers.js";
-import { asBoolean, asNullableString, type DatabaseRow } from "./row.js";
+import { asBoolean, asNullableString, asString, type DatabaseRow } from "./row.js";
 
 const mapCouncilDecision = (row: DatabaseRow): CouncilDecision => ({
-  id: String(row.id),
-  number: asNullableString(row.number),
-  slug: String(row.slug),
-  title: String(row.title),
-  draftText: String(row.draft_text),
-  status: row.status as CouncilDecision["status"],
-  legalityReviewRequired: asBoolean(row.legality_review_required),
-  submittedForLegalityReviewAt: asNullableString(row.submitted_for_legality_review_at),
-  publishedAt: asNullableString(row.published_at),
-  createdAt: String(row.created_at),
-  updatedAt: String(row.updated_at),
+  id: identifierSchema.parse(row.id),
+  number: asNullableString(row.number, "council_decision.number"),
+  slug: asString(row.slug, "council_decision.slug"),
+  title: asString(row.title, "council_decision.title"),
+  draftText: asString(row.draft_text, "council_decision.draft_text"),
+  status: councilDecisionStatusSchema.parse(row.status),
+  legalityReviewRequired: asBoolean(row.legality_review_required, "council_decision.legality_review_required"),
+  submittedForLegalityReviewAt: asNullableString(
+    row.submitted_for_legality_review_at,
+    "council_decision.submitted_for_legality_review_at",
+  ),
+  publishedAt: asNullableString(row.published_at, "council_decision.published_at"),
+  createdAt: asString(row.created_at, "council_decision.created_at"),
+  updatedAt: asString(row.updated_at, "council_decision.updated_at"),
 });
 
 export function createCouncilDecisionRepository({
@@ -30,7 +38,7 @@ export function createCouncilDecisionRepository({
         rows.map(
           (row): CouncilDecisionListEntry => ({
             ...mapCouncilDecision(row),
-            meetingId: asNullableString(row.agenda_meeting_id),
+            meetingId: identifierSchema.nullable().parse(row.agenda_meeting_id),
           }),
         ),
       );

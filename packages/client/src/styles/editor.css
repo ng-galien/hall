@@ -77,8 +77,8 @@
 .table-handle[data-state="open"],
 .table-extend:hover {
   border-color: var(--hall-color-brand);
-  color: var(--hall-color-brand);
-  background: var(--hall-color-brand-subtle);
+  color: var(--resource-tone-color, var(--hall-color-brand));
+  background: var(--resource-tone-surface, var(--hall-color-brand-subtle));
 }
 .table-handle-column {
   width: var(--hall-size-table-handle-long);
@@ -156,7 +156,8 @@
 /* ---- References ---- */
 .editor-reference,
 .markdown-reference {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   padding: 0 var(--hall-space-1-5);
   border: 0;
   border-radius: var(--hall-radius-small);
@@ -176,30 +177,10 @@
   text-decoration: underline;
 }
 .editor-reference-resource > svg {
-  display: inline-block;
-  width: 1em;
-  height: 1em;
+  display: block;
+  width: var(--hall-font-size-icon);
+  height: var(--hall-font-size-icon);
   margin-right: var(--hall-space-1);
-  vertical-align: -0.125em;
-}
-.editor-reference-tone-pdf {
-  color: var(--hall-color-danger);
-  background: var(--hall-color-danger-surface);
-}
-.editor-reference-tone-image,
-.editor-reference-tone-spreadsheet,
-.editor-reference-tone-spreadsheetFile,
-.editor-reference-tone-csv {
-  color: var(--hall-color-success);
-  background: var(--hall-color-success-surface);
-}
-.editor-reference-tone-legalReference {
-  color: var(--hall-color-seal);
-  background: var(--hall-color-seal-surface);
-}
-.editor-reference-tone-presentation {
-  color: var(--hall-color-warning);
-  background: var(--hall-color-warning-surface);
 }
 .editor-reference-wrapper {
   display: inline;

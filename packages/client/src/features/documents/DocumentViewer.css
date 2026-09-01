@@ -11,7 +11,10 @@
 .document-viewer {
   display: grid;
   width: var(--hall-size-viewer-width);
+  min-width: 0;
+  max-width: calc(100vw - 2 * var(--hall-space-2));
   height: var(--hall-size-viewer-height);
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
   border-radius: var(--hall-radius-large);

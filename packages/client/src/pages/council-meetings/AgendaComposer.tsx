@@ -1,4 +1,11 @@
-import { type AgendaItem, agendaBusinessRank, type CouncilBusiness, type CouncilDecision } from "@hall/domain";
+import {
+  type AgendaItem,
+  agendaBusinessRank,
+  type CouncilBusiness,
+  type CouncilDecision,
+  councilBusinessHasDecision,
+  councilBusinessIsMatter,
+} from "@hall/domain";
 import { type DragEvent, type FormEvent, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -75,7 +82,7 @@ export function AgendaComposer({
   const mentionables = useReferenceMentionables();
   const [draftDecisionText, setDraftDecisionText] = useState("");
   const decisionFor = (business: CouncilBusiness) =>
-    business.kind === "matter" && business.councilDecisionId
+    councilBusinessHasDecision(business)
       ? (decisions.find((decision) => decision.id === business.councilDecisionId) ?? null)
       : null;
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
@@ -194,7 +201,7 @@ export function AgendaComposer({
               business.kind === "minutesApproval"
                 ? meetings.find((meeting) => meeting.id === business.minutesOfMeetingId)
                 : null;
-            const hasDecision = business.kind === "matter" && Boolean(business.councilDecisionId);
+            const hasDecision = councilBusinessHasDecision(business);
             const documentCount = business.resources.length;
             return (
               <li
@@ -332,7 +339,7 @@ export function AgendaComposer({
                         />
                         <p className="text-xs text-muted">{t("meeting.reportHint")}</p>
                       </div>
-                      {business.kind === "matter" ? (
+                      {councilBusinessIsMatter(business) ? (
                         decisionFor(business) ? (
                           <div className="grid gap-1.5">
                             <Label>{t("meeting.draftDecision")}</Label>
@@ -356,7 +363,7 @@ export function AgendaComposer({
                         ) : null
                       ) : null}
                       <div className="composer-editor-actions">
-                        {business.kind === "matter" ? (
+                        {councilBusinessIsMatter(business) ? (
                           decisionFor(business) ? (
                             <Button
                               className="composer-vote-toggle"
@@ -423,9 +430,7 @@ export function AgendaComposer({
                       <strong>{business.title}</strong>
                       <span>
                         {t(councilBusinessKindKeys[business.kind])}
-                        {business.kind === "matter" && business.councilDecisionId
-                          ? ` · ${t("meeting.itemHasDecision")}`
-                          : ""}
+                        {councilBusinessHasDecision(business) ? ` · ${t("meeting.itemHasDecision")}` : ""}
                         {business.folderPath ? ` · ${business.folderPath}` : ""}
                       </span>
                     </span>

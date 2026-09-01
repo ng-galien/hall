@@ -36,4 +36,5 @@ export {
   resourcePresentationKinds,
   serializeResourceEmbedDirective,
 } from "./grammar.js";
+export { preferredResourcePresentation, resourceSupportsPresentation } from "./resourcePresentation.js";
 export { baseRenderStylesheet } from "./styles.js";

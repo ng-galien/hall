@@ -1,10 +1,9 @@
-import { createHash } from "node:crypto";
 import {
   type DocumentResource,
+  type DocumentUsage,
   type EditorAssetOwner,
   type FolderCreateResult,
   type FolderRenameResult,
-  folderPathSchema,
   type GeographicResource,
   type LegalReferenceResource,
   type LegalReferenceSearchResult,
@@ -37,11 +36,9 @@ import type {
 } from "../repositories/contracts.js";
 import type { EditorAssetService } from "./editorAssetService.js";
 import { DomainError } from "./errors.js";
-import {
-  type LegalReferenceProvider,
-  type LegalReferenceProviderSnapshot,
-  OfficialSourceError,
-} from "./legalReferenceProvider.js";
+import type { LegalReferenceProvider } from "./legalReferenceProvider.js";
+import { createLegalReferenceResourceOperations } from "./legalReferenceResourceOperations.js";
+import { createWorkspaceFolderOperations } from "./workspaceFolderOperations.js";
 
 const DEFAULT_GEOGRAPHIC_RESOURCE_ZOOM = 15;
 type UpdateResourceInput = Omit<UpdateResource, "autosaveEnabled"> & { autosaveEnabled?: boolean };
@@ -92,7 +89,7 @@ export interface ResourceService {
     tags?: string[];
     kind?: Resource["kind"];
     meetingId?: string;
-    usage?: "document" | "editorAsset";
+    usage?: DocumentUsage;
     editorOwner?: EditorAssetOwner;
   }): Promise<Resource[]>;
   find(id: string): Promise<StoredResource | null>;
@@ -146,73 +143,17 @@ export function createResourceService({
   hallSettingsRepository: HallSettingsRepository;
   legalReferenceProvider: LegalReferenceProvider;
 }): ResourceService {
-  const officialSourceFailure = (error: unknown): DomainError => {
-    if (error instanceof OfficialSourceError && error.reason === "accessDenied") {
-      return new DomainError("official_source_access_denied", 503);
-    }
-    if (error instanceof OfficialSourceError && error.reason === "invalidResponse") {
-      return new DomainError("official_source_invalid_response", 502);
-    }
-    return new DomainError("official_source_unavailable", 503);
-  };
-  const snapshotHash = (snapshot: LegalReferenceProviderSnapshot): string =>
-    createHash("sha256")
-      .update(
-        JSON.stringify({
-          commonId: snapshot.commonId,
-          versionId: snapshot.versionId,
-          effectiveAt: snapshot.effectiveAt,
-          fetchedAt: snapshot.fetchedAt,
-          validFrom: snapshot.validFrom,
-          validTo: snapshot.validTo,
-          legalStatus: snapshot.legalStatus,
-          normalizedContent: snapshot.normalizedContent,
-        }),
-      )
-      .digest("hex");
-  const providerSnapshot = async (
-    input:
-      | {
-          fund: CreateLegalReferenceResource["fund"];
-          versionId: string;
-          effectiveAt: string | null;
-        }
-      | {
-          fund: CreateLegalReferenceResource["fund"];
-          commonId: string;
-          effectiveAt: string | null;
-        },
-  ) => {
-    const snapshot =
-      "versionId" in input
-        ? await legalReferenceProvider.fetchArticle(input)
-        : await legalReferenceProvider.refreshArticle(input);
-    if (
-      ("versionId" in input ? snapshot.versionId !== input.versionId : snapshot.commonId !== input.commonId) ||
-      snapshot.effectiveAt !== input.effectiveAt
-    ) {
-      throw new OfficialSourceError("invalidResponse");
-    }
-    return {
-      sourceUrl: snapshot.sourceUrl,
-      providerUpdatedAt: snapshot.providerUpdatedAt,
-      citationLabel: snapshot.citationLabel,
-      attribution: snapshot.attribution,
-      snapshot: {
-        commonId: snapshot.commonId,
-        versionId: snapshot.versionId,
-        effectiveAt: snapshot.effectiveAt,
-        fetchedAt: snapshot.fetchedAt,
-        validFrom: snapshot.validFrom,
-        validTo: snapshot.validTo,
-        legalStatus: snapshot.legalStatus,
-        rawProviderPayload: JSON.stringify(snapshot.rawProviderPayload),
-        normalizedContent: snapshot.normalizedContent,
-        contentHash: createHash("sha256").update(snapshot.normalizedContent).digest("hex"),
-        snapshotHash: snapshotHash(snapshot),
-      },
-    };
-  };
+  const workspaceFolders = createWorkspaceFolderOperations({
+    resourceRepository,
+    councilBusinessRepository,
+    workspaceFolderRepository,
+    unitOfWork,
+  });
+  const legalReferences = createLegalReferenceResourceOperations({
+    resourceRepository,
+    unitOfWork,
+    legalReferenceProvider,
+  });
   return {
     list(filters) {
       return resourceRepository.list(filters);
@@ -254,65 +195,14 @@ export function createResourceService({
         referencedByContent: await resourceRepository.isReferencedByRichText(resource.id),
       };
     },
-    async listFolderPaths() {
-      const storedPaths = [
-        ...(await workspaceFolderRepository.list()),
-        ...(await resourceRepository.listFolderPaths()),
-        ...(await councilBusinessRepository.list()).map((business) => business.folderPath),
-      ];
-      const paths = new Set<string>();
-      for (const storedPath of storedPaths) {
-        const segments = storedPath.split("/").filter(Boolean);
-        segments.forEach((_segment, index) => {
-          paths.add(segments.slice(0, index + 1).join("/"));
-        });
-      }
-      return [...paths].sort((left, right) => left.localeCompare(right, "fr-FR"));
+    listFolderPaths() {
+      return workspaceFolders.list();
     },
     createFolder(parentPath, name) {
-      return unitOfWork.execute(async () => {
-        const path = parentPath ? `${parentPath}/${name}` : name;
-        const exists =
-          (await workspaceFolderRepository.hasPrefix(path)) ||
-          (await resourceRepository.hasFolderPathPrefix(path)) ||
-          (await councilBusinessRepository.hasFolderPathPrefix(path));
-        if (exists) throw new DomainError("workspace_folder_conflict", 409);
-        const createdAt = new Date().toISOString();
-        await workspaceFolderRepository.ensure(path, createdAt);
-        return { path, createdAt };
-      });
+      return workspaceFolders.create(parentPath, name);
     },
     renameFolder(folderPath, name) {
-      const separator = folderPath.lastIndexOf("/");
-      const parentPath = separator < 0 ? "" : folderPath.slice(0, separator);
-      const targetPath = folderPathSchema.parse(parentPath ? `${parentPath}/${name}` : name);
-      return unitOfWork.execute(async () => {
-        const sourceExists =
-          (await workspaceFolderRepository.hasPrefix(folderPath)) ||
-          (await resourceRepository.hasFolderPathPrefix(folderPath)) ||
-          (await councilBusinessRepository.hasFolderPathPrefix(folderPath));
-        if (!sourceExists) throw new DomainError("workspace_folder_not_found", 404);
-        if (targetPath === folderPath) {
-          return {
-            sourcePath: folderPath,
-            targetPath,
-            folderCount: 0,
-            resourceCount: 0,
-            councilBusinessCount: 0,
-            updatedAt: new Date().toISOString(),
-          };
-        }
-        const targetExists =
-          (await workspaceFolderRepository.hasPrefix(targetPath)) ||
-          (await resourceRepository.hasFolderPathPrefix(targetPath)) ||
-          (await councilBusinessRepository.hasFolderPathPrefix(targetPath));
-        if (targetExists) throw new DomainError("workspace_folder_conflict", 409);
-        const updatedAt = new Date().toISOString();
-        const resourceCount = await resourceRepository.renameFolder(folderPath, targetPath, updatedAt);
-        const councilBusinessCount = await councilBusinessRepository.renameFolder(folderPath, targetPath, updatedAt);
-        const folderCount = await workspaceFolderRepository.rename(folderPath, targetPath);
-        return { sourcePath: folderPath, targetPath, folderCount, resourceCount, councilBusinessCount, updatedAt };
-      });
+      return workspaceFolders.rename(folderPath, name);
     },
     createText(input) {
       return unitOfWork.execute(async () => {
@@ -349,66 +239,17 @@ export function createResourceService({
       if (result.status === "versionConflict") throw new DomainError("conflict", 409);
       return result.resource;
     },
-    async searchLegalReferences(input) {
-      try {
-        return await legalReferenceProvider.search(input);
-      } catch (error) {
-        throw officialSourceFailure(error);
-      }
+    searchLegalReferences(input) {
+      return legalReferences.search(input);
     },
     createLegalReference(input) {
-      return unitOfWork.execute(() => resourceRepository.createLegalReferenceDraft(input));
+      return legalReferences.create(input);
     },
-    async resolveLegalReference(id, input) {
-      const resource = await resourceRepository.findMetadata(id);
-      if (resource?.kind !== "legalReference") throw new DomainError("resource_not_found", 404);
-      if (resource.resolutionStatus !== "draft") throw new DomainError("conflict", 409);
-      let fetched: Awaited<ReturnType<typeof providerSnapshot>>;
-      try {
-        fetched = await providerSnapshot(input);
-      } catch (error) {
-        throw officialSourceFailure(error);
-      }
-      const resolved = await unitOfWork.execute(() =>
-        resourceRepository.resolveLegalReference(resource.id, {
-          title: input.title,
-          folderPath: resource.folderPath,
-          tags: resource.tags,
-          provider: "legifrance",
-          referenceKind: "article",
-          fund: input.fund,
-          ...fetched,
-        }),
-      );
-      if (!resolved) throw new DomainError("conflict", 409);
-      return resolved;
+    resolveLegalReference(id, input) {
+      return legalReferences.resolve(id, input);
     },
-    async refreshLegalReference(id, expectedSnapshotHash) {
-      const resource = await resourceRepository.findMetadata(id);
-      if (resource?.kind !== "legalReference") throw new DomainError("resource_not_found", 404);
-      if (resource.resolutionStatus !== "resolved") throw new DomainError("conflict", 409);
-      if (resource.snapshotHash !== expectedSnapshotHash) throw new DomainError("conflict", 409);
-      let fetched: Awaited<ReturnType<typeof providerSnapshot>>;
-      try {
-        fetched = await providerSnapshot({
-          fund: resource.fund,
-          commonId: resource.commonId,
-          effectiveAt: resource.effectiveAt,
-        });
-      } catch (error) {
-        await resourceRepository.markLegalReferenceVerificationFailed(
-          resource.id,
-          expectedSnapshotHash,
-          new Date().toISOString(),
-        );
-        throw officialSourceFailure(error);
-      }
-      const result = await unitOfWork.execute(() =>
-        resourceRepository.refreshLegalReference(resource.id, expectedSnapshotHash, fetched),
-      );
-      if (result.status === "notFound") throw new DomainError("resource_not_found", 404);
-      if (result.status === "versionConflict") throw new DomainError("conflict", 409);
-      return result.resource;
+    refreshLegalReference(id, expectedSnapshotHash) {
+      return legalReferences.refresh(id, expectedSnapshotHash);
     },
     createDocument(input) {
       return unitOfWork.execute(async () => {

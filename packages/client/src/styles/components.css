@@ -1,4 +1,43 @@
 @layer components {
+  /* Shared semantic resource tones; components decide only how those tones are laid out. */
+  .workspace-glyph-text,
+  .workspace-glyph-remote,
+  .workspace-glyph-geographic,
+  .workspace-glyph-document,
+  .editor-reference-tone-text,
+  .editor-reference-tone-remote,
+  .editor-reference-tone-geographic,
+  .editor-reference-tone-document {
+    --resource-tone-color: var(--hall-color-brand);
+    --resource-tone-surface: var(--hall-color-brand-subtle);
+  }
+  .workspace-glyph-legalReference,
+  .editor-reference-tone-legalReference {
+    --resource-tone-color: var(--hall-color-seal);
+    --resource-tone-surface: var(--hall-color-seal-surface);
+  }
+  .workspace-glyph-pdf,
+  .editor-reference-tone-pdf {
+    --resource-tone-color: var(--hall-color-danger);
+    --resource-tone-surface: var(--hall-color-danger-surface);
+  }
+  .workspace-glyph-image,
+  .workspace-glyph-spreadsheet,
+  .workspace-glyph-spreadsheetFile,
+  .workspace-glyph-csv,
+  .editor-reference-tone-image,
+  .editor-reference-tone-spreadsheet,
+  .editor-reference-tone-spreadsheetFile,
+  .editor-reference-tone-csv {
+    --resource-tone-color: var(--hall-color-success);
+    --resource-tone-surface: var(--hall-color-success-surface);
+  }
+  .workspace-glyph-presentation,
+  .editor-reference-tone-presentation {
+    --resource-tone-color: var(--hall-color-warning);
+    --resource-tone-surface: var(--hall-color-warning-surface);
+  }
+
   /* Glyphs are sized in 1em, so any more specific font-size drives them. */
   .app-icon { font-size: var(--hall-font-size-icon); }
   .workspace-tree-toggle svg,
@@ -69,6 +108,7 @@
   .color-picker-trigger:hover,
   .color-picker-preset:hover { background: var(--hall-color-surface-subtle); }
   .color-picker-swatch {
+    --color-picker-value: var(--hall-color-transparent);
     display: block;
     width: var(--hall-size-glyph-mark);
     height: var(--hall-size-glyph-mark);
@@ -83,9 +123,13 @@
     display: grid;
     grid-template-columns: repeat(4, var(--hall-size-control-small));
     gap: var(--hall-space-0-5);
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
   }
-  .color-picker-preset[aria-checked="true"] { background: var(--hall-color-brand-subtle); }
-  .color-picker-preset[aria-checked="true"] .color-picker-swatch { outline-color: var(--hall-color-brand); }
+  .color-picker-preset[aria-pressed="true"] { background: var(--hall-color-brand-subtle); }
+  .color-picker-preset[aria-pressed="true"] .color-picker-swatch { outline-color: var(--hall-color-brand); }
   .color-picker-custom {
     display: flex;
     min-height: var(--hall-size-control);

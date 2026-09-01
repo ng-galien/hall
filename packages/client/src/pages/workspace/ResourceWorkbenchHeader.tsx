@@ -9,8 +9,8 @@ import { ResourceGlyph, resourceDate } from "../../features/documents/ResourceGl
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import type { WorkspaceSelection } from "./WorkspacePage";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
+import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 
 export function ResourceWorkbenchHeader({

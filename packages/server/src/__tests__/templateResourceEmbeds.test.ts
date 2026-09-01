@@ -245,7 +245,8 @@ describe("authoritative resource presentation rendering", () => {
       provider: "legifrance",
       referenceKind: "article",
     });
-    const legalContent = "Toute convocation est faite par le maire. Elle indique les questions portées à l'ordre du jour.";
+    const legalContent =
+      "Toute convocation est faite par le maire. Elle indique les questions portées à l'ordre du jour.";
     const contentHash = createHash("sha256").update(legalContent).digest("hex");
     const snapshotHash = createHash("sha256").update(`snapshot:${legalContent}`).digest("hex");
     const legal = await repository.resolveLegalReference(draft.id, {
@@ -302,7 +303,7 @@ describe("authoritative resource presentation rendering", () => {
       folderPath: "seed",
       tags: [],
       provider: "ign",
-      layers: [],
+      layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
       view: { kind: "center", center: [2.15, 48.15], zoom: 14 },
       hallLayer: { type: "FeatureCollection", features: [] },
     });
@@ -349,7 +350,7 @@ describe("authoritative resource presentation rendering", () => {
       folderPath: "seed",
       tags: [],
       provider: "ign",
-      layers: [],
+      layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
       view: { kind: "center", center: [2.15, 48.15], zoom: 14 },
       hallLayer: { type: "FeatureCollection", features: [] },
     });

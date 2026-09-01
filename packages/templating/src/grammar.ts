@@ -1,7 +1,9 @@
-/** Business entities a template can reference, in their canonical UI order. */
-export const referenceKinds = ["member", "resource", "councilBusiness", "decision", "meeting"] as const;
+import { type ReferenceEntityKind, referenceEntityKinds } from "@hall/domain";
 
-export type ReferenceKind = (typeof referenceKinds)[number];
+/** Internal reference directives, in the canonical entity order owned by the domain. */
+export const referenceKinds = referenceEntityKinds;
+
+export type ReferenceKind = ReferenceEntityKind;
 
 export type ImageAlignment = "left" | "center";
 

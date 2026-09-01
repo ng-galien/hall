@@ -46,8 +46,8 @@ import type { DocumentPreviewConverter } from "../services/documentPreviewConver
 import { createDocumentPreviewService, type DocumentPreviewService } from "../services/documentPreviewService.js";
 import { createDocumentRenderer, type DocumentRenderer } from "../services/documentRenderer.js";
 import { createEditorAssetService, type EditorAssetService } from "../services/editorAssetService.js";
-import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import { createGeographicMapRenderer, type GeographicMapRenderer } from "../services/geographicMapRenderer.js";
+import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
 import { createMeetingAgendaService, type MeetingAgendaService } from "../services/meetingAgendaService.js";
 import { createMeetingLifecycleService, type MeetingLifecycleService } from "../services/meetingLifecycleService.js";
@@ -55,6 +55,7 @@ import {
   createMeetingPreparationService,
   type MeetingPreparationService,
 } from "../services/meetingPreparationService.js";
+import { createReferenceEntityResolver, type ReferenceEntityResolver } from "../services/referenceEntityResolver.js";
 import { createResourceService, type ResourceService } from "../services/resourceService.js";
 import { createSpreadsheetImportService, type SpreadsheetImportService } from "../services/spreadsheetImportService.js";
 import { createTemplateRenderingService, type TemplateRenderingService } from "../services/templateRendering.js";
@@ -88,6 +89,7 @@ export interface Cradle {
   ballotService: BallotService;
   councilBusinessService: CouncilBusinessService;
   resourceService: ResourceService;
+  referenceEntityResolver: ReferenceEntityResolver;
   spreadsheetImportService: SpreadsheetImportService;
   authService: AuthService;
   hallSettingsService: HallSettingsService;
@@ -131,6 +133,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     ballotService: asFunction(createBallotService).singleton(),
     councilBusinessService: asFunction(createCouncilBusinessService).singleton(),
     resourceService: asFunction(createResourceService).singleton(),
+    referenceEntityResolver: asFunction(createReferenceEntityResolver).singleton(),
     spreadsheetImportService: asFunction(createSpreadsheetImportService).singleton(),
     authService: asFunction(createAuthService).singleton(),
     hallSettingsService: asFunction(createHallSettingsService).singleton(),

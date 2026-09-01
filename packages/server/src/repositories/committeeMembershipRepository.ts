@@ -1,16 +1,16 @@
 import { randomUUID } from "node:crypto";
-import type { CommitteeMembership } from "@hall/domain";
+import { type CommitteeMembership, committeeRoleSchema, identifierSchema } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { CommitteeMembershipRepository } from "./contracts.js";
-import { asNullableString, type DatabaseRow } from "./row.js";
+import { asNullableString, asString, type DatabaseRow } from "./row.js";
 
 const mapCommitteeMembership = (row: DatabaseRow): CommitteeMembership => ({
-  id: String(row.id),
-  committeeId: String(row.committee_id),
-  councilMemberId: String(row.council_member_id),
-  role: row.role as CommitteeMembership["role"],
-  startedOn: String(row.started_on),
-  endedOn: asNullableString(row.ended_on),
+  id: identifierSchema.parse(row.id),
+  committeeId: identifierSchema.parse(row.committee_id),
+  councilMemberId: identifierSchema.parse(row.council_member_id),
+  role: committeeRoleSchema.parse(row.role),
+  startedOn: asString(row.started_on, "committee_membership.started_on"),
+  endedOn: asNullableString(row.ended_on, "committee_membership.ended_on"),
 });
 
 export function createCommitteeMembershipRepository({

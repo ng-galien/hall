@@ -1,18 +1,18 @@
 import { randomUUID } from "node:crypto";
-import type { Attendance } from "@hall/domain";
+import { type Attendance, attendanceStatusSchema, identifierSchema } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { AttendanceRepository } from "./contracts.js";
 import { PersistenceError } from "./errors.js";
-import { asNullableString, type DatabaseRow } from "./row.js";
+import { asInteger, type DatabaseRow } from "./row.js";
 
 const mapAttendance = (row: DatabaseRow): Attendance => ({
-  id: String(row.id),
-  meetingId: String(row.meeting_id),
-  memberId: String(row.member_id),
-  status: row.status as Attendance["status"],
-  proxyHolderMemberId: asNullableString(row.proxy_holder_member_id),
-  proxyDocumentId: asNullableString(row.proxy_document_id),
-  version: Number(row.version),
+  id: identifierSchema.parse(row.id),
+  meetingId: identifierSchema.parse(row.meeting_id),
+  memberId: identifierSchema.parse(row.member_id),
+  status: attendanceStatusSchema.parse(row.status),
+  proxyHolderMemberId: identifierSchema.nullable().parse(row.proxy_holder_member_id),
+  proxyDocumentId: identifierSchema.nullable().parse(row.proxy_document_id),
+  version: asInteger(row.version, "attendance.version"),
 });
 
 export function createAttendanceRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }): AttendanceRepository {
@@ -31,7 +31,7 @@ export function createAttendanceRepository({ sqlExecutor }: { sqlExecutor: SqlEx
             meetingId,
             memberId: input.memberId,
           });
-          if (!existing || Number(existing.version) !== input.expectedVersion) {
+          if (!existing || asInteger(existing.version, "attendance.version") !== input.expectedVersion) {
             return { status: "versionConflict" };
           }
         }

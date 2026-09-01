@@ -1,25 +1,33 @@
 import { randomUUID } from "node:crypto";
-import type { AgendaItem } from "@hall/domain";
+import { type AgendaItem, agendaItemStatusSchema, identifierSchema } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { AgendaItemRepository } from "./contracts.js";
 import { mapCouncilBusiness } from "./councilBusinessRepository.js";
-import { mapStoredResource } from "./resourceRepository.js";
-import { asBoolean, asNullableString, type DatabaseRow, mapSequential } from "./row.js";
+import { mapStoredResource } from "./resourceRowMapping.js";
+import { asBoolean, asInteger, asNullableString, asString, type DatabaseRow, mapSequential } from "./row.js";
 
 async function mapAgendaItem(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<AgendaItem> {
-  const snapshot = row.snapshot_kind != null;
+  const snapshotKind = asNullableString(row.snapshot_kind, "agenda_item.snapshot_kind");
+  const snapshot = snapshotKind !== null;
+  const itemId = identifierSchema.parse(row.id);
+  const businessId = identifierSchema.parse(row.business_id);
   const resources = await sqlExecutor.all(snapshot ? "agenda.resources.snapshot" : "agenda.resources.business", {
-    ownerId: snapshot ? String(row.id) : String(row.business_id),
+    ownerId: snapshot ? itemId : businessId,
   });
+  const businessCouncilDecisionId = identifierSchema.nullable().parse(row.business_council_decision_id);
+  const snapshotCouncilDecisionTitle = asNullableString(
+    row.snapshot_council_decision_title,
+    "agenda_item.snapshot_council_decision_title",
+  );
   return {
-    id: String(row.id),
-    meetingId: String(row.meeting_id),
-    position: Number(row.position),
-    addedDuringSession: asBoolean(row.added_during_session),
-    discussionSummary: String(row.discussion_summary),
-    status: row.status as AgendaItem["status"],
-    startedAt: asNullableString(row.started_at),
-    completedAt: asNullableString(row.completed_at),
+    id: itemId,
+    meetingId: identifierSchema.parse(row.meeting_id),
+    position: asInteger(row.position, "agenda_item.position"),
+    addedDuringSession: asBoolean(row.added_during_session, "agenda_item.added_during_session"),
+    discussionSummary: asString(row.discussion_summary, "agenda_item.discussion_summary"),
+    status: agendaItemStatusSchema.parse(row.status),
+    startedAt: asNullableString(row.started_at, "agenda_item.started_at"),
+    completedAt: asNullableString(row.completed_at, "agenda_item.completed_at"),
     business: mapCouncilBusiness(
       {
         id: row.business_id,
@@ -37,11 +45,14 @@ async function mapAgendaItem(sqlExecutor: SqlExecutor, row: DatabaseRow): Promis
       await mapSequential(resources, (resource) => mapStoredResource(sqlExecutor, resource)),
     ),
     councilDecisionSnapshot:
-      row.business_council_decision_id && typeof row.snapshot_council_decision_title === "string"
+      businessCouncilDecisionId !== null && snapshotCouncilDecisionTitle !== null
         ? {
-            id: String(row.business_council_decision_id),
-            title: String(row.snapshot_council_decision_title),
-            draftText: String(row.snapshot_council_decision_draft_text),
+            id: businessCouncilDecisionId,
+            title: snapshotCouncilDecisionTitle,
+            draftText: asString(
+              row.snapshot_council_decision_draft_text,
+              "agenda_item.snapshot_council_decision_draft_text",
+            ),
           }
         : null,
   };
@@ -124,7 +135,7 @@ export function createAgendaItemRepository({ sqlExecutor }: { sqlExecutor: SqlEx
     completeOpenItems(meetingId, status, completedAt) {
       return sqlExecutor.execute(async () => {
         const rows = await sqlExecutor.all("agenda.openIds", { meetingId });
-        for (const row of rows) await snapshot(sqlExecutor, String(row.id));
+        for (const row of rows) await snapshot(sqlExecutor, identifierSchema.parse(row.id));
         await sqlExecutor.run("agenda.completeOpen", { meetingId, status, completedAt });
         const items = await sqlExecutor.all("agenda.listByMeeting", { meetingId });
         return mapSequential(items, (row) => mapAgendaItem(sqlExecutor, row));
@@ -133,7 +144,7 @@ export function createAgendaItemRepository({ sqlExecutor }: { sqlExecutor: SqlEx
     snapshotOpenItems(meetingId) {
       return sqlExecutor.execute(async () => {
         const rows = await sqlExecutor.all("agenda.openIds", { meetingId });
-        for (const row of rows) await snapshot(sqlExecutor, String(row.id));
+        for (const row of rows) await snapshot(sqlExecutor, identifierSchema.parse(row.id));
       });
     },
     copy(sourceMeetingId, targetMeetingId) {
@@ -143,21 +154,27 @@ export function createAgendaItemRepository({ sqlExecutor }: { sqlExecutor: SqlEx
           const targetItemId = randomUUID();
           await sqlExecutor.run("agenda.insertCopy", {
             id: targetItemId,
-            businessId: String(row.business_id),
+            businessId: identifierSchema.parse(row.business_id),
             meetingId: targetMeetingId,
-            position: Number(row.position),
-            snapshotKind: asNullableString(row.snapshot_kind),
-            snapshotCouncilDecisionId: asNullableString(row.snapshot_council_decision_id),
-            snapshotCouncilDecisionTitle: asNullableString(row.snapshot_council_decision_title),
-            snapshotCouncilDecisionDraftText: asNullableString(row.snapshot_council_decision_draft_text),
-            snapshotCommitteeId: asNullableString(row.snapshot_committee_id),
-            snapshotMinutesOfMeetingId: asNullableString(row.snapshot_minutes_of_meeting_id),
-            snapshotTitle: asNullableString(row.snapshot_title),
-            snapshotReport: asNullableString(row.snapshot_report),
-            snapshotFolderPath: asNullableString(row.snapshot_folder_path),
+            position: asInteger(row.position, "agenda_item.position"),
+            snapshotKind: asNullableString(row.snapshot_kind, "agenda_item.snapshot_kind"),
+            snapshotCouncilDecisionId: identifierSchema.nullable().parse(row.snapshot_council_decision_id),
+            snapshotCouncilDecisionTitle: asNullableString(
+              row.snapshot_council_decision_title,
+              "agenda_item.snapshot_council_decision_title",
+            ),
+            snapshotCouncilDecisionDraftText: asNullableString(
+              row.snapshot_council_decision_draft_text,
+              "agenda_item.snapshot_council_decision_draft_text",
+            ),
+            snapshotCommitteeId: identifierSchema.nullable().parse(row.snapshot_committee_id),
+            snapshotMinutesOfMeetingId: identifierSchema.nullable().parse(row.snapshot_minutes_of_meeting_id),
+            snapshotTitle: asNullableString(row.snapshot_title, "agenda_item.snapshot_title"),
+            snapshotReport: asNullableString(row.snapshot_report, "agenda_item.snapshot_report"),
+            snapshotFolderPath: asNullableString(row.snapshot_folder_path, "agenda_item.snapshot_folder_path"),
           });
           await sqlExecutor.run("agenda.copyResources", {
-            sourceItemId: String(row.id),
+            sourceItemId: identifierSchema.parse(row.id),
             targetItemId,
           });
         }

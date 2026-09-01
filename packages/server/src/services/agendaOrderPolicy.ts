@@ -1,4 +1,10 @@
-import { type AgendaItem, agendaBusinessRank, type CouncilMeeting, isAgendaBusinessOrderValid } from "@hall/domain";
+import {
+  type AgendaItem,
+  agendaBusinessRank,
+  type CouncilMeeting,
+  councilBusinessAgendaProfile,
+  isAgendaBusinessOrderValid,
+} from "@hall/domain";
 
 export interface AgendaReadiness {
   agendaReady: boolean;
@@ -35,9 +41,10 @@ export function agendaReadiness(
   meetings: readonly CouncilMeeting[],
 ): AgendaReadiness {
   const previousMeeting = previousCouncilMeeting(meetings, meeting);
-  const minutesApprovalMeetingIds = agendaItems.flatMap((item) =>
-    item.business.kind === "minutesApproval" ? [item.business.minutesOfMeetingId] : [],
-  );
+  const minutesApprovalMeetingIds = agendaItems.flatMap((item) => {
+    const minutesOfMeetingId = councilBusinessAgendaProfile(item.business).minutesOfMeetingId;
+    return minutesOfMeetingId ? [minutesOfMeetingId] : [];
+  });
   const minutesAreValid = previousMeeting
     ? minutesApprovalMeetingIds.length === 1 && minutesApprovalMeetingIds[0] === previousMeeting.id
     : minutesApprovalMeetingIds.length === 0;
@@ -57,6 +64,8 @@ export function normalizedAgendaItemIds(agendaItems: readonly AgendaItem[]): str
 }
 
 export function isPartialAgendaValid(agendaItems: readonly AgendaItem[]): boolean {
-  const minutesApprovalCount = agendaItems.filter((item) => item.business.kind === "minutesApproval").length;
+  const minutesApprovalCount = agendaItems.filter(
+    (item) => councilBusinessAgendaProfile(item.business).role === "minutesApproval",
+  ).length;
   return minutesApprovalCount <= 1 && isAgendaBusinessOrderValid(agendaItems.map((item) => item.business));
 }

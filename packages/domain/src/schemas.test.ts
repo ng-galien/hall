@@ -4,10 +4,17 @@ import {
   createGeographicResourceSchema,
   recordAttendanceSchema,
   recordBallotSchema,
+  resourceTagsSchema,
   spreadsheetDocumentSchema,
   updateCouncilMeetingSchema,
   updateHallSettingsSchema,
 } from "./schemas.js";
+
+describe("resource tags", () => {
+  it("normalizes tags as a stable set", () => {
+    expect(resourceTagsSchema.parse([" Rapport ", "budget", "RAPPORT"])).toEqual(["budget", "rapport"]);
+  });
+});
 
 describe("geographic resource colors", () => {
   const resource = {

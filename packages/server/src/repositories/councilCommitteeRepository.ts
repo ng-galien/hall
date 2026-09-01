@@ -1,18 +1,18 @@
 import { randomUUID } from "node:crypto";
-import type { CouncilCommittee } from "@hall/domain";
+import { type CouncilCommittee, identifierSchema } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { CouncilCommitteeRepository } from "./contracts.js";
 import { uniqueSlug } from "./publicIdentifiers.js";
-import { asNullableString, type DatabaseRow } from "./row.js";
+import { asNullableString, asString, type DatabaseRow } from "./row.js";
 
 const mapCouncilCommittee = (row: DatabaseRow): CouncilCommittee => ({
-  id: String(row.id),
-  slug: String(row.slug),
-  name: String(row.name),
-  description: String(row.description),
-  archivedAt: asNullableString(row.archived_at),
-  createdAt: String(row.created_at),
-  updatedAt: String(row.updated_at),
+  id: identifierSchema.parse(row.id),
+  slug: asString(row.slug, "council_committee.slug"),
+  name: asString(row.name, "council_committee.name"),
+  description: asString(row.description, "council_committee.description"),
+  archivedAt: asNullableString(row.archived_at, "council_committee.archived_at"),
+  createdAt: asString(row.created_at, "council_committee.created_at"),
+  updatedAt: asString(row.updated_at, "council_committee.updated_at"),
 });
 
 export function createCouncilCommitteeRepository({

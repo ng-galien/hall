@@ -1,4 +1,13 @@
-import { type CouncilBusiness, type CouncilBusinessDetails, transitionCouncilDecision } from "@hall/domain";
+import {
+  agendaItemIsOpen,
+  type CouncilBusiness,
+  type CouncilBusinessDetails,
+  councilBusinessAgendaProfile,
+  councilBusinessHasDecision,
+  councilBusinessIsMatter,
+  councilDecisionContentCanChange,
+  transitionCouncilDecision,
+} from "@hall/domain";
 import type {
   AgendaItemRepository,
   BallotRepository,
@@ -13,6 +22,7 @@ import type {
   WorkspaceFolderRepository,
 } from "../repositories/contracts.js";
 import { normalizedAgendaItemIds } from "./agendaOrderPolicy.js";
+import { councilBusinessDecisionBindingIsFrozen } from "./councilDecisionContentPolicy.js";
 import type { EditorAssetService } from "./editorAssetService.js";
 import { DomainError } from "./errors.js";
 
@@ -63,19 +73,9 @@ export function createCouncilBusinessService({
       throw new DomainError("council_committee_not_found", 404);
     }
   };
-  const decisionBindingIsFrozen = async (businessId: string) => {
-    const occurrences = await agendaItemRepository.listForBusiness(businessId);
-    for (const occurrence of occurrences) {
-      if (occurrence.status === "inProgress") return true;
-      if (occurrence.status !== "scheduled") continue;
-      const meeting = await councilMeetingRepository.find(occurrence.meetingId);
-      if (meeting?.quorumFailure || meeting?.isReconvenedMeeting) return true;
-    }
-    return false;
-  };
   const normalizeCurrentAgenda = async (businessId: string) => {
     const occurrence = (await agendaItemRepository.listForBusiness(businessId)).find((item) =>
-      ["scheduled", "inProgress"].includes(item.status),
+      agendaItemIsOpen(item.status),
     );
     if (!occurrence || occurrence.status === "inProgress") return;
     const agenda = await agendaItemRepository.listForMeeting(occurrence.meetingId);
@@ -95,10 +95,8 @@ export function createCouncilBusinessService({
         }),
       );
       occurrences.sort((left, right) => right.meeting.startsAt.localeCompare(left.meeting.startsAt));
-      const councilDecision =
-        business.kind === "matter" && business.councilDecisionId
-          ? await councilDecisionRepository.find(business.councilDecisionId)
-          : null;
+      const councilDecisionId = councilBusinessAgendaProfile(business).councilDecisionId;
+      const councilDecision = councilDecisionId ? await councilDecisionRepository.find(councilDecisionId) : null;
       return { business, councilDecision, occurrences };
     },
     create(input) {
@@ -129,16 +127,17 @@ export function createCouncilBusinessService({
           if (sourceMeeting.minutesStatus !== "draft") throw new DomainError("minutes_not_ready", 409);
         }
         await validateResources(input.resourceIds);
-        if (business.kind !== "matter" && input.committeeId !== undefined) {
+        if (!councilBusinessIsMatter(business) && input.committeeId !== undefined) {
           throw new DomainError("invalid_request");
         }
-        const councilDecisionId = business.kind === "matter" ? business.councilDecisionId : null;
-        const committeeId =
-          business.kind === "matter"
-            ? input.committeeId === undefined
-              ? business.committeeId
-              : input.committeeId
-            : null;
+        const businessProfile = councilBusinessAgendaProfile(business);
+        const councilDecisionId = businessProfile.councilDecisionId;
+        const isMatter = councilBusinessIsMatter(business);
+        const committeeId = isMatter
+          ? input.committeeId === undefined
+            ? businessProfile.committeeId
+            : input.committeeId
+          : null;
         await validateCommittee(committeeId);
         if (business.folderPath && business.folderPath !== input.folderPath) {
           await workspaceFolderRepository.ensure(business.folderPath, new Date().toISOString());
@@ -149,9 +148,16 @@ export function createCouncilBusinessService({
           committeeId,
         });
         await editorAssetService.reconcile({ kind: "councilBusinessReport", id: updated.id }, updated.report);
-        if (councilDecisionId && input.title !== business.title && !(await decisionBindingIsFrozen(business.id))) {
+        if (
+          councilDecisionId &&
+          input.title !== business.title &&
+          !(await councilBusinessDecisionBindingIsFrozen(business.id, {
+            agendaItemRepository,
+            councilMeetingRepository,
+          }))
+        ) {
           const decision = await councilDecisionRepository.find(councilDecisionId);
-          if (decision && ["draft", "ready", "scheduled"].includes(decision.status)) {
+          if (decision && councilDecisionContentCanChange(decision.status)) {
             await councilDecisionRepository.update(councilDecisionId, {
               title: input.title,
               draftText: decision.draftText,
@@ -168,13 +174,14 @@ export function createCouncilBusinessService({
         if (business.folderPath && business.folderPath !== folderPath) {
           await workspaceFolderRepository.ensure(business.folderPath, new Date().toISOString());
         }
+        const businessProfile = councilBusinessAgendaProfile(business);
         const updated = await councilBusinessRepository.update(business.id, {
           title: business.title,
           report: business.report,
           folderPath,
           resourceIds: business.resources.map((resource) => resource.id),
-          councilDecisionId: business.kind === "matter" ? business.councilDecisionId : null,
-          committeeId: business.kind === "matter" ? business.committeeId : null,
+          councilDecisionId: businessProfile.councilDecisionId,
+          committeeId: businessProfile.committeeId,
         });
         return updated;
       });
@@ -183,12 +190,18 @@ export function createCouncilBusinessService({
       return unitOfWork.execute(async () => {
         const business = await councilBusinessRepository.find(id);
         if (!business) throw new DomainError("council_business_not_found", 404);
-        if (business.kind !== "matter") throw new DomainError("invalid_request");
+        if (!councilBusinessIsMatter(business)) throw new DomainError("invalid_request");
         const currentOccurrence = (await agendaItemRepository.listForBusiness(business.id)).find((item) =>
-          ["scheduled", "inProgress"].includes(item.status),
+          agendaItemIsOpen(item.status),
         );
         if (currentOccurrence?.addedDuringSession) throw new DomainError("agenda_inconsistent", 409);
-        if (await decisionBindingIsFrozen(business.id)) throw new DomainError("agenda_inconsistent", 409);
+        if (
+          await councilBusinessDecisionBindingIsFrozen(business.id, {
+            agendaItemRepository,
+            councilMeetingRepository,
+          })
+        )
+          throw new DomainError("agenda_inconsistent", 409);
         if (business.councilDecisionId) throw new DomainError("conflict", 409);
         const decision = await councilDecisionRepository.create({
           title: business.title,
@@ -217,17 +230,21 @@ export function createCouncilBusinessService({
       return unitOfWork.execute(async () => {
         const business = await councilBusinessRepository.find(id);
         if (!business) throw new DomainError("council_business_not_found", 404);
-        if (business.kind !== "matter" || !business.councilDecisionId) {
+        if (!councilBusinessHasDecision(business)) {
           throw new DomainError("council_decision_not_found", 404);
         }
-        if (await decisionBindingIsFrozen(business.id)) {
+        if (
+          await councilBusinessDecisionBindingIsFrozen(business.id, {
+            agendaItemRepository,
+            councilMeetingRepository,
+          })
+        ) {
           throw new DomainError("agenda_inconsistent", 409);
         }
         const decision = await councilDecisionRepository.find(business.councilDecisionId);
         if (!decision) throw new DomainError("council_decision_not_found", 404);
         const returnable =
-          decision.status === "draft" ||
-          decision.status === "ready" ||
+          councilDecisionContentCanChange(decision.status) ||
           transitionCouncilDecision(decision.status, { type: "RETURN_TO_PREPARATION" }) !== null;
         if (!returnable || (await ballotRepository.findFinalForDecision(decision.id))) {
           throw new DomainError("ballot_already_recorded", 409);

@@ -17,6 +17,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   useContext,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -90,6 +91,13 @@ function ResourceEmbedBlock({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef({ x: 0, y: 0 });
+  const restoreFocusRef = useRef(false);
+  useLayoutEffect(() => {
+    if (previewing || !restoreFocusRef.current) return;
+    restoreFocusRef.current = false;
+    triggerRef.current?.focus({ preventScroll: true });
+    window.scrollTo(scrollRef.current.x, scrollRef.current.y);
+  }, [previewing]);
   const open = () => {
     if (!renderResourcePreview) return;
     scrollRef.current = { x: window.scrollX, y: window.scrollY };
@@ -242,12 +250,9 @@ function ResourceEmbedBlock({
       </div>
       {previewing
         ? renderResourcePreview?.(attributes.id, () => {
+            restoreFocusRef.current = true;
             setPreviewing(false);
             setPresentationRevision((revision) => revision + 1);
-            window.requestAnimationFrame(() => {
-              triggerRef.current?.focus({ preventScroll: true });
-              window.scrollTo(scrollRef.current.x, scrollRef.current.y);
-            });
           })
         : null}
     </>
@@ -455,7 +460,7 @@ export function EditorResourceEmbedSearch({
         title={t("editor.embedResource")}
         testId="resource-embed-search-dialog"
         onClose={onClose}
-        onPick={(item) => pick(item as Mentionable)}
+        onPick={pick}
       />
     );
   }

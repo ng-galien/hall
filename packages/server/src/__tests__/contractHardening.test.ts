@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { PROBLEM_MEDIA_TYPE, SIREN_MEDIA_TYPE } from "@hall/api-contract";
 import { describe, expect, it } from "vitest";
+import { API_JSON_BODY_LIMIT_BYTES } from "../api/application.js";
 import { createTestServer } from "./testServer.js";
 
 const admin = {
@@ -73,7 +74,7 @@ describe("hardened HTTP and hypermedia contract", () => {
       .send({
         kind: "openQuestion",
         title: "Trop grand",
-        report: "x".repeat(2 * 1024 * 1024),
+        report: "x".repeat(API_JSON_BODY_LIMIT_BYTES + 1),
         folderPath: "",
         resourceIds: [],
       })

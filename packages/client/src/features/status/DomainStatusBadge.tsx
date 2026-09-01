@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 
-type DomainStatus =
+export type DomainStatus =
   | AgendaItemStatus
   | AttendanceStatus
   | CouncilDecisionStatus
@@ -18,7 +18,7 @@ type DomainStatus =
   | "active"
   | "inactive";
 
-const domainStatusKeys: Record<DomainStatus, TranslationKey> = {
+export const domainStatusKeys: Record<DomainStatus, TranslationKey> = {
   draft: "status.draft",
   notStarted: "status.notStarted",
   ready: "status.ready",

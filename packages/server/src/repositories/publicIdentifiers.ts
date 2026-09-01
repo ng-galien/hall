@@ -1,5 +1,6 @@
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { SqlQueryName } from "../infrastructure/database/queries.js";
+import { asInteger } from "./row.js";
 
 export function slugify(value: string): string {
   return (
@@ -18,8 +19,8 @@ export async function nextAnnualNumber(
   year: number,
 ): Promise<{ sequence: number; value: string }> {
   const row = await sqlExecutor.get("numberSequence.next", { kind, year });
-  const sequence = Number(row?.last_value);
-  if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("Invalid number sequence");
+  const sequence = asInteger(row?.last_value, "number_sequence.last_value");
+  if (sequence < 1) throw new Error("Invalid number sequence");
   return { sequence, value: `${year}-${String(sequence).padStart(3, "0")}` };
 }
 

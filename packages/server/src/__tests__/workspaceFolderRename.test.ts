@@ -32,10 +32,7 @@ describe("workspace folder rename", () => {
       .post("/api/resources/texts")
       .send({ title: "Hors branche", folderPath: "travaux/eclairage", tags: [], content: "Inchangé" })
       .expect(201);
-    await agent
-      .post("/api/resources/paths")
-      .send({ parentPath: "travaux/voirie", name: "a-classer" })
-      .expect(201);
+    await agent.post("/api/resources/paths").send({ parentPath: "travaux/voirie", name: "a-classer" }).expect(201);
 
     const collection = await agent.get("/api/resources").expect(200);
     expect(collection.body.actions).toEqual(
@@ -121,10 +118,7 @@ describe("workspace folder rename", () => {
       .send({ title: "Source", folderPath: "travaux/voirie", tags: [], content: "Source" })
       .expect(201);
 
-    await agent
-      .put("/api/resources/paths")
-      .send({ folderPath: "travaux/voirie", name: ".." })
-      .expect(400);
+    await agent.put("/api/resources/paths").send({ folderPath: "travaux/voirie", name: ".." }).expect(400);
 
     const resources = domainBody<Resource[]>(await agent.get("/api/resources").expect(200));
     expect(resources).toEqual(

@@ -316,17 +316,17 @@ describe("council meeting invariants", () => {
         expectedVersion: 1,
       })
       .expect(200);
-    const uploadProxy = () =>
+    const uploadProxy = (filename: string) =>
       agent
         .post("/api/resources/documents")
         .field("meetingId", meeting.id)
         .field("category", "proxy")
         .attach("file", Buffer.from("%PDF-1.7\nWritten proxy"), {
-          filename: "proxy.pdf",
+          filename,
           contentType: "application/pdf",
         });
-    const firstDocument = await uploadProxy();
-    const secondDocument = await uploadProxy();
+    const firstDocument = await uploadProxy("proxy-first.pdf");
+    const secondDocument = await uploadProxy("proxy-second.pdf");
     await agent
       .put(`/api/council-meetings/${meeting.id}/attendance`)
       .send({
@@ -394,7 +394,7 @@ describe("council meeting invariants", () => {
     await agent.post("/api/council-business").send(business).expect(201);
     const duplicate = await agent.post("/api/council-business").send(business);
     expect(duplicate.status).toBe(409);
-    expect(domainBody(duplicate)).toMatchObject({ code: "conflict", status: 409 });
+    expect(domainBody(duplicate)).toMatchObject({ code: "workspace_title_conflict", status: 409 });
   });
 
   it("protects the administrative API when development access is disabled", async () => {

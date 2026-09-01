@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
+import { documentFormats } from "@hall/domain";
 import { describe, expect, it } from "vitest";
 import {
   acceptedDocumentExtensions,
   acceptedSpreadsheetImportExtensions,
+  documentPreviewMode,
   inspectDocument,
   inspectSpreadsheetImport,
 } from "../domain/documentPolicy.js";
@@ -51,6 +53,20 @@ const openXml = (directory: string, mimeType: string) =>
   ]);
 
 describe("document policy", () => {
+  it("defines one preview mode for every document format", () => {
+    expect(Object.fromEntries(documentFormats.map((format) => [format, documentPreviewMode(format)]))).toEqual({
+      pdf: "native",
+      jpeg: "native",
+      png: "native",
+      docx: "convertible",
+      odt: "convertible",
+      xlsx: "convertible",
+      pptx: "convertible",
+      txt: "convertible",
+      csv: "convertible",
+    });
+  });
+
   it.each([
     ["piece.pdf", Buffer.from("%PDF-1.7\ncontent"), "pdf", "application/pdf"],
     ["photo.JPG", Buffer.from([0xff, 0xd8, 0xff, 0x00]), "jpeg", "image/jpeg"],

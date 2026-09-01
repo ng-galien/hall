@@ -1,4 +1,4 @@
-import type { CouncilMeeting } from "@hall/domain";
+import { type CouncilMeeting, meetingIsFinished } from "@hall/domain";
 import { type FormEvent, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -46,13 +46,13 @@ export function CouncilMeetingsPage() {
     formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate);
 
   const upcomingMeetings = [...meetings]
-    .filter((meeting) => ["draft", "scheduled", "inProgress"].includes(meeting.status))
+    .filter((meeting) => !meetingIsFinished(meeting.status))
     .sort((left, right) => left.startsAt.localeCompare(right.startsAt));
   const nextMeeting = upcomingMeetings[0] ?? null;
   const matches = (meeting: CouncilMeeting) => matchesQuery(query, meetingLabel(meeting), meeting.location);
   const visibleUpcoming = upcomingMeetings.filter((meeting) => meeting.id !== nextMeeting?.id && matches(meeting));
   const pastMeetings = [...meetings]
-    .filter((meeting) => ["closed", "cancelled"].includes(meeting.status))
+    .filter((meeting) => meetingIsFinished(meeting.status))
     .sort((left, right) => right.startsAt.localeCompare(left.startsAt))
     .filter(matches);
 

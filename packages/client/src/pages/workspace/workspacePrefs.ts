@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { sameWorkspaceItem, type WorkspaceItemReference } from "./workspaceItemReference";
 
-export type WorkspacePin = { kind: "councilBusiness"; id: string } | { kind: "resource"; id: string };
+export type WorkspacePin = WorkspaceItemReference;
 
 interface WorkspacePrefsState {
   treeCollapsed: boolean;
@@ -10,8 +11,6 @@ interface WorkspacePrefsState {
   isPinned(pin: WorkspacePin): boolean;
   togglePin(pin: WorkspacePin): void;
 }
-
-const samePin = (left: WorkspacePin, right: WorkspacePin) => left.kind === right.kind && left.id === right.id;
 
 /** Local workspace preferences (tree collapse, pins). */
 export const useWorkspacePrefsStore = create<WorkspacePrefsState>()(
@@ -23,12 +22,12 @@ export const useWorkspacePrefsStore = create<WorkspacePrefsState>()(
         set((state) => ({ treeCollapsed: !state.treeCollapsed }));
       },
       isPinned(pin) {
-        return get().pins.some((candidate) => samePin(candidate, pin));
+        return get().pins.some((candidate) => sameWorkspaceItem(candidate, pin));
       },
       togglePin(pin) {
         set((state) => ({
-          pins: state.pins.some((candidate) => samePin(candidate, pin))
-            ? state.pins.filter((candidate) => !samePin(candidate, pin))
+          pins: state.pins.some((candidate) => sameWorkspaceItem(candidate, pin))
+            ? state.pins.filter((candidate) => !sameWorkspaceItem(candidate, pin))
             : [...state.pins, pin],
         }));
       },

@@ -1,37 +1,49 @@
 import { randomUUID } from "node:crypto";
-import type { CouncilBusiness, Resource } from "@hall/domain";
+import {
+  type CouncilBusiness,
+  councilBusinessKindSchema,
+  identifierSchema,
+  matchLiteral,
+  type Resource,
+} from "@hall/domain";
 import type { SqlExecutor, SqlParameters } from "../infrastructure/database/executor.js";
 import type { SqlQueryName } from "../infrastructure/database/queries.js";
 import type { CouncilBusinessRepository, CreateCouncilBusiness, SaveCouncilBusiness } from "./contracts.js";
 import { uniqueSlug } from "./publicIdentifiers.js";
-import { mapStoredResource } from "./resourceRepository.js";
-import { asNullableString, type DatabaseRow, mapSequential } from "./row.js";
+import { mapStoredResource } from "./resourceRowMapping.js";
+import { asString, type DatabaseRow, mapSequential } from "./row.js";
 
 export function mapCouncilBusiness(row: DatabaseRow, resources: Resource[] = []): CouncilBusiness {
   const common = {
-    id: String(row.id),
-    slug: String(row.slug),
-    title: String(row.title),
-    report: String(row.report),
-    folderPath: String(row.folder_path),
+    id: identifierSchema.parse(row.id),
+    slug: asString(row.slug, "council_business.slug"),
+    title: asString(row.title, "council_business.title"),
+    report: asString(row.report, "council_business.report"),
+    folderPath: asString(row.folder_path, "council_business.folder_path"),
     resources,
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
+    createdAt: asString(row.created_at, "council_business.created_at"),
+    updatedAt: asString(row.updated_at, "council_business.updated_at"),
   };
-  if (row.kind === "matter")
-    return {
-      kind: "matter",
+  return matchLiteral(councilBusinessKindSchema.parse(row.kind), {
+    matter: () => ({
+      kind: "matter" as const,
       ...common,
-      councilDecisionId: asNullableString(row.council_decision_id),
-      committeeId: asNullableString(row.committee_id),
-    };
-  if (row.kind === "minutesApproval")
-    return { kind: "minutesApproval", ...common, minutesOfMeetingId: String(row.minutes_of_meeting_id) };
-  return { kind: "openQuestion", ...common };
+      councilDecisionId: identifierSchema.nullable().parse(row.council_decision_id),
+      committeeId: identifierSchema.nullable().parse(row.committee_id),
+    }),
+    minutesApproval: () => ({
+      kind: "minutesApproval" as const,
+      ...common,
+      minutesOfMeetingId: identifierSchema.parse(row.minutes_of_meeting_id),
+    }),
+    openQuestion: () => ({ kind: "openQuestion" as const, ...common }),
+  });
 }
 
 async function mapStoredCouncilBusiness(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<CouncilBusiness> {
-  const resources = await sqlExecutor.all("councilBusiness.resources", { businessId: String(row.id) });
+  const resources = await sqlExecutor.all("councilBusiness.resources", {
+    businessId: identifierSchema.parse(row.id),
+  });
   return mapCouncilBusiness(
     row,
     await mapSequential(resources, (resource) => mapStoredResource(sqlExecutor, resource)),

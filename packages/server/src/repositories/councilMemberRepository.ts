@@ -1,19 +1,19 @@
 import { randomUUID } from "node:crypto";
-import type { CouncilMember } from "@hall/domain";
+import { type CouncilMember, councilRoleSchema, identifierSchema } from "@hall/domain";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { CouncilMemberRepository } from "./contracts.js";
-import { asBoolean, asNullableString, type DatabaseRow } from "./row.js";
+import { asBoolean, asNullableString, asString, type DatabaseRow } from "./row.js";
 
 const mapMember = (row: DatabaseRow): CouncilMember => ({
-  id: String(row.id),
-  firstName: String(row.first_name),
-  lastName: String(row.last_name),
-  email: asNullableString(row.email),
-  phone: asNullableString(row.phone),
-  role: row.role as CouncilMember["role"],
-  active: asBoolean(row.active),
-  termStartedOn: String(row.term_started_on),
-  termEndedOn: asNullableString(row.term_ended_on),
+  id: identifierSchema.parse(row.id),
+  firstName: asString(row.first_name, "council_member.first_name"),
+  lastName: asString(row.last_name, "council_member.last_name"),
+  email: asNullableString(row.email, "council_member.email"),
+  phone: asNullableString(row.phone, "council_member.phone"),
+  role: councilRoleSchema.parse(row.role),
+  active: asBoolean(row.active, "council_member.active"),
+  termStartedOn: asString(row.term_started_on, "council_member.term_started_on"),
+  termEndedOn: asNullableString(row.term_ended_on, "council_member.term_ended_on"),
 });
 
 export function createCouncilMemberRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }): CouncilMemberRepository {

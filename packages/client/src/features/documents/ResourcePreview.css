@@ -1,11 +1,18 @@
 .resource-preview-shell-header {
   display: grid;
+  width: 100%;
   min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
   border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   background: var(--hall-color-surface);
 }
 
 .resource-preview-shell-header > .workspace-breadcrumb {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: var(--hall-space-2) var(--hall-space-5);
   border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
 }

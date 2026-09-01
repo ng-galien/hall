@@ -1,4 +1,9 @@
-import type { GeographicPosition, GeographicResourceData, HallGeoJsonFeature } from "@hall/domain";
+import {
+  type GeographicPosition,
+  type GeographicResourceData,
+  type HallGeoJsonFeature,
+  matchHallGeoJsonFeature,
+} from "@hall/domain";
 
 const IMAGE_WIDTH = 1_200;
 const IMAGE_HEIGHT = 675;
@@ -9,22 +14,16 @@ export interface GeographicMapRenderer {
 }
 
 type Bounds = { minLongitude: number; minLatitude: number; maxLongitude: number; maxLatitude: number };
-type MarkerFeature = Extract<HallGeoJsonFeature, { geometry: { type: "Point" } }>;
-type LineFeature = Extract<HallGeoJsonFeature, { geometry: { type: "LineString" } }>;
-type AreaFeature = Extract<HallGeoJsonFeature, { geometry: { type: "Polygon" } }>;
-
 function xml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function coordinates(feature: HallGeoJsonFeature): GeographicPosition[] {
-  if (feature.geometry.type === "Point") return [feature.geometry.coordinates];
-  if (feature.geometry.type === "LineString") return feature.geometry.coordinates;
-  return feature.geometry.coordinates.flat();
+  return matchHallGeoJsonFeature(feature, {
+    marker: (entry) => [entry.geometry.coordinates],
+    line: (entry) => entry.geometry.coordinates,
+    area: (entry) => entry.geometry.coordinates.flat(),
+  });
 }
 
 function featureBounds(features: HallGeoJsonFeature[]): Bounds | null {
@@ -51,7 +50,8 @@ function viewBounds(data: GeographicResourceData): Bounds {
   }
   const [longitude, latitude] = data.view.center;
   const longitudeSpan = (360 * IMAGE_WIDTH) / (256 * 2 ** data.view.zoom);
-  const latitudeSpan = longitudeSpan * (IMAGE_HEIGHT / IMAGE_WIDTH) * Math.max(0.2, Math.cos((latitude * Math.PI) / 180));
+  const latitudeSpan =
+    longitudeSpan * (IMAGE_HEIGHT / IMAGE_WIDTH) * Math.max(0.2, Math.cos((latitude * Math.PI) / 180));
   return {
     minLongitude: longitude - longitudeSpan / 2,
     minLatitude: latitude - latitudeSpan / 2,
@@ -86,15 +86,21 @@ function project(position: GeographicPosition, bounds: Bounds): [number, number]
 }
 
 function labelPosition(feature: HallGeoJsonFeature): GeographicPosition {
-  const points = coordinates(feature);
-  if (feature.geometry.type === "Point") return points[0];
-  if (feature.geometry.type === "LineString") return points[Math.floor(points.length / 2)];
-  const ring = feature.geometry.coordinates[0];
-  const usable = ring.length > 1 && ring[0][0] === ring.at(-1)?.[0] && ring[0][1] === ring.at(-1)?.[1] ? ring.slice(0, -1) : ring;
-  return [
-    usable.reduce((sum, [longitude]) => sum + longitude, 0) / usable.length,
-    usable.reduce((sum, [, latitude]) => sum + latitude, 0) / usable.length,
-  ];
+  return matchHallGeoJsonFeature(feature, {
+    marker: (entry) => entry.geometry.coordinates,
+    line: (entry) => entry.geometry.coordinates[Math.floor(entry.geometry.coordinates.length / 2)],
+    area: (entry) => {
+      const ring = entry.geometry.coordinates[0];
+      const usable =
+        ring.length > 1 && ring[0][0] === ring.at(-1)?.[0] && ring[0][1] === ring.at(-1)?.[1]
+          ? ring.slice(0, -1)
+          : ring;
+      return [
+        usable.reduce((sum, [longitude]) => sum + longitude, 0) / usable.length,
+        usable.reduce((sum, [, latitude]) => sum + latitude, 0) / usable.length,
+      ];
+    },
+  });
 }
 
 function featureSvg(feature: HallGeoJsonFeature, bounds: Bounds): string {
@@ -104,24 +110,39 @@ function featureSvg(feature: HallGeoJsonFeature, bounds: Bounds): string {
   const labelSvg = label
     ? `<text x="${labelX.toFixed(2)}" y="${(labelY - 12).toFixed(2)}" text-anchor="middle" class="label">${xml(label)}</text>`
     : "";
-  if (feature.geometry.type === "Point") {
-    const marker = feature as MarkerFeature;
-    const [x, y] = project(marker.geometry.coordinates, bounds);
-    const radii = { small: 6, medium: 8, large: 10 };
-    return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${radii[marker.properties.style.size]}" fill="${marker.properties.style.color}" stroke="#fff" stroke-width="3"/>${labelSvg}`;
-  }
-  if (feature.geometry.type === "LineString") {
-    const line = feature as LineFeature;
-    const points = line.geometry.coordinates.map((position) => project(position, bounds).map((value) => value.toFixed(2)).join(",")).join(" ");
-    return `<polyline points="${points}" fill="none" stroke="${line.properties.style.color}" stroke-width="${line.properties.style.width}" stroke-linecap="round" stroke-linejoin="round"/>${labelSvg}`;
-  }
-  const area = feature as AreaFeature;
-  const paths = area.geometry.coordinates
-    .map((ring) => ring.map((position) => project(position, bounds).map((value) => value.toFixed(2)).join(",")).join(" "))
-    .map((points) => `<polygon points="${points}"/>`)
-    .join("");
-  const style = area.properties.style;
-  return `<g fill="${style.fillColor}" fill-opacity="${style.fillOpacity}" stroke="${style.strokeColor}" stroke-width="${style.strokeWidth}" stroke-linejoin="round">${paths}</g>${labelSvg}`;
+  return matchHallGeoJsonFeature(feature, {
+    marker: (entry) => {
+      const [x, y] = project(entry.geometry.coordinates, bounds);
+      const radii = { small: 6, medium: 8, large: 10 };
+      return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${radii[entry.properties.style.size]}" fill="${entry.properties.style.color}" stroke="#fff" stroke-width="3"/>${labelSvg}`;
+    },
+    line: (entry) => {
+      const points = entry.geometry.coordinates
+        .map((position) =>
+          project(position, bounds)
+            .map((value) => value.toFixed(2))
+            .join(","),
+        )
+        .join(" ");
+      return `<polyline points="${points}" fill="none" stroke="${entry.properties.style.color}" stroke-width="${entry.properties.style.width}" stroke-linecap="round" stroke-linejoin="round"/>${labelSvg}`;
+    },
+    area: (entry) => {
+      const paths = entry.geometry.coordinates
+        .map((ring) =>
+          ring
+            .map((position) =>
+              project(position, bounds)
+                .map((value) => value.toFixed(2))
+                .join(","),
+            )
+            .join(" "),
+        )
+        .map((points) => `<polygon points="${points}"/>`)
+        .join("");
+      const style = entry.properties.style;
+      return `<g fill="${style.fillColor}" fill-opacity="${style.fillOpacity}" stroke="${style.strokeColor}" stroke-width="${style.strokeWidth}" stroke-linejoin="round">${paths}</g>${labelSvg}`;
+    },
+  });
 }
 
 async function wmsImage(layer: GeographicResourceData["layers"][number], bounds: Bounds): Promise<string | null> {

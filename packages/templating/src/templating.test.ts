@@ -1,3 +1,4 @@
+import type { Resource } from "@hall/domain";
 import { describe, expect, it } from "vitest";
 import {
   collectDirectives,
@@ -14,8 +15,84 @@ import {
   resourcePresentationKinds,
   serializeResourceEmbedDirective,
 } from "./grammar.js";
+import { preferredResourcePresentation, resourceSupportsPresentation } from "./resourcePresentation.js";
 
 const roundTrip = (markdown: string) => serialize(parse(markdown)).trim();
+
+const resourceBase = {
+  id: "11111111-1111-4111-8111-111111111111",
+  slug: "resource",
+  title: "Resource",
+  folderPath: "seed",
+  tags: [],
+  autosaveEnabled: true,
+  state: { readiness: "ready" as const, availability: null },
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+};
+
+const presentationResources = {
+  text: { ...resourceBase, kind: "text", content: "" } satisfies Resource,
+  remote: { ...resourceBase, kind: "remote", url: "https://example.test" } satisfies Resource,
+  spreadsheet: { ...resourceBase, kind: "spreadsheet", version: 1 } satisfies Resource,
+  geographic: { ...resourceBase, kind: "geographic", provider: "ign", version: 1 } satisfies Resource,
+  legalReference: {
+    ...resourceBase,
+    kind: "legalReference",
+    resolutionStatus: "draft",
+    provider: "legifrance",
+    referenceKind: "article",
+  } satisfies Resource,
+  image: {
+    ...resourceBase,
+    kind: "document",
+    meetingId: null,
+    fileName: "image.png",
+    format: "png",
+    mediaType: "image/png",
+    byteSize: 1,
+    contentSha256: "a".repeat(64),
+    usage: "document",
+    category: "supporting",
+    editorOwner: null,
+  } satisfies Resource,
+  pdf: {
+    ...resourceBase,
+    kind: "document",
+    meetingId: null,
+    fileName: "document.pdf",
+    format: "pdf",
+    mediaType: "application/pdf",
+    byteSize: 1,
+    contentSha256: "b".repeat(64),
+    usage: "document",
+    category: "supporting",
+    editorOwner: null,
+  } satisfies Resource,
+};
+
+describe("resource presentation policy", () => {
+  it("offers one preferred block presentation without turning inline-only resources into blocks", () => {
+    expect(preferredResourcePresentation(presentationResources.text)).toBeNull();
+    expect(preferredResourcePresentation(presentationResources.remote)).toBeNull();
+    expect(preferredResourcePresentation(presentationResources.spreadsheet)).toBe("table");
+    expect(preferredResourcePresentation(presentationResources.geographic)).toBe("map");
+    expect(preferredResourcePresentation(presentationResources.legalReference)).toBe("legal-citation");
+    expect(preferredResourcePresentation(presentationResources.image)).toBe("image");
+    expect(preferredResourcePresentation(presentationResources.pdf)).toBe("document");
+  });
+
+  it("owns the compatibility matrix shared by client rendering and PDF export", () => {
+    expect(resourceSupportsPresentation(presentationResources.remote, "link")).toBe(true);
+    expect(resourceSupportsPresentation(presentationResources.image, "image")).toBe(true);
+    expect(resourceSupportsPresentation(presentationResources.image, "document")).toBe(true);
+    expect(resourceSupportsPresentation(presentationResources.pdf, "image")).toBe(false);
+    expect(resourceSupportsPresentation(presentationResources.spreadsheet, "table")).toBe(true);
+    expect(resourceSupportsPresentation(presentationResources.geographic, "map")).toBe(true);
+    expect(resourceSupportsPresentation(presentationResources.legalReference, "legal-citation")).toBe(true);
+    expect(resourceSupportsPresentation(presentationResources.text, "document")).toBe(false);
+  });
+});
 
 describe("canonical serialization", () => {
   it("preserves the identifier shorthand for business references", () => {

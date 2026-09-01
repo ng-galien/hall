@@ -197,9 +197,7 @@ describe("official resources", () => {
         layers: Array<{ id: string; visible: boolean; opacity: number }>;
         hallLayer: { features: Array<{ id: string }> };
       };
-    }>(
-      await agent.get(`/api/resources/${created.id}`).expect(200),
-    );
+    }>(await agent.get(`/api/resources/${created.id}`).expect(200));
     expect(details.geography.view).toEqual(update.view);
     expect(details.geography.layers).toEqual(update.layers);
     expect(details.geography.hallLayer.features.map(({ id }) => id)).toEqual([areaId, lineId, markerId]);

@@ -1,5 +1,26 @@
 import { z } from "zod";
-import { geographicLayerIds } from "./model.js";
+import {
+  agendaItemStatuses,
+  attendanceStatuses,
+  ballotMethods,
+  ballotResults,
+  committeeRoles,
+  councilBusinessKinds,
+  councilDecisionStatuses,
+  councilRoles,
+  documentCategories,
+  documentFormats,
+  documentUsages,
+  editorAssetOwnerKinds,
+  geographicLayerIds,
+  legalReferenceFunds,
+  legalReferenceVerificationStatuses,
+  meetingStatuses,
+  minutesStatuses,
+  resourceKinds,
+  templateKinds,
+  voteChoices,
+} from "./model.js";
 
 const nonEmpty = z.string().trim().min(1);
 const nullableId = z.string().uuid().nullable().optional();
@@ -27,6 +48,60 @@ const webUrlSchema = z.url().refine((value) => {
   const protocol = new URL(value).protocol;
   return protocol === "http:" || protocol === "https:";
 }, "URL must use HTTP or HTTPS");
+
+export const identifierSchema = z.string().uuid();
+export const identifierListSchema = z.array(identifierSchema);
+export const resourceKindSchema = z.enum(resourceKinds);
+export const councilBusinessKindSchema = z.enum(councilBusinessKinds);
+export const ballotMethodSchema = z.enum(ballotMethods);
+export const ballotResultSchema = z.enum(ballotResults);
+export const voteChoiceSchema = z.enum(voteChoices);
+export const documentFormatSchema = z.enum(documentFormats);
+export const documentUsageSchema = z.enum(documentUsages);
+export const documentCategorySchema = z.enum(documentCategories);
+export const legalReferenceFundSchema = z.enum(legalReferenceFunds);
+export const legalReferenceVerificationStatusSchema = z.enum(legalReferenceVerificationStatuses);
+export const councilRoleSchema = z.enum(councilRoles);
+export const meetingStatusSchema = z.enum(meetingStatuses);
+export const minutesStatusSchema = z.enum(minutesStatuses);
+export const attendanceStatusSchema = z.enum(attendanceStatuses);
+export const agendaItemStatusSchema = z.enum(agendaItemStatuses);
+export const councilDecisionStatusSchema = z.enum(councilDecisionStatuses);
+export const templateKindSchema = z.enum(templateKinds);
+export const committeeRoleSchema = z.enum(committeeRoles);
+
+export const editorAssetOwnerSchema = z.object({ kind: z.enum(editorAssetOwnerKinds), id: identifierSchema }).strict();
+
+const attendanceEvidenceSchema = z
+  .object({
+    memberId: identifierSchema,
+    status: attendanceStatusSchema,
+    proxyHolderMemberId: identifierSchema.nullable(),
+    proxyDocumentId: identifierSchema.nullable(),
+    version: z.number().int().positive(),
+  })
+  .strict();
+
+const quorumEvidenceSchema = z
+  .object({
+    activeMembers: z.number().int().nonnegative(),
+    physicallyPresent: z.number().int().nonnegative(),
+    required: z.number().int().nonnegative(),
+    reached: z.boolean(),
+  })
+  .strict();
+
+export const participationEvidenceSchema = z
+  .object({
+    rosterMemberIds: identifierListSchema,
+    attendance: z.array(attendanceEvidenceSchema),
+    quorum: quorumEvidenceSchema,
+  })
+  .strict();
+
+export const quorumFailureEvidenceSchema = participationEvidenceSchema
+  .extend({ recordedAt: z.iso.datetime() })
+  .strict();
 
 export const updateHallSettingsSchema = z.object({
   name: nonEmpty.max(160),
@@ -176,7 +251,7 @@ export const resourceTagsSchema = z
   .array(resourceTagSchema)
   .max(50)
   .default([])
-  .transform((tags) => [...new Set(tags)]);
+  .transform((tags) => [...new Set(tags)].sort());
 
 export const resourceIdsSchema = z
   .array(z.string().uuid())
@@ -194,7 +269,14 @@ export const createTextResourceSchema = z.object({
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(jsonValueSchema), z.record(z.string(), jsonValueSchema)]),
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema),
+  ]),
 );
 function isJsonObject(value: JsonValue | undefined): value is { [key: string]: JsonValue } {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -210,7 +292,11 @@ const spreadsheetWorkbookSchema = z.record(z.string(), jsonValueSchema).superRef
   const sheetOrder = workbook.sheetOrder;
   const sheets = workbook.sheets;
   if (!Array.isArray(sheetOrder) || sheetOrder.length === 0 || sheetOrder.length > 100) {
-    context.addIssue({ code: "custom", message: "Spreadsheet workbook must contain between 1 and 100 sheets", path: ["sheetOrder"] });
+    context.addIssue({
+      code: "custom",
+      message: "Spreadsheet workbook must contain between 1 and 100 sheets",
+      path: ["sheetOrder"],
+    });
     return;
   }
   if (!sheets || Array.isArray(sheets) || typeof sheets !== "object") {
@@ -220,7 +306,11 @@ const spreadsheetWorkbookSchema = z.record(z.string(), jsonValueSchema).superRef
   const uniqueSheetIds = new Set<string>();
   for (const sheetId of sheetOrder) {
     if (typeof sheetId !== "string" || !sheetId || uniqueSheetIds.has(sheetId) || !(sheetId in sheets)) {
-      context.addIssue({ code: "custom", message: "Spreadsheet sheet order must contain unique existing sheet ids", path: ["sheetOrder"] });
+      context.addIssue({
+        code: "custom",
+        message: "Spreadsheet sheet order must contain unique existing sheet ids",
+        path: ["sheetOrder"],
+      });
       return;
     }
     uniqueSheetIds.add(sheetId);
@@ -230,29 +320,57 @@ const spreadsheetWorkbookSchema = z.record(z.string(), jsonValueSchema).superRef
       continue;
     }
     if (sheet.id !== sheetId) {
-      context.addIssue({ code: "custom", message: "Spreadsheet sheet id must match its key", path: ["sheets", sheetId, "id"] });
+      context.addIssue({
+        code: "custom",
+        message: "Spreadsheet sheet id must match its key",
+        path: ["sheets", sheetId, "id"],
+      });
     }
     if (typeof sheet.name !== "string" || !sheet.name.trim()) {
-      context.addIssue({ code: "custom", message: "Spreadsheet sheet must have a name", path: ["sheets", sheetId, "name"] });
+      context.addIssue({
+        code: "custom",
+        message: "Spreadsheet sheet must have a name",
+        path: ["sheets", sheetId, "name"],
+      });
     }
     if (!Number.isInteger(sheet.rowCount) || Number(sheet.rowCount) < 1 || Number(sheet.rowCount) > 1_048_576) {
-      context.addIssue({ code: "custom", message: "Spreadsheet sheet row count is invalid", path: ["sheets", sheetId, "rowCount"] });
+      context.addIssue({
+        code: "custom",
+        message: "Spreadsheet sheet row count is invalid",
+        path: ["sheets", sheetId, "rowCount"],
+      });
     }
     if (!Number.isInteger(sheet.columnCount) || Number(sheet.columnCount) < 1 || Number(sheet.columnCount) > 16_384) {
-      context.addIssue({ code: "custom", message: "Spreadsheet sheet column count is invalid", path: ["sheets", sheetId, "columnCount"] });
+      context.addIssue({
+        code: "custom",
+        message: "Spreadsheet sheet column count is invalid",
+        path: ["sheets", sheetId, "columnCount"],
+      });
     }
     for (const property of ["cellData", "rowData", "columnData"] as const) {
       if (sheet[property] !== undefined && !isJsonObject(sheet[property])) {
-        context.addIssue({ code: "custom", message: `Spreadsheet sheet ${property} must be an object`, path: ["sheets", sheetId, property] });
+        context.addIssue({
+          code: "custom",
+          message: `Spreadsheet sheet ${property} must be an object`,
+          path: ["sheets", sheetId, property],
+        });
       }
     }
     if (sheet.mergeData !== undefined && !Array.isArray(sheet.mergeData)) {
-      context.addIssue({ code: "custom", message: "Spreadsheet sheet mergeData must be an array", path: ["sheets", sheetId, "mergeData"] });
+      context.addIssue({
+        code: "custom",
+        message: "Spreadsheet sheet mergeData must be an array",
+        path: ["sheets", sheetId, "mergeData"],
+      });
     }
   }
   for (const sheetId of Object.keys(sheets)) {
     if (!uniqueSheetIds.has(sheetId)) {
-      context.addIssue({ code: "custom", message: "Spreadsheet workbook contains an unordered sheet", path: ["sheets", sheetId] });
+      context.addIssue({
+        code: "custom",
+        message: "Spreadsheet workbook contains an unordered sheet",
+        path: ["sheets", sheetId],
+      });
     }
   }
 });
@@ -491,7 +609,7 @@ export const resolveLegalReferenceResourceSchema = z
     title: nonEmpty.max(200),
     provider: z.literal("legifrance"),
     referenceKind: z.literal("article"),
-    fund: z.enum(["CODE_ETAT", "CODE_DATE"]),
+    fund: legalReferenceFundSchema,
     versionId: z
       .string()
       .trim()
@@ -517,18 +635,13 @@ export const updateResourceSchema = z
   })
   .strict();
 
-export const editorAssetOwnerKindSchema = z.enum([
-  "textResourceContent",
-  "councilBusinessReport",
-  "councilDecisionDraft",
-  "agendaItemDiscussionSummary",
-]);
+export const editorAssetOwnerKindSchema = z.enum(editorAssetOwnerKinds);
 
 export const promoteEditorAssetSchema = z.object({
   title: nonEmpty,
   folderPath: folderPathSchema,
   tags: resourceTagsSchema,
-  category: z.enum(["report", "draftCouncilDecision", "meetingNotice", "minutes", "proxy", "supporting"]),
+  category: documentCategorySchema,
 });
 
 export const createCouncilMemberSchema = z.object({
@@ -536,7 +649,7 @@ export const createCouncilMemberSchema = z.object({
   lastName: nonEmpty,
   email: z.email().nullable().optional(),
   phone: z.preprocess((value) => (value === "" ? null : value), z.string().trim().min(3).max(40).nullable().optional()),
-  role: z.enum(["mayor", "deputyMayor", "councillor"]),
+  role: councilRoleSchema,
   termStartedOn: z.iso.date(),
 });
 
@@ -548,8 +661,6 @@ export const updateCouncilMemberSchema = createCouncilMemberSchema
     message: "The term end date cannot precede its start date",
     path: ["termEndedOn"],
   });
-
-export const committeeRoleSchema = z.enum(["chair", "viceChair", "member"]);
 
 export const createCouncilCommitteeSchema = z.object({
   name: nonEmpty.max(160),
@@ -683,7 +794,7 @@ export const completeAgendaItemSchema = z.object({
 export const recordAttendanceSchema = z
   .object({
     memberId: z.string().uuid(),
-    status: z.enum(["present", "represented", "excused", "absent"]),
+    status: attendanceStatusSchema,
     proxyHolderMemberId: nullableId,
     proxyDocumentId: nullableId,
     expectedVersion: z.number().int().positive().nullable().optional(),
@@ -700,7 +811,7 @@ export const recordAttendanceSchema = z
 const voteSchema = z.object({
   memberId: z.string().uuid(),
   castByMemberId: z.string().uuid(),
-  choice: z.enum(["for", "against", "abstain", "notVoting"]),
+  choice: voteChoiceSchema,
 });
 
 const ballotTargetShape = {

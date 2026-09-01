@@ -31,10 +31,10 @@ function comparePaths(left: string, right: string): number {
 
 export function folderSections<T extends TreeHit>(
   hits: readonly T[],
-  kindLabel: (kind: string) => string,
+  kindLabel: (kind: T["kind"]) => string,
 ): FolderSection<T>[] {
   const byFolder = new Map<string, T[]>();
-  const byKind = new Map<string, T[]>();
+  const byKind = new Map<T["kind"], T[]>();
   for (const hit of hits) {
     if (hit.folderPath) {
       const bucket = byFolder.get(hit.folderPath) ?? [];

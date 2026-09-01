@@ -1,4 +1,4 @@
-import type { DocumentCategory, DocumentResource, EditorAssetOwner } from "@hall/domain";
+import { type DocumentCategory, type DocumentResource, type EditorAssetOwner, matchDiscriminated } from "@hall/domain";
 import { collectResourceReferences, parse } from "@hall/templating";
 import { inspectDocument } from "../domain/documentPolicy.js";
 import type {
@@ -31,26 +31,29 @@ export function createEditorAssetService({
   councilDecisionRepository: CouncilDecisionRepository;
   agendaItemRepository: AgendaItemRepository;
 }): EditorAssetService {
-  const ownerFolderPath = async (owner: EditorAssetOwner): Promise<string> => {
-    if (owner.kind === "textResourceContent") {
-      const resource = await resourceRepository.findMetadata(owner.id);
-      if (resource?.kind !== "text") throw new DomainError("resource_not_found", 404);
-      return resource.folderPath;
-    }
-    if (owner.kind === "councilBusinessReport") {
-      const business = await councilBusinessRepository.find(owner.id);
-      if (!business) throw new DomainError("council_business_not_found", 404);
-      return business.folderPath;
-    }
-    if (owner.kind === "councilDecisionDraft") {
-      const decision = await councilDecisionRepository.find(owner.id);
-      if (!decision) throw new DomainError("council_decision_not_found", 404);
-      return (await councilBusinessRepository.findForCouncilDecision(decision.id))?.folderPath ?? "";
-    }
-    const item = await agendaItemRepository.findById(owner.id);
-    if (!item) throw new DomainError("agenda_item_not_found", 404);
-    return item.business.folderPath;
-  };
+  const ownerFolderPath = (owner: EditorAssetOwner): Promise<string> =>
+    matchDiscriminated(owner, "kind", {
+      textResourceContent: async (entry) => {
+        const resource = await resourceRepository.findMetadata(entry.id);
+        if (resource?.kind !== "text") throw new DomainError("resource_not_found", 404);
+        return resource.folderPath;
+      },
+      councilBusinessReport: async (entry) => {
+        const business = await councilBusinessRepository.find(entry.id);
+        if (!business) throw new DomainError("council_business_not_found", 404);
+        return business.folderPath;
+      },
+      councilDecisionDraft: async (entry) => {
+        const decision = await councilDecisionRepository.find(entry.id);
+        if (!decision) throw new DomainError("council_decision_not_found", 404);
+        return (await councilBusinessRepository.findForCouncilDecision(decision.id))?.folderPath ?? "";
+      },
+      agendaItemDiscussionSummary: async (entry) => {
+        const item = await agendaItemRepository.findById(entry.id);
+        if (!item) throw new DomainError("agenda_item_not_found", 404);
+        return item.business.folderPath;
+      },
+    });
 
   const referencedResourceIds = async (owner: EditorAssetOwner, markdown: string): Promise<string[]> => {
     const ids = new Set<string>();

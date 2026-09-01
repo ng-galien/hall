@@ -167,6 +167,38 @@ async function dropEditorFile(
 }
 
 test.describe("Markdown editor", () => {
+  test("keeps asynchronously prepared Lab resources in the editor and rendered Markdown", async ({ appPage: page }) => {
+    await openEditorLab(page);
+
+    const resourceResponse = await page.request.get("/api/resources");
+    expect(resourceResponse.ok()).toBe(true);
+    const resourceRepresentation = (await resourceResponse.json()) as {
+      entities: Array<{ properties: { kind: string; mediaType?: string; title: string } }>;
+    };
+    const availableResources = resourceRepresentation.entities.map(({ properties }) => properties);
+    expect(
+      availableResources.some(({ kind, mediaType }) => kind === "document" && mediaType?.startsWith("image/")),
+      JSON.stringify(availableResources),
+    ).toBe(true);
+    expect(
+      availableResources.some(({ kind, mediaType }) => kind === "document" && mediaType === "application/pdf"),
+      JSON.stringify(availableResources),
+    ).toBe(true);
+    for (const kind of ["remote", "geographic", "spreadsheet"]) {
+      expect(
+        availableResources.some((resource) => resource.kind === kind),
+        `${kind}: ${JSON.stringify(availableResources)}`,
+      ).toBe(true);
+    }
+
+    const source = markdownSource(page);
+    await expect(source).toContainText("::resource-embed[");
+    await expect(compactEditor(page).locator("img[alt]").first()).toBeVisible();
+    await page.waitForTimeout(500);
+    await expect(source).toContainText("::resource-embed[");
+    await expect(renderedDocument(page).getByTestId("resource-embed-presentation-map")).toBeVisible();
+  });
+
   test("keeps the compact toolbar strict and reserves rich insertions for fullscreen", async ({ appPage: page }) => {
     await openEditorLab(page);
 
@@ -240,16 +272,20 @@ test.describe("Markdown editor", () => {
 
   test("opens the authoritative PDF for the current Markdown in the Hall viewer", async ({ appPage: page }) => {
     await openEditorLab(page);
-    const responsePromise = page.waitForResponse(
-      (response) => response.url().endsWith("/api/templates/preview-pdf") && response.request().method() === "POST",
+    const creationResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/templates/preview-pdf?delivery=url") && response.request().method() === "POST",
+    );
+    const nativePdfResponse = page.waitForResponse(
+      (response) =>
+        /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/.test(response.url()) && response.request().method() === "GET",
     );
     await page.getByTestId("editor-pdf-preview").click();
-    const response = await responsePromise;
-    expect(response.status()).toBe(200);
-    expect(response.headers()["content-type"]).toContain("application/pdf");
+    expect((await creationResponse).status()).toBe(201);
+    expect((await nativePdfResponse).status()).toBe(200);
     const viewer = page.getByTestId("editor-pdf-native-viewer");
     await expect(viewer).toBeVisible();
-    await expect(viewer.locator("object")).toHaveAttribute("data", /^blob:/);
+    await expect(viewer.locator("iframe")).toHaveAttribute("src", /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/);
   });
 
   test("synchronizes text, blocks, marks, undo and redo with Markdown and rendering", async ({ appPage: page }) => {
@@ -440,7 +476,7 @@ test.describe("Markdown editor", () => {
     await expect
       .poll(() => persistedResourceContent(page, resource.slug), { timeout: 15_000 })
       .toContain(updatedContent);
-    await modal.getByTestId("workspace-breadcrumb-close").click();
+    await modal.getByTestId("resource-preview-close").click();
     await expect(modal).toHaveCount(0);
     await expect(trigger).toBeFocused();
     expect(page.url()).toBe(routeBefore);
@@ -479,7 +515,7 @@ test.describe("Markdown editor", () => {
     expect(loadedPdf.status()).toBe(200);
     expect(loadedPdf.headers()["content-type"]).toContain("application/pdf");
     await expect(modal.getByTestId("resource-preview-object")).toHaveAttribute("src", /\/preview$/);
-    await modal.getByTestId("workspace-breadcrumb-close").click();
+    await modal.getByTestId("resource-preview-close").click();
     await expect(modal).toHaveCount(0);
     await expect(block).toBeFocused();
     await block.press("Enter");
@@ -520,9 +556,13 @@ test.describe("Markdown editor", () => {
   test("includes a bounded spreadsheet range, opens the common editor, and exports it to PDF", async ({
     appPage: page,
   }) => {
+    test.setTimeout(60_000);
     const spreadsheet = await firstSpreadsheetResource(page);
     await openEditorLab(page);
     const editor = await openEnrichedEditor(page);
+    await writingArea(editor).click();
+    await writingArea(editor).press("ControlOrMeta+A");
+    await writingArea(editor).press("Backspace");
     const search = await openResourceEmbedSearch(editor);
     await search.getByTestId("reference-search-input").fill(spreadsheet.title);
     await search.getByTestId("reference-result").first().click();
@@ -550,12 +590,17 @@ test.describe("Markdown editor", () => {
     await table.hover();
     await expect(editor.getByTestId(`editor-resource-embed-${spreadsheet.id}-info`)).toBeVisible();
     await block.click();
-    await expect(modal).toHaveAttribute("data-resource-mode", "read");
-    await modal.getByTestId("resource-preview-edit").click();
     await expect(modal).toHaveAttribute("data-resource-mode", "edit");
-    await expect(modal.getByTestId("spreadsheet-editor")).toBeVisible();
+    await expect(modal.getByTestId("spreadsheet-editor")).toBeVisible({ timeout: 15_000 });
     await expect(modal.getByTestId("spreadsheet-fullscreen-dialog")).toHaveCount(0);
-    await modal.getByTestId("resource-preview-close").click();
+    const close = modal.getByTestId("resource-preview-close");
+    const closeBounds = await close.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return { left: bounds.left, right: bounds.right, viewportWidth: window.innerWidth };
+    });
+    expect(closeBounds.left).toBeGreaterThanOrEqual(0);
+    expect(closeBounds.right).toBeLessThanOrEqual(closeBounds.viewportWidth);
+    await close.click();
     await expect(modal).toHaveCount(0);
     await expect(block).toBeFocused();
     expect(page.url()).toBe(routeBefore);
@@ -603,7 +648,7 @@ test.describe("Markdown editor", () => {
     await expect(imageOption).toBeVisible();
     await imageOption.click();
 
-    const image = editor.locator(".editor-image-node img").first();
+    const image = editor.locator(".editor-image-node img").last();
     const slider = editor.getByTestId("editor-image-width");
     await expect(editor.getByTestId("editor-image-alt")).toHaveCount(0);
     await expect(image).toBeVisible();

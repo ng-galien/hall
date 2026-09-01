@@ -96,7 +96,7 @@ describe("documentary resources", () => {
     expect(domainBody(document)).toMatchObject({
       kind: "document",
       folderPath: "Associations/Sport",
-      tags: ["sport", "juridique"],
+      tags: ["juridique", "sport"],
       fileName: "convention.pdf",
       format: "pdf",
       mediaType: "application/pdf",

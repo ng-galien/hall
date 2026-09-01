@@ -13,16 +13,19 @@ import {
 import { useI18n } from "../../i18n/I18nProvider";
 import { searchEntities } from "../../lib/search";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
+import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
+import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
+import { useCouncilMembersStore } from "../../stores/councilMembersStore";
+import { useResourcesStore } from "../../stores/resourcesStore";
 import { ResourcePreview } from "../documents/ResourcePreview";
+import { referenceOpenTarget } from "../references/referenceNavigation";
 import { SearchHitRow } from "./SearchHitRow";
 import {
   type SearchEntityType,
   type SearchHit,
   searchTypeLabelKeys,
   useSearchCorpus,
-  useSearchFolderOptions,
-  useSearchTagOptions,
-  useSearchTypeOptions,
+  useSearchFacetOptions,
 } from "./searchCorpus";
 
 /* The global palette (Ctrl+K or Cmd+K): search from anywhere just to go and look at something.
@@ -32,11 +35,15 @@ export function GlobalSearchPalette() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [state, setState] = useState<SearchBoxState>(emptySearchBoxState);
-  const [preview, setPreview] = useState<SearchBoxState | null>(null);
+  const [state, setState] = useState<SearchBoxState<SearchEntityType>>(emptySearchBoxState);
+  const [preview, setPreview] = useState<SearchBoxState<SearchEntityType> | null>(null);
   const [previewedResource, setPreviewedResource] = useState<string | null>(null);
   const [rawActive, setActive] = useState(0);
   const { businesses } = useCouncilBusinessStore();
+  const resources = useResourcesStore((store) => store.resources);
+  const decisions = useCouncilDecisionsStore((store) => store.councilDecisions);
+  const meetings = useCouncilMeetingsStore((store) => store.meetings);
+  const members = useCouncilMembersStore((store) => store.members);
 
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
@@ -52,9 +59,7 @@ export function GlobalSearchPalette() {
   }, []);
 
   const corpus = useSearchCorpus("global");
-  const typeOptions = useSearchTypeOptions(corpus);
-  const folderOptions = useSearchFolderOptions(corpus);
-  const tagOptions = useSearchTagOptions(corpus);
+  const facetOptions = useSearchFacetOptions(corpus);
 
   const effective = preview ?? state;
   const active = isSearchBoxActive(effective);
@@ -65,15 +70,14 @@ export function GlobalSearchPalette() {
             kinds: effective.types,
             folders: effective.folders,
             tags: effective.tags,
+            states: effective.states,
+            media: effective.media,
             limit: 30,
           }).results
         : [],
     [corpus, effective, active],
   );
-  const sections = useMemo(
-    () => folderSections(hits, (kind) => t(searchTypeLabelKeys[kind as SearchEntityType])),
-    [hits, t],
-  );
+  const sections = useMemo(() => folderSections(hits, (kind) => t(searchTypeLabelKeys[kind])), [hits, t]);
   const shown = useMemo(() => sectionItems(sections), [sections]);
   const activeRow = Math.min(rawActive, Math.max(shown.length - 1, 0));
 
@@ -86,37 +90,29 @@ export function GlobalSearchPalette() {
 
   const pick = (hit: SearchHit) => {
     const entity = hit.entity;
-    return matchDiscriminated(entity, "entityKind", {
-      resource: (entry) => {
-        setPreviewedResource(entry.resource.id);
+    const reference = matchDiscriminated(entity, "entityKind", {
+      resource: (entry) => ({ kind: "resource" as const, id: entry.resource.id }),
+      councilBusiness: (entry) => ({ kind: "councilBusiness" as const, id: entry.business.id }),
+      meeting: (entry) => ({ kind: "meeting" as const, id: entry.meeting.id }),
+      member: (entry) => ({ kind: "member" as const, id: entry.member.id }),
+      decision: (entry) => ({ kind: "decision" as const, id: entry.decision.id }),
+    });
+    const target = referenceOpenTarget(reference.kind, reference.id, {
+      resources,
+      businesses,
+      decisions,
+      meetings,
+      members,
+    });
+    if (!target) return;
+    matchDiscriminated(target, "kind", {
+      resourcePreview: (entry) => {
+        setPreviewedResource(entry.resourceId);
         setOpen(false);
       },
-      councilBusiness: (entry) => {
+      route: (entry) => {
         close();
-        const params = new URLSearchParams();
-        if (entry.business.folderPath) params.set("path", entry.business.folderPath);
-        params.set("councilBusiness", entry.business.id);
-        navigate(`/workspace?${params}`);
-      },
-      meeting: (entry) => {
-        close();
-        navigate(`/meetings/${entry.meeting.slug}`);
-      },
-      member: (entry) => {
-        close();
-        navigate(`/council-members/${entry.member.id}`);
-      },
-      decision: (entry) => {
-        close();
-        const carrier = businesses.find(
-          (candidate) => candidate.kind === "matter" && candidate.councilDecisionId === entry.decision.id,
-        );
-        if (carrier) {
-          const params = new URLSearchParams();
-          if (carrier.folderPath) params.set("path", carrier.folderPath);
-          params.set("councilBusiness", carrier.id);
-          navigate(`/workspace?${params}`);
-        }
+        navigate(entry.href);
       },
     });
   };
@@ -135,7 +131,7 @@ export function GlobalSearchPalette() {
     }
   };
 
-  const onPreview = useCallback((next: SearchBoxState | null) => setPreview(next), []);
+  const onPreview = useCallback((next: SearchBoxState<SearchEntityType> | null) => setPreview(next), []);
 
   return (
     <>
@@ -151,9 +147,11 @@ export function GlobalSearchPalette() {
                 setState(next);
                 setActive(0);
               }}
-              typeOptions={typeOptions}
-              folderOptions={folderOptions}
-              tagOptions={tagOptions}
+              typeOptions={facetOptions.types}
+              folderOptions={facetOptions.folders}
+              tagOptions={facetOptions.tags}
+              stateOptions={facetOptions.states}
+              mediaOptions={facetOptions.media}
               placeholder={t("search.globalPlaceholder")}
               onPreview={onPreview}
               onResultsKey={onResultsKey}

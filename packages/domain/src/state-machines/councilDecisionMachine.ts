@@ -1,4 +1,5 @@
 import { getNextSnapshot, setup } from "xstate";
+import { matchLiteral } from "../match.js";
 import type { CouncilDecisionStatus } from "../model.js";
 
 export type CouncilDecisionEvent =
@@ -62,4 +63,16 @@ export function transitionCouncilDecision(
   const current = councilDecisionMachine.resolveState({ value: status, context: {} });
   if (!current.can(event)) return null;
   return getNextSnapshot(councilDecisionMachine, current, event).value as CouncilDecisionStatus;
+}
+
+/** Content remains editable while the decision is being prepared or merely scheduled. */
+export function councilDecisionContentCanChange(status: CouncilDecisionStatus): boolean {
+  return matchLiteral(status, {
+    draft: () => true,
+    ready: () => true,
+    scheduled: () => true,
+    adopted: () => false,
+    rejected: () => false,
+    enforceable: () => false,
+  });
 }

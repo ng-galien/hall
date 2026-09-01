@@ -5,7 +5,7 @@ import { ResourceGlyph } from "../../features/documents/ResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import type { WorkspaceSelection } from "./WorkspacePage";
+import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore, type WorkspacePin } from "./workspacePrefs";
 
 /** Row of pinned matters and documents, below the search bar. */

@@ -138,7 +138,6 @@ export function SpreadsheetResourceEditor({
         mountElement={inlineMount}
         document={draft}
         readOnly={mode !== "edit" || !canUpdate || snapshotted}
-        instanceKey={`${resource.id}:${locale}`}
         locale={locale}
         onEditingChange={(next) => {
           if (mountedRef.current) setEditing(next);

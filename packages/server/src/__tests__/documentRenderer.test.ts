@@ -14,9 +14,7 @@ describe("document renderer PDF annexes", () => {
       footerHtml: "",
     });
 
-    const packet = await renderer.appendPdfs(body, [
-      { id: "annex-1", content: Buffer.from(await attachment.save()) },
-    ]);
+    const packet = await renderer.appendPdfs(body, [{ id: "annex-1", content: Buffer.from(await attachment.save()) }]);
     const pdf = await PDFDocument.load(packet);
 
     expect(pdf.getPageCount()).toBe(3);

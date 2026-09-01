@@ -1,6 +1,7 @@
+import { matchDiscriminated } from "@hall/domain";
 import { type KeyboardEvent, type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
-import { normalizeForSearch } from "../../lib/search";
+import { normalizeForSearch, type SearchableMedia, type SearchableState } from "../../lib/search";
 import { CloseIcon, FolderIcon, SearchIcon, TagIcon } from "../icons";
 import { type FacetSuggestion, facetHashPattern, facetSuggestionsFor } from "./facetSuggestions";
 
@@ -9,21 +10,37 @@ import { type FacetSuggestion, facetHashPattern, facetSuggestionsFor } from "./f
    the arrow keys cycle the candidates, Tab or Enter turns the current one into a chip.
    The candidate previews live in the results. Every search surface uses this component. */
 
-export interface SearchBoxState {
+export interface SearchBoxState<TKind extends string = string> {
   query: string;
-  types: string[];
+  types: TKind[];
   folders: string[];
   tags: string[];
+  states: SearchableState[];
+  media: SearchableMedia[];
 }
 
-export const emptySearchBoxState: SearchBoxState = { query: "", types: [], folders: [], tags: [] };
+export const emptySearchBoxState: SearchBoxState<never> = {
+  query: "",
+  types: [],
+  folders: [],
+  tags: [],
+  states: [],
+  media: [],
+};
 
 export function isSearchBoxActive(state: SearchBoxState): boolean {
-  return state.query.trim().length > 0 || state.types.length > 0 || state.folders.length > 0 || state.tags.length > 0;
+  return (
+    state.query.trim().length > 0 ||
+    state.types.length > 0 ||
+    state.folders.length > 0 ||
+    state.tags.length > 0 ||
+    state.states.length > 0 ||
+    state.media.length > 0
+  );
 }
 
-export interface SearchTypeOption {
-  value: string;
+export interface SearchTypeOption<TKind extends string = string> {
+  value: TKind;
   label: string;
   count?: number;
 }
@@ -33,24 +50,33 @@ export interface SearchFolderOption {
   count?: number;
 }
 
-function toggle(values: string[], value: string): string[] {
+function toggle<TValue extends string>(values: TValue[], value: TValue): TValue[] {
   return values.includes(value) ? values.filter((candidate) => candidate !== value) : [...values, value];
 }
 
 /** The state with one facet applied and its `#fragment` removed from the query. */
-function applied(state: SearchBoxState, suggestion: FacetSuggestion): SearchBoxState {
+function applied<TKind extends string>(
+  state: SearchBoxState<TKind>,
+  suggestion: FacetSuggestion<TKind>,
+): SearchBoxState<TKind> {
   const query = state.query.replace(facetHashPattern, "").trimEnd();
-  if (suggestion.facet === "type") return { ...state, types: toggle(state.types, suggestion.value), query };
-  if (suggestion.facet === "tag") return { ...state, tags: toggle(state.tags, suggestion.value), query };
-  return { ...state, folders: toggle(state.folders, suggestion.value), query };
+  return matchDiscriminated(suggestion, "facet", {
+    type: (facet) => ({ ...state, types: toggle(state.types, facet.value), query }),
+    tag: (facet) => ({ ...state, tags: toggle(state.tags, facet.value), query }),
+    folder: (facet) => ({ ...state, folders: toggle(state.folders, facet.value), query }),
+    state: (facet) => ({ ...state, states: toggle(state.states, facet.value), query }),
+    media: (facet) => ({ ...state, media: toggle(state.media, facet.value), query }),
+  });
 }
 
-export function SearchBox({
+export function SearchBox<TKind extends string>({
   state,
   onState,
   typeOptions,
   folderOptions,
   tagOptions = [],
+  stateOptions = [],
+  mediaOptions = [],
   placeholder,
   onPreview,
   onResultsKey,
@@ -58,14 +84,16 @@ export function SearchBox({
   autoFocus = false,
   testId,
 }: {
-  state: SearchBoxState;
-  onState(next: SearchBoxState): void;
-  typeOptions: SearchTypeOption[];
+  state: SearchBoxState<TKind>;
+  onState(next: SearchBoxState<TKind>): void;
+  typeOptions: SearchTypeOption<TKind>[];
   folderOptions: SearchFolderOption[];
   tagOptions?: SearchFolderOption[];
+  stateOptions?: SearchTypeOption<SearchableState>[];
+  mediaOptions?: SearchTypeOption<SearchableMedia>[];
   placeholder: string;
   /** Receives the state the current candidate would produce, and null when none is completing. */
-  onPreview?(preview: SearchBoxState | null): void;
+  onPreview?(preview: SearchBoxState<TKind> | null): void;
   /** Receives arrow and enter keys while no candidate is completing, to walk the results. */
   onResultsKey?(event: KeyboardEvent): void;
   trailing?: ReactNode;
@@ -84,7 +112,7 @@ export function SearchBox({
   const hashMatch = facetHashPattern.exec(state.query);
   const fragment = hashMatch?.[1] ?? "";
 
-  const candidates = useMemo<FacetSuggestion[]>(() => {
+  const candidates = useMemo<FacetSuggestion<TKind>[]>(() => {
     if (!hashMatch) return [];
     const needle = normalizeForSearch(fragment);
     return facetSuggestionsFor(fragment, {
@@ -95,8 +123,23 @@ export function SearchBox({
       tags: tagOptions
         .filter((option) => !state.tags.includes(option.value))
         .map((option) => ({ ...option, label: option.value })),
+      states: stateOptions.filter((option) => !state.states.includes(option.value)),
+      media: mediaOptions.filter((option) => !state.media.includes(option.value)),
     }).filter((suggestion) => normalizeForSearch(suggestion.label).startsWith(needle));
-  }, [hashMatch, fragment, state.types, state.folders, state.tags, typeOptions, folderOptions, tagOptions]);
+  }, [
+    hashMatch,
+    fragment,
+    state.types,
+    state.folders,
+    state.tags,
+    state.states,
+    state.media,
+    typeOptions,
+    folderOptions,
+    tagOptions,
+    stateOptions,
+    mediaOptions,
+  ]);
 
   const active = Math.min(rawActive, Math.max(candidates.length - 1, 0));
   const candidate = ghostEnabled ? candidates[active] : undefined;
@@ -119,7 +162,13 @@ export function SearchBox({
     onPreview(candidate ? applied(state, candidate) : null);
   }, [candidate, state, onPreview]);
 
-  const chips: { kind: "type" | "folder" | "tag"; value: string; label: string }[] = [
+  const chips: Array<
+    | { kind: "type"; value: TKind; label: string }
+    | { kind: "folder"; value: string; label: string }
+    | { kind: "tag"; value: string; label: string }
+    | { kind: "state"; value: SearchableState; label: string }
+    | { kind: "media"; value: SearchableMedia; label: string }
+  > = [
     ...state.types.map((value) => ({
       kind: "type" as const,
       value,
@@ -127,16 +176,30 @@ export function SearchBox({
     })),
     ...state.folders.map((value) => ({ kind: "folder" as const, value, label: value })),
     ...state.tags.map((value) => ({ kind: "tag" as const, value, label: value })),
+    ...state.states.map((value) => ({
+      kind: "state" as const,
+      value,
+      label: stateOptions.find((option) => option.value === value)?.label ?? value,
+    })),
+    ...state.media.map((value) => ({
+      kind: "media" as const,
+      value,
+      label: mediaOptions.find((option) => option.value === value)?.label ?? value,
+    })),
   ];
 
-  const removeChip = (chip: { kind: "type" | "folder" | "tag"; value: string }) => {
-    if (chip.kind === "type") onState({ ...state, types: toggle(state.types, chip.value) });
-    else if (chip.kind === "folder") onState({ ...state, folders: toggle(state.folders, chip.value) });
-    else onState({ ...state, tags: toggle(state.tags, chip.value) });
+  const removeChip = (chip: (typeof chips)[number]) => {
+    matchDiscriminated(chip, "kind", {
+      type: (entry) => onState({ ...state, types: toggle(state.types, entry.value) }),
+      folder: (entry) => onState({ ...state, folders: toggle(state.folders, entry.value) }),
+      tag: (entry) => onState({ ...state, tags: toggle(state.tags, entry.value) }),
+      state: (entry) => onState({ ...state, states: toggle(state.states, entry.value) }),
+      media: (entry) => onState({ ...state, media: toggle(state.media, entry.value) }),
+    });
     input.current?.focus();
   };
 
-  const apply = (suggestion: FacetSuggestion) => {
+  const apply = (suggestion: FacetSuggestion<TKind>) => {
     onState(applied(state, suggestion));
     setRawActive(0);
     setGhostEnabled(true);
@@ -236,11 +299,13 @@ export function SearchBox({
             {candidate.facet === "folder" ? <FolderIcon aria-hidden="true" /> : null}
             {candidate.facet === "tag" ? <TagIcon aria-hidden="true" /> : null}
             {t(
-              candidate.facet === "folder"
-                ? "workspace.facetFolder"
-                : candidate.facet === "tag"
-                  ? "search.facetTag"
-                  : "workspace.facetType",
+              matchDiscriminated(candidate, "facet", {
+                folder: () => "workspace.facetFolder" as const,
+                tag: () => "search.facetTag" as const,
+                type: () => "workspace.facetType" as const,
+                state: () => "workspace.facetState" as const,
+                media: () => "search.facetMedia" as const,
+              }),
             )}
             {candidates.length > 1 ? ` ${active + 1}/${candidates.length}` : ""}
             <kbd>Tab</kbd>

@@ -16,8 +16,8 @@
   pointer-events: none;
   transform: translateY(calc(-1 * var(--hall-space-1)));
   transition:
-    opacity var(--hall-transition-fast),
-    transform var(--hall-transition-fast);
+    opacity var(--hall-motion-fast),
+    transform var(--hall-motion-fast);
   user-select: none;
 }
 
@@ -59,7 +59,7 @@
   min-width: 0;
   flex: 1;
   overflow: hidden;
-  font-size: var(--hall-font-size-body-small);
+  font-size: var(--hall-font-size-body);
   line-height: var(--hall-line-height-body-small);
   text-overflow: ellipsis;
   white-space: nowrap;

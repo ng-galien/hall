@@ -4,6 +4,11 @@ export type Identifier = string;
 export type IsoDate = string;
 export type IsoDateTime = string;
 
+/** Business entities that can be addressed by an internal reference. */
+export const referenceEntityKinds = ["member", "resource", "councilBusiness", "decision", "meeting"] as const;
+
+export type ReferenceEntityKind = (typeof referenceEntityKinds)[number];
+
 export type CouncilRole = "mayor" | "deputyMayor" | "councillor";
 export type MeetingStatus = "draft" | "scheduled" | "inProgress" | "closed" | "cancelled";
 export type MinutesStatus = "notStarted" | "draft" | "ready" | "approved" | "signed" | "published";
@@ -14,6 +19,48 @@ export type BallotMethod = "public" | "secret";
 export type BallotResult = "adopted" | "rejected";
 export type VoteChoice = "for" | "against" | "abstain" | "notVoting";
 export type TemplateKind = "pdf" | "message";
+
+export const councilRoles = defineExhaustiveLiterals<CouncilRole>()(["mayor", "deputyMayor", "councillor"] as const);
+export const meetingStatuses = defineExhaustiveLiterals<MeetingStatus>()([
+  "draft",
+  "scheduled",
+  "inProgress",
+  "closed",
+  "cancelled",
+] as const);
+export const minutesStatuses = defineExhaustiveLiterals<MinutesStatus>()([
+  "notStarted",
+  "draft",
+  "ready",
+  "approved",
+  "signed",
+  "published",
+] as const);
+export const attendanceStatuses = defineExhaustiveLiterals<AttendanceStatus>()([
+  "present",
+  "represented",
+  "excused",
+  "absent",
+] as const);
+export const agendaItemStatuses = defineExhaustiveLiterals<AgendaItemStatus>()([
+  "scheduled",
+  "inProgress",
+  "examined",
+  "postponed",
+  "withdrawn",
+] as const);
+export const councilDecisionStatuses = defineExhaustiveLiterals<CouncilDecisionStatus>()([
+  "draft",
+  "ready",
+  "scheduled",
+  "adopted",
+  "rejected",
+  "enforceable",
+] as const);
+export const ballotMethods = defineExhaustiveLiterals<BallotMethod>()(["public", "secret"] as const);
+export const ballotResults = defineExhaustiveLiterals<BallotResult>()(["adopted", "rejected"] as const);
+export const voteChoices = defineExhaustiveLiterals<VoteChoice>()(["for", "against", "abstain", "notVoting"] as const);
+export const templateKinds = defineExhaustiveLiterals<TemplateKind>()(["pdf", "message"] as const);
 
 export interface HallSettings {
   name: string;
@@ -71,6 +118,7 @@ export interface CouncilMember {
 }
 
 export type CommitteeRole = "chair" | "viceChair" | "member";
+export const committeeRoles = defineExhaustiveLiterals<CommitteeRole>()(["chair", "viceChair", "member"] as const);
 
 export interface CouncilCommittee {
   id: Identifier;
@@ -303,6 +351,12 @@ export type LegalReferenceKind = "article";
 export type LegalReferenceFund = "CODE_ETAT" | "CODE_DATE";
 export type LegalReferenceVerificationStatus = "current" | "verificationUnavailable";
 
+export const legalReferenceFunds = defineExhaustiveLiterals<LegalReferenceFund>()(["CODE_ETAT", "CODE_DATE"] as const);
+export const legalReferenceVerificationStatuses = defineExhaustiveLiterals<LegalReferenceVerificationStatus>()([
+  "current",
+  "verificationUnavailable",
+] as const);
+
 export interface LegalReferenceSearchResult {
   provider: "legifrance";
   referenceKind: "article";
@@ -365,11 +419,28 @@ export type DocumentFormat = (typeof documentFormats)[number];
 
 export type DocumentCategory = "report" | "draftCouncilDecision" | "meetingNotice" | "minutes" | "proxy" | "supporting";
 
+export const documentCategories = defineExhaustiveLiterals<DocumentCategory>()([
+  "report",
+  "draftCouncilDecision",
+  "meetingNotice",
+  "minutes",
+  "proxy",
+  "supporting",
+] as const);
+
 export type EditorAssetOwner =
   | { kind: "textResourceContent"; id: Identifier }
   | { kind: "councilBusinessReport"; id: Identifier }
   | { kind: "councilDecisionDraft"; id: Identifier }
   | { kind: "agendaItemDiscussionSummary"; id: Identifier };
+
+export type EditorAssetOwnerKind = EditorAssetOwner["kind"];
+export const editorAssetOwnerKinds = defineExhaustiveLiterals<EditorAssetOwnerKind>()([
+  "textResourceContent",
+  "councilBusinessReport",
+  "councilDecisionDraft",
+  "agendaItemDiscussionSummary",
+] as const);
 
 interface DocumentResourceBase extends ResourceBase {
   kind: "document";
@@ -394,6 +465,9 @@ export interface EditorAssetResource extends DocumentResourceBase {
 }
 
 export type DocumentResource = DocumentaryResource | EditorAssetResource;
+
+export type DocumentUsage = DocumentResource["usage"];
+export const documentUsages = defineExhaustiveLiterals<DocumentUsage>()(["document", "editorAsset"] as const);
 
 export type Resource =
   | TextResource
@@ -456,6 +530,13 @@ export interface OpenQuestion extends CouncilBusinessBase {
   kind: "openQuestion";
 }
 
+export type CouncilBusinessKind = CouncilBusiness["kind"];
+export const councilBusinessKinds = defineExhaustiveLiterals<CouncilBusinessKind>()([
+  "matter",
+  "minutesApproval",
+  "openQuestion",
+] as const);
+
 export interface CouncilDecision {
   id: Identifier;
   number: string | null;
@@ -485,10 +566,16 @@ export interface Vote extends VoteInput {
   ballotId: Identifier;
 }
 
+export type BallotTarget = { kind: "councilDecision"; id: Identifier } | { kind: "agendaItem"; id: Identifier };
+
 interface BallotBase {
   id: Identifier;
   meetingId: Identifier;
+  /** Canonical target validated when the ballot crosses the persistence boundary. */
+  target: BallotTarget;
+  /** Persistence/API compatibility projection; use `target` for business dispatch. */
   councilDecisionId: Identifier | null;
+  /** Persistence/API compatibility projection; use `target` for business dispatch. */
   agendaItemId: Identifier | null;
   result: BallotResult;
   votesFor: number;

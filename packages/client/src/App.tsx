@@ -1,5 +1,4 @@
-import { matchLiteral } from "@hall/domain";
-import type { ReferenceKind } from "@hall/templating";
+import { matchDiscriminated, type ReferenceEntityKind } from "@hall/domain";
 import { lazy, type ReactNode, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +11,7 @@ import { Layout } from "./components/Layout";
 import { formatMeetingLabel } from "./features/council-meetings/meetingPresentation";
 import { ResourceGlyph, resourceTone, toneIcons, toneLabelKeys } from "./features/documents/ResourceGlyph";
 import { ResourcePreview } from "./features/documents/ResourcePreview";
+import { resolveReferencePresentation } from "./features/references/referencePresentation";
 import {
   loadResourceEmbedTableOptions,
   ResourceEmbedPresentation,
@@ -116,70 +116,19 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
       tooltip: t(toneLabelKeys[tone]),
     };
   };
-  const workspaceHref = (folderPath: string, businessId: string) => {
-    const params = new URLSearchParams();
-    if (folderPath) params.set("path", folderPath);
-    params.set("councilBusiness", businessId);
-    return `/workspace?${params.toString()}`;
-  };
-  const referenceTarget = (kind: ReferenceKind, id: string): ReferenceTarget | null => {
-    return matchLiteral(kind, {
-      member: () => {
-        const member = members.find((candidate) => candidate.id === id);
-        return member
-          ? {
-              label: `${member.firstName} ${member.lastName}`,
-              tooltip: t("editor.kind.member"),
-              open: { kind: "route" as const, href: `/council-members/${member.id}` },
-            }
-          : null;
-      },
-      resource: () => {
-        const resource = resources.find((candidate) => candidate.id === id);
-        return resource
-          ? {
-              label: resource.title,
-              tooltip: t(toneLabelKeys[resourceTone(resource)]),
-              open: { kind: "resourcePreview" as const },
-            }
-          : null;
-      },
-      councilBusiness: () => {
-        const business = businesses.find((candidate) => candidate.id === id);
-        return business
-          ? {
-              label: business.title,
-              tooltip: t("editor.kind.councilBusiness"),
-              open: { kind: "route" as const, href: workspaceHref(business.folderPath, business.id) },
-            }
-          : null;
-      },
-      meeting: () => {
-        const meeting = meetings.find((candidate) => candidate.id === id);
-        return meeting
-          ? {
-              label: formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
-              tooltip: t("editor.kind.meeting"),
-              open: { kind: "route" as const, href: `/meetings/${meeting.slug}` },
-            }
-          : null;
-      },
-      decision: () => {
-        const decision = decisions.find((candidate) => candidate.id === id);
-        if (!decision) return null;
-        const carrier = businesses.find(
-          (candidate) => candidate.kind === "matter" && candidate.councilDecisionId === decision.id,
-        );
-        return {
-          label: decision.title,
-          tooltip: t("editor.kind.decision"),
-          open: {
-            kind: "route" as const,
-            href: carrier ? workspaceHref(carrier.folderPath, carrier.id) : "/council-decisions",
-          },
-        };
-      },
+  const referenceTarget = (kind: ReferenceEntityKind, id: string): ReferenceTarget | null => {
+    const resolved = resolveReferencePresentation(
+      kind,
+      id,
+      { resources, businesses, decisions, meetings, members },
+      (meeting) => formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
+    );
+    if (!resolved) return null;
+    const open = matchDiscriminated(resolved.open, "kind", {
+      resourcePreview: () => ({ kind: "resourcePreview" as const }),
+      route: (entry) => entry,
     });
+    return { label: resolved.label, tooltip: t(resolved.tooltipKey), open };
   };
   return (
     <ReferencePresentationProvider

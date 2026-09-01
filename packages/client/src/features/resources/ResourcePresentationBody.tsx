@@ -14,6 +14,7 @@ import type { UploadedResourceImage } from "../documents/useResourceImageUpload"
 import { GeographicResourceMap } from "../geographic/GeographicResourceMap";
 import { LegalReferenceResolver } from "../legal/LegalReferenceResolver";
 import { LegalReferenceResourceView } from "../legal/LegalReferenceResourceView";
+import type { ResourceCapabilities } from "./resourceCapabilities";
 
 const SpreadsheetResourceEditor = lazy(() =>
   import("../spreadsheet/SpreadsheetResourceEditor").then((module) => ({
@@ -23,12 +24,7 @@ const SpreadsheetResourceEditor = lazy(() =>
 
 export type ResourcePresentationMode = "read" | "edit";
 
-export interface ResourcePresentationCapabilities {
-  updateResource: boolean;
-  updateGeography: boolean;
-  updateSpreadsheet: boolean;
-  refreshLegalReference: boolean;
-}
+export type ResourcePresentationCapabilities = ResourceCapabilities;
 
 /** The single type-specific resource body shared by the Workspace and the resource modal. */
 export function ResourcePresentationBody({
@@ -147,7 +143,10 @@ export function ResourcePresentationBody({
       );
     },
     document: (entry) => (
-      <DocumentEmbed resource={entry} objectTestId={layout === "extended" ? "resource-preview-object" : undefined} />
+      <DocumentEmbed
+        resource={entry}
+        objectTestId={layout === "extended" ? "resource-preview-object" : "resource-workbench-object"}
+      />
     ),
     geographic: (entry) =>
       details?.geography ? (
@@ -181,7 +180,7 @@ export function ResourcePresentationBody({
       ),
     legalReference: (entry) => {
       if (entry.resolutionStatus === "draft") {
-        return editing ? (
+        return editing && capabilities.resolveLegalReference ? (
           <LegalReferenceResolver resource={entry} onResolved={onResolvedLegalReference} />
         ) : (
           <p>{t("legalReference.loading")}</p>

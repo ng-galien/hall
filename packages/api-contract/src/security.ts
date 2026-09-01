@@ -2,6 +2,11 @@ import { z } from "zod";
 
 export const apiRoles = ["administrator", "clerk", "contributor", "meetingConductor", "reader"] as const;
 export type ApiRole = (typeof apiRoles)[number];
+export const apiRoleSchema = z.enum(apiRoles);
+
+export const apiUserStatuses = ["active", "disabled"] as const;
+export type ApiUserStatus = (typeof apiUserStatuses)[number];
+export const apiUserStatusSchema = z.enum(apiUserStatuses);
 
 export const apiPermissions = [
   "users.manage",
@@ -26,7 +31,7 @@ export interface ApiPrincipal {
 
 export interface ApiUser extends ApiPrincipal {
   email: string;
-  status: "active" | "disabled";
+  status: ApiUserStatus;
   protectedFromDisable?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -46,10 +51,10 @@ export const loginSchema = z.object({
 });
 
 export const createUserSchema = bootstrapUserSchema.extend({
-  roles: z.array(z.enum(apiRoles)).min(1),
+  roles: z.array(apiRoleSchema).min(1),
   councilMemberId: z.string().uuid().nullable().default(null),
 });
 
 export const assignUserRolesSchema = z.object({
-  roles: z.array(z.enum(apiRoles)).min(1),
+  roles: z.array(apiRoleSchema).min(1),
 });

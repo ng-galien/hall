@@ -1,4 +1,8 @@
-import { createCouncilDecisionSchema, updateCouncilDecisionSchema } from "@hall/domain";
+import {
+  councilDecisionContentCanChange,
+  createCouncilDecisionSchema,
+  updateCouncilDecisionSchema,
+} from "@hall/domain";
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
 import { requireAnyPermission, requirePermission } from "../../security/authorization.js";
@@ -49,7 +53,7 @@ export function createCouncilDecisionsRouter({
       await unitOfWork.execute(async () => {
         const decision = await councilDecisionRepository.find(decisionId);
         if (!decision) throw new DomainError("council_decision_not_found", 404);
-        if (!["draft", "ready", "scheduled"].includes(decision.status)) {
+        if (!councilDecisionContentCanChange(decision.status)) {
           throw new DomainError("ballot_already_recorded", 409);
         }
         if (

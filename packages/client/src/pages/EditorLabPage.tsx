@@ -35,29 +35,40 @@ export function EditorLabPage() {
       );
       const map = resources.find((resource) => resource.kind === "geographic");
       const spreadsheet = resources.find((resource) => resource.kind === "spreadsheet");
-      if (!demoImage || !pdf || !remote || !legal || !map || !spreadsheet) return;
-      const sheet = (await loadResourceEmbedTableOptions(spreadsheet.id).catch(() => []))[0];
-      if (!active || !sheet) return;
+      const sheet = spreadsheet ? (await loadResourceEmbedTableOptions(spreadsheet.id).catch(() => []))[0] : undefined;
+      if (!active) return;
+      const links = [pdf, remote].filter((resource) => resource !== undefined);
       const blocks = [
-        `Consulter :resource[${pdf.title}]{#${pdf.id}} et :resource[${remote.title}]{#${remote.id}}.`,
-        serializeResourceEmbedDirective({ id: legal.id, label: legal.title, presentation: "legal-citation" }),
-        serializeResourceEmbedDirective({ id: map.id, label: map.title, presentation: "map" }),
-        serializeResourceEmbedDirective({
-          id: spreadsheet.id,
-          label: spreadsheet.title,
-          presentation: "table",
-          sheet: sheet.id,
-          range: sheet.defaultRange,
-        }),
-      ];
+        links.length > 0
+          ? `Consulter ${links.map((resource) => `:resource[${resource.title}]{#${resource.id}}`).join(" et ")}.`
+          : null,
+        legal
+          ? serializeResourceEmbedDirective({ id: legal.id, label: legal.title, presentation: "legal-citation" })
+          : null,
+        map ? serializeResourceEmbedDirective({ id: map.id, label: map.title, presentation: "map" }) : null,
+        spreadsheet && sheet
+          ? serializeResourceEmbedDirective({
+              id: spreadsheet.id,
+              label: spreadsheet.title,
+              presentation: "table",
+              sheet: sheet.id,
+              range: sheet.defaultRange,
+            })
+          : null,
+      ].filter((block) => block !== null);
+      if (!demoImage && blocks.length === 0) return;
       setMarkdown((current) => {
         if (current.includes("::resource-embed[")) return current;
         return [
-          serializeImageDirective({ id: demoImage.id, alt: demoImage.label, align: "center", width: 75 }),
+          demoImage
+            ? serializeImageDirective({ id: demoImage.id, alt: demoImage.label, align: "center", width: 75 })
+            : null,
           `## ${t("editor.lab.resourceShowcase")}`,
           ...blocks,
           current,
-        ].join("\n\n");
+        ]
+          .filter((block) => block !== null)
+          .join("\n\n");
       });
     };
     void prepare();

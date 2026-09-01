@@ -1,3 +1,4 @@
+import { referenceEntityKinds } from "@hall/domain";
 import { PDFDocument } from "pdf-lib";
 import type { Response } from "superagent";
 import { describe, expect, it } from "vitest";
@@ -23,7 +24,7 @@ async function createMemberAndMeeting(agent: Awaited<ReturnType<typeof createTes
       })
       .expect(201),
   );
-  const meeting = domainBody<{ id: string }>(
+  const meeting = domainBody<{ id: string; number: string; startsAt: string }>(
     await agent
       .post("/api/council-meetings")
       .send({
@@ -143,6 +144,20 @@ describe("content templates", () => {
     expect(preview.html).toContain("Décision actuelle");
     expect(preview.html).not.toMatch(/ancien(?:ne)?/);
     expect(preview.diagnostics).toEqual([]);
+
+    const expectedReferences = {
+      member: { id: member.id, label: "Martine Delcourt" },
+      resource: { id: resource.id, label: "Ressource actuelle" },
+      councilBusiness: { id: business.id, label: "Sujet actuel" },
+      meeting: { id: meeting.id, label: `${meeting.number} - ${meeting.startsAt.slice(0, 10)}` },
+      decision: { id: decision.id, label: "Décision actuelle" },
+    } satisfies Record<(typeof referenceEntityKinds)[number], { id: string; label: string }>;
+    for (const kind of referenceEntityKinds) {
+      const candidates = domainBody<Array<{ type: string; id: string; label: string }>>(
+        await agent.get(`/api/templates/references?type=${kind}`).expect(200),
+      );
+      expect(candidates).toContainEqual({ type: kind, ...expectedReferences[kind] });
+    }
   });
 
   it("generates a Chromium PDF packet and an Outlook-compatible EML", async () => {
