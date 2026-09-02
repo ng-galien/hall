@@ -105,7 +105,7 @@ export function MeetingDetailsCard({
                 <SelectItem value={noOfficer}>{t("meetings.chairUndesignated")}</SelectItem>
                 {members.map((member) => (
                   <SelectItem key={member.id} value={member.id}>
-                    {member.firstName} {member.lastName}
+                    {member.contact.firstName} {member.contact.lastName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -126,7 +126,7 @@ export function MeetingDetailsCard({
                 <SelectItem value={noOfficer}>{t("meetings.secretaryUndesignated")}</SelectItem>
                 {members.map((member) => (
                   <SelectItem key={member.id} value={member.id}>
-                    {member.firstName} {member.lastName}
+                    {member.contact.firstName} {member.contact.lastName}
                   </SelectItem>
                 ))}
               </SelectContent>

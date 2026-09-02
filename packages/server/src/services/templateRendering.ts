@@ -655,6 +655,7 @@ export function createTemplateRenderingService({
           node = reference
             ? matchDiscriminated(reference, "type", {
                 member: (entry) => textNode(entry.label),
+                contact: (entry) => textNode(entry.label),
                 meeting: (entry) => textNode(entry.label),
                 councilBusiness: (entry) => textNode(entry.label),
                 decision: (entry) => textNode(entry.label),

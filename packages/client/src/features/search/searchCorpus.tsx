@@ -1,4 +1,5 @@
 import type {
+  Contact,
   CouncilBusiness,
   CouncilDecisionListEntry,
   CouncilMeeting,
@@ -11,6 +12,7 @@ import { type FacetOptionSets, facetOptionsFrom } from "../../components/search/
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Searchable, SearchableMedia, SearchableState } from "../../lib/search";
+import { useContactsStore } from "../../stores/contactsStore";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
@@ -36,7 +38,8 @@ export type SearchHit =
   | SearchHitFor<"resource", { entityKind: "resource"; resource: Resource }>
   | SearchHitFor<"meeting", { entityKind: "meeting"; meeting: CouncilMeeting }>
   | SearchHitFor<"decision", { entityKind: "decision"; decision: CouncilDecisionListEntry }>
-  | SearchHitFor<"member", { entityKind: "member"; member: CouncilMember }>;
+  | SearchHitFor<"member", { entityKind: "member"; member: CouncilMember }>
+  | SearchHitFor<"contact", { entityKind: "contact"; contact: Contact }>;
 
 export type WorkspaceSearchHit = Extract<SearchHit, { kind: "councilBusiness" | "resource" }>;
 
@@ -46,6 +49,7 @@ export const searchTypeLabelKeys: Record<SearchEntityType, TranslationKey> = {
   meeting: "navigation.meetings",
   decision: "navigation.decisions",
   member: "navigation.members",
+  contact: "navigation.contacts",
 };
 
 export function useSearchCorpus(scope: "workspace"): WorkspaceSearchHit[];
@@ -57,6 +61,7 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
   const { meetings } = useCouncilMeetingsStore();
   const { councilDecisions } = useCouncilDecisionsStore();
   const members = useCouncilMembersStore((state) => state.members);
+  const contacts = useContactsStore((state) => state.contacts);
 
   return useMemo<SearchHit[]>(() => {
     const documentary: WorkspaceSearchHit[] = [
@@ -101,12 +106,19 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
       ...members.map((member) => ({
         kind: "member" as const,
         id: member.id,
-        label: `${member.firstName} ${member.lastName}`,
-        extra: [member.email, member.role],
+        label: `${member.contact.firstName} ${member.contact.lastName}`,
+        extra: [member.contact.email, member.role],
         entity: { entityKind: "member" as const, member },
       })),
+      ...contacts.map((contact) => ({
+        kind: "contact" as const,
+        id: contact.id,
+        label: `${contact.firstName} ${contact.lastName}`,
+        extra: [contact.organizationName, contact.jobTitle, contact.email, contact.phone],
+        entity: { entityKind: "contact" as const, contact },
+      })),
     ];
-  }, [scope, businesses, resources, meetings, councilDecisions, members, t, formatDate]);
+  }, [scope, businesses, resources, meetings, councilDecisions, members, contacts, t, formatDate]);
 }
 
 /** Facet options and counts derived once from the same searchable corpus. */

@@ -157,6 +157,10 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
     "authentication-status": () => [],
     ballot: () => [],
     "committee-membership": () => [],
+    contact: () =>
+      canExecuteAction(request, "contact.create")
+        ? [action("contact.create", "POST", "/api/contacts", "Create a contact")]
+        : [],
     "council-business": () =>
       canExecuteAction(request, "council-business.create")
         ? [action("council-business.create", "POST", "/api/council-business", "Create council business")]
@@ -174,7 +178,7 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
         ? [action("meeting.create", "POST", "/api/council-meetings", "Create a meeting")]
         : [],
     "council-member": () =>
-      canExecuteAction(request, "member.create")
+      request.res?.locals.councilMemberCreationAvailable === true && canExecuteAction(request, "member.create")
         ? [action("member.create", "POST", "/api/council-members", "Create a council member")]
         : [],
     entity: () => [],
@@ -678,6 +682,14 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
     "authentication-status": () => [],
     ballot: () => ballotActions(context),
     "committee-membership": () => [],
+    contact: () => {
+      if (!id || !primary || primary.archivedAt) return [];
+      const actions = [action("contact.update", "PUT", `/api/contacts/${id}`, "Update the contact")];
+      if (!primary.activeCouncilMemberId) {
+        actions.push(action("contact.archive", "POST", `/api/contacts/${id}/archive`, "Archive the contact"));
+      }
+      return authorizedActions(request, actions);
+    },
     "council-business": () => councilBusinessActions(context),
     "council-committee": () => {
       if (!id || !reference || primary?.archivedAt) return [];

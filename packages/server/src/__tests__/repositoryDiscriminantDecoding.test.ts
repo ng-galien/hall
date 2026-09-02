@@ -94,35 +94,21 @@ describe("repository discriminant decoding", () => {
       sqlExecutor: executorReturning([
         {
           id: id(1),
-          first_name: "Ada",
-          last_name: "Lovelace",
-          email: null,
-          phone: null,
+          contact_id: id(2),
+          contact_first_name: "Ada",
+          contact_last_name: "Lovelace",
+          contact_organization_name: null,
+          contact_job_title: null,
+          contact_email: null,
+          contact_phone: null,
+          contact_archived_at: null,
           role: "observer",
-          active: 1,
           term_started_on: "2026-01-01",
           term_ended_on: null,
         },
       ]),
     });
     await expect(member.list()).rejects.toThrow();
-
-    const malformedMember = createCouncilMemberRepository({
-      sqlExecutor: executorReturning([
-        {
-          id: id(1),
-          first_name: "Ada",
-          last_name: "Lovelace",
-          email: null,
-          phone: null,
-          role: "councillor",
-          active: "false",
-          term_started_on: "2026-01-01",
-          term_ended_on: null,
-        },
-      ]),
-    });
-    await expect(malformedMember.list()).rejects.toThrow("council_member.active");
 
     const decision = createCouncilDecisionRepository({
       sqlExecutor: executorReturning([

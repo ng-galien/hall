@@ -36,7 +36,7 @@ export function renderMeetingMinutesDraft(aggregate: MeetingAggregate, members: 
   const memberName = (memberId: string | null) => {
     if (!memberId) return "Non renseigné";
     const member = memberById.get(memberId);
-    return member ? `${member.firstName} ${member.lastName}` : `Membre ${memberId}`;
+    return member ? `${member.contact.firstName} ${member.contact.lastName}` : `Membre ${memberId}`;
   };
   const lines = [
     "# Procès-verbal",

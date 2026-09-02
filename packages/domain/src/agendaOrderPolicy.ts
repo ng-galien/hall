@@ -3,7 +3,7 @@ import { matchLiteral } from "./match.js";
 import type { AgendaItemStatus, CouncilBusiness } from "./model.js";
 
 /**
- * Fixed groups of the municipal agenda. Ordering inside one group remains a
+ * Fixed groups of the council agenda. Ordering inside one group remains a
  * preparation choice; crossing group boundaries is a business invariant.
  */
 export function agendaBusinessRank(business: CouncilBusiness): number {

@@ -44,7 +44,7 @@ La modal s’ouvre en lecture. Si la ressource possède une action de modificati
 | `GeographicResource` | carte inline non modifiable, avec titre et légende | carte complète | oui, par `Modifier`, avec l’éditeur cartographique existant | image statique de la carte |
 | `SpreadsheetResource` | feuille et plage converties en tableau HTML non modifiable | tableur complet positionné sur la plage | oui, par `Modifier`, avec l’éditeur de tableur existant | tableau HTML paginable |
 
-Les membres, sujets, séances et délibérations ne sont pas des ressources documentaires. Ils restent des références inline ; leur activation ouvre un aperçu métier selon la même règle de modal et de retour au document.
+Les contacts, membres, sujets, séances et délibérations ne sont pas des ressources documentaires. Ils restent des références inline ; leur activation ouvre un aperçu métier selon la même règle de modal et de retour au document. Un contact désigne une personne de l’annuaire ; un membre désigne son éventuel mandat au conseil et reste la seule référence utilisable pour le quorum, les présences et les votes.
 
 Le « plein écran » désigne ici cette vue modale étendue : une modalité confortable de consultation ou d’édition, pas un second modèle de données ni une nouvelle navigation autonome.
 
@@ -79,7 +79,7 @@ Un comportement de référence ou d’inclusion doit être cohérent sur toutes 
 - le mode compact propose les marques courantes, une liste, la recherche de références et l’accès au mode étendu ;
 - le mode étendu ajoute annulation, rétablissement, styles de bloc, lien, listes et petit tableau éditorial ;
 - le petit tableau sait être créé, redimensionné, aligné, fusionné, défusionné et alimenté par collage depuis Excel ou Word ;
-- `@` et la recherche complète insèrent cinq références typées : membre, ressource, sujet, séance et délibération ;
+- `@` et la recherche complète insèrent six références typées : contact, membre, ressource, sujet, séance et délibération ;
 - les références conservent l’UUID interne et non une URL de navigation ;
 - une image archivée ou déposée devient un bloc image avec alignement, largeur et aperçu ;
 - le serveur sait rendre le Markdown, les petits tableaux et les images dans un PDF sans réseau ni JavaScript.
@@ -88,7 +88,7 @@ Un comportement de référence ou d’inclusion doit être cohérent sur toutes 
 
 | Élément | Dans l’éditeur | Hors édition | Impression actuelle |
 | --- | --- | --- | --- |
-| Membre, sujet, séance, délibération | badge inline | badge inline | libellé résolu en texte |
+| Contact, membre, sujet, séance, délibération | badge inline | badge inline | libellé résolu en texte |
 | `TextResource` | badge `resource` | aperçu Markdown au clic | titre seulement |
 | Image `DocumentResource` | bloc image | image et aperçu plein écran | image embarquée |
 | PDF `DocumentResource` | lien inline | viewer au clic | lien interne et pages annexées dans l’ordre d’apparition |
@@ -115,7 +115,7 @@ Une référence cite une entité sans interrompre la lecture. Elle tient dans un
 - sa sélection expose `Aperçu`, `Ouvrir`, `Inclure`, `Remplacer` et `Supprimer` lorsque ces actions sont pertinentes ;
 - elle ne donne pas implicitement accès à une ressource que le lecteur n’a pas le droit de consulter.
 
-Pour un membre, un sujet, une séance ou une délibération, la référence inline est la présentation normale. Une inclusion en bloc n’est proposée que lorsqu’une future présentation métier apporte une information réellement utile.
+Pour un contact, un membre, un sujet, une séance ou une délibération, la référence inline est la présentation normale. Une inclusion en bloc n’est proposée que lorsqu’une future présentation métier apporte une information réellement utile.
 
 ### Inclusion en bloc
 

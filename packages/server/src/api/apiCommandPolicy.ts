@@ -2,6 +2,7 @@ import type { ApiActionName, ApiPermission } from "@hall/api-contract";
 
 export const auditTargetTypes = [
   "session",
+  "contact",
   "council-member",
   "council-committee",
   "committee-membership",
@@ -34,6 +35,9 @@ export const apiCommandPolicies = {
   "session.bootstrap": { permissions: [], auditTargetType: "user" },
   "session.login": { permissions: [], auditTargetType: "session" },
   "session.logout": { permissions: [], auditTargetType: "session" },
+  "contact.create": { permissions: ["contacts.manage"], auditTargetType: "contact" },
+  "contact.update": { permissions: ["contacts.manage"], auditTargetType: "contact" },
+  "contact.archive": { permissions: ["contacts.manage"], auditTargetType: "contact" },
   "member.create": { permissions: ["members.manage"], auditTargetType: "council-member" },
   "member.update": { permissions: ["members.manage"], auditTargetType: "council-member" },
   "committee.create": { permissions: meetingsPrepare, auditTargetType: "council-committee" },

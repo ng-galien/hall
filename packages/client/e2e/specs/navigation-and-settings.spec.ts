@@ -6,6 +6,7 @@ test.describe("navigation and settings", () => {
       ["Séances", /\/app\/meetings$/, "Séances du conseil"],
       ["Délibérations", /\/app\/council-decisions$/, "Délibérations"],
       ["Espace de travail", /\/app\/workspace$/, null],
+      ["Contacts", /\/app\/contacts$/, "Contacts"],
       ["Membres du conseil", /\/app\/council-members$/, "Composition du conseil"],
     ] as const;
 

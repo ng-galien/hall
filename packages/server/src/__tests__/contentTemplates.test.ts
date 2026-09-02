@@ -12,13 +12,17 @@ function binaryParser(response: Response, callback: (error: Error | null, body: 
 }
 
 async function createMemberAndMeeting(agent: Awaited<ReturnType<typeof createTestServer>>["agent"]) {
+  const contact = domainBody<{ id: string }>(
+    await agent
+      .post("/api/contacts")
+      .send({ firstName: "Martine", lastName: "Delcourt", email: "martine@example.test" })
+      .expect(201),
+  );
   const member = domainBody<{ id: string }>(
     await agent
       .post("/api/council-members")
       .send({
-        firstName: "Martine",
-        lastName: "Delcourt",
-        email: "martine@example.test",
+        contactId: contact.id,
         role: "mayor",
         termStartedOn: "2026-03-22",
       })
@@ -35,7 +39,7 @@ async function createMemberAndMeeting(agent: Awaited<ReturnType<typeof createTes
       })
       .expect(201),
   );
-  return { member, meeting };
+  return { contact, member, meeting };
 }
 
 describe("content templates", () => {
@@ -115,7 +119,7 @@ describe("content templates", () => {
 
   it("resolves every closed reference kind from current server data", async () => {
     const { agent } = await createTestServer();
-    const { member, meeting } = await createMemberAndMeeting(agent);
+    const { contact, member, meeting } = await createMemberAndMeeting(agent);
     const decision = domainBody<{ id: string }>(
       await agent
         .post("/api/council-decisions")
@@ -143,6 +147,7 @@ describe("content templates", () => {
 
     const bodyMarkdown = [
       `:member[ancien membre]{#${member.id}}`,
+      `:contact[ancien contact]{#${contact.id}}`,
       `:resource[ancienne ressource]{#${resource.id}}`,
       `:councilBusiness[ancien sujet]{#${business.id}}`,
       `:meeting[ancienne séance]{#${meeting.id}}`,
@@ -162,6 +167,7 @@ describe("content templates", () => {
 
     const expectedReferences = {
       member: { id: member.id, label: "Martine Delcourt" },
+      contact: { id: contact.id, label: "Martine Delcourt" },
       resource: { id: resource.id, label: "Ressource actuelle" },
       councilBusiness: { id: business.id, label: "Sujet actuel" },
       meeting: { id: meeting.id, label: `${meeting.number} - ${meeting.startsAt.slice(0, 10)}` },

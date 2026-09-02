@@ -14,7 +14,7 @@ describe("named SQL queries", () => {
   });
 
   it("selects dialect overrides and rejects missing parameters", () => {
-    expect(compileQuery("member.listActive", "postgres").text).toContain("active = TRUE");
+    expect(compileQuery("member.listActive", "postgres").text).toContain("term_ended_on IS NULL");
     expect(() => compileQuery("meeting.find", "sqlite")).toThrow("Missing SQL parameter :reference");
   });
 });

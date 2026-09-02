@@ -7,6 +7,6 @@ application_adapter_target = "target ~ '**/dir:packages/dir:client/dir:src/dir:f
 [[refs.where]]
 id = "technical-ui@client-dependency-remains-domain-agnostic"
 severity = "error"
-rationale = "Low-level UI primitives implement generic interaction patterns. Hall domain types, application stores, HTTP services, pages, hooks, and business presentation adapters are supplied from the outside so these components do not become a second home for municipal policy. Editor integration is an application concern and is not classified as a generic primitive."
+rationale = "Low-level UI primitives implement generic interaction patterns. Hall domain types, application stores, HTTP services, pages, hooks, and business presentation adapters are supplied from the outside so these components do not become a second home for council policy. Editor integration is an application concern and is not classified as a generic primitive."
 expr = "$technical_ui_source AND $dependency_import_ref => NOT ($domain_target OR $application_adapter_target)"
 message = "Technical client UI must receive domain behavior through props or providers instead of importing application adapters."

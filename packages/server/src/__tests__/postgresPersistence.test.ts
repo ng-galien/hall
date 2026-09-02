@@ -72,6 +72,96 @@ postgres("PostgreSQL persistence", () => {
     return { kind: "postgres", url: databaseUrl! };
   });
 
+  it("retains past council terms while enforcing a single active term", async () => {
+    await resetPostgres();
+    const container = buildContainer({
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "postgres", url: databaseUrl! },
+      environment: "test",
+    });
+    await container.cradle.sqlExecutor.ready();
+    const pool = new Pool({ connectionString: databaseUrl! });
+    try {
+      await pool.query(
+        "INSERT INTO council_terms (id, hall_id, expected_member_count, active) VALUES ($1, 'hall', $2, FALSE)",
+        ["previous", 11],
+      );
+      await expect(pool.query("SELECT COUNT(*)::integer AS count FROM council_terms")).resolves.toMatchObject({
+        rows: [{ count: 2 }],
+      });
+      await expect(
+        pool.query(
+          "INSERT INTO council_terms (id, hall_id, expected_member_count, active) VALUES ($1, 'hall', $2, TRUE)",
+          ["competing", 15],
+        ),
+      ).rejects.toMatchObject({ code: "23505", constraint: "one_active_council_term_per_hall" });
+    } finally {
+      await pool.end();
+      await container.cradle.sqlExecutor.close();
+    }
+  });
+
+  it("serializes concurrent member creation against the active council term capacity", async () => {
+    await resetPostgres();
+    const container = buildContainer({
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "postgres", url: databaseUrl! },
+      environment: "test",
+    });
+    await container.cradle.sqlExecutor.ready();
+    try {
+      await container.cradle.councilTermRepository.updateActiveExpectedMemberCount(1);
+      const contacts = await Promise.all(
+        ["Inès", "Lina", "Marc"].map((firstName) =>
+          container.cradle.contactRepository.create({
+            firstName,
+            lastName: "Petit",
+            organizationName: null,
+            jobTitle: null,
+            email: null,
+            phone: null,
+            notes: "",
+          }),
+        ),
+      );
+      const oldMember = await container.cradle.councilMemberRepository.create({
+        contactId: contacts[0].id,
+        role: "councillor",
+        termStartedOn: "2020-03-15",
+      });
+      await container.cradle.councilMemberRepository.update(oldMember.id, {
+        role: "councillor",
+        termStartedOn: "2020-03-15",
+        termEndedOn: "2026-03-21",
+      });
+      const creations = await Promise.allSettled(
+        contacts.slice(1).map((contact, index) =>
+          container.cradle.councilMemberRepository.create({
+            contactId: contact.id,
+            role: index === 0 ? "mayor" : "councillor",
+            termStartedOn: "2026-03-22",
+          }),
+        ),
+      );
+
+      expect(creations.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+      expect(creations.filter((result) => result.status === "rejected")).toEqual([
+        expect.objectContaining({ reason: expect.objectContaining({ constraint: "council_term_capacity_reached" }) }),
+      ]);
+      await expect(
+        container.cradle.councilMemberRepository.update(oldMember.id, {
+          role: "councillor",
+          termStartedOn: "2020-03-15",
+          termEndedOn: null,
+        }),
+      ).rejects.toMatchObject({ constraint: "council_term_capacity_reached" });
+    } finally {
+      await container.cradle.sqlExecutor.close();
+    }
+  });
+
   it("blocks a public-to-secret update behind an uncommitted vote and rejects it after commit", async () => {
     const { scenario, ballotId } = await createEmptyPublicBallot();
     const pool = new Pool({ connectionString: databaseUrl });
@@ -231,6 +321,7 @@ postgres("PostgreSQL persistence", () => {
     const {
       sqlExecutor,
       agendaItemRepository,
+      contactRepository,
       councilMemberRepository,
       councilDecisionRepository,
       councilMeetingService,
@@ -267,6 +358,7 @@ postgres("PostgreSQL persistence", () => {
         outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
         outboundEmailSenderAddress: "conseil@saint-aubin.fr",
         outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
+        councilTerm: { expectedMemberCount: 15 },
       });
       expect(await hallSettingsService.get()).toEqual(hallSettings);
 
@@ -283,14 +375,22 @@ postgres("PostgreSQL persistence", () => {
       expect(await contentTemplateRepository.find(contentTemplate.id)).toEqual(contentTemplate);
 
       const members = await Promise.all(
-        ["Alice", "Benoît", "Claire"].map((firstName) =>
-          councilMemberRepository.create({
+        ["Alice", "Benoît", "Claire"].map(async (firstName) => {
+          const contact = await contactRepository.create({
             firstName,
             lastName: "Martin",
+            organizationName: null,
+            jobTitle: null,
+            email: null,
+            phone: null,
+            notes: "",
+          });
+          return councilMemberRepository.create({
+            contactId: contact.id,
             role: "councillor",
             termStartedOn: "2026-03-22",
-          }),
-        ),
+          });
+        }),
       );
       const committee = await councilCommitteeRepository.create({
         name: "Finance committee",

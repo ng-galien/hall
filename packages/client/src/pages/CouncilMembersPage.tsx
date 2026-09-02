@@ -20,6 +20,7 @@ import { formatPhoneNumber, phoneHref } from "../features/council-members/phoneP
 import { StatusBadge } from "../features/status/DomainStatusBadge";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
+import { useContactsStore } from "../stores/contactsStore";
 import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 
@@ -27,12 +28,23 @@ export function CouncilMembersPage() {
   const { t, formatDate } = useI18n();
   const { submitting, run } = useSubmitting();
   const { members, create: createMember, error, canCreate } = useCouncilMembersStore();
+  const contacts = useContactsStore((state) => state.contacts);
   const { committees, details, load: loadCommittees, loadAllDetails } = useCouncilCommitteesStore();
   const [addOpen, setAddOpen] = useState(false);
   const { layout, setLayout, query, setQuery } = useCollectionView();
   const fieldId = useId();
   const visibleMembers = members.filter((member) =>
-    matchesQuery(query, member.firstName, member.lastName, member.email, member.phone, t(`role.${member.role}`)),
+    matchesQuery(
+      query,
+      member.contact.firstName,
+      member.contact.lastName,
+      member.contact.email,
+      member.contact.phone,
+      t(`role.${member.role}`),
+    ),
+  );
+  const eligibleContacts = contacts.filter(
+    (contact) => !members.some((member) => member.active && member.contact.id === contact.id),
   );
   useEffect(() => {
     if (committees.length === 0) void loadCommittees(true);
@@ -72,13 +84,13 @@ export function CouncilMembersPage() {
     );
   };
   const renderEditAction = (member: CouncilMember) => {
-    const fullName = `${member.firstName} ${member.lastName}`;
+    const fullName = `${member.contact.firstName} ${member.contact.lastName}`;
     const label = t("members.editNamed").replace("{name}", fullName);
     return (
       <Tooltip>
         <TooltipTrigger asChild>
           <Button asChild variant="ghost" size="icon" className="council-member-edit-action">
-            <Link to={`/council-members/${member.id}`} aria-label={label}>
+            <Link to={`/council-members/${member.id}`} aria-label={label} data-testid={`member-open-${member.id}`}>
               <EditIcon />
             </Link>
           </Button>
@@ -93,10 +105,7 @@ export function CouncilMembersPage() {
     const form = new FormData(formElement);
     await run(async () => {
       const created = await createMember({
-        firstName: form.get("firstName"),
-        lastName: form.get("lastName"),
-        email: form.get("email") || null,
-        phone: form.get("phone") || null,
+        contactId: form.get("contactId"),
         role: form.get("role"),
         termStartedOn: form.get("termStartedOn"),
       });
@@ -114,50 +123,65 @@ export function CouncilMembersPage() {
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
           {canCreate ? (
-            <Button variant="default" onClick={() => setAddOpen(true)}>
+            <Button variant="default" onClick={() => setAddOpen(true)} data-testid="member-add">
               <AddIcon />
               {t("members.add")}
             </Button>
           ) : null}
         </CollectionToolbar>
         <Modal open={canCreate && addOpen} title={t("members.add")} onClose={() => setAddOpen(false)}>
-          <form className="modal-form" onSubmit={submit}>
+          <form className="modal-form" onSubmit={submit} data-testid="member-create-form">
             <div className="form-grid">
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-firstName`}>{t("members.firstName")}</Label>
-                <Input id={`${fieldId}-firstName`} name="firstName" required />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-lastName`}>{t("members.lastName")}</Label>
-                <Input id={`${fieldId}-lastName`} name="lastName" required />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-role`}>{t("members.role")}</Label>
-                <Select name="role" required defaultValue="councillor">
-                  <SelectTrigger id={`${fieldId}-role`} className="w-full">
-                    <SelectValue />
+              <div className="grid gap-1.5 admin-edit-wide">
+                <Label htmlFor={`${fieldId}-contact`}>{t("members.contact")}</Label>
+                <Select name="contactId" required>
+                  <SelectTrigger id={`${fieldId}-contact`} className="w-full" data-testid="member-contact-select">
+                    <SelectValue placeholder={t("members.chooseContact")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="councillor">{t("role.councillor")}</SelectItem>
-                    <SelectItem value="deputyMayor">{t("role.deputyMayor")}</SelectItem>
-                    <SelectItem value="mayor">{t("role.mayor")}</SelectItem>
+                    {eligibleContacts.map((contact) => (
+                      <SelectItem
+                        key={contact.id}
+                        value={contact.id}
+                        data-testid={`member-contact-option-${contact.id}`}
+                      >
+                        {contact.firstName} {contact.lastName}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-email`}>{t("members.email")}</Label>
-                <Input id={`${fieldId}-email`} name="email" type="email" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-phone`}>{t("members.phone")}</Label>
-                <Input id={`${fieldId}-phone`} name="phone" type="tel" />
+                <Label htmlFor={`${fieldId}-role`}>{t("members.role")}</Label>
+                <Select name="role" required defaultValue="councillor">
+                  <SelectTrigger id={`${fieldId}-role`} className="w-full" data-testid="member-role-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="councillor" data-testid="member-role-option-councillor">
+                      {t("role.councillor")}
+                    </SelectItem>
+                    <SelectItem value="deputyMayor" data-testid="member-role-option-deputyMayor">
+                      {t("role.deputyMayor")}
+                    </SelectItem>
+                    <SelectItem value="mayor" data-testid="member-role-option-mayor">
+                      {t("role.mayor")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${fieldId}-termStartedOn`}>{t("members.termStart")}</Label>
-                <Input id={`${fieldId}-termStartedOn`} name="termStartedOn" type="date" required />
+                <Input
+                  id={`${fieldId}-termStartedOn`}
+                  name="termStartedOn"
+                  type="date"
+                  required
+                  data-testid="member-term-start"
+                />
               </div>
             </div>
-            <Button variant="default" type="submit" disabled={submitting}>
+            <Button variant="default" type="submit" disabled={submitting} data-testid="member-create-submit">
               {t(submitting ? "common.saving" : "common.create")}
             </Button>
           </form>
@@ -171,12 +195,12 @@ export function CouncilMembersPage() {
                 <div className="council-member-card-heading">
                   <div className="member-identity member-identity-card">
                     <span className="member-avatar member-avatar-large" aria-hidden="true">
-                      {member.firstName.slice(0, 1)}
-                      {member.lastName.slice(0, 1)}
+                      {member.contact.firstName.slice(0, 1)}
+                      {member.contact.lastName.slice(0, 1)}
                     </span>
                     <div>
                       <span className="council-member-name">
-                        {member.firstName} {member.lastName}
+                        {member.contact.firstName} {member.contact.lastName}
                       </span>
                       <span>{t(`role.${member.role}`)}</span>
                     </div>
@@ -184,13 +208,13 @@ export function CouncilMembersPage() {
                   {renderEditAction(member)}
                 </div>
                 <div className="council-member-contact">
-                  {member.email ? (
-                    <a href={`mailto:${member.email}`}>{member.email}</a>
+                  {member.contact.email ? (
+                    <a href={`mailto:${member.contact.email}`}>{member.contact.email}</a>
                   ) : (
                     <span>{t("members.noEmail")}</span>
                   )}
-                  {member.phone ? (
-                    <a href={phoneHref(member.phone)}>{formatPhoneNumber(member.phone)}</a>
+                  {member.contact.phone ? (
+                    <a href={phoneHref(member.contact.phone)}>{formatPhoneNumber(member.contact.phone)}</a>
                   ) : (
                     <span>{t("members.noPhone")}</span>
                   )}
@@ -212,24 +236,24 @@ export function CouncilMembersPage() {
               <div className="data-row council-member-row" key={member.id}>
                 <div className="member-identity">
                   <span className="member-avatar" aria-hidden="true">
-                    {member.firstName.slice(0, 1)}
-                    {member.lastName.slice(0, 1)}
+                    {member.contact.firstName.slice(0, 1)}
+                    {member.contact.lastName.slice(0, 1)}
                   </span>
                   <div>
                     <span className="council-member-name">
-                      {member.firstName} {member.lastName}
+                      {member.contact.firstName} {member.contact.lastName}
                     </span>
                     <span>{t(`role.${member.role}`)}</span>
                   </div>
                 </div>
                 <div className="council-member-contact council-member-list-contact">
-                  {member.email ? (
-                    <a href={`mailto:${member.email}`}>{member.email}</a>
+                  {member.contact.email ? (
+                    <a href={`mailto:${member.contact.email}`}>{member.contact.email}</a>
                   ) : (
                     <span>{t("members.noEmail")}</span>
                   )}
-                  {member.phone ? (
-                    <a href={phoneHref(member.phone)}>{formatPhoneNumber(member.phone)}</a>
+                  {member.contact.phone ? (
+                    <a href={phoneHref(member.contact.phone)}>{formatPhoneNumber(member.contact.phone)}</a>
                   ) : (
                     <span>{t("members.noPhone")}</span>
                   )}

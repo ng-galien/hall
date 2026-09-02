@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { ApiErrorCode } from "../services/apiClient";
 import { type ApplicationSyncPhase, useApplicationSyncStore } from "../stores/applicationSyncStore";
+import { useContactsStore } from "../stores/contactsStore";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
@@ -17,6 +18,7 @@ export function useApplicationData(): void {
 export async function reloadApplicationData(): Promise<ApiErrorCode | null> {
   useApplicationSyncStore.getState().begin();
   await Promise.all([
+    useContactsStore.getState().load(),
     useCouncilMembersStore.getState().load(),
     useCouncilCommitteesStore.getState().load(true),
     useCouncilMeetingsStore.getState().load(),
@@ -25,6 +27,7 @@ export async function reloadApplicationData(): Promise<ApiErrorCode | null> {
     useResourcesStore.getState().load(),
   ]);
   const error =
+    useContactsStore.getState().error ??
     useCouncilMembersStore.getState().error ??
     useCouncilCommitteesStore.getState().error ??
     useCouncilMeetingsStore.getState().error ??
@@ -38,6 +41,7 @@ export async function reloadApplicationData(): Promise<ApiErrorCode | null> {
 export function useApplicationStatus(): { phase: ApplicationSyncPhase; error: ApiErrorCode | null } {
   const synchronization = useApplicationSyncStore();
   const states = [
+    useContactsStore(),
     useCouncilMembersStore(),
     useCouncilCommitteesStore(),
     useCouncilMeetingsStore(),

@@ -282,6 +282,7 @@ describe("ballot concurrency", () => {
     const container = buildContainer({ host: "127.0.0.1", port: 0, database: { kind: "sqlite", path: ":memory:" } });
     onTestFinished(() => container.cradle.sqlExecutor.close());
     const {
+      contactRepository,
       councilMemberRepository,
       councilDecisionRepository,
       councilMeetingService,
@@ -292,15 +293,24 @@ describe("ballot concurrency", () => {
       councilBusinessService,
       sqlExecutor,
     } = container.cradle;
+    await container.cradle.councilTermRepository.updateActiveExpectedMemberCount(3);
     const members = await Promise.all(
-      ["Alice", "Benoît", "Claire"].map((firstName) =>
-        councilMemberRepository.create({
+      ["Alice", "Benoît", "Claire"].map(async (firstName) => {
+        const contact = await contactRepository.create({
           firstName,
           lastName: "Martin",
+          organizationName: null,
+          jobTitle: null,
+          email: null,
+          phone: null,
+          notes: "",
+        });
+        return councilMemberRepository.create({
+          contactId: contact.id,
           role: "councillor",
           termStartedOn: "2026-03-22",
-        }),
-      ),
+        });
+      }),
     );
     const decision = await councilDecisionRepository.create({
       title: "Decision without a first ballot",

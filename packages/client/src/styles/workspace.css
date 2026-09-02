@@ -728,6 +728,7 @@
   .workspace-glyph-kind-meeting,
   .workspace-glyph-kind-decision { color: var(--hall-color-seal); background: var(--hall-color-seal-surface); }
   .workspace-glyph-kind-member { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
+  .workspace-glyph-kind-contact { color: var(--hall-color-success); background: var(--hall-color-success-surface); }
 
   .remote-resource-embed {
     display: flex;

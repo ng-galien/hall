@@ -4,10 +4,18 @@ import { sendProblem } from "../api/problemDetails.js";
 
 const rolePermissions: Record<ApiRole, readonly ApiPermission[]> = {
   administrator: apiPermissions,
-  clerk: ["members.manage", "workspace.read", "workspace.write", "meetings.read", "meetings.prepare"],
-  contributor: ["workspace.read", "workspace.write", "meetings.read"],
-  meetingConductor: ["workspace.read", "meetings.read", "meetings.conduct"],
-  reader: ["workspace.read", "meetings.read"],
+  clerk: [
+    "contacts.read",
+    "contacts.manage",
+    "members.manage",
+    "workspace.read",
+    "workspace.write",
+    "meetings.read",
+    "meetings.prepare",
+  ],
+  contributor: ["contacts.read", "workspace.read", "workspace.write", "meetings.read"],
+  meetingConductor: ["contacts.read", "workspace.read", "meetings.read", "meetings.conduct"],
+  reader: ["contacts.read", "workspace.read", "meetings.read"],
 };
 
 export function permissionsForRoles(roles: readonly ApiRole[]): ApiPermission[] {

@@ -21,10 +21,6 @@ export function CouncilMemberPage() {
   const { members, error: memberError, canUpdate, clearError, loadDetail, update } = useCouncilMembersStore();
   const { committees, details, error, load, loadAllDetails } = useCouncilCommitteesStore();
   const member = members.find((candidate) => candidate.id === memberId);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [role, setRole] = useState<CouncilMember["role"]>("councillor");
   const [termStartedOn, setTermStartedOn] = useState("");
   const [termEndedOn, setTermEndedOn] = useState("");
@@ -43,10 +39,6 @@ export function CouncilMemberPage() {
 
   useEffect(() => {
     if (!member) return;
-    setFirstName(member.firstName);
-    setLastName(member.lastName);
-    setEmail(member.email ?? "");
-    setPhone(member.phone ?? "");
     setRole(member.role);
     setTermStartedOn(member.termStartedOn);
     setTermEndedOn(member.termEndedOn ?? "");
@@ -57,30 +49,19 @@ export function CouncilMemberPage() {
   const dirty = Boolean(
     member &&
       draftMemberId === member.id &&
-      (firstName !== member.firstName ||
-        lastName !== member.lastName ||
-        email !== (member.email ?? "") ||
-        phone !== (member.phone ?? "") ||
-        role !== member.role ||
-        termStartedOn !== member.termStartedOn ||
-        termEndedOn !== (member.termEndedOn ?? "")),
+      (role !== member.role || termStartedOn !== member.termStartedOn || termEndedOn !== (member.termEndedOn ?? "")),
   );
   const save = useCallback(async () => {
-    if (!member || !canUpdate[member.id] || !dirty || !firstName.trim() || !lastName.trim() || !termStartedOn)
-      return true;
+    if (!member || !canUpdate[member.id] || !dirty || !termStartedOn) return true;
     setSaveState("saving");
     const saved = await update(member.id, {
-      firstName,
-      lastName,
-      email: email || null,
-      phone: phone || null,
       role,
       termStartedOn,
       termEndedOn: termEndedOn || null,
     });
     setSaveState(saved ? "saved" : "error");
     return saved;
-  }, [canUpdate, dirty, email, firstName, lastName, member, phone, role, termEndedOn, termStartedOn, update]);
+  }, [canUpdate, dirty, member, role, termEndedOn, termStartedOn, update]);
   const saveRef = useRef(save);
   const dirtyRef = useRef(dirty);
   useEffect(() => {
@@ -141,7 +122,10 @@ export function CouncilMemberPage() {
 
   return (
     <div className="page">
-      <PageHeader title={`${member.firstName} ${member.lastName}`} description={t("members.detailDescription")} />
+      <PageHeader
+        title={`${member.contact.firstName} ${member.contact.lastName}`}
+        description={t("members.detailDescription")}
+      />
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={memberError ?? error} />
         <div className="admin-detail-surface">
@@ -149,12 +133,12 @@ export function CouncilMemberPage() {
             <div className="admin-record-heading">
               <div className="member-identity">
                 <span className="member-avatar member-avatar-large" aria-hidden="true">
-                  {member.firstName.slice(0, 1)}
-                  {member.lastName.slice(0, 1)}
+                  {member.contact.firstName.slice(0, 1)}
+                  {member.contact.lastName.slice(0, 1)}
                 </span>
                 <div>
                   <h2 id="member-identity-title">
-                    {member.firstName} {member.lastName}
+                    {member.contact.firstName} {member.contact.lastName}
                   </h2>
                   <span>{t("members.identityDescription")}</span>
                 </div>
@@ -173,23 +157,20 @@ export function CouncilMemberPage() {
               </div>
             </div>
             <div className="admin-edit-grid admin-member-edit-grid">
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-firstName`}>{t("members.firstName")}</Label>
-                <Input
-                  id={`${fieldId}-firstName`}
-                  value={firstName}
-                  readOnly={!canUpdate[member.id]}
-                  onChange={(event) => setFirstName(event.currentTarget.value)}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-lastName`}>{t("members.lastName")}</Label>
-                <Input
-                  id={`${fieldId}-lastName`}
-                  value={lastName}
-                  readOnly={!canUpdate[member.id]}
-                  onChange={(event) => setLastName(event.currentTarget.value)}
-                />
+              <div className="grid gap-1.5 admin-edit-wide">
+                <Label>{t("members.contact")}</Label>
+                <Link
+                  className="data-row linked"
+                  to={`/contacts/${member.contact.id}`}
+                  data-testid="member-contact-link"
+                >
+                  <span>
+                    <strong>
+                      {member.contact.firstName} {member.contact.lastName}
+                    </strong>
+                    <span>{member.contact.email ?? t("members.noEmail")}</span>
+                  </span>
+                </Link>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${fieldId}-role`}>{t("members.role")}</Label>
@@ -208,30 +189,15 @@ export function CouncilMemberPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-1.5 admin-edit-wide">
-                <Label htmlFor={`${fieldId}-email`}>{t("members.email")}</Label>
-                <Input
-                  id={`${fieldId}-email`}
-                  type="email"
-                  value={email}
-                  readOnly={!canUpdate[member.id]}
-                  onChange={(event) => setEmail(event.currentTarget.value)}
-                />
-              </div>
               <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-phone`}>{t("members.phone")}</Label>
-                <Input
-                  id={`${fieldId}-phone`}
-                  type="tel"
-                  value={phone}
-                  readOnly={!canUpdate[member.id]}
-                  onChange={(event) => setPhone(event.currentTarget.value)}
-                />
-                {member.phone ? (
-                  <a className="admin-phone-link" href={phoneHref(member.phone)}>
-                    {formatPhoneNumber(member.phone)}
+                <Label>{t("members.phone")}</Label>
+                {member.contact.phone ? (
+                  <a className="admin-phone-link" href={phoneHref(member.contact.phone)}>
+                    {formatPhoneNumber(member.contact.phone)}
                   </a>
-                ) : null}
+                ) : (
+                  <span>{t("members.noPhone")}</span>
+                )}
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${fieldId}-term-start`}>{t("members.termStart")}</Label>
@@ -251,6 +217,7 @@ export function CouncilMemberPage() {
                   value={termEndedOn}
                   readOnly={!canUpdate[member.id]}
                   onChange={(event) => setTermEndedOn(event.currentTarget.value)}
+                  data-testid="member-term-end"
                 />
               </div>
             </div>

@@ -5,12 +5,14 @@ export const postgresTables = [
   "audit_events",
   "ballots",
   "committee_memberships",
+  "contacts",
   "council_business",
   "council_business_resources",
   "council_committees",
   "council_decisions",
   "council_meetings",
   "council_members",
+  "council_terms",
   "document_previews",
   "geographic_resources",
   "hall_settings",
@@ -102,18 +104,120 @@ export const postgresBallotVoteConfidentialitySchema = `
   EXECUTE FUNCTION enforce_public_method_for_ballots_with_votes();
 `;
 
+export const postgresCouncilTermCapacitySchema = `
+  CREATE OR REPLACE FUNCTION enforce_council_term_capacity()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  AS $$
+  DECLARE
+    expected_count INTEGER;
+    active_count INTEGER;
+  BEGIN
+    IF TG_OP = 'INSERT' THEN
+      IF NEW.term_ended_on IS NOT NULL THEN
+        RETURN NEW;
+      END IF;
+    ELSE
+      IF OLD.term_ended_on IS NULL OR NEW.term_ended_on IS NOT NULL THEN
+        RETURN NEW;
+      END IF;
+    END IF;
+
+    SELECT expected_member_count INTO expected_count
+    FROM council_terms
+    WHERE hall_id = 'hall' AND active
+    FOR UPDATE;
+
+    IF expected_count IS NULL THEN
+      RAISE EXCEPTION 'council term is not configured'
+        USING ERRCODE = '23514', CONSTRAINT = 'council_term_not_configured';
+    END IF;
+
+    SELECT COUNT(*) INTO active_count
+    FROM council_members
+    WHERE term_ended_on IS NULL AND id <> NEW.id;
+
+    IF active_count >= expected_count THEN
+      RAISE EXCEPTION 'council term member count is reached'
+        USING ERRCODE = '23514', CONSTRAINT = 'council_term_capacity_reached';
+    END IF;
+    RETURN NEW;
+  END;
+  $$;
+
+  DROP TRIGGER IF EXISTS council_members_require_available_term_seat_on_insert ON council_members;
+  CREATE TRIGGER council_members_require_available_term_seat_on_insert
+  BEFORE INSERT ON council_members
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_council_term_capacity();
+
+  DROP TRIGGER IF EXISTS council_members_require_available_term_seat_on_reopen ON council_members;
+  CREATE TRIGGER council_members_require_available_term_seat_on_reopen
+  BEFORE UPDATE OF term_ended_on ON council_members
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_council_term_capacity();
+
+  CREATE OR REPLACE FUNCTION enforce_council_term_expected_count()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  AS $$
+  DECLARE
+    active_count INTEGER;
+  BEGIN
+    SELECT COUNT(*) INTO active_count
+    FROM council_members
+    WHERE term_ended_on IS NULL;
+
+    IF NEW.expected_member_count IS NULL OR NEW.expected_member_count < active_count THEN
+      RAISE EXCEPTION 'council term member count is below the active council size'
+        USING ERRCODE = '23514', CONSTRAINT = 'council_term_capacity_below_active_count';
+    END IF;
+    RETURN NEW;
+  END;
+  $$;
+
+  DROP TRIGGER IF EXISTS council_term_expected_count_covers_active_members ON council_terms;
+  CREATE TRIGGER council_term_expected_count_covers_active_members
+  BEFORE UPDATE OF expected_member_count, active ON council_terms
+  FOR EACH ROW
+  WHEN (NEW.active)
+  EXECUTE FUNCTION enforce_council_term_expected_count();
+
+  DROP TRIGGER IF EXISTS active_council_term_insert_covers_active_members ON council_terms;
+  CREATE TRIGGER active_council_term_insert_covers_active_members
+  BEFORE INSERT ON council_terms
+  FOR EACH ROW
+  WHEN (NEW.active)
+  EXECUTE FUNCTION enforce_council_term_expected_count();
+`;
+
 export const postgresSchema = `
-  CREATE TABLE council_members (
+  CREATE TABLE contacts (
     id TEXT PRIMARY KEY,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
+    organization_name TEXT,
+    job_title TEXT,
     email TEXT,
     phone TEXT,
-    role TEXT NOT NULL CHECK (role IN ('mayor', 'deputyMayor', 'councillor')),
-    active BOOLEAN NOT NULL DEFAULT TRUE,
-    term_started_on TEXT NOT NULL,
-    term_ended_on TEXT
+    notes TEXT NOT NULL DEFAULT '',
+    archived_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
   );
+
+  CREATE TABLE council_members (
+    id TEXT PRIMARY KEY,
+    contact_id TEXT NOT NULL REFERENCES contacts(id),
+    role TEXT NOT NULL CHECK (role IN ('mayor', 'deputyMayor', 'councillor')),
+    term_started_on TEXT NOT NULL,
+    term_ended_on TEXT,
+    CHECK (term_ended_on IS NULL OR term_ended_on >= term_started_on)
+  );
+
+  CREATE UNIQUE INDEX council_members_one_active_membership_per_contact
+    ON council_members(contact_id)
+    WHERE term_ended_on IS NULL;
 
   CREATE TABLE council_committees (
     id TEXT PRIMARY KEY,
@@ -164,6 +268,19 @@ export const postgresSchema = `
   );
 
   INSERT INTO hall_settings (id) VALUES ('hall');
+
+  CREATE TABLE council_terms (
+    id TEXT PRIMARY KEY,
+    hall_id TEXT NOT NULL REFERENCES hall_settings(id),
+    expected_member_count INTEGER CHECK (expected_member_count IS NULL OR expected_member_count > 0),
+    active BOOLEAN NOT NULL
+  );
+
+  CREATE UNIQUE INDEX one_active_council_term_per_hall
+    ON council_terms(hall_id) WHERE active;
+
+  INSERT INTO council_terms (id, hall_id, expected_member_count, active)
+    VALUES ('initial', 'hall', NULL, TRUE);
 
   CREATE TABLE number_sequences (
     kind TEXT NOT NULL CHECK (kind IN ('meeting', 'decision')),

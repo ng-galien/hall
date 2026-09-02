@@ -10,6 +10,7 @@ Tout agent qui modifie le code doit lire et appliquer [`docs/principes-code.md`]
 
 Le produit doit permettre de gérer :
 
+- les contacts de la commune, indépendamment d'un éventuel mandat électif ;
 - les membres du conseil municipal et leur mandat ;
 - les dossiers préparatoires et leurs pièces ;
 - les projets de délibération ;
@@ -56,7 +57,9 @@ Les échanges métier et les libellés de l’IHM sont en français ; le code, l
 | --- | --- | --- |
 | Hall | `Hall` | Le produit et sa racine de configuration ; ne pas employer `Municipality` pour le remplacer. |
 | Paramètres de la commune | `HallSettings` | Configuration monotenant de la commune exploitant Hall. |
-| Membre du conseil | `CouncilMember` | Élu appartenant au conseil municipal pendant son mandat. |
+| Mandature active | `CouncilTerm` | Mandature courante rattachée à Hall qui fixe l'effectif attendu du conseil actuel ; une seule peut être active à un instant donné. Son cycle de vie et son historique ne sont pas encore exposés. |
+| Contact | `Contact` | Personne inscrite dans l'annuaire de la commune, qu'elle exerce ou non un mandat électif. |
+| Membre du conseil | `CouncilMember` | Mandat daté et fonction d'un `Contact` au sein du conseil municipal. |
 | Commission municipale | `CouncilCommittee` | Groupe d’élus chargé d’étudier certaines questions ; `Commission` serait ici un faux ami. |
 | Appartenance à une commission | `CommitteeMembership` | Rattachement daté d’un membre du conseil à une commission, avec sa fonction éventuelle. |
 | Affaires du conseil | `CouncilBusiness` | Union des différentes natures de sujets susceptibles d’être traités par le conseil. |

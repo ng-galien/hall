@@ -6,6 +6,7 @@ import { resourceTone, toneIcons, toneLabelKeys } from "../features/documents/Re
 import { imagePresentationTitle } from "../features/documents/useResourceImageUpload";
 import { domainStatusKeys } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
+import { useContactsStore } from "../stores/contactsStore";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
@@ -16,6 +17,7 @@ import { useResourcesStore } from "../stores/resourcesStore";
 export function useReferenceMentionables(): Mentionable[] {
   const { t, formatDate } = useI18n();
   const { members } = useCouncilMembersStore();
+  const { contacts } = useContactsStore();
   const { resources } = useResourcesStore();
   const { businesses } = useCouncilBusinessStore();
   const { meetings } = useCouncilMeetingsStore();
@@ -26,7 +28,15 @@ export function useReferenceMentionables(): Mentionable[] {
       ...members.map((member) => ({
         kind: "member" as const,
         id: member.id,
-        label: `${member.firstName} ${member.lastName}`,
+        label: `${member.contact.firstName} ${member.contact.lastName}`,
+        metaLabel: t(`role.${member.role}`),
+      })),
+      ...contacts.map((contact) => ({
+        kind: "contact" as const,
+        id: contact.id,
+        label: `${contact.firstName} ${contact.lastName}`,
+        metaLabel: contact.organizationName ?? contact.jobTitle ?? t("editor.kind.contact"),
+        extra: [contact.organizationName, contact.jobTitle, contact.email, contact.phone],
       })),
       ...resources.map((resource) => {
         const tone = resourceTone(resource);
@@ -71,6 +81,6 @@ export function useReferenceMentionables(): Mentionable[] {
         stateLabel: t(domainStatusKeys[decision.status]),
       })),
     ],
-    [members, resources, businesses, meetings, councilDecisions, t, formatDate],
+    [members, contacts, resources, businesses, meetings, councilDecisions, t, formatDate],
   );
 }

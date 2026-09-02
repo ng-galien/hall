@@ -10,7 +10,7 @@ export interface BallotParticipant {
 
 const memberName = (members: CouncilMember[], memberId: string): string => {
   const member = members.find((candidate) => candidate.id === memberId);
-  return member ? `${member.firstName} ${member.lastName}` : memberId;
+  return member ? `${member.contact.firstName} ${member.contact.lastName}` : memberId;
 };
 
 export function ballotParticipants(aggregate: MeetingAggregate, members: CouncilMember[]): BallotParticipant[] {

@@ -405,11 +405,11 @@ test.describe("Markdown editor", () => {
     await expect(compactEditor(page).getByRole("table")).toContainText("1800");
   });
 
-  test("inserts the five typed references with their immutable UUIDs", async ({ appPage: page }) => {
+  test("inserts the six typed references with their immutable UUIDs", async ({ appPage: page }) => {
     await openEditorLab(page);
     const editor = await openEnrichedEditor(page);
     const source = markdownSource(page);
-    const kinds = ["member", "resource", "councilBusiness", "meeting", "decision"] as const;
+    const kinds = ["member", "contact", "resource", "councilBusiness", "meeting", "decision"] as const;
 
     for (const directive of kinds) {
       const dialog = await openReferenceSearch(editor);
@@ -434,6 +434,10 @@ test.describe("Markdown editor", () => {
     await expect(rendered.getByTestId(`editor-member-reference-${ids.member}`)).toHaveAttribute(
       "href",
       new RegExp(`/app/council-members/${ids.member}$`),
+    );
+    await expect(rendered.getByTestId(`editor-contact-reference-${ids.contact}`)).toHaveAttribute(
+      "href",
+      new RegExp(`/app/contacts/${ids.contact}$`),
     );
     await expect(rendered.getByTestId(`editor-councilBusiness-reference-${ids.councilBusiness}`)).toHaveAttribute(
       "href",

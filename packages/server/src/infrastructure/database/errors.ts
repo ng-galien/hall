@@ -19,6 +19,11 @@ export function translatePersistenceError(error: unknown): unknown {
 }
 
 function sqliteConstraint(message: string): string | undefined {
+  if (message.includes("council_term_not_configured")) return "council_term_not_configured";
+  if (message.includes("council_term_capacity_reached")) return "council_term_capacity_reached";
+  if (message.includes("council_term_capacity_below_active_count")) {
+    return "council_term_capacity_below_active_count";
+  }
   if (message.includes("resources.folder_path, resources.title")) return "one_resource_title_per_folder";
   if (message.includes("council_business.folder_path, council_business.title")) {
     return "one_council_business_title_per_folder";

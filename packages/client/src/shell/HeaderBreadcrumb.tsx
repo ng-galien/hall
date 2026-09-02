@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { Breadcrumb, type BreadcrumbItem } from "../components/Breadcrumb";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { useI18n } from "../i18n/I18nProvider";
+import { useContactsStore } from "../stores/contactsStore";
 import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
@@ -12,6 +13,7 @@ export function HeaderBreadcrumb() {
   const location = useLocation();
   const { meetings } = useCouncilMeetingsStore();
   const members = useCouncilMembersStore((state) => state.members);
+  const contacts = useContactsStore((state) => state.contacts);
   const committees = useCouncilCommitteesStore((state) => state.committees);
 
   const items: BreadcrumbItem[] = [{ label: t("app.name"), to: "/" }];
@@ -36,7 +38,13 @@ export function HeaderBreadcrumb() {
     items.push({ label: t("navigation.members"), to: "/council-members" });
     if (segments[1]) {
       const member = members.find((candidate) => candidate.id === segments[1]);
-      if (member) items.push({ label: `${member.firstName} ${member.lastName}` });
+      if (member) items.push({ label: `${member.contact.firstName} ${member.contact.lastName}` });
+    }
+  } else if (segments[0] === "contacts") {
+    items.push({ label: t("navigation.contacts"), to: "/contacts" });
+    if (segments[1]) {
+      const contact = contacts.find((candidate) => candidate.id === segments[1]);
+      if (contact) items.push({ label: `${contact.firstName} ${contact.lastName}` });
     }
   } else if (segments[0] === "council-committees") {
     items.push({ label: t("navigation.committees"), to: "/council-committees" });

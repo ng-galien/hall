@@ -34,6 +34,12 @@ function mapHallSettings(row: DatabaseRow): HallSettings {
       row.outbound_email_reply_to_address,
       "hall_settings.outbound_email_reply_to_address",
     ),
+    councilTerm: {
+      expectedMemberCount: asNullableInteger(
+        row.council_term_expected_member_count,
+        "council_terms.expected_member_count",
+      ),
+    },
     updatedAt: asNullableString(row.updated_at, "hall_settings.updated_at"),
   };
 }
@@ -47,15 +53,21 @@ export function createHallSettingsRepository({ sqlExecutor }: { sqlExecutor: Sql
   return {
     get,
     async update(input: UpdateHallSettings) {
-      const { geographicPosition, ...settings } = input;
-      const result = await sqlExecutor.run("settings.update", {
-        ...settings,
-        geographicLongitude: geographicPosition?.[0] ?? null,
-        geographicLatitude: geographicPosition?.[1] ?? null,
-        updatedAt: new Date().toISOString(),
+      const { councilTerm, geographicPosition, ...settings } = input;
+      return sqlExecutor.execute(async () => {
+        const result = await sqlExecutor.run("settings.update", {
+          ...settings,
+          geographicLongitude: geographicPosition?.[0] ?? null,
+          geographicLatitude: geographicPosition?.[1] ?? null,
+          updatedAt: new Date().toISOString(),
+        });
+        if (result.changes !== 1) throw new Error("Hall settings singleton is missing");
+        const councilTermResult = await sqlExecutor.run("councilTerm.updateActiveExpectedMemberCount", {
+          expectedMemberCount: councilTerm.expectedMemberCount,
+        });
+        if (councilTermResult.changes !== 1) throw new Error("Active council term is missing");
+        return get();
       });
-      if (result.changes !== 1) throw new Error("Hall settings singleton is missing");
-      return get();
     },
   };
 }

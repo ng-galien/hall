@@ -1,6 +1,6 @@
 import { SIREN_MEDIA_TYPE } from "@hall/api-contract";
 import { describe, expect, it } from "vitest";
-import { createTestServer, domainBody } from "./testServer.js";
+import { createTestCouncilMember, createTestServer, domainBody } from "./testServer.js";
 
 const settingsInput = {
   name: "Saint-Aubin",
@@ -21,15 +21,21 @@ const settingsInput = {
   outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
   outboundEmailSenderAddress: "conseil@saint-aubin.fr",
   outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
+  councilTerm: { expectedMemberCount: 15 },
 };
 
 describe("Hall settings", () => {
   it("persists the singleton settings and advertises the authorized Siren action", async () => {
-    const { agent } = await createTestServer();
+    const { agent } = await createTestServer({ expectedCouncilMemberCount: null });
 
     const initial = await agent.get("/api/settings").expect(200);
     expect(initial.headers["content-type"]).toContain(SIREN_MEDIA_TYPE);
-    expect(domainBody(initial)).toMatchObject({ name: "", timeZone: "Europe/Paris", updatedAt: null });
+    expect(domainBody(initial)).toMatchObject({
+      name: "",
+      timeZone: "Europe/Paris",
+      councilTerm: { expectedMemberCount: null },
+      updatedAt: null,
+    });
     expect(initial.body.actions).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: "settings.update", href: "/api/settings" })]),
     );
@@ -97,5 +103,17 @@ describe("Hall settings", () => {
       expect.arrayContaining([expect.objectContaining({ name: "settings.update" })]),
     );
     await rawAgent.put("/api/settings").send(settingsInput).expect(403);
+  });
+
+  it("does not reduce the active council term below its current member count", async () => {
+    const { agent } = await createTestServer({ expectedCouncilMemberCount: 2 });
+    await createTestCouncilMember(agent, { firstName: "Alice" });
+    await createTestCouncilMember(agent, { firstName: "Benoît" });
+
+    const response = await agent
+      .put("/api/settings")
+      .send({ ...settingsInput, councilTerm: { expectedMemberCount: 1 } })
+      .expect(409);
+    expect(response.body.code).toBe("council_term_capacity_below_active_count");
   });
 });

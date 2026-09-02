@@ -5,7 +5,14 @@ export type IsoDate = string;
 export type IsoDateTime = string;
 
 /** Business entities that can be addressed by an internal reference. */
-export const referenceEntityKinds = ["member", "resource", "councilBusiness", "decision", "meeting"] as const;
+export const referenceEntityKinds = [
+  "member",
+  "contact",
+  "resource",
+  "councilBusiness",
+  "decision",
+  "meeting",
+] as const;
 
 export type ReferenceEntityKind = (typeof referenceEntityKinds)[number];
 
@@ -62,6 +69,10 @@ export const ballotResults = defineExhaustiveLiterals<BallotResult>()(["adopted"
 export const voteChoices = defineExhaustiveLiterals<VoteChoice>()(["for", "against", "abstain", "notVoting"] as const);
 export const templateKinds = defineExhaustiveLiterals<TemplateKind>()(["pdf", "message"] as const);
 
+export interface CouncilTerm {
+  expectedMemberCount: number | null;
+}
+
 export interface HallSettings {
   name: string;
   inseeCode: string | null;
@@ -81,10 +92,11 @@ export interface HallSettings {
   outboundEmailSenderName: string;
   outboundEmailSenderAddress: string | null;
   outboundEmailReplyToAddress: string | null;
+  councilTerm: CouncilTerm;
   updatedAt: IsoDateTime | null;
 }
 
-/** A municipal document or message template. Its editable source remains Markdown. */
+/** A Hall document or message template. Its editable source remains Markdown. */
 export interface ContentTemplate {
   id: Identifier;
   kind: TemplateKind;
@@ -105,12 +117,26 @@ export interface TemplateRenderContext {
   meetingId?: Identifier;
 }
 
-export interface CouncilMember {
+export interface Contact {
   id: Identifier;
   firstName: string;
   lastName: string;
+  organizationName: string | null;
+  jobTitle: string | null;
   email: string | null;
   phone: string | null;
+  notes: string;
+  activeCouncilMemberId: Identifier | null;
+  archivedAt: IsoDateTime | null;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export type ContactSummary = Omit<Contact, "notes" | "activeCouncilMemberId" | "createdAt" | "updatedAt">;
+
+export interface CouncilMember {
+  id: Identifier;
+  contact: ContactSummary;
   role: CouncilRole;
   active: boolean;
   termStartedOn: string;

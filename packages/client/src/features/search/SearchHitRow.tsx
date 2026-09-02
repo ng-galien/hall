@@ -44,8 +44,14 @@ export function SearchHitRow<THit extends SearchHit>({
     }),
     member: (entry) => ({
       glyph: <KindGlyph kind="member" />,
-      title: `${entry.member.firstName} ${entry.member.lastName}`,
+      title: `${entry.member.contact.firstName} ${entry.member.contact.lastName}`,
       meta: t(`role.${entry.member.role}` as Parameters<typeof t>[0]),
+      badge: null,
+    }),
+    contact: (entry) => ({
+      glyph: <KindGlyph kind="contact" />,
+      title: `${entry.contact.firstName} ${entry.contact.lastName}`,
+      meta: entry.contact.organizationName ?? entry.contact.jobTitle ?? t("contacts.contact"),
       badge: null,
     }),
     meeting: (entry) => ({

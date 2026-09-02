@@ -29,7 +29,7 @@ import { meetingOpeningBlock } from "../meetingOpeningPolicy";
 const directStatuses: AttendanceStatus[] = ["present", "excused", "absent"];
 
 export function memberInitials(member: CouncilMember): string {
-  return `${member.firstName.slice(0, 1)}${member.lastName.slice(0, 1)}`;
+  return `${member.contact.firstName.slice(0, 1)}${member.contact.lastName.slice(0, 1)}`;
 }
 
 export function RollCallView({
@@ -192,7 +192,7 @@ export function RollCallView({
                 </span>
                 <div>
                   <strong>
-                    {member.firstName} {member.lastName}
+                    {member.contact.firstName} {member.contact.lastName}
                   </strong>
                   <span className="rollcall-tile-subline">
                     {t(`role.${member.role}`)}
@@ -278,7 +278,7 @@ export function RollCallView({
                     "{holder}",
                     (() => {
                       const holder = members.find((candidate) => candidate.id === current.proxyHolderMemberId);
-                      return holder ? `${holder.firstName} ${holder.lastName}` : "";
+                      return holder ? `${holder.contact.firstName} ${holder.contact.lastName}` : "";
                     })(),
                   )}
                 </p>
@@ -423,7 +423,7 @@ function ProxyModal({
   return (
     <Modal
       open
-      title={t("live.proxyModalTitle").replace("{member}", `${member.firstName} ${member.lastName}`)}
+      title={t("live.proxyModalTitle").replace("{member}", `${member.contact.firstName} ${member.contact.lastName}`)}
       onClose={onClose}
     >
       <div className="modal-form">
@@ -451,7 +451,7 @@ function ProxyModal({
                   </span>
                   <span className="picker-card-copy">
                     <strong>
-                      {candidate.firstName} {candidate.lastName}
+                      {candidate.contact.firstName} {candidate.contact.lastName}
                     </strong>
                     <span>{alreadyHolding ? t("live.alreadyHoldsProxy") : t(`role.${candidate.role}`)}</span>
                   </span>

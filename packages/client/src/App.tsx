@@ -1,6 +1,6 @@
 import { matchDiscriminated, type ReferenceEntityKind } from "@hall/domain";
 import { lazy, type ReactNode, Suspense } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { createBrowserRouter, Route, RouterProvider, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthenticationGate } from "./components/AuthenticationGate";
 import { ResourceImagePresentationProvider } from "./components/editor/images";
@@ -19,6 +19,7 @@ import {
 import { useApplicationData } from "./hooks/useApplicationData";
 import { useI18n } from "./i18n/I18nProvider";
 import { resourceContentHref } from "./services/resourcesApi";
+import { useContactsStore } from "./stores/contactsStore";
 import { useCouncilBusinessStore } from "./stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "./stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "./stores/councilMeetingsStore";
@@ -34,6 +35,8 @@ const CouncilDecisionsPage = lazy(() =>
 const CouncilMembersPage = lazy(() =>
   import("./pages/CouncilMembersPage").then((module) => ({ default: module.CouncilMembersPage })),
 );
+const ContactsPage = lazy(() => import("./pages/ContactsPage").then((module) => ({ default: module.ContactsPage })));
+const ContactPage = lazy(() => import("./pages/ContactPage").then((module) => ({ default: module.ContactPage })));
 const CouncilMemberPage = lazy(() =>
   import("./pages/CouncilMemberPage").then((module) => ({ default: module.CouncilMemberPage })),
 );
@@ -84,6 +87,8 @@ function AuthenticatedApplication() {
         <Route path="council-decisions" element={<CouncilDecisionsPage />} />
         <Route path="council-members" element={<CouncilMembersPage />} />
         <Route path="council-members/:memberId" element={<CouncilMemberPage />} />
+        <Route path="contacts" element={<ContactsPage />} />
+        <Route path="contacts/:contactId" element={<ContactPage />} />
         <Route path="council-committees" element={<CouncilCommitteesPage />} />
         <Route path="council-committees/:committeeId" element={<CouncilCommitteePage />} />
         <Route path="settings" element={<SettingsPage />} />
@@ -101,6 +106,7 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
   const decisions = useCouncilDecisionsStore((state) => state.councilDecisions);
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
   const members = useCouncilMembersStore((state) => state.members);
+  const contacts = useContactsStore((state) => state.contacts);
   const renderResourcePreview = (id: string, onClose: () => void) => (
     <ResourcePreview resourceId={id} onClose={onClose} />
   );
@@ -120,7 +126,7 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
     const resolved = resolveReferencePresentation(
       kind,
       id,
-      { resources, businesses, decisions, meetings, members },
+      { resources, businesses, decisions, meetings, members, contacts },
       (meeting) => formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
     );
     if (!resolved) return null;
@@ -151,17 +157,23 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
   );
 }
 
+function RoutedApplication() {
+  return (
+    <AuthenticationGate>
+      <ApplicationPresentationProviders>
+        <AuthenticatedApplication />
+      </ApplicationPresentationProviders>
+    </AuthenticationGate>
+  );
+}
+
+const applicationRouter = createBrowserRouter([{ path: "*", element: <RoutedApplication /> }], { basename: "/app" });
+
 export function App() {
   return (
     <IconDefaults>
       <TooltipProvider>
-        <BrowserRouter basename="/app">
-          <AuthenticationGate>
-            <ApplicationPresentationProviders>
-              <AuthenticatedApplication />
-            </ApplicationPresentationProviders>
-          </AuthenticationGate>
-        </BrowserRouter>
+        <RouterProvider router={applicationRouter} />
       </TooltipProvider>
     </IconDefaults>
   );

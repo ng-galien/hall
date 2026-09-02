@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { PROBLEM_MEDIA_TYPE, SIREN_MEDIA_TYPE } from "@hall/api-contract";
 import { describe, expect, it } from "vitest";
 import { API_JSON_BODY_LIMIT_BYTES } from "../api/application.js";
-import { createTestServer } from "./testServer.js";
+import { createTestCouncilMember, createTestServer } from "./testServer.js";
 
 const admin = {
   email: "admin@hall.test",
@@ -113,12 +113,9 @@ describe("hardened HTTP and hypermedia contract", () => {
       ["Maire", "mayor"],
       ["Secrétaire", "councillor"],
     ] as const) {
-      const response = await rawAgent
-        .post("/api/council-members")
-        .send({ firstName, lastName: "Test", email: null, role, termStartedOn: "2026-03-22" })
-        .expect(201);
-      members.push(properties<{ id: string }>(response));
-      await expectSelfToResolve(rawAgent, response);
+      const member = await createTestCouncilMember(rawAgent, { firstName, lastName: "Test", role });
+      members.push(member);
+      await rawAgent.get(`/api/council-members/${member.id}`).expect(200);
     }
     const decision = await rawAgent
       .post("/api/council-decisions")
@@ -261,18 +258,8 @@ describe("hardened HTTP and hypermedia contract", () => {
   it("enforces every role at the server boundary and permits an atomic late business to the conductor", async () => {
     const { rawAgent } = await createTestServer({ devAutoLogin: false });
     await rawAgent.post("/api/auth/bootstrap").send(admin).expect(201);
-    const chair = properties<{ id: string }>(
-      await rawAgent
-        .post("/api/council-members")
-        .send({ firstName: "Alice", lastName: "Maire", role: "mayor", termStartedOn: "2026-03-22" })
-        .expect(201),
-    );
-    const secretary = properties<{ id: string }>(
-      await rawAgent
-        .post("/api/council-members")
-        .send({ firstName: "Benoît", lastName: "Secrétaire", role: "councillor", termStartedOn: "2026-03-22" })
-        .expect(201),
-    );
+    const chair = await createTestCouncilMember(rawAgent, { firstName: "Alice", lastName: "Maire", role: "mayor" });
+    const secretary = await createTestCouncilMember(rawAgent, { firstName: "Benoît", lastName: "Secrétaire" });
     const meeting = properties<{ id: string }>(
       await rawAgent
         .post("/api/council-meetings")

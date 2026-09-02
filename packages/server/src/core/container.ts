@@ -7,18 +7,21 @@ import { createAgendaItemRepository } from "../repositories/agendaItemRepository
 import { createAttendanceRepository } from "../repositories/attendanceRepository.js";
 import { createBallotRepository } from "../repositories/ballotRepository.js";
 import { createCommitteeMembershipRepository } from "../repositories/committeeMembershipRepository.js";
+import { createContactRepository } from "../repositories/contactRepository.js";
 import { createContentTemplateRepository } from "../repositories/contentTemplateRepository.js";
 import type {
   AgendaItemRepository,
   AttendanceRepository,
   BallotRepository,
   CommitteeMembershipRepository,
+  ContactRepository,
   ContentTemplateRepository,
   CouncilBusinessRepository,
   CouncilCommitteeRepository,
   CouncilDecisionRepository,
   CouncilMeetingRepository,
   CouncilMemberRepository,
+  CouncilTermRepository,
   HallSettingsRepository,
   MeetingRosterRepository,
   ResourceRepository,
@@ -30,6 +33,7 @@ import { createCouncilCommitteeRepository } from "../repositories/councilCommitt
 import { createCouncilDecisionRepository } from "../repositories/councilDecisionRepository.js";
 import { createCouncilMeetingRepository } from "../repositories/councilMeetingRepository.js";
 import { createCouncilMemberRepository } from "../repositories/councilMemberRepository.js";
+import { createCouncilTermRepository } from "../repositories/councilTermRepository.js";
 import { createHallSettingsRepository } from "../repositories/hallSettingsRepository.js";
 import { createMeetingRosterRepository } from "../repositories/meetingRosterRepository.js";
 import { createResourceRepository } from "../repositories/resourceRepository.js";
@@ -38,10 +42,12 @@ import { createWorkspaceFolderRepository } from "../repositories/workspaceFolder
 import { RequestContextStore } from "../security/requestContext.js";
 import { type AuthService, createAuthService } from "../services/authService.js";
 import { type BallotService, createBallotService } from "../services/ballotService.js";
+import { type ContactService, createContactService } from "../services/contactService.js";
 import { type ContentTemplateService, createContentTemplateService } from "../services/contentTemplateService.js";
 import { type CouncilBusinessService, createCouncilBusinessService } from "../services/councilBusinessService.js";
 import { type CouncilCommitteeService, createCouncilCommitteeService } from "../services/councilCommitteeService.js";
 import { type CouncilMeetingService, createCouncilMeetingService } from "../services/councilMeetingService.js";
+import { type CouncilMemberService, createCouncilMemberService } from "../services/councilMemberService.js";
 import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
 import { createDocumentPreviewService, type DocumentPreviewService } from "../services/documentPreviewService.js";
 import { createDocumentRenderer, type DocumentRenderer } from "../services/documentRenderer.js";
@@ -66,7 +72,9 @@ export interface Cradle {
   requestContext: RequestContextStore;
   sqlExecutor: SqlExecutor;
   unitOfWork: UnitOfWork;
+  contactRepository: ContactRepository;
   councilMemberRepository: CouncilMemberRepository;
+  councilTermRepository: CouncilTermRepository;
   councilCommitteeRepository: CouncilCommitteeRepository;
   committeeMembershipRepository: CommitteeMembershipRepository;
   hallSettingsRepository: HallSettingsRepository;
@@ -81,6 +89,8 @@ export interface Cradle {
   councilBusinessRepository: CouncilBusinessRepository;
   contentTemplateRepository: ContentTemplateRepository;
   securityRepository: SecurityRepository;
+  contactService: ContactService;
+  councilMemberService: CouncilMemberService;
   councilMeetingService: CouncilMeetingService;
   councilCommitteeService: CouncilCommitteeService;
   meetingLifecycleService: MeetingLifecycleService;
@@ -110,7 +120,9 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     requestContext: asFunction(() => new RequestContextStore()).singleton(),
     sqlExecutor: asFunction(createSqlExecutor).singleton(),
     unitOfWork: asFunction(({ sqlExecutor }: { sqlExecutor: SqlExecutor }) => sqlExecutor).singleton(),
+    contactRepository: asFunction(createContactRepository).singleton(),
     councilMemberRepository: asFunction(createCouncilMemberRepository).singleton(),
+    councilTermRepository: asFunction(createCouncilTermRepository).singleton(),
     councilCommitteeRepository: asFunction(createCouncilCommitteeRepository).singleton(),
     committeeMembershipRepository: asFunction(createCommitteeMembershipRepository).singleton(),
     hallSettingsRepository: asFunction(createHallSettingsRepository).singleton(),
@@ -125,6 +137,8 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     councilBusinessRepository: asFunction(createCouncilBusinessRepository).singleton(),
     contentTemplateRepository: asFunction(createContentTemplateRepository).singleton(),
     securityRepository: asFunction(createSecurityRepository).singleton(),
+    contactService: asFunction(createContactService).singleton(),
+    councilMemberService: asFunction(createCouncilMemberService).singleton(),
     councilMeetingService: asFunction(createCouncilMeetingService).singleton(),
     councilCommitteeService: asFunction(createCouncilCommitteeService).singleton(),
     meetingLifecycleService: asFunction(createMeetingLifecycleService).singleton(),

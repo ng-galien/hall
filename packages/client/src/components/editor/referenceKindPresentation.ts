@@ -1,6 +1,6 @@
 import { type ReferenceEntityKind, referenceEntityKinds } from "@hall/domain";
 import type { TranslationKey } from "../../i18n/en";
-import { CalendarIcon, FileIcon, GavelIcon, MemberIcon, TextDocumentIcon } from "../icons";
+import { CalendarIcon, ContactIcon, FileIcon, GavelIcon, MemberIcon, TextDocumentIcon } from "../icons";
 
 export interface ReferenceKindPresentation {
   labelKey: TranslationKey;
@@ -11,6 +11,7 @@ export interface ReferenceKindPresentation {
 /** One client presentation catalog for every entity kind addressable by an internal reference. */
 export const referenceKindPresentations: Record<ReferenceEntityKind, ReferenceKindPresentation> = {
   member: { labelKey: "editor.kind.member", groupLabelKey: "editor.group.member", icon: MemberIcon },
+  contact: { labelKey: "editor.kind.contact", groupLabelKey: "editor.group.contact", icon: ContactIcon },
   resource: { labelKey: "editor.kind.resource", groupLabelKey: "editor.group.resource", icon: FileIcon },
   councilBusiness: {
     labelKey: "editor.kind.councilBusiness",

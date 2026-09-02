@@ -8,6 +8,7 @@ import type {
   BallotTarget,
   CommitteeMembership,
   CommitteeRole,
+  Contact,
   ContentTemplate,
   CouncilBusiness,
   CouncilCommittee,
@@ -17,6 +18,7 @@ import type {
   CouncilMeeting,
   CouncilMember,
   CouncilRole,
+  CouncilTerm,
   DocumentCategory,
   DocumentResource,
   DocumentUsage,
@@ -58,23 +60,39 @@ export interface HallSettingsRepository {
   update(input: UpdateHallSettings): Promise<HallSettings>;
 }
 
+export interface CouncilTermRepository {
+  getActive(): Promise<CouncilTerm>;
+  updateActiveExpectedMemberCount(expectedMemberCount: number): Promise<CouncilTerm>;
+}
+
+export type SaveContact = Omit<Contact, "id" | "activeCouncilMemberId" | "archivedAt" | "createdAt" | "updatedAt">;
+
+export interface ContactRepository {
+  list(options?: { includeArchived?: boolean }): Promise<Contact[]>;
+  find(id: string): Promise<Contact | null>;
+  create(input: SaveContact): Promise<Contact>;
+  update(id: string, input: SaveContact): Promise<Contact>;
+  archive(id: string, archivedAt: string): Promise<Contact>;
+}
+
 export interface CreateCouncilMember {
-  firstName: string;
-  lastName: string;
-  email?: string | null;
-  phone?: string | null;
+  contactId: string;
   role: CouncilRole;
   termStartedOn: string;
 }
 
-export interface UpdateCouncilMember extends CreateCouncilMember {
+export interface UpdateCouncilMember {
+  role: CouncilRole;
+  termStartedOn: string;
   termEndedOn: string | null;
 }
 
 export interface CouncilMemberRepository {
   list(): Promise<CouncilMember[]>;
   listActive(): Promise<CouncilMember[]>;
+  countActive(): Promise<number>;
   find(id: string): Promise<CouncilMember | null>;
+  findActiveByContact(contactId: string): Promise<CouncilMember | null>;
   create(input: CreateCouncilMember): Promise<CouncilMember>;
   update(id: string, input: UpdateCouncilMember): Promise<CouncilMember>;
 }

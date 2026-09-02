@@ -1,14 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createTestServer, domainBody, type TestAgent } from "./testServer.js";
+import { createTestCouncilMember, createTestServer, domainBody, type TestAgent } from "./testServer.js";
 
 async function createMember(agent: TestAgent, firstName: string, role = "councillor") {
-  return domainBody(
-    await agent
-      .post("/api/council-members")
-      .send({ firstName, lastName: "Robert", email: null, role, termStartedOn: "2026-03-22" })
-      .expect(201),
-  ) as { id: string };
+  return createTestCouncilMember(agent, { firstName, lastName: "Robert", role: role as "mayor" | "councillor" });
 }
 
 describe("resource update", () => {

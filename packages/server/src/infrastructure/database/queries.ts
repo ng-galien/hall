@@ -82,6 +82,29 @@ const templateSelection = `SELECT id, kind, document_type, name, body_markdown, 
   stylesheet, header_html, footer_html, created_at, updated_at
 FROM templates`;
 
+const contactSelection = `SELECT contacts.*,
+  (SELECT council_members.id
+    FROM council_members
+    WHERE council_members.contact_id = contacts.id AND council_members.term_ended_on IS NULL
+  ) AS active_council_member_id
+FROM contacts`;
+
+const memberSelection = `SELECT
+  council_members.id,
+  council_members.contact_id,
+  council_members.role,
+  council_members.term_started_on,
+  council_members.term_ended_on,
+  contacts.first_name AS contact_first_name,
+  contacts.last_name AS contact_last_name,
+  contacts.organization_name AS contact_organization_name,
+  contacts.job_title AS contact_job_title,
+  contacts.email AS contact_email,
+  contacts.phone AS contact_phone,
+  contacts.archived_at AS contact_archived_at
+FROM council_members
+JOIN contacts ON contacts.id = council_members.contact_id`;
+
 export const queries = {
   "agenda.resources.snapshot": `${resourceSelection}
     JOIN agenda_item_resources ON agenda_item_resources.resource_id = resources.id
@@ -224,7 +247,11 @@ export const queries = {
     ON CONFLICT (kind, year) DO UPDATE SET last_value = number_sequences.last_value + 1
     RETURNING last_value`,
 
-  "settings.get": "SELECT * FROM hall_settings WHERE id = 'hall'",
+  "settings.get": `SELECT hall_settings.*,
+    council_terms.expected_member_count AS council_term_expected_member_count
+    FROM hall_settings
+    JOIN council_terms ON council_terms.hall_id = hall_settings.id AND council_terms.active
+    WHERE hall_settings.id = 'hall'`,
   "settings.update": `UPDATE hall_settings SET
     name = :name,
     insee_code = :inseeCode,
@@ -247,6 +274,11 @@ export const queries = {
     outbound_email_reply_to_address = :outboundEmailReplyToAddress,
     updated_at = :updatedAt
     WHERE id = 'hall'`,
+  "councilTerm.getActive": `SELECT expected_member_count FROM council_terms
+    WHERE hall_id = 'hall' AND active`,
+  "councilTerm.updateActiveExpectedMemberCount": `UPDATE council_terms
+    SET expected_member_count = :expectedMemberCount
+    WHERE hall_id = 'hall' AND active`,
 
   "meeting.list": "SELECT * FROM council_meetings ORDER BY starts_at DESC",
   "meeting.find": "SELECT * FROM council_meetings WHERE id = :reference OR slug = :reference",
@@ -279,18 +311,49 @@ export const queries = {
     updated_at = :occurredAt
     WHERE id = :id`,
 
-  "member.list": "SELECT * FROM council_members ORDER BY active DESC, role, last_name, first_name",
-  "member.listActive": {
-    default: "SELECT * FROM council_members WHERE active = 1 ORDER BY role, last_name, first_name",
-    postgres: "SELECT * FROM council_members WHERE active = TRUE ORDER BY role, last_name, first_name",
+  "contact.list": {
+    default: `${contactSelection}
+      WHERE (:includeArchived = 1 OR contacts.archived_at IS NULL)
+      ORDER BY contacts.archived_at IS NOT NULL, contacts.last_name, contacts.first_name`,
+    postgres: `${contactSelection}
+      WHERE (CAST(:includeArchived AS boolean) = TRUE OR contacts.archived_at IS NULL)
+      ORDER BY contacts.archived_at IS NOT NULL, contacts.last_name, contacts.first_name`,
   },
-  "member.find": "SELECT * FROM council_members WHERE id = :id",
+  "contact.find": `${contactSelection} WHERE contacts.id = :id`,
+  "contact.insert": `INSERT INTO contacts
+    (id, first_name, last_name, organization_name, job_title, email, phone, notes, created_at, updated_at)
+    VALUES (:id, :firstName, :lastName, :organizationName, :jobTitle, :email, :phone, :notes, :createdAt, :updatedAt)`,
+  "contact.update": `UPDATE contacts SET
+    first_name = :firstName,
+    last_name = :lastName,
+    organization_name = :organizationName,
+    job_title = :jobTitle,
+    email = :email,
+    phone = :phone,
+    notes = :notes,
+    updated_at = :updatedAt
+    WHERE id = :id`,
+  "contact.archive": `UPDATE contacts SET archived_at = :archivedAt, updated_at = :archivedAt WHERE id = :id`,
+
+  "member.list": `${memberSelection}
+    ORDER BY council_members.term_ended_on IS NOT NULL, council_members.role, contacts.last_name, contacts.first_name`,
+  "member.listActive": {
+    default: `${memberSelection}
+      WHERE council_members.term_ended_on IS NULL
+      ORDER BY council_members.role, contacts.last_name, contacts.first_name`,
+    postgres: `${memberSelection}
+      WHERE council_members.term_ended_on IS NULL
+      ORDER BY council_members.role, contacts.last_name, contacts.first_name`,
+  },
+  "member.countActive": "SELECT COUNT(*) AS count FROM council_members WHERE term_ended_on IS NULL",
+  "member.find": `${memberSelection} WHERE council_members.id = :id`,
+  "member.findActiveByContact": `${memberSelection}
+    WHERE council_members.contact_id = :contactId AND council_members.term_ended_on IS NULL`,
   "member.insert": `INSERT INTO council_members
-    (id, first_name, last_name, email, phone, role, term_started_on)
-    VALUES (:id, :firstName, :lastName, :email, :phone, :role, :termStartedOn)`,
+    (id, contact_id, role, term_started_on)
+    VALUES (:id, :contactId, :role, :termStartedOn)`,
   "member.update": `UPDATE council_members SET
-    first_name = :firstName, last_name = :lastName, email = :email, phone = :phone, role = :role,
-    active = :active, term_started_on = :termStartedOn, term_ended_on = :termEndedOn
+    role = :role, term_started_on = :termStartedOn, term_ended_on = :termEndedOn
     WHERE id = :id`,
 
   "committee.list": {

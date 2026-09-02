@@ -130,6 +130,7 @@ export const updateHallSettingsSchema = z.object({
   outboundEmailSenderName: boundedText(160),
   outboundEmailSenderAddress: z.email().nullable(),
   outboundEmailReplyToAddress: z.email().nullable(),
+  councilTerm: z.object({ expectedMemberCount: z.number().int().positive() }).strict(),
 });
 
 const contentTemplateShape = {
@@ -644,17 +645,36 @@ export const promoteEditorAssetSchema = z.object({
   category: documentCategorySchema,
 });
 
-export const createCouncilMemberSchema = z.object({
+const contactFieldsSchema = z.object({
   firstName: nonEmpty,
   lastName: nonEmpty,
-  email: z.email().nullable().optional(),
-  phone: z.preprocess((value) => (value === "" ? null : value), z.string().trim().min(3).max(40).nullable().optional()),
+  organizationName: boundedText(160).nullable().default(null),
+  jobTitle: boundedText(160).nullable().default(null),
+  email: z.preprocess(
+    (value) => (value === "" ? null : value),
+    z.string().trim().toLowerCase().email().nullable().default(null),
+  ),
+  phone: z.preprocess(
+    (value) => (value === "" ? null : value),
+    z.string().trim().min(3).max(40).nullable().default(null),
+  ),
+  notes: boundedText(10_000).default(""),
+});
+
+export const createContactSchema = contactFieldsSchema.strict();
+
+export const updateContactSchema = contactFieldsSchema.strict();
+
+export const createCouncilMemberSchema = z.object({
+  contactId: identifierSchema,
   role: councilRoleSchema,
   termStartedOn: z.iso.date(),
 });
 
-export const updateCouncilMemberSchema = createCouncilMemberSchema
-  .extend({
+export const updateCouncilMemberSchema = z
+  .object({
+    role: councilRoleSchema,
+    termStartedOn: z.iso.date(),
     termEndedOn: z.iso.date().nullable(),
   })
   .refine((value) => value.termEndedOn === null || value.termEndedOn >= value.termStartedOn, {

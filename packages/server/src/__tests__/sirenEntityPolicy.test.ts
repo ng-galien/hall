@@ -35,6 +35,7 @@ const classificationSamples: Record<SirenEntityClass, { path: string; value: unk
   "authentication-status": { path: "/api/auth/status", value: {} },
   ballot: { path: "/api/unknown", value: { meetingId: "meeting", method: "public", result: "adopted" } },
   "committee-membership": { path: "/api/council-committees/c/memberships/m", value: { id: "m" } },
+  contact: { path: "/api/contacts/id", value: { id: "id" } },
   "council-business": { path: "/api/council-business/id", value: { id: "id" } },
   "council-committee": { path: "/api/council-committees/id", value: { id: "id" } },
   "council-decision": { path: "/api/council-decisions/id", value: { id: "id" } },

@@ -40,6 +40,7 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
     "authentication-status": () => [],
     ballot: () => [],
     "committee-membership": () => [],
+    contact: () => [],
     "council-business": () => [],
     "council-committee": () => [],
     "council-decision": () => [],
@@ -206,6 +207,7 @@ function objectEmbeddedEntities(
     "authentication-status": () => undefined,
     ballot: () => undefined,
     "committee-membership": () => undefined,
+    contact: () => undefined,
     "council-business": () => undefined,
     "council-committee": () => committeeMembershipEntities(request, payload),
     "council-decision": () => undefined,
@@ -270,6 +272,9 @@ export function apiRootRepresentation(request: Request): SirenEntity<{ authentic
         { rel: ["council-decisions"], href: "/api/council-decisions", type: SIREN_MEDIA_TYPE },
         { rel: ["council-members"], href: "/api/council-members", type: SIREN_MEDIA_TYPE },
       );
+    }
+    if (hasPermission(request.principal, "contacts.read")) {
+      links.push({ rel: ["contacts"], href: "/api/contacts", type: SIREN_MEDIA_TYPE });
     }
     if (hasPermission(request.principal, "workspace.read")) {
       links.push(

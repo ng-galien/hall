@@ -4,12 +4,15 @@ import { createTestServer, domainBody } from "./testServer.js";
 describe("council committees", () => {
   it("manages dated memberships and classifies a council matter", async () => {
     const { agent } = await createTestServer();
+    const contactResponse = await agent
+      .post("/api/contacts")
+      .send({ firstName: "Alice", lastName: "Martin", phone: "+33 6 12 34 56 78" })
+      .expect(201);
+    const contact = domainBody<{ id: string }>(contactResponse);
     const memberResponse = await agent
       .post("/api/council-members")
       .send({
-        firstName: "Alice",
-        lastName: "Martin",
-        phone: "+33 6 12 34 56 78",
+        contactId: contact.id,
         role: "councillor",
         termStartedOn: "2026-03-22",
       })
@@ -19,18 +22,12 @@ describe("council committees", () => {
       expect.arrayContaining([expect.objectContaining({ name: "member.update", method: "PUT" })]),
     );
     const updatedMember = domainBody<{
-      email: string | null;
-      phone: string | null;
       active: boolean;
       termEndedOn: string | null;
     }>(
       await agent
         .put(`/api/council-members/${member.id}`)
         .send({
-          firstName: "Alice",
-          lastName: "Martin",
-          email: "alice.martin@example.fr",
-          phone: "+33 6 87 65 43 21",
           role: "councillor",
           termStartedOn: "2026-03-22",
           termEndedOn: null,
@@ -38,8 +35,6 @@ describe("council committees", () => {
         .expect(200),
     );
     expect(updatedMember).toMatchObject({
-      email: "alice.martin@example.fr",
-      phone: "+33 6 87 65 43 21",
       active: true,
       termEndedOn: null,
     });

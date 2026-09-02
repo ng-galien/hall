@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { ChevronDownIcon, ChevronRightIcon, DebugIcon, DocsIcon, SettingsIcon } from "../components/icons";
 import { useI18n } from "../i18n/I18nProvider";
 import { useWorkspacePrefsStore } from "../pages/workspace/workspacePrefs";
+import { useContactsStore } from "../stores/contactsStore";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
@@ -19,6 +20,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
     councilBusiness: useCouncilBusinessStore((state) => state.businesses.length),
     councilDecisions: useCouncilDecisionsStore((state) => state.councilDecisions.length),
     resources: useResourcesStore((state) => state.resources.length),
+    contacts: useContactsStore((state) => state.contacts.length),
     members: useCouncilMembersStore((state) => state.members.length),
     committees: useCouncilCommitteesStore((state) => state.committees.length),
   };
@@ -40,6 +42,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
                 <div className="flex items-center gap-0.5">
                   <NavLink
                     to={item.to}
+                    data-testid={`navigation-${item.to === "/" ? "overview" : item.to.slice(1)}`}
                     end={item.to === "/"}
                     title={compact ? t(item.labelKey) : undefined}
                     aria-label={compact ? t(item.labelKey) : undefined}
@@ -102,6 +105,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
         </NavLink>
         <NavLink
           to="/settings"
+          data-testid="navigation-settings"
           className={`nav-row w-full ${compact ? "justify-center px-0" : ""}`}
           title={compact ? t("common.settings") : undefined}
           aria-label={compact ? t("common.settings") : undefined}

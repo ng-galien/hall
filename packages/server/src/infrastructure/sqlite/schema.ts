@@ -54,6 +54,72 @@ const ballotVoteConfidentialitySchema = `
   END;
 `;
 
+const councilTermCapacitySchema = `
+  CREATE TRIGGER IF NOT EXISTS council_members_require_configured_term_on_insert
+  BEFORE INSERT ON council_members
+  FOR EACH ROW
+  WHEN NEW.term_ended_on IS NULL AND (
+    SELECT expected_member_count FROM council_terms WHERE hall_id = 'hall' AND active = 1
+  ) IS NULL
+  BEGIN
+    SELECT RAISE(ABORT, 'council_term_not_configured');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS council_members_require_available_term_seat_on_insert
+  BEFORE INSERT ON council_members
+  FOR EACH ROW
+  WHEN NEW.term_ended_on IS NULL AND (
+    SELECT COUNT(*) FROM council_members WHERE term_ended_on IS NULL
+  ) >= (
+    SELECT expected_member_count FROM council_terms WHERE hall_id = 'hall' AND active = 1
+  )
+  BEGIN
+    SELECT RAISE(ABORT, 'council_term_capacity_reached');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS council_members_require_configured_term_on_reopen
+  BEFORE UPDATE OF term_ended_on ON council_members
+  FOR EACH ROW
+  WHEN OLD.term_ended_on IS NOT NULL AND NEW.term_ended_on IS NULL AND (
+    SELECT expected_member_count FROM council_terms WHERE hall_id = 'hall' AND active = 1
+  ) IS NULL
+  BEGIN
+    SELECT RAISE(ABORT, 'council_term_not_configured');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS council_members_require_available_term_seat_on_reopen
+  BEFORE UPDATE OF term_ended_on ON council_members
+  FOR EACH ROW
+  WHEN OLD.term_ended_on IS NOT NULL AND NEW.term_ended_on IS NULL AND (
+    SELECT COUNT(*) FROM council_members WHERE term_ended_on IS NULL
+  ) >= (
+    SELECT expected_member_count FROM council_terms WHERE hall_id = 'hall' AND active = 1
+  )
+  BEGIN
+    SELECT RAISE(ABORT, 'council_term_capacity_reached');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS council_term_expected_count_covers_active_members
+  BEFORE UPDATE OF expected_member_count, active ON council_terms
+  FOR EACH ROW
+  WHEN NEW.active = 1 AND (NEW.expected_member_count IS NULL OR NEW.expected_member_count < (
+    SELECT COUNT(*) FROM council_members WHERE term_ended_on IS NULL
+  ))
+  BEGIN
+    SELECT RAISE(ABORT, 'council_term_capacity_below_active_count');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS active_council_term_insert_covers_active_members
+  BEFORE INSERT ON council_terms
+  FOR EACH ROW
+  WHEN NEW.active = 1 AND (NEW.expected_member_count IS NULL OR NEW.expected_member_count < (
+    SELECT COUNT(*) FROM council_members WHERE term_ended_on IS NULL
+  ))
+  BEGIN
+    SELECT RAISE(ABORT, 'council_term_capacity_below_active_count');
+  END;
+`;
+
 const currentTables = [
   "agenda_item_resources",
   "agenda_items",
@@ -61,12 +127,14 @@ const currentTables = [
   "audit_events",
   "ballots",
   "committee_memberships",
+  "contacts",
   "council_business",
   "council_business_resources",
   "council_committees",
   "council_decisions",
   "council_meetings",
   "council_members",
+  "council_terms",
   "document_previews",
   "geographic_resources",
   "hall_settings",
@@ -91,17 +159,32 @@ const currentTables = [
 
 function createCurrentSchema(database: DatabaseSync): void {
   database.exec(`
-    CREATE TABLE council_members (
+    CREATE TABLE contacts (
       id TEXT PRIMARY KEY,
       first_name TEXT NOT NULL,
       last_name TEXT NOT NULL,
+      organization_name TEXT,
+      job_title TEXT,
       email TEXT,
       phone TEXT,
-      role TEXT NOT NULL CHECK (role IN ('mayor', 'deputyMayor', 'councillor')),
-      active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
-      term_started_on TEXT NOT NULL,
-      term_ended_on TEXT
+      notes TEXT NOT NULL DEFAULT '',
+      archived_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     ) STRICT;
+
+    CREATE TABLE council_members (
+      id TEXT PRIMARY KEY,
+      contact_id TEXT NOT NULL REFERENCES contacts(id),
+      role TEXT NOT NULL CHECK (role IN ('mayor', 'deputyMayor', 'councillor')),
+      term_started_on TEXT NOT NULL,
+      term_ended_on TEXT,
+      CHECK (term_ended_on IS NULL OR term_ended_on >= term_started_on)
+    ) STRICT;
+
+    CREATE UNIQUE INDEX council_members_one_active_membership_per_contact
+      ON council_members(contact_id)
+      WHERE term_ended_on IS NULL;
 
     CREATE TABLE council_committees (
       id TEXT PRIMARY KEY,
@@ -152,6 +235,19 @@ function createCurrentSchema(database: DatabaseSync): void {
     ) STRICT;
 
     INSERT INTO hall_settings (id) VALUES ('hall');
+
+    CREATE TABLE council_terms (
+      id TEXT PRIMARY KEY,
+      hall_id TEXT NOT NULL REFERENCES hall_settings(id),
+      expected_member_count INTEGER CHECK (expected_member_count IS NULL OR expected_member_count > 0),
+      active INTEGER NOT NULL CHECK (active IN (0, 1))
+    ) STRICT;
+
+    CREATE UNIQUE INDEX one_active_council_term_per_hall
+      ON council_terms(hall_id) WHERE active = 1;
+
+    INSERT INTO council_terms (id, hall_id, expected_member_count, active)
+      VALUES ('initial', 'hall', NULL, 1);
 
     CREATE TABLE number_sequences (
       kind TEXT NOT NULL CHECK (kind IN ('meeting', 'decision')),
@@ -627,12 +723,14 @@ export function initializeSchema(database: DatabaseSync): void {
     }
     database.exec(workspaceTitleUniquenessSchema);
     database.exec(ballotVoteConfidentialitySchema);
+    database.exec(councilTermCapacitySchema);
     return;
   }
   database.exec("BEGIN IMMEDIATE");
   try {
     createCurrentSchema(database);
     database.exec(ballotVoteConfidentialitySchema);
+    database.exec(councilTermCapacitySchema);
     database.exec("COMMIT");
   } catch (error) {
     database.exec("ROLLBACK");

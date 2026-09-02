@@ -19,9 +19,9 @@ type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 const committeeRoles: CommitteeRole[] = ["chair", "viceChair", "member"];
 const today = () => new Date().toISOString().slice(0, 10);
 const memberName = (member: CouncilMember | undefined, fallback: string) =>
-  member ? `${member.firstName} ${member.lastName}` : fallback;
+  member ? `${member.contact.firstName} ${member.contact.lastName}` : fallback;
 const memberInitials = (member: CouncilMember | undefined) =>
-  member ? `${member.firstName.slice(0, 1)}${member.lastName.slice(0, 1)}` : "?";
+  member ? `${member.contact.firstName.slice(0, 1)}${member.contact.lastName.slice(0, 1)}` : "?";
 
 export function CouncilCommitteePage() {
   const { committeeId = "" } = useParams();

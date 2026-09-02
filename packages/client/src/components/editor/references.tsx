@@ -412,6 +412,7 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
       mentionables: () => [],
       groupLabels: {
         member: "Members",
+        contact: "Contacts",
         resource: "Attachments",
         councilBusiness: "Subjects",
         meeting: "Meetings",

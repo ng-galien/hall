@@ -28,7 +28,7 @@ export async function startHttpServer(config: ServerConfig): Promise<HttpServerH
     });
     const address = server.address() as AddressInfo;
     const url = `http://${config.host}:${address.port}`;
-    logger.info({ url, databaseKind: config.database.kind }, "Municipal council server started");
+    logger.info({ url, databaseKind: config.database.kind }, "Hall server started");
 
     return {
       url,

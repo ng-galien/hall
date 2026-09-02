@@ -1,4 +1,5 @@
 import {
+  type Contact,
   type CouncilBusiness,
   type CouncilDecision,
   type CouncilMeeting,
@@ -7,6 +8,7 @@ import {
   type ReferenceEntityKind,
 } from "@hall/domain";
 import type {
+  ContactRepository,
   CouncilBusinessRepository,
   CouncilDecisionRepository,
   CouncilMeetingRepository,
@@ -17,6 +19,7 @@ import type {
 
 type ReferenceTargetByKind = {
   member: CouncilMember;
+  contact: Contact;
   meeting: CouncilMeeting;
   councilBusiness: CouncilBusiness;
   decision: CouncilDecision;
@@ -44,7 +47,11 @@ export interface ReferenceEntityResolver {
 }
 
 function memberLabel(member: CouncilMember): string {
-  return `${member.firstName} ${member.lastName}`;
+  return `${member.contact.firstName} ${member.contact.lastName}`;
+}
+
+function contactLabel(contact: Contact): string {
+  return `${contact.firstName} ${contact.lastName}`;
 }
 
 function meetingLabel(meeting: CouncilMeeting): string {
@@ -56,12 +63,14 @@ function decisionLabel(decision: CouncilDecision): string {
 }
 
 export function createReferenceEntityResolver({
+  contactRepository,
   councilMemberRepository,
   councilMeetingRepository,
   councilDecisionRepository,
   councilBusinessRepository,
   resourceRepository,
 }: {
+  contactRepository: ContactRepository;
   councilMemberRepository: CouncilMemberRepository;
   councilMeetingRepository: CouncilMeetingRepository;
   councilDecisionRepository: CouncilDecisionRepository;
@@ -76,6 +85,12 @@ export function createReferenceEntityResolver({
             type: "member" as const,
             id: target.id,
             label: memberLabel(target),
+          })),
+        contact: async () =>
+          (await contactRepository.list()).map((target) => ({
+            type: "contact" as const,
+            id: target.id,
+            label: contactLabel(target),
           })),
         meeting: async () =>
           (await councilMeetingRepository.list()).map((target) => ({
@@ -108,6 +123,10 @@ export function createReferenceEntityResolver({
         member: async () => {
           const target = await councilMemberRepository.find(id);
           return target ? { type: "member" as const, id: target.id, label: memberLabel(target), target } : null;
+        },
+        contact: async () => {
+          const target = await contactRepository.find(id);
+          return target ? { type: "contact" as const, id: target.id, label: contactLabel(target), target } : null;
         },
         meeting: async () => {
           const target = await councilMeetingRepository.find(id);

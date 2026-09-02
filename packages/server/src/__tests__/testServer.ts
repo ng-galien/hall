@@ -31,12 +31,48 @@ export function domainBody<T = any>(response: { body: unknown; headers: Record<s
   return (Array.isArray(properties.items) ? properties.items : properties) as T;
 }
 
+/** Creates the contact identity and its council mandate through the same public contracts as production clients. */
+export async function createTestCouncilMember(
+  agent: TestAgent,
+  input: {
+    firstName: string;
+    lastName?: string;
+    email?: string | null;
+    phone?: string | null;
+    role?: "mayor" | "deputyMayor" | "councillor";
+    termStartedOn?: string;
+  },
+): Promise<{ id: string; contact: { id: string } }> {
+  const contact = domainBody<{ id: string }>(
+    await agent
+      .post("/api/contacts")
+      .send({
+        firstName: input.firstName,
+        lastName: input.lastName ?? "Martin",
+        email: input.email ?? null,
+        phone: input.phone ?? null,
+      })
+      .expect(201),
+  );
+  return domainBody<{ id: string; contact: { id: string } }>(
+    await agent
+      .post("/api/council-members")
+      .send({
+        contactId: contact.id,
+        role: input.role ?? "councillor",
+        termStartedOn: input.termStartedOn ?? "2026-03-22",
+      })
+      .expect(201),
+  );
+}
+
 export async function createTestServer(
   options: {
     devAutoLogin?: boolean;
     documentRenderer?: DocumentRenderer;
     documentPreviewConverter?: DocumentPreviewConverter;
     legalReferenceProvider?: LegalReferenceProvider;
+    expectedCouncilMemberCount?: number | null;
   } = {},
 ) {
   const container = buildContainer({
@@ -55,6 +91,12 @@ export async function createTestServer(
   }
   if (options.legalReferenceProvider) {
     container.register({ legalReferenceProvider: asValue(options.legalReferenceProvider) });
+  }
+  await container.cradle.sqlExecutor.ready();
+  const expectedCouncilMemberCount =
+    options.expectedCouncilMemberCount === undefined ? 100 : options.expectedCouncilMemberCount;
+  if (expectedCouncilMemberCount !== null) {
+    await container.cradle.councilTermRepository.updateActiveExpectedMemberCount(expectedCouncilMemberCount);
   }
   const application = createHttpApplication(container);
   const server = await listen(application);

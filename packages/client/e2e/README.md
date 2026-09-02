@@ -24,4 +24,4 @@ npm run quality:e2e
 
 Retries are deliberately disabled because the real server owns mutable SQLite state for the duration of a run. A failure is reported against its original deterministic database instead of being retried against partially written data.
 
-`municipal-workflow.spec.ts` and `navigation-and-settings.spec.ts` are retained as legacy scenarios but are excluded from the maintained baseline. They must be realigned with the current domain and UI contracts before being re-enabled. The active Chromium project runs only `markdown-editor.spec.ts`.
+`council-workflow.spec.ts` and `navigation-and-settings.spec.ts` are retained as legacy scenarios but are excluded from the maintained baseline. They must be realigned with the current domain and UI contracts before being re-enabled. The active Chromium project runs `contacts.spec.ts`, `markdown-editor.spec.ts`, and `workspace-explorer.spec.ts`.

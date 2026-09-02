@@ -2,7 +2,7 @@
 
 Desktop-first municipal council management. The first bounded scope covers classified documentary resources, living
 agenda topics, council meetings, attendance and proxies, historical agenda occurrences, council decisions, ballots,
-votes, and the minutes lifecycle.
+votes, the minutes lifecycle, and a contact directory distinct from council mandates.
 
 Each installation is single-tenant and represents one commune. `GET /api/settings` exposes its `HallSettings`; an
 administrator may update them through the advertised `settings.update` Siren action. These settings hold municipal
@@ -28,8 +28,10 @@ keeps an explicit schema and may override a named query when its SQL dialect req
 
 The server exposes Siren representations and RFC 9457 Problem Details. Individual users authenticate through an
 `HttpOnly` session cookie. Server-owned roles grant broad permissions, while current domain state determines which
-Siren actions are advertised. An application user may optionally reference a council member; identity and municipal
-mandate remain separate concepts. Successful mutations are written to the audit log in the same database transaction.
+Siren actions are advertised. An application user may optionally reference a council member. A `Contact` owns identity
+and communication details; a `CouncilMember` is a dated council mandate linked to that contact. The active
+`CouncilTerm` is Hall-owned; persistence permits term history while enforcing a single active term, whose expected member count bounds active mandates. Successful mutations are
+written to the audit log in the same database transaction.
 
 Uploaded files are served as downloads with a server-derived media type, `nosniff`, and a sandbox content policy.
 Document and message templates are stored in the database as Markdown. The isomorphic `@hall/templating` package is

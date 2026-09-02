@@ -1,18 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { validateServerConfig } from "../core/config.js";
 import { hasThreeClearDays } from "../services/reconvocationPolicy.js";
-import { createTestServer, domainBody, type TestAgent } from "./testServer.js";
+import { createTestCouncilMember, createTestServer, domainBody, type TestAgent } from "./testServer.js";
 
 async function createMember(agent: TestAgent, firstName: string) {
-  const response = await agent.post("/api/council-members").send({
-    firstName,
-    lastName: "Martin",
-    email: null,
-    role: "councillor",
-    termStartedOn: "2026-03-22",
-  });
-  expect(response.status, `${JSON.stringify(domainBody(response))} ${response.text}`).toBe(201);
-  return domainBody(response) as { id: string };
+  return createTestCouncilMember(agent, { firstName });
 }
 
 async function createMeeting(agent: TestAgent) {

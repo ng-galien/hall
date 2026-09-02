@@ -15,6 +15,8 @@ export const apiUserStatusSchema = z.enum(apiUserStatuses);
 export const apiPermissions = [
   "users.manage",
   "settings.manage",
+  "contacts.read",
+  "contacts.manage",
   "members.manage",
   "workspace.read",
   "workspace.write",

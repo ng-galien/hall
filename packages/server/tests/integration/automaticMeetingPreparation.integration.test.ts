@@ -1,19 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createTestServer, domainBody, type TestAgent } from "../../src/__tests__/testServer.js";
+import { createTestCouncilMember, createTestServer, domainBody, type TestAgent } from "../../src/__tests__/testServer.js";
 
 async function createMember(agent: TestAgent, firstName: string) {
-  return domainBody<{ id: string }>(
-    await agent
-      .post("/api/council-members")
-      .send({
-        firstName,
-        lastName: "Martin",
-        email: null,
-        role: "councillor",
-        termStartedOn: "2026-03-22",
-      })
-      .expect(201),
-  );
+  return createTestCouncilMember(agent, { firstName });
 }
 
 async function createMeeting(agent: TestAgent, startsAt: string) {

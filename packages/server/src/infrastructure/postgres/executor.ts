@@ -9,6 +9,7 @@ import { compileQuery, type SqlExecutor, type SqlParameters, type SqlRunResult }
 import type { SqlQueryName } from "../database/queries.js";
 import {
   postgresBallotVoteConfidentialitySchema,
+  postgresCouncilTermCapacitySchema,
   postgresDocumentPreviewsSchema,
   postgresSchema,
   postgresTables,
@@ -156,6 +157,7 @@ export class PostgresExecutor implements SqlExecutor {
           }
         }
         await client.query(postgresBallotVoteConfidentialitySchema);
+        await client.query(postgresCouncilTermCapacitySchema);
         await client.query(postgresWorkspaceTitleUniquenessSchema);
         await client.query("COMMIT");
       } catch (error) {

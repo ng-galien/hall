@@ -1,7 +1,7 @@
 /**
- * Development seed for the fictional municipality of Saint-Aubin.
+ * Development seed for the fictional Hall instance of Saint-Aubin.
  *
- * Populates the server through its HTTP API, never through direct SQL: members,
+ * Populates the server through its HTTP API, never through direct SQL: contacts, members,
  * classified resources, council business, decisions, one completed meeting,
  * one scheduled meeting, and one meeting in preparation.
  *
@@ -285,6 +285,7 @@ const daysFromNow = (days, hour = 18, minute = 30) => {
 
 async function main() {
   const inspectedCollections = await Promise.all([
+    get("/contacts"),
     get("/council-members"),
     get("/council-committees"),
     get("/users"),
@@ -319,9 +320,10 @@ async function main() {
     outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
     outboundEmailSenderAddress: "conseil@saint-aubin.fr",
     outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
+    councilTerm: { expectedMemberCount: 15 },
   });
 
-  console.log("- Membres du conseil");
+  console.log("- Contacts et membres du conseil");
   const membersSpec = [
     ["Martine", "Delcourt", "mayor"],
     ["Bernard", "Lefèvre", "deputyMayor"],
@@ -341,10 +343,9 @@ async function main() {
   ];
   const members = {};
   for (const [memberIndex, [firstName, lastName, role]] of membersSpec.entries()) {
-    members[lastName] = await post("/council-members", {
+    const contact = await post("/contacts", {
       firstName,
       lastName,
-      role,
       email: `${firstName
         .toLowerCase()
         .normalize("NFD")
@@ -353,9 +354,35 @@ async function main() {
         .normalize("NFD")
         .replace(/[^a-z-]/g, "")}@saint-aubin.fr`,
       phone: `+33 6 10 20 30 ${String(memberIndex + 1).padStart(2, "0")}`,
+      organizationName: "Commune de Saint-Aubin",
+      jobTitle: role === "mayor" ? "Maire" : role === "deputyMayor" ? "Adjoint au maire" : "Conseiller municipal",
+      notes: "",
+    });
+    members[lastName] = await post("/council-members", {
+      contactId: contact.id,
+      role,
       termStartedOn: "2026-03-15",
     });
   }
+
+  await post("/contacts", {
+    firstName: "Camille",
+    lastName: "Perrin",
+    organizationName: "Préfecture",
+    jobTitle: "Référente contrôle de légalité",
+    email: "camille.perrin@prefecture.example",
+    phone: "+33 1 40 00 00 01",
+    notes: "Interlocutrice pour les transmissions des actes.",
+  });
+  await post("/contacts", {
+    firstName: "Hugo",
+    lastName: "Roy",
+    organizationName: "Association des commerçants",
+    jobTitle: "Président",
+    email: "hugo.roy@example.fr",
+    phone: null,
+    notes: "",
+  });
 
   console.log("- Commissions municipales");
   const schoolCommittee = await post("/council-committees", {

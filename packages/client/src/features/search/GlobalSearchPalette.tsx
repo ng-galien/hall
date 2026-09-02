@@ -12,6 +12,7 @@ import {
 } from "../../components/search/SearchBox";
 import { useI18n } from "../../i18n/I18nProvider";
 import { searchEntities } from "../../lib/search";
+import { useContactsStore } from "../../stores/contactsStore";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
@@ -44,6 +45,7 @@ export function GlobalSearchPalette() {
   const decisions = useCouncilDecisionsStore((store) => store.councilDecisions);
   const meetings = useCouncilMeetingsStore((store) => store.meetings);
   const members = useCouncilMembersStore((store) => store.members);
+  const contacts = useContactsStore((store) => store.contacts);
 
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
@@ -95,6 +97,7 @@ export function GlobalSearchPalette() {
       councilBusiness: (entry) => ({ kind: "councilBusiness" as const, id: entry.business.id }),
       meeting: (entry) => ({ kind: "meeting" as const, id: entry.meeting.id }),
       member: (entry) => ({ kind: "member" as const, id: entry.member.id }),
+      contact: (entry) => ({ kind: "contact" as const, id: entry.contact.id }),
       decision: (entry) => ({ kind: "decision" as const, id: entry.decision.id }),
     });
     const target = referenceOpenTarget(reference.kind, reference.id, {
@@ -103,6 +106,7 @@ export function GlobalSearchPalette() {
       decisions,
       meetings,
       members,
+      contacts,
     });
     if (!target) return;
     matchDiscriminated(target, "kind", {

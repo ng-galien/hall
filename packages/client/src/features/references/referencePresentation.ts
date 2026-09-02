@@ -25,8 +25,13 @@ export function resolveReferencePresentation(
   if (!resolved) return null;
   return matchDiscriminated(resolved, "kind", {
     member: ({ entity, open }) => ({
-      label: `${entity.firstName} ${entity.lastName}`,
+      label: `${entity.contact.firstName} ${entity.contact.lastName}`,
       tooltipKey: referenceKindPresentations.member.labelKey,
+      open,
+    }),
+    contact: ({ entity, open }) => ({
+      label: `${entity.firstName} ${entity.lastName}`,
+      tooltipKey: referenceKindPresentations.contact.labelKey,
       open,
     }),
     resource: ({ entity, open }) => ({

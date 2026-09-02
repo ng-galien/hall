@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createTestServer } from "./testServer.js";
+import { createTestCouncilMember, createTestServer } from "./testServer.js";
 
 function properties<T>(response: { body: { properties?: unknown } }): T {
   return response.body.properties as T;
@@ -90,11 +90,7 @@ describe("public slugs and business numbering", () => {
       ["Nadia", "councillor"],
       ["Jean", "councillor"],
     ] as const) {
-      const response = await rawAgent
-        .post("/api/council-members")
-        .send({ firstName, lastName: "Test", email: null, role, termStartedOn: "2026-03-22" })
-        .expect(201);
-      members.push(properties<{ id: string }>(response));
+      members.push(await createTestCouncilMember(rawAgent, { firstName, lastName: "Test", role }));
     }
     const decision = properties<{ id: string; slug: string }>(
       await rawAgent

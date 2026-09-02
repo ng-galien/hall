@@ -22,7 +22,7 @@ async function createMember(
   await expect(page.getByText(`${firstName} ${lastName}`, { exact: true })).toBeVisible();
 }
 
-test.describe("municipal council workflow", () => {
+test.describe("council workflow", () => {
   test("keeps one council business mutation pending and ignores duplicate submissions", async ({ appPage: page }) => {
     await primaryNavigationLink(page, "Espace de travail").click();
     await page.getByRole("button", { name: "Nouveau", exact: true }).click();

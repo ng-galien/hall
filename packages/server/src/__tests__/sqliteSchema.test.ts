@@ -37,12 +37,14 @@ describe("current SQLite schema", () => {
       "audit_events",
       "ballots",
       "committee_memberships",
+      "contacts",
       "council_business",
       "council_business_resources",
       "council_committees",
       "council_decisions",
       "council_meetings",
       "council_members",
+      "council_terms",
       "document_previews",
       "geographic_resources",
       "hall_settings",
@@ -64,6 +66,20 @@ describe("current SQLite schema", () => {
       "votes",
       "workspace_folders",
     ]);
+
+    expect(database.prepare("SELECT id, hall_id, expected_member_count, active FROM council_terms").all()).toEqual([
+      { id: "initial", hall_id: "hall", expected_member_count: null, active: 1 },
+    ]);
+
+    database
+      .prepare("INSERT INTO council_terms (id, hall_id, expected_member_count, active) VALUES (?, 'hall', ?, 0)")
+      .run("previous", 11);
+    expect(database.prepare("SELECT COUNT(*) AS count FROM council_terms").get()).toEqual({ count: 2 });
+    expect(() =>
+      database
+        .prepare("INSERT INTO council_terms (id, hall_id, expected_member_count, active) VALUES (?, 'hall', ?, 1)")
+        .run("competing", 15),
+    ).toThrow();
 
     const businessColumns = database
       .prepare("PRAGMA table_info(council_business)")
@@ -87,6 +103,28 @@ describe("current SQLite schema", () => {
       .all()
       .map((row) => String(row.name));
     expect(meetingColumns).not.toContain("title");
+    const contactColumns = database
+      .prepare("PRAGMA table_info(contacts)")
+      .all()
+      .map((row) => String(row.name));
+    expect(contactColumns).toEqual([
+      "id",
+      "first_name",
+      "last_name",
+      "organization_name",
+      "job_title",
+      "email",
+      "phone",
+      "notes",
+      "archived_at",
+      "created_at",
+      "updated_at",
+    ]);
+    const councilMemberColumns = database
+      .prepare("PRAGMA table_info(council_members)")
+      .all()
+      .map((row) => String(row.name));
+    expect(councilMemberColumns).toEqual(["id", "contact_id", "role", "term_started_on", "term_ended_on"]);
     const legalReferenceSchema = database
       .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'legal_reference_resources'")
       .get();

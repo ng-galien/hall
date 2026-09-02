@@ -250,6 +250,7 @@ function useMentionGroupLabels() {
   const { t } = useI18n();
   return {
     member: t(referenceKindPresentations.member.groupLabelKey),
+    contact: t(referenceKindPresentations.contact.groupLabelKey),
     resource: t(referenceKindPresentations.resource.groupLabelKey),
     councilBusiness: t(referenceKindPresentations.councilBusiness.groupLabelKey),
     meeting: t(referenceKindPresentations.meeting.groupLabelKey),

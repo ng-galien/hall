@@ -386,6 +386,7 @@ describe("registry", () => {
   it("exposes the resource presentation directive", () => {
     expect(directiveSpecs.map((spec) => spec.name)).toEqual([
       "member",
+      "contact",
       "resource",
       "councilBusiness",
       "decision",

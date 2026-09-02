@@ -2,6 +2,7 @@ import { IconContext, PushPin } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
 export {
+  AddressBook as ContactIcon,
   ArrowClockwise as RedoIcon,
   ArrowCounterClockwise as UndoIcon,
   ArrowDown as ArrowDownIcon,

@@ -16,6 +16,7 @@ import { errorHandler } from "./errorHandler.js";
 import { sendProblem } from "./problemDetails.js";
 import { createAuditRouter } from "./routes/auditRoutes.js";
 import { createAuthRouter, createUsersRouter } from "./routes/authRoutes.js";
+import { createContactsRouter } from "./routes/contactsRoutes.js";
 import { createContentTemplatesRouter } from "./routes/contentTemplatesRoutes.js";
 import { createCouncilBusinessRouter } from "./routes/councilBusinessRoutes.js";
 import { createCouncilCommitteesRouter } from "./routes/councilCommitteesRoutes.js";
@@ -51,6 +52,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api", requireAuthentication);
   app.use("/api/users", createUsersRouter(container.cradle));
   app.use("/api/audit-events", createAuditRouter(container.cradle));
+  app.use("/api/contacts", createContactsRouter(container.cradle));
   app.use("/api/council-members", createCouncilMembersRouter(container.cradle));
   app.use("/api/council-committees", createCouncilCommitteesRouter(container.cradle));
   app.use("/api/council-meetings", createCouncilMeetingsRouter(container.cradle));

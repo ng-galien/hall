@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createTestServer, domainBody } from "./testServer.js";
+import { createTestCouncilMember, createTestServer, domainBody } from "./testServer.js";
 
 describe("documentary resources", () => {
   it("creates, reloads and version-checks a spreadsheet", async () => {
@@ -143,14 +143,7 @@ describe("documentary resources", () => {
     const { agent } = await createTestServer();
     const members = [];
     for (const firstName of ["Mandant", "Porteur"]) {
-      members.push(
-        domainBody<{ id: string }>(
-          await agent
-            .post("/api/council-members")
-            .send({ firstName, lastName: "Pouvoir", role: "councillor", termStartedOn: "2026-03-22" })
-            .expect(201),
-        ),
-      );
+      members.push(await createTestCouncilMember(agent, { firstName, lastName: "Pouvoir" }));
     }
     const meeting = domainBody<{ id: string }>(
       await agent

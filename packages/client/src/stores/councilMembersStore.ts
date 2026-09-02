@@ -1,5 +1,5 @@
 import { findSirenAction } from "@hall/api-contract";
-import type { CouncilMember } from "@hall/domain";
+import type { Contact, ContactSummary, CouncilMember } from "@hall/domain";
 import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import {
@@ -16,6 +16,7 @@ interface CouncilMembersState {
   canCreate: boolean;
   canUpdate: Record<string, boolean>;
   clearError(): void;
+  replaceContact(contact: Contact): void;
   load(): Promise<void>;
   loadDetail(reference: string): Promise<CouncilMember | null>;
   create(input: Record<string, unknown>): Promise<boolean>;
@@ -30,6 +31,23 @@ export const useCouncilMembersStore = create<CouncilMembersState>((set, get) => 
   canUpdate: {},
   clearError() {
     set({ error: null });
+  },
+  replaceContact(contact: Contact) {
+    const summary: ContactSummary = {
+      id: contact.id,
+      firstName: contact.firstName,
+      lastName: contact.lastName,
+      organizationName: contact.organizationName,
+      jobTitle: contact.jobTitle,
+      email: contact.email,
+      phone: contact.phone,
+      archivedAt: contact.archivedAt,
+    };
+    set((state) => ({
+      members: state.members.map((member) =>
+        member.contact.id === contact.id ? { ...member, contact: summary } : member,
+      ),
+    }));
   },
   async load() {
     set({ loading: true, error: null });

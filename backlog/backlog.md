@@ -75,6 +75,16 @@ Critère de sortie : les hooks Claude et Codex exécutent le même corpus et la 
 
 ## P1 : prochains chantiers produit
 
+### Annuaire des contacts
+
+- [x] `[BACK]` Introduire `Contact` comme identité indépendante avec coordonnées, organisme, fonction libre, notes et archivage.
+- [x] `[BACK]` Faire de `CouncilMember` un mandat daté rattaché à un contact, sans dupliquer l'identité ni conserver l'ancien schéma.
+- [x] `[FULL]` Exposer les capacités Siren, permissions, audit, persistance SQLite/PostgreSQL et données de démonstration.
+- [x] `[FRONT]` Ajouter les écrans d'annuaire et de fiche contact, puis sélectionner un contact lors de la création d'un mandat.
+- [x] `[FULL]` Distinguer `:contact[...]` de `:member[...]` dans l'éditeur, la recherche, la navigation et le rendu des modèles.
+
+Critère de sortie : un contact sans mandat peut être géré et référencé ; un membre du conseil réutilise cette identité tout en conservant une référence de mandat distincte.
+
 ### Ressources tableur
 
 Choix d'intégration : Univer OSS, chargé à la demande derrière l'adaptateur Hall. Le document durable est le snapshot JSON complet du classeur, enveloppé par `schemaVersion: 2`.
@@ -172,9 +182,9 @@ Critère de sortie : chaque écran principal dispose d'une page à jour et illus
 
 ### Mandatures et historique du conseil
 
-- [ ] `[BACK]` Introduire `CouncilTerm`, affiché « Mandature » dans l'interface.
+- [x] `[BACK]` Introduire `CouncilTerm` avec une seule mandature active par commune ; l'affichage et le cycle de vie de l'historique restent à faire.
 - [ ] `[BACK]` Distinguer la date de l'élection du conseil complet, la séance d'installation et la fin effective.
-- [ ] `[BACK]` Conserver l'effectif légal attendu.
+- [x] `[BACK]` Conserver l'effectif légal attendu et empêcher le dépassement des mandats actifs.
 - [ ] `[BACK]` Rattacher membres, commissions et séances à leur mandature.
 - [ ] `[BACK]` Garantir la cohérence entre commission, appartenances et mandature.
 - [ ] `[FRONT]` Ajouter une vue de la mandature actuelle puis la navigation vers les mandatures précédentes.
@@ -208,7 +218,7 @@ Ces fonctions ne doivent pas retarder la consolidation de l'éditeur actuel.
 - [x] Les cycles de vie appartiennent aux séances, points d'ordre du jour, délibérations et scrutins.
 - [x] L'ordre du jour impose le procès-verbal précédent au début, les questions diverses à la fin et l'unicité des éléments obligatoires.
 - [x] Les commissions, leurs appartenances datées et leurs rôles existent côté backend.
-- [x] Les membres et commissions disposent de parcours d'administration côté frontend.
+- [x] Les contacts, membres et commissions disposent de parcours d'administration côté frontend.
 - [x] Les permissions, l'audit et les actions Siren constituent la source des capacités du frontend.
 - [x] Les ressources documentaires distinguent textes, documents et actifs temporaires d'éditeur.
 - [x] SQLite reste le moteur de développement et PostgreSQL le moteur de production, derrière la même frontière de persistance.

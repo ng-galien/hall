@@ -1,20 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createTestServer, domainBody, type TestAgent } from "./testServer.js";
+import { createTestCouncilMember, createTestServer, domainBody, type TestAgent } from "./testServer.js";
 
 async function createMember(agent: TestAgent, firstName: string, role = "councillor") {
-  const response = await agent.post("/api/council-members").send({
-    firstName,
-    lastName: "Martin",
-    email: null,
-    role,
-    termStartedOn: "2026-03-22",
-  });
-  expect(response.status).toBe(201);
-  return domainBody(response) as { id: string };
+  return createTestCouncilMember(agent, { firstName, role: role as "mayor" | "councillor" });
 }
 
-describe("municipal council flow", () => {
+describe("council flow", () => {
   it("prepares a decision, reaches quorum and records a named public ballot", async () => {
     const { agent } = await createTestServer();
     const mayor = await createMember(agent, "Alice", "mayor");

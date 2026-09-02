@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   addCommitteeMembershipSchema,
+  createContactSchema,
   createCouncilMeetingSchema,
   createCouncilMemberSchema,
   createGeographicResourceSchema,
@@ -197,6 +198,7 @@ describe("updateHallSettingsSchema", () => {
     outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
     outboundEmailSenderAddress: "conseil@saint-aubin.fr",
     outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
+    councilTerm: { expectedMemberCount: 15 },
   };
 
   it("accepts a complete Hall configuration", () => {
@@ -343,24 +345,34 @@ describe("legal reference resolution", () => {
   });
 });
 
-describe("council member and committee membership dates", () => {
-  const member = {
+describe("contact, council member and committee membership dates", () => {
+  const contact = {
     firstName: "Alice",
     lastName: "Martin",
+    organizationName: null,
+    jobTitle: null,
     email: null,
+    notes: "",
+  };
+  const mandate = {
     role: "councillor" as const,
     termStartedOn: "2026-03-01",
   };
+  const member = {
+    contactId: "11111111-1111-4111-8111-111111111111",
+    ...mandate,
+  };
 
-  it("normalizes an empty phone number to null", () => {
-    expect(createCouncilMemberSchema.parse({ ...member, phone: "" }).phone).toBeNull();
-    expect(createCouncilMemberSchema.parse({ ...member, phone: " 01 23 45 67 89 " }).phone).toBe("01 23 45 67 89");
+  it("normalizes an empty contact phone number to null", () => {
+    expect(createContactSchema.parse({ ...contact, phone: "" }).phone).toBeNull();
+    expect(createContactSchema.parse({ ...contact, phone: " 01 23 45 67 89 " }).phone).toBe("01 23 45 67 89");
   });
 
   it("accepts a member term end on or after its start and rejects an earlier end", () => {
-    expect(updateCouncilMemberSchema.parse({ ...member, termEndedOn: null }).termEndedOn).toBeNull();
-    expect(updateCouncilMemberSchema.parse({ ...member, termEndedOn: "2026-03-01" }).termEndedOn).toBe("2026-03-01");
-    expect(() => updateCouncilMemberSchema.parse({ ...member, termEndedOn: "2026-02-28" })).toThrow();
+    expect(createCouncilMemberSchema.parse(member)).toMatchObject(member);
+    expect(updateCouncilMemberSchema.parse({ ...mandate, termEndedOn: null }).termEndedOn).toBeNull();
+    expect(updateCouncilMemberSchema.parse({ ...mandate, termEndedOn: "2026-03-01" }).termEndedOn).toBe("2026-03-01");
+    expect(() => updateCouncilMemberSchema.parse({ ...mandate, termEndedOn: "2026-02-28" })).toThrow();
   });
 
   it("accepts an open or chronologically valid committee membership and rejects an earlier end", () => {

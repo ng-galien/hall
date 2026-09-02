@@ -1,12 +1,20 @@
 import type { ReactNode } from "react";
-import { CommitteeIcon, DecisionsIcon, GavelIcon, HomeIcon, MembersIcon, WorkspaceIcon } from "../components/icons";
+import {
+  CommitteeIcon,
+  ContactIcon,
+  DecisionsIcon,
+  GavelIcon,
+  HomeIcon,
+  MembersIcon,
+  WorkspaceIcon,
+} from "../components/icons";
 import type { TranslationKey } from "../i18n/en";
 
 export interface NavigationItem {
   to: string;
   labelKey: TranslationKey;
   icon: ReactNode;
-  countKey?: "meetings" | "councilBusiness" | "councilDecisions" | "resources" | "members" | "committees";
+  countKey?: "meetings" | "councilBusiness" | "councilDecisions" | "resources" | "contacts" | "members" | "committees";
   /** Renders the filing path tree under this entry. */
   workspaceTree?: boolean;
 }
@@ -38,6 +46,7 @@ export const navigationSections: NavigationSection[] = [
   {
     labelKey: "navigation.administration",
     items: [
+      { to: "/contacts", labelKey: "navigation.contacts", icon: <ContactIcon />, countKey: "contacts" },
       { to: "/council-members", labelKey: "navigation.members", icon: <MembersIcon />, countKey: "members" },
       {
         to: "/council-committees",

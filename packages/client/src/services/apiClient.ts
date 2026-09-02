@@ -31,6 +31,13 @@ export type ApiErrorCode =
   | "workspace_folder_not_found"
   | "council_decision_not_found"
   | "council_member_not_found"
+  | "council_term_not_configured"
+  | "council_term_capacity_reached"
+  | "council_term_capacity_below_active_count"
+  | "contact_not_found"
+  | "contact_archived"
+  | "contact_already_active_council_member"
+  | "contact_has_active_council_membership"
   | "upload_too_large"
   | "invalid_request"
   | "invalid_meeting_transition"
@@ -107,6 +114,13 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "workspace_folder_not_found",
   "council_decision_not_found",
   "council_member_not_found",
+  "council_term_not_configured",
+  "council_term_capacity_reached",
+  "council_term_capacity_below_active_count",
+  "contact_not_found",
+  "contact_archived",
+  "contact_already_active_council_member",
+  "contact_has_active_council_membership",
   "upload_too_large",
   "invalid_meeting_transition",
   "invalid_request",

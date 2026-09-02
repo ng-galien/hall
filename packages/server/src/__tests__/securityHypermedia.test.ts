@@ -1,6 +1,6 @@
 import { PROBLEM_MEDIA_TYPE, SIREN_MEDIA_TYPE } from "@hall/api-contract";
 import { describe, expect, it } from "vitest";
-import { createTestServer } from "./testServer.js";
+import { createTestCouncilMember, createTestServer } from "./testServer.js";
 
 const administrator = {
   email: "admin@example.fr",
@@ -94,17 +94,13 @@ describe("users, permissions, audit and Siren affordances", () => {
       .expect(200);
     expect(login.headers["set-cookie"]?.[0]).toContain("hall_session=");
 
-    const member = await rawAgent
-      .post("/api/council-members")
-      .send({
-        firstName: "Camille",
-        lastName: "Martin",
-        email: "camille.martin@example.fr",
-        role: "councillor",
-        termStartedOn: "2026-03-15",
-      })
-      .expect(201);
-    const councilMemberId = properties<{ id: string }>(member).id;
+    const member = await createTestCouncilMember(rawAgent, {
+      firstName: "Camille",
+      lastName: "Martin",
+      email: "camille.martin@example.fr",
+      termStartedOn: "2026-03-15",
+    });
+    const councilMemberId = member.id;
     const meeting = await rawAgent
       .post("/api/council-meetings")
       .send({ startsAt: "2026-09-10T18:30:00.000Z", location: "Hall" })

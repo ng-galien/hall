@@ -238,13 +238,46 @@ test("council member collections expose distinct semantic destinations", () => {
   assert.match(page, /aria-label=\{label\}/);
   assert.match(page, /<EditIcon \/>/);
   assert.match(page, /to={`\/council-members\/\$\{member\.id\}`}/);
-  assert.match(page, /href={`mailto:\$\{member\.email\}`}/);
-  assert.match(page, /href={phoneHref\(member\.phone\)}/);
+  assert.match(page, /href={`mailto:\$\{member\.contact\.email\}`}/);
+  assert.match(page, /href={phoneHref\(member\.contact\.phone\)}/);
+  assert.match(page, /contactId: form\.get\("contactId"\)/);
+  assert.doesNotMatch(page, /firstName: form\.get\("firstName"\)/);
   assert.match(page, /to={`\/council-committees\/\$\{committee\.slug\}`}/);
   assert.match(page, /to={`\/council-members\/\$\{memberId\}#committees`}/);
   assert.doesNotMatch(page, /<Link className="(?:entity-card|data-row)/);
   assert.doesNotMatch(page, /<Link className="council-member-name/);
   assert.doesNotMatch(page, /committeeCountLabel|committees\.count/);
+});
+
+test("contact updates refresh every embedded council-member summary", () => {
+  const contactsStore = read("src/stores/contactsStore.ts");
+  const membersStore = read("src/stores/councilMembersStore.ts");
+  assert.match(contactsStore, /replaceContact\(updated\)/);
+  assert.match(membersStore, /replaceContact\(contact: Contact\)/);
+  assert.match(membersStore, /member\.contact\.id === contact\.id/);
+});
+
+test("contact autosave serializes writes and guards internal navigation", () => {
+  const page = read("src/pages/ContactPage.tsx");
+  const app = read("src/App.tsx");
+  assert.match(page, /savePromiseRef/);
+  assert.match(page, /useBlocker/);
+  assert.match(page, /navigationBlocker\.proceed\(\)/);
+  assert.match(page, /navigationBlocker\.reset\(\)/);
+  assert.match(page, /\[dirty, draftRevision, flush\]/);
+  assert.match(app, /createBrowserRouter/);
+  assert.match(page, /aria-invalid=/);
+});
+
+test("active council-term capacity is configurable through the existing settings action", () => {
+  const page = read("src/pages/SettingsPage.tsx");
+  const api = read("src/services/hallSettingsApi.ts");
+  assert.match(api, /findSirenAction\(result\.representation, "settings\.update"\)/);
+  assert.match(api, /const \{ updatedAt: _updatedAt, \.\.\.settings \} = current\.data/);
+  assert.match(api, /submitSirenAction<HallSettings>\(current\.representation, "settings\.update", \{/);
+  assert.match(page, /settings-expected-member-count/);
+  assert.match(page, /updateActiveCouncilTermExpectedMemberCount\(parsedExpectedMemberCount\)/);
+  assert.match(page, /useCouncilMembersStore\.getState\(\)\.load\(\)/);
 });
 
 test("editor references use one validated presentation and navigation authority", () => {

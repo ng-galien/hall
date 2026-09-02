@@ -10,6 +10,7 @@ export const sirenEntityClasses = [
   "authentication-status",
   "ballot",
   "committee-membership",
+  "contact",
   "council-business",
   "council-committee",
   "council-decision",
@@ -63,6 +64,7 @@ export function classifySirenEntity(request: Request, value: unknown): SirenEnti
   if (path.startsWith("/api/templates/references")) return "template-reference";
   if (path.startsWith("/api/templates/preview")) return "template-preview";
   if (path.startsWith("/api/templates")) return "template";
+  if (path.startsWith("/api/contacts")) return "contact";
   if (path.startsWith("/api/council-members")) return "council-member";
   if (path.startsWith("/api/council-decisions")) return "council-decision";
   if (path.startsWith("/api/council-committees") && path.includes("/memberships/")) {
@@ -89,6 +91,7 @@ const primaryPropertyByClass: Record<SirenEntityClass, string | null> = {
   "authentication-status": null,
   ballot: "ballot",
   "committee-membership": null,
+  contact: null,
   "council-business": "business",
   "council-committee": "committee",
   "council-decision": null,
@@ -124,6 +127,7 @@ const slugIdentityByClass: Record<SirenEntityClass, boolean> = {
   "authentication-status": false,
   ballot: false,
   "committee-membership": false,
+  contact: false,
   "council-business": true,
   "council-committee": true,
   "council-decision": true,
@@ -146,6 +150,7 @@ export function publicReference(entityClass: SirenEntityClass, value: Record<str
 
 const templateReferenceRoots: Record<ReferenceEntityKind, string> = {
   member: "council-members",
+  contact: "contacts",
   resource: "resources",
   councilBusiness: "council-business",
   decision: "council-decisions",
@@ -186,6 +191,7 @@ export function canonicalHref(request: Request, entityClass: SirenEntityClass, v
       const committeeReference = pathWithoutQuery(request).match(/\/api\/council-committees\/([^/]+)/)?.[1];
       return committeeReference ? `/api/council-committees/${committeeReference}/memberships/${id}` : currentHref();
     },
+    contact: () => (id ? `/api/contacts/${id}` : currentHref()),
     "council-business": () => referencedHref("council-business"),
     "council-committee": () => referencedHref("council-committees"),
     "council-decision": () => referencedHref("council-decisions"),

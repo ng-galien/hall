@@ -12,6 +12,8 @@ const admin: ApiPrincipal = {
   permissions: [
     "users.manage",
     "settings.manage",
+    "contacts.read",
+    "contacts.manage",
     "members.manage",
     "workspace.read",
     "workspace.write",
@@ -25,6 +27,7 @@ const admin: ApiPrincipal = {
 
 const actionsByPermissions = [
   [[], ["session.bootstrap", "session.login", "session.logout"]],
+  [["contacts.manage"], ["contact.create", "contact.update", "contact.archive"]],
   [["members.manage"], ["member.create", "member.update"]],
   [
     ["workspace.read"],
@@ -109,6 +112,9 @@ const auditCases = [
   ["POST", "/api/auth/bootstrap", undefined, "session.bootstrap", "user", undefined],
   ["POST", "/api/auth/login", undefined, "session.login", "session", undefined],
   ["POST", "/api/auth/logout", undefined, "session.logout", "session", null],
+  ["POST", "/api/contacts", undefined, "contact.create", "contact", null],
+  ["PUT", "/api/contacts/contact-1", undefined, "contact.update", "contact", "contact-1"],
+  ["POST", "/api/contacts/contact-1/archive", undefined, "contact.archive", "contact", "contact-1"],
   ["POST", "/api/council-members", undefined, "member.create", "council-member", null],
   ["PUT", "/api/council-members/member-1", undefined, "member.update", "council-member", "member-1"],
   ["POST", "/api/council-decisions", undefined, "decision.create", "council-decision", null],
@@ -522,6 +528,7 @@ describe("API command policy", () => {
     expect(actionIsPermitted(principal(["meetings.conduct"]), "meeting.open")).toBe(true);
     expect(actionIsPermitted(principal(["users.manage"]), "user.create")).toBe(true);
     expect(actionIsPermitted(principal(["settings.manage"]), "settings.update")).toBe(true);
+    expect(actionIsPermitted(principal(["contacts.manage"]), "contact.create")).toBe(true);
     expect(actionIsPermitted(principal(["members.manage"]), "member.create")).toBe(true);
     expect(actionIsPermitted(principal(["meetings.prepare"]), "meeting.change-status")).toBe(true);
     expect(actionIsPermitted(principal(["meetings.conduct"]), "meeting.change-status")).toBe(true);

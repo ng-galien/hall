@@ -191,6 +191,12 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method === "PUT" && id && !child) return auditIntent("member.update", id);
     return null;
   }
+  if (root === "contacts") {
+    if (method === "POST" && !id) return auditIntent("contact.create", null);
+    if (method === "PUT" && id && !child) return auditIntent("contact.update", id);
+    if (method === "POST" && id && child === "archive" && !childId) return auditIntent("contact.archive", id);
+    return null;
+  }
   if (root === "council-decisions") {
     if (method === "POST" && !id) return auditIntent("decision.create", null);
     if (method === "PUT" && id && !child) return auditIntent("decision.update", id);

@@ -1,4 +1,5 @@
 import {
+  type Contact,
   type CouncilBusiness,
   type CouncilDecisionListEntry,
   type CouncilMeeting,
@@ -16,10 +17,12 @@ export interface ReferenceNavigationCatalog {
   decisions: readonly CouncilDecisionListEntry[];
   meetings: readonly CouncilMeeting[];
   members: readonly CouncilMember[];
+  contacts: readonly Contact[];
 }
 
 export type ResolvedReferenceEntity =
   | { kind: "member"; entity: CouncilMember; open: ReferenceOpenTarget }
+  | { kind: "contact"; entity: Contact; open: ReferenceOpenTarget }
   | { kind: "resource"; entity: Resource; open: ReferenceOpenTarget }
   | { kind: "councilBusiness"; entity: CouncilBusiness; open: ReferenceOpenTarget }
   | { kind: "meeting"; entity: CouncilMeeting; open: ReferenceOpenTarget }
@@ -42,6 +45,12 @@ export function resolveReferenceEntity(
       const entity = catalog.members.find((candidate) => candidate.id === id);
       return entity
         ? { kind: "member" as const, entity, open: { kind: "route" as const, href: `/council-members/${id}` } }
+        : null;
+    },
+    contact: () => {
+      const entity = catalog.contacts.find((candidate) => candidate.id === id);
+      return entity
+        ? { kind: "contact" as const, entity, open: { kind: "route" as const, href: `/contacts/${id}` } }
         : null;
     },
     resource: () => {
