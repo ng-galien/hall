@@ -1,0 +1,37 @@
+-- Requirement annotation contract
+-- ===============================
+--
+-- @technical-requirement HALL-TR-TRC-010 REQUIREMENTS_USE_EXTRACTABLE_IDS:
+-- Every functional or technical requirement enforced or derived by this SQL
+-- model carries a machine-extractable marker, a stable identifier and a
+-- symbolic name.
+--
+-- Functional requirement markers are made of "@" followed by
+-- "functional-requirement", then:
+--
+--   HALL-FR-<DOMAIN>-<NUMBER> <SYMBOLIC_NAME>:
+--
+-- Functional domains are:
+--   ATT  meeting attendance and written proxies
+--   MTG  council meeting and quorum
+--   BUS  council business preparation root
+--   MIN  council meeting minutes and their approval
+--   AGI  council agenda placement and consideration lifecycle
+--   BAL  ballot, participation and result
+--   VOT  recorded public or secret vote
+--
+-- Technical requirement markers are made of "@" followed by
+-- "technical-requirement", then:
+--
+--   HALL-TR-<DOMAIN>-<NUMBER> <SYMBOLIC_NAME>:
+--
+-- Technical domains are:
+--   CON  transactionality, locking and concurrency
+--   INT  database enforcement and bypass prevention
+--   ERR  SQLSTATE and database error contract
+--   TRC  requirement traceability and extraction
+--
+-- @technical-requirement HALL-TR-TRC-020 REQUIREMENT_IDS_ARE_NEVER_REUSED:
+-- NUMBER has three digits and advances by ten inside each domain. Gaps are
+-- intentional insertion points. An assigned identifier is never renumbered or
+-- reused; the symbolic name remains the human-readable stable locator.

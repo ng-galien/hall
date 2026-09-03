@@ -1,12 +1,11 @@
 import type { ContentTemplate, TemplateRenderContext } from "@hall/domain";
 import { type Diagnostic, parse, serialize } from "@hall/templating";
 import MailComposer from "nodemailer/lib/mail-composer/index.js";
+import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type {
   ContentTemplateRepository,
   HallSettingsRepository,
-  ResourceRepository,
   SaveContentTemplate,
-  StoredDocumentResource,
   UnitOfWork,
 } from "../repositories/contracts.js";
 import type { DocumentRenderer } from "./documentRenderer.js";
@@ -77,18 +76,32 @@ function safeFileStem(value: string): string {
 
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 
-async function attachments(repository: ResourceRepository, resourceIds: string[]): Promise<StoredDocumentResource[]> {
-  const result: StoredDocumentResource[] = [];
+interface TemplateAttachment {
+  id: string;
+  fileName: string;
+  mediaType: string;
+  content: Buffer;
+}
+
+async function attachments(resourcesClient: ResourcesClient, resourceIds: string[]): Promise<TemplateAttachment[]> {
+  const result: TemplateAttachment[] = [];
   let totalBytes = 0;
   for (const id of new Set(resourceIds)) {
-    const resource = await repository.find(id);
+    const resource = (await resourcesClient.open(id))?.data ?? null;
     if (!resource) throw new DomainError("resource_not_found", 404);
     if (resource.kind !== "document") throw new DomainError("resource_content_unavailable", 409);
-    totalBytes += resource.content.byteLength;
+    const binary = await resourcesClient.readDocumentContent(resource.id);
+    if (!binary) throw new DomainError("resource_content_unavailable", 409);
+    totalBytes += binary.content.byteLength;
     if (totalBytes > MAX_ATTACHMENT_BYTES) {
       throw new DomainError("template_attachments_too_large", 413);
     }
-    result.push(resource);
+    result.push({
+      id: resource.id,
+      fileName: resource.name,
+      mediaType: binary.mediaType,
+      content: binary.content,
+    });
   }
   return result;
 }
@@ -97,14 +110,14 @@ export function createContentTemplateService({
   contentTemplateRepository,
   templateRenderingService,
   documentRenderer,
-  resourceRepository,
+  resourcesClient,
   hallSettingsRepository,
   unitOfWork,
 }: {
   contentTemplateRepository: ContentTemplateRepository;
   templateRenderingService: TemplateRenderingService;
   documentRenderer: DocumentRenderer;
-  resourceRepository: ResourceRepository;
+  resourcesClient: ResourcesClient;
   hallSettingsRepository: HallSettingsRepository;
   unitOfWork: UnitOfWork;
 }): ContentTemplateService {
@@ -194,7 +207,7 @@ export function createContentTemplateService({
         const template = await find(id);
         const preview = await templateRenderingService.preview(template, input.context);
         assertRenderable(preview.diagnostics);
-        const selected = await attachments(resourceRepository, input.attachmentResourceIds);
+        const selected = await attachments(resourcesClient, input.attachmentResourceIds);
         const stem = safeFileStem(template.documentType);
 
         if (template.kind === "pdf") {

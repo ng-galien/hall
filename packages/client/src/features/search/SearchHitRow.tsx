@@ -1,15 +1,63 @@
 import { matchDiscriminated } from "@hall/domain";
+import type { ReactNode } from "react";
 import { KindGlyph } from "../../components/search/kindPresentation";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CouncilBusinessGlyph } from "../council-business/CouncilBusinessGlyph";
 import { councilBusinessKindKeys } from "../council-business/presentation";
 import { formatMeetingLabel } from "../council-meetings/meetingPresentation";
-import { ResourceGlyph, useResourceTypeLabel } from "../documents/ResourceGlyph";
+import { DocumentaryResourceGlyph, useDocumentaryResourceTypeLabel } from "../documents/DocumentaryResourceGlyph";
 import { MeetingStatusBadge, StatusBadge } from "../status/DomainStatusBadge";
 import type { SearchHit } from "./searchCorpus";
 
 /* The one way a search hit renders, whatever the surface. The default row borrows the
    workspace explorer classes so both stay visually identical; `card` keeps the grid card. */
+
+export function SearchResultRow({
+  glyph,
+  title,
+  meta,
+  badge,
+  active = false,
+  card = false,
+  onPick,
+}: {
+  glyph: ReactNode;
+  title: string;
+  meta: string;
+  badge?: ReactNode;
+  active?: boolean;
+  card?: boolean;
+  onPick(): void;
+}) {
+  if (card) {
+    return (
+      <button className="wsearch-hit" type="button" data-testid="search-hit" onClick={onPick}>
+        {glyph}
+        <span className="workspace-row-copy">
+          <strong>{title}</strong>
+          <span>{meta}</span>
+        </span>
+        {badge}
+      </button>
+    );
+  }
+  return (
+    <button
+      className="workspace-explorer-row"
+      type="button"
+      data-testid="search-hit"
+      data-active={active || undefined}
+      onClick={onPick}
+    >
+      {glyph}
+      <span className="workspace-explorer-copy">
+        <strong>{title}</strong>
+        <span>{meta}</span>
+      </span>
+      {badge}
+    </button>
+  );
+}
 
 export function SearchHitRow<THit extends SearchHit>({
   hit,
@@ -23,7 +71,7 @@ export function SearchHitRow<THit extends SearchHit>({
   onPick(hit: THit): void;
 }) {
   const { t, formatDate, formatFileSize } = useI18n();
-  const typeLabel = useResourceTypeLabel();
+  const typeLabel = useDocumentaryResourceTypeLabel();
 
   const entity = hit.entity;
   const { glyph, title, meta, badge } = matchDiscriminated(entity, "entityKind", {
@@ -34,11 +82,11 @@ export function SearchHitRow<THit extends SearchHit>({
       badge: null,
     }),
     resource: (entry) => ({
-      glyph: <ResourceGlyph resource={entry.resource} />,
-      title: entry.resource.title,
+      glyph: <DocumentaryResourceGlyph resource={entry.resource} />,
+      title: entry.resource.name,
       meta:
         entry.resource.kind === "document"
-          ? `${typeLabel(entry.resource)} · ${formatFileSize(entry.resource.byteSize)}`
+          ? `${typeLabel(entry.resource)} · ${formatFileSize(entry.resource.binary.byteSize)}`
           : typeLabel(entry.resource),
       badge: null,
     }),
@@ -68,32 +116,15 @@ export function SearchHitRow<THit extends SearchHit>({
     }),
   });
 
-  if (card) {
-    return (
-      <button className="wsearch-hit" type="button" data-testid="search-hit" onClick={() => onPick(hit)}>
-        {glyph}
-        <span className="workspace-row-copy">
-          <strong>{title}</strong>
-          <span>{meta}</span>
-        </span>
-        {badge}
-      </button>
-    );
-  }
   return (
-    <button
-      className="workspace-explorer-row"
-      type="button"
-      data-testid="search-hit"
-      data-active={active || undefined}
-      onClick={() => onPick(hit)}
-    >
-      {glyph}
-      <span className="workspace-explorer-copy">
-        <strong>{title}</strong>
-        <span>{meta}</span>
-      </span>
-      {badge}
-    </button>
+    <SearchResultRow
+      glyph={glyph}
+      title={title}
+      meta={meta}
+      badge={badge}
+      active={active}
+      card={card}
+      onPick={() => onPick(hit)}
+    />
   );
 }

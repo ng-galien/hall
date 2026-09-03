@@ -15,7 +15,6 @@ import { getCouncilMeeting } from "../../services/councilMeetingsApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
-import { useResourcesStore } from "../../stores/resourcesStore";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 
 type BusinessOccurrence = {
@@ -35,7 +34,6 @@ type ActiveFolder = {
   path: string;
   name: string;
   businessCount: number;
-  resourceCount: number;
 };
 
 function topFolder(path: string) {
@@ -60,7 +58,6 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
   const { businesses } = useCouncilBusinessStore();
   const { councilDecisions } = useCouncilDecisionsStore();
   const { meetings } = useCouncilMeetingsStore();
-  const { resources } = useResourcesStore();
   const [meetingAggregates, setMeetingAggregates] = useState<MeetingAggregate[] | null>(null);
 
   useEffect(() => {
@@ -134,10 +131,9 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
         path,
         name: path,
         businessCount: activeBusinesses.filter(({ business }) => topFolder(business.folderPath) === path).length,
-        resourceCount: resources.filter((resource) => topFolder(resource.folderPath) === path).length,
       }))
       .sort((left, right) => right.businessCount - left.businessCount || left.name.localeCompare(right.name, "fr-FR"));
-  }, [activeBusinesses, resources]);
+  }, [activeBusinesses]);
 
   const renderBusiness = ({ business, occurrence }: ActiveBusiness) => (
     <button
@@ -230,9 +226,6 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
                     {t(
                       folder.businessCount === 1 ? "workspace.home.businessOne" : "workspace.home.businessMany",
                     ).replace("{count}", formatNumber(folder.businessCount))}
-                    {` · ${t(
-                      folder.resourceCount === 1 ? "workspace.home.documentOne" : "workspace.home.documentMany",
-                    ).replace("{count}", formatNumber(folder.resourceCount))}`}
                   </small>
                 </span>
                 <ChevronRightIcon aria-hidden="true" />

@@ -1,18 +1,18 @@
 import { findSirenAction, type SirenEntity } from "@hall/api-contract";
 
 export interface ResourceCapabilities {
-  updateResource: boolean;
-  updateGeography: boolean;
-  updateSpreadsheet: boolean;
+  relocate: boolean;
+  updateMetadata: boolean;
+  updateContent: boolean;
   resolveLegalReference: boolean;
   refreshLegalReference: boolean;
   deleteResource: boolean;
 }
 
 export const noResourceCapabilities: ResourceCapabilities = {
-  updateResource: false,
-  updateGeography: false,
-  updateSpreadsheet: false,
+  relocate: false,
+  updateMetadata: false,
+  updateContent: false,
   resolveLegalReference: false,
   refreshLegalReference: false,
   deleteResource: false,
@@ -22,9 +22,9 @@ export const noResourceCapabilities: ResourceCapabilities = {
 export function resourceCapabilities(representation: SirenEntity | null): ResourceCapabilities {
   if (!representation) return noResourceCapabilities;
   return {
-    updateResource: Boolean(findSirenAction(representation, "resource.update")),
-    updateGeography: Boolean(findSirenAction(representation, "resource.update-geography")),
-    updateSpreadsheet: Boolean(findSirenAction(representation, "resource.update-spreadsheet")),
+    relocate: Boolean(findSirenAction(representation, "resource.relocate")),
+    updateMetadata: Boolean(findSirenAction(representation, "resource.update-metadata")),
+    updateContent: Boolean(findSirenAction(representation, "resource.update-content")),
     resolveLegalReference: Boolean(findSirenAction(representation, "resource.resolve-legal-reference")),
     refreshLegalReference: Boolean(findSirenAction(representation, "resource.refresh-legal-reference")),
     deleteResource: Boolean(findSirenAction(representation, "resource.delete")),

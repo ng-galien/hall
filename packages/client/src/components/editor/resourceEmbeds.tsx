@@ -45,24 +45,30 @@ export interface ResourceEmbedTableSheet {
 
 type ResourceEmbedRenderer = (attributes: ResourceEmbedAttributes) => ReactNode;
 type ResourceEmbedTableOptionsResolver = (resourceId: string) => Promise<ResourceEmbedTableSheet[]>;
+type ResourceEmbedSearchResolver = (query: string) => Promise<void>;
 
 const ResourceEmbedPresentationContext = createContext<{
   render: ResourceEmbedRenderer;
   loadTableOptions: ResourceEmbedTableOptionsResolver;
+  search: ResourceEmbedSearchResolver;
 } | null>(null);
 
 /** Injects resource-specific rendering and data access into the technical editor nodes. */
 export function ResourceEmbedPresentationProvider({
   renderResourceEmbed,
   loadTableOptions,
+  searchResourceEmbeds,
   children,
 }: {
   renderResourceEmbed: ResourceEmbedRenderer;
   loadTableOptions: ResourceEmbedTableOptionsResolver;
+  searchResourceEmbeds: ResourceEmbedSearchResolver;
   children: ReactNode;
 }) {
   return (
-    <ResourceEmbedPresentationContext.Provider value={{ render: renderResourceEmbed, loadTableOptions }}>
+    <ResourceEmbedPresentationContext.Provider
+      value={{ render: renderResourceEmbed, loadTableOptions, search: searchResourceEmbeds }}
+    >
       {children}
     </ResourceEmbedPresentationContext.Provider>
   );
@@ -459,6 +465,9 @@ export function EditorResourceEmbedSearch({
         allowedKinds={["resource"]}
         title={t("editor.embedResource")}
         testId="resource-embed-search-dialog"
+        onQueryChange={(query) => {
+          if (query.trim()) void provider?.search(query);
+        }}
         onClose={onClose}
         onPick={pick}
       />

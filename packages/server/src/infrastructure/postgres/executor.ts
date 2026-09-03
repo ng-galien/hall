@@ -31,7 +31,7 @@ export class PostgresExecutor implements SqlExecutor {
     connectionString: string,
     readonly requestContext: RequestContextStore,
   ) {
-    this.#pool = new Pool({ connectionString });
+    this.#pool = new Pool({ connectionString, options: "-c search_path=public" });
     this.#ready = this.#initialize();
   }
 

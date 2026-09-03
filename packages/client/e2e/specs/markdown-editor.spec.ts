@@ -48,19 +48,16 @@ async function closeEnrichedEditor(page: Page): Promise<void> {
   await expect(enrichedEditor(page)).toBeHidden();
 }
 
-async function openWorkspaceText(page: Page, resourceIndex = 0): Promise<{ id: string; slug: string; title: string }> {
-  const response = await page.request.get("/api/resources?kind=text");
+async function openWorkspaceText(page: Page, resourceIndex = 0): Promise<{ id: string; slug: string; name: string }> {
+  const response = await page.request.get("/api/resources/search?kinds=text");
   expect(response.ok()).toBe(true);
   const representation = (await response.json()) as {
-    entities: Array<{ properties: { id: string; slug: string; title: string; folderPath: string; content: string } }>;
+    properties: { items: Array<{ id: string; slug: string; name: string; path: string }> };
   };
-  const resources = representation.entities.map(({ properties }) => properties);
-  const tableResource = resources.find(({ content }) => content.includes("\n|"));
-  const ordered = tableResource ? [tableResource, ...resources.filter(({ id }) => id !== tableResource.id)] : resources;
-  const resource = ordered[resourceIndex];
+  const resource = representation.properties.items[resourceIndex];
   expect(resource).toBeTruthy();
   await page.goto(
-    `/app/workspace?path=${encodeURIComponent(resource?.folderPath ?? "")}&resource=${encodeURIComponent(resource?.id ?? "")}`,
+    `/app/workspace?path=${encodeURIComponent(resource?.path ?? "")}&resource=${encodeURIComponent(resource?.id ?? "")}`,
   );
   await expect(compactEditor(page)).toBeVisible();
   return resource;
@@ -68,28 +65,25 @@ async function openWorkspaceText(page: Page, resourceIndex = 0): Promise<{ id: s
 
 async function createWorkspaceText(
   page: Page,
-  title: string,
+  name: string,
   content = "Contenu initial du test.",
-): Promise<{ id: string; slug: string; title: string }> {
-  const created = await page.request.post("/api/resources/texts", {
-    data: { title, folderPath: "seed", tags: ["seed", "e2e"], content },
+): Promise<{ id: string; slug: string; name: string }> {
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "text", name, path: "seed", content },
   });
   expect(created.ok()).toBe(true);
-  const response = await page.request.get("/api/resources?kind=text");
-  expect(response.ok()).toBe(true);
-  const representation = (await response.json()) as {
-    entities: Array<{ properties: { id: string; slug: string; title: string } }>;
+  const representation = (await created.json()) as {
+    properties: { id: string; slug: string; name: string };
   };
-  const resource = representation.entities.map(({ properties }) => properties).find((item) => item.title === title);
-  expect(resource).toBeTruthy();
-  return resource!;
+  expect(representation.properties.name).toBe(name);
+  return representation.properties;
 }
 
 async function persistedResourceContent(page: Page, slug: string): Promise<string> {
   const response = await page.request.get(`/api/resources/${slug}`);
   expect(response.ok()).toBe(true);
-  const representation = (await response.json()) as { properties: { resource?: { content?: string } } };
-  return representation.properties.resource?.content ?? "";
+  const representation = (await response.json()) as { properties: { content: string } };
+  return representation.properties.content;
 }
 
 async function replaceEditorText(editor: Locator, value: string): Promise<void> {
@@ -113,33 +107,31 @@ async function openResourceEmbedSearch(editor: Locator): Promise<Locator> {
   return dialog;
 }
 
-async function firstPdfResource(page: Page): Promise<{ id: string; title: string }> {
-  const response = await page.request.get("/api/resources?kind=document");
+async function firstPdfResource(page: Page): Promise<{ id: string; name: string }> {
+  const response = await page.request.get("/api/resources/search?kinds=document");
   expect(response.ok()).toBe(true);
   const representation = (await response.json()) as {
-    entities: Array<{ properties: { id: string; title: string; mediaType: string } }>;
+    properties: { items: Array<{ id: string; name: string; binary: { mediaType: string } }> };
   };
-  const resource = representation.entities
-    .map(({ properties }) => properties)
-    .find(({ mediaType }) => mediaType === "application/pdf");
+  const resource = representation.properties.items.find(({ binary }) => binary.mediaType === "application/pdf");
   expect(resource).toBeTruthy();
   return resource!;
 }
 
-async function firstSpreadsheetResource(page: Page): Promise<{ id: string; title: string; sheetId: string }> {
-  const response = await page.request.get("/api/resources?kind=spreadsheet");
+async function firstSpreadsheetResource(page: Page): Promise<{ id: string; name: string; sheetId: string }> {
+  const response = await page.request.get("/api/resources/search?kinds=spreadsheet");
   expect(response.ok()).toBe(true);
   const representation = (await response.json()) as {
-    entities: Array<{ properties: { id: string; title: string } }>;
+    properties: { items: Array<{ id: string; name: string }> };
   };
-  const resource = representation.entities.map(({ properties }) => properties)[0];
+  const resource = representation.properties.items[0];
   expect(resource).toBeTruthy();
   const detailsResponse = await page.request.get(`/api/resources/${resource!.id}`);
   expect(detailsResponse.ok()).toBe(true);
   const details = (await detailsResponse.json()) as {
-    properties: { spreadsheet: { workbook: { sheetOrder: string[] } } };
+    properties: { document: { workbook: { sheetOrder: string[] } } };
   };
-  const sheetId = details.properties.spreadsheet.workbook.sheetOrder[0];
+  const sheetId = details.properties.document.workbook.sheetOrder[0];
   expect(sheetId).toBeTruthy();
   return { ...resource!, sheetId };
 }
@@ -170,18 +162,22 @@ test.describe("Markdown editor", () => {
   test("keeps asynchronously prepared Lab resources in the editor and rendered Markdown", async ({ appPage: page }) => {
     await openEditorLab(page);
 
-    const resourceResponse = await page.request.get("/api/resources");
+    const resourceResponse = await page.request.get(
+      "/api/resources/search?kinds=document,remote,geographic,spreadsheet,legalReference",
+    );
     expect(resourceResponse.ok()).toBe(true);
     const resourceRepresentation = (await resourceResponse.json()) as {
-      entities: Array<{ properties: { kind: string; mediaType?: string; title: string } }>;
+      properties: {
+        items: Array<{ kind: string; binary?: { mediaType: string }; name: string }>;
+      };
     };
-    const availableResources = resourceRepresentation.entities.map(({ properties }) => properties);
+    const availableResources = resourceRepresentation.properties.items;
     expect(
-      availableResources.some(({ kind, mediaType }) => kind === "document" && mediaType?.startsWith("image/")),
+      availableResources.some(({ kind, binary }) => kind === "document" && binary?.mediaType.startsWith("image/")),
       JSON.stringify(availableResources),
     ).toBe(true);
     expect(
-      availableResources.some(({ kind, mediaType }) => kind === "document" && mediaType === "application/pdf"),
+      availableResources.some(({ kind, binary }) => kind === "document" && binary?.mediaType === "application/pdf"),
       JSON.stringify(availableResources),
     ).toBe(true);
     for (const kind of ["remote", "geographic", "spreadsheet"]) {
@@ -375,11 +371,11 @@ test.describe("Markdown editor", () => {
     await editor.getByTestId("editor-table-split").click();
     await expect(table.getByRole("row").first().getByRole("columnheader")).toHaveCount(4);
     await closeEnrichedEditor(page);
-    await expect(compactEditor(page).getByRole("table")).toBeVisible();
+    await expect(compactEditor(page).getByRole("table").filter({ hasText: "Tilleuls" })).toBeVisible();
     await expect(compactEditor(page)).toContainText("Tilleuls");
-    await expect(renderedDocument(page).getByRole("table")).toBeVisible();
+    await expect(renderedDocument(page).getByRole("table").filter({ hasText: "Tilleuls" })).toBeVisible();
     await openEnrichedEditor(page);
-    await expect(enrichedEditor(page).getByRole("table")).toBeVisible();
+    await expect(enrichedEditor(page).getByRole("table").filter({ hasText: "Tilleuls" })).toBeVisible();
   });
 
   test("converts tabular Excel or Word clipboard content into an editable table", async ({ appPage: page }) => {
@@ -402,7 +398,7 @@ test.describe("Markdown editor", () => {
     await expect(editor.getByRole("table")).toContainText("Harmonie");
     await expect(markdownSource(page)).toContainText("| Harmonie");
     await closeEnrichedEditor(page);
-    await expect(compactEditor(page).getByRole("table")).toContainText("1800");
+    await expect(compactEditor(page).getByRole("table").filter({ hasText: "Harmonie" })).toContainText("1800");
   });
 
   test("inserts the six typed references with their immutable UUIDs", async ({ appPage: page }) => {
@@ -462,7 +458,7 @@ test.describe("Markdown editor", () => {
     const editor = await openEnrichedEditor(page);
     const search = await openReferenceSearch(editor);
     await search.getByTestId("reference-kind-resource").click();
-    await search.getByTestId("reference-search-input").fill(resource.title);
+    await search.getByTestId("reference-search-input").fill(resource.name);
     await search.getByTestId("reference-result").first().click();
     await closeEnrichedEditor(page);
 
@@ -497,14 +493,14 @@ test.describe("Markdown editor", () => {
     await expect(compactEditor(page)).toBeVisible();
     const editor = await openEnrichedEditor(page);
     const search = await openResourceEmbedSearch(editor);
-    await search.getByTestId("reference-search-input").fill(pdf.title);
+    await search.getByTestId("reference-search-input").fill(pdf.name);
     await search.getByTestId("reference-result").first().click();
 
     await expect(editor.getByTestId(`editor-resource-embed-${pdf.id}`)).toBeVisible();
     await expect(editor.getByTestId("resource-embed-presentation-document")).toBeVisible();
     await closeEnrichedEditor(page);
 
-    const directive = `::resource-embed[${pdf.title}]{#${pdf.id} presentation="document"}`;
+    const directive = `::resource-embed[${pdf.name}]{#${pdf.id} presentation="document"}`;
     await expect.poll(() => persistedResourceContent(page, text.slug), { timeout: 15_000 }).toContain(directive);
     await page.reload();
 
@@ -531,11 +527,11 @@ test.describe("Markdown editor", () => {
     await openEditorLab(page);
     const editor = await openEnrichedEditor(page);
     const search = await openResourceEmbedSearch(editor);
-    await search.getByTestId("reference-search-input").fill(pdf.title);
+    await search.getByTestId("reference-search-input").fill(pdf.name);
     await search.getByTestId("reference-result").first().click();
 
     await expect(markdownSource(page)).toContainText(
-      `::resource-embed[${pdf.title}]{#${pdf.id} presentation="document"}`,
+      `::resource-embed[${pdf.name}]{#${pdf.id} presentation="document"}`,
     );
     await closeEnrichedEditor(page);
     const creationResponse = page.waitForResponse(
@@ -568,7 +564,7 @@ test.describe("Markdown editor", () => {
     await writingArea(editor).press("ControlOrMeta+A");
     await writingArea(editor).press("Backspace");
     const search = await openResourceEmbedSearch(editor);
-    await search.getByTestId("reference-search-input").fill(spreadsheet.title);
+    await search.getByTestId("reference-search-input").fill(spreadsheet.name);
     await search.getByTestId("reference-result").first().click();
 
     const options = page.getByTestId("resource-embed-table-options");
@@ -582,7 +578,7 @@ test.describe("Markdown editor", () => {
     await expect(editor.getByTestId("resource-embed-presentation-table")).toBeVisible();
     await expect(markdownSource(page)).toHaveText(
       new RegExp(
-        `::resource-embed\\[${spreadsheet.title}\\]\\{#${spreadsheet.id} presentation="table" sheet="[^"]+" range="[A-Z]+\\d+:[A-Z]+\\d+"\\}`,
+        `::resource-embed\\[${spreadsheet.name}\\]\\{#${spreadsheet.id} presentation="table" sheet="[^"]+" range="[A-Z]+\\d+:[A-Z]+\\d+"\\}`,
       ),
     );
 
@@ -631,7 +627,7 @@ test.describe("Markdown editor", () => {
 
   test("rejects a stored oversized spreadsheet range before rendering cells", async ({ appPage: page }) => {
     const spreadsheet = await firstSpreadsheetResource(page);
-    const directive = `::resource-embed[${spreadsheet.title}]{#${spreadsheet.id} presentation="table" sheet="${spreadsheet.sheetId}" range="A1:A999999999"}`;
+    const directive = `::resource-embed[${spreadsheet.name}]{#${spreadsheet.id} presentation="table" sheet="${spreadsheet.sheetId}" range="A1:A999999999"}`;
     const text = await createWorkspaceText(page, "Plage tableur invalide E2E", directive);
     await page.goto(`/app/workspace?path=seed&resource=${encodeURIComponent(text.id)}`);
 
@@ -682,7 +678,7 @@ test.describe("Markdown editor", () => {
     await expect(editor).not.toContainText(resourceId ?? "Missing UUID");
     const imageAlt = await image.getAttribute("alt");
     expect(imageAlt).toBeTruthy();
-    await expect(renderedDocument(page).locator(`img[alt="${imageAlt}"]`)).toBeVisible();
+    await expect(renderedDocument(page).locator(`img[alt="${imageAlt}"]`).last()).toBeVisible();
 
     await editor.getByTestId("editor-image-open").click();
     const viewer = page.getByTestId("resource-preview");
@@ -713,12 +709,11 @@ test.describe("Markdown editor", () => {
     const uploaded = await uploadPromise;
     expect(uploaded.status()).toBe(201);
     const representation = (await uploaded.json()) as {
-      properties: { id: string; title: string; usage: string; editorOwner: { kind: string; id: string } };
+      properties: { id: string; title: string; owner: { kind: string; id: string } };
     };
     const assetId = representation.properties.id;
     expect(representation.properties).toMatchObject({
-      usage: "editorAsset",
-      editorOwner: { kind: "textResourceContent" },
+      owner: { kind: "textResourceContent" },
     });
     expect(representation.properties.title).not.toContain("codex-clipboard");
     await expect(editor.locator(`[data-resource-id="${assetId}"] img`)).toHaveAttribute(
@@ -739,7 +734,9 @@ test.describe("Markdown editor", () => {
     await page.keyboard.press("Backspace");
     await expect(compactImage).toHaveCount(0);
     await expect.poll(() => persistedResourceContent(page, resource.slug), { timeout: 15_000 }).not.toContain(assetId);
-    await expect.poll(async () => (await page.request.get(`/api/resources/${assetId}`)).status()).toBe(404);
+    await expect
+      .poll(async () => (await page.request.get(`/api/resources/editor-assets/${assetId}`)).status())
+      .toBe(404);
   });
 
   test("imports an image by drag and drop in a fullscreen workbench", async ({ appPage: page }) => {

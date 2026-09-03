@@ -1,0 +1,8 @@
+fragment = "postgres"
+
+[[refs.where]]
+id = "postgres-dependency-remains-storage-only"
+severity = "error"
+rationale = "The PostgreSQL package owns database execution and validated persistence projections. Importing HTTP, server orchestration, client, or desktop code would reverse that boundary and recreate a second application layer inside persistence."
+expr = "$postgres_source AND $dependency_import_ref => NOT ($api_contract_target OR $server_target OR $client_target OR $desktop_target)"
+message = "The PostgreSQL package may depend on domain contracts and generic database libraries, not application runtimes or transport contracts."

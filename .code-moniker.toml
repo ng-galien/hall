@@ -6,6 +6,7 @@ roots = [
   { path = "packages/client/src", srcset = "main" },
   { path = "packages/desktop/src", srcset = "main" },
   { path = "packages/domain/src", srcset = "main" },
+  { path = "packages/postgres/src", srcset = "main" },
   { path = "packages/server/src", srcset = "main" },
   { path = "packages/templating/src", srcset = "main" },
 ]
@@ -15,6 +16,7 @@ patterns = ["dependency", "hygiene", "ownership"]
 components = [
   "code",
   "domain",
+  "postgres",
   "api-contract",
   "templating",
   "server",
@@ -77,6 +79,7 @@ uris = [
 dependency_import_ref = "kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports'"
 import_ref = "kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports'"
 domain_source = "source ~ '**/dir:packages/dir:domain/dir:src/**'"
+postgres_source = "source ~ '**/dir:packages/dir:postgres/dir:src/**'"
 api_contract_source = "source ~ '**/dir:packages/dir:api-contract/dir:src/**'"
 templating_source = "source ~ '**/dir:packages/dir:templating/dir:src/**'"
 client_source = "source ~ '**/dir:packages/dir:client/dir:src/**'"
@@ -85,13 +88,14 @@ authorization_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/d
 desktop_source = "source ~ '**/dir:packages/dir:desktop/dir:src/**'"
 client_target = "target ~ '**/dir:packages/dir:client/dir:src/**' OR target.segment('external_pkg') = '@hall/client'"
 domain_target = "target ~ '**/dir:packages/dir:domain/dir:src/**' OR target.segment('external_pkg') = '@hall/domain'"
+postgres_target = "target ~ '**/dir:packages/dir:postgres/dir:src/**' OR target.segment('external_pkg') = '@hall/postgres'"
 api_contract_target = "target ~ '**/dir:packages/dir:api-contract/dir:src/**' OR target.segment('external_pkg') = '@hall/api-contract'"
 templating_target = "target ~ '**/dir:packages/dir:templating/dir:src/**' OR target.segment('external_pkg') = '@hall/templating'"
 template_editor_at_client_source = "source ~ '**/dir:packages/dir:client/dir:src/dir:components/module:MarkdownEditor/**' OR source ~ '**/dir:packages/dir:client/dir:src/**/module:TemplateEditor/**'"
 template_rendering_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:services/module:templateRendering/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:services/module:contentTemplateService/**'"
 server_target = "target ~ '**/dir:packages/dir:server/dir:src/**' OR target.segment('external_pkg') = '@hall/server'"
 desktop_target = "target ~ '**/dir:packages/dir:desktop/dir:src/**' OR target.segment('external_pkg') = '@hall/desktop'"
-database_target = "target ~ '**/sdk:ts/path:node:sqlite/**' OR target.segment('external_pkg') = 'pg' OR target ~ '**/dir:infrastructure/dir:database/**' OR target ~ '**/dir:infrastructure/dir:sqlite/**' OR target ~ '**/dir:infrastructure/dir:postgres/**'"
+database_target = "target ~ '**/sdk:ts/path:node:sqlite/**' OR target.segment('external_pkg') = 'pg' OR target ~ '**/dir:packages/dir:postgres/**' OR target.segment('external_pkg') = '@hall/postgres' OR target ~ '**/dir:infrastructure/dir:database/**' OR target ~ '**/dir:infrastructure/dir:sqlite/**' OR target ~ '**/dir:infrastructure/dir:postgres/**'"
 state_machine_at_domain_source = "source ~ '**/dir:packages/dir:domain/dir:src/dir:state-machines/**'"
 state_machine_runtime_target = "target ~ '**/external_pkg:xstate/**'"
 authorization_at_server_permission_catalog_target = "target.name = 'apiPermissions'"

@@ -1,3 +1,4 @@
+import { resourceKinds } from "@hall/api-contract";
 import { serializeResourceEmbedDirective } from "@hall/templating";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { loadResourceEmbedTableOptions } from "../features/resources/ResourceEmb
 import { useReferenceMentionables } from "../hooks/useReferenceMentionables";
 import { useI18n } from "../i18n/I18nProvider";
 import { previewTemplatePdf } from "../services/templatesApi";
-import { useResourcesStore } from "../stores/resourcesStore";
+import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 
 export function EditorLabPage() {
   const { t } = useI18n();
@@ -20,19 +21,31 @@ export function EditorLabPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfStatus, setPdfStatus] = useState<"idle" | "loading" | "failed">("idle");
   const mentionables = useReferenceMentionables();
-  const resources = useResourcesStore((state) => state.resources);
+  const resourcesStore = useWorkspaceResourcesStore();
+  const resources = resourcesStore.searchResult?.items.filter((resource) => resource.kind !== "folder") ?? [];
+
+  useEffect(() => {
+    void resourcesStore.loadCatalog().then(() =>
+      resourcesStore.search({
+        query: "",
+        paths: [],
+        kinds: resourceKinds.filter((kind) => kind !== "folder"),
+        tags: [],
+        readiness: [],
+        media: [],
+      }),
+    );
+  }, [resourcesStore.loadCatalog, resourcesStore.search]);
 
   useEffect(() => {
     let active = true;
     const prepare = async () => {
       const demoImage = mentionables.find((item) => item.media === "image");
       const pdf = resources.find(
-        (resource) => resource.kind === "document" && resource.mediaType === "application/pdf",
+        (resource) => resource.kind === "document" && resource.binary.mediaType === "application/pdf",
       );
-      const remote = resources.find((resource) => resource.kind === "remote" && resource.url);
-      const legal = resources.find(
-        (resource) => resource.kind === "legalReference" && resource.resolutionStatus === "resolved",
-      );
+      const remote = resources.find((resource) => resource.kind === "remote");
+      const legal = resources.find((resource) => resource.kind === "legalReference");
       const map = resources.find((resource) => resource.kind === "geographic");
       const spreadsheet = resources.find((resource) => resource.kind === "spreadsheet");
       const sheet = spreadsheet ? (await loadResourceEmbedTableOptions(spreadsheet.id).catch(() => []))[0] : undefined;
@@ -40,16 +53,16 @@ export function EditorLabPage() {
       const links = [pdf, remote].filter((resource) => resource !== undefined);
       const blocks = [
         links.length > 0
-          ? `Consulter ${links.map((resource) => `:resource[${resource.title}]{#${resource.id}}`).join(" et ")}.`
+          ? `Consulter ${links.map((resource) => `:resource[${resource.name}]{#${resource.id}}`).join(" et ")}.`
           : null,
         legal
-          ? serializeResourceEmbedDirective({ id: legal.id, label: legal.title, presentation: "legal-citation" })
+          ? serializeResourceEmbedDirective({ id: legal.id, label: legal.name, presentation: "legal-citation" })
           : null,
-        map ? serializeResourceEmbedDirective({ id: map.id, label: map.title, presentation: "map" }) : null,
+        map ? serializeResourceEmbedDirective({ id: map.id, label: map.name, presentation: "map" }) : null,
         spreadsheet && sheet
           ? serializeResourceEmbedDirective({
               id: spreadsheet.id,
-              label: spreadsheet.title,
+              label: spreadsheet.name,
               presentation: "table",
               sheet: sheet.id,
               range: sheet.defaultRange,

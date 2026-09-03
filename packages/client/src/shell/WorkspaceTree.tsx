@@ -1,11 +1,11 @@
-import { type DragEvent, useMemo, useState } from "react";
+import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDownIcon, ChevronRightIcon } from "../components/icons";
 import { useI18n } from "../i18n/I18nProvider";
 import { buildPathTree, type PathNode } from "../pages/workspace/paths";
 import { DRAG_TYPE, decodeDragPayload, moveToPath } from "../pages/workspace/workspaceOrg";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
-import { useResourcesStore } from "../stores/resourcesStore";
+import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 
 function activePathFrom(search: string, pathname: string): string | null {
   if (pathname !== "/workspace") return null;
@@ -87,10 +87,11 @@ function TreeNode({
 /** Filing path tree rendered in the sidebar under the workspace entry. */
 export function WorkspaceTree() {
   const { businesses } = useCouncilBusinessStore();
-  const { resources, folderPaths } = useResourcesStore();
+  const catalog = useWorkspaceResourcesStore((state) => state.catalog);
+  const loadCatalog = useWorkspaceResourcesStore((state) => state.loadCatalog);
   const location = useLocation();
   const activePath = activePathFrom(location.search, location.pathname);
-  const tree = useMemo(() => buildPathTree(businesses, resources, folderPaths), [businesses, folderPaths, resources]);
+  const tree = useMemo(() => buildPathTree(businesses, catalog), [businesses, catalog]);
   const [toggled, setToggled] = useState<{ opened: Set<string>; closed: Set<string> }>({
     opened: new Set(),
     closed: new Set(),
@@ -124,7 +125,11 @@ export function WorkspaceTree() {
   };
 
   const [showAll, setShowAll] = useState(false);
-  const { t, formatNumber } = useI18n();
+  const { t } = useI18n();
+
+  useEffect(() => {
+    void loadCatalog();
+  }, [loadCatalog]);
 
   if (tree.length === 0) return null;
 
@@ -159,7 +164,7 @@ export function WorkspaceTree() {
       </div>
       {hiddenCount > 0 ? (
         <button className="workspace-tree-more" type="button" onClick={() => setShowAll(true)}>
-          {t("workspace.showAllFolders").replace("{count}", formatNumber(hiddenCount))}
+          {t("workspace.showAllFolders")}
         </button>
       ) : showAll && tree.length > VISIBLE_LIMIT + 1 ? (
         <button className="workspace-tree-more" type="button" onClick={() => setShowAll(false)}>

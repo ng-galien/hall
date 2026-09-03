@@ -4,7 +4,6 @@ import {
   councilBusinessIsMatter,
   matchDiscriminated,
   matchLiteral,
-  type Resource,
 } from "@hall/domain";
 import {
   type DragEvent,
@@ -41,17 +40,22 @@ import {
 import { RequestErrorBanner } from "../../components/Ui";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { councilBusinessKindKeys } from "../../features/council-business/presentation";
-import { ResourceGlyph, resourceDate, useResourceTypeLabel } from "../../features/documents/ResourceGlyph";
+import {
+  type DocumentaryLeafSummary,
+  DocumentaryResourceGlyph,
+  documentaryResourceDate,
+  useDocumentaryResourceTypeLabel,
+} from "../../features/documents/DocumentaryResourceGlyph";
+import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { updateCouncilBusiness } from "../../services/councilBusinessApi";
-import { renameFolder, updateResource } from "../../services/resourcesApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
-import { useResourcesStore } from "../../stores/resourcesStore";
-import { listAllPaths } from "./paths";
+import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { listCatalogPaths } from "./paths";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 import { DRAG_TYPE, type DragPayload, decodeDragPayload, encodeDragPayload, moveToPath } from "./workspaceOrg";
@@ -160,19 +164,19 @@ export function PathContents({
 }: {
   path: string;
   businesses: CouncilBusiness[];
-  resources: Resource[];
+  resources: DocumentaryLeafSummary[];
   selection: WorkspaceSelection;
   onSelect(selection: WorkspaceSelection, path?: string): void;
   onCreate(kind: WorkspaceCreateKind, folderPath: string, title?: string): Promise<WorkspaceSelection>;
-  onPreview(resource: Resource): void;
+  onPreview(resource: DocumentaryLeafSummary): void;
   hidden?: boolean;
 }) {
   const { t, formatDate } = useI18n();
-  const resourceTypeLabel = useResourceTypeLabel();
+  const resourceTypeLabel = useDocumentaryResourceTypeLabel();
   const councilBusinessStore = useCouncilBusinessStore();
   const { councilDecisions } = useCouncilDecisionsStore();
   const { meetings } = useCouncilMeetingsStore();
-  const resourcesStore = useResourcesStore();
+  const resourcesStore = useWorkspaceResourcesStore();
   const treeRef = useRef<HTMLUListElement | null>(null);
   const folderClickTimers = useRef(new Map<string, number>());
   const renameTargetRef = useRef<RenameTarget | null>(null);
@@ -190,7 +194,16 @@ export function PathContents({
   const [creatingFolderParent, setCreatingFolderParent] = useState<string | null>(null);
   const [createTarget, setCreateTarget] = useState<CreateTarget | null>(null);
 
-  const allPaths = listAllPaths(councilBusinessStore.businesses, resourcesStore.resources, resourcesStore.folderPaths);
+  const allPaths = useMemo(() => {
+    const known = new Set(listCatalogPaths(resourcesStore.catalog));
+    for (const folderPath of councilBusinessStore.businesses.map((business) => business.folderPath)) {
+      const segments = folderPath.split("/").filter(Boolean);
+      segments.forEach((_segment, index) => {
+        known.add(segments.slice(0, index + 1).join("/"));
+      });
+    }
+    return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
+  }, [councilBusinessStore.businesses, resourcesStore.catalog]);
   const paths = useMemo(
     () => allPaths.filter((candidate) => candidate === path || candidate.startsWith(`${path}/`)),
     [allPaths, path],
@@ -198,11 +211,11 @@ export function PathContents({
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const matches = (title: string) => !normalizedQuery || title.toLocaleLowerCase().includes(normalizedQuery);
   const visibleBusinesses = businesses.filter((business) => mode !== "resources" && matches(business.title));
-  const visibleResources = resources.filter((resource) => mode !== "businesses" && matches(resource.title));
+  const visibleResources = resources.filter((resource) => mode !== "businesses" && matches(resource.name));
   const refresh = () => onSelect(selection);
   const hasDirectItems = (folderPath: string) =>
     businesses.some((business) => business.folderPath === folderPath) ||
-    resources.some((resource) => resource.folderPath === folderPath);
+    resources.some((resource) => resource.path === folderPath);
   const isFolderExpanded = (folderPath: string, states = folderExpansion): boolean => {
     const explicitState = states.get(folderPath);
     if (explicitState !== undefined) return explicitState;
@@ -212,12 +225,26 @@ export function PathContents({
     const parentPath = folderPath.slice(0, separator);
     return isFolderExpanded(parentPath, states) && !hasDirectItems(parentPath);
   };
-  const toggle = (folderPath: string) =>
+  const toggle = (folderPath: string) => {
+    if (!isFolderExpanded(folderPath)) void resourcesStore.loadFolder(folderPath);
     setFolderExpansion((current) => {
       const next = new Map(current);
       next.set(folderPath, !isFolderExpanded(folderPath, current));
       return next;
     });
+  };
+
+  useEffect(() => {
+    void resourcesStore.loadFolder(path);
+    void resourcesStore.hydrate({
+      query: "",
+      paths: [path],
+      kinds: [],
+      tags: [],
+      readiness: [],
+      media: [],
+    });
+  }, [path, resourcesStore.hydrate, resourcesStore.loadFolder]);
 
   useEffect(
     () => () => {
@@ -285,7 +312,9 @@ export function PathContents({
   const startRenameForKey = (key: string) => {
     if (key.startsWith("resource:")) {
       const id = key.slice("resource:".length);
-      if (resourcesStore.updatableIds.includes(id)) startRename({ kind: "resource", id });
+      if (resourceCapabilities(resourcesStore.representations[id] ?? null).updateMetadata) {
+        startRename({ kind: "resource", id });
+      }
       return;
     }
     if (key.startsWith("business:")) {
@@ -293,8 +322,12 @@ export function PathContents({
       if (councilBusinessStore.renamableIds.includes(id)) startRename({ kind: "councilBusiness", id });
       return;
     }
-    if (key.startsWith("folder:") && resourcesStore.canRenameFolder) {
-      startRename({ kind: "folder", path: key.slice("folder:".length) });
+    if (key.startsWith("folder:")) {
+      const folderPath = key.slice("folder:".length);
+      const folder = resourcesStore.catalog.find((entry) => entry.kind === "folder" && entry.fullPath === folderPath);
+      if (folder && resourceCapabilities(resourcesStore.representations[folder.id] ?? null).relocate) {
+        startRename({ kind: "folder", path: folderPath });
+      }
     }
   };
   const rename = async (payload: DragPayload, nextTitle: string, session: number) => {
@@ -302,15 +335,18 @@ export function PathContents({
     try {
       return await matchDiscriminated(payload, "kind", {
         resource: async (entry) => {
-          const resource = resourcesStore.resources.find((candidate) => candidate.id === entry.id);
+          const resource = resourcesStore.summaries[entry.id];
           if (!resource) return false;
-          await updateResource(resource.id, {
-            title: nextTitle,
-            folderPath: resource.folderPath,
+          const updated = await resourcesStore.updateMetadata(resource.id, {
+            name: nextTitle,
+            path: resource.path,
             tags: resource.tags,
+            editing:
+              "autosaveEnabled" in resource
+                ? { kind: "autosave", enabled: resource.autosaveEnabled }
+                : { kind: "fixed" },
           });
-          await useResourcesStore.getState().load();
-          return true;
+          return Boolean(updated);
         },
         councilBusiness: async (entry) => {
           const business = councilBusinessStore.businesses.find((candidate) => candidate.id === entry.id);
@@ -333,13 +369,18 @@ export function PathContents({
   const renameFolderPath = async (sourcePath: string, nextName: string, session: number) => {
     setRenameError(null);
     try {
-      const result = await renameFolder(sourcePath, nextName);
+      const folder = resourcesStore.catalog.find((entry) => entry.kind === "folder" && entry.fullPath === sourcePath);
+      if (!folder) return false;
+      const separator = sourcePath.lastIndexOf("/");
+      const parentPath = separator < 0 ? "" : sourcePath.slice(0, separator);
+      const updated = await resourcesStore.relocate(folder.id, { path: parentPath, name: nextName });
+      if (!updated) throw new Error(resourcesStore.error ?? "request_failed");
+      const result = { sourcePath, targetPath: updated.fullPath, updatedAt: updated.updatedAt };
       const active =
         renameSessionRef.current === session &&
         renameTargetRef.current?.kind === "folder" &&
         renameTargetRef.current.path === sourcePath;
       if (active) setActiveRename(null);
-      resourcesStore.applyFolderRename(result);
       councilBusinessStore.applyFolderRename(result);
       setFolderExpansion((current) => {
         const next = new Map<string, boolean>();
@@ -406,11 +447,11 @@ export function PathContents({
       setRenameError(
         matchLiteral(target.kind, {
           councilMatter: () => useCouncilBusinessStore.getState().error,
-          text: () => useResourcesStore.getState().error,
-          spreadsheet: () => useResourcesStore.getState().error,
-          remote: () => useResourcesStore.getState().error,
-          geographic: () => useResourcesStore.getState().error,
-          legalReference: () => useResourcesStore.getState().error,
+          text: () => useWorkspaceResourcesStore.getState().error,
+          spreadsheet: () => useWorkspaceResourcesStore.getState().error,
+          remote: () => useWorkspaceResourcesStore.getState().error,
+          geographic: () => useWorkspaceResourcesStore.getState().error,
+          legalReference: () => useWorkspaceResourcesStore.getState().error,
         }),
       );
       return false;
@@ -432,11 +473,12 @@ export function PathContents({
 
   const createFolderPath = async (parentPath: string, name: string) => {
     setRenameError(null);
-    const createdPath = await resourcesStore.createFolder(parentPath, name);
-    if (!createdPath) {
-      setRenameError(useResourcesStore.getState().error);
+    const created = await resourcesStore.create({ kind: "folder", path: parentPath, name });
+    if (!created) {
+      setRenameError(useWorkspaceResourcesStore.getState().error);
       return false;
     }
+    const createdPath = created.fullPath;
     setCreatingFolderParent(null);
     setFeedback(t("workspace.folderCreatedFeedback").replace("{name}", name));
     window.requestAnimationFrame(() => {
@@ -504,16 +546,14 @@ export function PathContents({
   };
 
   const withFolderContextMenu = (children: ReactElement, folderPath: string, onRename?: () => void): ReactElement => {
-    const canCreateLegalReference = resourcesStore.canSearchLegalReferences && resourcesStore.canCreateLegalReference;
+    const canCreateResource = resourcesStore.collectionCapabilities.create;
+    const canCreateLegalReference = canCreateResource && resourcesStore.collectionCapabilities.searchLegalReferences;
     const hasCreateActions =
-      resourcesStore.canCreateFolder ||
+      canCreateResource ||
       councilBusinessStore.canCreate ||
-      resourcesStore.canCreateText ||
-      resourcesStore.canCreateSpreadsheet ||
-      resourcesStore.canCreateRemote ||
-      resourcesStore.canCreateGeographic ||
       canCreateLegalReference ||
-      resourcesStore.canUpload;
+      resourcesStore.collectionCapabilities.uploadDocument ||
+      resourcesStore.collectionCapabilities.importSpreadsheet;
     const hasActions = Boolean(onRename) || hasCreateActions;
     if (!hasActions) return children;
     return (
@@ -527,7 +567,7 @@ export function PathContents({
                 {t("common.create")}
               </ContextMenuSubTrigger>
               <ContextMenuSubContent>
-                {resourcesStore.canCreateFolder ? (
+                {canCreateResource ? (
                   <ContextMenuItem
                     data-testid="workspace-tree-create-folder"
                     onSelect={() => afterContextMenuCloses(() => startCreateFolder(folderPath))}
@@ -545,7 +585,7 @@ export function PathContents({
                     {t("workspace.createCouncilMatter")}
                   </ContextMenuItem>
                 ) : null}
-                {resourcesStore.canCreateText ? (
+                {canCreateResource ? (
                   <ContextMenuItem
                     data-testid="workspace-tree-create-text"
                     onSelect={() => afterContextMenuCloses(() => startInlineCreate("text", folderPath))}
@@ -554,7 +594,7 @@ export function PathContents({
                     {t("workspace.createText")}
                   </ContextMenuItem>
                 ) : null}
-                {resourcesStore.canCreateSpreadsheet ? (
+                {canCreateResource ? (
                   <ContextMenuItem
                     data-testid="workspace-tree-create-spreadsheet"
                     onSelect={() => afterContextMenuCloses(() => startInlineCreate("spreadsheet", folderPath))}
@@ -563,7 +603,7 @@ export function PathContents({
                     {t("workspace.createSpreadsheet")}
                   </ContextMenuItem>
                 ) : null}
-                {resourcesStore.canCreateRemote ? (
+                {canCreateResource ? (
                   <ContextMenuItem
                     data-testid="workspace-tree-create-remote"
                     onSelect={() => afterContextMenuCloses(() => startInlineCreate("remote", folderPath))}
@@ -572,7 +612,7 @@ export function PathContents({
                     {t("workspace.createRemote")}
                   </ContextMenuItem>
                 ) : null}
-                {resourcesStore.canCreateGeographic ? (
+                {canCreateResource ? (
                   <ContextMenuItem
                     data-testid="workspace-tree-create-geographic"
                     onSelect={() => afterContextMenuCloses(() => startInlineCreate("geographic", folderPath))}
@@ -590,7 +630,8 @@ export function PathContents({
                     {t("workspace.createLegalReference")}
                   </ContextMenuItem>
                 ) : null}
-                {resourcesStore.canUpload || resourcesStore.canImportSpreadsheet ? (
+                {resourcesStore.collectionCapabilities.uploadDocument ||
+                resourcesStore.collectionCapabilities.importSpreadsheet ? (
                   <ContextMenuItem
                     data-testid="workspace-tree-import-file"
                     onSelect={() => void onCreate("file", folderPath)}
@@ -670,15 +711,15 @@ export function PathContents({
 
   const attach = async (business: CouncilBusiness, payload: DragPayload) => {
     if (payload.kind !== "resource" || business.resources.some((resource) => resource.id === payload.id)) return;
-    const resource = resourcesStore.resources.find((candidate) => candidate.id === payload.id);
-    if (!resource || !councilBusinessStore.updatableIds.includes(business.id)) return;
+    const resource = resourcesStore.summaries[payload.id];
+    if (!resource || resource.kind === "folder" || !councilBusinessStore.updatableIds.includes(business.id)) return;
     const ok = await councilBusinessStore.update(business.id, {
       title: business.title,
       report: business.report,
       folderPath: business.folderPath,
       resourceIds: [...business.resources.map((item) => item.id), resource.id],
     });
-    if (ok) setFeedback(t("workspace.attachedFeedback").replace("{name}", resource.title));
+    if (ok) setFeedback(t("workspace.attachedFeedback").replace("{name}", resource.name));
   };
 
   const renderItems = (folderPath: string) => (
@@ -774,21 +815,21 @@ export function PathContents({
           );
         })}
       {visibleResources
-        .filter((resource) => resource.folderPath === folderPath)
+        .filter((resource) => resource.path === folderPath)
         .map((resource) => {
           const payload: DragPayload = { kind: "resource", id: resource.id };
           const key = itemKey(payload);
           const renaming = renameTarget?.kind === payload.kind && renameTarget.id === payload.id;
-          const renamable = resourcesStore.updatableIds.includes(resource.id);
+          const renamable = resourceCapabilities(resourcesStore.representations[resource.id] ?? null).updateMetadata;
           const isWorkbenchResource = resource.kind === "text" || resource.kind === "spreadsheet";
           const open = () =>
             isWorkbenchResource ? onSelect({ kind: "resource", id: resource.id }) : onPreview(resource);
           const rowContents = (
             <>
-              <ResourceGlyph resource={resource} />
+              <DocumentaryResourceGlyph resource={resource} />
               <span className="workspace-explorer-copy">
                 <InlineRenameField
-                  value={resource.title}
+                  value={resource.name}
                   editing={renaming}
                   onEditingChange={(editing, reason) => {
                     if (!editing) finishRename(payload, renameSession, reason ?? "cancel");
@@ -798,10 +839,10 @@ export function PathContents({
                   className="workspace-explorer-rename-input"
                   testId="workspace-tree-rename-input"
                 >
-                  <strong>{resource.title}</strong>
+                  <strong>{resource.name}</strong>
                 </InlineRenameField>
                 <span data-testid={`workspace-resource-metadata-${resource.id}`}>
-                  {resourceTypeLabel(resource)} · {formatDate(resourceDate(resource).value)}
+                  {resourceTypeLabel(resource)} · {formatDate(documentaryResourceDate(resource).value)}
                 </span>
                 {resource.state.readiness !== "ready" ? (
                   <span className={`workspace-resource-state workspace-resource-state-${resource.state.readiness}`}>
@@ -851,9 +892,7 @@ export function PathContents({
     visibleBusinesses.some(
       (business) => business.folderPath === folderPath || business.folderPath.startsWith(`${folderPath}/`),
     ) ||
-    visibleResources.some(
-      (resource) => resource.folderPath === folderPath || resource.folderPath.startsWith(`${folderPath}/`),
-    ) ||
+    visibleResources.some((resource) => resource.path === folderPath || resource.path.startsWith(`${folderPath}/`)) ||
     (!normalizedQuery && paths.some((candidate) => candidate === folderPath || candidate.startsWith(`${folderPath}/`)));
 
   const renderFolder = (folderPath: string): ReactNode => {
@@ -944,7 +983,18 @@ export function PathContents({
     );
     return (
       <li className="workspace-explorer-folder" key={folderPath}>
-        {withFolderContextMenu(row, folderPath, resourcesStore.canRenameFolder ? () => startRename(target) : undefined)}
+        {withFolderContextMenu(
+          row,
+          folderPath,
+          (() => {
+            const folder = resourcesStore.catalog.find(
+              (entry) => entry.kind === "folder" && entry.fullPath === folderPath,
+            );
+            return folder && resourceCapabilities(resourcesStore.representations[folder.id] ?? null).relocate
+              ? () => startRename(target)
+              : undefined;
+          })(),
+        )}
         {isExpanded ? (
           <ul className="workspace-explorer-branch">
             {renderFolderCreation(folderPath)}
@@ -960,7 +1010,7 @@ export function PathContents({
   const rootChildren = directChildrenOf(path, paths).filter(branchHasVisibleItems);
   const rootHasDirectItems =
     visibleBusinesses.some((business) => business.folderPath === path) ||
-    visibleResources.some((resource) => resource.folderPath === path);
+    visibleResources.some((resource) => resource.path === path);
   const rootName = path.split("/").at(-1) ?? path;
   const rootRow = (
     <fieldset className="workspace-explorer-folder-row workspace-explorer-root-row" data-testid="workspace-tree-root">

@@ -1,0 +1,5 @@
+-- Workspace Hall SQLSTATE catalogue
+-- =================================
+--
+-- HV701  COUNCIL_BUSINESS_WORKSPACE_INVALID
+-- HV702  COUNCIL_BUSINESS_WORKSPACE_MISSING

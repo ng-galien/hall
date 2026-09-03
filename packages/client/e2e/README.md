@@ -14,6 +14,11 @@ Run the browser suite from the repository root:
 npm run test:e2e
 ```
 
+The runner starts an isolated `postgres-test` container, gives the E2E server a
+PostgreSQL connection, seeds it only through the public HTTP API, and removes
+that test container when Playwright exits. It never stops or replaces the
+shared `hall-dev` runtime.
+
 Run the complete static, unit, integration, build, and browser checks:
 
 ```sh

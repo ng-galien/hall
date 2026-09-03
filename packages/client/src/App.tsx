@@ -1,5 +1,5 @@
-import { matchDiscriminated, type ReferenceEntityKind } from "@hall/domain";
-import { lazy, type ReactNode, Suspense } from "react";
+import { matchDiscriminated, matchLiteral, type ReferenceEntityKind } from "@hall/domain";
+import { lazy, type ReactNode, Suspense, useCallback } from "react";
 import { createBrowserRouter, Route, RouterProvider, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthenticationGate } from "./components/AuthenticationGate";
@@ -9,7 +9,8 @@ import { ResourceEmbedPresentationProvider } from "./components/editor/resourceE
 import { IconDefaults } from "./components/icons";
 import { Layout } from "./components/Layout";
 import { formatMeetingLabel } from "./features/council-meetings/meetingPresentation";
-import { ResourceGlyph, resourceTone, toneIcons, toneLabelKeys } from "./features/documents/ResourceGlyph";
+import { DocumentaryResourceGlyph, documentaryResourceTone } from "./features/documents/DocumentaryResourceGlyph";
+import { toneIcons, toneLabelKeys } from "./features/documents/ResourceGlyph";
 import { ResourcePreview } from "./features/documents/ResourcePreview";
 import { resolveReferencePresentation } from "./features/references/referencePresentation";
 import {
@@ -18,13 +19,13 @@ import {
 } from "./features/resources/ResourceEmbedPresentation";
 import { useApplicationData } from "./hooks/useApplicationData";
 import { useI18n } from "./i18n/I18nProvider";
-import { resourceContentHref } from "./services/resourcesApi";
+import { documentaryBinaryReferenceContentHref } from "./services/resourcesApi";
 import { useContactsStore } from "./stores/contactsStore";
 import { useCouncilBusinessStore } from "./stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "./stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "./stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "./stores/councilMembersStore";
-import { useResourcesStore } from "./stores/resourcesStore";
+import { useWorkspaceResourcesStore } from "./stores/workspaceResourcesStore";
 
 const WorkspacePage = lazy(() =>
   import("./pages/workspace/WorkspacePage").then((module) => ({ default: module.WorkspacePage })),
@@ -101,32 +102,62 @@ function AuthenticatedApplication() {
 
 function ApplicationPresentationProviders({ children }: { children: ReactNode }) {
   const { t, formatDate } = useI18n();
-  const resources = useResourcesStore((state) => state.resources);
+  const resourceSummaries = useWorkspaceResourcesStore((state) => state.summaries);
+  const resourceCatalog = useWorkspaceResourcesStore((state) => state.catalog);
   const businesses = useCouncilBusinessStore((state) => state.businesses);
   const decisions = useCouncilDecisionsStore((state) => state.councilDecisions);
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
   const members = useCouncilMembersStore((state) => state.members);
   const contacts = useContactsStore((state) => state.contacts);
+  const searchResourceEmbeds = useCallback(async (query: string) => {
+    await useWorkspaceResourcesStore.getState().hydrate({
+      query,
+      paths: [],
+      kinds: ["remote", "spreadsheet", "geographic", "document", "legalReference"],
+      tags: [],
+      readiness: [],
+      media: [],
+    });
+  }, []);
   const renderResourcePreview = (id: string, onClose: () => void) => (
     <ResourcePreview resourceId={id} onClose={onClose} />
   );
   const resourceAppearance = (id: string) => {
-    const resource = resources.find((candidate) => candidate.id === id);
-    if (!resource) return null;
-    const tone = resourceTone(resource);
+    const resource = resourceSummaries[id];
+    if (!resource || resource.kind === "folder") return null;
+    const tone = documentaryResourceTone(resource);
     const Icon = toneIcons[tone];
     return {
       tone,
       icon: <Icon aria-hidden="true" />,
-      glyph: <ResourceGlyph resource={resource} />,
+      glyph: <DocumentaryResourceGlyph resource={resource} />,
       tooltip: t(toneLabelKeys[tone]),
     };
   };
   const referenceTarget = (kind: ReferenceEntityKind, id: string): ReferenceTarget | null => {
+    if (kind === "resource") {
+      const resource = resourceSummaries[id] ?? resourceCatalog.find((candidate) => candidate.id === id);
+      if (!resource || resource.kind === "folder") return null;
+      const summary = resourceSummaries[id];
+      const tooltip =
+        summary && summary.kind !== "folder"
+          ? t(toneLabelKeys[documentaryResourceTone(summary)])
+          : t(
+              matchLiteral(resource.kind, {
+                text: () => "workspace.type.text" as const,
+                remote: () => "workspace.type.remote" as const,
+                spreadsheet: () => "workspace.type.spreadsheet" as const,
+                geographic: () => "workspace.type.geographic" as const,
+                legalReference: () => "workspace.type.legalReference" as const,
+                document: () => "workspace.type.file" as const,
+              }),
+            );
+      return { label: resource.name, tooltip, open: { kind: "resourcePreview" } };
+    }
     const resolved = resolveReferencePresentation(
       kind,
       id,
-      { resources, businesses, decisions, meetings, members, contacts },
+      { resources: [], businesses, decisions, meetings, members, contacts },
       (meeting) => formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
     );
     if (!resolved) return null;
@@ -145,9 +176,10 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
       <ResourceEmbedPresentationProvider
         renderResourceEmbed={(attributes) => <ResourceEmbedPresentation attributes={attributes} />}
         loadTableOptions={loadResourceEmbedTableOptions}
+        searchResourceEmbeds={searchResourceEmbeds}
       >
         <ResourceImagePresentationProvider
-          resolveContentHref={resourceContentHref}
+          resolveContentHref={documentaryBinaryReferenceContentHref}
           renderResourcePreview={renderResourcePreview}
         >
           {children}

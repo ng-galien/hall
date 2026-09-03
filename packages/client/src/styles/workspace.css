@@ -594,7 +594,7 @@
   .wsearch-clear:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
   .wsearch-results { display: flex; flex-direction: column; gap: var(--hall-space-2); }
   .wsearch-results-bar { display: flex; align-items: center; justify-content: space-between; }
-  .wsearch-layout { display: inline-flex; gap: var(--hall-space-0-5); }
+  .wsearch-layout { display: inline-flex; gap: var(--hall-space-0-5); margin-inline-start: auto; }
   .wsearch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--hall-size-hit-card), 1fr)); gap: var(--hall-space-2); }
   .wsearch-hit {
     display: flex;

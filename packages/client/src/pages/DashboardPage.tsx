@@ -1,21 +1,19 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { AgendaIcon, DecisionsIcon, FileIcon, WorkspaceIcon } from "../components/icons";
+import { AgendaIcon, DecisionsIcon, WorkspaceIcon } from "../components/icons";
 import { PageHeader } from "../components/Ui";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { useI18n } from "../i18n/I18nProvider";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
-import { useResourcesStore } from "../stores/resourcesStore";
 
 export function DashboardPage() {
   const { t, formatDate, formatNumber } = useI18n();
   const { meetings, error: meetingsError } = useCouncilMeetingsStore();
   const { businesses, error: councilBusinessError } = useCouncilBusinessStore();
   const { councilDecisions, error: decisionsError } = useCouncilDecisionsStore();
-  const { resources, error: resourcesError } = useResourcesStore();
-  const error = meetingsError || councilBusinessError || decisionsError || resourcesError;
+  const error = meetingsError || councilBusinessError || decisionsError;
   const nextMeeting = [...meetings]
     .filter((item) => new Date(item.startsAt) >= new Date())
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
@@ -49,13 +47,6 @@ export function DashboardPage() {
             label={t("dashboard.decisions")}
             detail={t("dashboard.decisionLifecycle")}
             to="/council-decisions"
-          />
-          <Metric
-            icon={<FileIcon />}
-            value={formatNumber(resources.length)}
-            label={t("dashboard.resources")}
-            detail={t("dashboard.attachedResources")}
-            to="/workspace"
           />
         </div>
       </div>

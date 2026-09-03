@@ -10,7 +10,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/templating && npm run build -w @hall/server && npm run build -w @hall/client && npm run build -w @hall/desktop",
+    "build": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/templating && npm run build -w @hall/postgres && npm run build -w @hall/server && npm run build -w @hall/client && npm run build -w @hall/desktop",
     "dev:server": "npm run dev -w @hall/server",
     "dev:client": "npm run dev -w @hall/client",
     "dev:session": "node packages/server/scripts/dev-session.mjs start",
@@ -21,7 +21,9 @@
     "dev:postgres": "cross-env DATABASE_KIND=postgres DATABASE_URL=postgresql://hall:hall-dev-only@127.0.0.1:54329/hall npm run dev",
     "postgres:up": "docker compose up -d --wait postgres",
     "postgres:down": "docker compose down",
-    "test:postgres": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/templating && docker compose --profile test up -d --wait postgres-test && cross-env TEST_DATABASE_URL=postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test npm test -w @hall/server -- --run src/__tests__/postgresPersistence.test.ts",
+    "test:postgres": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/templating && npm run build -w @hall/postgres && docker compose --profile test rm --stop --force postgres-test && docker compose --profile test up -d --wait postgres-test && cross-env TEST_DATABASE_URL=postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test npm test -w @hall/postgres && cross-env TEST_DATABASE_URL=postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test npm test -w @hall/server -- --run src/__tests__/postgresPersistence.test.ts",
+    "test:postgres:council": "npm run test:council -w @hall/postgres",
+    "test:postgres:document": "npm run test:document -w @hall/postgres",
     "test:backend": "npm run test:coverage -w @hall/server && npm run test:coverage -w @hall/domain",
     "test:ballot": "npm test -w @hall/domain -- --run src/state-machines/ballotSafety.test.ts src/schemas.test.ts && npm test -w @hall/server -- --run src/__tests__/ballotConcurrency.test.ts",
     "test:ballot:model": "node scripts/check-ballot-model.mjs",
@@ -39,7 +41,7 @@
     "check:architecture": "node scripts/check-exhaustive-dispatch.mjs && code-moniker check .",
     "lint": "biome check packages/*/src packages/*/*.ts packages/desktop/scripts packages/client/e2e packages/client/scripts",
     "lint:fix": "biome check --write packages/*/src packages/*/*.ts packages/desktop/scripts packages/client/e2e packages/client/scripts",
-    "typecheck": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/templating && npm run typecheck -w @hall/server && npm run typecheck -w @hall/client && npm run build -w @hall/server && npm run typecheck -w @hall/desktop",
+    "typecheck": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/templating && npm run typecheck -w @hall/postgres && npm run typecheck -w @hall/server && npm run typecheck -w @hall/client && npm run build -w @hall/server && npm run typecheck -w @hall/desktop",
     "test": "npm run test --workspaces --if-present",
     "quality": "npm run check:architecture && npm run lint && npm run typecheck && npm test",
     "quality:e2e": "npm run quality && npm run test:e2e"

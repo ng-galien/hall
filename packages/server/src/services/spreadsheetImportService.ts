@@ -1,27 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
-import {
-  type JsonObject,
-  type JsonValue,
-  type SpreadsheetDocument,
-  type SpreadsheetResource,
-  spreadsheetDocumentSchema,
-} from "@hall/domain";
+import { type JsonObject, type JsonValue, type SpreadsheetDocument, spreadsheetDocumentSchema } from "@hall/domain";
 import ExcelJS from "exceljs";
 import { inspectSpreadsheetImport } from "../domain/documentPolicy.js";
 import { DomainError } from "./errors.js";
-import type { ResourceService } from "./resourceService.js";
 
-interface SpreadsheetImportInput {
+export interface SpreadsheetImportInput {
   title: string;
   folderPath: string;
   tags: string[];
   fileName: string;
   content: Buffer;
-}
-
-export interface SpreadsheetImportService {
-  import(input: SpreadsheetImportInput): Promise<SpreadsheetResource>;
 }
 
 function csvDelimiter(content: Buffer): string {
@@ -239,27 +228,12 @@ async function loadWorksheets(input: SpreadsheetImportInput): Promise<ExcelJS.Wo
   return workbook.worksheets;
 }
 
-export function createSpreadsheetImportService({
-  resourceService,
-}: {
-  resourceService: ResourceService;
-}): SpreadsheetImportService {
-  return {
-    async import(input) {
-      let document: SpreadsheetDocument;
-      try {
-        const worksheets = await loadWorksheets(input);
-        document = spreadsheetDocumentSchema.parse(spreadsheetDocument(input.title, worksheets));
-      } catch (error) {
-        if (error instanceof DomainError) throw error;
-        throw new DomainError("invalid_request", 422);
-      }
-      return resourceService.createSpreadsheet({
-        title: input.title,
-        folderPath: input.folderPath,
-        tags: input.tags,
-        document,
-      });
-    },
-  };
+export async function parseSpreadsheetImport(input: SpreadsheetImportInput): Promise<SpreadsheetDocument> {
+  try {
+    const worksheets = await loadWorksheets(input);
+    return spreadsheetDocumentSchema.parse(spreadsheetDocument(input.title, worksheets));
+  } catch (error) {
+    if (error instanceof DomainError) throw error;
+    throw new DomainError("invalid_request", 422);
+  }
 }

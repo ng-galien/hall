@@ -1,4 +1,4 @@
-import type { DocumentResource } from "@hall/domain";
+import type { ResourceDetail, SirenEntity } from "@hall/api-contract";
 import { FullscreenIcon } from "../../components/icons";
 import { useDocumentPreview } from "../../hooks/useDocumentPreview";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -8,15 +8,17 @@ import { NativeDocumentFrame } from "./NativeDocumentFrame";
 /** Inline document preview; PDFs and images render in place, with an optional full-screen action. */
 export function DocumentEmbed({
   resource,
+  representation,
   onOpenFull,
   objectTestId,
 }: {
-  resource: DocumentResource;
+  resource: Extract<ResourceDetail, { kind: "document" }>;
+  representation: SirenEntity | null;
   onOpenFull?(): void;
   objectTestId?: string;
 }) {
   const { t } = useI18n();
-  const { objectUrl, mediaType, failed, retry } = useDocumentPreview(resource);
+  const { objectUrl, mediaType, failed, retry } = useDocumentPreview(resource, representation);
 
   return (
     <div className="document-embed">
@@ -27,7 +29,7 @@ export function DocumentEmbed({
       ) : null}
       {failed ? <DocumentPreviewFailure onRetry={retry} /> : null}
       {objectUrl && mediaType ? (
-        <NativeDocumentFrame url={objectUrl} mediaType={mediaType} title={resource.fileName} testId={objectTestId} />
+        <NativeDocumentFrame url={objectUrl} mediaType={mediaType} title={resource.name} testId={objectTestId} />
       ) : null}
       {onOpenFull ? (
         <button

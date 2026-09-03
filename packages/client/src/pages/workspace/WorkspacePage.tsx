@@ -1,9 +1,12 @@
 import { matchDiscriminated, matchLiteral } from "@hall/domain";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RequestErrorBanner } from "../../components/Ui";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
-import { ResourceGlyph } from "../../features/documents/ResourceGlyph";
+import {
+  type DocumentaryLeafSummary,
+  DocumentaryResourceGlyph,
+} from "../../features/documents/DocumentaryResourceGlyph";
 import { ResourceAutosaveToggle } from "../../features/resources/ResourceAutosaveToggle";
 import { useResourceSession } from "../../features/resources/useResourceSession";
 import { createEmptySpreadsheetDocument } from "../../features/spreadsheet/univerWorkbook";
@@ -11,7 +14,7 @@ import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
-import { useResourcesStore } from "../../stores/resourcesStore";
+import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { CouncilBusinessWorkbench } from "./CouncilBusinessWorkbench";
 import { PathContents } from "./PathContents";
 import { PinnedRow } from "./PinnedRow";
@@ -30,13 +33,20 @@ export function WorkspacePage() {
   const { submitting, run } = useSubmitting();
   const [searchParams, setSearchParams] = useSearchParams();
   const councilBusinessStore = useCouncilBusinessStore();
-  const resourcesStore = useResourcesStore();
+  const resourcesStore = useWorkspaceResourcesStore();
   const { businesses, error: councilBusinessError } = councilBusinessStore;
-  const { resources, error: resourcesError, canUpload } = resourcesStore;
+  const resources = Object.values(resourcesStore.summaries).filter(
+    (resource): resource is DocumentaryLeafSummary => resource.kind !== "folder",
+  );
+  const resourcesError = resourcesStore.error;
   const { error: decisionsError } = useCouncilDecisionsStore();
   const [search, setSearch] = useState<WorkspaceSearchState>(emptySearch);
   const creationFolderPathRef = useRef("");
   const fileInput = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    void resourcesStore.loadCatalog();
+  }, [resourcesStore.loadCatalog]);
 
   const path = searchParams.get("path") ?? "";
   const selection: WorkspaceSelection = searchParams.get("councilBusiness")
@@ -63,7 +73,7 @@ export function WorkspacePage() {
     [businesses, path],
   );
   const pathResources = useMemo(
-    () => resources.filter((resource) => isUnderPath(resource.folderPath, path)),
+    () => resources.filter((resource) => isUnderPath(resource.path, path)),
     [resources, path],
   );
 
@@ -75,17 +85,15 @@ export function WorkspacePage() {
         }),
         resource: (entry) => ({
           business: null,
-          resource: resources.find((resource) => resource.id === entry.id) ?? null,
+          resource: resourcesStore.summaries[entry.id] ?? null,
         }),
       })
     : { business: null, resource: null };
   const selectedBusiness = selected.business;
-  const selectedResource = selected.resource;
   const resourceSession = useResourceSession({
-    resourceId: selectedResource?.id ?? null,
-    initialResource: selectedResource,
+    resourceId: selection?.kind === "resource" ? selection.id : null,
   });
-  const presentedResource = resourceSession.resource ?? selectedResource;
+  const presentedResource = resourceSession.resource;
 
   const createInFolder = async (
     kind: WorkspaceCreateKind,
@@ -115,22 +123,27 @@ export function WorkspacePage() {
       text: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.createText({ title: normalizedTitle, folderPath, tags: [], content: "" }),
+          await resourcesStore.create({ kind: "text", name: normalizedTitle, path: folderPath, content: "" }),
         );
       },
       remote: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.createRemote({ title: normalizedTitle, url: null, folderPath, tags: [] }),
+          await resourcesStore.create({
+            kind: "remote",
+            name: normalizedTitle,
+            path: folderPath,
+            target: { kind: "unconfigured" },
+          }),
         );
       },
       spreadsheet: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.createSpreadsheet({
-            title: normalizedTitle,
-            folderPath,
-            tags: [],
+          await resourcesStore.create({
+            kind: "spreadsheet",
+            name: normalizedTitle,
+            path: folderPath,
             document: createEmptySpreadsheetDocument(normalizedTitle, locale),
           }),
         );
@@ -138,30 +151,13 @@ export function WorkspacePage() {
       geographic: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.createGeographic({
-            title: normalizedTitle,
-            folderPath,
-            tags: [],
-            provider: "ign",
-            layers: [
-              { id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 },
-              { id: "ORTHOIMAGERY.ORTHOPHOTOS", visible: false, opacity: 1 },
-              { id: "CADASTRALPARCELS.PARCELLAIRE_EXPRESS", visible: false, opacity: 0.7 },
-            ],
-            hallLayer: { type: "FeatureCollection", features: [] },
-          }),
+          await resourcesStore.create({ kind: "geographic", name: normalizedTitle, path: folderPath }),
         );
       },
       legalReference: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.createLegalReference({
-            title: normalizedTitle,
-            folderPath,
-            tags: [],
-            provider: "legifrance",
-            referenceKind: "article",
-          }),
+          await resourcesStore.create({ kind: "legalReference", name: normalizedTitle, path: folderPath }),
         );
       },
     });
@@ -169,7 +165,8 @@ export function WorkspacePage() {
 
   const importFile = (file: File) => {
     const form = new FormData();
-    form.set("folderPath", creationFolderPathRef.current);
+    form.set("path", creationFolderPathRef.current);
+    form.set("name", file.name.replace(/\.(?:csv|xlsx)$/i, ""));
     form.set("file", file);
     void run(async () => {
       if (/\.(?:csv|xlsx)$/i.test(file.name)) {
@@ -177,13 +174,10 @@ export function WorkspacePage() {
         if (spreadsheet) select({ kind: "resource", id: spreadsheet.id });
         return spreadsheet;
       }
-      form.set("category", "supporting");
-      const uploaded = await resourcesStore.upload(form);
+      form.set("name", file.name);
+      const uploaded = await resourcesStore.uploadDocument(form);
       if (uploaded) {
-        const fresh = useResourcesStore
-          .getState()
-          .resources.find((resource) => resource.kind === "document" && resource.fileName === file.name);
-        if (fresh) select({ kind: "resource", id: fresh.id });
+        select({ kind: "resource", id: uploaded.id });
       }
       return uploaded;
     });
@@ -200,7 +194,8 @@ export function WorkspacePage() {
               <WorkspaceSearch search={search} onSearch={setSearch} onSelect={select} context={path} />
             </div>
           </div>
-          {canUpload || resourcesStore.canImportSpreadsheet ? (
+          {resourcesStore.collectionCapabilities.uploadDocument ||
+          resourcesStore.collectionCapabilities.importSpreadsheet ? (
             <input
               ref={fileInput}
               type="file"
@@ -222,22 +217,22 @@ export function WorkspacePage() {
           <section className="workspace-contents" aria-label={t("workspace.contents")}>
             <header className="workspace-contents-header">
               <WorkspaceBreadcrumb
-                path={selectedBusiness?.folderPath ?? presentedResource?.folderPath ?? path}
-                currentLabel={selectedBusiness?.title ?? presentedResource?.title}
+                path={selectedBusiness?.folderPath ?? presentedResource?.path ?? path}
+                currentLabel={selectedBusiness?.title ?? presentedResource?.name}
                 currentIcon={
                   selectedBusiness ? (
                     <CouncilBusinessGlyph business={selectedBusiness} />
                   ) : presentedResource ? (
-                    <ResourceGlyph resource={presentedResource} />
+                    <DocumentaryResourceGlyph resource={presentedResource} />
                   ) : undefined
                 }
                 currentSelection={selection}
-                originPath={selectedBusiness || selectedResource ? path : undefined}
-                onClose={selectedBusiness || selectedResource ? () => select(null) : undefined}
+                originPath={selectedBusiness || selection?.kind === "resource" ? path : undefined}
+                onClose={selectedBusiness || selection?.kind === "resource" ? () => select(null) : undefined}
                 onSelect={select}
-                showSaveStatus={!selectedResource}
+                showSaveStatus={selection?.kind !== "resource"}
                 statusControl={
-                  selectedResource && resourceSession.canConfigureAutosave ? (
+                  selection?.kind === "resource" && resourceSession.canConfigureAutosave ? (
                     <ResourceAutosaveToggle
                       enabled={resourceSession.autosaveEnabled}
                       status={resourceSession.saveStatus}
@@ -258,17 +253,17 @@ export function WorkspacePage() {
                   onSelect={select}
                   onCreate={createInFolder}
                   onPreview={(resource) => select({ kind: "resource", id: resource.id })}
-                  hidden={Boolean(selectedBusiness || selectedResource)}
+                  hidden={Boolean(selectedBusiness || selection?.kind === "resource")}
                 />
-              ) : selectedBusiness || selectedResource ? null : (
+              ) : selectedBusiness || selection?.kind === "resource" ? null : (
                 <WorkspaceHome onSelect={select} />
               )}
-              {selectedBusiness || selectedResource ? (
+              {selectedBusiness || selection?.kind === "resource" ? (
                 <section className="workspace-bench workspace-bench-full" aria-label={t("workspace.bench")}>
                   {selectedBusiness ? (
                     <CouncilBusinessWorkbench key={selectedBusiness.id} business={selectedBusiness} />
-                  ) : selectedResource ? (
-                    <ResourceWorkbench key={selectedResource.id} session={resourceSession} onSelect={select} />
+                  ) : selection?.kind === "resource" ? (
+                    <ResourceWorkbench key={selection.id} session={resourceSession} onSelect={select} />
                   ) : null}
                 </section>
               ) : null}

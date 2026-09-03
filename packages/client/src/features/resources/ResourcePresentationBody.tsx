@@ -1,4 +1,5 @@
-import { matchDiscriminated, type Resource, type ResourceDetails } from "@hall/domain";
+import type { ResourceDetail, SirenEntity } from "@hall/api-contract";
+import { matchDiscriminated } from "@hall/domain";
 import { lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ export type ResourcePresentationCapabilities = ResourceCapabilities;
 /** The single type-specific resource body shared by the Workspace and the resource modal. */
 export function ResourcePresentationBody({
   resource,
-  details,
+  representation,
   mode,
   layout,
   capabilities,
@@ -49,8 +50,8 @@ export function ResourcePresentationBody({
   onRegisterFlush,
   autosaveEnabled,
 }: {
-  resource: Resource;
-  details: ResourceDetails | null;
+  resource: ResourceDetail;
+  representation: SirenEntity | null;
   mode: ResourcePresentationMode;
   layout: "workbench" | "extended";
   capabilities: ResourcePresentationCapabilities;
@@ -64,7 +65,7 @@ export function ResourcePresentationBody({
   onRemoteUrlChange(url: string): void;
   onRemoteSubmit(): void;
   onUploadImage?(file: File): Promise<UploadedResourceImage>;
-  onResolvedLegalReference(resource: Resource): void;
+  onResolvedLegalReference(resource: Extract<ResourceDetail, { kind: "legalReference" }>): void;
   onRefreshLegalReference(): void;
   onError(error: ApiErrorCode | null): void;
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
@@ -72,21 +73,22 @@ export function ResourcePresentationBody({
 }) {
   const { t } = useI18n();
   const editing = mode === "edit";
-  const editingResource = editing && capabilities.updateResource;
+  const editingResource = editing && capabilities.updateContent;
 
   return matchDiscriminated(resource, "kind", {
+    folder: () => null,
     text: (entry) =>
       editingResource ? (
         <div className="grid gap-1.5" data-testid="resource-presentation-text-edit">
           <Label>{t("resources.textContent")}</Label>
           <MarkdownEditor
-            title={entry.title}
+            title={entry.name}
             markdown={content}
             onChange={onContentChange}
             mentionables={mentionables}
-            searchContext={entry.folderPath}
-            onUploadImage={canUploadImage && capabilities.updateResource ? onUploadImage : undefined}
-            readOnly={Boolean(details?.snapshotted) || !capabilities.updateResource}
+            searchContext={entry.path}
+            onUploadImage={canUploadImage && capabilities.updateContent ? onUploadImage : undefined}
+            readOnly={!capabilities.updateContent}
             variant={layout === "extended" ? "enriched" : "compact"}
           />
         </div>
@@ -96,14 +98,15 @@ export function ResourcePresentationBody({
         </div>
       ),
     remote: (entry) => {
-      if (!editingResource && entry.url)
+      const targetUrl = entry.target.kind === "url" ? entry.target.url : null;
+      if (!editingResource && targetUrl)
         return (
           <div className="remote-resource-embed" data-testid="resource-presentation-remote-read">
             <div className="remote-resource-toolbar">
-              <span className="remote-resource-url" title={entry.url}>
-                {entry.url}
+              <span className="remote-resource-url" title={targetUrl}>
+                {targetUrl}
               </span>
-              <a href={entry.url} target="_blank" rel="noreferrer" className="remote-resource-open">
+              <a href={targetUrl} target="_blank" rel="noreferrer" className="remote-resource-open">
                 <OpenIcon aria-hidden="true" />
                 {t("workspace.openRemoteResource")}
               </a>
@@ -145,58 +148,49 @@ export function ResourcePresentationBody({
     document: (entry) => (
       <DocumentEmbed
         resource={entry}
+        representation={representation}
         objectTestId={layout === "extended" ? "resource-preview-object" : "resource-workbench-object"}
       />
     ),
-    geographic: (entry) =>
-      details?.geography ? (
-        <GeographicResourceMap
+    geographic: (entry) => (
+      <GeographicResourceMap
+        resource={entry}
+        data={entry.document}
+        canUpdate={editing && capabilities.updateContent}
+        autosaveEnabled={autosaveEnabled}
+        onError={onError}
+        onRegisterFlush={onRegisterFlush}
+      />
+    ),
+    spreadsheet: (entry) => (
+      <Suspense fallback={<p>{t("spreadsheet.loading")}</p>}>
+        <SpreadsheetResourceEditor
           resource={entry}
-          data={details.geography}
-          canUpdate={editing && capabilities.updateGeography}
+          document={entry.document}
+          mode={mode}
+          canUpdate={capabilities.updateContent}
           autosaveEnabled={autosaveEnabled}
           onError={onError}
           onRegisterFlush={onRegisterFlush}
         />
-      ) : (
-        <p>{t("geographic.loading")}</p>
-      ),
-    spreadsheet: (entry) =>
-      details?.spreadsheet ? (
-        <Suspense fallback={<p>{t("spreadsheet.loading")}</p>}>
-          <SpreadsheetResourceEditor
-            resource={entry}
-            document={details.spreadsheet}
-            mode={mode}
-            canUpdate={capabilities.updateSpreadsheet}
-            snapshotted={details.snapshotted}
-            autosaveEnabled={autosaveEnabled}
-            onError={onError}
-            onRegisterFlush={onRegisterFlush}
-          />
-        </Suspense>
-      ) : (
-        <p>{t("spreadsheet.loading")}</p>
-      ),
+      </Suspense>
+    ),
     legalReference: (entry) => {
-      if (entry.resolutionStatus === "draft") {
-        return editing && capabilities.resolveLegalReference ? (
+      if (entry.document.resolutionStatus === "draft") {
+        return capabilities.resolveLegalReference ? (
           <LegalReferenceResolver resource={entry} onResolved={onResolvedLegalReference} />
         ) : (
           <p>{t("legalReference.loading")}</p>
         );
       }
-      return details?.legalSnapshots ? (
+      return (
         <LegalReferenceResourceView
           resource={entry}
-          snapshots={details.legalSnapshots}
           canRefresh={capabilities.refreshLegalReference}
           refreshing={submitting}
           refreshConflict={refreshConflict}
           onRefresh={onRefreshLegalReference}
         />
-      ) : (
-        <p>{t("legalReference.loading")}</p>
       );
     },
   });

@@ -54,6 +54,72 @@ test("the HTTP client consumes Siren capabilities without a legacy bearer token"
   assert.doesNotMatch(settings, /apiToken|server-access-token/);
 });
 
+test("the documentary Workspace reuses its collection representation without duplicate root requests", () => {
+  const api = read("src/services/resourcesApi.ts");
+  const store = read("src/stores/workspaceResourcesStore.ts");
+  const search = read("src/pages/workspace/WorkspaceSearch.tsx");
+  const catalogLoader = store.slice(store.indexOf("async loadCatalog()"), store.indexOf("async loadFolder("));
+  const searchApi = api.slice(
+    api.indexOf("export async function searchDocumentaryResources"),
+    api.indexOf("export async function openDocumentaryResource"),
+  );
+
+  assert.match(catalogLoader, /if \(catalogLoad\) return catalogLoad/);
+  assert.equal(
+    [...catalogLoader.matchAll(/listDocumentaryResourceCatalog\(\)/g)].length,
+    1,
+    "catalog loading must perform one collection/catalog request chain",
+  );
+  assert.doesNotMatch(store, /sirenRepresentation\(/);
+  assert.match(searchApi, /findSirenLink\(collectionRepresentation, "search"\)/);
+  assert.doesNotMatch(searchApi, /sirenRepresentation\(/);
+  assert.match(searchApi, /result\.representation\?\.properties \?\? result\.data/);
+  const canonicalApi = api.slice(0, api.indexOf("export interface ResourceFilters"));
+  assert.equal([...canonicalApi.matchAll(/submitSirenActionAt/g)].length, 1, "only the shared import may remain");
+  assert.match(store, /updateDocumentaryResourceMetadata\(representation, input\)/);
+  assert.match(store, /updateDocumentaryResourceContent\(representation, input\)/);
+  assert.match(search, /if \(!active \|\| !resourceAllowed\)/);
+  assert.match(search, /searchResources\(resourceCriteria\)/);
+  assert.doesNotMatch(search, /useSearchCorpus|useResourcesStore/);
+});
+
+test("the migrated Workspace has one canonical documentary store and no legacy mutation path", () => {
+  const workspaceFiles = [
+    "src/pages/workspace/WorkspacePage.tsx",
+    "src/pages/workspace/PathContents.tsx",
+    "src/pages/workspace/PinnedRow.tsx",
+    "src/pages/workspace/ResourceWorkbench.tsx",
+    "src/pages/workspace/ResourceWorkbenchHeader.tsx",
+    "src/pages/workspace/WorkspaceBreadcrumb/WorkspaceBreadcrumb.tsx",
+    "src/pages/workspace/WorkspaceSearch.tsx",
+    "src/shell/WorkspaceTree.tsx",
+  ].map(read);
+  const legacyStore = read("src/stores/resourcesStore.ts");
+  const api = read("src/services/resourcesApi.ts");
+
+  assert.doesNotMatch(workspaceFiles.join("\n"), /useResourcesStore|listResources|listFolderPaths/);
+  assert.doesNotMatch(
+    legacyStore,
+    /folderPaths|canCreateText|canCreateFolder|createText\(|createFolder\(|update\(resourceId|remove\(resourceId/,
+  );
+  assert.doesNotMatch(
+    api,
+    /export const (?:listFolderPaths|createTextResource|createFolder|updateResource|deleteResource)/,
+  );
+});
+
+test("the documentary Workspace does not derive or display collection counters", () => {
+  const search = read("src/pages/workspace/WorkspaceSearch.tsx");
+  const tree = read("src/shell/WorkspaceTree.tsx");
+  const home = read("src/pages/workspace/WorkspaceHome.tsx");
+  const store = read("src/stores/workspaceResourcesStore.ts");
+
+  assert.doesNotMatch(search, /useSearchFacetOptions|resultsCount|formatNumber/);
+  assert.doesNotMatch(tree, /formatNumber\(hiddenCount\)|\.count\b/);
+  assert.doesNotMatch(home, /resourceCount|home\.document(?:One|Many)/);
+  assert.doesNotMatch(store, /\bcount\b/);
+});
+
 test("session expiry remounts the authentication gate and logout consumes its Siren action", () => {
   const client = read("src/services/apiClient.ts");
   const gate = read("src/components/AuthenticationGate.tsx");
@@ -68,11 +134,17 @@ test("session expiry remounts the authentication gate and logout consumes its Si
 test("document download and preview follow their distinct Siren links", () => {
   const resources = read("src/services/resourcesApi.ts");
   const preview = read("src/features/documents/ResourcePreview.tsx");
-  assert.match(resources, /findSirenLink\(representation, "content"\)/);
-  assert.match(resources, /findSirenLink\(representation, "preview"\)/);
+  const canonical = resources.slice(
+    resources.indexOf("export function documentaryLink"),
+    resources.indexOf("export async function relocateDocumentaryResource"),
+  );
+  assert.match(canonical, /documentaryLink\(representation, "content"\)/);
+  assert.match(read("src/hooks/useDocumentPreview.ts"), /loadResourcePreviewObjectUrl\(representation\)/);
+  assert.match(resources, /const preview = documentaryLink\(representation, "preview"\)/);
   assert.match(resources, /mediaType: preview\.type \|\| "application\/octet-stream"/);
-  assert.match(resources, /resourceContentResponse\(resource\.id\)/);
-  assert.doesNotMatch(`${resources}\n${preview}`, /resources\/\$\{[^}]+\}\/(?:content|preview)/);
+  assert.match(canonical, /apiResponse\(apiPathFromHref\(content\.href\)\)/);
+  assert.match(canonical, /link\.download = resource\.name/);
+  assert.doesNotMatch(`${canonical}\n${preview}`, /resources\/\$\{[^}]+\}\/(?:content|preview)/);
   assert.match(read("src/hooks/useDocumentPreview.ts"), /setAttempt\(\(current\) => current \+ 1\)/);
   assert.match(read("src/features/documents/DocumentPreviewFailure.tsx"), /resources\.previewFailed/);
 });
@@ -103,21 +175,33 @@ test("the common resource modal reuses Workbench bodies without nested viewers",
   assert.match(preview, /refreshSessionOnClose && !\(await session\.reload\(\)\)/);
   assert.match(preview, /closeTestId="resource-preview-close"/);
   assert.match(workbench, /session: ResourceSession/);
-  assert.match(workspace, /useResourceSession\(\{[\s\S]*resourceId: selectedResource\?\.id \?\? null/);
+  assert.match(
+    workspace,
+    /useResourceSession\(\{[\s\S]*resourceId: selection\?\.kind === "resource" \? selection\.id : null/,
+  );
   assert.match(workspace, /<ResourceWorkbench[\s\S]*session=\{resourceSession\}/);
   assert.match(session, /export function useResourceSession/);
-  assert.match(session, /resourceCanEdit\(resource, details, capabilities\)/);
+  assert.match(session, /resourceCanEdit\(resource, capabilities\)/);
   assert.match(session, /resourceSupportsAutosave\(resource\)/);
   assert.match(session, /useResourcePersistence/);
   assert.match(persistence, /bodyFlushRef/);
   assert.match(persistence, /savePromiseRef/);
-  assert.match(capabilities, /findSirenAction\(representation, "resource\.update-geography"\)/);
-  assert.match(capabilities, /findSirenAction\(representation, "resource\.update-spreadsheet"\)/);
+  const updatedAdoption = session.slice(
+    session.indexOf("const adoptUpdatedResource"),
+    session.indexOf("const load = useCallback"),
+  );
+  assert.doesNotMatch(updatedAdoption, /setTitle|setTags|setContent|setRemoteUrl/);
+  assert.match(workbench, /session\.setTitle\(nextTitle\);[\s\S]*session\.save\(nextTitle\)/);
+  assert.match(persistence, /adoptUpdatedResource\(updated\);[\s\S]*setAutosaveEnabled\(enabled\)/);
+  assert.match(capabilities, /findSirenAction\(representation, "resource\.update-metadata"\)/);
+  assert.match(capabilities, /findSirenAction\(representation, "resource\.update-content"\)/);
   assert.match(capabilities, /findSirenAction\(representation, "resource\.resolve-legal-reference"\)/);
-  assert.match(editorPolicy, /legalReference:[\s\S]*capabilities\.resolveLegalReference/);
+  assert.match(editorPolicy, /satisfies|Record<ResourceKind, StaticResourceEditorPolicy>/);
   assert.match(geographicPolicy, /satisfies Record<HallGeoJsonFeatureKind, GeographicFeatureKindPolicy>/);
   assert.match(geographicPolicy, /defineExhaustiveLiterals<HallGeoJsonFeatureKind>/);
-  assert.match(body, /editing && capabilities\.resolveLegalReference/);
+  assert.match(body, /capabilities\.resolveLegalReference/);
+  assert.match(spreadsheet, /updateContent\(resource\.id, \{[\s\S]*kind: "spreadsheet"/);
+  assert.match(read("src/features/geographic/GeographicResourceMap.tsx"), /kind: "geographic"/);
   assert.match(preview, /data-resource-mode=\{session\.mode\}/);
   assert.doesNotMatch(spreadsheet, /<Dialog|spreadsheet-fullscreen-dialog/);
   assert.match(references, /focus\(\{ preventScroll: true \}\)/);
@@ -140,8 +224,12 @@ test("editor images keep immutable resource references and follow document capab
   assert.doesNotMatch(editor, /type="file"[\s\S]{0,80}accept="image\/png,image\/jpeg"/);
   assert.doesNotMatch(`${editor}\n${images}`, /FileReader|readAsDataURL|blob:/);
   assert.doesNotMatch(mentions, /id:\s*(?:resource|business|meeting|decision)\.slug/);
-  assert.match(api, /findSirenLink\(representation, "content"\)/);
-  assert.match(app, /ResourceImagePresentationProvider[\s\S]{0,160}resolveContentHref=\{resourceContentHref\}/);
+  assert.match(api, /documentaryBinaryReferenceContentHref/);
+  assert.match(api, /binary-references\/\$\{encodeURIComponent\(id\)\}\/content/);
+  assert.match(
+    app,
+    /ResourceImagePresentationProvider[\s\S]{0,180}resolveContentHref=\{documentaryBinaryReferenceContentHref\}/,
+  );
   assert.match(app, /ResourceImagePresentationProvider[\s\S]{0,220}renderResourcePreview=\{renderResourcePreview\}/);
   assert.match(app, /const EditorLabPage = import\.meta\.env\.DEV/);
   assert.match(styles, /\.hall-template-image[\s\S]*height: auto/);
@@ -186,10 +274,12 @@ test("meeting mutations follow the lifecycle and fixed roster", () => {
   assert.match(preparation, /documentsEditable=\{canUpload\}/);
   const pathContents = read("src/pages/workspace/PathContents.tsx");
   assert.match(pathContents, /councilBusinessStore\.canCreate \?/);
-  assert.match(pathContents, /resourcesStore\.canCreateText \?/);
-  assert.match(pathContents, /resourcesStore\.canUpload \|\| resourcesStore\.canImportSpreadsheet/);
+  assert.match(pathContents, /resourcesStore\.collectionCapabilities\.create/);
+  assert.match(pathContents, /resourcesStore\.collectionCapabilities\.uploadDocument/);
+  assert.match(pathContents, /resourcesStore\.collectionCapabilities\.importSpreadsheet/);
   const resourceCapabilities = read("src/features/resources/resourceCapabilities.ts");
-  assert.match(resourceCapabilities, /findSirenAction\(representation, "resource\.update"\)/);
+  assert.match(resourceCapabilities, /findSirenAction\(representation, "resource\.update-metadata"\)/);
+  assert.match(resourceCapabilities, /findSirenAction\(representation, "resource\.update-content"\)/);
   assert.match(resourceCapabilities, /findSirenAction\(representation, "resource\.delete"\)/);
   const livePage = read("src/pages/council-meetings/live/LiveMeetingPage.tsx");
   assert.match(livePage, /aggregate\.rosterMemberIds\.includes\(member\.id\)/);

@@ -11,20 +11,28 @@ export interface FacetOption<TValue extends string = string> {
   count?: number;
 }
 
-export interface FacetOptionSets<TKind extends string = string> {
+export interface FacetOptionSets<
+  TKind extends string = string,
+  TState extends string = SearchableState,
+  TMedia extends string = SearchableMedia,
+> {
   types: FacetOption<TKind>[];
   folders: FacetOption[];
   tags: FacetOption[];
-  states: FacetOption<SearchableState>[];
-  media: FacetOption<SearchableMedia>[];
+  states: FacetOption<TState>[];
+  media: FacetOption<TMedia>[];
 }
 
-export type FacetSuggestion<TKind extends string = string> =
+export type FacetSuggestion<
+  TKind extends string = string,
+  TState extends string = SearchableState,
+  TMedia extends string = SearchableMedia,
+> =
   | { facet: "type"; value: TKind; label: string; count?: number }
   | { facet: "folder"; value: string; label: string; count?: number }
   | { facet: "tag"; value: string; label: string; count?: number }
-  | { facet: "state"; value: SearchableState; label: string; count?: number }
-  | { facet: "media"; value: SearchableMedia; label: string; count?: number };
+  | { facet: "state"; value: TState; label: string; count?: number }
+  | { facet: "media"; value: TMedia; label: string; count?: number };
 
 export interface FacetValueLabels {
   state(value: SearchableState): string;
@@ -78,10 +86,10 @@ export function facetOptionsFrom<TKind extends Searchable["kind"]>(
 }
 
 /** The suggestions for a `#` fragment, best first, capped for display. */
-export function facetSuggestionsFor<TKind extends string>(
+export function facetSuggestionsFor<TKind extends string, TState extends string, TMedia extends string>(
   fragment: string,
-  options: FacetOptionSets<TKind>,
-): FacetSuggestion<TKind>[] {
+  options: FacetOptionSets<TKind, TState, TMedia>,
+): FacetSuggestion<TKind, TState, TMedia>[] {
   const needle = normalizeForSearch(fragment.trim());
   const matches = (label: string) => !needle || normalizeForSearch(label).includes(needle);
   const types = options.types

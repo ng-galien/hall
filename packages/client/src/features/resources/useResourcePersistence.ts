@@ -1,21 +1,19 @@
-import type { Resource, ResourceDetails } from "@hall/domain";
 import { useCallback, useEffect, useRef } from "react";
 import { useSaveStatusStore } from "../../pages/workspace/saveStatusStore";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { apiErrorCode } from "../../services/apiClient";
-import { updateResource } from "../../services/resourcesApi";
-import { useResourcesStore } from "../../stores/resourcesStore";
+import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import type { DocumentaryLeafDetail } from "../documents/DocumentaryResourceGlyph";
 import type { ResourceCapabilities } from "./resourceCapabilities";
-import { resourceSpecificUpdate } from "./resourceEditorPolicy";
+import { resourceContentDirty, resourceContentUpdate, resourceSupportsAutosave } from "./resourceEditorPolicy";
 
 type SubmissionRunner = <Result>(action: () => Promise<Result>) => Promise<Result | undefined>;
 
 interface ResourcePersistenceOptions {
   resourceId: string | null;
-  resource: Resource | null;
-  details: ResourceDetails | null;
+  resource: DocumentaryLeafDetail | null;
   capabilities: ResourceCapabilities;
-  title: string;
+  name: string;
   tags: string[];
   content: string;
   remoteUrl: string;
@@ -23,7 +21,8 @@ interface ResourcePersistenceOptions {
   dirty: boolean;
   submitting: boolean;
   run: SubmissionRunner;
-  adoptUpdatedResource(resource: Resource): void;
+  adoptUpdatedResource(resource: DocumentaryLeafDetail): void;
+  setAutosaveEnabled(enabled: boolean): void;
   setActionError(error: ApiErrorCode | null): void;
 }
 
@@ -31,9 +30,8 @@ interface ResourcePersistenceOptions {
 export function useResourcePersistence({
   resourceId,
   resource,
-  details,
   capabilities,
-  title,
+  name,
   tags,
   content,
   remoteUrl,
@@ -42,6 +40,7 @@ export function useResourcePersistence({
   submitting,
   run,
   adoptUpdatedResource,
+  setAutosaveEnabled,
   setActionError,
 }: ResourcePersistenceOptions) {
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
@@ -61,23 +60,44 @@ export function useResourcePersistence({
   }, [resourceId, setSaveStatus]);
 
   const save = useCallback(
-    (nextTitle = title) => {
+    (nextTitle = name) => {
       if (savePromiseRef.current) return savePromiseRef.current;
-      if (!resource || !capabilities.updateResource || details?.snapshotted) return Promise.resolve(true);
+      if (!resource || !capabilities.updateMetadata) return Promise.resolve(true);
       const current = resource;
       const pending = run(async () => {
         setActionError(null);
         setSaveStatus("saving");
         try {
-          const updated = await updateResource(current.id, {
-            title: nextTitle,
-            folderPath: current.folderPath,
-            tags,
-            autosaveEnabled,
-            ...resourceSpecificUpdate(current, { content, remoteUrl }),
-          });
+          let updated = current;
+          const nextName = nextTitle;
+          if (
+            nextName !== current.name ||
+            tags.join("\u0000") !== current.tags.join("\u0000") ||
+            (resourceSupportsAutosave(current) &&
+              "autosaveEnabled" in current &&
+              autosaveEnabled !== current.autosaveEnabled)
+          ) {
+            const metadata = await useWorkspaceResourcesStore.getState().updateMetadata(current.id, {
+              name: nextName,
+              path: current.path,
+              tags,
+              editing: resourceSupportsAutosave(current)
+                ? { kind: "autosave", enabled: autosaveEnabled }
+                : { kind: "fixed" },
+            });
+            if (!metadata) throw new Error(useWorkspaceResourcesStore.getState().error ?? "request_failed");
+            if (metadata.kind === "folder") throw new Error("resource_kind_mismatch");
+            updated = metadata;
+          }
+          if (resourceContentDirty(updated, { content, remoteUrl })) {
+            const input = resourceContentUpdate(updated, { content, remoteUrl });
+            if (!input || !capabilities.updateContent) throw new Error("resource_update_unavailable");
+            const contentUpdated = await useWorkspaceResourcesStore.getState().updateContent(updated.id, input);
+            if (!contentUpdated) throw new Error(useWorkspaceResourcesStore.getState().error ?? "request_failed");
+            if (contentUpdated.kind === "folder") throw new Error("resource_kind_mismatch");
+            updated = contentUpdated;
+          }
           adoptUpdatedResource(updated);
-          await useResourcesStore.getState().load();
           setSaveStatus("saved");
           return true;
         } catch (failure) {
@@ -96,16 +116,16 @@ export function useResourcePersistence({
     [
       adoptUpdatedResource,
       autosaveEnabled,
-      capabilities.updateResource,
+      capabilities.updateContent,
+      capabilities.updateMetadata,
       content,
-      details?.snapshotted,
       remoteUrl,
       resource,
       run,
       setActionError,
       setSaveStatus,
       tags,
-      title,
+      name,
     ],
   );
 
@@ -114,28 +134,29 @@ export function useResourcePersistence({
       setSaveStatus("idle");
       return;
     }
-    if (!dirty || !capabilities.updateResource || details?.snapshotted) return;
+    if (!dirty || !capabilities.updateMetadata) return;
     setSaveStatus("dirty");
     const timer = window.setTimeout(() => void save(), 1000);
     return () => window.clearTimeout(timer);
-  }, [autosaveEnabled, capabilities.updateResource, details?.snapshotted, dirty, save, setSaveStatus]);
+  }, [autosaveEnabled, capabilities.updateMetadata, dirty, save, setSaveStatus]);
 
   const updateAutosave = useCallback(
     (enabled: boolean) => {
-      if (!resource || !capabilities.updateResource || details?.snapshotted || submitting) return;
+      if (!resource || !capabilities.updateMetadata || submitting || !resourceSupportsAutosave(resource)) return;
       void run(async () => {
         setActionError(null);
         setSaveStatus("saving");
         try {
-          const updated = await updateResource(resource.id, {
-            title,
-            folderPath: resource.folderPath,
+          const updated = await useWorkspaceResourcesStore.getState().updateMetadata(resource.id, {
+            name,
+            path: resource.path,
             tags,
-            autosaveEnabled: enabled,
-            ...resourceSpecificUpdate(resource, { content, remoteUrl }),
+            editing: { kind: "autosave", enabled },
           });
+          if (!updated) throw new Error(useWorkspaceResourcesStore.getState().error ?? "request_failed");
+          if (updated.kind === "folder") throw new Error("resource_kind_mismatch");
           adoptUpdatedResource(updated);
-          await useResourcesStore.getState().load();
+          setAutosaveEnabled(enabled);
           setSaveStatus(enabled ? "saved" : "idle");
           return true;
         } catch (failure) {
@@ -147,17 +168,15 @@ export function useResourcePersistence({
     },
     [
       adoptUpdatedResource,
-      capabilities.updateResource,
-      content,
-      details?.snapshotted,
-      remoteUrl,
+      capabilities.updateMetadata,
       resource,
       run,
       setActionError,
+      setAutosaveEnabled,
       setSaveStatus,
       submitting,
       tags,
-      title,
+      name,
     ],
   );
 
@@ -170,8 +189,8 @@ export function useResourcePersistence({
     if (!autosaveEnabled) return pendingSaved;
     const bodySaved = await (bodyFlushRef.current?.() ?? Promise.resolve(true));
     if (!bodySaved) return false;
-    return dirty && capabilities.updateResource ? save() : pendingSaved;
-  }, [autosaveEnabled, capabilities.updateResource, dirty, save]);
+    return dirty && capabilities.updateMetadata ? save() : pendingSaved;
+  }, [autosaveEnabled, capabilities.updateMetadata, dirty, save]);
 
   return { saveStatus, save, updateAutosave, registerBodyFlush, flush };
 }

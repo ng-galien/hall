@@ -9,11 +9,37 @@ import { prepareBallotScenario } from "./support/ballotScenario.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const postgres = databaseUrl ? describe : describe.skip;
+const png = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6uAAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 async function resetPostgres(): Promise<void> {
   const setup = new Pool({ connectionString: databaseUrl });
-  await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
+  await setup.query(
+    "DROP SCHEMA IF EXISTS hall_api CASCADE; DROP SCHEMA IF EXISTS hall CASCADE; DROP SCHEMA IF EXISTS hall_meta CASCADE; DROP SCHEMA public CASCADE; CREATE SCHEMA public",
+  );
   await setup.end();
+}
+
+async function databaseUrlForHallRole(): Promise<string> {
+  const setup = new Pool({ connectionString: databaseUrl });
+  await setup.query(`
+    DO $body$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'hall') THEN
+        CREATE ROLE hall LOGIN SUPERUSER PASSWORD 'hall-test-owner';
+      ELSE
+        ALTER ROLE hall WITH LOGIN SUPERUSER PASSWORD 'hall-test-owner';
+      END IF;
+    END
+    $body$
+  `);
+  await setup.end();
+  const url = new URL(databaseUrl!);
+  url.username = "hall";
+  url.password = "hall-test-owner";
+  return url.toString();
 }
 
 async function waitForTransactionLock(pool: Pool, processId: number): Promise<void> {
@@ -261,17 +287,7 @@ postgres("PostgreSQL persistence", () => {
   });
 
   it("closes the PostgreSQL pool when the HTTP listener cannot start", async () => {
-    const setup = new Pool({ connectionString: databaseUrl });
-    await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
-    await setup.end();
-    const initialized = buildContainer({
-      host: "127.0.0.1",
-      port: 0,
-      database: { kind: "postgres", url: databaseUrl! },
-      environment: "test",
-    });
-    await initialized.cradle.sqlExecutor.ready();
-    await initialized.cradle.sqlExecutor.close();
+    await resetPostgres();
 
     const occupied = createServer();
     await new Promise<void>((resolve) => occupied.listen(0, "127.0.0.1", resolve));
@@ -304,6 +320,293 @@ postgres("PostgreSQL persistence", () => {
           else resolve();
         }),
       );
+    }
+  });
+
+  it("starts when the database role has the same name as the Hall schema", async () => {
+    await resetPostgres();
+    const ownerUrl = await databaseUrlForHallRole();
+    const server = await startHttpServer({
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "postgres", url: ownerUrl },
+      environment: "test",
+    });
+    try {
+      const response = await fetch(`${server.url}/api/health`);
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ status: "ok" });
+
+      const inspection = new Pool({ connectionString: ownerUrl });
+      const schemas = await inspection.query<{ documentary: boolean; legacy: boolean }>(
+        `SELECT to_regclass('hall.resource') IS NOT NULL AS documentary,
+                to_regclass('public.contacts') IS NOT NULL AS legacy`,
+      );
+      await inspection.end();
+      expect(schemas.rows).toEqual([{ documentary: true, legacy: true }]);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("serves the modern documentary contract through PostgreSQL", async () => {
+    await resetPostgres();
+    const server = await startHttpServer({
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "postgres", url: databaseUrl! },
+      environment: "test",
+      devAutoLogin: true,
+    });
+    const mutationHeaders = { "content-type": "application/json", origin: server.url };
+    try {
+      const createdResponse = await fetch(`${server.url}/api/resources`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          kind: "text",
+          path: "school/menus",
+          name: "Menu septembre.md",
+          content: "Initial",
+        }),
+      });
+      expect(createdResponse.status).toBe(201);
+      const createdRepresentation = (await createdResponse.json()) as {
+        properties: Record<string, unknown>;
+        actions: Array<{ name: string; href: string }>;
+      };
+      expect(createdRepresentation.properties).toMatchObject({
+        kind: "text",
+        slug: "menu-septembre-md",
+        fullPath: "school/menus/Menu septembre.md",
+        tags: [],
+        autosaveEnabled: true,
+        content: "Initial",
+        version: 1,
+      });
+      expect(createdRepresentation.properties).not.toHaveProperty("councilBusiness");
+      expect(createdRepresentation.actions.map(({ name }) => name)).toEqual([
+        "resource.relocate",
+        "resource.update-metadata",
+        "resource.update-content",
+        "resource.delete",
+      ]);
+
+      const listResponse = await fetch(`${server.url}/api/resources?path=school%2Fmenus`);
+      expect(listResponse.status).toBe(200);
+      const listRepresentation = (await listResponse.json()) as {
+        properties: Record<string, unknown>;
+        entities: Array<{ properties: Record<string, unknown> }>;
+        links: Array<{ rel: string[]; href: string }>;
+      };
+      expect(listRepresentation.properties).not.toHaveProperty("count");
+      expect(listRepresentation.links).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ rel: ["catalog"], href: "/api/resources/catalog" }),
+          expect.objectContaining({ rel: ["search"], href: "/api/resources/search" }),
+        ]),
+      );
+      const collectionActions = (listRepresentation as unknown as { actions: Array<{ name: string }> }).actions;
+      expect(collectionActions.map(({ name }) => name)).toEqual(
+        expect.arrayContaining([
+          "resource.create",
+          "resource.create-document",
+          "resource.import-spreadsheet",
+          "resource.create-editor-asset",
+          "resource.search-legal-references",
+        ]),
+      );
+      expect(listRepresentation.entities.map(({ properties }) => properties)).toEqual([
+        expect.objectContaining({ slug: "menu-septembre-md", name: "Menu septembre.md", kind: "text" }),
+      ]);
+      expect(listRepresentation.entities[0]?.properties).not.toHaveProperty("content");
+
+      const catalogResponse = await fetch(`${server.url}/api/resources/catalog`);
+      expect(catalogResponse.status).toBe(200);
+      const catalogRepresentation = (await catalogResponse.json()) as {
+        properties: Record<string, unknown>;
+        entities: Array<{ properties: Record<string, unknown> }>;
+      };
+      expect(catalogRepresentation.properties).not.toHaveProperty("count");
+      expect(catalogRepresentation.entities).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            properties: expect.objectContaining({ kind: "text", fullPath: "school/menus/Menu septembre.md" }),
+          }),
+        ]),
+      );
+      expect(catalogRepresentation.entities[0]?.properties).not.toHaveProperty("tags");
+
+      const searchResponse = await fetch(`${server.url}/api/resources/search?query=septembre`);
+      expect(searchResponse.status).toBe(200);
+      const searchRepresentation = (await searchResponse.json()) as {
+        properties: { items: Array<Record<string, unknown>>; facets: Record<string, unknown[]> };
+      };
+      expect(searchRepresentation.properties.items).toEqual([
+        expect.objectContaining({ kind: "text", fullPath: "school/menus/Menu septembre.md" }),
+      ]);
+      expect(searchRepresentation.properties.facets).toMatchObject({
+        paths: expect.any(Array),
+        tags: expect.any(Array),
+        readiness: expect.any(Array),
+        media: expect.any(Array),
+      });
+      expect(searchRepresentation.properties).not.toHaveProperty("count");
+
+      const openedResponse = await fetch(`${server.url}/api/resources/menu-septembre-md`);
+      expect(openedResponse.status).toBe(200);
+      const openedRepresentation = (await openedResponse.json()) as { properties: Record<string, unknown> };
+      expect(openedRepresentation.properties).toMatchObject({ content: "Initial", version: 1 });
+
+      const updateResponse = await fetch(`${server.url}/api/resources/menu-septembre-md/content`, {
+        method: "PUT",
+        headers: mutationHeaders,
+        body: JSON.stringify({ kind: "text", expectedVersion: 1, content: "Updated" }),
+      });
+      expect(updateResponse.status).toBe(200);
+      const updatedRepresentation = (await updateResponse.json()) as { properties: Record<string, unknown> };
+      expect(updatedRepresentation.properties).toMatchObject({ content: "Updated", version: 2 });
+
+      const metadataResponse = await fetch(`${server.url}/api/resources/menu-septembre-md/metadata`, {
+        method: "PATCH",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          path: "school/menus",
+          name: "Menu septembre.md",
+          tags: ["cantine", "septembre"],
+          editing: { kind: "autosave", enabled: false },
+        }),
+      });
+      expect(metadataResponse.status).toBe(200);
+      const metadataRepresentation = (await metadataResponse.json()) as { properties: Record<string, unknown> };
+      expect(metadataRepresentation.properties).toMatchObject({
+        tags: ["cantine", "septembre"],
+        autosaveEnabled: false,
+      });
+
+      const relocateResponse = await fetch(`${server.url}/api/resources/menu-septembre-md/location`, {
+        method: "PATCH",
+        headers: mutationHeaders,
+        body: JSON.stringify({ path: "school", name: "Menu.md" }),
+      });
+      expect(relocateResponse.status).toBe(200);
+      const relocatedRepresentation = (await relocateResponse.json()) as { properties: Record<string, unknown> };
+      expect(relocatedRepresentation.properties).toMatchObject({
+        slug: "menu-septembre-md",
+        fullPath: "school/Menu.md",
+      });
+
+      const upload = new FormData();
+      upload.set("path", "school");
+      upload.set("name", "Proof.txt");
+      upload.set("file", new Blob(["proof"], { type: "text/plain" }), "Proof.txt");
+      const documentResponse = await fetch(`${server.url}/api/resources/documents`, {
+        method: "POST",
+        headers: { origin: server.url },
+        body: upload,
+      });
+      expect(documentResponse.status).toBe(201);
+      const documentRepresentation = (await documentResponse.json()) as {
+        properties: { slug: string; binary: { byteSize: number } };
+      };
+      expect(documentRepresentation.properties).toMatchObject({
+        slug: "proof-txt",
+        binary: { byteSize: 5 },
+      });
+
+      const contentResponse = await fetch(
+        `${server.url}/api/resources/${documentRepresentation.properties.slug}/content`,
+      );
+      expect(contentResponse.status).toBe(200);
+      expect(contentResponse.headers.get("content-type")).toContain("text/plain");
+      expect(await contentResponse.text()).toBe("proof");
+
+      const assetUpload = new FormData();
+      assetUpload.set("ownerKind", "textResourceContent");
+      assetUpload.set("ownerId", String(createdRepresentation.properties.id));
+      assetUpload.set("title", "Plan de la salle");
+      assetUpload.set("file", new Blob([png], { type: "image/png" }), "plan.png");
+      const assetResponse = await fetch(`${server.url}/api/resources/editor-assets`, {
+        method: "POST",
+        headers: { origin: server.url },
+        body: assetUpload,
+      });
+      expect(assetResponse.status).toBe(201);
+      const assetRepresentation = (await assetResponse.json()) as {
+        properties: { id: string; owner: { kind: string; id: string } };
+      };
+      expect(assetRepresentation.properties.owner).toEqual({
+        kind: "textResourceContent",
+        id: createdRepresentation.properties.id,
+      });
+
+      const assetReference = `::image[Plan]{#${assetRepresentation.properties.id} align="center" width="75"}`;
+      const referenceResponse = await fetch(`${server.url}/api/resources/menu-septembre-md/content`, {
+        method: "PUT",
+        headers: mutationHeaders,
+        body: JSON.stringify({ kind: "text", expectedVersion: 2, content: assetReference }),
+      });
+      expect(referenceResponse.status).toBe(200);
+      const unifiedContent = await fetch(
+        `${server.url}/api/resources/binary-references/${assetRepresentation.properties.id}/content`,
+      );
+      expect(unifiedContent.status).toBe(200);
+      expect(Buffer.from(await unifiedContent.arrayBuffer())).toEqual(png);
+
+      const purgeResponse = await fetch(`${server.url}/api/resources/menu-septembre-md/content`, {
+        method: "PUT",
+        headers: mutationHeaders,
+        body: JSON.stringify({ kind: "text", expectedVersion: 3, content: "Image removed" }),
+      });
+      expect(purgeResponse.status).toBe(200);
+      expect(
+        (await fetch(`${server.url}/api/resources/editor-assets/${assetRepresentation.properties.id}`)).status,
+      ).toBe(404);
+
+      const spreadsheetImport = new FormData();
+      spreadsheetImport.set("path", "school");
+      spreadsheetImport.set("name", "Budget");
+      spreadsheetImport.set("file", new Blob(["Label;Montant\nCantine;12,50"], { type: "text/csv" }), "budget.csv");
+      const spreadsheetResponse = await fetch(`${server.url}/api/resources/spreadsheets/import`, {
+        method: "POST",
+        headers: { origin: server.url },
+        body: spreadsheetImport,
+      });
+      expect(spreadsheetResponse.status).toBe(201);
+      const spreadsheetRepresentation = (await spreadsheetResponse.json()) as { properties: Record<string, unknown> };
+      expect(spreadsheetRepresentation.properties).toMatchObject({ kind: "spreadsheet", name: "Budget", version: 1 });
+
+      const legalResponse = await fetch(`${server.url}/api/resources`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          kind: "legalReference",
+          path: "school",
+          name: "Article à résoudre",
+        }),
+      });
+      expect(legalResponse.status).toBe(201);
+      const legalRepresentation = (await legalResponse.json()) as { actions: Array<{ name: string }> };
+      expect(legalRepresentation.actions.map(({ name }) => name)).toContain("resource.resolve-legal-reference");
+
+      const inspection = new Pool({ connectionString: databaseUrl! });
+      const folder = await inspection.query<{ id: string }>(
+        "SELECT id::text FROM hall.resource WHERE full_path = 'school'",
+      );
+      const folderRelocation = await fetch(`${server.url}/api/resources/${folder.rows[0]?.id}/location`, {
+        method: "PATCH",
+        headers: mutationHeaders,
+        body: JSON.stringify({ path: "", name: "education" }),
+      });
+      expect(folderRelocation.status).toBe(200);
+      const relocatedResource = await fetch(`${server.url}/api/resources/menu-septembre-md`);
+      expect(relocatedResource.status).toBe(200);
+      await expect(relocatedResource.json()).resolves.toMatchObject({
+        properties: { id: createdRepresentation.properties.id, fullPath: "education/Menu.md" },
+      });
+      await inspection.end();
+    } finally {
+      await server.close();
     }
   });
 

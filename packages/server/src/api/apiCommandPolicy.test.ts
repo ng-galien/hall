@@ -38,6 +38,11 @@ const actionsByPermissions = [
     [
       "decision.create",
       "decision.update",
+      "resource.create",
+      "resource.relocate",
+      "resource.update-metadata",
+      "resource.update-content",
+      "resource.replace-document-content",
       "resource.create-text",
       "resource.create-remote",
       "resource.create-geographic",
@@ -313,6 +318,11 @@ const auditCases = [
   ["POST", "/api/council-meetings/meeting-1/ballots", undefined, "ballot.record", "ballot", null],
   ["DELETE", "/api/council-meetings/meeting-1/ballots/ballot-1", undefined, "ballot.cancel", "ballot", "ballot-1"],
   ["POST", "/api/resources/texts", undefined, "resource.create-text", "resource", undefined],
+  ["POST", "/api/resources", undefined, "resource.create", "resource", undefined],
+  ["PATCH", "/api/resources/resource-1/location", undefined, "resource.relocate", "resource", "resource-1"],
+  ["PATCH", "/api/resources/resource-1/metadata", undefined, "resource.update-metadata", "resource", "resource-1"],
+  ["PUT", "/api/resources/resource-1/content", undefined, "resource.update-content", "resource", "resource-1"],
+  ["PUT", "/api/resources/resource-1/binary", undefined, "resource.replace-document-content", "resource", "resource-1"],
   ["POST", "/api/resources/remotes", undefined, "resource.create-remote", "resource", undefined],
   ["POST", "/api/resources/geographic", undefined, "resource.create-geographic", "resource", undefined],
   ["POST", "/api/resources/spreadsheets", undefined, "resource.create-spreadsheet", "resource", undefined],
@@ -404,7 +414,9 @@ describe("API command policy", () => {
     expect(resolveAuditIntent({ method: "POST", path: "/api//resources//texts" })).toMatchObject({
       action: "resource.create-text",
     });
-    expect(resolveAuditIntent({ method: "POST", path: "/api/resources" })).toBeNull();
+    expect(resolveAuditIntent({ method: "POST", path: "/api/resources" })).toMatchObject({
+      action: "resource.create",
+    });
     expect(resolveAuditIntent({ method: "POST", path: "/api/resources/resource-1/resolve" })).toBeNull();
     expect(resolveAuditIntent({ method: "POST", path: "/api/resources/resource-1/other/resolve" })).toBeNull();
     expect(resolveAuditIntent({ method: "POST", path: "/api/resources/resource-1/other/refresh" })).toBeNull();
@@ -450,8 +462,15 @@ describe("API command policy", () => {
   it("rejects every unsupported method and malformed variant of a command route", () => {
     const commandRoutes = [...auditCases.map(([method, path]) => [method, path] as const), ...nonAuditedCommandCases];
     const methods = ["GET", "HEAD", "OPTIONS", "PATCH"] as const;
+    const supportedMethods = new Map<string, Set<string>>();
+    for (const [method, path] of commandRoutes) {
+      const supported = supportedMethods.get(path) ?? new Set<string>();
+      supported.add(method);
+      supportedMethods.set(path, supported);
+    }
     for (const [expectedMethod, path] of commandRoutes) {
       for (const method of methods) {
+        if (supportedMethods.get(path)?.has(method)) continue;
         expect(resolveAuditIntent({ method, path })).toBeNull();
       }
       expect(resolveAuditIntent({ method: expectedMethod, path: `${path}/unexpected` })).toBeNull();

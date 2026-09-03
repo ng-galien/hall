@@ -8,8 +8,16 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const clientDirectory = dirname(dirname(fileURLToPath(import.meta.url)));
+const projectDirectory = join(clientDirectory, "..", "..");
 const playwrightCli = require.resolve("@playwright/test/cli");
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "hall-playwright-"));
+const testDatabaseUrl = "postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test";
+
+function run(command, args) {
+  const result = spawnSync(command, args, { cwd: projectDirectory, stdio: "inherit" });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} failed with status ${result.status}`);
+}
 
 function availablePort() {
   return new Promise((resolve, reject) => {
@@ -31,6 +39,9 @@ const serverPort = process.env.HALL_E2E_SERVER_PORT ?? (await availablePort());
 const clientPort = process.env.HALL_E2E_CLIENT_PORT ?? (await availablePort());
 
 try {
+  run("docker", ["compose", "--profile", "test", "rm", "--stop", "--force", "postgres-test"]);
+  run("docker", ["compose", "--profile", "test", "up", "-d", "--wait", "postgres-test"]);
+
   const result = spawnSync(
     process.execPath,
     [playwrightCli, "test", "--config", "playwright.config.ts", ...process.argv.slice(2)],
@@ -38,7 +49,8 @@ try {
       cwd: clientDirectory,
       env: {
         ...process.env,
-        DATABASE_PATH: join(temporaryDirectory, "hall-e2e.sqlite"),
+        DATABASE_KIND: "postgres",
+        DATABASE_URL: testDatabaseUrl,
         DOCUMENT_STORAGE_PATH: join(temporaryDirectory, "documents"),
         HALL_DEV_AUTO_LOGIN: "true",
         HALL_E2E_CLIENT_PORT: clientPort,
@@ -51,5 +63,6 @@ try {
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;
 } finally {
+  run("docker", ["compose", "--profile", "test", "rm", "--stop", "--force", "postgres-test"]);
   rmSync(temporaryDirectory, { recursive: true, force: true });
 }

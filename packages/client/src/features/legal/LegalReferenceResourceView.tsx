@@ -1,4 +1,4 @@
-import type { LegalReferenceResolvedResource, LegalReferenceSnapshot } from "@hall/domain";
+import type { ResourceDetail } from "@hall/api-contract";
 import { Button } from "@/components/ui/button";
 import { CheckCircleIcon, OpenIcon, RedoIcon, WarningIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -10,37 +10,38 @@ function optionalDate(value: string | null, formatDate: (value: string) => strin
 
 export function LegalReferenceResourceView({
   resource,
-  snapshots,
   canRefresh,
   refreshing,
   refreshConflict,
   onRefresh,
 }: {
-  resource: LegalReferenceResolvedResource;
-  snapshots: LegalReferenceSnapshot[];
+  resource: Extract<ResourceDetail, { kind: "legalReference" }>;
   canRefresh: boolean;
   refreshing: boolean;
   refreshConflict: boolean;
   onRefresh(): void;
 }) {
   const { t, formatDate, formatDateTime } = useI18n();
+  if (resource.document.resolutionStatus !== "resolved") return null;
+  const details = resource.document;
+  const snapshots = details.snapshots;
   const currentSnapshot =
-    snapshots.find((snapshot) => snapshot.snapshotHash === resource.snapshotHash) ?? snapshots.at(-1) ?? null;
+    snapshots.find((snapshot) => snapshot.snapshotHash === details.snapshotHash) ?? snapshots.at(-1) ?? null;
   const history = [...snapshots].reverse();
 
   return (
     <div className="legal-reference-view">
       <div className="legal-reference-heading">
         <div>
-          <span className="legal-reference-citation">{resource.citationLabel}</span>
-          <span className={`legal-reference-verification legal-reference-verification-${resource.verificationStatus}`}>
-            {resource.verificationStatus === "current" ? (
+          <span className="legal-reference-citation">{details.citationLabel}</span>
+          <span className={`legal-reference-verification legal-reference-verification-${details.verificationStatus}`}>
+            {details.verificationStatus === "current" ? (
               <CheckCircleIcon aria-hidden="true" />
             ) : (
               <WarningIcon aria-hidden="true" />
             )}
             {t(
-              resource.verificationStatus === "current"
+              details.verificationStatus === "current"
                 ? "legalReference.verificationCurrent"
                 : "legalReference.verificationUnavailable",
             )}
@@ -60,7 +61,7 @@ export function LegalReferenceResourceView({
             </Button>
           ) : null}
           <Button asChild variant="outline">
-            <a href={resource.sourceUrl} target="_blank" rel="noreferrer">
+            <a href={details.sourceUrl} target="_blank" rel="noreferrer">
               <OpenIcon aria-hidden="true" />
               {t("legalReference.openOfficialSource")}
             </a>
@@ -73,7 +74,7 @@ export function LegalReferenceResourceView({
           {t("legalReference.refreshConflict")}
         </p>
       ) : null}
-      {resource.verificationStatus === "verificationUnavailable" ? (
+      {details.verificationStatus === "verificationUnavailable" ? (
         <p className="legal-reference-warning" role="status">
           <WarningIcon aria-hidden="true" />
           {t("legalReference.lastSnapshotPreserved")}
@@ -83,15 +84,15 @@ export function LegalReferenceResourceView({
       <dl className="legal-reference-metadata">
         <div>
           <dt>{t("legalReference.legalStatus")}</dt>
-          <dd>{legalStatusLabel(resource.legalStatus, t)}</dd>
+          <dd>{legalStatusLabel(details.legalStatus, t)}</dd>
         </div>
         <div>
           <dt>{t("legalReference.version")}</dt>
-          <dd className="legal-reference-version">{resource.versionId}</dd>
+          <dd className="legal-reference-version">{details.versionId}</dd>
         </div>
         <div>
           <dt>{t("legalReference.effectiveVersion")}</dt>
-          <dd>{optionalDate(resource.effectiveAt, formatDate, t("legalReference.currentVersion"))}</dd>
+          <dd>{optionalDate(details.effectiveAt, formatDate, t("legalReference.currentVersion"))}</dd>
         </div>
         <div>
           <dt>{t("legalReference.validity")}</dt>
@@ -106,11 +107,11 @@ export function LegalReferenceResourceView({
         </div>
         <div>
           <dt>{t("legalReference.providerUpdatedAt")}</dt>
-          <dd>{optionalDate(resource.providerUpdatedAt, formatDateTime, t("common.none"))}</dd>
+          <dd>{optionalDate(details.providerUpdatedAt, formatDateTime, t("common.none"))}</dd>
         </div>
         <div>
           <dt>{t("legalReference.fetchedAt")}</dt>
-          <dd>{formatDateTime(resource.fetchedAt)}</dd>
+          <dd>{formatDateTime(details.fetchedAt)}</dd>
         </div>
       </dl>
 
@@ -118,12 +119,12 @@ export function LegalReferenceResourceView({
         <article className="legal-reference-article" aria-labelledby="legal-reference-content-title">
           <header>
             <h2 id="legal-reference-content-title">{t("legalReference.officialText")}</h2>
-            <span>{resource.citationLabel}</span>
+            <span>{details.citationLabel}</span>
           </header>
           <div className="legal-reference-text">
             {currentSnapshot?.normalizedContent ?? t("legalReference.contentUnavailable")}
           </div>
-          <footer>{resource.attribution}</footer>
+          <footer>{details.attribution}</footer>
         </article>
 
         <aside className="legal-reference-history" aria-labelledby="legal-reference-history-title">
@@ -133,7 +134,7 @@ export function LegalReferenceResourceView({
           ) : (
             <ol>
               {history.map((snapshot) => (
-                <li key={snapshot.id} className={snapshot.snapshotHash === resource.snapshotHash ? "current" : ""}>
+                <li key={snapshot.id} className={snapshot.snapshotHash === details.snapshotHash ? "current" : ""}>
                   <strong>{snapshot.versionId}</strong>
                   <span>{legalStatusLabel(snapshot.legalStatus, t)}</span>
                   <span>{formatDateTime(snapshot.fetchedAt)}</span>

@@ -1,8 +1,9 @@
-import type { DocumentResource } from "@hall/domain";
+import type { SirenEntity } from "@hall/api-contract";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { sirenRepresentation } from "../services/apiClient";
 import { loadResourcePreviewObjectUrl } from "../services/resourcesApi";
 
-export function useDocumentPreview(resource: DocumentResource | null) {
+export function useDocumentPreview(resource: { id: string } | null, representation?: SirenEntity | null) {
   const resourceId = resource?.id;
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<string | null>(null);
@@ -22,7 +23,11 @@ export function useDocumentPreview(resource: DocumentResource | null) {
     setObjectUrl(null);
     setMediaType(null);
     setFailed(false);
-    void loadResourcePreviewObjectUrl(request.resourceId)
+    void (
+      representation
+        ? loadResourcePreviewObjectUrl(representation)
+        : sirenRepresentation(`/resources/${encodeURIComponent(request.resourceId)}`).then(loadResourcePreviewObjectUrl)
+    )
       .then((preview) => {
         if (!active) {
           if (preview.url.startsWith("blob:")) URL.revokeObjectURL(preview.url);
@@ -39,7 +44,7 @@ export function useDocumentPreview(resource: DocumentResource | null) {
       active = false;
       if (loadedUrl?.startsWith("blob:")) URL.revokeObjectURL(loadedUrl);
     };
-  }, [request]);
+  }, [representation, request]);
 
   const retry = useCallback(() => setAttempt((current) => current + 1), []);
   return { objectUrl, mediaType, failed, retry };

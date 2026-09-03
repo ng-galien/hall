@@ -1,4 +1,4 @@
-import type { SpreadsheetDocument } from "@hall/domain";
+import type { ResourceDetail } from "@hall/api-contract";
 import { CommandType, LocaleType, Univer } from "@univerjs/core";
 import { FUniver } from "@univerjs/core/facade";
 import { CalculationMode, UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
@@ -7,6 +7,8 @@ import enUS from "@univerjs/preset-sheets-core/locales/en-US";
 import frFR from "@univerjs/preset-sheets-core/locales/fr-FR";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { spreadsheetSnapshotFromWorkbook, workbookFromSpreadsheetDocument } from "./univerWorkbook";
+
+type SpreadsheetDocument = Extract<ResourceDetail, { kind: "spreadsheet" }>["document"];
 
 const SNAPSHOT_DEBOUNCE_MS = 100;
 

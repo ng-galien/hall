@@ -2,7 +2,7 @@ import { type ReferenceEntityKind, referenceEntityKinds } from "@hall/domain";
 import { imageWidthRange } from "@hall/templating";
 import type { Editor } from "@tiptap/react";
 import type { RefObject } from "react";
-import { type KeyboardEvent, useCallback, useMemo, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -23,6 +23,7 @@ export function ReferenceSearchDialog({
   allowedKinds = referenceEntityKinds,
   title,
   testId = "reference-search-dialog",
+  onQueryChange,
   onPick,
   onClose,
 }: {
@@ -32,6 +33,7 @@ export function ReferenceSearchDialog({
   allowedKinds?: readonly ReferenceEntityKind[];
   title?: string;
   testId?: string;
+  onQueryChange?(query: string): void;
   onPick(item: Mentionable): void;
   onClose(): void;
 }) {
@@ -42,6 +44,12 @@ export function ReferenceSearchDialog({
   });
   const [preview, setPreview] = useState<SearchBoxState<ReferenceEntityKind> | null>(null);
   const [rawActive, setActive] = useState(0);
+
+  useEffect(() => {
+    if (!onQueryChange) return;
+    const timeout = window.setTimeout(() => onQueryChange(state.query), 200);
+    return () => window.clearTimeout(timeout);
+  }, [onQueryChange, state.query]);
 
   const groupLabel = useCallback((kind: ReferenceEntityKind) => t(referenceKindPresentations[kind].groupLabelKey), [t]);
 

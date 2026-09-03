@@ -1,0 +1,35 @@
+-- Entity: one council meeting. Its quorum is fixed at creation. A meeting may
+-- be provisioned before its date is known. started_at and closed_at are facts,
+-- not a mutable status: their nullability structurally expresses preparation,
+-- conduct and closure.
+CREATE TABLE council_meetings (
+  id UUID PRIMARY KEY,
+
+  -- The predecessor relation forms the durable meeting sequence. The first
+  -- known meeting has no predecessor; every later meeting has exactly one.
+  previous_council_meeting UUID UNIQUE
+    REFERENCES council_meetings (id),
+
+  -- @functional-requirement HALL-FR-MTG-080 COUNCIL_MEETING_DATE_CAN_BE_UNSET:
+  -- The next meeting exists before its date is necessarily fixed.
+  scheduled_at TIMESTAMPTZ,
+
+  -- @functional-requirement HALL-FR-MTG-010 COUNCIL_MEETING_QUORUM_IS_POSITIVE: Every meeting
+  -- has a positive required physical-presence quorum.
+  quorum INTEGER NOT NULL CHECK (quorum > 0),
+  started_at TIMESTAMPTZ,
+  closed_at TIMESTAMPTZ,
+
+  -- @functional-requirement HALL-FR-MTG-090 COUNCIL_MEETING_CLOSURE_REQUIRES_START:
+  CONSTRAINT council_meeting_closure_requires_start CHECK (
+    closed_at IS NULL OR started_at IS NOT NULL
+  ),
+
+  CONSTRAINT council_meeting_time_is_monotonic CHECK (
+    closed_at IS NULL OR closed_at >= started_at
+  ),
+
+  CONSTRAINT council_meeting_is_not_its_own_predecessor CHECK (
+    previous_council_meeting IS NULL OR previous_council_meeting <> id
+  )
+);

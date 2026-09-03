@@ -1,28 +1,191 @@
-import { findSirenLink } from "@hall/api-contract";
-import type {
-  DocumentResource,
-  DocumentUsage,
-  EditorAssetOwner,
-  FolderCreateResult,
-  FolderRenameResult,
-  GeographicResource,
-  LegalReferenceResource,
-  LegalReferenceSearchResult,
-  RemoteResource,
-  Resource,
-  ResourceDetails,
-  ResourceKind,
-  SpreadsheetResource,
-} from "@hall/domain";
+import {
+  type UpdateResourceContent as DocumentaryResourceContentUpdate,
+  type CreateResource as DocumentaryResourceCreate,
+  type UpdateResourceMetadata as DocumentaryResourceMetadataUpdate,
+  type RelocateResource as DocumentaryResourceRelocation,
+  resourceCatalogSchema as documentaryResourceCatalogSchema,
+  resourceDetailSchema as documentaryResourceDetailSchema,
+  resourceSummarySchema as documentaryResourceSummarySchema,
+  editorAssetSchema,
+  findSirenLink,
+  type LegalReferenceSearchInput,
+  legalReferenceSearchResultSchema,
+  type ResolveLegalReference,
+  type ResourceSearchCriteria,
+  type ResourceSearchResult,
+  resourceSearchResultSchema,
+} from "@hall/api-contract";
+import type { DocumentResource, DocumentUsage, EditorAssetOwner, Resource, ResourceKind } from "@hall/domain";
 import {
   apiPathFromHref,
   apiRequest,
   apiResponse,
   apiSirenRequest,
+  followSirenLink,
   SirenCapabilityUnavailable,
   sirenRepresentation,
+  submitSirenAction,
   submitSirenActionAt,
 } from "./apiClient";
+
+const documentaryResourcePath = (reference: string) => `/resources/${encodeURIComponent(reference)}`;
+
+/** Reads the lightweight flat catalogue advertised by the resources collection. */
+export async function listDocumentaryResourceCatalog() {
+  const collectionRepresentation = await sirenRepresentation("/resources");
+  const result = await followSirenLink<unknown>(collectionRepresentation, "catalog");
+  return {
+    ...result,
+    collectionRepresentation,
+    data: documentaryResourceCatalogSchema.parse(result.data),
+  };
+}
+
+/** Reads the presentation summaries directly contained in one folder. */
+export async function listDocumentaryResourceFolder(path: string) {
+  const params = new URLSearchParams({ path });
+  const result = await apiSirenRequest<unknown>(`/resources?${params.toString()}`);
+  return { ...result, data: documentaryResourceSummarySchema.array().parse(result.data) };
+}
+
+/** Searches documentary presentations through the relation advertised by the collection. */
+export async function searchDocumentaryResources(
+  collectionRepresentation: Parameters<typeof findSirenLink>[0],
+  criteria: ResourceSearchCriteria,
+) {
+  const search = findSirenLink(collectionRepresentation, "search");
+  if (!search) throw new SirenCapabilityUnavailable("search");
+  const url = new URL(search.href, window.location.origin);
+  url.searchParams.set("query", criteria.query);
+  const setValues = (name: string, values: readonly string[]) => {
+    if (values.length > 0) url.searchParams.set(name, values.join(","));
+  };
+  setValues("paths", criteria.paths);
+  setValues("kinds", criteria.kinds);
+  setValues("tags", criteria.tags);
+  setValues("readiness", criteria.readiness);
+  setValues("media", criteria.media);
+  const result = await apiSirenRequest<unknown>(apiPathFromHref(url.href));
+  const data: ResourceSearchResult = resourceSearchResultSchema.parse(result.representation?.properties ?? result.data);
+  return { ...result, data };
+}
+
+/** Opens one documentary resource and preserves its Siren capabilities for the editing session. */
+export async function openDocumentaryResource(reference: string) {
+  const result = await apiSirenRequest<unknown>(documentaryResourcePath(reference));
+  return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
+}
+
+export async function createDocumentaryResource(
+  collectionRepresentation: Parameters<typeof findSirenLink>[0],
+  input: DocumentaryResourceCreate,
+) {
+  const result = await submitSirenAction<unknown>(collectionRepresentation, "resource.create", input);
+  return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
+}
+
+export async function importDocumentarySpreadsheet(
+  collectionRepresentation: Parameters<typeof findSirenLink>[0],
+  form: FormData,
+) {
+  const result = await submitSirenAction<unknown>(collectionRepresentation, "resource.import-spreadsheet", form);
+  return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
+}
+
+export async function uploadDocumentaryResource(
+  collectionRepresentation: Parameters<typeof findSirenLink>[0],
+  form: FormData,
+) {
+  const result = await submitSirenAction<unknown>(collectionRepresentation, "resource.create-document", form);
+  return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
+}
+
+export async function createDocumentaryEditorAsset(
+  collectionRepresentation: Parameters<typeof findSirenLink>[0],
+  form: FormData,
+) {
+  const result = await submitSirenAction<unknown>(collectionRepresentation, "resource.create-editor-asset", form);
+  return { ...result, data: editorAssetSchema.parse(result.data) };
+}
+
+export async function searchDocumentaryLegalReferences(
+  collectionRepresentation: Parameters<typeof findSirenLink>[0],
+  input: LegalReferenceSearchInput,
+) {
+  const result = await submitSirenAction<unknown>(collectionRepresentation, "resource.search-legal-references", input);
+  return { ...result, data: legalReferenceSearchResultSchema.array().parse(result.data) };
+}
+
+export async function resolveDocumentaryLegalReference(
+  representation: Parameters<typeof findSirenLink>[0],
+  input: ResolveLegalReference,
+) {
+  const result = await submitSirenAction<unknown>(representation, "resource.resolve-legal-reference", input);
+  return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
+}
+
+export async function refreshDocumentaryLegalReference(
+  representation: Parameters<typeof findSirenLink>[0],
+  expectedSnapshotHash: string,
+) {
+  const result = await submitSirenAction<unknown>(representation, "resource.refresh-legal-reference", {
+    expectedSnapshotHash,
+  });
+  return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
+}
+
+export async function openDocumentaryEditorAsset(id: string) {
+  const result = await apiSirenRequest<unknown>(`/resources/editor-assets/${encodeURIComponent(id)}`);
+  return { ...result, data: editorAssetSchema.parse(result.data) };
+}
+
+export function documentaryLink(representation: Parameters<typeof findSirenLink>[0], rel: "content" | "preview") {
+  const link = findSirenLink(representation, rel);
+  if (!link) throw new SirenCapabilityUnavailable(rel);
+  return link;
+}
+
+export async function downloadDocumentaryResource(
+  resource: Extract<ReturnType<typeof documentaryResourceDetailSchema.parse>, { kind: "document" }>,
+  representation: Parameters<typeof findSirenLink>[0],
+): Promise<void> {
+  const content = documentaryLink(representation, "content");
+  const response = await apiResponse(apiPathFromHref(content.href));
+  const url = URL.createObjectURL(await response.blob());
+  const link = window.document.createElement("a");
+  link.href = url;
+  link.download = resource.name;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function relocateDocumentaryResource(
+  representation: Parameters<typeof findSirenLink>[0],
+  input: DocumentaryResourceRelocation,
+) {
+  const result = await submitSirenAction<unknown>(representation, "resource.relocate", input);
+  return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
+}
+
+export async function updateDocumentaryResourceMetadata(
+  representation: Parameters<typeof findSirenLink>[0],
+  input: DocumentaryResourceMetadataUpdate,
+) {
+  const result = await submitSirenAction<unknown>(representation, "resource.update-metadata", input);
+  return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
+}
+
+export async function updateDocumentaryResourceContent(
+  representation: Parameters<typeof findSirenLink>[0],
+  input: DocumentaryResourceContentUpdate,
+) {
+  const result = await submitSirenAction<unknown>(representation, "resource.update-content", input);
+  return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
+}
+
+export async function deleteDocumentaryResource(representation: Parameters<typeof findSirenLink>[0]): Promise<void> {
+  await submitSirenAction(representation, "resource.delete");
+}
 
 export interface ResourceFilters {
   folderPath?: string;
@@ -50,74 +213,21 @@ const resourceQuery = (filters: ResourceFilters = {}) => {
 
 export const listResources = (filters?: ResourceFilters) =>
   apiRequest<Resource[]>(`/resources${resourceQuery(filters)}`);
-export const listFolderPaths = () => apiRequest<string[]>("/resources/paths");
-export const createFolder = (parentPath: string, name: string) =>
-  submitSirenActionAt<FolderCreateResult>("/resources", "workspace.create-folder", { parentPath, name }).then(
-    (result) => result.data,
-  );
-export const renameFolder = (folderPath: string, name: string) =>
-  submitSirenActionAt<FolderRenameResult>("/resources", "workspace.rename-folder", { folderPath, name }).then(
-    (result) => result.data,
-  );
-export const createTextResource = (input: Record<string, unknown>) =>
-  submitSirenActionAt<Resource>("/resources", "resource.create-text", input).then((result) => result.data);
-export const createRemoteResource = (input: Record<string, unknown>) =>
-  submitSirenActionAt<RemoteResource>("/resources", "resource.create-remote", input).then((result) => result.data);
-export const createGeographicResource = (input: Record<string, unknown>) =>
-  submitSirenActionAt<GeographicResource>("/resources", "resource.create-geographic", input).then(
-    (result) => result.data,
-  );
-export const createSpreadsheetResource = (input: Record<string, unknown>) =>
-  submitSirenActionAt<SpreadsheetResource>("/resources", "resource.create-spreadsheet", input).then(
-    (result) => result.data,
-  );
-export const importSpreadsheetResource = (form: FormData) =>
-  submitSirenActionAt<SpreadsheetResource>("/resources", "resource.import-spreadsheet", form).then(
-    (result) => result.data,
-  );
-export const searchLegalReferences = (input: { query: string; effectiveAt: string | null }) =>
-  submitSirenActionAt<LegalReferenceSearchResult[]>("/resources", "resource.search-legal-references", input).then(
-    (result) => result.data,
-  );
-export const createLegalReferenceResource = (input: Record<string, unknown>) =>
-  submitSirenActionAt<LegalReferenceResource>("/resources", "resource.create-legal-reference", input).then(
-    (result) => result.data,
-  );
-export const resolveLegalReferenceResource = (resourceId: string, input: Record<string, unknown>) =>
-  submitSirenActionAt<LegalReferenceResource>(
-    `/resources/${resourceId}`,
-    "resource.resolve-legal-reference",
-    input,
-  ).then((result) => result.data);
 export const uploadResourceDocument = (form: FormData) =>
   submitSirenActionAt<Resource>("/resources", "resource.create-document", form).then((result) => result.data);
 export const uploadEditorAsset = (form: FormData) =>
   submitSirenActionAt<Resource>("/resources", "resource.create-editor-asset", form).then((result) => result.data);
-export const getResourceDetails = (resourceId: string) => apiRequest<ResourceDetails>(`/resources/${resourceId}`);
-export const getResourceDetailsSiren = (resourceId: string) =>
-  apiSirenRequest<ResourceDetails>(`/resources/${resourceId}`);
-export const updateResource = (resourceId: string, input: Record<string, unknown>) =>
-  submitSirenActionAt<Resource>(`/resources/${resourceId}`, "resource.update", input).then((result) => result.data);
-export const updateGeographicResource = (resourceId: string, input: Record<string, unknown>) =>
-  submitSirenActionAt<GeographicResource>(`/resources/${resourceId}`, "resource.update-geography", input).then(
-    (result) => result.data,
-  );
-export const updateSpreadsheetResource = (resourceId: string, input: Record<string, unknown>) =>
-  submitSirenActionAt<SpreadsheetResource>(`/resources/${resourceId}`, "resource.update-spreadsheet", input).then(
-    (result) => result.data,
-  );
-export const refreshLegalReferenceResource = (resourceId: string, expectedSnapshotHash: string) =>
-  submitSirenActionAt<LegalReferenceResource>(`/resources/${resourceId}`, "resource.refresh-legal-reference", {
-    expectedSnapshotHash,
-  }).then((result) => result.data);
-export const deleteResource = (resourceId: string) =>
-  submitSirenActionAt(`/resources/${resourceId}`, "resource.delete").then((result) => result.data);
 
 export async function resourceContentHref(resourceId: string): Promise<string> {
   const representation = await sirenRepresentation(`/resources/${resourceId}`);
   const content = findSirenLink(representation, "content");
   if (!content) throw new SirenCapabilityUnavailable("content");
   return content.href;
+}
+
+/** Canonical binary resolver for persisted editor references, whether document or editor asset. */
+export function documentaryBinaryReferenceContentHref(id: string): Promise<string> {
+  return Promise.resolve(`/api/resources/binary-references/${encodeURIComponent(id)}/content`);
 }
 
 async function resourceContentResponse(resourceId: string): Promise<Response> {
@@ -129,10 +239,10 @@ export interface ResourcePreviewObjectUrl {
   mediaType: string;
 }
 
-export async function loadResourcePreviewObjectUrl(resourceId: string): Promise<ResourcePreviewObjectUrl> {
-  const representation = await sirenRepresentation(`/resources/${resourceId}`);
-  const preview = findSirenLink(representation, "preview");
-  if (!preview) throw new SirenCapabilityUnavailable("preview");
+export async function loadResourcePreviewObjectUrl(
+  representation: Parameters<typeof findSirenLink>[0],
+): Promise<ResourcePreviewObjectUrl> {
+  const preview = documentaryLink(representation, "preview");
   return {
     url: preview.href,
     mediaType: preview.type || "application/octet-stream",

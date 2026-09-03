@@ -14,7 +14,7 @@ export interface NavigationItem {
   to: string;
   labelKey: TranslationKey;
   icon: ReactNode;
-  countKey?: "meetings" | "councilBusiness" | "councilDecisions" | "resources" | "contacts" | "members" | "committees";
+  countKey?: "meetings" | "councilBusiness" | "councilDecisions" | "contacts" | "members" | "committees";
   /** Renders the filing path tree under this entry. */
   workspaceTree?: boolean;
 }

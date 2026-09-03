@@ -8,7 +8,6 @@ import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
-import { useResourcesStore } from "../stores/resourcesStore";
 import { navigationSections } from "./navigation";
 import { WorkspaceTree } from "./WorkspaceTree";
 
@@ -19,7 +18,6 @@ export function AppSidebar({ compact }: { compact: boolean }) {
     meetings: useCouncilMeetingsStore((state) => state.meetings.length),
     councilBusiness: useCouncilBusinessStore((state) => state.businesses.length),
     councilDecisions: useCouncilDecisionsStore((state) => state.councilDecisions.length),
-    resources: useResourcesStore((state) => state.resources.length),
     contacts: useContactsStore((state) => state.contacts.length),
     members: useCouncilMembersStore((state) => state.members.length),
     committees: useCouncilCommitteesStore((state) => state.committees.length),

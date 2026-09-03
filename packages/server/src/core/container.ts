@@ -1,8 +1,11 @@
+import { createPostgresClient, type PostgresClient, type PostgresResources } from "@hall/postgres";
 import { type AwilixContainer, asFunction, asValue, createContainer, InjectionMode } from "awilix";
+import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import { createSqlExecutor } from "../infrastructure/database/factory.js";
 import { createGotenbergDocumentPreviewConverter } from "../infrastructure/documents/gotenbergDocumentPreviewConverter.js";
 import { createLegifranceProvider } from "../infrastructure/legal/legifranceProvider.js";
+import { createPostgresResourcesClient } from "../infrastructure/postgres/resourcesClient.js";
 import { createAgendaItemRepository } from "../repositories/agendaItemRepository.js";
 import { createAttendanceRepository } from "../repositories/attendanceRepository.js";
 import { createBallotRepository } from "../repositories/ballotRepository.js";
@@ -48,8 +51,11 @@ import { type CouncilBusinessService, createCouncilBusinessService } from "../se
 import { type CouncilCommitteeService, createCouncilCommitteeService } from "../services/councilCommitteeService.js";
 import { type CouncilMeetingService, createCouncilMeetingService } from "../services/councilMeetingService.js";
 import { type CouncilMemberService, createCouncilMemberService } from "../services/councilMemberService.js";
+import {
+  createDocumentaryResourceService,
+  type DocumentaryResourceService,
+} from "../services/documentaryResourceService.js";
 import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
-import { createDocumentPreviewService, type DocumentPreviewService } from "../services/documentPreviewService.js";
 import { createDocumentRenderer, type DocumentRenderer } from "../services/documentRenderer.js";
 import { createEditorAssetService, type EditorAssetService } from "../services/editorAssetService.js";
 import { createGeographicMapRenderer, type GeographicMapRenderer } from "../services/geographicMapRenderer.js";
@@ -62,8 +68,6 @@ import {
   type MeetingPreparationService,
 } from "../services/meetingPreparationService.js";
 import { createReferenceEntityResolver, type ReferenceEntityResolver } from "../services/referenceEntityResolver.js";
-import { createResourceService, type ResourceService } from "../services/resourceService.js";
-import { createSpreadsheetImportService, type SpreadsheetImportService } from "../services/spreadsheetImportService.js";
 import { createTemplateRenderingService, type TemplateRenderingService } from "../services/templateRendering.js";
 import type { ServerConfig } from "./config.js";
 
@@ -71,6 +75,8 @@ export interface Cradle {
   config: ServerConfig;
   requestContext: RequestContextStore;
   sqlExecutor: SqlExecutor;
+  postgresClient: PostgresClient | null;
+  postgresResources: PostgresResources;
   unitOfWork: UnitOfWork;
   contactRepository: ContactRepository;
   councilMemberRepository: CouncilMemberRepository;
@@ -84,6 +90,7 @@ export interface Cradle {
   ballotRepository: BallotRepository;
   councilDecisionRepository: CouncilDecisionRepository;
   resourceRepository: ResourceRepository;
+  resourcesClient: ResourcesClient;
   workspaceFolderRepository: WorkspaceFolderRepository;
   meetingRosterRepository: MeetingRosterRepository;
   councilBusinessRepository: CouncilBusinessRepository;
@@ -98,16 +105,14 @@ export interface Cradle {
   meetingPreparationService: MeetingPreparationService;
   ballotService: BallotService;
   councilBusinessService: CouncilBusinessService;
-  resourceService: ResourceService;
+  documentaryResourceService: DocumentaryResourceService;
   referenceEntityResolver: ReferenceEntityResolver;
-  spreadsheetImportService: SpreadsheetImportService;
   authService: AuthService;
   hallSettingsService: HallSettingsService;
   geographicMapRenderer: GeographicMapRenderer;
   templateRenderingService: TemplateRenderingService;
   documentRenderer: DocumentRenderer;
   documentPreviewConverter: DocumentPreviewConverter;
-  documentPreviewService: DocumentPreviewService;
   legalReferenceProvider: LegalReferenceProvider;
   editorAssetService: EditorAssetService;
   contentTemplateService: ContentTemplateService;
@@ -119,6 +124,9 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     config: asValue(config),
     requestContext: asFunction(() => new RequestContextStore()).singleton(),
     sqlExecutor: asFunction(createSqlExecutor).singleton(),
+    postgresClient: asFunction(({ config }: { config: ServerConfig }) =>
+      config.database.kind === "postgres" ? createPostgresClient({ connectionString: config.database.url }) : null,
+    ).singleton(),
     unitOfWork: asFunction(({ sqlExecutor }: { sqlExecutor: SqlExecutor }) => sqlExecutor).singleton(),
     contactRepository: asFunction(createContactRepository).singleton(),
     councilMemberRepository: asFunction(createCouncilMemberRepository).singleton(),
@@ -146,19 +154,26 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     meetingPreparationService: asFunction(createMeetingPreparationService).singleton(),
     ballotService: asFunction(createBallotService).singleton(),
     councilBusinessService: asFunction(createCouncilBusinessService).singleton(),
-    resourceService: asFunction(createResourceService).singleton(),
     referenceEntityResolver: asFunction(createReferenceEntityResolver).singleton(),
-    spreadsheetImportService: asFunction(createSpreadsheetImportService).singleton(),
     authService: asFunction(createAuthService).singleton(),
     hallSettingsService: asFunction(createHallSettingsService).singleton(),
     geographicMapRenderer: asFunction(createGeographicMapRenderer).singleton(),
     templateRenderingService: asFunction(createTemplateRenderingService).singleton(),
     documentRenderer: asFunction(createDocumentRenderer).singleton(),
     documentPreviewConverter: asFunction(createGotenbergDocumentPreviewConverter).singleton(),
-    documentPreviewService: asFunction(createDocumentPreviewService).singleton(),
     legalReferenceProvider: asFunction(createLegifranceProvider).singleton(),
     editorAssetService: asFunction(createEditorAssetService).singleton(),
     contentTemplateService: asFunction(createContentTemplateService).singleton(),
   });
+  if (config.database.kind === "postgres") {
+    container.register({
+      postgresResources: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
+        if (!postgresClient) throw new Error("Documentary PostgreSQL storage requires DATABASE_KIND=postgres");
+        return postgresClient.resources;
+      }).singleton(),
+      resourcesClient: asFunction(createPostgresResourcesClient).singleton(),
+      documentaryResourceService: asFunction(createDocumentaryResourceService).singleton(),
+    });
+  }
   return container;
 }

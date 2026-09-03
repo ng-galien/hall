@@ -1,4 +1,5 @@
-import { matchDiscriminated, type Resource, type ResourceDetails, type ResourceKind } from "@hall/domain";
+import type { ResourceDetail, ResourceKind, UpdateResourceContent } from "@hall/api-contract";
+import { matchDiscriminated } from "@hall/domain";
 import type { ResourceCapabilities } from "./resourceCapabilities";
 
 export interface ResourceEditorState {
@@ -11,8 +12,9 @@ interface StaticResourceEditorPolicy {
   supportsAutosave: boolean;
 }
 
-/** Static editor behavior owned by ResourceKind; payload-dependent operations stay in their exhaustive functions. */
+/** Static editor behavior owned by the canonical documentary kind union. */
 const resourceKindEditorPolicies: Record<ResourceKind, StaticResourceEditorPolicy> = {
+  folder: { fillsExtendedView: false, supportsAutosave: false },
   text: { fillsExtendedView: false, supportsAutosave: true },
   spreadsheet: { fillsExtendedView: true, supportsAutosave: true },
   document: { fillsExtendedView: true, supportsAutosave: false },
@@ -21,11 +23,11 @@ const resourceKindEditorPolicies: Record<ResourceKind, StaticResourceEditorPolic
   legalReference: { fillsExtendedView: false, supportsAutosave: false },
 };
 
-/** Values owned by the generic resource editor for each resource kind. */
-export function resourceEditorState(resource: Resource): ResourceEditorState {
+export function resourceEditorState(resource: ResourceDetail): ResourceEditorState {
   return matchDiscriminated(resource, "kind", {
+    folder: () => ({ content: "", remoteUrl: "" }),
     text: (entry) => ({ content: entry.content, remoteUrl: "" }),
-    remote: (entry) => ({ content: "", remoteUrl: entry.url ?? "" }),
+    remote: (entry) => ({ content: "", remoteUrl: entry.target.kind === "url" ? entry.target.url : "" }),
     document: () => ({ content: "", remoteUrl: "" }),
     geographic: () => ({ content: "", remoteUrl: "" }),
     spreadsheet: () => ({ content: "", remoteUrl: "" }),
@@ -33,22 +35,32 @@ export function resourceEditorState(resource: Resource): ResourceEditorState {
   });
 }
 
-/** Kind-specific fields accepted by the generic resource update endpoint. */
-export function resourceSpecificUpdate(resource: Resource, state: ResourceEditorState) {
+export function resourceContentUpdate(
+  resource: ResourceDetail,
+  state: ResourceEditorState,
+): UpdateResourceContent | null {
   return matchDiscriminated(resource, "kind", {
-    text: () => ({ content: state.content }),
-    remote: () => ({ url: state.remoteUrl || null }),
-    document: () => ({}),
-    geographic: () => ({}),
-    spreadsheet: () => ({}),
-    legalReference: () => ({}),
+    folder: () => null,
+    text: (entry) => ({ kind: "text" as const, expectedVersion: entry.version, content: state.content }),
+    remote: (entry) => ({
+      kind: "remote" as const,
+      expectedVersion: entry.version,
+      target: state.remoteUrl.trim()
+        ? ({ kind: "url", url: state.remoteUrl.trim() } as const)
+        : ({ kind: "unconfigured" } as const),
+    }),
+    document: () => null,
+    geographic: () => null,
+    spreadsheet: () => null,
+    legalReference: () => null,
   });
 }
 
-export function resourceContentDirty(resource: Resource, state: ResourceEditorState): boolean {
+export function resourceContentDirty(resource: ResourceDetail, state: ResourceEditorState): boolean {
   return matchDiscriminated(resource, "kind", {
+    folder: () => false,
     text: (entry) => state.content !== entry.content,
-    remote: (entry) => state.remoteUrl !== (entry.url ?? ""),
+    remote: (entry) => state.remoteUrl !== (entry.target.kind === "url" ? entry.target.url : ""),
     document: () => false,
     geographic: () => false,
     spreadsheet: () => false,
@@ -56,27 +68,23 @@ export function resourceContentDirty(resource: Resource, state: ResourceEditorSt
   });
 }
 
-export function resourceFillsExtendedView(resource: Resource): boolean {
+export function resourceFillsExtendedView(resource: ResourceDetail): boolean {
   return resourceKindEditorPolicies[resource.kind].fillsExtendedView;
 }
 
-export function resourceSupportsAutosave(resource: Resource): boolean {
+export function resourceSupportsAutosave(resource: ResourceDetail): boolean {
   return resourceKindEditorPolicies[resource.kind].supportsAutosave;
 }
 
-/** Editability is a product policy constrained by the actions granted for this representation. */
-export function resourceCanEdit(
-  resource: Resource,
-  details: ResourceDetails,
-  capabilities: ResourceCapabilities,
-): boolean {
-  if (details.snapshotted) return false;
+/** Editability is constrained exclusively by the actions granted on the opened Siren representation. */
+export function resourceCanEdit(resource: ResourceDetail, capabilities: ResourceCapabilities): boolean {
   return matchDiscriminated(resource, "kind", {
-    text: () => capabilities.updateResource,
-    remote: () => capabilities.updateResource,
-    geographic: () => capabilities.updateGeography,
-    spreadsheet: () => capabilities.updateSpreadsheet,
-    legalReference: (entry) => entry.resolutionStatus === "draft" && capabilities.resolveLegalReference,
+    folder: () => false,
+    text: () => capabilities.updateContent,
+    remote: () => capabilities.updateContent,
+    geographic: () => capabilities.updateContent,
+    spreadsheet: () => capabilities.updateContent,
+    legalReference: () => false,
     document: () => false,
   });
 }

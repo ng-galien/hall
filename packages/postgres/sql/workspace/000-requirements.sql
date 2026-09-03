@@ -1,0 +1,13 @@
+-- Workspace / council-business requirement contract
+-- =================================================
+--
+-- A CouncilBusiness is perceived in the Workspace as one special folder whose
+-- primary text report opens when the business itself is opened. The business
+-- identity and both resource identities remain stable when paths or names move.
+--
+-- Functional markers use:
+--
+--   HALL-FR-WSP-<NUMBER> <SYMBOLIC_NAME>:
+--
+-- Technical markers use the existing cross-package HALL-TR domains.
+

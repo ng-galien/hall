@@ -10,16 +10,20 @@ import { type FacetSuggestion, facetHashPattern, facetSuggestionsFor } from "./f
    the arrow keys cycle the candidates, Tab or Enter turns the current one into a chip.
    The candidate previews live in the results. Every search surface uses this component. */
 
-export interface SearchBoxState<TKind extends string = string> {
+export interface SearchBoxState<
+  TKind extends string = string,
+  TState extends string = SearchableState,
+  TMedia extends string = SearchableMedia,
+> {
   query: string;
   types: TKind[];
   folders: string[];
   tags: string[];
-  states: SearchableState[];
-  media: SearchableMedia[];
+  states: TState[];
+  media: TMedia[];
 }
 
-export const emptySearchBoxState: SearchBoxState<never> = {
+export const emptySearchBoxState: SearchBoxState<never, never, never> = {
   query: "",
   types: [],
   folders: [],
@@ -28,7 +32,9 @@ export const emptySearchBoxState: SearchBoxState<never> = {
   media: [],
 };
 
-export function isSearchBoxActive(state: SearchBoxState): boolean {
+export function isSearchBoxActive<TKind extends string, TState extends string, TMedia extends string>(
+  state: SearchBoxState<TKind, TState, TMedia>,
+): boolean {
   return (
     state.query.trim().length > 0 ||
     state.types.length > 0 ||
@@ -55,10 +61,10 @@ function toggle<TValue extends string>(values: TValue[], value: TValue): TValue[
 }
 
 /** The state with one facet applied and its `#fragment` removed from the query. */
-function applied<TKind extends string>(
-  state: SearchBoxState<TKind>,
-  suggestion: FacetSuggestion<TKind>,
-): SearchBoxState<TKind> {
+function applied<TKind extends string, TState extends string, TMedia extends string>(
+  state: SearchBoxState<TKind, TState, TMedia>,
+  suggestion: FacetSuggestion<TKind, TState, TMedia>,
+): SearchBoxState<TKind, TState, TMedia> {
   const query = state.query.replace(facetHashPattern, "").trimEnd();
   return matchDiscriminated(suggestion, "facet", {
     type: (facet) => ({ ...state, types: toggle(state.types, facet.value), query }),
@@ -69,7 +75,11 @@ function applied<TKind extends string>(
   });
 }
 
-export function SearchBox<TKind extends string>({
+export function SearchBox<
+  TKind extends string,
+  TState extends string = SearchableState,
+  TMedia extends string = SearchableMedia,
+>({
   state,
   onState,
   typeOptions,
@@ -84,16 +94,16 @@ export function SearchBox<TKind extends string>({
   autoFocus = false,
   testId,
 }: {
-  state: SearchBoxState<TKind>;
-  onState(next: SearchBoxState<TKind>): void;
+  state: SearchBoxState<TKind, TState, TMedia>;
+  onState(next: SearchBoxState<TKind, TState, TMedia>): void;
   typeOptions: SearchTypeOption<TKind>[];
   folderOptions: SearchFolderOption[];
   tagOptions?: SearchFolderOption[];
-  stateOptions?: SearchTypeOption<SearchableState>[];
-  mediaOptions?: SearchTypeOption<SearchableMedia>[];
+  stateOptions?: SearchTypeOption<TState>[];
+  mediaOptions?: SearchTypeOption<TMedia>[];
   placeholder: string;
   /** Receives the state the current candidate would produce, and null when none is completing. */
-  onPreview?(preview: SearchBoxState<TKind> | null): void;
+  onPreview?(preview: SearchBoxState<TKind, TState, TMedia> | null): void;
   /** Receives arrow and enter keys while no candidate is completing, to walk the results. */
   onResultsKey?(event: KeyboardEvent): void;
   trailing?: ReactNode;
@@ -112,7 +122,7 @@ export function SearchBox<TKind extends string>({
   const hashMatch = facetHashPattern.exec(state.query);
   const fragment = hashMatch?.[1] ?? "";
 
-  const candidates = useMemo<FacetSuggestion<TKind>[]>(() => {
+  const candidates = useMemo<FacetSuggestion<TKind, TState, TMedia>[]>(() => {
     if (!hashMatch) return [];
     const needle = normalizeForSearch(fragment);
     return facetSuggestionsFor(fragment, {
@@ -166,8 +176,8 @@ export function SearchBox<TKind extends string>({
     | { kind: "type"; value: TKind; label: string }
     | { kind: "folder"; value: string; label: string }
     | { kind: "tag"; value: string; label: string }
-    | { kind: "state"; value: SearchableState; label: string }
-    | { kind: "media"; value: SearchableMedia; label: string }
+    | { kind: "state"; value: TState; label: string }
+    | { kind: "media"; value: TMedia; label: string }
   > = [
     ...state.types.map((value) => ({
       kind: "type" as const,
@@ -199,7 +209,7 @@ export function SearchBox<TKind extends string>({
     input.current?.focus();
   };
 
-  const apply = (suggestion: FacetSuggestion<TKind>) => {
+  const apply = (suggestion: FacetSuggestion<TKind, TState, TMedia>) => {
     onState(applied(state, suggestion));
     setRawActive(0);
     setGhostEnabled(true);

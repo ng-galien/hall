@@ -1,4 +1,4 @@
-import type { LegalReferenceResolvedResource, LegalReferenceResource, LegalReferenceSearchResult } from "@hall/domain";
+import type { LegalReferenceSearchResult, ResourceDetail } from "@hall/api-contract";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
@@ -6,8 +6,7 @@ import { LegalReferenceIcon, OpenIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
-import { resolveLegalReferenceResource, searchLegalReferences } from "../../services/resourcesApi";
-import { useResourcesStore } from "../../stores/resourcesStore";
+import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { legalStatusLabel } from "./legalReferencePresentation";
 
 const LEGAL_REFERENCE_SEARCH_DEBOUNCE_MS = 650;
@@ -17,8 +16,8 @@ export function LegalReferenceResolver({
   resource,
   onResolved,
 }: {
-  resource: LegalReferenceResource;
-  onResolved(resource: LegalReferenceResolvedResource): void;
+  resource: Extract<ResourceDetail, { kind: "legalReference" }>;
+  onResolved(resource: Extract<ResourceDetail, { kind: "legalReference" }>): void;
 }) {
   const { t } = useI18n();
   const resultsId = useId();
@@ -37,10 +36,12 @@ export function LegalReferenceResolver({
     setSearching(true);
     setError(null);
     try {
-      const nextResults = await searchLegalReferences({
+      const nextResults = await useWorkspaceResourcesStore.getState().searchLegalReferences({
         query: normalizedQuery,
         effectiveAt: null,
       });
+      const requestError = useWorkspaceResourcesStore.getState().error;
+      if (requestError) throw new Error(requestError);
       if (requestSequence.current !== sequence) return;
       setResults(nextResults);
       setSelectedVersionId((current) =>
@@ -80,7 +81,7 @@ export function LegalReferenceResolver({
     setResolving(true);
     setError(null);
     try {
-      const resolved = await resolveLegalReferenceResource(resource.id, {
+      const resolved = await useWorkspaceResourcesStore.getState().resolveLegalReference(resource.id, {
         title: selected.title,
         provider: selected.provider,
         referenceKind: selected.referenceKind,
@@ -88,8 +89,9 @@ export function LegalReferenceResolver({
         versionId: selected.versionId,
         effectiveAt: selected.effectiveAt,
       });
-      if (resolved.resolutionStatus !== "resolved") throw new Error("Legal reference did not resolve");
-      await useResourcesStore.getState().load();
+      if (resolved?.kind !== "legalReference" || resolved.document.resolutionStatus !== "resolved") {
+        throw new Error(useWorkspaceResourcesStore.getState().error ?? "request_failed");
+      }
       onResolved(resolved);
     } catch (failure) {
       setError(apiErrorCode(failure));

@@ -14,6 +14,7 @@ export async function startHttpServer(config: ServerConfig): Promise<HttpServerH
   validateServerConfig(config);
   const container = buildContainer(config);
   try {
+    if (container.cradle.postgresClient) await container.cradle.postgresClient.bootstrap.install();
     await container.cradle.sqlExecutor.ready();
     const application = createHttpApplication(container);
 
@@ -37,14 +38,20 @@ export async function startHttpServer(config: ServerConfig): Promise<HttpServerH
           server.close((error) => {
             if (error) reject(error);
             else {
-              void container.cradle.sqlExecutor.close().then(resolve, reject);
+              void Promise.all([
+                container.cradle.sqlExecutor.close(),
+                container.cradle.postgresClient?.close() ?? Promise.resolve(),
+              ]).then(() => resolve(), reject);
             }
           });
         }),
     };
   } catch (error) {
     try {
-      await container.cradle.sqlExecutor.close();
+      await Promise.all([
+        container.cradle.sqlExecutor.close(),
+        container.cradle.postgresClient?.close() ?? Promise.resolve(),
+      ]);
     } catch (closeError) {
       logger.error({ closeError }, "Failed to close database after server startup failure");
     }

@@ -1,11 +1,5 @@
-import {
-  type JsonObject,
-  type JsonValue,
-  matchLiteral,
-  type ResourceDetails,
-  type SpreadsheetDocument,
-} from "@hall/domain";
-import { resourceSupportsPresentation } from "@hall/templating";
+import type { ResourceDetail, ResourceJsonObject, ResourceJsonValue } from "@hall/api-contract";
+import { matchLiteral } from "@hall/domain";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { ResourceImageFigure } from "../../components/editor/images";
 import {
@@ -14,21 +8,28 @@ import {
   type ResourceEmbedTableSheet,
 } from "../../components/editor/resourceEmbeds";
 import { useI18n } from "../../i18n/I18nProvider";
-import { getResourceDetails } from "../../services/resourcesApi";
-import { ResourceGlyph, useResourceTypeLabel } from "../documents/ResourceGlyph";
+import { openDocumentaryResource } from "../../services/resourcesApi";
+import {
+  type DocumentaryLeafDetail,
+  DocumentaryResourceGlyph,
+  documentaryResourceTone,
+  useDocumentaryResourceTypeLabel,
+} from "../documents/DocumentaryResourceGlyph";
 import { GeographicResourceMap } from "../geographic/GeographicResourceMap";
 import { legalStatusLabel } from "../legal/legalReferencePresentation";
 import "./ResourceEmbedPresentation.css";
 
-function objectValue(value: JsonValue | undefined): JsonObject | null {
+type SpreadsheetDocument = Extract<ResourceDetail, { kind: "spreadsheet" }>["document"];
+
+function objectValue(value: ResourceJsonValue | undefined): ResourceJsonObject | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value : null;
 }
 
-function stringValue(value: JsonValue | undefined): string | null {
+function stringValue(value: ResourceJsonValue | undefined): string | null {
   return typeof value === "string" ? value : null;
 }
 
-function numberValue(value: JsonValue | undefined): number | null {
+function numberValue(value: ResourceJsonValue | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
@@ -49,7 +50,7 @@ function columnIndex(label: string): number {
   return value - 1;
 }
 
-function sheetRecords(document: SpreadsheetDocument): Array<{ id: string; sheet: JsonObject }> {
+function sheetRecords(document: SpreadsheetDocument): Array<{ id: string; sheet: ResourceJsonObject }> {
   const order = document.workbook.sheetOrder;
   const sheets = objectValue(document.workbook.sheets);
   if (!Array.isArray(order) || !sheets) return [];
@@ -60,7 +61,7 @@ function sheetRecords(document: SpreadsheetDocument): Array<{ id: string; sheet:
   });
 }
 
-function defaultRange(sheet: JsonObject): string {
+function defaultRange(sheet: ResourceJsonObject): string {
   const cellData = objectValue(sheet.cellData);
   let maxRow = 0;
   let maxColumn = 0;
@@ -82,9 +83,9 @@ function defaultRange(sheet: JsonObject): string {
 
 /** Loads the spreadsheet choices without exposing ResourceDetails to the technical editor. */
 export async function loadResourceEmbedTableOptions(resourceId: string): Promise<ResourceEmbedTableSheet[]> {
-  const details = await getResourceDetails(resourceId);
-  if (details.resource.kind !== "spreadsheet" || !details.spreadsheet) return [];
-  return sheetRecords(details.spreadsheet).map(({ id, sheet }) => ({
+  const details = await openDocumentaryResource(resourceId);
+  if (details.data.kind !== "spreadsheet") return [];
+  return sheetRecords(details.data.document).map(({ id, sheet }) => ({
     id,
     name: stringValue(sheet.name) ?? id,
     rowCount: numberValue(sheet.rowCount) ?? 1,
@@ -101,7 +102,7 @@ function decimalPlaces(pattern: string): number {
   return /\.(0+)/.exec(pattern)?.[1].length ?? 0;
 }
 
-function cellText(cell: JsonObject | null, locale: "fr" | "en"): string {
+function cellText(cell: ResourceJsonObject | null, locale: "fr" | "en"): string {
   if (!cell) return "";
   const value = cell.v;
   if (typeof value === "string") return value;
@@ -135,7 +136,7 @@ function cellText(cell: JsonObject | null, locale: "fr" | "en"): string {
   return typeof cell.f === "string" ? "…" : "";
 }
 
-function cellStyle(cell: JsonObject | null): CSSProperties | undefined {
+function cellStyle(cell: ResourceJsonObject | null): CSSProperties | undefined {
   const style = objectValue(cell?.s);
   if (!style) return undefined;
   const foreground = stringValue(objectValue(style.cl)?.rgb);
@@ -207,20 +208,22 @@ function SpreadsheetRangeTable({
   );
 }
 
-function ResourceEmbedBody({ details, attributes }: { details: ResourceDetails; attributes: ResourceEmbedAttributes }) {
+function ResourceEmbedBody({
+  resource,
+  attributes,
+}: {
+  resource: DocumentaryLeafDetail;
+  attributes: ResourceEmbedAttributes;
+}) {
   const { t, formatDate } = useI18n();
-  const resource = details.resource;
-  if (!resourceSupportsPresentation(resource, attributes.presentation)) {
-    return <p className="editor-resource-embed-unavailable">{t("editor.embedIncompatible")}</p>;
-  }
   const unavailable = <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p>;
   const presentation = attributes.presentation;
   return matchLiteral(presentation, {
     image: () =>
-      resource.kind === "document" ? (
+      resource.kind === "document" && documentaryResourceTone(resource) === "image" ? (
         <ResourceImageFigure
           id={resource.id}
-          alt={attributes.label || resource.title}
+          alt={attributes.label || resource.name}
           align={attributes.align ?? "left"}
           width={attributes.width ?? 100}
           className="resource-embed-image"
@@ -231,46 +234,46 @@ function ResourceEmbedBody({ details, attributes }: { details: ResourceDetails; 
     document: () =>
       resource.kind === "document" ? (
         <span className="resource-embed-document" data-testid="resource-embed-presentation-document">
-          <ResourceGlyph resource={resource} />
-          <span>{resource.title}</span>
+          <DocumentaryResourceGlyph resource={resource} />
+          <span>{resource.name}</span>
         </span>
       ) : (
         unavailable
       ),
     link: () =>
-      resource.kind === "remote" && resource.url ? (
-        <a href={resource.url} target="_blank" rel="noreferrer" data-testid="resource-embed-presentation-link">
-          {resource.title}
+      resource.kind === "remote" && resource.target.kind === "url" ? (
+        <a href={resource.target.url} target="_blank" rel="noreferrer" data-testid="resource-embed-presentation-link">
+          {resource.name}
         </a>
       ) : (
         unavailable
       ),
     "legal-citation": () => {
-      if (resource.kind !== "legalReference" || resource.resolutionStatus !== "resolved") return unavailable;
-      const snapshot =
-        details.legalSnapshots?.find((candidate) => candidate.snapshotHash === resource.snapshotHash) ?? null;
+      if (resource.kind !== "legalReference" || resource.document.resolutionStatus !== "resolved") return unavailable;
+      const legal = resource.document;
+      const snapshot = legal.snapshots.find((candidate) => candidate.snapshotHash === legal.snapshotHash) ?? null;
       const validity = snapshot?.validFrom
         ? t("legalReference.validFrom").replace("{date}", formatDate(snapshot.validFrom))
-        : resource.effectiveAt
-          ? `${t("legalReference.effectiveVersion")} : ${formatDate(resource.effectiveAt)}`
+        : legal.effectiveAt
+          ? `${t("legalReference.effectiveVersion")} : ${formatDate(legal.effectiveAt)}`
           : null;
       return (
         <blockquote className="resource-embed-legal" data-testid="resource-embed-presentation-legal">
-          <strong>{resource.citationLabel}</strong>
+          <strong>{legal.citationLabel}</strong>
           <p>{snapshot?.normalizedContent ?? t("editor.embedUnavailable")}</p>
           <footer>
-            {legalStatusLabel(resource.legalStatus, t)}
+            {legalStatusLabel(legal.legalStatus, t)}
             {validity ? ` · ${validity}` : null}
           </footer>
         </blockquote>
       );
     },
     map: () =>
-      resource.kind === "geographic" && details.geography ? (
+      resource.kind === "geographic" ? (
         <div className="resource-embed-map" data-testid="resource-embed-presentation-map">
           <GeographicResourceMap
             resource={resource}
-            data={details.geography}
+            data={resource.document}
             canUpdate={false}
             onError={ignorePresentationError}
             embedded
@@ -280,8 +283,8 @@ function ResourceEmbedBody({ details, attributes }: { details: ResourceDetails; 
         unavailable
       ),
     table: () =>
-      resource.kind === "spreadsheet" && details.spreadsheet && attributes.sheet && attributes.range ? (
-        <SpreadsheetRangeTable document={details.spreadsheet} sheetId={attributes.sheet} range={attributes.range} />
+      resource.kind === "spreadsheet" && attributes.sheet && attributes.range ? (
+        <SpreadsheetRangeTable document={resource.document} sheetId={attributes.sheet} range={attributes.range} />
       ) : (
         unavailable
       ),
@@ -291,16 +294,18 @@ function ResourceEmbedBody({ details, attributes }: { details: ResourceDetails; 
 /** Current, type-aware resource presentation used by editor nodes and read-only Markdown. */
 export function ResourceEmbedPresentation({ attributes }: { attributes: ResourceEmbedAttributes }) {
   const { t } = useI18n();
-  const resourceTypeLabel = useResourceTypeLabel();
-  const [details, setDetails] = useState<ResourceDetails | null>(null);
+  const resourceTypeLabel = useDocumentaryResourceTypeLabel();
+  const [details, setDetails] = useState<DocumentaryLeafDetail | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
     setDetails(null);
     setFailed(false);
-    void getResourceDetails(attributes.id).then(
-      (result) => active && setDetails(result),
+    void openDocumentaryResource(attributes.id).then(
+      (result) => {
+        if (active && result.data.kind !== "folder") setDetails(result.data);
+      },
       () => active && setFailed(true),
     );
     return () => {
@@ -312,8 +317,8 @@ export function ResourceEmbedPresentation({ attributes }: { attributes: Resource
     if (!details) return null;
     if (attributes.presentation !== "image") return null;
     return {
-      title: details.resource.title,
-      type: resourceTypeLabel(details.resource),
+      title: details.name,
+      type: resourceTypeLabel(details),
     };
   }, [attributes.presentation, details, resourceTypeLabel]);
 
@@ -329,11 +334,11 @@ export function ResourceEmbedPresentation({ attributes }: { attributes: Resource
           </span>
         ) : null}
         {failed ? <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p> : null}
-        {details ? <ResourceEmbedBody details={details} attributes={attributes} /> : null}
+        {details ? <ResourceEmbedBody resource={details} attributes={attributes} /> : null}
       </div>
       {overlay && details ? (
         <div className="editor-resource-embed-overlay">
-          <ResourceGlyph resource={details.resource} />
+          <DocumentaryResourceGlyph resource={details} />
           <div>
             <strong>{overlay.title}</strong>
             <span>{overlay.type}</span>

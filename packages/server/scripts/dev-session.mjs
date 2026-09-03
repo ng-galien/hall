@@ -29,6 +29,28 @@ function ensureDocumentPreviewConverter() {
   run("docker", ["compose", "up", "-d", "--wait", "gotenberg"]);
 }
 
+function ensurePostgres() {
+  run("docker", ["compose", "up", "-d", "--wait", "postgres"]);
+}
+
+function resetPostgres() {
+  run("docker", [
+    "compose",
+    "exec",
+    "-T",
+    "postgres",
+    "psql",
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-U",
+    "hall",
+    "-d",
+    "hall",
+    "-c",
+    "DROP SCHEMA IF EXISTS hall_api CASCADE; DROP SCHEMA IF EXISTS hall CASCADE; DROP SCHEMA IF EXISTS hall_meta CASCADE; DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public AUTHORIZATION hall;",
+  ]);
+}
+
 function run(program, args, options = {}) {
   const result = spawnSync(program, args, {
     cwd: projectRoot,
@@ -87,6 +109,7 @@ function stopProjectListeners() {
 async function start() {
   requireTmux();
   ensureDocumentPreviewConverter();
+  ensurePostgres();
   if (hasSession()) {
     if (await healthReady()) {
       console.log(`Session ${sessionName} déjà active : http://127.0.0.1:5174/app/`);
@@ -96,7 +119,7 @@ async function start() {
   }
   runTmux(["new-session", "-d", "-s", sessionName, "-c", projectRoot]);
   runTmux(["set-window-option", "-t", `${sessionName}:0`, "remain-on-exit", "on"]);
-  runTmux(["send-keys", "-t", `${sessionName}:0`, "exec npm run dev", "Enter"]);
+  runTmux(["send-keys", "-t", `${sessionName}:0`, "exec npm run dev:postgres", "Enter"]);
   await waitForHealth();
   console.log(`Session ${sessionName} active : http://127.0.0.1:5174/app/`);
 }
@@ -113,6 +136,8 @@ async function demoRestart() {
   stopProjectListeners();
   killSession();
   run(process.execPath, [resolve(scriptDirectory, "reset-demo.mjs")]);
+  ensurePostgres();
+  resetPostgres();
   await start();
   run("npm", ["run", "seed:dev", "-w", "@hall/server"]);
   console.log("Démonstration prête.");

@@ -1,9 +1,9 @@
+import type { ResourceCatalogEntry } from "@hall/api-contract";
 import type { CouncilBusiness, Resource } from "@hall/domain";
 
 export interface PathNode {
   path: string;
   name: string;
-  count: number;
   children: PathNode[];
 }
 
@@ -32,24 +32,28 @@ export function isUnderPath(folderPath: string, path: string): boolean {
   return folderPath === path || folderPath.startsWith(`${path}/`);
 }
 
-/** Path tree with the object count (businesses + resources) per subtree. */
-export function buildPathTree(
-  businesses: CouncilBusiness[],
-  resources: Resource[],
-  persistedPaths: string[] = [],
-): PathNode[] {
-  const folderPaths = [
-    ...businesses.map((business) => business.folderPath),
-    ...resources.map((resource) => resource.folderPath),
-  ];
-  const knownPaths = new Set<string>();
-  for (const folderPath of [...persistedPaths, ...folderPaths]) {
+/** Documentary filing paths advertised by the lightweight canonical catalogue. */
+export function listCatalogPaths(catalog: ResourceCatalogEntry[]): string[] {
+  const known = new Set<string>();
+  for (const entry of catalog) {
+    const folderPath = entry.kind === "folder" ? entry.fullPath : entry.path;
+    const segments = folderPath.split("/").filter(Boolean);
+    segments.forEach((_segment, index) => {
+      known.add(segments.slice(0, index + 1).join("/"));
+    });
+  }
+  return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
+}
+
+/** Path tree built from the known filing locations. */
+export function buildPathTree(businesses: CouncilBusiness[], catalog: ResourceCatalogEntry[]): PathNode[] {
+  const knownPaths = new Set(listCatalogPaths(catalog));
+  for (const folderPath of businesses.map((business) => business.folderPath)) {
     const segments = folderPath.split("/").filter(Boolean);
     segments.forEach((_segment, index) => {
       knownPaths.add(segments.slice(0, index + 1).join("/"));
     });
   }
-  const countFor = (path: string) => folderPaths.filter((folderPath) => isUnderPath(folderPath, path)).length;
   const childrenOf = (parent: string): PathNode[] =>
     [...knownPaths]
       .filter((path) => {
@@ -59,9 +63,8 @@ export function buildPathTree(
       .map((path) => ({
         path,
         name: path.split("/").at(-1) ?? path,
-        count: countFor(path),
         children: childrenOf(path),
       }))
-      .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name, "fr-FR"));
+      .sort((left, right) => left.name.localeCompare(right.name, "fr-FR"));
   return childrenOf("");
 }

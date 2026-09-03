@@ -17,7 +17,6 @@ import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
-import { useResourcesStore } from "../../stores/resourcesStore";
 import { ResourcePreview } from "../documents/ResourcePreview";
 import { referenceOpenTarget } from "../references/referenceNavigation";
 import { SearchHitRow } from "./SearchHitRow";
@@ -41,7 +40,6 @@ export function GlobalSearchPalette() {
   const [previewedResource, setPreviewedResource] = useState<string | null>(null);
   const [rawActive, setActive] = useState(0);
   const { businesses } = useCouncilBusinessStore();
-  const resources = useResourcesStore((store) => store.resources);
   const decisions = useCouncilDecisionsStore((store) => store.councilDecisions);
   const meetings = useCouncilMeetingsStore((store) => store.meetings);
   const members = useCouncilMembersStore((store) => store.members);
@@ -92,21 +90,21 @@ export function GlobalSearchPalette() {
 
   const pick = (hit: SearchHit) => {
     const entity = hit.entity;
-    const reference = matchDiscriminated(entity, "entityKind", {
-      resource: (entry) => ({ kind: "resource" as const, id: entry.resource.id }),
-      councilBusiness: (entry) => ({ kind: "councilBusiness" as const, id: entry.business.id }),
-      meeting: (entry) => ({ kind: "meeting" as const, id: entry.meeting.id }),
-      member: (entry) => ({ kind: "member" as const, id: entry.member.id }),
-      contact: (entry) => ({ kind: "contact" as const, id: entry.contact.id }),
-      decision: (entry) => ({ kind: "decision" as const, id: entry.decision.id }),
-    });
-    const target = referenceOpenTarget(reference.kind, reference.id, {
-      resources,
+    const context = {
+      resources: [],
       businesses,
       decisions,
       meetings,
       members,
       contacts,
+    };
+    const target = matchDiscriminated(entity, "entityKind", {
+      resource: (entry) => ({ kind: "resourcePreview" as const, resourceId: entry.resource.id }),
+      councilBusiness: (entry) => referenceOpenTarget("councilBusiness", entry.business.id, context),
+      meeting: (entry) => referenceOpenTarget("meeting", entry.meeting.id, context),
+      member: (entry) => referenceOpenTarget("member", entry.member.id, context),
+      contact: (entry) => referenceOpenTarget("contact", entry.contact.id, context),
+      decision: (entry) => referenceOpenTarget("decision", entry.decision.id, context),
     });
     if (!target) return;
     matchDiscriminated(target, "kind", {

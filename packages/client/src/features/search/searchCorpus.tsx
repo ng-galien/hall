@@ -5,7 +5,6 @@ import type {
   CouncilMeeting,
   CouncilMember,
   ReferenceEntityKind,
-  Resource,
 } from "@hall/domain";
 import { useMemo } from "react";
 import { type FacetOptionSets, facetOptionsFrom } from "../../components/search/facetSuggestions";
@@ -17,9 +16,9 @@ import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
-import { useResourcesStore } from "../../stores/resourcesStore";
+import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { formatMeetingLabel } from "../council-meetings/meetingPresentation";
-import { resourceTone } from "../documents/ResourceGlyph";
+import { type DocumentaryLeafSummary, documentaryResourceTone } from "../documents/DocumentaryResourceGlyph";
 import { domainStatusKeys } from "../status/DomainStatusBadge";
 
 /* The searchable corpus per search scope: the workspace searches the documentary space
@@ -35,7 +34,7 @@ type SearchHitFor<TKind extends SearchEntityType, TEntity> = Searchable<TKind> &
 /** A searchable row keeps its discriminant and source entity correlated by construction. */
 export type SearchHit =
   | SearchHitFor<"councilBusiness", { entityKind: "councilBusiness"; business: CouncilBusiness }>
-  | SearchHitFor<"resource", { entityKind: "resource"; resource: Resource }>
+  | SearchHitFor<"resource", { entityKind: "resource"; resource: DocumentaryLeafSummary }>
   | SearchHitFor<"meeting", { entityKind: "meeting"; meeting: CouncilMeeting }>
   | SearchHitFor<"decision", { entityKind: "decision"; decision: CouncilDecisionListEntry }>
   | SearchHitFor<"member", { entityKind: "member"; member: CouncilMember }>
@@ -57,7 +56,14 @@ export function useSearchCorpus(scope: "global"): SearchHit[];
 export function useSearchCorpus(scope: SearchScope): SearchHit[] {
   const { t, formatDate } = useI18n();
   const { businesses } = useCouncilBusinessStore();
-  const { resources } = useResourcesStore();
+  const resourceSummaries = useWorkspaceResourcesStore((state) => state.summaries);
+  const resources = useMemo(
+    () =>
+      Object.values(resourceSummaries).filter(
+        (resource): resource is DocumentaryLeafSummary => resource.kind !== "folder",
+      ),
+    [resourceSummaries],
+  );
   const { meetings } = useCouncilMeetingsStore();
   const { councilDecisions } = useCouncilDecisionsStore();
   const members = useCouncilMembersStore((state) => state.members);
@@ -76,11 +82,11 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
       ...resources.map((resource) => ({
         kind: "resource" as const,
         id: resource.id,
-        label: resource.title,
-        extra: [...resource.tags, resource.kind === "document" ? resource.fileName : null],
-        folderPath: resource.folderPath,
+        label: resource.name,
+        extra: [...resource.tags, resource.kind === "document" ? resource.binary.mediaType : null],
+        folderPath: resource.path,
         tags: resource.tags,
-        media: resourceTone(resource) === "image" ? ("image" as const) : undefined,
+        media: documentaryResourceTone(resource) === "image" ? ("image" as const) : undefined,
         entity: { entityKind: "resource" as const, resource },
       })),
     ];

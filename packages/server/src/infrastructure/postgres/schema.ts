@@ -678,4 +678,6 @@ export const postgresSchema = `
   CREATE INDEX templates_by_document_type ON templates(document_type, kind);
   CREATE INDEX audit_events_by_actor ON audit_events(actor_user_id, occurred_at);
   CREATE INDEX audit_events_by_target ON audit_events(target_type, target_id, occurred_at);
+  GRANT USAGE ON SCHEMA public TO hall_owner;
+  GRANT SELECT, UPDATE ON council_business TO hall_owner;
 `;

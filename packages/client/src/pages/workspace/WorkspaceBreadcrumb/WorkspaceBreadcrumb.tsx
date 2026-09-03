@@ -1,5 +1,5 @@
-import type { CouncilBusiness, Resource } from "@hall/domain";
-import type { ReactNode, RefObject } from "react";
+import type { CouncilBusiness } from "@hall/domain";
+import { type ReactNode, type RefObject, useEffect } from "react";
 import { ChevronRightIcon, CloseIcon, FolderIcon, WorkspaceIcon } from "@/components/icons";
 import {
   DropdownMenu,
@@ -10,11 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CouncilBusinessGlyph } from "../../../features/council-business/CouncilBusinessGlyph";
-import { ResourceGlyph } from "../../../features/documents/ResourceGlyph";
+import {
+  type DocumentaryLeafSummary,
+  DocumentaryResourceGlyph,
+} from "../../../features/documents/DocumentaryResourceGlyph";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { useCouncilBusinessStore } from "../../../stores/councilBusinessStore";
-import { useResourcesStore } from "../../../stores/resourcesStore";
-import { listAllPaths } from "../paths";
+import { useWorkspaceResourcesStore } from "../../../stores/workspaceResourcesStore";
+import { listCatalogPaths } from "../paths";
 import { type SaveStatus, useSaveStatusStore } from "../saveStatusStore";
 import { sameWorkspaceItem, type WorkspaceSelection } from "../workspaceItemReference";
 import "./WorkspaceBreadcrumb.css";
@@ -31,7 +34,7 @@ function CrumbMenu({
   parent: string;
   allPaths: string[];
   businesses: CouncilBusiness[];
-  resources: Resource[];
+  resources: DocumentaryLeafSummary[];
   currentSelection: WorkspaceSelection;
   /** Last crumb: a chevron with no folder contents renders nothing. */
   trailing: boolean;
@@ -54,10 +57,10 @@ function CrumbMenu({
   const directResources = resources
     .filter(
       (resource) =>
-        resource.folderPath === parent &&
+        resource.path === parent &&
         (!currentSelection || !sameWorkspaceItem(currentSelection, { kind: "resource", id: resource.id })),
     )
-    .sort((left, right) => left.title.localeCompare(right.title, "fr"));
+    .sort((left, right) => left.name.localeCompare(right.name, "fr"));
   const hasContents = children.length > 0 || directBusinesses.length > 0 || directResources.length > 0;
   if (!hasContents) {
     if (trailing) return null;
@@ -127,9 +130,9 @@ function CrumbMenu({
             data-item-id={resource.id}
             onSelect={() => onSelect({ kind: "resource", id: resource.id }, parent)}
           >
-            <ResourceGlyph resource={resource} />
-            <span className="workspace-crumb-menu-label" title={resource.title}>
-              {resource.title}
+            <DocumentaryResourceGlyph resource={resource} />
+            <span className="workspace-crumb-menu-label" title={resource.name}>
+              {resource.name}
             </span>
           </DropdownMenuItem>
         ))}
@@ -224,8 +227,22 @@ export function WorkspaceBreadcrumb({
 }) {
   const { t } = useI18n();
   const { businesses } = useCouncilBusinessStore();
-  const { resources, folderPaths } = useResourcesStore();
-  const allPaths = listAllPaths(businesses, resources, folderPaths);
+  const catalog = useWorkspaceResourcesStore((state) => state.catalog);
+  const summaries = useWorkspaceResourcesStore((state) => state.summaries);
+  const loadFolder = useWorkspaceResourcesStore((state) => state.loadFolder);
+  const resources = Object.values(summaries).filter(
+    (resource): resource is DocumentaryLeafSummary => resource.kind !== "folder",
+  );
+  const allPaths = (() => {
+    const known = new Set(listCatalogPaths(catalog));
+    for (const folderPath of businesses.map((business) => business.folderPath)) {
+      const parts = folderPath.split("/").filter(Boolean);
+      parts.forEach((_part, index) => {
+        known.add(parts.slice(0, index + 1).join("/"));
+      });
+    }
+    return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
+  })();
   const saveStatus = useSaveStatusStore((state) => state.status);
   const saveStatusLabels: Record<Exclude<SaveStatus, "idle">, string> = {
     dirty: t("workspace.saveDirty"),
@@ -234,6 +251,13 @@ export function WorkspaceBreadcrumb({
     error: t("common.requestFailed"),
   };
   const segments = path.split("/").filter(Boolean);
+
+  useEffect(() => {
+    if (!interactive) return;
+    const pathSegments = path.split("/").filter(Boolean);
+    const parents = ["", ...pathSegments.map((_segment, index) => pathSegments.slice(0, index + 1).join("/"))];
+    for (const parent of parents) void loadFolder(parent);
+  }, [interactive, loadFolder, path]);
 
   if (!interactive) {
     return (

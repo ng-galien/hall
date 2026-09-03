@@ -25,6 +25,7 @@
   "dependencies": {
     "@hall/api-contract": "*",
     "@hall/domain": "*",
+    "@hall/postgres": "*",
     "@hall/templating": "*",
     "awilix": "^13.0.3",
     "exceljs": "^4.4.0",

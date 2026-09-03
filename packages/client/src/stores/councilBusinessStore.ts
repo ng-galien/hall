@@ -1,5 +1,5 @@
 import { findSirenAction } from "@hall/api-contract";
-import type { CouncilBusiness, FolderRenameResult } from "@hall/domain";
+import type { CouncilBusiness } from "@hall/domain";
 import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../services/apiClient";
 import {
@@ -20,7 +20,7 @@ interface CouncilBusinessStoreState {
   load(): Promise<void>;
   create(input: Record<string, unknown>): Promise<CouncilBusiness | null>;
   update(businessId: string, input: Record<string, unknown>): Promise<boolean>;
-  applyFolderRename(result: FolderRenameResult): void;
+  applyFolderRename(result: { sourcePath: string; targetPath: string; updatedAt: string }): void;
 }
 
 export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, get) => ({

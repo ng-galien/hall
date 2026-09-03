@@ -5,12 +5,12 @@ import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
 import { WorkspaceBreadcrumb } from "../../pages/workspace/WorkspaceBreadcrumb";
 import { WorkspaceWorkbenchHeader } from "../../pages/workspace/WorkspaceWorkbenchHeader";
-import { downloadResourceDocument } from "../../services/resourcesApi";
+import { downloadDocumentaryResource } from "../../services/resourcesApi";
 import { ResourceAutosaveToggle } from "../resources/ResourceAutosaveToggle";
 import { ResourcePresentationBody } from "../resources/ResourcePresentationBody";
 import { type ResourceSession, useResourceSession } from "../resources/useResourceSession";
-import { ResourceGlyph, resourceDate } from "./ResourceGlyph";
-import { useResourceImageUpload } from "./useResourceImageUpload";
+import { DocumentaryResourceGlyph, documentaryResourceDate } from "./DocumentaryResourceGlyph";
+import { useWorkspaceResourceImageUpload } from "./useWorkspaceResourceImageUpload";
 import "./DocumentViewer.css";
 import "./ResourcePreview.css";
 
@@ -32,7 +32,7 @@ export function ResourcePreviewWithSession({
 }) {
   const { t } = useI18n();
   const mentionables = useReferenceMentionables();
-  const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
+  const { canUpload: canUploadImage, uploadImage } = useWorkspaceResourceImageUpload();
   const [closing, setClosing] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -51,6 +51,12 @@ export function ResourcePreviewWithSession({
   }, [closing, onClose, refreshSessionOnClose, session]);
 
   const resource = session.resource;
+  const download = () => {
+    const representation = session.representation;
+    if (resource?.kind === "document" && representation) {
+      void downloadDocumentaryResource(resource, representation);
+    }
+  };
   return (
     <Dialog open onOpenChange={(open) => !open && void requestClose()}>
       <DialogContent
@@ -67,9 +73,9 @@ export function ResourcePreviewWithSession({
       >
         <div className="resource-preview-shell-header">
           <WorkspaceBreadcrumb
-            path={resource?.folderPath ?? ""}
-            currentLabel={resource?.title}
-            currentIcon={resource ? <ResourceGlyph resource={resource} /> : undefined}
+            path={resource?.path ?? ""}
+            currentLabel={resource?.name}
+            currentIcon={resource ? <DocumentaryResourceGlyph resource={resource} /> : undefined}
             currentSelection={resource ? { kind: "resource", id: resource.id } : null}
             interactive={false}
             showSaveStatus={false}
@@ -89,14 +95,14 @@ export function ResourcePreviewWithSession({
           />
           {resource ? (
             <WorkspaceWorkbenchHeader
-              icon={<ResourceGlyph resource={resource} large />}
-              title={resource.title}
+              icon={<DocumentaryResourceGlyph resource={resource} large />}
+              title={resource.name}
               titleId="resource-preview-title"
               titleLabel={t("resources.textTitle")}
-              date={resourceDate(resource)}
+              date={documentaryResourceDate(resource)}
               actions={
-                resource.kind === "document" ? (
-                  <Button variant="outline" onClick={() => void downloadResourceDocument(resource)}>
+                resource.kind === "document" && session.representation ? (
+                  <Button variant="outline" onClick={download}>
                     {t("common.download")}
                   </Button>
                 ) : null
@@ -121,7 +127,7 @@ export function ResourcePreviewWithSession({
           {resource ? (
             <ResourcePresentationBody
               resource={resource}
-              details={session.details}
+              representation={session.representation}
               mode={session.mode}
               layout="extended"
               capabilities={session.capabilities}

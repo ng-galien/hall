@@ -38,6 +38,37 @@ async function request(method, path, body) {
 const get = (path) => request("GET", path);
 const post = (path, body) => request("POST", path, body);
 const put = (path, body) => request("PUT", path, body);
+const patch = (path, body) => request("PATCH", path, body);
+
+async function setResourceTags(resource, tags) {
+  if (tags.length === 0) return resource;
+  const editable = ["text", "remote", "spreadsheet", "geographic"].includes(resource.kind);
+  return patch(`/resources/${resource.id}/metadata`, {
+    path: resource.path,
+    name: resource.name,
+    tags,
+    editing: editable ? { kind: "autosave", enabled: resource.autosaveEnabled } : { kind: "fixed" },
+  });
+}
+
+async function createWorkspaceResource(input, tags = []) {
+  return setResourceTags(await post("/resources", input), tags);
+}
+
+async function createGeographicResource({ name, path, tags = [], view, layers, hallLayer }) {
+  const created = await createWorkspaceResource({ kind: "geographic", name, path }, tags);
+  if (!view && !layers && !hallLayer) return created;
+  return put(`/resources/${created.id}/content`, {
+    kind: "geographic",
+    expectedVersion: created.version,
+    document: {
+      ...created.document,
+      ...(view ? { view } : {}),
+      ...(layers ? { layers } : {}),
+      ...(hallLayer ? { hallLayer } : {}),
+    },
+  });
+}
 
 /** Generates a dependency-free, single-page A4 PDF using Helvetica and WinAnsi. */
 function makePdf(title, lines) {
@@ -246,31 +277,28 @@ function makePng() {
   ]);
 }
 
-async function uploadDocument({ title, fileName, folderPath = "", meetingId, category, content, mediaType }) {
+async function uploadDocument({ title, fileName, folderPath = "", tags = [], content, mediaType }) {
   const form = new FormData();
-  form.set("title", title);
-  form.set("folderPath", folderPath);
-  if (meetingId) form.set("meetingId", meetingId);
-  form.set("category", category);
+  form.set("name", title);
+  form.set("path", folderPath);
   form.set("file", new File([content], fileName, { type: mediaType }));
-  return request("POST", "/resources/documents", form);
+  return setResourceTags(await request("POST", "/resources/documents", form), tags);
 }
 
 async function importSpreadsheet({ title, fileName, folderPath = "", content, mediaType }) {
   const form = new FormData();
-  form.set("title", title);
-  form.set("folderPath", folderPath);
+  form.set("name", title);
+  form.set("path", folderPath);
   form.set("file", new File([content], fileName, { type: mediaType }));
   return request("POST", "/resources/spreadsheets/import", form);
 }
 
-async function uploadPdf({ title, fileName, folderPath = "", meetingId, category, lines }) {
+async function uploadPdf({ title, fileName, folderPath = "", tags = [], lines }) {
   return uploadDocument({
     title,
     fileName,
     folderPath,
-    meetingId,
-    category,
+    tags,
     content: makePdf(title, lines),
     mediaType: "application/pdf",
   });
@@ -457,17 +485,19 @@ async function main() {
   console.log(`  Mot de passe de démonstration : ${DEMO_PASSWORD}`);
 
   console.log("- Ressources (textes, documents, carte et liens web)");
-  await post("/resources/remotes", {
-    title: "Code général des collectivités territoriales",
-    folderPath: "administration/conseil-municipal",
-    tags: ["droit", "conseil municipal", "référence"],
-    url: "https://www.legifrance.gouv.fr/codes/id/LEGITEXT000006070633/",
-  });
-  await post("/resources/geographic", {
-    title: "Repérage de la rénovation de l'éclairage public",
-    folderPath: "travaux/eclairage",
+  await createWorkspaceResource(
+    {
+      kind: "remote",
+      name: "Code général des collectivités territoriales",
+      path: "administration/conseil-municipal",
+      target: { kind: "url", url: "https://www.legifrance.gouv.fr/codes/id/LEGITEXT000006070633/" },
+    },
+    ["droit", "conseil municipal", "référence"],
+  );
+  await createGeographicResource({
+    name: "Repérage de la rénovation de l'éclairage public",
+    path: "travaux/eclairage",
     tags: ["travaux", "éclairage", "repérage"],
-    provider: "ign",
     layers: [
       { id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 },
       { id: "CADASTRALPARCELS.PARCELLAIRE_EXPRESS", visible: true, opacity: 0.65 },
@@ -510,22 +540,22 @@ async function main() {
 
   console.log("- Dossier seed de repérage des types de ressources");
   const seedFolderPath = "seed";
-  await post("/resources/paths", { parentPath: "", name: seedFolderPath });
-  await post("/resources/paths", { parentPath: seedFolderPath, name: "dossier-vide" });
-  const seedResources = [];
-  seedResources.push(
-    await post("/resources/texts", {
-      title: "Ressource texte",
-      folderPath: seedFolderPath,
-      tags: ["seed", "texte"],
+  await createWorkspaceResource({ kind: "folder", path: "", name: seedFolderPath });
+  await createWorkspaceResource({ kind: "folder", path: seedFolderPath, name: "dossier-vide" });
+  await createWorkspaceResource(
+    {
+      kind: "text",
+      name: "Ressource texte",
+      path: seedFolderPath,
       content: "Cette note éditable sert de repère pour la ressource texte dans l’espace de travail.",
-    }),
+    },
+    ["seed", "texte"],
   );
-  seedResources.push(
-    await post("/resources/spreadsheets", {
-      title: "Ressource tableur",
-      folderPath: seedFolderPath,
-      tags: ["seed", "tableur", "budget"],
+  await createWorkspaceResource(
+    {
+      kind: "spreadsheet",
+      name: "Ressource tableur",
+      path: seedFolderPath,
       document: {
         schemaVersion: 2,
         workbook: {
@@ -611,36 +641,33 @@ async function main() {
           },
         },
       },
-    }),
+    },
+    ["seed", "tableur", "budget"],
   );
-  seedResources.push(
-    await uploadPdf({
-      title: "Document PDF",
-      fileName: "document-seed.pdf",
-      folderPath: seedFolderPath,
-      category: "supporting",
-      lines: ["Document de démonstration Hall", "Repère du type document PDF dans l'espace de travail."],
-    }),
+  await uploadPdf({
+    title: "Document PDF",
+    fileName: "document-seed.pdf",
+    folderPath: seedFolderPath,
+    tags: ["seed", "document"],
+    lines: ["Document de démonstration Hall", "Repère du type document PDF dans l'espace de travail."],
+  });
+  await createWorkspaceResource(
+    {
+      kind: "remote",
+      name: "Ressource web",
+      path: seedFolderPath,
+      target: { kind: "url", url: "https://www.collectivites-locales.gouv.fr/" },
+    },
+    ["seed", "web"],
   );
-  seedResources.push(
-    await post("/resources/remotes", {
-      title: "Ressource web",
-      folderPath: seedFolderPath,
-      tags: ["seed", "web"],
-      url: "https://www.collectivites-locales.gouv.fr/",
-    }),
-  );
-  seedResources.push(
-    await post("/resources/geographic", {
-      title: "Ressource cartographique",
-      folderPath: seedFolderPath,
-      tags: ["seed", "carte"],
-      provider: "ign",
-      layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
-      view: { kind: "center", center: [2.1402, 48.7152], zoom: 15 },
-      hallLayer: { type: "FeatureCollection", features: [] },
-    }),
-  );
+  await createGeographicResource({
+    name: "Ressource cartographique",
+    path: seedFolderPath,
+    tags: ["seed", "carte"],
+    layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
+    view: { kind: "center", center: [2.1402, 48.7152], zoom: 15 },
+    hallLayer: { type: "FeatureCollection", features: [] },
+  });
   try {
     const legalMatches = await post("/resources/legal-references/search", {
       query: "L2121-10",
@@ -648,47 +675,46 @@ async function main() {
     });
     const legalMatch = legalMatches[0];
     if (!legalMatch) throw new Error("Aucun résultat Légifrance pour L2121-10");
-    const legalDraft = await post("/resources/legal-references", {
+    const legalDraft = await createWorkspaceResource(
+      { kind: "legalReference", name: legalMatch.title, path: seedFolderPath },
+      ["seed", "droit"],
+    );
+    await post(`/resources/${legalDraft.id}/legal-reference/resolve`, {
       title: legalMatch.title,
-      folderPath: seedFolderPath,
-      tags: ["seed", "droit"],
       provider: legalMatch.provider,
       referenceKind: legalMatch.referenceKind,
+      fund: legalMatch.fund,
+      versionId: legalMatch.versionId,
+      effectiveAt: legalMatch.effectiveAt,
     });
-    seedResources.push(
-      await post(`/resources/${legalDraft.id}/legal-reference/resolve`, {
-        title: legalMatch.title,
-        provider: legalMatch.provider,
-        referenceKind: legalMatch.referenceKind,
-        fund: legalMatch.fund,
-        commonId: legalMatch.commonId,
-        versionId: legalMatch.versionId,
-        effectiveAt: legalMatch.effectiveAt,
-      }),
-    );
   } catch (error) {
     console.warn(`  Référence juridique non créée : ${error instanceof Error ? error.message : String(error)}`);
   }
-  await post("/resources/paths", { parentPath: "travaux", name: "a-classer" });
-  const noteCadrage = await post("/resources/texts", {
-    title: "Note de cadrage - éclairage public",
-    folderPath: "travaux/eclairage",
-    tags: ["travaux", "éclairage"],
-    content:
-      "## Objectif\n\nRemplacer les 240 luminaires restants par des LED d'ici fin 2027.\n\n- Tranche 2 : centre-bourg et abords de l'école\n- Économie attendue : **38 %** sur la consommation\n- Subvention SDE sollicitée : 40 % du montant HT",
-  });
-  const reglementCantine = await post("/resources/texts", {
-    title: "Règlement intérieur de la cantine",
-    folderPath: "ecole/cantine",
-    tags: ["école", "cantine"],
-    content:
-      "## Inscription\n\nL'inscription se fait au trimestre via le portail famille.\n\n## Tarification\n\nLes tarifs sont fixés par délibération du conseil municipal selon le quotient familial.",
-  });
-  const rapportEclairage = await uploadPdf({
+  await createWorkspaceResource({ kind: "folder", path: "travaux", name: "a-classer" });
+  await createWorkspaceResource(
+    {
+      kind: "text",
+      name: "Note de cadrage - éclairage public",
+      path: "travaux/eclairage",
+      content:
+        "## Objectif\n\nRemplacer les 240 luminaires restants par des LED d'ici fin 2027.\n\n- Tranche 2 : centre-bourg et abords de l'école\n- Économie attendue : **38 %** sur la consommation\n- Subvention SDE sollicitée : 40 % du montant HT",
+    },
+    ["travaux", "éclairage"],
+  );
+  await createWorkspaceResource(
+    {
+      kind: "text",
+      name: "Règlement intérieur de la cantine",
+      path: "ecole/cantine",
+      content:
+        "## Inscription\n\nL'inscription se fait au trimestre via le portail famille.\n\n## Tarification\n\nLes tarifs sont fixés par délibération du conseil municipal selon le quotient familial.",
+    },
+    ["école", "cantine"],
+  );
+  await uploadPdf({
     title: "Rapport - éclairage public tranche 2",
     fileName: "rapport-eclairage-tranche2.pdf",
     folderPath: "travaux/eclairage",
-    category: "report",
     lines: [
       "Commune de Saint-Aubin - Services techniques",
       "",
@@ -700,11 +726,10 @@ async function main() {
       "Duree des travaux : 4 mois a compter de novembre 2026.",
     ],
   });
-  const planFinancement = await uploadPdf({
+  await uploadPdf({
     title: "Plan de financement - éclairage",
     fileName: "plan-financement-eclairage.pdf",
     folderPath: "travaux/eclairage",
-    category: "supporting",
     lines: [
       "Depenses : 186 000 EUR HT",
       "Subvention SDE (40 %) : 74 400 EUR",
@@ -712,11 +737,10 @@ async function main() {
       "Autofinancement : 81 088 EUR",
     ],
   });
-  const tableauSubventions = await uploadPdf({
+  await uploadPdf({
     title: "Tableau des subventions 2026",
     fileName: "tableau-subventions-2026.pdf",
     folderPath: "finances/subventions",
-    category: "supporting",
     lines: [
       "Association sportive de Saint-Aubin : 3 200 EUR",
       "Comite des fetes : 2 500 EUR",
@@ -725,11 +749,10 @@ async function main() {
       "Harmonie municipale : 1 800 EUR",
     ],
   });
-  const avisDomaines = await uploadPdf({
+  await uploadPdf({
     title: "Avis des Domaines - parcelle AB 127",
     fileName: "avis-domaines-AB127.pdf",
     folderPath: "urbanisme/cessions",
-    category: "supporting",
     lines: [
       "Direction de l'immobilier de l'Etat",
       "",
@@ -738,11 +761,10 @@ async function main() {
       "assortie d'une marge de negociation de 10 %.",
     ],
   });
-  const noteTarifs = await uploadPdf({
+  await uploadPdf({
     title: "Note sur les tarifs 2026-2027",
     fileName: "note-tarifs-cantine.pdf",
     folderPath: "ecole/cantine",
-    category: "report",
     lines: [
       "Le prestataire applique une hausse de 4,1 % au 1er septembre.",
       "Proposition : repercuter 2 % sur les tranches QF superieures,",
@@ -759,7 +781,7 @@ async function main() {
     title: "Affaire de démonstration",
     report: "Cette affaire sert de repère pour distinguer une affaire du conseil des ressources du dossier seed.",
     folderPath: seedFolderPath,
-    resourceIds: seedResources.map(({ id }) => id),
+    resourceIds: [],
   });
   const businessCession = await post("/council-business", {
     kind: "matter",
@@ -767,7 +789,7 @@ async function main() {
     report:
       "La commune n'a pas d'usage de cette parcelle enclavée. Un riverain s'est porté acquéreur au prix de l'avis des Domaines.",
     folderPath: "urbanisme/cessions",
-    resourceIds: [avisDomaines.id],
+    resourceIds: [],
   });
   await submitToVote(
     businessCession,
@@ -780,7 +802,7 @@ async function main() {
     report:
       "Le prestataire augmente ses prix de 4,1 %. La commission scolaire propose de ne répercuter qu'une partie de la hausse.",
     folderPath: "ecole/cantine",
-    resourceIds: [noteTarifs.id, reglementCantine.id],
+    resourceIds: [],
   });
   await submitToVote(
     businessCantine,
@@ -807,7 +829,7 @@ async function main() {
     report:
       "Après la tranche 1 achevée au printemps, la tranche 2 couvre le centre-bourg et les abords de l'école. Le plan de financement intègre la subvention du SDE.",
     folderPath: "travaux/eclairage",
-    resourceIds: [noteCadrage.id, rapportEclairage.id, planFinancement.id],
+    resourceIds: [],
   });
   await submitToVote(
     businessEclairage,
@@ -819,7 +841,7 @@ async function main() {
     title: "Subventions aux associations 2026",
     report: "La commission vie associative a examiné les huit dossiers reçus. Cinq demandes sont retenues.",
     folderPath: "finances/subventions",
-    resourceIds: [tableauSubventions.id],
+    resourceIds: [],
   });
   await submitToVote(
     businessSubventions,
@@ -870,11 +892,9 @@ async function main() {
   });
 
   console.log("- Séance passée : présences et pouvoirs");
-  const proxyDocument = await uploadPdf({
+  await uploadPdf({
     title: "Pouvoir - Olivier Fontaine",
     fileName: "pouvoir-fontaine.pdf",
-    meetingId: pastMeeting.id,
-    category: "proxy",
     lines: [
       "Je soussigne Olivier Fontaine, conseiller municipal,",
       "donne pouvoir a Sylvie Garnier pour me representer",
@@ -894,9 +914,9 @@ async function main() {
   }
   await put(`/council-meetings/${pastMeeting.id}/attendance`, {
     memberId: members.Fontaine.id,
-    status: "represented",
-    proxyHolderMemberId: members.Garnier.id,
-    proxyDocumentId: proxyDocument.id,
+    status: "excused",
+    proxyHolderMemberId: null,
+    proxyDocumentId: null,
   });
   await put(`/council-meetings/${pastMeeting.id}/attendance`, {
     memberId: members.Lambert.id,
@@ -984,8 +1004,6 @@ async function main() {
   await uploadPdf({
     title: "Convocation - séance de septembre",
     fileName: "convocation-septembre.pdf",
-    meetingId: upcomingMeeting.id,
-    category: "meetingNotice",
     lines: [
       "Mesdames et Messieurs les conseillers municipaux sont convoques",
       "en seance ordinaire du conseil municipal, salle du conseil.",
@@ -1281,7 +1299,7 @@ async function main() {
     ],
   ];
   for (const [folderPath, title, tags, content] of libraryTexts) {
-    await post("/resources/texts", { title, folderPath, tags, content });
+    await createWorkspaceResource({ kind: "text", name: title, path: folderPath, content }, tags);
   }
   console.log(`  ${libraryTexts.length} textes classés`);
 
@@ -1442,7 +1460,7 @@ async function main() {
     ],
   ];
   for (const [folderPath, title, fileName, lines] of libraryPdfs) {
-    await uploadPdf({ title, fileName, folderPath, category: "supporting", lines });
+    await uploadPdf({ title, fileName, folderPath, lines });
   }
   console.log(`  ${libraryPdfs.length} documents PDF classés`);
 
@@ -1450,7 +1468,6 @@ async function main() {
     title: "Esquisse du plan de circulation",
     fileName: "plan-circulation.png",
     folderPath: "travaux/voirie",
-    category: "supporting",
     content: makePng(),
     mediaType: "image/png",
   });
@@ -1458,7 +1475,6 @@ async function main() {
     title: "Convention de mise à disposition",
     fileName: "convention-mise-a-disposition.docx",
     folderPath: "culture/associations",
-    category: "supporting",
     content: makeDocx("Convention de mise à disposition - document de démonstration Hall"),
     mediaType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });

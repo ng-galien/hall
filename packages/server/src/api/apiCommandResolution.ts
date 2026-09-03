@@ -125,6 +125,13 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
   }
 
   if (root === "resources") {
+    if (method === "POST" && !id) return auditIntent("resource.create");
+    if (method === "PATCH" && id && child === "location" && !childId) return auditIntent("resource.relocate", id);
+    if (method === "PATCH" && id && child === "metadata" && !childId)
+      return auditIntent("resource.update-metadata", id);
+    if (method === "PUT" && id && child === "content" && !childId) return auditIntent("resource.update-content", id);
+    if (method === "PUT" && id && child === "binary" && !childId)
+      return auditIntent("resource.replace-document-content", id);
     if (id === "paths" && method === "POST" && !child)
       return auditIntent("workspace.create-folder", null, { parentPath: body?.parentPath, name: body?.name });
     if (id === "paths" && method === "PUT" && !child)

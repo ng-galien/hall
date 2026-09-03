@@ -1,21 +1,21 @@
-import type { Resource, ResourceDetails } from "@hall/domain";
+import type { ResourceDetail } from "@hall/api-contract";
+import type { CouncilBusiness } from "@hall/domain";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FullscreenIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { TagInput } from "../../components/TagInput";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
-import { ResourceGlyph, resourceDate } from "../../features/documents/ResourceGlyph";
+import { DocumentaryResourceGlyph, documentaryResourceDate } from "../../features/documents/DocumentaryResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
-import { useResourcesStore } from "../../stores/resourcesStore";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 
 export function ResourceWorkbenchHeader({
   resource,
-  details,
+  relatedBusinesses,
   canUpdate,
   actionError,
   title,
@@ -24,10 +24,11 @@ export function ResourceWorkbenchHeader({
   onTagsChange,
   onSelect,
   onOpenExtended,
+  onDownload,
   extendedViewTriggerRef,
 }: {
-  resource: Resource;
-  details: ResourceDetails | null;
+  resource: Exclude<ResourceDetail, { kind: "folder" }>;
+  relatedBusinesses: CouncilBusiness[];
   canUpdate: boolean;
   actionError: ApiErrorCode | null;
   title: string;
@@ -36,20 +37,20 @@ export function ResourceWorkbenchHeader({
   onTagsChange(tags: string[]): void;
   onSelect(selection: WorkspaceSelection, path?: string): void;
   onOpenExtended(): void;
+  onDownload?(): void;
   extendedViewTriggerRef: RefObject<HTMLButtonElement | null>;
 }) {
   const { t } = useI18n();
-  const resourcesStore = useResourcesStore();
   const { isPinned, togglePin } = useWorkspacePrefsStore();
   const pinned = isPinned({ kind: "resource", id: resource.id });
 
   return (
     <WorkspaceWorkbenchHeader
-      icon={<ResourceGlyph resource={resource} large />}
+      icon={<DocumentaryResourceGlyph resource={resource} large />}
       title={title}
       titleLabel={t("resources.textTitle")}
-      date={resourceDate(resource)}
-      onTitleChange={canUpdate && !details?.snapshotted ? onTitleChange : undefined}
+      date={documentaryResourceDate(resource)}
+      onTitleChange={canUpdate ? onTitleChange : undefined}
       actions={
         <>
           <Tooltip>
@@ -81,8 +82,8 @@ export function ResourceWorkbenchHeader({
             </TooltipTrigger>
             <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
           </Tooltip>
-          {resource.kind === "document" ? (
-            <Button variant="outline" onClick={() => void resourcesStore.download(resource)}>
+          {resource.kind === "document" && onDownload ? (
+            <Button variant="outline" onClick={onDownload}>
               {t("common.download")}
             </Button>
           ) : null}
@@ -97,10 +98,10 @@ export function ResourceWorkbenchHeader({
           </div>
           <div className="workbench-meta">
             <span className="workbench-meta-label">{t("workspace.relatedCouncilBusiness")}</span>
-            {!details || details.councilBusiness.length === 0 ? (
+            {relatedBusinesses.length === 0 ? (
               <span className="workbench-meta-empty">{t("workspace.noRelatedCouncilBusiness")}</span>
             ) : (
-              details.councilBusiness.map((business) => (
+              relatedBusinesses.map((business) => (
                 <button
                   key={business.id}
                   className="workbench-business-chip"

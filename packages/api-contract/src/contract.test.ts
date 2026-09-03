@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { findSirenAction, problemDetailsSchema, sirenData, sirenEntitySchema } from "./index.js";
+import {
+  createResourceSchema,
+  findSirenAction,
+  problemDetailsSchema,
+  resourceDetailSchema,
+  sirenData,
+  sirenEntitySchema,
+} from "./index.js";
 
 describe("shared HTTP contract", () => {
   it("validates a Siren entity with a state-changing action", () => {
@@ -61,5 +68,42 @@ describe("shared HTTP contract", () => {
 
     expect(sirenData<Array<{ id: string }>>(representation)).toEqual([{ id: "business-1" }]);
     expect(findSirenAction(representation, "council-business.create")?.href).toBe("/api/council-business");
+  });
+
+  it("keeps the modern resource contract small and discriminated", () => {
+    expect(createResourceSchema.parse({ kind: "text", path: "school", name: "menu.md", content: "Menu" })).toEqual({
+      kind: "text",
+      path: "school",
+      name: "menu.md",
+      content: "Menu",
+    });
+
+    const resource = resourceDetailSchema.parse({
+      id: "10000000-0000-4000-8000-000000000001",
+      slug: "menu-md",
+      path: "school",
+      name: "menu.md",
+      fullPath: "school/menu.md",
+      kind: "text",
+      tags: ["school"],
+      state: { readiness: "ready", availability: null },
+      autosaveEnabled: true,
+      createdAt: "2026-09-02T10:00:00Z",
+      updatedAt: "2026-09-02T10:00:00Z",
+      content: "Menu",
+      version: 1,
+    });
+    expect(resource.tags).toEqual(["school"]);
+    expect(resource).toMatchObject({ kind: "text", autosaveEnabled: true });
+    expect(resource).not.toHaveProperty("councilBusiness");
+
+    expect(
+      createResourceSchema.parse({
+        kind: "remote",
+        path: "school",
+        name: "portal",
+        target: { kind: "unconfigured" },
+      }),
+    ).toMatchObject({ kind: "remote", target: { kind: "unconfigured" } });
   });
 });

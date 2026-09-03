@@ -1,0 +1,82 @@
+-- Canonical Hall SQLSTATE catalogue.
+--
+-- @technical-requirement HALL-TR-ERR-010 DECLARATIVE_CONSTRAINTS_KEEP_NATIVE_SQLSTATE:
+-- Declarative PostgreSQL constraints keep their native SQLSTATE. In
+-- particular, NOT NULL, foreign key, uniqueness and CHECK violations remain
+-- 23502, 23503, 23505 and 23514; clients can refine them with the constraint
+-- name carried by the database error.
+--
+-- @technical-requirement HALL-TR-ERR-020 BUSINESS_ERRORS_USE_STABLE_CUSTOM_SQLSTATE:
+-- Trigger-enforced business invariants use the custom HV class below. These
+-- codes are a stable machine-readable contract. The English RAISE message is
+-- diagnostic only and may change without changing the code.
+--
+-- @technical-requirement HALL-TR-ERR-030 ERROR_CODES_TRACE_FUNCTIONAL_REQUIREMENTS:
+-- Every business error code below identifies the functional requirement it
+-- protects. Missing-reference diagnostics are deliberately not functional
+-- requirements.
+--
+-- Meeting attendance
+-- HV101  MEETING_ATTENDANCE_IMMUTABLE                 HALL-FR-ATT-080
+-- HV102  MEETING_ATTENDANCE_AFTER_MEETING_START       HALL-FR-ATT-090
+-- HV103  PROXY_HOLDER_INVALID                         HALL-FR-ATT-070
+--
+-- Council meeting
+-- HV111  COUNCIL_MEETING_IMMUTABLE                    HALL-FR-MTG-030
+-- HV112  COUNCIL_MEETING_INSERT_STARTED                HALL-FR-MTG-040
+-- HV113  COUNCIL_MEETING_DEFINITION_IMMUTABLE          HALL-FR-MTG-050
+-- HV114  COUNCIL_MEETING_ALREADY_STARTED               HALL-FR-MTG-060
+-- HV115  COUNCIL_MEETING_QUORUM_NOT_REACHED            HALL-FR-MTG-070
+-- HV116  COUNCIL_MEETING_INVALID_CLOSE                  HALL-FR-MTG-090
+-- HV117  PREVIOUS_MINUTES_NOT_APPROVED                  HALL-FR-MTG-120
+-- HV118  COUNCIL_MEETING_HAS_OPEN_BALLOT                HALL-FR-BAL-290
+-- HV120  COUNCIL_MEETING_PREDECESSOR_NOT_CLOSED         HALL-FR-MTG-140
+-- HV121  COUNCIL_MEETING_CLOSURE_INCOMPLETE             HALL-FR-MTG-110
+--
+-- Council business and agenda
+-- HV211  MINUTES_BUSINESS_MIXED_WITH_OTHER_SUBJECTS    HALL-FR-BUS-020
+-- HV212  AGENDA_ITEM_INSERT_ACTIVE                     HALL-FR-AGI-090
+-- HV213  STARTED_AGENDA_ITEM_DELETE                    HALL-FR-AGI-100
+-- HV214  AGENDA_ITEM_SUBJECT_CHANGE                    HALL-FR-AGI-110
+-- HV215  DEPROGRAMMED_AGENDA_ITEM_START                HALL-FR-AGI-120
+-- HV216  AGENDA_ITEM_MEETING_NOT_STARTED               HALL-FR-AGI-120
+-- HV217  AGENDA_ITEM_INVALID_TEMPORAL_TRANSITION       HALL-FR-AGI-180
+-- HV218  AGENDA_ITEM_START_IMMUTABLE                   HALL-FR-AGI-130
+-- HV219  AGENDA_ITEM_COMPLETION_IMMUTABLE              HALL-FR-AGI-140
+-- HV220  STARTED_AGENDA_ITEM_PLACEMENT_CHANGE          HALL-FR-AGI-190
+-- HV221  AGENDA_ITEM_COMPLETION_WITHOUT_BALLOT         HALL-FR-AGI-160
+-- HV222  AGENDA_SUBJECT_HAS_ANOTHER_BUSINESS           HALL-FR-BUS-030
+-- HV223  CLOSED_MEETING_AGENDA_WRITE                    HALL-FR-AGI-270
+--
+-- Ballot participation
+-- HV301  BALLOT_PARTICIPATION_IMMUTABLE                HALL-FR-BAL-070
+-- HV302  BALLOT_PARTICIPATION_AFTER_BALLOT_COMPLETION  HALL-FR-BAL-080
+-- HV303  BALLOT_PARTICIPATION_WRONG_MEETING            HALL-FR-BAL-090
+-- HV304  BALLOT_PARTICIPATION_NOT_ELIGIBLE             HALL-FR-BAL-100
+--
+-- Ballot
+-- HV401  BALLOT_IMMUTABLE                              HALL-FR-BAL-200
+-- HV402  BALLOT_INSERT_COMPLETED                        HALL-FR-BAL-210
+-- HV403  BALLOT_MEETING_NOT_STARTED                     HALL-FR-BAL-220
+-- HV404  BALLOT_AGENDA_ITEM_NOT_ACTIVE                  HALL-FR-BAL-230
+-- HV405  BALLOT_DEFINITION_IMMUTABLE                    HALL-FR-BAL-240
+-- HV406  BALLOT_ALREADY_COMPLETED                       HALL-FR-BAL-250
+-- HV407  BALLOT_RESULT_MANUAL_CHANGE                    HALL-FR-BAL-260
+-- HV408  BALLOT_VOTE_COUNT_MISMATCH                     HALL-FR-BAL-270
+-- HV409  BALLOT_AGENDA_ITEM_NOT_ACTIVE                  HALL-FR-AGI-170
+-- HV410  BALLOT_CHAIRMAN_INVALID                        HALL-FR-BAL-140
+-- HV411  BALLOT_OPEN_QUESTION_FORBIDDEN                 HALL-FR-BAL-230
+-- HV412  BALLOT_AFTER_MEETING_CLOSURE                   HALL-FR-BAL-280
+--
+-- Vote
+-- HV501  VOTE_IMMUTABLE                                HALL-FR-VOT-060
+-- HV502  VOTE_AFTER_BALLOT_COMPLETION                   HALL-FR-VOT-070
+-- HV503  VOTE_MODE_MISMATCH                             HALL-FR-VOT-080
+-- HV504  VOTE_PARTICIPATION_WRONG_BALLOT               HALL-FR-VOT-090
+--
+-- Missing referenced business objects detected by lifecycle triggers
+-- HV901  UNKNOWN_COUNCIL_MEETING
+-- HV902  UNKNOWN_BALLOT
+-- HV903  UNKNOWN_MEETING_ATTENDANCE
+-- HV904  UNKNOWN_COUNCIL_AGENDA_ITEM
+-- HV905  UNKNOWN_COUNCIL_BUSINESS

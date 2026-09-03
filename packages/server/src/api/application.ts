@@ -23,7 +23,7 @@ import { createCouncilCommitteesRouter } from "./routes/councilCommitteesRoutes.
 import { createCouncilDecisionsRouter } from "./routes/councilDecisionsRoutes.js";
 import { createCouncilMeetingsRouter } from "./routes/councilMeetingsRoutes.js";
 import { createCouncilMembersRouter } from "./routes/councilMembersRoutes.js";
-import { createResourcesRouter } from "./routes/resourcesRoutes.js";
+import { createDocumentaryResourcesRouter } from "./routes/documentaryResourcesRoutes.js";
 import { createSettingsRouter } from "./routes/settingsRoutes.js";
 import { apiRootRepresentation, sirenResponses } from "./sirenRepresentation.js";
 
@@ -57,7 +57,9 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api/council-committees", createCouncilCommitteesRouter(container.cradle));
   app.use("/api/council-meetings", createCouncilMeetingsRouter(container.cradle));
   app.use("/api/council-decisions", createCouncilDecisionsRouter(container.cradle));
-  app.use("/api/resources", createResourcesRouter(container.cradle));
+  if (config.database.kind === "postgres") {
+    app.use("/api/resources", createDocumentaryResourcesRouter(container.cradle));
+  }
   app.use("/api/council-business", createCouncilBusinessRouter(container.cradle));
   app.use("/api/settings", createSettingsRouter(container.cradle));
   app.use("/api/templates", createContentTemplatesRouter(container.cradle));

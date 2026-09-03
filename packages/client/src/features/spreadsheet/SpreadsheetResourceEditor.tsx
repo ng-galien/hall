@@ -1,21 +1,22 @@
-import type { SpreadsheetDocument, SpreadsheetResource } from "@hall/domain";
+import type { ResourceDetail } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useSaveStatusStore } from "../../pages/workspace/saveStatusStore";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
-import { updateSpreadsheetResource } from "../../services/resourcesApi";
-import { useResourcesStore } from "../../stores/resourcesStore";
+import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import type { ResourcePresentationMode } from "../resources/ResourcePresentationBody";
 import { UniverSpreadsheetAdapter } from "./UniverSpreadsheetAdapter";
 import "./SpreadsheetResourceEditor.css";
+
+type SpreadsheetResource = Extract<ResourceDetail, { kind: "spreadsheet" }>;
+type SpreadsheetDocument = SpreadsheetResource["document"];
 
 export function SpreadsheetResourceEditor({
   resource,
   document,
   mode,
   canUpdate,
-  snapshotted,
   autosaveEnabled,
   onError,
   onRegisterFlush,
@@ -24,7 +25,6 @@ export function SpreadsheetResourceEditor({
   document: SpreadsheetDocument;
   mode: ResourcePresentationMode;
   canUpdate: boolean;
-  snapshotted: boolean;
   autosaveEnabled: boolean;
   onError(error: ApiErrorCode | null): void;
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
@@ -40,7 +40,6 @@ export function SpreadsheetResourceEditor({
   const savedDocumentRef = useRef(JSON.stringify(document));
   const versionRef = useRef(resource.version);
   const canUpdateRef = useRef(false);
-  const snapshottedRef = useRef(snapshotted);
   const autosaveEnabledRef = useRef(autosaveEnabled);
   const mountedRef = useRef(true);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
@@ -48,14 +47,13 @@ export function SpreadsheetResourceEditor({
   latestDraftRef.current = draft;
   versionRef.current = storedVersion;
   canUpdateRef.current = mode === "edit" && canUpdate;
-  snapshottedRef.current = snapshotted;
   autosaveEnabledRef.current = autosaveEnabled;
 
   const dirty = JSON.stringify(draft) !== savedDocumentRef.current;
   const save = useCallback(() => {
     if (savePromiseRef.current) return savePromiseRef.current;
     const run = async () => {
-      while (canUpdateRef.current && !snapshottedRef.current) {
+      while (canUpdateRef.current) {
         const toSave = latestDraftRef.current;
         const signature = JSON.stringify(toSave);
         if (signature === savedDocumentRef.current) break;
@@ -65,14 +63,17 @@ export function SpreadsheetResourceEditor({
           onError(null);
         }
         try {
-          const updated = await updateSpreadsheetResource(resource.id, {
+          const updated = await useWorkspaceResourcesStore.getState().updateContent(resource.id, {
+            kind: "spreadsheet",
             document: toSave,
             expectedVersion: versionRef.current,
           });
+          if (updated?.kind !== "spreadsheet") {
+            throw new Error(useWorkspaceResourcesStore.getState().error ?? "request_failed");
+          }
           savedDocumentRef.current = signature;
           versionRef.current = updated.version;
           if (mountedRef.current) setStoredVersion(updated.version);
-          await useResourcesStore.getState().load();
         } catch (failure) {
           if (mountedRef.current) {
             onError(apiErrorCode(failure));
@@ -104,11 +105,11 @@ export function SpreadsheetResourceEditor({
       setSaveStatus("idle");
       return;
     }
-    if (mode !== "edit" || editing || !dirty || !canUpdate || snapshotted) return;
+    if (mode !== "edit" || editing || !dirty || !canUpdate) return;
     setSaveStatus("dirty");
     const timer = window.setTimeout(() => void save(), 1000);
     return () => window.clearTimeout(timer);
-  }, [autosaveEnabled, canUpdate, dirty, editing, mode, save, setSaveStatus, snapshotted]);
+  }, [autosaveEnabled, canUpdate, dirty, editing, mode, save, setSaveStatus]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -137,7 +138,7 @@ export function SpreadsheetResourceEditor({
         key={`${resource.id}:${locale}`}
         mountElement={inlineMount}
         document={draft}
-        readOnly={mode !== "edit" || !canUpdate || snapshotted}
+        readOnly={mode !== "edit" || !canUpdate}
         locale={locale}
         onEditingChange={(next) => {
           if (mountedRef.current) setEditing(next);

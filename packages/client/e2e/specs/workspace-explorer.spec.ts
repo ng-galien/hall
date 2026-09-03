@@ -2,19 +2,21 @@ import { expect, test } from "../fixtures/application";
 
 test("persists the complete multi-sheet Univer workbook without concurrent saves", async ({ appPage: page }) => {
   test.setTimeout(45_000);
-  const resourcesResponse = await page.request.get("/api/resources");
+  const resourcesResponse = await page.request.get("/api/resources?path=seed");
   expect(resourcesResponse.ok()).toBeTruthy();
   const resources = (await resourcesResponse.json()) as {
-    entities: Array<{ properties: { id: string; kind: string; title: string; folderPath: string } }>;
+    entities: Array<{ properties: { id: string; kind: string; name: string; path: string } }>;
   };
   const spreadsheet = resources.entities.find(
     ({ properties }) =>
-      properties.kind === "spreadsheet" && properties.title === "Ressource tableur" && properties.folderPath === "seed",
+      properties.kind === "spreadsheet" && properties.name === "Ressource tableur" && properties.path === "seed",
   )?.properties;
   expect(spreadsheet).toBeTruthy();
   const resourceId = spreadsheet!.id;
 
   const putBodies: Array<{
+    kind: "spreadsheet";
+    expectedVersion: number;
     document: {
       workbook: {
         sheetOrder: string[];
@@ -35,8 +37,8 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
   await expect(grid).toBeVisible();
   await expect(grid).toHaveAttribute("aria-readonly", "false");
   await page.waitForTimeout(1_500);
-  await page.route("**/api/resources/*/spreadsheet", async (route) => {
-    if (route.request().method() !== "PUT") {
+  await page.route("**/api/resources/*/content", async (route) => {
+    if (route.request().method() !== "PUT" || route.request().postDataJSON().kind !== "spreadsheet") {
       await route.continue();
       return;
     }
@@ -95,9 +97,9 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
   const detailsResponse = await page.request.get(`/api/resources/${resourceId}`);
   expect(detailsResponse.ok()).toBeTruthy();
   const details = (await detailsResponse.json()) as {
-    properties: { spreadsheet: { workbook: typeof finalWorkbook } };
+    properties: { document: { workbook: typeof finalWorkbook } };
   };
-  expect(details.properties.spreadsheet.workbook).toMatchObject(finalWorkbook);
+  expect(details.properties.document.workbook).toMatchObject(finalWorkbook);
 });
 
 test("imports a CSV file as an editable spreadsheet resource", async ({ appPage: page }) => {
@@ -120,12 +122,12 @@ test("imports a CSV file as an editable spreadsheet resource", async ({ appPage:
   const importResponse = await importResponsePromise;
   expect(importResponse.status()).toBe(201);
   const importedRepresentation = (await importResponse.json()) as {
-    properties: { id: string; kind: string; title: string; folderPath: string };
+    properties: { id: string; kind: string; name: string; path: string };
   };
   expect(importedRepresentation.properties).toMatchObject({
     kind: "spreadsheet",
-    title: "suivi-budgetaire",
-    folderPath: "seed",
+    name: "suivi-budgetaire",
+    path: "seed",
   });
   await expect(page.getByTestId("spreadsheet-grid")).toBeVisible();
 
@@ -133,7 +135,7 @@ test("imports a CSV file as an editable spreadsheet resource", async ({ appPage:
   expect(detailsResponse.ok()).toBeTruthy();
   const details = (await detailsResponse.json()) as {
     properties: {
-      spreadsheet: {
+      document: {
         workbook: {
           sheetOrder: string[];
           sheets: Record<string, { cellData: Record<string, Record<string, { v?: unknown; f?: string }>> }>;
@@ -141,7 +143,7 @@ test("imports a CSV file as an editable spreadsheet resource", async ({ appPage:
       };
     };
   };
-  const workbook = details.properties.spreadsheet.workbook;
+  const workbook = details.properties.document.workbook;
   const importedSheet = workbook.sheets[workbook.sheetOrder[0]];
   expect(importedSheet.cellData[1][0].v).toBe("Mobilier");
   expect(importedSheet.cellData[1][2].v).toBe(150);

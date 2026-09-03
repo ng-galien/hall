@@ -1,12 +1,14 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DeleteIcon } from "../../components/icons";
 import { ResourcePreviewWithSession } from "../../features/documents/ResourcePreview";
-import { useResourceImageUpload } from "../../features/documents/useResourceImageUpload";
+import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
 import { ResourcePresentationBody } from "../../features/resources/ResourcePresentationBody";
 import type { ResourceSession } from "../../features/resources/useResourceSession";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
+import { downloadDocumentaryResource } from "../../services/resourcesApi";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { ResourceWorkbenchHeader } from "./ResourceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 
@@ -18,16 +20,27 @@ export function ResourceWorkbench({
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
   const mentionables = useReferenceMentionables();
-  const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
+  const { canUpload: canUploadImage, uploadImage } = useWorkspaceResourceImageUpload();
   const { t } = useI18n();
   const [viewerOpen, setViewerOpen] = useState(false);
   const extendedViewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const viewerTransitionRef = useRef(false);
   const resource = session.resource;
+  const businesses = useCouncilBusinessStore((state) => state.businesses);
+  const relatedBusinesses = useMemo(
+    () =>
+      resource
+        ? businesses.filter((business) => business.resources.some((candidate) => candidate.id === resource.id))
+        : [],
+    [businesses, resource],
+  );
 
   if (!resource) return null;
 
-  const renameResource = async (nextTitle: string) => session.save(nextTitle);
+  const renameResource = async (nextTitle: string) => {
+    session.setTitle(nextTitle);
+    return session.save(nextTitle);
+  };
   const remove = async () => {
     if (await session.remove()) onSelect(null);
   };
@@ -50,8 +63,8 @@ export function ResourceWorkbench({
     >
       <ResourceWorkbenchHeader
         resource={resource}
-        details={session.details}
-        canUpdate={session.capabilities.updateResource}
+        relatedBusinesses={relatedBusinesses}
+        canUpdate={session.capabilities.updateMetadata}
         actionError={session.actionError}
         title={session.title}
         onTitleChange={renameResource}
@@ -59,6 +72,12 @@ export function ResourceWorkbench({
         onTagsChange={session.setTags}
         onSelect={onSelect}
         onOpenExtended={() => void openExtended()}
+        onDownload={(() => {
+          const representation = session.representation;
+          return resource.kind === "document" && representation
+            ? () => void downloadDocumentaryResource(resource, representation)
+            : undefined;
+        })()}
         extendedViewTriggerRef={extendedViewTriggerRef}
       />
 
@@ -67,7 +86,7 @@ export function ResourceWorkbench({
           {!viewerOpen ? (
             <ResourcePresentationBody
               resource={resource}
-              details={session.details}
+              representation={session.representation}
               mode={session.mode}
               layout="workbench"
               capabilities={session.capabilities}
@@ -83,7 +102,7 @@ export function ResourceWorkbench({
               onUploadImage={(file) => uploadImage(file, { kind: "textResourceContent", id: resource.id })}
               onResolvedLegalReference={(resolved) => {
                 session.adoptResolvedResource(resolved);
-                onSelect({ kind: "resource", id: resolved.id }, resolved.folderPath);
+                onSelect({ kind: "resource", id: resolved.id }, resolved.path);
               }}
               onRefreshLegalReference={session.refreshLegalReference}
               onError={session.setActionError}

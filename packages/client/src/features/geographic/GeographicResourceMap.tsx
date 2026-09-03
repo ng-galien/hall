@@ -1,4 +1,5 @@
-import type { GeographicLayer, GeographicLayerId, GeographicResource, GeographicResourceData } from "@hall/domain";
+import type { ResourceDetail } from "@hall/api-contract";
+import type { GeographicLayer, GeographicLayerId } from "@hall/domain";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "ol/ol.css";
 import { Button } from "@/components/ui/button";
@@ -6,8 +7,7 @@ import type { ColorPickerPreset } from "@/components/ui/color-picker";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useSaveStatusStore } from "../../pages/workspace/saveStatusStore";
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
-import { getResourceDetailsSiren, updateGeographicResource } from "../../services/resourcesApi";
-import { useResourcesStore } from "../../stores/resourcesStore";
+import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { GeographicCompositionEditor } from "./GeographicCompositionEditor";
 import { GeographicLayerControls } from "./GeographicLayerControls";
 import { geographicFeatureKindLabels } from "./geographicFeatureKindPolicy";
@@ -25,6 +25,9 @@ import {
 } from "./useGeographicMapRuntime";
 
 const GEOGRAPHIC_SAVE_DEBOUNCE_MS = 1_500;
+
+type GeographicResource = Extract<ResourceDetail, { kind: "geographic" }>;
+type GeographicResourceData = GeographicResource["document"];
 
 function cssToken(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -118,26 +121,27 @@ export function GeographicResourceMap({
         const payload = latestDraftRef.current;
         const signature = JSON.stringify(payload);
         if (signature === savedSignatureRef.current) {
-          await useResourcesStore.getState().load();
           setSaveStatus("saved");
           return true;
         }
         onError(null);
         setSaveStatus("saving");
         try {
-          const updated = await updateGeographicResource(resource.id, {
-            view: payload.view,
-            layers: payload.layers,
-            hallLayer: payload.hallLayer,
+          const updated = await useWorkspaceResourcesStore.getState().updateContent(resource.id, {
+            kind: "geographic",
+            document: payload,
             expectedVersion: latestVersionRef.current,
           });
+          if (updated?.kind !== "geographic") {
+            throw new Error(useWorkspaceResourcesStore.getState().error ?? "request_failed");
+          }
           latestVersionRef.current = updated.version;
           savedSignatureRef.current = signature;
           setSavedSignature(signature);
         } catch (failure) {
           if (failure instanceof ApiError && failure.status === 409) {
-            const latest = await getResourceDetailsSiren(resource.id).catch(() => null);
-            if (latest?.data.resource.kind === "geographic") latestVersionRef.current = latest.data.resource.version;
+            const latest = await useWorkspaceResourcesStore.getState().open(resource.id);
+            if (latest?.data.kind === "geographic") latestVersionRef.current = latest.data.version;
             conflictRef.current = true;
             setConflict(true);
             onError(null);
