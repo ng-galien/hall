@@ -42,6 +42,7 @@ AS $function$
     'slug', hall.council_meeting_slug(target),
     'previousCouncilMeetingId', target.previous_council_meeting,
     'minutesId', (SELECT id FROM hall.minutes WHERE council_meeting = target.id),
+    'agendaFrozenAt', (SELECT frozen_at FROM hall.council_agenda_freeze WHERE council_meeting = target.id),
     'scheduledAt', target.scheduled_at,
     'location', target.location,
     'chairMemberId', target.chair_member,

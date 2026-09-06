@@ -225,3 +225,8 @@ GRANT EXECUTE ON FUNCTION hall_api.meeting_conduct(UUID),
 GRANT EXECUTE ON FUNCTION hall_api.create_ballot_result_preview(UUID,JSONB),
  hall_api.open_ballot_result_preview(UUID),hall_api.confirm_ballot_result_preview(UUID)
  TO hall_api_authenticated,hall_api_worker;
+
+GRANT EXECUTE ON FUNCTION hall_api.freeze_council_agenda(UUID), hall_api.open_council_agenda_freeze(UUID),
+ hall_api.meeting_notice_facts(UUID), hall_api.list_meeting_notices(UUID), hall_api.open_meeting_notice(UUID),
+ hall_api.generate_meeting_notice(UUID,JSONB,BYTEA), hall_api.meeting_notice_content(UUID)
+ TO hall_api_authenticated,hall_api_worker;

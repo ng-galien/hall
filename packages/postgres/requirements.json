@@ -192,6 +192,17 @@
       "asOf": "2026-09-06",
       "decisionDate": "1993-10-13",
       "scope": "Les jours francs se comptent sans report civil au prochain jour ouvrable."
+    },
+    "S13": {
+      "kind": "legislation",
+      "citation": "CGCT L2121-10",
+      "localization": "Alinéa unique, première et deuxième phrases",
+      "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041410274",
+      "versionId": "LEGIARTI000041410274",
+      "validFrom": "2019-12-29",
+      "verifiedAt": "2026-09-06",
+      "asOf": "2026-09-06",
+      "scope": "La convocation est faite par le maire et indique les questions portées à l’ordre du jour. Le rendu ne prouve ni décision effective du maire, ni mention au registre, publicité ou transmission."
     }
   },
   "requirements": {
@@ -3658,6 +3669,118 @@
           "origin": "product",
           "statement": "One aggregate-root lock serializes append, dissociation and exact reorder.",
           "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-010": {
+      "name": "FROZEN_AGENDA_PRESERVES_QUESTIONS_AND_ORDER",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Le gel conserve une copie des questions et de leur ordre, indépendante des modifications ultérieures du dossier.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-020": {
+      "name": "FROZEN_AGENDA_CANNOT_BE_RECOMPOSED",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Le gel interdit la recomposition tout en permettant la conduite et l’ajournement formel.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-030": {
+      "name": "PREPARATION_DOCUMENT_HISTORY_IS_IMMUTABLE",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Les instantanés et versions de convocation générées restent immuables.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-040": {
+      "name": "AGENDA_FREEZE_REQUIRES_A_PROGRAMMED_PREPARATION",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Le gel est une action explicite sur une séance programmée non commencée, avec au moins un point.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-050": {
+      "name": "NOTICE_GENERATION_PERSISTS_A_VERSION_WITHOUT_TRANSMISSION",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Une génération conserve un PDF et ses faits sans déclarer un envoi, une publication ou une réception.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-060": {
+      "name": "NOTICE_USES_A_FROZEN_AGENDA_BEFORE_MEETING_START",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "La convocation est générée pendant la préparation à partir de l’ordre du jour figé.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-070": {
+      "name": "NOTICE_REQUIRES_PDF_BYTES",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "La persistance d’une convocation exige un contenu PDF non vide.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-NOT-010": {
+      "name": "NOTICE_PERSISTENCE_CHECKS_THE_RENDERED_FACTS",
+      "nature": "technical",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "La persistance compare atomiquement les faits rendus aux faits courants pour refuser une génération concurrente obsolète.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-080": {
+      "name": "MEETING_NOTICE_IDENTIFIES_CONVENING_AUTHORITY_AND_AGENDA_QUESTIONS",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "mayor-and-agenda-questions",
+          "origin": "regulatory",
+          "statement": "La convocation est faite par le maire et indique les questions portées à l’ordre du jour.",
+          "sourceIds": [
+            "S13"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
         }
       ]
     }

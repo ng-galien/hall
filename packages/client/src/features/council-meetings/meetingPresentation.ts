@@ -38,9 +38,10 @@ export function formatMeetingLabel(
   meeting: MeetingLabelSource,
   template: string,
   formatDate: (value: string | Date) => string,
-  unscheduledLabel = "-",
+  unscheduledLabel = "",
 ): string {
-  return template
+  const label = meeting.scheduledAt || unscheduledLabel ? template : template.replace(/,?\s*\{date\}/, "");
+  return label
     .replace("{number}", String(meeting.number))
     .replace("{date}", meeting.scheduledAt ? formatDate(meeting.scheduledAt) : unscheduledLabel);
 }

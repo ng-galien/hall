@@ -10,3 +10,5 @@ export * from "./participationPolicy.js";
 export * from "./recusal.js";
 export * from "./schemas.js";
 export * from "./state-machines/index.js";
+
+export * from "./meetingNotice.js";

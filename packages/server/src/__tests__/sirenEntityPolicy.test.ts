@@ -51,6 +51,8 @@ const classificationSamples: Record<SirenEntityClass, { path: string; value: unk
   "council-term": { path: "/api/council-terms", value: { id: "id" } },
   entity: { path: "/api/unknown", value: {} },
   "hall-settings": { path: "/api/settings", value: { id: "settings" } },
+  "agenda-freeze": { path: `/api/council-meetings/${id}/agenda-freeze`, value: { councilMeetingId: id, frozenAt: "2026-09-06T10:00:00Z", agenda: [] } },
+  "meeting-notice": { path: `/api/meeting-notices/${id}`, value: { id, councilMeetingId: id, version: 1 } },
   minutes: { path: "/api/minutes/one", value: { id: "one", generatedAt: null } },
   resource: { path: "/api/resources/id", value: { id: "id" } },
   session: { path: "/api/auth/session", value: {} },

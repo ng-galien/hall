@@ -22,6 +22,7 @@
     "@hall/templating": "^0.1.0",
     "@mdx-js/react": "^3.1.1",
     "@phosphor-icons/react": "^2.1.10",
+    "@stepperize/react": "^7.0.0",
     "@tiptap/extension-image": "^3.30.5",
     "@tiptap/extension-mention": "^3.30.5",
     "@tiptap/extension-table": "^3.30.5",

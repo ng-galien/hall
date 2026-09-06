@@ -1,5 +1,6 @@
-import { type ReactNode, useEffect, useId, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { normalizeForSearch } from "../lib/search";
@@ -99,28 +100,18 @@ export function Modal({
   onClose(): void;
 }) {
   const { t } = useI18n();
-  const titleId = useId();
-  useEffect(() => {
-    if (!open) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose, open]);
-  if (!open) return null;
   return (
-    <div className="modal-backdrop" role="presentation">
-      <section className="modal-surface" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent className="modal-surface gap-0 p-0 sm:max-w-[var(--hall-size-modal)]" showCloseButton={false} aria-describedby={undefined}>
         <header className="modal-header">
-          <h2 id={titleId}>{title}</h2>
+          <DialogTitle>{title}</DialogTitle>
           <Button size="icon" variant="ghost" aria-label={t("common.close")} onClick={onClose}>
             <CloseIcon />
           </Button>
         </header>
         <div className="modal-content">{children}</div>
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

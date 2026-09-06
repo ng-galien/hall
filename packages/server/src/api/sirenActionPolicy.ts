@@ -124,6 +124,8 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
         : [],
     entity: () => [],
     "hall-settings": () => [],
+    "meeting-notice": () => [],
+    "agenda-freeze": () => [],
     minutes: () => [],
     resource: () => resourceCollectionActions(request),
     session: () => [],
@@ -159,7 +161,9 @@ function agendaItemActions({ request, primary, id }: ObjectActionContext): Siren
     (meeting ? publicReference("council-meeting", meeting) : null) ?? meetingReferenceFromRequest(request) ?? meetingId;
   if (!meetingReference || primary.completedAt || primary.adjournedAt || meeting?.closedAt) return [];
 
+  if (meeting?.agendaFrozenAt && !meeting?.startedAt) return [];
   if (typeof primary.position === "number" && primary.position < 0) {
+    if (meeting?.agendaFrozenAt) return [];
     return authorizedActions(request, [
       action(
         "agenda-item.reprogram",
@@ -252,6 +256,8 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
     actions.push(
       action("meeting.schedule", "PUT", `/api/council-meetings/${meetingReference}/schedule`),
       action("meeting.set-officers", "PUT", `/api/council-meetings/${meetingReference}/officers`),
+    );
+    if (!meeting.agendaFrozenAt) actions.push(
       action(
         "meeting.create-and-schedule-business",
         "POST",
@@ -260,9 +266,13 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
       action("agenda-item.schedule", "POST", `/api/council-meetings/${meetingReference}/agenda-items`),
       action("meeting.reorder-agenda", "PUT", `/api/council-meetings/${meetingReference}/agenda-order`),
     );
-    if (!meeting.scheduledAt) {
-      actions.push(action("meeting.prepare", "PUT", `/api/council-meetings/${meetingReference}/prepare`));
+    if (meeting.scheduledAt && !meeting.agendaFrozenAt) {
+      actions.push(action("meeting.freeze-agenda", "POST", `/api/council-meetings/${meetingReference}/agenda-freeze`));
     }
+    if (meeting.agendaFrozenAt) {
+      actions.push(action("meeting.generate-notice", "POST", `/api/council-meetings/${meetingReference}/notices`));
+    }
+    actions.push(action("meeting.prepare", "PUT", `/api/council-meetings/${meetingReference}/prepare`));
     if (meeting.scheduledAt) {
       actions.push(
         action("meeting.record-attendance", "POST", `/api/council-meetings/${meetingReference}/attendance`),
@@ -441,6 +451,8 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
       canExecuteAction(request, "settings.update")
         ? [action("settings.update", "PUT", "/api/settings", "Update Hall settings")]
         : [],
+    "meeting-notice": () => [],
+    "agenda-freeze": () => [],
     minutes: () =>
       id && primary?.generatedAt === null
         ? authorizedActions(request, [

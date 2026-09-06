@@ -1,3 +1,4 @@
+import { createMeetingNoticeService, type MeetingNoticeService } from "../services/meetingNoticeService.js";
 import {
   createPostgresClient,
   type PostgresClient,
@@ -81,6 +82,7 @@ export interface Cradle {
   postgresMinutes: PostgresMinutes;
   minutesClient: MinutesClient;
   minutesService: MinutesService;
+  meetingNoticeService: MeetingNoticeService;
   directoryClient: DirectoryClient;
   councilClient: CouncilClient;
   unitOfWork: UnitOfWork;
@@ -135,6 +137,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     securityRepository: asFunction(createSecurityRepository).singleton(),
     councilMeetingService: asFunction(createCouncilMeetingService).singleton(),
     minutesService: asFunction(createMinutesService).singleton(),
+    meetingNoticeService: asFunction(createMeetingNoticeService).singleton(),
     meetingPreparationService: asFunction(createMeetingPreparationService).singleton(),
     ballotService: asFunction(createBallotService).singleton(),
     councilBallotService: asFunction(createCouncilBallotService).singleton(),

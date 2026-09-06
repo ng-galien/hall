@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { type HttpServerHandle, startHttpServer } from "@hall/server";
+import type { HttpServerHandle } from "@hall/server";
 import { app, BrowserWindow, shell } from "electron";
 
 let mainWindow: BrowserWindow | null = null;
@@ -17,6 +17,8 @@ async function resolveRendererUrl(): Promise<string> {
   const clientDirectory = app.isPackaged
     ? join(process.resourcesPath, "dist")
     : join(app.getAppPath(), "../client/dist");
+  if (app.isPackaged) process.env.PLAYWRIGHT_BROWSERS_PATH = join(process.resourcesPath, "playwright");
+  const { startHttpServer } = await import("@hall/server");
   embeddedServer = await startHttpServer({
     host: "127.0.0.1",
     port: 0,

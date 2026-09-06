@@ -1,3 +1,4 @@
+import { createMeetingNoticesRouter } from "./routes/meetingNoticesRoutes.js";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { AwilixContainer } from "awilix";
@@ -64,6 +65,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api/council-committees", createCouncilCommitteesRouter(container.cradle));
   app.use("/api/council-business", createCouncilBusinessRouter(container.cradle));
   app.use("/api/council-meetings", createCouncilMeetingsRouter(container.cradle));
+  app.use("/api/meeting-notices", createMeetingNoticesRouter(container.cradle));
   app.use("/api/minutes", createMinutesRouter(container.cradle));
   app.use("/api/council-decisions", createCouncilDecisionsRouter(container.cradle));
   app.use("/api/resources", createDocumentaryResourcesRouter(container.cradle));

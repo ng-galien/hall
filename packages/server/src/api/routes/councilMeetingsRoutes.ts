@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
   type AgendaItem,
   adjournAgendaItemSchema,
@@ -48,7 +49,7 @@ async function requireMeetingAgendaItem(
   return agendaItem;
 }
 
-export function createCouncilMeetingsRouter({ councilClient }: Cradle): Router {
+export function createCouncilMeetingsRouter({ councilClient, meetingNoticeService }: Cradle): Router {
   const router = Router();
 
   router.get("/", requirePermission("meetings.read"), async (_request, response) => {
@@ -65,6 +66,28 @@ export function createCouncilMeetingsRouter({ councilClient }: Cradle): Router {
 
   router.get("/:meetingReference", requirePermission("meetings.read"), async (request, response) => {
     response.json(await requireMeeting(councilClient, routeParameter(request.params.meetingReference)));
+  });
+
+  router.post("/:meetingReference/agenda-freeze", requireActionPermission("meeting.freeze-agenda"), async (request, response) => {
+    z.object({}).strict().parse(request.body);
+    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+    response.json(await councilClient.freezeAgenda(meeting.id));
+  });
+  router.get("/:meetingReference/agenda-freeze", requirePermission("meetings.read"), async (request, response) => {
+    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+    const freeze = await councilClient.openAgendaFreeze(meeting.id);
+    if (!freeze) throw new DomainError("agenda_freeze_unavailable", 404);
+    response.json(freeze);
+  });
+  router.get("/:meetingReference/notices", requirePermission("meetings.read"), async (request, response) => {
+    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+    response.locals.currentCouncilMeeting = meeting;
+    response.json(await meetingNoticeService.list(meeting.id));
+  });
+  router.post("/:meetingReference/notices", requireActionPermission("meeting.generate-notice"), async (request, response) => {
+    z.object({}).strict().parse(request.body);
+    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+    response.status(201).json(await meetingNoticeService.generate(meeting.id));
   });
 
   router.get("/:meetingReference/conduct", requirePermission("meetings.read"), async (request, response) => {

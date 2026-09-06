@@ -6,6 +6,14 @@ import test from "node:test";
 const clientRoot = join(import.meta.dirname, "..");
 const read = (path) => readFileSync(join(clientRoot, path), "utf8");
 
+test("meeting scheduling belongs to the detail rather than the collection", () => {
+  const list = read("src/pages/council-meetings/CouncilMeetingsPage.tsx");
+  const detail = read("src/pages/council-meetings/MeetingPreparation.tsx");
+  assert.doesNotMatch(list, /meeting-schedule|<Modal|useMeetingSettings|useSubmitting/);
+  assert.equal((detail.match(/onClick=\{\(\) => setEditOpen\(true\)\}/g) ?? []).length, 1);
+  assert.match(detail, /meeting\.scheduledAt \? "meetings\.edit" : "meeting\.action\.schedule"/);
+});
+
 test("English and French catalogs expose the same translation keys", () => {
   const keys = (source) => [...source.matchAll(/^\s*"([^"]+)"\s*:/gm)].map((match) => match[1]).sort();
   assert.deepEqual(keys(read("src/i18n/fr.ts")), keys(read("src/i18n/en.ts")));
@@ -23,7 +31,6 @@ test("every visible mutation prevents duplicate submissions and reports progress
     "src/pages/CouncilMembersPage.tsx",
     "src/pages/workspace/CouncilBusinessWorkbench.tsx",
     "src/pages/council-meetings/AgendaComposer.tsx",
-    "src/pages/council-meetings/CouncilMeetingsPage.tsx",
     "src/pages/council-meetings/MeetingDetailsCard.tsx",
     "src/pages/council-meetings/MeetingPreparation.tsx",
     "src/pages/council-meetings/live/ConductView.tsx",

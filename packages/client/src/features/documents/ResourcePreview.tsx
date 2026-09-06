@@ -9,15 +9,16 @@ import { downloadDocumentaryResource } from "../../services/resourcesApi";
 import { ResourceAutosaveToggle } from "../resources/ResourceAutosaveToggle";
 import { ResourcePresentationBody } from "../resources/ResourcePresentationBody";
 import { type ResourceSession, useResourceSession } from "../resources/useResourceSession";
+import { noResourceCapabilities } from "../resources/resourceCapabilities";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "./DocumentaryResourceGlyph";
 import { useWorkspaceResourceImageUpload } from "./useWorkspaceResourceImageUpload";
 import "./DocumentViewer.css";
 import "./ResourcePreview.css";
 
 /** Common resource modal. It hosts the same resource session and body as the Workspace and never changes route. */
-export function ResourcePreview({ resourceId, onClose }: { resourceId: string; onClose(): void }) {
+export function ResourcePreview({ resourceId, onClose, readOnly = false }: { resourceId: string; onClose(): void; readOnly?: boolean }) {
   const session = useResourceSession({ resourceId });
-  return <ResourcePreviewWithSession session={session} onClose={onClose} />;
+  return <ResourcePreviewWithSession session={session} onClose={onClose} readOnly={readOnly} />;
 }
 
 /** Resource modal shell for a session already owned by its host workbench. */
@@ -25,10 +26,12 @@ export function ResourcePreviewWithSession({
   session,
   onClose,
   refreshSessionOnClose = false,
+  readOnly = false,
 }: {
   session: ResourceSession;
   onClose(): void;
   refreshSessionOnClose?: boolean;
+  readOnly?: boolean;
 }) {
   const { t } = useI18n();
   const mentionables = useReferenceMentionables();
@@ -62,7 +65,7 @@ export function ResourcePreviewWithSession({
       <DialogContent
         className="document-viewer resource-preview gap-0 p-0 sm:max-w-[var(--hall-size-viewer-width)]"
         data-testid="resource-preview"
-        data-resource-mode={session.mode}
+        data-resource-mode={readOnly ? "read" : session.mode}
         aria-labelledby="resource-preview-title"
         showCloseButton={false}
         onOpenAutoFocus={(event) => {
@@ -83,7 +86,7 @@ export function ResourcePreviewWithSession({
             closeTestId="resource-preview-close"
             onClose={() => void requestClose()}
             statusControl={
-              session.canConfigureAutosave ? (
+              !readOnly && session.canConfigureAutosave ? (
                 <ResourceAutosaveToggle
                   enabled={session.autosaveEnabled}
                   status={session.saveStatus}
@@ -128,9 +131,9 @@ export function ResourcePreviewWithSession({
             <ResourcePresentationBody
               resource={resource}
               representation={session.representation}
-              mode={session.mode}
+              mode={readOnly ? "read" : session.mode}
               layout="extended"
-              capabilities={session.capabilities}
+              capabilities={readOnly ? noResourceCapabilities : session.capabilities}
               content={session.content}
               remoteUrl={session.remoteUrl}
               mentionables={mentionables}

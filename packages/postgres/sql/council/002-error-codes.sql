@@ -174,3 +174,11 @@
 -- HV513 a public voter or proxy holder must still be eligible when expressing the vote.
 
 -- HV514 secret accounting requires explicit nonnegative totals.
+
+-- Meeting preparation documents
+-- HV801  FROZEN_AGENDA_COMPOSITION_CHANGE                  HALL-FR-NOT-020
+-- HV802  PREPARATION_HISTORY_IMMUTABLE                     HALL-FR-NOT-030
+-- HV803  AGENDA_FREEZE_UNAVAILABLE                         HALL-FR-NOT-040
+-- HV804  NOTICE_GENERATION_UNAVAILABLE                     HALL-FR-NOT-060
+-- HV805  NOTICE_RENDERED_FACTS_STALE                       HALL-TR-NOT-010
+-- HV806  NOTICE_PDF_REQUIRED                               HALL-FR-NOT-070

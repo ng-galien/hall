@@ -39,6 +39,8 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
   if (root === "council-meetings") {
     if (method === "POST" && !id) return auditIntent("meeting.provision-initial");
     if (method === "PUT" && id && child === "schedule" && !childId) return auditIntent("meeting.schedule", id);
+    if (method === "POST" && id && child === "agenda-freeze" && !childId) return auditIntent("meeting.freeze-agenda", id);
+    if (method === "POST" && id && child === "notices" && !childId) return auditIntent("meeting.generate-notice", id);
     if (method === "PUT" && id && child === "prepare" && !childId) return auditIntent("meeting.prepare", id);
     if (method === "POST" && id && child === "membership-records" && !childId)
       return auditIntent("meeting.record-membership", id);

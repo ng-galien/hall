@@ -214,8 +214,8 @@ describe("shared HTTP contract", () => {
     const minutesApprovalId = "30000000-0000-4000-8000-000000000001";
     const agendaItemId = "40000000-0000-4000-8000-000000000001";
 
-    expect(provisionInitialCouncilMeetingSchema.parse({ quorum: 8 })).toEqual({ quorum: 8 });
-    expect(() => provisionInitialCouncilMeetingSchema.parse({ quorum: 0 })).toThrow();
+    expect(provisionInitialCouncilMeetingSchema.parse({})).toEqual({});
+    expect(() => provisionInitialCouncilMeetingSchema.parse({ quorum: 8 })).toThrow();
     expect(
       scheduleCouncilMeetingSchema.parse({
         scheduledAt: "2026-09-12T09:00:00Z",
@@ -315,6 +315,7 @@ describe("shared HTTP contract", () => {
         agendaItemId,
         mode: "public",
         chairmanParticipationId: participationId,
+        resultPreviewId: null,
         completedAt: null,
         result: null,
       }),

@@ -53,12 +53,20 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
     "council-decision": () => [],
     "council-meeting": (): SirenLink[] =>
       reference
-        ? [{ rel: ["conduct"], href: `/api/council-meetings/${reference}/conduct`, type: SIREN_MEDIA_TYPE }]
+        ? [
+            { rel: ["conduct"], href: `/api/council-meetings/${reference}/conduct`, type: SIREN_MEDIA_TYPE },
+            { rel: ["notices"], href: `/api/council-meetings/${reference}/notices`, type: SIREN_MEDIA_TYPE },
+            ...(primary?.agendaFrozenAt ? [{ rel: ["agenda-freeze"], href: `/api/council-meetings/${reference}/agenda-freeze`, type: SIREN_MEDIA_TYPE }] : []),
+          ]
         : [],
     "council-member": () => [],
     "council-term": () => [],
     entity: () => [],
     "hall-settings": () => [],
+    "agenda-freeze": () => [],
+    "meeting-notice": (): SirenLink[] => id ? [
+      { rel: ["content"], href: `/api/meeting-notices/${id}/content`, type: "application/pdf" },
+    ] : [],
     minutes: (): SirenLink[] => {
       if (!id || !primary) return [];
       const links: SirenLink[] = [

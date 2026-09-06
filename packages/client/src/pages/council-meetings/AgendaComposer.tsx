@@ -1,9 +1,7 @@
 import { type DragEvent, type FormEvent, useId, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import {
   AddIcon,
@@ -13,13 +11,19 @@ import {
   ChevronRightIcon,
   DeleteIcon,
   DragHandleIcon,
-  FileIcon,
+  TextDocumentIcon,
+  VisibleIcon,
   GavelIcon,
 } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
-import { EmptyState } from "../../components/Ui";
+import { EmptyState, Modal } from "../../components/Ui";
 import { councilBusinessKindKeys, liveBusinessTitle } from "../../features/council-business/presentation";
-import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
+import { AgendaSubjectGlyph, agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
+import { AgendaMinutesApproval } from "../../features/council-meetings/AgendaMinutesApproval";
+import { DocumentaryResourceGlyph } from "../../features/documents/DocumentaryResourceGlyph";
+import { ResourcePreview } from "../../features/documents/ResourcePreview";
+import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { useResourceImageUpload } from "../../features/documents/useResourceImageUpload";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -32,13 +36,6 @@ import {
   liveBusinessHasDecision as councilBusinessHasDecision,
   liveBusinessIsMatter as councilBusinessIsMatter,
 } from "../../models/liveMeeting";
-import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
-
-const quickAddKinds: Array<"matter" | "openQuestion"> = ["matter", "openQuestion"];
-const quickAddKindKeys = {
-  matter: "meeting.draftDecision",
-  openQuestion: councilBusinessKindKeys.openQuestion,
-} as const;
 
 export interface QuickCouncilBusinessInput {
   kind: "matter" | "openQuestion";
@@ -61,7 +58,6 @@ export function AgendaComposer({
   businesses,
   decisions,
   editable,
-  onSchedule,
   onQuickCreate,
   onUpdateBusiness,
   onAttachDecision,
@@ -71,10 +67,9 @@ export function AgendaComposer({
   onReorder,
 }: {
   agendaItems: AgendaItem[];
-  businesses: CouncilBusiness[];
+  businesses: CouncilBusinessView[];
   decisions: CouncilDecision[];
   editable: boolean;
-  onSchedule?(businessId: string, position: number): Promise<boolean>;
   onQuickCreate?(input: QuickCouncilBusinessInput, position: number): Promise<boolean>;
   onUpdateBusiness?(businessId: string, input: Record<string, unknown>): Promise<boolean>;
   onAttachDecision?(businessId: string, draftText: string): Promise<boolean>;
@@ -83,13 +78,13 @@ export function AgendaComposer({
   onRemove(itemId: string): Promise<boolean>;
   onReorder(itemIds: string[]): Promise<boolean>;
 }) {
-  const { t, formatNumber, formatDate } = useI18n();
+  const { t } = useI18n();
   const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
-  const { meetings } = useCouncilMeetingsStore();
   const { submitting, run } = useSubmitting();
   const fieldId = useId();
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
-  const [quickAddKind, setQuickAddKind] = useState<"matter" | "openQuestion">(quickAddKinds[0]);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
   const [draftReport, setDraftReport] = useState("");
   const mentionables = useReferenceMentionables();
   const [draftDecisionText, setDraftDecisionText] = useState("");
@@ -107,7 +102,7 @@ export function AgendaComposer({
   const scheduledBusinessIds = new Set(agendaItems.map((item) => item.business.id));
   const candidateBusinesses = businesses
     .filter((business) => !scheduledBusinessIds.has(business.id))
-    .sort((left, right) => agendaBusinessRank(left) - agendaBusinessRank(right));
+    .sort((left, right) => left.title.localeCompare(right.title));
 
   const moveItem = (itemId: string, offset: number) => {
     const ids = orderedItems.map((item) => item.id);
@@ -152,7 +147,7 @@ export function AgendaComposer({
       const form = new FormData(formElement);
       const added = await onQuickCreate(
         {
-          kind: quickAddKind,
+          kind: "openQuestion",
           title: String(form.get("title") ?? ""),
           report: "",
           folderPath: "",
@@ -161,7 +156,7 @@ export function AgendaComposer({
       );
       if (added) {
         formElement.reset();
-        setQuickAddKind(quickAddKinds[0]);
+        setQuickAddOpen(false);
       }
       return added;
     });
@@ -202,6 +197,7 @@ export function AgendaComposer({
           <h2 id="agenda-heading">{t("meeting.agenda")}</h2>
           <p>{t(editable ? "meeting.composerDescription" : "meeting.composerLocked")}</p>
         </div>
+        {editable && onQuickCreate ? <Button data-testid="agenda-question-create" variant="outline" size="sm" onClick={() => setQuickAddOpen(true)}><AddIcon />{t("agendaSubject.openQuestion")}</Button> : null}
       </header>
 
       {orderedItems.length === 0 ? (
@@ -211,12 +207,7 @@ export function AgendaComposer({
           {orderedItems.map((item, index) => {
             const expanded = expandedItemId === item.id;
             const business = item.business;
-            const minutesMeeting =
-              business.kind === "minutesApproval"
-                ? meetings.find((meeting) => meeting.id === business.minutesOfMeetingId)
-                : null;
-            const hasDecision = councilBusinessHasDecision(business);
-            const documentCount = business.resources.length;
+            const presentation = agendaSubjectPresentation[item.subjectKind];
             return (
               <li
                 className={`composer-item${dropTargetItemId === item.id ? " composer-item-drop" : ""}${draggedItemId === item.id ? " composer-item-dragging" : ""}`}
@@ -252,6 +243,7 @@ export function AgendaComposer({
                     </span>
                   ) : null}
                   <span className="composer-position">{index + 1}</span>
+                  <AgendaSubjectGlyph kind={item.subjectKind} />
                   <button
                     className="composer-item-main"
                     data-testid={`agenda-item-expand-${item.id}`}
@@ -262,42 +254,19 @@ export function AgendaComposer({
                     <span className="composer-item-copy">
                       <strong>{liveBusinessTitle(business, t("agendaSubject.minutesApproval"))}</strong>
                       <span>
-                        {t(councilBusinessKindKeys[business.kind])}
-                        {hasDecision ? ` · ${t("meeting.itemHasDecision")}` : ""}
+                        {business.kind !== "minutesApproval" ? t(presentation.label) : null}
                         {business.folderPath ? ` · ${business.folderPath}` : ""}
                       </span>
                     </span>
+                    {presentation.voted ? <span className="composer-vote-indicator"><GavelIcon aria-hidden="true" />{t("live.voteRequired")}</span> : null}
                     {expanded ? <ChevronDownIcon aria-hidden="true" /> : <ChevronRightIcon aria-hidden="true" />}
                   </button>
-                  {hasDecision ? (
-                    <span className="decision-meeting-chip" title={t("meeting.itemHasDecision")}>
-                      <GavelIcon aria-hidden="true" />
-                    </span>
-                  ) : null}
-                  {business.kind === "minutesApproval" ? (
-                    <Link
-                      className="decision-meeting-chip"
-                      to={`/minutes/${business.minutesId}`}
-                      title={t("minutes.view")}
-                      data-testid={`agenda-minutes-${item.id}`}
-                    >
-                      {t("minutes.view")}
-                    </Link>
-                  ) : null}
-                  {documentCount > 0 ? (
-                    <span
-                      className="decision-meeting-chip"
-                      title={t("meeting.itemResourceCount").replace("{count}", formatNumber(documentCount))}
-                    >
-                      <FileIcon aria-hidden="true" />
-                      {formatNumber(documentCount)}
-                    </span>
-                  ) : null}
                   {editable ? (
                     <span className="composer-item-tools">
                       <Button
                         variant="ghost"
                         size="sm"
+                        data-testid={`agenda-item-up-${item.id}`}
                         aria-label={t("meeting.moveUp")}
                         disabled={
                           submitting ||
@@ -311,6 +280,7 @@ export function AgendaComposer({
                       <Button
                         variant="ghost"
                         size="sm"
+                        data-testid={`agenda-item-down-${item.id}`}
                         aria-label={t("meeting.moveDown")}
                         disabled={
                           submitting ||
@@ -324,6 +294,7 @@ export function AgendaComposer({
                       <Button
                         variant="ghost"
                         size="sm"
+                        data-testid={`agenda-item-remove-${item.id}`}
                         aria-label={t("meeting.removeItem")}
                         disabled={submitting}
                         onClick={() => void run(() => onRemove(item.id))}
@@ -335,14 +306,7 @@ export function AgendaComposer({
                 </div>
                 {expanded ? (
                   business.kind === "minutesApproval" ? (
-                    <div className="composer-item-editor">
-                      <p>
-                        {minutesMeeting
-                          ? formatMeetingLabel(minutesMeeting, t("meetings.occurrenceLabel"), formatDate)
-                          : t("meeting.previousMeetingChip")}
-                      </p>
-                      <p>{t(business.minutesDocumentId ? "minutes.generated" : "minutes.notGenerated")}</p>
-                    </div>
+                    business.minutesId ? <AgendaMinutesApproval minutesId={business.minutesId} itemId={item.id} /> : null
                   ) : editable ? (
                     <form className="composer-item-editor" onSubmit={(event) => void saveItem(event, item)}>
                       <div className="grid gap-1.5">
@@ -442,6 +406,12 @@ export function AgendaComposer({
                     </div>
                   )
                 ) : null}
+                {expanded && business.kind !== "minutesApproval" ? (
+                  <div className="composer-item-documents">
+                    {business.reportResourceId ? <Button variant="ghost" className="composer-document-link" data-testid={`agenda-report-preview-${item.id}`} onClick={() => setViewedResourceId(business.reportResourceId!)}><TextDocumentIcon />{t("meeting.report")}<VisibleIcon /></Button> : null}
+                    {business.resources.map((resource) => <Button key={resource.id} variant="ghost" className="composer-document-link" data-testid={`agenda-resource-preview-${resource.id}`} onClick={() => setViewedResourceId(resource.id)}><DocumentaryResourceGlyph resource={resource} />{resource.name}<VisibleIcon /></Button>)}
+                  </div>
+                ) : null}
               </li>
             );
           })}
@@ -458,61 +428,26 @@ export function AgendaComposer({
               <ul className="composer-decision-list">
                 {candidateBusinesses.map((business) => (
                   <li key={business.id}>
-                    <span className="composer-item-copy">
-                      <strong>{business.title}</strong>
-                      <span>
-                        {t(councilBusinessKindKeys[business.kind])}
-                        {councilBusinessHasDecision(business) ? ` · ${t("meeting.itemHasDecision")}` : ""}
-                        {business.folderPath ? ` · ${business.folderPath}` : ""}
-                      </span>
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={submitting || !onSchedule}
-                      onClick={() => onSchedule && void run(() => onSchedule(business.id, nextPosition))}
-                    >
-                      <AddIcon />
-                      {t("meeting.addToAgenda")}
-                    </Button>
+                    <CouncilBusinessGlyph business={business} />
+                    <button type="button" className="composer-item-main" data-testid={`agenda-candidate-preview-${business.id}`} onClick={() => setViewedResourceId(business.reportResourceId)}>
+                      <span className="composer-item-copy"><strong>{business.title}</strong><span>{t(councilBusinessKindKeys.matter)}{business.folderPath ? ` · ${business.folderPath}` : ""}</span></span><VisibleIcon aria-hidden="true" />
+                    </button>
                   </li>
                 ))}
               </ul>
             )}
           </section>
-          <form className="composer-quick-add" onSubmit={quickAdd} aria-labelledby="composer-quick-add-heading">
-            <h3 id="composer-quick-add-heading">{t("meeting.addOtherHeading")}</h3>
-            <div className="composer-quick-add-fields">
-              <Select
-                name="kind"
-                value={quickAddKind}
-                onValueChange={(kind) => setQuickAddKind(kind === "matter" ? "matter" : "openQuestion")}
-              >
-                <SelectTrigger aria-label={t("meeting.type")}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {quickAddKinds.map((kind) => (
-                    <SelectItem key={kind} value={kind}>
-                      {t(quickAddKindKeys[kind])}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                name="title"
-                placeholder={t("meeting.subjectPlaceholder")}
-                aria-label={t("meeting.subject")}
-                required
-              />
-              <Button variant="default" type="submit" disabled={submitting || !onQuickCreate}>
-                <AddIcon />
-                {t(submitting ? "common.saving" : "common.add")}
-              </Button>
-            </div>
-          </form>
+
         </div>
       ) : null}
+      <Modal open={quickAddOpen} title={t("agendaSubject.openQuestion")} onClose={() => setQuickAddOpen(false)}>
+        <form className="modal-form" onSubmit={quickAdd}>
+          <Label htmlFor={`${fieldId}-question`}>{t("meeting.subject")}</Label>
+          <Input id={`${fieldId}-question`} data-testid="agenda-question-title" name="title" required />
+          <Button data-testid="agenda-question-submit" type="submit" disabled={submitting || !onQuickCreate}>{t(submitting ? "common.saving" : "common.add")}</Button>
+        </form>
+      </Modal>
+      {viewedResourceId ? <ResourcePreview resourceId={viewedResourceId} readOnly onClose={() => setViewedResourceId(null)} /> : null}
     </section>
   );
 }

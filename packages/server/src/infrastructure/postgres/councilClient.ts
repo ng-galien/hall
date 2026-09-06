@@ -25,6 +25,12 @@ import type { RequestContextStore } from "../../security/requestContext.js";
 import { DomainError, type ErrorCode } from "../../services/errors.js";
 
 const councilErrorCodes: Record<string, ErrorCode | undefined> = {
+  HV801: "agenda_frozen",
+  HV802: "preparation_history_immutable",
+  HV803: "agenda_freeze_unavailable",
+  HV804: "meeting_notice_unavailable",
+  HV805: "meeting_notice_stale",
+  HV806: "meeting_notice_invalid",
   HV416: "ballot_procedure_unsupported",
   HV418: "ballot_already_confirmed",
   HV420: "ballot_candidate_invalid",
@@ -129,6 +135,13 @@ export function createPostgresCouncilClient({
   }
 
   return {
+    freezeAgenda: (id) => call(() => postgresCouncil.freezeAgenda(currentRequest(), id)),
+    openAgendaFreeze: (id) => call(() => postgresCouncil.openAgendaFreeze(currentRequest(), id)),
+    noticeFacts: (id) => call(() => postgresCouncil.noticeFacts(currentRequest(), id)),
+    listNotices: (id) => call(() => postgresCouncil.listNotices(currentRequest(), id)),
+    openNotice: (id) => call(() => postgresCouncil.openNotice(currentRequest(), id)),
+    generateNotice: (id, facts, content) => call(() => postgresCouncil.generateNotice(currentRequest(), id, facts, content)),
+    noticeContent: (id) => call(() => postgresCouncil.noticeContent(currentRequest(), id)),
     async listBusinesses() {
       return z.array(councilBusinessSchema).parse(await call(() => postgresCouncil.listBusinesses(currentRequest())));
     },

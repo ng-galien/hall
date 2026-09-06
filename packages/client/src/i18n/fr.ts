@@ -37,26 +37,34 @@ export const fr: Messages = {
   "ballot.confirm": "Confirmer et clore le point",
   "ballot.previewAction": "Prévisualiser le résultat",
   "error.recusal_already_recorded": "Un déport est déjà déclaré pour ce membre sur ce point.",
-  "error.recusal_recording_closed": "Le déport ne peut plus être déclaré : une participation ou la clôture du point a déjà été enregistrée.",
+  "error.recusal_recording_closed":
+    "Le déport ne peut plus être déclaré : une participation ou la clôture du point a déjà été enregistrée.",
   "error.recusal_member_not_declared": "Ce membre ne dispose pas d’une déclaration de présence dans cette séance.",
-  "error.recused_member_cannot_participate": "Un membre déporté ne peut pas participer, personnellement ou comme porteur d’un pouvoir.",
+  "error.recused_member_cannot_participate":
+    "Un membre déporté ne peut pas participer, personnellement ou comme porteur d’un pouvoir.",
   "error.recusal_immutable": "Un déport enregistré ne peut pas être réécrit.",
   "error.recusal_occurrence_locked": "Un point portant des déports doit rester rattaché à sa séance.",
   "recusal.title": "Conflit d’intérêts",
   "recusal.listTitle": "Déports sur ce point",
-  "recusal.description": "Déclarer nominativement le déport avant la discussion et le vote. Ce n’est pas un choix de suffrage.",
+  "recusal.description":
+    "Déclarer nominativement le déport avant la discussion et le vote. Ce n’est pas un choix de suffrage.",
   "recusal.member": "Membre du conseil",
   "recusal.chooseMember": "Choisir un membre",
   "recusal.basis": "Fondement applicable : qualification explicite",
   "recusal.personalInterest": "Intérêt personnel (régime général)",
-  "recusal.personalInterestHint": "Exclusion des présents déclarés admissibles et du vote, sans réduction de l’effectif de référence.",
+  "recusal.personalInterestHint":
+    "Exclusion des présents déclarés admissibles et du vote, sans réduction de l’effectif de référence.",
   "recusal.designatedRepresentativeConflict": "Représentation d’un organisme (régime spécial qualifié)",
-  "recusal.designatedRepresentativeConflictHint": "Uniquement si les articles L1111-6 II / L2131-11 du CGCT s’appliquent, après vérification des conditions et exceptions. Représenter un organisme ne suffit pas. Réduit aussi l’effectif de référence.",
-  "recusal.immutableHint": "La déclaration est conservée. Elle ne peut pas supprimer des votes ou des participations déjà enregistrés.",
+  "recusal.designatedRepresentativeConflictHint":
+    "Uniquement si les articles L1111-6 II / L2131-11 du CGCT s’appliquent, après vérification des conditions et exceptions. Représenter un organisme ne suffit pas. Réduit aussi l’effectif de référence.",
+  "recusal.immutableHint":
+    "La déclaration est conservée. Elle ne peut pas supprimer des votes ou des participations déjà enregistrés.",
   "recusal.record": "Déclarer le déport",
-  "recusal.separateFromVotes": "Ces déports sont distincts des abstentions et des non-participations. Leur effet sur les déclarations ne constitue pas un constat juridique complet du quorum.",
+  "recusal.separateFromVotes":
+    "Ces déports sont distincts des abstentions et des non-participations. Leur effet sur les déclarations ne constitue pas un constat juridique complet du quorum.",
   "recusal.secretParticipants": "Participation au scrutin secret",
-  "recusal.secretParticipantsHint": "Indiquer qui participe, indépendamment des totaux anonymes. Aucun choix n’est relié à un membre.",
+  "recusal.secretParticipantsHint":
+    "Indiquer qui participe, indépendamment des totaux anonymes. Aucun choix n’est relié à un membre.",
   "navigation.minutes": "Procès-verbaux",
   "minutes.description":
     "Retrouvez les faits de séance, préparez la rédaction et générez le document soumis à l’approbation.",
@@ -553,6 +561,7 @@ export const fr: Messages = {
   "meeting.type": "Type",
   "meeting.subject": "Objet",
   "meeting.report": "Rapport",
+  "meeting.generalProperties": "Propriétés générales",
   "meeting.emptyAgenda": "Aucun point inscrit.",
   "meeting.itemReport": "Rapport présenté au conseil",
   "meeting.itemReportEmpty": "Aucun rapport n’a été préparé pour ce point.",
@@ -575,8 +584,7 @@ export const fr: Messages = {
   "meeting.opening.officersNotPresent": "Le président et le secrétaire doivent tous deux être physiquement présents.",
   "meeting.opening.quorumFailure": "Une absence de quorum a été constatée ; préparez la seconde convocation.",
   "meeting.officers": "Bureau de séance",
-  "meeting.officersDescription":
-    "Établissez le président et le secrétaire de séance parmi les membres du conseil.",
+  "meeting.officersDescription": "Établissez le président et le secrétaire de séance parmi les membres du conseil.",
   "meeting.saveOfficers": "Enregistrer le bureau",
   "meeting.officersSaved": "Le bureau de séance a été enregistré.",
   "meeting.recordQuorumFailure": "Constater l’absence de quorum",
@@ -921,7 +929,9 @@ export const fr: Messages = {
   "live.eyebrow": "Séance du conseil municipal",
   "live.exit": "Quitter le mode séance",
   "live.backToMeetings": "Retour aux séances",
-  "live.quorumChip": "Dernier quorum constaté : {present} / {required}",
+  "live.quorumItemChip": "Quorum constaté : {point} · {time} · {present} / {required}",
+  "live.quorumMeetingChip": "Quorum de séance constaté le {time} : {present} / {required}",
+  "live.quorumItemFallback": "Point à l’ordre du jour",
   "live.quorumUnestablished": "Quorum non établi",
   "live.closedTitle": "La séance est close",
   "live.closedDescription": "Le déroulé et les scrutins sont consultables sur la fiche de la séance.",

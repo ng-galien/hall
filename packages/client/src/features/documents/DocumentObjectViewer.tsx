@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { CloseIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { NativeDocumentFrame } from "./NativeDocumentFrame";
@@ -19,9 +20,11 @@ export function DocumentObjectViewer({
   const { t } = useI18n();
   const titleId = "document-object-viewer-title";
   return (
-    <div className="document-viewer-backdrop" role="presentation">
-      <section
-        className="document-viewer"
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        className="document-viewer gap-0 p-0 sm:max-w-[var(--hall-size-viewer-width)]"
+        showCloseButton={false}
+        aria-describedby={undefined}
         data-testid="document-object-viewer"
         role="dialog"
         aria-modal="true"
@@ -30,7 +33,7 @@ export function DocumentObjectViewer({
         <header>
           <div>
             <span>{t("meeting.documentViewer")}</span>
-            <h2 id={titleId}>{title}</h2>
+            <DialogTitle id={titleId}>{title}</DialogTitle>
           </div>
           <div className="document-viewer-actions">
             <Button
@@ -47,7 +50,7 @@ export function DocumentObjectViewer({
         <div className="document-viewer-content">
           <NativeDocumentFrame url={objectUrl} mediaType={mediaType} title={title} testId="document-object-frame" />
         </div>
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

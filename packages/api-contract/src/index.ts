@@ -10,3 +10,5 @@ export * from "./recusal.js";
 export * from "./resources.js";
 export * from "./security.js";
 export * from "./siren.js";
+
+export { meetingAgendaFreezeSchema, meetingNoticeSchema, meetingNoticeFactsSchema, type MeetingAgendaFreeze, type MeetingNotice, type MeetingNoticeFacts } from "@hall/domain";

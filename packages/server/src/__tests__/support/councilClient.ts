@@ -77,6 +77,13 @@ export function createTestCouncilClient(
   }
 
   return {
+    async freezeAgenda() { throw new Error("Agenda freeze tests require the PostgreSQL fixture"); },
+    async openAgendaFreeze() { return null; },
+    async noticeFacts() { return null; },
+    async listNotices() { return []; },
+    async openNotice() { return null; },
+    async generateNotice() { throw new Error("Notice generation tests require the PostgreSQL fixture"); },
+    async noticeContent() { return null; },
     async listBusinesses() {
       return [...businesses.values()];
     },
@@ -204,6 +211,7 @@ export function createTestCouncilClient(
         number: 1,
         previousCouncilMeetingId: null,
         minutesId: null,
+        agendaFrozenAt: null,
         scheduledAt: null,
         location: null,
         chairMemberId: null,
@@ -317,6 +325,7 @@ export function createTestCouncilClient(
         number: meeting.number + 1,
         previousCouncilMeetingId: meeting.id,
         minutesId: null,
+        agendaFrozenAt: null,
         scheduledAt: null,
         location: null,
         chairMemberId: null,

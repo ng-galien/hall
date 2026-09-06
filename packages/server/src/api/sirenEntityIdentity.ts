@@ -20,6 +20,8 @@ export const sirenEntityClasses = [
   "council-term",
   "entity",
   "hall-settings",
+  "meeting-notice",
+  "agenda-freeze",
   "minutes",
   "resource",
   "session",
@@ -65,6 +67,8 @@ export function classifySirenEntity(request: Request, value: unknown): SirenEnti
   if (path.startsWith("/api/users")) return "user";
   if (path.startsWith("/api/audit-events")) return "audit-event";
   if (path.startsWith("/api/settings")) return "hall-settings";
+  if (path.startsWith("/api/meeting-notices") || path.endsWith("/notices")) return "meeting-notice";
+  if (path.endsWith("/agenda-freeze") && request.method === "GET") return "agenda-freeze";
   if (path.startsWith("/api/minutes")) return "minutes";
   if (path.startsWith("/api/templates/references")) return "template-reference";
   if (path.startsWith("/api/templates/preview")) return "template-preview";
@@ -109,6 +113,8 @@ const primaryPropertyByClass: Record<SirenEntityClass, string | null> = {
   "council-term": null,
   entity: null,
   "hall-settings": null,
+  "meeting-notice": null,
+  "agenda-freeze": null,
   minutes: null,
   resource: "resource",
   session: null,
@@ -148,6 +154,8 @@ const slugIdentityByClass: Record<SirenEntityClass, boolean> = {
   "council-term": false,
   entity: false,
   "hall-settings": false,
+  "meeting-notice": false,
+  "agenda-freeze": false,
   minutes: false,
   resource: true,
   session: false,
@@ -225,6 +233,8 @@ export function canonicalHref(request: Request, entityClass: SirenEntityClass, v
     "council-term": currentHref,
     entity: currentHref,
     "hall-settings": currentHref,
+    "meeting-notice": () => referencedHref("meeting-notices"),
+    "agenda-freeze": currentHref,
     minutes: () => referencedHref("minutes"),
     resource: () => referencedHref("resources"),
     session: () => "/api/auth/session",

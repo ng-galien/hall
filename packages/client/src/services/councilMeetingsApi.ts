@@ -71,20 +71,20 @@ export async function scheduleCouncilMeeting(meetingReference: string, input: Sc
   return councilMeetingSchema.parse(result.data);
 }
 
-export async function setCouncilMeetingOfficers(meetingReference: string, input: SetCouncilMeetingOfficers) {
-  const result = await submitSirenActionAt<unknown>(
-    `/council-meetings/${encodeURIComponent(meetingReference)}`,
-    "meeting.set-officers",
-    setCouncilMeetingOfficersSchema.parse(input),
-  );
-  return councilMeetingSchema.parse(result.data);
-}
-
 export async function prepareCouncilMeeting(meetingReference: string, input: PrepareCouncilMeeting) {
   const result = await submitSirenActionAt<unknown>(
     `/council-meetings/${encodeURIComponent(meetingReference)}`,
     "meeting.prepare",
     prepareCouncilMeetingSchema.parse(input),
+  );
+  return councilMeetingSchema.parse(result.data);
+}
+
+export async function setCouncilMeetingOfficers(meetingReference: string, input: SetCouncilMeetingOfficers) {
+  const result = await submitSirenActionAt<unknown>(
+    `/council-meetings/${encodeURIComponent(meetingReference)}`,
+    "meeting.set-officers",
+    setCouncilMeetingOfficersSchema.parse(input),
   );
   return councilMeetingSchema.parse(result.data);
 }

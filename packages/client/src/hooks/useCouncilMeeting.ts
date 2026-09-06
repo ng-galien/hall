@@ -7,6 +7,7 @@ import {
   type RecordMeetingAttendanceEvents,
   type ScheduleAgendaItem,
   type ScheduleCouncilMeeting,
+  type PrepareCouncilMeeting,
   type SirenEntity,
 } from "@hall/api-contract";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +15,7 @@ import { type CouncilMeetingWorkspace, councilMeetingView } from "../models/coun
 import { type LiveBallotSubmission, presentLiveMeeting } from "../models/liveMeeting";
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import { openAgendaItemRecusals } from "../services/agendaItemRecusalsApi";
+import { prepareCouncilMeeting } from "../services/councilMeetingsApi";
 import {
   openMeetingConduct,
   recordMeetingMembership,
@@ -286,6 +288,9 @@ export function useCouncilMeeting(meetingReference: string) {
     actionError,
     schedule(input: ScheduleCouncilMeeting) {
       return mutate(() => scheduleCouncilMeeting(meetingReference, input));
+    },
+    prepare(input: PrepareCouncilMeeting) {
+      return mutate(() => prepareCouncilMeeting(meetingReference, input));
     },
     recordAttendance(input: RecordMeetingAttendance) {
       return mutate(() => recordMeetingAttendance(meetingReference, input));

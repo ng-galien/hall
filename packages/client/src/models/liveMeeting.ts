@@ -1,4 +1,10 @@
-import type { AgendaItem, BallotVote, MeetingAttendance, BallotResultPreview } from "@hall/api-contract";
+import type {
+  AgendaItem,
+  BallotResultPreview,
+  BallotVote,
+  MeetingAttendance,
+  MeetingQuorumObservation,
+} from "@hall/api-contract";
 import type { CouncilBusinessView } from "./councilBusiness";
 import type { CouncilMeetingView, CouncilMeetingWorkspace } from "./councilMeeting";
 import type { CouncilMemberView } from "./directory";
@@ -23,6 +29,7 @@ export interface LiveMeetingBusiness {
   kind: "matter" | "minutesApproval" | "openQuestion";
   title: string;
   report: string;
+  reportResourceId?: string;
   folderPath: string;
   resources: Array<CouncilBusinessView["resources"][number] & { title: string }>;
   councilDecisionId: string | null;
@@ -35,6 +42,7 @@ export interface LiveMeetingAgendaItem {
   id: string;
   meetingId: string;
   position: number;
+  subjectKind: AgendaItem["subject"]["kind"];
   business: LiveMeetingBusiness;
   status: LiveAgendaItemStatus;
   discussionSummary: string;
@@ -98,6 +106,7 @@ export interface LiveMeetingPresentation {
   agendaItems: LiveMeetingAgendaItem[];
   councilDecisions: LiveMeetingCouncilDecision[];
   ballots: LiveMeetingBallot[];
+  quorumObservation: MeetingQuorumObservation | null;
   quorum: { activeMembers: number; physicallyPresent: number; required: number | null; reached: boolean };
 }
 
@@ -131,7 +140,8 @@ export function presentLiveMeeting(
       version: 1,
     }),
   );
-  const observation = workspace.conduct.quorumObservations.at(-1)?.facts;
+  const quorumObservation = workspace.conduct.quorumObservations.at(-1) ?? null;
+  const observation = quorumObservation?.facts;
   const quorum = {
     activeMembers: observation?.memberCount ?? workspace.conduct.membershipRecords.at(-1)?.members.length ?? 0,
     physicallyPresent: observation?.presentCount ?? attendance.filter((entry) => entry.status === "present").length,
@@ -146,11 +156,13 @@ export function presentLiveMeeting(
         id: item.id,
         meetingId: item.councilMeetingId,
         position: Math.abs(item.position),
+        subjectKind: item.subject.kind,
         business: {
           id: item.councilBusinessId ?? item.subject.id,
           kind: businessKind(item.subject),
           title: business?.title ?? item.subject.kind,
           report: business?.report ?? "",
+          reportResourceId: business?.reportResourceId,
           folderPath: business?.folderPath ?? "",
           resources: business?.resources.map((resource) => ({ ...resource, title: resource.name })) ?? [],
           councilDecisionId: item.subject.kind === "councilDecisionProposal" ? item.subject.id : null,
@@ -267,6 +279,7 @@ export function presentLiveMeeting(
         : [],
     ),
     ballots,
+    quorumObservation,
     quorum,
   };
 }

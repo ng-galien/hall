@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BackIcon } from "../../../components/icons";
 import { RequestErrorBanner } from "../../../components/Ui";
+import { liveBusinessTitle } from "../../../features/council-business/presentation";
 import { formatMeetingLabel } from "../../../features/council-meetings/meetingPresentation";
 import { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useI18n } from "../../../i18n/I18nProvider";
@@ -21,7 +22,7 @@ export function LiveClock() {
 
 export function LiveMeetingPage() {
   const { meetingId = "" } = useParams();
-  const { t, formatDate, formatNumber } = useI18n();
+  const { t, formatDate, formatNumber, formatDateTime } = useI18n();
   const meetingActions = useCouncilMeeting(meetingId);
   const { meeting: aggregate, error, actionError } = meetingActions;
   const { members } = useCouncilMembersStore();
@@ -42,7 +43,20 @@ export function LiveMeetingPage() {
     return <div className="live-shell live-shell-empty">{t("meeting.loading")}</div>;
   }
 
-  const { meeting, quorum } = aggregate;
+  const { meeting, quorum, quorumObservation } = aggregate;
+  const observedItem = aggregate.agendaItems.find((item) => item.id === quorumObservation?.agendaItemId);
+  const quorumLabel = quorumObservation
+    ? t(quorumObservation.agendaItemId ? "live.quorumItemChip" : "live.quorumMeetingChip")
+        .replace(
+          "{point}",
+          observedItem
+            ? liveBusinessTitle(observedItem.business, t("agendaSubject.minutesApproval"))
+            : t("live.quorumItemFallback"),
+        )
+        .replace("{time}", formatDateTime(quorumObservation.observedAt))
+        .replace("{present}", formatNumber(quorumObservation.facts.presentCount))
+        .replace("{required}", formatNumber(quorumObservation.facts.requiredPresent))
+    : t("live.quorumUnestablished");
   const rosterMembers = members.filter((member) => aggregate.rosterMemberIds.includes(member.id));
   const showRollCall = meeting.status === "scheduled" || (meeting.status === "inProgress" && rollCallVisible);
 
@@ -62,9 +76,7 @@ export function LiveMeetingPage() {
             className={`live-quorum-chip ${quorum.reached ? "live-quorum-chip-reached" : "live-quorum-chip-missing"}`}
             data-testid="live-quorum-observation"
           >
-            {quorum.required === null ? t("live.quorumUnestablished") : t("live.quorumChip")
-              .replace("{present}", formatNumber(quorum.physicallyPresent))
-              .replace("{required}", formatNumber(quorum.required))}
+            {quorumLabel}
           </span>
           <LiveClock />
         </div>

@@ -1,3 +1,4 @@
+import { meetingAgendaFreezeSchema, meetingNoticeMeetingFactsSchema, meetingNoticeSchema, meetingNoticeFactsSchema, type MeetingNoticeFacts } from "@hall/domain";
 import {
   agendaItemRecusalStateSchema,
   type BallotResultPreview,
@@ -74,6 +75,7 @@ export const postgresCouncilMeetingSchema = z.object({
     .nullable(),
   previousCouncilMeetingId: resourceIdSchema.nullable(),
   minutesId: resourceIdSchema.nullable(),
+  agendaFrozenAt: timestampSchema.nullable(),
   scheduledAt: timestampSchema.nullable(),
   location: z.string().min(1).nullable(),
   chairMemberId: resourceIdSchema.nullable(),
@@ -307,6 +309,44 @@ const closeCouncilMeetingInputSchema = z.object({
 export type CloseCouncilMeetingInput = z.input<typeof closeCouncilMeetingInputSchema>;
 
 export class PostgresCouncil {
+  freezeAgenda(request: PostgresCouncilRequest, id: string) {
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "meeting.freeze-agenda") }, async (client) => {
+      const result = await callJson(client, { text: "SELECT hall_api.freeze_council_agenda($1::uuid) AS payload", values: [resourceIdSchema.parse(id)], schema: postgresCouncilMeetingSchema });
+      await recordAuditEvent(client, { targetType: "council-meeting", targetId: id, outcome: "succeeded" });
+      return result;
+    });
+  }
+  openAgendaFreeze(request: PostgresCouncilRequest, id: string) {
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "meeting.open-agenda-freeze") }, (client) =>
+      callJson(client, { text: "SELECT hall_api.open_council_agenda_freeze($1::uuid) AS payload", values: [resourceIdSchema.parse(id)], schema: meetingAgendaFreezeSchema.nullable() }));
+  }
+  noticeFacts(request: PostgresCouncilRequest, id: string) {
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "meeting.notice-facts") }, (client) =>
+      callJson(client, { text: "SELECT hall_api.meeting_notice_facts($1::uuid) AS payload", values: [resourceIdSchema.parse(id)], schema: meetingNoticeMeetingFactsSchema.nullable() }));
+  }
+  listNotices(request: PostgresCouncilRequest, id: string) {
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "meeting.list-notices") }, (client) =>
+      callJson(client, { text: "SELECT hall_api.list_meeting_notices($1::uuid) AS payload", values: [resourceIdSchema.parse(id)], schema: z.array(meetingNoticeSchema) }));
+  }
+  openNotice(request: PostgresCouncilRequest, id: string) {
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "meeting.open-notice") }, (client) =>
+      callJson(client, { text: "SELECT hall_api.open_meeting_notice($1::uuid) AS payload", values: [resourceIdSchema.parse(id)], schema: meetingNoticeSchema.nullable() }));
+  }
+  generateNotice(request: PostgresCouncilRequest, id: string, facts: MeetingNoticeFacts, content: Buffer) {
+    const parsed = meetingNoticeFactsSchema.parse(facts);
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "meeting.generate-notice") }, async (client) => {
+      const result = await callJson(client, { text: "SELECT hall_api.generate_meeting_notice($1::uuid,$2::jsonb,$3::bytea) AS payload", values: [resourceIdSchema.parse(id), JSON.stringify(parsed), z.instanceof(Buffer).parse(content)], schema: meetingNoticeSchema });
+      await recordAuditEvent(client, { targetType: "council-meeting", targetId: id, outcome: "succeeded", details: { noticeId: result.id, version: result.version } });
+      return result;
+    });
+  }
+  noticeContent(request: PostgresCouncilRequest, id: string) {
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "meeting.notice-content") }, async (client) => {
+      const result = await callJson(client, { text: "SELECT hall_api.meeting_notice_content($1::uuid) AS payload", values: [resourceIdSchema.parse(id)], schema: z.object({ contentBase64: z.string() }).strict().nullable() });
+      return result ? Buffer.from(result.contentBase64, "base64") : null;
+    });
+  }
+
   private readonly transactions: PostgresTransactionManager;
 
   updateAgendaItemNotes(

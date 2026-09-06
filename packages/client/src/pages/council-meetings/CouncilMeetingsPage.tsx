@@ -1,49 +1,23 @@
-import { type FormEvent, useId, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AddIcon, CalendarIcon, ChevronRightIcon, LocationIcon } from "../../components/icons";
+import { CalendarIcon, ChevronRightIcon, LocationIcon } from "../../components/icons";
 import {
   CollectionToolbar,
   EmptyState,
-  Modal,
   matchesQuery,
   PageHeader,
   RequestErrorBanner,
   useCollectionView,
 } from "../../components/Ui";
-import {
-  formatMeetingLabel,
-  meetingScheduleInputValue,
-  meetingScheduleInstant,
-} from "../../features/council-meetings/meetingPresentation";
-import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
-import { useMeetingSettings } from "../../hooks/useMeetingSettings";
+import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
-import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type CouncilMeetingView, councilMeetingIsFinished } from "../../models/councilMeeting";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
-import { useCouncilMembersStore } from "../../stores/councilMembersStore";
-
-/** Sentinel for an unassigned officer; SelectItem forbids an empty value. */
-const UNDESIGNATED = "none";
 
 export function CouncilMeetingsPage() {
   const { t, formatDate, formatDateTime } = useI18n();
-  const { submitting, run } = useSubmitting();
-  const { meetings, schedule, error } = useCouncilMeetingsStore();
-  const { members } = useCouncilMembersStore();
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const { settings, error: settingsError } = useMeetingSettings();
+  const { meetings, error } = useCouncilMeetingsStore();
   const { layout, setLayout, query, setQuery } = useCollectionView();
-  const startsAtFieldId = useId();
-  const locationFieldId = useId();
-  const chairFieldId = useId();
-  const secretaryFieldId = useId();
-  const defaultChair = members.find((member) => member.role === "mayor" && member.active) ?? null;
   const meetingLabel = (meeting: CouncilMeetingView) =>
     formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate);
 
@@ -58,40 +32,14 @@ export function CouncilMeetingsPage() {
     .sort((left, right) => (right.scheduledAt ?? "").localeCompare(left.scheduledAt ?? ""))
     .filter(matches);
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!settings) return;
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    const scheduledAt = meetingScheduleInstant(String(form.get("startsAt")), settings.timeZone);
-    const dateInput = formElement.elements.namedItem("startsAt") as HTMLInputElement;
-    dateInput.setCustomValidity(scheduledAt ? "" : t("meetings.invalidLocalTime"));
-    if (!formElement.reportValidity() || !scheduledAt) return;
-    await run(async () => {
-      if (!nextMeeting) return false;
-      const created = await schedule(nextMeeting.reference, {
-        scheduledAt,
-        location: String(form.get("location")),
-        chairMemberId: String(form.get("chairMemberId")),
-        secretaryMemberId: String(form.get("secretaryMemberId")),
-      });
-      if (created) {
-        formElement.reset();
-        setScheduleOpen(false);
-      }
-      return created;
-    });
-  };
-
   return (
     <div className="page">
       <PageHeader title={t("meetings.title")} description={t("meetings.description")} />
       <div className="page-content">
         <RequestErrorBanner error={error} />
-        <RequestErrorBanner error={settingsError} />
 
         {nextMeeting ? (
-          <Link className="next-meeting-hero" to={`/meetings/${nextMeeting.reference}`}>
+          <Link data-testid="meeting-next" className="next-meeting-hero" to={`/meetings/${nextMeeting.reference}`}>
             <div className="next-meeting-copy">
               <span className="entity-card-eyebrow">{t("dashboard.nextMeeting")}</span>
               <strong>{meetingLabel(nextMeeting)}</strong>
@@ -112,91 +60,7 @@ export function CouncilMeetingsPage() {
           </Link>
         ) : null}
 
-        <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
-          {nextMeeting?.phase === "draft" ? (
-            <Button
-              data-testid="meeting-schedule"
-              disabled={!settings}
-              variant="default"
-              onClick={() => setScheduleOpen(true)}
-            >
-              <AddIcon />
-              {t("meetings.schedule")}
-            </Button>
-          ) : null}
-        </CollectionToolbar>
-
-        <Modal
-          open={nextMeeting?.phase === "draft" && scheduleOpen}
-          title={t("meetings.schedule")}
-          onClose={() => setScheduleOpen(false)}
-        >
-          <form className="modal-form" onSubmit={submit}>
-            <div className="form-grid">
-              <div className="grid gap-1.5">
-                <Label htmlFor={startsAtFieldId}>{t("meetings.dateTime")}</Label>
-                <Input
-                  id={startsAtFieldId}
-                  name="startsAt"
-                  data-testid="meeting-schedule-starts-at"
-                  type="datetime-local"
-                  defaultValue={
-                    settings ? meetingScheduleInputValue(nextMeeting?.scheduledAt ?? null, settings.timeZone) : ""
-                  }
-                  onChange={(event) => event.currentTarget.setCustomValidity("")}
-                  required
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={locationFieldId}>{t("meetings.location")}</Label>
-                <MeetingLocationSelect
-                  id={locationFieldId}
-                  testId="meeting-schedule-location"
-                  locations={settings?.meetingLocations ?? []}
-                  current={nextMeeting?.location ?? null}
-                  placeholder={t("meetings.location")}
-                />
-              </div>
-            </div>
-            <div className="form-grid">
-              <div className="grid gap-1.5">
-                <Label htmlFor={chairFieldId}>{t("meetings.chair")}</Label>
-                <Select name="chairMemberId" defaultValue={defaultChair?.id ?? UNDESIGNATED} required>
-                  <SelectTrigger id={chairFieldId} className="w-full">
-                    <SelectValue placeholder={t("meetings.chairUndesignated")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={UNDESIGNATED}>{t("meetings.chairUndesignated")}</SelectItem>
-                    {members.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.contact.firstName} {member.contact.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={secretaryFieldId}>{t("meetings.secretary")}</Label>
-                <Select name="secretaryMemberId" defaultValue={UNDESIGNATED} required>
-                  <SelectTrigger id={secretaryFieldId} className="w-full">
-                    <SelectValue placeholder={t("meetings.secretaryUndesignated")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={UNDESIGNATED}>{t("meetings.secretaryUndesignated")}</SelectItem>
-                    {members.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.contact.firstName} {member.contact.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button variant="default" type="submit" disabled={submitting}>
-              {t(submitting ? "common.saving" : "common.create")}
-            </Button>
-          </form>
-        </Modal>
+        <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout} />
 
         {meetings.length === 0 ? (
           <EmptyState>{t("meetings.empty")}</EmptyState>

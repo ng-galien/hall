@@ -75,6 +75,8 @@ export const apiCommandPolicies = {
   "council-business.schedule-open-question": { permissions: meetingsPrepare, auditTargetType: "agenda-item" },
   "meeting.provision-initial": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
   "meeting.schedule": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
+  "meeting.freeze-agenda": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
+  "meeting.generate-notice": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
   "meeting.prepare": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
   "meeting.set-officers": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
   "meeting.create-and-schedule-business": { permissions: meetingsPrepare, auditTargetType: "council-business" },

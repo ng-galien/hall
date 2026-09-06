@@ -1,14 +1,11 @@
 import { type DocumentaryResource, type DocumentCategory, meetingAgendaCanChange } from "@hall/domain";
-import { type FormEvent, useId, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircleIcon, FileIcon, OpenIcon, UploadIcon, WarningIcon } from "../../components/icons";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
-import type { CouncilMemberView } from "../../models/directory";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { MeetingDocumentViewer } from "./MeetingDocumentViewer";
@@ -24,48 +21,22 @@ export const documentCategoryKeys: Record<DocumentCategory, TranslationKey> = {
 
 const meetingDocumentCategories: DocumentCategory[] = ["meetingNotice", "proxy", "supporting"];
 
-/** Sentinel for an unassigned officer; SelectItem forbids an empty value, the API expects "". */
-const noOfficer = "none";
-const officerToField = (memberId: string | null | undefined) => memberId ?? noOfficer;
-const officerFromField = (value: FormDataEntryValue | null) => (value === noOfficer ? "" : value);
-
 export function MeetingDetailsCard({
   aggregate,
-  members,
   documents,
-  officersEditable,
   documentsEditable,
-  onSaveOfficers,
 }: {
   aggregate: LiveMeetingPresentation;
-  members: CouncilMemberView[];
   documents: DocumentaryResource[];
-  officersEditable: boolean;
   documentsEditable: boolean;
-  onSaveOfficers(input: { chairMemberId: string; secretaryMemberId: string }): Promise<boolean>;
 }) {
   const { t, formatFileSize } = useI18n();
   const { submitting, run } = useSubmitting();
   const { upload, download } = useResourcesStore();
   const { meeting } = aggregate;
-  const [officersSaved, setOfficersSaved] = useState(false);
   const [viewedDocument, setViewedDocument] = useState<DocumentaryResource | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [uploadCategory, setUploadCategory] = useState<DocumentCategory>("meetingNotice");
-  const officersFieldId = useId();
-
-  const saveOfficers = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    await run(async () => {
-      const saved = await onSaveOfficers({
-        chairMemberId: String(officerFromField(form.get("chairMemberId"))),
-        secretaryMemberId: String(officerFromField(form.get("secretaryMemberId"))),
-      });
-      setOfficersSaved(saved);
-    });
-  };
-
   const uploadMeetingDocument = () => {
     const file = fileInput.current?.files?.[0];
     if (!file) return;
@@ -82,65 +53,6 @@ export function MeetingDetailsCard({
 
   return (
     <aside className="meeting-side-column">
-      <section className="meeting-side-section" aria-labelledby="officers-heading">
-        <h2 id="officers-heading">{t("meeting.officers")}</h2>
-        <p className="meeting-side-hint">{t("meeting.officersDescription")}</p>
-        <form className="officers-form" onSubmit={saveOfficers} onChange={() => setOfficersSaved(false)}>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${officersFieldId}-chair`}>{t("meetings.chair")}</Label>
-            <Select
-              name="chairMemberId"
-              defaultValue={officerToField(meeting.chairMemberId)}
-              disabled={!officersEditable}
-              required
-            >
-              <SelectTrigger id={`${officersFieldId}-chair`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={noOfficer}>{t("meetings.chairUndesignated")}</SelectItem>
-                {members.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.contact.firstName} {member.contact.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${officersFieldId}-secretary`}>{t("meetings.secretary")}</Label>
-            <Select
-              name="secretaryMemberId"
-              defaultValue={officerToField(meeting.secretaryMemberId)}
-              disabled={!officersEditable}
-              required
-            >
-              <SelectTrigger id={`${officersFieldId}-secretary`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={noOfficer}>{t("meetings.secretaryUndesignated")}</SelectItem>
-                {members.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.contact.firstName} {member.contact.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {officersEditable ? (
-            <div className="officers-form-actions">
-              {officersSaved ? <span role="status">{t("meeting.officersSaved")}</span> : null}
-              <Button variant="outline" type="submit" disabled={submitting}>
-                {t(submitting ? "common.saving" : "meeting.saveOfficers")}
-              </Button>
-            </div>
-          ) : (
-            <p className="meeting-side-hint">{t("meeting.officersLockedHint")}</p>
-          )}
-        </form>
-      </section>
-
       <section className="meeting-side-section" aria-labelledby="meeting-documents-heading">
         <h2 id="meeting-documents-heading">{t("meeting.meetingDocuments")}</h2>
         <p className="meeting-side-hint">{t("meeting.meetingDocumentsDescription")}</p>
@@ -217,19 +129,6 @@ export function MeetingDetailsCard({
             </Button>
           </div>
         ) : null}
-      </section>
-
-      <section className="meeting-side-section" aria-labelledby="minutes-heading">
-        <h2 id="minutes-heading">{t("meeting.minutes")}</h2>
-        <div className="meeting-minutes-status">
-          {meeting.minutesId ? (
-            <Link to={`/minutes/${meeting.minutesId}`} data-testid="meeting-minutes-link">
-              {t("minutes.view")}
-            </Link>
-          ) : (
-            <span>{t("minutes.empty")}</span>
-          )}
-        </div>
       </section>
 
       <MeetingDocumentViewer

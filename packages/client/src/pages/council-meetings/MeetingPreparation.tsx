@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EditIcon, PlayIcon } from "../../components/icons";
 import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import {
@@ -44,7 +45,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const attendanceRecorded = aggregate.attendance.length;
   const [editOpen, setEditOpen] = useState(false);
   const { settings, error: settingsError } = useMeetingSettings();
-  const detailsEditable = meetingActions.can("meeting.schedule");
+  const detailsEditable = meetingActions.can("meeting.prepare");
   const startsAtLocalValue = settings ? meetingScheduleInputValue(meeting.scheduledAt, settings.timeZone) : "";
 
   const submitDetails = async (event: FormEvent<HTMLFormElement>) => {
@@ -56,9 +57,11 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
     dateInput.setCustomValidity(scheduledAt ? "" : t("meetings.invalidLocalTime"));
     if (!event.currentTarget.reportValidity() || !scheduledAt) return;
     await run(async () => {
-      const saved = await meetingActions.schedule({
+      const saved = await meetingActions.prepare({
         scheduledAt,
         location: String(form.get("location")),
+        chairMemberId: String(form.get("chairMemberId")),
+        secretaryMemberId: String(form.get("secretaryMemberId")),
       });
       if (saved) setEditOpen(false);
       return saved;
@@ -111,28 +114,20 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               {detailsEditable ? (
                 <Button
                   data-testid="meeting-edit-details"
-                  disabled={!settings}
-                  variant="outline"
+                  disabled={submitting || !settings}
+                  variant={meeting.scheduledAt ? "outline" : "default"}
                   onClick={() => setEditOpen(true)}
                 >
                   <EditIcon />
-                  {t("meetings.edit")}
+                  {t("meeting.generalProperties")}
                 </Button>
               ) : null}
-              {meeting.status === "draft" ? (
-                <Button
-                  variant="default"
-                  disabled={submitting || !settings || !meetingActions.can("meeting.schedule")}
-                  onClick={() => setEditOpen(true)}
-                >
-                  {t(submitting ? "common.saving" : "meeting.action.schedule")}
-                </Button>
-              ) : (
+              {meeting.status !== "draft" ? (
                 <Link className="live-mode-link" to={`/meetings/${meeting.slug}/live`}>
                   <PlayIcon aria-hidden="true" />
                   {t("meeting.enterLiveMode")}
                 </Link>
-              )}
+              ) : null}
             </div>
           </div>
           {meeting.status === "draft" && !aggregate.agendaReady && aggregate.requiredMinutesOfMeetingId ? (
@@ -149,8 +144,9 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
           ) : null}
         </div>
 
-        <Modal open={editOpen} title={t("meetings.edit")} onClose={() => setEditOpen(false)}>
+        <Modal open={editOpen} title={t("meeting.generalProperties")} onClose={() => setEditOpen(false)}>
           <form className="modal-form" onSubmit={submitDetails}>
+            <RequestErrorBanner error={meetingActions.actionError} />
             <div className="form-grid">
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-startsAt`}>{t("meetings.dateTime")}</Label>
@@ -175,7 +171,23 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                 />
               </div>
             </div>
-            <Button variant="default" type="submit" disabled={submitting}>
+            <div className="form-grid">
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${detailsFieldId}-chair`}>{t("meetings.chair")}</Label>
+                <Select name="chairMemberId" defaultValue={meeting.chairMemberId ?? undefined} required>
+                  <SelectTrigger id={`${detailsFieldId}-chair`} data-testid="meeting-edit-chair"><SelectValue placeholder={t("meetings.chairUndesignated")} /></SelectTrigger>
+                  <SelectContent>{rosterMembers.map((member) => <SelectItem key={member.id} value={member.id}>{member.contact.firstName} {member.contact.lastName}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${detailsFieldId}-secretary`}>{t("meetings.secretary")}</Label>
+                <Select name="secretaryMemberId" defaultValue={meeting.secretaryMemberId ?? undefined} required>
+                  <SelectTrigger id={`${detailsFieldId}-secretary`} data-testid="meeting-edit-secretary"><SelectValue placeholder={t("meetings.secretaryUndesignated")} /></SelectTrigger>
+                  <SelectContent>{rosterMembers.map((member) => <SelectItem key={member.id} value={member.id}>{member.contact.firstName} {member.contact.lastName}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button data-testid="meeting-edit-submit" variant="default" type="submit" disabled={submitting}>
               {t(submitting ? "common.saving" : "common.save")}
             </Button>
           </form>
@@ -184,18 +196,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         <div className="meeting-prep-layout">
           <AgendaComposer
             agendaItems={aggregate.agendaItems}
-            businesses={businesses.map((business) => ({
-              id: business.id,
-              kind: "matter",
-              title: business.title,
-              report: business.report,
-              folderPath: business.folderPath,
-              councilDecisionId: null,
-              resources: business.resources.map((resource) => ({ ...resource, title: resource.name })),
-            }))}
-            onSchedule={(councilBusinessId, position) =>
-              meetingActions.scheduleAgendaItem({ kind: "openQuestion", councilBusinessId, position })
-            }
+            businesses={businesses}
             decisions={aggregate.councilDecisions}
             editable={agendaEditable}
             onUpdateBusiness={meetingActions.updateBusiness}
@@ -206,14 +207,11 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
           />
           <MeetingDetailsCard
             aggregate={aggregate}
-            members={rosterMembers}
             documents={resources.filter(
               (resource): resource is DocumentaryResource =>
                 resource.kind === "document" && resource.usage === "document" && resource.meetingId === meeting.id,
             )}
-            officersEditable={meetingActions.can("meeting.set-officers")}
             documentsEditable={canUpload}
-            onSaveOfficers={meetingActions.setOfficers}
           />
         </div>
       </div>

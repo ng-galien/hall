@@ -1,3 +1,4 @@
+import type { MeetingAgendaFreeze, MeetingNoticeMeetingFacts, MeetingNotice, MeetingNoticeFacts } from "@hall/domain";
 import type {
   AgendaItem,
   AgendaItemRecusals,
@@ -51,6 +52,14 @@ export class CouncilClientError extends Error {
 }
 
 export interface CouncilClient {
+  freezeAgenda(id: string): Promise<CouncilMeeting>;
+  openAgendaFreeze(id: string): Promise<MeetingAgendaFreeze | null>;
+  noticeFacts(id: string): Promise<MeetingNoticeMeetingFacts | null>;
+  listNotices(id: string): Promise<MeetingNotice[]>;
+  openNotice(id: string): Promise<MeetingNotice | null>;
+  generateNotice(id: string, facts: MeetingNoticeFacts, content: Buffer): Promise<MeetingNotice>;
+  noticeContent(id: string): Promise<Buffer | null>;
+
   createBallotResultPreview(input: CreateBallotResultPreview): Promise<BallotResultPreview>;
   openBallotResultPreview(id: string): Promise<BallotResultPreview | null>;
   confirmBallotResultPreview(id: string): Promise<Ballot>;

@@ -35,7 +35,8 @@ export const en = {
   "ballot.confirm": "Confirm and close the item",
   "ballot.previewAction": "Preview the result",
   "error.recusal_already_recorded": "A recusal is already recorded for this member on this agenda item.",
-  "error.recusal_recording_closed": "Recusal recording is closed: participation or completion has already been recorded.",
+  "error.recusal_recording_closed":
+    "Recusal recording is closed: participation or completion has already been recorded.",
   "error.recusal_member_not_declared": "This member has no attendance declaration for this meeting.",
   "error.recused_member_cannot_participate": "A recused member cannot participate, personally or as a proxy holder.",
   "error.recusal_immutable": "A recorded recusal cannot be rewritten.",
@@ -47,14 +48,18 @@ export const en = {
   "recusal.chooseMember": "Select a member",
   "recusal.basis": "Applicable basis: explicit qualification required",
   "recusal.personalInterest": "Personal interest (general regime)",
-  "recusal.personalInterestHint": "Excluded from eligible declared presence and voting, without reducing the membership denominator.",
+  "recusal.personalInterestHint":
+    "Excluded from eligible declared presence and voting, without reducing the membership denominator.",
   "recusal.designatedRepresentativeConflict": "Organisation representative (qualified special regime)",
-  "recusal.designatedRepresentativeConflictHint": "Only when CGCT L1111-6 II / L2131-11 applies, after checking its conditions and exceptions. Being an organisation representative is not sufficient. Also reduces the membership denominator.",
+  "recusal.designatedRepresentativeConflictHint":
+    "Only when CGCT L1111-6 II / L2131-11 applies, after checking its conditions and exceptions. Being an organisation representative is not sufficient. Also reduces the membership denominator.",
   "recusal.immutableHint": "The declaration is retained. It cannot remove votes or participation already recorded.",
   "recusal.record": "Record the recusal",
-  "recusal.separateFromVotes": "These recusals are distinct from abstentions and non-participation. Their impact on declarations is not a complete legal quorum finding.",
+  "recusal.separateFromVotes":
+    "These recusals are distinct from abstentions and non-participation. Their impact on declarations is not a complete legal quorum finding.",
   "recusal.secretParticipants": "Participation in the secret ballot",
-  "recusal.secretParticipantsHint": "Identify who takes part, independently of the anonymous totals. No choice is linked to a member.",
+  "recusal.secretParticipantsHint":
+    "Identify who takes part, independently of the anonymous totals. No choice is linked to a member.",
   "navigation.minutes": "Minutes",
   "minutes.description":
     "Review meeting records, prepare their wording and generate the document submitted for approval.",
@@ -543,6 +548,7 @@ export const en = {
   "meeting.type": "Type",
   "meeting.subject": "Subject",
   "meeting.report": "Report",
+  "meeting.generalProperties": "General properties",
   "meeting.emptyAgenda": "No agenda item has been added.",
   "meeting.itemReport": "Report presented to the council",
   "meeting.itemReportEmpty": "No report has been prepared for this item.",
@@ -905,7 +911,9 @@ export const en = {
   "live.eyebrow": "Municipal council meeting",
   "live.exit": "Leave meeting mode",
   "live.backToMeetings": "Back to meetings",
-  "live.quorumChip": "Last recorded quorum: {present} / {required}",
+  "live.quorumItemChip": "Recorded quorum: {point} · {time} · {present} / {required}",
+  "live.quorumMeetingChip": "Meeting quorum recorded on {time}: {present} / {required}",
+  "live.quorumItemFallback": "Agenda item",
   "live.quorumUnestablished": "Quorum not established",
   "live.closedTitle": "The meeting is closed",
   "live.closedDescription": "The record and ballots are available on the meeting page.",
