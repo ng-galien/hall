@@ -13,7 +13,6 @@ import { createEmptySpreadsheetDocument } from "../../features/spreadsheet/unive
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
-import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { CouncilBusinessWorkbench } from "./CouncilBusinessWorkbench";
 import { PathContents } from "./PathContents";
@@ -39,7 +38,6 @@ export function WorkspacePage() {
     (resource): resource is DocumentaryLeafSummary => resource.kind !== "folder",
   );
   const resourcesError = resourcesStore.error;
-  const { error: decisionsError } = useCouncilDecisionsStore();
   const [search, setSearch] = useState<WorkspaceSearchState>(emptySearch);
   const creationFolderPathRef = useRef("");
   const fileInput = useRef<HTMLInputElement | null>(null);
@@ -65,7 +63,17 @@ export function WorkspacePage() {
         resource: (entry) => params.set("resource", entry.id),
       });
     }
-    setSearchParams(params, { replace: true });
+    void (async () => {
+      if (
+        selection?.kind === "resource" &&
+        resourceSession.resource &&
+        useWorkspaceResourcesStore.getState().details[resourceSession.resource.id] &&
+        !(await resourceSession.flush())
+      ) {
+        return;
+      }
+      setSearchParams(params, { replace: true });
+    })();
   };
 
   const pathBusinesses = useMemo(
@@ -112,11 +120,10 @@ export function WorkspacePage() {
       councilMatter: async () => {
         if (!normalizedTitle) return null;
         const business = await councilBusinessStore.create({
-          kind: "matter",
-          title: normalizedTitle,
-          report: "",
-          folderPath,
-          resourceIds: [],
+          path: folderPath,
+          name: normalizedTitle,
+          reportName: t("meeting.report"),
+          reportContent: "",
         });
         return business ? ({ kind: "councilBusiness", id: business.id } as const) : null;
       },
@@ -171,13 +178,13 @@ export function WorkspacePage() {
     void run(async () => {
       if (/\.(?:csv|xlsx)$/i.test(file.name)) {
         const spreadsheet = await resourcesStore.importSpreadsheet(form);
-        if (spreadsheet) select({ kind: "resource", id: spreadsheet.id });
+        if (spreadsheet) select({ kind: "resource", id: spreadsheet.id }, spreadsheet.path);
         return spreadsheet;
       }
       form.set("name", file.name);
       const uploaded = await resourcesStore.uploadDocument(form);
       if (uploaded) {
-        select({ kind: "resource", id: uploaded.id });
+        select({ kind: "resource", id: uploaded.id }, uploaded.path);
       }
       return uploaded;
     });
@@ -187,7 +194,7 @@ export function WorkspacePage() {
   return (
     <div className="page workspace-page">
       <div className="workspace">
-        <RequestErrorBanner error={councilBusinessError ?? resourcesError ?? decisionsError} />
+        <RequestErrorBanner error={councilBusinessError ?? resourcesError} />
         <div className="workspace-topzone">
           <div className="workspace-bar-row">
             <div className="workspace-bar-search">

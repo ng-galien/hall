@@ -11,7 +11,6 @@ const business = (kind: CouncilBusiness["kind"], councilDecisionId: string | nul
     title: kind,
     report: "",
     folderPath: "",
-    resources: [],
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...(kind === "matter" ? { councilDecisionId, committeeId: null } : {}),

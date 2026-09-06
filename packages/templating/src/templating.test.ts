@@ -383,6 +383,27 @@ describe("structural validation", () => {
 });
 
 describe("registry", () => {
+  it("round-trips the two standalone minutes sections", () => {
+    const source = "::minutes{section=facts}\n\n::minutes{section=proceedings}";
+    expect(validateStructure(parse(source))).toEqual([]);
+    expect(collectDirectives(parse(roundTrip(source))).map((entry) => entry.attributes.section)).toEqual([
+      "facts",
+      "proceedings",
+    ]);
+  });
+
+  it("rejects unknown, missing and inline minutes sections", () => {
+    expect(validateStructure(parse("::minutes{section=made-up}"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "invalid_attribute" })]),
+    );
+    expect(validateStructure(parse("::minutes"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "missing_attribute" })]),
+    );
+    expect(validateStructure(parse(":minutes{section=facts}"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "invalid_attribute" })]),
+    );
+  });
+
   it("exposes the resource presentation directive", () => {
     expect(directiveSpecs.map((spec) => spec.name)).toEqual([
       "member",
@@ -391,6 +412,7 @@ describe("registry", () => {
       "councilBusiness",
       "decision",
       "meeting",
+      "minutes",
       "image",
       "resource-embed",
       "field",
@@ -401,8 +423,9 @@ describe("registry", () => {
     expect(directiveSpecs.some((spec) => spec.name === ("snippet" as never))).toBe(false);
   });
 
-  it("reserves block directives for archived images and resource presentations", () => {
+  it("reserves block directives for minutes sections, archived images and resource presentations", () => {
     expect(directiveSpecs.filter((spec) => spec.node === "leafDirective").map((spec) => spec.name)).toEqual([
+      "minutes",
       "image",
       "resource-embed",
     ]);

@@ -5,10 +5,12 @@
 CREATE FUNCTION enforce_council_agenda_item_lifecycle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = pg_catalog, hall
 AS $$
 DECLARE
   meeting_started_at TIMESTAMPTZ;
   meeting_closed_at TIMESTAMPTZ;
+  source_closed_at TIMESTAMPTZ;
 BEGIN
   -- @technical-requirement HALL-TR-INT-030 TRUNCATE_CANNOT_BYPASS_AGENDA_HISTORY:
   IF TG_OP = 'TRUNCATE' THEN
@@ -40,9 +42,31 @@ BEGIN
     END IF;
   END IF;
 
+  IF TG_OP IN ('UPDATE', 'DELETE') THEN
+    SELECT closed_at INTO source_closed_at FROM council_meetings
+    WHERE id = OLD.council_meeting FOR UPDATE;
+    IF source_closed_at IS NOT NULL THEN
+      RAISE EXCEPTION USING ERRCODE = 'HV223', MESSAGE = 'a closed council meeting cannot receive agenda changes';
+    END IF;
+  END IF;
+
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.adjourned_at IS NOT NULL AND NEW.adjourned_at IS DISTINCT FROM OLD.adjourned_at THEN
+      RAISE EXCEPTION USING ERRCODE = 'HV230', MESSAGE = 'an agenda adjournment is immutable';
+    END IF;
+    IF OLD.adjourned_at IS NULL AND NEW.adjourned_at IS NOT NULL THEN
+      IF meeting_started_at IS NULL OR NEW.adjourned_at < meeting_started_at OR OLD.position < 0
+        OR OLD.completed_at IS NOT NULL OR OLD.minutes_approval IS NOT NULL
+        OR EXISTS (SELECT FROM ballots WHERE council_agenda_item = OLD.id AND completed_at IS NULL)
+      THEN
+        RAISE EXCEPTION USING ERRCODE = 'HV230', MESSAGE = 'the agenda item cannot be adjourned';
+      END IF;
+    END IF;
+  END IF;
+
   -- @functional-requirement HALL-FR-AGI-090 AGENDA_ITEM_IS_CREATED_INACTIVE:
   IF TG_OP = 'INSERT' THEN
-    IF NEW.started_at IS NOT NULL OR NEW.completed_at IS NOT NULL THEN
+    IF NEW.started_at IS NOT NULL OR NEW.completed_at IS NOT NULL OR NEW.adjourned_at IS NOT NULL THEN
       RAISE EXCEPTION USING
         ERRCODE = 'HV212',
         MESSAGE = 'an agenda item must be inactive on insert';
@@ -109,11 +133,58 @@ BEGIN
       MESSAGE = 'an agenda item start time is immutable';
   END IF;
 
+  -- @functional-requirement HALL-FR-AGI-320 DEPROGRAMMED_AGENDA_ITEM_CANNOT_COMPLETE:
+  -- A negative occurrence is no longer under consideration in this meeting.
+  -- Its unfinished subject is carried forward when the meeting closes.
+  IF OLD.completed_at IS NULL
+    AND NEW.completed_at IS NOT NULL
+    AND NEW.position < 0
+  THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV227',
+      MESSAGE = 'a deprogrammed agenda item cannot complete';
+  END IF;
+
   -- @functional-requirement HALL-FR-AGI-140 AGENDA_ITEM_COMPLETION_TIME_IS_IMMUTABLE:
   IF OLD.completed_at IS NOT NULL AND NEW.completed_at IS DISTINCT FROM OLD.completed_at THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV219',
       MESSAGE = 'an agenda item completion time is immutable';
+  END IF;
+
+  -- @functional-requirement HALL-FR-AGI-310 COMPLETED_AGENDA_ITEM_REMAINS_PROGRAMMED:
+  -- A completed occurrence is part of the meeting record. Deprogramming is
+  -- reserved for an unstarted item or an explicitly deferred active item.
+  IF OLD.completed_at IS NOT NULL AND NEW.position IS DISTINCT FROM OLD.position THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV226',
+      MESSAGE = 'a completed agenda item cannot be deprogrammed';
+  END IF;
+
+  -- @functional-requirement HALL-FR-AGI-330 OPEN_BALLOT_PREVENTS_DEPROGRAMMING:
+  -- Otherwise the ballot could neither complete its now-inactive item nor be
+  -- removed, leaving the meeting permanently impossible to close.
+  IF OLD.position > 0
+    AND NEW.position < 0
+    AND EXISTS (
+      SELECT
+      FROM ballots
+      WHERE council_agenda_item = OLD.id
+        AND completed_at IS NULL
+    )
+  THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV228',
+      MESSAGE = 'an agenda item with an open ballot cannot be deprogrammed';
+  END IF;
+
+  -- @functional-requirement HALL-FR-AGI-340 STARTED_DEPROGRAMMING_IS_ONE_WAY:
+  -- Once consideration has been explicitly deferred, the historical
+  -- occurrence remains negative and closure creates its next occurrence.
+  IF OLD.started_at IS NOT NULL AND OLD.position < 0 AND NEW.position > 0 THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV229',
+      MESSAGE = 'a started agenda item deprogramming cannot be reversed';
   END IF;
 
   -- A started item remains in its meeting. Its positive position may become

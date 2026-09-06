@@ -85,20 +85,20 @@ test("meeting opening requires complete attendance, quorum, and physically prese
   );
 });
 
-test("ballot candidates exclude decisions already final or recorded", () => {
-  const decision = (id, status) => ({
+test("ballot candidates exclude proposals that already have a recorded ballot", () => {
+  const decision = (id) => ({
     id,
     number: null,
     title: id,
     draftText: "Draft",
-    status,
+    status: "draft",
     legalityReviewRequired: true,
     submittedForLegalityReviewAt: null,
     publishedAt: null,
     createdAt: "2026-09-01T00:00:00.000Z",
     updatedAt: "2026-09-01T00:00:00.000Z",
   });
-  const agendaItems = ["ready", "adopted", "rejected", "recorded"].map((id, index) => ({
+  const agendaItems = ["ready", "recorded"].map((id, index) => ({
     id: `agenda-${id}`,
     meetingId: "meeting",
     position: index + 1,
@@ -122,12 +122,7 @@ test("ballot candidates exclude decisions already final or recorded", () => {
   }));
   const ballotAggregate = aggregate({
     agendaItems,
-    councilDecisions: [
-      decision("ready", "ready"),
-      decision("adopted", "adopted"),
-      decision("rejected", "rejected"),
-      decision("recorded", "ready"),
-    ],
+    councilDecisions: [decision("ready"), decision("recorded")],
     ballots: [{ councilDecisionId: "recorded" }],
   });
   assert.deepEqual(

@@ -1,239 +1,190 @@
-import {
-  agendaItemIsOpen,
-  type CouncilBusiness,
-  type CouncilDecisionListEntry,
-  type CouncilMeeting,
-  councilBusinessDecisionId,
-  councilDecisionContentCanChange,
-  type MeetingAggregate,
-  meetingIsFinished,
-} from "@hall/domain";
-import { useEffect, useMemo, useState } from "react";
-import { CalendarIcon, ChevronRightIcon, FolderIcon } from "../../components/icons";
+import { useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { CalendarIcon, ChevronRightIcon } from "../../components/icons";
+import { Button } from "../../components/ui/button";
+import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
+import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { useI18n } from "../../i18n/I18nProvider";
-import { getCouncilMeeting } from "../../services/councilMeetingsApi";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
+import type { CouncilMeetingView } from "../../models/councilMeeting";
+import { useApplicationSyncStore } from "../../stores/applicationSyncStore";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
-import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
+import {
+  useWorkspaceCouncilActivityStore,
+  type WorkspaceBusinessOccurrence,
+  workspaceAgendaSubjectKeys,
+} from "../../stores/workspaceCouncilActivityStore";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 
-type BusinessOccurrence = {
-  meeting: CouncilMeeting;
-  position: number;
-  status: MeetingAggregate["agendaItems"][number]["status"];
-};
+type BusinessRow = { business: CouncilBusinessView; occurrences: WorkspaceBusinessOccurrence[] };
+type MeetingGroup = { meeting: CouncilMeetingView; rows: BusinessRow[] };
 
-type ActiveBusiness = {
-  business: CouncilBusiness;
-  decision: CouncilDecisionListEntry | null;
-  occurrence: BusinessOccurrence | null;
-  stage: "scheduled" | "ready" | "instruction";
-};
-
-type ActiveFolder = {
-  path: string;
-  name: string;
-  businessCount: number;
-};
-
-function topFolder(path: string) {
-  return path.split("/").filter(Boolean)[0] ?? "";
-}
-
-function businessStage(decision: CouncilDecisionListEntry | null, occurrence: BusinessOccurrence | null) {
-  if (
-    decision?.status === "scheduled" ||
-    occurrence?.meeting.status === "scheduled" ||
-    occurrence?.meeting.status === "inProgress"
-  ) {
-    return "scheduled" as const;
-  }
-  if (decision?.status === "ready") return "ready" as const;
-  return "instruction" as const;
-}
-
-/** Workspace landing page: current council work and the folders that support it. */
+/** Resume preparation through the actual meeting occurrences of each business. */
 export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelection, path?: string): void }) {
   const { t, formatNumber, formatDate } = useI18n();
-  const { businesses } = useCouncilBusinessStore();
-  const { councilDecisions } = useCouncilDecisionsStore();
-  const { meetings } = useCouncilMeetingsStore();
-  const [meetingAggregates, setMeetingAggregates] = useState<MeetingAggregate[] | null>(null);
+  const businesses = useCouncilBusinessStore((state) => state.businesses);
+  const businessLoading = useCouncilBusinessStore((state) => state.loading);
+  const businessError = useCouncilBusinessStore((state) => state.error);
+  const meetingLoading = useCouncilMeetingsStore((state) => state.loading);
+  const meetingError = useCouncilMeetingsStore((state) => state.error);
+  const initializing = useApplicationSyncStore((state) => state.phase === "initializing");
+  const {
+    occurrencesByBusinessId,
+    loading: activityLoading,
+    error: activityError,
+    load: loadActivity,
+  } = useWorkspaceCouncilActivityStore();
 
   useEffect(() => {
-    let cancelled = false;
-    setMeetingAggregates(null);
-    void Promise.all(meetings.map((meeting) => getCouncilMeeting(meeting.id))).then(
-      (aggregates) => {
-        if (!cancelled) setMeetingAggregates(aggregates);
-      },
-      () => {
-        if (!cancelled) setMeetingAggregates([]);
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [meetings]);
+    if (!businessLoading && !meetingLoading) void loadActivity();
+  }, [businessLoading, meetingLoading, loadActivity]);
 
-  const occurrences = useMemo(() => {
-    const byBusiness = new Map<string, BusinessOccurrence[]>();
-    for (const aggregate of meetingAggregates ?? []) {
-      for (const item of aggregate.agendaItems) {
-        const current = byBusiness.get(item.business.id) ?? [];
-        current.push({ meeting: aggregate.meeting, position: item.position, status: item.status });
-        byBusiness.set(item.business.id, current);
+  const { groups, unscheduled } = useMemo(() => {
+    const byMeeting = new Map<string, MeetingGroup>();
+    const unscheduled: BusinessRow[] = [];
+    for (const business of businesses) {
+      const occurrences = occurrencesByBusinessId[business.id] ?? [];
+      const active = occurrences.filter(
+        ({ meeting, agendaItem }) => meeting.phase !== "closed" && agendaItem.position > 0,
+      );
+      if (active.length === 0) {
+        const completed = occurrences.some(
+          ({ meeting, agendaItem }) => meeting.phase === "closed" && agendaItem.completedAt !== null,
+        );
+        const deprogrammed = occurrences.some(
+          ({ meeting, agendaItem }) => meeting.phase !== "closed" && agendaItem.position < 0,
+        );
+        if (!completed || deprogrammed) unscheduled.push({ business, occurrences: [] });
+        continue;
+      }
+      for (const occurrence of active) {
+        let group = byMeeting.get(occurrence.meeting.id);
+        if (!group) {
+          group = { meeting: occurrence.meeting, rows: [] };
+          byMeeting.set(occurrence.meeting.id, group);
+        }
+        const row = group.rows.find((row) => row.business.id === business.id);
+        if (row) row.occurrences.push(occurrence);
+        else group.rows.push({ business, occurrences: [occurrence] });
       }
     }
-    return byBusiness;
-  }, [meetingAggregates]);
+    const groups = [...byMeeting.values()].sort((left, right) => {
+      if (left.meeting.scheduledAt && right.meeting.scheduledAt)
+        return left.meeting.scheduledAt.localeCompare(right.meeting.scheduledAt);
+      if (left.meeting.scheduledAt) return -1;
+      if (right.meeting.scheduledAt) return 1;
+      return left.meeting.number - right.meeting.number;
+    });
+    for (const group of groups) {
+      for (const row of group.rows)
+        row.occurrences.sort((left, right) => left.agendaItem.position - right.agendaItem.position);
+      group.rows.sort(
+        (left, right) => left.occurrences[0].agendaItem.position - right.occurrences[0].agendaItem.position,
+      );
+    }
+    unscheduled.sort((left, right) => right.business.updatedAt.localeCompare(left.business.updatedAt));
+    return { groups, unscheduled };
+  }, [businesses, occurrencesByBusinessId]);
 
-  const activeBusinesses = useMemo<ActiveBusiness[]>(() => {
-    return businesses
-      .flatMap((business) => {
-        const decisionId = councilBusinessDecisionId(business);
-        const decision = decisionId
-          ? (councilDecisions.find((candidate) => candidate.id === decisionId) ?? null)
-          : null;
-        if (decision && !councilDecisionContentCanChange(decision.status)) return [];
-
-        const businessOccurrences = occurrences.get(business.id) ?? [];
-        const activeOccurrence = businessOccurrences.find(
-          ({ meeting, status }) => !meetingIsFinished(meeting.status) || status === "postponed",
-        );
-        const closedOccurrence = businessOccurrences.some(
-          ({ meeting, status }) => meeting.status === "closed" && !agendaItemIsOpen(status) && status !== "postponed",
-        );
-        if (meetingAggregates && closedOccurrence && !activeOccurrence) return [];
-
-        const occurrence = activeOccurrence ?? null;
-        return [{ business, decision, occurrence, stage: businessStage(decision, occurrence) }];
-      })
-      .sort((left, right) => {
-        const rank = { scheduled: 0, ready: 1, instruction: 2 };
-        const stageRank = rank[left.stage] - rank[right.stage];
-        if (stageRank !== 0) return stageRank;
-        if (left.occurrence && right.occurrence) {
-          const meetingOrder = left.occurrence.meeting.startsAt.localeCompare(right.occurrence.meeting.startsAt);
-          if (meetingOrder !== 0) return meetingOrder;
-          return left.occurrence.position - right.occurrence.position;
-        }
-        return right.business.updatedAt.localeCompare(left.business.updatedAt);
-      });
-  }, [businesses, councilDecisions, meetingAggregates, occurrences]);
-
-  const scheduledBusinesses = activeBusinesses.filter((item) => item.stage === "scheduled");
-  const instructionBusinesses = activeBusinesses.filter((item) => item.stage !== "scheduled");
-  const activeFolders = useMemo<ActiveFolder[]>(() => {
-    const folderPaths = new Set(activeBusinesses.map(({ business }) => topFolder(business.folderPath)).filter(Boolean));
-    return [...folderPaths]
-      .map((path) => ({
-        path,
-        name: path,
-        businessCount: activeBusinesses.filter(({ business }) => topFolder(business.folderPath) === path).length,
-      }))
-      .sort((left, right) => right.businessCount - left.businessCount || left.name.localeCompare(right.name, "fr-FR"));
-  }, [activeBusinesses]);
-
-  const renderBusiness = ({ business, occurrence }: ActiveBusiness) => (
-    <button
-      className="whome-business"
-      data-testid={`workspace-home-business-${business.id}`}
-      type="button"
-      key={business.id}
-      onClick={() => onSelect({ kind: "councilBusiness", id: business.id }, business.folderPath)}
-    >
-      <span className="whome-business-copy">
-        <strong>{business.title}</strong>
-        <span>
-          {business.folderPath || t("workspace.unfiled")}
-          {occurrence ? ` · ${formatDate(occurrence.meeting.startsAt)}` : ""}
-          {business.resources.length > 0
-            ? ` · ${t(
-                business.resources.length === 1 ? "workspace.linkedDocument" : "workspace.linkedDocuments",
-              ).replace("{count}", formatNumber(business.resources.length))}`
-            : ""}
+  const renderBusiness = ({ business, occurrences }: BusinessRow) => {
+    return (
+      <button
+        className="whome-business"
+        data-testid={`workspace-home-business-${business.id}`}
+        type="button"
+        key={business.id}
+        onClick={() => onSelect({ kind: "councilBusiness", id: business.id }, business.folderPath)}
+      >
+        <CouncilBusinessGlyph business={business} />
+        <span className="whome-business-copy">
+          <strong>{business.title}</strong>
+          {occurrences.map(({ agendaItem }) => (
+            <span
+              className="whome-business-subject"
+              data-testid={`workspace-home-subject-${agendaItem.id}`}
+              key={agendaItem.id}
+            >
+              {t(workspaceAgendaSubjectKeys[agendaItem.subject.kind])} ·{" "}
+              {t("workspace.agendaPosition").replace("{position}", formatNumber(agendaItem.position))}
+            </span>
+          ))}
+          <span className="whome-business-path">
+            {business.folderPath ? business.folderPath.split("/").filter(Boolean).join(" › ") : t("workspace.unfiled")}
+          </span>
         </span>
-      </span>
-      <ChevronRightIcon aria-hidden="true" />
-    </button>
-  );
+        <ChevronRightIcon aria-hidden="true" />
+      </button>
+    );
+  };
 
+  const error = businessError ?? meetingError ?? activityError;
+  const loading = initializing || businessLoading || meetingLoading || activityLoading;
+  const retry = async () => {
+    await Promise.all([useCouncilBusinessStore.getState().load(), useCouncilMeetingsStore.getState().load()]);
+    await loadActivity();
+  };
   return (
     <div className="whome">
       <header className="whome-intro">
-        <div>
-          <span className="whome-kicker">{t("workspace.home.kicker")}</span>
-          <h2>{t("workspace.home.title")}</h2>
-          <p>{t("workspace.home.description")}</p>
-        </div>
-        <p className="whome-count" data-testid="workspace-home-active-count">
-          <strong>{formatNumber(activeBusinesses.length)}</strong>
-          <span>{t(activeBusinesses.length === 1 ? "workspace.home.activeOne" : "workspace.home.activeMany")}</span>
-        </p>
+        <h2>{t("workspace.home.title")}</h2>
+        <p>{t("workspace.home.description")}</p>
       </header>
-
-      <div className="whome-layout">
-        <section className="whome-work" aria-label={t("workspace.home.title")}>
-          {activeBusinesses.length === 0 ? (
-            <p className="workspace-list-empty">{t("workspace.home.empty")}</p>
-          ) : (
-            <>
-              {scheduledBusinesses.length > 0 ? (
-                <div className="whome-group">
-                  <div className="whome-group-heading">
-                    <CalendarIcon aria-hidden="true" />
-                    <h4>{t("workspace.home.scheduled")}</h4>
-                    <span>{formatNumber(scheduledBusinesses.length)}</span>
-                  </div>
-                  <div className="whome-businesses">{scheduledBusinesses.map(renderBusiness)}</div>
-                </div>
-              ) : null}
-              {instructionBusinesses.length > 0 ? (
-                <div className="whome-group">
-                  <div className="whome-group-heading">
-                    <h4>{t("workspace.home.instruction")}</h4>
-                    <span>{formatNumber(instructionBusinesses.length)}</span>
-                  </div>
-                  <div className="whome-businesses">{instructionBusinesses.map(renderBusiness)}</div>
-                </div>
-              ) : null}
-            </>
-          )}
-        </section>
-
-        <aside className="whome-folders" aria-labelledby="whome-folders-heading">
-          <div className="whome-folders-heading">
-            <div>
-              <h3 id="whome-folders-heading">{t("workspace.home.activeFolders")}</h3>
-              <p>{t("workspace.home.activeFoldersHint")}</p>
-            </div>
-            <span>{formatNumber(activeFolders.length)}</span>
-          </div>
-          <div className="whome-folder-list">
-            {activeFolders.map((folder) => (
-              <button
-                className="whome-folder"
-                data-testid={`workspace-home-folder-${folder.path}`}
-                type="button"
-                key={folder.path}
-                onClick={() => onSelect(null, folder.path)}
-              >
-                <FolderIcon aria-hidden="true" />
-                <span>
-                  <strong>{folder.name}</strong>
-                  <small>
-                    {t(
-                      folder.businessCount === 1 ? "workspace.home.businessOne" : "workspace.home.businessMany",
-                    ).replace("{count}", formatNumber(folder.businessCount))}
-                  </small>
-                </span>
-                <ChevronRightIcon aria-hidden="true" />
-              </button>
-            ))}
-          </div>
-        </aside>
-      </div>
+      {error ? (
+        <div className="workspace-list-empty" role="alert" data-testid="workspace-home-error">
+          <p>{t("workspace.home.loadError")}</p>
+          <Button variant="outline" data-testid="workspace-home-retry" disabled={loading} onClick={() => void retry()}>
+            {t("common.retry")}
+          </Button>
+        </div>
+      ) : loading ? (
+        <p className="workspace-list-empty" role="status" data-testid="workspace-home-loading">
+          {t("common.loading")}
+        </p>
+      ) : groups.length === 0 && unscheduled.length === 0 ? (
+        <p className="workspace-list-empty" data-testid="workspace-home-empty">
+          {t("workspace.home.empty")}
+        </p>
+      ) : (
+        <div className="whome-work">
+          {groups.map(({ meeting, rows }) => (
+            <section
+              className="whome-group"
+              data-testid={`workspace-home-meeting-${meeting.id}`}
+              aria-labelledby={`whome-meeting-${meeting.id}`}
+              key={meeting.id}
+            >
+              <div className="whome-group-heading">
+                <CalendarIcon aria-hidden="true" />
+                <h3 id={`whome-meeting-${meeting.id}`}>
+                  {formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate, t("workspace.dateToSet"))}
+                </h3>
+                <Link
+                  className="whome-meeting-link"
+                  data-testid={`workspace-home-meeting-link-${meeting.id}`}
+                  to={`/meetings/${meeting.reference}`}
+                >
+                  {t("workspace.home.openMeeting")}
+                  <ChevronRightIcon aria-hidden="true" />
+                </Link>
+              </div>
+              <div className="whome-businesses">{rows.map(renderBusiness)}</div>
+            </section>
+          ))}
+          {unscheduled.length > 0 ? (
+            <section
+              className="whome-group"
+              data-testid="workspace-home-unscheduled"
+              aria-labelledby="whome-unscheduled"
+            >
+              <div className="whome-group-heading">
+                <h3 id="whome-unscheduled">{t("workspace.home.instruction")}</h3>
+              </div>
+              <div className="whome-businesses">{unscheduled.map(renderBusiness)}</div>
+            </section>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

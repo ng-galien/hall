@@ -1,9 +1,16 @@
+import { matchDiscriminated } from "@hall/domain";
 import type { Pool } from "pg";
 import { z } from "zod";
 import { recordAuditEvent } from "./audit.js";
 import type { PostgresCallContext, PostgresRequest } from "./callContext.js";
 import { callJson } from "./jsonCall.js";
-import { resourceIdSchema, resourceNameSchema, resourcePathSchema } from "./resources.js";
+import { minutesSummarySchema } from "./minutesModels.js";
+import {
+  postgresResourceSummarySchema,
+  resourceIdSchema,
+  resourceNameSchema,
+  resourcePathSchema,
+} from "./resources.js";
 import { PostgresTransactionManager } from "./transaction.js";
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -14,59 +21,345 @@ export const postgresCouncilBusinessWorkspaceSchema = z.object({
   reportResourceId: resourceIdSchema,
 });
 
+export const postgresCouncilBusinessResourceAssociationSchema = z.object({
+  councilBusinessId: resourceIdSchema,
+  resourceId: resourceIdSchema,
+  position: z.number().int().positive(),
+});
+
+export const postgresCouncilBusinessWorkspaceItemSchema = postgresCouncilBusinessWorkspaceSchema.extend({
+  title: resourceNameSchema,
+  folderPath: resourcePathSchema,
+  report: z.string(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+});
+
+export const postgresCouncilBusinessResourceItemSchema = z.intersection(
+  z.object({ councilBusinessId: resourceIdSchema, position: z.number().int().positive() }),
+  postgresResourceSummarySchema,
+);
+
+const createPostgresCouncilBusinessSchema = z.object({
+  path: resourcePathSchema,
+  name: resourceNameSchema,
+  reportName: resourceNameSchema,
+  reportContent: z.string(),
+});
+
 export const postgresCouncilMeetingSchema = z.object({
   id: resourceIdSchema,
+  number: z.number().int().positive(),
+  slug: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}-\d+$/)
+    .nullable(),
   previousCouncilMeetingId: resourceIdSchema.nullable(),
+  minutesId: resourceIdSchema.nullable(),
   scheduledAt: timestampSchema.nullable(),
+  location: z.string().min(1).nullable(),
+  chairMemberId: resourceIdSchema.nullable(),
+  secretaryMemberId: resourceIdSchema.nullable(),
   quorum: z.number().int().positive(),
   startedAt: timestampSchema.nullable(),
   closedAt: timestampSchema.nullable(),
 });
 
+export const postgresMeetingAttendanceStatusSchema = z.enum(["present", "represented", "excused", "absent"]);
+
+export const postgresMeetingAttendanceSchema = z.object({
+  id: resourceIdSchema,
+  councilMeetingId: resourceIdSchema,
+  councilMemberId: resourceIdSchema,
+  status: postgresMeetingAttendanceStatusSchema,
+  proxyHolderCouncilMemberId: resourceIdSchema.nullable(),
+  proxyDocumentId: resourceIdSchema.nullable(),
+});
+
+const attendanceDeclarationBase = {
+  councilMemberId: resourceIdSchema,
+};
+
+export const postgresMeetingAttendanceDeclarationSchema = z.discriminatedUnion("status", [
+  z.object({ ...attendanceDeclarationBase, status: z.literal("present") }),
+  z.object({ ...attendanceDeclarationBase, status: z.literal("excused") }),
+  z.object({ ...attendanceDeclarationBase, status: z.literal("absent") }),
+  z.object({
+    ...attendanceDeclarationBase,
+    status: z.literal("represented"),
+    proxyHolderCouncilMemberId: resourceIdSchema,
+    proxyDocumentId: resourceIdSchema,
+  }),
+]);
+
 export const postgresCouncilAgendaSubjectSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("minutesApproval"), id: resourceIdSchema }),
-  z.object({ kind: z.literal("councilDecisionProposal"), id: resourceIdSchema }),
+  z.object({
+    kind: z.literal("minutesApproval"),
+    id: resourceIdSchema,
+    minutesId: resourceIdSchema,
+    documentId: resourceIdSchema.nullable(),
+  }),
+  z.object({
+    kind: z.literal("councilDecisionProposal"),
+    id: resourceIdSchema,
+    textResourceId: resourceIdSchema,
+    content: z.string(),
+  }),
   z.object({ kind: z.literal("openQuestion"), id: resourceIdSchema }),
 ]);
 
 export const postgresCouncilAgendaItemSchema = z.object({
   id: resourceIdSchema,
-  councilBusinessId: resourceIdSchema,
+  councilBusinessId: resourceIdSchema.nullable(),
+  discussionSummary: z.string(),
   councilMeetingId: resourceIdSchema,
-  position: z.number().int().refine((position) => position !== 0),
+  position: z
+    .number()
+    .int()
+    .refine((position) => position !== 0),
   subject: postgresCouncilAgendaSubjectSchema,
   startedAt: timestampSchema.nullable(),
   completedAt: timestampSchema.nullable(),
+  adjournedAt: timestampSchema.nullable(),
+});
+
+export const postgresCreatedAndScheduledCouncilBusinessSchema = z.object({
+  business: postgresCouncilBusinessWorkspaceSchema,
+  agendaItem: postgresCouncilAgendaItemSchema,
 });
 
 export const postgresCouncilMeetingClosureSchema = z.object({
   closedMeeting: postgresCouncilMeetingSchema,
   nextMeeting: postgresCouncilMeetingSchema,
-  minutesBusiness: postgresCouncilBusinessWorkspaceSchema,
+  minutes: minutesSummarySchema,
 });
 
+export const postgresBallotModeSchema = z.enum(["public", "secret"]);
+export const postgresVoteChoiceSchema = z.enum(["approve", "reject", "abstain"]);
+export const postgresBallotResultSchema = z.enum(["approve", "reject"]);
+
+export const postgresBallotSchema = z.object({
+  id: resourceIdSchema,
+  agendaItemId: resourceIdSchema,
+  mode: postgresBallotModeSchema,
+  chairmanParticipationId: resourceIdSchema,
+  completedAt: timestampSchema.nullable(),
+  result: postgresBallotResultSchema.nullable(),
+});
+
+export const postgresBallotParticipationSchema = z.object({
+  id: resourceIdSchema,
+  ballotId: resourceIdSchema,
+  meetingAttendanceId: resourceIdSchema,
+  councilMemberId: resourceIdSchema,
+});
+
+export const postgresBallotVoteSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("public"),
+    ballotId: resourceIdSchema,
+    choice: postgresVoteChoiceSchema,
+    ballotParticipationId: resourceIdSchema,
+    count: z.literal(1),
+  }),
+  z.object({
+    mode: z.literal("secret"),
+    ballotId: resourceIdSchema,
+    choice: postgresVoteChoiceSchema,
+    ballotParticipationId: z.null(),
+    count: z.number().int().positive(),
+  }),
+]);
+
 export type PostgresCouncilBusinessWorkspace = z.infer<typeof postgresCouncilBusinessWorkspaceSchema>;
+export type PostgresCouncilBusinessResourceAssociation = z.infer<
+  typeof postgresCouncilBusinessResourceAssociationSchema
+>;
+export type PostgresCouncilBusinessWorkspaceItem = z.infer<typeof postgresCouncilBusinessWorkspaceItemSchema>;
+export type PostgresCouncilBusinessResourceItem = z.infer<typeof postgresCouncilBusinessResourceItemSchema>;
 export type PostgresCouncilMeeting = z.infer<typeof postgresCouncilMeetingSchema>;
+export type PostgresMeetingAttendanceStatus = z.infer<typeof postgresMeetingAttendanceStatusSchema>;
+export type PostgresMeetingAttendance = z.infer<typeof postgresMeetingAttendanceSchema>;
+export type PostgresMeetingAttendanceDeclaration = z.infer<typeof postgresMeetingAttendanceDeclarationSchema>;
 export type PostgresCouncilAgendaSubject = z.infer<typeof postgresCouncilAgendaSubjectSchema>;
 export type PostgresCouncilAgendaItem = z.infer<typeof postgresCouncilAgendaItemSchema>;
+export type PostgresCreatedAndScheduledCouncilBusiness = z.infer<
+  typeof postgresCreatedAndScheduledCouncilBusinessSchema
+>;
 export type PostgresCouncilMeetingClosure = z.infer<typeof postgresCouncilMeetingClosureSchema>;
+export type PostgresBallotMode = z.infer<typeof postgresBallotModeSchema>;
+export type PostgresVoteChoice = z.infer<typeof postgresVoteChoiceSchema>;
+export type PostgresBallotResult = z.infer<typeof postgresBallotResultSchema>;
+export type PostgresBallot = z.infer<typeof postgresBallotSchema>;
+export type PostgresBallotParticipation = z.infer<typeof postgresBallotParticipationSchema>;
+export type PostgresBallotVote = z.infer<typeof postgresBallotVoteSchema>;
 export type PostgresCouncilRequest = PostgresRequest;
+export type CreatePostgresCouncilBusiness = z.input<typeof createPostgresCouncilBusinessSchema>;
+
+const scheduleAgendaItemInputSchema = z.object({
+  councilBusinessId: resourceIdSchema,
+  councilMeetingId: resourceIdSchema,
+  position: z.number().int().positive(),
+});
+
+const reprogramAgendaItemInputSchema = z.object({
+  agendaItemId: resourceIdSchema,
+  councilMeetingId: resourceIdSchema,
+  position: z.number().int().positive(),
+});
+
+const reorderCouncilAgendaInputSchema = z
+  .object({
+    councilMeetingId: resourceIdSchema,
+    agendaItemIds: z.array(resourceIdSchema),
+  })
+  .refine((value) => new Set(value.agendaItemIds).size === value.agendaItemIds.length, {
+    message: "Each agenda item must occur exactly once",
+    path: ["agendaItemIds"],
+  });
+
+const scheduleCouncilMeetingInputSchema = z.object({
+  id: resourceIdSchema,
+  scheduledAt: timestampSchema,
+  location: z.string().trim().min(1),
+});
+
+const setCouncilMeetingOfficersInputSchema = z.object({
+  id: resourceIdSchema,
+  chairMemberId: resourceIdSchema,
+  secretaryMemberId: resourceIdSchema,
+});
+
+const prepareCouncilMeetingInputSchema = scheduleCouncilMeetingInputSchema.extend({
+  chairMemberId: resourceIdSchema,
+  secretaryMemberId: resourceIdSchema,
+});
+
+const createAndScheduleBusinessInputSchema = createPostgresCouncilBusinessSchema.extend({
+  councilMeetingId: resourceIdSchema,
+  position: z.number().int().positive(),
+});
+
+const provisionInitialCouncilMeetingInputSchema = z.object({
+  quorum: z.number().int().positive(),
+});
+
+const startCouncilMeetingInputSchema = z.object({
+  id: resourceIdSchema,
+  startedAt: timestampSchema,
+});
+
+const startAgendaItemInputSchema = z.object({
+  agendaItemId: resourceIdSchema,
+  startedAt: timestampSchema,
+});
+
+const completeOpenQuestionInputSchema = z.object({
+  agendaItemId: resourceIdSchema,
+  completedAt: timestampSchema,
+});
+
+const createBallotInputSchema = z
+  .object({
+    agendaItemId: resourceIdSchema,
+    mode: postgresBallotModeSchema,
+    participantAttendanceIds: z.array(resourceIdSchema).min(1),
+    chairmanAttendanceId: resourceIdSchema,
+  })
+  .refine((value) => new Set(value.participantAttendanceIds).size === value.participantAttendanceIds.length, {
+    message: "A meeting attendance can participate only once",
+    path: ["participantAttendanceIds"],
+  })
+  .refine((value) => value.participantAttendanceIds.includes(value.chairmanAttendanceId), {
+    message: "The chairman attendance must participate in the ballot",
+    path: ["chairmanAttendanceId"],
+  });
+
+const recordBallotVotesInputSchema = z.discriminatedUnion("mode", [
+  z
+    .object({
+      mode: z.literal("public"),
+      votes: z
+        .array(
+          z.object({
+            ballotParticipationId: resourceIdSchema,
+            choice: postgresVoteChoiceSchema,
+          }),
+        )
+        .min(1),
+    })
+    .refine((value) => new Set(value.votes.map((vote) => vote.ballotParticipationId)).size === value.votes.length, {
+      message: "A ballot participation can vote only once",
+      path: ["votes"],
+    }),
+  z
+    .object({
+      mode: z.literal("secret"),
+      totals: z.object({
+        approve: z.number().int().nonnegative(),
+        reject: z.number().int().nonnegative(),
+        abstain: z.number().int().nonnegative(),
+      }),
+    })
+    .refine((value) => value.totals.approve + value.totals.reject + value.totals.abstain > 0, {
+      message: "A secret ballot must record at least one vote",
+      path: ["totals"],
+    }),
+]);
+
+const completeBallotInputSchema = z.object({
+  ballotId: resourceIdSchema,
+  completedAt: timestampSchema,
+});
+
+export type ScheduleAgendaItemInput = z.input<typeof scheduleAgendaItemInputSchema>;
+export type ProvisionInitialCouncilMeetingInput = z.input<typeof provisionInitialCouncilMeetingInputSchema>;
+export type ReprogramAgendaItemInput = z.input<typeof reprogramAgendaItemInputSchema>;
+export type ReorderCouncilAgendaInput = z.input<typeof reorderCouncilAgendaInputSchema>;
+export type ScheduleCouncilMeetingInput = z.input<typeof scheduleCouncilMeetingInputSchema>;
+export type SetCouncilMeetingOfficersInput = z.input<typeof setCouncilMeetingOfficersInputSchema>;
+export type PrepareCouncilMeetingInput = z.input<typeof prepareCouncilMeetingInputSchema>;
+export type CreateAndScheduleBusinessInput = z.input<typeof createAndScheduleBusinessInputSchema>;
+export type StartCouncilMeetingInput = z.input<typeof startCouncilMeetingInputSchema>;
+export type StartAgendaItemInput = z.input<typeof startAgendaItemInputSchema>;
+export type CompleteOpenQuestionInput = z.input<typeof completeOpenQuestionInputSchema>;
+export type CreateBallotInput = z.input<typeof createBallotInputSchema>;
+export type RecordBallotVotesInput = z.input<typeof recordBallotVotesInputSchema>;
+export type CompleteBallotInput = z.input<typeof completeBallotInputSchema>;
 
 const closeCouncilMeetingInputSchema = z.object({
   id: resourceIdSchema,
   closedAt: timestampSchema,
-  minutes: z.object({
-    parentPath: resourcePathSchema,
-    businessName: resourceNameSchema,
-    reportName: resourceNameSchema,
-    reportContent: z.string(),
-  }),
 });
 
 export type CloseCouncilMeetingInput = z.input<typeof closeCouncilMeetingInputSchema>;
 
 export class PostgresCouncil {
   private readonly transactions: PostgresTransactionManager;
+
+  updateAgendaItemNotes(
+    request: PostgresCouncilRequest,
+    input: { id: string; discussionSummary: string },
+  ): Promise<PostgresCouncilAgendaItem> {
+    const parsed = z.object({ id: resourceIdSchema, discussionSummary: z.string() }).strict().parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.update-notes") },
+      async (client) => {
+        const result = await callJson(client, {
+          text: "SELECT hall_api.update_council_agenda_item_notes($1::uuid,$2::text) AS payload",
+          values: [parsed.id, parsed.discussionSummary],
+          schema: postgresCouncilAgendaItemSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "agenda-item",
+          targetId: parsed.id,
+          outcome: "succeeded",
+          details: {},
+        });
+        return result;
+      },
+    );
+  }
 
   constructor(pool: Pool) {
     this.transactions = new PostgresTransactionManager(pool);
@@ -76,16 +369,420 @@ export class PostgresCouncil {
     return { ...request.context, action };
   }
 
-  openMeeting(request: PostgresCouncilRequest, id: string): Promise<PostgresCouncilMeeting> {
-    const meetingId = resourceIdSchema.parse(id);
+  listBusinesses(request: PostgresCouncilRequest): Promise<PostgresCouncilBusinessWorkspace[]> {
     return this.transactions.run(
-      { role: request.role, context: this.runContext(request, "meeting.open") },
+      { role: request.role, context: this.runContext(request, "council-business.list") },
       (client) =>
         callJson(client, {
-          text: "SELECT hall_api.open_council_meeting($1::uuid) AS payload",
-          values: [meetingId],
-          schema: postgresCouncilMeetingSchema,
+          text: "SELECT hall_api.list_council_business() AS payload",
+          schema: z.array(postgresCouncilBusinessWorkspaceSchema),
         }),
+    );
+  }
+
+  listBusinessWorkspaceItems(request: PostgresCouncilRequest): Promise<PostgresCouncilBusinessWorkspaceItem[]> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.workspace.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.list_council_business_workspace_items() AS payload",
+          schema: z.array(postgresCouncilBusinessWorkspaceItemSchema),
+        }),
+    );
+  }
+
+  listBusinessResourceItems(
+    request: PostgresCouncilRequest,
+    businessIds: readonly string[],
+  ): Promise<PostgresCouncilBusinessResourceItem[]> {
+    const parsedBusinessIds = z.array(resourceIdSchema).min(1).max(100).parse(businessIds);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.resource-items.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.list_council_business_resource_items($1::uuid[]) AS payload",
+          values: [parsedBusinessIds],
+          schema: z.array(postgresCouncilBusinessResourceItemSchema),
+        }),
+    );
+  }
+
+  openBusiness(request: PostgresCouncilRequest, id: string): Promise<PostgresCouncilBusinessWorkspace | null> {
+    const businessId = resourceIdSchema.parse(id);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.open") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.open_council_business($1::uuid) AS payload",
+          values: [businessId],
+          schema: postgresCouncilBusinessWorkspaceSchema.nullable(),
+        }),
+    );
+  }
+
+  createBusiness(
+    request: PostgresCouncilRequest,
+    input: CreatePostgresCouncilBusiness,
+  ): Promise<PostgresCouncilBusinessWorkspace> {
+    const parsed = createPostgresCouncilBusinessSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.create") },
+      async (client) => {
+        const business = await callJson(client, {
+          text: "SELECT hall_api.create_council_business($1::text, $2::text, $3::text, $4::text) AS payload",
+          values: [parsed.path, parsed.name, parsed.reportName, parsed.reportContent],
+          schema: postgresCouncilBusinessWorkspaceSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-business",
+          targetId: business.id,
+          outcome: "succeeded",
+        });
+        return business;
+      },
+    );
+  }
+
+  listBusinessResources(
+    request: PostgresCouncilRequest,
+    businessId: string,
+  ): Promise<PostgresCouncilBusinessResourceAssociation[]> {
+    const parsedBusinessId = resourceIdSchema.parse(businessId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.resources.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.list_council_business_resources($1::uuid) AS payload",
+          values: [parsedBusinessId],
+          schema: z.array(postgresCouncilBusinessResourceAssociationSchema),
+        }),
+    );
+  }
+
+  associateBusinessResource(
+    request: PostgresCouncilRequest,
+    businessId: string,
+    resourceId: string,
+  ): Promise<PostgresCouncilBusinessResourceAssociation> {
+    const parsedBusinessId = resourceIdSchema.parse(businessId);
+    const parsedResourceId = resourceIdSchema.parse(resourceId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.resource.associate") },
+      async (client) => {
+        const association = await callJson(client, {
+          text: "SELECT hall_api.associate_council_business_resource($1::uuid, $2::uuid) AS payload",
+          values: [parsedBusinessId, parsedResourceId],
+          schema: postgresCouncilBusinessResourceAssociationSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-business",
+          targetId: parsedBusinessId,
+          outcome: "succeeded",
+          details: { resourceId: parsedResourceId },
+        });
+        return association;
+      },
+    );
+  }
+
+  dissociateBusinessResource(
+    request: PostgresCouncilRequest,
+    businessId: string,
+    resourceId: string,
+  ): Promise<PostgresCouncilBusinessResourceAssociation> {
+    const parsedBusinessId = resourceIdSchema.parse(businessId);
+    const parsedResourceId = resourceIdSchema.parse(resourceId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.resource.dissociate") },
+      async (client) => {
+        const association = await callJson(client, {
+          text: "SELECT hall_api.dissociate_council_business_resource($1::uuid, $2::uuid) AS payload",
+          values: [parsedBusinessId, parsedResourceId],
+          schema: postgresCouncilBusinessResourceAssociationSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-business",
+          targetId: parsedBusinessId,
+          outcome: "succeeded",
+          details: { resourceId: parsedResourceId },
+        });
+        return association;
+      },
+    );
+  }
+
+  reorderBusinessResources(
+    request: PostgresCouncilRequest,
+    businessId: string,
+    resourceIds: readonly string[],
+  ): Promise<PostgresCouncilBusinessResourceAssociation[]> {
+    const parsedBusinessId = resourceIdSchema.parse(businessId);
+    const parsedResourceIds = z.array(resourceIdSchema).parse(resourceIds);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.resources.reorder") },
+      async (client) => {
+        const associations = await callJson(client, {
+          text: "SELECT hall_api.reorder_council_business_resources($1::uuid, $2::uuid[]) AS payload",
+          values: [parsedBusinessId, parsedResourceIds],
+          schema: z.array(postgresCouncilBusinessResourceAssociationSchema),
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-business",
+          targetId: parsedBusinessId,
+          outcome: "succeeded",
+          details: { resourceCount: parsedResourceIds.length },
+        });
+        return associations;
+      },
+    );
+  }
+
+  listMeetings(request: PostgresCouncilRequest): Promise<PostgresCouncilMeeting[]> {
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "meeting.list") }, (client) =>
+      callJson(client, {
+        text: "SELECT hall_api.list_council_meetings() AS payload",
+        schema: z.array(postgresCouncilMeetingSchema),
+      }),
+    );
+  }
+
+  provisionInitialMeeting(
+    request: PostgresCouncilRequest,
+    input: ProvisionInitialCouncilMeetingInput,
+  ): Promise<PostgresCouncilMeeting> {
+    const parsed = provisionInitialCouncilMeetingInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.provision-initial") },
+      async (client) => {
+        const meeting = await callJson(client, {
+          text: "SELECT hall_api.provision_initial_council_meeting($1::integer) AS payload",
+          values: [parsed.quorum],
+          schema: postgresCouncilMeetingSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-meeting",
+          targetId: meeting.id,
+          outcome: "succeeded",
+        });
+        return meeting;
+      },
+    );
+  }
+
+  openMeeting(request: PostgresCouncilRequest, id: string): Promise<PostgresCouncilMeeting | null> {
+    const meetingId = resourceIdSchema.parse(id);
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "meeting.open") }, (client) =>
+      callJson(client, {
+        text: "SELECT hall_api.open_council_meeting($1::uuid) AS payload",
+        values: [meetingId],
+        schema: postgresCouncilMeetingSchema.nullable(),
+      }),
+    );
+  }
+
+  openMeetingBySlug(request: PostgresCouncilRequest, slug: string): Promise<PostgresCouncilMeeting | null> {
+    const parsedSlug = z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}-\d+$/)
+      .parse(slug);
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "meeting.open") }, (client) =>
+      callJson(client, {
+        text: "SELECT hall_api.open_council_meeting_by_slug($1::text) AS payload",
+        values: [parsedSlug],
+        schema: postgresCouncilMeetingSchema.nullable(),
+      }),
+    );
+  }
+
+  scheduleMeeting(
+    request: PostgresCouncilRequest,
+    input: ScheduleCouncilMeetingInput,
+  ): Promise<PostgresCouncilMeeting> {
+    const parsed = scheduleCouncilMeetingInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.schedule") },
+      async (client) => {
+        const meeting = await callJson(client, {
+          text: "SELECT hall_api.schedule_council_meeting($1::uuid, $2::timestamptz, $3::text) AS payload",
+          values: [parsed.id, parsed.scheduledAt, parsed.location],
+          schema: postgresCouncilMeetingSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-meeting",
+          targetId: parsed.id,
+          outcome: "succeeded",
+        });
+        return meeting;
+      },
+    );
+  }
+
+  setMeetingOfficers(
+    request: PostgresCouncilRequest,
+    input: SetCouncilMeetingOfficersInput,
+  ): Promise<PostgresCouncilMeeting> {
+    const parsed = setCouncilMeetingOfficersInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.set-officers") },
+      async (client) => {
+        const meeting = await callJson(client, {
+          text: "SELECT hall_api.set_council_meeting_officers($1::uuid, $2::uuid, $3::uuid) AS payload",
+          values: [parsed.id, parsed.chairMemberId, parsed.secretaryMemberId],
+          schema: postgresCouncilMeetingSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-meeting",
+          targetId: parsed.id,
+          outcome: "succeeded",
+        });
+        return meeting;
+      },
+    );
+  }
+
+  prepareMeeting(request: PostgresCouncilRequest, input: PrepareCouncilMeetingInput): Promise<PostgresCouncilMeeting> {
+    const parsed = prepareCouncilMeetingInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.prepare") },
+      async (client) => {
+        const meeting = await callJson(client, {
+          text: "SELECT hall_api.prepare_council_meeting($1::uuid, $2::timestamptz, $3::text, $4::uuid, $5::uuid) AS payload",
+          values: [parsed.id, parsed.scheduledAt, parsed.location, parsed.chairMemberId, parsed.secretaryMemberId],
+          schema: postgresCouncilMeetingSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-meeting",
+          targetId: parsed.id,
+          outcome: "succeeded",
+        });
+        return meeting;
+      },
+    );
+  }
+
+  private createAndScheduleBusiness(
+    request: PostgresCouncilRequest,
+    input: CreateAndScheduleBusinessInput,
+    sql: string,
+  ): Promise<PostgresCreatedAndScheduledCouncilBusiness> {
+    const parsed = createAndScheduleBusinessInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.create-and-schedule-business") },
+      async (client) => {
+        const created = await callJson(client, {
+          text: sql,
+          values: [
+            parsed.path,
+            parsed.name,
+            parsed.reportName,
+            parsed.reportContent,
+            parsed.councilMeetingId,
+            parsed.position,
+          ],
+          schema: postgresCreatedAndScheduledCouncilBusinessSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-business",
+          targetId: created.business.id,
+          outcome: "succeeded",
+          details: { agendaItemId: created.agendaItem.id, councilMeetingId: parsed.councilMeetingId },
+        });
+        return created;
+      },
+    );
+  }
+
+  createAndScheduleDecisionProposal(
+    request: PostgresCouncilRequest,
+    input: CreateAndScheduleBusinessInput,
+  ): Promise<PostgresCreatedAndScheduledCouncilBusiness> {
+    return this.createAndScheduleBusiness(
+      request,
+      input,
+      "SELECT hall_api.create_and_schedule_council_decision_proposal($1::text, $2::text, $3::text, $4::text, $5::uuid, $6::integer) AS payload",
+    );
+  }
+
+  createAndScheduleOpenQuestion(
+    request: PostgresCouncilRequest,
+    input: CreateAndScheduleBusinessInput,
+  ): Promise<PostgresCreatedAndScheduledCouncilBusiness> {
+    return this.createAndScheduleBusiness(
+      request,
+      input,
+      "SELECT hall_api.create_and_schedule_open_question($1::text, $2::text, $3::text, $4::text, $5::uuid, $6::integer) AS payload",
+    );
+  }
+
+  startMeeting(request: PostgresCouncilRequest, input: StartCouncilMeetingInput): Promise<PostgresCouncilMeeting> {
+    const parsed = startCouncilMeetingInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.start") },
+      async (client) => {
+        const meeting = await callJson(client, {
+          text: "SELECT hall_api.start_council_meeting($1::uuid, $2::timestamptz) AS payload",
+          values: [parsed.id, parsed.startedAt],
+          schema: postgresCouncilMeetingSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-meeting",
+          targetId: parsed.id,
+          outcome: "succeeded",
+        });
+        return meeting;
+      },
+    );
+  }
+
+  listAttendance(request: PostgresCouncilRequest, meetingId: string): Promise<PostgresMeetingAttendance[]> {
+    const parsedMeetingId = resourceIdSchema.parse(meetingId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.attendance.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.list_meeting_attendance($1::uuid) AS payload",
+          values: [parsedMeetingId],
+          schema: z.array(postgresMeetingAttendanceSchema),
+        }),
+    );
+  }
+
+  recordAttendance(
+    request: PostgresCouncilRequest,
+    meetingId: string,
+    declarations: readonly PostgresMeetingAttendanceDeclaration[],
+  ): Promise<PostgresMeetingAttendance[]> {
+    const parsedMeetingId = resourceIdSchema.parse(meetingId);
+    const parsedDeclarations = z.array(postgresMeetingAttendanceDeclarationSchema).min(1).parse(declarations);
+    const payload = parsedDeclarations.map((declaration) =>
+      matchDiscriminated(declaration, "status", {
+        present: (value) => ({ council_member_id: value.councilMemberId, status: value.status }),
+        excused: (value) => ({ council_member_id: value.councilMemberId, status: value.status }),
+        absent: (value) => ({ council_member_id: value.councilMemberId, status: value.status }),
+        represented: (value) => ({
+          council_member_id: value.councilMemberId,
+          status: value.status,
+          proxy_holder_council_member_id: value.proxyHolderCouncilMemberId,
+          proxy_document_id: value.proxyDocumentId,
+        }),
+      }),
+    );
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.attendance.record") },
+      async (client) => {
+        const attendance = await callJson(client, {
+          text: "SELECT hall_api.record_meeting_attendance($1::uuid, $2::jsonb) AS payload",
+          values: [parsedMeetingId, JSON.stringify(payload)],
+          schema: z.array(postgresMeetingAttendanceSchema),
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-meeting",
+          targetId: parsedMeetingId,
+          outcome: "succeeded",
+          details: { attendanceCount: attendance.length },
+        });
+        return attendance;
+      },
     );
   }
 
@@ -102,26 +799,357 @@ export class PostgresCouncil {
     );
   }
 
-  close(
+  listBusinessAgendaItems(
     request: PostgresCouncilRequest,
-    input: CloseCouncilMeetingInput,
-  ): Promise<PostgresCouncilMeetingClosure> {
+    businessIds: readonly string[],
+  ): Promise<PostgresCouncilAgendaItem[]> {
+    const parsedBusinessIds = z.array(resourceIdSchema).min(1).max(100).parse(businessIds);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.agenda-items.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.list_council_business_agenda_items($1::uuid[]) AS payload",
+          values: [parsedBusinessIds],
+          schema: z.array(postgresCouncilAgendaItemSchema),
+        }),
+    );
+  }
+
+  openAgendaItem(request: PostgresCouncilRequest, id: string): Promise<PostgresCouncilAgendaItem | null> {
+    const agendaItemId = resourceIdSchema.parse(id);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.open") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.open_council_agenda_item($1::uuid) AS payload",
+          values: [agendaItemId],
+          schema: postgresCouncilAgendaItemSchema.nullable(),
+        }),
+    );
+  }
+
+  scheduleDecisionProposal(
+    request: PostgresCouncilRequest,
+    input: ScheduleAgendaItemInput,
+  ): Promise<PostgresCouncilAgendaItem> {
+    const parsed = scheduleAgendaItemInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.schedule-decision-proposal") },
+      async (client) => {
+        const agendaItem = await callJson(client, {
+          text: "SELECT hall_api.schedule_council_decision_proposal($1::uuid, $2::uuid, $3::integer) AS payload",
+          values: [parsed.councilBusinessId, parsed.councilMeetingId, parsed.position],
+          schema: postgresCouncilAgendaItemSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "agenda-item",
+          targetId: agendaItem.id,
+          outcome: "succeeded",
+          details: { councilBusinessId: parsed.councilBusinessId, councilMeetingId: parsed.councilMeetingId },
+        });
+        return agendaItem;
+      },
+    );
+  }
+
+  scheduleOpenQuestion(
+    request: PostgresCouncilRequest,
+    input: ScheduleAgendaItemInput,
+  ): Promise<PostgresCouncilAgendaItem> {
+    const parsed = scheduleAgendaItemInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.schedule-open-question") },
+      async (client) => {
+        const agendaItem = await callJson(client, {
+          text: "SELECT hall_api.schedule_open_question($1::uuid, $2::uuid, $3::integer) AS payload",
+          values: [parsed.councilBusinessId, parsed.councilMeetingId, parsed.position],
+          schema: postgresCouncilAgendaItemSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "agenda-item",
+          targetId: agendaItem.id,
+          outcome: "succeeded",
+          details: { councilBusinessId: parsed.councilBusinessId, councilMeetingId: parsed.councilMeetingId },
+        });
+        return agendaItem;
+      },
+    );
+  }
+
+  adjournAgendaItem(
+    request: PostgresCouncilRequest,
+    agendaItemId: string,
+    adjournedAt: string,
+  ): Promise<PostgresCouncilAgendaItem> {
+    const parsedAgendaItemId = resourceIdSchema.parse(agendaItemId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.adjourn") },
+      async (client) => {
+        const agendaItem = await callJson(client, {
+          text: "SELECT hall_api.adjourn_council_agenda_item($1::uuid, $2::timestamptz) AS payload",
+          values: [parsedAgendaItemId, timestampSchema.parse(adjournedAt)],
+          schema: postgresCouncilAgendaItemSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "agenda-item",
+          targetId: agendaItem.id,
+          outcome: "succeeded",
+        });
+        return agendaItem;
+      },
+    );
+  }
+
+  deprogramAgendaItem(request: PostgresCouncilRequest, agendaItemId: string): Promise<PostgresCouncilAgendaItem> {
+    const parsedAgendaItemId = resourceIdSchema.parse(agendaItemId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.deprogram") },
+      async (client) => {
+        const agendaItem = await callJson(client, {
+          text: "SELECT hall_api.deprogram_council_agenda_item($1::uuid) AS payload",
+          values: [parsedAgendaItemId],
+          schema: postgresCouncilAgendaItemSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "agenda-item",
+          targetId: agendaItem.id,
+          outcome: "succeeded",
+        });
+        return agendaItem;
+      },
+    );
+  }
+
+  reprogramAgendaItem(
+    request: PostgresCouncilRequest,
+    input: ReprogramAgendaItemInput,
+  ): Promise<PostgresCouncilAgendaItem> {
+    const parsed = reprogramAgendaItemInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.reprogram") },
+      async (client) => {
+        const agendaItem = await callJson(client, {
+          text: "SELECT hall_api.reprogram_council_agenda_item($1::uuid, $2::uuid, $3::integer) AS payload",
+          values: [parsed.agendaItemId, parsed.councilMeetingId, parsed.position],
+          schema: postgresCouncilAgendaItemSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "agenda-item",
+          targetId: agendaItem.id,
+          outcome: "succeeded",
+          details: { councilMeetingId: parsed.councilMeetingId },
+        });
+        return agendaItem;
+      },
+    );
+  }
+
+  reorderAgenda(
+    request: PostgresCouncilRequest,
+    input: ReorderCouncilAgendaInput,
+  ): Promise<PostgresCouncilAgendaItem[]> {
+    const parsed = reorderCouncilAgendaInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.agenda.reorder") },
+      async (client) => {
+        const agenda = await callJson(client, {
+          text: "SELECT hall_api.reorder_council_agenda($1::uuid, $2::uuid[]) AS payload",
+          values: [parsed.councilMeetingId, parsed.agendaItemIds],
+          schema: z.array(postgresCouncilAgendaItemSchema),
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-meeting",
+          targetId: parsed.councilMeetingId,
+          outcome: "succeeded",
+          details: { agendaItemCount: parsed.agendaItemIds.length },
+        });
+        return agenda;
+      },
+    );
+  }
+
+  startAgendaItem(request: PostgresCouncilRequest, input: StartAgendaItemInput): Promise<PostgresCouncilAgendaItem> {
+    const parsed = startAgendaItemInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.start") },
+      async (client) => {
+        const agendaItem = await callJson(client, {
+          text: "SELECT hall_api.start_council_agenda_item($1::uuid, $2::timestamptz) AS payload",
+          values: [parsed.agendaItemId, parsed.startedAt],
+          schema: postgresCouncilAgendaItemSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "agenda-item",
+          targetId: agendaItem.id,
+          outcome: "succeeded",
+        });
+        return agendaItem;
+      },
+    );
+  }
+
+  completeOpenQuestion(
+    request: PostgresCouncilRequest,
+    input: CompleteOpenQuestionInput,
+  ): Promise<PostgresCouncilAgendaItem> {
+    const parsed = completeOpenQuestionInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.complete-open-question") },
+      async (client) => {
+        const agendaItem = await callJson(client, {
+          text: "SELECT hall_api.complete_open_question($1::uuid, $2::timestamptz) AS payload",
+          values: [parsed.agendaItemId, parsed.completedAt],
+          schema: postgresCouncilAgendaItemSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "agenda-item",
+          targetId: agendaItem.id,
+          outcome: "succeeded",
+        });
+        return agendaItem;
+      },
+    );
+  }
+
+  listBallots(request: PostgresCouncilRequest, meetingId: string): Promise<PostgresBallot[]> {
+    const parsedMeetingId = resourceIdSchema.parse(meetingId);
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "ballot.list") }, (client) =>
+      callJson(client, {
+        text: "SELECT hall_api.list_council_meeting_ballots($1::uuid) AS payload",
+        values: [parsedMeetingId],
+        schema: z.array(postgresBallotSchema),
+      }),
+    );
+  }
+
+  openBallot(request: PostgresCouncilRequest, id: string): Promise<PostgresBallot | null> {
+    const ballotId = resourceIdSchema.parse(id);
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "ballot.open") }, (client) =>
+      callJson(client, {
+        text: "SELECT hall_api.open_ballot($1::uuid) AS payload",
+        values: [ballotId],
+        schema: postgresBallotSchema.nullable(),
+      }),
+    );
+  }
+
+  listBallotParticipations(request: PostgresCouncilRequest, ballotId: string): Promise<PostgresBallotParticipation[]> {
+    const parsedBallotId = resourceIdSchema.parse(ballotId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "ballot.participation.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.list_ballot_participations($1::uuid) AS payload",
+          values: [parsedBallotId],
+          schema: z.array(postgresBallotParticipationSchema),
+        }),
+    );
+  }
+
+  listBallotVotes(request: PostgresCouncilRequest, ballotId: string): Promise<PostgresBallotVote[]> {
+    const parsedBallotId = resourceIdSchema.parse(ballotId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "ballot.vote.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.list_ballot_votes($1::uuid) AS payload",
+          values: [parsedBallotId],
+          schema: z.array(postgresBallotVoteSchema),
+        }),
+    );
+  }
+
+  createBallot(request: PostgresCouncilRequest, input: CreateBallotInput): Promise<PostgresBallot> {
+    const parsed = createBallotInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "ballot.create") },
+      async (client) => {
+        const ballot = await callJson(client, {
+          text: "SELECT hall_api.create_ballot($1::uuid, $2::text, $3::uuid[], $4::uuid) AS payload",
+          values: [parsed.agendaItemId, parsed.mode, parsed.participantAttendanceIds, parsed.chairmanAttendanceId],
+          schema: postgresBallotSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "ballot",
+          targetId: ballot.id,
+          outcome: "succeeded",
+          details: { agendaItemId: parsed.agendaItemId, mode: parsed.mode },
+        });
+        return ballot;
+      },
+    );
+  }
+
+  recordBallotVotes(
+    request: PostgresCouncilRequest,
+    ballotId: string,
+    input: RecordBallotVotesInput,
+  ): Promise<PostgresBallotVote[]> {
+    const parsedBallotId = resourceIdSchema.parse(ballotId);
+    const parsed = recordBallotVotesInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "ballot.vote.record") },
+      async (client) => {
+        const votes = await matchDiscriminated(parsed, "mode", {
+          public: (value) =>
+            callJson(client, {
+              text: "SELECT hall_api.record_public_ballot_votes($1::uuid, $2::uuid[], $3::text[]) AS payload",
+              values: [
+                parsedBallotId,
+                value.votes.map((vote) => vote.ballotParticipationId),
+                value.votes.map((vote) => vote.choice),
+              ],
+              schema: z.array(postgresBallotVoteSchema),
+            }),
+          secret: (value) =>
+            callJson(client, {
+              text: "SELECT hall_api.record_secret_ballot_votes($1::uuid, $2::integer, $3::integer, $4::integer) AS payload",
+              values: [parsedBallotId, value.totals.approve, value.totals.reject, value.totals.abstain],
+              schema: z.array(postgresBallotVoteSchema),
+            }),
+        });
+        await recordAuditEvent(client, {
+          targetType: "ballot",
+          targetId: parsedBallotId,
+          outcome: "succeeded",
+          details: { mode: parsed.mode },
+        });
+        return votes;
+      },
+    );
+  }
+
+  completeBallot(request: PostgresCouncilRequest, input: CompleteBallotInput): Promise<PostgresBallot> {
+    const parsed = completeBallotInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "ballot.complete") },
+      async (client) => {
+        const ballot = await callJson(client, {
+          text: "SELECT hall_api.complete_ballot($1::uuid, $2::timestamptz) AS payload",
+          values: [parsed.ballotId, parsed.completedAt],
+          schema: postgresBallotSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "ballot",
+          targetId: parsed.ballotId,
+          outcome: "succeeded",
+          details: { result: ballot.result },
+        });
+        return ballot;
+      },
+    );
+  }
+
+  close(request: PostgresCouncilRequest, input: CloseCouncilMeetingInput): Promise<PostgresCouncilMeetingClosure> {
     const parsed = closeCouncilMeetingInputSchema.parse(input);
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "meeting.close") },
       async (client) => {
         const closure = await callJson(client, {
           text: `SELECT hall_api.close_council_meeting(
-            $1::uuid, $2::timestamptz, $3::text, $4::text, $5::text, $6::text
+            $1::uuid, $2::timestamptz
           ) AS payload`,
-          values: [
-            parsed.id,
-            parsed.closedAt,
-            parsed.minutes.parentPath,
-            parsed.minutes.businessName,
-            parsed.minutes.reportName,
-            parsed.minutes.reportContent,
-          ],
+          values: [parsed.id, parsed.closedAt],
           schema: postgresCouncilMeetingClosureSchema,
         });
         await recordAuditEvent(client, {
@@ -130,7 +1158,7 @@ export class PostgresCouncil {
           outcome: "succeeded",
           details: {
             nextCouncilMeetingId: closure.nextMeeting.id,
-            minutesCouncilBusinessId: closure.minutesBusiness.id,
+            minutesId: closure.minutes.id,
           },
         });
         return closure;

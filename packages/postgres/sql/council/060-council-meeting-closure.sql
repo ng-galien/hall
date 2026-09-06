@@ -64,11 +64,14 @@ AS $function$
      AND next_agenda_item.position = 1
     WHERE successor.previous_council_meeting = target_meeting
   )
+  AND EXISTS (SELECT FROM hall.council_meeting_snapshot
+    WHERE council_meeting = target_meeting AND phase = 'closing')
   AND NOT EXISTS (
     SELECT
     FROM hall.council_agenda_item AS unstarted
     WHERE unstarted.council_meeting = target_meeting
       AND unstarted.started_at IS NULL
+      AND unstarted.position > 0
   )
   AND NOT EXISTS (
     SELECT
@@ -82,7 +85,7 @@ AS $function$
     SELECT
     FROM hall.council_agenda_item AS deferred
     WHERE deferred.council_meeting = target_meeting
-      AND deferred.started_at IS NOT NULL
+      AND (deferred.started_at IS NOT NULL OR deferred.adjourned_at IS NOT NULL)
       AND deferred.completed_at IS NULL
       AND deferred.position < 0
       AND NOT EXISTS (
@@ -166,12 +169,12 @@ EXECUTE FUNCTION enforce_council_meeting_sequence();
 -- @functional-requirement HALL-FR-AGI-280 UNFINISHED_AGENDA_IS_CARRIED_FORWARD:
 CREATE FUNCTION close_council_meeting(
   target_meeting UUID,
-  closure_time TIMESTAMPTZ,
-  minutes_business UUID
+  closure_time TIMESTAMPTZ
 )
 RETURNS UUID
 LANGUAGE plpgsql
 VOLATILE
+SET search_path = pg_catalog, hall
 AS $function$
 DECLARE
   meeting council_meetings;
@@ -196,6 +199,8 @@ BEGIN
   IF closure_time IS NULL
     OR meeting.started_at IS NULL
     OR closure_time < meeting.started_at
+    OR EXISTS (SELECT FROM council_agenda_item WHERE council_meeting = target_meeting
+      AND greatest(started_at, completed_at, adjourned_at) > closure_time)
   THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV116',
@@ -220,15 +225,19 @@ BEGIN
       MESSAGE = 'a council meeting with an open ballot cannot be closed';
   END IF;
 
+  PERFORM hall.capture_council_meeting_snapshot(meeting.id, 'closing', closure_time);
+
   -- The successor is provisioned without a scheduled date and inherits the
   -- known quorum. Its predecessor link cannot be duplicated.
   INSERT INTO council_meetings (
     id,
+    number,
     previous_council_meeting,
     scheduled_at,
     quorum
   ) VALUES (
     next_meeting,
+    meeting.number + 1,
     meeting.id,
     NULL,
     meeting.quorum
@@ -241,7 +250,6 @@ BEGIN
   VALUES (produced_approval, produced_minutes);
 
   PERFORM schedule_minutes_approval(
-    minutes_business,
     next_meeting,
     produced_approval
   );
@@ -264,6 +272,7 @@ BEGIN
     FROM council_agenda_item AS agenda_item
     WHERE agenda_item.council_meeting = meeting.id
       AND agenda_item.started_at IS NULL
+      AND agenda_item.position > 0
   )
   UPDATE council_agenda_item AS agenda_item
   SET council_meeting = next_meeting,
@@ -299,7 +308,7 @@ BEGIN
     WHERE next_item.council_meeting = next_meeting
   ) AS existing
   WHERE deferred.council_meeting = meeting.id
-    AND deferred.started_at IS NOT NULL
+    AND (deferred.started_at IS NOT NULL OR deferred.adjourned_at IS NOT NULL)
     AND deferred.completed_at IS NULL
     AND deferred.position < 0;
 

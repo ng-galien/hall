@@ -1,4 +1,4 @@
-import type { CouncilDecisionListEntry, CouncilMeeting } from "@hall/domain";
+import type { CouncilDecisionListEntry } from "@hall/domain";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { GavelIcon } from "../components/icons";
@@ -13,11 +13,12 @@ import {
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge, StatusBadge } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
+import type { CouncilMeetingView } from "../models/councilMeeting";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 
 interface DecisionGroup {
-  meeting: CouncilMeeting | null;
+  meeting: CouncilMeetingView | null;
   decisions: CouncilDecisionListEntry[];
 }
 
@@ -42,7 +43,9 @@ export function CouncilDecisionsPage() {
         meeting: meetings.find((meeting) => meeting.id === meetingId) ?? null,
         decisions,
       }))
-      .sort((left, right) => (right.meeting?.startsAt ?? "").localeCompare(left.meeting?.startsAt ?? ""));
+      .sort((left, right) =>
+        (right.meeting?.scheduledAt ?? "").localeCompare(left.meeting?.scheduledAt ?? ""),
+      );
     const unscheduled = byMeeting.get(null);
     return unscheduled ? [{ meeting: null, decisions: unscheduled }, ...meetingGroups] : meetingGroups;
   }, [visibleDecisions, meetings]);
@@ -60,12 +63,13 @@ export function CouncilDecisionsPage() {
             <section className="decision-group" key={group.meeting?.id ?? "unscheduled"}>
               <header className="decision-group-heading">
                 {group.meeting ? (
-                  <Link className="decision-group-title" to={`/meetings/${group.meeting.slug}`}>
+                  <Link className="decision-group-title" to={`/meetings/${group.meeting.reference}`}>
                     <GavelIcon aria-hidden="true" />
                     <span>
                       <strong>{formatMeetingLabel(group.meeting, t("meetings.occurrenceLabel"), formatDate)}</strong>
                       <span className="decision-group-meta">
-                        {formatDate(group.meeting.startsAt)} · <MeetingStatusBadge status={group.meeting.status} />
+                        {group.meeting.scheduledAt ? formatDate(group.meeting.scheduledAt) : t("dashboard.toSchedule")} ·{" "}
+                        <MeetingStatusBadge status={group.meeting.phase} />
                       </span>
                     </span>
                   </Link>
@@ -82,7 +86,7 @@ export function CouncilDecisionsPage() {
                 <div className="card-grid">
                   {group.decisions.map((decision) =>
                     group.meeting ? (
-                      <Link className="entity-card" key={decision.id} to={`/meetings/${group.meeting.slug}`}>
+                      <Link className="entity-card" key={decision.id} to={`/meetings/${group.meeting.reference}`}>
                         <span className="entity-card-eyebrow">{decision.number ?? t("decisions.draft")}</span>
                         <strong>{decision.title}</strong>
                         <p>{decision.draftText || t("decisions.textIncomplete")}</p>
@@ -117,7 +121,7 @@ export function CouncilDecisionsPage() {
                       </>
                     );
                     return group.meeting ? (
-                      <Link className="data-row linked" key={decision.id} to={`/meetings/${group.meeting.slug}`}>
+                      <Link className="data-row linked" key={decision.id} to={`/meetings/${group.meeting.reference}`}>
                         {rowContent}
                       </Link>
                     ) : (

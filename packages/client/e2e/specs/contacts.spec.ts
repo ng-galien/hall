@@ -6,7 +6,11 @@ test("creates a contact, edits it and reuses it for a council mandate", async ({
   await page.getByTestId("contacts-add").click();
   await page.getByTestId("contact-first-name").fill("Ariane");
   await page.getByTestId("contact-last-name").fill("Leroux");
+  const createResponse = page.waitForResponse(
+    (response) => response.url().endsWith("/api/contacts") && response.request().method() === "POST",
+  );
   await page.getByTestId("contact-create-submit").click();
+  expect((await createResponse).status()).toBe(201);
 
   const contactsResponse = await page.request.get("/api/contacts");
   expect(contactsResponse.ok()).toBe(true);
@@ -30,7 +34,7 @@ test("creates a contact, edits it and reuses it for a council mandate", async ({
   await page.getByTestId("navigation-settings").click();
   await expect(page.getByTestId("settings-expected-member-count")).toHaveValue("15");
   const settingsResponse = page.waitForResponse(
-    (response) => response.url().endsWith("/api/settings") && response.request().method() === "PUT",
+    (response) => response.url().endsWith("/api/council-terms") && response.request().method() === "PUT",
   );
   await page.getByTestId("settings-expected-member-count").fill("16");
   await page.getByTestId("settings-council-term-save").click();
@@ -48,11 +52,11 @@ test("creates a contact, edits it and reuses it for a council mandate", async ({
   const membersResponse = await page.request.get("/api/council-members");
   expect(membersResponse.ok()).toBe(true);
   const membersRepresentation = (await membersResponse.json()) as {
-    entities: Array<{ properties: { id: string; contact: { id: string } } }>;
+    entities: Array<{ properties: { id: string; contactId: string } }>;
   };
   const member = membersRepresentation.entities
     .map(({ properties }) => properties)
-    .find((candidate) => candidate.contact.id === contact?.id);
+    .find((candidate) => candidate.contactId === contact?.id);
   expect(member).toBeTruthy();
 
   await page.getByTestId("navigation-contacts").click();

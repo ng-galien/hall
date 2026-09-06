@@ -1,10 +1,4 @@
-import {
-  type CouncilBusiness,
-  councilBusinessDecisionId,
-  councilBusinessIsMatter,
-  matchDiscriminated,
-  matchLiteral,
-} from "@hall/domain";
+import { matchDiscriminated, matchLiteral } from "@hall/domain";
 import {
   type DragEvent,
   type KeyboardEvent,
@@ -39,7 +33,6 @@ import {
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
-import { councilBusinessKindKeys } from "../../features/council-business/presentation";
 import {
   type DocumentaryLeafSummary,
   DocumentaryResourceGlyph,
@@ -49,11 +42,15 @@ import {
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
-import { updateCouncilBusiness } from "../../services/councilBusinessApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
-import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
-import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
+import {
+  useWorkspaceCouncilActivityStore,
+  workspaceAgendaItemStatus,
+  workspaceAgendaSubjectKeys,
+  workspaceCurrentOccurrence,
+} from "../../stores/workspaceCouncilActivityStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { listCatalogPaths } from "./paths";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons } from "./workspaceCreateKind";
@@ -163,7 +160,7 @@ export function PathContents({
   hidden = false,
 }: {
   path: string;
-  businesses: CouncilBusiness[];
+  businesses: CouncilBusinessView[];
   resources: DocumentaryLeafSummary[];
   selection: WorkspaceSelection;
   onSelect(selection: WorkspaceSelection, path?: string): void;
@@ -174,8 +171,7 @@ export function PathContents({
   const { t, formatDate } = useI18n();
   const resourceTypeLabel = useDocumentaryResourceTypeLabel();
   const councilBusinessStore = useCouncilBusinessStore();
-  const { councilDecisions } = useCouncilDecisionsStore();
-  const { meetings } = useCouncilMeetingsStore();
+  const { occurrencesByBusinessId, load: loadCouncilActivity } = useWorkspaceCouncilActivityStore();
   const resourcesStore = useWorkspaceResourcesStore();
   const treeRef = useRef<HTMLUListElement | null>(null);
   const folderClickTimers = useRef(new Map<string, number>());
@@ -245,6 +241,10 @@ export function PathContents({
       media: [],
     });
   }, [path, resourcesStore.hydrate, resourcesStore.loadFolder]);
+
+  useEffect(() => {
+    void loadCouncilActivity();
+  }, [loadCouncilActivity]);
 
   useEffect(
     () => () => {
@@ -319,7 +319,13 @@ export function PathContents({
     }
     if (key.startsWith("business:")) {
       const id = key.slice("business:".length);
-      if (councilBusinessStore.renamableIds.includes(id)) startRename({ kind: "councilBusiness", id });
+      const business = councilBusinessStore.businesses.find((candidate) => candidate.id === id);
+      if (
+        business &&
+        resourceCapabilities(resourcesStore.representations[business.folderResourceId] ?? null).relocate
+      ) {
+        startRename({ kind: "councilBusiness", id });
+      }
       return;
     }
     if (key.startsWith("folder:")) {
@@ -351,14 +357,12 @@ export function PathContents({
         councilBusiness: async (entry) => {
           const business = councilBusinessStore.businesses.find((candidate) => candidate.id === entry.id);
           if (!business) return false;
-          await updateCouncilBusiness(business.id, {
-            title: nextTitle,
-            report: business.report,
-            folderPath: business.folderPath,
-            resourceIds: business.resources.map((resource) => resource.id),
+          const updated = await resourcesStore.relocate(business.folderResourceId, {
+            path: business.folderPath,
+            name: nextTitle,
           });
-          await Promise.all([useCouncilBusinessStore.getState().load(), useCouncilDecisionsStore.getState().load()]);
-          return true;
+          if (!updated) return false;
+          return Boolean(await useCouncilBusinessStore.getState().refresh(business.id));
         },
       });
     } catch (failure) {
@@ -381,7 +385,17 @@ export function PathContents({
         renameTargetRef.current?.kind === "folder" &&
         renameTargetRef.current.path === sourcePath;
       if (active) setActiveRename(null);
-      councilBusinessStore.applyFolderRename(result);
+      await Promise.all([
+        resourcesStore.hydrate({
+          query: "",
+          paths: [updated.fullPath],
+          kinds: [],
+          tags: [],
+          readiness: [],
+          media: [],
+        }),
+        councilBusinessStore.load(),
+      ]);
       setFolderExpansion((current) => {
         const next = new Map<string, boolean>();
         for (const [folderPath, expanded] of current) {
@@ -709,17 +723,17 @@ export function PathContents({
     }
   };
 
-  const attach = async (business: CouncilBusiness, payload: DragPayload) => {
+  const attach = async (business: CouncilBusinessView, payload: DragPayload) => {
     if (payload.kind !== "resource" || business.resources.some((resource) => resource.id === payload.id)) return;
     const resource = resourcesStore.summaries[payload.id];
-    if (!resource || resource.kind === "folder" || !councilBusinessStore.updatableIds.includes(business.id)) return;
-    const ok = await councilBusinessStore.update(business.id, {
-      title: business.title,
-      report: business.report,
-      folderPath: business.folderPath,
-      resourceIds: [...business.resources.map((item) => item.id), resource.id],
-    });
-    if (ok) setFeedback(t("workspace.attachedFeedback").replace("{name}", resource.name));
+    if (!resource || resource.kind === "folder") return;
+    setMoveError(null);
+    const associated = await councilBusinessStore.associateResource(business.id, resource.id);
+    if (!associated) {
+      setMoveError(useCouncilBusinessStore.getState().error);
+      return;
+    }
+    setFeedback(t("workspace.attachedFeedback").replace("{name}", resource.name));
   };
 
   const renderItems = (folderPath: string) => (
@@ -730,12 +744,13 @@ export function PathContents({
           const payload: DragPayload = { kind: "councilBusiness", id: business.id };
           const key = itemKey(payload);
           const renaming = renameTarget?.kind === payload.kind && renameTarget.id === payload.id;
-          const renamable = councilBusinessStore.renamableIds.includes(business.id);
-          const decisionId = councilBusinessDecisionId(business);
-          const decision = decisionId ? councilDecisions.find((candidate) => candidate.id === decisionId) : null;
-          const meeting = decision?.meetingId
-            ? (meetings.find((candidate) => candidate.id === decision.meetingId) ?? null)
-            : null;
+          const folderCapabilities = resourceCapabilities(
+            resourcesStore.representations[business.folderResourceId] ?? null,
+          );
+          const renamable = folderCapabilities.relocate;
+          const businessCapabilities = councilBusinessStore.capabilitiesById[business.id];
+          const occurrence = workspaceCurrentOccurrence(occurrencesByBusinessId[business.id] ?? []);
+          const occurrenceStatus = occurrence ? workspaceAgendaItemStatus(occurrence.agendaItem) : null;
           const rowContents = (
             <>
               <span className="workspace-business-drag" aria-hidden="true">
@@ -746,8 +761,9 @@ export function PathContents({
               </span>
               <span className="workspace-business-body">
                 <span className="workspace-business-eyebrow">
-                  {t("workspace.businessLeaf")}
-                  {councilBusinessIsMatter(business) ? "" : ` · ${t(councilBusinessKindKeys[business.kind])}`}
+                  {occurrence
+                    ? t(workspaceAgendaSubjectKeys[occurrence.agendaItem.subject.kind])
+                    : t("workspace.businessLeaf")}
                 </span>
                 <InlineRenameField
                   value={business.title}
@@ -766,13 +782,15 @@ export function PathContents({
                   className="workspace-business-lifecycle"
                   data-testid={`workspace-business-lifecycle-${business.id}`}
                 >
-                  {decision ? (
-                    <StatusBadge value={decision.status} />
+                  {occurrenceStatus ? (
+                    <StatusBadge value={occurrenceStatus} />
                   ) : (
                     <span>{t("workspace.businessStage.instruction")}</span>
                   )}
-                  {meeting ? (
-                    <span>{t("workspace.meetingOn").replace("{date}", formatDate(meeting.startsAt))}</span>
+                  {occurrence?.meeting.scheduledAt ? (
+                    <span>
+                      {t("workspace.meetingOn").replace("{date}", formatDate(occurrence.meeting.scheduledAt))}
+                    </span>
                   ) : null}
                 </span>
               </span>
@@ -803,8 +821,8 @@ export function PathContents({
             <ContentRow
               key={business.id}
               payload={payload}
-              movable={!renaming && councilBusinessStore.updatableIds.includes(business.id)}
-              onDrop={(payload) => void attach(business, payload)}
+              movable={!renaming && folderCapabilities.relocate}
+              onDrop={businessCapabilities?.associateResource ? (payload) => void attach(business, payload) : undefined}
               testId={`workspace-business-${business.id}`}
               className={`workspace-explorer-item workspace-explorer-business${selectedKey === key ? " workspace-explorer-selected" : ""}`}
             >
@@ -960,6 +978,7 @@ export function PathContents({
           data-testid={`workspace-folder-toggle-${folderPath}`}
           type="button"
           aria-expanded={isExpanded}
+          aria-label={folderPath.split("/").at(-1) ?? folderPath}
           onFocus={() => selectTreeItem(key)}
         >
           {isExpanded ? <FolderOpenIcon /> : <FolderIcon />}

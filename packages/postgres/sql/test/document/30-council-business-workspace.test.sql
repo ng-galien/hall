@@ -18,11 +18,11 @@ SELECT ok(
 SELECT ok(
   has_function_privilege(
     'hall_api_authenticated',
-    'hall_api.close_council_meeting(uuid,timestamp with time zone,text,text,text,text)',
+    'hall_api.close_council_meeting(uuid,timestamp with time zone)',
     'EXECUTE'
   ) AND NOT has_function_privilege(
     'hall_api_anonymous',
-    'hall_api.close_council_meeting(uuid,timestamp with time zone,text,text,text,text)',
+    'hall_api.close_council_meeting(uuid,timestamp with time zone)',
     'EXECUTE'
   ),
   'meeting closure is exposed only through the authenticated application surface'
@@ -118,18 +118,151 @@ SELECT is(
 )
 FROM business_result;
 
-INSERT INTO hall.council_meetings (id, quorum) VALUES
-  ('10000000-0000-0000-0000-000000000001', 1),
-  ('10000000-0000-0000-0000-000000000002', 1);
+-- HALL-FR-WSP-090 HALL-FR-WSP-100 HALL-FR-WSP-140 HALL-FR-WSP-150 HALL-FR-WSP-160
+CREATE TEMP TABLE supporting_resource (id UUID PRIMARY KEY, original_path TEXT NOT NULL);
+INSERT INTO supporting_resource
+SELECT (resource ->> 'id')::UUID, resource ->> 'path'
+FROM (
+  VALUES
+    (hall_api.create_text_resource('documents', 'annexe-a', 'A')),
+    (hall_api.create_text_resource('documents', 'annexe-b', 'B'))
+) AS created(resource);
+
+SELECT lives_ok(
+  format(
+    'SELECT hall_api.associate_council_business_resource(%L::uuid, %L::uuid)',
+    (SELECT payload ->> 'id' FROM business_result),
+    (SELECT id FROM supporting_resource ORDER BY id LIMIT 1)
+  ),
+  'an existing resource can be associated without moving it'
+);
+SELECT hall_api.associate_council_business_resource(
+  (SELECT (payload ->> 'id')::UUID FROM business_result),
+  (SELECT id FROM supporting_resource ORDER BY id DESC LIMIT 1)
+);
+
+SELECT results_eq(
+  $$SELECT resource.path
+    FROM hall.resource AS resource
+    JOIN supporting_resource AS supporting ON supporting.id = resource.id
+    ORDER BY resource.id$$,
+  $$SELECT original_path FROM supporting_resource ORDER BY id$$,
+  'association preserves every resource FolderPath'
+);
+
+SELECT is(
+  hall_api.reorder_council_business_resources(
+    (SELECT (payload ->> 'id')::UUID FROM business_result),
+    ARRAY(SELECT id FROM supporting_resource ORDER BY id DESC)
+  ) #>> '{0,resourceId}',
+  (SELECT id::TEXT FROM supporting_resource ORDER BY id DESC LIMIT 1),
+  'resource ordering is changed by one exact named action'
+);
+
+SELECT throws_ok(
+  format(
+    'SELECT hall_api.associate_council_business_resource(%L::uuid, %L::uuid)',
+    (SELECT payload ->> 'id' FROM business_result),
+    (SELECT payload ->> 'folderResourceId' FROM business_result)
+  ),
+  'HV703',
+  'a council business resource must be a non-folder working resource distinct from its report',
+  'the intrinsic folder cannot be duplicated as a working resource'
+);
+
+SELECT lives_ok(
+  format(
+    'SELECT hall_api.dissociate_council_business_resource(%L::uuid, %L::uuid)',
+    (SELECT payload ->> 'id' FROM business_result),
+    (SELECT id FROM supporting_resource ORDER BY id LIMIT 1)
+  ),
+  'a supporting resource can be dissociated explicitly'
+);
+
+SELECT is(
+  (SELECT path FROM hall.resource WHERE id = (SELECT id FROM supporting_resource ORDER BY id LIMIT 1)),
+  'documents',
+  'dissociation also preserves the resource FolderPath'
+);
+
+-- HALL-FR-WSP-180
+SELECT ok(
+  has_function_privilege(
+    'hall_api_authenticated',
+    'hall_api.list_council_business_workspace_items()',
+    'EXECUTE'
+  ) AND NOT has_function_privilege(
+    'hall_api_anonymous',
+    'hall_api.list_council_business_workspace_items()',
+    'EXECUTE'
+  ),
+  'the bulk CouncilBusiness workspace projection is restricted to authenticated runtime roles'
+);
+
+SELECT ok(
+  (item ->> 'id')::UUID = (SELECT (payload ->> 'id')::UUID FROM business_result)
+    AND item ->> 'title' = 'restauration-scolaire'
+    AND item ->> 'folderPath' = ''
+    AND item ->> 'report' = '# Cantine'
+    AND item ? 'createdAt'
+    AND item ? 'updatedAt',
+  'the bulk workspace projection preserves the existing CouncilBusiness presentation without nested resources'
+)
+FROM jsonb_array_elements(hall_api.list_council_business_workspace_items()) AS projected(item)
+WHERE item ->> 'id' = (SELECT payload ->> 'id' FROM business_result);
+
+-- HALL-FR-WSP-190
+SELECT ok(
+  has_function_privilege(
+    'hall_api_authenticated',
+    'hall_api.list_council_business_resource_items(uuid[])',
+    'EXECUTE'
+  ) AND NOT has_function_privilege(
+    'hall_api_anonymous',
+    'hall_api.list_council_business_resource_items(uuid[])',
+    'EXECUTE'
+  ),
+  'the flat bulk resource projection is restricted to authenticated runtime roles'
+);
+
+SELECT ok(
+  jsonb_array_length(projected) = 1
+    AND projected #>> '{0,councilBusinessId}' = (SELECT payload ->> 'id' FROM business_result)
+    AND projected #>> '{0,path}' = 'documents'
+    AND NOT (projected #> '{0}') ? 'resource',
+  'working resources are projected as flat rows in one query without relocation or nested resource JSON'
+)
+FROM (
+  SELECT hall_api.list_council_business_resource_items(
+    ARRAY[(SELECT (payload ->> 'id')::UUID FROM business_result)]
+  ) AS projected
+) AS bulk;
+
+INSERT INTO hall.council_meetings (id, number, quorum) VALUES
+  ('10000000-0000-0000-0000-000000000001', 1, 1),
+  ('10000000-0000-0000-0000-000000000002', 99, 1);
+SELECT hall_api.configure_active_council_term(1);
+CREATE TEMP TABLE contact_result AS
+SELECT hall_api.create_contact('Alice', 'Martin', NULL, NULL, NULL, NULL, '') AS payload;
+CREATE TEMP TABLE member_result AS
+SELECT hall_api.create_council_member(
+  (SELECT (payload ->> 'id')::UUID FROM contact_result),
+  'mayor',
+  current_date
+) AS payload;
 INSERT INTO hall.meeting_attendance (id, council_member, council_meeting, status)
 VALUES (
   '20000000-0000-0000-0000-000000000001',
-  '30000000-0000-0000-0000-000000000001',
+  (SELECT (payload ->> 'id')::UUID FROM member_result),
   '10000000-0000-0000-0000-000000000001',
   'present'
 );
+SELECT hall.set_council_meeting_officers('10000000-0000-0000-0000-000000000001',
+  (SELECT (payload->>'id')::uuid FROM member_result), (SELECT (payload->>'id')::uuid FROM member_result));
 UPDATE hall.council_meetings
-SET started_at = '2026-01-01 09:00:00+00'
+SET scheduled_at = '2026-01-01 08:30:00+00',
+    location = 'Council chamber',
+    started_at = '2026-01-01 09:00:00+00'
 WHERE id = '10000000-0000-0000-0000-000000000001';
 
 -- HALL-FR-WSP-060 HALL-FR-WSP-070
@@ -158,6 +291,17 @@ SELECT is(
   'meeting agenda listing returns its two lightweight occurrences'
 );
 
+-- HALL-FR-WSP-170
+SELECT is(
+  jsonb_array_length(
+    hall_api.list_council_business_agenda_items(
+      ARRAY[(SELECT (payload ->> 'id')::UUID FROM business_result)]
+    )
+  ),
+  2,
+  'all agenda occurrences for the requested affairs are projected in one bulk query'
+);
+
 SELECT is(
   hall_api.reprogram_council_agenda_item(
     (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'open'),
@@ -178,11 +322,11 @@ SELECT hall_api.start_council_agenda_item(
   '2026-01-01 09:05:00+00'
 );
 SELECT is(
-  (hall_api.deprogram_council_agenda_item(
-    (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'decision')
+  (hall_api.adjourn_council_agenda_item(
+    (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'decision'), '2026-01-01 09:05:30Z'
   ) ->> 'position')::INTEGER,
   -1,
-  'deprogramming retains the agenda occurrence with its signed position'
+  'adjournment retains the agenda occurrence with its signed position'
 );
 SELECT hall_api.start_council_agenda_item(
   (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'open'),
@@ -196,15 +340,11 @@ SELECT ok(
   'an open question completes through its named action without a ballot'
 );
 
--- HALL-FR-WSP-080
+-- HALL-FR-MIN-140
 CREATE TEMP TABLE meeting_closure_result AS
 SELECT hall_api.close_council_meeting(
   '10000000-0000-0000-0000-000000000001',
-  '2026-01-01 10:00:00+00',
-  'minutes',
-  'seance-2026-01-01',
-  'proces-verbal',
-  '# Procès-verbal'
+  '2026-01-01 10:00:00+00'
 ) AS payload;
 
 SET CONSTRAINTS ALL IMMEDIATE;
@@ -214,9 +354,9 @@ SELECT ok(
   (payload #>> '{closedMeeting,closedAt}') IS NOT NULL
     AND (payload #>> '{nextMeeting,previousCouncilMeetingId}')
       = '10000000-0000-0000-0000-000000000001'
-    AND (payload #>> '{minutesBusiness,folderResourceId}') IS NOT NULL
-    AND (payload #>> '{minutesBusiness,reportResourceId}') IS NOT NULL,
-  'meeting closure atomically returns the closed meeting, successor and scoped minutes workspace identities'
+    AND (payload #>> '{minutes,id}') IS NOT NULL
+    AND (payload #>> '{minutes,documentId}') IS NULL,
+  'meeting closure atomically returns the closed meeting, successor and standalone draft identity'
 )
 FROM meeting_closure_result;
 

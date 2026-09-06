@@ -7,6 +7,10 @@ import { buildContainer } from "../core/container.js";
 import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
 import type { DocumentRenderer } from "../services/documentRenderer.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
+import { createTestCouncilClient } from "./support/councilClient.js";
+import { createTestDirectoryClient } from "./support/directoryClient.js";
+import { createTestResourcesClient } from "./support/resourcesClient.js";
+import { createTestMinutesClient } from "./support/minutesClient.js";
 
 export type TestAgent = ReturnType<typeof request.agent>;
 
@@ -83,6 +87,14 @@ export async function createTestServer(
     allowedOrigins: ["http://localhost:5174", "http://127.0.0.1:5174"],
     environment: "test",
   });
+  const resourcesClient = createTestResourcesClient();
+  const minutes = createTestMinutesClient();
+  container.register({
+    councilClient: asValue(createTestCouncilClient(resourcesClient, minutes.entries)),
+    minutesClient: asValue(minutes.client),
+    directoryClient: asValue(createTestDirectoryClient()),
+    resourcesClient: asValue(resourcesClient),
+  });
   if (options.documentPreviewConverter) {
     container.register({ documentPreviewConverter: asValue(options.documentPreviewConverter) });
   }
@@ -96,7 +108,7 @@ export async function createTestServer(
   const expectedCouncilMemberCount =
     options.expectedCouncilMemberCount === undefined ? 100 : options.expectedCouncilMemberCount;
   if (expectedCouncilMemberCount !== null) {
-    await container.cradle.councilTermRepository.updateActiveExpectedMemberCount(expectedCouncilMemberCount);
+    await container.cradle.directoryClient.configureActiveCouncilTerm(expectedCouncilMemberCount);
   }
   const application = createHttpApplication(container);
   const server = await listen(application);

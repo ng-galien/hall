@@ -5,13 +5,13 @@ import {
   type MeetingAggregate,
   meetingAgendaCanChange,
 } from "@hall/domain";
+import type { DirectoryClient } from "../clients/directoryClient.js";
 import type {
   AgendaItemRepository,
   AttendanceRepository,
   BallotRepository,
   CouncilDecisionRepository,
   CouncilMeetingRepository,
-  CouncilMemberRepository,
   CreateCouncilMeeting,
   MeetingRosterRepository,
   UnitOfWork,
@@ -36,7 +36,7 @@ export interface CouncilMeetingService {
 
 export function createCouncilMeetingService({
   councilMeetingRepository,
-  councilMemberRepository,
+  directoryClient,
   meetingRosterRepository,
   attendanceRepository,
   agendaItemRepository,
@@ -46,7 +46,7 @@ export function createCouncilMeetingService({
   unitOfWork,
 }: {
   councilMeetingRepository: CouncilMeetingRepository;
-  councilMemberRepository: CouncilMemberRepository;
+  directoryClient: DirectoryClient;
   meetingRosterRepository: MeetingRosterRepository;
   attendanceRepository: AttendanceRepository;
   agendaItemRepository: AgendaItemRepository;
@@ -61,7 +61,7 @@ export function createCouncilMeetingService({
       return unitOfWork.execute(async () => {
         for (const memberId of [input.chairMemberId, input.secretaryMemberId]) {
           if (!memberId) continue;
-          const member = await councilMemberRepository.find(memberId);
+          const member = await directoryClient.openCouncilMember(memberId);
           if (!member?.active) throw new DomainError("council_member_not_found", 404);
         }
         const meeting = await councilMeetingRepository.create({
@@ -72,7 +72,7 @@ export function createCouncilMeetingService({
         const agendaItems = await meetingPreparationService.provisionFromPreviousMeeting(meeting.id);
         return {
           ...meeting,
-          activeMemberCount: (await councilMemberRepository.listActive()).length,
+          activeMemberCount: (await directoryClient.listCouncilMembers(true)).length,
           ...agendaReadiness(meeting, agendaItems, await councilMeetingRepository.list()),
         };
       });
@@ -100,7 +100,7 @@ export function createCouncilMeetingService({
           councilDecisionRepository.list(),
           ballotRepository.listForMeeting(id),
           meetingRosterRepository.listMemberIds(id),
-          councilMemberRepository.listActive(),
+          directoryClient.listCouncilMembers(true),
           councilMeetingRepository.list(),
         ]);
       const councilDecisionIds = new Set(

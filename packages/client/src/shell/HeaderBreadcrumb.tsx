@@ -24,16 +24,18 @@ export function HeaderBreadcrumb() {
   } else if (segments[0] === "meetings") {
     items.push({ label: t("navigation.meetings"), to: "/meetings" });
     if (segments[1]) {
-      const meeting = meetings.find((candidate) => candidate.id === segments[1] || candidate.slug === segments[1]);
+      const meeting = meetings.find((candidate) => candidate.id === segments[1] || candidate.reference === segments[1]);
       if (meeting) {
         items.push({
           label: formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
-          to: `/meetings/${meeting.slug}`,
+          to: `/meetings/${meeting.reference}`,
         });
       }
     }
   } else if (segments[0] === "council-decisions") {
     items.push({ label: t("navigation.decisions") });
+  } else if (segments[0] === "minutes") {
+    items.push({ label: t("navigation.minutes"), to: "/minutes" });
   } else if (segments[0] === "council-members") {
     items.push({ label: t("navigation.members"), to: "/council-members" });
     if (segments[1]) {
@@ -49,7 +51,7 @@ export function HeaderBreadcrumb() {
   } else if (segments[0] === "council-committees") {
     items.push({ label: t("navigation.committees"), to: "/council-committees" });
     if (segments[1]) {
-      const committee = committees.find((candidate) => candidate.id === segments[1] || candidate.slug === segments[1]);
+      const committee = committees.find((candidate) => candidate.id === segments[1]);
       if (committee) items.push({ label: committee.name });
     }
   } else if (segments[0] === "settings") {

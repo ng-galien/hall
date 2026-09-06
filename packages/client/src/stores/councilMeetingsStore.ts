@@ -1,38 +1,39 @@
-import { findSirenAction } from "@hall/api-contract";
-import type { CouncilMeeting } from "@hall/domain";
+import { findSirenAction, type PrepareCouncilMeeting } from "@hall/api-contract";
 import { create } from "zustand";
+import { councilMeetingView, type CouncilMeetingView } from "../models/councilMeeting";
 import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../services/apiClient";
-import { createCouncilMeeting, listCouncilMeetings } from "../services/councilMeetingsApi";
+import { listCouncilMeetings, prepareCouncilMeeting } from "../services/councilMeetingsApi";
 
 interface CouncilMeetingsState {
-  meetings: CouncilMeeting[];
+  meetings: CouncilMeetingView[];
   loading: boolean;
   error: ApiErrorCode | null;
-  canCreate: boolean;
+  canProvision: boolean;
   load(): Promise<void>;
-  create(input: Record<string, unknown>): Promise<boolean>;
+  schedule(meetingReference: string, input: PrepareCouncilMeeting): Promise<boolean>;
 }
 
-export const useCouncilMeetingsStore = create<CouncilMeetingsState>((set, get) => ({
+export const useCouncilMeetingsStore = create<CouncilMeetingsState>((set) => ({
   meetings: [],
   loading: false,
   error: null,
-  canCreate: false,
+  canProvision: false,
   async load() {
     set({ loading: true, error: null });
     try {
-      const meetings = await listCouncilMeetings();
+      const meetings = (await listCouncilMeetings()).map(councilMeetingView);
       const representation = await sirenRepresentation("/council-meetings");
-      set({ meetings, canCreate: Boolean(findSirenAction(representation, "meeting.create")), loading: false });
+      set({ meetings, canProvision: Boolean(findSirenAction(representation, "meeting.provision-initial")), loading: false });
     } catch (error) {
       set({ error: apiErrorCode(error), loading: false });
     }
   },
-  async create(input) {
+  async schedule(meetingReference, input) {
     set({ error: null });
     try {
-      await createCouncilMeeting(input);
-      await get().load();
+      await prepareCouncilMeeting(meetingReference, input);
+      const meetings = (await listCouncilMeetings()).map(councilMeetingView);
+      set({ meetings });
       return true;
     } catch (error) {
       set({ error: apiErrorCode(error) });

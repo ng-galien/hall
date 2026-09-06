@@ -3,7 +3,8 @@
 -- voting eligibility during that meeting.
 CREATE TABLE meeting_attendance (
   id UUID PRIMARY KEY,
-  council_member UUID NOT NULL,
+  -- @functional-requirement HALL-FR-ATT-100 ATTENDANCE_BELONGS_TO_A_COUNCIL_MEMBER:
+  council_member UUID NOT NULL REFERENCES hall.council_member (id),
   council_meeting UUID NOT NULL REFERENCES council_meetings (id),
   status meeting_attendance_status NOT NULL,
   -- @technical-requirement HALL-TR-CON-010 PROXY_RELATION_SUPPORTS_ATOMIC_INSERTION:
@@ -11,7 +12,8 @@ CREATE TABLE meeting_attendance (
   -- can be inserted in either order inside one transaction.
   proxy_holder UUID REFERENCES meeting_attendance (id)
     DEFERRABLE INITIALLY DEFERRED,
-  proxy_document UUID,
+  -- @functional-requirement HALL-FR-ATT-110 PROXY_EVIDENCE_IS_A_DOCUMENT_RESOURCE:
+  proxy_document UUID REFERENCES hall.document_resource (id),
 
   -- @functional-requirement HALL-FR-ATT-020 ONE_ATTENDANCE_PER_MEMBER_AND_MEETING: A member has
   -- exactly one attendance declaration per meeting.

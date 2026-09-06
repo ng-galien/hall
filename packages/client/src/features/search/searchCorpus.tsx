@@ -1,11 +1,11 @@
+import type { Contact } from "@hall/api-contract";
 import type {
-  Contact,
-  CouncilBusiness,
   CouncilDecisionListEntry,
-  CouncilMeeting,
   CouncilMember,
   ReferenceEntityKind,
 } from "@hall/domain";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
+import type { CouncilMeetingView } from "../../models/councilMeeting";
 import { useMemo } from "react";
 import { type FacetOptionSets, facetOptionsFrom } from "../../components/search/facetSuggestions";
 import type { TranslationKey } from "../../i18n/en";
@@ -33,9 +33,9 @@ type SearchHitFor<TKind extends SearchEntityType, TEntity> = Searchable<TKind> &
 
 /** A searchable row keeps its discriminant and source entity correlated by construction. */
 export type SearchHit =
-  | SearchHitFor<"councilBusiness", { entityKind: "councilBusiness"; business: CouncilBusiness }>
+  | SearchHitFor<"councilBusiness", { entityKind: "councilBusiness"; business: CouncilBusinessView }>
   | SearchHitFor<"resource", { entityKind: "resource"; resource: DocumentaryLeafSummary }>
-  | SearchHitFor<"meeting", { entityKind: "meeting"; meeting: CouncilMeeting }>
+  | SearchHitFor<"meeting", { entityKind: "meeting"; meeting: CouncilMeetingView }>
   | SearchHitFor<"decision", { entityKind: "decision"; decision: CouncilDecisionListEntry }>
   | SearchHitFor<"member", { entityKind: "member"; member: CouncilMember }>
   | SearchHitFor<"contact", { entityKind: "contact"; contact: Contact }>;
@@ -97,8 +97,8 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
         kind: "meeting" as const,
         id: meeting.id,
         label: formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
-        extra: [meeting.location, meeting.number],
-        state: meeting.status,
+        extra: [meeting.location, String(meeting.number)],
+        state: meeting.phase,
         entity: { entityKind: "meeting" as const, meeting },
       })),
       ...councilDecisions.map((decision) => ({

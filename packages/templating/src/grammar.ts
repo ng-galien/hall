@@ -25,7 +25,7 @@ export interface ResourceEmbedAttributes {
   range?: string;
 }
 
-export type DirectiveKind = ReferenceKind | "image" | "resource-embed" | "field";
+export type DirectiveKind = ReferenceKind | "image" | "resource-embed" | "field" | "minutes";
 
 /** What a directive accepts. */
 export interface DirectiveSpec {
@@ -54,6 +54,7 @@ const reference = (name: ReferenceKind): DirectiveSpec => ({
 
 export const directiveSpecs: readonly DirectiveSpec[] = [
   ...referenceKinds.map(reference),
+  { name: "minutes", node: "leafDirective", label: false, attributes: ["section"], attributesRequired: ["section"] },
   {
     name: "image",
     node: "leafDirective",
@@ -89,6 +90,12 @@ export const fieldNames = [
 ] as const;
 
 export type FieldName = (typeof fieldNames)[number];
+
+export const minutesSections = ["facts", "proceedings"] as const;
+export type MinutesSection = (typeof minutesSections)[number];
+export function isMinutesSection(value: string): value is MinutesSection {
+  return minutesSections.some((section) => section === value);
+}
 
 const specsByName = new Map(directiveSpecs.map((spec) => [spec.name, spec]));
 const fieldNameSet = new Set<string>(fieldNames);

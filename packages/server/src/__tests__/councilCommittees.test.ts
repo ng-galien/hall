@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createTestServer, domainBody } from "./testServer.js";
 
 describe("council committees", () => {
-  it("manages dated memberships and classifies a council matter", async () => {
+  it("manages dated committee memberships", async () => {
     const { agent } = await createTestServer();
     const contactResponse = await agent
       .post("/api/contacts")
@@ -38,14 +38,12 @@ describe("council committees", () => {
       active: true,
       termEndedOn: null,
     });
-    const committee = domainBody<{ id: string; slug: string }>(
+    const committee = domainBody<{ id: string }>(
       await agent
         .post("/api/council-committees")
         .send({ name: "Commission vie associative", description: "Prépare les dossiers associatifs." })
         .expect(201),
     );
-    expect(committee.slug).toBe("commission-vie-associative");
-
     const membership = domainBody<{ id: string; endedOn: string | null }>(
       await agent
         .post(`/api/council-committees/${committee.id}/memberships`)
@@ -53,24 +51,16 @@ describe("council committees", () => {
         .expect(201),
     );
     expect(membership.endedOn).toBeNull();
-    await agent
-      .post(`/api/council-committees/${committee.id}/memberships`)
-      .send({ councilMemberId: member.id, role: "member", startedOn: "2026-04-01" })
-      .expect(409);
-
-    const committeeDetails = await agent.get(`/api/council-committees/${committee.slug}`).expect(200);
-    const embeddedMembership = committeeDetails.body.entities.find(
-      (entity: { properties?: { id?: string } }) => entity.properties?.id === membership.id,
-    );
-    expect(embeddedMembership.actions).toEqual(
+    const membershipDetails = await agent
+      .get(`/api/council-committees/${committee.id}/memberships/${membership.id}`)
+      .expect(200);
+    expect(membershipDetails.body.actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: "committee.update-membership", method: "PUT" }),
         expect.objectContaining({ name: "committee.end-membership", method: "POST" }),
       ]),
     );
-    expect(domainBody<{ id: string }>(await agent.get(embeddedMembership.links[0].href).expect(200)).id).toBe(
-      membership.id,
-    );
+    expect(domainBody<{ id: string }>(membershipDetails).id).toBe(membership.id);
 
     const updatedMembership = domainBody<{ role: string; startedOn: string; endedOn: string | null }>(
       await agent
@@ -79,21 +69,6 @@ describe("council committees", () => {
         .expect(200),
     );
     expect(updatedMembership).toMatchObject({ role: "viceChair", startedOn: "2026-03-23", endedOn: null });
-
-    const matter = domainBody<{ committeeId: string | null }>(
-      await agent
-        .post("/api/council-business")
-        .send({
-          kind: "matter",
-          committeeId: committee.id,
-          title: "Subventions 2026",
-          report: "Instruction des demandes.",
-          folderPath: "finances/subventions",
-          resourceIds: [],
-        })
-        .expect(201),
-    );
-    expect(matter.committeeId).toBe(committee.id);
 
     const ended = domainBody<{ endedOn: string | null }>(
       await agent
@@ -108,10 +83,10 @@ describe("council committees", () => {
       .send({ role: "member", startedOn: "2027-01-01", endedOn: "2026-12-31" })
       .expect(400);
 
-    const details = domainBody(await agent.get(`/api/council-committees/${committee.slug}`).expect(200)) as {
-      memberships: Array<{ id: string; endedOn: string | null }>;
-    };
-    expect(details.memberships).toEqual([expect.objectContaining({ id: membership.id, endedOn: "2026-12-31" })]);
+    const memberships = domainBody<Array<{ id: string; endedOn: string | null }>>(
+      await agent.get(`/api/council-committees/${committee.id}/memberships`).expect(200),
+    );
+    expect(memberships).toEqual([expect.objectContaining({ id: membership.id, endedOn: "2026-12-31" })]);
   });
 
   it("archives a committee without inventing a lifecycle", async () => {

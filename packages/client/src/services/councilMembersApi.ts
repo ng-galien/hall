@@ -1,4 +1,4 @@
-import type { CouncilMember } from "@hall/domain";
+import type { CouncilMember } from "@hall/api-contract";
 import { apiSirenRequest, submitSirenAction, submitSirenActionAt } from "./apiClient";
 
 export const listCouncilMembersSiren = () => apiSirenRequest<CouncilMember[]>("/council-members");

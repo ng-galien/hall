@@ -1,5 +1,10 @@
-import { findSirenAction } from "@hall/api-contract";
-import type { CommitteeMembership, CommitteeRole, CouncilMember } from "@hall/domain";
+import {
+  committeeRoles,
+  findSirenAction,
+  type CommitteeMembership,
+  type CommitteeRole,
+} from "@hall/api-contract";
+import type { CouncilMember } from "@hall/domain";
 import { type DragEvent, type FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +21,6 @@ import { useCouncilMembersStore } from "../stores/councilMembersStore";
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
-const committeeRoles: CommitteeRole[] = ["chair", "viceChair", "member"];
 const today = () => new Date().toISOString().slice(0, 10);
 const memberName = (member: CouncilMember | undefined, fallback: string) =>
   member ? `${member.contact.firstName} ${member.contact.lastName}` : fallback;
@@ -45,11 +49,11 @@ export function CouncilCommitteePage() {
     endMembership,
   } = useCouncilCommitteesStore();
   const listedCommittee = committees.find(
-    (candidate) => candidate.id === committeeId || candidate.slug === committeeId,
+    (candidate) => candidate.id === committeeId,
   );
   const detail = listedCommittee ? details[listedCommittee.id] : undefined;
   const committee = detail?.committee ?? listedCommittee;
-  const committeeReference = committee?.slug;
+  const committeeReference = committee?.id;
   const detailCommittee = detail?.committee;
   const capability = committee ? capabilities[committee.id] : undefined;
   const [name, setName] = useState("");
@@ -93,7 +97,7 @@ export function CouncilCommitteePage() {
   const save = useCallback(async () => {
     if (!committee || !capability?.canUpdate || !dirty) return true;
     setSaveState("saving");
-    const saved = await update(committee.slug, { name, description });
+    const saved = await update(committee.id, { name, description });
     setSaveState(saved ? "saved" : "error");
     return saved;
   }, [capability?.canUpdate, committee, description, dirty, name, update]);
@@ -177,7 +181,7 @@ export function CouncilCommitteePage() {
     run(async () => {
       if (!membershipStartedOn || availableSelection.size === 0) return false;
       for (const councilMemberId of availableSelection) {
-        const added = await addMembership(committee.slug, { councilMemberId, role, startedOn: membershipStartedOn });
+        const added = await addMembership(committee.id, { councilMemberId, role, startedOn: membershipStartedOn });
         if (!added) return false;
         setAvailableSelection((current) => {
           const remaining = new Set(current);
@@ -193,7 +197,7 @@ export function CouncilCommitteePage() {
   const moveMembership = (membership: CommitteeMembership, role: CommitteeRole) =>
     run(async () => {
       if (membership.role === role || !canUpdateMembership(membership)) return true;
-      const moved = await updateMembership(committee.slug, membership.id, {
+      const moved = await updateMembership(committee.id, membership.id, {
         role,
         startedOn: membership.startedOn,
         endedOn: membership.endedOn,
@@ -228,7 +232,7 @@ export function CouncilCommitteePage() {
     event.preventDefault();
     if (!editedMembership) return;
     await run(async () => {
-      const saved = await updateMembership(committee.slug, editedMembership.id, {
+      const saved = await updateMembership(committee.id, editedMembership.id, {
         role: editedMembership.role,
         startedOn: editedStartedOn,
         endedOn: editedMembership.endedOn ? editedEndedOn || null : null,
@@ -248,7 +252,7 @@ export function CouncilCommitteePage() {
     event.preventDefault();
     if (!endingMembership) return;
     await run(async () => {
-      const ended = await endMembership(committee.slug, endingMembership.id, membershipEndDate);
+      const ended = await endMembership(committee.id, endingMembership.id, membershipEndDate);
       if (ended) {
         setEndingMembership(null);
         setSelectedMembershipId(null);
@@ -259,7 +263,7 @@ export function CouncilCommitteePage() {
 
   const archiveCommittee = () =>
     run(async () => {
-      const archived = await archive(committee.slug);
+      const archived = await archive(committee.id);
       if (archived) navigate("/council-committees");
       return archived;
     });

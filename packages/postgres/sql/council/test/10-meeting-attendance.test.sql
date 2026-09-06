@@ -28,10 +28,10 @@ SELECT throws_ok(
   'a meeting is inserted in preparation'
 );
 
-INSERT INTO council_meetings (id, quorum) VALUES
-  (test_uuid('mtg:main'), 2),
-  (test_uuid('mtg:other'), 1),
-  (test_uuid('mtg:no-quorum'), 2);
+INSERT INTO council_meetings (id, quorum, scheduled_at, location) VALUES
+  (test_uuid('mtg:main'), 2, NULL, NULL),
+  (test_uuid('mtg:other'), 1, NULL, NULL),
+  (test_uuid('mtg:no-quorum'), 2, '2026-01-01 08:30:00+00', 'Council chamber');
 
 -- Missing reference diagnostic used by HALL-FR-ATT-090.
 SELECT throws_ok(
@@ -55,6 +55,14 @@ VALUES (
   test_uuid('member:present-1'),
   test_uuid('mtg:main'),
   'present'
+);
+
+-- HALL-FR-ATT-100
+SELECT throws_ok(
+  $$DELETE FROM hall.council_member WHERE id = test_uuid('member:present-1')$$,
+  '23503',
+  NULL,
+  'an attendance keeps its CouncilMember mandate referenced'
 );
 
 -- HALL-TR-CON-010 HALL-TR-CON-030 HALL-FR-ATT-070
@@ -85,6 +93,14 @@ SELECT lives_ok(
     ])
   $$,
   'represented and holder attendances can be inserted atomically in reverse order'
+);
+
+-- HALL-FR-ATT-110
+SELECT throws_ok(
+  $$DELETE FROM hall.document_resource WHERE id = test_uuid('document:proxy-1')$$,
+  '23503',
+  NULL,
+  'represented attendance keeps its written DocumentResource evidence referenced'
 );
 
 -- HALL-FR-ATT-030
@@ -260,29 +276,68 @@ SELECT is(
   'quorum counts only the two physically present members'
 );
 
--- HALL-FR-ATT-080 HALL-TR-INT-010
-SELECT throws_ok(
-  $$UPDATE meeting_attendance SET status = 'absent' WHERE id = test_uuid('att:present-1')$$,
-  'HV101',
-  'meeting attendance is immutable',
-  'attendance cannot be updated'
+INSERT INTO council_meetings (id, quorum)
+VALUES (test_uuid('mtg:attendance-action'), 1);
+
+-- HALL-TR-CON-040 HALL-TR-INT-070
+SELECT lives_ok(
+  format(
+    $sql$
+      SELECT hall_api.record_meeting_attendance(
+        %L::UUID,
+        jsonb_build_array(
+          jsonb_build_object(
+            'council_member_id', %L::UUID,
+            'status', 'represented',
+            'proxy_holder_council_member_id', %L::UUID,
+            'proxy_document_id', %L::UUID
+          ),
+          jsonb_build_object(
+            'council_member_id', %L::UUID,
+            'status', 'present'
+          )
+        )
+      )
+    $sql$,
+    test_uuid('mtg:attendance-action'),
+    test_uuid('member:attendance-action:represented'),
+    test_uuid('member:attendance-action:present'),
+    test_uuid('document:attendance-action:proxy'),
+    test_uuid('member:attendance-action:present')
+  ),
+  'the named batch action resolves a proxy holder declared later in the same input'
 );
 
-SELECT throws_ok(
-  $$DELETE FROM meeting_attendance WHERE id = test_uuid('att:present-1')$$,
-  'HV101',
-  'meeting attendance is immutable',
-  'attendance cannot be deleted'
+SELECT is(
+  jsonb_array_length(hall_api.list_meeting_attendance(test_uuid('mtg:attendance-action'))),
+  2,
+  'the attendance projection returns both immutable declarations'
 );
 
-SET CONSTRAINTS ALL IMMEDIATE;
-SELECT throws_ok(
-  $$TRUNCATE meeting_attendance CASCADE$$,
-  'HV101',
-  'meeting attendance is immutable',
-  'TRUNCATE cannot bypass attendance immutability'
+SELECT is(
+  (
+    SELECT declaration ->> 'proxyHolderCouncilMemberId'
+    FROM jsonb_array_elements(
+      hall_api.list_meeting_attendance(test_uuid('mtg:attendance-action'))
+    ) AS declaration
+    WHERE declaration ->> 'status' = 'represented'
+  ),
+  test_uuid('member:attendance-action:present')::TEXT,
+  'the projection exposes the proxy holder CouncilMember rather than its persistence row'
 );
-SET CONSTRAINTS ALL DEFERRED;
+
+-- HALL-FR-ATT-030
+SELECT throws_ok(
+  $$
+    SELECT hall_api.record_meeting_attendance(
+      test_uuid('mtg:attendance-action'),
+      '{}'::JSONB
+    )
+  $$,
+  'HV104',
+  'meeting attendance declarations must be a JSON array',
+  'the named action rejects a declaration payload that is not an array'
+);
 
 -- HALL-FR-MTG-050
 SELECT throws_ok(
@@ -312,14 +367,61 @@ SELECT throws_ok(
   'a meeting cannot start below its physical-presence quorum'
 );
 
-SELECT lives_ok(
-  $$
-    UPDATE council_meetings
-    SET started_at = '2026-01-01 09:00:00+00'
-    WHERE id = test_uuid('mtg:main')
-  $$,
-  'a meeting starts once its physical quorum is reached'
+-- HALL-FR-MTG-160
+SELECT throws_ok(
+  $$SELECT schedule_council_meeting(test_uuid('mtg:main'), NULL, 'Council chamber')$$,
+  'HV122',
+  'a council meeting schedule requires a date and location',
+  'the named scheduling action requires a date and location'
 );
+
+SELECT lives_ok(
+  $$SELECT schedule_council_meeting(
+      test_uuid('mtg:main'),
+      '2026-01-01 08:30:00+00',
+      ' Council chamber '
+    )$$,
+  'the meeting schedule is assigned through its named action'
+);
+
+SELECT is(
+  (SELECT location FROM council_meetings WHERE id = test_uuid('mtg:main')),
+  'Council chamber',
+  'the scheduling action normalizes the meeting location'
+);
+
+SELECT test_designate_present_officers(test_uuid('mtg:main'));
+
+-- HALL-FR-MTG-170
+SELECT lives_ok(
+  $$SELECT start_council_meeting(test_uuid('mtg:main'), '2026-01-01 09:00:00+00')$$,
+  'a meeting starts through its named action once physical quorum is reached'
+);
+
+-- HALL-FR-ATT-080 HALL-TR-INT-010
+SELECT throws_ok(
+  $$UPDATE meeting_attendance SET status = 'absent' WHERE id = test_uuid('att:present-1')$$,
+  'HV102',
+  'a started council meeting cannot receive attendance',
+  'attendance cannot be updated'
+);
+
+SELECT throws_ok(
+  $$DELETE FROM meeting_attendance WHERE id = test_uuid('att:present-1')$$,
+  'HV102',
+  'a started council meeting cannot receive attendance',
+  'attendance cannot be deleted'
+);
+
+SET CONSTRAINTS ALL IMMEDIATE;
+SELECT throws_ok(
+  $$TRUNCATE meeting_attendance CASCADE$$,
+  'HV101',
+  'meeting attendance cannot be truncated',
+  'TRUNCATE cannot bypass attendance immutability'
+);
+SET CONSTRAINTS ALL DEFERRED;
+
 
 -- HALL-FR-ATT-090
 SELECT throws_ok(

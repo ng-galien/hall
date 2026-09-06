@@ -4,6 +4,7 @@
 CREATE FUNCTION enforce_ballot_participation_lifecycle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = pg_catalog, hall
 AS $$
 DECLARE
   ballot_completed_at TIMESTAMPTZ;

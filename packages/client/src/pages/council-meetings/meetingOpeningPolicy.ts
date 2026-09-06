@@ -1,4 +1,4 @@
-import type { MeetingAggregate } from "@hall/domain";
+import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 
 export type MeetingOpeningBlock =
   | "attendanceIncomplete"
@@ -7,7 +7,7 @@ export type MeetingOpeningBlock =
   | "officersNotPresent"
   | "quorumFailure";
 
-export function meetingOpeningBlock(aggregate: MeetingAggregate): MeetingOpeningBlock | null {
+export function meetingOpeningBlock(aggregate: LiveMeetingPresentation): MeetingOpeningBlock | null {
   const { meeting, rosterMemberIds, attendance, quorum } = aggregate;
   if (meeting.quorumFailure) return "quorumFailure";
   const attendedMemberIds = new Set(attendance.map((item) => item.memberId));

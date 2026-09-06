@@ -579,5 +579,56 @@ SELECT throws_ok(
   'content-addressed bytes cannot acquire conflicting media metadata'
 );
 
+-- HALL-FR-DOC-130 HALL-FR-DOC-210: folder prefixes are literal paths,
+-- including characters that have special meaning in a SQL LIKE pattern.
+CREATE TEMP TABLE literal_path_case (
+  source_path TEXT PRIMARY KEY,
+  neighbor_path TEXT NOT NULL,
+  renamed_path TEXT NOT NULL
+);
+INSERT INTO literal_path_case VALUES
+  ('literal_under_score', 'literal_underXscore', 'renamed-underscore'),
+  ('literal%percent', 'literalXpercent', 'renamed-percent'),
+  (E'literal\\backslash', 'literalbackslash', 'renamed-backslash');
+
+SELECT hall_api.create_text_resource(source_path || '/own', 'source.md', '')
+FROM literal_path_case;
+SELECT hall_api.create_text_resource(neighbor_path || '/neighbor', 'neighbor.md', '')
+FROM literal_path_case;
+
+SELECT is(
+  jsonb_array_length(hall_api.search_resources('', ARRAY[source_path]) -> 'items'),
+  1,
+  format('search treats the folder prefix %L literally', source_path)
+)
+FROM literal_path_case;
+
+SELECT lives_ok(
+  format(
+    'SELECT hall_api.move_resource(%L::uuid, %L)',
+    (SELECT id FROM hall.resource WHERE full_path = source_path),
+    neighbor_path || '/neighbor'
+  ),
+  format('folder %L can move into an unrelated similar path', source_path)
+)
+FROM literal_path_case;
+
+-- Restore the moved roots by stable identity before testing subtree rename.
+SELECT hall_api.relocate_resource(resource.id, '', cases.renamed_path)
+FROM literal_path_case AS cases
+JOIN hall.resource AS resource ON resource.name = cases.source_path AND resource.is_folder;
+
+SELECT ok(
+  EXISTS (SELECT FROM hall.resource WHERE full_path = renamed_path || '/own/source.md'),
+  format('rename carries every descendant of literal folder %L', source_path)
+)
+FROM literal_path_case;
+
+SELECT ok(
+  EXISTS (SELECT FROM hall.resource WHERE full_path = neighbor_path || '/neighbor/neighbor.md'),
+  format('rename leaves the unrelated folder %L untouched', neighbor_path)
+)
+FROM literal_path_case;
+
 SELECT * FROM finish();
 ROLLBACK;

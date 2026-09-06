@@ -1,20 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-const documentPreviewsSchema = `
-  CREATE TABLE document_previews (
-    source_content_sha256 TEXT NOT NULL CHECK (length(source_content_sha256) = 64),
-    source_format TEXT NOT NULL CHECK (source_format IN ('docx', 'odt', 'xlsx', 'pptx', 'txt', 'csv')),
-    content_sha256 TEXT NOT NULL CHECK (length(content_sha256) = 64),
-    byte_size INTEGER NOT NULL CHECK (byte_size >= 0),
-    content BLOB NOT NULL,
-    created_at TEXT NOT NULL,
-    PRIMARY KEY (source_content_sha256, source_format)
-  ) STRICT;
-`;
-
-const workspaceTitleUniquenessSchema = `
-  CREATE UNIQUE INDEX IF NOT EXISTS one_resource_title_per_folder
-    ON resources(folder_path, title);
+const councilBusinessTitleUniquenessSchema = `
   CREATE UNIQUE INDEX IF NOT EXISTS one_council_business_title_per_folder
     ON council_business(folder_path, title);
 `;
@@ -54,159 +40,26 @@ const ballotVoteConfidentialitySchema = `
   END;
 `;
 
-const councilTermCapacitySchema = `
-  CREATE TRIGGER IF NOT EXISTS council_members_require_configured_term_on_insert
-  BEFORE INSERT ON council_members
-  FOR EACH ROW
-  WHEN NEW.term_ended_on IS NULL AND (
-    SELECT expected_member_count FROM council_terms WHERE hall_id = 'hall' AND active = 1
-  ) IS NULL
-  BEGIN
-    SELECT RAISE(ABORT, 'council_term_not_configured');
-  END;
-
-  CREATE TRIGGER IF NOT EXISTS council_members_require_available_term_seat_on_insert
-  BEFORE INSERT ON council_members
-  FOR EACH ROW
-  WHEN NEW.term_ended_on IS NULL AND (
-    SELECT COUNT(*) FROM council_members WHERE term_ended_on IS NULL
-  ) >= (
-    SELECT expected_member_count FROM council_terms WHERE hall_id = 'hall' AND active = 1
-  )
-  BEGIN
-    SELECT RAISE(ABORT, 'council_term_capacity_reached');
-  END;
-
-  CREATE TRIGGER IF NOT EXISTS council_members_require_configured_term_on_reopen
-  BEFORE UPDATE OF term_ended_on ON council_members
-  FOR EACH ROW
-  WHEN OLD.term_ended_on IS NOT NULL AND NEW.term_ended_on IS NULL AND (
-    SELECT expected_member_count FROM council_terms WHERE hall_id = 'hall' AND active = 1
-  ) IS NULL
-  BEGIN
-    SELECT RAISE(ABORT, 'council_term_not_configured');
-  END;
-
-  CREATE TRIGGER IF NOT EXISTS council_members_require_available_term_seat_on_reopen
-  BEFORE UPDATE OF term_ended_on ON council_members
-  FOR EACH ROW
-  WHEN OLD.term_ended_on IS NOT NULL AND NEW.term_ended_on IS NULL AND (
-    SELECT COUNT(*) FROM council_members WHERE term_ended_on IS NULL
-  ) >= (
-    SELECT expected_member_count FROM council_terms WHERE hall_id = 'hall' AND active = 1
-  )
-  BEGIN
-    SELECT RAISE(ABORT, 'council_term_capacity_reached');
-  END;
-
-  CREATE TRIGGER IF NOT EXISTS council_term_expected_count_covers_active_members
-  BEFORE UPDATE OF expected_member_count, active ON council_terms
-  FOR EACH ROW
-  WHEN NEW.active = 1 AND (NEW.expected_member_count IS NULL OR NEW.expected_member_count < (
-    SELECT COUNT(*) FROM council_members WHERE term_ended_on IS NULL
-  ))
-  BEGIN
-    SELECT RAISE(ABORT, 'council_term_capacity_below_active_count');
-  END;
-
-  CREATE TRIGGER IF NOT EXISTS active_council_term_insert_covers_active_members
-  BEFORE INSERT ON council_terms
-  FOR EACH ROW
-  WHEN NEW.active = 1 AND (NEW.expected_member_count IS NULL OR NEW.expected_member_count < (
-    SELECT COUNT(*) FROM council_members WHERE term_ended_on IS NULL
-  ))
-  BEGIN
-    SELECT RAISE(ABORT, 'council_term_capacity_below_active_count');
-  END;
-`;
-
 const currentTables = [
-  "agenda_item_resources",
   "agenda_items",
   "attendance",
   "audit_events",
   "ballots",
-  "committee_memberships",
-  "contacts",
   "council_business",
-  "council_business_resources",
-  "council_committees",
   "council_decisions",
   "council_meetings",
-  "council_members",
-  "council_terms",
-  "document_previews",
-  "geographic_resources",
   "hall_settings",
-  "legal_reference_resources",
-  "legal_reference_snapshots",
   "meeting_roster",
   "number_sequences",
-  "remote_resources",
-  "resource_documents",
-  "resource_tags",
-  "resources",
-  "rich_text_resource_references",
   "sessions",
-  "spreadsheet_resources",
   "templates",
-  "text_resources",
   "user_roles",
   "users",
   "votes",
-  "workspace_folders",
 ] as const;
 
 function createCurrentSchema(database: DatabaseSync): void {
   database.exec(`
-    CREATE TABLE contacts (
-      id TEXT PRIMARY KEY,
-      first_name TEXT NOT NULL,
-      last_name TEXT NOT NULL,
-      organization_name TEXT,
-      job_title TEXT,
-      email TEXT,
-      phone TEXT,
-      notes TEXT NOT NULL DEFAULT '',
-      archived_at TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    ) STRICT;
-
-    CREATE TABLE council_members (
-      id TEXT PRIMARY KEY,
-      contact_id TEXT NOT NULL REFERENCES contacts(id),
-      role TEXT NOT NULL CHECK (role IN ('mayor', 'deputyMayor', 'councillor')),
-      term_started_on TEXT NOT NULL,
-      term_ended_on TEXT,
-      CHECK (term_ended_on IS NULL OR term_ended_on >= term_started_on)
-    ) STRICT;
-
-    CREATE UNIQUE INDEX council_members_one_active_membership_per_contact
-      ON council_members(contact_id)
-      WHERE term_ended_on IS NULL;
-
-    CREATE TABLE council_committees (
-      id TEXT PRIMARY KEY,
-      slug TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      archived_at TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    ) STRICT;
-
-    CREATE TABLE committee_memberships (
-      id TEXT PRIMARY KEY,
-      committee_id TEXT NOT NULL REFERENCES council_committees(id) ON DELETE CASCADE,
-      council_member_id TEXT NOT NULL REFERENCES council_members(id),
-      role TEXT NOT NULL CHECK (role IN ('chair', 'viceChair', 'member')),
-      started_on TEXT NOT NULL,
-      ended_on TEXT,
-      UNIQUE (committee_id, council_member_id, started_on),
-      CHECK (ended_on IS NULL OR ended_on >= started_on)
-    ) STRICT;
-
     CREATE TABLE hall_settings (
       id TEXT PRIMARY KEY CHECK (id = 'hall'),
       name TEXT NOT NULL DEFAULT '',
@@ -235,19 +88,6 @@ function createCurrentSchema(database: DatabaseSync): void {
     ) STRICT;
 
     INSERT INTO hall_settings (id) VALUES ('hall');
-
-    CREATE TABLE council_terms (
-      id TEXT PRIMARY KEY,
-      hall_id TEXT NOT NULL REFERENCES hall_settings(id),
-      expected_member_count INTEGER CHECK (expected_member_count IS NULL OR expected_member_count > 0),
-      active INTEGER NOT NULL CHECK (active IN (0, 1))
-    ) STRICT;
-
-    CREATE UNIQUE INDEX one_active_council_term_per_hall
-      ON council_terms(hall_id) WHERE active = 1;
-
-    INSERT INTO council_terms (id, hall_id, expected_member_count, active)
-      VALUES ('initial', 'hall', NULL, 1);
 
     CREATE TABLE number_sequences (
       kind TEXT NOT NULL CHECK (kind IN ('meeting', 'decision')),
@@ -279,7 +119,7 @@ function createCurrentSchema(database: DatabaseSync): void {
       display_name TEXT NOT NULL,
       password_hash TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
-      council_member_id TEXT UNIQUE REFERENCES council_members(id),
+      council_member_id TEXT UNIQUE,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     ) STRICT;
@@ -317,8 +157,8 @@ function createCurrentSchema(database: DatabaseSync): void {
       starts_at TEXT NOT NULL,
       location TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'inProgress', 'closed', 'cancelled')),
-      chair_member_id TEXT REFERENCES council_members(id),
-      secretary_member_id TEXT REFERENCES council_members(id),
+      chair_member_id TEXT,
+      secretary_member_id TEXT,
       meeting_notice_sent_at TEXT,
       meeting_notice_published_at TEXT,
       is_urgent INTEGER NOT NULL DEFAULT 0 CHECK (is_urgent IN (0, 1)),
@@ -337,153 +177,13 @@ function createCurrentSchema(database: DatabaseSync): void {
       updated_at TEXT NOT NULL
     ) STRICT;
 
-    CREATE TABLE resources (
-      id TEXT PRIMARY KEY,
-      slug TEXT NOT NULL UNIQUE,
-      kind TEXT NOT NULL CHECK (kind IN ('text', 'spreadsheet', 'document', 'remote', 'geographic', 'legalReference')),
-      title TEXT NOT NULL,
-      folder_path TEXT NOT NULL DEFAULT '',
-      autosave_enabled INTEGER NOT NULL DEFAULT 1 CHECK (autosave_enabled IN (0, 1)),
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      CHECK (
-        folder_path = '' OR (
-          folder_path NOT LIKE '/%'
-          AND folder_path NOT LIKE '%/'
-          AND folder_path NOT LIKE '%//%'
-        )
-      )
-    ) STRICT;
-
-    CREATE TABLE remote_resources (
-      resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-      url TEXT CHECK (url IS NULL OR url <> '')
-    ) STRICT;
-
-    CREATE TABLE text_resources (
-      resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-      content TEXT NOT NULL
-    ) STRICT;
-
-    CREATE TABLE spreadsheet_resources (
-      resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-      document_json TEXT NOT NULL CHECK (json_valid(document_json)),
-      version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
-    ) STRICT;
-
-    CREATE TABLE geographic_resources (
-      resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-      provider TEXT NOT NULL CHECK (provider = 'ign'),
-      view_json TEXT NOT NULL CHECK (json_valid(view_json)),
-      layers_json TEXT NOT NULL CHECK (json_valid(layers_json)),
-      hall_layer_json TEXT NOT NULL CHECK (json_valid(hall_layer_json)),
-      attribution TEXT NOT NULL,
-      license TEXT NOT NULL CHECK (license = 'Licence Ouverte 2.0'),
-      metadata_url TEXT NOT NULL,
-      configured_at TEXT NOT NULL,
-      source_updated_at TEXT,
-      version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
-    ) STRICT;
-
-    CREATE TABLE legal_reference_resources (
-      resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-      provider TEXT NOT NULL CHECK (provider = 'legifrance'),
-      reference_kind TEXT NOT NULL CHECK (reference_kind = 'article'),
-      fund TEXT CHECK (fund IN ('CODE_ETAT', 'CODE_DATE')),
-      common_id TEXT,
-      version_id TEXT,
-      effective_at TEXT,
-      legal_status TEXT,
-      source_url TEXT,
-      fetched_at TEXT,
-      provider_updated_at TEXT,
-      citation_label TEXT,
-      attribution TEXT,
-      snapshot_hash TEXT CHECK (snapshot_hash IS NULL OR length(snapshot_hash) = 64),
-      verification_status TEXT CHECK (verification_status IN ('current', 'verificationUnavailable')),
-      verification_failed_at TEXT,
-      CHECK (
-        (common_id IS NULL AND fund IS NULL AND version_id IS NULL AND effective_at IS NULL
-          AND legal_status IS NULL AND source_url IS NULL AND fetched_at IS NULL
-          AND citation_label IS NULL AND attribution IS NULL AND snapshot_hash IS NULL
-          AND verification_status IS NULL)
-        OR
-        (common_id IS NOT NULL AND version_id IS NOT NULL AND legal_status IS NOT NULL
-          AND source_url IS NOT NULL AND fetched_at IS NOT NULL AND citation_label IS NOT NULL
-          AND attribution IS NOT NULL AND snapshot_hash IS NOT NULL AND verification_status IS NOT NULL
-          AND ((fund = 'CODE_ETAT' AND effective_at IS NULL) OR (fund = 'CODE_DATE' AND effective_at IS NOT NULL)))
-      )
-    ) STRICT;
-
-    CREATE TABLE legal_reference_snapshots (
-      id TEXT PRIMARY KEY,
-      resource_id TEXT NOT NULL REFERENCES legal_reference_resources(resource_id) ON DELETE CASCADE,
-      common_id TEXT NOT NULL,
-      version_id TEXT NOT NULL,
-      effective_at TEXT,
-      fetched_at TEXT NOT NULL,
-      valid_from TEXT,
-      valid_to TEXT,
-      legal_status TEXT NOT NULL,
-      raw_provider_payload TEXT NOT NULL CHECK (json_valid(raw_provider_payload)),
-      normalized_content TEXT NOT NULL,
-      content_hash TEXT NOT NULL CHECK (length(content_hash) = 64),
-      snapshot_hash TEXT NOT NULL CHECK (length(snapshot_hash) = 64)
-    ) STRICT;
-
-    CREATE TABLE resource_documents (
-      resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-      meeting_id TEXT REFERENCES council_meetings(id) ON DELETE CASCADE,
-      file_name TEXT NOT NULL,
-      format TEXT NOT NULL CHECK (format IN ('pdf', 'jpeg', 'png', 'docx', 'odt', 'xlsx', 'pptx', 'txt', 'csv')),
-      media_type TEXT NOT NULL,
-      byte_size INTEGER NOT NULL CHECK (byte_size >= 0),
-      content_sha256 TEXT NOT NULL CHECK (length(content_sha256) = 64),
-      category TEXT CHECK (category IN ('report', 'draftCouncilDecision', 'meetingNotice', 'minutes', 'proxy', 'supporting')),
-      usage TEXT NOT NULL DEFAULT 'document' CHECK (usage IN ('document', 'editorAsset')),
-      editor_owner_kind TEXT CHECK (editor_owner_kind IN ('textResourceContent', 'councilBusinessReport', 'councilDecisionDraft', 'agendaItemDiscussionSummary')),
-      editor_owner_id TEXT,
-      content BLOB NOT NULL,
-      CHECK (
-        (usage = 'document' AND category IS NOT NULL AND editor_owner_kind IS NULL AND editor_owner_id IS NULL)
-        OR
-        (usage = 'editorAsset' AND category IS NULL AND meeting_id IS NULL AND format IN ('jpeg', 'png') AND editor_owner_kind IS NOT NULL AND editor_owner_id IS NOT NULL)
-      )
-    ) STRICT;
-
-    CREATE TABLE rich_text_resource_references (
-      owner_kind TEXT NOT NULL CHECK (owner_kind IN ('textResourceContent', 'councilBusinessReport', 'councilDecisionDraft', 'agendaItemDiscussionSummary')),
-      owner_id TEXT NOT NULL,
-      resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE RESTRICT,
-      PRIMARY KEY (owner_kind, owner_id, resource_id)
-    ) STRICT;
-
-    ${documentPreviewsSchema}
-
-    CREATE TABLE resource_tags (
-      resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
-      tag TEXT NOT NULL,
-      PRIMARY KEY (resource_id, tag)
-    ) STRICT;
-
-    CREATE TABLE workspace_folders (
-      path TEXT PRIMARY KEY,
-      created_at TEXT NOT NULL,
-      CHECK (
-        path <> ''
-        AND path NOT LIKE '/%'
-        AND path NOT LIKE '%/'
-        AND path NOT LIKE '%//%'
-      )
-    ) STRICT;
-
     CREATE TABLE attendance (
       id TEXT PRIMARY KEY,
       meeting_id TEXT NOT NULL REFERENCES council_meetings(id) ON DELETE CASCADE,
-      member_id TEXT NOT NULL REFERENCES council_members(id),
+      member_id TEXT NOT NULL,
       status TEXT NOT NULL CHECK (status IN ('present', 'represented', 'excused', 'absent')),
-      proxy_holder_member_id TEXT REFERENCES council_members(id),
-      proxy_document_id TEXT REFERENCES resource_documents(resource_id),
+      proxy_holder_member_id TEXT,
+      proxy_document_id TEXT,
       version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
       UNIQUE (meeting_id, member_id),
       CHECK ((status = 'represented' AND proxy_holder_member_id IS NOT NULL) OR (status <> 'represented' AND proxy_holder_member_id IS NULL))
@@ -492,7 +192,7 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE TABLE meeting_roster (
       id TEXT PRIMARY KEY,
       meeting_id TEXT NOT NULL REFERENCES council_meetings(id) ON DELETE CASCADE,
-      member_id TEXT NOT NULL REFERENCES council_members(id),
+      member_id TEXT NOT NULL,
       UNIQUE (meeting_id, member_id)
     ) STRICT;
 
@@ -515,7 +215,7 @@ function createCurrentSchema(database: DatabaseSync): void {
       slug TEXT NOT NULL UNIQUE,
       kind TEXT NOT NULL CHECK (kind IN ('matter', 'minutesApproval', 'openQuestion')),
       council_decision_id TEXT REFERENCES council_decisions(id),
-      committee_id TEXT REFERENCES council_committees(id),
+      committee_id TEXT,
       minutes_of_meeting_id TEXT REFERENCES council_meetings(id),
       title TEXT NOT NULL,
       report TEXT NOT NULL DEFAULT '',
@@ -529,14 +229,6 @@ function createCurrentSchema(database: DatabaseSync): void {
         OR
         (kind = 'openQuestion' AND council_decision_id IS NULL AND committee_id IS NULL AND minutes_of_meeting_id IS NULL)
       )
-    ) STRICT;
-
-    CREATE TABLE council_business_resources (
-      business_id TEXT NOT NULL REFERENCES council_business(id) ON DELETE CASCADE,
-      resource_id TEXT NOT NULL REFERENCES resources(id),
-      position INTEGER NOT NULL CHECK (position > 0),
-      PRIMARY KEY (business_id, resource_id),
-      UNIQUE (business_id, position)
     ) STRICT;
 
     CREATE TABLE agenda_items (
@@ -553,20 +245,12 @@ function createCurrentSchema(database: DatabaseSync): void {
       snapshot_council_decision_id TEXT REFERENCES council_decisions(id),
       snapshot_council_decision_title TEXT,
       snapshot_council_decision_draft_text TEXT,
-      snapshot_committee_id TEXT REFERENCES council_committees(id),
+      snapshot_committee_id TEXT,
       snapshot_minutes_of_meeting_id TEXT REFERENCES council_meetings(id),
       snapshot_title TEXT,
       snapshot_report TEXT,
       snapshot_folder_path TEXT,
       UNIQUE (meeting_id, position)
-    ) STRICT;
-
-    CREATE TABLE agenda_item_resources (
-      agenda_item_id TEXT NOT NULL REFERENCES agenda_items(id) ON DELETE CASCADE,
-      resource_id TEXT NOT NULL REFERENCES resources(id),
-      position INTEGER NOT NULL CHECK (position > 0),
-      PRIMARY KEY (agenda_item_id, resource_id),
-      UNIQUE (agenda_item_id, position)
     ) STRICT;
 
     CREATE TABLE ballots (
@@ -597,8 +281,8 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE TABLE votes (
       id TEXT PRIMARY KEY,
       ballot_id TEXT NOT NULL REFERENCES ballots(id) ON DELETE CASCADE,
-      member_id TEXT NOT NULL REFERENCES council_members(id),
-      cast_by_member_id TEXT NOT NULL REFERENCES council_members(id),
+      member_id TEXT NOT NULL,
+      cast_by_member_id TEXT NOT NULL,
       choice TEXT NOT NULL CHECK (choice IN ('for', 'against', 'abstain', 'notVoting')),
       position INTEGER NOT NULL CHECK (position > 0),
       UNIQUE (ballot_id, member_id),
@@ -618,8 +302,6 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE UNIQUE INDEX one_ballot_per_agenda_item ON ballots(agenda_item_id)
       WHERE agenda_item_id IS NOT NULL AND cancelled_at IS NULL;
     CREATE INDEX ballots_by_meeting ON ballots(meeting_id, created_at);
-    CREATE UNIQUE INDEX one_active_membership_per_committee_member
-      ON committee_memberships(committee_id, council_member_id) WHERE ended_on IS NULL;
     CREATE UNIQUE INDEX one_minutes_approval_business_per_meeting ON council_business(minutes_of_meeting_id)
       WHERE minutes_of_meeting_id IS NOT NULL;
     CREATE UNIQUE INDEX one_business_per_council_decision ON council_business(council_decision_id)
@@ -628,16 +310,6 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE UNIQUE INDEX one_open_agenda_item_per_business ON agenda_items(business_id)
       WHERE status IN ('scheduled', 'inProgress');
     CREATE INDEX agenda_items_by_business ON agenda_items(business_id, meeting_id);
-    CREATE INDEX council_business_resources_by_resource
-      ON council_business_resources(resource_id, business_id);
-    CREATE INDEX agenda_item_resources_by_resource ON agenda_item_resources(resource_id, agenda_item_id);
-    CREATE INDEX resources_by_folder ON resources(folder_path, updated_at);
-    CREATE INDEX resource_tags_by_tag ON resource_tags(tag, resource_id);
-    CREATE INDEX resource_documents_by_meeting ON resource_documents(meeting_id, resource_id);
-    CREATE INDEX resource_documents_by_editor_owner
-      ON resource_documents(usage, editor_owner_kind, editor_owner_id, resource_id);
-    CREATE INDEX rich_text_resource_references_by_resource
-      ON rich_text_resource_references(resource_id, owner_kind, owner_id);
     CREATE INDEX attendance_by_meeting ON attendance(meeting_id);
     CREATE INDEX users_by_status ON users(status, display_name);
     CREATE INDEX sessions_by_user ON sessions(user_id, expires_at);
@@ -646,7 +318,7 @@ function createCurrentSchema(database: DatabaseSync): void {
     CREATE INDEX audit_events_by_actor ON audit_events(actor_user_id, occurred_at);
     CREATE INDEX audit_events_by_target ON audit_events(target_type, target_id, occurred_at);
   `);
-  database.exec(workspaceTitleUniquenessSchema);
+  database.exec(councilBusinessTitleUniquenessSchema);
 }
 
 export function initializeSchema(database: DatabaseSync): void {
@@ -655,18 +327,10 @@ export function initializeSchema(database: DatabaseSync): void {
     PRAGMA journal_mode = WAL;
     PRAGMA busy_timeout = 5000;
   `);
-  let existingTables = database
+  const existingTables = database
     .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name <> 'sqlite_sequence' ORDER BY name")
     .all()
     .map((row) => String(row.name));
-  if (existingTables.length > 0 && !existingTables.includes("document_previews")) {
-    const previousTables = currentTables.filter((table) => table !== "document_previews");
-    if (existingTables.join("\n") !== previousTables.join("\n")) {
-      throw new Error("The database uses an obsolete schema and must be reset");
-    }
-    database.exec(documentPreviewsSchema);
-    existingTables = [...currentTables];
-  }
   if (existingTables.length > 0) {
     const agendaColumns = new Set(
       database
@@ -686,21 +350,9 @@ export function initializeSchema(database: DatabaseSync): void {
         .all()
         .map((row) => String(row.name)),
     );
-    const documentColumns = new Set(
-      database
-        .prepare("PRAGMA table_info(resource_documents)")
-        .all()
-        .map((row) => String(row.name)),
-    );
     const hallSettingsColumns = new Set(
       database
         .prepare("PRAGMA table_info(hall_settings)")
-        .all()
-        .map((row) => String(row.name)),
-    );
-    const resourceColumns = new Set(
-      database
-        .prepare("PRAGMA table_info(resources)")
         .all()
         .map((row) => String(row.name)),
     );
@@ -712,25 +364,19 @@ export function initializeSchema(database: DatabaseSync): void {
       !agendaColumns.has("snapshot_committee_id") ||
       decisionColumns.has("decision_text") ||
       !voteColumns.has("position") ||
-      !documentColumns.has("format") ||
-      !documentColumns.has("content_sha256") ||
-      !documentColumns.has("usage") ||
-      !resourceColumns.has("autosave_enabled") ||
       !hallSettingsColumns.has("geographic_longitude") ||
       !hallSettingsColumns.has("geographic_latitude")
     ) {
       throw new Error("The database uses an obsolete schema and must be reset");
     }
-    database.exec(workspaceTitleUniquenessSchema);
+    database.exec(councilBusinessTitleUniquenessSchema);
     database.exec(ballotVoteConfidentialitySchema);
-    database.exec(councilTermCapacitySchema);
     return;
   }
   database.exec("BEGIN IMMEDIATE");
   try {
     createCurrentSchema(database);
     database.exec(ballotVoteConfidentialitySchema);
-    database.exec(councilTermCapacitySchema);
     database.exec("COMMIT");
   } catch (error) {
     database.exec("ROLLBACK");

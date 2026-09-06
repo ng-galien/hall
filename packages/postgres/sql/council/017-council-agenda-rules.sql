@@ -1,22 +1,3 @@
--- @functional-requirement HALL-FR-BUS-020 MINUTES_BUSINESS_IS_EXCLUSIVE:
--- A CouncilBusiness either supports placements of one MinutesApproval, or any
--- number of decision proposals and open questions. It never mixes both shapes.
-CREATE FUNCTION council_business_agenda_members_are_compatible(target_business UUID)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-AS $$
-  SELECT NOT (
-    count(*) FILTER (WHERE minutes_approval IS NOT NULL) > 0
-    AND count(*) FILTER (
-      WHERE council_decision_proposal IS NOT NULL OR open_question IS NOT NULL
-    ) > 0
-  )
-  AND count(DISTINCT minutes_approval) FILTER (WHERE minutes_approval IS NOT NULL) <= 1
-  FROM council_agenda_item
-  WHERE council_business = target_business;
-$$;
-
 -- @technical-requirement HALL-TR-CON-110 COUNCIL_BUSINESS_AGENDA_WRITES_ARE_SERIALIZED:
 -- Every membership mutation locks its aggregate root before the deferred
 -- assertion. Concurrent agenda writes for one business therefore cannot create
@@ -24,10 +5,14 @@ $$;
 CREATE FUNCTION lock_council_agenda_item_business()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = pg_catalog, hall
 AS $$
 DECLARE
   target_business UUID := CASE WHEN TG_OP = 'DELETE' THEN OLD.council_business ELSE NEW.council_business END;
 BEGIN
+  IF target_business IS NULL THEN
+    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+  END IF;
   PERFORM 1
   FROM council_business
   WHERE id = target_business
@@ -55,6 +40,7 @@ EXECUTE FUNCTION lock_council_agenda_item_business();
 CREATE FUNCTION lock_council_agenda_item_subject()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = pg_catalog, hall
 AS $$
 BEGIN
   IF NEW.minutes_approval IS NOT NULL THEN
@@ -80,6 +66,7 @@ CREATE FUNCTION council_agenda_item_subject_has_one_business(target council_agen
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
+SET search_path = pg_catalog, hall
 AS $$
   SELECT count(DISTINCT council_business) <= 1
   FROM council_agenda_item
@@ -113,28 +100,3 @@ AFTER INSERT OR UPDATE ON council_agenda_item
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION enforce_council_agenda_item_subject_business();
-
-CREATE FUNCTION enforce_council_business_agenda_members()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = pg_catalog, hall
-AS $$
-DECLARE
-  target_business UUID := CASE WHEN TG_OP = 'DELETE' THEN OLD.council_business ELSE NEW.council_business END;
-BEGIN
-  IF council_business_agenda_members_are_compatible(target_business) THEN
-    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
-  END IF;
-
-  RAISE EXCEPTION USING
-    ERRCODE = 'HV211',
-    MESSAGE = 'a minutes approval business cannot support other agenda subjects';
-END;
-$$;
-
-CREATE CONSTRAINT TRIGGER council_agenda_item_enforce_business_members
-AFTER INSERT OR UPDATE OR DELETE ON council_agenda_item
-DEFERRABLE INITIALLY DEFERRED
-FOR EACH ROW
-EXECUTE FUNCTION enforce_council_business_agenda_members();

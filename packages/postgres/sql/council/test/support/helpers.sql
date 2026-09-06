@@ -22,6 +22,79 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION test_ensure_council_member(member_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  active_term_id UUID;
+BEGIN
+  SELECT id INTO active_term_id
+  FROM hall.council_term
+  WHERE ended_on IS NULL;
+
+  IF active_term_id IS NULL THEN
+    active_term_id := test_uuid('term:active');
+    INSERT INTO hall.council_term (id, expected_member_count, started_on)
+    VALUES (active_term_id, 100000, '2020-01-01');
+  END IF;
+
+  INSERT INTO hall.contact (id, first_name, last_name)
+  VALUES (member_id, 'Test', member_id::TEXT)
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO hall.council_member (
+    id, contact, council_term, role, term_started_on
+  ) VALUES (
+    member_id, member_id, active_term_id, 'councillor', '2020-01-01'
+  )
+  ON CONFLICT (id) DO NOTHING;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION test_ensure_document_resource(document_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  binary_id UUID := md5('binary:' || document_id::TEXT)::UUID;
+  payload BYTEA := convert_to(document_id::TEXT, 'UTF8');
+BEGIN
+  INSERT INTO hall.binary_object (
+    id, content_sha256, media_type, byte_size, content
+  ) VALUES (
+    binary_id,
+    encode(sha256(payload), 'hex'),
+    'application/pdf',
+    octet_length(payload),
+    payload
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO hall.document_resource (id, binary_object_id)
+  VALUES (document_id, binary_id)
+  ON CONFLICT (id) DO NOTHING;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION test_provision_attendance_references()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM test_ensure_council_member(NEW.council_member);
+  IF NEW.proxy_document IS NOT NULL THEN
+    PERFORM test_ensure_document_resource(NEW.proxy_document);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER test_meeting_attendance_provision_references
+BEFORE INSERT ON hall.meeting_attendance
+FOR EACH ROW
+EXECUTE FUNCTION test_provision_attendance_references();
+
 CREATE OR REPLACE FUNCTION test_create_decision_agenda_item(
   fixture TEXT,
   meeting_id UUID,
@@ -54,6 +127,17 @@ BEGIN
 END;
 $$;
 
+-- Explicit fixture preparation; production start checks remain active.
+CREATE OR REPLACE FUNCTION test_designate_present_officers(target_meeting UUID)
+RETURNS VOID LANGUAGE plpgsql AS $$
+DECLARE member_id UUID;
+BEGIN
+  SELECT council_member INTO STRICT member_id FROM meeting_attendance
+  WHERE council_meeting=target_meeting AND status='present' ORDER BY id LIMIT 1;
+  PERFORM set_council_meeting_officers(target_meeting, member_id, member_id);
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION test_prepare_open_ballot(
   fixture TEXT,
   ballot_mode ballot_mode,
@@ -65,8 +149,13 @@ AS $$
 DECLARE
   participant_number INTEGER;
 BEGIN
-  INSERT INTO council_meetings (id, quorum)
-  VALUES (test_uuid(fixture || ':meeting'), 1);
+  INSERT INTO council_meetings (id, quorum, scheduled_at, location)
+  VALUES (
+    test_uuid(fixture || ':meeting'),
+    1,
+    '2026-01-01 08:30:00+00',
+    'Council chamber'
+  );
 
   FOR participant_number IN 1..participant_count LOOP
     INSERT INTO meeting_attendance (
@@ -82,6 +171,7 @@ BEGIN
     );
   END LOOP;
 
+  PERFORM test_designate_present_officers(test_uuid(fixture || ':meeting'));
   UPDATE council_meetings
   SET started_at = '2026-01-01 09:00:00+00'
   WHERE id = test_uuid(fixture || ':meeting');

@@ -69,6 +69,7 @@ export const ballotResults = defineExhaustiveLiterals<BallotResult>()(["adopted"
 export const voteChoices = defineExhaustiveLiterals<VoteChoice>()(["for", "against", "abstain", "notVoting"] as const);
 export const templateKinds = defineExhaustiveLiterals<TemplateKind>()(["pdf", "message"] as const);
 
+/** Legacy meeting infrastructure term shape; directory APIs use the PostgreSQL CouncilTerm contract. */
 export interface CouncilTerm {
   expectedMemberCount: number | null;
 }
@@ -92,7 +93,6 @@ export interface HallSettings {
   outboundEmailSenderName: string;
   outboundEmailSenderAddress: string | null;
   outboundEmailReplyToAddress: string | null;
-  councilTerm: CouncilTerm;
   updatedAt: IsoDateTime | null;
 }
 
@@ -115,6 +115,7 @@ export interface ContentTemplate {
 
 export interface TemplateRenderContext {
   meetingId?: Identifier;
+  minutesId?: Identifier;
 }
 
 export interface Contact {
@@ -141,28 +142,6 @@ export interface CouncilMember {
   active: boolean;
   termStartedOn: string;
   termEndedOn: string | null;
-}
-
-export type CommitteeRole = "chair" | "viceChair" | "member";
-export const committeeRoles = defineExhaustiveLiterals<CommitteeRole>()(["chair", "viceChair", "member"] as const);
-
-export interface CouncilCommittee {
-  id: Identifier;
-  slug: string;
-  name: string;
-  description: string;
-  archivedAt: IsoDateTime | null;
-  createdAt: IsoDateTime;
-  updatedAt: IsoDateTime;
-}
-
-export interface CommitteeMembership {
-  id: Identifier;
-  committeeId: Identifier;
-  councilMemberId: Identifier;
-  role: CommitteeRole;
-  startedOn: string;
-  endedOn: string | null;
 }
 
 export interface CouncilMeeting {
@@ -536,7 +515,6 @@ interface CouncilBusinessBase {
   title: string;
   report: string;
   folderPath: FolderPath;
-  resources: Resource[];
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
 }

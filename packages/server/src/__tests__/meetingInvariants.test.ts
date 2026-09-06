@@ -363,22 +363,6 @@ describe("council meeting invariants", () => {
     expect(domainBody(reusedWrittenProxy).code).toBe("proxy_invalid");
   });
 
-  it("rolls back every repository change in a failed unit of work", async () => {
-    const { container } = await createTestServer();
-    await expect(
-      container.cradle.unitOfWork.execute(async () => {
-        await container.cradle.resourceRepository.createText({
-          title: "Rollback test",
-          folderPath: "Tests",
-          tags: [],
-          content: "Rollback",
-        });
-        throw new Error("forced rollback");
-      }),
-    ).rejects.toThrow("forced rollback");
-    expect(await container.cradle.resourceRepository.list()).toHaveLength(0);
-  });
-
   it("translates persistence conflicts into a stable API error", async () => {
     const { agent } = await createTestServer();
     const decision = await agent

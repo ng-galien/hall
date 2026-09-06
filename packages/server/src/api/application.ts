@@ -15,6 +15,7 @@ import {
 import { errorHandler } from "./errorHandler.js";
 import { sendProblem } from "./problemDetails.js";
 import { createAuditRouter } from "./routes/auditRoutes.js";
+import { createBallotsRouter } from "./routes/ballotsRoutes.js";
 import { createAuthRouter, createUsersRouter } from "./routes/authRoutes.js";
 import { createContactsRouter } from "./routes/contactsRoutes.js";
 import { createContentTemplatesRouter } from "./routes/contentTemplatesRoutes.js";
@@ -23,8 +24,10 @@ import { createCouncilCommitteesRouter } from "./routes/councilCommitteesRoutes.
 import { createCouncilDecisionsRouter } from "./routes/councilDecisionsRoutes.js";
 import { createCouncilMeetingsRouter } from "./routes/councilMeetingsRoutes.js";
 import { createCouncilMembersRouter } from "./routes/councilMembersRoutes.js";
+import { createCouncilTermsRouter } from "./routes/councilTermsRoutes.js";
 import { createDocumentaryResourcesRouter } from "./routes/documentaryResourcesRoutes.js";
 import { createSettingsRouter } from "./routes/settingsRoutes.js";
+import { createMinutesRouter } from "./routes/minutesRoutes.js";
 import { apiRootRepresentation, sirenResponses } from "./sirenRepresentation.js";
 
 export const API_JSON_BODY_LIMIT_BYTES = 12 * 1024 * 1024;
@@ -52,17 +55,18 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api", requireAuthentication);
   app.use("/api/users", createUsersRouter(container.cradle));
   app.use("/api/audit-events", createAuditRouter(container.cradle));
+  app.use("/api/ballots", createBallotsRouter(container.cradle));
   app.use("/api/contacts", createContactsRouter(container.cradle));
   app.use("/api/council-members", createCouncilMembersRouter(container.cradle));
+  app.use("/api/council-terms", createCouncilTermsRouter(container.cradle));
   app.use("/api/council-committees", createCouncilCommitteesRouter(container.cradle));
-  app.use("/api/council-meetings", createCouncilMeetingsRouter(container.cradle));
-  app.use("/api/council-decisions", createCouncilDecisionsRouter(container.cradle));
-  if (config.database.kind === "postgres") {
-    app.use("/api/resources", createDocumentaryResourcesRouter(container.cradle));
-  }
   app.use("/api/council-business", createCouncilBusinessRouter(container.cradle));
-  app.use("/api/settings", createSettingsRouter(container.cradle));
+  app.use("/api/council-meetings", createCouncilMeetingsRouter(container.cradle));
+  app.use("/api/minutes", createMinutesRouter(container.cradle));
+  app.use("/api/council-decisions", createCouncilDecisionsRouter(container.cradle));
+  app.use("/api/resources", createDocumentaryResourcesRouter(container.cradle));
   app.use("/api/templates", createContentTemplatesRouter(container.cradle));
+  app.use("/api/settings", createSettingsRouter(container.cradle));
   app.use("/api", (request, response) => sendProblem(request, response, 404, "route_not_found"));
 
   if (config.clientDirectory && existsSync(join(config.clientDirectory, "index.html"))) {

@@ -1,21 +1,21 @@
+import type { Contact } from "@hall/api-contract";
 import {
-  type Contact,
-  type CouncilBusiness,
   type CouncilDecisionListEntry,
-  type CouncilMeeting,
   type CouncilMember,
   matchLiteral,
   type ReferenceEntityKind,
   type Resource,
 } from "@hall/domain";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
+import type { CouncilMeetingView } from "../../models/councilMeeting";
 
 export type ReferenceOpenTarget = { kind: "resourcePreview"; resourceId: string } | { kind: "route"; href: string };
 
 export interface ReferenceNavigationCatalog {
   resources: readonly Resource[];
-  businesses: readonly CouncilBusiness[];
+  businesses: readonly CouncilBusinessView[];
   decisions: readonly CouncilDecisionListEntry[];
-  meetings: readonly CouncilMeeting[];
+  meetings: readonly CouncilMeetingView[];
   members: readonly CouncilMember[];
   contacts: readonly Contact[];
 }
@@ -24,11 +24,11 @@ export type ResolvedReferenceEntity =
   | { kind: "member"; entity: CouncilMember; open: ReferenceOpenTarget }
   | { kind: "contact"; entity: Contact; open: ReferenceOpenTarget }
   | { kind: "resource"; entity: Resource; open: ReferenceOpenTarget }
-  | { kind: "councilBusiness"; entity: CouncilBusiness; open: ReferenceOpenTarget }
-  | { kind: "meeting"; entity: CouncilMeeting; open: ReferenceOpenTarget }
+  | { kind: "councilBusiness"; entity: CouncilBusinessView; open: ReferenceOpenTarget }
+  | { kind: "meeting"; entity: CouncilMeetingView; open: ReferenceOpenTarget }
   | { kind: "decision"; entity: CouncilDecisionListEntry; open: ReferenceOpenTarget };
 
-export function councilBusinessHref(business: Pick<CouncilBusiness, "id" | "folderPath">): string {
+export function councilBusinessHref(business: Pick<CouncilBusinessView, "id" | "folderPath">): string {
   const parameters = new URLSearchParams();
   if (business.folderPath) parameters.set("path", business.folderPath);
   parameters.set("councilBusiness", business.id);
@@ -72,19 +72,20 @@ export function resolveReferenceEntity(
     meeting: () => {
       const entity = catalog.meetings.find((candidate) => candidate.id === id);
       return entity
-        ? { kind: "meeting" as const, entity, open: { kind: "route" as const, href: `/meetings/${entity.slug}` } }
+        ? {
+            kind: "meeting" as const,
+            entity,
+            open: { kind: "route" as const, href: `/meetings/${entity.reference}` },
+          }
         : null;
     },
     decision: () => {
       const entity = catalog.decisions.find((candidate) => candidate.id === id);
       if (!entity) return null;
-      const carrier = catalog.businesses.find(
-        (candidate) => candidate.kind === "matter" && candidate.councilDecisionId === id,
-      );
       return {
         kind: "decision" as const,
         entity,
-        open: { kind: "route" as const, href: carrier ? councilBusinessHref(carrier) : "/council-decisions" },
+        open: { kind: "route" as const, href: "/council-decisions" },
       };
     },
   });

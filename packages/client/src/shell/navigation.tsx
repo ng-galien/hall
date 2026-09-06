@@ -6,6 +6,7 @@ import {
   GavelIcon,
   HomeIcon,
   MembersIcon,
+  TextDocumentIcon,
   WorkspaceIcon,
 } from "../components/icons";
 import type { TranslationKey } from "../i18n/en";
@@ -32,6 +33,7 @@ export const navigationSections: NavigationSection[] = [
     labelKey: "navigation.council",
     items: [
       { to: "/meetings", labelKey: "navigation.meetings", icon: <GavelIcon />, countKey: "meetings" },
+      { to: "/minutes", labelKey: "navigation.minutes", icon: <TextDocumentIcon /> },
       {
         to: "/council-decisions",
         labelKey: "navigation.decisions",

@@ -1,19 +1,15 @@
-import {
-  type CouncilMember,
-  type DocumentaryResource,
-  type DocumentCategory,
-  type MeetingAggregate,
-  meetingAgendaCanChange,
-} from "@hall/domain";
+import { type DocumentaryResource, type DocumentCategory, meetingAgendaCanChange } from "@hall/domain";
 import { type FormEvent, useId, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircleIcon, FileIcon, OpenIcon, UploadIcon, WarningIcon } from "../../components/icons";
-import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { CouncilMemberView } from "../../models/directory";
+import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { MeetingDocumentViewer } from "./MeetingDocumentViewer";
 
@@ -26,7 +22,7 @@ export const documentCategoryKeys: Record<DocumentCategory, TranslationKey> = {
   proxy: "documentCategory.proxy",
 };
 
-const meetingDocumentCategories: DocumentCategory[] = ["meetingNotice", "proxy", "supporting", "minutes"];
+const meetingDocumentCategories: DocumentCategory[] = ["meetingNotice", "proxy", "supporting"];
 
 /** Sentinel for an unassigned officer; SelectItem forbids an empty value, the API expects "". */
 const noOfficer = "none";
@@ -41,12 +37,12 @@ export function MeetingDetailsCard({
   documentsEditable,
   onSaveOfficers,
 }: {
-  aggregate: MeetingAggregate;
-  members: CouncilMember[];
+  aggregate: LiveMeetingPresentation;
+  members: CouncilMemberView[];
   documents: DocumentaryResource[];
   officersEditable: boolean;
   documentsEditable: boolean;
-  onSaveOfficers(input: Record<string, unknown>): Promise<boolean>;
+  onSaveOfficers(input: { chairMemberId: string; secretaryMemberId: string }): Promise<boolean>;
 }) {
   const { t, formatFileSize } = useI18n();
   const { submitting, run } = useSubmitting();
@@ -63,8 +59,8 @@ export function MeetingDetailsCard({
     const form = new FormData(event.currentTarget);
     await run(async () => {
       const saved = await onSaveOfficers({
-        chairMemberId: officerFromField(form.get("chairMemberId")),
-        secretaryMemberId: officerFromField(form.get("secretaryMemberId")),
+        chairMemberId: String(officerFromField(form.get("chairMemberId"))),
+        secretaryMemberId: String(officerFromField(form.get("secretaryMemberId"))),
       });
       setOfficersSaved(saved);
     });
@@ -226,7 +222,13 @@ export function MeetingDetailsCard({
       <section className="meeting-side-section" aria-labelledby="minutes-heading">
         <h2 id="minutes-heading">{t("meeting.minutes")}</h2>
         <div className="meeting-minutes-status">
-          <StatusBadge value={meeting.minutesStatus} />
+          {meeting.minutesId ? (
+            <Link to={`/minutes/${meeting.minutesId}`} data-testid="meeting-minutes-link">
+              {t("minutes.view")}
+            </Link>
+          ) : (
+            <span>{t("minutes.empty")}</span>
+          )}
         </div>
       </section>
 

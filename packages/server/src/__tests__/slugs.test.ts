@@ -58,7 +58,6 @@ describe("public slugs and business numbering", () => {
         title: "Éclairage public",
         report: "Rapport",
         folderPath: "conseil",
-        resourceIds: [],
       })
       .expect(201);
     expect(properties(business)).toMatchObject({ slug: "eclairage-public" });
@@ -107,7 +106,6 @@ describe("public slugs and business numbering", () => {
           title: "Subventions aux associations",
           report: "Rapport",
           folderPath: "associations",
-          resourceIds: [],
         })
         .expect(201),
     );

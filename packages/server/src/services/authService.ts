@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { ApiRole, ApiUser } from "@hall/api-contract";
-import type { CouncilMemberRepository, UnitOfWork } from "../repositories/contracts.js";
+import type { DirectoryClient } from "../clients/directoryClient.js";
+import type { UnitOfWork } from "../repositories/contracts.js";
 import type { SecurityRepository, StoredUser } from "../repositories/securityRepository.js";
 import { permissionsForRoles, principalForUser } from "../security/authorization.js";
 import { hashPassword, verifyPassword } from "../security/password.js";
@@ -55,18 +56,18 @@ export interface AuthService {
 
 export function createAuthService({
   securityRepository,
-  councilMemberRepository,
+  directoryClient,
   unitOfWork,
   requestContext,
 }: {
   securityRepository: SecurityRepository;
-  councilMemberRepository: CouncilMemberRepository;
+  directoryClient: DirectoryClient;
   unitOfWork: UnitOfWork;
   requestContext: RequestContextStore;
 }): AuthService {
   const validateCouncilMember = async (councilMemberId: string | null) => {
     if (!councilMemberId) return;
-    if (!(await councilMemberRepository.find(councilMemberId))) {
+    if (!(await directoryClient.openCouncilMember(councilMemberId))) {
       throw new DomainError("council_member_not_found", 404);
     }
   };

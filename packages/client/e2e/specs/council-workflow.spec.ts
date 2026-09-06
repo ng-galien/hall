@@ -1,161 +1,329 @@
-import type { Page } from "@playwright/test";
-import { expect, formField, primaryNavigationLink, test } from "../fixtures/application";
+import type { APIResponse, Page } from "@playwright/test";
+import { expect, test } from "../fixtures/application";
 
-function openDialog(page: Page) {
-  return page.getByRole("dialog");
+interface SirenItem<T> {
+  properties: T;
 }
 
-async function createMember(
-  page: Page,
-  firstName: string,
-  lastName: string,
-  role: "mayor" | "deputyMayor" | "councillor",
-) {
-  await page.getByRole("button", { name: "Ajouter un membre", exact: true }).click();
-  const dialog = openDialog(page);
-  await formField(dialog, "firstName").fill(firstName);
-  await formField(dialog, "lastName").fill(lastName);
-  await formField(dialog, "role").selectOption(role);
-  await formField(dialog, "termStartedOn").fill("2026-03-15");
-  await dialog.getByRole("button", { name: "Créer", exact: true }).click();
-  await expect(dialog).toHaveCount(0);
-  await expect(page.getByText(`${firstName} ${lastName}`, { exact: true })).toBeVisible();
+interface SirenCollection<T> {
+  entities: Array<SirenItem<T>>;
 }
 
-test.describe("council workflow", () => {
-  test("keeps one council business mutation pending and ignores duplicate submissions", async ({ appPage: page }) => {
-    await primaryNavigationLink(page, "Espace de travail").click();
-    await page.getByRole("button", { name: "Nouveau", exact: true }).click();
-    await page.getByTestId("workspace-create-business").click();
-    const dialog = openDialog(page);
-    await formField(dialog, "title").fill("Sujet soumis une seule fois");
+async function sirenProperties<T>(response: APIResponse): Promise<T> {
+  const body = (await response.json()) as SirenItem<T>;
+  expect(response.ok(), JSON.stringify(body)).toBeTruthy();
+  return body.properties;
+}
 
-    let postCount = 0;
-    await page.route("**/api/council-business", async (route) => {
-      if (route.request().method() === "POST") {
-        postCount += 1;
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
-      await route.continue();
+async function sirenItems<T>(response: APIResponse): Promise<T[]> {
+  const body = (await response.json()) as SirenCollection<T>;
+  expect(response.ok(), JSON.stringify(body)).toBeTruthy();
+  return body.entities.map((entity) => entity.properties);
+}
+
+async function scheduleVotingItem(page: Page, meetingReference: string, councilBusinessId: string, position: number) {
+  return sirenProperties<{ id: string }>(
+    await page.request.post(`/api/council-meetings/${meetingReference}/agenda-items`, {
+      data: { kind: "councilDecisionProposal", councilBusinessId, position },
+    }),
+  );
+}
+
+test("conducts public and secret ballots and provisions the previous minutes approval", async ({ appPage: page }, testInfo) => {
+  test.setTimeout(150_000);
+
+  const meetings = await sirenItems<{
+    id: string;
+    slug: string;
+    number: number;
+    scheduledAt: string | null;
+    startedAt: string | null;
+    closedAt: string | null;
+    previousCouncilMeetingId: string | null;
+  }>(await page.request.get("/api/council-meetings"));
+  const meeting = meetings.find(
+    (candidate) => candidate.scheduledAt && !candidate.startedAt && !candidate.closedAt && candidate.slug,
+  );
+  expect(meeting).toBeTruthy();
+
+  const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
+  expect(businesses.length).toBeGreaterThanOrEqual(2);
+  const publicItem = await scheduleVotingItem(page, meeting!.slug, businesses[0]!.id, 1);
+  const secretItem = await scheduleVotingItem(page, meeting!.slug, businesses[1]!.id, 2);
+
+  const deferredItem = await sirenProperties<{ id: string }>(
+    await page.request.post(`/api/council-meetings/${meeting!.slug}/agenda-items`, {
+      data: { kind: "openQuestion", councilBusinessId: businesses[0]!.id, position: 3 },
+    }),
+  );
+  await page.goto(`/app/meetings/${meeting!.slug}`);
+  await page.getByTestId(`agenda-item-expand-${publicItem.id}`).click();
+  await page
+    .getByTestId("agenda-proposal-editor")
+    .getByTestId("editor-writing-area")
+    .fill("Proposal text distinct from the report");
+  await page.screenshot({ path: "/tmp/hall-preparation-connected.png", fullPage: true });
+  await page.getByTestId("agenda-item-save").click();
+  await expect(page.getByTestId("agenda-item-save")).toBeHidden();
+  const proposal = await sirenProperties<{ subject: { textResourceId: string; content: string } }>(
+    await page.request.get(`/api/council-meetings/${meeting!.slug}/agenda-items/${publicItem.id}`),
+  );
+  expect(proposal.subject.content).toContain("Proposal text distinct from the report");
+  const business = await sirenProperties<{ reportResourceId: string }>(
+    await page.request.get(`/api/council-business/${businesses[0]!.id}`),
+  );
+  expect(proposal.subject.textResourceId).not.toBe(business.reportResourceId);
+  await page.goto(`/app/meetings/${meeting!.slug}/live`);
+  await expect(page.getByTestId("live-meeting-page")).toBeVisible();
+  await page.getByTestId("live-attendance-all-present").click();
+  await expect(page.getByTestId("live-meeting-start")).toBeDisabled();
+  const members = await sirenItems<{ id: string }>(await page.request.get("/api/council-members"));
+  await page.getByTestId(`live-member-actions-${members[0]!.id}`).click();
+  await page.getByTestId(`live-designate-chair-${members[0]!.id}`).click();
+  await page.getByTestId(`live-member-actions-${members[1]!.id}`).click();
+  await page.getByTestId(`live-designate-secretary-${members[1]!.id}`).click();
+  await expect(page.getByTestId("live-meeting-start")).toBeEnabled();
+  await page.getByTestId("live-meeting-start").click();
+
+  await expect(page.getByTestId("live-agenda-item-" + publicItem.id)).toBeVisible();
+  await page.getByTestId("live-agenda-item-" + publicItem.id).click();
+  await page.getByTestId("live-agenda-start").click();
+  await page
+    .getByTestId("live-agenda-notes")
+    .getByTestId("editor-writing-area")
+    .fill("Discussion recorded during the meeting.");
+  await expect
+    .poll(async () => {
+      const item = await sirenProperties<{ discussionSummary: string }>(
+        await page.request.get(`/api/council-meetings/${meeting!.slug}/agenda-items/${publicItem.id}`),
+      );
+      return item.discussionSummary;
+    })
+    .toContain("Discussion recorded during the meeting.");
+  await page.getByTestId("live-ballot-open").click();
+  await page.getByTestId("live-ballot-all-for").click();
+  await expect(page.getByTestId("live-ballot-record")).toBeEnabled();
+  await page.getByTestId("live-opening").click();
+  await expect(page.getByTestId("live-opening-summary")).toBeVisible();
+  await expect(page.getByTestId("live-ballot-record")).toBeHidden();
+  await page.getByTestId("live-agenda-toggle").click();
+  await page.getByTestId("live-agenda-item-" + publicItem.id).click();
+  await expect(page.getByTestId("live-opening-summary")).toBeHidden();
+  await expect(page.getByTestId("live-ballot-record")).toBeEnabled();
+  await expect(page.getByTestId("live-item-progress")).toBeVisible();
+  await page.getByTestId("live-agenda-toggle").click();
+  await page.getByTestId("live-ballot-record").click();
+  await expect(page.getByTestId("live-ballot-result")).toBeVisible();
+  await expect(page.getByTestId("live-ballot-result")).toContainText("Adopted");
+
+  await page.getByTestId("live-agenda-item-" + secretItem.id).click();
+  await page.getByTestId("live-agenda-start").click();
+  await page.getByTestId("live-ballot-open").click();
+  const memberCount = await page.locator(".vote-card").count();
+  expect(memberCount).toBeGreaterThan(0);
+  await page.getByTestId("live-ballot-mode-secret").click();
+  for (let index = 0; index < memberCount; index += 1) {
+    await page.getByTestId("live-secret-notVoting-decrement").click();
+    await page.getByTestId("live-secret-votesFor-increment").click();
+  }
+  await expect(page.getByTestId("live-ballot-record")).toBeEnabled();
+  await page.getByTestId("live-ballot-record").click();
+  await expect(page.getByTestId("live-ballot-result")).toContainText("Adopted");
+
+  await page.getByTestId("live-agenda-item-" + deferredItem.id).click();
+  await page.getByTestId("live-agenda-start").click();
+  await expect(page.getByTestId("live-agenda-start")).toBeHidden();
+  await expect(page.getByTestId("live-ballot-open")).toBeHidden();
+  await page.getByTestId("live-agenda-actions").click();
+  const adjournResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" && response.url().endsWith(`/agenda-items/${deferredItem.id}/adjourn`),
+  );
+  await page.getByTestId("live-agenda-adjourn").click();
+  expect((await adjournResponse).status()).toBe(200);
+  await expect(page.getByTestId("live-agenda-item-" + deferredItem.id)).toContainText("Adjourned");
+  const deferred = await sirenProperties<{ adjournedAt: string; completedAt: string | null }>(
+    await page.request.get(`/api/council-meetings/${meeting!.slug}/agenda-items/${deferredItem.id}`),
+  );
+  expect(deferred.adjournedAt).toBeTruthy();
+  expect(deferred.completedAt).toBeNull();
+  await expect(page.getByTestId("live-meeting-close")).toBeEnabled();
+  await page.getByTestId("live-meeting-close").click();
+  await page.getByTestId("live-meeting-close").click();
+  await expect(page.getByTestId("live-meeting-page")).toContainText("The meeting is closed");
+
+  const afterClosure = await sirenItems<{
+    id: string;
+    number: number;
+    previousCouncilMeetingId: string | null;
+  }>(await page.request.get("/api/council-meetings"));
+  const nextMeeting = afterClosure.find((candidate) => candidate.previousCouncilMeetingId === meeting!.id);
+  expect(nextMeeting).toBeTruthy();
+  expect(nextMeeting!.number).toBe(meeting!.number + 1);
+
+  const nextAgenda = await sirenItems<{
+    position: number;
+    subject: { kind: string };
+  }>(await page.request.get(`/api/council-meetings/${nextMeeting!.id}/agenda-items`));
+  expect(nextAgenda).toHaveLength(2);
+  expect(nextAgenda[1]).toMatchObject({ position: 2, subject: { kind: "openQuestion" } });
+  expect(nextAgenda[0]).toMatchObject({ position: 1, subject: { kind: "minutesApproval" } });
+
+  await page.goto(`/app/meetings/${meeting!.slug}`);
+  await page.getByTestId("navigation-minutes").click();
+  await expect(page.getByTestId("minutes-page")).toBeVisible();
+  await page.getByTestId(`minutes-open-${meeting!.id}`).click();
+  await expect(page.getByTestId("minutes-detail")).toBeVisible();
+  const narrativeEditor = page.getByTestId(`minutes-section-${publicItem.id}`).getByTestId("editor-writing-area");
+  await expect(narrativeEditor).toContainText("Discussion recorded during the meeting.");
+  await page.screenshot({ path: testInfo.outputPath("minutes-draft.png"), fullPage: true });
+  await page.getByTestId("minutes-attendance-toggle").click();
+  await expect(page.getByTestId("minutes-attendance")).toHaveAttribute("open", "");
+  await page.getByTestId(`minutes-section-facts-toggle-${publicItem.id}`).click();
+  await expect(page.getByTestId(`minutes-section-facts-${publicItem.id}`)).toHaveAttribute("open", "");
+  await page.screenshot({ path: testInfo.outputPath("minutes-facts-expanded.png"), fullPage: true });
+  await page.getByTestId("minutes-attendance-toggle").click();
+  await page.getByTestId(`minutes-section-facts-toggle-${publicItem.id}`).click();
+  await page.getByTestId("minutes-attendance-toggle").press("Enter");
+  await expect(page.getByTestId("minutes-attendance")).toHaveAttribute("open", "");
+  const disclosureBounds = await page.getByTestId("minutes-attendance").boundingBox();
+  const disclosureContentBounds = await page.getByTestId("minutes-attendance-content").boundingBox();
+  expect(disclosureBounds).not.toBeNull();
+  expect(disclosureContentBounds).not.toBeNull();
+  expect(disclosureContentBounds!.x).toBeGreaterThan(disclosureBounds!.x);
+  await page.getByTestId("minutes-attendance-toggle").press("Space");
+  await expect(page.getByTestId("minutes-attendance")).not.toHaveAttribute("open");
+  const summaries = await sirenItems<{ id: string; councilMeetingId: string }>(await page.request.get("/api/minutes"));
+  const minutes = summaries.find((entry) => entry.councilMeetingId === meeting!.id)!;
+  expect(minutes).toBeTruthy();
+  const beforeCorrection = await sirenProperties<{ facts: unknown; version: number }>(
+    await page.request.get(`/api/minutes/${minutes.id}`),
+  );
+  const corrected = "Discussion corrected after the meeting without changing the recorded votes.";
+  await narrativeEditor.fill(corrected);
+  await expect
+    .poll(
+      async () =>
+        (
+          await sirenProperties<{ sections: { agendaItemId: string; content: string }[] }>(
+            await page.request.get(`/api/minutes/${minutes.id}`),
+          )
+        ).sections.find((section) => section.agendaItemId === publicItem.id)?.content,
+    )
+    .toContain(corrected);
+  await page.reload();
+  await expect(page.getByTestId(`minutes-section-${publicItem.id}`)).toContainText(corrected);
+  const afterCorrection = await sirenProperties<{ facts: unknown; version: number }>(
+    await page.request.get(`/api/minutes/${minutes.id}`),
+  );
+  expect(afterCorrection.facts).toEqual(beforeCorrection.facts);
+  await page.route(`**/api/minutes/${minutes.id}/draft`, async (route) => {
+    await route.fulfill({
+      status: 503,
+      contentType: "application/problem+json",
+      body: JSON.stringify({ title: "Unavailable", status: 503 }),
     });
-
-    const form = dialog.locator("form");
-    await dialog.getByRole("button", { name: "Créer", exact: true }).click();
-    await expect(dialog.getByRole("button", { name: "Enregistrement…", exact: true })).toBeDisabled();
-    await form.evaluate((element) => {
-      element.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-      element.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    });
-
-    await expect(page.getByRole("heading", { name: "Sujet soumis une seule fois", exact: true })).toBeVisible();
-    expect(postCount).toBe(1);
   });
-
-  test("prepares council business, conducts the live meeting, and records the ballot", async ({ appPage: page }) => {
-    await primaryNavigationLink(page, "Membres du conseil").click();
-    await createMember(page, "Camille", "Martin", "mayor");
-    await createMember(page, "Jules", "Bernard", "councillor");
-
-    await primaryNavigationLink(page, "Espace de travail").click();
-    await page.getByRole("button", { name: "Nouveau", exact: true }).click();
-    await page.getByTestId("workspace-create-business").click();
-    const businessDialog = openDialog(page);
-    await formField(businessDialog, "title").fill("Adoption du programme de rénovation");
-    await businessDialog.getByRole("button", { name: "Créer", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Adoption du programme de rénovation", exact: true })).toBeVisible();
-
-    await primaryNavigationLink(page, "Séances").click();
-    await page.getByRole("button", { name: "Planifier une séance", exact: true }).click();
-    const meetingDialog = openDialog(page);
-    await formField(meetingDialog, "startsAt").fill("2026-09-01T18:30");
-    await formField(meetingDialog, "secretaryMemberId").selectOption({ label: "Jules Bernard" });
-    await expect(formField(meetingDialog, "chairMemberId")).toHaveValue(/.+/);
-    await meetingDialog.getByRole("button", { name: "Créer", exact: true }).click();
-    await page.getByRole("link", { name: /Conseil municipal .*01\/09\/2026/ }).click();
-
-    await page
-      .getByRole("listitem")
-      .filter({ hasText: "Adoption du programme de rénovation" })
-      .getByRole("button", { name: "Inscrire", exact: true })
-      .click();
-    await expect(page.locator(".composer-list")).toContainText("Adoption du programme de rénovation");
-    const quickAdd = page.locator(".composer-quick-add");
-    await quickAdd.getByRole("combobox").selectOption("openQuestion");
-    await formField(quickAdd, "title").fill("Questions diverses");
-    await quickAdd.getByRole("button", { name: "Ajouter", exact: true }).click();
-    await expect(page.locator(".composer-list")).toContainText("Questions diverses");
-
-    await page.getByRole("button", { name: "Figer la composition et programmer", exact: true }).click();
-    await page.getByRole("link", { name: "Passer en mode séance", exact: true }).click();
-
-    await page.getByRole("button", { name: "Tout marquer présent", exact: true }).click();
-    const openMeetingAction = page.getByRole("button", {
-      name: "Constater le quorum et ouvrir la séance",
-      exact: true,
-    });
-    await expect(openMeetingAction).toBeEnabled();
-    await openMeetingAction.click();
-
-    await page.getByRole("button", { name: "Démarrer ce sujet", exact: true }).click();
-    await page.getByRole("button", { name: "Passer au vote", exact: true }).click();
-    await page.getByRole("button", { name: "Tous les restants votent pour", exact: true }).click();
-    await expect(page.getByText("Tous les votes sont pointés.", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Enregistrer le résultat", exact: true }).click();
-    await expect(page.locator(".conduct-result")).toContainText("Adoptée");
-
-    await page.getByRole("button", { name: "Clôturer et passer au sujet suivant", exact: true }).click();
-    await page.getByRole("button", { name: "Démarrer ce sujet", exact: true }).click();
-    await page.getByRole("button", { name: "Passer au vote", exact: true }).click();
-    await page.getByRole("button", { name: "Tous les restants votent pour", exact: true }).click();
-    await page.getByRole("button", { name: "Enregistrer le résultat", exact: true }).click();
-    await expect(page.locator(".conduct-result")).toContainText("Adoptée");
-    await page.getByRole("button", { name: "Clôturer et passer au sujet suivant", exact: true }).click();
-    await page.getByRole("button", { name: "Démarrer ce sujet", exact: true }).click();
-    await page.getByRole("button", { name: "Clôturer et passer au sujet suivant", exact: true }).click();
-
-    await page.getByRole("button", { name: "Clore la séance", exact: true }).click();
-    await page.getByRole("button", { name: "Confirmer la clôture de la séance", exact: true }).click();
-    await page.getByRole("link", { name: "Consulter le déroulé de la séance", exact: true }).click();
-
-    await expect(page.getByText("Finaliser les actes", { exact: true })).toBeVisible();
-    const report = page.locator(".report-timeline");
-    await expect(report).toContainText("Adoption du programme de rénovation");
-    await expect(report).toContainText("Adoptée");
-    await expect(report).toContainText("Camille Martin");
+  const retriedNarrative = `${corrected}\n\nAdditional correction retained during a network failure.`;
+  await page.getByTestId(`minutes-section-${publicItem.id}`).getByTestId("editor-writing-area").fill(retriedNarrative);
+  await expect(page.getByTestId("minutes-save-retry")).toBeVisible();
+  await expect(page.getByTestId(`minutes-section-${publicItem.id}`)).toContainText("Additional correction retained");
+  await page.unroute(`**/api/minutes/${minutes.id}/draft`);
+  await page.getByTestId("minutes-save-retry").click();
+  await expect
+    .poll(
+      async () =>
+        (
+          await sirenProperties<{ sections: { agendaItemId: string; content: string }[] }>(
+            await page.request.get(`/api/minutes/${minutes.id}`),
+          )
+        ).sections.find((section) => section.agendaItemId === publicItem.id)?.content,
+    )
+    .toContain("Additional correction retained");
+  await page
+    .getByTestId(`minutes-section-${secretItem.id}`)
+    .getByTestId("editor-writing-area")
+    .fill("Separate discussion for the secret ballot.");
+  await expect
+    .poll(
+      async () =>
+        (
+          await sirenProperties<{ sections: { agendaItemId: string; content: string }[] }>(
+            await page.request.get(`/api/minutes/${minutes.id}`),
+          )
+        ).sections.find((section) => section.agendaItemId === secretItem.id)?.content,
+    )
+    .toContain("Separate discussion");
+  const beforePreview = await sirenProperties<{ version: number }>(
+    await page.request.get(`/api/minutes/${minutes.id}`),
+  );
+  const previewResponse = page.waitForResponse((response) => response.url().endsWith(`/minutes/${minutes.id}/preview`));
+  await page.getByTestId("minutes-preview").click();
+  expect((await previewResponse).status()).toBe(200);
+  await expect(page.getByTestId("minutes-document-dialog")).toBeVisible();
+  await expect(page.getByTestId("minutes-document-frame")).toBeVisible();
+  const previewed = await sirenProperties<{ generatedAt: string | null; documentId: string | null; version: number }>(
+    await page.request.get(`/api/minutes/${minutes.id}`),
+  );
+  expect(previewed.generatedAt).toBeNull();
+  expect(previewed.documentId).toBeNull();
+  expect(previewed.version).toBe(beforePreview.version);
+  await page.getByTestId("minutes-document-close").click();
+  await expect(page.getByTestId("minutes-document-dialog")).toHaveCount(0);
+  await expect(page.getByTestId("minutes-preview")).toBeFocused();
+  await page.getByTestId("minutes-preview").click();
+  await expect(page.getByTestId("minutes-document-frame")).toBeVisible();
+  await page.getByTestId("minutes-document-close").press("Escape");
+  await expect(page.getByTestId("minutes-document-dialog")).toHaveCount(0);
+  await expect(page.getByTestId("minutes-preview")).toBeFocused();
+  await expect(page.getByTestId(`minutes-section-${publicItem.id}`).getByTestId("editor-writing-area")).toBeEditable();
+  await expect(page.getByTestId(`minutes-section-${publicItem.id}`)).toContainText("Additional correction retained");
+  await page
+    .getByTestId(`minutes-section-${secretItem.id}`)
+    .getByTestId("editor-writing-area")
+    .fill("Last correction after preview.");
+  await expect(page.getByTestId("minutes-document-frame")).toHaveCount(0);
+  await page.getByTestId("minutes-generate").click();
+  await expect(page.getByTestId("minutes-document-dialog")).toBeVisible();
+  await expect(page.getByTestId("minutes-document-frame")).toBeVisible();
+  await page.getByTestId("minutes-document-close").click();
+  await expect(page.getByTestId("minutes-document-frame")).toHaveCount(0);
+  await expect(page.getByTestId("minutes-view-document")).toBeFocused();
+  await expect(page.getByTestId("minutes-download")).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("minutes-generated.png"), fullPage: true });
+  await page.reload();
+  await expect(page.getByTestId("minutes-view-document")).toBeVisible();
+  await expect(page.getByTestId("minutes-document-frame")).toHaveCount(0);
+  await page.getByTestId("minutes-view-document").click();
+  await expect(page.getByTestId("minutes-document-dialog")).toBeVisible();
+  await page.getByTestId("minutes-document-close").press("Escape");
+  await expect(page.getByTestId("minutes-view-document")).toBeFocused();
+  await expect(page.getByTestId(`minutes-section-${publicItem.id}`).getByTestId("editor-writing-area")).toHaveCount(0);
+  const generated = await sirenProperties<{ documentId: string; generatedAt: string; version: number; facts: unknown; sections: { agendaItemId: string; content: string }[] }>(
+    await page.request.get(`/api/minutes/${minutes.id}`),
+  );
+  expect(generated.documentId).toBeTruthy();
+  expect(generated.generatedAt).toBeTruthy();
+  expect(generated.facts).toEqual(beforeCorrection.facts);
+  expect(generated.sections.find((section) => section.agendaItemId === secretItem.id)?.content).toContain("Last correction after preview.");
+  const pdf = await page.request.get(`/api/minutes/${minutes.id}/content`);
+  expect(pdf.ok()).toBeTruthy();
+  expect(pdf.headers()["content-type"]).toContain("application/pdf");
+  expect((await pdf.body()).subarray(0, 5).toString()).toBe("%PDF-");
+  const forbiddenEdit = await page.request.patch(`/api/minutes/${minutes.id}/draft`, {
+    data: {
+      expectedVersion: generated.version,
+      agendaItemId: publicItem.id,
+      content: "Must not overwrite generated minutes",
+    },
   });
-
-  test("records a quorum failure and reconvenes the meeting from the roll call", async ({ appPage: page }) => {
-    await primaryNavigationLink(page, "Membres du conseil").click();
-    await createMember(page, "Anne", "Petit", "mayor");
-    await createMember(page, "Louis", "Roche", "councillor");
-
-    await primaryNavigationLink(page, "Séances").click();
-    await page.getByRole("button", { name: "Planifier une séance", exact: true }).click();
-    const meetingDialog = openDialog(page);
-    await formField(meetingDialog, "startsAt").fill("2026-08-30T18:30");
-    await formField(meetingDialog, "chairMemberId").selectOption({ label: "Anne Petit" });
-    await formField(meetingDialog, "secretaryMemberId").selectOption({ label: "Louis Roche" });
-    await meetingDialog.getByRole("button", { name: "Créer", exact: true }).click();
-    await page.getByRole("link", { name: /Conseil municipal .*30\/08\/2026/ }).click();
-
-    await page.getByRole("button", { name: "Figer la composition et programmer", exact: true }).click();
-    await page.getByRole("link", { name: "Passer en mode séance", exact: true }).click();
-
-    const anneTile = page.locator(".rollcall-tile", { hasText: "Anne Petit" });
-    await anneTile.getByRole("button", { name: "Présent", exact: true }).click();
-    const louisTile = page.locator(".rollcall-tile", { hasText: "Louis Roche" });
-    await louisTile.getByRole("button", { name: "Absent", exact: true }).click();
-
-    await page.getByRole("button", { name: "Constater l’absence de quorum", exact: true }).click();
-    await expect(page.getByText("L’absence de quorum a été formellement constatée.", { exact: true })).toBeVisible();
-
-    await formField(page.locator(".rollcall-reconvene"), "startsAt").fill("2026-08-31T18:30");
-    await page.getByRole("button", { name: "Créer la seconde convocation", exact: true }).click();
-
-    await expect(page).toHaveURL(/\/app\/meetings\/[0-9a-f-]+$/);
-    await expect(page.getByRole("heading", { name: /Conseil municipal .*31\/08\/2026/ })).toBeVisible();
-    await expect(
-      page.getByText("L’ordre du jour de cette séance ne peut plus être modifié.", { exact: true }),
-    ).toBeVisible();
+  expect(forbiddenEdit.status()).toBe(409);
+  const approval = await sirenItems<{
+    councilBusinessId: string | null;
+    subject: { kind: string; minutesId?: string; documentId?: string };
+  }>(await page.request.get(`/api/council-meetings/${nextMeeting!.id}/agenda-items`));
+  expect(approval[0]).toMatchObject({
+    councilBusinessId: null,
+    subject: { kind: "minutesApproval", minutesId: minutes.id, documentId: generated.documentId },
   });
 });

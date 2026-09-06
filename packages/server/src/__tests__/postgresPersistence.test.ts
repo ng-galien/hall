@@ -1,11 +1,9 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { createServer } from "node:net";
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 import { buildContainer } from "../core/container.js";
 import { startHttpServer } from "../server.js";
-import { defineBallotPersistenceContract } from "./support/ballotPersistenceContract.js";
-import { prepareBallotScenario } from "./support/ballotScenario.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const postgres = databaseUrl ? describe : describe.skip;
@@ -42,230 +40,7 @@ async function databaseUrlForHallRole(): Promise<string> {
   return url.toString();
 }
 
-async function waitForTransactionLock(pool: Pool, processId: number): Promise<void> {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    const activity = await pool.query<{ wait_event_type: string | null }>(
-      "SELECT wait_event_type FROM pg_stat_activity WHERE pid = $1",
-      [processId],
-    );
-    if (activity.rows[0]?.wait_event_type === "Lock") return;
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
-  throw new Error(`PostgreSQL backend ${processId} never waited on the expected transaction lock`);
-}
-
-async function createEmptyPublicBallot() {
-  await resetPostgres();
-  const scenario = await prepareBallotScenario({ kind: "postgres", url: databaseUrl! });
-  const ballotId = randomUUID();
-  const memberIds = scenario.members.map((member) => member.id);
-  await scenario.container.cradle.sqlExecutor.run("ballot.insert", {
-    id: ballotId,
-    meetingId: scenario.meeting.id,
-    councilDecisionId: null,
-    agendaItemId: scenario.agendaItem.id,
-    idempotencyKey: randomUUID(),
-    commandFingerprint: randomUUID(),
-    method: "public",
-    result: "adopted",
-    votesFor: 1,
-    votesAgainst: 0,
-    abstentions: 0,
-    notVoting: 0,
-    chairTieBreakApplied: false,
-    recusedMemberIdsJson: "[]",
-    participationEvidenceJson: JSON.stringify({
-      rosterMemberIds: memberIds,
-      attendance: memberIds.map((memberId) => ({
-        memberId,
-        status: "present",
-        proxyHolderMemberId: null,
-        proxyDocumentId: null,
-        version: 1,
-      })),
-      quorum: { activeMembers: memberIds.length, physicallyPresent: memberIds.length, required: 2, reached: true },
-    }),
-    createdAt: new Date().toISOString(),
-  });
-  return { scenario, ballotId };
-}
-
 postgres("PostgreSQL persistence", () => {
-  defineBallotPersistenceContract("shared ballot persistence contract", async () => {
-    const setup = new Pool({ connectionString: databaseUrl });
-    await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
-    await setup.end();
-    return { kind: "postgres", url: databaseUrl! };
-  });
-
-  it("retains past council terms while enforcing a single active term", async () => {
-    await resetPostgres();
-    const container = buildContainer({
-      host: "127.0.0.1",
-      port: 0,
-      database: { kind: "postgres", url: databaseUrl! },
-      environment: "test",
-    });
-    await container.cradle.sqlExecutor.ready();
-    const pool = new Pool({ connectionString: databaseUrl! });
-    try {
-      await pool.query(
-        "INSERT INTO council_terms (id, hall_id, expected_member_count, active) VALUES ($1, 'hall', $2, FALSE)",
-        ["previous", 11],
-      );
-      await expect(pool.query("SELECT COUNT(*)::integer AS count FROM council_terms")).resolves.toMatchObject({
-        rows: [{ count: 2 }],
-      });
-      await expect(
-        pool.query(
-          "INSERT INTO council_terms (id, hall_id, expected_member_count, active) VALUES ($1, 'hall', $2, TRUE)",
-          ["competing", 15],
-        ),
-      ).rejects.toMatchObject({ code: "23505", constraint: "one_active_council_term_per_hall" });
-    } finally {
-      await pool.end();
-      await container.cradle.sqlExecutor.close();
-    }
-  });
-
-  it("serializes concurrent member creation against the active council term capacity", async () => {
-    await resetPostgres();
-    const container = buildContainer({
-      host: "127.0.0.1",
-      port: 0,
-      database: { kind: "postgres", url: databaseUrl! },
-      environment: "test",
-    });
-    await container.cradle.sqlExecutor.ready();
-    try {
-      await container.cradle.councilTermRepository.updateActiveExpectedMemberCount(1);
-      const contacts = await Promise.all(
-        ["Inès", "Lina", "Marc"].map((firstName) =>
-          container.cradle.contactRepository.create({
-            firstName,
-            lastName: "Petit",
-            organizationName: null,
-            jobTitle: null,
-            email: null,
-            phone: null,
-            notes: "",
-          }),
-        ),
-      );
-      const oldMember = await container.cradle.councilMemberRepository.create({
-        contactId: contacts[0].id,
-        role: "councillor",
-        termStartedOn: "2020-03-15",
-      });
-      await container.cradle.councilMemberRepository.update(oldMember.id, {
-        role: "councillor",
-        termStartedOn: "2020-03-15",
-        termEndedOn: "2026-03-21",
-      });
-      const creations = await Promise.allSettled(
-        contacts.slice(1).map((contact, index) =>
-          container.cradle.councilMemberRepository.create({
-            contactId: contact.id,
-            role: index === 0 ? "mayor" : "councillor",
-            termStartedOn: "2026-03-22",
-          }),
-        ),
-      );
-
-      expect(creations.filter((result) => result.status === "fulfilled")).toHaveLength(1);
-      expect(creations.filter((result) => result.status === "rejected")).toEqual([
-        expect.objectContaining({ reason: expect.objectContaining({ constraint: "council_term_capacity_reached" }) }),
-      ]);
-      await expect(
-        container.cradle.councilMemberRepository.update(oldMember.id, {
-          role: "councillor",
-          termStartedOn: "2020-03-15",
-          termEndedOn: null,
-        }),
-      ).rejects.toMatchObject({ constraint: "council_term_capacity_reached" });
-    } finally {
-      await container.cradle.sqlExecutor.close();
-    }
-  });
-
-  it("blocks a public-to-secret update behind an uncommitted vote and rejects it after commit", async () => {
-    const { scenario, ballotId } = await createEmptyPublicBallot();
-    const pool = new Pool({ connectionString: databaseUrl });
-    const voteWriter = await pool.connect();
-    const methodWriter = await pool.connect();
-    const methodWriterProcessId = (await methodWriter.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0]
-      ?.pid;
-    if (!methodWriterProcessId) throw new Error("Expected the PostgreSQL method-writer process id");
-    try {
-      await voteWriter.query("BEGIN");
-      await voteWriter.query(
-        `INSERT INTO votes (id, ballot_id, member_id, cast_by_member_id, choice, position)
-         VALUES ($1, $2, $3, $3, 'for', 1)`,
-        [randomUUID(), ballotId, scenario.members[0]?.id],
-      );
-      await methodWriter.query("BEGIN");
-      const methodUpdate = methodWriter.query("UPDATE ballots SET method = 'secret' WHERE id = $1", [ballotId]);
-      await waitForTransactionLock(pool, methodWriterProcessId);
-      await voteWriter.query("COMMIT");
-      await expect(methodUpdate).rejects.toMatchObject({ code: "23514" });
-      await methodWriter.query("ROLLBACK");
-
-      const invariant = await pool.query<{ method: string; vote_count: string }>(
-        `SELECT ballots.method, COUNT(votes.id)::text AS vote_count
-         FROM ballots LEFT JOIN votes ON votes.ballot_id = ballots.id
-         WHERE ballots.id = $1 GROUP BY ballots.id`,
-        [ballotId],
-      );
-      expect(invariant.rows).toEqual([{ method: "public", vote_count: "1" }]);
-    } finally {
-      await voteWriter.query("ROLLBACK").catch(() => undefined);
-      await methodWriter.query("ROLLBACK").catch(() => undefined);
-      voteWriter.release();
-      methodWriter.release();
-      await pool.end();
-      await scenario.container.cradle.sqlExecutor.close();
-    }
-  });
-
-  it("blocks a vote behind an uncommitted secret method and rejects it after commit", async () => {
-    const { scenario, ballotId } = await createEmptyPublicBallot();
-    const pool = new Pool({ connectionString: databaseUrl });
-    const methodWriter = await pool.connect();
-    const voteWriter = await pool.connect();
-    const voteWriterProcessId = (await voteWriter.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0]
-      ?.pid;
-    if (!voteWriterProcessId) throw new Error("Expected the PostgreSQL vote-writer process id");
-    try {
-      await methodWriter.query("BEGIN");
-      await methodWriter.query("UPDATE ballots SET method = 'secret' WHERE id = $1", [ballotId]);
-      await voteWriter.query("BEGIN");
-      const voteInsert = voteWriter.query(
-        `INSERT INTO votes (id, ballot_id, member_id, cast_by_member_id, choice, position)
-         VALUES ($1, $2, $3, $3, 'for', 1)`,
-        [randomUUID(), ballotId, scenario.members[0]?.id],
-      );
-      await waitForTransactionLock(pool, voteWriterProcessId);
-      await methodWriter.query("COMMIT");
-      await expect(voteInsert).rejects.toMatchObject({ code: "23514" });
-      await voteWriter.query("ROLLBACK");
-
-      const invariant = await pool.query<{ method: string; vote_count: string }>(
-        `SELECT ballots.method, COUNT(votes.id)::text AS vote_count
-         FROM ballots LEFT JOIN votes ON votes.ballot_id = ballots.id
-         WHERE ballots.id = $1 GROUP BY ballots.id`,
-        [ballotId],
-      );
-      expect(invariant.rows).toEqual([{ method: "secret", vote_count: "0" }]);
-    } finally {
-      await methodWriter.query("ROLLBACK").catch(() => undefined);
-      await voteWriter.query("ROLLBACK").catch(() => undefined);
-      methodWriter.release();
-      voteWriter.release();
-      await pool.end();
-      await scenario.container.cradle.sqlExecutor.close();
-    }
-  });
-
   it("serializes schema bootstrap across concurrent server instances", async () => {
     const setup = new Pool({ connectionString: databaseUrl });
     await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
@@ -343,7 +118,7 @@ postgres("PostgreSQL persistence", () => {
                 to_regclass('public.contacts') IS NOT NULL AS legacy`,
       );
       await inspection.end();
-      expect(schemas.rows).toEqual([{ documentary: true, legacy: true }]);
+      expect(schemas.rows).toEqual([{ documentary: true, legacy: false }]);
     } finally {
       await server.close();
     }
@@ -392,6 +167,95 @@ postgres("PostgreSQL persistence", () => {
         "resource.delete",
       ]);
 
+      const businessResponse = await fetch(`${server.url}/api/council-business`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          path: "school/menus",
+          name: "Canteen",
+          reportName: "Main report",
+          reportContent: "Initial report",
+        }),
+      });
+      expect(businessResponse.status).toBe(201);
+      const businessRepresentation = (await businessResponse.json()) as {
+        properties: { id: string; folderResourceId: string; reportResourceId: string };
+        actions?: Array<{ name: string }>;
+      };
+      expect(businessRepresentation.properties).toEqual({
+        id: expect.any(String),
+        folderResourceId: expect.any(String),
+        reportResourceId: expect.any(String),
+      });
+      expect((businessRepresentation.actions ?? []).map(({ name }) => name)).toEqual([
+        "council-business.associate-resource",
+        "council-business.dissociate-resource",
+        "council-business.reorder-resources",
+        "council-business.schedule-decision-proposal",
+        "council-business.schedule-open-question",
+      ]);
+
+      const businessListResponse = await fetch(`${server.url}/api/council-business`);
+      expect(businessListResponse.status).toBe(200);
+      const businessListRepresentation = (await businessListResponse.json()) as {
+        entities: Array<{ properties: Record<string, unknown> }>;
+      };
+      expect(businessListRepresentation.entities.map(({ properties }) => properties)).toEqual([
+        businessRepresentation.properties,
+      ]);
+
+      const openedBusinessResponse = await fetch(
+        `${server.url}/api/council-business/${businessRepresentation.properties.id}`,
+      );
+      expect(openedBusinessResponse.status).toBe(200);
+      await expect(openedBusinessResponse.json()).resolves.toMatchObject({
+        properties: businessRepresentation.properties,
+      });
+
+      const renamedBusinessFolderResponse = await fetch(
+        `${server.url}/api/resources/${businessRepresentation.properties.folderResourceId}/location`,
+        {
+          method: "PATCH",
+          headers: mutationHeaders,
+          body: JSON.stringify({ path: "school/menus", name: "Canteen 2026" }),
+        },
+      );
+      expect(renamedBusinessFolderResponse.status).toBe(200);
+
+      const businessReferencesResponse = await fetch(
+        `${server.url}/api/templates/references?type=councilBusiness&query=2026`,
+      );
+      expect(businessReferencesResponse.status).toBe(200);
+      await expect(businessReferencesResponse.json()).resolves.toMatchObject({
+        entities: [
+          {
+            properties: {
+              type: "councilBusiness",
+              id: businessRepresentation.properties.id,
+              label: "Canteen 2026",
+            },
+          },
+        ],
+      });
+
+      const [businessFolderResponse, businessReportResponse] = await Promise.all([
+        fetch(`${server.url}/api/resources/${businessRepresentation.properties.folderResourceId}`),
+        fetch(`${server.url}/api/resources/${businessRepresentation.properties.reportResourceId}`),
+      ]);
+      expect(businessFolderResponse.status).toBe(200);
+      expect(businessReportResponse.status).toBe(200);
+      await expect(businessFolderResponse.json()).resolves.toMatchObject({
+        properties: { kind: "folder", name: "Canteen 2026", fullPath: "school/menus/Canteen 2026" },
+      });
+      await expect(businessReportResponse.json()).resolves.toMatchObject({
+        properties: {
+          kind: "text",
+          name: "Main report",
+          path: "school/menus/Canteen 2026",
+          content: "Initial report",
+        },
+      });
+
       const listResponse = await fetch(`${server.url}/api/resources?path=school%2Fmenus`);
       expect(listResponse.status).toBe(200);
       const listRepresentation = (await listResponse.json()) as {
@@ -416,9 +280,12 @@ postgres("PostgreSQL persistence", () => {
           "resource.search-legal-references",
         ]),
       );
-      expect(listRepresentation.entities.map(({ properties }) => properties)).toEqual([
-        expect.objectContaining({ slug: "menu-septembre-md", name: "Menu septembre.md", kind: "text" }),
-      ]);
+      expect(listRepresentation.entities.map(({ properties }) => properties)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ slug: "menu-septembre-md", name: "Menu septembre.md", kind: "text" }),
+          expect.objectContaining({ name: "Canteen 2026", kind: "folder" }),
+        ]),
+      );
       expect(listRepresentation.entities[0]?.properties).not.toHaveProperty("content");
 
       const catalogResponse = await fetch(`${server.url}/api/resources/catalog`);
@@ -436,6 +303,22 @@ postgres("PostgreSQL persistence", () => {
         ]),
       );
       expect(catalogRepresentation.entities[0]?.properties).not.toHaveProperty("tags");
+
+      const resourceReferencesResponse = await fetch(
+        `${server.url}/api/templates/references?type=resource&query=septembre`,
+      );
+      expect(resourceReferencesResponse.status).toBe(200);
+      await expect(resourceReferencesResponse.json()).resolves.toMatchObject({
+        entities: [
+          {
+            properties: {
+              type: "resource",
+              id: createdRepresentation.properties.id,
+              label: "Menu septembre.md",
+            },
+          },
+        ],
+      });
 
       const searchResponse = await fetch(`${server.url}/api/resources/search?query=septembre`);
       expect(searchResponse.status).toBe(200);
@@ -610,76 +493,29 @@ postgres("PostgreSQL persistence", () => {
     }
   });
 
-  it("runs the council workflow through the PostgreSQL adapter", async () => {
-    const setup = new Pool({ connectionString: databaseUrl });
-    await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
-    await setup.end();
-
-    const container = buildContainer({
+  it("serves contacts and normalized council mandates through PostgreSQL", async () => {
+    await resetPostgres();
+    const server = await startHttpServer({
       host: "127.0.0.1",
       port: 0,
       database: { kind: "postgres", url: databaseUrl! },
       environment: "test",
+      devAutoLogin: true,
     });
-    const {
-      sqlExecutor,
-      agendaItemRepository,
-      contactRepository,
-      councilMemberRepository,
-      councilDecisionRepository,
-      councilMeetingService,
-      meetingPreparationService,
-      meetingLifecycleService,
-      meetingAgendaService,
-      ballotService,
-      resourceRepository,
-      councilBusinessService,
-      councilCommitteeRepository,
-      committeeMembershipRepository,
-      securityRepository,
-      hallSettingsService,
-      contentTemplateRepository,
-    } = container.cradle;
-    await sqlExecutor.ready();
+    const mutationHeaders = { "content-type": "application/json", origin: server.url };
+    const setup = new Pool({ connectionString: databaseUrl });
     try {
-      const hallSettings = await hallSettingsService.update({
-        name: "Saint-Aubin",
-        inseeCode: "12345",
-        siren: "123456789",
-        population: 2_500,
-        populationReferenceDate: "2026-01-01",
-        addressLine1: "1 place de la Mairie",
-        addressLine2: "",
-        postalCode: "12345",
-        city: "Saint-Aubin",
-        geographicPosition: [2.3522, 48.8566] as [number, number],
-        phone: "+33 1 23 45 67 89",
-        email: "contact@saint-aubin.fr",
-        website: "https://saint-aubin.fr",
-        defaultMeetingLocation: "Salle du conseil",
-        timeZone: "Europe/Paris",
-        outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
-        outboundEmailSenderAddress: "conseil@saint-aubin.fr",
-        outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
-        councilTerm: { expectedMemberCount: 15 },
-      });
-      expect(await hallSettingsService.get()).toEqual(hallSettings);
+      const configured = await setup.query<{ term: { startedOn: string } }>(
+        "SELECT hall_api.configure_active_council_term(1) AS term",
+      );
+      const termStartedOn = configured.rows[0]?.term.startedOn;
+      if (!termStartedOn) throw new Error("Expected an active council term");
 
-      const contentTemplate = await contentTemplateRepository.create({
-        kind: "message",
-        documentType: "meeting-notice-message",
-        name: "Meeting notice",
-        bodyMarkdown: "Council meeting",
-        subject: "Notice",
-        stylesheet: "",
-        headerHtml: "",
-        footerHtml: "",
-      });
-      expect(await contentTemplateRepository.find(contentTemplate.id)).toEqual(contentTemplate);
-
-      const members = await Promise.all(
-        ["Alice", "Benoît", "Claire"].map(async (firstName) => {
-          const contact = await contactRepository.create({
+      const createContact = (firstName: string) =>
+        fetch(`${server.url}/api/contacts`, {
+          method: "POST",
+          headers: mutationHeaders,
+          body: JSON.stringify({
             firstName,
             lastName: "Martin",
             organizationName: null,
@@ -687,451 +523,341 @@ postgres("PostgreSQL persistence", () => {
             email: null,
             phone: null,
             notes: "",
-          });
-          return councilMemberRepository.create({
-            contactId: contact.id,
-            role: "councillor",
-            termStartedOn: "2026-03-22",
-          });
-        }),
-      );
-      const committee = await councilCommitteeRepository.create({
-        name: "Finance committee",
-        description: "Prepares financial matters",
-      });
-      const membership = await committeeMembershipRepository.add(committee.id, {
-        councilMemberId: members[0].id,
-        role: "chair",
-        startedOn: "2026-03-22",
-      });
-      expect(await councilCommitteeRepository.find(committee.slug)).toEqual(committee);
-      expect(await committeeMembershipRepository.listForCommittee(committee.id)).toEqual([membership]);
-
-      const text = await resourceRepository.createText({
-        title: "Summary",
-        folderPath: "associations/grants",
-        tags: ["finance", "grant"],
-        content: "Working note",
-      });
-      const documentContent = Buffer.from("pdf");
-      const contentSha256 = createHash("sha256").update(documentContent).digest("hex");
-      const document = await resourceRepository.createDocument({
-        title: "Report",
-        folderPath: "associations/grants",
-        tags: ["finance"],
-        fileName: "report.pdf",
-        format: "pdf",
-        mediaType: "application/pdf",
-        contentSha256,
-        category: "report",
-        content: documentContent,
-      });
-      expect(text.slug).toBe("summary");
-      expect(document.slug).toBe("report");
-      expect(await resourceRepository.list({ tags: ["finance"] })).toHaveLength(2);
-      expect(await resourceRepository.find(document.id)).toMatchObject({
-        id: document.id,
-        format: "pdf",
-        mediaType: "application/pdf",
-        contentSha256,
-        content: documentContent,
-      });
-      const geographic = await resourceRepository.createGeographic({
-        title: "Project area",
-        folderPath: "associations/grants",
-        tags: ["map"],
-        provider: "ign",
-        layers: [
-          { id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 },
-          { id: "ORTHOIMAGERY.ORTHOPHOTOS", visible: false, opacity: 0.6 },
-        ],
-        view: { kind: "center", center: [2.15, 48.15], zoom: 15 },
-        hallLayer: {
-          type: "FeatureCollection",
-          features: [
-            {
-              type: "Feature",
-              id: randomUUID(),
-              properties: {
-                kind: "marker",
-                visible: true,
-                label: "Town hall",
-                style: { color: "#1b2a78", size: "medium" },
-              },
-              geometry: { type: "Point", coordinates: [2.15, 48.15] },
-            },
-          ],
-        },
-      });
-      expect(await resourceRepository.findMetadata(geographic.id)).toMatchObject({
-        id: geographic.id,
-        kind: "geographic",
-        version: 1,
-      });
-      expect(await resourceRepository.findGeographicData(geographic.id)).toMatchObject({
-        view: { kind: "center", center: [2.15, 48.15], zoom: 15 },
-        layers: [
-          { id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 },
-          { id: "ORTHOIMAGERY.ORTHOPHOTOS", visible: false, opacity: 0.6 },
-        ],
-        hallLayer: {
-          type: "FeatureCollection",
-          features: [expect.objectContaining({ properties: expect.objectContaining({ kind: "marker" }) })],
-        },
-      });
-      const spreadsheetDocument = {
-        schemaVersion: 2 as const,
-        workbook: {
-          id: "budget-workbook",
-          name: "Budget",
-          sheetOrder: ["budget"],
-          sheets: {
-            budget: {
-              id: "budget",
-              name: "Budget",
-              rowCount: 20,
-              columnCount: 8,
-              cellData: { 1: { 2: { f: "=ROUND(A2*B2,2)" } } },
-            },
-          },
-        },
-      };
-      const spreadsheet = await resourceRepository.createSpreadsheet({
-        title: "Budget",
-        folderPath: "associations/grants",
-        tags: ["finance"],
-        document: spreadsheetDocument,
-      });
-      expect(await resourceRepository.findSpreadsheetDocument(spreadsheet.id)).toEqual(spreadsheetDocument);
-      expect(
-        await resourceRepository.updateSpreadsheet(spreadsheet.id, {
-          document: {
-            ...spreadsheetDocument,
-            workbook: {
-              ...spreadsheetDocument.workbook,
-              sheets: {
-                budget: {
-                  ...spreadsheetDocument.workbook.sheets.budget,
-                  cellData: { 1: { 0: { v: 3 }, 2: { f: "=ROUND(A2*B2,2)" } } },
-                },
-              },
-            },
-          },
-          expectedVersion: 1,
-        }),
-      ).toMatchObject({ status: "updated", resource: { version: 2 } });
-      expect(
-        await resourceRepository.updateSpreadsheet(spreadsheet.id, {
-          document: spreadsheetDocument,
-          expectedVersion: 1,
-        }),
-      ).toEqual({ status: "versionConflict" });
-      const legalDraft = await resourceRepository.createLegalReferenceDraft({
-        title: "CGCT L2121-10",
-        folderPath: "associations/grants",
-        tags: ["law"],
-        provider: "legifrance",
-        referenceKind: "article",
-      });
-      const legal = await resourceRepository.resolveLegalReference(legalDraft.id, {
-        title: legalDraft.title,
-        folderPath: legalDraft.folderPath,
-        tags: legalDraft.tags,
-        provider: "legifrance",
-        referenceKind: "article",
-        fund: "CODE_ETAT",
-        sourceUrl: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041410274",
-        providerUpdatedAt: null,
-        citationLabel: "CGCT, article L2121-10",
-        attribution: "Source : DILA - Légifrance. Licence Ouverte 2.0.",
-        snapshot: {
-          commonId: "CID-L2121-10",
-          versionId: "LEGIARTI000041410274",
-          effectiveAt: null,
-          fetchedAt: "2026-08-30T10:00:00.000Z",
-          validFrom: "2020-01-01",
-          validTo: null,
-          legalStatus: "VIGUEUR",
-          rawProviderPayload: JSON.stringify({ id: "LEGIARTI000041410274" }),
-          normalizedContent: "Toute convocation est faite par le maire.",
-          contentHash: createHash("sha256").update("Toute convocation est faite par le maire.").digest("hex"),
-          snapshotHash: createHash("sha256").update("snapshot-v1").digest("hex"),
-        },
-      });
-      expect(legal).not.toBeNull();
-      if (!legal) throw new Error("Expected the legal reference draft to resolve");
-      expect(await resourceRepository.findMetadata(legal.id)).toMatchObject({
-        id: legal.id,
-        kind: "legalReference",
-      });
-      expect(await resourceRepository.listLegalReferenceSnapshots(legal.id)).toEqual([
-        expect.objectContaining({ versionId: "LEGIARTI000041410274" }),
-      ]);
-      const editorAsset = await resourceRepository.createEditorAsset({
-        title: "Pasted plan",
-        folderPath: text.folderPath,
-        fileName: "clipboard.png",
-        format: "png",
-        mediaType: "image/png",
-        contentSha256,
-        owner: { kind: "textResourceContent", id: text.id },
-        content: documentContent,
-      });
-      expect(editorAsset).toMatchObject({
-        usage: "editorAsset",
-        category: null,
-        editorOwner: { kind: "textResourceContent", id: text.id },
-      });
-      expect(await resourceRepository.list()).toHaveLength(5);
-      expect(
-        await resourceRepository.list({
-          usage: "editorAsset",
-          editorOwner: { kind: "textResourceContent", id: text.id },
-        }),
-      ).toEqual([expect.objectContaining({ id: editorAsset.id })]);
-      expect(
-        await resourceRepository.reconcileEditorAssets({ kind: "textResourceContent", id: text.id }, [editorAsset.id]),
-      ).toEqual([]);
-      expect(await resourceRepository.isReferencedByRichText(editorAsset.id)).toBe(true);
-      expect(await resourceRepository.reconcileEditorAssets({ kind: "textResourceContent", id: text.id }, [])).toEqual([
-        editorAsset.id,
-      ]);
-      expect(await resourceRepository.findMetadata(editorAsset.id)).toBeNull();
-      const previewContent = Buffer.from("%PDF-1.7\npreview");
-      const preview = await resourceRepository.savePreview({
-        sourceContentSha256: contentSha256,
-        sourceFormat: "docx",
-        contentSha256: createHash("sha256").update(previewContent).digest("hex"),
-        byteSize: previewContent.byteLength,
-        content: previewContent,
-        createdAt: new Date().toISOString(),
-      });
-      expect(await resourceRepository.findPreview(contentSha256, "docx")).toEqual(preview);
-
-      const decision = await councilDecisionRepository.create({
-        title: "Grant decision",
-        draftText: "The council decides...",
-        legalityReviewRequired: true,
-      });
-      expect(decision).toMatchObject({ number: null, slug: "grant-decision" });
-      const meeting = await councilMeetingService.createMeeting({
-        startsAt: "2026-09-10T18:30:00+02:00",
-        location: "Council chamber",
-        chairMemberId: members[0].id,
-        secretaryMemberId: members[1].id,
-      });
-      expect(meeting).toMatchObject({
-        number: "2026-001",
-        slug: "2026-09-10-001",
-      });
-      const business = await councilBusinessService.create({
-        kind: "matter",
-        committeeId: committee.id,
-        councilDecisionId: decision.id,
-        title: decision.title,
-        report: "Grant report",
-        folderPath: "associations/grants",
-        resourceIds: [text.id, document.id],
-      });
-      expect(business).toMatchObject({ committeeId: committee.id });
-      const agendaItem = await meetingPreparationService.scheduleBusiness(meeting.id, business.id, 1);
-      await meetingLifecycleService.changeStatus(meeting.id, "scheduled");
-      for (const member of members) {
-        await meetingPreparationService.recordAttendance(meeting.id, { memberId: member.id, status: "present" });
-      }
-      await meetingLifecycleService.changeStatus(meeting.id, "inProgress");
-      await meetingAgendaService.startItem(meeting.id, agendaItem.id);
-      const ballot = await ballotService.recordBallot(meeting.id, {
-        method: "public",
-        idempotencyKey: randomUUID(),
-        councilDecisionId: decision.id,
-        votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" })),
-      });
-      expect(ballot).toMatchObject({ result: "adopted", votesFor: 3 });
-      expect(await councilDecisionRepository.find(decision.id)).toMatchObject({
-        number: null,
-        slug: "grant-decision",
-        status: "adopted",
-      });
-      await meetingAgendaService.completeItem(meeting.id, agendaItem.id, {
-        discussionSummary: "Adopted unanimously",
-        status: "examined",
-      });
-      expect(await councilDecisionRepository.find(decision.id)).toMatchObject({
-        number: "2026-001",
-        slug: "grant-decision",
-        status: "adopted",
-      });
-      await meetingLifecycleService.changeStatus(meeting.id, "closed");
-      expect(await meetingLifecycleService.finalizeMinutesDraft(meeting.id)).toMatchObject({
-        minutesStatus: "ready",
-      });
-      const automaticallyPreparedMeeting = await councilMeetingService.createMeeting({
-        startsAt: "2026-09-20T18:30:00+02:00",
-        location: "Council chamber",
-      });
-      const automaticallyPreparedAgenda = await agendaItemRepository.listForMeeting(automaticallyPreparedMeeting.id);
-      expect(automaticallyPreparedAgenda).toHaveLength(1);
-      expect(automaticallyPreparedAgenda[0]?.business).toMatchObject({
-        kind: "minutesApproval",
-        minutesOfMeetingId: meeting.id,
-      });
-
-      const secondContainer = buildContainer({
-        host: "127.0.0.1",
-        port: 0,
-        database: { kind: "postgres", url: databaseUrl! },
-        environment: "test",
-      });
-      await secondContainer.cradle.sqlExecutor.ready();
-      try {
-        const concurrentAttendance = await Promise.all([
-          container.cradle.attendanceRepository.record(meeting.id, {
-            memberId: members[2].id,
-            status: "present",
-            expectedVersion: 1,
           }),
-          secondContainer.cradle.attendanceRepository.record(meeting.id, {
-            memberId: members[2].id,
-            status: "present",
-            expectedVersion: 1,
-          }),
-        ]);
-        expect(concurrentAttendance.map((result) => result.status).sort()).toEqual(["recorded", "versionConflict"]);
-      } finally {
-        await secondContainer.cradle.sqlExecutor.close();
-      }
-      expect(
-        await container.cradle.attendanceRepository.record(meeting.id, {
-          memberId: members[1].id,
-          status: "represented",
-          proxyHolderMemberId: members[0].id,
-          expectedVersion: 1,
-        }),
-      ).toMatchObject({ status: "recorded" });
-      expect(
-        await container.cradle.attendanceRepository.record(meeting.id, {
-          memberId: members[2].id,
-          status: "represented",
-          proxyHolderMemberId: members[0].id,
-          expectedVersion: 2,
-        }),
-      ).toEqual({ status: "proxyHolderConflict" });
-
-      const user = await securityRepository.createUser({
-        email: "clerk@hall.test",
-        displayName: "Council clerk",
-        passwordHash: "test-hash",
-        roles: ["clerk"],
-        councilMemberId: null,
-      });
-      const session = await securityRepository.createSession(user.id, "token-hash", "2099-01-01T00:00:00Z");
-      expect(await securityRepository.findSession("token-hash")).toEqual(session);
-      await securityRepository.recordAuditEvent({
-        actorUserId: user.id,
-        requestId: randomUUID(),
-        action: "test.postgres",
-        targetType: "meeting",
-        targetId: meeting.id,
-        outcome: "succeeded",
-        details: { dialect: "postgres" },
-      });
-      expect(await securityRepository.listAuditEvents()).toHaveLength(1);
-
-      const schedulingMeetings = await Promise.all(
-        [0, 1].map((index) =>
-          councilMeetingService.createMeeting({
-            startsAt: `2026-10-${10 + index}T18:30:00+02:00`,
-            location: "Council chamber",
-            chairMemberId: members[0].id,
-            secretaryMemberId: members[1].id,
-          }),
-        ),
-      );
-      const concurrentlyScheduledBusiness = await councilBusinessService.create({
-        kind: "openQuestion",
-        title: "One business, one meeting",
-        report: "",
-        folderPath: "",
-        resourceIds: [],
-      });
-      const schedulingContainer = buildContainer({
-        host: "127.0.0.1",
-        port: 0,
-        database: { kind: "postgres", url: databaseUrl! },
-        environment: "test",
-      });
-      await schedulingContainer.cradle.sqlExecutor.ready();
-      try {
-        const concurrentScheduling = await Promise.allSettled([
-          container.cradle.meetingPreparationService.scheduleBusiness(
-            schedulingMeetings[0].id,
-            concurrentlyScheduledBusiness.id,
-            1,
-          ),
-          schedulingContainer.cradle.meetingPreparationService.scheduleBusiness(
-            schedulingMeetings[1].id,
-            concurrentlyScheduledBusiness.id,
-            1,
-          ),
-        ]);
-        expect(concurrentScheduling.map((result) => result.status).sort()).toEqual(["fulfilled", "rejected"]);
-        const scheduledOccurrences = await Promise.all(
-          schedulingMeetings.map((target) => container.cradle.agendaItemRepository.listForMeeting(target.id)),
-        );
-        expect(scheduledOccurrences.flat()).toHaveLength(1);
-      } finally {
-        await schedulingContainer.cradle.sqlExecutor.close();
-      }
-
-      const administrators = await Promise.all(
-        ["first-admin@hall.test", "second-admin@hall.test"].map((email) =>
-          securityRepository.createUser({
-            email,
-            displayName: email,
-            passwordHash: "test-hash",
-            roles: ["administrator"],
-            councilMemberId: null,
-          }),
-        ),
-      );
-      const competingContainer = buildContainer({
-        host: "127.0.0.1",
-        port: 0,
-        database: { kind: "postgres", url: databaseUrl! },
-        environment: "test",
-      });
-      await competingContainer.cradle.sqlExecutor.ready();
-      try {
-        const concurrentRoleRemoval = await Promise.allSettled([
-          container.cradle.authService.assignRoles(administrators[0].id, ["reader"]),
-          competingContainer.cradle.authService.assignRoles(administrators[1].id, ["reader"]),
-        ]);
-        expect(concurrentRoleRemoval.map((result) => result.status).sort()).toEqual(["fulfilled", "rejected"]);
-        expect(await securityRepository.countActiveAdministrators()).toBe(1);
-
-        const remainingAdministrator = (
-          await Promise.all(administrators.map((administrator) => securityRepository.findUserById(administrator.id)))
-        ).find((administrator) => administrator?.roles.includes("administrator"));
-        if (!remainingAdministrator) throw new Error("Expected one remaining administrator");
-        const otherAdministrator = await securityRepository.createUser({
-          email: "third-admin@hall.test",
-          displayName: "Third administrator",
-          passwordHash: "test-hash",
-          roles: ["administrator"],
-          councilMemberId: null,
         });
-        const concurrentDisableAndRemoval = await Promise.allSettled([
-          container.cradle.authService.disableUser(remainingAdministrator.id),
-          competingContainer.cradle.authService.assignRoles(otherAdministrator.id, ["reader"]),
-        ]);
-        expect(concurrentDisableAndRemoval.map((result) => result.status).sort()).toEqual(["fulfilled", "rejected"]);
-        expect(await securityRepository.countActiveAdministrators()).toBe(1);
-      } finally {
-        await competingContainer.cradle.sqlExecutor.close();
-      }
+      const firstResponse = await createContact("Ariane");
+      const secondResponse = await createContact("Benoît");
+      expect([firstResponse.status, secondResponse.status]).toEqual([201, 201]);
+      const first = (await firstResponse.json()) as { properties: Record<string, unknown> };
+      const second = (await secondResponse.json()) as { properties: Record<string, unknown> };
+      expect(first.properties).not.toHaveProperty("activeCouncilMemberId");
+
+      const memberResponse = await fetch(`${server.url}/api/council-members`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          contactId: first.properties.id,
+          role: "mayor",
+          termStartedOn,
+        }),
+      });
+      expect(memberResponse.status).toBe(201);
+      const member = (await memberResponse.json()) as { properties: Record<string, unknown> };
+      expect(member.properties).toMatchObject({
+        contactId: first.properties.id,
+        role: "mayor",
+        active: true,
+        termStartedOn,
+        termEndedOn: null,
+      });
+      expect(member.properties).not.toHaveProperty("contact");
+
+      const contactsResponse = await fetch(`${server.url}/api/contacts`);
+      const contacts = (await contactsResponse.json()) as {
+        entities: Array<{ properties: { id: string }; actions?: Array<{ name: string }> }>;
+      };
+      const firstContact = contacts.entities.find(({ properties }) => properties.id === first.properties.id);
+      const secondContact = contacts.entities.find(({ properties }) => properties.id === second.properties.id);
+      expect(firstContact?.actions?.map(({ name }) => name)).toEqual(["contact.update"]);
+      expect(secondContact?.actions?.map(({ name }) => name)).toEqual(["contact.update", "contact.archive"]);
+
+      const committeeResponse = await fetch(`${server.url}/api/council-committees`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({ name: "Finances", description: "Préparation budgétaire" }),
+      });
+      expect(committeeResponse.status).toBe(201);
+      const committee = (await committeeResponse.json()) as {
+        properties: Record<string, unknown>;
+        entities?: unknown[];
+      };
+      expect(committee.properties).not.toHaveProperty("slug");
+      expect(committee.entities).toBeUndefined();
+      const committeeId = committee.properties.id;
+
+      const membershipResponse = await fetch(`${server.url}/api/council-committees/${committeeId}/memberships`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          councilMemberId: member.properties.id,
+          role: "chair",
+          startedOn: termStartedOn,
+        }),
+      });
+      expect(membershipResponse.status).toBe(201);
+      const membership = (await membershipResponse.json()) as { properties: Record<string, unknown> };
+
+      const membershipsResponse = await fetch(`${server.url}/api/council-committees/${committeeId}/memberships`);
+      const memberships = (await membershipsResponse.json()) as {
+        entities: Array<{ properties: Record<string, unknown>; actions?: Array<{ name: string }> }>;
+      };
+      expect(memberships.entities).toEqual([
+        expect.objectContaining({
+          properties: expect.objectContaining({
+            id: membership.properties.id,
+            committeeId,
+            councilMemberId: member.properties.id,
+            role: "chair",
+            endedOn: null,
+          }),
+          actions: expect.arrayContaining([
+            expect.objectContaining({ name: "committee.update-membership" }),
+            expect.objectContaining({ name: "committee.end-membership" }),
+          ]),
+        }),
+      ]);
+
+      const committeeArchiveResponse = await fetch(`${server.url}/api/council-committees/${committeeId}/archive`, {
+        method: "POST",
+        headers: mutationHeaders,
+      });
+      expect(committeeArchiveResponse.status).toBe(200);
+      const endedMembershipsResponse = await fetch(`${server.url}/api/council-committees/${committeeId}/memberships`);
+      await expect(endedMembershipsResponse.json()).resolves.toMatchObject({
+        entities: [{ properties: { id: membership.properties.id, endedOn: expect.any(String) } }],
+      });
+
+      const fullResponse = await fetch(`${server.url}/api/council-members`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          contactId: second.properties.id,
+          role: "councillor",
+          termStartedOn,
+        }),
+      });
+      expect(fullResponse.status).toBe(409);
+      await expect(fullResponse.json()).resolves.toMatchObject({ code: "council_term_capacity_reached" });
+
+      const activeArchiveResponse = await fetch(`${server.url}/api/contacts/${first.properties.id}/archive`, {
+        method: "POST",
+        headers: mutationHeaders,
+      });
+      expect(activeArchiveResponse.status).toBe(409);
+      await expect(activeArchiveResponse.json()).resolves.toMatchObject({
+        code: "contact_has_active_council_membership",
+      });
+
+      const memberId = member.properties.id;
+      const endedResponse = await fetch(`${server.url}/api/council-members/${memberId}`, {
+        method: "PUT",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          role: "mayor",
+          termStartedOn,
+          termEndedOn: termStartedOn,
+        }),
+      });
+      expect(endedResponse.status).toBe(200);
+      const archiveResponse = await fetch(`${server.url}/api/contacts/${first.properties.id}/archive`, {
+        method: "POST",
+        headers: mutationHeaders,
+      });
+      expect(archiveResponse.status).toBe(200);
+
+      const referenceResponse = await fetch(`${server.url}/api/templates/references?type=member&query=Ariane`);
+      expect(referenceResponse.status).toBe(200);
+      await expect(referenceResponse.json()).resolves.toMatchObject({
+        entities: [
+          {
+            properties: {
+              type: "member",
+              id: memberId,
+              label: "Ariane Martin",
+            },
+          },
+        ],
+      });
     } finally {
-      await sqlExecutor.close();
+      await setup.end();
+      await server.close();
+    }
+  });
+
+  it("serves ballots as separately hydrated PostgreSQL resources", async () => {
+    await resetPostgres();
+    const server = await startHttpServer({
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "postgres", url: databaseUrl! },
+      environment: "test",
+      devAutoLogin: true,
+    });
+    const mutationHeaders = { "content-type": "application/json", origin: server.url };
+    const setup = new Pool({ connectionString: databaseUrl });
+    try {
+      await setup.query("SELECT hall_api.configure_active_council_term(2)");
+      const contactIds: string[] = [];
+      for (const firstName of ["Alice", "Benoît"]) {
+        const created = await setup.query<{ contact: { id: string } }>(
+          "SELECT hall_api.create_contact($1, 'Martin', NULL, NULL, NULL, NULL, '') AS contact",
+          [firstName],
+        );
+        contactIds.push(created.rows[0]!.contact.id);
+      }
+      const memberIds: string[] = [];
+      for (const [index, contactId] of contactIds.entries()) {
+        const created = await setup.query<{ member: { id: string } }>(
+          "SELECT hall_api.create_council_member($1, $2, DATE '2026-01-01') AS member",
+          [contactId, index === 0 ? "mayor" : "councillor"],
+        );
+        memberIds.push(created.rows[0]!.member.id);
+      }
+
+      const businessResponse = await fetch(`${server.url}/api/council-business`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          path: "",
+          name: "Public ballot",
+          reportName: "Main report",
+          reportContent: "Proposal",
+        }),
+      });
+      expect(businessResponse.status).toBe(201);
+      const business = (await businessResponse.json()) as { properties: { id: string } };
+
+      const meetingId = randomUUID();
+      await setup.query("INSERT INTO hall.council_meetings (id, quorum) VALUES ($1, 2)", [meetingId]);
+      for (const memberId of memberIds) {
+        await setup.query(
+          `INSERT INTO hall.meeting_attendance (id, council_member, council_meeting, status)
+           VALUES (gen_random_uuid(), $1, $2, 'present')`,
+          [memberId, meetingId],
+        );
+      }
+      const attendances = await setup.query<{ id: string }>(
+        "SELECT id::text FROM hall.meeting_attendance WHERE council_meeting = $1 ORDER BY council_member",
+        [meetingId],
+      );
+      const agenda = await setup.query<{ item: { id: string } }>(
+        "SELECT hall_api.schedule_council_decision_proposal($1, $2, 2) AS item",
+        [business.properties.id, meetingId],
+      );
+      const agendaItemId = agenda.rows[0]!.item.id;
+      const openQuestionAgenda = await setup.query<{ item: { id: string } }>(
+        "SELECT hall_api.schedule_open_question($1, $2, 3) AS item",
+        [business.properties.id, meetingId],
+      );
+      const openQuestionAgendaItemId = openQuestionAgenda.rows[0]!.item.id;
+      const reorderResponse = await fetch(`${server.url}/api/council-meetings/${meetingId}/agenda-order`, {
+        method: "PUT",
+        headers: mutationHeaders,
+        body: JSON.stringify({ agendaItemIds: [openQuestionAgendaItemId, agendaItemId] }),
+      });
+      expect(reorderResponse.status).toBe(200);
+      await expect(reorderResponse.json()).resolves.toMatchObject({
+        entities: [
+          { properties: { id: openQuestionAgendaItemId, position: 2 } },
+          { properties: { id: agendaItemId, position: 3 } },
+        ],
+      });
+      await setup.query(
+        "SELECT hall_api.schedule_council_meeting($1, TIMESTAMPTZ '2026-09-12 08:30:00+00', 'Council chamber')",
+        [meetingId],
+      );
+      await setup.query("SELECT hall_api.set_council_meeting_officers($1, $2, $3)", [meetingId, memberIds[0], memberIds[1]]);
+      await setup.query("SELECT hall_api.start_council_meeting($1, TIMESTAMPTZ '2026-09-12 09:00:00+00')", [meetingId]);
+      await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-09-12 09:01:00+00')", [openQuestionAgendaItemId]);
+      await setup.query("SELECT hall_api.complete_open_question($1, TIMESTAMPTZ '2026-09-12 09:04:00+00')", [openQuestionAgendaItemId]);
+      await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-09-12 09:05:00+00')", [
+        agendaItemId,
+      ]);
+
+      const [attendanceResponse, agendaResponse] = await Promise.all([
+        fetch(`${server.url}/api/council-meetings/${meetingId}/attendance`),
+        fetch(`${server.url}/api/council-meetings/${meetingId}/agenda-items`),
+      ]);
+      expect([attendanceResponse.status, agendaResponse.status]).toEqual([200, 200]);
+      await expect(attendanceResponse.json()).resolves.toMatchObject({
+        entities: [
+          { properties: { councilMeetingId: meetingId, status: "present" } },
+          { properties: { councilMeetingId: meetingId, status: "present" } },
+        ],
+      });
+      await expect(agendaResponse.json()).resolves.toMatchObject({
+        entities: [
+          {
+            properties: {
+              id: openQuestionAgendaItemId,
+              councilBusinessId: business.properties.id,
+              councilMeetingId: meetingId,
+              position: 2,
+              subject: { kind: "openQuestion" },
+            },
+          },
+          {
+            properties: {
+              id: agendaItemId,
+              councilBusinessId: business.properties.id,
+              councilMeetingId: meetingId,
+              position: 3,
+              subject: { kind: "councilDecisionProposal" },
+            },
+          },
+        ],
+      });
+
+      const createResponse = await fetch(`${server.url}/api/ballots`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          agendaItemId,
+          mode: "public",
+          participantAttendanceIds: attendances.rows.map(({ id }) => id),
+          chairmanAttendanceId: attendances.rows[0]!.id,
+        }),
+      });
+      expect(createResponse.status).toBe(201);
+      const created = (await createResponse.json()) as {
+        properties: { id: string; agendaItemId: string; mode: string; chairmanParticipationId: string };
+      };
+      expect(created.properties).toMatchObject({ agendaItemId, mode: "public" });
+
+      const [listResponse, participationResponse] = await Promise.all([
+        fetch(`${server.url}/api/ballots?meetingId=${meetingId}`),
+        fetch(`${server.url}/api/ballots/${created.properties.id}/participations`),
+      ]);
+      expect([listResponse.status, participationResponse.status]).toEqual([200, 200]);
+      const list = (await listResponse.json()) as { entities: Array<{ properties: { id: string } }> };
+      const participations = (await participationResponse.json()) as {
+        entities: Array<{ properties: { id: string } }>;
+      };
+      expect(list.entities.map(({ properties }) => properties.id)).toEqual([created.properties.id]);
+      expect(participations.entities).toHaveLength(2);
+
+      const voteResponse = await fetch(`${server.url}/api/ballots/${created.properties.id}/votes`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          mode: "public",
+          votes: participations.entities.map(({ properties }) => ({
+            ballotParticipationId: properties.id,
+            choice: properties.id === created.properties.chairmanParticipationId ? "approve" : "reject",
+          })),
+        }),
+      });
+      expect(voteResponse.status).toBe(201);
+      const votes = (await voteResponse.json()) as { entities: Array<{ properties: Record<string, unknown> }> };
+      expect(votes.entities).toHaveLength(2);
+
+      const completedAt = "2026-09-12T09:10:00.000Z";
+      const completeResponse = await fetch(`${server.url}/api/ballots/${created.properties.id}/complete`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({ completedAt }),
+      });
+      expect(completeResponse.status).toBe(200);
+      await expect(completeResponse.json()).resolves.toMatchObject({
+        properties: { id: created.properties.id, completedAt: "2026-09-12T09:10:00+00:00", result: "approve" },
+      });
+
+      const votesResponse = await fetch(`${server.url}/api/ballots/${created.properties.id}/votes`);
+      expect(votesResponse.status).toBe(200);
+      await expect(votesResponse.json()).resolves.toMatchObject({ entities: expect.any(Array) });
+    } finally {
+      await setup.end();
+      await server.close();
     }
   });
 });

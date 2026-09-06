@@ -37,7 +37,7 @@ export function WorkspaceWorkbenchHeader({
         <div className="workbench-header-identity">
           {icon}
           <div className="workbench-header-copy">
-            <div className="workbench-title-row">
+            <div className="workbench-title-row page-title">
               {onTitleChange ? (
                 <InlineRenameField
                   value={title}

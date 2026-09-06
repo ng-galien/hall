@@ -1,10 +1,12 @@
 /**
  * Development seed for the fictional Hall instance of Saint-Aubin.
  *
- * Populates the server through its HTTP API, never through direct SQL: contacts, members,
- * classified resources, council business, decisions, one completed meeting,
- * one scheduled meeting, and one meeting in preparation.
+ * Populates the currently migrated PostgreSQL surfaces through their HTTP APIs, never
+ * through direct SQL: contacts, members, classified resources and council business.
  *
+ * The default scenario has two closed meetings and one meeting in progress.
+ * SEED_MEETING_SCENARIO=preparation leaves the initial meeting untouched for isolated UI tests.
+ * SEED_MEETING_SCENARIO=minutes closes the third meeting but leaves its minutes editable, without generating a PDF.
  * Requires a running development server backed by an empty database.
  */
 import { randomUUID } from "node:crypto";
@@ -311,6 +313,155 @@ const daysFromNow = (days, hour = 18, minute = 30) => {
   return date.toISOString();
 };
 
+async function seedCouncilMeetings(members, businesses) {
+  const memberList = Object.values(members);
+  const chairMemberId = members.Delcourt.id;
+  const secretaryMemberId = members.Charpentier.id;
+  const at = (base, minutes) => new Date(new Date(base).getTime() + minutes * 60_000).toISOString();
+  const proxy = await uploadPdf({
+    title: "Pouvoir de démonstration - conseil municipal",
+    fileName: "pouvoir-demo.pdf",
+    folderPath: "seed",
+    lines: [
+      "DONNEES FICTIVES - DEMONSTRATION",
+      "Catherine Petit donne pouvoir a Bernard Lefevre pour la seance de demonstration.",
+      "Ce document sert uniquement aux essais de l'interface.",
+    ],
+  });
+  async function schedule(meeting, business, position, kind = "councilDecisionProposal") {
+    const item = await post(`/council-meetings/${meeting.id}/agenda-items`, {
+      councilBusinessId: business.id,
+      position,
+      kind,
+    });
+    if (kind === "councilDecisionProposal") {
+      const resource = await get(`/resources/${item.subject.textResourceId}`);
+      await put(`/resources/${resource.id}/content`, {
+        kind: "text",
+        expectedVersion: resource.version,
+        content: `## Projet de délibération\n\n### ${business.name}\n\nAprès examen du rapport et des pièces jointes, le conseil municipal est invité à :\n\n1. Approuver les orientations présentées dans le rapport.\n2. Autoriser le maire à mettre en œuvre les démarches correspondantes.\n3. Prévoir un bilan lors d'une prochaine séance.\n\n*Exemple fictif destiné à tester l'interface.*`,
+      });
+    }
+    return item;
+  }
+  async function open(meeting, date) {
+    await put(`/council-meetings/${meeting.id}/prepare`, {
+      scheduledAt: date,
+      location: "Salle du conseil",
+      chairMemberId,
+      secretaryMemberId,
+    });
+    const attendance = await post(`/council-meetings/${meeting.id}/attendance`, {
+      attendance: memberList.map((member) => {
+        if (member.id === members.Petit.id)
+          return {
+            councilMemberId: member.id,
+            status: "represented",
+            proxyHolderCouncilMemberId: members.Lefèvre.id,
+            proxyDocumentId: proxy.id,
+          };
+        if (member.id === members.Fontaine.id) return { councilMemberId: member.id, status: "excused" };
+        if (member.id === members.Garnier.id) return { councilMemberId: member.id, status: "absent" };
+        return { councilMemberId: member.id, status: "present" };
+      }),
+    });
+    await post(`/council-meetings/${meeting.id}/start`, { startedAt: date });
+    return attendance.filter((entry) => entry.status === "present" || entry.status === "represented");
+  }
+  async function vote(meeting, item, attendance, date, minute, mode, approve, reject) {
+    await post(`/council-meetings/${meeting.id}/agenda-items/${item.id}/start`, { startedAt: at(date, minute) });
+    await patch(`/council-meetings/${meeting.id}/agenda-items/${item.id}/notes`, {
+      discussionSummary: "Le rapport est présenté au conseil. Les conseillers échangent sur les modalités de mise en œuvre et demandent un bilan lors d’une prochaine séance.",
+    });
+    const ballot = await post("/ballots", {
+      agendaItemId: item.id,
+      mode,
+      participantAttendanceIds: attendance.map((entry) => entry.id),
+      chairmanAttendanceId: attendance.find((entry) => entry.councilMemberId === chairMemberId).id,
+    });
+    const abstain = attendance.length - approve - reject;
+    if (mode === "public") {
+      const participation = await get(`/ballots/${ballot.id}/participations`);
+      await post(`/ballots/${ballot.id}/votes`, {
+        mode,
+        votes: participation.map((entry, index) => ({
+          ballotParticipationId: entry.id,
+          choice: index < approve ? "approve" : index < approve + reject ? "reject" : "abstain",
+        })),
+      });
+    } else {
+      await post(`/ballots/${ballot.id}/votes`, { mode, totals: { approve, reject, abstain } });
+    }
+    await post(`/ballots/${ballot.id}/complete`, { completedAt: at(date, minute + 8) });
+  }
+  async function close(meeting, date) {
+    const closure = await post(`/council-meetings/${meeting.id}/close`, { closedAt: at(date, 60) });
+    const draft = await get(`/minutes/${closure.minutes.id}`);
+    await post(`/minutes/${draft.id}/generate`, { expectedVersion: draft.version });
+    return closure;
+  }
+  const first = await post("/council-meetings", { quorum: 8 });
+  const firstItems = [
+    await schedule(first, businesses[1], 1),
+    await schedule(first, businesses[2], 2),
+    await schedule(first, businesses[6], 3, "openQuestion"),
+  ];
+  const firstDate = daysFromNow(-60);
+  const firstAttendance = await open(first, firstDate);
+  await vote(first, firstItems[0], firstAttendance, firstDate, 5, "public", 10, 2);
+  await vote(first, firstItems[1], firstAttendance, firstDate, 20, "public", 4, 8);
+  await post(`/council-meetings/${first.id}/agenda-items/${firstItems[2].id}/start`, { startedAt: at(firstDate, 35) });
+  await post(`/council-meetings/${first.id}/agenda-items/${firstItems[2].id}/complete`, {
+    completedAt: at(firstDate, 45),
+  });
+  const { nextMeeting: second } = await close(first, firstDate);
+
+  const approval1 = (await get(`/council-meetings/${second.id}/agenda-items`))[0];
+  const grants = await schedule(second, businesses[5], 2);
+  const motion = await schedule(second, businesses[3], 3);
+  const deferred = await schedule(second, businesses[7], 4, "openQuestion");
+  const secondDate = daysFromNow(-28);
+  const secondAttendance = await open(second, secondDate);
+  await vote(second, approval1, secondAttendance, secondDate, 2, "public", 13, 0);
+  await vote(second, grants, secondAttendance, secondDate, 15, "public", 11, 1);
+  await vote(second, motion, secondAttendance, secondDate, 30, "secret", 7, 4);
+  await post(`/council-meetings/${second.id}/agenda-items/${deferred.id}/adjourn`, { adjournedAt: at(secondDate, 45) });
+  const { nextMeeting: current } = await close(second, secondDate);
+
+  const currentAgenda = await get(`/council-meetings/${current.id}/agenda-items`);
+  const lighting = await schedule(current, businesses[4], 3);
+  const parking = await schedule(current, businesses[8], 4, "openQuestion");
+  await put(`/council-meetings/${current.id}/agenda-order`, {
+    agendaItemIds: [currentAgenda[0].id, lighting.id, currentAgenda[1].id, parking.id],
+  });
+  const currentDate = new Date(Date.now() - 75 * 60_000).toISOString();
+  const currentAttendance = await open(current, currentDate);
+  await vote(current, currentAgenda[0], currentAttendance, currentDate, 2, "public", 12, 0);
+  await vote(current, lighting, currentAttendance, currentDate, 15, "public", 9, 3);
+  await post(`/council-meetings/${current.id}/agenda-items/${currentAgenda[1].id}/start`, {
+    startedAt: at(currentDate, 30),
+  });
+  if (process.env.SEED_MEETING_SCENARIO === "minutes") {
+    await patch(`/council-meetings/${current.id}/agenda-items/${currentAgenda[1].id}/notes`, {
+      discussionSummary: "## Échanges sur le projet\n\nLe conseil examine les observations recueillies auprès des habitants. Une visite sur place est proposée avant la prochaine réunion.\n\nLa commission présentera ses conclusion lors de la prochaine séance.\n\n*Données fictives. Corriger « conclusion » en « conclusions » pour essayer l’enregistrement automatique avant génération.*",
+    });
+    await post(`/council-meetings/${current.id}/agenda-items/${currentAgenda[1].id}/complete`, {
+      completedAt: at(currentDate, 45),
+    });
+    const closure = await post(`/council-meetings/${current.id}/close`, { closedAt: at(currentDate, 60) });
+    const draft = await get(`/minutes/${closure.minutes.id}`);
+    if (draft.generatedAt !== null || draft.documentId !== null || !draft.sections.some((section) => section.content.includes("ses conclusion"))) {
+      throw new Error("Minutes seed must provide an editable draft containing the recorded discussion");
+    }
+    console.log(`  PV à corriger puis générer : /app/minutes/${draft.id}`);
+    console.log("  Deux PV historiques générés ; le troisième reste en brouillon, avec présences et résultats figés.");
+    return;
+  }
+  console.log(
+    `  Deux séances clôturées, sept scrutins terminés, une séance en cours : /app/meetings/${current.id}/live`,
+  );
+}
+
 async function main() {
   const inspectedCollections = await Promise.all([
     get("/contacts"),
@@ -348,8 +499,9 @@ async function main() {
     outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
     outboundEmailSenderAddress: "conseil@saint-aubin.fr",
     outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
-    councilTerm: { expectedMemberCount: 15 },
   });
+
+  await put("/council-terms", { expectedMemberCount: 15 });
 
   console.log("- Contacts et membres du conseil");
   const membersSpec = [
@@ -448,7 +600,7 @@ async function main() {
       email: "martine.delcourt@saint-aubin.fr",
       displayName: "Martine Delcourt",
       roles: ["administrator"],
-      councilMemberId: members.Delcourt.id,
+      councilMemberId: null,
     },
     {
       email: "secretariat@saint-aubin.fr",
@@ -460,19 +612,19 @@ async function main() {
       email: "jean-marc.baudry@saint-aubin.fr",
       displayName: "Jean-Marc Baudry",
       roles: ["contributor"],
-      councilMemberId: members.Baudry.id,
+      councilMemberId: null,
     },
     {
       email: "bernard.lefevre@saint-aubin.fr",
       displayName: "Bernard Lefèvre",
       roles: ["meetingConductor"],
-      councilMemberId: members.Lefèvre.id,
+      councilMemberId: null,
     },
     {
       email: "claire.vasseur@saint-aubin.fr",
       displayName: "Claire Vasseur",
       roles: ["reader"],
-      councilMemberId: members.Vasseur.id,
+      councilMemberId: null,
     },
   ];
   for (const user of usersSpec) await post("/users", { ...user, password: DEMO_PASSWORD });
@@ -773,245 +925,83 @@ async function main() {
     ],
   });
 
-  console.log("- Travaux du conseil et délibérations (« soumettre au vote »)");
-  const submitToVote = async (business, draftText) =>
-    Object.assign(business, await post(`/council-business/${business.id}/decision`, { draftText }));
-  await post("/council-business", {
-    kind: "matter",
-    title: "Affaire de démonstration",
-    report: "Cette affaire sert de repère pour distinguer une affaire du conseil des ressources du dossier seed.",
-    folderPath: seedFolderPath,
-    resourceIds: [],
-  });
-  const businessCession = await post("/council-business", {
-    kind: "matter",
-    title: "Cession de la parcelle AB 127",
-    report:
-      "La commune n'a pas d'usage de cette parcelle enclavée. Un riverain s'est porté acquéreur au prix de l'avis des Domaines.",
-    folderPath: "urbanisme/cessions",
-    resourceIds: [],
-  });
-  await submitToVote(
-    businessCession,
-    "**Le conseil municipal**, vu l'avis des Domaines du 12 juin 2026,\n\n**décide** de céder la parcelle AB 127 (1 240 m²) au prix de 62 000 €, et **autorise** madame la maire à signer l'acte authentique.",
-  );
-  const businessCantine = await post("/council-business", {
-    kind: "matter",
-    committeeId: schoolCommittee.id,
-    title: "Tarifs de la restauration scolaire 2026-2027",
-    report:
-      "Le prestataire augmente ses prix de 4,1 %. La commission scolaire propose de ne répercuter qu'une partie de la hausse.",
-    folderPath: "ecole/cantine",
-    resourceIds: [],
-  });
-  await submitToVote(
-    businessCantine,
-    "**Le conseil municipal décide** :\n\n- de geler le tarif de la première tranche de quotient familial ;\n- d'appliquer une hausse de 2 % aux autres tranches à compter du 1er septembre 2026.",
-  );
-  const businessMotion = await post("/council-business", {
-    kind: "matter",
-    title: "Motion de soutien au commerce de proximité",
-    report:
-      "Suite à la fermeture annoncée du dernier commerce alimentaire, il est proposé au conseil d'adopter une motion de soutien.",
-    folderPath: "",
-    resourceIds: [],
-  });
-  const businessQuestionsPassees = await post("/council-business", {
-    kind: "openQuestion",
-    title: "Questions diverses (séance précédente)",
-    report: "",
-    folderPath: "",
-    resourceIds: [],
-  });
-  const businessEclairage = await post("/council-business", {
-    kind: "matter",
-    title: "Éclairage public - engagement de la tranche 2",
-    report:
-      "Après la tranche 1 achevée au printemps, la tranche 2 couvre le centre-bourg et les abords de l'école. Le plan de financement intègre la subvention du SDE.",
-    folderPath: "travaux/eclairage",
-    resourceIds: [],
-  });
-  await submitToVote(
-    businessEclairage,
-    "**Le conseil municipal approuve** le programme de la tranche 2 pour un montant de 186 000 € HT, **sollicite** la subvention du SDE à hauteur de 40 %, et **autorise** madame la maire à signer les marchés correspondants.",
-  );
-  const businessSubventions = await post("/council-business", {
-    kind: "matter",
-    committeeId: communityLifeCommittee.id,
-    title: "Subventions aux associations 2026",
-    report: "La commission vie associative a examiné les huit dossiers reçus. Cinq demandes sont retenues.",
-    folderPath: "finances/subventions",
-    resourceIds: [],
-  });
-  await submitToVote(
-    businessSubventions,
-    "**Le conseil municipal attribue** les subventions conformément au tableau annexé, pour un montant total de **9 800 €**, inscrit au budget 2026.",
-  );
-  const businessRentree = await post("/council-business", {
-    kind: "matter",
-    title: "Rentrée scolaire - bilan et effectifs",
-    report: "Point d'information : 142 élèves inscrits (+6), ouverture d'un poste d'ATSEM à mi-temps.",
-    folderPath: "ecole",
-    resourceIds: [],
-  });
-  const businessQuestions = await post("/council-business", {
-    kind: "openQuestion",
-    title: "Questions diverses (prochaine séance)",
-    report: "",
-    folderPath: "",
-    resourceIds: [],
-  });
-  await post("/council-business", {
-    kind: "matter",
-    title: "Rénovation de la salle des fêtes - étude préalable",
-    report: "Lancement d'une étude de programmation (toiture, chauffage, accessibilité).",
-    folderPath: "travaux/salle-des-fetes",
-    resourceIds: [],
-  });
-  await post("/council-business", {
-    kind: "openQuestion",
-    title: "Stationnement rue des Tilleuls",
-    report: "",
-    folderPath: "voirie",
-    resourceIds: [],
-  });
-
-  console.log("- Séance passée : préparation");
-  const pastMeeting = await post("/council-meetings", {
-    startsAt: daysFromNow(-14),
-    location: "Salle du conseil",
-  });
-  const pastAgenda = [businessCession, businessCantine, businessMotion, businessQuestionsPassees];
-  for (const [index, business] of pastAgenda.entries()) {
-    await post(`/council-business/${business.id}/schedule`, { meetingId: pastMeeting.id, position: index + 1 });
-  }
-  await put(`/council-meetings/${pastMeeting.id}/status`, { status: "scheduled" });
-  await put(`/council-meetings/${pastMeeting.id}/officers`, {
-    chairMemberId: members.Delcourt.id,
-    secretaryMemberId: members.Renaud.id,
-  });
-
-  console.log("- Séance passée : présences et pouvoirs");
-  await uploadPdf({
-    title: "Pouvoir - Olivier Fontaine",
-    fileName: "pouvoir-fontaine.pdf",
-    lines: [
-      "Je soussigne Olivier Fontaine, conseiller municipal,",
-      "donne pouvoir a Sylvie Garnier pour me representer",
-      "et voter en mon nom lors de la seance du conseil municipal.",
-      "",
-      "Fait a Saint-Aubin.",
-    ],
-  });
-  for (const member of Object.values(members)) {
-    if (member.id === members.Fontaine.id || member.id === members.Lambert.id) continue;
-    await put(`/council-meetings/${pastMeeting.id}/attendance`, {
-      memberId: member.id,
-      status: "present",
-      proxyHolderMemberId: null,
-      proxyDocumentId: null,
-    });
-  }
-  await put(`/council-meetings/${pastMeeting.id}/attendance`, {
-    memberId: members.Fontaine.id,
-    status: "excused",
-    proxyHolderMemberId: null,
-    proxyDocumentId: null,
-  });
-  await put(`/council-meetings/${pastMeeting.id}/attendance`, {
-    memberId: members.Lambert.id,
-    status: "excused",
-    proxyHolderMemberId: null,
-    proxyDocumentId: null,
-  });
-  await put(`/council-meetings/${pastMeeting.id}/status`, { status: "inProgress" });
-
-  console.log("- Séance passée : déroulé, scrutins, clôture");
-  const publicVotes = (aggregate, choiceByMemberId = {}) =>
-    aggregate.attendance
-      .filter((attendance) => ["present", "represented"].includes(attendance.status))
-      .map((attendance) => ({
-        memberId: attendance.memberId,
-        castByMemberId: attendance.proxyHolderMemberId ?? attendance.memberId,
-        choice: choiceByMemberId[attendance.memberId] ?? "for",
-      }));
-
-  const aggregate = await get(`/council-meetings/${pastMeeting.id}`);
-  const itemFor = (business) => aggregate.agendaItems.find((item) => item.business.id === business.id);
-
-  const conduct = [
+  console.log("- Affaires du conseil et rapports principaux");
+  const councilBusinesses = [
     {
-      business: businessCession,
-      ballot: { councilDecisionId: businessCession.councilDecisionId },
-      choices: { [members.Benali.id]: "against", [members.Rousseau.id]: "abstain" },
-      notes:
-        "Présentation de l'avis des Domaines. M. Benali estime le prix insuffisant ; Mme Rousseau s'interroge sur l'accès à la parcelle voisine.",
+      path: seedFolderPath,
+      name: "Affaire de démonstration",
+      reportContent:
+        "Cette affaire sert de repère pour distinguer une affaire du conseil des ressources du dossier seed.",
     },
     {
-      business: businessCantine,
-      ballot: { councilDecisionId: businessCantine.councilDecisionId },
-      choices: { [members.Marchand.id]: "against" },
-      notes: "Débat sur la répartition de la hausse entre les tranches. Le gel de la première tranche fait consensus.",
+      path: "urbanisme/cessions",
+      name: "Cession de la parcelle AB 127",
+      reportContent:
+        "La commune n'a pas d'usage de cette parcelle enclavée. Un riverain s'est porté acquéreur au prix de l'avis des Domaines.",
     },
     {
-      business: businessMotion,
-      ballot: { agendaItemId: null },
-      choices: { [members.Morel.id]: "abstain" },
-      notes: "Lecture de la motion. Le conseil souhaite y associer la chambre de commerce.",
+      path: "ecole/cantine",
+      name: "Tarifs de la restauration scolaire 2026-2027",
+      reportContent:
+        "Le prestataire augmente ses prix de 4,1 %. La commission scolaire propose de ne répercuter qu'une partie de la hausse.",
     },
     {
-      business: businessQuestionsPassees,
-      ballot: null,
-      notes: "Mme Petit signale un dépôt sauvage chemin des Carrières ; les services techniques interviendront.",
+      path: "",
+      name: "Motion de soutien au commerce de proximité",
+      reportContent:
+        "Suite à la fermeture annoncée du dernier commerce alimentaire, il est proposé au conseil d'adopter une motion de soutien.",
+    },
+    {
+      path: "travaux/eclairage",
+      name: "Éclairage public - engagement de la tranche 2",
+      reportContent:
+        "Après la tranche 1 achevée au printemps, la tranche 2 couvre le centre-bourg et les abords de l'école. Le plan de financement intègre la subvention du SDE.",
+    },
+    {
+      path: "finances/subventions",
+      name: "Subventions aux associations 2026",
+      reportContent: "La commission vie associative a examiné les huit dossiers reçus. Cinq demandes sont retenues.",
+    },
+    {
+      path: "ecole",
+      name: "Rentrée scolaire - bilan et effectifs",
+      reportContent: "Point d'information : 142 élèves inscrits (+6), ouverture d'un poste d'ATSEM à mi-temps.",
+    },
+    {
+      path: "travaux/salle-des-fetes",
+      name: "Rénovation de la salle des fêtes - étude préalable",
+      reportContent: "Lancement d'une étude de programmation (toiture, chauffage, accessibilité).",
+    },
+    {
+      path: "voirie",
+      name: "Stationnement rue des Tilleuls",
+      reportContent:
+        "Les riverains signalent des difficultés de stationnement aux heures d’entrée et de sortie de l’école. Deux options sont à discuter : créer une zone de courte durée ou déplacer les places réservées aux livraisons.",
     },
   ];
-  for (const step of conduct) {
-    const item = itemFor(step.business);
-    await post(`/council-meetings/${pastMeeting.id}/agenda-items/${item.id}/start`, {});
-    if (step.ballot) {
-      const target = step.ballot.councilDecisionId
-        ? { councilDecisionId: step.ballot.councilDecisionId }
-        : { agendaItemId: item.id };
-      await post(`/council-meetings/${pastMeeting.id}/ballots`, {
-        method: "public",
-        idempotencyKey: randomUUID(),
-        ...target,
-        votes: publicVotes(aggregate, step.choices ?? {}),
-      });
-    }
-    await post(`/council-meetings/${pastMeeting.id}/agenda-items/${item.id}/complete`, {
-      discussionSummary: step.notes,
-      status: "examined",
+  const seededBusinesses = [];
+  for (const business of councilBusinesses) {
+    const created = await post("/council-business", {
+      ...business,
+      reportName: "Rapport principal",
     });
-  }
-  await put(`/council-meetings/${pastMeeting.id}/status`, { status: "closed" });
-  await post(`/council-meetings/${pastMeeting.id}/minutes/finalize`, {});
+    seededBusinesses.push({ ...business, ...created });
+    const annex = await createWorkspaceResource({ kind: "text", path: "seed", name: `Annexe - ${business.name}`, content: "" });
+    await put(`/resources/${annex.id}/content`, {
+      kind: "text",
+      expectedVersion: annex.version,
+      content: `## Éléments préparatoires
 
-  console.log("- Séance à venir : ordre du jour et convocation");
-  const upcomingMeeting = await post("/council-meetings", {
-    startsAt: daysFromNow(9),
-    location: "Salle du conseil",
-  });
-  const upcomingAgenda = [businessEclairage, businessSubventions, businessRentree, businessQuestions];
-  for (const [index, business] of upcomingAgenda.entries()) {
-    await post(`/council-business/${business.id}/schedule`, { meetingId: upcomingMeeting.id, position: index + 1 });
+${business.name}
+
+- Étude du dossier par les services municipaux.
+- Présentation des options et des observations des habitants.
+- Point de suivi prévu après la décision du conseil.
+
+*Données fictives de démonstration.*`,
+    });
+    await post(`/council-business/${created.id}/resources`, { resourceId: annex.id });
   }
-  await put(`/council-meetings/${upcomingMeeting.id}/status`, { status: "scheduled" });
-  await put(`/council-meetings/${upcomingMeeting.id}/officers`, {
-    chairMemberId: members.Delcourt.id,
-    secretaryMemberId: members.Renaud.id,
-  });
-  await uploadPdf({
-    title: "Convocation - séance de septembre",
-    fileName: "convocation-septembre.pdf",
-    lines: [
-      "Mesdames et Messieurs les conseillers municipaux sont convoques",
-      "en seance ordinaire du conseil municipal, salle du conseil.",
-      "",
-      "L'ordre du jour comporte cinq points, dont l'approbation",
-      "du proces-verbal de la seance precedente.",
-    ],
-  });
 
   console.log("- Fonds documentaire (plan de classement complet)");
   const libraryTexts = [
@@ -1519,11 +1509,29 @@ async function main() {
       "Bonjour,\n\nVous êtes convoqué au **conseil municipal**, le :field{name=meeting.startsAt}, à :field{name=meeting.location}.\n\nLa convocation et les pièces préparatoires sont jointes à ce message.",
   });
 
-  console.log("- Séance en préparation");
-  await post("/council-meetings", {
-    startsAt: daysFromNow(65),
-    location: "Salle du conseil",
+  await post("/templates", {
+    kind: "pdf",
+    documentType: "minutes",
+    name: "Procès-verbal du conseil",
+    bodyMarkdown: "# Procès-verbal du conseil\n\n## Séance, présences et pouvoirs\n\n::minutes{section=facts}\n\n## Examen des points\n\n::minutes{section=proceedings}",
+    stylesheet: "h1 { color: #102a83; } h2 { break-after: avoid; }",
+    headerHtml: '<div style="font-size:10px">Commune de Saint-Aubin</div>',
+    footerHtml: '<div style="font-size:9px;width:100%;text-align:center"><span class="pageNumber"></span> / <span class="totalPages"></span></div>',
   });
+
+  if (process.env.SEED_MEETING_SCENARIO === "preparation") {
+    console.log("- Séance en préparation");
+    const meeting = await post("/council-meetings", {
+      quorum: 8,
+    });
+    await put(`/council-meetings/${meeting.id}/schedule`, {
+      scheduledAt: daysFromNow(65),
+      location: "Salle du conseil",
+    });
+  } else {
+    console.log("- Historique des séances et séance en cours");
+    await seedCouncilMeetings(members, seededBusinesses);
+  }
 
   console.log("Seed terminé.");
 }

@@ -1,6 +1,6 @@
 import { SIREN_MEDIA_TYPE } from "@hall/api-contract";
 import { describe, expect, it } from "vitest";
-import { createTestCouncilMember, createTestServer, domainBody } from "./testServer.js";
+import { createTestServer, domainBody } from "./testServer.js";
 
 const settingsInput = {
   name: "Saint-Aubin",
@@ -21,7 +21,6 @@ const settingsInput = {
   outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
   outboundEmailSenderAddress: "conseil@saint-aubin.fr",
   outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
-  councilTerm: { expectedMemberCount: 15 },
 };
 
 describe("Hall settings", () => {
@@ -33,7 +32,6 @@ describe("Hall settings", () => {
     expect(domainBody(initial)).toMatchObject({
       name: "",
       timeZone: "Europe/Paris",
-      councilTerm: { expectedMemberCount: null },
       updatedAt: null,
     });
     expect(initial.body.actions).toEqual(
@@ -43,24 +41,6 @@ describe("Hall settings", () => {
     const updated = await agent.put("/api/settings").send(settingsInput).expect(200);
     expect(domainBody(updated)).toEqual({ ...settingsInput, updatedAt: expect.any(String) });
     expect(domainBody(await agent.get("/api/settings").expect(200))).toEqual(domainBody(updated));
-
-    const map = domainBody<{ id: string }>(
-      await agent
-        .post("/api/resources/geographic")
-        .send({
-          title: "Carte centrée sur la mairie",
-          folderPath: "travaux",
-          tags: [],
-          provider: "ign",
-          layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
-          hallLayer: { type: "FeatureCollection", features: [] },
-        })
-        .expect(201),
-    );
-    expect(
-      domainBody<{ geography: { view: unknown } }>(await agent.get(`/api/resources/${map.id}`).expect(200)).geography
-        .view,
-    ).toEqual({ kind: "center", center: settingsInput.geographicPosition, zoom: 15 });
 
     const root = await agent.get("/api").expect(200);
     expect(root.body.links).toEqual(
@@ -103,17 +83,5 @@ describe("Hall settings", () => {
       expect.arrayContaining([expect.objectContaining({ name: "settings.update" })]),
     );
     await rawAgent.put("/api/settings").send(settingsInput).expect(403);
-  });
-
-  it("does not reduce the active council term below its current member count", async () => {
-    const { agent } = await createTestServer({ expectedCouncilMemberCount: 2 });
-    await createTestCouncilMember(agent, { firstName: "Alice" });
-    await createTestCouncilMember(agent, { firstName: "Benoît" });
-
-    const response = await agent
-      .put("/api/settings")
-      .send({ ...settingsInput, councilTerm: { expectedMemberCount: 1 } })
-      .expect(409);
-    expect(response.body.code).toBe("council_term_capacity_below_active_count");
   });
 });

@@ -1,4 +1,3 @@
-import { type CouncilMeeting, meetingIsFinished } from "@hall/domain";
 import { type FormEvent, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,21 +18,17 @@ import { formatMeetingLabel } from "../../features/council-meetings/meetingPrese
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
+import { type CouncilMeetingView, councilMeetingIsFinished } from "../../models/councilMeeting";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 
 /** Sentinel for an unassigned officer; SelectItem forbids an empty value. */
 const UNDESIGNATED = "none";
 
-function officerId(value: FormDataEntryValue | null): string | null {
-  const id = typeof value === "string" ? value : "";
-  return id && id !== UNDESIGNATED ? id : null;
-}
-
 export function CouncilMeetingsPage() {
   const { t, formatDate, formatDateTime } = useI18n();
   const { submitting, run } = useSubmitting();
-  const { meetings, create, error, canCreate } = useCouncilMeetingsStore();
+  const { meetings, schedule, error } = useCouncilMeetingsStore();
   const { members } = useCouncilMembersStore();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const { layout, setLayout, query, setQuery } = useCollectionView();
@@ -42,18 +37,18 @@ export function CouncilMeetingsPage() {
   const chairFieldId = useId();
   const secretaryFieldId = useId();
   const defaultChair = members.find((member) => member.role === "mayor" && member.active) ?? null;
-  const meetingLabel = (meeting: CouncilMeeting) =>
+  const meetingLabel = (meeting: CouncilMeetingView) =>
     formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate);
 
   const upcomingMeetings = [...meetings]
-    .filter((meeting) => !meetingIsFinished(meeting.status))
-    .sort((left, right) => left.startsAt.localeCompare(right.startsAt));
+    .filter((meeting) => !councilMeetingIsFinished(meeting))
+    .sort((left, right) => (left.scheduledAt ?? "").localeCompare(right.scheduledAt ?? ""));
   const nextMeeting = upcomingMeetings[0] ?? null;
-  const matches = (meeting: CouncilMeeting) => matchesQuery(query, meetingLabel(meeting), meeting.location);
+  const matches = (meeting: CouncilMeetingView) => matchesQuery(query, meetingLabel(meeting), meeting.location);
   const visibleUpcoming = upcomingMeetings.filter((meeting) => meeting.id !== nextMeeting?.id && matches(meeting));
   const pastMeetings = [...meetings]
-    .filter((meeting) => meetingIsFinished(meeting.status))
-    .sort((left, right) => right.startsAt.localeCompare(left.startsAt))
+    .filter(councilMeetingIsFinished)
+    .sort((left, right) => (right.scheduledAt ?? "").localeCompare(left.scheduledAt ?? ""))
     .filter(matches);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -61,11 +56,12 @@ export function CouncilMeetingsPage() {
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     await run(async () => {
-      const created = await create({
-        startsAt: new Date(String(form.get("startsAt"))).toISOString(),
-        location: form.get("location"),
-        chairMemberId: officerId(form.get("chairMemberId")),
-        secretaryMemberId: officerId(form.get("secretaryMemberId")),
+      if (!nextMeeting) return false;
+      const created = await schedule(nextMeeting.reference, {
+        scheduledAt: new Date(String(form.get("startsAt"))).toISOString(),
+        location: String(form.get("location")),
+        chairMemberId: String(form.get("chairMemberId")),
+        secretaryMemberId: String(form.get("secretaryMemberId")),
       });
       if (created) {
         formElement.reset();
@@ -82,28 +78,29 @@ export function CouncilMeetingsPage() {
         <RequestErrorBanner error={error} />
 
         {nextMeeting ? (
-          <Link className="next-meeting-hero" to={`/meetings/${nextMeeting.slug}`}>
+          <Link className="next-meeting-hero" to={`/meetings/${nextMeeting.reference}`}>
             <div className="next-meeting-copy">
               <span className="entity-card-eyebrow">{t("dashboard.nextMeeting")}</span>
               <strong>{meetingLabel(nextMeeting)}</strong>
               <span className="next-meeting-facts">
                 <span>
-                  <CalendarIcon aria-hidden="true" /> {formatDateTime(nextMeeting.startsAt)}
+                  <CalendarIcon aria-hidden="true" />{" "}
+                  {nextMeeting.scheduledAt ? formatDateTime(nextMeeting.scheduledAt) : t("dashboard.toSchedule")}
                 </span>
                 <span>
-                  <LocationIcon aria-hidden="true" /> {nextMeeting.location}
+                  <LocationIcon aria-hidden="true" /> {nextMeeting.location ?? t("common.none")}
                 </span>
               </span>
             </div>
             <span className="next-meeting-side">
-              <MeetingStatusBadge status={nextMeeting.status} />
+              <MeetingStatusBadge status={nextMeeting.phase} />
               <ChevronRightIcon aria-hidden="true" />
             </span>
           </Link>
         ) : null}
 
         <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
-          {canCreate ? (
+          {nextMeeting?.phase === "draft" ? (
             <Button variant="default" onClick={() => setScheduleOpen(true)}>
               <AddIcon />
               {t("meetings.schedule")}
@@ -111,7 +108,11 @@ export function CouncilMeetingsPage() {
           ) : null}
         </CollectionToolbar>
 
-        <Modal open={canCreate && scheduleOpen} title={t("meetings.schedule")} onClose={() => setScheduleOpen(false)}>
+        <Modal
+          open={nextMeeting?.phase === "draft" && scheduleOpen}
+          title={t("meetings.schedule")}
+          onClose={() => setScheduleOpen(false)}
+        >
           <form className="modal-form" onSubmit={submit}>
             <div className="form-grid">
               <div className="grid gap-1.5">
@@ -203,10 +204,10 @@ function MeetingGroup({
   meetingLabel,
 }: {
   title: string;
-  meetings: CouncilMeeting[];
+  meetings: CouncilMeetingView[];
   layout: "list" | "cards";
   formatDateTime(value: string): string;
-  meetingLabel(meeting: CouncilMeeting): string;
+  meetingLabel(meeting: CouncilMeetingView): string;
 }) {
   return (
     <section className="decision-group">
@@ -220,12 +221,14 @@ function MeetingGroup({
       {layout === "cards" ? (
         <div className="card-grid">
           {meetings.map((meeting) => (
-            <Link className="entity-card" key={meeting.id} to={`/meetings/${meeting.slug}`}>
-              <span className="entity-card-eyebrow">{formatDateTime(meeting.startsAt)}</span>
+            <Link className="entity-card" key={meeting.id} to={`/meetings/${meeting.reference}`}>
+              <span className="entity-card-eyebrow">
+                {meeting.scheduledAt ? formatDateTime(meeting.scheduledAt) : ""}
+              </span>
               <strong>{meetingLabel(meeting)}</strong>
               <p>{meeting.location}</p>
               <span className="entity-card-footer">
-                <MeetingStatusBadge status={meeting.status} />
+                <MeetingStatusBadge status={meeting.phase} />
               </span>
             </Link>
           ))}
@@ -233,14 +236,14 @@ function MeetingGroup({
       ) : (
         <div className="data-list">
           {meetings.map((meeting) => (
-            <Link className="data-row linked" key={meeting.id} to={`/meetings/${meeting.slug}`}>
+            <Link className="data-row linked" key={meeting.id} to={`/meetings/${meeting.reference}`}>
               <div>
                 <strong>{meetingLabel(meeting)}</strong>
                 <span>
-                  {formatDateTime(meeting.startsAt)} · {meeting.location}
+                  {meeting.scheduledAt ? formatDateTime(meeting.scheduledAt) : ""} · {meeting.location}
                 </span>
               </div>
-              <MeetingStatusBadge status={meeting.status} />
+              <MeetingStatusBadge status={meeting.phase} />
             </Link>
           ))}
         </div>

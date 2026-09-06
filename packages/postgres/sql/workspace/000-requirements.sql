@@ -4,10 +4,12 @@
 -- A CouncilBusiness is perceived in the Workspace as one special folder whose
 -- primary text report opens when the business itself is opened. The business
 -- identity and both resource identities remain stable when paths or names move.
+-- Additional working resources are associated independently of their
+-- documentary FolderPath. One resource may therefore support several affairs
+-- without being copied or moved.
 --
 -- Functional markers use:
 --
 --   HALL-FR-WSP-<NUMBER> <SYMBOLIC_NAME>:
 --
 -- Technical markers use the existing cross-package HALL-TR domains.
-

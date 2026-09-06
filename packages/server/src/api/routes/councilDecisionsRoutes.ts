@@ -17,7 +17,6 @@ export function createCouncilDecisionsRouter({
   councilBusinessRepository,
   agendaItemRepository,
   unitOfWork,
-  editorAssetService,
 }: Cradle): Router {
   const router = Router();
   const withEditability = async <T extends { id: string }>(decision: T) => ({
@@ -41,9 +40,7 @@ export function createCouncilDecisionsRouter({
     const input = createCouncilDecisionSchema.parse(request.body);
     response.status(201).json(
       await unitOfWork.execute(async () => {
-        const decision = await councilDecisionRepository.create(input);
-        await editorAssetService.reconcile({ kind: "councilDecisionDraft", id: decision.id }, decision.draftText);
-        return decision;
+        return councilDecisionRepository.create(input);
       }),
     );
   });
@@ -67,9 +64,7 @@ export function createCouncilDecisionsRouter({
         ) {
           throw new DomainError("agenda_inconsistent", 409);
         }
-        const updated = await councilDecisionRepository.update(decision.id, input);
-        await editorAssetService.reconcile({ kind: "councilDecisionDraft", id: updated.id }, updated.draftText);
-        return withEditability(updated);
+        return withEditability(await councilDecisionRepository.update(decision.id, input));
       }),
     );
   });

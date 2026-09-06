@@ -312,8 +312,6 @@
     cursor: pointer;
   }
   .conduct-step-button:hover { background: var(--hall-color-ink-raised); }
-  .conduct-step-static { cursor: default; }
-  .conduct-step-static:hover { background: transparent; }
   .conduct-step-selected { border-color: var(--hall-color-ink-border); background: var(--hall-color-ink-raised); }
   .conduct-step-marker {
     z-index: var(--hall-z-content);
@@ -335,8 +333,10 @@
     overflow: hidden;
     font-size: var(--hall-font-size-body);
     font-weight: var(--hall-font-weight-medium);
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: var(--hall-line-height-body);
   }
   .conduct-step-active .conduct-step-copy strong { font-weight: var(--hall-font-weight-semibold); }
   .conduct-step-copy > span:not([class]) { color: var(--hall-color-ink-text-muted); font-size: var(--hall-font-size-caption); font-variant-numeric: tabular-nums; }
@@ -836,3 +836,22 @@
     .live-primary-action { transition: none; }
   }
 }
+
+.conduct-stage[hidden] { display: none; }
+.conduct-item-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hall-space-2);
+  padding: 0;
+  margin: var(--hall-space-3) 0 0;
+  list-style: none;
+  color: var(--hall-color-ink-text-muted);
+  font-size: var(--hall-font-size-caption);
+}
+.conduct-item-progress li + li::before { content: "›"; margin-right: var(--hall-space-2); }
+.conduct-item-progress [aria-current="step"] { color: var(--hall-color-ink-accent); font-weight: var(--hall-font-weight-semibold); }
+.conduct-item-progress [data-completed] { color: var(--hall-color-success-on-ink); }
+.conduct-opening-content { width: 100%; max-width: var(--hall-size-live-stage-max); margin: 0 auto; }
+.conduct-opening-roster { display: grid; margin-top: var(--hall-space-4); }
+.conduct-opening-roster > div { display: flex; justify-content: space-between; gap: var(--hall-space-3); padding: var(--hall-space-2) 0; border-bottom: var(--hall-stroke-thin) solid var(--hall-color-ink-border); }
+.conduct-opening-roster dd { margin: 0; color: var(--hall-color-ink-text-muted); text-align: right; }

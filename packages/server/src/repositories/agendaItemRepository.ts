@@ -3,17 +3,10 @@ import { type AgendaItem, agendaItemStatusSchema, identifierSchema } from "@hall
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { AgendaItemRepository } from "./contracts.js";
 import { mapCouncilBusiness } from "./councilBusinessRepository.js";
-import { mapStoredResource } from "./resourceRowMapping.js";
-import { asBoolean, asInteger, asNullableString, asString, type DatabaseRow, mapSequential } from "./row.js";
+import { asBoolean, asInteger, asNullableString, asString, type DatabaseRow } from "./row.js";
 
-async function mapAgendaItem(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<AgendaItem> {
-  const snapshotKind = asNullableString(row.snapshot_kind, "agenda_item.snapshot_kind");
-  const snapshot = snapshotKind !== null;
+function mapAgendaItem(row: DatabaseRow): AgendaItem {
   const itemId = identifierSchema.parse(row.id);
-  const businessId = identifierSchema.parse(row.business_id);
-  const resources = await sqlExecutor.all(snapshot ? "agenda.resources.snapshot" : "agenda.resources.business", {
-    ownerId: snapshot ? itemId : businessId,
-  });
   const businessCouncilDecisionId = identifierSchema.nullable().parse(row.business_council_decision_id);
   const snapshotCouncilDecisionTitle = asNullableString(
     row.snapshot_council_decision_title,
@@ -28,22 +21,19 @@ async function mapAgendaItem(sqlExecutor: SqlExecutor, row: DatabaseRow): Promis
     status: agendaItemStatusSchema.parse(row.status),
     startedAt: asNullableString(row.started_at, "agenda_item.started_at"),
     completedAt: asNullableString(row.completed_at, "agenda_item.completed_at"),
-    business: mapCouncilBusiness(
-      {
-        id: row.business_id,
-        slug: row.business_slug,
-        kind: row.business_kind,
-        council_decision_id: row.business_council_decision_id,
-        committee_id: row.business_committee_id,
-        minutes_of_meeting_id: row.business_minutes_of_meeting_id,
-        title: row.business_title,
-        report: row.business_report,
-        folder_path: row.business_folder_path,
-        created_at: row.business_created_at,
-        updated_at: row.business_updated_at,
-      },
-      await mapSequential(resources, (resource) => mapStoredResource(sqlExecutor, resource)),
-    ),
+    business: mapCouncilBusiness({
+      id: row.business_id,
+      slug: row.business_slug,
+      kind: row.business_kind,
+      council_decision_id: row.business_council_decision_id,
+      committee_id: row.business_committee_id,
+      minutes_of_meeting_id: row.business_minutes_of_meeting_id,
+      title: row.business_title,
+      report: row.business_report,
+      folder_path: row.business_folder_path,
+      created_at: row.business_created_at,
+      updated_at: row.business_updated_at,
+    }),
     councilDecisionSnapshot:
       businessCouncilDecisionId !== null && snapshotCouncilDecisionTitle !== null
         ? {
@@ -60,29 +50,28 @@ async function mapAgendaItem(sqlExecutor: SqlExecutor, row: DatabaseRow): Promis
 
 async function snapshot(sqlExecutor: SqlExecutor, itemId: string): Promise<void> {
   await sqlExecutor.run("agenda.snapshot", { itemId });
-  await sqlExecutor.run("agenda.snapshotResources", { itemId });
 }
 async function readById(sqlExecutor: SqlExecutor, itemId: string): Promise<AgendaItem> {
-  return mapAgendaItem(sqlExecutor, (await sqlExecutor.get("agenda.findById", { itemId }))!);
+  return mapAgendaItem((await sqlExecutor.get("agenda.findById", { itemId }))!);
 }
 
 export function createAgendaItemRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }): AgendaItemRepository {
   return {
     async listForMeeting(meetingId) {
       const rows = await sqlExecutor.all("agenda.listByMeeting", { meetingId });
-      return mapSequential(rows, (row) => mapAgendaItem(sqlExecutor, row));
+      return rows.map(mapAgendaItem);
     },
     async listForBusiness(businessId) {
       const rows = await sqlExecutor.all("agenda.listByBusiness", { businessId });
-      return mapSequential(rows, (row) => mapAgendaItem(sqlExecutor, row));
+      return rows.map(mapAgendaItem);
     },
     async find(meetingId, itemId) {
       const row = await sqlExecutor.get("agenda.find", { meetingId, itemId });
-      return row ? mapAgendaItem(sqlExecutor, row) : null;
+      return row ? mapAgendaItem(row) : null;
     },
     async findById(itemId) {
       const row = await sqlExecutor.get("agenda.findById", { itemId });
-      return row ? mapAgendaItem(sqlExecutor, row) : null;
+      return row ? mapAgendaItem(row) : null;
     },
     create(meetingId, input) {
       return sqlExecutor.execute(async () => {
@@ -138,7 +127,7 @@ export function createAgendaItemRepository({ sqlExecutor }: { sqlExecutor: SqlEx
         for (const row of rows) await snapshot(sqlExecutor, identifierSchema.parse(row.id));
         await sqlExecutor.run("agenda.completeOpen", { meetingId, status, completedAt });
         const items = await sqlExecutor.all("agenda.listByMeeting", { meetingId });
-        return mapSequential(items, (row) => mapAgendaItem(sqlExecutor, row));
+        return items.map(mapAgendaItem);
       });
     },
     snapshotOpenItems(meetingId) {
@@ -172,10 +161,6 @@ export function createAgendaItemRepository({ sqlExecutor }: { sqlExecutor: SqlEx
             snapshotTitle: asNullableString(row.snapshot_title, "agenda_item.snapshot_title"),
             snapshotReport: asNullableString(row.snapshot_report, "agenda_item.snapshot_report"),
             snapshotFolderPath: asNullableString(row.snapshot_folder_path, "agenda_item.snapshot_folder_path"),
-          });
-          await sqlExecutor.run("agenda.copyResources", {
-            sourceItemId: identifierSchema.parse(row.id),
-            targetItemId,
           });
         }
       });

@@ -260,7 +260,7 @@ BEGIN
           FROM unnest(search_paths) AS selected_path
           WHERE selected_path = ''
              OR read_model.path = selected_path
-             OR read_model.path LIKE selected_path || '/%'
+             OR starts_with(read_model.path, selected_path || '/')
         )
       )
       AND (cardinality(search_tags) = 0 OR read_model.tags ?& search_tags)
@@ -683,9 +683,11 @@ BEGIN
   END;
 
   -- @functional-requirement HALL-FR-DOC-130 LOCATION_CHANGE_IS_ATOMIC:
+  -- Folder names are literal segments: %, _ and backslash never act as
+  -- pattern operators when identifying descendants or unrelated neighbors.
   IF target.is_folder AND (
     destination_path = source_full_path
-    OR destination_path LIKE source_full_path || '/%'
+    OR starts_with(destination_path, source_full_path || '/')
   ) THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV604',
@@ -707,7 +709,7 @@ BEGIN
     UPDATE hall.resource
     SET path = destination_full_path || substr(path, length(source_full_path) + 1)
     WHERE path = source_full_path
-       OR path LIKE source_full_path || '/%';
+       OR starts_with(path, source_full_path || '/');
   END IF;
 
   RETURN hall.resource_detail(resource_id);

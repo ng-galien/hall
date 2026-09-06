@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { KindGlyph } from "../../components/search/kindPresentation";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CouncilBusinessGlyph } from "../council-business/CouncilBusinessGlyph";
-import { councilBusinessKindKeys } from "../council-business/presentation";
 import { formatMeetingLabel } from "../council-meetings/meetingPresentation";
 import { DocumentaryResourceGlyph, useDocumentaryResourceTypeLabel } from "../documents/DocumentaryResourceGlyph";
 import { MeetingStatusBadge, StatusBadge } from "../status/DomainStatusBadge";
@@ -78,7 +77,7 @@ export function SearchHitRow<THit extends SearchHit>({
     councilBusiness: (entry) => ({
       glyph: <CouncilBusinessGlyph business={entry.business} />,
       title: entry.business.title,
-      meta: t(councilBusinessKindKeys[entry.business.kind]),
+      meta: entry.business.folderPath || t("workspace.businessLeaf"),
       badge: null,
     }),
     resource: (entry) => ({
@@ -105,8 +104,10 @@ export function SearchHitRow<THit extends SearchHit>({
     meeting: (entry) => ({
       glyph: <KindGlyph kind="meeting" />,
       title: formatMeetingLabel(entry.meeting, t("meetings.occurrenceLabel"), formatDate),
-      meta: `${formatDate(entry.meeting.startsAt)} · ${entry.meeting.location}`,
-      badge: <MeetingStatusBadge status={entry.meeting.status} />,
+      meta: entry.meeting.scheduledAt
+        ? `${formatDate(entry.meeting.scheduledAt)} · ${entry.meeting.location ?? ""}`
+        : t("dashboard.toSchedule"),
+      badge: <MeetingStatusBadge status={entry.meeting.phase} />,
     }),
     decision: (entry) => ({
       glyph: <KindGlyph kind="decision" />,

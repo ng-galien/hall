@@ -1,22 +1,11 @@
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
-import { en, type TranslationKey } from "./en";
+import { type ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import { en } from "./en";
 import { fr } from "./fr";
+import { I18nContext, type I18nContextValue, type Locale } from "./i18nContext";
 
-export type Locale = "en" | "fr";
-
-interface I18nContextValue {
-  locale: Locale;
-  setLocale(locale: Locale): void;
-  t(key: TranslationKey): string;
-  formatDate(value: string | Date): string;
-  formatDateTime(value: string | Date): string;
-  formatTime(value: string | Date): string;
-  formatNumber(value: number): string;
-  formatFileSize(byteSize: number): string;
-}
+export type { Locale } from "./i18nContext";
 
 const STORAGE_KEY = "mairie.locale";
-const I18nContext = createContext<I18nContextValue | null>(null);
 
 function initialLocale(): Locale {
   const stored = localStorage.getItem(STORAGE_KEY);

@@ -1,4 +1,4 @@
-import { type CouncilBusiness, matchDiscriminated } from "@hall/domain";
+import { matchDiscriminated } from "@hall/domain";
 import { useEffect } from "react";
 import { CloseIcon, PinIcon } from "../../components/icons";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
@@ -7,6 +7,7 @@ import {
   DocumentaryResourceGlyph,
 } from "../../features/documents/DocumentaryResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -34,7 +35,7 @@ export function PinnedRow({
 
   interface PinEntry {
     pin: WorkspacePin;
-    business?: CouncilBusiness;
+    business?: CouncilBusinessView;
     resource?: DocumentaryLeafSummary;
   }
   const entries = pins.flatMap((pin): PinEntry[] => {

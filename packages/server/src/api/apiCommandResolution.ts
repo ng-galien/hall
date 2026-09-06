@@ -15,17 +15,6 @@ type AuditRequest = {
   sessionId?: string;
 };
 
-const meetingStatusActions = {
-  scheduled: "meeting.schedule",
-  inProgress: "meeting.open",
-  closed: "meeting.close",
-  cancelled: "meeting.cancel",
-} as const satisfies Record<string, ApiActionName>;
-
-export function meetingStatusAction(status: keyof typeof meetingStatusActions): ApiActionName {
-  return meetingStatusActions[status];
-}
-
 function requestBody(value: unknown): Record<string, unknown> | undefined {
   if (value === null || Array.isArray(value) || typeof value !== "object") return undefined;
   return value as Record<string, unknown>;
@@ -48,66 +37,95 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
   const method = request.method;
 
   if (root === "council-meetings") {
-    if (method === "POST" && !id) return auditIntent("meeting.create");
-    if (method === "PUT" && id && !child) return auditIntent("meeting.update", id);
-    if (method === "PUT" && id && child === "status" && !childId) {
-      const status = String(body?.status);
+    if (method === "POST" && !id) return auditIntent("meeting.provision-initial");
+    if (method === "PUT" && id && child === "schedule" && !childId) return auditIntent("meeting.schedule", id);
+    if (method === "PUT" && id && child === "prepare" && !childId) return auditIntent("meeting.prepare", id);
+    if (method === "PUT" && id && child === "officers" && !childId) return auditIntent("meeting.set-officers", id);
+    if (method === "POST" && id && child === "council-business" && !childId) {
       return auditIntent(
-        status in meetingStatusActions
-          ? meetingStatusAction(status as keyof typeof meetingStatusActions)
-          : "meeting.change-status",
-        id,
+        "meeting.create-and-schedule-business",
+        null,
+        body && { councilMeetingId: id, kind: body.kind },
       );
     }
+    if (method === "POST" && id && child === "start" && !childId) return auditIntent("meeting.start", id);
+    if (method === "POST" && id && child === "close" && !childId) return auditIntent("meeting.close", id);
+    if (method === "POST" && id && child === "agenda-items" && !childId) {
+      return auditIntent("agenda-item.schedule", null);
+    }
     if (id && child === "agenda-items" && childId) {
+      if (method === "PATCH" && operation === "notes") return auditIntent("agenda-item.update-notes", childId);
+      if (method === "POST" && operation === "adjourn") return auditIntent("agenda-item.adjourn", childId);
       if (method === "POST" && operation === "start") return auditIntent("agenda-item.start", childId);
       if (method === "POST" && operation === "complete") return auditIntent("agenda-item.complete", childId);
-      if (method === "PUT" && operation === "notes") return auditIntent("agenda-item.save-notes", childId);
-      if (method === "DELETE" && !operation) return auditIntent("agenda-item.remove", childId);
+      if (method === "POST" && operation === "reprogram") return auditIntent("agenda-item.reprogram", childId);
+      if (method === "DELETE" && !operation) return auditIntent("agenda-item.deprogram", childId);
       return null;
     }
-    if (id && child === "ballots") {
-      if (method === "POST" && !childId) return auditIntent("ballot.record", null);
-      if (method === "DELETE" && childId && !operation) return auditIntent("ballot.cancel", childId);
-      return null;
-    }
-    if (method === "POST" && id && child === "late-business" && !childId)
-      return auditIntent("meeting.add-late-business", id);
-    if (method === "PUT" && id && child === "attendance" && !childId) {
+    if (method === "POST" && id && child === "attendance" && !childId) {
       return auditIntent(
         "meeting.record-attendance",
         id,
-        body && {
-          memberId: body.memberId,
-          status: body.status,
-          proxyHolderMemberId: body.proxyHolderMemberId ?? null,
-          proxyDocumentId: body.proxyDocumentId ?? null,
-          expectedVersion: body.expectedVersion ?? null,
-        },
+        body && { attendanceCount: Array.isArray(body.attendance) ? body.attendance.length : undefined },
       );
     }
-    if (method === "PUT" && id && child === "officers" && !childId) return auditIntent("meeting.set-officers", id);
     if (method === "PUT" && id && child === "agenda-order" && !childId)
       return auditIntent("meeting.reorder-agenda", id);
-    if (method === "POST" && id && child === "quorum-failure" && !childId)
-      return auditIntent("meeting.record-quorum-failure", id);
-    if (method === "POST" && id && child === "reconvene" && !childId) return auditIntent("meeting.reconvene", id);
-    if (method === "POST" && id && child === "minutes" && childId === "finalize" && !operation)
-      return auditIntent("meeting.finalize-minutes", id);
     return null;
   }
 
+  if (root === "minutes" && id && !childId) {
+    if (method === "PATCH" && child === "draft") return auditIntent("minutes.update-draft", id);
+    if (method === "POST" && child === "generate") return auditIntent("minutes.generate", id);
+  }
   if (root === "council-business") {
     if (method === "POST" && !id) return auditIntent("council-business.create");
-    if (method === "PUT" && id && !child) return auditIntent("council-business.update", id);
-    if (method === "PUT" && id && child === "classification" && !childId)
-      return auditIntent("council-business.reclassify", id);
-    if (method === "POST" && id && child === "schedule" && !childId)
-      return auditIntent("council-business.schedule", id);
-    if (method === "POST" && id && child === "decision" && !childId)
-      return auditIntent("council-business.attach-decision", id);
-    if (method === "DELETE" && id && child === "decision" && !childId)
-      return auditIntent("council-business.detach-decision", id);
+    if (method === "POST" && id && child === "resources" && !childId) {
+      return auditIntent("council-business.associate-resource", id, body && { resourceId: body.resourceId });
+    }
+    if (method === "POST" && id && child === "resources" && childId === "dissociate" && !operation) {
+      return auditIntent("council-business.dissociate-resource", id, body && { resourceId: body.resourceId });
+    }
+    if (method === "PUT" && id && child === "resource-order" && !childId) {
+      return auditIntent(
+        "council-business.reorder-resources",
+        id,
+        body && {
+          resourceCount: Array.isArray(body.resourceIds) ? body.resourceIds.length : undefined,
+        },
+      );
+    }
+    if (method === "POST" && id && child === "agenda-items" && childId === "council-decision-proposals" && !operation) {
+      return auditIntent(
+        "council-business.schedule-decision-proposal",
+        null,
+        body && {
+          councilBusinessId: id,
+          councilMeetingId: body.councilMeetingId,
+        },
+      );
+    }
+    if (method === "POST" && id && child === "agenda-items" && childId === "open-questions" && !operation) {
+      return auditIntent(
+        "council-business.schedule-open-question",
+        null,
+        body && {
+          councilBusinessId: id,
+          councilMeetingId: body.councilMeetingId,
+        },
+      );
+    }
+    return null;
+  }
+
+  if (root === "ballots") {
+    if (method === "POST" && !id) return auditIntent("ballot.create", null);
+    if (method === "POST" && id && child === "votes" && !childId) {
+      return auditIntent("ballot.record-votes", id);
+    }
+    if (method === "POST" && id && child === "complete" && !childId) {
+      return auditIntent("ballot.complete", id);
+    }
     return null;
   }
 
@@ -132,32 +150,14 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method === "PUT" && id && child === "content" && !childId) return auditIntent("resource.update-content", id);
     if (method === "PUT" && id && child === "binary" && !childId)
       return auditIntent("resource.replace-document-content", id);
-    if (id === "paths" && method === "POST" && !child)
-      return auditIntent("workspace.create-folder", null, { parentPath: body?.parentPath, name: body?.name });
-    if (id === "paths" && method === "PUT" && !child)
-      return auditIntent("workspace.rename-folder", typeof body?.folderPath === "string" ? body.folderPath : null, {
-        name: body?.name,
-      });
-    if (method === "POST" && id === "texts" && !child) return auditIntent("resource.create-text");
-    if (method === "POST" && id === "remotes" && !child) return auditIntent("resource.create-remote");
-    if (method === "POST" && id === "spreadsheets" && !child) return auditIntent("resource.create-spreadsheet");
     if (method === "POST" && id === "spreadsheets" && child === "import" && !childId)
       return auditIntent("resource.import-spreadsheet");
-    if (method === "POST" && id === "geographic" && !child) return auditIntent("resource.create-geographic");
-    if (method === "POST" && id === "legal-references" && !child) return auditIntent("resource.create-legal-reference");
     if (method === "POST" && id === "documents" && !child) return auditIntent("resource.create-document");
     if (method === "POST" && id === "editor-assets" && !child) return auditIntent("resource.create-editor-asset");
-    if (method === "POST" && id && child === "promote" && !childId)
-      return auditIntent("resource.promote-editor-asset", id);
-    if (method === "PUT" && id && child === "geography" && !childId)
-      return auditIntent("resource.update-geography", id);
-    if (method === "PUT" && id && child === "spreadsheet" && !childId)
-      return auditIntent("resource.update-spreadsheet", id);
     if (method === "POST" && id && child === "legal-reference" && childId === "resolve" && !operation)
       return auditIntent("resource.resolve-legal-reference", id);
     if (method === "POST" && id && child === "legal-reference" && childId === "refresh" && !operation)
       return auditIntent("resource.refresh-legal-reference", id);
-    if (method === "PUT" && id && !child) return auditIntent("resource.update", id);
     if (method === "DELETE" && id && !child) return auditIntent("resource.delete", id);
     return null;
   }
@@ -197,6 +197,9 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method === "POST" && !id) return auditIntent("member.create", null);
     if (method === "PUT" && id && !child) return auditIntent("member.update", id);
     return null;
+  }
+  if (root === "council-terms") {
+    return method === "PUT" && !id ? auditIntent("council-term.configure", "active") : null;
   }
   if (root === "contacts") {
     if (method === "POST" && !id) return auditIntent("contact.create", null);

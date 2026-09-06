@@ -11,7 +11,7 @@ test("seed the ephemeral database", () => {
   expect(serverPort, "HALL_E2E_SERVER_PORT must be provided by the runner").toBeTruthy();
 
   const result = spawnSync(process.execPath, [seedScript], {
-    env: { ...process.env, SEED_API: `http://127.0.0.1:${serverPort}/api` },
+    env: { ...process.env, SEED_MEETING_SCENARIO: "preparation", SEED_API: `http://127.0.0.1:${serverPort}/api` },
     encoding: "utf8",
   });
 

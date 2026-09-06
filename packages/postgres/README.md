@@ -43,6 +43,15 @@ content. Council agenda projections likewise carry only meeting, business,
 position, lifecycle and subject identity; documents remain independently
 hydrated resources.
 
+The council agenda has a named atomic reorder operation. Callers provide the
+complete ordered set of currently programmed items; PostgreSQL preserves the
+existing position set and gaps, keeps a minutes approval first, and leaves
+deprogrammed negative positions untouched.
+
+Council meeting projections expose a readable slug derived from the scheduled
+UTC date and durable meeting number. The slug is `null` while the provisioned
+next meeting has no date; UUID opening remains available independently.
+
 ## Tests
 
 Run the package integration tests against the isolated PostgreSQL test service:

@@ -116,7 +116,7 @@ function resourceBefore(state: WorkspaceResourcesState, reference: string) {
 }
 
 /**
- * Canonical documentary authority for the Workspace. Municipal consumers remain on resourcesStore
+ * Canonical documentary authority for the Workspace. Council meeting consumers remain on resourcesStore
  * until their own resource projections are explicitly migrated; Workspace code must never read both stores.
  */
 export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, get) => {

@@ -1,5 +1,6 @@
 import type { ResourceCatalogEntry } from "@hall/api-contract";
-import type { CouncilBusiness, Resource } from "@hall/domain";
+import type { Resource } from "@hall/domain";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
 
 export interface PathNode {
   path: string;
@@ -9,7 +10,7 @@ export interface PathNode {
 
 /** All known paths, intermediate segments included, sorted. */
 export function listAllPaths(
-  businesses: CouncilBusiness[],
+  businesses: CouncilBusinessView[],
   resources: Resource[],
   persistedPaths: string[] = [],
 ): string[] {
@@ -46,7 +47,7 @@ export function listCatalogPaths(catalog: ResourceCatalogEntry[]): string[] {
 }
 
 /** Path tree built from the known filing locations. */
-export function buildPathTree(businesses: CouncilBusiness[], catalog: ResourceCatalogEntry[]): PathNode[] {
+export function buildPathTree(businesses: CouncilBusinessView[], catalog: ResourceCatalogEntry[]): PathNode[] {
   const knownPaths = new Set(listCatalogPaths(catalog));
   for (const folderPath of businesses.map((business) => business.folderPath)) {
     const segments = folderPath.split("/").filter(Boolean);

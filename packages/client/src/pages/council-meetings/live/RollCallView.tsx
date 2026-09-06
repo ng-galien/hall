@@ -1,4 +1,4 @@
-import type { Attendance, AttendanceStatus, CouncilMember, DocumentResource, MeetingAggregate } from "@hall/domain";
+import type { DocumentResource } from "@hall/domain";
 import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,11 +24,13 @@ import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { useResourcesStore } from "../../../stores/resourcesStore";
+import type { LiveMeetingMemberAttendance as Attendance, LiveMeetingPresentation } from "../../../models/liveMeeting";
+import type { CouncilMemberView } from "../../../models/directory";
 import { meetingOpeningBlock } from "../meetingOpeningPolicy";
 
-const directStatuses: AttendanceStatus[] = ["present", "excused", "absent"];
+const directStatuses = ["present", "excused", "absent"] as const;
 
-export function memberInitials(member: CouncilMember): string {
+export function memberInitials(member: CouncilMemberView): string {
   return `${member.contact.firstName.slice(0, 1)}${member.contact.lastName.slice(0, 1)}`;
 }
 
@@ -39,8 +41,8 @@ export function RollCallView({
   meetingActions,
   onDone,
 }: {
-  aggregate: MeetingAggregate;
-  members: CouncilMember[];
+  aggregate: LiveMeetingPresentation;
+  members: CouncilMemberView[];
   mode: "opening" | "adjust";
   meetingActions: ReturnType<typeof useCouncilMeeting>;
   onDone(): void;
@@ -53,57 +55,76 @@ export function RollCallView({
   const reconveneStartsAtId = useId();
   const reconveneNoticeId = useId();
   const reconveneLocationId = useId();
-  const { meeting } = aggregate;
+  const [draftOfficers, setDraftOfficers] = useState({
+    chairMemberId: aggregate.meeting.chairMemberId,
+    secretaryMemberId: aggregate.meeting.secretaryMemberId,
+  });
+  const meeting = { ...aggregate.meeting, ...draftOfficers };
+  const [draftAttendance, setDraftAttendance] = useState<Attendance[]>(aggregate.attendance);
+  useEffect(() => setDraftAttendance(aggregate.attendance), [aggregate.attendance]);
   const attendanceByMember = useMemo(
-    () => new Map(aggregate.attendance.map((attendance) => [attendance.memberId, attendance])),
-    [aggregate.attendance],
+    () => new Map(draftAttendance.map((attendance) => [attendance.memberId, attendance])),
+    [draftAttendance],
   );
   const proxyDocuments = resources.filter(
     (resource): resource is DocumentResource =>
       resource.kind === "document" && resource.meetingId === meeting.id && resource.category === "proxy",
   );
-  const openingBlock = meetingOpeningBlock(aggregate);
+  const draftPresent = draftAttendance.filter((entry) => entry.status === "present").length;
+  const openingBlock = meetingOpeningBlock({
+    ...aggregate,
+    meeting,
+    attendance: draftAttendance,
+    quorum: {
+      ...aggregate.quorum,
+      physicallyPresent: draftPresent,
+      reached: draftPresent >= aggregate.quorum.required,
+    },
+  });
 
-  const record = (memberId: string, status: AttendanceStatus) =>
-    run(() =>
-      meetingActions.recordAttendance({
+  const record = (memberId: string, status: (typeof directStatuses)[number]) => {
+    setDraftAttendance((current) => [
+      ...current.filter((entry) => entry.memberId !== memberId),
+      {
+        id: attendanceByMember.get(memberId)?.id ?? `draft-${memberId}`,
+        meetingId: meeting.id,
         memberId,
         status,
         proxyHolderMemberId: null,
         proxyDocumentId: null,
-        expectedVersion: attendanceByMember.get(memberId)?.version ?? null,
-      }),
-    );
+        version: 1,
+      },
+    ]);
+  };
 
-  const markAllPresent = () =>
-    run(async () => {
-      for (const member of members) {
-        const current = attendanceByMember.get(member.id);
-        if (current?.status === "present") continue;
-        const recorded = await meetingActions.recordAttendance({
-          memberId: member.id,
-          status: "present",
-          proxyHolderMemberId: null,
-          proxyDocumentId: null,
-          expectedVersion: current?.version ?? null,
-        });
-        if (!recorded) return false;
-      }
-      return true;
-    });
+  const markAllPresent = () => {
+    setDraftAttendance(
+      members.map((member) => ({
+        id: attendanceByMember.get(member.id)?.id ?? `draft-${member.id}`,
+        meetingId: meeting.id,
+        memberId: member.id,
+        status: "present",
+        proxyHolderMemberId: null,
+        proxyDocumentId: null,
+        version: 1,
+      })),
+    );
+  };
 
   const submitProxy = (memberId: string, proxyHolderMemberId: string, proxyDocumentId: string) => {
-    void run(async () => {
-      const recorded = await meetingActions.recordAttendance({
+    setDraftAttendance((current) => [
+      ...current.filter((entry) => entry.memberId !== memberId),
+      {
+        id: attendanceByMember.get(memberId)?.id ?? `draft-${memberId}`,
+        meetingId: meeting.id,
         memberId,
         status: "represented",
         proxyHolderMemberId,
         proxyDocumentId,
-        expectedVersion: attendanceByMember.get(memberId)?.version ?? null,
-      });
-      if (recorded) setProxyMemberId(null);
-      return recorded;
-    });
+        version: 1,
+      },
+    ]);
+    setProxyMemberId(null);
   };
 
   const uploadProxyDocument = (file: File) => {
@@ -122,12 +143,32 @@ export function RollCallView({
   const designateOfficer = (memberId: string, seat: "chair" | "secretary") => {
     const chairMemberId = seat === "chair" ? memberId : meeting.chairMemberId;
     const secretaryMemberId = seat === "secretary" ? memberId : meeting.secretaryMemberId;
-    if (!chairMemberId || !secretaryMemberId) return;
-    void run(() => meetingActions.setOfficers({ chairMemberId, secretaryMemberId }));
+    setDraftOfficers({ chairMemberId, secretaryMemberId });
   };
 
   const openMeeting = () =>
     run(async () => {
+      if (draftAttendance.length > 0) {
+        const recorded = await meetingActions.recordAttendance({
+          attendance: draftAttendance.map((entry) =>
+            entry.status === "represented"
+              ? {
+                  councilMemberId: entry.memberId,
+                  status: entry.status,
+                  proxyHolderCouncilMemberId: entry.proxyHolderMemberId!,
+                  proxyDocumentId: entry.proxyDocumentId!,
+                }
+              : { councilMemberId: entry.memberId, status: entry.status },
+          ),
+        });
+        if (!recorded) return false;
+      }
+      if (!meeting.chairMemberId || !meeting.secretaryMemberId) return false;
+      const officersSaved = await meetingActions.setOfficers({
+        chairMemberId: meeting.chairMemberId,
+        secretaryMemberId: meeting.secretaryMemberId,
+      });
+      if (!officersSaved) return false;
       const opened = await meetingActions.changeStatus("inProgress");
       if (opened) onDone();
       return opened;
@@ -156,13 +197,18 @@ export function RollCallView({
           <h1 id="rollcall-heading">{t(mode === "opening" ? "live.rollCallTitle" : "live.rollCallAdjustTitle")}</h1>
           <p>
             {t("meeting.attendanceProgress")
-              .replace("{recorded}", formatNumber(aggregate.attendance.length))
+              .replace("{recorded}", formatNumber(draftAttendance.length))
               .replace("{total}", formatNumber(members.length))}
           </p>
         </div>
         <div className="rollcall-header-actions">
           {meetingActions.can("meeting.record-attendance") ? (
-            <Button variant="outline" disabled={submitting} onClick={() => void markAllPresent()}>
+            <Button
+              variant="outline"
+              disabled={submitting}
+              onClick={markAllPresent}
+              data-testid="live-attendance-all-present"
+            >
               {t(submitting ? "common.saving" : "meeting.markAllPresent")}
             </Button>
           ) : null}
@@ -221,6 +267,7 @@ export function RollCallView({
                     <DropdownMenuTrigger asChild>
                       <Button
                         className="rollcall-tile-menu"
+                        data-testid={`live-member-actions-${member.id}`}
                         variant="ghost"
                         size="icon"
                         aria-label={t("live.tileMenu")}
@@ -230,14 +277,16 @@ export function RollCallView({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem
-                        disabled={isChair || !meeting.secretaryMemberId}
+                        disabled={isChair || submitting}
+                        data-testid={`live-designate-chair-${member.id}`}
                         onSelect={() => designateOfficer(member.id, "chair")}
                       >
                         <GavelIcon />
                         {t("live.makeChair")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        disabled={isSecretary || !meeting.chairMemberId}
+                        disabled={isSecretary || submitting}
+                        data-testid={`live-designate-secretary-${member.id}`}
                         onSelect={() => designateOfficer(member.id, "secretary")}
                       >
                         <SignIcon />
@@ -255,7 +304,8 @@ export function RollCallView({
                     type="button"
                     aria-pressed={current?.status === status}
                     disabled={submitting}
-                    onClick={() => void record(member.id, status)}
+                    data-testid={`live-attendance-${member.id}-${status}`}
+                    onClick={() => record(member.id, status)}
                     key={status}
                   >
                     {t(`attendance.${status}`)}
@@ -268,6 +318,7 @@ export function RollCallView({
                   aria-expanded={editingProxy}
                   disabled={submitting}
                   onClick={() => setProxyMemberId(editingProxy ? null : member.id)}
+                  data-testid={`live-attendance-${member.id}-represented`}
                 >
                   {t("live.proxyChoice")}
                 </button>
@@ -310,7 +361,7 @@ export function RollCallView({
                 </div>
                 <div className="grid gap-1.5">
                   <Label htmlFor={reconveneLocationId}>{t("meetings.location")}</Label>
-                  <Input id={reconveneLocationId} name="location" defaultValue={meeting.location} required />
+                  <Input id={reconveneLocationId} name="location" defaultValue={meeting.location ?? ""} required />
                 </div>
               </div>
               <Button variant="default" type="submit" disabled={submitting}>
@@ -345,8 +396,9 @@ export function RollCallView({
                 <button
                   className="live-primary-action"
                   type="button"
-                  disabled={submitting || !meetingActions.can("meeting.open")}
+                  disabled={submitting || Boolean(openingBlock) || !meetingActions.can("meeting.open")}
                   onClick={() => void openMeeting()}
+                  data-testid="live-meeting-start"
                 >
                   {t(submitting ? "common.saving" : "meeting.action.open")}
                 </button>
@@ -397,9 +449,9 @@ function ProxyModal({
   onSubmit,
   onClose,
 }: {
-  member: CouncilMember;
+  member: CouncilMemberView;
   current: Attendance | undefined;
-  holderCandidates: { member: CouncilMember; alreadyHolding: boolean }[];
+  holderCandidates: { member: CouncilMemberView; alreadyHolding: boolean }[];
   proxyDocuments: DocumentResource[];
   submitting: boolean;
   onUploadFile(file: File): void;

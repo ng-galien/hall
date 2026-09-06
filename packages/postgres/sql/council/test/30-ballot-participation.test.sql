@@ -98,8 +98,8 @@ SELECT throws_ok(
 
 -- Eligibility fixture: one present chairman, one represented voter, one absent
 -- member and one excused member.
-INSERT INTO council_meetings (id, quorum)
-VALUES (test_uuid('ballot:eligibility:meeting'), 1);
+INSERT INTO council_meetings (id, quorum, scheduled_at, location)
+VALUES (test_uuid('ballot:eligibility:meeting'), 1, '2026-01-01 08:30:00+00', 'Council chamber');
 
 INSERT INTO meeting_attendance (id, council_member, council_meeting, status) VALUES
   (
@@ -141,6 +141,8 @@ SELECT lives_ok(
   'the eligibility fixture contains a valid represented attendance'
 );
 
+SELECT test_designate_present_officers(id) FROM council_meetings
+WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
 UPDATE council_meetings
 SET started_at = '2026-01-01 09:00:00+00'
 WHERE id = test_uuid('ballot:eligibility:meeting');
@@ -308,8 +310,8 @@ SELECT throws_ok(
 -- HALL-FR-BAL-230
 SELECT lives_ok(
   $$
-    INSERT INTO council_meetings (id, quorum)
-    VALUES (test_uuid('ballot:inactive:meeting'), 1)
+    INSERT INTO council_meetings (id, quorum, scheduled_at, location)
+    VALUES (test_uuid('ballot:inactive:meeting'), 1, '2026-01-01 08:30:00+00', 'Council chamber')
   $$,
   'inactive-agenda-item fixture meeting is created'
 );
@@ -322,6 +324,8 @@ VALUES (
   'present'
 );
 
+SELECT test_designate_present_officers(id) FROM council_meetings
+WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
 UPDATE council_meetings
 SET started_at = '2026-01-01 09:00:00+00'
 WHERE id = test_uuid('ballot:inactive:meeting');
@@ -428,8 +432,8 @@ SELECT throws_ok(
 
 -- Native foreign-key SQLSTATE from HALL-TR-ERR-010. The chairman reference is
 -- intentionally deferred, so the violation is forced explicitly.
-INSERT INTO council_meetings (id, quorum)
-VALUES (test_uuid('ballot:missing-chair:meeting'), 1);
+INSERT INTO council_meetings (id, quorum, scheduled_at, location)
+VALUES (test_uuid('ballot:missing-chair:meeting'), 1, '2026-01-01 08:30:00+00', 'Council chamber');
 
 INSERT INTO meeting_attendance (id, council_member, council_meeting, status)
 VALUES (
@@ -439,6 +443,8 @@ VALUES (
   'present'
 );
 
+SELECT test_designate_present_officers(id) FROM council_meetings
+WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
 UPDATE council_meetings
 SET started_at = '2026-01-01 09:00:00+00'
 WHERE id = test_uuid('ballot:missing-chair:meeting');

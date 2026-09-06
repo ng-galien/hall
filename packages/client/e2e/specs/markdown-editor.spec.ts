@@ -402,6 +402,14 @@ test.describe("Markdown editor", () => {
   });
 
   test("inserts the six typed references with their immutable UUIDs", async ({ appPage: page }) => {
+    const decisionResponse = await page.request.post("/api/council-decisions", {
+      data: {
+        title: `Décision de référence E2E ${Date.now()}`,
+        draftText: "Projet créé comme précondition du parcours de référence typée.",
+        legalityReviewRequired: true,
+      },
+    });
+    expect(decisionResponse.status()).toBe(201);
     await openEditorLab(page);
     const editor = await openEnrichedEditor(page);
     const source = markdownSource(page);
@@ -445,7 +453,7 @@ test.describe("Markdown editor", () => {
     );
     await expect(rendered.getByTestId(`editor-decision-reference-${ids.decision}`)).toHaveAttribute(
       "href",
-      /\/app\/workspace\?.*councilBusiness=/,
+      /\/app\/council-decisions$/,
     );
   });
 

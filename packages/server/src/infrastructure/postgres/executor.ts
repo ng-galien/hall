@@ -9,11 +9,9 @@ import { compileQuery, type SqlExecutor, type SqlParameters, type SqlRunResult }
 import type { SqlQueryName } from "../database/queries.js";
 import {
   postgresBallotVoteConfidentialitySchema,
-  postgresCouncilTermCapacitySchema,
-  postgresDocumentPreviewsSchema,
+  postgresCouncilBusinessTitleUniquenessSchema,
   postgresSchema,
   postgresTables,
-  postgresWorkspaceTitleUniquenessSchema,
 } from "./schema.js";
 
 type TransactionContext = {
@@ -125,16 +123,11 @@ export class PostgresExecutor implements SqlExecutor {
            WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'
            ORDER BY table_name`,
         );
-        let tables = result.rows.map((row) => row.table_name);
+        const tables = result.rows.map((row) => row.table_name);
         if (tables.length === 0) {
           await client.query(postgresSchema);
         } else {
           const expected = [...postgresTables].sort();
-          const previous = expected.filter((table) => table !== "document_previews");
-          if (tables.length === previous.length && tables.every((table, index) => table === previous[index])) {
-            await client.query(postgresDocumentPreviewsSchema);
-            tables = expected;
-          }
           if (tables.length !== expected.length || tables.some((table, index) => table !== expected[index])) {
             throw new Error("Unsupported PostgreSQL schema: reset the database before starting Hall");
           }
@@ -145,20 +138,9 @@ export class PostgresExecutor implements SqlExecutor {
           if (!votesColumns.rows.some((row) => row.column_name === "position")) {
             throw new Error("Obsolete PostgreSQL schema: reset the database before starting Hall");
           }
-          const documentColumns = await client.query<{ column_name: string }>(
-            `SELECT column_name FROM information_schema.columns
-             WHERE table_schema = current_schema() AND table_name = 'resource_documents'`,
-          );
-          if (
-            !documentColumns.rows.some((row) => row.column_name === "format") ||
-            !documentColumns.rows.some((row) => row.column_name === "content_sha256")
-          ) {
-            throw new Error("Obsolete PostgreSQL schema: reset the database before starting Hall");
-          }
         }
         await client.query(postgresBallotVoteConfidentialitySchema);
-        await client.query(postgresCouncilTermCapacitySchema);
-        await client.query(postgresWorkspaceTitleUniquenessSchema);
+        await client.query(postgresCouncilBusinessTitleUniquenessSchema);
         await client.query("COMMIT");
       } catch (error) {
         await client.query("ROLLBACK");

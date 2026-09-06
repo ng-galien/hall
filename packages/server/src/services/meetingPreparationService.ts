@@ -6,10 +6,11 @@ import {
   type CouncilMeeting,
   councilBusinessAgendaProfile,
   councilBusinessCanCarryForwardAfterPostponement,
-  meetingAgendaCanChange,
   meetingAttendanceCanChange,
   transitionCouncilDecision,
 } from "@hall/domain";
+import { type CouncilClient, CouncilClientError } from "../clients/councilClient.js";
+import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type {
   AgendaItemRepository,
   AttendanceRepository,
@@ -19,24 +20,19 @@ import type {
   CreateCouncilBusiness,
   MeetingRosterRepository,
   RecordAttendance,
-  ResourceRepository,
   UnitOfWork,
 } from "../repositories/contracts.js";
 import {
   agendaReadiness,
-  isPartialAgendaValid,
   normalizedAgendaItemIds,
   previousCouncilMeeting,
 } from "./agendaOrderPolicy.js";
-import type { EditorAssetService } from "./editorAssetService.js";
 import { DomainError } from "./errors.js";
 import { requireMeeting } from "./meetingContext.js";
 
 export interface MeetingPreparationService {
   recordAttendance(meetingId: string, input: RecordAttendance): Promise<Attendance>;
-  scheduleBusiness(meetingId: string, businessId: string, position: number): Promise<AgendaItem>;
   createLateBusiness(meetingId: string, input: CreateCouncilBusiness): Promise<AgendaItem>;
-  removeAgendaItem(meetingId: string, itemId: string): Promise<void>;
   reorderAgenda(meetingId: string, itemIds: string[]): Promise<void>;
   setOfficers(meetingId: string, chairMemberId: string, secretaryMemberId: string): Promise<CouncilMeeting>;
   provisionFromPreviousMeeting(meetingId: string): Promise<AgendaItem[]>;
@@ -48,29 +44,21 @@ export function createMeetingPreparationService({
   attendanceRepository,
   councilDecisionRepository,
   agendaItemRepository,
-  resourceRepository,
+  resourcesClient,
   councilBusinessRepository,
+  councilClient,
   unitOfWork,
-  editorAssetService,
 }: {
   councilMeetingRepository: CouncilMeetingRepository;
   meetingRosterRepository: MeetingRosterRepository;
   attendanceRepository: AttendanceRepository;
   councilDecisionRepository: CouncilDecisionRepository;
   agendaItemRepository: AgendaItemRepository;
-  resourceRepository: ResourceRepository;
+  resourcesClient: ResourcesClient;
   councilBusinessRepository: CouncilBusinessRepository;
+  councilClient: CouncilClient;
   unitOfWork: UnitOfWork;
-  editorAssetService: EditorAssetService;
 }): MeetingPreparationService {
-  const requireComposableMeeting = async (meetingId: string) => {
-    const meeting = await requireMeeting(councilMeetingRepository, meetingId);
-    if (meeting.isReconvenedMeeting || meeting.quorumFailure || !meetingAgendaCanChange(meeting.status)) {
-      throw new DomainError("agenda_inconsistent", 409);
-    }
-    return meeting;
-  };
-
   const scheduleExistingBusiness = async (
     meetingId: string,
     businessId: string,
@@ -136,12 +124,8 @@ export function createMeetingPreparationService({
             throw new DomainError("proxy_invalid");
           }
           if (!memberIds.has(input.proxyHolderMemberId)) throw new DomainError("proxy_invalid");
-          const proxyDocument = input.proxyDocumentId ? await resourceRepository.find(input.proxyDocumentId) : null;
-          if (
-            proxyDocument?.kind !== "document" ||
-            proxyDocument.category !== "proxy" ||
-            proxyDocument.meetingId !== id
-          ) {
+          const proxyDocument = input.proxyDocumentId ? await resourcesClient.open(input.proxyDocumentId) : null;
+          if (proxyDocument?.data.kind !== "document") {
             throw new DomainError("proxy_invalid");
           }
         }
@@ -153,12 +137,6 @@ export function createMeetingPreparationService({
         return result.attendance;
       });
     },
-    async scheduleBusiness(meetingId, businessId, position) {
-      return unitOfWork.execute(async () => {
-        const meeting = await requireComposableMeeting(meetingId);
-        return scheduleExistingBusiness(meeting.id, businessId, position);
-      });
-    },
     async createLateBusiness(meetingId, input) {
       return unitOfWork.execute(async () => {
         if (input.kind === "minutesApproval" || (input.kind === "matter" && Boolean(input.councilDecisionId))) {
@@ -168,9 +146,6 @@ export function createMeetingPreparationService({
         const id = meeting.id;
         if (meeting.status !== "inProgress" || meeting.quorumFailure) {
           throw new DomainError("invalid_meeting_transition", 409);
-        }
-        for (const resourceId of input.resourceIds) {
-          if (!(await resourceRepository.findMetadata(resourceId))) throw new DomainError("resource_not_found", 404);
         }
         const currentAgenda = await agendaItemRepository.listForMeeting(id);
         if (
@@ -186,60 +161,13 @@ export function createMeetingPreparationService({
         return scheduleExistingBusiness(id, business.id, position, true);
       });
     },
-    async removeAgendaItem(meetingId, itemId) {
-      return unitOfWork.execute(async () => {
-        const meeting = await requireComposableMeeting(meetingId);
-        const id = meeting.id;
-        const item = await agendaItemRepository.find(id, itemId);
-        if (!item) throw new DomainError("agenda_item_not_found", 404);
-        if (item.status !== "scheduled") {
-          throw new DomainError("agenda_inconsistent", 409);
-        }
-        const councilDecisionId = councilBusinessAgendaProfile(item.business).councilDecisionId;
-        if (councilDecisionId) {
-          const decision = await councilDecisionRepository.find(councilDecisionId);
-          const next = decision ? transitionCouncilDecision(decision.status, { type: "RETURN_TO_PREPARATION" }) : null;
-          if (decision && next) await councilDecisionRepository.setStatus(decision.id, next);
-        }
-        await editorAssetService.purgeOwner({ kind: "agendaItemDiscussionSummary", id: item.id });
-        await agendaItemRepository.remove(id, itemId);
-        const remaining = await agendaItemRepository.listForMeeting(id);
-        if (
-          meeting.status === "scheduled" &&
-          !agendaReadiness(meeting, remaining, await councilMeetingRepository.list()).agendaReady
-        ) {
-          throw new DomainError("minutes_approval_required", 409);
-        }
-        await agendaItemRepository.reorder(
-          id,
-          remaining.map((item) => item.id),
-        );
-      });
-    },
     async reorderAgenda(meetingId, itemIds) {
-      return unitOfWork.execute(async () => {
-        const meeting = await requireComposableMeeting(meetingId);
-        const id = meeting.id;
-        const agenda = await agendaItemRepository.listForMeeting(id);
-        const knownIds = new Set(agenda.map((item) => item.id));
-        const uniqueIds = new Set(itemIds);
-        if (
-          agenda.length !== itemIds.length ||
-          uniqueIds.size !== itemIds.length ||
-          itemIds.some((itemId) => !knownIds.has(itemId))
-        ) {
-          throw new DomainError("agenda_inconsistent", 409);
-        }
-        const orderedAgenda = itemIds.map((itemId) => agenda.find((item) => item.id === itemId)!);
-        if (!isPartialAgendaValid(orderedAgenda)) throw new DomainError("agenda_order_invalid", 409);
-        if (
-          meeting.status === "scheduled" &&
-          !agendaReadiness(meeting, orderedAgenda, await councilMeetingRepository.list()).agendaReady
-        ) {
-          throw new DomainError("minutes_approval_required", 409);
-        }
-        await agendaItemRepository.reorder(id, itemIds);
-      });
+      try {
+        await councilClient.reorderAgenda(meetingId, { agendaItemIds: itemIds });
+      } catch (error) {
+        if (error instanceof CouncilClientError) throw new DomainError("agenda_order_invalid", 409);
+        throw error;
+      }
     },
     async setOfficers(meetingId, chairMemberId, secretaryMemberId) {
       return unitOfWork.execute(async () => {

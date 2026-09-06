@@ -6,40 +6,16 @@ import type {
   BallotMethod,
   BallotResult,
   BallotTarget,
-  CommitteeMembership,
-  CommitteeRole,
-  Contact,
   ContentTemplate,
   CouncilBusiness,
-  CouncilCommittee,
   CouncilDecision,
   CouncilDecisionListEntry,
   CouncilDecisionStatus,
   CouncilMeeting,
-  CouncilMember,
-  CouncilRole,
-  CouncilTerm,
-  DocumentCategory,
-  DocumentResource,
-  DocumentUsage,
-  EditorAssetOwner,
-  GeographicLayer,
-  GeographicResource,
-  GeographicResourceData,
-  GeographicView,
-  HallGeoJsonFeatureCollection,
   HallSettings,
-  LegalReferenceFund,
-  LegalReferenceResource,
-  LegalReferenceSnapshot,
   MeetingStatus,
   ParticipationEvidence,
   QuorumFailureEvidence,
-  RemoteResource,
-  Resource,
-  SpreadsheetDocument,
-  SpreadsheetResource,
-  TextResource,
   VoteInput,
 } from "@hall/domain";
 
@@ -58,75 +34,6 @@ export type UpdateHallSettings = Omit<HallSettings, "updatedAt">;
 export interface HallSettingsRepository {
   get(): Promise<HallSettings>;
   update(input: UpdateHallSettings): Promise<HallSettings>;
-}
-
-export interface CouncilTermRepository {
-  getActive(): Promise<CouncilTerm>;
-  updateActiveExpectedMemberCount(expectedMemberCount: number): Promise<CouncilTerm>;
-}
-
-export type SaveContact = Omit<Contact, "id" | "activeCouncilMemberId" | "archivedAt" | "createdAt" | "updatedAt">;
-
-export interface ContactRepository {
-  list(options?: { includeArchived?: boolean }): Promise<Contact[]>;
-  find(id: string): Promise<Contact | null>;
-  create(input: SaveContact): Promise<Contact>;
-  update(id: string, input: SaveContact): Promise<Contact>;
-  archive(id: string, archivedAt: string): Promise<Contact>;
-}
-
-export interface CreateCouncilMember {
-  contactId: string;
-  role: CouncilRole;
-  termStartedOn: string;
-}
-
-export interface UpdateCouncilMember {
-  role: CouncilRole;
-  termStartedOn: string;
-  termEndedOn: string | null;
-}
-
-export interface CouncilMemberRepository {
-  list(): Promise<CouncilMember[]>;
-  listActive(): Promise<CouncilMember[]>;
-  countActive(): Promise<number>;
-  find(id: string): Promise<CouncilMember | null>;
-  findActiveByContact(contactId: string): Promise<CouncilMember | null>;
-  create(input: CreateCouncilMember): Promise<CouncilMember>;
-  update(id: string, input: UpdateCouncilMember): Promise<CouncilMember>;
-}
-
-export interface CreateCouncilCommittee {
-  name: string;
-  description: string;
-}
-
-export interface CouncilCommitteeRepository {
-  list(options?: { includeArchived?: boolean }): Promise<CouncilCommittee[]>;
-  find(reference: string): Promise<CouncilCommittee | null>;
-  create(input: CreateCouncilCommittee): Promise<CouncilCommittee>;
-  update(id: string, input: CreateCouncilCommittee): Promise<CouncilCommittee>;
-  archive(id: string, archivedAt: string): Promise<CouncilCommittee>;
-}
-
-export interface AddCommitteeMembership {
-  councilMemberId: string;
-  role: CommitteeRole;
-  startedOn: string;
-}
-
-export interface UpdateCommitteeMembership {
-  role: CommitteeRole;
-  startedOn: string;
-  endedOn: string | null;
-}
-
-export interface CommitteeMembershipRepository {
-  listForCommittee(committeeId: string): Promise<CommitteeMembership[]>;
-  add(committeeId: string, input: AddCommitteeMembership): Promise<CommitteeMembership>;
-  update(id: string, input: UpdateCommitteeMembership): Promise<CommitteeMembership>;
-  end(id: string, endedOn: string): Promise<CommitteeMembership>;
 }
 
 export interface CreateCouncilMeeting {
@@ -195,7 +102,6 @@ export type CreateCouncilBusiness =
       title: string;
       report: string;
       folderPath: string;
-      resourceIds: string[];
     }
   | {
       kind: "minutesApproval";
@@ -203,21 +109,18 @@ export type CreateCouncilBusiness =
       title: string;
       report: string;
       folderPath: string;
-      resourceIds: string[];
     }
   | {
       kind: "openQuestion";
       title: string;
       report: string;
       folderPath: string;
-      resourceIds: string[];
     };
 
 export interface UpdateCouncilBusinessContent {
   title: string;
   report: string;
   folderPath: string;
-  resourceIds: string[];
   committeeId?: string | null;
 }
 
@@ -226,7 +129,7 @@ export interface SaveCouncilBusiness extends UpdateCouncilBusinessContent {
 }
 
 export interface CouncilBusinessRepository {
-  list(filters?: { folderPath?: string; resourceId?: string }): Promise<CouncilBusiness[]>;
+  list(filters?: { folderPath?: string }): Promise<CouncilBusiness[]>;
   hasFolderPathPrefix(folderPath: string): Promise<boolean>;
   renameFolder(sourcePath: string, targetPath: string, updatedAt: string): Promise<number>;
   find(id: string): Promise<CouncilBusiness | null>;
@@ -312,211 +215,6 @@ export interface BallotRepository {
   findForAgendaItem(agendaItemId: string): Promise<Ballot | null>;
   findByIdempotencyKey(idempotencyKey: string): Promise<IdempotentBallot | null>;
   recordFinal(input: CreateBallot): Promise<RecordFinalBallotResult>;
-}
-
-export interface CreateTextResource {
-  title: string;
-  folderPath: string;
-  tags: string[];
-  content: string;
-}
-
-export interface CreateRemoteResource {
-  title: string;
-  folderPath: string;
-  tags: string[];
-  url: string | null;
-}
-
-export interface CreateSpreadsheetResource {
-  title: string;
-  folderPath: string;
-  tags: string[];
-  document: SpreadsheetDocument;
-}
-
-export interface UpdateSpreadsheetResource {
-  document: SpreadsheetDocument;
-  expectedVersion: number;
-}
-
-export interface CreateGeographicResource {
-  title: string;
-  folderPath: string;
-  tags: string[];
-  provider: "ign";
-  layers: GeographicLayer[];
-  view: GeographicView;
-  hallLayer: HallGeoJsonFeatureCollection;
-}
-
-export interface UpdateGeographicResource {
-  view: GeographicView;
-  layers: GeographicLayer[];
-  hallLayer: HallGeoJsonFeatureCollection;
-  expectedVersion: number;
-}
-
-export interface PersistLegalReferenceSnapshot {
-  commonId: string;
-  versionId: string;
-  effectiveAt: string | null;
-  fetchedAt: string;
-  validFrom: string | null;
-  validTo: string | null;
-  legalStatus: string;
-  rawProviderPayload: string;
-  normalizedContent: string;
-  contentHash: string;
-  snapshotHash: string;
-}
-
-export interface CreateLegalReferenceResource {
-  title: string;
-  folderPath: string;
-  tags: string[];
-  provider: "legifrance";
-  referenceKind: "article";
-  fund: LegalReferenceFund;
-  sourceUrl: string;
-  providerUpdatedAt: string | null;
-  citationLabel: string;
-  attribution: string;
-  snapshot: PersistLegalReferenceSnapshot;
-}
-
-export interface CreateLegalReferenceDraft {
-  title: string;
-  folderPath: string;
-  tags: string[];
-  provider: "legifrance";
-  referenceKind: "article";
-}
-
-export interface CreateDocumentResource {
-  title: string;
-  folderPath: string;
-  tags: string[];
-  meetingId?: string | null;
-  fileName: string;
-  category: DocumentCategory;
-  content: Buffer;
-}
-
-export interface CreateEditorAssetResource {
-  title: string;
-  fileName: string;
-  owner: EditorAssetOwner;
-  content: Buffer;
-}
-
-export interface PersistDocumentResource extends CreateDocumentResource {
-  format: DocumentResource["format"];
-  mediaType: string;
-  contentSha256: string;
-}
-
-export interface PersistEditorAssetResource extends CreateEditorAssetResource {
-  folderPath: string;
-  format: "jpeg" | "png";
-  mediaType: "image/jpeg" | "image/png";
-  contentSha256: string;
-}
-
-export type StoredDocumentResource = DocumentResource & { content: Buffer };
-
-export interface StoredDocumentPreview {
-  sourceContentSha256: string;
-  sourceFormat: DocumentResource["format"];
-  contentSha256: string;
-  byteSize: number;
-  content: Buffer;
-  createdAt: string;
-}
-
-export type StoredResource =
-  | TextResource
-  | SpreadsheetResource
-  | StoredDocumentResource
-  | RemoteResource
-  | GeographicResource
-  | LegalReferenceResource;
-
-export interface WorkspaceFolderRepository {
-  list(): Promise<string[]>;
-  hasPrefix(folderPath: string): Promise<boolean>;
-  ensure(folderPath: string, createdAt: string): Promise<void>;
-  rename(sourcePath: string, targetPath: string): Promise<number>;
-}
-
-export interface ResourceRepository {
-  list(filters?: {
-    folderPath?: string;
-    tags?: string[];
-    kind?: Resource["kind"];
-    meetingId?: string;
-    usage?: DocumentUsage;
-    editorOwner?: EditorAssetOwner;
-  }): Promise<Resource[]>;
-  find(id: string): Promise<StoredResource | null>;
-  findMetadata(id: string): Promise<Resource | null>;
-  findGeographicData(id: string): Promise<GeographicResourceData | null>;
-  findSpreadsheetDocument(id: string): Promise<SpreadsheetDocument | null>;
-  listLegalReferenceSnapshots(id: string): Promise<LegalReferenceSnapshot[]>;
-  findPreview(
-    sourceContentSha256: string,
-    sourceFormat: DocumentResource["format"],
-  ): Promise<StoredDocumentPreview | null>;
-  savePreview(preview: StoredDocumentPreview): Promise<StoredDocumentPreview>;
-  listFolderPaths(): Promise<string[]>;
-  hasFolderPathPrefix(folderPath: string): Promise<boolean>;
-  renameFolder(sourcePath: string, targetPath: string, updatedAt: string): Promise<number>;
-  createText(input: CreateTextResource): Promise<TextResource>;
-  createSpreadsheet(input: CreateSpreadsheetResource): Promise<SpreadsheetResource>;
-  updateSpreadsheet(
-    id: string,
-    input: UpdateSpreadsheetResource,
-  ): Promise<
-    { status: "updated"; resource: SpreadsheetResource } | { status: "versionConflict" } | { status: "notFound" }
-  >;
-  createRemote(input: CreateRemoteResource): Promise<RemoteResource>;
-  createGeographic(input: CreateGeographicResource): Promise<GeographicResource>;
-  updateGeographic(
-    id: string,
-    input: UpdateGeographicResource,
-  ): Promise<
-    { status: "updated"; resource: GeographicResource } | { status: "versionConflict" } | { status: "notFound" }
-  >;
-  createLegalReferenceDraft(input: CreateLegalReferenceDraft): Promise<LegalReferenceResource>;
-  resolveLegalReference(id: string, input: CreateLegalReferenceResource): Promise<LegalReferenceResource | null>;
-  refreshLegalReference(
-    id: string,
-    expectedSnapshotHash: string,
-    input: Omit<CreateLegalReferenceResource, "title" | "folderPath" | "tags" | "provider" | "referenceKind" | "fund">,
-  ): Promise<
-    { status: "updated"; resource: LegalReferenceResource } | { status: "versionConflict" } | { status: "notFound" }
-  >;
-  markLegalReferenceVerificationFailed(id: string, expectedSnapshotHash: string, failedAt: string): Promise<void>;
-  createDocument(input: PersistDocumentResource): Promise<DocumentResource>;
-  createEditorAsset(input: PersistEditorAssetResource): Promise<DocumentResource>;
-  promoteEditorAsset(
-    id: string,
-    input: { title: string; folderPath: string; tags: string[]; category: DocumentCategory },
-  ): Promise<DocumentResource | null>;
-  reconcileEditorAssets(owner: EditorAssetOwner, referencedIds: string[]): Promise<string[]>;
-  isReferencedByRichText(id: string): Promise<boolean>;
-  update(id: string, input: UpdateResource): Promise<Resource>;
-  isSnapshotted(id: string): Promise<boolean>;
-  delete(id: string): Promise<boolean>;
-}
-
-export interface UpdateResource {
-  title: string;
-  folderPath: string;
-  tags: string[];
-  autosaveEnabled: boolean;
-  content?: string;
-  url?: string | null;
 }
 
 export interface UnitOfWork {

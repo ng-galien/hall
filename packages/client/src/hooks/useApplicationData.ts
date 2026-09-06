@@ -7,6 +7,7 @@ import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
+import { useWorkspaceCouncilActivityStore } from "../stores/workspaceCouncilActivityStore";
 
 export function useApplicationData(): void {
   useEffect(() => {
@@ -24,12 +25,14 @@ export async function reloadApplicationData(): Promise<ApiErrorCode | null> {
     useCouncilBusinessStore.getState().load(),
     useCouncilDecisionsStore.getState().load(),
   ]);
+  await useWorkspaceCouncilActivityStore.getState().load();
   const error =
     useContactsStore.getState().error ??
     useCouncilMembersStore.getState().error ??
     useCouncilCommitteesStore.getState().error ??
     useCouncilMeetingsStore.getState().error ??
     useCouncilBusinessStore.getState().error ??
+    useWorkspaceCouncilActivityStore.getState().error ??
     useCouncilDecisionsStore.getState().error;
   useApplicationSyncStore.getState().finish(error);
   return error;
@@ -43,6 +46,7 @@ export function useApplicationStatus(): { phase: ApplicationSyncPhase; error: Ap
     useCouncilCommitteesStore(),
     useCouncilMeetingsStore(),
     useCouncilBusinessStore(),
+    useWorkspaceCouncilActivityStore(),
     useCouncilDecisionsStore(),
   ];
   const error = states.find((state) => state.error)?.error ?? synchronization.error;

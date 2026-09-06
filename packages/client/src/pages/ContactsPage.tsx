@@ -1,4 +1,4 @@
-import type { Contact } from "@hall/domain";
+import type { Contact } from "@hall/api-contract";
 import { type FormEvent, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";

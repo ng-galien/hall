@@ -2,7 +2,7 @@ import type { ResourceDetail } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
-import { useSaveStatusStore } from "../../pages/workspace/saveStatusStore";
+import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import type { ResourcePresentationMode } from "../resources/ResourcePresentationBody";
@@ -30,7 +30,7 @@ export function SpreadsheetResourceEditor({
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
 }) {
   const { locale, t } = useI18n();
-  const setSaveStatus = useSaveStatusStore((state) => state.setStatus);
+  const { setStatus: setSaveStatus } = useResourceSaveStatus(resource.id);
   const [draft, setDraft] = useState(document);
   const [storedVersion, setStoredVersion] = useState(resource.version);
   const [saveFailed, setSaveFailed] = useState(false);

@@ -608,7 +608,7 @@
     gap: var(--hall-space-3);
     margin-bottom: var(--hall-space-4);
   }
-  .agenda-composer-heading h2 { font-size: var(--hall-font-size-title); }
+  .agenda-composer-heading h2 { font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-semibold); line-height: var(--hall-line-height-body-large); }
   .agenda-composer-heading p {
     margin-top: var(--hall-space-1);
     color: var(--hall-color-text-muted);
@@ -662,7 +662,7 @@
   }
   .composer-item-main svg { flex: none; color: var(--hall-color-text-subtle); }
   .composer-item-copy { display: grid; min-width: 0; gap: var(--hall-space-0-5); }
-  .composer-item-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .composer-item-copy strong { font-weight: var(--hall-font-weight-medium); line-height: var(--hall-line-height-body-small); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .composer-item-copy span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .composer-item-tools { display: flex; flex: none; align-items: center; gap: var(--hall-space-0-5); }
   .composer-item-editor {
@@ -703,11 +703,10 @@
   .composer-add-decisions h3,
   .composer-quick-add h3 {
     margin-bottom: var(--hall-space-3);
-    color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-caption);
+    color: var(--hall-color-text);
+    font-size: var(--hall-font-size-body);
     font-weight: var(--hall-font-weight-semibold);
-    letter-spacing: var(--hall-letter-spacing-section);
-    text-transform: uppercase;
+    line-height: var(--hall-line-height-body-small);
   }
   .composer-add-hint { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .composer-decision-list { display: grid; gap: var(--hall-space-2); margin: 0; padding: 0; list-style: none; }

@@ -1,5 +1,4 @@
 import type { ResourceDetail } from "@hall/api-contract";
-import type { CouncilBusiness } from "@hall/domain";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -8,6 +7,7 @@ import { TagInput } from "../../components/TagInput";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "../../features/documents/DocumentaryResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -28,7 +28,7 @@ export function ResourceWorkbenchHeader({
   extendedViewTriggerRef,
 }: {
   resource: Exclude<ResourceDetail, { kind: "folder" }>;
-  relatedBusinesses: CouncilBusiness[];
+  relatedBusinesses: CouncilBusinessView[];
   canUpdate: boolean;
   actionError: ApiErrorCode | null;
   title: string;

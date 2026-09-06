@@ -1,4 +1,4 @@
-import type { Contact } from "@hall/domain";
+import type { Contact } from "@hall/api-contract";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";

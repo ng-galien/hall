@@ -1,6 +1,6 @@
-import type { MeetingStatus } from "@hall/domain";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { LiveMeetingStatus } from "../../models/liveMeeting";
 
 const stageKeys: TranslationKey[] = [
   "meeting.stage.prepare",
@@ -9,7 +9,7 @@ const stageKeys: TranslationKey[] = [
   "meeting.stage.complete",
 ];
 
-const stageByStatus: Record<MeetingStatus, number> = {
+const stageByStatus: Record<LiveMeetingStatus, number> = {
   draft: 0,
   scheduled: 1,
   inProgress: 2,
@@ -17,7 +17,7 @@ const stageByStatus: Record<MeetingStatus, number> = {
   cancelled: 3,
 };
 
-export function MeetingStageBar({ status }: { status: MeetingStatus }) {
+export function MeetingStageBar({ status }: { status: LiveMeetingStatus }) {
   const { t } = useI18n();
   const currentStage = stageByStatus[status];
 

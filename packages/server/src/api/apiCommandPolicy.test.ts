@@ -43,28 +43,16 @@ const actionsByPermissions = [
       "resource.update-metadata",
       "resource.update-content",
       "resource.replace-document-content",
-      "resource.create-text",
-      "resource.create-remote",
-      "resource.create-geographic",
-      "resource.create-spreadsheet",
       "resource.import-spreadsheet",
-      "resource.update-geography",
-      "resource.update-spreadsheet",
-      "resource.create-legal-reference",
       "resource.resolve-legal-reference",
       "resource.refresh-legal-reference",
       "resource.create-document",
       "resource.create-editor-asset",
-      "resource.promote-editor-asset",
-      "resource.update",
       "resource.delete",
-      "workspace.rename-folder",
-      "workspace.create-folder",
       "council-business.create",
-      "council-business.update",
-      "council-business.reclassify",
-      "council-business.attach-decision",
-      "council-business.detach-decision",
+      "council-business.associate-resource",
+      "council-business.dissociate-resource",
+      "council-business.reorder-resources",
       "template.create",
       "template.update",
       "template.delete",
@@ -79,41 +67,76 @@ const actionsByPermissions = [
       "committee.add-membership",
       "committee.update-membership",
       "committee.end-membership",
-      "council-business.schedule",
-      "meeting.create",
-      "meeting.update",
+      "meeting.provision-initial",
       "meeting.schedule",
-      "meeting.finalize-minutes",
-      "meeting.cancel",
+      "meeting.prepare",
+      "meeting.set-officers",
+      "meeting.create-and-schedule-business",
       "meeting.reorder-agenda",
-      "agenda-item.remove",
+      "minutes.update-draft",
+      "minutes.generate",
+      "agenda-item.schedule",
+      "agenda-item.deprogram",
+      "agenda-item.reprogram",
+      "council-business.schedule-decision-proposal",
+      "council-business.schedule-open-question",
     ],
   ],
   [
     ["meetings.conduct"],
     [
-      "meeting.open",
+      "meeting.start",
       "meeting.close",
-      "meeting.record-quorum-failure",
-      "meeting.reconvene",
-      "meeting.add-late-business",
       "meeting.record-attendance",
       "agenda-item.start",
-      "agenda-item.save-notes",
       "agenda-item.complete",
-      "ballot.record",
-      "ballot.cancel",
+      "agenda-item.update-notes",
+      "agenda-item.adjourn",
+      "ballot.create",
+      "ballot.record-votes",
+      "ballot.complete",
     ],
   ],
-  [
-    ["meetings.prepare", "meetings.conduct"],
-    ["meeting.change-status", "meeting.set-officers"],
-  ],
   [["users.manage"], ["user.create", "user.disable", "user.assign-role"]],
-  [["settings.manage"], ["settings.update"]],
+  [["settings.manage"], ["council-term.configure", "settings.update"]],
 ] as const satisfies readonly (readonly [readonly ApiPermission[], readonly ApiActionName[]])[];
 
 const auditCases = [
+  ["PATCH", "/api/minutes/minutes-1/draft", undefined, "minutes.update-draft", "minutes", "minutes-1"],
+  ["POST", "/api/minutes/minutes-1/generate", undefined, "minutes.generate", "minutes", "minutes-1"],
+  [
+    "PATCH",
+    "/api/council-meetings/meeting-1/agenda-items/item-1/notes",
+    undefined,
+    "agenda-item.update-notes",
+    "agenda-item",
+    "item-1",
+  ],
+  ["PUT", "/api/council-meetings/meeting-1/prepare", undefined, "meeting.prepare", "council-meeting", "meeting-1"],
+  [
+    "PUT",
+    "/api/council-meetings/meeting-1/officers",
+    undefined,
+    "meeting.set-officers",
+    "council-meeting",
+    "meeting-1",
+  ],
+  [
+    "POST",
+    "/api/council-meetings/meeting-1/council-business",
+    undefined,
+    "meeting.create-and-schedule-business",
+    "council-business",
+    null,
+  ],
+  [
+    "POST",
+    "/api/council-meetings/meeting-1/agenda-items/item-1/adjourn",
+    undefined,
+    "agenda-item.adjourn",
+    "agenda-item",
+    "item-1",
+  ],
   ["POST", "/api/auth/bootstrap", undefined, "session.bootstrap", "user", undefined],
   ["POST", "/api/auth/login", undefined, "session.login", "session", undefined],
   ["POST", "/api/auth/logout", undefined, "session.logout", "session", null],
@@ -122,6 +145,7 @@ const auditCases = [
   ["POST", "/api/contacts/contact-1/archive", undefined, "contact.archive", "contact", "contact-1"],
   ["POST", "/api/council-members", undefined, "member.create", "council-member", null],
   ["PUT", "/api/council-members/member-1", undefined, "member.update", "council-member", "member-1"],
+  ["PUT", "/api/council-terms", undefined, "council-term.configure", "council-term", "active"],
   ["POST", "/api/council-decisions", undefined, "decision.create", "council-decision", null],
   ["PUT", "/api/council-decisions/decision-1", undefined, "decision.update", "council-decision", "decision-1"],
   ["POST", "/api/council-committees", undefined, "committee.create", "council-committee", undefined],
@@ -159,93 +183,55 @@ const auditCases = [
     "member-1",
   ],
   ["POST", "/api/council-business", undefined, "council-business.create", "council-business", undefined],
-  ["PUT", "/api/council-business/business-1", undefined, "council-business.update", "council-business", "business-1"],
   [
-    "PUT",
-    "/api/council-business/business-1/classification",
-    undefined,
-    "council-business.reclassify",
+    "POST",
+    "/api/council-business/business-1/resources",
+    { resourceId: "resource-1" },
+    "council-business.associate-resource",
     "council-business",
     "business-1",
   ],
   [
     "POST",
-    "/api/council-business/business-1/schedule",
-    undefined,
-    "council-business.schedule",
+    "/api/council-business/business-1/resources/dissociate",
+    { resourceId: "resource-1" },
+    "council-business.dissociate-resource",
+    "council-business",
+    "business-1",
+  ],
+  [
+    "PUT",
+    "/api/council-business/business-1/resource-order",
+    { resourceIds: ["resource-1"] },
+    "council-business.reorder-resources",
     "council-business",
     "business-1",
   ],
   [
     "POST",
-    "/api/council-business/business-1/decision",
-    undefined,
-    "council-business.attach-decision",
-    "council-business",
-    "business-1",
+    "/api/council-business/business-1/agenda-items/council-decision-proposals",
+    { councilMeetingId: "meeting-1", position: 2 },
+    "council-business.schedule-decision-proposal",
+    "agenda-item",
+    null,
   ],
   [
-    "DELETE",
-    "/api/council-business/business-1/decision",
-    undefined,
-    "council-business.detach-decision",
-    "council-business",
-    "business-1",
+    "POST",
+    "/api/council-business/business-1/agenda-items/open-questions",
+    { councilMeetingId: "meeting-1", position: 3 },
+    "council-business.schedule-open-question",
+    "agenda-item",
+    null,
   ],
-  ["POST", "/api/council-meetings", undefined, "meeting.create", "council-meeting", undefined],
-  ["PUT", "/api/council-meetings/meeting-1", undefined, "meeting.update", "council-meeting", "meeting-1"],
+  ["POST", "/api/council-meetings", undefined, "meeting.provision-initial", "council-meeting", undefined],
+  ["POST", "/api/council-meetings/meeting-1/agenda-items", undefined, "agenda-item.schedule", "agenda-item", null],
+  ["PUT", "/api/council-meetings/meeting-1/schedule", undefined, "meeting.schedule", "council-meeting", "meeting-1"],
+  ["POST", "/api/council-meetings/meeting-1/start", undefined, "meeting.start", "council-meeting", "meeting-1"],
+  ["POST", "/api/council-meetings/meeting-1/close", undefined, "meeting.close", "council-meeting", "meeting-1"],
   [
-    "PUT",
-    "/api/council-meetings/meeting-1/status",
-    { status: "scheduled" },
-    "meeting.schedule",
-    "council-meeting",
-    "meeting-1",
-  ],
-  [
-    "PUT",
-    "/api/council-meetings/meeting-1/status",
-    { status: "inProgress" },
-    "meeting.open",
-    "council-meeting",
-    "meeting-1",
-  ],
-  [
-    "PUT",
-    "/api/council-meetings/meeting-1/status",
-    { status: "closed" },
-    "meeting.close",
-    "council-meeting",
-    "meeting-1",
-  ],
-  [
-    "PUT",
-    "/api/council-meetings/meeting-1/status",
-    { status: "cancelled" },
-    "meeting.cancel",
-    "council-meeting",
-    "meeting-1",
-  ],
-  [
-    "PUT",
-    "/api/council-meetings/meeting-1/status",
-    { status: "invented" },
-    "meeting.change-status",
-    "council-meeting",
-    "meeting-1",
-  ],
-  [
-    "PUT",
-    "/api/council-meetings/meeting-1/officers",
-    undefined,
-    "meeting.set-officers",
-    "council-meeting",
-    "meeting-1",
-  ],
-  [
-    "PUT",
+    "POST",
     "/api/council-meetings/meeting-1/attendance",
-    { memberId: "member-1", status: "present" },
+    { attendance: [{ councilMemberId: "member-1", status: "present" }] },
     "meeting.record-attendance",
     "council-meeting",
     "meeting-1",
@@ -255,31 +241,6 @@ const auditCases = [
     "/api/council-meetings/meeting-1/agenda-order",
     undefined,
     "meeting.reorder-agenda",
-    "council-meeting",
-    "meeting-1",
-  ],
-  [
-    "POST",
-    "/api/council-meetings/meeting-1/quorum-failure",
-    undefined,
-    "meeting.record-quorum-failure",
-    "council-meeting",
-    "meeting-1",
-  ],
-  ["POST", "/api/council-meetings/meeting-1/reconvene", undefined, "meeting.reconvene", "council-meeting", "meeting-1"],
-  [
-    "POST",
-    "/api/council-meetings/meeting-1/late-business",
-    undefined,
-    "meeting.add-late-business",
-    "council-meeting",
-    "meeting-1",
-  ],
-  [
-    "POST",
-    "/api/council-meetings/meeting-1/minutes/finalize",
-    undefined,
-    "meeting.finalize-minutes",
     "council-meeting",
     "meeting-1",
   ],
@@ -300,10 +261,10 @@ const auditCases = [
     "item-1",
   ],
   [
-    "PUT",
-    "/api/council-meetings/meeting-1/agenda-items/item-1/notes",
+    "POST",
+    "/api/council-meetings/meeting-1/agenda-items/item-1/reprogram",
     undefined,
-    "agenda-item.save-notes",
+    "agenda-item.reprogram",
     "agenda-item",
     "item-1",
   ],
@@ -311,25 +272,19 @@ const auditCases = [
     "DELETE",
     "/api/council-meetings/meeting-1/agenda-items/item-1",
     undefined,
-    "agenda-item.remove",
+    "agenda-item.deprogram",
     "agenda-item",
     "item-1",
   ],
-  ["POST", "/api/council-meetings/meeting-1/ballots", undefined, "ballot.record", "ballot", null],
-  ["DELETE", "/api/council-meetings/meeting-1/ballots/ballot-1", undefined, "ballot.cancel", "ballot", "ballot-1"],
-  ["POST", "/api/resources/texts", undefined, "resource.create-text", "resource", undefined],
+  ["POST", "/api/ballots", undefined, "ballot.create", "ballot", null],
+  ["POST", "/api/ballots/ballot-1/votes", undefined, "ballot.record-votes", "ballot", "ballot-1"],
+  ["POST", "/api/ballots/ballot-1/complete", undefined, "ballot.complete", "ballot", "ballot-1"],
   ["POST", "/api/resources", undefined, "resource.create", "resource", undefined],
   ["PATCH", "/api/resources/resource-1/location", undefined, "resource.relocate", "resource", "resource-1"],
   ["PATCH", "/api/resources/resource-1/metadata", undefined, "resource.update-metadata", "resource", "resource-1"],
   ["PUT", "/api/resources/resource-1/content", undefined, "resource.update-content", "resource", "resource-1"],
   ["PUT", "/api/resources/resource-1/binary", undefined, "resource.replace-document-content", "resource", "resource-1"],
-  ["POST", "/api/resources/remotes", undefined, "resource.create-remote", "resource", undefined],
-  ["POST", "/api/resources/geographic", undefined, "resource.create-geographic", "resource", undefined],
-  ["POST", "/api/resources/spreadsheets", undefined, "resource.create-spreadsheet", "resource", undefined],
   ["POST", "/api/resources/spreadsheets/import", undefined, "resource.import-spreadsheet", "resource", undefined],
-  ["PUT", "/api/resources/resource-1/geography", undefined, "resource.update-geography", "resource", "resource-1"],
-  ["PUT", "/api/resources/resource-1/spreadsheet", undefined, "resource.update-spreadsheet", "resource", "resource-1"],
-  ["POST", "/api/resources/legal-references", undefined, "resource.create-legal-reference", "resource", undefined],
   [
     "POST",
     "/api/resources/resource-1/legal-reference/resolve",
@@ -348,18 +303,7 @@ const auditCases = [
   ],
   ["POST", "/api/resources/documents", undefined, "resource.create-document", "resource", undefined],
   ["POST", "/api/resources/editor-assets", undefined, "resource.create-editor-asset", "resource", undefined],
-  ["POST", "/api/resources/resource-1/promote", undefined, "resource.promote-editor-asset", "resource", "resource-1"],
-  ["PUT", "/api/resources/resource-1", undefined, "resource.update", "resource", "resource-1"],
   ["DELETE", "/api/resources/resource-1", undefined, "resource.delete", "resource", "resource-1"],
-  ["POST", "/api/resources/paths", undefined, "workspace.create-folder", "workspace-folder", null],
-  [
-    "PUT",
-    "/api/resources/paths",
-    { folderPath: "seed", name: "examples" },
-    "workspace.rename-folder",
-    "workspace-folder",
-    "seed",
-  ],
   ["POST", "/api/users", { roles: ["reader"], councilMemberId: "member-1" }, "user.create", "user", null],
   ["PUT", "/api/users/user-1/roles", { roles: ["reader"] }, "user.assign-role", "user", "user-1"],
   ["POST", "/api/users/user-1/disable", undefined, "user.disable", "user", "user-1"],
@@ -408,12 +352,8 @@ describe("API command policy", () => {
     expect(resolveAuditIntent({ method: "POST", path: "/api/resources/legal-references/search" })).toBeNull();
     expect(resolveAuditIntent({ method: "POST", path: "/prefix/api/resources/texts" })).toBeNull();
     expect(resolveAuditIntent({ method: "POST", path: "/apiresources/texts" })).toBeNull();
-    expect(resolveAuditIntent({ method: "POST", path: "/resources/texts" })).toMatchObject({
-      action: "resource.create-text",
-    });
-    expect(resolveAuditIntent({ method: "POST", path: "/api//resources//texts" })).toMatchObject({
-      action: "resource.create-text",
-    });
+    expect(resolveAuditIntent({ method: "POST", path: "/resources/texts" })).toBeNull();
+    expect(resolveAuditIntent({ method: "POST", path: "/api//resources//texts" })).toBeNull();
     expect(resolveAuditIntent({ method: "POST", path: "/api/resources" })).toMatchObject({
       action: "resource.create",
     });
@@ -446,9 +386,7 @@ describe("API command policy", () => {
     expect(resolveAuditIntent({ method: "POST", path: "/api/resources/other/import" })).toBeNull();
     expect(resolveAuditIntent({ method: "PUT", path: "/api/users/user-1/other" })).toBeNull();
     expect(resolveAuditIntent({ method: "POST", path: "/api/auth/unknown" })).toBeNull();
-    expect(
-      resolveAuditIntent({ method: "PUT", path: "/api/council-meetings/meeting-1/status", body: undefined }),
-    ).toMatchObject({ action: "meeting.change-status" });
+    expect(resolveAuditIntent({ method: "PUT", path: "/api/council-meetings/meeting-1/status" })).toBeNull();
   });
 
   it("targets logout audit at the authenticated session being deleted", () => {
@@ -480,27 +418,25 @@ describe("API command policy", () => {
   it("preserves the command details that make an audit event useful", () => {
     expect(
       resolveAuditIntent({
-        method: "PUT",
+        method: "POST",
         path: "/api/council-meetings/meeting-1/attendance",
         body: {
-          memberId: "member-1",
-          status: "represented",
-          proxyHolderMemberId: "member-2",
-          proxyDocumentId: "document-1",
-          expectedVersion: 3,
+          attendance: [
+            { councilMemberId: "member-1", status: "present" },
+            {
+              councilMemberId: "member-2",
+              status: "represented",
+              proxyHolderCouncilMemberId: "member-1",
+              proxyDocumentId: "document-1",
+            },
+          ],
         },
       }),
     ).toEqual({
       action: "meeting.record-attendance",
       targetType: "council-meeting",
       targetId: "meeting-1",
-      details: {
-        memberId: "member-1",
-        status: "represented",
-        proxyHolderMemberId: "member-2",
-        proxyDocumentId: "document-1",
-        expectedVersion: 3,
-      },
+      details: { attendanceCount: 2 },
     });
     expect(
       resolveAuditIntent({
@@ -512,13 +448,6 @@ describe("API command policy", () => {
     expect(
       resolveAuditIntent({ method: "PUT", path: "/api/users/user-1/roles", body: { roles: ["reader"] } }),
     ).toMatchObject({ details: { roles: ["reader"] } });
-    expect(
-      resolveAuditIntent({ method: "POST", path: "/api/resources/paths", body: { parentPath: "seed", name: "tests" } }),
-    ).toMatchObject({ details: { parentPath: "seed", name: "tests" } });
-    expect(resolveAuditIntent({ method: "PUT", path: "/api/resources/paths", body: null })).toMatchObject({
-      targetId: null,
-      details: { name: undefined },
-    });
     expect(resolveAuditIntent({ method: "POST", path: "/api/users", body: [] })).toMatchObject({
       details: undefined,
     });
@@ -526,7 +455,7 @@ describe("API command policy", () => {
       details: undefined,
     });
     expect(
-      resolveAuditIntent({ method: "PUT", path: "/api/council-meetings/meeting-1/attendance", body: null }),
+      resolveAuditIntent({ method: "POST", path: "/api/council-meetings/meeting-1/attendance", body: null }),
     ).toMatchObject({ details: undefined });
   });
 
@@ -540,18 +469,17 @@ describe("API command policy", () => {
   it("applies the catalogued permission boundary to representative commands", () => {
     const principal = (permissions: ApiPrincipal["permissions"]): ApiPrincipal => ({ ...admin, permissions });
     expect(actionIsPermitted(principal(["workspace.read"]), "template.preview")).toBe(true);
-    expect(actionIsPermitted(principal(["workspace.read"]), "resource.create-text")).toBe(false);
-    expect(actionIsPermitted(principal(["workspace.write"]), "resource.create-spreadsheet")).toBe(true);
+    expect(actionIsPermitted(principal(["workspace.read"]), "resource.create")).toBe(false);
+    expect(actionIsPermitted(principal(["workspace.write"]), "resource.create")).toBe(true);
     expect(actionIsPermitted(principal(["meetings.prepare"]), "meeting.schedule")).toBe(true);
-    expect(actionIsPermitted(principal(["meetings.prepare"]), "meeting.open")).toBe(false);
-    expect(actionIsPermitted(principal(["meetings.conduct"]), "meeting.open")).toBe(true);
+    expect(actionIsPermitted(principal(["meetings.prepare"]), "meeting.start")).toBe(false);
+    expect(actionIsPermitted(principal(["meetings.conduct"]), "meeting.start")).toBe(true);
     expect(actionIsPermitted(principal(["users.manage"]), "user.create")).toBe(true);
     expect(actionIsPermitted(principal(["settings.manage"]), "settings.update")).toBe(true);
     expect(actionIsPermitted(principal(["contacts.manage"]), "contact.create")).toBe(true);
     expect(actionIsPermitted(principal(["members.manage"]), "member.create")).toBe(true);
-    expect(actionIsPermitted(principal(["meetings.prepare"]), "meeting.change-status")).toBe(true);
-    expect(actionIsPermitted(principal(["meetings.conduct"]), "meeting.change-status")).toBe(true);
-    expect(actionIsPermitted(principal(["workspace.write"]), "meeting.change-status")).toBe(false);
+    expect(actionIsPermitted(principal(["meetings.prepare"]), "agenda-item.reprogram")).toBe(true);
+    expect(actionIsPermitted(principal(["workspace.write"]), "agenda-item.reprogram")).toBe(false);
   });
 
   it("fails closed at the HTTP boundary and continues only when the action is permitted", () => {
@@ -562,8 +490,8 @@ describe("API command policy", () => {
     } as unknown as Response;
     const next = vi.fn() as NextFunction;
     const request = (principal: ApiPrincipal | undefined) =>
-      ({ principal, originalUrl: "/api/resources/texts", requestId: "request-1" }) as Request;
-    const authorize = requireActionPermission("resource.create-text");
+      ({ principal, originalUrl: "/api/resources", requestId: "request-1" }) as Request;
+    const authorize = requireActionPermission("resource.create");
 
     authorize(request(undefined), response, next);
     expect(response.status).toHaveBeenLastCalledWith(401);

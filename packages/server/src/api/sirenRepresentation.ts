@@ -1,15 +1,9 @@
-import {
-  SIREN_MEDIA_TYPE,
-  type SirenAction,
-  type SirenEmbeddedEntity,
-  type SirenEntity,
-  type SirenLink,
-} from "@hall/api-contract";
+import { SIREN_MEDIA_TYPE, type SirenEmbeddedEntity, type SirenEntity, type SirenLink } from "@hall/api-contract";
 import { documentFormatSchema, matchLiteral } from "@hall/domain";
 import type { NextFunction, Request, Response } from "express";
 import { documentPreviewMode } from "../domain/documentPolicy.js";
 import { hasPermission } from "../security/authorization.js";
-import { action, collectionActions, objectActions } from "./sirenActionPolicy.js";
+import { collectionActions, objectActions } from "./sirenActionPolicy.js";
 import {
   canonicalHref,
   classifySirenEntity,
@@ -46,8 +40,21 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
     "council-decision": () => [],
     "council-meeting": () => [],
     "council-member": () => [],
+    "council-term": () => [],
     entity: () => [],
     "hall-settings": () => [],
+    minutes: (): SirenLink[] => {
+      if (!id || !primary) return [];
+      const links: SirenLink[] = [
+        { rel: ["council-meeting"], href: `/api/council-meetings/${primary.councilMeetingId}`, type: SIREN_MEDIA_TYPE },
+      ];
+      if (!primary.generatedAt)
+        links.push({ rel: ["preview"], href: `/api/minutes/${id}/preview`, type: "application/pdf" });
+      if (primary.generatedAt && primary.documentId) {
+        links.push({ rel: ["content"], href: `/api/minutes/${id}/content`, type: "application/pdf" });
+      }
+      return links;
+    },
     resource: (): SirenLink[] => {
       if (!id || !reference || primary?.kind !== "document") return [];
       const parsedFormat = documentFormatSchema.safeParse(primary.format);
@@ -96,134 +103,6 @@ function embeddedEntity(
   };
 }
 
-function meetingEntities(request: Request, payload: Record<string, unknown>): SirenEmbeddedEntity[] | undefined {
-  const meeting = payload.meeting;
-  const agendaItems = payload.agendaItems;
-  if (!meeting || typeof meeting !== "object" || !Array.isArray(agendaItems)) return undefined;
-  const meetingId = objectId(meeting);
-  const meetingReference = publicReference("council-meeting", meeting as Record<string, unknown>);
-  if (!meetingId || !meetingReference) return undefined;
-  const agendaEntities = agendaItems.flatMap((candidate) => {
-    if (!candidate || typeof candidate !== "object") return [];
-    const item = candidate as Record<string, unknown>;
-    const itemId = objectId(item);
-    if (!itemId) return [];
-    const actions = objectActions(request, "agenda-item", { ...payload, agendaItem: item });
-    return [
-      {
-        rel: ["agenda-item"],
-        class: ["agenda-item"],
-        properties: item,
-        actions: actions.length > 0 ? actions : undefined,
-        links: [
-          {
-            rel: ["self"],
-            href: `/api/council-meetings/${meetingReference}/agenda-items/${itemId}`,
-            type: SIREN_MEDIA_TYPE,
-          },
-        ],
-      },
-    ];
-  });
-  const attendanceEntities = Array.isArray(payload.attendance)
-    ? payload.attendance.flatMap((candidate) =>
-        candidate && typeof candidate === "object"
-          ? [embeddedEntity(request, "attendance", candidate as Record<string, unknown>)]
-          : [],
-      )
-    : [];
-  const ballotEntities = Array.isArray(payload.ballots)
-    ? payload.ballots.flatMap((candidate) => {
-        if (!candidate || typeof candidate !== "object") return [];
-        const ballot = candidate as Record<string, unknown>;
-        const ballotId = objectId(ballot);
-        if (!ballotId) return [];
-        const ballotActions = objectActions(request, "ballot", { ...payload, ballot });
-        return [
-          {
-            rel: ["item"],
-            class: ["ballot"],
-            properties: ballot,
-            actions: ballotActions.length > 0 ? ballotActions : undefined,
-            links: [
-              {
-                rel: ["self"],
-                href: `/api/council-meetings/${meetingReference}/ballots/${ballotId}`,
-                type: SIREN_MEDIA_TYPE,
-              },
-            ],
-          },
-        ];
-      })
-    : [];
-  return [...agendaEntities, ...attendanceEntities, ...ballotEntities];
-}
-
-function committeeMembershipEntities(
-  request: Request,
-  payload: Record<string, unknown>,
-): SirenEmbeddedEntity[] | undefined {
-  const committee = payload.committee;
-  const memberships = payload.memberships;
-  if (!committee || typeof committee !== "object" || !Array.isArray(memberships)) return undefined;
-  const committeeReference = publicReference("council-committee", committee as Record<string, unknown>);
-  if (!committeeReference) return undefined;
-  const mutable =
-    !(committee as Record<string, unknown>).archivedAt && hasPermission(request.principal, "meetings.prepare");
-  return memberships.flatMap((candidate) => {
-    if (!candidate || typeof candidate !== "object") return [];
-    const membership = candidate as Record<string, unknown>;
-    const membershipId = objectId(membership);
-    if (!membershipId) return [];
-    const href = `/api/council-committees/${committeeReference}/memberships/${membershipId}`;
-    const actions: SirenAction[] = mutable
-      ? [action("committee.update-membership", "PUT", href, "Update the committee membership")]
-      : [];
-    if (mutable && !membership.endedOn) {
-      actions.push(action("committee.end-membership", "POST", `${href}/end`, "End the committee membership"));
-    }
-    return [
-      {
-        rel: ["committee-membership"],
-        class: ["committee-membership"],
-        properties: membership,
-        actions: actions.length > 0 ? actions : undefined,
-        links: [{ rel: ["self"], href, type: SIREN_MEDIA_TYPE }],
-      },
-    ];
-  });
-}
-
-function objectEmbeddedEntities(
-  request: Request,
-  entityClass: SirenEntityClass,
-  payload: Record<string, unknown>,
-): SirenEmbeddedEntity[] | undefined {
-  return matchLiteral(entityClass, {
-    "agenda-item": () => undefined,
-    attendance: () => undefined,
-    "audit-event": () => undefined,
-    authentication: () => undefined,
-    "authentication-status": () => undefined,
-    ballot: () => undefined,
-    "committee-membership": () => undefined,
-    contact: () => undefined,
-    "council-business": () => undefined,
-    "council-committee": () => committeeMembershipEntities(request, payload),
-    "council-decision": () => undefined,
-    "council-meeting": () => meetingEntities(request, payload),
-    "council-member": () => undefined,
-    entity: () => undefined,
-    "hall-settings": () => undefined,
-    resource: () => undefined,
-    session: () => undefined,
-    template: () => undefined,
-    "template-preview": () => undefined,
-    "template-reference": () => undefined,
-    user: () => undefined,
-  });
-}
-
 export function toSirenRepresentation(request: Request, payload: unknown): SirenEntity {
   const entityClass = classifySirenEntity(request, payload);
   const collection = Array.isArray(payload);
@@ -240,9 +119,7 @@ export function toSirenRepresentation(request: Request, payload: unknown): Siren
     properties,
     entities: objectCollection
       ? payload.map((item) => embeddedEntity(request, entityClass, item as Record<string, unknown>))
-      : !collection
-        ? objectEmbeddedEntities(request, entityClass, payload as Record<string, unknown>)
-        : undefined,
+      : undefined,
     actions: actions.length > 0 ? actions : undefined,
     links,
   };
@@ -269,8 +146,10 @@ export function apiRootRepresentation(request: Request): SirenEntity<{ authentic
     if (hasPermission(request.principal, "meetings.read")) {
       links.push(
         { rel: ["council-meetings"], href: "/api/council-meetings", type: SIREN_MEDIA_TYPE },
+        { rel: ["minutes"], href: "/api/minutes", type: SIREN_MEDIA_TYPE },
         { rel: ["council-decisions"], href: "/api/council-decisions", type: SIREN_MEDIA_TYPE },
         { rel: ["council-members"], href: "/api/council-members", type: SIREN_MEDIA_TYPE },
+        { rel: ["council-terms"], href: "/api/council-terms", type: SIREN_MEDIA_TYPE },
       );
     }
     if (hasPermission(request.principal, "contacts.read")) {

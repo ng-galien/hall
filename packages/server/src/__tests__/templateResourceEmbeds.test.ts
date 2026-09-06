@@ -11,6 +11,57 @@ const template = (bodyMarkdown: string) => ({
   footerHtml: "",
 });
 
+const geographicDocument = {
+  view: { kind: "center" as const, center: [2.15, 48.15] as [number, number], zoom: 14 },
+  layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2" as const, visible: true, opacity: 1 }],
+  hallLayer: { type: "FeatureCollection" as const, features: [] },
+  provenance: {
+    attribution: "Source : IGN",
+    license: "Licence Ouverte 2.0" as const,
+    metadataUrl: "https://geoservices.ign.fr/",
+    configuredAt: "2026-08-31T10:00:00.000Z",
+    sourceUpdatedAt: null,
+  },
+};
+
+function resolvedLegalDocument(legalContent: string) {
+  const contentHash = createHash("sha256").update(legalContent).digest("hex");
+  const snapshotHash = createHash("sha256").update(`snapshot:${legalContent}`).digest("hex");
+  const snapshot = {
+    id: "00000000-0000-4000-8000-000000000001",
+    commonId: "CID-L2121-10",
+    versionId: "LEGIARTI000041410274",
+    effectiveAt: "2020-01-01",
+    fetchedAt: "2026-08-31T10:00:00.000Z",
+    validFrom: "2020-01-01",
+    validTo: null,
+    legalStatus: "VIGUEUR",
+    normalizedContent: legalContent,
+    contentHash,
+    snapshotHash,
+  };
+  return {
+    resolutionStatus: "resolved" as const,
+    provider: "legifrance" as const,
+    referenceKind: "article" as const,
+    fund: "CODE_DATE" as const,
+    commonId: snapshot.commonId,
+    versionId: snapshot.versionId,
+    effectiveAt: snapshot.effectiveAt,
+    legalStatus: snapshot.legalStatus,
+    sourceUrl: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041410274",
+    fetchedAt: snapshot.fetchedAt,
+    providerUpdatedAt: null,
+    citationLabel: "CGCT, article L2121-10",
+    attribution: "Source : DILA - Légifrance. Licence Ouverte 2.0.",
+    snapshotHash,
+    verificationDueAt: "2026-09-30T10:00:00.000Z",
+    verificationStatus: "current" as const,
+    verificationFailedAt: null,
+    snapshots: [snapshot],
+  };
+}
+
 async function extractedPdfText(content: Buffer): Promise<string> {
   const document = await getDocument({ data: new Uint8Array(content) }).promise;
   const pages: string[] = [];
@@ -36,23 +87,18 @@ describe("authoritative resource presentation rendering", () => {
         },
       },
     });
-    const repository = container.cradle.resourceRepository;
+    const resourcesClient = container.cradle.resourcesClient;
     const createPdf = (title: string) => {
       const content = Buffer.from(title);
-      return repository.createDocument({
-        title,
-        folderPath: "seed",
-        tags: [],
-        fileName: `${title}.pdf`,
-        format: "pdf",
+      return resourcesClient.createDocument({
+        name: title,
+        path: "seed",
         mediaType: "application/pdf",
-        contentSha256: createHash("sha256").update(content).digest("hex"),
-        category: "supporting",
         content,
       });
     };
-    const first = await createPdf("Premier");
-    const second = await createPdf("Second");
+    const first = (await createPdf("Premier")).data;
+    const second = (await createPdf("Second")).data;
 
     await container.cradle.contentTemplateService.previewPdf(
       [
@@ -79,12 +125,14 @@ describe("authoritative resource presentation rendering", () => {
         },
       },
     });
-    const remote = await container.cradle.resourceRepository.createRemote({
-      title: "Portail institutionnel",
-      folderPath: "seed",
-      tags: [],
-      url: "https://example.fr/dossier",
-    });
+    const remote = (
+      await container.cradle.resourcesClient.create({
+        kind: "remote",
+        name: "Portail institutionnel",
+        path: "seed",
+        target: { kind: "url", url: "https://example.fr/dossier" },
+      })
+    ).data;
     const markdown = `::resource-embed[Lien]{#${remote.id} presentation="link"}`;
     const authoritativePreview = await container.cradle.templateRenderingService.preview(template(markdown));
 
@@ -96,107 +144,80 @@ describe("authoritative resource presentation rendering", () => {
 
   it("renders every presentation for which the server owns static source data", async () => {
     const { container } = await createTestServer();
-    const repository = container.cradle.resourceRepository;
-    const text = await repository.createText({
-      title: "Rapport renommé",
-      folderPath: "seed",
-      tags: [],
-      content: "Contenu qui ne doit pas être recopié.",
-    });
+    const resourcesClient = container.cradle.resourcesClient;
+    const text = (
+      await resourcesClient.create({
+        kind: "text",
+        name: "Rapport renommé",
+        path: "seed",
+        content: "Contenu qui ne doit pas être recopié.",
+      })
+    ).data;
     const imageContent = Buffer.from("89504e470d0a1a0a", "hex");
-    const image = await repository.createDocument({
-      title: "Plan du quartier",
-      folderPath: "seed",
-      tags: [],
-      fileName: "plan.png",
-      format: "png",
-      mediaType: "image/png",
-      contentSha256: createHash("sha256").update(imageContent).digest("hex"),
-      category: "supporting",
-      content: imageContent,
-    });
+    const image = (
+      await resourcesClient.createDocument({
+        name: "plan.png",
+        path: "seed",
+        mediaType: "image/png",
+        content: imageContent,
+      })
+    ).data;
     const pdfContent = Buffer.from("pdf-content");
-    const pdf = await repository.createDocument({
-      title: "Annexe financière",
-      folderPath: "seed",
-      tags: [],
-      fileName: "annexe.pdf",
-      format: "pdf",
-      mediaType: "application/pdf",
-      contentSha256: createHash("sha256").update(pdfContent).digest("hex"),
-      category: "supporting",
-      content: pdfContent,
-    });
-    const remote = await repository.createRemote({
-      title: "Portail institutionnel",
-      folderPath: "seed",
-      tags: [],
-      url: "https://example.fr/dossier?version=1&lang=fr",
-    });
-    const spreadsheet = await repository.createSpreadsheet({
-      title: "Budget primitif",
-      folderPath: "seed",
-      tags: [],
-      document: {
-        schemaVersion: 2,
-        workbook: {
-          id: "workbook-1",
-          name: "Budget primitif",
-          sheetOrder: ["sheet-1"],
-          sheets: {
-            "sheet-1": {
-              id: "sheet-1",
-              name: "Dépenses",
-              rowCount: 20,
-              columnCount: 8,
-              cellData: {
-                0: { 0: { v: "Poste", t: 1, s: { bl: 1 } }, 1: { v: "Montant", t: 1, s: { bl: 1 } } },
-                1: {
-                  0: { v: "Mobilier", t: 1 },
-                  1: { f: "=100+20", v: 120, t: 2, s: { n: { pattern: '#,##0.00 "€"' }, ht: 3 } },
+    const pdf = (
+      await resourcesClient.createDocument({
+        name: "Annexe financière",
+        path: "seed",
+        mediaType: "application/pdf",
+        content: pdfContent,
+      })
+    ).data;
+    const remote = (
+      await resourcesClient.create({
+        kind: "remote",
+        name: "Portail institutionnel",
+        path: "seed",
+        target: { kind: "url", url: "https://example.fr/dossier?version=1&lang=fr" },
+      })
+    ).data;
+    const spreadsheet = (
+      await resourcesClient.create({
+        kind: "spreadsheet",
+        name: "Budget primitif",
+        path: "seed",
+        document: {
+          schemaVersion: 2,
+          workbook: {
+            id: "workbook-1",
+            name: "Budget primitif",
+            sheetOrder: ["sheet-1"],
+            sheets: {
+              "sheet-1": {
+                id: "sheet-1",
+                name: "Dépenses",
+                rowCount: 20,
+                columnCount: 8,
+                cellData: {
+                  0: { 0: { v: "Poste", t: 1, s: { bl: 1 } }, 1: { v: "Montant", t: 1, s: { bl: 1 } } },
+                  1: {
+                    0: { v: "Mobilier", t: 1 },
+                    1: { f: "=100+20", v: 120, t: 2, s: { n: { pattern: '#,##0.00 "€"' }, ht: 3 } },
+                  },
                 },
               },
             },
           },
         },
-      },
-    });
-    const legalDraft = await repository.createLegalReferenceDraft({
-      title: "CGCT, article L2121-10",
-      folderPath: "seed",
-      tags: [],
-      provider: "legifrance",
-      referenceKind: "article",
-    });
+      })
+    ).data;
     const legalContent = "Toute convocation est faite par le maire.";
-    const contentHash = createHash("sha256").update(legalContent).digest("hex");
-    const snapshotHash = createHash("sha256").update(`snapshot:${legalContent}`).digest("hex");
-    const legal = await repository.resolveLegalReference(legalDraft.id, {
-      title: "CGCT, article L2121-10",
-      folderPath: "seed",
-      tags: [],
-      provider: "legifrance",
-      referenceKind: "article",
-      fund: "CODE_DATE",
-      sourceUrl: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041410274",
-      providerUpdatedAt: null,
-      citationLabel: "CGCT, article L2121-10",
-      attribution: "Source : DILA - Légifrance. Licence Ouverte 2.0.",
-      snapshot: {
-        commonId: "CID-L2121-10",
-        versionId: "LEGIARTI000041410274",
-        effectiveAt: "2020-01-01",
-        fetchedAt: "2026-08-31T10:00:00.000Z",
-        validFrom: "2020-01-01",
-        validTo: null,
-        legalStatus: "VIGUEUR",
-        rawProviderPayload: "{}",
-        normalizedContent: legalContent,
-        contentHash,
-        snapshotHash,
-      },
-    });
-    expect(legal).not.toBeNull();
+    const legal = (
+      await resourcesClient.create({
+        kind: "legalReference",
+        name: "CGCT, article L2121-10",
+        path: "seed",
+        document: resolvedLegalDocument(legalContent),
+      })
+    ).data;
 
     const preview = await container.cradle.templateRenderingService.preview(
       template(
@@ -207,7 +228,7 @@ describe("authoritative resource presentation rendering", () => {
           `::resource-embed[Plan]{#${image.id} presentation="image" align="center" width="60"}`,
           `::resource-embed[Annexe]{#${pdf.id} presentation="document"}`,
           `::resource-embed[Lien]{#${remote.id} presentation="link"}`,
-          `::resource-embed[Article]{#${legal!.id} presentation="legal-citation"}`,
+          `::resource-embed[Article]{#${legal.id} presentation="legal-citation"}`,
           `::resource-embed[Budget]{#${spreadsheet.id} presentation="table" sheet="sheet-1" range="A1:B2"}`,
         ].join("\n\n"),
       ),
@@ -237,47 +258,20 @@ describe("authoritative resource presentation rendering", () => {
 
   it("keeps the legal citation and article text in the final Chromium PDF", async () => {
     const { container } = await createTestServer();
-    const repository = container.cradle.resourceRepository;
-    const draft = await repository.createLegalReferenceDraft({
-      title: "CGCT, article L2121-10",
-      folderPath: "seed",
-      tags: [],
-      provider: "legifrance",
-      referenceKind: "article",
-    });
+    const resourcesClient = container.cradle.resourcesClient;
     const legalContent =
       "Toute convocation est faite par le maire. Elle indique les questions portées à l'ordre du jour.";
-    const contentHash = createHash("sha256").update(legalContent).digest("hex");
-    const snapshotHash = createHash("sha256").update(`snapshot:${legalContent}`).digest("hex");
-    const legal = await repository.resolveLegalReference(draft.id, {
-      title: "CGCT, article L2121-10",
-      folderPath: "seed",
-      tags: [],
-      provider: "legifrance",
-      referenceKind: "article",
-      fund: "CODE_DATE",
-      sourceUrl: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041410274",
-      providerUpdatedAt: null,
-      citationLabel: "CGCT, article L2121-10",
-      attribution: "Source : DILA - Légifrance. Licence Ouverte 2.0.",
-      snapshot: {
-        commonId: "CID-L2121-10",
-        versionId: "LEGIARTI000041410274",
-        effectiveAt: "2020-01-01",
-        fetchedAt: "2026-08-31T10:00:00.000Z",
-        validFrom: "2020-01-01",
-        validTo: null,
-        legalStatus: "VIGUEUR",
-        rawProviderPayload: "{}",
-        normalizedContent: legalContent,
-        contentHash,
-        snapshotHash,
-      },
-    });
-    expect(legal).not.toBeNull();
+    const legal = (
+      await resourcesClient.create({
+        kind: "legalReference",
+        name: "CGCT, article L2121-10",
+        path: "seed",
+        document: resolvedLegalDocument(legalContent),
+      })
+    ).data;
 
     const pdf = await container.cradle.contentTemplateService.previewPdf(
-      `::resource-embed[Article]{#${legal!.id} presentation="legal-citation"}`,
+      `::resource-embed[Article]{#${legal.id} presentation="legal-citation"}`,
       {},
     );
     const text = await extractedPdfText(pdf);
@@ -291,22 +285,18 @@ describe("authoritative resource presentation rendering", () => {
 
   it("diagnoses missing and incompatible resources while rendering the persisted map", async () => {
     const { container } = await createTestServer();
-    const repository = container.cradle.resourceRepository;
-    const text = await repository.createText({
-      title: "Texte",
-      folderPath: "seed",
-      tags: [],
-      content: "Texte",
-    });
-    const geography = await repository.createGeographic({
-      title: "Plan cadastral",
-      folderPath: "seed",
-      tags: [],
-      provider: "ign",
-      layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
-      view: { kind: "center", center: [2.15, 48.15], zoom: 14 },
-      hallLayer: { type: "FeatureCollection", features: [] },
-    });
+    const resourcesClient = container.cradle.resourcesClient;
+    const text = (
+      await resourcesClient.create({ kind: "text", name: "Texte", path: "seed", content: "Texte" })
+    ).data;
+    const geography = (
+      await resourcesClient.create({
+        kind: "geographic",
+        name: "Plan cadastral",
+        path: "seed",
+        document: geographicDocument,
+      })
+    ).data;
 
     const preview = await container.cradle.templateRenderingService.preview(
       template(
@@ -345,15 +335,14 @@ describe("authoritative resource presentation rendering", () => {
         },
       },
     });
-    const geography = await container.cradle.resourceRepository.createGeographic({
-      title: "Plan cadastral",
-      folderPath: "seed",
-      tags: [],
-      provider: "ign",
-      layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
-      view: { kind: "center", center: [2.15, 48.15], zoom: 14 },
-      hallLayer: { type: "FeatureCollection", features: [] },
-    });
+    const geography = (
+      await container.cradle.resourcesClient.create({
+        kind: "geographic",
+        name: "Plan cadastral",
+        path: "seed",
+        document: geographicDocument,
+      })
+    ).data;
 
     await expect(
       container.cradle.contentTemplateService.previewPdf(
@@ -367,28 +356,30 @@ describe("authoritative resource presentation rendering", () => {
 
   it("never recalculates a spreadsheet formula that has no persisted value", async () => {
     const { container } = await createTestServer();
-    const spreadsheet = await container.cradle.resourceRepository.createSpreadsheet({
-      title: "Calcul non figé",
-      folderPath: "seed",
-      tags: [],
-      document: {
-        schemaVersion: 2,
-        workbook: {
-          id: "workbook-1",
-          name: "Calcul non figé",
-          sheetOrder: ["sheet-1"],
-          sheets: {
-            "sheet-1": {
-              id: "sheet-1",
-              name: "Feuille",
-              rowCount: 20,
-              columnCount: 8,
-              cellData: { 0: { 0: { v: "Total", t: 1 } }, 1: { 0: { f: "=1+1" } } },
+    const spreadsheet = (
+      await container.cradle.resourcesClient.create({
+        kind: "spreadsheet",
+        name: "Calcul non figé",
+        path: "seed",
+        document: {
+          schemaVersion: 2,
+          workbook: {
+            id: "workbook-1",
+            name: "Calcul non figé",
+            sheetOrder: ["sheet-1"],
+            sheets: {
+              "sheet-1": {
+                id: "sheet-1",
+                name: "Feuille",
+                rowCount: 20,
+                columnCount: 8,
+                cellData: { 0: { 0: { v: "Total", t: 1 } }, 1: { 0: { f: "=1+1" } } },
+              },
             },
           },
         },
-      },
-    });
+      })
+    ).data;
 
     const preview = await container.cradle.templateRenderingService.preview(
       template(`::resource-embed[Calcul]{#${spreadsheet.id} presentation="table" sheet="sheet-1" range="A1:A2"}`),

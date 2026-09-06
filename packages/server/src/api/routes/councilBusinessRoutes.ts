@@ -1,84 +1,136 @@
 import {
-  attachCouncilBusinessDecisionSchema,
+  associateCouncilBusinessResourceSchema,
+  councilBusinessAgendaHistoryQuerySchema,
   createCouncilBusinessSchema,
-  folderPathSchema,
-  reclassifyCouncilBusinessSchema,
-  scheduleCouncilBusinessSchema,
-  updateCouncilBusinessSchema,
-} from "@hall/domain";
+  dissociateCouncilBusinessResourceSchema,
+  reorderCouncilBusinessResourcesSchema,
+  scheduleCouncilBusinessSubjectSchema,
+} from "@hall/api-contract";
 import { Router } from "express";
-import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
-export function createCouncilBusinessRouter({
-  councilBusinessService,
-  meetingPreparationService,
-  councilMeetingRepository,
-}: Cradle): Router {
+export function createCouncilBusinessRouter({ councilBusinessWorkspaceService }: Cradle): Router {
   const router = Router();
-  router.get("/", requirePermission("workspace.read"), async (request, response) => {
-    const folderPath =
-      typeof request.query.folderPath === "string" ? folderPathSchema.parse(request.query.folderPath) : undefined;
-    const resourceId =
-      typeof request.query.resourceId === "string" ? z.string().uuid().parse(request.query.resourceId) : undefined;
-    response.json(await councilBusinessService.list({ folderPath, resourceId }));
+
+  router.get("/", requirePermission("workspace.read"), async (_request, response) => {
+    const businesses = await councilBusinessWorkspaceService.list();
+    response.locals.currentCouncilBusinessAgendaItems =
+      businesses.length === 0
+        ? []
+        : await councilBusinessWorkspaceService.listAgendaItems(businesses.map(({ id }) => id));
+    response.json(businesses);
   });
+
+  router.get("/workspace-items", requirePermission("workspace.read"), async (_request, response) => {
+    response.json(await councilBusinessWorkspaceService.listWorkspaceItems());
+  });
+
+  router.get("/resource-items", requirePermission("workspace.read"), async (request, response) => {
+    const rawIds = request.query.councilBusinessId;
+    const councilBusinessIds = Array.isArray(rawIds) ? rawIds : rawIds === undefined ? [] : [rawIds];
+    const query = councilBusinessAgendaHistoryQuerySchema.parse({ councilBusinessIds });
+    response.json(await councilBusinessWorkspaceService.listResourceItems(query.councilBusinessIds));
+  });
+
   router.post("/", requireActionPermission("council-business.create"), async (request, response) => {
-    response.status(201).json(await councilBusinessService.create(createCouncilBusinessSchema.parse(request.body)));
+    const created = await councilBusinessWorkspaceService.create(createCouncilBusinessSchema.parse(request.body));
+    response.status(201).json(created);
   });
-  router.put("/:businessId", requireActionPermission("council-business.update"), async (request, response) => {
-    response.json(
-      await councilBusinessService.update(
-        routeParameter(request.params.businessId),
-        updateCouncilBusinessSchema.parse(request.body),
-      ),
-    );
+
+  router.get("/agenda-items", requirePermission("meetings.read"), async (request, response) => {
+    const rawIds = request.query.councilBusinessId;
+    const councilBusinessIds = Array.isArray(rawIds) ? rawIds : rawIds === undefined ? [] : [rawIds];
+    const query = councilBusinessAgendaHistoryQuerySchema.parse({ councilBusinessIds });
+    response.json(await councilBusinessWorkspaceService.listAgendaItems(query.councilBusinessIds));
   });
-  router.put(
-    "/:businessId/classification",
-    requireActionPermission("council-business.reclassify"),
-    async (request, response) => {
-      const { folderPath } = reclassifyCouncilBusinessSchema.parse(request.body);
-      response.json(await councilBusinessService.reclassify(routeParameter(request.params.businessId), folderPath));
-    },
-  );
+
   router.get("/:businessId", requirePermission("workspace.read"), async (request, response) => {
-    response.json(await councilBusinessService.get(routeParameter(request.params.businessId)));
+    const business = await councilBusinessWorkspaceService.get(routeParameter(request.params.businessId));
+    response.locals.currentCouncilBusinessAgendaItems = await councilBusinessWorkspaceService.listAgendaItems([
+      business.id,
+    ]);
+    response.json(business);
   });
+
+  router.get("/:businessId/resources", requirePermission("workspace.read"), async (request, response) => {
+    const businessId = routeParameter(request.params.businessId);
+    await councilBusinessWorkspaceService.get(businessId);
+    response.json(await councilBusinessWorkspaceService.listResources(businessId));
+  });
+
   router.post(
-    "/:businessId/schedule",
-    requireActionPermission("council-business.schedule"),
+    "/:businessId/resources",
+    requireActionPermission("council-business.associate-resource"),
     async (request, response) => {
-      const input = scheduleCouncilBusinessSchema.parse(request.body);
-      const item = await meetingPreparationService.scheduleBusiness(
-        input.meetingId,
-        routeParameter(request.params.businessId),
-        input.position,
-      );
-      const meeting = await councilMeetingRepository.find(item.meetingId);
-      response.locals.meetingReference = meeting?.slug;
-      response.status(201).json(item);
+      const businessId = routeParameter(request.params.businessId);
+      await councilBusinessWorkspaceService.get(businessId);
+      const input = associateCouncilBusinessResourceSchema.parse(request.body);
+      response.status(201).json(await councilBusinessWorkspaceService.associateResource(businessId, input.resourceId));
     },
   );
+
   router.post(
-    "/:businessId/decision",
-    requireActionPermission("council-business.attach-decision"),
+    "/:businessId/resources/dissociate",
+    requireActionPermission("council-business.dissociate-resource"),
     async (request, response) => {
-      const input = attachCouncilBusinessDecisionSchema.parse(request.body ?? {});
+      const businessId = routeParameter(request.params.businessId);
+      await councilBusinessWorkspaceService.get(businessId);
+      const input = dissociateCouncilBusinessResourceSchema.parse(request.body);
+      response.json(await councilBusinessWorkspaceService.dissociateResource(businessId, input.resourceId));
+    },
+  );
+
+  router.put(
+    "/:businessId/resource-order",
+    requireActionPermission("council-business.reorder-resources"),
+    async (request, response) => {
+      const businessId = routeParameter(request.params.businessId);
+      await councilBusinessWorkspaceService.get(businessId);
+      response.json(
+        await councilBusinessWorkspaceService.reorderResources(
+          businessId,
+          reorderCouncilBusinessResourcesSchema.parse(request.body),
+        ),
+      );
+    },
+  );
+
+  router.post(
+    "/:businessId/agenda-items/council-decision-proposals",
+    requireActionPermission("council-business.schedule-decision-proposal"),
+    async (request, response) => {
+      const businessId = routeParameter(request.params.businessId);
+      await councilBusinessWorkspaceService.get(businessId);
       response
         .status(201)
-        .json(await councilBusinessService.attachDecision(routeParameter(request.params.businessId), input));
+        .json(
+          await councilBusinessWorkspaceService.scheduleDecisionProposal(
+            businessId,
+            scheduleCouncilBusinessSubjectSchema.parse(request.body),
+          ),
+        );
     },
   );
-  router.delete(
-    "/:businessId/decision",
-    requireActionPermission("council-business.detach-decision"),
+
+  router.post(
+    "/:businessId/agenda-items/open-questions",
+    requireActionPermission("council-business.schedule-open-question"),
     async (request, response) => {
-      response.json(await councilBusinessService.detachDecision(routeParameter(request.params.businessId)));
+      const businessId = routeParameter(request.params.businessId);
+      await councilBusinessWorkspaceService.get(businessId);
+      response
+        .status(201)
+        .json(
+          await councilBusinessWorkspaceService.scheduleOpenQuestion(
+            businessId,
+            scheduleCouncilBusinessSubjectSchema.parse(request.body),
+          ),
+        );
     },
   );
+
   return router;
 }

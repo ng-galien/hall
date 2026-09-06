@@ -6,6 +6,7 @@
 CREATE FUNCTION enforce_ballot_lifecycle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = pg_catalog, hall
 AS $$
 DECLARE
   meeting_started_at TIMESTAMPTZ;

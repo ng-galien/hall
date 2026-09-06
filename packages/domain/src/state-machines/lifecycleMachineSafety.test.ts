@@ -7,9 +7,7 @@ import {
   type CouncilDecisionStatus,
   councilDecisionStatuses,
   type MeetingStatus,
-  type MinutesStatus,
   meetingStatuses,
-  minutesStatuses,
 } from "../model.js";
 import {
   type AgendaItemEvent,
@@ -19,15 +17,11 @@ import {
   councilDecisionEventTypes,
   councilDecisionMachine,
   type MeetingEvent,
-  type MinutesEvent,
   meetingEventTypes,
   meetingMachine,
-  minutesEventTypes,
-  minutesMachine,
   transitionAgendaItem,
   transitionCouncilDecision,
   transitionMeeting,
-  transitionMinutes,
 } from "./index.js";
 
 type TransitionMatrix<State extends PropertyKey, EventType extends PropertyKey> = Record<
@@ -138,15 +132,6 @@ const councilDecisionTransitions = {
   },
 } as const satisfies TransitionMatrix<CouncilDecisionStatus, CouncilDecisionEvent["type"]>;
 
-const minutesTransitions = {
-  notStarted: { GENERATE_DRAFT: "draft", FINALIZE: null, APPROVE: null, SIGN: null, PUBLISH: null },
-  draft: { GENERATE_DRAFT: null, FINALIZE: "ready", APPROVE: null, SIGN: null, PUBLISH: null },
-  ready: { GENERATE_DRAFT: null, FINALIZE: null, APPROVE: "approved", SIGN: null, PUBLISH: null },
-  approved: { GENERATE_DRAFT: null, FINALIZE: null, APPROVE: null, SIGN: "signed", PUBLISH: null },
-  signed: { GENERATE_DRAFT: null, FINALIZE: null, APPROVE: null, SIGN: null, PUBLISH: "published" },
-  published: { GENERATE_DRAFT: null, FINALIZE: null, APPROVE: null, SIGN: null, PUBLISH: null },
-} as const satisfies TransitionMatrix<MinutesStatus, MinutesEvent["type"]>;
-
 function assertCompleteMatrix<State extends PropertyKey, EventType extends PropertyKey>(
   states: readonly State[],
   eventTypes: readonly EventType[],
@@ -212,12 +197,6 @@ describe("lifecycle state-machine safety", () => {
     );
   });
 
-  it("matches the complete minutes state-event matrix", () => {
-    assertCompleteMatrix(minutesStatuses, minutesEventTypes, minutesTransitions, (state, type) =>
-      transitionMinutes(state, { type }),
-    );
-  });
-
   it("keeps arbitrary meeting event sequences aligned with the independent matrix", () => {
     assertGeneratedSequences(meetingStatuses, meetingEventTypes, meetingTransitions, (state, type) =>
       transitionMeeting(state, { type }),
@@ -239,12 +218,6 @@ describe("lifecycle state-machine safety", () => {
     );
   });
 
-  it("keeps arbitrary minutes event sequences aligned with the independent matrix", () => {
-    assertGeneratedSequences(minutesStatuses, minutesEventTypes, minutesTransitions, (state, type) =>
-      transitionMinutes(state, { type }),
-    );
-  });
-
   it("reaches every declared state through XState-generated shortest paths", () => {
     expect(new Set(getShortestPaths(meetingMachine).map((path) => String(path.state.value)))).toEqual(
       new Set(meetingStatuses),
@@ -254,9 +227,6 @@ describe("lifecycle state-machine safety", () => {
     );
     expect(new Set(getShortestPaths(councilDecisionMachine).map((path) => String(path.state.value)))).toEqual(
       new Set(councilDecisionStatuses),
-    );
-    expect(new Set(getShortestPaths(minutesMachine).map((path) => String(path.state.value)))).toEqual(
-      new Set(minutesStatuses),
     );
   });
 });

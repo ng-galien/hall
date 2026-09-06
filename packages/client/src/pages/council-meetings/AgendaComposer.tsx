@@ -1,11 +1,3 @@
-import {
-  type AgendaItem,
-  agendaBusinessRank,
-  type CouncilBusiness,
-  type CouncilDecision,
-  councilBusinessHasDecision,
-  councilBusinessIsMatter,
-} from "@hall/domain";
 import { type DragEvent, type FormEvent, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -26,14 +18,34 @@ import {
 } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { EmptyState } from "../../components/Ui";
-import { councilBusinessKindKeys } from "../../features/council-business/presentation";
+import { councilBusinessKindKeys, liveBusinessTitle } from "../../features/council-business/presentation";
+import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { useResourceImageUpload } from "../../features/documents/useResourceImageUpload";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
+import {
+  type LiveMeetingAgendaItem as AgendaItem,
+  liveAgendaBusinessRank as agendaBusinessRank,
+  type LiveMeetingBusiness as CouncilBusiness,
+  type LiveMeetingCouncilDecision as CouncilDecision,
+  liveBusinessHasDecision as councilBusinessHasDecision,
+  liveBusinessIsMatter as councilBusinessIsMatter,
+} from "../../models/liveMeeting";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 
-const quickAddKinds: CouncilBusiness["kind"][] = ["matter", "openQuestion"];
+const quickAddKinds: Array<"matter" | "openQuestion"> = ["matter", "openQuestion"];
+const quickAddKindKeys = {
+  matter: "meeting.draftDecision",
+  openQuestion: councilBusinessKindKeys.openQuestion,
+} as const;
+
+export interface QuickCouncilBusinessInput {
+  kind: "matter" | "openQuestion";
+  title: string;
+  report: string;
+  folderPath: string;
+}
 
 export function councilBusinessUpdatePayload(business: CouncilBusiness, changes: { title?: string; report?: string }) {
   return {
@@ -62,22 +74,22 @@ export function AgendaComposer({
   businesses: CouncilBusiness[];
   decisions: CouncilDecision[];
   editable: boolean;
-  onSchedule(businessId: string, position: number): Promise<boolean>;
-  onQuickCreate(input: Record<string, unknown>, position: number): Promise<boolean>;
-  onUpdateBusiness(businessId: string, input: Record<string, unknown>): Promise<boolean>;
-  onAttachDecision(businessId: string, draftText: string): Promise<boolean>;
-  onDetachDecision(businessId: string): Promise<boolean>;
-  onSaveDecisionText(decisionId: string, input: { title: string; draftText: string }): Promise<boolean>;
+  onSchedule?(businessId: string, position: number): Promise<boolean>;
+  onQuickCreate?(input: QuickCouncilBusinessInput, position: number): Promise<boolean>;
+  onUpdateBusiness?(businessId: string, input: Record<string, unknown>): Promise<boolean>;
+  onAttachDecision?(businessId: string, draftText: string): Promise<boolean>;
+  onDetachDecision?(businessId: string): Promise<boolean>;
+  onSaveDecisionText?(decisionId: string, input: { title: string; draftText: string }): Promise<boolean>;
   onRemove(itemId: string): Promise<boolean>;
   onReorder(itemIds: string[]): Promise<boolean>;
 }) {
-  const { t, formatNumber } = useI18n();
+  const { t, formatNumber, formatDate } = useI18n();
   const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
   const { meetings } = useCouncilMeetingsStore();
   const { submitting, run } = useSubmitting();
   const fieldId = useId();
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
-  const [quickAddKind, setQuickAddKind] = useState<CouncilBusiness["kind"]>(quickAddKinds[0]);
+  const [quickAddKind, setQuickAddKind] = useState<"matter" | "openQuestion">(quickAddKinds[0]);
   const [draftReport, setDraftReport] = useState("");
   const mentionables = useReferenceMentionables();
   const [draftDecisionText, setDraftDecisionText] = useState("");
@@ -134,16 +146,16 @@ export function AgendaComposer({
 
   const quickAdd = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!onQuickCreate) return;
     const formElement = event.currentTarget;
     await run(async () => {
       const form = new FormData(formElement);
       const added = await onQuickCreate(
         {
           kind: quickAddKind,
-          title: form.get("title"),
+          title: String(form.get("title") ?? ""),
           report: "",
           folderPath: "",
-          resourceIds: [],
         },
         nextPosition,
       );
@@ -163,6 +175,7 @@ export function AgendaComposer({
 
   const saveItem = async (event: FormEvent<HTMLFormElement>, item: AgendaItem) => {
     event.preventDefault();
+    if (!onUpdateBusiness) return;
     const form = new FormData(event.currentTarget);
     const title = String(form.get("title") ?? item.business.title);
     const decision = decisionFor(item.business);
@@ -173,6 +186,7 @@ export function AgendaComposer({
       );
       if (!saved) return false;
       if (decision && draftDecisionText !== decision.draftText) {
+        if (!onSaveDecisionText) return false;
         const decisionSaved = await onSaveDecisionText(decision.id, { title, draftText: draftDecisionText });
         if (!decisionSaved) return false;
       }
@@ -240,12 +254,13 @@ export function AgendaComposer({
                   <span className="composer-position">{index + 1}</span>
                   <button
                     className="composer-item-main"
+                    data-testid={`agenda-item-expand-${item.id}`}
                     type="button"
                     aria-expanded={expanded}
                     onClick={() => expandItem(expanded ? null : item)}
                   >
                     <span className="composer-item-copy">
-                      <strong>{business.title}</strong>
+                      <strong>{liveBusinessTitle(business, t("agendaSubject.minutesApproval"))}</strong>
                       <span>
                         {t(councilBusinessKindKeys[business.kind])}
                         {hasDecision ? ` · ${t("meeting.itemHasDecision")}` : ""}
@@ -262,10 +277,11 @@ export function AgendaComposer({
                   {business.kind === "minutesApproval" ? (
                     <Link
                       className="decision-meeting-chip"
-                      to={`/meetings/${minutesMeeting?.slug ?? business.minutesOfMeetingId}`}
-                      title={t("meeting.viewPreviousMeeting")}
+                      to={`/minutes/${business.minutesId}`}
+                      title={t("minutes.view")}
+                      data-testid={`agenda-minutes-${item.id}`}
                     >
-                      {t("meeting.previousMeetingChip")}
+                      {t("minutes.view")}
                     </Link>
                   ) : null}
                   {documentCount > 0 ? (
@@ -318,7 +334,16 @@ export function AgendaComposer({
                   ) : null}
                 </div>
                 {expanded ? (
-                  editable ? (
+                  business.kind === "minutesApproval" ? (
+                    <div className="composer-item-editor">
+                      <p>
+                        {minutesMeeting
+                          ? formatMeetingLabel(minutesMeeting, t("meetings.occurrenceLabel"), formatDate)
+                          : t("meeting.previousMeetingChip")}
+                      </p>
+                      <p>{t(business.minutesDocumentId ? "minutes.generated" : "minutes.notGenerated")}</p>
+                    </div>
+                  ) : editable ? (
                     <form className="composer-item-editor" onSubmit={(event) => void saveItem(event, item)}>
                       <div className="grid gap-1.5">
                         <Label htmlFor={`${fieldId}-title`}>{t("meeting.subject")}</Label>
@@ -327,6 +352,7 @@ export function AgendaComposer({
                       <div className="grid gap-1.5">
                         <Label>{t("meeting.report")}</Label>
                         <MarkdownEditor
+                          testId="agenda-report-editor"
                           markdown={business.report}
                           onChange={setDraftReport}
                           mentionables={mentionables}
@@ -344,6 +370,7 @@ export function AgendaComposer({
                           <div className="grid gap-1.5">
                             <Label>{t("meeting.draftDecision")}</Label>
                             <MarkdownEditor
+                              testId="agenda-proposal-editor"
                               markdown={decisionFor(business)?.draftText ?? ""}
                               onChange={setDraftDecisionText}
                               mentionables={mentionables}
@@ -369,8 +396,8 @@ export function AgendaComposer({
                               className="composer-vote-toggle"
                               variant="ghost"
                               type="button"
-                              disabled={submitting}
-                              onClick={() => void run(() => onDetachDecision(business.id))}
+                              disabled={submitting || !onDetachDecision}
+                              onClick={() => onDetachDecision && void run(() => onDetachDecision(business.id))}
                             >
                               {t("meeting.withdrawVote")}
                             </Button>
@@ -378,8 +405,8 @@ export function AgendaComposer({
                             <Button
                               variant="outline"
                               type="button"
-                              disabled={submitting}
-                              onClick={() => void run(() => onAttachDecision(business.id, ""))}
+                              disabled={submitting || !onAttachDecision}
+                              onClick={() => onAttachDecision && void run(() => onAttachDecision(business.id, ""))}
                             >
                               <GavelIcon />
                               {t("meeting.submitToVote")}
@@ -390,7 +417,12 @@ export function AgendaComposer({
                         <Button variant="outline" type="button" onClick={() => setExpandedItemId(null)}>
                           {t("common.cancel")}
                         </Button>
-                        <Button variant="default" type="submit" disabled={submitting}>
+                        <Button
+                          data-testid="agenda-item-save"
+                          variant="default"
+                          type="submit"
+                          disabled={submitting || !onUpdateBusiness}
+                        >
                           {t(submitting ? "common.saving" : "common.save")}
                         </Button>
                       </div>
@@ -437,8 +469,8 @@ export function AgendaComposer({
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={submitting}
-                      onClick={() => void run(() => onSchedule(business.id, nextPosition))}
+                      disabled={submitting || !onSchedule}
+                      onClick={() => onSchedule && void run(() => onSchedule(business.id, nextPosition))}
                     >
                       <AddIcon />
                       {t("meeting.addToAgenda")}
@@ -454,7 +486,7 @@ export function AgendaComposer({
               <Select
                 name="kind"
                 value={quickAddKind}
-                onValueChange={(kind) => setQuickAddKind(kind as CouncilBusiness["kind"])}
+                onValueChange={(kind) => setQuickAddKind(kind === "matter" ? "matter" : "openQuestion")}
               >
                 <SelectTrigger aria-label={t("meeting.type")}>
                   <SelectValue />
@@ -462,7 +494,7 @@ export function AgendaComposer({
                 <SelectContent>
                   {quickAddKinds.map((kind) => (
                     <SelectItem key={kind} value={kind}>
-                      {t(councilBusinessKindKeys[kind])}
+                      {t(quickAddKindKeys[kind])}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -473,7 +505,7 @@ export function AgendaComposer({
                 aria-label={t("meeting.subject")}
                 required
               />
-              <Button variant="default" type="submit" disabled={submitting}>
+              <Button variant="default" type="submit" disabled={submitting || !onQuickCreate}>
                 <AddIcon />
                 {t(submitting ? "common.saving" : "common.add")}
               </Button>

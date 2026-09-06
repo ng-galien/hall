@@ -1,47 +1,110 @@
-import type { AgendaItem, CouncilBusiness, CouncilBusinessDetails } from "@hall/domain";
+import {
+  agendaItemSchema,
+  type AgendaItem,
+  type AssociateCouncilBusinessResource,
+  associateCouncilBusinessResourceSchema,
+  type CouncilBusinessResourceAssociation,
+  councilBusinessResourceAssociationSchema,
+  councilBusinessResourceItemSchema,
+  councilBusinessSchema,
+  councilBusinessWorkspaceItemSchema,
+  type CreateCouncilBusiness,
+  createCouncilBusinessSchema,
+  type DissociateCouncilBusinessResource,
+  dissociateCouncilBusinessResourceSchema,
+  type ReorderCouncilBusinessResources,
+  reorderCouncilBusinessResourcesSchema,
+  type ScheduleCouncilBusinessSubject,
+  scheduleCouncilBusinessSubjectSchema,
+} from "@hall/api-contract";
 import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
-export interface CouncilBusinessFilters {
-  folderPath?: string;
-  resourceId?: string;
+const councilBusinessPath = (id: string) => `/council-business/${encodeURIComponent(id)}`;
+
+export async function listCouncilBusinesses() {
+  const result = await apiSirenRequest<unknown>("/council-business/workspace-items");
+  return { ...result, data: councilBusinessWorkspaceItemSchema.array().parse(result.data) };
 }
 
-const councilBusinessQuery = (filters: CouncilBusinessFilters = {}) => {
-  const params = new URLSearchParams();
-  if (filters.folderPath !== undefined) params.set("folderPath", filters.folderPath);
-  if (filters.resourceId) params.set("resourceId", filters.resourceId);
-  const query = params.toString();
-  return query ? `?${query}` : "";
-};
+export async function openCouncilBusiness(id: string) {
+  const result = await apiSirenRequest<unknown>(councilBusinessPath(id));
+  return { ...result, data: councilBusinessSchema.parse(result.data) };
+}
 
-export const listCouncilBusinesses = (filters?: CouncilBusinessFilters) =>
-  apiRequest<CouncilBusiness[]>(`/council-business${councilBusinessQuery(filters)}`);
-export const getCouncilBusinessDetails = (businessId: string) =>
-  apiRequest<CouncilBusinessDetails>(`/council-business/${businessId}`);
-export const getCouncilBusinessDetailsSiren = (businessId: string) =>
-  apiSirenRequest<CouncilBusinessDetails>(`/council-business/${businessId}`);
-export const createCouncilBusiness = (input: Record<string, unknown>) =>
-  submitSirenActionAt<CouncilBusiness>("/council-business", "council-business.create", input).then(
-    (result) => result.data,
+export async function listCouncilBusinessResourceItems(ids: readonly string[]) {
+  if (ids.length === 0) return [];
+  const params = new URLSearchParams();
+  for (const id of ids) params.append("councilBusinessId", id);
+  return councilBusinessResourceItemSchema
+    .array()
+    .parse(await apiRequest<unknown>(`/council-business/resource-items?${params.toString()}`));
+}
+
+export async function listCouncilBusinessResources(id: string): Promise<CouncilBusinessResourceAssociation[]> {
+  return councilBusinessResourceAssociationSchema
+    .array()
+    .parse(await apiRequest<unknown>(`${councilBusinessPath(id)}/resources`));
+}
+
+export async function associateCouncilBusinessResource(id: string, input: AssociateCouncilBusinessResource) {
+  const result = await submitSirenActionAt<unknown>(
+    councilBusinessPath(id),
+    "council-business.associate-resource",
+    associateCouncilBusinessResourceSchema.parse(input),
   );
-export const updateCouncilBusiness = (businessId: string, input: Record<string, unknown>) =>
-  submitSirenActionAt<CouncilBusiness>(`/council-business/${businessId}`, "council-business.update", input).then(
-    (result) => result.data,
+  return councilBusinessResourceAssociationSchema.parse(result.data);
+}
+
+export async function dissociateCouncilBusinessResource(id: string, input: DissociateCouncilBusinessResource) {
+  const result = await submitSirenActionAt<unknown>(
+    councilBusinessPath(id),
+    "council-business.dissociate-resource",
+    dissociateCouncilBusinessResourceSchema.parse(input),
   );
-export const reclassifyCouncilBusiness = (businessId: string, folderPath: string) =>
-  submitSirenActionAt<CouncilBusiness>(`/council-business/${businessId}`, "council-business.reclassify", {
-    folderPath,
-  }).then((result) => result.data);
-export const scheduleCouncilBusiness = (businessId: string, meetingId: string, position: number) =>
-  submitSirenActionAt<AgendaItem>(`/council-business/${businessId}`, "council-business.schedule", {
-    meetingId,
-    position,
-  }).then((result) => result.data);
-export const attachCouncilDecision = (businessId: string, draftText: string) =>
-  submitSirenActionAt<CouncilBusiness>(`/council-business/${businessId}`, "council-business.attach-decision", {
-    draftText,
-  }).then((result) => result.data);
-export const detachCouncilDecision = (businessId: string) =>
-  submitSirenActionAt<CouncilBusiness>(`/council-business/${businessId}`, "council-business.detach-decision").then(
-    (result) => result.data,
+  return councilBusinessResourceAssociationSchema.parse(result.data);
+}
+
+export async function reorderCouncilBusinessResources(id: string, input: ReorderCouncilBusinessResources) {
+  const result = await submitSirenActionAt<unknown>(
+    councilBusinessPath(id),
+    "council-business.reorder-resources",
+    reorderCouncilBusinessResourcesSchema.parse(input),
   );
+  return councilBusinessResourceAssociationSchema.array().parse(result.data);
+}
+
+export async function listCouncilBusinessAgendaItems(ids: readonly string[]): Promise<AgendaItem[]> {
+  if (ids.length === 0) return [];
+  const params = new URLSearchParams();
+  for (const id of ids) params.append("councilBusinessId", id);
+  return agendaItemSchema
+    .array()
+    .parse(await apiRequest<unknown>(`/council-business/agenda-items?${params.toString()}`));
+}
+
+export async function scheduleCouncilBusinessSubject(
+  id: string,
+  kind: "councilDecisionProposal" | "openQuestion",
+  input: ScheduleCouncilBusinessSubject,
+) {
+  const action =
+    kind === "councilDecisionProposal"
+      ? "council-business.schedule-decision-proposal"
+      : "council-business.schedule-open-question";
+  const result = await submitSirenActionAt<unknown>(
+    councilBusinessPath(id),
+    action,
+    scheduleCouncilBusinessSubjectSchema.parse(input),
+  );
+  return agendaItemSchema.parse(result.data);
+}
+
+export async function createCouncilBusiness(input: CreateCouncilBusiness) {
+  const parsed = createCouncilBusinessSchema.parse(input);
+  const result = await submitSirenActionAt<unknown>(
+    "/council-business",
+    "council-business.create",
+    parsed,
+  );
+  return { ...result, data: councilBusinessSchema.parse(result.data) };
+}

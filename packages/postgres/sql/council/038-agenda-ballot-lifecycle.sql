@@ -6,6 +6,7 @@ CREATE FUNCTION council_agenda_item_has_completed_ballot(
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
+SET search_path = pg_catalog, hall
 AS $$
   SELECT EXISTS (
     SELECT 1
@@ -21,6 +22,7 @@ $$;
 CREATE FUNCTION enforce_council_agenda_item_completion_authority()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = pg_catalog, hall
 AS $$
 BEGIN
   -- @functional-requirement HALL-FR-AGI-150 OPEN_QUESTION_COMPLETES_WITHOUT_BALLOT:
@@ -51,6 +53,7 @@ EXECUTE FUNCTION enforce_council_agenda_item_completion_authority();
 CREATE FUNCTION complete_ballot_agenda_item()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = pg_catalog, hall
 AS $$
 BEGIN
   UPDATE council_agenda_item

@@ -5,7 +5,7 @@ import "ol/ol.css";
 import { Button } from "@/components/ui/button";
 import type { ColorPickerPreset } from "@/components/ui/color-picker";
 import { useI18n } from "../../i18n/I18nProvider";
-import { useSaveStatusStore } from "../../pages/workspace/saveStatusStore";
+import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { GeographicCompositionEditor } from "./GeographicCompositionEditor";
@@ -51,7 +51,7 @@ export function GeographicResourceMap({
   embedded?: boolean;
 }) {
   const { t } = useI18n();
-  const setSaveStatus = useSaveStatusStore((state) => state.setStatus);
+  const { setStatus: setSaveStatus } = useResourceSaveStatus(resource.id);
   const normalizedData = useMemo(() => normalizeGeographicData(data), [data]);
   const latestDraftRef = useRef<GeographicResourceData>(normalizedData);
   const latestVersionRef = useRef(resource.version);

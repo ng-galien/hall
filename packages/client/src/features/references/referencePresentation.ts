@@ -1,6 +1,7 @@
-import { type CouncilMeeting, matchDiscriminated, type ReferenceEntityKind } from "@hall/domain";
+import { matchDiscriminated, type ReferenceEntityKind } from "@hall/domain";
 import { referenceKindPresentations } from "../../components/editor/referenceKindPresentation";
 import type { TranslationKey } from "../../i18n/en";
+import type { CouncilMeetingView } from "../../models/councilMeeting";
 import { resourceTone, toneLabelKeys } from "../documents/ResourceGlyph";
 import {
   type ReferenceNavigationCatalog,
@@ -19,7 +20,7 @@ export function resolveReferencePresentation(
   kind: ReferenceEntityKind,
   id: string,
   catalog: ReferenceNavigationCatalog,
-  formatMeeting: (meeting: CouncilMeeting) => string,
+  formatMeeting: (meeting: CouncilMeetingView) => string,
 ): ResolvedReferencePresentation | null {
   const resolved = resolveReferenceEntity(kind, id, catalog);
   if (!resolved) return null;

@@ -1,11 +1,18 @@
-import type { AgendaItem, Attendance, Ballot, CouncilMember, MeetingAggregate, VoteChoice } from "@hall/domain";
 import { useMemo, useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
-import { councilBusinessKindKeys } from "../../features/council-business/presentation";
+import { councilBusinessKindKeys, liveBusinessTitle } from "../../features/council-business/presentation";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { CouncilMemberView } from "../../models/directory";
+import type {
+  LiveMeetingAgendaItem as AgendaItem,
+  LiveMeetingMemberAttendance as Attendance,
+  LiveMeetingBallot as Ballot,
+  LiveMeetingPresentation,
+  LiveVoteChoice as VoteChoice,
+} from "../../models/liveMeeting";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { agendaItemDecisionId } from "./ballotDecisionPolicy";
 import { councilMemberName } from "./ballotParticipants";
@@ -23,7 +30,7 @@ export function BallotOutcome({
   defaultCollapsed = false,
 }: {
   ballot: Ballot;
-  members: CouncilMember[];
+  members: CouncilMemberView[];
   /** Shows only the stamp and totals; details expand on demand. */
   defaultCollapsed?: boolean;
 }) {
@@ -113,7 +120,7 @@ export function MeetingProceedings({
   aggregate,
   defaultCollapsed = false,
 }: {
-  aggregate: MeetingAggregate;
+  aggregate: LiveMeetingPresentation;
   /** Collapses agenda item bodies by default. */
   defaultCollapsed?: boolean;
 }) {
@@ -239,7 +246,7 @@ export function MeetingProceedings({
                   className={`report-timeline-marker report-timeline-marker-toggle${expanded ? "" : " report-timeline-marker-collapsed"}`}
                   type="button"
                   aria-expanded={expanded}
-                  aria-label={item.business.title}
+                  aria-label={liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}
                   onClick={() => toggleItem(item.id)}
                 >
                   <span>{index + 1}</span>
@@ -247,7 +254,7 @@ export function MeetingProceedings({
                 <div className="report-timeline-body">
                   <div className="report-timeline-heading">
                     <div className="report-timeline-title">
-                      <strong>{item.business.title}</strong>
+                      <strong>{liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}</strong>
                       <span>
                         {t(councilBusinessKindKeys[item.business.kind])}
                         {item.startedAt ? ` · ${formatTime(item.startedAt)}` : ""}

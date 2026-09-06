@@ -241,7 +241,7 @@ export function CouncilMemberPage() {
             ) : (
               <div className="admin-related-list">
                 {memberships.map(({ committee, membership }) => (
-                  <Link className="data-row linked" key={membership.id} to={`/council-committees/${committee.slug}`}>
+                  <Link className="data-row linked" key={membership.id} to={`/council-committees/${committee.id}`}>
                     <div>
                       <strong>{committee.name}</strong>
                       <span>

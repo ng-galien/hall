@@ -15,8 +15,8 @@ export function DashboardPage() {
   const { councilDecisions, error: decisionsError } = useCouncilDecisionsStore();
   const error = meetingsError || councilBusinessError || decisionsError;
   const nextMeeting = [...meetings]
-    .filter((item) => new Date(item.startsAt) >= new Date())
-    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
+    .filter((item) => item.scheduledAt && new Date(item.scheduledAt) >= new Date())
+    .sort((a, b) => (a.scheduledAt ?? "").localeCompare(b.scheduledAt ?? ""))[0];
   return (
     <div className="page">
       <PageHeader title={t("dashboard.title")} description={t("dashboard.description")} />
@@ -25,14 +25,14 @@ export function DashboardPage() {
         <div className="metric-grid">
           <Metric
             icon={<AgendaIcon />}
-            value={nextMeeting ? formatDate(nextMeeting.startsAt) : t("dashboard.toSchedule")}
+            value={nextMeeting?.scheduledAt ? formatDate(nextMeeting.scheduledAt) : t("dashboard.toSchedule")}
             label={t("dashboard.nextMeeting")}
             detail={
               nextMeeting
                 ? formatMeetingLabel(nextMeeting, t("meetings.occurrenceLabel"), formatDate)
                 : t("dashboard.noMeeting")
             }
-            to={nextMeeting ? `/meetings/${nextMeeting.slug}` : "/meetings"}
+            to={nextMeeting ? `/meetings/${nextMeeting.reference}` : "/meetings"}
           />
           <Metric
             icon={<WorkspaceIcon />}

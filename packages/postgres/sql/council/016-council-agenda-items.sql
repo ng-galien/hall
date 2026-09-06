@@ -1,21 +1,33 @@
 -- Council agenda mapping
 -- ======================
 --
--- One row states that exactly one prepared subject, supported by one
--- CouncilBusiness, is placed in one CouncilMeeting. The row owns ordering and
+-- One row places a prepared subject in one CouncilMeeting. Ordinary subjects
+-- belong to CouncilBusiness; minutes approval references standalone Minutes.
+-- The row owns ordering and
 -- examination timestamps; there is no intermediate Question entity.
 CREATE TABLE council_agenda_item (
   id UUID PRIMARY KEY,
-  council_business UUID NOT NULL REFERENCES council_business (id),
+  council_business UUID REFERENCES council_business (id),
   council_meeting UUID NOT NULL REFERENCES council_meetings (id),
   position INTEGER NOT NULL,
 
   minutes_approval UUID REFERENCES minutes_approval (id),
   council_decision_proposal UUID REFERENCES council_decision_proposal (id),
   open_question UUID REFERENCES open_question (id),
+  discussion_summary TEXT NOT NULL DEFAULT '',
+
+  -- @functional-requirement HALL-FR-MIN-050 MINUTES_APPROVAL_IS_OUTSIDE_THE_WORKSPACE:
+  CONSTRAINT council_agenda_item_business_scope CHECK (
+    (minutes_approval IS NOT NULL) = (council_business IS NULL)
+  ),
 
   started_at TIMESTAMPTZ,
   completed_at TIMESTAMPTZ,
+  adjourned_at TIMESTAMPTZ,
+  CONSTRAINT council_agenda_item_adjournment_shape CHECK (
+    adjourned_at IS NULL OR (position < 0 AND completed_at IS NULL
+      AND (started_at IS NULL OR adjourned_at >= started_at))
+  ),
 
   -- @functional-requirement HALL-FR-AGI-010 AGENDA_ITEM_HAS_EXACTLY_ONE_SUBJECT:
   CONSTRAINT council_agenda_item_one_subject CHECK (
@@ -75,10 +87,6 @@ CREATE INDEX council_agenda_item_business_membership
 -- @technical-requirement HALL-TR-CON-130 AGENDA_SUBJECT_OWNER_LOOKUPS_ARE_INDEXED:
 -- Deferred owner validation locates every occurrence of one subject without
 -- scanning unrelated agenda rows.
-CREATE INDEX council_agenda_item_minutes_business_membership
-  ON council_agenda_item (minutes_approval, council_business)
-  WHERE minutes_approval IS NOT NULL;
-
 CREATE INDEX council_agenda_item_decision_business_membership
   ON council_agenda_item (council_decision_proposal, council_business)
   WHERE council_decision_proposal IS NOT NULL;

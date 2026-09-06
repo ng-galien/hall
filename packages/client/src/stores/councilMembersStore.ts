@@ -1,7 +1,9 @@
 import { findSirenAction } from "@hall/api-contract";
-import type { Contact, ContactSummary, CouncilMember } from "@hall/domain";
+import type { Contact } from "@hall/api-contract";
 import { create } from "zustand";
+import { councilMemberView, type CouncilMemberView } from "../models/directory";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
+import { getContactSiren, listContactsSiren } from "../services/contactsApi";
 import {
   createCouncilMember,
   getCouncilMemberSiren,
@@ -10,7 +12,7 @@ import {
 } from "../services/councilMembersApi";
 
 interface CouncilMembersState {
-  members: CouncilMember[];
+  members: CouncilMemberView[];
   loading: boolean;
   error: ApiErrorCode | null;
   canCreate: boolean;
@@ -18,7 +20,7 @@ interface CouncilMembersState {
   clearError(): void;
   replaceContact(contact: Contact): void;
   load(): Promise<void>;
-  loadDetail(reference: string): Promise<CouncilMember | null>;
+  loadDetail(reference: string): Promise<CouncilMemberView | null>;
   create(input: Record<string, unknown>): Promise<boolean>;
   update(reference: string, input: Record<string, unknown>): Promise<boolean>;
 }
@@ -33,26 +35,22 @@ export const useCouncilMembersStore = create<CouncilMembersState>((set, get) => 
     set({ error: null });
   },
   replaceContact(contact: Contact) {
-    const summary: ContactSummary = {
-      id: contact.id,
-      firstName: contact.firstName,
-      lastName: contact.lastName,
-      organizationName: contact.organizationName,
-      jobTitle: contact.jobTitle,
-      email: contact.email,
-      phone: contact.phone,
-      archivedAt: contact.archivedAt,
-    };
     set((state) => ({
       members: state.members.map((member) =>
-        member.contact.id === contact.id ? { ...member, contact: summary } : member,
+        member.contactId === contact.id ? councilMemberView(member, contact) : member,
       ),
     }));
   },
   async load() {
     set({ loading: true, error: null });
     try {
-      const result = await listCouncilMembersSiren();
+      const [result, contactsResult] = await Promise.all([listCouncilMembersSiren(), listContactsSiren()]);
+      const contactsById = new Map(contactsResult.data.map((contact) => [contact.id, contact] as const));
+      const members = result.data.flatMap((member) => {
+        const contact = contactsById.get(member.contactId);
+        return contact ? [councilMemberView(member, contact)] : [];
+      });
+      if (members.length !== result.data.length) throw new Error("Council member contact projection is missing");
       const canUpdate = Object.fromEntries(
         (result.representation?.entities ?? []).flatMap((entity) => {
           if (!("properties" in entity) || !findSirenAction(entity, "member.update")) return [];
@@ -61,7 +59,7 @@ export const useCouncilMembersStore = create<CouncilMembersState>((set, get) => 
         }),
       );
       set({
-        members: result.data,
+        members,
         canCreate: Boolean(result.representation && findSirenAction(result.representation, "member.create")),
         canUpdate,
         loading: false,
@@ -73,16 +71,18 @@ export const useCouncilMembersStore = create<CouncilMembersState>((set, get) => 
   async loadDetail(reference) {
     try {
       const result = await getCouncilMemberSiren(reference);
+      const contact = (await getContactSiren(result.data.contactId)).data;
+      const member = councilMemberView(result.data, contact);
       set((state) => ({
-        members: state.members.some((member) => member.id === result.data.id)
-          ? state.members.map((member) => (member.id === result.data.id ? result.data : member))
-          : [...state.members, result.data],
+        members: state.members.some((candidate) => candidate.id === member.id)
+          ? state.members.map((candidate) => (candidate.id === member.id ? member : candidate))
+          : [...state.members, member],
         canUpdate: {
           ...state.canUpdate,
           [result.data.id]: Boolean(result.representation && findSirenAction(result.representation, "member.update")),
         },
       }));
-      return result.data;
+      return member;
     } catch (error) {
       set({ error: apiErrorCode(error) });
       return null;
@@ -103,8 +103,10 @@ export const useCouncilMembersStore = create<CouncilMembersState>((set, get) => 
     set({ error: null });
     try {
       const updated = await updateCouncilMember(reference, input);
+      const contact = (await getContactSiren(updated.contactId)).data;
+      const member = councilMemberView(updated, contact);
       set((state) => ({
-        members: state.members.map((member) => (member.id === updated.id ? updated : member)),
+        members: state.members.map((candidate) => (candidate.id === member.id ? member : candidate)),
       }));
       return true;
     } catch (error) {

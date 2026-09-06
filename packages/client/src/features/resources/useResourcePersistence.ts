@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useSaveStatusStore } from "../../pages/workspace/saveStatusStore";
+import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -46,8 +46,7 @@ export function useResourcePersistence({
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
   const bodyFlushRef = useRef<(() => Promise<boolean>) | null>(null);
   const persistenceResourceIdRef = useRef<string | null | undefined>(undefined);
-  const saveStatus = useSaveStatusStore((state) => state.status);
-  const setSaveStatus = useSaveStatusStore((state) => state.setStatus);
+  const { status: saveStatus, setStatus: setSaveStatus } = useResourceSaveStatus(resourceId);
 
   useEffect(() => {
     if (persistenceResourceIdRef.current !== resourceId) {
@@ -56,7 +55,6 @@ export function useResourcePersistence({
       savePromiseRef.current = null;
       bodyFlushRef.current = null;
     }
-    return () => setSaveStatus("idle");
   }, [resourceId, setSaveStatus]);
 
   const save = useCallback(

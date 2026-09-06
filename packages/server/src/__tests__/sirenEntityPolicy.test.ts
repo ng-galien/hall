@@ -28,8 +28,14 @@ function request(path: string, permissions: readonly ApiPermission[] = apiPermis
 }
 
 const classificationSamples: Record<SirenEntityClass, { path: string; value: unknown }> = {
-  "agenda-item": { path: "/api/unknown", value: { meetingId: "meeting", business: {}, position: 1 } },
-  attendance: { path: "/api/unknown", value: { meetingId: "meeting", memberId: "member", version: 1 } },
+  "agenda-item": {
+    path: "/api/unknown",
+    value: { councilMeetingId: "meeting", subject: { kind: "openQuestion", id: "question" }, position: 1 },
+  },
+  attendance: {
+    path: "/api/unknown",
+    value: { councilMeetingId: "meeting", councilMemberId: "member", status: "present" },
+  },
   "audit-event": { path: "/api/audit-events/id", value: { id: "id" } },
   authentication: { path: "/api/auth/challenge", value: {} },
   "authentication-status": { path: "/api/auth/status", value: {} },
@@ -41,8 +47,10 @@ const classificationSamples: Record<SirenEntityClass, { path: string; value: unk
   "council-decision": { path: "/api/council-decisions/id", value: { id: "id" } },
   "council-meeting": { path: "/api/council-meetings/id", value: { id: "id" } },
   "council-member": { path: "/api/council-members/id", value: { id: "id" } },
+  "council-term": { path: "/api/council-terms", value: { id: "id" } },
   entity: { path: "/api/unknown", value: {} },
   "hall-settings": { path: "/api/settings", value: { id: "settings" } },
+  minutes: { path: "/api/minutes/one", value: { id: "one", generatedAt: null } },
   resource: { path: "/api/resources/id", value: { id: "id" } },
   session: { path: "/api/auth/session", value: {} },
   template: { path: "/api/templates/id", value: { id: "id" } },
@@ -72,12 +80,11 @@ describe("Siren entity class authority", () => {
     }
   });
 
-  it("preserves the established resource, session and settings affordances", () => {
+  it("exposes the current resource, session and settings affordances", () => {
     const adminRequest = request("/api/resources");
     expect(collectionActions(adminRequest, "resource").map(({ name }) => name)).toEqual(
       expect.arrayContaining([
-        "resource.create-text",
-        "resource.create-spreadsheet",
+        "resource.create",
         "resource.import-spreadsheet",
         "resource.create-document",
         "resource.search-legal-references",
@@ -132,7 +139,40 @@ describe("Siren entity class authority", () => {
     expect(embeddedBallotActions).toEqual(objectActions(currentRequest, "ballot", { ...aggregate, ballot }));
   });
 
-  it("keeps sparse aggregate and collection representations structurally valid", () => {
+  it("offers meeting closure only while a started meeting remains open", () => {
+    const startedMeeting = {
+      id: "meeting-id",
+      slug: "2026-09-01-001",
+      scheduledAt: "2026-09-01T18:00:00.000Z",
+      startedAt: "2026-09-01T18:05:00.000Z",
+      closedAt: null,
+    };
+
+    expect(
+      objectActions(request("/api/council-meetings/2026-09-01-001"), "council-meeting", startedMeeting),
+    ).toEqual([
+      expect.objectContaining({
+        name: "meeting.close",
+        method: "POST",
+        href: "/api/council-meetings/2026-09-01-001/close",
+      }),
+    ]);
+    expect(
+      objectActions(request("/api/council-meetings/2026-09-01-001"), "council-meeting", {
+        ...startedMeeting,
+        closedAt: "2026-09-01T20:00:00.000Z",
+      }),
+    ).toEqual([]);
+    expect(
+      objectActions(
+        request("/api/council-meetings/2026-09-01-001", ["meetings.read"]),
+        "council-meeting",
+        startedMeeting,
+      ),
+    ).toEqual([]);
+  });
+
+  it("keeps primitive and object collection representations structurally valid", () => {
     const primitiveCollection = toSirenRepresentation(request("/api/resources", []), ["seed", "finances"]);
     expect(primitiveCollection).toMatchObject({
       class: ["resource-collection"],
@@ -143,22 +183,35 @@ describe("Siren entity class authority", () => {
     const emptyObjectCollection = toSirenRepresentation(request("/api/resources", []), []);
     expect(emptyObjectCollection.entities).toEqual([]);
 
-    const incompleteMeeting = toSirenRepresentation(request("/api/council-meetings/meeting", []), {
-      meeting: { id: "meeting-id", slug: "meeting" },
-      agendaItems: [null, {}, { id: "agenda-item-id" }],
-    });
-    expect(incompleteMeeting.entities).toHaveLength(1);
-    expect(incompleteMeeting.entities?.[0]).toMatchObject({ class: ["agenda-item"] });
-
     const archivedCommittee = toSirenRepresentation(request("/api/council-committees/committee", []), {
       committee: { id: "committee-id", slug: "committee", archivedAt: "2026-09-01T10:00:00.000Z" },
       memberships: [null, {}, { id: "membership-id", endedOn: null }],
     });
-    expect(archivedCommittee.entities).toEqual([
-      expect.objectContaining({ class: ["committee-membership"], actions: undefined }),
-    ]);
+    expect(archivedCommittee.entities).toBeUndefined();
 
     const unclassified = toSirenRepresentation(request("/api/unknown", []), {});
     expect(unclassified.actions).toBeUndefined();
+  });
+});
+
+describe("active agenda ballot capabilities", () => {
+  it.each([
+    ["openQuestion", false],
+    ["councilDecisionProposal", true],
+    ["minutesApproval", true],
+  ])("exposes ballot creation for %s: %s", (kind, expected) => {
+    const req = request("/api/council-meetings/meeting/agenda-items");
+    req.res = {
+      locals: { currentCouncilMeeting: { id: "meeting", startedAt: "2026-09-05T10:00:00Z", closedAt: null } },
+    } as unknown as Request["res"];
+    const actions = objectActions(req, "agenda-item", {
+      id: "item",
+      councilMeetingId: "meeting",
+      position: 1,
+      startedAt: "2026-09-05T10:01:00Z",
+      completedAt: null,
+      subject: { kind, id: "subject" },
+    });
+    expect(actions.some((action) => action.name === "ballot.create")).toBe(expected);
   });
 });

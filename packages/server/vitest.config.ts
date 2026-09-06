@@ -31,19 +31,13 @@ export default defineConfig({
         "src/services/hallSettingsService.ts": { 100: true },
         "src/services/meetingContentPolicy.ts": { 100: true },
         "src/services/participationEvidence.ts": { 100: true },
-        "src/services/{ballotService,councilMeetingService,meetingAgendaService,meetingLifecycleService,meetingPreparationService,meetingContentPolicy,meetingContext,participationEvidence,reconvocationPolicy}.ts":
+        "src/services/{ballotService,councilMeetingService,meetingPreparationService,meetingContentPolicy,meetingContext,participationEvidence,reconvocationPolicy}.ts":
           {
             statements: 88,
             branches: 83,
             functions: 98,
             lines: 94,
           },
-        "src/services/{resourceService,councilBusinessService}.ts": {
-          statements: 85,
-          branches: 79,
-          functions: 94,
-          lines: 94,
-        },
       },
     },
   },

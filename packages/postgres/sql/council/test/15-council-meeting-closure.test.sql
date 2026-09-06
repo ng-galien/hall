@@ -22,8 +22,7 @@ SELECT throws_ok(
 SELECT throws_ok(
   $$SELECT close_council_meeting(
     test_uuid('closure:unstarted'),
-    '2026-01-01 10:00:00+00',
-    test_uuid('closure:unstarted:minutes-business')
+    '2026-01-01 10:00:00+00'
   )$$,
   'HV116',
   'only a started council meeting can be closed',
@@ -47,11 +46,12 @@ SELECT throws_ok(
   'a successor cannot commit while its predecessor remains open'
 );
 
-INSERT INTO council_meetings (id, quorum, scheduled_at)
+INSERT INTO council_meetings (id, quorum, scheduled_at, location)
 VALUES (
   test_uuid('closure:main'),
   2,
-  '2026-01-01 09:00:00+00'
+  '2026-01-01 09:00:00+00',
+  'Council chamber'
 );
 INSERT INTO meeting_attendance (id, council_member, council_meeting, status) VALUES
   (
@@ -66,6 +66,8 @@ INSERT INTO meeting_attendance (id, council_member, council_meeting, status) VAL
     test_uuid('closure:main'),
     'present'
   );
+SELECT test_designate_present_officers(id) FROM council_meetings
+WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
 UPDATE council_meetings
 SET started_at = '2026-01-01 09:05:00+00'
 WHERE id = test_uuid('closure:main');
@@ -85,8 +87,7 @@ SET CONSTRAINTS ALL DEFERRED;
 INSERT INTO council_business (id) VALUES
   (test_uuid('closure:unfinished-business')),
   (test_uuid('closure:deferred-business')),
-  (test_uuid('closure:completed-business')),
-  (test_uuid('closure:minutes-business'));
+  (test_uuid('closure:completed-business'));
 
 SELECT schedule_council_decision_proposal(
   test_uuid('closure:unfinished-business'),
@@ -107,12 +108,12 @@ SELECT start_council_agenda_item(
   ),
   '2026-01-01 09:15:00+00'
 );
-SELECT deprogram_council_agenda_item(
+SELECT adjourn_council_agenda_item(
   (
     SELECT id
     FROM council_agenda_item
     WHERE council_business = test_uuid('closure:deferred-business')
-  )
+  ), '2026-01-01 09:16:00+00'
 );
 
 SELECT schedule_open_question(
@@ -140,8 +141,7 @@ SELECT complete_open_question(
 CREATE TEMP TABLE closure_result AS
 SELECT close_council_meeting(
   test_uuid('closure:main'),
-  '2026-01-01 10:00:00+00',
-  test_uuid('closure:minutes-business')
+  '2026-01-01 10:00:00+00'
 ) AS next_meeting;
 
 SET CONSTRAINTS ALL IMMEDIATE;
@@ -269,19 +269,24 @@ SELECT
   closure_result.next_meeting,
   'present'
 FROM closure_result, generate_series(1, 2) AS ordinal;
+SELECT schedule_council_meeting(
+  closure_result.next_meeting,
+  '2026-02-01 09:00:00+00',
+  'Council chamber'
+)
+FROM closure_result;
+SELECT test_designate_present_officers(id) FROM council_meetings
+WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
 UPDATE council_meetings
 SET started_at = '2026-02-01 09:00:00+00'
 FROM closure_result
 WHERE id = closure_result.next_meeting;
 
-INSERT INTO council_business (id)
-VALUES (test_uuid('closure:second-minutes-business'));
 SELECT throws_ok(
   format(
-    'SELECT close_council_meeting(%L::uuid, %L::timestamptz, %L::uuid)',
+    'SELECT close_council_meeting(%L::uuid, %L::timestamptz)',
     (SELECT next_meeting FROM closure_result),
-    '2026-02-01 10:00:00+00',
-    test_uuid('closure:second-minutes-business')
+    '2026-02-01 10:00:00+00'
   ),
   'HV117',
   'the previous council meeting minutes must be approved before closure',
@@ -290,13 +295,10 @@ SELECT throws_ok(
 
 -- HALL-FR-BAL-290
 SELECT test_prepare_open_ballot('closure:open-ballot', 'public', 2);
-INSERT INTO council_business (id)
-VALUES (test_uuid('closure:open-ballot:minutes-business'));
 SELECT throws_ok(
   $$SELECT close_council_meeting(
     test_uuid('closure:open-ballot:meeting'),
-    '2026-01-01 10:00:00+00',
-    test_uuid('closure:open-ballot:minutes-business')
+    '2026-01-01 10:00:00+00'
   )$$,
   'HV118',
   'a council meeting with an open ballot cannot be closed',
@@ -304,7 +306,7 @@ SELECT throws_ok(
 );
 
 SELECT ok(
-  pg_get_functiondef('close_council_meeting(uuid,timestamp with time zone,uuid)'::regprocedure)
+  pg_get_functiondef('close_council_meeting(uuid,timestamp with time zone)'::regprocedure)
     LIKE '%FOR UPDATE%',
   'meeting closure declares the row lock required by its concurrency contract'
 );

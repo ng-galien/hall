@@ -1,4 +1,4 @@
-import type { Contact } from "@hall/domain";
+import type { Contact } from "@hall/api-contract";
 import { apiSirenRequest, submitSirenAction, submitSirenActionAt } from "./apiClient";
 
 export const listContactsSiren = () => apiSirenRequest<Contact[]>("/contacts");

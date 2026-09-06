@@ -1,14 +1,15 @@
-import type { MeetingAggregate } from "@hall/domain";
+import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/Ui";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { councilMemberName } from "./ballotParticipants";
 import { MeetingProceedings } from "./MeetingProceedings";
 import { MeetingStageBar } from "./MeetingStageBar";
 
-export function MeetingReport({ aggregate }: { aggregate: MeetingAggregate }) {
+export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentation }) {
   const { t, formatDate, formatDateTime, formatTime, formatNumber } = useI18n();
   const { members } = useCouncilMembersStore();
   const { meeting } = aggregate;
@@ -116,7 +117,13 @@ export function MeetingReport({ aggregate }: { aggregate: MeetingAggregate }) {
             <section className="meeting-side-section" aria-labelledby="report-minutes-heading">
               <h2 id="report-minutes-heading">{t("meeting.minutes")}</h2>
               <div className="meeting-minutes-status">
-                <StatusBadge value={meeting.minutesStatus} />
+                {meeting.minutesId ? (
+                  <Link to={`/minutes/${meeting.minutesId}`} data-testid="meeting-minutes-link">
+                    {t("minutes.view")}
+                  </Link>
+                ) : (
+                  <span>{t("minutes.empty")}</span>
+                )}
               </div>
             </section>
           </aside>

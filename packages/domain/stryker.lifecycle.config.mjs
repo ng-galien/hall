@@ -4,7 +4,6 @@ export default {
     "src/state-machines/meetingMachine.ts",
     "src/state-machines/agendaItemMachine.ts",
     "src/state-machines/councilDecisionMachine.ts",
-    "src/state-machines/minutesMachine.ts",
   ],
   testRunner: "vitest",
   coverageAnalysis: "perTest",

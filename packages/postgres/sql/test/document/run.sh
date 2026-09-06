@@ -47,5 +47,14 @@ docker exec "${container_name}" \
   psql --set ON_ERROR_STOP=1 --username postgres --dbname "${database_name}" \
   --command 'CREATE EXTENSION pgtap;'
 
-docker exec "${container_name}" sh -c \
-  "pg_prove --username postgres --dbname '${database_name}' /work/postgres/sql/test/document/*.test.sql"
+if [[ "$#" -gt 0 ]]; then
+  test_files=()
+  for test_file in "$@"; do
+    [[ "$test_file" =~ ^[a-zA-Z0-9_-]+\.test\.sql$ ]] || exit 2
+    test_files+=("/work/postgres/sql/test/document/$test_file")
+  done
+  docker exec "${container_name}" pg_prove --verbose --username postgres --dbname "${database_name}" "${test_files[@]}"
+else
+  docker exec "${container_name}" sh -c \
+    "pg_prove --username postgres --dbname '${database_name}' /work/postgres/sql/test/document/*.test.sql"
+fi

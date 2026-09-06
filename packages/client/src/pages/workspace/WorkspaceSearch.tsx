@@ -1,5 +1,5 @@
 import { type ResourceSearchCriteria, type ResourceSummary, resourceKinds } from "@hall/api-contract";
-import { type CouncilBusiness, matchDiscriminated } from "@hall/domain";
+import { matchDiscriminated } from "@hall/domain";
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CardViewIcon, ListViewIcon } from "../../components/icons";
@@ -13,7 +13,6 @@ import {
   type SearchBoxState,
 } from "../../components/search/SearchBox";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
-import { councilBusinessKindKeys } from "../../features/council-business/presentation";
 import {
   type DocumentaryLeafSummary,
   DocumentaryResourceGlyph,
@@ -24,7 +23,13 @@ import { SearchResultRow } from "../../features/search/SearchHitRow";
 import { searchTypeLabelKeys } from "../../features/search/searchCorpus";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type Searchable, searchEntities } from "../../lib/search";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
+import {
+  useWorkspaceCouncilActivityStore,
+  workspaceAgendaSubjectKeys,
+  workspaceCurrentOccurrence,
+} from "../../stores/workspaceCouncilActivityStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 
@@ -32,7 +37,7 @@ type ResourceReadiness = ResourceSearchCriteria["readiness"][number];
 type ResourceSearchMedia = ResourceSearchCriteria["media"][number];
 type WorkspaceSearchKind = "councilBusiness" | "resource";
 type WorkspaceBusinessSearchHit = Searchable<"councilBusiness"> & {
-  entity: { entityKind: "councilBusiness"; business: CouncilBusiness };
+  entity: { entityKind: "councilBusiness"; business: CouncilBusinessView };
 };
 type WorkspaceResourceSearchHit = Searchable<"resource"> & {
   entity: { entityKind: "documentaryResource"; resource: DocumentaryLeafSummary };
@@ -82,12 +87,19 @@ function WorkspaceSearchHitRow({
 }) {
   const { t, formatFileSize } = useI18n();
   const typeLabel = useDocumentaryResourceTypeLabel();
+  const occurrencesByBusinessId = useWorkspaceCouncilActivityStore((state) => state.occurrencesByBusinessId);
   const presentation = matchDiscriminated(hit.entity, "entityKind", {
-    councilBusiness: ({ business }) => ({
-      glyph: <CouncilBusinessGlyph business={business} />,
-      title: business.title,
-      meta: t(councilBusinessKindKeys[business.kind]),
-    }),
+    councilBusiness: ({ business }) => {
+      const occurrences = occurrencesByBusinessId[business.id] ?? [];
+      const occurrence = workspaceCurrentOccurrence(occurrences) ?? occurrences.at(-1);
+      return {
+        glyph: <CouncilBusinessGlyph business={business} />,
+        title: business.title,
+        meta: occurrence
+          ? t(workspaceAgendaSubjectKeys[occurrence.agendaItem.subject.kind])
+          : t("workspace.businessLeaf"),
+      };
+    },
     documentaryResource: ({ resource }) => ({
       glyph: <DocumentaryResourceGlyph resource={resource} />,
       title: resource.name,
@@ -121,6 +133,11 @@ export function WorkspaceSearch({
   const resourceSearchResult = useWorkspaceResourcesStore((state) => state.searchResult);
   const searchResources = useWorkspaceResourcesStore((state) => state.search);
   const clearResourceSearch = useWorkspaceResourcesStore((state) => state.clearSearch);
+  const loadCouncilActivity = useWorkspaceCouncilActivityStore((state) => state.load);
+
+  useEffect(() => {
+    void loadCouncilActivity();
+  }, [loadCouncilActivity]);
 
   const effective = preview ?? search;
   const active = isSearchActive(effective);

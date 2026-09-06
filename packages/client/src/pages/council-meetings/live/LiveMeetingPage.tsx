@@ -47,7 +47,7 @@ export function LiveMeetingPage() {
   const showRollCall = meeting.status === "scheduled" || (meeting.status === "inProgress" && rollCallVisible);
 
   return (
-    <div className="live-shell">
+    <div className="live-shell" data-testid="live-meeting-page">
       <header className="live-header">
         <Link className="live-exit" to={`/meetings/${meeting.slug}`}>
           <BackIcon aria-hidden="true" />

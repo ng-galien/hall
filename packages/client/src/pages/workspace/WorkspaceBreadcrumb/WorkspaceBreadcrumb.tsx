@@ -1,4 +1,3 @@
-import type { CouncilBusiness } from "@hall/domain";
 import { type ReactNode, type RefObject, useEffect } from "react";
 import { ChevronRightIcon, CloseIcon, FolderIcon, WorkspaceIcon } from "@/components/icons";
 import {
@@ -15,6 +14,7 @@ import {
   DocumentaryResourceGlyph,
 } from "../../../features/documents/DocumentaryResourceGlyph";
 import { useI18n } from "../../../i18n/I18nProvider";
+import type { CouncilBusinessView } from "../../../models/councilBusiness";
 import { useCouncilBusinessStore } from "../../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../../stores/workspaceResourcesStore";
 import { listCatalogPaths } from "../paths";
@@ -33,7 +33,7 @@ function CrumbMenu({
 }: {
   parent: string;
   allPaths: string[];
-  businesses: CouncilBusiness[];
+  businesses: CouncilBusinessView[];
   resources: DocumentaryLeafSummary[];
   currentSelection: WorkspaceSelection;
   /** Last crumb: a chevron with no folder contents renders nothing. */

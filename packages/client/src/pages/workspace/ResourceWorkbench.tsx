@@ -114,6 +114,7 @@ export function ResourceWorkbench({
             {session.capabilities.deleteResource ? (
               <Button
                 className="composer-vote-toggle"
+                data-testid="resource-delete"
                 variant="ghost"
                 disabled={session.submitting}
                 onClick={() => void remove()}

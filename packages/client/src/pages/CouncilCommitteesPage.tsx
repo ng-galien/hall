@@ -51,7 +51,7 @@ export function CouncilCommitteesPage() {
       if (!committee) return false;
       formElement.reset();
       setAddOpen(false);
-      navigate(`/council-committees/${committee.slug}`);
+      navigate(`/council-committees/${committee.id}`);
       return true;
     });
   };
@@ -91,7 +91,7 @@ export function CouncilCommitteesPage() {
         ) : layout === "cards" ? (
           <div className="card-grid">
             {visibleCommittees.map((committee) => (
-              <Link className="entity-card" key={committee.id} to={`/council-committees/${committee.slug}`}>
+              <Link className="entity-card" key={committee.id} to={`/council-committees/${committee.id}`}>
                 <strong>{committee.name}</strong>
                 <p>{committee.description || t("committees.noDescription")}</p>
                 <span className="entity-card-footer">
@@ -108,7 +108,7 @@ export function CouncilCommitteesPage() {
         ) : (
           <div className="data-list">
             {visibleCommittees.map((committee) => (
-              <Link className="data-row linked" key={committee.id} to={`/council-committees/${committee.slug}`}>
+              <Link className="data-row linked" key={committee.id} to={`/council-committees/${committee.id}`}>
                 <div>
                   <strong>{committee.name}</strong>
                   <span>{committee.description || t("committees.noDescription")}</span>

@@ -1,37 +1,39 @@
 import {
   addCommitteeMembershipSchema,
-  createCouncilCommitteeSchema,
   endCommitteeMembershipSchema,
+  saveCouncilCommitteeSchema,
   updateCommitteeMembershipSchema,
-  updateCouncilCommitteeSchema,
-} from "@hall/domain";
+} from "@hall/api-contract";
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
-export function createCouncilCommitteesRouter({ councilCommitteeService }: Cradle): Router {
+export function createCouncilCommitteesRouter({ directoryService }: Cradle): Router {
   const router = Router();
   router.get("/", requirePermission("meetings.read"), async (request, response) => {
-    response.json(await councilCommitteeService.list(request.query.includeArchived === "true"));
+    response.json(await directoryService.listCouncilCommittees(request.query.includeArchived === "true"));
   });
   router.post("/", requireActionPermission("committee.create"), async (request, response) => {
-    response.status(201).json(await councilCommitteeService.create(createCouncilCommitteeSchema.parse(request.body)));
+    response.status(201).json(await directoryService.createCouncilCommittee(saveCouncilCommitteeSchema.parse(request.body)));
   });
   router.get("/:committeeId", requirePermission("meetings.read"), async (request, response) => {
-    response.json(await councilCommitteeService.get(routeParameter(request.params.committeeId)));
+    response.json(await directoryService.getCouncilCommittee(routeParameter(request.params.committeeId)));
   });
   router.put("/:committeeId", requireActionPermission("committee.update"), async (request, response) => {
     response.json(
-      await councilCommitteeService.update(
+      await directoryService.updateCouncilCommittee(
         routeParameter(request.params.committeeId),
-        updateCouncilCommitteeSchema.parse(request.body),
+        saveCouncilCommitteeSchema.parse(request.body),
       ),
     );
   });
   router.post("/:committeeId/archive", requireActionPermission("committee.archive"), async (request, response) => {
-    response.json(await councilCommitteeService.archive(routeParameter(request.params.committeeId)));
+    response.json(await directoryService.archiveCouncilCommittee(routeParameter(request.params.committeeId)));
+  });
+  router.get("/:committeeId/memberships", requirePermission("meetings.read"), async (request, response) => {
+    response.json(await directoryService.listCommitteeMemberships(routeParameter(request.params.committeeId)));
   });
   router.post(
     "/:committeeId/memberships",
@@ -40,7 +42,7 @@ export function createCouncilCommitteesRouter({ councilCommitteeService }: Cradl
       response
         .status(201)
         .json(
-          await councilCommitteeService.addMembership(
+          await directoryService.addCommitteeMembership(
             routeParameter(request.params.committeeId),
             addCommitteeMembershipSchema.parse(request.body),
           ),
@@ -52,7 +54,7 @@ export function createCouncilCommitteesRouter({ councilCommitteeService }: Cradl
     requirePermission("meetings.read"),
     async (request, response) => {
       response.json(
-        await councilCommitteeService.getMembership(
+        await directoryService.getCommitteeMembership(
           routeParameter(request.params.committeeId),
           routeParameter(request.params.membershipId),
         ),
@@ -64,7 +66,7 @@ export function createCouncilCommitteesRouter({ councilCommitteeService }: Cradl
     requireActionPermission("committee.update-membership"),
     async (request, response) => {
       response.json(
-        await councilCommitteeService.updateMembership(
+        await directoryService.updateCommitteeMembership(
           routeParameter(request.params.committeeId),
           routeParameter(request.params.membershipId),
           updateCommitteeMembershipSchema.parse(request.body),
@@ -78,7 +80,7 @@ export function createCouncilCommitteesRouter({ councilCommitteeService }: Cradl
     async (request, response) => {
       const input = endCommitteeMembershipSchema.parse(request.body);
       response.json(
-        await councilCommitteeService.endMembership(
+        await directoryService.endCommitteeMembership(
           routeParameter(request.params.committeeId),
           routeParameter(request.params.membershipId),
           input.endedOn,

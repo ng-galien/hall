@@ -4,7 +4,6 @@ import {
   attendanceStatuses,
   ballotMethods,
   ballotResults,
-  committeeRoles,
   councilBusinessKinds,
   councilDecisionStatuses,
   councilRoles,
@@ -68,7 +67,6 @@ export const attendanceStatusSchema = z.enum(attendanceStatuses);
 export const agendaItemStatusSchema = z.enum(agendaItemStatuses);
 export const councilDecisionStatusSchema = z.enum(councilDecisionStatuses);
 export const templateKindSchema = z.enum(templateKinds);
-export const committeeRoleSchema = z.enum(committeeRoles);
 
 export const editorAssetOwnerSchema = z.object({ kind: z.enum(editorAssetOwnerKinds), id: identifierSchema }).strict();
 
@@ -130,7 +128,6 @@ export const updateHallSettingsSchema = z.object({
   outboundEmailSenderName: boundedText(160),
   outboundEmailSenderAddress: z.email().nullable(),
   outboundEmailReplyToAddress: z.email().nullable(),
-  councilTerm: z.object({ expectedMemberCount: z.number().int().positive() }).strict(),
 });
 
 const contentTemplateShape = {
@@ -163,6 +160,7 @@ export const updateContentTemplateSchema = createContentTemplateSchema;
 
 export const templateRenderContextSchema = z.object({
   meetingId: z.string().uuid().optional(),
+  minutesId: z.string().uuid().optional(),
 });
 
 export const previewContentTemplateSchema = z.discriminatedUnion("kind", [
@@ -645,71 +643,6 @@ export const promoteEditorAssetSchema = z.object({
   category: documentCategorySchema,
 });
 
-const contactFieldsSchema = z.object({
-  firstName: nonEmpty,
-  lastName: nonEmpty,
-  organizationName: boundedText(160).nullable().default(null),
-  jobTitle: boundedText(160).nullable().default(null),
-  email: z.preprocess(
-    (value) => (value === "" ? null : value),
-    z.string().trim().toLowerCase().email().nullable().default(null),
-  ),
-  phone: z.preprocess(
-    (value) => (value === "" ? null : value),
-    z.string().trim().min(3).max(40).nullable().default(null),
-  ),
-  notes: boundedText(10_000).default(""),
-});
-
-export const createContactSchema = contactFieldsSchema.strict();
-
-export const updateContactSchema = contactFieldsSchema.strict();
-
-export const createCouncilMemberSchema = z.object({
-  contactId: identifierSchema,
-  role: councilRoleSchema,
-  termStartedOn: z.iso.date(),
-});
-
-export const updateCouncilMemberSchema = z
-  .object({
-    role: councilRoleSchema,
-    termStartedOn: z.iso.date(),
-    termEndedOn: z.iso.date().nullable(),
-  })
-  .refine((value) => value.termEndedOn === null || value.termEndedOn >= value.termStartedOn, {
-    message: "The term end date cannot precede its start date",
-    path: ["termEndedOn"],
-  });
-
-export const createCouncilCommitteeSchema = z.object({
-  name: nonEmpty.max(160),
-  description: z.string().trim().max(10_000).default(""),
-});
-
-export const updateCouncilCommitteeSchema = createCouncilCommitteeSchema;
-
-export const addCommitteeMembershipSchema = z.object({
-  councilMemberId: z.string().uuid(),
-  role: committeeRoleSchema.default("member"),
-  startedOn: z.iso.date(),
-});
-
-export const updateCommitteeMembershipSchema = z
-  .object({
-    role: committeeRoleSchema,
-    startedOn: z.iso.date(),
-    endedOn: z.iso.date().nullable(),
-  })
-  .refine((value) => value.endedOn === null || value.endedOn >= value.startedOn, {
-    message: "The membership end date cannot precede its start date",
-    path: ["endedOn"],
-  });
-
-export const endCommitteeMembershipSchema = z.object({
-  endedOn: z.iso.date(),
-});
-
 export const createCouncilMeetingSchema = z
   .object({
     startsAt: z.iso.datetime({ offset: true }),
@@ -758,7 +691,6 @@ export const createCouncilBusinessSchema = z.discriminatedUnion("kind", [
     title: nonEmpty,
     report: z.string().default(""),
     folderPath: folderPathSchema.default(""),
-    resourceIds: resourceIdsSchema,
   }),
   z.object({
     kind: z.literal("minutesApproval"),
@@ -766,14 +698,12 @@ export const createCouncilBusinessSchema = z.discriminatedUnion("kind", [
     title: nonEmpty,
     report: z.string().default(""),
     folderPath: folderPathSchema.default(""),
-    resourceIds: resourceIdsSchema,
   }),
   z.object({
     kind: z.literal("openQuestion"),
     title: nonEmpty,
     report: z.string().default(""),
     folderPath: folderPathSchema.default(""),
-    resourceIds: resourceIdsSchema,
   }),
 ]);
 
@@ -782,7 +712,6 @@ export const updateCouncilBusinessSchema = z
     title: nonEmpty,
     report: z.string(),
     folderPath: folderPathSchema,
-    resourceIds: resourceIdsSchema,
     committeeId: z.string().uuid().nullable().optional(),
   })
   .strict();
@@ -796,10 +725,6 @@ export const scheduleCouncilBusinessSchema = z.object({
 
 export const attachCouncilBusinessDecisionSchema = z.object({
   draftText: z.string().default(""),
-});
-
-export const reorderAgendaSchema = z.object({
-  itemIds: z.array(z.string().uuid()).min(1),
 });
 
 export const saveAgendaItemNotesSchema = z.object({

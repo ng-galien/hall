@@ -1,14 +1,13 @@
-import { type CouncilBusiness, councilBusinessHasDecision } from "@hall/domain";
-import { GavelIcon, TextDocumentIcon } from "../../components/icons";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
+import { FolderOpenIcon } from "../../components/icons";
 
-export function CouncilBusinessGlyph({ business, large }: { business: CouncilBusiness; large?: boolean }) {
-  const withDecision = councilBusinessHasDecision(business);
+export function CouncilBusinessGlyph({ large }: { business: CouncilBusinessView; large?: boolean }) {
   return (
     <span
-      className={`workspace-glyph ${withDecision ? "workspace-glyph-decision" : "workspace-glyph-business"}${large ? " workspace-glyph-large" : ""}`}
+      className={`workspace-glyph workspace-glyph-business${large ? " workspace-glyph-large" : ""}`}
       aria-hidden="true"
     >
-      {withDecision ? <GavelIcon /> : <TextDocumentIcon />}
+      <FolderOpenIcon />
     </span>
   );
 }

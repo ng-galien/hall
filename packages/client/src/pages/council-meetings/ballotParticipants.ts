@@ -1,4 +1,5 @@
-import type { CouncilMember, MeetingAggregate } from "@hall/domain";
+import type { CouncilMemberView } from "../../models/directory";
+import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 
 export interface BallotParticipant {
   memberId: string;
@@ -8,12 +9,12 @@ export interface BallotParticipant {
   represented: boolean;
 }
 
-const memberName = (members: CouncilMember[], memberId: string): string => {
+const memberName = (members: CouncilMemberView[], memberId: string): string => {
   const member = members.find((candidate) => candidate.id === memberId);
   return member ? `${member.contact.firstName} ${member.contact.lastName}` : memberId;
 };
 
-export function ballotParticipants(aggregate: MeetingAggregate, members: CouncilMember[]): BallotParticipant[] {
+export function ballotParticipants(aggregate: LiveMeetingPresentation, members: CouncilMemberView[]): BallotParticipant[] {
   return aggregate.attendance
     .filter((attendance) => attendance.status === "present" || attendance.status === "represented")
     .map((attendance) => {
@@ -31,6 +32,6 @@ export function ballotParticipants(aggregate: MeetingAggregate, members: Council
     });
 }
 
-export function councilMemberName(members: CouncilMember[], memberId: string): string {
+export function councilMemberName(members: CouncilMemberView[], memberId: string): string {
   return memberName(members, memberId);
 }

@@ -15,7 +15,7 @@ export default defineConfig({
         functions: 82,
         lines: 92,
         "src/participationPolicy.ts": { 100: true },
-        "src/state-machines/{meetingMachine,agendaItemMachine,councilDecisionMachine,minutesMachine}.ts": { 100: true },
+        "src/state-machines/{meetingMachine,agendaItemMachine,councilDecisionMachine}.ts": { 100: true },
         "src/state-machines/ballotMachine.ts": {
           statements: 97,
           branches: 94,

@@ -1,23 +1,32 @@
-import { findSirenAction } from "@hall/api-contract";
+import { councilTermSchema, findSirenAction, type CouncilTerm } from "@hall/api-contract";
 import type { HallSettings } from "@hall/domain";
 import { apiSirenRequest, submitSirenAction } from "./apiClient";
 
-export async function loadHallSettings(): Promise<{ settings: HallSettings; canUpdate: boolean }> {
-  const result = await apiSirenRequest<HallSettings>("/settings");
+export async function loadHallSettings(): Promise<{
+  settings: HallSettings;
+  canUpdate: boolean;
+  councilTerm: CouncilTerm | null;
+  canConfigureCouncilTerm: boolean;
+}> {
+  const [result, terms] = await Promise.all([
+    apiSirenRequest<HallSettings>("/settings"),
+    apiSirenRequest<unknown>("/council-terms"),
+  ]);
+  const councilTerms = councilTermSchema.array().parse(terms.data);
   return {
     settings: result.data,
     canUpdate: Boolean(result.representation && findSirenAction(result.representation, "settings.update")),
+    councilTerm: councilTerms[0] ?? null,
+    canConfigureCouncilTerm: Boolean(
+      terms.representation && findSirenAction(terms.representation, "council-term.configure"),
+    ),
   };
 }
 
-export async function updateActiveCouncilTermExpectedMemberCount(expectedMemberCount: number): Promise<HallSettings> {
-  const current = await apiSirenRequest<HallSettings>("/settings");
-  if (!current.representation) throw new Error("Missing Hall settings Siren representation");
-  const { updatedAt: _updatedAt, ...settings } = current.data;
-  return (
-    await submitSirenAction<HallSettings>(current.representation, "settings.update", {
-      ...settings,
-      councilTerm: { expectedMemberCount },
-    })
-  ).data;
+export async function updateActiveCouncilTermExpectedMemberCount(expectedMemberCount: number): Promise<CouncilTerm> {
+  const current = await apiSirenRequest<unknown>("/council-terms");
+  if (!current.representation) throw new Error("Missing CouncilTerm Siren representation");
+  return councilTermSchema.parse(
+    (await submitSirenAction<unknown>(current.representation, "council-term.configure", { expectedMemberCount })).data,
+  );
 }

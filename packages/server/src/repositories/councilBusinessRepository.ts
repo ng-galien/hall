@@ -1,26 +1,18 @@
 import { randomUUID } from "node:crypto";
-import {
-  type CouncilBusiness,
-  councilBusinessKindSchema,
-  identifierSchema,
-  matchLiteral,
-  type Resource,
-} from "@hall/domain";
+import { type CouncilBusiness, councilBusinessKindSchema, identifierSchema, matchLiteral } from "@hall/domain";
 import type { SqlExecutor, SqlParameters } from "../infrastructure/database/executor.js";
 import type { SqlQueryName } from "../infrastructure/database/queries.js";
 import type { CouncilBusinessRepository, CreateCouncilBusiness, SaveCouncilBusiness } from "./contracts.js";
 import { uniqueSlug } from "./publicIdentifiers.js";
-import { mapStoredResource } from "./resourceRowMapping.js";
-import { asString, type DatabaseRow, mapSequential } from "./row.js";
+import { asString, type DatabaseRow } from "./row.js";
 
-export function mapCouncilBusiness(row: DatabaseRow, resources: Resource[] = []): CouncilBusiness {
+export function mapCouncilBusiness(row: DatabaseRow): CouncilBusiness {
   const common = {
     id: identifierSchema.parse(row.id),
     slug: asString(row.slug, "council_business.slug"),
     title: asString(row.title, "council_business.title"),
     report: asString(row.report, "council_business.report"),
     folderPath: asString(row.folder_path, "council_business.folder_path"),
-    resources,
     createdAt: asString(row.created_at, "council_business.created_at"),
     updatedAt: asString(row.updated_at, "council_business.updated_at"),
   };
@@ -40,21 +32,6 @@ export function mapCouncilBusiness(row: DatabaseRow, resources: Resource[] = [])
   });
 }
 
-async function mapStoredCouncilBusiness(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<CouncilBusiness> {
-  const resources = await sqlExecutor.all("councilBusiness.resources", {
-    businessId: identifierSchema.parse(row.id),
-  });
-  return mapCouncilBusiness(
-    row,
-    await mapSequential(resources, (resource) => mapStoredResource(sqlExecutor, resource)),
-  );
-}
-async function replaceResources(sqlExecutor: SqlExecutor, businessId: string, resourceIds: string[]): Promise<void> {
-  await sqlExecutor.run("councilBusiness.deleteResources", { businessId });
-  for (const [index, resourceId] of resourceIds.entries())
-    await sqlExecutor.run("councilBusiness.insertResource", { businessId, resourceId, position: index + 1 });
-}
-
 export function createCouncilBusinessRepository({
   sqlExecutor,
 }: {
@@ -62,15 +39,14 @@ export function createCouncilBusinessRepository({
 }): CouncilBusinessRepository {
   const read = async (name: SqlQueryName, parameters: SqlParameters) => {
     const row = await sqlExecutor.get(name, parameters);
-    return row ? mapStoredCouncilBusiness(sqlExecutor, row) : null;
+    return row ? mapCouncilBusiness(row) : null;
   };
   return {
     async list(filters = {}) {
       const rows = await sqlExecutor.all("councilBusiness.list", {
         folderPath: filters.folderPath ?? null,
-        resourceId: filters.resourceId ?? null,
       });
-      return mapSequential(rows, (row) => mapStoredCouncilBusiness(sqlExecutor, row));
+      return rows.map(mapCouncilBusiness);
     },
     hasFolderPathPrefix(folderPath) {
       return sqlExecutor
@@ -114,11 +90,7 @@ export function createCouncilBusinessRepository({
           createdAt: now,
           updatedAt: now,
         });
-        await replaceResources(sqlExecutor, id, input.resourceIds);
-        return mapStoredCouncilBusiness(
-          sqlExecutor,
-          (await sqlExecutor.get("councilBusiness.find", { reference: id }))!,
-        );
+        return mapCouncilBusiness((await sqlExecutor.get("councilBusiness.find", { reference: id }))!);
       });
     },
     update(id, input: SaveCouncilBusiness) {
@@ -132,11 +104,7 @@ export function createCouncilBusinessRepository({
           committeeId: input.committeeId ?? null,
           updatedAt: new Date().toISOString(),
         });
-        await replaceResources(sqlExecutor, id, input.resourceIds);
-        return mapStoredCouncilBusiness(
-          sqlExecutor,
-          (await sqlExecutor.get("councilBusiness.find", { reference: id }))!,
-        );
+        return mapCouncilBusiness((await sqlExecutor.get("councilBusiness.find", { reference: id }))!);
       });
     },
   };

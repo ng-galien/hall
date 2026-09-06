@@ -90,9 +90,9 @@ export function useReferenceMentionables(): Mentionable[] {
         kind: "meeting" as const,
         id: meeting.id,
         label: formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate),
-        extra: [meeting.number],
-        state: meeting.status,
-        stateLabel: t(domainStatusKeys[meeting.status]),
+        extra: [String(meeting.number)],
+        state: meeting.phase,
+        stateLabel: t(domainStatusKeys[meeting.phase]),
       })),
       ...councilDecisions.map((decision) => ({
         kind: "decision" as const,

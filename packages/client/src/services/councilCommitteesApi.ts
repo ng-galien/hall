@@ -1,5 +1,4 @@
-import type { SirenEntity } from "@hall/api-contract";
-import type { CommitteeMembership, CouncilCommittee } from "@hall/domain";
+import type { CommitteeMembership, CouncilCommittee, SirenEntity } from "@hall/api-contract";
 import { apiSirenRequest, submitSirenAction, submitSirenActionAt } from "./apiClient";
 
 export interface CouncilCommitteeDetails {
@@ -11,7 +10,14 @@ export const listCouncilCommitteesSiren = (includeArchived = false) =>
   apiSirenRequest<CouncilCommittee[]>(`/council-committees${includeArchived ? "?includeArchived=true" : ""}`);
 
 export const getCouncilCommitteeSiren = (reference: string) =>
-  apiSirenRequest<CouncilCommitteeDetails>(`/council-committees/${reference}`);
+  Promise.all([
+    apiSirenRequest<CouncilCommittee>(`/council-committees/${reference}`),
+    apiSirenRequest<CommitteeMembership[]>(`/council-committees/${reference}/memberships`),
+  ]).then(([committee, memberships]) => ({
+    data: { committee: committee.data, memberships: memberships.data },
+    committeeRepresentation: committee.representation,
+    membershipsRepresentation: memberships.representation,
+  }));
 
 export const createCouncilCommittee = (input: Record<string, unknown>) =>
   submitSirenActionAt<CouncilCommittee>("/council-committees", "committee.create", input).then((result) => result.data);

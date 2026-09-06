@@ -4,54 +4,6 @@ export type SqlDialect = DatabaseKind;
 
 type QueryTemplate = string | { default: string; sqlite?: string; postgres?: string };
 
-const resourceSelection = `SELECT
-  resources.id,
-  resources.slug,
-  resources.kind,
-  resources.title,
-  resources.folder_path,
-  resources.autosave_enabled,
-  resources.created_at,
-  resources.updated_at,
-  remote_resources.url AS remote_url,
-  text_resources.content AS text_content,
-  spreadsheet_resources.document_json AS spreadsheet_document_json,
-  spreadsheet_resources.version AS spreadsheet_version,
-  resource_documents.meeting_id,
-  resource_documents.file_name,
-  resource_documents.format,
-  resource_documents.media_type,
-  resource_documents.byte_size,
-  resource_documents.content_sha256,
-  resource_documents.category,
-  resource_documents.usage,
-  resource_documents.editor_owner_kind,
-  resource_documents.editor_owner_id,
-  geographic_resources.provider AS geographic_provider,
-  geographic_resources.version AS geographic_version,
-  legal_reference_resources.provider AS legal_provider,
-  legal_reference_resources.reference_kind AS legal_reference_kind,
-  legal_reference_resources.fund AS legal_fund,
-  legal_reference_resources.common_id AS legal_common_id,
-  legal_reference_resources.version_id AS legal_version_id,
-  legal_reference_resources.effective_at AS legal_effective_at,
-  legal_reference_resources.legal_status,
-  legal_reference_resources.source_url AS legal_source_url,
-  legal_reference_resources.fetched_at AS legal_fetched_at,
-  legal_reference_resources.provider_updated_at AS legal_provider_updated_at,
-  legal_reference_resources.citation_label AS legal_citation_label,
-  legal_reference_resources.attribution AS legal_attribution,
-  legal_reference_resources.snapshot_hash AS legal_snapshot_hash,
-  legal_reference_resources.verification_status AS legal_verification_status,
-  legal_reference_resources.verification_failed_at AS legal_verification_failed_at
-FROM resources
-LEFT JOIN remote_resources ON remote_resources.resource_id = resources.id
-LEFT JOIN text_resources ON text_resources.resource_id = resources.id
-LEFT JOIN spreadsheet_resources ON spreadsheet_resources.resource_id = resources.id
-LEFT JOIN resource_documents ON resource_documents.resource_id = resources.id
-LEFT JOIN geographic_resources ON geographic_resources.resource_id = resources.id
-LEFT JOIN legal_reference_resources ON legal_reference_resources.resource_id = resources.id`;
-
 const agendaSelection = `SELECT
   agenda_items.id,
   agenda_items.meeting_id,
@@ -82,38 +34,7 @@ const templateSelection = `SELECT id, kind, document_type, name, body_markdown, 
   stylesheet, header_html, footer_html, created_at, updated_at
 FROM templates`;
 
-const contactSelection = `SELECT contacts.*,
-  (SELECT council_members.id
-    FROM council_members
-    WHERE council_members.contact_id = contacts.id AND council_members.term_ended_on IS NULL
-  ) AS active_council_member_id
-FROM contacts`;
-
-const memberSelection = `SELECT
-  council_members.id,
-  council_members.contact_id,
-  council_members.role,
-  council_members.term_started_on,
-  council_members.term_ended_on,
-  contacts.first_name AS contact_first_name,
-  contacts.last_name AS contact_last_name,
-  contacts.organization_name AS contact_organization_name,
-  contacts.job_title AS contact_job_title,
-  contacts.email AS contact_email,
-  contacts.phone AS contact_phone,
-  contacts.archived_at AS contact_archived_at
-FROM council_members
-JOIN contacts ON contacts.id = council_members.contact_id`;
-
 export const queries = {
-  "agenda.resources.snapshot": `${resourceSelection}
-    JOIN agenda_item_resources ON agenda_item_resources.resource_id = resources.id
-    WHERE agenda_item_resources.agenda_item_id = :ownerId
-    ORDER BY agenda_item_resources.position`,
-  "agenda.resources.business": `${resourceSelection}
-    JOIN council_business_resources ON council_business_resources.resource_id = resources.id
-    WHERE council_business_resources.business_id = :ownerId
-    ORDER BY council_business_resources.position`,
   "agenda.listByMeeting": `${agendaSelection}
     WHERE agenda_items.meeting_id = :meetingId ORDER BY agenda_items.position`,
   "agenda.listByBusiness": `${agendaSelection}
@@ -147,10 +68,6 @@ export const queries = {
     snapshot_report = (SELECT report FROM council_business WHERE council_business.id = agenda_items.business_id),
     snapshot_folder_path = (SELECT folder_path FROM council_business WHERE council_business.id = agenda_items.business_id)
     WHERE id = :itemId AND snapshot_kind IS NULL`,
-  "agenda.snapshotResources": `INSERT INTO agenda_item_resources (agenda_item_id, resource_id, position)
-    SELECT :itemId, resource_id, position FROM council_business_resources
-    WHERE business_id = (SELECT business_id FROM agenda_items WHERE id = :itemId)
-    ON CONFLICT DO NOTHING`,
   "agenda.start": `UPDATE agenda_items SET status = 'inProgress', started_at = :startedAt
     WHERE meeting_id = :meetingId AND id = :itemId`,
   "agenda.saveNotes": `UPDATE agenda_items SET discussion_summary = :discussionSummary
@@ -174,9 +91,6 @@ export const queries = {
     VALUES (:id, :businessId, :meetingId, :position, '', 'scheduled', :snapshotKind,
       :snapshotCouncilDecisionId, :snapshotCouncilDecisionTitle, :snapshotCouncilDecisionDraftText,
       :snapshotCommitteeId, :snapshotMinutesOfMeetingId, :snapshotTitle, :snapshotReport, :snapshotFolderPath)`,
-  "agenda.copyResources": `INSERT INTO agenda_item_resources (agenda_item_id, resource_id, position)
-    SELECT :targetItemId, resource_id, position FROM agenda_item_resources
-    WHERE agenda_item_id = :sourceItemId`,
 
   "attendance.listByMeeting": "SELECT * FROM attendance WHERE meeting_id = :meetingId",
   "attendance.proxyDocumentUsed": `SELECT 1 FROM attendance WHERE proxy_document_id = :resourceId LIMIT 1`,
@@ -247,11 +161,7 @@ export const queries = {
     ON CONFLICT (kind, year) DO UPDATE SET last_value = number_sequences.last_value + 1
     RETURNING last_value`,
 
-  "settings.get": `SELECT hall_settings.*,
-    council_terms.expected_member_count AS council_term_expected_member_count
-    FROM hall_settings
-    JOIN council_terms ON council_terms.hall_id = hall_settings.id AND council_terms.active
-    WHERE hall_settings.id = 'hall'`,
+  "settings.get": "SELECT * FROM hall_settings WHERE id = 'hall'",
   "settings.update": `UPDATE hall_settings SET
     name = :name,
     insee_code = :inseeCode,
@@ -274,12 +184,6 @@ export const queries = {
     outbound_email_reply_to_address = :outboundEmailReplyToAddress,
     updated_at = :updatedAt
     WHERE id = 'hall'`,
-  "councilTerm.getActive": `SELECT expected_member_count FROM council_terms
-    WHERE hall_id = 'hall' AND active`,
-  "councilTerm.updateActiveExpectedMemberCount": `UPDATE council_terms
-    SET expected_member_count = :expectedMemberCount
-    WHERE hall_id = 'hall' AND active`,
-
   "meeting.list": "SELECT * FROM council_meetings ORDER BY starts_at DESC",
   "meeting.find": "SELECT * FROM council_meetings WHERE id = :reference OR slug = :reference",
   "meeting.slugExists": "SELECT 1 FROM council_meetings WHERE slug = :slug OR id = :slug",
@@ -311,268 +215,9 @@ export const queries = {
     updated_at = :occurredAt
     WHERE id = :id`,
 
-  "contact.list": {
-    default: `${contactSelection}
-      WHERE (:includeArchived = 1 OR contacts.archived_at IS NULL)
-      ORDER BY contacts.archived_at IS NOT NULL, contacts.last_name, contacts.first_name`,
-    postgres: `${contactSelection}
-      WHERE (CAST(:includeArchived AS boolean) = TRUE OR contacts.archived_at IS NULL)
-      ORDER BY contacts.archived_at IS NOT NULL, contacts.last_name, contacts.first_name`,
-  },
-  "contact.find": `${contactSelection} WHERE contacts.id = :id`,
-  "contact.insert": `INSERT INTO contacts
-    (id, first_name, last_name, organization_name, job_title, email, phone, notes, created_at, updated_at)
-    VALUES (:id, :firstName, :lastName, :organizationName, :jobTitle, :email, :phone, :notes, :createdAt, :updatedAt)`,
-  "contact.update": `UPDATE contacts SET
-    first_name = :firstName,
-    last_name = :lastName,
-    organization_name = :organizationName,
-    job_title = :jobTitle,
-    email = :email,
-    phone = :phone,
-    notes = :notes,
-    updated_at = :updatedAt
-    WHERE id = :id`,
-  "contact.archive": `UPDATE contacts SET archived_at = :archivedAt, updated_at = :archivedAt WHERE id = :id`,
-
-  "member.list": `${memberSelection}
-    ORDER BY council_members.term_ended_on IS NOT NULL, council_members.role, contacts.last_name, contacts.first_name`,
-  "member.listActive": {
-    default: `${memberSelection}
-      WHERE council_members.term_ended_on IS NULL
-      ORDER BY council_members.role, contacts.last_name, contacts.first_name`,
-    postgres: `${memberSelection}
-      WHERE council_members.term_ended_on IS NULL
-      ORDER BY council_members.role, contacts.last_name, contacts.first_name`,
-  },
-  "member.countActive": "SELECT COUNT(*) AS count FROM council_members WHERE term_ended_on IS NULL",
-  "member.find": `${memberSelection} WHERE council_members.id = :id`,
-  "member.findActiveByContact": `${memberSelection}
-    WHERE council_members.contact_id = :contactId AND council_members.term_ended_on IS NULL`,
-  "member.insert": `INSERT INTO council_members
-    (id, contact_id, role, term_started_on)
-    VALUES (:id, :contactId, :role, :termStartedOn)`,
-  "member.update": `UPDATE council_members SET
-    role = :role, term_started_on = :termStartedOn, term_ended_on = :termEndedOn
-    WHERE id = :id`,
-
-  "committee.list": {
-    default: `SELECT * FROM council_committees
-      WHERE (:includeArchived = 1 OR archived_at IS NULL)
-      ORDER BY name`,
-    postgres: `SELECT * FROM council_committees
-      WHERE (CAST(:includeArchived AS boolean) = TRUE OR archived_at IS NULL)
-      ORDER BY name`,
-  },
-  "committee.find": "SELECT * FROM council_committees WHERE id = :reference OR slug = :reference",
-  "committee.slugExists": "SELECT 1 FROM council_committees WHERE slug = :slug OR id = :slug",
-  "committee.insert": `INSERT INTO council_committees
-    (id, slug, name, description, created_at, updated_at)
-    VALUES (:id, :slug, :name, :description, :createdAt, :updatedAt)`,
-  "committee.update": `UPDATE council_committees
-    SET name = :name, description = :description, updated_at = :updatedAt
-    WHERE id = :id`,
-  "committee.archive": `UPDATE council_committees
-    SET archived_at = :archivedAt, updated_at = :archivedAt
-    WHERE id = :id`,
-
-  "committeeMembership.list": `SELECT * FROM committee_memberships
-    WHERE committee_id = :committeeId ORDER BY started_on, id`,
-  "committeeMembership.find": "SELECT * FROM committee_memberships WHERE id = :id",
-  "committeeMembership.insert": `INSERT INTO committee_memberships
-    (id, committee_id, council_member_id, role, started_on)
-    VALUES (:id, :committeeId, :councilMemberId, :role, :startedOn)`,
-  "committeeMembership.update": `UPDATE committee_memberships
-    SET role = :role, started_on = :startedOn, ended_on = :endedOn
-    WHERE id = :id`,
-  "committeeMembership.end": `UPDATE committee_memberships SET ended_on = :endedOn
-    WHERE id = :id AND ended_on IS NULL`,
-
   "roster.listMemberIds": `SELECT member_id FROM meeting_roster WHERE meeting_id = :meetingId ORDER BY member_id`,
   "roster.insert": `INSERT INTO meeting_roster (id, meeting_id, member_id) VALUES (:id, :meetingId, :memberId)`,
   "roster.copySource": "SELECT member_id FROM meeting_roster WHERE meeting_id = :meetingId",
-
-  "resource.tags": "SELECT tag FROM resource_tags WHERE resource_id = :resourceId ORDER BY tag",
-  "resource.list": {
-    default: `${resourceSelection}
-      WHERE (:folderPath IS NULL OR resources.folder_path = :folderPath)
-        AND (:kind IS NULL OR resources.kind = :kind)
-        AND (:meetingId IS NULL OR resource_documents.meeting_id = :meetingId)
-        AND ((:usage IS NULL AND (resources.kind IN ('text', 'spreadsheet', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
-        AND (:editorOwnerKind IS NULL OR resource_documents.editor_owner_kind = :editorOwnerKind)
-        AND (:editorOwnerId IS NULL OR resource_documents.editor_owner_id = :editorOwnerId)
-      ORDER BY resources.updated_at DESC`,
-    sqlite: `${resourceSelection}
-      WHERE (:folderPath IS NULL OR resources.folder_path = :folderPath)
-        AND (:kind IS NULL OR resources.kind = :kind)
-        AND (:meetingId IS NULL OR resource_documents.meeting_id = :meetingId)
-        AND ((:usage IS NULL AND (resources.kind IN ('text', 'spreadsheet', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = :usage)
-        AND (:editorOwnerKind IS NULL OR resource_documents.editor_owner_kind = :editorOwnerKind)
-        AND (:editorOwnerId IS NULL OR resource_documents.editor_owner_id = :editorOwnerId)
-        AND NOT EXISTS (
-          SELECT 1 FROM json_each(:tagsJson) requested_tag
-          WHERE NOT EXISTS (
-            SELECT 1 FROM resource_tags
-            WHERE resource_tags.resource_id = resources.id AND resource_tags.tag = requested_tag.value
-          )
-        )
-      ORDER BY resources.updated_at DESC`,
-    postgres: `${resourceSelection}
-      WHERE (CAST(:folderPath AS text) IS NULL OR resources.folder_path = CAST(:folderPath AS text))
-        AND (CAST(:kind AS text) IS NULL OR resources.kind = CAST(:kind AS text))
-        AND (CAST(:meetingId AS text) IS NULL OR resource_documents.meeting_id = CAST(:meetingId AS text))
-        AND ((CAST(:usage AS text) IS NULL AND (resources.kind IN ('text', 'spreadsheet', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')) OR resource_documents.usage = CAST(:usage AS text))
-        AND (CAST(:editorOwnerKind AS text) IS NULL OR resource_documents.editor_owner_kind = CAST(:editorOwnerKind AS text))
-        AND (CAST(:editorOwnerId AS text) IS NULL OR resource_documents.editor_owner_id = CAST(:editorOwnerId AS text))
-        AND NOT EXISTS (
-          SELECT 1 FROM jsonb_array_elements_text(CAST(:tagsJson AS jsonb)) requested_tag(value)
-          WHERE NOT EXISTS (
-            SELECT 1 FROM resource_tags
-            WHERE resource_tags.resource_id = resources.id AND resource_tags.tag = requested_tag.value
-          )
-        )
-      ORDER BY resources.updated_at DESC`,
-  },
-  "resource.findMetadata": `${resourceSelection} WHERE resources.id = :reference OR resources.slug = :reference`,
-  "resource.geographicData": `SELECT view_json, layers_json, hall_layer_json, attribution, license,
-    metadata_url, configured_at, source_updated_at
-    FROM geographic_resources WHERE resource_id = :id`,
-  "resource.slugExists": "SELECT 1 FROM resources WHERE slug = :slug OR id = :slug",
-  "resource.documentContent": "SELECT content FROM resource_documents WHERE resource_id = :id",
-  "resource.preview": `SELECT source_content_sha256, source_format, content_sha256, byte_size, content, created_at
-    FROM document_previews
-    WHERE source_content_sha256 = :sourceContentSha256 AND source_format = :sourceFormat`,
-  "resource.insertPreview": `INSERT INTO document_previews
-    (source_content_sha256, source_format, content_sha256, byte_size, content, created_at)
-    VALUES (:sourceContentSha256, :sourceFormat, :contentSha256, :byteSize, :content, :createdAt)
-    ON CONFLICT (source_content_sha256, source_format) DO NOTHING`,
-  "resource.deletePreviewIfUnused": `DELETE FROM document_previews
-    WHERE source_content_sha256 = :sourceContentSha256 AND source_format = :sourceFormat
-      AND NOT EXISTS (
-        SELECT 1 FROM resource_documents
-        WHERE content_sha256 = :sourceContentSha256 AND format = :sourceFormat
-      )`,
-  "resource.folderPaths": `SELECT DISTINCT resources.folder_path FROM resources
-    LEFT JOIN resource_documents ON resource_documents.resource_id = resources.id
-    WHERE resources.folder_path <> '' AND (resources.kind IN ('text', 'remote', 'geographic', 'legalReference') OR resource_documents.usage = 'document')
-    ORDER BY resources.folder_path`,
-  "resource.hasFolderPathPrefix": `SELECT 1 FROM resources
-    WHERE folder_path = :folderPath OR substr(folder_path, 1, length(:folderPrefix)) = :folderPrefix
-    LIMIT 1`,
-  "resource.renameFolder": `UPDATE resources
-    SET folder_path = CASE
-      WHEN folder_path = :sourcePath THEN :targetPath
-      ELSE :targetPath || substr(folder_path, length(:sourcePath) + 1)
-    END,
-    updated_at = :updatedAt
-    WHERE folder_path = :sourcePath OR substr(folder_path, 1, length(:sourcePrefix)) = :sourcePrefix`,
-  "resource.insertTextBase": `INSERT INTO resources
-    (id, slug, kind, title, folder_path, created_at, updated_at)
-    VALUES (:id, :slug, 'text', :title, :folderPath, :createdAt, :updatedAt)`,
-  "resource.insertRemoteBase": `INSERT INTO resources
-    (id, slug, kind, title, folder_path, created_at, updated_at)
-    VALUES (:id, :slug, 'remote', :title, :folderPath, :createdAt, :updatedAt)`,
-  "resource.insertSpreadsheetBase": `INSERT INTO resources
-    (id, slug, kind, title, folder_path, created_at, updated_at)
-    VALUES (:id, :slug, 'spreadsheet', :title, :folderPath, :createdAt, :updatedAt)`,
-  "resource.insertDocumentBase": `INSERT INTO resources
-    (id, slug, kind, title, folder_path, created_at, updated_at)
-    VALUES (:id, :slug, 'document', :title, :folderPath, :createdAt, :updatedAt)`,
-  "resource.insertGeographicBase": `INSERT INTO resources
-    (id, slug, kind, title, folder_path, created_at, updated_at)
-    VALUES (:id, :slug, 'geographic', :title, :folderPath, :createdAt, :updatedAt)`,
-  "resource.insertLegalReferenceBase": `INSERT INTO resources
-    (id, slug, kind, title, folder_path, created_at, updated_at)
-    VALUES (:id, :slug, 'legalReference', :title, :folderPath, :createdAt, :updatedAt)`,
-  "resource.insertText": "INSERT INTO text_resources (resource_id, content) VALUES (:id, :content)",
-  "resource.insertSpreadsheet": `INSERT INTO spreadsheet_resources (resource_id, document_json, version)
-    VALUES (:id, :documentJson, 1)`,
-  "resource.updateSpreadsheet": `UPDATE spreadsheet_resources SET
-    document_json = :documentJson, version = version + 1
-    WHERE resource_id = :id AND version = :expectedVersion`,
-  "resource.spreadsheetDocument": `SELECT document_json FROM spreadsheet_resources WHERE resource_id = :id`,
-  "resource.insertRemote": "INSERT INTO remote_resources (resource_id, url) VALUES (:id, :url)",
-  "resource.insertGeographic": `INSERT INTO geographic_resources
-    (resource_id, provider, view_json, layers_json, hall_layer_json, attribution, license,
-      metadata_url, configured_at, source_updated_at, version)
-    VALUES (:id, 'ign', :viewJson, :layersJson, :hallLayerJson,
-      :attribution, 'Licence Ouverte 2.0', :metadataUrl, :configuredAt, :sourceUpdatedAt, 1)`,
-  "resource.updateGeographic": `UPDATE geographic_resources SET
-    view_json = :viewJson, layers_json = :layersJson, hall_layer_json = :hallLayerJson, version = version + 1
-    WHERE resource_id = :id AND version = :expectedVersion`,
-  "resource.insertLegalReference": `INSERT INTO legal_reference_resources
-    (resource_id, provider, reference_kind, fund, common_id, version_id, effective_at, legal_status, source_url,
-      fetched_at, provider_updated_at, citation_label, attribution, snapshot_hash, verification_status,
-      verification_failed_at)
-    VALUES (:id, 'legifrance', 'article', :fund, :commonId, :versionId, :effectiveAt, :legalStatus, :sourceUrl,
-      :fetchedAt, :providerUpdatedAt, :citationLabel, :attribution, :snapshotHash, 'current', NULL)`,
-  "resource.insertLegalReferenceDraft": `INSERT INTO legal_reference_resources
-    (resource_id, provider, reference_kind)
-    VALUES (:id, 'legifrance', 'article')`,
-  "resource.resolveLegalReference": `UPDATE legal_reference_resources SET
-    fund = :fund, common_id = :commonId, version_id = :versionId, effective_at = :effectiveAt,
-    legal_status = :legalStatus, source_url = :sourceUrl, fetched_at = :fetchedAt,
-    provider_updated_at = :providerUpdatedAt, citation_label = :citationLabel, attribution = :attribution,
-    snapshot_hash = :snapshotHash, verification_status = 'current', verification_failed_at = NULL
-    WHERE resource_id = :id AND common_id IS NULL`,
-  "resource.updateLegalReference": `UPDATE legal_reference_resources SET
-    common_id = :commonId, version_id = :versionId, effective_at = :effectiveAt, legal_status = :legalStatus,
-    source_url = :sourceUrl, fetched_at = :fetchedAt, provider_updated_at = :providerUpdatedAt,
-    citation_label = :citationLabel, attribution = :attribution, snapshot_hash = :snapshotHash,
-    verification_status = 'current', verification_failed_at = NULL
-    WHERE resource_id = :id AND snapshot_hash = :expectedSnapshotHash`,
-  "resource.failLegalReferenceVerification": `UPDATE legal_reference_resources SET
-    verification_status = 'verificationUnavailable', verification_failed_at = :failedAt
-    WHERE resource_id = :id AND snapshot_hash = :expectedSnapshotHash`,
-  "resource.insertLegalReferenceSnapshot": `INSERT INTO legal_reference_snapshots
-    (id, resource_id, common_id, version_id, effective_at, fetched_at, valid_from, valid_to, legal_status,
-      raw_provider_payload, normalized_content, content_hash, snapshot_hash)
-    VALUES (:snapshotId, :resourceId, :commonId, :versionId, :effectiveAt, :fetchedAt, :validFrom, :validTo,
-      :legalStatus, :rawProviderPayload, :normalizedContent, :contentHash, :snapshotHash)`,
-  "resource.legalReferenceSnapshots": `SELECT id, common_id, version_id, effective_at, fetched_at,
-    valid_from, valid_to, legal_status, normalized_content, content_hash, snapshot_hash
-    FROM legal_reference_snapshots WHERE resource_id = :resourceId ORDER BY fetched_at, id`,
-  "resource.latestLegalReferenceSnapshot": `SELECT common_id, version_id, effective_at, valid_from, valid_to,
-    legal_status, content_hash
-    FROM legal_reference_snapshots WHERE resource_id = :resourceId ORDER BY fetched_at DESC, id DESC LIMIT 1`,
-  "resource.insertDocument": `INSERT INTO resource_documents
-    (resource_id, meeting_id, file_name, format, media_type, byte_size, content_sha256, category, usage, editor_owner_kind, editor_owner_id, content)
-    VALUES (:id, :meetingId, :fileName, :format, :mediaType, :byteSize, :contentSha256, :category, :usage, :editorOwnerKind, :editorOwnerId, :content)`,
-  "resource.insertTag": "INSERT INTO resource_tags (resource_id, tag) VALUES (:resourceId, :tag)",
-  "resource.update": `UPDATE resources SET
-    title = :title,
-    folder_path = :folderPath,
-    autosave_enabled = COALESCE(:autosaveEnabled, autosave_enabled),
-    updated_at = :updatedAt
-    WHERE id = :id`,
-  "resource.updateText": "UPDATE text_resources SET content = :content WHERE resource_id = :id",
-  "resource.updateRemote": "UPDATE remote_resources SET url = :url WHERE resource_id = :id",
-  "resource.deleteTags": "DELETE FROM resource_tags WHERE resource_id = :id",
-  "resource.isSnapshotted": `SELECT 1 FROM agenda_item_resources WHERE resource_id = :id LIMIT 1`,
-  "resource.isReferencedByRichText": `SELECT 1 FROM rich_text_resource_references WHERE resource_id = :id LIMIT 1`,
-  "resource.deleteRichTextReferences": `DELETE FROM rich_text_resource_references
-    WHERE owner_kind = :ownerKind AND owner_id = :ownerId`,
-  "resource.insertRichTextReference": `INSERT INTO rich_text_resource_references
-    (owner_kind, owner_id, resource_id) VALUES (:ownerKind, :ownerId, :resourceId)`,
-  "resource.editorAssetsForOwner": `SELECT resource_id FROM resource_documents
-    WHERE usage = 'editorAsset' AND editor_owner_kind = :ownerKind AND editor_owner_id = :ownerId`,
-  "resource.promoteEditorAsset": `UPDATE resource_documents SET
-    usage = 'document', category = :category, editor_owner_kind = NULL, editor_owner_id = NULL
-    WHERE resource_id = :id AND usage = 'editorAsset'`,
-  "resource.delete": "DELETE FROM resources WHERE id = :id",
-
-  "workspaceFolder.list": "SELECT path FROM workspace_folders ORDER BY path",
-  "workspaceFolder.existsPrefix": `SELECT 1 FROM workspace_folders
-    WHERE path = :folderPath OR substr(path, 1, length(:folderPrefix)) = :folderPrefix
-    LIMIT 1`,
-  "workspaceFolder.insert": `INSERT INTO workspace_folders (path, created_at)
-    VALUES (:path, :createdAt) ON CONFLICT (path) DO NOTHING`,
-  "workspaceFolder.rename": `UPDATE workspace_folders
-    SET path = CASE
-      WHEN path = :sourcePath THEN :targetPath
-      ELSE :targetPath || substr(path, length(:sourcePath) + 1)
-    END
-    WHERE path = :sourcePath OR substr(path, 1, length(:sourcePrefix)) = :sourcePrefix`,
 
   "security.rolesForUser": "SELECT role FROM user_roles WHERE user_id = :userId ORDER BY role",
   "security.findUserById": "SELECT * FROM users WHERE id = :value",
@@ -605,26 +250,12 @@ export const queries = {
     (id, actor_user_id, request_id, action, target_type, target_id, outcome, details_json, occurred_at)
     VALUES (:id, :actorUserId, :requestId, :action, :targetType, :targetId, :outcome, :detailsJson, :occurredAt)`,
 
-  "councilBusiness.resources": `${resourceSelection}
-    JOIN council_business_resources ON council_business_resources.resource_id = resources.id
-    WHERE council_business_resources.business_id = :businessId
-    ORDER BY council_business_resources.position`,
   "councilBusiness.list": {
     default: `SELECT * FROM council_business
     WHERE (:folderPath IS NULL OR folder_path = :folderPath)
-      AND (:resourceId IS NULL OR EXISTS (
-        SELECT 1 FROM council_business_resources
-        WHERE council_business_resources.business_id = council_business.id
-          AND council_business_resources.resource_id = :resourceId
-      ))
     ORDER BY updated_at DESC`,
     postgres: `SELECT * FROM council_business
     WHERE (CAST(:folderPath AS text) IS NULL OR folder_path = CAST(:folderPath AS text))
-      AND (CAST(:resourceId AS text) IS NULL OR EXISTS (
-        SELECT 1 FROM council_business_resources
-        WHERE council_business_resources.business_id = council_business.id
-          AND council_business_resources.resource_id = CAST(:resourceId AS text)
-      ))
     ORDER BY updated_at DESC`,
   },
   "councilBusiness.find": "SELECT * FROM council_business WHERE id = :reference OR slug = :reference",
@@ -648,9 +279,6 @@ export const queries = {
     SET title = :title, report = :report, folder_path = :folderPath,
       council_decision_id = :councilDecisionId, committee_id = :committeeId, updated_at = :updatedAt
     WHERE id = :id`,
-  "councilBusiness.deleteResources": "DELETE FROM council_business_resources WHERE business_id = :businessId",
-  "councilBusiness.insertResource": `INSERT INTO council_business_resources (business_id, resource_id, position)
-    VALUES (:businessId, :resourceId, :position)`,
   "template.list": `${templateSelection} ORDER BY document_type, kind`,
   "template.find": `${templateSelection} WHERE id = :id`,
   "template.insert": `INSERT INTO templates

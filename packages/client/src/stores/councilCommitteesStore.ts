@@ -1,5 +1,4 @@
-import { findSirenAction, type SirenEntity } from "@hall/api-contract";
-import type { CouncilCommittee } from "@hall/domain";
+import { findSirenAction, type CouncilCommittee, type SirenEntity } from "@hall/api-contract";
 import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import {
@@ -75,7 +74,7 @@ export const useCouncilCommitteesStore = create<CouncilCommitteesState>((set, ge
       const result = await getCouncilCommitteeSiren(reference);
       const committeeId = result.data.committee.id;
       const membershipRepresentations = Object.fromEntries(
-        (result.representation?.entities ?? []).flatMap((entity) => {
+        (result.membershipsRepresentation?.entities ?? []).flatMap((entity) => {
           if (!("properties" in entity) || !entity.class?.includes("committee-membership")) return [];
           const membershipId = entity.properties?.id;
           return typeof membershipId === "string" ? [[membershipId, entity]] : [];
@@ -85,11 +84,11 @@ export const useCouncilCommitteesStore = create<CouncilCommitteesState>((set, ge
         details: { ...state.details, [committeeId]: result.data },
         capabilities: {
           ...state.capabilities,
-          [committeeId]: result.representation
+          [committeeId]: result.committeeRepresentation
             ? {
-                canUpdate: Boolean(findSirenAction(result.representation, "committee.update")),
-                canArchive: Boolean(findSirenAction(result.representation, "committee.archive")),
-                canAddMembership: Boolean(findSirenAction(result.representation, "committee.add-membership")),
+                canUpdate: Boolean(findSirenAction(result.committeeRepresentation, "committee.update")),
+                canArchive: Boolean(findSirenAction(result.committeeRepresentation, "committee.archive")),
+                canAddMembership: Boolean(findSirenAction(result.committeeRepresentation, "committee.add-membership")),
               }
             : emptyCapabilities,
         },
@@ -102,7 +101,7 @@ export const useCouncilCommitteesStore = create<CouncilCommitteesState>((set, ge
     }
   },
   async loadAllDetails() {
-    await Promise.all(get().committees.map((committee) => get().loadDetail(committee.slug)));
+    await Promise.all(get().committees.map((committee) => get().loadDetail(committee.id)));
   },
   async create(input) {
     set({ error: null });
@@ -122,7 +121,7 @@ export const useCouncilCommitteesStore = create<CouncilCommitteesState>((set, ge
       set((state) => ({
         committees: state.committees.map((committee) => (committee.id === updated.id ? updated : committee)),
       }));
-      await get().loadDetail(updated.slug);
+      await get().loadDetail(updated.id);
       return true;
     } catch (error) {
       set({ error: apiErrorCode(error) });

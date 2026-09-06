@@ -25,7 +25,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const aggregate = meetingActions.meeting!;
   const { meeting } = aggregate;
   const { members } = useCouncilMembersStore();
-  const { businesses, schedulableIds } = useCouncilBusinessStore();
+  const { businesses } = useCouncilBusinessStore();
   const { resources, canUpload } = useResourcesStore();
   const rosterMembers = useMemo(
     () =>
@@ -34,10 +34,10 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         : members.filter((member) => aggregate.rosterMemberIds.includes(member.id)),
     [meeting.status, members, aggregate.rosterMemberIds],
   );
-  const agendaEditable = meetingActions.can("meeting.reorder-agenda") || meetingActions.can("meeting.schedule");
+  const agendaEditable = meetingActions.can("meeting.reorder-agenda") || meetingActions.can("agenda-item.schedule");
   const attendanceRecorded = aggregate.attendance.length;
   const [editOpen, setEditOpen] = useState(false);
-  const detailsEditable = meetingActions.can("meeting.update");
+  const detailsEditable = meetingActions.can("meeting.schedule");
   const startsAtLocalValue = (() => {
     const date = new Date(meeting.startsAt);
     const pad = (value: number) => String(value).padStart(2, "0");
@@ -48,9 +48,9 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     await run(async () => {
-      const saved = await meetingActions.updateMeeting({
-        startsAt: new Date(String(form.get("startsAt"))).toISOString(),
-        location: form.get("location"),
+      const saved = await meetingActions.schedule({
+        scheduledAt: new Date(String(form.get("startsAt"))).toISOString(),
+        location: String(form.get("location")),
       });
       if (saved) setEditOpen(false);
       return saved;
@@ -104,7 +104,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                 <Button
                   variant="default"
                   disabled={submitting || !meetingActions.can("meeting.schedule")}
-                  onClick={() => void run(() => meetingActions.changeStatus("scheduled"))}
+                  onClick={() => setEditOpen(true)}
                 >
                   {t(submitting ? "common.saving" : "meeting.action.schedule")}
                 </Button>
@@ -145,7 +145,12 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-location`}>{t("meetings.location")}</Label>
-                <Input id={`${detailsFieldId}-location`} name="location" defaultValue={meeting.location} required />
+                <Input
+                  id={`${detailsFieldId}-location`}
+                  name="location"
+                  defaultValue={meeting.location ?? ""}
+                  required
+                />
               </div>
             </div>
             <Button variant="default" type="submit" disabled={submitting}>
@@ -157,16 +162,24 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         <div className="meeting-prep-layout">
           <AgendaComposer
             agendaItems={aggregate.agendaItems}
-            businesses={businesses.filter((business) => schedulableIds.includes(business.id))}
+            businesses={businesses.map((business) => ({
+              id: business.id,
+              kind: "matter",
+              title: business.title,
+              report: business.report,
+              folderPath: business.folderPath,
+              councilDecisionId: null,
+              resources: business.resources.map((resource) => ({ ...resource, title: resource.name })),
+            }))}
+            onSchedule={(councilBusinessId, position) =>
+              meetingActions.scheduleAgendaItem({ kind: "openQuestion", councilBusinessId, position })
+            }
             decisions={aggregate.councilDecisions}
             editable={agendaEditable}
-            onSchedule={meetingActions.scheduleCouncilBusiness}
-            onQuickCreate={(input, position) => meetingActions.createAndScheduleBusiness(input, position)}
-            onUpdateBusiness={meetingActions.updateCouncilBusiness}
-            onAttachDecision={meetingActions.attachCouncilDecision}
-            onDetachDecision={meetingActions.detachCouncilDecision}
-            onSaveDecisionText={meetingActions.updateDecision}
-            onRemove={meetingActions.removeAgendaItem}
+            onUpdateBusiness={meetingActions.updateBusiness}
+            onSaveDecisionText={meetingActions.saveDecisionText}
+            onQuickCreate={meetingActions.createAndScheduleBusiness}
+            onRemove={meetingActions.deprogramAgendaItem}
             onReorder={meetingActions.reorderAgenda}
           />
           <MeetingDetailsCard

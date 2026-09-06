@@ -31,6 +31,7 @@ import { EditorResourceEmbedSearch } from "./resourceEmbeds";
 import { TableControls } from "./TableControls";
 
 export interface MarkdownEditorProps {
+  testId?: string;
   markdown: string;
   /** Heading shown by the enriched overlay. */
   title?: string;
@@ -271,6 +272,7 @@ function useMentionFacetLabels() {
 
 /** Markdown editor with a compact inline mode and an enriched overlay, both editing the same markdown. */
 export function MarkdownEditor({
+  testId,
   markdown,
   title,
   placeholder,
@@ -312,7 +314,7 @@ export function MarkdownEditor({
     contentType: "markdown",
     editable: !readOnly,
     editorProps: {
-      attributes: { class: "markdown-content", "aria-label": t("editor.writeArea") },
+      attributes: { "data-testid": "editor-writing-area", class: "markdown-content", "aria-label": t("editor.writeArea") },
     },
     onUpdate: ({ editor }) => {
       latest.current = editor.getMarkdown();
@@ -345,6 +347,7 @@ export function MarkdownEditor({
   if (variant === "enriched" && !readOnly) {
     return (
       <EnrichedEditor
+        testId={testId}
         initial={latest.current}
         placeholder={placeholder}
         members={members}
@@ -362,7 +365,7 @@ export function MarkdownEditor({
 
   return (
     <>
-      <div className="markdown-editor markdown-editor-compact" data-testid="markdown-editor-compact">
+      <div className="markdown-editor markdown-editor-compact" data-testid={testId ?? "markdown-editor-compact"}>
         <div role="toolbar" aria-orientation="vertical" aria-label={t("editor.writeArea")}>
           {inline && state ? <MarksButtons editor={inline} state={state} /> : null}
           {inline && state ? (
@@ -419,6 +422,7 @@ export function MarkdownEditor({
           </DialogHeader>
           {enriched ? (
             <EnrichedEditor
+              testId={testId}
               initial={latest.current}
               placeholder={placeholder}
               members={members}
@@ -439,6 +443,7 @@ export function MarkdownEditor({
 }
 
 function EnrichedEditor({
+  testId,
   initial,
   placeholder,
   members,
@@ -448,6 +453,7 @@ function EnrichedEditor({
   onImageStatus,
   onChange,
 }: {
+  testId?: string;
   initial: string;
   placeholder?: string;
   members: RefObject<Mentionable[]>;
@@ -483,7 +489,7 @@ function EnrichedEditor({
     contentType: "markdown",
     autofocus: true,
     editorProps: {
-      attributes: { class: "markdown-content", "aria-label": t("editor.writeArea") },
+      attributes: { "data-testid": "editor-writing-area", class: "markdown-content", "aria-label": t("editor.writeArea") },
       handleDrop: (view, event) => {
         const file = event.dataTransfer
           ? [...event.dataTransfer.files].find((candidate) => candidate.type.startsWith("image/"))
@@ -531,7 +537,7 @@ function EnrichedEditor({
   const state = useToolbarState(editor);
 
   return (
-    <div className="markdown-editor markdown-editor-large" data-testid="markdown-editor-enriched">
+    <div className="markdown-editor markdown-editor-large" data-testid={testId ?? "markdown-editor-enriched"}>
       <div role="toolbar" aria-label={t("editor.enrich")}>
         {editor && state ? (
           <>

@@ -152,3 +152,90 @@ AFTER UPDATE OF path, name, folder_resource_id, text_resource_id ON hall.resourc
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION hall.enforce_council_business_workspace_resource();
+
+-- CouncilBusiness working resources
+-- =================================
+--
+-- This relation classifies an existing documentary resource as supporting one
+-- affair. It deliberately carries no path: association, dissociation and
+-- ordering never relocate the resource in the workspace namespace.
+
+-- @functional-requirement HALL-FR-WSP-090 BUSINESS_RESOURCE_ASSOCIATION_PRESERVES_LOCATION:
+-- @functional-requirement HALL-FR-WSP-100 BUSINESS_RESOURCES_HAVE_A_STABLE_ORDER:
+CREATE TABLE hall.council_business_resource (
+  council_business UUID NOT NULL
+    REFERENCES hall.council_business (id) ON DELETE CASCADE,
+  resource UUID NOT NULL
+    REFERENCES hall.resource (id) ON DELETE RESTRICT,
+  position INTEGER NOT NULL CHECK (position > 0),
+  PRIMARY KEY (council_business, resource),
+  CONSTRAINT council_business_resource_position_unique
+    UNIQUE (council_business, position)
+    DEFERRABLE INITIALLY DEFERRED
+);
+
+COMMENT ON TABLE hall.council_business_resource IS
+  'Ordered many-to-many association between an affair and existing non-folder working resources; FolderPath remains owned by hall.resource.';
+
+CREATE FUNCTION hall.enforce_council_business_resource()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = pg_catalog, hall
+AS $function$
+DECLARE
+  associated_is_folder BOOLEAN;
+BEGIN
+  -- @technical-requirement HALL-TR-CON-210 BUSINESS_RESOURCE_WRITES_ARE_SERIALIZED:
+  -- One aggregate-root lock serializes append, dissociation and exact reorder.
+  PERFORM 1
+  FROM hall.council_business
+  WHERE id = CASE WHEN TG_OP = 'DELETE' THEN OLD.council_business ELSE NEW.council_business END
+  FOR UPDATE;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+
+  -- @functional-requirement HALL-FR-WSP-110 BUSINESS_RESOURCE_IDENTITY_IS_IMMUTABLE:
+  IF TG_OP = 'UPDATE'
+    AND (
+      NEW.council_business IS DISTINCT FROM OLD.council_business
+      OR NEW.resource IS DISTINCT FROM OLD.resource
+    )
+  THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV704',
+      MESSAGE = 'a council business resource identity is immutable';
+  END IF;
+
+  SELECT candidate.is_folder
+  INTO associated_is_folder
+  FROM hall.resource AS candidate
+  WHERE candidate.id = NEW.resource;
+
+  -- @functional-requirement HALL-FR-WSP-120 BUSINESS_RESOURCE_IS_A_WORKING_RESOURCE:
+  -- The intrinsic folder and report already have dedicated identities. A
+  -- folder cannot be attached as a working document and the report cannot be
+  -- duplicated in the ordered association.
+  IF associated_is_folder IS NULL
+    OR associated_is_folder
+    OR EXISTS (
+      SELECT
+      FROM hall.council_business_workspace AS workspace
+      WHERE workspace.council_business = NEW.council_business
+        AND NEW.resource IN (workspace.folder_resource, workspace.report_resource)
+    )
+  THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV703',
+      MESSAGE = 'a council business resource must be a non-folder working resource distinct from its report';
+  END IF;
+
+  RETURN NEW;
+END
+$function$;
+
+CREATE TRIGGER council_business_resource_enforce_invariants
+BEFORE INSERT OR UPDATE OR DELETE ON hall.council_business_resource
+FOR EACH ROW
+EXECUTE FUNCTION hall.enforce_council_business_resource();

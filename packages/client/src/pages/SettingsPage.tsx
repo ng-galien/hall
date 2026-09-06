@@ -19,7 +19,7 @@ export function SettingsPage() {
   const { submitting, run } = useSubmitting();
   const [logoutAvailable, setLogoutAvailable] = useState(false);
   const [hallSettings, setHallSettings] = useState<HallSettings | null>(null);
-  const [settingsUpdateAvailable, setSettingsUpdateAvailable] = useState(false);
+  const [councilTermUpdateAvailable, setCouncilTermUpdateAvailable] = useState(false);
   const [expectedMemberCount, setExpectedMemberCount] = useState("");
   const [settingsError, setSettingsError] = useState<ApiErrorCode | null>(null);
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -33,17 +33,17 @@ export function SettingsPage() {
   }, []);
   useEffect(() => {
     void loadHallSettings()
-      .then(({ settings, canUpdate }) => {
+      .then(({ settings, councilTerm, canConfigureCouncilTerm }) => {
         setHallSettings(settings);
-        setSettingsUpdateAvailable(canUpdate);
-        setExpectedMemberCount(settings.councilTerm.expectedMemberCount?.toString() ?? "");
+        setCouncilTermUpdateAvailable(canConfigureCouncilTerm);
+        setExpectedMemberCount(councilTerm?.expectedMemberCount.toString() ?? "");
       })
       .catch((error) => setSettingsError(apiErrorCode(error)));
   }, []);
 
   const submitCouncilTerm = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!hallSettings || !settingsUpdateAvailable) return;
+    if (!hallSettings || !councilTermUpdateAvailable) return;
     const parsedExpectedMemberCount = Number(expectedMemberCount);
     if (!Number.isSafeInteger(parsedExpectedMemberCount) || parsedExpectedMemberCount <= 0) {
       setSettingsError("invalid_request");
@@ -54,8 +54,7 @@ export function SettingsPage() {
       setSettingsSaved(false);
       try {
         const saved = await updateActiveCouncilTermExpectedMemberCount(parsedExpectedMemberCount);
-        setHallSettings(saved);
-        setExpectedMemberCount(String(saved.councilTerm.expectedMemberCount));
+        setExpectedMemberCount(String(saved.expectedMemberCount));
         await useCouncilMembersStore.getState().load();
         setSettingsSaved(true);
         return true;
@@ -70,7 +69,7 @@ export function SettingsPage() {
       <PageHeader title={t("settings.title")} description={t("settings.description")} />
       <div className="page-content">
         <RequestErrorBanner error={settingsError} />
-        {hallSettings && settingsUpdateAvailable ? (
+        {hallSettings && councilTermUpdateAvailable ? (
           <form className="creation-form" onSubmit={(event) => void submitCouncilTerm(event)}>
             <h3>{t("settings.councilTerm")}</h3>
             <div className="grid gap-1.5">

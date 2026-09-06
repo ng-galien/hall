@@ -57,33 +57,33 @@ SELECT set_eq(
     WHERE pronamespace = 'hall'::regnamespace
       AND proname IN (
         'ballot_choice_count', 'ballot_has_valid_chairman', 'ballot_participation_count',
-        'ballot_vote_count', 'complete_ballot_agenda_item', 'complete_open_question',
+        'assert_programmed_council_agenda_position', 'ballot_vote_count', 'complete_ballot_agenda_item', 'complete_open_question',
         'close_council_meeting', 'council_meeting_closure_is_complete',
         'council_agenda_item_has_completed_ballot',
-        'council_business_agenda_members_are_compatible',
         'council_agenda_item_subject_has_one_business',
         'council_meeting_present_member_count', 'deprogram_council_agenda_item',
         'council_meeting_has_open_ballot',
         'council_meeting_previous_minutes_are_approved',
         'derive_ballot_result', 'enforce_ballot_chairman', 'enforce_ballot_lifecycle',
         'enforce_ballot_participation_lifecycle', 'enforce_council_agenda_item_completion_authority',
-        'enforce_council_agenda_item_lifecycle', 'enforce_council_business_agenda_members',
+        'enforce_council_agenda_item_lifecycle',
         'enforce_council_agenda_item_subject_business',
         'enforce_council_meeting_lifecycle', 'enforce_meeting_attendance_lifecycle',
         'enforce_council_meeting_sequence',
         'enforce_meeting_attendance_proxy_holder', 'enforce_vote_immutability',
         'lock_council_agenda_item_business', 'lock_council_agenda_item_subject',
         'meeting_attendance_is_valid_proxy_holder',
-        'reprogram_council_agenda_item', 'schedule_council_decision_proposal',
+        'provision_initial_council_meeting',
+        'reorder_council_agenda', 'reprogram_council_agenda_item', 'schedule_council_decision_proposal',
         'schedule_minutes_approval', 'schedule_open_question', 'start_council_agenda_item'
       )$$,
   $$VALUES
     ('ballot_choice_count'::name), ('ballot_has_valid_chairman'::name),
     ('ballot_participation_count'::name), ('ballot_vote_count'::name),
+    ('assert_programmed_council_agenda_position'::name),
     ('complete_ballot_agenda_item'::name), ('complete_open_question'::name),
     ('close_council_meeting'::name), ('council_meeting_closure_is_complete'::name),
     ('council_agenda_item_has_completed_ballot'::name),
-    ('council_business_agenda_members_are_compatible'::name),
     ('council_agenda_item_subject_has_one_business'::name),
     ('council_meeting_has_open_ballot'::name),
     ('council_meeting_previous_minutes_are_approved'::name),
@@ -92,7 +92,6 @@ SELECT set_eq(
     ('enforce_ballot_lifecycle'::name), ('enforce_ballot_participation_lifecycle'::name),
     ('enforce_council_agenda_item_completion_authority'::name),
     ('enforce_council_agenda_item_lifecycle'::name),
-    ('enforce_council_business_agenda_members'::name),
     ('enforce_council_agenda_item_subject_business'::name),
     ('enforce_council_meeting_lifecycle'::name),
     ('enforce_council_meeting_sequence'::name),
@@ -101,7 +100,9 @@ SELECT set_eq(
     ('lock_council_agenda_item_business'::name),
     ('lock_council_agenda_item_subject'::name),
     ('meeting_attendance_is_valid_proxy_holder'::name),
-    ('reprogram_council_agenda_item'::name), ('schedule_council_decision_proposal'::name),
+    ('provision_initial_council_meeting'::name),
+    ('reorder_council_agenda'::name), ('reprogram_council_agenda_item'::name),
+    ('schedule_council_decision_proposal'::name),
     ('schedule_minutes_approval'::name), ('schedule_open_question'::name),
     ('start_council_agenda_item'::name)$$,
   'all council rule, lifecycle and named action functions exist'
@@ -112,21 +113,27 @@ SELECT set_eq(
     FROM pg_trigger
     JOIN pg_class AS trigger_table ON trigger_table.oid = pg_trigger.tgrelid
     JOIN pg_proc ON pg_proc.oid = pg_trigger.tgfoid
-    WHERE NOT pg_trigger.tgisinternal$$,
+    WHERE NOT pg_trigger.tgisinternal
+      AND trigger_table.relnamespace = 'hall'::regnamespace
+      AND trigger_table.relname IN (
+        'ballot_participation', 'ballots', 'council_agenda_item',
+        'council_meetings', 'meeting_attendance', 'votes'
+      )$$,
   $$VALUES
     ('ballot_participation.ballot_participation_enforce_lifecycle -> enforce_ballot_participation_lifecycle'),
     ('ballot_participation.ballot_participation_reject_truncate -> enforce_ballot_participation_lifecycle'),
+    ('ballots.ballot_requires_generated_minutes -> require_generated_minutes_for_ballot'),
     ('ballots.ballots_complete_agenda_item -> complete_ballot_agenda_item'),
     ('ballots.ballots_enforce_chairman -> enforce_ballot_chairman'),
     ('ballots.ballots_enforce_lifecycle -> enforce_ballot_lifecycle'),
     ('ballots.ballots_reject_truncate -> enforce_ballot_lifecycle'),
-    ('council_agenda_item.council_agenda_item_enforce_business_members -> enforce_council_business_agenda_members'),
     ('council_agenda_item.council_agenda_item_enforce_completion_authority -> enforce_council_agenda_item_completion_authority'),
     ('council_agenda_item.council_agenda_item_enforce_lifecycle -> enforce_council_agenda_item_lifecycle'),
     ('council_agenda_item.council_agenda_item_enforce_subject_business -> enforce_council_agenda_item_subject_business'),
     ('council_agenda_item.council_agenda_item_lock_business -> lock_council_agenda_item_business'),
     ('council_agenda_item.council_agenda_item_lock_subject -> lock_council_agenda_item_subject'),
     ('council_agenda_item.council_agenda_item_reject_truncate -> enforce_council_agenda_item_lifecycle'),
+    ('council_meetings.council_meeting_capture_opening -> snapshot_council_meeting_opening'),
     ('council_meetings.council_meetings_enforce_lifecycle -> enforce_council_meeting_lifecycle'),
     ('council_meetings.council_meetings_enforce_sequence -> enforce_council_meeting_sequence'),
     ('council_meetings.council_meetings_reject_truncate -> enforce_council_meeting_lifecycle'),

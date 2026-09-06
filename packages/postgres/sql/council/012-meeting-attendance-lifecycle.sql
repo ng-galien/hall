@@ -1,21 +1,24 @@
--- Lifecycle: attendance declarations are inserted while the meeting is being
--- prepared. Each declaration is immutable immediately after insertion, and no
--- declaration may be added once the meeting has started.
+-- Lifecycle: attendance declarations form an exact, adjustable preparation
+-- set. The named batch action may replace that set until the meeting starts;
+-- from the start instant onward, every declaration is immutable.
 CREATE FUNCTION enforce_meeting_attendance_lifecycle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = pg_catalog, hall
 AS $$
 DECLARE
   meeting_started_at TIMESTAMPTZ;
+  target_meeting UUID;
 BEGIN
-  -- @functional-requirement HALL-FR-ATT-080 MEETING_ATTENDANCE_IS_IMMUTABLE: An attendance
-  -- declaration is an immutable fact. Only its initial
-  -- insertion is legal; row updates, deletes and table truncation are refused.
-  IF TG_OP <> 'INSERT' THEN
+  -- Table-wide truncation has no meeting scope and can never represent the
+  -- named preparation action.
+  IF TG_OP = 'TRUNCATE' THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV101',
-      MESSAGE = 'meeting attendance is immutable';
+      MESSAGE = 'meeting attendance cannot be truncated';
   END IF;
+
+  target_meeting := CASE WHEN TG_OP = 'DELETE' THEN OLD.council_meeting ELSE NEW.council_meeting END;
 
   -- @technical-requirement HALL-TR-CON-020 ATTENDANCE_INSERT_SERIALIZES_WITH_MEETING_START:
   -- Attendance insertion locks its meeting so it cannot
@@ -23,7 +26,7 @@ BEGIN
   SELECT started_at
   INTO meeting_started_at
   FROM council_meetings
-  WHERE id = NEW.council_meeting
+  WHERE id = target_meeting
   FOR UPDATE;
 
   -- Referential invariant: lifecycle validation must name a missing meeting
@@ -43,8 +46,10 @@ BEGIN
       MESSAGE = 'a started council meeting cannot receive attendance';
   END IF;
 
-  -- The insertion satisfies every attendance lifecycle invariant.
-  RETURN NEW;
+  -- @functional-requirement HALL-FR-ATT-080 MEETING_ATTENDANCE_IS_IMMUTABLE_AFTER_START:
+  -- Before start, the named exact-set action may insert or remove preparation
+  -- declarations. The start transition freezes the complete set.
+  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END;
 $$;
 

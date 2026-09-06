@@ -1,9 +1,14 @@
-import type { BallotMethod, CouncilMember, MeetingAggregate, VoteChoice } from "@hall/domain";
+import type {
+  LiveBallotMethod as BallotMethod,
+  LiveBallotSubmission as RecordBallotInput,
+  LiveMeetingPresentation,
+  LiveVoteChoice as VoteChoice,
+} from "../../../models/liveMeeting";
+import type { CouncilMemberView } from "../../../models/directory";
 import { type DragEvent, useEffect, useRef, useState } from "react";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import type { TranslationKey } from "../../../i18n/en";
 import { useI18n } from "../../../i18n/I18nProvider";
-import type { BallotTarget, RecordBallotInput } from "../../../services/councilMeetingsApi";
 import { type BallotParticipant, ballotParticipants } from "../ballotParticipants";
 import {
   initialSecretBallotTotals,
@@ -41,7 +46,7 @@ function VoteBadge({
 }: {
   participant: BallotParticipant;
   zone: ZoneChoice;
-  member: CouncilMember | undefined;
+  member: CouncilMemberView | undefined;
   carriedCount: number;
   dragging: boolean;
   selected: boolean;
@@ -104,9 +109,9 @@ export function VotePanel({
   initialAssignments,
   initialSecretTotals,
 }: {
-  aggregate: MeetingAggregate;
-  members: CouncilMember[];
-  target: BallotTarget;
+  aggregate: LiveMeetingPresentation;
+  members: CouncilMemberView[];
+  target: { councilDecisionId: string } | { agendaItemId: string };
   open: boolean;
   onOpenChange(open: boolean): void;
   onRecord(input: RecordBallotInput): Promise<boolean>;
@@ -260,7 +265,12 @@ export function VotePanel({
   if (!open) {
     return (
       <section className="vote-panel vote-panel-collapsed">
-        <button className="live-primary-action vote-open-action" type="button" onClick={() => onOpenChange(true)}>
+        <button
+          className="live-primary-action vote-open-action"
+          type="button"
+          data-testid="live-ballot-open"
+          onClick={() => onOpenChange(true)}
+        >
           {t("live.openVote")}
         </button>
         <p className="vote-eligible-hint">
@@ -279,6 +289,7 @@ export function VotePanel({
             className={`vote-method-choice${method === "public" ? " vote-method-choice-active" : ""}`}
             type="button"
             aria-pressed={method === "public"}
+            data-testid="live-ballot-mode-public"
             onClick={() => setMethod("public")}
           >
             {t("ballot.method.public")}
@@ -287,6 +298,7 @@ export function VotePanel({
             className={`vote-method-choice${method === "secret" ? " vote-method-choice-active" : ""}`}
             type="button"
             aria-pressed={method === "secret"}
+            data-testid="live-ballot-mode-secret"
             onClick={() => setMethod("secret")}
           >
             {t("ballot.method.secret")}
@@ -307,7 +319,7 @@ export function VotePanel({
               <span className="vote-source-tools">
                 <strong>{formatNumber(unassigned.length)}</strong>
                 {unassigned.length > 0 ? (
-                  <button className="vote-reset" type="button" onClick={assignRemainingFor}>
+                  <button className="vote-reset" type="button" data-testid="live-ballot-all-for" onClick={assignRemainingFor}>
                     {t("live.remainingToFor")}
                   </button>
                 ) : null}
@@ -376,6 +388,7 @@ export function VotePanel({
                 <button
                   type="button"
                   aria-label={`${t(counter.labelKey)} −1`}
+                  data-testid={`live-secret-${counter.key}-decrement`}
                   onClick={() => adjustSecretTotal(counter.key, -1)}
                 >
                   −
@@ -384,6 +397,7 @@ export function VotePanel({
                 <button
                   type="button"
                   aria-label={`${t(counter.labelKey)} +1`}
+                  data-testid={`live-secret-${counter.key}-increment`}
                   onClick={() => adjustSecretTotal(counter.key, 1)}
                 >
                   +
@@ -432,6 +446,7 @@ export function VotePanel({
             className="live-primary-action"
             type="button"
             disabled={submitting || (method === "public" ? !publicComplete : !secretValid)}
+            data-testid="live-ballot-record"
             onClick={() => void record()}
           >
             {t(submitting ? "common.saving" : "ballot.recordAction")}

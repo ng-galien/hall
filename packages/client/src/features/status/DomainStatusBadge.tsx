@@ -8,9 +8,11 @@ import type {
 import { Badge } from "@/components/ui/badge";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { LiveMeetingStatus, LiveAgendaItemStatus } from "../../models/liveMeeting";
 
 export type DomainStatus =
   | AgendaItemStatus
+  | LiveAgendaItemStatus
   | AttendanceStatus
   | CouncilDecisionStatus
   | MeetingStatus
@@ -29,6 +31,7 @@ export const domainStatusKeys: Record<DomainStatus, TranslationKey> = {
   approved: "status.approved",
   signed: "status.signed",
   examined: "status.examined",
+  adjourned: "status.adjourned",
   withdrawn: "status.withdrawn",
   adopted: "status.adopted",
   rejected: "status.rejected",
@@ -53,7 +56,7 @@ export function StatusBadge({ value }: { value: DomainStatus }) {
   return <Badge variant={variant}>{t(domainStatusKeys[value])}</Badge>;
 }
 
-const meetingStatusKeys: Record<MeetingStatus, TranslationKey> = {
+const meetingStatusKeys: Record<LiveMeetingStatus, TranslationKey> = {
   draft: "meetingStatus.draft",
   scheduled: "meetingStatus.scheduled",
   inProgress: "meetingStatus.inProgress",
@@ -61,7 +64,7 @@ const meetingStatusKeys: Record<MeetingStatus, TranslationKey> = {
   cancelled: "meetingStatus.cancelled",
 };
 
-export function MeetingStatusBadge({ status }: { status: MeetingStatus }) {
+export function MeetingStatusBadge({ status }: { status: LiveMeetingStatus }) {
   const { t } = useI18n();
   const variant =
     status === "inProgress"

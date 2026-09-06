@@ -2,6 +2,7 @@ import type { ErrorRequestHandler } from "express";
 import { MulterError } from "multer";
 import { ZodError } from "zod";
 import { logger } from "../core/logger.js";
+import { CouncilClientError } from "../clients/councilClient.js";
 import { PersistenceError } from "../repositories/errors.js";
 import { DomainError } from "../services/errors.js";
 import { sendProblem } from "./problemDetails.js";
@@ -25,6 +26,10 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
   }
   if (error instanceof DomainError) {
     sendProblem(request, response, error.statusCode, error.code);
+    return;
+  }
+  if (error instanceof CouncilClientError) {
+    sendProblem(request, response, error.failure === "invalidResourceLocation" ? 400 : 409, error.failure);
     return;
   }
   if (error instanceof PersistenceError) {

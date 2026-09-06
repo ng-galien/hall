@@ -252,13 +252,15 @@ test("document category translations are exhaustive over the domain type", () =>
 test("the complete ballot contract is exposed through the meeting UI", () => {
   const votePanel = read("src/pages/council-meetings/live/VotePanel.tsx");
   const meetingProceedings = read("src/pages/council-meetings/MeetingProceedings.tsx");
-  const meetingApi = read("src/services/councilMeetingsApi.ts");
+  const ballotApi = read("src/services/ballotsApi.ts");
   assert.match(votePanel, /method === "public"/);
   assert.match(votePanel, /totals: secretTotals/);
   assert.match(votePanel, /reconcileSecretBallotTotals/);
   assert.match(meetingProceedings, /ballot\.method === "public"/);
   assert.match(meetingProceedings, /ballot\.participationEvidence\.quorum/);
-  assert.match(meetingApi, /recordMeetingBallot/);
+  assert.match(ballotApi, /createBallot/);
+  assert.match(ballotApi, /recordBallotVotes/);
+  assert.match(ballotApi, /completeBallot/);
 });
 
 test("the client recognizes every stable upload error", () => {
@@ -283,7 +285,7 @@ test("meeting mutations follow the lifecycle and fixed roster", () => {
   assert.match(resourceCapabilities, /findSirenAction\(representation, "resource\.delete"\)/);
   const livePage = read("src/pages/council-meetings/live/LiveMeetingPage.tsx");
   assert.match(livePage, /aggregate\.rosterMemberIds\.includes\(member\.id\)/);
-  assert.match(read("src/pages/council-meetings/live/RollCallView.tsx"), /meetingOpeningBlock\(aggregate\)/);
+  assert.match(read("src/pages/council-meetings/live/RollCallView.tsx"), /meetingOpeningBlock\(\{/);
   assert.match(read("src/pages/council-meetings/live/ConductView.tsx"), /pendingBallotDecisions\(aggregate\)/);
 });
 
@@ -300,8 +302,8 @@ test("council administration follows committee Siren capabilities", () => {
   assert.match(api, /"committee\.add-membership"/);
   assert.match(api, /submitSirenAction<CommitteeMembership>\(representation, "committee\.update-membership"/);
   assert.match(api, /submitSirenAction<CommitteeMembership>\(representation, "committee\.end-membership"/);
-  assert.match(store, /findSirenAction\(result\.representation, "committee\.update"\)/);
-  assert.match(store, /findSirenAction\(result\.representation, "committee\.add-membership"\)/);
+  assert.match(store, /findSirenAction\(result\.committeeRepresentation, "committee\.update"\)/);
+  assert.match(store, /findSirenAction\(result\.committeeRepresentation, "committee\.add-membership"\)/);
   assert.match(store, /entity\.class\?\.includes\("committee-membership"\)/);
   assert.match(committeePage, /findSirenAction\(representation, "committee\.update-membership"\)/);
   assert.match(committeePage, /findSirenAction\(representation, "committee\.end-membership"\)/);
@@ -332,7 +334,7 @@ test("council member collections expose distinct semantic destinations", () => {
   assert.match(page, /href={phoneHref\(member\.contact\.phone\)}/);
   assert.match(page, /contactId: form\.get\("contactId"\)/);
   assert.doesNotMatch(page, /firstName: form\.get\("firstName"\)/);
-  assert.match(page, /to={`\/council-committees\/\$\{committee\.slug\}`}/);
+  assert.match(page, /to={`\/council-committees\/\$\{committee\.id\}`}/);
   assert.match(page, /to={`\/council-members\/\$\{memberId\}#committees`}/);
   assert.doesNotMatch(page, /<Link className="(?:entity-card|data-row)/);
   assert.doesNotMatch(page, /<Link className="council-member-name/);
@@ -344,7 +346,7 @@ test("contact updates refresh every embedded council-member summary", () => {
   const membersStore = read("src/stores/councilMembersStore.ts");
   assert.match(contactsStore, /replaceContact\(updated\)/);
   assert.match(membersStore, /replaceContact\(contact: Contact\)/);
-  assert.match(membersStore, /member\.contact\.id === contact\.id/);
+  assert.match(membersStore, /member\.contactId === contact\.id/);
 });
 
 test("contact autosave serializes writes and guards internal navigation", () => {
@@ -363,8 +365,8 @@ test("active council-term capacity is configurable through the existing settings
   const page = read("src/pages/SettingsPage.tsx");
   const api = read("src/services/hallSettingsApi.ts");
   assert.match(api, /findSirenAction\(result\.representation, "settings\.update"\)/);
-  assert.match(api, /const \{ updatedAt: _updatedAt, \.\.\.settings \} = current\.data/);
-  assert.match(api, /submitSirenAction<HallSettings>\(current\.representation, "settings\.update", \{/);
+  assert.match(api, /findSirenAction\(terms\.representation, "council-term\.configure"\)/);
+  assert.match(api, /submitSirenAction<unknown>\(current\.representation, "council-term\.configure"/);
   assert.match(page, /settings-expected-member-count/);
   assert.match(page, /updateActiveCouncilTermExpectedMemberCount\(parsedExpectedMemberCount\)/);
   assert.match(page, /useCouncilMembersStore\.getState\(\)\.load\(\)/);

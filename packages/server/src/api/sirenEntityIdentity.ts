@@ -16,8 +16,10 @@ export const sirenEntityClasses = [
   "council-decision",
   "council-meeting",
   "council-member",
+  "council-term",
   "entity",
   "hall-settings",
+  "minutes",
   "resource",
   "session",
   "template",
@@ -54,24 +56,27 @@ export function classifySirenEntity(request: Request, value: unknown): SirenEnti
   if (path.includes("/auth/")) return "authentication";
   if (value && typeof value === "object") {
     const object = value as Record<string, unknown>;
-    if ("meetingId" in object && "business" in object && "position" in object) return "agenda-item";
-    if ("meetingId" in object && "memberId" in object && "version" in object) return "attendance";
+    if ("councilMeetingId" in object && "subject" in object && "position" in object) return "agenda-item";
+    if ("councilMeetingId" in object && "councilMemberId" in object && "status" in object) return "attendance";
     if ("meetingId" in object && "method" in object && "result" in object) return "ballot";
   }
   if (path.startsWith("/api/users")) return "user";
   if (path.startsWith("/api/audit-events")) return "audit-event";
   if (path.startsWith("/api/settings")) return "hall-settings";
+  if (path.startsWith("/api/minutes")) return "minutes";
   if (path.startsWith("/api/templates/references")) return "template-reference";
   if (path.startsWith("/api/templates/preview")) return "template-preview";
   if (path.startsWith("/api/templates")) return "template";
   if (path.startsWith("/api/contacts")) return "contact";
   if (path.startsWith("/api/council-members")) return "council-member";
+  if (path.startsWith("/api/council-terms")) return "council-term";
   if (path.startsWith("/api/council-decisions")) return "council-decision";
-  if (path.startsWith("/api/council-committees") && path.includes("/memberships/")) {
+  if (path.startsWith("/api/council-committees") && path.includes("/memberships")) {
     return "committee-membership";
   }
   if (path.startsWith("/api/council-committees")) return "council-committee";
   if (path.startsWith("/api/council-business")) return "council-business";
+  if (path.startsWith("/api/ballots")) return "ballot";
   if (path.startsWith("/api/resources")) return "resource";
   if (path.startsWith("/api/council-meetings")) {
     if (path.includes("/ballots")) return "ballot";
@@ -97,8 +102,10 @@ const primaryPropertyByClass: Record<SirenEntityClass, string | null> = {
   "council-decision": null,
   "council-meeting": "meeting",
   "council-member": null,
+  "council-term": null,
   entity: null,
   "hall-settings": null,
+  minutes: null,
   resource: "resource",
   session: null,
   template: null,
@@ -129,12 +136,14 @@ const slugIdentityByClass: Record<SirenEntityClass, boolean> = {
   "committee-membership": false,
   contact: false,
   "council-business": true,
-  "council-committee": true,
+  "council-committee": false,
   "council-decision": true,
   "council-meeting": true,
   "council-member": false,
+  "council-term": false,
   entity: false,
   "hall-settings": false,
+  minutes: false,
   resource: true,
   session: false,
   template: false,
@@ -173,16 +182,22 @@ export function canonicalHref(request: Request, entityClass: SirenEntityClass, v
       return meetingReference ? `/api/council-meetings/${meetingReference}/agenda-items/${id}` : currentHref();
     },
     attendance: () => {
-      if (!id || !primary || typeof primary.meetingId !== "string" || typeof primary.memberId !== "string") {
+      if (
+        !id ||
+        !primary ||
+        typeof primary.councilMeetingId !== "string" ||
+        typeof primary.councilMemberId !== "string"
+      ) {
         return currentHref();
       }
-      return `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary.meetingId}/attendance/${primary.memberId}`;
+      return `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary.councilMeetingId}/attendance/${primary.councilMemberId}`;
     },
     "audit-event": () => (id ? `/api/audit-events/${id}` : currentHref()),
     authentication: currentHref,
     "authentication-status": currentHref,
     ballot: () => {
       if (!id) return currentHref();
+      if (pathWithoutQuery(request).startsWith("/api/ballots")) return `/api/ballots/${id}`;
       const meetingReference = meetingReferenceForValue(request, primary, value);
       return meetingReference ? `/api/council-meetings/${meetingReference}/ballots/${id}` : currentHref();
     },
@@ -197,8 +212,10 @@ export function canonicalHref(request: Request, entityClass: SirenEntityClass, v
     "council-decision": () => referencedHref("council-decisions"),
     "council-meeting": () => referencedHref("council-meetings"),
     "council-member": () => (id ? `/api/council-members/${id}` : currentHref()),
+    "council-term": currentHref,
     entity: currentHref,
     "hall-settings": currentHref,
+    minutes: () => referencedHref("minutes"),
     resource: () => referencedHref("resources"),
     session: () => "/api/auth/session",
     template: () => referencedHref("templates"),
@@ -224,6 +241,6 @@ function meetingReferenceForValue(
   return (
     publicReference("council-meeting", payloadMeeting) ??
     meetingReferenceFromRequest(request) ??
-    (primary && typeof primary.meetingId === "string" ? primary.meetingId : null)
+    (primary && typeof primary.councilMeetingId === "string" ? primary.councilMeetingId : null)
   );
 }

@@ -17,6 +17,7 @@ import {
   isImageAlignment,
   isImageDirective,
   isImageWidth,
+  isMinutesSection,
   isResourceEmbedDirective,
   isResourcePresentationKind,
 } from "./grammar.js";
@@ -283,6 +284,17 @@ export function validateStructure(tree: TemplateAst): Diagnostic[] {
           anchor,
         });
       }
+    }
+    if (spec.name === "minutes" && directive.attributes.section && !isMinutesSection(directive.attributes.section)) {
+      diagnostics.push({ code: "invalid_attribute", severity: "error", message: "Unknown minutes section", anchor });
+    }
+    if (spec.name === "minutes" && directive.node !== "leafDirective") {
+      diagnostics.push({
+        code: "invalid_attribute",
+        severity: "error",
+        message: "Minutes sections must be standalone blocks",
+        anchor,
+      });
     }
     if (spec.name === "field") {
       const name = directive.attributes.name;

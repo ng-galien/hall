@@ -1,6 +1,5 @@
 import { matchDiscriminated } from "@hall/domain";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
-import { reclassifyCouncilBusiness } from "../../services/councilBusinessApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import type { WorkspaceItemReference } from "./workspaceItemReference";
@@ -40,8 +39,11 @@ export async function moveToPath(payload: DragPayload, targetPath: string): Prom
         const business = useCouncilBusinessStore.getState().businesses.find((candidate) => candidate.id === entry.id);
         if (!business) return "council_business_not_found";
         if (business.folderPath === targetPath) return null;
-        await reclassifyCouncilBusiness(business.id, targetPath);
-        await useCouncilBusinessStore.getState().load();
+        const relocated = await useWorkspaceResourcesStore
+          .getState()
+          .relocate(business.folderResourceId, { path: targetPath, name: business.title });
+        if (!relocated) return useWorkspaceResourcesStore.getState().error;
+        await useCouncilBusinessStore.getState().refresh(business.id);
         return null;
       },
     });

@@ -2,18 +2,24 @@ import type { Pool } from "pg";
 import { PostgresSchemaBootstrap } from "./bootstrap.js";
 import { type HallPostgresConfig, parseHallPostgresConfig } from "./config.js";
 import { PostgresCouncil } from "./council.js";
+import { PostgresDirectory } from "./directory.js";
+import { PostgresMinutes } from "./minutes.js";
 import { createPostgresPool } from "./pool.js";
 import { PostgresResources } from "./resources.js";
 
 export class PostgresClient {
   readonly bootstrap: PostgresSchemaBootstrap;
   readonly council: PostgresCouncil;
+  readonly directory: PostgresDirectory;
   readonly resources: PostgresResources;
+  readonly minutes: PostgresMinutes;
 
   constructor(private readonly pool: Pool) {
     this.bootstrap = new PostgresSchemaBootstrap(pool);
     this.council = new PostgresCouncil(pool);
+    this.directory = new PostgresDirectory(pool);
     this.resources = new PostgresResources(pool);
+    this.minutes = new PostgresMinutes(pool);
   }
 
   async close(): Promise<void> {

@@ -1,55 +1,22 @@
 export const postgresTables = [
-  "agenda_item_resources",
   "agenda_items",
   "attendance",
   "audit_events",
   "ballots",
-  "committee_memberships",
-  "contacts",
   "council_business",
-  "council_business_resources",
-  "council_committees",
   "council_decisions",
   "council_meetings",
-  "council_members",
-  "council_terms",
-  "document_previews",
-  "geographic_resources",
   "hall_settings",
-  "legal_reference_resources",
-  "legal_reference_snapshots",
   "meeting_roster",
   "number_sequences",
-  "remote_resources",
-  "resource_documents",
-  "resource_tags",
-  "resources",
-  "rich_text_resource_references",
   "sessions",
   "templates",
-  "text_resources",
-  "spreadsheet_resources",
   "user_roles",
   "users",
   "votes",
-  "workspace_folders",
 ] as const;
 
-export const postgresDocumentPreviewsSchema = `
-  CREATE TABLE document_previews (
-    source_content_sha256 TEXT NOT NULL CHECK (length(source_content_sha256) = 64),
-    source_format TEXT NOT NULL CHECK (source_format IN ('docx', 'odt', 'xlsx', 'pptx', 'txt', 'csv')),
-    content_sha256 TEXT NOT NULL CHECK (length(content_sha256) = 64),
-    byte_size BIGINT NOT NULL CHECK (byte_size >= 0),
-    content BYTEA NOT NULL,
-    created_at TEXT NOT NULL,
-    PRIMARY KEY (source_content_sha256, source_format)
-  );
-`;
-
-export const postgresWorkspaceTitleUniquenessSchema = `
-  CREATE UNIQUE INDEX IF NOT EXISTS one_resource_title_per_folder
-    ON resources(folder_path, title);
+export const postgresCouncilBusinessTitleUniquenessSchema = `
   CREATE UNIQUE INDEX IF NOT EXISTS one_council_business_title_per_folder
     ON council_business(folder_path, title);
 `;
@@ -104,142 +71,7 @@ export const postgresBallotVoteConfidentialitySchema = `
   EXECUTE FUNCTION enforce_public_method_for_ballots_with_votes();
 `;
 
-export const postgresCouncilTermCapacitySchema = `
-  CREATE OR REPLACE FUNCTION enforce_council_term_capacity()
-  RETURNS trigger
-  LANGUAGE plpgsql
-  AS $$
-  DECLARE
-    expected_count INTEGER;
-    active_count INTEGER;
-  BEGIN
-    IF TG_OP = 'INSERT' THEN
-      IF NEW.term_ended_on IS NOT NULL THEN
-        RETURN NEW;
-      END IF;
-    ELSE
-      IF OLD.term_ended_on IS NULL OR NEW.term_ended_on IS NOT NULL THEN
-        RETURN NEW;
-      END IF;
-    END IF;
-
-    SELECT expected_member_count INTO expected_count
-    FROM council_terms
-    WHERE hall_id = 'hall' AND active
-    FOR UPDATE;
-
-    IF expected_count IS NULL THEN
-      RAISE EXCEPTION 'council term is not configured'
-        USING ERRCODE = '23514', CONSTRAINT = 'council_term_not_configured';
-    END IF;
-
-    SELECT COUNT(*) INTO active_count
-    FROM council_members
-    WHERE term_ended_on IS NULL AND id <> NEW.id;
-
-    IF active_count >= expected_count THEN
-      RAISE EXCEPTION 'council term member count is reached'
-        USING ERRCODE = '23514', CONSTRAINT = 'council_term_capacity_reached';
-    END IF;
-    RETURN NEW;
-  END;
-  $$;
-
-  DROP TRIGGER IF EXISTS council_members_require_available_term_seat_on_insert ON council_members;
-  CREATE TRIGGER council_members_require_available_term_seat_on_insert
-  BEFORE INSERT ON council_members
-  FOR EACH ROW
-  EXECUTE FUNCTION enforce_council_term_capacity();
-
-  DROP TRIGGER IF EXISTS council_members_require_available_term_seat_on_reopen ON council_members;
-  CREATE TRIGGER council_members_require_available_term_seat_on_reopen
-  BEFORE UPDATE OF term_ended_on ON council_members
-  FOR EACH ROW
-  EXECUTE FUNCTION enforce_council_term_capacity();
-
-  CREATE OR REPLACE FUNCTION enforce_council_term_expected_count()
-  RETURNS trigger
-  LANGUAGE plpgsql
-  AS $$
-  DECLARE
-    active_count INTEGER;
-  BEGIN
-    SELECT COUNT(*) INTO active_count
-    FROM council_members
-    WHERE term_ended_on IS NULL;
-
-    IF NEW.expected_member_count IS NULL OR NEW.expected_member_count < active_count THEN
-      RAISE EXCEPTION 'council term member count is below the active council size'
-        USING ERRCODE = '23514', CONSTRAINT = 'council_term_capacity_below_active_count';
-    END IF;
-    RETURN NEW;
-  END;
-  $$;
-
-  DROP TRIGGER IF EXISTS council_term_expected_count_covers_active_members ON council_terms;
-  CREATE TRIGGER council_term_expected_count_covers_active_members
-  BEFORE UPDATE OF expected_member_count, active ON council_terms
-  FOR EACH ROW
-  WHEN (NEW.active)
-  EXECUTE FUNCTION enforce_council_term_expected_count();
-
-  DROP TRIGGER IF EXISTS active_council_term_insert_covers_active_members ON council_terms;
-  CREATE TRIGGER active_council_term_insert_covers_active_members
-  BEFORE INSERT ON council_terms
-  FOR EACH ROW
-  WHEN (NEW.active)
-  EXECUTE FUNCTION enforce_council_term_expected_count();
-`;
-
 export const postgresSchema = `
-  CREATE TABLE contacts (
-    id TEXT PRIMARY KEY,
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
-    organization_name TEXT,
-    job_title TEXT,
-    email TEXT,
-    phone TEXT,
-    notes TEXT NOT NULL DEFAULT '',
-    archived_at TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-  );
-
-  CREATE TABLE council_members (
-    id TEXT PRIMARY KEY,
-    contact_id TEXT NOT NULL REFERENCES contacts(id),
-    role TEXT NOT NULL CHECK (role IN ('mayor', 'deputyMayor', 'councillor')),
-    term_started_on TEXT NOT NULL,
-    term_ended_on TEXT,
-    CHECK (term_ended_on IS NULL OR term_ended_on >= term_started_on)
-  );
-
-  CREATE UNIQUE INDEX council_members_one_active_membership_per_contact
-    ON council_members(contact_id)
-    WHERE term_ended_on IS NULL;
-
-  CREATE TABLE council_committees (
-    id TEXT PRIMARY KEY,
-    slug TEXT NOT NULL UNIQUE,
-    name TEXT NOT NULL,
-    description TEXT NOT NULL DEFAULT '',
-    archived_at TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-  );
-
-  CREATE TABLE committee_memberships (
-    id TEXT PRIMARY KEY,
-    committee_id TEXT NOT NULL REFERENCES council_committees(id) ON DELETE CASCADE,
-    council_member_id TEXT NOT NULL REFERENCES council_members(id),
-    role TEXT NOT NULL CHECK (role IN ('chair', 'viceChair', 'member')),
-    started_on TEXT NOT NULL,
-    ended_on TEXT,
-    UNIQUE (committee_id, council_member_id, started_on),
-    CHECK (ended_on IS NULL OR ended_on >= started_on)
-  );
-
   CREATE TABLE hall_settings (
     id TEXT PRIMARY KEY CHECK (id = 'hall'),
     name TEXT NOT NULL DEFAULT '',
@@ -268,19 +100,6 @@ export const postgresSchema = `
   );
 
   INSERT INTO hall_settings (id) VALUES ('hall');
-
-  CREATE TABLE council_terms (
-    id TEXT PRIMARY KEY,
-    hall_id TEXT NOT NULL REFERENCES hall_settings(id),
-    expected_member_count INTEGER CHECK (expected_member_count IS NULL OR expected_member_count > 0),
-    active BOOLEAN NOT NULL
-  );
-
-  CREATE UNIQUE INDEX one_active_council_term_per_hall
-    ON council_terms(hall_id) WHERE active;
-
-  INSERT INTO council_terms (id, hall_id, expected_member_count, active)
-    VALUES ('initial', 'hall', NULL, TRUE);
 
   CREATE TABLE number_sequences (
     kind TEXT NOT NULL CHECK (kind IN ('meeting', 'decision')),
@@ -312,7 +131,7 @@ export const postgresSchema = `
     display_name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
-    council_member_id TEXT UNIQUE REFERENCES council_members(id),
+    council_member_id TEXT UNIQUE,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
@@ -350,8 +169,8 @@ export const postgresSchema = `
     starts_at TEXT NOT NULL,
     location TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'inProgress', 'closed', 'cancelled')),
-    chair_member_id TEXT REFERENCES council_members(id),
-    secretary_member_id TEXT REFERENCES council_members(id),
+    chair_member_id TEXT,
+    secretary_member_id TEXT,
     meeting_notice_sent_at TEXT,
     meeting_notice_published_at TEXT,
     is_urgent BOOLEAN NOT NULL DEFAULT FALSE,
@@ -370,153 +189,13 @@ export const postgresSchema = `
     updated_at TEXT NOT NULL
   );
 
-  CREATE TABLE resources (
-    id TEXT PRIMARY KEY,
-    slug TEXT NOT NULL UNIQUE,
-    kind TEXT NOT NULL CHECK (kind IN ('text', 'spreadsheet', 'document', 'remote', 'geographic', 'legalReference')),
-    title TEXT NOT NULL,
-    folder_path TEXT NOT NULL DEFAULT '',
-    autosave_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    CHECK (
-      folder_path = '' OR (
-        folder_path NOT LIKE '/%'
-        AND folder_path NOT LIKE '%/'
-        AND folder_path NOT LIKE '%//%'
-      )
-    )
-  );
-
-  CREATE TABLE remote_resources (
-    resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-    url TEXT CHECK (url IS NULL OR url <> '')
-  );
-
-  CREATE TABLE text_resources (
-    resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-    content TEXT NOT NULL
-  );
-
-  CREATE TABLE spreadsheet_resources (
-    resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-    document_json JSONB NOT NULL,
-    version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
-  );
-
-  CREATE TABLE geographic_resources (
-    resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-    provider TEXT NOT NULL CHECK (provider = 'ign'),
-    view_json JSONB NOT NULL,
-    layers_json JSONB NOT NULL,
-    hall_layer_json JSONB NOT NULL,
-    attribution TEXT NOT NULL,
-    license TEXT NOT NULL CHECK (license = 'Licence Ouverte 2.0'),
-    metadata_url TEXT NOT NULL,
-    configured_at TEXT NOT NULL,
-    source_updated_at TEXT,
-    version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
-  );
-
-  CREATE TABLE legal_reference_resources (
-    resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-    provider TEXT NOT NULL CHECK (provider = 'legifrance'),
-    reference_kind TEXT NOT NULL CHECK (reference_kind = 'article'),
-    fund TEXT CHECK (fund IN ('CODE_ETAT', 'CODE_DATE')),
-    common_id TEXT,
-    version_id TEXT,
-    effective_at TEXT,
-    legal_status TEXT,
-    source_url TEXT,
-    fetched_at TEXT,
-    provider_updated_at TEXT,
-    citation_label TEXT,
-    attribution TEXT,
-    snapshot_hash TEXT CHECK (snapshot_hash IS NULL OR length(snapshot_hash) = 64),
-    verification_status TEXT CHECK (verification_status IN ('current', 'verificationUnavailable')),
-    verification_failed_at TEXT,
-    CHECK (
-      (common_id IS NULL AND fund IS NULL AND version_id IS NULL AND effective_at IS NULL
-        AND legal_status IS NULL AND source_url IS NULL AND fetched_at IS NULL
-        AND citation_label IS NULL AND attribution IS NULL AND snapshot_hash IS NULL
-        AND verification_status IS NULL)
-      OR
-      (common_id IS NOT NULL AND version_id IS NOT NULL AND legal_status IS NOT NULL
-        AND source_url IS NOT NULL AND fetched_at IS NOT NULL AND citation_label IS NOT NULL
-        AND attribution IS NOT NULL AND snapshot_hash IS NOT NULL AND verification_status IS NOT NULL
-        AND ((fund = 'CODE_ETAT' AND effective_at IS NULL) OR (fund = 'CODE_DATE' AND effective_at IS NOT NULL)))
-    )
-  );
-
-  CREATE TABLE legal_reference_snapshots (
-    id TEXT PRIMARY KEY,
-    resource_id TEXT NOT NULL REFERENCES legal_reference_resources(resource_id) ON DELETE CASCADE,
-    common_id TEXT NOT NULL,
-    version_id TEXT NOT NULL,
-    effective_at TEXT,
-    fetched_at TEXT NOT NULL,
-    valid_from TEXT,
-    valid_to TEXT,
-    legal_status TEXT NOT NULL,
-    raw_provider_payload JSONB NOT NULL,
-    normalized_content TEXT NOT NULL,
-    content_hash TEXT NOT NULL CHECK (length(content_hash) = 64),
-    snapshot_hash TEXT NOT NULL CHECK (length(snapshot_hash) = 64)
-  );
-
-  CREATE TABLE resource_documents (
-    resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
-    meeting_id TEXT REFERENCES council_meetings(id) ON DELETE CASCADE,
-    file_name TEXT NOT NULL,
-    format TEXT NOT NULL CHECK (format IN ('pdf', 'jpeg', 'png', 'docx', 'odt', 'xlsx', 'pptx', 'txt', 'csv')),
-    media_type TEXT NOT NULL,
-    byte_size BIGINT NOT NULL CHECK (byte_size >= 0),
-    content_sha256 TEXT NOT NULL CHECK (length(content_sha256) = 64),
-    category TEXT CHECK (category IN ('report', 'draftCouncilDecision', 'meetingNotice', 'minutes', 'proxy', 'supporting')),
-    usage TEXT NOT NULL DEFAULT 'document' CHECK (usage IN ('document', 'editorAsset')),
-    editor_owner_kind TEXT CHECK (editor_owner_kind IN ('textResourceContent', 'councilBusinessReport', 'councilDecisionDraft', 'agendaItemDiscussionSummary')),
-    editor_owner_id TEXT,
-    content BYTEA NOT NULL,
-    CHECK (
-      (usage = 'document' AND category IS NOT NULL AND editor_owner_kind IS NULL AND editor_owner_id IS NULL)
-      OR
-      (usage = 'editorAsset' AND category IS NULL AND meeting_id IS NULL AND format IN ('jpeg', 'png') AND editor_owner_kind IS NOT NULL AND editor_owner_id IS NOT NULL)
-    )
-  );
-
-  CREATE TABLE rich_text_resource_references (
-    owner_kind TEXT NOT NULL CHECK (owner_kind IN ('textResourceContent', 'councilBusinessReport', 'councilDecisionDraft', 'agendaItemDiscussionSummary')),
-    owner_id TEXT NOT NULL,
-    resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE RESTRICT,
-    PRIMARY KEY (owner_kind, owner_id, resource_id)
-  );
-
-  ${postgresDocumentPreviewsSchema}
-
-  CREATE TABLE resource_tags (
-    resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
-    tag TEXT NOT NULL,
-    PRIMARY KEY (resource_id, tag)
-  );
-
-  CREATE TABLE workspace_folders (
-    path TEXT PRIMARY KEY,
-    created_at TEXT NOT NULL,
-    CHECK (
-      path <> ''
-      AND path NOT LIKE '/%'
-      AND path NOT LIKE '%/'
-      AND path NOT LIKE '%//%'
-    )
-  );
-
   CREATE TABLE attendance (
     id TEXT PRIMARY KEY,
     meeting_id TEXT NOT NULL REFERENCES council_meetings(id) ON DELETE CASCADE,
-    member_id TEXT NOT NULL REFERENCES council_members(id),
+    member_id TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('present', 'represented', 'excused', 'absent')),
-    proxy_holder_member_id TEXT REFERENCES council_members(id),
-    proxy_document_id TEXT REFERENCES resource_documents(resource_id),
+    proxy_holder_member_id TEXT,
+    proxy_document_id TEXT,
     version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
     UNIQUE (meeting_id, member_id),
     CHECK ((status = 'represented' AND proxy_holder_member_id IS NOT NULL) OR (status <> 'represented' AND proxy_holder_member_id IS NULL))
@@ -525,7 +204,7 @@ export const postgresSchema = `
   CREATE TABLE meeting_roster (
     id TEXT PRIMARY KEY,
     meeting_id TEXT NOT NULL REFERENCES council_meetings(id) ON DELETE CASCADE,
-    member_id TEXT NOT NULL REFERENCES council_members(id),
+    member_id TEXT NOT NULL,
     UNIQUE (meeting_id, member_id)
   );
 
@@ -548,7 +227,7 @@ export const postgresSchema = `
     slug TEXT NOT NULL UNIQUE,
     kind TEXT NOT NULL CHECK (kind IN ('matter', 'minutesApproval', 'openQuestion')),
     council_decision_id TEXT REFERENCES council_decisions(id),
-    committee_id TEXT REFERENCES council_committees(id),
+    committee_id TEXT,
     minutes_of_meeting_id TEXT REFERENCES council_meetings(id),
     title TEXT NOT NULL,
     report TEXT NOT NULL DEFAULT '',
@@ -562,14 +241,6 @@ export const postgresSchema = `
       OR
       (kind = 'openQuestion' AND council_decision_id IS NULL AND committee_id IS NULL AND minutes_of_meeting_id IS NULL)
     )
-  );
-
-  CREATE TABLE council_business_resources (
-    business_id TEXT NOT NULL REFERENCES council_business(id) ON DELETE CASCADE,
-    resource_id TEXT NOT NULL REFERENCES resources(id),
-    position INTEGER NOT NULL CHECK (position > 0),
-    PRIMARY KEY (business_id, resource_id),
-    UNIQUE (business_id, position)
   );
 
   CREATE TABLE agenda_items (
@@ -586,20 +257,12 @@ export const postgresSchema = `
     snapshot_council_decision_id TEXT REFERENCES council_decisions(id),
     snapshot_council_decision_title TEXT,
     snapshot_council_decision_draft_text TEXT,
-    snapshot_committee_id TEXT REFERENCES council_committees(id),
+    snapshot_committee_id TEXT,
     snapshot_minutes_of_meeting_id TEXT REFERENCES council_meetings(id),
     snapshot_title TEXT,
     snapshot_report TEXT,
     snapshot_folder_path TEXT,
     UNIQUE (meeting_id, position)
-  );
-
-  CREATE TABLE agenda_item_resources (
-    agenda_item_id TEXT NOT NULL REFERENCES agenda_items(id) ON DELETE CASCADE,
-    resource_id TEXT NOT NULL REFERENCES resources(id),
-    position INTEGER NOT NULL CHECK (position > 0),
-    PRIMARY KEY (agenda_item_id, resource_id),
-    UNIQUE (agenda_item_id, position)
   );
 
   CREATE TABLE ballots (
@@ -630,8 +293,8 @@ export const postgresSchema = `
   CREATE TABLE votes (
     id TEXT PRIMARY KEY,
     ballot_id TEXT NOT NULL REFERENCES ballots(id) ON DELETE CASCADE,
-    member_id TEXT NOT NULL REFERENCES council_members(id),
-    cast_by_member_id TEXT NOT NULL REFERENCES council_members(id),
+    member_id TEXT NOT NULL,
+    cast_by_member_id TEXT NOT NULL,
     choice TEXT NOT NULL CHECK (choice IN ('for', 'against', 'abstain', 'notVoting')),
     position INTEGER NOT NULL CHECK (position > 0),
     UNIQUE (ballot_id, member_id),
@@ -651,8 +314,6 @@ export const postgresSchema = `
   CREATE UNIQUE INDEX one_ballot_per_agenda_item ON ballots(agenda_item_id)
     WHERE agenda_item_id IS NOT NULL AND cancelled_at IS NULL;
   CREATE INDEX ballots_by_meeting ON ballots(meeting_id, created_at);
-  CREATE UNIQUE INDEX one_active_membership_per_committee_member
-    ON committee_memberships(committee_id, council_member_id) WHERE ended_on IS NULL;
   CREATE UNIQUE INDEX one_minutes_approval_business_per_meeting ON council_business(minutes_of_meeting_id)
     WHERE minutes_of_meeting_id IS NOT NULL;
   CREATE UNIQUE INDEX one_business_per_council_decision ON council_business(council_decision_id)
@@ -661,16 +322,6 @@ export const postgresSchema = `
   CREATE UNIQUE INDEX one_open_agenda_item_per_business ON agenda_items(business_id)
     WHERE status IN ('scheduled', 'inProgress');
   CREATE INDEX agenda_items_by_business ON agenda_items(business_id, meeting_id);
-  CREATE INDEX council_business_resources_by_resource
-    ON council_business_resources(resource_id, business_id);
-  CREATE INDEX agenda_item_resources_by_resource ON agenda_item_resources(resource_id, agenda_item_id);
-  CREATE INDEX resources_by_folder ON resources(folder_path, updated_at);
-  CREATE INDEX resource_tags_by_tag ON resource_tags(tag, resource_id);
-  CREATE INDEX resource_documents_by_meeting ON resource_documents(meeting_id, resource_id);
-  CREATE INDEX resource_documents_by_editor_owner
-    ON resource_documents(usage, editor_owner_kind, editor_owner_id, resource_id);
-  CREATE INDEX rich_text_resource_references_by_resource
-    ON rich_text_resource_references(resource_id, owner_kind, owner_id);
   CREATE INDEX attendance_by_meeting ON attendance(meeting_id);
   CREATE INDEX users_by_status ON users(status, display_name);
   CREATE INDEX sessions_by_user ON sessions(user_id, expires_at);

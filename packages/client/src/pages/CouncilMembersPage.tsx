@@ -68,7 +68,7 @@ export function CouncilMembersPage() {
       <span className="council-member-committee-links">
         <span className="sr-only">{t("members.committees")} : </span>
         {visibleCommittees.map((committee) => (
-          <Link to={`/council-committees/${committee.slug}`} key={committee.id}>
+          <Link to={`/council-committees/${committee.id}`} key={committee.id}>
             {committee.name}
           </Link>
         ))}

@@ -1,4 +1,4 @@
-import type { ResourceDetail } from "@hall/api-contract";
+import type { MinutesDetail, ResourceDetail } from "@hall/api-contract";
 import {
   type ContentTemplate,
   type HallSettings,
@@ -14,6 +14,7 @@ import {
   collectDirectives,
   type Diagnostic,
   isFieldName,
+  isMinutesSection,
   isReferenceKind,
   isResourcePresentationKind,
   parse,
@@ -22,7 +23,10 @@ import {
 } from "@hall/templating";
 import sanitizeHtml from "sanitize-html";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
-import type { CouncilMeetingRepository, HallSettingsRepository } from "../repositories/contracts.js";
+import type { MinutesClient } from "../clients/minutesClient.js";
+import { renderMinutesSections } from "./minutesDocument.js";
+import type { HallSettingsRepository } from "../repositories/contracts.js";
+import type { CouncilClient } from "../clients/councilClient.js";
 import { pdfAttachmentHref } from "./documentRenderer.js";
 import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
 import type { ReferenceEntityResolver } from "./referenceEntityResolver.js";
@@ -84,8 +88,9 @@ export interface TemplatePreview {
 }
 
 interface ResolvedContext {
+  minutes: MinutesDetail | null;
   hall: HallSettings;
-  meeting: Awaited<ReturnType<CouncilMeetingRepository["find"]>>;
+  meeting: Awaited<ReturnType<CouncilClient["openMeeting"]>>;
 }
 
 function diagnostic(
@@ -600,23 +605,27 @@ export interface TemplateRenderingService {
 
 export function createTemplateRenderingService({
   hallSettingsRepository,
-  councilMeetingRepository,
+  councilClient,
   resourcesClient,
   geographicMapRenderer,
   referenceEntityResolver,
+  minutesClient,
 }: {
   hallSettingsRepository: HallSettingsRepository;
-  councilMeetingRepository: CouncilMeetingRepository;
+  councilClient: CouncilClient;
   resourcesClient: ResourcesClient;
   geographicMapRenderer: GeographicMapRenderer;
   referenceEntityResolver: ReferenceEntityResolver;
+  minutesClient: MinutesClient;
 }): TemplateRenderingService {
   const loadContext = async (context: TemplateRenderContext = {}): Promise<ResolvedContext> => ({
+    minutes: context.minutesId ? await minutesClient.open(context.minutesId) : null,
     hall: await hallSettingsRepository.get(),
-    meeting: context.meetingId ? await councilMeetingRepository.find(context.meetingId) : null,
+    meeting: context.meetingId ? await councilClient.openMeeting(context.meetingId) : null,
   });
 
   const renderSource = async (source: string, context: ResolvedContext) => {
+    const minutes = context.minutes ? renderMinutesSections(context.minutes) : null;
     const tree = parse(source);
     const diagnostics = validateStructure(tree);
     const values = new Map<string, AstNode>();
@@ -626,6 +635,15 @@ export function createTemplateRenderingService({
     };
     for (const directive of collectDirectives(tree)) {
       const key = `${directive.name}:${directive.occurrence}`;
+      if (directive.name === "minutes") {
+        const section = directive.attributes.section;
+        if (!minutes || !section || !isMinutesSection(section)) {
+          diagnostics.push(diagnostic("unresolved_reference", "Minutes context or section unavailable", directive));
+          continue;
+        }
+        values.set(key, { type: "html", value: minutes[section] });
+        continue;
+      }
       if (directive.name === "resource-embed") {
         const rendered = await renderResourceEmbed(
           directive,
@@ -685,7 +703,7 @@ export function createTemplateRenderingService({
             node = resource
               ? await resourceReferenceNode(
                   resource,
-                  directive.label || resource.name,
+                  resource.name,
                   resourcesClient,
                   registerPdfAttachment,
                 )
@@ -717,8 +735,8 @@ export function createTemplateRenderingService({
         if (!name || !isFieldName(name)) continue;
         const fields: Record<typeof name, string | null> = {
           "hall.name": context.hall.name,
-          "meeting.startsAt": context.meeting
-            ? formatMeetingDate(context.meeting.startsAt, context.hall.timeZone)
+          "meeting.startsAt": context.meeting?.scheduledAt
+            ? formatMeetingDate(context.meeting.scheduledAt, context.hall.timeZone)
             : null,
           "meeting.location": context.meeting?.location ?? null,
           "meeting.chair": context.meeting?.chairMemberId

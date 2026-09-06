@@ -11,7 +11,8 @@ function binaryParser(response: Response, callback: (error: Error | null, body: 
   response.on("error", callback);
 }
 
-async function createMemberAndMeeting(agent: Awaited<ReturnType<typeof createTestServer>>["agent"]) {
+async function createMemberAndMeeting(server: Awaited<ReturnType<typeof createTestServer>>) {
+  const { agent } = server;
   const contact = domainBody<{ id: string }>(
     await agent
       .post("/api/contacts")
@@ -28,24 +29,26 @@ async function createMemberAndMeeting(agent: Awaited<ReturnType<typeof createTes
       })
       .expect(201),
   );
-  const meeting = domainBody<{ id: string; number: string; startsAt: string }>(
+  const provisioned = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({ quorum: 1 }).expect(201));
+  const meeting = domainBody<{ id: string; number: number; scheduledAt: string }>(
     await agent
-      .post("/api/council-meetings")
+      .put(`/api/council-meetings/${provisioned.id}/prepare`)
       .send({
-        startsAt: "2026-09-10T18:30:00+02:00",
+        scheduledAt: "2026-09-10T18:30:00+02:00",
         location: "Salle du conseil",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
       })
-      .expect(201),
+      .expect(200),
   );
   return { contact, member, meeting };
 }
 
 describe("content templates", () => {
   it("canonicalizes shared directives and resolves references in backend previews", async () => {
-    const { agent } = await createTestServer();
-    const { member, meeting } = await createMemberAndMeeting(agent);
+    const server = await createTestServer();
+    const { agent } = server;
+    const { member, meeting } = await createMemberAndMeeting(server);
     const created = await agent
       .post("/api/templates")
       .send({
@@ -118,8 +121,9 @@ describe("content templates", () => {
   });
 
   it("resolves every closed reference kind from current server data", async () => {
-    const { agent } = await createTestServer();
-    const { contact, member, meeting } = await createMemberAndMeeting(agent);
+    const server = await createTestServer();
+    const { agent } = server;
+    const { contact, member, meeting } = await createMemberAndMeeting(server);
     const decision = domainBody<{ id: string }>(
       await agent
         .post("/api/council-decisions")
@@ -130,18 +134,17 @@ describe("content templates", () => {
       await agent
         .post("/api/council-business")
         .send({
-          kind: "matter",
-          councilDecisionId: decision.id,
-          title: "Sujet actuel",
-          report: "Rapport",
-          folderPath: "seed",
+          path: "seed",
+          name: "Sujet actuel",
+          reportName: "Rapport principal",
+          reportContent: "Rapport",
         })
         .expect(201),
     );
     const resource = domainBody<{ id: string }>(
       await agent
-        .post("/api/resources/texts")
-        .send({ title: "Ressource actuelle", folderPath: "seed", tags: [], content: "Contenu" })
+        .post("/api/resources")
+        .send({ kind: "text", name: "Ressource actuelle", path: "seed", content: "Contenu" })
         .expect(201),
     );
 
@@ -170,7 +173,7 @@ describe("content templates", () => {
       contact: { id: contact.id, label: "Martine Delcourt" },
       resource: { id: resource.id, label: "Ressource actuelle" },
       councilBusiness: { id: business.id, label: "Sujet actuel" },
-      meeting: { id: meeting.id, label: `${meeting.number} - ${meeting.startsAt.slice(0, 10)}` },
+      meeting: { id: meeting.id, label: `${meeting.number} - ${meeting.scheduledAt.slice(0, 10)}` },
       decision: { id: decision.id, label: "Décision actuelle" },
     } satisfies Record<(typeof referenceEntityKinds)[number], { id: string; label: string }>;
     for (const kind of referenceEntityKinds) {
@@ -182,8 +185,9 @@ describe("content templates", () => {
   });
 
   it("generates a Chromium PDF packet and an Outlook-compatible EML", async () => {
-    const { agent } = await createTestServer();
-    const { member, meeting } = await createMemberAndMeeting(agent);
+    const server = await createTestServer();
+    const { agent } = server;
+    const { member, meeting } = await createMemberAndMeeting(server);
 
     const attachmentPdf = await PDFDocument.create();
     attachmentPdf.addPage();
@@ -307,18 +311,13 @@ describe("content templates", () => {
     const chunk = Buffer.alloc(18 * 1024 * 1024);
     const ids: string[] = [];
     for (let index = 0; index < 3; index += 1) {
-      const resource = await container.cradle.resourceRepository.createDocument({
-        title: `Annexe ${index}`,
-        folderPath: "",
-        tags: [],
-        fileName: `annexe-${index}.pdf`,
-        format: "pdf",
+      const resource = await container.cradle.resourcesClient.createDocument({
+        name: `Annexe ${index}`,
+        path: "",
         mediaType: "application/pdf",
-        contentSha256: "0".repeat(64),
-        category: "supporting",
         content: chunk,
       });
-      ids.push(resource.id);
+      ids.push(resource.data.id);
     }
 
     const response = await agent
@@ -342,20 +341,15 @@ describe("content templates", () => {
         })
         .expect(201),
     );
-    const resource = await container.cradle.resourceRepository.createDocument({
-      title: "Annexe",
-      folderPath: "",
-      tags: [],
-      fileName: "annexe.pdf",
-      format: "pdf",
+    const resource = await container.cradle.resourcesClient.createDocument({
+      name: "Annexe",
+      path: "",
       mediaType: "application/pdf",
-      contentSha256: "0".repeat(64),
-      category: "supporting",
       content: Buffer.from("annexe"),
     });
 
-    const repository = container.cradle.resourceRepository;
-    const originalFind = repository.find.bind(repository);
+    const resourcesClient = container.cradle.resourcesClient;
+    const originalOpen = resourcesClient.open.bind(resourcesClient);
     let release!: () => void;
     const blocked = new Promise<void>((resolve) => {
       release = resolve;
@@ -365,15 +359,15 @@ describe("content templates", () => {
     const firstTwoLoads = new Promise<void>((resolve) => {
       twoLoadsReached = resolve;
     });
-    repository.find = async (id) => {
+    resourcesClient.open = async (id: string) => {
       attachmentLoads += 1;
       if (attachmentLoads === 2) twoLoadsReached();
       await blocked;
-      return originalFind(id);
+      return originalOpen(id);
     };
     const input = {
       context: {},
-      attachmentResourceIds: [resource.id],
+      attachmentResourceIds: [resource.data.id],
       to: [],
       cc: [],
       bcc: [],

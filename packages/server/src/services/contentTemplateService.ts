@@ -44,6 +44,7 @@ export interface ContentTemplateService {
   preview(draft: TemplateDraft, context: TemplateRenderContext): Promise<TemplatePreview>;
   previewPdf(bodyMarkdown: string, context: TemplateRenderContext): Promise<Buffer>;
   generate(id: string, input: GenerateTemplateInput): Promise<GeneratedFile>;
+  generateFromTemplate(template: ContentTemplate, input: GenerateTemplateInput): Promise<GeneratedFile>;
 }
 
 function canonicalSource(source: string): string {
@@ -202,9 +203,11 @@ export function createContentTemplateService({
         );
       });
     },
-    generate(id, input) {
+    async generate(id, input) {
+      return this.generateFromTemplate(await find(id), input);
+    },
+    generateFromTemplate(template, input) {
       return withGenerationSlot(async () => {
-        const template = await find(id);
         const preview = await templateRenderingService.preview(template, input.context);
         assertRenderable(preview.diagnostics);
         const selected = await attachments(resourcesClient, input.attachmentResourceIds);

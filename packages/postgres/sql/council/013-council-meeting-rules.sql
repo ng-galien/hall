@@ -6,6 +6,7 @@ CREATE FUNCTION council_meeting_present_member_count(target_meeting UUID)
 RETURNS INTEGER
 LANGUAGE sql
 STABLE
+SET search_path = pg_catalog, hall
 AS $$
   SELECT COUNT(*)::INTEGER
   FROM meeting_attendance

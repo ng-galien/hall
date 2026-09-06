@@ -8,6 +8,7 @@ CREATE FUNCTION meeting_attendance_is_valid_proxy_holder(
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
+SET search_path = pg_catalog, hall
 AS $$
   SELECT EXISTS (
     SELECT 1

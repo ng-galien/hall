@@ -5,6 +5,7 @@ CREATE FUNCTION ballot_participation_count(target_ballot UUID)
 RETURNS INTEGER
 LANGUAGE sql
 STABLE
+SET search_path = pg_catalog, hall
 AS $$
   SELECT COUNT(*)::INTEGER
   FROM ballot_participation
@@ -19,6 +20,7 @@ CREATE FUNCTION ballot_vote_count(target_ballot UUID)
 RETURNS INTEGER
 LANGUAGE sql
 STABLE
+SET search_path = pg_catalog, hall
 AS $$
   SELECT COALESCE(SUM(count), 0)::INTEGER
   FROM votes
@@ -34,6 +36,7 @@ CREATE FUNCTION ballot_choice_count(
 RETURNS INTEGER
 LANGUAGE sql
 STABLE
+SET search_path = pg_catalog, hall
 AS $$
   SELECT COALESCE(SUM(count), 0)::INTEGER
   FROM votes
@@ -51,6 +54,7 @@ CREATE FUNCTION ballot_has_valid_chairman(
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
+SET search_path = pg_catalog, hall
 AS $$
   SELECT EXISTS (
     SELECT 1
@@ -68,6 +72,7 @@ CREATE FUNCTION derive_ballot_result(target_ballot UUID)
 RETURNS ballot_result
 LANGUAGE plpgsql
 STABLE
+SET search_path = pg_catalog, hall
 AS $$
 DECLARE
   current_mode ballot_mode;

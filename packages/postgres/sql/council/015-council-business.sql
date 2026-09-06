@@ -19,7 +19,22 @@ CREATE TABLE council_business (
 -- @functional-requirement HALL-FR-MIN-010 ONE_MINUTES_PER_COUNCIL_MEETING:
 CREATE TABLE minutes (
   id UUID PRIMARY KEY,
-  council_meeting UUID NOT NULL UNIQUE REFERENCES council_meetings (id)
+  council_meeting UUID NOT NULL UNIQUE REFERENCES council_meetings (id),
+  -- @functional-requirement HALL-FR-MIN-160 MINUTES_FACTS_ARE_CAPTURED_AT_CLOSURE:
+  facts JSONB NOT NULL CHECK (jsonb_typeof(facts) = 'object'),
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
+);
+
+-- @functional-requirement HALL-FR-MIN-040 GENERATED_MINUTES_ARE_A_DISTINCT_IMMUTABLE_DOCUMENT:
+-- A generated PDF is not a workspace resource. The shared binary object owns
+-- its bytes; this row owns its identity and immutable relation to the draft.
+CREATE TABLE minutes_document (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  minutes UUID NOT NULL UNIQUE REFERENCES minutes(id),
+  binary_object UUID NOT NULL REFERENCES hall.binary_object(id),
+  generated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
 );
 
 -- Entity: the approval of one previous meeting's minutes. The same approval

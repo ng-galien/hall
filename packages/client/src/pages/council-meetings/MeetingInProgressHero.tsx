@@ -1,12 +1,12 @@
-import type { MeetingAggregate } from "@hall/domain";
 import { Link } from "react-router-dom";
 import { PlayIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 
-export function MeetingInProgressHero({ aggregate }: { aggregate: MeetingAggregate }) {
+export function MeetingInProgressHero({ aggregate }: { aggregate: LiveMeetingPresentation }) {
   const { t, formatDate, formatDateTime, formatNumber, formatTime } = useI18n();
   const { meeting } = aggregate;
   const completedCount = aggregate.agendaItems.filter((item) => item.completedAt).length;

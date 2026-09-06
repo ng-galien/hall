@@ -3,18 +3,6 @@ import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import { createBallotRepository } from "../repositories/ballotRepository.js";
 import { mapCouncilBusiness } from "../repositories/councilBusinessRepository.js";
 import { parseParticipationEvidence, parseQuorumFailureEvidence } from "../repositories/evidenceMapping.js";
-import { createResourceRepository } from "../repositories/resourceRepository.js";
-import { mapResource } from "../repositories/resourceRowMapping.js";
-
-const commonResourceRow = {
-  id: "11111111-1111-4111-8111-111111111111",
-  slug: "resource",
-  title: "Resource",
-  folder_path: "seed",
-  autosave_enabled: 1,
-  created_at: "2026-01-01T00:00:00.000Z",
-  updated_at: "2026-01-01T00:00:00.000Z",
-};
 
 const commonBusinessRow = {
   id: "22222222-2222-4222-8222-222222222222",
@@ -27,8 +15,7 @@ const commonBusinessRow = {
 };
 
 describe("persistence decoding", () => {
-  it("rejects unknown resource and council-business discriminants", () => {
-    expect(() => mapResource({ ...commonResourceRow, kind: "unknown" }, [])).toThrow();
+  it("rejects an unknown council-business discriminant", () => {
     expect(() => mapCouncilBusiness({ ...commonBusinessRow, kind: "unknown" })).toThrow();
   });
 
@@ -115,13 +102,7 @@ describe("persistence decoding", () => {
     await expect(repository.listForMeeting("meeting")).rejects.toThrow("boolean or 0/1");
   });
 
-  it("rejects silently coercible persisted resource and business primitives", () => {
-    expect(() => mapResource({ ...commonResourceRow, kind: "text", title: 42, text_content: "" }, [])).toThrow(
-      "resource.title",
-    );
-    expect(() =>
-      mapResource({ ...commonResourceRow, kind: "text", autosave_enabled: "1", text_content: "" }, []),
-    ).toThrow("resource.autosave_enabled");
+  it("rejects a silently coercible persisted business primitive", () => {
     expect(() => mapCouncilBusiness({ ...commonBusinessRow, kind: "openQuestion", report: false })).toThrow(
       "council_business.report",
     );
@@ -150,49 +131,4 @@ describe("persistence decoding", () => {
     ).toThrow();
   });
 
-  it("rejects invalid persisted document discriminants", () => {
-    const documentRow = {
-      ...commonResourceRow,
-      kind: "document",
-      meeting_id: null,
-      file_name: "report.pdf",
-      format: "pdf",
-      media_type: "application/pdf",
-      byte_size: 10,
-      content_sha256: "a".repeat(64),
-      usage: "document",
-      category: "report",
-      editor_owner_kind: null,
-      editor_owner_id: null,
-    };
-    expect(() => mapResource({ ...documentRow, format: "executable" }, [])).toThrow();
-    expect(() => mapResource({ ...documentRow, usage: "unknown" }, [])).toThrow();
-    expect(() => mapResource({ ...documentRow, category: "unknown" }, [])).toThrow();
-  });
-
-  it("rejects invalid structured geographic and spreadsheet documents", async () => {
-    const executor = {
-      get: async (name: string) => {
-        if (name === "resource.geographicData") {
-          return {
-            view_json: JSON.stringify({ kind: "unknown" }),
-            layers_json: "[]",
-            hall_layer_json: JSON.stringify({ type: "FeatureCollection", features: [] }),
-            attribution: "IGN",
-            metadata_url: "https://example.test",
-            configured_at: "2026-01-01T00:00:00.000Z",
-            source_updated_at: null,
-          };
-        }
-        if (name === "resource.spreadsheetDocument") {
-          return { document_json: JSON.stringify({ schemaVersion: 2, workbook: {} }) };
-        }
-        throw new Error(`Unexpected query ${name}`);
-      },
-    } as unknown as SqlExecutor;
-    const repository = createResourceRepository({ sqlExecutor: executor });
-
-    await expect(repository.findGeographicData("resource")).rejects.toThrow();
-    await expect(repository.findSpreadsheetDocument("resource")).rejects.toThrow();
-  });
 });

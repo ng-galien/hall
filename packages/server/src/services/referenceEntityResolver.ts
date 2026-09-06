@@ -1,21 +1,13 @@
+import type { Contact, CouncilBusiness, CouncilMember, CouncilMeeting, ResourceDetail } from "@hall/api-contract";
 import {
-  type Contact,
-  type CouncilBusiness,
   type CouncilDecision,
-  type CouncilMeeting,
-  type CouncilMember,
   matchLiteral,
   type ReferenceEntityKind,
 } from "@hall/domain";
-import type {
-  ContactRepository,
-  CouncilBusinessRepository,
-  CouncilDecisionRepository,
-  CouncilMeetingRepository,
-  CouncilMemberRepository,
-  ResourceRepository,
-  StoredResource,
-} from "../repositories/contracts.js";
+import type { CouncilClient } from "../clients/councilClient.js";
+import type { DirectoryClient } from "../clients/directoryClient.js";
+import type { ResourcesClient } from "../clients/resourcesClient.js";
+import type { CouncilDecisionRepository } from "../repositories/contracts.js";
 
 type ReferenceTargetByKind = {
   member: CouncilMember;
@@ -23,7 +15,7 @@ type ReferenceTargetByKind = {
   meeting: CouncilMeeting;
   councilBusiness: CouncilBusiness;
   decision: CouncilDecision;
-  resource: StoredResource;
+  resource: ResourceDetail;
 };
 
 export type ResolvedReference = {
@@ -46,64 +38,75 @@ export interface ReferenceEntityResolver {
   resolve(type: ReferenceEntityKind, id: string): Promise<ResolvedReference | null>;
 }
 
-function memberLabel(member: CouncilMember): string {
-  return `${member.contact.firstName} ${member.contact.lastName}`;
-}
-
 function contactLabel(contact: Contact): string {
   return `${contact.firstName} ${contact.lastName}`;
 }
 
 function meetingLabel(meeting: CouncilMeeting): string {
-  return `${meeting.number} - ${meeting.startsAt.slice(0, 10)}`;
+  return meeting.scheduledAt ? `${meeting.number} - ${meeting.scheduledAt.slice(0, 10)}` : `${meeting.number}`;
 }
 
 function decisionLabel(decision: CouncilDecision): string {
   return decision.number ? `${decision.number} - ${decision.title}` : decision.title;
 }
 
+async function councilBusinessLabel(target: CouncilBusiness, resourcesClient: ResourcesClient): Promise<string> {
+  const folder = (await resourcesClient.open(target.folderResourceId))?.data ?? null;
+  if (!folder || folder.kind !== "folder") {
+    throw new Error(`CouncilBusiness ${target.id} has no valid folder resource`);
+  }
+  return folder.name;
+}
+
 export function createReferenceEntityResolver({
-  contactRepository,
-  councilMemberRepository,
-  councilMeetingRepository,
+  councilClient,
+  directoryClient,
   councilDecisionRepository,
-  councilBusinessRepository,
-  resourceRepository,
+  resourcesClient,
 }: {
-  contactRepository: ContactRepository;
-  councilMemberRepository: CouncilMemberRepository;
-  councilMeetingRepository: CouncilMeetingRepository;
+  councilClient: CouncilClient;
+  directoryClient: DirectoryClient;
   councilDecisionRepository: CouncilDecisionRepository;
-  councilBusinessRepository: CouncilBusinessRepository;
-  resourceRepository: ResourceRepository;
+  resourcesClient: ResourcesClient;
 }): ReferenceEntityResolver {
   return {
     list(type) {
       return matchLiteral(type, {
         member: async () =>
-          (await councilMemberRepository.list()).map((target) => ({
-            type: "member" as const,
-            id: target.id,
-            label: memberLabel(target),
-          })),
+          Promise.all([
+            directoryClient.listCouncilMembers(),
+            directoryClient.listContacts(true),
+          ]).then(([members, contacts]) => {
+            const contactsById = new Map(contacts.map((contact) => [contact.id, contact] as const));
+            return members.flatMap((target) => {
+              const contact = contactsById.get(target.contactId);
+              return contact
+                ? [{ type: "member" as const, id: target.id, label: contactLabel(contact) }]
+                : [];
+            });
+          }),
         contact: async () =>
-          (await contactRepository.list()).map((target) => ({
+          (await directoryClient.listContacts()).map((target) => ({
             type: "contact" as const,
             id: target.id,
             label: contactLabel(target),
           })),
         meeting: async () =>
-          (await councilMeetingRepository.list()).map((target) => ({
+          (await councilClient.listMeetings()).map((target) => ({
             type: "meeting" as const,
             id: target.id,
             label: meetingLabel(target),
           })),
-        councilBusiness: async () =>
-          (await councilBusinessRepository.list()).map((target) => ({
-            type: "councilBusiness" as const,
-            id: target.id,
-            label: target.title,
-          })),
+        councilBusiness: async () => {
+          const targets = await councilClient.listBusinesses();
+          return Promise.all(
+            targets.map(async (target) => ({
+              type: "councilBusiness" as const,
+              id: target.id,
+              label: await councilBusinessLabel(target, resourcesClient),
+            })),
+          );
+        },
         decision: async () =>
           (await councilDecisionRepository.list()).map((target) => ({
             type: "decision" as const,
@@ -111,38 +114,47 @@ export function createReferenceEntityResolver({
             label: decisionLabel(target),
           })),
         resource: async () =>
-          (await resourceRepository.list()).map((target) => ({
+          (await resourcesClient.listAll()).data.map((target) => ({
             type: "resource" as const,
             id: target.id,
-            label: target.title,
+            label: target.name,
           })),
       });
     },
     async resolve(type, id) {
       return matchLiteral(type, {
         member: async () => {
-          const target = await councilMemberRepository.find(id);
-          return target ? { type: "member" as const, id: target.id, label: memberLabel(target), target } : null;
+          const target = await directoryClient.openCouncilMember(id);
+          if (!target) return null;
+          const contact = await directoryClient.openContact(target.contactId);
+          return contact ? { type: "member" as const, id: target.id, label: contactLabel(contact), target } : null;
         },
         contact: async () => {
-          const target = await contactRepository.find(id);
+          const target = await directoryClient.openContact(id);
           return target ? { type: "contact" as const, id: target.id, label: contactLabel(target), target } : null;
         },
         meeting: async () => {
-          const target = await councilMeetingRepository.find(id);
+          const target = await councilClient.openMeeting(id);
           return target ? { type: "meeting" as const, id: target.id, label: meetingLabel(target), target } : null;
         },
         councilBusiness: async () => {
-          const target = await councilBusinessRepository.find(id);
-          return target ? { type: "councilBusiness" as const, id: target.id, label: target.title, target } : null;
+          const target = await councilClient.openBusiness(id);
+          return target
+            ? {
+                type: "councilBusiness" as const,
+                id: target.id,
+                label: await councilBusinessLabel(target, resourcesClient),
+                target,
+              }
+            : null;
         },
         decision: async () => {
           const target = await councilDecisionRepository.find(id);
           return target ? { type: "decision" as const, id: target.id, label: decisionLabel(target), target } : null;
         },
         resource: async () => {
-          const target = await resourceRepository.find(id);
-          return target ? { type: "resource" as const, id: target.id, label: target.title, target } : null;
+          const target = (await resourcesClient.open(id))?.data ?? null;
+          return target ? { type: "resource" as const, id: target.id, label: target.name, target } : null;
         },
       });
     },
