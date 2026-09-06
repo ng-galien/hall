@@ -181,7 +181,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-WSP-180 COUNCIL_BUSINESS_CREATION_AND_DECISION_PROGRAMMING_ARE_ATOMIC:
+-- @functional-requirement HALL-FR-WSP-200 COUNCIL_BUSINESS_CREATION_AND_DECISION_PROGRAMMING_ARE_ATOMIC:
 CREATE FUNCTION hall_api.create_and_schedule_council_decision_proposal(
   parent_path TEXT,
   business_name TEXT,
@@ -213,7 +213,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-WSP-190 COUNCIL_BUSINESS_CREATION_AND_OPEN_QUESTION_PROGRAMMING_ARE_ATOMIC:
+-- @functional-requirement HALL-FR-WSP-210 COUNCIL_BUSINESS_CREATION_AND_OPEN_QUESTION_PROGRAMMING_ARE_ATOMIC:
 CREATE FUNCTION hall_api.create_and_schedule_open_question(
   parent_path TEXT,
   business_name TEXT,
@@ -339,5 +339,22 @@ DECLARE changed hall.council_agenda_item;
 BEGIN
   changed := hall.adjourn_council_agenda_item(target_agenda_item, adjournment_time);
   RETURN hall.council_agenda_item_projection(changed);
+END;
+$$;
+
+CREATE FUNCTION hall_api.agenda_item_recusals(target_item UUID)
+RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+  SELECT hall.agenda_item_recusal_state(target_item)
+    || jsonb_build_object('agendaItem', hall.council_agenda_item_projection(item))
+  FROM hall.council_agenda_item item WHERE item.id = target_item;
+$$;
+
+CREATE FUNCTION hall_api.record_agenda_item_recusal(target_item UUID, target_member UUID,
+  declared_basis TEXT, declaration_time TIMESTAMPTZ)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+BEGIN
+  INSERT INTO hall.agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at)
+  VALUES(target_item,target_member,declared_basis::hall.recusal_legal_basis,declaration_time);
+  RETURN hall_api.agenda_item_recusals(target_item);
 END;
 $$;

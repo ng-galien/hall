@@ -15,7 +15,6 @@ export interface NavigationItem {
   to: string;
   labelKey: TranslationKey;
   icon: ReactNode;
-  countKey?: "meetings" | "councilBusiness" | "councilDecisions" | "contacts" | "members" | "committees";
   /** Renders the filing path tree under this entry. */
   workspaceTree?: boolean;
 }
@@ -32,13 +31,12 @@ export const navigationSections: NavigationSection[] = [
   {
     labelKey: "navigation.council",
     items: [
-      { to: "/meetings", labelKey: "navigation.meetings", icon: <GavelIcon />, countKey: "meetings" },
+      { to: "/meetings", labelKey: "navigation.meetings", icon: <GavelIcon /> },
       { to: "/minutes", labelKey: "navigation.minutes", icon: <TextDocumentIcon /> },
       {
         to: "/council-decisions",
         labelKey: "navigation.decisions",
         icon: <DecisionsIcon />,
-        countKey: "councilDecisions",
       },
     ],
   },
@@ -48,13 +46,12 @@ export const navigationSections: NavigationSection[] = [
   {
     labelKey: "navigation.administration",
     items: [
-      { to: "/contacts", labelKey: "navigation.contacts", icon: <ContactIcon />, countKey: "contacts" },
-      { to: "/council-members", labelKey: "navigation.members", icon: <MembersIcon />, countKey: "members" },
+      { to: "/contacts", labelKey: "navigation.contacts", icon: <ContactIcon /> },
+      { to: "/council-members", labelKey: "navigation.members", icon: <MembersIcon /> },
       {
         to: "/council-committees",
         labelKey: "navigation.committees",
         icon: <CommitteeIcon />,
-        countKey: "committees",
       },
     ],
   },

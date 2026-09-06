@@ -11,6 +11,7 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: {
     host: "127.0.0.1",
+    allowedHosts: ["dev-host.example.test"],
     port: 5174,
     proxy: { "/api": process.env.VITE_API_TARGET ?? "http://127.0.0.1:3100" },
   },

@@ -1,4 +1,4 @@
--- @technical-requirement HALL-TR-CTX-030 API_ONLY_RUNTIME_ACCESS:
+-- @technical-requirement HALL-TR-CTX-040 API_ONLY_RUNTIME_ACCESS:
 -- @technical-requirement HALL-TR-DOC-060 DOCUMENTARY_WRITES_ARE_NAMED:
 -- Runtime roles can discover hall_api and call only explicitly granted
 -- functions. They never receive table privileges in hall.
@@ -209,4 +209,8 @@ GRANT EXECUTE ON FUNCTION hall_api.resolve_legal_reference_resource(UUID, INTEGE
 GRANT EXECUTE ON FUNCTION hall_api.replace_document_content(UUID, TEXT, BYTEA)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.delete_resource(UUID)
+  TO hall_api_authenticated, hall_api_worker;
+
+GRANT EXECUTE ON FUNCTION hall_api.agenda_item_recusals(UUID),
+  hall_api.record_agenda_item_recusal(UUID, UUID, TEXT, TIMESTAMPTZ)
   TO hall_api_authenticated, hall_api_worker;

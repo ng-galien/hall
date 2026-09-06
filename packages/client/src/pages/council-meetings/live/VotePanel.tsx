@@ -10,12 +10,7 @@ import { useSubmitting } from "../../../hooks/useSubmitting";
 import type { TranslationKey } from "../../../i18n/en";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { type BallotParticipant, ballotParticipants } from "../ballotParticipants";
-import {
-  initialSecretBallotTotals,
-  reconcileSecretBallotTotals,
-  type SecretBallotTotals,
-  secretBallotTotal,
-} from "../secretBallotTotals";
+import { initialSecretBallotTotals, reconcileSecretBallotTotals, type SecretBallotTotals } from "../secretBallotTotals";
 
 type ZoneChoice = VoteChoice | "unassigned";
 
@@ -30,7 +25,6 @@ const secretCounters: { key: keyof SecretBallotTotals; labelKey: TranslationKey 
   { key: "votesFor", labelKey: "ballot.votesFor" },
   { key: "votesAgainst", labelKey: "ballot.votesAgainst" },
   { key: "abstentions", labelKey: "ballot.abstentions" },
-  { key: "notVoting", labelKey: "ballot.notVoting" },
 ];
 
 function VoteBadge({
@@ -61,6 +55,7 @@ function VoteBadge({
       className={`vote-card vote-card-${zone}${proxyVote ? " vote-card-carried" : ""}${dragging ? " vote-card-dragging" : ""}${selected ? " vote-card-selected" : ""}`}
       aria-pressed={selected}
       type="button"
+      data-testid={`live-vote-member-${participant.memberId}`}
       draggable
       onDragStart={(event: DragEvent) => {
         event.dataTransfer.effectAllowed = "move";
@@ -108,6 +103,8 @@ export function VotePanel({
   initialMethod,
   initialAssignments,
   initialSecretTotals,
+  eligibleAttendanceIds,
+  onDeclareRecusal,
 }: {
   aggregate: LiveMeetingPresentation;
   members: CouncilMemberView[];
@@ -118,6 +115,8 @@ export function VotePanel({
   initialMethod?: BallotMethod;
   initialAssignments?: Partial<Record<string, VoteChoice>>;
   initialSecretTotals?: SecretBallotTotals;
+  eligibleAttendanceIds: readonly string[];
+  onDeclareRecusal?: () => void;
 }) {
   const { t, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
@@ -127,7 +126,12 @@ export function VotePanel({
   const [draggedMemberId, setDraggedMemberId] = useState<string | null>(null);
   const [dropZone, setDropZone] = useState<ZoneChoice | null>(null);
   const idempotencyKey = useRef(crypto.randomUUID());
-  const participants = ballotParticipants(aggregate, members);
+  const participants = ballotParticipants(
+    { ...aggregate, attendance: aggregate.attendance.filter((entry) => eligibleAttendanceIds.includes(entry.id)) },
+    members,
+  );
+  const [secretExcludedIds, setSecretExcludedIds] = useState<ReadonlySet<string>>(new Set());
+  const secretParticipants = participants.filter((participant) => !secretExcludedIds.has(participant.memberId));
   const previousParticipantCount = useRef(participants.length);
   const [secretTotals, setSecretTotals] = useState(
     () => initialSecretTotals ?? initialSecretBallotTotals(participants.length),
@@ -195,8 +199,8 @@ export function VotePanel({
   const adjustSecretTotal = (key: keyof SecretBallotTotals, offset: number) => {
     setSecretTotals((totals) => ({ ...totals, [key]: Math.max(0, totals[key] + offset) }));
   };
-  const secretTotalCount = secretBallotTotal(secretTotals);
-  const secretValid = secretTotalCount === participants.length;
+  const secretTotalCount = secretTotals.votesFor + secretTotals.votesAgainst + secretTotals.abstentions;
+  const secretValid = secretTotalCount === secretParticipants.length && secretParticipants.length > 0;
   const publicComplete = unassigned.length === 0 && participants.length > 0;
 
   const record = () =>
@@ -217,7 +221,8 @@ export function VotePanel({
               method,
               idempotencyKey: idempotencyKey.current,
               ...target,
-              totals: secretTotals,
+              participantMemberIds: secretParticipants.map((participant) => participant.memberId),
+              totals: { ...secretTotals, notVoting: participants.length - secretParticipants.length },
             };
       const recorded = await onRecord(input);
       if (recorded) {
@@ -284,6 +289,11 @@ export function VotePanel({
     <section className="vote-panel" aria-labelledby="vote-panel-heading">
       <header className="vote-panel-header">
         <h2 id="vote-panel-heading">{t("ballot.itemTitle")}</h2>
+        {onDeclareRecusal ? (
+          <button className="vote-reset" type="button" data-testid="live-ballot-recusal" onClick={onDeclareRecusal}>
+            {t("recusal.title")}
+          </button>
+        ) : null}
         <div className="vote-method-toggle">
           <button
             className={`vote-method-choice${method === "public" ? " vote-method-choice-active" : ""}`}
@@ -319,7 +329,12 @@ export function VotePanel({
               <span className="vote-source-tools">
                 <strong>{formatNumber(unassigned.length)}</strong>
                 {unassigned.length > 0 ? (
-                  <button className="vote-reset" type="button" data-testid="live-ballot-all-for" onClick={assignRemainingFor}>
+                  <button
+                    className="vote-reset"
+                    type="button"
+                    data-testid="live-ballot-all-for"
+                    onClick={assignRemainingFor}
+                  >
                     {t("live.remainingToFor")}
                   </button>
                 ) : null}
@@ -380,31 +395,63 @@ export function VotePanel({
           ) : null}
         </>
       ) : (
-        <div className="vote-secret-counters">
-          {secretCounters.map((counter) => (
-            <div className="vote-secret-counter" key={counter.key}>
-              <span>{t(counter.labelKey)}</span>
-              <div>
-                <button
-                  type="button"
-                  aria-label={`${t(counter.labelKey)} −1`}
-                  data-testid={`live-secret-${counter.key}-decrement`}
-                  onClick={() => adjustSecretTotal(counter.key, -1)}
-                >
-                  −
-                </button>
-                <strong>{formatNumber(secretTotals[counter.key])}</strong>
-                <button
-                  type="button"
-                  aria-label={`${t(counter.labelKey)} +1`}
-                  data-testid={`live-secret-${counter.key}-increment`}
-                  onClick={() => adjustSecretTotal(counter.key, 1)}
-                >
-                  +
-                </button>
+        <div className="grid gap-3">
+          <fieldset className="grid gap-2" data-testid="live-secret-participants">
+            <legend>{t("recusal.secretParticipants")}</legend>
+            <p className="text-sm text-muted-foreground">{t("recusal.secretParticipantsHint")}</p>
+            {participants.map((participant) => (
+              <label className="flex items-center gap-2" key={participant.memberId}>
+                <input
+                  type="checkbox"
+                  data-testid={`live-secret-participant-${participant.memberId}`}
+                  checked={!secretExcludedIds.has(participant.memberId)}
+                  onChange={(event) =>
+                    setSecretExcludedIds((previous) => {
+                      const next = new Set(previous);
+                      if (event.target.checked) next.delete(participant.memberId);
+                      else next.add(participant.memberId);
+                      return next;
+                    })
+                  }
+                />
+                <span>
+                  {participant.memberName}
+                  {participant.represented
+                    ? ` · ${t("live.carriedBy").replace("{holder}", participant.castByName)}`
+                    : ""}
+                </span>
+              </label>
+            ))}
+            <p data-testid="live-secret-not-voting">
+              {t("ballot.notVoting")} : {formatNumber(participants.length - secretParticipants.length)}
+            </p>
+          </fieldset>
+          <div className="vote-secret-counters">
+            {secretCounters.map((counter) => (
+              <div className="vote-secret-counter" key={counter.key}>
+                <span>{t(counter.labelKey)}</span>
+                <div>
+                  <button
+                    type="button"
+                    aria-label={`${t(counter.labelKey)} −1`}
+                    data-testid={`live-secret-${counter.key}-decrement`}
+                    onClick={() => adjustSecretTotal(counter.key, -1)}
+                  >
+                    −
+                  </button>
+                  <strong>{formatNumber(secretTotals[counter.key])}</strong>
+                  <button
+                    type="button"
+                    aria-label={`${t(counter.labelKey)} +1`}
+                    data-testid={`live-secret-${counter.key}-increment`}
+                    onClick={() => adjustSecretTotal(counter.key, 1)}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
@@ -434,7 +481,7 @@ export function VotePanel({
             <span className={secretValid ? "vote-total-for" : "vote-total-invalid"}>
               {t("live.secretTotal")
                 .replace("{count}", formatNumber(secretTotalCount))
-                .replace("{expected}", formatNumber(participants.length))}
+                .replace("{expected}", formatNumber(secretParticipants.length))}
             </span>
           )}
         </div>

@@ -2,6 +2,12 @@ import { PROBLEM_MEDIA_TYPE, type ProblemDetails } from "@hall/api-contract";
 import type { Request, Response } from "express";
 
 const titles: Record<string, string> = {
+  recusal_already_recorded: "A recusal is already recorded for this member and agenda item",
+  recusal_recording_closed: "Recusal recording is closed for this agenda item",
+  recusal_member_not_declared: "The member has no attendance declaration in this meeting",
+  recused_member_cannot_participate: "A recused member cannot participate in this ballot",
+  recusal_immutable: "A recorded recusal cannot be rewritten",
+  recusal_occurrence_locked: "An agenda item with recusals must remain in its meeting",
   authentication_required: "Authentication required",
   permission_denied: "Permission denied",
   invalid_credentials: "Invalid credentials",

@@ -1,3 +1,4 @@
+import { agendaItemRecusalStateSchema } from "./recusal.js";
 import { z } from "zod";
 import { councilBusinessSchema } from "./councilBusiness.js";
 import { minutesSummarySchema } from "./minutes.js";
@@ -233,3 +234,6 @@ export type CloseCouncilMeeting = z.infer<typeof closeCouncilMeetingSchema>;
 export type CouncilMeetingClosure = z.infer<typeof councilMeetingClosureSchema>;
 export type CreateAndScheduleCouncilBusiness = z.infer<typeof createAndScheduleCouncilBusinessSchema>;
 export type CreatedAndScheduledCouncilBusiness = z.infer<typeof createdAndScheduledCouncilBusinessSchema>;
+
+export const agendaItemRecusalsSchema = agendaItemRecusalStateSchema.extend({ agendaItem: agendaItemSchema });
+export type AgendaItemRecusals = z.infer<typeof agendaItemRecusalsSchema>;

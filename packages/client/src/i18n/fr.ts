@@ -1,6 +1,27 @@
 import type { Messages } from "./en";
 
 export const fr: Messages = {
+  "error.recusal_already_recorded": "Un déport est déjà déclaré pour ce membre sur ce point.",
+  "error.recusal_recording_closed": "Le déport ne peut plus être déclaré : une participation ou la clôture du point a déjà été enregistrée.",
+  "error.recusal_member_not_declared": "Ce membre ne dispose pas d’une déclaration de présence dans cette séance.",
+  "error.recused_member_cannot_participate": "Un membre déporté ne peut pas participer, personnellement ou comme porteur d’un pouvoir.",
+  "error.recusal_immutable": "Un déport enregistré ne peut pas être réécrit.",
+  "error.recusal_occurrence_locked": "Un point portant des déports doit rester rattaché à sa séance.",
+  "recusal.title": "Conflit d’intérêts",
+  "recusal.listTitle": "Déports sur ce point",
+  "recusal.description": "Déclarer nominativement le déport avant la discussion et le vote. Ce n’est pas un choix de suffrage.",
+  "recusal.member": "Membre du conseil",
+  "recusal.chooseMember": "Choisir un membre",
+  "recusal.basis": "Fondement applicable : qualification explicite",
+  "recusal.personalInterest": "Intérêt personnel (régime général)",
+  "recusal.personalInterestHint": "Exclusion des présents déclarés admissibles et du vote, sans réduction de l’effectif de référence.",
+  "recusal.designatedRepresentativeConflict": "Représentation d’un organisme (régime spécial qualifié)",
+  "recusal.designatedRepresentativeConflictHint": "Uniquement si les articles L1111-6 II / L2131-11 du CGCT s’appliquent, après vérification des conditions et exceptions. Représenter un organisme ne suffit pas. Réduit aussi l’effectif de référence.",
+  "recusal.immutableHint": "La déclaration est conservée. Elle ne peut pas supprimer des votes ou des participations déjà enregistrés.",
+  "recusal.record": "Déclarer le déport",
+  "recusal.separateFromVotes": "Ces déports sont distincts des abstentions et des non-participations. Leur effet sur les déclarations ne constitue pas un constat juridique complet du quorum.",
+  "recusal.secretParticipants": "Participation au scrutin secret",
+  "recusal.secretParticipantsHint": "Indiquer qui participe, indépendamment des totaux anonymes. Aucun choix n’est relié à un membre.",
   "navigation.minutes": "Procès-verbaux",
   "minutes.description":
     "Retrouvez les faits de séance, préparez la rédaction et générez le document soumis à l’approbation.",
@@ -467,7 +488,7 @@ export const fr: Messages = {
   "meetings.schedule": "Planifier une séance",
   "meetings.dateTime": "Date et heure",
   "meetings.location": "Lieu",
-  "meetings.locationDefault": "Salle du conseil",
+  "meetings.invalidLocalTime": "Cette heure n’existe pas dans le fuseau horaire de la commune.",
   "meetings.chair": "Présidence",
   "meetings.chairUndesignated": "À désigner",
   "meetings.secretary": "Secrétaire de séance",
@@ -509,18 +530,18 @@ export const fr: Messages = {
   "meeting.markAllPresent": "Tout marquer présent",
   "meeting.confirmProxy": "Valider le pouvoir",
   "meeting.loading": "Chargement de la séance…",
-  "meeting.action.schedule": "Figer la composition et programmer",
+  "meeting.action.schedule": "Programmer la séance",
   "meeting.action.open": "Constater le quorum et ouvrir la séance",
   "meeting.action.close": "Clore la séance",
   "meeting.opening.attendanceIncomplete":
     "Saisissez la présence de chaque membre de la composition avant d’ouvrir la séance.",
   "meeting.opening.quorumNotReached": "La séance ne peut pas être ouverte car le quorum n’est pas atteint.",
-  "meeting.opening.officersMissing": "Établissez un président et un secrétaire parmi la composition figée.",
+  "meeting.opening.officersMissing": "Établissez un président et un secrétaire parmi les membres du conseil.",
   "meeting.opening.officersNotPresent": "Le président et le secrétaire doivent tous deux être physiquement présents.",
   "meeting.opening.quorumFailure": "Une absence de quorum a été constatée ; préparez la seconde convocation.",
   "meeting.officers": "Bureau de séance",
   "meeting.officersDescription":
-    "Établissez le président et le secrétaire de séance parmi les membres de la composition figée.",
+    "Établissez le président et le secrétaire de séance parmi les membres du conseil.",
   "meeting.saveOfficers": "Enregistrer le bureau",
   "meeting.officersSaved": "Le bureau de séance a été enregistré.",
   "meeting.recordQuorumFailure": "Constater l’absence de quorum",
@@ -751,7 +772,7 @@ export const fr: Messages = {
   "error.attendance_incomplete":
     "La présence de chaque membre en exercice doit être saisie avant de constater l’absence de quorum.",
   "error.meeting_officers_required":
-    "Le président et le secrétaire de séance doivent être établis parmi la composition figée avant l’ouverture.",
+    "Le président et le secrétaire de séance doivent être établis parmi les membres du conseil avant l’ouverture.",
   "error.minutes_approval_required":
     "L’approbation du procès-verbal du conseil précédent doit être le premier et unique point de ce type.",
   "error.conflict": "La modification est incompatible avec les informations existantes.",

@@ -1,4 +1,10 @@
 export type ErrorCode =
+  | "recusal_already_recorded"
+  | "recusal_recording_closed"
+  | "recusal_member_not_declared"
+  | "recused_member_cannot_participate"
+  | "recusal_immutable"
+  | "recusal_occurrence_locked"
   | "agenda_ballot_required"
   | "agenda_inconsistent"
   | "agenda_item_not_found"

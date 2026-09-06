@@ -20,6 +20,8 @@ Delegate only when explicitly authorized. Give each delegated task a bounded sco
 
 ### Completion evidence
 
+Le [dispositif d'exigences et de références juridiques](docs/requirements.md) définit leur qualification, leur traçabilité et leurs contrôles.
+
 For a bug fix, reproduce the failure and verify the same scenario after the change. Select checks from the affected package scripts and preserve the structural checks required by the architecture map. Documentation-only changes require diff review and local link verification, without starting the application runtime or application test suites.
 
 Starting a command does not prove success: inspect its result and report anything left unverified. Browser and Playwright work must follow the interaction contracts and shared runtime instructions below.

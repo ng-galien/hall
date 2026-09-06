@@ -60,6 +60,11 @@ trigger wiring exists in the loaded database.
 
 ## Requirement coverage
 
+The [quorum requirements specification](../../../../../docs/council-quorum-requirements.md)
+distinguishes existing opening checks from the proposed per-deliberation
+requirements, their acceptance scenarios and missing runtime observations.
+Proposed identifiers are not production annotations or proven coverage.
+
 | Requirement family | Covered range | Main evidence |
 | --- | --- | --- |
 | `HALL-FR-ATT` | `010` through `110` | shapes, uniqueness, CouncilMember and proxy-document references, proxy XOR, same-meeting present holder, immutability |

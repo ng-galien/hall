@@ -13,7 +13,7 @@ AS $function$
   SELECT pg_advisory_xact_lock(hashtextextended('hall.resource.namespace', 0))
 $function$;
 
--- @functional-requirement HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
+-- @requirement-reference HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
 CREATE FUNCTION hall.touch_resource(resource_id UUID)
 RETURNS VOID
 LANGUAGE sql
@@ -25,7 +25,7 @@ AS $function$
   WHERE id = resource_id
 $function$;
 
--- @functional-requirement HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
+-- @requirement-reference HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
 -- @technical-requirement HALL-TR-DOC-070 SLUG_ALLOCATION_IS_SERIALIZED:
 CREATE FUNCTION hall.claim_resource_slug(resource_name TEXT)
 RETURNS TEXT
@@ -68,14 +68,14 @@ AS $function$
 DECLARE
   target_is_folder BOOLEAN;
 BEGIN
-  -- @functional-requirement HALL-FR-DOC-020 RESOURCE_LOCATION_IS_NORMALIZED:
+  -- @requirement-reference HALL-FR-DOC-020 RESOURCE_LOCATION_IS_NORMALIZED:
   IF folder_path IS NULL OR NOT hall.is_normalized_resource_path(folder_path) THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV607',
       MESSAGE = 'Resource path is not normalized';
   END IF;
 
-  -- @functional-requirement HALL-FR-DOC-050 ROOT_IS_IMPLICIT:
+  -- @requirement-reference HALL-FR-DOC-050 ROOT_IS_IMPLICIT:
   IF folder_path = '' THEN
     RETURN;
   END IF;
@@ -161,7 +161,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
+-- @requirement-reference HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
 CREATE FUNCTION hall_api.open_resource(resource_id UUID)
 RETURNS JSONB
 LANGUAGE sql
@@ -172,7 +172,7 @@ AS $function$
   SELECT hall.resource_detail(resource_id)
 $function$;
 
--- @functional-requirement HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
+-- @requirement-reference HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
 CREATE FUNCTION hall_api.open_resource_by_slug(resource_slug TEXT)
 RETURNS JSONB
 LANGUAGE sql
@@ -184,7 +184,7 @@ AS $function$
   FROM hall.require_resource_by_slug(resource_slug) AS resource
 $function$;
 
--- @functional-requirement HALL-FR-DOC-180 WORKSPACE_CATALOG_IS_FLAT:
+-- @requirement-reference HALL-FR-DOC-180 WORKSPACE_CATALOG_IS_FLAT:
 CREATE FUNCTION hall_api.list_resources()
 RETURNS JSONB
 LANGUAGE sql
@@ -199,7 +199,7 @@ AS $function$
   FROM hall.resource AS resource
 $function$;
 
--- @functional-requirement HALL-FR-DOC-210 RESOURCE_HYDRATION_IS_SCOPED:
+-- @requirement-reference HALL-FR-DOC-210 RESOURCE_HYDRATION_IS_SCOPED:
 CREATE FUNCTION hall_api.search_resources(
   search_query TEXT DEFAULT '',
   search_paths TEXT[] DEFAULT ARRAY[]::TEXT[],
@@ -324,7 +324,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-DOC-110 FOLDER_LISTS_DIRECT_CHILDREN:
+-- @requirement-reference HALL-FR-DOC-110 FOLDER_LISTS_DIRECT_CHILDREN:
 CREATE FUNCTION hall_api.list_folder(folder_path TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -361,7 +361,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-DOC-120 PARENT_FOLDERS_ARE_ENSURED:
+-- @requirement-reference HALL-FR-DOC-120 PARENT_FOLDERS_ARE_ENSURED:
 CREATE FUNCTION hall_api.create_folder(parent_path TEXT, resource_name TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -406,7 +406,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-DOC-190 REMOTE_TARGET_IS_STRUCTURAL:
+-- @requirement-reference HALL-FR-DOC-190 REMOTE_TARGET_IS_STRUCTURAL:
 CREATE FUNCTION hall_api.create_remote_resource(parent_path TEXT, resource_name TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -567,7 +567,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-DOC-230 EDITOR_ASSET_BELONGS_TO_TEXT_CONTENT:
+-- @requirement-reference HALL-FR-DOC-230 EDITOR_ASSET_BELONGS_TO_TEXT_CONTENT:
 CREATE FUNCTION hall_api.create_editor_asset(
   owner_resource_id UUID,
   asset_title TEXT,
@@ -744,7 +744,7 @@ AS $function$
   )
 $function$;
 
--- @functional-requirement HALL-FR-DOC-130 LOCATION_CHANGE_IS_ATOMIC:
+-- @requirement-reference HALL-FR-DOC-130 LOCATION_CHANGE_IS_ATOMIC:
 CREATE FUNCTION hall_api.relocate_resource(resource_id UUID, destination_path TEXT, destination_name TEXT)
 RETURNS JSONB
 LANGUAGE sql
@@ -755,7 +755,7 @@ AS $function$
   SELECT hall.relocate_resource(resource_id, destination_path, destination_name)
 $function$;
 
--- @functional-requirement HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
+-- @requirement-reference HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
 CREATE FUNCTION hall.replace_resource_tags(resource_id UUID, resource_tags TEXT[])
 RETURNS VOID
 LANGUAGE plpgsql
@@ -1053,7 +1053,7 @@ BEGIN
 END
 $function$;
 
--- @technical-requirement HALL-TR-DOC-040 JSON_PROJECTIONS_ARE_EXPLICIT:
+-- @requirement-reference HALL-TR-DOC-040 JSON_PROJECTIONS_ARE_EXPLICIT:
 CREATE FUNCTION hall_api.read_document_content(resource_id UUID)
 RETURNS TABLE (
   content BYTEA,

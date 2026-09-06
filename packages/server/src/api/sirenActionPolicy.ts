@@ -290,7 +290,11 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
               ),
             ])
           : [];
-      return [...agendaItemActions(context), ...notes];
+      const recusalActions = value && typeof value === "object" && (value as Record<string, unknown>).canRecordRecusal === true
+        ? authorizedActions(request, [action("agenda-item.record-recusal", "POST",
+          `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary?.councilMeetingId}/agenda-items/${id}/recusals`)])
+        : [];
+      return [...agendaItemActions(context), ...notes, ...recusalActions];
     },
     attendance: () => [],
     "audit-event": () => [],

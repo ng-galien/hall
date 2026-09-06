@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EditIcon, PlayIcon } from "../../components/icons";
 import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
-import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
+import {
+  formatMeetingLabel,
+  meetingScheduleInputValue,
+  meetingScheduleInstant,
+} from "../../features/council-meetings/meetingPresentation";
+import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
+import { useMeetingSettings } from "../../hooks/useMeetingSettings";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -37,19 +43,21 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const agendaEditable = meetingActions.can("meeting.reorder-agenda") || meetingActions.can("agenda-item.schedule");
   const attendanceRecorded = aggregate.attendance.length;
   const [editOpen, setEditOpen] = useState(false);
+  const { settings, error: settingsError } = useMeetingSettings();
   const detailsEditable = meetingActions.can("meeting.schedule");
-  const startsAtLocalValue = (() => {
-    const date = new Date(meeting.startsAt);
-    const pad = (value: number) => String(value).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-  })();
+  const startsAtLocalValue = settings ? meetingScheduleInputValue(meeting.scheduledAt, settings.timeZone) : "";
 
   const submitDetails = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!settings) return;
     const form = new FormData(event.currentTarget);
+    const scheduledAt = meetingScheduleInstant(String(form.get("startsAt")), settings.timeZone);
+    const dateInput = event.currentTarget.elements.namedItem("startsAt") as HTMLInputElement;
+    dateInput.setCustomValidity(scheduledAt ? "" : t("meetings.invalidLocalTime"));
+    if (!event.currentTarget.reportValidity() || !scheduledAt) return;
     await run(async () => {
       const saved = await meetingActions.schedule({
-        scheduledAt: new Date(String(form.get("startsAt"))).toISOString(),
+        scheduledAt,
         location: String(form.get("location")),
       });
       if (saved) setEditOpen(false);
@@ -61,10 +69,16 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
     <div className="page">
       <PageHeader
         title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
-        description={`${formatDateTime(meeting.startsAt)} · ${meeting.location}`}
+        description={[
+          meeting.scheduledAt ? formatDateTime(meeting.scheduledAt) : t("workspace.dateToSet"),
+          meeting.location,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
       />
       <div className="page-content meeting-page-content">
         <RequestErrorBanner error={meetingActions.actionError} />
+        <RequestErrorBanner error={settingsError} />
 
         <div className="meeting-console">
           <MeetingStageBar status={meeting.status} />
@@ -95,7 +109,12 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             </div>
             <div className="meeting-prep-actions">
               {detailsEditable ? (
-                <Button variant="outline" onClick={() => setEditOpen(true)}>
+                <Button
+                  data-testid="meeting-edit-details"
+                  disabled={!settings}
+                  variant="outline"
+                  onClick={() => setEditOpen(true)}
+                >
                   <EditIcon />
                   {t("meetings.edit")}
                 </Button>
@@ -103,7 +122,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               {meeting.status === "draft" ? (
                 <Button
                   variant="default"
-                  disabled={submitting || !meetingActions.can("meeting.schedule")}
+                  disabled={submitting || !settings || !meetingActions.can("meeting.schedule")}
                   onClick={() => setEditOpen(true)}
                 >
                   {t(submitting ? "common.saving" : "meeting.action.schedule")}
@@ -138,18 +157,21 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                 <Input
                   id={`${detailsFieldId}-startsAt`}
                   name="startsAt"
+                  data-testid="meeting-edit-starts-at"
                   type="datetime-local"
                   defaultValue={startsAtLocalValue}
+                  onChange={(event) => event.currentTarget.setCustomValidity("")}
                   required
                 />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-location`}>{t("meetings.location")}</Label>
-                <Input
+                <MeetingLocationSelect
                   id={`${detailsFieldId}-location`}
-                  name="location"
-                  defaultValue={meeting.location ?? ""}
-                  required
+                  testId="meeting-edit-location"
+                  locations={settings?.meetingLocations ?? []}
+                  current={meeting.location}
+                  placeholder={t("meetings.location")}
                 />
               </div>
             </div>

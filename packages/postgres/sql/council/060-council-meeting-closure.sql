@@ -85,7 +85,12 @@ AS $function$
     SELECT
     FROM hall.council_agenda_item AS deferred
     WHERE deferred.council_meeting = target_meeting
-      AND (deferred.started_at IS NOT NULL OR deferred.adjourned_at IS NOT NULL)
+      AND (deferred.started_at IS NOT NULL OR deferred.adjourned_at IS NOT NULL OR (
+      EXISTS (SELECT FROM hall.agenda_item_recusal WHERE agenda_item = deferred.id)
+      AND EXISTS (SELECT FROM hall.council_meeting_snapshot snapshot,
+        jsonb_array_elements(snapshot.payload->'agenda') recorded
+        WHERE snapshot.council_meeting = deferred.council_meeting AND snapshot.phase = 'closing'
+          AND recorded->>'id' = deferred.id::text AND (recorded->>'position')::integer > 0)))
       AND deferred.completed_at IS NULL
       AND deferred.position < 0
       AND NOT EXISTS (
@@ -259,7 +264,8 @@ BEGIN
   UPDATE council_agenda_item
   SET position = -abs(position)
   WHERE council_meeting = meeting.id
-    AND started_at IS NOT NULL
+    AND (started_at IS NOT NULL OR EXISTS (
+      SELECT FROM hall.agenda_item_recusal WHERE agenda_item = council_agenda_item.id))
     AND completed_at IS NULL
     AND position > 0;
 
@@ -308,7 +314,12 @@ BEGIN
     WHERE next_item.council_meeting = next_meeting
   ) AS existing
   WHERE deferred.council_meeting = meeting.id
-    AND (deferred.started_at IS NOT NULL OR deferred.adjourned_at IS NOT NULL)
+    AND (deferred.started_at IS NOT NULL OR deferred.adjourned_at IS NOT NULL OR (
+      EXISTS (SELECT FROM hall.agenda_item_recusal WHERE agenda_item = deferred.id)
+      AND EXISTS (SELECT FROM hall.council_meeting_snapshot snapshot,
+        jsonb_array_elements(snapshot.payload->'agenda') recorded
+        WHERE snapshot.council_meeting = deferred.council_meeting AND snapshot.phase = 'closing'
+          AND recorded->>'id' = deferred.id::text AND (recorded->>'position')::integer > 0)))
     AND deferred.completed_at IS NULL
     AND deferred.position < 0;
 

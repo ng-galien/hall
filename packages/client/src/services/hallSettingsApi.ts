@@ -1,6 +1,12 @@
 import { councilTermSchema, findSirenAction, type CouncilTerm } from "@hall/api-contract";
-import type { HallSettings } from "@hall/domain";
+import { updateHallSettingsSchema, type HallSettings } from "@hall/domain";
 import { apiSirenRequest, submitSirenAction } from "./apiClient";
+
+export async function loadMeetingSettings() {
+  const result = await apiSirenRequest<unknown>("/settings");
+  const { meetingLocations, timeZone } = updateHallSettingsSchema.parse(result.data);
+  return { meetingLocations, timeZone };
+}
 
 export async function loadHallSettings(): Promise<{
   settings: HallSettings;

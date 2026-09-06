@@ -36,7 +36,7 @@ CREATE TABLE hall.contact (
   )
 );
 
--- @functional-requirement HALL-FR-DIR-030 MEMBER_BELONGS_TO_TERM:
+-- @requirement-reference HALL-FR-DIR-030 MEMBER_BELONGS_TO_TERM:
 -- @functional-requirement HALL-FR-DIR-070 MANDATE_DATES_ARE_ORDERED:
 CREATE TABLE hall.council_member (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -82,7 +82,7 @@ BEGIN
       MESSAGE = 'An active council term is required';
   END IF;
 
-  -- @functional-requirement HALL-FR-DIR-030 MEMBER_BELONGS_TO_TERM:
+  -- @requirement-reference HALL-FR-DIR-030 MEMBER_BELONGS_TO_TERM:
   IF NEW.council_term <> active_term.id THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV807',
@@ -131,7 +131,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  -- @functional-requirement HALL-FR-DIR-060 ARCHIVED_CONTACT_HAS_NO_ACTIVE_MANDATE:
+  -- @requirement-reference HALL-FR-DIR-060 ARCHIVED_CONTACT_HAS_NO_ACTIVE_MANDATE:
   IF NEW.archived_at IS NOT NULL
     AND OLD.archived_at IS NULL
     AND EXISTS (
@@ -224,7 +224,7 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE = 'HV822', MESSAGE = 'An ended council mandate cannot have an active committee membership';
   END IF;
 
-  -- @functional-requirement HALL-FR-DIR-110 MEMBERSHIP_DATES_FIT_MANDATE:
+  -- @requirement-reference HALL-FR-DIR-110 MEMBERSHIP_DATES_FIT_MANDATE:
   IF NEW.started_on < mandate_started_on
     OR (mandate_ended_on IS NOT NULL AND coalesce(NEW.ended_on, mandate_ended_on + 1) > mandate_ended_on)
   THEN
@@ -272,7 +272,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  -- @functional-requirement HALL-FR-DIR-120 CLOSURE_ENDS_MEMBERSHIPS:
+  -- @requirement-reference HALL-FR-DIR-120 CLOSURE_ENDS_MEMBERSHIPS:
   IF OLD.term_ended_on IS NULL AND NEW.term_ended_on IS NOT NULL THEN
     UPDATE hall.committee_membership
     SET ended_on = NEW.term_ended_on

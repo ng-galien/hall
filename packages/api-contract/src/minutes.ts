@@ -1,3 +1,4 @@
+import { agendaItemRecusalSchema } from "./recusal.js";
 import { z } from "zod";
 
 const id = z.string().uuid();
@@ -30,6 +31,7 @@ export const minutesFactsSchema = z
         })
         .strict(),
     ),
+    recusals: z.array(agendaItemRecusalSchema),
     agenda: z.array(
       z
         .object({

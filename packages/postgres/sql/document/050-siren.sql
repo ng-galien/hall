@@ -52,7 +52,7 @@ DECLARE
   );
   media_type TEXT;
 BEGIN
-  -- @functional-requirement HALL-FR-DOC-180 WORKSPACE_CATALOG_IS_FLAT:
+  -- @requirement-reference HALL-FR-DOC-180 WORKSPACE_CATALOG_IS_FLAT:
   -- A catalogue entry intentionally omits binary metadata. Content and preview
   -- links are therefore advertised only by hydrated document projections; a
   -- flat catalogue must never manufacture a Siren link whose media type is
@@ -120,7 +120,7 @@ BEGIN
       )
     );
   ELSIF resource_kind = 'legalReference' THEN
-    -- @functional-requirement HALL-FR-DOC-220 DOCUMENTARY_SIREN_IS_DATABASE_OWNED:
+    -- @requirement-reference HALL-FR-DOC-220 DOCUMENTARY_SIREN_IS_DATABASE_OWNED:
     -- A folder listing carries a summary without the legal document. It must
     -- never advertise an action as JSON null; detail projections add the
     -- state-dependent legal action once the resolution status is available.

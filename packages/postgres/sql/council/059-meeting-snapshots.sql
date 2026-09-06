@@ -32,6 +32,9 @@ RETURNS VOID LANGUAGE sql VOLATILE SET search_path = pg_catalog, hall AS $$
         AND (item.position > 0 OR item.adjourned_at IS NOT NULL)), '[]'::jsonb),
     'attendance', coalesce((SELECT jsonb_agg(to_jsonb(entry) ORDER BY entry.id)
       FROM hall.meeting_attendance entry WHERE entry.council_meeting = target_meeting), '[]'::jsonb),
+    'recusals', coalesce((SELECT jsonb_agg(hall.agenda_item_recusal_projection(r) ORDER BY r.id)
+      FROM hall.agenda_item_recusal r JOIN hall.council_agenda_item i ON i.id = r.agenda_item
+      WHERE i.council_meeting = target_meeting), '[]'::jsonb),
     'ballots', coalesce((SELECT jsonb_agg(to_jsonb(ballot) ORDER BY ballot.id)
       FROM hall.ballots ballot JOIN hall.council_agenda_item item ON item.id = ballot.council_agenda_item
       WHERE item.council_meeting = target_meeting), '[]'::jsonb),

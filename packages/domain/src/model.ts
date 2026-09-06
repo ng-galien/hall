@@ -88,7 +88,8 @@ export interface HallSettings {
   phone: string;
   email: string | null;
   website: string | null;
-  defaultMeetingLocation: string;
+  /** Ordered venue catalogue; the first location is the default. */
+  meetingLocations: string[];
   timeZone: string;
   outboundEmailSenderName: string;
   outboundEmailSenderAddress: string | null;

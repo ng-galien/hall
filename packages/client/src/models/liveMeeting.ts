@@ -256,6 +256,7 @@ export type LiveBallotSubmission = ({ agendaItemId: string } | { councilDecision
       }
     | {
         method: "secret";
+        participantMemberIds: string[];
         totals: { votesFor: number; votesAgainst: number; abstentions: number; notVoting: number };
       }
   );

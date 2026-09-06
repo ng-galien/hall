@@ -93,7 +93,7 @@ CREATE TABLE hall.legal_reference_resource (
   version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
 );
 
--- @functional-requirement HALL-FR-DOC-080 BINARY_CONTENT_IS_SEPARATE:
+-- @requirement-reference HALL-FR-DOC-080 BINARY_CONTENT_IS_SEPARATE:
 CREATE TABLE hall.document_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   binary_object_id UUID NOT NULL REFERENCES hall.binary_object(id) ON DELETE RESTRICT
@@ -116,12 +116,12 @@ COMMENT ON TABLE hall.editor_asset IS
   'Private image owned by one text resource. It is intentionally outside the workspace Resource union.';
 
 -- @functional-requirement HALL-FR-DOC-010 RESOURCE_HAS_EXACTLY_ONE_NATURE:
--- @functional-requirement HALL-FR-DOC-020 RESOURCE_LOCATION_IS_NORMALIZED:
--- @functional-requirement HALL-FR-DOC-030 FOLDER_IS_A_RESOURCE:
+-- @requirement-reference HALL-FR-DOC-020 RESOURCE_LOCATION_IS_NORMALIZED:
+-- @requirement-reference HALL-FR-DOC-030 FOLDER_IS_A_RESOURCE:
 -- @functional-requirement HALL-FR-DOC-040 CONTAINER_IS_A_FOLDER:
 -- @functional-requirement HALL-FR-DOC-050 ROOT_IS_IMPLICIT:
 -- @functional-requirement HALL-FR-DOC-060 FOLDER_DELETION_IS_EXPLICIT:
--- @technical-requirement HALL-TR-DOC-010 UUID_IDENTITIES:
+-- @requirement-reference HALL-TR-DOC-010 UUID_IDENTITIES:
 -- @technical-requirement HALL-TR-DOC-020 DECLARATIVE_INVARIANTS_ARE_INLINE:
 CREATE TABLE hall.resource (
   id UUID PRIMARY KEY,

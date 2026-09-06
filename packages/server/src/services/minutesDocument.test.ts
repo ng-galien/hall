@@ -25,6 +25,7 @@ const fixture: MinutesDetail = {
       chair: { id: "chair", name: "Marie Martin" },
       secretary: { id: "secretary", name: "Jean Dupont" },
     },
+    recusals: [],
     attendance: [
       { id: "attendance", member: { id: "chair", name: "Marie Martin" }, status: "present", proxyHolderId: null },
     ],
@@ -65,6 +66,23 @@ describe("minutes generated document", () => {
     expect(html).toContain("Salle &lt;A&gt;");
     expect(html).not.toContain("<script>");
     expect(html).toContain("Une correction de rédaction.");
+  });
+
+  it("prints both recusal qualifications without turning either into a secret vote", () => {
+    const minutes: MinutesDetail = { ...fixture, facts: { ...fixture.facts,
+      recusals: ["personalInterest", "designatedRepresentativeConflict"].map((basis, index) => ({
+        id: `recusal-${index}`, agendaItemId: "agenda", councilMemberId: `member-${index}`,
+        legalBasis: basis as "personalInterest" | "designatedRepresentativeConflict",
+        declaredAt: "2026-09-05T18:00:00Z", recordedAt: "2026-09-05T18:00:00Z",
+        recordedBy: "clerk", memberName: `Personne <${index}>`,
+      })),
+      ballots: fixture.facts.ballots.map((ballot) => ({ ...ballot, mode: "secret", votes: [{ choice: "approve", count: 1, member: null }] })),
+    }};
+    const html = renderMinutesSections(minutes).proceedings;
+    expect(html).toContain("Personne &lt;0&gt; : Intérêt personnel");
+    expect(html).toContain("Personne &lt;1&gt; : Représentant désigné, régime L1111-6 II");
+    expect(html).toContain("Pour : 1");
+    expect(html).not.toContain("Personne &lt;0&gt; : Pour");
   });
 
   it("never prints named choices for secret ballots", () => {

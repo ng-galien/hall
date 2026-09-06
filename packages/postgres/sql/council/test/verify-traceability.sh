@@ -3,6 +3,8 @@ set -euo pipefail
 
 test_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sql_dir="$(cd "${test_dir}/.." && pwd)"
+node "${test_dir}/../../../../../scripts/check-requirements.mjs"
+
 temporary_dir="$(mktemp -d)"
 trap 'rm -rf "${temporary_dir}"' EXIT
 

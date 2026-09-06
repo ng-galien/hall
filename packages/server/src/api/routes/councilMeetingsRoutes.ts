@@ -1,6 +1,7 @@
 import {
   type AgendaItem,
   adjournAgendaItemSchema,
+  recordAgendaItemRecusalSchema,
   type CouncilMeeting,
   closeCouncilMeetingSchema,
   completeOpenQuestionSchema,
@@ -175,6 +176,19 @@ export function createCouncilMeetingsRouter({ councilClient }: Cradle): Router {
       response.json(agendaItem);
     },
   );
+
+  router.get("/:meetingReference/agenda-items/:agendaItemId/recusals", requirePermission("meetings.read"), async (request, response) => {
+    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+    const item = await requireMeetingAgendaItem(councilClient, meeting, routeParameter(request.params.agendaItemId));
+    response.locals.currentCouncilMeeting = meeting;
+    response.json(await councilClient.agendaItemRecusals(item.id));
+  });
+  router.post("/:meetingReference/agenda-items/:agendaItemId/recusals", requireActionPermission("agenda-item.record-recusal"), async (request, response) => {
+    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+    const item = await requireMeetingAgendaItem(councilClient, meeting, routeParameter(request.params.agendaItemId));
+    response.locals.currentCouncilMeeting = meeting;
+    response.status(201).json(await councilClient.recordAgendaItemRecusal(item.id, recordAgendaItemRecusalSchema.parse(request.body)));
+  });
 
   router.post(
     "/:meetingReference/agenda-items/:agendaItemId/adjourn",

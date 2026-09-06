@@ -92,6 +92,7 @@ const actionsByPermissions = [
       "agenda-item.complete",
       "agenda-item.update-notes",
       "agenda-item.adjourn",
+      "agenda-item.record-recusal",
       "ballot.create",
       "ballot.record-votes",
       "ballot.complete",
@@ -102,6 +103,7 @@ const actionsByPermissions = [
 ] as const satisfies readonly (readonly [readonly ApiPermission[], readonly ApiActionName[]])[];
 
 const auditCases = [
+  ["POST", "/api/council-meetings/meeting-1/agenda-items/item-1/recusals", undefined, "agenda-item.record-recusal", "agenda-item", "item-1"],
   ["PATCH", "/api/minutes/minutes-1/draft", undefined, "minutes.update-draft", "minutes", "minutes-1"],
   ["POST", "/api/minutes/minutes-1/generate", undefined, "minutes.generate", "minutes", "minutes-1"],
   [

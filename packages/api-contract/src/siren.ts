@@ -53,6 +53,7 @@ export const apiActionNames = [
   "agenda-item.schedule",
   "agenda-item.deprogram",
   "agenda-item.adjourn",
+  "agenda-item.record-recusal",
   "agenda-item.reprogram",
   "agenda-item.start",
   "agenda-item.complete",

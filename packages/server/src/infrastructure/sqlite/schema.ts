@@ -49,6 +49,7 @@ const currentTables = [
   "council_decisions",
   "council_meetings",
   "hall_settings",
+  "hall_meeting_locations",
   "meeting_roster",
   "number_sequences",
   "sessions",
@@ -76,7 +77,6 @@ function createCurrentSchema(database: DatabaseSync): void {
       phone TEXT NOT NULL DEFAULT '',
       email TEXT,
       website TEXT,
-      default_meeting_location TEXT NOT NULL DEFAULT '',
       time_zone TEXT NOT NULL DEFAULT 'Europe/Paris',
       outbound_email_sender_name TEXT NOT NULL DEFAULT '',
       outbound_email_sender_address TEXT,
@@ -88,6 +88,7 @@ function createCurrentSchema(database: DatabaseSync): void {
     ) STRICT;
 
     INSERT INTO hall_settings (id) VALUES ('hall');
+    ${meetingLocationsSchema}
 
     CREATE TABLE number_sequences (
       kind TEXT NOT NULL CHECK (kind IN ('meeting', 'decision')),
@@ -383,3 +384,4 @@ export function initializeSchema(database: DatabaseSync): void {
     throw error;
   }
 }
+import { meetingLocationsSchema } from "../database/meetingLocationsSchema.js";

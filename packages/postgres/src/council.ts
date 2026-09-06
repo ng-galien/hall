@@ -1,4 +1,4 @@
-import { matchDiscriminated } from "@hall/domain";
+import { agendaItemRecusalStateSchema, recordAgendaItemRecusalSchema, type RecordAgendaItemRecusal, matchDiscriminated } from "@hall/domain";
 import type { Pool } from "pg";
 import { z } from "zod";
 import { recordAuditEvent } from "./audit.js";
@@ -122,6 +122,9 @@ export const postgresCouncilAgendaItemSchema = z.object({
   completedAt: timestampSchema.nullable(),
   adjournedAt: timestampSchema.nullable(),
 });
+
+export const postgresAgendaItemRecusalsSchema = agendaItemRecusalStateSchema.extend({ agendaItem: postgresCouncilAgendaItemSchema });
+export type PostgresAgendaItemRecusals = z.infer<typeof postgresAgendaItemRecusalsSchema>;
 
 export const postgresCreatedAndScheduledCouncilBusinessSchema = z.object({
   business: postgresCouncilBusinessWorkspaceSchema,
@@ -439,6 +442,34 @@ export class PostgresCouncil {
           outcome: "succeeded",
         });
         return business;
+      },
+    );
+  }
+
+  agendaItemRecusals(request: PostgresCouncilRequest, id: string): Promise<PostgresAgendaItemRecusals> {
+    const itemId = resourceIdSchema.parse(id);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.recusals.read") },
+      (client) => callJson(client, {
+        text: "SELECT hall_api.agenda_item_recusals($1::uuid) AS payload",
+        values: [itemId], schema: postgresAgendaItemRecusalsSchema,
+      }),
+    );
+  }
+
+  recordAgendaItemRecusal(request: PostgresCouncilRequest, id: string, input: RecordAgendaItemRecusal): Promise<PostgresAgendaItemRecusals> {
+    const itemId = resourceIdSchema.parse(id);
+    const parsed = recordAgendaItemRecusalSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.record-recusal") },
+      async (client) => {
+        const result = await callJson(client, {
+          text: "SELECT hall_api.record_agenda_item_recusal($1::uuid, $2::uuid, $3::text, $4::timestamptz) AS payload",
+          values: [itemId, parsed.councilMemberId, parsed.legalBasis, parsed.declaredAt],
+          schema: postgresAgendaItemRecusalsSchema,
+        });
+        await recordAuditEvent(client, { targetType: "agenda-item", targetId: itemId, outcome: "succeeded" });
+        return result;
       },
     );
   }

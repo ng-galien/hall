@@ -19,7 +19,7 @@ function markdown(value: string): string {
 
 /** The printable facts come exclusively from the immutable closure snapshot. */
 export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSection, string> {
-  const { meeting, attendance, agenda, ballots } = minutes.facts;
+  const { meeting, attendance, agenda, ballots, recusals } = minutes.facts;
   const rows = attendance.map((entry) => {
     const status = matchLiteral(entry.status, {
       present: () => "Présent",
@@ -56,8 +56,16 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
     const mode = ballot ? matchLiteral(ballot.mode, { public: () => "public", secret: () => "secret" }) : "";
     const section = minutes.sections.find((candidate) => candidate.agendaItemId === item.id);
     const discussion = section?.content.trim() ? `<h4>Discussion</h4>${markdown(section.content)}` : "";
+    const declarations = recusals.filter((recusal) => recusal.agendaItemId === item.id).map((recusal) => {
+      const basis = matchLiteral(recusal.legalBasis, {
+        personalInterest: () => "Intérêt personnel",
+        designatedRepresentativeConflict: () => "Représentant désigné, régime L1111-6 II",
+      });
+      return `<li>${escapeHtml(recusal.memberName)} : ${basis}, déport déclaré le ${escapeHtml(date(recusal.declaredAt))}</li>`;
+    });
+    const recusalEvidence = declarations.length ? `<h4>Déports déclarés</h4><ul>${declarations.join("")}</ul>` : "";
     const status = ballot?.completedAt && !item.adjournedAt ? "" : `<p>${outcome}</p>`;
-    return `<section><h3>${Math.abs(item.position)}. ${escapeHtml(title)}</h3>${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")}</p>${individual}` : ""}</section>`;
+    return `<section><h3>${Math.abs(item.position)}. ${escapeHtml(title)}</h3>${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${recusalEvidence}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")}</p>${individual}` : ""}</section>`;
   });
   return {
     facts: `<p>Séance n° ${meeting.number}<br>Ouverture : ${escapeHtml(date(meeting.startedAt))}<br>Clôture : ${escapeHtml(date(meeting.closedAt))}<br>Lieu : ${escapeHtml(meeting.location ?? "Non renseigné")}</p><p>Présidence : ${escapeHtml(meeting.chair?.name ?? "Non renseignée")}<br>Secrétariat : ${escapeHtml(meeting.secretary?.name ?? "Non renseigné")}<br>Quorum requis : ${meeting.quorum} · Présents : ${attendance.filter((entry) => entry.status === "present").length}</p><ul>${rows.join("")}</ul>`,

@@ -1,5 +1,6 @@
 import {
   agendaItemSchema,
+  agendaItemRecusalsSchema,
   ballotParticipationSchema,
   ballotSchema,
   ballotVoteSchema,
@@ -19,7 +20,12 @@ import { HallPostgresError, type PostgresCouncil, type PostgresCouncilRequest } 
 import { z } from "zod";
 import { type CouncilClient, CouncilClientError } from "../../clients/councilClient.js";
 import type { RequestContextStore } from "../../security/requestContext.js";
-import { DomainError } from "../../services/errors.js";
+import { DomainError, type ErrorCode } from "../../services/errors.js";
+
+const recusalErrorCodes: Record<string, ErrorCode | undefined> = {
+  HV231: "recusal_immutable", HV232: "recusal_recording_closed", HV233: "recusal_member_not_declared",
+  HV234: "recusal_occurrence_locked", HV305: "recused_member_cannot_participate",
+};
 
 export function createPostgresCouncilClient({
   postgresCouncil,
@@ -47,6 +53,11 @@ export function createPostgresCouncilClient({
       return await operation();
     } catch (error) {
       if (error instanceof HallPostgresError) {
+        if (error.sqlState === "23505" && error.constraint === "agenda_item_recusal_agenda_item_council_member_key") {
+          throw new DomainError("recusal_already_recorded", 409);
+        }
+        const recusalError = recusalErrorCodes[error.sqlState];
+        if (recusalError) throw new DomainError(recusalError, 409);
         if (error.sqlState === "HV709") throw new DomainError("minutes_not_generated", 409);
         if (error.sqlState === "HV607") {
           throw new CouncilClientError("invalidResourceLocation", { cause: error });
@@ -236,6 +247,12 @@ export function createPostgresCouncilClient({
       return z
         .array(meetingAttendanceSchema)
         .parse(await call(() => postgresCouncil.recordAttendance(currentRequest(), meetingId, input.attendance)));
+    },
+    async agendaItemRecusals(id) {
+      return agendaItemRecusalsSchema.parse(await call(() => postgresCouncil.agendaItemRecusals(currentRequest(), id)));
+    },
+    async recordAgendaItemRecusal(id, input) {
+      return agendaItemRecusalsSchema.parse(await call(() => postgresCouncil.recordAgendaItemRecusal(currentRequest(), id, input)));
     },
     async listAgenda(meetingId) {
       return z.array(agendaItemSchema).parse(await call(() => postgresCouncil.listAgenda(currentRequest(), meetingId)));

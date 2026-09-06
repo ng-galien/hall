@@ -39,7 +39,7 @@ AS $function$
   )
 $function$;
 
--- @functional-requirement HALL-FR-DIR-020 ONE_ACTIVE_COUNCIL_TERM:
+-- @requirement-reference HALL-FR-DIR-020 ONE_ACTIVE_COUNCIL_TERM:
 CREATE FUNCTION hall_api.get_active_council_term()
 RETURNS JSONB
 LANGUAGE sql
@@ -365,7 +365,7 @@ AS $function$
   )
 $function$;
 
--- @functional-requirement HALL-FR-DIR-080 COMMITTEE_IS_INDEPENDENT:
+-- @requirement-reference HALL-FR-DIR-080 COMMITTEE_IS_INDEPENDENT:
 CREATE FUNCTION hall_api.list_council_committees(include_archived BOOLEAN DEFAULT FALSE)
 RETURNS JSONB
 LANGUAGE sql
@@ -442,7 +442,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-DIR-120 CLOSURE_ENDS_MEMBERSHIPS:
+-- @requirement-reference HALL-FR-DIR-120 CLOSURE_ENDS_MEMBERSHIPS:
 CREATE FUNCTION hall_api.archive_council_committee(target_committee UUID)
 RETURNS JSONB
 LANGUAGE plpgsql

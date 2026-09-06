@@ -16,7 +16,7 @@ const settingsInput = {
   phone: "+33 1 23 45 67 89",
   email: "contact@saint-aubin.fr",
   website: "https://saint-aubin.fr",
-  defaultMeetingLocation: "Salle du conseil",
+  meetingLocations: ["Salle du conseil"],
   timeZone: "Europe/Paris",
   outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
   outboundEmailSenderAddress: "conseil@saint-aubin.fr",
@@ -24,6 +24,27 @@ const settingsInput = {
 };
 
 describe("Hall settings", () => {
+  it("stores the ordered location catalogue with a single default and rejects duplicates", async () => {
+    const { agent } = await createTestServer({ expectedCouncilMemberCount: null });
+    const input = { ...settingsInput, meetingLocations: ["Salle B", "Salle A"] };
+    await agent.put("/api/settings").send(input).expect(200);
+    expect(domainBody(await agent.get("/api/settings"))).toMatchObject({ meetingLocations: ["Salle B", "Salle A"] });
+    await agent
+      .put("/api/settings")
+      .send({ ...input, meetingLocations: ["Salle A", "Salle A"] })
+      .expect(400);
+    await agent
+      .put("/api/settings")
+      .send({ ...input, meetingLocations: [" "] })
+      .expect(400);
+    expect(domainBody(await agent.get("/api/settings"))).toMatchObject({ meetingLocations: ["Salle B", "Salle A"] });
+    await agent
+      .put("/api/settings")
+      .send({ ...input, meetingLocations: ["Salle A"] })
+      .expect(200);
+    expect(domainBody(await agent.get("/api/settings"))).toMatchObject({ meetingLocations: ["Salle A"] });
+  });
+
   it("persists the singleton settings and advertises the authorized Siren action", async () => {
     const { agent } = await createTestServer({ expectedCouncilMemberCount: null });
 

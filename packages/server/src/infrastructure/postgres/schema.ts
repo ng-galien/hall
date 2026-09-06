@@ -1,3 +1,5 @@
+import { meetingLocationsSchema } from "../database/meetingLocationsSchema.js";
+
 export const postgresTables = [
   "agenda_items",
   "attendance",
@@ -7,6 +9,7 @@ export const postgresTables = [
   "council_decisions",
   "council_meetings",
   "hall_settings",
+  "hall_meeting_locations",
   "meeting_roster",
   "number_sequences",
   "sessions",
@@ -88,7 +91,6 @@ export const postgresSchema = `
     phone TEXT NOT NULL DEFAULT '',
     email TEXT,
     website TEXT,
-    default_meeting_location TEXT NOT NULL DEFAULT '',
     time_zone TEXT NOT NULL DEFAULT 'Europe/Paris',
     outbound_email_sender_name TEXT NOT NULL DEFAULT '',
     outbound_email_sender_address TEXT,
@@ -100,6 +102,7 @@ export const postgresSchema = `
   );
 
   INSERT INTO hall_settings (id) VALUES ('hall');
+  ${meetingLocationsSchema}
 
   CREATE TABLE number_sequences (
     kind TEXT NOT NULL CHECK (kind IN ('meeting', 'decision')),

@@ -2,26 +2,12 @@ import { NavLink } from "react-router-dom";
 import { ChevronDownIcon, ChevronRightIcon, DebugIcon, DocsIcon, SettingsIcon } from "../components/icons";
 import { useI18n } from "../i18n/I18nProvider";
 import { useWorkspacePrefsStore } from "../pages/workspace/workspacePrefs";
-import { useContactsStore } from "../stores/contactsStore";
-import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
-import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
-import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
-import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
-import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { navigationSections } from "./navigation";
 import { WorkspaceTree } from "./WorkspaceTree";
 
 export function AppSidebar({ compact }: { compact: boolean }) {
-  const { t, formatNumber } = useI18n();
+  const { t } = useI18n();
   const { treeCollapsed, toggleTree } = useWorkspacePrefsStore();
-  const counts = {
-    meetings: useCouncilMeetingsStore((state) => state.meetings.length),
-    councilBusiness: useCouncilBusinessStore((state) => state.businesses.length),
-    councilDecisions: useCouncilDecisionsStore((state) => state.councilDecisions.length),
-    contacts: useContactsStore((state) => state.contacts.length),
-    members: useCouncilMembersStore((state) => state.members.length),
-    committees: useCouncilCommitteesStore((state) => state.committees.length),
-  };
 
   return (
     <aside
@@ -50,9 +36,6 @@ export function AppSidebar({ compact }: { compact: boolean }) {
                   >
                     <span className="nav-icon">{item.icon}</span>
                     {!compact ? <span className="min-w-0 flex-1 truncate">{t(item.labelKey)}</span> : null}
-                    {!compact && item.countKey ? (
-                      <span className="nav-count">{formatNumber(counts[item.countKey])}</span>
-                    ) : null}
                   </NavLink>
                   {!compact && item.workspaceTree ? (
                     <button

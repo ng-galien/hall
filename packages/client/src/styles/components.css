@@ -188,16 +188,6 @@
   .nav-row-active { background: var(--hall-color-surface-selected); font-weight: var(--hall-font-weight-semibold); }
   .nav-row-active:hover { background: var(--hall-color-surface-selected); }
   .nav-icon { display: inline-grid; flex: none; place-items: center; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-icon); }
-  .nav-count {
-    min-width: var(--hall-size-navigation-count);
-    padding: var(--hall-space-0-5) var(--hall-space-1-5);
-    border-radius: var(--hall-radius-medium);
-    color: var(--hall-color-text-muted);
-    background: var(--hall-color-surface-selected);
-    font-size: var(--hall-font-size-caption);
-    font-variant-numeric: tabular-nums;
-    text-align: center;
-  }
 
   .page { min-height: 100%; animation: page-enter var(--hall-motion-fast) var(--hall-motion-curve-decelerate); }
   .page-content { width: 100%; max-width: var(--hall-size-content-max); padding: var(--hall-space-7); }

@@ -123,7 +123,7 @@ export const updateHallSettingsSchema = z.object({
   phone: boundedText(40),
   email: z.email().nullable(),
   website: webUrlSchema.nullable(),
-  defaultMeetingLocation: boundedText(200),
+  meetingLocations: z.array(nonEmpty.max(200)).max(100).refine((names) => new Set(names).size === names.length),
   timeZone: timeZoneSchema,
   outboundEmailSenderName: boundedText(160),
   outboundEmailSenderAddress: z.email().nullable(),

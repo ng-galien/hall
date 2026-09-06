@@ -1,5 +1,7 @@
 import type {
   AgendaItem,
+  AgendaItemRecusals,
+  RecordAgendaItemRecusal,
   Ballot,
   BallotParticipation,
   BallotVote,
@@ -74,6 +76,8 @@ export interface CouncilClient {
   closeMeeting(id: string, input: CloseCouncilMeeting): Promise<CouncilMeetingClosure>;
   listAttendance(meetingId: string): Promise<MeetingAttendance[]>;
   recordAttendance(meetingId: string, input: RecordMeetingAttendance): Promise<MeetingAttendance[]>;
+  agendaItemRecusals(id: string): Promise<AgendaItemRecusals>;
+  recordAgendaItemRecusal(id: string, input: RecordAgendaItemRecusal): Promise<AgendaItemRecusals>;
   listAgenda(meetingId: string): Promise<AgendaItem[]>;
   openAgendaItem(id: string): Promise<AgendaItem | null>;
   scheduleAgendaItem(meetingId: string, input: ScheduleAgendaItem): Promise<AgendaItem>;

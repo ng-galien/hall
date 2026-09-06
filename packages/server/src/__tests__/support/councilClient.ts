@@ -309,6 +309,7 @@ export function createTestCouncilClient(
             secretary: null,
           },
           attendance: [],
+          recusals: [],
           agenda: [...agendaItems.values()]
             .filter((entry) => entry.councilMeetingId === id)
             .map((entry) => ({
@@ -402,6 +403,12 @@ export function createTestCouncilClient(
       );
       for (const item of recorded) attendance.set(item.id, item);
       return [...attendance.values()].filter((item) => item.councilMeetingId === meetingId);
+    },
+    async agendaItemRecusals() {
+      throw new Error("Recusal acceptance requires the PostgreSQL council client");
+    },
+    async recordAgendaItemRecusal() {
+      throw new Error("Recusal acceptance requires the PostgreSQL council client");
     },
     async listAgenda(meetingId) {
       requireMeeting(meetingId);

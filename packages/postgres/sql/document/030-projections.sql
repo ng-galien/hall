@@ -39,7 +39,7 @@ AS $function$
   )
 $function$;
 
--- @functional-requirement HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
+-- @requirement-reference HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
 -- The view is the sole set-based read model for list presentation. Its joins
 -- are evaluated once per batch; neither SQL nor the HTTP edge opens resources
 -- one by one.
@@ -139,7 +139,7 @@ AS $function$
 DECLARE
   target hall.resource;
 BEGIN
-  -- @functional-requirement HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
+  -- @requirement-reference HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
   SELECT resource.*
   INTO target
   FROM hall.resource AS resource
@@ -164,7 +164,7 @@ AS $function$
 DECLARE
   target hall.resource;
 BEGIN
-  -- @functional-requirement HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
+  -- @requirement-reference HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
   SELECT resource.*
   INTO target
   FROM hall.resource AS resource
@@ -176,7 +176,7 @@ BEGIN
       MESSAGE = 'Resource not found';
   END IF;
 
-  -- @functional-requirement HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
+  -- @requirement-reference HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
   -- A variant-specific operation cannot reinterpret another resource nature.
   IF expected_kind IS NOT NULL AND hall.resource_kind(target) <> expected_kind THEN
     RAISE EXCEPTION USING
@@ -201,7 +201,7 @@ BEGIN
   SELECT * INTO target FROM hall.require_resource(resource_id);
   detail := hall.resource_summary(target);
 
-  -- @functional-requirement HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
+  -- @requirement-reference HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
   -- Each branch enriches the same summary with only the data owned by its
   -- concrete component. The XOR guarantees exactly one branch.
   IF target.folder_resource_id IS NOT NULL THEN
@@ -270,7 +270,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-DOC-230 EDITOR_ASSET_BELONGS_TO_TEXT_CONTENT:
+-- @requirement-reference HALL-FR-DOC-230 EDITOR_ASSET_BELONGS_TO_TEXT_CONTENT:
 CREATE FUNCTION hall.editor_asset_detail(asset_id UUID)
 RETURNS JSONB
 LANGUAGE sql

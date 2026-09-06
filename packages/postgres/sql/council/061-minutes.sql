@@ -24,6 +24,11 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
       'id', entry->>'id', 'member', hall.minutes_member_identity((entry->>'council_member')::UUID),
       'status', entry->>'status', 'proxyHolderId', entry->>'proxy_holder'
     ) ORDER BY entry->>'id') FROM jsonb_array_elements(snapshot.payload->'attendance') entry), '[]'::JSONB),
+    -- Product evidence, not a literal requirement for a separate recusal
+    -- section in CGCT L2121-15 paragraph 4 (version 2022-07-01).
+    -- https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044190488
+    -- @functional-requirement HALL-FR-MIN-210 MINUTES_PRESERVE_RECUSAL_EVIDENCE:
+    'recusals', snapshot.payload->'recusals',
     'agenda', coalesce((SELECT jsonb_agg(jsonb_build_object(
       'id', item->>'id', 'position', (item->>'position')::INTEGER,
       'title', CASE WHEN item->>'minutes_approval' IS NOT NULL THEN ''

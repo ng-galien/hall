@@ -11,7 +11,8 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type CouncilMeetingWorkspace, councilMeetingView } from "../models/councilMeeting";
 import { type LiveBallotSubmission, presentLiveMeeting } from "../models/liveMeeting";
-import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
+import { ApiError, type ApiErrorCode, apiErrorCode } from "../services/apiClient";
+import { openAgendaItemRecusals } from "../services/agendaItemRecusalsApi";
 import {
   completeBallot,
   createBallot,
@@ -175,21 +176,16 @@ export function useCouncilMeeting(meetingReference: string) {
           ? input.agendaItemId
           : meeting?.agendaItems.find((item) => item.business.councilDecisionId === input.councilDecisionId)?.id;
       if (!agendaItemId) throw new Error("The ballot target is not scheduled on this meeting");
-      const eligibleAttendance = workspace.attendance.filter(
-        (entry) => entry.status === "present" || entry.status === "represented",
+      const recusalState = await openAgendaItemRecusals(meetingReference, agendaItemId);
+      const eligibleAttendance = workspace.attendance.filter((entry) =>
+        recusalState.data.eligibleParticipantAttendanceIds.includes(entry.id),
       );
       const participantMemberIds =
         input.method === "public"
           ? new Set(input.votes.filter((vote) => vote.choice !== "notVoting").map((vote) => vote.memberId))
-          : null;
-      const participantCount =
-        input.method === "secret"
-          ? input.totals.votesFor + input.totals.votesAgainst + input.totals.abstentions
-          : participantMemberIds!.size;
-      const selectedAttendance =
-        input.method === "public"
-          ? eligibleAttendance.filter((entry) => participantMemberIds!.has(entry.councilMemberId))
-          : eligibleAttendance.slice(0, participantCount);
+          : new Set(input.participantMemberIds);
+      const selectedAttendance = eligibleAttendance.filter((entry) => participantMemberIds.has(entry.councilMemberId));
+      if (selectedAttendance.length !== participantMemberIds.size) throw new ApiError("ballot_voters_invalid", 409);
       const chairman = selectedAttendance.find((entry) => entry.councilMemberId === workspace.meeting.chairMemberId);
       if (!chairman || selectedAttendance.length === 0) throw new Error("A ballot requires a present chairman");
       const ballot = await createBallot(workspace.meeting.id, {

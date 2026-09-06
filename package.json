@@ -38,6 +38,8 @@
     "desktop:make": "npm run build && npm run make -w @hall/desktop",
     "e2e:server": "npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/templating && npm run build -w @hall/server && npm run start -w @hall/server",
     "test:e2e": "npm run test:e2e -w @hall/client --",
+    "check:requirements": "node scripts/check-requirements.mjs",
+    "test:requirements": "node --test scripts/check-requirements.test.mjs",
     "check:architecture": "node scripts/check-exhaustive-dispatch.mjs && code-moniker check .",
     "lint": "biome check packages/*/src packages/*/*.ts packages/desktop/scripts packages/client/e2e packages/client/scripts",
     "lint:fix": "biome check --write packages/*/src packages/*/*.ts packages/desktop/scripts packages/client/e2e packages/client/scripts",

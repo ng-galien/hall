@@ -24,7 +24,10 @@ import {
   PlayIcon,
 } from "../../../components/icons";
 import { MarkdownView } from "../../../components/MarkdownView";
-import { Modal } from "../../../components/Ui";
+import { Modal, RequestErrorBanner } from "../../../components/Ui";
+import { useAgendaItemRecusals } from "../../../hooks/useAgendaItemRecusals";
+import { AgendaItemRecusalDialog } from "../../../features/council-meetings/AgendaItemRecusalDialog";
+import { recusalBasisLabel } from "../../../features/council-meetings/recusalPresentation";
 import { councilBusinessKindKeys, liveBusinessTitle } from "../../../features/council-business/presentation";
 import { ResourcePreview } from "../../../features/documents/ResourcePreview";
 import { useResourceImageUpload } from "../../../features/documents/useResourceImageUpload";
@@ -150,6 +153,12 @@ export function ConductView({
     orderedItems.find((item) => item.id === selectedItemId) ?? activeItem ?? nextItem ?? orderedItems.at(-1) ?? null;
 
   const selectedItemId2 = selectedItem?.id ?? null;
+  const recusals = useAgendaItemRecusals(
+    aggregate.meeting.id,
+    selectedItemId2,
+    `${selectedItem?.status}:${aggregate.ballots.length}`,
+  );
+  const [recusalOpen, setRecusalOpen] = useState(false);
   const selectedItemRef = useRef(selectedItem);
   selectedItemRef.current = selectedItem;
   useEffect(() => {
@@ -158,6 +167,7 @@ export function ConductView({
     setVoteOpen(false);
     setRevisionSeed(null);
     setReviseConfirming(false);
+    setRecusalOpen(false);
   }, [selectedItemId2]);
 
   useEffect(() => {
@@ -550,6 +560,27 @@ export function ConductView({
         </header>
 
         <div className="conduct-stage-body">
+          <RequestErrorBanner error={recusals.error} />
+          {recusals.state && (recusals.canRecord || recusals.state.recusals.length > 0) ? (
+            <section className="grid gap-2" data-testid="agenda-item-recusals">
+              <div className="flex items-center justify-between gap-2">
+                <strong>{t("recusal.listTitle")}</strong>
+                {recusals.canRecord ? (
+                  <Button variant="outline" data-testid="agenda-item-recusal-open" onClick={() => setRecusalOpen(true)}>
+                    {t("recusal.title")}
+                  </Button>
+                ) : null}
+              </div>
+              {recusals.state.recusals.map((entry) => (
+                <p key={entry.id} data-testid={`agenda-item-recusal-${entry.councilMemberId}`}>
+                  <strong>{entry.memberName}</strong> · {t(recusalBasisLabel(entry.legalBasis))}
+                </p>
+              ))}
+              {recusals.state.recusals.length > 0 ? (
+                <p className="text-sm text-muted-foreground">{t("recusal.separateFromVotes")}</p>
+              ) : null}
+            </section>
+          ) : null}
           {selectedItem.business.kind === "minutesApproval" ? (
             <Link
               className="conduct-document-chip conduct-minutes-link"
@@ -640,6 +671,7 @@ export function ConductView({
           ) : null}
 
           {isActive &&
+          recusals.state &&
           !selectedBallot &&
           meetingActions.can("ballot.record", selectedItem.id) &&
           (selectedDecision
@@ -649,6 +681,8 @@ export function ConductView({
               key={revisionSeed ? `revision-${selectedItem.id}` : `fresh-${selectedItem.id}`}
               aggregate={aggregate}
               members={members}
+              eligibleAttendanceIds={recusals.state.eligibleParticipantAttendanceIds}
+              onDeclareRecusal={recusals.canRecord ? () => setRecusalOpen(true) : undefined}
               target={selectedDecision ? { councilDecisionId: selectedDecision.id } : { agendaItemId: selectedItem.id }}
               open={voteOpen}
               onOpenChange={setVoteOpen}
@@ -783,6 +817,7 @@ export function ConductView({
             </button>
           ) : null}
           {meetingActions.can("agenda-item.adjourn", selectedItem.id) ||
+          recusals.canRecord ||
           (isActive && meetingActions.can("agenda-item.complete", selectedItem.id)) ? (
             <>
               <DropdownMenu>
@@ -797,6 +832,11 @@ export function ConductView({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
+                  {recusals.canRecord ? (
+                    <DropdownMenuItem data-testid="live-agenda-recusal" onSelect={() => setRecusalOpen(true)}>
+                      {t("recusal.title")}
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem
                     data-testid="live-agenda-adjourn"
                     disabled={submitting || !meetingActions.can("agenda-item.adjourn", selectedItem.id)}
@@ -820,6 +860,14 @@ export function ConductView({
         </footer>
       </section>
 
+      {recusalOpen ? (
+        <AgendaItemRecusalDialog
+          key={selectedItem.id}
+          controller={recusals}
+          members={members}
+          onClose={() => setRecusalOpen(false)}
+        />
+      ) : null}
       {addItemOpen ? (
         <Modal open title={t("live.addItemTitle")} onClose={() => setAddItemOpen(false)}>
           <div className="modal-form">

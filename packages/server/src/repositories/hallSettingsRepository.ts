@@ -3,7 +3,7 @@ import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import type { HallSettingsRepository, UpdateHallSettings } from "./contracts.js";
 import { asNullableInteger, asNullableNumber, asNullableString, asString, type DatabaseRow } from "./row.js";
 
-function mapHallSettings(row: DatabaseRow): HallSettings {
+function mapHallSettings(row: DatabaseRow, meetingLocations: string[]): HallSettings {
   const longitude = asNullableNumber(row.geographic_longitude, "hall_settings.geographic_longitude");
   const latitude = asNullableNumber(row.geographic_latitude, "hall_settings.geographic_latitude");
   if ((longitude === null) !== (latitude === null)) {
@@ -23,7 +23,7 @@ function mapHallSettings(row: DatabaseRow): HallSettings {
     phone: asString(row.phone, "hall_settings.phone"),
     email: asNullableString(row.email, "hall_settings.email"),
     website: asNullableString(row.website, "hall_settings.website"),
-    defaultMeetingLocation: asString(row.default_meeting_location, "hall_settings.default_meeting_location"),
+    meetingLocations,
     timeZone: asString(row.time_zone, "hall_settings.time_zone"),
     outboundEmailSenderName: asString(row.outbound_email_sender_name, "hall_settings.outbound_email_sender_name"),
     outboundEmailSenderAddress: asNullableString(
@@ -42,12 +42,13 @@ export function createHallSettingsRepository({ sqlExecutor }: { sqlExecutor: Sql
   const get = async () => {
     const row = await sqlExecutor.get("settings.get");
     if (!row) throw new Error("Hall settings singleton is missing");
-    return mapHallSettings(row);
+    const locations = await sqlExecutor.all("settings.locations");
+    return mapHallSettings(row, locations.map((location) => asString(location.name, "hall_meeting_locations.name")));
   };
   return {
     get,
     async update(input: UpdateHallSettings) {
-      const { geographicPosition, ...settings } = input;
+      const { geographicPosition, meetingLocations, ...settings } = input;
       return sqlExecutor.execute(async () => {
         const result = await sqlExecutor.run("settings.update", {
           ...settings,
@@ -56,6 +57,10 @@ export function createHallSettingsRepository({ sqlExecutor }: { sqlExecutor: Sql
           updatedAt: new Date().toISOString(),
         });
         if (result.changes !== 1) throw new Error("Hall settings singleton is missing");
+        await sqlExecutor.run("settings.clearLocations");
+        for (const [index, name] of meetingLocations.entries()) {
+          await sqlExecutor.run("settings.insertLocation", { position: index + 1, name });
+        }
         return get();
       });
     },

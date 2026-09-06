@@ -132,6 +132,7 @@ SELECT set_eq(
     ('council_agenda_item.council_agenda_item_enforce_subject_business -> enforce_council_agenda_item_subject_business'),
     ('council_agenda_item.council_agenda_item_lock_business -> lock_council_agenda_item_business'),
     ('council_agenda_item.council_agenda_item_lock_subject -> lock_council_agenda_item_subject'),
+    ('council_agenda_item.council_agenda_item_preserve_recusal_meeting -> enforce_recusal_occurrence_meeting'),
     ('council_agenda_item.council_agenda_item_reject_truncate -> enforce_council_agenda_item_lifecycle'),
     ('council_meetings.council_meeting_capture_opening -> snapshot_council_meeting_opening'),
     ('council_meetings.council_meetings_enforce_lifecycle -> enforce_council_meeting_lifecycle'),

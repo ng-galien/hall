@@ -14,7 +14,13 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../../components/Ui";
-import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
+import {
+  formatMeetingLabel,
+  meetingScheduleInputValue,
+  meetingScheduleInstant,
+} from "../../features/council-meetings/meetingPresentation";
+import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
+import { useMeetingSettings } from "../../hooks/useMeetingSettings";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -31,6 +37,7 @@ export function CouncilMeetingsPage() {
   const { meetings, schedule, error } = useCouncilMeetingsStore();
   const { members } = useCouncilMembersStore();
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const { settings, error: settingsError } = useMeetingSettings();
   const { layout, setLayout, query, setQuery } = useCollectionView();
   const startsAtFieldId = useId();
   const locationFieldId = useId();
@@ -53,12 +60,17 @@ export function CouncilMeetingsPage() {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!settings) return;
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
+    const scheduledAt = meetingScheduleInstant(String(form.get("startsAt")), settings.timeZone);
+    const dateInput = formElement.elements.namedItem("startsAt") as HTMLInputElement;
+    dateInput.setCustomValidity(scheduledAt ? "" : t("meetings.invalidLocalTime"));
+    if (!formElement.reportValidity() || !scheduledAt) return;
     await run(async () => {
       if (!nextMeeting) return false;
       const created = await schedule(nextMeeting.reference, {
-        scheduledAt: new Date(String(form.get("startsAt"))).toISOString(),
+        scheduledAt,
         location: String(form.get("location")),
         chairMemberId: String(form.get("chairMemberId")),
         secretaryMemberId: String(form.get("secretaryMemberId")),
@@ -76,6 +88,7 @@ export function CouncilMeetingsPage() {
       <PageHeader title={t("meetings.title")} description={t("meetings.description")} />
       <div className="page-content">
         <RequestErrorBanner error={error} />
+        <RequestErrorBanner error={settingsError} />
 
         {nextMeeting ? (
           <Link className="next-meeting-hero" to={`/meetings/${nextMeeting.reference}`}>
@@ -101,7 +114,12 @@ export function CouncilMeetingsPage() {
 
         <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
           {nextMeeting?.phase === "draft" ? (
-            <Button variant="default" onClick={() => setScheduleOpen(true)}>
+            <Button
+              data-testid="meeting-schedule"
+              disabled={!settings}
+              variant="default"
+              onClick={() => setScheduleOpen(true)}
+            >
               <AddIcon />
               {t("meetings.schedule")}
             </Button>
@@ -117,11 +135,27 @@ export function CouncilMeetingsPage() {
             <div className="form-grid">
               <div className="grid gap-1.5">
                 <Label htmlFor={startsAtFieldId}>{t("meetings.dateTime")}</Label>
-                <Input id={startsAtFieldId} name="startsAt" type="datetime-local" required />
+                <Input
+                  id={startsAtFieldId}
+                  name="startsAt"
+                  data-testid="meeting-schedule-starts-at"
+                  type="datetime-local"
+                  defaultValue={
+                    settings ? meetingScheduleInputValue(nextMeeting?.scheduledAt ?? null, settings.timeZone) : ""
+                  }
+                  onChange={(event) => event.currentTarget.setCustomValidity("")}
+                  required
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={locationFieldId}>{t("meetings.location")}</Label>
-                <Input id={locationFieldId} name="location" defaultValue={t("meetings.locationDefault")} required />
+                <MeetingLocationSelect
+                  id={locationFieldId}
+                  testId="meeting-schedule-location"
+                  locations={settings?.meetingLocations ?? []}
+                  current={nextMeeting?.location ?? null}
+                  placeholder={t("meetings.location")}
+                />
               </div>
             </div>
             <div className="form-grid">

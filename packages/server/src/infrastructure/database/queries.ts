@@ -162,6 +162,9 @@ export const queries = {
     RETURNING last_value`,
 
   "settings.get": "SELECT * FROM hall_settings WHERE id = 'hall'",
+  "settings.locations": "SELECT name FROM hall_meeting_locations ORDER BY position",
+  "settings.clearLocations": "DELETE FROM hall_meeting_locations",
+  "settings.insertLocation": "INSERT INTO hall_meeting_locations (position, name) VALUES (:position, :name)",
   "settings.update": `UPDATE hall_settings SET
     name = :name,
     insee_code = :inseeCode,
@@ -177,7 +180,6 @@ export const queries = {
     phone = :phone,
     email = :email,
     website = :website,
-    default_meeting_location = :defaultMeetingLocation,
     time_zone = :timeZone,
     outbound_email_sender_name = :outboundEmailSenderName,
     outbound_email_sender_address = :outboundEmailSenderAddress,

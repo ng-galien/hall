@@ -27,7 +27,8 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
   const id = objectId(primary);
   const reference = publicReference(entityClass, primary);
   const extraLinks = matchLiteral(entityClass, {
-    "agenda-item": () => [],
+    "agenda-item": (): SirenLink[] => id && primary ? [{ rel: ["recusals"],
+      href: `/api/council-meetings/${primary.councilMeetingId}/agenda-items/${id}/recusals`, type: SIREN_MEDIA_TYPE }] : [],
     attendance: () => [],
     "audit-event": () => [],
     authentication: () => [],

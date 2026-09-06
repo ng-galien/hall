@@ -188,7 +188,7 @@ describe("updateHallSettingsSchema", () => {
     phone: "+33 1 23 45 67 89",
     email: "contact@saint-aubin.fr",
     website: "https://saint-aubin.fr",
-    defaultMeetingLocation: "Salle du conseil",
+    meetingLocations: ["Salle du conseil"],
     timeZone: "Europe/Paris",
     outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
     outboundEmailSenderAddress: "conseil@saint-aubin.fr",

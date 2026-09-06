@@ -29,7 +29,23 @@ async function scheduleVotingItem(page: Page, meetingReference: string, councilB
   );
 }
 
-test("conducts public and secret ballots and provisions the previous minutes approval", async ({ appPage: page }, testInfo) => {
+async function declareRecusal(
+  page: Page,
+  memberId: string,
+  basis: "personalInterest" | "designatedRepresentativeConflict",
+) {
+  await expect(page.getByTestId("recusal-submit")).toBeDisabled();
+  await page.getByTestId("recusal-member").click();
+  await page.getByTestId(`recusal-member-${memberId}`).click();
+  await page.getByTestId(`recusal-basis-${basis}`).check();
+  await page.getByTestId("recusal-submit").click();
+  await expect(page.getByTestId("recusal-form")).toBeHidden();
+  await expect(page.getByTestId(`agenda-item-recusal-${memberId}`)).toBeVisible();
+}
+
+test("conducts public and secret ballots and provisions the previous minutes approval", async ({
+  appPage: page,
+}, testInfo) => {
   test.setTimeout(150_000);
 
   const meetings = await sirenItems<{
@@ -87,6 +103,14 @@ test("conducts public and secret ballots and provisions the previous minutes app
 
   await expect(page.getByTestId("live-agenda-item-" + publicItem.id)).toBeVisible();
   await page.getByTestId("live-agenda-item-" + publicItem.id).click();
+  await page.getByTestId("agenda-item-recusal-open").click();
+  await declareRecusal(page, members[2]!.id, "personalInterest");
+  const publicRecusals = await sirenProperties<{
+    quorumImpact: { denominatorReduction: number };
+    agendaItem: { startedAt: string | null };
+  }>(await page.request.get(`/api/council-meetings/${meeting!.slug}/agenda-items/${publicItem.id}/recusals`));
+  expect(publicRecusals.quorumImpact.denominatorReduction).toBe(0);
+  expect(publicRecusals.agendaItem.startedAt).toBeNull();
   await page.getByTestId("live-agenda-start").click();
   await page
     .getByTestId("live-agenda-notes")
@@ -103,6 +127,7 @@ test("conducts public and secret ballots and provisions the previous minutes app
   await page.getByTestId("live-ballot-open").click();
   await page.getByTestId("live-ballot-all-for").click();
   await expect(page.getByTestId("live-ballot-record")).toBeEnabled();
+  await expect(page.getByTestId(`live-vote-member-${members[2]!.id}`)).toBeHidden();
   await page.getByTestId("live-opening").click();
   await expect(page.getByTestId("live-opening-summary")).toBeVisible();
   await expect(page.getByTestId("live-ballot-record")).toBeHidden();
@@ -115,15 +140,31 @@ test("conducts public and secret ballots and provisions the previous minutes app
   await page.getByTestId("live-ballot-record").click();
   await expect(page.getByTestId("live-ballot-result")).toBeVisible();
   await expect(page.getByTestId("live-ballot-result")).toContainText("Adopted");
+  await expect(page.getByTestId("agenda-item-recusal-open")).toBeHidden();
+  const lateRecusal = await page.request.post(
+    `/api/council-meetings/${meeting!.slug}/agenda-items/${publicItem.id}/recusals`,
+    {
+      data: { councilMemberId: members[3]!.id, legalBasis: "personalInterest", declaredAt: new Date().toISOString() },
+    },
+  );
+  expect(lateRecusal.status()).toBe(409);
 
   await page.getByTestId("live-agenda-item-" + secretItem.id).click();
   await page.getByTestId("live-agenda-start").click();
   await page.getByTestId("live-ballot-open").click();
-  const memberCount = await page.locator(".vote-card").count();
+  await page.getByTestId("live-ballot-recusal").click();
+  await declareRecusal(page, members[3]!.id, "designatedRepresentativeConflict");
+  const secretRecusals = await sirenProperties<{ quorumImpact: { denominatorReduction: number } }>(
+    await page.request.get(`/api/council-meetings/${meeting!.slug}/agenda-items/${secretItem.id}/recusals`),
+  );
+  expect(secretRecusals.quorumImpact.denominatorReduction).toBe(1);
+  await expect(page.getByTestId(`live-vote-member-${members[3]!.id}`)).toBeHidden();
+  const memberCount = await page.getByTestId(/^live-vote-member-/).count();
   expect(memberCount).toBeGreaterThan(0);
   await page.getByTestId("live-ballot-mode-secret").click();
-  for (let index = 0; index < memberCount; index += 1) {
-    await page.getByTestId("live-secret-notVoting-decrement").click();
+  await expect(page.getByTestId(`live-secret-participant-${members[3]!.id}`)).toBeHidden();
+  await page.getByTestId(`live-secret-participant-${members[4]!.id}`).uncheck();
+  for (let index = 0; index < memberCount - 1; index += 1) {
     await page.getByTestId("live-secret-votesFor-increment").click();
   }
   await expect(page.getByTestId("live-ballot-record")).toBeEnabled();
@@ -299,13 +340,19 @@ test("conducts public and secret ballots and provisions the previous minutes app
   await page.getByTestId("minutes-document-close").press("Escape");
   await expect(page.getByTestId("minutes-view-document")).toBeFocused();
   await expect(page.getByTestId(`minutes-section-${publicItem.id}`).getByTestId("editor-writing-area")).toHaveCount(0);
-  const generated = await sirenProperties<{ documentId: string; generatedAt: string; version: number; facts: unknown; sections: { agendaItemId: string; content: string }[] }>(
-    await page.request.get(`/api/minutes/${minutes.id}`),
-  );
+  const generated = await sirenProperties<{
+    documentId: string;
+    generatedAt: string;
+    version: number;
+    facts: unknown;
+    sections: { agendaItemId: string; content: string }[];
+  }>(await page.request.get(`/api/minutes/${minutes.id}`));
   expect(generated.documentId).toBeTruthy();
   expect(generated.generatedAt).toBeTruthy();
   expect(generated.facts).toEqual(beforeCorrection.facts);
-  expect(generated.sections.find((section) => section.agendaItemId === secretItem.id)?.content).toContain("Last correction after preview.");
+  expect(generated.sections.find((section) => section.agendaItemId === secretItem.id)?.content).toContain(
+    "Last correction after preview.",
+  );
   const pdf = await page.request.get(`/api/minutes/${minutes.id}/content`);
   expect(pdf.ok()).toBeTruthy();
   expect(pdf.headers()["content-type"]).toContain("application/pdf");
