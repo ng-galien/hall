@@ -2,14 +2,11 @@ import {
   ballotParticipationSchema,
   ballotSchema,
   ballotVoteSchema,
-  completeBallotSchema,
-  createBallotSchema,
-  recordBallotVotesSchema,
-  type CompleteBallot,
-  type CreateBallot,
-  type RecordBallotVotes,
+  ballotResultPreviewSchema,
+  createBallotResultPreviewSchema,
+  type CreateBallotResultPreview,
 } from "@hall/api-contract";
-import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
+import { apiRequest, submitSirenActionAt, submitSirenAction } from "./apiClient";
 
 export async function listMeetingBallots(meetingId: string) {
   return ballotSchema.array().parse(await apiRequest<unknown>(`/ballots?meetingId=${encodeURIComponent(meetingId)}`));
@@ -22,28 +19,26 @@ export async function listBallotParticipations(ballotId: string) {
 }
 
 export async function listBallotVotes(ballotId: string) {
-  return ballotVoteSchema
-    .array()
-    .parse(await apiRequest<unknown>(`/ballots/${encodeURIComponent(ballotId)}/votes`));
+  return ballotVoteSchema.array().parse(await apiRequest<unknown>(`/ballots/${encodeURIComponent(ballotId)}/votes`));
 }
 
-export async function createBallot(meetingId: string, input: CreateBallot) {
-  const collectionPath = `/ballots?meetingId=${encodeURIComponent(meetingId)}`;
-  await apiSirenRequest(collectionPath);
-  const result = await submitSirenActionAt<unknown>(collectionPath, "ballot.create", createBallotSchema.parse(input));
-  return ballotSchema.parse(result.data);
+export async function previewBallot(meetingReference: string, input: CreateBallotResultPreview) {
+  const path = `/council-meetings/${encodeURIComponent(meetingReference)}/agenda-items/${encodeURIComponent(input.agendaItemId)}`;
+  const result = await submitSirenActionAt<unknown>(
+    path,
+    "ballot.preview",
+    createBallotResultPreviewSchema.parse(input),
+  );
+  if (!result.representation) throw new Error("The ballot preview requires its Siren representation");
+  return { data: ballotResultPreviewSchema.parse(result.data), representation: result.representation };
 }
 
-export async function recordBallotVotes(ballotId: string, input: RecordBallotVotes) {
-  const path = `/ballots/${encodeURIComponent(ballotId)}`;
-  await apiSirenRequest(path);
-  const result = await submitSirenActionAt<unknown>(path, "ballot.record-votes", recordBallotVotesSchema.parse(input));
-  return ballotVoteSchema.array().parse(result.data);
+export type BallotPreview = Awaited<ReturnType<typeof previewBallot>>;
+export async function openBallotResultPreview(id: string) {
+  return ballotResultPreviewSchema.parse(await apiRequest<unknown>(`/ballot-previews/${encodeURIComponent(id)}`));
 }
 
-export async function completeBallot(ballotId: string, input: CompleteBallot) {
-  const path = `/ballots/${encodeURIComponent(ballotId)}`;
-  await apiSirenRequest(path);
-  const result = await submitSirenActionAt<unknown>(path, "ballot.complete", completeBallotSchema.parse(input));
+export async function confirmBallot(preview: BallotPreview) {
+  const result = await submitSirenAction<unknown>(preview.representation, "ballot.confirm", {});
   return ballotSchema.parse(result.data);
 }

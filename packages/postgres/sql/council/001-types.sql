@@ -12,7 +12,9 @@ CREATE TYPE ballot_mode AS ENUM (
 CREATE TYPE vote_choice AS ENUM (
   'approve',
   'reject',
-  'abstain'
+  'abstain',
+  'blank',
+  'invalid'
 );
 
 -- @functional-requirement HALL-FR-BAL-020 OPEN_BALLOT_HAS_NO_RESULT: An open ballot has a NULL

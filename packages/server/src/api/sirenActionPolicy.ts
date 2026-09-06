@@ -80,10 +80,8 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
     "audit-event": () => [],
     authentication: () => [],
     "authentication-status": () => [],
-    ballot: () =>
-      canExecuteAction(request, "ballot.create")
-        ? [action("ballot.create", "POST", "/api/ballots", "Create a ballot")]
-        : [],
+    ballot: () => [],
+    "ballot-preview": () => [],
     "committee-membership": () => [],
     contact: () =>
       canExecuteAction(request, "contact.create")
@@ -220,7 +218,7 @@ function agendaItemActions({ request, primary, id }: ObjectActionContext): Siren
     : authorizedActions(request, [
         ...adjournActions,
         ...(primary.startedAt && meeting?.startedAt
-          ? [action("ballot.create", "POST", "/api/ballots", "Create a ballot")]
+          ? [action("ballot.preview", "POST", "/api/ballot-previews", "Review the ballot result")]
           : []),
       ]);
 }
@@ -232,6 +230,24 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
   if (!meetingId || !meetingReference) return [];
   const actions: SirenAction[] = [];
   if (meeting.closedAt) return [];
+  const conduct = value as Record<string, unknown>;
+  if (conduct.canRecordMembership === true)
+    actions.push(
+      action("meeting.record-membership", "POST", `/api/council-meetings/${meetingReference}/membership-records`),
+    );
+  if (conduct.canRecordAttendanceEvents === true)
+    actions.push(
+      action("meeting.record-attendance-events", "POST", `/api/council-meetings/${meetingReference}/attendance-events`),
+    );
+  if (conduct.canRecordQuorum === true)
+    actions.push(
+      action("meeting.record-quorum", "POST", `/api/council-meetings/${meetingReference}/quorum-observations`),
+    );
+  if (conduct.canRecordReconvocation === true)
+    actions.push(
+      action("meeting.record-reconvocation", "POST", `/api/council-meetings/${meetingReference}/reconvocations`),
+    );
+
   if (!meeting.startedAt) {
     actions.push(
       action("meeting.schedule", "PUT", `/api/council-meetings/${meetingReference}/schedule`),
@@ -259,18 +275,6 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
   return authorizedActions(request, actions);
 }
 
-function ballotActions({ request, primary, id }: ObjectActionContext): SirenAction[] {
-  if (!id) return [];
-  if (primary && "agendaItemId" in primary && "mode" in primary) {
-    if (primary.completedAt) return [];
-    return authorizedActions(request, [
-      action("ballot.record-votes", "POST", `/api/ballots/${id}/votes`),
-      action("ballot.complete", "POST", `/api/ballots/${id}/complete`),
-    ]);
-  }
-  return [];
-}
-
 export function objectActions(request: Request, entityClass: SirenEntityClass, value: unknown): SirenAction[] {
   if (!value || typeof value !== "object") return [];
   const primary = primaryObject(entityClass, value);
@@ -290,17 +294,27 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
               ),
             ])
           : [];
-      const recusalActions = value && typeof value === "object" && (value as Record<string, unknown>).canRecordRecusal === true
-        ? authorizedActions(request, [action("agenda-item.record-recusal", "POST",
-          `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary?.councilMeetingId}/agenda-items/${id}/recusals`)])
-        : [];
+      const recusalActions =
+        value && typeof value === "object" && (value as Record<string, unknown>).canRecordRecusal === true
+          ? authorizedActions(request, [
+              action(
+                "agenda-item.record-recusal",
+                "POST",
+                `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary?.councilMeetingId}/agenda-items/${id}/recusals`,
+              ),
+            ])
+          : [];
       return [...agendaItemActions(context), ...notes, ...recusalActions];
     },
     attendance: () => [],
     "audit-event": () => [],
     authentication: () => [],
     "authentication-status": () => [],
-    ballot: () => ballotActions(context),
+    ballot: () => [],
+    "ballot-preview": () =>
+      id && primary?.canConfirm === true
+        ? authorizedActions(request, [action("ballot.confirm", "POST", `/api/ballot-previews/${id}/confirm`)])
+        : [],
     "committee-membership": () => {
       if (!id) return [];
       const committeeId = request.originalUrl.match(/\/api\/council-committees\/([^/]+)/)?.[1];

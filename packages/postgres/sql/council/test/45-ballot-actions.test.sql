@@ -2,8 +2,8 @@ BEGIN;
 \ir support/helpers.sql
 SELECT no_plan();
 
-INSERT INTO council_meetings (id, quorum, scheduled_at, location)
-VALUES (test_uuid('actions:public:meeting'), 2, '2026-01-01 08:30:00+00', 'Council chamber');
+INSERT INTO council_meetings (id, scheduled_at, location) VALUES
+(test_uuid('actions:public:meeting'), '2026-01-01 08:30:00+00', 'Council chamber');
 
 INSERT INTO meeting_attendance (
   id,
@@ -111,7 +111,7 @@ SELECT lives_ok(
 -- HALL-FR-BAL-300
 SELECT lives_ok(
   $$
-    SELECT complete_ballot(
+    SELECT test_confirm_ballot(
       (
         SELECT id
         FROM ballots
@@ -133,8 +133,8 @@ SELECT is(
   'the public action path retains the derived majority result'
 );
 
-INSERT INTO council_meetings (id, quorum, scheduled_at, location)
-VALUES (test_uuid('actions:secret:meeting'), 1, '2026-01-02 08:30:00+00', 'Council chamber');
+INSERT INTO council_meetings (id, scheduled_at, location) VALUES
+(test_uuid('actions:secret:meeting'), '2026-01-02 08:30:00+00', 'Council chamber');
 
 INSERT INTO meeting_attendance (id, council_member, council_meeting, status) VALUES
   (
@@ -194,7 +194,7 @@ SELECT lives_ok(
       ),
       2,
       1,
-      0
+      0,0,0,0
     )
   $$,
   'secret votes are recorded as one atomic anonymous aggregate batch'
@@ -202,7 +202,7 @@ SELECT lives_ok(
 
 SELECT lives_ok(
   $$
-    SELECT complete_ballot(
+    SELECT test_confirm_ballot(
       (
         SELECT id
         FROM ballots

@@ -20,6 +20,12 @@ BEGIN
       MESSAGE = 'a vote is immutable';
   END IF;
 
+  -- @technical-requirement HALL-TR-CON-220 CONDUCT_CHANGES_SERIALIZE_WITH_VOTING:
+  -- All physical-presence and membership writes lock the meeting. Expression
+  -- of a vote joins that lock order before locking its ballot.
+  PERFORM 1 FROM hall.council_meetings m JOIN hall.council_agenda_item item ON item.council_meeting=m.id
+    JOIN hall.ballots b ON b.council_agenda_item=item.id WHERE b.id=NEW.ballot FOR UPDATE OF m;
+
   -- @technical-requirement HALL-TR-CON-100 VOTE_INSERT_SERIALIZES_WITH_BALLOT_COMPLETION:
   -- Lock the ballot before recording the vote so vote
   -- insertion cannot race with ballot completion.
@@ -72,6 +78,15 @@ BEGIN
     END IF;
   END IF;
 
+  IF NEW.mode='public' THEN
+    IF EXISTS(SELECT FROM hall.ballot_non_participation WHERE ballot_participation=NEW.ballot_participation) THEN
+      RAISE EXCEPTION USING ERRCODE = 'HV512',MESSAGE='a public participant cannot both express a vote and not participate';
+    END IF;
+    IF NEW.ballot_participation IS NOT NULL AND NOT EXISTS(SELECT FROM hall.ballot_participation p JOIN hall.ballots b ON b.id=p.ballot
+      WHERE p.id=NEW.ballot_participation AND hall.agenda_item_attendance_is_eligible(b.council_agenda_item,p.meeting_attendance)) THEN
+      RAISE EXCEPTION USING ERRCODE = 'HV513',MESSAGE='a public voter or proxy holder must still be eligible when expressing the vote';
+    END IF;
+  END IF;
   -- The vote satisfies immutability, timing, secrecy and scope invariants.
   RETURN NEW;
 END;

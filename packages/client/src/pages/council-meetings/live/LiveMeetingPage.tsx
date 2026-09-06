@@ -60,8 +60,9 @@ export function LiveMeetingPage() {
         <div className="live-header-status">
           <span
             className={`live-quorum-chip ${quorum.reached ? "live-quorum-chip-reached" : "live-quorum-chip-missing"}`}
+            data-testid="live-quorum-observation"
           >
-            {t("live.quorumChip")
+            {quorum.required === null ? t("live.quorumUnestablished") : t("live.quorumChip")
               .replace("{present}", formatNumber(quorum.physicallyPresent))
               .replace("{required}", formatNumber(quorum.required))}
           </span>

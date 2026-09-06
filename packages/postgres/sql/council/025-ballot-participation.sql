@@ -5,6 +5,7 @@ CREATE TABLE ballot_participation (
   id UUID PRIMARY KEY,
   ballot UUID NOT NULL REFERENCES ballots (id),
   meeting_attendance UUID NOT NULL REFERENCES meeting_attendance (id),
+  physically_present BOOLEAN NOT NULL,
 
   -- @functional-requirement HALL-FR-BAL-050 ONE_PARTICIPATION_PER_ATTENDANCE_AND_BALLOT: One
   -- attendance participates at most once in one ballot. This

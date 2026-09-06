@@ -41,6 +41,72 @@ son origine, ou relier une exigence de réalisation produit à l'exigence
 réglementaire qu'elle contribue à satisfaire. Les IDs déjà attribués restent
 stables ; les clauses ne sont pas de nouveaux IDs de production.
 
+## Décision produit : régime du quorum
+
+Décision explicite du propriétaire du **6 septembre 2026** : Hall relève du
+**régime de droit commun pour les règles du quorum** et ne prend pas en charge
+le régime territorial particulier d'Alsace-Moselle. Cette décision définit le
+périmètre du produit, pas seulement celui d'une livraison. Elle ne prétend pas
+que les règles de droit commun s'appliquent juridiquement à toutes les communes.
+
+Sa classification est `nature: functional`, `origin: product` ; la clause
+de périmètre porte `sourceIds: []`, sans statut de validation juridique.
+Les clauses réglementaires du calcul restent distinctes et renvoient à S1,
+J1/J2 et, pour les déports, S5/S6/J3 ci-dessous. Les deux fondements de déport
+`personalInterest` et `designatedRepresentativeConflict` restent en périmètre.
+L'exclusion territoriale ne supprime aucun de ces deux traitements.
+
+La réalisation et sa traçabilité sont détaillées dans l'[analyse du
+quorum](council-quorum-requirements.md). Le rattachement convenu dans le
+[registre](../packages/postgres/requirements.json) est
+`HALL-FR-MTG-270/common-law-scope`, séparément des clauses qui établissent le
+contenu légal du calcul. La clause est présente dans le registre relu.
+
+## Décision produit : aperçu, correction et confirmation du scrutin
+
+À la demande explicite du propriétaire, la saisie d'un résultat passe par un aperçu
+calculé par le backend, corrigeable avant une confirmation explicite. Cette
+exigence `HALL-FR-BAL-320` est de nature `functional` et d'origine `product`.
+Elle ne découle pas d'une obligation légale de disposer de cet écran.
+
+- L'aperçu conserve une version du candidat et son calcul ; il ne crée ni
+  `Ballot`, ni `Vote` définitif, ni décision, et ne termine pas le point.
+- Une correction produit un nouvel aperçu calculé en SQL. La version précédente
+  ne peut plus être confirmée ; un changement du contexte de séance exige aussi
+  un nouvel aperçu.
+- Seule la confirmation explicite enregistre atomiquement le scrutin et ses
+  votes définitifs et termine le point. Le backend lie le résultat enregistré
+  au candidat effectivement présenté ; le frontend n'est pas une autorité de
+  calcul du résultat. Une seconde confirmation est refusée.
+
+the user demande également que le **quorum courant soit satisfait avant
+l'aperçu**, ou que la dispense de seconde convocation soit applicable. Ce
+contrôle supplémentaire est `product`. Il s'ajoute au contrôle réglementaire à
+la mise en discussion (J1) ; il ne remplace ni ne réécrit ce constat et ne
+transforme pas un départ ultérieur en irrégularité rétroactive (J2).
+
+Les clauses produit convenues pour `HALL-FR-BAL-320` sont
+`candidate-review-confirmation` et `current-quorum-before-preview`, avec
+`sourceIds: []`. La liaison technique du candidat, de sa version et du contexte
+est `HALL-TR-CON-200/reviewed-candidate-and-context`, de nature `technical` et
+d'origine `product`. Ces entrées
+et leurs clauses sont présentes dans le registre relu, avec les annotations
+correspondantes dans le code. Les sources S2/S4 demeurent les références distinctes des
+règles de majorité et de scrutin, pas des choix d'interface ou de confirmation.
+
+Autorités : [calcul et versions SQL](../packages/postgres/sql/council/039-ballot-result-preview.sql)
+et [création et confirmation de l'aperçu](../packages/postgres/sql/council/076-ballot-result-preview-api.sql).
+Les [scénarios de l'aperçu](../packages/postgres/sql/council/test/19-ballot-result-preview.test.sql)
+vérifient notamment l'absence d'écriture définitive avant confirmation, la
+correction, les versions périmées, le contexte modifié et la confirmation unique.
+Le [parcours quorum](../packages/postgres/sql/council/test/18-quorum-workflows.test.sql)
+distingue le refus produit avant aperçu de la conservation du constat de
+discussion. Après les 51 assertions initialement annoncées pour ces deux
+fichiers, le backend annonce désormais 35 assertions réussies pour le fichier
+18 enrichi des bornes temporelles, du refus après clôture et du remplacement
+d'un mandat. Le référent a relu ces scénarios sans réexécuter les tests. Cela ne
+prouve pas encore le parcours HTTP/IHM intégré.
+
 ## Chaîne de preuve attendue
 
 `source primaire → proposition applicable → exigence → invariant → scénario → vérificateur`
@@ -196,8 +262,10 @@ interprétations sont établies.
 
 La commande ne visite pas les URL : elle contrôle leur forme et les domaines
 officiels pris en charge (Légifrance et Conseil d'État). Elle valide la forme
-des dates, pas l'applicabilité juridique à une occurrence ni une recherche de
-réforme. La pertinence source/proposition reste la responsabilité du référent.
+des dates et rejette une entrée en vigueur ou une décision postérieure à
+`asOf`, ainsi qu'un `asOf` postérieur à `verifiedAt`. Ces contrôles ne prouvent
+pas l'applicabilité juridique à une occurrence ni l'absence d'une réforme.
+La pertinence source/proposition reste la responsabilité du référent.
 Les scénarios pgTAP council restent un contrôle spécifique : il n'existe pas
 dans ce script global une preuve automatique d'exécution de chaque test de
 chaque package.
@@ -210,9 +278,22 @@ node --test scripts/check-requirements.test.mjs
 bash packages/postgres/sql/council/test/verify-traceability.sh
 ```
 
-L'audit documentaire présent n'a lancé ni cette commande ni les suites runtime.
-Un résultat de contrôle communiqué par un autre agent ne remplace pas une
-preuve de l'état final intégré. Pour cette documentation seule : relire le diff
+Résultats communiqués par le propriétaire backend le 6 septembre 2026 :
+premier état de **251 définitions, 84 références, 16 sources**, avec une clause explicitement
+`UNPROVEN` (`HALL-FR-MTG-280/general-presence`). Les **huit tests du
+vérificateur** passent. Le contrôle council chaîné est vert : **169 exigences,
+115 levées métier, 79 SQLSTATE Hall et quatre codes natifs**. Ces résultats
+portent sur la structure et la traçabilité ; ils ne changent pas le statut
+juridique de la clause non prouvée.
+
+Après consolidation du quorum et de l'aperçu, le contrôle structurel relancé
+par le référent relève **261 définitions, 84 références et 18 sources**, avec
+la même clause `UNPROVEN`. Les ajouts J5/J6 documentent les jours francs ; ce
+nouveau résultat ne remplace pas les preuves d'exécution des parcours.
+
+Le référent documentaire a relu les nouveaux contrôles de dates et de références
+malformées dans le script et leurs scénarios, sans réexécuter ces tests ni les
+suites runtime. Pour cette documentation seule : relire le diff
 et vérifier les liens locaux. Pour l'implémentation : utiliser les commandes
 du package affecté et les contrôles structurels de la carte d'architecture.
 
@@ -245,6 +326,8 @@ exacte, la version et le lien ; elles évitent de dupliquer les citations.
 | J2 | [CAA Nancy, 01/04/2010, n° 09NC01131, considérant sur L2121-17](https://www.legifrance.gouv.fr/ceta/id/CETATEXT000022155054) | Décision 01/04/2010 ; consultée 06/09/2026 | Retrait du maire au vote n'invalide pas à lui seul le quorum constaté à la discussion dans l'espèce jugée ; pas une dispense de toutes autres règles de vote. |
 | J3 | [CE, 19/01/1983, n° 33241, considérant sur la délibération 36-79](https://www.legifrance.gouv.fr/ceta/id/CETATEXT000007679121) | Décision 19/01/1983 ; consultée 06/09/2026 | Trois intéressés parmi sept présents ne laissaient que quatre admissibles, quorum insuffisant. Application au numérateur actuel interprétative ; confirmation explicite post-réforme 2025 non prouvée ici. |
 | J4 | [CE, 06/02/2025, n° 494627, points 2 et 3](https://www.conseil-etat.fr/fr/arianeweb/CE/decision/2025-02-06/494627) | Décision 06/02/2025 ; consultée 06/09/2026 | Prise d'effet d'une démission et remplacement à prendre en compte pour composer la séance ; ne tranche pas une formule arithmétique du quorum. |
+| J5 | [CE, 16/06/1997, n° 142691, considérants sur L121-11](https://www.legifrance.gouv.fr/ceta/id/CETATEXT000007970358/) | Décision 16/06/1997 ; consultée 06/09/2026 | Trois jours francs depuis envoi de la nouvelle convocation, également après perte de quorum en cours de séance. |
+| J6 | [CE, 13/10/1993, n° 141677, considérant sur l’envoi du 21 décembre](https://www.legifrance.gouv.fr/ceta/id/CETATEXT000007838872/) | Décision 13/10/1993 ; consultée 06/09/2026 | Jours calendaires incluant weekends et fériés, sans prorogation civile au prochain jour ouvrable. |
 
 ## Matrice exhaustive du relevé
 
@@ -578,29 +661,115 @@ formats non reconnus.
 | LOC-020 | `FR-HALL-LOCATION-002` : rangs positifs uniques ; premier lieu par défaut | P — sans objet. |
 | LOC-030 | `FR-HALL-LOCATION-003` : nom normalisé non vide, unique dans Hall | P — sans objet ; limite SQL de 200 caractères également produit. |
 
-### Candidats documentaires non comptés comme production
+### Exigences de quorum en cours de consolidation
 
-L'[analyse du quorum](council-quorum-requirements.md) propose encore des IDs
-qui ne doivent pas recevoir artificiellement une preuve d'implémentation.
+Les IDs ci-dessous sont désormais annotés dans le SQL du chantier courant.
+Leur qualification reste distincte de la validation finale de leur intégration.
 
-| ID candidat | Proposition | Qualification |
+| ID en consolidation | Proposition | Qualification |
 | --- | --- | --- |
 | HALL-FR-MTG-270 | Quorum ordinaire depuis membres en exercice | M — S1 pour seuil ; provenance persistée Hall ; qualification de l'effectif à établir pour chaque régime. |
 | HALL-FR-AGI-350 | Contrôle du quorum à la discussion | M — J1 pour instant ; atomicité et preuve enregistrée Hall. |
 | HALL-FR-AGI-360 | Pas de remplacement du contrôle par celui du vote | M — J2, dans sa portée ; mémoire du contrôle Hall. |
 | HALL-FR-ATT-120 | Historique des changements de présence | P — réalise le suivi nécessaire à J1, qui n'impose pas ce journal. |
 
-Les autres candidats de ce document, AGI-370/MTG-280/MIN-210 et le déport nommé
-initialement BAL-300 puis affecté à BAL-310, apparaissent déjà dans le WIP lu.
-Le document de quorum n'est donc pas
-une autorité d'allocation fiable sans rapprochement avec le checkout courant.
+AGI-370/MTG-280/MIN-210 et le déport initialement nommé BAL-300 puis affecté
+à BAL-310 sont également présents dans le code. Toute nouvelle attribution
+reste à rapprocher du registre et du checkout courant.
+
+## Curation du contrôle par affaire — 6 septembre 2026
+
+Ces scénarios orientent les invariants et leurs tests ; leur présence dans ce
+document ne constitue pas une preuve d'exécution.
+
+| Situation | Résultat attendu et qualification |
+| --- | --- |
+| 15 membres en exercice, sept présents admissibles, un pouvoir | Quorum non atteint : le pouvoir n'ajoute pas de présence (S1/S2). Avec huit présents admissibles, quorum atteint. |
+| 14 membres en exercice, sept puis huit présents admissibles | Seuil huit : la majorité exige strictement plus de la moitié (S1). |
+| Une affaire A discutée avec quorum, puis départ avant le vote ; affaire B suivante | Conserver le constat de A ; le départ ne l'invalide pas à lui seul (J2). Recontrôler pour B (J1). Cela ne dispense pas de vérifier qui participe effectivement au scrutin. |
+| Un membre arrive avant la discussion suivante | Le nouveau constat tient compte de sa présence réelle ; le journal de mouvements est une réalisation produit de J1. |
+| 15 membres en exercice, huit présents dont un déporté pour intérêt personnel | Sept présences admissibles, dénominateur 15, seuil huit selon l'interprétation J3 retenue. La confirmation post-réforme 2025 reste `unproven` pour `MTG-280/general-presence`. |
+| 15 membres en exercice dont deux relevant effectivement de S6 II | Dénominateur 13, seuil sept ; les déportés ne contribuent pas aux présences admissibles. Vérifier les conditions et exclusions de S6 I/II/III, sans assimiler tout représentant à ce cas. |
+| Une abstention volontaire, sans motif de déport | Ne diminue pas automatiquement le dénominateur ou la présence pour le quorum ; exclue des suffrages exprimés (S1/S2). |
+| Composition de l'annuaire modifiée après un constat | Les faits anciens restent conservés ; un nouveau constat nominal attesté établit l'effectif applicable. Ce mécanisme est produit, pas un mode d'investiture légal. |
+
+Le constat nominal proposé par Hall identifie les membres en exercice, son
+instant de référence, son auteur et sa provenance ; son effectif est dérivé de
+la liste, jamais des seuls participants à la séance. Les dates de l'annuaire
+ne prouvent pas à elles seules la prise d'effet juridique. Par exemple,
+[L2121-4, al. 2, version depuis le 24 février 1996](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389858)
+fait produire effet à une démission ordinaire à sa réception par le maire ;
+J4 distingue la situation des fonctions de maire ou d'adjoint. Il ne faut pas
+inventer une convention légale d'intervalle de dates à partir du stockage SQL.
+
+### Seconde convocation
+
+[CE, 16 juin 1997, n° 142691, considérants sur l'article L121-11](https://www.legifrance.gouv.fr/ceta/id/CETATEXT000007970358/)
+établit que le régime aujourd'hui codifié par S1 s'applique aussi à une perte
+du quorum en cours de séance. Les trois jours sont francs et se comptent
+depuis l'envoi de la nouvelle convocation, possible dès le constat d'échec.
+Dans l'espèce jugée, un envoi le 28 décembre ne permettait pas la réunion le
+31 décembre à 18 heures : le délai expirait le 1er janvier à zéro heure.
+L'implémentation doit donc compter trois jours calendaires entiers intermédiaires,
+dans le calendrier local applicable, et non 72 heures depuis la première réunion.
+
+[CE, 13 octobre 1993, n° 141677, considérant sur l'envoi du 21 décembre](https://www.legifrance.gouv.fr/ceta/id/CETATEXT000007838872)
+écarte la prorogation de procédure civile lorsque le délai comprend un samedi,
+dimanche ou jour férié. Ces jours restent comptés. Ces deux décisions ont été
+consultées le 6 septembre 2026.
+
+Les scénarios doivent couvrir : première convocation régulière et échec
+constaté, délai trop court refusé, délai franc satisfait, perte en cours après
+des affaires déjà achevées, conservation des réunions et convocations
+successives. Une même identité `CouncilMeeting` avec des épisodes distincts
+est un choix de représentation, pas une identité prescrite par S1.
+
+L'exemption ne doit pas être étendue automatiquement à des affaires nouvelles.
+Une protection Hall peut rattacher les affaires reprises à celles restées à
+traiter au constat d'échec et à la nouvelle convocation. L'identité intégrale
+des IDs et de l'ordre de tous les points n'a pas été établie ici par une source
+primaire de droit commun : ne pas présenter une comparaison informatique
+d'ordre du jour comme une citation légale, ni imposer de revoter les affaires
+déjà achevées au seul motif de leur présence dans l'ordre du jour initial.
+
+### Présence et participation au scrutin
+
+Un départ avant expression ne constitue pas une abstention volontaire ni un
+bulletin blanc. Conserver distinctement le mouvement, une éventuelle
+non-participation et le vote effectivement exprimé ; un départ ultérieur
+n'efface pas ce vote. Un pouvoir ne crée pas de présence physique et exige un
+porteur admissible au moment où il est exercé (S2 et règles de déport).
+Le scrutin secret ne doit jamais rattacher un choix à une personne (S4).
+Un journal de présence ne justifie ni ce rattachement ni un gel fictif des
+mouvements pendant le scrutin.
+
+the user a retenu la consignation distincte de la non-participation : c'est un
+choix `product`, pas l'affirmation d'une rubrique séparée imposée par la loi.
+La [réponse ministérielle à la question écrite n° 26978, publiée le 27 janvier 2004](https://questions.assemblee-nationale.fr/dyn/12/questions/QANR5L12QE26978)
+confirme le même effet sur le résultat qu'une abstention, sans imposer
+explicitement de fusionner les mentions. Cette réponse est un éclairage
+ministériel daté, distinct d'une disposition législative ou d'une décision de
+justice ; la règle des suffrages exprimés reste sourcée par S2.
+
+Scénario : 15 membres en exercice, huit présents sans conflit, quatre pour,
+trois contre et un refus de participer. Le quorum est huit, le nombre de
+suffrages exprimés sept et la délibération ordinaire est adoptée. Une abstention
+à la place du refus produit le même résultat, avec une consignation différente.
+Le refus du membre resté présent n'est pas un déport et ne réduit pas le quorum.
+
+Les règles ordinaires de majorité ne couvrent pas toutes les affaires.
+[L1612-12, al. 2, version depuis le 1er janvier 2026, applicable à l'exercice budgétaire 2026](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051731724)
+prévoit l'approbation du CFU en l'absence de majorité contre son adoption.
+Cette réserve, comme les élections à plusieurs tours de S4, interdit de
+qualifier un simple calcul binaire générique de couverture complète des votes.
 
 ## Lacunes et décisions à rendre visibles
 
 - **Quorum** : un seuil positif hérité et un contrôle d'ouverture ne prouvent
   ni S1 ni J1. Seconde convocation, déports et composition effective doivent
-  conserver leurs conditions. La computation détaillée du délai et les régimes
-  territoriaux particuliers, notamment Alsace-Moselle, ne sont pas validés ici.
+  conserver leurs conditions. Le régime particulier d'Alsace-Moselle est exclu
+  par la décision produit ci-dessus ; cette exclusion n'est pas une lacune à
+  combler automatiquement.
 - **Déports** : les deux variantes de conflits constituent une tranche fermée,
   pas la liste de tous les empêchements légaux. S8 couvre un autre cas, le CFU.
   La qualification des représentants exige S6 I/II/III. L'exclusion du

@@ -3,7 +3,6 @@ import {
   type AgendaItem,
   type Ballot,
   type BallotParticipation,
-  type BallotResult,
   type BallotVote,
   type CouncilBusiness,
   type CouncilBusinessResourceAssociation,
@@ -48,24 +47,6 @@ export function createTestCouncilClient(
     const ballot = ballots.get(id);
     if (!ballot) throw new CouncilClientError("conflict");
     return ballot;
-  }
-
-  function deriveBallotResult(ballot: Ballot, votes: readonly BallotVote[]): BallotResult {
-    const approveCount = votes
-      .filter((vote) => vote.choice === "approve")
-      .reduce((total, vote) => total + vote.count, 0);
-    const rejectCount = votes.filter((vote) => vote.choice === "reject").reduce((total, vote) => total + vote.count, 0);
-    if (approveCount > rejectCount) return "approve";
-    if (rejectCount > approveCount) return "reject";
-    if (ballot.mode === "public") {
-      const chairmanVote = votes.find(
-        (vote) => vote.mode === "public" && vote.ballotParticipationId === ballot.chairmanParticipationId,
-      );
-      if (chairmanVote?.choice === "approve" || chairmanVote?.choice === "reject") {
-        return chairmanVote.choice;
-      }
-    }
-    return "reject";
   }
 
   function createAgendaItem(meetingId: string, input: ScheduleAgendaItem): AgendaItem {
@@ -215,7 +196,7 @@ export function createTestCouncilClient(
     async listMeetings() {
       return [...meetings.values()];
     },
-    async provisionInitialMeeting(input) {
+    async provisionInitialMeeting() {
       if (meetings.size > 0) throw new CouncilClientError("conflict");
       const meeting: CouncilMeeting = {
         id: randomUUID(),
@@ -227,7 +208,7 @@ export function createTestCouncilClient(
         location: null,
         chairMemberId: null,
         secretaryMemberId: null,
-        quorum: input.quorum,
+        quorum: null,
         startedAt: null,
         closedAt: null,
       };
@@ -277,12 +258,13 @@ export function createTestCouncilClient(
     },
     async startMeeting(id, input) {
       const meeting = requireMeeting(id);
-      const started = { ...meeting, startedAt: input.startedAt };
+      const started = { ...meeting, quorum: 1, startedAt: input.startedAt };
       meetings.set(id, started);
       return started;
     },
     async closeMeeting(id, input) {
       const meeting = requireMeeting(id);
+      if (meeting.quorum === null) throw new Error("Closing with a verified quorum requires PostgreSQL acceptance");
       const minutes: MinutesDetail = {
         id: randomUUID(),
         councilMeetingId: id,
@@ -310,6 +292,7 @@ export function createTestCouncilClient(
           },
           attendance: [],
           recusals: [],
+          conduct: { membershipRecords: [], attendanceEvents: [], quorumObservations: [], reconvocations: [] },
           agenda: [...agendaItems.values()]
             .filter((entry) => entry.councilMeetingId === id)
             .map((entry) => ({
@@ -403,6 +386,30 @@ export function createTestCouncilClient(
       );
       for (const item of recorded) attendance.set(item.id, item);
       return [...attendance.values()].filter((item) => item.councilMeetingId === meetingId);
+    },
+    async createBallotResultPreview() {
+      throw new Error("Preview acceptance requires PostgreSQL");
+    },
+    async openBallotResultPreview() {
+      throw new Error("Preview acceptance requires PostgreSQL");
+    },
+    async confirmBallotResultPreview() {
+      throw new Error("Preview acceptance requires PostgreSQL");
+    },
+    async meetingConduct() {
+      throw new Error("Conduct acceptance requires PostgreSQL");
+    },
+    async recordMeetingMembership() {
+      throw new Error("Conduct acceptance requires PostgreSQL");
+    },
+    async recordMeetingAttendanceEvents() {
+      throw new Error("Conduct acceptance requires PostgreSQL");
+    },
+    async recordMeetingQuorum() {
+      throw new Error("Conduct acceptance requires PostgreSQL");
+    },
+    async recordMeetingReconvocation() {
+      throw new Error("Conduct acceptance requires PostgreSQL");
     },
     async agendaItemRecusals() {
       throw new Error("Recusal acceptance requires the PostgreSQL council client");
@@ -510,90 +517,6 @@ export function createTestCouncilClient(
     async listBallotVotes(ballotId) {
       requireBallot(ballotId);
       return ballotVotes.get(ballotId) ?? [];
-    },
-    async createBallot(input) {
-      const item = requireAgendaItem(input.agendaItemId);
-      const participations = input.participantAttendanceIds.map((attendanceId) => {
-        const meetingAttendance = attendance.get(attendanceId);
-        if (!meetingAttendance || meetingAttendance.councilMeetingId !== item.councilMeetingId) {
-          throw new CouncilClientError("conflict");
-        }
-        const participation: BallotParticipation = {
-          id: randomUUID(),
-          ballotId: "",
-          meetingAttendanceId: meetingAttendance.id,
-          councilMemberId: meetingAttendance.councilMemberId,
-        };
-        return participation;
-      });
-      const ballotId = randomUUID();
-      const persistedParticipations = participations.map((participation) => ({
-        ...participation,
-        ballotId,
-      }));
-      const chairmanParticipation = persistedParticipations.find(
-        (participation) => participation.meetingAttendanceId === input.chairmanAttendanceId,
-      );
-      if (!chairmanParticipation) throw new CouncilClientError("conflict");
-      const ballot: Ballot = {
-        id: ballotId,
-        agendaItemId: input.agendaItemId,
-        mode: input.mode,
-        chairmanParticipationId: chairmanParticipation.id,
-        completedAt: null,
-        result: null,
-      };
-      ballots.set(ballot.id, ballot);
-      for (const participation of persistedParticipations) {
-        ballotParticipations.set(participation.id, participation);
-      }
-      return ballot;
-    },
-    async recordBallotVotes(ballotId, input) {
-      const ballot = requireBallot(ballotId);
-      if (ballot.mode !== input.mode) throw new CouncilClientError("conflict");
-      const recorded = matchDiscriminated(input, "mode", {
-        public: (value) =>
-          value.votes.map(
-            (vote): BallotVote => ({
-              mode: "public",
-              ballotId,
-              choice: vote.choice,
-              ballotParticipationId: vote.ballotParticipationId,
-              count: 1,
-            }),
-          ),
-        secret: (value) =>
-          [
-            { choice: "approve", count: value.totals.approve },
-            { choice: "reject", count: value.totals.reject },
-            { choice: "abstain", count: value.totals.abstain },
-          ]
-            .filter((vote) => vote.count > 0)
-            .map(
-              (vote): BallotVote => ({
-                mode: "secret",
-                ballotId,
-                choice: vote.choice as "approve" | "reject" | "abstain",
-                ballotParticipationId: null,
-                count: vote.count,
-              }),
-            ),
-      });
-      ballotVotes.set(ballotId, recorded);
-      return recorded;
-    },
-    async completeBallot(ballotId, input) {
-      const ballot = requireBallot(ballotId);
-      const completed: Ballot = {
-        ...ballot,
-        completedAt: input.completedAt,
-        result: deriveBallotResult(ballot, ballotVotes.get(ballotId) ?? []),
-      };
-      ballots.set(ballotId, completed);
-      const agendaItem = requireAgendaItem(ballot.agendaItemId);
-      agendaItems.set(agendaItem.id, { ...agendaItem, completedAt: input.completedAt });
-      return completed;
     },
   };
 }

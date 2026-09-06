@@ -1,28 +1,32 @@
 import type {
   AgendaItem,
   AgendaItemRecusals,
-  RecordAgendaItemRecusal,
   Ballot,
   BallotParticipation,
+  BallotResultPreview,
   BallotVote,
   CloseCouncilMeeting,
-  CompleteBallot,
   CompleteOpenQuestion,
   CouncilBusiness,
-  CouncilBusinessResourceItem,
   CouncilBusinessResourceAssociation,
+  CouncilBusinessResourceItem,
   CouncilBusinessWorkspaceItem,
   CouncilMeeting,
   CouncilMeetingClosure,
-  CreateBallot,
   CreateAndScheduleCouncilBusiness,
-  CreatedAndScheduledCouncilBusiness,
+  CreateBallotResultPreview,
   CreateCouncilBusiness,
+  CreatedAndScheduledCouncilBusiness,
   MeetingAttendance,
-  ProvisionInitialCouncilMeeting,
+  MeetingConductWorkspace,
   PrepareCouncilMeeting,
-  RecordBallotVotes,
+  ProvisionInitialCouncilMeeting,
+  RecordAgendaItemRecusal,
   RecordMeetingAttendance,
+  RecordMeetingAttendanceEvents,
+  RecordMeetingMembership,
+  RecordMeetingQuorum,
+  RecordMeetingReconvocation,
   ReorderCouncilAgenda,
   ReorderCouncilBusinessResources,
   ReprogramAgendaItem,
@@ -47,6 +51,19 @@ export class CouncilClientError extends Error {
 }
 
 export interface CouncilClient {
+  createBallotResultPreview(input: CreateBallotResultPreview): Promise<BallotResultPreview>;
+  openBallotResultPreview(id: string): Promise<BallotResultPreview | null>;
+  confirmBallotResultPreview(id: string): Promise<Ballot>;
+
+  meetingConduct(meetingId: string): Promise<MeetingConductWorkspace>;
+  recordMeetingMembership(meetingId: string, input: RecordMeetingMembership): Promise<MeetingConductWorkspace>;
+  recordMeetingAttendanceEvents(
+    meetingId: string,
+    input: RecordMeetingAttendanceEvents,
+  ): Promise<MeetingConductWorkspace>;
+  recordMeetingQuorum(meetingId: string, input: RecordMeetingQuorum): Promise<MeetingConductWorkspace>;
+  recordMeetingReconvocation(meetingId: string, input: RecordMeetingReconvocation): Promise<MeetingConductWorkspace>;
+
   listBusinesses(): Promise<CouncilBusiness[]>;
   listBusinessWorkspaceItems(): Promise<CouncilBusinessWorkspaceItem[]>;
   openBusiness(id: string): Promise<CouncilBusiness | null>;
@@ -92,7 +109,4 @@ export interface CouncilClient {
   openBallot(id: string): Promise<Ballot | null>;
   listBallotParticipations(ballotId: string): Promise<BallotParticipation[]>;
   listBallotVotes(ballotId: string): Promise<BallotVote[]>;
-  createBallot(input: CreateBallot): Promise<Ballot>;
-  recordBallotVotes(ballotId: string, input: RecordBallotVotes): Promise<BallotVote[]>;
-  completeBallot(ballotId: string, input: CompleteBallot): Promise<Ballot>;
 }

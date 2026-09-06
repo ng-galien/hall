@@ -4,6 +4,12 @@
 -- functions. They never receive table privileges in hall.
 GRANT USAGE ON SCHEMA hall_api TO hall_api_anonymous, hall_api_authenticated, hall_api_worker;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hall_api FROM PUBLIC;
+REVOKE ALL ON FUNCTION hall_api.create_ballot(UUID,TEXT,UUID[],UUID),
+ hall_api.record_public_ballot_votes(UUID,UUID[],TEXT[]),
+ hall_api.record_secret_ballot_votes(UUID,INTEGER,INTEGER,INTEGER,INTEGER,INTEGER,INTEGER),
+ hall_api.complete_ballot(UUID,TIMESTAMPTZ,UUID),
+ hall_api.record_public_non_participations(UUID,UUID[],TEXT[])
+ FROM hall_api_anonymous,hall_api_authenticated,hall_api_worker;
 REVOKE ALL ON ALL TABLES IN SCHEMA hall, hall_meta FROM hall_api_anonymous, hall_api_authenticated, hall_api_worker;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA hall, hall_meta FROM hall_api_anonymous, hall_api_authenticated, hall_api_worker;
 
@@ -153,7 +159,7 @@ GRANT EXECUTE ON FUNCTION hall_api.open_council_meeting_by_slug(TEXT)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_council_meetings()
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.provision_initial_council_meeting(INTEGER)
+GRANT EXECUTE ON FUNCTION hall_api.provision_initial_council_meeting()
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.schedule_council_meeting(UUID, TIMESTAMPTZ, TEXT)
   TO hall_api_authenticated, hall_api_worker;
@@ -174,14 +180,6 @@ GRANT EXECUTE ON FUNCTION hall_api.list_council_meeting_ballots(UUID)
 GRANT EXECUTE ON FUNCTION hall_api.list_ballot_participations(UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_ballot_votes(UUID)
-  TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.create_ballot(UUID, TEXT, UUID[], UUID)
-  TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.record_public_ballot_votes(UUID, UUID[], TEXT[])
-  TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.record_secret_ballot_votes(UUID, INTEGER, INTEGER, INTEGER)
-  TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.complete_ballot(UUID, TIMESTAMPTZ)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.close_council_meeting(UUID, TIMESTAMPTZ)
   TO hall_api_authenticated, hall_api_worker;
@@ -214,3 +212,16 @@ GRANT EXECUTE ON FUNCTION hall_api.delete_resource(UUID)
 GRANT EXECUTE ON FUNCTION hall_api.agenda_item_recusals(UUID),
   hall_api.record_agenda_item_recusal(UUID, UUID, TEXT, TIMESTAMPTZ)
   TO hall_api_authenticated, hall_api_worker;
+
+GRANT EXECUTE ON FUNCTION hall_api.list_ballot_non_participations(UUID) TO hall_api_authenticated,hall_api_worker;
+
+GRANT EXECUTE ON FUNCTION hall_api.meeting_conduct(UUID),
+ hall_api.record_meeting_membership(UUID,TIMESTAMPTZ,TEXT,UUID[]),
+ hall_api.record_meeting_attendance_events(UUID,TIMESTAMPTZ,JSONB),
+ hall_api.record_meeting_quorum(UUID,UUID,TIMESTAMPTZ),
+ hall_api.record_meeting_reconvocation(UUID,UUID,TIMESTAMPTZ,TIMESTAMPTZ,TEXT,TEXT,TEXT,UUID[])
+ TO hall_api_authenticated,hall_api_worker;
+
+GRANT EXECUTE ON FUNCTION hall_api.create_ballot_result_preview(UUID,JSONB),
+ hall_api.open_ballot_result_preview(UUID),hall_api.confirm_ballot_result_preview(UUID)
+ TO hall_api_authenticated,hall_api_worker;

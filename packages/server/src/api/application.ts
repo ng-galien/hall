@@ -15,8 +15,9 @@ import {
 import { errorHandler } from "./errorHandler.js";
 import { sendProblem } from "./problemDetails.js";
 import { createAuditRouter } from "./routes/auditRoutes.js";
-import { createBallotsRouter } from "./routes/ballotsRoutes.js";
 import { createAuthRouter, createUsersRouter } from "./routes/authRoutes.js";
+import { createBallotPreviewsRouter } from "./routes/ballotPreviewsRoutes.js";
+import { createBallotsRouter } from "./routes/ballotsRoutes.js";
 import { createContactsRouter } from "./routes/contactsRoutes.js";
 import { createContentTemplatesRouter } from "./routes/contentTemplatesRoutes.js";
 import { createCouncilBusinessRouter } from "./routes/councilBusinessRoutes.js";
@@ -26,8 +27,8 @@ import { createCouncilMeetingsRouter } from "./routes/councilMeetingsRoutes.js";
 import { createCouncilMembersRouter } from "./routes/councilMembersRoutes.js";
 import { createCouncilTermsRouter } from "./routes/councilTermsRoutes.js";
 import { createDocumentaryResourcesRouter } from "./routes/documentaryResourcesRoutes.js";
-import { createSettingsRouter } from "./routes/settingsRoutes.js";
 import { createMinutesRouter } from "./routes/minutesRoutes.js";
+import { createSettingsRouter } from "./routes/settingsRoutes.js";
 import { apiRootRepresentation, sirenResponses } from "./sirenRepresentation.js";
 
 export const API_JSON_BODY_LIMIT_BYTES = 12 * 1024 * 1024;
@@ -55,6 +56,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api", requireAuthentication);
   app.use("/api/users", createUsersRouter(container.cradle));
   app.use("/api/audit-events", createAuditRouter(container.cradle));
+  app.use("/api/ballot-previews", createBallotPreviewsRouter(container.cradle));
   app.use("/api/ballots", createBallotsRouter(container.cradle));
   app.use("/api/contacts", createContactsRouter(container.cradle));
   app.use("/api/council-members", createCouncilMembersRouter(container.cradle));

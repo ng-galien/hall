@@ -58,7 +58,7 @@ export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentatio
               <dt>{t("meeting.quorum")}</dt>
               <dd>
                 <strong>
-                  {formatNumber(aggregate.quorum.physicallyPresent)} / {formatNumber(aggregate.quorum.required)}
+                  {formatNumber(aggregate.quorum.physicallyPresent)} / {aggregate.quorum.required === null ? t("meeting.quorumUnestablished") : formatNumber(aggregate.quorum.required)}
                 </strong>
               </dd>
             </div>

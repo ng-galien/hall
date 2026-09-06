@@ -27,19 +27,34 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
   const id = objectId(primary);
   const reference = publicReference(entityClass, primary);
   const extraLinks = matchLiteral(entityClass, {
-    "agenda-item": (): SirenLink[] => id && primary ? [{ rel: ["recusals"],
-      href: `/api/council-meetings/${primary.councilMeetingId}/agenda-items/${id}/recusals`, type: SIREN_MEDIA_TYPE }] : [],
+    "agenda-item": (): SirenLink[] =>
+      id && primary
+        ? [
+            {
+              rel: ["recusals"],
+              href: `/api/council-meetings/${primary.councilMeetingId}/agenda-items/${id}/recusals`,
+              type: SIREN_MEDIA_TYPE,
+            },
+          ]
+        : [],
     attendance: () => [],
     "audit-event": () => [],
     authentication: () => [],
     "authentication-status": () => [],
-    ballot: () => [],
+    ballot: (): SirenLink[] =>
+      typeof primary?.resultPreviewId === "string"
+        ? [{ rel: ["result-preview"], href: `/api/ballot-previews/${primary.resultPreviewId}`, type: SIREN_MEDIA_TYPE }]
+        : [],
+    "ballot-preview": () => [],
     "committee-membership": () => [],
     contact: () => [],
     "council-business": () => [],
     "council-committee": () => [],
     "council-decision": () => [],
-    "council-meeting": () => [],
+    "council-meeting": (): SirenLink[] =>
+      reference
+        ? [{ rel: ["conduct"], href: `/api/council-meetings/${reference}/conduct`, type: SIREN_MEDIA_TYPE }]
+        : [],
     "council-member": () => [],
     "council-term": () => [],
     entity: () => [],

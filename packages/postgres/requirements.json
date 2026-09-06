@@ -172,6 +172,26 @@
       "asOf": "2026-09-06",
       "scope": "Prise d'effet d'une démission et remplacement à prendre en compte pour composer la séance ; ne tranche pas une formule arithmétique du quorum.",
       "decisionDate": "2025-02-06"
+    },
+    "J5": {
+      "kind": "caseLaw",
+      "citation": "CE, 16 juin 1997, n°142691",
+      "localization": "Considérants sur L121-11 et délai suivant l’envoi du 28 décembre",
+      "url": "https://www.legifrance.gouv.fr/ceta/id/CETATEXT000007970358/",
+      "verifiedAt": "2026-09-06",
+      "asOf": "2026-09-06",
+      "decisionDate": "1997-06-16",
+      "scope": "Trois jours francs suivant envoi de la nouvelle convocation, y compris après perte de quorum en cours de séance."
+    },
+    "J6": {
+      "kind": "caseLaw",
+      "citation": "CE, 13 octobre 1993, n°141677",
+      "localization": "Considérant sur l’envoi du 21 décembre et l’inapplicabilité de l’article 642 CPC",
+      "url": "https://www.legifrance.gouv.fr/ceta/id/CETATEXT000007838872/",
+      "verifiedAt": "2026-09-06",
+      "asOf": "2026-09-06",
+      "decisionDate": "1993-10-13",
+      "scope": "Les jours francs se comptent sans report civil au prochain jour ouvrable."
     }
   },
   "requirements": {
@@ -924,7 +944,7 @@
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Hall réalise Seuls présents/représentés participent dans cette autorité logicielle ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire.",
+          "statement": "Seuls les présents ou représentés peuvent voter. Un départ constaté après la mise en discussion peut être conservé dans le candidat relu uniquement pour comptabiliser une non-participation explicite, sans autoriser un nouveau vote.",
           "sourceIds": []
         }
       ]
@@ -1155,13 +1175,13 @@
       ]
     },
     "HALL-FR-BAL-270": {
-      "name": "BALLOT_COMPLETION_REQUIRES_ONE_VOTE_PER_PARTICIPATION",
+      "name": "BALLOT_COMPLETION_REQUIRES_ACCOUNTING_FOR_EVERY_PARTICIPATION",
       "nature": "functional",
       "clauses": [
         {
-          "key": "implementation",
+          "key": "complete-accounting",
           "origin": "product",
-          "statement": "Un choix par participation déclarée : P — cohérence de saisie ; ne crée pas obligation légale de voter.",
+          "statement": "Chaque participation est comptabilisée exactement une fois comme vote ou non-participation explicite. Aucune obligation de voter n’est créée.",
           "sourceIds": []
         }
       ]
@@ -2038,9 +2058,9 @@
       "nature": "functional",
       "clauses": [
         {
-          "key": "implementation",
+          "key": "derived-positive-threshold",
           "origin": "product",
-          "statement": "Hall réalise Quorum stocké positif dans cette autorité logicielle ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire.",
+          "statement": "Le seuil est dérivé de l’effectif constaté après exclusions applicables ; aucune valeur de quorum libre n’est stockée ni transmise au provisionnement.",
           "sourceIds": []
         }
       ]
@@ -3056,18 +3076,6 @@
         }
       ]
     },
-    "HALL-TR-CON-210": {
-      "name": "BUSINESS_RESOURCE_WRITES_ARE_SERIALIZED",
-      "nature": "technical",
-      "clauses": [
-        {
-          "key": "implementation",
-          "origin": "product",
-          "statement": "One aggregate-root lock serializes append, dissociation and exact reorder.",
-          "sourceIds": []
-        }
-      ]
-    },
     "HALL-TR-CTX-010": {
       "name": "CLOSED_DATABASE_ROLES",
       "nature": "technical",
@@ -3460,6 +3468,195 @@
           "key": "implementation",
           "origin": "product",
           "statement": "NUMBER has three digits and advances by ten inside each domain. Gaps are intentional insertion points. An assigned identifier is never renumbered or reused; the symbolic name remains the human-readable stable locator.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-VOT-100": {
+      "name": "NON_PARTICIPATION_IS_DISTINCT_FROM_ABSTENTION",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "expressed-votes",
+          "origin": "regulatory",
+          "statement": "La majorité porte sur les suffrages exprimés ; abstentions, blancs, nuls et non-participations ne sont pas des suffrages pour ou contre.",
+          "sourceIds": [
+            "S2"
+          ],
+          "assessment": "verified",
+          "interpretation": "interpreted"
+        },
+        {
+          "key": "separate-accounting",
+          "origin": "product",
+          "statement": "La non-participation est une donnée distincte de l’abstention. Le public conserve la déclaration nominative et le motif refus/départ ; le secret conserve un total sans rattachement au choix individuel.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-ATT-120": {
+      "name": "PRESENCE_MOVEMENTS_PRESERVE_OPENING_ROLL_CALL",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "append-only-movements",
+          "origin": "product",
+          "statement": "Les arrivées, départs et changements de représentation observés sont ajoutés chronologiquement sans réécrire les présences initiales.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-ATT-130": {
+      "name": "CURRENT_POWERS_REQUIRE_VALID_UNIQUE_HOLDERS",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "current-proxy-integrity",
+          "origin": "product",
+          "statement": "Les pouvoirs courants identifient un porteur connu et une pièce écrite uniques. Son départ suspend son éligibilité et celle du mandant sans inventer une révocation du pouvoir.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-BAL-320": {
+      "name": "BALLOT_RESULT_REQUIRES_EXPLICIT_REVIEW_AND_CONFIRMATION",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "candidate-review-confirmation",
+          "origin": "product",
+          "statement": "La saisie candidate est calculée par SQL et conservée dans un aperçu immuable versionné sans créer scrutin, votes ni résultat définitif. Une correction exige un nouvel aperçu ; seule la confirmation explicite produit ces faits atomiquement.",
+          "sourceIds": []
+        },
+        {
+          "key": "current-quorum-before-preview",
+          "origin": "product",
+          "statement": "Choix produit supplémentaire au constat de discussion : le quorum actuel applicable doit permettre le vote au moment de l’aperçu. Un défaut interdit cet aperçu et laisse possible l’ajournement ; il ne réécrit pas le constat juridique initial.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-CON-200": {
+      "name": "BALLOT_CONFIRMATION_BINDS_REVIEWED_CANDIDATE_AND_CONTEXT",
+      "nature": "technical",
+      "clauses": [
+        {
+          "key": "reviewed-candidate-and-context",
+          "origin": "product",
+          "statement": "La confirmation lie la dernière version du candidat et l’empreinte du contexte courant, vérifie les faits enregistrés et sérialise les confirmations concurrentes ; aucun remplacement de candidat à la confirmation.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-AGI-360": {
+      "name": "QUORUM_OBSERVATIONS_PRESERVE_THEIR_INPUTS",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "immutable-facts",
+          "origin": "product",
+          "statement": "Chaque constat conserve l’effectif nominal, les présents, exclusions qualifiées, seuil dérivé, régime, verdict, date et auteur sans réécriture par les changements ultérieurs.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MTG-290": {
+      "name": "SECOND_CONVOCATION_REQUIRES_RECORDED_FAILURE_AND_NOTICE",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "renewed-notice",
+          "origin": "regulatory",
+          "statement": "Après défaut de quorum, une nouvelle convocation permet de délibérer sans quorum sur les affaires concernées après trois jours francs suivant son envoi.",
+          "sourceIds": [
+            "S1",
+            "J5",
+            "J6"
+          ],
+          "assessment": "verified",
+          "interpretation": "interpreted"
+        },
+        {
+          "key": "evidence-and-scope",
+          "origin": "product",
+          "statement": "Un épisode distinct conserve défaut effectif, preuves des deux convocations, envoi, date réelle, fuseau et affaires inachevées identifiées. Effectif et présences sont reconstatés à cette nouvelle réunion.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-AGI-350": {
+      "name": "CONSIDERATION_REQUIRES_RECORDED_CURRENT_QUORUM",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "discussion-quorum",
+          "origin": "regulatory",
+          "statement": "Le quorum est apprécié à la mise en discussion de chaque affaire ; un mouvement ultérieur ne réécrit pas ce constat.",
+          "sourceIds": [
+            "S1",
+            "J1",
+            "J2"
+          ],
+          "assessment": "verified",
+          "interpretation": "interpreted"
+        },
+        {
+          "key": "atomic-discussion-transition",
+          "origin": "product",
+          "statement": "Le début de discussion réalise automatiquement un constat SQL. Le refus annule la transition ; un constat de défaut est une commande explicite distincte.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MTG-270": {
+      "name": "QUORUM_USES_CONFIRMED_MEMBERS_IN_OFFICE",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "actual-members-in-office",
+          "origin": "regulatory",
+          "statement": "Le quorum de droit commun utilise les membres effectivement en exercice.",
+          "sourceIds": [
+            "S1",
+            "J4"
+          ],
+          "assessment": "verified",
+          "interpretation": "interpreted"
+        },
+        {
+          "key": "nominal-membership-evidence",
+          "origin": "product",
+          "statement": "Un constat nominal daté, attribué et sourcé atteste les mandats effectivement en exercice ; les dates de l’annuaire sont seulement des éléments à vérifier.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-law-scope",
+          "origin": "product",
+          "statement": "Le périmètre produit des règles de quorum couvre exclusivement le régime communal de droit commun. Le régime territorial particulier du quorum en Alsace-Moselle n’est pas pris en charge ; aucun paramètre géographique supplémentaire n’est introduit.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-CON-220": {
+      "name": "CONDUCT_CHANGES_SERIALIZE_WITH_VOTING",
+      "nature": "technical",
+      "clauses": [
+        {
+          "key": "meeting-lock-order",
+          "origin": "product",
+          "statement": "Présences, effectif, déports et écritures du vote prennent le verrou de séance avant le point et le scrutin afin de sérialiser ces mutations.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-CON-210": {
+      "name": "BUSINESS_RESOURCE_WRITES_ARE_SERIALIZED",
+      "nature": "technical",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "One aggregate-root lock serializes append, dissociation and exact reorder.",
           "sourceIds": []
         }
       ]

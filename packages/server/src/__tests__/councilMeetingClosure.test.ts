@@ -5,7 +5,7 @@ describe("council meeting closure HTTP contract", () => {
   it("closes the meeting and provisions the next meeting with its minutes approval first", async () => {
     const { agent } = await createTestServer();
     const meeting = domainBody<{ id: string; number: number }>(
-      await agent.post("/api/council-meetings").send({ quorum: 1 }).expect(201),
+      await agent.post("/api/council-meetings").send({}).expect(201),
     );
     const scheduled = domainBody<{ slug: string }>(
       await agent
@@ -56,9 +56,7 @@ describe("council meeting closure HTTP contract", () => {
 describe("agenda adjournment HTTP contract", () => {
   it("exposes adjournment during the meeting and keeps its occurrence trace", async () => {
     const { agent } = await createTestServer();
-    const meeting = domainBody<{ id: string }>(
-      await agent.post("/api/council-meetings").send({ quorum: 1 }).expect(201),
-    );
+    const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
     await agent
       .put(`/api/council-meetings/${meeting.id}/schedule`)
       .send({ scheduledAt: "2026-09-05T18:00:00Z", location: "Hall" })

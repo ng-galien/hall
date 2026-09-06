@@ -110,3 +110,67 @@
 -- HV233  AGENDA_ITEM_RECUSAL_MEMBER_NOT_DECLARED         HALL-FR-AGI-370
 -- HV305  RECUSED_MEMBER_CANNOT_PARTICIPATE               HALL-FR-BAL-310
 -- HV234  RECUSAL_OCCURRENCE_MEETING_IS_IMMUTABLE          HALL-FR-AGI-370
+
+-- HV131 attendance observations are immutable.
+
+-- HV132 attendance movements require an ongoing meeting.
+
+-- HV133 membership observations must follow the recorded chronology.
+
+-- HV134 current powers require a known holder and unique written evidence.
+
+-- HV135 membership observations are immutable.
+
+-- HV136 a closed meeting cannot receive membership observations.
+
+-- HV137 membership requires distinct known mandates of one council term.
+
+-- HV140 a confirmed nominal membership record is required.
+
+-- HV141 every confirmed member requires an explicit attendance declaration.
+
+-- HV142 the affair cannot enter discussion without the applicable quorum.
+
+-- HV143 a declaration cannot be observed in the future.
+
+-- HV144 renewed convocation requires a recorded quorum failure and valid notice.
+
+-- HV145 quorum observations are immutable.
+
+-- HV146 renewed convocation evidence is immutable.
+
+-- HV147 renewed convocation requires three clear calendar days after sending.
+
+-- HV148 the exemption is limited to identified unfinished affairs from the failed meeting.
+
+-- HV149 the renewed meeting requires fresh membership and attendance observations.
+
+-- HV414 a ballot requires a recorded discussion quorum.
+
+-- HV416 only the ordinary-majority decision procedure is supported.
+
+-- HV417 ballot completion cannot precede discussion.
+
+-- HV418 the ballot is already definitively confirmed.
+
+-- HV420 secret totals must account for every declared participation.
+
+-- HV421 unknown ballot result preview.
+
+-- HV422 the candidate or meeting context changed; review a new result preview.
+
+-- HV423 definitive confirmation requires a reviewed result preview.
+
+-- HV424 the stored vote does not match the reviewed candidate.
+
+-- HV425 result previews are immutable evidence.
+
+-- HV510 non-participation records are immutable.
+
+-- HV511 non-participation must match an open ballot.
+
+-- HV512 a public participant cannot both express a vote and not participate.
+
+-- HV513 a public voter or proxy holder must still be eligible when expressing the vote.
+
+-- HV514 secret accounting requires explicit nonnegative totals.

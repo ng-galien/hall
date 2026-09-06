@@ -9,6 +9,25 @@ import {
 } from "@hall/api-contract";
 
 export type ApiErrorCode =
+  | "ballot_preview_stale"
+  | "ballot_already_confirmed"
+  | "ballot_candidate_invalid"
+  | "ballot_preview_not_found"
+  | "ballot_preview_required"
+  | "ballot_preview_mismatch"
+  | "ballot_preview_immutable"
+  | "ballot_procedure_unsupported"
+  | "ballot_voter_no_longer_eligible"
+  | "quorum_membership_required"
+  | "quorum_attendance_incomplete"
+  | "quorum_not_met"
+  | "discussion_quorum_required"
+  | "membership_record_invalid"
+  | "current_proxy_invalid"
+  | "meeting_conduct_closed"
+  | "conduct_chronology_invalid"
+  | "attendance_movement_unavailable"
+  | "ballot_totals_invalid"
   | "recusal_already_recorded"
   | "recusal_recording_closed"
   | "recusal_member_not_declared"
@@ -99,6 +118,25 @@ export function apiPathFromHref(href: string): string {
 
 const apiErrorCodes = new Set<ApiErrorCode>([
   "recusal_already_recorded",
+  "ballot_preview_stale",
+  "ballot_already_confirmed",
+  "ballot_candidate_invalid",
+  "ballot_preview_not_found",
+  "ballot_preview_required",
+  "ballot_preview_mismatch",
+  "ballot_preview_immutable",
+  "ballot_procedure_unsupported",
+  "ballot_voter_no_longer_eligible",
+  "quorum_membership_required",
+  "quorum_attendance_incomplete",
+  "quorum_not_met",
+  "discussion_quorum_required",
+  "membership_record_invalid",
+  "current_proxy_invalid",
+  "meeting_conduct_closed",
+  "conduct_chronology_invalid",
+  "attendance_movement_unavailable",
+  "ballot_totals_invalid",
   "recusal_recording_closed",
   "recusal_member_not_declared",
   "recused_member_cannot_participate",

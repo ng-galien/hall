@@ -48,6 +48,9 @@ BEGIN
   THEN
     RAISE EXCEPTION USING ERRCODE = 'HV232', MESSAGE = 'the agenda item cannot receive a recusal';
   END IF;
+  IF NEW.declared_at>clock_timestamp() THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV143',MESSAGE='a declaration cannot be observed in the future';
+  END IF;
   -- The declared member must belong to this meeting's recorded attendance.
   IF NOT EXISTS(SELECT FROM hall.meeting_attendance
     WHERE council_meeting = target_meeting AND council_member = NEW.council_member)
@@ -80,12 +83,16 @@ $$;
 CREATE FUNCTION hall.agenda_item_attendance_is_eligible(target_item UUID, target_attendance UUID)
 RETURNS BOOLEAN LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   SELECT EXISTS (
-    SELECT FROM hall.meeting_attendance a
-    JOIN hall.council_agenda_item item ON item.id = target_item AND item.council_meeting = a.council_meeting
-    LEFT JOIN hall.meeting_attendance holder ON holder.id = a.proxy_holder
-    WHERE a.id = target_attendance AND a.status IN ('present', 'represented')
-      AND NOT EXISTS (SELECT FROM hall.agenda_item_recusal r WHERE r.agenda_item = target_item
-        AND (r.council_member = a.council_member OR r.council_member = holder.council_member))
+    SELECT FROM hall.council_agenda_item item
+    CROSS JOIN LATERAL hall.current_meeting_attendance(item.council_meeting) a
+    LEFT JOIN LATERAL hall.current_meeting_attendance(item.council_meeting) holder ON holder.id=a.proxy_holder
+    JOIN LATERAL (SELECT member_ids FROM hall.meeting_membership_record
+      WHERE council_meeting=item.council_meeting ORDER BY observed_at DESC LIMIT 1) membership ON true
+    WHERE item.id=target_item AND a.id=target_attendance AND a.council_member=ANY(membership.member_ids)
+      AND (a.status='present' OR (a.status='represented' AND holder.status='present'
+        AND holder.council_member=ANY(membership.member_ids)))
+      AND NOT EXISTS (SELECT FROM hall.agenda_item_recusal r WHERE r.agenda_item=target_item
+        AND (r.council_member=a.council_member OR r.council_member=holder.council_member))
   );
 $$;
 
@@ -97,6 +104,21 @@ $$;
 -- @functional-requirement HALL-FR-MTG-280 RECUSAL_QUORUM_EFFECT_REQUIRES_LEGAL_BASIS:
 -- This is an impact on recorded attendance, NOT an observation of the legal
 -- membership denominator or of arrivals/departures during the meeting.
+-- Actual discussion presence followed by a recorded departure permits only
+-- explicit non-participation accounting; it never restores voting eligibility.
+CREATE FUNCTION hall.agenda_item_attendance_has_recorded_departure(target_item UUID,target_attendance UUID)
+RETURNS BOOLEAN LANGUAGE plpgsql STABLE SET search_path=pg_catalog,hall AS $$
+BEGIN
+ RETURN EXISTS(SELECT FROM hall.council_agenda_item item
+   JOIN hall.current_meeting_attendance(item.council_meeting) a ON a.id=target_attendance
+   JOIN LATERAL (SELECT member_ids FROM hall.meeting_membership_record WHERE council_meeting=item.council_meeting ORDER BY observed_at DESC LIMIT 1) membership ON a.council_member=ANY(membership.member_ids)
+   WHERE item.id=target_item AND a.status IN ('absent','excused') AND a.observed_at>=item.started_at
+   AND NOT EXISTS(SELECT FROM hall.agenda_item_recusal WHERE agenda_item=item.id AND council_member=a.council_member)
+   AND EXISTS(SELECT FROM hall.meeting_quorum_observation q WHERE q.agenda_item=item.id AND q.observed_at=item.started_at
+     AND q.facts->'presentMemberIds' ? a.council_member::text)
+);
+END $$;
+
 CREATE FUNCTION hall.agenda_item_recusal_state(target_item UUID)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   SELECT jsonb_build_object(
@@ -104,6 +126,8 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
       FROM hall.agenda_item_recusal r WHERE r.agenda_item = target_item), '[]'::jsonb),
     'eligibleParticipantAttendanceIds', coalesce((SELECT jsonb_agg(a.id ORDER BY a.id)
       FROM hall.meeting_attendance a WHERE hall.agenda_item_attendance_is_eligible(target_item, a.id)), '[]'::jsonb),
+    'departedParticipantAttendanceIds', coalesce((SELECT jsonb_agg(a.id ORDER BY a.id)
+      FROM hall.meeting_attendance a WHERE hall.agenda_item_attendance_has_recorded_departure(target_item,a.id)), '[]'::jsonb),
     'quorumImpact', jsonb_build_object(
       'excludedMemberIds', coalesce((SELECT jsonb_agg(r.council_member ORDER BY r.council_member)
         FROM hall.agenda_item_recusal r WHERE r.agenda_item = target_item), '[]'::jsonb),

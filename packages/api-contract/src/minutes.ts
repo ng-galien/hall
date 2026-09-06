@@ -1,5 +1,6 @@
-import { agendaItemRecusalSchema } from "./recusal.js";
 import { z } from "zod";
+import { meetingConductEvidenceSchema } from "./meetingConduct.js";
+import { agendaItemRecusalSchema } from "./recusal.js";
 
 const id = z.string().uuid();
 const time = z.iso.datetime({ offset: true });
@@ -32,6 +33,7 @@ export const minutesFactsSchema = z
         .strict(),
     ),
     recusals: z.array(agendaItemRecusalSchema),
+    conduct: meetingConductEvidenceSchema,
     agenda: z.array(
       z
         .object({
@@ -55,10 +57,19 @@ export const minutesFactsSchema = z
           mode: z.enum(["public", "secret"]),
           result: z.enum(["approve", "reject"]).nullable(),
           completedAt: time.nullable(),
+          nonParticipations: z.array(
+            z
+              .object({
+                count: z.number().int().positive(),
+                reason: z.enum(["declined", "departed"]).nullable(),
+                member: person.nullable(),
+              })
+              .strict(),
+          ),
           votes: z.array(
             z
               .object({
-                choice: z.enum(["approve", "reject", "abstain"]),
+                choice: z.enum(["approve", "reject", "abstain", "blank", "invalid"]),
                 count: z.number().int().positive(),
                 member: person.nullable(),
               })

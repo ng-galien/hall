@@ -1,4 +1,4 @@
-import type { AgendaItem, BallotVote, MeetingAttendance } from "@hall/api-contract";
+import type { AgendaItem, BallotVote, MeetingAttendance, BallotResultPreview } from "@hall/api-contract";
 import type { CouncilBusinessView } from "./councilBusiness";
 import type { CouncilMeetingView, CouncilMeetingWorkspace } from "./councilMeeting";
 import type { CouncilMemberView } from "./directory";
@@ -98,7 +98,7 @@ export interface LiveMeetingPresentation {
   agendaItems: LiveMeetingAgendaItem[];
   councilDecisions: LiveMeetingCouncilDecision[];
   ballots: LiveMeetingBallot[];
-  quorum: { activeMembers: number; physicallyPresent: number; required: number; reached: boolean };
+  quorum: { activeMembers: number; physicallyPresent: number; required: number | null; reached: boolean };
 }
 
 function businessKind(subject: AgendaItem["subject"]): LiveMeetingBusiness["kind"] {
@@ -118,6 +118,7 @@ export function presentLiveMeeting(
   businesses: readonly CouncilBusinessView[],
   ballotVotes: ReadonlyMap<string, readonly BallotVote[]> = new Map(),
   ballotParticipantMembers: ReadonlyMap<string, ReadonlyMap<string, string>> = new Map(),
+  ballotPreviews: ReadonlyMap<string, BallotResultPreview> = new Map(),
 ): LiveMeetingPresentation {
   const attendance = workspace.attendance.map(
     (entry): LiveMeetingMemberAttendance => ({
@@ -130,11 +131,12 @@ export function presentLiveMeeting(
       version: 1,
     }),
   );
+  const observation = workspace.conduct.quorumObservations.at(-1)?.facts;
   const quorum = {
-    activeMembers: members.length,
-    physicallyPresent: attendance.filter((entry) => entry.status === "present").length,
-    required: workspace.meeting.quorum,
-    reached: attendance.filter((entry) => entry.status === "present").length >= workspace.meeting.quorum,
+    activeMembers: observation?.memberCount ?? workspace.conduct.membershipRecords.at(-1)?.members.length ?? 0,
+    physicallyPresent: observation?.presentCount ?? attendance.filter((entry) => entry.status === "present").length,
+    required: observation?.requiredPresent ?? null,
+    reached: observation?.verdict === "met" || observation?.verdict === "exempt",
   };
   const agendaItems = workspace.agendaItems
     .filter((item) => item.position > 0 || item.adjournedAt || item.startedAt)
@@ -174,6 +176,7 @@ export function presentLiveMeeting(
       };
     });
   const ballots = workspace.ballots.map((ballot): LiveMeetingBallot => {
+    const preview = ballotPreviews.get(ballot.id);
     const votes = [...(ballotVotes.get(ballot.id) ?? [])];
     const participantMembers = ballotParticipantMembers.get(ballot.id) ?? new Map();
     const total = (choice: BallotVote["choice"]) =>
@@ -197,15 +200,34 @@ export function presentLiveMeeting(
       agendaItemId: ballot.agendaItemId,
       method: ballot.mode,
       result: ballot.result === null ? null : ballot.result === "approve" ? "adopted" : "rejected",
-      votesFor: total("approve"),
-      votesAgainst: total("reject"),
-      abstentions: total("abstain"),
-      notVoting: 0,
-      votesCast: total("approve") + total("reject"),
+      votesFor: preview?.calculation.totals.approve ?? total("approve"),
+      votesAgainst: preview?.calculation.totals.reject ?? total("reject"),
+      abstentions: preview?.calculation.totals.abstain ?? total("abstain"),
+      notVoting: preview?.calculation.totals.nonParticipation ?? 0,
+      votesCast: preview?.calculation.expressedCount ?? total("approve") + total("reject"),
       votes: publicVotes,
-      chairTieBreakApplied: false,
-      recusedMemberIds: [],
-      participationEvidence: { rosterMemberIds: members.map((member) => member.id), attendance, quorum },
+      chairTieBreakApplied: preview?.calculation.tieBreakApplied ?? false,
+      recusedMemberIds: preview?.quorum.excludedMemberIds ?? [],
+      participationEvidence: {
+        rosterMemberIds: preview?.quorum.membersInOffice.map((member) => member.councilMemberId) ?? [],
+        attendance: (preview?.quorum.attendance ?? []).map((entry) => ({
+          id: entry.id,
+          meetingId: workspace.meeting.id,
+          memberId: entry.councilMemberId,
+          status: entry.status,
+          proxyHolderMemberId:
+            preview?.quorum.attendance.find((holder) => holder.id === entry.proxyHolderAttendanceId)?.councilMemberId ??
+            null,
+          proxyDocumentId: entry.proxyDocumentId,
+          version: 1,
+        })),
+        quorum: {
+          activeMembers: preview?.quorum.memberCount ?? 0,
+          physicallyPresent: preview?.quorum.presentCount ?? 0,
+          required: preview?.quorum.requiredPresent ?? null,
+          reached: preview?.quorum.verdict === "met" || preview?.quorum.verdict === "exempt",
+        },
+      },
       createdAt:
         ballot.completedAt ?? workspace.meeting.startedAt ?? workspace.meeting.scheduledAt ?? new Date(0).toISOString(),
       cancelledAt: null,
@@ -227,7 +249,9 @@ export function presentLiveMeeting(
     agendaReady: agendaItems.length > 0,
     requiredMinutesOfMeetingId: workspace.meeting.previousCouncilMeetingId,
     activeMemberCount: members.length,
-    rosterMemberIds: members.map((member) => member.id),
+    rosterMemberIds:
+      workspace.conduct.membershipRecords.at(-1)?.members.map((member) => member.councilMemberId) ??
+      members.map((member) => member.id),
     attendance,
     agendaItems,
     councilDecisions: workspace.agendaItems.flatMap((item) =>
@@ -248,7 +272,7 @@ export function presentLiveMeeting(
 }
 
 export type LiveBallotSubmission = ({ agendaItemId: string } | { councilDecisionId: string }) & {
-  idempotencyKey: string;
+  chairmanMemberId: string;
 } & (
     | {
         method: "public";
@@ -257,7 +281,14 @@ export type LiveBallotSubmission = ({ agendaItemId: string } | { councilDecision
     | {
         method: "secret";
         participantMemberIds: string[];
-        totals: { votesFor: number; votesAgainst: number; abstentions: number; notVoting: number };
+        totals: {
+          votesFor: number;
+          votesAgainst: number;
+          abstentions: number;
+          notVoting: number;
+          blank: number;
+          invalid: number;
+        };
       }
   );
 

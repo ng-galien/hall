@@ -17,7 +17,7 @@ CREATE TABLE votes (
   -- and secret votes are mutually exclusive structural
   -- forms. Public votes are nominative and singular; secret votes are anonymous.
   CHECK (
-    (mode = 'public' AND ballot_participation IS NOT NULL AND count = 1)
+    (mode = 'public' AND ballot_participation IS NOT NULL AND count = 1 AND choice IN ('approve','reject','abstain'))
     OR
     (mode = 'secret' AND ballot_participation IS NULL)
   )

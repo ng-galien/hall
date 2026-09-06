@@ -1,262 +1,162 @@
-# Exigences de quorum et preuves PostgreSQL
+# Déports par affaire et quorum
 
-État du 6 septembre 2026. Cette spécification prépare l'intégration dans le
-[dispositif d'exigences SQL](../packages/postgres/sql/council/000-requirements.sql)
-et sa [couverture pgTAP](../packages/postgres/sql/council/test/README.md).
-Les exigences proposées ci-dessous ne sont pas encore garanties par le runtime.
-Aucune annotation de production ni couverture fictive ne leur est attribuée.
+État du 6 septembre 2026. Le [registre global des exigences](requirements.md)
+sépare les règles réglementaires, leurs interprétations et les choix produit.
+Les métadonnées versionnées figurent dans
+[requirements.json](../packages/postgres/requirements.json).
 
-## Règles normatives à intégrer
+## Tranche implémentée : déclarations nominales de déport
 
-En régime ordinaire, lors de la mise en discussion de chaque affaire donnant
-lieu à délibération, Hall doit vérifier que le nombre de membres en exercice
-physiquement présents est strictement supérieur à la moitié de l'effectif en
-exercice applicable à la séance. Pour un effectif `N`, le seuil est
-`floor(N / 2) + 1`. Un pouvoir ne constitue pas une présence physique.
-Le dénominateur n'est ni l'effectif théorique du conseil, ni le nombre de
-déclarations de présence, ni le nombre de votants.
-Source : [CGCT L2121-17](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389875).
+Une déclaration rattache un membre du conseil à une occurrence de point à
+l’ordre du jour. Elle conserve la qualification explicite, la date déclarée,
+l’instant et l’auteur de l’enregistrement et le nom du membre à cet instant.
+Elle est distincte d’une abstention, d’un vote et d’une absence. Le choix de cette
+trace et de son immutabilité relève du produit.
 
-Un contrôle réussi à l'ouverture de séance ne dispense pas de contrôler les
-affaires suivantes. Un départ intervenu avant la mise en discussion d'une
-affaire doit affecter ce contrôle. Source :
-[CE, 18 octobre 1989, n° 63984](https://www.legifrance.gouv.fr/ceta/id/CETATEXT000007761919).
-
-Une présence moindre au moment du vote ne doit pas, à elle seule, invalider
-automatiquement le contrôle réussi lors de la mise en discussion de cette même
-affaire. Les autres règles de participation au vote continuent de s'appliquer.
-Source : [CAA Nancy, 1er avril 2010, n° 09NC01131](https://www.legifrance.gouv.fr/ceta/id/CETATEXT000022155054).
-
-L'effectif pertinent est celui applicable au jour de la séance, pas une liste
-figée à la convocation. Ce point a été confirmé par l'analyse réglementaire
-coordonnée, à partir de la
-[fiche de la préfecture du Rhône](https://www.rhone.gouv.fr/Services-de-l-Etat/Presentation-des-services/L-Etat-a-vos-cotes/1.4-Conseil-municipal-Quorum-DAJAL)
-(lecture directe indisponible lors de cet audit : HTTP 502).
-L'arrêt [CE, 6 février 2025, n° 494627](https://www.conseil-etat.fr/fr/arianeweb/CE/decision/2025-02-06/494627)
-confirme qu'une démission devenue effective impose de tenir compte du
-remplacement pour la séance ; il ne tranche pas une formule de quorum en cas
-de vacance sans remplacement. Il distingue aussi la prise d'effet de certaines
-démissions. Une simple date de fin de mandat dans Hall ne doit donc pas être
-transformée implicitement en règle juridique de prise d'effet.
-
-Deux régimes restent distincts du cas ordinaire : la seconde convocation
-valablement constituée relève de l'exception de L2121-17 ; l'application du II
-de [L1111-6](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053153012)
-entraîne l'exclusion du dénominateur prévue par
-[L2131-11](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053153029).
-Une abstention ou un départ ne prouve pas l'application de ce régime spécial.
-Cette tranche n'automatise ni la qualification de ces régimes ni le délai de
-seconde convocation.
-
-## Garanties existantes et limites de leur preuve
-
-Les chemins SQL suivants sont relatifs à `packages/postgres/sql/council/`.
-
-| ID existant | Autorité et preuve existantes | Limite |
+| Qualification | Effet appliqué par Hall | Fondement et limite |
 | --- | --- | --- |
-| `HALL-FR-MTG-010` | `005-council-meetings.sql`, `10-meeting-attendance.test.sql` : quorum positif, `23514` | Ne prouve pas la majorité des membres en exercice. |
-| `HALL-FR-MTG-020` | `013-council-meeting-rules.sql`, test `10` : seuls les deux présents physiques du scénario sont comptés | Compte les déclarations d'ouverture, sans état courant des mouvements ni validation de l'effectif. |
-| `HALL-FR-MTG-050` | `014-council-meeting-lifecycle.sql`, test `10` : quorum immuable, `HV113` | Le seuil est fourni à la création puis hérité par le successeur (`060` et test `15`). |
-| `HALL-FR-MTG-070` | `014`, test `10` : ouverture sous le seuil refusée avec `HV115`, ouverture au seuil acceptée | Contrôle à l'ouverture seulement, à partir du seuil stocké. |
-| `HALL-FR-ATT-080`, `HALL-FR-ATT-090` | `012-meeting-attendance-lifecycle.sql`, test `10` : déclarations verrouillées après ouverture, `HV102` | Aucun départ ni retour en séance n'est représenté par ces lignes. |
-| `HALL-FR-AGI-120` | `018-council-agenda-lifecycle.sql`, test `20` : point programmé, séance démarrée, `HV215`/`HV216` | La transition de mise en discussion ne vérifie pas de quorum. |
+| `personalInterest` | Exclusion des participants et des présences déclarées éligibles ; aucune réduction du dénominateur. | Première phrase de L2131-11 pour la participation ; articulation de CE 19 janvier 1983, n° 33241 avec la réforme de 2025 pour la présence, explicitement `unproven` dans le registre. |
+| `designatedRepresentativeConflict` | Même exclusion ; réduction du dénominateur d’une unité par membre déclaré. | Dernière phrase de L2131-11, pour le cas explicitement qualifié de L1111-6 II, sous réserve de I et III. Aucun lien institutionnel ne suffit à lui seul à établir ce régime. |
 
-Le modèle du scrutin (`040-ballot-lifecycle.sql`) vérifie son rattachement au
-point actif et la cardinalité des votes, sans nouveau contrôle de quorum.
-Cela ne suffit pas à prouver le scénario départ-après-discussion, puisque le
-départ lui-même ne peut actuellement pas être enregistré.
+L’autorité SQL partage le même prédicat d’éligibilité entre la projection des
+participants et le refus d’une participation au scrutin. Un membre déporté ne
+vote ni personnellement ni comme porteur d’un pouvoir. Son mandant représenté
+ne devient donc pas automatiquement éligible par un autre porteur. Hall ne
+réattribue aucun pouvoir et ne remplace pas automatiquement le président.
+Le scrutin secret conserve des participants et des totaux, sans choix individuel.
 
-## Identifiants proposés et scénarios d'acceptation
+L’enregistrement exige une déclaration de présence dans la séance et demeure
+possible avant le premier scrutin du point. Dès qu’un scrutin existe, ou lorsque
+le point est déprogrammé, achevé, ajourné ou la séance clôturée, il est refusé.
+La date déclarée ne certifie pas rétroactivement l’absence de participation aux
+débats. La correction ou révocation d’une déclaration n’est pas implémentée.
 
-Inventaire courant : `MTG` atteint `260`, `AGI` atteint `340`, `ATT` atteint
-`110`. Les identifiants suivants sont des **candidats non attribués** : vérifier
-à nouveau leur disponibilité lors de l'implémentation et ne pas réutiliser les
-anciens trous de numérotation. Les noms proposés sont en anglais conformément
-au vocabulaire du code.
+Les déclarations sont copiées dans les instantanés et les faits du procès-verbal.
+Le rendu les présente séparément des votes pour les points du procès-verbal.
+Un point non commencé portant un déport conserve son occurrence historique à la
+clôture ; son report crée une nouvelle occurrence sans recopier les déports.
+Un point déjà déprogrammé n’est pas reporté automatiquement.
 
-| ID candidat et nom | Exigence Hall | Preuve pgTAP attendue |
+## Contrat API et autorités
+
+`GET` et `POST /api/council-meetings/:meetingReference/agenda-items/:agendaItemId/recusals`
+exposent l’espace de déclaration. Le corps POST contient `councilMemberId`,
+`legalBasis` et `declaredAt`. La réponse contient `agendaItem`, `recusals`,
+`eligibleParticipantAttendanceIds`, `quorumImpact` et `canRecordRecusal`.
+L’action Siren `agenda-item.record-recusal` suit cette capacité calculée en SQL.
+
+`quorumImpact` expose les membres exclus, la réduction spéciale du dénominateur
+et les présences déclarées éligibles. Il ne constitue ni un effectif en exercice,
+ni un seuil recalculé, ni un verdict de quorum courant.
+
+Les conflits HTTP 409 portent des codes stables : `recusal_already_recorded`,
+`recusal_recording_closed`, `recusal_member_not_declared`,
+`recused_member_cannot_participate`, `recusal_immutable` et
+`recusal_occurrence_locked`.
+
+| Exigence attribuée | Autorité | Nature de la garantie |
 | --- | --- | --- |
-| `HALL-FR-MTG-270` `ORDINARY_QUORUM_USES_MEMBERS_IN_OFFICE` | Calculer le seuil ordinaire depuis l'effectif applicable à la séance, avec une provenance persistée. | `N=15` : 7 présents refusés, 8 acceptés ; `N=14` : 7 refusés, 8 acceptés ; `N=13` : 6 refusés, 7 acceptés. Un effectif théorique de 15 ne remplace pas les 13 membres en exercice. |
-| `HALL-FR-AGI-350` `CONSIDERATION_REQUIRES_CURRENT_QUORUM` | Refuser atomiquement la mise en discussion si le quorum applicable à cette affaire manque ; conserver les éléments du contrôle réussi. | Avec 13 membres et 7 présents : A commence ; un départ est constaté ; B est refusée, sans `started_at` ni observation de contrôle réussi ; un retour permet B. Six présents et un représenté restent insuffisants. |
-| `HALL-FR-AGI-360` `CONSIDERATION_QUORUM_IS_NOT_RECHECKED_AT_VOTE` | Conserver le contrôle à la mise en discussion sans le remplacer par un contrôle de quorum au vote de cette affaire. | A commence avec 7 présents sur 13 ; un départ est constaté ; le scrutin A peut aboutir si ses autres invariants sont satisfaits ; B reste bloquée à 6 présents. |
-| `HALL-FR-ATT-120` `PHYSICAL_PRESENCE_CHANGES_PRESERVE_HISTORY` | Conserver les constats de départ/retour sans réécrire les déclarations initiales ni les contrôles déjà effectués. | Départ puis retour modifient l'état utilisé par les affaires suivantes ; l'ouverture et le contrôle A restent inchangés ; update/delete de faits historiques refusés. |
+| `HALL-FR-AGI-370` | [026-agenda-item-recusals.sql](../packages/postgres/sql/council/026-agenda-item-recusals.sql) | Identité nominale, unicité, contexte et conservation ; choix produit. |
+| `HALL-FR-MTG-280` | Même fichier | Effets distincts selon la qualification, avec limite juridique explicite sur la présence générale. |
+| `HALL-FR-BAL-310` | [035-ballot-participation-lifecycle.sql](../packages/postgres/sql/council/035-ballot-participation-lifecycle.sql) | Refus SQL de participation directe ou par pouvoir, public et secret. |
+| `HALL-FR-MIN-210` | [061-minutes.sql](../packages/postgres/sql/council/061-minutes.sql) | Conservation séparée dans les faits du PV ; choix produit de preuve. |
 
-Compléter ces scénarios par un changement de mandat effectif entre convocation
-et séance : le membre remplacé ne contribue plus, le remplaçant admissible peut
-contribuer, et les séances antérieures conservent leur observation. Les tests
-doivent utiliser une prise d'effet explicitement représentée, pas supposer une
-interprétation inclusive ou exclusive de `term_ended_on`.
+## Quorum par affaire : consolidation en cours
 
-## Autorités à faire évoluer
+Hall applique le droit commun du quorum et exclut le régime particulier
+Alsace-Moselle par [décision produit](requirements.md#décision-produit--régime-du-quorum).
+Le rattachement convenu est `HALL-FR-MTG-270/common-law-scope` dans le registre,
+désormais présent dans le registre relu. Les deux fondements de déport restent
+pris en charge ; cette exclusion territoriale ne les modifie pas.
 
-Le contrôle doit appartenir à la transition `NULL -> started_at` de
-`enforce_council_agenda_item_lifecycle` (`018`), appelée par l'action nommée
-`start_council_agenda_item` (`019`). Le placer seulement dans l'action laisserait
-un `UPDATE` direct contourner l'invariant. Le calcul partagé relève de `013` ;
-les constats de présence relèvent du domaine SQL `ATT`. Le serveur reste un
-adaptateur des actions PostgreSQL, sans second automate TypeScript.
+Le chantier SQL remplace le seuil fourni à la création par un constat nominal
+des membres en exercice, avec provenance. Il conserve les mouvements de présence
+et les observations par affaire, et représente la seconde convocation avec
+preuve d'échec, délai de trois jours francs et nouveaux constats de réunion.
 
-La déclaration d'ouverture peut rester immuable. Une observation distincte des
-mouvements ou un constat complet par affaire doit fournir les présences à
-l'instant du contrôle. La mise en discussion, son contrôle et sa preuve doivent
-être atomiques et sérialisés avec l'enregistrement des mouvements. Les seules
-annotations de verrous et les tests pgTAP à une session ne prouvent pas une
-course réelle : ajouter une preuve à deux transactions avec barrières, selon
-le contrat de la suite PostgreSQL.
-
-Tout nouveau refus doit disposer d'un SQLSTATE disponible, catalogué dans
-`002-error-codes.sql`, asserté par `throws_ok` dans pgTAP et propagé par le
-contrat d'erreur serveur. Ne pas détourner `HV115`, qui désigne actuellement
-l'échec d'ouverture, sans examiner ses consommateurs. Le SQLSTATE du refus de
-mise en discussion sera attribué avec l'invariant, pas réservé par une entrée
-de catalogue inutilisée.
-
-Les annotations exécutables seront ajoutées uniquement avec leurs invariants
-et tests. `verify-traceability.sh` contrôle l'égalité des ensembles d'IDs et
-SQLSTATE ; il ne juge pas la pertinence des assertions. Un test qui cite un ID
-sans exercer son invariant n'est pas une preuve.
-
-## Données et décisions d'encodage encore nécessaires
-
-1. **Effectif faisant foi.** Le principe du jour de la séance est établi. Il
-   reste à encoder la prise d'effet des mandats et sa provenance. Le modèle
-   possède des `DATE` de début/fin ; `active` est dérivé de l'absence de date de
-   fin. Ni ce booléen ni l'effectif attendu de la mandature ne constituent à eux
-   seuls une observation juridique de l'effectif applicable à la séance.
-2. **Présences pendant la conduite.** Définir le constat que l'utilisateur
-   enregistre : mouvements horodatés ou déclaration complète avant chaque
-   affaire, ainsi que la correction d'une saisie tardive. Proposition technique :
-   conserver des constats successifs, et copier l'état utilisé lors de chaque
-   mise en discussion. Ne pas réécrire `meeting_attendance`, déjà référencée par
-   les participations aux scrutins et les pouvoirs.
-3. **Qualification par affaire.** Représenter explicitement le régime applicable
-   et les déports qualifiés avant de calculer un dénominateur spécial. Le modèle
-   courant ne permet pas cette distinction. Déterminer aussi si Hall veut
-   imposer le contrôle aux questions sans délibération : la jurisprudence citée
-   porte sur les délibérations, et ne justifie pas seule ce choix plus large.
-
-Ajouter aujourd'hui un simple appel à `council_meeting_present_member_count`
-au démarrage du point répéterait un contrôle figé depuis l'ouverture. Une
-fonction arithmétique non raccordée n'établirait pas davantage l'exigence.
-L'implémentation de ces nouvelles garanties attend donc ces données ; les
-garanties existantes ne sont pas renommées en garanties réglementaires complètes.
-
-## Proposition de contrat pour les déports par affaire
-
-Statut : proposition à soumettre, sans modification de `vote_choice` ni création
-de table dans cette tranche. Le lien `CouncilMember` vers une occurrence
-`AgendaItem` a été confirmé dans la discussion de modèle avec le propriétaire.
-
-### Comparaison des représentations
-
-| Représentation | Conséquence dans le modèle actuel |
+| Exigence annotée | Autorité actuelle |
 | --- | --- |
-| Quatrième valeur de `vote_choice` | Exige une participation et une ligne `votes`, alors que le déport exclut la participation. Entre dans `ballot_vote_count` et la cardinalité de clôture. En secret, une ligne agrégée ne permet pas de conserver le membre déporté ; la rendre nominative contredirait la forme des bulletins secrets. |
-| `notVoting` actuel | Le client omet la participation, sans motif persistant. Ne prouve ni conflit signalé, ni exclusion de discussion, ni régime de quorum. |
-| Fait séparé par membre et point | Identifie le membre et l'affaire, permet l'exclusion SQL de la participation et conserve la preuve indépendamment des bulletins. Le quorum consomme une qualification explicite, pas une valeur de suffrage. Proposition retenue pour le contrat. |
+| `HALL-FR-MTG-270` | [011b-meeting-membership.sql](../packages/postgres/sql/council/011b-meeting-membership.sql) |
+| `HALL-FR-ATT-120` et `ATT-130` | [011a-meeting-presence.sql](../packages/postgres/sql/council/011a-meeting-presence.sql) |
+| `HALL-FR-AGI-350`, `AGI-360` et `MTG-290` | [027-quorum-observations.sql](../packages/postgres/sql/council/027-quorum-observations.sql) |
 
-Constat client : `useCouncilMeeting.ts` élimine les choix publics `notVoting`
-avant création des participations. Pour le secret, il sélectionne actuellement
-les premières présences éligibles selon le nombre de suffrages
-(`eligibleAttendance.slice(0, participantCount)`). Cette sélection ne constitue
-pas une déclaration nominative fiable des personnes prenant part au scrutin.
-L'intégration du déport devra séparer cet ensemble de participants des totaux
-anonymes ; aucun choix individuel secret ne doit être reconstitué.
+L2121-17 et CE 18 octobre 1989, n° 63984 motivent le contrôle au début réel de
+la discussion de chaque affaire. Ce contrôle automatique n'exige pas d'écran
+supplémentaire. CAA Nancy 1er avril 2010, n° 09NC01131 distingue cet instant du
+vote ultérieur. Les [sources et scénarios détaillés](requirements.md#curation-du-contrôle-par-affaire--6-septembre-2026)
+précisent les limites du calcul et de la preuve.
 
-### Fait et action proposés
+Le traitement supplémentaire d'un déport déclaré après discussion est suspendu
+à la demande du propriétaire : aucune mécanique de régularisation ou d'ajournement
+automatique n'est décidée ici. Les déclarations et les constats antérieurs ne
+certifient pas l'absence de participation intéressée aux débats.
+Le CFU, les cas de L1524-5 et les autres empêchements ne deviennent pas couverts
+par la présence de ces deux qualifications de déport.
 
-Nom proposé : `AgendaItemRecusal`, table `hall.agenda_item_recusal`.
-Le contrat minimal comprend :
+## Aperçu, correction et confirmation : contrat produit
 
-- `id`, `agenda_item` et `council_member`, avec clés étrangères et unicité du
-  déport effectif par couple membre/point ; un autre point n'hérite pas
-  automatiquement de ce fait ;
-- `declared_at` pour le moment du signalement et `recorded_at` pour celui de
-  l'enregistrement, avec l'auteur issu du contexte d'audit ;
-- `legal_basis`, qualification fermée proposée `personalInterest` ou
-  `designatedRepresentativeConflict`, cette dernière désignant uniquement le
-  cas qualifié du II de L1111-6. Cette liste et son mode de qualification restent
-  à valider ; un clic « Conflit d'intérêts » ne suffit pas à choisir ce régime ;
-- références de preuve éventuelles, sans imposer la saisie de détails personnels
-  qui ne sont pas nécessaires à la justification.
+La [décision transversale](requirements.md#décision-produit--aperçu-correction-et-confirmation-du-scrutin)
+porte `HALL-FR-BAL-320` (`functional`, `product`). L'aperçu conserve un candidat
+versionné et son résultat calculé côté SQL, sans créer de scrutin ni de votes
+définitifs et sans terminer le point. Toute correction demande un nouvel aperçu.
+Seule la confirmation explicite enregistre atomiquement le résultat présenté ;
+une ancienne version, un contexte modifié ou une confirmation répétée sont refusés.
+Le frontend présente le calcul du backend et n'en devient pas une seconde autorité.
 
-Le fait déclare une exclusion de discussion et de vote pour cette occurrence.
-Il ne certifie pas rétroactivement que le membre n'a jamais participé au débat.
-Les constats de participation antérieure, de départ et de retour restent
-distincts ; le simple déport ne doit pas fabriquer une sortie physique de salle.
+Le quorum courant est également contrôlé avant l'aperçu, selon la demande produit
+du propriétaire, en tenant compte d'une éventuelle dispense applicable. Ce contrôle
+supplémentaire ne remplace pas le constat réglementaire de mise en discussion et
+ne le réécrit pas. Un refus à cette étape n'établit pas rétroactivement que la
+discussion s'est ouverte sans quorum.
 
-L'entrée du menu « Conflit d'intérêts » appelle une action proposée
-`agenda-item.record-recusal`, avec `councilMemberId`, `declaredAt` et la
-qualification retenue. La réponse expose le fait et l'éligibilité résultante.
-Le client retire alors le membre des choix de vote, affiche le motif, et
-conserve `approve/reject/abstain` pour les seuls suffrages. L'action doit aussi
-être accessible avant la mise en discussion : un menu uniquement disponible au
-vote ne suffit pas au signalement préalable.
+Les clauses produit de `BAL-320` sont `candidate-review-confirmation` et
+`current-quorum-before-preview` ; `HALL-TR-CON-200` porte la liaison technique du
+candidat et du contexte. Leurs métadonnées sont présentes dans le registre
+relu. Les autorités sont [039-ballot-result-preview.sql](../packages/postgres/sql/council/039-ballot-result-preview.sql)
+et [076-ballot-result-preview-api.sql](../packages/postgres/sql/council/076-ballot-result-preview-api.sql).
 
-Le trigger de participation (`035-ballot-participation-lifecycle.sql`) doit
-refuser l'insertion d'un membre déporté pour le point du scrutin, même s'il est
-présent ou représenté. La création du déport doit réciproquement traiter une
-participation déjà persistée. Proposition conservatoire : refuser cette
-transition contradictoire sans effacer de participation ni de vote ; le parcours
-de constat tardif/correction doit être décidé séparément. La sérialisation des
-deux écritures doit empêcher leur coexistence par concurrence.
+Les tests [18-quorum-workflows.test.sql](../packages/postgres/sql/council/test/18-quorum-workflows.test.sql)
+et [19-ballot-result-preview.test.sql](../packages/postgres/sql/council/test/19-ballot-result-preview.test.sql)
+ont été relus. Après 51 assertions initiales sur ces deux fichiers, le backend
+annonce 35 assertions réussies dans le fichier 18 enrichi. Les scénarios ajoutés
+couvrent les observations avant la réunion ou futures, le déport futur et le
+constat antérieur au déport, la reconvocation après clôture et le remplacement
+nominal avec nouvelle présence après ouverture. Le référent a vérifié leur
+présence et leur sens sans relancer de runtime concurrent. Les tests ciblés
+ne prouvent pas encore le parcours intégré HTTP/IHM ni une conformité juridique
+globale.
 
-Un déport `personalInterest` ne retranche pas automatiquement le membre de
-l'effectif en exercice. La qualification spéciale du II de L1111-6 entraîne
-seule la modification du dénominateur prévue par L2131-11. Le traitement de la
-présence d'un membre déporté restant dans la salle doit être explicité avec la
-politique de quorum ; il ne se déduit ni d'un vote d'abstention ni d'un booléen
-« conflit ». Aucun contrôle réussi passé n'est réécrit par un signalement tardif.
+Le départ d'un porteur de pouvoir reste enregistrable : il rend le porteur et
+son mandant inéligibles tant que les conditions de participation ne sont plus
+satisfaites, sans inventer une révocation du pouvoir écrit.
 
-### Exigences et preuves proposées
+## Preuves et normalisation de la traçabilité
 
-Identifiants candidats supplémentaires, non attribués :
+Les scénarios SQL sont dans
+[17-agenda-item-recusals.test.sql](../packages/postgres/sql/council/test/17-agenda-item-recusals.test.sql).
+Les [tests PostgreSQL d’intégration](../packages/postgres/test/recusals.integration.test.ts)
+couvrent la frontière des rôles runtime, l’audit, les faits du PV, le report et
+une course réelle entre enregistrement du déport et création d’un scrutin.
+Les [tests HTTP](../packages/server/src/__tests__/recusals.test.ts) couvrent
+l’authentification, la qualification explicite, le rattachement et l’action Siren.
 
-| ID candidat | Invariant proposé et preuve pgTAP |
-| --- | --- |
-| `HALL-FR-AGI-370` `RECUSAL_IDENTIFIES_MEMBER_AND_AGENDA_ITEM` | FK et unicité membre/point ; cible inconnue refusée ; déport A sans effet automatique sur B ; constat conservé dans l'observation de l'affaire. |
-| `HALL-FR-BAL-300` `RECUSED_MEMBER_CANNOT_PARTICIPATE` | Déport puis participation refusée, publique comme secrète ; participation puis déport contradictoire refusé selon le contrat à valider ; aucun vote/participation supprimé ; membre représenté déporté ne vote pas par pouvoir. |
-| `HALL-FR-MTG-280` `RECUSAL_QUORUM_EFFECT_REQUIRES_LEGAL_BASIS` | À effectif 15, le déport général ne réduit pas automatiquement N ; deux exclusions spécialement qualifiées donnent N=13 et seuil 7, sans compter les exclus comme présents admissibles ; une abstention ne déclenche pas cette réduction. |
-| `HALL-FR-MIN-210` `MINUTES_PRESERVE_RECUSAL_EVIDENCE` | Le PV copie identité, affaire, signalement et faits de non-participation documentés ; une modification ultérieure de l'annuaire ne les change pas ; en secret, aucun lien membre/choix n'apparaît. |
+Le contrôle global collecte les annotations de production, y compris dans le
+SQL intégré à TypeScript. Une définition possède un seul nom et une seule
+nature ; ses autres occurrences utilisent `@requirement-reference`.
+Les collisions préexistantes ont été levées en conservant les identités déjà
+assertées : `WSP-180/190` restent les projections en lot, `WSP-200/210` désignent
+la création avec programmation atomique ; `CTX-030` reste le contexte RBAC
+minimal, `CTX-040` désigne l’accès runtime par API uniquement. Les trois anciens
+`FR-HALL-LOCATION-*` deviennent `HALL-FR-LOC-010/020/030` sans changement de règle.
 
-`BAL` atteint actuellement `290` et `MIN` `200` ; vérifier de nouveau les IDs à
-l'implémentation. `HALL-FR-VOT-030` protège déjà les formes public/secret. Les
-nouveaux scénarios doivent vérifier que le déport ne crée aucune ligne de vote,
-que la cardinalité du scrutin utilise les seuls participants admis, et qu'une
-abstention reste un vote distinct. Compléter par une course contrôlée entre
-enregistrement du déport et création de participation.
+```sh
+npm run check:requirements
+npm run test:requirements
+bash packages/postgres/sql/council/test/verify-traceability.sh
+npm run test:council -w @hall/postgres -- 17-agenda-item-recusals.test.sql
+```
 
-### Fondement légal et choix produit
-
-[L1111-13](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053147122)
-prévoit le signalement des intérêts personnels avant débat et vote.
-[L2131-11](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053153029)
-distingue la participation à une délibération de la seule présence à la réunion.
-Le modèle ne doit donc pas imposer automatiquement une sortie de salle.
-
-[L2121-15](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044190488)
-fixe le contenu du procès-verbal, mais ne prescrit pas explicitement une rubrique
-nominative autonome des déports. La conservation structurée proposée ci-dessus
-est une exigence de preuve du produit Hall, à valider comme telle. La
-compatibilité d'un déport nominatif séparé avec les bulletins secrets est une
-déduction de conception : elle ne rattache aucun choix à la personne exclue,
-et ne doit pas être présentée comme une disposition textuelle dédiée.
-
-L'article 4 du [décret 2014-90](https://www.legifrance.gouv.fr/loda/id/LEGITEXT000028544967/)
-ne doit pas servir à inventer une obligation générale de rubrique communale :
-il vise les autorités administratives ou publiques indépendantes. Les articles
-5 et 6 concernent certaines autorités locales et délégataires, avec des
-formalités spécifiques qu'un clic dans Hall ne réalise pas à lui seul.
-
-Décisions encore nécessaires : qualification du régime et preuve attendue,
-constat tardif après début de discussion ou participation persistée, correction
-d'un déport erroné, et traitement du président ou d'un détenteur de pouvoir qui
-se déporte. Le modèle actuel exige un président participant au scrutin et ne
-doit pas choisir silencieusement son remplaçant ni transférer un pouvoir.
-
-## Vérification de cette tranche
-
-Modification documentaire uniquement. Le contrôle de traçabilité existant a
-été exécuté avec succès : 165 exigences, 108 levées métier, 74 SQLSTATE Hall et
-4 codes natifs. Les liens locaux ont été vérifiés. Aucun pgTAP n'a été exécuté
-dans cette tranche ; aucune nouvelle conformité runtime n'est déclarée.
+Le vérificateur valide les métadonnées, les références et la cohérence de leurs
+dates hors ligne. Il signale les clauses `unproven` sans les convertir en preuve.
+Un succès structurel ne vérifie ni le contenu des liens à distance, ni la
+justesse juridique des clauses, ni la couverture comportementale de tout le dépôt.

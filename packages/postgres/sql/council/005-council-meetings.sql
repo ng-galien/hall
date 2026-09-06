@@ -1,4 +1,4 @@
--- Entity: one council meeting. Its quorum is fixed at creation. A meeting may
+-- Entity: one council meeting. Its quorum is observed in conduct. A meeting may
 -- be provisioned before its date is known. started_at and closed_at are facts,
 -- not a mutable status: their nullability structurally expresses preparation,
 -- conduct and closure.
@@ -30,9 +30,6 @@ CREATE TABLE council_meetings (
   chair_member UUID REFERENCES hall.council_member (id) ON DELETE RESTRICT,
   secretary_member UUID REFERENCES hall.council_member (id) ON DELETE RESTRICT,
 
-  -- @functional-requirement HALL-FR-MTG-010 COUNCIL_MEETING_QUORUM_IS_POSITIVE: Every meeting
-  -- has a positive required physical-presence quorum.
-  quorum INTEGER NOT NULL CHECK (quorum > 0),
   started_at TIMESTAMPTZ,
   closed_at TIMESTAMPTZ,
 

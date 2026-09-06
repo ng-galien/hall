@@ -3,14 +3,16 @@ export interface SecretBallotTotals {
   votesAgainst: number;
   abstentions: number;
   notVoting: number;
+  blank: number;
+  invalid: number;
 }
 
 export function initialSecretBallotTotals(participantCount: number): SecretBallotTotals {
-  return { votesFor: 0, votesAgainst: 0, abstentions: 0, notVoting: participantCount };
+  return { votesFor: 0, votesAgainst: 0, abstentions: 0, notVoting: participantCount, blank: 0, invalid: 0 };
 }
 
 export function secretBallotTotal(totals: SecretBallotTotals): number {
-  return totals.votesFor + totals.votesAgainst + totals.abstentions + totals.notVoting;
+  return totals.votesFor + totals.votesAgainst + totals.abstentions + totals.notVoting + totals.blank + totals.invalid;
 }
 
 export function reconcileSecretBallotTotals(

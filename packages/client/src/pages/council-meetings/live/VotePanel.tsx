@@ -5,11 +5,16 @@ import type {
   LiveVoteChoice as VoteChoice,
 } from "../../../models/liveMeeting";
 import type { CouncilMemberView } from "../../../models/directory";
+import { findSirenAction } from "@hall/api-contract";
+import type { BallotPreview } from "../../../services/ballotsApi";
+import { apiErrorCode, type ApiErrorCode } from "../../../services/apiClient";
+import { Modal, RequestErrorBanner } from "../../../components/Ui";
+import { Button } from "../../../components/ui/button";
 import { type DragEvent, useEffect, useRef, useState } from "react";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import type { TranslationKey } from "../../../i18n/en";
 import { useI18n } from "../../../i18n/I18nProvider";
-import { type BallotParticipant, ballotParticipants } from "../ballotParticipants";
+import { type BallotParticipant, ballotParticipants, councilMemberName } from "../ballotParticipants";
 import { initialSecretBallotTotals, reconcileSecretBallotTotals, type SecretBallotTotals } from "../secretBallotTotals";
 
 type ZoneChoice = VoteChoice | "unassigned";
@@ -25,6 +30,8 @@ const secretCounters: { key: keyof SecretBallotTotals; labelKey: TranslationKey 
   { key: "votesFor", labelKey: "ballot.votesFor" },
   { key: "votesAgainst", labelKey: "ballot.votesAgainst" },
   { key: "abstentions", labelKey: "ballot.abstentions" },
+  { key: "blank", labelKey: "ballot.blank" },
+  { key: "invalid", labelKey: "ballot.invalid" },
 ];
 
 function VoteBadge({
@@ -99,11 +106,10 @@ export function VotePanel({
   target,
   open,
   onOpenChange,
-  onRecord,
-  initialMethod,
-  initialAssignments,
-  initialSecretTotals,
+  onPreview,
+  onConfirm,
   eligibleAttendanceIds,
+  departedAttendanceIds,
   onDeclareRecusal,
 }: {
   aggregate: LiveMeetingPresentation;
@@ -111,31 +117,49 @@ export function VotePanel({
   target: { councilDecisionId: string } | { agendaItemId: string };
   open: boolean;
   onOpenChange(open: boolean): void;
-  onRecord(input: RecordBallotInput): Promise<boolean>;
-  initialMethod?: BallotMethod;
-  initialAssignments?: Partial<Record<string, VoteChoice>>;
-  initialSecretTotals?: SecretBallotTotals;
+  onPreview(input: RecordBallotInput): Promise<BallotPreview>;
+  onConfirm(preview: BallotPreview): Promise<boolean>;
   eligibleAttendanceIds: readonly string[];
+  departedAttendanceIds: readonly string[];
   onDeclareRecusal?: () => void;
 }) {
   const { t, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
-  const [method, setMethod] = useState<BallotMethod>(initialMethod ?? "public");
-  const [assignments, setAssignments] = useState<Partial<Record<string, VoteChoice>>>(initialAssignments ?? {});
+  const [method, setMethod] = useState<BallotMethod>("public");
+  const [assignments, setAssignments] = useState<Partial<Record<string, VoteChoice>>>({});
   const [selectedMemberIds, setSelectedMemberIds] = useState<ReadonlySet<string>>(new Set());
   const [draggedMemberId, setDraggedMemberId] = useState<string | null>(null);
   const [dropZone, setDropZone] = useState<ZoneChoice | null>(null);
-  const idempotencyKey = useRef(crypto.randomUUID());
-  const participants = ballotParticipants(
-    { ...aggregate, attendance: aggregate.attendance.filter((entry) => eligibleAttendanceIds.includes(entry.id)) },
-    members,
-  );
+  const [preview, setPreview] = useState<BallotPreview | null>(null);
+  const [error, setError] = useState<ApiErrorCode | null>(null);
+  const [chairmanMemberId, setChairmanMemberId] = useState(aggregate.meeting.chairMemberId ?? "");
+  const departedParticipants = aggregate.attendance
+    .filter((entry) => departedAttendanceIds.includes(entry.id))
+    .map((entry) => ({
+      memberId: entry.memberId,
+      castByMemberId: entry.memberId,
+      memberName: councilMemberName(members, entry.memberId),
+      castByName: councilMemberName(members, entry.memberId),
+      represented: false,
+    }));
+  const departedMemberIds = new Set(departedParticipants.map((entry) => entry.memberId));
+  const participants = [
+    ...ballotParticipants(
+      { ...aggregate, attendance: aggregate.attendance.filter((entry) => eligibleAttendanceIds.includes(entry.id)) },
+      members,
+    ),
+    ...departedParticipants,
+  ];
   const [secretExcludedIds, setSecretExcludedIds] = useState<ReadonlySet<string>>(new Set());
-  const secretParticipants = participants.filter((participant) => !secretExcludedIds.has(participant.memberId));
-  const previousParticipantCount = useRef(participants.length);
-  const [secretTotals, setSecretTotals] = useState(
-    () => initialSecretTotals ?? initialSecretBallotTotals(participants.length),
+  const secretParticipants = participants.filter(
+    (participant) => !secretExcludedIds.has(participant.memberId) && !departedMemberIds.has(participant.memberId),
   );
+  const previousParticipantCount = useRef(participants.length);
+  const [secretTotals, setSecretTotals] = useState(() => initialSecretBallotTotals(participants.length));
+  const eligibleIdentity = [...eligibleAttendanceIds, ...departedAttendanceIds].join(",");
+  useEffect(() => {
+    setPreview(null);
+  }, [method, assignments, secretTotals, secretExcludedIds, chairmanMemberId, eligibleIdentity]);
 
   useEffect(() => {
     const previousCount = previousParticipantCount.current;
@@ -152,7 +176,8 @@ export function VotePanel({
     return accumulator;
   }, new Map());
 
-  const zoneOf = (memberId: string): ZoneChoice => assignments[memberId] ?? "unassigned";
+  const zoneOf = (memberId: string): ZoneChoice =>
+    departedMemberIds.has(memberId) ? "notVoting" : (assignments[memberId] ?? "unassigned");
   const participantsIn = (zone: ZoneChoice) =>
     participants.filter((participant) => zoneOf(participant.memberId) === zone);
   const unassigned = participantsIn("unassigned");
@@ -199,7 +224,12 @@ export function VotePanel({
   const adjustSecretTotal = (key: keyof SecretBallotTotals, offset: number) => {
     setSecretTotals((totals) => ({ ...totals, [key]: Math.max(0, totals[key] + offset) }));
   };
-  const secretTotalCount = secretTotals.votesFor + secretTotals.votesAgainst + secretTotals.abstentions;
+  const secretTotalCount =
+    secretTotals.votesFor +
+    secretTotals.votesAgainst +
+    secretTotals.abstentions +
+    secretTotals.blank +
+    secretTotals.invalid;
   const secretValid = secretTotalCount === secretParticipants.length && secretParticipants.length > 0;
   const publicComplete = unassigned.length === 0 && participants.length > 0;
 
@@ -209,29 +239,29 @@ export function VotePanel({
         method === "public"
           ? {
               method,
-              idempotencyKey: idempotencyKey.current,
+              chairmanMemberId,
               ...target,
               votes: participants.map((participant) => ({
                 memberId: participant.memberId,
                 castByMemberId: participant.castByMemberId,
-                choice: assignments[participant.memberId] ?? "notVoting",
+                choice: departedMemberIds.has(participant.memberId)
+                  ? "notVoting"
+                  : (assignments[participant.memberId] ?? "notVoting"),
               })),
             }
           : {
               method,
-              idempotencyKey: idempotencyKey.current,
+              chairmanMemberId,
               ...target,
-              participantMemberIds: secretParticipants.map((participant) => participant.memberId),
+              participantMemberIds: participants.map((participant) => participant.memberId),
               totals: { ...secretTotals, notVoting: participants.length - secretParticipants.length },
             };
-      const recorded = await onRecord(input);
-      if (recorded) {
-        idempotencyKey.current = crypto.randomUUID();
-        setAssignments({});
-        setSecretTotals(initialSecretBallotTotals(participants.length));
-        onOpenChange(false);
+      setError(null);
+      try {
+        setPreview(await onPreview(input));
+      } catch (cause) {
+        setError(apiErrorCode(cause));
       }
-      return recorded;
     });
 
   const zoneDropHandlers = (zone: ZoneChoice) => ({
@@ -249,23 +279,32 @@ export function VotePanel({
     },
   });
 
-  const renderBadge = (participant: BallotParticipant, zone: ZoneChoice) => (
-    <VoteBadge
-      participant={participant}
-      zone={zone}
-      member={memberById.get(participant.memberId)}
-      carriedCount={carriedCountByHolder.get(participant.memberId) ?? 0}
-      dragging={draggedMemberId === participant.memberId}
-      selected={selectedMemberIds.has(participant.memberId)}
-      onDragStart={() => setDraggedMemberId(participant.memberId)}
-      onDragEnd={() => {
-        setDraggedMemberId(null);
-        setDropZone(null);
-      }}
-      onClick={() => toggleSelection(participant.memberId)}
-      key={participant.memberId}
-    />
-  );
+  const renderBadge = (participant: BallotParticipant, zone: ZoneChoice) =>
+    departedMemberIds.has(participant.memberId) ? (
+      <span
+        key={participant.memberId}
+        className="vote-card"
+        data-testid={`live-departed-member-${participant.memberId}`}
+      >
+        {participant.memberName} : {t("ballot.departed")}
+      </span>
+    ) : (
+      <VoteBadge
+        participant={participant}
+        zone={zone}
+        member={memberById.get(participant.memberId)}
+        carriedCount={carriedCountByHolder.get(participant.memberId) ?? 0}
+        dragging={draggedMemberId === participant.memberId}
+        selected={selectedMemberIds.has(participant.memberId)}
+        onDragStart={() => setDraggedMemberId(participant.memberId)}
+        onDragEnd={() => {
+          setDraggedMemberId(null);
+          setDropZone(null);
+        }}
+        onClick={() => toggleSelection(participant.memberId)}
+        key={participant.memberId}
+      />
+    );
 
   if (!open) {
     return (
@@ -366,6 +405,7 @@ export function VotePanel({
                         <button
                           className="vote-zone-drop-action"
                           type="button"
+                          data-testid={`live-vote-assign-${zone.choice}`}
                           onClick={() => dropIntoZone(zone.choice)}
                         >
                           {t("live.dropSelectionHere").replace("{count}", formatNumber(selectedMemberIds.size))}
@@ -399,29 +439,35 @@ export function VotePanel({
           <fieldset className="grid gap-2" data-testid="live-secret-participants">
             <legend>{t("recusal.secretParticipants")}</legend>
             <p className="text-sm text-muted-foreground">{t("recusal.secretParticipantsHint")}</p>
-            {participants.map((participant) => (
-              <label className="flex items-center gap-2" key={participant.memberId}>
-                <input
-                  type="checkbox"
-                  data-testid={`live-secret-participant-${participant.memberId}`}
-                  checked={!secretExcludedIds.has(participant.memberId)}
-                  onChange={(event) =>
-                    setSecretExcludedIds((previous) => {
-                      const next = new Set(previous);
-                      if (event.target.checked) next.delete(participant.memberId);
-                      else next.add(participant.memberId);
-                      return next;
-                    })
-                  }
-                />
-                <span>
-                  {participant.memberName}
-                  {participant.represented
-                    ? ` · ${t("live.carriedBy").replace("{holder}", participant.castByName)}`
-                    : ""}
-                </span>
-              </label>
-            ))}
+            <div className="vote-secret-participants-list">
+              {participants.map((participant) => (
+                <label className="flex items-center gap-2" key={participant.memberId}>
+                  <input
+                    type="checkbox"
+                    data-testid={`live-secret-participant-${participant.memberId}`}
+                    disabled={departedMemberIds.has(participant.memberId)}
+                    checked={
+                      !secretExcludedIds.has(participant.memberId) && !departedMemberIds.has(participant.memberId)
+                    }
+                    onChange={(event) =>
+                      setSecretExcludedIds((previous) => {
+                        const next = new Set(previous);
+                        if (event.target.checked) next.delete(participant.memberId);
+                        else next.add(participant.memberId);
+                        return next;
+                      })
+                    }
+                  />
+                  <span>
+                    {participant.memberName}
+                    {departedMemberIds.has(participant.memberId) ? ` (${t("ballot.departed")})` : ""}
+                    {participant.represented
+                      ? ` · ${t("live.carriedBy").replace("{holder}", participant.castByName)}`
+                      : ""}
+                  </span>
+                </label>
+              ))}
+            </div>
             <p data-testid="live-secret-not-voting">
               {t("ballot.notVoting")} : {formatNumber(participants.length - secretParticipants.length)}
             </p>
@@ -455,6 +501,100 @@ export function VotePanel({
         </div>
       )}
 
+      <label className="grid gap-2">
+        {t("ballot.chairman")}
+        <select
+          data-testid="live-ballot-chairman"
+          value={chairmanMemberId}
+          onChange={(event) => setChairmanMemberId(event.target.value)}
+        >
+          <option value="">{t("ballot.chooseChairman")}</option>
+          {participants
+            .filter((participant) =>
+              aggregate.attendance.some(
+                (entry) => entry.memberId === participant.memberId && entry.status === "present",
+              ),
+            )
+            .map((participant) => (
+              <option key={participant.memberId} value={participant.memberId}>
+                {participant.memberName}
+              </option>
+            ))}
+        </select>
+      </label>
+      <RequestErrorBanner error={error} />
+      {preview ? (
+        <Modal
+          open
+          title={t("ballot.previewTitle")}
+          onClose={() => {
+            if (!submitting) setPreview(null);
+          }}
+        >
+          <div className="grid gap-3" data-testid="live-ballot-preview">
+            <p>{t("ballot.previewHint")}</p>
+            <strong data-testid="live-ballot-preview-result">
+              {t(preview.data.calculation.result === "approve" ? "live.adopted" : "live.rejected")}
+            </strong>
+            <p>
+              {t("ballot.previewQuorum")} : {formatNumber(preview.data.quorum.presentCount)} /{" "}
+              {formatNumber(preview.data.quorum.requiredPresent)}
+            </p>
+            <dl className="grid gap-2">
+              {secretCounters.map(({ key, labelKey }) => {
+                const totalKeys = {
+                  votesFor: "approve",
+                  votesAgainst: "reject",
+                  abstentions: "abstain",
+                  blank: "blank",
+                  invalid: "invalid",
+                  notVoting: "nonParticipation",
+                } as const;
+                return (
+                  <div key={key}>
+                    <dt>{t(labelKey)}</dt>
+                    <dd>{formatNumber(preview.data.calculation.totals[totalKeys[key]])}</dd>
+                  </div>
+                );
+              })}
+            </dl>
+            <p>
+              {t("ballot.notVoting")} : {formatNumber(preview.data.calculation.totals.nonParticipation)}
+            </p>
+            <RequestErrorBanner error={error} />
+            <Button
+              data-testid="live-ballot-preview-correct"
+              variant="outline"
+              disabled={submitting}
+              onClick={() => {
+                setPreview(null);
+                setError(null);
+              }}
+            >
+              {t("ballot.correct")}
+            </Button>
+            <Button
+              data-testid="live-ballot-preview-confirm"
+              disabled={submitting || !findSirenAction(preview.representation, "ballot.confirm")}
+              onClick={() =>
+                void run(async () => {
+                  setError(null);
+                  try {
+                    if (await onConfirm(preview)) {
+                      setPreview(null);
+                      onOpenChange(false);
+                    } else setError("request_failed");
+                  } catch (cause) {
+                    setError(apiErrorCode(cause));
+                  }
+                })
+              }
+            >
+              {t(submitting ? "common.saving" : "ballot.confirm")}
+            </Button>
+          </div>
+        </Modal>
+      ) : null}
       <footer className="vote-panel-footer">
         <div className="vote-totals" role="status">
           {method === "public" ? (
@@ -492,11 +632,21 @@ export function VotePanel({
           <button
             className="live-primary-action"
             type="button"
-            disabled={submitting || (method === "public" ? !publicComplete : !secretValid)}
-            data-testid="live-ballot-record"
+            disabled={
+              submitting ||
+              !participants.some(
+                (participant) =>
+                  participant.memberId === chairmanMemberId &&
+                  aggregate.attendance.some(
+                    (entry) => entry.memberId === chairmanMemberId && entry.status === "present",
+                  ),
+              ) ||
+              (method === "public" ? !publicComplete : !secretValid)
+            }
+            data-testid="live-ballot-preview-open"
             onClick={() => void record()}
           >
-            {t(submitting ? "common.saving" : "ballot.recordAction")}
+            {t(submitting ? "common.saving" : "ballot.previewAction")}
           </button>
         </div>
       </footer>

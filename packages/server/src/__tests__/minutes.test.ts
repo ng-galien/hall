@@ -21,14 +21,11 @@ describe("dedicated minutes HTTP lifecycle", () => {
       kind: "pdf",
       documentType: "minutes",
       name: "PV de test",
-      bodyMarkdown:
-        "# Mon procès-verbal\n\n::minutes{section=facts}\n\n::minutes{section=proceedings}",
+      bodyMarkdown: "# Mon procès-verbal\n\n::minutes{section=facts}\n\n::minutes{section=proceedings}",
       stylesheet: "h1 { color: #123456; font-size: 32px; }",
     };
     const template = domainBody<{ id: string }>(await agent.post("/api/templates").send(templateInput).expect(201));
-    const meeting = domainBody<{ id: string }>(
-      await agent.post("/api/council-meetings").send({ quorum: 1 }).expect(201),
-    );
+    const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
     const created = domainBody<{ agendaItem: { id: string } }>(
       await agent
         .post(`/api/council-meetings/${meeting.id}/council-business`)
@@ -148,9 +145,7 @@ describe("dedicated minutes HTTP lifecycle", () => {
 
   it("keeps recorded discussion in the closure draft and rejects later notes", async () => {
     const { agent } = await createTestServer();
-    const meeting = domainBody<{ id: string }>(
-      await agent.post("/api/council-meetings").send({ quorum: 1 }).expect(201),
-    );
+    const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
     const created = domainBody<{ agendaItem: { id: string } }>(
       await agent
         .post(`/api/council-meetings/${meeting.id}/council-business`)

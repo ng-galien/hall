@@ -29,7 +29,7 @@ async function createMemberAndMeeting(server: Awaited<ReturnType<typeof createTe
       })
       .expect(201),
   );
-  const provisioned = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({ quorum: 1 }).expect(201));
+  const provisioned = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
   const meeting = domainBody<{ id: string; number: number; scheduledAt: string }>(
     await agent
       .put(`/api/council-meetings/${provisioned.id}/prepare`)

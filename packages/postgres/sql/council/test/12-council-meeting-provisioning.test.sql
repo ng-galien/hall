@@ -2,16 +2,9 @@ BEGIN;
 \ir support/helpers.sql
 SELECT no_plan();
 
-SELECT throws_ok(
-  $$SELECT hall_api.provision_initial_council_meeting(0)$$,
-  '23514',
-  NULL,
-  'the inline quorum constraint applies to initial provisioning'
-);
-
 -- HALL-FR-MTG-010 HALL-FR-MTG-040 HALL-FR-MTG-080 HALL-FR-MTG-180 HALL-FR-MTG-190
 CREATE TEMP TABLE initial_meeting AS
-SELECT hall_api.provision_initial_council_meeting(3) AS payload;
+SELECT hall_api.provision_initial_council_meeting() AS payload;
 
 SELECT ok(
   (payload ->> 'id')::UUID IS NOT NULL
@@ -20,7 +13,7 @@ SELECT ok(
     AND payload -> 'previousCouncilMeetingId' = 'null'::JSONB
     AND payload -> 'scheduledAt' = 'null'::JSONB
     AND payload -> 'location' = 'null'::JSONB
-    AND (payload ->> 'quorum')::INTEGER = 3
+    AND payload -> 'quorum' = 'null'::jsonb
     AND payload -> 'startedAt' = 'null'::JSONB
     AND payload -> 'closedAt' = 'null'::JSONB,
   'initial provisioning creates one undated and unstarted meeting root'
@@ -28,8 +21,8 @@ SELECT ok(
 FROM initial_meeting;
 
 SELECT throws_ok(
-  $$INSERT INTO council_meetings (id, number, quorum)
-    VALUES (test_uuid('provision:duplicate-number'), 1, 3)$$,
+  $$INSERT INTO council_meetings (id, number) VALUES
+(test_uuid('provision:duplicate-number'), 1)$$,
   '23505',
   NULL,
   'meeting numbers are structurally unique'
@@ -37,8 +30,8 @@ SELECT throws_ok(
 
 -- HALL-FR-MTG-200
 SELECT throws_ok(
-  $$INSERT INTO council_meetings (id, quorum, scheduled_at)
-    VALUES (test_uuid('provision:incomplete-schedule'), 3, '2026-01-01 09:00:00+00')$$,
+  $$INSERT INTO council_meetings (id, scheduled_at) VALUES
+(test_uuid('provision:incomplete-schedule'), '2026-01-01 09:00:00+00')$$,
   '23514',
   NULL,
   'a scheduled meeting cannot exist without its location'
@@ -61,7 +54,7 @@ SELECT throws_ok(
     '2026-01-01 09:00:00+00',
     (SELECT payload ->> 'id' FROM initial_meeting)
   ),
-  '23514',
+  'HV143',
   NULL,
   'an unprogrammed meeting cannot start'
 );
@@ -93,7 +86,7 @@ SELECT is(
 );
 
 SELECT throws_ok(
-  $$SELECT hall_api.provision_initial_council_meeting(4)$$,
+  $$SELECT hall_api.provision_initial_council_meeting()$$,
   'HV123',
   'the initial council meeting is already provisioned',
   'the serialized named action rejects a second initial meeting'

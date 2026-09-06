@@ -61,7 +61,14 @@ export function RollCallView({
   });
   const meeting = { ...aggregate.meeting, ...draftOfficers };
   const [draftAttendance, setDraftAttendance] = useState<Attendance[]>(aggregate.attendance);
-  useEffect(() => setDraftAttendance(aggregate.attendance), [aggregate.attendance]);
+  const persistedAttendance = useRef(JSON.stringify(aggregate.attendance));
+  useEffect(() => {
+    const snapshot = JSON.stringify(aggregate.attendance);
+    if (snapshot !== persistedAttendance.current) {
+      persistedAttendance.current = snapshot;
+      setDraftAttendance(aggregate.attendance);
+    }
+  }, [aggregate.attendance]);
   const attendanceByMember = useMemo(
     () => new Map(draftAttendance.map((attendance) => [attendance.memberId, attendance])),
     [draftAttendance],
@@ -70,16 +77,13 @@ export function RollCallView({
     (resource): resource is DocumentResource =>
       resource.kind === "document" && resource.meetingId === meeting.id && resource.category === "proxy",
   );
-  const draftPresent = draftAttendance.filter((entry) => entry.status === "present").length;
+  const [membershipSource, setMembershipSource] = useState("");
+  const [membershipIds, setMembershipIds] = useState(() => members.map((member) => member.id));
+  const membershipRecorded = Boolean(meetingActions.workspace?.conduct.membershipRecords.length);
   const openingBlock = meetingOpeningBlock({
     ...aggregate,
     meeting,
     attendance: draftAttendance,
-    quorum: {
-      ...aggregate.quorum,
-      physicallyPresent: draftPresent,
-      reached: draftPresent >= aggregate.quorum.required,
-    },
   });
 
   const record = (memberId: string, status: (typeof directStatuses)[number]) => {
@@ -213,13 +217,76 @@ export function RollCallView({
             </Button>
           ) : null}
           {mode === "adjust" ? (
-            <Button variant="default" onClick={onDone}>
+            <Button
+              variant="default"
+              data-testid="live-attendance-save"
+              disabled={submitting || !meetingActions.can("meeting.record-attendance-events")}
+              onClick={() =>
+                void run(async () => {
+                  const saved = await meetingActions.recordAttendanceEvents({
+                    observedAt: new Date().toISOString(),
+                    changes: draftAttendance.map((entry) => ({
+                      councilMemberId: entry.memberId,
+                      status: entry.status,
+                      proxyHolderCouncilMemberId: entry.proxyHolderMemberId,
+                      proxyDocumentId: entry.proxyDocumentId,
+                    })),
+                  });
+                  if (saved) onDone();
+                })
+              }
+            >
               {t("live.backToConduct")}
             </Button>
           ) : null}
         </div>
       </header>
 
+      {mode === "opening" && !membershipRecorded && meetingActions.can("meeting.record-membership") ? (
+        <fieldset className="grid gap-3" data-testid="live-membership-form">
+          <legend>{t("meeting.membershipTitle")}</legend>
+          <p>{t("meeting.membershipHint")}</p>
+          <div className="vote-secret-participants-list">
+            {members.map((member) => (
+              <label className="flex items-center gap-2" key={member.id}>
+                <input
+                  type="checkbox"
+                  data-testid={`live-membership-member-${member.id}`}
+                  checked={membershipIds.includes(member.id)}
+                  onChange={(event) =>
+                    setMembershipIds((ids) =>
+                      event.target.checked ? [...ids, member.id] : ids.filter((id) => id !== member.id),
+                    )
+                  }
+                />
+                {member.contact.firstName} {member.contact.lastName}
+              </label>
+            ))}
+          </div>
+          <Label htmlFor="meeting-membership-source">{t("meeting.membershipSource")}</Label>
+          <Input
+            id="meeting-membership-source"
+            data-testid="live-membership-source"
+            value={membershipSource}
+            onChange={(event) => setMembershipSource(event.target.value)}
+          />
+          <Button
+            data-testid="live-membership-confirm"
+            disabled={submitting || !membershipSource.trim() || !membershipIds.length}
+            onClick={() =>
+              void run(() =>
+                meetingActions.recordMembership({
+                  observedAt: new Date().toISOString(),
+                  sourceReference: membershipSource,
+                  memberIds: membershipIds,
+                }),
+              )
+            }
+          >
+            {t("meeting.membershipConfirm")}
+          </Button>
+        </fieldset>
+      ) : null}
       <ul className="rollcall-grid">
         {members.map((member) => {
           const current = attendanceByMember.get(member.id);
@@ -396,7 +463,9 @@ export function RollCallView({
                 <button
                   className="live-primary-action"
                   type="button"
-                  disabled={submitting || Boolean(openingBlock) || !meetingActions.can("meeting.open")}
+                  disabled={
+                    submitting || !membershipRecorded || Boolean(openingBlock) || !meetingActions.can("meeting.open")
+                  }
                   onClick={() => void openMeeting()}
                   data-testid="live-meeting-start"
                 >

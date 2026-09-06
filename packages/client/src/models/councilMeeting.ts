@@ -1,4 +1,4 @@
-import type { AgendaItem, Ballot, CouncilMeeting, MeetingAttendance } from "@hall/api-contract";
+import type { AgendaItem, Ballot, CouncilMeeting, MeetingAttendance, MeetingConductState } from "@hall/api-contract";
 
 export type CouncilMeetingPhase = "draft" | "scheduled" | "inProgress" | "closed";
 
@@ -12,6 +12,7 @@ export interface CouncilMeetingWorkspace {
   attendance: MeetingAttendance[];
   agendaItems: AgendaItem[];
   ballots: Ballot[];
+  conduct: MeetingConductState;
 }
 
 export function councilMeetingPhase(meeting: CouncilMeeting): CouncilMeetingPhase {

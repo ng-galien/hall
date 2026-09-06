@@ -2,11 +2,11 @@ BEGIN;
 \ir support/helpers.sql
 SELECT no_plan();
 
-INSERT INTO council_meetings (id, quorum, scheduled_at, location) VALUES
-  (test_uuid('agenda:previous-meeting'), 1, '2026-01-01 08:00:00+00', 'Council chamber'),
-  (test_uuid('agenda:meeting'), 1, '2026-01-01 08:30:00+00', 'Council chamber'),
-  (test_uuid('agenda:other-meeting'), 1, '2026-01-01 08:45:00+00', 'Council chamber'),
-  (test_uuid('agenda:future-meeting'), 1, '2026-02-01 09:00:00+00', 'Council chamber');
+INSERT INTO council_meetings (id, scheduled_at, location) VALUES
+(test_uuid('agenda:previous-meeting'), '2026-01-01 08:00:00+00', 'Council chamber'),
+(test_uuid('agenda:meeting'), '2026-01-01 08:30:00+00', 'Council chamber'),
+(test_uuid('agenda:other-meeting'), '2026-01-01 08:45:00+00', 'Council chamber'),
+(test_uuid('agenda:future-meeting'), '2026-02-01 09:00:00+00', 'Council chamber');
 
 INSERT INTO meeting_attendance (id, council_member, council_meeting, status) VALUES
   (test_uuid('agenda:previous-attendance'), test_uuid('agenda:previous-member'), test_uuid('agenda:previous-meeting'), 'present'),

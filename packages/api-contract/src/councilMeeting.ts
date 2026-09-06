@@ -1,7 +1,8 @@
-import { agendaItemRecusalStateSchema } from "./recusal.js";
 import { z } from "zod";
 import { councilBusinessSchema } from "./councilBusiness.js";
+import { meetingConductStateSchema } from "./meetingConduct.js";
 import { minutesSummarySchema } from "./minutes.js";
+import { agendaItemRecusalStateSchema } from "./recusal.js";
 import { resourceIdSchema, resourceNameSchema, resourcePathSchema } from "./resources.js";
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -18,17 +19,13 @@ export const councilMeetingSchema = z
     location: z.string().min(1).nullable(),
     chairMemberId: resourceIdSchema.nullable(),
     secretaryMemberId: resourceIdSchema.nullable(),
-    quorum: z.number().int().positive(),
+    quorum: z.number().int().positive().nullable(),
     startedAt: timestampSchema.nullable(),
     closedAt: timestampSchema.nullable(),
   })
   .strict();
 
-export const provisionInitialCouncilMeetingSchema = z
-  .object({
-    quorum: z.number().int().positive(),
-  })
-  .strict();
+export const provisionInitialCouncilMeetingSchema = z.object({}).strict();
 
 export const scheduleCouncilMeetingSchema = z
   .object({
@@ -237,3 +234,8 @@ export type CreatedAndScheduledCouncilBusiness = z.infer<typeof createdAndSchedu
 
 export const agendaItemRecusalsSchema = agendaItemRecusalStateSchema.extend({ agendaItem: agendaItemSchema });
 export type AgendaItemRecusals = z.infer<typeof agendaItemRecusalsSchema>;
+
+export const meetingConductWorkspaceSchema = meetingConductStateSchema
+  .extend({ meeting: councilMeetingSchema })
+  .strict();
+export type MeetingConductWorkspace = z.infer<typeof meetingConductWorkspaceSchema>;

@@ -1,8 +1,8 @@
 import type {
   AgendaItem,
   CouncilBusiness,
-  CouncilBusinessResourceItem,
   CouncilBusinessResourceAssociation,
+  CouncilBusinessResourceItem,
   CouncilBusinessWorkspaceItem,
   CouncilMeeting,
   ResourceDetail,
@@ -118,9 +118,7 @@ describe("CouncilBusiness workspace contracts", () => {
         .send({ path: "", name: "lighting", reportName: "report", reportContent: "Report" })
         .expect(201),
     );
-    const meeting = domainBody<CouncilMeeting>(
-      await agent.post("/api/council-meetings").send({ quorum: 1 }).expect(201),
-    );
+    const meeting = domainBody<CouncilMeeting>(await agent.post("/api/council-meetings").send({}).expect(201));
 
     const decision = domainBody<AgendaItem>(
       await agent

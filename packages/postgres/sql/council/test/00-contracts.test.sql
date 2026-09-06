@@ -19,8 +19,8 @@ SELECT ok(
 SELECT ok(
   (SELECT array_agg(enumlabel::TEXT ORDER BY enumsortorder)
    FROM pg_enum JOIN pg_type ON pg_type.oid = pg_enum.enumtypid
-   WHERE pg_type.typname = 'vote_choice') = ARRAY['approve', 'reject', 'abstain']::TEXT[],
-  'vote_choice records approve, reject and abstain'
+   WHERE pg_type.typname = 'vote_choice') = ARRAY['approve', 'reject', 'abstain', 'blank', 'invalid']::TEXT[],
+  'vote_choice includes distinct secret blank and invalid ballots'
 );
 SELECT ok(
   (SELECT array_agg(enumlabel::TEXT ORDER BY enumsortorder)
@@ -128,6 +128,7 @@ SELECT set_eq(
     ('ballots.ballots_enforce_lifecycle -> enforce_ballot_lifecycle'),
     ('ballots.ballots_reject_truncate -> enforce_ballot_lifecycle'),
     ('council_agenda_item.council_agenda_item_enforce_completion_authority -> enforce_council_agenda_item_completion_authority'),
+    ('council_agenda_item.council_agenda_item_quorum -> guard_agenda_quorum'),
     ('council_agenda_item.council_agenda_item_enforce_lifecycle -> enforce_council_agenda_item_lifecycle'),
     ('council_agenda_item.council_agenda_item_enforce_subject_business -> enforce_council_agenda_item_subject_business'),
     ('council_agenda_item.council_agenda_item_lock_business -> lock_council_agenda_item_business'),

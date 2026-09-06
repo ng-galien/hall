@@ -39,6 +39,7 @@ const classificationSamples: Record<SirenEntityClass, { path: string; value: unk
   "audit-event": { path: "/api/audit-events/id", value: { id: "id" } },
   authentication: { path: "/api/auth/challenge", value: {} },
   "authentication-status": { path: "/api/auth/status", value: {} },
+  "ballot-preview": { path: "/api/ballot-previews/id", value: { id: "id", canConfirm: true } },
   ballot: { path: "/api/unknown", value: { meetingId: "meeting", method: "public", result: "adopted" } },
   "committee-membership": { path: "/api/council-committees/c/memberships/m", value: { id: "m" } },
   contact: { path: "/api/contacts/id", value: { id: "id" } },
@@ -148,9 +149,7 @@ describe("Siren entity class authority", () => {
       closedAt: null,
     };
 
-    expect(
-      objectActions(request("/api/council-meetings/2026-09-01-001"), "council-meeting", startedMeeting),
-    ).toEqual([
+    expect(objectActions(request("/api/council-meetings/2026-09-01-001"), "council-meeting", startedMeeting)).toEqual([
       expect.objectContaining({
         name: "meeting.close",
         method: "POST",
@@ -199,7 +198,7 @@ describe("active agenda ballot capabilities", () => {
     ["openQuestion", false],
     ["councilDecisionProposal", true],
     ["minutesApproval", true],
-  ])("exposes ballot creation for %s: %s", (kind, expected) => {
+  ])("exposes ballot result preview for %s: %s", (kind, expected) => {
     const req = request("/api/council-meetings/meeting/agenda-items");
     req.res = {
       locals: { currentCouncilMeeting: { id: "meeting", startedAt: "2026-09-05T10:00:00Z", closedAt: null } },
@@ -212,6 +211,6 @@ describe("active agenda ballot capabilities", () => {
       completedAt: null,
       subject: { kind, id: "subject" },
     });
-    expect(actions.some((action) => action.name === "ballot.create")).toBe(expected);
+    expect(actions.some((action) => action.name === "ballot.preview")).toBe(expected);
   });
 });

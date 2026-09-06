@@ -9,7 +9,6 @@ STABLE
 SET search_path = pg_catalog, hall
 AS $$
   SELECT COUNT(*)::INTEGER
-  FROM meeting_attendance
-  WHERE council_meeting = target_meeting
-    AND status = 'present';
+  FROM hall.current_meeting_attendance(target_meeting)
+  WHERE status = 'present';
 $$;

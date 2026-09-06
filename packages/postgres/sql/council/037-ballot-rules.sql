@@ -63,8 +63,16 @@ AS $$
       ON meeting_attendance.id = ballot_participation.meeting_attendance
     WHERE ballot_participation.id = target_chairman
       AND ballot_participation.ballot = target_ballot
-      AND meeting_attendance.status = 'present'
+      AND ballot_participation.physically_present
   );
+$$;
+
+CREATE FUNCTION hall.ordinary_majority_result(mode hall.ballot_mode,approve_count INTEGER,reject_count INTEGER,chairman_choice hall.vote_choice)
+RETURNS hall.ballot_result LANGUAGE sql IMMUTABLE SET search_path=pg_catalog,hall AS $$
+ SELECT CASE WHEN approve_count>reject_count THEN 'approve'::hall.ballot_result
+   WHEN reject_count>approve_count THEN 'reject'::hall.ballot_result
+   WHEN mode='public' AND chairman_choice IN ('approve','reject') THEN chairman_choice::text::hall.ballot_result
+   ELSE 'reject'::hall.ballot_result END;
 $$;
 
 -- Ballot result is derived from the immutable recorded votes.
@@ -101,37 +109,11 @@ BEGIN
   approve_count := ballot_choice_count(target_ballot, 'approve');
   reject_count := ballot_choice_count(target_ballot, 'reject');
 
-  -- @functional-requirement HALL-FR-BAL-160 APPROVE_MAJORITY_ADOPTS_BALLOT: An approve majority
-  -- adopts the proposal.
-  IF approve_count > reject_count THEN
-    RETURN 'approve';
-  END IF;
-
-  -- @functional-requirement HALL-FR-BAL-170 REJECT_MAJORITY_REJECTS_BALLOT: A reject majority
-  -- rejects the proposal.
-  IF reject_count > approve_count THEN
-    RETURN 'reject';
-  END IF;
-
-  -- @functional-requirement HALL-FR-BAL-180 PUBLIC_TIE_USES_CHAIRMAN_CHOICE: Only a public ballot
-  -- may use the chairman's named vote as the
-  -- casting vote.
-  IF current_mode = 'public' THEN
-    SELECT choice
-    INTO chairman_choice
-    FROM votes
-    WHERE ballot = target_ballot
-      AND ballot_participation = current_chairman;
-
-    -- The casting vote applies only when the chairman expressed approve or
-    -- reject; an abstention does not manufacture an expressed suffrage.
-    IF chairman_choice IN ('approve', 'reject') THEN
-      RETURN chairman_choice::TEXT::ballot_result;
-    END IF;
-  END IF;
-
-  -- @functional-requirement HALL-FR-BAL-190 SECRET_OR_UNDECIDED_TIE_REJECTS_BALLOT: A secret tie,
-  -- or a public tie without a decisive chairman choice, rejects.
-  RETURN 'reject';
+  -- @functional-requirement HALL-FR-BAL-160 APPROVE_MAJORITY_ADOPTS_BALLOT:
+  -- @functional-requirement HALL-FR-BAL-170 REJECT_MAJORITY_REJECTS_BALLOT:
+  -- @functional-requirement HALL-FR-BAL-180 PUBLIC_TIE_USES_CHAIRMAN_CHOICE:
+  -- @functional-requirement HALL-FR-BAL-190 SECRET_OR_UNDECIDED_TIE_REJECTS_BALLOT:
+  SELECT choice INTO chairman_choice FROM votes WHERE ballot=target_ballot AND ballot_participation=current_chairman;
+  RETURN hall.ordinary_majority_result(current_mode,approve_count,reject_count,chairman_choice);
 END;
 $$;

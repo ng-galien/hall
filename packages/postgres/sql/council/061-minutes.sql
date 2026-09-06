@@ -16,7 +16,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     'meeting', jsonb_build_object(
       'id', meeting.id, 'number', meeting.number, 'scheduledAt', meeting.scheduled_at,
       'startedAt', meeting.started_at, 'closedAt', snapshot.captured_at,
-      'location', meeting.location, 'quorum', meeting.quorum,
+      'location', meeting.location, 'quorum', (SELECT (facts->>'requiredPresent')::integer FROM hall.meeting_quorum_observation WHERE council_meeting=meeting.id AND agenda_item IS NULL ORDER BY observed_at LIMIT 1),
       'chair', hall.minutes_member_identity(meeting.chair_member),
       'secretary', hall.minutes_member_identity(meeting.secretary_member)
     ),
@@ -29,6 +29,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     -- https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044190488
     -- @functional-requirement HALL-FR-MIN-210 MINUTES_PRESERVE_RECUSAL_EVIDENCE:
     'recusals', snapshot.payload->'recusals',
+    'conduct', snapshot.payload->'conduct',
     'agenda', coalesce((SELECT jsonb_agg(jsonb_build_object(
       'id', item->>'id', 'position', (item->>'position')::INTEGER,
       'title', CASE WHEN item->>'minutes_approval' IS NOT NULL THEN ''
@@ -48,6 +49,14 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     'ballots', coalesce((SELECT jsonb_agg(jsonb_build_object(
       'id', ballot->>'id', 'agendaItemId', ballot->>'council_agenda_item',
       'mode', ballot->>'mode', 'result', ballot->>'result', 'completedAt', ballot->>'completed_at',
+      'nonParticipations', coalesce((SELECT jsonb_agg(jsonb_build_object(
+        'count',(n->>'count')::integer,'reason',n->>'reason',
+        'member',CASE WHEN n->>'mode'='public' THEN (
+          SELECT hall.minutes_member_identity((a->>'council_member')::uuid)
+          FROM jsonb_array_elements(snapshot.payload->'participations') p
+          JOIN jsonb_array_elements(snapshot.payload->'attendance') a ON a->>'id'=p->>'meeting_attendance'
+          WHERE p->>'id'=n->>'ballot_participation') ELSE NULL END))
+        FROM jsonb_array_elements(snapshot.payload->'nonParticipations') n WHERE n->>'ballot'=ballot->>'id'),'[]'::jsonb),
       'votes', coalesce((SELECT jsonb_agg(jsonb_build_object(
         'choice', vote->>'choice', 'count', (vote->>'count')::INTEGER,
         'member', CASE WHEN vote->>'mode' = 'public' THEN (

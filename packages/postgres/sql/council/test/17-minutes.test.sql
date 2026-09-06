@@ -8,7 +8,7 @@ UPDATE council_agenda_item SET discussion_summary = 'Notes with a typo.' WHERE i
 INSERT INTO votes(ballot, mode, choice, ballot_participation, count) VALUES
   (test_uuid('minutes:ballot'), 'public', 'approve', test_uuid('minutes:participation:1'), 1),
   (test_uuid('minutes:ballot'), 'public', 'abstain', test_uuid('minutes:participation:2'), 1);
-UPDATE ballots SET completed_at = '2026-01-01 09:30Z' WHERE id = test_uuid('minutes:ballot');
+UPDATE ballots SET result_preview=test_review_ballot(id),completed_at = '2026-01-01 09:30Z' WHERE id = test_uuid('minutes:ballot');
 CREATE TEMP TABLE minutes_closure AS SELECT hall_api.close_council_meeting(test_uuid('minutes:meeting'), '2026-01-01 10:00Z') payload;
 SET CONSTRAINTS ALL IMMEDIATE;
 SET CONSTRAINTS ALL DEFERRED;

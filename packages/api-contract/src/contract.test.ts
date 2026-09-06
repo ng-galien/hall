@@ -6,11 +6,10 @@ import {
   ballotParticipationSchema,
   ballotSchema,
   ballotVoteSchema,
-  completeBallotSchema,
   completeOpenQuestionSchema,
   councilBusinessSchema,
   councilMeetingSchema,
-  createBallotSchema,
+  createBallotResultPreviewSchema,
   createCouncilBusinessSchema,
   createCouncilMemberSchema,
   createResourceSchema,
@@ -19,7 +18,6 @@ import {
   meetingAttendanceSchema,
   problemDetailsSchema,
   provisionInitialCouncilMeetingSchema,
-  recordBallotVotesSchema,
   recordMeetingAttendanceSchema,
   reorderCouncilAgendaSchema,
   reprogramAgendaItemSchema,
@@ -358,47 +356,44 @@ describe("shared HTTP contract", () => {
     ).toThrow();
   });
 
-  it("validates ballot creation, recording and completion commands", () => {
+  it("validates public and secret review candidates without accepting mixed shapes", () => {
     const agendaItemId = "40000000-0000-4000-8000-000000000001";
     const attendanceId = "10000000-0000-4000-8000-000000000001";
-    const otherAttendanceId = "20000000-0000-4000-8000-000000000001";
-    const participationId = "30000000-0000-4000-8000-000000000001";
-
+    const base = {
+      procedure: "ordinaryMajority",
+      participantAttendanceIds: [attendanceId],
+      chairmanAttendanceId: attendanceId,
+    };
     expect(
-      createBallotSchema.parse({
+      createBallotResultPreviewSchema.parse({
         agendaItemId,
-        mode: "public",
-        participantAttendanceIds: [attendanceId, otherAttendanceId],
-        chairmanAttendanceId: attendanceId,
-      }),
-    ).toMatchObject({ mode: "public" });
+        candidate: { ...base, mode: "public", votes: [{ meetingAttendanceId: attendanceId, choice: "approve" }] },
+      }).candidate,
+    ).toMatchObject({ mode: "public", nonParticipations: [] });
+    expect(
+      createBallotResultPreviewSchema.parse({
+        agendaItemId,
+        candidate: { ...base, mode: "secret", totals: { approve: 1, reject: 0, abstain: 0 } },
+      }).candidate,
+    ).toMatchObject({ mode: "secret", totals: { blank: 0, invalid: 0, nonParticipation: 0 } });
     expect(() =>
-      createBallotSchema.parse({
+      createBallotResultPreviewSchema.parse({
         agendaItemId,
-        mode: "public",
-        participantAttendanceIds: [attendanceId],
-        chairmanAttendanceId: otherAttendanceId,
+        candidate: { ...base, mode: "secret", votes: [], totals: { approve: 1, reject: 0, abstain: 0 } },
       }),
     ).toThrow();
-    expect(
-      recordBallotVotesSchema.parse({
-        mode: "public",
-        votes: [{ ballotParticipationId: participationId, choice: "approve" }],
-      }),
-    ).toMatchObject({ mode: "public" });
-    expect(
-      recordBallotVotesSchema.parse({
-        mode: "secret",
-        totals: { approve: 2, reject: 1, abstain: 0 },
-      }),
-    ).toMatchObject({ mode: "secret" });
     expect(() =>
-      recordBallotVotesSchema.parse({
-        mode: "secret",
-        totals: { approve: 0, reject: 0, abstain: 0 },
+      createBallotResultPreviewSchema.parse({
+        agendaItemId,
+        candidate: { ...base, mode: "public", votes: [{ meetingAttendanceId: attendanceId, choice: "blank" }] },
       }),
     ).toThrow();
-    expect(completeBallotSchema.parse({ completedAt: "2026-09-12T09:30:00Z" })).toBeDefined();
+    expect(() =>
+      createBallotResultPreviewSchema.parse({
+        agendaItemId,
+        candidate: { ...base, procedure: "cfu", mode: "public", votes: [] },
+      }),
+    ).toThrow();
   });
 
   it("keeps contacts and council mandates normalized", () => {

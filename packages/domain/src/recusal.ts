@@ -5,11 +5,13 @@ export const recusalLegalBasisSchema = z.enum(["personalInterest", "designatedRe
 export type RecusalLegalBasis = z.infer<typeof recusalLegalBasisSchema>;
 export const recusalLegalBases = recusalLegalBasisSchema.options;
 
-export const recordAgendaItemRecusalSchema = z.object({
-  councilMemberId: z.uuid(),
-  legalBasis: recusalLegalBasisSchema,
-  declaredAt: z.iso.datetime({ offset: true }),
-}).strict();
+export const recordAgendaItemRecusalSchema = z
+  .object({
+    councilMemberId: z.uuid(),
+    legalBasis: recusalLegalBasisSchema,
+    declaredAt: z.iso.datetime({ offset: true }),
+  })
+  .strict();
 export type RecordAgendaItemRecusal = z.infer<typeof recordAgendaItemRecusalSchema>;
 
 export const agendaItemRecusalSchema = recordAgendaItemRecusalSchema.extend({
@@ -22,13 +24,18 @@ export const agendaItemRecusalSchema = recordAgendaItemRecusalSchema.extend({
 export type AgendaItemRecusal = z.infer<typeof agendaItemRecusalSchema>;
 
 // These are impacts on declarations, not a legal membership/quorum observation.
-export const agendaItemRecusalStateSchema = z.object({
-  recusals: z.array(agendaItemRecusalSchema),
-  eligibleParticipantAttendanceIds: z.array(z.uuid()),
-  quorumImpact: z.object({
-    excludedMemberIds: z.array(z.uuid()),
-    denominatorReduction: z.number().int().nonnegative(),
-    eligibleDeclaredPresentMemberIds: z.array(z.uuid()),
-  }).strict(),
-  canRecordRecusal: z.boolean(),
-}).strict();
+export const agendaItemRecusalStateSchema = z
+  .object({
+    recusals: z.array(agendaItemRecusalSchema),
+    eligibleParticipantAttendanceIds: z.array(z.uuid()),
+    departedParticipantAttendanceIds: z.array(z.uuid()),
+    quorumImpact: z
+      .object({
+        excludedMemberIds: z.array(z.uuid()),
+        denominatorReduction: z.number().int().nonnegative(),
+        eligibleDeclaredPresentMemberIds: z.array(z.uuid()),
+      })
+      .strict(),
+    canRecordRecusal: z.boolean(),
+  })
+  .strict();

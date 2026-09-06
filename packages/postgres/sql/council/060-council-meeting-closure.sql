@@ -232,20 +232,17 @@ BEGIN
 
   PERFORM hall.capture_council_meeting_snapshot(meeting.id, 'closing', closure_time);
 
-  -- The successor is provisioned without a scheduled date and inherits the
-  -- known quorum. Its predecessor link cannot be duplicated.
+  -- The successor is provisioned without a scheduled date or a presumed membership. Its predecessor link cannot be duplicated.
   INSERT INTO council_meetings (
     id,
     number,
     previous_council_meeting,
-    scheduled_at,
-    quorum
+    scheduled_at
   ) VALUES (
     next_meeting,
     meeting.number + 1,
     meeting.id,
-    NULL,
-    meeting.quorum
+    NULL
   );
 
   INSERT INTO minutes (id, council_meeting)

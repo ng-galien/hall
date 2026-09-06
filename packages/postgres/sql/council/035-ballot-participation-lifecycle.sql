@@ -12,6 +12,7 @@ DECLARE
   attendance_meeting UUID;
   attendance_status meeting_attendance_status;
   target_item UUID;
+  departure_accounted BOOLEAN;
 BEGIN
   -- @functional-requirement HALL-FR-BAL-070 BALLOT_PARTICIPATION_IS_IMMUTABLE: Ballot
   -- participation is an immutable declaration; only insertion
@@ -21,6 +22,9 @@ BEGIN
       ERRCODE = 'HV301',
       MESSAGE = 'ballot participation is immutable';
   END IF;
+
+  PERFORM 1 FROM hall.council_meetings m JOIN hall.council_agenda_item item ON item.council_meeting=m.id
+    JOIN hall.ballots b ON b.council_agenda_item=item.id WHERE b.id=NEW.ballot FOR UPDATE OF m;
 
   -- @technical-requirement HALL-TR-CON-060 PARTICIPATION_INSERT_SERIALIZES_WITH_BALLOT_COMPLETION:
   -- Lock the ballot while declaring participation so the
@@ -49,10 +53,10 @@ BEGIN
   END IF;
 
   -- Referential invariant: participation identifies one actual attendance fact.
-  SELECT council_meeting, status
+  SELECT a.council_meeting, current.status
   INTO attendance_meeting, attendance_status
-  FROM meeting_attendance
-  WHERE id = NEW.meeting_attendance;
+  FROM meeting_attendance a CROSS JOIN LATERAL hall.current_meeting_attendance(a.council_meeting) current
+  WHERE a.id = NEW.meeting_attendance AND current.id=a.id;
 
   -- Diagnostic invariant: report a missing attendance before comparing it with
   -- the ballot meeting.
@@ -71,10 +75,14 @@ BEGIN
       MESSAGE = 'ballot participation must belong to the ballot meeting';
   END IF;
 
+  SELECT hall.candidate_accounts_for_departure(target_item,p.candidate,NEW.meeting_attendance)
+  INTO departure_accounted FROM hall.ballots b JOIN hall.ballot_result_preview p ON p.id=b.result_preview
+  WHERE b.id=NEW.ballot;
   -- @functional-requirement HALL-FR-BAL-100 BALLOT_PARTICIPATION_REQUIRES_VOTING_ATTENDANCE:
-  -- Only present or represented members take part in a
-  -- ballot; excused and absent members do not.
-  IF attendance_status NOT IN ('present', 'represented') THEN
+  -- Present or represented members can vote. A member whose departure after
+  -- discussion is evidenced can only be retained for explicit non-participation
+  -- accounting in the reviewed candidate, never to express a new vote.
+  IF attendance_status NOT IN ('present', 'represented') AND NOT coalesce(departure_accounted,false) THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV304',
       MESSAGE = 'ballot participation requires voting attendance';
@@ -87,10 +95,11 @@ BEGIN
   -- https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053153012
   -- @functional-requirement HALL-FR-BAL-310 RECUSED_MEMBER_CANNOT_PARTICIPATE:
   -- A recused member cannot vote personally or exercise a written proxy.
-  IF NOT hall.agenda_item_attendance_is_eligible(target_item, NEW.meeting_attendance) THEN
+  IF NOT hall.agenda_item_attendance_is_eligible(target_item, NEW.meeting_attendance) AND NOT coalesce(departure_accounted,false) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV305', MESSAGE = 'a recused member cannot participate in this ballot';
   END IF;
 
+  NEW.physically_present := attendance_status='present';
   -- The participation satisfies lifecycle, scope and eligibility invariants.
   RETURN NEW;
 END;

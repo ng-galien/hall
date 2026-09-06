@@ -528,24 +528,6 @@
   .conduct-result-verdict { display: flex; align-items: center; gap: var(--hall-space-3); }
   .conduct-result-verdict > div { display: grid; gap: var(--hall-space-0-5); }
   .conduct-result-meta { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
-  .conduct-result-revise {
-    flex: none;
-    padding: var(--hall-space-2) var(--hall-space-3);
-    border: var(--hall-stroke-thin) solid var(--hall-color-border-strong);
-    border-radius: var(--hall-radius-medium);
-    color: var(--hall-color-text-muted);
-    background: var(--hall-color-surface);
-    font: inherit;
-    font-size: var(--hall-font-size-caption);
-    cursor: pointer;
-  }
-  .conduct-result-revise:hover:not(:disabled) { border-color: var(--hall-color-danger); color: var(--hall-color-danger-strong); }
-  .conduct-result-revise-confirm {
-    border-color: var(--hall-color-danger);
-    color: var(--hall-color-on-brand);
-    background: var(--hall-color-danger-surface-strong);
-    font-weight: var(--hall-font-weight-semibold);
-  }
   .result-vote-groups { display: grid; gap: var(--hall-space-3); }
   .result-vote-group h3 {
     display: flex;
@@ -772,6 +754,16 @@
     font-size: var(--hall-font-size-caption);
     text-decoration: underline;
     cursor: pointer;
+  }
+  .vote-secret-participants-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-entity-card)), 1fr));
+    gap: var(--hall-space-2);
+    max-height: var(--hall-size-secret-participants-max);
+    overflow-y: auto;
+    padding: var(--hall-space-2);
+    border: var(--hall-stroke-thin) solid var(--hall-color-border);
+    border-radius: var(--hall-radius-medium);
   }
   .vote-secret-counters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--hall-space-3); }
   .vote-secret-counter {

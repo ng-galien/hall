@@ -365,6 +365,7 @@ async function seedCouncilMeetings(members, businesses) {
         return { councilMemberId: member.id, status: "present" };
       }),
     });
+    await post(`/council-meetings/${meeting.id}/membership-records`, {observedAt:date,sourceReference:"Effectif nominal fictif confirmé pour la démonstration",memberIds:memberList.map(member=>member.id)});
     await post(`/council-meetings/${meeting.id}/start`, { startedAt: date });
     return attendance.filter((entry) => entry.status === "present" || entry.status === "represented");
   }
@@ -373,34 +374,22 @@ async function seedCouncilMeetings(members, businesses) {
     await patch(`/council-meetings/${meeting.id}/agenda-items/${item.id}/notes`, {
       discussionSummary: "Le rapport est présenté au conseil. Les conseillers échangent sur les modalités de mise en œuvre et demandent un bilan lors d’une prochaine séance.",
     });
-    const ballot = await post("/ballots", {
-      agendaItemId: item.id,
-      mode,
-      participantAttendanceIds: attendance.map((entry) => entry.id),
-      chairmanAttendanceId: attendance.find((entry) => entry.councilMemberId === chairMemberId).id,
-    });
-    const abstain = attendance.length - approve - reject;
-    if (mode === "public") {
-      const participation = await get(`/ballots/${ballot.id}/participations`);
-      await post(`/ballots/${ballot.id}/votes`, {
-        mode,
-        votes: participation.map((entry, index) => ({
-          ballotParticipationId: entry.id,
-          choice: index < approve ? "approve" : index < approve + reject ? "reject" : "abstain",
-        })),
-      });
-    } else {
-      await post(`/ballots/${ballot.id}/votes`, { mode, totals: { approve, reject, abstain } });
-    }
-    await post(`/ballots/${ballot.id}/complete`, { completedAt: at(date, minute + 8) });
+    const abstain=attendance.length-approve-reject;
+    const base={procedure:"ordinaryMajority",mode,participantAttendanceIds:attendance.map(entry=>entry.id),
+      chairmanAttendanceId:attendance.find(entry=>entry.councilMemberId===chairMemberId).id};
+    const candidate=mode === "public" ? {...base,
+      votes:attendance.map((entry,index)=>({meetingAttendanceId:entry.id,choice:index<approve ? "approve" : index<approve+reject ? "reject" : "abstain"})),nonParticipations:[]}
+      : {...base,totals:{approve,reject,abstain,blank:0,invalid:0,nonParticipation:0}};
+    const preview=await post("/ballot-previews",{agendaItemId:item.id,candidate});
+    await post(`/ballot-previews/${preview.id}/confirm`,{});
   }
   async function close(meeting, date) {
-    const closure = await post(`/council-meetings/${meeting.id}/close`, { closedAt: at(date, 60) });
+    const closure = await post(`/council-meetings/${meeting.id}/close`, { closedAt: new Date().toISOString() });
     const draft = await get(`/minutes/${closure.minutes.id}`);
     await post(`/minutes/${draft.id}/generate`, { expectedVersion: draft.version });
     return closure;
   }
-  const first = await post("/council-meetings", { quorum: 8 });
+  const first = await post("/council-meetings", {});
   const firstItems = [
     await schedule(first, businesses[1], 1),
     await schedule(first, businesses[2], 2),
@@ -1521,9 +1510,7 @@ ${business.name}
 
   if (process.env.SEED_MEETING_SCENARIO === "preparation") {
     console.log("- Séance en préparation");
-    const meeting = await post("/council-meetings", {
-      quorum: 8,
-    });
+    const meeting = await post("/council-meetings", {});
     await put(`/council-meetings/${meeting.id}/schedule`, {
       scheduledAt: daysFromNow(65),
       location: "Salle du conseil",

@@ -20,7 +20,7 @@ export function AgendaItemRecusalDialog({
 }) {
   const { t } = useI18n();
   const id = useId();
-  const [memberId, setMemberId] = useState<string>();
+  const [memberId, setMemberId] = useState("");
   const [basis, setBasis] = useState<RecusalLegalBasis>();
   const availableMembers = members.filter(
     (member) => !controller.state?.recusals.some((entry) => entry.councilMemberId === member.id),

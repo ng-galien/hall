@@ -46,7 +46,7 @@ AS $function$
     'location', target.location,
     'chairMemberId', target.chair_member,
     'secretaryMemberId', target.secretary_member,
-    'quorum', target.quorum,
+    'quorum', (SELECT cardinality(member_ids)/2+1 FROM hall.meeting_membership_record WHERE council_meeting=target.id ORDER BY observed_at DESC LIMIT 1),
     'startedAt', target.started_at,
     'closedAt', target.closed_at
   )
@@ -118,7 +118,7 @@ AS $function$
   FROM hall.council_meetings AS meeting
 $function$;
 
-CREATE FUNCTION hall_api.provision_initial_council_meeting(initial_quorum INTEGER)
+CREATE FUNCTION hall_api.provision_initial_council_meeting()
 RETURNS JSONB
 LANGUAGE plpgsql
 VOLATILE
@@ -128,7 +128,7 @@ AS $function$
 DECLARE
   provisioned hall.council_meetings;
 BEGIN
-  provisioned := hall.provision_initial_council_meeting(initial_quorum);
+  provisioned := hall.provision_initial_council_meeting();
   RETURN hall.council_meeting_projection(provisioned);
 END;
 $function$;

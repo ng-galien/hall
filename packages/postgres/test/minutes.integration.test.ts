@@ -33,7 +33,7 @@ postgresDescribe("standalone minutes", () => {
       role: "mayor",
       termStartedOn: "2026-01-01",
     });
-    const meeting = await council.provisionInitialMeeting(request, { quorum: 1 });
+    const meeting = await council.provisionInitialMeeting(request, {});
     await pool.query("SELECT hall.schedule_council_meeting($1,'2026-09-05 09:00Z','Chamber')", [meeting.id]);
     await pool.query("SELECT hall.set_council_meeting_officers($1,$2,$2)", [meeting.id, member.id]);
     await pool.query(
@@ -56,7 +56,12 @@ postgresDescribe("standalone minutes", () => {
       councilMeetingId: meeting.id,
       position: 2,
     });
-    await pool.query("SELECT hall.start_council_meeting($1,'2026-09-05 09:00Z')", [meeting.id]);
+    await council.recordMeetingMembership(request, meeting.id, {
+      observedAt: "2026-09-05T09:00:00Z",
+      sourceReference: "Confirmed fixture mandate",
+      memberIds: [member.id],
+    });
+    await council.startMeeting(request, { id: meeting.id, startedAt: "2026-09-05T09:00:00Z" });
     return council.close(request, { id: meeting.id, closedAt: "2026-09-05T10:00:00Z" });
   }
 

@@ -32,6 +32,7 @@ RETURNS VOID LANGUAGE sql VOLATILE SET search_path = pg_catalog, hall AS $$
         AND (item.position > 0 OR item.adjourned_at IS NOT NULL)), '[]'::jsonb),
     'attendance', coalesce((SELECT jsonb_agg(to_jsonb(entry) ORDER BY entry.id)
       FROM hall.meeting_attendance entry WHERE entry.council_meeting = target_meeting), '[]'::jsonb),
+    'conduct', hall.meeting_conduct_evidence(target_meeting),
     'recusals', coalesce((SELECT jsonb_agg(hall.agenda_item_recusal_projection(r) ORDER BY r.id)
       FROM hall.agenda_item_recusal r JOIN hall.council_agenda_item i ON i.id = r.agenda_item
       WHERE i.council_meeting = target_meeting), '[]'::jsonb),
@@ -42,6 +43,10 @@ RETURNS VOID LANGUAGE sql VOLATILE SET search_path = pg_catalog, hall AS $$
       FROM hall.ballot_participation participation JOIN hall.ballots ballot ON ballot.id = participation.ballot
       JOIN hall.council_agenda_item item ON item.id = ballot.council_agenda_item
       WHERE item.council_meeting = target_meeting), '[]'::jsonb),
+    'nonParticipations', coalesce((SELECT jsonb_agg(to_jsonb(n))
+      FROM hall.ballot_non_participation n JOIN hall.ballots b ON b.id=n.ballot
+      JOIN hall.council_agenda_item item ON item.id=b.council_agenda_item
+      WHERE item.council_meeting=target_meeting),'[]'::jsonb),
     'votes', coalesce((SELECT jsonb_agg(to_jsonb(vote))
       FROM hall.votes vote JOIN hall.ballots ballot ON ballot.id = vote.ballot
       JOIN hall.council_agenda_item item ON item.id = ballot.council_agenda_item

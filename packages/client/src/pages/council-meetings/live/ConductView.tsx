@@ -38,14 +38,11 @@ import { useI18n } from "../../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../../models/directory";
 import type {
   LiveMeetingAgendaItem as AgendaItem,
-  LiveBallotMethod as BallotMethod,
   LiveAgendaItemStatus,
   LiveMeetingPresentation,
-  LiveVoteChoice as VoteChoice,
 } from "../../../models/liveMeeting";
 import { agendaItemDecisionId, pendingBallotDecisions } from "../ballotDecisionPolicy";
 import { councilMemberName } from "../ballotParticipants";
-import type { SecretBallotTotals } from "../secretBallotTotals";
 import { VotePanel } from "./VotePanel";
 
 const RAIL_WIDTH_KEY = "mairie.live.railWidth";
@@ -105,12 +102,6 @@ export function ConductView({
   const [notes, setNotes] = useState("");
   const mentionables = useReferenceMentionables();
   const [voteOpen, setVoteOpen] = useState(false);
-  const [reviseConfirming, setReviseConfirming] = useState(false);
-  const [revisionSeed, setRevisionSeed] = useState<{
-    method: BallotMethod;
-    assignments: Partial<Record<string, VoteChoice>>;
-    secretTotals: SecretBallotTotals;
-  } | null>(null);
   const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
   const [closeConfirming, setCloseConfirming] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -156,7 +147,7 @@ export function ConductView({
   const recusals = useAgendaItemRecusals(
     aggregate.meeting.id,
     selectedItemId2,
-    `${selectedItem?.status}:${aggregate.ballots.length}`,
+    `${selectedItem?.status}:${aggregate.ballots.length}:${JSON.stringify(aggregate.attendance)}`,
   );
   const [recusalOpen, setRecusalOpen] = useState(false);
   const selectedItemRef = useRef(selectedItem);
@@ -165,8 +156,6 @@ export function ConductView({
     if (selectedItemRef.current?.id !== selectedItemId2) return;
     setNotes(selectedItemRef.current?.discussionSummary ?? "");
     setVoteOpen(false);
-    setRevisionSeed(null);
-    setReviseConfirming(false);
     setRecusalOpen(false);
   }, [selectedItemId2]);
 
@@ -245,36 +234,6 @@ export function ConductView({
       if (added) setAddItemOpen(false);
       return added;
     });
-
-  const reviseBallot = () => {
-    if (!selectedBallot) return;
-    if (!reviseConfirming) {
-      setReviseConfirming(true);
-      return;
-    }
-    const seed = {
-      method: selectedBallot.method,
-      assignments:
-        selectedBallot.method === "public"
-          ? Object.fromEntries(selectedBallot.votes.map((vote) => [vote.memberId, vote.choice]))
-          : {},
-      secretTotals: {
-        votesFor: selectedBallot.votesFor,
-        votesAgainst: selectedBallot.votesAgainst,
-        abstentions: selectedBallot.abstentions,
-        notVoting: selectedBallot.notVoting,
-      },
-    };
-    void run(async () => {
-      const cancelled = await meetingActions.cancelBallot(selectedBallot.id);
-      if (cancelled) {
-        setRevisionSeed(seed);
-        setVoteOpen(true);
-      }
-      setReviseConfirming(false);
-      return cancelled;
-    });
-  };
 
   const closeMeeting = () => {
     if (!closeConfirming) {
@@ -512,7 +471,12 @@ export function ConductView({
             <p>
               {t("meeting.quorumFailureEvidence")
                 .replace("{present}", formatNumber(aggregate.quorum.physicallyPresent))
-                .replace("{required}", formatNumber(aggregate.quorum.required))}
+                .replace(
+                  "{required}",
+                  aggregate.quorum.required === null
+                    ? t("meeting.quorumUnestablished")
+                    : formatNumber(aggregate.quorum.required),
+                )}
             </p>
             <dl className="conduct-opening-roster">
               {aggregate.attendance.map((entry) => (
@@ -678,25 +642,24 @@ export function ConductView({
             ? pendingBallotDecisions(aggregate).some((decision) => decision.id === selectedDecision.id)
             : true) ? (
             <VotePanel
-              key={revisionSeed ? `revision-${selectedItem.id}` : `fresh-${selectedItem.id}`}
+              key={selectedItem.id}
               aggregate={aggregate}
               members={members}
               eligibleAttendanceIds={recusals.state.eligibleParticipantAttendanceIds}
+              departedAttendanceIds={recusals.state.departedParticipantAttendanceIds}
               onDeclareRecusal={recusals.canRecord ? () => setRecusalOpen(true) : undefined}
               target={selectedDecision ? { councilDecisionId: selectedDecision.id } : { agendaItemId: selectedItem.id }}
               open={voteOpen}
               onOpenChange={setVoteOpen}
-              onRecord={async (input) => {
+              onPreview={async (input) => {
                 if (
                   notes !== selectedItem.discussionSummary &&
                   !(await meetingActions.saveAgendaItemNotes(selectedItem.id, notes))
                 )
-                  return false;
-                return meetingActions.recordBallot(input);
+                  throw new Error("The discussion notes could not be saved");
+                return meetingActions.previewBallot(input);
               }}
-              initialMethod={revisionSeed?.method}
-              initialAssignments={revisionSeed?.assignments}
-              initialSecretTotals={revisionSeed?.secretTotals}
+              onConfirm={meetingActions.confirmBallot}
             />
           ) : null}
 
@@ -718,17 +681,6 @@ export function ConductView({
                     </span>
                   </div>
                 </div>
-                {isActive && meetingActions.can("ballot.cancel", selectedBallot.id) ? (
-                  <button
-                    className={`conduct-result-revise${reviseConfirming ? " conduct-result-revise-confirm" : ""}`}
-                    type="button"
-                    disabled={submitting}
-                    onClick={reviseBallot}
-                    onBlur={() => setReviseConfirming(false)}
-                  >
-                    {t(reviseConfirming ? "live.reviseVoteConfirm" : "live.reviseVote")}
-                  </button>
-                ) : null}
               </header>
               <dl className="conduct-result-totals">
                 <div>
@@ -793,7 +745,12 @@ export function ConductView({
               <p className="report-ballot-note">
                 {t("ballot.participationEvidence")
                   .replace("{present}", formatNumber(selectedBallot.participationEvidence.quorum.physicallyPresent))
-                  .replace("{required}", formatNumber(selectedBallot.participationEvidence.quorum.required))
+                  .replace(
+                    "{required}",
+                    selectedBallot.participationEvidence.quorum.required === null
+                      ? t("meeting.quorumUnestablished")
+                      : formatNumber(selectedBallot.participationEvidence.quorum.required),
+                  )
                   .replace("{roster}", formatNumber(selectedBallot.participationEvidence.quorum.activeMembers))}
               </p>
               {selectedBallot.chairTieBreakApplied ? (

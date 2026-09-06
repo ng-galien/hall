@@ -254,13 +254,17 @@ test("the complete ballot contract is exposed through the meeting UI", () => {
   const meetingProceedings = read("src/pages/council-meetings/MeetingProceedings.tsx");
   const ballotApi = read("src/services/ballotsApi.ts");
   assert.match(votePanel, /method === "public"/);
-  assert.match(votePanel, /totals: secretTotals/);
+  assert.match(votePanel, /participantMemberIds: participants\.map/);
+  assert.match(votePanel, /notVoting: participants\.length - secretParticipants\.length/);
+  assert.doesNotMatch(read("src/hooks/useCouncilMeeting.ts"), /\.slice\(0, participantCount\)/);
   assert.match(votePanel, /reconcileSecretBallotTotals/);
   assert.match(meetingProceedings, /ballot\.method === "public"/);
   assert.match(meetingProceedings, /ballot\.participationEvidence\.quorum/);
-  assert.match(ballotApi, /createBallot/);
-  assert.match(ballotApi, /recordBallotVotes/);
-  assert.match(ballotApi, /completeBallot/);
+  assert.match(ballotApi, /"ballot.preview"/);
+  assert.match(ballotApi, /"ballot.confirm"/);
+  assert.doesNotMatch(ballotApi, /"ballot\.(create|record-votes|complete)"/);
+  assert.match(votePanel, /live-ballot-preview-correct/);
+  assert.match(votePanel, /live-ballot-preview-confirm/);
 });
 
 test("the client recognizes every stable upload error", () => {

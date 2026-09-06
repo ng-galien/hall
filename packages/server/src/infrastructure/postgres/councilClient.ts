@@ -1,18 +1,20 @@
 import {
-  agendaItemSchema,
   agendaItemRecusalsSchema,
+  agendaItemSchema,
   ballotParticipationSchema,
+  ballotResultPreviewSchema,
   ballotSchema,
   ballotVoteSchema,
   type CreateCouncilBusiness,
-  createdAndScheduledCouncilBusinessSchema,
   councilBusinessResourceAssociationSchema,
   councilBusinessResourceItemSchema,
   councilBusinessSchema,
   councilBusinessWorkspaceItemSchema,
   councilMeetingClosureSchema,
   councilMeetingSchema,
+  createdAndScheduledCouncilBusinessSchema,
   meetingAttendanceSchema,
+  meetingConductWorkspaceSchema,
   type ScheduleAgendaItem,
 } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
@@ -22,9 +24,46 @@ import { type CouncilClient, CouncilClientError } from "../../clients/councilCli
 import type { RequestContextStore } from "../../security/requestContext.js";
 import { DomainError, type ErrorCode } from "../../services/errors.js";
 
-const recusalErrorCodes: Record<string, ErrorCode | undefined> = {
-  HV231: "recusal_immutable", HV232: "recusal_recording_closed", HV233: "recusal_member_not_declared",
-  HV234: "recusal_occurrence_locked", HV305: "recused_member_cannot_participate",
+const councilErrorCodes: Record<string, ErrorCode | undefined> = {
+  HV416: "ballot_procedure_unsupported",
+  HV418: "ballot_already_confirmed",
+  HV420: "ballot_candidate_invalid",
+  HV421: "ballot_preview_not_found",
+  HV422: "ballot_preview_stale",
+  HV423: "ballot_preview_required",
+  HV424: "ballot_preview_mismatch",
+  HV425: "ballot_preview_immutable",
+
+  HV131: "conduct_evidence_immutable",
+  HV132: "attendance_movement_unavailable",
+  HV133: "conduct_chronology_invalid",
+  HV134: "current_proxy_invalid",
+  HV135: "conduct_evidence_immutable",
+  HV136: "meeting_conduct_closed",
+  HV137: "membership_record_invalid",
+  HV140: "quorum_membership_required",
+  HV141: "quorum_attendance_incomplete",
+  HV142: "quorum_not_met",
+  HV143: "conduct_chronology_invalid",
+  HV144: "reconvocation_invalid",
+  HV145: "conduct_evidence_immutable",
+  HV146: "conduct_evidence_immutable",
+  HV147: "reconvocation_notice_too_short",
+  HV148: "reconvocation_scope_invalid",
+  HV149: "reconvocation_confirmation_required",
+  HV414: "discussion_quorum_required",
+  HV417: "conduct_chronology_invalid",
+  HV510: "ballot_accounting_immutable",
+  HV511: "ballot_accounting_unavailable",
+  HV512: "ballot_accounting_conflict",
+  HV513: "ballot_voter_no_longer_eligible",
+  HV514: "ballot_totals_invalid",
+
+  HV231: "recusal_immutable",
+  HV232: "recusal_recording_closed",
+  HV233: "recusal_member_not_declared",
+  HV234: "recusal_occurrence_locked",
+  HV305: "recused_member_cannot_participate",
 };
 
 export function createPostgresCouncilClient({
@@ -56,7 +95,7 @@ export function createPostgresCouncilClient({
         if (error.sqlState === "23505" && error.constraint === "agenda_item_recusal_agenda_item_council_member_key") {
           throw new DomainError("recusal_already_recorded", 409);
         }
-        const recusalError = recusalErrorCodes[error.sqlState];
+        const recusalError = councilErrorCodes[error.sqlState];
         if (recusalError) throw new DomainError(recusalError, 409);
         if (error.sqlState === "HV709") throw new DomainError("minutes_not_generated", 409);
         if (error.sqlState === "HV607") {
@@ -248,11 +287,51 @@ export function createPostgresCouncilClient({
         .array(meetingAttendanceSchema)
         .parse(await call(() => postgresCouncil.recordAttendance(currentRequest(), meetingId, input.attendance)));
     },
+    async createBallotResultPreview(input) {
+      return ballotResultPreviewSchema.parse(
+        await call(() => postgresCouncil.createBallotResultPreview(currentRequest(), input)),
+      );
+    },
+    async openBallotResultPreview(id) {
+      return ballotResultPreviewSchema
+        .nullable()
+        .parse(await call(() => postgresCouncil.openBallotResultPreview(currentRequest(), id)));
+    },
+    async confirmBallotResultPreview(id) {
+      return ballotSchema.parse(await call(() => postgresCouncil.confirmBallotResultPreview(currentRequest(), id)));
+    },
+    async meetingConduct(id) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.meetingConduct(currentRequest(), id)),
+      );
+    },
+    async recordMeetingMembership(id, input) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.recordMeetingMembership(currentRequest(), id, input)),
+      );
+    },
+    async recordMeetingAttendanceEvents(id, input) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.recordMeetingAttendanceEvents(currentRequest(), id, input)),
+      );
+    },
+    async recordMeetingQuorum(id, input) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.recordMeetingQuorum(currentRequest(), id, input)),
+      );
+    },
+    async recordMeetingReconvocation(id, input) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.recordMeetingReconvocation(currentRequest(), id, input)),
+      );
+    },
     async agendaItemRecusals(id) {
       return agendaItemRecusalsSchema.parse(await call(() => postgresCouncil.agendaItemRecusals(currentRequest(), id)));
     },
     async recordAgendaItemRecusal(id, input) {
-      return agendaItemRecusalsSchema.parse(await call(() => postgresCouncil.recordAgendaItemRecusal(currentRequest(), id, input)));
+      return agendaItemRecusalsSchema.parse(
+        await call(() => postgresCouncil.recordAgendaItemRecusal(currentRequest(), id, input)),
+      );
     },
     async listAgenda(meetingId) {
       return z.array(agendaItemSchema).parse(await call(() => postgresCouncil.listAgenda(currentRequest(), meetingId)));
@@ -332,7 +411,9 @@ export function createPostgresCouncilClient({
       );
     },
     async updateAgendaItemNotes(id, input) {
-      return agendaItemSchema.parse(await call(() => postgresCouncil.updateAgendaItemNotes(currentRequest(), { id, ...input })));
+      return agendaItemSchema.parse(
+        await call(() => postgresCouncil.updateAgendaItemNotes(currentRequest(), { id, ...input })),
+      );
     },
     async listBallots(meetingId) {
       return z.array(ballotSchema).parse(await call(() => postgresCouncil.listBallots(currentRequest(), meetingId)));
@@ -350,21 +431,6 @@ export function createPostgresCouncilClient({
       return z
         .array(ballotVoteSchema)
         .parse(await call(() => postgresCouncil.listBallotVotes(currentRequest(), ballotId)));
-    },
-    async createBallot(input) {
-      return ballotSchema.parse(await call(() => postgresCouncil.createBallot(currentRequest(), input)));
-    },
-    async recordBallotVotes(ballotId, input) {
-      return z
-        .array(ballotVoteSchema)
-        .parse(await call(() => postgresCouncil.recordBallotVotes(currentRequest(), ballotId, input)));
-    },
-    async completeBallot(ballotId, input) {
-      return ballotSchema.parse(
-        await call(() =>
-          postgresCouncil.completeBallot(currentRequest(), { ballotId, completedAt: input.completedAt }),
-        ),
-      );
     },
   };
 }

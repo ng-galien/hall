@@ -84,7 +84,7 @@ export function BallotOutcome({
           <p className="report-ballot-note">
             {t("ballot.participationEvidence")
               .replace("{present}", formatNumber(ballot.participationEvidence.quorum.physicallyPresent))
-              .replace("{required}", formatNumber(ballot.participationEvidence.quorum.required))
+              .replace("{required}", ballot.participationEvidence.quorum.required === null ? t("meeting.quorumUnestablished") : formatNumber(ballot.participationEvidence.quorum.required))
               .replace("{roster}", formatNumber(ballot.participationEvidence.quorum.activeMembers))}
           </p>
           {ballot.method === "public" ? (
@@ -219,7 +219,7 @@ export function MeetingProceedings({
             {t("report.quorumProclaimed")
               .replace("{present}", formatNumber(aggregate.quorum.physicallyPresent))
               .replace("{roster}", formatNumber(aggregate.quorum.activeMembers))
-              .replace("{required}", formatNumber(aggregate.quorum.required))}{" "}
+              .replace("{required}", aggregate.quorum.required === null ? t("meeting.quorumUnestablished") : formatNumber(aggregate.quorum.required))}{" "}
             {meeting.secretaryMemberId
               ? t("report.secretaryDesignated").replace(
                   "{secretary}",

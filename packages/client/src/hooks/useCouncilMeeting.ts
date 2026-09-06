@@ -1,9 +1,10 @@
 import {
   type ApiActionName,
-  type CreateBallot,
+  type BallotResultPreview,
   findSirenAction,
-  type RecordBallotVotes,
   type RecordMeetingAttendance,
+  type RecordMeetingMembership,
+  type RecordMeetingAttendanceEvents,
   type ScheduleAgendaItem,
   type ScheduleCouncilMeeting,
   type SirenEntity,
@@ -14,12 +15,19 @@ import { type LiveBallotSubmission, presentLiveMeeting } from "../models/liveMee
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import { openAgendaItemRecusals } from "../services/agendaItemRecusalsApi";
 import {
-  completeBallot,
-  createBallot,
+  openMeetingConduct,
+  recordMeetingMembership,
+  recordMeetingAttendanceEvents,
+  recordMeetingQuorum,
+} from "../services/meetingConductApi";
+import {
+  confirmBallot,
+  previewBallot,
+  openBallotResultPreview,
+  type BallotPreview,
   listBallotParticipations,
   listBallotVotes,
   listMeetingBallots,
-  recordBallotVotes,
 } from "../services/ballotsApi";
 import {
   adjournMeetingAgendaItem,
@@ -27,7 +35,6 @@ import {
   completeMeetingOpenQuestion,
   createAndScheduleCouncilBusiness,
   deprogramMeetingAgendaItem,
-  listMeetingAttendance,
   openCouncilMeeting,
   openMeetingAgenda,
   recordMeetingAttendance,
@@ -51,8 +58,7 @@ type LiveActionName =
   | "meeting.reconvene"
   | "meeting.record-quorum-failure"
   | "meeting.add-late-business"
-  | "ballot.record"
-  | "ballot.cancel";
+  | "ballot.record";
 
 export function useCouncilMeeting(meetingReference: string) {
   const [workspace, setWorkspace] = useState<CouncilMeetingWorkspace | null>(null);
@@ -65,6 +71,7 @@ export function useCouncilMeeting(meetingReference: string) {
   const [ballotParticipantMembers, setBallotParticipantMembers] = useState<
     ReadonlyMap<string, ReadonlyMap<string, string>>
   >(new Map());
+  const [ballotPreviews, setBallotPreviews] = useState<ReadonlyMap<string, BallotResultPreview>>(new Map());
   const directoryMembers = useCouncilMembersStore((state) => state.members);
   const members = useMemo(() => directoryMembers.filter((member) => member.active), [directoryMembers]);
   const businesses = useCouncilBusinessStore((state) => state.businesses);
@@ -101,15 +108,32 @@ export function useCouncilMeeting(meetingReference: string) {
   const load = useCallback(async () => {
     try {
       const meetingResult = await openCouncilMeeting(meetingReference);
-      const [attendance, agendaResult, ballots] = await Promise.all([
-        listMeetingAttendance(meetingReference),
+      const [agendaResult, ballots, conductResult] = await Promise.all([
         openMeetingAgenda(meetingReference),
         listMeetingBallots(meetingResult.data.id),
+        openMeetingConduct(meetingReference),
       ]);
       const agendaItems = agendaResult.data;
-      setWorkspace({ meeting: councilMeetingView(meetingResult.data), attendance, agendaItems, ballots });
+      const currentAttendance = conductResult.data.currentAttendance.map((entry) => ({
+        id: entry.id,
+        councilMeetingId: meetingResult.data.id,
+        councilMemberId: entry.councilMemberId,
+        status: entry.status,
+        proxyHolderCouncilMemberId:
+          conductResult.data.currentAttendance.find((holder) => holder.id === entry.proxyHolderAttendanceId)
+            ?.councilMemberId ?? null,
+        proxyDocumentId: entry.proxyDocumentId,
+      }));
+      setWorkspace({
+        meeting: councilMeetingView(meetingResult.data),
+        attendance: currentAttendance,
+        agendaItems,
+        ballots,
+        conduct: conductResult.data,
+      });
       setRepresentations([
         ...(meetingResult.representation ? [meetingResult.representation] : []),
+        ...(conductResult.representation ? [conductResult.representation] : []),
         ...(agendaResult.representation?.entities ?? []).filter(
           (entity): entity is import("@hall/api-contract").SirenEmbeddedEntity => "properties" in entity,
         ),
@@ -117,16 +141,25 @@ export function useCouncilMeeting(meetingReference: string) {
       setError(null);
       void Promise.all(
         ballots.map(async (ballot) => {
-          const [votes, participations] = await Promise.all([
+          const [votes, participations, preview] = await Promise.all([
             listBallotVotes(ballot.id),
             listBallotParticipations(ballot.id),
+            ballot.resultPreviewId ? openBallotResultPreview(ballot.resultPreviewId) : Promise.resolve(null),
           ]);
-          return [ballot.id, votes, new Map(participations.map((entry) => [entry.id, entry.councilMemberId]))] as const;
+          return [
+            ballot.id,
+            votes,
+            new Map(participations.map((entry) => [entry.id, entry.councilMemberId])),
+            preview,
+          ] as const;
         }),
-      ).then((details) => {
-        setBallotVotes(new Map(details.map(([id, votes]) => [id, votes])));
-        setBallotParticipantMembers(new Map(details.map(([id, , participantMembers]) => [id, participantMembers])));
-      });
+      )
+        .then((details) => {
+          setBallotVotes(new Map(details.map(([id, votes]) => [id, votes])));
+          setBallotParticipantMembers(new Map(details.map(([id, , participantMembers]) => [id, participantMembers])));
+          setBallotPreviews(new Map(details.flatMap(([id, , , preview]) => (preview ? [[id, preview] as const] : []))));
+        })
+        .catch((cause) => setError(apiErrorCode(cause)));
     } catch (loadFailure) {
       setError(apiErrorCode(loadFailure));
     }
@@ -150,8 +183,10 @@ export function useCouncilMeeting(meetingReference: string) {
 
   const meeting = useMemo(
     () =>
-      workspace ? presentLiveMeeting(workspace, members, businesses, ballotVotes, ballotParticipantMembers) : null,
-    [ballotParticipantMembers, ballotVotes, businesses, members, workspace],
+      workspace
+        ? presentLiveMeeting(workspace, members, businesses, ballotVotes, ballotParticipantMembers, ballotPreviews)
+        : null,
+    [ballotParticipantMembers, ballotVotes, businesses, members, workspace, ballotPreviews],
   );
 
   function can(actionName: LiveActionName, targetId?: string): boolean {
@@ -159,8 +194,8 @@ export function useCouncilMeeting(meetingReference: string) {
     if (actionName === "meeting.reconvene" || actionName === "meeting.record-quorum-failure") {
       return false;
     }
-    if (actionName === "meeting.add-late-business" || actionName === "ballot.cancel") return false;
-    if (actionName === "ballot.record") actionName = "ballot.create";
+    if (actionName === "meeting.add-late-business") return false;
+    if (actionName === "ballot.record") actionName = "ballot.preview";
     return representations.some(
       (representation) =>
         Boolean(findSirenAction(representation, actionName)) &&
@@ -168,61 +203,79 @@ export function useCouncilMeeting(meetingReference: string) {
     );
   }
 
-  async function recordLiveBallot(input: LiveBallotSubmission): Promise<boolean> {
-    if (!workspace) return false;
-    return mutate(async () => {
-      const agendaItemId =
-        "agendaItemId" in input
-          ? input.agendaItemId
-          : meeting?.agendaItems.find((item) => item.business.councilDecisionId === input.councilDecisionId)?.id;
-      if (!agendaItemId) throw new Error("The ballot target is not scheduled on this meeting");
-      const recusalState = await openAgendaItemRecusals(meetingReference, agendaItemId);
-      const eligibleAttendance = workspace.attendance.filter((entry) =>
-        recusalState.data.eligibleParticipantAttendanceIds.includes(entry.id),
+  async function previewLiveBallot(input: LiveBallotSubmission) {
+    if (!workspace) throw new Error("The meeting is not loaded");
+    const agendaItemId =
+      "agendaItemId" in input
+        ? input.agendaItemId
+        : meeting?.agendaItems.find((item) => item.business.councilDecisionId === input.councilDecisionId)?.id;
+    if (!agendaItemId) throw new Error("The ballot target is not scheduled on this meeting");
+    const recusalState = await openAgendaItemRecusals(meetingReference, agendaItemId);
+    const eligibleAttendance = workspace.attendance.filter(
+      (entry) =>
+        recusalState.data.eligibleParticipantAttendanceIds.includes(entry.id) ||
+        recusalState.data.departedParticipantAttendanceIds.includes(entry.id),
+    );
+    const participantMemberIds =
+      input.method === "public"
+        ? new Set(input.votes.map((vote) => vote.memberId))
+        : new Set(input.participantMemberIds);
+    const selectedAttendance = eligibleAttendance.filter((entry) => participantMemberIds.has(entry.councilMemberId));
+    if (selectedAttendance.length !== participantMemberIds.size) throw new ApiError("ballot_voters_invalid", 409);
+    const chairman = selectedAttendance.find((entry) => entry.councilMemberId === input.chairmanMemberId);
+    if (!chairman || selectedAttendance.length === 0) throw new Error("A ballot requires a present chairman");
+    const base = {
+      procedure: "ordinaryMajority" as const,
+      participantAttendanceIds: selectedAttendance.map((entry) => entry.id),
+      chairmanAttendanceId: chairman.id,
+    };
+    if (input.method === "public") {
+      const choiceByMember = new Map(
+        input.votes.flatMap((vote) => (vote.choice === "notVoting" ? [] : [[vote.memberId, vote.choice] as const])),
       );
-      const participantMemberIds =
-        input.method === "public"
-          ? new Set(input.votes.filter((vote) => vote.choice !== "notVoting").map((vote) => vote.memberId))
-          : new Set(input.participantMemberIds);
-      const selectedAttendance = eligibleAttendance.filter((entry) => participantMemberIds.has(entry.councilMemberId));
-      if (selectedAttendance.length !== participantMemberIds.size) throw new ApiError("ballot_voters_invalid", 409);
-      const chairman = selectedAttendance.find((entry) => entry.councilMemberId === workspace.meeting.chairMemberId);
-      if (!chairman || selectedAttendance.length === 0) throw new Error("A ballot requires a present chairman");
-      const ballot = await createBallot(workspace.meeting.id, {
+      return previewBallot(meetingReference, {
         agendaItemId,
-        mode: input.method,
-        participantAttendanceIds: selectedAttendance.map((entry) => entry.id),
-        chairmanAttendanceId: chairman.id,
-      });
-      const participations = await listBallotParticipations(ballot.id);
-      if (input.method === "public") {
-        const choiceByMember = new Map(
-          input.votes.flatMap((vote) => (vote.choice === "notVoting" ? [] : [[vote.memberId, vote.choice] as const])),
-        );
-        await recordBallotVotes(ballot.id, {
+        candidate: {
+          ...base,
           mode: "public",
-          votes: participations.map((participation) => ({
-            ballotParticipationId: participation.id,
-            choice:
-              choiceByMember.get(participation.councilMemberId) === "for"
-                ? "approve"
-                : choiceByMember.get(participation.councilMemberId) === "against"
-                  ? "reject"
-                  : "abstain",
-          })),
-        });
-      } else {
-        await recordBallotVotes(ballot.id, {
+          nonParticipations: eligibleAttendance
+            .filter((entry) =>
+              input.votes.some((vote) => vote.memberId === entry.councilMemberId && vote.choice === "notVoting"),
+            )
+            .map((entry) => ({
+              meetingAttendanceId: entry.id,
+              reason: recusalState.data.departedParticipantAttendanceIds.includes(entry.id) ? "departed" : "declined",
+            })),
+          votes: selectedAttendance
+            .filter((entry) => choiceByMember.has(entry.councilMemberId))
+            .map((participation) => ({
+              meetingAttendanceId: participation.id,
+              choice:
+                choiceByMember.get(participation.councilMemberId) === "for"
+                  ? "approve"
+                  : choiceByMember.get(participation.councilMemberId) === "against"
+                    ? "reject"
+                    : "abstain",
+            })),
+        },
+      });
+    } else {
+      return previewBallot(meetingReference, {
+        agendaItemId,
+        candidate: {
+          ...base,
           mode: "secret",
           totals: {
             approve: input.totals.votesFor,
             reject: input.totals.votesAgainst,
             abstain: input.totals.abstentions,
+            blank: input.totals.blank,
+            invalid: input.totals.invalid,
+            nonParticipation: input.totals.notVoting,
           },
-        });
-      }
-      await completeBallot(ballot.id, { completedAt: new Date().toISOString() });
-    });
+        },
+      });
+    }
   }
 
   return {
@@ -236,6 +289,17 @@ export function useCouncilMeeting(meetingReference: string) {
     },
     recordAttendance(input: RecordMeetingAttendance) {
       return mutate(() => recordMeetingAttendance(meetingReference, input));
+    },
+    recordMembership(input: RecordMeetingMembership) {
+      return mutate(() => recordMeetingMembership(meetingReference, input));
+    },
+    recordAttendanceEvents(input: RecordMeetingAttendanceEvents) {
+      return mutate(() => recordMeetingAttendanceEvents(meetingReference, input));
+    },
+    recordQuorum() {
+      return mutate(() =>
+        recordMeetingQuorum(meetingReference, { agendaItemId: null, observedAt: new Date().toISOString() }),
+      );
     },
     scheduleAgendaItem(input: ScheduleAgendaItem) {
       return mutate(() => scheduleMeetingAgendaItem(meetingReference, input));
@@ -303,15 +367,6 @@ export function useCouncilMeeting(meetingReference: string) {
         await useCouncilBusinessStore.getState().load();
       });
     },
-    createBallot(input: CreateBallot) {
-      return workspace ? mutate(() => createBallot(workspace.meeting.id, input)) : Promise.resolve(false);
-    },
-    recordBallotVotes(ballotId: string, input: RecordBallotVotes) {
-      return mutate(() => recordBallotVotes(ballotId, input));
-    },
-    completeBallot(ballotId: string) {
-      return mutate(() => completeBallot(ballotId, { completedAt: new Date().toISOString() }));
-    },
     close() {
       return mutate(() => closeCouncilMeeting(meetingReference, { closedAt: new Date().toISOString() }));
     },
@@ -328,7 +383,12 @@ export function useCouncilMeeting(meetingReference: string) {
         completeMeetingOpenQuestion(meetingReference, itemId, { completedAt: new Date().toISOString() }),
       );
     },
-    recordBallot: recordLiveBallot,
+    previewBallot: previewLiveBallot,
+    async confirmBallot(preview: BallotPreview) {
+      await confirmBallot(preview);
+      await Promise.all([load(), useCouncilMeetingsStore.getState().load()]);
+      return true;
+    },
     saveAgendaItemNotes,
     createAndScheduleBusiness: async (
       input: { kind: "matter" | "openQuestion"; title: string; report: string; folderPath: string },
@@ -345,7 +405,6 @@ export function useCouncilMeeting(meetingReference: string) {
         });
         await useCouncilBusinessStore.getState().load();
       }),
-    cancelBallot: async (_ballotId: string) => false,
     setOfficers(input: { chairMemberId: string; secretaryMemberId: string }) {
       return mutate(() => setCouncilMeetingOfficers(meetingReference, input));
     },

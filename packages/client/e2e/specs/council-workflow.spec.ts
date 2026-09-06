@@ -38,15 +38,135 @@ async function declareRecusal(
   await page.getByTestId("recusal-member").click();
   await page.getByTestId(`recusal-member-${memberId}`).click();
   await page.getByTestId(`recusal-basis-${basis}`).check();
+  await page.screenshot({ path: test.info().outputPath(`recusal-${basis}.png`), fullPage: true });
   await page.getByTestId("recusal-submit").click();
   await expect(page.getByTestId("recusal-form")).toBeHidden();
   await expect(page.getByTestId(`agenda-item-recusal-${memberId}`)).toBeVisible();
 }
 
+async function previewAndConfirm(page: Page, meetingId: string, agendaItemId: string, checkStale = false) {
+  const response = page.waitForResponse(
+    (entry) => entry.request().method() === "POST" && entry.url().endsWith("/ballot-previews"),
+  );
+  await page.getByTestId("live-ballot-preview-open").click();
+  const preview = await sirenProperties<{ id: string; candidate: unknown }>(await response);
+  await expect(page.getByTestId("live-ballot-preview")).toBeVisible();
+  const item = await sirenProperties<{ completedAt: string | null }>(
+    await page.request.get(`/api/council-meetings/${meetingId}/agenda-items/${agendaItemId}`),
+  );
+  expect(item.completedAt).toBeNull();
+  const ballots = await sirenItems<{ agendaItemId: string }>(
+    await page.request.get(`/api/ballots?meetingId=${meetingId}`),
+  );
+  expect(ballots.some((ballot) => ballot.agendaItemId === agendaItemId)).toBe(false);
+  if (checkStale) {
+    expect(
+      (await page.request.post("/api/ballot-previews", { data: { agendaItemId, candidate: preview.candidate } })).ok(),
+    ).toBeTruthy();
+    await page.getByTestId("live-ballot-preview-confirm").click();
+    await expect(page.getByTestId("live-ballot-preview").getByRole("alert")).toContainText("out of date");
+    await page.screenshot({ path: test.info().outputPath("ballot-preview-stale.png"), fullPage: true });
+  }
+  await page.getByTestId("live-ballot-preview-correct").click();
+  await expect(page.getByTestId("live-ballot-preview")).toBeHidden();
+  if(checkStale) {
+    await page.getByTestId(/^live-vote-member-/).first().click();
+    await page.getByTestId("live-vote-assign-against").click();
+  }
+  await page.getByTestId("live-ballot-preview-open").click();
+  await expect(page.getByTestId("live-ballot-preview")).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath(`ballot-preview-${agendaItemId}.png`), fullPage: true });
+  await page.getByTestId("live-ballot-preview-confirm").click();
+  await expect(page.getByTestId("live-ballot-preview")).toBeHidden();
+}
+
+test("mobile French recusals preserve explicit qualification and show a real refusal", async ({
+  appPage: page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  test.skip(
+    process.env.HALL_E2E_MOBILE_RECUSALS !== "1",
+    "Dedicated fresh meeting fixture: HALL_E2E_MOBILE_RECUSALS=1 with --grep 'mobile French recusals'",
+  );
+  const meetings = await sirenItems<{
+    id: string;
+    scheduledAt: string | null;
+    startedAt: string | null;
+    closedAt: string | null;
+  }>(await page.request.get("/api/council-meetings"));
+  const meeting = meetings.find((entry) => entry.scheduledAt && !entry.startedAt && !entry.closedAt)!;
+  const members = await sirenItems<{ id: string }>(await page.request.get("/api/council-members"));
+  const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
+  const item = await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
+  expect(
+    (
+      await page.request.post(`/api/council-meetings/${meeting.id}/attendance`, {
+        data: { attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })) },
+      })
+    ).ok(),
+  ).toBeTruthy();
+  expect(
+    (
+      await page.request.put(`/api/council-meetings/${meeting.id}/officers`, {
+        data: { chairMemberId: members[0]!.id, secretaryMemberId: members[1]!.id },
+      })
+    ).ok(),
+  ).toBeTruthy();
+  expect(
+    (
+      await page.request.post(`/api/council-meetings/${meeting.id}/start`, {
+        data: { startedAt: new Date().toISOString() },
+      })
+    ).ok(),
+  ).toBeTruthy();
+  await page.evaluate(() => localStorage.setItem("mairie.locale", "fr"));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/app/meetings/${meeting.id}/live`);
+  await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  await page.getByTestId(`live-agenda-item-${item.id}`).click();
+  await page.getByTestId("agenda-item-recusal-open").click();
+  await declareRecusal(page, members[2]!.id, "personalInterest");
+  await page.getByTestId("live-agenda-start").click();
+  await page.getByTestId("live-ballot-open").click();
+  await page.getByTestId("live-ballot-recusal").click();
+  await declareRecusal(page, members[3]!.id, "designatedRepresentativeConflict");
+  await page.getByTestId("live-ballot-recusal").click();
+  await page.getByTestId("recusal-member").click();
+  await page.getByTestId(`recusal-member-${members[4]!.id}`).click();
+  await page.getByTestId("recusal-basis-personalInterest").check();
+  expect(
+    (
+      await page.request.post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/recusals`, {
+        data: { councilMemberId: members[4]!.id, legalBasis: "personalInterest", declaredAt: new Date().toISOString() },
+      })
+    ).ok(),
+  ).toBeTruthy();
+  const refusal = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" && response.url().endsWith(`/agenda-items/${item.id}/recusals`),
+  );
+  await page.getByTestId("recusal-submit").click();
+  expect((await refusal).status()).toBe(409);
+  await expect(page.getByTestId("recusal-form").getByRole("alert")).toContainText("déjà");
+  await page.screenshot({ path: testInfo.outputPath("mobile-fr-recusal-refusal.png"), fullPage: true });
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await page.getByTestId(`live-agenda-item-${item.id}`).click();
+  await page.getByTestId("live-ballot-open").click();
+  await page.getByTestId("live-ballot-mode-secret").click();
+  await expect(page.getByTestId(`live-secret-participant-${members[2]!.id}`)).toBeHidden();
+  await page.getByTestId(`live-secret-participant-${members[5]!.id}`).uncheck();
+  await page.getByTestId("live-secret-votesFor-increment").click();
+  await page.screenshot({ path: testInfo.outputPath("mobile-fr-secret-participation.png"), fullPage: true });
+  await page.getByTestId("live-ballot-preview-open").scrollIntoViewIfNeeded();
+  await expect(page.getByTestId("live-ballot-preview-open")).toBeVisible();
+});
+
 test("conducts public and secret ballots and provisions the previous minutes approval", async ({
   appPage: page,
 }, testInfo) => {
   test.setTimeout(150_000);
+  page.setDefaultTimeout(15_000);
 
   const meetings = await sirenItems<{
     id: string;
@@ -61,6 +181,8 @@ test("conducts public and secret ballots and provisions the previous minutes app
     (candidate) => candidate.scheduledAt && !candidate.startedAt && !candidate.closedAt && candidate.slug,
   );
   expect(meeting).toBeTruthy();
+  const scheduled = await sirenProperties<{slug:string}>(await page.request.put(`/api/council-meetings/${meeting!.id}/schedule`, {data:{scheduledAt:new Date(Date.now()-60_000).toISOString(),location:"E2E council room"}}));
+  meeting!.slug=scheduled.slug;
 
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
   expect(businesses.length).toBeGreaterThanOrEqual(2);
@@ -93,6 +215,9 @@ test("conducts public and secret ballots and provisions the previous minutes app
   await expect(page.getByTestId("live-meeting-page")).toBeVisible();
   await page.getByTestId("live-attendance-all-present").click();
   await expect(page.getByTestId("live-meeting-start")).toBeDisabled();
+  await page.getByTestId("live-membership-source").fill("E2E council membership record");
+  await page.getByTestId("live-membership-confirm").click();
+  await expect(page.getByTestId("live-membership-form")).toBeHidden();
   const members = await sirenItems<{ id: string }>(await page.request.get("/api/council-members"));
   await page.getByTestId(`live-member-actions-${members[0]!.id}`).click();
   await page.getByTestId(`live-designate-chair-${members[0]!.id}`).click();
@@ -126,18 +251,18 @@ test("conducts public and secret ballots and provisions the previous minutes app
     .toContain("Discussion recorded during the meeting.");
   await page.getByTestId("live-ballot-open").click();
   await page.getByTestId("live-ballot-all-for").click();
-  await expect(page.getByTestId("live-ballot-record")).toBeEnabled();
+  await expect(page.getByTestId("live-ballot-preview-open")).toBeEnabled();
   await expect(page.getByTestId(`live-vote-member-${members[2]!.id}`)).toBeHidden();
   await page.getByTestId("live-opening").click();
   await expect(page.getByTestId("live-opening-summary")).toBeVisible();
-  await expect(page.getByTestId("live-ballot-record")).toBeHidden();
+  await expect(page.getByTestId("live-ballot-preview-open")).toBeHidden();
   await page.getByTestId("live-agenda-toggle").click();
   await page.getByTestId("live-agenda-item-" + publicItem.id).click();
   await expect(page.getByTestId("live-opening-summary")).toBeHidden();
-  await expect(page.getByTestId("live-ballot-record")).toBeEnabled();
+  await expect(page.getByTestId("live-ballot-preview-open")).toBeEnabled();
   await expect(page.getByTestId("live-item-progress")).toBeVisible();
   await page.getByTestId("live-agenda-toggle").click();
-  await page.getByTestId("live-ballot-record").click();
+  await previewAndConfirm(page, meeting!.id, publicItem.id, true);
   await expect(page.getByTestId("live-ballot-result")).toBeVisible();
   await expect(page.getByTestId("live-ballot-result")).toContainText("Adopted");
   await expect(page.getByTestId("agenda-item-recusal-open")).toBeHidden();
@@ -164,11 +289,12 @@ test("conducts public and secret ballots and provisions the previous minutes app
   await page.getByTestId("live-ballot-mode-secret").click();
   await expect(page.getByTestId(`live-secret-participant-${members[3]!.id}`)).toBeHidden();
   await page.getByTestId(`live-secret-participant-${members[4]!.id}`).uncheck();
+  await page.screenshot({ path: testInfo.outputPath("secret-participation.png"), fullPage: true });
   for (let index = 0; index < memberCount - 1; index += 1) {
     await page.getByTestId("live-secret-votesFor-increment").click();
   }
-  await expect(page.getByTestId("live-ballot-record")).toBeEnabled();
-  await page.getByTestId("live-ballot-record").click();
+  await expect(page.getByTestId("live-ballot-preview-open")).toBeEnabled();
+  await previewAndConfirm(page, meeting!.id, secretItem.id);
   await expect(page.getByTestId("live-ballot-result")).toContainText("Adopted");
 
   await page.getByTestId("live-agenda-item-" + deferredItem.id).click();

@@ -8,6 +8,7 @@ SET search_path = pg_catalog, hall
 AS $$
 DECLARE
   meeting_started_at TIMESTAMPTZ;
+  meeting_closed_at TIMESTAMPTZ;
   target_meeting UUID;
 BEGIN
   -- Table-wide truncation has no meeting scope and can never represent the
@@ -23,8 +24,8 @@ BEGIN
   -- @technical-requirement HALL-TR-CON-020 ATTENDANCE_INSERT_SERIALIZES_WITH_MEETING_START:
   -- Attendance insertion locks its meeting so it cannot
   -- race with the one-time update that starts that same meeting.
-  SELECT started_at
-  INTO meeting_started_at
+  SELECT started_at,closed_at
+  INTO meeting_started_at,meeting_closed_at
   FROM council_meetings
   WHERE id = target_meeting
   FOR UPDATE;
@@ -40,6 +41,16 @@ BEGIN
   -- @functional-requirement HALL-FR-ATT-090 ATTENDANCE_CLOSES_WHEN_MEETING_STARTS: The attendance
   -- set is complete and frozen from the
   -- instant the council meeting starts.
+  IF meeting_closed_at IS NULL AND meeting_started_at IS NOT NULL AND TG_OP='INSERT'
+    AND NEW.declared_at>=meeting_started_at AND NEW.declared_at<=clock_timestamp()
+    AND EXISTS(SELECT FROM hall.meeting_membership_record r
+      WHERE r.id=(SELECT id FROM hall.meeting_membership_record WHERE council_meeting=target_meeting ORDER BY observed_at DESC LIMIT 1)
+        AND NEW.council_member=ANY(r.member_ids) AND NEW.declared_at>=r.observed_at)
+    AND NOT EXISTS(SELECT FROM hall.meeting_membership_record r
+      WHERE r.id=(SELECT id FROM hall.meeting_membership_record WHERE council_meeting=target_meeting ORDER BY observed_at LIMIT 1)
+        AND NEW.council_member=ANY(r.member_ids)) THEN
+    RETURN NEW;
+  END IF;
   IF meeting_started_at IS NOT NULL THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV102',

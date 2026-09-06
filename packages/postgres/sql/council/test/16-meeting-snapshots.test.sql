@@ -2,10 +2,11 @@ BEGIN;
 \ir support/helpers.sql
 SELECT no_plan();
 
-INSERT INTO council_meetings(id, quorum, scheduled_at, location)
-VALUES(test_uuid('snapshot:meeting'), 1, '2026-01-01 09:00Z', 'Chamber');
+INSERT INTO council_meetings (id, scheduled_at, location) VALUES
+(test_uuid('snapshot:meeting'), '2026-01-01 09:00Z', 'Chamber');
 INSERT INTO meeting_attendance(id, council_member, council_meeting, status)
 VALUES(test_uuid('snapshot:attendance'), test_uuid('snapshot:member'), test_uuid('snapshot:meeting'), 'present');
+SELECT test_confirm_declared_membership(test_uuid('snapshot:meeting'));
 -- HALL-FR-MTG-230 HALL-FR-MTG-240 HALL-FR-MTG-250
 SELECT throws_ok($$SELECT start_council_meeting(test_uuid('snapshot:meeting'), '2026-01-01 09:00Z')$$,
  'HV124', NULL, 'start requires designated officers');
@@ -24,7 +25,8 @@ SELECT throws_ok($$DELETE FROM council_meeting_snapshot$$, 'HV125', NULL, 'snaps
 SELECT throws_ok($$TRUNCATE council_meeting_snapshot$$, 'HV125', NULL, 'snapshots reject truncate');
 SELECT throws_ok($$SELECT adjourn_council_agenda_item(test_uuid('snapshot:unknown'), NULL)$$,
  'HV230', NULL, 'adjournment requires an explicit timestamp');
-INSERT INTO council_meetings(id, quorum) VALUES(test_uuid('snapshot:reorder'), 1);
+INSERT INTO council_meetings (id) VALUES
+(test_uuid('snapshot:reorder'));
 INSERT INTO council_business(id) VALUES(test_uuid('snapshot:business'));
 CREATE TEMP TABLE reorder_case AS SELECT
  schedule_open_question(test_uuid('snapshot:business'), test_uuid('snapshot:reorder'), 1) AS first,

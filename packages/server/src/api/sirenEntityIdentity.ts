@@ -9,6 +9,7 @@ export const sirenEntityClasses = [
   "authentication",
   "authentication-status",
   "ballot",
+  "ballot-preview",
   "committee-membership",
   "contact",
   "council-business",
@@ -58,6 +59,7 @@ export function classifySirenEntity(request: Request, value: unknown): SirenEnti
     const object = value as Record<string, unknown>;
     if ("councilMeetingId" in object && "subject" in object && "position" in object) return "agenda-item";
     if ("councilMeetingId" in object && "councilMemberId" in object && "status" in object) return "attendance";
+    if ("agendaItemId" in object && "mode" in object && "completedAt" in object) return "ballot";
     if ("meetingId" in object && "method" in object && "result" in object) return "ballot";
   }
   if (path.startsWith("/api/users")) return "user";
@@ -76,6 +78,7 @@ export function classifySirenEntity(request: Request, value: unknown): SirenEnti
   }
   if (path.startsWith("/api/council-committees")) return "council-committee";
   if (path.startsWith("/api/council-business")) return "council-business";
+  if (path.startsWith("/api/ballot-previews")) return "ballot-preview";
   if (path.startsWith("/api/ballots")) return "ballot";
   if (path.startsWith("/api/resources")) return "resource";
   if (path.startsWith("/api/council-meetings")) {
@@ -95,6 +98,7 @@ const primaryPropertyByClass: Record<SirenEntityClass, string | null> = {
   authentication: null,
   "authentication-status": null,
   ballot: "ballot",
+  "ballot-preview": null,
   "committee-membership": null,
   contact: null,
   "council-business": "business",
@@ -133,6 +137,7 @@ const slugIdentityByClass: Record<SirenEntityClass, boolean> = {
   authentication: false,
   "authentication-status": false,
   ballot: false,
+  "ballot-preview": false,
   "committee-membership": false,
   contact: false,
   "council-business": true,
@@ -195,9 +200,14 @@ export function canonicalHref(request: Request, entityClass: SirenEntityClass, v
     "audit-event": () => (id ? `/api/audit-events/${id}` : currentHref()),
     authentication: currentHref,
     "authentication-status": currentHref,
+    "ballot-preview": () => (id ? `/api/ballot-previews/${id}` : currentHref()),
     ballot: () => {
       if (!id) return currentHref();
-      if (pathWithoutQuery(request).startsWith("/api/ballots")) return `/api/ballots/${id}`;
+      if (
+        pathWithoutQuery(request).startsWith("/api/ballots") ||
+        pathWithoutQuery(request).startsWith("/api/ballot-previews")
+      )
+        return `/api/ballots/${id}`;
       const meetingReference = meetingReferenceForValue(request, primary, value);
       return meetingReference ? `/api/council-meetings/${meetingReference}/ballots/${id}` : currentHref();
     },

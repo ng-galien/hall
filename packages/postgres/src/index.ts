@@ -9,9 +9,7 @@ export { createPostgresClient, PostgresClient } from "./client.js";
 export { type HallPostgresConfig, parseHallPostgresConfig } from "./config.js";
 export {
   type CloseCouncilMeetingInput,
-  type CompleteBallotInput,
   type CompleteOpenQuestionInput,
-  type CreateBallotInput,
   type CreatePostgresCouncilBusiness,
   type PostgresBallot,
   type PostgresBallotMode,
@@ -43,7 +41,6 @@ export {
   postgresMeetingAttendanceSchema,
   postgresMeetingAttendanceStatusSchema,
   postgresVoteChoiceSchema,
-  type RecordBallotVotesInput,
   type ReorderCouncilAgendaInput,
   type ReprogramAgendaItemInput,
   type ScheduleAgendaItemInput,

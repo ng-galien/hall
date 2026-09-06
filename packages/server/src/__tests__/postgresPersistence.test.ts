@@ -718,7 +718,7 @@ postgres("PostgreSQL persistence", () => {
       const business = (await businessResponse.json()) as { properties: { id: string } };
 
       const meetingId = randomUUID();
-      await setup.query("INSERT INTO hall.council_meetings (id, quorum) VALUES ($1, 2)", [meetingId]);
+      await setup.query("INSERT INTO hall.council_meetings (id) VALUES ($1)", [meetingId]);
       for (const memberId of memberIds) {
         await setup.query(
           `INSERT INTO hall.meeting_attendance (id, council_member, council_meeting, status)
@@ -753,14 +753,27 @@ postgres("PostgreSQL persistence", () => {
         ],
       });
       await setup.query(
-        "SELECT hall_api.schedule_council_meeting($1, TIMESTAMPTZ '2026-09-12 08:30:00+00', 'Council chamber')",
+        "SELECT hall_api.schedule_council_meeting($1, TIMESTAMPTZ '2026-01-12 08:30:00+00', 'Council chamber')",
         [meetingId],
       );
-      await setup.query("SELECT hall_api.set_council_meeting_officers($1, $2, $3)", [meetingId, memberIds[0], memberIds[1]]);
-      await setup.query("SELECT hall_api.start_council_meeting($1, TIMESTAMPTZ '2026-09-12 09:00:00+00')", [meetingId]);
-      await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-09-12 09:01:00+00')", [openQuestionAgendaItemId]);
-      await setup.query("SELECT hall_api.complete_open_question($1, TIMESTAMPTZ '2026-09-12 09:04:00+00')", [openQuestionAgendaItemId]);
-      await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-09-12 09:05:00+00')", [
+      await setup.query("SELECT hall_api.set_council_meeting_officers($1, $2, $3)", [
+        meetingId,
+        memberIds[0],
+        memberIds[1],
+      ]);
+      await setup.query("SELECT set_config('hall.actor_id','persistence-test',false)");
+      await setup.query(
+        "SELECT hall_api.record_meeting_membership($1, TIMESTAMPTZ '2026-01-12 08:30:00+00', 'Explicit fixture mandate roster', $2::uuid[])",
+        [meetingId, memberIds],
+      );
+      await setup.query("SELECT hall_api.start_council_meeting($1, TIMESTAMPTZ '2026-01-12 09:00:00+00')", [meetingId]);
+      await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-01-12 09:01:00+00')", [
+        openQuestionAgendaItemId,
+      ]);
+      await setup.query("SELECT hall_api.complete_open_question($1, TIMESTAMPTZ '2026-01-12 09:04:00+00')", [
+        openQuestionAgendaItemId,
+      ]);
+      await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-01-12 09:05:00+00')", [
         agendaItemId,
       ]);
 
@@ -798,21 +811,51 @@ postgres("PostgreSQL persistence", () => {
         ],
       });
 
-      const createResponse = await fetch(`${server.url}/api/ballots`, {
+      const previewResponse = await fetch(`${server.url}/api/ballot-previews`, {
         method: "POST",
         headers: mutationHeaders,
         body: JSON.stringify({
           agendaItemId,
-          mode: "public",
-          participantAttendanceIds: attendances.rows.map(({ id }) => id),
-          chairmanAttendanceId: attendances.rows[0]!.id,
+          candidate: {
+            procedure: "ordinaryMajority",
+            mode: "public",
+            participantAttendanceIds: attendances.rows.map(({ id }) => id),
+            chairmanAttendanceId: attendances.rows[0]!.id,
+            votes: attendances.rows.map(({ id }, index) => ({
+              meetingAttendanceId: id,
+              choice: index === 0 ? "approve" : "reject",
+            })),
+            nonParticipations: [],
+          },
         }),
       });
-      expect(createResponse.status).toBe(201);
-      const created = (await createResponse.json()) as {
-        properties: { id: string; agendaItemId: string; mode: string; chairmanParticipationId: string };
+      expect(previewResponse.status).toBe(201);
+      const preview = (await previewResponse.json()) as { properties: { id: string } };
+      const beforeConfirmation = await fetch(`${server.url}/api/ballots?meetingId=${meetingId}`);
+      await expect(beforeConfirmation.json()).resolves.toMatchObject({ entities: [] });
+      const confirmResponse = await fetch(`${server.url}/api/ballot-previews/${preview.properties.id}/confirm`, {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({}),
+      });
+      expect(confirmResponse.status).toBe(200);
+      const created = (await confirmResponse.json()) as {
+        properties: {
+          id: string;
+          agendaItemId: string;
+          mode: string;
+          resultPreviewId: string;
+          result: string;
+          completedAt: string;
+        };
       };
-      expect(created.properties).toMatchObject({ agendaItemId, mode: "public" });
+      expect(created.properties).toMatchObject({
+        agendaItemId,
+        mode: "public",
+        resultPreviewId: preview.properties.id,
+        result: "approve",
+      });
+      expect(Date.parse(created.properties.completedAt)).not.toBeNaN();
 
       const [listResponse, participationResponse] = await Promise.all([
         fetch(`${server.url}/api/ballots?meetingId=${meetingId}`),
@@ -826,35 +869,9 @@ postgres("PostgreSQL persistence", () => {
       expect(list.entities.map(({ properties }) => properties.id)).toEqual([created.properties.id]);
       expect(participations.entities).toHaveLength(2);
 
-      const voteResponse = await fetch(`${server.url}/api/ballots/${created.properties.id}/votes`, {
-        method: "POST",
-        headers: mutationHeaders,
-        body: JSON.stringify({
-          mode: "public",
-          votes: participations.entities.map(({ properties }) => ({
-            ballotParticipationId: properties.id,
-            choice: properties.id === created.properties.chairmanParticipationId ? "approve" : "reject",
-          })),
-        }),
-      });
-      expect(voteResponse.status).toBe(201);
-      const votes = (await voteResponse.json()) as { entities: Array<{ properties: Record<string, unknown> }> };
-      expect(votes.entities).toHaveLength(2);
-
-      const completedAt = "2026-09-12T09:10:00.000Z";
-      const completeResponse = await fetch(`${server.url}/api/ballots/${created.properties.id}/complete`, {
-        method: "POST",
-        headers: mutationHeaders,
-        body: JSON.stringify({ completedAt }),
-      });
-      expect(completeResponse.status).toBe(200);
-      await expect(completeResponse.json()).resolves.toMatchObject({
-        properties: { id: created.properties.id, completedAt: "2026-09-12T09:10:00+00:00", result: "approve" },
-      });
-
       const votesResponse = await fetch(`${server.url}/api/ballots/${created.properties.id}/votes`);
       expect(votesResponse.status).toBe(200);
-      await expect(votesResponse.json()).resolves.toMatchObject({ entities: expect.any(Array) });
+      await expect(votesResponse.json()).resolves.toMatchObject({ entities: [expect.any(Object), expect.any(Object)] });
     } finally {
       await setup.end();
       await server.close();

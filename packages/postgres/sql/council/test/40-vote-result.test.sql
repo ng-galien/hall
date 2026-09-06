@@ -219,7 +219,7 @@ SELECT throws_ok(
 SELECT lives_ok(
   $$
     UPDATE ballots
-    SET completed_at = '2026-01-01 09:30:00+00'
+    SET result_preview=test_review_ballot(id),completed_at = '2026-01-01 09:30:00+00'
     WHERE id = test_uuid('vote:public:ballot')
   $$,
   'ballot and agenda-item completion succeed atomically'
@@ -341,7 +341,7 @@ SELECT throws_ok(
     WHERE id = test_uuid('vote:mismatch:ballot')
   $$,
   'HV408',
-  'every ballot participation must produce one vote',
+  'every ballot participation must be accounted for by a vote or non-participation',
   'completion rejects a missing participant vote'
 );
 
@@ -489,7 +489,7 @@ SELECT is(
 SELECT lives_ok(
   $$
     UPDATE ballots
-    SET completed_at = '2026-01-01 09:30:00+00'
+    SET result_preview=test_review_ballot(id),completed_at = '2026-01-01 09:30:00+00'
     WHERE id = test_uuid('vote:secret-tie:ballot')
   $$,
   'a secret ballot closes from anonymous aggregate rows'

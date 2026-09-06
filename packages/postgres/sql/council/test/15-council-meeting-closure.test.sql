@@ -4,8 +4,8 @@ SELECT no_plan();
 
 -- HALL-FR-MTG-080
 SELECT lives_ok(
-  $$INSERT INTO council_meetings (id, quorum)
-    VALUES (test_uuid('closure:unstarted'), 2)$$,
+  $$INSERT INTO council_meetings (id) VALUES
+(test_uuid('closure:unstarted'))$$,
   'a next meeting can be provisioned before its date is fixed'
 );
 
@@ -33,12 +33,10 @@ SELECT throws_ok(
 SELECT throws_ok(
   $$SELECT test_execute_deferred(ARRAY[
     $statement$
-      INSERT INTO council_meetings (id, previous_council_meeting, quorum)
-      VALUES (
+      INSERT INTO council_meetings (id, previous_council_meeting) VALUES
+(
         test_uuid('closure:premature-successor'),
-        test_uuid('closure:unstarted'),
-        2
-      )
+        test_uuid('closure:unstarted'))
     $statement$
   ])$$,
   'HV120',
@@ -46,10 +44,9 @@ SELECT throws_ok(
   'a successor cannot commit while its predecessor remains open'
 );
 
-INSERT INTO council_meetings (id, quorum, scheduled_at, location)
-VALUES (
+INSERT INTO council_meetings (id, scheduled_at, location) VALUES
+(
   test_uuid('closure:main'),
-  2,
   '2026-01-01 09:00:00+00',
   'Council chamber'
 );
@@ -152,13 +149,13 @@ SELECT ok(
   (
     SELECT previous_council_meeting = test_uuid('closure:main')
       AND scheduled_at IS NULL
-      AND quorum = 2
+      AND NOT EXISTS(SELECT FROM meeting_membership_record WHERE council_meeting=council_meetings.id)
       AND started_at IS NULL
       AND closed_at IS NULL
     FROM council_meetings, closure_result
     WHERE id = closure_result.next_meeting
   ),
-  'closure provisions one undated successor with the known quorum'
+  'closure provisions one undated successor without inventing the next membership'
 );
 
 SELECT ok(
@@ -167,12 +164,10 @@ SELECT ok(
 );
 
 SELECT throws_ok(
-  $$INSERT INTO council_meetings (id, previous_council_meeting, quorum)
-    VALUES (
+  $$INSERT INTO council_meetings (id, previous_council_meeting) VALUES
+(
       test_uuid('closure:duplicate-successor'),
-      test_uuid('closure:main'),
-      2
-    )$$,
+      test_uuid('closure:main'))$$,
   '23505',
   NULL,
   'the predecessor key admits only one successor'

@@ -8,7 +8,7 @@ export type MeetingOpeningBlock =
   | "quorumFailure";
 
 export function meetingOpeningBlock(aggregate: LiveMeetingPresentation): MeetingOpeningBlock | null {
-  const { meeting, rosterMemberIds, attendance, quorum } = aggregate;
+  const { meeting, rosterMemberIds, attendance } = aggregate;
   if (meeting.quorumFailure) return "quorumFailure";
   const attendedMemberIds = new Set(attendance.map((item) => item.memberId));
   const attendanceComplete =
@@ -16,7 +16,6 @@ export function meetingOpeningBlock(aggregate: LiveMeetingPresentation): Meeting
     attendedMemberIds.size === rosterMemberIds.length &&
     rosterMemberIds.every((memberId) => attendedMemberIds.has(memberId));
   if (!attendanceComplete) return "attendanceIncomplete";
-  if (!quorum.reached) return "quorumNotReached";
   if (
     !meeting.chairMemberId ||
     !meeting.secretaryMemberId ||

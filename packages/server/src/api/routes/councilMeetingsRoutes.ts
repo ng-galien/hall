@@ -1,14 +1,18 @@
 import {
   type AgendaItem,
   adjournAgendaItemSchema,
-  recordAgendaItemRecusalSchema,
   type CouncilMeeting,
   closeCouncilMeetingSchema,
   completeOpenQuestionSchema,
   createAndScheduleCouncilBusinessSchema,
   prepareCouncilMeetingSchema,
   provisionInitialCouncilMeetingSchema,
+  recordAgendaItemRecusalSchema,
+  recordMeetingAttendanceEventsSchema,
   recordMeetingAttendanceSchema,
+  recordMeetingMembershipSchema,
+  recordMeetingQuorumSchema,
+  recordMeetingReconvocationSchema,
   reorderCouncilAgendaSchema,
   reprogramAgendaItemSchema,
   scheduleAgendaItemSchema,
@@ -63,6 +67,62 @@ export function createCouncilMeetingsRouter({ councilClient }: Cradle): Router {
     response.json(await requireMeeting(councilClient, routeParameter(request.params.meetingReference)));
   });
 
+  router.get("/:meetingReference/conduct", requirePermission("meetings.read"), async (request, response) => {
+    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+    response.json(await councilClient.meetingConduct(meeting.id));
+  });
+  router.post(
+    "/:meetingReference/membership-records",
+    requireActionPermission("meeting.record-membership"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response
+        .status(201)
+        .json(
+          await councilClient.recordMeetingMembership(meeting.id, recordMeetingMembershipSchema.parse(request.body)),
+        );
+    },
+  );
+  router.post(
+    "/:meetingReference/attendance-events",
+    requireActionPermission("meeting.record-attendance-events"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response
+        .status(201)
+        .json(
+          await councilClient.recordMeetingAttendanceEvents(
+            meeting.id,
+            recordMeetingAttendanceEventsSchema.parse(request.body),
+          ),
+        );
+    },
+  );
+  router.post(
+    "/:meetingReference/quorum-observations",
+    requireActionPermission("meeting.record-quorum"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response
+        .status(201)
+        .json(await councilClient.recordMeetingQuorum(meeting.id, recordMeetingQuorumSchema.parse(request.body)));
+    },
+  );
+  router.post(
+    "/:meetingReference/reconvocations",
+    requireActionPermission("meeting.record-reconvocation"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response
+        .status(201)
+        .json(
+          await councilClient.recordMeetingReconvocation(
+            meeting.id,
+            recordMeetingReconvocationSchema.parse(request.body),
+          ),
+        );
+    },
+  );
   router.put("/:meetingReference/schedule", requireActionPermission("meeting.schedule"), async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     response.json(await councilClient.scheduleMeeting(meeting.id, scheduleCouncilMeetingSchema.parse(request.body)));
@@ -177,18 +237,28 @@ export function createCouncilMeetingsRouter({ councilClient }: Cradle): Router {
     },
   );
 
-  router.get("/:meetingReference/agenda-items/:agendaItemId/recusals", requirePermission("meetings.read"), async (request, response) => {
-    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
-    const item = await requireMeetingAgendaItem(councilClient, meeting, routeParameter(request.params.agendaItemId));
-    response.locals.currentCouncilMeeting = meeting;
-    response.json(await councilClient.agendaItemRecusals(item.id));
-  });
-  router.post("/:meetingReference/agenda-items/:agendaItemId/recusals", requireActionPermission("agenda-item.record-recusal"), async (request, response) => {
-    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
-    const item = await requireMeetingAgendaItem(councilClient, meeting, routeParameter(request.params.agendaItemId));
-    response.locals.currentCouncilMeeting = meeting;
-    response.status(201).json(await councilClient.recordAgendaItemRecusal(item.id, recordAgendaItemRecusalSchema.parse(request.body)));
-  });
+  router.get(
+    "/:meetingReference/agenda-items/:agendaItemId/recusals",
+    requirePermission("meetings.read"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      const item = await requireMeetingAgendaItem(councilClient, meeting, routeParameter(request.params.agendaItemId));
+      response.locals.currentCouncilMeeting = meeting;
+      response.json(await councilClient.agendaItemRecusals(item.id));
+    },
+  );
+  router.post(
+    "/:meetingReference/agenda-items/:agendaItemId/recusals",
+    requireActionPermission("agenda-item.record-recusal"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      const item = await requireMeetingAgendaItem(councilClient, meeting, routeParameter(request.params.agendaItemId));
+      response.locals.currentCouncilMeeting = meeting;
+      response
+        .status(201)
+        .json(await councilClient.recordAgendaItemRecusal(item.id, recordAgendaItemRecusalSchema.parse(request.body)));
+    },
+  );
 
   router.post(
     "/:meetingReference/agenda-items/:agendaItemId/adjourn",

@@ -6,6 +6,7 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
 AS $$
+DECLARE observation RECORD;
 BEGIN
   -- @functional-requirement HALL-FR-MTG-030 COUNCIL_MEETING_IS_IMMUTABLE: A council meeting is a
   -- durable fact and cannot be deleted, either
@@ -31,12 +32,11 @@ BEGIN
   END IF;
 
   -- @functional-requirement HALL-FR-MTG-050 COUNCIL_MEETING_DEFINITION_IS_IMMUTABLE: Neither
-  -- meeting identity nor the quorum established for
+  -- meeting identity for
   -- this occurrence can be rewritten during its lifecycle.
   IF NEW.id IS DISTINCT FROM OLD.id
     OR NEW.number IS DISTINCT FROM OLD.number
     OR NEW.previous_council_meeting IS DISTINCT FROM OLD.previous_council_meeting
-    OR NEW.quorum IS DISTINCT FROM OLD.quorum
   THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV113',
@@ -90,7 +90,8 @@ BEGIN
   -- @functional-requirement HALL-FR-MTG-070 COUNCIL_MEETING_START_REQUIRES_QUORUM: Starting
   -- requires at least the meeting quorum in
   -- physically present members; represented members are deliberately excluded.
-  IF council_meeting_present_member_count(OLD.id) < OLD.quorum THEN
+  observation := hall.record_meeting_quorum(OLD.id,NULL,NEW.started_at);
+  IF observation.facts->>'verdict'='notMet' THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV115',
       MESSAGE = 'the council meeting quorum is not reached';
@@ -103,16 +104,14 @@ BEGIN
     OR OLD.secretary_member IS NULL
     OR NOT EXISTS (
       SELECT
-      FROM meeting_attendance
-      WHERE council_meeting = OLD.id
-        AND council_member = OLD.chair_member
+      FROM hall.current_meeting_attendance(OLD.id)
+      WHERE council_member = OLD.chair_member
         AND status = 'present'
     )
     OR NOT EXISTS (
       SELECT
-      FROM meeting_attendance
-      WHERE council_meeting = OLD.id
-        AND council_member = OLD.secretary_member
+      FROM hall.current_meeting_attendance(OLD.id)
+      WHERE council_member = OLD.secretary_member
         AND status = 'present'
     )
   THEN
@@ -244,7 +243,7 @@ $$;
 -- @functional-requirement HALL-FR-MTG-180 INITIAL_COUNCIL_MEETING_IS_PROVISIONED_ONCE:
 -- This is the sole runtime action for creating the root of the meeting
 -- sequence. Later meetings are provisioned atomically by closure.
-CREATE FUNCTION provision_initial_council_meeting(initial_quorum INTEGER)
+CREATE FUNCTION provision_initial_council_meeting()
 RETURNS council_meetings
 LANGUAGE plpgsql
 VOLATILE
@@ -264,8 +263,8 @@ BEGIN
       MESSAGE = 'the initial council meeting is already provisioned';
   END IF;
 
-  INSERT INTO council_meetings (id, number, quorum)
-  VALUES (gen_random_uuid(), 1, initial_quorum)
+  INSERT INTO council_meetings (id, number)
+  VALUES (gen_random_uuid(), 1)
   RETURNING * INTO provisioned;
 
   RETURN provisioned;

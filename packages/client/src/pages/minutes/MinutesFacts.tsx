@@ -71,6 +71,8 @@ export function MinutesAgendaFacts({ item, ballots }: { item: Facts["agenda"][nu
     approve: t("ballot.votesFor"),
     reject: t("ballot.votesAgainst"),
     abstain: t("ballot.abstentions"),
+    blank: t("ballot.blank"),
+    invalid: t("ballot.invalid"),
   };
   return (
     <Disclosure

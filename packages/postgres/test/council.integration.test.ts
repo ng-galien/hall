@@ -60,7 +60,7 @@ postgresDescribe("PostgreSQL council client", () => {
   });
 
   it("provisions the initial next meeting exactly once through the PostgreSQL boundary", async () => {
-    const provisioned = await council.provisionInitialMeeting(request, { quorum: 8 });
+    const provisioned = await council.provisionInitialMeeting(request, {});
 
     expect(provisioned).toEqual({
       id: expect.any(String),
@@ -72,12 +72,12 @@ postgresDescribe("PostgreSQL council client", () => {
       secretaryMemberId: null,
       scheduledAt: null,
       location: null,
-      quorum: 8,
+      quorum: null,
       startedAt: null,
       closedAt: null,
     });
     await expect(council.listMeetings(request)).resolves.toEqual([provisioned]);
-    await expect(council.provisionInitialMeeting(request, { quorum: 8 })).rejects.toMatchObject({ sqlState: "HV123" });
+    await expect(council.provisionInitialMeeting(request, {})).rejects.toMatchObject({ sqlState: "HV123" });
 
     const audit = await pool.query<{ action: string; target_id: string }>(
       "SELECT action, target_id FROM hall.audit_event WHERE action = 'meeting.provision-initial'",
@@ -89,11 +89,11 @@ postgresDescribe("PostgreSQL council client", () => {
     const attempts = await Promise.allSettled([
       council.provisionInitialMeeting(
         { ...request, context: { ...request.context, requestId: "meeting-provision-a" } },
-        { quorum: 8 },
+        {},
       ),
       council.provisionInitialMeeting(
         { ...request, context: { ...request.context, requestId: "meeting-provision-b" } },
-        { quorum: 8 },
+        {},
       ),
     ]);
 
@@ -111,20 +111,20 @@ postgresDescribe("PostgreSQL council client", () => {
       reportName: "Main report",
       reportContent: "Initial report",
     });
-    await pool.query("INSERT INTO hall.council_meetings (id, quorum) VALUES ($1, 1)", [meetingId]);
+    await pool.query("INSERT INTO hall.council_meetings (id) VALUES ($1)", [meetingId]);
     const scheduled = await council.scheduleMeeting(request, {
       id: meetingId,
-      scheduledAt: "2026-09-12T09:00:00.000Z",
+      scheduledAt: "2026-08-12T09:00:00.000Z",
       location: "Council chamber",
     });
     expect(scheduled).toMatchObject({
       id: meetingId,
-      slug: "2026-09-12-001",
-      scheduledAt: "2026-09-12T09:00:00+00:00",
+      slug: "2026-08-12-001",
+      scheduledAt: "2026-08-12T09:00:00+00:00",
       location: "Council chamber",
     });
     await expect(council.listMeetings(request)).resolves.toEqual([scheduled]);
-    await expect(council.openMeetingBySlug(request, "2026-09-12-001")).resolves.toEqual(scheduled);
+    await expect(council.openMeetingBySlug(request, "2026-08-12-001")).resolves.toEqual(scheduled);
 
     const decision = await council.scheduleDecisionProposal(request, {
       councilBusinessId: business.id,
@@ -206,7 +206,7 @@ postgresDescribe("PostgreSQL council client", () => {
       reportName: "Main report",
       reportContent: "Concurrent preparation",
     });
-    await pool.query("INSERT INTO hall.council_meetings (id, quorum) VALUES ($1, 1)", [meetingId]);
+    await pool.query("INSERT INTO hall.council_meetings (id) VALUES ($1)", [meetingId]);
     const first = await council.scheduleOpenQuestion(request, {
       councilBusinessId: business.id,
       councilMeetingId: meetingId,
@@ -283,7 +283,7 @@ postgresDescribe("PostgreSQL council client", () => {
       role: "councillor",
       termStartedOn: "2026-01-01",
     });
-    await pool.query("INSERT INTO hall.council_meetings (id, quorum) VALUES ($1, 1)", [meetingId]);
+    await pool.query("INSERT INTO hall.council_meetings (id) VALUES ($1)", [meetingId]);
     await council.recordAttendance(request, meetingId, [{ councilMemberId: member.id, status: "present" }]);
     await council.setMeetingOfficers(request, {
       id: meetingId,
@@ -298,43 +298,50 @@ postgresDescribe("PostgreSQL council client", () => {
 
     await council.scheduleMeeting(request, {
       id: meetingId,
-      scheduledAt: "2026-09-12T09:00:00.000Z",
+      scheduledAt: "2026-08-12T09:00:00.000Z",
       location: "Council chamber",
     });
+    await council.recordMeetingMembership(request, meetingId, {
+      observedAt: "2026-08-12T09:00:00Z",
+      sourceReference: "Confirmed test roster",
+      memberIds: [member.id],
+    });
     await expect(
-      council.startMeeting(request, { id: meetingId, startedAt: "2026-09-12T09:05:00.000Z" }),
+      council.startMeeting(request, { id: meetingId, startedAt: "2026-08-12T09:05:00.000Z" }),
     ).resolves.toMatchObject({
       id: meetingId,
-      scheduledAt: "2026-09-12T09:00:00+00:00",
+      scheduledAt: "2026-08-12T09:00:00+00:00",
       location: "Council chamber",
-      startedAt: "2026-09-12T09:05:00+00:00",
+      startedAt: "2026-08-12T09:05:00+00:00",
       closedAt: null,
     });
     const startedAgendaItem = await council.startAgendaItem(request, {
       agendaItemId: agendaItem.id,
-      startedAt: "2026-09-12T09:10:00.000Z",
+      startedAt: "2026-08-12T09:10:00.000Z",
     });
-    expect(startedAgendaItem).toMatchObject({ id: agendaItem.id, startedAt: "2026-09-12T09:10:00+00:00" });
+    expect(startedAgendaItem).toMatchObject({ id: agendaItem.id, startedAt: "2026-08-12T09:10:00+00:00" });
     const completedAgendaItem = await council.completeOpenQuestion(request, {
       agendaItemId: agendaItem.id,
-      completedAt: "2026-09-12T09:20:00.000Z",
+      completedAt: "2026-08-12T09:20:00.000Z",
     });
     expect(completedAgendaItem).toMatchObject({
       id: agendaItem.id,
-      startedAt: "2026-09-12T09:10:00+00:00",
-      completedAt: "2026-09-12T09:20:00+00:00",
+      startedAt: "2026-08-12T09:10:00+00:00",
+      completedAt: "2026-08-12T09:20:00+00:00",
     });
     await expect(council.openAgendaItem(request, agendaItem.id)).resolves.toEqual(completedAgendaItem);
   });
 
   it("records an immutable attendance batch and resolves a written proxy by CouncilMember", async () => {
     const meetingId = "10000000-0000-4000-8000-000000000030";
-    await directory.configureActiveCouncilTerm(request, 3);
+    await directory.configureActiveCouncilTerm(request, 5);
     const members = [];
     for (const [firstName, lastName] of [
       ["Ariane", "Bernard"],
       ["Bastien", "Collet"],
       ["Claire", "Dubois"],
+      ["Dan", "Martin"],
+      ["Eva", "Martin"],
     ]) {
       const contact = await directory.createContact(request, {
         firstName,
@@ -361,7 +368,7 @@ postgresDescribe("PostgreSQL council client", () => {
         content: Buffer.from("written proxy"),
       })
     ).data;
-    await pool.query("INSERT INTO hall.council_meetings (id, quorum) VALUES ($1, 1)", [meetingId]);
+    await pool.query("INSERT INTO hall.council_meetings (id) VALUES ($1)", [meetingId]);
 
     const attendance = await council.recordAttendance(request, meetingId, [
       {
@@ -372,9 +379,11 @@ postgresDescribe("PostgreSQL council client", () => {
       },
       { councilMemberId: members[0]!.id, status: "present" },
       { councilMemberId: members[2]!.id, status: "excused" },
+      { councilMemberId: members[3]!.id, status: "present" },
+      { councilMemberId: members[4]!.id, status: "present" },
     ]);
 
-    expect(attendance).toHaveLength(3);
+    expect(attendance).toHaveLength(5);
     expect(attendance).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ councilMemberId: members[0]!.id, status: "present" }),
@@ -397,10 +406,15 @@ postgresDescribe("PostgreSQL council client", () => {
 
     await council.scheduleMeeting(request, {
       id: meetingId,
-      scheduledAt: "2026-09-12T09:00:00.000Z",
+      scheduledAt: "2026-08-12T09:00:00.000Z",
       location: "Council chamber",
     });
-    await council.startMeeting(request, { id: meetingId, startedAt: "2026-09-12T09:05:00.000Z" });
+    await council.recordMeetingMembership(request, meetingId, {
+      observedAt: "2026-08-12T09:05:00.000Z",
+      sourceReference: "Confirmed test roster",
+      memberIds: (await council.listAttendance(request, meetingId)).map((a) => a.councilMemberId),
+    });
+    await council.startMeeting(request, { id: meetingId, startedAt: "2026-08-12T09:05:00.000Z" });
     await expect(
       council.recordAttendance(request, meetingId, [{ councilMemberId: members[2]!.id, status: "absent" }]),
     ).rejects.toMatchObject({ sqlState: "HV102" });
@@ -412,7 +426,7 @@ postgresDescribe("PostgreSQL council client", () => {
       {
         action: "meeting.attendance.record",
         target_id: meetingId,
-        details: { attendanceCount: 3 },
+        details: { attendanceCount: 5 },
       },
     ]);
   });
@@ -445,7 +459,7 @@ postgresDescribe("PostgreSQL council client", () => {
       reportName: "Main report",
       reportContent: "Proposal",
     });
-    await pool.query("INSERT INTO hall.council_meetings (id, quorum) VALUES ($1, 2)", [meetingId]);
+    await pool.query("INSERT INTO hall.council_meetings (id) VALUES ($1)", [meetingId]);
     const attendance = await council.recordAttendance(
       request,
       meetingId,
@@ -463,21 +477,36 @@ postgresDescribe("PostgreSQL council client", () => {
     });
     await council.scheduleMeeting(request, {
       id: meetingId,
-      scheduledAt: "2026-09-12T09:00:00.000Z",
+      scheduledAt: "2026-08-12T09:00:00.000Z",
       location: "Council chamber",
     });
-    await council.startMeeting(request, { id: meetingId, startedAt: "2026-09-12T09:05:00.000Z" });
+    await council.recordMeetingMembership(request, meetingId, {
+      observedAt: "2026-08-12T09:05:00.000Z",
+      sourceReference: "Confirmed test roster",
+      memberIds: (await council.listAttendance(request, meetingId)).map((a) => a.councilMemberId),
+    });
+    await council.startMeeting(request, { id: meetingId, startedAt: "2026-08-12T09:05:00.000Z" });
     await council.startAgendaItem(request, {
       agendaItemId: agendaItem.id,
-      startedAt: "2026-09-12T09:10:00.000Z",
+      startedAt: "2026-08-12T09:10:00.000Z",
     });
     const chairmanAttendance = attendance.find((item) => item.councilMemberId === members[0]!.id)!;
-    const ballot = await council.createBallot(request, {
+    const preview = await council.createBallotResultPreview(request, {
       agendaItemId: agendaItem.id,
-      mode: "public",
-      participantAttendanceIds: attendance.map((item) => item.id),
-      chairmanAttendanceId: chairmanAttendance.id,
+      candidate: {
+        procedure: "ordinaryMajority",
+        mode: "public",
+        participantAttendanceIds: attendance.map((a) => a.id),
+        chairmanAttendanceId: chairmanAttendance.id,
+        votes: attendance.map((a, index) => ({
+          meetingAttendanceId: a.id,
+          choice: index === 0 ? "reject" : "approve",
+        })),
+        nonParticipations: [],
+      },
     });
+    expect(await council.listBallots(request, meetingId)).toEqual([]);
+    const ballot = await council.confirmBallotResultPreview(request, preview.id);
 
     await expect(council.listBallots(request, meetingId)).resolves.toEqual([ballot]);
     await expect(council.openBallot(request, ballot.id)).resolves.toEqual(ballot);
@@ -498,22 +527,17 @@ postgresDescribe("PostgreSQL council client", () => {
       meetingAttendanceId: chairmanAttendance.id,
     });
 
-    const votes = await council.recordBallotVotes(request, ballot.id, {
-      mode: "public",
-      votes: participations.map((participation, index) => ({
-        ballotParticipationId: participation.id,
-        choice: index === 0 ? "reject" : "approve",
-      })),
-    });
+    const votes = await council.listBallotVotes(request, ballot.id);
     expect(votes).toHaveLength(3);
     expect(votes.every((vote) => vote.mode === "public" && vote.count === 1)).toBe(true);
     await expect(council.listBallotVotes(request, ballot.id)).resolves.toEqual(votes);
 
-    const completed = await council.completeBallot(request, {
-      ballotId: ballot.id,
-      completedAt: "2026-09-12T09:20:00.000Z",
+    const completed = ballot;
+    expect(completed).toMatchObject({
+      result: "approve",
+      completedAt: expect.any(String),
+      resultPreviewId: preview.id,
     });
-    expect(completed).toMatchObject({ result: "approve", completedAt: "2026-09-12T09:20:00+00:00" });
     await expect(council.openAgendaItem(request, agendaItem.id)).resolves.toMatchObject({
       completedAt: completed.completedAt,
     });
@@ -547,7 +571,7 @@ postgresDescribe("PostgreSQL council client", () => {
       reportName: "Main report",
       reportContent: "Proposal",
     });
-    await pool.query("INSERT INTO hall.council_meetings (id, quorum) VALUES ($1, 2)", [meetingId]);
+    await pool.query("INSERT INTO hall.council_meetings (id) VALUES ($1)", [meetingId]);
     const attendance = await council.recordAttendance(
       request,
       meetingId,
@@ -565,26 +589,32 @@ postgresDescribe("PostgreSQL council client", () => {
     });
     await council.scheduleMeeting(request, {
       id: meetingId,
-      scheduledAt: "2026-09-13T09:00:00.000Z",
+      scheduledAt: "2026-08-13T09:00:00.000Z",
       location: "Council chamber",
     });
-    await council.startMeeting(request, { id: meetingId, startedAt: "2026-09-13T09:05:00.000Z" });
+    await council.recordMeetingMembership(request, meetingId, {
+      observedAt: "2026-08-13T09:05:00.000Z",
+      sourceReference: "Confirmed test roster",
+      memberIds: (await council.listAttendance(request, meetingId)).map((a) => a.councilMemberId),
+    });
+    await council.startMeeting(request, { id: meetingId, startedAt: "2026-08-13T09:05:00.000Z" });
     await council.startAgendaItem(request, {
       agendaItemId: agendaItem.id,
-      startedAt: "2026-09-13T09:10:00.000Z",
+      startedAt: "2026-08-13T09:10:00.000Z",
     });
     const chairmanAttendance = attendance.find((item) => item.councilMemberId === members[0]!.id)!;
-    const ballot = await council.createBallot(request, {
+    const preview = await council.createBallotResultPreview(request, {
       agendaItemId: agendaItem.id,
-      mode: "secret",
-      participantAttendanceIds: attendance.map((item) => item.id),
-      chairmanAttendanceId: chairmanAttendance.id,
+      candidate: {
+        procedure: "ordinaryMajority",
+        mode: "secret",
+        participantAttendanceIds: attendance.map((a) => a.id),
+        chairmanAttendanceId: chairmanAttendance.id,
+        totals: { approve: 2, reject: 1, abstain: 0, blank: 0, invalid: 0, nonParticipation: 0 },
+      },
     });
-
-    const votes = await council.recordBallotVotes(request, ballot.id, {
-      mode: "secret",
-      totals: { approve: 2, reject: 1, abstain: 0 },
-    });
+    const ballot = await council.confirmBallotResultPreview(request, preview.id);
+    const votes = await council.listBallotVotes(request, ballot.id);
     expect(votes).toEqual(
       expect.arrayContaining([
         { mode: "secret", ballotId: ballot.id, choice: "approve", ballotParticipationId: null, count: 2 },
@@ -592,11 +622,12 @@ postgresDescribe("PostgreSQL council client", () => {
       ]),
     );
     expect(votes).toHaveLength(2);
-    const completed = await council.completeBallot(request, {
-      ballotId: ballot.id,
-      completedAt: "2026-09-13T09:20:00.000Z",
+    const completed = ballot;
+    expect(completed).toMatchObject({
+      result: "approve",
+      completedAt: expect.any(String),
+      resultPreviewId: preview.id,
     });
-    expect(completed).toMatchObject({ result: "approve", completedAt: "2026-09-13T09:20:00+00:00" });
     await expect(council.openAgendaItem(request, agendaItem.id)).resolves.toMatchObject({
       completedAt: completed.completedAt,
     });
@@ -624,8 +655,8 @@ postgresDescribe("PostgreSQL council client", () => {
       await setup.query("BEGIN");
       await setup.query("SET LOCAL search_path = hall, public, pg_catalog");
       await setup.query(
-        `INSERT INTO council_meetings (id, quorum, scheduled_at, location)
-         VALUES ($1, 1, '2026-09-03T08:30:00.000Z', 'Council chamber')`,
+        `INSERT INTO council_meetings (id, scheduled_at, location)
+         VALUES ($1, '2026-09-03T08:30:00.000Z', 'Council chamber')`,
         [meetingId],
       );
       await setup.query(
@@ -633,8 +664,10 @@ postgresDescribe("PostgreSQL council client", () => {
          VALUES ('20000000-0000-4000-8000-000000000001', $1, $2, 'present')`,
         [member.id, meetingId],
       );
+      await setup.query("SELECT hall.set_council_meeting_officers($1,$2,$2)", [meetingId, member.id]);
+      await setup.query("SET LOCAL hall.actor_id='fixture-clerk'");
       await setup.query(
-        "SELECT hall.set_council_meeting_officers($1,$2,$2)",
+        "INSERT INTO hall.meeting_membership_record(council_meeting,observed_at,source_reference,member_ids) VALUES($1,'2026-09-03 08:30Z','Confirmed test roster',ARRAY[$2::uuid])",
         [meetingId, member.id],
       );
       await setup.query(
@@ -662,7 +695,7 @@ postgresDescribe("PostgreSQL council client", () => {
       previousCouncilMeetingId: meetingId,
       scheduledAt: null,
       location: null,
-      quorum: 1,
+      quorum: null,
       startedAt: null,
       closedAt: null,
     });

@@ -7,6 +7,7 @@ CREATE TABLE meeting_attendance (
   council_member UUID NOT NULL REFERENCES hall.council_member (id),
   council_meeting UUID NOT NULL REFERENCES council_meetings (id),
   status meeting_attendance_status NOT NULL,
+  declared_at TIMESTAMPTZ,
   -- @technical-requirement HALL-TR-CON-010 PROXY_RELATION_SUPPORTS_ATOMIC_INSERTION:
   -- The self-reference is deferred so represented and holder attendance rows
   -- can be inserted in either order inside one transaction.

@@ -1,3 +1,4 @@
+SET LOCAL hall.actor_id='fixture-clerk';
 CREATE OR REPLACE FUNCTION test_uuid(label TEXT)
 RETURNS UUID
 LANGUAGE sql
@@ -127,6 +128,31 @@ BEGIN
 END;
 $$;
 
+-- Test fixtures explicitly attest their declared roster. These helpers do not
+-- infer effective mandates in production or bypass the SQL quorum guards.
+CREATE OR REPLACE FUNCTION test_confirm_declared_membership(target_meeting UUID)
+RETURNS VOID LANGUAGE plpgsql AS $$
+BEGIN
+ IF NOT EXISTS(SELECT FROM meeting_membership_record WHERE council_meeting=target_meeting) THEN
+ INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids)
+ SELECT target_meeting,coalesce(scheduled_at,'2026-01-01 08:00Z'::timestamptz),'Explicit test roster',
+ ARRAY(SELECT council_member FROM meeting_attendance WHERE council_meeting=target_meeting ORDER BY council_member)
+ FROM council_meetings WHERE id=target_meeting;
+ END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION test_review_ballot(target_ballot UUID)
+RETURNS UUID LANGUAGE plpgsql AS $$
+DECLARE preview JSONB;
+BEGIN
+ preview:=hall_api.create_ballot_result_preview((SELECT council_agenda_item FROM ballots WHERE id=target_ballot),hall.ballot_candidate_from_rows(target_ballot));
+ RETURN (preview->>'id')::uuid;
+END $$;
+CREATE OR REPLACE FUNCTION test_confirm_ballot(target_ballot UUID,completion_time TIMESTAMPTZ)
+RETURNS ballots LANGUAGE sql AS $$
+ SELECT complete_ballot(target_ballot,completion_time,test_review_ballot(target_ballot));
+$$;
+
 -- Explicit fixture preparation; production start checks remain active.
 CREATE OR REPLACE FUNCTION test_designate_present_officers(target_meeting UUID)
 RETURNS VOID LANGUAGE plpgsql AS $$
@@ -135,6 +161,7 @@ BEGIN
   SELECT council_member INTO STRICT member_id FROM meeting_attendance
   WHERE council_meeting=target_meeting AND status='present' ORDER BY id LIMIT 1;
   PERFORM set_council_meeting_officers(target_meeting, member_id, member_id);
+  PERFORM test_confirm_declared_membership(target_meeting);
 END;
 $$;
 
@@ -149,10 +176,10 @@ AS $$
 DECLARE
   participant_number INTEGER;
 BEGIN
-  INSERT INTO council_meetings (id, quorum, scheduled_at, location)
-  VALUES (
+  INSERT INTO council_meetings (number,id, scheduled_at, location) VALUES
+(
+    (SELECT coalesce(max(number),0)+1 FROM council_meetings),
     test_uuid(fixture || ':meeting'),
-    1,
     '2026-01-01 08:30:00+00',
     'Council chamber'
   );

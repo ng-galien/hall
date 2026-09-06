@@ -4,14 +4,8 @@ SELECT no_plan();
 
 -- HALL-FR-MTG-010
 SELECT throws_ok(
-  $$INSERT INTO council_meetings (id, quorum) VALUES (test_uuid('mtg:bad-quorum'), 0)$$,
-  '23514',
-  NULL,
-  'a meeting quorum must be positive and keeps the native CHECK SQLSTATE'
-);
-
-SELECT throws_ok(
-  $$INSERT INTO council_meetings (id, quorum) VALUES (NULL, 1)$$,
+  $$INSERT INTO council_meetings (id) VALUES
+(NULL)$$,
   '23502',
   NULL,
   'declarative NOT NULL violations keep their native SQLSTATE'
@@ -20,18 +14,18 @@ SELECT throws_ok(
 -- HALL-FR-MTG-040
 SELECT throws_ok(
   $$
-    INSERT INTO council_meetings (id, quorum, started_at)
-    VALUES (test_uuid('mtg:insert-started'), 1, '2026-01-01 09:00:00+00')
+    INSERT INTO council_meetings (id, started_at) VALUES
+(test_uuid('mtg:insert-started'), '2026-01-01 09:00:00+00')
   $$,
   'HV112',
   'a council meeting must not be started on insert',
   'a meeting is inserted in preparation'
 );
 
-INSERT INTO council_meetings (id, quorum, scheduled_at, location) VALUES
-  (test_uuid('mtg:main'), 2, NULL, NULL),
-  (test_uuid('mtg:other'), 1, NULL, NULL),
-  (test_uuid('mtg:no-quorum'), 2, '2026-01-01 08:30:00+00', 'Council chamber');
+INSERT INTO council_meetings (id, scheduled_at, location) VALUES
+(test_uuid('mtg:main'), NULL, NULL),
+(test_uuid('mtg:other'), NULL, NULL),
+(test_uuid('mtg:no-quorum'), '2026-01-01 08:30:00+00', 'Council chamber');
 
 -- Missing reference diagnostic used by HALL-FR-ATT-090.
 SELECT throws_ok(
@@ -276,8 +270,8 @@ SELECT is(
   'quorum counts only the two physically present members'
 );
 
-INSERT INTO council_meetings (id, quorum)
-VALUES (test_uuid('mtg:attendance-action'), 1);
+INSERT INTO council_meetings (id) VALUES
+(test_uuid('mtg:attendance-action'));
 
 -- HALL-TR-CON-040 HALL-TR-INT-070
 SELECT lives_ok(
@@ -341,10 +335,10 @@ SELECT throws_ok(
 
 -- HALL-FR-MTG-050
 SELECT throws_ok(
-  $$UPDATE council_meetings SET quorum = 3 WHERE id = test_uuid('mtg:main')$$,
+  $$UPDATE council_meetings SET number = number + 1000 WHERE id = test_uuid('mtg:main')$$,
   'HV113',
   'a council meeting definition is immutable',
-  'meeting quorum cannot be rewritten'
+  'meeting identity cannot be rewritten'
 );
 
 INSERT INTO meeting_attendance (id, council_member, council_meeting, status)
@@ -356,6 +350,8 @@ VALUES (
 );
 
 -- HALL-FR-MTG-070
+INSERT INTO meeting_attendance(id,council_member,council_meeting,status) VALUES(test_uuid('att:no-quorum-absent'),test_uuid('member:no-quorum-absent'),test_uuid('mtg:no-quorum'),'absent');
+SELECT test_confirm_declared_membership(test_uuid('mtg:no-quorum'));
 SELECT throws_ok(
   $$
     UPDATE council_meetings

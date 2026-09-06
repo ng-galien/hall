@@ -142,7 +142,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             <p className="meeting-evidence">
               {t("meeting.quorumFailureEvidence")
                 .replace("{present}", formatNumber(meeting.quorumFailure.quorum.physicallyPresent))
-                .replace("{required}", formatNumber(meeting.quorumFailure.quorum.required))}{" "}
+                .replace("{required}", meeting.quorumFailure.quorum.required === null ? t("meeting.quorumUnestablished") : formatNumber(meeting.quorumFailure.quorum.required))}{" "}
               ·{" "}
               {t("meeting.quorumFailureRecordedAt").replace("{date}", formatDateTime(meeting.quorumFailure.recordedAt))}
             </p>

@@ -38,6 +38,9 @@ BEGIN
         MESSAGE = 'a ballot must be open on insert';
     END IF;
 
+    PERFORM 1 FROM hall.council_meetings m JOIN hall.council_agenda_item item ON item.council_meeting=m.id
+      WHERE item.id=NEW.council_agenda_item FOR UPDATE OF m;
+
     -- @technical-requirement HALL-TR-CON-080 BALLOT_CREATION_SERIALIZES_WITH_AGENDA_COMPLETION:
     -- Lock the agenda item while attaching its unique ballot so completion or
     -- deprogramming cannot race with ballot creation.
@@ -104,6 +107,10 @@ BEGIN
         MESSAGE = 'an open question cannot receive a ballot';
     END IF;
 
+    IF NOT EXISTS(SELECT FROM hall.meeting_quorum_observation
+      WHERE agenda_item=NEW.council_agenda_item AND facts->>'verdict' IN ('met','exempt')) THEN
+      RAISE EXCEPTION USING ERRCODE = 'HV414',MESSAGE='a ballot requires a recorded discussion quorum';
+    END IF;
     -- The new open ballot satisfies its meeting and agenda invariants.
     RETURN NEW;
   END IF;
@@ -150,15 +157,23 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- @functional-requirement HALL-FR-BAL-270 BALLOT_COMPLETION_REQUIRES_ONE_VOTE_PER_PARTICIPATION:
+  -- @functional-requirement HALL-FR-BAL-270 BALLOT_COMPLETION_REQUIRES_ACCOUNTING_FOR_EVERY_PARTICIPATION:
   -- At completion every declared participation has
   -- produced exactly one choice. Public rows count one and secret rows carry an
   -- aggregate count, so totals rather than row counts are compared.
-  IF ballot_vote_count(OLD.id) <> ballot_participation_count(OLD.id) THEN
+  IF ballot_vote_count(OLD.id) + coalesce((SELECT sum(count) FROM hall.ballot_non_participation WHERE ballot=OLD.id),0) <> ballot_participation_count(OLD.id) THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV408',
-      MESSAGE = 'every ballot participation must produce one vote';
+      MESSAGE = 'every ballot participation must be accounted for by a vote or non-participation';
   END IF;
+
+  IF NEW.completed_at < (SELECT started_at FROM hall.council_agenda_item WHERE id=OLD.council_agenda_item) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV417',MESSAGE='ballot completion cannot precede discussion';
+  END IF;
+  IF EXISTS(SELECT FROM council_agenda_item WHERE id=OLD.council_agenda_item AND (completed_at IS NOT NULL OR position<0)) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV409',MESSAGE='a completed ballot requires an active agenda item';
+  END IF;
+  PERFORM hall.require_current_ballot_preview(OLD.id,NEW.result_preview);
 
   -- Result invariant: completion derives the outcome from the immutable voting
   -- facts and the public/secret tie rule; it never accepts a supplied result.

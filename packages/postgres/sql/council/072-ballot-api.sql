@@ -17,6 +17,7 @@ AS $function$
     'agendaItemId', target.council_agenda_item,
     'mode', target.mode,
     'chairmanParticipationId', target.chairman,
+    'resultPreviewId', target.result_preview,
     'completedAt', target.completed_at,
     'result', target.result
   )
@@ -168,7 +169,7 @@ CREATE FUNCTION hall_api.record_secret_ballot_votes(
   target_ballot UUID,
   approve_count INTEGER,
   reject_count INTEGER,
-  abstain_count INTEGER
+  abstain_count INTEGER, blank_count INTEGER, invalid_count INTEGER, non_participation_count INTEGER
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -181,7 +182,7 @@ BEGIN
     target_ballot,
     approve_count,
     reject_count,
-    abstain_count
+    abstain_count, blank_count, invalid_count, non_participation_count
   );
   RETURN hall_api.list_ballot_votes(target_ballot);
 END;
@@ -189,7 +190,7 @@ $function$;
 
 CREATE FUNCTION hall_api.complete_ballot(
   target_ballot UUID,
-  completion_time TIMESTAMPTZ
+  completion_time TIMESTAMPTZ, reviewed_preview UUID
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -200,7 +201,18 @@ AS $function$
 DECLARE
   changed hall.ballots;
 BEGIN
-  changed := hall.complete_ballot(target_ballot, completion_time);
+  changed := hall.complete_ballot(target_ballot, completion_time, reviewed_preview);
   RETURN hall.ballot_projection(changed);
 END;
 $function$;
+
+CREATE FUNCTION hall_api.record_public_non_participations(target_ballot UUID,participant_ids UUID[],reasons TEXT[])
+RETURNS VOID LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+ SELECT hall.record_public_non_participations(target_ballot,participant_ids,reasons);
+$$;
+CREATE FUNCTION hall_api.list_ballot_non_participations(target_ballot UUID)
+RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+ SELECT coalesce(jsonb_agg(jsonb_build_object('ballotId',ballot,'mode',mode,
+   'ballotParticipationId',ballot_participation,'count',count,'reason',reason) ORDER BY ballot_participation),'[]'::jsonb)
+ FROM hall.ballot_non_participation WHERE ballot=target_ballot;
+$$;
