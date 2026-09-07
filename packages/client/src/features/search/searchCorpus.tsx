@@ -1,9 +1,6 @@
+import type { CouncilDecisionSummary } from "@hall/api-contract";
 import type { Contact } from "@hall/api-contract";
-import type {
-  CouncilDecisionListEntry,
-  CouncilMember,
-  ReferenceEntityKind,
-} from "@hall/domain";
+import type { CouncilMember, ReferenceEntityKind } from "@hall/domain";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { CouncilMeetingView } from "../../models/councilMeeting";
 import { useMemo } from "react";
@@ -36,7 +33,7 @@ export type SearchHit =
   | SearchHitFor<"councilBusiness", { entityKind: "councilBusiness"; business: CouncilBusinessView }>
   | SearchHitFor<"resource", { entityKind: "resource"; resource: DocumentaryLeafSummary }>
   | SearchHitFor<"meeting", { entityKind: "meeting"; meeting: CouncilMeetingView }>
-  | SearchHitFor<"decision", { entityKind: "decision"; decision: CouncilDecisionListEntry }>
+  | SearchHitFor<"decision", { entityKind: "decision"; decision: CouncilDecisionSummary }>
   | SearchHitFor<"member", { entityKind: "member"; member: CouncilMember }>
   | SearchHitFor<"contact", { entityKind: "contact"; contact: Contact }>;
 
@@ -105,8 +102,8 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
         kind: "decision" as const,
         id: decision.id,
         label: decision.title,
-        extra: [decision.number, decision.draftText],
-        state: decision.status,
+        extra: [decision.publicationNumber],
+        state: decision.state,
         entity: { entityKind: "decision" as const, decision },
       })),
       ...members.map((member) => ({

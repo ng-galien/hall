@@ -63,7 +63,7 @@ export function LiveMeetingPage() {
   return (
     <div className="live-shell" data-testid="live-meeting-page">
       <header className="live-header">
-        <Link className="live-exit" to={`/meetings/${meeting.slug}`}>
+        <Link className="live-exit" data-testid="live-meeting-exit" to={`/meetings/${meeting.slug}`}>
           <BackIcon aria-hidden="true" />
           {t("live.exit")}
         </Link>
@@ -73,7 +73,7 @@ export function LiveMeetingPage() {
         </div>
         <div className="live-header-status">
           <span
-            className={`live-quorum-chip ${quorum.reached ? "live-quorum-chip-reached" : "live-quorum-chip-missing"}`}
+            className={`live-quorum-chip ${!quorumObservation ? "live-quorum-chip-pending" : quorum.reached ? "live-quorum-chip-reached" : "live-quorum-chip-missing"}`}
             data-testid="live-quorum-observation"
           >
             {quorumLabel}

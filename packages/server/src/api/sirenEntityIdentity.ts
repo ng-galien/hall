@@ -20,6 +20,7 @@ export const sirenEntityClasses = [
   "council-term",
   "entity",
   "hall-settings",
+  "prepared-subject",
   "meeting-notice",
   "agenda-freeze",
   "minutes",
@@ -67,6 +68,8 @@ export function classifySirenEntity(request: Request, value: unknown): SirenEnti
   if (path.startsWith("/api/users")) return "user";
   if (path.startsWith("/api/audit-events")) return "audit-event";
   if (path.startsWith("/api/settings")) return "hall-settings";
+  if (path.endsWith("/notice-message")) return "entity";
+  if (path.startsWith("/api/council-business") && path.includes("/prepared-subjects")) return "prepared-subject";
   if (path.startsWith("/api/meeting-notices") || path.endsWith("/notices")) return "meeting-notice";
   if (path.endsWith("/agenda-freeze") && request.method === "GET") return "agenda-freeze";
   if (path.startsWith("/api/minutes")) return "minutes";
@@ -113,6 +116,7 @@ const primaryPropertyByClass: Record<SirenEntityClass, string | null> = {
   "council-term": null,
   entity: null,
   "hall-settings": null,
+  "prepared-subject": null,
   "meeting-notice": null,
   "agenda-freeze": null,
   minutes: null,
@@ -154,6 +158,7 @@ const slugIdentityByClass: Record<SirenEntityClass, boolean> = {
   "council-term": false,
   entity: false,
   "hall-settings": false,
+  "prepared-subject": false,
   "meeting-notice": false,
   "agenda-freeze": false,
   minutes: false,
@@ -233,6 +238,10 @@ export function canonicalHref(request: Request, entityClass: SirenEntityClass, v
     "council-term": currentHref,
     entity: currentHref,
     "hall-settings": currentHref,
+    "prepared-subject": () =>
+      primary
+        ? `/api/council-business/prepared-subjects/${primary.kind}/${id ?? primary.councilBusinessId}`
+        : currentHref(),
     "meeting-notice": () => referencedHref("meeting-notices"),
     "agenda-freeze": currentHref,
     minutes: () => referencedHref("minutes"),

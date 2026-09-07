@@ -102,6 +102,8 @@ export const postgresSchema = `
   );
 
   INSERT INTO hall_settings (id) VALUES ('hall');
+  GRANT USAGE ON SCHEMA public TO hall_owner;
+  GRANT SELECT(id,population,time_zone) ON hall_settings TO hall_owner;
   ${meetingLocationsSchema}
 
   CREATE TABLE number_sequences (

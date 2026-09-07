@@ -227,6 +227,12 @@ BEGIN
 END
 $function$;
 
+CREATE FUNCTION hall.active_council_members()
+RETURNS SETOF hall.council_member LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
+  SELECT member.* FROM hall.council_member member JOIN hall.council_term term ON term.id=member.council_term
+  WHERE term.ended_on IS NULL AND member.term_ended_on IS NULL;
+$$;
+
 CREATE FUNCTION hall_api.list_council_members(active_only BOOLEAN DEFAULT FALSE)
 RETURNS JSONB
 LANGUAGE sql
@@ -237,7 +243,7 @@ AS $function$
   SELECT coalesce(jsonb_agg(hall.council_member_projection(member) ORDER BY contact.last_name, contact.first_name, member.id), '[]'::jsonb)
   FROM hall.council_member AS member
   JOIN hall.contact AS contact ON contact.id = member.contact
-  WHERE NOT active_only OR member.term_ended_on IS NULL
+  WHERE NOT active_only OR member.id IN (SELECT id FROM hall.active_council_members())
 $function$;
 
 CREATE FUNCTION hall_api.open_council_member(target_member UUID)

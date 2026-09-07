@@ -14,6 +14,7 @@ import { toSirenRepresentation } from "../api/sirenRepresentation.js";
 
 function request(path: string, permissions: readonly ApiPermission[] = apiPermissions): Request {
   return {
+    method: "GET",
     originalUrl: path,
     path,
     sessionId: "session-id",
@@ -51,8 +52,15 @@ const classificationSamples: Record<SirenEntityClass, { path: string; value: unk
   "council-term": { path: "/api/council-terms", value: { id: "id" } },
   entity: { path: "/api/unknown", value: {} },
   "hall-settings": { path: "/api/settings", value: { id: "settings" } },
-  "agenda-freeze": { path: `/api/council-meetings/${id}/agenda-freeze`, value: { councilMeetingId: id, frozenAt: "2026-09-06T10:00:00Z", agenda: [] } },
-  "meeting-notice": { path: `/api/meeting-notices/${id}`, value: { id, councilMeetingId: id, version: 1 } },
+  "prepared-subject": {
+    path: "/api/council-business/prepared-subjects/openQuestion/id",
+    value: { id: "id", kind: "openQuestion" },
+  },
+  "agenda-freeze": {
+    path: "/api/council-meetings/id/agenda-freeze",
+    value: { councilMeetingId: "id", frozenAt: "2026-09-06T10:00:00Z", agenda: [] },
+  },
+  "meeting-notice": { path: "/api/meeting-notices/id", value: { id: "id", councilMeetingId: "id", version: 1 } },
   minutes: { path: "/api/minutes/one", value: { id: "one", generatedAt: null } },
   resource: { path: "/api/resources/id", value: { id: "id" } },
   session: { path: "/api/auth/session", value: {} },
@@ -149,6 +157,7 @@ describe("Siren entity class authority", () => {
       scheduledAt: "2026-09-01T18:00:00.000Z",
       startedAt: "2026-09-01T18:05:00.000Z",
       closedAt: null,
+      closureBlockers: [],
     };
 
     expect(objectActions(request("/api/council-meetings/2026-09-01-001"), "council-meeting", startedMeeting)).toEqual([
@@ -198,6 +207,9 @@ describe("Siren entity class authority", () => {
 describe("active agenda ballot capabilities", () => {
   it.each([
     ["openQuestion", false],
+    ["businessConsultation", false],
+    ["councilDecisionProposal", false],
+    ["minutesApproval", false],
     ["councilDecisionProposal", true],
     ["minutesApproval", true],
   ])("exposes ballot result preview for %s: %s", (kind, expected) => {
@@ -212,7 +224,91 @@ describe("active agenda ballot capabilities", () => {
       startedAt: "2026-09-05T10:01:00Z",
       completedAt: null,
       subject: { kind, id: "subject" },
+      canReviewBallot: expected,
+      conductBlockers: {
+        startDiscussion: [{ code: "discussionAlreadyStarted" }],
+        reviewBallot: expected ? [] : [{ code: "nonVotingSubject" }],
+        adjourn: [],
+        complete: [{ code: "votingSubjectRequiresBallot" }],
+        updateNotes: [],
+      },
     });
     expect(actions.some((action) => action.name === "ballot.preview")).toBe(expected);
   });
+});
+
+describe("conduct reasons in HTTP properties", () => {
+  it("adds permission refusal to the visible reason list and removes the corresponding Siren action", () => {
+    const req = request("/api/council-meetings/meeting/agenda-items/item", []);
+    req.res = {
+      locals: { currentCouncilMeeting: { id: "meeting", startedAt: "2026-01-01T09:00:00Z", closedAt: null } },
+    } as unknown as Request["res"];
+    const entity = toSirenRepresentation(req, {
+      id: "item",
+      councilMeetingId: "meeting",
+      position: 1,
+      startedAt: null,
+      completedAt: null,
+      adjournedAt: null,
+      subject: { kind: "openQuestion", id: "subject" },
+      canStartDiscussion: true,
+      canReviewBallot: false,
+      conductBlockers: {
+        startDiscussion: [],
+        reviewBallot: [{ code: "nonVotingSubject" }],
+        adjourn: [],
+        complete: [{ code: "discussionNotStarted" }],
+        updateNotes: [],
+      },
+    });
+    expect(entity.properties).toMatchObject({
+      canStartDiscussion: false,
+      conductBlockers: {
+        startDiscussion: [{ code: "permissionDenied" }],
+        reviewBallot: [{ code: "nonVotingSubject" }, { code: "permissionDenied" }],
+      },
+    });
+    expect(entity.actions ?? []).toEqual([]);
+  });
+  it("preserves the pending minutes reason while adding a closure permission refusal", () => {
+    const minutesId = "00000000-0000-4000-8000-000000000001";
+    const entity = toSirenRepresentation(request("/api/council-meetings/meeting", []), {
+      id: "meeting",
+      number: 1,
+      startedAt: "2026-01-01T09:00:00Z",
+      closedAt: null,
+      closureBlockers: [{ code: "previousMinutesPending", minutesIds: [minutesId] }],
+    });
+    expect(entity.properties).toMatchObject({
+      closureBlockers: [{ code: "previousMinutesPending", minutesIds: [minutesId] }, { code: "permissionDenied" }],
+    });
+    expect(entity.actions ?? []).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "meeting.close" })]),
+    );
+  });
+});
+
+it.each([true, false])("keeps attendance reasons and Siren permission consistent: permitted=%s", (permitted) => {
+  const entity = toSirenRepresentation(
+    request("/api/council-meetings/meeting/conduct", permitted ? apiPermissions : []),
+    {
+      councilMeetingId: "meeting",
+      meeting: { id: "meeting", number: 1, startedAt: "2026-01-01T09:00:00Z", closedAt: null, closureBlockers: [] },
+      canRecordAttendanceEvents: true,
+      meetingActionBlockers: {
+        addAgendaItem: [],
+        recordAttendanceEvents: [],
+      },
+    },
+  );
+  expect(entity.properties).toMatchObject({
+    canRecordAttendanceEvents: permitted,
+    meetingActionBlockers: {
+      addAgendaItem: permitted ? [] : [{ code: "permissionDenied" }],
+      recordAttendanceEvents: permitted ? [] : [{ code: "permissionDenied" }],
+    },
+  });
+  expect(entity.actions?.some((action) => action.name === "meeting.record-attendance-events") ?? false).toBe(permitted);
+  expect(entity.actions?.some((action) => action.name === "meeting.add-open-question") ?? false).toBe(permitted);
+  expect(entity.actions?.some((action) => action.name.includes("late")) ?? false).toBe(false);
 });

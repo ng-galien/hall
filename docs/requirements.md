@@ -372,12 +372,12 @@ Autorités : [modèle](../packages/postgres/sql/council/005-council-meetings.sql
 | MTG-040 | Création avant démarrage | P — automate de préparation. |
 | MTG-050 | Identité et quorum immuables | P — ne prouve pas le bon effectif ni les régimes par affaire. |
 | MTG-060 | Dates et transitions à sens unique | P — politique de correction. |
-| MTG-070 | Démarrage exige quorum | M — S1/J1 ; contrôle d'ouverture Hall, insuffisant pour les affaires suivantes. |
+| MTG-070 | `COUNCIL_MEETING_OPENING_RECORDS_QUORUM` — constat conservé à l’ouverture, y compris `notMet` | M — ouverture logicielle produit ; S1/J1 pour la validité des délibérations. |
 | MTG-080 | Date initialement absente | P — préparation anticipée. |
 | MTG-090 | Clôture exige démarrage | P — automate. |
 | MTG-100 | Séance close immuable | P — gel des données. |
 | MTG-110 | Clôture produit successeur et PV | M — S3 al. 3 pour PV ; successeur automatique unique choisi par Hall. |
-| MTG-120 | PV précédent traité avant clôture | M — règle du commencement établie par S3 al. 3 ; garde de clôture Hall insuffisante. Le SQL vérifie un point terminé, pas un résultat favorable. |
+| MTG-120 | PV précédent approuvé avant clôture | M — règle du commencement établie par S3 al. 3 ; garde de clôture Hall vérifiant l’approbation effective. L’ajournement ne satisfait pas cette garde. |
 | MTG-130 | Création automatique séance suivante | P — aucune obligation de provisioning. |
 | MTG-140 | Successeur après séance close | P — chaînage. |
 | MTG-160 | Programmation par action nommée | P — API. |
@@ -669,7 +669,7 @@ Leur qualification reste distincte de la validation finale de leur intégration.
 | ID en consolidation | Proposition | Qualification |
 | --- | --- | --- |
 | HALL-FR-MTG-270 | Quorum ordinaire depuis membres en exercice | M — S1 pour seuil ; provenance persistée Hall ; qualification de l'effectif à établir pour chaque régime. |
-| HALL-FR-AGI-350 | Contrôle du quorum à la discussion | M — J1 pour instant ; atomicité et preuve enregistrée Hall. |
+| HALL-FR-AGI-350 | `DECISION_CONSIDERATION_REQUIRES_RECORDED_CURRENT_QUORUM` — quorum à l’examen formel des projets de délibération et du PV | M — J1 pour instant ; atomicité, preuve enregistrée et distinction des échanges Hall. |
 | HALL-FR-AGI-360 | Pas de remplacement du contrôle par celui du vote | M — J2, dans sa portée ; mémoire du contrôle Hall. |
 | HALL-FR-ATT-120 | Historique des changements de présence | P — réalise le suivi nécessaire à J1, qui n'impose pas ce journal. |
 
@@ -691,12 +691,175 @@ document ne constitue pas une preuve d'exécution.
 | 15 membres en exercice, huit présents dont un déporté pour intérêt personnel | Sept présences admissibles, dénominateur 15, seuil huit selon l'interprétation J3 retenue. La confirmation post-réforme 2025 reste `unproven` pour `MTG-280/general-presence`. |
 | 15 membres en exercice dont deux relevant effectivement de S6 II | Dénominateur 13, seuil sept ; les déportés ne contribuent pas aux présences admissibles. Vérifier les conditions et exclusions de S6 I/II/III, sans assimiler tout représentant à ce cas. |
 | Une abstention volontaire, sans motif de déport | Ne diminue pas automatiquement le dénominateur ou la présence pour le quorum ; exclue des suffrages exprimés (S1/S2). |
-| Composition de l'annuaire modifiée après un constat | Les faits anciens restent conservés ; un nouveau constat nominal attesté établit l'effectif applicable. Ce mécanisme est produit, pas un mode d'investiture légal. |
+| Composition de l'annuaire modifiée après un constat | Les faits anciens restent conservés ; un nouvel instantané conserve la composition utilisée sans réécrire le précédent. La source produit est la mandature actuelle, pas une liste justificative saisie séparément. |
 
-Le constat nominal proposé par Hall identifie les membres en exercice, son
-instant de référence, son auteur et sa provenance ; son effectif est dérivé de
-la liste, jamais des seuls participants à la séance. Les dates de l'annuaire
-ne prouvent pas à elles seules la prise d'effet juridique. Par exemple,
+**Décision produit du 7 septembre 2026 — `HALL-FR-MTG-300`** : la commande
+unique `meeting.record-opening` capture dans PostgreSQL tous les membres actifs de la mandature actuelle,
+y compris les absents et représentés, puis enregistre l'appel, les pouvoirs,
+les officiers et l'observation de quorum dans une transaction. Aucun formulaire
+séparé ni référence justificative libre ne sert à ressaisir cet effectif.
+La décision ultérieure du propriétaire autorise l'ouverture logicielle et le
+déroulement des échanges même si le verdict est `notMet`, tout en conservant
+ce constat. Sans quorum applicable, aucun vote n'est permis et les points
+soumis au vote sont à ajourner. Cette décision remplace le choix précédent de
+laisser `startedAt` nul. Les entrées invalides et autres prérequis non satisfaits
+restent refusés sans écriture partielle. La dispense d'une seconde convocation
+régulièrement qualifiée reste applicable sous ses propres conditions.
+L'instantané nominatif daté reste
+une preuve interne conservée, jamais déduite des seuls présents ou des sièges
+théoriques. Cette décision remplace le constat nominal manuel précédemment
+proposé ; elle ne modifie pas la clause réglementaire de `MTG-270`.
+
+Le constat `notMet` conserve les faits nécessaires à la reconvocation existante,
+sans créer un épisode ni inventer un envoi. Un nouvel appel doit préserver cet
+échec. Les scénarios attendus distinguent ouverture avec sept présents sur quinze
+(constat conservé, aucun vote ni décision adoptée), quorum atteint et entrée
+invalide (aucune écriture partielle).
+
+S1 encadre la validité des délibérations, pas le champ technique `startedAt`.
+J1 fixe néanmoins l'appréciation du quorum à la mise en discussion de chaque
+délibération : l'autorisation produit d'échanger ne certifie pas une délibération
+valide. Une consultation ou une question ouverte sans scrutin ne constitue pas
+une dispense juridique automatique ; sans quorum, les notes d'échanges ne
+produisent ni avis formel ni décision collective réputée adoptée. Un quorum
+atteint plus tard au vote ne prouve pas rétroactivement le quorum initial.
+
+Le contrat SQL retenu distingue donc `MTG-070`, qui conserve le constat à
+l'ouverture, et `AGI-350`, qui conditionne l'entrée en examen formel d'un
+projet de délibération ou d'une approbation de PV au quorum applicable.
+Les points d'information peuvent entrer en échange avec leur observation,
+sans produire une décision adoptée. Le contrôle du quorum courant au scrutin
+reste distinct de ce contrôle à l'examen.
+
+Le point d'approbation du PV précédent conserve sa portée propre (S3). Sans
+approbation effective, il ne doit pas être marqué approuvé pour permettre la
+clôture. Le traitement de son attente et de la clôture sans vote reste à
+résoudre dans le cycle existant ; aucune approbation présumée ni perte de la
+référence au PV n'est autorisée par cette décision.
+
+**Décision produit du 7 septembre 2026 — `HALL-FR-AGI-410`
+(`OPEN_QUESTIONS_CAN_BE_APPENDED_DURING_MEETING`)** :
+une séance ouverte et non clôturée permet d'ajouter une `OpenQuestion`, selon
+son comportement actuel de discussion, sans créer une délibération ni un
+scrutin. « Question libre » désigne ici l'action demandée, pas une nouvelle
+variante du domaine. L'exigence est `functional`, d'origine `product`.
+La question est ajoutée en fin d'ordre du jour, avec une position SQL après
+la plus grande position absolue et un numéro de présentation continu calculé
+par le backend. L'ajout reste possible avec un constat `notMet` ou lorsque
+tous les points précédents sont terminés, tant que la séance reste ouverte.
+La convocation gelée et ses pièces restent inchangées. L'ajout intervenu en
+séance conserve sa chronologie et sa trace dans le PV, sans être présenté
+comme une question déjà annoncée dans la convocation. Aucun nouveau seuil de
+quorum, délai de dépôt, vote d'autorisation ou formalité bloquante n'est ajouté
+par cette décision. Les échanges ne produisent ni avis formel ni décision
+collective réputée adoptée.
+L'autorité de provenance est
+[019b-agenda-additions.sql](../packages/postgres/sql/council/019b-agenda-additions.sql) :
+elle conserve une trace immuable associant la séance d'origine, l'occurrence,
+`introduced_at` et `recorded_by`. Le contrat `introducedAt` du point et du PV
+rend identifiable l'introduction pendant la séance. Pour le PV, cette métadonnée
+est projetée à la lecture depuis la relation d'ajout immuable liée à la séance
+d'origine, sans réécriture des faits ni des PDF existants. L'action API
+`addOpenQuestion` reçoit `path`, `name` et `content`.
+
+Le backend rapporte les preuves suivantes le 7 septembre 2026, sans
+réexécution par la curation documentaire :
+
+- `27-open-question-addition.test.sql` : 16 contrôles réussis, quorum atteint
+  puis `notMet`, ajout après traitement des points précédents, discussion et
+  notes retrouvées dans le PV avec la date d'introduction, absence de scrutin,
+  convocation gelée et PDF inchangés ; refus avant ouverture, après clôture,
+  d'une discussion antidatée et d'une modification de la trace d'ajout.
+- `26-meeting-conduct-blockers.test.sql` : sept contrôles réussis ; suite SQL
+  complète rapportée : 20 fichiers et 631 contrôles réussis.
+- `meetingNoticesPostgres.test.ts` : parcours HTTP réel réussi, ajout avec
+  `notMet` renvoyant 201, tentative d'injection d'une nature renvoyant 400,
+  faits de convocation inchangés.
+- 107 tests Siren, audit et rendu unitaire du PV réussis ; contrôles de types
+  et d'architecture rapportés sans erreur.
+
+Le runtime est rapporté aligné et prêt, sans remise à zéro et avec conservation
+des données utilisateur. Le test E2E frontend ciblé reste en cours ; ces preuves
+ne constituent pas une validation finale de l'IHM.
+
+Le contexte juridique, vérifié le 7 septembre 2026, est distinct du choix
+d'implémentation. [L2121-19, alinéa 1, version depuis le 22 mars 2020](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000031038620)
+reconnaît les questions orales des conseillers portant sur les affaires de
+la commune ; à partir de 1 000 habitants, leur fréquence et leurs modalités
+relèvent du règlement intérieur ou, à défaut, d'une délibération.
+La [réponse ministérielle du 4 juin 2020 à la question Sénat n° 16423](https://www.senat.fr/questions/base/2020/qSEQ200516423.html)
+précise qu'elles peuvent concerner un objet non inscrit à l'ordre du jour et,
+en l'absence de précision locale, être posées le jour même. Cette réponse
+est un éclairage institutionnel, pas une disposition législative ni une
+autorisation générale de délibérer sur un objet non convoqué. Hall n'invente
+pas les règles locales manquantes et ne certifie pas leur respect par le seul
+ajout technique. S13 (`L2121-10`) demeure la référence pour le contenu de la
+convocation ; S3 (`L2121-15`, alinéa 4) prévoit la teneur des discussions dans
+le PV, sans imposer ce modèle de commande ou une transcription intégrale.
+
+**Décision produit du 7 septembre 2026 — `HALL-FR-AGI-400`
+(`AGENDA_PRESENTATION_NUMBERS_ARE_CONTINUOUS`)** : les points présentés
+portent une numérotation logique continue à partir de 1, commune à l'IHM,
+au mode séance, à la convocation et au PV. Cette exigence est `functional`,
+d'origine `product`, issue de la décision utilisateur ; elle ne revendique
+aucun fondement juridique. La propriété partagée `agendaNumber` est distincte
+de `position`, clé d'ordonnancement SQL qui peut conserver des trous.
+La projection de référence est
+[059-meeting-snapshots.sql](../packages/postgres/sql/council/059-meeting-snapshots.sql) :
+elle calcule le rang des éléments présentés ; après clôture, elle utilise
+l'instantané de clôture. Les positions SQL et l'historique ne sont pas modifiés
+pour combler les trous. Cette décision n'ajoute aucune garantie de stabilité
+des numéros après modification de l'ordre du jour.
+
+Le backend rapporte les résultats suivants le 7 septembre 2026 ; les scénarios
+ont été relus dans les fichiers de tests, sans réexécution par la curation :
+
+- `25-agenda-presentation-numbers.test.sql` : 10 contrôles réussis, couvrant
+  le retrait (numéro nul), les trous conservés dans les positions SQL,
+  la présentation continue de 1 à 5, le réordonnancement des identités,
+  le gel des mêmes identités et numéros, l'ajournement et leur conservation
+  dans le PV et l'API de séance clôturée après report des occurrences.
+- Suite SQL complète rapportée : 18 fichiers, 608 contrôles réussis.
+- `meetingNoticesPostgres.test.ts` : test HTTP réussi, mêmes numéros de 1 à 5
+  dans l'API et la convocation gelée ; le texte du PDF produit par Chromium
+  présente le point de position technique 6 sous le numéro 5. La pièce jointe
+  de l'EML conserve les mêmes octets que le PDF.
+- `minutesDocument.test.ts` : huit tests unitaires réussis, dont le cas
+  `position: 6` avec `agendaNumber: 5`.
+
+Le backend rapporte ensuite l'intégration dans le runtime partagé après
+`demo:restart` : état de santé prêt, réponses HTTP 200 pour trois séances et
+deux PV, avec numéros continus. Sa vérification CUA du mode séance et du PV
+sur les données seed montre les numéros de 1 à 4, y compris un point ajourné
+de position SQL `-4` présenté sous le numéro 4. Le cas comportant des trous
+reste couvert par les preuves SQL et HTTP/PDF isolées ci-dessus ; sa recette
+dans l'IHM et la recette desktop finale restent attendues côté frontend.
+Ces résultats sont rapportés par le backend, sans nouvelle exécution par la
+curation, et ne valent pas validation finale de l'affichage interactif.
+
+**Progrès du 7 septembre 2026 — `HALL-FR-AGI-390`
+(`CONDUCT_ACTIONS_EXPLAIN_UNAVAILABILITY`)** : cette exigence fonctionnelle
+d'origine produit expose les motifs d'indisponibilité des actions de conduite
+par le contrat typé `ConductBlocker`. PostgreSQL fournit les motifs métier
+partagés avec les capacités Siren ; HTTP ajoute le refus de permission.
+L'ajournement d'un point d'approbation de PV est désormais permis, en conservant
+l'identité du PV et `completedAt` nul. Il ne vaut pas approbation.
+`closureBlockers.previousMinutesPending` identifie le PV réellement en attente ;
+la clôture reste refusée par `HV117`. La cardinalité, le report et le cycle de
+clôture ne sont pas résolus par cette évolution. Le backend rapporte 22 contrôles
+réussis dans `24-conduct-action-blockers.test.sql`, couvrant les quatre types
+de points ; ce résultat n'a pas été réexécuté lors de la curation documentaire.
+
+L'autorité de capture est [071-meeting-attendance-api.sql](../packages/postgres/sql/council/071-meeting-attendance-api.sql),
+avec `MTG-270/nominal-membership-evidence` pour la conservation. `MTG-300`
+est `functional`, d'origine `product`, sans source juridique artificielle.
+Le parcours atomique est en cours de vérification côté backend ; la présente
+mise à jour ne constitue pas son résultat de test.
+
+Cette source automatique suppose que l'annuaire représente correctement les
+mandats actifs. Elle n'est pas une prescription légale ni un moteur de prise
+d'effet des mandats. Les dates de l'annuaire ne prouvent pas à elles seules
+cette prise d'effet. Par exemple,
 [L2121-4, al. 2, version depuis le 24 février 1996](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389858)
 fait produire effet à une démission ordinaire à sa réception par le maire ;
 J4 distingue la situation des fonctions de maire ou d'adjoint. Il ne faut pas
@@ -763,6 +926,84 @@ prévoit l'approbation du CFU en l'absence de majorité contre son adoption.
 Cette réserve, comme les élections à plusieurs tours de S4, interdit de
 qualifier un simple calcul binaire générique de couverture complète des votes.
 
+## Convocation : délai en jours francs et avertissement de séance
+
+La demande explicite du propriétaire remplace le rappel calendaire J-3 par une
+échéance calculée en **jours francs dans PostgreSQL**. Les données de séance
+exposent l'échéance, son fondement et l'avertissement de date ; le serveur les
+transporte et le frontend les présente. L'emplacement SQL et l'avertissement
+interne sont des choix produit, distincts des règles réglementaires ci-dessous.
+Ce mécanisme ne crée aucune notification externe et ne réalise aucun envoi.
+
+Pour une réunion ordinaire, [L2121-11, al. 1, depuis le 24 février 1996](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389867)
+fixe trois jours francs dans les communes de moins de 3 500 habitants.
+[L2121-12, al. 3, depuis le 19 août 2015](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000031069083)
+fixe cinq jours francs pour celles de 3 500 habitants et plus ; son dernier
+alinéa étend l'article aux communes plus petites pour une délibération portant
+sur une installation visée par L511-1 du code de l'environnement.
+
+Soit `D` la date civile de réunion dans le fuseau de la commune et `N` le délai
+applicable : la dernière date d'envoi est `D - (N + 1)` jours calendaires.
+Le jour d'envoi et le jour de réunion sont exclus ; les `N` dates intermédiaires
+doivent être entières. Il s'agit du calcul inverse du délai réglementaire,
+pas d'une soustraction d'heures à un instant. J6 confirme que samedis, dimanches
+et jours fériés comptent, sans prorogation civile au prochain jour ouvrable.
+Le fuseau utilisé doit être établi ; le préfixe d'un instant UTC ne constitue
+pas nécessairement la date civile de la commune.
+
+| Séance | Délai applicable | Dernière date d'envoi | Borne à vérifier |
+| --- | --- | --- | --- |
+| Vendredi 11 septembre 2026 | Trois jours francs | Lundi 7 septembre | Les 8, 9 et 10 sont entiers ; envoi le 8 trop tard. |
+| Vendredi 11 septembre 2026 | Cinq jours francs | Samedi 5 septembre | Les 6 à 10 comptent ; pas de report au lundi. |
+| Mardi 31 mars 2026, Europe/Paris | Trois jours francs | Vendredi 27 mars | Le changement d'heure ne modifie pas le calcul des dates. |
+
+Une population inconnue n'est pas une population inférieure à 3 500 habitants.
+Une date, un fuseau ou une qualification de régime insuffisamment établis
+donnent une échéance indéterminée. Le calcul ordinaire ne doit pas se présenter
+comme couvrant automatiquement les exceptions non modélisées. Une première
+séance enregistrée dans Hall n'est pas, par ce seul fait, la première réunion
+après renouvellement général ; un retard ne qualifie pas une urgence.
+La seconde convocation conserve les conditions de `HALL-FR-MTG-290`, S1 et J5,
+avec le calendrier de sa nouvelle réunion. Les dispositions d'urgence de
+L2121-11/12 ne permettent pas d'inventer automatiquement un délai d'un jour.
+
+L'avertissement compare la date locale courante à la date limite : à venir,
+aujourd'hui ou dépassée. Au jour limite, il indique que la convocation doit être
+transmise au plus tard aujourd'hui pour le délai retenu. En l'absence de preuve
+d'envoi, la transmission reste **à vérifier** : la génération du PDF unique de
+convocation contenant l'ordre du jour, son rattachement à la séance et l'export
+du fichier mail `.eml` ne constituent pas cette preuve. Les pièces et notes
+requises selon le cas demeurent distinctes de ce seul calcul.
+
+Le rattachement convenu est `HALL-FR-NOT-110`
+(`MEETING_NOTICE_USES_APPLICABLE_CLEAR_DAYS`) pour les clauses réglementaires de
+délai et de décompte, avec leurs sources et scopes, et `HALL-TR-NOT-020`
+(`NOTICE_DEADLINE_IS_PROJECTED_BY_POSTGRESQL`) pour l'autorité technique SQL et
+la projection de l'avertissement, d'origine produit. Les clauses
+`ordinary-period`, `calendar-count` et `sql-projection` sont présentes dans le
+registre relu, avec S14/S15 et J6. La seconde convocation référence MTG-290
+et conserve ses sources S1/J5.
+
+L'autorité est [069-notice-deadline.sql](../packages/postgres/sql/council/069-notice-deadline.sql) :
+`notice_clear_day_deadline` calcule la date civile ; `meeting_notice_deadline`
+projette `noticeDeadline` dans les données de séance. La lecture du SQL confirme
+la distinction entre `indeterminate`, `qualificationRequired` avec
+`ordinaryReference`, et `determined` pour une seconde convocation qualifiée.
+La population n'est pas nécessaire à ce dernier régime dont le délai est connu.
+
+Le contrôle existant `npm run check:requirements` a été relancé par le référent :
+**274 définitions, 85 références, 21 sources**, avec la seule clause
+`MTG-280/general-presence` toujours explicitement `UNPROVEN`. Ce succès prouve
+la structure du registre et ses références. Les tests de comportement des
+dates et du changement d'heure restent à exécuter côté backend à ce stade.
+
+Un éventuel calcul sur la seule base du régime ordinaire reste explicitement
+indicatif si l'applicabilité n'est pas établie. Il ne doit pas être présenté
+comme une échéance légale confirmée ou un délai respecté. L'état
+`qualificationRequired` prime alors sur un avertissement qui laisserait croire
+à tort qu'il reste du temps pour envoyer. Les paramètres existants de Hall
+restent la source unique de population et de fuseau, sans seconde configuration.
+
 ## Lacunes et décisions à rendre visibles
 
 - **Quorum** : un seuil positif hérité et un contrôle d'ouverture ne prouvent
@@ -795,6 +1036,37 @@ qualifier un simple calcul binaire générique de couverture complète des votes
   des actes, archives et protection des données ne deviennent pas conformes
   parce qu'aucun ID réglementaire correspondant n'apparaît dans ces tables.
 
+## Faits des propositions confirmées
+
+`HALL-FR-DEC-010` est une exigence produit : chaque confirmation de proposition
+conserve une copie immuable du texte soumis, de la séance, des identités, du
+quorum, des déports et du résultat. Le contrat sépare les votes publics nominatifs
+des totaux secrets. Le test `28-council-decision-facts.test.sql` vérifie la capture
+à la confirmation, le refus en l’absence du texte soumis, la stabilité après
+changement de nom ou de présence et les protections contre l’effacement.
+
+Les exigences produit `HALL-FR-DEC-020`, `040` et `050` couvrent désormais
+le brouillon automatique pour adoption **ou rejet**, sa rédaction fidèle séparée
+des faits, l’aperçu et le gel explicite du PDF. `HALL-TR-DEC-010` impose le contrôle
+de version lors de l’édition et de la conservation du rendu. Le test
+`29-council-decision-documents.test.sql` couvre ces transitions, les versions
+périmées et les octets conservés ; la recette HTTP PostgreSQL dans
+`ballotPreviewsPostgres.test.ts` vérifie les permissions Siren et un vrai PDF
+contenant la rédaction, puis sa relecture immuable.
+
+`HALL-FR-DEC-060` distingue l’ordre des délibérations dans la séance du rang de
+l’ensemble des points et du numéro métier de publication. Sa clause réglementaire
+renvoie à [R2121-9, version du 22 février 2026](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053561135),
+revérifiée le 7 septembre 2026 ; compter les projets confirmés dans Hall est sa
+mise en œuvre produit, sans prétendre couvrir à elle seule le registre officiel.
+
+Le périmètre livré s’arrête au PDF figé. Le numéro métier au format
+année-mois-index doit être fixé à la publication, chantier explicitement reporté.
+Le PDF de cette tranche ne porte donc pas de numéro définitif et le gel n’en
+attribue aucun. Il ne vaut ni signature, ni publication, ni transmission au
+contrôle de légalité. Ces formalités nécessitent leurs propres preuves et ne
+sont pas déduites du résultat adopté ou rejeté.
+
 ## Maintenance
 
 Toute évolution d'une règle doit mettre à jour sa proposition, sa source ou sa
@@ -804,3 +1076,45 @@ Une source remplacée doit être conservée avec son intervalle et ses usages.
 Le référent distingue ce qui a été lu, ce qui a été interprété et ce qui reste
 non prouvé. Aucun statut global « conforme » ne se déduit de la seule réussite
 du vérificateur.
+
+
+### Gabarit documentaire des délibérations — DEC-080
+
+Le gabarit commun reprend l’enveloppe des modèles communaux fournis (demande
+FEADER et vente de terrain du 26 juin 2026) : commune, titre complet, date
+centrée, effectifs en lignes, deux colonnes avec filet, récit d’ouverture,
+présences/pouvoirs/secrétaire, objet, corps riche et emplacements de signatures.
+L’année en lettres dans le récit est une référence locale de présentation ;
+aucun format typographique général obligatoire n’en est déduit.
+
+Le contexte est lu dans les preuves historiques : commune/fuseau de la
+convocation conservée avant confirmation, quorum et présence à l’ouverture,
+qualité du président observée à la confirmation lorsqu’elle a été conservée.
+Une qualité ancienne non observée reste inconnue. Le président est identifié
+par les faits de séance (S8, L2121-14), sans lui attribuer le mandat du maire
+actuel. Les présents à l’ouverture et les votants au scrutin sont distincts.
+Le quorum est décrit selon son observation (S1, L2121-17), sans attester un
+« nombre prescrit par la loi » à partir du seul décompte des votes.
+
+Les règles de convocation et d’information des conseillers restent celles de
+S13/S14/S15 (L2121-10 à L2121-12) et de
+[L2121-13](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389870),
+consulté le 7 septembre 2026. Un PDF généré ne prouve pas sa transmission ni
+l’accomplissement de ces obligations : sa date de génération n’est pas imprimée
+comme date de convocation, et « légalement convoqué » n’est pas ajouté.
+La date d’affichage figurant sur le modèle avant la séance n’est pas interprétée
+comme publication de la délibération.
+
+DEC-L2121-23 ([L2121-23, depuis le 1er juillet 2022](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044190494),
+revérifié le 7 septembre 2026) fonde les qualités des emplacements secrétaire et
+maire. Les emplacements restent vierges ; aucun paraphe, date de signature ou
+« pour extrait conforme » n’est simulé. L’ordre de la délibération dans la
+séance demeure distinct du numéro définitif (DEC-060 / R2121-9). Le gel ne
+change pas de préconditions du seul fait de métadonnées absentes.
+
+Les clauses, montants et modalités propres aux exemples restent du contenu
+éditorial. Le moteur ne les ajoute pas aux autres délibérations et ne présume
+pas l’unanimité. Le résultat est rendu depuis le scrutin confirmé, séparément
+du corps éditable, sans modifier ce dernier. Les listes peuvent se poursuivre
+entre clauses ; les petits tableaux de financement et les emplacements de
+signature restent groupés lorsque leur taille le permet.

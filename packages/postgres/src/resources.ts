@@ -194,7 +194,12 @@ const createDocumentInputSchema = createFolderInputSchema.extend({
   mediaType: z.string().trim().min(1),
   content: z.instanceof(Buffer),
 });
-const updateTextInputSchema = z.object({ id: resourceIdSchema, expectedVersion: versionSchema, content: z.string() });
+const updateTextInputSchema = z.object({
+  id: resourceIdSchema,
+  expectedVersion: versionSchema,
+  content: z.string(),
+  name: resourceNameSchema.optional(),
+});
 const updateTextWithAssetsInputSchema = updateTextInputSchema.extend({
   referencedEditorAssetIds: z.array(resourceIdSchema),
 });
@@ -705,9 +710,15 @@ export class PostgresResources {
       "resource.updateText",
       {
         text: `SELECT hall_api.present_resource(
-          hall_api.update_text_resource($1::uuid, $2::integer, $3::text, $4::uuid[])
+          hall_api.update_text_resource($1::uuid, $2::integer, $3::text, $4::uuid[], $5::text)
         ) AS payload`,
-        values: [parsed.id, parsed.expectedVersion, parsed.content, parsed.referencedEditorAssetIds],
+        values: [
+          parsed.id,
+          parsed.expectedVersion,
+          parsed.content,
+          parsed.referencedEditorAssetIds,
+          parsed.name ?? null,
+        ],
       },
       presentedResourceSchema(textResourceSchema),
     );

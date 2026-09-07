@@ -333,7 +333,7 @@ SELECT hall_api.start_council_agenda_item(
   '2026-01-01 09:06:00+00'
 );
 SELECT ok(
-  hall_api.complete_open_question(
+  hall_api.complete_non_voting_agenda_item(
     (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'open'),
     '2026-01-01 09:07:00+00'
   ) ->> 'completedAt' IS NOT NULL,

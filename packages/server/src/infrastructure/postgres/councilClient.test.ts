@@ -60,3 +60,55 @@ it("maps recusal storage conflicts to stable API codes without reclassifying unr
     await pool.end();
   }
 });
+
+it("returns HTTP 409 with a stable pending-minutes code when PostgreSQL refuses closure", async () => {
+  const { default: express } = await import("express");
+  const { default: request } = await import("supertest");
+  const { errorHandler } = await import("../../api/errorHandler.js");
+  const pool = new Pool();
+  const postgresCouncil = new PostgresCouncil(pool);
+  const requestContext = new RequestContextStore();
+  const client = createPostgresCouncilClient({ postgresCouncil, requestContext });
+  const close = vi
+    .spyOn(postgresCouncil, "close")
+    .mockRejectedValue(
+      new HallPostgresError(
+        "the previous council meeting minutes must be approved before closure",
+        { sqlState: "HV117", constraint: null, table: null, column: null, detail: null, schema: null },
+        undefined,
+      ),
+    );
+  const app = express();
+  app.post("/api/council-meetings/:id/close", async (req, res) => {
+    await requestContext.run(
+      {
+        requestId: "pending-minutes-http",
+        principal: {
+          id: "clerk",
+          displayName: "Clerk",
+          roles: ["administrator"],
+          permissions: ["meetings.conduct"],
+          councilMemberId: null,
+        },
+      },
+      async () => {
+        res.json(await client.closeMeeting(req.params.id, { closedAt: "2026-01-02T18:00:00Z" }));
+      },
+    );
+  });
+  app.use(errorHandler);
+  try {
+    const response = await request(app).post("/api/council-meetings/00000000-0000-4000-8000-000000000001/close");
+    expect(response.status).toBe(409);
+    expect(response.headers["content-type"]).toContain("application/problem+json");
+    expect(response.body).toMatchObject({
+      status: 409,
+      code: "previous_minutes_pending",
+      type: "/api/problems/previous-minutes-pending",
+    });
+    expect(close).toHaveBeenCalledOnce();
+  } finally {
+    close.mockRestore();
+    await pool.end();
+  }
+});

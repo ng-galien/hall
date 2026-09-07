@@ -1,11 +1,12 @@
 import type { DocumentaryResource } from "@hall/domain";
-import { type FormEvent, useId, useMemo, useState } from "react";
+import type { PreparedCouncilSubject } from "@hall/api-contract";
+import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EditIcon, PlayIcon } from "../../components/icons";
+import { EditIcon, FileIcon, PlayIcon } from "../../components/icons";
 import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import {
   formatMeetingLabel,
@@ -13,12 +14,14 @@ import {
   meetingScheduleInstant,
 } from "../../features/council-meetings/meetingPresentation";
 import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
+import { MeetingNoticeActions } from "../../features/council-meetings/MeetingNoticeActions";
 import { useMeetingSettings } from "../../hooks/useMeetingSettings";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
-import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
+import { listPreparedCouncilSubjects } from "../../services/councilBusinessApi";
+import { apiErrorCode, type ApiErrorCode } from "../../services/apiClient";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { AgendaComposer } from "./AgendaComposer";
@@ -32,7 +35,9 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const aggregate = meetingActions.meeting!;
   const { meeting } = aggregate;
   const { members } = useCouncilMembersStore();
-  const { businesses } = useCouncilBusinessStore();
+  const [preparedSubjects, setPreparedSubjects] = useState<PreparedCouncilSubject[]>([]);
+  const [preparedSubjectsError, setPreparedSubjectsError] = useState<ApiErrorCode | null>(null);
+  const [preparedSubjectsLoading, setPreparedSubjectsLoading] = useState(false);
   const { resources, canUpload } = useResourcesStore();
   const rosterMembers = useMemo(
     () =>
@@ -42,8 +47,24 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
     [meeting.status, members, aggregate.rosterMemberIds],
   );
   const agendaEditable = meetingActions.can("meeting.reorder-agenda") || meetingActions.can("agenda-item.schedule");
+  const canSchedulePrepared = meetingActions.can("agenda-item.schedule-prepared");
+  const agendaSnapshot = meetingActions.workspace?.agendaItems;
+  useEffect(() => {
+    let active = true;
+    setPreparedSubjects([]);
+    setPreparedSubjectsError(null);
+    setPreparedSubjectsLoading(canSchedulePrepared);
+    if (canSchedulePrepared) {
+      void listPreparedCouncilSubjects(meeting.id)
+        .then((subjects) => { if (active) setPreparedSubjects(subjects); })
+        .catch((error) => { if (active) setPreparedSubjectsError(apiErrorCode(error)); })
+        .finally(() => { if (active) setPreparedSubjectsLoading(false); });
+    }
+    return () => { active = false; };
+  }, [meeting.id, canSchedulePrepared, agendaSnapshot]);
   const attendanceRecorded = aggregate.attendance.length;
   const [editOpen, setEditOpen] = useState(false);
+  const [documentsOpen, setDocumentsOpen] = useState(false);
   const { settings, error: settingsError } = useMeetingSettings();
   const detailsEditable = meetingActions.can("meeting.prepare");
   const startsAtLocalValue = settings ? meetingScheduleInputValue(meeting.scheduledAt, settings.timeZone) : "";
@@ -69,7 +90,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   };
 
   return (
-    <div className="page">
+    <div className="page meeting-preparation">
       <PageHeader
         title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
         description={[
@@ -78,11 +99,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         ]
           .filter(Boolean)
           .join(" · ")}
-      />
-      <div className="page-content meeting-page-content">
-        <RequestErrorBanner error={meetingActions.actionError} />
-        <RequestErrorBanner error={settingsError} />
-
+      >
         <div className="meeting-console">
           <MeetingStageBar status={meeting.status} />
           <div className="meeting-prep-actionbar">
@@ -111,6 +128,10 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               ) : null}
             </div>
             <div className="meeting-prep-actions">
+              <MeetingNoticeActions meetingActions={meetingActions} />
+              <Button variant="outline" data-testid="meeting-open-documents" onClick={() => setDocumentsOpen(true)}>
+                <FileIcon />{t("meeting.meetingDocuments")}
+              </Button>
               {detailsEditable ? (
                 <Button
                   data-testid="meeting-edit-details"
@@ -143,7 +164,10 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             </p>
           ) : null}
         </div>
-
+      </PageHeader>
+      <div className="page-content meeting-page-content">
+        <RequestErrorBanner error={meetingActions.actionError} />
+        <RequestErrorBanner error={settingsError} />
         <Modal open={editOpen} title={t("meeting.generalProperties")} onClose={() => setEditOpen(false)}>
           <form className="modal-form" onSubmit={submitDetails}>
             <RequestErrorBanner error={meetingActions.actionError} />
@@ -175,19 +199,19 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-chair`}>{t("meetings.chair")}</Label>
                 <Select name="chairMemberId" defaultValue={meeting.chairMemberId ?? undefined} required>
-                  <SelectTrigger id={`${detailsFieldId}-chair`} data-testid="meeting-edit-chair"><SelectValue placeholder={t("meetings.chairUndesignated")} /></SelectTrigger>
+                  <SelectTrigger className="w-full" id={`${detailsFieldId}-chair`} data-testid="meeting-edit-chair"><SelectValue placeholder={t("meetings.chairUndesignated")} /></SelectTrigger>
                   <SelectContent>{rosterMembers.map((member) => <SelectItem key={member.id} value={member.id}>{member.contact.firstName} {member.contact.lastName}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-secretary`}>{t("meetings.secretary")}</Label>
                 <Select name="secretaryMemberId" defaultValue={meeting.secretaryMemberId ?? undefined} required>
-                  <SelectTrigger id={`${detailsFieldId}-secretary`} data-testid="meeting-edit-secretary"><SelectValue placeholder={t("meetings.secretaryUndesignated")} /></SelectTrigger>
+                  <SelectTrigger className="w-full" id={`${detailsFieldId}-secretary`} data-testid="meeting-edit-secretary"><SelectValue placeholder={t("meetings.secretaryUndesignated")} /></SelectTrigger>
                   <SelectContent>{rosterMembers.map((member) => <SelectItem key={member.id} value={member.id}>{member.contact.firstName} {member.contact.lastName}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
-            <Button data-testid="meeting-edit-submit" variant="default" type="submit" disabled={submitting}>
+            <Button className="justify-self-end" data-testid="meeting-edit-submit" variant="default" type="submit" disabled={submitting}>
               {t(submitting ? "common.saving" : "common.save")}
             </Button>
           </form>
@@ -196,16 +220,21 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         <div className="meeting-prep-layout">
           <AgendaComposer
             agendaItems={aggregate.agendaItems}
-            businesses={businesses}
-            decisions={aggregate.councilDecisions}
+            preparedSubjects={preparedSubjects}
+            preparedSubjectsLoading={preparedSubjectsLoading}
+            preparedSubjectsError={preparedSubjectsError}
+            onSchedulePrepared={canSchedulePrepared ? meetingActions.schedulePreparedSubject : undefined}
             editable={agendaEditable}
-            onUpdateBusiness={meetingActions.updateBusiness}
-            onSaveDecisionText={meetingActions.saveDecisionText}
-            onQuickCreate={meetingActions.createAndScheduleBusiness}
+            onSubjectSaved={meetingActions.refresh}
+            onQuickCreate={meetingActions.can("meeting.create-and-schedule-business") ? meetingActions.createAndScheduleBusiness : undefined}
+            quickCreateError={meetingActions.actionError}
             onRemove={meetingActions.deprogramAgendaItem}
             onReorder={meetingActions.reorderAgenda}
           />
+        </div>
+        <Modal open={documentsOpen} title={t("meeting.meetingDocuments")} onClose={() => setDocumentsOpen(false)}>
           <MeetingDetailsCard
+            embedded
             aggregate={aggregate}
             documents={resources.filter(
               (resource): resource is DocumentaryResource =>
@@ -213,7 +242,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             )}
             documentsEditable={canUpload}
           />
-        </div>
+        </Modal>
       </div>
     </div>
   );

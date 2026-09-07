@@ -1,0 +1,46 @@
+BEGIN;
+SET LOCAL search_path=hall,public;
+SET LOCAL hall.actor_id='recovery-clerk';
+\ir support/helpers.sql
+\ir support/quorum.sql
+SELECT no_plan();
+-- HALL-FR-DEC-070: simulate a vote confirmed before documentary provisioning existed.
+SELECT pg_temp.quorum_case('recovery',3,3);
+UPDATE hall.text_resource SET content='Retained submitted text' WHERE id=(SELECT text_resource FROM hall.council_decision_proposal_workspace WHERE council_decision_proposal=(SELECT council_decision_proposal FROM hall.council_agenda_item WHERE id=test_uuid('recovery:a:agenda-item')));
+SELECT test_prepare_notice(test_uuid('recovery:meeting'));
+SELECT start_council_meeting(test_uuid('recovery:meeting'),'2026-01-01 09:00Z');
+SELECT start_council_agenda_item(test_uuid('recovery:a:agenda-item'),'2026-01-01 09:01Z');
+ALTER TABLE hall.ballots DISABLE TRIGGER ballot_capture_decision_facts;
+SELECT hall_api.confirm_ballot_result_preview((hall_api.create_ballot_result_preview(test_uuid('recovery:a:agenda-item'),pg_temp.public_candidate('recovery',3,2))->>'id')::uuid);
+SET CONSTRAINTS ALL IMMEDIATE;
+ALTER TABLE hall.ballots ENABLE TRIGGER ballot_capture_decision_facts;
+SET CONSTRAINTS ALL DEFERRED;
+SELECT is((SELECT count(*)::integer FROM hall.council_decision),0,'historical fixture has no documentary decision');
+SELECT throws_ok($$SELECT hall.recover_council_decision((SELECT id FROM hall.ballots))$$,'HV742',NULL,'recovery refuses absent closing evidence');
+SELECT adjourn_council_agenda_item(test_uuid('recovery:b:agenda-item'),clock_timestamp());
+SELECT close_council_meeting(test_uuid('recovery:meeting'),clock_timestamp());
+CREATE TEMP TABLE minutes_before AS SELECT to_jsonb(m) value FROM hall.minutes m;
+CREATE TEMP TABLE snapshots_before AS SELECT to_jsonb(s) value FROM hall.council_meeting_snapshot s;
+SAVEPOINT missing_document;
+UPDATE hall.contact SET last_name='Changed after meeting';
+ALTER TABLE hall.council_meeting_snapshot DISABLE TRIGGER council_meeting_snapshot_immutable;
+UPDATE hall.council_meeting_snapshot SET payload=payload-'documents' WHERE phase='closing';
+ALTER TABLE hall.council_meeting_snapshot ENABLE TRIGGER council_meeting_snapshot_immutable;
+SELECT throws_ok($$SELECT hall.recover_council_decision((SELECT id FROM hall.ballots))$$,'HV742',NULL,'recovery refuses missing retained title and text');
+ROLLBACK TO SAVEPOINT missing_document;
+UPDATE hall.contact SET last_name='Changed after meeting';
+CREATE TEMP TABLE result AS SELECT hall.recover_council_decision((SELECT id FROM hall.ballots)) payload;
+SELECT is((SELECT payload->>'state' FROM result),'draft','recovery creates an editable draft');
+SELECT ok((SELECT payload#>>'{facts,meeting,chairRole}' IS NULL FROM result),'unobserved historical chair role stays unknown');
+SELECT is((SELECT payload->>'content' FROM result),'Retained submitted text','draft starts with preserved submitted text');
+SELECT ok((SELECT payload#>>'{facts,meeting,chair,name}' NOT LIKE '%Changed after meeting%' FROM result),'identities come from retained review not current directory');
+SELECT is((SELECT count(*)::int FROM hall.council_decision_recovery),1,'recovery retains its evidence provenance once');
+SELECT is(hall.recover_council_decision((SELECT id FROM hall.ballots)),(SELECT payload FROM result),'repeated recovery returns exactly the same decision');
+SELECT hall_api.update_council_decision_draft((SELECT(payload->>'id')::uuid FROM result),1,'Editorial correction');
+SELECT is(hall.recover_council_decision((SELECT id FROM hall.ballots))->>'content','Editorial correction','recovery never overwrites later editorial work');
+SELECT is((SELECT to_jsonb(m) FROM hall.minutes m),(SELECT value FROM minutes_before),'recovery leaves minutes unchanged');
+SELECT set_eq($$SELECT to_jsonb(s) FROM hall.council_meeting_snapshot s$$,$$SELECT value FROM snapshots_before$$,'recovery leaves all snapshots unchanged');
+SELECT throws_ok($$UPDATE hall.council_decision_recovery SET recovered_by='someone-else'$$,'HV730',NULL,'recovery provenance is immutable');
+SELECT throws_ok($$SELECT hall.recover_council_decision(test_uuid('unknown-ballot'))$$,'HV742',NULL,'unknown or non-confirmed subject cannot be fabricated');
+SELECT * FROM finish();
+ROLLBACK;

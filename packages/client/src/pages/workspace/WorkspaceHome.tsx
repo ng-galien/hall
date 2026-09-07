@@ -106,7 +106,9 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
               key={agendaItem.id}
             >
               {t(workspaceAgendaSubjectKeys[agendaItem.subject.kind])} ·{" "}
-              {t("workspace.agendaPosition").replace("{position}", formatNumber(agendaItem.position))}
+              {agendaItem.agendaNumber === null
+                ? null
+                : t("workspace.agendaPosition").replace("{position}", formatNumber(agendaItem.agendaNumber))}
             </span>
           ))}
           <span className="whome-business-path">

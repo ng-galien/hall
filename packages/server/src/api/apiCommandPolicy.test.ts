@@ -36,8 +36,6 @@ const actionsByPermissions = [
   [
     ["workspace.write"],
     [
-      "decision.create",
-      "decision.update",
       "resource.create",
       "resource.relocate",
       "resource.update-metadata",
@@ -50,6 +48,7 @@ const actionsByPermissions = [
       "resource.create-editor-asset",
       "resource.delete",
       "council-business.create",
+      "council-business.create-prepared-subject",
       "council-business.associate-resource",
       "council-business.dissociate-resource",
       "council-business.reorder-resources",
@@ -73,6 +72,13 @@ const actionsByPermissions = [
       "meeting.set-officers",
       "meeting.create-and-schedule-business",
       "meeting.reorder-agenda",
+      "meeting.freeze-agenda",
+      "meeting.reopen-agenda",
+      "meeting.generate-notice",
+      "meeting.generate-notice-message",
+      "agenda-item.schedule-prepared",
+      "decision.update-draft",
+      "decision.freeze",
       "minutes.update-draft",
       "minutes.generate",
       "agenda-item.schedule",
@@ -85,7 +91,8 @@ const actionsByPermissions = [
   [
     ["meetings.conduct"],
     [
-      "meeting.start",
+      "meeting.record-opening",
+      "meeting.add-open-question",
       "meeting.close",
       "meeting.record-attendance",
       "agenda-item.start",
@@ -93,7 +100,6 @@ const actionsByPermissions = [
       "agenda-item.update-notes",
       "agenda-item.adjourn",
       "agenda-item.record-recusal",
-      "meeting.record-membership",
       "meeting.record-attendance-events",
       "meeting.record-quorum",
       "meeting.record-reconvocation",
@@ -106,6 +112,54 @@ const actionsByPermissions = [
 ] as const satisfies readonly (readonly [readonly ApiPermission[], readonly ApiActionName[]])[];
 
 const auditCases = [
+  [
+    "POST",
+    "/api/council-business/business-1/prepared-subjects",
+    undefined,
+    "council-business.create-prepared-subject",
+    "council-business",
+    "business-1",
+  ],
+  [
+    "POST",
+    "/api/council-meetings/meeting-1/agenda-items/from-prepared",
+    undefined,
+    "agenda-item.schedule-prepared",
+    "agenda-item",
+    null,
+  ],
+  [
+    "POST",
+    "/api/council-meetings/meeting-1/agenda-freeze",
+    undefined,
+    "meeting.freeze-agenda",
+    "council-meeting",
+    "meeting-1",
+  ],
+  [
+    "POST",
+    "/api/council-meetings/meeting-1/agenda-reopening",
+    undefined,
+    "meeting.reopen-agenda",
+    "council-meeting",
+    "meeting-1",
+  ],
+  [
+    "POST",
+    "/api/council-meetings/meeting-1/notices",
+    undefined,
+    "meeting.generate-notice",
+    "council-meeting",
+    "meeting-1",
+  ],
+  [
+    "POST",
+    "/api/council-meetings/meeting-1/notice-message",
+    undefined,
+    "meeting.generate-notice-message",
+    "council-meeting",
+    "meeting-1",
+  ],
   [
     "POST",
     "/api/council-meetings/meeting-1/agenda-items/item-1/recusals",
@@ -158,8 +212,8 @@ const auditCases = [
   ["POST", "/api/council-members", undefined, "member.create", "council-member", null],
   ["PUT", "/api/council-members/member-1", undefined, "member.update", "council-member", "member-1"],
   ["PUT", "/api/council-terms", undefined, "council-term.configure", "council-term", "active"],
-  ["POST", "/api/council-decisions", undefined, "decision.create", "council-decision", null],
-  ["PUT", "/api/council-decisions/decision-1", undefined, "decision.update", "council-decision", "decision-1"],
+  ["PUT", "/api/council-decisions/decision-1/draft", undefined, "decision.update-draft", "council-decision", "decision-1"],
+  ["POST", "/api/council-decisions/decision-1/freeze", undefined, "decision.freeze", "council-decision", "decision-1"],
   ["POST", "/api/council-committees", undefined, "committee.create", "council-committee", undefined],
   ["PUT", "/api/council-committees/committee-1", undefined, "committee.update", "council-committee", "committee-1"],
   [
@@ -238,7 +292,15 @@ const auditCases = [
   ["POST", "/api/council-meetings", undefined, "meeting.provision-initial", "council-meeting", undefined],
   ["POST", "/api/council-meetings/meeting-1/agenda-items", undefined, "agenda-item.schedule", "agenda-item", null],
   ["PUT", "/api/council-meetings/meeting-1/schedule", undefined, "meeting.schedule", "council-meeting", "meeting-1"],
-  ["POST", "/api/council-meetings/meeting-1/start", undefined, "meeting.start", "council-meeting", "meeting-1"],
+  [
+    "POST",
+    "/api/council-meetings/meeting-1/record-opening",
+    undefined,
+    "meeting.record-opening",
+    "council-meeting",
+    "meeting-1",
+  ],
+  ["POST", "/api/council-meetings/meeting-1/open-questions", undefined, "meeting.add-open-question", "council-meeting", "meeting-1"],
   ["POST", "/api/council-meetings/meeting-1/close", undefined, "meeting.close", "council-meeting", "meeting-1"],
   [
     "POST",
@@ -287,14 +349,6 @@ const auditCases = [
     "agenda-item.deprogram",
     "agenda-item",
     "item-1",
-  ],
-  [
-    "POST",
-    "/api/council-meetings/meeting-1/membership-records",
-    undefined,
-    "meeting.record-membership",
-    "council-meeting",
-    "meeting-1",
   ],
   [
     "POST",
@@ -515,8 +569,8 @@ describe("API command policy", () => {
     expect(actionIsPermitted(principal(["workspace.read"]), "resource.create")).toBe(false);
     expect(actionIsPermitted(principal(["workspace.write"]), "resource.create")).toBe(true);
     expect(actionIsPermitted(principal(["meetings.prepare"]), "meeting.schedule")).toBe(true);
-    expect(actionIsPermitted(principal(["meetings.prepare"]), "meeting.start")).toBe(false);
-    expect(actionIsPermitted(principal(["meetings.conduct"]), "meeting.start")).toBe(true);
+    expect(actionIsPermitted(principal(["meetings.prepare"]), "meeting.record-opening")).toBe(false);
+    expect(actionIsPermitted(principal(["meetings.conduct"]), "meeting.record-opening")).toBe(true);
     expect(actionIsPermitted(principal(["users.manage"]), "user.create")).toBe(true);
     expect(actionIsPermitted(principal(["settings.manage"]), "settings.update")).toBe(true);
     expect(actionIsPermitted(principal(["contacts.manage"]), "contact.create")).toBe(true);

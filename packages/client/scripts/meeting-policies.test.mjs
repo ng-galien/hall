@@ -2,11 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { pendingBallotDecisions } from "../src/pages/council-meetings/ballotDecisionPolicy.ts";
 import { meetingOpeningBlock } from "../src/pages/council-meetings/meetingOpeningPolicy.ts";
-import {
-  initialSecretBallotTotals,
-  reconcileSecretBallotTotals,
-  secretBallotTotal,
-} from "../src/pages/council-meetings/secretBallotTotals.ts";
 
 const meeting = (overrides = {}) => ({
   id: "meeting",
@@ -51,19 +46,6 @@ const aggregate = (overrides = {}) => ({
   ballots: [],
   quorum: { activeMembers: 3, physicallyPresent: 3, required: 2, reached: true },
   ...overrides,
-});
-
-test("secret ballot totals follow participation without discarding a valid distribution", () => {
-  const defaultTotals = reconcileSecretBallotTotals(initialSecretBallotTotals(3), 3, 2);
-  assert.deepEqual(defaultTotals, { votesFor: 0, votesAgainst: 0, abstentions: 0, notVoting: 2, blank:0, invalid:0 });
-
-  const enteredTotals = { votesFor: 1, votesAgainst: 1, abstentions: 0, notVoting: 1, blank:0, invalid:0 };
-  const reconciled = reconcileSecretBallotTotals(enteredTotals, 3, 2);
-  assert.deepEqual(reconciled, { votesFor: 1, votesAgainst: 1, abstentions: 0, notVoting: 0, blank:0, invalid:0 });
-  assert.equal(secretBallotTotal(reconciled), 2);
-
-  const alreadyValid = { votesFor: 1, votesAgainst: 0, abstentions: 1, notVoting: 0, blank:0, invalid:0 };
-  assert.strictEqual(reconcileSecretBallotTotals(alreadyValid, 3, 2), alreadyValid);
 });
 
 test("meeting opening validates entries but leaves quorum assessment to the server", () => {

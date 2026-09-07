@@ -1,8 +1,14 @@
+import { matchLiteral } from "@hall/domain";
 import { useMemo, useState } from "react";
-import { ChevronDownIcon, ChevronRightIcon } from "../../components/icons";
+import { InfoIcon } from "../../components/icons";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Popover, PopoverTrigger, PopoverContent } from "../../components/ui/popover";
+import { DisclosureBadge } from "../../components/ui/disclosure-badge";
 import { MarkdownView } from "../../components/MarkdownView";
-import { councilBusinessKindKeys, liveBusinessTitle } from "../../features/council-business/presentation";
-import { StatusBadge } from "../../features/status/DomainStatusBadge";
+import { liveBusinessTitle } from "../../features/council-business/presentation";
+import { agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
+import { AgendaItemStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../models/directory";
@@ -27,15 +33,14 @@ const voteChoiceKeys: Record<VoteChoice, TranslationKey> = {
 export function BallotOutcome({
   ballot,
   members,
-  defaultCollapsed = false,
+  defaultCollapsed = true,
 }: {
   ballot: Ballot;
   members: CouncilMemberView[];
-  /** Shows only the stamp and totals; details expand on demand. */
+  /** Shows the result and totals; details expand on demand. */
   defaultCollapsed?: boolean;
 }) {
   const { t, formatNumber } = useI18n();
-  const [votesVisible, setVotesVisible] = useState(true);
   const [detailsVisible, setDetailsVisible] = useState(!defaultCollapsed);
   return (
     <div className={`report-ballot report-ballot-${ballot.result}`}>
@@ -43,70 +48,114 @@ export function BallotOutcome({
         className="report-ballot-heading report-ballot-toggle"
         type="button"
         aria-expanded={detailsVisible}
+        data-testid={`report-ballot-toggle-${ballot.id}`}
         onClick={() => setDetailsVisible((value) => !value)}
       >
-        <span className={`verdict-stamp verdict-stamp-small verdict-stamp-${ballot.result}`}>
+        <DisclosureBadge expanded={detailsVisible} />
+        <Badge
+          className="h-auto text-base font-semibold"
+          variant={ballot.result === "adopted" ? "success" : "destructive"}
+        >
           {t(ballot.result === "adopted" ? "status.adopted" : "status.rejected")}
-        </span>
+        </Badge>
         <span>{t(ballot.method === "public" ? "ballot.method.public" : "ballot.method.secret")}</span>
-        <span className="report-ballot-compact" aria-hidden="true">
-          {formatNumber(ballot.votesFor)} · {formatNumber(ballot.votesAgainst)} · {formatNumber(ballot.abstentions)} ·{" "}
-          {formatNumber(ballot.notVoting)}
+        <span className="report-ballot-compact">
+          <span className="report-ballot-count">
+            <span>{t("ballot.votesFor")}</span>
+            <strong>{formatNumber(ballot.votesFor)}</strong>
+          </span>
+          <span className="report-ballot-count">
+            <span>{t("ballot.votesAgainst")}</span>
+            <strong>{formatNumber(ballot.votesAgainst)}</strong>
+          </span>
+          <span className="report-ballot-count">
+            <span>{t("ballot.abstentions")}</span>
+            <strong>{formatNumber(ballot.abstentions)}</strong>
+          </span>
+          <span className="report-ballot-count">
+            <span>{t("ballot.notVoting")}</span>
+            <strong>{formatNumber(ballot.notVoting)}</strong>
+          </span>
         </span>
-        {detailsVisible ? <ChevronDownIcon aria-hidden="true" /> : <ChevronRightIcon aria-hidden="true" />}
       </button>
       {detailsVisible ? (
         <>
-          <dl className="report-ballot-totals">
-            <div>
-              <dt>{t("ballot.votesFor")}</dt>
-              <dd>{formatNumber(ballot.votesFor)}</dd>
-            </div>
-            <div>
-              <dt>{t("ballot.votesAgainst")}</dt>
-              <dd>{formatNumber(ballot.votesAgainst)}</dd>
-            </div>
-            <div>
-              <dt>{t("ballot.abstentions")}</dt>
-              <dd>{formatNumber(ballot.abstentions)}</dd>
-            </div>
-            <div>
-              <dt>{t("ballot.notVoting")}</dt>
-              <dd>{formatNumber(ballot.notVoting)}</dd>
-            </div>
-          </dl>
-          {ballot.chairTieBreakApplied ? (
-            <p className="report-ballot-note">{t("ballot.chairTieBreakApplied")}</p>
-          ) : null}
-          <p className="report-ballot-note">
-            {t("ballot.expressedMajority").replace("{expressed}", formatNumber(ballot.votesCast))}
-          </p>
-          <p className="report-ballot-note">
-            {t("ballot.participationEvidence")
-              .replace("{present}", formatNumber(ballot.participationEvidence.quorum.physicallyPresent))
-              .replace("{required}", ballot.participationEvidence.quorum.required === null ? t("meeting.quorumUnestablished") : formatNumber(ballot.participationEvidence.quorum.required))
-              .replace("{roster}", formatNumber(ballot.participationEvidence.quorum.activeMembers))}
-          </p>
+          <div className="report-votes-actions">
+            <strong id={`report-votes-title-${ballot.id}`}>{t("ballot.voteDetails")}</strong>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  className="justify-self-start"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t("ballot.resultInformation")}
+                  data-testid={`report-ballot-info-${ballot.id}`}
+                >
+                  <InfoIcon aria-hidden="true" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent data-testid={`report-ballot-information-${ballot.id}`}>
+                {ballot.chairTieBreakApplied ? (
+                  <p className="report-ballot-note">{t("ballot.chairTieBreakApplied")}</p>
+                ) : null}
+                <p className="report-ballot-note">
+                  {t("ballot.expressedMajority").replace("{expressed}", formatNumber(ballot.votesCast))}
+                </p>
+                <p className="report-ballot-note">
+                  {t("ballot.participationEvidence")
+                    .replace("{present}", formatNumber(ballot.participationEvidence.quorum.physicallyPresent))
+                    .replace(
+                      "{required}",
+                      ballot.participationEvidence.quorum.required === null
+                        ? t("meeting.quorumUnestablished")
+                        : formatNumber(ballot.participationEvidence.quorum.required),
+                    )
+                    .replace("{roster}", formatNumber(ballot.participationEvidence.quorum.activeMembers))}
+                </p>
+              </PopoverContent>
+            </Popover>
+          </div>
           {ballot.method === "public" ? (
             <div>
-              <button className="report-votes-toggle" type="button" onClick={() => setVotesVisible((value) => !value)}>
-                {t(votesVisible ? "ballot.hidePublicVotes" : "ballot.showPublicVotes")}
-              </button>
-              {votesVisible ? (
-                <ul className="ballot-public-votes">
+              <table
+                className="report-public-votes"
+                aria-labelledby={`report-votes-title-${ballot.id}`}
+                data-testid={`report-public-votes-${ballot.id}`}
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">{t("recusal.member")}</th>
+                    <th scope="col">{t("ballot.voteChoice")}</th>
+                    <th scope="col">{t("meeting.proxyDocument")}</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {ballot.votes.map((vote) => (
-                    <li key={vote.id}>
-                      <strong>{councilMemberName(members, vote.memberId)}</strong>
-                      <span>{t(voteChoiceKeys[vote.choice])}</span>
-                      {vote.castByMemberId !== vote.memberId ? (
-                        <span>
-                          {t("ballot.castBy").replace("{holder}", councilMemberName(members, vote.castByMemberId))}
-                        </span>
-                      ) : null}
-                    </li>
+                    <tr key={vote.id}>
+                      <th scope="row">{councilMemberName(members, vote.memberId)}</th>
+                      <td>
+                        <Badge
+                          variant={matchLiteral(vote.choice, {
+                            for: () => "success" as const,
+                            against: () => "destructive" as const,
+                            abstain: () => "warning" as const,
+                            notVoting: () => "secondary" as const,
+                          })}
+                        >
+                          {t(voteChoiceKeys[vote.choice])}
+                        </Badge>
+                      </td>
+                      <td>
+                        {vote.castByMemberId !== vote.memberId ? (
+                          <span>
+                            {t("ballot.castBy").replace("{holder}", councilMemberName(members, vote.castByMemberId))}
+                          </span>
+                        ) : null}
+                      </td>
+                    </tr>
                   ))}
-                </ul>
-              ) : null}
+                </tbody>
+              </table>
             </div>
           ) : null}
         </>
@@ -118,7 +167,7 @@ export function BallotOutcome({
 /** Full proceedings of a meeting: opening, agenda items, ballots and closing. */
 export function MeetingProceedings({
   aggregate,
-  defaultCollapsed = false,
+  defaultCollapsed = true,
 }: {
   aggregate: LiveMeetingPresentation;
   /** Collapses agenda item bodies by default. */
@@ -167,8 +216,11 @@ export function MeetingProceedings({
   return (
     <div className="report-main">
       {meeting.openedAt ? (
-        <section className="report-opening" aria-labelledby="report-opening-heading">
-          <h2 id="report-opening-heading">{t("report.openingHeading")}</h2>
+        <details className="conduct-block" data-testid="report-opening">
+          <summary data-testid="report-opening-toggle">
+            <DisclosureBadge />
+            <span id="report-opening-heading">{t("report.openingHeading")}</span>
+          </summary>
           <p>
             {t("report.openedBy")
               .replace("{time}", formatTime(meeting.openedAt))
@@ -219,7 +271,12 @@ export function MeetingProceedings({
             {t("report.quorumProclaimed")
               .replace("{present}", formatNumber(aggregate.quorum.physicallyPresent))
               .replace("{roster}", formatNumber(aggregate.quorum.activeMembers))
-              .replace("{required}", aggregate.quorum.required === null ? t("meeting.quorumUnestablished") : formatNumber(aggregate.quorum.required))}{" "}
+              .replace(
+                "{required}",
+                aggregate.quorum.required === null
+                  ? t("meeting.quorumUnestablished")
+                  : formatNumber(aggregate.quorum.required),
+              )}{" "}
             {meeting.secretaryMemberId
               ? t("report.secretaryDesignated").replace(
                   "{secretary}",
@@ -227,41 +284,40 @@ export function MeetingProceedings({
                 )
               : null}
           </p>
-        </section>
+        </details>
       ) : null}
-      <section className="report-timeline" aria-labelledby="report-timeline-heading">
-        <header className="agenda-composer-heading">
-          <div>
-            <h2 id="report-timeline-heading">{t("meeting.timeline")}</h2>
-            <p>{t("meeting.reportTimelineDescription")}</p>
-          </div>
-        </header>
+      <details className="conduct-block report-timeline" open data-testid="report-timeline">
+        <summary data-testid="report-timeline-toggle">
+          <DisclosureBadge />
+          <span id="report-timeline-heading">{t("meeting.timeline")}</span>
+        </summary>
         <ol className="report-timeline-list">
-          {orderedItems.map((item, index) => {
+          {orderedItems.map((item) => {
             const ballot = ballotForItem(item);
             const expanded = expandedItems.has(item.id);
             return (
               <li className="report-timeline-item" key={item.id}>
                 <button
-                  className={`report-timeline-marker report-timeline-marker-toggle${expanded ? "" : " report-timeline-marker-collapsed"}`}
+                  className="report-timeline-marker report-timeline-marker-toggle"
                   type="button"
                   aria-expanded={expanded}
+                  data-testid={`report-item-toggle-${item.id}`}
                   aria-label={liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}
                   onClick={() => toggleItem(item.id)}
                 >
-                  <span>{index + 1}</span>
+                  <span>{item.agendaNumber}</span>
                 </button>
                 <div className="report-timeline-body">
                   <div className="report-timeline-heading">
                     <div className="report-timeline-title">
                       <strong>{liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}</strong>
                       <span>
-                        {t(councilBusinessKindKeys[item.business.kind])}
+                        {t(agendaSubjectPresentation[item.subjectKind].label)}
                         {item.startedAt ? ` · ${formatTime(item.startedAt)}` : ""}
                         {item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}
                       </span>
                     </div>
-                    <StatusBadge value={item.status} />
+                    <AgendaItemStatusBadge status={item.status} />
                   </div>
                   {expanded ? (
                     <>
@@ -279,21 +335,21 @@ export function MeetingProceedings({
                       {item.discussionSummary ? (
                         <MarkdownView className="report-timeline-notes" markdown={item.discussionSummary} />
                       ) : null}
-                      {ballot ? (
-                        <BallotOutcome ballot={ballot} members={rosterMembers} defaultCollapsed={defaultCollapsed} />
-                      ) : null}
                     </>
                   ) : null}
+                  {ballot ? <BallotOutcome ballot={ballot} members={rosterMembers} defaultCollapsed /> : null}
                 </div>
               </li>
             );
           })}
         </ol>
-      </section>
+      </details>
       {meeting.closedAt ? (
-        <section className="report-opening" aria-labelledby="report-closing-heading">
+        <section className="meeting-side-section report-closing" aria-labelledby="report-closing-heading">
           <h2 id="report-closing-heading">{t("report.closingHeading")}</h2>
-          <p>{t("report.closedStatement").replace("{time}", formatTime(meeting.closedAt))}</p>
+          <time dateTime={meeting.closedAt} data-testid="report-closing-time">
+            {formatTime(meeting.closedAt)}
+          </time>
         </section>
       ) : null}
     </div>

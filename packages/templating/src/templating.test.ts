@@ -143,6 +143,31 @@ describe("canonical serialization", () => {
 });
 
 describe("shared rendering", () => {
+  it("preserves documentary layout structure and classes through sanitization", () => {
+    const source='<section class="decision-facts"><div class="decision-facts-columns"><dl><dt>Membres en exercice</dt><dd>15</dd><dt>Présents</dt><dd>14</dd></dl><div><p>Présidence</p></div></div></section><p class="decision-result" onclick="alert(1)" style="position:fixed">Adoptée</p><script>alert(1)</script>';
+    const html=renderHtml(parse(source));
+    expect(html).toContain('<section class="decision-facts">');
+    expect(html).toContain('<div class="decision-facts-columns"><dl><dt>Membres en exercice</dt><dd>15</dd>');
+    expect(html).toContain('<p class="decision-result">Adoptée</p>');
+    expect(html).not.toMatch(/onclick|position:fixed|<script|alert\(1\)/);
+  });
+
+  it("preserves explicit agenda numbers across withdrawn positions", () => {
+    const html = renderHtml({
+      type: "root",
+      children: [
+        {
+          type: "html",
+          value:
+            '<ol><li value="1">PV</li><li value="2">Cession</li><li value="3">Information</li><li value="4">Stationnement</li><li value="6" onclick="alert(1)">Tarifs</li></ol>',
+        },
+      ],
+    });
+    expect(html).toBe(
+      '<ol><li value="1">PV</li><li value="2">Cession</li><li value="3">Information</li><li value="4">Stationnement</li><li value="6">Tarifs</li></ol>',
+    );
+  });
+
   it("renders GFM tables without accepting raw HTML", () => {
     const html = renderHtml(parse("| Nom | Voix |\n| --- | ---: |\n| Alice | 1 |\n\n<script>alert(1)</script>"));
     expect(html).toContain("<table>");
@@ -404,6 +429,14 @@ describe("registry", () => {
     );
   });
 
+  it("validates the three documentary decision sections and rejects invalid forms", () => {
+    for(const section of ["facts","content","result"]) expect(validateStructure(parse(`::council-decision{section=${section}}`))).toEqual([]);
+    for(const source of ["::council-decision{section=unknown}",":council-decision{section=facts}"]) {
+      expect(validateStructure(parse(source))).toEqual(expect.arrayContaining([expect.objectContaining({code:"invalid_attribute"})]));
+    }
+    expect(validateStructure(parse("::council-decision"))).toEqual(expect.arrayContaining([expect.objectContaining({code:"missing_attribute"})]));
+  });
+
   it("exposes the resource presentation directive", () => {
     expect(directiveSpecs.map((spec) => spec.name)).toEqual([
       "member",
@@ -412,7 +445,9 @@ describe("registry", () => {
       "councilBusiness",
       "decision",
       "meeting",
+      "meeting-notice",
       "minutes",
+      "council-decision",
       "image",
       "resource-embed",
       "field",
@@ -423,9 +458,11 @@ describe("registry", () => {
     expect(directiveSpecs.some((spec) => spec.name === ("snippet" as never))).toBe(false);
   });
 
-  it("reserves block directives for minutes sections, archived images and resource presentations", () => {
+  it("reserves block directives for meeting notices, minutes sections, archived images and resource presentations", () => {
     expect(directiveSpecs.filter((spec) => spec.node === "leafDirective").map((spec) => spec.name)).toEqual([
+      "meeting-notice",
       "minutes",
+      "council-decision",
       "image",
       "resource-embed",
     ]);

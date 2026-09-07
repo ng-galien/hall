@@ -1,13 +1,13 @@
-import { defineStepper } from "@stepperize/react";
-import { CheckIcon, EditIcon, GavelIcon, TextDocumentIcon, MembersIcon } from "../../components/icons";
+import { EditIcon, GavelIcon, TextDocumentIcon, MembersIcon } from "../../components/icons";
+import { createStageProgress } from "../../components/ui/stage-progress";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingStatus } from "../../models/liveMeeting";
 
-const { Stepper } = defineStepper([
-  { id: "prepare", title: "meeting.stage.prepare", icon: EditIcon },
-  { id: "attendance", title: "meeting.stage.attendance", icon: MembersIcon },
-  { id: "conduct", title: "meeting.stage.conduct", icon: GavelIcon },
-  { id: "complete", title: "meeting.stage.complete", icon: TextDocumentIcon },
+const MeetingProgress = createStageProgress([
+  { id: "prepare", icon: <EditIcon /> },
+  { id: "attendance", icon: <MembersIcon /> },
+  { id: "conduct", icon: <GavelIcon /> },
+  { id: "complete", icon: <TextDocumentIcon /> },
 ] as const);
 
 const stageByStatus = {
@@ -22,23 +22,17 @@ const stageByStatus = {
 export function MeetingStageBar({ status }: { status: LiveMeetingStatus }) {
   const { t } = useI18n();
   return (
-    <Stepper.Root step={stageByStatus[status]} className="meeting-stepper" data-testid="meeting-stages">
-      <Stepper.List className="meeting-stepper-list" aria-label={t("meetings.description")}>
-        <Stepper.Items>
-          {(step, index) => (
-            <Stepper.Item step={step.id} className="meeting-stepper-item" data-testid={`meeting-stage-${index + 1}`}>
-              <div className="meeting-stepper-marker">
-                <Stepper.Indicator className="meeting-stepper-indicator">
-                  <step.icon className="meeting-stepper-icon" aria-hidden="true" />
-                  <CheckIcon className="meeting-stepper-check" aria-hidden="true" />
-                </Stepper.Indicator>
-                {index < 3 ? <Stepper.Separator className="meeting-stepper-separator" /> : null}
-              </div>
-              <Stepper.Title className="meeting-stepper-title">{t(step.title)}</Stepper.Title>
-            </Stepper.Item>
-          )}
-        </Stepper.Items>
-      </Stepper.List>
-    </Stepper.Root>
+    <MeetingProgress
+      currentStep={stageByStatus[status]}
+      label={t("meetings.description")}
+      testId="meeting-stages"
+      stepTestIdPrefix="meeting-stage"
+      labels={[
+        t("meeting.stage.prepare"),
+        t("meeting.stage.attendance"),
+        t("meeting.stage.conduct"),
+        t("meeting.stage.complete"),
+      ]}
+    />
   );
 }

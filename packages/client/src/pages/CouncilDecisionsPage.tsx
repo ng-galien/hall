@@ -1,5 +1,5 @@
-import type { CouncilDecisionListEntry } from "@hall/domain";
-import { useMemo } from "react";
+import type { CouncilDecisionSummary } from "@hall/api-contract";
+import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { GavelIcon } from "../components/icons";
 import {
@@ -10,128 +10,92 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../components/Ui";
+import { Badge } from "../components/ui/badge";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
-import { MeetingStatusBadge, StatusBadge } from "../features/status/DomainStatusBadge";
+import { MeetingStatusBadge } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
-import type { CouncilMeetingView } from "../models/councilMeeting";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 
-interface DecisionGroup {
-  meeting: CouncilMeetingView | null;
-  decisions: CouncilDecisionListEntry[];
-}
-
 export function CouncilDecisionsPage() {
   const { t, formatDate } = useI18n();
-  const { councilDecisions, error } = useCouncilDecisionsStore();
+  const { councilDecisions, error, loading, load } = useCouncilDecisionsStore();
+  useEffect(() => {
+    void load();
+  }, [load]);
   const { meetings } = useCouncilMeetingsStore();
   const { layout, setLayout, query, setQuery } = useCollectionView();
-  const visibleDecisions = councilDecisions.filter((decision) =>
-    matchesQuery(query, decision.number, decision.title, decision.draftText),
-  );
-
-  const groups = useMemo<DecisionGroup[]>(() => {
-    const byMeeting = new Map<string | null, CouncilDecisionListEntry[]>();
-    for (const decision of visibleDecisions) {
-      const key = decision.meetingId;
-      byMeeting.set(key, [...(byMeeting.get(key) ?? []), decision]);
+  const groups = useMemo(() => {
+    const grouped = new Map<string, CouncilDecisionSummary[]>();
+    for (const decision of councilDecisions.filter((entry) =>
+      matchesQuery(query, entry.publicationNumber, entry.title),
+    )) {
+      grouped.set(decision.councilMeetingId, [...(grouped.get(decision.councilMeetingId) ?? []), decision]);
     }
-    const meetingGroups = [...byMeeting.entries()]
-      .filter(([meetingId]) => meetingId !== null)
+    return [...grouped]
       .map(([meetingId, decisions]) => ({
-        meeting: meetings.find((meeting) => meeting.id === meetingId) ?? null,
+        meetingId,
+        meeting: meetings.find((entry) => entry.id === meetingId),
         decisions,
       }))
-      .sort((left, right) =>
-        (right.meeting?.scheduledAt ?? "").localeCompare(left.meeting?.scheduledAt ?? ""),
-      );
-    const unscheduled = byMeeting.get(null);
-    return unscheduled ? [{ meeting: null, decisions: unscheduled }, ...meetingGroups] : meetingGroups;
-  }, [visibleDecisions, meetings]);
-
+      .sort((a, b) => (b.meeting?.scheduledAt ?? "").localeCompare(a.meeting?.scheduledAt ?? ""));
+  }, [councilDecisions, meetings, query]);
   return (
-    <div className="page">
+    <div className="page" data-testid="decisions-page">
       <PageHeader title={t("decisions.title")} description={t("decisions.description")} />
       <div className="page-content">
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout} />
-        {visibleDecisions.length === 0 ? (
-          <EmptyState>{t(councilDecisions.length === 0 ? "decisions.empty" : "common.noSearchResults")}</EmptyState>
+        {loading && councilDecisions.length === 0 ? (
+          <p data-testid="decisions-loading">{t("common.loading")}</p>
+        ) : groups.length === 0 && !error ? (
+          <div data-testid="decisions-empty">
+            <EmptyState>{t(councilDecisions.length ? "common.noSearchResults" : "decisions.empty")}</EmptyState>
+          </div>
         ) : (
           groups.map((group) => (
-            <section className="decision-group" key={group.meeting?.id ?? "unscheduled"}>
+            <section className="decision-group" key={group.meetingId}>
               <header className="decision-group-heading">
-                {group.meeting ? (
-                  <Link className="decision-group-title" to={`/meetings/${group.meeting.reference}`}>
-                    <GavelIcon aria-hidden="true" />
-                    <span>
-                      <strong>{formatMeetingLabel(group.meeting, t("meetings.occurrenceLabel"), formatDate)}</strong>
+                <Link
+                  className="decision-group-title"
+                  to={`/meetings/${group.meeting?.reference ?? group.meetingId}`}
+                  data-testid={`decision-group-${group.meetingId}`}
+                >
+                  <GavelIcon aria-hidden="true" />
+                  <span>
+                    <strong>
+                      {group.meeting
+                        ? formatMeetingLabel(group.meeting, t("meetings.occurrenceLabel"), formatDate)
+                        : t("minutes.sourceMeeting")}
+                    </strong>
+                    {group.meeting ? (
                       <span className="decision-group-meta">
-                        {group.meeting.scheduledAt ? formatDate(group.meeting.scheduledAt) : t("dashboard.toSchedule")} ·{" "}
                         <MeetingStatusBadge status={group.meeting.phase} />
                       </span>
-                    </span>
-                  </Link>
-                ) : (
-                  <span className="decision-group-title">
-                    <span>
-                      <strong>{t("decisions.unscheduledGroup")}</strong>
-                      <span className="decision-group-meta">{t("decisions.unscheduledGroupHint")}</span>
-                    </span>
+                    ) : null}
                   </span>
-                )}
+                </Link>
               </header>
-              {layout === "cards" ? (
-                <div className="card-grid">
-                  {group.decisions.map((decision) =>
-                    group.meeting ? (
-                      <Link className="entity-card" key={decision.id} to={`/meetings/${group.meeting.reference}`}>
-                        <span className="entity-card-eyebrow">{decision.number ?? t("decisions.draft")}</span>
-                        <strong>{decision.title}</strong>
-                        <p>{decision.draftText || t("decisions.textIncomplete")}</p>
-                        <span className="entity-card-footer">
-                          <StatusBadge value={decision.status} />
-                        </span>
-                      </Link>
-                    ) : (
-                      <div className="entity-card" key={decision.id}>
-                        <span className="entity-card-eyebrow">{decision.number ?? t("decisions.draft")}</span>
-                        <strong>{decision.title}</strong>
-                        <p>{decision.draftText || t("decisions.textIncomplete")}</p>
-                        <span className="entity-card-footer">
-                          <StatusBadge value={decision.status} />
-                        </span>
-                      </div>
-                    ),
-                  )}
-                </div>
-              ) : (
-                <div className="data-list">
-                  {group.decisions.map((decision) => {
-                    const rowContent = (
-                      <>
-                        <div>
-                          <strong>
-                            {decision.number ?? t("decisions.draft")} · {decision.title}
-                          </strong>
-                          <span>{decision.draftText || t("decisions.textIncomplete")}</span>
-                        </div>
-                        <StatusBadge value={decision.status} />
-                      </>
-                    );
-                    return group.meeting ? (
-                      <Link className="data-row linked" key={decision.id} to={`/meetings/${group.meeting.reference}`}>
-                        {rowContent}
-                      </Link>
-                    ) : (
-                      <div className="data-row" key={decision.id}>
-                        {rowContent}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <div className={layout === "cards" ? "card-grid" : "data-list"}>
+                {group.decisions.map((decision) => (
+                  <Link
+                    key={decision.id}
+                    className={layout === "cards" ? "entity-card" : "data-row linked"}
+                    to={`/council-decisions/${decision.id}`}
+                    data-testid={`decision-open-${decision.id}`}
+                  >
+                    <div>
+                      {decision.publicationNumber ? (
+                        <span className="entity-card-eyebrow">{decision.publicationNumber}</span>
+                      ) : null}
+                      <strong>{decision.title}</strong>
+                    </div>
+                    <Badge variant="secondary">
+                      {t(decision.state === "draft" ? "decisionDocument.draft" : "decisionDocument.frozen")}
+                    </Badge>
+                  </Link>
+                ))}
+              </div>
             </section>
           ))
         )}

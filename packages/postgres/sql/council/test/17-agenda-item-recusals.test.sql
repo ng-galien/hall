@@ -54,6 +54,7 @@ SELECT throws_ok($$UPDATE council_agenda_item SET council_meeting=test_uuid('ano
  'HV234',NULL,'declaration cannot follow an occurrence to another meeting');
 SELECT test_create_decision_agenda_item('other',test_uuid('r:meeting'),2);
 SELECT is(jsonb_array_length(agenda_item_recusal_state(test_uuid('other:agenda-item'))->'recusals'),0,'recusal does not automatically affect another affair');
+SELECT test_prepare_notice(test_uuid('r:meeting'));
 SELECT start_council_meeting(test_uuid('r:meeting'),'2026-01-01 09:00Z');
 SELECT start_council_agenda_item(test_uuid('r:agenda-item'),'2026-01-01 09:01Z');
 

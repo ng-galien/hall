@@ -28,6 +28,22 @@ AS $function$
   END
 $function$;
 
+CREATE FUNCTION hall.council_meeting_closure_blockers(target hall.council_meetings)
+RETURNS JSONB LANGUAGE plpgsql STABLE SET search_path=pg_catalog,hall AS $$
+DECLARE blockers JSONB:='[]'; pending_minutes UUID[]; ballot RECORD;
+BEGIN
+  IF target.started_at IS NULL THEN blockers:=blockers||'[{"code":"meetingNotStarted"}]'::jsonb; END IF;
+  IF target.closed_at IS NOT NULL THEN blockers:=blockers||'[{"code":"meetingClosed"}]'::jsonb; END IF;
+  IF target.previous_council_meeting IS NOT NULL AND NOT hall.council_meeting_previous_minutes_are_approved(target.id) THEN
+    SELECT array_agg(id ORDER BY id) INTO pending_minutes FROM hall.minutes WHERE council_meeting=target.previous_council_meeting;
+    IF pending_minutes IS NOT NULL THEN blockers:=blockers||jsonb_build_array(jsonb_build_object('code','previousMinutesPending','minutesIds',pending_minutes)); END IF;
+  END IF;
+  FOR ballot IN SELECT b.id FROM hall.ballots b JOIN hall.council_agenda_item a ON a.id=b.council_agenda_item WHERE a.council_meeting=target.id AND b.completed_at IS NULL LOOP
+    blockers:=blockers||jsonb_build_array(jsonb_build_object('code','ballotInProgress','ballotId',ballot.id));
+  END LOOP;
+  RETURN blockers;
+END $$;
+
 CREATE FUNCTION hall.council_meeting_projection(target hall.council_meetings)
 RETURNS JSONB
 LANGUAGE sql
@@ -42,14 +58,17 @@ AS $function$
     'slug', hall.council_meeting_slug(target),
     'previousCouncilMeetingId', target.previous_council_meeting,
     'minutesId', (SELECT id FROM hall.minutes WHERE council_meeting = target.id),
-    'agendaFrozenAt', (SELECT frozen_at FROM hall.council_agenda_freeze WHERE council_meeting = target.id),
+    'noticeDeadline', hall.meeting_notice_deadline(target),
+    'currentNoticeId', hall.current_meeting_notice_id(target.id),
+    'agendaFrozenAt', (SELECT frozen_at FROM hall.active_council_agenda_freeze WHERE council_meeting = target.id),
     'scheduledAt', target.scheduled_at,
     'location', target.location,
     'chairMemberId', target.chair_member,
     'secretaryMemberId', target.secretary_member,
     'quorum', (SELECT cardinality(member_ids)/2+1 FROM hall.meeting_membership_record WHERE council_meeting=target.id ORDER BY observed_at DESC LIMIT 1),
     'startedAt', target.started_at,
-    'closedAt', target.closed_at
+    'closedAt', target.closed_at,
+    'closureBlockers',hall.council_meeting_closure_blockers(target)
   )
 $function$;
 
@@ -182,9 +201,12 @@ BEGIN
 END;
 $function$;
 
-CREATE FUNCTION hall_api.start_council_meeting(
+CREATE FUNCTION hall_api.record_meeting_opening(
   target_meeting UUID,
-  start_time TIMESTAMPTZ
+  observation_time TIMESTAMPTZ,
+  attendance_declarations JSONB,
+  chairman_member UUID,
+  secretary_member UUID
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -195,7 +217,13 @@ AS $function$
 DECLARE
   changed hall.council_meetings;
 BEGIN
-  changed := hall.start_council_meeting(target_meeting, start_time);
-  RETURN hall.council_meeting_projection(changed);
+  PERFORM 1 FROM hall.council_meetings WHERE id=target_meeting FOR UPDATE;
+  IF hall.current_meeting_notice_id(target_meeting) IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV807', MESSAGE='meeting start requires the current generated notice';
+  END IF;
+  PERFORM hall_api.record_meeting_attendance(target_meeting,attendance_declarations,observation_time);
+  PERFORM hall.set_council_meeting_officers(target_meeting,chairman_member,secretary_member);
+  PERFORM hall.start_council_meeting(target_meeting,observation_time);
+  RETURN hall_api.meeting_conduct(target_meeting);
 END;
 $function$;

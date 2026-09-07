@@ -2,6 +2,7 @@ default_rules = false
 
 [[workspace.source_group]]
 roots = [
+  { path = "packages/contracts/src", srcset = "main" },
   { path = "packages/api-contract/src", srcset = "main" },
   { path = "packages/client/src", srcset = "main" },
   { path = "packages/desktop/src", srcset = "main" },
@@ -16,6 +17,7 @@ patterns = ["dependency", "hygiene", "ownership"]
 components = [
   "code",
   "domain",
+  "contracts",
   "postgres",
   "api-contract",
   "templating",
@@ -76,6 +78,7 @@ uris = [
 ]
 
 [aliases]
+contracts_source = "source ~ '**/dir:packages/dir:contracts/dir:src/**'"
 dependency_import_ref = "kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports'"
 import_ref = "kind = 'imports_symbol' OR kind = 'imports_module' OR kind = 'reexports'"
 domain_source = "source ~ '**/dir:packages/dir:domain/dir:src/**'"

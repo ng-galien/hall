@@ -65,6 +65,25 @@ INSERT INTO meeting_attendance (id, council_member, council_meeting, status) VAL
   );
 SELECT test_designate_present_officers(id) FROM council_meetings
 WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
+SELECT test_ensure_business(test_uuid('closure:' || label || '-business')) FROM unnest(ARRAY['unfinished','deferred','completed']) label;
+
+SELECT schedule_council_decision_proposal(
+  test_uuid('closure:unfinished-business'),
+  test_uuid('closure:main'),
+  2
+);
+
+SELECT schedule_open_question(
+  test_uuid('closure:deferred-business'),
+  test_uuid('closure:main'),
+  3
+);
+SELECT schedule_open_question(
+  test_uuid('closure:completed-business'),
+  test_uuid('closure:main'),
+  4
+);
+SELECT test_prepare_notice(test_uuid('closure:main'));
 UPDATE council_meetings
 SET started_at = '2026-01-01 09:05:00+00'
 WHERE id = test_uuid('closure:main');
@@ -81,22 +100,6 @@ SELECT throws_ok(
 );
 SET CONSTRAINTS ALL DEFERRED;
 
-INSERT INTO council_business (id) VALUES
-  (test_uuid('closure:unfinished-business')),
-  (test_uuid('closure:deferred-business')),
-  (test_uuid('closure:completed-business'));
-
-SELECT schedule_council_decision_proposal(
-  test_uuid('closure:unfinished-business'),
-  test_uuid('closure:main'),
-  2
-);
-
-SELECT schedule_open_question(
-  test_uuid('closure:deferred-business'),
-  test_uuid('closure:main'),
-  3
-);
 SELECT start_council_agenda_item(
   (
     SELECT id
@@ -113,11 +116,6 @@ SELECT adjourn_council_agenda_item(
   ), '2026-01-01 09:16:00+00'
 );
 
-SELECT schedule_open_question(
-  test_uuid('closure:completed-business'),
-  test_uuid('closure:main'),
-  4
-);
 SELECT start_council_agenda_item(
   (
     SELECT id
@@ -126,7 +124,7 @@ SELECT start_council_agenda_item(
   ),
   '2026-01-01 09:20:00+00'
 );
-SELECT complete_open_question(
+SELECT complete_non_voting_agenda_item(
   (
     SELECT id
     FROM council_agenda_item
@@ -272,6 +270,7 @@ SELECT schedule_council_meeting(
 FROM closure_result;
 SELECT test_designate_present_officers(id) FROM council_meetings
 WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
+SELECT test_prepare_notice(next_meeting) FROM closure_result;
 UPDATE council_meetings
 SET started_at = '2026-02-01 09:00:00+00'
 FROM closure_result

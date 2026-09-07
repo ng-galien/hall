@@ -3,7 +3,7 @@ import { documentFormatSchema, matchLiteral } from "@hall/domain";
 import type { NextFunction, Request, Response } from "express";
 import { documentPreviewMode } from "../domain/documentPolicy.js";
 import { hasPermission } from "../security/authorization.js";
-import { collectionActions, objectActions } from "./sirenActionPolicy.js";
+import { collectionActions, objectActions, withConductAuthorization } from "./sirenActionPolicy.js";
 import {
   canonicalHref,
   classifySirenEntity,
@@ -50,23 +50,53 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
     contact: () => [],
     "council-business": () => [],
     "council-committee": () => [],
-    "council-decision": () => [],
+    "council-decision": (): SirenLink[] =>
+      id
+        ? [
+            { rel: ["preview"], href: `/api/council-decisions/${id}/preview.pdf`, type: "application/pdf" },
+            ...(primary?.documentId
+              ? [{ rel: ["content"], href: `/api/council-decisions/${id}/content.pdf`, type: "application/pdf" }]
+              : []),
+          ]
+        : [],
     "council-meeting": (): SirenLink[] =>
       reference
         ? [
             { rel: ["conduct"], href: `/api/council-meetings/${reference}/conduct`, type: SIREN_MEDIA_TYPE },
             { rel: ["notices"], href: `/api/council-meetings/${reference}/notices`, type: SIREN_MEDIA_TYPE },
-            ...(primary?.agendaFrozenAt ? [{ rel: ["agenda-freeze"], href: `/api/council-meetings/${reference}/agenda-freeze`, type: SIREN_MEDIA_TYPE }] : []),
+            ...(primary?.agendaFrozenAt
+              ? [
+                  {
+                    rel: ["agenda-freeze"],
+                    href: `/api/council-meetings/${reference}/agenda-freeze`,
+                    type: SIREN_MEDIA_TYPE,
+                  },
+                ]
+              : []),
           ]
         : [],
     "council-member": () => [],
     "council-term": () => [],
     entity: () => [],
     "hall-settings": () => [],
+    "prepared-subject": (): SirenLink[] =>
+      primary
+        ? [
+            ...(primary.textResourceId
+              ? [
+                  {
+                    rel: ["content-resource"],
+                    href: `/api/resources/${primary.textResourceId}`,
+                    type: SIREN_MEDIA_TYPE,
+                  },
+                ]
+              : []),
+            { rel: ["report"], href: `/api/resources/${primary.reportResourceId}`, type: SIREN_MEDIA_TYPE },
+          ]
+        : [],
     "agenda-freeze": () => [],
-    "meeting-notice": (): SirenLink[] => id ? [
-      { rel: ["content"], href: `/api/meeting-notices/${id}/content`, type: "application/pdf" },
-    ] : [],
+    "meeting-notice": (): SirenLink[] =>
+      id ? [{ rel: ["content"], href: `/api/meeting-notices/${id}/content`, type: "application/pdf" }] : [],
     minutes: (): SirenLink[] => {
       if (!id || !primary) return [];
       const links: SirenLink[] = [
@@ -117,6 +147,7 @@ function embeddedEntity(
   entityClass: SirenEntityClass,
   value: Record<string, unknown>,
 ): SirenEmbeddedEntity {
+  value = withConductAuthorization(request, value) as Record<string, unknown>;
   const actions = objectActions(request, entityClass, value);
   return {
     rel: ["item"],
@@ -127,7 +158,8 @@ function embeddedEntity(
   };
 }
 
-export function toSirenRepresentation(request: Request, payload: unknown): SirenEntity {
+export function toSirenRepresentation(request: Request, input: unknown): SirenEntity {
+  const payload = Array.isArray(input) ? input : withConductAuthorization(request, input);
   const entityClass = classifySirenEntity(request, payload);
   const collection = Array.isArray(payload);
   const objectCollection = collection && payload.every((item) => item && typeof item === "object");

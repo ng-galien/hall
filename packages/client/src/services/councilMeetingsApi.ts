@@ -1,12 +1,14 @@
 import {
+  type AddOpenQuestion,
+  addOpenQuestionSchema,
   adjournAgendaItemSchema,
   agendaItemSchema,
   type CloseCouncilMeeting,
-  type CompleteOpenQuestion,
+  type CompleteAgendaItem,
   type CouncilMeeting,
   type CreateAndScheduleCouncilBusiness,
   closeCouncilMeetingSchema,
-  completeOpenQuestionSchema,
+  completeAgendaItemSchema,
   councilMeetingClosureSchema,
   councilMeetingSchema,
   createAndScheduleCouncilBusinessSchema,
@@ -15,21 +17,17 @@ import {
   meetingAttendanceSchema,
   type PrepareCouncilMeeting,
   prepareCouncilMeetingSchema,
-  type RecordMeetingAttendance,
   type ReorderCouncilAgenda,
-  recordMeetingAttendanceSchema,
   reorderCouncilAgendaSchema,
   type ScheduleAgendaItem,
   type ScheduleCouncilMeeting,
-  type SetCouncilMeetingOfficers,
   type StartAgendaItem,
-  type StartCouncilMeeting,
   scheduleAgendaItemSchema,
   scheduleCouncilMeetingSchema,
-  setCouncilMeetingOfficersSchema,
   startAgendaItemSchema,
-  startCouncilMeetingSchema,
   updateAgendaItemNotesSchema,
+  type SchedulePreparedCouncilSubject,
+  schedulePreparedCouncilSubjectSchema,
 } from "@hall/api-contract";
 import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
@@ -80,15 +78,6 @@ export async function prepareCouncilMeeting(meetingReference: string, input: Pre
   return councilMeetingSchema.parse(result.data);
 }
 
-export async function setCouncilMeetingOfficers(meetingReference: string, input: SetCouncilMeetingOfficers) {
-  const result = await submitSirenActionAt<unknown>(
-    `/council-meetings/${encodeURIComponent(meetingReference)}`,
-    "meeting.set-officers",
-    setCouncilMeetingOfficersSchema.parse(input),
-  );
-  return councilMeetingSchema.parse(result.data);
-}
-
 export async function createAndScheduleCouncilBusiness(
   meetingReference: string,
   input: CreateAndScheduleCouncilBusiness,
@@ -101,14 +90,13 @@ export async function createAndScheduleCouncilBusiness(
   return createdAndScheduledCouncilBusinessSchema.parse(result.data);
 }
 
-export async function recordMeetingAttendance(meetingReference: string, input: RecordMeetingAttendance) {
-  const parsed = recordMeetingAttendanceSchema.parse(input);
+export async function addMeetingOpenQuestion(meetingReference: string, input: AddOpenQuestion) {
   const result = await submitSirenActionAt<unknown>(
-    `/council-meetings/${encodeURIComponent(meetingReference)}`,
-    "meeting.record-attendance",
-    parsed,
+    `/council-meetings/${encodeURIComponent(meetingReference)}/conduct`,
+    "meeting.add-open-question",
+    addOpenQuestionSchema.parse(input),
   );
-  return meetingAttendanceSchema.array().parse(result.data);
+  return agendaItemSchema.parse(result.data);
 }
 
 export async function scheduleMeetingAgendaItem(meetingReference: string, input: ScheduleAgendaItem) {
@@ -117,6 +105,15 @@ export async function scheduleMeetingAgendaItem(meetingReference: string, input:
     `/council-meetings/${encodeURIComponent(meetingReference)}`,
     "agenda-item.schedule",
     parsed,
+  );
+  return agendaItemSchema.parse(result.data);
+}
+
+export async function schedulePreparedCouncilSubject(meetingReference: string, input: SchedulePreparedCouncilSubject) {
+  const result = await submitSirenActionAt<unknown>(
+    `/council-meetings/${encodeURIComponent(meetingReference)}`,
+    "agenda-item.schedule-prepared",
+    schedulePreparedCouncilSubjectSchema.parse(input),
   );
   return agendaItemSchema.parse(result.data);
 }
@@ -147,16 +144,6 @@ export async function reorderMeetingAgenda(meetingReference: string, input: Reor
   );
 }
 
-export async function startCouncilMeeting(meetingReference: string, input: StartCouncilMeeting) {
-  const parsed = startCouncilMeetingSchema.parse(input);
-  const result = await submitSirenActionAt<unknown>(
-    `/council-meetings/${encodeURIComponent(meetingReference)}`,
-    "meeting.start",
-    parsed,
-  );
-  return councilMeetingSchema.parse(result.data);
-}
-
 export async function startMeetingAgendaItem(meetingReference: string, agendaItemId: string, input: StartAgendaItem) {
   const path = `/council-meetings/${encodeURIComponent(meetingReference)}/agenda-items/${encodeURIComponent(agendaItemId)}`;
   await apiSirenRequest(path);
@@ -164,17 +151,17 @@ export async function startMeetingAgendaItem(meetingReference: string, agendaIte
   return agendaItemSchema.parse(result.data);
 }
 
-export async function completeMeetingOpenQuestion(
+export async function completeMeetingAgendaItem(
   meetingReference: string,
   agendaItemId: string,
-  input: CompleteOpenQuestion,
+  input: CompleteAgendaItem,
 ) {
   const path = `/council-meetings/${encodeURIComponent(meetingReference)}/agenda-items/${encodeURIComponent(agendaItemId)}`;
   await apiSirenRequest(path);
   const result = await submitSirenActionAt<unknown>(
     path,
     "agenda-item.complete",
-    completeOpenQuestionSchema.parse(input),
+    completeAgendaItemSchema.parse(input),
   );
   return agendaItemSchema.parse(result.data);
 }

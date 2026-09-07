@@ -10,14 +10,32 @@ import type { BallotPreview } from "../../../services/ballotsApi";
 import { apiErrorCode, type ApiErrorCode } from "../../../services/apiClient";
 import { Modal, RequestErrorBanner } from "../../../components/Ui";
 import { Button } from "../../../components/ui/button";
-import { type DragEvent, useEffect, useRef, useState } from "react";
+import { type DragEvent, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { matchLiteral } from "@hall/domain";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import type { TranslationKey } from "../../../i18n/en";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { type BallotParticipant, ballotParticipants, councilMemberName } from "../ballotParticipants";
-import { initialSecretBallotTotals, reconcileSecretBallotTotals, type SecretBallotTotals } from "../secretBallotTotals";
+type SecretBallotTotals = Extract<RecordBallotInput, { method: "secret" }>["totals"];
 
-type ZoneChoice = VoteChoice | "unassigned";
+type AssignmentChoice = VoteChoice | "blank" | "invalid";
+type ZoneChoice = AssignmentChoice | "unassigned";
+
+function publicChoice(choice: AssignmentChoice): VoteChoice {
+  return matchLiteral(choice, {
+    for: () => "for" as const,
+    against: () => "against" as const,
+    abstain: () => "abstain" as const,
+    notVoting: () => "notVoting" as const,
+    blank: () => {
+      throw new Error("Blank is only available for secret ballots");
+    },
+    invalid: () => {
+      throw new Error("Invalid is only available for secret ballots");
+    },
+  });
+}
 
 const targetZones: { choice: VoteChoice; labelKey: TranslationKey }[] = [
   { choice: "for", labelKey: "ballot.choice.for" },
@@ -25,11 +43,19 @@ const targetZones: { choice: VoteChoice; labelKey: TranslationKey }[] = [
   { choice: "abstain", labelKey: "ballot.choice.abstain" },
   { choice: "notVoting", labelKey: "ballot.choice.notVoting" },
 ];
+const secretTargetZones: { choice: AssignmentChoice; labelKey: TranslationKey }[] = [
+  ...targetZones,
+  { choice: "blank", labelKey: "ballot.blank" },
+  { choice: "invalid", labelKey: "ballot.invalid" },
+];
 
-const secretCounters: { key: keyof SecretBallotTotals; labelKey: TranslationKey }[] = [
+const publicCounters: { key: keyof SecretBallotTotals; labelKey: TranslationKey }[] = [
   { key: "votesFor", labelKey: "ballot.votesFor" },
   { key: "votesAgainst", labelKey: "ballot.votesAgainst" },
   { key: "abstentions", labelKey: "ballot.abstentions" },
+];
+const secretCounters: typeof publicCounters = [
+  ...publicCounters,
   { key: "blank", labelKey: "ballot.blank" },
   { key: "invalid", labelKey: "ballot.invalid" },
 ];
@@ -110,7 +136,7 @@ export function VotePanel({
   onConfirm,
   eligibleAttendanceIds,
   departedAttendanceIds,
-  onDeclareRecusal,
+  actionContainer,
 }: {
   aggregate: LiveMeetingPresentation;
   members: CouncilMemberView[];
@@ -121,12 +147,12 @@ export function VotePanel({
   onConfirm(preview: BallotPreview): Promise<boolean>;
   eligibleAttendanceIds: readonly string[];
   departedAttendanceIds: readonly string[];
-  onDeclareRecusal?: () => void;
+  actionContainer: HTMLElement | null;
 }) {
   const { t, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const [method, setMethod] = useState<BallotMethod>("public");
-  const [assignments, setAssignments] = useState<Partial<Record<string, VoteChoice>>>({});
+  const [assignments, setAssignments] = useState<Partial<Record<string, AssignmentChoice>>>({});
   const [selectedMemberIds, setSelectedMemberIds] = useState<ReadonlySet<string>>(new Set());
   const [draggedMemberId, setDraggedMemberId] = useState<string | null>(null);
   const [dropZone, setDropZone] = useState<ZoneChoice | null>(null);
@@ -150,23 +176,10 @@ export function VotePanel({
     ),
     ...departedParticipants,
   ];
-  const [secretExcludedIds, setSecretExcludedIds] = useState<ReadonlySet<string>>(new Set());
-  const secretParticipants = participants.filter(
-    (participant) => !secretExcludedIds.has(participant.memberId) && !departedMemberIds.has(participant.memberId),
-  );
-  const previousParticipantCount = useRef(participants.length);
-  const [secretTotals, setSecretTotals] = useState(() => initialSecretBallotTotals(participants.length));
   const eligibleIdentity = [...eligibleAttendanceIds, ...departedAttendanceIds].join(",");
   useEffect(() => {
     setPreview(null);
-  }, [method, assignments, secretTotals, secretExcludedIds, chairmanMemberId, eligibleIdentity]);
-
-  useEffect(() => {
-    const previousCount = previousParticipantCount.current;
-    if (previousCount === participants.length) return;
-    setSecretTotals((totals) => reconcileSecretBallotTotals(totals, previousCount, participants.length));
-    previousParticipantCount.current = participants.length;
-  }, [participants.length]);
+  }, [method, assignments, chairmanMemberId, eligibleIdentity]);
 
   const memberById = new Map(members.map((member) => [member.id, member]));
   const carriedCountByHolder = participants.reduce<Map<string, number>>((accumulator, participant) => {
@@ -221,9 +234,15 @@ export function VotePanel({
     );
   };
 
-  const adjustSecretTotal = (key: keyof SecretBallotTotals, offset: number) => {
-    setSecretTotals((totals) => ({ ...totals, [key]: Math.max(0, totals[key] + offset) }));
+  const secretTotals: SecretBallotTotals = {
+    votesFor: counts.for,
+    votesAgainst: counts.against,
+    abstentions: counts.abstain,
+    notVoting: counts.notVoting,
+    blank: participantsIn("blank").length,
+    invalid: participantsIn("invalid").length,
   };
+  const secretParticipants = participants.filter((participant) => zoneOf(participant.memberId) !== "notVoting");
   const secretTotalCount =
     secretTotals.votesFor +
     secretTotals.votesAgainst +
@@ -246,7 +265,7 @@ export function VotePanel({
                 castByMemberId: participant.castByMemberId,
                 choice: departedMemberIds.has(participant.memberId)
                   ? "notVoting"
-                  : (assignments[participant.memberId] ?? "notVoting"),
+                  : publicChoice(assignments[participant.memberId] ?? "notVoting"),
               })),
             }
           : {
@@ -254,7 +273,7 @@ export function VotePanel({
               chairmanMemberId,
               ...target,
               participantMemberIds: participants.map((participant) => participant.memberId),
-              totals: { ...secretTotals, notVoting: participants.length - secretParticipants.length },
+              totals: secretTotals,
             };
       setError(null);
       try {
@@ -309,14 +328,6 @@ export function VotePanel({
   if (!open) {
     return (
       <section className="vote-panel vote-panel-collapsed">
-        <button
-          className="live-primary-action vote-open-action"
-          type="button"
-          data-testid="live-ballot-open"
-          onClick={() => onOpenChange(true)}
-        >
-          {t("live.openVote")}
-        </button>
         <p className="vote-eligible-hint">
           {t("ballot.eligibleCount").replace("{count}", formatNumber(participants.length))}
         </p>
@@ -328,18 +339,19 @@ export function VotePanel({
     <section className="vote-panel" aria-labelledby="vote-panel-heading">
       <header className="vote-panel-header">
         <h2 id="vote-panel-heading">{t("ballot.itemTitle")}</h2>
-        {onDeclareRecusal ? (
-          <button className="vote-reset" type="button" data-testid="live-ballot-recusal" onClick={onDeclareRecusal}>
-            {t("recusal.title")}
-          </button>
-        ) : null}
         <div className="vote-method-toggle">
           <button
             className={`vote-method-choice${method === "public" ? " vote-method-choice-active" : ""}`}
             type="button"
             aria-pressed={method === "public"}
             data-testid="live-ballot-mode-public"
-            onClick={() => setMethod("public")}
+            onClick={() => {
+              if (method !== "public") {
+                setAssignments({});
+                setSelectedMemberIds(new Set());
+                setMethod("public");
+              }
+            }}
           >
             {t("ballot.method.public")}
           </button>
@@ -356,7 +368,7 @@ export function VotePanel({
       </header>
       <p className="vote-panel-hint">{t(method === "public" ? "live.publicVoteHint" : "ballot.secretDescription")}</p>
 
-      {method === "public" ? (
+      {
         <>
           <section
             className={`vote-source-zone${dropZone === "unassigned" ? " vote-zone-over" : ""}`}
@@ -388,7 +400,7 @@ export function VotePanel({
             </div>
           </section>
           <div className="vote-board">
-            {targetZones.map((zone) => {
+            {(method === "public" ? targetZones : secretTargetZones).map((zone) => {
               const zoneParticipants = participantsIn(zone.choice);
               const canReceiveSelection = selectedMemberIds.size > 0;
               return (
@@ -434,72 +446,7 @@ export function VotePanel({
             </button>
           ) : null}
         </>
-      ) : (
-        <div className="grid gap-3">
-          <fieldset className="grid gap-2" data-testid="live-secret-participants">
-            <legend>{t("recusal.secretParticipants")}</legend>
-            <p className="text-sm text-muted-foreground">{t("recusal.secretParticipantsHint")}</p>
-            <div className="vote-secret-participants-list">
-              {participants.map((participant) => (
-                <label className="flex items-center gap-2" key={participant.memberId}>
-                  <input
-                    type="checkbox"
-                    data-testid={`live-secret-participant-${participant.memberId}`}
-                    disabled={departedMemberIds.has(participant.memberId)}
-                    checked={
-                      !secretExcludedIds.has(participant.memberId) && !departedMemberIds.has(participant.memberId)
-                    }
-                    onChange={(event) =>
-                      setSecretExcludedIds((previous) => {
-                        const next = new Set(previous);
-                        if (event.target.checked) next.delete(participant.memberId);
-                        else next.add(participant.memberId);
-                        return next;
-                      })
-                    }
-                  />
-                  <span>
-                    {participant.memberName}
-                    {departedMemberIds.has(participant.memberId) ? ` (${t("ballot.departed")})` : ""}
-                    {participant.represented
-                      ? ` · ${t("live.carriedBy").replace("{holder}", participant.castByName)}`
-                      : ""}
-                  </span>
-                </label>
-              ))}
-            </div>
-            <p data-testid="live-secret-not-voting">
-              {t("ballot.notVoting")} : {formatNumber(participants.length - secretParticipants.length)}
-            </p>
-          </fieldset>
-          <div className="vote-secret-counters">
-            {secretCounters.map((counter) => (
-              <div className="vote-secret-counter" key={counter.key}>
-                <span>{t(counter.labelKey)}</span>
-                <div>
-                  <button
-                    type="button"
-                    aria-label={`${t(counter.labelKey)} −1`}
-                    data-testid={`live-secret-${counter.key}-decrement`}
-                    onClick={() => adjustSecretTotal(counter.key, -1)}
-                  >
-                    −
-                  </button>
-                  <strong>{formatNumber(secretTotals[counter.key])}</strong>
-                  <button
-                    type="button"
-                    aria-label={`${t(counter.labelKey)} +1`}
-                    data-testid={`live-secret-${counter.key}-increment`}
-                    onClick={() => adjustSecretTotal(counter.key, 1)}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      }
 
       <label className="grid gap-2">
         {t("ballot.chairman")}
@@ -531,17 +478,20 @@ export function VotePanel({
             if (!submitting) setPreview(null);
           }}
         >
-          <div className="grid gap-3" data-testid="live-ballot-preview">
-            <p>{t("ballot.previewHint")}</p>
-            <strong data-testid="live-ballot-preview-result">
+          <div className="ballot-preview" data-testid="live-ballot-preview">
+            <p className="ballot-preview-hint">{t("ballot.previewHint")}</p>
+            <strong className="ballot-preview-result" data-testid="live-ballot-preview-result">
               {t(preview.data.calculation.result === "approve" ? "live.adopted" : "live.rejected")}
             </strong>
-            <p>
+            <p className="ballot-preview-hint">
               {t("ballot.previewQuorum")} : {formatNumber(preview.data.quorum.presentCount)} /{" "}
               {formatNumber(preview.data.quorum.requiredPresent)}
             </p>
-            <dl className="grid gap-2">
-              {secretCounters.map(({ key, labelKey }) => {
+            <dl className="ballot-preview-totals">
+              {matchLiteral(preview.data.candidate.mode, {
+                public: () => publicCounters,
+                secret: () => secretCounters,
+              }).map(({ key, labelKey }) => {
                 const totalKeys = {
                   votesFor: "approve",
                   votesAgainst: "reject",
@@ -553,45 +503,52 @@ export function VotePanel({
                 return (
                   <div key={key}>
                     <dt>{t(labelKey)}</dt>
-                    <dd>{formatNumber(preview.data.calculation.totals[totalKeys[key]])}</dd>
+                    <dd data-testid={`live-ballot-preview-total-${totalKeys[key]}`}>
+                      {formatNumber(preview.data.calculation.totals[totalKeys[key]])}
+                    </dd>
                   </div>
                 );
               })}
+              <div>
+                <dt>{t("ballot.notVoting")}</dt>
+                <dd data-testid="live-ballot-preview-total-nonParticipation">
+                  {formatNumber(preview.data.calculation.totals.nonParticipation)}
+                </dd>
+              </div>
             </dl>
-            <p>
-              {t("ballot.notVoting")} : {formatNumber(preview.data.calculation.totals.nonParticipation)}
-            </p>
             <RequestErrorBanner error={error} />
-            <Button
-              data-testid="live-ballot-preview-correct"
-              variant="outline"
-              disabled={submitting}
-              onClick={() => {
-                setPreview(null);
-                setError(null);
-              }}
-            >
-              {t("ballot.correct")}
-            </Button>
-            <Button
-              data-testid="live-ballot-preview-confirm"
-              disabled={submitting || !findSirenAction(preview.representation, "ballot.confirm")}
-              onClick={() =>
-                void run(async () => {
+            <div className="ballot-preview-actions">
+              <Button
+                data-testid="live-ballot-preview-correct"
+                variant="outline"
+                disabled={submitting}
+                onClick={() => {
+                  setPreview(null);
                   setError(null);
-                  try {
-                    if (await onConfirm(preview)) {
-                      setPreview(null);
-                      onOpenChange(false);
-                    } else setError("request_failed");
-                  } catch (cause) {
-                    setError(apiErrorCode(cause));
-                  }
-                })
-              }
-            >
-              {t(submitting ? "common.saving" : "ballot.confirm")}
-            </Button>
+                }}
+              >
+                {t("ballot.correct")}
+              </Button>
+              <Button
+                data-testid="live-ballot-preview-confirm"
+                disabled={submitting || !findSirenAction(preview.representation, "ballot.confirm")}
+                onClick={() =>
+                  void run(async () => {
+                    setError(null);
+                    try {
+                      if (await onConfirm(preview)) {
+                        setPreview(null);
+                        onOpenChange(false);
+                      } else setError("request_failed");
+                    } catch (cause) {
+                      setError(apiErrorCode(cause));
+                    }
+                  })
+                }
+              >
+                {t(submitting ? "common.saving" : "ballot.confirm")}
+              </Button>
+            </div>
           </div>
         </Modal>
       ) : null}
@@ -629,25 +586,30 @@ export function VotePanel({
           <button className="vote-cancel" type="button" onClick={() => onOpenChange(false)}>
             {t("common.cancel")}
           </button>
-          <button
-            className="live-primary-action"
-            type="button"
-            disabled={
-              submitting ||
-              !participants.some(
-                (participant) =>
-                  participant.memberId === chairmanMemberId &&
-                  aggregate.attendance.some(
-                    (entry) => entry.memberId === chairmanMemberId && entry.status === "present",
-                  ),
-              ) ||
-              (method === "public" ? !publicComplete : !secretValid)
-            }
-            data-testid="live-ballot-preview-open"
-            onClick={() => void record()}
-          >
-            {t(submitting ? "common.saving" : "ballot.previewAction")}
-          </button>
+          {actionContainer
+            ? createPortal(
+                <button
+                  className="live-primary-action"
+                  type="button"
+                  disabled={
+                    submitting ||
+                    !participants.some(
+                      (participant) =>
+                        participant.memberId === chairmanMemberId &&
+                        aggregate.attendance.some(
+                          (entry) => entry.memberId === chairmanMemberId && entry.status === "present",
+                        ),
+                    ) ||
+                    (method === "public" ? !publicComplete : !secretValid)
+                  }
+                  data-testid="live-ballot-preview-open"
+                  onClick={() => void record()}
+                >
+                  {t(submitting ? "common.saving" : "ballot.previewAction")}
+                </button>,
+                actionContainer,
+              )
+            : null}
         </div>
       </footer>
     </section>

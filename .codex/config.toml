@@ -1,3 +1,5 @@
+model = "gpt-6-astra"
+
 [mcp_servers.code-moniker]
 args = [
     "mcp",
@@ -11,3 +13,9 @@ command = "/Users/user/.cargo/bin/code-moniker"
 required = false
 startup_timeout_sec = 45
 tool_timeout_sec = 120
+
+[mcp_servers.code-moniker.tools.code_moniker_read]
+approval_mode = "approve"
+
+[mcp_servers.code-moniker.tools.code_moniker_context]
+approval_mode = "approve"

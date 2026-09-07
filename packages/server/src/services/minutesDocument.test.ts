@@ -34,6 +34,8 @@ const fixture: MinutesDetail = {
       {
         id: "agenda",
         position: 1,
+        agendaNumber: 1,
+        introducedAt: null,
         title: "",
         kind: "minutesApproval",
         report: "Rapport figé **important**.",
@@ -58,6 +60,16 @@ const fixture: MinutesDetail = {
 };
 
 describe("minutes generated document", () => {
+  it("renders the canonical agenda number independently of technical gaps", () => {
+    const minutes: MinutesDetail = {
+      ...fixture,
+      facts: { ...fixture.facts, agenda: [{ ...fixture.facts.agenda[0]!, position: 6, agendaNumber: 5 }] },
+    };
+    const html = renderMinutesSections(minutes).proceedings;
+    expect(html).toContain("<h3>5. ");
+    expect(html).not.toContain("<h3>6. ");
+  });
+
   it("prints immutable identities, reports and named public votes separately from sanitized narrative", () => {
     const html = Object.values(renderMinutesSections(fixture)).join("");
     expect(html).toContain("Présidence : Marie Martin");

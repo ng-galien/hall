@@ -838,7 +838,8 @@ CREATE FUNCTION hall_api.update_text_resource(
   resource_id UUID,
   expected_version INTEGER,
   resource_content TEXT,
-  referenced_editor_asset_ids UUID[]
+  referenced_editor_asset_ids UUID[],
+  resource_name TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -848,6 +849,9 @@ SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
   PERFORM hall.require_resource(resource_id, 'text');
+  IF resource_name IS NOT NULL THEN
+    PERFORM hall_api.rename_resource(resource_id, resource_name);
+  END IF;
 
   -- @functional-requirement HALL-FR-DOC-240 EDITOR_ASSETS_FOLLOW_REFERENCES:
   IF EXISTS (

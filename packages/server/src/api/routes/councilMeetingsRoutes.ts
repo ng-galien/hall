@@ -1,29 +1,31 @@
-import { z } from "zod";
 import {
   type AgendaItem,
+  addOpenQuestionSchema,
   adjournAgendaItemSchema,
   type CouncilMeeting,
   closeCouncilMeetingSchema,
-  completeOpenQuestionSchema,
+  completeAgendaItemSchema,
   createAndScheduleCouncilBusinessSchema,
   prepareCouncilMeetingSchema,
   provisionInitialCouncilMeetingSchema,
   recordAgendaItemRecusalSchema,
   recordMeetingAttendanceEventsSchema,
   recordMeetingAttendanceSchema,
-  recordMeetingMembershipSchema,
+  recordMeetingOpeningSchema,
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
   reorderCouncilAgendaSchema,
   reprogramAgendaItemSchema,
   scheduleAgendaItemSchema,
   scheduleCouncilMeetingSchema,
+  schedulePreparedCouncilSubjectSchema,
   setCouncilMeetingOfficersSchema,
   startAgendaItemSchema,
-  startCouncilMeetingSchema,
   updateAgendaItemNotesSchema,
 } from "@hall/api-contract";
+import { generateMeetingNoticeMessageSchema } from "@hall/contracts";
 import { Router } from "express";
+import { z } from "zod";
 import type { CouncilClient } from "../../clients/councilClient.js";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
@@ -68,11 +70,24 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
     response.json(await requireMeeting(councilClient, routeParameter(request.params.meetingReference)));
   });
 
-  router.post("/:meetingReference/agenda-freeze", requireActionPermission("meeting.freeze-agenda"), async (request, response) => {
-    z.object({}).strict().parse(request.body);
-    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
-    response.json(await councilClient.freezeAgenda(meeting.id));
-  });
+  router.post(
+    "/:meetingReference/agenda-reopening",
+    requireActionPermission("meeting.reopen-agenda"),
+    async (request, response) => {
+      z.object({}).strict().parse(request.body);
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response.json(await councilClient.reopenAgenda(meeting.id));
+    },
+  );
+  router.post(
+    "/:meetingReference/agenda-freeze",
+    requireActionPermission("meeting.freeze-agenda"),
+    async (request, response) => {
+      z.object({}).strict().parse(request.body);
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response.json(await councilClient.freezeAgenda(meeting.id));
+    },
+  );
   router.get("/:meetingReference/agenda-freeze", requirePermission("meetings.read"), async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     const freeze = await councilClient.openAgendaFreeze(meeting.id);
@@ -84,28 +99,65 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
     response.locals.currentCouncilMeeting = meeting;
     response.json(await meetingNoticeService.list(meeting.id));
   });
-  router.post("/:meetingReference/notices", requireActionPermission("meeting.generate-notice"), async (request, response) => {
-    z.object({}).strict().parse(request.body);
-    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
-    response.status(201).json(await meetingNoticeService.generate(meeting.id));
-  });
+  router.post(
+    "/:meetingReference/notices",
+    requireActionPermission("meeting.generate-notice"),
+    async (request, response) => {
+      z.object({}).strict().parse(request.body);
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response.status(201).json(await meetingNoticeService.generate(meeting.id));
+    },
+  );
 
+  router.get("/:meetingReference/notice-message", requirePermission("meetings.prepare"), async (request, response) => {
+    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+    response.json(await meetingNoticeService.messagePreparation(meeting.id));
+  });
+  router.post(
+    "/:meetingReference/notice-message",
+    requireActionPermission("meeting.generate-notice-message"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      const { noticeId } = generateMeetingNoticeMessageSchema.parse(request.body);
+      const message = await meetingNoticeService.generateMessage(meeting.id, noticeId);
+      response.set("Content-Disposition", `attachment; filename="${message.fileName}"`);
+      response.set("Cache-Control", "private, no-store");
+      response.type(message.mediaType).send(message.content);
+    },
+  );
+
+  router.post(
+    "/:meetingReference/agenda-items/from-prepared",
+    requireActionPermission("agenda-item.schedule-prepared"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response.locals.currentCouncilMeeting = meeting;
+      response
+        .status(201)
+        .json(
+          await councilClient.schedulePreparedSubject(
+            meeting.id,
+            schedulePreparedCouncilSubjectSchema.parse(request.body),
+          ),
+        );
+    },
+  );
+
+  router.post(
+    "/:meetingReference/open-questions",
+    requireActionPermission("meeting.add-open-question"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response.locals.currentCouncilMeeting = meeting;
+      response
+        .status(201)
+        .json(await councilClient.addOpenQuestion(meeting.id, addOpenQuestionSchema.parse(request.body)));
+    },
+  );
   router.get("/:meetingReference/conduct", requirePermission("meetings.read"), async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     response.json(await councilClient.meetingConduct(meeting.id));
   });
-  router.post(
-    "/:meetingReference/membership-records",
-    requireActionPermission("meeting.record-membership"),
-    async (request, response) => {
-      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
-      response
-        .status(201)
-        .json(
-          await councilClient.recordMeetingMembership(meeting.id, recordMeetingMembershipSchema.parse(request.body)),
-        );
-    },
-  );
   router.post(
     "/:meetingReference/attendance-events",
     requireActionPermission("meeting.record-attendance-events"),
@@ -183,10 +235,16 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
     },
   );
 
-  router.post("/:meetingReference/start", requireActionPermission("meeting.start"), async (request, response) => {
-    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
-    response.json(await councilClient.startMeeting(meeting.id, startCouncilMeetingSchema.parse(request.body)));
-  });
+  router.post(
+    "/:meetingReference/record-opening",
+    requireActionPermission("meeting.record-opening"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response.json(
+        await councilClient.recordMeetingOpening(meeting.id, recordMeetingOpeningSchema.parse(request.body)),
+      );
+    },
+  );
 
   router.post("/:meetingReference/close", requireActionPermission("meeting.close"), async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
@@ -358,7 +416,7 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
         routeParameter(request.params.agendaItemId),
       );
       response.json(
-        await councilClient.completeOpenQuestion(agendaItem.id, completeOpenQuestionSchema.parse(request.body)),
+        await councilClient.completeAgendaItem(agendaItem.id, completeAgendaItemSchema.parse(request.body)),
       );
     },
   );

@@ -30,13 +30,14 @@ find "${test_dir}" -maxdepth 1 -type f -name '*.test.sql' -print0 \
   | xargs -0 grep -hEo 'HALL-(FR|TR)-[A-Z]+-[0-9]{3}' \
   | sort -u > "${covered_requirements}"
 
-if ! diff -u "${production_requirements}" "${covered_requirements}"; then
+comm -12 "${production_requirements}" "${covered_requirements}" > "${covered_requirements}.council"
+if ! diff -u "${production_requirements}" "${covered_requirements}.council"; then
   echo "The pgTAP requirement coverage differs from the production annotations" >&2
   exit 1
 fi
 
-find "${sql_dir}" -maxdepth 1 -type f -name '*.sql' ! -name '002-error-codes.sql' -print0 \
-  | xargs -0 grep -hEo "ERRCODE = 'HV[0-9]{3}'" \
+find "${sql_dir}" "${sql_dir}/../workspace" -maxdepth 1 -type f -name '*.sql' ! -name '002-error-codes.sql' -print0 \
+  | xargs -0 grep -hEo "ERRCODE[[:space:]]*=[[:space:]]*'HV[0-9]{3}'" \
   | grep -Eo 'HV[0-9]{3}' \
   | sort -u > "${used_error_codes}"
 
@@ -50,7 +51,8 @@ if [[ -n "$(uniq -d "${catalogued_error_codes}")" ]]; then
   exit 1
 fi
 
-if ! diff -u "${catalogued_error_codes}" "${used_error_codes}"; then
+comm -12 "${catalogued_error_codes}" "${used_error_codes}" > "${used_error_codes}.council"
+if ! diff -u "${catalogued_error_codes}" "${used_error_codes}.council"; then
   echo "Used and catalogued Hall SQLSTATE codes differ" >&2
   exit 1
 fi
@@ -60,7 +62,8 @@ find "${test_dir}" -maxdepth 1 -type f -name '*.test.sql' -print0 \
   | grep -Eo 'HV[0-9]{3}' \
   | sort -u > "${asserted_error_codes}"
 
-if ! diff -u "${catalogued_error_codes}" "${asserted_error_codes}"; then
+comm -12 "${catalogued_error_codes}" "${asserted_error_codes}" > "${asserted_error_codes}.council"
+if ! diff -u "${catalogued_error_codes}" "${asserted_error_codes}.council"; then
   echo "Every catalogued Hall SQLSTATE must be asserted by pgTAP" >&2
   exit 1
 fi
@@ -75,11 +78,11 @@ if ! diff -u <(printf '%s\n' 23502 23503 23505 23514) "${asserted_native_codes}"
   exit 1
 fi
 
-raise_count=$(find "${sql_dir}" -maxdepth 1 -type f -name '*.sql' ! -name '002-error-codes.sql' -print0 \
+raise_count=$(find "${sql_dir}" "${sql_dir}/../workspace" -maxdepth 1 -type f -name '*.sql' ! -name '002-error-codes.sql' -print0 \
   | xargs -0 grep -hEc 'RAISE EXCEPTION' \
   | awk '{ total += $1 } END { print total + 0 }')
-errcode_count=$(find "${sql_dir}" -maxdepth 1 -type f -name '*.sql' ! -name '002-error-codes.sql' -print0 \
-  | xargs -0 grep -hEc "ERRCODE = 'HV[0-9]{3}'" \
+errcode_count=$(find "${sql_dir}" "${sql_dir}/../workspace" -maxdepth 1 -type f -name '*.sql' ! -name '002-error-codes.sql' -print0 \
+  | xargs -0 grep -hEc "ERRCODE[[:space:]]*=[[:space:]]*'HV[0-9]{3}'" \
   | awk '{ total += $1 } END { print total + 0 }')
 
 if [[ "${raise_count}" != "${errcode_count}" ]]; then

@@ -104,12 +104,15 @@ BEGIN
     IF agenda_item_minutes_approval IS NULL AND agenda_item_decision_proposal IS NULL THEN
       RAISE EXCEPTION USING
         ERRCODE = 'HV411',
-        MESSAGE = 'an open question cannot receive a ballot';
+        MESSAGE = 'a non-voting agenda subject cannot receive a ballot';
     END IF;
 
     IF NOT EXISTS(SELECT FROM hall.meeting_quorum_observation
       WHERE agenda_item=NEW.council_agenda_item AND facts->>'verdict' IN ('met','exempt')) THEN
       RAISE EXCEPTION USING ERRCODE = 'HV414',MESSAGE='a ballot requires a recorded discussion quorum';
+    END IF;
+    IF hall.calculate_meeting_quorum((SELECT council_meeting FROM hall.council_agenda_item WHERE id=NEW.council_agenda_item),NEW.council_agenda_item,clock_timestamp())->>'verdict'='notMet' THEN
+      RAISE EXCEPTION USING ERRCODE = 'HV142',MESSAGE='a ballot requires the applicable current quorum';
     END IF;
     -- The new open ballot satisfies its meeting and agenda invariants.
     RETURN NEW;

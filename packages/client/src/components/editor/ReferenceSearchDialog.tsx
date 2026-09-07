@@ -148,6 +148,7 @@ export function ReferenceSearchDialog({
                 <button
                   type="button"
                   data-testid="reference-result"
+                  data-reference-id={item.id}
                   role="option"
                   aria-selected={index === active}
                   className="workspace-explorer-row"

@@ -1,4 +1,4 @@
-import { test as base, expect, type Locator, type Page } from "@playwright/test";
+import { test as base, expect, type Page } from "@playwright/test";
 
 interface ApplicationFixtures {
   appPage: Page;
@@ -12,7 +12,7 @@ export const test = base.extend<ApplicationFixtures>({
       if (!localStorage.getItem("mairie.locale")) localStorage.setItem("mairie.locale", "en");
     });
     await page.goto("/app/");
-    const synchronizationStatus = page.getByRole("status").filter({ hasText: "Server connected" });
+    const synchronizationStatus = page.getByTestId("application-sync-status");
     await expect(synchronizationStatus).toHaveAttribute("data-sync-state", "synchronized");
     await use(page);
     expect(pageErrors, "The application must not emit uncaught browser errors").toEqual([]);
@@ -20,32 +20,3 @@ export const test = base.extend<ApplicationFixtures>({
 });
 
 export { expect };
-
-export function formWithHeading(page: Page, heading: string): Locator {
-  return page.locator("form", { hasText: heading });
-}
-
-export function formField(form: Locator, name: string): Locator {
-  return form.locator(`[name="${name}"]`);
-}
-
-export function primaryNavigationLink(page: Page, name: string): Locator {
-  return page.locator("aside").getByRole("link", { name: new RegExp(`^${name}(?:\\s|$)`) });
-}
-
-/**
- * Shadcn selectors are buttons that open an overlay rather than native select elements.
- * Open the overlay and choose the option by label instead of using selectOption.
- */
-export async function chooseOption(trigger: Locator, optionLabel: string): Promise<void> {
-  await trigger.click();
-  await trigger.page().getByRole("option", { name: optionLabel, exact: true }).click();
-  await expect(trigger).toContainText(optionLabel);
-}
-
-/**
- * Finds an editor control by the accessible label exposed through aria-label or title.
- */
-export function editorControl(scope: Locator, label: string): Locator {
-  return scope.locator(`[aria-label="${label}"], [title="${label}"]`);
-}

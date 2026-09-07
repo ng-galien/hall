@@ -9,6 +9,15 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const clientDirectory = dirname(dirname(fileURLToPath(import.meta.url)));
 const projectDirectory = join(clientDirectory, "..", "..");
+if (process.argv.length === 2) {
+  const result = spawnSync(process.execPath, [join(clientDirectory, "scripts/run-desktop-e2e.mjs")], {
+    cwd: clientDirectory,
+    env: process.env,
+    stdio: "inherit",
+  });
+  if (result.error) throw result.error;
+  process.exit(result.status ?? 1);
+}
 const playwrightCli = require.resolve("@playwright/test/cli");
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "hall-playwright-"));
 const testDatabaseUrl = "postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test";

@@ -1,10 +1,36 @@
-import type { CouncilDecision, CouncilDecisionListEntry } from "@hall/domain";
-import { apiRequest, submitSirenActionAt } from "./apiClient";
+import {
+  councilDecisionDetailSchema,
+  councilDecisionSummarySchema,
+  type UpdateCouncilDecisionDraft,
+  updateCouncilDecisionDraftSchema,
+  type FreezeCouncilDecision,
+  freezeCouncilDecisionSchema,
+} from "@hall/api-contract";
+import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
-export const listCouncilDecisions = () => apiRequest<CouncilDecisionListEntry[]>("/council-decisions");
-export const createCouncilDecision = (input: Record<string, unknown>) =>
-  submitSirenActionAt<CouncilDecision>("/council-decisions", "decision.create", input).then((result) => result.data);
-export const updateCouncilDecision = (decisionId: string, input: Record<string, unknown>) =>
-  submitSirenActionAt<CouncilDecision>(`/council-decisions/${decisionId}`, "decision.update", input).then(
-    (result) => result.data,
+export async function listCouncilDecisionDocuments() {
+  return councilDecisionSummarySchema.array().parse(await apiRequest<unknown>("/council-decisions"));
+}
+
+export async function openCouncilDecisionDocument(id: string) {
+  const result = await apiSirenRequest<unknown>(`/council-decisions/${encodeURIComponent(id)}`);
+  return { ...result, data: councilDecisionDetailSchema.parse(result.data) };
+}
+
+export async function updateCouncilDecisionDraft(id: string, input: UpdateCouncilDecisionDraft) {
+  const result = await submitSirenActionAt<unknown>(
+    `/council-decisions/${encodeURIComponent(id)}`,
+    "decision.update-draft",
+    updateCouncilDecisionDraftSchema.parse(input),
   );
+  return { ...result, data: councilDecisionDetailSchema.parse(result.data) };
+}
+
+export async function freezeCouncilDecisionDocument(id: string, input: FreezeCouncilDecision) {
+  const result = await submitSirenActionAt<unknown>(
+    `/council-decisions/${encodeURIComponent(id)}`,
+    "decision.freeze",
+    freezeCouncilDecisionSchema.parse(input),
+  );
+  return { ...result, data: councilDecisionDetailSchema.parse(result.data) };
+}

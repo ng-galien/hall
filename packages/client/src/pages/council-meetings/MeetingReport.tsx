@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
+import { MeetingMinutesAccess } from "./MeetingMinutesAccess";
 import { PageHeader } from "../../components/Ui";
+import { DisclosureBadge } from "../../components/ui/disclosure-badge";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -58,7 +59,10 @@ export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentatio
               <dt>{t("meeting.quorum")}</dt>
               <dd>
                 <strong>
-                  {formatNumber(aggregate.quorum.physicallyPresent)} / {aggregate.quorum.required === null ? t("meeting.quorumUnestablished") : formatNumber(aggregate.quorum.required)}
+                  {formatNumber(aggregate.quorum.physicallyPresent)} /{" "}
+                  {aggregate.quorum.required === null
+                    ? t("meeting.quorumUnestablished")
+                    : formatNumber(aggregate.quorum.required)}
                 </strong>
               </dd>
             </div>
@@ -81,30 +85,32 @@ export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentatio
           </dl>
         </div>
 
-        <div className="meeting-prep-layout">
-          <MeetingProceedings aggregate={aggregate} />
-
-          <aside className="meeting-side-column">
-            <section className="meeting-side-section" aria-labelledby="report-attendance-heading">
-              <h2 id="report-attendance-heading">{t("meeting.attendance")}</h2>
-              <dl className="report-attendance-counts">
-                <div>
-                  <dt>{t("attendance.present")}</dt>
-                  <dd>{formatNumber(attendanceCounts.present)}</dd>
-                </div>
-                <div>
-                  <dt>{t("attendance.represented")}</dt>
-                  <dd>{formatNumber(attendanceCounts.represented)}</dd>
-                </div>
-                <div>
-                  <dt>{t("attendance.excused")}</dt>
-                  <dd>{formatNumber(attendanceCounts.excused)}</dd>
-                </div>
-                <div>
-                  <dt>{t("attendance.absent")}</dt>
-                  <dd>{formatNumber(attendanceCounts.absent)}</dd>
-                </div>
-              </dl>
+        <div className="report-main">
+          <section className="meeting-side-section" aria-labelledby="report-attendance-heading">
+            <h2 id="report-attendance-heading">{t("meeting.attendance")}</h2>
+            <dl className="report-attendance-counts">
+              <div>
+                <dt>{t("attendance.present")}</dt>
+                <dd>{formatNumber(attendanceCounts.present)}</dd>
+              </div>
+              <div>
+                <dt>{t("attendance.represented")}</dt>
+                <dd>{formatNumber(attendanceCounts.represented)}</dd>
+              </div>
+              <div>
+                <dt>{t("attendance.excused")}</dt>
+                <dd>{formatNumber(attendanceCounts.excused)}</dd>
+              </div>
+              <div>
+                <dt>{t("attendance.absent")}</dt>
+                <dd>{formatNumber(attendanceCounts.absent)}</dd>
+              </div>
+            </dl>
+            <details className="conduct-block" data-testid="report-attendance-details">
+              <summary data-testid="report-attendance-toggle">
+                <DisclosureBadge />
+                <span>{t("report.attendanceDetails")}</span>
+              </summary>
               <ul className="report-attendance-list">
                 {aggregate.attendance.map((attendance) => (
                   <li key={attendance.memberId}>
@@ -113,20 +119,14 @@ export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentatio
                   </li>
                 ))}
               </ul>
-            </section>
-            <section className="meeting-side-section" aria-labelledby="report-minutes-heading">
-              <h2 id="report-minutes-heading">{t("meeting.minutes")}</h2>
-              <div className="meeting-minutes-status">
-                {meeting.minutesId ? (
-                  <Link to={`/minutes/${meeting.minutesId}`} data-testid="meeting-minutes-link">
-                    {t("minutes.view")}
-                  </Link>
-                ) : (
-                  <span>{t("minutes.empty")}</span>
-                )}
-              </div>
-            </section>
-          </aside>
+            </details>
+          </section>
+          <MeetingProceedings aggregate={aggregate} defaultCollapsed />
+          {meeting.minutesId ? (
+            <MeetingMinutesAccess key={meeting.minutesId} id={meeting.minutesId} />
+          ) : (
+            <span>{t("minutes.empty")}</span>
+          )}
         </div>
       </div>
     </div>

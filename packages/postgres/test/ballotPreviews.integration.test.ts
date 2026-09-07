@@ -1,8 +1,9 @@
 import { expect, it } from "vitest";
 import { PostgresCouncil, type PostgresCouncilRequest } from "../src/council.js";
-import { PostgresDirectory } from "../src/directory.js";
+import { type PostgresCouncilMember, PostgresDirectory } from "../src/directory.js";
 import { PostgresMinutes } from "../src/minutes.js";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
+import { prepareMeetingNotice } from "./support/meeting.js";
 
 postgresDescribe("reviewed ballot confirmation", () => {
   const pool = createTestPool();
@@ -15,7 +16,7 @@ postgresDescribe("reviewed ballot confirmation", () => {
   };
   async function fixture() {
     await directory.configureActiveCouncilTerm(request, 3);
-    const members = [];
+    const members: PostgresCouncilMember[] = [];
     for (const firstName of ["Chair", "Second", "Third"]) {
       const contact = await directory.createContact(request, {
         firstName,
@@ -42,16 +43,6 @@ postgresDescribe("reviewed ballot confirmation", () => {
       chairMemberId: members[0].id,
       secretaryMemberId: members[0].id,
     });
-    await council.recordAttendance(
-      request,
-      meeting.id,
-      members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
-    );
-    await council.recordMeetingMembership(request, meeting.id, {
-      observedAt: "2026-01-01T09:00:00Z",
-      sourceReference: "Confirmed nominal mandates",
-      memberIds: members.map((m) => m.id),
-    });
     const business = await council.createBusiness(request, {
       path: "seed",
       name: "Reviewed decision",
@@ -63,7 +54,14 @@ postgresDescribe("reviewed ballot confirmation", () => {
       councilBusinessId: business.id,
       position: 1,
     });
-    await council.startMeeting(request, { id: meeting.id, startedAt: "2026-01-01T09:00:00Z" });
+    await prepareMeetingNotice(council, request, meeting.id);
+    await council.recordMeetingOpening(request, {
+      id: meeting.id,
+      observedAt: "2026-01-01T09:00:00Z",
+      chairMemberId: members[0].id,
+      secretaryMemberId: members[0].id,
+      attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
+    });
     await council.startAgendaItem(request, { agendaItemId: item.id, startedAt: "2026-01-01T09:01:00Z" });
     const attendance = await council.listAttendance(request, meeting.id);
     const candidate = {

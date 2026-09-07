@@ -1,0 +1,123 @@
+import type { CouncilDecisionFacts } from "@hall/contracts";
+import { describe, expect, it } from "vitest";
+import {
+  renderCouncilDecisionContent,
+  renderCouncilDecisionFacts,
+  renderCouncilDecisionResult,
+} from "./councilDecisionDocument.js";
+
+const member = { id: "member", name: "Marie <Martin>" };
+const facts: CouncilDecisionFacts = {
+  hall: { name: "Alésia", timeZone: "Europe/Paris" },
+  opening: null,
+  proposal: { id: "proposal", title: "Objet", submittedText: "Texte voté" },
+  agendaItemId: "item",
+  agendaNumber: 7,
+  decisionNumber: 2,
+  confirmedAt: "2026-06-26T19:00:00Z",
+  meeting: {
+    id: "meeting",
+    number: 2,
+    scheduledAt: null,
+    startedAt: "2026-06-26T17:00:00Z",
+    location: null,
+    chair: member,
+    chairRole: null,
+    secretary: null,
+  },
+  attendance: [{ member, status: "present", proxyHolder: null }],
+  quorum: { memberCount: 11, denominator: 11, requiredPresent: 6, presentCount: 9, regime: "ordinary", verdict: "met" },
+  recusals: [],
+  ballot: {
+    id: "ballot",
+    mode: "public",
+    result: "approve",
+    votes: [{ member, choice: "approve" }],
+    nonParticipations: [],
+  },
+};
+
+describe("council decision documentary facts", () => {
+  it("presents confirmed facts with French dates and escaped names", () => {
+    const html = renderCouncilDecisionFacts(facts);
+    expect(html).toContain("26 juin 2026");
+    expect(html).toContain("Ordre de la délibération dans la séance : 2");
+    expect(html).not.toContain("Ordre de la délibération dans la séance : 7");
+    expect(html).toContain("19 heures 00");
+    expect(html).toContain("L’an deux mille vingt-six");
+    expect(html).toContain("Extrait du registre des délibérations du conseil municipal");
+    expect(html).not.toContain("légalement convoqué");
+    expect(html).not.toContain("nombre prescrit par la loi");
+    expect(html).toContain("Marie &lt;Martin&gt;");
+    expect(html).not.toContain("Pour : 1");
+    expect(renderCouncilDecisionResult(facts)).toContain("Pour : 1");
+    expect(html).not.toContain("Texte voté");
+    expect(html).not.toContain("signé");
+    expect(html).not.toContain("Date de convocation");
+  });
+  it("keeps opening attendance separate from voting and never substitutes a mayor", () => {
+    const html = renderCouncilDecisionFacts({
+      ...facts,
+      opening: {
+        attendance: [{ member: { id: "opening", name: "Présente au début" }, status: "present", proxyHolder: null }],
+        quorum: { ...facts.quorum, verdict: "notMet" },
+      },
+    });
+    expect(html).toContain("Présente au début");
+    expect(html).toContain("Le quorum n’était pas atteint à l’ouverture");
+    expect(html).not.toContain("Le quorum a été constaté");
+    const signatures = renderCouncilDecisionResult(facts);
+    expect(signatures).toContain("Le maire");
+    expect(signatures).not.toContain("Marie &lt;Martin&gt;");
+    expect(signatures).not.toContain("Pour extrait conforme");
+  });
+  it("makes unavailable historical context explicit without a freeze blocker", () => {
+    const html = renderCouncilDecisionFacts({
+      ...facts,
+      hall: null,
+      meeting: { ...facts.meeting, startedAt: "1999-06-26T17:00:00Z" },
+    });
+    expect(html).toContain("mille neuf cent quatre-vingt-dix-neuf");
+    expect(html).toContain("17 heures 00 UTC");
+    expect(html).toContain("Commune non renseignée");
+  });
+  it("uses only aggregate choices for the secret ballot", () => {
+    const html = renderCouncilDecisionResult({
+      ...facts,
+      ballot: {
+        id: "secret",
+        mode: "secret",
+        result: "reject",
+        totals: { approve: 2, reject: 5, abstain: 1, blank: 1, invalid: 1, nonParticipation: 1 },
+      },
+    });
+    expect(html).toContain("Rejetée");
+    expect(html).toContain("Contre : 5");
+    expect(html).toContain("Blancs : 1");
+    expect(html).not.toContain("Marie &lt;Martin&gt; :");
+  });
+  it("renders the separate documentary writing without altering or repeating the submitted text", () => {
+    const html = renderCouncilDecisionContent({
+      id: "decision",
+      councilMeetingId: "meeting",
+      proposalId: "proposal",
+      ballotId: "ballot",
+      title: "Objet <test>",
+      publicationNumber: null,
+      state: "draft",
+      version: 1,
+      createdAt: facts.confirmedAt,
+      updatedAt: facts.confirmedAt,
+      frozenAt: null,
+      documentId: null,
+      content: "Rédaction **fidèle**. <script>alert(1)</script>",
+      facts,
+    });
+    expect(html).toContain("Objet &lt;test&gt;");
+    expect(html).toContain("<strong>fidèle</strong>");
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("Texte voté");
+    expect(html).not.toContain("Délibération n°");
+    expect(html).not.toContain("Pour :");
+  });
+});

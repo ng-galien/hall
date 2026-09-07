@@ -106,7 +106,7 @@ export function editorExtensions({
       link: { openOnClick: false },
     }),
     Markdown,
-    TableKit.configure({ table: false }),
+    TableKit.configure({ table: false, tableHeader: { HTMLAttributes: { "data-testid": "editor-table-header" } } }),
     markdownTable.configure({ resizable: true }),
     columnAlignment,
     ResourceImage.configure({ controls: imageControls }),

@@ -96,10 +96,11 @@ function MinutesDetail({ id }: { id: string }) {
                   <section className="admin-record" key={item.id} aria-labelledby={`minutes-section-title-${item.id}`}>
                     <div className="admin-section-heading">
                       <h3 id={`minutes-section-title-${item.id}`}>
-                        {formatNumber(Math.abs(item.position))} ·{" "}
+                        {formatNumber(item.agendaNumber)} ·{" "}
                         {matchLiteral(item.kind, {
                           minutesApproval: () => t("agendaSubject.minutesApproval"),
                           councilDecisionProposal: () => item.title,
+                          businessConsultation: () => item.title,
                           openQuestion: () => item.title,
                         })}
                       </h3>

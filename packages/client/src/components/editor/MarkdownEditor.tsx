@@ -314,7 +314,11 @@ export function MarkdownEditor({
     contentType: "markdown",
     editable: !readOnly,
     editorProps: {
-      attributes: { "data-testid": "editor-writing-area", class: "markdown-content", "aria-label": t("editor.writeArea") },
+      attributes: {
+        "data-testid": "editor-writing-area",
+        class: "markdown-content",
+        "aria-label": t("editor.writeArea"),
+      },
     },
     onUpdate: ({ editor }) => {
       latest.current = editor.getMarkdown();
@@ -416,7 +420,11 @@ export function MarkdownEditor({
           if (!open) inline?.commands.setContent(latest.current, { contentType: "markdown" });
         }}
       >
-        <DialogContent className="markdown-editor-dialog" closeLabel={t("common.close")}>
+        <DialogContent
+          data-testid="editor-enriched-dialog"
+          className="markdown-editor-dialog"
+          closeLabel={t("common.close")}
+        >
           <DialogHeader>
             <DialogTitle>{title ?? t("editor.enrich")}</DialogTitle>
           </DialogHeader>
@@ -489,7 +497,11 @@ function EnrichedEditor({
     contentType: "markdown",
     autofocus: true,
     editorProps: {
-      attributes: { "data-testid": "editor-writing-area", class: "markdown-content", "aria-label": t("editor.writeArea") },
+      attributes: {
+        "data-testid": "editor-writing-area",
+        class: "markdown-content",
+        "aria-label": t("editor.writeArea"),
+      },
       handleDrop: (view, event) => {
         const file = event.dataTransfer
           ? [...event.dataTransfer.files].find((candidate) => candidate.type.startsWith("image/"))

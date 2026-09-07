@@ -26,7 +26,7 @@ export interface LiveMeetingMemberAttendance {
 
 export interface LiveMeetingBusiness {
   id: string;
-  kind: "matter" | "minutesApproval" | "openQuestion";
+  kind: "matter" | "minutesApproval" | "businessConsultation" | "openQuestion";
   title: string;
   report: string;
   reportResourceId?: string;
@@ -42,7 +42,9 @@ export interface LiveMeetingAgendaItem {
   id: string;
   meetingId: string;
   position: number;
+  agendaNumber: number | null;
   subjectKind: AgendaItem["subject"]["kind"];
+  subject: AgendaItem["subject"];
   business: LiveMeetingBusiness;
   status: LiveAgendaItemStatus;
   discussionSummary: string;
@@ -156,11 +158,13 @@ export function presentLiveMeeting(
         id: item.id,
         meetingId: item.councilMeetingId,
         position: Math.abs(item.position),
+        agendaNumber: item.agendaNumber,
         subjectKind: item.subject.kind,
+        subject: item.subject,
         business: {
-          id: item.councilBusinessId ?? item.subject.id,
+          id: item.councilBusinessId ?? item.id,
           kind: businessKind(item.subject),
-          title: business?.title ?? item.subject.kind,
+          title: item.title,
           report: business?.report ?? "",
           reportResourceId: business?.reportResourceId,
           folderPath: business?.folderPath ?? "",
@@ -261,9 +265,10 @@ export function presentLiveMeeting(
     agendaReady: agendaItems.length > 0,
     requiredMinutesOfMeetingId: workspace.meeting.previousCouncilMeetingId,
     activeMemberCount: members.length,
-    rosterMemberIds:
-      workspace.conduct.membershipRecords.at(-1)?.members.map((member) => member.councilMemberId) ??
-      members.map((member) => member.id),
+    rosterMemberIds: workspace.meeting.startedAt
+      ? (workspace.conduct.membershipRecords.at(-1)?.members.map((member) => member.councilMemberId) ??
+        members.map((member) => member.id))
+      : members.map((member) => member.id),
     attendance,
     agendaItems,
     councilDecisions: workspace.agendaItems.flatMap((item) =>
@@ -308,7 +313,8 @@ export type LiveBallotSubmission = ({ agendaItemId: string } | { councilDecision
 const agendaRankByBusinessKind: Record<LiveMeetingBusiness["kind"], number> = {
   minutesApproval: 0,
   matter: 1,
-  openQuestion: 2,
+  businessConsultation: 2,
+  openQuestion: 3,
 };
 
 export function liveAgendaBusinessRank(business: LiveMeetingBusiness): number {

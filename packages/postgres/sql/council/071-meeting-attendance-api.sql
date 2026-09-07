@@ -51,9 +51,11 @@ $function$;
 -- Non-represented attendances are inserted before represented attendances in
 -- the same transaction. A proxy can therefore name a holder declared in the
 -- same input batch without exposing persistence identities to the caller.
+-- @functional-requirement HALL-FR-MTG-300 OPENING_USES_CURRENT_TERM_MEMBERS_IN_ONE_TRANSACTION:
 CREATE FUNCTION hall_api.record_meeting_attendance(
   target_meeting UUID,
-  attendance_declarations JSONB
+  attendance_declarations JSONB,
+  observation_time TIMESTAMPTZ DEFAULT clock_timestamp()
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -65,6 +67,9 @@ DECLARE
   declaration RECORD;
   declaration_status hall.meeting_attendance_status;
   holder_attendance_id UUID;
+  active_term_id UUID;
+  active_members UUID[];
+  declared_members UUID[];
 BEGIN
   IF jsonb_typeof(attendance_declarations) IS DISTINCT FROM 'array' THEN
     RAISE EXCEPTION USING
@@ -82,6 +87,17 @@ BEGIN
       ERRCODE = 'HV901',
       MESSAGE = format('unknown council meeting %s', target_meeting);
   END IF;
+
+  SELECT id INTO active_term_id FROM hall.council_term WHERE ended_on IS NULL FOR UPDATE;
+  PERFORM 1 FROM hall.council_member WHERE council_term=active_term_id AND term_ended_on IS NULL ORDER BY id FOR SHARE;
+  SELECT array_agg(id ORDER BY id) INTO active_members FROM hall.active_council_members();
+  SELECT array_agg(council_member_id ORDER BY council_member_id) INTO declared_members
+  FROM jsonb_to_recordset(attendance_declarations) item(council_member_id UUID);
+  IF active_members IS NULL OR declared_members IS DISTINCT FROM active_members THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV137', MESSAGE='attendance must declare every active member of the current council term exactly once';
+  END IF;
+  INSERT INTO hall.meeting_membership_record(council_meeting,observed_at,source_reference,member_ids)
+  VALUES(target_meeting,observation_time,'council-term:'||active_term_id::TEXT,active_members);
 
   -- Preparation replacement is exact; member identity follows HALL-FR-ATT-100.
   -- The payload is the complete intended set. Replacement is one transaction;
@@ -114,12 +130,12 @@ BEGIN
       id,
       council_member,
       council_meeting,
-      status
+      status, declared_at
     ) VALUES (
       gen_random_uuid(),
       declaration.council_member_id,
       target_meeting,
-      declaration_status
+      declaration_status, observation_time
     );
   END LOOP;
 
@@ -152,14 +168,14 @@ BEGIN
       council_meeting,
       status,
       proxy_holder,
-      proxy_document
+      proxy_document, declared_at
     ) VALUES (
       gen_random_uuid(),
       declaration.council_member_id,
       target_meeting,
       'represented',
       holder_attendance_id,
-      declaration.proxy_document_id
+      declaration.proxy_document_id, observation_time
     );
   END LOOP;
 

@@ -1,3 +1,4 @@
+import { meetingActionBlockersSchema } from "@hall/contracts";
 import { z } from "zod";
 
 const id = z.uuid();
@@ -87,21 +88,14 @@ export const meetingConductStateSchema = meetingConductEvidenceSchema
   .extend({
     councilMeetingId: id,
     currentAttendance: z.array(currentMeetingAttendanceSchema),
-    canRecordMembership: z.boolean(),
     canRecordAttendanceEvents: z.boolean(),
+    meetingActionBlockers: meetingActionBlockersSchema,
     canRecordQuorum: z.boolean(),
     canRecordReconvocation: z.boolean(),
   })
   .strict();
 export type MeetingQuorumObservation = z.infer<typeof meetingQuorumObservationSchema>;
 export type MeetingConductState = z.infer<typeof meetingConductStateSchema>;
-export const recordMeetingMembershipSchema = z
-  .object({
-    observedAt: time,
-    sourceReference: z.string().trim().min(1),
-    memberIds: z.array(id).min(1),
-  })
-  .strict();
 export const recordMeetingAttendanceEventsSchema = z
   .object({
     observedAt: time,
@@ -131,7 +125,6 @@ export const recordMeetingReconvocationSchema = z
     agendaItemIds: z.array(id).min(1),
   })
   .strict();
-export type RecordMeetingMembership = z.infer<typeof recordMeetingMembershipSchema>;
 export type RecordMeetingAttendanceEvents = z.infer<typeof recordMeetingAttendanceEventsSchema>;
 export type RecordMeetingQuorum = z.infer<typeof recordMeetingQuorumSchema>;
 export type RecordMeetingReconvocation = z.infer<typeof recordMeetingReconvocationSchema>;

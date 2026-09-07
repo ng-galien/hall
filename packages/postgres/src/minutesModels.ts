@@ -1,3 +1,4 @@
+import { agendaNumberSchema } from "@hall/contracts";
 import { agendaItemRecusalSchema, meetingConductEvidenceSchema } from "@hall/domain";
 import { z } from "zod";
 
@@ -38,10 +39,12 @@ export const minutesFactsSchema = z
         .object({
           id,
           position: z.number().int(),
+          agendaNumber: agendaNumberSchema,
+          introducedAt: time.nullable(),
           title: z.string(),
           report: z.string(),
           proposal: z.string().nullable(),
-          kind: z.enum(["minutesApproval", "councilDecisionProposal", "openQuestion"]),
+          kind: z.enum(["minutesApproval", "councilDecisionProposal", "businessConsultation", "openQuestion"]),
           startedAt: time.nullable(),
           completedAt: time.nullable(),
           adjournedAt: time.nullable(),

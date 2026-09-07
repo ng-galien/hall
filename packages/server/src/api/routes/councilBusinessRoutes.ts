@@ -2,18 +2,47 @@ import {
   associateCouncilBusinessResourceSchema,
   councilBusinessAgendaHistoryQuerySchema,
   createCouncilBusinessSchema,
+  createPreparedCouncilSubjectSchema,
   dissociateCouncilBusinessResourceSchema,
+  preparedCouncilSubjectKindSchema,
   reorderCouncilBusinessResourcesSchema,
   scheduleCouncilBusinessSubjectSchema,
 } from "@hall/api-contract";
 import { Router } from "express";
+import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
+import { DomainError } from "../../services/errors.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
-export function createCouncilBusinessRouter({ councilBusinessWorkspaceService }: Cradle): Router {
+export function createCouncilBusinessRouter({ councilBusinessWorkspaceService, councilClient }: Cradle): Router {
   const router = Router();
+
+  router.get("/prepared-subjects", requirePermission("workspace.read"), async (request, response) => {
+    const meetingId = z.string().uuid().optional().parse(request.query.councilMeetingId);
+    response.json(await councilClient.listPreparedSubjects(meetingId));
+  });
+  router.get("/prepared-subjects/:kind/:id", requirePermission("workspace.read"), async (request, response) => {
+    const kind = preparedCouncilSubjectKindSchema.parse(request.params.kind);
+    const subject = await councilClient.openPreparedSubject(routeParameter(request.params.id), kind);
+    if (!subject) throw new DomainError("prepared_subject_not_found", 404);
+    response.json(subject);
+  });
+  router.post(
+    "/:businessId/prepared-subjects",
+    requireActionPermission("council-business.create-prepared-subject"),
+    async (request, response) => {
+      response
+        .status(201)
+        .json(
+          await councilClient.createPreparedSubject(
+            routeParameter(request.params.businessId),
+            createPreparedCouncilSubjectSchema.parse(request.body),
+          ),
+        );
+    },
+  );
 
   router.get("/", requirePermission("workspace.read"), async (_request, response) => {
     const businesses = await councilBusinessWorkspaceService.list();

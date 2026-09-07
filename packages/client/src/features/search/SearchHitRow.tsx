@@ -112,8 +112,8 @@ export function SearchHitRow<THit extends SearchHit>({
     decision: (entry) => ({
       glyph: <KindGlyph kind="decision" />,
       title: entry.decision.title,
-      meta: entry.decision.number ?? t("navigation.decisions"),
-      badge: <StatusBadge value={entry.decision.status} />,
+      meta: entry.decision.publicationNumber ?? t("navigation.decisions"),
+      badge: <StatusBadge value={entry.decision.state} />,
     }),
   });
 

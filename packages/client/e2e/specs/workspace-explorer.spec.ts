@@ -42,7 +42,19 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
       properties.kind === "spreadsheet" && properties.name === "Ressource tableur" && properties.path === "seed",
   )?.properties;
   expect(spreadsheet).toBeTruthy();
-  const resourceId = spreadsheet!.id;
+  const original = await page.request.get(`/api/resources/${spreadsheet!.id}`);
+  expect(original.ok()).toBeTruthy();
+  const source = (await original.json()).properties;
+  const created = await page.request.post("/api/resources", {
+    data: {
+      kind: "spreadsheet",
+      path: "seed",
+      name: `Concurrent workbook ${crypto.randomUUID()}`,
+      document: source.document,
+    },
+  });
+  expect(created.status()).toBe(201);
+  const resourceId = (await created.json()).properties.id;
 
   const putBodies: Array<{
     kind: "spreadsheet";
@@ -111,10 +123,11 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
   await page.waitForTimeout(1_200);
   expect(putBodies).toHaveLength(1);
   await page.getByTestId("workspace-breadcrumb-close").click();
-  await expect(page.getByTestId("spreadsheet-grid")).toHaveCount(0);
+  await expect(page.getByTestId("spreadsheet-grid")).toBeVisible();
 
   releaseFirstSave?.();
   await expect.poll(() => putBodies.length).toBe(2);
+  await expect(page.getByTestId("spreadsheet-grid")).toHaveCount(0);
 
   const finalWorkbook = putBodies[1]!.document.workbook;
   expect(finalWorkbook.sheetOrder).toEqual(["budget", "hypotheses"]);
@@ -193,7 +206,7 @@ test.describe("workspace explorer", () => {
     const created = (await createInCurrentFolder(page, "text", initialName)).properties;
 
     await page.getByTestId(`workspace-resource-open-${created.id}`).click();
-    const editor = page.getByTestId("markdown-editor-compact").locator('[contenteditable="true"]');
+    const editor = page.getByTestId("markdown-editor-compact").getByTestId("editor-writing-area");
     await editor.fill(content);
     await expect
       .poll(async () => {
@@ -231,7 +244,7 @@ test.describe("workspace explorer", () => {
     await expect(page.getByTestId(`workspace-resource-open-${created.id}`)).toBeVisible();
     await page.getByTestId(`workspace-resource-open-${created.id}`).click();
     const lastEdit = `${content}, avant fermeture`;
-    await page.getByTestId("markdown-editor-compact").locator('[contenteditable="true"]').fill(lastEdit);
+    await page.getByTestId("markdown-editor-compact").getByTestId("editor-writing-area").fill(lastEdit);
     // Close before the debounce expires: the pending content must be flushed first.
     await page.getByTestId("workspace-breadcrumb-close").click();
     await expect(page.getByTestId("resource-workbench")).toHaveCount(0);
@@ -288,12 +301,16 @@ test.describe("workspace explorer", () => {
       `/api/council-business/agenda-items?councilBusinessId=${business.id}`,
     );
     const items = (await scheduledAgenda.json()).entities.map(
-      (entry: { properties: { id: string } }) => entry.properties,
+      (entry: { properties: { id: string; position: number; agendaNumber: number } }) => entry.properties,
     );
     await page.reload();
     const group = page.getByTestId(`workspace-home-meeting-${meeting.id}`);
     await expect(group.getByTestId(`workspace-home-business-${business.id}`)).toHaveCount(1);
-    for (const item of items) await expect(group.getByTestId(`workspace-home-subject-${item.id}`)).toBeVisible();
+    for (const item of items) {
+      await expect(group.getByTestId(`workspace-home-subject-${item.id}`)).toBeVisible();
+      expect(item.agendaNumber).toBeGreaterThan(0);
+      expect(item.agendaNumber).toBeLessThan(item.position);
+    }
     await expect(group).toContainText("Draft decision");
     await expect(group).toContainText("Open question");
     await expect(page.getByTestId(`workspace-home-meeting-link-${meeting.id}`)).toBeVisible();
@@ -420,6 +437,7 @@ test("composes an agenda from workspace business with an explicit voting purpose
     }
     await page.getByTestId("business-meeting-link").click();
     await expect(page.getByTestId(`agenda-item-expand-${agenda[0].id}`)).toBeVisible();
+    await expect(page.getByTestId(`agenda-item-position-${agenda[0].id}`)).toHaveText(String(agenda[0].agendaNumber));
     await page.goto("/app/workspace");
     await expect(page.getByTestId(`workspace-home-business-${business.id}`)).toBeVisible();
   }

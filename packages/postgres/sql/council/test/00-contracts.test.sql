@@ -57,7 +57,7 @@ SELECT set_eq(
     WHERE pronamespace = 'hall'::regnamespace
       AND proname IN (
         'ballot_choice_count', 'ballot_has_valid_chairman', 'ballot_participation_count',
-        'assert_programmed_council_agenda_position', 'ballot_vote_count', 'complete_ballot_agenda_item', 'complete_open_question',
+        'assert_programmed_council_agenda_position', 'ballot_vote_count', 'complete_ballot_agenda_item', 'complete_non_voting_agenda_item',
         'close_council_meeting', 'council_meeting_closure_is_complete',
         'council_agenda_item_has_completed_ballot',
         'council_agenda_item_subject_has_one_business',
@@ -81,7 +81,7 @@ SELECT set_eq(
     ('ballot_choice_count'::name), ('ballot_has_valid_chairman'::name),
     ('ballot_participation_count'::name), ('ballot_vote_count'::name),
     ('assert_programmed_council_agenda_position'::name),
-    ('complete_ballot_agenda_item'::name), ('complete_open_question'::name),
+    ('complete_ballot_agenda_item'::name), ('complete_non_voting_agenda_item'::name),
     ('close_council_meeting'::name), ('council_meeting_closure_is_complete'::name),
     ('council_agenda_item_has_completed_ballot'::name),
     ('council_agenda_item_subject_has_one_business'::name),
@@ -143,7 +143,12 @@ SELECT set_eq(
     ('meeting_attendance.meeting_attendance_enforce_proxy_holder -> enforce_meeting_attendance_proxy_holder'),
     ('meeting_attendance.meeting_attendance_reject_truncate -> enforce_meeting_attendance_lifecycle'),
     ('votes.votes_enforce_immutability -> enforce_vote_immutability'),
-    ('votes.votes_reject_truncate -> enforce_vote_immutability')$$,
+    ('votes.votes_reject_truncate -> enforce_vote_immutability'),
+    ('votes.votes_seal_proposal_text -> seal_voted_proposal_text'),
+    ('ballots.ballot_seals_proposal_text -> seal_voted_proposal_text'),
+    ('ballots.ballot_capture_decision_facts -> capture_council_decision_facts'),
+    ('council_agenda_item.council_agenda_item_z_freeze_composition -> enforce_frozen_agenda_composition'),
+    ('council_meetings.council_meetings_z_notice_before_start -> require_current_notice_for_start')$$,
   'each lifecycle authority is wired to its owning relation'
 );
 

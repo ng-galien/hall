@@ -1,3 +1,4 @@
+import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
 import type { Server } from "node:http";
 import { asValue } from "awilix";
 import request from "supertest";
@@ -92,6 +93,17 @@ export async function createTestServer(
   container.register({
     councilClient: asValue(createTestCouncilClient(resourcesClient, minutes.entries)),
     minutesClient: asValue(minutes.client),
+    councilDecisionClient: asValue<CouncilDecisionClient>({
+      list: async () => [],
+      open: async () => null,
+      content: async () => null,
+      updateDraft: async () => {
+        throw new Error("Use the PostgreSQL decision document integration fixture");
+      },
+      freeze: async () => {
+        throw new Error("Use the PostgreSQL decision document integration fixture");
+      },
+    }),
     directoryClient: asValue(createTestDirectoryClient()),
     resourcesClient: asValue(resourcesClient),
   });

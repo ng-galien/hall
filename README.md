@@ -22,6 +22,10 @@ Electron supports two runtime modes:
 
 - Local mode starts an embedded server and stores SQLite in Electron `userData`.
 - Shared mode uses `HALL_SERVER_URL`; several desktop applications then use one authoritative server and database.
+  After a successful connection, the desktop app remembers this URL in `connection.json` in Electron `userData`,
+  so later launches from Finder reconnect without an environment variable. Setting `HALL_SERVER_URL` again changes
+  the saved connection. This is the mode to use with the current PostgreSQL-backed Hall server; the historical
+  embedded SQLite mode does not provide the current council and document workflows.
 
 Clients never open the database directly. `DATABASE_KIND=sqlite|postgres` selects the injected executor; each engine
 keeps an explicit schema and may override a named query when its SQL dialect requires it.
@@ -71,8 +75,18 @@ npm run test:postgres
 npm run desktop:dev
 npm run quality
 npm run desktop:package
-npm run smoke:package -w @hall/desktop
+npm run desktop:make
 ```
+
+On macOS Apple Silicon, the packaged application is `packages/desktop/out/Hall-darwin-arm64/Hall.app`.
+Connect it to the existing development server on the first launch:
+
+```bash
+HALL_SERVER_URL=http://127.0.0.1:5174 packages/desktop/out/Hall-darwin-arm64/Hall.app/Contents/MacOS/Hall
+```
+
+Subsequent launches can open `Hall.app` directly. The selected server must remain available.
+`desktop:make` also creates a ZIP in `packages/desktop/out/make/zip/darwin/arm64/`.
 
 ### Repartir d’une démonstration vide
 

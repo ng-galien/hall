@@ -1,11 +1,6 @@
+import type { CouncilDecisionSummary } from "@hall/api-contract";
 import type { Contact } from "@hall/api-contract";
-import {
-  type CouncilDecisionListEntry,
-  type CouncilMember,
-  matchLiteral,
-  type ReferenceEntityKind,
-  type Resource,
-} from "@hall/domain";
+import { type CouncilMember, matchLiteral, type ReferenceEntityKind, type Resource } from "@hall/domain";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { CouncilMeetingView } from "../../models/councilMeeting";
 
@@ -14,7 +9,7 @@ export type ReferenceOpenTarget = { kind: "resourcePreview"; resourceId: string 
 export interface ReferenceNavigationCatalog {
   resources: readonly Resource[];
   businesses: readonly CouncilBusinessView[];
-  decisions: readonly CouncilDecisionListEntry[];
+  decisions: readonly CouncilDecisionSummary[];
   meetings: readonly CouncilMeetingView[];
   members: readonly CouncilMember[];
   contacts: readonly Contact[];
@@ -26,7 +21,7 @@ export type ResolvedReferenceEntity =
   | { kind: "resource"; entity: Resource; open: ReferenceOpenTarget }
   | { kind: "councilBusiness"; entity: CouncilBusinessView; open: ReferenceOpenTarget }
   | { kind: "meeting"; entity: CouncilMeetingView; open: ReferenceOpenTarget }
-  | { kind: "decision"; entity: CouncilDecisionListEntry; open: ReferenceOpenTarget };
+  | { kind: "decision"; entity: CouncilDecisionSummary; open: ReferenceOpenTarget };
 
 export function councilBusinessHref(business: Pick<CouncilBusinessView, "id" | "folderPath">): string {
   const parameters = new URLSearchParams();
@@ -85,7 +80,7 @@ export function resolveReferenceEntity(
       return {
         kind: "decision" as const,
         entity,
-        open: { kind: "route" as const, href: "/council-decisions" },
+        open: { kind: "route" as const, href: `/council-decisions/${entity.id}` },
       };
     },
   });

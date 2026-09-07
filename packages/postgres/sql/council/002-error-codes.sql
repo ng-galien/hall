@@ -27,7 +27,6 @@
 -- HV112  COUNCIL_MEETING_INSERT_STARTED                HALL-FR-MTG-040
 -- HV113  COUNCIL_MEETING_DEFINITION_IMMUTABLE          HALL-FR-MTG-050
 -- HV114  COUNCIL_MEETING_ALREADY_STARTED               HALL-FR-MTG-060
--- HV115  COUNCIL_MEETING_QUORUM_NOT_REACHED            HALL-FR-MTG-070
 -- HV116  COUNCIL_MEETING_INVALID_CLOSE                  HALL-FR-MTG-090
 -- HV117  PREVIOUS_MINUTES_NOT_APPROVED                  HALL-FR-MTG-120
 -- HV118  COUNCIL_MEETING_HAS_OPEN_BALLOT                HALL-FR-BAL-290
@@ -182,3 +181,23 @@
 -- HV804  NOTICE_GENERATION_UNAVAILABLE                     HALL-FR-NOT-060
 -- HV805  NOTICE_RENDERED_FACTS_STALE                       HALL-TR-NOT-010
 -- HV806  NOTICE_PDF_REQUIRED                               HALL-FR-NOT-070
+-- HV807  MEETING_CURRENT_NOTICE_REQUIRED                   HALL-FR-NOT-090
+-- HV808  AGENDA_REOPENING_UNAVAILABLE                       HALL-FR-NOT-100
+-- HV809  PREPARED_SUBJECT_IDENTITY_IMMUTABLE                HALL-FR-BUS-050
+-- HV810  PREPARED_SUBJECT_INSCRIPTION_UNAVAILABLE            HALL-FR-AGI-380
+-- HV910  PREPARED_SUBJECT_NOT_FOUND                          diagnostic
+
+-- HV235: an in-meeting open question addition or its chronology is invalid; its evidence is immutable.
+
+-- HV730: confirmed decision facts are immutable.
+-- HV731: a confirmed proposal requires its submitted text.
+
+-- HV732 decision history cannot be removed.
+-- HV733 decision origin is immutable.
+-- HV734 frozen decision cannot change.
+-- HV735 retained decision PDF is immutable.
+-- HV736 retained decision document requires PDF bytes.
+-- HV737 unknown council decision.
+-- HV738 decision version conflict.
+
+-- HV742 decision recovery requires complete matching retained evidence.

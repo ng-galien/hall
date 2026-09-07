@@ -1,6 +1,8 @@
 {
   "schemaVersion": 1,
   "sources": {
+    "DEC-L2121-23": {"kind": "legislation", "citation": "CGCT L2121-23", "localization": "alinéas 1 et 2", "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044190494", "verifiedAt": "2026-09-07", "asOf": "2026-09-07", "scope": "Inscription chronologique au registre ; signature par le maire et le ou les secrétaires de séance. Un emplacement vierge ne prouve pas une signature ni une certification de conformité.", "versionId": "LEGIARTI000044190494", "validFrom": "2022-07-01"},
+    "DEC-R2121-9": {"kind": "legislation", "citation": "CGCT R2121-9", "localization": "alinéa 2", "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053561135", "verifiedAt": "2026-09-07", "asOf": "2026-09-07", "scope": "Numéro d’ordre des affaires venant en délibération à l’intérieur de la séance ; distinct du rang des points non délibératifs et du numéro local de publication.", "versionId": "LEGIARTI000053561135", "validFrom": "2026-02-22"},
     "S1": {
       "kind": "legislation",
       "citation": "CGCT L2121-17, al. 1 et 2",
@@ -203,6 +205,28 @@
       "verifiedAt": "2026-09-06",
       "asOf": "2026-09-06",
       "scope": "La convocation est faite par le maire et indique les questions portées à l’ordre du jour. Le rendu ne prouve ni décision effective du maire, ni mention au registre, publicité ou transmission."
+    },
+    "S14": {
+      "kind": "legislation",
+      "citation": "CGCT L2121-11",
+      "localization": "Alinéa 1 : délai ordinaire ; alinéa 2 : urgence.",
+      "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389867",
+      "versionId": "LEGIARTI000006389867",
+      "validFrom": "1996-02-24",
+      "verifiedAt": "2026-09-06",
+      "asOf": "2026-09-06",
+      "scope": "Délai ordinaire de trois jours francs sous 3500 habitants ; urgence qualifiée distincte."
+    },
+    "S15": {
+      "kind": "legislation",
+      "citation": "CGCT L2121-12",
+      "localization": "Alinéa 3 : délai ordinaire ; dernier alinéa : extension aux affaires d’installation L511-1.",
+      "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000031069083",
+      "versionId": "LEGIARTI000031069083",
+      "validFrom": "2015-08-19",
+      "verifiedAt": "2026-09-06",
+      "asOf": "2026-09-06",
+      "scope": "Délai ordinaire de cinq jours francs dès 3500 habitants et extension aux petites communes pour une affaire installation L511-1 ; urgence distincte."
     }
   },
   "requirements": {
@@ -2142,7 +2166,7 @@
       ]
     },
     "HALL-FR-MTG-070": {
-      "name": "COUNCIL_MEETING_START_REQUIRES_QUORUM",
+      "name": "COUNCIL_MEETING_OPENING_RECORDS_QUORUM",
       "nature": "functional",
       "clauses": [
         {
@@ -2159,7 +2183,7 @@
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Hall réalise Démarrage exige quorum dans cette autorité logicielle ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire.",
+          "statement": "L’ouverture logicielle conserve le constat de quorum, même non atteint. Les échanges sans décision restent possibles ; les délibérations formelles et scrutins sont contrôlés séparément, et les points soumis au vote peuvent être ajournés sans résultat présumé.",
           "sourceIds": []
         }
       ]
@@ -3596,13 +3620,13 @@
       ]
     },
     "HALL-FR-AGI-350": {
-      "name": "CONSIDERATION_REQUIRES_RECORDED_CURRENT_QUORUM",
+      "name": "DECISION_CONSIDERATION_REQUIRES_RECORDED_CURRENT_QUORUM",
       "nature": "functional",
       "clauses": [
         {
           "key": "discussion-quorum",
           "origin": "regulatory",
-          "statement": "Le quorum est apprécié à la mise en discussion de chaque affaire ; un mouvement ultérieur ne réécrit pas ce constat.",
+          "statement": "Le quorum est apprécié à la mise en discussion de chaque délibération ; un mouvement ultérieur ne réécrit pas ce constat.",
           "sourceIds": [
             "S1",
             "J1",
@@ -3614,7 +3638,7 @@
         {
           "key": "atomic-discussion-transition",
           "origin": "product",
-          "statement": "Le début de discussion réalise automatiquement un constat SQL. Le refus annule la transition ; un constat de défaut est une commande explicite distincte.",
+          "statement": "Le début d’examen conserve un constat SQL. Une délibération ou approbation de procès-verbal exige le quorum applicable ; des échanges sur un point sans vote restent possibles sans produire de décision, avis formel ou adoption. Les scrutins exigent aussi le quorum actuel.",
           "sourceIds": []
         }
       ]
@@ -3637,13 +3661,13 @@
         {
           "key": "nominal-membership-evidence",
           "origin": "product",
-          "statement": "Un constat nominal daté, attribué et sourcé atteste les mandats effectivement en exercice ; les dates de l’annuaire sont seulement des éléments à vérifier.",
+          "statement": "Hall conserve un effectif nominatif historique issu des membres actifs de la mandature actuelle lors de l’enregistrement atomique de l’appel ; cet effectif ne se déduit ni des seuls présents ni du nombre théorique de sièges.",
           "sourceIds": []
         },
         {
           "key": "common-law-scope",
           "origin": "product",
-          "statement": "Le périmètre produit des règles de quorum couvre exclusivement le régime communal de droit commun. Le régime territorial particulier du quorum en Alsace-Moselle n’est pas pris en charge ; aucun paramètre géographique supplémentaire n’est introduit.",
+          "statement": "Hall prend en charge le régime de droit commun du quorum ; le régime territorial particulier d’Alsace-Moselle est exclu du périmètre produit.",
           "sourceIds": []
         }
       ]
@@ -3781,6 +3805,190 @@
           ],
           "assessment": "verified",
           "interpretation": "direct"
+        }
+      ]
+    },
+    "HALL-FR-NOT-090": {
+      "name": "MEETING_START_REQUIRES_THE_CURRENT_NOTICE",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Le démarrage exige un PDF généré correspondant à l’ordre du jour figé et aux propriétés imprimées courantes de la séance.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-100": {
+      "name": "AGENDA_REOPENING_PRESERVES_PREVIOUS_VERSIONS",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Avant le début de séance, une réouverture explicite permet de modifier et figer à nouveau l’ordre du jour, en conservant tous les PDF précédents.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-110": {
+      "name": "MEETING_NOTICE_USES_APPLICABLE_CLEAR_DAYS",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "ordinary-period",
+          "origin": "regulatory",
+          "statement": "Le délai ordinaire est de trois jours francs sous 3500 habitants et de cinq jours francs dès 3500 habitants ; L2121-12 étend son régime aux affaires d’installation L511-1 même sous ce seuil.",
+          "sourceIds": [
+            "S14",
+            "S15"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "calendar-count",
+          "origin": "regulatory",
+          "statement": "Le jour de transmission et le jour de séance sont exclus ; les jours calendaires intermédiaires comptent sans prorogation au prochain jour ouvrable. La dernière date est donc D moins N+1 jours calendaires dans le fuseau de la commune.",
+          "sourceIds": [
+            "S14",
+            "S15",
+            "J6"
+          ],
+          "assessment": "verified",
+          "interpretation": "interpreted"
+        }
+      ]
+    },
+    "HALL-TR-NOT-020": {
+      "name": "NOTICE_DEADLINE_IS_PROJECTED_BY_POSTGRESQL",
+      "nature": "technical",
+      "clauses": [
+        {
+          "key": "sql-projection",
+          "origin": "product",
+          "statement": "PostgreSQL calcule l’échéance et le rappel dans les données de séance. Sans qualification du régime, seule une référence ordinaire indicative est exposée ; une entrée inconnue reste indéterminée. Aucun PDF ou fichier mail ne prouve la transmission.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-BUS-050": {
+      "name": "PREPARED_SUBJECT_OWNS_ITS_BUSINESS_BEFORE_SCHEDULING",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Le projet de délibération et la question ouverte possèdent leur affaire avant toute inscription à une séance.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-BUS-060": {
+      "name": "PREPARED_PROJECTS_HAVE_EDITABLE_CONTENT_WITHOUT_AN_AGENDA",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Les projets et questions disposent de leur propre texte éditable, distinct du rapport de l’affaire, sans nécessiter d’inscription.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-BUS-070": {
+      "name": "BUSINESS_CONSULTATION_EXAMINES_EXISTING_BUSINESS_WITHOUT_BALLOT",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Une consultation de dossier référence directement l’affaire existante sans créer de ressource supplémentaire ; son examen se termine sans scrutin et ses notes appartiennent au point inscrit.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-AGI-380": {
+      "name": "PREPARED_SUBJECT_INSERTION_PRESERVES_NATURE_AND_SHIFTS_ATOMICALLY",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "L’inscription conserve identité et nature, décale les autres positions atomiquement et place les consultations après les projets de délibération et avant les questions ouvertes.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-220": {
+      "name": "PROPOSAL_TEXT_BELONGS_PERMANENTLY_TO_ITS_BUSINESS",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Le texte propre d’un projet reste dans le dossier de son affaire et y demeure associé ; son mapping, sa nature et son identité ne peuvent être retirés ni réaffectés.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-230": {
+      "name": "VOTED_PROPOSAL_TEXT_IS_PERMANENTLY_IMMUTABLE",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Dès le premier suffrage enregistré ou la clôture d’un scrutin sans suffrage, le texte propre, son enveloppe, ses actifs et ses métadonnées deviennent immuables, quel que soit le résultat ; le verrou persiste après correction des votes. Un scrutin vide non clos ne suffit pas.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MTG-300": {
+      "name": "OPENING_USES_CURRENT_TERM_MEMBERS_IN_ONE_TRANSACTION",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Une seule commande capture tous les membres actifs de la mandature puis enregistre appel, pouvoirs, officiers, constat de quorum et ouverture, même si le quorum n’est pas atteint. Aucune saisie distincte de l’effectif n’est demandée. Sans quorum les points soumis au vote sont ajournables, les échanges sans décision restent possibles et aucun scrutin n’est autorisé. Les données invalides annulent la commande ; aucun envoi n’est inventé.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DEC-020": {"name": "CONFIRMED_PROPOSALS_PRODUCE_DOCUMENTARY_DRAFTS", "nature": "functional", "clauses": [{"key": "implementation", "origin": "product", "statement": "Tout scrutin définitivement confirmé sur un projet produit un brouillon de délibération, adopté ou rejeté. Les approbations de PV gardent leur cycle propre.", "sourceIds": []}]},
+    "HALL-FR-DEC-040": {"name": "DOCUMENTARY_EDITS_PRESERVE_FACTS_AND_IDENTITY", "nature": "functional", "clauses": [{"key": "implementation", "origin": "product", "statement": "La rédaction documentaire reste corrigible avant gel, séparément des faits et sans modification du texte soumis. Elle doit transcrire fidèlement la décision ; aucune correction de fond ne découle de cette capacité.", "sourceIds": []}]},
+    "HALL-FR-DEC-050": {"name": "EXPLICIT_FREEZE_RETAINS_AN_IMMUTABLE_PDF", "nature": "functional", "clauses": [{"key": "implementation", "origin": "product", "statement": "Le gel explicite conserve des octets PDF immuables et ferme la rédaction. Il ne vaut ni signature ni publication ni transmission ; aucun numéro définitif de publication n’est attribué.", "sourceIds": []}]},
+    "HALL-TR-DEC-010": {"name": "EDITING_AND_FREEZING_CHECK_THE_OBSERVED_VERSION", "nature": "technical", "clauses": [{"key": "implementation", "origin": "product", "statement": "Une version observée et un verrou commun protègent la rédaction et le gel contre les mises à jour concurrentes.", "sourceIds": []}]},
+    "HALL-FR-DEC-060": {"name": "DECISIONS_HAVE_AN_ORDER_WITHIN_THE_MEETING", "nature": "functional", "clauses": [{"key": "order-in-meeting", "origin": "regulatory", "statement": "Les affaires venant en délibération reçoivent un numéro d’ordre à l’intérieur de la séance.", "sourceIds": ["DEC-R2121-9"], "assessment": "verified", "interpretation": "direct"}, {"key": "implementation", "origin": "product", "statement": "Hall compte les propositions confirmées, adoptées ou rejetées ; ce numéro de séance ne remplace pas le numéro métier de publication.", "sourceIds": []}]},
+    "HALL-FR-DEC-080": {"name": "DOCUMENTARY_ENVELOPE_USES_HISTORICAL_EVIDENCE", "nature": "functional", "clauses": [{"key": "signature-authorities", "origin": "regulatory", "statement": "Les délibérations sont signées par le maire et le ou les secrétaires de séance.", "sourceIds": ["DEC-L2121-23"], "assessment": "verified", "interpretation": "direct"}, {"key": "implementation", "origin": "product", "statement": "Le gabarit commun distingue ouverture et scrutin, reprend les observations historiques disponibles, laisse absentes les qualités non observées et ne déduit aucune attestation de convocation, signature, conformité ou publication. Les choix typographiques du modèle communal ne constituent pas des obligations légales ; aucune métadonnée manquante ne crée à elle seule un blocage de gel.", "sourceIds": []}]},
+    "HALL-FR-DEC-070": {"name": "HISTORICAL_DECISION_RECOVERY_USES_RETAINED_EVIDENCE", "nature": "functional", "clauses": [{"key": "implementation", "origin": "product", "statement": "Une reprise contrôlée de scrutin confirmé sur projet utilise exclusivement le snapshot de clôture, le texte scellé et la revue confirmée. Les preuves indispensables absentes ou incohérentes font refuser la reprise. Répéter la commande conserve le brouillon et sa version, sans toucher au PV.", "sourceIds": []}]},
+    "HALL-FR-DEC-010": {"name": "CONFIRMED_PROPOSAL_FACTS_ARE_PRESERVED", "nature": "functional", "clauses": [{"key": "implementation", "origin": "product", "statement": "La confirmation du scrutin conserve une copie immuable du texte soumis, de la séance, des identités, du quorum, des déports et du résultat. Les scrutins secrets ne conservent aucun choix nominatif. Cette preuve est distincte de la rédaction documentaire et de la numérotation à la publication.", "sourceIds": []}]},
+    "HALL-FR-AGI-410": {
+      "name": "OPEN_QUESTIONS_CAN_BE_APPENDED_DURING_MEETING",
+      "nature": "functional",
+      "clauses": [{"key":"implementation","origin":"product","statement":"Une question ouverte peut être ajoutée en fin d’ordre du jour tant que la séance est ouverte, y compris sans quorum ou après examen de tous les points. L’ajout est horodaté, immuable, identifié dans le PV et distinct de la convocation gelée. Il n’introduit aucune délibération ni scrutin.","sourceIds":[]}]
+    },
+    "HALL-FR-AGI-400": {
+      "name": "AGENDA_PRESENTATION_NUMBERS_ARE_CONTINUOUS",
+      "nature": "functional",
+      "clauses": [{
+        "key": "implementation",
+        "origin": "product",
+        "statement": "Les points présentés sont numérotés continûment à partir de 1 dans la préparation, le live, la convocation et le procès-verbal. agendaNumber est calculé par une autorité PostgreSQL commune et reste distinct de position, dont les trous techniques sont conservés. Après clôture, la projection utilise l’instantané historique.",
+        "sourceIds": []
+      }]
+    },
+    "HALL-FR-AGI-390": {
+      "name": "CONDUCT_ACTIONS_EXPLAIN_UNAVAILABILITY",
+      "nature": "functional",
+      "clauses": [
+        {
+          "key": "implementation",
+          "origin": "product",
+          "statement": "Chaque action de conduite expose tous ses motifs courants d’indisponibilité depuis PostgreSQL. Les capacités Siren et les motifs affichés partagent cette autorité ; HTTP ajoute le refus de permission. L’ajournement d’une approbation de PV conserve son identité et son état non approuvé ; tant que le modèle de report multiple n’est pas décidé, la clôture expose les PV précédents en attente et reste refusée.",
+          "sourceIds": []
         }
       ]
     }

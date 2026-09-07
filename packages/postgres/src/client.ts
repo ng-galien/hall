@@ -3,6 +3,7 @@ import { PostgresSchemaBootstrap } from "./bootstrap.js";
 import { type HallPostgresConfig, parseHallPostgresConfig } from "./config.js";
 import { PostgresCouncil } from "./council.js";
 import { PostgresDirectory } from "./directory.js";
+import { PostgresCouncilDecisions } from "./councilDecisions.js";
 import { PostgresMinutes } from "./minutes.js";
 import { createPostgresPool } from "./pool.js";
 import { PostgresResources } from "./resources.js";
@@ -13,6 +14,7 @@ export class PostgresClient {
   readonly directory: PostgresDirectory;
   readonly resources: PostgresResources;
   readonly minutes: PostgresMinutes;
+  readonly councilDecisions: PostgresCouncilDecisions;
 
   constructor(private readonly pool: Pool) {
     this.bootstrap = new PostgresSchemaBootstrap(pool);
@@ -20,6 +22,7 @@ export class PostgresClient {
     this.directory = new PostgresDirectory(pool);
     this.resources = new PostgresResources(pool);
     this.minutes = new PostgresMinutes(pool);
+    this.councilDecisions = new PostgresCouncilDecisions(pool);
   }
 
   async close(): Promise<void> {

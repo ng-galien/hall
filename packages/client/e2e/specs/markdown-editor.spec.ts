@@ -15,7 +15,7 @@ function enrichedEditor(page: Page): Locator {
 }
 
 function writingArea(editor: Locator): Locator {
-  return editor.locator('[contenteditable="true"]');
+  return editor.getByTestId("editor-writing-area");
 }
 
 function markdownSource(page: Page): Locator {
@@ -40,25 +40,13 @@ async function openEnrichedEditor(page: Page): Promise<Locator> {
 }
 
 async function closeEnrichedEditor(page: Page): Promise<void> {
-  await page
-    .locator('[data-slot="dialog-content"]')
-    .filter({ has: enrichedEditor(page) })
-    .locator('[data-slot="dialog-close"]')
-    .click();
+  await page.getByTestId("editor-enriched-dialog").getByTestId("dialog-close").click();
   await expect(enrichedEditor(page)).toBeHidden();
 }
 
-async function openWorkspaceText(page: Page, resourceIndex = 0): Promise<{ id: string; slug: string; name: string }> {
-  const response = await page.request.get("/api/resources/search?kinds=text");
-  expect(response.ok()).toBe(true);
-  const representation = (await response.json()) as {
-    properties: { items: Array<{ id: string; slug: string; name: string; path: string }> };
-  };
-  const resource = representation.properties.items[resourceIndex];
-  expect(resource).toBeTruthy();
-  await page.goto(
-    `/app/workspace?path=${encodeURIComponent(resource?.path ?? "")}&resource=${encodeURIComponent(resource?.id ?? "")}`,
-  );
+async function openWorkspaceText(page: Page): Promise<{ id: string; slug: string; name: string }> {
+  const resource = await createWorkspaceText(page, `Editor lifecycle ${crypto.randomUUID()}`);
+  await page.goto(`/app/workspace?path=seed&resource=${encodeURIComponent(resource.id)}`);
   await expect(compactEditor(page)).toBeVisible();
   return resource;
 }
@@ -239,7 +227,7 @@ test.describe("Markdown editor", () => {
   test("selects an existing image and exposes its contextual controls in compact mode", async ({ appPage: page }) => {
     await openEditorLab(page);
     const compact = compactEditor(page);
-    const image = compact.locator("img[alt]").first();
+    const image = compact.getByTestId(/^editor-image-[0-9a-f-]{36}$/).first();
     await expect(image).toBeVisible();
     const imageName = await image.getAttribute("alt");
     expect(imageName).toBeTruthy();
@@ -349,20 +337,20 @@ test.describe("Markdown editor", () => {
     await editor.getByTestId("editor-table-add-row").click();
     await expect(table.getByRole("row")).toHaveCount(4);
 
-    await table.getByRole("columnheader").first().click();
+    await editor.getByTestId("editor-table-header").first().click();
     await editor.getByTestId("editor-table-column-menu").click();
     await page.getByTestId("editor-table-align-center").click();
     await expect(markdownSource(page)).toContainText(/:--+:/);
 
-    await table.getByRole("columnheader").first().click();
+    await editor.getByTestId("editor-table-header").first().click();
     await editor.getByTestId("editor-table-column-menu").click();
     await page.getByTestId("editor-table-widen-column").click();
     await expect(markdownSource(page)).toContainText(/colwidth=["']\d+["']/);
 
-    const firstHeader = table.getByRole("columnheader").first();
+    const firstHeader = editor.getByTestId("editor-table-header").first();
     await firstHeader.click();
-    await table
-      .getByRole("columnheader")
+    await editor
+      .getByTestId("editor-table-header")
       .nth(1)
       .click({ modifiers: ["Shift"] });
     await editor.getByTestId("editor-table-merge").click();
@@ -410,6 +398,7 @@ test.describe("Markdown editor", () => {
       },
     });
     expect(decisionResponse.status()).toBe(201);
+    const decisionId = (await decisionResponse.json()).properties.id;
     await openEditorLab(page);
     const editor = await openEnrichedEditor(page);
     const source = markdownSource(page);
@@ -418,7 +407,11 @@ test.describe("Markdown editor", () => {
     for (const directive of kinds) {
       const dialog = await openReferenceSearch(editor);
       await dialog.getByTestId(`reference-kind-${directive}`).click();
-      await dialog.getByTestId("reference-result").first().click();
+      const results = dialog.getByTestId("reference-result");
+      await (directive === "decision"
+        ? results.and(page.locator(`[data-reference-id="${decisionId}"]`))
+        : results.first()
+      ).click();
       await expect(source).toHaveText(new RegExp(`:${directive}\\[[^\\]]+\\]\\{#[0-9a-f-]{36}\\}`));
     }
     const markdown = await source.textContent();
@@ -696,7 +689,7 @@ test.describe("Markdown editor", () => {
   });
 
   test("imports, autosaves, reloads and purges an editor asset from a real workbench", async ({ appPage: page }) => {
-    const resource = await openWorkspaceText(page, 1);
+    const resource = await openWorkspaceText(page);
     const editor = await openEnrichedEditor(page);
 
     await dropEditorFile(page, editor, {
@@ -733,8 +726,7 @@ test.describe("Markdown editor", () => {
     await expect.poll(() => persistedResourceContent(page, resource.slug), { timeout: 15_000 }).toContain(assetId);
 
     await page.reload();
-    const compactAsset = compactEditor(page).locator(`[data-resource-id="${assetId}"]`);
-    const compactImage = compactAsset.locator("img");
+    const compactImage = compactEditor(page).getByTestId(`editor-image-${assetId}`);
     await expect(compactImage).toBeVisible();
     await compactImage.click();
     await expect(compactEditor(page).getByTestId("editor-image-width")).toBeVisible();
@@ -748,7 +740,7 @@ test.describe("Markdown editor", () => {
   });
 
   test("imports an image by drag and drop in a fullscreen workbench", async ({ appPage: page }) => {
-    const resource = await openWorkspaceText(page, 2);
+    const resource = await openWorkspaceText(page);
     const editor = await openEnrichedEditor(page);
     const uploadPromise = page.waitForResponse(
       (response) => response.url().endsWith("/api/resources/editor-assets") && response.request().method() === "POST",
@@ -771,7 +763,7 @@ test.describe("Markdown editor", () => {
       .toContain(representation.properties.title);
     await page.reload();
     await expect(compactEditor(page).getByTestId("editor-insert-image")).toHaveCount(0);
-    const compactImage = compactEditor(page).locator(`[data-resource-id="${representation.properties.id}"] img`);
+    const compactImage = compactEditor(page).getByTestId(`editor-image-${representation.properties.id}`);
     await expect(compactImage).toBeVisible();
     await compactImage.click();
     await expect(compactEditor(page).getByTestId("editor-image-width")).toBeVisible();

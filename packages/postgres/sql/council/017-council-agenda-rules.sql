@@ -68,14 +68,11 @@ LANGUAGE sql
 STABLE
 SET search_path = pg_catalog, hall
 AS $$
-  SELECT count(DISTINCT council_business) <= 1
-  FROM council_agenda_item
-  WHERE (target.minutes_approval IS NOT NULL AND minutes_approval = target.minutes_approval)
-     OR (
-       target.council_decision_proposal IS NOT NULL
-       AND council_decision_proposal = target.council_decision_proposal
-     )
-     OR (target.open_question IS NOT NULL AND open_question = target.open_question);
+  SELECT CASE WHEN target.subject_kind='businessConsultation' THEN target.council_business IS NOT NULL
+    WHEN target.minutes_approval IS NOT NULL THEN target.council_business IS NULL
+    WHEN target.council_decision_proposal IS NOT NULL THEN EXISTS (
+      SELECT FROM council_decision_proposal WHERE id=target.council_decision_proposal AND council_business=target.council_business)
+    ELSE EXISTS (SELECT FROM open_question WHERE id=target.open_question AND council_business=target.council_business) END;
 $$;
 
 CREATE FUNCTION enforce_council_agenda_item_subject_business()

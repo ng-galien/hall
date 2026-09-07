@@ -144,15 +144,16 @@ SELECT lives_ok(
 INSERT INTO meeting_attendance(id,council_member,council_meeting,status) SELECT test_uuid('eligibility:extra:'||n),test_uuid('eligibility:extra-member:'||n),test_uuid('ballot:eligibility:meeting'),'present' FROM generate_series(1,3)n;
 SELECT test_designate_present_officers(id) FROM council_meetings
 WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
-UPDATE council_meetings
-SET started_at = '2026-01-01 09:00:00+00'
-WHERE id = test_uuid('ballot:eligibility:meeting');
-
 SELECT test_create_decision_agenda_item(
   'ballot:eligibility',
   test_uuid('ballot:eligibility:meeting'),
   1
 );
+SELECT test_prepare_notice(test_uuid('ballot:eligibility:meeting'));
+UPDATE council_meetings
+SET started_at = '2026-01-01 09:00:00+00'
+WHERE id = test_uuid('ballot:eligibility:meeting');
+
 
 UPDATE council_agenda_item
 SET started_at = '2026-01-01 09:05:00+00'
@@ -327,15 +328,21 @@ VALUES (
 
 SELECT test_designate_present_officers(id) FROM council_meetings
 WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
-UPDATE council_meetings
-SET started_at = '2026-01-01 09:00:00+00'
-WHERE id = test_uuid('ballot:inactive:meeting');
-
 SELECT test_create_decision_agenda_item(
   'ballot:inactive',
   test_uuid('ballot:inactive:meeting'),
   1
 );
+SELECT schedule_open_question(
+  test_uuid('ballot:inactive:business'),
+  test_uuid('ballot:inactive:meeting'),
+  2
+);
+SELECT test_prepare_notice(test_uuid('ballot:inactive:meeting'));
+UPDATE council_meetings
+SET started_at = '2026-01-01 09:00:00+00'
+WHERE id = test_uuid('ballot:inactive:meeting');
+
 
 SELECT throws_ok(
   $$
@@ -352,11 +359,6 @@ SELECT throws_ok(
   'a ballot cannot attach to an inactive agenda item'
 );
 
-SELECT schedule_open_question(
-  test_uuid('ballot:inactive:business'),
-  test_uuid('ballot:inactive:meeting'),
-  2
-);
 UPDATE council_agenda_item
 SET started_at = '2026-01-01 09:05:00+00'
 WHERE open_question IS NOT NULL
@@ -375,7 +377,7 @@ SELECT throws_ok(
       AND council_business = test_uuid('ballot:inactive:business')
   $$,
   'HV411',
-  'an open question cannot receive a ballot',
+  'a non-voting agenda subject cannot receive a ballot',
   'an open question is structurally outside the ballot lifecycle'
 );
 
@@ -448,15 +450,16 @@ VALUES (
 
 SELECT test_designate_present_officers(id) FROM council_meetings
 WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
-UPDATE council_meetings
-SET started_at = '2026-01-01 09:00:00+00'
-WHERE id = test_uuid('ballot:missing-chair:meeting');
-
 SELECT test_create_decision_agenda_item(
   'ballot:missing-chair',
   test_uuid('ballot:missing-chair:meeting'),
   1
 );
+SELECT test_prepare_notice(test_uuid('ballot:missing-chair:meeting'));
+UPDATE council_meetings
+SET started_at = '2026-01-01 09:00:00+00'
+WHERE id = test_uuid('ballot:missing-chair:meeting');
+
 
 UPDATE council_agenda_item
 SET started_at = '2026-01-01 09:05:00+00'

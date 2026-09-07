@@ -40,24 +40,18 @@ DECLARE
   agenda_item_id UUID := gen_random_uuid();
 BEGIN
   PERFORM assert_programmed_council_agenda_position(target_position);
+  IF NOT EXISTS(SELECT FROM hall.council_business WHERE id=target_business) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV905', MESSAGE='unknown council business';
+  END IF;
 
   -- One transaction creates both the durable subject and its agenda
   -- occurrence. A proposal cannot be exposed half-created by this action.
-  INSERT INTO council_decision_proposal (id) VALUES (proposal_id);
+  INSERT INTO council_decision_proposal (id,council_business) VALUES (proposal_id,target_business);
 
-  INSERT INTO council_agenda_item (
-    id,
-    council_business,
-    council_meeting,
-    position,
-    council_decision_proposal
-  ) VALUES (
-    agenda_item_id,
-    target_business,
-    target_meeting,
-    target_position,
-    proposal_id
-  );
+  -- All insertion paths share the same shifting and nature-order authority.
+  agenda_item_id := (hall_api.schedule_prepared_council_subject(
+    target_meeting, proposal_id, 'councilDecisionProposal', target_position
+  )->>'id')::UUID;
 
   RETURN agenda_item_id;
 END;
@@ -79,24 +73,18 @@ DECLARE
   agenda_item_id UUID := gen_random_uuid();
 BEGIN
   PERFORM assert_programmed_council_agenda_position(target_position);
+  IF NOT EXISTS(SELECT FROM hall.council_business WHERE id=target_business) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV905', MESSAGE='unknown council business';
+  END IF;
 
   -- OpenQuestion is the subject. CouncilAgendaItem is only its ordered
   -- occurrence in a meeting; the two rows are created together.
-  INSERT INTO open_question (id) VALUES (question_id);
+  INSERT INTO open_question (id,council_business) VALUES (question_id,target_business);
 
-  INSERT INTO council_agenda_item (
-    id,
-    council_business,
-    council_meeting,
-    position,
-    open_question
-  ) VALUES (
-    agenda_item_id,
-    target_business,
-    target_meeting,
-    target_position,
-    question_id
-  );
+  -- All insertion paths share the same shifting and nature-order authority.
+  agenda_item_id := (hall_api.schedule_prepared_council_subject(
+    target_meeting, question_id, 'openQuestion', target_position
+  )->>'id')::UUID;
 
   RETURN agenda_item_id;
 END;
@@ -322,7 +310,7 @@ END;
 $$;
 
 -- @functional-requirement HALL-FR-AGI-260 OPEN_QUESTION_COMPLETION_IS_A_NAMED_ACTION:
-CREATE FUNCTION complete_open_question(
+CREATE FUNCTION complete_non_voting_agenda_item(
   target_agenda_item UUID,
   completion_time TIMESTAMPTZ
 )
@@ -334,7 +322,7 @@ AS $$
 DECLARE
   changed council_agenda_item;
 BEGIN
-  -- Only OpenQuestion can complete through this action. The completion
+  -- Open questions and business consultations complete through this action. The completion
   -- authority rejects ballot-backed subjects without a completed Ballot.
   UPDATE council_agenda_item
   SET completed_at = completion_time

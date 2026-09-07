@@ -273,6 +273,9 @@ SELECT is(
 INSERT INTO council_meetings (id) VALUES
 (test_uuid('mtg:attendance-action'));
 
+SELECT test_ensure_council_member(test_uuid('member:attendance-action:represented'));
+SELECT test_ensure_council_member(test_uuid('member:attendance-action:present'));
+SELECT test_ensure_document_resource(test_uuid('document:attendance-action:proxy'));
 -- HALL-TR-CON-040 HALL-TR-INT-070
 SELECT lives_ok(
   format(
@@ -290,7 +293,7 @@ SELECT lives_ok(
             'council_member_id', %L::UUID,
             'status', 'present'
           )
-        )
+        ) || (SELECT coalesce(jsonb_agg(jsonb_build_object('council_member_id',id,'status','absent')),'[]'::jsonb) FROM active_council_members() WHERE id NOT IN (test_uuid('member:attendance-action:represented'),test_uuid('member:attendance-action:present')))
       )
     $sql$,
     test_uuid('mtg:attendance-action'),
@@ -304,8 +307,8 @@ SELECT lives_ok(
 
 SELECT is(
   jsonb_array_length(hall_api.list_meeting_attendance(test_uuid('mtg:attendance-action'))),
-  2,
-  'the attendance projection returns both immutable declarations'
+  (SELECT count(*)::integer FROM active_council_members()),
+  'the attendance projection returns the complete active roster including both proxy declarations'
 );
 
 SELECT is(
@@ -352,16 +355,9 @@ VALUES (
 -- HALL-FR-MTG-070
 INSERT INTO meeting_attendance(id,council_member,council_meeting,status) VALUES(test_uuid('att:no-quorum-absent'),test_uuid('member:no-quorum-absent'),test_uuid('mtg:no-quorum'),'absent');
 SELECT test_confirm_declared_membership(test_uuid('mtg:no-quorum'));
-SELECT throws_ok(
-  $$
-    UPDATE council_meetings
-    SET started_at = '2026-01-01 09:00:00+00'
-    WHERE id = test_uuid('mtg:no-quorum')
-  $$,
-  'HV115',
-  'the council meeting quorum is not reached',
-  'a meeting cannot start below its physical-presence quorum'
-);
+SELECT test_prepare_notice(test_uuid('mtg:no-quorum'));
+SELECT set_council_meeting_officers(test_uuid('mtg:no-quorum'),test_uuid('member:no-quorum-present'),test_uuid('member:no-quorum-present'));
+SELECT lives_ok($$UPDATE council_meetings SET started_at='2026-01-01 09:00:00+00' WHERE id=test_uuid('mtg:no-quorum')$$,'opening records insufficient quorum without preventing the session');
 
 -- HALL-FR-MTG-160
 SELECT throws_ok(
@@ -387,6 +383,7 @@ SELECT is(
 );
 
 SELECT test_designate_present_officers(test_uuid('mtg:main'));
+SELECT test_prepare_notice(test_uuid('mtg:main'));
 
 -- HALL-FR-MTG-170
 SELECT lives_ok(

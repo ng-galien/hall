@@ -203,6 +203,7 @@ BEGIN
 
   IF closure_time IS NULL
     OR meeting.started_at IS NULL
+    OR EXISTS(SELECT FROM hall.council_agenda_addition WHERE council_meeting=meeting.id AND introduced_at>closure_time)
     OR closure_time < meeting.started_at
     OR EXISTS (SELECT FROM council_agenda_item WHERE council_meeting = target_meeting
       AND greatest(started_at, completed_at, adjourned_at) > closure_time)

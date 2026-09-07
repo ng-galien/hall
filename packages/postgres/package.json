@@ -22,7 +22,8 @@
   "dependencies": {
     "@hall/domain": "*",
     "pg": "^8.23.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@hall/contracts": "*"
   },
   "devDependencies": {
     "@types/node": "^24.12.0",

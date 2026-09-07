@@ -18,6 +18,7 @@ import {
   isImageDirective,
   isImageWidth,
   isMinutesSection,
+  isCouncilDecisionSection,
   isResourceEmbedDirective,
   isResourcePresentationKind,
 } from "./grammar.js";
@@ -110,6 +111,10 @@ const safeHtmlSchema: SanitizeSchema = {
     "col",
     "colgroup",
     "del",
+    "div",
+    "dl",
+    "dt",
+    "dd",
     "em",
     "h1",
     "h2",
@@ -124,6 +129,7 @@ const safeHtmlSchema: SanitizeSchema = {
     "p",
     "pre",
     "strong",
+    "section",
     "table",
     "tbody",
     "td",
@@ -136,7 +142,11 @@ const safeHtmlSchema: SanitizeSchema = {
     a: ["href", "title", "target", "rel"],
     code: [["className", /^language-[a-z0-9-]+$/i]],
     col: ["style", "width"],
+    div: ["className"],
+    section: ["className"],
+    p: ["className"],
     img: ["alt", "className", "src", "style", "title"],
+    li: ["value"],
     ol: ["start"],
     table: ["style", "width"],
     td: ["align", "colSpan", "colwidth", "rowSpan", "style"],
@@ -288,11 +298,14 @@ export function validateStructure(tree: TemplateAst): Diagnostic[] {
     if (spec.name === "minutes" && directive.attributes.section && !isMinutesSection(directive.attributes.section)) {
       diagnostics.push({ code: "invalid_attribute", severity: "error", message: "Unknown minutes section", anchor });
     }
-    if (spec.name === "minutes" && directive.node !== "leafDirective") {
+    if (spec.name === "council-decision" && directive.attributes.section && !isCouncilDecisionSection(directive.attributes.section)) {
+      diagnostics.push({ code: "invalid_attribute", severity: "error", message: "Unknown council decision section", anchor });
+    }
+    if ((spec.name === "council-decision" || spec.name === "minutes" || spec.name === "meeting-notice") && directive.node !== "leafDirective") {
       diagnostics.push({
         code: "invalid_attribute",
         severity: "error",
-        message: "Minutes sections must be standalone blocks",
+        message: "Document sections must be standalone blocks",
         anchor,
       });
     }

@@ -50,6 +50,7 @@ export function AppHeader({ compact, onToggleSidebar }: AppHeaderProps) {
         role="status"
         aria-live="polite"
         data-sync-state={phase}
+        data-testid="application-sync-status"
       >
         <span
           aria-hidden="true"

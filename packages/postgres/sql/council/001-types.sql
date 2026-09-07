@@ -33,3 +33,5 @@ CREATE TYPE meeting_attendance_status AS ENUM (
   'excused',
   'absent'
 );
+
+CREATE TYPE council_agenda_subject_kind AS ENUM ('minutesApproval','councilDecisionProposal','businessConsultation','openQuestion');

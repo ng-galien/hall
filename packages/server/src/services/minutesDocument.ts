@@ -34,6 +34,7 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
     const title = matchLiteral(item.kind, {
       minutesApproval: () => "Approbation du procès-verbal de la séance précédente",
       councilDecisionProposal: () => item.title,
+      businessConsultation: () => item.title,
       openQuestion: () => item.title,
     });
     const ballot = ballots.find((candidate) => candidate.agendaItemId === item.id);
@@ -84,7 +85,7 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
       });
     const recusalEvidence = declarations.length ? `<h4>Déports déclarés</h4><ul>${declarations.join("")}</ul>` : "";
     const status = ballot?.completedAt && !item.adjournedAt ? "" : `<p>${outcome}</p>`;
-    return `<section><h3>${Math.abs(item.position)}. ${escapeHtml(title)}</h3>${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${quorum}${recusalEvidence}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>${individual}${nonParticipationNames}` : ""}</section>`;
+    return `<section><h3>${item.agendaNumber}. ${escapeHtml(title)}</h3>${item.introducedAt ? `<p>Question ajoutée en séance le ${escapeHtml(date(item.introducedAt))}.</p>` : ""}${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${quorum}${recusalEvidence}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>${individual}${nonParticipationNames}` : ""}</section>`;
   });
   return {
     facts: `<p>Séance n° ${meeting.number}<br>Ouverture : ${escapeHtml(date(meeting.startedAt))}<br>Clôture : ${escapeHtml(date(meeting.closedAt))}<br>Lieu : ${escapeHtml(meeting.location ?? "Non renseigné")}</p><p>Présidence : ${escapeHtml(meeting.chair?.name ?? "Non renseignée")}<br>Secrétariat : ${escapeHtml(meeting.secretary?.name ?? "Non renseigné")}<br>Quorum requis : ${meeting.quorum} · Présents : ${attendance.filter((entry) => entry.status === "present").length}</p><ul>${rows.join("")}</ul>`,

@@ -13,11 +13,19 @@ INSERT INTO meeting_attendance (id, council_member, council_meeting, status) VAL
   (test_uuid('agenda:attendance'), test_uuid('agenda:member'), test_uuid('agenda:meeting'), 'present'),
   (test_uuid('agenda:other-attendance'), test_uuid('agenda:other-member'), test_uuid('agenda:other-meeting'), 'present');
 
+SELECT test_ensure_business(test_uuid('agenda:previous-business'));
+CREATE TEMP TABLE deferred_open_item AS
+SELECT schedule_open_question(
+  test_uuid('agenda:previous-business'),
+  test_uuid('agenda:previous-meeting'),
+  2
+) AS id;
 SELECT test_designate_present_officers(test_uuid('agenda:previous-meeting'));
+SELECT test_prepare_notice(test_uuid('agenda:previous-meeting'));
 SELECT start_council_meeting(test_uuid('agenda:previous-meeting'), '2026-01-01 09:00Z');
 
 -- HALL-FR-BUS-010 HALL-FR-AGI-200 HALL-FR-AGI-210
-INSERT INTO council_business (id) VALUES (test_uuid('agenda:business'));
+SELECT test_ensure_business(test_uuid('agenda:business'));
 
 CREATE TEMP TABLE scheduled_item (kind TEXT PRIMARY KEY, id UUID NOT NULL);
 INSERT INTO scheduled_item VALUES
@@ -169,12 +177,12 @@ SELECT throws_ok(
   $$INSERT INTO council_agenda_item (
       id, council_business, council_meeting, position
     ) VALUES (
-      test_uuid('agenda:no-subject'), test_uuid('agenda:business'),
+      test_uuid('agenda:no-subject'), NULL,
       test_uuid('agenda:other-meeting'), 2
     )$$,
   '23514',
   NULL,
-  'an agenda item cannot exist without exactly one subject'
+  'an agenda item requires a subject or the business of a consultation'
 );
 
 -- HALL-FR-AGI-020
@@ -236,7 +244,7 @@ SELECT throws_ok(
 );
 
 -- HALL-FR-AGI-060
-INSERT INTO open_question (id) VALUES (test_uuid('agenda:absolute-position-question'));
+INSERT INTO open_question (id,council_business) VALUES (test_uuid('agenda:absolute-position-question'),test_uuid('agenda:business'));
 SELECT throws_ok(
   $$INSERT INTO council_agenda_item (
       id, council_business, council_meeting, position, open_question
@@ -271,7 +279,7 @@ SELECT throws_ok(
 );
 
 -- HALL-FR-BUS-030 HALL-TR-CON-120
-INSERT INTO council_business (id) VALUES (test_uuid('agenda:other-business'));
+SELECT test_ensure_business(test_uuid('agenda:other-business'));
 SELECT throws_ok(
   format(
     'SELECT test_execute_deferred(ARRAY[%L])',
@@ -316,7 +324,7 @@ SELECT throws_ok(
 );
 
 -- HALL-FR-AGI-090
-INSERT INTO council_decision_proposal (id) VALUES (test_uuid('agenda:insert-active-proposal'));
+INSERT INTO council_decision_proposal (id,council_business) VALUES (test_uuid('agenda:insert-active-proposal'),test_uuid('agenda:business'));
 SELECT throws_ok(
   $$INSERT INTO council_agenda_item (
       id, council_business, council_meeting, position, council_decision_proposal, started_at
@@ -395,7 +403,16 @@ SELECT reprogram_council_agenda_item(
   2
 );
 
+-- HALL-FR-AGI-080
+SELECT reprogram_council_agenda_item(
+  (SELECT id FROM scheduled_item WHERE kind = 'open'),
+  test_uuid('agenda:other-meeting'),
+  3
+);
+
+
 SELECT test_designate_present_officers(test_uuid('agenda:other-meeting'));
+SELECT test_prepare_notice(test_uuid('agenda:other-meeting'));
 SELECT start_council_meeting(test_uuid('agenda:other-meeting'), '2026-01-01 09:00Z');
 
 -- HALL-FR-AGI-180
@@ -420,12 +437,6 @@ SELECT lives_ok(
   'the named start action opens a positively programmed item'
 );
 
--- HALL-FR-AGI-080
-SELECT reprogram_council_agenda_item(
-  (SELECT id FROM scheduled_item WHERE kind = 'open'),
-  test_uuid('agenda:other-meeting'),
-  3
-);
 SELECT throws_ok(
   format(
     'SELECT start_council_agenda_item(%L::uuid, %L::timestamptz)',
@@ -533,7 +544,7 @@ SELECT lives_ok(
 );
 SELECT lives_ok(
   format(
-    'SELECT complete_open_question(%L::uuid, %L::timestamptz)',
+    'SELECT complete_non_voting_agenda_item(%L::uuid, %L::timestamptz)',
     (SELECT id FROM scheduled_item WHERE kind = 'open'),
     '2026-01-01 09:22:00+00'
   ),
@@ -552,12 +563,6 @@ SELECT throws_ok(
 );
 
 -- HALL-FR-AGI-320
-CREATE TEMP TABLE deferred_open_item AS
-SELECT schedule_open_question(
-  test_uuid('agenda:business'),
-  test_uuid('agenda:previous-meeting'),
-  2
-) AS id;
 SELECT start_council_agenda_item(
   (SELECT id FROM deferred_open_item),
   '2026-01-01 09:23:00+00'
@@ -565,7 +570,7 @@ SELECT start_council_agenda_item(
 SELECT adjourn_council_agenda_item((SELECT id FROM deferred_open_item), '2026-01-01 09:23Z');
 SELECT throws_ok(
   format(
-    'SELECT complete_open_question(%L::uuid, %L::timestamptz)',
+    'SELECT complete_non_voting_agenda_item(%L::uuid, %L::timestamptz)',
     (SELECT id FROM deferred_open_item),
     '2026-01-01 09:24:00+00'
   ),

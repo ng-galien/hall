@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { RequestErrorBanner } from "../../components/Ui";
 import { DeleteIcon } from "../../components/icons";
 import { ResourcePreviewWithSession } from "../../features/documents/ResourcePreview";
 import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
@@ -35,7 +36,7 @@ export function ResourceWorkbench({
     [businesses, resource],
   );
 
-  if (!resource) return null;
+  if (!resource) return <RequestErrorBanner error={session.actionError} />;
 
   const renameResource = async (nextTitle: string) => {
     session.setTitle(nextTitle);

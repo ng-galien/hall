@@ -33,7 +33,7 @@ export function HeaderBreadcrumb() {
       }
     }
   } else if (segments[0] === "council-decisions") {
-    items.push({ label: t("navigation.decisions") });
+    items.push({ label: t("navigation.decisions"), to: "/council-decisions" });
   } else if (segments[0] === "minutes") {
     items.push({ label: t("navigation.minutes"), to: "/minutes" });
   } else if (segments[0] === "council-members") {

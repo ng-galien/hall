@@ -7,7 +7,7 @@ const serverUrl = `http://127.0.0.1:${serverPort}`;
 
 export default defineConfig({
   testDir: "./e2e/specs",
-  outputDir: "./test-results/e2e",
+  outputDir: process.env.HALL_E2E_OUTPUT_DIR ?? "./test-results/e2e",
   timeout: 30_000,
   expect: { timeout: 5_000 },
   fullyParallel: true,
@@ -26,7 +26,7 @@ export default defineConfig({
     { name: "seed", testMatch: /seed\.setup\.ts/ },
     {
       name: "chromium",
-      testMatch: /(contacts|council-workflow|markdown-editor|workspace-explorer)\.spec\.ts/,
+      testMatch: /(contacts|council-workflow|markdown-editor|workspace-explorer|navigation-and-settings)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
       dependencies: ["seed"],
     },

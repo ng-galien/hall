@@ -1,0 +1,8 @@
+fragment = "contracts"
+
+[[refs.where]]
+id = "contracts-dependency-remains-pure"
+severity = "error"
+rationale = "Pure data unions are shared by persistence and HTTP without importing either adapter or domain behavior. Their schemas must remain independently reusable."
+expr = "$contracts_source AND $dependency_import_ref => NOT ($domain_target OR $api_contract_target OR $postgres_target OR $server_target OR $client_target OR $desktop_target OR $templating_target)"
+message = "Pure contracts may depend on validation libraries, not Hall behavior or adapters."

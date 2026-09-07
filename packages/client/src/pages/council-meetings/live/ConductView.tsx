@@ -2,14 +2,10 @@ import { matchLiteral } from "@hall/domain";
 import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DisclosureBadge } from "@/components/ui/disclosure-badge";
+import { createStageProgress } from "@/components/ui/stage-progress";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MarkdownEditor } from "../../../components/editor/MarkdownEditor";
 import {
@@ -19,17 +15,31 @@ import {
   CollapseIcon,
   ExpandIcon,
   FileIcon,
+  GavelIcon,
+  InfoIcon,
   MembersIcon,
-  MoreIcon,
   PlayIcon,
+  WarningIcon,
 } from "../../../components/icons";
 import { MarkdownView } from "../../../components/MarkdownView";
+
+const itemStages = [
+  { id: "0", icon: <FileIcon /> },
+  { id: "1", icon: <MembersIcon /> },
+  { id: "2", icon: <GavelIcon /> },
+  { id: "3", icon: <CheckIcon /> },
+] as const;
+const VotingItemProgress = createStageProgress(itemStages);
+const DiscussionItemProgress = createStageProgress([itemStages[0], itemStages[1], { id: "2", icon: <CheckIcon /> }]);
 import { Modal, RequestErrorBanner } from "../../../components/Ui";
 import { useAgendaItemRecusals } from "../../../hooks/useAgendaItemRecusals";
 import { AgendaItemRecusalDialog } from "../../../features/council-meetings/AgendaItemRecusalDialog";
+import { ConductActionBlockers } from "../../../features/council-meetings/ConductActionBlockers";
 import { recusalBasisLabel } from "../../../features/council-meetings/recusalPresentation";
-import { councilBusinessKindKeys, liveBusinessTitle } from "../../../features/council-business/presentation";
+import { liveBusinessTitle } from "../../../features/council-business/presentation";
+import { agendaSubjectPresentation } from "../../../features/council-meetings/AgendaSubjectGlyph";
 import { ResourcePreview } from "../../../features/documents/ResourcePreview";
+import { DocumentaryResourceGlyph } from "../../../features/documents/DocumentaryResourceGlyph";
 import { useResourceImageUpload } from "../../../features/documents/useResourceImageUpload";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useReferenceMentionables } from "../../../hooks/useReferenceMentionables";
@@ -48,6 +58,15 @@ import { VotePanel } from "./VotePanel";
 const RAIL_WIDTH_KEY = "mairie.live.railWidth";
 const RAIL_MIN_WIDTH = 280;
 const RAIL_MAX_WIDTH = 560;
+
+function ConductBlockTitle({ title }: { title: string }) {
+  return (
+    <>
+      <DisclosureBadge />
+      <span>{title}</span>
+    </>
+  );
+}
 
 function storedRailWidth(): number {
   try {
@@ -99,6 +118,8 @@ export function ConductView({
   const nextItem = orderedItems.find((item) => item.status === "scheduled" || item.status === "inProgress") ?? null;
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [openingSelected, setOpeningSelected] = useState(false);
+  const [adjournConfirming, setAdjournConfirming] = useState(false);
+  const [ballotActionContainer, setBallotActionContainer] = useState<HTMLDivElement | null>(null);
   const [notes, setNotes] = useState("");
   const mentionables = useReferenceMentionables();
   const [voteOpen, setVoteOpen] = useState(false);
@@ -150,6 +171,7 @@ export function ConductView({
     `${selectedItem?.status}:${aggregate.ballots.length}:${JSON.stringify(aggregate.attendance)}`,
   );
   const [recusalOpen, setRecusalOpen] = useState(false);
+  const [recusalDetailsOpen, setRecusalDetailsOpen] = useState(false);
   const selectedItemRef = useRef(selectedItem);
   selectedItemRef.current = selectedItem;
   useEffect(() => {
@@ -157,6 +179,7 @@ export function ConductView({
     setNotes(selectedItemRef.current?.discussionSummary ?? "");
     setVoteOpen(false);
     setRecusalOpen(false);
+    setRecusalDetailsOpen(false);
   }, [selectedItemId2]);
 
   useEffect(() => {
@@ -183,6 +206,8 @@ export function ConductView({
   }
 
   const selectedDecisionId = agendaItemDecisionId(selectedItem);
+  const meetingBlockers = meetingActions.workspace?.conduct.meetingActionBlockers;
+  const blockers = meetingActions.workspace?.agendaItems.find((item) => item.id === selectedItem.id)?.conductBlockers;
   const selectedDecision = selectedDecisionId
     ? (aggregate.councilDecisions.find((decision) => decision.id === selectedDecisionId) ?? null)
     : null;
@@ -209,6 +234,28 @@ export function ConductView({
   });
   const isActive = selectedItem.status === "inProgress";
   const isNext = !activeItem && nextItem?.id === selectedItem.id;
+  const ballotParticipants =
+    isActive &&
+    !selectedBallot &&
+    meetingActions.can("ballot.record", selectedItem.id) &&
+    (!selectedDecision || pendingBallotDecisions(aggregate).some((decision) => decision.id === selectedDecision.id))
+      ? recusals.state
+      : null;
+  const continuation =
+    isNext && meetingActions.can("agenda-item.start", selectedItem.id)
+      ? "start"
+      : ballotParticipants
+        ? "vote"
+        : isActive && meetingActions.can("agenda-item.complete", selectedItem.id)
+          ? "complete"
+          : "none";
+  const continuationBlockers = isNext
+    ? blockers?.startDiscussion
+    : isActive
+      ? hasVotingStage
+        ? blockers?.reviewBallot
+        : blockers?.complete
+      : [];
   const remainingCount = orderedItems.filter((item) => !item.completedAt).length;
 
   const completeItem = (status: Extract<LiveAgendaItemStatus, "examined">) =>
@@ -226,11 +273,9 @@ export function ConductView({
       return completed;
     });
 
-  const endPosition = Math.max(0, ...orderedItems.map((item) => item.position)) + 1;
-
-  const createSessionBusiness = (input: Parameters<typeof meetingActions.createAndScheduleBusiness>[0]) =>
+  const createSessionQuestion = (input: Parameters<typeof meetingActions.addOpenQuestion>[0]) =>
     run(async () => {
-      const added = await meetingActions.createAndScheduleBusiness(input, endPosition);
+      const added = await meetingActions.addOpenQuestion(input);
       if (added) setAddItemOpen(false);
       return added;
     });
@@ -246,7 +291,7 @@ export function ConductView({
         !(await meetingActions.saveAgendaItemNotes(selectedItem.id, notes))
       )
         return false;
-      return meetingActions.changeStatus("closed");
+      return meetingActions.close();
     });
   };
 
@@ -304,7 +349,7 @@ export function ConductView({
               </button>
             </li>
           ) : null}
-          {orderedItems.map((item, index) => {
+          {orderedItems.map((item) => {
             const itemActive = Boolean(item.status === "inProgress");
             const itemDone = item.status === "examined" || item.status === "adjourned";
             const state = itemActive ? "active" : itemDone ? "done" : "upcoming";
@@ -315,6 +360,7 @@ export function ConductView({
                 className={`conduct-step-button${!openingSelected && selectedItem.id === item.id ? " conduct-step-selected" : ""}`}
                 type="button"
                 data-testid={`live-agenda-item-${item.id}`}
+                disabled={submitting}
                 aria-label={
                   railCollapsed ? liveBusinessTitle(item.business, t("agendaSubject.minutesApproval")) : undefined
                 }
@@ -334,7 +380,7 @@ export function ConductView({
                 }
               >
                 <span className="conduct-step-marker" aria-hidden="true">
-                  {itemDone ? <CheckIcon /> : itemActive ? <PlayIcon /> : index + 1}
+                  {itemDone ? <CheckIcon /> : itemActive ? <PlayIcon /> : item.agendaNumber}
                 </span>
                 {!railCollapsed ? (
                   <span className="conduct-step-copy">
@@ -403,27 +449,39 @@ export function ConductView({
         </ol>
         <div className="conduct-rail-footer">
           <button
-            className="conduct-rail-tool"
+            className="live-primary-action conduct-rail-tool"
             type="button"
             title={railCollapsed ? t("live.addItem") : undefined}
-            disabled={!meetingActions.can("meeting.add-late-business")}
+            data-testid="live-agenda-add"
+            disabled={submitting || !meetingActions.can("meeting.add-open-question")}
             onClick={() => setAddItemOpen(true)}
           >
             <AddIcon aria-hidden="true" />
             {!railCollapsed ? t("live.addItem") : null}
           </button>
+          <ConductActionBlockers
+            action="add-agenda-item"
+            label="live.addItem"
+            blockers={meetingBlockers?.addAgendaItem ?? []}
+          />
           <button
-            className="conduct-rail-tool"
+            className="live-primary-action conduct-rail-tool"
             type="button"
             title={railCollapsed ? t("live.adjustAttendance") : undefined}
-            disabled={!meetingActions.can("meeting.record-attendance")}
+            data-testid="live-attendance-adjust"
+            disabled={!meetingActions.can("meeting.record-attendance-events")}
             onClick={onShowRollCall}
           >
             <MembersIcon aria-hidden="true" />
             {!railCollapsed ? t("live.adjustAttendance") : null}
           </button>
+          <ConductActionBlockers
+            action="attendance"
+            label="live.adjustAttendance"
+            blockers={meetingBlockers?.recordAttendanceEvents ?? []}
+          />
           <button
-            className={`conduct-rail-tool conduct-rail-close${closeConfirming ? " conduct-rail-close-confirm" : ""}`}
+            className="live-primary-action live-danger-action conduct-rail-tool"
             type="button"
             disabled={submitting || !meetingActions.can("meeting.close")}
             data-testid="live-meeting-close"
@@ -431,9 +489,8 @@ export function ConductView({
             onClick={closeMeeting}
             onBlur={() => setCloseConfirming(false)}
           >
-            {railCollapsed ? (
-              <CloseIcon aria-hidden="true" />
-            ) : closeConfirming ? (
+            <WarningIcon aria-hidden="true" />
+            {railCollapsed ? null : closeConfirming ? (
               remainingCount > 0 ? (
                 t("live.confirmCloseRemaining").replace("{count}", formatNumber(remainingCount))
               ) : (
@@ -443,6 +500,11 @@ export function ConductView({
               t("meeting.action.close")
             )}
           </button>
+          <ConductActionBlockers
+            action="close"
+            label="meeting.action.close"
+            blockers={meetingActions.workspace?.meeting.closureBlockers ?? []}
+          />
         </div>
         {!railCollapsed ? (
           <div className="conduct-rail-resizer" aria-hidden="true" onPointerDown={startRailResize} />
@@ -492,330 +554,413 @@ export function ConductView({
           </div>
         </section>
       ) : null}
-      <section className="conduct-stage" hidden={openingSelected} aria-labelledby="conduct-item-title">
-        <header className="conduct-stage-header">
+      <section
+        className="conduct-stage conduct-stage-with-actions"
+        hidden={openingSelected}
+        aria-labelledby="conduct-item-title"
+      >
+        <header className="conduct-stage-header conduct-stage-fixed-header" data-testid="live-item-header">
           <span className="live-eyebrow">
-            {t("live.itemEyebrow").replace("{position}", formatNumber(selectedItem.position))} ·{" "}
-            {t(councilBusinessKindKeys[selectedItem.business.kind])}
+            {t("live.itemEyebrow").replace(
+              "{position}",
+              selectedItem.agendaNumber === null ? "" : formatNumber(selectedItem.agendaNumber),
+            )}{" "}
+            · {t(agendaSubjectPresentation[selectedItem.subjectKind].label)}
             {selectedItem.business.folderPath ? ` · ${selectedItem.business.folderPath}` : ""}
           </span>
-          <h1 id="conduct-item-title">
-            {liveBusinessTitle(selectedItem.business, t("agendaSubject.minutesApproval"))}
-          </h1>
-          <ol className="conduct-item-progress" aria-label={t("live.progressLabel")} data-testid="live-item-progress">
-            {progressLabels.map((label, index) => (
-              <li
-                key={label}
-                aria-current={index === progressIndex ? "step" : undefined}
-                data-completed={
-                  (index < progressIndex && (index !== 2 || !hasVotingStage || Boolean(selectedBallot))) || undefined
-                }
-              >
-                {label}
-              </li>
-            ))}
-          </ol>
-          {isActive && selectedItem.startedAt ? (
-            <div className="conduct-timer" role="timer">
-              <span className="live-indicator" aria-hidden="true" />
-              {elapsedSince(selectedItem.startedAt, now)}
+          <div className="conduct-heading-row">
+            <div className="conduct-title-timer">
+              <h1 id="conduct-item-title" data-testid="live-item-title">
+                {liveBusinessTitle(selectedItem.business, t("agendaSubject.minutesApproval"))}
+              </h1>
+              {isActive && selectedItem.startedAt ? (
+                <div className="conduct-timer" role="timer" data-testid="live-item-timer">
+                  <span className="live-indicator" aria-hidden="true" />
+                  {elapsedSince(selectedItem.startedAt, now)}
+                </div>
+              ) : null}
             </div>
-          ) : null}
-        </header>
-
-        <div className="conduct-stage-body">
-          <RequestErrorBanner error={recusals.error} />
-          {recusals.state && (recusals.canRecord || recusals.state.recusals.length > 0) ? (
-            <section className="grid gap-2" data-testid="agenda-item-recusals">
-              <div className="flex items-center justify-between gap-2">
-                <strong>{t("recusal.listTitle")}</strong>
-                {recusals.canRecord ? (
-                  <Button variant="outline" data-testid="agenda-item-recusal-open" onClick={() => setRecusalOpen(true)}>
-                    {t("recusal.title")}
+            {recusals.state && (recusals.canRecord || recusals.state.recusals.length > 0) ? (
+              <Popover open={recusalDetailsOpen} onOpenChange={setRecusalDetailsOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="conduct-recusal-trigger" data-testid="live-recusal-info">
+                    <InfoIcon aria-hidden="true" />
+                    {t("recusal.listTitle")}
                   </Button>
-                ) : null}
-              </div>
-              {recusals.state.recusals.map((entry) => (
-                <p key={entry.id} data-testid={`agenda-item-recusal-${entry.councilMemberId}`}>
-                  <strong>{entry.memberName}</strong> · {t(recusalBasisLabel(entry.legalBasis))}
-                </p>
-              ))}
-              {recusals.state.recusals.length > 0 ? (
-                <p className="text-sm text-muted-foreground">{t("recusal.separateFromVotes")}</p>
-              ) : null}
-            </section>
-          ) : null}
-          {selectedItem.business.kind === "minutesApproval" ? (
-            <Link
-              className="conduct-document-chip conduct-minutes-link"
-              to={`/minutes/${selectedItem.business.minutesId}`}
-              data-testid="live-minutes-link"
-            >
-              <FileIcon aria-hidden="true" />
-              {t("minutes.view")}
-            </Link>
-          ) : null}
-          {selectedItem.business.report ? (
-            <details className="conduct-block" open={!voteOpen} key={`report-${selectedItem.id}-${voteOpen}`}>
-              <summary>{t("meeting.itemReport")}</summary>
-              <MarkdownView className="conduct-report" markdown={selectedItem.business.report} />
-            </details>
-          ) : null}
-
-          {selectedDecision ? (
-            <details
-              className="conduct-block conduct-draft-decision"
-              open={!voteOpen}
-              key={`decision-${selectedItem.id}-${voteOpen}`}
-            >
-              <summary>{t("meeting.draftDecision")}</summary>
-              <blockquote>
-                {selectedDecision.draftText ? (
-                  <MarkdownView markdown={selectedDecision.draftText} />
-                ) : (
-                  t("decisions.textIncomplete")
-                )}
-              </blockquote>
-            </details>
-          ) : null}
-
-          {itemResources.length > 0 ? (
-            <details className="conduct-block" open={!voteOpen} key={`documents-${selectedItem.id}-${voteOpen}`}>
-              <summary>{t("meeting.supportingDocuments")}</summary>
-              <div className="conduct-documents">
-                {itemResources.map((resource) => (
-                  <button
-                    className="conduct-document-chip"
-                    type="button"
-                    key={resource.id}
-                    onClick={() => setViewedResourceId(resource.id)}
-                  >
-                    <FileIcon aria-hidden="true" />
-                    {resource.title}
-                  </button>
-                ))}
-              </div>
-            </details>
-          ) : null}
-
-          {selectedItem.completedAt && selectedItem.discussionSummary ? (
-            <details className="conduct-block" open key={`summary-${selectedItem.id}`}>
-              <summary>{t("meeting.observations")}</summary>
-              <MarkdownView className="conduct-report" markdown={selectedItem.discussionSummary} />
-            </details>
-          ) : null}
-
-          {isActive ? (
-            <details
-              className="conduct-block"
-              open={!voteOpen}
-              key={`notes-${selectedItem.id}-${voteOpen}`}
-              data-testid="live-agenda-notes"
-            >
-              <summary>{t("meeting.observations")}</summary>
-              <MarkdownEditor
-                readOnly={!meetingActions.can("agenda-item.update-notes", selectedItem.id)}
-                mentionables={mentionables}
-                searchContext={selectedItem.business.folderPath}
-                onUploadImage={
-                  canUploadImage
-                    ? (file) => uploadImage(file, { kind: "agendaItemDiscussionSummary", id: selectedItem.id })
-                    : undefined
-                }
-                markdown={notes}
-                placeholder={t("meeting.observationsDescription")}
-                onChange={setNotes}
-                onBlur={() => {
-                  if (notes !== selectedItem.discussionSummary) {
-                    void meetingActions.saveAgendaItemNotes(selectedItem.id, notes);
-                  }
-                }}
-              />
-            </details>
-          ) : null}
-
-          {isActive &&
-          recusals.state &&
-          !selectedBallot &&
-          meetingActions.can("ballot.record", selectedItem.id) &&
-          (selectedDecision
-            ? pendingBallotDecisions(aggregate).some((decision) => decision.id === selectedDecision.id)
-            : true) ? (
-            <VotePanel
-              key={selectedItem.id}
-              aggregate={aggregate}
-              members={members}
-              eligibleAttendanceIds={recusals.state.eligibleParticipantAttendanceIds}
-              departedAttendanceIds={recusals.state.departedParticipantAttendanceIds}
-              onDeclareRecusal={recusals.canRecord ? () => setRecusalOpen(true) : undefined}
-              target={selectedDecision ? { councilDecisionId: selectedDecision.id } : { agendaItemId: selectedItem.id }}
-              open={voteOpen}
-              onOpenChange={setVoteOpen}
-              onPreview={async (input) => {
-                if (
-                  notes !== selectedItem.discussionSummary &&
-                  !(await meetingActions.saveAgendaItemNotes(selectedItem.id, notes))
-                )
-                  throw new Error("The discussion notes could not be saved");
-                return meetingActions.previewBallot(input);
-              }}
-              onConfirm={meetingActions.confirmBallot}
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="conduct-recusal-popover"
+                  data-testid="live-recusal-info-content"
+                  aria-label={t("recusal.listTitle")}
+                >
+                  <section className="grid gap-3" data-testid="agenda-item-recusals">
+                    <strong>{t("recusal.listTitle")}</strong>
+                    {recusals.state.recusals.map((entry) => (
+                      <p key={entry.id} data-testid={`agenda-item-recusal-${entry.councilMemberId}`}>
+                        <strong>{entry.memberName}</strong> · {t(recusalBasisLabel(entry.legalBasis))}
+                      </p>
+                    ))}
+                    {recusals.state.recusals.length > 0 ? (
+                      <p className="text-muted-foreground">{t("recusal.separateFromVotes")}</p>
+                    ) : null}
+                    {recusals.canRecord ? (
+                      <Button
+                        variant="outline"
+                        data-testid="agenda-item-recusal-open"
+                        onClick={() => {
+                          setRecusalDetailsOpen(false);
+                          setRecusalOpen(true);
+                        }}
+                      >
+                        {t("recusal.title")}
+                      </Button>
+                    ) : null}
+                  </section>
+                </PopoverContent>
+              </Popover>
+            ) : null}
+          </div>
+          {hasVotingStage ? (
+            <VotingItemProgress
+              currentStep={String(progressIndex)}
+              labels={progressLabels}
+              label={t("live.progressLabel")}
+              testId="live-item-progress"
+              completedSteps={progressLabels.flatMap((_, index) =>
+                index < progressIndex && (index !== 2 || Boolean(selectedBallot)) ? [String(index)] : [],
+              )}
             />
-          ) : null}
+          ) : (
+            <DiscussionItemProgress
+              currentStep={String(progressIndex)}
+              labels={progressLabels}
+              label={t("live.progressLabel")}
+              testId="live-item-progress"
+            />
+          )}
+          <RequestErrorBanner error={recusals.error} />
+        </header>
+        <div className="conduct-stage-scroll" data-testid="live-item-scroll">
+          <div className="conduct-stage-body">
+            {selectedItem.business.kind === "minutesApproval" ? (
+              <Link
+                className="conduct-document-chip conduct-minutes-link"
+                to={`/minutes/${selectedItem.business.minutesId}`}
+                data-testid="live-minutes-link"
+              >
+                <FileIcon aria-hidden="true" />
+                {t("minutes.view")}
+              </Link>
+            ) : null}
+            {selectedItem.business.report ? (
+              <details className="conduct-block" open={!voteOpen} key={`report-${selectedItem.id}-${voteOpen}`}>
+                <summary data-testid="live-report-toggle">
+                  <ConductBlockTitle title={t("meeting.itemReport")} />
+                </summary>
+                <MarkdownView className="conduct-report" markdown={selectedItem.business.report} />
+              </details>
+            ) : null}
 
-          {selectedBallot ? (
-            <section
-              className={`conduct-result conduct-result-${selectedBallot.result}`}
-              aria-label={t("ballot.results")}
-              data-testid="live-ballot-result"
-            >
-              <header className="conduct-result-header">
-                <div className="conduct-result-verdict">
-                  <span className={`verdict-stamp verdict-stamp-${selectedBallot.result}`}>
-                    {t(selectedBallot.result === "adopted" ? "live.adopted" : "live.rejected")}
-                  </span>
-                  <div>
-                    <span className="conduct-result-meta">
-                      {t(selectedBallot.method === "public" ? "ballot.method.public" : "ballot.method.secret")} ·{" "}
-                      {t("live.recordedAt").replace("{time}", formatTime(selectedBallot.createdAt))}
-                    </span>
-                  </div>
+            {selectedDecision ? (
+              <details
+                className="conduct-block conduct-draft-decision"
+                open={!voteOpen}
+                key={`decision-${selectedItem.id}-${voteOpen}`}
+              >
+                <summary data-testid="live-proposal-toggle">
+                  <ConductBlockTitle title={t("meeting.draftDecision")} />
+                </summary>
+                <blockquote>
+                  {selectedDecision.draftText ? (
+                    <MarkdownView markdown={selectedDecision.draftText} />
+                  ) : (
+                    t("decisions.textIncomplete")
+                  )}
+                </blockquote>
+              </details>
+            ) : null}
+
+            {itemResources.length > 0 ? (
+              <details className="conduct-block" open={!voteOpen} key={`documents-${selectedItem.id}-${voteOpen}`}>
+                <summary data-testid="live-documents-toggle">
+                  <ConductBlockTitle title={t("meeting.supportingDocuments")} />
+                </summary>
+                <div className="conduct-documents">
+                  {itemResources.map((resource) => (
+                    <button
+                      className="conduct-document-chip"
+                      type="button"
+                      key={resource.id}
+                      data-testid={`live-document-${resource.id}`}
+                      onClick={() => setViewedResourceId(resource.id)}
+                    >
+                      <DocumentaryResourceGlyph resource={resource} />
+                      {resource.title}
+                    </button>
+                  ))}
                 </div>
-              </header>
-              <dl className="conduct-result-totals">
-                <div>
-                  <dt>{t("ballot.votesFor")}</dt>
-                  <dd>{formatNumber(selectedBallot.votesFor)}</dd>
-                </div>
-                <div>
-                  <dt>{t("ballot.votesAgainst")}</dt>
-                  <dd>{formatNumber(selectedBallot.votesAgainst)}</dd>
-                </div>
-                <div>
-                  <dt>{t("ballot.abstentions")}</dt>
-                  <dd>{formatNumber(selectedBallot.abstentions)}</dd>
-                </div>
-                <div>
-                  <dt>{t("ballot.notVoting")}</dt>
-                  <dd>{formatNumber(selectedBallot.notVoting)}</dd>
-                </div>
-              </dl>
-              {selectedBallot.method === "public" ? (
-                <div className="result-vote-groups">
-                  {(
-                    [
-                      { choice: "for", labelKey: "ballot.votesFor" },
-                      { choice: "against", labelKey: "ballot.votesAgainst" },
-                      { choice: "abstain", labelKey: "ballot.abstentions" },
-                      { choice: "notVoting", labelKey: "ballot.notVoting" },
-                    ] as const
-                  ).map((group) => {
-                    const groupVotes = selectedBallot.votes.filter((vote) => vote.choice === group.choice);
-                    if (groupVotes.length === 0) return null;
-                    return (
-                      <div className={`result-vote-group result-vote-group-${group.choice}`} key={group.choice}>
-                        <h3>
-                          {t(group.labelKey)} <span>{formatNumber(groupVotes.length)}</span>
-                        </h3>
-                        <div className="result-vote-pills">
-                          {groupVotes.map((vote) => (
-                            <span className={`result-vote-pill result-vote-pill-${group.choice}`} key={vote.memberId}>
-                              {councilMemberName(members, vote.memberId)}
-                              {vote.castByMemberId !== vote.memberId ? (
-                                <em>
-                                  {" "}
-                                  ·{" "}
-                                  {t("live.proxyVoteSuffix").replace(
-                                    "{holder}",
-                                    councilMemberName(members, vote.castByMemberId),
-                                  )}
-                                </em>
-                              ) : null}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-              <p className="report-ballot-note">
-                {t("ballot.expressedMajority").replace("{expressed}", formatNumber(selectedBallot.votesCast))}
-              </p>
-              <p className="report-ballot-note">
-                {t("ballot.participationEvidence")
-                  .replace("{present}", formatNumber(selectedBallot.participationEvidence.quorum.physicallyPresent))
-                  .replace(
-                    "{required}",
-                    selectedBallot.participationEvidence.quorum.required === null
-                      ? t("meeting.quorumUnestablished")
-                      : formatNumber(selectedBallot.participationEvidence.quorum.required),
+              </details>
+            ) : null}
+
+            {selectedItem.completedAt && selectedItem.discussionSummary ? (
+              <details className="conduct-block" open key={`summary-${selectedItem.id}`}>
+                <summary data-testid="live-discussion-summary-toggle">
+                  <ConductBlockTitle title={t("meeting.observations")} />
+                </summary>
+                <MarkdownView className="conduct-report" markdown={selectedItem.discussionSummary} />
+              </details>
+            ) : null}
+
+            {isActive ? (
+              <details
+                className="conduct-block"
+                open={!voteOpen}
+                key={`notes-${selectedItem.id}-${voteOpen}`}
+                data-testid="live-agenda-notes"
+              >
+                <summary data-testid="live-notes-toggle">
+                  <ConductBlockTitle title={t("meeting.observations")} />
+                </summary>
+                <MarkdownEditor
+                  readOnly={!meetingActions.can("agenda-item.update-notes", selectedItem.id)}
+                  mentionables={mentionables}
+                  searchContext={selectedItem.business.folderPath}
+                  onUploadImage={
+                    canUploadImage
+                      ? (file) => uploadImage(file, { kind: "agendaItemDiscussionSummary", id: selectedItem.id })
+                      : undefined
+                  }
+                  markdown={notes}
+                  placeholder={t("meeting.observationsDescription")}
+                  onChange={setNotes}
+                  onBlur={() => {
+                    if (notes !== selectedItem.discussionSummary) {
+                      void meetingActions.saveAgendaItemNotes(selectedItem.id, notes);
+                    }
+                  }}
+                />
+              </details>
+            ) : null}
+
+            {ballotParticipants ? (
+              <VotePanel
+                key={selectedItem.id}
+                aggregate={aggregate}
+                members={members}
+                eligibleAttendanceIds={ballotParticipants.eligibleParticipantAttendanceIds}
+                departedAttendanceIds={ballotParticipants.departedParticipantAttendanceIds}
+                actionContainer={ballotActionContainer}
+                target={
+                  selectedDecision ? { councilDecisionId: selectedDecision.id } : { agendaItemId: selectedItem.id }
+                }
+                open={voteOpen}
+                onOpenChange={setVoteOpen}
+                onPreview={async (input) => {
+                  if (
+                    notes !== selectedItem.discussionSummary &&
+                    !(await meetingActions.saveAgendaItemNotes(selectedItem.id, notes))
                   )
-                  .replace("{roster}", formatNumber(selectedBallot.participationEvidence.quorum.activeMembers))}
-              </p>
-              {selectedBallot.chairTieBreakApplied ? (
-                <p className="report-ballot-note">{t("ballot.chairTieBreakApplied")}</p>
-              ) : null}
-            </section>
-          ) : null}
-        </div>
+                    throw new Error("The discussion notes could not be saved");
+                  return meetingActions.previewBallot(input);
+                }}
+                onConfirm={meetingActions.confirmBallot}
+              />
+            ) : null}
 
-        <footer className="conduct-stage-actions">
-          {isNext && meetingActions.can("agenda-item.start", selectedItem.id) ? (
+            {selectedBallot ? (
+              <section
+                className={`conduct-result conduct-result-${selectedBallot.result}`}
+                aria-label={t("ballot.results")}
+                data-testid="live-ballot-result"
+              >
+                <header className="conduct-result-header">
+                  <div className="conduct-result-verdict">
+                    <span className={`verdict-stamp verdict-stamp-${selectedBallot.result}`}>
+                      {t(selectedBallot.result === "adopted" ? "live.adopted" : "live.rejected")}
+                    </span>
+                    <div>
+                      <span className="conduct-result-meta">
+                        {t(selectedBallot.method === "public" ? "ballot.method.public" : "ballot.method.secret")} ·{" "}
+                        {t("live.recordedAt").replace("{time}", formatTime(selectedBallot.createdAt))}
+                      </span>
+                    </div>
+                  </div>
+                </header>
+                <dl className="conduct-result-totals">
+                  <div>
+                    <dt>{t("ballot.votesFor")}</dt>
+                    <dd>{formatNumber(selectedBallot.votesFor)}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("ballot.votesAgainst")}</dt>
+                    <dd>{formatNumber(selectedBallot.votesAgainst)}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("ballot.abstentions")}</dt>
+                    <dd>{formatNumber(selectedBallot.abstentions)}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("ballot.notVoting")}</dt>
+                    <dd>{formatNumber(selectedBallot.notVoting)}</dd>
+                  </div>
+                </dl>
+                {selectedBallot.method === "public" ? (
+                  <div className="result-vote-groups">
+                    {(
+                      [
+                        { choice: "for", labelKey: "ballot.votesFor" },
+                        { choice: "against", labelKey: "ballot.votesAgainst" },
+                        { choice: "abstain", labelKey: "ballot.abstentions" },
+                        { choice: "notVoting", labelKey: "ballot.notVoting" },
+                      ] as const
+                    ).map((group) => {
+                      const groupVotes = selectedBallot.votes.filter((vote) => vote.choice === group.choice);
+                      if (groupVotes.length === 0) return null;
+                      return (
+                        <div className={`result-vote-group result-vote-group-${group.choice}`} key={group.choice}>
+                          <h3>
+                            {t(group.labelKey)} <span>{formatNumber(groupVotes.length)}</span>
+                          </h3>
+                          <div className="result-vote-pills">
+                            {groupVotes.map((vote) => (
+                              <span className={`result-vote-pill result-vote-pill-${group.choice}`} key={vote.memberId}>
+                                {councilMemberName(members, vote.memberId)}
+                                {vote.castByMemberId !== vote.memberId ? (
+                                  <em>
+                                    {" "}
+                                    ·{" "}
+                                    {t("live.proxyVoteSuffix").replace(
+                                      "{holder}",
+                                      councilMemberName(members, vote.castByMemberId),
+                                    )}
+                                  </em>
+                                ) : null}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+                <p className="report-ballot-note">
+                  {t("ballot.expressedMajority").replace("{expressed}", formatNumber(selectedBallot.votesCast))}
+                </p>
+                <p className="report-ballot-note">
+                  {t("ballot.participationEvidence")
+                    .replace("{present}", formatNumber(selectedBallot.participationEvidence.quorum.physicallyPresent))
+                    .replace(
+                      "{required}",
+                      selectedBallot.participationEvidence.quorum.required === null
+                        ? t("meeting.quorumUnestablished")
+                        : formatNumber(selectedBallot.participationEvidence.quorum.required),
+                    )
+                    .replace("{roster}", formatNumber(selectedBallot.participationEvidence.quorum.activeMembers))}
+                </p>
+                {selectedBallot.chairTieBreakApplied ? (
+                  <p className="report-ballot-note">{t("ballot.chairTieBreakApplied")}</p>
+                ) : null}
+              </section>
+            ) : null}
+          </div>
+        </div>
+        <footer className="conduct-stage-actions" data-testid="live-item-actions">
+          {meetingActions.can("agenda-item.adjourn", selectedItem.id) ? (
             <button
-              className="live-primary-action"
               type="button"
+              className="live-primary-action live-danger-action conduct-adjourn-action"
               disabled={submitting}
-              data-testid="live-agenda-start"
-              onClick={() => void run(() => meetingActions.startAgendaItem(selectedItem.id))}
+              data-testid="live-agenda-adjourn"
+              onClick={() => setAdjournConfirming(true)}
             >
-              <PlayIcon aria-hidden="true" />
-              {t(submitting ? "common.saving" : "meeting.startSubject")}
+              <WarningIcon aria-hidden="true" data-testid="live-agenda-adjourn-warning" />
+              {t("meeting.adjournSubject")}
             </button>
           ) : null}
-          {meetingActions.can("agenda-item.adjourn", selectedItem.id) ||
-          recusals.canRecord ||
-          (isActive && meetingActions.can("agenda-item.complete", selectedItem.id)) ? (
-            <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    data-testid="live-agenda-actions"
-                    size="icon"
-                    variant="ghost"
-                    aria-label={t("live.moreActions")}
-                  >
-                    <MoreIcon />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {recusals.canRecord ? (
-                    <DropdownMenuItem data-testid="live-agenda-recusal" onSelect={() => setRecusalOpen(true)}>
-                      {t("recusal.title")}
-                    </DropdownMenuItem>
-                  ) : null}
-                  <DropdownMenuItem
-                    data-testid="live-agenda-adjourn"
-                    disabled={submitting || !meetingActions.can("agenda-item.adjourn", selectedItem.id)}
-                    onSelect={() => void run(() => meetingActions.adjournAgendaItem(selectedItem.id))}
-                  >
-                    {t("meeting.adjournSubject")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <button
-                className="live-primary-action"
-                type="button"
-                disabled={submitting || !meetingActions.can("agenda-item.complete", selectedItem.id)}
-                onClick={() => void completeItem("examined")}
-              >
-                <CheckIcon aria-hidden="true" />
-                {t(submitting ? "common.saving" : "meeting.completeAndNext")}
-              </button>
-            </>
+          {continuation === "none" ? (
+            <ConductActionBlockers action="continue" blockers={continuationBlockers ?? []} />
           ) : null}
+          <div className="conduct-continuation" ref={setBallotActionContainer} data-testid="live-item-continuation">
+            {matchLiteral(continuation, {
+              start: () => (
+                <button
+                  className="live-primary-action"
+                  type="button"
+                  disabled={submitting}
+                  data-testid="live-agenda-start"
+                  onClick={() => void run(() => meetingActions.startAgendaItem(selectedItem.id))}
+                >
+                  <PlayIcon aria-hidden="true" />
+                  {t(submitting ? "common.saving" : "meeting.startSubject")}
+                </button>
+              ),
+              vote: () =>
+                !voteOpen ? (
+                  <button
+                    className="live-primary-action"
+                    type="button"
+                    disabled={submitting}
+                    data-testid="live-ballot-open"
+                    onClick={() => setVoteOpen(true)}
+                  >
+                    {t("live.openVote")}
+                  </button>
+                ) : null,
+              complete: () => (
+                <button
+                  className="live-primary-action"
+                  type="button"
+                  disabled={submitting}
+                  data-testid="live-agenda-complete"
+                  onClick={() => void completeItem("examined")}
+                >
+                  <CheckIcon aria-hidden="true" />
+                  {t(submitting ? "common.saving" : "meeting.completeAndNext")}
+                </button>
+              ),
+              none: () => null,
+            })}
+          </div>
         </footer>
       </section>
+
+      {adjournConfirming ? (
+        <Modal
+          open
+          title={t("meeting.adjournSubject")}
+          onClose={() => setAdjournConfirming(false)}
+          testId="live-adjourn-dialog"
+        >
+          <div className="modal-form">
+            <p>{t("live.adjournConfirmation")}</p>
+            <div className="ballot-preview-actions">
+              <Button
+                variant="outline"
+                disabled={submitting}
+                data-testid="live-adjourn-cancel"
+                onClick={() => setAdjournConfirming(false)}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={submitting}
+                data-testid="live-adjourn-confirm"
+                onClick={() =>
+                  void run(async () => {
+                    const adjourned = await meetingActions.adjournAgendaItem(selectedItem.id);
+                    if (adjourned) setAdjournConfirming(false);
+                    return adjourned;
+                  })
+                }
+              >
+                {t(submitting ? "common.saving" : "meeting.adjournSubject")}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
 
       {recusalOpen ? (
         <AgendaItemRecusalDialog
@@ -826,39 +971,34 @@ export function ConductView({
         />
       ) : null}
       {addItemOpen ? (
-        <Modal open title={t("live.addItemTitle")} onClose={() => setAddItemOpen(false)}>
+        <Modal
+          open
+          title={t("live.addItemTitle")}
+          onClose={() => setAddItemOpen(false)}
+          testId="live-add-question-dialog"
+        >
           <div className="modal-form">
             <p className="text-sm text-muted">{t("live.addItemHint")}</p>
             <form
               onSubmit={(event) => {
                 event.preventDefault();
                 const form = new FormData(event.currentTarget);
-                void createSessionBusiness({
-                  kind: form.get("kind") === "matter" ? "matter" : "openQuestion",
-                  title: String(form.get("title") ?? ""),
-                  report: "",
-                  folderPath: "",
+                void createSessionQuestion({
+                  name: String(form.get("title") ?? "").trim(),
+                  content: "",
+                  path: "",
                 });
               }}
             >
-              <h3 className="picker-heading">{t("meeting.addOtherHeading")}</h3>
               <div className="composer-quick-add-fields">
-                <Select name="kind" defaultValue="openQuestion">
-                  <SelectTrigger aria-label={t("meeting.type")}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="openQuestion">{t("councilBusinessKind.openQuestion")}</SelectItem>
-                    <SelectItem value="matter">{t("councilBusinessKind.matter")}</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Input
                   name="title"
+                  data-testid="live-add-question-name"
                   placeholder={t("meeting.subjectPlaceholder")}
                   aria-label={t("meeting.subject")}
                   required
                 />
-                <Button variant="default" type="submit" disabled={submitting}>
+                <Button variant="default" type="submit" disabled={submitting} data-testid="live-add-question-submit">
                   <AddIcon />
                   {t(submitting ? "common.saving" : "common.add")}
                 </Button>

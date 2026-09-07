@@ -25,6 +25,12 @@ import type { RequestContextStore } from "../../security/requestContext.js";
 import { DomainError, type ErrorCode } from "../../services/errors.js";
 
 const councilErrorCodes: Record<string, ErrorCode | undefined> = {
+  HV235: "conflict",
+  HV117: "previous_minutes_pending",
+  HV809: "prepared_subject_immutable",
+  HV810: "prepared_subject_unavailable",
+  HV807: "meeting_notice_required",
+  HV808: "agenda_reopening_unavailable",
   HV801: "agenda_frozen",
   HV802: "preparation_history_immutable",
   HV803: "agenda_freeze_unavailable",
@@ -103,6 +109,7 @@ export function createPostgresCouncilClient({
         }
         const recusalError = councilErrorCodes[error.sqlState];
         if (recusalError) throw new DomainError(recusalError, 409);
+        if (error.sqlState === "HV910") throw new DomainError("prepared_subject_not_found", 404);
         if (error.sqlState === "HV709") throw new DomainError("minutes_not_generated", 409);
         if (error.sqlState === "HV607") {
           throw new CouncilClientError("invalidResourceLocation", { cause: error });
@@ -135,12 +142,20 @@ export function createPostgresCouncilClient({
   }
 
   return {
+    listPreparedSubjects: (meetingId) => call(() => postgresCouncil.listPreparedSubjects(currentRequest(), meetingId)),
+    openPreparedSubject: (id, kind) => call(() => postgresCouncil.openPreparedSubject(currentRequest(), id, kind)),
+    createPreparedSubject: (businessId, input) =>
+      call(() => postgresCouncil.createPreparedSubject(currentRequest(), businessId, input)),
+    schedulePreparedSubject: (meetingId, input) =>
+      call(() => postgresCouncil.schedulePreparedSubject(currentRequest(), meetingId, input)),
+    reopenAgenda: (id) => call(() => postgresCouncil.reopenAgenda(currentRequest(), id)),
     freezeAgenda: (id) => call(() => postgresCouncil.freezeAgenda(currentRequest(), id)),
     openAgendaFreeze: (id) => call(() => postgresCouncil.openAgendaFreeze(currentRequest(), id)),
     noticeFacts: (id) => call(() => postgresCouncil.noticeFacts(currentRequest(), id)),
     listNotices: (id) => call(() => postgresCouncil.listNotices(currentRequest(), id)),
     openNotice: (id) => call(() => postgresCouncil.openNotice(currentRequest(), id)),
-    generateNotice: (id, facts, content) => call(() => postgresCouncil.generateNotice(currentRequest(), id, facts, content)),
+    generateNotice: (id, facts, content) =>
+      call(() => postgresCouncil.generateNotice(currentRequest(), id, facts, content)),
     noticeContent: (id) => call(() => postgresCouncil.noticeContent(currentRequest(), id)),
     async listBusinesses() {
       return z.array(councilBusinessSchema).parse(await call(() => postgresCouncil.listBusinesses(currentRequest())));
@@ -275,9 +290,9 @@ export function createPostgresCouncilClient({
       });
       return createdAndScheduledCouncilBusinessSchema.parse(created);
     },
-    async startMeeting(id, input) {
-      return councilMeetingSchema.parse(
-        await call(() => postgresCouncil.startMeeting(currentRequest(), { id, startedAt: input.startedAt })),
+    async recordMeetingOpening(id, input) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.recordMeetingOpening(currentRequest(), { id, ...input })),
       );
     },
     async closeMeeting(id, input) {
@@ -318,10 +333,8 @@ export function createPostgresCouncilClient({
         await call(() => postgresCouncil.meetingConduct(currentRequest(), id)),
       );
     },
-    async recordMeetingMembership(id, input) {
-      return meetingConductWorkspaceSchema.parse(
-        await call(() => postgresCouncil.recordMeetingMembership(currentRequest(), id, input)),
-      );
+    async addOpenQuestion(id, input) {
+      return agendaItemSchema.parse(await call(() => postgresCouncil.addOpenQuestion(currentRequest(), id, input)));
     },
     async recordMeetingAttendanceEvents(id, input) {
       return meetingConductWorkspaceSchema.parse(
@@ -413,10 +426,10 @@ export function createPostgresCouncilClient({
         ),
       );
     },
-    async completeOpenQuestion(id, input) {
+    async completeAgendaItem(id, input) {
       return agendaItemSchema.parse(
         await call(() =>
-          postgresCouncil.completeOpenQuestion(currentRequest(), {
+          postgresCouncil.completeAgendaItem(currentRequest(), {
             agendaItemId: id,
             completedAt: input.completedAt,
           }),

@@ -1,3 +1,9 @@
+import {
+  agendaNumberSchema,
+  conductBlockerSchema,
+  conductBlockersSchema,
+  meetingNoticeDeadlineSchema,
+} from "@hall/contracts";
 import { z } from "zod";
 import { councilBusinessSchema } from "./councilBusiness.js";
 import { meetingConductStateSchema } from "./meetingConduct.js";
@@ -15,14 +21,17 @@ export const councilMeetingSchema = z
     number: z.number().int().positive(),
     previousCouncilMeetingId: resourceIdSchema.nullable(),
     minutesId: resourceIdSchema.nullable(),
+    noticeDeadline: meetingNoticeDeadlineSchema,
+    currentNoticeId: resourceIdSchema.nullable(),
     agendaFrozenAt: timestampSchema.nullable(),
-  scheduledAt: timestampSchema.nullable(),
+    scheduledAt: timestampSchema.nullable(),
     location: z.string().min(1).nullable(),
     chairMemberId: resourceIdSchema.nullable(),
     secretaryMemberId: resourceIdSchema.nullable(),
     quorum: z.number().int().positive().nullable(),
     startedAt: timestampSchema.nullable(),
     closedAt: timestampSchema.nullable(),
+    closureBlockers: z.array(conductBlockerSchema),
   })
   .strict();
 
@@ -46,12 +55,6 @@ export const prepareCouncilMeetingSchema = scheduleCouncilMeetingSchema.extend({
   chairMemberId: resourceIdSchema,
   secretaryMemberId: resourceIdSchema,
 });
-
-export const startCouncilMeetingSchema = z
-  .object({
-    startedAt: timestampSchema,
-  })
-  .strict();
 
 export const meetingAttendanceStatusSchema = z.enum(["present", "represented", "excused", "absent"]);
 
@@ -90,6 +93,14 @@ export const recordMeetingAttendanceSchema = z
   })
   .strict();
 
+export const recordMeetingOpeningSchema = recordMeetingAttendanceSchema
+  .extend({
+    observedAt: timestampSchema,
+    chairMemberId: resourceIdSchema,
+    secretaryMemberId: resourceIdSchema,
+  })
+  .strict();
+
 export const agendaSubjectSchema = z.discriminatedUnion("kind", [
   z
     .object({
@@ -107,14 +118,33 @@ export const agendaSubjectSchema = z.discriminatedUnion("kind", [
       content: z.string(),
     })
     .strict(),
-  z.object({ kind: z.literal("openQuestion"), id: resourceIdSchema }).strict(),
+  z.object({
+    kind: z.literal("businessConsultation"),
+    councilBusinessId: resourceIdSchema,
+    reportResourceId: resourceIdSchema,
+    content: z.string(),
+  }),
+  z
+    .object({
+      kind: z.literal("openQuestion"),
+      id: resourceIdSchema,
+      textResourceId: resourceIdSchema,
+      content: z.string(),
+    })
+    .strict(),
 ]);
 
 export const agendaItemSchema = z
   .object({
     id: resourceIdSchema,
+    title: z.string(),
     councilBusinessId: resourceIdSchema.nullable(),
     discussionSummary: z.string(),
+    canStartDiscussion: z.boolean(),
+    canReviewBallot: z.boolean(),
+    conductBlockers: conductBlockersSchema,
+    agendaNumber: agendaNumberSchema.nullable(),
+    introducedAt: timestampSchema.nullable(),
     councilMeetingId: resourceIdSchema,
     position: z
       .number()
@@ -174,7 +204,7 @@ export const startAgendaItemSchema = z
 export const adjournAgendaItemSchema = z.object({ adjournedAt: timestampSchema }).strict();
 export type AdjournAgendaItem = z.infer<typeof adjournAgendaItemSchema>;
 
-export const completeOpenQuestionSchema = z
+export const completeAgendaItemSchema = z
   .object({
     completedAt: timestampSchema,
   })
@@ -216,7 +246,7 @@ export type ProvisionInitialCouncilMeeting = z.infer<typeof provisionInitialCoun
 export type ScheduleCouncilMeeting = z.infer<typeof scheduleCouncilMeetingSchema>;
 export type SetCouncilMeetingOfficers = z.infer<typeof setCouncilMeetingOfficersSchema>;
 export type PrepareCouncilMeeting = z.infer<typeof prepareCouncilMeetingSchema>;
-export type StartCouncilMeeting = z.infer<typeof startCouncilMeetingSchema>;
+export type RecordMeetingOpening = z.infer<typeof recordMeetingOpeningSchema>;
 export type MeetingAttendanceStatus = z.infer<typeof meetingAttendanceStatusSchema>;
 export type MeetingAttendance = z.infer<typeof meetingAttendanceSchema>;
 export type MeetingAttendanceDeclaration = z.infer<typeof meetingAttendanceDeclarationSchema>;
@@ -227,7 +257,7 @@ export type ScheduleAgendaItem = z.infer<typeof scheduleAgendaItemSchema>;
 export type ReprogramAgendaItem = z.infer<typeof reprogramAgendaItemSchema>;
 export type ReorderCouncilAgenda = z.infer<typeof reorderCouncilAgendaSchema>;
 export type StartAgendaItem = z.infer<typeof startAgendaItemSchema>;
-export type CompleteOpenQuestion = z.infer<typeof completeOpenQuestionSchema>;
+export type CompleteAgendaItem = z.infer<typeof completeAgendaItemSchema>;
 export type CloseCouncilMeeting = z.infer<typeof closeCouncilMeetingSchema>;
 export type CouncilMeetingClosure = z.infer<typeof councilMeetingClosureSchema>;
 export type CreateAndScheduleCouncilBusiness = z.infer<typeof createAndScheduleCouncilBusinessSchema>;

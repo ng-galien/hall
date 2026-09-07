@@ -6,6 +6,7 @@ Cette carte indique l’autorité qui doit recevoir chaque nature de changement.
 
 | Responsabilité | Autorité canonique | Ce qui y entre | Ce qui n’y entre pas |
 | --- | --- | --- | --- |
+| Contrats de données partagés entre PostgreSQL et HTTP | `packages/contracts/src/` | Unions et schémas purs des convocations, échéances et candidats à l’ordre du jour ; une autorité commune sans dépendance à Hall | Siren, HTTP, SQL, politiques ou rendu ; imports vers domain ou les adaptateurs |
 | Vocabulaire métier fermé | `packages/domain/src/model.ts` et `schemas.ts` | Unions discriminées, listes exhaustives, validation des données externes | HTTP, SQL, React, libellés français |
 | Dispatch et politique métier | `packages/domain/src/match.ts` et les modules `*Policy.ts` proches du modèle | `matchDiscriminated`, `matchLiteral`, `matchVariant`, `defineExhaustiveLiterals`, invariants purs et projections communes | `switch` concurrents dans les routes, services ou composants |
 | Cycles de vie PostgreSQL | `packages/postgres/sql/council/` | Invariants structurels, transitions transactionnelles, clôture de séance et brouillon de procès-verbal ; exigences numérotées et acceptance pgTAP | Second automate TypeScript pour les mêmes transitions, permissions HTTP, navigation client |
@@ -16,6 +17,8 @@ Cette carte indique l’autorité qui doit recevoir chaque nature de changement.
 | Cas d’usage | `packages/server/src/services/` | Orchestration transactionnelle des politiques, repositories et fournisseurs | SQL, détails Express, second catalogue de types |
 | Contrats et décodage persistants | `packages/server/src/repositories/contracts.ts`, `row.ts`, `resourceRowMapping.ts`, `evidenceMapping.ts` et les repositories | Interfaces de persistance, validation des lignes et discriminants stockés | Données de base non validées dans les services ou routes |
 | Ressources PostgreSQL | `packages/postgres/` et `packages/server/src/infrastructure/postgres/resourcesClient.ts` | Invariants SQL, opérations nommées, projections validées et client serveur fin | Express, politique d’autorisation, agrégats métier ou contrat client legacy |
+| Préparation des séances | `packages/postgres/sql/workspace/040-meeting-notices.sql`, `045-prepared-council-subjects.sql`, `council/019a-agenda-freeze.sql` et `069-notice-deadline.sql` | Insertion atomique commune, gel et réouverture, versions de convocation, échéance calculée en SQL et PDF courant exigé au démarrage | Calcul de dates dans le client, second PDF d’ordre du jour, preuve d’envoi déduite d’un fichier |
+| Texte propre des projets de délibération | `packages/postgres/sql/workspace/025-decision-proposal-workspace.sql` et `026-proposal-text-protection.sql` | Propriété permanente dans l’affaire, scellement au premier suffrage ou à la clôture sans suffrage, gardes sur texte, ressource, actifs et métadonnées, capacités SQL | Mutation du rapport d’affaire pour éditer un projet, verrou déduit seulement du résultat positif |
 | Procès-verbaux | `packages/postgres/sql/council/061-minutes.sql`, `073-minutes-api.sql`, `packages/server/src/services/minutesService.ts` et `minutesDocument.ts` | Brouillon automatique à la clôture, faits figés, texte corrigible avant génération, PDF immuable référencé par l’approbation ; rendu via `DocumentRenderer` | Ressource du workspace, rapport libre de `CouncilBusiness`, signatures ou publication simulées |
 | Adaptateurs de base historiques | `packages/server/src/infrastructure/database/`, `sqlite/` et `postgres/` | Exécution SQL des domaines qui ne sont pas encore raccordés à `@hall/postgres` | Nouvelle persistance documentaire ou décisions d’autorisation |
 | Composition | `packages/server/src/core/container.ts` | Construction et injection des adaptateurs | Logique métier ou choix selon une variante |
@@ -55,3 +58,53 @@ Avant de créer un module, rechercher l’union, la politique ou le catalogue qu
 La taxonomie Code Moniker utilise `dependency`, `ownership` et `hygiene` pour relier ces décisions au graphe réel. Une règle locale vit dans le fragment du package qu’elle protège ; une frontière transverse à plusieurs packages vit dans la configuration racine. Une implication dont l’antécédent ne correspond à aucune relation observée doit être corrigée ou retirée, jamais conservée comme preuve théorique. Chaque alias cible doit aussi être prouvé séparément par au moins une relation représentative ou par un témoin positif et négatif : un antécédent actif ne prouve pas que sa cible reconnaît le concept attendu.
 
 La configuration racine relie les répertoires `src` des packages npm dans un même `workspace.source_group` et leur attribue le source set `main`. Une référence `@hall/*` possède un bind key `external_pkg` lors de l’extraction locale, puis doit se résoudre vers le symbole `srcset:main` du package Hall correspondant dans le graphe workspace. Les règles locales d’import et les règles liées du workspace ne prouvent donc pas la même chose et ne doivent pas être confondues.
+
+`@hall/contracts` contient uniquement les nouvelles formes de données partagées entre stockage et HTTP. Ses consommateurs importent cette autorité directement ; `api-contract` les expose sur sa frontière publique sans importer le domaine. La compilation racine construit ce package avant ses consommateurs. La directive `::meeting-notice` appartient à la grammaire de templating ; `meetingNoticeService` orchestre le modèle existant, le rendu PDF persisté et la préparation EML avec sa pièce jointe, sans envoi.
+
+Le numéro présenté d’un point est `agendaNumber`, validé par `@hall/contracts` ;
+`position` reste une clé d’ordre technique et peut contenir des trous. L’autorité
+`hall.council_agenda_presentation_numbers` dans `council/059-meeting-snapshots.sql`
+numérote continûment les points présentés, depuis l’instantané de clôture lorsque
+la séance est close. Les projections AgendaItem, le gel de convocation et les faits
+du PV consomment cette autorité ; les interfaces et les rendus documentaires lisent
+`agendaNumber` sans recalculer le rang. Une occurrence déprogrammée hors de la liste
+présentée expose `null`, un point ajourné reste dans la liste présentée.
+
+L’ajout en séance passe par `meeting.add-open-question` et
+`hall_api.add_open_question`, distincts de l’inscription préparatoire. La commande
+ajoute une `OpenQuestion` en dernière position sous verrou de séance, sans toucher
+au gel de convocation. `council_agenda_addition` conserve la séance d’origine,
+l’occurrence, l’heure et l’acteur ; cette preuve est immuable et reste attachée à
+l’origine en cas de report. `introducedAt` est projeté sur le point et sur le PV
+depuis cette relation, sans modifier les faits ou PDF précédemment conservés.
+
+La copie des faits d’une proposition confirmée appartient à
+`workspace/050-council-decision-facts.sql`. Le trigger du scrutin conserve le
+texte soumis, les identités, les présences, le quorum et les déports à cet instant,
+avec les votes nominatifs publics ou les seuls totaux secrets. Le contrat partagé
+`contracts/src/councilDecisionDocument.ts` distingue ces faits de la rédaction
+documentaire. `workspace/051-council-decisions.sql` crée un brouillon pour chaque
+proposition confirmée, adoptée ou rejetée, et protège la rédaction versionnée puis
+le PDF figé. L’approbation du PV reste indépendante. `CouncilDecisionClient` et
+`PostgresCouncilDecisions` remplacent le repository historique sur les routes et
+les références documentaires des délibérations. `councilDecisionService` compose
+les sections `facts`, `content` et `result` de `::council-decision` via le moteur
+commun de templates et de PDF. Le gel ne publie pas et n’attribue pas de numéro
+métier définitif ; `publicationNumber` reste nul dans cette tranche. Le
+`decisionNumber` des faits exprime uniquement l’ordre des délibérations de la
+séance, distinct du rang de tous les points à l’ordre du jour.
+
+`workspace/052-council-decision-recovery.sql` porte la reprise contrôlée des
+scrutins antérieurs à cette copie : elle exige le snapshot de clôture, le texte
+scellé et la prévisualisation confirmée, puis réutilise la création du brouillon
+de `051`. Elle conserve la provenance, refuse les preuves manquantes et retourne
+la décision existante sans écraser sa rédaction. Cette autorité interne ne
+modifie ni les snapshots ni le procès-verbal et n’expose aucune route HTTP.
+
+`workspace/053-decision-documentary-context.sql` complète la lecture documentaire
+avec la commune et le fuseau retenus dans la convocation antérieure à la
+confirmation, et l’observation de quorum/présences correspondant à l’ouverture.
+Cette projection ne réécrit aucune preuve. La qualité du président est copiée
+lors des nouvelles confirmations ; une qualité historique non observée reste
+nulle. Le rendu ne consulte pas l’annuaire ou les paramètres actuels pour
+reconstituer ces faits, et distingue les présents à l’ouverture des votants.

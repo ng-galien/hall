@@ -11,7 +11,7 @@ export interface BreadcrumbItem {
 export function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
   const { t } = useI18n();
   return (
-    <nav aria-label={t("common.breadcrumb")} className="flex min-w-0 items-center gap-1 text-xs text-muted">
+    <nav aria-label={t("common.breadcrumb")} className="flex min-w-0 items-center gap-1 text-sm text-muted">
       {items.map((item, index) => {
         const last = index === items.length - 1;
         const content = <span className={`truncate ${last ? "font-semibold text-text" : ""}`}>{item.label}</span>;

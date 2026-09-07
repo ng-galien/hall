@@ -770,7 +770,7 @@ postgres("PostgreSQL persistence", () => {
       await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-01-12 09:01:00+00')", [
         openQuestionAgendaItemId,
       ]);
-      await setup.query("SELECT hall_api.complete_open_question($1, TIMESTAMPTZ '2026-01-12 09:04:00+00')", [
+      await setup.query("SELECT hall_api.complete_non_voting_agenda_item($1, TIMESTAMPTZ '2026-01-12 09:04:00+00')", [
         openQuestionAgendaItemId,
       ]);
       await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-01-12 09:05:00+00')", [

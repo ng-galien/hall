@@ -8,7 +8,7 @@ container_name="hall-document-pgtap-${$}"
 database_name="hall_document_test"
 
 cleanup() {
-  docker rm --force "${container_name}" >/dev/null 2>&1 || true
+  docker rm --force --volumes "${container_name}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 

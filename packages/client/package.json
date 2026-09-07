@@ -11,6 +11,8 @@
     "typecheck": "tsc -b --pretty false",
     "test": "node --test scripts/*.test.mjs",
     "test:e2e": "node scripts/run-e2e.mjs",
+    "test:e2e:desktop": "node scripts/run-desktop-e2e.mjs",
+    "test:e2e:meetings": "node scripts/run-meeting-e2e.mjs",
     "test:i18n-hmr": "node --test scripts/i18n-hmr.acceptance.mjs"
   },
   "dependencies": {

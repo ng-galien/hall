@@ -135,7 +135,8 @@ export function ResourceImageFigure({
   align,
   width,
   className,
-}: ResourceImageAttributes & { className?: string }) {
+  testId,
+}: ResourceImageAttributes & { className?: string; testId?: string }) {
   const { t } = useI18n();
   const { href, failed } = useResourceImageHref(id);
   const style = { width: `${width}%` } satisfies CSSProperties;
@@ -160,7 +161,15 @@ export function ResourceImageFigure({
       />
     );
   }
-  return <img className={`${imageClass(align)} ${className ?? ""}`} src={href} alt={alt} style={style} />;
+  return (
+    <img
+      data-testid={testId}
+      className={`${imageClass(align)} ${className ?? ""}`}
+      src={href}
+      alt={alt}
+      style={style}
+    />
+  );
 }
 
 function ResourceImageNodeView({
@@ -208,7 +217,7 @@ function ResourceImageNodeView({
         className={`editor-image-frame editor-media-overlay-host hall-template-image-${attributes.align}`}
         style={{ width: `${attributes.width}%` }}
       >
-        <ResourceImageFigure {...attributes} width={100} />
+        <ResourceImageFigure {...attributes} width={100} testId={`editor-image-${attributes.id}`} />
         {controls && editable ? (
           <EditorMediaOverlay
             icon={resourceAppearance?.glyph ?? null}

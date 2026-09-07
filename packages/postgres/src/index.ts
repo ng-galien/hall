@@ -9,7 +9,7 @@ export { createPostgresClient, PostgresClient } from "./client.js";
 export { type HallPostgresConfig, parseHallPostgresConfig } from "./config.js";
 export {
   type CloseCouncilMeetingInput,
-  type CompleteOpenQuestionInput,
+  type CompleteAgendaItemInput,
   type CreatePostgresCouncilBusiness,
   type PostgresBallot,
   type PostgresBallotMode,
@@ -41,12 +41,12 @@ export {
   postgresMeetingAttendanceSchema,
   postgresMeetingAttendanceStatusSchema,
   postgresVoteChoiceSchema,
+  type RecordMeetingOpeningInput,
   type ReorderCouncilAgendaInput,
   type ReprogramAgendaItemInput,
   type ScheduleAgendaItemInput,
   type ScheduleCouncilMeetingInput,
   type StartAgendaItemInput,
-  type StartCouncilMeetingInput,
 } from "./council.js";
 export {
   type AddPostgresCommitteeMembership,
@@ -106,3 +106,5 @@ export {
   postgresResourceSearchResultSchema,
   postgresResourceSummarySchema,
 } from "./resources.js";
+
+export { PostgresCouncilDecisions } from "./councilDecisions.js";

@@ -438,10 +438,10 @@ export function CouncilBusinessWorkbench({ business }: { business: CouncilBusine
                         )}
                       </strong>
                       <span>
-                        {currentOccurrence && currentOccurrence.agendaItem.position > 0
+                        {currentOccurrence && currentOccurrence.agendaItem.agendaNumber !== null
                           ? t("workspace.agendaPosition").replace(
                               "{position}",
-                              formatNumber(currentOccurrence.agendaItem.position),
+                              formatNumber(currentOccurrence.agendaItem.agendaNumber),
                             )
                           : ""}
                       </span>

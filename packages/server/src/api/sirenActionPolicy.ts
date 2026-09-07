@@ -1,5 +1,13 @@
-import type { ApiActionName, SirenAction } from "@hall/api-contract";
-import { councilDecisionContentCanChange, councilDecisionStatusSchema, matchLiteral } from "@hall/domain";
+import {
+  type ApiActionName,
+  councilDecisionSummarySchema,
+  type ConductBlockers,
+  conductBlockerSchema,
+  conductBlockersSchema,
+  type SirenAction,
+} from "@hall/api-contract";
+import { meetingActionBlockersSchema } from "@hall/contracts";
+import { matchLiteral } from "@hall/domain";
 import type { Request } from "express";
 import { acceptedDocumentExtensions, acceptedSpreadsheetImportExtensions } from "../domain/documentPolicy.js";
 import { actionIsPermitted } from "./apiCommandAuthorization.js";
@@ -105,10 +113,7 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
       canExecuteAction(request, "committee.create")
         ? [action("committee.create", "POST", "/api/council-committees", "Create a committee")]
         : [],
-    "council-decision": () =>
-      canExecuteAction(request, "decision.create")
-        ? [action("decision.create", "POST", "/api/council-decisions", "Create a council decision")]
-        : [],
+    "council-decision": () => [],
     "council-meeting": () =>
       request.res?.locals.councilMeetingProvisioningAvailable === true &&
       canExecuteAction(request, "meeting.provision-initial")
@@ -124,6 +129,7 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
         : [],
     entity: () => [],
     "hall-settings": () => [],
+    "prepared-subject": () => [],
     "meeting-notice": () => [],
     "agenda-freeze": () => [],
     minutes: () => [],
@@ -151,6 +157,49 @@ interface ObjectActionContext {
   primary: Record<string, unknown> | null;
   id: string | null;
   reference: string | null;
+}
+
+const conductActionNames = {
+  startDiscussion: "agenda-item.start",
+  reviewBallot: "ballot.preview",
+  adjourn: "agenda-item.adjourn",
+  complete: "agenda-item.complete",
+  updateNotes: "agenda-item.update-notes",
+} as const satisfies Record<keyof ConductBlockers, ApiActionName>;
+
+/** Apply transport permissions to the same reasons exposed in entity properties. */
+export function withConductAuthorization(request: Request, value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const result = { ...(value as Record<string, unknown>) };
+  if (result.conductBlockers !== undefined) {
+    const blockers = conductBlockersSchema.parse(result.conductBlockers);
+    for (const key of Object.keys(conductActionNames) as Array<keyof ConductBlockers>) {
+      if (!canExecuteAction(request, conductActionNames[key]))
+        blockers[key] = [...blockers[key], { code: "permissionDenied" }];
+    }
+    result.conductBlockers = blockers;
+    result.canStartDiscussion = blockers.startDiscussion.length === 0;
+    result.canReviewBallot = blockers.reviewBallot.length === 0;
+  }
+  if (result.meetingActionBlockers !== undefined) {
+    const blockers = meetingActionBlockersSchema.parse(result.meetingActionBlockers);
+    if (!canExecuteAction(request, "meeting.add-open-question"))
+      blockers.addAgendaItem.push({ code: "permissionDenied" });
+    if (!canExecuteAction(request, "meeting.record-attendance-events"))
+      blockers.recordAttendanceEvents.push({ code: "permissionDenied" });
+    result.meetingActionBlockers = blockers;
+    result.canRecordAttendanceEvents = blockers.recordAttendanceEvents.length === 0;
+  }
+  if (result.closureBlockers !== undefined) {
+    const blockers = conductBlockerSchema.array().parse(result.closureBlockers);
+    result.closureBlockers = canExecuteAction(request, "meeting.close")
+      ? blockers
+      : [...blockers, { code: "permissionDenied" }];
+  }
+  for (const key of ["meeting", "agendaItem", "closedMeeting", "nextMeeting"]) {
+    if (result[key] !== undefined) result[key] = withConductAuthorization(request, result[key]);
+  }
+  return result;
 }
 
 function agendaItemActions({ request, primary, id }: ObjectActionContext): SirenAction[] {
@@ -185,46 +234,25 @@ function agendaItemActions({ request, primary, id }: ObjectActionContext): Siren
     ]);
   }
 
-  const subject = primary.subject;
-  const canAdjourn =
-    meeting?.startedAt &&
-    subject &&
-    typeof subject === "object" &&
-    (subject as Record<string, unknown>).kind !== "minutesApproval";
-  const adjournActions = canAdjourn
-    ? [action("agenda-item.adjourn", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${id}/adjourn`)]
-    : [];
-  if (!primary.startedAt && meeting?.startedAt && !meeting.closedAt) {
-    const agenda = request.res?.locals.currentCouncilAgenda;
-    const firstOpenItem = Array.isArray(agenda)
-      ? agenda.find((candidate) => {
-          if (!candidate || typeof candidate !== "object") return false;
-          const item = candidate as Record<string, unknown>;
-          return typeof item.position === "number" && item.position > 0 && !item.completedAt;
-        })
-      : null;
-    return firstOpenItem && typeof firstOpenItem === "object" && objectId(firstOpenItem) === id
-      ? authorizedActions(request, [
-          ...adjournActions,
-          action("agenda-item.start", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${id}/start`),
-        ])
-      : authorizedActions(request, adjournActions);
-  }
-
-  return primary.startedAt &&
-    subject &&
-    typeof subject === "object" &&
-    (subject as Record<string, unknown>).kind === "openQuestion"
-    ? authorizedActions(request, [
-        ...adjournActions,
-        action("agenda-item.complete", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${id}/complete`),
-      ])
-    : authorizedActions(request, [
-        ...adjournActions,
-        ...(primary.startedAt && meeting?.startedAt
-          ? [action("ballot.preview", "POST", "/api/ballot-previews", "Review the ballot result")]
-          : []),
-      ]);
+  const parsed = conductBlockersSchema.safeParse(primary.conductBlockers);
+  if (!parsed.success) return [];
+  const blockers = parsed.data;
+  const actions: SirenAction[] = [];
+  if (blockers.adjourn.length === 0)
+    actions.push(
+      action("agenda-item.adjourn", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${id}/adjourn`),
+    );
+  if (blockers.startDiscussion.length === 0)
+    actions.push(
+      action("agenda-item.start", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${id}/start`),
+    );
+  if (blockers.complete.length === 0)
+    actions.push(
+      action("agenda-item.complete", "POST", `/api/council-meetings/${meetingReference}/agenda-items/${id}/complete`),
+    );
+  if (blockers.reviewBallot.length === 0)
+    actions.push(action("ballot.preview", "POST", "/api/ballot-previews", "Review the ballot result"));
+  return authorizedActions(request, actions);
 }
 
 function councilMeetingActions({ request, value, primary }: ObjectActionContext): SirenAction[] {
@@ -235,9 +263,10 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
   const actions: SirenAction[] = [];
   if (meeting.closedAt) return [];
   const conduct = value as Record<string, unknown>;
-  if (conduct.canRecordMembership === true)
+  const meetingBlockers = meetingActionBlockersSchema.safeParse(conduct.meetingActionBlockers);
+  if (meetingBlockers.success && meetingBlockers.data.addAgendaItem.length === 0)
     actions.push(
-      action("meeting.record-membership", "POST", `/api/council-meetings/${meetingReference}/membership-records`),
+      action("meeting.add-open-question", "POST", `/api/council-meetings/${meetingReference}/open-questions`),
     );
   if (conduct.canRecordAttendanceEvents === true)
     actions.push(
@@ -257,29 +286,40 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
       action("meeting.schedule", "PUT", `/api/council-meetings/${meetingReference}/schedule`),
       action("meeting.set-officers", "PUT", `/api/council-meetings/${meetingReference}/officers`),
     );
-    if (!meeting.agendaFrozenAt) actions.push(
-      action(
-        "meeting.create-and-schedule-business",
-        "POST",
-        `/api/council-meetings/${meetingReference}/council-business`,
-      ),
-      action("agenda-item.schedule", "POST", `/api/council-meetings/${meetingReference}/agenda-items`),
-      action("meeting.reorder-agenda", "PUT", `/api/council-meetings/${meetingReference}/agenda-order`),
-    );
+    if (!meeting.agendaFrozenAt)
+      actions.push(
+        action(
+          "meeting.create-and-schedule-business",
+          "POST",
+          `/api/council-meetings/${meetingReference}/council-business`,
+        ),
+        action(
+          "agenda-item.schedule-prepared",
+          "POST",
+          `/api/council-meetings/${meetingReference}/agenda-items/from-prepared`,
+        ),
+        action("agenda-item.schedule", "POST", `/api/council-meetings/${meetingReference}/agenda-items`),
+        action("meeting.reorder-agenda", "PUT", `/api/council-meetings/${meetingReference}/agenda-order`),
+      );
     if (meeting.scheduledAt && !meeting.agendaFrozenAt) {
       actions.push(action("meeting.freeze-agenda", "POST", `/api/council-meetings/${meetingReference}/agenda-freeze`));
     }
     if (meeting.agendaFrozenAt) {
+      actions.push(
+        action("meeting.reopen-agenda", "POST", `/api/council-meetings/${meetingReference}/agenda-reopening`),
+      );
       actions.push(action("meeting.generate-notice", "POST", `/api/council-meetings/${meetingReference}/notices`));
     }
     actions.push(action("meeting.prepare", "PUT", `/api/council-meetings/${meetingReference}/prepare`));
     if (meeting.scheduledAt) {
-      actions.push(
-        action("meeting.record-attendance", "POST", `/api/council-meetings/${meetingReference}/attendance`),
-        action("meeting.start", "POST", `/api/council-meetings/${meetingReference}/start`),
-      );
+      actions.push(action("meeting.record-attendance", "POST", `/api/council-meetings/${meetingReference}/attendance`));
+      if (meeting.currentNoticeId)
+        actions.push(
+          action("meeting.record-opening", "POST", `/api/council-meetings/${meetingReference}/record-opening`),
+          action("meeting.generate-notice-message", "POST", `/api/council-meetings/${meetingReference}/notice-message`),
+        );
     }
-  } else {
+  } else if (Array.isArray(meeting.closureBlockers) && meeting.closureBlockers.length === 0) {
     actions.push(action("meeting.close", "POST", `/api/council-meetings/${meetingReference}/close`));
   }
   return authorizedActions(request, actions);
@@ -293,9 +333,9 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
   const context = { request, value, primary, id, reference };
   return matchLiteral(entityClass, {
     "agenda-item": () => {
-      const meeting = request.res?.locals.currentCouncilMeeting as Record<string, unknown> | undefined;
+      const blockers = conductBlockersSchema.safeParse(primary?.conductBlockers);
       const notes =
-        id && primary && meeting?.startedAt && !meeting.closedAt
+        id && primary && blockers.success && blockers.data.updateNotes.length === 0
           ? authorizedActions(request, [
               action(
                 "agenda-item.update-notes",
@@ -362,6 +402,11 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
           );
         });
       const actions = [
+        action(
+          "council-business.create-prepared-subject",
+          "POST",
+          `/api/council-business/${reference}/prepared-subjects`,
+        ),
         {
           ...action(
             "council-business.associate-resource",
@@ -434,11 +479,19 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
       ]);
     },
     "council-decision": () => {
-      if (!id || !reference || !canExecuteAction(request, "decision.update")) return [];
-      const status = councilDecisionStatusSchema.safeParse(primary?.status);
-      return status.success && councilDecisionContentCanChange(status.data) && primary?.contentEditable !== false
-        ? [action("decision.update", "PUT", `/api/council-decisions/${reference}`, "Update the decision")]
-        : [];
+      if (!id) return [];
+      const decision = councilDecisionSummarySchema.safeParse(
+        primary && Object.fromEntries(Object.entries(primary).filter(([key]) => key !== "facts" && key !== "content")),
+      );
+      if (!decision.success) return [];
+      return matchLiteral(decision.data.state, {
+        draft: () =>
+          authorizedActions(request, [
+            action("decision.update-draft", "PUT", `/api/council-decisions/${id}/draft`, "Edit the documentary draft"),
+            action("decision.freeze", "POST", `/api/council-decisions/${id}/freeze`, "Freeze the decision PDF"),
+          ]),
+        frozen: () => [],
+      });
     },
     "council-meeting": () => councilMeetingActions(context),
     "council-member": () =>
@@ -451,6 +504,7 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
       canExecuteAction(request, "settings.update")
         ? [action("settings.update", "PUT", "/api/settings", "Update Hall settings")]
         : [],
+    "prepared-subject": () => [],
     "meeting-notice": () => [],
     "agenda-freeze": () => [],
     minutes: () =>

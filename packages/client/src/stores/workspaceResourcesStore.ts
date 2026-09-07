@@ -57,6 +57,7 @@ interface WorkspaceResourcesState {
   searchResult: ResourceSearchResult | null;
   searchLoading: boolean;
   error: ApiErrorCode | null;
+  openErrors: Record<string, ApiErrorCode | null>;
   loadCatalog(): Promise<void>;
   loadFolder(path: string, options?: { force?: boolean }): Promise<void>;
   hydrate(criteria: ResourceSearchCriteria): Promise<ResourceSearchResult | null>;
@@ -214,6 +215,7 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
     searchResult: null,
     searchLoading: false,
     error: null,
+    openErrors: {},
     async loadCatalog() {
       if (catalogLoad) return catalogLoad;
       const pending = (async () => {
@@ -287,13 +289,13 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
       return pending;
     },
     async open(reference) {
-      set({ error: null });
+      set((state) => ({ openErrors: { ...state.openErrors, [reference]: null } }));
       try {
         const result = await openDocumentaryResource(reference);
         adopt(result.data, result.representation);
         return result;
       } catch (error) {
-        set({ error: apiErrorCode(error) });
+        set((state) => ({ openErrors: { ...state.openErrors, [reference]: apiErrorCode(error) } }));
         return null;
       }
     },

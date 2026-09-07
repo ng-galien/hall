@@ -4,12 +4,12 @@ import { referenceOpenTarget } from "../src/features/references/referenceNavigat
 
 const emptyCatalog = { resources: [], businesses: [], decisions: [], meetings: [], members: [], contacts: [] };
 
-test("a decision without a workspace carrier still opens the decisions screen", () => {
+test("a documentary decision opens its own detail independently of the workspace", () => {
   const target = referenceOpenTarget("decision", "decision-1", {
     ...emptyCatalog,
     decisions: [{ id: "decision-1" }],
   });
-  assert.deepEqual(target, { kind: "route", href: "/council-decisions" });
+  assert.deepEqual(target, { kind: "route", href: "/council-decisions/decision-1" });
 });
 
 test("a resource uses the common in-place preview", () => {

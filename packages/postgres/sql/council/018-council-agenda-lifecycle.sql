@@ -55,8 +55,11 @@ BEGIN
       RAISE EXCEPTION USING ERRCODE = 'HV230', MESSAGE = 'an agenda adjournment is immutable';
     END IF;
     IF OLD.adjourned_at IS NULL AND NEW.adjourned_at IS NOT NULL THEN
+      IF NEW.adjourned_at < hall.council_agenda_introduced_at(NEW.council_meeting,NEW.id) THEN
+        RAISE EXCEPTION USING ERRCODE='HV235',MESSAGE='adjournment cannot precede the question addition';
+      END IF;
       IF meeting_started_at IS NULL OR NEW.adjourned_at < meeting_started_at OR OLD.position < 0
-        OR OLD.completed_at IS NOT NULL OR OLD.minutes_approval IS NOT NULL
+        OR OLD.completed_at IS NOT NULL
         OR EXISTS (SELECT FROM ballots WHERE council_agenda_item = OLD.id AND completed_at IS NULL)
       THEN
         RAISE EXCEPTION USING ERRCODE = 'HV230', MESSAGE = 'the agenda item cannot be adjourned';
@@ -66,6 +69,10 @@ BEGIN
 
   -- @functional-requirement HALL-FR-AGI-090 AGENDA_ITEM_IS_CREATED_INACTIVE:
   IF TG_OP = 'INSERT' THEN
+    IF EXISTS(SELECT FROM hall.council_agenda_addition WHERE agenda_item=NEW.id)
+      AND NEW.position <= (SELECT coalesce(max(abs(position)),0) FROM council_agenda_item WHERE council_meeting=NEW.council_meeting) THEN
+      RAISE EXCEPTION USING ERRCODE='HV235',MESSAGE='an added question must follow every existing point';
+    END IF;
     IF NEW.started_at IS NOT NULL OR NEW.completed_at IS NOT NULL OR NEW.adjourned_at IS NOT NULL THEN
       RAISE EXCEPTION USING
         ERRCODE = 'HV212',
@@ -104,6 +111,9 @@ BEGIN
 
   -- @functional-requirement HALL-FR-AGI-120 AGENDA_ITEM_START_REQUIRES_STARTED_MEETING:
   IF OLD.started_at IS NULL AND NEW.started_at IS NOT NULL THEN
+    IF NEW.started_at < hall.council_agenda_introduced_at(NEW.council_meeting,NEW.id) THEN
+      RAISE EXCEPTION USING ERRCODE='HV235',MESSAGE='discussion cannot precede the question addition';
+    END IF;
     IF NEW.position < 0 THEN
       RAISE EXCEPTION USING
         ERRCODE = 'HV215',

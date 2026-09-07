@@ -339,7 +339,7 @@ async function seedCouncilMeetings(members, businesses) {
       await put(`/resources/${resource.id}/content`, {
         kind: "text",
         expectedVersion: resource.version,
-        content: `## Projet de délibération\n\n### ${business.name}\n\nAprès examen du rapport et des pièces jointes, le conseil municipal est invité à :\n\n1. Approuver les orientations présentées dans le rapport.\n2. Autoriser le maire à mettre en œuvre les démarches correspondantes.\n3. Prévoir un bilan lors d'une prochaine séance.\n\n*Exemple fictif destiné à tester l'interface.*`,
+        content: `Après examen du rapport et des pièces jointes, le conseil municipal est invité à :\n\n1. Approuver les orientations présentées dans le rapport.\n2. Autoriser le maire à mettre en œuvre les démarches correspondantes.\n3. Prévoir un bilan lors d'une prochaine séance.\n\n*Exemple fictif destiné à tester l'interface.*`,
       });
     }
     return item;
@@ -351,7 +351,7 @@ async function seedCouncilMeetings(members, businesses) {
       chairMemberId,
       secretaryMemberId,
     });
-    const attendance = await post(`/council-meetings/${meeting.id}/attendance`, {
+    const declarations = {
       attendance: memberList.map((member) => {
         if (member.id === members.Petit.id)
           return {
@@ -364,9 +364,11 @@ async function seedCouncilMeetings(members, businesses) {
         if (member.id === members.Garnier.id) return { councilMemberId: member.id, status: "absent" };
         return { councilMemberId: member.id, status: "present" };
       }),
-    });
-    await post(`/council-meetings/${meeting.id}/membership-records`, {observedAt:date,sourceReference:"Effectif nominal fictif confirmé pour la démonstration",memberIds:memberList.map(member=>member.id)});
-    await post(`/council-meetings/${meeting.id}/start`, { startedAt: date });
+    };
+    await post(`/council-meetings/${meeting.id}/agenda-freeze`, {});
+    await post(`/council-meetings/${meeting.id}/notices`, {});
+    await post(`/council-meetings/${meeting.id}/record-opening`, { ...declarations, observedAt: date, chairMemberId, secretaryMemberId });
+    const attendance = await get(`/council-meetings/${meeting.id}/attendance`);
     return attendance.filter((entry) => entry.status === "present" || entry.status === "represented");
   }
   async function vote(meeting, item, attendance, date, minute, mode, approve, reject) {
@@ -1483,8 +1485,7 @@ ${business.name}
     kind: "pdf",
     documentType: "meeting-notice",
     name: "Convocation au conseil municipal",
-    bodyMarkdown:
-      "# Convocation\n\nLe conseil municipal de **:field{name=hall.name}** se réunira le :field{name=meeting.startsAt}, à :field{name=meeting.location}.\n\n## Ordre du jour\n\nLes documents préparatoires sont joints à la présente convocation.",
+    bodyMarkdown: "::meeting-notice",
     stylesheet: "h1 { color: #102a83; }",
     headerHtml: '<div style="font-size:10px">Commune de Saint-Aubin</div>',
     footerHtml: '<div style="font-size:9px;width:100%;text-align:center">Conseil municipal</div>',
@@ -1493,9 +1494,8 @@ ${business.name}
     kind: "message",
     documentType: "meeting-notice-message",
     name: "Message de convocation Outlook",
-    subject: "Convocation au conseil municipal",
-    bodyMarkdown:
-      "Bonjour,\n\nVous êtes convoqué au **conseil municipal**, le :field{name=meeting.startsAt}, à :field{name=meeting.location}.\n\nLa convocation et les pièces préparatoires sont jointes à ce message.",
+    subject: "Convocation au conseil municipal du :field{name=meeting.startsAt}",
+    bodyMarkdown: "::meeting-notice\n\nLe PDF de la convocation est joint à ce message.",
   });
 
   await post("/templates", {
@@ -1506,6 +1506,12 @@ ${business.name}
     stylesheet: "h1 { color: #102a83; } h2 { break-after: avoid; }",
     headerHtml: '<div style="font-size:10px">Commune de Saint-Aubin</div>',
     footerHtml: '<div style="font-size:9px;width:100%;text-align:center"><span class="pageNumber"></span> / <span class="totalPages"></span></div>',
+  });
+
+  await post("/templates", {
+    kind: "pdf", documentType: "council-decision", name: "Délibération du conseil municipal",
+    bodyMarkdown: "::council-decision{section=facts}\n\n::council-decision{section=content}\n\n::council-decision{section=result}",
+    stylesheet: "body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.28; color: #111; } h1 { font-size: 16pt; text-align: center; text-transform: uppercase; text-decoration: underline; margin: 0 0 6mm; break-after: avoid; } h2 { font-size: 12pt; break-after: avoid; } .decision-facts > h2 { text-align: center; text-decoration: underline; font-size: 15pt; margin: 7mm 0 9mm; } .decision-facts-columns { display: grid; grid-template-columns: 2fr 3fr; gap: 5mm; margin-bottom: 5mm; } .decision-counts { border-right: 1px solid #111; padding-right: 4mm; } .decision-counts dl { display: grid; grid-template-columns: 1fr auto; row-gap: 4mm; margin: 0; } .decision-counts dt, .decision-counts dd { border-top: 1px solid #555; border-bottom: 1px solid #555; margin: 0; padding: 1mm; } .decision-counts dt { border-left: 1px solid #555; font-weight: bold; } .decision-counts dd { border-right: 1px solid #555; text-align: right; min-width: 6mm; } .decision-opening p { margin: 0 0 4mm; orphans: 3; widows: 3; } .decision-order { margin: 0 0 4mm; font-size: 10pt; break-after: avoid; } .decision-content > h2 { text-align: center; text-transform: uppercase; margin: 0 0 6mm; } .decision-content p { margin: 0 0 3mm; orphans: 3; widows: 3; } .decision-content ul, .decision-content ol { padding-left: 6mm; margin: 2mm 0 4mm; } .decision-content li { margin-bottom: 2mm; } .decision-content li:not(:has(ul, ol)) { break-inside: avoid; } .decision-content h3, .decision-content h4 { break-after: avoid; margin-bottom: 2mm; } .decision-content table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; break-inside: avoid; } .decision-content th, .decision-content td { padding: 1.5mm; border-bottom: 1px solid #bbb; } .decision-content th { text-align: left; } .decision-content td:last-child { text-align: right; white-space: nowrap; } .decision-conclusion { break-inside: avoid; margin-top: 5mm; } .decision-result { border-top: 1px solid #777; padding-top: 3mm; margin: 0 0 6mm; font-size: 10pt; } .decision-signatures { display: grid; grid-template-columns: 1fr 1fr; text-align: center; gap: 8mm; min-height: 24mm; } .decision-signatures p { margin: 0; }", headerHtml: "", footerHtml: "",
   });
 
   if (process.env.SEED_MEETING_SCENARIO === "preparation") {

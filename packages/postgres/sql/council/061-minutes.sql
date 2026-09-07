@@ -32,6 +32,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     'conduct', snapshot.payload->'conduct',
     'agenda', coalesce((SELECT jsonb_agg(jsonb_build_object(
       'id', item->>'id', 'position', (item->>'position')::INTEGER,
+      'agendaNumber', (SELECT agenda_number FROM hall.council_agenda_presentation_numbers(target_meeting) WHERE agenda_item = (item->>'id')::UUID),
       'title', CASE WHEN item->>'minutes_approval' IS NOT NULL THEN ''
         ELSE coalesce((SELECT business #>> '{folder,name}' FROM jsonb_array_elements(snapshot.payload->'businesses') business
           WHERE business->>'council_business' = item->>'council_business'), '') END,
@@ -43,7 +44,8 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
       'proposal', (SELECT proposal->>'content' FROM jsonb_array_elements(snapshot.payload->'proposals') proposal
         WHERE proposal->>'id' = item->>'council_decision_proposal'),
       'kind', CASE WHEN item->>'minutes_approval' IS NOT NULL THEN 'minutesApproval'
-        WHEN item->>'council_decision_proposal' IS NOT NULL THEN 'councilDecisionProposal' ELSE 'openQuestion' END,
+        WHEN item->>'council_decision_proposal' IS NOT NULL THEN 'councilDecisionProposal'
+        WHEN item->>'open_question' IS NOT NULL THEN 'openQuestion' ELSE 'businessConsultation' END,
       'startedAt', item->>'started_at', 'completedAt', item->>'completed_at', 'adjournedAt', item->>'adjourned_at'
     ) ORDER BY abs((item->>'position')::INTEGER)) FROM jsonb_array_elements(snapshot.payload->'agenda') item), '[]'::JSONB),
     'ballots', coalesce((SELECT jsonb_agg(jsonb_build_object(

@@ -7,11 +7,20 @@ import { normalizeForSearch } from "../lib/search";
 import type { ApiErrorCode } from "../services/apiClient";
 import { CardViewIcon, CloseIcon, ListViewIcon, SearchIcon } from "./icons";
 
-export function PageHeader({ title, description }: { title: string; description: string }) {
+export function PageHeader({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children?: ReactNode;
+}) {
   return (
     <header className="border-b border-border bg-surface px-7 py-4">
       <h1 className="page-title">{title}</h1>
       <p className="mt-1 text-sm text-muted">{description}</p>
+      {children}
     </header>
   );
 }
@@ -93,16 +102,23 @@ export function Modal({
   title,
   children,
   onClose,
+  testId,
 }: {
   open: boolean;
   title: string;
   children: ReactNode;
   onClose(): void;
+  testId?: string;
 }) {
   const { t } = useI18n();
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="modal-surface gap-0 p-0 sm:max-w-[var(--hall-size-modal)]" showCloseButton={false} aria-describedby={undefined}>
+      <DialogContent
+        className="modal-surface gap-0 p-0 sm:max-w-[var(--hall-size-modal)]"
+        showCloseButton={false}
+        aria-describedby={undefined}
+        data-testid={testId}
+      >
         <header className="modal-header">
           <DialogTitle>{title}</DialogTitle>
           <Button size="icon" variant="ghost" aria-label={t("common.close")} onClick={onClose}>

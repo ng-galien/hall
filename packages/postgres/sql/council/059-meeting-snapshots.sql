@@ -65,3 +65,24 @@ CREATE TRIGGER council_meeting_capture_opening
 AFTER UPDATE ON hall.council_meetings
 FOR EACH ROW WHEN (OLD.started_at IS NULL AND NEW.started_at IS NOT NULL)
 EXECUTE FUNCTION hall.snapshot_council_meeting_opening();
+
+-- @functional-requirement HALL-FR-AGI-400 AGENDA_PRESENTATION_NUMBERS_ARE_CONTINUOUS:
+-- Position is an ordering key, never the number shown to a reader. Closing
+-- observations remain the source after carry-over moves working occurrences.
+CREATE FUNCTION hall.council_agenda_presentation_numbers(target_meeting UUID)
+RETURNS TABLE(agenda_item UUID, agenda_number INTEGER)
+LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
+  SELECT id, row_number() OVER (ORDER BY abs(position), id)::INTEGER
+  FROM (
+    SELECT item.id, item.position FROM hall.council_agenda_item item
+    WHERE item.council_meeting = target_meeting
+      AND (item.position > 0 OR item.adjourned_at IS NOT NULL)
+      AND NOT EXISTS (SELECT FROM hall.council_meeting_snapshot snapshot
+        WHERE snapshot.council_meeting = target_meeting AND snapshot.phase = 'closing')
+    UNION ALL
+    SELECT (item->>'id')::UUID, (item->>'position')::INTEGER
+    FROM hall.council_meeting_snapshot snapshot,
+      LATERAL jsonb_array_elements(snapshot.payload->'agenda') item
+    WHERE snapshot.council_meeting = target_meeting AND snapshot.phase = 'closing'
+  ) presented;
+$$;

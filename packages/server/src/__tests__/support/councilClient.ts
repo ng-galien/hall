@@ -24,6 +24,7 @@ export function createTestCouncilClient(
   minutesEntries = new Map<string, MinutesDetail>(),
 ): CouncilClient {
   const businesses = new Map<string, CouncilBusiness>();
+  const businessTitles = new Map<string, string>();
   const businessResources = new Map<string, CouncilBusinessResourceAssociation[]>();
   const meetings = new Map<string, CouncilMeeting>();
   const attendance = new Map<string, MeetingAttendance>();
@@ -57,33 +58,69 @@ export function createTestCouncilClient(
         position: value.position,
       }),
       openQuestion: (value) => ({
-        subject: { kind: value.kind, id: randomUUID() } as const,
+        subject: { kind: value.kind, id: randomUUID(), textResourceId: randomUUID(), content: "" } as const,
         position: value.position,
       }),
     });
     const item: AgendaItem = {
       id: randomUUID(),
+      title: businessTitles.get(input.councilBusinessId) ?? "",
       councilBusinessId: input.councilBusinessId,
       councilMeetingId: meetingId,
+      introducedAt: null,
       position: agendaSubject.position,
+      agendaNumber:
+        [...agendaItems.values()].filter((item) => item.councilMeetingId === meetingId && item.position > 0).length + 1,
       subject: agendaSubject.subject,
       startedAt: null,
       completedAt: null,
       adjournedAt: null,
       discussionSummary: "",
+      canStartDiscussion: true,
+      canReviewBallot: true,
+      conductBlockers: { startDiscussion: [], reviewBallot: [], adjourn: [], complete: [], updateNotes: [] },
     };
     agendaItems.set(item.id, item);
     return item;
   }
 
   return {
-    async freezeAgenda() { throw new Error("Agenda freeze tests require the PostgreSQL fixture"); },
-    async openAgendaFreeze() { return null; },
-    async noticeFacts() { return null; },
-    async listNotices() { return []; },
-    async openNotice() { return null; },
-    async generateNotice() { throw new Error("Notice generation tests require the PostgreSQL fixture"); },
-    async noticeContent() { return null; },
+    async listPreparedSubjects() {
+      return [];
+    },
+    async openPreparedSubject() {
+      return null;
+    },
+    async createPreparedSubject() {
+      throw new Error("Prepared subject tests require PostgreSQL");
+    },
+    async schedulePreparedSubject() {
+      throw new Error("Prepared subject tests require PostgreSQL");
+    },
+    async reopenAgenda() {
+      throw new Error("Agenda reopening tests require the PostgreSQL fixture");
+    },
+    async freezeAgenda() {
+      throw new Error("Agenda freeze tests require the PostgreSQL fixture");
+    },
+    async openAgendaFreeze() {
+      return null;
+    },
+    async noticeFacts() {
+      return null;
+    },
+    async listNotices() {
+      return [];
+    },
+    async openNotice() {
+      return null;
+    },
+    async generateNotice() {
+      throw new Error("Notice generation tests require the PostgreSQL fixture");
+    },
+    async noticeContent() {
+      return null;
+    },
     async listBusinesses() {
       return [...businesses.values()];
     },
@@ -123,6 +160,7 @@ export function createTestCouncilClient(
         reportResourceId: report.data.id,
       };
       businesses.set(business.id, business);
+      businessTitles.set(business.id, input.name);
       return business;
     },
     async listBusinessResources(businessId) {
@@ -212,6 +250,9 @@ export function createTestCouncilClient(
         previousCouncilMeetingId: null,
         minutesId: null,
         agendaFrozenAt: null,
+        currentNoticeId: null,
+        closureBlockers: [],
+        noticeDeadline: { status: "indeterminate", reason: "scheduleUnknown" },
         scheduledAt: null,
         location: null,
         chairMemberId: null,
@@ -264,11 +305,8 @@ export function createTestCouncilClient(
       });
       return { business, agendaItem };
     },
-    async startMeeting(id, input) {
-      const meeting = requireMeeting(id);
-      const started = { ...meeting, quorum: 1, startedAt: input.startedAt };
-      meetings.set(id, started);
-      return started;
+    async recordMeetingOpening() {
+      throw new Error("Opening acceptance requires PostgreSQL");
     },
     async closeMeeting(id, input) {
       const meeting = requireMeeting(id);
@@ -306,6 +344,8 @@ export function createTestCouncilClient(
             .map((entry) => ({
               id: entry.id,
               position: entry.position,
+              agendaNumber: entry.agendaNumber!,
+              introducedAt: entry.introducedAt,
               title: "Discussion",
               kind: entry.subject.kind,
               report: "",
@@ -326,6 +366,9 @@ export function createTestCouncilClient(
         previousCouncilMeetingId: meeting.id,
         minutesId: null,
         agendaFrozenAt: null,
+        currentNoticeId: null,
+        closureBlockers: [],
+        noticeDeadline: { status: "indeterminate", reason: "scheduleUnknown" },
         scheduledAt: null,
         location: null,
         chairMemberId: null,
@@ -341,11 +384,17 @@ export function createTestCouncilClient(
         councilBusinessId: null,
         councilMeetingId: nextMeeting.id,
         position: 1,
+        agendaNumber: 1,
+        introducedAt: null,
+        title: "",
         subject: { kind: "minutesApproval", id: randomUUID(), minutesId: minutes.id, documentId: null },
         startedAt: null,
         completedAt: null,
         adjournedAt: null,
         discussionSummary: "",
+        canStartDiscussion: true,
+        canReviewBallot: true,
+        conductBlockers: { startDiscussion: [], reviewBallot: [], adjourn: [], complete: [], updateNotes: [] },
       };
       agendaItems.set(minutesApproval.id, minutesApproval);
       const { sections: _sections, facts: _facts, ...summary } = minutes;
@@ -408,8 +457,8 @@ export function createTestCouncilClient(
     async meetingConduct() {
       throw new Error("Conduct acceptance requires PostgreSQL");
     },
-    async recordMeetingMembership() {
-      throw new Error("Conduct acceptance requires PostgreSQL");
+    async addOpenQuestion() {
+      throw new Error("Use the PostgreSQL addition integration fixture");
     },
     async recordMeetingAttendanceEvents() {
       throw new Error("Conduct acceptance requires PostgreSQL");
@@ -495,7 +544,7 @@ export function createTestCouncilClient(
       agendaItems.set(id, started);
       return started;
     },
-    async completeOpenQuestion(id, input) {
+    async completeAgendaItem(id, input) {
       const item = requireAgendaItem(id);
       if (item.subject.kind !== "openQuestion") throw new CouncilClientError("conflict");
       const completed = { ...item, completedAt: input.completedAt };

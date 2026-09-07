@@ -4,6 +4,60 @@
 -- Agenda projections contain only council identities and lifecycle facts.
 -- Documentary resources are fetched independently through their own API.
 
+-- @functional-requirement HALL-FR-AGI-390 CONDUCT_ACTIONS_EXPLAIN_UNAVAILABILITY:
+-- Capabilities and explanations share the command authorities and are read-only.
+CREATE FUNCTION hall.council_agenda_item_capabilities(target hall.council_agenda_item)
+RETURNS JSONB LANGUAGE plpgsql STABLE SET search_path=pg_catalog,hall AS $$
+DECLARE meeting hall.council_meetings; voting BOOLEAN; facts JSONB; quorum_blockers JSONB:='[]';
+  common JSONB:='[]'; start_blockers JSONB; review_blockers JSONB; adjourn_blockers JSONB;
+  complete_blockers JSONB; notes_blockers JSONB:='[]'; earlier UUID; active UUID; existing_ballot hall.ballots;
+  target_minutes UUID; blockers JSONB;
+BEGIN
+  SELECT * INTO meeting FROM hall.council_meetings WHERE id=target.council_meeting;
+  voting:=target.minutes_approval IS NOT NULL OR target.council_decision_proposal IS NOT NULL;
+  IF meeting.started_at IS NULL THEN common:=common||jsonb_build_array(jsonb_build_object('code','meetingNotStarted')); END IF;
+  IF meeting.closed_at IS NOT NULL THEN common:=common||jsonb_build_array(jsonb_build_object('code','meetingClosed')); END IF;
+  notes_blockers:=common;
+  IF target.adjourned_at IS NOT NULL THEN common:=common||jsonb_build_array(jsonb_build_object('code','itemAdjourned'));
+  ELSIF target.position<0 THEN common:=common||jsonb_build_array(jsonb_build_object('code','itemNotProgrammed')); END IF;
+  IF target.completed_at IS NOT NULL THEN common:=common||jsonb_build_array(jsonb_build_object('code','itemCompleted')); END IF;
+  IF voting AND meeting.started_at IS NOT NULL AND meeting.closed_at IS NULL AND target.position>0 AND target.completed_at IS NULL THEN
+    BEGIN
+      facts:=hall.calculate_meeting_quorum(meeting.id,target.id,clock_timestamp());
+      IF facts->>'verdict'='notMet' THEN quorum_blockers:=jsonb_build_array(jsonb_build_object('code','quorumNotMet','presentCount',(facts->>'presentCount')::int,'requiredPresent',(facts->>'requiredPresent')::int)); END IF;
+    EXCEPTION
+      WHEN SQLSTATE 'HV140' THEN quorum_blockers:='[{"code":"membershipMissing"}]';
+      WHEN SQLSTATE 'HV141' THEN quorum_blockers:='[{"code":"attendanceIncomplete"}]';
+      WHEN SQLSTATE 'HV143' THEN quorum_blockers:='[{"code":"observationChronology"}]';
+      WHEN SQLSTATE 'HV144' THEN quorum_blockers:='[{"code":"reconvocationPending"}]';
+      WHEN SQLSTATE 'HV149' THEN quorum_blockers:='[{"code":"freshObservationsRequired"}]';
+    END;
+  END IF;
+  SELECT id INTO earlier FROM hall.council_agenda_item WHERE council_meeting=meeting.id AND position>0 AND completed_at IS NULL AND position<target.position ORDER BY position LIMIT 1;
+  SELECT id INTO active FROM hall.council_agenda_item WHERE council_meeting=meeting.id AND position>0 AND started_at IS NOT NULL AND completed_at IS NULL AND id<>target.id LIMIT 1;
+  SELECT * INTO existing_ballot FROM hall.ballots WHERE council_agenda_item=target.id LIMIT 1;
+  start_blockers:=common||quorum_blockers;
+  IF target.started_at IS NOT NULL THEN start_blockers:=start_blockers||'[{"code":"discussionAlreadyStarted"}]'::jsonb; END IF;
+  IF earlier IS NOT NULL THEN start_blockers:=start_blockers||jsonb_build_array(jsonb_build_object('code','earlierAgendaItemPending','agendaItemId',earlier)); END IF;
+  IF active IS NOT NULL AND active IS DISTINCT FROM earlier THEN start_blockers:=start_blockers||jsonb_build_array(jsonb_build_object('code','anotherDiscussionActive','agendaItemId',active)); END IF;
+  review_blockers:=common||quorum_blockers;
+  IF NOT voting THEN review_blockers:=review_blockers||'[{"code":"nonVotingSubject"}]'::jsonb; END IF;
+  IF target.started_at IS NULL THEN review_blockers:=review_blockers||'[{"code":"discussionNotStarted"}]'::jsonb;
+  ELSIF voting AND NOT EXISTS(SELECT FROM hall.meeting_quorum_observation observation WHERE observation.agenda_item=target.id AND observation.facts->>'verdict' IN ('met','exempt')) THEN review_blockers:=review_blockers||'[{"code":"discussionQuorumMissing"}]'::jsonb; END IF;
+  IF existing_ballot.id IS NOT NULL THEN review_blockers:=review_blockers||jsonb_build_array(jsonb_build_object('code','ballotAlreadyExists','ballotId',existing_ballot.id)); END IF;
+  IF target.minutes_approval IS NOT NULL THEN
+    SELECT minutes INTO target_minutes FROM hall.minutes_approval WHERE id=target.minutes_approval;
+    IF NOT EXISTS(SELECT FROM hall.minutes_document WHERE minutes=target_minutes) THEN review_blockers:=review_blockers||jsonb_build_array(jsonb_build_object('code','minutesDocumentMissing','minutesId',target_minutes)); END IF;
+  END IF;
+  adjourn_blockers:=common;
+  IF existing_ballot.id IS NOT NULL AND existing_ballot.completed_at IS NULL THEN adjourn_blockers:=adjourn_blockers||jsonb_build_array(jsonb_build_object('code','ballotInProgress','ballotId',existing_ballot.id)); END IF;
+  complete_blockers:=common;
+  IF target.started_at IS NULL THEN complete_blockers:=complete_blockers||'[{"code":"discussionNotStarted"}]'::jsonb; END IF;
+  IF voting THEN complete_blockers:=complete_blockers||'[{"code":"votingSubjectRequiresBallot"}]'::jsonb; END IF;
+  blockers:=jsonb_build_object('startDiscussion',start_blockers,'reviewBallot',review_blockers,'adjourn',adjourn_blockers,'complete',complete_blockers,'updateNotes',notes_blockers);
+  RETURN jsonb_build_object('canStartDiscussion',jsonb_array_length(start_blockers)=0,'canReviewBallot',jsonb_array_length(review_blockers)=0,'conductBlockers',blockers);
+END $$;
+
 -- @functional-requirement HALL-FR-WSP-060 COUNCIL_AGENDA_PROJECTION_IS_SCOPED:
 CREATE FUNCTION hall.council_agenda_item_projection(target hall.council_agenda_item)
 RETURNS JSONB
@@ -15,9 +69,12 @@ SET search_path = pg_catalog
 AS $function$
   SELECT jsonb_build_object(
     'id', target.id,
+    'title', hall.council_agenda_item_title(target),
     'councilBusinessId', target.council_business,
     'councilMeetingId', target.council_meeting,
     'position', target.position,
+    'introducedAt', hall.council_agenda_introduced_at(target.council_meeting,target.id),
+    'agendaNumber', (SELECT agenda_number FROM hall.council_agenda_presentation_numbers(target.council_meeting) WHERE agenda_item = target.id),
     'discussionSummary', target.discussion_summary,
     'subject', CASE
       WHEN target.minutes_approval IS NOT NULL THEN jsonb_build_object(
@@ -38,15 +95,21 @@ AS $function$
           FROM hall.council_decision_proposal_workspace workspace JOIN hall.text_resource text ON text.id = workspace.text_resource
           WHERE workspace.council_decision_proposal = target.council_decision_proposal)
       )
+      WHEN target.subject_kind='businessConsultation' THEN jsonb_build_object(
+        'kind','businessConsultation','councilBusinessId',target.council_business,
+        'reportResourceId',(SELECT report_resource FROM hall.council_business_workspace WHERE council_business=target.council_business),
+        'content',(SELECT text.content FROM hall.council_business_workspace workspace JOIN hall.text_resource text ON text.id=workspace.report_resource WHERE workspace.council_business=target.council_business))
       ELSE jsonb_build_object(
         'kind', 'openQuestion',
-        'id', target.open_question
+        'id', target.open_question,
+        'textResourceId', (SELECT text_resource FROM hall.open_question_workspace WHERE open_question=target.open_question),
+        'content', (SELECT content FROM hall.open_question_workspace workspace JOIN hall.text_resource text ON text.id=workspace.text_resource WHERE workspace.open_question=target.open_question)
       )
     END,
     'startedAt', target.started_at,
     'completedAt', target.completed_at,
     'adjournedAt', target.adjourned_at
-  )
+  ) || hall.council_agenda_item_capabilities(target)
 $function$;
 
 CREATE FUNCTION hall_api.open_council_agenda_item(target_agenda_item UUID)
@@ -315,7 +378,7 @@ BEGIN
 END
 $function$;
 
-CREATE FUNCTION hall_api.complete_open_question(
+CREATE FUNCTION hall_api.complete_non_voting_agenda_item(
   target_agenda_item UUID,
   completion_time TIMESTAMPTZ
 )
@@ -328,7 +391,7 @@ AS $function$
 DECLARE
   changed hall.council_agenda_item;
 BEGIN
-  changed := hall.complete_open_question(target_agenda_item, completion_time);
+  changed := hall.complete_non_voting_agenda_item(target_agenda_item, completion_time);
   RETURN hall.council_agenda_item_projection(changed);
 END
 $function$;

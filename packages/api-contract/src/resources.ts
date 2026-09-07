@@ -406,7 +406,12 @@ export const updateResourceMetadataSchema = relocateResourceSchema.extend({
 });
 
 export const updateResourceContentSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("text"), expectedVersion: versionSchema, content: z.string() }),
+  z.object({
+    kind: z.literal("text"),
+    expectedVersion: versionSchema,
+    content: z.string(),
+    name: resourceNameSchema.optional(),
+  }),
   z.object({ kind: z.literal("remote"), expectedVersion: versionSchema, target: remoteResourceTargetSchema }),
   z.object({ kind: z.literal("spreadsheet"), expectedVersion: versionSchema, document: spreadsheetDocumentSchema }),
   z.object({ kind: z.literal("geographic"), expectedVersion: versionSchema, document: geographicDocumentSchema }),

@@ -40,15 +40,16 @@ INSERT INTO meeting_attendance (
 
 SELECT test_designate_present_officers(id) FROM council_meetings
 WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
-UPDATE council_meetings
-SET started_at = '2026-01-01 09:00:00+00'
-WHERE id = test_uuid('actions:public:meeting');
-
 SELECT test_create_decision_agenda_item(
   'actions:public',
   test_uuid('actions:public:meeting'),
   1
 );
+SELECT test_prepare_notice(test_uuid('actions:public:meeting'));
+UPDATE council_meetings
+SET started_at = '2026-01-01 09:00:00+00'
+WHERE id = test_uuid('actions:public:meeting');
+
 
 UPDATE council_agenda_item
 SET started_at = '2026-01-01 09:05:00+00'
@@ -158,15 +159,16 @@ INSERT INTO meeting_attendance (id, council_member, council_meeting, status) VAL
 
 SELECT test_designate_present_officers(id) FROM council_meetings
 WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
-UPDATE council_meetings
-SET started_at = '2026-01-02 09:00:00+00'
-WHERE id = test_uuid('actions:secret:meeting');
-
 SELECT test_create_decision_agenda_item(
   'actions:secret',
   test_uuid('actions:secret:meeting'),
   1
 );
+SELECT test_prepare_notice(test_uuid('actions:secret:meeting'));
+UPDATE council_meetings
+SET started_at = '2026-01-02 09:00:00+00'
+WHERE id = test_uuid('actions:secret:meeting');
+
 
 UPDATE council_agenda_item
 SET started_at = '2026-01-02 09:05:00+00'

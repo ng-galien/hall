@@ -1,5 +1,5 @@
-import type { MeetingAgendaFreeze, MeetingNoticeMeetingFacts, MeetingNotice, MeetingNoticeFacts } from "@hall/domain";
 import type {
+  AddOpenQuestion,
   AgendaItem,
   AgendaItemRecusals,
   Ballot,
@@ -7,7 +7,7 @@ import type {
   BallotResultPreview,
   BallotVote,
   CloseCouncilMeeting,
-  CompleteOpenQuestion,
+  CompleteAgendaItem,
   CouncilBusiness,
   CouncilBusinessResourceAssociation,
   CouncilBusinessResourceItem,
@@ -25,7 +25,7 @@ import type {
   RecordAgendaItemRecusal,
   RecordMeetingAttendance,
   RecordMeetingAttendanceEvents,
-  RecordMeetingMembership,
+  RecordMeetingOpening,
   RecordMeetingQuorum,
   RecordMeetingReconvocation,
   ReorderCouncilAgenda,
@@ -36,8 +36,16 @@ import type {
   ScheduleCouncilMeeting,
   SetCouncilMeetingOfficers,
   StartAgendaItem,
-  StartCouncilMeeting,
 } from "@hall/api-contract";
+import type {
+  CreatePreparedCouncilSubject,
+  MeetingAgendaFreeze,
+  MeetingNotice,
+  MeetingNoticeFacts,
+  MeetingNoticeMeetingFacts,
+  PreparedCouncilSubject,
+  SchedulePreparedCouncilSubject,
+} from "@hall/contracts";
 
 export type CouncilClientFailure = "invalidResourceLocation" | "conflict";
 
@@ -52,6 +60,12 @@ export class CouncilClientError extends Error {
 }
 
 export interface CouncilClient {
+  listPreparedSubjects(meetingId?: string | null): Promise<PreparedCouncilSubject[]>;
+  openPreparedSubject(id: string, kind: PreparedCouncilSubject["kind"]): Promise<PreparedCouncilSubject | null>;
+  createPreparedSubject(businessId: string, input: CreatePreparedCouncilSubject): Promise<PreparedCouncilSubject>;
+  schedulePreparedSubject(meetingId: string, input: SchedulePreparedCouncilSubject): Promise<AgendaItem>;
+
+  reopenAgenda(id: string): Promise<CouncilMeeting>;
   freezeAgenda(id: string): Promise<CouncilMeeting>;
   openAgendaFreeze(id: string): Promise<MeetingAgendaFreeze | null>;
   noticeFacts(id: string): Promise<MeetingNoticeMeetingFacts | null>;
@@ -64,8 +78,8 @@ export interface CouncilClient {
   openBallotResultPreview(id: string): Promise<BallotResultPreview | null>;
   confirmBallotResultPreview(id: string): Promise<Ballot>;
 
+  addOpenQuestion(meetingId: string, input: AddOpenQuestion): Promise<AgendaItem>;
   meetingConduct(meetingId: string): Promise<MeetingConductWorkspace>;
-  recordMeetingMembership(meetingId: string, input: RecordMeetingMembership): Promise<MeetingConductWorkspace>;
   recordMeetingAttendanceEvents(
     meetingId: string,
     input: RecordMeetingAttendanceEvents,
@@ -98,7 +112,7 @@ export interface CouncilClient {
     meetingId: string,
     input: CreateAndScheduleCouncilBusiness,
   ): Promise<CreatedAndScheduledCouncilBusiness>;
-  startMeeting(id: string, input: StartCouncilMeeting): Promise<CouncilMeeting>;
+  recordMeetingOpening(id: string, input: RecordMeetingOpening): Promise<MeetingConductWorkspace>;
   closeMeeting(id: string, input: CloseCouncilMeeting): Promise<CouncilMeetingClosure>;
   listAttendance(meetingId: string): Promise<MeetingAttendance[]>;
   recordAttendance(meetingId: string, input: RecordMeetingAttendance): Promise<MeetingAttendance[]>;
@@ -112,7 +126,7 @@ export interface CouncilClient {
   reprogramAgendaItem(id: string, input: ReprogramAgendaItem): Promise<AgendaItem>;
   reorderAgenda(meetingId: string, input: ReorderCouncilAgenda): Promise<AgendaItem[]>;
   startAgendaItem(id: string, input: StartAgendaItem): Promise<AgendaItem>;
-  completeOpenQuestion(id: string, input: CompleteOpenQuestion): Promise<AgendaItem>;
+  completeAgendaItem(id: string, input: CompleteAgendaItem): Promise<AgendaItem>;
   updateAgendaItemNotes(id: string, input: { discussionSummary: string }): Promise<AgendaItem>;
   listBallots(meetingId: string): Promise<Ballot[]>;
   openBallot(id: string): Promise<Ballot | null>;

@@ -1,4 +1,12 @@
+import type { CouncilDecisionDetail } from "@hall/contracts";
+import { isCouncilDecisionSection } from "@hall/templating";
+import {
+  renderCouncilDecisionFacts,
+  renderCouncilDecisionContent,
+  renderCouncilDecisionResult,
+} from "./councilDecisionDocument.js";
 import type { MinutesDetail, ResourceDetail } from "@hall/api-contract";
+import type { MeetingNoticeFacts } from "@hall/contracts";
 import {
   type ContentTemplate,
   type HallSettings,
@@ -22,13 +30,14 @@ import {
   validateStructure,
 } from "@hall/templating";
 import sanitizeHtml from "sanitize-html";
-import type { ResourcesClient } from "../clients/resourcesClient.js";
-import type { MinutesClient } from "../clients/minutesClient.js";
-import { renderMinutesSections } from "./minutesDocument.js";
-import type { HallSettingsRepository } from "../repositories/contracts.js";
 import type { CouncilClient } from "../clients/councilClient.js";
+import type { MinutesClient } from "../clients/minutesClient.js";
+import type { ResourcesClient } from "../clients/resourcesClient.js";
+import type { HallSettingsRepository } from "../repositories/contracts.js";
 import { pdfAttachmentHref } from "./documentRenderer.js";
 import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
+import { renderMeetingNotice } from "./meetingNoticeDocument.js";
+import { renderMinutesSections } from "./minutesDocument.js";
 import type { ReferenceEntityResolver } from "./referenceEntityResolver.js";
 
 type AstNode = {
@@ -88,6 +97,8 @@ export interface TemplatePreview {
 }
 
 interface ResolvedContext {
+  notice: MeetingNoticeFacts | null;
+  councilDecision: CouncilDecisionDetail | null;
   minutes: MinutesDetail | null;
   hall: HallSettings;
   meeting: Awaited<ReturnType<CouncilClient["openMeeting"]>>;
@@ -600,6 +611,8 @@ export interface TemplateRenderingService {
   preview(
     template: Pick<ContentTemplate, "bodyMarkdown" | "subject" | "stylesheet" | "headerHtml" | "footerHtml">,
     context?: TemplateRenderContext,
+    notice?: MeetingNoticeFacts,
+    councilDecision?: CouncilDecisionDetail,
   ): Promise<TemplatePreview>;
 }
 
@@ -619,6 +632,8 @@ export function createTemplateRenderingService({
   minutesClient: MinutesClient;
 }): TemplateRenderingService {
   const loadContext = async (context: TemplateRenderContext = {}): Promise<ResolvedContext> => ({
+    notice: null,
+    councilDecision: null,
     minutes: context.minutesId ? await minutesClient.open(context.minutesId) : null,
     hall: await hallSettingsRepository.get(),
     meeting: context.meetingId ? await councilClient.openMeeting(context.meetingId) : null,
@@ -635,6 +650,31 @@ export function createTemplateRenderingService({
     };
     for (const directive of collectDirectives(tree)) {
       const key = `${directive.name}:${directive.occurrence}`;
+      if (directive.name === "council-decision") {
+        const section = directive.attributes.section;
+        const decision = context.councilDecision;
+        if (!decision || !section || !isCouncilDecisionSection(section)) {
+          diagnostics.push(
+            diagnostic("unresolved_reference", "Council decision context or section unavailable", directive),
+          );
+          continue;
+        }
+        const fragments = {
+          facts: () => renderCouncilDecisionFacts(decision.facts),
+          content: () => renderCouncilDecisionContent(decision),
+          result: () => renderCouncilDecisionResult(decision.facts),
+        };
+        values.set(key, { type: "html", value: matchLiteral(section, fragments) });
+        continue;
+      }
+      if (directive.name === "meeting-notice") {
+        if (!context.notice)
+          diagnostics.push(
+            diagnostic("unresolved_reference", "A frozen meeting notice context is required", directive),
+          );
+        else values.set(key, { type: "html", value: renderMeetingNotice(context.notice) });
+        continue;
+      }
       if (directive.name === "minutes") {
         const section = directive.attributes.section;
         if (!minutes || !section || !isMinutesSection(section)) {
@@ -701,12 +741,7 @@ export function createTemplateRenderingService({
           if (directive.name === "resource") {
             const resource = (await resourcesClient.open(id))?.data ?? null;
             node = resource
-              ? await resourceReferenceNode(
-                  resource,
-                  resource.name,
-                  resourcesClient,
-                  registerPdfAttachment,
-                )
+              ? await resourceReferenceNode(resource, resource.name, resourcesClient, registerPdfAttachment)
               : null;
           } else {
             const reference = await referenceEntityResolver.resolve(directive.name, id);
@@ -765,8 +800,25 @@ export function createTemplateRenderingService({
   };
 
   return {
-    async preview(template, renderContext = {}) {
+    async preview(template, renderContext = {}, notice, councilDecision) {
       const context = await loadContext(renderContext);
+      context.councilDecision = councilDecision ?? null;
+      const meetingFacts =
+        !notice && renderContext.meetingId ? await councilClient.noticeFacts(renderContext.meetingId) : null;
+      context.notice =
+        notice ??
+        (meetingFacts
+          ? { meeting: meetingFacts, hall: { name: context.hall.name, timeZone: context.hall.timeZone } }
+          : null);
+      if (context.notice) {
+        context.hall = { ...context.hall, ...context.notice.hall };
+        if (context.meeting)
+          context.meeting = {
+            ...context.meeting,
+            scheduledAt: context.notice.meeting.scheduledAt,
+            location: context.notice.meeting.location,
+          };
+      }
       const body = await renderSource(template.bodyMarkdown, context);
       const subject = template.subject ? await renderSource(template.subject, context) : null;
       const headerHtml = safeDecorationHtml(template.headerHtml);

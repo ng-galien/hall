@@ -1,8 +1,9 @@
 import { expect, it } from "vitest";
 import { PostgresCouncil, type PostgresCouncilRequest } from "../src/council.js";
-import { PostgresDirectory } from "../src/directory.js";
+import { type PostgresCouncilMember, PostgresDirectory } from "../src/directory.js";
 import { PostgresMinutes } from "../src/minutes.js";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
+import { prepareMeetingNotice } from "./support/meeting.js";
 
 postgresDescribe("agenda item recusals", () => {
   const pool = createTestPool();
@@ -21,7 +22,7 @@ postgresDescribe("agenda item recusals", () => {
   };
   async function fixture() {
     await directory.configureActiveCouncilTerm(request, 3);
-    const members = [];
+    const members: PostgresCouncilMember[] = [];
     for (const firstName of ["Chair", "General", "Special"]) {
       const contact = await directory.createContact(request, {
         firstName,
@@ -48,16 +49,28 @@ postgresDescribe("agenda item recusals", () => {
       chairMemberId: members[0].id,
       secretaryMemberId: members[0].id,
     });
-    await council.recordAttendance(
-      request,
-      meeting.id,
-      members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
-    );
-    await council.recordMeetingMembership(request, meeting.id, {
-      observedAt: "2026-09-05T09:00:00Z",
-      sourceReference: "Confirmed fixture mandates",
-      memberIds: members.map((m) => m.id),
-    });
+    // This conservation scenario spans the SQL call declaration and the client opening.
+    // The SQL authority captures active mandates itself, before the dated recusal.
+    const connection = await pool.connect();
+    try {
+      await connection.query("BEGIN");
+      await connection.query("SET LOCAL ROLE hall_api_authenticated");
+      await connection.query("SELECT set_config('hall.actor_id',$1,true),set_config('hall.roles',$2,true)", [
+        request.context.actorId,
+        JSON.stringify(request.context.roles),
+      ]);
+      await connection.query("SELECT hall_api.record_meeting_attendance($1,$2::jsonb,$3::timestamptz)", [
+        meeting.id,
+        JSON.stringify(members.map((member) => ({ council_member_id: member.id, status: "present" }))),
+        "2026-09-05T08:50:00Z",
+      ]);
+      await connection.query("COMMIT");
+    } catch (error) {
+      await connection.query("ROLLBACK");
+      throw error;
+    } finally {
+      connection.release();
+    }
     const business = await council.createBusiness(request, {
       path: "seed",
       name: "Recusal test",
@@ -98,7 +111,14 @@ postgresDescribe("agenda item recusals", () => {
         )
       ).rows[0].count,
     ).toBe(2);
-    await council.startMeeting(request, { id: meeting.id, startedAt: "2026-09-05T09:00:00Z" });
+    await prepareMeetingNotice(council, request, meeting.id);
+    await council.recordMeetingOpening(request, {
+      id: meeting.id,
+      observedAt: "2026-09-05T09:00:00Z",
+      chairMemberId: members[0].id,
+      secretaryMemberId: members[0].id,
+      attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
+    });
     const closure = await council.close(request, { id: meeting.id, closedAt: "2026-09-05T10:00:00Z" });
     expect((await council.openAgendaItem(request, item.id))?.councilMeetingId).toBe(meeting.id);
     const next = await council.listAgenda(request, closure.nextMeeting.id);
@@ -117,7 +137,25 @@ postgresDescribe("agenda item recusals", () => {
       declaredAt: "2026-09-05T08:55:00Z",
     });
     await council.deprogramAgendaItem(request, item.id);
-    await council.startMeeting(request, { id: meeting.id, startedAt: "2026-09-05T09:00:00Z" });
+    const other = await council.createBusiness(request, {
+      path: "seed",
+      name: "Another matter",
+      reportName: "Report",
+      reportContent: "",
+    });
+    await council.scheduleOpenQuestion(request, {
+      councilBusinessId: other.id,
+      councilMeetingId: meeting.id,
+      position: 2,
+    });
+    await prepareMeetingNotice(council, request, meeting.id);
+    await council.recordMeetingOpening(request, {
+      id: meeting.id,
+      observedAt: "2026-09-05T09:00:00Z",
+      chairMemberId: members[0].id,
+      secretaryMemberId: members[0].id,
+      attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
+    });
     const closure = await council.close(request, { id: meeting.id, closedAt: "2026-09-05T10:00:00Z" });
     expect(
       (await council.listAgenda(request, closure.nextMeeting.id)).some(
@@ -128,7 +166,14 @@ postgresDescribe("agenda item recusals", () => {
   });
   it("serializes a concurrent recusal against ballot creation with a real blocking barrier", async () => {
     const { meeting, members, item } = await fixture();
-    await council.startMeeting(request, { id: meeting.id, startedAt: "2026-09-05T09:00:00Z" });
+    await prepareMeetingNotice(council, request, meeting.id);
+    await council.recordMeetingOpening(request, {
+      id: meeting.id,
+      observedAt: "2026-09-05T09:00:00Z",
+      chairMemberId: members[0].id,
+      secretaryMemberId: members[0].id,
+      attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
+    });
     await council.startAgendaItem(request, { agendaItemId: item.id, startedAt: "2026-09-05T09:01:00Z" });
     const attendance = await council.listAttendance(request, meeting.id);
     const first = await pool.connect();

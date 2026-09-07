@@ -16,10 +16,18 @@ import {
   reorderCouncilBusinessResourcesSchema,
   type ScheduleCouncilBusinessSubject,
   scheduleCouncilBusinessSubjectSchema,
+  preparedCouncilSubjectSchema,
 } from "@hall/api-contract";
 import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
 const councilBusinessPath = (id: string) => `/council-business/${encodeURIComponent(id)}`;
+
+export async function listPreparedCouncilSubjects(councilMeetingId: string) {
+  const params = new URLSearchParams({ councilMeetingId });
+  return preparedCouncilSubjectSchema.array().parse(
+    await apiRequest<unknown>(`/council-business/prepared-subjects?${params.toString()}`),
+  );
+}
 
 export async function listCouncilBusinesses() {
   const result = await apiSirenRequest<unknown>("/council-business/workspace-items");

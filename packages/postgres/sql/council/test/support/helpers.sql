@@ -96,6 +96,43 @@ BEFORE INSERT ON hall.meeting_attendance
 FOR EACH ROW
 EXECUTE FUNCTION test_provision_attendance_references();
 
+-- Complete documentary ownership is part of a valid business fixture.
+CREATE OR REPLACE FUNCTION test_ensure_business(business_id UUID)
+RETURNS VOID LANGUAGE plpgsql AS $$
+DECLARE folder_id UUID := test_uuid('folder:' || business_id::text);
+ report_id UUID := test_uuid('report:' || business_id::text);
+ folder_name TEXT := 'Business ' || business_id::text;
+BEGIN
+ IF EXISTS(SELECT FROM council_business_workspace WHERE council_business=business_id) THEN RETURN; END IF;
+ INSERT INTO council_business(id) VALUES(business_id) ON CONFLICT DO NOTHING;
+ INSERT INTO folder_resource(id) VALUES(folder_id);
+ INSERT INTO resource(id,path,name,slug,folder_resource_id)
+ VALUES(folder_id,'',folder_name,claim_resource_slug(folder_name),folder_id);
+ INSERT INTO text_resource(id,content) VALUES(report_id,'Fixture report');
+ INSERT INTO resource(id,path,name,slug,text_resource_id)
+ VALUES(report_id,folder_name,'Report',claim_resource_slug('Report'),report_id);
+ INSERT INTO council_business_workspace(council_business,folder_resource,report_resource)
+ VALUES(business_id,folder_id,report_id);
+END $$;
+
+-- Explicit preparation before start, with the real freeze and notice APIs.
+-- The PDF payload is a storage fixture, not a PDF rendering assertion.
+CREATE OR REPLACE FUNCTION test_prepare_notice(meeting_id UUID)
+RETURNS VOID LANGUAGE plpgsql AS $$
+BEGIN
+ IF NOT EXISTS(SELECT FROM council_agenda_item WHERE council_meeting=meeting_id AND position>0) THEN
+  PERFORM test_ensure_business(test_uuid('notice-business:'||meeting_id::text));
+  PERFORM schedule_open_question(test_uuid('notice-business:'||meeting_id::text),meeting_id,1);
+ END IF;
+ IF NOT EXISTS(SELECT FROM active_council_agenda_freeze WHERE council_meeting=meeting_id) THEN
+  PERFORM hall_api.freeze_council_agenda(meeting_id);
+ END IF;
+ PERFORM hall_api.generate_meeting_notice(meeting_id,jsonb_build_object(
+  'meeting',meeting_notice_meeting_facts(meeting_id),
+  'hall',jsonb_build_object('name','Fixture commune','timeZone','Europe/Paris')),
+  convert_to('%PDF-fixture-notice','UTF8'));
+END $$;
+
 CREATE OR REPLACE FUNCTION test_create_decision_agenda_item(
   fixture TEXT,
   meeting_id UUID,
@@ -109,8 +146,8 @@ DECLARE
   proposal_id UUID := test_uuid(fixture || ':proposal');
   agenda_item_id UUID := test_uuid(fixture || ':agenda-item');
 BEGIN
-  INSERT INTO council_business (id) VALUES (business_id);
-  INSERT INTO council_decision_proposal (id) VALUES (proposal_id);
+  PERFORM test_ensure_business(business_id);
+  INSERT INTO council_decision_proposal (id,council_business) VALUES (proposal_id,business_id);
   INSERT INTO council_agenda_item (
     id,
     council_business,
@@ -199,15 +236,14 @@ BEGIN
   END LOOP;
 
   PERFORM test_designate_present_officers(test_uuid(fixture || ':meeting'));
-  UPDATE council_meetings
-  SET started_at = '2026-01-01 09:00:00+00'
-  WHERE id = test_uuid(fixture || ':meeting');
-
   PERFORM test_create_decision_agenda_item(
     fixture,
     test_uuid(fixture || ':meeting'),
     1
   );
+
+  PERFORM test_prepare_notice(test_uuid(fixture || ':meeting'));
+  PERFORM start_council_meeting(test_uuid(fixture || ':meeting'),'2026-01-01 09:00:00+00');
 
   UPDATE council_agenda_item
   SET started_at = '2026-01-01 09:05:00+00'

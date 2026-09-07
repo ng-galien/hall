@@ -109,7 +109,7 @@ export function useResourceSession({ resourceId }: { resourceId: string | null }
       if (sequence !== loadSequenceRef.current) return false;
       if (!result) {
         setDetailsFailed(true);
-        setActionError(useWorkspaceResourcesStore.getState().error);
+        setActionError(useWorkspaceResourcesStore.getState().openErrors[resourceId] ?? null);
         return false;
       }
       if (result.data.kind === "folder") {

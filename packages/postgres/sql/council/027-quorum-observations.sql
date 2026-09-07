@@ -140,14 +140,15 @@ FOR EACH ROW EXECUTE FUNCTION hall.enforce_meeting_reconvocation();
 CREATE TRIGGER meeting_reconvocation_no_truncate BEFORE TRUNCATE ON hall.meeting_reconvocation
 FOR EACH STATEMENT EXECUTE FUNCTION hall.enforce_meeting_reconvocation();
 
--- @functional-requirement HALL-FR-AGI-350 CONSIDERATION_REQUIRES_RECORDED_CURRENT_QUORUM:
+-- @functional-requirement HALL-FR-AGI-350 DECISION_CONSIDERATION_REQUIRES_RECORDED_CURRENT_QUORUM:
 CREATE FUNCTION hall.guard_agenda_quorum()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path=pg_catalog,hall AS $$
 DECLARE observation hall.meeting_quorum_observation;
 BEGIN
  IF OLD.started_at IS NULL AND NEW.started_at IS NOT NULL THEN
    observation:=hall.record_meeting_quorum(NEW.council_meeting,NEW.id,NEW.started_at);
-   IF observation.facts->>'verdict'='notMet' THEN
+   IF (NEW.minutes_approval IS NOT NULL OR NEW.council_decision_proposal IS NOT NULL)
+     AND observation.facts->>'verdict'='notMet' THEN
      RAISE EXCEPTION USING ERRCODE = 'HV142',MESSAGE='the affair cannot enter discussion without the applicable quorum';
    END IF;
  END IF;

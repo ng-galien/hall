@@ -1,8 +1,8 @@
 import { type DragEvent, type FormEvent, useId, useMemo, useState } from "react";
+import type { PreparedCouncilSubject, SchedulePreparedCouncilSubject } from "@hall/api-contract";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import {
   AddIcon,
   ArrowDownIcon,
@@ -16,25 +16,24 @@ import {
   GavelIcon,
 } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
-import { EmptyState, Modal } from "../../components/Ui";
-import { councilBusinessKindKeys, liveBusinessTitle } from "../../features/council-business/presentation";
-import { AgendaSubjectGlyph, agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
+import { EmptyState, Modal, RequestErrorBanner, matchesQuery } from "../../components/Ui";
+import { liveBusinessTitle } from "../../features/council-business/presentation";
+import {
+  AgendaSubjectGlyph,
+  agendaSubjectPresentation,
+  preparedSubjectPresentation,
+  agendaSubjectTextResource,
+} from "../../features/council-meetings/AgendaSubjectGlyph";
+import { AgendaSubjectEditor } from "../../features/council-meetings/AgendaSubjectEditor";
 import { AgendaMinutesApproval } from "../../features/council-meetings/AgendaMinutesApproval";
 import { DocumentaryResourceGlyph } from "../../features/documents/DocumentaryResourceGlyph";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
-import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
-import type { CouncilBusinessView } from "../../models/councilBusiness";
-import { useResourceImageUpload } from "../../features/documents/useResourceImageUpload";
-import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
+import type { ApiErrorCode } from "../../services/apiClient";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import {
   type LiveMeetingAgendaItem as AgendaItem,
   liveAgendaBusinessRank as agendaBusinessRank,
-  type LiveMeetingBusiness as CouncilBusiness,
-  type LiveMeetingCouncilDecision as CouncilDecision,
-  liveBusinessHasDecision as councilBusinessHasDecision,
-  liveBusinessIsMatter as councilBusinessIsMatter,
 } from "../../models/liveMeeting";
 
 export interface QuickCouncilBusinessInput {
@@ -44,65 +43,55 @@ export interface QuickCouncilBusinessInput {
   folderPath: string;
 }
 
-export function councilBusinessUpdatePayload(business: CouncilBusiness, changes: { title?: string; report?: string }) {
-  return {
-    title: changes.title ?? business.title,
-    report: changes.report ?? business.report,
-    folderPath: business.folderPath,
-    resourceIds: business.resources.map((resource) => resource.id),
-  };
-}
-
 export function AgendaComposer({
   agendaItems,
-  businesses,
-  decisions,
+  preparedSubjects,
+  preparedSubjectsLoading,
+  preparedSubjectsError,
+  onSchedulePrepared,
   editable,
   onQuickCreate,
-  onUpdateBusiness,
-  onAttachDecision,
-  onDetachDecision,
-  onSaveDecisionText,
+  quickCreateError,
+  onSubjectSaved,
   onRemove,
   onReorder,
 }: {
   agendaItems: AgendaItem[];
-  businesses: CouncilBusinessView[];
-  decisions: CouncilDecision[];
+  preparedSubjects: PreparedCouncilSubject[];
+  preparedSubjectsLoading: boolean;
+  preparedSubjectsError: ApiErrorCode | null;
+  onSchedulePrepared?(input: SchedulePreparedCouncilSubject): Promise<boolean>;
   editable: boolean;
   onQuickCreate?(input: QuickCouncilBusinessInput, position: number): Promise<boolean>;
-  onUpdateBusiness?(businessId: string, input: Record<string, unknown>): Promise<boolean>;
-  onAttachDecision?(businessId: string, draftText: string): Promise<boolean>;
-  onDetachDecision?(businessId: string): Promise<boolean>;
-  onSaveDecisionText?(decisionId: string, input: { title: string; draftText: string }): Promise<boolean>;
+  quickCreateError: ApiErrorCode | null;
+  onSubjectSaved(): Promise<void>;
   onRemove(itemId: string): Promise<boolean>;
   onReorder(itemIds: string[]): Promise<boolean>;
 }) {
   const { t } = useI18n();
-  const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
   const { submitting, run } = useSubmitting();
   const fieldId = useId();
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
-  const [draftReport, setDraftReport] = useState("");
-  const mentionables = useReferenceMentionables();
-  const [draftDecisionText, setDraftDecisionText] = useState("");
-  const decisionFor = (business: CouncilBusiness) =>
-    councilBusinessHasDecision(business)
-      ? (decisions.find((decision) => decision.id === business.councilDecisionId) ?? null)
-      : null;
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [draggedSubject, setDraggedSubject] = useState<PreparedCouncilSubject | null>(null);
+  const [subjectSearch, setSubjectSearch] = useState("");
   const [dropTargetItemId, setDropTargetItemId] = useState<string | null>(null);
   const orderedItems = useMemo(
     () => [...agendaItems].sort((left, right) => left.position - right.position),
     [agendaItems],
   );
   const nextPosition = Math.max(0, ...agendaItems.map((item) => item.position)) + 1;
-  const scheduledBusinessIds = new Set(agendaItems.map((item) => item.business.id));
-  const candidateBusinesses = businesses
-    .filter((business) => !scheduledBusinessIds.has(business.id))
-    .sort((left, right) => left.title.localeCompare(right.title));
+  const candidateSubjects = preparedSubjects.filter((subject) =>
+    matchesQuery(subjectSearch, subject.title, subject.folderPath, t(agendaSubjectPresentation[subject.kind].label)),
+  );
+  const scheduleSubject = (subject: PreparedCouncilSubject, position: number) => {
+    setDraggedSubject(null);
+    setDropTargetItemId(null);
+    if (!onSchedulePrepared || submitting) return;
+    void run(() => onSchedulePrepared(preparedSubjectPresentation(subject, position).command));
+  };
 
   const moveItem = (itemId: string, offset: number) => {
     const ids = orderedItems.map((item) => item.id);
@@ -164,30 +153,6 @@ export function AgendaComposer({
 
   const expandItem = (item: AgendaItem | null) => {
     setExpandedItemId(item?.id ?? null);
-    setDraftReport(item?.business.report ?? "");
-    setDraftDecisionText(item ? (decisionFor(item.business)?.draftText ?? "") : "");
-  };
-
-  const saveItem = async (event: FormEvent<HTMLFormElement>, item: AgendaItem) => {
-    event.preventDefault();
-    if (!onUpdateBusiness) return;
-    const form = new FormData(event.currentTarget);
-    const title = String(form.get("title") ?? item.business.title);
-    const decision = decisionFor(item.business);
-    await run(async () => {
-      const saved = await onUpdateBusiness(
-        item.business.id,
-        councilBusinessUpdatePayload(item.business, { title, report: draftReport }),
-      );
-      if (!saved) return false;
-      if (decision && draftDecisionText !== decision.draftText) {
-        if (!onSaveDecisionText) return false;
-        const decisionSaved = await onSaveDecisionText(decision.id, { title, draftText: draftDecisionText });
-        if (!decisionSaved) return false;
-      }
-      setExpandedItemId(null);
-      return true;
-    });
   };
 
   return (
@@ -197,7 +162,17 @@ export function AgendaComposer({
           <h2 id="agenda-heading">{t("meeting.agenda")}</h2>
           <p>{t(editable ? "meeting.composerDescription" : "meeting.composerLocked")}</p>
         </div>
-        {editable && onQuickCreate ? <Button data-testid="agenda-question-create" variant="outline" size="sm" onClick={() => setQuickAddOpen(true)}><AddIcon />{t("agendaSubject.openQuestion")}</Button> : null}
+        {editable && onQuickCreate ? (
+          <Button
+            data-testid="agenda-question-create"
+            variant="outline"
+            size="sm"
+            onClick={() => setQuickAddOpen(true)}
+          >
+            <AddIcon />
+            {t("agendaSubject.openQuestion")}
+          </Button>
+        ) : null}
       </header>
 
       {orderedItems.length === 0 ? (
@@ -208,20 +183,28 @@ export function AgendaComposer({
             const expanded = expandedItemId === item.id;
             const business = item.business;
             const presentation = agendaSubjectPresentation[item.subjectKind];
+            const textResourceId = agendaSubjectTextResource(item.subject);
             return (
               <li
                 className={`composer-item${dropTargetItemId === item.id ? " composer-item-drop" : ""}${draggedItemId === item.id ? " composer-item-dragging" : ""}`}
                 key={item.id}
-                draggable={editable && !expanded}
+                data-testid={`agenda-item-${item.id}`}
+                draggable={editable && !expanded && !submitting}
                 onDragStart={(event: DragEvent) => {
                   event.dataTransfer.effectAllowed = "move";
                   setDraggedItemId(item.id);
                 }}
                 onDragEnd={() => {
                   setDraggedItemId(null);
+                  setDraggedSubject(null);
                   setDropTargetItemId(null);
                 }}
                 onDragOver={(event: DragEvent) => {
+                  if (draggedSubject && onSchedulePrepared && !submitting && item.subjectKind !== "minutesApproval") {
+                    event.preventDefault();
+                    setDropTargetItemId(item.id);
+                    return;
+                  }
                   if (!draggedItemId) return;
                   const draggedItem = orderedItems.find((candidate) => candidate.id === draggedItemId);
                   if (!draggedItem || agendaBusinessRank(draggedItem.business) !== agendaBusinessRank(item.business)) {
@@ -233,6 +216,10 @@ export function AgendaComposer({
                 onDragLeave={() => setDropTargetItemId((current) => (current === item.id ? null : current))}
                 onDrop={(event: DragEvent) => {
                   event.preventDefault();
+                  if (draggedSubject) {
+                    if (item.subjectKind !== "minutesApproval") scheduleSubject(draggedSubject, item.position);
+                    return;
+                  }
                   dropOn(item.id);
                 }}
               >
@@ -242,7 +229,9 @@ export function AgendaComposer({
                       <DragHandleIcon />
                     </span>
                   ) : null}
-                  <span className="composer-position">{index + 1}</span>
+                  <span className="composer-position" data-testid={`agenda-item-position-${item.id}`}>
+                    {item.agendaNumber}
+                  </span>
                   <AgendaSubjectGlyph kind={item.subjectKind} />
                   <button
                     className="composer-item-main"
@@ -258,7 +247,12 @@ export function AgendaComposer({
                         {business.folderPath ? ` · ${business.folderPath}` : ""}
                       </span>
                     </span>
-                    {presentation.voted ? <span className="composer-vote-indicator"><GavelIcon aria-hidden="true" />{t("live.voteRequired")}</span> : null}
+                    {presentation.voted ? (
+                      <span className="composer-vote-indicator">
+                        <GavelIcon aria-hidden="true" />
+                        {t("live.voteRequired")}
+                      </span>
+                    ) : null}
                     {expanded ? <ChevronDownIcon aria-hidden="true" /> : <ChevronRightIcon aria-hidden="true" />}
                   </button>
                   {editable ? (
@@ -306,91 +300,16 @@ export function AgendaComposer({
                 </div>
                 {expanded ? (
                   business.kind === "minutesApproval" ? (
-                    business.minutesId ? <AgendaMinutesApproval minutesId={business.minutesId} itemId={item.id} /> : null
-                  ) : editable ? (
-                    <form className="composer-item-editor" onSubmit={(event) => void saveItem(event, item)}>
-                      <div className="grid gap-1.5">
-                        <Label htmlFor={`${fieldId}-title`}>{t("meeting.subject")}</Label>
-                        <Input id={`${fieldId}-title`} name="title" defaultValue={business.title} required />
-                      </div>
-                      <div className="grid gap-1.5">
-                        <Label>{t("meeting.report")}</Label>
-                        <MarkdownEditor
-                          testId="agenda-report-editor"
-                          markdown={business.report}
-                          onChange={setDraftReport}
-                          mentionables={mentionables}
-                          searchContext={business.folderPath}
-                          onUploadImage={
-                            canUploadImage
-                              ? (file) => uploadImage(file, { kind: "councilBusinessReport", id: business.id })
-                              : undefined
-                          }
-                        />
-                        <p className="text-xs text-muted">{t("meeting.reportHint")}</p>
-                      </div>
-                      {councilBusinessIsMatter(business) ? (
-                        decisionFor(business) ? (
-                          <div className="grid gap-1.5">
-                            <Label>{t("meeting.draftDecision")}</Label>
-                            <MarkdownEditor
-                              testId="agenda-proposal-editor"
-                              markdown={decisionFor(business)?.draftText ?? ""}
-                              onChange={setDraftDecisionText}
-                              mentionables={mentionables}
-                              searchContext={business.folderPath}
-                              onUploadImage={
-                                canUploadImage
-                                  ? (file) =>
-                                      uploadImage(file, {
-                                        kind: "councilDecisionDraft",
-                                        id: decisionFor(business)!.id,
-                                      })
-                                  : undefined
-                              }
-                            />
-                            <p className="text-xs text-muted">{t("meeting.decisionDraftTextHint")}</p>
-                          </div>
-                        ) : null
-                      ) : null}
-                      <div className="composer-editor-actions">
-                        {councilBusinessIsMatter(business) ? (
-                          decisionFor(business) ? (
-                            <Button
-                              className="composer-vote-toggle"
-                              variant="ghost"
-                              type="button"
-                              disabled={submitting || !onDetachDecision}
-                              onClick={() => onDetachDecision && void run(() => onDetachDecision(business.id))}
-                            >
-                              {t("meeting.withdrawVote")}
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              type="button"
-                              disabled={submitting || !onAttachDecision}
-                              onClick={() => onAttachDecision && void run(() => onAttachDecision(business.id, ""))}
-                            >
-                              <GavelIcon />
-                              {t("meeting.submitToVote")}
-                            </Button>
-                          )
-                        ) : null}
-                        <span className="composer-editor-spacer" />
-                        <Button variant="outline" type="button" onClick={() => setExpandedItemId(null)}>
-                          {t("common.cancel")}
-                        </Button>
-                        <Button
-                          data-testid="agenda-item-save"
-                          variant="default"
-                          type="submit"
-                          disabled={submitting || !onUpdateBusiness}
-                        >
-                          {t(submitting ? "common.saving" : "common.save")}
-                        </Button>
-                      </div>
-                    </form>
+                    business.minutesId ? (
+                      <AgendaMinutesApproval minutesId={business.minutesId} itemId={item.id} />
+                    ) : null
+                  ) : textResourceId ? (
+                    <AgendaSubjectEditor
+                      key={textResourceId}
+                      resourceId={textResourceId}
+                      onSaved={onSubjectSaved}
+                      onCancel={() => setExpandedItemId(null)}
+                    />
                   ) : (
                     <div className="composer-item-editor">
                       {business.report ? (
@@ -398,18 +317,36 @@ export function AgendaComposer({
                       ) : (
                         <p className="meeting-material-empty">{t("meeting.itemReportEmpty")}</p>
                       )}
-                      {decisionFor(business)?.draftText ? (
-                        <blockquote className="composer-decision-preview">
-                          <MarkdownView markdown={decisionFor(business)?.draftText ?? ""} />
-                        </blockquote>
-                      ) : null}
                     </div>
                   )
                 ) : null}
                 {expanded && business.kind !== "minutesApproval" ? (
                   <div className="composer-item-documents">
-                    {business.reportResourceId ? <Button variant="ghost" className="composer-document-link" data-testid={`agenda-report-preview-${item.id}`} onClick={() => setViewedResourceId(business.reportResourceId!)}><TextDocumentIcon />{t("meeting.report")}<VisibleIcon /></Button> : null}
-                    {business.resources.map((resource) => <Button key={resource.id} variant="ghost" className="composer-document-link" data-testid={`agenda-resource-preview-${resource.id}`} onClick={() => setViewedResourceId(resource.id)}><DocumentaryResourceGlyph resource={resource} />{resource.name}<VisibleIcon /></Button>)}
+                    {business.reportResourceId ? (
+                      <Button
+                        variant="ghost"
+                        className="composer-document-link"
+                        data-testid={`agenda-report-preview-${item.id}`}
+                        onClick={() => setViewedResourceId(business.reportResourceId!)}
+                      >
+                        <TextDocumentIcon />
+                        {t("meeting.report")}
+                        <VisibleIcon />
+                      </Button>
+                    ) : null}
+                    {business.resources.map((resource) => (
+                      <Button
+                        key={resource.id}
+                        variant="ghost"
+                        className="composer-document-link"
+                        data-testid={`agenda-resource-preview-${resource.id}`}
+                        onClick={() => setViewedResourceId(resource.id)}
+                      >
+                        <DocumentaryResourceGlyph resource={resource} />
+                        {resource.name}
+                        <VisibleIcon />
+                      </Button>
+                    ))}
                   </div>
                 ) : null}
               </li>
@@ -418,36 +355,111 @@ export function AgendaComposer({
         </ol>
       )}
 
-      {editable ? (
+      {onSchedulePrepared ? (
         <div className="composer-add-zone">
+          <div
+            className={`composer-prepared-drop${draggedSubject ? " composer-prepared-drop-active" : ""}`}
+            data-testid="agenda-prepared-drop-end"
+            onDragOver={(event) => {
+              if (draggedSubject && !submitting) event.preventDefault();
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              if (draggedSubject) scheduleSubject(draggedSubject, nextPosition);
+            }}
+          >
+            {t("meeting.dropPreparedSubject")}
+          </div>
           <section className="composer-add-decisions" aria-labelledby="composer-businesses-heading">
             <h3 id="composer-businesses-heading">{t("meeting.addCouncilBusinessHeading")}</h3>
-            {candidateBusinesses.length === 0 ? (
+            <Label htmlFor={`${fieldId}-subject-search`}>{t("common.search")}</Label>
+            <Input
+              id={`${fieldId}-subject-search`}
+              data-testid="agenda-prepared-search"
+              type="search"
+              value={subjectSearch}
+              onChange={(event) => setSubjectSearch(event.target.value)}
+            />
+            <RequestErrorBanner error={preparedSubjectsError} />
+            {preparedSubjectsLoading ? (
+              <p role="status">{t("common.loading")}</p>
+            ) : candidateSubjects.length === 0 && !preparedSubjectsError ? (
               <p className="composer-add-hint">{t("meeting.addCouncilBusinessEmpty")}</p>
             ) : (
               <ul className="composer-decision-list">
-                {candidateBusinesses.map((business) => (
-                  <li key={business.id}>
-                    <CouncilBusinessGlyph business={business} />
-                    <button type="button" className="composer-item-main" data-testid={`agenda-candidate-preview-${business.id}`} onClick={() => setViewedResourceId(business.reportResourceId)}>
-                      <span className="composer-item-copy"><strong>{business.title}</strong><span>{t(councilBusinessKindKeys.matter)}{business.folderPath ? ` · ${business.folderPath}` : ""}</span></span><VisibleIcon aria-hidden="true" />
-                    </button>
-                  </li>
-                ))}
+                {candidateSubjects.map((subject) => {
+                  const candidate = preparedSubjectPresentation(subject, nextPosition);
+                  return (
+                    <li
+                      key={candidate.key}
+                      data-testid={`agenda-candidate-${candidate.key}`}
+                      draggable={!submitting}
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = "copy";
+                        event.dataTransfer.setData("text/plain", candidate.key);
+                        setDraggedItemId(null);
+                        setDraggedSubject(subject);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedSubject(null);
+                        setDropTargetItemId(null);
+                      }}
+                    >
+                      <span className="composer-grip" aria-hidden="true">
+                        <DragHandleIcon />
+                      </span>
+                      <AgendaSubjectGlyph kind={subject.kind} />
+                      <button
+                        type="button"
+                        className="composer-item-main"
+                        data-testid={`agenda-candidate-preview-${candidate.key}`}
+                        onClick={() => setViewedResourceId(candidate.previewResourceId)}
+                      >
+                        <span className="composer-item-copy">
+                          <strong>{subject.title}</strong>
+                          <span>
+                            {t(agendaSubjectPresentation[subject.kind].label)}
+                            {subject.folderPath ? ` · ${subject.folderPath}` : ""}
+                          </span>
+                        </span>
+                        <VisibleIcon aria-hidden="true" />
+                      </button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        data-testid={`agenda-candidate-add-${candidate.key}`}
+                        disabled={submitting}
+                        onClick={() => scheduleSubject(subject, nextPosition)}
+                      >
+                        <AddIcon />
+                        {t("common.add")}
+                      </Button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
-
         </div>
       ) : null}
       <Modal open={quickAddOpen} title={t("agendaSubject.openQuestion")} onClose={() => setQuickAddOpen(false)}>
         <form className="modal-form" onSubmit={quickAdd}>
+          <RequestErrorBanner error={quickCreateError} />
           <Label htmlFor={`${fieldId}-question`}>{t("meeting.subject")}</Label>
           <Input id={`${fieldId}-question`} data-testid="agenda-question-title" name="title" required />
-          <Button data-testid="agenda-question-submit" type="submit" disabled={submitting || !onQuickCreate}>{t(submitting ? "common.saving" : "common.add")}</Button>
+          <Button
+            className="justify-self-end"
+            data-testid="agenda-question-submit"
+            type="submit"
+            disabled={submitting || !onQuickCreate}
+          >
+            {t(submitting ? "common.saving" : "common.add")}
+          </Button>
         </form>
       </Modal>
-      {viewedResourceId ? <ResourcePreview resourceId={viewedResourceId} readOnly onClose={() => setViewedResourceId(null)} /> : null}
+      {viewedResourceId ? (
+        <ResourcePreview resourceId={viewedResourceId} readOnly onClose={() => setViewedResourceId(null)} />
+      ) : null}
     </section>
   );
 }

@@ -39,11 +39,14 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
   if (root === "council-meetings") {
     if (method === "POST" && !id) return auditIntent("meeting.provision-initial");
     if (method === "PUT" && id && child === "schedule" && !childId) return auditIntent("meeting.schedule", id);
-    if (method === "POST" && id && child === "agenda-freeze" && !childId) return auditIntent("meeting.freeze-agenda", id);
+    if (method === "POST" && id && child === "agenda-reopening" && !childId)
+      return auditIntent("meeting.reopen-agenda", id);
+    if (method === "POST" && id && child === "notice-message" && !childId)
+      return auditIntent("meeting.generate-notice-message", id);
+    if (method === "POST" && id && child === "agenda-freeze" && !childId)
+      return auditIntent("meeting.freeze-agenda", id);
     if (method === "POST" && id && child === "notices" && !childId) return auditIntent("meeting.generate-notice", id);
     if (method === "PUT" && id && child === "prepare" && !childId) return auditIntent("meeting.prepare", id);
-    if (method === "POST" && id && child === "membership-records" && !childId)
-      return auditIntent("meeting.record-membership", id);
     if (method === "POST" && id && child === "attendance-events" && !childId)
       return auditIntent("meeting.record-attendance-events", id);
     if (method === "POST" && id && child === "quorum-observations" && !childId)
@@ -58,11 +61,16 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
         body && { councilMeetingId: id, kind: body.kind },
       );
     }
-    if (method === "POST" && id && child === "start" && !childId) return auditIntent("meeting.start", id);
+    if (method === "POST" && id && child === "open-questions" && !childId)
+      return auditIntent("meeting.add-open-question", id);
+    if (method === "POST" && id && child === "record-opening" && !childId)
+      return auditIntent("meeting.record-opening", id);
     if (method === "POST" && id && child === "close" && !childId) return auditIntent("meeting.close", id);
     if (method === "POST" && id && child === "agenda-items" && !childId) {
       return auditIntent("agenda-item.schedule", null);
     }
+    if (method === "POST" && id && child === "agenda-items" && childId === "from-prepared" && !operation)
+      return auditIntent("agenda-item.schedule-prepared", null, { councilMeetingId: id });
     if (id && child === "agenda-items" && childId) {
       if (method === "PATCH" && operation === "notes") return auditIntent("agenda-item.update-notes", childId);
       if (method === "POST" && operation === "recusals") return auditIntent("agenda-item.record-recusal", childId);
@@ -90,6 +98,8 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method === "POST" && child === "generate") return auditIntent("minutes.generate", id);
   }
   if (root === "council-business") {
+    if (method === "POST" && id && child === "prepared-subjects" && !childId)
+      return auditIntent("council-business.create-prepared-subject", id);
     if (method === "POST" && !id) return auditIntent("council-business.create");
     if (method === "POST" && id && child === "resources" && !childId) {
       return auditIntent("council-business.associate-resource", id, body && { resourceId: body.resourceId });
@@ -214,8 +224,8 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     return null;
   }
   if (root === "council-decisions") {
-    if (method === "POST" && !id) return auditIntent("decision.create", null);
-    if (method === "PUT" && id && !child) return auditIntent("decision.update", id);
+    if (method === "PUT" && id && child === "draft" && !childId) return auditIntent("decision.update-draft", id);
+    if (method === "POST" && id && child === "freeze" && !childId) return auditIntent("decision.freeze", id);
     return null;
   }
   return null;

@@ -1,6 +1,5 @@
 import type { DocumentResource } from "@hall/domain";
-import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,8 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { MeetingReconvocationForm } from "../../../features/council-meetings/MeetingReconvocationForm";
 import {
   CheckCircleIcon,
   FileIcon,
@@ -49,12 +47,19 @@ export function RollCallView({
 }) {
   const { t, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
-  const navigate = useNavigate();
   const { resources, upload, load: reloadResources } = useResourcesStore();
   const [proxyMemberId, setProxyMemberId] = useState<string | null>(null);
-  const reconveneStartsAtId = useId();
-  const reconveneNoticeId = useId();
-  const reconveneLocationId = useId();
+  const conduct = meetingActions.workspace?.conduct;
+  const openingObservation = conduct?.quorumObservations
+    .filter((observation) => observation.agendaItemId === null)
+    .at(-1);
+  const failedObservation = conduct?.quorumObservations
+    .filter(
+      (observation) =>
+        observation.facts.verdict === "notMet" &&
+        !conduct.reconvocations.some((entry) => entry.failedObservationId === observation.id),
+    )
+    .at(-1);
   const [draftOfficers, setDraftOfficers] = useState({
     chairMemberId: aggregate.meeting.chairMemberId,
     secretaryMemberId: aggregate.meeting.secretaryMemberId,
@@ -77,9 +82,6 @@ export function RollCallView({
     (resource): resource is DocumentResource =>
       resource.kind === "document" && resource.meetingId === meeting.id && resource.category === "proxy",
   );
-  const [membershipSource, setMembershipSource] = useState("");
-  const [membershipIds, setMembershipIds] = useState(() => members.map((member) => member.id));
-  const membershipRecorded = Boolean(meetingActions.workspace?.conduct.membershipRecords.length);
   const openingBlock = meetingOpeningBlock({
     ...aggregate,
     meeting,
@@ -152,53 +154,33 @@ export function RollCallView({
 
   const openMeeting = () =>
     run(async () => {
-      if (draftAttendance.length > 0) {
-        const recorded = await meetingActions.recordAttendance({
-          attendance: draftAttendance.map((entry) =>
-            entry.status === "represented"
-              ? {
-                  councilMemberId: entry.memberId,
-                  status: entry.status,
-                  proxyHolderCouncilMemberId: entry.proxyHolderMemberId!,
-                  proxyDocumentId: entry.proxyDocumentId!,
-                }
-              : { councilMemberId: entry.memberId, status: entry.status },
-          ),
-        });
-        if (!recorded) return false;
-      }
       if (!meeting.chairMemberId || !meeting.secretaryMemberId) return false;
-      const officersSaved = await meetingActions.setOfficers({
+      const result = await meetingActions.recordOpening({
+        observedAt: new Date().toISOString(),
         chairMemberId: meeting.chairMemberId,
         secretaryMemberId: meeting.secretaryMemberId,
+        attendance: draftAttendance.map((entry) =>
+          entry.status === "represented"
+            ? {
+                councilMemberId: entry.memberId,
+                status: entry.status,
+                proxyHolderCouncilMemberId: entry.proxyHolderMemberId!,
+                proxyDocumentId: entry.proxyDocumentId!,
+              }
+            : { councilMemberId: entry.memberId, status: entry.status },
+        ),
       });
-      if (!officersSaved) return false;
-      const opened = await meetingActions.changeStatus("inProgress");
-      if (opened) onDone();
-      return opened;
+      if (result?.meeting.startedAt) onDone();
+      return result !== null;
     });
-
-  const reconvene = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    await run(async () => {
-      const reconvenedMeeting = await meetingActions.reconvene({
-        startsAt: new Date(String(form.get("startsAt"))).toISOString(),
-        meetingNoticeSentAt: new Date(String(form.get("meetingNoticeSentAt"))).toISOString(),
-        location: form.get("location"),
-        chairMemberId: meeting.chairMemberId,
-        secretaryMemberId: meeting.secretaryMemberId,
-      });
-      if (reconvenedMeeting) await navigate(`/meetings/${reconvenedMeeting.slug}`);
-      return Boolean(reconvenedMeeting);
-    });
-  };
 
   return (
     <section className="rollcall" aria-labelledby="rollcall-heading">
       <header className="rollcall-header">
         <div>
-          <h1 id="rollcall-heading">{t(mode === "opening" ? "live.rollCallTitle" : "live.rollCallAdjustTitle")}</h1>
+          <h1 id="rollcall-heading" data-testid="live-rollcall-heading">
+            {t(mode === "opening" ? "live.rollCallTitle" : "live.rollCallAdjustTitle")}
+          </h1>
           <p>
             {t("meeting.attendanceProgress")
               .replace("{recorded}", formatNumber(draftAttendance.length))
@@ -242,238 +224,177 @@ export function RollCallView({
         </div>
       </header>
 
-      {mode === "opening" && !membershipRecorded && meetingActions.can("meeting.record-membership") ? (
-        <fieldset className="grid gap-3" data-testid="live-membership-form">
-          <legend>{t("meeting.membershipTitle")}</legend>
-          <p>{t("meeting.membershipHint")}</p>
-          <div className="vote-secret-participants-list">
-            {members.map((member) => (
-              <label className="flex items-center gap-2" key={member.id}>
-                <input
-                  type="checkbox"
-                  data-testid={`live-membership-member-${member.id}`}
-                  checked={membershipIds.includes(member.id)}
-                  onChange={(event) =>
-                    setMembershipIds((ids) =>
-                      event.target.checked ? [...ids, member.id] : ids.filter((id) => id !== member.id),
-                    )
-                  }
-                />
-                {member.contact.firstName} {member.contact.lastName}
-              </label>
-            ))}
-          </div>
-          <Label htmlFor="meeting-membership-source">{t("meeting.membershipSource")}</Label>
-          <Input
-            id="meeting-membership-source"
-            data-testid="live-membership-source"
-            value={membershipSource}
-            onChange={(event) => setMembershipSource(event.target.value)}
-          />
-          <Button
-            data-testid="live-membership-confirm"
-            disabled={submitting || !membershipSource.trim() || !membershipIds.length}
-            onClick={() =>
-              void run(() =>
-                meetingActions.recordMembership({
-                  observedAt: new Date().toISOString(),
-                  sourceReference: membershipSource,
-                  memberIds: membershipIds,
-                }),
-              )
-            }
-          >
-            {t("meeting.membershipConfirm")}
-          </Button>
-        </fieldset>
-      ) : null}
-      <ul className="rollcall-grid">
-        {members.map((member) => {
-          const current = attendanceByMember.get(member.id);
-          const editingProxy = proxyMemberId === member.id;
-          const isChair = meeting.chairMemberId === member.id;
-          const isSecretary = meeting.secretaryMemberId === member.id;
-          const officerAbsent = (isChair || isSecretary) && Boolean(current) && current?.status !== "present";
-          return (
-            <li
-              className={`rollcall-tile rollcall-tile-${current?.status ?? "unrecorded"}${isChair || isSecretary ? " rollcall-tile-officer" : ""}`}
-              key={member.id}
-            >
-              <div className="rollcall-tile-identity">
-                <span className="rollcall-avatar" aria-hidden="true">
-                  {memberInitials(member)}
-                </span>
-                <div>
-                  <strong>
-                    {member.contact.firstName} {member.contact.lastName}
-                  </strong>
-                  <span className="rollcall-tile-subline">
-                    {t(`role.${member.role}`)}
-                    {isChair ? (
-                      <span
-                        className={`rollcall-officer-chip${officerAbsent ? " rollcall-officer-chip-warning" : ""}`}
-                        title={officerAbsent ? t("live.officerMustBePresent") : undefined}
-                      >
-                        {officerAbsent ? <WarningIcon aria-hidden="true" /> : <GavelIcon aria-hidden="true" />}
-                        {t("live.chairChip")}
-                      </span>
-                    ) : null}
-                    {isSecretary ? (
-                      <span
-                        className={`rollcall-officer-chip${officerAbsent ? " rollcall-officer-chip-warning" : ""}`}
-                        title={officerAbsent ? t("live.officerMustBePresent") : undefined}
-                      >
-                        {officerAbsent ? <WarningIcon aria-hidden="true" /> : <SignIcon aria-hidden="true" />}
-                        {t("live.secretaryChip")}
-                      </span>
-                    ) : null}
+      <div
+        className="rollcall-content"
+        data-testid="live-rollcall-content"
+        tabIndex={0}
+        role="region"
+        aria-labelledby="rollcall-heading"
+      >
+        <ul className="rollcall-grid">
+          {members.map((member) => {
+            const current = attendanceByMember.get(member.id);
+            const editingProxy = proxyMemberId === member.id;
+            const isChair = meeting.chairMemberId === member.id;
+            const isSecretary = meeting.secretaryMemberId === member.id;
+            const officerAbsent = (isChair || isSecretary) && Boolean(current) && current?.status !== "present";
+            return (
+              <li
+                className={`rollcall-tile rollcall-tile-${current?.status ?? "unrecorded"}${isChair || isSecretary ? " rollcall-tile-officer" : ""}`}
+                key={member.id}
+              >
+                <div className="rollcall-tile-identity">
+                  <span className="rollcall-avatar" aria-hidden="true">
+                    {memberInitials(member)}
                   </span>
+                  <div>
+                    <strong>
+                      {member.contact.firstName} {member.contact.lastName}
+                    </strong>
+                    <span className="rollcall-tile-subline">
+                      {t(`role.${member.role}`)}
+                      {isChair ? (
+                        <span
+                          className={`rollcall-officer-chip${officerAbsent ? " rollcall-officer-chip-warning" : ""}`}
+                          title={officerAbsent ? t("live.officerMustBePresent") : undefined}
+                        >
+                          {officerAbsent ? <WarningIcon aria-hidden="true" /> : <GavelIcon aria-hidden="true" />}
+                          {t("live.chairChip")}
+                        </span>
+                      ) : null}
+                      {isSecretary ? (
+                        <span
+                          className={`rollcall-officer-chip${officerAbsent ? " rollcall-officer-chip-warning" : ""}`}
+                          title={officerAbsent ? t("live.officerMustBePresent") : undefined}
+                        >
+                          {officerAbsent ? <WarningIcon aria-hidden="true" /> : <SignIcon aria-hidden="true" />}
+                          {t("live.secretaryChip")}
+                        </span>
+                      ) : null}
+                    </span>
+                  </div>
+                  {officersEditable ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          className="rollcall-tile-menu"
+                          data-testid={`live-member-actions-${member.id}`}
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t("live.tileMenu")}
+                        >
+                          <MoreIcon />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem
+                          disabled={isChair || submitting}
+                          data-testid={`live-designate-chair-${member.id}`}
+                          onSelect={() => designateOfficer(member.id, "chair")}
+                        >
+                          <GavelIcon />
+                          {t("live.makeChair")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={isSecretary || submitting}
+                          data-testid={`live-designate-secretary-${member.id}`}
+                          onSelect={() => designateOfficer(member.id, "secretary")}
+                        >
+                          <SignIcon />
+                          {t("live.makeSecretary")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : null}
                 </div>
-                {officersEditable ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        className="rollcall-tile-menu"
-                        data-testid={`live-member-actions-${member.id}`}
-                        variant="ghost"
-                        size="icon"
-                        aria-label={t("live.tileMenu")}
-                      >
-                        <MoreIcon />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem
-                        disabled={isChair || submitting}
-                        data-testid={`live-designate-chair-${member.id}`}
-                        onSelect={() => designateOfficer(member.id, "chair")}
-                      >
-                        <GavelIcon />
-                        {t("live.makeChair")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={isSecretary || submitting}
-                        data-testid={`live-designate-secretary-${member.id}`}
-                        onSelect={() => designateOfficer(member.id, "secretary")}
-                      >
-                        <SignIcon />
-                        {t("live.makeSecretary")}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : null}
-              </div>
 
-              <div className="rollcall-tile-choices">
-                {directStatuses.map((status) => (
+                <div className="rollcall-tile-choices">
+                  {directStatuses.map((status) => (
+                    <button
+                      className={`rollcall-choice rollcall-choice-${status}${current?.status === status ? " rollcall-choice-active" : ""}`}
+                      type="button"
+                      aria-pressed={current?.status === status}
+                      disabled={submitting}
+                      data-testid={`live-attendance-${member.id}-${status}`}
+                      onClick={() => record(member.id, status)}
+                      key={status}
+                    >
+                      {t(`attendance.${status}`)}
+                    </button>
+                  ))}
                   <button
-                    className={`rollcall-choice rollcall-choice-${status}${current?.status === status ? " rollcall-choice-active" : ""}`}
+                    className={`rollcall-choice rollcall-choice-represented${current?.status === "represented" ? " rollcall-choice-active" : ""}`}
                     type="button"
-                    aria-pressed={current?.status === status}
+                    aria-pressed={current?.status === "represented"}
+                    aria-expanded={editingProxy}
                     disabled={submitting}
-                    data-testid={`live-attendance-${member.id}-${status}`}
-                    onClick={() => record(member.id, status)}
-                    key={status}
+                    onClick={() => setProxyMemberId(editingProxy ? null : member.id)}
+                    data-testid={`live-attendance-${member.id}-represented`}
                   >
-                    {t(`attendance.${status}`)}
+                    {t("live.proxyChoice")}
                   </button>
-                ))}
-                <button
-                  className={`rollcall-choice rollcall-choice-represented${current?.status === "represented" ? " rollcall-choice-active" : ""}`}
-                  type="button"
-                  aria-pressed={current?.status === "represented"}
-                  aria-expanded={editingProxy}
-                  disabled={submitting}
-                  onClick={() => setProxyMemberId(editingProxy ? null : member.id)}
-                  data-testid={`live-attendance-${member.id}-represented`}
-                >
-                  {t("live.proxyChoice")}
-                </button>
-              </div>
-              {current?.status === "represented" && current.proxyHolderMemberId ? (
-                <p className="rollcall-proxy-summary">
-                  {t("ballot.representedBy").replace(
-                    "{holder}",
-                    (() => {
-                      const holder = members.find((candidate) => candidate.id === current.proxyHolderMemberId);
-                      return holder ? `${holder.contact.firstName} ${holder.contact.lastName}` : "";
-                    })(),
-                  )}
-                </p>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
-
+                </div>
+                {current?.status === "represented" && current.proxyHolderMemberId ? (
+                  <p className="rollcall-proxy-summary">
+                    {t("ballot.representedBy").replace(
+                      "{holder}",
+                      (() => {
+                        const holder = members.find((candidate) => candidate.id === current.proxyHolderMemberId);
+                        return holder ? `${holder.contact.firstName} ${holder.contact.lastName}` : "";
+                      })(),
+                    )}
+                  </p>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
       {mode === "opening" ? (
         <footer className="rollcall-footer">
-          {meetingActions.can("meeting.reconvene") ? (
-            <form className="rollcall-reconvene" onSubmit={reconvene}>
-              <div className="rollcall-reconvene-copy">
+          <div role="status">
+            {openingObservation?.facts.verdict === "notMet" ? (
+              <span className="rollcall-check rollcall-check-pending" data-testid="live-opening-quorum-not-met">
                 <WarningIcon aria-hidden="true" />
-                <div>
-                  <strong>{t("meeting.quorumFailureRecorded")}</strong>
-                  <p>{t("meeting.reconveneDescription")}</p>
-                </div>
-              </div>
-              <div className="rollcall-reconvene-fields">
-                <div className="grid gap-1.5">
-                  <Label htmlFor={reconveneStartsAtId}>{t("meetings.dateTime")}</Label>
-                  <Input id={reconveneStartsAtId} name="startsAt" type="datetime-local" required />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor={reconveneNoticeId}>{t("meeting.noticeSentAt")}</Label>
-                  <Input id={reconveneNoticeId} name="meetingNoticeSentAt" type="datetime-local" required />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor={reconveneLocationId}>{t("meetings.location")}</Label>
-                  <Input id={reconveneLocationId} name="location" defaultValue={meeting.location ?? ""} required />
-                </div>
-              </div>
-              <Button variant="default" type="submit" disabled={submitting}>
-                {t(submitting ? "common.saving" : "meeting.reconveneAction")}
-              </Button>
-            </form>
-          ) : (
-            <>
-              <div role="status">
-                {openingBlock ? (
-                  <span className="rollcall-check rollcall-check-pending">
-                    <WarningIcon aria-hidden="true" />
-                    {t(`meeting.opening.${openingBlock}`)}
-                  </span>
-                ) : (
-                  <span className="rollcall-check rollcall-check-ready">
-                    <CheckCircleIcon aria-hidden="true" />
-                    {t("live.readyToOpen")}
-                  </span>
+                {t("meeting.openingRecordedWithoutQuorum")
+                  .replace("{present}", formatNumber(openingObservation.facts.presentCount))
+                  .replace("{required}", formatNumber(openingObservation.facts.requiredPresent))}
+              </span>
+            ) : openingBlock ? (
+              <span className="rollcall-check rollcall-check-pending">
+                <WarningIcon aria-hidden="true" />
+                {t(`meeting.opening.${openingBlock}`)}
+              </span>
+            ) : (
+              <span className="rollcall-check rollcall-check-prepared" data-testid="live-rollcall-prepared">
+                <CheckCircleIcon aria-hidden="true" />
+                {t(
+                  meetingActions.can("meeting.record-opening")
+                    ? "live.rollCallPrepared"
+                    : "live.rollCallOpeningUnavailable",
                 )}
-              </div>
-              <div className="rollcall-footer-actions">
-                {meetingActions.can("meeting.record-quorum-failure") ? (
-                  <Button
-                    variant="outline"
-                    disabled={submitting}
-                    onClick={() => void run(meetingActions.recordQuorumFailure)}
-                  >
-                    {t(submitting ? "common.saving" : "meeting.recordQuorumFailure")}
-                  </Button>
-                ) : null}
-                <button
-                  className="live-primary-action"
-                  type="button"
-                  disabled={
-                    submitting || !membershipRecorded || Boolean(openingBlock) || !meetingActions.can("meeting.open")
-                  }
-                  onClick={() => void openMeeting()}
-                  data-testid="live-meeting-start"
-                >
-                  {t(submitting ? "common.saving" : "meeting.action.open")}
-                </button>
-              </div>
-            </>
-          )}
+              </span>
+            )}
+          </div>
+          <div className="rollcall-footer-actions">
+            {failedObservation && meetingActions.can("meeting.record-reconvocation") ? (
+              <MeetingReconvocationForm
+                observation={failedObservation}
+                agendaItems={meetingActions.workspace?.agendaItems ?? []}
+                onSubmit={meetingActions.recordReconvocation}
+                error={meetingActions.actionError}
+              />
+            ) : null}
+            <button
+              className="live-primary-action"
+              type="button"
+              disabled={submitting || Boolean(openingBlock) || !meetingActions.can("meeting.record-opening")}
+              onClick={() => void openMeeting()}
+              data-testid="live-meeting-start"
+            >
+              {t(submitting ? "common.saving" : "meeting.action.open")}
+            </button>
+          </div>
         </footer>
       ) : null}
 

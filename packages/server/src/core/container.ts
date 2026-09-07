@@ -1,3 +1,6 @@
+import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
+import { createPostgresCouncilDecisionClient } from "../infrastructure/postgres/councilDecisionClient.js";
+import { createCouncilDecisionService, type CouncilDecisionService } from "../services/councilDecisionService.js";
 import { createMeetingNoticeService, type MeetingNoticeService } from "../services/meetingNoticeService.js";
 import {
   createPostgresClient,
@@ -5,6 +8,7 @@ import {
   type PostgresCouncil,
   type PostgresDirectory,
   type PostgresMinutes,
+  type PostgresCouncilDecisions,
   type PostgresResources,
 } from "@hall/postgres";
 import { type AwilixContainer, asFunction, asValue, createContainer, InjectionMode } from "awilix";
@@ -82,6 +86,9 @@ export interface Cradle {
   postgresMinutes: PostgresMinutes;
   minutesClient: MinutesClient;
   minutesService: MinutesService;
+  postgresCouncilDecisions: PostgresCouncilDecisions;
+  councilDecisionClient: CouncilDecisionClient;
+  councilDecisionService: CouncilDecisionService;
   meetingNoticeService: MeetingNoticeService;
   directoryClient: DirectoryClient;
   councilClient: CouncilClient;
@@ -137,6 +144,7 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
     securityRepository: asFunction(createSecurityRepository).singleton(),
     councilMeetingService: asFunction(createCouncilMeetingService).singleton(),
     minutesService: asFunction(createMinutesService).singleton(),
+    councilDecisionService: asFunction(createCouncilDecisionService).singleton(),
     meetingNoticeService: asFunction(createMeetingNoticeService).singleton(),
     meetingPreparationService: asFunction(createMeetingPreparationService).singleton(),
     ballotService: asFunction(createBallotService).singleton(),
@@ -174,6 +182,11 @@ export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
         return postgresClient.minutes;
       }).singleton(),
       minutesClient: asFunction(createPostgresMinutesClient).singleton(),
+      postgresCouncilDecisions: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
+        if (!postgresClient) throw new Error("Decision PostgreSQL storage is required");
+        return postgresClient.councilDecisions;
+      }).singleton(),
+      councilDecisionClient: asFunction(createPostgresCouncilDecisionClient).singleton(),
       councilClient: asFunction(createPostgresCouncilClient).singleton(),
       directoryClient: asFunction(createPostgresDirectoryClient).singleton(),
     });

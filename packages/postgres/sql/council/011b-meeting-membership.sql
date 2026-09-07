@@ -1,7 +1,7 @@
 -- @functional-requirement HALL-FR-MTG-270 QUORUM_USES_CONFIRMED_MEMBERS_IN_OFFICE:
 -- L2121-17 requires members actually in office, not theoretical seats or roll
--- call cardinality. Product evidence explicitly confirms the nominal roster;
--- directory dates are candidates, not an invented rule for legal effectiveness.
+-- call cardinality. Hall records the active mandates of the current council
+-- term atomically with roll call, retaining the historical roster.
 CREATE TABLE hall.meeting_membership_record (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   council_meeting UUID NOT NULL REFERENCES hall.council_meetings(id),

@@ -1,3 +1,4 @@
+import type { CouncilDecisionDetail, MeetingNoticeFacts } from "@hall/contracts";
 import type { ContentTemplate, TemplateRenderContext } from "@hall/domain";
 import { type Diagnostic, parse, serialize } from "@hall/templating";
 import MailComposer from "nodemailer/lib/mail-composer/index.js";
@@ -22,6 +23,10 @@ export interface TemplateDraft {
 }
 
 export interface GenerateTemplateInput {
+  /** Trusted document-owned facts and files supplied by an internal use case, never from HTTP input. */
+  meetingNoticeFacts?: MeetingNoticeFacts;
+  councilDecision?: CouncilDecisionDetail;
+  attachmentFiles?: TemplateAttachment[];
   context: TemplateRenderContext;
   attachmentResourceIds: string[];
   to: string[];
@@ -208,9 +213,14 @@ export function createContentTemplateService({
     },
     generateFromTemplate(template, input) {
       return withGenerationSlot(async () => {
-        const preview = await templateRenderingService.preview(template, input.context);
+        const preview = await templateRenderingService.preview(template, input.context, input.meetingNoticeFacts, input.councilDecision);
         assertRenderable(preview.diagnostics);
-        const selected = await attachments(resourcesClient, input.attachmentResourceIds);
+        const selected = [
+          ...(await attachments(resourcesClient, input.attachmentResourceIds)),
+          ...(input.attachmentFiles ?? []),
+        ];
+        if (selected.reduce((size, file) => size + file.content.byteLength, 0) > MAX_ATTACHMENT_BYTES)
+          throw new DomainError("template_attachments_too_large", 413);
         const stem = safeFileStem(template.documentType);
 
         if (template.kind === "pdf") {
@@ -234,6 +244,7 @@ export function createContentTemplateService({
 
         const hall = await hallSettingsRepository.get();
         const composer = new MailComposer({
+          headers: { "X-Unsent": "1" },
           from: hall.outboundEmailSenderAddress
             ? { name: hall.outboundEmailSenderName || hall.name, address: hall.outboundEmailSenderAddress }
             : undefined,

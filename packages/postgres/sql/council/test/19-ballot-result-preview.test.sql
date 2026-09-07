@@ -5,6 +5,7 @@ SET LOCAL hall.actor_id='preview-clerk';
 \ir support/quorum.sql
 SELECT no_plan();
 SELECT pg_temp.quorum_case('review',3,3);
+SELECT test_prepare_notice(test_uuid('review:meeting'));
 SELECT start_council_meeting(test_uuid('review:meeting'),'2026-01-01 09:00Z');
 SELECT start_council_agenda_item(test_uuid('review:a:agenda-item'),'2026-01-01 09:01Z');
 -- HALL-FR-BAL-320 HALL-TR-CON-200: preview is reversible entry, confirmation is atomic.
@@ -28,6 +29,7 @@ SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(test_uuid('revie
 
 -- HALL-TR-CON-220: context mutations invalidate review; concurrent lock barrier also tested in PostgreSQL integration.
 SELECT pg_temp.quorum_case('context',3,3);
+SELECT test_prepare_notice(test_uuid('context:meeting'));
 SELECT start_council_meeting(test_uuid('context:meeting'),'2026-01-01 09:00Z');
 SELECT start_council_agenda_item(test_uuid('context:a:agenda-item'),'2026-01-01 09:01Z');
 CREATE TEMP TABLE context_preview AS SELECT hall_api.create_ballot_result_preview(test_uuid('context:a:agenda-item'),pg_temp.public_candidate('context',3,2)) payload;
@@ -50,6 +52,7 @@ SELECT lives_ok($$SELECT hall_api.confirm_ballot_result_preview((SELECT(payload-
 SELECT is((SELECT count(*)::int FROM votes v JOIN ballot_participation p ON p.id=v.ballot_participation WHERE p.meeting_attendance=test_uuid('context:att:3')),0,'departed member has no individual vote');
 SELECT is((SELECT n.reason FROM ballot_non_participation n JOIN ballot_participation p ON p.id=n.ballot_participation WHERE p.meeting_attendance=test_uuid('context:att:3')),'departed','actual departure survives confirmation');
 SELECT pg_temp.quorum_case('secret',6,6);
+SELECT test_prepare_notice(test_uuid('secret:meeting'));
 SELECT start_council_meeting(test_uuid('secret:meeting'),'2026-01-01 09:00Z');
 SELECT start_council_agenda_item(test_uuid('secret:a:agenda-item'),'2026-01-01 09:01Z');
 CREATE TEMP TABLE secret_preview AS SELECT hall_api.create_ballot_result_preview(test_uuid('secret:a:agenda-item'),
@@ -83,6 +86,7 @@ SELECT throws_ok($$INSERT INTO ballot_non_participation(ballot,mode,count) SELEC
 SELECT test_prepare_open_ballot('bad-secret','secret',1);
 SELECT throws_ok($$SELECT record_secret_ballot_votes(test_uuid('bad-secret:ballot'),1,0,0,-1,0,0)$$,'HV514',NULL,'secret count input rejects negative blank total');
 SELECT pg_temp.quorum_case('no-discussion-quorum',1,1);
+SELECT test_prepare_notice(test_uuid('no-discussion-quorum:meeting'));
 SELECT start_council_meeting(test_uuid('no-discussion-quorum:meeting'),'2026-01-01 09:00Z');
 SET CONSTRAINTS ALL IMMEDIATE;
 ALTER TABLE council_agenda_item DISABLE TRIGGER council_agenda_item_quorum;

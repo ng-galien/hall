@@ -87,15 +87,10 @@ BEGIN
       MESSAGE = 'a council meeting cannot start and close in one transition';
   END IF;
 
-  -- @functional-requirement HALL-FR-MTG-070 COUNCIL_MEETING_START_REQUIRES_QUORUM: Starting
-  -- requires at least the meeting quorum in
-  -- physically present members; represented members are deliberately excluded.
+  -- @functional-requirement HALL-FR-MTG-070 COUNCIL_MEETING_OPENING_RECORDS_QUORUM:
+  -- Opening records attendance facts even without quorum. Formal consideration
+  -- of a decision and voting retain their own applicable quorum guards.
   observation := hall.record_meeting_quorum(OLD.id,NULL,NEW.started_at);
-  IF observation.facts->>'verdict'='notMet' THEN
-    RAISE EXCEPTION USING
-      ERRCODE = 'HV115',
-      MESSAGE = 'the council meeting quorum is not reached';
-  END IF;
 
   -- @functional-requirement HALL-FR-MTG-240 COUNCIL_MEETING_START_REQUIRES_PRESENT_OFFICERS:
   -- The president and secretary are designated CouncilMembers and each has a

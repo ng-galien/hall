@@ -21,7 +21,7 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog,
       ORDER BY item.ordinality), '[]'::JSONB)
     FROM hall.minutes_section section JOIN jsonb_array_elements(minutes.facts->'agenda') WITH ORDINALITY item(value, ordinality)
       ON item.value->>'id' = section.agenda_item::TEXT WHERE section.minutes = minutes.id
-  ), 'facts', facts)
+  ), 'facts', facts || jsonb_build_object('agenda',(SELECT coalesce(jsonb_agg(item || jsonb_build_object('introducedAt',hall.council_agenda_introduced_at(minutes.council_meeting,(item->>'id')::uuid)) ORDER BY ordinal),'[]'::jsonb) FROM jsonb_array_elements(facts->'agenda') WITH ORDINALITY entry(item,ordinal))))
   FROM hall.minutes WHERE id = target_minutes;
 $$;
 

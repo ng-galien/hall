@@ -25,10 +25,12 @@ export function MeetingDetailsCard({
   aggregate,
   documents,
   documentsEditable,
+  embedded = false,
 }: {
   aggregate: LiveMeetingPresentation;
   documents: DocumentaryResource[];
   documentsEditable: boolean;
+  embedded?: boolean;
 }) {
   const { t, formatFileSize } = useI18n();
   const { submitting, run } = useSubmitting();
@@ -53,8 +55,8 @@ export function MeetingDetailsCard({
 
   return (
     <aside className="meeting-side-column">
-      <section className="meeting-side-section" aria-labelledby="meeting-documents-heading">
-        <h2 id="meeting-documents-heading">{t("meeting.meetingDocuments")}</h2>
+      <section className={embedded ? "meeting-documents-embedded" : "meeting-side-section"} aria-labelledby={embedded ? undefined : "meeting-documents-heading"}>
+        {!embedded ? <h2 id="meeting-documents-heading">{t("meeting.meetingDocuments")}</h2> : null}
         <p className="meeting-side-hint">{t("meeting.meetingDocumentsDescription")}</p>
         {(() => {
           const noticeAttached = documents.some((document) => document.category === "meetingNotice");

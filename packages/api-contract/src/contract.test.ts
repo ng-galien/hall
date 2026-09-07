@@ -6,7 +6,7 @@ import {
   ballotParticipationSchema,
   ballotSchema,
   ballotVoteSchema,
-  completeOpenQuestionSchema,
+  completeAgendaItemSchema,
   councilBusinessSchema,
   councilMeetingSchema,
   createBallotResultPreviewSchema,
@@ -19,6 +19,7 @@ import {
   problemDetailsSchema,
   provisionInitialCouncilMeetingSchema,
   recordMeetingAttendanceSchema,
+  recordMeetingOpeningSchema,
   reorderCouncilAgendaSchema,
   reprogramAgendaItemSchema,
   resourceDetailSchema,
@@ -29,7 +30,6 @@ import {
   sirenData,
   sirenEntitySchema,
   startAgendaItemSchema,
-  startCouncilMeetingSchema,
   updateCommitteeMembershipSchema,
   updateCouncilMemberSchema,
 } from "./index.js";
@@ -171,6 +171,10 @@ describe("shared HTTP contract", () => {
         number: 1,
         previousCouncilMeetingId: null,
         minutesId: null,
+        agendaFrozenAt: null,
+        currentNoticeId: null,
+        closureBlockers: [],
+        noticeDeadline: { status: "indeterminate", reason: "populationUnknown" },
         scheduledAt: "2026-09-12T09:00:00Z",
         location: "Council chamber",
         quorum: 4,
@@ -187,7 +191,8 @@ describe("shared HTTP contract", () => {
         textResourceId: "50000000-0000-4000-8000-000000000001",
         content: "",
       },
-      { kind: "openQuestion", id: subjectId },
+      { kind: "openQuestion", id: subjectId, textResourceId: subjectId, content: "" },
+      { kind: "businessConsultation", councilBusinessId: businessId, reportResourceId: subjectId, content: "" },
     ] as const;
 
     for (const subject of subjects) {
@@ -197,8 +202,14 @@ describe("shared HTTP contract", () => {
           id: agendaItemId,
           councilBusinessId: subject.kind === "minutesApproval" ? null : businessId,
           discussionSummary: "",
+          canStartDiscussion: true,
+          canReviewBallot: true,
+          conductBlockers: { startDiscussion: [], reviewBallot: [], adjourn: [], complete: [], updateNotes: [] },
+          title: "Question",
           councilMeetingId: meetingId,
           position: 1,
+          agendaNumber: 1,
+          introducedAt: null,
           subject,
           startedAt: null,
           completedAt: null,
@@ -222,7 +233,14 @@ describe("shared HTTP contract", () => {
         location: " Council chamber ",
       }),
     ).toEqual({ scheduledAt: "2026-09-12T09:00:00Z", location: "Council chamber" });
-    expect(startCouncilMeetingSchema.parse({ startedAt: "2026-09-12T09:05:00Z" })).toBeDefined();
+    expect(
+      recordMeetingOpeningSchema.parse({
+        observedAt: "2026-09-12T09:05:00Z",
+        chairMemberId: "00000000-0000-4000-8000-000000000001",
+        secretaryMemberId: "00000000-0000-4000-8000-000000000001",
+        attendance: [{ councilMemberId: "00000000-0000-4000-8000-000000000001", status: "present" }],
+      }),
+    ).toBeDefined();
     expect(
       scheduleAgendaItemSchema.parse({
         kind: "councilDecisionProposal",
@@ -249,7 +267,7 @@ describe("shared HTTP contract", () => {
       agendaItemIds: [agendaItemId, businessId],
     });
     expect(startAgendaItemSchema.parse({ startedAt: "2026-09-12T09:10:00Z" })).toBeDefined();
-    expect(completeOpenQuestionSchema.parse({ completedAt: "2026-09-12T09:20:00Z" })).toBeDefined();
+    expect(completeAgendaItemSchema.parse({ completedAt: "2026-09-12T09:20:00Z" })).toBeDefined();
     expect(() =>
       scheduleAgendaItemSchema.parse({
         kind: "openQuestion",

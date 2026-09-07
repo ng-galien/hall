@@ -87,8 +87,15 @@ DECLARE
   reference TEXT := hall.resource_public_reference(resource);
   actions JSONB := '[]'::jsonb;
   resource_kind TEXT := resource ->> 'kind';
+  proposal_text BOOLEAN;
 BEGIN
   IF NOT hall.is_administrator() THEN
+    RETURN actions;
+  END IF;
+
+  SELECT EXISTS (SELECT FROM hall.council_decision_proposal_workspace
+    WHERE text_resource = (resource ->> 'id')::UUID) INTO proposal_text;
+  IF proposal_text AND hall.proposal_text_is_sealed((resource ->> 'id')::UUID) THEN
     RETURN actions;
   END IF;
 
@@ -153,6 +160,11 @@ BEGIN
     END IF;
   END IF;
 
+  IF proposal_text THEN
+    SELECT coalesce(jsonb_agg(action), '[]'::jsonb) INTO actions
+    FROM jsonb_array_elements(actions) action WHERE action ->> 'name' <> 'resource.relocate';
+    RETURN actions;
+  END IF;
   RETURN actions || jsonb_build_array(
     hall.siren_action('resource.delete', 'DELETE', '/api/resources/' || reference)
   );

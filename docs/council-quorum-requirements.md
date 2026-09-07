@@ -69,13 +69,43 @@ Le rattachement convenu est `HALL-FR-MTG-270/common-law-scope` dans le registre,
 désormais présent dans le registre relu. Les deux fondements de déport restent
 pris en charge ; cette exclusion territoriale ne les modifie pas.
 
-Le chantier SQL remplace le seuil fourni à la création par un constat nominal
-des membres en exercice, avec provenance. Il conserve les mouvements de présence
+La décision produit du 7 septembre 2026 (`HALL-FR-MTG-300`) fait capturer
+l'effectif depuis tous les membres actifs de la mandature actuelle pendant
+la commande unique `meeting.record-opening`, absents et représentés compris.
+Elle conserve l'appel, les officiers et l'observation de quorum. Si le verdict
+est `notMet`, ces faits restent enregistrés et la nouvelle décision du propriétaire
+autorise l'ouverture logicielle et les échanges, sans vote ; les points soumis
+au vote sont à ajourner. Le précédent choix de non-démarrage est remplacé.
+Les entrées invalides restent refusées sans écriture partielle. Aucun constat
+ne crée automatiquement une reconvocation ou une preuve d'envoi.
+Cet automatisme est un choix produit, pas une
+prescription légale ni une preuve de prise d'effet juridique des mandats.
+La [décision détaillée](requirements.md#curation-du-contrôle-par-affaire--6-septembre-2026)
+maintient cette limite : une consultation sans scrutin ne doit pas produire
+une décision ou un avis formel sans quorum. La validité des délibérations reste
+régie par S1/J1 ; une ouverture technique ne la certifie pas.
+`MTG-070` (`COUNCIL_MEETING_OPENING_RECORDS_QUORUM`) conserve le constat
+d'ouverture. `AGI-350` (`DECISION_CONSIDERATION_REQUIRES_RECORDED_CURRENT_QUORUM`)
+garde l'entrée en examen formel des projets de délibération et de l'approbation
+du PV soumise au quorum applicable ; les points d'information peuvent entrer
+en échange avec leur observation. Le quorum courant au scrutin est contrôlé
+séparément. Le traitement du
+PV précédent restant non approuvé et de la clôture sans vote demeure à résoudre,
+sans approbation présumée. L'avancée `AGI-390`
+(`CONDUCT_ACTIONS_EXPLAIN_UNAVAILABILITY`, fonctionnelle et produit) expose
+les motifs typés `ConductBlocker` de PostgreSQL à HTTP et Siren. Elle permet
+l'ajournement du point d'approbation tout en conservant le PV et `completedAt`
+nul. Le motif `previousMinutesPending` identifie le PV en attente et la clôture
+reste refusée par `HV117` ; ni le report ni la cardinalité ne sont tranchés.
+Le backend rapporte 22 contrôles réussis couvrant les quatre types de points
+dans `24-conduct-action-blockers.test.sql`, sans réexécution par la curation.
+Le modèle conserve les mouvements de présence
 et les observations par affaire, et représente la seconde convocation avec
 preuve d'échec, délai de trois jours francs et nouveaux constats de réunion.
 
 | Exigence annotée | Autorité actuelle |
 | --- | --- |
+| `HALL-FR-MTG-300` | [071-meeting-attendance-api.sql](../packages/postgres/sql/council/071-meeting-attendance-api.sql) |
 | `HALL-FR-MTG-270` | [011b-meeting-membership.sql](../packages/postgres/sql/council/011b-meeting-membership.sql) |
 | `HALL-FR-ATT-120` et `ATT-130` | [011a-meeting-presence.sql](../packages/postgres/sql/council/011a-meeting-presence.sql) |
 | `HALL-FR-AGI-350`, `AGI-360` et `MTG-290` | [027-quorum-observations.sql](../packages/postgres/sql/council/027-quorum-observations.sql) |

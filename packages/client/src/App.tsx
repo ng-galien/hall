@@ -36,6 +36,11 @@ const CouncilDecisionsPage = lazy(() =>
 const MinutesPage = lazy(() =>
   import("./pages/minutes/MinutesPage").then((module) => ({ default: module.MinutesPage })),
 );
+const CouncilDecisionDetailPage = lazy(() =>
+  import("./pages/council-decisions/CouncilDecisionDetailPage").then((module) => ({
+    default: module.CouncilDecisionDetailPage,
+  })),
+);
 const MinutesDetailPage = lazy(() =>
   import("./pages/minutes/MinutesDetailPage").then((module) => ({ default: module.MinutesDetailPage })),
 );
@@ -94,6 +99,7 @@ function AuthenticatedApplication() {
         <Route path="minutes/:minutesId" element={<MinutesDetailPage />} />
         <Route path="workspace" element={<WorkspacePage />} />
         <Route path="council-decisions" element={<CouncilDecisionsPage />} />
+        <Route path="council-decisions/:decisionId" element={<CouncilDecisionDetailPage />} />
         <Route path="council-members" element={<CouncilMembersPage />} />
         <Route path="council-members/:memberId" element={<CouncilMemberPage />} />
         <Route path="contacts" element={<ContactsPage />} />

@@ -5,6 +5,7 @@ import { PostgresCouncil } from "../src/council.js";
 import { PostgresDirectory } from "../src/directory.js";
 import { PostgresMinutes } from "../src/minutes.js";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
+import { prepareMeetingNotice } from "./support/meeting.js";
 
 postgresDescribe("standalone minutes", () => {
   const pool = createTestPool();
@@ -36,10 +37,6 @@ postgresDescribe("standalone minutes", () => {
     const meeting = await council.provisionInitialMeeting(request, {});
     await pool.query("SELECT hall.schedule_council_meeting($1,'2026-09-05 09:00Z','Chamber')", [meeting.id]);
     await pool.query("SELECT hall.set_council_meeting_officers($1,$2,$2)", [meeting.id, member.id]);
-    await pool.query(
-      "INSERT INTO hall.meeting_attendance(id,council_member,council_meeting,status) VALUES(gen_random_uuid(),$1,$2,'present')",
-      [member.id, meeting.id],
-    );
     const business = await council.createBusiness(request, {
       path: "seed",
       name: "Minutes fixture",
@@ -56,12 +53,14 @@ postgresDescribe("standalone minutes", () => {
       councilMeetingId: meeting.id,
       position: 2,
     });
-    await council.recordMeetingMembership(request, meeting.id, {
+    await prepareMeetingNotice(council, request, meeting.id);
+    await council.recordMeetingOpening(request, {
+      id: meeting.id,
       observedAt: "2026-09-05T09:00:00Z",
-      sourceReference: "Confirmed fixture mandate",
-      memberIds: [member.id],
+      chairMemberId: member.id,
+      secretaryMemberId: member.id,
+      attendance: [{ councilMemberId: member.id, status: "present" }],
     });
-    await council.startMeeting(request, { id: meeting.id, startedAt: "2026-09-05T09:00:00Z" });
     return council.close(request, { id: meeting.id, closedAt: "2026-09-05T10:00:00Z" });
   }
 

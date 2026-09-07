@@ -25,7 +25,14 @@ export interface ResourceEmbedAttributes {
   range?: string;
 }
 
-export type DirectiveKind = ReferenceKind | "image" | "resource-embed" | "field" | "minutes";
+export type DirectiveKind =
+  | ReferenceKind
+  | "image"
+  | "resource-embed"
+  | "field"
+  | "minutes"
+  | "meeting-notice"
+  | "council-decision";
 
 /** What a directive accepts. */
 export interface DirectiveSpec {
@@ -54,7 +61,15 @@ const reference = (name: ReferenceKind): DirectiveSpec => ({
 
 export const directiveSpecs: readonly DirectiveSpec[] = [
   ...referenceKinds.map(reference),
+  { name: "meeting-notice", node: "leafDirective", label: false, attributes: [], attributesRequired: [] },
   { name: "minutes", node: "leafDirective", label: false, attributes: ["section"], attributesRequired: ["section"] },
+  {
+    name: "council-decision",
+    node: "leafDirective",
+    label: false,
+    attributes: ["section"],
+    attributesRequired: ["section"],
+  },
   {
     name: "image",
     node: "leafDirective",
@@ -194,4 +209,10 @@ export function serializeResourceEmbedDirective(attributes: ResourceEmbedAttribu
 
 export function isFieldName(name: string): name is FieldName {
   return fieldNameSet.has(name);
+}
+
+export const councilDecisionSections = ["facts", "content", "result"] as const;
+export type CouncilDecisionSection = (typeof councilDecisionSections)[number];
+export function isCouncilDecisionSection(value: string): value is CouncilDecisionSection {
+  return councilDecisionSections.some((section) => section === value);
 }

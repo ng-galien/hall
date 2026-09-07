@@ -6,11 +6,14 @@ import type {
   MinutesStatus,
 } from "@hall/domain";
 import { Badge } from "@/components/ui/badge";
+import { matchLiteral } from "@hall/domain";
+import { CalendarIcon, CheckIcon, PlayIcon, WarningIcon } from "../../components/icons";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingStatus, LiveAgendaItemStatus } from "../../models/liveMeeting";
 
 export type DomainStatus =
+  | import("@hall/api-contract").CouncilDecisionSummary["state"]
   | AgendaItemStatus
   | LiveAgendaItemStatus
   | AttendanceStatus
@@ -21,6 +24,7 @@ export type DomainStatus =
   | "inactive";
 
 export const domainStatusKeys: Record<DomainStatus, TranslationKey> = {
+  frozen: "decisionDocument.frozen",
   draft: "status.draft",
   notStarted: "status.notStarted",
   ready: "status.ready",
@@ -54,6 +58,22 @@ export function StatusBadge({ value }: { value: DomainStatus }) {
       ? "destructive"
       : "secondary";
   return <Badge variant={variant}>{t(domainStatusKeys[value])}</Badge>;
+}
+
+export function AgendaItemStatusBadge({ status }: { status: LiveAgendaItemStatus }) {
+  const { t } = useI18n();
+  const { variant, Icon } = matchLiteral(status, {
+    scheduled: () => ({ variant: "outline" as const, Icon: CalendarIcon }),
+    inProgress: () => ({ variant: "brand" as const, Icon: PlayIcon }),
+    examined: () => ({ variant: "success" as const, Icon: CheckIcon }),
+    adjourned: () => ({ variant: "warning" as const, Icon: WarningIcon }),
+  });
+  return (
+    <Badge variant={variant} data-testid={`agenda-status-${status}`}>
+      <Icon aria-hidden="true" />
+      {t(domainStatusKeys[status])}
+    </Badge>
+  );
 }
 
 const meetingStatusKeys: Record<LiveMeetingStatus, TranslationKey> = {

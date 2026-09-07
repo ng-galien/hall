@@ -8,6 +8,7 @@ SELECT pg_temp.quorum_case('ordinary',15,8);
 -- HALL-FR-MTG-270: explicit membership, never the theoretical seat count.
 SELECT is(calculate_meeting_quorum(test_uuid('ordinary:meeting'),NULL,'2026-01-01 09:00Z')->>'memberCount','15','N is the confirmed nominal roster');
 SELECT is(calculate_meeting_quorum(test_uuid('ordinary:meeting'),NULL,'2026-01-01 09:00Z')->>'requiredPresent','8','N15 requires8 present');
+SELECT test_prepare_notice(test_uuid('ordinary:meeting'));
 SELECT lives_ok($$SELECT start_council_meeting(test_uuid('ordinary:meeting'),'2026-01-01 09:00Z')$$,'opening records current quorum');
 -- HALL-FR-AGI-350 HALL-FR-AGI-360: direct row transition cannot bypass observation.
 SELECT lives_ok($$UPDATE council_agenda_item SET started_at='2026-01-01 09:01Z' WHERE id=test_uuid('ordinary:a:agenda-item')$$,'first affair records an authoritative observation');
@@ -33,11 +34,13 @@ SELECT is((SELECT facts->>'verdict' FROM meeting_quorum_observation WHERE id=(SE
 SELECT pg_temp.quorum_case('personal',14,8);
 INSERT INTO agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at)
 VALUES(test_uuid('personal:a:agenda-item'),test_uuid('personal:member:8'),'personalInterest','2026-01-01 09:00Z');
+SELECT test_prepare_notice(test_uuid('personal:meeting'));
 SELECT start_council_meeting(test_uuid('personal:meeting'),'2026-01-01 09:00Z');
 SELECT throws_ok($$SELECT start_council_agenda_item(test_uuid('personal:a:agenda-item'),'2026-01-01 09:01Z')$$,'HV142',NULL,'personal interest leaves denominator14 and7 eligible present is insufficient');
 SELECT pg_temp.quorum_case('special',14,8);
 INSERT INTO agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at)
 VALUES(test_uuid('special:a:agenda-item'),test_uuid('special:member:8'),'designatedRepresentativeConflict','2026-01-01 09:00Z');
+SELECT test_prepare_notice(test_uuid('special:meeting'));
 SELECT start_council_meeting(test_uuid('special:meeting'),'2026-01-01 09:00Z');
 SELECT lives_ok($$SELECT start_council_agenda_item(test_uuid('special:a:agenda-item'),'2026-01-01 09:01Z')$$,'qualified special conflict reduces denominator13 and7 present suffice');
 SELECT is((SELECT facts->>'denominator' FROM meeting_quorum_observation WHERE agenda_item=test_uuid('special:a:agenda-item')),'13','special denominator reduction is retained');
@@ -52,6 +55,7 @@ SELECT lives_ok($$INSERT INTO meeting_reconvocation(council_meeting,failed_obser
 SELECT throws_ok($$SELECT start_council_meeting(test_uuid('renewed:meeting'),'2026-01-05 09:00Z')$$,'HV149',NULL,'renewed actual meeting requires fresh membership and presence');
 INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids) SELECT council_meeting,'2026-01-05 09:00Z','Reconfirmed mandates',member_ids FROM meeting_membership_record WHERE council_meeting=test_uuid('renewed:meeting');
 INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status) SELECT id,'2026-01-05 09:00Z',status FROM meeting_attendance WHERE council_meeting=test_uuid('renewed:meeting');
+SELECT test_prepare_notice(test_uuid('renewed:meeting'));
 SELECT lives_ok($$SELECT start_council_meeting(test_uuid('renewed:meeting'),'2026-01-05 09:00Z')$$,'second call admits opening below ordinary quorum');
 SELECT lives_ok($$SELECT start_council_agenda_item(test_uuid('renewed:a:agenda-item'),'2026-01-05 09:01Z')$$,'identified affair has the recorded exemption');
 SELECT is((SELECT facts->>'verdict' FROM meeting_quorum_observation WHERE agenda_item=test_uuid('renewed:a:agenda-item')),'exempt','exemption is distinguishable from ordinary quorum met');
@@ -69,6 +73,7 @@ INSERT INTO agenda_item_recusal(agenda_item,council_member,legal_basis,declared_
 SELECT throws_ok($$SELECT record_meeting_quorum(test_uuid('recusal-time:meeting'),test_uuid('recusal-time:a:agenda-item'),'2026-01-01 09:01Z')$$,'HV143',NULL,'a quorum cannot predate the recusal it incorporates');
 -- Legal review2: a real failure followed by closure never authorizes a renewed call.
 SELECT pg_temp.quorum_case('closed-call',3,3);
+SELECT test_prepare_notice(test_uuid('closed-call:meeting'));
 SELECT start_council_meeting(test_uuid('closed-call:meeting'),'2026-01-01 09:00Z');
 INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status) VALUES(test_uuid('closed-call:att:2'),'2026-01-01 09:01Z','absent'),(test_uuid('closed-call:att:3'),'2026-01-01 09:01Z','absent');
 CREATE TEMP TABLE closed_failure AS SELECT (record_meeting_quorum(test_uuid('closed-call:meeting'),NULL,'2026-01-01 09:02Z')).*;
@@ -76,6 +81,7 @@ SELECT close_council_meeting(test_uuid('closed-call:meeting'),'2026-01-01 09:03Z
 SELECT throws_ok($$INSERT INTO meeting_reconvocation(council_meeting,failed_observation,sent_at,scheduled_at,time_zone,first_notice_evidence,renewed_notice_evidence,agenda_item_ids) SELECT test_uuid('closed-call:meeting'),id,'2026-01-01 10:00Z','2026-01-05 09:00Z','Europe/Paris','first notice','renewed notice',ARRAY[test_uuid('closed-call:a:agenda-item')] FROM closed_failure$$,'HV136',NULL,'a closed meeting cannot be reconvened after an earlier failure');
 -- Legal review4: explicitly effective new mandate, with its own presence, changes N.
 SELECT pg_temp.quorum_case('replacement',3,3);
+SELECT test_prepare_notice(test_uuid('replacement:meeting'));
 SELECT start_council_meeting(test_uuid('replacement:meeting'),'2026-01-01 09:00Z');
 SELECT test_ensure_council_member(test_uuid('replacement:member:4'));
 INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids) VALUES(test_uuid('replacement:meeting'),'2026-01-01 09:01Z','Effective replacement confirmed',ARRAY[test_uuid('replacement:member:1'),test_uuid('replacement:member:2'),test_uuid('replacement:member:4')]);
@@ -89,6 +95,7 @@ SELECT is((SELECT count(*)::int FROM meeting_membership_record WHERE council_mee
 SELECT pg_temp.quorum_case('power',3,2);
 SELECT test_ensure_document_resource(test_uuid('power:document'));
 UPDATE meeting_attendance SET status='represented',proxy_holder=test_uuid('power:att:2'),proxy_document=test_uuid('power:document') WHERE id=test_uuid('power:att:3');
+SELECT test_prepare_notice(test_uuid('power:meeting'));
 SELECT start_council_meeting(test_uuid('power:meeting'),'2026-01-01 09:00Z');
 SELECT start_council_agenda_item(test_uuid('power:a:agenda-item'),'2026-01-01 09:01Z');
 SELECT is(calculate_meeting_quorum(test_uuid('power:meeting'),test_uuid('power:a:agenda-item'),'2026-01-01 09:01Z')->>'presentCount','2','written power adds no physical presence');

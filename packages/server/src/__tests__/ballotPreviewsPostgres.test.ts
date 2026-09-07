@@ -1,4 +1,10 @@
-import { ballotResultPreviewSchema, ballotSchema, meetingConductWorkspaceSchema } from "@hall/api-contract";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import {
+  councilDecisionDetailSchema,
+  ballotResultPreviewSchema,
+  ballotSchema,
+  meetingConductWorkspaceSchema,
+} from "@hall/api-contract";
 import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import { Pool } from "pg";
 import { expect, it } from "vitest";
@@ -75,17 +81,6 @@ postgresTest(
         200,
         "PUT",
       );
-      await send(
-        `/api/council-meetings/${meeting.id}/attendance`,
-        { attendance: [{ councilMemberId: member.id, status: "present" }] },
-        201,
-      );
-      const conduct = await send(
-        `/api/council-meetings/${meeting.id}/membership-records`,
-        { observedAt: "2026-01-01T09:00:00Z", sourceReference: "Confirmed sole mandate", memberIds: [member.id] },
-        201,
-      );
-      expect(meetingConductWorkspaceSchema.parse(conduct.properties).meeting.quorum).toBe(1);
       const business = await council.createBusiness(context, {
         path: "seed",
         name: "HTTP preview",
@@ -97,7 +92,22 @@ postgresTest(
         councilBusinessId: business.id,
         position: 1,
       });
-      await send(`/api/council-meetings/${meeting.id}/start`, { startedAt: "2026-01-01T09:00:00Z" });
+      await council.freezeAgenda(context, meeting.id);
+      const facts = await council.noticeFacts(context, meeting.id);
+      if (!facts) throw new Error("Frozen fixture notice facts are required");
+      await council.generateNotice(
+        context,
+        meeting.id,
+        { meeting: facts, hall: { name: "Test commune", timeZone: "Europe/Paris" } },
+        Buffer.from("%PDF-fixture"),
+      );
+      const conduct = await send(`/api/council-meetings/${meeting.id}/record-opening`, {
+        observedAt: "2026-01-01T09:00:00Z",
+        chairMemberId: member.id,
+        secretaryMemberId: member.id,
+        attendance: [{ councilMemberId: member.id, status: "present" }],
+      });
+      expect(meetingConductWorkspaceSchema.parse(conduct.properties).meeting.quorum).toBe(1);
       const started = await send(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`, {
         startedAt: "2026-01-01T09:01:00Z",
       });
@@ -179,6 +189,75 @@ postgresTest(
       const ballot = ballotSchema.parse(confirmed.properties);
       expect(ballot.result).toBe("approve");
       await send(`/api/ballot-previews/${corrected.id}/confirm`, {}, 409);
+      await send(
+        "/api/templates",
+        {
+          kind: "pdf",
+          documentType: "council-decision",
+          name: "Decision template",
+          bodyMarkdown:
+            "# Council decision\n\n::council-decision{section=facts}\n\n::council-decision{section=content}\n\n::council-decision{section=result}",
+        },
+        201,
+      );
+      const get = async (path: string, cookie = adminCookie) => {
+        const response = await fetch(server.url + path, { headers: { cookie } });
+        expect(response.status).toBe(200);
+        return response.json();
+      };
+      const list = await get("/api/council-decisions");
+      const summary = list.entities[0].properties;
+      const decisionPath = `/api/council-decisions/${summary.id}`;
+      const entity = await get(decisionPath);
+      const draft = councilDecisionDetailSchema.parse(entity.properties);
+      expect(draft).toMatchObject({ state: "draft", publicationNumber: null, ballotId: ballot.id });
+      expect(entity.actions.map((a: { name: string }) => a.name)).toEqual(["decision.update-draft", "decision.freeze"]);
+      expect((await get(decisionPath, readerCookie)).actions ?? []).toEqual([]);
+      const forbidden = await fetch(server.url + decisionPath + "/freeze", {
+        method: "POST",
+        headers: { cookie: readerCookie, origin: server.url, "content-type": "application/json" },
+        body: JSON.stringify({ expectedVersion: 1 }),
+      });
+      expect(forbidden.status).toBe(403);
+      await send(decisionPath + "/draft", { expectedVersion: 1, content: "Editorial record", facts: {} }, 400, "PUT");
+      const edited = councilDecisionDetailSchema.parse(
+        (await send(decisionPath + "/draft", { expectedVersion: 1, content: "Editorial record" }, 200, "PUT"))
+          .properties,
+      );
+      expect(edited.facts).toEqual(draft.facts);
+      const previewResponse = await fetch(server.url + decisionPath + "/preview.pdf", {
+        headers: { cookie: adminCookie },
+      });
+      expect(previewResponse.status).toBe(200);
+      const previewBytes = new Uint8Array(await previewResponse.arrayBuffer());
+      const loading = getDocument({ data: previewBytes, useSystemFonts: true });
+      const pdf = await loading.promise;
+      const pageText = await (await pdf.getPage(1)).getTextContent();
+      expect(pageText.items.map((item) => ("str" in item ? item.str : "")).join(" ")).toContain("Editorial record");
+      await loading.destroy();
+      expect((await get(decisionPath)).properties.state).toBe("draft");
+      await send(decisionPath + "/freeze", { expectedVersion: 1 }, 409);
+      const frozen = councilDecisionDetailSchema.parse(
+        (await send(decisionPath + "/freeze", { expectedVersion: edited.version })).properties,
+      );
+      expect(frozen).toMatchObject({ state: "frozen", publicationNumber: null });
+      const finalEntity = await get(decisionPath);
+      expect(finalEntity.actions ?? []).toEqual([]);
+      expect(finalEntity.links).toEqual(
+        expect.arrayContaining([expect.objectContaining({ rel: ["content"], href: decisionPath + "/content.pdf" })]),
+      );
+      const bytes = async (suffix: string) =>
+        Buffer.from(
+          await (await fetch(server.url + decisionPath + suffix, { headers: { cookie: adminCookie } })).arrayBuffer(),
+        );
+      expect(await bytes("/preview.pdf")).toEqual(await bytes("/content.pdf"));
+      await send(
+        decisionPath + "/draft",
+        { expectedVersion: edited.version, content: "Forbidden rewrite" },
+        409,
+        "PUT",
+      );
+      await send(decisionPath + "/freeze", { expectedVersion: edited.version }, 409);
       for (const path of ["/api/ballots", `/api/ballots/${ballot.id}/votes`, `/api/ballots/${ballot.id}/complete`])
         await send(path, {}, 404);
     } finally {

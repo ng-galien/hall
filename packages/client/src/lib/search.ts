@@ -1,7 +1,7 @@
 import type { CouncilDecisionStatus, MeetingStatus, ReferenceEntityKind } from "@hall/domain";
 
 export type SearchableKind = ReferenceEntityKind;
-export type SearchableState = CouncilDecisionStatus | MeetingStatus;
+export type SearchableState = CouncilDecisionStatus | MeetingStatus | import("@hall/api-contract").CouncilDecisionSummary["state"];
 export const searchableMedia = ["image"] as const;
 export type SearchableMedia = (typeof searchableMedia)[number];
 

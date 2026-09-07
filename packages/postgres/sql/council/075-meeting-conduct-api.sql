@@ -1,22 +1,27 @@
+CREATE FUNCTION hall.council_meeting_action_blockers(target hall.council_meetings)
+RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
+ SELECT jsonb_build_object(
+  'addAgendaItem', CASE WHEN target.closed_at IS NOT NULL THEN '[{"code":"meetingClosed"}]'::jsonb
+    WHEN target.started_at IS NULL THEN '[{"code":"meetingNotStarted"}]'::jsonb ELSE '[]'::jsonb END,
+  'recordAttendanceEvents',
+    CASE WHEN target.closed_at IS NOT NULL THEN '[{"code":"meetingClosed"}]'::jsonb
+      WHEN target.started_at IS NULL AND NOT EXISTS(SELECT FROM hall.meeting_reconvocation WHERE council_meeting=target.id)
+      THEN '[{"code":"meetingNotStarted"}]'::jsonb ELSE '[]'::jsonb END
+ );
+$$;
+
 CREATE FUNCTION hall_api.meeting_conduct(target_meeting UUID)
 RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
  SELECT hall.meeting_conduct_evidence(m.id)||jsonb_build_object('councilMeetingId',m.id,'meeting',hall.council_meeting_projection(m),
    'currentAttendance',hall.current_attendance_json(m.id),
-   'canRecordMembership',m.closed_at IS NULL,
-   'canRecordAttendanceEvents',m.closed_at IS NULL AND (m.started_at IS NOT NULL OR EXISTS(SELECT FROM hall.meeting_reconvocation WHERE council_meeting=m.id)),
+   'meetingActionBlockers', blockers.value,
+   'canRecordAttendanceEvents',jsonb_array_length(blockers.value->'recordAttendanceEvents')=0,
    'canRecordQuorum',m.closed_at IS NULL AND EXISTS(SELECT FROM hall.meeting_membership_record WHERE council_meeting=m.id),
    'canRecordReconvocation',m.closed_at IS NULL AND EXISTS(SELECT FROM hall.meeting_quorum_observation o
      WHERE o.council_meeting=m.id AND o.facts->>'verdict'='notMet'
        AND NOT EXISTS(SELECT FROM hall.meeting_reconvocation WHERE failed_observation=o.id)))
- FROM hall.council_meetings m WHERE id=target_meeting;
+ FROM hall.council_meetings m CROSS JOIN LATERAL (SELECT hall.council_meeting_action_blockers(m) value) blockers WHERE m.id=target_meeting;
 $$;
-CREATE FUNCTION hall_api.record_meeting_membership(target_meeting UUID, observation_time TIMESTAMPTZ, source TEXT, members UUID[])
-RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
-BEGIN
- INSERT INTO hall.meeting_membership_record(council_meeting,observed_at,source_reference,member_ids)
- VALUES(target_meeting,observation_time,source,members);
- RETURN hall_api.meeting_conduct(target_meeting);
-END $$;
 CREATE FUNCTION hall_api.record_meeting_attendance_events(target_meeting UUID,observation_time TIMESTAMPTZ,changes JSONB)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
 DECLARE change RECORD; attendance_id UUID; holder_id UUID;

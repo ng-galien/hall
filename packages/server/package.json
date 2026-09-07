@@ -37,7 +37,8 @@
     "pg": "^8.23.0",
     "pino": "^10.3.1",
     "playwright": "^1.62.1",
-    "sanitize-html": "^2.17.7"
+    "sanitize-html": "^2.17.7",
+    "@hall/contracts": "*"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^10.0.0",

@@ -9,7 +9,7 @@ container_name="hall-sql-pgtap-${$}"
 database_name="hall_sql_test"
 
 cleanup() {
-  docker rm --force "${container_name}" >/dev/null 2>&1 || true
+  docker rm --force --volumes "${container_name}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -36,30 +36,20 @@ for attempt in $(seq 1 60); do
   sleep 1
 done
 
-docker exec "${container_name}" \
-  psql --set ON_ERROR_STOP=1 --username postgres --dbname "${database_name}" \
-  --command "CREATE SCHEMA hall; CREATE SCHEMA hall_api; ALTER DATABASE ${database_name} SET search_path = hall, public, pg_catalog;"
-
-for dependency_file in \
-  /work/sql/directory/001-types.sql \
-  /work/sql/directory/010-model.sql \
-  /work/sql/document/001-types.sql \
-  /work/sql/document/010-model.sql \
-  /work/sql/document/020-rules.sql; do
-  docker exec "${container_name}" \
-    psql --set ON_ERROR_STOP=1 --username postgres --dbname "${database_name}" \
-    --file "${dependency_file}"
-done
-
-while IFS= read -r schema_file; do
-  docker exec --interactive "${container_name}" \
-    psql --set ON_ERROR_STOP=1 --username postgres --dbname "${database_name}" \
-    < "${schema_file}"
-done < <(find "${sql_dir}" -maxdepth 1 -type f -name '*.sql' -print | sort)
+# Install the same complete canonical schema as the application. Council
+# preparation now depends on documentary ownership and persisted notices.
+{
+  echo 'BEGIN;'
+  while IFS= read -r manifest_path; do
+    cat "${package_sql_dir}/../${manifest_path}"
+  done < <(sed -n 's/^  "\(sql\/.*\.sql\)",$/\1/p' "${package_sql_dir}/../src/schemaManifest.ts")
+  echo 'COMMIT;'
+} | docker exec --interactive "${container_name}" \
+  psql --set ON_ERROR_STOP=1 --username postgres --dbname "${database_name}"
 
 docker exec "${container_name}" \
   psql --set ON_ERROR_STOP=1 --username postgres --dbname "${database_name}" \
-  --command 'CREATE EXTENSION pgtap;'
+  --command "ALTER DATABASE ${database_name} SET search_path = hall, public, pg_catalog; CREATE EXTENSION pgtap;"
 
 if [[ "$#" -gt 0 ]]; then
   test_files=()

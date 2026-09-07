@@ -4,8 +4,7 @@
 -- CouncilBusiness is the aggregate root that gives one documentary workspace
 -- a durable business identity. Its possible agenda subjects remain independent
 -- entities: one business may prepare many decision proposals and open questions.
--- Their association with the business is deliberately made by
--- council_agenda_item, where the meeting and ordering facts also exist.
+-- Each prepared subject owns its business association before any agenda occurrence.
 
 -- @functional-requirement HALL-FR-BUS-010 COUNCIL_BUSINESS_IS_THE_PREPARATION_ROOT:
 CREATE TABLE council_business (
@@ -47,11 +46,14 @@ CREATE TABLE minutes_approval (
 
 -- Entity: one proposal prepared for a decision by the council. Its documentary
 -- content is attached through the workspace boundary, not duplicated here.
+-- @functional-requirement HALL-FR-BUS-050 PREPARED_SUBJECT_OWNS_ITS_BUSINESS_BEFORE_SCHEDULING:
 CREATE TABLE council_decision_proposal (
-  id UUID PRIMARY KEY
+  id UUID PRIMARY KEY,
+  council_business UUID NOT NULL REFERENCES council_business(id)
 );
 
 -- Entity: one open subject which can be considered without a ballot.
 CREATE TABLE open_question (
-  id UUID PRIMARY KEY
+  id UUID PRIMARY KEY,
+  council_business UUID NOT NULL REFERENCES council_business(id)
 );

@@ -11,7 +11,8 @@ test("meeting scheduling belongs to the detail rather than the collection", () =
   const detail = read("src/pages/council-meetings/MeetingPreparation.tsx");
   assert.doesNotMatch(list, /meeting-schedule|<Modal|useMeetingSettings|useSubmitting/);
   assert.equal((detail.match(/onClick=\{\(\) => setEditOpen\(true\)\}/g) ?? []).length, 1);
-  assert.match(detail, /meeting\.scheduledAt \? "meetings\.edit" : "meeting\.action\.schedule"/);
+  assert.match(detail, /data-testid="meeting-edit-details"/);
+  assert.match(detail, /t\("meeting\.generalProperties"\)/);
 });
 
 test("English and French catalogs expose the same translation keys", () => {
@@ -209,7 +210,7 @@ test("the common resource modal reuses Workbench bodies without nested viewers",
   assert.match(body, /capabilities\.resolveLegalReference/);
   assert.match(spreadsheet, /updateContent\(resource\.id, \{[\s\S]*kind: "spreadsheet"/);
   assert.match(read("src/features/geographic/GeographicResourceMap.tsx"), /kind: "geographic"/);
-  assert.match(preview, /data-resource-mode=\{session\.mode\}/);
+  assert.match(preview, /data-resource-mode=\{readOnly \? "read" : session\.mode\}/);
   assert.doesNotMatch(spreadsheet, /<Dialog|spreadsheet-fullscreen-dialog/);
   assert.match(references, /focus\(\{ preventScroll: true \}\)/);
   assert.match(images, /focus\(\{ preventScroll: true \}\)/);
@@ -262,9 +263,9 @@ test("the complete ballot contract is exposed through the meeting UI", () => {
   const ballotApi = read("src/services/ballotsApi.ts");
   assert.match(votePanel, /method === "public"/);
   assert.match(votePanel, /participantMemberIds: participants\.map/);
-  assert.match(votePanel, /notVoting: participants\.length - secretParticipants\.length/);
+  assert.match(votePanel, /notVoting: counts\.notVoting/);
   assert.doesNotMatch(read("src/hooks/useCouncilMeeting.ts"), /\.slice\(0, participantCount\)/);
-  assert.match(votePanel, /reconcileSecretBallotTotals/);
+  assert.doesNotMatch(votePanel, /adjustSecretTotal|secretExcludedIds/);
   assert.match(meetingProceedings, /ballot\.method === "public"/);
   assert.match(meetingProceedings, /ballot\.participationEvidence\.quorum/);
   assert.match(ballotApi, /"ballot.preview"/);
@@ -283,7 +284,7 @@ test("meeting mutations follow the lifecycle and fixed roster", () => {
   const preparation = read("src/pages/council-meetings/MeetingPreparation.tsx");
   assert.match(preparation, /aggregate\.rosterMemberIds\.includes\(member\.id\)/);
   assert.match(preparation, /meetingActions\.can\("meeting\.reorder-agenda"\)/);
-  assert.match(preparation, /meetingActions\.can\("meeting\.schedule"\)/);
+  assert.match(preparation, /meetingActions\.can\("meeting\.prepare"\)/);
   assert.match(preparation, /documentsEditable=\{canUpload\}/);
   const pathContents = read("src/pages/workspace/PathContents.tsx");
   assert.match(pathContents, /councilBusinessStore\.canCreate \?/);

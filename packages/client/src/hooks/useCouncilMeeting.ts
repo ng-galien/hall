@@ -2,12 +2,14 @@ import {
   type ApiActionName,
   type BallotResultPreview,
   findSirenAction,
-  type RecordMeetingAttendance,
-  type RecordMeetingMembership,
+  type RecordMeetingOpening,
+  type RecordMeetingReconvocation,
+  type MeetingConductWorkspace,
   type RecordMeetingAttendanceEvents,
   type ScheduleAgendaItem,
   type ScheduleCouncilMeeting,
   type PrepareCouncilMeeting,
+  type SchedulePreparedCouncilSubject,
   type SirenEntity,
 } from "@hall/api-contract";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,11 +18,13 @@ import { type LiveBallotSubmission, presentLiveMeeting } from "../models/liveMee
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import { openAgendaItemRecusals } from "../services/agendaItemRecusalsApi";
 import { prepareCouncilMeeting } from "../services/councilMeetingsApi";
+import { freezeMeetingAgenda, reopenMeetingAgenda } from "../services/meetingNoticesApi";
 import {
   openMeetingConduct,
-  recordMeetingMembership,
   recordMeetingAttendanceEvents,
   recordMeetingQuorum,
+  recordMeetingOpening,
+  recordMeetingReconvocation,
 } from "../services/meetingConductApi";
 import {
   confirmBallot,
@@ -34,33 +38,24 @@ import {
 import {
   adjournMeetingAgendaItem,
   closeCouncilMeeting,
-  completeMeetingOpenQuestion,
+  completeMeetingAgendaItem,
+  addMeetingOpenQuestion,
   createAndScheduleCouncilBusiness,
   deprogramMeetingAgendaItem,
   openCouncilMeeting,
   openMeetingAgenda,
-  recordMeetingAttendance,
   reorderMeetingAgenda,
   scheduleCouncilMeeting,
   scheduleMeetingAgendaItem,
-  setCouncilMeetingOfficers,
-  startCouncilMeeting,
+  schedulePreparedCouncilSubject,
   startMeetingAgendaItem,
   updateMeetingAgendaItemNotes,
 } from "../services/councilMeetingsApi";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
-import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 
-type LiveActionName =
-  | ApiActionName
-  | "meeting.open"
-  | "meeting.set-officers"
-  | "meeting.reconvene"
-  | "meeting.record-quorum-failure"
-  | "meeting.add-late-business"
-  | "ballot.record";
+type LiveActionName = ApiActionName | "meeting.set-officers" | "ballot.record";
 
 export function useCouncilMeeting(meetingReference: string) {
   const [workspace, setWorkspace] = useState<CouncilMeetingWorkspace | null>(null);
@@ -192,11 +187,6 @@ export function useCouncilMeeting(meetingReference: string) {
   );
 
   function can(actionName: LiveActionName, targetId?: string): boolean {
-    if (actionName === "meeting.open") actionName = "meeting.start";
-    if (actionName === "meeting.reconvene" || actionName === "meeting.record-quorum-failure") {
-      return false;
-    }
-    if (actionName === "meeting.add-late-business") return false;
     if (actionName === "ballot.record") actionName = "ballot.preview";
     return representations.some(
       (representation) =>
@@ -286,17 +276,18 @@ export function useCouncilMeeting(meetingReference: string) {
     can,
     error,
     actionError,
+    refresh: load,
+    freezeAgenda() {
+      return mutate(() => freezeMeetingAgenda(meetingReference));
+    },
+    reopenAgenda() {
+      return mutate(() => reopenMeetingAgenda(meetingReference));
+    },
     schedule(input: ScheduleCouncilMeeting) {
       return mutate(() => scheduleCouncilMeeting(meetingReference, input));
     },
     prepare(input: PrepareCouncilMeeting) {
       return mutate(() => prepareCouncilMeeting(meetingReference, input));
-    },
-    recordAttendance(input: RecordMeetingAttendance) {
-      return mutate(() => recordMeetingAttendance(meetingReference, input));
-    },
-    recordMembership(input: RecordMeetingMembership) {
-      return mutate(() => recordMeetingMembership(meetingReference, input));
     },
     recordAttendanceEvents(input: RecordMeetingAttendanceEvents) {
       return mutate(() => recordMeetingAttendanceEvents(meetingReference, input));
@@ -309,83 +300,34 @@ export function useCouncilMeeting(meetingReference: string) {
     scheduleAgendaItem(input: ScheduleAgendaItem) {
       return mutate(() => scheduleMeetingAgendaItem(meetingReference, input));
     },
+    schedulePreparedSubject(input: SchedulePreparedCouncilSubject) {
+      return mutate(() => schedulePreparedCouncilSubject(meetingReference, input));
+    },
     deprogramAgendaItem(itemId: string) {
       return mutate(() => deprogramMeetingAgendaItem(meetingReference, itemId));
     },
     reorderAgenda(agendaItemIds: string[]) {
       return mutate(() => reorderMeetingAgenda(meetingReference, { agendaItemIds }));
     },
-    start() {
-      return mutate(() => startCouncilMeeting(meetingReference, { startedAt: new Date().toISOString() }));
+    async recordOpening(input: RecordMeetingOpening): Promise<MeetingConductWorkspace | null> {
+      let result: MeetingConductWorkspace | null = null;
+      const saved = await mutate(async () => {
+        result = await recordMeetingOpening(meetingReference, input);
+      });
+      return saved ? result : null;
     },
     startAgendaItem(itemId: string) {
       return mutate(() => startMeetingAgendaItem(meetingReference, itemId, { startedAt: new Date().toISOString() }));
     },
-    completeOpenQuestion(itemId: string) {
-      return mutate(() =>
-        completeMeetingOpenQuestion(meetingReference, itemId, { completedAt: new Date().toISOString() }),
-      );
-    },
-    saveDecisionText(proposalId: string, input: { title: string; draftText: string }) {
-      return mutate(async () => {
-        const subject = workspace?.agendaItems.find((item) => item.subject.id === proposalId)?.subject;
-        if (subject?.kind !== "councilDecisionProposal") throw new Error("Unknown decision proposal");
-        const resources = useWorkspaceResourcesStore.getState();
-        const opened = await resources.open(subject.textResourceId);
-        if (!opened || opened.data.kind !== "text") throw new Error("Proposal text unavailable");
-        const saved = await resources.updateContent(subject.textResourceId, {
-          kind: "text",
-          expectedVersion: opened.data.version,
-          content: input.draftText,
-        });
-        if (!saved) throw new Error("Proposal text could not be saved");
-      });
-    },
-    updateBusiness(businessId: string, input: Record<string, unknown>) {
-      return mutate(async () => {
-        const business = businesses.find((candidate) => candidate.id === businessId);
-        if (!business || typeof input.report !== "string" || typeof input.title !== "string")
-          throw new Error("Invalid business edit");
-        const resources = useWorkspaceResourcesStore.getState();
-        const report = await resources.open(business.reportResourceId);
-        if (!report || report.data.kind !== "text") throw new Error("Report unavailable");
-        if (
-          !(await resources.updateContent(business.reportResourceId, {
-            kind: "text",
-            expectedVersion: report.data.version,
-            content: input.report,
-          }))
-        )
-          throw new Error("Report could not be saved");
-        const folder = await resources.open(business.folderResourceId);
-        if (!folder || folder.data.kind !== "folder") throw new Error("Folder unavailable");
-        if (
-          folder.data.name !== input.title &&
-          !(await resources.updateMetadata(business.folderResourceId, {
-            path: folder.data.path,
-            name: input.title,
-            tags: folder.data.tags,
-            editing: { kind: "fixed" },
-          }))
-        )
-          throw new Error("Business title could not be saved");
-        await useCouncilBusinessStore.getState().load();
-      });
-    },
     close() {
       return mutate(() => closeCouncilMeeting(meetingReference, { closedAt: new Date().toISOString() }));
-    },
-    changeStatus(status: "inProgress" | "closed") {
-      return status === "inProgress"
-        ? mutate(() => startCouncilMeeting(meetingReference, { startedAt: new Date().toISOString() }))
-        : mutate(() => closeCouncilMeeting(meetingReference, { closedAt: new Date().toISOString() }));
     },
     adjournAgendaItem(itemId: string) {
       return mutate(() => adjournMeetingAgendaItem(meetingReference, itemId));
     },
     completeAgendaItem(itemId: string, _input?: unknown) {
       return mutate(() =>
-        completeMeetingOpenQuestion(meetingReference, itemId, { completedAt: new Date().toISOString() }),
+        completeMeetingAgendaItem(meetingReference, itemId, { completedAt: new Date().toISOString() }),
       );
     },
     previewBallot: previewLiveBallot,
@@ -410,10 +352,13 @@ export function useCouncilMeeting(meetingReference: string) {
         });
         await useCouncilBusinessStore.getState().load();
       }),
-    setOfficers(input: { chairMemberId: string; secretaryMemberId: string }) {
-      return mutate(() => setCouncilMeetingOfficers(meetingReference, input));
+    addOpenQuestion: async (input: Parameters<typeof addMeetingOpenQuestion>[1]) =>
+      mutate(async () => {
+        await addMeetingOpenQuestion(meetingReference, input);
+        await useCouncilBusinessStore.getState().load();
+      }),
+    recordReconvocation(input: RecordMeetingReconvocation) {
+      return mutate(() => recordMeetingReconvocation(meetingReference, input));
     },
-    reconvene: async (_input: Record<string, unknown>): Promise<{ slug: string } | null> => null,
-    recordQuorumFailure: async () => false,
   };
 }
