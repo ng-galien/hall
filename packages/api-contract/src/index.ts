@@ -9,15 +9,19 @@ export {
   createPreparedCouncilSubjectSchema,
   generateMeetingNoticeMessageSchema,
   type MeetingAgendaFreeze,
+  type MeetingEntryBlocker,
   type MeetingNotice,
   type MeetingNoticeDeadline,
   type MeetingNoticeFacts,
   type MeetingNoticeMessagePreparation,
+  type MeetingOpeningBlocker,
   meetingAgendaFreezeSchema,
+  meetingEntryBlockerSchema,
   meetingNoticeDeadlineSchema,
   meetingNoticeFactsSchema,
   meetingNoticeMessagePreparationSchema,
   meetingNoticeSchema,
+  meetingOpeningBlockerSchema,
   type PreparedCouncilSubject,
   preparedCouncilSubjectKindSchema,
   preparedCouncilSubjectSchema,
@@ -27,6 +31,7 @@ export {
 export * from "./ballot.js";
 export * from "./ballotResultPreview.js";
 export * from "./councilBusiness.js";
+export * from "./councilDecisionDocument.js";
 export * from "./councilMeeting.js";
 export * from "./directory.js";
 export * from "./meetingConduct.js";
@@ -37,4 +42,4 @@ export * from "./resources.js";
 export * from "./security.js";
 export * from "./siren.js";
 
-export * from "./councilDecisionDocument.js";
+export * from "./meetingDocuments.js";

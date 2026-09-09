@@ -98,7 +98,7 @@ postgresTest(
       await council.generateNotice(
         context,
         meeting.id,
-        { meeting: facts, hall: { name: "Test commune", timeZone: "Europe/Paris" } },
+        { meeting: facts, issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" } },
         Buffer.from("%PDF-fixture"),
       );
       const conduct = await send(`/api/council-meetings/${meeting.id}/record-opening`, {
@@ -210,7 +210,7 @@ postgresTest(
       const decisionPath = `/api/council-decisions/${summary.id}`;
       const entity = await get(decisionPath);
       const draft = councilDecisionDetailSchema.parse(entity.properties);
-      expect(draft).toMatchObject({ state: "draft", publicationNumber: null, ballotId: ballot.id });
+      expect(draft).toMatchObject({ state: "draft", number: expect.stringMatching(/^2026-01-\d+$/), ballotId: ballot.id });
       expect(entity.actions.map((a: { name: string }) => a.name)).toEqual(["decision.update-draft", "decision.freeze"]);
       expect((await get(decisionPath, readerCookie)).actions ?? []).toEqual([]);
       const forbidden = await fetch(server.url + decisionPath + "/freeze", {
@@ -234,13 +234,14 @@ postgresTest(
       const pdf = await loading.promise;
       const pageText = await (await pdf.getPage(1)).getTextContent();
       expect(pageText.items.map((item) => ("str" in item ? item.str : "")).join(" ")).toContain("Editorial record");
+      expect(pageText.items.map((item) => ("str" in item ? item.str : "")).join(" ")).toContain(draft.number);
       await loading.destroy();
       expect((await get(decisionPath)).properties.state).toBe("draft");
       await send(decisionPath + "/freeze", { expectedVersion: 1 }, 409);
       const frozen = councilDecisionDetailSchema.parse(
         (await send(decisionPath + "/freeze", { expectedVersion: edited.version })).properties,
       );
-      expect(frozen).toMatchObject({ state: "frozen", publicationNumber: null });
+      expect(frozen).toMatchObject({ state: "frozen", number: expect.stringMatching(/^2026-01-\d+$/) });
       const finalEntity = await get(decisionPath);
       expect(finalEntity.actions ?? []).toEqual([]);
       expect(finalEntity.links).toEqual(
@@ -250,14 +251,20 @@ postgresTest(
         Buffer.from(
           await (await fetch(server.url + decisionPath + suffix, { headers: { cookie: adminCookie } })).arrayBuffer(),
         );
-      expect(await bytes("/preview.pdf")).toEqual(await bytes("/content.pdf"));
+      const frozenBytes = await bytes("/content.pdf");
+      expect(await bytes("/preview.pdf")).toEqual(frozenBytes);
+      const finalLoading = getDocument({ data: new Uint8Array(frozenBytes), useSystemFonts: true });
+      const finalPdf = await finalLoading.promise;
+      const finalText = await (await finalPdf.getPage(1)).getTextContent();
+      expect(finalText.items.map((item) => ("str" in item ? item.str : "")).join(" ")).toContain(frozen.number);
+      await finalLoading.destroy();
       await send(
         decisionPath + "/draft",
         { expectedVersion: edited.version, content: "Forbidden rewrite" },
         409,
         "PUT",
       );
-      await send(decisionPath + "/freeze", { expectedVersion: edited.version }, 409);
+      expect((await send(decisionPath + "/freeze", { expectedVersion: edited.version })).properties).toEqual(frozen);
       for (const path of ["/api/ballots", `/api/ballots/${ballot.id}/votes`, `/api/ballots/${ballot.id}/complete`])
         await send(path, {}, 404);
     } finally {

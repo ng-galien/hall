@@ -322,7 +322,7 @@ AS $$
 DECLARE
   changed council_agenda_item;
 BEGIN
-  -- Open questions and business consultations complete through this action. The completion
+  -- Open questions complete through this action. The completion
   -- authority rejects ballot-backed subjects without a completed Ballot.
   UPDATE council_agenda_item
   SET completed_at = completion_time

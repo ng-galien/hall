@@ -12,7 +12,7 @@ export async function prepareMeetingNotice(
   await council.generateNotice(
     request,
     meetingId,
-    { meeting: facts, hall: { name: "Fixture commune", timeZone: "Europe/Paris" } },
+    { issuedOn: null, meeting: facts, hall: { name: "Fixture commune", timeZone: "Europe/Paris" } },
     Buffer.from("%PDF-fixture"),
   );
 }

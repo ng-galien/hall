@@ -54,7 +54,7 @@ postgresDescribe("prepared subjects and atomic insertion", () => {
       content: "Questions for discussion",
     });
     expect(await council.listAgenda(request, meeting.id)).toEqual([]);
-    expect(await council.listPreparedSubjects(request, meeting.id)).toHaveLength(3);
+    expect(await council.listPreparedSubjects(request, meeting.id)).toHaveLength(2);
     const later = await council.schedulePreparedSubject(request, meeting.id, {
       subjectId: discussion.id,
       kind: discussion.kind,
@@ -76,22 +76,10 @@ postgresDescribe("prepared subjects and atomic insertion", () => {
       { id: first.id, position: 1, title: "Approve road budget", kind: "councilDecisionProposal" },
       { id: later.id, position: 2, title: "Discuss access", kind: "openQuestion" },
     ]);
-    const consultation = await council.schedulePreparedSubject(request, meeting.id, {
-      councilBusinessId: business.id,
-      kind: "businessConsultation",
-      position: 99,
-    });
-    expect(consultation.position).toBe(2);
-    expect(consultation.subject).toEqual({
-      kind: "businessConsultation",
-      councilBusinessId: business.id,
-      reportResourceId: business.reportResourceId,
-      content: "Shared evidence",
-    });
     expect(first.subject.id).toBe(proposal.id);
     expect(later.subject.id).toBe(discussion.id);
     expect(await council.listPreparedSubjects(request, meeting.id)).toEqual([]);
-    expect(await council.listPreparedSubjects(request)).toHaveLength(3);
+    expect(await council.listPreparedSubjects(request)).toHaveLength(2);
     await expect(
       council.schedulePreparedSubject(request, meeting.id, {
         subjectId: proposal.id,
@@ -107,7 +95,6 @@ postgresDescribe("prepared subjects and atomic insertion", () => {
     await council.freezeAgenda(request, meeting.id);
     expect((await council.openAgendaFreeze(request, meeting.id))?.agenda.map((i) => i.title)).toEqual([
       "Approve road budget",
-      "Road project",
       "Discuss access",
     ]);
     expect(await council.listPreparedSubjects(request, meeting.id)).toEqual([]);

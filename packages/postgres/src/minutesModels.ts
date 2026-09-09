@@ -44,7 +44,7 @@ export const minutesFactsSchema = z
           title: z.string(),
           report: z.string(),
           proposal: z.string().nullable(),
-          kind: z.enum(["minutesApproval", "councilDecisionProposal", "businessConsultation", "openQuestion"]),
+          kind: z.enum(["minutesApproval", "councilDecisionProposal", "openQuestion"]),
           startedAt: time.nullable(),
           completedAt: time.nullable(),
           adjournedAt: time.nullable(),

@@ -27,7 +27,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
     <div className="page" data-testid="decision-detail">
       <PageHeader
         title={decision?.title ?? t("decisions.title")}
-        description={decision?.publicationNumber ?? ""}
+        description={decision?.number ?? ""}
       />
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={draft.error} />

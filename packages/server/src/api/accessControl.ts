@@ -10,7 +10,7 @@ import { principalForSession, SESSION_COOKIE_NAME } from "../services/authServic
 import { resolveAuditIntent } from "./apiCommandResolution.js";
 import { sendProblem } from "./problemDetails.js";
 
-function cookieValue(request: Request, name: string): string | null {
+export function cookieValue(request: Request, name: string): string | null {
   const cookie = request.header("cookie");
   if (!cookie) return null;
   for (const part of cookie.split(";")) {

@@ -81,7 +81,7 @@ CREATE FUNCTION hall.council_decision_summary(target hall.council_decision)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
   SELECT jsonb_build_object('id',target.id,'councilMeetingId',facts#>>'{meeting,id}',
     'proposalId',facts#>>'{proposal,id}','ballotId',target.ballot,'title',facts#>>'{proposal,title}',
-    'publicationNumber',NULL,'version',target.version,'createdAt',target.created_at,'updatedAt',target.updated_at,
+    'number',NULL,'version',target.version,'createdAt',target.created_at,'updatedAt',target.updated_at,
     'state',CASE WHEN document.id IS NULL THEN 'draft' ELSE 'frozen' END,'frozenAt',document.frozen_at,'documentId',document.id)
   FROM hall.council_decision_facts observation LEFT JOIN hall.council_decision_document document ON document.council_decision=target.id
   WHERE observation.ballot=target.ballot;

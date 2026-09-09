@@ -85,6 +85,9 @@ export function createTestCouncilClient(
   }
 
   return {
+    async meetingDocuments() { throw new Error("Meeting documentary projection requires PostgreSQL"); },
+    async meetingDocumentResource() { return null; },
+    async meetingDocumentContent() { return null; },
     async listPreparedSubjects() {
       return [];
     },
@@ -252,6 +255,18 @@ export function createTestCouncilClient(
         agendaFrozenAt: null,
         currentNoticeId: null,
         closureBlockers: [],
+        entryBlockers: [
+          { code: "meetingNotScheduled" },
+          { code: "meetingLocationMissing" },
+          { code: "agendaNotFrozen" },
+          { code: "currentNoticeMissing" },
+        ],
+        openingBlockers: [
+          { code: "meetingNotScheduled" },
+          { code: "meetingLocationMissing" },
+          { code: "agendaNotFrozen" },
+          { code: "currentNoticeMissing" },
+        ],
         noticeDeadline: { status: "indeterminate", reason: "scheduleUnknown" },
         scheduledAt: null,
         location: null,
@@ -368,6 +383,18 @@ export function createTestCouncilClient(
         agendaFrozenAt: null,
         currentNoticeId: null,
         closureBlockers: [],
+        entryBlockers: [
+          { code: "meetingNotScheduled" },
+          { code: "meetingLocationMissing" },
+          { code: "agendaNotFrozen" },
+          { code: "currentNoticeMissing" },
+        ],
+        openingBlockers: [
+          { code: "meetingNotScheduled" },
+          { code: "meetingLocationMissing" },
+          { code: "agendaNotFrozen" },
+          { code: "currentNoticeMissing" },
+        ],
         noticeDeadline: { status: "indeterminate", reason: "scheduleUnknown" },
         scheduledAt: null,
         location: null,

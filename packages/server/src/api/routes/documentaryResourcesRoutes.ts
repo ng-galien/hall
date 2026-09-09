@@ -77,6 +77,7 @@ export function createDocumentaryResourcesRouter({ documentaryResourceService, r
       response.status(201).json(
         await documentaryResourceService.createDocument({
           path: resourcePathSchema.parse(request.body.path ?? ""),
+          councilBusinessId: resourceIdSchema.optional().parse(request.body.councilBusinessId),
           name: request.body.name ? String(request.body.name) : request.file.originalname,
           fileName: request.file.originalname,
           content: request.file.buffer,
@@ -102,7 +103,17 @@ export function createDocumentaryResourcesRouter({ documentaryResourceService, r
         fileName: request.file.originalname,
         content: request.file.buffer,
       });
-      response.status(201).json(await documentaryResourceService.create({ kind: "spreadsheet", path, name, document }));
+      response
+        .status(201)
+        .json(
+          await documentaryResourceService.create({
+            kind: "spreadsheet",
+            path,
+            name,
+            document,
+            councilBusinessId: resourceIdSchema.optional().parse(request.body.councilBusinessId),
+          }),
+        );
     },
   );
 

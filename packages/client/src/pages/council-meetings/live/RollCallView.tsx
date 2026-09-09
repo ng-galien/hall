@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MeetingReconvocationForm } from "../../../features/council-meetings/MeetingReconvocationForm";
+import { MeetingEntryBlockers } from "../../../features/council-meetings/MeetingEntryBlockers";
 import {
   CheckCircleIcon,
   FileIcon,
@@ -87,6 +88,7 @@ export function RollCallView({
     meeting,
     attendance: draftAttendance,
   });
+  const openingBlockers = meetingActions.workspace!.meeting.openingBlockers;
 
   const record = (memberId: string, status: (typeof directStatuses)[number]) => {
     setDraftAttendance((current) => [
@@ -353,6 +355,7 @@ export function RollCallView({
       {mode === "opening" ? (
         <footer className="rollcall-footer">
           <div role="status">
+            <MeetingEntryBlockers blockers={openingBlockers} />
             {openingObservation?.facts.verdict === "notMet" ? (
               <span className="rollcall-check rollcall-check-pending" data-testid="live-opening-quorum-not-met">
                 <WarningIcon aria-hidden="true" />
@@ -365,7 +368,7 @@ export function RollCallView({
                 <WarningIcon aria-hidden="true" />
                 {t(`meeting.opening.${openingBlock}`)}
               </span>
-            ) : (
+            ) : openingBlockers.length ? null : (
               <span className="rollcall-check rollcall-check-prepared" data-testid="live-rollcall-prepared">
                 <CheckCircleIcon aria-hidden="true" />
                 {t(
@@ -388,7 +391,7 @@ export function RollCallView({
             <button
               className="live-primary-action"
               type="button"
-              disabled={submitting || Boolean(openingBlock) || !meetingActions.can("meeting.record-opening")}
+              disabled={submitting || Boolean(openingBlock) || openingBlockers.length > 0 || !meetingActions.can("meeting.record-opening")}
               onClick={() => void openMeeting()}
               data-testid="live-meeting-start"
             >

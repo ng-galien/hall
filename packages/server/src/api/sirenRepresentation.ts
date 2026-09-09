@@ -62,6 +62,7 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
     "council-meeting": (): SirenLink[] =>
       reference
         ? [
+            { rel: ["documents"], href: `/api/council-meetings/${reference}/documents`, type: SIREN_MEDIA_TYPE },
             { rel: ["conduct"], href: `/api/council-meetings/${reference}/conduct`, type: SIREN_MEDIA_TYPE },
             { rel: ["notices"], href: `/api/council-meetings/${reference}/notices`, type: SIREN_MEDIA_TYPE },
             ...(primary?.agendaFrozenAt

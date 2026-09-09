@@ -660,7 +660,7 @@ export function createTemplateRenderingService({
           continue;
         }
         const fragments = {
-          facts: () => renderCouncilDecisionFacts(decision.facts),
+          facts: () => renderCouncilDecisionFacts(decision.facts, decision.documentDate),
           content: () => renderCouncilDecisionContent(decision),
           result: () => renderCouncilDecisionResult(decision.facts),
         };
@@ -808,7 +808,7 @@ export function createTemplateRenderingService({
       context.notice =
         notice ??
         (meetingFacts
-          ? { meeting: meetingFacts, hall: { name: context.hall.name, timeZone: context.hall.timeZone } }
+          ? { issuedOn: null, meeting: meetingFacts, hall: { name: context.hall.name, timeZone: context.hall.timeZone } }
           : null);
       if (context.notice) {
         context.hall = { ...context.hall, ...context.notice.hall };

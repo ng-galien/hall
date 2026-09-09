@@ -45,7 +45,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
         WHERE proposal->>'id' = item->>'council_decision_proposal'),
       'kind', CASE WHEN item->>'minutes_approval' IS NOT NULL THEN 'minutesApproval'
         WHEN item->>'council_decision_proposal' IS NOT NULL THEN 'councilDecisionProposal'
-        WHEN item->>'open_question' IS NOT NULL THEN 'openQuestion' ELSE 'businessConsultation' END,
+        WHEN item->>'open_question' IS NOT NULL THEN 'openQuestion' END,
       'startedAt', item->>'started_at', 'completedAt', item->>'completed_at', 'adjournedAt', item->>'adjourned_at'
     ) ORDER BY abs((item->>'position')::INTEGER)) FROM jsonb_array_elements(snapshot.payload->'agenda') item), '[]'::JSONB),
     'ballots', coalesce((SELECT jsonb_agg(jsonb_build_object(

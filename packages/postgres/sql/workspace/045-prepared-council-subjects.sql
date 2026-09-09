@@ -18,20 +18,17 @@ SELECT subject.id, 'councilDecisionProposal'::TEXT kind, subject.council_busines
 FROM hall.council_decision_proposal subject JOIN hall.council_decision_proposal_workspace workspace ON workspace.council_decision_proposal=subject.id
 UNION ALL
 SELECT subject.id, 'openQuestion'::TEXT kind, subject.council_business, workspace.text_resource
-FROM hall.open_question subject JOIN hall.open_question_workspace workspace ON workspace.open_question=subject.id
-UNION ALL SELECT business.id, 'businessConsultation'::TEXT, business.id, NULL::UUID FROM hall.council_business business;
+FROM hall.open_question subject JOIN hall.open_question_workspace workspace ON workspace.open_question=subject.id;
 
 CREATE FUNCTION hall.prepared_council_subject_projection(target_id UUID, target_kind TEXT)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
   SELECT jsonb_build_object('kind',subject.kind,'councilBusinessId',subject.council_business,
-    'title',coalesce(content_resource.name,folder.name),'folderPath',folder.full_path,'reportResourceId',business.report_resource,
-    'content',coalesce(content.content,report.content)) || CASE WHEN subject.kind='businessConsultation' THEN '{}'::JSONB
-      ELSE jsonb_build_object('id',subject.id,'textResourceId',subject.text_resource) END
+    'title',content_resource.name,'folderPath',folder.full_path,'reportResourceId',business.report_resource,
+    'content',content.content,'id',subject.id,'textResourceId',subject.text_resource)
   FROM hall.prepared_council_subject subject JOIN hall.council_business_workspace business ON business.council_business=subject.council_business
     JOIN hall.resource folder ON folder.id=business.folder_resource
-    JOIN hall.text_resource report ON report.id=business.report_resource
-    LEFT JOIN hall.resource content_resource ON content_resource.id=subject.text_resource
-    LEFT JOIN hall.text_resource content ON content.id=subject.text_resource
+    JOIN hall.resource content_resource ON content_resource.id=subject.text_resource
+    JOIN hall.text_resource content ON content.id=subject.text_resource
   WHERE subject.id=target_id AND subject.kind=target_kind;
 $$;
 CREATE FUNCTION hall_api.list_prepared_council_subjects(target_meeting UUID DEFAULT NULL)
@@ -41,8 +38,7 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ha
   WHERE (target_meeting IS NULL OR EXISTS (SELECT FROM hall.council_meetings meeting WHERE meeting.id=target_meeting AND meeting.started_at IS NULL
     AND NOT EXISTS(SELECT FROM hall.active_council_agenda_freeze WHERE council_meeting=target_meeting)))
   AND NOT EXISTS(SELECT FROM hall.council_agenda_item item WHERE item.council_meeting=target_meeting AND item.position>0
-    AND item.subject_kind::TEXT=subject.kind AND (item.council_decision_proposal=subject.id OR item.open_question=subject.id
-      OR (subject.kind='businessConsultation' AND item.council_business=subject.council_business)));
+    AND item.subject_kind::TEXT=subject.kind AND (item.council_decision_proposal=subject.id OR item.open_question=subject.id));
 $$;
 CREATE FUNCTION hall_api.open_prepared_council_subject(target_id UUID,target_kind TEXT)
 RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
@@ -68,7 +64,7 @@ $$;
 CREATE FUNCTION hall.council_agenda_subject_rank(kind hall.council_agenda_subject_kind)
 RETURNS INTEGER LANGUAGE sql IMMUTABLE STRICT SET search_path=pg_catalog AS $$
   SELECT CASE kind WHEN 'minutesApproval' THEN 0 WHEN 'councilDecisionProposal' THEN 1
-    WHEN 'businessConsultation' THEN 2 WHEN 'openQuestion' THEN 3 END;
+    WHEN 'openQuestion' THEN 2 END;
 $$;
 
 -- @functional-requirement HALL-FR-AGI-380 PREPARED_SUBJECT_INSERTION_PRESERVES_NATURE_AND_SHIFTS_ATOMICALLY:
@@ -88,8 +84,7 @@ BEGIN
   SELECT * INTO subject FROM hall.prepared_council_subject WHERE id=target_subject AND kind=target_kind;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='HV910',MESSAGE='unknown prepared subject'; END IF;
   SELECT id INTO existing FROM hall.council_agenda_item WHERE council_meeting=target_meeting
-    AND subject_kind::TEXT=target_kind AND (council_decision_proposal=target_subject OR open_question=target_subject
-      OR (target_kind='businessConsultation' AND council_business=target_subject));
+    AND subject_kind::TEXT=target_kind AND (council_decision_proposal=target_subject OR open_question=target_subject);
   IF existing IS NOT NULL AND EXISTS(SELECT FROM hall.council_agenda_item WHERE id=existing AND (position>0 OR started_at IS NOT NULL OR adjourned_at IS NOT NULL)) THEN
     RAISE EXCEPTION USING ERRCODE='HV810',MESSAGE='subject is already inscribed or examined in this meeting';
   END IF;

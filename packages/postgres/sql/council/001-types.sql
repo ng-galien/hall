@@ -34,4 +34,4 @@ CREATE TYPE meeting_attendance_status AS ENUM (
   'absent'
 );
 
-CREATE TYPE council_agenda_subject_kind AS ENUM ('minutesApproval','councilDecisionProposal','businessConsultation','openQuestion');
+CREATE TYPE council_agenda_subject_kind AS ENUM ('minutesApproval','councilDecisionProposal','openQuestion');

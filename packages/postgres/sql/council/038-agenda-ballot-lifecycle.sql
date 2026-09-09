@@ -28,8 +28,7 @@ BEGIN
   -- @functional-requirement HALL-FR-AGI-150 OPEN_QUESTION_COMPLETES_WITHOUT_BALLOT:
   -- An open question has no ballot by nature. Its explicit completion is the
   -- authoritative record that consideration ended.
-  -- @functional-requirement HALL-FR-BUS-070 BUSINESS_CONSULTATION_EXAMINES_EXISTING_BUSINESS_WITHOUT_BALLOT:
-  IF NEW.completed_at IS NULL OR NEW.open_question IS NOT NULL OR NEW.subject_kind='businessConsultation' THEN
+  IF NEW.completed_at IS NULL OR NEW.open_question IS NOT NULL THEN
     RETURN NEW;
   END IF;
 

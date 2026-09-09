@@ -100,7 +100,6 @@ function MinutesDetail({ id }: { id: string }) {
                         {matchLiteral(item.kind, {
                           minutesApproval: () => t("agendaSubject.minutesApproval"),
                           councilDecisionProposal: () => item.title,
-                          businessConsultation: () => item.title,
                           openQuestion: () => item.title,
                         })}
                       </h3>

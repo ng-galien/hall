@@ -182,7 +182,7 @@ SELECT throws_ok(
     )$$,
   '23514',
   NULL,
-  'an agenda item requires a subject or the business of a consultation'
+  'an agenda item requires exactly one subject'
 );
 
 -- HALL-FR-AGI-020

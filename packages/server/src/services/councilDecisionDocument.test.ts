@@ -8,6 +8,7 @@ import {
 
 const member = { id: "member", name: "Marie <Martin>" };
 const facts: CouncilDecisionFacts = {
+  noticeDate: null,
   hall: { name: "Alésia", timeZone: "Europe/Paris" },
   opening: null,
   proposal: { id: "proposal", title: "Objet", submittedText: "Texte voté" },
@@ -41,8 +42,7 @@ describe("council decision documentary facts", () => {
   it("presents confirmed facts with French dates and escaped names", () => {
     const html = renderCouncilDecisionFacts(facts);
     expect(html).toContain("26 juin 2026");
-    expect(html).toContain("Ordre de la délibération dans la séance : 2");
-    expect(html).not.toContain("Ordre de la délibération dans la séance : 7");
+    expect(html).not.toContain("Ordre de la délibération dans la séance");
     expect(html).toContain("19 heures 00");
     expect(html).toContain("L’an deux mille vingt-six");
     expect(html).toContain("Extrait du registre des délibérations du conseil municipal");
@@ -53,7 +53,8 @@ describe("council decision documentary facts", () => {
     expect(renderCouncilDecisionResult(facts)).toContain("Pour : 1");
     expect(html).not.toContain("Texte voté");
     expect(html).not.toContain("signé");
-    expect(html).not.toContain("Date de convocation");
+    expect(html).toContain("Date de convocation");
+    expect(html).toContain("Non renseignée");
   });
   it("keeps opening attendance separate from voting and never substitutes a mayor", () => {
     const html = renderCouncilDecisionFacts({
@@ -103,7 +104,8 @@ describe("council decision documentary facts", () => {
       proposalId: "proposal",
       ballotId: "ballot",
       title: "Objet <test>",
-      publicationNumber: null,
+      number: "2026-06-04",
+      documentDate: "2026-09-07",
       state: "draft",
       version: 1,
       createdAt: facts.confirmedAt,
@@ -117,7 +119,7 @@ describe("council decision documentary facts", () => {
     expect(html).toContain("<strong>fidèle</strong>");
     expect(html).not.toContain("<script>");
     expect(html).not.toContain("Texte voté");
-    expect(html).not.toContain("Délibération n°");
+    expect(html).toContain("Délibération n° 2026-06-04");
     expect(html).not.toContain("Pour :");
   });
 });

@@ -207,7 +207,6 @@ describe("Siren entity class authority", () => {
 describe("active agenda ballot capabilities", () => {
   it.each([
     ["openQuestion", false],
-    ["businessConsultation", false],
     ["councilDecisionProposal", false],
     ["minutesApproval", false],
     ["councilDecisionProposal", true],
@@ -311,4 +310,34 @@ it.each([true, false])("keeps attendance reasons and Siren permission consistent
   expect(entity.actions?.some((action) => action.name === "meeting.record-attendance-events") ?? false).toBe(permitted);
   expect(entity.actions?.some((action) => action.name === "meeting.add-open-question") ?? false).toBe(permitted);
   expect(entity.actions?.some((action) => action.name.includes("late")) ?? false).toBe(false);
+});
+
+describe("meeting opening preparation capabilities", () => {
+  const path = "/api/council-meetings/meeting/conduct";
+  const meeting = {
+    id: "meeting",
+    scheduledAt: "2026-01-01T18:00:00Z",
+    startedAt: null,
+    closedAt: null,
+    currentNoticeId: "notice",
+  };
+  it("uses SQL opening blockers even when a notice is present", () => {
+    const actions = objectActions(request(path), "council-meeting", {
+      meeting: { ...meeting, openingBlockers: [{ code: "agendaNotFrozen" }] },
+    });
+    expect(actions.some((action) => action.name === "meeting.record-opening")).toBe(false);
+  });
+  it("exposes opening when the backend lists no blockers", () => {
+    const actions = objectActions(request(path), "council-meeting", { meeting: { ...meeting, openingBlockers: [] } });
+    expect(actions.some((action) => action.name === "meeting.record-opening")).toBe(true);
+    expect(
+      objectActions(request(path, []), "council-meeting", { meeting: { ...meeting, openingBlockers: [] } }),
+    ).toEqual([]);
+  });
+  it("does not infer availability when the blocker contract is absent or invalid", () => {
+    for (const openingBlockers of [undefined, [{ code: "unknown" }]]) {
+      const actions = objectActions(request(path), "council-meeting", { meeting: { ...meeting, openingBlockers } });
+      expect(actions.some((action) => action.name === "meeting.record-opening")).toBe(false);
+    }
+  });
 });

@@ -4,6 +4,8 @@
 CREATE FUNCTION hall.decision_documentary_facts(source JSONB)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
  SELECT source || jsonb_build_object(
+  'noticeDate',(SELECT facts->'issuedOn' FROM hall.meeting_notice WHERE council_meeting=(source#>>'{meeting,id}')::uuid
+    AND generated_at<=(source->>'confirmedAt')::timestamptz ORDER BY generated_at DESC,id DESC LIMIT 1),
   'hall',(SELECT facts->'hall' FROM hall.meeting_notice WHERE council_meeting=(source#>>'{meeting,id}')::uuid
     AND generated_at<=(source->>'confirmedAt')::timestamptz ORDER BY generated_at DESC,id DESC LIMIT 1),
   'meeting',source->'meeting'||jsonb_build_object('chairRole',source#>'{meeting,chairRole}'),

@@ -108,3 +108,53 @@ Cette projection ne réécrit aucune preuve. La qualité du président est copi�
 lors des nouvelles confirmations ; une qualité historique non observée reste
 nulle. Le rendu ne consulte pas l’annuaire ou les paramètres actuels pour
 reconstituer ces faits, et distingue les présents à l’ouverture des votants.
+
+Les préconditions d’entrée et d’ouverture sont projetées dans
+`CouncilMeeting.entryBlockers` et `openingBlockers`, avec le vocabulaire fermé de
+`contracts/src/meetingEntry.ts`. `council/019a-agenda-freeze.sql` énumère la
+préparation manquante et partage cette autorité avec la garde du démarrage ;
+`070-council-meeting-api.sql` complète les projections selon le cycle de séance
+et l’heure programmée. Siren consomme `openingBlockers` pour annoncer
+`meeting.record-opening`, puis applique les permissions HTTP. Le client traduit
+les raisons reçues, sans recalculer la préparation. L’heure future bloque
+l’ouverture formelle, pas l’entrée dans l’appel ; les déclarations et officiers
+sont fournis et validés dans la commande atomique d’ouverture. Un quorum
+insuffisant ne constitue pas un blocage de cette commande.
+
+La création ou l’import d’une ressource de travail peut porter le contexte
+optionnel `councilBusinessId` sur les commandes `resource.create`,
+`resource.create-document` et `resource.import-spreadsheet`. Le client PostgreSQL
+exécute la création et `hall_api.associate_council_business_resource` dans la
+même transaction sérialisable, puis conserve l’affaire dans les détails de
+l’audit de création. Un refus du rattachement annule aussi la ressource et ses
+éventuels objets binaires. Siren expose ces commandes existantes sur l’affaire
+avec son identifiant comme contexte. Le chemin reste une donnée de classement ;
+il ne produit jamais une association implicite. Les dossiers ne sont pas des
+ressources de travail rattachables. Les projets et questions autonomes utilisent
+la commande existante `council-business.create-prepared-subject`, indépendamment
+de toute inscription à l’ordre du jour.
+
+La navigation documentaire d’une séance appartient à
+`workspace/060-meeting-documents.sql` et au contrat pur
+`contracts/src/meetingDocuments.ts`. Elle dérive ses groupes des relations
+existantes, sans dossier persistant, déplacement, copie supplémentaire ou
+commande documentaire générique. La dernière observation conservée (clôture,
+sinon ouverture) fournit les relations et les contenus historiques ; en
+préparation, la lecture annonce explicitement la source courante. Une pièce
+référencée mais absente de l’observation reste indisponible, sans remplacement
+par la ressource actuelle. Les fichiers et images sont lus dans les octets
+conservés. `meetingDocumentsRepresentation.ts` expose les groupes et leurs liens
+Siren, réutilise les destinations canoniques des convocations, délibérations et
+procès-verbaux, et conserve les seules actions natives de la séance. Ces lectures
+n’altèrent aucun cycle de vie ni aucune règle d’intégrité.
+
+## Adaptateur MCP du workspace
+
+`packages/mcp/src/` expose le protocole MCP et adapte ses outils au contrat HTTP
+Siren de Hall. Il dépend uniquement du contrat API et du SDK de transport, jamais
+des services ni de la base. `actions.ts` nomme le sous-ensemble documentaire
+exposé et réutilise ses schémas existants ; les capacités restent fournies par le
+serveur. `application.ts` monte `/mcp` hors de l’enveloppe Siren, après les mêmes
+contrôles de session et d’origine. Chaque requête utilise sa propre session et
+réexécute les commandes par l’API locale, conservant autorisation et audit.
+Voir [la connexion et les limites MCP](workspace-mcp.md).

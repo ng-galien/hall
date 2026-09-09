@@ -51,6 +51,7 @@ export {
   FileXls as SpreadsheetDocumentIcon,
   Folder as FolderIcon,
   FolderOpen as FolderOpenIcon,
+  Briefcase as CouncilBusinessIcon,
   FolderPlus as FolderAddIcon,
   Funnel as FilterIcon,
   Gavel as GavelIcon,

@@ -19,16 +19,20 @@ INSERT INTO meeting_attendance(id,council_member,council_meeting,status) VALUES(
 SELECT set_council_meeting_officers(test_uuid('preparation:meeting'),test_uuid('preparation:member'),test_uuid('preparation:member'));
 SELECT test_confirm_declared_membership(test_uuid('preparation:meeting'));
 INSERT INTO preparation VALUES('business',(hall_api.create_council_business('seed','Preparation regression','Report','Evidence')->>'id')::uuid);
+-- HALL-FR-AGI-010: the database rejects an affair without a prepared subject.
+SELECT throws_ok($$INSERT INTO council_agenda_item(id,council_business,council_meeting,position)
+  VALUES(gen_random_uuid(),(SELECT id FROM preparation WHERE key='business'),test_uuid('preparation:meeting'),1)$$,
+  '23514','new row for relation "council_agenda_item" violates check constraint "council_agenda_item_one_subject"',
+  'an affair alone is rejected by the structural exactly-one-subject constraint');
+SELECT is(enum_range(NULL::hall.council_agenda_subject_kind)::text[],ARRAY['minutesApproval','councilDecisionProposal','openQuestion'],
+  'only the three supported subject kinds exist');
 INSERT INTO preparation SELECT 'proposal',(hall_api.create_prepared_council_subject(id,'councilDecisionProposal','Budget proposal','Original proposed text')->>'id')::uuid FROM preparation WHERE key='business';
 -- HALL-FR-BUS-050: prepared identity already belongs to its business.
 SELECT throws_ok($$UPDATE council_decision_proposal SET council_business=gen_random_uuid() WHERE id=(SELECT id FROM preparation WHERE key='proposal')$$,'HV809',NULL,'prepared business identity cannot change');
 INSERT INTO preparation SELECT 'proposal-item',(hall_api.schedule_prepared_council_subject(test_uuid('preparation:meeting'),id,'councilDecisionProposal',1)->>'id')::uuid FROM preparation WHERE key='proposal';
-INSERT INTO preparation SELECT 'consultation',(hall_api.schedule_prepared_council_subject(test_uuid('preparation:meeting'),id,'businessConsultation',2)->>'id')::uuid FROM preparation WHERE key='business';
-INSERT INTO preparation SELECT 'question-'||n,(hall_api.create_prepared_council_subject((SELECT id FROM preparation WHERE key='business'),'openQuestion','Question '||n,'Question content '||n)->>'id')::uuid FROM generate_series(3,5)n;
-INSERT INTO preparation SELECT key||'-item',(hall_api.schedule_prepared_council_subject(test_uuid('preparation:meeting'),id,'openQuestion',right(key,1)::int)->>'id')::uuid FROM preparation WHERE key IN('question-3','question-4','question-5') ORDER BY key;
-SELECT is((SELECT array_agg(position ORDER BY position) FROM council_agenda_item WHERE council_meeting=test_uuid('preparation:meeting')),ARRAY[1,2,3,4,5],'all three prepared natures form an ordered agenda');
--- HALL-FR-BUS-070: consultation directly references the business without a new subject.
-SELECT is((SELECT subject_kind::text FROM council_agenda_item WHERE id=(SELECT id FROM preparation WHERE key='consultation')),'businessConsultation','consultation retains its direct business nature');
+INSERT INTO preparation SELECT 'question-'||n,(hall_api.create_prepared_council_subject((SELECT id FROM preparation WHERE key='business'),'openQuestion','Question '||n,'Question content '||n)->>'id')::uuid FROM generate_series(2,5)n;
+INSERT INTO preparation SELECT key||'-item',(hall_api.schedule_prepared_council_subject(test_uuid('preparation:meeting'),id,'openQuestion',right(key,1)::int)->>'id')::uuid FROM preparation WHERE key IN('question-2','question-3','question-4','question-5') ORDER BY key;
+SELECT is((SELECT array_agg(position ORDER BY position) FROM council_agenda_item WHERE council_meeting=test_uuid('preparation:meeting')),ARRAY[1,2,3,4,5],'both prepared natures form an ordered agenda');
 SELECT throws_ok($$SELECT hall_api.schedule_prepared_council_subject(test_uuid('preparation:meeting'),(SELECT id FROM preparation WHERE key='proposal'),'councilDecisionProposal',1)$$,'HV810',NULL,'duplicate prepared occurrence is refused');
 SELECT throws_ok($$SELECT hall_api.schedule_prepared_council_subject(test_uuid('preparation:meeting'),gen_random_uuid(),'openQuestion',1)$$,'HV910',NULL,'unknown prepared subject is refused');
 SELECT hall_api.deprogram_council_agenda_item((SELECT id FROM preparation WHERE key='question-5-item'));
@@ -45,7 +49,7 @@ SELECT throws_ok($$SELECT start_council_meeting(test_uuid('preparation:meeting')
 -- HALL-FR-NOT-010 HALL-FR-NOT-020: questions and composition are frozen.
 SELECT hall_api.freeze_council_agenda(test_uuid('preparation:meeting'));
 SELECT throws_ok($$SELECT hall_api.deprogram_council_agenda_item((SELECT id FROM preparation WHERE key='quick-item'))$$,'HV801',NULL,'frozen composition rejects removal');
-SELECT throws_ok($$SELECT hall_api.schedule_prepared_council_subject(test_uuid('preparation:meeting'),(SELECT id FROM preparation WHERE key='business'),'businessConsultation',2)$$,'HV801',NULL,'frozen composition rejects insertion before any duplicate branch');
+SELECT throws_ok($$SELECT hall_api.schedule_prepared_council_subject(test_uuid('preparation:meeting'),(SELECT id FROM preparation WHERE key='proposal'),'councilDecisionProposal',1)$$,'HV801',NULL,'frozen composition rejects insertion before any duplicate branch');
 -- HALL-FR-NOT-050: generation persists a version without proving transmission.
 SELECT throws_ok($$SELECT hall_api.generate_meeting_notice(test_uuid('preparation:meeting'),jsonb_build_object('meeting',hall.meeting_notice_meeting_facts(test_uuid('preparation:meeting')),'hall',jsonb_build_object('name','Commune','timeZone','Europe/Paris')),convert_to('not PDF','UTF8'))$$,'HV806',NULL,'artifact must contain PDF bytes');
 CREATE TEMP TABLE notice_versions AS SELECT hall_api.generate_meeting_notice(test_uuid('preparation:meeting'),jsonb_build_object('meeting',hall.meeting_notice_meeting_facts(test_uuid('preparation:meeting')),'hall',jsonb_build_object('name','Commune','timeZone','Europe/Paris')),convert_to('%PDF-first','UTF8')) notice;

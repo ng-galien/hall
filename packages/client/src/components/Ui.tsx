@@ -103,12 +103,14 @@ export function Modal({
   children,
   onClose,
   testId,
+  initialFocusRef,
 }: {
   open: boolean;
   title: string;
   children: ReactNode;
   onClose(): void;
   testId?: string;
+  initialFocusRef?: { current: HTMLElement | null };
 }) {
   const { t } = useI18n();
   return (
@@ -118,6 +120,7 @@ export function Modal({
         showCloseButton={false}
         aria-describedby={undefined}
         data-testid={testId}
+        onOpenAutoFocus={initialFocusRef ? (event) => { event.preventDefault(); initialFocusRef.current?.focus(); } : undefined}
       >
         <header className="modal-header">
           <DialogTitle>{title}</DialogTitle>

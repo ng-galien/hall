@@ -10,6 +10,13 @@ Adapted from the [GPT-6 Astra guide](https://developers.openai.com/api/docs/guid
 - Follow explicit user instructions over skill recommendations. If a skill blocks progress, quote the instruction, link the exact file, and explain the blocker.
 - Communicate plainly: outcome, useful evidence, and remaining limitations. Match verification to the change; broaden or repeat checks only when risks, failures, or further changes justify it.
 
+### Autorité des décisions fonctionnelles et du modèle
+
+- the user définit les règles fonctionnelles et le design. Aucun agent, coordinateur compris, ne doit inventer, ajouter ou arbitrer une règle fonctionnelle ou une décision de design à sa place.
+- Si une demande est ambiguë, demander une clarification avant toute décision ou modification qui en dépend. Ne pas combler l’ambiguïté par une interprétation présentée comme une décision du propriétaire.
+- Toute modification du modèle de données ou de ses règles d’intégrité exige son accord explicite préalable sur le changement précis, y compris un correctif, un retrait, une relation, une cardinalité, une contrainte ou une variante métier. Une demande d’interface ne vaut pas cet accord.
+- La délégation respecte strictement le périmètre autorisé : ne transmettre aucune instruction de modification du modèle sans cet accord. Les propositions et audits restent distincts des décisions approuvées et de leur exécution.
+
 ### Scope and shared workspace
 
 Before editing, inspect the current diff and applicable directory instructions. Preserve existing work, including untracked files. A request to read, inventory, or assess the project authorizes read-only work, not implicit fixes.
@@ -118,6 +125,18 @@ Le backend modélise les concepts, leurs données et leurs invariants ; il ne tr
 Avant de stabiliser un nouveau concept backend, vérifier séparément : sa nature métier, les données variables de chaque occurrence, son identité technique et son libellé de présentation. Ne jamais utiliser l’un pour remplacer l’autre.
 
 ## Travail frontend
+
+### Une seule identité visuelle
+
+**Réutiliser les composants existants : ne pas inventer une présentation concurrente.**
+
+- Hall doit conserver une seule identité visuelle dans tous ses écrans.
+- Cette règle concerne tous les composants d’affichage, pas seulement la TreeView : réutiliser les composants existants au lieu de les réinventer pour chaque écran.
+- Construire les écrans par composition des composants d’affichage réutilisables d’une bibliothèque commune, et non par des implémentations indépendantes concurrentes.
+- La bibliothèque des primitives d’affichage partagées se trouve dans [`packages/client/src/components/ui/`](packages/client/src/components/ui/), autorité définie par la [carte d’architecture](docs/architecture.md). Y placer les primitives génériques réutilisées dans plusieurs écrans.
+- Les écrans consomment cette bibliothèque ; ne pas organiser la réutilisation par des imports croisés entre écrans. Les primitives ne dépendent ni des pages, ni du domaine, ni des stores, services ou hooks métier.
+- Lorsqu’une TreeView est demandée, reprendre la même TreeView que dans l’espace de travail, avec sa présentation et ses interactions existantes ; ne pas recréer un autre arbre avec un style ou des icônes différents.
+- Toute nouvelle décision de design relève du propriétaire, conformément à la règle d’autorité ci-dessus.
 
 Tout agent qui modifie `packages/client` doit lire et appliquer [`docs/principes-interface.md`](docs/principes-interface.md) avant d’agir. Ce document fixe notamment le contrat d’autosave, la séparation entre le fil d’Ariane global et celui du Workbench, l’usage de formulaires cohérents, l’absence de doublons d’information, la stabilité des tokens CSS et la frontière entre composants métier et primitives techniques.
 

@@ -49,6 +49,7 @@ export function ResourcePresentationBody({
   onError,
   onRegisterFlush,
   autosaveEnabled,
+  showContentLabel = true,
 }: {
   resource: ResourceDetail;
   representation: SirenEntity | null;
@@ -70,6 +71,7 @@ export function ResourcePresentationBody({
   onError(error: ApiErrorCode | null): void;
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
   autosaveEnabled: boolean;
+  showContentLabel?: boolean;
 }) {
   const { t } = useI18n();
   const editing = mode === "edit";
@@ -80,7 +82,7 @@ export function ResourcePresentationBody({
     text: (entry) =>
       editingResource ? (
         <div className="grid gap-1.5" data-testid="resource-presentation-text-edit">
-          <Label>{t("resources.textContent")}</Label>
+          {showContentLabel ? <Label>{t("resources.textContent")}</Label> : null}
           <MarkdownEditor
             title={entry.name}
             markdown={content}

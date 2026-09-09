@@ -7,12 +7,16 @@ import {
   conductBlockersSchema,
   createPreparedCouncilSubjectSchema,
   type MeetingNoticeFacts,
+  meetingDocumentsSchema,
+  meetingDocumentSourceSchema,
   meetingActionBlockersSchema,
   meetingAgendaFreezeSchema,
+  meetingEntryBlockerSchema,
   meetingNoticeDeadlineSchema,
   meetingNoticeFactsSchema,
   meetingNoticeMeetingFactsSchema,
   meetingNoticeSchema,
+  meetingOpeningBlockerSchema,
   type PreparedCouncilSubject,
   preparedCouncilSubjectKindSchema,
   preparedCouncilSubjectSchema,
@@ -43,6 +47,7 @@ import type { PostgresCallContext, PostgresRequest } from "./callContext.js";
 import { callJson } from "./jsonCall.js";
 import { minutesSummarySchema } from "./minutesModels.js";
 import {
+  postgresResourceDetailSchema,
   postgresResourceSummarySchema,
   resourceIdSchema,
   resourceNameSchema,
@@ -104,6 +109,8 @@ export const postgresCouncilMeetingSchema = z.object({
   startedAt: timestampSchema.nullable(),
   closedAt: timestampSchema.nullable(),
   closureBlockers: z.array(conductBlockerSchema),
+  entryBlockers: z.array(meetingEntryBlockerSchema),
+  openingBlockers: z.array(meetingOpeningBlockerSchema),
 });
 
 export const postgresMeetingAttendanceStatusSchema = z.enum(["present", "represented", "excused", "absent"]);
@@ -144,12 +151,6 @@ export const postgresCouncilAgendaSubjectSchema = z.discriminatedUnion("kind", [
     kind: z.literal("councilDecisionProposal"),
     id: resourceIdSchema,
     textResourceId: resourceIdSchema,
-    content: z.string(),
-  }),
-  z.object({
-    kind: z.literal("businessConsultation"),
-    councilBusinessId: resourceIdSchema,
-    reportResourceId: resourceIdSchema,
     content: z.string(),
   }),
   z.object({
@@ -366,6 +367,37 @@ function attendanceDeclarationsPayload(declarations: PostgresMeetingAttendanceDe
 }
 
 export class PostgresCouncil {
+  meetingDocuments(request: PostgresCouncilRequest, id: string) {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.documents.read") },
+      (client) => callJson(client, { text: "SELECT hall_api.meeting_documents($1::uuid) AS payload", values: [resourceIdSchema.parse(id)], schema: meetingDocumentsSchema }),
+    );
+  }
+  meetingDocumentResource(request: PostgresCouncilRequest, id: string, resourceId: string) {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.document-resource.read") },
+      (client) => callJson(client, {
+        text: "SELECT hall_api.meeting_document_resource($1::uuid,$2::uuid) AS payload",
+        values: [resourceIdSchema.parse(id),resourceIdSchema.parse(resourceId)],
+        schema: z.object({ source: meetingDocumentSourceSchema, resource: postgresResourceDetailSchema,
+          editorAssets: z.array(z.object({ id: resourceIdSchema,title:z.string(),mediaType:z.string() }).strict()) }).strict().nullable(),
+      }),
+    );
+  }
+  meetingDocumentContent(request: PostgresCouncilRequest, id: string, resourceId: string, assetId: string | null = null) {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.document-content.read") },
+      async (client) => {
+        const result = await callJson(client, {
+          text: "SELECT hall_api.meeting_document_content($1::uuid,$2::uuid,$3::uuid) AS payload",
+          values: [resourceIdSchema.parse(id),resourceIdSchema.parse(resourceId),resourceIdSchema.nullable().parse(assetId)],
+          schema: z.object({ contentBase64: z.string(),mediaType:z.string() }).strict().nullable(),
+        });
+        return result ? { content: Buffer.from(result.contentBase64,"base64"),mediaType:result.mediaType } : null;
+      },
+    );
+  }
+
   listPreparedSubjects(request: PostgresCouncilRequest, meetingId: string | null = null) {
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "council-business.list-prepared-subjects") },
@@ -402,7 +434,7 @@ export class PostgresCouncil {
           targetType: "council-business",
           targetId: businessId,
           outcome: "succeeded",
-          details: { sourceId: "id" in result ? result.id : result.councilBusinessId, kind: result.kind },
+          details: { sourceId: result.id, kind: result.kind },
         });
         return result;
       },
@@ -410,11 +442,7 @@ export class PostgresCouncil {
   }
   schedulePreparedSubject(request: PostgresCouncilRequest, meetingId: string, input: SchedulePreparedCouncilSubject) {
     const parsed = schedulePreparedCouncilSubjectSchema.parse(input);
-    const identity = matchDiscriminated(parsed, "kind", {
-      councilDecisionProposal: (value) => value.subjectId,
-      openQuestion: (value) => value.subjectId,
-      businessConsultation: (value) => value.councilBusinessId,
-    });
+    const identity = parsed.subjectId;
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "agenda-item.schedule-prepared") },
       async (client) => {

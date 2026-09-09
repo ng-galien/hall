@@ -12,6 +12,7 @@ import { useResourceSession } from "../../features/resources/useResourceSession"
 import { createEmptySpreadsheetDocument } from "../../features/spreadsheet/univerWorkbook";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { CouncilBusinessWorkbench } from "./CouncilBusinessWorkbench";
@@ -21,6 +22,7 @@ import { isUnderPath } from "./paths";
 import { ResourceWorkbench } from "./ResourceWorkbench";
 import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb";
 import { WorkspaceHome } from "./WorkspaceHome";
+import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
 import { emptySearch, isSearchActive, WorkspaceSearch, type WorkspaceSearchState } from "./WorkspaceSearch";
 import type { WorkspaceCreateKind } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -40,6 +42,7 @@ export function WorkspacePage() {
   const resourcesError = resourcesStore.error;
   const [search, setSearch] = useState<WorkspaceSearchState>(emptySearch);
   const creationFolderPathRef = useRef("");
+  const creationBusinessRef = useRef<CouncilBusinessView | undefined>(undefined);
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -107,8 +110,12 @@ export function WorkspacePage() {
     kind: WorkspaceCreateKind,
     folderPath: string,
     title?: string,
+    business?: CouncilBusinessView,
   ): Promise<WorkspaceSelection> => {
     creationFolderPathRef.current = folderPath;
+    creationBusinessRef.current = business;
+    const source = business ? councilBusinessStore.representationsById[business.id] : undefined;
+    const scope = business ? { councilBusinessId: business.id } : {};
     const normalizedTitle = title?.trim();
     const resourceSelection = (created: { id: string } | null) =>
       created ? ({ kind: "resource", id: created.id } as const) : null;
@@ -130,7 +137,7 @@ export function WorkspacePage() {
       text: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.create({ kind: "text", name: normalizedTitle, path: folderPath, content: "" }),
+          await resourcesStore.create({ kind: "text", name: normalizedTitle, path: folderPath, content: "", ...scope }, source),
         );
       },
       remote: async () => {
@@ -141,7 +148,8 @@ export function WorkspacePage() {
             name: normalizedTitle,
             path: folderPath,
             target: { kind: "unconfigured" },
-          }),
+            ...scope,
+          }, source),
         );
       },
       spreadsheet: async () => {
@@ -152,38 +160,44 @@ export function WorkspacePage() {
             name: normalizedTitle,
             path: folderPath,
             document: createEmptySpreadsheetDocument(normalizedTitle, locale),
-          }),
+            ...scope,
+          }, source),
         );
       },
       geographic: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.create({ kind: "geographic", name: normalizedTitle, path: folderPath }),
+          await resourcesStore.create({ kind: "geographic", name: normalizedTitle, path: folderPath, ...scope }, source),
         );
       },
       legalReference: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.create({ kind: "legalReference", name: normalizedTitle, path: folderPath }),
+          await resourcesStore.create({ kind: "legalReference", name: normalizedTitle, path: folderPath, ...scope }, source),
         );
       },
     });
   };
 
   const importFile = (file: File) => {
+    const business = creationBusinessRef.current;
+    const source = business ? councilBusinessStore.representationsById[business.id] : undefined;
     const form = new FormData();
+    if (business) form.set("councilBusinessId", business.id);
     form.set("path", creationFolderPathRef.current);
     form.set("name", file.name.replace(/\.(?:csv|xlsx)$/i, ""));
     form.set("file", file);
     void run(async () => {
       if (/\.(?:csv|xlsx)$/i.test(file.name)) {
-        const spreadsheet = await resourcesStore.importSpreadsheet(form);
+        const spreadsheet = await resourcesStore.importSpreadsheet(form, source);
+        if (spreadsheet && business) await councilBusinessStore.loadResources(business.id);
         if (spreadsheet) select({ kind: "resource", id: spreadsheet.id }, spreadsheet.path);
         return spreadsheet;
       }
       form.set("name", file.name);
-      const uploaded = await resourcesStore.uploadDocument(form);
+      const uploaded = await resourcesStore.uploadDocument(form, source);
       if (uploaded) {
+        if (business) await councilBusinessStore.loadResources(business.id);
         select({ kind: "resource", id: uploaded.id }, uploaded.path);
       }
       return uploaded;
@@ -200,6 +214,22 @@ export function WorkspacePage() {
             <div className="workspace-bar-search">
               <WorkspaceSearch search={search} onSearch={setSearch} onSelect={select} context={path} />
             </div>
+            {!selectedBusiness ? <WorkspaceCreateMenu
+              canCreate={(kind) => matchLiteral(kind, {
+                councilMatter: () => councilBusinessStore.canCreate,
+                text: () => resourcesStore.collectionCapabilities.create,
+                spreadsheet: () => resourcesStore.collectionCapabilities.create,
+                remote: () => resourcesStore.collectionCapabilities.create,
+                geographic: () => resourcesStore.collectionCapabilities.create,
+                legalReference: () => resourcesStore.collectionCapabilities.create && resourcesStore.collectionCapabilities.searchLegalReferences,
+                file: () => resourcesStore.collectionCapabilities.uploadDocument || resourcesStore.collectionCapabilities.importSpreadsheet,
+              })}
+              onCreate={async (kind, title) => {
+                const created = await createInFolder(kind, path, title);
+                if (created) select(created, path);
+                return Boolean(created);
+              }}
+            /> : null}
           </div>
           {resourcesStore.collectionCapabilities.uploadDocument ||
           resourcesStore.collectionCapabilities.importSpreadsheet ? (
@@ -268,7 +298,8 @@ export function WorkspacePage() {
               {selectedBusiness || selection?.kind === "resource" ? (
                 <section className="workspace-bench workspace-bench-full" aria-label={t("workspace.bench")}>
                   {selectedBusiness ? (
-                    <CouncilBusinessWorkbench key={selectedBusiness.id} business={selectedBusiness} />
+                    <CouncilBusinessWorkbench key={selectedBusiness.id} business={selectedBusiness}
+                      onCreate={(kind, title) => createInFolder(kind, selectedBusiness.folderPath, title, selectedBusiness)} />
                   ) : selection?.kind === "resource" ? (
                     <ResourceWorkbench key={selection.id} session={resourceSession} onSelect={select} />
                   ) : null}

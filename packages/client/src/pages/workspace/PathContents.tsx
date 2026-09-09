@@ -1,4 +1,5 @@
 import { matchDiscriminated, matchLiteral } from "@hall/domain";
+import { ExplorerTree, ExplorerTreeRow, ExplorerTreeButton } from "../../components/ui/explorer-tree";
 import {
   type DragEvent,
   type KeyboardEvent,
@@ -22,8 +23,6 @@ import {
 import { type InlineRenameEndReason, InlineRenameField } from "@/components/ui/inline-rename-field";
 import {
   AddIcon,
-  ChevronRightIcon,
-  DragHandleIcon,
   EditIcon,
   FolderAddIcon,
   FolderIcon,
@@ -40,16 +39,12 @@ import {
   useDocumentaryResourceTypeLabel,
 } from "../../features/documents/DocumentaryResourceGlyph";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
-import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import {
   useWorkspaceCouncilActivityStore,
-  workspaceAgendaItemStatus,
-  workspaceAgendaSubjectKeys,
-  workspaceCurrentOccurrence,
 } from "../../stores/workspaceCouncilActivityStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { listCatalogPaths } from "./paths";
@@ -171,15 +166,17 @@ export function PathContents({
   const { t, formatDate } = useI18n();
   const resourceTypeLabel = useDocumentaryResourceTypeLabel();
   const councilBusinessStore = useCouncilBusinessStore();
-  const { occurrencesByBusinessId, load: loadCouncilActivity } = useWorkspaceCouncilActivityStore();
+  const { load: loadCouncilActivity } = useWorkspaceCouncilActivityStore();
   const resourcesStore = useWorkspaceResourcesStore();
   const treeRef = useRef<HTMLUListElement | null>(null);
   const folderClickTimers = useRef(new Map<string, number>());
+  const businessClickTimers = useRef(new Map<string, number>());
   const renameTargetRef = useRef<RenameTarget | null>(null);
   const renameSessionRef = useRef(0);
   const [mode, setMode] = useState<WorkspaceViewMode>("all");
   const [query, setQuery] = useState("");
   const [folderExpansion, setFolderExpansion] = useState<Map<string, boolean>>(() => new Map());
+  const [expandedBusinesses, setExpandedBusinesses] = useState<Set<string>>(() => new Set());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [dropPath, setDropPath] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -201,13 +198,24 @@ export function PathContents({
     return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
   }, [councilBusinessStore.businesses, resourcesStore.catalog]);
   const paths = useMemo(
-    () => allPaths.filter((candidate) => candidate === path || candidate.startsWith(`${path}/`)),
-    [allPaths, path],
+    () => {
+      const businessFolderIds = new Set(councilBusinessStore.businesses.map((business) => business.folderResourceId));
+      const businessPaths = new Set(resourcesStore.catalog.filter((entry) => entry.kind === "folder" && businessFolderIds.has(entry.id)).map((entry) => entry.fullPath));
+      return allPaths.filter((candidate) => (candidate === path || candidate.startsWith(`${path}/`)) && (mode === "resources" || query.trim() !== "" || !businessPaths.has(candidate)));
+    },
+    [allPaths, path, councilBusinessStore.businesses, resourcesStore.catalog, mode, query],
   );
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const matches = (title: string) => !normalizedQuery || title.toLocaleLowerCase().includes(normalizedQuery);
   const visibleBusinesses = businesses.filter((business) => mode !== "resources" && matches(business.title));
-  const visibleResources = resources.filter((resource) => mode !== "businesses" && matches(resource.name));
+  const representedResourceIds = new Set(visibleBusinesses.flatMap((business) => [
+    business.reportResourceId,
+    ...business.resources.map((resource) => resource.id),
+    ...councilBusinessStore.preparedSubjects
+      .filter((subject) => subject.councilBusinessId === business.id)
+      .map((subject) => subject.textResourceId),
+  ]));
+  const visibleResources = resources.filter((resource) => mode !== "businesses" && matches(resource.name) && !representedResourceIds.has(resource.id));
   const refresh = () => onSelect(selection);
   const hasDirectItems = (folderPath: string) =>
     businesses.some((business) => business.folderPath === folderPath) ||
@@ -250,6 +258,8 @@ export function PathContents({
     () => () => {
       for (const timer of folderClickTimers.current.values()) window.clearTimeout(timer);
       folderClickTimers.current.clear();
+      for (const timer of businessClickTimers.current.values()) window.clearTimeout(timer);
+      businessClickTimers.current.clear();
     },
     [],
   );
@@ -717,7 +727,7 @@ export function PathContents({
       const parentBranch = current.closest("ul.workspace-explorer-branch");
       focusTreeNode(
         parentBranch?.parentElement?.querySelector<HTMLButtonElement>(
-          ":scope > fieldset > button[data-workspace-tree-node]",
+          ":scope > fieldset > button[data-workspace-tree-node], :scope > button[data-workspace-tree-node]",
         ) ?? null,
       );
     }
@@ -749,22 +759,30 @@ export function PathContents({
           );
           const renamable = folderCapabilities.relocate;
           const businessCapabilities = councilBusinessStore.capabilitiesById[business.id];
-          const occurrence = workspaceCurrentOccurrence(occurrencesByBusinessId[business.id] ?? []);
-          const occurrenceStatus = occurrence ? workspaceAgendaItemStatus(occurrence.agendaItem) : null;
+          const expanded = expandedBusinesses.has(business.id);
+          const toggleBusiness = () => {
+            setExpandedBusinesses((previous) => {
+              const updated = new Set(previous);
+              if (updated.has(business.id)) updated.delete(business.id);
+              else updated.add(business.id);
+              return updated;
+            });
+            if (!expanded) {
+              void councilBusinessStore.loadResources(business.id);
+              void councilBusinessStore.loadPreparedSubjects();
+            }
+          };
+          const subjectResources = councilBusinessStore.preparedSubjects
+            .filter((subject) => subject.councilBusinessId === business.id)
+            .map((subject) => ({ id: subject.textResourceId, name: subject.title, icon: <span className="workspace-glyph workspace-glyph-text"><TextResourceIcon /></span> }));
+          const children = [...new Map([
+            ...business.resources.map((resource) => ({ ...resource, icon: <DocumentaryResourceGlyph resource={resource} /> })),
+            ...subjectResources,
+          ].filter((resource) => resource.id !== business.reportResourceId).map((resource) => [resource.id, resource])).values()];
           const rowContents = (
             <>
-              <span className="workspace-business-drag" aria-hidden="true">
-                <DragHandleIcon />
-              </span>
-              <span className="workspace-business-mark">
-                <CouncilBusinessGlyph business={business} />
-              </span>
-              <span className="workspace-business-body">
-                <span className="workspace-business-eyebrow">
-                  {occurrence
-                    ? t(workspaceAgendaSubjectKeys[occurrence.agendaItem.subject.kind])
-                    : t("workspace.businessLeaf")}
-                </span>
+              <CouncilBusinessGlyph business={business} />
+              <span className="workspace-explorer-copy">
                 <InlineRenameField
                   value={business.title}
                   editing={renaming}
@@ -773,49 +791,61 @@ export function PathContents({
                   }}
                   onCommit={(nextTitle) => rename(payload, nextTitle, renameSession)}
                   label={t("common.rename")}
-                  className="workspace-explorer-rename-input workspace-business-rename-input"
+                  className="workspace-explorer-rename-input"
                   testId="workspace-tree-rename-input"
                 >
                   <strong>{business.title}</strong>
                 </InlineRenameField>
-                <span
-                  className="workspace-business-lifecycle"
-                  data-testid={`workspace-business-lifecycle-${business.id}`}
-                >
-                  {occurrenceStatus ? (
-                    <StatusBadge value={occurrenceStatus} />
-                  ) : (
-                    <span>{t("workspace.businessStage.instruction")}</span>
-                  )}
-                  {occurrence?.meeting.scheduledAt ? (
-                    <span>
-                      {t("workspace.meetingOn").replace("{date}", formatDate(occurrence.meeting.scheduledAt))}
-                    </span>
-                  ) : null}
-                </span>
-              </span>
-              <span className="workspace-business-tools">
-                <span className="workspace-business-drop-hint">{t("workspace.dropToAttach")}</span>
-                <ChevronRightIcon aria-hidden="true" />
               </span>
             </>
           );
           const row = renaming ? (
-            <div className="workspace-explorer-row workspace-business-row">{rowContents}</div>
+            <ExplorerTreeRow>{rowContents}</ExplorerTreeRow>
           ) : (
-            <button
-              className="workspace-explorer-row workspace-business-row"
+            <ExplorerTreeButton
               data-workspace-node-key={key}
               data-workspace-tree-node
               data-testid={`workspace-business-open-${business.id}`}
               type="button"
-              onClick={() => selectTreeItem(key)}
+              aria-expanded={expanded}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowRight") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  if (!expanded) toggleBusiness();
+                  else event.currentTarget.closest("li")?.querySelector<HTMLButtonElement>("ul button")?.focus();
+                }
+                if (event.key === "ArrowLeft" && expanded) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  toggleBusiness();
+                }
+              }}
+              onClick={(event) => {
+                selectTreeItem(key);
+                if (event.detail === 0) {
+                  toggleBusiness();
+                  return;
+                }
+                if (event.detail !== 1) return;
+                const timer = window.setTimeout(() => {
+                  businessClickTimers.current.delete(business.id);
+                  toggleBusiness();
+                }, 220);
+                businessClickTimers.current.set(business.id, timer);
+              }}
               onContextMenu={() => selectTreeItem(key)}
-              onDoubleClick={() => onSelect({ kind: "councilBusiness", id: business.id })}
+              onDoubleClick={(event) => {
+                event.preventDefault();
+                const timer = businessClickTimers.current.get(business.id);
+                if (timer !== undefined) window.clearTimeout(timer);
+                businessClickTimers.current.delete(business.id);
+                onSelect({ kind: "councilBusiness", id: business.id });
+              }}
               onFocus={() => selectTreeItem(key)}
             >
               {rowContents}
-            </button>
+            </ExplorerTreeButton>
           );
           return (
             <ContentRow
@@ -829,6 +859,21 @@ export function PathContents({
               <RenameContextMenu enabled={renamable} onRename={() => startRename(payload)}>
                 {row}
               </RenameContextMenu>
+              {expanded ? (
+                <ul className="workspace-explorer-branch" data-testid={`workspace-business-children-${business.id}`}>
+                  {children.map((resource) => (
+                    <li key={resource.id}>
+                      <button type="button" className="workspace-explorer-row"
+                        data-workspace-tree-node data-workspace-node-key={`resource:${resource.id}`}
+                        data-testid={`workspace-business-resource-${resource.id}`}
+                        onClick={() => onSelect({ kind: "resource", id: resource.id })}>
+                        {resource.icon}
+                        <span className="workspace-explorer-copy"><strong>{resource.name}</strong></span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </ContentRow>
           );
         })}
@@ -871,10 +916,9 @@ export function PathContents({
             </>
           );
           const row = renaming ? (
-            <div className="workspace-explorer-row">{rowContents}</div>
+            <ExplorerTreeRow>{rowContents}</ExplorerTreeRow>
           ) : (
-            <button
-              className="workspace-explorer-row"
+            <ExplorerTreeButton
               data-workspace-node-key={key}
               data-workspace-tree-node
               data-testid={`workspace-resource-open-${resource.id}`}
@@ -887,7 +931,7 @@ export function PathContents({
               onFocus={() => selectTreeItem(key)}
             >
               {rowContents}
-            </button>
+            </ExplorerTreeButton>
           );
           return (
             <ContentRow
@@ -1073,9 +1117,8 @@ export function PathContents({
       <p className="sr-only" aria-live="polite">
         {feedback}
       </p>
-      <ul
+      <ExplorerTree
         ref={treeRef}
-        className="workspace-explorer-tree"
         aria-label={t("workspace.contents")}
         onKeyDown={handleTreeKeyDown}
       >
@@ -1094,7 +1137,7 @@ export function PathContents({
             ) : null}
           </ul>
         </li>
-      </ul>
+      </ExplorerTree>
     </div>
   );
 }

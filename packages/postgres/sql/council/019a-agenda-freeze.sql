@@ -109,11 +109,24 @@ RETURNS UUID LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     AND facts->'meeting' = hall.meeting_notice_meeting_facts(target_meeting)
   ORDER BY version DESC LIMIT 1;
 $$;
+CREATE FUNCTION hall.council_meeting_preparation_blockers(target hall.council_meetings)
+RETURNS JSONB LANGUAGE plpgsql STABLE SET search_path=pg_catalog,hall AS $$
+DECLARE blockers JSONB := '[]';
+BEGIN
+  IF target.scheduled_at IS NULL THEN blockers := blockers || '[{"code":"meetingNotScheduled"}]'::jsonb; END IF;
+  IF target.location IS NULL OR btrim(target.location) = '' THEN blockers := blockers || '[{"code":"meetingLocationMissing"}]'::jsonb; END IF;
+  IF NOT EXISTS (SELECT FROM hall.active_council_agenda_freeze WHERE council_meeting=target.id) THEN
+    blockers := blockers || '[{"code":"agendaNotFrozen"}]'::jsonb;
+  END IF;
+  IF hall.current_meeting_notice_id(target.id) IS NULL THEN blockers := blockers || '[{"code":"currentNoticeMissing"}]'::jsonb; END IF;
+  RETURN blockers;
+END $$;
+
 -- @functional-requirement HALL-FR-NOT-090 MEETING_START_REQUIRES_THE_CURRENT_NOTICE:
 CREATE FUNCTION hall.require_current_notice_for_start()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN
-  IF OLD.started_at IS NULL AND NEW.started_at IS NOT NULL AND (hall.current_meeting_notice_id(OLD.id) IS NULL
+  IF OLD.started_at IS NULL AND NEW.started_at IS NOT NULL AND (jsonb_array_length(hall.council_meeting_preparation_blockers(OLD)) > 0
     OR NEW.scheduled_at IS DISTINCT FROM OLD.scheduled_at OR NEW.location IS DISTINCT FROM OLD.location) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV807', MESSAGE = 'meeting start requires the current generated notice';
   END IF;

@@ -9,7 +9,7 @@ export const frozenAgendaItemSchema = z
     position: z.number().int().positive(),
     agendaNumber: agendaNumberSchema,
     title: z.string(),
-    kind: z.enum(["minutesApproval", "councilDecisionProposal", "businessConsultation", "openQuestion"]),
+    kind: z.enum(["minutesApproval", "councilDecisionProposal", "openQuestion"]),
   })
   .strict();
 export const meetingAgendaFreezeSchema = z
@@ -32,6 +32,7 @@ export const meetingNoticeMeetingFactsSchema = z
 export const meetingNoticeHallFactsSchema = z.object({ name: z.string(), timeZone: z.string() }).strict();
 export const meetingNoticeFactsSchema = z
   .object({
+    issuedOn: z.iso.date().nullable(),
     meeting: meetingNoticeMeetingFactsSchema,
     hall: meetingNoticeHallFactsSchema,
   })

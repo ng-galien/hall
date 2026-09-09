@@ -17,6 +17,7 @@ export interface CouncilDecisionService {
   preview(id: string): Promise<Buffer>;
   content(id: string): Promise<Buffer | null>;
 }
+/** Freezing renders again when SQL detects a competing number allocation, keeping the PDF and allocated number consistent. */
 export function createCouncilDecisionService({
   councilDecisionClient,
   contentTemplateService,
@@ -61,10 +62,20 @@ export function createCouncilDecisionService({
       return councilDecisionClient.updateDraft(id, input);
     },
     async freeze(id, input) {
-      const decision = await open(id);
-      if (decision.state !== "draft" || decision.version !== input.expectedVersion)
-        throw new DomainError("council_decision_conflict", 409);
-      return councilDecisionClient.freeze(id, input.expectedVersion, await render(decision));
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const decision = await open(id);
+        if (decision.version !== input.expectedVersion)
+          throw new DomainError("council_decision_conflict", 409);
+        if (decision.state === "frozen") return decision;
+        if (!decision.number || !decision.documentDate) throw new DomainError("council_decision_conflict", 409);
+        const pdf = await render(decision);
+        try {
+          return await councilDecisionClient.freeze(id, input.expectedVersion, decision.number, decision.documentDate, pdf);
+        } catch (error) {
+          if (!(error instanceof DomainError) || error.code !== "council_decision_number_changed") throw error;
+        }
+      }
+      throw new DomainError("council_decision_conflict", 409);
     },
     async preview(id) {
       const decision = await open(id);

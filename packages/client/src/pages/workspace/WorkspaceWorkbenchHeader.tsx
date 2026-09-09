@@ -1,5 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EditIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -30,6 +31,12 @@ export function WorkspaceWorkbenchHeader({
 }) {
   const { t, formatDate } = useI18n();
   const [editingTitle, setEditingTitle] = useState(false);
+  const heading = (
+    <Tooltip>
+      <TooltipTrigger asChild><h1 id={titleId} tabIndex={0} data-testid="workspace-workbench-title">{title}</h1></TooltipTrigger>
+      <TooltipContent data-testid="workspace-workbench-title-tooltip">{title}</TooltipContent>
+    </Tooltip>
+  );
 
   return (
     <div className="workspace-workbench-header" data-testid="resource-workbench-header">
@@ -48,10 +55,10 @@ export function WorkspaceWorkbenchHeader({
                   className="workbench-title-inline-input"
                   testId="workspace-workbench-title-input"
                 >
-                  <h1 id={titleId}>{title}</h1>
+                  {heading}
                 </InlineRenameField>
               ) : (
-                <h1 id={titleId}>{title}</h1>
+                heading
               )}
               {onTitleChange && !editingTitle ? (
                 <button

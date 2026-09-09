@@ -187,10 +187,13 @@ export type PostgresDocumentContent = Readonly<{
 }>;
 
 const createFolderInputSchema = z.object({ path: resourcePathSchema, name: resourceNameSchema });
-const createTextInputSchema = createFolderInputSchema.extend({ content: z.string() });
-const createRemoteInputSchema = createFolderInputSchema.extend({ target: remoteResourceTargetSchema });
-const createStructuredInputSchema = createFolderInputSchema.extend({ document: jsonDocumentSchema });
-const createDocumentInputSchema = createFolderInputSchema.extend({
+const createWorkingResourceInputSchema = createFolderInputSchema.extend({
+  councilBusinessId: resourceIdSchema.optional(),
+});
+const createTextInputSchema = createWorkingResourceInputSchema.extend({ content: z.string() });
+const createRemoteInputSchema = createWorkingResourceInputSchema.extend({ target: remoteResourceTargetSchema });
+const createStructuredInputSchema = createWorkingResourceInputSchema.extend({ document: jsonDocumentSchema });
+const createDocumentInputSchema = createWorkingResourceInputSchema.extend({
   mediaType: z.string().trim().min(1),
   content: z.instanceof(Buffer),
 });
@@ -380,14 +383,20 @@ export class PostgresResources {
     action: string,
     call: JsonCall,
     schema: ZodType<PostgresPresentedResource<Result>>,
+    councilBusinessId?: string,
   ): Promise<PostgresPresentedResource<Result>> {
     return this.transactions.run({ role: request.role, context: this.runContext(request, action) }, async (client) => {
       const presented = await callJson(client, { ...call, schema });
+      if (councilBusinessId)
+        await client.query("SELECT hall_api.associate_council_business_resource($1::uuid, $2::uuid)", [
+          councilBusinessId,
+          presented.data.id,
+        ]);
       await recordAuditEvent(client, {
         targetType: "resource",
         targetId: presented.data.id,
         outcome: "succeeded",
-        details: { fullPath: presented.data.fullPath },
+        details: { fullPath: presented.data.fullPath, ...(councilBusinessId ? { councilBusinessId } : {}) },
       });
       return presented;
     });
@@ -514,6 +523,7 @@ export class PostgresResources {
         values: [parsed.path, parsed.name, parsed.content],
       },
       presentedResourceSchema(textResourceSchema),
+      parsed.councilBusinessId,
     );
   }
 
@@ -537,6 +547,7 @@ export class PostgresResources {
             values: [parsed.path, parsed.name, parsed.target.url],
           },
       presentedResourceSchema(remoteResourceSchema),
+      parsed.councilBusinessId,
     );
   }
 
@@ -597,6 +608,7 @@ export class PostgresResources {
         values: [parsed.path, parsed.name, JSON.stringify(parsed.document)],
       },
       presentedResourceSchema(schema),
+      parsed.councilBusinessId,
     );
   }
 
@@ -615,6 +627,7 @@ export class PostgresResources {
         values: [parsed.path, parsed.name, parsed.mediaType, parsed.content],
       },
       presentedResourceSchema(documentResourceSchema),
+      parsed.councilBusinessId,
     );
   }
 

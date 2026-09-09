@@ -76,6 +76,8 @@ export const schemaManifestPaths = [
   "sql/workspace/051-council-decisions.sql",
   "sql/workspace/052-council-decision-recovery.sql",
   "sql/workspace/053-decision-documentary-context.sql",
+  "sql/workspace/054-decision-numbering.sql",
+  "sql/workspace/060-meeting-documents.sql",
   "sql/900-grants.sql",
 ] as const;
 

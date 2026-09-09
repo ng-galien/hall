@@ -4,6 +4,7 @@ import { BackIcon } from "../../../components/icons";
 import { RequestErrorBanner } from "../../../components/Ui";
 import { liveBusinessTitle } from "../../../features/council-business/presentation";
 import { formatMeetingLabel } from "../../../features/council-meetings/meetingPresentation";
+import { MeetingEntryBlockers } from "../../../features/council-meetings/MeetingEntryBlockers";
 import { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { useCouncilMembersStore } from "../../../stores/councilMembersStore";
@@ -44,6 +45,18 @@ export function LiveMeetingPage() {
   }
 
   const { meeting, quorum, quorumObservation } = aggregate;
+  const entryBlockers = meetingActions.workspace!.meeting.entryBlockers;
+  if (entryBlockers.length && meeting.status !== "closed" && meeting.status !== "cancelled") {
+    return (
+      <div className="live-shell live-shell-empty" data-testid="live-meeting-entry-blocked">
+        <MeetingEntryBlockers blockers={entryBlockers} />
+        <Link className="live-exit" data-testid="live-return-preparation" to={`/meetings/${meeting.slug || meeting.id}`}>
+          <BackIcon aria-hidden="true" />
+          {t("meeting.liveEntry.returnPreparation")}
+        </Link>
+      </div>
+    );
+  }
   const observedItem = aggregate.agendaItems.find((item) => item.id === quorumObservation?.agendaItemId);
   const quorumLabel = quorumObservation
     ? t(quorumObservation.agendaItemId ? "live.quorumItemChip" : "live.quorumMeetingChip")

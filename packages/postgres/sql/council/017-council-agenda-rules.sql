@@ -68,8 +68,7 @@ LANGUAGE sql
 STABLE
 SET search_path = pg_catalog, hall
 AS $$
-  SELECT CASE WHEN target.subject_kind='businessConsultation' THEN target.council_business IS NOT NULL
-    WHEN target.minutes_approval IS NOT NULL THEN target.council_business IS NULL
+  SELECT CASE WHEN target.minutes_approval IS NOT NULL THEN target.council_business IS NULL
     WHEN target.council_decision_proposal IS NOT NULL THEN EXISTS (
       SELECT FROM council_decision_proposal WHERE id=target.council_decision_proposal AND council_business=target.council_business)
     ELSE EXISTS (SELECT FROM open_question WHERE id=target.open_question AND council_business=target.council_business) END;

@@ -19,13 +19,13 @@ export function renderMeetingNotice(facts: MeetingNoticeFacts): string {
       const title = matchLiteral(item.kind, {
         minutesApproval: () => "Approbation du procès-verbal de la séance précédente",
         councilDecisionProposal: () => item.title,
-        businessConsultation: () => item.title,
         openQuestion: () => item.title,
       });
       return `<li value="${item.agendaNumber}">${escapeHtml(title)}</li>`;
     })
     .join("");
   return `<p>${escapeHtml(hall.name)}</p><h1>Convocation au conseil municipal</h1>
+${facts.issuedOn ? `<p>Date de convocation : ${escapeHtml(new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "UTC" }).format(new Date(`${facts.issuedOn}T12:00:00Z`)))}</p>` : ""}
 <p>Le maire convoque les membres du conseil municipal à la séance n° ${meeting.number}, qui se tiendra le <strong>${escapeHtml(scheduledAt)}</strong>, à <strong>${escapeHtml(meeting.location)}</strong>.</p>
 <h2>Ordre du jour</h2><ol>${agenda}</ol><footer>Le maire</footer>`;
 }

@@ -18,7 +18,7 @@ CREATE TABLE council_agenda_item (
     CASE WHEN minutes_approval IS NOT NULL THEN 'minutesApproval'::council_agenda_subject_kind
       WHEN council_decision_proposal IS NOT NULL THEN 'councilDecisionProposal'::council_agenda_subject_kind
       WHEN open_question IS NOT NULL THEN 'openQuestion'::council_agenda_subject_kind
-      ELSE 'businessConsultation'::council_agenda_subject_kind END
+      END
   ) STORED,
   discussion_summary TEXT NOT NULL DEFAULT '',
 
@@ -38,7 +38,6 @@ CREATE TABLE council_agenda_item (
   -- @functional-requirement HALL-FR-AGI-010 AGENDA_ITEM_HAS_EXACTLY_ONE_SUBJECT:
   CONSTRAINT council_agenda_item_one_subject CHECK (
     num_nonnulls(minutes_approval, council_decision_proposal, open_question) = 1
-    OR (num_nonnulls(minutes_approval, council_decision_proposal, open_question) = 0 AND council_business IS NOT NULL)
   ),
 
   -- @functional-requirement HALL-FR-AGI-020 AGENDA_POSITION_SIGN_ENCODES_PROGRAMMING:
@@ -101,7 +100,3 @@ CREATE INDEX council_agenda_item_decision_business_membership
 CREATE INDEX council_agenda_item_open_question_business_membership
   ON council_agenda_item (open_question, council_business)
   WHERE open_question IS NOT NULL;
-
--- Same existing identity rule: one occurrence of a subject in a meeting.
-CREATE UNIQUE INDEX council_agenda_item_consultation_once_per_meeting
-  ON council_agenda_item(council_meeting,council_business) WHERE subject_kind='businessConsultation';

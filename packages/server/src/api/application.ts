@@ -1,11 +1,13 @@
-import { createMeetingNoticesRouter } from "./routes/meetingNoticesRoutes.js";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { handleWorkspaceMcp, WorkspaceClient } from "@hall/mcp";
 import type { AwilixContainer } from "awilix";
 import express from "express";
 import type { Cradle } from "../core/container.js";
+import { SESSION_COOKIE_NAME } from "../services/authService.js";
 import {
   auditApiRequest,
+  cookieValue,
   enforceSameOrigin,
   loadAuthentication,
   persistFailedAudit,
@@ -28,6 +30,7 @@ import { createCouncilMeetingsRouter } from "./routes/councilMeetingsRoutes.js";
 import { createCouncilMembersRouter } from "./routes/councilMembersRoutes.js";
 import { createCouncilTermsRouter } from "./routes/councilTermsRoutes.js";
 import { createDocumentaryResourcesRouter } from "./routes/documentaryResourcesRoutes.js";
+import { createMeetingNoticesRouter } from "./routes/meetingNoticesRoutes.js";
 import { createMinutesRouter } from "./routes/minutesRoutes.js";
 import { createSettingsRouter } from "./routes/settingsRoutes.js";
 import { apiRootRepresentation, sirenResponses } from "./sirenRepresentation.js";
@@ -40,6 +43,28 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
 
   if (config.behindTlsProxy) app.set("trust proxy", 1);
   app.get("/api/health", (_request, response) => response.json({ status: "ok" }));
+  app.all(
+    "/mcp",
+    requestContextMiddleware(requestContext),
+    loadAuthentication(authService, requestContext, config),
+    requireAuthentication,
+    enforceSameOrigin(config),
+    express.json({ limit: 36 * 1024 * 1024 }),
+    async (request, response) => {
+      const address = request.socket.localAddress ?? "127.0.0.1";
+      const hostname = address.includes(":") ? `[${address}]` : address;
+      await handleWorkspaceMcp(
+        request,
+        response,
+        request.body,
+        new WorkspaceClient(
+          `http://${hostname}:${request.socket.localPort}`,
+          cookieValue(request, SESSION_COOKIE_NAME) ?? undefined,
+          true,
+        ),
+      );
+    },
+  );
   app.use(
     "/api",
     requestContextMiddleware(requestContext),

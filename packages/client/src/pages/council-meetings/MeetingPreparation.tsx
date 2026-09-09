@@ -15,6 +15,7 @@ import {
 } from "../../features/council-meetings/meetingPresentation";
 import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
 import { MeetingNoticeActions } from "../../features/council-meetings/MeetingNoticeActions";
+import { MeetingEntryBlockers } from "../../features/council-meetings/MeetingEntryBlockers";
 import { useMeetingSettings } from "../../hooks/useMeetingSettings";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
@@ -34,6 +35,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const detailsFieldId = useId();
   const aggregate = meetingActions.meeting!;
   const { meeting } = aggregate;
+  const entryBlockers = meetingActions.workspace!.meeting.entryBlockers;
   const { members } = useCouncilMembersStore();
   const [preparedSubjects, setPreparedSubjects] = useState<PreparedCouncilSubject[]>([]);
   const [preparedSubjectsError, setPreparedSubjectsError] = useState<ApiErrorCode | null>(null);
@@ -143,14 +145,20 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                   {t("meeting.generalProperties")}
                 </Button>
               ) : null}
-              {meeting.status !== "draft" ? (
-                <Link className="live-mode-link" to={`/meetings/${meeting.slug}/live`}>
+              {entryBlockers.length ? (
+                <Button data-testid="meeting-enter-live" disabled aria-describedby="meeting-live-entry-reason">
+                  <PlayIcon aria-hidden="true" />
+                  {t("meeting.enterLiveMode")}
+                </Button>
+              ) : (
+                <Link data-testid="meeting-enter-live" className="live-mode-link" to={`/meetings/${meeting.slug || meeting.id}/live`}>
                   <PlayIcon aria-hidden="true" />
                   {t("meeting.enterLiveMode")}
                 </Link>
-              ) : null}
+              )}
             </div>
           </div>
+          <MeetingEntryBlockers blockers={entryBlockers} />
           {meeting.status === "draft" && !aggregate.agendaReady && aggregate.requiredMinutesOfMeetingId ? (
             <p className="meeting-evidence">{t("meeting.agendaNotReady")}</p>
           ) : null}

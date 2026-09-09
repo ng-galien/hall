@@ -384,11 +384,6 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
       data: { kind: "openQuestion", councilBusinessId: businesses[0]!.id, position: 2 },
     }),
   );
-  const consultation = await sirenProperties<{ id: string }>(
-    await page.request.post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`, {
-      data: { kind: "businessConsultation", councilBusinessId: businesses[0]!.id, position: 3 },
-    }),
-  );
   await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
   await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
   await page.goto(`/app/meetings/${meeting.id}/live`);
@@ -442,9 +437,9 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
     await adjournThroughConfirmation(page, item.id);
   }
   const informationalItems = agenda
-    .filter((item) => item.id === question.id || item.id === consultation.id)
+    .filter((item) => item.id === question.id)
     .sort((left, right) => left.position - right.position);
-  expect(informationalItems).toHaveLength(2);
+  expect(informationalItems).toHaveLength(1);
   for (const item of informationalItems) {
     await page.getByTestId(`live-agenda-item-${item.id}`).click();
     await expect(page.getByTestId(`live-agenda-item-${item.id}`)).toHaveAttribute("aria-current", "true");
@@ -563,6 +558,63 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
     ).toContainText(paragraph);
   await page.getByTestId(`minutes-section-${addedQuestion.id}`).scrollIntoViewIfNeeded();
   await page.screenshot({ path: test.info().outputPath("added-open-question-minutes.png"), animations: "disabled" });
+});
+
+test("shows canonical meeting entry requirements and invalidates entry when the agenda is reopened", async ({ appPage: page }) => {
+  test.setTimeout(90_000);
+  page.setDefaultTimeout(10_000);
+  const meetings = await sirenItems<{ id: string; startedAt: string | null; closedAt: string | null }>(
+    await page.request.get("/api/council-meetings"),
+  );
+  const meeting = meetings.find((candidate) => !candidate.startedAt && !candidate.closedAt)!;
+  expect(meeting).toBeTruthy();
+  const scheduled = await sirenProperties<{ slug: string }>(
+    await page.request.put(`/api/council-meetings/${meeting.id}/schedule`, {
+      data: { scheduledAt: new Date(Date.now() + 86_400_000).toISOString(), location: "Entry requirements E2E" },
+    }),
+  );
+  const detailUrl = `/app/meetings/${scheduled.slug}`;
+  const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
+  await scheduleVotingItem(page, scheduled.slug, businesses[0]!.id, 1);
+  const conductUrl = `/api/council-meetings/${meeting.id}/conduct`;
+  const initial = await sirenProperties<{ currentAttendance: unknown[]; quorumObservations: unknown[] }>(
+    await page.request.get(conductUrl),
+  );
+  await page.goto(detailUrl);
+  await expect(page.getByTestId("meeting-enter-live")).toBeDisabled();
+  await expect(page.getByTestId("meeting-entry-blocker-agendaNotFrozen")).toBeVisible();
+  await expect(page.getByTestId("meeting-entry-blocker-currentNoticeMissing")).toBeVisible();
+  await page.goto(`${detailUrl}/live`);
+  await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
+  await expect(page.getByTestId("live-meeting-start")).toHaveCount(0);
+  await page.getByTestId("live-return-preparation").click();
+  await page.getByTestId("meeting-open-notice").click();
+  const frozen = page.waitForResponse((response) => response.request().method() === "POST" && response.url().endsWith("/agenda-freeze"));
+  await page.getByTestId("meeting-freeze-agenda").click();
+  expect((await frozen).ok()).toBeTruthy();
+  await page.getByTestId("meeting-generate-notice").click();
+  await expect(page.getByTestId("document-object-viewer")).toBeVisible();
+  await page.getByTestId("document-object-viewer-close").click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("meeting-live-entry-reason")).toHaveCount(0);
+  await page.getByTestId("meeting-enter-live").click();
+  await expect(page.getByTestId("live-meeting-page")).toBeVisible();
+  await expect(page.getByTestId("meeting-entry-blocker-scheduledTimeNotReached")).toBeVisible();
+  await expect(page.getByTestId("live-meeting-start")).toBeDisabled();
+  await page.getByTestId("live-meeting-exit").click();
+  await page.getByTestId("meeting-open-notice").click();
+  await page.getByTestId("meeting-reopen-agenda").click();
+  await expect(page.getByTestId("meeting-freeze-agenda")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("meeting-enter-live")).toBeDisabled();
+  await expect(page.getByTestId("meeting-entry-blocker-agendaNotFrozen")).toBeVisible();
+  await expect(page.getByTestId("meeting-entry-blocker-currentNoticeMissing")).toBeVisible();
+  await page.goto(`${detailUrl}/live`);
+  await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
+  const after = await sirenProperties<typeof initial>(await page.request.get(conductUrl));
+  expect(after.currentAttendance).toEqual(initial.currentAttendance);
+  expect(after.quorumObservations).toEqual(initial.quorumObservations);
+  await page.screenshot({ path: test.info().outputPath("meeting-entry-requirements.png"), fullPage: true });
 });
 
 test("conducts public and secret ballots and provisions the previous minutes approval", async ({
@@ -1044,7 +1096,7 @@ test("conducts public and secret ballots and provisions the previous minutes app
   expect(meetingDocuments).toHaveLength(2);
   const outcomes: string[] = [];
   for (const document of meetingDocuments) {
-    const original = await sirenProperties<{ content: string; facts: { ballot: { mode: string; result: string } } }>(
+    const original = await sirenProperties<{ content: string; number: string | null; facts: { ballot: { mode: string; result: string } } }>(
       await page.request.get(`/api/council-decisions/${document.id}`),
     );
     outcomes.push(`${original.facts.ballot.mode}:${original.facts.ballot.result}`);
@@ -1076,12 +1128,12 @@ test("conducts public and secret ballots and provisions the previous minutes app
     await page.getByTestId("decision-freeze-confirm").click();
     await expect(page.getByTestId("decision-freeze-dialog")).toBeHidden();
     await expect(page.getByTestId("decision-writing")).toHaveCount(0);
-    const frozen = await sirenProperties<{ state: string; facts: unknown; publicationNumber: null }>(
+    const frozen = await sirenProperties<{ state: string; facts: unknown; number: string | null }>(
       await page.request.get(`/api/council-decisions/${document.id}`),
     );
     expect(frozen.state).toBe("frozen");
     expect(frozen.facts).toEqual(original.facts);
-    expect(frozen.publicationNumber).toBeNull();
+    expect(frozen.number).toBe(original.number);
     await expect(page.getByTestId("decision-download")).toBeVisible();
     const downloadHref = await page.getByTestId("decision-download").getAttribute("href");
     const preserved = await page.request.get(downloadHref!);

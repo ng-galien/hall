@@ -212,6 +212,10 @@ Le serveur doit dès maintenant empêcher les chronologies manifestement incohé
 
 Ces fonctions ne doivent pas retarder la consolidation de l'éditeur actuel.
 
+## À préciser
+
+- [ ] Planning.
+
 ## Acquis structurants
 
 - [x] Le domaine distingue `CouncilMatter`, `AgendaItem`, l'approbation d'un procès-verbal et la question diverse.

@@ -33,6 +33,9 @@ export function createPostgresCouncilDecisionClient({
       if (error instanceof HallPostgresError && ["HV737"].includes(error.sqlState)) {
         throw new DomainError("council_decision_not_found", 404);
       }
+      if (error instanceof HallPostgresError && error.sqlState === "HV743") {
+        throw new DomainError("council_decision_number_changed", 409);
+      }
       if (error instanceof HallPostgresError && /^HV73[0-8]$/.test(error.sqlState)) {
         throw new DomainError("council_decision_conflict", 409);
       }
@@ -54,9 +57,9 @@ export function createPostgresCouncilDecisionClient({
         await call(() => postgresCouncilDecisions.updateDraft(currentRequest(), { id, ...input })),
       );
     },
-    async freeze(id, expectedVersion, content) {
+    async freeze(id, expectedVersion, expectedNumber, expectedDocumentDate, content) {
       return councilDecisionDetailSchema.parse(
-        await call(() => postgresCouncilDecisions.freeze(currentRequest(), { id, expectedVersion, content })),
+        await call(() => postgresCouncilDecisions.freeze(currentRequest(), { id, expectedVersion, expectedNumber, expectedDocumentDate, content })),
       );
     },
     async content(id) {

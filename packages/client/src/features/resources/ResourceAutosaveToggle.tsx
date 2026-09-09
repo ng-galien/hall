@@ -8,11 +8,13 @@ export function ResourceAutosaveToggle({
   status,
   disabled = false,
   onChange,
+  showLabel = false,
 }: {
   enabled: boolean;
   status: SaveStatus;
   disabled?: boolean;
   onChange(enabled: boolean): void;
+  showLabel?: boolean;
 }) {
   const { t } = useI18n();
   const statusLabel =
@@ -30,7 +32,7 @@ export function ResourceAutosaveToggle({
 
   return (
     <button
-      className="resource-autosave-toggle"
+      className={`resource-autosave-toggle${showLabel ? " resource-autosave-toggle-labeled" : ""}`}
       data-testid="resource-autosave-toggle"
       data-enabled={enabled}
       data-save-status={status}
@@ -53,6 +55,12 @@ export function ResourceAutosaveToggle({
           <AutosaveOffIcon weight="bold" />
         )}
       </span>
+      {showLabel ? (
+        <span role="status">
+          {t("workspace.autosave")}
+          {statusLabel ? ` · ${statusLabel}` : ""}
+        </span>
+      ) : null}
     </button>
   );
 }

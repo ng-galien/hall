@@ -48,6 +48,7 @@ export interface ResourcesClient {
   open(reference: string): Promise<ResourceRepresentation<ResourceDetail> | null>;
   create(input: PersistResource): Promise<ResourceRepresentation<ResourceDetail>>;
   createDocument(input: {
+    councilBusinessId?: string;
     path: string;
     name: string;
     mediaType: string;

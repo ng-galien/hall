@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { AddIcon, SearchIcon } from "../../components/icons";
+import { LinkIcon, SearchIcon } from "../../components/icons";
 import { matchesQuery } from "../../components/Ui";
 import {
   type DocumentaryLeafSummary,
@@ -25,7 +26,13 @@ function PickerGroup({
     <div className="resource-picker-group">
       <span className="workspace-list-heading">{t(headingKey)}</span>
       {resources.map((resource) => (
-        <button className="resource-picker-row" type="button" key={resource.id} onClick={() => onPick(resource.id)}>
+        <button
+          className="resource-picker-row"
+          data-testid={`resource-picker-item-${resource.id}`}
+          type="button"
+          key={resource.id}
+          onClick={() => onPick(resource.id)}
+        >
           <DocumentaryResourceGlyph resource={resource} />
           <span className="workspace-row-copy">
             <strong>{resource.name}</strong>
@@ -46,14 +53,25 @@ export function ResourcePicker({
   others,
   disabled,
   onPick,
+  compact = false,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   suggestions: DocumentaryLeafSummary[];
   others: DocumentaryLeafSummary[];
   disabled?: boolean;
+  compact?: boolean;
+  open?: boolean;
+  onOpenChange?(open: boolean): void;
   onPick(resourceId: string): void;
 }) {
   const { t } = useI18n();
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen ?? localOpen;
+  const setOpen = (value: boolean) => {
+    setLocalOpen(value);
+    onOpenChange?.(value);
+  };
   const [query, setQuery] = useState("");
   const searchInput = useRef<HTMLInputElement>(null);
 
@@ -74,36 +92,34 @@ export function ResourcePicker({
   };
 
   return (
-    <div className="resource-picker">
-      <Button
-        variant="outline"
-        disabled={disabled || (suggestions.length === 0 && others.length === 0)}
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-      >
-        <AddIcon />
-        {t("workspace.addResource")}
-      </Button>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          data-testid="resource-picker-open"
+          variant={compact ? "ghost" : "outline"}
+          size={compact ? "icon-xs" : "default"}
+          aria-label={t("workspace.addResource")}
+          disabled={disabled || (suggestions.length === 0 && others.length === 0)}
+          aria-expanded={open}
+        >
+          <LinkIcon />
+          {compact ? null : t("workspace.addResource")}
+        </Button>
+      </PopoverTrigger>
       {open ? (
         <>
-          <button
-            className="resource-picker-backdrop"
-            type="button"
-            aria-label={t("common.close")}
-            onClick={() => setOpen(false)}
-          />
-          <div
+          <PopoverContent
             className="resource-picker-panel"
-            role="dialog"
+            align="end"
+            side="bottom"
+            data-testid="resource-picker-panel"
             aria-label={t("workspace.addResource")}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") setOpen(false);
-            }}
           >
             <div className="workspace-search">
               <SearchIcon aria-hidden="true" />
               <input
                 ref={searchInput}
+                data-testid="resource-picker-search"
                 type="search"
                 value={query}
                 placeholder={t("workspace.pickerSearch")}
@@ -121,9 +137,9 @@ export function ResourcePicker({
                 </>
               )}
             </div>
-          </div>
+          </PopoverContent>
         </>
       ) : null}
-    </div>
+    </Popover>
   );
 }

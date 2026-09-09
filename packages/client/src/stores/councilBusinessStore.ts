@@ -1,4 +1,4 @@
-import { type CreateCouncilBusiness, findSirenAction, type SirenEntity } from "@hall/api-contract";
+import { type CreateCouncilBusiness, type PreparedCouncilSubject, type CreatePreparedCouncilSubject, findSirenAction, type SirenEntity } from "@hall/api-contract";
 import { create } from "zustand";
 import { type CouncilBusinessView, councilBusinessView } from "../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
@@ -11,10 +11,16 @@ import {
   openCouncilBusiness,
   reorderCouncilBusinessResources,
   scheduleCouncilBusinessSubject,
+  listPreparedCouncilSubjects,
+  createPreparedCouncilSubject,
 } from "../services/councilBusinessApi";
 import { useWorkspaceResourcesStore } from "./workspaceResourcesStore";
 
 interface CouncilBusinessCapabilities {
+  createResource: boolean;
+  uploadDocument: boolean;
+  importSpreadsheet: boolean;
+  createPreparedSubject: boolean;
   associateResource: boolean;
   dissociateResource: boolean;
   reorderResources: boolean;
@@ -23,6 +29,10 @@ interface CouncilBusinessCapabilities {
 }
 
 interface CouncilBusinessStoreState {
+  representationsById: Record<string, SirenEntity>;
+  preparedSubjects: PreparedCouncilSubject[];
+  loadPreparedSubjects(): Promise<void>;
+  createPreparedSubject(id: string, input: CreatePreparedCouncilSubject): Promise<PreparedCouncilSubject | null>;
   businesses: CouncilBusinessView[];
   loading: boolean;
   error: ApiErrorCode | null;
@@ -46,6 +56,10 @@ interface CouncilBusinessStoreState {
 function capabilities(representation: SirenEntity | null): CouncilBusinessCapabilities {
   if (!representation) {
     return {
+      createResource: false,
+      uploadDocument: false,
+      importSpreadsheet: false,
+      createPreparedSubject: false,
       associateResource: false,
       dissociateResource: false,
       reorderResources: false,
@@ -54,6 +68,10 @@ function capabilities(representation: SirenEntity | null): CouncilBusinessCapabi
     };
   }
   return {
+    createResource: Boolean(findSirenAction(representation, "resource.create")),
+    uploadDocument: Boolean(findSirenAction(representation, "resource.create-document")),
+    importSpreadsheet: Boolean(findSirenAction(representation, "resource.import-spreadsheet")),
+    createPreparedSubject: Boolean(findSirenAction(representation, "council-business.create-prepared-subject")),
     associateResource: Boolean(findSirenAction(representation, "council-business.associate-resource")),
     dissociateResource: Boolean(findSirenAction(representation, "council-business.dissociate-resource")),
     reorderResources: Boolean(findSirenAction(representation, "council-business.reorder-resources")),
@@ -94,6 +112,26 @@ async function hydrateCouncilBusiness(id: string): Promise<{
 }
 
 export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, get) => ({
+  representationsById: {},
+  preparedSubjects: [],
+  async loadPreparedSubjects() {
+    try {
+      set({ preparedSubjects: await listPreparedCouncilSubjects() });
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
+    }
+  },
+  async createPreparedSubject(id, input) {
+    set({ error: null });
+    try {
+      const subject = await createPreparedCouncilSubject(id, input);
+      await get().loadPreparedSubjects();
+      return subject;
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
+      return null;
+    }
+  },
   businesses: [],
   loading: false,
   error: null,
@@ -124,6 +162,7 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
           ...state.capabilitiesById,
           [id]: capabilities(refreshed.representation),
         },
+        representationsById: refreshed.representation ? { ...state.representationsById, [id]: refreshed.representation } : state.representationsById,
       }));
       return refreshed.view;
     } catch (error) {
@@ -146,6 +185,7 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
           ...state.capabilitiesById,
           [id]: capabilities(opened.representation),
         },
+        representationsById: opened.representation ? { ...state.representationsById, [id]: opened.representation } : state.representationsById,
       }));
       return true;
     } catch (error) {

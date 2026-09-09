@@ -26,7 +26,7 @@ export interface LiveMeetingMemberAttendance {
 
 export interface LiveMeetingBusiness {
   id: string;
-  kind: "matter" | "minutesApproval" | "businessConsultation" | "openQuestion";
+  kind: "matter" | "minutesApproval" | "openQuestion";
   title: string;
   report: string;
   reportResourceId?: string;
@@ -313,8 +313,7 @@ export type LiveBallotSubmission = ({ agendaItemId: string } | { councilDecision
 const agendaRankByBusinessKind: Record<LiveMeetingBusiness["kind"], number> = {
   minutesApproval: 0,
   matter: 1,
-  businessConsultation: 2,
-  openQuestion: 3,
+  openQuestion: 2,
 };
 
 export function liveAgendaBusinessRank(business: LiveMeetingBusiness): number {

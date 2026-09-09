@@ -98,7 +98,7 @@ export function useReferenceMentionables(): Mentionable[] {
         kind: "decision" as const,
         id: decision.id,
         label: decision.title,
-        extra: [decision.publicationNumber],
+        extra: [decision.number],
         state: decision.state,
         stateLabel: t(decision.state === "draft" ? "decisionDocument.draft" : "decisionDocument.frozen"),
       })),

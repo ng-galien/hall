@@ -1,5 +1,5 @@
 import type { CouncilBusinessView } from "../../models/councilBusiness";
-import { FolderOpenIcon } from "../../components/icons";
+import { CouncilBusinessIcon } from "../../components/icons";
 
 export function CouncilBusinessGlyph({ large }: { business: CouncilBusinessView; large?: boolean }) {
   return (
@@ -7,7 +7,7 @@ export function CouncilBusinessGlyph({ large }: { business: CouncilBusinessView;
       className={`workspace-glyph workspace-glyph-business${large ? " workspace-glyph-large" : ""}`}
       aria-hidden="true"
     >
-      <FolderOpenIcon />
+      <CouncilBusinessIcon />
     </span>
   );
 }

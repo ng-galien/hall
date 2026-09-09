@@ -44,6 +44,23 @@ BEGIN
   RETURN blockers;
 END $$;
 
+CREATE FUNCTION hall.council_meeting_entry_blockers(target hall.council_meetings)
+RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
+  SELECT CASE WHEN target.closed_at IS NOT NULL THEN '[{"code":"meetingClosed"}]'::jsonb
+    WHEN target.started_at IS NOT NULL THEN '[]'::jsonb
+    ELSE hall.council_meeting_preparation_blockers(target) END;
+$$;
+
+CREATE FUNCTION hall.council_meeting_opening_blockers(target hall.council_meetings)
+RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
+  SELECT CASE WHEN target.closed_at IS NOT NULL THEN '[{"code":"meetingClosed"}]'::jsonb
+    WHEN target.started_at IS NOT NULL THEN '[{"code":"meetingAlreadyStarted"}]'::jsonb
+    ELSE hall.council_meeting_preparation_blockers(target) ||
+      CASE WHEN target.scheduled_at > statement_timestamp() THEN
+        jsonb_build_array(jsonb_build_object('code','scheduledTimeNotReached','scheduledAt',target.scheduled_at))
+      ELSE '[]'::jsonb END END;
+$$;
+
 CREATE FUNCTION hall.council_meeting_projection(target hall.council_meetings)
 RETURNS JSONB
 LANGUAGE sql
@@ -68,7 +85,9 @@ AS $function$
     'quorum', (SELECT cardinality(member_ids)/2+1 FROM hall.meeting_membership_record WHERE council_meeting=target.id ORDER BY observed_at DESC LIMIT 1),
     'startedAt', target.started_at,
     'closedAt', target.closed_at,
-    'closureBlockers',hall.council_meeting_closure_blockers(target)
+    'closureBlockers',hall.council_meeting_closure_blockers(target),
+    'entryBlockers',hall.council_meeting_entry_blockers(target),
+    'openingBlockers',hall.council_meeting_opening_blockers(target)
   )
 $function$;
 
@@ -217,8 +236,8 @@ AS $function$
 DECLARE
   changed hall.council_meetings;
 BEGIN
-  PERFORM 1 FROM hall.council_meetings WHERE id=target_meeting FOR UPDATE;
-  IF hall.current_meeting_notice_id(target_meeting) IS NULL THEN
+  SELECT * INTO changed FROM hall.council_meetings WHERE id=target_meeting FOR UPDATE;
+  IF jsonb_array_length(hall.council_meeting_preparation_blockers(changed)) > 0 THEN
     RAISE EXCEPTION USING ERRCODE = 'HV807', MESSAGE='meeting start requires the current generated notice';
   END IF;
   PERFORM hall_api.record_meeting_attendance(target_meeting,attendance_declarations,observation_time);

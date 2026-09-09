@@ -520,3 +520,9 @@
 .markdown-image-status[role="alert"] {
   color: var(--hall-color-danger);
 }
+
+.workspace-explorer-content-body .resource-preview-text {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}

@@ -18,6 +18,7 @@ import type {
   CreateBallotResultPreview,
   CreateCouncilBusiness,
   CreatedAndScheduledCouncilBusiness,
+  MeetingDocumentResourceDetail,
   MeetingAttendance,
   MeetingConductWorkspace,
   PrepareCouncilMeeting,
@@ -39,6 +40,7 @@ import type {
 } from "@hall/api-contract";
 import type {
   CreatePreparedCouncilSubject,
+  MeetingDocuments,
   MeetingAgendaFreeze,
   MeetingNotice,
   MeetingNoticeFacts,
@@ -60,6 +62,10 @@ export class CouncilClientError extends Error {
 }
 
 export interface CouncilClient {
+  meetingDocuments(id: string): Promise<MeetingDocuments>;
+  meetingDocumentResource(id: string, resourceId: string): Promise<MeetingDocumentResourceDetail | null>;
+  meetingDocumentContent(id: string, resourceId: string, assetId?: string | null): Promise<{ content: Buffer; mediaType: string } | null>;
+
   listPreparedSubjects(meetingId?: string | null): Promise<PreparedCouncilSubject[]>;
   openPreparedSubject(id: string, kind: PreparedCouncilSubject["kind"]): Promise<PreparedCouncilSubject | null>;
   createPreparedSubject(businessId: string, input: CreatePreparedCouncilSubject): Promise<PreparedCouncilSubject>;

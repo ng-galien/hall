@@ -25,6 +25,8 @@ SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:mee
 SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),'2026-01-01 18:01Z',jsonb_set(pg_temp.opening_declarations(7),'{14,status}','"represented"'),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV103',NULL,'invalid proxy rolls back opening');
 SELECT is((SELECT count(*)::int FROM meeting_membership_record),0,'invalid proxy leaves no roster');
 SELECT lives_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),'2026-01-01 18:01Z',pg_temp.opening_declarations(7),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'seven of fifteen opens the session and records insufficient quorum');
+SELECT is(hall_api.open_council_meeting(test_uuid('opening:meeting'))->'entryBlockers','[]'::jsonb,'started meeting remains enterable despite insufficient quorum');
+SELECT is(hall_api.open_council_meeting(test_uuid('opening:meeting'))->'openingBlockers','[{"code":"meetingAlreadyStarted"}]'::jsonb,'started meeting cannot advertise another opening');
 SELECT is((SELECT count(*)::int FROM meeting_attendance),15,'all active members remain in the recorded call');
 SELECT ok((SELECT started_at IS NOT NULL FROM council_meetings WHERE id=test_uuid('opening:meeting')),'session is open for exchanges despite insufficient quorum');
 SELECT is((SELECT facts->>'verdict' FROM meeting_quorum_observation),'notMet','one durable failed quorum observation');
@@ -45,5 +47,6 @@ SELECT is((SELECT count(*)::int FROM ballots),0,'session without quorum produces
 SELECT is((SELECT count(*)::int FROM meeting_membership_record),1,'one user submission creates one roster snapshot');
 SELECT lives_ok($$SELECT close_council_meeting(test_uuid('opening:meeting'),'2026-01-01 18:05Z')$$,'a first session without quorum can close after exchanges and adjournment');
 SELECT is((SELECT count(*)::int FROM council_agenda_item WHERE council_meeting<>test_uuid('opening:meeting') AND council_decision_proposal IS NOT NULL),1,'the deferred voting subject is carried forward without an adopted decision');
+SELECT is(hall_api.open_council_meeting(test_uuid('opening:meeting'))->'entryBlockers','[{"code":"meetingClosed"}]'::jsonb,'closed meeting is no longer available for live conduct');
 SELECT * FROM finish();
 ROLLBACK;

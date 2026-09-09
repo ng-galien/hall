@@ -313,7 +313,7 @@ const daysFromNow = (days, hour = 18, minute = 30) => {
   return date.toISOString();
 };
 
-async function seedCouncilMeetings(members, businesses) {
+async function seedCouncilMeetings(members, subjects) {
   const memberList = Object.values(members);
   const chairMemberId = members.Delcourt.id;
   const secretaryMemberId = members.Charpentier.id;
@@ -328,21 +328,14 @@ async function seedCouncilMeetings(members, businesses) {
       "Ce document sert uniquement aux essais de l'interface.",
     ],
   });
-  async function schedule(meeting, business, position, kind = "councilDecisionProposal") {
-    const item = await post(`/council-meetings/${meeting.id}/agenda-items`, {
-      councilBusinessId: business.id,
+  async function schedule(meeting, subjectKey, position) {
+    const subject = subjects.get(subjectKey);
+    if (!subject) throw new Error(`Unknown seeded subject: ${subjectKey}`);
+    return post(`/council-meetings/${meeting.id}/agenda-items/from-prepared`, {
+      subjectId: subject.id,
+      kind: subject.kind,
       position,
-      kind,
     });
-    if (kind === "councilDecisionProposal") {
-      const resource = await get(`/resources/${item.subject.textResourceId}`);
-      await put(`/resources/${resource.id}/content`, {
-        kind: "text",
-        expectedVersion: resource.version,
-        content: `Après examen du rapport et des pièces jointes, le conseil municipal est invité à :\n\n1. Approuver les orientations présentées dans le rapport.\n2. Autoriser le maire à mettre en œuvre les démarches correspondantes.\n3. Prévoir un bilan lors d'une prochaine séance.\n\n*Exemple fictif destiné à tester l'interface.*`,
-      });
-    }
-    return item;
   }
   async function open(meeting, date) {
     await put(`/council-meetings/${meeting.id}/prepare`, {
@@ -393,9 +386,9 @@ async function seedCouncilMeetings(members, businesses) {
   }
   const first = await post("/council-meetings", {});
   const firstItems = [
-    await schedule(first, businesses[1], 1),
-    await schedule(first, businesses[2], 2),
-    await schedule(first, businesses[6], 3, "openQuestion"),
+    await schedule(first, "landSale", 1),
+    await schedule(first, "mealPrices", 2),
+    await schedule(first, "schoolYear", 3),
   ];
   const firstDate = daysFromNow(-60);
   const firstAttendance = await open(first, firstDate);
@@ -408,9 +401,9 @@ async function seedCouncilMeetings(members, businesses) {
   const { nextMeeting: second } = await close(first, firstDate);
 
   const approval1 = (await get(`/council-meetings/${second.id}/agenda-items`))[0];
-  const grants = await schedule(second, businesses[5], 2);
-  const motion = await schedule(second, businesses[3], 3);
-  const deferred = await schedule(second, businesses[7], 4, "openQuestion");
+  const grants = await schedule(second, "associationGrants", 2);
+  const motion = await schedule(second, "commerceMotion", 3);
+  const deferred = await schedule(second, "hallStudy", 4);
   const secondDate = daysFromNow(-28);
   const secondAttendance = await open(second, secondDate);
   await vote(second, approval1, secondAttendance, secondDate, 2, "public", 13, 0);
@@ -420,8 +413,8 @@ async function seedCouncilMeetings(members, businesses) {
   const { nextMeeting: current } = await close(second, secondDate);
 
   const currentAgenda = await get(`/council-meetings/${current.id}/agenda-items`);
-  const lighting = await schedule(current, businesses[4], 3);
-  const parking = await schedule(current, businesses[8], 4, "openQuestion");
+  const lighting = await schedule(current, "lightingPhaseTwo", 3);
+  const parking = await schedule(current, "parking", 4);
   await put(`/council-meetings/${current.id}/agenda-order`, {
     agendaItemIds: [currentAgenda[0].id, lighting.id, currentAgenda[1].id, parking.id],
   });
@@ -439,7 +432,7 @@ async function seedCouncilMeetings(members, businesses) {
     await post(`/council-meetings/${current.id}/agenda-items/${currentAgenda[1].id}/complete`, {
       completedAt: at(currentDate, 45),
     });
-    const closure = await post(`/council-meetings/${current.id}/close`, { closedAt: at(currentDate, 60) });
+    const closure = await post(`/council-meetings/${current.id}/close`, { closedAt: new Date().toISOString() });
     const draft = await get(`/minutes/${closure.minutes.id}`);
     if (draft.generatedAt !== null || draft.documentId !== null || !draft.sections.some((section) => section.content.includes("ses conclusion"))) {
       throw new Error("Minutes seed must provide an editable draft containing the recorded discussion");
@@ -916,82 +909,94 @@ async function main() {
     ],
   });
 
-  console.log("- Affaires du conseil et rapports principaux");
+  console.log("- Affaires durables, projets et questions préparés");
+  const proposalContent = "Après examen du rapport et des pièces jointes, le conseil municipal est invité à :\n\n1. Approuver les orientations présentées dans le rapport.\n2. Autoriser le maire à mettre en œuvre les démarches correspondantes.\n3. Prévoir un bilan lors d'une prochaine séance.\n\n*Exemple fictif destiné à tester l'interface.*";
   const councilBusinesses = [
     {
-      path: seedFolderPath,
-      name: "Affaire de démonstration",
-      reportContent:
-        "Cette affaire sert de repère pour distinguer une affaire du conseil des ressources du dossier seed.",
+      key: "demo", path: seedFolderPath, name: "Affaire de démonstration",
+      reportContent: "Cette affaire sert de repère pour distinguer une affaire du conseil des ressources du dossier seed.",
+      subjects: [], resourceNames: [],
     },
     {
-      path: "urbanisme/cessions",
-      name: "Cession de la parcelle AB 127",
-      reportContent:
-        "La commune n'a pas d'usage de cette parcelle enclavée. Un riverain s'est porté acquéreur au prix de l'avis des Domaines.",
+      key: "property", path: "travaux", name: "Patrimoine communal",
+      reportContent: "Suivi durable des terrains et bâtiments communaux : cessions, études de rénovation et usages. La commune n'a pas d'usage de la parcelle AB 127 ; un riverain s'est porté acquéreur au prix de l'avis des Domaines. La salle des fêtes fait l'objet d'une étude de programmation (toiture, chauffage, accessibilité).",
+      subjects: [
+        { key: "landSale", kind: "councilDecisionProposal", name: "Cession de la parcelle AB 127", content: proposalContent },
+        { key: "hallStudy", kind: "openQuestion", name: "Rénovation de la salle des fêtes - étude préalable", content: "Lancement d'une étude de programmation (toiture, chauffage, accessibilité)." },
+      ],
+      resourceNames: ["Avis des Domaines - parcelle AB 127", "Note sur la cession de la parcelle AB 127", "Diagnostic énergétique de la mairie", "Règlement de mise à disposition"],
     },
     {
-      path: "ecole/cantine",
-      name: "Tarifs de la restauration scolaire 2026-2027",
-      reportContent:
-        "Le prestataire augmente ses prix de 4,1 %. La commission scolaire propose de ne répercuter qu'une partie de la hausse.",
+      key: "schoolMeals", path: "ecole", name: "Restauration scolaire",
+      reportContent: "Suivi de la restauration scolaire : prestation, règlement et évolution des tarifs. Le prestataire augmente ses prix de 4,1 %. La commission scolaire propose de ne répercuter qu'une partie de la hausse.",
+      subjects: [
+        { key: "mealPrices", kind: "councilDecisionProposal", name: "Tarifs de la restauration scolaire 2026-2027", content: proposalContent },
+        { key: "mealPriceReview", kind: "openQuestion", name: "Restauration scolaire - réexamen de la tarification", content: "Comparer les options de répartition de la hausse du prestataire entre les familles et la commune, à partir de la note tarifaire et du règlement existant. Question préparée, non inscrite à une séance." },
+      ],
+      resourceNames: ["Règlement intérieur de la cantine", "Note sur les tarifs 2026-2027", "Tarifs de la restauration scolaire"],
     },
     {
-      path: "",
-      name: "Motion de soutien au commerce de proximité",
-      reportContent:
-        "Suite à la fermeture annoncée du dernier commerce alimentaire, il est proposé au conseil d'adopter une motion de soutien.",
+      key: "commerce", path: "", name: "Commerce de proximité",
+      reportContent: "Suivi de l'offre commerciale et des échanges avec les commerçants. Suite à la fermeture annoncée du dernier commerce alimentaire, il est proposé au conseil d'adopter une motion de soutien.",
+      subjects: [
+        { key: "commerceMotion", kind: "councilDecisionProposal", name: "Motion de soutien au commerce de proximité", content: proposalContent },
+      ],
+      resourceNames: [],
     },
     {
-      path: "travaux/eclairage",
-      name: "Éclairage public - engagement de la tranche 2",
-      reportContent:
-        "Après la tranche 1 achevée au printemps, la tranche 2 couvre le centre-bourg et les abords de l'école. Le plan de financement intègre la subvention du SDE.",
+      key: "lighting", path: "travaux", name: "Éclairage public",
+      reportContent: "Suivi pluriannuel du parc lumineux, de sa rénovation et de ses consommations. Après la tranche 1 achevée au printemps, la tranche 2 couvre le centre-bourg et les abords de l'école. Le plan de financement intègre la subvention du SDE.",
+      subjects: [
+        { key: "lightingPhaseTwo", kind: "councilDecisionProposal", name: "Éclairage public - engagement de la tranche 2", content: proposalContent },
+        { key: "lightingReview", kind: "openQuestion", name: "Éclairage public - bilan de la tranche 1", content: "Préparer le bilan de la tranche achevée au printemps et actualiser le diagnostic des points lumineux. Question préparée, non inscrite à une séance." },
+      ],
+      resourceNames: ["Repérage de la rénovation de l'éclairage public", "Note de cadrage - éclairage public", "Rapport - éclairage public tranche 2", "Plan de financement - éclairage", "Diagnostic des points lumineux"],
     },
     {
-      path: "finances/subventions",
-      name: "Subventions aux associations 2026",
-      reportContent: "La commission vie associative a examiné les huit dossiers reçus. Cinq demandes sont retenues.",
+      key: "associations", path: "culture", name: "Associations",
+      reportContent: "Suivi des relations avec les associations : demandes de subventions, conventions et mise à disposition de locaux. La commission vie associative a examiné les huit dossiers reçus pour 2026. Cinq demandes sont retenues.",
+      subjects: [
+        { key: "associationGrants", kind: "councilDecisionProposal", name: "Subventions aux associations 2026", content: proposalContent },
+        { key: "associationConventions", kind: "openQuestion", name: "Associations - suivi des conventions de mise à disposition", content: "Examiner les conventions et les modalités d'utilisation des locaux à partir des documents du dossier. Question préparée, non inscrite à une séance." },
+      ],
+      resourceNames: ["Tableau des subventions 2026", "Convention de mise à disposition", "Conventions avec les clubs", "Export des subventions 2026", "Suivi détaillé des subventions 2026", "Règlement de mise à disposition"],
     },
     {
-      path: "ecole",
-      name: "Rentrée scolaire - bilan et effectifs",
-      reportContent: "Point d'information : 142 élèves inscrits (+6), ouverture d'un poste d'ATSEM à mi-temps.",
+      key: "school", path: "ecole", name: "Vie scolaire",
+      reportContent: "Suivi des effectifs, des moyens scolaires et des temps périscolaires. Le bilan de rentrée fait état de 142 élèves inscrits (+6) et de l'ouverture d'un poste d'ATSEM à mi-temps.",
+      subjects: [
+        { key: "schoolYear", kind: "openQuestion", name: "Rentrée scolaire - bilan et effectifs", content: "Point d'information : 142 élèves inscrits (+6), ouverture d'un poste d'ATSEM à mi-temps." },
+        { key: "schoolForecast", kind: "openQuestion", name: "Prévision des effectifs - rentrée 2027", content: "Cent trente-huit élèves attendus sur six classes, soit une hausse de quatre élèves qui ne remet pas en cause la carte scolaire. Question préparée, non inscrite à une séance." },
+      ],
+      resourceNames: ["Organisation des temps périscolaires", "Prévision des effectifs - rentrée 2027"],
     },
     {
-      path: "travaux/salle-des-fetes",
-      name: "Rénovation de la salle des fêtes - étude préalable",
-      reportContent: "Lancement d'une étude de programmation (toiture, chauffage, accessibilité).",
-    },
-    {
-      path: "voirie",
-      name: "Stationnement rue des Tilleuls",
-      reportContent:
-        "Les riverains signalent des difficultés de stationnement aux heures d’entrée et de sortie de l’école. Deux options sont à discuter : créer une zone de courte durée ou déplacer les places réservées aux livraisons.",
+      key: "roads", path: "travaux", name: "Voirie",
+      reportContent: "Suivi du réseau communal, de son entretien, de la circulation et du stationnement. Les riverains de la rue des Tilleuls signalent des difficultés aux heures d'entrée et de sortie de l'école : une zone de courte durée ou le déplacement des places de livraison sont à discuter.",
+      subjects: [
+        { key: "parking", kind: "openQuestion", name: "Stationnement rue des Tilleuls", content: "Les riverains signalent des difficultés de stationnement aux heures d’entrée et de sortie de l’école. Deux options sont à discuter : créer une zone de courte durée ou déplacer les places réservées aux livraisons." },
+        { key: "roadWorks", kind: "councilDecisionProposal", name: "Programme de réfection 2027", content: "Priorités à examiner : chemin de la Fontaine, rue des Écoles et place du Marché. Projet préparé, non inscrit à une séance." },
+      ],
+      resourceNames: ["Programme de réfection 2027", "Esquisse du plan de circulation", "Recensement de la voirie communale", "Arrêté de voirie - rue des Écoles"],
     },
   ];
-  const seededBusinesses = [];
+  const seededBusinesses = new Map();
+  const seededSubjects = new Map();
   for (const business of councilBusinesses) {
     const created = await post("/council-business", {
-      ...business,
+      path: business.path, name: business.name, reportContent: business.reportContent,
       reportName: "Rapport principal",
     });
-    seededBusinesses.push({ ...business, ...created });
-    const annex = await createWorkspaceResource({ kind: "text", path: "seed", name: `Annexe - ${business.name}`, content: "" });
-    await put(`/resources/${annex.id}/content`, {
-      kind: "text",
-      expectedVersion: annex.version,
-      content: `## Éléments préparatoires
-
-${business.name}
-
-- Étude du dossier par les services municipaux.
-- Présentation des options et des observations des habitants.
-- Point de suivi prévu après la décision du conseil.
-
-*Données fictives de démonstration.*`,
+    seededBusinesses.set(business.key, created);
+    for (const subject of business.subjects) {
+      seededSubjects.set(subject.key, await post(`/council-business/${created.id}/prepared-subjects`, {
+        kind: subject.kind, name: subject.name, content: subject.content,
+      }));
+    }
+    await createWorkspaceResource({
+      kind: "text", path: "seed", name: `Annexe - ${business.name}`, councilBusinessId: created.id,
+      content: `## Éléments préparatoires\n\n${business.name}\n\n- Étude du dossier par les services municipaux.\n- Présentation des options et des observations des habitants.\n- Suivi des projets et questions de cette affaire au fil des séances.\n\n*Données fictives de démonstration.*`,
     });
-    await post(`/council-business/${created.id}/resources`, { resourceId: annex.id });
   }
 
   console.log("- Fonds documentaire (plan de classement complet)");
@@ -1480,6 +1485,18 @@ ${business.name}
   });
   console.log("  2 documents multi-formats classés (PNG, DOCX) et 2 tableurs importés (CSV, XLSX)");
 
+  console.log("- Rattachement des pièces aux affaires durables");
+  const subjectResourceIds = new Set([...seededSubjects.values()].map((subject) => subject.textResourceId));
+  const resourceCatalog = (await get("/resources/catalog")).filter((resource) => !subjectResourceIds.has(resource.id));
+  for (const business of councilBusinesses) {
+    for (const name of business.resourceNames) {
+      const candidates = resourceCatalog.filter((resource) => resource.name === name);
+      if (candidates.length !== 1) throw new Error(`Expected one seeded resource named ${name}, found ${candidates.length}`);
+      await post(`/council-business/${seededBusinesses.get(business.key).id}/resources`, { resourceId: candidates[0].id });
+    }
+  }
+  console.log(`  ${councilBusinesses.length} affaires durables, ${seededSubjects.size} projets/questions autonomes`);
+
   console.log("- Templates PDF et Outlook");
   await post("/templates", {
     kind: "pdf",
@@ -1511,7 +1528,7 @@ ${business.name}
   await post("/templates", {
     kind: "pdf", documentType: "council-decision", name: "Délibération du conseil municipal",
     bodyMarkdown: "::council-decision{section=facts}\n\n::council-decision{section=content}\n\n::council-decision{section=result}",
-    stylesheet: "body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.28; color: #111; } h1 { font-size: 16pt; text-align: center; text-transform: uppercase; text-decoration: underline; margin: 0 0 6mm; break-after: avoid; } h2 { font-size: 12pt; break-after: avoid; } .decision-facts > h2 { text-align: center; text-decoration: underline; font-size: 15pt; margin: 7mm 0 9mm; } .decision-facts-columns { display: grid; grid-template-columns: 2fr 3fr; gap: 5mm; margin-bottom: 5mm; } .decision-counts { border-right: 1px solid #111; padding-right: 4mm; } .decision-counts dl { display: grid; grid-template-columns: 1fr auto; row-gap: 4mm; margin: 0; } .decision-counts dt, .decision-counts dd { border-top: 1px solid #555; border-bottom: 1px solid #555; margin: 0; padding: 1mm; } .decision-counts dt { border-left: 1px solid #555; font-weight: bold; } .decision-counts dd { border-right: 1px solid #555; text-align: right; min-width: 6mm; } .decision-opening p { margin: 0 0 4mm; orphans: 3; widows: 3; } .decision-order { margin: 0 0 4mm; font-size: 10pt; break-after: avoid; } .decision-content > h2 { text-align: center; text-transform: uppercase; margin: 0 0 6mm; } .decision-content p { margin: 0 0 3mm; orphans: 3; widows: 3; } .decision-content ul, .decision-content ol { padding-left: 6mm; margin: 2mm 0 4mm; } .decision-content li { margin-bottom: 2mm; } .decision-content li:not(:has(ul, ol)) { break-inside: avoid; } .decision-content h3, .decision-content h4 { break-after: avoid; margin-bottom: 2mm; } .decision-content table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; break-inside: avoid; } .decision-content th, .decision-content td { padding: 1.5mm; border-bottom: 1px solid #bbb; } .decision-content th { text-align: left; } .decision-content td:last-child { text-align: right; white-space: nowrap; } .decision-conclusion { break-inside: avoid; margin-top: 5mm; } .decision-result { border-top: 1px solid #777; padding-top: 3mm; margin: 0 0 6mm; font-size: 10pt; } .decision-signatures { display: grid; grid-template-columns: 1fr 1fr; text-align: center; gap: 8mm; min-height: 24mm; } .decision-signatures p { margin: 0; }", headerHtml: "", footerHtml: "",
+    stylesheet: "body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.28; color: #111; } h1 { font-size: 16pt; text-align: center; text-transform: uppercase; text-decoration: underline; margin: 0 0 6mm; break-after: avoid; } h2 { font-size: 12pt; break-after: avoid; } .decision-facts > h2 { text-align: center; text-decoration: underline; font-size: 15pt; margin: 7mm 0 9mm; } .decision-facts-columns { display: grid; grid-template-columns: 2fr 3fr; gap: 5mm; margin-bottom: 5mm; } .decision-counts { border-right: 1px solid #111; padding-right: 4mm; } .decision-counts dl { display: grid; grid-template-columns: 1fr auto; row-gap: 4mm; margin: 0; } .decision-counts .decision-dates { margin-top: 12mm; } .decision-dates dt { font-weight: normal; } .decision-counts dt, .decision-counts dd { border-top: 1px solid #555; border-bottom: 1px solid #555; margin: 0; padding: 1mm; } .decision-counts dt { border-left: 1px solid #555; font-weight: bold; } .decision-counts dd { border-right: 1px solid #555; text-align: right; min-width: 6mm; } .decision-opening p { margin: 0 0 4mm; orphans: 3; widows: 3; } .decision-number { margin: 0 0 4mm; font-size: 10pt; break-after: avoid; } .decision-content > h2 { text-align: center; text-transform: uppercase; margin: 0 0 6mm; } .decision-content p { margin: 0 0 3mm; orphans: 3; widows: 3; } .decision-content ul, .decision-content ol { padding-left: 6mm; margin: 2mm 0 4mm; } .decision-content li { margin-bottom: 2mm; } .decision-content li:not(:has(ul, ol)) { break-inside: avoid; } .decision-content h3, .decision-content h4 { break-after: avoid; margin-bottom: 2mm; } .decision-content table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; break-inside: avoid; } .decision-content th, .decision-content td { padding: 1.5mm; border-bottom: 1px solid #bbb; } .decision-content th { text-align: left; } .decision-content td:last-child { text-align: right; white-space: nowrap; } .decision-conclusion { break-inside: avoid; margin-top: 5mm; } .decision-result { border-top: 1px solid #777; padding-top: 3mm; margin: 0 0 6mm; font-size: 10pt; } .decision-signatures { display: grid; grid-template-columns: 1fr 1fr; text-align: center; gap: 8mm; min-height: 24mm; } .decision-signatures p { margin: 0; }", headerHtml: "", footerHtml: "",
   });
 
   if (process.env.SEED_MEETING_SCENARIO === "preparation") {
@@ -1523,7 +1540,7 @@ ${business.name}
     });
   } else {
     console.log("- Historique des séances et séance en cours");
-    await seedCouncilMeetings(members, seededBusinesses);
+    await seedCouncilMeetings(members, seededSubjects);
   }
 
   console.log("Seed terminé.");

@@ -28,7 +28,7 @@ export function CouncilDecisionsPage() {
   const groups = useMemo(() => {
     const grouped = new Map<string, CouncilDecisionSummary[]>();
     for (const decision of councilDecisions.filter((entry) =>
-      matchesQuery(query, entry.publicationNumber, entry.title),
+      matchesQuery(query, entry.number, entry.title),
     )) {
       grouped.set(decision.councilMeetingId, [...(grouped.get(decision.councilMeetingId) ?? []), decision]);
     }
@@ -85,8 +85,8 @@ export function CouncilDecisionsPage() {
                     data-testid={`decision-open-${decision.id}`}
                   >
                     <div>
-                      {decision.publicationNumber ? (
-                        <span className="entity-card-eyebrow">{decision.publicationNumber}</span>
+                      {decision.number ? (
+                        <span className="entity-card-eyebrow">{decision.number}</span>
                       ) : null}
                       <strong>{decision.title}</strong>
                     </div>

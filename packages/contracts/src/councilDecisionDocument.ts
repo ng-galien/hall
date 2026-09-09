@@ -29,6 +29,7 @@ const decisionQuorumSchema = z
 /** A documentary copy of confirmed facts, separate from the editable act text. */
 export const councilDecisionFactsSchema = z
   .object({
+    noticeDate: z.iso.date().nullable(),
     hall: z.object({ name: z.string(), timeZone: z.string() }).strict().nullable(),
     opening: z.object({ attendance: decisionAttendanceSchema, quorum: decisionQuorumSchema }).strict().nullable(),
     proposal: z.object({ id, title: z.string(), submittedText: z.string() }).strict(),
@@ -99,7 +100,8 @@ const councilDecisionSummaryFields = {
   proposalId: id,
   ballotId: id,
   title: z.string(),
-  publicationNumber: z.string().min(1).nullable(),
+  documentDate: z.iso.date().nullable(),
+  number: z.string().regex(/^\d{4}-\d{2}-\d{2,}$/).nullable(),
   version: z.number().int().positive(),
   createdAt: time,
   updatedAt: time,

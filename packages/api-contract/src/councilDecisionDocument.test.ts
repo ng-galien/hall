@@ -10,7 +10,7 @@ describe("documentary decision boundaries", () => {
     expect(
       updateCouncilDecisionDraftSchema.safeParse({ expectedVersion: 1, content: "Faithful wording" }).success,
     ).toBe(true);
-    for (const forbidden of [{ facts: {} }, { publicationNumber: "2026-09-001" }, { title: "Different question" }]) {
+    for (const forbidden of [{ facts: {} }, { number: "2026-09-001" }, { title: "Different question" }]) {
       expect(
         updateCouncilDecisionDraftSchema.safeParse({ expectedVersion: 1, content: "Text", ...forbidden }).success,
       ).toBe(false);
@@ -23,7 +23,8 @@ describe("documentary decision boundaries", () => {
       proposalId: "00000000-0000-4000-8000-000000000003",
       ballotId: "00000000-0000-4000-8000-000000000004",
       title: "Object",
-      publicationNumber: null,
+      number: null,
+      documentDate: null,
       version: 1,
       createdAt: "2026-09-07T10:00:00Z",
       updatedAt: "2026-09-07T10:00:00Z",

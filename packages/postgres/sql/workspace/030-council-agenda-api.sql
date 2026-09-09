@@ -95,10 +95,6 @@ AS $function$
           FROM hall.council_decision_proposal_workspace workspace JOIN hall.text_resource text ON text.id = workspace.text_resource
           WHERE workspace.council_decision_proposal = target.council_decision_proposal)
       )
-      WHEN target.subject_kind='businessConsultation' THEN jsonb_build_object(
-        'kind','businessConsultation','councilBusinessId',target.council_business,
-        'reportResourceId',(SELECT report_resource FROM hall.council_business_workspace WHERE council_business=target.council_business),
-        'content',(SELECT text.content FROM hall.council_business_workspace workspace JOIN hall.text_resource text ON text.id=workspace.report_resource WHERE workspace.council_business=target.council_business))
       ELSE jsonb_build_object(
         'kind', 'openQuestion',
         'id', target.open_question,

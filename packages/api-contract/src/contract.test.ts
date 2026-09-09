@@ -174,6 +174,8 @@ describe("shared HTTP contract", () => {
         agendaFrozenAt: null,
         currentNoticeId: null,
         closureBlockers: [],
+        entryBlockers: [{ code: "agendaNotFrozen" }, { code: "currentNoticeMissing" }],
+        openingBlockers: [{ code: "agendaNotFrozen" }, { code: "currentNoticeMissing" }],
         noticeDeadline: { status: "indeterminate", reason: "populationUnknown" },
         scheduledAt: "2026-09-12T09:00:00Z",
         location: "Council chamber",
@@ -192,7 +194,6 @@ describe("shared HTTP contract", () => {
         content: "",
       },
       { kind: "openQuestion", id: subjectId, textResourceId: subjectId, content: "" },
-      { kind: "businessConsultation", councilBusinessId: businessId, reportResourceId: subjectId, content: "" },
     ] as const;
 
     for (const subject of subjects) {

@@ -31,6 +31,7 @@ import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
+import { meetingDocumentsRepresentation, meetingDocumentResourceRepresentation } from "../meetingDocumentsRepresentation.js";
 import { routeParameter } from "../routeParameter.js";
 
 async function requireMeeting(councilClient: CouncilClient, reference: string): Promise<CouncilMeeting> {
@@ -68,6 +69,26 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
 
   router.get("/:meetingReference", requirePermission("meetings.read"), async (request, response) => {
     response.json(await requireMeeting(councilClient, routeParameter(request.params.meetingReference)));
+  });
+
+  router.get("/:meetingReference/documents", requirePermission("meetings.read"), requirePermission("workspace.read"), async (request,response) => {
+    const meeting = await requireMeeting(councilClient,routeParameter(request.params.meetingReference));
+    response.set("Cache-Control","private, no-store");
+    response.json(meetingDocumentsRepresentation(request,meeting,await councilClient.meetingDocuments(meeting.id)));
+  });
+  router.get("/:meetingReference/documents/resources/:resourceId", requirePermission("meetings.read"), requirePermission("workspace.read"), async (request,response) => {
+    const meeting = await requireMeeting(councilClient,routeParameter(request.params.meetingReference));
+    const document = await councilClient.meetingDocumentResource(meeting.id,z.uuid().parse(request.params.resourceId));
+    if (!document) throw new DomainError("resource_not_found",404);
+    response.set("Cache-Control","private, no-store");
+    response.json(meetingDocumentResourceRepresentation(meeting,document));
+  });
+  router.get(["/:meetingReference/documents/resources/:resourceId/content","/:meetingReference/documents/resources/:resourceId/editor-assets/:assetId/content"], requirePermission("meetings.read"), requirePermission("workspace.read"), async (request,response) => {
+    const meeting = await requireMeeting(councilClient,routeParameter(request.params.meetingReference));
+    const content = await councilClient.meetingDocumentContent(meeting.id,z.uuid().parse(request.params.resourceId),request.params.assetId ? z.uuid().parse(request.params.assetId) : null);
+    if (!content) throw new DomainError("resource_not_found",404);
+    response.set("Cache-Control","private, no-store");
+    response.type(content.mediaType).send(content.content);
   });
 
   router.post(

@@ -102,7 +102,7 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
         kind: "decision" as const,
         id: decision.id,
         label: decision.title,
-        extra: [decision.publicationNumber],
+        extra: [decision.number],
         state: decision.state,
         entity: { entityKind: "decision" as const, decision },
       })),

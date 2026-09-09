@@ -64,9 +64,9 @@ interface WorkspaceResourcesState {
   open(reference: string): Promise<Awaited<ReturnType<typeof openDocumentaryResource>> | null>;
   search(criteria: ResourceSearchCriteria): Promise<ResourceSearchResult | null>;
   clearSearch(): void;
-  create(input: CreateResource): Promise<ResourceDetail | null>;
-  importSpreadsheet(form: FormData): Promise<ResourceDetail | null>;
-  uploadDocument(form: FormData): Promise<ResourceDetail | null>;
+  create(input: CreateResource, source?: SirenEntity): Promise<ResourceDetail | null>;
+  importSpreadsheet(form: FormData, source?: SirenEntity): Promise<ResourceDetail | null>;
+  uploadDocument(form: FormData, source?: SirenEntity): Promise<ResourceDetail | null>;
   createEditorAsset(form: FormData): Promise<EditorAsset | null>;
   searchLegalReferences(input: LegalReferenceSearchInput): Promise<LegalReferenceSearchResult[]>;
   resolveLegalReference(reference: string, input: ResolveLegalReference): Promise<ResourceDetail | null>;
@@ -349,12 +349,12 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
       searchRevision += 1;
       set({ searchResult: null, searchLoading: false });
     },
-    async create(input) {
+    async create(input, source) {
       set({ error: null });
       try {
         const representation = get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
-        const result = await createDocumentaryResource(representation, input);
+        const result = await createDocumentaryResource(source ?? representation, input);
         adopt(result.data, result.representation);
         return result.data;
       } catch (error) {
@@ -362,12 +362,12 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
         return null;
       }
     },
-    async importSpreadsheet(form) {
+    async importSpreadsheet(form, source) {
       set({ error: null });
       try {
         const representation = get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
-        const result = await importDocumentarySpreadsheet(representation, form);
+        const result = await importDocumentarySpreadsheet(source ?? representation, form);
         adopt(result.data, result.representation);
         return result.data;
       } catch (error) {
@@ -375,12 +375,12 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
         return null;
       }
     },
-    async uploadDocument(form) {
+    async uploadDocument(form, source) {
       set({ error: null });
       try {
         const representation = get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
-        const result = await uploadDocumentaryResource(representation, form);
+        const result = await uploadDocumentaryResource(source ?? representation, form);
         adopt(result.data, result.representation);
         return result.data;
       } catch (error) {

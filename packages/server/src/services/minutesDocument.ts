@@ -34,7 +34,6 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
     const title = matchLiteral(item.kind, {
       minutesApproval: () => "Approbation du procès-verbal de la séance précédente",
       councilDecisionProposal: () => item.title,
-      businessConsultation: () => item.title,
       openQuestion: () => item.title,
     });
     const ballot = ballots.find((candidate) => candidate.agendaItemId === item.id);

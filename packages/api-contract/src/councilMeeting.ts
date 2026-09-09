@@ -2,7 +2,9 @@ import {
   agendaNumberSchema,
   conductBlockerSchema,
   conductBlockersSchema,
+  meetingEntryBlockerSchema,
   meetingNoticeDeadlineSchema,
+  meetingOpeningBlockerSchema,
 } from "@hall/contracts";
 import { z } from "zod";
 import { councilBusinessSchema } from "./councilBusiness.js";
@@ -32,6 +34,8 @@ export const councilMeetingSchema = z
     startedAt: timestampSchema.nullable(),
     closedAt: timestampSchema.nullable(),
     closureBlockers: z.array(conductBlockerSchema),
+    entryBlockers: z.array(meetingEntryBlockerSchema),
+    openingBlockers: z.array(meetingOpeningBlockerSchema),
   })
   .strict();
 
@@ -118,12 +122,6 @@ export const agendaSubjectSchema = z.discriminatedUnion("kind", [
       content: z.string(),
     })
     .strict(),
-  z.object({
-    kind: z.literal("businessConsultation"),
-    councilBusinessId: resourceIdSchema,
-    reportResourceId: resourceIdSchema,
-    content: z.string(),
-  }),
   z
     .object({
       kind: z.literal("openQuestion"),

@@ -55,6 +55,7 @@ export type ErrorCode =
   | "council_committee_not_found"
   | "council_decision_not_found"
   | "council_decision_conflict"
+  | "council_decision_number_changed"
   | "council_decision_document_unavailable"
   | "council_member_not_found"
   | "council_term_capacity_reached"

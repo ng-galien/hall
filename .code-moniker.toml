@@ -2,6 +2,7 @@ default_rules = false
 
 [[workspace.source_group]]
 roots = [
+  { path = "packages/mcp/src", srcset = "main" },
   { path = "packages/contracts/src", srcset = "main" },
   { path = "packages/api-contract/src", srcset = "main" },
   { path = "packages/client/src", srcset = "main" },

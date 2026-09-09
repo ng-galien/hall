@@ -4,7 +4,7 @@ SET LOCAL hall.roles='["administrator"]';
 SET LOCAL hall.actor_id='conduct-blockers-test';
 \ir support/helpers.sql
 SELECT no_plan();
--- HALL-FR-AGI-390 HALL-FR-MTG-300 HALL-FR-AGI-350: all four subject kinds expose SQL reasons.
+-- HALL-FR-AGI-390 HALL-FR-MTG-300 HALL-FR-AGI-350: all three subject kinds expose SQL reasons.
 SELECT test_ensure_council_member(test_uuid('blockers:member:'||n)) FROM generate_series(1,15)n;
 CREATE FUNCTION pg_temp.blocker_attendance(present_count integer) RETURNS jsonb LANGUAGE sql AS $$
  SELECT jsonb_agg(jsonb_build_object('council_member_id',test_uuid('blockers:member:'||n),'status',CASE WHEN n<=present_count THEN 'present' ELSE 'absent' END)) FROM generate_series(1,15)n;
@@ -18,34 +18,27 @@ SELECT complete_non_voting_agenda_item(id,'2026-01-01 18:03Z') FROM council_agen
 CREATE TEMP TABLE blocker_meeting AS SELECT close_council_meeting(test_uuid('blockers:first'),'2026-01-01 18:04Z') id;
 SELECT hall_api.schedule_council_meeting(id,'2026-01-02 18:00Z','Chamber') FROM blocker_meeting;
 SELECT hall_api.create_and_schedule_council_decision_proposal('seed','Vote to defer','Report','',(SELECT id FROM blocker_meeting),2);
-SELECT hall_api.schedule_prepared_council_subject((SELECT id FROM blocker_meeting),(SELECT council_business FROM council_agenda_item WHERE council_meeting=(SELECT id FROM blocker_meeting) AND council_decision_proposal IS NOT NULL),'businessConsultation',3);
-SELECT hall_api.create_and_schedule_open_question('seed','Information','Report','',(SELECT id FROM blocker_meeting),4);
+SELECT hall_api.create_and_schedule_open_question('seed','Information','Report','',(SELECT id FROM blocker_meeting),3);
 SELECT test_prepare_notice(id) FROM blocker_meeting;
 SELECT hall_api.record_meeting_opening(id,'2026-01-02 18:01Z',pg_temp.blocker_attendance(7),test_uuid('blockers:member:1'),test_uuid('blockers:member:2')) FROM blocker_meeting;
 CREATE TEMP TABLE blocker_items AS SELECT id,subject_kind FROM council_agenda_item WHERE council_meeting=(SELECT id FROM blocker_meeting);
 CREATE FUNCTION pg_temp.subject_state(kind hall.council_agenda_subject_kind) RETURNS jsonb LANGUAGE sql AS $$
  SELECT hall_api.open_council_agenda_item(id) FROM blocker_items WHERE subject_kind=kind;
 $$;
-SELECT is((SELECT count(*)::int FROM blocker_items),4,'the matrix contains all four canonical kinds');
+SELECT is((SELECT count(*)::int FROM blocker_items),3,'the matrix contains all three canonical kinds');
 SELECT ok(pg_temp.subject_state('minutesApproval')#>'{conductBlockers,startDiscussion}' @> '[{"code":"quorumNotMet","presentCount":7,"requiredPresent":8}]','minutes approval explains insufficient quorum');
 SELECT ok(pg_temp.subject_state('minutesApproval')#>'{conductBlockers,reviewBallot}' @> '[{"code":"quorumNotMet"},{"code":"discussionNotStarted"},{"code":"minutesDocumentMissing"}]','all applicable ballot blockers are exposed together');
 SELECT ok(pg_temp.subject_state('councilDecisionProposal')#>'{conductBlockers,startDiscussion}' @> '[{"code":"quorumNotMet"},{"code":"earlierAgendaItemPending"}]','proposal explains quorum and preceding minutes item');
-SELECT ok(pg_temp.subject_state('businessConsultation')#>'{conductBlockers,startDiscussion}' @> '[{"code":"earlierAgendaItemPending"}]','consultation explains agenda order without inventing a voting requirement');
 SELECT is(pg_temp.subject_state('minutesApproval')#>'{conductBlockers,adjourn}','[]'::jsonb,'minutes approval may be adjourned without pretending approval');
 SELECT lives_ok($$SELECT adjourn_council_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='minutesApproval'),'2026-01-02 18:02Z')$$,'minutes approval can be passed by explicit adjournment');
 SELECT ok((SELECT completed_at IS NULL AND adjourned_at IS NOT NULL FROM council_agenda_item WHERE id=(SELECT id FROM blocker_items WHERE subject_kind='minutesApproval')),'adjourned minutes approval remains unapproved');
 SELECT ok((hall_api.open_council_meeting((SELECT id FROM blocker_meeting))->'closureBlockers') @> '[{"code":"previousMinutesPending"}]','closure explains pending previous minutes');
 SELECT is((hall_api.open_council_meeting((SELECT id FROM blocker_meeting))#>>'{closureBlockers,0,minutesIds,0}')::uuid,(SELECT id FROM minutes WHERE council_meeting=test_uuid('blockers:first')),'closure blocker identifies the exact previous minutes');
 SELECT lives_ok($$SELECT adjourn_council_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='councilDecisionProposal'),'2026-01-02 18:03Z')$$,'proposal can also be passed without a ballot');
-SELECT is(pg_temp.subject_state('businessConsultation')#>'{conductBlockers,startDiscussion}','[]'::jsonb,'consultation becomes available after preceding items are adjourned');
-SELECT lives_ok($$SELECT start_council_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='businessConsultation'),'2026-01-02 18:04Z')$$,'consultation exchanges start without quorum');
-SELECT ok(pg_temp.subject_state('businessConsultation')#>'{conductBlockers,reviewBallot}' @> '[{"code":"nonVotingSubject"}]','consultation cannot produce a ballot');
-SELECT is(pg_temp.subject_state('businessConsultation')#>'{conductBlockers,complete}','[]'::jsonb,'consultation can finish as exchanges without a decision');
-SELECT complete_non_voting_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='businessConsultation'),'2026-01-02 18:05Z');
-SELECT lives_ok($$SELECT start_council_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='openQuestion'),'2026-01-02 18:06Z')$$,'open question exchanges start after consultation');
+SELECT lives_ok($$SELECT start_council_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='openQuestion'),'2026-01-02 18:06Z')$$,'open question exchanges start after preceding items are adjourned');
 SELECT ok(pg_temp.subject_state('openQuestion')#>'{conductBlockers,reviewBallot}' @> '[{"code":"nonVotingSubject"}]','open question cannot produce a ballot');
 SELECT complete_non_voting_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='openQuestion'),'2026-01-02 18:07Z');
-SELECT is((SELECT count(*)::int FROM ballots),0,'all four subjects have been passed without a ballot');
+SELECT is((SELECT count(*)::int FROM ballots),0,'all three subjects have been passed without a ballot');
 SELECT throws_ok($$SELECT close_council_meeting((SELECT id FROM blocker_meeting),'2026-01-02 18:08Z')$$,'HV117',NULL,'closure remains blocked until the pending-minutes model is decided');
 SELECT ok((SELECT closed_at IS NULL FROM council_meetings WHERE id=(SELECT id FROM blocker_meeting)),'refused closure does not create a false closure fact');
 SELECT is((SELECT count(*)::int FROM council_meetings),2,'refused closure invents no successor');

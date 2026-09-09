@@ -13,6 +13,7 @@ import {
   councilMeetingClosureSchema,
   councilMeetingSchema,
   createdAndScheduledCouncilBusinessSchema,
+  meetingDocumentResourceDetailSchema,
   meetingAttendanceSchema,
   meetingConductWorkspaceSchema,
   type ScheduleAgendaItem,
@@ -142,6 +143,11 @@ export function createPostgresCouncilClient({
   }
 
   return {
+    meetingDocuments: (id) => call(() => postgresCouncil.meetingDocuments(currentRequest(),id)),
+    async meetingDocumentResource(id,resourceId) {
+      return meetingDocumentResourceDetailSchema.nullable().parse(await call(() => postgresCouncil.meetingDocumentResource(currentRequest(),id,resourceId)));
+    },
+    meetingDocumentContent: (id,resourceId,assetId) => call(() => postgresCouncil.meetingDocumentContent(currentRequest(),id,resourceId,assetId)),
     listPreparedSubjects: (meetingId) => call(() => postgresCouncil.listPreparedSubjects(currentRequest(), meetingId)),
     openPreparedSubject: (id, kind) => call(() => postgresCouncil.openPreparedSubject(currentRequest(), id, kind)),
     createPreparedSubject: (businessId, input) =>

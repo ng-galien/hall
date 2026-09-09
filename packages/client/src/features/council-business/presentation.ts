@@ -9,7 +9,6 @@ export function liveBusinessTitle(
   return matchLiteral(business.kind, {
     minutesApproval: () => minutesApprovalLabel,
     matter: () => business.title,
-    businessConsultation: () => business.title,
     openQuestion: () => business.title,
   });
 }

@@ -1,5 +1,162 @@
 import { expect, test } from "../fixtures/application";
 
+test("opens a business on double click without expanding its explorer branch", async ({ appPage: page }) => {
+  const response = await page.request.post("/api/council-business", {
+    data: { path: "seed", name: `Double click ${Date.now()}`, reportName: "Report", reportContent: "" },
+  });
+  expect(response.status()).toBe(201);
+  const business = (await response.json()).properties;
+  await page.goto("/app/workspace?path=seed");
+  const row = page.getByTestId(`workspace-business-open-${business.id}`);
+  await row.click();
+  await expect(row).toHaveAttribute("aria-expanded", "true");
+  await row.press("ArrowLeft");
+  await expect(row).toHaveAttribute("aria-expanded", "false");
+  await row.evaluate((element) => {
+    element.setAttribute("data-expansion-changes", "0");
+    new MutationObserver((records) => {
+      element.setAttribute("data-expansion-changes", String(Number(element.getAttribute("data-expansion-changes")) + records.length));
+    }).observe(element, { attributes: true, attributeFilter: ["aria-expanded"] });
+  });
+  await row.dblclick();
+  await expect(page.getByTestId("council-business-workbench")).toBeVisible();
+  await page.waitForTimeout(300);
+  await expect(row).toHaveAttribute("data-expansion-changes", "0");
+});
+
+test("keeps folder icons upright and navigates workspace rows with the keyboard", async ({ appPage: page }) => {
+  const folderName = `Keyboard ${Date.now()}`;
+  const path = `seed/${folderName}`;
+  const folder = await page.request.post("/api/resources", { data: { kind: "folder", path: "seed", name: folderName } });
+  expect(folder.status()).toBe(201);
+  const ids: string[] = [];
+  for (const name of ["First note", "Second note"]) {
+    const response = await page.request.post("/api/resources", { data: { kind: "text", path, name, content: "Keyboard navigation" } });
+    expect(response.status()).toBe(201);
+    ids.push((await response.json()).properties.id);
+  }
+  await page.goto("/app/workspace?path=seed");
+  const toggle = page.getByTestId(`workspace-folder-toggle-${path}`);
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  expect(await toggle.evaluate((element) => getComputedStyle(element.querySelector("svg")!).transform)).toBe("none");
+  await toggle.press("ArrowRight");
+  const first = page.getByTestId(`workspace-resource-open-${ids[0]}`);
+  const second = page.getByTestId(`workspace-resource-open-${ids[1]}`);
+  await expect(first).toBeFocused();
+  await first.press("ArrowDown");
+  await expect(second).toBeFocused();
+  await second.press("ArrowUp");
+  await expect(first).toBeFocused();
+  await first.press("ArrowLeft");
+  await expect(toggle).toBeFocused();
+  await toggle.press("ArrowLeft");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(first).toBeHidden();
+  await toggle.press("ArrowRight");
+  await expect(first).toBeVisible();
+  await toggle.press("Tab");
+  await expect(first).toBeFocused();
+  await first.press("Enter");
+  await expect(page.getByTestId("resource-presentation-text-edit")).toBeVisible();
+});
+
+test("schedules newly prepared proposals and open questions without reloading their business", async ({ appPage: page }) => {
+  const meetingsResponse = await page.request.get("/api/council-meetings");
+  const meetings = (await meetingsResponse.json()).entities.map((entry: { properties: { id: string; startedAt: string | null } }) => entry.properties);
+  const meeting = meetings.find((entry: { startedAt: string | null }) => !entry.startedAt);
+  expect(meeting).toBeTruthy();
+  let representation = await (await page.request.get(`/api/council-meetings/${meeting.id}`)).json();
+  const reopening = representation.actions.find((action: { name: string }) => action.name === "meeting.reopen-agenda");
+  if (reopening) {
+    expect((await page.request.post(reopening.href, { data: {} })).ok()).toBeTruthy();
+    representation = await (await page.request.get(`/api/council-meetings/${meeting.id}`)).json();
+  }
+  expect(representation.actions.some((action: { name: string }) => action.name === "agenda-item.schedule-prepared")).toBe(true);
+  const created = await page.request.post("/api/council-business", {
+    data: { path: "seed", name: `Prepared subjects ${Date.now()}`, reportName: "Report", reportContent: "" },
+  });
+  expect(created.status()).toBe(201);
+  const business = (await created.json()).properties;
+  await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  for (const kind of ["councilDecisionProposal", "openQuestion"] as const) {
+    await page.getByTestId(`business-category-${kind}-open`).click({ button: "right" });
+    await page.getByTestId(`workspace-context-create-${kind}`).click();
+    await page.getByTestId("workspace-create-name").fill(`Prepared ${kind}`);
+    const pending = page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/prepared-subjects"));
+    await page.getByTestId("workspace-create-submit").click();
+    const response = await pending;
+    expect(response.status()).toBe(201);
+    const subject = (await response.json()).properties;
+    await page.getByTestId(`business-subject-${subject.id}-open`).click({ button: "right" });
+    await page.getByTestId(`business-subject-rename-${subject.id}`).click();
+    await page.getByTestId(`business-subject-rename-${subject.id}-name`).fill(`Renamed ${kind}`);
+    await page.getByTestId(`business-subject-rename-${subject.id}-submit`).click();
+    await expect(page.getByTestId(`business-subject-rename-${subject.id}-dialog`)).toBeHidden();
+    await expect(page.getByTestId(`business-subject-${subject.id}-open`)).toHaveText(`Renamed ${kind}`);
+
+    await page.getByTestId(`business-subject-${subject.id}-toggle`).click();
+    await expect(page.getByTestId(`business-inline-resource-${subject.textResourceId}`)).toBeVisible();
+    await page.getByTestId(`business-subject-${subject.id}-open`).click({ button: "right" });
+    const schedule = page.getByTestId(`business-subject-schedule-${subject.id}`);
+    await expect(schedule).toBeEnabled();
+    await schedule.click();
+    await page.getByTestId("business-meeting-select").click();
+    await page.getByTestId(`business-meeting-option-${meeting.id}`).click();
+    const scheduled = page.waitForResponse((result) => result.request().method() === "POST" && result.url().endsWith("/agenda-items/from-prepared"));
+    await page.getByTestId(`business-schedule-subject-${subject.id}`).click();
+    const scheduledResponse = await scheduled;
+    expect(scheduledResponse.status()).toBe(201);
+    const occurrence = (await scheduledResponse.json()).properties;
+    expect(occurrence.subject).toMatchObject({ kind, id: subject.id });
+    expect(occurrence.councilMeetingId).toBe(meeting.id);
+    await expect(page.getByTestId("business-schedule-dialog")).toBeHidden();
+    await expect(page.getByTestId(`business-subject-occurrence-${occurrence.id}`)).toBeVisible();
+    await expect(page.getByTestId(`business-subject-occurrence-${occurrence.id}-toggle`)).toHaveCount(0);
+    const candidates = await (await page.request.get(`/api/council-business/prepared-subjects?councilMeetingId=${meeting.id}`)).json();
+    expect(candidates.entities.some((entry: { properties: { id: string } }) => entry.properties.id === subject.id)).toBe(false);
+    if (kind === "openQuestion") await expect(page.getByTestId(`business-subject-decisions-${subject.id}`)).toHaveCount(0);
+  }
+});
+
+test("creates a documentary resource from a business and preserves its explicit association", async ({ appPage: page }) => {
+  await page.goto("/app/workspace?path=seed");
+  await page.getByTestId("workspace-create-menu").click();
+  await page.getByTestId("workspace-create-councilMatter").click();
+  await page.getByTestId("workspace-create-name").fill(`Documentary creation ${Date.now()}`);
+  const businessCreated = page.waitForResponse((response) => response.request().method() === "POST" && response.url().endsWith("/api/council-business"));
+  await page.getByTestId("workspace-create-submit").click();
+  const businessResponse = await businessCreated;
+  expect(businessResponse.status()).toBe(201);
+  const business = (await businessResponse.json()).properties as { id: string };
+  await expect(page.getByTestId("council-business-workbench")).toBeVisible();
+  const name = "Explicitly associated note";
+  await page.getByTestId("business-create-documents").click();
+  await page.getByTestId("workspace-create-text").click();
+  await page.getByTestId("workspace-create-name").fill(name);
+  const resourceCreated = page.waitForResponse((response) => response.request().method() === "POST" && response.url().endsWith("/api/resources"));
+  await page.getByTestId("workspace-create-submit").click();
+  const resourceResponse = await resourceCreated;
+  expect(resourceResponse.request().postDataJSON()).toMatchObject({ councilBusinessId: business.id, kind: "text" });
+  expect(resourceResponse.status()).toBe(201);
+  const resource = (await resourceResponse.json()).properties as { id: string };
+  await expect(page.getByTestId("resource-preview-close")).toBeVisible();
+  await page.getByTestId("resource-preview-close").click();
+  await page.reload();
+  const attached = page.getByTestId(`business-attached-resource-${resource.id}`);
+  await expect(attached).toBeVisible();
+  await expect(attached).toContainText(name);
+  await page.getByTestId(`business-attached-resource-${resource.id}-toggle`).click();
+  await expect(page.getByTestId("resource-presentation-text-edit")).toBeVisible();
+  await expect(page.getByTestId(`business-inline-resource-${resource.id}`)).toBeVisible();
+  await page.getByTestId("business-category-documents-open").click({ button: "right" });
+  await page.getByTestId("business-context-attach").click();
+  await expect(page.getByTestId("resource-picker-panel")).toBeVisible();
+  await page.getByTestId("resource-picker-search").fill("note");
+  await expect(page.getByTestId("resource-picker-search")).toBeFocused();
+  await page.getByTestId("resource-picker-search").press("Escape");
+  await expect(page.getByTestId("resource-picker-panel")).toBeHidden();
+});
+
 async function createInCurrentFolder(page: import("@playwright/test").Page, kind: "folder" | "text", name: string) {
   await page.getByTestId("workspace-tree-root").click({ button: "right" });
   await page.getByTestId("workspace-tree-create").press("ArrowRight");

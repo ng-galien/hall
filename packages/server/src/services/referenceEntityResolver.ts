@@ -51,7 +51,7 @@ function meetingLabel(meeting: CouncilMeeting): string {
 }
 
 function decisionLabel(decision: CouncilDecisionSummary): string {
-  return decision.publicationNumber ? `${decision.publicationNumber} - ${decision.title}` : decision.title;
+  return decision.number ? `${decision.number} - ${decision.title}` : decision.title;
 }
 
 async function councilBusinessLabel(target: CouncilBusiness, resourcesClient: ResourcesClient): Promise<string> {

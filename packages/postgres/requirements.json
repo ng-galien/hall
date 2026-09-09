@@ -3897,18 +3897,6 @@
         }
       ]
     },
-    "HALL-FR-BUS-070": {
-      "name": "BUSINESS_CONSULTATION_EXAMINES_EXISTING_BUSINESS_WITHOUT_BALLOT",
-      "nature": "functional",
-      "clauses": [
-        {
-          "key": "implementation",
-          "origin": "product",
-          "statement": "Une consultation de dossier référence directement l’affaire existante sans créer de ressource supplémentaire ; son examen se termine sans scrutin et ses notes appartiennent au point inscrit.",
-          "sourceIds": []
-        }
-      ]
-    },
     "HALL-FR-AGI-380": {
       "name": "PREPARED_SUBJECT_INSERTION_PRESERVES_NATURE_AND_SHIFTS_ATOMICALLY",
       "nature": "functional",
@@ -3916,7 +3904,7 @@
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "L’inscription conserve identité et nature, décale les autres positions atomiquement et place les consultations après les projets de délibération et avant les questions ouvertes.",
+          "statement": "L’inscription conserve identité et nature, décale les autres positions atomiquement et place les projets de délibération avant les questions ouvertes.",
           "sourceIds": []
         }
       ]
@@ -3962,6 +3950,7 @@
     "HALL-FR-DEC-050": {"name": "EXPLICIT_FREEZE_RETAINS_AN_IMMUTABLE_PDF", "nature": "functional", "clauses": [{"key": "implementation", "origin": "product", "statement": "Le gel explicite conserve des octets PDF immuables et ferme la rédaction. Il ne vaut ni signature ni publication ni transmission ; aucun numéro définitif de publication n’est attribué.", "sourceIds": []}]},
     "HALL-TR-DEC-010": {"name": "EDITING_AND_FREEZING_CHECK_THE_OBSERVED_VERSION", "nature": "technical", "clauses": [{"key": "implementation", "origin": "product", "statement": "Une version observée et un verrou commun protègent la rédaction et le gel contre les mises à jour concurrentes.", "sourceIds": []}]},
     "HALL-FR-DEC-060": {"name": "DECISIONS_HAVE_AN_ORDER_WITHIN_THE_MEETING", "nature": "functional", "clauses": [{"key": "order-in-meeting", "origin": "regulatory", "statement": "Les affaires venant en délibération reçoivent un numéro d’ordre à l’intérieur de la séance.", "sourceIds": ["DEC-R2121-9"], "assessment": "verified", "interpretation": "direct"}, {"key": "implementation", "origin": "product", "statement": "Hall compte les propositions confirmées, adoptées ou rejetées ; ce numéro de séance ne remplace pas le numéro métier de publication.", "sourceIds": []}]},
+    "HALL-FR-DEC-090": {"name": "DECISION_NUMBERS_ARE_ALLOCATED_MONTHLY_AT_FREEZE", "nature": "functional", "clauses": [{"key": "implementation", "origin": "product", "statement": "Le numéro documentaire année-mois-index utilise le mois de séance et un compteur distinct par année/mois, recommençant à 1. Le brouillon montre le prochain candidat sans réservation. Le gel alloue atomiquement un numéro unique et une date documentaire courante correspondant au PDF ; changement de candidat ou de jour exige un nouveau rendu. Le réessai est idempotent et un rollback ne consomme pas la séquence. Cette attribution ne constitue pas une publication.", "sourceIds": []}]},
     "HALL-FR-DEC-080": {"name": "DOCUMENTARY_ENVELOPE_USES_HISTORICAL_EVIDENCE", "nature": "functional", "clauses": [{"key": "signature-authorities", "origin": "regulatory", "statement": "Les délibérations sont signées par le maire et le ou les secrétaires de séance.", "sourceIds": ["DEC-L2121-23"], "assessment": "verified", "interpretation": "direct"}, {"key": "implementation", "origin": "product", "statement": "Le gabarit commun distingue ouverture et scrutin, reprend les observations historiques disponibles, laisse absentes les qualités non observées et ne déduit aucune attestation de convocation, signature, conformité ou publication. Les choix typographiques du modèle communal ne constituent pas des obligations légales ; aucune métadonnée manquante ne crée à elle seule un blocage de gel.", "sourceIds": []}]},
     "HALL-FR-DEC-070": {"name": "HISTORICAL_DECISION_RECOVERY_USES_RETAINED_EVIDENCE", "nature": "functional", "clauses": [{"key": "implementation", "origin": "product", "statement": "Une reprise contrôlée de scrutin confirmé sur projet utilise exclusivement le snapshot de clôture, le texte scellé et la revue confirmée. Les preuves indispensables absentes ou incohérentes font refuser la reprise. Répéter la commande conserve le brouillon et sa version, sans toucher au PV.", "sourceIds": []}]},
     "HALL-FR-DEC-010": {"name": "CONFIRMED_PROPOSAL_FACTS_ARE_PRESERVED", "nature": "functional", "clauses": [{"key": "implementation", "origin": "product", "statement": "La confirmation du scrutin conserve une copie immuable du texte soumis, de la séance, des identités, du quorum, des déports et du résultat. Les scrutins secrets ne conservent aucun choix nominatif. Cette preuve est distincte de la rédaction documentaire et de la numérotation à la publication.", "sourceIds": []}]},

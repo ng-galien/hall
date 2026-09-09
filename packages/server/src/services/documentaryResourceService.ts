@@ -39,7 +39,13 @@ export interface DocumentaryResourceService {
   search(criteria: ResourceSearchCriteria): Promise<SirenEntity>;
   open(reference: string): Promise<SirenEntity>;
   create(input: CreateResource): Promise<SirenEntity>;
-  createDocument(input: { path: string; name: string; fileName: string; content: Buffer }): Promise<SirenEntity>;
+  createDocument(input: {
+    councilBusinessId?: string;
+    path: string;
+    name: string;
+    fileName: string;
+    content: Buffer;
+  }): Promise<SirenEntity>;
   createEditorAsset(input: {
     ownerId: string;
     title: string;
@@ -188,7 +194,13 @@ export function createDocumentaryResourceService({
     async createDocument(input) {
       const inspection = await inspectDocument(input.fileName, input.content);
       return resourcesClient
-        .createDocument({ path: input.path, name: input.name, content: input.content, mediaType: inspection.mediaType })
+        .createDocument({
+          path: input.path,
+          name: input.name,
+          content: input.content,
+          mediaType: inspection.mediaType,
+          councilBusinessId: input.councilBusinessId,
+        })
         .then(({ representation }) => representation);
     },
     async createEditorAsset(input) {

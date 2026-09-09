@@ -126,7 +126,7 @@ BEGIN
    WHERE a.id=NEW.agenda_item FOR UPDATE OF m;
  SELECT * INTO item FROM hall.council_agenda_item WHERE id=NEW.agenda_item FOR UPDATE;
  IF item.id IS NULL OR item.started_at IS NULL OR item.position<0 OR item.completed_at IS NOT NULL
-   OR meeting.closed_at IS NOT NULL OR item.subject_kind IN ('openQuestion','businessConsultation') THEN
+   OR meeting.closed_at IS NOT NULL OR item.subject_kind='openQuestion' THEN
    RAISE EXCEPTION USING ERRCODE = 'HV404',MESSAGE='a result preview requires an active ballot-eligible affair';
  END IF;
  NEW.candidate:=hall.normalize_ballot_candidate(NEW.candidate);

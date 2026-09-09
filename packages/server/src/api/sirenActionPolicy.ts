@@ -1,12 +1,12 @@
 import {
   type ApiActionName,
-  councilDecisionSummarySchema,
   type ConductBlockers,
   conductBlockerSchema,
   conductBlockersSchema,
+  councilDecisionSummarySchema,
   type SirenAction,
 } from "@hall/api-contract";
-import { meetingActionBlockersSchema } from "@hall/contracts";
+import { meetingActionBlockersSchema, meetingOpeningBlockerSchema } from "@hall/contracts";
 import { matchLiteral } from "@hall/domain";
 import type { Request } from "express";
 import { acceptedDocumentExtensions, acceptedSpreadsheetImportExtensions } from "../domain/documentPolicy.js";
@@ -31,9 +31,12 @@ function authorizedActions(request: Request, actions: SirenAction[]): SirenActio
   return actions.filter((candidate) => canExecuteAction(request, candidate.name));
 }
 
-function resourceCollectionActions(request: Request): SirenAction[] {
+function resourceCreationActions(request: Request, councilBusinessId?: string): SirenAction[] {
+  const contextFields = councilBusinessId
+    ? [{ name: "councilBusinessId", type: "hidden", value: councilBusinessId }]
+    : [];
   return authorizedActions(request, [
-    action("resource.create", "POST", "/api/resources", "Create a resource"),
+    { ...action("resource.create", "POST", "/api/resources", "Create a resource"), fields: contextFields },
     {
       ...action("resource.import-spreadsheet", "POST", "/api/resources/spreadsheets/import", "Import a spreadsheet"),
       type: "multipart/form-data",
@@ -41,8 +44,25 @@ function resourceCollectionActions(request: Request): SirenAction[] {
         { name: "file", type: "file", accept: acceptedSpreadsheetImportExtensions.join(",") },
         { name: "name", type: "text" },
         { name: "path", type: "text", value: "" },
+        ...contextFields,
       ],
     },
+    {
+      ...action("resource.create-document", "POST", "/api/resources/documents", "Upload a document"),
+      type: "multipart/form-data",
+      fields: [
+        { name: "file", type: "file", accept: acceptedDocumentExtensions.join(",") },
+        { name: "name", type: "text" },
+        { name: "path", type: "text", value: "" },
+        ...contextFields,
+      ],
+    },
+  ]);
+}
+
+function resourceCollectionActions(request: Request): SirenAction[] {
+  return authorizedActions(request, [
+    ...resourceCreationActions(request),
     {
       ...action(
         "resource.search-legal-references",
@@ -53,19 +73,6 @@ function resourceCollectionActions(request: Request): SirenAction[] {
       fields: [
         { name: "query", type: "search" },
         { name: "effectiveAt", type: "date" },
-      ],
-    },
-    {
-      ...action("resource.create-document", "POST", "/api/resources/documents", "Upload a document"),
-      type: "multipart/form-data",
-      fields: [
-        {
-          name: "file",
-          type: "file",
-          accept: acceptedDocumentExtensions.join(","),
-        },
-        { name: "name", type: "text" },
-        { name: "path", type: "text", value: "" },
       ],
     },
     {
@@ -311,11 +318,15 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
       actions.push(action("meeting.generate-notice", "POST", `/api/council-meetings/${meetingReference}/notices`));
     }
     actions.push(action("meeting.prepare", "PUT", `/api/council-meetings/${meetingReference}/prepare`));
+    const openingBlockers = meetingOpeningBlockerSchema.array().safeParse(meeting.openingBlockers);
+    if (openingBlockers.success && openingBlockers.data.length === 0)
+      actions.push(
+        action("meeting.record-opening", "POST", `/api/council-meetings/${meetingReference}/record-opening`),
+      );
     if (meeting.scheduledAt) {
       actions.push(action("meeting.record-attendance", "POST", `/api/council-meetings/${meetingReference}/attendance`));
       if (meeting.currentNoticeId)
         actions.push(
-          action("meeting.record-opening", "POST", `/api/council-meetings/${meetingReference}/record-opening`),
           action("meeting.generate-notice-message", "POST", `/api/council-meetings/${meetingReference}/notice-message`),
         );
     }
@@ -402,6 +413,7 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
           );
         });
       const actions = [
+        ...resourceCreationActions(request, id),
         action(
           "council-business.create-prepared-subject",
           "POST",
@@ -535,4 +547,12 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
       return authorizedActions(request, actions);
     },
   });
+}
+
+/** Documentary navigation exposes lifecycle actions, while agenda composition stays on the meeting page. */
+export function meetingDocumentActions(request: Request, meeting: unknown): SirenAction[] {
+  const agendaCompositionActions: ReadonlySet<ApiActionName> = new Set([
+    "meeting.create-and-schedule-business", "agenda-item.schedule-prepared", "agenda-item.schedule", "meeting.reorder-agenda", "meeting.add-open-question",
+  ]);
+  return objectActions(request, "council-meeting", meeting).filter(action => !agendaCompositionActions.has(action.name));
 }

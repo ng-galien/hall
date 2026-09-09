@@ -67,7 +67,8 @@ function ballotTotals(facts: CouncilDecisionFacts) {
 
 /** Presentation only: no number allocation, legal certification or inferred signature. */
 // @requirement-reference HALL-FR-DEC-080 DOCUMENTARY_ENVELOPE_USES_HISTORICAL_EVIDENCE:
-export function renderCouncilDecisionFacts(facts: CouncilDecisionFacts): string {
+export function renderCouncilDecisionFacts(facts: CouncilDecisionFacts, documentDate: string | null = null): string {
+  const shortDate = (value: string | null) => value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`)) : "Non renseignée";
   const totals = ballotTotals(facts);
   const opening = facts.opening;
   const attendance = opening?.attendance ?? facts.attendance;
@@ -120,11 +121,10 @@ export function renderCouncilDecisionFacts(facts: CouncilDecisionFacts): string 
     <h1>Extrait du registre des délibérations du conseil municipal</h1>
     <h2>Séance du ${escapeHtml(dateText)}</h2>
     <div class="decision-facts-columns">
-      <div class="decision-counts"><dl><dt>Membres en exercice</dt><dd>${counts.memberCount}</dd><dt>Présents${opening ? " à l’ouverture" : " au scrutin"}</dt><dd>${present}</dd><dt>Votants au scrutin</dt><dd>${voters}</dd></dl></div>
+      <div class="decision-counts"><dl><dt>Membres en exercice</dt><dd>${counts.memberCount}</dd><dt>Présents${opening ? " à l’ouverture" : " au scrutin"}</dt><dd>${present}</dd><dt>Votants au scrutin</dt><dd>${voters}</dd></dl><dl class="decision-dates"><dt>Date de convocation</dt><dd>${shortDate(facts.noticeDate)}</dd><dt>Date d’affichage</dt><dd>${shortDate(documentDate)}</dd></dl></div>
       <div class="decision-opening"><p>L’an ${escapeHtml(frenchYear(year))}, le ${escapeHtml(formatted({ day: "numeric", month: "long" }))}, à ${escapeHtml(time)}, le conseil municipal ${hall} s’est réuni ${location}, sous la présidence de ${chair}.${quorum}</p>
       <p class="decision-attendance"><strong>${opening ? "Présents" : "Présents au scrutin"} :</strong> ${names("present")}<br><strong>Absents avec pouvoir :</strong> ${names("represented")}<br><strong>Absents excusés :</strong> ${names("excused")}<br><strong>Absents :</strong> ${names("absent")}<br><strong>Secrétaire de séance :</strong> ${facts.meeting.secretary ? escapeHtml(facts.meeting.secretary.name) : "Non renseigné"}</p>${recusals}</div>
     </div>
-    <p class="decision-order">Ordre de la délibération dans la séance : ${facts.decisionNumber}</p>
   </section>`;
 }
 
@@ -145,6 +145,6 @@ export function renderCouncilDecisionContent(decision: CouncilDecisionDetail): s
     allowedTags: sanitizeHtml.defaults.allowedTags,
     allowedAttributes: { a: ["href", "title"] },
   });
-  const number = decision.publicationNumber ? `<p>Délibération n° ${escapeHtml(decision.publicationNumber)}</p>` : "";
+  const number = decision.number ? `<p class="decision-number">Délibération n° ${escapeHtml(decision.number)}</p>` : "";
   return `<section class="decision-content">${number}<h2>Objet : ${escapeHtml(decision.title)}</h2>${content}</section>`;
 }

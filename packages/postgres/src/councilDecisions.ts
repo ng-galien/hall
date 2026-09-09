@@ -16,7 +16,7 @@ const draftInput = z
   .object({ id: idSchema, expectedVersion: z.number().int().positive(), content: z.string() })
   .strict();
 const freezeInput = z
-  .object({ id: idSchema, expectedVersion: z.number().int().positive(), content: z.instanceof(Buffer) })
+  .object({ id: idSchema, expectedVersion: z.number().int().positive(), expectedNumber: z.string(), expectedDocumentDate: z.iso.date(), content: z.instanceof(Buffer) })
   .strict();
 const contentSchema = z.object({
   documentId: idSchema,
@@ -88,8 +88,8 @@ export class PostgresCouncilDecisions {
       { role: request.role, context: { ...request.context, action: "decision.freeze" } },
       async (client) => {
         const result = await callJson(client, {
-          text: "SELECT hall_api.freeze_council_decision($1::uuid,$2::integer,$3::bytea) AS payload",
-          values: [parsed.id, parsed.expectedVersion, parsed.content],
+          text: "SELECT hall_api.freeze_council_decision($1::uuid,$2::integer,$3::text,$4::date,$5::bytea) AS payload",
+          values: [parsed.id, parsed.expectedVersion, parsed.expectedNumber, parsed.expectedDocumentDate, parsed.content],
           schema: councilDecisionDetailSchema,
         });
         await recordAuditEvent(client, {

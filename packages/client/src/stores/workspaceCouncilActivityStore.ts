@@ -88,6 +88,5 @@ export function workspaceAgendaItemStatus(
 export const workspaceAgendaSubjectKeys: Record<AgendaItem["subject"]["kind"], TranslationKey> = {
   minutesApproval: "agendaSubject.minutesApproval",
   councilDecisionProposal: "agendaSubject.councilDecisionProposal",
-  businessConsultation: "agendaSubject.businessConsultation",
   openQuestion: "agendaSubject.openQuestion",
 };

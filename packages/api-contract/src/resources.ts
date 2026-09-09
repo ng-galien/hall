@@ -386,13 +386,17 @@ export const resourceDetailSchema = z.discriminatedUnion("kind", [
 
 const createResourceBaseSchema = z.object({ path: resourcePathSchema, name: resourceNameSchema }).strict();
 
+const createWorkingResourceBaseSchema = createResourceBaseSchema.extend({
+  councilBusinessId: resourceIdSchema.optional(),
+});
+
 export const createResourceSchema = z.discriminatedUnion("kind", [
   createResourceBaseSchema.extend({ kind: z.literal("folder") }),
-  createResourceBaseSchema.extend({ kind: z.literal("text"), content: z.string() }),
-  createResourceBaseSchema.extend({ kind: z.literal("remote"), target: remoteResourceTargetSchema }),
-  createResourceBaseSchema.extend({ kind: z.literal("spreadsheet"), document: spreadsheetDocumentSchema }),
-  createResourceBaseSchema.extend({ kind: z.literal("geographic") }),
-  createResourceBaseSchema.extend({ kind: z.literal("legalReference") }),
+  createWorkingResourceBaseSchema.extend({ kind: z.literal("text"), content: z.string() }),
+  createWorkingResourceBaseSchema.extend({ kind: z.literal("remote"), target: remoteResourceTargetSchema }),
+  createWorkingResourceBaseSchema.extend({ kind: z.literal("spreadsheet"), document: spreadsheetDocumentSchema }),
+  createWorkingResourceBaseSchema.extend({ kind: z.literal("geographic") }),
+  createWorkingResourceBaseSchema.extend({ kind: z.literal("legalReference") }),
 ]);
 
 export const relocateResourceSchema = z.object({ path: resourcePathSchema, name: resourceNameSchema });

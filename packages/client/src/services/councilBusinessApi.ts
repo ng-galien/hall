@@ -17,16 +17,27 @@ import {
   type ScheduleCouncilBusinessSubject,
   scheduleCouncilBusinessSubjectSchema,
   preparedCouncilSubjectSchema,
+  createPreparedCouncilSubjectSchema,
+  type CreatePreparedCouncilSubject,
 } from "@hall/api-contract";
 import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
 const councilBusinessPath = (id: string) => `/council-business/${encodeURIComponent(id)}`;
 
-export async function listPreparedCouncilSubjects(councilMeetingId: string) {
-  const params = new URLSearchParams({ councilMeetingId });
+export async function listPreparedCouncilSubjects(councilMeetingId?: string) {
+  const params = new URLSearchParams(councilMeetingId ? { councilMeetingId } : {});
   return preparedCouncilSubjectSchema.array().parse(
     await apiRequest<unknown>(`/council-business/prepared-subjects?${params.toString()}`),
   );
+}
+
+export async function createPreparedCouncilSubject(businessId: string, input: CreatePreparedCouncilSubject) {
+  const result = await submitSirenActionAt<unknown>(
+    councilBusinessPath(businessId),
+    "council-business.create-prepared-subject",
+    createPreparedCouncilSubjectSchema.parse(input),
+  );
+  return preparedCouncilSubjectSchema.parse(result.data);
 }
 
 export async function listCouncilBusinesses() {
