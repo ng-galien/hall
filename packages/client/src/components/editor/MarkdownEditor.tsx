@@ -11,12 +11,15 @@ import { useI18n } from "../../i18n/I18nProvider";
 import {
   BoldIcon,
   CardViewIcon,
+  ChecklistIcon,
   CodeIcon,
   FullscreenIcon,
+  IndentIcon,
   ItalicIcon,
   LinkIcon,
   ListBulletedIcon,
   ListNumberedIcon,
+  OutdentIcon,
   RedoIcon,
   ReferenceIcon,
   TableIcon,
@@ -87,6 +90,40 @@ function ToolbarButton({
   );
 }
 
+function ListStructureButtons({ editor }: { editor: Editor }) {
+  const { t } = useI18n();
+  const state = useToolbarState(editor);
+  const itemType = editor.isActive("taskItem") ? "taskItem" : "listItem";
+  return (
+    <>
+      <ToolbarButton
+        label={t("editor.checklist")}
+        testId="editor-checklist"
+        active={state?.taskList}
+        onClick={() => editor.chain().focus().toggleTaskList().run()}
+      >
+        <ChecklistIcon />
+      </ToolbarButton>
+      <ToolbarButton
+        label={t("editor.indent")}
+        testId="editor-indent"
+        disabled={!state?.canIndent}
+        onClick={() => editor.chain().focus().sinkListItem(itemType).run()}
+      >
+        <IndentIcon />
+      </ToolbarButton>
+      <ToolbarButton
+        label={t("editor.outdent")}
+        testId="editor-outdent"
+        disabled={!state?.canOutdent}
+        onClick={() => editor.chain().focus().liftListItem(itemType).run()}
+      >
+        <OutdentIcon />
+      </ToolbarButton>
+    </>
+  );
+}
+
 function useToolbarState(editor: Editor | null) {
   return useEditorState({
     editor,
@@ -97,6 +134,9 @@ function useToolbarState(editor: Editor | null) {
         bold: current.isActive("bold"),
         code: current.isActive("code"),
         italic: current.isActive("italic"),
+        taskList: current.isActive("taskList"),
+        canIndent: current.can().sinkListItem(current.isActive("taskItem") ? "taskItem" : "listItem"),
+        canOutdent: current.can().liftListItem(current.isActive("taskItem") ? "taskItem" : "listItem"),
         bulletList: current.isActive("bulletList"),
         orderedList: current.isActive("orderedList"),
         link: current.isActive("link"),
@@ -382,6 +422,7 @@ export function MarkdownEditor({
               <ListBulletedIcon />
             </ToolbarButton>
           ) : null}
+          {inline && !readOnly ? <ListStructureButtons editor={inline} /> : null}
           {inline && !readOnly ? (
             <ToolbarButton
               label={t("editor.searchReferences")}
@@ -591,6 +632,7 @@ function EnrichedEditor({
               <ListNumberedIcon />
             </ToolbarButton>
             <span className="markdown-toolbar-separator" />
+            <ListStructureButtons editor={editor} />
             <LinkControl editor={editor} active={state.link} />
             <ToolbarButton
               label={t("editor.insertTable")}

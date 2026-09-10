@@ -10,6 +10,7 @@ import { OpenIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
+import { EventResourceEditor } from "../calendar/EventResourceEditor";
 import { DocumentEmbed } from "../documents/DocumentEmbed";
 import type { UploadedResourceImage } from "../documents/useResourceImageUpload";
 import { GeographicResourceMap } from "../geographic/GeographicResourceMap";
@@ -152,6 +153,16 @@ export function ResourcePresentationBody({
         resource={entry}
         representation={representation}
         objectTestId={layout === "extended" ? "resource-preview-object" : "resource-workbench-object"}
+      />
+    ),
+    event: (entry) => (
+      <EventResourceEditor
+        key={entry.id}
+        resource={entry}
+        canUpdate={editingResource}
+        autosaveEnabled={autosaveEnabled}
+        onError={onError}
+        onRegisterFlush={onRegisterFlush}
       />
     ),
     geographic: (entry) => (

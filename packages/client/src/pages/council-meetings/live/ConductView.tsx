@@ -298,6 +298,7 @@ export function ConductView({
   return (
     <div className="conduct">
       <aside
+        data-testid="live-agenda-rail"
         className={`conduct-rail${railCollapsed ? " conduct-rail-collapsed" : ""}`}
         style={railCollapsed ? undefined : { width: railWidth }}
         aria-label={t("meeting.timeline")}

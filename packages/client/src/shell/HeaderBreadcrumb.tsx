@@ -58,6 +58,8 @@ export function HeaderBreadcrumb() {
     items.push({ label: t("common.settings") });
   } else if (segments[0] === "docs") {
     items.push({ label: t("navigation.documentation") });
+  } else if (segments[0] === "calendar") {
+    items.push({ label: t("navigation.calendar") });
   } else if (segments[0] === "workspace") {
     items.push({ label: t("navigation.workspace") });
   }

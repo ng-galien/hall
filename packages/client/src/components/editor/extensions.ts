@@ -1,4 +1,5 @@
 import { Extension, generateHTML, type JSONContent } from "@tiptap/core";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { renderTableToMarkdown, Table, TableKit } from "@tiptap/extension-table";
 import { Placeholder } from "@tiptap/extensions";
 import { Markdown } from "@tiptap/markdown";
@@ -104,6 +105,11 @@ export function editorExtensions({
     StarterKit.configure({
       heading: { levels: [2, 3] },
       link: { openOnClick: false },
+    }),
+    TaskList,
+    TaskItem.configure({
+      nested: true,
+      HTMLAttributes: { "data-type": "taskItem", "data-testid": "editor-task-item" },
     }),
     Markdown,
     TableKit.configure({ table: false, tableHeader: { HTMLAttributes: { "data-testid": "editor-table-header" } } }),

@@ -101,3 +101,40 @@ AS $function$
     )
   )
 $function$;
+
+-- Calendar content validates date shape and ordering at the persistence boundary.
+CREATE FUNCTION hall.is_valid_event_document(candidate JSONB)
+RETURNS BOOLEAN LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog AS $function$
+DECLARE
+  participant JSONB;
+  schedule JSONB := candidate -> 'schedule';
+BEGIN
+  IF jsonb_typeof(candidate) <> 'object'
+    OR jsonb_typeof(candidate -> 'content') IS DISTINCT FROM 'string'
+    OR jsonb_typeof(candidate -> 'location') IS DISTINCT FROM 'string'
+    OR jsonb_typeof(candidate -> 'participants') IS DISTINCT FROM 'array' THEN RETURN false; END IF;
+  IF schedule ->> 'kind' = 'allDay' THEN
+    IF NOT COALESCE(schedule ->> 'start' ~ '^\d{4}-\d{2}-\d{2}$'
+      AND schedule ->> 'end' ~ '^\d{4}-\d{2}-\d{2}$'
+      AND (schedule ->> 'end')::date > (schedule ->> 'start')::date, false) THEN RETURN false; END IF;
+  ELSIF schedule ->> 'kind' = 'timed' THEN
+    IF NOT COALESCE(schedule ->> 'start' ~ '(Z|[+-]\d{2}:\d{2})$'
+      AND schedule ->> 'end' ~ '(Z|[+-]\d{2}:\d{2})$'
+      AND (schedule ->> 'end')::timestamptz > (schedule ->> 'start')::timestamptz, false) THEN RETURN false; END IF;
+  ELSE RETURN false;
+  END IF;
+  FOR participant IN SELECT value FROM jsonb_array_elements(candidate -> 'participants') LOOP
+    IF participant ->> 'kind' = 'contact' THEN
+      IF participant ->> 'contactId' IS NULL THEN RETURN false; END IF;
+      PERFORM (participant ->> 'contactId')::uuid;
+    ELSIF participant ->> 'kind' = 'guest' THEN
+      IF jsonb_typeof(participant -> 'name') IS DISTINCT FROM 'string'
+        OR btrim(participant ->> 'name') = '' THEN RETURN false; END IF;
+    ELSE RETURN false;
+    END IF;
+  END LOOP;
+  RETURN true;
+EXCEPTION WHEN invalid_text_representation OR datetime_field_overflow OR invalid_datetime_format THEN
+  RETURN false;
+END
+$function$;

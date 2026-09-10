@@ -20,6 +20,7 @@ const resourceKindEditorPolicies: Record<ResourceKind, StaticResourceEditorPolic
   document: { fillsExtendedView: true, supportsAutosave: false },
   remote: { fillsExtendedView: false, supportsAutosave: true },
   geographic: { fillsExtendedView: true, supportsAutosave: true },
+  event: { fillsExtendedView: false, supportsAutosave: true },
   legalReference: { fillsExtendedView: false, supportsAutosave: false },
 };
 
@@ -30,6 +31,7 @@ export function resourceEditorState(resource: ResourceDetail): ResourceEditorSta
     remote: (entry) => ({ content: "", remoteUrl: entry.target.kind === "url" ? entry.target.url : "" }),
     document: () => ({ content: "", remoteUrl: "" }),
     geographic: () => ({ content: "", remoteUrl: "" }),
+    event: () => ({ content: "", remoteUrl: "" }),
     spreadsheet: () => ({ content: "", remoteUrl: "" }),
     legalReference: () => ({ content: "", remoteUrl: "" }),
   });
@@ -51,6 +53,7 @@ export function resourceContentUpdate(
     }),
     document: () => null,
     geographic: () => null,
+    event: () => null,
     spreadsheet: () => null,
     legalReference: () => null,
   });
@@ -63,6 +66,7 @@ export function resourceContentDirty(resource: ResourceDetail, state: ResourceEd
     remote: (entry) => state.remoteUrl !== (entry.target.kind === "url" ? entry.target.url : ""),
     document: () => false,
     geographic: () => false,
+    event: () => false,
     spreadsheet: () => false,
     legalReference: () => false,
   });
@@ -83,6 +87,7 @@ export function resourceCanEdit(resource: ResourceDetail, capabilities: Resource
     text: () => capabilities.updateContent,
     remote: () => capabilities.updateContent,
     geographic: () => capabilities.updateContent,
+    event: () => capabilities.updateContent,
     spreadsheet: () => capabilities.updateContent,
     legalReference: () => false,
     document: () => false,

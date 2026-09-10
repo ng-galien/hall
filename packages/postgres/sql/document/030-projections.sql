@@ -15,6 +15,7 @@ AS $function$
     WHEN target.remote_resource_id IS NOT NULL THEN 'remote'
     WHEN target.spreadsheet_resource_id IS NOT NULL THEN 'spreadsheet'
     WHEN target.geographic_resource_id IS NOT NULL THEN 'geographic'
+    WHEN target.event_resource_id IS NOT NULL THEN 'event'
     WHEN target.document_resource_id IS NOT NULL THEN 'document'
     WHEN target.legal_reference_resource_id IS NOT NULL THEN 'legalReference'
   END
@@ -63,7 +64,8 @@ SELECT resource.*,
          text_resource.autosave_enabled,
          remote_resource.autosave_enabled,
          spreadsheet_resource.autosave_enabled,
-         geographic_resource.autosave_enabled
+         geographic_resource.autosave_enabled,
+         event_resource.autosave_enabled
        ) AS autosave_enabled,
        CASE WHEN resource.document_resource_id IS NOT NULL THEN jsonb_build_object(
          'id', binary_object.id,
@@ -78,6 +80,7 @@ LEFT JOIN hall.remote_resource_target AS remote_target
   ON remote_target.remote_resource_id = remote_resource.id
 LEFT JOIN hall.spreadsheet_resource ON spreadsheet_resource.id = resource.spreadsheet_resource_id
 LEFT JOIN hall.geographic_resource ON geographic_resource.id = resource.geographic_resource_id
+LEFT JOIN hall.event_resource ON event_resource.id = resource.event_resource_id
 LEFT JOIN hall.legal_reference_resource
   ON legal_reference_resource.id = resource.legal_reference_resource_id
 LEFT JOIN hall.document_resource ON document_resource.id = resource.document_resource_id
@@ -238,6 +241,12 @@ BEGIN
       SELECT jsonb_build_object('document', geographic_resource.document, 'version', geographic_resource.version)
       FROM hall.geographic_resource
       WHERE geographic_resource.id = target.geographic_resource_id
+    );
+  ELSIF target.event_resource_id IS NOT NULL THEN
+    RETURN detail || (
+      SELECT jsonb_build_object('document', event_resource.document, 'version', event_resource.version)
+      FROM hall.event_resource
+      WHERE event_resource.id = target.event_resource_id
     );
   ELSIF target.legal_reference_resource_id IS NOT NULL THEN
     RETURN detail || (

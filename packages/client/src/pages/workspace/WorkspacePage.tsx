@@ -1,3 +1,4 @@
+import { emptyEventDocument } from "../../features/calendar/eventDates";
 import { matchDiscriminated, matchLiteral } from "@hall/domain";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -164,6 +165,12 @@ export function WorkspacePage() {
           }, source),
         );
       },
+      event: async () => {
+        if (!normalizedTitle) return null;
+        return resourceSelection(
+          await resourcesStore.create({ kind: "event", name: normalizedTitle, path: folderPath, document: emptyEventDocument(), ...scope }, source),
+        );
+      },
       geographic: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
@@ -221,6 +228,7 @@ export function WorkspacePage() {
                 spreadsheet: () => resourcesStore.collectionCapabilities.create,
                 remote: () => resourcesStore.collectionCapabilities.create,
                 geographic: () => resourcesStore.collectionCapabilities.create,
+                event: () => resourcesStore.collectionCapabilities.create,
                 legalReference: () => resourcesStore.collectionCapabilities.create && resourcesStore.collectionCapabilities.searchLegalReferences,
                 file: () => resourcesStore.collectionCapabilities.uploadDocument || resourcesStore.collectionCapabilities.importSpreadsheet,
               })}

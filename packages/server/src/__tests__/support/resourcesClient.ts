@@ -142,6 +142,14 @@ export function createTestResourcesClient(): ResourcesClient {
             autosaveEnabled: true,
             version: 1,
           }),
+        event: (entry) =>
+          store({
+            ...common("event", entry.path, entry.name),
+            kind: "event",
+            document: entry.document,
+            autosaveEnabled: true,
+            version: 1,
+          }),
         legalReference: (entry) =>
           store({
             ...common("legalReference", entry.path, entry.name),

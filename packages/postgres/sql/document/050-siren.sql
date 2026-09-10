@@ -112,7 +112,7 @@ BEGIN
     hall.siren_action('resource.update-metadata', 'PATCH', '/api/resources/' || reference || '/metadata')
   );
 
-  IF resource_kind IN ('text', 'remote', 'spreadsheet', 'geographic') THEN
+  IF resource_kind IN ('text', 'remote', 'spreadsheet', 'geographic', 'event') THEN
     actions := actions || jsonb_build_array(
       hall.siren_action('resource.update-content', 'PUT', '/api/resources/' || reference || '/content')
     );

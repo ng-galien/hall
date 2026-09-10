@@ -16,6 +16,7 @@ SELECT set_eq(
         'remote_resource_target',
         'spreadsheet_resource',
         'geographic_resource',
+        'event_resource',
         'document_resource',
         'legal_reference_resource',
         'editor_asset',
@@ -30,12 +31,13 @@ SELECT set_eq(
     ('remote_resource_target'),
     ('spreadsheet_resource'),
     ('geographic_resource'),
+    ('event_resource'),
     ('document_resource'),
     ('legal_reference_resource'),
     ('editor_asset'),
     ('resource')
   $$,
-  'documentary core contains one envelope, seven technical variants, editor assets, a remote target and binary storage'
+  'documentary core contains one envelope, eight technical variants, editor assets, a remote target and binary storage'
 );
 
 SELECT hasnt_table('hall', 'workspace_folder', 'folders are resources rather than a separate tree');
@@ -57,10 +59,11 @@ SELECT set_eq(
     ('remote_resource_id'),
     ('spreadsheet_resource_id'),
     ('geographic_resource_id'),
+    ('event_resource_id'),
     ('document_resource_id'),
     ('legal_reference_resource_id')
   $$,
-  'resource exposes exactly the seven technical union references'
+  'resource exposes exactly the eight technical union references'
 );
 
 SELECT hasnt_column('hall', 'resource', 'kind', 'resource nature is derived from the XOR');
@@ -76,6 +79,7 @@ SELECT col_type_is('hall', 'resource', 'id', 'uuid', 'resource identity uses Pos
 SELECT col_not_null('hall', 'text_resource', 'content', 'text content is structurally required');
 SELECT col_not_null('hall', 'spreadsheet_resource', 'document', 'spreadsheet content is structurally required');
 SELECT col_not_null('hall', 'geographic_resource', 'document', 'geographic content is structurally required');
+SELECT col_not_null('hall', 'event_resource', 'document', 'event content is structurally required');
 SELECT col_not_null('hall', 'legal_reference_resource', 'document', 'legal-reference content is structurally required');
 
 -- HALL-FR-DOC-190
@@ -181,6 +185,7 @@ SELECT set_eq(
         'create_remote_resource_with_target',
         'create_spreadsheet_resource',
         'create_geographic_resource',
+        'create_event_resource',
         'create_legal_reference_resource',
         'create_document_resource',
         'create_editor_asset',
@@ -197,6 +202,7 @@ SELECT set_eq(
         'clear_remote_resource_target',
         'update_spreadsheet_resource',
         'update_geographic_resource',
+        'update_event_resource',
         'update_legal_reference_resource',
         'resolve_legal_reference_resource',
         'replace_document_content',
@@ -220,6 +226,7 @@ SELECT set_eq(
     ('create_remote_resource_with_target'),
     ('create_spreadsheet_resource'),
     ('create_geographic_resource'),
+    ('create_event_resource'),
     ('create_legal_reference_resource'),
     ('create_document_resource'),
     ('create_editor_asset'),
@@ -236,6 +243,7 @@ SELECT set_eq(
     ('clear_remote_resource_target'),
     ('update_spreadsheet_resource'),
     ('update_geographic_resource'),
+    ('update_event_resource'),
     ('update_legal_reference_resource'),
     ('resolve_legal_reference_resource'),
     ('replace_document_content'),
@@ -259,14 +267,14 @@ SELECT is(
         'open_resource', 'open_resource_by_slug', 'list_resources', 'search_resources',
         'list_folder', 'create_folder', 'create_text_resource',
         'create_remote_resource', 'create_remote_resource_with_target',
-        'create_spreadsheet_resource', 'create_geographic_resource',
+        'create_spreadsheet_resource', 'create_geographic_resource', 'create_event_resource',
         'create_legal_reference_resource', 'create_document_resource', 'rename_resource',
         'create_editor_asset', 'open_editor_asset', 'read_editor_asset_content',
         'read_binary_reference_content',
         'move_resource', 'relocate_resource', 'update_resource_metadata',
         'update_editable_resource_metadata', 'update_text_resource',
         'update_remote_resource_target', 'clear_remote_resource_target',
-        'update_spreadsheet_resource', 'update_geographic_resource',
+        'update_spreadsheet_resource', 'update_geographic_resource', 'update_event_resource',
         'update_legal_reference_resource', 'replace_document_content',
         'resolve_legal_reference_resource',
         'read_document_content', 'present_resource', 'present_resource_collection',
@@ -288,14 +296,14 @@ SELECT is(
         'open_resource', 'open_resource_by_slug', 'list_resources', 'search_resources',
         'list_folder', 'create_folder', 'create_text_resource',
         'create_remote_resource', 'create_remote_resource_with_target',
-        'create_spreadsheet_resource', 'create_geographic_resource',
+        'create_spreadsheet_resource', 'create_geographic_resource', 'create_event_resource',
         'create_legal_reference_resource', 'create_document_resource', 'rename_resource',
         'create_editor_asset', 'open_editor_asset', 'read_editor_asset_content',
         'read_binary_reference_content',
         'move_resource', 'relocate_resource', 'update_resource_metadata',
         'update_editable_resource_metadata', 'update_text_resource',
         'update_remote_resource_target', 'clear_remote_resource_target',
-        'update_spreadsheet_resource', 'update_geographic_resource',
+        'update_spreadsheet_resource', 'update_geographic_resource', 'update_event_resource',
         'update_legal_reference_resource', 'replace_document_content',
         'resolve_legal_reference_resource',
         'read_document_content', 'present_resource', 'present_resource_collection',
@@ -303,7 +311,7 @@ SELECT is(
       )
       AND has_function_privilege('hall_api_authenticated', procedure.oid, 'EXECUTE')
   ),
-  36,
+  38,
   'authenticated runtime can execute every named documentary operation'
 );
 

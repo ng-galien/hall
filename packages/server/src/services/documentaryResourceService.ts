@@ -156,6 +156,7 @@ export function createDocumentaryResourceService({
         text: (entry) => resourcesClient.create(entry),
         remote: (entry) => resourcesClient.create(entry),
         spreadsheet: (entry) => resourcesClient.create(entry),
+        event: (entry) => resourcesClient.create(entry),
         geographic: async (entry) => {
           const hall = await hallSettingsRepository.get();
           const configuredAt = new Date().toISOString();

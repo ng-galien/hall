@@ -227,7 +227,7 @@ BEGIN
   END IF;
   IF EXISTS (SELECT FROM unnest(search_paths) AS path WHERE NOT hall.is_normalized_resource_path(path))
      OR EXISTS (SELECT FROM unnest(search_kinds) AS kind WHERE kind NOT IN (
-       'folder', 'text', 'remote', 'spreadsheet', 'geographic', 'document', 'legalReference'
+       'folder', 'text', 'remote', 'spreadsheet', 'geographic', 'event', 'document', 'legalReference'
      ))
      OR EXISTS (SELECT FROM unnest(search_readiness) AS readiness WHERE readiness NOT IN (
        'incomplete', 'empty', 'ready'
@@ -482,6 +482,25 @@ BEGIN
   PERFORM hall.ensure_folder_path(parent_path);
   INSERT INTO hall.geographic_resource (id, document) VALUES (resource_id, resource_document);
   INSERT INTO hall.resource (id, path, name, slug, geographic_resource_id)
+  VALUES (resource_id, parent_path, resource_name, hall.claim_resource_slug(resource_name), resource_id);
+  RETURN hall.resource_detail(resource_id);
+END
+$function$;
+
+CREATE FUNCTION hall_api.create_event_resource(parent_path TEXT, resource_name TEXT, resource_document JSONB)
+RETURNS JSONB
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+DECLARE
+  resource_id UUID := gen_random_uuid();
+BEGIN
+  PERFORM hall.lock_resource_namespace();
+  PERFORM hall.ensure_folder_path(parent_path);
+  INSERT INTO hall.event_resource (id, document) VALUES (resource_id, resource_document);
+  INSERT INTO hall.resource (id, path, name, slug, event_resource_id)
   VALUES (resource_id, parent_path, resource_name, hall.claim_resource_slug(resource_name), resource_id);
   RETURN hall.resource_detail(resource_id);
 END
@@ -824,6 +843,9 @@ BEGIN
   ELSIF target.geographic_resource_id IS NOT NULL THEN
     UPDATE hall.geographic_resource SET autosave_enabled = update_editable_resource_metadata.autosave_enabled
     WHERE id = target.geographic_resource_id;
+  ELSIF target.event_resource_id IS NOT NULL THEN
+    UPDATE hall.event_resource SET autosave_enabled = update_editable_resource_metadata.autosave_enabled
+    WHERE id = target.event_resource_id;
   ELSE
     RAISE EXCEPTION USING
       ERRCODE = 'HV609',
@@ -981,6 +1003,32 @@ BEGIN
 END
 $function$;
 
+CREATE FUNCTION hall_api.update_event_resource(
+  resource_id UUID,
+  expected_version INTEGER,
+  resource_document JSONB
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+BEGIN
+  PERFORM hall.require_resource(resource_id, 'event');
+  UPDATE hall.event_resource
+  SET document = resource_document,
+      version = version + 1
+  WHERE id = resource_id
+    AND version = expected_version;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV608', MESSAGE = 'Resource version conflict';
+  END IF;
+  PERFORM hall.touch_resource(resource_id);
+  RETURN hall.resource_detail(resource_id);
+END
+$function$;
+
 CREATE FUNCTION hall_api.update_legal_reference_resource(
   resource_id UUID,
   expected_version INTEGER,
@@ -1111,6 +1159,8 @@ BEGIN
     DELETE FROM hall.spreadsheet_resource WHERE id = target.spreadsheet_resource_id;
   ELSIF target.geographic_resource_id IS NOT NULL THEN
     DELETE FROM hall.geographic_resource WHERE id = target.geographic_resource_id;
+  ELSIF target.event_resource_id IS NOT NULL THEN
+    DELETE FROM hall.event_resource WHERE id = target.event_resource_id;
   ELSIF target.document_resource_id IS NOT NULL THEN
     DELETE FROM hall.document_resource WHERE id = target.document_resource_id;
   ELSIF target.legal_reference_resource_id IS NOT NULL THEN

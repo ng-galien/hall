@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import { ContextMenuItem } from "../../components/ui/context-menu";
 import { useId, useRef, useState } from "react";
 import { AddIcon } from "../../components/icons";
 import { Modal } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { ContextMenuItem } from "../../components/ui/context-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,9 +12,9 @@ import {
 } from "../../components/ui/dropdown-menu";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { useI18n } from "../../i18n/I18nProvider";
 import type { TranslationKey } from "../../i18n/en";
-import { type WorkspaceCreateKind, workspaceCreateKinds, workspaceCreateKindIcons } from "./workspaceCreateKind";
+import { useI18n } from "../../i18n/I18nProvider";
+import { type WorkspaceCreateKind, workspaceCreateKindIcons, workspaceCreateKinds } from "./workspaceCreateKind";
 
 export interface WorkspaceCreationOption {
   id: string;
@@ -29,6 +29,7 @@ const labels = {
   spreadsheet: "workspace.createSpreadsheet",
   remote: "workspace.createRemote",
   geographic: "workspace.createGeographic",
+  event: "workspace.createEvent",
   legalReference: "workspace.createLegalReference",
   file: "workspace.importFile",
 } satisfies Record<WorkspaceCreateKind, TranslationKey>;

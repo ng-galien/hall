@@ -58,6 +58,7 @@ function autosavePreference(resource: ResourceDetail | null): boolean {
     remote: (entry) => entry.autosaveEnabled,
     spreadsheet: (entry) => entry.autosaveEnabled,
     geographic: (entry) => entry.autosaveEnabled,
+    event: (entry) => entry.autosaveEnabled,
     document: () => false,
     legalReference: () => false,
   });

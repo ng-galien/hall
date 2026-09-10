@@ -97,6 +97,8 @@ GRANT EXECUTE ON FUNCTION hall_api.create_spreadsheet_resource(TEXT, TEXT, JSONB
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.create_geographic_resource(TEXT, TEXT, JSONB)
   TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.create_event_resource(TEXT, TEXT, JSONB)
+  TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.create_legal_reference_resource(TEXT, TEXT, JSONB)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.create_document_resource(TEXT, TEXT, TEXT, BYTEA)
@@ -199,6 +201,8 @@ GRANT EXECUTE ON FUNCTION hall_api.clear_remote_resource_target(UUID, INTEGER)
 GRANT EXECUTE ON FUNCTION hall_api.update_spreadsheet_resource(UUID, INTEGER, JSONB)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.update_geographic_resource(UUID, INTEGER, JSONB)
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.update_event_resource(UUID, INTEGER, JSONB)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.update_legal_reference_resource(UUID, INTEGER, JSONB)
   TO hall_api_authenticated, hall_api_worker;

@@ -786,3 +786,39 @@ test.describe("Markdown editor", () => {
     await expect(compactEditor(page)).toContainText(marker);
   });
 });
+
+test("preserves nested lists and checklists across editor modes and reload", async ({ appPage: page }) => {
+  const resource = await createWorkspaceText(page, `Lists ${crypto.randomUUID()}`, "- First\n- Second");
+  await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  const compact = compactEditor(page);
+  await writingArea(compact).click();
+  await writingArea(compact).press("ControlOrMeta+End");
+  await writingArea(compact).press("ArrowUp");
+  await compact.getByTestId("editor-indent").click();
+  await expect.poll(async () => (await (await page.request.get(`/api/resources/${resource.id}`)).json()).properties.content).toMatch(/\n\s{2,}- Second/);
+  await compact.getByTestId("editor-outdent").click();
+  await expect.poll(async () => (await (await page.request.get(`/api/resources/${resource.id}`)).json()).properties.content).toMatch(/\n- Second/);
+  await compact.getByTestId("editor-checklist").click();
+  const assertChecklistAlignment = async (editor: Locator) => {
+    const item = editor.getByTestId("editor-task-item").last();
+    await expect(item).toHaveCSS("display", "flex");
+    const layout = await item.evaluate((element) => {
+      const checkbox = element.querySelector("input")!.getBoundingClientRect();
+      const text = element.querySelector("p")!.getBoundingClientRect();
+      return { checkboxRight: checkbox.right, textLeft: text.left, checkboxY: checkbox.y + checkbox.height / 2, textTop: text.top, textBottom: text.bottom };
+    });
+    expect(layout.textLeft).toBeGreaterThan(layout.checkboxRight);
+    expect(layout.checkboxY).toBeGreaterThanOrEqual(layout.textTop);
+    expect(layout.checkboxY).toBeLessThanOrEqual(layout.textBottom);
+  };
+  await assertChecklistAlignment(compact);
+  await compact.getByTestId("editor-task-item").last().click({ position: { x: 7, y: 8 } });
+  await expect(compact.getByTestId("editor-task-item").last()).toHaveAttribute("data-checked", "true");
+  const enriched = await openEnrichedEditor(page);
+  await assertChecklistAlignment(enriched);
+  await expect(enriched.getByTestId("editor-task-item").last()).toHaveAttribute("data-checked", "true");
+  await closeEnrichedEditor(page);
+  await expect.poll(async () => (await (await page.request.get(`/api/resources/${resource.id}`)).json()).properties.content).toContain("[x] Second");
+  await page.reload();
+  await expect(compactEditor(page).getByTestId("editor-task-item").last()).toHaveAttribute("data-checked", "true");
+});

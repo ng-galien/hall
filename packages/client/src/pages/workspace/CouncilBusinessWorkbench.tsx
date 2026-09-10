@@ -231,6 +231,7 @@ export function CouncilBusinessWorkbench({
               spreadsheet: () => Boolean(businessCapabilities?.createResource),
               remote: () => Boolean(businessCapabilities?.createResource),
               geographic: () => Boolean(businessCapabilities?.createResource),
+              event: () => Boolean(businessCapabilities?.createResource),
               legalReference: () => Boolean(businessCapabilities?.createResource),
               file: () => Boolean(businessCapabilities?.uploadDocument || businessCapabilities?.importSpreadsheet),
             })

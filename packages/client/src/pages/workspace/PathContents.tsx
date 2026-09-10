@@ -461,6 +461,7 @@ export function PathContents({
         spreadsheet: () => "workspace.createSpreadsheet" as const,
         remote: () => "workspace.createRemote" as const,
         geographic: () => "workspace.createGeographic" as const,
+        event: () => "workspace.createEvent" as const,
         legalReference: () => "workspace.createLegalReference" as const,
       }),
     );
@@ -475,6 +476,7 @@ export function PathContents({
           spreadsheet: () => useWorkspaceResourcesStore.getState().error,
           remote: () => useWorkspaceResourcesStore.getState().error,
           geographic: () => useWorkspaceResourcesStore.getState().error,
+          event: () => useWorkspaceResourcesStore.getState().error,
           legalReference: () => useWorkspaceResourcesStore.getState().error,
         }),
       );

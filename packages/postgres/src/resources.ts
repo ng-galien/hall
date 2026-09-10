@@ -1,3 +1,4 @@
+import { eventDocumentSchema } from "@hall/contracts";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
 import { type ZodType, z } from "zod";
 import { recordAuditEvent } from "./audit.js";
@@ -12,6 +13,7 @@ export const postgresResourceKinds = [
   "remote",
   "spreadsheet",
   "geographic",
+  "event",
   "document",
   "legalReference",
 ] as const;
@@ -94,6 +96,10 @@ const geographicResourceSummarySchema = resourcePresentationSchema.extend({
   kind: z.literal("geographic"),
   autosaveEnabled: z.boolean(),
 });
+const eventResourceSummarySchema = resourcePresentationSchema.extend({
+  kind: z.literal("event"),
+  autosaveEnabled: z.boolean(),
+});
 const legalReferenceResourceSummarySchema = resourcePresentationSchema.extend({ kind: z.literal("legalReference") });
 const documentResourceSummarySchema = resourcePresentationSchema.extend({
   kind: z.literal("document"),
@@ -106,6 +112,7 @@ export const postgresResourceSummarySchema = z.discriminatedUnion("kind", [
   remoteResourceSummarySchema,
   spreadsheetResourceSummarySchema,
   geographicResourceSummarySchema,
+  eventResourceSummarySchema,
   legalReferenceResourceSummarySchema,
   documentResourceSummarySchema,
 ]);
@@ -133,6 +140,10 @@ const geographicResourceSchema = geographicResourceSummarySchema.extend({
   document: jsonDocumentSchema,
   version: versionSchema,
 });
+const eventResourceSchema = eventResourceSummarySchema.extend({
+  document: eventDocumentSchema,
+  version: versionSchema,
+});
 const legalReferenceResourceSchema = legalReferenceResourceSummarySchema.extend({
   document: jsonDocumentSchema,
   version: versionSchema,
@@ -145,6 +156,7 @@ export const postgresResourceDetailSchema = z.discriminatedUnion("kind", [
   remoteResourceSchema,
   spreadsheetResourceSchema,
   geographicResourceSchema,
+  eventResourceSchema,
   documentResourceSchema,
   legalReferenceResourceSchema,
 ]);
@@ -577,6 +589,13 @@ export class PostgresResources {
     );
   }
 
+  createEvent(
+    request: PostgresResourceRequest,
+    input: CreateStructuredInput,
+  ): Promise<PostgresPresentedResource<PostgresEventResource>> {
+    return this.createStructured(request, "resource.createEvent", "create_event_resource", input, eventResourceSchema);
+  }
+
   createLegalReference(
     request: PostgresResourceRequest,
     input: CreateStructuredInput,
@@ -593,7 +612,11 @@ export class PostgresResources {
   private createStructured<Result extends PostgresResourceDetail>(
     request: PostgresResourceRequest,
     action: string,
-    functionName: "create_spreadsheet_resource" | "create_geographic_resource" | "create_legal_reference_resource",
+    functionName:
+      | "create_spreadsheet_resource"
+      | "create_geographic_resource"
+      | "create_event_resource"
+      | "create_legal_reference_resource",
     input: CreateStructuredInput,
     schema: ZodType<Result>,
   ): Promise<PostgresPresentedResource<Result>> {
@@ -788,6 +811,13 @@ export class PostgresResources {
     );
   }
 
+  updateEvent(
+    request: PostgresResourceRequest,
+    input: UpdateStructuredInput,
+  ): Promise<PostgresPresentedResource<PostgresEventResource>> {
+    return this.updateStructured(request, "resource.updateEvent", "update_event_resource", input, eventResourceSchema);
+  }
+
   updateLegalReference(
     request: PostgresResourceRequest,
     input: UpdateStructuredInput,
@@ -822,7 +852,11 @@ export class PostgresResources {
   private updateStructured<Result extends PostgresResourceDetail>(
     request: PostgresResourceRequest,
     action: string,
-    functionName: "update_spreadsheet_resource" | "update_geographic_resource" | "update_legal_reference_resource",
+    functionName:
+      | "update_spreadsheet_resource"
+      | "update_geographic_resource"
+      | "update_event_resource"
+      | "update_legal_reference_resource",
     input: UpdateStructuredInput,
     schema: ZodType<Result>,
   ): Promise<PostgresPresentedResource<Result>> {
@@ -993,3 +1027,5 @@ export class PostgresResources {
     );
   }
 }
+
+export type PostgresEventResource = z.infer<typeof eventResourceSchema>;

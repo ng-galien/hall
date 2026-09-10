@@ -22,6 +22,7 @@ function preferredDocumentaryPresentation(resource: DocumentaryLeafSummary): Res
     remote: () => undefined,
     spreadsheet: () => "table" as const,
     geographic: () => "map" as const,
+    event: () => undefined,
     legalReference: () => "legal-citation" as const,
     document: (entry) =>
       entry.binary.mediaType === "image/jpeg" || entry.binary.mediaType === "image/png"

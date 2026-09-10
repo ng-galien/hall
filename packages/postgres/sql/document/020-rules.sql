@@ -41,6 +41,7 @@ BEFORE UPDATE OF
   remote_resource_id,
   spreadsheet_resource_id,
   geographic_resource_id,
+  event_resource_id,
   document_resource_id,
   legal_reference_resource_id
 ON hall.resource
@@ -52,6 +53,7 @@ WHEN (
     OLD.remote_resource_id,
     OLD.spreadsheet_resource_id,
     OLD.geographic_resource_id,
+    OLD.event_resource_id,
     OLD.document_resource_id,
     OLD.legal_reference_resource_id
   ) IS DISTINCT FROM ROW(
@@ -60,6 +62,7 @@ WHEN (
     NEW.remote_resource_id,
     NEW.spreadsheet_resource_id,
     NEW.geographic_resource_id,
+    NEW.event_resource_id,
     NEW.document_resource_id,
     NEW.legal_reference_resource_id
   )

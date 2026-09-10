@@ -808,7 +808,7 @@
   .vote-cancel:hover { color: var(--hall-color-text); }
 
   @media (max-width: 1280px) {
-    .conduct-rail { width: var(--hall-size-agenda-rail); }
+    .conduct-rail:not(.conduct-rail-collapsed) { width: var(--hall-size-agenda-rail); }
     .conduct-stage-header h1 { font-size: var(--hall-font-size-display-small); line-height: var(--hall-line-height-display-small); }
     .vote-secret-counters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }

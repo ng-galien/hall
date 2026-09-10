@@ -4,6 +4,7 @@ export const workspaceCreateKinds = [
   "spreadsheet",
   "remote",
   "geographic",
+  "event",
   "legalReference",
   "file",
 ] as const;
@@ -17,11 +18,13 @@ export const workspaceCreateKindIcons: Record<WorkspaceCreateKind, typeof FileIc
   spreadsheet: TableIcon,
   remote: WebIcon,
   geographic: MapIcon,
+  event: CalendarIcon,
   legalReference: LegalReferenceIcon,
   file: FileIcon,
 };
 
 import {
+  CalendarIcon,
   FileIcon,
   LegalReferenceIcon,
   MapIcon,

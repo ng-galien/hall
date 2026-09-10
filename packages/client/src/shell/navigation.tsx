@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import {
+  CalendarIcon,
   CommitteeIcon,
   ContactIcon,
   DecisionsIcon,
@@ -41,7 +42,10 @@ export const navigationSections: NavigationSection[] = [
     ],
   },
   {
-    items: [{ to: "/workspace", labelKey: "navigation.workspace", icon: <WorkspaceIcon />, workspaceTree: true }],
+    items: [
+      { to: "/workspace", labelKey: "navigation.workspace", icon: <WorkspaceIcon />, workspaceTree: true },
+      { to: "/calendar", labelKey: "navigation.calendar", icon: <CalendarIcon /> },
+    ],
   },
   {
     labelKey: "navigation.administration",

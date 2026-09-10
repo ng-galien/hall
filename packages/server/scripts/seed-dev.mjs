@@ -44,7 +44,7 @@ const patch = (path, body) => request("PATCH", path, body);
 
 async function setResourceTags(resource, tags) {
   if (tags.length === 0) return resource;
-  const editable = ["text", "remote", "spreadsheet", "geographic"].includes(resource.kind);
+  const editable = ["text", "remote", "spreadsheet", "geographic", "event"].includes(resource.kind);
   return patch(`/resources/${resource.id}/metadata`, {
     path: resource.path,
     name: resource.name,
@@ -506,6 +506,7 @@ async function main() {
     ["Sylvie", "Garnier", "councillor"],
   ];
   const members = {};
+  const memberContactIds = {};
   for (const [memberIndex, [firstName, lastName, role]] of membersSpec.entries()) {
     const contact = await post("/contacts", {
       firstName,
@@ -522,6 +523,7 @@ async function main() {
       jobTitle: role === "mayor" ? "Maire" : role === "deputyMayor" ? "Adjoint au maire" : "Conseiller municipal",
       notes: "",
     });
+    memberContactIds[lastName] = contact.id;
     members[lastName] = await post("/council-members", {
       contactId: contact.id,
       role,
@@ -678,6 +680,23 @@ async function main() {
   const seedFolderPath = "seed";
   await createWorkspaceResource({ kind: "folder", path: "", name: seedFolderPath });
   await createWorkspaceResource({ kind: "folder", path: seedFolderPath, name: "dossier-vide" });
+  await createWorkspaceResource(
+    {
+      kind: "event",
+      name: "Rendez-vous de démonstration",
+      path: seedFolderPath,
+      document: {
+        content: "Présentation des ressources et du calendrier de l’espace de travail.",
+        location: "Salle de réunion de la mairie",
+        schedule: { kind: "timed", start: daysFromNow(1, 10, 0), end: daysFromNow(1, 11, 0) },
+        participants: [
+          { kind: "contact", contactId: memberContactIds.Delcourt },
+          { kind: "guest", name: "Intervenant de démonstration" },
+        ],
+      },
+    },
+    ["seed", "rendez-vous"],
+  );
   await createWorkspaceResource(
     {
       kind: "text",

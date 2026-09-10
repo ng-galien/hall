@@ -55,6 +55,13 @@ CREATE TABLE hall.spreadsheet_resource (
   version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
 );
 
+CREATE TABLE hall.event_resource (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  document JSONB NOT NULL CHECK (hall.is_valid_event_document(document)),
+  autosave_enabled BOOLEAN NOT NULL DEFAULT true,
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
+);
+
 CREATE TABLE hall.geographic_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   document JSONB NOT NULL CHECK (COALESCE((
@@ -135,6 +142,7 @@ CREATE TABLE hall.resource (
   text_resource_id UUID UNIQUE REFERENCES hall.text_resource(id) ON DELETE RESTRICT,
   remote_resource_id UUID UNIQUE REFERENCES hall.remote_resource(id) ON DELETE RESTRICT,
   spreadsheet_resource_id UUID UNIQUE REFERENCES hall.spreadsheet_resource(id) ON DELETE RESTRICT,
+  event_resource_id UUID UNIQUE REFERENCES hall.event_resource(id) ON DELETE RESTRICT,
   geographic_resource_id UUID UNIQUE REFERENCES hall.geographic_resource(id) ON DELETE RESTRICT,
   document_resource_id UUID UNIQUE REFERENCES hall.document_resource(id) ON DELETE RESTRICT,
   legal_reference_resource_id UUID UNIQUE REFERENCES hall.legal_reference_resource(id) ON DELETE RESTRICT,
@@ -157,6 +165,7 @@ CREATE TABLE hall.resource (
       remote_resource_id,
       spreadsheet_resource_id,
       geographic_resource_id,
+      event_resource_id,
       document_resource_id,
       legal_reference_resource_id
     ) = 1
@@ -168,6 +177,7 @@ CREATE TABLE hall.resource (
       remote_resource_id,
       spreadsheet_resource_id,
       geographic_resource_id,
+      event_resource_id,
       document_resource_id,
       legal_reference_resource_id
     )
@@ -193,3 +203,24 @@ CREATE TABLE hall.resource_tag (
 -- @technical-requirement HALL-TR-DOC-030 PREFIX_LOOKUPS_ARE_INDEXED:
 CREATE INDEX resource_path_prefix_idx
   ON hall.resource (path text_pattern_ops);
+
+-- Derived contact references enforce the same identity integrity as the directory.
+CREATE TABLE hall.event_contact_reference (
+  event_resource_id UUID NOT NULL REFERENCES hall.event_resource(id) ON DELETE CASCADE,
+  contact_id UUID NOT NULL REFERENCES hall.contact(id) ON DELETE RESTRICT,
+  PRIMARY KEY (event_resource_id, contact_id)
+);
+CREATE FUNCTION hall.sync_event_contact_references()
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $function$
+BEGIN
+  DELETE FROM hall.event_contact_reference WHERE event_resource_id = NEW.id;
+  INSERT INTO hall.event_contact_reference(event_resource_id, contact_id)
+    SELECT DISTINCT NEW.id, (participant ->> 'contactId')::uuid
+    FROM jsonb_array_elements(NEW.document -> 'participants') AS participant
+    WHERE participant ->> 'kind' = 'contact';
+  RETURN NEW;
+END
+$function$;
+CREATE TRIGGER event_contact_references
+AFTER INSERT OR UPDATE OF document ON hall.event_resource
+FOR EACH ROW EXECUTE FUNCTION hall.sync_event_contact_references();

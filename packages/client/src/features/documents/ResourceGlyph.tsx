@@ -1,5 +1,6 @@
 import { matchDiscriminated, matchLiteral, type Resource } from "@hall/domain";
 import {
+  CalendarIcon,
   CsvIcon,
   ImageIcon,
   LegalReferenceIcon,
@@ -16,6 +17,7 @@ import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 
 export type ResourceTone =
+  | "event"
   | "text"
   | "remote"
   | "geographic"
@@ -54,6 +56,7 @@ export const toneLabelKeys: Record<ResourceTone, TranslationKey> = {
   text: "workspace.type.text",
   remote: "workspace.type.remote",
   geographic: "workspace.type.geographic",
+  event: "workspace.type.event",
   legalReference: "workspace.type.legalReference",
   pdf: "workspace.type.pdf",
   image: "workspace.type.image",
@@ -68,6 +71,7 @@ export const toneIcons = {
   text: TextDocumentIcon,
   remote: WebIcon,
   geographic: MapIcon,
+  event: CalendarIcon,
   legalReference: LegalReferenceIcon,
   pdf: PdfIcon,
   image: ImageIcon,

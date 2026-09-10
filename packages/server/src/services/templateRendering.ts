@@ -1,12 +1,5 @@
-import type { CouncilDecisionDetail } from "@hall/contracts";
-import { isCouncilDecisionSection } from "@hall/templating";
-import {
-  renderCouncilDecisionFacts,
-  renderCouncilDecisionContent,
-  renderCouncilDecisionResult,
-} from "./councilDecisionDocument.js";
 import type { MinutesDetail, ResourceDetail } from "@hall/api-contract";
-import type { MeetingNoticeFacts } from "@hall/contracts";
+import type { CouncilDecisionDetail, MeetingNoticeFacts } from "@hall/contracts";
 import {
   type ContentTemplate,
   type HallSettings,
@@ -21,6 +14,7 @@ import {
   baseRenderStylesheet,
   collectDirectives,
   type Diagnostic,
+  isCouncilDecisionSection,
   isFieldName,
   isMinutesSection,
   isReferenceKind,
@@ -34,6 +28,11 @@ import type { CouncilClient } from "../clients/councilClient.js";
 import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
+import {
+  renderCouncilDecisionContent,
+  renderCouncilDecisionFacts,
+  renderCouncilDecisionResult,
+} from "./councilDecisionDocument.js";
 import { pdfAttachmentHref } from "./documentRenderer.js";
 import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
 import { renderMeetingNotice } from "./meetingNoticeDocument.js";
@@ -79,6 +78,7 @@ async function resourceReferenceNode(
     text: () => textNode(label),
     spreadsheet: () => textNode(label),
     geographic: () => textNode(label),
+    event: () => textNode(label),
     legalReference: () => textNode(label),
   });
 }
@@ -342,6 +342,7 @@ async function renderResourceEmbed(
     remote: () => presentation === "link",
     spreadsheet: () => presentation === "table",
     geographic: () => presentation === "map",
+    event: () => false,
     legalReference: () => presentation === "legal-citation",
     document: (entry) =>
       presentation === "document" ||
@@ -808,7 +809,11 @@ export function createTemplateRenderingService({
       context.notice =
         notice ??
         (meetingFacts
-          ? { issuedOn: null, meeting: meetingFacts, hall: { name: context.hall.name, timeZone: context.hall.timeZone } }
+          ? {
+              issuedOn: null,
+              meeting: meetingFacts,
+              hall: { name: context.hall.name, timeZone: context.hall.timeZone },
+            }
           : null);
       if (context.notice) {
         context.hall = { ...context.hall, ...context.notice.hall };

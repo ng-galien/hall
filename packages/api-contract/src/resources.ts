@@ -1,3 +1,4 @@
+import { eventDocumentSchema } from "@hall/contracts";
 import { z } from "zod";
 
 export const resourceKinds = [
@@ -6,6 +7,7 @@ export const resourceKinds = [
   "remote",
   "spreadsheet",
   "geographic",
+  "event",
   "document",
   "legalReference",
 ] as const;
@@ -345,6 +347,10 @@ const geographicResourceSummarySchema = resourcePresentationSchema.extend({
   kind: z.literal("geographic"),
   autosaveEnabled: z.boolean(),
 });
+const eventResourceSummarySchema = resourcePresentationSchema.extend({
+  kind: z.literal("event"),
+  autosaveEnabled: z.boolean(),
+});
 const legalReferenceResourceSummarySchema = resourcePresentationSchema.extend({ kind: z.literal("legalReference") });
 const documentResourceSummarySchema = resourcePresentationSchema.extend({
   kind: z.literal("document"),
@@ -357,6 +363,7 @@ export const resourceSummarySchema = z.discriminatedUnion("kind", [
   remoteResourceSummarySchema,
   spreadsheetResourceSummarySchema,
   geographicResourceSummarySchema,
+  eventResourceSummarySchema,
   legalReferenceResourceSummarySchema,
   documentResourceSummarySchema,
 ]);
@@ -377,6 +384,7 @@ export const resourceDetailSchema = z.discriminatedUnion("kind", [
     document: geographicDocumentSchema,
     version: versionSchema,
   }),
+  eventResourceSummarySchema.extend({ document: eventDocumentSchema, version: versionSchema }),
   legalReferenceResourceSummarySchema.extend({
     document: legalReferenceDocumentSchema,
     version: versionSchema,
@@ -396,6 +404,7 @@ export const createResourceSchema = z.discriminatedUnion("kind", [
   createWorkingResourceBaseSchema.extend({ kind: z.literal("remote"), target: remoteResourceTargetSchema }),
   createWorkingResourceBaseSchema.extend({ kind: z.literal("spreadsheet"), document: spreadsheetDocumentSchema }),
   createWorkingResourceBaseSchema.extend({ kind: z.literal("geographic") }),
+  createWorkingResourceBaseSchema.extend({ kind: z.literal("event"), document: eventDocumentSchema }),
   createWorkingResourceBaseSchema.extend({ kind: z.literal("legalReference") }),
 ]);
 
@@ -410,6 +419,7 @@ export const updateResourceMetadataSchema = relocateResourceSchema.extend({
 });
 
 export const updateResourceContentSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("event"), expectedVersion: versionSchema, document: eventDocumentSchema }),
   z.object({
     kind: z.literal("text"),
     expectedVersion: versionSchema,
@@ -460,3 +470,6 @@ export type EditorAsset = z.infer<typeof editorAssetSchema>;
 export type LegalReferenceSearchInput = z.infer<typeof legalReferenceSearchInputSchema>;
 export type LegalReferenceSearchResult = z.infer<typeof legalReferenceSearchResultSchema>;
 export type ResolveLegalReference = z.infer<typeof resolveLegalReferenceSchema>;
+
+export type { EventDocument, EventSchedule } from "@hall/contracts";
+export { eventDocumentSchema } from "@hall/contracts";

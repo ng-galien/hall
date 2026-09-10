@@ -1,0 +1,94 @@
+.hall-calendar { height: calc(100svh - 4rem); padding: 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
+.hall-calendar > .fc { flex: 1; min-height: 24rem; }
+.calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.calendar-toolbar h1 { font-size: 1.25rem; font-weight: 600; }
+.calendar-legend { display: flex; gap: 1rem; font-size: .8rem; color: var(--hall-color-text-muted); }
+.calendar-legend span::before { content: ''; display: inline-block; width: .5rem; height: .5rem; margin-right: .4rem; border-radius: 50%; background: var(--hall-color-brand); }
+.calendar-legend .calendar-legend-council::before { background: var(--hall-color-council-business); }
+.hall-calendar .hall-calendar-council { --fc-event-bg-color: var(--hall-color-council-business); --fc-event-border-color: var(--hall-color-council-business); }
+.hall-calendar { --fc-border-color: var(--hall-color-border); --fc-event-bg-color: var(--hall-color-brand); --fc-event-border-color: var(--hall-color-brand); --fc-page-bg-color: var(--hall-color-surface); }
+.calendar-undated { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; border-top: 1px solid var(--hall-color-border); }
+.event-fields { display: grid; gap: 1rem; }
+.event-fields select { border: 1px solid var(--hall-color-border); border-radius: .375rem; padding: .5rem; background: var(--hall-color-surface); }
+.workspace-glyph-event { color: var(--hall-color-brand); }
+
+/* FullCalendar theme bridges to Hall's existing semantic palette. */
+.hall-calendar {
+  --fc-monarch-primary: var(--hall-color-brand);
+  --fc-monarch-primary-foreground: var(--hall-color-on-brand);
+  --fc-monarch-primary-over: var(--hall-color-brand-hover);
+  --fc-monarch-primary-down: var(--hall-color-brand-pressed);
+  --fc-monarch-secondary: var(--hall-color-brand-subtle);
+  --fc-monarch-secondary-foreground: var(--hall-color-brand);
+  --fc-monarch-secondary-over: var(--hall-color-surface-selected);
+  --fc-monarch-secondary-down: var(--hall-color-brand-border);
+  --fc-monarch-tertiary: var(--hall-color-council-business);
+  --fc-monarch-tertiary-foreground: var(--hall-color-on-brand);
+  --fc-monarch-tertiary-over: var(--hall-color-council-business);
+  --fc-monarch-tertiary-down: var(--hall-color-council-business);
+  --fc-monarch-event: var(--hall-color-brand);
+  --fc-monarch-event-contrast: var(--hall-color-on-brand);
+  --fc-monarch-highlight: var(--hall-color-brand-subtle);
+  --fc-monarch-now: var(--hall-color-seal);
+  --fc-monarch-selected: var(--hall-color-brand);
+  --fc-monarch-selected-foreground: var(--hall-color-on-brand);
+  --fc-monarch-selected-over: var(--hall-color-brand-hover);
+  --fc-monarch-selected-down: var(--hall-color-brand-pressed);
+  --fc-monarch-outline: var(--hall-color-brand-border);
+  --fc-monarch-popover: var(--hall-color-surface);
+  --fc-monarch-background: var(--hall-color-surface);
+  --fc-monarch-faint: var(--hall-color-surface-subtle);
+  --fc-monarch-muted: var(--hall-color-surface-selected);
+  --fc-monarch-strong: var(--hall-color-border);
+  --fc-monarch-stronger: var(--hall-color-border-strong);
+  --fc-monarch-strongest: var(--hall-color-text-subtle);
+  --fc-monarch-foreground: var(--hall-color-text);
+  --fc-monarch-faint-foreground: var(--hall-color-text-subtle);
+  --fc-monarch-muted-foreground: var(--hall-color-text-muted);
+  --fc-monarch-border: var(--hall-color-border);
+  --fc-monarch-strong-border: var(--hall-color-border-strong);
+}
+.hall-calendar-council { --fc-monarch-event: var(--hall-color-council-business); }
+
+/* Resource form uses the same surface and spacing as the modal header. */
+.resource-preview-content:has(> .event-resource-editor) {
+  background: var(--hall-color-surface);
+}
+.event-fields > div > label {
+  display: block;
+  margin-bottom: var(--hall-space-2);
+}
+.event-date-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hall-space-4);
+}
+.event-date-fields label {
+  display: block;
+  margin-bottom: var(--hall-space-2);
+}
+.event-fields .event-participant-badge {
+  height: auto;
+  min-height: 1.75rem;
+  max-width: 100%;
+  gap: var(--hall-space-2);
+  padding: var(--hall-space-1) var(--hall-space-2);
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-small);
+  background: var(--hall-color-surface-subtle);
+  color: var(--hall-color-text);
+  font-size: var(--hall-font-size-body);
+  font-weight: 400;
+  white-space: normal;
+}
+.event-fields .event-participant-remove {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  min-height: 0;
+  padding: 0;
+  color: var(--hall-color-text-muted);
+}
+@media (max-width: 600px) {
+  .event-date-fields { grid-template-columns: minmax(0, 1fr); }
+}

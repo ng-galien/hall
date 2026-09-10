@@ -45,6 +45,7 @@ export function documentaryResourceTone(resource: DocumentaryLeafSummary): Resou
     remote: () => "remote" as const,
     spreadsheet: () => "spreadsheet" as const,
     geographic: () => "geographic" as const,
+    event: () => "event" as const,
     legalReference: () => "legalReference" as const,
     document: (entry) => documentTone(entry.binary.mediaType),
   });
@@ -57,6 +58,7 @@ export function documentaryResourceDate(resource: DocumentaryLeafSummary): {
   return matchDiscriminated(resource, "kind", {
     text: (entry) => ({ kind: "updated" as const, value: entry.updatedAt }),
     geographic: (entry) => ({ kind: "updated" as const, value: entry.updatedAt }),
+    event: (entry) => ({ kind: "updated" as const, value: entry.updatedAt }),
     document: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
     remote: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
     spreadsheet: (entry) => ({ kind: "created" as const, value: entry.createdAt }),

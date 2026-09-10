@@ -156,6 +156,7 @@ export function createPostgresResourcesClient({
         remote: (entry) => postgresResources.createRemote(currentRequest(), entry),
         spreadsheet: (entry) => postgresResources.createSpreadsheet(currentRequest(), entry),
         geographic: (entry) => postgresResources.createGeographic(currentRequest(), entry),
+        event: (entry) => postgresResources.createEvent(currentRequest(), entry),
         legalReference: (entry) => postgresResources.createLegalReference(currentRequest(), entry),
       }).catch((error: unknown) => {
         if (error instanceof HallPostgresError) throw persistenceError(error);
@@ -196,6 +197,7 @@ export function createPostgresResourcesClient({
         remote: (entry) => mutate(() => postgresResources.updateRemote(currentRequest(), { id, ...entry })),
         spreadsheet: (entry) => mutate(() => postgresResources.updateSpreadsheet(currentRequest(), { id, ...entry })),
         geographic: (entry) => mutate(() => postgresResources.updateGeographic(currentRequest(), { id, ...entry })),
+        event: (entry) => mutate(() => postgresResources.updateEvent(currentRequest(), { id, ...entry })),
         legalReference: (entry) =>
           mutate(() => postgresResources.updateLegalReference(currentRequest(), { id, ...entry })),
       });

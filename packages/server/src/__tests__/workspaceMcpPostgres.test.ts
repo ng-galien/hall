@@ -47,6 +47,78 @@ postgresTest(
         call("workspace_execute", { href, action, input, file });
       const folder = await execute("/api/resources", "resource.create", { kind: "folder", path: "", name: "seed" });
       expect(folder.isError, JSON.stringify(folder)).toBeUndefined();
+      const contactResponse = await fetch(`${server.url}/api/contacts`, {
+        method: "POST",
+        headers: { cookie, "content-type": "application/json" },
+        body: JSON.stringify({ firstName: "Camille", lastName: "Test" }),
+      });
+      expect(contactResponse.status).toBe(201);
+      const contact = await contactResponse.json();
+      const eventDocument = {
+        content: "Préparer le rendez-vous",
+        location: "Mairie",
+        schedule: { kind: "allDay", start: "2026-09-09", end: "2026-09-10" },
+        participants: [
+          { kind: "contact", contactId: contact.properties.id },
+          { kind: "guest", name: "Invité" },
+        ],
+      };
+      const invalidSchedules = [
+        { kind: "allDay", start: "2026-09-09", end: "2026-09-09" },
+        { kind: "allDay", start: "2026-02-30", end: "2026-03-01" },
+        { kind: "timed", start: "2026-09-10T11:00:00+02:00", end: "2026-09-10T10:00:00+02:00" },
+      ];
+      for (const schedule of invalidSchedules) {
+        const invalidEvent = await execute("/api/resources", "resource.create", {
+          kind: "event",
+          path: "seed",
+          name: "Invalid schedule",
+          document: { ...eventDocument, schedule },
+        });
+        expect(invalidEvent.isError, JSON.stringify(invalidEvent)).toBe(true);
+      }
+      const missingContactEvent = await execute("/api/resources", "resource.create", {
+        kind: "event",
+        path: "seed",
+        name: "Missing contact",
+        document: {
+          ...eventDocument,
+          participants: [{ kind: "contact", contactId: "11111111-1111-4111-8111-111111111111" }],
+        },
+      });
+      expect(missingContactEvent.isError, JSON.stringify(missingContactEvent)).toBe(true);
+      const event = await execute("/api/resources?path=seed", "resource.create", {
+        kind: "event",
+        path: "seed",
+        name: "Rendez-vous",
+        document: eventDocument,
+      });
+      expect(event.isError, JSON.stringify(event)).toBeUndefined();
+      const eventHref = `/api/resources/${event.properties.id}`;
+      const eventRead = await call("workspace_read", { href: eventHref });
+      expect(eventRead.properties.document).toEqual(eventDocument);
+      const changedEventDocument = {
+        ...eventDocument,
+        content: "Rendez-vous confirmé",
+        location: "Salle du conseil",
+        schedule: { kind: "timed", start: "2026-09-10T10:00:00+02:00", end: "2026-09-10T11:00:00+02:00" },
+      };
+      const updatedEvent = await execute(eventHref, "resource.update-content", {
+        kind: "event",
+        expectedVersion: eventRead.properties.version,
+        document: changedEventDocument,
+      });
+      expect(updatedEvent.properties?.document, JSON.stringify(updatedEvent)).toEqual(changedEventDocument);
+      const staleEvent = await execute(eventHref, "resource.update-content", {
+        kind: "event",
+        expectedVersion: eventRead.properties.version,
+        document: eventDocument,
+      });
+      expect(staleEvent.isError).toBe(true);
+      const movedEvent = await execute(eventHref, "resource.relocate", { path: "", name: "Rendez-vous renommé" });
+      expect(movedEvent.properties?.fullPath, JSON.stringify(movedEvent)).toBe("Rendez-vous renommé");
+      const eventAfterMove = await call("workspace_read", { href: eventHref });
+      expect(eventAfterMove.properties.document).toEqual(changedEventDocument);
       const text = await execute("/api/resources?path=seed", "resource.create", {
         kind: "text",
         path: "seed",
@@ -96,6 +168,21 @@ postgresTest(
         readerCookie,
       );
       expect(readerWrite.isError).toBe(true);
+      const readerEvent = await call("workspace_read", { href: eventHref }, readerCookie);
+      expect(readerEvent.properties.document).toEqual(changedEventDocument);
+      const readerEventWrite = await call(
+        "workspace_execute",
+        {
+          href: eventHref,
+          action: "resource.update-content",
+          input: { kind: "event", expectedVersion: updatedEvent.properties.version, document: eventDocument },
+        },
+        readerCookie,
+      );
+      expect(readerEventWrite.isError).toBe(true);
+      expect((await execute(eventHref, "resource.delete", {})).success).toBe(true);
+      expect((await call("workspace_read", { href: eventHref })).isError).toBe(true);
+
       for (const kind of ["geographic", "spreadsheet"] as const) {
         const created = await execute("/api/resources", "resource.create", {
           kind,

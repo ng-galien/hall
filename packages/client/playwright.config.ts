@@ -26,7 +26,8 @@ export default defineConfig({
     { name: "seed", testMatch: /seed\.setup\.ts/ },
     {
       name: "chromium",
-      testMatch: /(contacts|council-workflow|markdown-editor|workspace-explorer|navigation-and-settings)\.spec\.ts/,
+      testMatch:
+        /(calendar|contacts|council-workflow|markdown-editor|workspace-explorer|navigation-and-settings)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
       dependencies: ["seed"],
     },
