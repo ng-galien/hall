@@ -46,9 +46,11 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
         ? [{ rel: ["result-preview"], href: `/api/ballot-previews/${primary.resultPreviewId}`, type: SIREN_MEDIA_TYPE }]
         : [],
     "ballot-preview": () => [],
+    "delegation-membership": () => [],
     "committee-membership": () => [],
     contact: () => [],
     "council-business": () => [],
+    "council-delegation": () => [],
     "council-committee": () => [],
     "council-decision": (): SirenLink[] =>
       id
@@ -220,6 +222,7 @@ export function apiRootRepresentation(request: Request): SirenEntity<{ authentic
       );
     }
     if (hasPermission(request.principal, "meetings.read")) {
+      links.push({ rel: ["council-delegations"], href: "/api/council-delegations", type: SIREN_MEDIA_TYPE });
       links.push({ rel: ["council-committees"], href: "/api/council-committees", type: SIREN_MEDIA_TYPE });
     }
     if (hasPermission(request.principal, "users.manage")) {

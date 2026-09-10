@@ -16,7 +16,7 @@ postgresDescribe("agenda item recusals", () => {
     context: {
       requestId: "recusal-test",
       actorId: "clerk",
-      councilMemberId: null,
+      contactId: null,
       roles: ["administrator"],
     },
   };

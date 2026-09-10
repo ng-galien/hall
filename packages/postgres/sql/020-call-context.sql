@@ -34,7 +34,7 @@ AS $function$
     'requestId', hall.require_setting('hall.request_id'),
     'actorId', nullif(current_setting('hall.actor_id', true), ''),
     'action', hall.require_setting('hall.action'),
-    'councilMemberId', nullif(current_setting('hall.council_member_id', true), ''),
+    'contactId', nullif(current_setting('hall.contact_id', true), ''),
     'roles', coalesce(nullif(current_setting('hall.roles', true), '')::jsonb, '[]'::jsonb)
   )
 $function$;

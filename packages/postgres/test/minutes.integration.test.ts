@@ -15,7 +15,7 @@ postgresDescribe("standalone minutes", () => {
   useFreshHallDatabase(pool);
   const request: PostgresRequest = {
     role: "hall_api_authenticated",
-    context: { requestId: "minutes-test", actorId: "admin", councilMemberId: null, roles: ["administrator"] },
+    context: { requestId: "minutes-test", actorId: "admin", contactId: null, roles: ["administrator"] },
   };
 
   async function closeMeeting() {

@@ -40,7 +40,7 @@ postgresTest(
       const adminCookie = bootstrap.headers.get("set-cookie")!.split(";", 1)[0];
       const context = {
         role: "hall_api_authenticated" as const,
-        context: { requestId: "setup", actorId: "test-clerk", roles: ["administrator"], councilMemberId: null },
+        context: { requestId: "setup", actorId: "test-clerk", roles: ["administrator"], contactId: null },
       };
       const directory = new PostgresDirectory(pool),
         council = new PostgresCouncil(pool);
@@ -136,7 +136,7 @@ postgresTest(
           displayName: "Reader",
           password: "Test-reader-2026!",
           roles: ["reader"],
-          councilMemberId: null,
+          contactId: null,
         },
         201,
       );

@@ -21,7 +21,7 @@ Cette carte indique l’autorité qui doit recevoir chaque nature de changement.
 | Texte propre des projets de délibération | `packages/postgres/sql/workspace/025-decision-proposal-workspace.sql` et `026-proposal-text-protection.sql` | Propriété permanente dans l’affaire, scellement au premier suffrage ou à la clôture sans suffrage, gardes sur texte, ressource, actifs et métadonnées, capacités SQL | Mutation du rapport d’affaire pour éditer un projet, verrou déduit seulement du résultat positif |
 | Procès-verbaux | `packages/postgres/sql/council/061-minutes.sql`, `073-minutes-api.sql`, `packages/server/src/services/minutesService.ts` et `minutesDocument.ts` | Brouillon automatique à la clôture, faits figés, texte corrigible avant génération, PDF immuable référencé par l’approbation ; rendu via `DocumentRenderer` | Ressource du workspace, rapport libre de `CouncilBusiness`, signatures ou publication simulées |
 | Adaptateurs de base historiques | `packages/server/src/infrastructure/database/`, `sqlite/` et `postgres/` | Exécution SQL des domaines qui ne sont pas encore raccordés à `@hall/postgres` | Nouvelle persistance documentaire ou décisions d’autorisation |
-| Composition | `packages/server/src/core/container.ts` | Construction et injection des adaptateurs | Logique métier ou choix selon une variante |
+| Composition | `packages/server/src/core/container.ts` et `core/localServer.ts` | Construction et injection des adaptateurs ; cycle du serveur local et de son moteur PGlite | Logique métier ou choix selon une variante |
 | Références et ressources | `packages/api-contract/src/resources.ts`, `packages/templating/src/grammar.ts`, `packages/templating/src/resourcePresentation.ts`, `packages/server/src/services/referenceEntityResolver.ts`, `documentaryResourceService.ts` et `packages/postgres/` | `ReferenceEntityKind`, `ResourceKind`, `ResourcePresentationKind`, compatibilité des présentations, résolution exhaustive, opérations nommées et propriété des actifs documentaires | Dispatch dupliqué dans le rendu, les routes ou l’interface |
 | Grammaire riche | `packages/templating/src/` | Parsing, validation, collecte et sérialisation des directives | Parseur concurrent dans le client ou le serveur |
 | Présentation et interaction | `packages/client/src/features/` et `pages/` | Présentation métier, appels HTTP et composition d’écran | Nouvelle règle métier ou reconstruction d’une permission |
@@ -30,6 +30,18 @@ Cette carte indique l’autorité qui doit recevoir chaque nature de changement.
 | Primitives techniques | `packages/client/src/components/ui/` | Interaction générique pilotée par propriétés | Import du domaine, des stores, services, hooks ou pages |
 
 Le serveur est l’unique autorité d’écriture. Le client consomme le contrat Siren sur HTTP. Ni le client ni Electron n’importent l’implémentation serveur ou n’ouvrent la base directement.
+
+Le desktop autonome appelle l’entrée publique `startLocalHttpServer` de
+`@hall/server`. `core/localServer.ts` compose le moteur persistant de
+`infrastructure/database/pgliteRuntime.ts`, son pont PostgreSQL local et le
+serveur HTTP existant. Le manifeste SQL reste identique. Le runtime local
+possède un pool `pg` partagé d’une connexion, prêté aux deux adaptateurs ; ils
+ne le ferment pas eux-mêmes. Cette réservation sérialise les transactions et
+les lectures paramétrées avant le pont, évitant leur entrelacement au niveau
+du protocole. Les pools du serveur PostgreSQL connecté restent inchangés.
+L’arrêt ferme HTTP, puis le pool partagé, le pont et PGlite. Le mode connecté
+ouvre directement le serveur distant sans moteur
+local. Electron ne manipule ni SQL ni objets PGlite.
 
 `packages/domain/src/match.ts` est la petite bibliothèque type-safe commune. Ses handlers sont exhaustifs : ajouter une variante à une union ou à un littéral fermé doit rendre chaque dispatch incomplet invalide à la compilation. Le cast interne nécessaire à la corrélation TypeScript reste confiné à cette bibliothèque et ne se propage ni dans les matchers métier spécialisés, ni dans leurs consommateurs.
 
@@ -158,3 +170,20 @@ serveur. `application.ts` monte `/mcp` hors de l’enveloppe Siren, après les m
 contrôles de session et d’origine. Chaque requête utilise sa propre session et
 réexécute les commandes par l’API locale, conservant autorisation et audit.
 Voir [la connexion et les limites MCP](workspace-mcp.md).
+
+L’annuaire PostgreSQL porte aussi les représentations extérieures dans
+`directory/030-contact-representations.sql`. `CouncilDelegation` décrit
+l’organisme représenté ; `DelegationMembership` rattache un contact avec une
+qualité `primary` ou `alternate` et des dates. Les contrats communs se trouvent
+dans `contracts/src/delegation.ts`. Commissions et délégations ont des
+appartenances de contacts indépendantes des mandats élus : terminer un mandat
+ne termine pas ces appartenances. Les commissions conservent leurs qualités
+propres, distinctes de celles des représentants extérieurs.
+
+`CouncilMember.rank` exprime un rang global facultatif, entier non négatif,
+distinct du rôle. PostgreSQL impose l’unicité de chaque rang renseigné dans
+une même mandature, tous rôles et mandats terminés compris. Un rang inconnu
+reste nul. Les schémas ne constituent pas une validation juridique de la
+composition d’une commission ou d’un organisme extérieur. Cette évolution
+vise une installation neuve ; aucune migration ni reprise des données
+existantes n’est exécutée par ce changement.

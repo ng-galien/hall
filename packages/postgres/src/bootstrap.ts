@@ -1,9 +1,40 @@
 import type { Pool, PoolClient } from "pg";
 import { HallPostgresError, preservePostgresError, SchemaContractError } from "./errors.js";
-import { loadSchemaManifest, type SchemaManifest } from "./schemaManifest.js";
+import { defineSchemaManifest, loadSchemaManifest, type SchemaManifest } from "./schemaManifest.js";
 
 type BootstrapResult = "installed" | "verified";
 type ManifestProvider = () => Promise<SchemaManifest>;
+
+// This one-step migration accepts only the exact predecessor and only the
+// contact identity change. Any other manifest drift still fails closed.
+async function migrateContactCallContext(
+  client: PoolClient,
+  actual: string,
+  manifest: SchemaManifest,
+): Promise<boolean> {
+  const predecessor = "eff3a859e5d1d94e9bd841ccecb197197810d89b2db4d1455f470c0de462ffde";
+  if (actual !== predecessor) return false;
+  const contextEntry = manifest.entries.find((entry) => entry.path === "sql/020-call-context.sql");
+  if (!contextEntry) return false;
+  const previous = defineSchemaManifest(
+    manifest.entries.map((entry) =>
+      entry === contextEntry
+        ? {
+            ...entry,
+            sql: entry.sql
+              .replaceAll("contactId", "councilMemberId")
+              .replaceAll("hall.contact_id", "hall.council_member_id"),
+          }
+        : entry,
+    ),
+  );
+  if (previous.fingerprint !== predecessor) return false;
+  await client.query(contextEntry.sql.replaceAll("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION"));
+  await client.query("UPDATE hall_meta.schema_contract SET manifest_sha256 = $1 WHERE singleton", [
+    manifest.fingerprint,
+  ]);
+  return true;
+}
 
 async function schemaContractFingerprint(client: PoolClient): Promise<string | null> {
   const contractTable = await client.query<{ contract: string | null }>(
@@ -87,7 +118,9 @@ export class PostgresSchemaBootstrap {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended('hall.schema.install', 0))");
       const existingFingerprint = await schemaContractFingerprint(client);
       if (existingFingerprint) {
-        assertMatchingFingerprint(existingFingerprint, manifest.fingerprint);
+        if (!(await migrateContactCallContext(client, existingFingerprint, manifest))) {
+          assertMatchingFingerprint(existingFingerprint, manifest.fingerprint);
+        }
         await client.query("COMMIT");
         return "verified";
       }

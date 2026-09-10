@@ -12,6 +12,7 @@ const titles: Record<string, string> = {
   authentication_required: "Authentication required",
   permission_denied: "Permission denied",
   invalid_credentials: "Invalid credentials",
+  invalid_current_password: "Current password is incorrect",
   invalid_request: "Invalid request",
   unsupported_document_format: "Unsupported document format",
   document_content_mismatch: "Document content does not match its format",

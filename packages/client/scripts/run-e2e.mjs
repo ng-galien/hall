@@ -61,7 +61,7 @@ try {
         DATABASE_KIND: "postgres",
         DATABASE_URL: testDatabaseUrl,
         DOCUMENT_STORAGE_PATH: join(temporaryDirectory, "documents"),
-        HALL_DEV_AUTO_LOGIN: "true",
+        HALL_DEV_AUTO_LOGIN: process.env.HALL_E2E_AUTH_MODE === "true" ? "false" : "true",
         HALL_E2E_CLIENT_PORT: clientPort,
         HALL_E2E_SERVER_PORT: serverPort,
       },

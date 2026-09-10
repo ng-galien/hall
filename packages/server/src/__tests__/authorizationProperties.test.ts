@@ -64,7 +64,7 @@ describe("RBAC algebra properties", () => {
         displayName: "Reader",
         roles: ["reader"],
         permissions: permissionsForRoles(["reader"]),
-        councilMemberId: null,
+        contactId: null,
       },
     } as Request;
 
@@ -98,7 +98,7 @@ describe("role command schema properties", () => {
           displayName: "Clerk",
           password: "a-secure-password",
           roles,
-          councilMemberId: null,
+          contactId: null,
         };
 
         expect(assignUserRolesSchema.safeParse({ roles }).success).toBe(expectedToSucceed);

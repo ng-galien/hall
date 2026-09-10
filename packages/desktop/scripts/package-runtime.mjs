@@ -6,7 +6,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 const desktopRoot = resolve(import.meta.dirname, "..");
 const projectRoot = resolve(desktopRoot, "../..");
 const require = createRequire(import.meta.url);
-const runtimePackages = ["contracts", "api-contract", "domain", "templating", "postgres", "server"];
+const runtimePackages = ["contracts", "api-contract", "mcp", "domain", "templating", "postgres", "server"];
 export const browserDirectory = join(desktopRoot, "dist", "playwright");
 
 async function packageDirectory(name, from, optional = false) {

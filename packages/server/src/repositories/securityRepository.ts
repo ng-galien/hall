@@ -41,7 +41,7 @@ async function mapUser(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<Stor
     displayName: asString(row.display_name, "security_user.display_name"),
     passwordHash: asString(row.password_hash, "security_user.password_hash"),
     status: apiUserStatusSchema.parse(row.status),
-    councilMemberId: identifierSchema.nullable().parse(row.council_member_id),
+    contactId: identifierSchema.nullable().parse(row.contact_id),
     roles,
     permissions: [],
     createdAt: asString(row.created_at, "security_user.created_at"),
@@ -67,7 +67,10 @@ function mapAuditEvent(row: DatabaseRow): AuditEvent {
 }
 
 export function createSecurityRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }) {
-  const findUser = async (name: "security.findUserById" | "security.findUserByEmail", value: string) => {
+  const findUser = async (
+    name: "security.findUserById" | "security.findUserByEmail" | "security.lockUserForAuthentication",
+    value: string,
+  ) => {
     const row = await sqlExecutor.get(name, { value });
     return row ? mapUser(sqlExecutor, row) : null;
   };
@@ -80,13 +83,14 @@ export function createSecurityRepository({ sqlExecutor }: { sqlExecutor: SqlExec
       return mapSequential(await sqlExecutor.all("security.listUsers"), (row) => mapUser(sqlExecutor, row));
     },
     findUserById: (id: string) => findUser("security.findUserById", id),
+    lockUserForAuthentication: (id: string) => findUser("security.lockUserForAuthentication", id),
     findUserByEmail: (email: string) => findUser("security.findUserByEmail", email.toLowerCase()),
     createUser(input: {
       email: string;
       displayName: string;
       passwordHash: string;
       roles: ApiRole[];
-      councilMemberId: string | null;
+      contactId: string | null;
     }) {
       return sqlExecutor.execute(async () => {
         const id = randomUUID();
@@ -96,7 +100,7 @@ export function createSecurityRepository({ sqlExecutor }: { sqlExecutor: SqlExec
           email: input.email.toLowerCase(),
           displayName: input.displayName,
           passwordHash: input.passwordHash,
-          councilMemberId: input.councilMemberId,
+          contactId: input.contactId,
           createdAt: now,
           updatedAt: now,
         });
@@ -111,6 +115,26 @@ export function createSecurityRepository({ sqlExecutor }: { sqlExecutor: SqlExec
         const row = await sqlExecutor.get("security.findUserById", { value: id });
         return row ? mapUser(sqlExecutor, row) : null;
       });
+    },
+    async updateUser(id: string, input: { email: string; displayName: string; contactId: string | null }) {
+      await sqlExecutor.run("security.updateUser", {
+        id,
+        ...input,
+        email: input.email.toLowerCase(),
+        updatedAt: new Date().toISOString(),
+      });
+      const row = await sqlExecutor.get("security.findUserById", { value: id });
+      return row ? mapUser(sqlExecutor, row) : null;
+    },
+    async updatePassword(id: string, previousHash: string, passwordHash: string) {
+      const result = await sqlExecutor.run("security.updatePassword", {
+        id,
+        previousHash,
+        passwordHash,
+        updatedAt: new Date().toISOString(),
+      });
+      if (result.changes !== 0) await sqlExecutor.run("security.deleteSessionsForUser", { userId: id });
+      return result.changes !== 0;
     },
     disableUser(id: string) {
       return sqlExecutor.execute(async () => {

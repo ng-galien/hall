@@ -1,5 +1,27 @@
 import { meetingLocationsSchema } from "../database/meetingLocationsSchema.js";
 
+export const postgresUserContactMigration = `
+  DO $migration$
+  BEGIN
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_schema = 'public'
+      AND table_name = 'users' AND column_name = 'council_member_id') THEN
+      IF EXISTS (SELECT FROM users u LEFT JOIN hall.council_member m
+        ON m.id::text = u.council_member_id
+        WHERE u.council_member_id IS NOT NULL AND m.id IS NULL) THEN
+        RAISE EXCEPTION 'Cannot migrate user contacts: a linked council member is missing';
+      END IF;
+      IF EXISTS (SELECT m.contact FROM users u JOIN hall.council_member m
+        ON m.id::text = u.council_member_id GROUP BY m.contact HAVING count(*) > 1) THEN
+        RAISE EXCEPTION 'Cannot migrate user contacts: several accounts refer to the same contact';
+      END IF;
+      ALTER TABLE users ADD COLUMN contact_id TEXT UNIQUE;
+      UPDATE users u SET contact_id = m.contact::text FROM hall.council_member m
+        WHERE m.id::text = u.council_member_id;
+      ALTER TABLE users DROP COLUMN council_member_id;
+    END IF;
+  END $migration$;
+`;
+
 export const postgresTables = [
   "agenda_items",
   "attendance",
@@ -136,7 +158,7 @@ export const postgresSchema = `
     display_name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
-    council_member_id TEXT UNIQUE,
+    contact_id TEXT UNIQUE,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );

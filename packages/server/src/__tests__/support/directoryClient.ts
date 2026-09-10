@@ -3,10 +3,12 @@ import type {
   CommitteeMembership,
   Contact,
   CouncilCommittee,
+  CouncilDelegation,
   CouncilMember,
   CouncilTerm,
+  DelegationMembership,
 } from "@hall/api-contract";
-import { DirectoryClientError, type DirectoryClient } from "../../clients/directoryClient.js";
+import { type DirectoryClient, DirectoryClientError } from "../../clients/directoryClient.js";
 
 /** Current DirectoryClient test double for service tests that do not exercise PostgreSQL itself. */
 export function createTestDirectoryClient(): DirectoryClient {
@@ -14,6 +16,8 @@ export function createTestDirectoryClient(): DirectoryClient {
   const members = new Map<string, CouncilMember>();
   const committees = new Map<string, CouncilCommittee>();
   const memberships = new Map<string, CommitteeMembership>();
+  const delegations = new Map<string, CouncilDelegation>();
+  const delegationMemberships = new Map<string, DelegationMembership>();
   let activeTerm: CouncilTerm | null = null;
   const now = () => new Date().toISOString();
 
@@ -36,6 +40,19 @@ export function createTestDirectoryClient(): DirectoryClient {
     const membership = memberships.get(membershipId);
     if (!membership || membership.committeeId !== committeeId) {
       throw new DirectoryClientError("committeeMembershipNotFound");
+    }
+    return membership;
+  };
+
+  const requireDelegation = (id: string): CouncilDelegation => {
+    const delegation = delegations.get(id);
+    if (!delegation) throw new DirectoryClientError("councilDelegationNotFound");
+    return delegation;
+  };
+  const requireDelegationMembership = (delegationId: string, membershipId: string): DelegationMembership => {
+    const membership = delegationMemberships.get(membershipId);
+    if (!membership || membership.delegationId !== delegationId) {
+      throw new DirectoryClientError("delegationMembershipNotFound");
     }
     return membership;
   };
@@ -91,7 +108,9 @@ export function createTestDirectoryClient(): DirectoryClient {
       return members.get(id) ?? null;
     },
     async councilMemberCreationAvailable() {
-      return Boolean(activeTerm && [...members.values()].filter((member) => member.active).length < activeTerm.expectedMemberCount);
+      return Boolean(
+        activeTerm && [...members.values()].filter((member) => member.active).length < activeTerm.expectedMemberCount,
+      );
     },
     async createCouncilMember(input) {
       if (!activeTerm) throw new DirectoryClientError("councilTermNotConfigured");
@@ -108,6 +127,7 @@ export function createTestDirectoryClient(): DirectoryClient {
         contactId: input.contactId,
         councilTermId: activeTerm.id,
         role: input.role,
+        rank: input.rank ?? null,
         active: true,
         termStartedOn: input.termStartedOn,
         termEndedOn: null,
@@ -163,12 +183,12 @@ export function createTestDirectoryClient(): DirectoryClient {
     async addCommitteeMembership(committeeId, input) {
       const committee = requireCommittee(committeeId);
       if (committee.archivedAt) throw new DirectoryClientError("councilCommitteeArchived");
-      const member = requireMember(input.councilMemberId);
-      if (!member.active) throw new DirectoryClientError("councilMemberMandateEnded");
+      const contact = requireContact(input.contactId);
+      if (contact.archivedAt) throw new DirectoryClientError("contactArchived");
       const membership: CommitteeMembership = {
         id: randomUUID(),
         committeeId,
-        councilMemberId: input.councilMemberId,
+        contactId: input.contactId,
         role: input.role,
         startedOn: input.startedOn,
         endedOn: null,
@@ -187,6 +207,74 @@ export function createTestDirectoryClient(): DirectoryClient {
       if (endedOn < current.startedOn) throw new DirectoryClientError("committeeMembershipDatesInvalid");
       const membership: CommitteeMembership = { ...current, endedOn };
       memberships.set(membershipId, membership);
+      return membership;
+    },
+    async listCouncilDelegations(includeArchived = false) {
+      return [...delegations.values()].filter((delegation) => includeArchived || delegation.archivedAt === null);
+    },
+    async openCouncilDelegation(id) {
+      return delegations.get(id) ?? null;
+    },
+    async createCouncilDelegation(input) {
+      const timestamp = now();
+      const delegation: CouncilDelegation = {
+        id: randomUUID(),
+        ...input,
+        archivedAt: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+      delegations.set(delegation.id, delegation);
+      return delegation;
+    },
+    async updateCouncilDelegation(id, input) {
+      const current = requireDelegation(id);
+      if (current.archivedAt) throw new DirectoryClientError("councilDelegationArchived");
+      const delegation: CouncilDelegation = { ...current, ...input, updatedAt: now() };
+      delegations.set(id, delegation);
+      return delegation;
+    },
+    async archiveCouncilDelegation(id) {
+      const current = requireDelegation(id);
+      const delegation: CouncilDelegation = { ...current, archivedAt: current.archivedAt ?? now(), updatedAt: now() };
+      delegations.set(id, delegation);
+      return delegation;
+    },
+    async listDelegationMemberships(delegationId) {
+      requireDelegation(delegationId);
+      return [...delegationMemberships.values()].filter((membership) => membership.delegationId === delegationId);
+    },
+    async openDelegationMembership(delegationId, membershipId) {
+      const membership = delegationMemberships.get(membershipId);
+      return membership?.delegationId === delegationId ? membership : null;
+    },
+    async addDelegationMembership(delegationId, input) {
+      const delegation = requireDelegation(delegationId);
+      if (delegation.archivedAt) throw new DirectoryClientError("councilDelegationArchived");
+      const contact = requireContact(input.contactId);
+      if (contact.archivedAt) throw new DirectoryClientError("contactArchived");
+      const membership: DelegationMembership = {
+        id: randomUUID(),
+        delegationId,
+        contactId: input.contactId,
+        role: input.role,
+        startedOn: input.startedOn,
+        endedOn: null,
+      };
+      delegationMemberships.set(membership.id, membership);
+      return membership;
+    },
+    async updateDelegationMembership(delegationId, membershipId, input) {
+      const current = requireDelegationMembership(delegationId, membershipId);
+      const membership: DelegationMembership = { ...current, ...input };
+      delegationMemberships.set(membershipId, membership);
+      return membership;
+    },
+    async endDelegationMembership(delegationId, membershipId, endedOn) {
+      const current = requireDelegationMembership(delegationId, membershipId);
+      if (endedOn < current.startedOn) throw new DirectoryClientError("conflict");
+      const membership: DelegationMembership = { ...current, endedOn };
+      delegationMemberships.set(membershipId, membership);
       return membership;
     },
   };

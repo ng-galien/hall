@@ -1,0 +1,56 @@
+import assert from 'node:assert/strict';
+import { mkdtemp, access, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { createServer } from 'node:http';
+import { resolve } from 'node:path';
+const root=resolve(import.meta.dirname, '../..');
+const require=createRequire(`${root}/package.json`);
+const {_electron:electron}=require('playwright');
+const userData=await mkdtemp('/tmp/hall-desktop-qa-');
+const executablePath=process.argv[2] ?? process.env.HALL_QA_EXECUTABLE;
+const options={...(executablePath ? {executablePath,args:[]} : {args:[`${root}/packages/desktop`]}),env:{...process.env,HALL_USER_DATA_PATH:userData,HALL_SERVER_URL:'',HALL_RENDERER_URL:''},timeout:30000};
+delete options.env.HALL_SERVER_URL;
+delete options.env.HALL_RENDERER_URL;
+let application;
+const results=[];
+try {
+ application=await electron.launch(options);
+ application.process().stderr.on('data', chunk => process.stderr.write(chunk));
+ application.process().stdout.on('data', chunk => process.stdout.write(chunk));
+ let page=await application.firstWindow();
+ await page.waitForURL(/http:\/\/127\.0\.0\.1:\d+\/app\//);
+ const origin=new URL(page.url()).origin;
+ const response=await page.request.post(`${origin}/api/auth/bootstrap`,{headers:{origin},data:{email:'desktop@example.fr',displayName:'Desktop',password:'Desktop-test-password-2026!'}});
+ assert.equal(response.status(),201,await response.text());
+ const cookie=response.headers()['set-cookie'].split(';')[0];
+ const created=await page.request.post(`${origin}/api/resources`,{headers:{origin,cookie},data:{kind:'text',path:'seed',name:'Desktop persistence',content:'Desktop persistent content'}});
+ assert.equal(created.status(),201,await created.text());
+ const resourceId=(await created.json()).properties.id;
+ await page.goto(`${origin}/app/workspace?path=seed`);
+ await page.getByTestId(`workspace-resource-${resourceId}`).waitFor({timeout:15000});
+ await page.screenshot({path:`${userData}/workspace.png`});
+ results.push('autonomous-window-workspace-and-api');
+ await application.close(); application=null;
+ application=await electron.launch(options);
+ page=await application.firstWindow();
+ await page.waitForURL(/http:\/\/127\.0\.0\.1:\d+\/app\//);
+ const read=await page.request.get(`${new URL(page.url()).origin}/api/resources/${resourceId}`,{headers:{cookie}});
+ assert.equal(read.status(),200,await read.text());
+ results.push('autonomous-relaunch-preserves-resource');
+ await application.close(); application=null;
+ const remote=createServer((req,res)=>{res.setHeader('content-type','text/html');res.end('<h1>Connected Hall</h1>');});
+ await new Promise(resolve=>remote.listen(0,'127.0.0.1',resolve));
+ const connectedData=await mkdtemp('/tmp/hall-connected-qa-');
+ const remoteOrigin=`http://127.0.0.1:${remote.address().port}`;
+ try {
+  application=await electron.launch({...options,env:{...options.env,HALL_USER_DATA_PATH:connectedData,HALL_SERVER_URL:remoteOrigin}});
+  page=await application.firstWindow();
+  await page.waitForURL(`${remoteOrigin}/app/`);
+  assert.equal(await page.locator('h1').innerText(),'Connected Hall');
+  await application.close(); application=null;
+  await assert.rejects(access(`${connectedData}/pglite`));
+  results.push('connected-window-no-local-database');
+ } finally {await new Promise(resolve=>remote.close(resolve));}
+ console.log(JSON.stringify({userData,executablePath:executablePath??'development',results}));
+ await writeFile(`${userData}/result.json`,JSON.stringify({userData,results},null,2));
+} finally {if(application) await application.close();}

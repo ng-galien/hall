@@ -21,17 +21,20 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure",
   },
-  projects: [
-    // The seed runs once after both servers start and before the browser specifications.
-    { name: "seed", testMatch: /seed\.setup\.ts/ },
-    {
-      name: "chromium",
-      testMatch:
-        /(calendar|contacts|council-workflow|markdown-editor|workspace-explorer|navigation-and-settings)\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"] },
-      dependencies: ["seed"],
-    },
-  ],
+  projects:
+    process.env.HALL_E2E_AUTH_MODE === "true"
+      ? [{ name: "authentication", testMatch: /user-account\.spec\.ts/, use: { ...devices["Desktop Chrome"] } }]
+      : [
+          // The seed runs once after both servers start and before the browser specifications.
+          { name: "seed", testMatch: /seed\.setup\.ts/ },
+          {
+            name: "chromium",
+            testMatch:
+              /(committees|users|calendar|contacts|council-workflow|markdown-editor|workspace-explorer|navigation-and-settings)\.spec\.ts/,
+            use: { ...devices["Desktop Chrome"] },
+            dependencies: ["seed"],
+          },
+        ],
   webServer: [
     {
       command: "npm run e2e:server",

@@ -18,7 +18,7 @@ postgresDescribe("PostgreSQL transaction authority", () => {
     requestId: "request-42",
     actorId: "actor-7",
     action: "test.command",
-    councilMemberId: null,
+    contactId: null,
   } as const;
 
   it("sets a closed role and transaction-local call context without leaking either", async () => {
@@ -37,7 +37,7 @@ postgresDescribe("PostgreSQL transaction authority", () => {
         requestId: "request-42",
         actorId: "actor-7",
         action: "test.command",
-        councilMemberId: null,
+        contactId: null,
         roles: [],
       },
     });

@@ -84,11 +84,12 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
         ) : null}
         <div className="grid gap-1.5">
           <Label htmlFor="auth-email">{t("auth.email")}</Label>
-          <Input id="auth-email" name="email" type="email" autoComplete="username" required />
+          <Input data-testid="auth-email" id="auth-email" name="email" type="email" autoComplete="username" required />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="auth-password">{t("auth.password")}</Label>
           <Input
+            data-testid="auth-password"
             id="auth-password"
             name="password"
             type="password"
@@ -97,8 +98,12 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
             required
           />
         </div>
-        {error ? <p className="form-error">{t(errorTranslationKeys[error])}</p> : null}
-        <Button type="submit" disabled={submitting || !representation}>
+        {error ? (
+          <p className="form-error" role="alert" data-testid="auth-error">
+            {t(errorTranslationKeys[error])}
+          </p>
+        ) : null}
+        <Button data-testid="auth-submit" type="submit" disabled={submitting || !representation}>
           {t(submitting ? "auth.submitting" : status?.bootstrapRequired ? "auth.bootstrapSubmit" : "auth.signInSubmit")}
         </Button>
       </form>

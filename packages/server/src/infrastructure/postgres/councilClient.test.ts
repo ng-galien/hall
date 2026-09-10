@@ -19,7 +19,7 @@ it("maps recusal storage conflicts to stable API codes without reclassifying unr
           displayName: "Clerk",
           roles: ["administrator"],
           permissions: [],
-          councilMemberId: null,
+          contactId: null,
         },
       },
       async () => {
@@ -88,7 +88,7 @@ it("returns HTTP 409 with a stable pending-minutes code when PostgreSQL refuses 
           displayName: "Clerk",
           roles: ["administrator"],
           permissions: ["meetings.conduct"],
-          councilMemberId: null,
+          contactId: null,
         },
       },
       async () => {

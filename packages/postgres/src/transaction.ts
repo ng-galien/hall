@@ -22,13 +22,13 @@ async function installCallContext(client: PoolClient, role: DatabaseRole, contex
        set_config('hall.request_id', $1, true),
        set_config('hall.actor_id', $2, true),
        set_config('hall.action', $3, true),
-       set_config('hall.council_member_id', $4, true),
+       set_config('hall.contact_id', $4, true),
        set_config('hall.roles', $5, true)`,
     [
       context.requestId,
       context.actorId ?? "",
       context.action,
-      context.councilMemberId ?? "",
+      context.contactId ?? "",
       JSON.stringify(context.roles ?? []),
     ],
   );

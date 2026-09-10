@@ -1,15 +1,20 @@
 import type {
   AddCommitteeMembership,
+  AddDelegationMembership,
   CommitteeMembership,
   Contact,
   CouncilCommittee,
+  CouncilDelegation,
   CouncilMember,
   CouncilTerm,
   CreateCouncilMember,
-  SaveCouncilCommittee,
+  DelegationMembership,
   SaveContact,
+  SaveCouncilCommittee,
+  SaveCouncilDelegation,
   UpdateCommitteeMembership,
   UpdateCouncilMember,
+  UpdateDelegationMembership,
 } from "@hall/api-contract";
 import { type DirectoryClient, DirectoryClientError } from "../clients/directoryClient.js";
 import { DomainError, type ErrorCode } from "./errors.js";
@@ -25,9 +30,11 @@ const failureCodes: Record<DirectoryClientError["failure"], ErrorCode> = {
   invalidCouncilTerm: "conflict",
   councilCommitteeNotFound: "council_committee_not_found",
   councilCommitteeArchived: "conflict",
-  councilMemberMandateEnded: "conflict",
   committeeMembershipDatesInvalid: "invalid_request",
   committeeMembershipNotFound: "committee_membership_not_found",
+  councilDelegationNotFound: "council_delegation_not_found",
+  councilDelegationArchived: "conflict",
+  delegationMembershipNotFound: "delegation_membership_not_found",
   conflict: "conflict",
 };
 
@@ -36,6 +43,8 @@ const notFoundFailures = new Set<DirectoryClientError["failure"]>([
   "councilMemberNotFound",
   "councilCommitteeNotFound",
   "committeeMembershipNotFound",
+  "councilDelegationNotFound",
+  "delegationMembershipNotFound",
 ]);
 
 function translateFailure(error: unknown): never {
@@ -72,6 +81,20 @@ export interface DirectoryService {
     input: UpdateCommitteeMembership,
   ): Promise<CommitteeMembership>;
   endCommitteeMembership(committeeId: string, membershipId: string, endedOn: string): Promise<CommitteeMembership>;
+  listCouncilDelegations(includeArchived?: boolean): Promise<CouncilDelegation[]>;
+  getCouncilDelegation(id: string): Promise<CouncilDelegation>;
+  createCouncilDelegation(input: SaveCouncilDelegation): Promise<CouncilDelegation>;
+  updateCouncilDelegation(id: string, input: SaveCouncilDelegation): Promise<CouncilDelegation>;
+  archiveCouncilDelegation(id: string): Promise<CouncilDelegation>;
+  listDelegationMemberships(delegationId: string): Promise<DelegationMembership[]>;
+  getDelegationMembership(delegationId: string, membershipId: string): Promise<DelegationMembership>;
+  addDelegationMembership(delegationId: string, input: AddDelegationMembership): Promise<DelegationMembership>;
+  updateDelegationMembership(
+    delegationId: string,
+    membershipId: string,
+    input: UpdateDelegationMembership,
+  ): Promise<DelegationMembership>;
+  endDelegationMembership(delegationId: string, membershipId: string, endedOn: string): Promise<DelegationMembership>;
 }
 
 export function createDirectoryService({ directoryClient }: { directoryClient: DirectoryClient }): DirectoryService {
@@ -94,10 +117,24 @@ export function createDirectoryService({ directoryClient }: { directoryClient: D
     committeeId: string,
     membershipId: string,
   ): Promise<CommitteeMembership> => {
-    const membership = await directoryClient
-      .openCommitteeMembership(committeeId, membershipId)
-      .catch(translateFailure);
+    const membership = await directoryClient.openCommitteeMembership(committeeId, membershipId).catch(translateFailure);
     if (!membership) throw new DomainError("committee_membership_not_found", 404);
+    return membership;
+  };
+
+  const requireCouncilDelegation = async (id: string): Promise<CouncilDelegation> => {
+    const committee = await directoryClient.openCouncilDelegation(id).catch(translateFailure);
+    if (!committee) throw new DomainError("council_delegation_not_found", 404);
+    return committee;
+  };
+  const requireDelegationMembership = async (
+    delegationId: string,
+    membershipId: string,
+  ): Promise<DelegationMembership> => {
+    const membership = await directoryClient
+      .openDelegationMembership(delegationId, membershipId)
+      .catch(translateFailure);
+    if (!membership) throw new DomainError("delegation_membership_not_found", 404);
     return membership;
   };
 
@@ -110,8 +147,7 @@ export function createDirectoryService({ directoryClient }: { directoryClient: D
     createContact: (input) => directoryClient.createContact(input).catch(translateFailure),
     updateContact: (id, input) => directoryClient.updateContact(id, input).catch(translateFailure),
     archiveContact: (id) => directoryClient.archiveContact(id).catch(translateFailure),
-    listCouncilMembers: (activeOnly = false) =>
-      directoryClient.listCouncilMembers(activeOnly).catch(translateFailure),
+    listCouncilMembers: (activeOnly = false) => directoryClient.listCouncilMembers(activeOnly).catch(translateFailure),
     getCouncilMember: requireCouncilMember,
     councilMemberCreationAvailable: () => directoryClient.councilMemberCreationAvailable().catch(translateFailure),
     createCouncilMember: (input) => directoryClient.createCouncilMember(input).catch(translateFailure),
@@ -120,8 +156,7 @@ export function createDirectoryService({ directoryClient }: { directoryClient: D
       directoryClient.listCouncilCommittees(includeArchived).catch(translateFailure),
     getCouncilCommittee: requireCouncilCommittee,
     createCouncilCommittee: (input) => directoryClient.createCouncilCommittee(input).catch(translateFailure),
-    updateCouncilCommittee: (id, input) =>
-      directoryClient.updateCouncilCommittee(id, input).catch(translateFailure),
+    updateCouncilCommittee: (id, input) => directoryClient.updateCouncilCommittee(id, input).catch(translateFailure),
     archiveCouncilCommittee: (id) => directoryClient.archiveCouncilCommittee(id).catch(translateFailure),
     listCommitteeMemberships: (committeeId) =>
       directoryClient.listCommitteeMemberships(committeeId).catch(translateFailure),
@@ -132,5 +167,20 @@ export function createDirectoryService({ directoryClient }: { directoryClient: D
       directoryClient.updateCommitteeMembership(committeeId, membershipId, input).catch(translateFailure),
     endCommitteeMembership: (committeeId, membershipId, endedOn) =>
       directoryClient.endCommitteeMembership(committeeId, membershipId, endedOn).catch(translateFailure),
+    listCouncilDelegations: (includeArchived = false) =>
+      directoryClient.listCouncilDelegations(includeArchived).catch(translateFailure),
+    getCouncilDelegation: requireCouncilDelegation,
+    createCouncilDelegation: (input) => directoryClient.createCouncilDelegation(input).catch(translateFailure),
+    updateCouncilDelegation: (id, input) => directoryClient.updateCouncilDelegation(id, input).catch(translateFailure),
+    archiveCouncilDelegation: (id) => directoryClient.archiveCouncilDelegation(id).catch(translateFailure),
+    listDelegationMemberships: (delegationId) =>
+      directoryClient.listDelegationMemberships(delegationId).catch(translateFailure),
+    getDelegationMembership: requireDelegationMembership,
+    addDelegationMembership: (delegationId, input) =>
+      directoryClient.addDelegationMembership(delegationId, input).catch(translateFailure),
+    updateDelegationMembership: (delegationId, membershipId, input) =>
+      directoryClient.updateDelegationMembership(delegationId, membershipId, input).catch(translateFailure),
+    endDelegationMembership: (delegationId, membershipId, endedOn) =>
+      directoryClient.endDelegationMembership(delegationId, membershipId, endedOn).catch(translateFailure),
   };
 }

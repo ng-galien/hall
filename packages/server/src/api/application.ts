@@ -1,3 +1,4 @@
+import { createCouncilDelegationsRouter } from "./routes/councilDelegationsRoutes.js";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { handleWorkspaceMcp, WorkspaceClient } from "@hall/mcp";
@@ -87,6 +88,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api/contacts", createContactsRouter(container.cradle));
   app.use("/api/council-members", createCouncilMembersRouter(container.cradle));
   app.use("/api/council-terms", createCouncilTermsRouter(container.cradle));
+  app.use("/api/council-delegations", createCouncilDelegationsRouter(container.cradle));
   app.use("/api/council-committees", createCouncilCommitteesRouter(container.cradle));
   app.use("/api/council-business", createCouncilBusinessRouter(container.cradle));
   app.use("/api/council-meetings", createCouncilMeetingsRouter(container.cradle));
@@ -100,7 +102,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
 
   if (config.clientDirectory && existsSync(join(config.clientDirectory, "index.html"))) {
     app.use("/app", express.static(config.clientDirectory));
-    app.get("/app/{*path}", (_request, response) => response.sendFile(join(config.clientDirectory!, "index.html")));
+    app.get("/app/{*path}", (_request, response) => response.sendFile("index.html", { root: config.clientDirectory! }));
     app.get("/", (_request, response) => response.redirect("/app/"));
   }
 

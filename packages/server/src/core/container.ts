@@ -1,18 +1,16 @@
-import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
-import { createPostgresCouncilDecisionClient } from "../infrastructure/postgres/councilDecisionClient.js";
-import { createCouncilDecisionService, type CouncilDecisionService } from "../services/councilDecisionService.js";
-import { createMeetingNoticeService, type MeetingNoticeService } from "../services/meetingNoticeService.js";
 import {
   createPostgresClient,
-  type PostgresClient,
+  PostgresClient,
   type PostgresCouncil,
+  type PostgresCouncilDecisions,
   type PostgresDirectory,
   type PostgresMinutes,
-  type PostgresCouncilDecisions,
   type PostgresResources,
 } from "@hall/postgres";
 import { type AwilixContainer, asFunction, asValue, createContainer, InjectionMode } from "awilix";
+import type { Pool } from "pg";
 import type { CouncilClient } from "../clients/councilClient.js";
+import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
@@ -21,6 +19,7 @@ import { createSqlExecutor } from "../infrastructure/database/factory.js";
 import { createGotenbergDocumentPreviewConverter } from "../infrastructure/documents/gotenbergDocumentPreviewConverter.js";
 import { createLegifranceProvider } from "../infrastructure/legal/legifranceProvider.js";
 import { createPostgresCouncilClient } from "../infrastructure/postgres/councilClient.js";
+import { createPostgresCouncilDecisionClient } from "../infrastructure/postgres/councilDecisionClient.js";
 import { createPostgresDirectoryClient } from "../infrastructure/postgres/directoryClient.js";
 import { createPostgresMinutesClient } from "../infrastructure/postgres/minutesClient.js";
 import { createPostgresResourcesClient } from "../infrastructure/postgres/resourcesClient.js";
@@ -55,6 +54,7 @@ import {
   type CouncilBusinessWorkspaceService,
   createCouncilBusinessWorkspaceService,
 } from "../services/councilBusinessWorkspaceService.js";
+import { type CouncilDecisionService, createCouncilDecisionService } from "../services/councilDecisionService.js";
 import { type CouncilMeetingService, createCouncilMeetingService } from "../services/councilMeetingService.js";
 import { createDirectoryService, type DirectoryService } from "../services/directoryService.js";
 import {
@@ -66,6 +66,7 @@ import { createDocumentRenderer, type DocumentRenderer } from "../services/docum
 import { createGeographicMapRenderer, type GeographicMapRenderer } from "../services/geographicMapRenderer.js";
 import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
+import { createMeetingNoticeService, type MeetingNoticeService } from "../services/meetingNoticeService.js";
 import {
   createMeetingPreparationService,
   type MeetingPreparationService,
@@ -75,8 +76,13 @@ import { createReferenceEntityResolver, type ReferenceEntityResolver } from "../
 import { createTemplateRenderingService, type TemplateRenderingService } from "../services/templateRendering.js";
 import type { ServerConfig } from "./config.js";
 
+export interface ServerCompositionOptions {
+  postgresPool?: Pool;
+}
+
 export interface Cradle {
   config: ServerConfig;
+  postgresPool: Pool | null;
   requestContext: RequestContextStore;
   sqlExecutor: SqlExecutor;
   postgresClient: PostgresClient | null;
@@ -122,15 +128,19 @@ export interface Cradle {
   contentTemplateService: ContentTemplateService;
 }
 
-export function buildContainer(config: ServerConfig): AwilixContainer<Cradle> {
+export function buildContainer(config: ServerConfig, options: ServerCompositionOptions = {}): AwilixContainer<Cradle> {
   const container = createContainer<Cradle>({ injectionMode: InjectionMode.PROXY, strict: true });
   container.register({
     config: asValue(config),
+    postgresPool: asValue(options.postgresPool ?? null),
     requestContext: asFunction(() => new RequestContextStore()).singleton(),
     sqlExecutor: asFunction(createSqlExecutor).singleton(),
-    postgresClient: asFunction(({ config }: { config: ServerConfig }) =>
-      config.database.kind === "postgres" ? createPostgresClient({ connectionString: config.database.url }) : null,
-    ).singleton(),
+    postgresClient: asFunction(({ config, postgresPool }: { config: ServerConfig; postgresPool: Pool | null }) => {
+      if (config.database.kind !== "postgres") return null;
+      return postgresPool
+        ? new PostgresClient(postgresPool, false)
+        : createPostgresClient({ connectionString: config.database.url });
+    }).singleton(),
     unitOfWork: asFunction(({ sqlExecutor }: { sqlExecutor: SqlExecutor }) => sqlExecutor).singleton(),
     hallSettingsRepository: asFunction(createHallSettingsRepository).singleton(),
     councilMeetingRepository: asFunction(createCouncilMeetingRepository).singleton(),

@@ -1,10 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import type { HttpServerHandle } from "@hall/server";
 import { app, BrowserWindow, dialog, shell } from "electron";
 
 let mainWindow: BrowserWindow | null = null;
-let embeddedServer: HttpServerHandle | null = null;
+let embeddedServer: Promise<HttpServerHandle> | null = null;
+let quitting = false;
+
+if (process.env.HALL_USER_DATA_PATH) app.setPath("userData", resolve(process.env.HALL_USER_DATA_PATH));
 
 function applicationUrl(serverBaseUrl: string): string {
   const url = new URL(serverBaseUrl);
@@ -37,20 +40,18 @@ async function sharedRendererUrl(): Promise<string | null> {
 async function resolveRendererUrl(): Promise<string> {
   const sharedServerUrl = await sharedRendererUrl();
   if (sharedServerUrl) return sharedServerUrl;
-  if (embeddedServer) return process.env.HALL_RENDERER_URL ?? applicationUrl(embeddedServer.url);
+  if (embeddedServer) return process.env.HALL_RENDERER_URL ?? applicationUrl((await embeddedServer).url);
 
   const clientDirectory = app.isPackaged
     ? join(process.resourcesPath, "dist")
     : join(app.getAppPath(), "../client/dist");
   if (app.isPackaged) process.env.PLAYWRIGHT_BROWSERS_PATH = join(process.resourcesPath, "playwright");
-  const { startHttpServer } = await import("@hall/server");
-  embeddedServer = await startHttpServer({
-    host: "127.0.0.1",
-    port: 0,
-    database: { kind: "sqlite", path: join(app.getPath("userData"), "hall.sqlite") },
+  const { startLocalHttpServer } = await import("@hall/server");
+  embeddedServer = startLocalHttpServer({
+    dataDirectory: join(app.getPath("userData"), "pglite"),
     clientDirectory,
   });
-  return process.env.HALL_RENDERER_URL ?? applicationUrl(embeddedServer.url);
+  return process.env.HALL_RENDERER_URL ?? applicationUrl((await embeddedServer).url);
 }
 
 async function createMainWindow(): Promise<void> {
@@ -100,7 +101,7 @@ else {
     .catch((error) => {
       process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
       dialog.showErrorBox("Impossible de démarrer Hall", error instanceof Error ? error.message : String(error));
-      app.exit(1);
+      app.quit();
     });
   app.on("activate", () => {
     if (!mainWindow) void createMainWindow();
@@ -109,10 +110,12 @@ else {
     if (process.platform !== "darwin") app.quit();
   });
   app.on("before-quit", (event) => {
-    if (!embeddedServer) return;
+    if (!embeddedServer || quitting) return;
     event.preventDefault();
-    const server = embeddedServer;
-    embeddedServer = null;
-    void server.close().finally(() => app.quit());
+    quitting = true;
+    void embeddedServer
+      .then((server) => server.close())
+      .catch((error) => process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`))
+      .finally(() => app.quit());
   });
 }

@@ -13,7 +13,7 @@ postgresDescribe("PostgreSQL resource client", () => {
     context: {
       requestId: "document-request-1",
       actorId: "actor-1",
-      councilMemberId: null,
+      contactId: null,
       roles: ["administrator"],
     },
   };

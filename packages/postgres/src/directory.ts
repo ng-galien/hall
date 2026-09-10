@@ -1,3 +1,13 @@
+import {
+  type AddDelegationMembership as AddPostgresDelegationMembership,
+  delegationRoleSchema,
+  type CouncilDelegation as PostgresCouncilDelegation,
+  type DelegationMembership as PostgresDelegationMembership,
+  councilDelegationSchema as postgresCouncilDelegationSchema,
+  delegationMembershipSchema as postgresDelegationMembershipSchema,
+  type SaveCouncilDelegation as SavePostgresCouncilDelegation,
+  type UpdateDelegationMembership as UpdatePostgresDelegationMembership,
+} from "@hall/contracts";
 import type { Pool } from "pg";
 import { z } from "zod";
 import { recordAuditEvent } from "./audit.js";
@@ -35,6 +45,7 @@ export const postgresCouncilMemberSchema = z.object({
   id: entityIdSchema,
   contactId: entityIdSchema,
   councilTermId: entityIdSchema,
+  rank: z.number().int().nonnegative().nullable(),
   role: councilRoleSchema,
   active: z.boolean(),
   termStartedOn: dateSchema,
@@ -53,7 +64,7 @@ export const postgresCouncilCommitteeSchema = z.object({
 export const postgresCommitteeMembershipSchema = z.object({
   id: entityIdSchema,
   committeeId: entityIdSchema,
-  councilMemberId: entityIdSchema,
+  contactId: entityIdSchema,
   role: committeeRoleSchema,
   startedOn: dateSchema,
   endedOn: dateSchema.nullable(),
@@ -81,11 +92,13 @@ export type SavePostgresContact = Readonly<{
 export type CreatePostgresCouncilMember = Readonly<{
   contactId: string;
   role: PostgresCouncilRole;
+  rank?: number | null;
   termStartedOn: string;
 }>;
 
 export type UpdatePostgresCouncilMember = Readonly<{
   role: PostgresCouncilRole;
+  rank?: number | null;
   termStartedOn: string;
   termEndedOn: string | null;
 }>;
@@ -96,7 +109,7 @@ export type SavePostgresCouncilCommittee = Readonly<{
 }>;
 
 export type AddPostgresCommitteeMembership = Readonly<{
-  councilMemberId: string;
+  contactId: string;
   role: PostgresCommitteeRole;
   startedOn: string;
 }>;
@@ -148,26 +161,22 @@ export class PostgresDirectory {
   }
 
   listContacts(request: PostgresDirectoryRequest, includeArchived = false): Promise<PostgresContact[]> {
-    return this.transactions.run(
-      { role: request.role, context: this.runContext(request, "contact.list") },
-      (client) =>
-        callJson(client, {
-          text: "SELECT hall_api.list_contacts($1::boolean) AS payload",
-          values: [includeArchived],
-          schema: z.array(postgresContactSchema),
-        }),
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "contact.list") }, (client) =>
+      callJson(client, {
+        text: "SELECT hall_api.list_contacts($1::boolean) AS payload",
+        values: [includeArchived],
+        schema: z.array(postgresContactSchema),
+      }),
     );
   }
 
   openContact(request: PostgresDirectoryRequest, id: string): Promise<PostgresContact | null> {
-    return this.transactions.run(
-      { role: request.role, context: this.runContext(request, "contact.open") },
-      (client) =>
-        callJson(client, {
-          text: "SELECT hall_api.open_contact($1::uuid) AS payload",
-          values: [entityIdSchema.parse(id)],
-          schema: postgresContactSchema.nullable(),
-        }),
+    return this.transactions.run({ role: request.role, context: this.runContext(request, "contact.open") }, (client) =>
+      callJson(client, {
+        text: "SELECT hall_api.open_contact($1::uuid) AS payload",
+        values: [entityIdSchema.parse(id)],
+        schema: postgresContactSchema.nullable(),
+      }),
     );
   }
 
@@ -196,11 +205,7 @@ export class PostgresDirectory {
     );
   }
 
-  updateContact(
-    request: PostgresDirectoryRequest,
-    id: string,
-    input: SavePostgresContact,
-  ): Promise<PostgresContact> {
+  updateContact(request: PostgresDirectoryRequest, id: string, input: SavePostgresContact): Promise<PostgresContact> {
     const contactId = entityIdSchema.parse(id);
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "contact.update") },
@@ -286,11 +291,12 @@ export class PostgresDirectory {
       { role: request.role, context: this.runContext(request, "member.create") },
       async (client) => {
         const member = await callJson(client, {
-          text: "SELECT hall_api.create_council_member($1::uuid, $2::text, $3::date) AS payload",
+          text: "SELECT hall_api.create_council_member($1::uuid, $2::text, $3::date, $4::integer) AS payload",
           values: [
             entityIdSchema.parse(input.contactId),
             councilRoleSchema.parse(input.role),
             dateSchema.parse(input.termStartedOn),
+            input.rank ?? null,
           ],
           schema: postgresCouncilMemberSchema,
         });
@@ -310,12 +316,14 @@ export class PostgresDirectory {
       { role: request.role, context: this.runContext(request, "member.update") },
       async (client) => {
         const member = await callJson(client, {
-          text: "SELECT hall_api.update_council_member($1::uuid, $2::text, $3::date, $4::date) AS payload",
+          text: "SELECT hall_api.update_council_member($1::uuid, $2::text, $3::date, $4::date, $5::integer, $6::boolean) AS payload",
           values: [
             memberId,
             councilRoleSchema.parse(input.role),
             dateSchema.parse(input.termStartedOn),
             input.termEndedOn === null ? null : dateSchema.parse(input.termEndedOn),
+            input.rank ?? null,
+            input.rank !== undefined,
           ],
           schema: postgresCouncilMemberSchema,
         });
@@ -459,7 +467,7 @@ export class PostgresDirectory {
           text: "SELECT hall_api.add_committee_membership($1::uuid, $2::uuid, $3::text, $4::date) AS payload",
           values: [
             entityIdSchema.parse(committeeId),
-            entityIdSchema.parse(input.councilMemberId),
+            entityIdSchema.parse(input.contactId),
             committeeRoleSchema.parse(input.role),
             dateSchema.parse(input.startedOn),
           ],
@@ -518,15 +526,216 @@ export class PostgresDirectory {
       async (client) => {
         const membership = await callJson(client, {
           text: "SELECT hall_api.end_committee_membership($1::uuid, $2::uuid, $3::date) AS payload",
-          values: [
-            entityIdSchema.parse(committeeId),
-            entityIdSchema.parse(membershipId),
-            dateSchema.parse(endedOn),
-          ],
+          values: [entityIdSchema.parse(committeeId), entityIdSchema.parse(membershipId), dateSchema.parse(endedOn)],
           schema: postgresCommitteeMembershipSchema,
         });
         await recordAuditEvent(client, {
           targetType: "committee-membership",
+          targetId: membership.id,
+          outcome: "succeeded",
+        });
+        return membership;
+      },
+    );
+  }
+  listCouncilDelegations(
+    request: PostgresDirectoryRequest,
+    includeArchived = false,
+  ): Promise<PostgresCouncilDelegation[]> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "delegation.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.list_council_delegations($1::boolean) AS payload",
+          values: [includeArchived],
+          schema: z.array(postgresCouncilDelegationSchema),
+        }),
+    );
+  }
+
+  openCouncilDelegation(request: PostgresDirectoryRequest, id: string): Promise<PostgresCouncilDelegation | null> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "delegation.open") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.open_council_delegation($1::uuid) AS payload",
+          values: [entityIdSchema.parse(id)],
+          schema: postgresCouncilDelegationSchema.nullable(),
+        }),
+    );
+  }
+
+  createCouncilDelegation(
+    request: PostgresDirectoryRequest,
+    input: SavePostgresCouncilDelegation,
+  ): Promise<PostgresCouncilDelegation> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "delegation.create") },
+      async (client) => {
+        const delegation = await callJson(client, {
+          text: "SELECT hall_api.create_council_delegation($1::text, $2::text) AS payload",
+          values: [input.name, input.description],
+          schema: postgresCouncilDelegationSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-delegation",
+          targetId: delegation.id,
+          outcome: "succeeded",
+        });
+        return delegation;
+      },
+    );
+  }
+
+  updateCouncilDelegation(
+    request: PostgresDirectoryRequest,
+    id: string,
+    input: SavePostgresCouncilDelegation,
+  ): Promise<PostgresCouncilDelegation> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "delegation.update") },
+      async (client) => {
+        const delegation = await callJson(client, {
+          text: "SELECT hall_api.update_council_delegation($1::uuid, $2::text, $3::text) AS payload",
+          values: [entityIdSchema.parse(id), input.name, input.description],
+          schema: postgresCouncilDelegationSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-delegation",
+          targetId: delegation.id,
+          outcome: "succeeded",
+        });
+        return delegation;
+      },
+    );
+  }
+
+  archiveCouncilDelegation(request: PostgresDirectoryRequest, id: string): Promise<PostgresCouncilDelegation> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "delegation.archive") },
+      async (client) => {
+        const delegation = await callJson(client, {
+          text: "SELECT hall_api.archive_council_delegation($1::uuid) AS payload",
+          values: [entityIdSchema.parse(id)],
+          schema: postgresCouncilDelegationSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-delegation",
+          targetId: delegation.id,
+          outcome: "succeeded",
+        });
+        return delegation;
+      },
+    );
+  }
+
+  listDelegationMemberships(
+    request: PostgresDirectoryRequest,
+    delegationId: string,
+  ): Promise<PostgresDelegationMembership[]> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "delegation-membership.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.list_delegation_memberships($1::uuid) AS payload",
+          values: [entityIdSchema.parse(delegationId)],
+          schema: z.array(postgresDelegationMembershipSchema),
+        }),
+    );
+  }
+
+  openDelegationMembership(
+    request: PostgresDirectoryRequest,
+    delegationId: string,
+    membershipId: string,
+  ): Promise<PostgresDelegationMembership | null> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "delegation-membership.open") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.open_delegation_membership($1::uuid, $2::uuid) AS payload",
+          values: [entityIdSchema.parse(delegationId), entityIdSchema.parse(membershipId)],
+          schema: postgresDelegationMembershipSchema.nullable(),
+        }),
+    );
+  }
+
+  addDelegationMembership(
+    request: PostgresDirectoryRequest,
+    delegationId: string,
+    input: AddPostgresDelegationMembership,
+  ): Promise<PostgresDelegationMembership> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "delegation-membership.add") },
+      async (client) => {
+        const membership = await callJson(client, {
+          text: "SELECT hall_api.add_delegation_membership($1::uuid, $2::uuid, $3::text, $4::date) AS payload",
+          values: [
+            entityIdSchema.parse(delegationId),
+            entityIdSchema.parse(input.contactId),
+            delegationRoleSchema.parse(input.role),
+            dateSchema.parse(input.startedOn),
+          ],
+          schema: postgresDelegationMembershipSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "delegation-membership",
+          targetId: membership.id,
+          outcome: "succeeded",
+        });
+        return membership;
+      },
+    );
+  }
+
+  updateDelegationMembership(
+    request: PostgresDirectoryRequest,
+    delegationId: string,
+    membershipId: string,
+    input: UpdatePostgresDelegationMembership,
+  ): Promise<PostgresDelegationMembership> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "delegation-membership.update") },
+      async (client) => {
+        const membership = await callJson(client, {
+          text: `SELECT hall_api.update_delegation_membership(
+            $1::uuid, $2::uuid, $3::text, $4::date, $5::date
+          ) AS payload`,
+          values: [
+            entityIdSchema.parse(delegationId),
+            entityIdSchema.parse(membershipId),
+            delegationRoleSchema.parse(input.role),
+            dateSchema.parse(input.startedOn),
+            input.endedOn === null ? null : dateSchema.parse(input.endedOn),
+          ],
+          schema: postgresDelegationMembershipSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "delegation-membership",
+          targetId: membership.id,
+          outcome: "succeeded",
+        });
+        return membership;
+      },
+    );
+  }
+
+  endDelegationMembership(
+    request: PostgresDirectoryRequest,
+    delegationId: string,
+    membershipId: string,
+    endedOn: string,
+  ): Promise<PostgresDelegationMembership> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "delegation-membership.end") },
+      async (client) => {
+        const membership = await callJson(client, {
+          text: "SELECT hall_api.end_delegation_membership($1::uuid, $2::uuid, $3::date) AS payload",
+          values: [entityIdSchema.parse(delegationId), entityIdSchema.parse(membershipId), dateSchema.parse(endedOn)],
+          schema: postgresDelegationMembershipSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "delegation-membership",
           targetId: membership.id,
           outcome: "succeeded",
         });

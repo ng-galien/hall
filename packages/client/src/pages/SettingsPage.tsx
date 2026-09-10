@@ -1,3 +1,4 @@
+import { findSirenAction } from "@hall/api-contract";
 import type { HallSettings } from "@hall/domain";
 import { type FormEvent, useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -5,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, RequestErrorBanner } from "../components/Ui";
+import { PasswordDialog } from "../features/users/PasswordDialog";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { type Locale, useI18n } from "../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
-import { canLogout, logout } from "../services/authApi";
+import { changePassword, getSessionSiren, logout } from "../services/authApi";
 import { loadHallSettings, updateActiveCouncilTermExpectedMemberCount } from "../services/hallSettingsApi";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { type ThemePreference, useThemePrefsStore } from "../theme/themePrefs";
@@ -17,6 +19,8 @@ export function SettingsPage() {
   const { locale, setLocale, t } = useI18n();
   const { preference, setPreference } = useThemePrefsStore();
   const { submitting, run } = useSubmitting();
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [passwordChangeAvailable, setPasswordChangeAvailable] = useState(false);
   const [logoutAvailable, setLogoutAvailable] = useState(false);
   const [hallSettings, setHallSettings] = useState<HallSettings | null>(null);
   const [councilTermUpdateAvailable, setCouncilTermUpdateAvailable] = useState(false);
@@ -27,9 +31,17 @@ export function SettingsPage() {
   const themeId = useId();
   const expectedMemberCountId = useId();
   useEffect(() => {
-    void canLogout()
-      .then(setLogoutAvailable)
-      .catch(() => setLogoutAvailable(false));
+    void getSessionSiren()
+      .then(({ representation }) => {
+        setLogoutAvailable(Boolean(representation && findSirenAction(representation, "session.logout")));
+        setPasswordChangeAvailable(
+          Boolean(representation && findSirenAction(representation, "session.change-password")),
+        );
+      })
+      .catch(() => {
+        setLogoutAvailable(false);
+        setPasswordChangeAvailable(false);
+      });
   }, []);
   useEffect(() => {
     void loadHallSettings()
@@ -134,13 +146,32 @@ export function SettingsPage() {
             <p className="text-xs text-muted">{t("settings.themeDescription")}</p>
           </div>
         </div>
-        {logoutAvailable ? (
+        {logoutAvailable || passwordChangeAvailable ? (
           <div className="creation-form">
             <h3>{t("settings.session")}</h3>
-            <Button onClick={() => void logout()}>{t("settings.logout")}</Button>
+            <div className="flex flex-wrap gap-2">
+              {passwordChangeAvailable && (
+                <Button variant="outline" onClick={() => setPasswordOpen(true)} data-testid="settings-change-password">
+                  {t("users.changePassword")}
+                </Button>
+              )}
+              {logoutAvailable && (
+                <Button onClick={() => void logout()} data-testid="settings-logout">
+                  {t("settings.logout")}
+                </Button>
+              )}
+            </div>
           </div>
         ) : null}
       </div>
+      {passwordOpen && (
+        <PasswordDialog
+          title={t("users.changePassword")}
+          requireCurrent
+          onClose={() => setPasswordOpen(false)}
+          onSubmit={changePassword}
+        />
+      )}
     </div>
   );
 }

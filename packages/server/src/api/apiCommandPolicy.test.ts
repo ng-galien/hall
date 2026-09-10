@@ -22,11 +22,11 @@ const admin: ApiPrincipal = {
     "meetings.conduct",
     "audit.read",
   ],
-  councilMemberId: null,
+  contactId: null,
 };
 
 const actionsByPermissions = [
-  [[], ["session.bootstrap", "session.login", "session.logout"]],
+  [[], ["session.bootstrap", "session.login", "session.logout", "session.change-password"]],
   [["contacts.manage"], ["contact.create", "contact.update", "contact.archive"]],
   [["members.manage"], ["member.create", "member.update"]],
   [
@@ -60,6 +60,12 @@ const actionsByPermissions = [
   [
     ["meetings.prepare"],
     [
+      "delegation.create",
+      "delegation.update",
+      "delegation.archive",
+      "delegation.add-membership",
+      "delegation.update-membership",
+      "delegation.end-membership",
       "committee.create",
       "committee.update",
       "committee.archive",
@@ -107,7 +113,7 @@ const actionsByPermissions = [
       "ballot.confirm",
     ],
   ],
-  [["users.manage"], ["user.create", "user.disable", "user.assign-role"]],
+  [["users.manage"], ["user.create", "user.disable", "user.assign-role", "user.update", "user.reset-password"]],
   [["settings.manage"], ["council-term.configure", "settings.update"]],
 ] as const satisfies readonly (readonly [readonly ApiPermission[], readonly ApiActionName[]])[];
 
@@ -205,6 +211,9 @@ const auditCases = [
   ],
   ["POST", "/api/auth/bootstrap", undefined, "session.bootstrap", "user", undefined],
   ["POST", "/api/auth/login", undefined, "session.login", "session", undefined],
+  ["POST", "/api/auth/change-password", undefined, "session.change-password", "user", null],
+  ["PUT", "/api/users/user-1", {}, "user.update", "user", "user-1"],
+  ["POST", "/api/users/user-1/reset-password", {}, "user.reset-password", "user", "user-1"],
   ["POST", "/api/auth/logout", undefined, "session.logout", "session", null],
   ["POST", "/api/contacts", undefined, "contact.create", "contact", null],
   ["PUT", "/api/contacts/contact-1", undefined, "contact.update", "contact", "contact-1"],
@@ -212,8 +221,49 @@ const auditCases = [
   ["POST", "/api/council-members", undefined, "member.create", "council-member", null],
   ["PUT", "/api/council-members/member-1", undefined, "member.update", "council-member", "member-1"],
   ["PUT", "/api/council-terms", undefined, "council-term.configure", "council-term", "active"],
-  ["PUT", "/api/council-decisions/decision-1/draft", undefined, "decision.update-draft", "council-decision", "decision-1"],
+  [
+    "PUT",
+    "/api/council-decisions/decision-1/draft",
+    undefined,
+    "decision.update-draft",
+    "council-decision",
+    "decision-1",
+  ],
   ["POST", "/api/council-decisions/decision-1/freeze", undefined, "decision.freeze", "council-decision", "decision-1"],
+  ["POST", "/api/council-delegations", undefined, "delegation.create", "council-delegation", undefined],
+  ["PUT", "/api/council-delegations/committee-1", undefined, "delegation.update", "council-delegation", "committee-1"],
+  [
+    "POST",
+    "/api/council-delegations/committee-1/archive",
+    undefined,
+    "delegation.archive",
+    "council-delegation",
+    "committee-1",
+  ],
+  [
+    "POST",
+    "/api/council-delegations/committee-1/memberships",
+    undefined,
+    "delegation.add-membership",
+    "delegation-membership",
+    null,
+  ],
+  [
+    "PUT",
+    "/api/council-delegations/committee-1/memberships/member-1",
+    undefined,
+    "delegation.update-membership",
+    "delegation-membership",
+    "member-1",
+  ],
+  [
+    "POST",
+    "/api/council-delegations/committee-1/memberships/member-1/end",
+    undefined,
+    "delegation.end-membership",
+    "delegation-membership",
+    "member-1",
+  ],
   ["POST", "/api/council-committees", undefined, "committee.create", "council-committee", undefined],
   ["PUT", "/api/council-committees/committee-1", undefined, "committee.update", "council-committee", "committee-1"],
   [
@@ -300,7 +350,14 @@ const auditCases = [
     "council-meeting",
     "meeting-1",
   ],
-  ["POST", "/api/council-meetings/meeting-1/open-questions", undefined, "meeting.add-open-question", "council-meeting", "meeting-1"],
+  [
+    "POST",
+    "/api/council-meetings/meeting-1/open-questions",
+    undefined,
+    "meeting.add-open-question",
+    "council-meeting",
+    "meeting-1",
+  ],
   ["POST", "/api/council-meetings/meeting-1/close", undefined, "meeting.close", "council-meeting", "meeting-1"],
   [
     "POST",
@@ -401,7 +458,7 @@ const auditCases = [
   ["POST", "/api/resources/documents", undefined, "resource.create-document", "resource", undefined],
   ["POST", "/api/resources/editor-assets", undefined, "resource.create-editor-asset", "resource", undefined],
   ["DELETE", "/api/resources/resource-1", undefined, "resource.delete", "resource", "resource-1"],
-  ["POST", "/api/users", { roles: ["reader"], councilMemberId: "member-1" }, "user.create", "user", null],
+  ["POST", "/api/users", { roles: ["reader"], contactId: "member-1" }, "user.create", "user", null],
   ["PUT", "/api/users/user-1/roles", { roles: ["reader"] }, "user.assign-role", "user", "user-1"],
   ["POST", "/api/users/user-1/disable", undefined, "user.disable", "user", "user-1"],
   ["PUT", "/api/settings", undefined, "settings.update", "hall-settings", "hall"],
@@ -539,9 +596,9 @@ describe("API command policy", () => {
       resolveAuditIntent({
         method: "POST",
         path: "/api/users",
-        body: { roles: ["reader"], councilMemberId: "member-1" },
+        body: { roles: ["reader"], contactId: "member-1" },
       }),
-    ).toMatchObject({ details: { roles: ["reader"], councilMemberId: "member-1" } });
+    ).toMatchObject({ details: { roles: ["reader"], contactId: "member-1" } });
     expect(
       resolveAuditIntent({ method: "PUT", path: "/api/users/user-1/roles", body: { roles: ["reader"] } }),
     ).toMatchObject({ details: { roles: ["reader"] } });

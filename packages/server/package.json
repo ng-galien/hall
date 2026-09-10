@@ -23,8 +23,12 @@
     "test:mutation:policy": "stryker run stryker.config.mjs"
   },
   "dependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "@electric-sql/pglite-socket": "0.2.11",
     "@hall/api-contract": "*",
+    "@hall/contracts": "*",
     "@hall/domain": "*",
+    "@hall/mcp": "*",
     "@hall/postgres": "*",
     "@hall/templating": "*",
     "awilix": "^13.0.3",
@@ -37,9 +41,7 @@
     "pg": "^8.23.0",
     "pino": "^10.3.1",
     "playwright": "^1.62.1",
-    "sanitize-html": "^2.17.7",
-    "@hall/contracts": "*",
-    "@hall/mcp": "*"
+    "sanitize-html": "^2.17.7"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^10.0.0",

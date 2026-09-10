@@ -223,6 +223,10 @@ export const queries = {
 
   "security.rolesForUser": "SELECT role FROM user_roles WHERE user_id = :userId ORDER BY role",
   "security.findUserById": "SELECT * FROM users WHERE id = :value",
+  "security.lockUserForAuthentication": {
+    default: "SELECT * FROM users WHERE id = :value",
+    postgres: "SELECT * FROM users WHERE id = :value FOR UPDATE",
+  },
   "security.findUserByEmail": "SELECT * FROM users WHERE email = :value",
   "security.countUsers": "SELECT COUNT(*) AS count FROM users",
   "security.countActiveAdministrators": `SELECT COUNT(*) AS count
@@ -234,9 +238,13 @@ export const queries = {
   },
   "security.listUsers": "SELECT * FROM users ORDER BY display_name, email",
   "security.insertUser": `INSERT INTO users
-    (id, email, display_name, password_hash, council_member_id, created_at, updated_at)
-    VALUES (:id, :email, :displayName, :passwordHash, :councilMemberId, :createdAt, :updatedAt)`,
+    (id, email, display_name, password_hash, contact_id, created_at, updated_at)
+    VALUES (:id, :email, :displayName, :passwordHash, :contactId, :createdAt, :updatedAt)`,
   "security.insertRole": "INSERT INTO user_roles (user_id, role) VALUES (:userId, :role)",
+  "security.updateUser": `UPDATE users SET email=:email, display_name=:displayName,
+    contact_id=:contactId, updated_at=:updatedAt WHERE id=:id`,
+  "security.updatePassword": `UPDATE users SET password_hash=:passwordHash, updated_at=:updatedAt
+    WHERE id=:id AND password_hash=:previousHash`,
   "security.deleteRoles": "DELETE FROM user_roles WHERE user_id = :userId",
   "security.disableUser": `UPDATE users SET status = 'disabled', updated_at = :updatedAt WHERE id = :id`,
   "security.deleteSessionsForUser": "DELETE FROM sessions WHERE user_id = :userId",

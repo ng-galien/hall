@@ -32,7 +32,7 @@ export function principalForUser(user: ApiUser): ApiPrincipal {
     displayName: user.displayName,
     roles: user.roles,
     permissions: permissionsForRoles(user.roles),
-    councilMemberId: user.councilMemberId,
+    contactId: user.contactId,
   };
 }
 

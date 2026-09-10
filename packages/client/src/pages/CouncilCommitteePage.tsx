@@ -1,10 +1,5 @@
-import {
-  committeeRoles,
-  findSirenAction,
-  type CommitteeMembership,
-  type CommitteeRole,
-} from "@hall/api-contract";
-import type { CouncilMember } from "@hall/domain";
+import type { Contact } from "@hall/api-contract";
+import { type CommitteeMembership, type CommitteeRole, committeeRoles, findSirenAction } from "@hall/api-contract";
 import { type DragEvent, type FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -16,23 +11,26 @@ import { AddIcon, DeleteIcon } from "../components/icons";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
+import { useContactsStore } from "../stores/contactsStore";
 import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
-import { useCouncilMembersStore } from "../stores/councilMembersStore";
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
 const today = () => new Date().toISOString().slice(0, 10);
-const memberName = (member: CouncilMember | undefined, fallback: string) =>
-  member ? `${member.contact.firstName} ${member.contact.lastName}` : fallback;
-const memberInitials = (member: CouncilMember | undefined) =>
-  member ? `${member.contact.firstName.slice(0, 1)}${member.contact.lastName.slice(0, 1)}` : "?";
+const memberName = (member: Contact | undefined, fallback: string) =>
+  member ? `${member.firstName} ${member.lastName}` : fallback;
+const memberInitials = (member: Contact | undefined) =>
+  member ? `${member.firstName.slice(0, 1)}${member.lastName.slice(0, 1)}` : "?";
 
 export function CouncilCommitteePage() {
   const { committeeId = "" } = useParams();
   const navigate = useNavigate();
   const { t, formatDate } = useI18n();
   const { submitting, run } = useSubmitting();
-  const members = useCouncilMembersStore((state) => state.members);
+  const { contacts: members, load: loadContacts, error: contactsError } = useContactsStore();
+  useEffect(() => {
+    void loadContacts();
+  }, [loadContacts]);
   const {
     committees,
     details,
@@ -48,9 +46,7 @@ export function CouncilCommitteePage() {
     updateMembership,
     endMembership,
   } = useCouncilCommitteesStore();
-  const listedCommittee = committees.find(
-    (candidate) => candidate.id === committeeId,
-  );
+  const listedCommittee = committees.find((candidate) => candidate.id === committeeId);
   const detail = listedCommittee ? details[listedCommittee.id] : undefined;
   const committee = detail?.committee ?? listedCommittee;
   const committeeReference = committee?.id;
@@ -147,8 +143,8 @@ export function CouncilCommitteePage() {
   const memberships = detail?.memberships ?? [];
   const activeMemberships = memberships.filter((membership) => !membership.endedOn);
   const endedMemberships = memberships.filter((membership) => membership.endedOn);
-  const activeMemberIds = new Set(activeMemberships.map((membership) => membership.councilMemberId));
-  const availableMembers = members.filter((member) => member.active && !activeMemberIds.has(member.id));
+  const activeMemberIds = new Set(activeMemberships.map((membership) => membership.contactId));
+  const availableMembers = members.filter((member) => !activeMemberIds.has(member.id));
   const memberById = new Map(members.map((member) => [member.id, member]));
   const selectedMembership = activeMemberships.find((membership) => membership.id === selectedMembershipId);
   const saveLabels: Record<SaveState, string> = {
@@ -180,12 +176,12 @@ export function CouncilCommitteePage() {
   const addSelectedMembers = (role: CommitteeRole) =>
     run(async () => {
       if (!membershipStartedOn || availableSelection.size === 0) return false;
-      for (const councilMemberId of availableSelection) {
-        const added = await addMembership(committee.id, { councilMemberId, role, startedOn: membershipStartedOn });
+      for (const contactId of availableSelection) {
+        const added = await addMembership(committee.id, { contactId, role, startedOn: membershipStartedOn });
         if (!added) return false;
         setAvailableSelection((current) => {
           const remaining = new Set(current);
-          remaining.delete(councilMemberId);
+          remaining.delete(contactId);
           return remaining;
         });
       }
@@ -272,7 +268,7 @@ export function CouncilCommitteePage() {
     <div className="page">
       <PageHeader title={committee.name} description={t("committees.detailDescription")} />
       <div className="page-content admin-detail-page">
-        <RequestErrorBanner error={error} />
+        <RequestErrorBanner error={error ?? contactsError} />
         <div className="admin-detail-surface">
           <section className="admin-record" aria-labelledby="committee-record-title">
             <div className="admin-section-heading">
@@ -330,6 +326,7 @@ export function CouncilCommitteePage() {
                 {capability?.canAddMembership ? (
                   <Button
                     variant={paletteOpen ? "secondary" : "outline"}
+                    data-testid="committee-add-members"
                     aria-expanded={paletteOpen}
                     onClick={() => setPaletteOpen((open) => !open)}
                   >
@@ -350,6 +347,7 @@ export function CouncilCommitteePage() {
                   <div className="admin-compact-date">
                     <Label htmlFor={`${fieldId}-startedOn`}>{t("committees.startedOn")}</Label>
                     <Input
+                      data-testid="committee-membership-start"
                       id={`${fieldId}-startedOn`}
                       type="date"
                       required
@@ -370,6 +368,7 @@ export function CouncilCommitteePage() {
                             className={`vote-card admin-member-chip${selected ? " vote-card-selected" : ""}`}
                             type="button"
                             aria-pressed={selected}
+                            data-testid={`committee-contact-option-${member.id}`}
                             onClick={() => toggleAvailableMember(member.id)}
                             key={member.id}
                           >
@@ -377,8 +376,8 @@ export function CouncilCommitteePage() {
                               {memberInitials(member)}
                             </span>
                             <span className="vote-card-copy">
-                              <strong>{memberName(member, t("members.unknownMember"))}</strong>
-                              <span>{t(`role.${member.role}`)}</span>
+                              <strong>{memberName(member, t("contacts.notFound"))}</strong>
+                              <span>{member.email}</span>
                             </span>
                           </button>
                         );
@@ -391,6 +390,7 @@ export function CouncilCommitteePage() {
                           type="button"
                           variant="outline"
                           disabled={submitting || availableSelection.size === 0 || !membershipStartedOn}
+                          data-testid={`committee-add-role-${role}`}
                           onClick={() => void addSelectedMembers(role)}
                           key={role}
                         >
@@ -440,7 +440,7 @@ export function CouncilCommitteePage() {
                           <p>{t("committees.noMemberInRole")}</p>
                         ) : (
                           roleMemberships.map((membership) => {
-                            const member = memberById.get(membership.councilMemberId);
+                            const member = memberById.get(membership.contactId);
                             const selected = selectedMembershipId === membership.id;
                             const movable = canUpdateMembership(membership);
                             return (
@@ -457,6 +457,7 @@ export function CouncilCommitteePage() {
                                   setDraggedMembershipId(null);
                                   setDropRole(null);
                                 }}
+                                data-testid={`committee-membership-${membership.contactId}`}
                                 onClick={() => setSelectedMembershipId(selected ? null : membership.id)}
                                 key={membership.id}
                               >
@@ -464,7 +465,7 @@ export function CouncilCommitteePage() {
                                   {memberInitials(member)}
                                 </span>
                                 <span className="vote-card-copy">
-                                  <strong>{memberName(member, t("members.unknownMember"))}</strong>
+                                  <strong>{memberName(member, t("contacts.notFound"))}</strong>
                                   <span>
                                     {t("committees.sinceDate").replace("{date}", formatDate(membership.startedOn))}
                                   </span>
@@ -483,13 +484,11 @@ export function CouncilCommitteePage() {
             {selectedMembership ? (
               <div className="admin-membership-toolbar" role="status">
                 <span>
-                  <strong>
-                    {memberName(memberById.get(selectedMembership.councilMemberId), t("members.unknownMember"))}
-                  </strong>
+                  <strong>{memberName(memberById.get(selectedMembership.contactId), t("contacts.notFound"))}</strong>
                   {t(`committeeRole.${selectedMembership.role}`)}
                 </span>
                 <div>
-                  <Link to={`/council-members/${selectedMembership.councilMemberId}`}>
+                  <Link data-testid="committee-contact-link" to={`/contacts/${selectedMembership.contactId}`}>
                     {t("committees.openMember")}
                   </Link>
                   <Button variant="ghost" size="sm" onClick={() => openMembershipEditor(selectedMembership)}>
@@ -511,11 +510,11 @@ export function CouncilCommitteePage() {
                 </summary>
                 <div className="admin-related-list">
                   {endedMemberships.map((membership) => {
-                    const member = memberById.get(membership.councilMemberId);
+                    const member = memberById.get(membership.contactId);
                     return (
                       <div className="data-row admin-membership-row" key={membership.id}>
-                        <Link className="admin-membership-link" to={`/council-members/${membership.councilMemberId}`}>
-                          <strong>{memberName(member, t("members.unknownMember"))}</strong>
+                        <Link className="admin-membership-link" to={`/contacts/${membership.contactId}`}>
+                          <strong>{memberName(member, t("contacts.notFound"))}</strong>
                           <span>
                             {t(`committeeRole.${membership.role}`)} · {formatDate(membership.startedOn)} -{" "}
                             {membership.endedOn ? formatDate(membership.endedOn) : ""}

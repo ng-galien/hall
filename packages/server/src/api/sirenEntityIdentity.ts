@@ -13,6 +13,8 @@ export const sirenEntityClasses = [
   "committee-membership",
   "contact",
   "council-business",
+  "council-delegation",
+  "delegation-membership",
   "council-committee",
   "council-decision",
   "council-meeting",
@@ -80,6 +82,10 @@ export function classifySirenEntity(request: Request, value: unknown): SirenEnti
   if (path.startsWith("/api/council-members")) return "council-member";
   if (path.startsWith("/api/council-terms")) return "council-term";
   if (path.startsWith("/api/council-decisions")) return "council-decision";
+  if (path.startsWith("/api/council-delegations") && path.includes("/memberships")) {
+    return "delegation-membership";
+  }
+  if (path.startsWith("/api/council-delegations")) return "council-delegation";
   if (path.startsWith("/api/council-committees") && path.includes("/memberships")) {
     return "committee-membership";
   }
@@ -106,9 +112,11 @@ const primaryPropertyByClass: Record<SirenEntityClass, string | null> = {
   "authentication-status": null,
   ballot: "ballot",
   "ballot-preview": null,
+  "delegation-membership": null,
   "committee-membership": null,
   contact: null,
   "council-business": "business",
+  "council-delegation": null,
   "council-committee": "committee",
   "council-decision": null,
   "council-meeting": "meeting",
@@ -148,9 +156,11 @@ const slugIdentityByClass: Record<SirenEntityClass, boolean> = {
   "authentication-status": false,
   ballot: false,
   "ballot-preview": false,
+  "delegation-membership": false,
   "committee-membership": false,
   contact: false,
   "council-business": true,
+  "council-delegation": false,
   "council-committee": false,
   "council-decision": true,
   "council-meeting": true,
@@ -224,6 +234,11 @@ export function canonicalHref(request: Request, entityClass: SirenEntityClass, v
       const meetingReference = meetingReferenceForValue(request, primary, value);
       return meetingReference ? `/api/council-meetings/${meetingReference}/ballots/${id}` : currentHref();
     },
+    "delegation-membership": () => {
+      if (!id) return currentHref();
+      const committeeReference = pathWithoutQuery(request).match(/\/api\/council-delegations\/([^/]+)/)?.[1];
+      return committeeReference ? `/api/council-delegations/${committeeReference}/memberships/${id}` : currentHref();
+    },
     "committee-membership": () => {
       if (!id) return currentHref();
       const committeeReference = pathWithoutQuery(request).match(/\/api\/council-committees\/([^/]+)/)?.[1];
@@ -231,6 +246,7 @@ export function canonicalHref(request: Request, entityClass: SirenEntityClass, v
     },
     contact: () => (id ? `/api/contacts/${id}` : currentHref()),
     "council-business": () => referencedHref("council-business"),
+    "council-delegation": () => referencedHref("council-delegations"),
     "council-committee": () => referencedHref("council-committees"),
     "council-decision": () => referencedHref("council-decisions"),
     "council-meeting": () => referencedHref("council-meetings"),

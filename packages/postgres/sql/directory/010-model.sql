@@ -43,6 +43,9 @@ CREATE TABLE hall.council_member (
   contact UUID NOT NULL REFERENCES hall.contact (id) ON DELETE RESTRICT,
   council_term UUID NOT NULL REFERENCES hall.council_term (id) ON DELETE RESTRICT,
   role hall.council_role NOT NULL,
+  -- @functional-requirement HALL-FR-DIR-130 GLOBAL_RANK_WITHIN_TERM:
+  rank INTEGER CHECK (rank IS NULL OR rank >= 0),
+  UNIQUE (council_term, rank),
   term_started_on DATE NOT NULL,
   term_ended_on DATE,
   CONSTRAINT council_member_dates_are_ordered
@@ -171,11 +174,10 @@ CREATE UNIQUE INDEX council_committee_one_active_name
   WHERE archived_at IS NULL;
 
 -- @functional-requirement HALL-FR-DIR-090 ONE_ACTIVE_COMMITTEE_MEMBERSHIP:
--- @functional-requirement HALL-FR-DIR-110 MEMBERSHIP_DATES_FIT_MANDATE:
 CREATE TABLE hall.committee_membership (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   committee UUID NOT NULL REFERENCES hall.council_committee (id) ON DELETE RESTRICT,
-  council_member UUID NOT NULL REFERENCES hall.council_member (id) ON DELETE RESTRICT,
+  contact UUID NOT NULL REFERENCES hall.contact (id) ON DELETE RESTRICT,
   role hall.committee_role NOT NULL,
   started_on DATE NOT NULL,
   ended_on DATE,
@@ -184,9 +186,10 @@ CREATE TABLE hall.committee_membership (
 );
 
 CREATE UNIQUE INDEX committee_membership_one_active_per_member
-  ON hall.committee_membership (committee, council_member)
+  ON hall.committee_membership (committee, contact)
   WHERE ended_on IS NULL;
 
+-- @functional-requirement HALL-FR-DIR-100 ACTIVE_MEMBERSHIP_REQUIRES_ACTIVE_ENTITIES:
 CREATE FUNCTION hall.enforce_committee_membership()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -194,49 +197,31 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 DECLARE
-  committee_archived_at TIMESTAMPTZ;
-  mandate_started_on DATE;
-  mandate_ended_on DATE;
+  parent_archived_at TIMESTAMPTZ;
+  contact_archived_at TIMESTAMPTZ;
 BEGIN
-  SELECT committee.archived_at
-  INTO committee_archived_at
-  FROM hall.council_committee AS committee
-  WHERE committee.id = NEW.committee;
-
+  SELECT archived_at INTO parent_archived_at
+  FROM hall.council_committee WHERE id = NEW.committee FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION USING ERRCODE = 'HV820', MESSAGE = 'Council committee not found';
   END IF;
-
-  SELECT member.term_started_on, member.term_ended_on
-  INTO mandate_started_on, mandate_ended_on
-  FROM hall.council_member AS member
-  WHERE member.id = NEW.council_member;
-
+  SELECT archived_at INTO contact_archived_at
+  FROM hall.contact WHERE id = NEW.contact FOR UPDATE;
   IF NOT FOUND THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV806', MESSAGE = 'Council member not found';
+    RAISE EXCEPTION USING ERRCODE = 'HV801', MESSAGE = 'Contact not found';
   END IF;
-
-  -- @functional-requirement HALL-FR-DIR-100 ACTIVE_MEMBERSHIP_REQUIRES_ACTIVE_ENTITIES:
-  IF NEW.ended_on IS NULL AND committee_archived_at IS NOT NULL THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV821', MESSAGE = 'An archived committee cannot have an active membership';
+  IF NEW.ended_on IS NULL AND parent_archived_at IS NOT NULL THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV821', MESSAGE = 'Council committee is archived';
   END IF;
-  IF NEW.ended_on IS NULL AND mandate_ended_on IS NOT NULL THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV822', MESSAGE = 'An ended council mandate cannot have an active committee membership';
+  IF NEW.ended_on IS NULL AND contact_archived_at IS NOT NULL THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV802', MESSAGE = 'Contact is archived';
   END IF;
-
-  -- @requirement-reference HALL-FR-DIR-110 MEMBERSHIP_DATES_FIT_MANDATE:
-  IF NEW.started_on < mandate_started_on
-    OR (mandate_ended_on IS NOT NULL AND coalesce(NEW.ended_on, mandate_ended_on + 1) > mandate_ended_on)
-  THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV823', MESSAGE = 'Committee membership dates must fit the council mandate';
-  END IF;
-
   RETURN NEW;
 END
 $function$;
 
 CREATE TRIGGER committee_membership_enforce_invariants
-BEFORE INSERT OR UPDATE OF committee, council_member, started_on, ended_on
+BEFORE INSERT OR UPDATE OF committee, contact, started_on, ended_on
 ON hall.committee_membership
 FOR EACH ROW
 EXECUTE FUNCTION hall.enforce_committee_membership();
@@ -264,27 +249,3 @@ AFTER UPDATE OF archived_at
 ON hall.council_committee
 FOR EACH ROW
 EXECUTE FUNCTION hall.end_memberships_with_committee();
-
-CREATE FUNCTION hall.end_memberships_with_mandate()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = pg_catalog, hall
-AS $function$
-BEGIN
-  -- @requirement-reference HALL-FR-DIR-120 CLOSURE_ENDS_MEMBERSHIPS:
-  IF OLD.term_ended_on IS NULL AND NEW.term_ended_on IS NOT NULL THEN
-    UPDATE hall.committee_membership
-    SET ended_on = NEW.term_ended_on
-    WHERE council_member = NEW.id
-      AND ended_on IS NULL;
-  END IF;
-  RETURN NEW;
-END
-$function$;
-
-CREATE TRIGGER council_member_end_memberships
-AFTER UPDATE OF term_ended_on
-ON hall.council_member
-FOR EACH ROW
-EXECUTE FUNCTION hall.end_memberships_with_mandate();

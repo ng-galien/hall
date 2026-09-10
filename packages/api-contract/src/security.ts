@@ -32,7 +32,7 @@ export interface ApiPrincipal {
   displayName: string;
   roles: ApiRole[];
   permissions: ApiPermission[];
-  councilMemberId: string | null;
+  contactId: string | null;
 }
 
 export interface ApiUser extends ApiPrincipal {
@@ -58,9 +58,25 @@ export const loginSchema = z.object({
 
 export const createUserSchema = bootstrapUserSchema.extend({
   roles: apiRoleListSchema,
-  councilMemberId: z.string().uuid().nullable().default(null),
+  contactId: z.string().uuid().nullable().default(null),
 });
 
 export const assignUserRolesSchema = z.object({
   roles: apiRoleListSchema,
 });
+
+export const updateUserSchema = bootstrapUserSchema
+  .pick({ email: true, displayName: true })
+  .extend({
+    contactId: z.string().uuid().nullable(),
+  })
+  .strict();
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(256),
+    newPassword: passwordSchema,
+  })
+  .strict();
+
+export const resetPasswordSchema = z.object({ newPassword: passwordSchema }).strict();

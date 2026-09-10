@@ -10,7 +10,7 @@ export type PostgresCallContext = Readonly<{
   requestId: string;
   actorId: string | null;
   action: string;
-  councilMemberId: string | null;
+  contactId: string | null;
   roles?: readonly string[];
 }>;
 

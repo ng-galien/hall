@@ -97,6 +97,7 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
     "authentication-status": () => [],
     ballot: () => [],
     "ballot-preview": () => [],
+    "delegation-membership": () => [],
     "committee-membership": () => [],
     contact: () =>
       canExecuteAction(request, "contact.create")
@@ -115,6 +116,10 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
               ],
             },
           ]
+        : [],
+    "council-delegation": () =>
+      canExecuteAction(request, "delegation.create")
+        ? [action("delegation.create", "POST", "/api/council-delegations", "Create a delegation")]
         : [],
     "council-committee": () =>
       canExecuteAction(request, "committee.create")
@@ -376,6 +381,17 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
       id && primary?.canConfirm === true
         ? authorizedActions(request, [action("ballot.confirm", "POST", `/api/ballot-previews/${id}/confirm`)])
         : [],
+    "delegation-membership": () => {
+      if (!id) return [];
+      const delegationId = request.originalUrl.match(/\/api\/council-delegations\/([^/]+)/)?.[1];
+      if (!delegationId) return [];
+      const href = `/api/council-delegations/${delegationId}/memberships/${id}`;
+      const actions = [action("delegation.update-membership", "PUT", href, "Update the delegation membership")];
+      if (!primary?.endedOn) {
+        actions.push(action("delegation.end-membership", "POST", `${href}/end`, "End the delegation membership"));
+      }
+      return authorizedActions(request, actions);
+    },
     "committee-membership": () => {
       if (!id) return [];
       const committeeId = request.originalUrl.match(/\/api\/council-committees\/([^/]+)/)?.[1];
@@ -477,6 +493,19 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
       }
       return authorizedActions(request, actions);
     },
+    "council-delegation": () => {
+      if (!id || !reference || primary?.archivedAt) return [];
+      return authorizedActions(request, [
+        action("delegation.update", "PUT", `/api/council-delegations/${reference}`, "Update the delegation"),
+        action("delegation.archive", "POST", `/api/council-delegations/${reference}/archive`, "Archive the delegation"),
+        action(
+          "delegation.add-membership",
+          "POST",
+          `/api/council-delegations/${reference}/memberships`,
+          "Add a delegation member",
+        ),
+      ]);
+    },
     "council-committee": () => {
       if (!id || !reference || primary?.archivedAt) return [];
       return authorizedActions(request, [
@@ -527,7 +556,13 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
           ])
         : [],
     resource: () => [],
-    session: () => (request.sessionId ? [action("session.logout", "POST", "/api/auth/logout", "Sign out")] : []),
+    session: () =>
+      request.sessionId
+        ? [
+            action("session.logout", "POST", "/api/auth/logout", "Sign out"),
+            action("session.change-password", "POST", "/api/auth/change-password", "Change password"),
+          ]
+        : [],
     template: () => {
       if (!id) return [];
       return authorizedActions(request, [
@@ -540,7 +575,11 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
     "template-reference": () => [],
     user: () => {
       if (!id) return [];
-      const actions = [action("user.assign-role", "PUT", `/api/users/${id}/roles`, "Assign roles")];
+      const actions = [
+        action("user.update", "PUT", `/api/users/${id}`, "Update user"),
+        action("user.reset-password", "POST", `/api/users/${id}/reset-password`, "Reset password"),
+        action("user.assign-role", "PUT", `/api/users/${id}/roles`, "Assign roles"),
+      ];
       if (!primary?.protectedFromDisable && primary?.status === "active") {
         actions.push(action("user.disable", "POST", `/api/users/${id}/disable`, "Disable the user"));
       }
@@ -552,7 +591,13 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
 /** Documentary navigation exposes lifecycle actions, while agenda composition stays on the meeting page. */
 export function meetingDocumentActions(request: Request, meeting: unknown): SirenAction[] {
   const agendaCompositionActions: ReadonlySet<ApiActionName> = new Set([
-    "meeting.create-and-schedule-business", "agenda-item.schedule-prepared", "agenda-item.schedule", "meeting.reorder-agenda", "meeting.add-open-question",
+    "meeting.create-and-schedule-business",
+    "agenda-item.schedule-prepared",
+    "agenda-item.schedule",
+    "meeting.reorder-agenda",
+    "meeting.add-open-question",
   ]);
-  return objectActions(request, "council-meeting", meeting).filter(action => !agendaCompositionActions.has(action.name));
+  return objectActions(request, "council-meeting", meeting).filter(
+    (action) => !agendaCompositionActions.has(action.name),
+  );
 }

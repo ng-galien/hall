@@ -64,6 +64,10 @@ dependency has a maintained security fix.
 
 ## Development
 
+Choose a dataset and a meeting scenario with the [seed guide](docs/seeds.md).
+The supplied [Alésia dataset](docs/demo-alesia.md) is fictional and documents its
+historical context, modern dates and sample accounts.
+
 Requires Node 22 or newer. Desktop packaging uses the version pinned in `.desktop-node-version`.
 
 ```bash

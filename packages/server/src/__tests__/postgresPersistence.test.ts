@@ -579,7 +579,7 @@ postgres("PostgreSQL persistence", () => {
         method: "POST",
         headers: mutationHeaders,
         body: JSON.stringify({
-          councilMemberId: member.properties.id,
+          contactId: member.properties.contactId,
           role: "chair",
           startedOn: termStartedOn,
         }),
@@ -596,7 +596,7 @@ postgres("PostgreSQL persistence", () => {
           properties: expect.objectContaining({
             id: membership.properties.id,
             committeeId,
-            councilMemberId: member.properties.id,
+            contactId: member.properties.contactId,
             role: "chair",
             endedOn: null,
           }),

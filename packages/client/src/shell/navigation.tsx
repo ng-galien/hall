@@ -18,6 +18,7 @@ export interface NavigationItem {
   icon: ReactNode;
   /** Renders the filing path tree under this entry. */
   workspaceTree?: boolean;
+  requiredRelation?: string;
 }
 
 export interface NavigationSection {
@@ -50,6 +51,7 @@ export const navigationSections: NavigationSection[] = [
   {
     labelKey: "navigation.administration",
     items: [
+      { to: "/users", labelKey: "users.title", icon: <MembersIcon />, requiredRelation: "users" },
       { to: "/contacts", labelKey: "navigation.contacts", icon: <ContactIcon /> },
       { to: "/council-members", labelKey: "navigation.members", icon: <MembersIcon /> },
       {

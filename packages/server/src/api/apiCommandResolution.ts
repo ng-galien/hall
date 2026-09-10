@@ -13,6 +13,7 @@ type AuditRequest = {
   path: string;
   body?: unknown;
   sessionId?: string;
+  principal?: { id: string };
 };
 
 function requestBody(value: unknown): Record<string, unknown> | undefined {
@@ -145,6 +146,19 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     return null;
   }
 
+  if (root === "council-delegations") {
+    if (method === "POST" && !id) return auditIntent("delegation.create");
+    if (method === "PUT" && id && !child) return auditIntent("delegation.update", id);
+    if (method === "POST" && id && child === "archive" && !childId) return auditIntent("delegation.archive", id);
+    if (method === "POST" && id && child === "memberships" && !childId)
+      return auditIntent("delegation.add-membership", null);
+    if (method === "PUT" && id && child === "memberships" && childId && !operation)
+      return auditIntent("delegation.update-membership", childId);
+    if (method === "POST" && id && child === "memberships" && childId && operation === "end")
+      return auditIntent("delegation.end-membership", childId);
+    return null;
+  }
+
   if (root === "council-committees") {
     if (method === "POST" && !id) return auditIntent("committee.create");
     if (method === "PUT" && id && !child) return auditIntent("committee.update", id);
@@ -179,13 +193,16 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
   }
 
   if (root === "users") {
+    if (method === "PUT" && id && !child) return auditIntent("user.update", id, body && { contactId: body.contactId });
+    if (method === "POST" && id && child === "reset-password" && !childId)
+      return auditIntent("user.reset-password", id);
     if (method === "POST" && !id)
       return auditIntent(
         "user.create",
         null,
         body && {
           roles: Array.isArray(body.roles) ? body.roles : undefined,
-          councilMemberId: body.councilMemberId ?? null,
+          contactId: body.contactId ?? null,
         },
       );
     if (method === "PUT" && id && child === "roles" && !childId)
@@ -206,6 +223,7 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method !== "POST" || child) return null;
     if (id === "bootstrap") return auditIntent("session.bootstrap");
     if (id === "login") return auditIntent("session.login");
+    if (id === "change-password") return auditIntent("session.change-password", request.principal?.id ?? null);
     if (id === "logout") return auditIntent("session.logout", request.sessionId ?? null);
     return null;
   }

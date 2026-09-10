@@ -48,16 +48,24 @@
 -- be archived without losing its history.
 
 -- @requirement-reference HALL-FR-DIR-090 ONE_ACTIVE_COMMITTEE_MEMBERSHIP:
--- A CouncilMember has at most one active membership in a given committee.
+-- A Contact has at most one active membership in a given committee.
 
 -- @requirement-reference HALL-FR-DIR-100 ACTIVE_MEMBERSHIP_REQUIRES_ACTIVE_ENTITIES:
 -- An active CommitteeMembership requires both an active CouncilCommittee and an
--- active CouncilMember mandate.
+-- unarchived Contact.
 
--- @requirement-reference HALL-FR-DIR-110 MEMBERSHIP_DATES_FIT_MANDATE:
--- Committee membership dates are ordered and remain inside the dates of the
--- corresponding council mandate.
+-- Retired HALL-FR-DIR-110: memberships now reference contacts, independently
+-- from council mandates. Membership start and end dates remain ordered.
 
 -- @requirement-reference HALL-FR-DIR-120 CLOSURE_ENDS_MEMBERSHIPS:
--- Archiving a committee or ending a council mandate ends its active committee
--- memberships atomically on the same calendar date.
+-- Archiving a committee ends its active memberships on the archive date.
+-- Ending a council mandate does not end contact memberships.
+
+-- @requirement-reference HALL-FR-DIR-130 GLOBAL_RANK_WITHIN_TERM:
+-- A known rank is nonnegative and unique within a council term, across all roles.
+-- Unknown ranks remain null; the role and rank are separate data.
+
+-- @requirement-reference HALL-FR-DIR-140 EXTERNAL_REPRESENTATION_CONTACTS:
+-- External representations have independent dated contact memberships with primary
+-- and alternate roles. Multiple primary or alternate representatives are possible;
+-- no pairing or council mandate constraint is inferred.

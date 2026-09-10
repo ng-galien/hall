@@ -79,6 +79,7 @@ export const schemaManifestPaths = [
   "sql/workspace/054-decision-numbering.sql",
   "sql/workspace/060-meeting-documents.sql",
   "sql/900-grants.sql",
+  "sql/directory/030-contact-representations.sql",
 ] as const;
 
 export type SchemaManifestEntry = Readonly<{

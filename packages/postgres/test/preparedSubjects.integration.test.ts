@@ -8,7 +8,7 @@ postgresDescribe("prepared subjects and atomic insertion", () => {
   useFreshHallDatabase(pool);
   const request: PostgresCouncilRequest = {
     role: "hall_api_authenticated",
-    context: { requestId: "prepared-test", actorId: "clerk", councilMemberId: null, roles: ["administrator"] },
+    context: { requestId: "prepared-test", actorId: "clerk", contactId: null, roles: ["administrator"] },
   };
   it("quick creation shifts a deprogrammed occurrence instead of colliding with its absolute position", async () => {
     const meeting = await council.provisionInitialMeeting(request, {});

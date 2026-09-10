@@ -399,7 +399,7 @@ describe("content templates", () => {
         displayName: "Lecture seule",
         password: "Mot-de-passe-lecture-2026!",
         roles: ["reader"],
-        councilMemberId: null,
+        contactId: null,
       })
       .expect(201);
     await rawAgent.post("/api/auth/logout").expect(204);

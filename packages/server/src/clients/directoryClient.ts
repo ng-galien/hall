@@ -1,15 +1,20 @@
 import type {
   AddCommitteeMembership,
+  AddDelegationMembership,
   CommitteeMembership,
   Contact,
   CouncilCommittee,
+  CouncilDelegation,
   CouncilMember,
   CouncilTerm,
   CreateCouncilMember,
-  SaveCouncilCommittee,
+  DelegationMembership,
   SaveContact,
+  SaveCouncilCommittee,
+  SaveCouncilDelegation,
   UpdateCommitteeMembership,
   UpdateCouncilMember,
+  UpdateDelegationMembership,
 } from "@hall/api-contract";
 
 export type DirectoryClientFailure =
@@ -23,9 +28,11 @@ export type DirectoryClientFailure =
   | "invalidCouncilTerm"
   | "councilCommitteeNotFound"
   | "councilCommitteeArchived"
-  | "councilMemberMandateEnded"
   | "committeeMembershipDatesInvalid"
   | "committeeMembershipNotFound"
+  | "councilDelegationNotFound"
+  | "councilDelegationArchived"
+  | "delegationMembershipNotFound"
   | "conflict";
 
 export class DirectoryClientError extends Error {
@@ -66,4 +73,18 @@ export interface DirectoryClient {
     input: UpdateCommitteeMembership,
   ): Promise<CommitteeMembership>;
   endCommitteeMembership(committeeId: string, membershipId: string, endedOn: string): Promise<CommitteeMembership>;
+  listCouncilDelegations(includeArchived?: boolean): Promise<CouncilDelegation[]>;
+  openCouncilDelegation(id: string): Promise<CouncilDelegation | null>;
+  createCouncilDelegation(input: SaveCouncilDelegation): Promise<CouncilDelegation>;
+  updateCouncilDelegation(id: string, input: SaveCouncilDelegation): Promise<CouncilDelegation>;
+  archiveCouncilDelegation(id: string): Promise<CouncilDelegation>;
+  listDelegationMemberships(delegationId: string): Promise<DelegationMembership[]>;
+  openDelegationMembership(delegationId: string, membershipId: string): Promise<DelegationMembership | null>;
+  addDelegationMembership(delegationId: string, input: AddDelegationMembership): Promise<DelegationMembership>;
+  updateDelegationMembership(
+    delegationId: string,
+    membershipId: string,
+    input: UpdateDelegationMembership,
+  ): Promise<DelegationMembership>;
+  endDelegationMembership(delegationId: string, membershipId: string, endedOn: string): Promise<DelegationMembership>;
 }

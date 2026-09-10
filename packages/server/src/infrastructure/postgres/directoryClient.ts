@@ -1,10 +1,12 @@
 import {
+  type CreateCouncilMember,
   committeeMembershipSchema,
   contactSchema,
   councilCommitteeSchema,
+  councilDelegationSchema,
   councilMemberSchema,
   councilTermSchema,
-  type CreateCouncilMember,
+  delegationMembershipSchema,
   type SaveContact,
   type UpdateCouncilMember,
 } from "@hall/api-contract";
@@ -25,10 +27,14 @@ function failureFor(error: HallPostgresError): DirectoryClientFailure | null {
   if (error.sqlState === "HV805") return "councilTermCapacityReached";
   if (error.sqlState === "HV806") return "councilMemberNotFound";
   if (["HV807", "HV808"].includes(error.sqlState)) return "invalidCouncilTerm";
+  if (error.sqlState === "HV830") return "councilDelegationNotFound";
+  if (error.sqlState === "HV831") return "councilDelegationArchived";
+  if (error.sqlState === "HV834") return "delegationMembershipNotFound";
+  if (error.sqlState === "23514" && error.constraint === "delegation_membership_dates_are_ordered") return "conflict";
   if (error.sqlState === "HV820") return "councilCommitteeNotFound";
   if (error.sqlState === "HV821") return "councilCommitteeArchived";
-  if (error.sqlState === "HV822") return "councilMemberMandateEnded";
-  if (error.sqlState === "HV823") return "committeeMembershipDatesInvalid";
+  if (error.sqlState === "23514" && error.constraint === "committee_membership_dates_are_ordered")
+    return "committeeMembershipDatesInvalid";
   if (error.sqlState === "HV824") return "committeeMembershipNotFound";
   if (error.sqlState === "23505" && error.constraint === "council_member_one_active_mandate_per_contact") {
     return "contactAlreadyHasActiveMandate";
@@ -55,7 +61,7 @@ export function createPostgresDirectoryClient({
       context: {
         requestId: context.requestId,
         actorId: context.principal.id,
-        councilMemberId: context.principal.councilMemberId,
+        contactId: context.principal.contactId,
         roles: context.principal.roles,
       },
     };
@@ -84,9 +90,9 @@ export function createPostgresDirectoryClient({
       );
     },
     async listContacts(includeArchived = false) {
-      return z.array(contactSchema).parse(
-        await call(() => postgresDirectory.listContacts(currentRequest(), includeArchived)),
-      );
+      return z
+        .array(contactSchema)
+        .parse(await call(() => postgresDirectory.listContacts(currentRequest(), includeArchived)));
     },
     async openContact(id) {
       const contact = await call(() => postgresDirectory.openContact(currentRequest(), id));
@@ -102,9 +108,9 @@ export function createPostgresDirectoryClient({
       return contactSchema.parse(await call(() => postgresDirectory.archiveContact(currentRequest(), id)));
     },
     async listCouncilMembers(activeOnly = false) {
-      return z.array(councilMemberSchema).parse(
-        await call(() => postgresDirectory.listCouncilMembers(currentRequest(), activeOnly)),
-      );
+      return z
+        .array(councilMemberSchema)
+        .parse(await call(() => postgresDirectory.listCouncilMembers(currentRequest(), activeOnly)));
     },
     async openCouncilMember(id) {
       const member = await call(() => postgresDirectory.openCouncilMember(currentRequest(), id));
@@ -124,9 +130,9 @@ export function createPostgresDirectoryClient({
       );
     },
     async listCouncilCommittees(includeArchived = false) {
-      return z.array(councilCommitteeSchema).parse(
-        await call(() => postgresDirectory.listCouncilCommittees(currentRequest(), includeArchived)),
-      );
+      return z
+        .array(councilCommitteeSchema)
+        .parse(await call(() => postgresDirectory.listCouncilCommittees(currentRequest(), includeArchived)));
     },
     async openCouncilCommittee(id) {
       const committee = await call(() => postgresDirectory.openCouncilCommittee(currentRequest(), id));
@@ -148,9 +154,9 @@ export function createPostgresDirectoryClient({
       );
     },
     async listCommitteeMemberships(committeeId) {
-      return z.array(committeeMembershipSchema).parse(
-        await call(() => postgresDirectory.listCommitteeMemberships(currentRequest(), committeeId)),
-      );
+      return z
+        .array(committeeMembershipSchema)
+        .parse(await call(() => postgresDirectory.listCommitteeMemberships(currentRequest(), committeeId)));
     },
     async openCommitteeMembership(committeeId, membershipId) {
       const membership = await call(() =>
@@ -174,6 +180,60 @@ export function createPostgresDirectoryClient({
       return committeeMembershipSchema.parse(
         await call(() =>
           postgresDirectory.endCommitteeMembership(currentRequest(), committeeId, membershipId, endedOn),
+        ),
+      );
+    },
+    async listCouncilDelegations(includeArchived = false) {
+      return z
+        .array(councilDelegationSchema)
+        .parse(await call(() => postgresDirectory.listCouncilDelegations(currentRequest(), includeArchived)));
+    },
+    async openCouncilDelegation(id) {
+      const committee = await call(() => postgresDirectory.openCouncilDelegation(currentRequest(), id));
+      return committee === null ? null : councilDelegationSchema.parse(committee);
+    },
+    async createCouncilDelegation(input) {
+      return councilDelegationSchema.parse(
+        await call(() => postgresDirectory.createCouncilDelegation(currentRequest(), input)),
+      );
+    },
+    async updateCouncilDelegation(id, input) {
+      return councilDelegationSchema.parse(
+        await call(() => postgresDirectory.updateCouncilDelegation(currentRequest(), id, input)),
+      );
+    },
+    async archiveCouncilDelegation(id) {
+      return councilDelegationSchema.parse(
+        await call(() => postgresDirectory.archiveCouncilDelegation(currentRequest(), id)),
+      );
+    },
+    async listDelegationMemberships(delegationId) {
+      return z
+        .array(delegationMembershipSchema)
+        .parse(await call(() => postgresDirectory.listDelegationMemberships(currentRequest(), delegationId)));
+    },
+    async openDelegationMembership(delegationId, membershipId) {
+      const membership = await call(() =>
+        postgresDirectory.openDelegationMembership(currentRequest(), delegationId, membershipId),
+      );
+      return membership === null ? null : delegationMembershipSchema.parse(membership);
+    },
+    async addDelegationMembership(delegationId, input) {
+      return delegationMembershipSchema.parse(
+        await call(() => postgresDirectory.addDelegationMembership(currentRequest(), delegationId, input)),
+      );
+    },
+    async updateDelegationMembership(delegationId, membershipId, input) {
+      return delegationMembershipSchema.parse(
+        await call(() =>
+          postgresDirectory.updateDelegationMembership(currentRequest(), delegationId, membershipId, input),
+        ),
+      );
+    },
+    async endDelegationMembership(delegationId, membershipId, endedOn) {
+      return delegationMembershipSchema.parse(
+        await call(() =>
+          postgresDirectory.endDelegationMembership(currentRequest(), delegationId, membershipId, endedOn),
         ),
       );
     },

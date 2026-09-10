@@ -94,7 +94,7 @@ export function createPostgresCouncilClient({
       context: {
         requestId: context.requestId,
         actorId: context.principal.id,
-        councilMemberId: context.principal.councilMemberId,
+        contactId: context.principal.contactId,
         roles: context.principal.roles,
       },
     };

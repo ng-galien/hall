@@ -1,12 +1,35 @@
+import { findSirenLink, type SirenEntity } from "@hall/api-contract";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { ChevronDownIcon, ChevronRightIcon, DebugIcon, DocsIcon, SettingsIcon } from "../components/icons";
 import { useI18n } from "../i18n/I18nProvider";
 import { useWorkspacePrefsStore } from "../pages/workspace/workspacePrefs";
+import { apiSirenRequest } from "../services/apiClient";
+import { USER_ACCESS_CHANGED_EVENT } from "../services/usersApi";
 import { navigationSections } from "./navigation";
 import { WorkspaceTree } from "./WorkspaceTree";
 
 export function AppSidebar({ compact }: { compact: boolean }) {
   const { t } = useI18n();
+  const [apiRoot, setApiRoot] = useState<SirenEntity | null>(null);
+  useEffect(() => {
+    let active = true;
+    const refreshAccess = () => {
+      void apiSirenRequest("")
+        .then(({ representation }) => {
+          if (active) setApiRoot(representation);
+        })
+        .catch(() => {
+          if (active) setApiRoot(null);
+        });
+    };
+    refreshAccess();
+    window.addEventListener(USER_ACCESS_CHANGED_EVENT, refreshAccess);
+    return () => {
+      active = false;
+      window.removeEventListener(USER_ACCESS_CHANGED_EVENT, refreshAccess);
+    };
+  }, []);
   const { treeCollapsed, toggleTree } = useWorkspacePrefsStore();
 
   return (
@@ -21,37 +44,41 @@ export function AppSidebar({ compact }: { compact: boolean }) {
             {section.labelKey && compact && sectionIndex > 0 ? (
               <span className="mx-auto my-2 h-px w-5 bg-border" />
             ) : null}
-            {section.items.map((item) => (
-              <div className="flex flex-col" key={item.to}>
-                <div className="flex items-center gap-0.5">
-                  <NavLink
-                    to={item.to}
-                    data-testid={`navigation-${item.to === "/" ? "overview" : item.to.slice(1)}`}
-                    end={item.to === "/"}
-                    title={compact ? t(item.labelKey) : undefined}
-                    aria-label={compact ? t(item.labelKey) : undefined}
-                    className={({ isActive }) =>
-                      `nav-row min-w-0 flex-1 ${isActive ? "nav-row-active" : ""} ${compact ? "justify-center px-0" : ""}`
-                    }
-                  >
-                    <span className="nav-icon">{item.icon}</span>
-                    {!compact ? <span className="min-w-0 flex-1 truncate">{t(item.labelKey)}</span> : null}
-                  </NavLink>
-                  {!compact && item.workspaceTree ? (
-                    <button
-                      className="workspace-tree-fold"
-                      type="button"
-                      aria-expanded={!treeCollapsed}
-                      aria-label={t(treeCollapsed ? "workspace.expandTree" : "workspace.collapseTree")}
-                      onClick={toggleTree}
+            {section.items
+              .filter(
+                (item) => !item.requiredRelation || Boolean(apiRoot && findSirenLink(apiRoot, item.requiredRelation)),
+              )
+              .map((item) => (
+                <div className="flex flex-col" key={item.to}>
+                  <div className="flex items-center gap-0.5">
+                    <NavLink
+                      to={item.to}
+                      data-testid={`navigation-${item.to === "/" ? "overview" : item.to.slice(1)}`}
+                      end={item.to === "/"}
+                      title={compact ? t(item.labelKey) : undefined}
+                      aria-label={compact ? t(item.labelKey) : undefined}
+                      className={({ isActive }) =>
+                        `nav-row min-w-0 flex-1 ${isActive ? "nav-row-active" : ""} ${compact ? "justify-center px-0" : ""}`
+                      }
                     >
-                      {treeCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
-                    </button>
-                  ) : null}
+                      <span className="nav-icon">{item.icon}</span>
+                      {!compact ? <span className="min-w-0 flex-1 truncate">{t(item.labelKey)}</span> : null}
+                    </NavLink>
+                    {!compact && item.workspaceTree ? (
+                      <button
+                        className="workspace-tree-fold"
+                        type="button"
+                        aria-expanded={!treeCollapsed}
+                        aria-label={t(treeCollapsed ? "workspace.expandTree" : "workspace.collapseTree")}
+                        onClick={toggleTree}
+                      >
+                        {treeCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
+                      </button>
+                    ) : null}
+                  </div>
+                  {item.workspaceTree && !compact && !treeCollapsed ? <WorkspaceTree /> : null}
                 </div>
-                {item.workspaceTree && !compact && !treeCollapsed ? <WorkspaceTree /> : null}
-              </div>
-            ))}
+              ))}
           </div>
         ))}
       </nav>

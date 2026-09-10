@@ -1424,17 +1424,15 @@
         }
       ]
     },
-    "HALL-FR-DIR-110": {
-      "name": "MEMBERSHIP_DATES_FIT_MANDATE",
+    "HALL-FR-DIR-130": {
+      "name": "GLOBAL_RANK_WITHIN_TERM",
       "nature": "functional",
-      "clauses": [
-        {
-          "key": "implementation",
-          "origin": "product",
-          "statement": "Dates appartenance dans mandat : P — cohérence temporelle.",
-          "sourceIds": []
-        }
-      ]
+      "clauses": [{"key":"implementation","origin":"product","statement":"Rang global non négatif, distinct du rôle, unique dans la mandature lorsqu’il est renseigné ; rang inconnu nul. Choix explicite du propriétaire.","sourceIds":[]}]
+    },
+    "HALL-FR-DIR-140": {
+      "name": "EXTERNAL_REPRESENTATION_CONTACTS",
+      "nature": "functional",
+      "clauses": [{"key":"implementation","origin":"product","statement":"Représentations extérieures composées de contacts titulaires ou suppléants datés, sans obligation de mandat élu ni appariement des représentants. Choix explicite du propriétaire.","sourceIds":[]}]
     },
     "HALL-FR-DIR-120": {
       "name": "CLOSURE_ENDS_MEMBERSHIPS",
@@ -1443,7 +1441,7 @@
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Fin mandat/archive clôt appartenances : P — automatisation à la même date, non règle textuelle S9.",
+          "statement": "Archivage de commission clôt les appartenances ; la fin du mandat élu ne clôt plus une appartenance de contact. Choix produit.",
           "sourceIds": []
         }
       ]

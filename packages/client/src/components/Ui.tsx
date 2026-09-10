@@ -64,6 +64,7 @@ export function CollectionToolbar({
         <SearchIcon aria-hidden="true" />
         <input
           type="search"
+          data-testid="collection-search"
           value={query}
           placeholder={t("common.searchPlaceholder")}
           aria-label={t("common.search")}
@@ -75,6 +76,7 @@ export function CollectionToolbar({
           <button
             type="button"
             aria-pressed={layout === "list"}
+            data-testid="collection-layout-list"
             aria-label={t("common.layoutList")}
             className={layout === "list" ? "collection-layout-active" : undefined}
             onClick={() => onLayoutChange("list")}
@@ -84,6 +86,7 @@ export function CollectionToolbar({
           <button
             type="button"
             aria-pressed={layout === "cards"}
+            data-testid="collection-layout-cards"
             aria-label={t("common.layoutCards")}
             className={layout === "cards" ? "collection-layout-active" : undefined}
             onClick={() => onLayoutChange("cards")}
@@ -120,7 +123,14 @@ export function Modal({
         showCloseButton={false}
         aria-describedby={undefined}
         data-testid={testId}
-        onOpenAutoFocus={initialFocusRef ? (event) => { event.preventDefault(); initialFocusRef.current?.focus(); } : undefined}
+        onOpenAutoFocus={
+          initialFocusRef
+            ? (event) => {
+                event.preventDefault();
+                initialFocusRef.current?.focus();
+              }
+            : undefined
+        }
       >
         <header className="modal-header">
           <DialogTitle>{title}</DialogTitle>
@@ -162,6 +172,7 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   attendance_incomplete: "error.attendance_incomplete",
   authentication_required: "error.authentication_required",
   permission_denied: "error.permission_denied",
+  invalid_current_password: "error.invalid_current_password",
   invalid_credentials: "error.invalid_credentials",
   bootstrap_unavailable: "error.bootstrap_unavailable",
   last_administrator_required: "error.last_administrator_required",

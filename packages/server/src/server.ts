@@ -2,7 +2,7 @@ import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { createHttpApplication } from "./api/application.js";
 import { type ServerConfig, validateServerConfig } from "./core/config.js";
-import { buildContainer } from "./core/container.js";
+import { buildContainer, type ServerCompositionOptions } from "./core/container.js";
 import { logger } from "./core/logger.js";
 
 export interface HttpServerHandle {
@@ -10,9 +10,12 @@ export interface HttpServerHandle {
   close(): Promise<void>;
 }
 
-export async function startHttpServer(config: ServerConfig): Promise<HttpServerHandle> {
+export async function startHttpServer(
+  config: ServerConfig,
+  options: ServerCompositionOptions = {},
+): Promise<HttpServerHandle> {
   validateServerConfig(config);
-  const container = buildContainer(config);
+  const container = buildContainer(config, options);
   try {
     if (container.cradle.postgresClient) await container.cradle.postgresClient.bootstrap.install();
     await container.cradle.sqlExecutor.ready();

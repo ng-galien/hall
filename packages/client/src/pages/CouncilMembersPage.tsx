@@ -43,6 +43,9 @@ export function CouncilMembersPage() {
       t(`role.${member.role}`),
     ),
   );
+  visibleMembers.sort(
+    (left, right) => (left.rank ?? Number.POSITIVE_INFINITY) - (right.rank ?? Number.POSITIVE_INFINITY),
+  );
   const eligibleContacts = contacts.filter(
     (contact) => !members.some((member) => member.active && member.contact.id === contact.id),
   );
@@ -50,13 +53,15 @@ export function CouncilMembersPage() {
     if (committees.length === 0) void loadCommittees(true);
     else void loadAllDetails();
   }, [committees.length, loadAllDetails, loadCommittees]);
-  const memberCommittees = (memberId: string) =>
-    Object.values(details)
+  const memberCommittees = (memberId: string) => {
+    const contactId = members.find((member) => member.id === memberId)?.contact.id;
+    return Object.values(details)
       .filter((detail) =>
-        detail.memberships.some((membership) => membership.councilMemberId === memberId && !membership.endedOn),
+        detail.memberships.some((membership) => membership.contactId === contactId && !membership.endedOn),
       )
       .map((detail) => detail.committee)
       .sort((left, right) => left.name.localeCompare(right.name));
+  };
   const renderCommitteeLinks = (memberId: string) => {
     const currentCommittees = memberCommittees(memberId);
     if (currentCommittees.length === 0) {
@@ -107,6 +112,7 @@ export function CouncilMembersPage() {
       const created = await createMember({
         contactId: form.get("contactId"),
         role: form.get("role"),
+        rank: form.get("rank") ? Number(form.get("rank")) : null,
         termStartedOn: form.get("termStartedOn"),
       });
       if (created) {
@@ -171,6 +177,17 @@ export function CouncilMembersPage() {
                 </Select>
               </div>
               <div className="grid gap-1.5">
+                <Label htmlFor={`${fieldId}-rank`}>{t("members.rank")}</Label>
+                <Input
+                  id={`${fieldId}-rank`}
+                  name="rank"
+                  type="number"
+                  min={0}
+                  step={1}
+                  data-testid="member-create-rank"
+                />
+              </div>
+              <div className="grid gap-1.5">
                 <Label htmlFor={`${fieldId}-termStartedOn`}>{t("members.termStart")}</Label>
                 <Input
                   id={`${fieldId}-termStartedOn`}
@@ -191,7 +208,11 @@ export function CouncilMembersPage() {
         ) : layout === "cards" ? (
           <div className="card-grid">
             {visibleMembers.map((member) => (
-              <article className="entity-card entity-card-member" key={member.id}>
+              <article
+                className="entity-card entity-card-member"
+                data-testid={`member-record-${member.id}`}
+                key={member.id}
+              >
                 <div className="council-member-card-heading">
                   <div className="member-identity member-identity-card">
                     <span className="member-avatar member-avatar-large" aria-hidden="true">
@@ -202,7 +223,10 @@ export function CouncilMembersPage() {
                       <span className="council-member-name">
                         {member.contact.firstName} {member.contact.lastName}
                       </span>
-                      <span>{t(`role.${member.role}`)}</span>
+                      <span>
+                        {t(`role.${member.role}`)}
+                        {member.rank == null ? "" : ` · ${t("members.rank")} ${member.rank}`}
+                      </span>
                     </div>
                   </div>
                   {renderEditAction(member)}
@@ -233,7 +257,7 @@ export function CouncilMembersPage() {
         ) : (
           <div className="data-list">
             {visibleMembers.map((member) => (
-              <div className="data-row council-member-row" key={member.id}>
+              <div className="data-row council-member-row" data-testid={`member-record-${member.id}`} key={member.id}>
                 <div className="member-identity">
                   <span className="member-avatar" aria-hidden="true">
                     {member.contact.firstName.slice(0, 1)}
@@ -243,7 +267,10 @@ export function CouncilMembersPage() {
                     <span className="council-member-name">
                       {member.contact.firstName} {member.contact.lastName}
                     </span>
-                    <span>{t(`role.${member.role}`)}</span>
+                    <span>
+                      {t(`role.${member.role}`)}
+                      {member.rank == null ? "" : ` · ${t("members.rank")} ${member.rank}`}
+                    </span>
                   </div>
                 </div>
                 <div className="council-member-contact council-member-list-contact">

@@ -34,6 +34,45 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
     expect(contract.rows).toEqual([{ manifest_sha256: manifest.fingerprint }]);
   });
 
+  it("upgrades only the exact predecessor to contact call context without losing existing data", async () => {
+    await reset();
+    const current = await loadSchemaManifest();
+    const previous = defineSchemaManifest(
+      current.entries.map((entry) =>
+        entry.path === "sql/020-call-context.sql"
+          ? {
+              ...entry,
+              sql: entry.sql
+                .replaceAll("contactId", "councilMemberId")
+                .replaceAll("hall.contact_id", "hall.council_member_id"),
+            }
+          : entry,
+      ),
+    );
+    expect(previous.fingerprint).toBe("eff3a859e5d1d94e9bd841ccecb197197810d89b2db4d1455f470c0de462ffde");
+    await new PostgresSchemaBootstrap(pool, async () => previous).install();
+    await pool.query(
+      "CREATE TABLE hall.migration_probe(value text); INSERT INTO hall.migration_probe VALUES ('preserved')",
+    );
+    const bootstrap = new PostgresSchemaBootstrap(pool);
+    await expect(bootstrap.install()).resolves.toBe("verified");
+    await expect(bootstrap.verify()).resolves.toBeUndefined();
+    expect((await pool.query("SELECT value FROM hall.migration_probe")).rows).toEqual([{ value: "preserved" }]);
+    const connection = await pool.connect();
+    try {
+      await connection.query("BEGIN");
+      await connection.query(
+        "SELECT set_config('hall.request_id','test',true), set_config('hall.action','test',true), set_config('hall.contact_id','contact',true)",
+      );
+      const result = await connection.query("SELECT hall_api.call_context() AS context");
+      expect(result.rows[0].context).toMatchObject({ contactId: "contact" });
+      expect(result.rows[0].context).not.toHaveProperty("councilMemberId");
+      await connection.query("ROLLBACK");
+    } finally {
+      connection.release();
+    }
+  });
+
   it("serializes concurrent installers against one contract", async () => {
     await reset();
     const bootstrap = new PostgresSchemaBootstrap(pool);

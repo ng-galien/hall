@@ -1,9 +1,5 @@
 import { expect, it } from "vitest";
-import {
-  PostgresDirectory,
-  type PostgresDirectoryRequest,
-  type SavePostgresContact,
-} from "../src/directory.js";
+import { PostgresDirectory, type PostgresDirectoryRequest, type SavePostgresContact } from "../src/directory.js";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
 
 postgresDescribe("PostgreSQL council directory", () => {
@@ -16,7 +12,7 @@ postgresDescribe("PostgreSQL council directory", () => {
     context: {
       requestId: "directory-request-1",
       actorId: "actor-1",
-      councilMemberId: null,
+      contactId: null,
       roles: ["administrator"],
     },
   };
@@ -48,9 +44,7 @@ postgresDescribe("PostgreSQL council directory", () => {
       archivedAt: expect.any(String),
     });
     await expect(directory.listContacts(request)).resolves.toEqual([]);
-    await expect(directory.listContacts(request, true)).resolves.toEqual([
-      expect.objectContaining({ id: contact.id }),
-    ]);
+    await expect(directory.listContacts(request, true)).resolves.toEqual([expect.objectContaining({ id: contact.id })]);
   });
 
   it("projects normalized council mandates and enforces one active mandate per contact", async () => {
@@ -66,6 +60,7 @@ postgresDescribe("PostgreSQL council directory", () => {
       id: expect.any(String),
       contactId: contact.id,
       councilTermId: term.id,
+      rank: null,
       role: "councillor",
       active: true,
       termStartedOn: term.startedOn,
@@ -122,12 +117,12 @@ postgresDescribe("PostgreSQL council directory", () => {
   });
 
   it("denies directory reads to the anonymous database role", async () => {
-    await expect(
-      directory.listContacts({ ...request, role: "hall_api_anonymous" }),
-    ).rejects.toMatchObject({ sqlState: "42501" });
+    await expect(directory.listContacts({ ...request, role: "hall_api_anonymous" })).rejects.toMatchObject({
+      sqlState: "42501",
+    });
   });
 
-  it("keeps committee memberships inside active committees and council mandates", async () => {
+  it("keeps committee memberships attached to contacts independently from council mandates", async () => {
     const term = await directory.configureActiveCouncilTerm(request, 1);
     const contact = await directory.createContact(request, contactInput("Élise", "Bernard"));
     const member = await directory.createCouncilMember(request, {
@@ -140,28 +135,20 @@ postgresDescribe("PostgreSQL council directory", () => {
       description: "Préparation budgétaire",
     });
 
-    await expect(
-      directory.addCommitteeMembership(request, committee.id, {
-        councilMemberId: member.id,
-        role: "member",
-        startedOn: "2020-01-01",
-      }),
-    ).rejects.toMatchObject({ sqlState: "HV823" });
-
     const membership = await directory.addCommitteeMembership(request, committee.id, {
-      councilMemberId: member.id,
+      contactId: member.contactId,
       role: "chair",
-      startedOn: term.startedOn,
+      startedOn: "2020-01-01",
     });
     expect(membership).toMatchObject({
       committeeId: committee.id,
-      councilMemberId: member.id,
+      contactId: member.contactId,
       role: "chair",
       endedOn: null,
     });
     await expect(
       directory.addCommitteeMembership(request, committee.id, {
-        councilMemberId: member.id,
+        contactId: member.contactId,
         role: "member",
         startedOn: term.startedOn,
       }),
@@ -176,7 +163,7 @@ postgresDescribe("PostgreSQL council directory", () => {
     ]);
     await expect(
       directory.addCommitteeMembership(request, committee.id, {
-        councilMemberId: member.id,
+        contactId: member.contactId,
         role: "member",
         startedOn: term.startedOn,
       }),
@@ -187,7 +174,7 @@ postgresDescribe("PostgreSQL council directory", () => {
       description: "",
     });
     const secondMembership = await directory.addCommitteeMembership(request, secondCommittee.id, {
-      councilMemberId: member.id,
+      contactId: member.contactId,
       role: "member",
       startedOn: term.startedOn,
     });
@@ -196,8 +183,10 @@ postgresDescribe("PostgreSQL council directory", () => {
       termStartedOn: member.termStartedOn,
       termEndedOn: member.termStartedOn,
     });
-    await expect(directory.openCommitteeMembership(request, secondCommittee.id, secondMembership.id)).resolves.toMatchObject({
-      endedOn: member.termStartedOn,
+    await expect(
+      directory.openCommitteeMembership(request, secondCommittee.id, secondMembership.id),
+    ).resolves.toMatchObject({
+      endedOn: null,
     });
   });
 });

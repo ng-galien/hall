@@ -8,7 +8,7 @@ describe("council committees", () => {
       .post("/api/contacts")
       .send({ firstName: "Alice", lastName: "Martin", phone: "+33 6 12 34 56 78" })
       .expect(201);
-    const contact = domainBody<{ id: string }>(contactResponse);
+    const contact = domainBody<{ id: string; contactId: string }>(contactResponse);
     const memberResponse = await agent
       .post("/api/council-members")
       .send({
@@ -17,7 +17,7 @@ describe("council committees", () => {
         termStartedOn: "2026-03-22",
       })
       .expect(201);
-    const member = domainBody<{ id: string }>(memberResponse);
+    const member = domainBody<{ id: string; contactId: string }>(memberResponse);
     expect(memberResponse.body.actions).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: "member.update", method: "PUT" })]),
     );
@@ -38,7 +38,7 @@ describe("council committees", () => {
       active: true,
       termEndedOn: null,
     });
-    const committee = domainBody<{ id: string }>(
+    const committee = domainBody<{ id: string; contactId: string }>(
       await agent
         .post("/api/council-committees")
         .send({ name: "Commission vie associative", description: "Prépare les dossiers associatifs." })
@@ -47,7 +47,7 @@ describe("council committees", () => {
     const membership = domainBody<{ id: string; endedOn: string | null }>(
       await agent
         .post(`/api/council-committees/${committee.id}/memberships`)
-        .send({ councilMemberId: member.id, role: "chair", startedOn: "2026-03-22" })
+        .send({ contactId: member.contactId, role: "chair", startedOn: "2026-03-22" })
         .expect(201),
     );
     expect(membership.endedOn).toBeNull();
@@ -60,7 +60,7 @@ describe("council committees", () => {
         expect.objectContaining({ name: "committee.end-membership", method: "POST" }),
       ]),
     );
-    expect(domainBody<{ id: string }>(membershipDetails).id).toBe(membership.id);
+    expect(domainBody<{ id: string; contactId: string }>(membershipDetails).id).toBe(membership.id);
 
     const updatedMembership = domainBody<{ role: string; startedOn: string; endedOn: string | null }>(
       await agent
@@ -91,7 +91,7 @@ describe("council committees", () => {
 
   it("archives a committee without inventing a lifecycle", async () => {
     const { agent } = await createTestServer();
-    const committee = domainBody<{ id: string }>(
+    const committee = domainBody<{ id: string; contactId: string }>(
       await agent.post("/api/council-committees").send({ name: "Commission finances", description: "" }).expect(201),
     );
     const archived = domainBody<{ archivedAt: string | null }>(

@@ -12,3 +12,6 @@ coverage/
 packages/client/playwright-report/
 packages/client/test-results/
 *.tsbuildinfo
+
+# Private municipal email imports and attachments
+/local-imports/

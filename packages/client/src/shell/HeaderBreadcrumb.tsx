@@ -6,6 +6,7 @@ import { useContactsStore } from "../stores/contactsStore";
 import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
+import { useUsersStore } from "../stores/usersStore";
 
 /** Global header breadcrumb derived from the current route. */
 export function HeaderBreadcrumb() {
@@ -14,6 +15,7 @@ export function HeaderBreadcrumb() {
   const { meetings } = useCouncilMeetingsStore();
   const members = useCouncilMembersStore((state) => state.members);
   const contacts = useContactsStore((state) => state.contacts);
+  const users = useUsersStore((state) => state.users);
   const committees = useCouncilCommitteesStore((state) => state.committees);
 
   const items: BreadcrumbItem[] = [{ label: t("app.name"), to: "/" }];
@@ -42,6 +44,10 @@ export function HeaderBreadcrumb() {
       const member = members.find((candidate) => candidate.id === segments[1]);
       if (member) items.push({ label: `${member.contact.firstName} ${member.contact.lastName}` });
     }
+  } else if (segments[0] === "users") {
+    items.push({ label: t("users.title"), to: "/users" });
+    const user = users.find((candidate) => candidate.id === segments[1]);
+    if (user) items.push({ label: user.displayName });
   } else if (segments[0] === "contacts") {
     items.push({ label: t("navigation.contacts"), to: "/contacts" });
     if (segments[1]) {

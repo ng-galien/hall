@@ -120,7 +120,7 @@ function createCurrentSchema(database: DatabaseSync): void {
       display_name TEXT NOT NULL,
       password_hash TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
-      council_member_id TEXT UNIQUE,
+      contact_id TEXT UNIQUE,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     ) STRICT;
@@ -358,7 +358,7 @@ export function initializeSchema(database: DatabaseSync): void {
         .map((row) => String(row.name)),
     );
     if (
-      existingTables.join("\n") !== currentTables.join("\n") ||
+      existingTables.join("\n") !== [...currentTables].sort().join("\n") ||
       !agendaColumns.has("added_during_session") ||
       !agendaColumns.has("business_id") ||
       !agendaColumns.has("snapshot_council_decision_draft_text") ||
@@ -372,6 +372,15 @@ export function initializeSchema(database: DatabaseSync): void {
     }
     database.exec(councilBusinessTitleUniquenessSchema);
     database.exec(ballotVoteConfidentialitySchema);
+    const userColumns = database.prepare("PRAGMA table_info(users)").all();
+    if (userColumns.some((row) => row.name === "council_member_id")) {
+      if (database.prepare("SELECT id FROM users WHERE council_member_id IS NOT NULL LIMIT 1").get()) {
+        throw new Error(
+          "Cannot migrate user contacts: SQLite has no persisted council member directory to resolve existing links",
+        );
+      }
+      database.exec("ALTER TABLE users RENAME COLUMN council_member_id TO contact_id");
+    }
     return;
   }
   database.exec("BEGIN IMMEDIATE");
@@ -384,4 +393,5 @@ export function initializeSchema(database: DatabaseSync): void {
     throw error;
   }
 }
+
 import { meetingLocationsSchema } from "../database/meetingLocationsSchema.js";

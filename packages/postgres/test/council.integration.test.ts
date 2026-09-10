@@ -31,7 +31,7 @@ postgresDescribe("PostgreSQL council client", () => {
     context: {
       requestId: "meeting-request-1",
       actorId: "actor-1",
-      councilMemberId: null,
+      contactId: null,
       roles: ["administrator"],
     },
   };

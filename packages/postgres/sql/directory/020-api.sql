@@ -32,6 +32,7 @@ AS $function$
     'id', target.id,
     'contactId', target.contact,
     'councilTermId', target.council_term,
+    'rank', target.rank,
     'role', target.role,
     'active', target.term_ended_on IS NULL,
     'termStartedOn', target.term_started_on,
@@ -240,7 +241,7 @@ STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
-  SELECT coalesce(jsonb_agg(hall.council_member_projection(member) ORDER BY contact.last_name, contact.first_name, member.id), '[]'::jsonb)
+  SELECT coalesce(jsonb_agg(hall.council_member_projection(member) ORDER BY member.rank NULLS LAST, contact.last_name, contact.first_name, member.id), '[]'::jsonb)
   FROM hall.council_member AS member
   JOIN hall.contact AS contact ON contact.id = member.contact
   WHERE NOT active_only OR member.id IN (SELECT id FROM hall.active_council_members())
@@ -280,7 +281,8 @@ $function$;
 CREATE FUNCTION hall_api.create_council_member(
   target_contact UUID,
   member_role TEXT,
-  mandate_started_on DATE
+  mandate_started_on DATE,
+  member_rank INTEGER DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -301,8 +303,8 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE = 'HV804', MESSAGE = 'An active council term is required';
   END IF;
 
-  INSERT INTO hall.council_member (contact, council_term, role, term_started_on)
-  VALUES (target_contact, active_term_id, member_role::hall.council_role, mandate_started_on)
+  INSERT INTO hall.council_member (contact, council_term, role, term_started_on, rank)
+  VALUES (target_contact, active_term_id, member_role::hall.council_role, mandate_started_on, member_rank)
   RETURNING * INTO created;
 
   RETURN hall.council_member_projection(created);
@@ -313,7 +315,9 @@ CREATE FUNCTION hall_api.update_council_member(
   target_member UUID,
   member_role TEXT,
   mandate_started_on DATE,
-  mandate_ended_on DATE
+  mandate_ended_on DATE,
+  member_rank INTEGER DEFAULT NULL,
+  replace_rank BOOLEAN DEFAULT FALSE
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -327,7 +331,8 @@ BEGIN
   UPDATE hall.council_member
   SET role = member_role::hall.council_role,
       term_started_on = mandate_started_on,
-      term_ended_on = mandate_ended_on
+      term_ended_on = mandate_ended_on,
+      rank = CASE WHEN replace_rank THEN member_rank ELSE rank END
   WHERE id = target_member
   RETURNING * INTO changed;
 
@@ -364,7 +369,7 @@ AS $function$
   SELECT jsonb_build_object(
     'id', target.id,
     'committeeId', target.committee,
-    'councilMemberId', target.council_member,
+    'contactId', target.contact,
     'role', target.role,
     'startedOn', target.started_on,
     'endedOn', target.ended_on
@@ -515,7 +520,7 @@ AS $function$
 DECLARE
   created hall.committee_membership;
 BEGIN
-  INSERT INTO hall.committee_membership (committee, council_member, role, started_on)
+  INSERT INTO hall.committee_membership (committee, contact, role, started_on)
   VALUES (target_committee, target_member, membership_role::hall.committee_role, membership_started_on)
   RETURNING * INTO created;
   RETURN hall.committee_membership_projection(created);

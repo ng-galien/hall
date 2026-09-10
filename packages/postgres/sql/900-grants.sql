@@ -33,9 +33,9 @@ GRANT EXECUTE ON FUNCTION hall_api.open_council_member(UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.council_member_creation_available()
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.create_council_member(UUID, TEXT, DATE)
+GRANT EXECUTE ON FUNCTION hall_api.create_council_member(UUID, TEXT, DATE, INTEGER)
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.update_council_member(UUID, TEXT, DATE, DATE)
+GRANT EXECUTE ON FUNCTION hall_api.update_council_member(UUID, TEXT, DATE, DATE, INTEGER, BOOLEAN)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_council_committees(BOOLEAN)
   TO hall_api_authenticated, hall_api_worker;

@@ -23,7 +23,7 @@ function request(path: string, permissions: readonly ApiPermission[] = apiPermis
       displayName: "Administrator",
       roles: ["administrator"],
       permissions: [...permissions],
-      councilMemberId: null,
+      contactId: null,
     },
   } as unknown as Request;
 }
@@ -42,6 +42,8 @@ const classificationSamples: Record<SirenEntityClass, { path: string; value: unk
   "authentication-status": { path: "/api/auth/status", value: {} },
   "ballot-preview": { path: "/api/ballot-previews/id", value: { id: "id", canConfirm: true } },
   ballot: { path: "/api/unknown", value: { meetingId: "meeting", method: "public", result: "adopted" } },
+  "delegation-membership": { path: "/api/council-delegations/c/memberships/m", value: { id: "m" } },
+  "council-delegation": { path: "/api/council-delegations/id", value: { id: "id" } },
   "committee-membership": { path: "/api/council-committees/c/memberships/m", value: { id: "m" } },
   contact: { path: "/api/contacts/id", value: { id: "id" } },
   "council-business": { path: "/api/council-business/id", value: { id: "id" } },
@@ -103,6 +105,7 @@ describe("Siren entity class authority", () => {
     );
     expect(objectActions(request("/api/auth/session"), "session", {}).map(({ name }) => name)).toEqual([
       "session.logout",
+      "session.change-password",
     ]);
     expect(
       objectActions(request("/api/settings"), "hall-settings", { id: "settings" }).map(({ name }) => name),

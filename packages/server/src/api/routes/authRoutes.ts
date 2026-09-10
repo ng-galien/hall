@@ -2,10 +2,13 @@ import { timingSafeEqual } from "node:crypto";
 import {
   assignUserRolesSchema,
   bootstrapUserSchema,
+  changePasswordSchema,
   createUserSchema,
   loginSchema,
+  resetPasswordSchema,
   SIREN_MEDIA_TYPE,
   type SirenEntity,
+  updateUserSchema,
 } from "@hall/api-contract";
 import { type Request, Router } from "express";
 import { isLoopbackHost } from "../../core/config.js";
@@ -204,6 +207,14 @@ export function createAuthRouter({ authService, config }: Cradle): Router {
     response.status(204).end();
   });
 
+  router.post("/change-password", requireActionPermission("session.change-password"), async (request, response) => {
+    if (!request.sessionId || !request.principal) throw new DomainError("authentication_required", 401);
+    const { currentPassword, newPassword } = changePasswordSchema.parse(request.body);
+    await authService.changePassword(request.principal.id, currentPassword, newPassword);
+    response.setHeader("Set-Cookie", clearedCookie(config.behindTlsProxy === true));
+    response.status(204).end();
+  });
+
   router.get("/session", requireAuthentication, async (request, response) => {
     response.json(request.principal);
   });
@@ -225,6 +236,16 @@ export function createUsersRouter({ authService }: Cradle): Router {
   );
   router.post("/", requireActionPermission("user.create"), async (request, response) => {
     response.status(201).json(await authService.createUser(createUserSchema.parse(request.body)));
+  });
+  router.put("/:userId", requireActionPermission("user.update"), async (request, response) => {
+    response.json(
+      await authService.updateUser(routeParameter(request.params.userId), updateUserSchema.parse(request.body)),
+    );
+  });
+  router.post("/:userId/reset-password", requireActionPermission("user.reset-password"), async (request, response) => {
+    const { newPassword } = resetPasswordSchema.parse(request.body);
+    await authService.resetPassword(routeParameter(request.params.userId), newPassword);
+    response.status(204).end();
   });
   router.put("/:userId/roles", requireActionPermission("user.assign-role"), async (request, response) => {
     const { roles } = assignUserRolesSchema.parse(request.body);

@@ -47,7 +47,7 @@ export function loadAuthentication(
         displayName: "Development administrator",
         roles: ["administrator"],
         permissions: [...apiPermissions],
-        councilMemberId: null,
+        contactId: null,
       };
       requestContext.setPrincipal(request.principal);
       next();

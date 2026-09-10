@@ -43,6 +43,7 @@ export type ApiErrorCode =
   | "authentication_required"
   | "permission_denied"
   | "csrf_validation_failed"
+  | "invalid_current_password"
   | "invalid_credentials"
   | "too_many_login_attempts"
   | "bootstrap_unavailable"
@@ -151,6 +152,7 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "authentication_required",
   "permission_denied",
   "csrf_validation_failed",
+  "invalid_current_password",
   "invalid_credentials",
   "too_many_login_attempts",
   "bootstrap_unavailable",

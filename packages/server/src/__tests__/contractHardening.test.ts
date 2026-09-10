@@ -325,7 +325,7 @@ describe("hardened HTTP and hypermedia contract", () => {
     for (const [role, email] of profiles) {
       await rawAgent
         .post("/api/users")
-        .send({ email, displayName: role, password: "Mot-de-passe-role-2026!", roles: [role], councilMemberId: null })
+        .send({ email, displayName: role, password: "Mot-de-passe-role-2026!", roles: [role], contactId: null })
         .expect(201);
     }
 

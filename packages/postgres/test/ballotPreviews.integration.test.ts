@@ -12,7 +12,7 @@ postgresDescribe("reviewed ballot confirmation", () => {
   useFreshHallDatabase(pool);
   const request: PostgresCouncilRequest = {
     role: "hall_api_authenticated",
-    context: { requestId: "preview-test", actorId: "clerk", councilMemberId: null, roles: ["administrator"] },
+    context: { requestId: "preview-test", actorId: "clerk", contactId: null, roles: ["administrator"] },
   };
   async function fixture() {
     await directory.configureActiveCouncilTerm(request, 3);

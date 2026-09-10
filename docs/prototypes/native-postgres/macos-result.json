@@ -1,0 +1,75 @@
+{
+  "os": "darwin",
+  "arch": "arm64",
+  "directory": "/tmp/hall-native-cluster-4eugvj",
+  "port": 51966,
+  "checks": [
+    {
+      "name": "native-version",
+      "value": "PostgreSQL 17.10 on x86_64-apple-darwin24.6.0, compiled by Apple clang version 17.0.0 (clang-1700.6.3.2), 64-bit"
+    },
+    {
+      "name": "unchanged-manifest-installed",
+      "value": {
+        "entries": 76,
+        "fingerprint": "eff3a859e5d1d94e9bd841ccecb197197810d89b2db4d1455f470c0de462ffde"
+      }
+    },
+    {
+      "name": "concurrent-distinct-sessions-and-contexts",
+      "value": [
+        {
+          "pid": 21696,
+          "role": "hall_api_authenticated",
+          "isolation": "serializable",
+          "context": {
+            "roles": [],
+            "action": "probe",
+            "actorId": "first",
+            "requestId": "first",
+            "councilMemberId": null
+          }
+        },
+        {
+          "pid": 21702,
+          "role": "hall_api_authenticated",
+          "isolation": "serializable",
+          "context": {
+            "roles": [],
+            "action": "probe",
+            "actorId": "second",
+            "requestId": "second",
+            "councilMemberId": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "transaction-advisory-lock-contention-and-release",
+      "value": true
+    },
+    {
+      "name": "roles-reset-and-direct-access-denied",
+      "value": true
+    },
+    {
+      "name": "http-business-and-binary-created",
+      "value": {
+        "businessId": "f682b29e-c36e-4c24-a9cd-59a1e6177f78",
+        "resourceId": "3cd8b503-70fe-4db1-ba9a-26e1bf2cb910"
+      }
+    },
+    {
+      "name": "normal-restart-persistent-resource-and-http-session",
+      "value": true
+    },
+    {
+      "name": "immediate-stop-recovery-and-uncommitted-rollback",
+      "value": true
+    },
+    {
+      "name": "source-manifest-still-identical",
+      "value": true
+    }
+  ]
+}

@@ -65,6 +65,7 @@ export const councilMemberSchema = z
     id: identifierSchema,
     contactId: identifierSchema,
     councilTermId: identifierSchema,
+    rank: z.number().int().nonnegative().nullable(),
     role: councilRoleSchema,
     active: z.boolean(),
     termStartedOn: z.iso.date(),
@@ -76,6 +77,7 @@ export const createCouncilMemberSchema = z
   .object({
     contactId: identifierSchema,
     role: councilRoleSchema,
+    rank: z.number().int().nonnegative().nullable().optional(),
     termStartedOn: z.iso.date(),
   })
   .strict();
@@ -83,6 +85,7 @@ export const createCouncilMemberSchema = z
 export const updateCouncilMemberSchema = z
   .object({
     role: councilRoleSchema,
+    rank: z.number().int().nonnegative().nullable().optional(),
     termStartedOn: z.iso.date(),
     termEndedOn: z.iso.date().nullable(),
   })
@@ -114,7 +117,7 @@ export const committeeMembershipSchema = z
   .object({
     id: identifierSchema,
     committeeId: identifierSchema,
-    councilMemberId: identifierSchema,
+    contactId: identifierSchema,
     role: committeeRoleSchema,
     startedOn: z.iso.date(),
     endedOn: z.iso.date().nullable(),
@@ -123,7 +126,7 @@ export const committeeMembershipSchema = z
 
 export const addCommitteeMembershipSchema = z
   .object({
-    councilMemberId: identifierSchema,
+    contactId: identifierSchema,
     role: committeeRoleSchema.default("member"),
     startedOn: z.iso.date(),
   })
@@ -157,3 +160,18 @@ export type CommitteeRole = z.infer<typeof committeeRoleSchema>;
 export type CommitteeMembership = z.infer<typeof committeeMembershipSchema>;
 export type AddCommitteeMembership = z.infer<typeof addCommitteeMembershipSchema>;
 export type UpdateCommitteeMembership = z.infer<typeof updateCommitteeMembershipSchema>;
+
+export {
+  type AddDelegationMembership,
+  addDelegationMembershipSchema,
+  type CouncilDelegation,
+  councilDelegationSchema,
+  type DelegationMembership,
+  delegationMembershipSchema,
+  delegationRoleSchema,
+  endDelegationMembershipSchema,
+  type SaveCouncilDelegation,
+  saveCouncilDelegationSchema,
+  type UpdateDelegationMembership,
+  updateDelegationMembershipSchema,
+} from "@hall/contracts";

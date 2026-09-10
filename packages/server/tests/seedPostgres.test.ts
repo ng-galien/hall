@@ -26,16 +26,25 @@ postgresTest.each(["preparation", "default", "minutes"])(
     try {
       const result = await execute(
         process.execPath,
-        [fileURLToPath(new URL("../scripts/seed-dev.mjs", import.meta.url))],
+        [
+          fileURLToPath(new URL("../scripts/seed-dev.mjs", import.meta.url)),
+          ...(scenario === "preparation" ? [] : ["--dataset", "alesia", "--scenario", scenario]),
+        ],
         {
-          env: { ...process.env, SEED_API: `${server.url}/api`, SEED_MEETING_SCENARIO: scenario },
+          env: {
+            ...process.env,
+            SEED_API: `${server.url}/api`,
+            SEED_DATASET: scenario === "preparation" ? "alesia" : "invalid-env-dataset",
+            SEED_MEETING_SCENARIO: scenario === "preparation" ? scenario : "invalid-env-scenario",
+          },
           timeout: 120000,
           maxBuffer: 2 * 1024 * 1024,
         },
       );
+      expect(result.stdout).toContain(`Jeu : alesia ; scénario : ${scenario}`);
       expect(result.stdout).toContain("Seed terminé.");
       const get = async (path: string) => {
-        const response = await fetch(server.url + "/api" + path);
+        const response = await fetch(`${server.url}/api${path}`);
         expect(response.status).toBe(200);
         const envelope = await response.json();
         if (Array.isArray(envelope.properties?.items)) return envelope.properties.items;
@@ -44,35 +53,60 @@ postgresTest.each(["preparation", "default", "minutes"])(
         return envelope.properties;
       };
       const businesses = await get("/council-business/workspace-items");
+      expect(await get("/settings")).toMatchObject({
+        name: "Alésia",
+        geographicPosition: [4.438, 47.558],
+        email: "contact@alesia.example",
+      });
+      const contacts = await get("/contacts");
+      expect(contacts).toHaveLength(17);
+      expect(contacts).toEqual(expect.arrayContaining([
+        expect.objectContaining({ firstName: "Merlin", lastName: "l’Enchanteur" }),
+        expect.objectContaining({ firstName: "Jules", lastName: "César" }),
+        expect.objectContaining({ firstName: "Vercingétorix", lastName: "l’Arverne" }),
+      ]));
+      expect(JSON.stringify(contacts)).not.toMatch(/Delcourt|Lefèvre|Préfecture|Perrin/);
+      expect(businesses).toHaveLength(8);
       const names = businesses.map((business: { title: string }) => business.title);
       expect(names).toEqual(
         expect.arrayContaining([
-          "Affaire de démonstration",
-          "Patrimoine communal",
-          "Restauration scolaire",
-          "Commerce de proximité",
-          "Éclairage public",
-          "Associations",
-          "Vie scolaire",
-          "Voirie",
+          "Veille autour de l’oppidum",
+          "Réserves et bâtiments",
+          "Ravitaillement",
+          "Relations avec les alliés",
+          "Défense du plateau",
+          "Équipes de soutien",
+          "Accueil des habitants",
+          "Accès et convois",
         ]),
       );
-      expect(names).not.toContain("Cession de la parcelle AB 127");
-      expect(names).not.toContain("Tarifs de la restauration scolaire 2026-2027");
-      const subjects = (await get("/council-business/prepared-subjects"));
+      expect(names).not.toContain("Affectation du grenier de Cornu aux réserves");
+      expect(names).not.toContain("Répartition des réserves de céréales");
+      const subjects = await get("/council-business/prepared-subjects");
       expect(subjects).toHaveLength(13);
-      const property = businesses.find((business: { title: string }) => business.title === "Patrimoine communal");
+      const property = businesses.find((business: { title: string }) => business.title === "Réserves et bâtiments");
       const propertySubjects = subjects.filter(
         (subject: { councilBusinessId: string }) => subject.councilBusinessId === property.id,
       );
       expect(propertySubjects.map((subject: { title: string }) => subject.title).sort()).toEqual([
-        "Cession de la parcelle AB 127",
-        "Rénovation de la salle des fêtes - étude préalable",
+        "Affectation du grenier de Cornu aux réserves",
+        "Aménagement des abris de Cornu - étude préalable",
       ]);
-      const associations = businesses.find((business: { title: string }) => business.title === "Associations");
+      const associations = businesses.find((business: { title: string }) => business.title === "Équipes de soutien");
       const propertyResources = await get(`/council-business/${property.id}/resources`);
       const associationResources = await get(`/council-business/${associations.id}/resources`);
       const catalog = await get("/resources/catalog");
+      expect(
+        catalog.every(
+          (resource: { path: string; kind: string; name: string }) =>
+            resource.path === "seed" ||
+            resource.path.startsWith("seed/") ||
+            (resource.kind === "folder" && resource.name === "seed" && resource.path === ""),
+        ),
+      ).toBe(true);
+      expect(catalog.map((resource: { kind: string }) => resource.kind)).toEqual(
+        expect.arrayContaining(["text", "document", "spreadsheet", "geographic", "remote", "event", "folder"]),
+      );
       const sharedRules = catalog.find(
         (resource: { name: string }) => resource.name === "Règlement de mise à disposition",
       );
@@ -80,7 +114,7 @@ postgresTest.each(["preparation", "default", "minutes"])(
       expect(associationResources.some((entry: { resourceId: string }) => entry.resourceId === sharedRules.id)).toBe(
         true,
       );
-      expect(sharedRules.path).toBe("travaux/salle-des-fetes");
+      expect(sharedRules.path).toBe("seed/reserves/abris");
       const meetings = await get("/council-meetings");
       if (scenario === "preparation") {
         expect(meetings).toHaveLength(1);
@@ -98,11 +132,11 @@ postgresTest.each(["preparation", "default", "minutes"])(
       const decisions = await get("/council-decisions");
       expect(decisions).toHaveLength(5);
       const priceDecision = decisions.find(
-        (decision: { title: string }) => decision.title === "Tarifs de la restauration scolaire 2026-2027",
+        (decision: { title: string }) => decision.title === "Répartition des réserves de céréales",
       );
       expect((await get(`/council-decisions/${priceDecision.id}`)).facts.ballot.result).toBe("reject");
       const lighting = decisions.find(
-        (decision: { title: string }) => decision.title === "Éclairage public - engagement de la tranche 2",
+        (decision: { title: string }) => decision.title === "Défense du plateau - renforcement de la seconde ligne",
       );
       const lightingBallot = (await get(`/council-decisions/${lighting.id}`)).facts.ballot;
       expect(lightingBallot.mode).toBe("public");
@@ -113,9 +147,9 @@ postgresTest.each(["preparation", "default", "minutes"])(
       const thirdAgenda = await get(`/council-meetings/${third.id}/agenda-items`);
       expect(thirdAgenda.map((item: { title: string }) => item.title)).toEqual(
         expect.arrayContaining([
-          "Éclairage public - engagement de la tranche 2",
-          "Rénovation de la salle des fêtes - étude préalable",
-          "Stationnement rue des Tilleuls",
+          "Défense du plateau - renforcement de la seconde ligne",
+          "Aménagement des abris de Cornu - étude préalable",
+          "Acheminement des vivres entre le grenier et les abris",
         ]),
       );
       if (scenario === "minutes") {
@@ -131,7 +165,7 @@ postgresTest.each(["preparation", "default", "minutes"])(
         expect(third.closedAt).toBeNull();
         expect(
           thirdAgenda.find(
-            (item: { title: string }) => item.title === "Rénovation de la salle des fêtes - étude préalable",
+            (item: { title: string }) => item.title === "Aménagement des abris de Cornu - étude préalable",
           ).startedAt,
         ).not.toBeNull();
       }

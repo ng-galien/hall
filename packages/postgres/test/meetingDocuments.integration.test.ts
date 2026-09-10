@@ -14,7 +14,7 @@ postgresDescribe("derived meeting documents", () => {
   const directory = new PostgresDirectory(pool);
   const request = {
     role: "hall_api_authenticated" as const,
-    context: { requestId: "meeting-documents-test", actorId: "admin", councilMemberId: null, roles: ["administrator"] },
+    context: { requestId: "meeting-documents-test", actorId: "admin", contactId: null, roles: ["administrator"] },
   };
 
   it("groups actual relations and preserves text, binary and images from opening and closing snapshots", async () => {

@@ -12,7 +12,7 @@ postgresDescribe("frozen meeting agenda documents", () => {
     context: {
       requestId: "notice-test",
       actorId: "clerk",
-      councilMemberId: null,
+      contactId: null,
       roles: ["administrator"],
     },
   };

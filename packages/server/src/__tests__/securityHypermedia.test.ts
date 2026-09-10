@@ -13,6 +13,49 @@ function properties<T>(response: { body: { properties?: unknown } }): T {
 }
 
 describe("users, permissions, audit and Siren affordances", () => {
+  it("links accounts to contacts without mandates, preserves role permissions and enforces uniqueness", async () => {
+    const { rawAgent } = await createTestServer();
+    const contact = await rawAgent.post("/api/contacts").send({ firstName: "Alex", lastName: "Contact" }).expect(201);
+    const contactId = properties<{ id: string }>(contact).id;
+    const account = (email: string, link: string | null) =>
+      rawAgent.post("/api/users").send({
+        email,
+        displayName: "Compte",
+        password: "Mot-de-passe-test-2026!",
+        roles: ["reader"],
+        contactId: link,
+      });
+    const linked = await account("linked@example.fr", contactId).expect(201);
+    expect(properties(linked)).toMatchObject({ contactId, roles: ["reader"] });
+    expect(properties<{ permissions: string[] }>(linked).permissions).not.toContain("users.manage");
+    expect(properties(linked)).not.toHaveProperty("councilMemberId");
+    await account("duplicate@example.fr", contactId).expect(409);
+    await account("missing@example.fr", "00000000-0000-4000-8000-000000000001").expect(404);
+    for (const email of ["unlinked-one@example.fr", "unlinked-two@example.fr"]) {
+      expect(properties(await account(email, null).expect(201))).toMatchObject({ contactId: null });
+    }
+  });
+
+  it("links an elected contact and exposes the same identity after login", async () => {
+    const { rawAgent } = await createTestServer({ devAutoLogin: false });
+    await rawAgent.post("/api/auth/bootstrap").send(administrator).expect(201);
+    await rawAgent.post("/api/auth/login").send(administrator).expect(200);
+    const member = await createTestCouncilMember(rawAgent, { firstName: "Camille", lastName: "Conseil" });
+    const contactId = properties<{ contactId: string }>(
+      await rawAgent.get(`/api/council-members/${member.id}`).expect(200),
+    ).contactId;
+    const credentials = { email: "elected@example.fr", password: "Mot-de-passe-test-2026!" };
+    await rawAgent
+      .post("/api/users")
+      .send({ ...credentials, displayName: "Camille", roles: ["reader"], contactId })
+      .expect(201);
+    await rawAgent.post("/api/auth/logout").expect(204);
+    expect(properties(await rawAgent.post("/api/auth/login").send(credentials).expect(200))).toMatchObject({
+      contactId,
+      roles: ["reader"],
+    });
+    expect(properties(await rawAgent.get("/api/auth/session").expect(200))).toMatchObject({ contactId });
+  });
   it("starts the loopback development server with every permission", async () => {
     const { rawAgent } = await createTestServer();
     const status = await rawAgent.get("/api/auth/status").expect(200);
@@ -100,7 +143,9 @@ describe("users, permissions, audit and Siren affordances", () => {
       email: "camille.martin@example.fr",
       termStartedOn: "2026-03-15",
     });
-    const councilMemberId = member.id;
+    const contactId = properties<{ contactId: string }>(
+      await rawAgent.get(`/api/council-members/${member.id}`).expect(200),
+    ).contactId;
     const meeting = await rawAgent
       .post("/api/council-meetings")
       .send({ startsAt: "2026-09-10T18:30:00.000Z", location: "Hall" })
@@ -131,11 +176,11 @@ describe("users, permissions, audit and Siren affordances", () => {
         displayName: "Lecture seule",
         password: "Mot-de-passe-lecture-2026!",
         roles: ["reader"],
-        councilMemberId,
+        contactId,
       })
       .expect(201);
-    const readerUser = properties<{ id: string; councilMemberId: string }>(reader);
-    expect(readerUser.councilMemberId).toBe(councilMemberId);
+    const readerUser = properties<{ id: string; contactId: string }>(reader);
+    expect(readerUser.contactId).toBe(contactId);
     await rawAgent
       .put(`/api/users/${readerUser.id}/roles`)
       .send({ roles: ["reader"] })
@@ -174,7 +219,7 @@ describe("users, permissions, audit and Siren affordances", () => {
       expect.arrayContaining([
         expect.objectContaining({
           action: "user.create",
-          details: expect.objectContaining({ roles: ["reader"], councilMemberId }),
+          details: expect.objectContaining({ roles: ["reader"], contactId }),
         }),
       ]),
     );

@@ -22,11 +22,13 @@ export function CouncilMemberPage() {
   const { committees, details, error, load, loadAllDetails } = useCouncilCommitteesStore();
   const member = members.find((candidate) => candidate.id === memberId);
   const [role, setRole] = useState<CouncilMember["role"]>("councillor");
+  const [rank, setRank] = useState("");
   const [termStartedOn, setTermStartedOn] = useState("");
   const [termEndedOn, setTermEndedOn] = useState("");
   const [draftMemberId, setDraftMemberId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const fieldId = useId();
+  const dirtyRef = useRef(false);
 
   useEffect(() => {
     if (memberId) void loadDetail(memberId);
@@ -38,32 +40,37 @@ export function CouncilMemberPage() {
   }, [committees.length, load, loadAllDetails]);
 
   useEffect(() => {
-    if (!member) return;
+    if (!member || (draftMemberId === member.id && dirtyRef.current)) return;
     setRole(member.role);
+    setRank(member.rank == null ? "" : String(member.rank));
     setTermStartedOn(member.termStartedOn);
     setTermEndedOn(member.termEndedOn ?? "");
     setDraftMemberId(member.id);
     setSaveState("idle");
-  }, [member]);
+  }, [draftMemberId, member]);
 
   const dirty = Boolean(
     member &&
       draftMemberId === member.id &&
-      (role !== member.role || termStartedOn !== member.termStartedOn || termEndedOn !== (member.termEndedOn ?? "")),
+      (rank !== (member.rank == null ? "" : String(member.rank)) ||
+        role !== member.role ||
+        termStartedOn !== member.termStartedOn ||
+        termEndedOn !== (member.termEndedOn ?? "")),
   );
+  dirtyRef.current = dirty;
   const save = useCallback(async () => {
     if (!member || !canUpdate[member.id] || !dirty || !termStartedOn) return true;
     setSaveState("saving");
     const saved = await update(member.id, {
       role,
+      rank: rank === "" ? null : Number(rank),
       termStartedOn,
       termEndedOn: termEndedOn || null,
     });
     setSaveState(saved ? "saved" : "error");
     return saved;
-  }, [canUpdate, dirty, member, role, termEndedOn, termStartedOn, update]);
+  }, [canUpdate, dirty, member, rank, role, termEndedOn, termStartedOn, update]);
   const saveRef = useRef(save);
-  const dirtyRef = useRef(dirty);
   useEffect(() => {
     saveRef.current = save;
     dirtyRef.current = dirty;
@@ -108,7 +115,7 @@ export function CouncilMemberPage() {
   const memberships = Object.values(details)
     .flatMap((detail) =>
       detail.memberships
-        .filter((membership) => membership.councilMemberId === member.id)
+        .filter((membership) => membership.contactId === member.contact.id)
         .map((membership) => ({ committee: detail.committee, membership })),
     )
     .sort((left, right) => right.membership.startedOn.localeCompare(left.membership.startedOn));
@@ -188,6 +195,19 @@ export function CouncilMemberPage() {
                     <SelectItem value="mayor">{t("role.mayor")}</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${fieldId}-rank`}>{t("members.rank")}</Label>
+                <Input
+                  id={`${fieldId}-rank`}
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={rank}
+                  readOnly={!canUpdate[member.id]}
+                  onChange={(event) => setRank(event.currentTarget.value)}
+                  data-testid="member-rank"
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label>{t("members.phone")}</Label>

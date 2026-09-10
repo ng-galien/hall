@@ -12,6 +12,7 @@ import {
   postgresCouncilBusinessTitleUniquenessSchema,
   postgresSchema,
   postgresTables,
+  postgresUserContactMigration,
 } from "./schema.js";
 
 type TransactionContext = {
@@ -28,8 +29,9 @@ export class PostgresExecutor implements SqlExecutor {
   constructor(
     connectionString: string,
     readonly requestContext: RequestContextStore,
+    private readonly sharedPool?: Pool,
   ) {
-    this.#pool = new Pool({ connectionString, options: "-c search_path=public" });
+    this.#pool = sharedPool ?? new Pool({ connectionString, options: "-c search_path=public" });
     this.#ready = this.#initialize();
   }
 
@@ -98,7 +100,7 @@ export class PostgresExecutor implements SqlExecutor {
 
   async close(): Promise<void> {
     await this.#ready.catch(() => undefined);
-    await this.#pool.end();
+    if (!this.sharedPool) await this.#pool.end();
   }
 
   #query<Row extends QueryResultRow = QueryResultRow>(text: string, values?: unknown[]) {
@@ -139,6 +141,7 @@ export class PostgresExecutor implements SqlExecutor {
             throw new Error("Obsolete PostgreSQL schema: reset the database before starting Hall");
           }
         }
+        await client.query(postgresUserContactMigration);
         await client.query(postgresBallotVoteConfidentialitySchema);
         await client.query(postgresCouncilBusinessTitleUniquenessSchema);
         await client.query("COMMIT");

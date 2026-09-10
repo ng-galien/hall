@@ -48,9 +48,12 @@ export interface AuthService {
     displayName: string;
     password: string;
     roles: ApiRole[];
-    councilMemberId: string | null;
+    contactId: string | null;
   }): Promise<ApiUser>;
   assignRoles(userId: string, roles: ApiRole[]): Promise<ApiUser>;
+  updateUser(userId: string, input: { email: string; displayName: string; contactId: string | null }): Promise<ApiUser>;
+  changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void>;
+  resetPassword(userId: string, newPassword: string): Promise<void>;
   disableUser(userId: string): Promise<ApiUser>;
 }
 
@@ -65,11 +68,25 @@ export function createAuthService({
   unitOfWork: UnitOfWork;
   requestContext: RequestContextStore;
 }): AuthService {
-  const validateCouncilMember = async (councilMemberId: string | null) => {
-    if (!councilMemberId) return;
-    if (!(await directoryClient.openCouncilMember(councilMemberId))) {
-      throw new DomainError("council_member_not_found", 404);
+  const validateContact = async (contactId: string | null) => {
+    if (!contactId) return;
+    if (!(await directoryClient.openContact(contactId))) {
+      throw new DomainError("contact_not_found", 404);
     }
+  };
+
+  const replacePassword = async (userId: string, newPassword: string, currentPassword?: string) => {
+    const user = await securityRepository.findUserById(userId);
+    if (!user) throw new DomainError("user_not_found", 404);
+    if (currentPassword !== undefined && !(await verifyPassword(currentPassword, user.passwordHash))) {
+      throw new DomainError("invalid_current_password", 400);
+    }
+    const passwordHash = await hashPassword(newPassword);
+    await unitOfWork.execute(async () => {
+      if (!(await securityRepository.updatePassword(userId, user.passwordHash, passwordHash))) {
+        throw new DomainError("conflict", 409);
+      }
+    });
   };
 
   return {
@@ -87,7 +104,7 @@ export function createAuthService({
             displayName: input.displayName,
             passwordHash,
             roles: ["administrator"],
-            councilMemberId: null,
+            contactId: null,
           }),
         );
         requestContext.setPrincipal(principalForUser(user));
@@ -103,9 +120,13 @@ export function createAuthService({
       requestContext.setPrincipal(principalForUser(publicUser(user)));
       const token = randomBytes(32).toString("base64url");
       const expiresAt = new Date(Date.now() + sessionDurationMs).toISOString();
-      const storedSession = await unitOfWork.execute(() =>
-        securityRepository.createSession(user.id, hashSessionToken(token), expiresAt),
-      );
+      const storedSession = await unitOfWork.execute(async () => {
+        const current = await securityRepository.lockUserForAuthentication(user.id);
+        if (current?.status !== "active" || current.passwordHash !== user.passwordHash) {
+          throw new DomainError("invalid_credentials", 401);
+        }
+        return securityRepository.createSession(user.id, hashSessionToken(token), expiresAt);
+      });
       return {
         token,
         session: { sessionId: storedSession.id, user: publicUser(user) },
@@ -136,11 +157,21 @@ export function createAuthService({
       return publicUserWithProtection(user, securityRepository);
     },
     async createUser(input) {
-      await validateCouncilMember(input.councilMemberId);
+      await validateContact(input.contactId);
       const passwordHash = await hashPassword(input.password);
       const created = await unitOfWork.execute(() => securityRepository.createUser({ ...input, passwordHash }));
       return publicUserWithProtection(created, securityRepository);
     },
+    async updateUser(userId, input) {
+      await validateContact(input.contactId);
+      return unitOfWork.execute(async () => {
+        const user = await securityRepository.updateUser(userId, input);
+        if (!user) throw new DomainError("user_not_found", 404);
+        return publicUserWithProtection(user, securityRepository);
+      });
+    },
+    changePassword: (userId, currentPassword, newPassword) => replacePassword(userId, newPassword, currentPassword),
+    resetPassword: (userId, newPassword) => replacePassword(userId, newPassword),
     assignRoles(userId, roles) {
       return unitOfWork.execute(async () => {
         await securityRepository.lockAdministratorInvariant();
