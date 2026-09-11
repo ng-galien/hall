@@ -1,5 +1,5 @@
-import type { APIResponse, Page } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
+import type { APIResponse, Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
 interface SirenItem<T> {
@@ -519,19 +519,57 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
   for (const paragraph of discussionParagraphs)
     await expect(page.getByTestId("live-agenda-notes").getByTestId("editor-writing-area")).toContainText(paragraph);
   await page.screenshot({ path: test.info().outputPath("added-open-question-discussion.png"), animations: "disabled" });
-  await page.getByTestId("live-agenda-complete").click();
-  await expect(page.getByTestId("live-agenda-complete")).toBeHidden();
+  // Close with the newly introduced question still under discussion.
+  let closeRequests = 0;
+  let releaseClose!: () => void;
+  const closeGate = new Promise<void>((resolve) => {
+    releaseClose = resolve;
+  });
+  await page.route(`**/api/council-meetings/*/close`, async (route) => {
+    closeRequests += 1;
+    const response = await route.fetch();
+    await closeGate;
+    await route.fulfill({ response });
+  });
   await page.getByTestId("live-meeting-close").click();
+  await expect(page.getByTestId("live-meeting-close")).toContainText("not examined");
   const closing = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/close"),
   );
-  await page.getByTestId("live-meeting-close").click();
+  await page.getByTestId("live-meeting-close").dblclick();
+  await expect(page.getByTestId("live-meeting-close")).toBeDisabled();
+  await expect(page.getByTestId("live-meeting-close")).toHaveAttribute("aria-busy", "true");
+  await expect(page).toHaveURL(/\/live$/);
+  releaseClose();
   expect((await closing).ok()).toBeTruthy();
+  await expect(page).toHaveURL(/\/app\/meetings$/);
+  expect(closeRequests).toBe(1);
   const closed = await sirenProperties<{ closedAt: string | null; minutesId: string | null }>(
     await page.request.get(`/api/council-meetings/${meeting.id}`),
   );
   expect(closed.closedAt).not.toBeNull();
   expect(closed.minutesId).not.toBeNull();
+  const carriedHistory = await sirenProperties<{
+    position: number;
+    startedAt: string | null;
+    completedAt: string | null;
+  }>(await page.request.get(`/api/council-meetings/${meeting.id}/agenda-items/${addedQuestion.id}`));
+  expect(carriedHistory.position).toBeLessThan(0);
+  expect(carriedHistory.startedAt).not.toBeNull();
+  expect(carriedHistory.completedAt).toBeNull();
+  const subsequentMeetings = await sirenItems<{ id: string; previousCouncilMeetingId: string | null }>(
+    await page.request.get("/api/council-meetings"),
+  );
+  const subsequent = subsequentMeetings.find((item) => item.previousCouncilMeetingId === meeting.id);
+  expect(subsequent).toBeTruthy();
+  const carriedAgenda = await sirenItems<{ title: string; startedAt: string | null }>(
+    await page.request.get(`/api/council-meetings/${subsequent!.id}/agenda-items`),
+  );
+  expect(carriedAgenda.find((item) => item.title === questionName)?.startedAt).toBeNull();
+  await page.getByTestId(`meeting-history-${meeting.id}`).click();
+  await expect(page.getByTestId("agenda-status-carriedForward")).toBeVisible();
+  await expect(page.getByTestId("agenda-status-inProgress")).toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath("closed-meeting-carried-forward.png"), animations: "disabled", fullPage: true });
   expect(await sirenItems(await page.request.get(`/api/ballots?meetingId=${meeting.id}`))).toHaveLength(0);
   const minutes = await sirenProperties<{
     facts: { agenda: Array<{ id: string; agendaNumber: number; introducedAt: string; kind: string }> };
@@ -560,7 +598,9 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
   await page.screenshot({ path: test.info().outputPath("added-open-question-minutes.png"), animations: "disabled" });
 });
 
-test("shows canonical meeting entry requirements and invalidates entry when the agenda is reopened", async ({ appPage: page }) => {
+test("shows canonical meeting entry requirements and invalidates entry when the agenda is reopened", async ({
+  appPage: page,
+}) => {
   test.setTimeout(90_000);
   page.setDefaultTimeout(10_000);
   const meetings = await sirenItems<{ id: string; startedAt: string | null; closedAt: string | null }>(
@@ -589,7 +629,9 @@ test("shows canonical meeting entry requirements and invalidates entry when the 
   await expect(page.getByTestId("live-meeting-start")).toHaveCount(0);
   await page.getByTestId("live-return-preparation").click();
   await page.getByTestId("meeting-open-notice").click();
-  const frozen = page.waitForResponse((response) => response.request().method() === "POST" && response.url().endsWith("/agenda-freeze"));
+  const frozen = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/agenda-freeze"),
+  );
   await page.getByTestId("meeting-freeze-agenda").click();
   expect((await frozen).ok()).toBeTruthy();
   await page.getByTestId("meeting-generate-notice").click();
@@ -645,6 +687,19 @@ test("conducts public and secret ballots and provisions the previous minutes app
 
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
   expect(businesses.length).toBeGreaterThanOrEqual(2);
+  const discussionDocument = await sirenProperties<{ id: string }>(
+    await page.request.post("/api/resources/documents", {
+      multipart: {
+        path: "seed",
+        councilBusinessId: businesses[0]!.id,
+        file: {
+          name: "contrat-discussion.txt",
+          mimeType: "text/plain",
+          buffer: Buffer.from("Contrat disponible pendant la discussion"),
+        },
+      },
+    }),
+  );
   const publicItem = await scheduleVotingItem(page, meeting!.slug, businesses[0]!.id, 1);
   const secretItem = await scheduleVotingItem(page, meeting!.slug, businesses[1]!.id, 2);
 
@@ -740,7 +795,21 @@ test("conducts public and secret ballots and provisions the previous minutes app
   expect(publicRecusals.quorumImpact.denominatorReduction).toBe(0);
   expect(publicRecusals.agendaItem.startedAt).toBeNull();
   await inspectRecusalInformation(page);
+  const discussionDocumentButton = page.getByTestId(`live-document-${discussionDocument.id}`);
+  await expect(discussionDocumentButton).toBeVisible();
+  await page.locator("body").evaluate((body, documentId) => {
+    body.setAttribute("data-discussion-document-missing", "false");
+    new MutationObserver(() => {
+      if (!body.querySelector(`[data-testid="live-document-${documentId}"]`)) {
+        body.setAttribute("data-discussion-document-missing", "true");
+      }
+    }).observe(body, { childList: true, subtree: true });
+  }, discussionDocument.id);
   await page.getByTestId("live-agenda-start").click();
+  await expect(page.getByTestId("live-agenda-start")).toBeHidden();
+  await expect(discussionDocumentButton).toBeVisible();
+  await expect(page.locator("body")).toHaveAttribute("data-discussion-document-missing", "false");
+
   await page
     .getByTestId("live-agenda-notes")
     .getByTestId("editor-writing-area")
@@ -860,7 +929,7 @@ test("conducts public and secret ballots and provisions the previous minutes app
   await expect(page.getByTestId("live-meeting-close")).toBeEnabled();
   await page.getByTestId("live-meeting-close").click();
   await page.getByTestId("live-meeting-close").click();
-  await expect(page.getByTestId("live-meeting-page")).toContainText("The meeting is closed");
+  await expect(page).toHaveURL(/\/app\/meetings$/);
 
   const afterClosure = await sirenItems<{
     id: string;
@@ -1081,12 +1150,28 @@ test("conducts public and secret ballots and provisions the previous minutes app
     data: { startedAt: new Date().toISOString() },
   });
   expect(refusedApproval.status()).toBe(409);
-  await adjournThroughConfirmation(page, approvalId);
-  const adjournedApproval = await sirenProperties<{ adjournedAt: string | null; completedAt: string | null }>(
+  await page.getByTestId("live-agenda-adjourn").click();
+  await expect(page.getByTestId("live-adjourn-dialog")).toBeVisible();
+  const refusingAdjournment = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith(`/agenda-items/${approvalId}/adjourn`),
+  );
+  await page.getByTestId("live-adjourn-confirm").click();
+  const refusedAdjournment = await refusingAdjournment;
+  expect(refusedAdjournment.status()).toBe(409);
+  expect(await refusedAdjournment.json()).toMatchObject({ code: "previous_minutes_pending" });
+  await expect(page.getByTestId("live-adjourn-dialog")).toBeVisible();
+  await page.getByTestId("live-adjourn-cancel").click();
+  const pendingApproval = await sirenProperties<{ position: number; adjournedAt: string | null; completedAt: string | null }>(
     await page.request.get(`/api/council-meetings/${nextId}/agenda-items/${approvalId}`),
   );
-  expect(adjournedApproval.adjournedAt).not.toBeNull();
-  expect(adjournedApproval.completedAt).toBeNull();
+  expect(pendingApproval.position).toBe(1);
+  expect(pendingApproval.adjournedAt).toBeNull();
+  expect(pendingApproval.completedAt).toBeNull();
+  const retainedAgenda = await sirenItems<{ id: string; position: number; subject: { kind: string } }>(
+    await page.request.get(`/api/council-meetings/${nextId}/agenda-items`),
+  );
+  expect(retainedAgenda[0]).toMatchObject({ id: approvalId, position: 1 });
+  expect(retainedAgenda.filter((item) => item.subject.kind === "minutesApproval")).toHaveLength(1);
   await expect(page.getByTestId("conduct-blocker-close-previousMinutesPending")).toBeVisible();
   await expect(page.getByTestId("live-meeting-close")).toBeDisabled();
   const refusedClosure = await page.request.post(`/api/council-meetings/${nextId}/close`, {
@@ -1107,9 +1192,11 @@ test("conducts public and secret ballots and provisions the previous minutes app
   expect(meetingDocuments).toHaveLength(2);
   const outcomes: string[] = [];
   for (const document of meetingDocuments) {
-    const original = await sirenProperties<{ content: string; number: string | null; facts: { ballot: { mode: string; result: string } } }>(
-      await page.request.get(`/api/council-decisions/${document.id}`),
-    );
+    const original = await sirenProperties<{
+      content: string;
+      number: string | null;
+      facts: { ballot: { mode: string; result: string } };
+    }>(await page.request.get(`/api/council-decisions/${document.id}`));
     outcomes.push(`${original.facts.ballot.mode}:${original.facts.ballot.result}`);
     await page.goto(`/app/council-decisions/${document.id}`);
     await expect(page.getByTestId("decision-detail")).toBeVisible();

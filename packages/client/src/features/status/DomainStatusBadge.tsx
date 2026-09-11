@@ -36,6 +36,7 @@ export const domainStatusKeys: Record<DomainStatus, TranslationKey> = {
   signed: "status.signed",
   examined: "status.examined",
   adjourned: "status.adjourned",
+  carriedForward: "status.carriedForward",
   withdrawn: "status.withdrawn",
   adopted: "status.adopted",
   rejected: "status.rejected",
@@ -67,6 +68,7 @@ export function AgendaItemStatusBadge({ status }: { status: LiveAgendaItemStatus
     inProgress: () => ({ variant: "brand" as const, Icon: PlayIcon }),
     examined: () => ({ variant: "success" as const, Icon: CheckIcon }),
     adjourned: () => ({ variant: "warning" as const, Icon: WarningIcon }),
+    carriedForward: () => ({ variant: "warning" as const, Icon: CalendarIcon }),
   });
   return (
     <Badge variant={variant} data-testid={`agenda-status-${status}`}>

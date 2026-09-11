@@ -9,6 +9,10 @@ const projectRoot = resolve(scriptDirectory, "../../..");
 const sessionName = "hall-dev";
 const socketName = "hall-mairie";
 const command = process.argv[2] ?? "start";
+const configIndex = process.argv.indexOf("--runtime-config");
+const runtimeConfig = configIndex < 0 ? null : resolve(projectRoot, process.argv[configIndex + 1] ?? "");
+if (runtimeConfig && !existsSync(runtimeConfig)) throw new Error("Private runtime configuration not found.");
+const shellQuote = (value) => "'" + value.replaceAll("'", "'\\''") + "'";
 const healthUrls = ["http://127.0.0.1:3100/api/health", "http://127.0.0.1:5174/app/"];
 
 function loadHallEnvironment() {
@@ -77,7 +81,7 @@ function hasSession() {
 
 async function healthReady() {
   try {
-    const responses = await Promise.all(healthUrls.map((url) => fetch(url)));
+    const responses = await Promise.all(healthUrls.map((url) => fetch(url, { signal: AbortSignal.timeout(2_000) })));
     return responses.every((response) => response.ok);
   } catch {
     return false;
@@ -85,12 +89,16 @@ async function healthReady() {
 }
 
 async function waitForHealth() {
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + 120_000;
   while (Date.now() < deadline) {
     if (await healthReady()) return;
+    const pane = runTmux(["display-message", "-p", "-t", `${sessionName}:0.0`, "#{pane_dead}"], { capture: true, allowFailure: true });
+    if (pane.status !== 0 || pane.stdout.trim() === "1") {
+      throw new Error("Hall startup stopped; inspect `npm run dev:logs` for the startup or PDF check failure.");
+    }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 250));
   }
-  throw new Error("Hall did not become healthy within 30 seconds; inspect `npm run dev:logs`.");
+  throw new Error("Hall did not become healthy within 120 seconds; inspect `npm run dev:logs`.");
 }
 
 function killSession() {
@@ -114,15 +122,18 @@ async function start() {
   }
   runTmux(["new-session", "-d", "-s", sessionName, "-c", projectRoot]);
   runTmux(["set-window-option", "-t", `${sessionName}:0`, "remain-on-exit", "on"]);
-  runTmux(["send-keys", "-t", `${sessionName}:0`, "exec npm run dev:postgres", "Enter"]);
+  const launch = runtimeConfig
+    ? `exec ${shellQuote(process.execPath)} ${shellQuote(resolve(scriptDirectory, "dev-runtime.mjs"))} ${shellQuote(runtimeConfig)}`
+    : "exec npm run dev:postgres";
+  runTmux(["send-keys", "-t", `${sessionName}:0`, launch, "Enter"]);
   await waitForHealth();
   console.log(`Session ${sessionName} active : http://127.0.0.1:5174/app/`);
 }
 
 async function restart() {
   requireTmux();
-  stopProjectListeners();
   killSession();
+  stopProjectListeners();
   await start();
 }
 
@@ -150,8 +161,8 @@ switch (command) {
     break;
   case "stop":
     requireTmux();
-    stopProjectListeners();
     killSession();
+    stopProjectListeners();
     console.log(`Session ${sessionName} arrêtée.`);
     break;
   case "status":

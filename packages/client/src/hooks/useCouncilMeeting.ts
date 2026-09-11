@@ -319,8 +319,16 @@ export function useCouncilMeeting(meetingReference: string) {
     startAgendaItem(itemId: string) {
       return mutate(() => startMeetingAgendaItem(meetingReference, itemId, { startedAt: new Date().toISOString() }));
     },
-    close() {
-      return mutate(() => closeCouncilMeeting(meetingReference, { closedAt: new Date().toISOString() }));
+    async close() {
+      setActionError(null);
+      try {
+        await closeCouncilMeeting(meetingReference, { closedAt: new Date().toISOString() });
+        await useCouncilMeetingsStore.getState().load();
+        return true;
+      } catch (failure) {
+        setActionError(apiErrorCode(failure));
+        return false;
+      }
     },
     adjournAgendaItem(itemId: string) {
       return mutate(() => adjournMeetingAgendaItem(meetingReference, itemId));

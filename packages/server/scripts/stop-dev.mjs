@@ -47,8 +47,18 @@ for (const [pid, port] of listeners) {
   }
 }
 
+// Stop the watcher first, otherwise it can replace a killed listener immediately.
+for (const pid of listeners.keys()) {
+  const { stdout } = await run("ps", ["-p", String(pid), "-o", "ppid="]).catch(() => ({ stdout: "" }));
+  const parent = Number(stdout.trim());
+  if (!Number.isInteger(parent) || parent <= 1) continue;
+  const { stdout: command } = await run("ps", ["-p", String(parent), "-o", "command="]).catch(() => ({ stdout: "" }));
+  if (command.includes("node_modules/.bin/nodemon") && (await processWorkingDirectory(parent))?.startsWith(`${projectRoot}/`)) {
+    try { process.kill(parent, "SIGTERM"); } catch (error) { if (error.code !== "ESRCH") throw error; }
+  }
+}
 for (const [pid, port] of listeners) {
-  process.kill(pid, "SIGTERM");
+  try { process.kill(pid, "SIGTERM"); } catch (error) { if (error.code !== "ESRCH") throw error; }
   console.log(`Serveur de développement arrêté sur le port ${port} (PID ${pid}).`);
 }
 

@@ -1000,6 +1000,7 @@ export const en = {
   "status.withdrawn": "Withdrawn",
   "status.adopted": "Adopted",
   "status.rejected": "Rejected",
+  "status.carriedForward": "Carried forward",
   "status.adjourned": "Adjourned",
   "status.postponed": "Postponed",
   "status.enforceable": "Enforceable",

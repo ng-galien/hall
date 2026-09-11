@@ -1016,6 +1016,7 @@ export const fr: Messages = {
   "status.withdrawn": "Retiré",
   "status.adopted": "Adoptée",
   "status.rejected": "Rejetée",
+  "status.carriedForward": "Reporté",
   "status.adjourned": "Ajourné",
   "status.postponed": "Reportée",
   "status.enforceable": "Exécutoire",

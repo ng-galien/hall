@@ -1,6 +1,6 @@
 import { matchLiteral } from "@hall/domain";
 import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DisclosureBadge } from "@/components/ui/disclosure-badge";
 import { createStageProgress } from "@/components/ui/stage-progress";
@@ -110,6 +110,7 @@ export function ConductView({
   const { canUpload: canUploadImage, uploadImage } = useResourceImageUpload();
   const { t, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
+  const navigate = useNavigate();
   const orderedItems = useMemo(
     () => [...aggregate.agendaItems].sort((left, right) => left.position - right.position),
     [aggregate.agendaItems],
@@ -231,6 +232,7 @@ export function ConductView({
     inProgress: () => (hasVotingStage && voteOpen ? 2 : 1),
     examined: () => progressLabels.length - 1,
     adjourned: () => progressLabels.length - 1,
+    carriedForward: () => progressLabels.length - 1,
   });
   const isActive = selectedItem.status === "inProgress";
   const isNext = !activeItem && nextItem?.id === selectedItem.id;
@@ -291,7 +293,9 @@ export function ConductView({
         !(await meetingActions.saveAgendaItemNotes(selectedItem.id, notes))
       )
         return false;
-      return meetingActions.close();
+      const closed = await meetingActions.close();
+      if (closed) navigate("/meetings");
+      return closed;
     });
   };
 
@@ -485,21 +489,22 @@ export function ConductView({
             className="live-primary-action live-danger-action conduct-rail-tool"
             type="button"
             disabled={submitting || !meetingActions.can("meeting.close")}
+            aria-busy={submitting && closeConfirming}
             data-testid="live-meeting-close"
             title={railCollapsed ? t("meeting.action.close") : undefined}
             onClick={closeMeeting}
             onBlur={() => setCloseConfirming(false)}
           >
             <WarningIcon aria-hidden="true" />
-            {railCollapsed ? null : closeConfirming ? (
-              remainingCount > 0 ? (
-                t("live.confirmCloseRemaining").replace("{count}", formatNumber(remainingCount))
-              ) : (
-                t("live.confirmClose")
-              )
-            ) : (
-              t("meeting.action.close")
-            )}
+            {railCollapsed
+              ? null
+              : submitting && closeConfirming
+                ? t("common.saving")
+                : closeConfirming
+                  ? remainingCount > 0
+                    ? t("live.confirmCloseRemaining").replace("{count}", formatNumber(remainingCount))
+                    : t("live.confirmClose")
+                  : t("meeting.action.close")}
           </button>
           <ConductActionBlockers
             action="close"

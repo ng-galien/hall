@@ -206,6 +206,7 @@ Pour voir l'application en live pendant le développement, utiliser **toujours**
 
 - Démarrage ou réutilisation : `npm run dev:session`.
 - Redémarrage du runtime sans effacer les données : `npm run dev:restart`.
+- Pour la base privée Alésia : `npm run dev:private` démarre ou redémarre le même runtime à partir de sa configuration privée, sans seed ni remise à zéro. Exécuter hors sandbox macOS pour permettre Chromium ; le lanceur contrôle réellement le rendu PDF. Ne pas utiliser `dev:restart` sans configuration pour Alésia, car il cible la base de démonstration standard. Voir [`docs/private-runtime.md`](docs/private-runtime.md).
 - État : `npm run dev:status` ; derniers journaux : `npm run dev:logs` ; arrêt : `npm run dev:stop`.
 - Remise à zéro complète de la démonstration, redémarrage et seed : `npm run demo:restart`. Cette commande rend la main une fois le front, le back et les données prêts.
 - Sans `tmux`, utiliser `npm run dev` au premier plan à la racine. Cette commande lance le même serveur Express sur `http://127.0.0.1:3100` et le client Vite sur `http://127.0.0.1:5174`, proxy `/api` inclus.

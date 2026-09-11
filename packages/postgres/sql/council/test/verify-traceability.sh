@@ -82,11 +82,11 @@ raise_count=$(find "${sql_dir}" "${sql_dir}/../workspace" -maxdepth 1 -type f -n
   | xargs -0 grep -hEc 'RAISE EXCEPTION' \
   | awk '{ total += $1 } END { print total + 0 }')
 errcode_count=$(find "${sql_dir}" "${sql_dir}/../workspace" -maxdepth 1 -type f -name '*.sql' ! -name '002-error-codes.sql' -print0 \
-  | xargs -0 grep -hEc "ERRCODE[[:space:]]*=[[:space:]]*'HV[0-9]{3}'" \
+  | xargs -0 grep -hEc "ERRCODE[[:space:]]*=[[:space:]]*'(HV[0-9]{3}|23502|23503|23505|23514)'" \
   | awk '{ total += $1 } END { print total + 0 }')
 
 if [[ "${raise_count}" != "${errcode_count}" ]]; then
-  echo "Every RAISE EXCEPTION must carry one Hall ERRCODE (${raise_count} raises, ${errcode_count} codes)" >&2
+  echo "Every RAISE EXCEPTION must carry one Hall or asserted native ERRCODE (${raise_count} raises, ${errcode_count} codes)" >&2
   exit 1
 fi
 

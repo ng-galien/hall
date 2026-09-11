@@ -12,7 +12,7 @@ import type { CouncilMemberView } from "./directory";
 export type LiveMeetingStatus = "draft" | "scheduled" | "inProgress" | "closed" | "cancelled";
 export type LiveBallotMethod = "public" | "secret";
 export type LiveVoteChoice = "for" | "against" | "abstain" | "notVoting";
-export type LiveAgendaItemStatus = "scheduled" | "inProgress" | "examined" | "adjourned";
+export type LiveAgendaItemStatus = "scheduled" | "inProgress" | "examined" | "adjourned" | "carriedForward";
 
 export interface LiveMeetingMemberAttendance {
   id: string;
@@ -178,13 +178,17 @@ export function presentLiveMeeting(
               }
             : {}),
         },
-        status: item.adjournedAt
-          ? "adjourned"
-          : item.completedAt
-            ? "examined"
-            : item.startedAt
-              ? "inProgress"
-              : "scheduled",
+        // Closing snapshots retain the original position; unfinished items are carried forward.
+        status:
+          workspace.meeting.closedAt && !item.completedAt && !item.adjournedAt
+            ? "carriedForward"
+            : item.adjournedAt
+              ? "adjourned"
+              : item.completedAt
+                ? "examined"
+                : item.startedAt
+                  ? "inProgress"
+                  : "scheduled",
         discussionSummary: item.discussionSummary,
         startedAt: item.startedAt,
         completedAt: item.completedAt,

@@ -29,6 +29,8 @@ import { DomainError, type ErrorCode } from "../../services/errors.js";
 
 const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV235: "conflict",
+  HV114: "conflict",
+  HV223: "meeting_conduct_closed",
   HV117: "previous_minutes_pending",
   HV126: "previous_minutes_pending",
   HV809: "prepared_subject_immutable",
