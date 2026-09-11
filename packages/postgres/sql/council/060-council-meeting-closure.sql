@@ -331,3 +331,36 @@ BEGIN
   RETURN next_meeting;
 END
 $function$;
+
+-- A meeting with a predecessor owns exactly one approval, in first position,
+-- and that approval targets the predecessor's minutes. Checks run at commit
+-- so normal closure can create the successor, minutes and item atomically.
+CREATE FUNCTION hall.enforce_required_previous_minutes()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=pg_catalog,hall AS $$
+BEGIN
+ IF EXISTS (
+  SELECT FROM hall.council_meetings meeting
+  WHERE meeting.previous_council_meeting IS NOT NULL AND (
+   (SELECT count(*) FROM hall.council_agenda_item item
+    WHERE item.council_meeting=meeting.id AND item.minutes_approval IS NOT NULL) <> 1
+   OR NOT EXISTS (
+    SELECT FROM hall.council_agenda_item item
+    JOIN hall.minutes_approval approval ON approval.id=item.minutes_approval
+    JOIN hall.minutes previous_minutes ON previous_minutes.id=approval.minutes
+    WHERE item.council_meeting=meeting.id AND item.position=1
+      AND previous_minutes.council_meeting=meeting.previous_council_meeting
+   )
+  )
+ ) THEN RAISE EXCEPTION USING ERRCODE='HV126', MESSAGE='a successor requires its previous minutes approval in first position'; END IF;
+ RETURN NULL;
+END $$;
+CREATE CONSTRAINT TRIGGER council_meetings_require_previous_minutes
+AFTER INSERT OR UPDATE OR DELETE ON hall.council_meetings
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION hall.enforce_required_previous_minutes();
+CREATE CONSTRAINT TRIGGER council_agenda_require_previous_minutes
+AFTER INSERT OR UPDATE OR DELETE ON hall.council_agenda_item
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION hall.enforce_required_previous_minutes();
+CREATE CONSTRAINT TRIGGER minutes_approval_require_previous_minutes
+AFTER INSERT OR UPDATE OR DELETE ON hall.minutes_approval
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION hall.enforce_required_previous_minutes();

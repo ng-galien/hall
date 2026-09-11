@@ -202,3 +202,5 @@
 
 -- HV742 decision recovery requires complete matching retained evidence.
 -- HV743 decision number candidate changed before freeze.
+
+-- HV126  PREVIOUS_MINUTES_APPROVAL_REQUIRED
