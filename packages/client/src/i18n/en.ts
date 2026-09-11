@@ -1110,6 +1110,7 @@ export const en = {
   "live.eyebrow": "Municipal council meeting",
   "live.exit": "Leave meeting mode",
   "live.backToMeetings": "Back to meetings",
+  "live.quorumCompact": "Quorum: {present} / {required}",
   "live.quorumItemChip": "Recorded quorum: {point} · {time} · {present} / {required}",
   "live.quorumMeetingChip": "Meeting quorum recorded on {time}: {present} / {required}",
   "live.quorumItemFallback": "Agenda item",

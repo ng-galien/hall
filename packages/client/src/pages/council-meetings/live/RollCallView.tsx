@@ -1,4 +1,5 @@
-import type { DocumentResource } from "@hall/domain";
+import type { ResourceDetail } from "@hall/api-contract";
+type ProxyDocument = Extract<ResourceDetail, { kind: "document" }>;
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,11 +19,16 @@ import {
   UploadIcon,
   WarningIcon,
 } from "../../../components/icons";
-import { Modal } from "../../../components/Ui";
+import { Modal, RequestErrorBanner } from "../../../components/Ui";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import { useI18n } from "../../../i18n/I18nProvider";
-import { useResourcesStore } from "../../../stores/resourcesStore";
+import {
+  listDocumentaryResourceFolder,
+  openDocumentaryResource,
+  uploadDocumentaryResource,
+} from "../../../services/resourcesApi";
+import { apiErrorCode, sirenRepresentation, type ApiErrorCode } from "../../../services/apiClient";
 import type { LiveMeetingMemberAttendance as Attendance, LiveMeetingPresentation } from "../../../models/liveMeeting";
 import type { CouncilMemberView } from "../../../models/directory";
 import { meetingOpeningBlock } from "../meetingOpeningPolicy";
@@ -48,7 +54,8 @@ export function RollCallView({
 }) {
   const { t, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
-  const { resources, upload, load: reloadResources } = useResourcesStore();
+  const [proxyDocuments, setProxyDocuments] = useState<ProxyDocument[]>([]);
+  const [uploadError, setUploadError] = useState<ApiErrorCode | null>(null);
   const [proxyMemberId, setProxyMemberId] = useState<string | null>(null);
   const conduct = meetingActions.workspace?.conduct;
   const openingObservation = conduct?.quorumObservations
@@ -79,10 +86,28 @@ export function RollCallView({
     () => new Map(draftAttendance.map((attendance) => [attendance.memberId, attendance])),
     [draftAttendance],
   );
-  const proxyDocuments = resources.filter(
-    (resource): resource is DocumentResource =>
-      resource.kind === "document" && resource.meetingId === meeting.id && resource.category === "proxy",
-  );
+  useEffect(() => {
+    let cancelled = false;
+    const ids = [
+      ...new Set(aggregate.attendance.flatMap((entry) => (entry.proxyDocumentId ? [entry.proxyDocumentId] : []))),
+    ];
+    void Promise.all(ids.map(openDocumentaryResource))
+      .then((results) => {
+        if (cancelled) return;
+        setProxyDocuments((current) => [
+          ...current,
+          ...results.flatMap(({ data }) =>
+            data.kind === "document" && !current.some((document) => document.id === data.id) ? [data] : [],
+          ),
+        ]);
+      })
+      .catch((error) => {
+        if (!cancelled) setUploadError(apiErrorCode(error));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [aggregate.attendance]);
   const openingBlock = meetingOpeningBlock({
     ...aggregate,
     meeting,
@@ -137,13 +162,33 @@ export function RollCallView({
 
   const uploadProxyDocument = (file: File) => {
     const form = new FormData();
-    form.set("meetingId", meeting.id);
-    form.set("category", "proxy");
     form.set("file", file);
-    void run(async () => {
-      const uploaded = await upload(form);
-      if (uploaded) await reloadResources();
-      return uploaded;
+    return run(async () => {
+      setUploadError(null);
+      try {
+        const { data: documents } = await listDocumentaryResourceFolder("");
+        const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()))]
+          .map((byte) => byte.toString(16).padStart(2, "0"))
+          .join("");
+        const existing = documents.find(
+          (document) =>
+            document.kind === "document" && document.name === file.name && document.binary.contentSha256 === hash,
+        );
+        if (existing?.kind === "document") {
+          setProxyDocuments((current) => [...current.filter((document) => document.id !== existing.id), existing]);
+          return existing;
+        }
+        const representation = await sirenRepresentation("/resources");
+        const { data } = await uploadDocumentaryResource(representation, form);
+        if (data.kind === "document") {
+          setProxyDocuments((current) => [...current, data]);
+          return data;
+        }
+        return null;
+      } catch (error) {
+        setUploadError(apiErrorCode(error));
+        return null;
+      }
     });
   };
 
@@ -391,7 +436,12 @@ export function RollCallView({
             <button
               className="live-primary-action"
               type="button"
-              disabled={submitting || Boolean(openingBlock) || openingBlockers.length > 0 || !meetingActions.can("meeting.record-opening")}
+              disabled={
+                submitting ||
+                Boolean(openingBlock) ||
+                openingBlockers.length > 0 ||
+                !meetingActions.can("meeting.record-opening")
+              }
               onClick={() => void openMeeting()}
               data-testid="live-meeting-start"
             >
@@ -422,6 +472,8 @@ export function RollCallView({
             holderCandidates={holderCandidates}
             proxyDocuments={proxyDocuments}
             submitting={submitting}
+            uploadError={uploadError}
+            onDismissError={() => setUploadError(null)}
             onUploadFile={uploadProxyDocument}
             onSubmit={(holderId, documentId) => submitProxy(proxyMember.id, holderId, documentId)}
             onClose={() => setProxyMemberId(null)}
@@ -439,15 +491,19 @@ function ProxyModal({
   proxyDocuments,
   submitting,
   onUploadFile,
+  uploadError,
+  onDismissError,
   onSubmit,
   onClose,
 }: {
   member: CouncilMemberView;
   current: Attendance | undefined;
   holderCandidates: { member: CouncilMemberView; alreadyHolding: boolean }[];
-  proxyDocuments: DocumentResource[];
+  proxyDocuments: ProxyDocument[];
+  uploadError: ApiErrorCode | null;
+  onDismissError(): void;
   submitting: boolean;
-  onUploadFile(file: File): void;
+  onUploadFile(file: File): Promise<ProxyDocument | null | undefined>;
   onSubmit(holderId: string, documentId: string): void;
   onClose(): void;
 }) {
@@ -455,24 +511,17 @@ function ProxyModal({
   const [holderId, setHolderId] = useState<string | null>(current?.proxyHolderMemberId ?? null);
   const [documentId, setDocumentId] = useState<string | null>(current?.proxyDocumentId ?? null);
   const fileInput = useRef<HTMLInputElement | null>(null);
-  const previousDocumentCount = useRef(proxyDocuments.length);
-
-  useEffect(() => {
-    if (proxyDocuments.length > previousDocumentCount.current) {
-      const newest = [...proxyDocuments].sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
-      if (newest) setDocumentId(newest.id);
-    }
-    previousDocumentCount.current = proxyDocuments.length;
-  }, [proxyDocuments]);
 
   return (
     <Modal
       open
+      testId="live-proxy-dialog"
       title={t("live.proxyModalTitle").replace("{member}", `${member.contact.firstName} ${member.contact.lastName}`)}
       onClose={onClose}
     >
       <div className="modal-form">
         <p className="text-sm text-muted">{t("live.proxyModalDescription")}</p>
+        <RequestErrorBanner error={uploadError} onDismiss={onDismissError} />
 
         <section aria-labelledby="proxy-holder-heading">
           <h3 className="picker-heading" id="proxy-holder-heading">
@@ -488,6 +537,7 @@ function ProxyModal({
                   type="button"
                   aria-pressed={holderId === candidate.id}
                   disabled={alreadyHolding}
+                  data-testid={`live-proxy-holder-${candidate.id}`}
                   onClick={() => setHolderId(candidate.id)}
                   key={candidate.id}
                 >
@@ -516,17 +566,24 @@ function ProxyModal({
                 className={`picker-card${documentId === document.id ? " picker-card-active" : ""}`}
                 type="button"
                 aria-pressed={documentId === document.id}
+                data-testid={`live-proxy-document-${document.id}`}
                 onClick={() => setDocumentId(document.id)}
                 key={document.id}
               >
                 <FileIcon aria-hidden="true" />
                 <span className="picker-card-copy">
-                  <strong>{document.fileName}</strong>
-                  <span>{formatFileSize(document.byteSize)}</span>
+                  <strong>{document.name}</strong>
+                  <span>{formatFileSize(document.binary.byteSize)}</span>
                 </span>
               </button>
             ))}
-            <button className="picker-card picker-card-upload" type="button" onClick={() => fileInput.current?.click()}>
+            <button
+              data-testid="live-proxy-upload"
+              disabled={submitting}
+              className="picker-card picker-card-upload"
+              type="button"
+              onClick={() => fileInput.current?.click()}
+            >
               <UploadIcon aria-hidden="true" />
               <span className="picker-card-copy">
                 <strong>{t("live.uploadProxy")}</strong>
@@ -534,13 +591,18 @@ function ProxyModal({
               </span>
             </button>
             <input
+              data-testid="live-proxy-file"
+              disabled={submitting}
               ref={fileInput}
               type="file"
               aria-label={t("documents.file")}
               className="visually-hidden-input"
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0];
-                if (file) onUploadFile(file);
+                if (file)
+                  void onUploadFile(file).then((document) => {
+                    if (document) setDocumentId(document.id);
+                  });
                 event.currentTarget.value = "";
               }}
             />
@@ -548,11 +610,12 @@ function ProxyModal({
         </section>
 
         <div className="rollcall-proxy-actions">
-          <Button variant="outline" type="button" onClick={onClose}>
+          <Button data-testid="live-proxy-cancel" variant="outline" type="button" onClick={onClose}>
             {t("common.cancel")}
           </Button>
           <Button
             variant="default"
+            data-testid="live-proxy-confirm"
             disabled={submitting || !holderId || !documentId}
             onClick={() => holderId && documentId && onSubmit(holderId, documentId)}
           >

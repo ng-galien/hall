@@ -1263,3 +1263,62 @@ test("conducts public and secret ballots and provisions the previous minutes app
   }
   expect(outcomes.sort()).toEqual(["public:approve", "secret:reject"]);
 });
+
+test("uploads a written proxy and selects the created documentary resource", async ({ appPage: page }) => {
+  test.setTimeout(120_000);
+  const meetings = await sirenItems<{ id: string; startedAt: string | null; closedAt: string | null }>(
+    await page.request.get("/api/council-meetings"),
+  );
+  const meeting = meetings.find((entry) => !entry.startedAt && !entry.closedAt)!;
+  const members = await sirenItems<{ id: string }>(await page.request.get("/api/council-members"));
+  await sirenProperties(
+    await page.request.put(`/api/council-meetings/${meeting.id}/schedule`, {
+      data: { scheduledAt: new Date(Date.now() - 60000).toISOString(), location: "Proxy test room" },
+    }),
+  );
+  const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
+  await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
+  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
+  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
+  await page.goto(`/app/meetings/${meeting.id}/live`);
+  await page.getByTestId("live-attendance-all-present").click();
+  await page.getByTestId(`live-attendance-${members[1]!.id}-represented`).click();
+  await page.getByTestId(`live-proxy-holder-${members[0]!.id}`).click();
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByTestId("live-proxy-upload").click();
+  const uploaded = page.waitForResponse(
+    (response) => response.url().endsWith("/api/resources/documents") && response.request().method() === "POST",
+  );
+  await (await chooser).setFiles({
+    name: "proxy-upload-regression.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  const response = await uploaded;
+  expect(response.status()).toBe(201);
+  const document = await sirenProperties<{ id: string }>(response);
+  await expect(page.getByTestId(`live-proxy-document-${document.id}`)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("live-proxy-confirm")).toBeEnabled();
+  await page.getByTestId("live-proxy-confirm").click();
+  await expect(page.getByTestId("live-proxy-dialog")).toBeHidden();
+  await expect(page.getByTestId(`live-attendance-${members[1]!.id}-represented`)).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.getByTestId(`live-attendance-${members[1]!.id}-represented`).click();
+  await expect(page.getByTestId(`live-proxy-document-${document.id}`)).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await page.getByTestId("live-attendance-all-present").click();
+  await page.getByTestId(`live-attendance-${members[1]!.id}-represented`).click();
+  await page.getByTestId(`live-proxy-holder-${members[0]!.id}`).click();
+  let duplicateUploads = 0;
+  await page.route("**/api/resources/documents", async (route) => { duplicateUploads++; await route.abort(); });
+  await page.getByTestId("live-proxy-file").setInputFiles({name: "proxy-upload-regression.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=", "base64")});
+  await expect(page.getByTestId(`live-proxy-document-${document.id}`)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("live-proxy-confirm")).toBeEnabled();
+  expect(duplicateUploads).toBe(0);
+
+});

@@ -13,6 +13,37 @@ Cette feuille de route ordonne les travaux par valeur produit et par dépendance
 
 Un chantier n'est coché que lorsque son critère de sortie est satisfait. Un simple prototype ou un test isolé ne suffit pas.
 
+## Débrief du conseil n° 6 du 11 septembre 2026
+
+Retour du propriétaire après la séance réelle sur la production Alésia : dans l'ensemble, le conseil a pu se dérouler et l'application fonctionne. Les points suivants sont consignés au backlog ; leur inscription ne signifie ni correction réalisée ni décision prise sur les questions encore ouvertes.
+
+Point positif signalé : l'enregistrement automatique en direct a bien fonctionné. the user n'a perdu aucune information malgré les difficultés de navigation ; ce comportement est à préserver.
+
+- [x] `[OPS]` **Sauvegarde en premier** : dump complet de la base de production après ce conseil, comprenant le schéma et les données, réalisé le 11 septembre 2026 à 23 h 11. Archive locale `hall-production-2026-09-11T21-11-14-838Z.dump` copiée dans le dossier OneDrive personnel `Alésia/Application mairie`, conformément à la destination précisée ensuite par le propriétaire ; une première copie reste dans `Hall/Sauvegardes`. Lecture intégrale par `pg_restore` réussie et copie vérifiée par SHA-256 ; synchronisation distante OneDrive non vérifiée. Ce contrôle ne constitue pas un essai de restauration en base.
+- [ ] `[FULL]` **Arrivées en retard** : permettre de prendre en compte un conseiller qui rejoint la séance après l'appel initial, dans les présences et le quorum. Le débrief mentionne aussi une personne déclarée présente avant son arrivée effective ; préciser ce scénario et le traitement attendu avant de modifier les règles.
+- [ ] `[FULL]` **PV refusé et gestion du scrutin** : préciser le parcours quand le PV précédent n'est pas approuvé. Difficultés signalées : impossibilité d'ajourner le point ou d'annuler le vote ; cas évoqués d'abstention de tous les votants ou de votes contre. Ces situations restent à distinguer et à arbitrer avec le propriétaire, sans déduire une nouvelle règle de ce débrief.
+- [ ] `[FRONT]` **Navigation pendant la séance** : rendre les déplacements entre écrans et l'ouverture des liens cohérents ; éviter que chaque lien ouvre une fenêtre superposée et oblige à refaire la navigation pour retrouver le contexte de séance.
+- [ ] `[FRONT]` **Textes et éditeurs** : retravailler la présentation des textes et les dimensions des éditeurs, jugées trop brutes à l'usage.
+- [ ] `[FRONT]` **Clarté générale de l'IHM** : prévoir un travail d'ensemble sur la présentation des documents, la distinction des sections et la hiérarchie des informations. Les sections ont chacune une fonction et une temporalité qui se distinguent mal visuellement. L'interface est jugée trop fouillis et ses couleurs trop monotones. Travailler le style, la différenciation des zones et les vérifications de présentation comme des améliorations UI/UX ; les choix de présentation restent à travailler avec le propriétaire.
+- [ ] `[FRONT]` **Espace visible en conduite de séance** : soigner l'occupation de l'écran et la lisibilité à la résolution dictée « 1 980 × 824 » (dimensions à confirmer avant recette). the user demande notamment des zones de dépôt des votes verticales plutôt qu'horizontales.
+- [ ] `[FRONT]` **Thème vidéoprojecteur** : prévoir un thème adapté à la projection ; la présentation actuelle a été jugée illisible pendant le conseil.
+- [ ] `[FULL]` **Rendez-vous avec horaires** : reproduire les échecs répétés d'enregistrement et la disparition signalée de rendez-vous avec dates et heures, alors que les rendez-vous sur toute la journée fonctionnaient. Corriger également l'alignement des champs de début et de fin. Cause non établie à ce stade.
+- [ ] `[FULL]` **Cohérence de l'espace documentaire** : mener un travail de fond sur l'ergonomie, le sens des ressources et les parcours d'ajout et de suppression ; préciser les évolutions avec le propriétaire avant implémentation.
+- [ ] `[FULL]` **Actualisation en direct** : compléter le débrief sur le manque ressenti d'événements en direct et d'un cadre d'actualisation partagé ; SSE est évoqué par le propriétaire. Les usages attendus restent à préciser et l'existant à examiner avant de choisir une solution technique.
+- [ ] `[FULL]` **Étude des connexions et du SSO — chantier fondamental, très important** : étudier les possibilités de connexion avec un compte Microsoft et de liaison ou d'authentification via Active Directory. Présenter les options, leurs prérequis et leurs implications pour Hall afin qu'the user choisisse la solution. Aucun fournisseur ni mécanisme d'authentification n'est arrêté à ce stade.
+- [ ] `[OPS]` **Distribution locale Windows et macOS — très important** : packager l'application pour la transmettre avec une version snapshot ou un dump de la base et permettre son utilisation locale.
+- [ ] `[FULL]` **Rechargement d'un dump en local** : prévoir un parcours permettant de recharger un dump de base dans l'application locale. Ce fonctionnement doit accompagner la période sans accès distant, qui ne sera pas disponible immédiatement. Les modalités de rechargement restent à préciser ; aucune synchronisation ou fusion de bases n'est décidée par ce besoin.
+- [ ] `[FULL]` **Finition du template** : reprendre proprement le modèle et ses détails de présentation. Le template concerné et les ajustements attendus restent à préciser. Bilan de fin de débrief : de nombreux détails restent à travailler, mais the user considère que l'application constitue une bonne base.
+- [ ] `[FULL]` **Audit de toutes les ressources** : examiner chaque type de ressource, son parcours d'édition et son accessibilité dans l'IHM ; relever les opérations disponibles, manquantes ou difficiles à trouver.
+- [ ] `[FULL]` **Paramètres de la commune et salles** : examiner les possibilités de configuration de la commune, jugées insuffisantes, notamment l'absence signalée de salles prédéfinies. Préciser le besoin et les éventuels défauts avant de proposer une évolution du modèle.
+- [ ] `[FULL]` **Droits et rôles** : auditer et rationaliser les RBAC, les permissions et les rôles ; étudier une gestion plus fine selon les besoins à préciser avec le propriétaire.
+- [ ] `[FULL]` **Revue générale de l'application et de sa documentation** : passer en revue les domaines et les fonctionnalités, ce que l'utilisateur doit pouvoir faire et ce qui est réellement accessible ; confronter ces parcours à la documentation et relever les incohérences, manques et points à clarifier. Il s'agit d'un audit à prévoir, pas d'une autorisation de modifier toutes les règles fonctionnelles.
+
+### Priorité de début de reprise : chargement et mémoire
+
+- [ ] `[FULL]` **Chargement à la demande et requêtes sélectives — priorité haute** : auditer les chargements des écrans, les volumes transférés et les agrégations de requêtes ; charger les données au moment où elles sont nécessaires et limiter les ensembles récupérés. the user suspecte des chargements trop larges ; les causes restent à mesurer.
+- [ ] `[FULL]` **Consommation mémoire et durée de vie des données — priorité haute** : surveiller la mémoire pendant des usages prolongés avec de nombreux documents et PDF. Examiner la croissance des stores et caches, ainsi que la libération des ressources après fermeture ou navigation. La croissance continue d'un gros store est une hypothèse du débrief, pas une fuite confirmée. Mesurer avant et après les optimisations.
+
 ## P0 : consolider l'alpha démontrable
 
 ### Stabiliser le lot éditeur et documents

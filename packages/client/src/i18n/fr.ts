@@ -1129,6 +1129,7 @@ export const fr: Messages = {
   "live.eyebrow": "Séance du conseil municipal",
   "live.exit": "Quitter le mode séance",
   "live.backToMeetings": "Retour aux séances",
+  "live.quorumCompact": "Quorum : {present} / {required}",
   "live.quorumItemChip": "Quorum constaté : {point} · {time} · {present} / {required}",
   "live.quorumMeetingChip": "Quorum de séance constaté le {time} : {present} / {required}",
   "live.quorumItemFallback": "Point à l’ordre du jour",

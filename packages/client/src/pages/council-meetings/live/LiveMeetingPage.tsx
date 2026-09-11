@@ -50,7 +50,11 @@ export function LiveMeetingPage() {
     return (
       <div className="live-shell live-shell-empty" data-testid="live-meeting-entry-blocked">
         <MeetingEntryBlockers blockers={entryBlockers} />
-        <Link className="live-exit" data-testid="live-return-preparation" to={`/meetings/${meeting.slug || meeting.id}`}>
+        <Link
+          className="live-exit"
+          data-testid="live-return-preparation"
+          to={`/meetings/${meeting.slug || meeting.id}`}
+        >
           <BackIcon aria-hidden="true" />
           {t("meeting.liveEntry.returnPreparation")}
         </Link>
@@ -88,8 +92,13 @@ export function LiveMeetingPage() {
           <span
             className={`live-quorum-chip ${!quorumObservation ? "live-quorum-chip-pending" : quorum.reached ? "live-quorum-chip-reached" : "live-quorum-chip-missing"}`}
             data-testid="live-quorum-observation"
+            title={quorumLabel}
           >
-            {quorumLabel}
+            {quorumObservation
+              ? t("live.quorumCompact")
+                  .replace("{present}", formatNumber(quorumObservation.facts.presentCount))
+                  .replace("{required}", formatNumber(quorumObservation.facts.requiredPresent))
+              : quorumLabel}
           </span>
           <LiveClock />
         </div>
