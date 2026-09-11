@@ -6,11 +6,15 @@ Ce document fixe la cible fonctionnelle de l’éditeur Markdown riche de Hall. 
 
 La frontière d’architecture reste définie dans [`references-internes-et-presentations-de-ressources.md`](references-internes-et-presentations-de-ressources.md). La présente spec est centrée sur l’expérience utilisateur.
 
+## Décision du 11 septembre 2026
+
+Le bouton d’insertion et le menu `@` utilisent le même parcours en mode compact et enrichi. Une ressource sélectionnée est insérée directement avec sa présentation ; seul le choix de feuille et de plage d’un tableur nécessite une étape supplémentaire. Les documents de l’affaire courante sont proposés avant les autres ressources, sans exclure celles-ci. Le Lab consomme cet éditeur commun.
+
 ## Objectifs
 
 - écrire vite sans quitter le document pour chercher une information déjà présente dans Hall ;
 - conserver des références internes stables plutôt que recopier des contenus ;
-- choisir entre une mention légère et une inclusion visuelle riche ;
+- insérer une ressource par un seul parcours, avec la même présentation dans tous les éditeurs ;
 - garder la même intention entre édition, lecture et impression, sans reproduire les contrôles d’édition dans le document imprimé ;
 - permettre une impression fiable, lisible et reproductible ;
 - préserver l’autosave et la simplicité de l’éditeur compact.
@@ -35,7 +39,7 @@ La modal s’ouvre en lecture. Si la ressource possède une action de modificati
 
 | Type exact | Représentation dans le document | Modal à l’activation | Modification dans la modal | Impression |
 | --- | --- | --- | --- | --- |
-| `TextResource` | référence avec icône et titre ; le texte n’est pas recopié | texte complet rendu | oui, par `Modifier`, avec l’éditeur texte existant | titre de la ressource |
+| `TextResource` | contenu Markdown rendu depuis la ressource, sans copie dans le document | texte complet rendu | oui, avec l’éditeur texte existant | contenu rendu |
 | `DocumentResource` image | image inline, avec texte alternatif et légende éventuelle | image agrandie | non pour le fichier ; seules les métadonnées autorisées peuvent évoluer | image embarquée |
 | `DocumentResource` PDF | lien inline avec icône et titre | viewer PDF existant | non pour le fichier ; téléchargement disponible | lien vers sa première page en annexe ; pages jointes automatiquement en fin de document |
 | `DocumentResource` DOCX, ODT, PPTX ou autre | simple lien avec icône, titre et format | aperçu technique lorsqu’il existe, sinon fiche de téléchargement | non pour le fichier | titre et format |
@@ -89,7 +93,7 @@ Un comportement de référence ou d’inclusion doit être cohérent sur toutes 
 | Élément | Dans l’éditeur | Hors édition | Impression actuelle |
 | --- | --- | --- | --- |
 | Contact, membre, sujet, séance, délibération | badge inline | badge inline | libellé résolu en texte |
-| `TextResource` | badge `resource` | aperçu Markdown au clic | titre seulement |
+| `TextResource` | contenu Markdown rendu | contenu rendu et ouverture au clic | contenu rendu |
 | Image `DocumentResource` | bloc image | image et aperçu plein écran | image embarquée |
 | PDF `DocumentResource` | lien inline | viewer au clic | lien interne et pages annexées dans l’ordre d’apparition |
 | Autre `DocumentResource` | badge `resource` | viewer ou téléchargement au clic | titre et format |
@@ -98,7 +102,7 @@ Un comportement de référence ou d’inclusion doit être cohérent sur toutes 
 | `GeographicResource` | carte inline | carte complète au clic | image 16:9 avec fond, géométries et libellés |
 | `SpreadsheetResource` | présenté comme « Fichier », puis badge `resource` | aperçu vide | titre seulement |
 
-Il n’existe pas encore d’inclusion générique de ressource en bloc. La recherche ne demande pas si l’utilisateur veut citer ou inclure. Le libellé conservé dans le Markdown est affiché tel quel dans l’éditeur et peut donc devenir obsolète après un renommage. Les erreurs de résolution ne disposent pas encore d’un état visuel commun.
+Le parcours commun insère désormais les présentations de ressources en bloc. La recherche ne demande pas si l’utilisateur veut citer ou inclure. Le libellé conservé dans le Markdown est affiché tel quel dans l’éditeur et peut donc devenir obsolète après un renommage. Les erreurs de résolution ne disposent pas encore d’un état visuel commun.
 
 L’impression autoritaire existe pour les modèles et pour l’aperçu PDF du banc d’essai. Les autres contenus riches n’ont pas encore un pipeline d’impression unifié. Le brouillon de procès-verbal recopie actuellement leurs Markdown dans un document plus grand.
 

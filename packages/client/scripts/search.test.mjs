@@ -108,3 +108,12 @@ test("the total reports matches beyond the cut", () => {
   assert.equal(outcome.results.length, 3);
   assert.equal(outcome.total, corpus.length);
 });
+
+test("business documents precede nearby results without excluding other resources", () => {
+  const items = [
+    { kind: "resource", id: "other", label: "A other", folderPath: "current" },
+    { kind: "resource", id: "attached", label: "Z attached", folderPath: "elsewhere", preferred: true },
+  ];
+  assert.deepEqual(searchEntities(items, "", { context: "current" }).results.map(item => item.id), ["attached", "other"]);
+  assert.deepEqual(searchEntities(items, "other", { context: "current" }).results.map(item => item.id), ["other"]);
+});

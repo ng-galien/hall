@@ -42,14 +42,15 @@ function SubjectBranch({
         contextMenu={
           <>
             {rename.menuItem}
-            <ContextMenuItem
-              disabled={scheduling.loading || !!scheduling.error || !meetingIds.length}
-              data-testid={`business-subject-schedule-${subject.id}`}
-              onSelect={() => onSchedule(meetingIds)}
-            >
-              <CalendarAddIcon />
-              {t("workspace.scheduleInMeeting")}
-            </ContextMenuItem>
+            {!scheduling.loading && !scheduling.error && meetingIds.length > 0 ? (
+              <ContextMenuItem
+                data-testid={`business-subject-schedule-${subject.id}`}
+                onSelect={() => onSchedule(meetingIds)}
+              >
+                <CalendarAddIcon />
+                {t("workspace.scheduleInMeeting")}
+              </ContextMenuItem>
+            ) : null}
             {scheduling.loading ? (
               <p className="business-menu-hint">{t("common.loading")}</p>
             ) : scheduling.error ? (

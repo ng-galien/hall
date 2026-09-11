@@ -19,7 +19,7 @@ import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
 import { useResourceSession } from "../../features/resources/useResourceSession";
-import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
+import { ReferenceBusinessContext, useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
@@ -38,7 +38,7 @@ export function CouncilBusinessWorkbench({
   business: CouncilBusinessView;
   onCreate(kind: WorkspaceCreateKind, title?: string): Promise<WorkspaceSelection>;
 }) {
-  const mentionables = useReferenceMentionables();
+  const mentionables = useReferenceMentionables(business.id);
   const { canUpload: canUploadImage, uploadImage } = useWorkspaceResourceImageUpload();
   const { t } = useI18n();
   const { submitting, run } = useSubmitting();
@@ -129,6 +129,7 @@ export function CouncilBusinessWorkbench({
   const otherCandidates = candidateResources.filter((resource) => resource.path !== business.folderPath);
 
   return (
+    <ReferenceBusinessContext.Provider value={business.id}>
     <div className="workbench workspace-business-workbench" data-testid="council-business-workbench">
       <WorkspaceWorkbenchHeader
         icon={<CouncilBusinessGlyph business={business} large />}
@@ -312,5 +313,6 @@ export function CouncilBusinessWorkbench({
         />
       ) : null}
     </div>
+    </ReferenceBusinessContext.Provider>
   );
 }

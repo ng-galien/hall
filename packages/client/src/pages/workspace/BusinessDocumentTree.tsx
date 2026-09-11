@@ -1,3 +1,9 @@
+import { useState } from "react";
+import { RequestErrorBanner } from "../../components/Ui";
+import { useSubmitting } from "../../hooks/useSubmitting";
+import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
+import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { apiErrorCode, type ApiErrorCode } from "../../services/apiClient";
 import { useResourceRename } from "../../features/resources/useResourceRename";
 import { ContextMenuItem } from "../../components/ui/context-menu";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -78,6 +84,18 @@ function DocumentBranch({
   onRenamed(): Promise<void>;
 }) {
   const { t } = useI18n();
+  const representation = useWorkspaceResourcesStore((state) => state.representations[resource.id]);
+  const canDelete = resourceCapabilities(representation ?? null).deleteResource;
+  const { submitting, run } = useSubmitting();
+  const [error, setError] = useState<ApiErrorCode | null>(null);
+  const remove = () => void run(async () => {
+    setError(null);
+    try {
+      if (await useWorkspaceResourcesStore.getState().remove(resource.id)) await onRenamed();
+    } catch (failure) {
+      setError(apiErrorCode(failure));
+    }
+  });
   const rename = useResourceRename({
     resourceId: resource.id,
     testId: `business-document-rename-${resource.id}`,
@@ -95,6 +113,11 @@ function DocumentBranch({
               {t("workspace.openDocument")}
             </ContextMenuItem>
             {rename.menuItem}
+            {canDelete ? (
+              <ContextMenuItem data-testid={`business-document-delete-${resource.id}`} disabled={submitting} onSelect={remove}>
+                {t("workspace.deleteResource")}
+              </ContextMenuItem>
+            ) : null}
           </>
         }
       >
@@ -102,6 +125,7 @@ function DocumentBranch({
           <InlineResourceContent resourceId={resource.id} />
         </li>
       </ExplorerTreeBranch>
+      <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
       {rename.dialog}
     </>
   );

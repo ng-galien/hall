@@ -1,5 +1,4 @@
 import { type ReferenceEntityKind, referenceEntityKinds } from "@hall/domain";
-import { imageWidthRange } from "@hall/templating";
 import type { Editor } from "@tiptap/react";
 import type { RefObject } from "react";
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -11,7 +10,7 @@ import { FolderSectionsList } from "../search/FolderSectionsList";
 import { facetOptionsFrom } from "../search/facetSuggestions";
 import { folderSections, sectionItems } from "../search/folderSections";
 import { emptySearchBoxState, SearchBox, type SearchBoxState } from "../search/SearchBox";
-import { insertResourceImage } from "./images";
+import { EditorResourceEmbedSearch } from "./resourceEmbeds";
 import { referenceKindPresentations } from "./referenceKindPresentation";
 import { type Mentionable, mentionableFacetValueLabels, mentionableIcon } from "./references";
 
@@ -75,7 +74,14 @@ export function ReferenceSearchDialog({
     [pool, groupLabel, allowedKinds],
   );
 
-  const sections = useMemo(() => folderSections(matches, groupLabel), [matches, groupLabel]);
+  const sections = useMemo(() => {
+    const preferred = matches.filter((item) => item.preferred);
+    const remaining = matches.filter((item) => !item.preferred);
+    return [
+      ...(preferred.length ? [{ key: "current-business", path: "", label: t("editor.businessResources"), folder: false, items: preferred, children: [] }] : []),
+      ...folderSections(remaining, groupLabel, true),
+    ];
+  }, [matches, groupLabel, t]);
   const shown = useMemo(() => sectionItems(sections), [sections]);
   const active = Math.min(rawActive, Math.max(shown.length - 1, 0));
 
@@ -172,6 +178,7 @@ export function ReferenceSearchDialog({
 
 export interface FullSearchRequest {
   query: string;
+  selected?: Mentionable;
   /** The `@` query range to replace when opened from the mention menu. */
   range?: { from: number; to: number };
 }
@@ -191,32 +198,7 @@ export function EditorReferenceSearch({
   onClose(): void;
 }) {
   return (
-    <ReferenceSearchDialog
-      initialQuery={request.query}
-      mentionables={mentionables.current}
-      context={context.current}
-      onClose={onClose}
-      onPick={(item) => {
-        const chain = editor.chain().focus();
-        if (request.range) chain.deleteRange(request.range);
-        if (item.media === "image") {
-          if (request.range) chain.run();
-          insertResourceImage(editor, {
-            id: item.id,
-            alt: item.label,
-            align: "left",
-            width: imageWidthRange.default,
-          });
-        } else {
-          chain
-            .insertContent([
-              { type: "reference", attrs: { kind: item.kind, id: item.id, label: item.label } },
-              { type: "text", text: " " },
-            ])
-            .run();
-        }
-        onClose();
-      }}
-    />
+    <EditorResourceEmbedSearch editor={editor} request={request} mentionables={mentionables} context={context}
+      allowedKinds={referenceEntityKinds} testId="reference-search-dialog" onClose={onClose} />
   );
 }

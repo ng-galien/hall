@@ -1,3 +1,4 @@
+import { type ReferenceEntityKind } from "@hall/domain";
 import {
   imageWidthRange,
   mapPresentationDefaults,
@@ -27,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n } from "../../i18n/I18nProvider";
 import { AlignCenterIcon, AlignLeftIcon, CheckIcon, CopyIcon } from "../icons";
+import { insertResourceImage } from "./images";
 import { EditorMediaOverlay } from "./EditorMediaOverlay";
 import { type FullSearchRequest, ReferenceSearchDialog } from "./ReferenceSearchDialog";
 import type { Mentionable } from "./references";
@@ -409,8 +411,12 @@ export function EditorResourceEmbedSearch({
   mentionables,
   context,
   onClose,
+  allowedKinds = ["resource"],
+  testId = "resource-embed-search-dialog",
 }: {
   editor: Editor;
+  allowedKinds?: readonly ReferenceEntityKind[];
+  testId?: string;
   request: FullSearchRequest;
   mentionables: RefObject<Mentionable[]>;
   context: RefObject<string | undefined>;
@@ -424,18 +430,30 @@ export function EditorResourceEmbedSearch({
   const [range, setRange] = useState("");
   const [failed, setFailed] = useState(false);
   const embeddables = mentionables.current.filter(
-    (item) => item.kind === "resource" && item.resourcePresentation !== undefined,
+    (item) => allowedKinds.includes(item.kind),
   );
 
   const pick = (item: Mentionable) => {
+    if (request.range) editor.chain().focus().deleteRange(request.range).run();
     const presentation = item.resourcePresentation;
-    if (!presentation) return;
+    if (!presentation) {
+      editor.chain().focus().insertContent([
+        { type: "reference", attrs: { kind: item.kind, id: item.id, label: item.label } },
+        { type: "text", text: " " },
+      ]).run();
+      onClose();
+      return;
+    }
+    if (presentation === "image") {
+      insertResourceImage(editor, { id: item.id, alt: item.label, align: "left", width: imageWidthRange.default });
+      onClose();
+      return;
+    }
     if (presentation !== "table") {
       insertResourceEmbed(editor, {
         id: item.id,
         label: item.label,
         presentation,
-        ...(presentation === "image" ? { align: "left" as const, width: imageWidthRange.default } : {}),
       });
       onClose();
       return;
@@ -456,15 +474,24 @@ export function EditorResourceEmbedSearch({
     );
   };
 
+  const initialSelectionHandled = useRef(false);
+  useLayoutEffect(() => {
+    if (request.selected && !initialSelectionHandled.current) {
+      initialSelectionHandled.current = true;
+      pick(request.selected);
+    }
+  });
+
+  if (!candidate && request.selected) return null;
   if (!candidate) {
     return (
       <ReferenceSearchDialog
         initialQuery={request.query}
         mentionables={embeddables}
         context={context.current}
-        allowedKinds={["resource"]}
+        allowedKinds={allowedKinds}
         title={t("editor.embedResource")}
-        testId="resource-embed-search-dialog"
+        testId={testId}
         onQueryChange={(query) => {
           if (query.trim()) void provider?.search(query);
         }}

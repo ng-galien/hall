@@ -301,6 +301,7 @@ async function renderResourceEmbed(
   resourcesClient: ResourcesClient,
   geographicMapRenderer: GeographicMapRenderer,
   registerPdfAttachment: (resource: TemplatePdfAttachment) => void,
+  renderText: (source: string) => Promise<{ bodyHtml: string; diagnostics: Diagnostic[]; pdfAttachments: TemplatePdfAttachment[] }>,
 ): Promise<{ node: AstNode; diagnostics: Diagnostic[] }> {
   const id = directive.attributes.id;
   if (!id) return { node: fallbackPresentation(directive), diagnostics: [] };
@@ -338,11 +339,11 @@ async function renderResourceEmbed(
 
   const supportsPresentation = matchDiscriminated(resource, "kind", {
     folder: () => false,
-    text: () => false,
+    text: () => presentation === "text",
     remote: () => presentation === "link",
     spreadsheet: () => presentation === "table",
     geographic: () => presentation === "map",
-    event: () => false,
+    event: () => presentation === "event",
     legalReference: () => presentation === "legal-citation",
     document: (entry) =>
       presentation === "document" ||
@@ -350,6 +351,8 @@ async function renderResourceEmbed(
   });
   if (!supportsPresentation) {
     const expected = matchLiteral(presentation, {
+      text: () => "a TextResource",
+      event: () => "an EventResource",
       image: () => "a JPEG or PNG DocumentResource",
       document: () => "a DocumentResource",
       link: () => "a RemoteResource",
@@ -361,6 +364,26 @@ async function renderResourceEmbed(
   }
 
   return matchLiteral(presentation, {
+    text: async () => {
+      if (resource.kind !== "text") return incompatible("a TextResource");
+      const rendered = await renderText(resource.content);
+      rendered.pdfAttachments.forEach(registerPdfAttachment);
+      return { node: { type: "html", value: rendered.bodyHtml }, diagnostics: rendered.diagnostics };
+    },
+    event: async () => {
+      if (resource.kind !== "event") return incompatible("an EventResource");
+      const rendered = await renderText(resource.document.content);
+      rendered.pdfAttachments.forEach(registerPdfAttachment);
+      return {
+        node: { type: "root", children: [
+          paragraph([{ type: "strong", children: [textNode(resource.name)] }]),
+          paragraph([textNode(`${resource.document.schedule.start} - ${resource.document.schedule.end}`)]),
+          paragraph([textNode(resource.document.location)]),
+          { type: "html", value: rendered.bodyHtml },
+        ] },
+        diagnostics: rendered.diagnostics,
+      };
+    },
     image: async () => {
       if (resource.kind !== "document" || !["image/jpeg", "image/png"].includes(resource.binary.mediaType)) {
         return incompatible("a JPEG or PNG DocumentResource");
@@ -640,7 +663,9 @@ export function createTemplateRenderingService({
     meeting: context.meetingId ? await councilClient.openMeeting(context.meetingId) : null,
   });
 
-  const renderSource = async (source: string, context: ResolvedContext) => {
+  const renderSource = async (source: string, context: ResolvedContext, ancestors: readonly string[] = []): Promise<{
+    bodyHtml: string; text: string; diagnostics: Diagnostic[]; pdfAttachments: TemplatePdfAttachment[];
+  }> => {
     const minutes = context.minutes ? renderMinutesSections(context.minutes) : null;
     const tree = parse(source);
     const diagnostics = validateStructure(tree);
@@ -686,11 +711,18 @@ export function createTemplateRenderingService({
         continue;
       }
       if (directive.name === "resource-embed") {
+        const resourceId = directive.attributes.id;
+        if (resourceId && ancestors.includes(resourceId)) {
+          values.set(key, fallbackPresentation(directive));
+          diagnostics.push(resourceDiagnostic("resource_representation_unavailable", "Cyclic resource insertion", directive));
+          continue;
+        }
         const rendered = await renderResourceEmbed(
           directive,
           resourcesClient,
           geographicMapRenderer,
           registerPdfAttachment,
+          (content) => renderSource(content, context, resourceId ? [...ancestors, resourceId] : ancestors),
         );
         values.set(key, rendered.node);
         diagnostics.push(...rendered.diagnostics);

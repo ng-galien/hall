@@ -89,8 +89,8 @@ async function openReferenceSearch(editor: Locator): Promise<Locator> {
 }
 
 async function openResourceEmbedSearch(editor: Locator): Promise<Locator> {
-  await editor.getByTestId("editor-insert-resource-embed").click();
-  const dialog = editor.page().getByTestId("resource-embed-search-dialog");
+  await editor.getByTestId("editor-insert-reference").click();
+  const dialog = editor.page().getByTestId("reference-search-dialog");
   await expect(dialog).toBeVisible();
   return dialog;
 }
@@ -183,12 +183,11 @@ test.describe("Markdown editor", () => {
     await expect(renderedDocument(page).getByTestId("resource-embed-presentation-map")).toBeVisible();
   });
 
-  test("keeps the compact toolbar strict and reserves rich insertions for fullscreen", async ({ appPage: page }) => {
+  test("uses one resource insertion command in both editor modes", async ({ appPage: page }) => {
     await openEditorLab(page);
 
     const compact = compactEditor(page);
-    const compactButtons = compact.locator('[role="toolbar"]').getByRole("button");
-    await expect(compactButtons).toHaveCount(6);
+    await expect(compact.getByTestId("editor-insert-reference")).toHaveCount(1);
     for (const testId of [
       "editor-bold",
       "editor-italic",
@@ -215,7 +214,6 @@ test.describe("Markdown editor", () => {
       "editor-link",
       "editor-insert-table",
       "editor-insert-reference",
-      "editor-insert-resource-embed",
     ]) {
       await expect(enriched.getByTestId(testId)).toBeVisible();
     }
@@ -389,7 +387,7 @@ test.describe("Markdown editor", () => {
     await expect(compactEditor(page).getByRole("table").filter({ hasText: "Harmonie" })).toContainText("1800");
   });
 
-  test("inserts the six typed references with their immutable UUIDs", async ({ appPage: page }) => {
+  test("inserts the five non-resource typed references with their immutable UUIDs", async ({ appPage: page }) => {
     const decisionResponse = await page.request.post("/api/council-decisions", {
       data: {
         title: `Décision de référence E2E ${Date.now()}`,
@@ -402,7 +400,7 @@ test.describe("Markdown editor", () => {
     await openEditorLab(page);
     const editor = await openEnrichedEditor(page);
     const source = markdownSource(page);
-    const kinds = ["member", "contact", "resource", "councilBusiness", "meeting", "decision"] as const;
+    const kinds = ["member", "contact", "councilBusiness", "meeting", "decision"] as const;
 
     for (const directive of kinds) {
       const dialog = await openReferenceSearch(editor);
@@ -427,7 +425,6 @@ test.describe("Markdown editor", () => {
     ) as Record<(typeof kinds)[number], string>;
     await closeEnrichedEditor(page);
     const rendered = compactEditor(page);
-    await expect(rendered.getByTestId(`editor-resource-reference-${ids.resource}`)).toBeVisible();
     await expect(rendered.getByTestId(`editor-member-reference-${ids.member}`)).toHaveAttribute(
       "href",
       new RegExp(`/app/council-members/${ids.member}$`),
@@ -463,7 +460,7 @@ test.describe("Markdown editor", () => {
     await search.getByTestId("reference-result").first().click();
     await closeEnrichedEditor(page);
 
-    const trigger = compactEditor(page).getByTestId(`editor-resource-reference-${resource.id}`);
+    const trigger = compactEditor(page).getByTestId(`editor-resource-embed-${resource.id}`);
     await expect(trigger).toBeVisible();
     const routeBefore = page.url();
     await trigger.click();

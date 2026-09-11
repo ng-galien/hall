@@ -615,7 +615,7 @@ test("shows canonical meeting entry requirements and invalidates entry when the 
   );
   const detailUrl = `/app/meetings/${scheduled.slug}`;
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
-  await scheduleVotingItem(page, scheduled.slug, businesses[0]!.id, 1);
+  const preparedItem = await scheduleVotingItem(page, scheduled.slug, businesses[0]!.id, 1);
   const conductUrl = `/api/council-meetings/${meeting.id}/conduct`;
   const initial = await sirenProperties<{ currentAttendance: unknown[]; quorumObservations: unknown[] }>(
     await page.request.get(conductUrl),
@@ -624,6 +624,7 @@ test("shows canonical meeting entry requirements and invalidates entry when the 
   await expect(page.getByTestId("meeting-enter-live")).toBeDisabled();
   await expect(page.getByTestId("meeting-entry-blocker-agendaNotFrozen")).toBeVisible();
   await expect(page.getByTestId("meeting-entry-blocker-currentNoticeMissing")).toBeVisible();
+  await expect(page.getByTestId("meeting-notice-attention")).toBeVisible();
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   await expect(page.getByTestId("live-meeting-start")).toHaveCount(0);
@@ -639,6 +640,7 @@ test("shows canonical meeting entry requirements and invalidates entry when the 
   await page.getByTestId("document-object-viewer-close").click();
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("meeting-live-entry-reason")).toHaveCount(0);
+  await expect(page.getByTestId("meeting-notice-attention")).toHaveCount(0);
   await page.getByTestId("meeting-enter-live").click();
   await expect(page.getByTestId("live-meeting-page")).toBeVisible();
   await expect(page.getByTestId("meeting-entry-blocker-scheduledTimeNotReached")).toBeVisible();
@@ -651,12 +653,17 @@ test("shows canonical meeting entry requirements and invalidates entry when the 
   await expect(page.getByTestId("meeting-enter-live")).toBeDisabled();
   await expect(page.getByTestId("meeting-entry-blocker-agendaNotFrozen")).toBeVisible();
   await expect(page.getByTestId("meeting-entry-blocker-currentNoticeMissing")).toBeVisible();
+  await expect(page.getByTestId("meeting-notice-attention")).toBeVisible();
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   const after = await sirenProperties<typeof initial>(await page.request.get(conductUrl));
   expect(after.currentAttendance).toEqual(initial.currentAttendance);
   expect(after.quorumObservations).toEqual(initial.quorumObservations);
   await page.screenshot({ path: test.info().outputPath("meeting-entry-requirements.png"), fullPage: true });
+  await page.goto(detailUrl);
+  await page.getByTestId(`agenda-item-open-business-${preparedItem.id}`).click();
+  await expect(page.getByTestId("council-business-workbench")).toBeVisible();
+  expect(new URL(page.url()).searchParams.get("councilBusiness")).toBe(businesses[0]!.id);
 });
 
 test("conducts public and secret ballots and provisions the previous minutes approval", async ({

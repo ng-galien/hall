@@ -1,6 +1,8 @@
 import type { ResourceDetail, ResourceJsonObject, ResourceJsonValue } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, createContext, useContext, useEffect, useMemo, useState } from "react";
+import { MarkdownView } from "../../components/MarkdownView";
+import { EventFields } from "../calendar/EventFields";
 import { ResourceImageFigure } from "../../components/editor/images";
 import {
   isValidResourceEmbedTableRange,
@@ -219,6 +221,12 @@ function ResourceEmbedBody({
   const unavailable = <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p>;
   const presentation = attributes.presentation;
   return matchLiteral(presentation, {
+    text: () => resource.kind === "text" ? (
+      <div data-testid="resource-embed-presentation-text"><MarkdownView markdown={resource.content} /></div>
+    ) : unavailable,
+    event: () => resource.kind === "event" ? (
+      <div data-testid="resource-embed-presentation-event"><EventFields value={resource.document} onChange={ignorePresentationError} readOnly /></div>
+    ) : unavailable,
     image: () =>
       resource.kind === "document" && documentaryResourceTone(resource) === "image" ? (
         <ResourceImageFigure
@@ -292,9 +300,13 @@ function ResourceEmbedBody({
 }
 
 /** Current, type-aware resource presentation used by editor nodes and read-only Markdown. */
+const EmbeddedResourceAncestors = createContext<readonly string[]>([]);
+
 export function ResourceEmbedPresentation({ attributes }: { attributes: ResourceEmbedAttributes }) {
   const { t } = useI18n();
   const resourceTypeLabel = useDocumentaryResourceTypeLabel();
+  const ancestors = useContext(EmbeddedResourceAncestors);
+  const recursive = ancestors.includes(attributes.id);
   const [details, setDetails] = useState<DocumentaryLeafDetail | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -322,7 +334,9 @@ export function ResourceEmbedPresentation({ attributes }: { attributes: Resource
     };
   }, [attributes.presentation, details, resourceTypeLabel]);
 
+  if (recursive) return <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p>;
   return (
+    <EmbeddedResourceAncestors.Provider value={[...ancestors, attributes.id]}>
     <article
       className={`editor-resource-embed editor-resource-embed-${attributes.presentation}`}
       data-testid="resource-embed-presentation"
@@ -346,5 +360,6 @@ export function ResourceEmbedPresentation({ attributes }: { attributes: Resource
         </div>
       ) : null}
     </article>
+    </EmbeddedResourceAncestors.Provider>
   );
 }

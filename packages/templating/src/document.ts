@@ -353,6 +353,8 @@ export function validateStructure(tree: TemplateAst): Diagnostic[] {
       const allowedByPresentation: Record<string, readonly string[]> = {
         image: ["id", "presentation", "align", "width"],
         document: ["id", "presentation"],
+        text: ["id", "presentation"],
+        event: ["id", "presentation"],
         link: ["id", "presentation"],
         "legal-citation": ["id", "presentation"],
         map: ["id", "presentation", "align", "width"],

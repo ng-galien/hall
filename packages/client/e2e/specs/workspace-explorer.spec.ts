@@ -138,6 +138,10 @@ test("schedules newly prepared proposals and open questions without reloading th
     ).toBe(false);
     if (kind === "openQuestion")
       await expect(page.getByTestId(`business-subject-decisions-${subject.id}`)).toHaveCount(0);
+    await page.getByTestId(`business-subject-${subject.id}-open`).click({ button: "right" });
+    await expect(page.getByTestId(`business-subject-schedule-unavailable-${subject.id}`)).toBeVisible();
+    await expect(schedule).toHaveCount(0);
+    await page.keyboard.press("Escape");
   }
 });
 
@@ -721,6 +725,14 @@ test("shows one dismissible deletion refusal and preserves the linked document",
     data: { resourceId: document.id },
   });
   expect(associated.ok()).toBeTruthy();
+  const second = await page.request.post("/api/council-business", {
+    data: { path: "seed", name: `Second protection ${crypto.randomUUID()}`, reportName: "Report", reportContent: "" },
+  });
+  expect(second.ok()).toBeTruthy();
+  const secondBusiness = (await second.json()).properties;
+  expect((await page.request.post(`/api/council-business/${secondBusiness.id}/resources`, {
+    data: { resourceId: document.id },
+  })).ok()).toBeTruthy();
   await page.getByTestId("resource-delete").click();
   await expect(page.getByRole("alert")).toHaveCount(1);
   await expect(page.getByTestId("resource-workbench").getByRole("alert")).toBeVisible();
@@ -733,4 +745,110 @@ test("shows one dismissible deletion refusal and preserves the linked document",
   await page.reload();
   await expect(page.getByTestId("resource-workbench")).toBeVisible();
   await expect(page.getByTestId("resource-delete")).toHaveCount(0);
+});
+
+test("deletes a geographic document from its editable business", async ({ appPage: page }) => {
+  const created = await page.request.post("/api/council-business", {
+    data: { path: "seed", name: `Delete location ${crypto.randomUUID()}`, reportName: "Report", reportContent: "Keep report" },
+  });
+  expect(created.ok()).toBeTruthy();
+  const business = (await created.json()).properties;
+  const added = await page.request.post("/api/resources", {
+    data: { kind: "geographic", name: `Location ${crypto.randomUUID()}`, path: "seed", councilBusinessId: business.id },
+  });
+  expect(added.ok()).toBeTruthy();
+  const resource = (await added.json()).properties;
+  await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  const row = page.getByTestId(`business-attached-resource-${resource.id}`);
+  await expect(row).toBeVisible();
+  await row.click({ button: "right" });
+  await page.getByTestId(`business-document-delete-${resource.id}`).click();
+  await expect(row).toHaveCount(0);
+  expect((await page.request.get(`/api/resources/${resource.id}`)).status()).toBe(404);
+  expect((await page.request.get(`/api/council-business/${business.id}`)).ok()).toBeTruthy();
+});
+
+test("finds attached documents in the business report reference search", async ({ appPage: page }) => {
+  const created = await page.request.post("/api/council-business", {
+    data: { path: "seed", name: `References ${crypto.randomUUID()}`, reportName: "Report", reportContent: "" },
+  });
+  expect(created.ok()).toBeTruthy();
+  const business = (await created.json()).properties;
+  const name = `Attached reference ${crypto.randomUUID()}`;
+  const added = await page.request.post("/api/resources", {
+    data: { kind: "geographic", name, path: "seed", councilBusinessId: business.id },
+  });
+  expect(added.ok()).toBeTruthy();
+  await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  await page.getByTestId("business-report-editor").getByTestId("editor-insert-reference").click();
+  const search = page.getByTestId("reference-search-dialog");
+  await search.getByTestId("reference-search-input").fill(name);
+  await expect(search.getByTestId("reference-result")).toHaveCount(1);
+  await expect(search.getByTestId("reference-result")).toContainText(name);
+});
+
+
+test("prioritizes business documents and inserts maps and text from the compact editor", async ({ appPage: page }) => {
+  const created = await page.request.post("/api/council-business", {
+    data: { path: "seed", name: `Insertion ${crypto.randomUUID()}`, reportName: "Report", reportContent: "" },
+  });
+  expect(created.ok()).toBeTruthy();
+  const business = (await created.json()).properties;
+  const attached: { id: string; name: string }[] = [];
+  for (const kind of ["geographic", "text"] as const) {
+    const response = await page.request.post("/api/resources", {
+      data: { kind, name: `ZZ attached ${kind} ${crypto.randomUUID()}`, path: "seed", councilBusinessId: business.id, ...(kind === "text" ? { content: "Attached text" } : {}) },
+    });
+    expect(response.ok()).toBeTruthy();
+    attached.push((await response.json()).properties);
+  }
+  const outsideResponse = await page.request.post("/api/resources", {
+    data: { kind: "text", name: `AA outside ${crypto.randomUUID()}`, path: "seed", content: "Outside text" },
+  });
+  expect(outsideResponse.ok()).toBeTruthy();
+  const outside = (await outsideResponse.json()).properties;
+  const additional: { id: string; name: string; presentation: string }[] = [];
+  for (const entry of [
+    { kind: "remote", target: { kind: "url", url: "https://example.org" }, presentation: "link" },
+    { kind: "event", document: { content: "Réunion de préparation", location: "Mairie", participants: [], schedule: { kind: "timed", start: "2026-09-11T10:00:00Z", end: "2026-09-11T11:00:00Z" } }, presentation: "event" },
+  ]) {
+    const { presentation, ...data } = entry;
+    const response = await page.request.post("/api/resources", { data: { ...data, name: `ZZZ ${entry.kind} ${crypto.randomUUID()}`, path: "seed", councilBusinessId: business.id } });
+    expect(response.ok()).toBeTruthy();
+    additional.push({ ...(await response.json()).properties, presentation });
+  }
+  await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  const editor = page.getByTestId("business-report-editor");
+  await editor.getByTestId("editor-insert-reference").click();
+  const dialog = page.getByTestId("reference-search-dialog");
+  await expect(dialog.getByTestId("reference-result").first()).toHaveAttribute("data-reference-id", attached[0].id);
+  await expect(dialog.getByTestId("reference-result").nth(1)).toHaveAttribute("data-reference-id", attached[1].id);
+  await dialog.getByTestId("reference-search-input").fill(outside.name);
+  await expect(dialog.getByTestId("reference-result")).toHaveCount(1);
+  await dialog.getByTestId("dialog-close").click();
+  await editor.getByTestId("editor-writing-area").fill("@");
+  await expect(page.getByTestId("editor-mention-result").first()).toHaveAttribute("data-reference-id", attached[0].id);
+  await page.getByTestId("editor-mention-result").first().click();
+  await expect(dialog).toHaveCount(0);
+  await expect(editor.getByTestId("resource-embed-presentation-map")).toBeVisible();
+  await editor.getByTestId("editor-writing-area").press("ArrowRight");
+  await editor.getByTestId("editor-writing-area").press("End");
+  await editor.getByTestId("editor-insert-reference").click();
+  await dialog.getByTestId("reference-search-input").fill(attached[1].name);
+  await dialog.getByTestId("reference-result").click();
+  await expect(editor.getByTestId("resource-embed-presentation-map")).toBeVisible();
+  await expect(editor.getByTestId("editor-writing-area")).toContainText("Attached text");
+  for (const resource of additional) {
+    await editor.getByTestId("editor-writing-area").press("ArrowRight");
+    await editor.getByTestId("editor-writing-area").press("End");
+    await editor.getByTestId("editor-insert-reference").click();
+    await dialog.getByTestId("reference-search-input").fill(resource.name);
+    await dialog.getByTestId("reference-result").click();
+    await expect(editor.getByTestId(`resource-embed-presentation-${resource.presentation}`)).toBeVisible();
+  }
+  await editor.getByTestId("editor-open-enriched").click();
+  const enriched = page.getByTestId("markdown-editor-enriched");
+  await expect(enriched.getByTestId("resource-embed-presentation-map")).toBeVisible();
+  await expect(enriched.getByTestId("resource-embed-presentation-text")).toContainText("Attached text");
+  await expect(enriched.getByTestId("resource-embed-presentation-event")).toBeVisible();
 });

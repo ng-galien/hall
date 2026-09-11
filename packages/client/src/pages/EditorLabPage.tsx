@@ -1,6 +1,6 @@
 import { resourceKinds } from "@hall/api-contract";
 import { serializeResourceEmbedDirective } from "@hall/templating";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { serializeImageDirective } from "../components/editor/images";
@@ -18,13 +18,16 @@ import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 export function EditorLabPage() {
   const { t } = useI18n();
   const [markdown, setMarkdown] = useState(() => t("editor.lab.sample"));
+  const [catalogReady, setCatalogReady] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfStatus, setPdfStatus] = useState<"idle" | "loading" | "failed">("idle");
   const mentionables = useReferenceMentionables();
   const resourcesStore = useWorkspaceResourcesStore();
-  const resources = resourcesStore.searchResult?.items.filter((resource) => resource.kind !== "folder") ?? [];
+  const resources = useMemo(() => resourcesStore.searchResult?.items.filter((resource) => resource.kind !== "folder") ?? [], [resourcesStore.searchResult]);
+  const tableOptions = useRef(new Map<string, ReturnType<typeof loadResourceEmbedTableOptions>>());
 
   useEffect(() => {
+    let active = true;
     void resourcesStore.loadCatalog().then(() =>
       resourcesStore.search({
         query: "",
@@ -34,10 +37,12 @@ export function EditorLabPage() {
         readiness: [],
         media: [],
       }),
-    );
+    ).then(() => { if (active) setCatalogReady(true); });
+    return () => { active = false; };
   }, [resourcesStore.loadCatalog, resourcesStore.search]);
 
   useEffect(() => {
+    if (!catalogReady) return;
     let active = true;
     const prepare = async () => {
       const demoImage = mentionables.find((item) => item.media === "image");
@@ -48,7 +53,10 @@ export function EditorLabPage() {
       const legal = resources.find((resource) => resource.kind === "legalReference");
       const map = resources.find((resource) => resource.kind === "geographic");
       const spreadsheet = resources.find((resource) => resource.kind === "spreadsheet");
-      const sheet = spreadsheet ? (await loadResourceEmbedTableOptions(spreadsheet.id).catch(() => []))[0] : undefined;
+      if (spreadsheet && !tableOptions.current.has(spreadsheet.id)) {
+        tableOptions.current.set(spreadsheet.id, loadResourceEmbedTableOptions(spreadsheet.id));
+      }
+      const sheet = spreadsheet ? (await tableOptions.current.get(spreadsheet.id)?.catch(() => []))?.[0] : undefined;
       if (!active) return;
       const links = [pdf, remote].filter((resource) => resource !== undefined);
       const blocks = [
@@ -88,7 +96,7 @@ export function EditorLabPage() {
     return () => {
       active = false;
     };
-  }, [mentionables, resources, t]);
+  }, [catalogReady, mentionables, resources, t]);
 
   const openPdfPreview = async () => {
     setPdfStatus("loading");

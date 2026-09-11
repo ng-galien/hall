@@ -61,7 +61,7 @@ Une représentation figée est l'artefact produit pour un export ou un document 
 ## Décisions fonctionnelles
 
 1. Hall conserve au maximum les références internes. Une inclusion visuelle reste une référence à une ressource Hall.
-2. La référence inline et l'inclusion en bloc sont deux choix explicites et convertibles. `@` cite rapidement ; la commande d’inclusion crée un bloc riche.
+2. Décision du 11 septembre 2026 : un seul parcours d’insertion est partagé par les modes compact et enrichi, dans le Lab comme dans les affaires. Le bouton et `@` insèrent la présentation de la ressource sélectionnée, sans second sélecteur. Les pièces de l’affaire sont proposées en premier ; les autres ressources restent accessibles. Les références aux autres entités restent inline.
 3. Le contenu d'une ressource durable n'est pas recopié dans le Markdown de la note.
 4. Une présentation en cours de rédaction suit la version courante de la ressource.
 5. Un export formel ou une occurrence figée doit être reproductible à partir d'une version, d'une empreinte ou d'une représentation immuable.

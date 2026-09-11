@@ -32,6 +32,7 @@ function comparePaths(left: string, right: string): number {
 export function folderSections<T extends TreeHit>(
   hits: readonly T[],
   kindLabel: (kind: T["kind"]) => string,
+  preserveRanking = false,
 ): FolderSection<T>[] {
   const byFolder = new Map<string, T[]>();
   const byKind = new Map<T["kind"], T[]>();
@@ -67,7 +68,8 @@ export function folderSections<T extends TreeHit>(
     return node;
   };
 
-  for (const path of [...byFolder.keys()].sort(comparePaths)) {
+  const paths = [...byFolder.keys()];
+  for (const path of preserveRanking ? paths : paths.sort(comparePaths)) {
     nodeFor(path).items = byFolder.get(path) ?? [];
   }
   for (const [kind, items] of byKind) {

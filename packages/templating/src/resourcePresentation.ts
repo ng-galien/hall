@@ -7,6 +7,8 @@ interface ResourcePresentationPolicy {
 }
 
 const noPresentationCompatibility = {
+  text: false,
+  event: false,
   image: false,
   document: false,
   link: false,
@@ -17,9 +19,9 @@ const noPresentationCompatibility = {
 
 function resourcePresentationPolicy(resource: Resource): ResourcePresentationPolicy {
   return matchDiscriminated(resource, "kind", {
-    text: () => ({ preferred: null, compatibility: noPresentationCompatibility }),
+    text: () => ({ preferred: "text" as const, compatibility: { ...noPresentationCompatibility, text: true } }),
     remote: () => ({
-      preferred: null,
+      preferred: "link" as const,
       compatibility: { ...noPresentationCompatibility, link: true },
     }),
     spreadsheet: () => ({
@@ -46,7 +48,7 @@ function resourcePresentationPolicy(resource: Resource): ResourcePresentationPol
 
 /**
  * Preferred block presentation offered by the editor for a resource.
- * Inline references remain the default for text and web resources.
+ * Resource insertion uses the same presentation in every editor.
  */
 export function preferredResourcePresentation(resource: Resource): ResourcePresentationKind | null {
   return resourcePresentationPolicy(resource).preferred;

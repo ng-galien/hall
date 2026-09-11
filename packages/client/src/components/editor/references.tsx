@@ -368,6 +368,8 @@ const MentionList = forwardRef<MentionListHandle, MentionListProps>(function Men
                     type="button"
                     role="option"
                     aria-selected={index === active}
+                    data-testid="editor-mention-result"
+                    data-reference-id={item.id}
                     className={index === active ? "mention-suggestion-item is-active" : "mention-suggestion-item"}
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => command(item)}
@@ -400,7 +402,7 @@ export interface ReferenceMentionOptions {
   context?(): string | undefined;
   searchAllLabel: string;
   /** Opens the full search with the query and the `@` range to replace. */
-  onOpenFull?(query: string, range: { from: number; to: number }): void;
+  onOpenFull?(query: string, range: { from: number; to: number }, selected?: Mentionable): void;
 }
 
 /** `@` mention menu: plain text searches every kind; `#` adds structured facets. */
@@ -461,16 +463,20 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
             limit: query.trim() ? 12 : undefined,
           });
           lastTotal.value = outcome.total;
-          const results = query.trim()
-            ? outcome.results
-            : referenceEntityKinds.flatMap((kind) =>
-                outcome.results.filter((entry) => entry.kind === kind).slice(0, 3),
-              );
-          return [...results].sort(
-            (a, b) => referenceEntityKinds.indexOf(a.kind) - referenceEntityKinds.indexOf(b.kind),
-          );
+          const preferred = outcome.results.filter((entry) => entry.preferred);
+          const remaining = outcome.results.filter((entry) => !entry.preferred);
+          return [
+            ...preferred,
+            ...(query.trim() ? remaining : referenceEntityKinds.flatMap((kind) =>
+              remaining.filter((entry) => entry.kind === kind).slice(0, 3),
+            )),
+          ];
         },
         command: ({ editor, range, props }) => {
+          if (props.kind === "resource" && this.options.onOpenFull) {
+            this.options.onOpenFull(props.label, range, props);
+            return;
+          }
           if (props.media === "image") {
             editor
               .chain()

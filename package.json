@@ -47,7 +47,11 @@
     "test": "npm run test --workspaces --if-present",
     "quality": "npm run check:architecture && npm run lint && npm run typecheck && npm test",
     "quality:e2e": "npm run quality && npm run test:e2e",
-    "dev:private": "node packages/server/scripts/dev-session.mjs restart --runtime-config local-imports/runtime/private/runtime.json"
+    "dev:private": "node packages/server/scripts/dev-session.mjs restart --runtime-config local-imports/runtime/private/runtime.json",
+    "prod:prepare": "node scripts/local-production.mjs prepare",
+    "prod:start": "node scripts/local-production.mjs start",
+    "prod:backup": "node scripts/local-production.mjs backup",
+    "prod:verify-backup": "node scripts/local-production.mjs verify-backup"
   },
   "allowScripts": {
     "electron@44.0.0": true,

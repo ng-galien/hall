@@ -1,6 +1,6 @@
 import { findSirenLink, type MeetingNotice, type MeetingNoticeMessagePreparation } from "@hall/api-contract";
 import { useEffect, useState } from "react";
-import { FileIcon, VisibleIcon } from "../../components/icons";
+import { FileIcon, VisibleIcon, WarningIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
@@ -22,6 +22,7 @@ export function MeetingNoticeActions({ meetingActions }: { meetingActions: Retur
   const [loading, setLoading] = useState(false);
   const [revision, setRevision] = useState(0);
   const { submitting, run } = useSubmitting();
+  const needsAttention = meeting.entryBlockers.some(({ code }) => code === "agendaNotFrozen" || code === "currentNoticeMissing");
   const canFreeze = meetingActions.can("meeting.freeze-agenda");
   const canReopen = meetingActions.can("meeting.reopen-agenda");
   const canGenerate = meetingActions.can("meeting.generate-notice");
@@ -62,7 +63,7 @@ export function MeetingNoticeActions({ meetingActions }: { meetingActions: Retur
   };
 
   return <>
-    <Button variant="outline" data-testid="meeting-open-notice" onClick={() => setOpen(true)}><FileIcon />{t("meeting.notice.title")}</Button>
+    <Button variant="outline" data-testid="meeting-open-notice" onClick={() => setOpen(true)}><span className="meeting-notice-icon"><FileIcon />{needsAttention ? <WarningIcon className="meeting-notice-attention" data-testid="meeting-notice-attention" aria-hidden="true" /> : null}</span>{t("meeting.agenda")}</Button>
     <Modal open={open} title={t("meeting.notice.title")} onClose={() => setOpen(false)}>
       <div className="meeting-notice-panel">
         <p className="text-sm text-muted">{t("meeting.notice.description")}</p>

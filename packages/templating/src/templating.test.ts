@@ -72,9 +72,9 @@ const presentationResources = {
 };
 
 describe("resource presentation policy", () => {
-  it("offers one preferred block presentation without turning inline-only resources into blocks", () => {
-    expect(preferredResourcePresentation(presentationResources.text)).toBeNull();
-    expect(preferredResourcePresentation(presentationResources.remote)).toBeNull();
+  it("offers one preferred presentation for each resource", () => {
+    expect(preferredResourcePresentation(presentationResources.text)).toBe("text");
+    expect(preferredResourcePresentation(presentationResources.remote)).toBe("link");
     expect(preferredResourcePresentation(presentationResources.spreadsheet)).toBe("table");
     expect(preferredResourcePresentation(presentationResources.geographic)).toBe("map");
     expect(preferredResourcePresentation(presentationResources.legalReference)).toBe("legal-citation");
@@ -466,7 +466,7 @@ describe("registry", () => {
       "image",
       "resource-embed",
     ]);
-    expect(resourcePresentationKinds).toEqual(["image", "document", "link", "legal-citation", "map", "table"]);
+    expect(resourcePresentationKinds).toEqual(["image", "document", "link", "legal-citation", "map", "table", "text", "event"]);
   });
 
   it("exposes the closed list of contextual fields", () => {

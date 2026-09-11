@@ -11,7 +11,7 @@ export const imageAlignments: readonly ImageAlignment[] = ["left", "center"];
 export const imageWidthRange = { min: 25, max: 100, default: 100 } as const;
 export const mapPresentationDefaults = { align: "center", width: 75 } as const;
 
-export const resourcePresentationKinds = ["image", "document", "link", "legal-citation", "map", "table"] as const;
+export const resourcePresentationKinds = ["image", "document", "link", "legal-citation", "map", "table", "text", "event"] as const;
 
 export type ResourcePresentationKind = (typeof resourcePresentationKinds)[number];
 

@@ -1,7 +1,7 @@
 import type { ResourceSummary } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
 import type { ResourcePresentationKind } from "@hall/templating";
-import { useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
 import type { Mentionable } from "../components/editor/references";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { type DocumentaryLeafSummary, documentaryResourceTone } from "../features/documents/DocumentaryResourceGlyph";
@@ -16,13 +16,15 @@ import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 
+export const ReferenceBusinessContext = createContext<string | undefined>(undefined);
+
 function preferredDocumentaryPresentation(resource: DocumentaryLeafSummary): ResourcePresentationKind | undefined {
   return matchDiscriminated(resource, "kind", {
-    text: () => undefined,
-    remote: () => undefined,
+    text: () => "text" as const,
+    remote: () => "link" as const,
     spreadsheet: () => "table" as const,
     geographic: () => "map" as const,
-    event: () => undefined,
+    event: () => "event" as const,
     legalReference: () => "legal-citation" as const,
     document: (entry) =>
       entry.binary.mediaType === "image/jpeg" || entry.binary.mediaType === "image/png"
@@ -36,13 +38,24 @@ function documentaryLeaves(summaries: Record<string, ResourceSummary>): Document
 }
 
 /** Mentionable entities for the editor `@` search; each carries the immutable entity id, never the slug. */
-export function useReferenceMentionables(): Mentionable[] {
+export function useReferenceMentionables(businessId?: string): Mentionable[] {
+  const inheritedBusinessId = useContext(ReferenceBusinessContext);
+  const currentBusinessId = businessId ?? inheritedBusinessId;
   const { t, formatDate } = useI18n();
   const { members } = useCouncilMembersStore();
   const { contacts } = useContactsStore();
   const resourceSummaries = useWorkspaceResourcesStore((state) => state.summaries);
-  const resources = useMemo(() => documentaryLeaves(resourceSummaries), [resourceSummaries]);
   const { businesses } = useCouncilBusinessStore();
+  const resources = useMemo(
+    () => [
+      ...new Map(
+        [...businesses.flatMap((business) => business.resources), ...documentaryLeaves(resourceSummaries)].map(
+          (resource) => [resource.id, resource],
+        ),
+      ).values(),
+    ],
+    [resourceSummaries, businesses],
+  );
   const { meetings } = useCouncilMeetingsStore();
   const { councilDecisions } = useCouncilDecisionsStore();
 
@@ -72,6 +85,7 @@ export function useReferenceMentionables(): Mentionable[] {
             ? imagePresentationTitle(resource.name, resource.name, t("editor.imageImported"))
             : resource.name,
           folderPath: resource.path,
+          preferred: businesses.some((business) => business.id === currentBusinessId && business.resources.some((entry) => entry.id === resource.id)),
           tags: resource.tags,
           media: isImage ? ("image" as const) : undefined,
           mediaLabel: isImage ? t("workspace.type.image") : undefined,
@@ -104,6 +118,6 @@ export function useReferenceMentionables(): Mentionable[] {
         stateLabel: t(decision.state === "draft" ? "decisionDocument.draft" : "decisionDocument.frozen"),
       })),
     ],
-    [members, contacts, resources, businesses, meetings, councilDecisions, t, formatDate],
+    [members, contacts, resources, businesses, meetings, councilDecisions, t, formatDate, currentBusinessId],
   );
 }

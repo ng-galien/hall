@@ -395,3 +395,21 @@ describe("authoritative resource presentation rendering", () => {
     expect(preview.printHtml).not.toContain(">2<");
   });
 });
+
+it("renders inserted text and event content through the authoritative renderer", async () => {
+  const { container } = await createTestServer();
+  const resources = container.cradle.resourcesClient;
+  const text = (await resources.create({ kind: "text", name: "Note", path: "seed", content: "**Contenu inséré**" })).data;
+  const event = (await resources.create({ kind: "event", name: "Rendez-vous", path: "seed", document: {
+    content: "Présentation du dossier", location: "Mairie", participants: [],
+    schedule: { kind: "timed", start: "2026-09-11T10:00:00Z", end: "2026-09-11T11:00:00Z" },
+  } })).data;
+  const preview = await container.cradle.templateRenderingService.preview(template([
+    `::resource-embed[Note]{#${text.id} presentation="text"}`,
+    `::resource-embed[Rendez-vous]{#${event.id} presentation="event"}`,
+  ].join("\n\n")));
+  expect(preview.diagnostics).toEqual([]);
+  expect(preview.html).toContain("<strong>Contenu inséré</strong>");
+  expect(preview.html).toContain("Présentation du dossier");
+  expect(preview.html).toContain("Mairie");
+});

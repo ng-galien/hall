@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { type DragEvent, type FormEvent, useId, useMemo, useState } from "react";
 import type { PreparedCouncilSubject, SchedulePreparedCouncilSubject } from "@hall/api-contract";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   AddIcon,
+  CouncilBusinessIcon,
   ArrowDownIcon,
   ArrowUpIcon,
   ChevronDownIcon,
@@ -255,11 +257,23 @@ export function AgendaComposer({
                     ) : null}
                     {expanded ? <ChevronDownIcon aria-hidden="true" /> : <ChevronRightIcon aria-hidden="true" />}
                   </button>
+                  {business.kind !== "minutesApproval" ? (
+                    <Button asChild variant="ghost" size="icon-sm">
+                      <Link
+                        data-testid={`agenda-item-open-business-${item.id}`}
+                        to={`/workspace?${new URLSearchParams({ councilBusiness: business.id, path: business.folderPath })}`}
+                        aria-label={t("meeting.openBusiness")}
+                        title={t("meeting.openBusiness")}
+                      >
+                        <CouncilBusinessIcon aria-hidden="true" />
+                      </Link>
+                    </Button>
+                  ) : null}
                   {editable ? (
                     <span className="composer-item-tools">
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         data-testid={`agenda-item-up-${item.id}`}
                         aria-label={t("meeting.moveUp")}
                         disabled={
@@ -273,7 +287,7 @@ export function AgendaComposer({
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         data-testid={`agenda-item-down-${item.id}`}
                         aria-label={t("meeting.moveDown")}
                         disabled={
@@ -287,7 +301,7 @@ export function AgendaComposer({
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         data-testid={`agenda-item-remove-${item.id}`}
                         aria-label={t("meeting.removeItem")}
                         disabled={submitting}

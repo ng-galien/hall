@@ -1132,6 +1132,30 @@ END
 $function$;
 
 -- @functional-requirement HALL-FR-DOC-150 RESOURCE_DELETION_IS_COMPLETE:
+CREATE FUNCTION hall.resource_business_allows_deletion(resource_id UUID)
+RETURNS BOOLEAN LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = pg_catalog, hall AS $function$
+DECLARE
+  business_id UUID;
+  link_count INTEGER;
+BEGIN
+  SELECT count(*), (array_agg(council_business))[1] INTO link_count, business_id
+  FROM hall.council_business_resource WHERE resource = resource_id;
+  IF link_count = 0 THEN RETURN TRUE; END IF;
+  IF link_count <> 1 THEN RETURN FALSE; END IF;
+  RETURN NOT EXISTS (
+    SELECT FROM hall.council_agenda_item item
+    JOIN hall.council_meetings meeting ON meeting.id = item.council_meeting
+    WHERE item.council_business = business_id
+      AND (EXISTS (SELECT FROM hall.active_council_agenda_freeze frozen WHERE frozen.council_meeting = meeting.id) OR meeting.started_at IS NOT NULL
+        OR meeting.closed_at IS NOT NULL OR item.started_at IS NOT NULL OR item.completed_at IS NOT NULL)
+  ) AND NOT EXISTS (
+    SELECT FROM hall.council_decision_proposal_workspace proposal
+    WHERE proposal.council_business = business_id AND hall.proposal_text_is_sealed(proposal.text_resource)
+  );
+END
+$function$;
+
 CREATE FUNCTION hall_api.delete_resource(resource_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -1146,7 +1170,22 @@ BEGIN
   PERFORM hall.lock_resource_namespace();
   SELECT * INTO target FROM hall.require_resource(resource_id);
   deleted_summary := hall.resource_summary(target);
+  PERFORM 1 FROM hall.resource WHERE id = resource_id FOR UPDATE;
 
+  PERFORM 1 FROM hall.council_meetings meeting
+  WHERE EXISTS (
+    SELECT FROM hall.council_agenda_item item
+    JOIN hall.council_business_resource link ON link.council_business = item.council_business
+    WHERE link.resource = resource_id AND item.council_meeting = meeting.id
+  ) ORDER BY meeting.id FOR UPDATE;
+  PERFORM 1 FROM hall.council_business business
+  WHERE EXISTS (SELECT FROM hall.council_business_resource link
+    WHERE link.resource = resource_id AND link.council_business = business.id)
+  ORDER BY business.id FOR UPDATE;
+  IF NOT hall.resource_business_allows_deletion(resource_id) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV703', MESSAGE = 'resource is shared or its council business is no longer editable';
+  END IF;
+  DELETE FROM hall.council_business_resource WHERE resource = resource_id;
   DELETE FROM hall.resource WHERE id = resource_id;
 
   IF target.folder_resource_id IS NOT NULL THEN

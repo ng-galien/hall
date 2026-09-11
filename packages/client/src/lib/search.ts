@@ -12,6 +12,7 @@ export interface Searchable<TKind extends SearchableKind = SearchableKind> {
   /** Secondary fields the query also matches: number, file name, role. */
   extra?: readonly (string | null | undefined)[];
   folderPath?: string;
+  preferred?: boolean;
   /** Classification tags, matched by the tag facet. */
   tags?: readonly string[];
   /** Persisted lifecycle state, matched by the state facet. */
@@ -118,7 +119,7 @@ export function searchEntities<T extends Searchable>(
 
   scored.sort(
     (left, right) =>
-      right.nearness - left.nearness || right.quality - left.quality || left.label.localeCompare(right.label, "fr"),
+      Number(Boolean(right.item.preferred)) - Number(Boolean(left.item.preferred)) || right.nearness - left.nearness || right.quality - left.quality || left.label.localeCompare(right.label, "fr"),
   );
 
   const results = options.limit !== undefined ? scored.slice(0, options.limit) : scored;

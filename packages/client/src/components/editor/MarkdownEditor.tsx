@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "../../i18n/I18nProvider";
 import {
   BoldIcon,
-  CardViewIcon,
   ChecklistIcon,
   CodeIcon,
   FullscreenIcon,
@@ -30,7 +29,6 @@ import type { ResourceImageAttributes } from "./images";
 import { EditorReferenceSearch, type FullSearchRequest } from "./ReferenceSearchDialog";
 import { referenceKindPresentations } from "./referenceKindPresentation";
 import type { Mentionable } from "./references";
-import { EditorResourceEmbedSearch } from "./resourceEmbeds";
 import { TableControls } from "./TableControls";
 
 export interface MarkdownEditorProps {
@@ -348,7 +346,7 @@ export function MarkdownEditor({
       mentionFacetLabels: facetLabels,
       mentionSearchAllLabel: t("editor.searchAll"),
       mentionContext: () => context.current,
-      mentionOpenFull: (query, range) => setFullSearch({ query, range }),
+      mentionOpenFull: (query, range, selected) => setFullSearch({ query, range, selected }),
     }),
     content: markdown,
     contentType: "markdown",
@@ -519,7 +517,6 @@ function EnrichedEditor({
   const groupLabels = useMentionGroupLabels();
   const facetLabels = useMentionFacetLabels();
   const [fullSearch, setFullSearch] = useState<FullSearchRequest | null>(null);
-  const [embedSearch, setEmbedSearch] = useState<FullSearchRequest | null>(null);
   const imageUpload = useRef(onUploadImage);
   imageUpload.current = onUploadImage;
 
@@ -532,7 +529,7 @@ function EnrichedEditor({
       mentionFacetLabels: facetLabels,
       mentionSearchAllLabel: t("editor.searchAll"),
       mentionContext: () => context.current,
-      mentionOpenFull: (query, range) => setFullSearch({ query, range }),
+      mentionOpenFull: (query, range, selected) => setFullSearch({ query, range, selected }),
     }),
     content: initial,
     contentType: "markdown",
@@ -648,13 +645,6 @@ function EnrichedEditor({
             >
               <ReferenceIcon />
             </ToolbarButton>
-            <ToolbarButton
-              label={t("editor.embedResource")}
-              testId="editor-insert-resource-embed"
-              onClick={() => setEmbedSearch({ query: "" })}
-            >
-              <CardViewIcon />
-            </ToolbarButton>
           </>
         ) : null}
       </div>
@@ -674,15 +664,6 @@ function EnrichedEditor({
           mentionables={members}
           context={context}
           onClose={() => setFullSearch(null)}
-        />
-      ) : null}
-      {embedSearch && editor ? (
-        <EditorResourceEmbedSearch
-          editor={editor}
-          request={embedSearch}
-          mentionables={members}
-          context={context}
-          onClose={() => setEmbedSearch(null)}
         />
       ) : null}
     </div>
