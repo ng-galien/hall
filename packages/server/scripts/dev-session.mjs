@@ -25,10 +25,6 @@ function loadHallEnvironment() {
 
 loadHallEnvironment();
 
-function ensureDocumentPreviewConverter() {
-  run("docker", ["compose", "up", "-d", "--wait", "gotenberg"]);
-}
-
 function ensurePostgres() {
   run("docker", ["compose", "up", "-d", "--wait", "postgres"]);
 }
@@ -108,7 +104,6 @@ function stopProjectListeners() {
 
 async function start() {
   requireTmux();
-  ensureDocumentPreviewConverter();
   ensurePostgres();
   if (hasSession()) {
     if (await healthReady()) {

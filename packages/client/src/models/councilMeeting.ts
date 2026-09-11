@@ -37,3 +37,8 @@ export function councilMeetingIsFinished(meeting: CouncilMeetingView): boolean {
 export function physicallyPresentCount(attendance: readonly MeetingAttendance[]): number {
   return attendance.filter((entry) => entry.status === "present").length;
 }
+
+// TODO REMOVE_STALE: temporary incomplete sessions are not upcoming, but remain unclosed.
+export function councilMeetingIsActive(meeting: CouncilMeetingView): boolean {
+  return !meeting.stale && !councilMeetingIsFinished(meeting);
+}

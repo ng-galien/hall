@@ -5,6 +5,13 @@
 CREATE TABLE council_meetings (
   id UUID PRIMARY KEY,
 
+  -- TODO REMOVE_STALE: temporary import marker and deferred active-meeting uniqueness.
+  stale BOOLEAN NOT NULL DEFAULT FALSE,
+  active_slot SMALLINT GENERATED ALWAYS AS (
+    CASE WHEN closed_at IS NULL AND NOT stale THEN 1::smallint END
+  ) STORED,
+  CONSTRAINT council_meetings_one_active UNIQUE (active_slot) DEFERRABLE INITIALLY DEFERRED,
+
   -- @functional-requirement HALL-FR-MTG-190 COUNCIL_MEETING_NUMBER_IS_STABLE_SEQUENCE:
   -- Meeting numbers are positive, unique occurrences in the durable sequence.
   -- The first provisioned meeting is 1; closure gives its successor number + 1.

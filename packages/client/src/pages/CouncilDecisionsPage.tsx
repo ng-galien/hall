@@ -1,3 +1,4 @@
+// TODO REMOVE_STALE: propagate incomplete session marker to canonical status badge.
 import type { CouncilDecisionSummary } from "@hall/api-contract";
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
@@ -27,9 +28,7 @@ export function CouncilDecisionsPage() {
   const { layout, setLayout, query, setQuery } = useCollectionView();
   const groups = useMemo(() => {
     const grouped = new Map<string, CouncilDecisionSummary[]>();
-    for (const decision of councilDecisions.filter((entry) =>
-      matchesQuery(query, entry.number, entry.title),
-    )) {
+    for (const decision of councilDecisions.filter((entry) => matchesQuery(query, entry.number, entry.title))) {
       grouped.set(decision.councilMeetingId, [...(grouped.get(decision.councilMeetingId) ?? []), decision]);
     }
     return [...grouped]
@@ -70,7 +69,7 @@ export function CouncilDecisionsPage() {
                     </strong>
                     {group.meeting ? (
                       <span className="decision-group-meta">
-                        <MeetingStatusBadge status={group.meeting.phase} />
+                        <MeetingStatusBadge status={group.meeting.phase} stale={group.meeting.stale} />
                       </span>
                     ) : null}
                   </span>
@@ -85,9 +84,7 @@ export function CouncilDecisionsPage() {
                     data-testid={`decision-open-${decision.id}`}
                   >
                     <div>
-                      {decision.number ? (
-                        <span className="entity-card-eyebrow">{decision.number}</span>
-                      ) : null}
+                      {decision.number ? <span className="entity-card-eyebrow">{decision.number}</span> : null}
                       <strong>{decision.title}</strong>
                     </div>
                     <Badge variant="secondary">

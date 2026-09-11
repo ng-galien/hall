@@ -59,11 +59,11 @@ describe("document policy", () => {
       jpeg: "native",
       png: "native",
       docx: "convertible",
-      odt: "convertible",
-      xlsx: "convertible",
-      pptx: "convertible",
-      txt: "convertible",
-      csv: "convertible",
+      odt: "unavailable",
+      xlsx: "unavailable",
+      pptx: "unavailable",
+      txt: "native",
+      csv: "unavailable",
     });
   });
 

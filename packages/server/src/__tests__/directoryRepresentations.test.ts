@@ -99,6 +99,27 @@ it("serves contact-based committees and external representations with global uni
       termEndedOn: "2026-09-01",
     });
     expect((await call(`/council-committees/${committee.id}/memberships/${elected.id}`)).properties.endedOn).toBeNull();
+    for (const [index, role] of [
+      [0, "rapporteur"],
+      [1, "primary"],
+      [6, "alternate"],
+    ] as const) {
+      const membership = (
+        await call(
+          `/council-committees/${committee.id}/memberships`,
+          "POST",
+          { contactId: contacts[index].id, role, startedOn: "2026-03-20" },
+          201,
+        )
+      ).properties;
+      expect((await call(`/council-committees/${committee.id}/memberships/${membership.id}`)).properties.role).toBe(role);
+      const updated = await call(`/council-committees/${committee.id}/memberships/${membership.id}`, "PUT", {
+        role,
+        startedOn: "2026-03-21",
+        endedOn: null,
+      });
+      expect(updated.properties.role).toBe(role);
+    }
     const delegationResponse = await call(
       "/council-delegations",
       "POST",

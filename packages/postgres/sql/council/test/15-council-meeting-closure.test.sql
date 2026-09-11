@@ -33,16 +33,20 @@ SELECT throws_ok(
 SELECT throws_ok(
   $$SELECT test_execute_deferred(ARRAY[
     $statement$
-      INSERT INTO council_meetings (id, previous_council_meeting) VALUES
+      -- TODO REMOVE_STALE: isolate predecessor guard from active-slot uniqueness.
+      INSERT INTO council_meetings (id, previous_council_meeting, stale) VALUES
 (
         test_uuid('closure:premature-successor'),
-        test_uuid('closure:unstarted'))
+        test_uuid('closure:unstarted'), TRUE)
     $statement$
   ])$$,
   'HV120',
   'a council meeting successor requires a closed predecessor',
   'a successor cannot commit while its predecessor remains open'
 );
+
+-- TODO REMOVE_STALE: release the independent first fixture before the closure scenario.
+UPDATE council_meetings SET stale=TRUE WHERE id=test_uuid('closure:unstarted');
 
 INSERT INTO council_meetings (id, scheduled_at, location) VALUES
 (
@@ -288,6 +292,8 @@ SELECT throws_ok(
 );
 
 -- HALL-FR-BAL-290
+-- TODO REMOVE_STALE: isolate the independent open-ballot fixture.
+UPDATE council_meetings SET stale=TRUE WHERE closed_at IS NULL;
 SELECT test_prepare_open_ballot('closure:open-ballot', 'public', 2);
 SELECT throws_ok(
   $$SELECT close_council_meeting(

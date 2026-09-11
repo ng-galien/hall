@@ -338,7 +338,11 @@ export function CouncilCommitteePage() {
             </div>
 
             {paletteOpen ? (
-              <section className="admin-member-palette" aria-label={t("committees.availableMembers")}>
+              <section
+                data-testid="committee-member-palette"
+                className="admin-member-palette"
+                aria-label={t("committees.availableMembers")}
+              >
                 <div className="admin-palette-heading">
                   <div>
                     <h3>{t("committees.availableMembers")}</h3>
@@ -406,7 +410,7 @@ export function CouncilCommitteePage() {
             {activeMemberships.length === 0 ? (
               <div className="admin-inline-empty">{t("committees.noMembers")}</div>
             ) : (
-              <div className="admin-role-board">
+              <div className="admin-role-board" data-testid="committee-role-board">
                 {committeeRoles.map((role) => {
                   const roleMemberships = activeMemberships.filter((membership) => membership.role === role);
                   const canReceiveSelection = Boolean(
@@ -414,6 +418,7 @@ export function CouncilCommitteePage() {
                   );
                   return (
                     <section
+                      data-testid={`committee-role-zone-${role}`}
                       className={`admin-role-zone${dropRole === role ? " admin-role-zone-over" : ""}`}
                       aria-label={t(`committeeRole.${role}`)}
                       {...roleDropHandlers(role)}
@@ -425,6 +430,7 @@ export function CouncilCommitteePage() {
                           {canReceiveSelection ? (
                             <button
                               type="button"
+                              data-testid={`committee-move-role-${role}`}
                               onClick={() => {
                                 if (selectedMembership) void moveMembership(selectedMembership, role);
                               }}

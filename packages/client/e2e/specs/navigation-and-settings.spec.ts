@@ -53,3 +53,45 @@ test.describe("navigation and settings", () => {
     await expect(page.getByText("Server access has been saved and verified.", { exact: true })).toHaveCount(0);
   });
 });
+
+// TODO REMOVE_STALE: temporary incomplete meetings must not replace the next active meeting.
+test("stale meetings stay accessible with a yellow review badge and never become next", async ({ appPage: page }) => {
+  const source = await (await page.request.get("/api/council-meetings")).json();
+  const template = source.entities[0];
+  const meetings = Array.from({ length: 6 }, (_, index) => {
+    const id = `00000000-0000-4000-8000-00000000000${index}`;
+    const scheduledAt = new Date(Date.now() + (index - 4) * 86400000).toISOString();
+    return {
+      ...template,
+      properties: {
+        ...template.properties,
+        id,
+        slug: null,
+        number: index + 1,
+        scheduledAt,
+        stale: index > 0 && index < 5,
+        startedAt: index === 0 ? scheduledAt : null,
+        closedAt: index === 0 ? scheduledAt : null,
+      },
+    };
+  });
+  await page.route("**/api/council-meetings", (route) => route.fulfill({ contentType: "application/vnd.siren+json", json: { ...source, entities: meetings } }));
+  await page.evaluate(() => localStorage.setItem("mairie.locale", "fr"));
+  await page.reload();
+  await expect(page.getByTestId("application-sync-status")).toHaveAttribute("data-sync-state", "synchronized");
+  const next = meetings[5].properties.id;
+  await expect(page.getByTestId("dashboard-next-meeting")).toHaveAttribute("href", `/app/meetings/${next}`);
+  await page.getByTestId("navigation-meetings").click();
+  await expect(page.getByTestId("meeting-next")).toHaveAttribute("href", `/app/meetings/${next}`);
+  await expect(page.getByTestId("meeting-needs-review")).toHaveCount(4);
+  for (const meeting of meetings.slice(1, 5)) {
+    const row = page.getByTestId(`meeting-history-${meeting.properties.id}`);
+    await expect(row).toBeVisible();
+    await expect(row).toHaveAttribute("href", `/app/meetings/${meeting.properties.id}`);
+    const badge = row.getByTestId("meeting-needs-review");
+    await expect(badge).toHaveText("À réviser");
+    await expect(badge).toHaveAttribute("data-variant", "warning");
+  }
+  await expect(page.getByTestId(`meeting-history-${meetings[0].properties.id}`)).toBeVisible();
+  await expect(page.getByTestId("meeting-next").getByTestId("meeting-needs-review")).toHaveCount(0);
+});

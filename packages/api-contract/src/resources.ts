@@ -473,3 +473,5 @@ export type ResolveLegalReference = z.infer<typeof resolveLegalReferenceSchema>;
 
 export type { EventDocument, EventSchedule } from "@hall/contracts";
 export { eventDocumentSchema } from "@hall/contracts";
+
+export const documentContentHashesSchema = z.array(binarySummarySchema.shape.contentSha256).min(1).max(100);

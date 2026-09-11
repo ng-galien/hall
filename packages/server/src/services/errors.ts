@@ -1,4 +1,5 @@
 export type ErrorCode =
+  | "council_business_has_dependencies"
   | "previous_minutes_pending"
   | "ballot_procedure_unsupported"
   | "ballot_already_confirmed"
@@ -98,7 +99,6 @@ export type ErrorCode =
   | "quorum_not_reached"
   | "resource_content_unavailable"
   | "resource_preview_unavailable"
-  | "resource_preview_conversion_unavailable"
   | "resource_preview_conversion_failed"
   | "resource_not_found"
   | "template_invalid"

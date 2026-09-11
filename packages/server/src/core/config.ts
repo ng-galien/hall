@@ -13,8 +13,6 @@ export interface ServerConfig {
   bootstrapToken?: string;
   allowedOrigins?: string[];
   environment?: string;
-  documentPreviewConverterUrl?: string;
-  documentPreviewTimeoutMs?: number;
   legifranceEnvironment?: "sandbox" | "production";
   legifranceClientId?: string;
   legifranceClientSecret?: string;
@@ -56,8 +54,6 @@ export function configFromEnvironment(): ServerConfig {
         ? ["http://localhost:5174", "http://127.0.0.1:5174"]
         : [],
     environment,
-    documentPreviewConverterUrl: process.env.HALL_GOTENBERG_URL,
-    documentPreviewTimeoutMs: Number.parseInt(process.env.HALL_DOCUMENT_PREVIEW_TIMEOUT_MS ?? "30000", 10),
     legifranceEnvironment: process.env.HALL_LEGIFRANCE_ENVIRONMENT === "production" ? "production" : "sandbox",
     legifranceClientId: process.env.HALL_LEGIFRANCE_CLIENT_ID,
     legifranceClientSecret: process.env.HALL_LEGIFRANCE_CLIENT_SECRET,
@@ -97,23 +93,6 @@ export function validateServerConfig(config: ServerConfig): void {
   }
   if (config.devAutoLogin && (!isLoopbackHost(config.host) || config.environment === "production")) {
     throw new Error("HALL_DEV_AUTO_LOGIN is restricted to a non-production loopback server");
-  }
-  if (config.documentPreviewConverterUrl) {
-    let converterUrl: URL;
-    try {
-      converterUrl = new URL(config.documentPreviewConverterUrl);
-    } catch {
-      throw new Error("HALL_GOTENBERG_URL must be an absolute HTTP(S) URL");
-    }
-    if (!["http:", "https:"].includes(converterUrl.protocol)) {
-      throw new Error("HALL_GOTENBERG_URL must be an absolute HTTP(S) URL");
-    }
-  }
-  if (
-    config.documentPreviewTimeoutMs !== undefined &&
-    (!Number.isSafeInteger(config.documentPreviewTimeoutMs) || config.documentPreviewTimeoutMs <= 0)
-  ) {
-    throw new Error("HALL_DOCUMENT_PREVIEW_TIMEOUT_MS must be a positive integer");
   }
   if (Boolean(config.legifranceClientId) !== Boolean(config.legifranceClientSecret)) {
     throw new Error("HALL_LEGIFRANCE_CLIENT_ID and HALL_LEGIFRANCE_CLIENT_SECRET must be configured together");

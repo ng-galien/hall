@@ -1,3 +1,4 @@
+// TODO REMOVE_STALE: temporary transition.
 import {
   agendaItemRecusalsSchema,
   agendaItemSchema,
@@ -13,10 +14,11 @@ import {
   councilMeetingClosureSchema,
   councilMeetingSchema,
   createdAndScheduledCouncilBusinessSchema,
-  meetingDocumentResourceDetailSchema,
   meetingAttendanceSchema,
   meetingConductWorkspaceSchema,
+  meetingDocumentResourceDetailSchema,
   type ScheduleAgendaItem,
+  staleCouncilMeetingResultSchema,
 } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
 import { HallPostgresError, type PostgresCouncil, type PostgresCouncilRequest } from "@hall/postgres";
@@ -143,11 +145,14 @@ export function createPostgresCouncilClient({
   }
 
   return {
-    meetingDocuments: (id) => call(() => postgresCouncil.meetingDocuments(currentRequest(),id)),
-    async meetingDocumentResource(id,resourceId) {
-      return meetingDocumentResourceDetailSchema.nullable().parse(await call(() => postgresCouncil.meetingDocumentResource(currentRequest(),id,resourceId)));
+    meetingDocuments: (id) => call(() => postgresCouncil.meetingDocuments(currentRequest(), id)),
+    async meetingDocumentResource(id, resourceId) {
+      return meetingDocumentResourceDetailSchema
+        .nullable()
+        .parse(await call(() => postgresCouncil.meetingDocumentResource(currentRequest(), id, resourceId)));
     },
-    meetingDocumentContent: (id,resourceId,assetId) => call(() => postgresCouncil.meetingDocumentContent(currentRequest(),id,resourceId,assetId)),
+    meetingDocumentContent: (id, resourceId, assetId) =>
+      call(() => postgresCouncil.meetingDocumentContent(currentRequest(), id, resourceId, assetId)),
     listPreparedSubjects: (meetingId) => call(() => postgresCouncil.listPreparedSubjects(currentRequest(), meetingId)),
     openPreparedSubject: (id, kind) => call(() => postgresCouncil.openPreparedSubject(currentRequest(), id, kind)),
     createPreparedSubject: (businessId, input) =>
@@ -177,6 +182,19 @@ export function createPostgresCouncilClient({
     },
     async createBusiness(input: CreateCouncilBusiness) {
       return councilBusinessSchema.parse(await call(() => postgresCouncil.createBusiness(currentRequest(), input)));
+    },
+    async deleteBusiness(id) {
+      try {
+        return councilBusinessSchema.parse(await call(() => postgresCouncil.deleteBusiness(currentRequest(), id)));
+      } catch (error) {
+        if (error instanceof HallPostgresError && ["23503", "23001"].includes(error.sqlState)) {
+          throw new DomainError("council_business_has_dependencies", 409);
+        }
+        throw error;
+      }
+    },
+    async importBusinessBundle(input) {
+      return councilBusinessSchema.parse(await call(() => postgresCouncil.importBusinessBundle(currentRequest(), input)));
     },
     async listBusinessResources(businessId) {
       return z
@@ -300,6 +318,9 @@ export function createPostgresCouncilClient({
       return meetingConductWorkspaceSchema.parse(
         await call(() => postgresCouncil.recordMeetingOpening(currentRequest(), { id, ...input })),
       );
+    },
+    async markMeetingStale(id) {
+      return staleCouncilMeetingResultSchema.parse(await call(() => postgresCouncil.markStale(currentRequest(), id)));
     },
     async closeMeeting(id, input) {
       return councilMeetingClosureSchema.parse(

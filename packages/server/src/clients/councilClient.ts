@@ -9,6 +9,7 @@ import type {
   CloseCouncilMeeting,
   CompleteAgendaItem,
   CouncilBusiness,
+  CouncilBusinessBundleManifest,
   CouncilBusinessResourceAssociation,
   CouncilBusinessResourceItem,
   CouncilBusinessWorkspaceItem,
@@ -18,9 +19,9 @@ import type {
   CreateBallotResultPreview,
   CreateCouncilBusiness,
   CreatedAndScheduledCouncilBusiness,
-  MeetingDocumentResourceDetail,
   MeetingAttendance,
   MeetingConductWorkspace,
+  MeetingDocumentResourceDetail,
   PrepareCouncilMeeting,
   ProvisionInitialCouncilMeeting,
   RecordAgendaItemRecusal,
@@ -36,12 +37,13 @@ import type {
   ScheduleCouncilBusinessSubject,
   ScheduleCouncilMeeting,
   SetCouncilMeetingOfficers,
+  StaleCouncilMeetingResult,
   StartAgendaItem,
 } from "@hall/api-contract";
 import type {
   CreatePreparedCouncilSubject,
-  MeetingDocuments,
   MeetingAgendaFreeze,
+  MeetingDocuments,
   MeetingNotice,
   MeetingNoticeFacts,
   MeetingNoticeMeetingFacts,
@@ -64,7 +66,11 @@ export class CouncilClientError extends Error {
 export interface CouncilClient {
   meetingDocuments(id: string): Promise<MeetingDocuments>;
   meetingDocumentResource(id: string, resourceId: string): Promise<MeetingDocumentResourceDetail | null>;
-  meetingDocumentContent(id: string, resourceId: string, assetId?: string | null): Promise<{ content: Buffer; mediaType: string } | null>;
+  meetingDocumentContent(
+    id: string,
+    resourceId: string,
+    assetId?: string | null,
+  ): Promise<{ content: Buffer; mediaType: string } | null>;
 
   listPreparedSubjects(meetingId?: string | null): Promise<PreparedCouncilSubject[]>;
   openPreparedSubject(id: string, kind: PreparedCouncilSubject["kind"]): Promise<PreparedCouncilSubject | null>;
@@ -97,6 +103,8 @@ export interface CouncilClient {
   listBusinessWorkspaceItems(): Promise<CouncilBusinessWorkspaceItem[]>;
   openBusiness(id: string): Promise<CouncilBusiness | null>;
   createBusiness(input: CreateCouncilBusiness): Promise<CouncilBusiness>;
+  deleteBusiness(id: string): Promise<CouncilBusiness>;
+  importBusinessBundle(input: { manifest: CouncilBusinessBundleManifest; files: Record<string, string>; path: string }): Promise<CouncilBusiness>;
   listBusinessResources(businessId: string): Promise<CouncilBusinessResourceAssociation[]>;
   listBusinessResourceItems(businessIds: readonly string[]): Promise<CouncilBusinessResourceItem[]>;
   associateBusinessResource(businessId: string, resourceId: string): Promise<CouncilBusinessResourceAssociation>;
@@ -119,6 +127,8 @@ export interface CouncilClient {
     input: CreateAndScheduleCouncilBusiness,
   ): Promise<CreatedAndScheduledCouncilBusiness>;
   recordMeetingOpening(id: string, input: RecordMeetingOpening): Promise<MeetingConductWorkspace>;
+  // TODO REMOVE_STALE: temporary transition.
+  markMeetingStale(id: string): Promise<StaleCouncilMeetingResult>;
   closeMeeting(id: string, input: CloseCouncilMeeting): Promise<CouncilMeetingClosure>;
   listAttendance(meetingId: string): Promise<MeetingAttendance[]>;
   recordAttendance(meetingId: string, input: RecordMeetingAttendance): Promise<MeetingAttendance[]>;

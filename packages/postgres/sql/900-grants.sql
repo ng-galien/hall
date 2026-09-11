@@ -3,6 +3,8 @@
 -- Runtime roles can discover hall_api and call only explicitly granted
 -- functions. They never receive table privileges in hall.
 GRANT USAGE ON SCHEMA hall_api TO hall_api_anonymous, hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.import_council_business_bundle(JSONB,JSONB,TEXT)
+  TO hall_api_authenticated, hall_api_worker;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hall_api FROM PUBLIC;
 REVOKE ALL ON FUNCTION hall_api.create_ballot(UUID,TEXT,UUID[],UUID),
  hall_api.record_public_ballot_votes(UUID,UUID[],TEXT[]),
@@ -63,6 +65,8 @@ GRANT EXECUTE ON FUNCTION hall_api.open_resource(UUID)
 GRANT EXECUTE ON FUNCTION hall_api.open_resource_by_slug(TEXT)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_resources()
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.find_documents_by_hashes(text[])
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.search_resources(TEXT, TEXT[], TEXT[], TEXT[], TEXT[], TEXT[])
   TO hall_api_authenticated, hall_api_worker;
@@ -163,6 +167,9 @@ GRANT EXECUTE ON FUNCTION hall_api.list_council_meetings()
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.provision_initial_council_meeting()
   TO hall_api_authenticated, hall_api_worker;
+-- TODO REMOVE_STALE: temporary succession action.
+GRANT EXECUTE ON FUNCTION hall_api.mark_council_meeting_stale(uuid)
+  TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.schedule_council_meeting(UUID, TIMESTAMPTZ, TEXT)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.set_council_meeting_officers(UUID, UUID, UUID)
@@ -247,3 +254,5 @@ GRANT EXECUTE ON FUNCTION hall_api.list_council_decisions(),hall_api.open_counci
  TO hall_api_authenticated,hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.meeting_documents(UUID), hall_api.meeting_document_resource(UUID, UUID), hall_api.meeting_document_content(UUID, UUID, UUID) TO hall_api_authenticated, hall_api_worker;
+
+GRANT EXECUTE ON FUNCTION hall_api.delete_council_business(UUID) TO hall_api_authenticated, hall_api_worker;

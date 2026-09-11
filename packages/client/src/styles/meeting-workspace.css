@@ -236,11 +236,15 @@
   .markdown-content ul ul { list-style: circle; }
   .markdown-content ol { list-style: decimal; }
   .markdown-content li { margin-bottom: var(--hall-space-0-5); }
+  .markdown-content h1,
   .markdown-content h2 {
     margin: var(--hall-space-3) 0 var(--hall-space-2);
     font-size: var(--hall-font-size-title);
     font-weight: var(--hall-font-weight-semibold);
   }
+  .markdown-content h4,
+  .markdown-content h5,
+  .markdown-content h6,
   .markdown-content h3 {
     margin: var(--hall-space-3) 0 var(--hall-space-1-5);
     font-size: var(--hall-font-size-title);
@@ -272,6 +276,10 @@
   .markdown-content td[align="right"],
   .markdown-content th[align="right"] { font-variant-numeric: tabular-nums; }
 
+  .markdown-content h1:first-child,
+  .markdown-content h4:first-child,
+  .markdown-content h5:first-child,
+  .markdown-content h6:first-child,
   .markdown-content h2:first-child,
   .markdown-content h3:first-child { margin-top: 0; }
   .markdown-content blockquote {

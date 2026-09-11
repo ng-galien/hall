@@ -33,6 +33,8 @@ export const councilMeetingSchema = z
     quorum: z.number().int().positive().nullable(),
     startedAt: timestampSchema.nullable(),
     closedAt: timestampSchema.nullable(),
+    // TODO REMOVE_STALE: temporary incomplete meeting marker.
+    stale: z.boolean(),
     closureBlockers: z.array(conductBlockerSchema),
     entryBlockers: z.array(meetingEntryBlockerSchema),
     openingBlockers: z.array(meetingOpeningBlockerSchema),
@@ -268,3 +270,10 @@ export const meetingConductWorkspaceSchema = meetingConductStateSchema
   .extend({ meeting: councilMeetingSchema })
   .strict();
 export type MeetingConductWorkspace = z.infer<typeof meetingConductWorkspaceSchema>;
+
+// TODO REMOVE_STALE: temporary transition only; no validation or closure.
+export const staleCouncilMeetingResultSchema = z.object({
+  staleMeeting: councilMeetingSchema,
+  nextMeeting: councilMeetingSchema,
+});
+export type StaleCouncilMeetingResult = z.infer<typeof staleCouncilMeetingResultSchema>;

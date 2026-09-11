@@ -243,6 +243,12 @@ export async function loadResourcePreviewObjectUrl(
   representation: Parameters<typeof findSirenLink>[0],
 ): Promise<ResourcePreviewObjectUrl> {
   const preview = documentaryLink(representation, "preview");
+  const type = preview.type?.split(";", 1)[0]?.trim().toLowerCase();
+  if (type === "text/plain" || type === "text/markdown") {
+    const response = await apiResponse(apiPathFromHref(preview.href));
+    const blob = await response.blob();
+    return { url: URL.createObjectURL(blob), mediaType: blob.type || preview.type || type };
+  }
   return {
     url: preview.href,
     mediaType: preview.type || "application/octet-stream",

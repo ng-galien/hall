@@ -1,3 +1,4 @@
+// TODO REMOVE_STALE: propagate incomplete session marker to canonical status badge.
 import { Link } from "react-router-dom";
 import { PlayIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
@@ -21,7 +22,7 @@ export function MeetingInProgressHero({ aggregate }: { aggregate: LiveMeetingPre
           <span className="live-indicator" aria-hidden="true" />
           <h2>{t("meeting.inProgressTitle")}</h2>
           <p>
-            <MeetingStatusBadge status={meeting.status} />
+            <MeetingStatusBadge status={meeting.status} stale={meeting.stale} />
             {meeting.openedAt ? (
               <> {t("meeting.inProgressSince").replace("{time}", formatTime(meeting.openedAt))}</>
             ) : null}

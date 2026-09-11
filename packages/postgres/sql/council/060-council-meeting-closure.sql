@@ -124,7 +124,8 @@ BEGIN
       SELECT
       FROM hall.council_meetings AS previous
       WHERE previous.id = NEW.previous_council_meeting
-        AND previous.closed_at IS NOT NULL
+        -- TODO REMOVE_STALE: a stale predecessor may provision its successor without closure.
+        AND (previous.closed_at IS NOT NULL OR previous.stale)
     )
   THEN
     RAISE EXCEPTION USING

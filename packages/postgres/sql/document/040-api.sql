@@ -1170,3 +1170,15 @@ BEGIN
   RETURN deleted_summary;
 END
 $function$;
+
+CREATE FUNCTION hall_api.find_documents_by_hashes(content_hashes TEXT[])
+RETURNS JSONB LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path=pg_catalog,hall AS $$
+BEGIN
+  IF content_hashes IS NULL OR cardinality(content_hashes) NOT BETWEEN 1 AND 100
+    OR EXISTS(SELECT FROM unnest(content_hashes) AS value WHERE value IS NULL OR value !~ '^[0-9a-f]{64}$')
+  THEN RAISE EXCEPTION USING ERRCODE='HV607',MESSAGE='Document content hashes are invalid'; END IF;
+  RETURN (SELECT coalesce(jsonb_agg(hall.resource_presentation(resource) ORDER BY resource.path,resource.name,resource.id),'[]'::jsonb)
+    FROM hall.resource_read_model resource
+    WHERE resource.document_resource_id IS NOT NULL AND resource.binary->>'contentSha256'=ANY(content_hashes));
+END $$;

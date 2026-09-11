@@ -51,6 +51,7 @@ DECLARE
     hall.siren_link('self', '/api/resources/' || reference)
   );
   media_type TEXT;
+  preview_type TEXT;
 BEGIN
   -- @requirement-reference HALL-FR-DOC-180 WORKSPACE_CATALOG_IS_FLAT:
   -- A catalogue entry intentionally omits binary metadata. Content and preview
@@ -61,16 +62,22 @@ BEGIN
      AND resource #>> '{binary,mediaType}' IS NOT NULL THEN
     media_type := resource #>> '{binary,mediaType}';
     links := links || jsonb_build_array(
-      hall.siren_link('content', '/api/resources/' || reference || '/content', media_type),
-      hall.siren_link(
-        'preview',
-        '/api/resources/' || reference || '/preview',
-        CASE
-          WHEN media_type IN ('application/pdf', 'image/jpeg', 'image/png') THEN media_type
-          ELSE 'application/pdf'
-        END
-      )
+      hall.siren_link('content', '/api/resources/' || reference || '/content', media_type)
     );
+    preview_type := CASE split_part(media_type, ';', 1)
+      WHEN 'application/pdf' THEN media_type
+      WHEN 'image/jpeg' THEN media_type
+      WHEN 'image/png' THEN media_type
+      WHEN 'text/plain' THEN media_type
+      WHEN 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        THEN 'text/markdown; charset=utf-8'
+      ELSE NULL
+    END;
+    IF preview_type IS NOT NULL THEN
+      links := links || jsonb_build_array(
+        hall.siren_link('preview', '/api/resources/' || reference || '/preview', preview_type)
+      );
+    END IF;
   END IF;
   RETURN links;
 END
@@ -163,6 +170,18 @@ BEGIN
   IF proposal_text THEN
     SELECT coalesce(jsonb_agg(action), '[]'::jsonb) INTO actions
     FROM jsonb_array_elements(actions) action WHERE action ->> 'name' <> 'resource.relocate';
+    RETURN actions;
+  END IF;
+  -- Availability mirrors existing restrictive references. DELETE still rechecks
+  -- all constraints atomically, including links created after this projection.
+  IF EXISTS (SELECT FROM hall.council_business_resource linked WHERE linked.resource = (resource_siren_actions.resource ->> 'id')::UUID)
+    OR EXISTS (SELECT FROM hall.resource target
+      JOIN hall.meeting_attendance attendance ON attendance.proxy_document = target.document_resource_id
+      WHERE target.id = (resource_siren_actions.resource ->> 'id')::UUID)
+    OR EXISTS (SELECT FROM hall.resource target
+      JOIN hall.meeting_attendance_event attendance ON attendance.proxy_document = target.document_resource_id
+      WHERE target.id = (resource_siren_actions.resource ->> 'id')::UUID)
+  THEN
     RETURN actions;
   END IF;
   RETURN actions || jsonb_build_array(

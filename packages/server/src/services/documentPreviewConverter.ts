@@ -5,18 +5,11 @@ export interface DocumentPreviewConversionInput {
 }
 
 export interface DocumentPreviewConverter {
-  convertToPdf(input: DocumentPreviewConversionInput): Promise<Buffer>;
-}
-
-export class DocumentPreviewConverterUnavailableError extends Error {
-  constructor() {
-    super("Document preview conversion is not configured");
-    this.name = "DocumentPreviewConverterUnavailableError";
-  }
+  convertToMarkdown(input: DocumentPreviewConversionInput): Promise<Buffer>;
 }
 
 export class DocumentPreviewConverterFailedError extends Error {
-  constructor(readonly upstreamStatus?: number) {
+  constructor() {
     super("Document preview conversion failed");
     this.name = "DocumentPreviewConverterFailedError";
   }

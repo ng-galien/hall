@@ -40,6 +40,9 @@ export const apiActionNames = [
   "resource.create-editor-asset",
   "resource.delete",
   "council-business.create",
+  "council-business.import-bundle",
+  "council-business.delete",
+  "council-business.export-bundle",
   "council-business.associate-resource",
   "council-business.dissociate-resource",
   "council-business.reorder-resources",
@@ -61,6 +64,8 @@ export const apiActionNames = [
   "meeting.record-reconvocation",
 
   "meeting.close",
+  // TODO REMOVE_STALE: temporary succession action.
+  "meeting.mark-stale",
   "minutes.update-draft",
   "minutes.generate",
   "agenda-item.update-notes",

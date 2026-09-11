@@ -1,22 +1,30 @@
-import { type CreateCouncilBusiness, type PreparedCouncilSubject, type CreatePreparedCouncilSubject, findSirenAction, type SirenEntity } from "@hall/api-contract";
+import {
+  type CreateCouncilBusiness,
+  type CreatePreparedCouncilSubject,
+  findSirenAction,
+  type PreparedCouncilSubject,
+  type SirenEntity,
+} from "@hall/api-contract";
 import { create } from "zustand";
 import { type CouncilBusinessView, councilBusinessView } from "../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import {
   associateCouncilBusinessResource,
   createCouncilBusiness,
+  createPreparedCouncilSubject,
   dissociateCouncilBusinessResource,
   listCouncilBusinesses,
   listCouncilBusinessResourceItems,
+  listPreparedCouncilSubjects,
   openCouncilBusiness,
   reorderCouncilBusinessResources,
   scheduleCouncilBusinessSubject,
-  listPreparedCouncilSubjects,
-  createPreparedCouncilSubject,
 } from "../services/councilBusinessApi";
 import { useWorkspaceResourcesStore } from "./workspaceResourcesStore";
 
 interface CouncilBusinessCapabilities {
+  delete: boolean;
+  exportBundle: boolean;
   createResource: boolean;
   uploadDocument: boolean;
   importSpreadsheet: boolean;
@@ -36,6 +44,7 @@ interface CouncilBusinessStoreState {
   businesses: CouncilBusinessView[];
   loading: boolean;
   error: ApiErrorCode | null;
+  canImportBundle: boolean;
   canCreate: boolean;
   capabilitiesById: Record<string, CouncilBusinessCapabilities>;
   load(): Promise<void>;
@@ -56,6 +65,8 @@ interface CouncilBusinessStoreState {
 function capabilities(representation: SirenEntity | null): CouncilBusinessCapabilities {
   if (!representation) {
     return {
+      delete: false,
+      exportBundle: false,
       createResource: false,
       uploadDocument: false,
       importSpreadsheet: false,
@@ -68,6 +79,8 @@ function capabilities(representation: SirenEntity | null): CouncilBusinessCapabi
     };
   }
   return {
+    delete: Boolean(findSirenAction(representation, "council-business.delete")),
+    exportBundle: Boolean(findSirenAction(representation, "council-business.export-bundle")),
     createResource: Boolean(findSirenAction(representation, "resource.create")),
     uploadDocument: Boolean(findSirenAction(representation, "resource.create-document")),
     importSpreadsheet: Boolean(findSirenAction(representation, "resource.import-spreadsheet")),
@@ -135,6 +148,7 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
   businesses: [],
   loading: false,
   error: null,
+  canImportBundle: false,
   canCreate: false,
   capabilitiesById: {},
   async load() {
@@ -145,6 +159,9 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
       set({
         businesses: result.data.map((business) => councilBusinessView(business, resourceItems)),
         capabilitiesById: {},
+        canImportBundle: Boolean(
+          result.representation && findSirenAction(result.representation, "council-business.import-bundle"),
+        ),
         canCreate: Boolean(result.representation && findSirenAction(result.representation, "council-business.create")),
         loading: false,
       });
@@ -162,7 +179,9 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
           ...state.capabilitiesById,
           [id]: capabilities(refreshed.representation),
         },
-        representationsById: refreshed.representation ? { ...state.representationsById, [id]: refreshed.representation } : state.representationsById,
+        representationsById: refreshed.representation
+          ? { ...state.representationsById, [id]: refreshed.representation }
+          : state.representationsById,
       }));
       return refreshed.view;
     } catch (error) {
@@ -185,7 +204,9 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
           ...state.capabilitiesById,
           [id]: capabilities(opened.representation),
         },
-        representationsById: opened.representation ? { ...state.representationsById, [id]: opened.representation } : state.representationsById,
+        representationsById: opened.representation
+          ? { ...state.representationsById, [id]: opened.representation }
+          : state.representationsById,
       }));
       return true;
     } catch (error) {

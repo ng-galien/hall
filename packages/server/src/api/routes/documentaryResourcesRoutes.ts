@@ -1,6 +1,7 @@
 import { basename, extname } from "node:path";
 import {
   createResourceSchema,
+  documentContentHashesSchema,
   editorAssetTitleSchema,
   legalReferenceSearchInputSchema,
   refreshLegalReferenceSchema,
@@ -46,6 +47,11 @@ export function createDocumentaryResourcesRouter({ documentaryResourceService, r
           .map((entry) => entry.trim())
           .filter(Boolean)
       : [];
+
+  router.get("/documents/by-hashes", requirePermission("workspace.read"), async (request, response) => {
+    const hashes = documentContentHashesSchema.parse(queryValues(request.query.sha256));
+    response.json(await documentaryResourceService.findDocumentsByHashes(hashes));
+  });
 
   router.get("/search", requirePermission("workspace.read"), async (request, response) => {
     const criteria = resourceSearchCriteriaSchema.parse({
@@ -103,17 +109,15 @@ export function createDocumentaryResourcesRouter({ documentaryResourceService, r
         fileName: request.file.originalname,
         content: request.file.buffer,
       });
-      response
-        .status(201)
-        .json(
-          await documentaryResourceService.create({
-            kind: "spreadsheet",
-            path,
-            name,
-            document,
-            councilBusinessId: resourceIdSchema.optional().parse(request.body.councilBusinessId),
-          }),
-        );
+      response.status(201).json(
+        await documentaryResourceService.create({
+          kind: "spreadsheet",
+          path,
+          name,
+          document,
+          councilBusinessId: resourceIdSchema.optional().parse(request.body.councilBusinessId),
+        }),
+      );
     },
   );
 

@@ -5,12 +5,12 @@ import type {
   MeetingStatus,
   MinutesStatus,
 } from "@hall/domain";
-import { Badge } from "@/components/ui/badge";
 import { matchLiteral } from "@hall/domain";
+import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, CheckIcon, PlayIcon, WarningIcon } from "../../components/icons";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
-import type { LiveMeetingStatus, LiveAgendaItemStatus } from "../../models/liveMeeting";
+import type { LiveAgendaItemStatus, LiveMeetingStatus } from "../../models/liveMeeting";
 
 export type DomainStatus =
   | import("@hall/api-contract").CouncilDecisionSummary["state"]
@@ -84,7 +84,8 @@ const meetingStatusKeys: Record<LiveMeetingStatus, TranslationKey> = {
   cancelled: "meetingStatus.cancelled",
 };
 
-export function MeetingStatusBadge({ status }: { status: LiveMeetingStatus }) {
+// TODO REMOVE_STALE: temporary warning badge, distinct from the closed phase.
+export function MeetingStatusBadge({ status, stale = false }: { status: LiveMeetingStatus; stale?: boolean }) {
   const { t } = useI18n();
   const variant =
     status === "inProgress"
@@ -96,5 +97,9 @@ export function MeetingStatusBadge({ status }: { status: LiveMeetingStatus }) {
           : status === "draft"
             ? "warning"
             : "secondary";
-  return <Badge variant={variant}>{t(meetingStatusKeys[status])}</Badge>;
+  return (
+    <Badge variant={stale ? "warning" : variant} data-testid={stale ? "meeting-needs-review" : undefined}>
+      {t(stale ? "meetings.needsReview" : meetingStatusKeys[status])}
+    </Badge>
+  );
 }

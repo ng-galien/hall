@@ -129,7 +129,7 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
         convertible: (): SirenLink => ({
           rel: ["preview"],
           href: `/api/resources/${reference}/preview`,
-          type: "application/pdf",
+          type: "text/markdown; charset=utf-8",
         }),
         unavailable: () => null,
       });

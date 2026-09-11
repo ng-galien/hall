@@ -30,7 +30,7 @@ export default defineConfig({
           {
             name: "chromium",
             testMatch:
-              /(committees|users|calendar|contacts|council-workflow|markdown-editor|workspace-explorer|navigation-and-settings)\.spec\.ts/,
+              /(business-bundles|folder-import|committees|users|calendar|contacts|council-workflow|markdown-editor|workspace-explorer|navigation-and-settings)\.spec\.ts/,
             use: { ...devices["Desktop Chrome"] },
             dependencies: ["seed"],
           },

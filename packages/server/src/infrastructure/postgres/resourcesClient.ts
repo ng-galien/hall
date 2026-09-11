@@ -134,6 +134,12 @@ export function createPostgresResourcesClient({
       const listing = await read(() => postgresResources.listFolder(currentRequest(), path));
       return listing ? documentaryRepresentation(listing, resourceSummarySchema.array()) : null;
     },
+    async findDocumentsByHashes(hashes) {
+      return documentaryRepresentation(
+        await postgresResources.findDocumentsByHashes(currentRequest(), hashes),
+        resourceSummarySchema.array(),
+      );
+    },
     async search(criteria) {
       return documentaryRepresentation(
         await postgresResources.searchResources(currentRequest(), criteria),

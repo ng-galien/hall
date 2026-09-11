@@ -1,6 +1,19 @@
 import type { Messages } from "./en";
 
 export const fr: Messages = {
+  "business.delete": "Supprimer l’affaire",
+  "business.deleteConfirm": "Supprimer l’affaire « {name} » ? Cette action est définitive.",
+  "error.council_business_has_dependencies": "L’affaire contient encore des ressources ou des éléments liés. Déplacez les pièces à conserver et retirez les liens avant de la supprimer.",
+
+  "bundles.export": "Exporter l’affaire",
+  "bundles.import": "Importer une affaire",
+  "bundles.senderDescription": "Identité de l’expéditeur de cette affaire et de ses documents.",
+  "bundles.lastName": "Nom de l’expéditeur",
+  "bundles.firstName": "Prénom de l’expéditeur",
+  "bundles.destination": "L’affaire sera classée dans Imports, sous le nom de l’expéditeur indiqué dans l’archive.",
+  "bundles.archive": "Archive d’affaire (.hallbundle)",
+  "bundles.alreadyPresent": "Cette affaire est déjà présente. L’import est refusé ; aucune donnée n’a été remplacée.",
+
   "users.conflictHint": "Vérifiez que cette adresse e-mail et ce contact ne sont pas déjà associés à un autre compte.",
   "users.identityRequired": "Nom affiché et adresse e-mail valide requis.",
   "users.passwordChangeDescription":
@@ -487,6 +500,10 @@ export const fr: Messages = {
   "workspace.linkedDocuments": "{count} pièces",
   "workspace.dropToAttach": "Déposer pour rattacher",
   "workspace.unschedule": "Retirer de l’ordre du jour",
+  "workspace.identicalFiles": "Fichiers identiques",
+  "workspace.identicalFile": "« {name} » a un contenu identique à un document déjà présent.",
+  "workspace.duplicateCheckFailed": "La vérification des fichiers identiques a échoué.",
+  "workspace.importFolder": "Importer un dossier",
   "workspace.importFile": "Importer un fichier",
   "workspace.viewDocument": "Voir le document",
   "workspace.type.text": "Texte",
@@ -655,6 +672,8 @@ export const fr: Messages = {
   "meetingStatus.inProgress": "En séance",
   "meetingStatus.closed": "Terminée",
   "meetingStatus.cancelled": "Annulée",
+  // TODO REMOVE_STALE: temporary incomplete session label.
+  "meetings.needsReview": "À réviser",
   "meetings.upcoming": "Prochaines séances",
   "meetings.past": "Séances passées",
   "meetings.edit": "Modifier la séance",
@@ -865,6 +884,9 @@ export const fr: Messages = {
   "committeeRole.chair": "Président",
   "committeeRole.viceChair": "Vice-président",
   "committeeRole.member": "Membre",
+  "committeeRole.rapporteur": "Rapporteur",
+  "committeeRole.primary": "Titulaire",
+  "committeeRole.alternate": "Suppléant",
   "role.councillor": "Conseiller municipal",
   "role.deputyMayor": "Adjoint au maire",
   "role.mayor": "Maire",
@@ -978,7 +1000,6 @@ export const fr: Messages = {
   "error.resource_not_found": "Cette ressource n’existe plus.",
   "error.resource_content_unavailable": "Cette ressource n’a pas de fichier téléchargeable.",
   "error.resource_preview_conversion_failed": "L’aperçu du document n’a pas pu être généré.",
-  "error.resource_preview_conversion_unavailable": "La conversion des aperçus est indisponible.",
   "error.resource_preview_unavailable": "Ce document ne peut pas être prévisualisé.",
   "error.ballot_voters_invalid": "La liste des votants ne correspond pas aux présences de la séance.",
   "status.draft": "Brouillon",

@@ -76,6 +76,9 @@ export const apiCommandPolicies = {
   "council-business.create-prepared-subject": { permissions: workspaceWrite, auditTargetType: "council-business" },
   "agenda-item.schedule-prepared": { permissions: meetingsPrepare, auditTargetType: "agenda-item" },
   "council-business.create": { permissions: workspaceWrite, auditTargetType: "council-business" },
+  "council-business.delete": { permissions: workspaceWrite, auditTargetType: "council-business" },
+  "council-business.import-bundle": { permissions: workspaceWrite, auditTargetType: "council-business" },
+  "council-business.export-bundle": { permissions: workspaceRead, auditTargetType: null },
   "council-business.associate-resource": { permissions: workspaceWrite, auditTargetType: "council-business" },
   "council-business.dissociate-resource": { permissions: workspaceWrite, auditTargetType: "council-business" },
   "council-business.reorder-resources": { permissions: workspaceWrite, auditTargetType: "council-business" },
@@ -98,6 +101,8 @@ export const apiCommandPolicies = {
   "meeting.record-reconvocation": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "meeting.add-open-question": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "meeting.record-opening": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
+  // TODO REMOVE_STALE: same conduct permission as meeting succession.
+  "meeting.mark-stale": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "meeting.close": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "minutes.update-draft": { permissions: meetingsPrepare, auditTargetType: "minutes" },
   "minutes.generate": { permissions: meetingsPrepare, auditTargetType: "minutes" },

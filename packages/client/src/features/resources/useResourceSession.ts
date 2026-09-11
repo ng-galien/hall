@@ -3,7 +3,7 @@ import { matchDiscriminated } from "@hall/domain";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import type { SaveStatus } from "../../pages/workspace/saveStatusStore";
-import type { ApiErrorCode } from "../../services/apiClient";
+import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import type { DocumentaryLeafDetail } from "../documents/DocumentaryResourceGlyph";
 import { noResourceCapabilities, type ResourceCapabilities, resourceCapabilities } from "./resourceCapabilities";
@@ -165,9 +165,17 @@ export function useResourceSession({ resourceId }: { resourceId: string | null }
 
   const remove = useCallback(async () => {
     if (!resource || !capabilities.deleteResource) return false;
-    const removed = await run(() => useWorkspaceResourcesStore.getState().remove(resource.id));
-    if (!removed) setActionError(useWorkspaceResourcesStore.getState().error);
-    return Boolean(removed);
+    setActionError(null);
+    return Boolean(
+      await run(async () => {
+        try {
+          return await useWorkspaceResourcesStore.getState().remove(resource.id);
+        } catch (error) {
+          setActionError(apiErrorCode(error));
+          return false;
+        }
+      }),
+    );
   }, [capabilities.deleteResource, resource, run]);
 
   const adoptResolvedResource = useCallback(

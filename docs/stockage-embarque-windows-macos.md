@@ -120,7 +120,8 @@ le pont sérialise les transactions des différentes connexions.
   avec leurs prérequis réels. Aucun nouveau format d’installateur n’est décidé.
 - Traiter séparément les fonctionnalités qui dépendent d’un service externe :
   embarquer PostgreSQL ne rend pas à lui seul toute l’application hors ligne,
-  notamment la conversion via Gotenberg ou les sources juridiques distantes.
+  notamment les sources juridiques distantes. Les aperçus DOCX sont convertis
+  localement en Markdown ; ils ne dépendent plus d’un service bureautique externe.
 
 ## Mise à jour des données : obstacle distinct
 

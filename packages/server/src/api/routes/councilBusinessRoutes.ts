@@ -9,15 +9,44 @@ import {
   scheduleCouncilBusinessSubjectSchema,
 } from "@hall/api-contract";
 import { Router } from "express";
+import multer from "multer";
 import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
+import { slugify } from "../../repositories/publicIdentifiers.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
-export function createCouncilBusinessRouter({ councilBusinessWorkspaceService, councilClient }: Cradle): Router {
+export function createCouncilBusinessRouter({ councilBusinessWorkspaceService, councilClient,
+  councilBusinessBundleExportService, councilBusinessBundleImportService, requestContext }: Cradle): Router {
   const router = Router();
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 64 * 1024 * 1024, files: 1 } });
+  const uploadBundle: ReturnType<typeof upload.single> = (request, response, next) => {
+    const context = requestContext.current();
+    upload.single("file")(request, response, (error) => {
+      const resume = () => error ? next(error) : next();
+      if (context) requestContext.run(context, resume);
+      else resume();
+    });
+  };
+  router.post("/import-bundle", requireActionPermission("council-business.import-bundle"), uploadBundle, async (request, response) => {
+    if (!request.file) throw new DomainError("invalid_request");
+    response.status(201).json(await councilBusinessBundleImportService.import(request.file.buffer));
+  });
+  router.get("/:businessId/bundle", requireActionPermission("council-business.export-bundle"), async (request, response) => {
+    const sender = z.object({ firstName: z.string().trim().min(1).max(200), lastName: z.string().trim().min(1).max(200) }).parse(request.query);
+    const bytes = await councilBusinessBundleExportService.export(routeParameter(request.params.businessId), {
+      ...sender, slug: slugify(`${sender.lastName} ${sender.firstName}`),
+    });
+    response.setHeader("Content-Type", "application/gzip");
+    response.setHeader("Content-Disposition", 'attachment; filename="affaire.hallbundle"');
+    response.send(bytes);
+  });
+
+  router.delete("/:businessId", requireActionPermission("council-business.delete"), async (request, response) => {
+    response.json(await councilBusinessWorkspaceService.delete(z.string().uuid().parse(request.params.businessId)));
+  });
 
   router.get("/prepared-subjects", requirePermission("workspace.read"), async (request, response) => {
     const meetingId = z.string().uuid().optional().parse(request.query.councilMeetingId);

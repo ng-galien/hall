@@ -43,3 +43,4 @@ export * from "./security.js";
 export * from "./siren.js";
 
 export * from "./meetingDocuments.js";
+export { councilBusinessBundleManifestSchema, type CouncilBusinessBundleManifest } from "./councilBusinessBundle.js";

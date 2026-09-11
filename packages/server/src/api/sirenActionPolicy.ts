@@ -1,3 +1,5 @@
+// TODO REMOVE_STALE: remove staleMeeting nested authorization with temporary result.
+// TODO REMOVE_STALE: temporary successor action, marker remains permanently set.
 import {
   type ApiActionName,
   type ConductBlockers,
@@ -115,6 +117,11 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
                 { name: "reportContent", type: "text", value: "" },
               ],
             },
+            {
+              ...action("council-business.import-bundle", "POST", "/api/council-business/import-bundle", "Import a council business bundle"),
+              type: "multipart/form-data",
+              fields: [{ name: "file", type: "file" }],
+            },
           ]
         : [],
     "council-delegation": () =>
@@ -208,7 +215,7 @@ export function withConductAuthorization(request: Request, value: unknown): unkn
       ? blockers
       : [...blockers, { code: "permissionDenied" }];
   }
-  for (const key of ["meeting", "agendaItem", "closedMeeting", "nextMeeting"]) {
+  for (const key of ["meeting", "agendaItem", "closedMeeting", "nextMeeting", "staleMeeting"]) {
     if (result[key] !== undefined) result[key] = withConductAuthorization(request, result[key]);
   }
   return result;
@@ -274,6 +281,8 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
   if (!meetingId || !meetingReference) return [];
   const actions: SirenAction[] = [];
   if (meeting.closedAt) return [];
+  if (!meeting.stale)
+    actions.push(action("meeting.mark-stale", "POST", `/api/council-meetings/${meetingReference}/stale`));
   const conduct = value as Record<string, unknown>;
   const meetingBlockers = meetingActionBlockersSchema.safeParse(conduct.meetingActionBlockers);
   if (meetingBlockers.success && meetingBlockers.data.addAgendaItem.length === 0)
@@ -430,6 +439,11 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
         });
       const actions = [
         ...resourceCreationActions(request, id),
+        action("council-business.delete", "DELETE", `/api/council-business/${reference}`, "Delete a council business"),
+        {
+          ...action("council-business.export-bundle", "GET", `/api/council-business/${reference}/bundle`, "Export a council business bundle"),
+          fields: [{ name: "firstName", type: "text" }, { name: "lastName", type: "text" }],
+        },
         action(
           "council-business.create-prepared-subject",
           "POST",

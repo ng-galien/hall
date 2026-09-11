@@ -1,5 +1,4 @@
 import { matchDiscriminated, matchLiteral } from "@hall/domain";
-import { ExplorerTree, ExplorerTreeRow, ExplorerTreeButton } from "../../components/ui/explorer-tree";
 import {
   type DragEvent,
   type KeyboardEvent,
@@ -23,6 +22,7 @@ import {
 import { type InlineRenameEndReason, InlineRenameField } from "@/components/ui/inline-rename-field";
 import {
   AddIcon,
+  DeleteIcon,
   EditIcon,
   FolderAddIcon,
   FolderIcon,
@@ -31,6 +31,7 @@ import {
   WorkspaceIcon,
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
+import { ExplorerTree, ExplorerTreeButton, ExplorerTreeRow } from "../../components/ui/explorer-tree";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import {
   type DocumentaryLeafSummary,
@@ -43,9 +44,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
-import {
-  useWorkspaceCouncilActivityStore,
-} from "../../stores/workspaceCouncilActivityStore";
+import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { listCatalogPaths } from "./paths";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons } from "./workspaceCreateKind";
@@ -68,17 +67,41 @@ function RenameContextMenu({
   children,
   enabled,
   onRename,
+  onImportFolder,
+  onExportBundle,
+  onDelete,
 }: {
   children: ReactElement;
   enabled: boolean;
   onRename(): void;
+  onImportFolder?(): void;
+  onExportBundle?(): void;
+  onDelete?(): void;
 }) {
   const { t } = useI18n();
-  if (!enabled) return children;
+  if (!enabled && !onImportFolder && !onExportBundle && !onDelete) return children;
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent>
+        {onExportBundle ? (
+          <ContextMenuItem data-testid="workspace-tree-export-bundle" onSelect={onExportBundle}>
+            <DocumentResourceIcon />
+            {t("bundles.export")}
+          </ContextMenuItem>
+        ) : null}
+        {onImportFolder ? (
+          <ContextMenuItem data-testid="workspace-tree-import-folder" onSelect={onImportFolder}>
+            <DocumentResourceIcon />
+            {t("workspace.importFolder")}
+          </ContextMenuItem>
+        ) : null}
+        {onDelete ? (
+          <ContextMenuItem data-testid="workspace-tree-delete-business" onSelect={onDelete}>
+            <DeleteIcon />
+            {t("business.delete")}
+          </ContextMenuItem>
+        ) : null}
         {enabled ? (
           <ContextMenuItem data-testid="workspace-tree-rename" onSelect={onRename}>
             <EditIcon aria-hidden="true" />
@@ -104,6 +127,7 @@ function ContentRow({
   testId,
   className,
   onDrop,
+  onFolderDrop,
   children,
 }: {
   payload: DragPayload;
@@ -111,6 +135,7 @@ function ContentRow({
   testId: string;
   className: string;
   onDrop?(payload: DragPayload): void;
+  onFolderDrop?(transfer: DataTransfer): void;
   children: ReactNode;
 }) {
   const [dropActive, setDropActive] = useState(false);
@@ -118,12 +143,20 @@ function ContentRow({
     <li
       className={`${className}${dropActive ? " workspace-explorer-drop" : ""}`}
       data-testid={testId}
+      data-folder-import-enabled={Boolean(onFolderDrop)}
       draggable={movable}
       onDragStart={(event: DragEvent) => {
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData(DRAG_TYPE, encodeDragPayload(payload));
       }}
       onDragOver={(event) => {
+        if (onFolderDrop && event.dataTransfer.types.includes("Files")) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.dataTransfer.dropEffect = "copy";
+          setDropActive(true);
+          return;
+        }
         if (!onDrop || !event.dataTransfer.types.includes(DRAG_TYPE)) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = "link";
@@ -131,6 +164,13 @@ function ContentRow({
       }}
       onDragLeave={() => setDropActive(false)}
       onDrop={(event) => {
+        if (onFolderDrop && event.dataTransfer.types.includes("Files")) {
+          event.preventDefault();
+          event.stopPropagation();
+          setDropActive(false);
+          onFolderDrop(event.dataTransfer);
+          return;
+        }
         if (!onDrop) return;
         event.preventDefault();
         event.stopPropagation();
@@ -151,7 +191,11 @@ export function PathContents({
   selection,
   onSelect,
   onCreate,
+  onImportFolder,
   onPreview,
+  onImportBundle,
+  onExportBundle,
+  onDeleteBusiness,
   hidden = false,
 }: {
   path: string;
@@ -160,6 +204,10 @@ export function PathContents({
   selection: WorkspaceSelection;
   onSelect(selection: WorkspaceSelection, path?: string): void;
   onCreate(kind: WorkspaceCreateKind, folderPath: string, title?: string): Promise<WorkspaceSelection>;
+  onImportFolder(folderPath: string, business?: CouncilBusinessView, transfer?: DataTransfer): void;
+  onImportBundle(): void;
+  onExportBundle(business: CouncilBusinessView): void;
+  onDeleteBusiness(business: CouncilBusinessView): void;
   onPreview(resource: DocumentaryLeafSummary): void;
   hidden?: boolean;
 }) {
@@ -168,6 +216,15 @@ export function PathContents({
   const councilBusinessStore = useCouncilBusinessStore();
   const { load: loadCouncilActivity } = useWorkspaceCouncilActivityStore();
   const resourcesStore = useWorkspaceResourcesStore();
+  const businessIds = businesses.map((business) => business.id).join("\n");
+  const pendingCapabilities = useRef(new Set<string>());
+  useEffect(() => {
+    for (const id of businessIds.split("\n").filter(Boolean)) {
+      if (councilBusinessStore.capabilitiesById[id] || pendingCapabilities.current.has(id)) continue;
+      pendingCapabilities.current.add(id);
+      void councilBusinessStore.loadResources(id).finally(() => pendingCapabilities.current.delete(id));
+    }
+  }, [businessIds, councilBusinessStore.loadResources, councilBusinessStore.capabilitiesById]);
   const treeRef = useRef<HTMLUListElement | null>(null);
   const folderClickTimers = useRef(new Map<string, number>());
   const businessClickTimers = useRef(new Map<string, number>());
@@ -197,25 +254,34 @@ export function PathContents({
     }
     return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
   }, [councilBusinessStore.businesses, resourcesStore.catalog]);
-  const paths = useMemo(
-    () => {
-      const businessFolderIds = new Set(councilBusinessStore.businesses.map((business) => business.folderResourceId));
-      const businessPaths = new Set(resourcesStore.catalog.filter((entry) => entry.kind === "folder" && businessFolderIds.has(entry.id)).map((entry) => entry.fullPath));
-      return allPaths.filter((candidate) => (candidate === path || candidate.startsWith(`${path}/`)) && (mode === "resources" || query.trim() !== "" || !businessPaths.has(candidate)));
-    },
-    [allPaths, path, councilBusinessStore.businesses, resourcesStore.catalog, mode, query],
-  );
+  const paths = useMemo(() => {
+    const businessFolderIds = new Set(councilBusinessStore.businesses.map((business) => business.folderResourceId));
+    const businessPaths = new Set(
+      resourcesStore.catalog
+        .filter((entry) => entry.kind === "folder" && businessFolderIds.has(entry.id))
+        .map((entry) => entry.fullPath),
+    );
+    return allPaths.filter(
+      (candidate) =>
+        (candidate === path || candidate.startsWith(`${path}/`)) &&
+        (mode === "resources" || query.trim() !== "" || !businessPaths.has(candidate)),
+    );
+  }, [allPaths, path, councilBusinessStore.businesses, resourcesStore.catalog, mode, query]);
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const matches = (title: string) => !normalizedQuery || title.toLocaleLowerCase().includes(normalizedQuery);
   const visibleBusinesses = businesses.filter((business) => mode !== "resources" && matches(business.title));
-  const representedResourceIds = new Set(visibleBusinesses.flatMap((business) => [
-    business.reportResourceId,
-    ...business.resources.map((resource) => resource.id),
-    ...councilBusinessStore.preparedSubjects
-      .filter((subject) => subject.councilBusinessId === business.id)
-      .map((subject) => subject.textResourceId),
-  ]));
-  const visibleResources = resources.filter((resource) => mode !== "businesses" && matches(resource.name) && !representedResourceIds.has(resource.id));
+  const representedResourceIds = new Set(
+    visibleBusinesses.flatMap((business) => [
+      business.reportResourceId,
+      ...business.resources.map((resource) => resource.id),
+      ...councilBusinessStore.preparedSubjects
+        .filter((subject) => subject.councilBusinessId === business.id)
+        .map((subject) => subject.textResourceId),
+    ]),
+  );
+  const visibleResources = resources.filter(
+    (resource) => mode !== "businesses" && matches(resource.name) && !representedResourceIds.has(resource.id),
+  );
   const refresh = () => onSelect(selection);
   const hasDirectItems = (folderPath: string) =>
     businesses.some((business) => business.folderPath === folderPath) ||
@@ -580,12 +646,24 @@ export function PathContents({
       canCreateLegalReference ||
       resourcesStore.collectionCapabilities.uploadDocument ||
       resourcesStore.collectionCapabilities.importSpreadsheet;
-    const hasActions = Boolean(onRename) || hasCreateActions;
+    const hasActions = Boolean(onRename) || hasCreateActions || councilBusinessStore.canImportBundle;
     if (!hasActions) return children;
     return (
       <ContextMenu>
         <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
         <ContextMenuContent>
+          {resourcesStore.collectionCapabilities.create && resourcesStore.collectionCapabilities.uploadDocument ? (
+            <ContextMenuItem data-testid="workspace-tree-import-folder" onSelect={() => onImportFolder(folderPath)}>
+              <DocumentResourceIcon />
+              {t("workspace.importFolder")}
+            </ContextMenuItem>
+          ) : null}
+          {councilBusinessStore.canImportBundle ? (
+            <ContextMenuItem data-testid="workspace-tree-import-bundle" onSelect={onImportBundle}>
+              <DocumentResourceIcon />
+              {t("bundles.import")}
+            </ContextMenuItem>
+          ) : null}
           {hasCreateActions ? (
             <ContextMenuSub>
               <ContextMenuSubTrigger data-testid="workspace-tree-create">
@@ -776,11 +854,28 @@ export function PathContents({
           };
           const subjectResources = councilBusinessStore.preparedSubjects
             .filter((subject) => subject.councilBusinessId === business.id)
-            .map((subject) => ({ id: subject.textResourceId, name: subject.title, icon: <span className="workspace-glyph workspace-glyph-text"><TextResourceIcon /></span> }));
-          const children = [...new Map([
-            ...business.resources.map((resource) => ({ ...resource, icon: <DocumentaryResourceGlyph resource={resource} /> })),
-            ...subjectResources,
-          ].filter((resource) => resource.id !== business.reportResourceId).map((resource) => [resource.id, resource])).values()];
+            .map((subject) => ({
+              id: subject.textResourceId,
+              name: subject.title,
+              icon: (
+                <span className="workspace-glyph workspace-glyph-text">
+                  <TextResourceIcon />
+                </span>
+              ),
+            }));
+          const children = [
+            ...new Map(
+              [
+                ...business.resources.map((resource) => ({
+                  ...resource,
+                  icon: <DocumentaryResourceGlyph resource={resource} />,
+                })),
+                ...subjectResources,
+              ]
+                .filter((resource) => resource.id !== business.reportResourceId)
+                .map((resource) => [resource.id, resource]),
+            ).values(),
+          ];
           const rowContents = (
             <>
               <CouncilBusinessGlyph business={business} />
@@ -854,23 +949,44 @@ export function PathContents({
               key={business.id}
               payload={payload}
               movable={!renaming && folderCapabilities.relocate}
+              onFolderDrop={
+                businessCapabilities?.uploadDocument && resourcesStore.collectionCapabilities.create
+                  ? (transfer) => onImportFolder(business.folderPath, business, transfer)
+                  : undefined
+              }
               onDrop={businessCapabilities?.associateResource ? (payload) => void attach(business, payload) : undefined}
               testId={`workspace-business-${business.id}`}
               className={`workspace-explorer-item workspace-explorer-business${selectedKey === key ? " workspace-explorer-selected" : ""}`}
             >
-              <RenameContextMenu enabled={renamable} onRename={() => startRename(payload)}>
+              <RenameContextMenu
+                enabled={renamable}
+                onDelete={businessCapabilities?.delete ? () => onDeleteBusiness(business) : undefined}
+                onExportBundle={businessCapabilities?.exportBundle ? () => onExportBundle(business) : undefined}
+                onRename={() => startRename(payload)}
+                onImportFolder={
+                  businessCapabilities?.uploadDocument && resourcesStore.collectionCapabilities.create
+                    ? () => onImportFolder(business.folderPath, business)
+                    : undefined
+                }
+              >
                 {row}
               </RenameContextMenu>
               {expanded ? (
                 <ul className="workspace-explorer-branch" data-testid={`workspace-business-children-${business.id}`}>
                   {children.map((resource) => (
                     <li key={resource.id}>
-                      <button type="button" className="workspace-explorer-row"
-                        data-workspace-tree-node data-workspace-node-key={`resource:${resource.id}`}
+                      <button
+                        type="button"
+                        className="workspace-explorer-row"
+                        data-workspace-tree-node
+                        data-workspace-node-key={`resource:${resource.id}`}
                         data-testid={`workspace-business-resource-${resource.id}`}
-                        onClick={() => onSelect({ kind: "resource", id: resource.id })}>
+                        onClick={() => onSelect({ kind: "resource", id: resource.id })}
+                      >
                         {resource.icon}
-                        <span className="workspace-explorer-copy"><strong>{resource.name}</strong></span>
+                        <span className="workspace-explorer-copy">
+                          <strong>{resource.name}</strong>
+                        </span>
                       </button>
                     </li>
                   ))}
@@ -993,6 +1109,17 @@ export function PathContents({
           onSelect(null, folderPath);
         }}
         onDragOver={(event) => {
+          if (
+            event.dataTransfer.types.includes("Files") &&
+            resourcesStore.collectionCapabilities.create &&
+            resourcesStore.collectionCapabilities.uploadDocument
+          ) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = "copy";
+            setDropPath(folderPath);
+            return;
+          }
           if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
           event.preventDefault();
           event.dataTransfer.dropEffect = "move";
@@ -1002,6 +1129,15 @@ export function PathContents({
         onDrop={(event) => {
           event.preventDefault();
           setDropPath(null);
+          if (
+            event.dataTransfer.types.includes("Files") &&
+            resourcesStore.collectionCapabilities.create &&
+            resourcesStore.collectionCapabilities.uploadDocument
+          ) {
+            event.stopPropagation();
+            onImportFolder(folderPath, undefined, event.dataTransfer);
+            return;
+          }
           const payload = decodeDragPayload(event.dataTransfer.getData(DRAG_TYPE));
           if (!payload) return;
           setMoveError(null);
@@ -1078,7 +1214,31 @@ export function PathContents({
     visibleResources.some((resource) => resource.path === path);
   const rootName = path.split("/").at(-1) ?? path;
   const rootRow = (
-    <fieldset className="workspace-explorer-folder-row workspace-explorer-root-row" data-testid="workspace-tree-root">
+    <fieldset
+      className="workspace-explorer-folder-row workspace-explorer-root-row"
+      data-testid="workspace-tree-root"
+      onDragOver={(event) => {
+        if (
+          event.dataTransfer.types.includes("Files") &&
+          resourcesStore.collectionCapabilities.create &&
+          resourcesStore.collectionCapabilities.uploadDocument
+        ) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+        }
+      }}
+      onDrop={(event) => {
+        if (
+          event.dataTransfer.types.includes("Files") &&
+          resourcesStore.collectionCapabilities.create &&
+          resourcesStore.collectionCapabilities.uploadDocument
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          onImportFolder(path, undefined, event.dataTransfer);
+        }
+      }}
+    >
       <span className="workspace-explorer-folder-marker" aria-hidden="true">
         <FolderOpenIcon />
       </span>
@@ -1119,11 +1279,7 @@ export function PathContents({
       <p className="sr-only" aria-live="polite">
         {feedback}
       </p>
-      <ExplorerTree
-        ref={treeRef}
-        aria-label={t("workspace.contents")}
-        onKeyDown={handleTreeKeyDown}
-      >
+      <ExplorerTree ref={treeRef} aria-label={t("workspace.contents")} onKeyDown={handleTreeKeyDown}>
         <li className="workspace-explorer-folder workspace-explorer-root">
           {withFolderContextMenu(rootRow, path)}
           <ul className="workspace-explorer-branch">

@@ -66,3 +66,46 @@ test("adds elected and non elected contacts to a committee and preserves a rank 
   await expect(page.getByTestId("member-rank")).toHaveValue("99");
   await expect(page.getByRole("alert")).toBeVisible();
 });
+
+test("assigns rapporteur primary and alternate committee qualities", async ({ appPage: page }, testInfo) => {
+  test.setTimeout(60_000);
+  const contacts = (await (await page.request.get("/api/contacts")).json()).entities.map(
+    (entry: { properties: { id: string } }) => entry.properties,
+  );
+  const response = await page.request.post("/api/council-committees", {
+    data: { name: "Commission des équipements", description: "Examen des projets et suivi des travaux" },
+  });
+  expect(response.status()).toBe(201);
+  const committee = (await response.json()).properties;
+  await page.goto(`/app/council-committees/${committee.id}`);
+  const roles = ["rapporteur", "primary", "alternate"];
+  for (const [index, role] of roles.entries()) {
+    await page.getByTestId("committee-add-members").click();
+    await page.getByTestId(`committee-contact-option-${contacts[index].id}`).click();
+    await page.getByTestId("committee-membership-start").fill("2026-09-10");
+    if (index === 0)
+      await page
+        .getByTestId("committee-member-palette")
+        .screenshot({ path: testInfo.outputPath("six-qualities-palette.png") });
+    await page.getByTestId(`committee-add-role-${role}`).click();
+    await expect(
+      page.getByTestId(`committee-role-zone-${role}`).getByTestId(`committee-membership-${contacts[index].id}`),
+    ).toBeVisible();
+  }
+  await page.reload();
+  for (const [index, role] of roles.entries()) {
+    await expect(
+      page.getByTestId(`committee-role-zone-${role}`).getByTestId(`committee-membership-${contacts[index].id}`),
+    ).toBeVisible();
+  }
+  await page.getByTestId("committee-role-board").screenshot({ path: testInfo.outputPath("six-qualities-board.png") });
+  await page.getByTestId(`committee-membership-${contacts[0].id}`).click();
+  await page.getByTestId("committee-move-role-primary").click();
+  await expect(
+    page.getByTestId("committee-role-zone-primary").getByTestId(`committee-membership-${contacts[0].id}`),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByTestId("committee-role-zone-primary").getByTestId(`committee-membership-${contacts[0].id}`),
+  ).toBeVisible();
+});

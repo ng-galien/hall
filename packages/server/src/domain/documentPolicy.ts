@@ -36,11 +36,11 @@ export function documentPreviewMode(format: DocumentFormat): DocumentPreviewMode
     jpeg: () => "native" as const,
     png: () => "native" as const,
     docx: () => "convertible" as const,
-    odt: () => "convertible" as const,
-    xlsx: () => "convertible" as const,
-    pptx: () => "convertible" as const,
-    txt: () => "convertible" as const,
-    csv: () => "convertible" as const,
+    odt: () => "unavailable" as const,
+    xlsx: () => "unavailable" as const,
+    pptx: () => "unavailable" as const,
+    txt: () => "native" as const,
+    csv: () => "unavailable" as const,
   });
 }
 
@@ -85,6 +85,14 @@ const spreadsheetImportPoliciesByExtension: Record<string, DocumentFormatPolicy>
     detectedExtension: "xlsx",
   },
 };
+
+export function documentPreviewModeForMediaType(mediaType: string): DocumentPreviewMode {
+  const normalized = mediaType.split(";", 1)[0].trim().toLowerCase();
+  const policy = Object.values(documentPoliciesByExtension).find(
+    (candidate) => candidate.mediaType.split(";", 1)[0] === normalized,
+  );
+  return policy ? documentPreviewMode(policy.format) : "unavailable";
+}
 
 export const acceptedDocumentExtensions = Object.freeze(Object.keys(documentPoliciesByExtension));
 export const acceptedSpreadsheetImportExtensions = Object.freeze(Object.keys(spreadsheetImportPoliciesByExtension));

@@ -16,7 +16,7 @@ import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import { createSqlExecutor } from "../infrastructure/database/factory.js";
-import { createGotenbergDocumentPreviewConverter } from "../infrastructure/documents/gotenbergDocumentPreviewConverter.js";
+import { createMarkdownDocumentPreviewConverter } from "../infrastructure/documents/markdownDocumentPreviewConverter.js";
 import { createLegifranceProvider } from "../infrastructure/legal/legifranceProvider.js";
 import { createPostgresCouncilClient } from "../infrastructure/postgres/councilClient.js";
 import { createPostgresCouncilDecisionClient } from "../infrastructure/postgres/councilDecisionClient.js";
@@ -55,6 +55,8 @@ import {
   createCouncilBusinessWorkspaceService,
 } from "../services/councilBusinessWorkspaceService.js";
 import { type CouncilDecisionService, createCouncilDecisionService } from "../services/councilDecisionService.js";
+import { createCouncilBusinessBundleExportService } from "../services/councilBusinessBundleExportService.js";
+import { createCouncilBusinessBundleImportService } from "../services/councilBusinessBundleImportService.js";
 import { type CouncilMeetingService, createCouncilMeetingService } from "../services/councilMeetingService.js";
 import { createDirectoryService, type DirectoryService } from "../services/directoryService.js";
 import {
@@ -116,6 +118,8 @@ export interface Cradle {
   ballotService: BallotService;
   councilBallotService: CouncilBallotService;
   councilBusinessWorkspaceService: CouncilBusinessWorkspaceService;
+  councilBusinessBundleExportService: ReturnType<typeof createCouncilBusinessBundleExportService>;
+  councilBusinessBundleImportService: ReturnType<typeof createCouncilBusinessBundleImportService>;
   documentaryResourceService: DocumentaryResourceService;
   referenceEntityResolver: ReferenceEntityResolver;
   authService: AuthService;
@@ -160,6 +164,8 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     ballotService: asFunction(createBallotService).singleton(),
     councilBallotService: asFunction(createCouncilBallotService).singleton(),
     councilBusinessWorkspaceService: asFunction(createCouncilBusinessWorkspaceService).singleton(),
+    councilBusinessBundleExportService: asFunction(createCouncilBusinessBundleExportService).singleton(),
+    councilBusinessBundleImportService: asFunction(createCouncilBusinessBundleImportService).singleton(),
     directoryService: asFunction(createDirectoryService).singleton(),
     documentaryResourceService: asFunction(createDocumentaryResourceService).singleton(),
     referenceEntityResolver: asFunction(createReferenceEntityResolver).singleton(),
@@ -168,7 +174,7 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     geographicMapRenderer: asFunction(createGeographicMapRenderer).singleton(),
     templateRenderingService: asFunction(createTemplateRenderingService).singleton(),
     documentRenderer: asFunction(createDocumentRenderer).singleton(),
-    documentPreviewConverter: asFunction(createGotenbergDocumentPreviewConverter).singleton(),
+    documentPreviewConverter: asFunction(createMarkdownDocumentPreviewConverter).singleton(),
     legalReferenceProvider: asFunction(createLegifranceProvider).singleton(),
     contentTemplateService: asFunction(createContentTemplateService).singleton(),
   });

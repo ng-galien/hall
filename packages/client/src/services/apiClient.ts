@@ -81,13 +81,13 @@ export type ApiErrorCode =
   | "request_failed"
   | "resource_content_unavailable"
   | "resource_preview_conversion_failed"
-  | "resource_preview_conversion_unavailable"
   | "resource_preview_unavailable"
   | "resource_not_found"
   | "council_committee_not_found"
   | "committee_membership_not_found"
   | "route_not_found"
   | "attendance_not_found"
+  | "council_business_has_dependencies"
   | "council_business_not_found";
 
 export class ApiError extends Error {
@@ -190,13 +190,13 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "request_failed",
   "resource_content_unavailable",
   "resource_preview_conversion_failed",
-  "resource_preview_conversion_unavailable",
   "resource_preview_unavailable",
   "resource_not_found",
   "council_committee_not_found",
   "committee_membership_not_found",
   "route_not_found",
   "attendance_not_found",
+  "council_business_has_dependencies",
   "council_business_not_found",
 ]);
 

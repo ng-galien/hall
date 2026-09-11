@@ -44,6 +44,7 @@ export type PersistResource =
 export interface ResourcesClient {
   listAll(): Promise<ResourceRepresentation<ResourceCatalogEntry[]>>;
   listFolder(path: string): Promise<ResourceRepresentation<ResourceSummary[]> | null>;
+  findDocumentsByHashes(hashes: readonly string[]): Promise<ResourceRepresentation<ResourceSummary[]>>;
   search(criteria: ResourceSearchCriteria): Promise<ResourceRepresentation<ResourceSearchResult>>;
   open(reference: string): Promise<ResourceRepresentation<ResourceDetail> | null>;
   create(input: PersistResource): Promise<ResourceRepresentation<ResourceDetail>>;

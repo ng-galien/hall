@@ -9,7 +9,7 @@ const nullableBoundedTextSchema = z.preprocess(
 
 export const councilRoles = ["mayor", "deputyMayor", "councillor"] as const;
 export const councilRoleSchema = z.enum(councilRoles);
-export const committeeRoles = ["chair", "viceChair", "member"] as const;
+export const committeeRoles = ["chair", "viceChair", "member", "rapporteur", "primary", "alternate"] as const;
 export const committeeRoleSchema = z.enum(committeeRoles);
 
 export const contactSchema = z

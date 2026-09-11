@@ -1,5 +1,7 @@
-import type { DocumentaryResource } from "@hall/domain";
+// TODO REMOVE_STALE: propagate incomplete session marker to canonical status badge.
+
 import type { PreparedCouncilSubject } from "@hall/api-contract";
+import type { DocumentaryResource } from "@hall/domain";
 import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,21 +10,21 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EditIcon, FileIcon, PlayIcon } from "../../components/icons";
 import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { MeetingEntryBlockers } from "../../features/council-meetings/MeetingEntryBlockers";
+import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
+import { MeetingNoticeActions } from "../../features/council-meetings/MeetingNoticeActions";
 import {
   formatMeetingLabel,
   meetingScheduleInputValue,
   meetingScheduleInstant,
 } from "../../features/council-meetings/meetingPresentation";
-import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
-import { MeetingNoticeActions } from "../../features/council-meetings/MeetingNoticeActions";
-import { MeetingEntryBlockers } from "../../features/council-meetings/MeetingEntryBlockers";
-import { useMeetingSettings } from "../../hooks/useMeetingSettings";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
+import { useMeetingSettings } from "../../hooks/useMeetingSettings";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
+import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { listPreparedCouncilSubjects } from "../../services/councilBusinessApi";
-import { apiErrorCode, type ApiErrorCode } from "../../services/apiClient";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { useResourcesStore } from "../../stores/resourcesStore";
 import { AgendaComposer } from "./AgendaComposer";
@@ -58,11 +60,19 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
     setPreparedSubjectsLoading(canSchedulePrepared);
     if (canSchedulePrepared) {
       void listPreparedCouncilSubjects(meeting.id)
-        .then((subjects) => { if (active) setPreparedSubjects(subjects); })
-        .catch((error) => { if (active) setPreparedSubjectsError(apiErrorCode(error)); })
-        .finally(() => { if (active) setPreparedSubjectsLoading(false); });
+        .then((subjects) => {
+          if (active) setPreparedSubjects(subjects);
+        })
+        .catch((error) => {
+          if (active) setPreparedSubjectsError(apiErrorCode(error));
+        })
+        .finally(() => {
+          if (active) setPreparedSubjectsLoading(false);
+        });
     }
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [meeting.id, canSchedulePrepared, agendaSnapshot]);
   const attendanceRecorded = aggregate.attendance.length;
   const [editOpen, setEditOpen] = useState(false);
@@ -124,7 +134,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                   </span>
                 </>
               ) : null}
-              <MeetingStatusBadge status={meeting.status} />
+              <MeetingStatusBadge status={meeting.status} stale={meeting.stale} />
               {meeting.isReconvenedMeeting ? (
                 <span className="decision-meeting-chip decision-meeting-chip-none">{t("meeting.reconvenedChip")}</span>
               ) : null}
@@ -132,7 +142,8 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             <div className="meeting-prep-actions">
               <MeetingNoticeActions meetingActions={meetingActions} />
               <Button variant="outline" data-testid="meeting-open-documents" onClick={() => setDocumentsOpen(true)}>
-                <FileIcon />{t("meeting.meetingDocuments")}
+                <FileIcon />
+                {t("meeting.meetingDocuments")}
               </Button>
               {detailsEditable ? (
                 <Button
@@ -151,7 +162,11 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                   {t("meeting.enterLiveMode")}
                 </Button>
               ) : (
-                <Link data-testid="meeting-enter-live" className="live-mode-link" to={`/meetings/${meeting.slug || meeting.id}/live`}>
+                <Link
+                  data-testid="meeting-enter-live"
+                  className="live-mode-link"
+                  to={`/meetings/${meeting.slug || meeting.id}/live`}
+                >
                   <PlayIcon aria-hidden="true" />
                   {t("meeting.enterLiveMode")}
                 </Link>
@@ -166,7 +181,12 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             <p className="meeting-evidence">
               {t("meeting.quorumFailureEvidence")
                 .replace("{present}", formatNumber(meeting.quorumFailure.quorum.physicallyPresent))
-                .replace("{required}", meeting.quorumFailure.quorum.required === null ? t("meeting.quorumUnestablished") : formatNumber(meeting.quorumFailure.quorum.required))}{" "}
+                .replace(
+                  "{required}",
+                  meeting.quorumFailure.quorum.required === null
+                    ? t("meeting.quorumUnestablished")
+                    : formatNumber(meeting.quorumFailure.quorum.required),
+                )}{" "}
               ·{" "}
               {t("meeting.quorumFailureRecordedAt").replace("{date}", formatDateTime(meeting.quorumFailure.recordedAt))}
             </p>
@@ -207,19 +227,45 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-chair`}>{t("meetings.chair")}</Label>
                 <Select name="chairMemberId" defaultValue={meeting.chairMemberId ?? undefined} required>
-                  <SelectTrigger className="w-full" id={`${detailsFieldId}-chair`} data-testid="meeting-edit-chair"><SelectValue placeholder={t("meetings.chairUndesignated")} /></SelectTrigger>
-                  <SelectContent>{rosterMembers.map((member) => <SelectItem key={member.id} value={member.id}>{member.contact.firstName} {member.contact.lastName}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="w-full" id={`${detailsFieldId}-chair`} data-testid="meeting-edit-chair">
+                    <SelectValue placeholder={t("meetings.chairUndesignated")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rosterMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.contact.firstName} {member.contact.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-secretary`}>{t("meetings.secretary")}</Label>
                 <Select name="secretaryMemberId" defaultValue={meeting.secretaryMemberId ?? undefined} required>
-                  <SelectTrigger className="w-full" id={`${detailsFieldId}-secretary`} data-testid="meeting-edit-secretary"><SelectValue placeholder={t("meetings.secretaryUndesignated")} /></SelectTrigger>
-                  <SelectContent>{rosterMembers.map((member) => <SelectItem key={member.id} value={member.id}>{member.contact.firstName} {member.contact.lastName}</SelectItem>)}</SelectContent>
+                  <SelectTrigger
+                    className="w-full"
+                    id={`${detailsFieldId}-secretary`}
+                    data-testid="meeting-edit-secretary"
+                  >
+                    <SelectValue placeholder={t("meetings.secretaryUndesignated")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rosterMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.contact.firstName} {member.contact.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
-            <Button className="justify-self-end" data-testid="meeting-edit-submit" variant="default" type="submit" disabled={submitting}>
+            <Button
+              className="justify-self-end"
+              data-testid="meeting-edit-submit"
+              variant="default"
+              type="submit"
+              disabled={submitting}
+            >
               {t(submitting ? "common.saving" : "common.save")}
             </Button>
           </form>
@@ -234,7 +280,11 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             onSchedulePrepared={canSchedulePrepared ? meetingActions.schedulePreparedSubject : undefined}
             editable={agendaEditable}
             onSubjectSaved={meetingActions.refresh}
-            onQuickCreate={meetingActions.can("meeting.create-and-schedule-business") ? meetingActions.createAndScheduleBusiness : undefined}
+            onQuickCreate={
+              meetingActions.can("meeting.create-and-schedule-business")
+                ? meetingActions.createAndScheduleBusiness
+                : undefined
+            }
             quickCreateError={meetingActions.actionError}
             onRemove={meetingActions.deprogramAgendaItem}
             onReorder={meetingActions.reorderAgenda}

@@ -1,3 +1,6 @@
+// TODO REMOVE_STALE: temporary contract fixture.
+// TODO REMOVE_STALE: this temporary transition is verified against PostgreSQL.
+// TODO REMOVE_STALE: temporary contract fixture.
 import { randomUUID } from "node:crypto";
 import {
   type AgendaItem,
@@ -85,9 +88,19 @@ export function createTestCouncilClient(
   }
 
   return {
-    async meetingDocuments() { throw new Error("Meeting documentary projection requires PostgreSQL"); },
-    async meetingDocumentResource() { return null; },
-    async meetingDocumentContent() { return null; },
+    async deleteBusiness() { throw new Error("Business removal is verified against isolated PostgreSQL-compatible runtime"); },
+    async importBusinessBundle() {
+      throw new Error("Bundle import is verified against the isolated PostgreSQL-compatible runtime");
+    },
+    async meetingDocuments() {
+      throw new Error("Meeting documentary projection requires PostgreSQL");
+    },
+    async meetingDocumentResource() {
+      return null;
+    },
+    async meetingDocumentContent() {
+      return null;
+    },
     async listPreparedSubjects() {
       return [];
     },
@@ -275,6 +288,7 @@ export function createTestCouncilClient(
         quorum: null,
         startedAt: null,
         closedAt: null,
+        stale: false,
       };
       meetings.set(meeting.id, meeting);
       return meeting;
@@ -322,6 +336,9 @@ export function createTestCouncilClient(
     },
     async recordMeetingOpening() {
       throw new Error("Opening acceptance requires PostgreSQL");
+    },
+    async markMeetingStale() {
+      throw new Error("Stale acceptance requires PostgreSQL");
     },
     async closeMeeting(id, input) {
       const meeting = requireMeeting(id);
@@ -403,6 +420,7 @@ export function createTestCouncilClient(
         quorum: meeting.quorum,
         startedAt: null,
         closedAt: null,
+        stale: false,
       };
       meetings.set(meeting.id, closedMeeting);
       meetings.set(nextMeeting.id, nextMeeting);

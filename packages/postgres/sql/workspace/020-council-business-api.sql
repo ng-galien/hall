@@ -92,7 +92,8 @@ CREATE FUNCTION hall.create_council_business_workspace(
   parent_path TEXT,
   business_name TEXT,
   report_name TEXT,
-  report_content TEXT
+  report_content TEXT,
+  source_business_id UUID DEFAULT gen_random_uuid()
 )
 RETURNS UUID
 LANGUAGE plpgsql
@@ -100,7 +101,7 @@ VOLATILE
 SET search_path = pg_catalog, hall
 AS $function$
 DECLARE
-  business_id UUID := gen_random_uuid();
+  business_id UUID := source_business_id;
   folder_id UUID := gen_random_uuid();
   report_id UUID := gen_random_uuid();
   business_path TEXT;

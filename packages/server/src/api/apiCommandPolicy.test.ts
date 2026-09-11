@@ -1,3 +1,4 @@
+// TODO REMOVE_STALE: temporary action permission and audit coverage.
 import { type ApiActionName, type ApiPermission, type ApiPrincipal, apiActionNames } from "@hall/api-contract";
 import type { NextFunction, Request, Response } from "express";
 import { describe, expect, it, vi } from "vitest";
@@ -31,7 +32,7 @@ const actionsByPermissions = [
   [["members.manage"], ["member.create", "member.update"]],
   [
     ["workspace.read"],
-    ["resource.search-legal-references", "template.preview", "template.preview-pdf", "template.generate"],
+    ["council-business.export-bundle", "resource.search-legal-references", "template.preview", "template.preview-pdf", "template.generate"],
   ],
   [
     ["workspace.write"],
@@ -48,6 +49,8 @@ const actionsByPermissions = [
       "resource.create-editor-asset",
       "resource.delete",
       "council-business.create",
+      "council-business.import-bundle",
+      "council-business.delete",
       "council-business.create-prepared-subject",
       "council-business.associate-resource",
       "council-business.dissociate-resource",
@@ -100,6 +103,7 @@ const actionsByPermissions = [
       "meeting.record-opening",
       "meeting.add-open-question",
       "meeting.close",
+      "meeting.mark-stale",
       "meeting.record-attendance",
       "agenda-item.start",
       "agenda-item.complete",
@@ -298,7 +302,9 @@ const auditCases = [
     "committee-membership",
     "member-1",
   ],
+  ["DELETE", "/api/council-business/business-1", undefined, "council-business.delete", "council-business", "business-1"],
   ["POST", "/api/council-business", undefined, "council-business.create", "council-business", undefined],
+  ["POST", "/api/council-business/import-bundle", undefined, "council-business.import-bundle", "council-business", undefined],
   [
     "POST",
     "/api/council-business/business-1/resources",
@@ -359,6 +365,7 @@ const auditCases = [
     "meeting-1",
   ],
   ["POST", "/api/council-meetings/meeting-1/close", undefined, "meeting.close", "council-meeting", "meeting-1"],
+  ["POST", "/api/council-meetings/meeting-1/stale", undefined, "meeting.mark-stale", "council-meeting", "meeting-1"],
   [
     "POST",
     "/api/council-meetings/meeting-1/attendance",

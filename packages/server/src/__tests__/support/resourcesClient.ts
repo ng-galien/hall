@@ -83,14 +83,35 @@ export function createTestResourcesClient(): ResourcesClient {
       const data: ResourceCatalogEntry[] = [...resources.values()];
       return {
         data,
-        representation: { class: ["resource-collection"], properties: {}, links: [{ rel: ["self"], href: "/api/resources/catalog" }] },
+        representation: {
+          class: ["resource-collection"],
+          properties: {},
+          links: [{ rel: ["self"], href: "/api/resources/catalog" }],
+        },
       };
     },
     async listFolder(path) {
       const data = [...resources.values()].filter((resource) => resource.path === path).map(summary);
       return {
         data,
-        representation: { class: ["resource-collection"], properties: {}, links: [{ rel: ["self"], href: "/api/resources" }] },
+        representation: {
+          class: ["resource-collection"],
+          properties: {},
+          links: [{ rel: ["self"], href: "/api/resources" }],
+        },
+      };
+    },
+    async findDocumentsByHashes(hashes) {
+      const data = [...resources.values()]
+        .filter((resource) => resource.kind === "document" && hashes.includes(resource.binary.contentSha256))
+        .map(summary);
+      return {
+        data,
+        representation: {
+          class: ["resource-collection"],
+          properties: {},
+          links: [{ rel: ["self"], href: "/api/resources/documents/by-hashes" }],
+        },
       };
     },
     async search(criteria) {
@@ -99,7 +120,14 @@ export function createTestResourcesClient(): ResourcesClient {
         .filter((resource) => !query || resource.name.toLocaleLowerCase().includes(query))
         .map(summary);
       const data: ResourceSearchResult = { items, facets: { paths: [], tags: [], readiness: [], media: [] } };
-      return { data, representation: { class: ["resource-search"], properties: data, links: [{ rel: ["self"], href: "/api/resources/search" }] } };
+      return {
+        data,
+        representation: {
+          class: ["resource-search"],
+          properties: data,
+          links: [{ rel: ["self"], href: "/api/resources/search" }],
+        },
+      };
     },
     async open(reference) {
       const resource = find(reference);
@@ -171,13 +199,24 @@ export function createTestResourcesClient(): ResourcesClient {
       return store({
         ...base,
         kind: "document",
-        binary: { id: base.id, mediaType: binary.mediaType, byteSize: binary.byteSize, contentSha256: binary.contentSha256 },
+        binary: {
+          id: base.id,
+          mediaType: binary.mediaType,
+          byteSize: binary.byteSize,
+          contentSha256: binary.contentSha256,
+        },
       });
     },
     async relocate(reference, input) {
       const resource = find(reference);
       if (!resource) return { status: "notFound" };
-      const updated = { ...resource, path: input.path, name: input.name, fullPath: fullPath(input.path, input.name), updatedAt: now() };
+      const updated = {
+        ...resource,
+        path: input.path,
+        name: input.name,
+        fullPath: fullPath(input.path, input.name),
+        updatedAt: now(),
+      };
       resources.set(updated.id, updated);
       return mutation(updated);
     },
@@ -227,11 +266,27 @@ export function createTestResourcesClient(): ResourcesClient {
         byteSize: input.content.byteLength,
         contentSha256: data.contentSha256,
       });
-      return { data, representation: { class: ["editor-asset"], properties: data, links: [{ rel: ["self"], href: `/api/resources/editor-assets/${id}` }] } };
+      return {
+        data,
+        representation: {
+          class: ["editor-asset"],
+          properties: data,
+          links: [{ rel: ["self"], href: `/api/resources/editor-assets/${id}` }],
+        },
+      };
     },
     async openEditorAsset(id) {
       const data = editorAssets.get(id);
-      return data ? { data, representation: { class: ["editor-asset"], properties: data, links: [{ rel: ["self"], href: `/api/resources/editor-assets/${id}` }] } } : null;
+      return data
+        ? {
+            data,
+            representation: {
+              class: ["editor-asset"],
+              properties: data,
+              links: [{ rel: ["self"], href: `/api/resources/editor-assets/${id}` }],
+            },
+          }
+        : null;
     },
     async readEditorAssetContent(id) {
       return binaries.get(id) ?? null;
@@ -243,9 +298,23 @@ export function createTestResourcesClient(): ResourcesClient {
       const resource = find(reference);
       if (!resource) return { status: "notFound" };
       if (resource.kind !== "document") return { status: "kindMismatch" };
-      const binary = { content: input.content, mediaType: input.mediaType, byteSize: input.content.byteLength, contentSha256: checksum(input.content) };
+      const binary = {
+        content: input.content,
+        mediaType: input.mediaType,
+        byteSize: input.content.byteLength,
+        contentSha256: checksum(input.content),
+      };
       binaries.set(resource.id, binary);
-      const updated: ResourceDetail = { ...resource, binary: { id: resource.id, mediaType: binary.mediaType, byteSize: binary.byteSize, contentSha256: binary.contentSha256 }, updatedAt: now() };
+      const updated: ResourceDetail = {
+        ...resource,
+        binary: {
+          id: resource.id,
+          mediaType: binary.mediaType,
+          byteSize: binary.byteSize,
+          contentSha256: binary.contentSha256,
+        },
+        updatedAt: now(),
+      };
       resources.set(updated.id, updated);
       return mutation(updated);
     },
@@ -258,7 +327,14 @@ export function createTestResourcesClient(): ResourcesClient {
       if (!resource) return null;
       resources.delete(resource.id);
       binaries.delete(resource.id);
-      return { data: summary(resource), representation: { class: ["resource"], properties: summary(resource), links: [{ rel: ["self"], href: `/api/resources/${resource.id}` }] } };
+      return {
+        data: summary(resource),
+        representation: {
+          class: ["resource"],
+          properties: summary(resource),
+          links: [{ rel: ["self"], href: `/api/resources/${resource.id}` }],
+        },
+      };
     },
   };
 }

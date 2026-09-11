@@ -1,3 +1,4 @@
+// TODO REMOVE_STALE: incomplete sessions remain accessible in history with the review badge.
 import { Link } from "react-router-dom";
 import { CalendarIcon, ChevronRightIcon, LocationIcon } from "../../components/icons";
 import {
@@ -11,7 +12,7 @@ import {
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
-import { type CouncilMeetingView, councilMeetingIsFinished } from "../../models/councilMeeting";
+import { type CouncilMeetingView, councilMeetingIsActive, councilMeetingIsFinished } from "../../models/councilMeeting";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 
 export function CouncilMeetingsPage() {
@@ -22,13 +23,13 @@ export function CouncilMeetingsPage() {
     formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate);
 
   const upcomingMeetings = [...meetings]
-    .filter((meeting) => !councilMeetingIsFinished(meeting))
+    .filter(councilMeetingIsActive)
     .sort((left, right) => (left.scheduledAt ?? "").localeCompare(right.scheduledAt ?? ""));
   const nextMeeting = upcomingMeetings[0] ?? null;
   const matches = (meeting: CouncilMeetingView) => matchesQuery(query, meetingLabel(meeting), meeting.location);
   const visibleUpcoming = upcomingMeetings.filter((meeting) => meeting.id !== nextMeeting?.id && matches(meeting));
   const pastMeetings = [...meetings]
-    .filter(councilMeetingIsFinished)
+    .filter((meeting) => meeting.stale || councilMeetingIsFinished(meeting))
     .sort((left, right) => (right.scheduledAt ?? "").localeCompare(left.scheduledAt ?? ""))
     .filter(matches);
 
@@ -54,7 +55,7 @@ export function CouncilMeetingsPage() {
               </span>
             </div>
             <span className="next-meeting-side">
-              <MeetingStatusBadge status={nextMeeting.phase} />
+              <MeetingStatusBadge status={nextMeeting.phase} stale={nextMeeting.stale} />
               <ChevronRightIcon aria-hidden="true" />
             </span>
           </Link>
@@ -119,14 +120,19 @@ function MeetingGroup({
       {layout === "cards" ? (
         <div className="card-grid">
           {meetings.map((meeting) => (
-            <Link className="entity-card" key={meeting.id} to={`/meetings/${meeting.reference}`}>
+            <Link
+              data-testid={`meeting-history-${meeting.id}`}
+              className="entity-card"
+              key={meeting.id}
+              to={`/meetings/${meeting.reference}`}
+            >
               <span className="entity-card-eyebrow">
                 {meeting.scheduledAt ? formatDateTime(meeting.scheduledAt) : ""}
               </span>
               <strong>{meetingLabel(meeting)}</strong>
               <p>{meeting.location}</p>
               <span className="entity-card-footer">
-                <MeetingStatusBadge status={meeting.phase} />
+                <MeetingStatusBadge status={meeting.phase} stale={meeting.stale} />
               </span>
             </Link>
           ))}
@@ -134,14 +140,19 @@ function MeetingGroup({
       ) : (
         <div className="data-list">
           {meetings.map((meeting) => (
-            <Link className="data-row linked" key={meeting.id} to={`/meetings/${meeting.reference}`}>
+            <Link
+              data-testid={`meeting-history-${meeting.id}`}
+              className="data-row linked"
+              key={meeting.id}
+              to={`/meetings/${meeting.reference}`}
+            >
               <div>
                 <strong>{meetingLabel(meeting)}</strong>
                 <span>
                   {meeting.scheduledAt ? formatDateTime(meeting.scheduledAt) : ""} · {meeting.location}
                 </span>
               </div>
-              <MeetingStatusBadge status={meeting.phase} />
+              <MeetingStatusBadge status={meeting.phase} stale={meeting.stale} />
             </Link>
           ))}
         </div>

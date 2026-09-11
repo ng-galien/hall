@@ -15,6 +15,7 @@ export function WorkspaceWorkbenchHeader({
   hint,
   actions,
   actionError,
+  onDismissError,
   metadata,
   titleId,
 }: {
@@ -26,6 +27,7 @@ export function WorkspaceWorkbenchHeader({
   hint?: ReactNode;
   actions?: ReactNode;
   actionError: ApiErrorCode | null;
+  onDismissError?(): void;
   metadata?: ReactNode;
   titleId?: string;
 }) {
@@ -33,7 +35,11 @@ export function WorkspaceWorkbenchHeader({
   const [editingTitle, setEditingTitle] = useState(false);
   const heading = (
     <Tooltip>
-      <TooltipTrigger asChild><h1 id={titleId} tabIndex={0} data-testid="workspace-workbench-title">{title}</h1></TooltipTrigger>
+      <TooltipTrigger asChild>
+        <h1 id={titleId} tabIndex={0} data-testid="workspace-workbench-title">
+          {title}
+        </h1>
+      </TooltipTrigger>
       <TooltipContent data-testid="workspace-workbench-title-tooltip">{title}</TooltipContent>
     </Tooltip>
   );
@@ -84,7 +90,7 @@ export function WorkspaceWorkbenchHeader({
         {actions ? <div className="workbench-header-side">{actions}</div> : null}
       </header>
 
-      <RequestErrorBanner error={actionError} />
+      <RequestErrorBanner error={actionError} onDismiss={onDismissError} />
       {metadata}
     </div>
   );

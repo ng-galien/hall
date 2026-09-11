@@ -483,50 +483,43 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
     async remove(reference) {
       const before = resourceBefore(get(), reference);
       set({ error: null });
-      try {
-        const representation = before ? get().representations[before.id] : undefined;
-        if (!representation) throw new SirenCapabilityUnavailable("resource.delete");
-        await deleteDocumentaryResource(representation);
-        const removedIds = new Set([
-          before?.id ?? reference,
-          ...(before?.kind === "folder"
-            ? get()
-                .catalog.filter(
-                  (entry) => entry.path === before.fullPath || entry.path.startsWith(`${before.fullPath}/`),
-                )
-                .map((entry) => entry.id)
-            : []),
-        ]);
-        if (before?.kind === "folder") {
-          for (const path of get().loadedPaths.filter(
-            (path) => path === before.fullPath || path.startsWith(`${before.fullPath}/`),
-          )) {
-            folderRevisions.set(path, (folderRevisions.get(path) ?? 0) + 1);
-          }
+      const representation = before ? get().representations[before.id] : undefined;
+      if (!representation) throw new SirenCapabilityUnavailable("resource.delete");
+      await deleteDocumentaryResource(representation);
+      const removedIds = new Set([
+        before?.id ?? reference,
+        ...(before?.kind === "folder"
+          ? get()
+              .catalog.filter((entry) => entry.path === before.fullPath || entry.path.startsWith(`${before.fullPath}/`))
+              .map((entry) => entry.id)
+          : []),
+      ]);
+      if (before?.kind === "folder") {
+        for (const path of get().loadedPaths.filter(
+          (path) => path === before.fullPath || path.startsWith(`${before.fullPath}/`),
+        )) {
+          folderRevisions.set(path, (folderRevisions.get(path) ?? 0) + 1);
         }
-        set((state) => ({
-          catalog: state.catalog.filter((entry) => !removedIds.has(entry.id)),
-          summaries: Object.fromEntries(Object.entries(state.summaries).filter(([id]) => !removedIds.has(id))),
-          details: Object.fromEntries(Object.entries(state.details).filter(([id]) => !removedIds.has(id))),
-          representations: Object.fromEntries(
-            Object.entries(state.representations).filter(([id]) => !removedIds.has(id)),
-          ),
-          loadedPaths:
-            before?.kind === "folder"
-              ? state.loadedPaths.filter((path) => path !== before.fullPath && !path.startsWith(`${before.fullPath}/`))
-              : state.loadedPaths,
-          searchResult: state.searchResult
-            ? {
-                ...state.searchResult,
-                items: state.searchResult.items.filter((item) => !removedIds.has(item.id)),
-              }
-            : null,
-        }));
-        return true;
-      } catch (error) {
-        set({ error: apiErrorCode(error) });
-        return false;
       }
+      set((state) => ({
+        catalog: state.catalog.filter((entry) => !removedIds.has(entry.id)),
+        summaries: Object.fromEntries(Object.entries(state.summaries).filter(([id]) => !removedIds.has(id))),
+        details: Object.fromEntries(Object.entries(state.details).filter(([id]) => !removedIds.has(id))),
+        representations: Object.fromEntries(
+          Object.entries(state.representations).filter(([id]) => !removedIds.has(id)),
+        ),
+        loadedPaths:
+          before?.kind === "folder"
+            ? state.loadedPaths.filter((path) => path !== before.fullPath && !path.startsWith(`${before.fullPath}/`))
+            : state.loadedPaths,
+        searchResult: state.searchResult
+          ? {
+              ...state.searchResult,
+              items: state.searchResult.items.filter((item) => !removedIds.has(item.id)),
+            }
+          : null,
+      }));
+      return true;
     },
     invalidate({ ids = [], paths = [] }) {
       const invalidIds = new Set(ids);

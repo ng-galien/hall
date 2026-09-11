@@ -13,12 +13,12 @@ import {
   type UpdateResourceContent,
   type UpdateResourceMetadata,
 } from "@hall/api-contract";
-import { matchDiscriminated } from "@hall/domain";
+import { matchDiscriminated, matchLiteral } from "@hall/domain";
 import { collectResourceReferences, parse } from "@hall/templating";
 import type { ResourceContent, ResourcesClient } from "../clients/resourcesClient.js";
-import { inspectDocument } from "../domain/documentPolicy.js";
+import { documentPreviewModeForMediaType, inspectDocument } from "../domain/documentPolicy.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
-import { type DocumentPreviewConverter, DocumentPreviewConverterUnavailableError } from "./documentPreviewConverter.js";
+import type { DocumentPreviewConverter } from "./documentPreviewConverter.js";
 import { DomainError } from "./errors.js";
 import {
   type LegalReferenceProvider,
@@ -36,6 +36,7 @@ const DEFAULT_GEOGRAPHIC_LAYERS = [
 export interface DocumentaryResourceService {
   listAll(): Promise<SirenEntity>;
   listFolder(path: string): Promise<SirenEntity>;
+  findDocumentsByHashes(hashes: readonly string[]): Promise<SirenEntity>;
   search(criteria: ResourceSearchCriteria): Promise<SirenEntity>;
   open(reference: string): Promise<SirenEntity>;
   create(input: CreateResource): Promise<SirenEntity>;
@@ -141,6 +142,9 @@ export function createDocumentaryResourceService({
       const resources = await resourcesClient.listFolder(path);
       if (!resources) throw new DomainError("workspace_folder_not_found", 404);
       return resources.representation;
+    },
+    findDocumentsByHashes(hashes) {
+      return resourcesClient.findDocumentsByHashes(hashes).then(({ representation }) => representation);
     },
     search(criteria) {
       return resourcesClient.search(criteria).then(({ representation }) => representation);
@@ -267,31 +271,30 @@ export function createDocumentaryResourceService({
       if (resource.data.kind !== "document") throw new DomainError("resource_preview_unavailable", 409);
       const original = await resourcesClient.readDocumentContent(resource.data.id);
       if (!original) throw new DomainError("resource_not_found", 404);
-      if (["application/pdf", "image/jpeg", "image/png"].includes(original.mediaType)) return original;
-      let content: Buffer;
-      try {
-        content = await documentPreviewConverter.convertToPdf({
-          fileName: resource.data.name,
-          mediaType: original.mediaType,
-          content: original.content,
-        });
-      } catch (error) {
-        if (error instanceof DocumentPreviewConverterUnavailableError) {
-          throw new DomainError("resource_preview_conversion_unavailable", 503);
-        }
-        throw new DomainError("resource_preview_conversion_failed", 502);
-      }
-      try {
-        await inspectDocument("preview.pdf", content);
-      } catch {
-        throw new DomainError("resource_preview_conversion_failed", 502);
-      }
-      return {
-        content,
-        mediaType: "application/pdf",
-        byteSize: content.byteLength,
-        contentSha256: createHash("sha256").update(content).digest("hex"),
-      };
+      return matchLiteral(documentPreviewModeForMediaType(original.mediaType), {
+        native: async () => original,
+        unavailable: async () => {
+          throw new DomainError("resource_preview_unavailable", 409);
+        },
+        convertible: async () => {
+          let content: Buffer;
+          try {
+            content = await documentPreviewConverter.convertToMarkdown({
+              fileName: resource.data.name,
+              mediaType: original.mediaType,
+              content: original.content,
+            });
+          } catch {
+            throw new DomainError("resource_preview_conversion_failed", 502);
+          }
+          return {
+            content,
+            mediaType: "text/markdown; charset=utf-8",
+            byteSize: content.byteLength,
+            contentSha256: createHash("sha256").update(content).digest("hex"),
+          };
+        },
+      });
     },
     async searchLegalReferences(input) {
       try {

@@ -1,3 +1,4 @@
+import { mkdir, readFile } from "node:fs/promises";
 import { expect, test } from "../fixtures/application";
 
 test("opens a business on double click without expanding its explorer branch", async ({ appPage: page }) => {
@@ -15,7 +16,10 @@ test("opens a business on double click without expanding its explorer branch", a
   await row.evaluate((element) => {
     element.setAttribute("data-expansion-changes", "0");
     new MutationObserver((records) => {
-      element.setAttribute("data-expansion-changes", String(Number(element.getAttribute("data-expansion-changes")) + records.length));
+      element.setAttribute(
+        "data-expansion-changes",
+        String(Number(element.getAttribute("data-expansion-changes")) + records.length),
+      );
     }).observe(element, { attributes: true, attributeFilter: ["aria-expanded"] });
   });
   await row.dblclick();
@@ -27,11 +31,15 @@ test("opens a business on double click without expanding its explorer branch", a
 test("keeps folder icons upright and navigates workspace rows with the keyboard", async ({ appPage: page }) => {
   const folderName = `Keyboard ${Date.now()}`;
   const path = `seed/${folderName}`;
-  const folder = await page.request.post("/api/resources", { data: { kind: "folder", path: "seed", name: folderName } });
+  const folder = await page.request.post("/api/resources", {
+    data: { kind: "folder", path: "seed", name: folderName },
+  });
   expect(folder.status()).toBe(201);
   const ids: string[] = [];
   for (const name of ["First note", "Second note"]) {
-    const response = await page.request.post("/api/resources", { data: { kind: "text", path, name, content: "Keyboard navigation" } });
+    const response = await page.request.post("/api/resources", {
+      data: { kind: "text", path, name, content: "Keyboard navigation" },
+    });
     expect(response.status()).toBe(201);
     ids.push((await response.json()).properties.id);
   }
@@ -60,9 +68,13 @@ test("keeps folder icons upright and navigates workspace rows with the keyboard"
   await expect(page.getByTestId("resource-presentation-text-edit")).toBeVisible();
 });
 
-test("schedules newly prepared proposals and open questions without reloading their business", async ({ appPage: page }) => {
+test("schedules newly prepared proposals and open questions without reloading their business", async ({
+  appPage: page,
+}) => {
   const meetingsResponse = await page.request.get("/api/council-meetings");
-  const meetings = (await meetingsResponse.json()).entities.map((entry: { properties: { id: string; startedAt: string | null } }) => entry.properties);
+  const meetings = (await meetingsResponse.json()).entities.map(
+    (entry: { properties: { id: string; startedAt: string | null } }) => entry.properties,
+  );
   const meeting = meetings.find((entry: { startedAt: string | null }) => !entry.startedAt);
   expect(meeting).toBeTruthy();
   let representation = await (await page.request.get(`/api/council-meetings/${meeting.id}`)).json();
@@ -71,7 +83,9 @@ test("schedules newly prepared proposals and open questions without reloading th
     expect((await page.request.post(reopening.href, { data: {} })).ok()).toBeTruthy();
     representation = await (await page.request.get(`/api/council-meetings/${meeting.id}`)).json();
   }
-  expect(representation.actions.some((action: { name: string }) => action.name === "agenda-item.schedule-prepared")).toBe(true);
+  expect(
+    representation.actions.some((action: { name: string }) => action.name === "agenda-item.schedule-prepared"),
+  ).toBe(true);
   const created = await page.request.post("/api/council-business", {
     data: { path: "seed", name: `Prepared subjects ${Date.now()}`, reportName: "Report", reportContent: "" },
   });
@@ -82,7 +96,9 @@ test("schedules newly prepared proposals and open questions without reloading th
     await page.getByTestId(`business-category-${kind}-open`).click({ button: "right" });
     await page.getByTestId(`workspace-context-create-${kind}`).click();
     await page.getByTestId("workspace-create-name").fill(`Prepared ${kind}`);
-    const pending = page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/prepared-subjects"));
+    const pending = page.waitForResponse(
+      (response) => response.request().method() === "POST" && response.url().includes("/prepared-subjects"),
+    );
     await page.getByTestId("workspace-create-submit").click();
     const response = await pending;
     expect(response.status()).toBe(201);
@@ -102,7 +118,9 @@ test("schedules newly prepared proposals and open questions without reloading th
     await schedule.click();
     await page.getByTestId("business-meeting-select").click();
     await page.getByTestId(`business-meeting-option-${meeting.id}`).click();
-    const scheduled = page.waitForResponse((result) => result.request().method() === "POST" && result.url().endsWith("/agenda-items/from-prepared"));
+    const scheduled = page.waitForResponse(
+      (result) => result.request().method() === "POST" && result.url().endsWith("/agenda-items/from-prepared"),
+    );
     await page.getByTestId(`business-schedule-subject-${subject.id}`).click();
     const scheduledResponse = await scheduled;
     expect(scheduledResponse.status()).toBe(201);
@@ -112,18 +130,27 @@ test("schedules newly prepared proposals and open questions without reloading th
     await expect(page.getByTestId("business-schedule-dialog")).toBeHidden();
     await expect(page.getByTestId(`business-subject-occurrence-${occurrence.id}`)).toBeVisible();
     await expect(page.getByTestId(`business-subject-occurrence-${occurrence.id}-toggle`)).toHaveCount(0);
-    const candidates = await (await page.request.get(`/api/council-business/prepared-subjects?councilMeetingId=${meeting.id}`)).json();
-    expect(candidates.entities.some((entry: { properties: { id: string } }) => entry.properties.id === subject.id)).toBe(false);
-    if (kind === "openQuestion") await expect(page.getByTestId(`business-subject-decisions-${subject.id}`)).toHaveCount(0);
+    const candidates = await (
+      await page.request.get(`/api/council-business/prepared-subjects?councilMeetingId=${meeting.id}`)
+    ).json();
+    expect(
+      candidates.entities.some((entry: { properties: { id: string } }) => entry.properties.id === subject.id),
+    ).toBe(false);
+    if (kind === "openQuestion")
+      await expect(page.getByTestId(`business-subject-decisions-${subject.id}`)).toHaveCount(0);
   }
 });
 
-test("creates a documentary resource from a business and preserves its explicit association", async ({ appPage: page }) => {
+test("creates a documentary resource from a business and preserves its explicit association", async ({
+  appPage: page,
+}) => {
   await page.goto("/app/workspace?path=seed");
   await page.getByTestId("workspace-create-menu").click();
   await page.getByTestId("workspace-create-councilMatter").click();
   await page.getByTestId("workspace-create-name").fill(`Documentary creation ${Date.now()}`);
-  const businessCreated = page.waitForResponse((response) => response.request().method() === "POST" && response.url().endsWith("/api/council-business"));
+  const businessCreated = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/api/council-business"),
+  );
   await page.getByTestId("workspace-create-submit").click();
   const businessResponse = await businessCreated;
   expect(businessResponse.status()).toBe(201);
@@ -133,7 +160,9 @@ test("creates a documentary resource from a business and preserves its explicit 
   await page.getByTestId("business-create-documents").click();
   await page.getByTestId("workspace-create-text").click();
   await page.getByTestId("workspace-create-name").fill(name);
-  const resourceCreated = page.waitForResponse((response) => response.request().method() === "POST" && response.url().endsWith("/api/resources"));
+  const resourceCreated = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/api/resources"),
+  );
   await page.getByTestId("workspace-create-submit").click();
   const resourceResponse = await resourceCreated;
   expect(resourceResponse.request().postDataJSON()).toMatchObject({ councilBusinessId: business.id, kind: "text" });
@@ -598,4 +627,110 @@ test("composes an agenda from workspace business with an explicit voting purpose
     await page.goto("/app/workspace");
     await expect(page.getByTestId(`workspace-home-business-${business.id}`)).toBeVisible();
   }
+});
+
+test("renders TXT literally and converted Markdown with bounded embedded images", async ({
+  appPage: page,
+}, testInfo) => {
+  const literal = "# Un titre littéral\n\n  deux espaces\n- une ligne\n<b>aucun HTML</b>";
+  const upload = await page.request.post("/api/resources/documents", {
+    multipart: { path: "seed", file: { name: "lecture.txt", mimeType: "text/plain", buffer: Buffer.from(literal) } },
+  });
+  expect(upload.status()).toBe(201);
+  const resource = (await upload.json()).properties;
+  await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  const preview = page.getByTestId("resource-workbench-object");
+  await expect(preview.locator("pre")).toHaveText(literal, { useInnerText: false });
+  expect(await preview.locator("pre").textContent()).toBe(literal);
+  await expect(preview.locator("h1,b")).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("literal-text.png"), fullPage: true });
+  const png =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aH3sAAAAASUVORK5CYII=";
+  const markdown = `# Rapport\n\n- Premier\n- Second\n\n<table><tr><th>Objet</th><th>Montant</th></tr><tr><td>Travaux</td><td>12</td></tr></table>\n\n![plan](${png})\n\n![externe](https://example.invalid/image.png)\n\n<img src="data:image/svg+xml;base64,PHN2Zy8+"/><span style="background:url(https://example.invalid/style.png)">Fin</span>`;
+  const external: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("example.invalid")) external.push(request.url());
+  });
+  await page.route(`**/api/resources/${resource.id}`, async (route) => {
+    const response = await route.fetch();
+    const value = await response.json();
+    for (const link of value.links ?? []) if (link.rel.includes("preview")) link.type = "text/markdown; charset=utf-8";
+    await route.fulfill({ response, contentType: "application/vnd.siren+json", body: JSON.stringify(value) });
+  });
+  await page.route("**/api/resources/*/preview", (route) =>
+    route.fulfill({ contentType: "text/markdown; charset=utf-8", body: markdown }),
+  );
+  await page.reload();
+  await expect(preview.getByRole("heading", { level: 1 })).toHaveText("Rapport");
+  await expect(preview.locator("li")).toHaveCount(2);
+  await expect(preview.locator("table")).toContainText("Travaux");
+  await expect(preview.locator("img")).toHaveCount(1);
+  await expect(preview.locator("img")).toHaveAttribute("src", png);
+  expect(external).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath("converted-markdown.png"), fullPage: true });
+});
+
+test("previews a real DOCX as Markdown without an office service", async ({ appPage: page }, testInfo) => {
+  const buffer = await readFile(
+    new URL("../../../server/src/__tests__/fixtures/document-preview.docx", import.meta.url),
+  );
+  const upload = await page.request.post("/api/resources/documents", {
+    multipart: {
+      path: "seed",
+      file: {
+        name: "deliberation.docx",
+        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        buffer,
+      },
+    },
+  });
+  expect(upload.status()).toBe(201);
+  const resource = (await upload.json()).properties;
+  await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  const preview = page.getByTestId("resource-workbench-object");
+  await expect(preview.getByRole("heading").first()).toHaveText("Délibération du conseil");
+  await expect(preview).toContainText("13 juillet 2026");
+  await expect(preview.locator("li")).toHaveCount(2);
+  await expect(preview.locator("table")).toBeVisible();
+  await expect(preview.locator("img")).toHaveAttribute("src", /^data:image\/png;base64,/);
+  await expect(preview.locator('a[href^="javascript:"]')).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("real-docx.png"), fullPage: true });
+});
+
+test("shows one dismissible deletion refusal and preserves the linked document", async ({ appPage: page }) => {
+  const upload = await page.request.post("/api/resources/documents", {
+    multipart: {
+      path: "seed",
+      file: {
+        name: `protected-${crypto.randomUUID()}.txt`,
+        mimeType: "text/plain",
+        buffer: Buffer.from("Document à conserver"),
+      },
+    },
+  });
+  expect(upload.ok()).toBeTruthy();
+  const document = (await upload.json()).properties;
+  await page.goto(`/app/workspace?path=seed&resource=${document.id}`);
+  await expect(page.getByTestId("resource-delete")).toBeVisible();
+  const created = await page.request.post("/api/council-business", {
+    data: { path: "seed", name: `Protection ${crypto.randomUUID()}`, reportName: "Rapport", reportContent: "" },
+  });
+  expect(created.ok()).toBeTruthy();
+  const business = (await created.json()).properties;
+  const associated = await page.request.post(`/api/council-business/${business.id}/resources`, {
+    data: { resourceId: document.id },
+  });
+  expect(associated.ok()).toBeTruthy();
+  await page.getByTestId("resource-delete").click();
+  await expect(page.getByRole("alert")).toHaveCount(1);
+  await expect(page.getByTestId("resource-workbench").getByRole("alert")).toBeVisible();
+  await mkdir("/tmp/hall-document-delete", { recursive: true });
+  await page.getByTestId("request-error-dismiss").scrollIntoViewIfNeeded();
+  await page.screenshot({ animations: "disabled", path: "/tmp/hall-document-delete/refusal.png" });
+  await page.getByTestId("request-error-dismiss").click();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  expect((await page.request.get(`/api/resources/${document.id}`)).ok()).toBeTruthy();
+  await page.reload();
+  await expect(page.getByTestId("resource-workbench")).toBeVisible();
+  await expect(page.getByTestId("resource-delete")).toHaveCount(0);
 });

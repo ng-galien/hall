@@ -17,7 +17,6 @@ const titles: Record<string, string> = {
   unsupported_document_format: "Unsupported document format",
   document_content_mismatch: "Document content does not match its format",
   resource_preview_unavailable: "Document preview is unavailable",
-  resource_preview_conversion_unavailable: "Document preview conversion is unavailable",
   resource_preview_conversion_failed: "Document preview conversion failed",
   csrf_validation_failed: "Cross-origin request rejected",
   route_not_found: "Route not found",
@@ -27,6 +26,7 @@ const titles: Record<string, string> = {
   template_generation_busy: "Template generation capacity is busy",
   request_failed: "Request failed",
   conflict: "Conflict",
+  council_business_has_dependencies: "Council business still has resources or linked records",
   bootstrap_unavailable: "Bootstrap unavailable",
   last_administrator_required: "The last administrator must remain active",
 };

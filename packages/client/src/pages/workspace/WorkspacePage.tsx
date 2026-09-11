@@ -1,8 +1,14 @@
-import { emptyEventDocument } from "../../features/calendar/eventDates";
 import { matchDiscriminated, matchLiteral } from "@hall/domain";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RequestErrorBanner } from "../../components/Ui";
+import { Button } from "../../components/ui/button";
+import { emptyEventDocument } from "../../features/calendar/eventDates";
+import {
+  BusinessBundleExportDialog,
+  BusinessBundleImportDialog,
+} from "../../features/council-business/BusinessBundleDialogs";
+import { BusinessDeleteDialog } from "../../features/council-business/BusinessDeleteDialog";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import {
   type DocumentaryLeafSummary,
@@ -14,16 +20,25 @@ import { createEmptySpreadsheetDocument } from "../../features/spreadsheet/unive
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
+import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import { type DocumentDuplicate, findDocumentDuplicates } from "../../services/documentDuplicates";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { CouncilBusinessWorkbench } from "./CouncilBusinessWorkbench";
+import {
+  droppedFolder,
+  type LocalDirectoryHandle,
+  type LocalFolderImport,
+  pickedFolder,
+  selectedFolder,
+} from "./localFolderImport";
 import { PathContents } from "./PathContents";
 import { PinnedRow } from "./PinnedRow";
 import { isUnderPath } from "./paths";
 import { ResourceWorkbench } from "./ResourceWorkbench";
 import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb";
-import { WorkspaceHome } from "./WorkspaceHome";
 import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
+import { WorkspaceHome } from "./WorkspaceHome";
 import { emptySearch, isSearchActive, WorkspaceSearch, type WorkspaceSearchState } from "./WorkspaceSearch";
 import type { WorkspaceCreateKind } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -44,6 +59,26 @@ export function WorkspacePage() {
   const [search, setSearch] = useState<WorkspaceSearchState>(emptySearch);
   const creationFolderPathRef = useRef("");
   const creationBusinessRef = useRef<CouncilBusinessView | undefined>(undefined);
+  const folderInput = useRef<HTMLInputElement | null>(null);
+  const folderTarget = useRef<{ path: string; business?: CouncilBusinessView }>({ path: "" });
+  const [duplicates, setDuplicates] = useState<DocumentDuplicate[]>([]);
+  const [duplicateCheckError, setDuplicateCheckError] = useState(false);
+  const checkDuplicates = async (files: readonly File[], append = false) => {
+    if (!append) {
+      setDuplicates([]);
+      setDuplicateCheckError(false);
+    }
+    try {
+      const found = await findDocumentDuplicates(files);
+      setDuplicates((previous) => (append ? [...previous, ...found] : found));
+    } catch {
+      setDuplicateCheckError(true);
+    }
+  };
+  const [deleteBusiness, setDeleteBusiness] = useState<CouncilBusinessView | null>(null);
+  const [exportBundleId, setExportBundleId] = useState<string | null>(null);
+  const [importBundleOpen, setImportBundleOpen] = useState(false);
+  const [folderError, setFolderError] = useState<ApiErrorCode | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -138,49 +173,67 @@ export function WorkspacePage() {
       text: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.create({ kind: "text", name: normalizedTitle, path: folderPath, content: "", ...scope }, source),
+          await resourcesStore.create(
+            { kind: "text", name: normalizedTitle, path: folderPath, content: "", ...scope },
+            source,
+          ),
         );
       },
       remote: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.create({
-            kind: "remote",
-            name: normalizedTitle,
-            path: folderPath,
-            target: { kind: "unconfigured" },
-            ...scope,
-          }, source),
+          await resourcesStore.create(
+            {
+              kind: "remote",
+              name: normalizedTitle,
+              path: folderPath,
+              target: { kind: "unconfigured" },
+              ...scope,
+            },
+            source,
+          ),
         );
       },
       spreadsheet: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.create({
-            kind: "spreadsheet",
-            name: normalizedTitle,
-            path: folderPath,
-            document: createEmptySpreadsheetDocument(normalizedTitle, locale),
-            ...scope,
-          }, source),
+          await resourcesStore.create(
+            {
+              kind: "spreadsheet",
+              name: normalizedTitle,
+              path: folderPath,
+              document: createEmptySpreadsheetDocument(normalizedTitle, locale),
+              ...scope,
+            },
+            source,
+          ),
         );
       },
       event: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.create({ kind: "event", name: normalizedTitle, path: folderPath, document: emptyEventDocument(), ...scope }, source),
+          await resourcesStore.create(
+            { kind: "event", name: normalizedTitle, path: folderPath, document: emptyEventDocument(), ...scope },
+            source,
+          ),
         );
       },
       geographic: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.create({ kind: "geographic", name: normalizedTitle, path: folderPath, ...scope }, source),
+          await resourcesStore.create(
+            { kind: "geographic", name: normalizedTitle, path: folderPath, ...scope },
+            source,
+          ),
         );
       },
       legalReference: async () => {
         if (!normalizedTitle) return null;
         return resourceSelection(
-          await resourcesStore.create({ kind: "legalReference", name: normalizedTitle, path: folderPath, ...scope }, source),
+          await resourcesStore.create(
+            { kind: "legalReference", name: normalizedTitle, path: folderPath, ...scope },
+            source,
+          ),
         );
       },
     });
@@ -195,6 +248,7 @@ export function WorkspacePage() {
     form.set("name", file.name.replace(/\.(?:csv|xlsx)$/i, ""));
     form.set("file", file);
     void run(async () => {
+      await checkDuplicates([file]);
       if (/\.(?:csv|xlsx)$/i.test(file.name)) {
         const spreadsheet = await resourcesStore.importSpreadsheet(form, source);
         if (spreadsheet && business) await councilBusinessStore.loadResources(business.id);
@@ -211,33 +265,157 @@ export function WorkspacePage() {
     });
   };
 
+  const importFolder = (folderPath: string, business?: CouncilBusinessView, transfer?: DataTransfer) => {
+    if (submitting) return;
+    const folder = business ? resourcesStore.summaries[business.folderResourceId] : undefined;
+    const targetPath = folder?.kind === "folder" ? folder.fullPath : folderPath;
+    folderTarget.current = { path: targetPath, business };
+    if (transfer) {
+      const read = droppedFolder(transfer);
+      void executeFolderImport(read, targetPath, business);
+    } else {
+      const picker = (window as Window & { showDirectoryPicker?: () => Promise<LocalDirectoryHandle> })
+        .showDirectoryPicker;
+      if (picker) void executeFolderImport(picker.call(window).then(pickedFolder), targetPath, business);
+      else folderInput.current?.click();
+    }
+  };
+  const executeFolderImport = (read: Promise<LocalFolderImport>, targetPath: string, business?: CouncilBusinessView) =>
+    run(async () => {
+      setFolderError(null);
+      try {
+        const imported = await read;
+        setDuplicates([]);
+        setDuplicateCheckError(false);
+        const join = (relative: string) => [targetPath, relative].filter(Boolean).join("/");
+        for (const directory of imported.directories.sort((a, b) => a.split("/").length - b.split("/").length)) {
+          const parts = directory.split("/");
+          const name = parts.pop() ?? "";
+          if (!(await resourcesStore.create({ kind: "folder", path: join(parts.join("/")), name }))) {
+            setFolderError(useWorkspaceResourcesStore.getState().error);
+            return;
+          }
+        }
+        const source = business ? councilBusinessStore.representationsById[business.id] : undefined;
+        for (const entry of imported.files) {
+          await checkDuplicates([entry.file], true);
+          const form = new FormData();
+          form.set("path", join(entry.relativePath.split("/").slice(0, -1).join("/")));
+          form.set("file", entry.file);
+          if (business) form.set("councilBusinessId", business.id);
+          const spreadsheet = /\.(?:csv|xlsx)$/i.test(entry.file.name);
+          form.set("name", spreadsheet ? entry.file.name.replace(/\.(?:csv|xlsx)$/i, "") : entry.file.name);
+          const created = spreadsheet
+            ? await resourcesStore.importSpreadsheet(form, source)
+            : await resourcesStore.uploadDocument(form, source);
+          if (!created) {
+            setFolderError(useWorkspaceResourcesStore.getState().error);
+            return;
+          }
+        }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) setFolderError(apiErrorCode(error));
+      } finally {
+        await resourcesStore.loadCatalog();
+        if (business) await councilBusinessStore.loadResources(business.id);
+      }
+    });
+
   const searchActive = isSearchActive(search);
   return (
     <div className="page workspace-page">
       <div className="workspace">
-        <RequestErrorBanner error={councilBusinessError ?? resourcesError} />
+        {deleteBusiness ? (
+          <BusinessDeleteDialog
+            businessId={deleteBusiness.id}
+            name={deleteBusiness.title}
+            onClose={() => setDeleteBusiness(null)}
+            onDeleted={async () => {
+              await Promise.all([resourcesStore.loadCatalog(), councilBusinessStore.load()]);
+              select(null, deleteBusiness.folderPath);
+            }}
+          />
+        ) : null}
+        {exportBundleId ? (
+          <BusinessBundleExportDialog businessId={exportBundleId} onClose={() => setExportBundleId(null)} />
+        ) : null}
+        {importBundleOpen ? (
+          <BusinessBundleImportDialog
+            onClose={() => setImportBundleOpen(false)}
+            onImported={async (id) => {
+              await Promise.all([resourcesStore.loadCatalog(), councilBusinessStore.load()]);
+              const imported = useCouncilBusinessStore.getState().businesses.find((business) => business.id === id);
+              if (imported) select({ kind: "councilBusiness", id }, imported.folderPath);
+            }}
+          />
+        ) : null}
+        <RequestErrorBanner error={folderError ?? councilBusinessError ?? resourcesError} />
+        {duplicates.length ? (
+          <section
+            className="data-list"
+            role="status"
+            data-testid="workspace-import-duplicates"
+            aria-label={t("workspace.identicalFiles")}
+          >
+            {duplicates.map((duplicate) => (
+              <div className="data-row" key={duplicate.id}>
+                <span>{t("workspace.identicalFile").replace("{name}", duplicate.fileName)}</span>
+                <span>
+                  {duplicate.existing.map((resource) => (
+                    <Button
+                      key={resource.id}
+                      variant="link"
+                      data-testid={`workspace-import-existing-${resource.id}`}
+                      onClick={() => select({ kind: "resource", id: resource.id }, resource.path)}
+                    >
+                      {resource.path}/{resource.name}
+                    </Button>
+                  ))}
+                </span>
+              </div>
+            ))}
+          </section>
+        ) : null}
+        {duplicateCheckError ? (
+          <p role="status" data-testid="workspace-import-duplicate-check-failed">
+            {t("workspace.duplicateCheckFailed")}
+          </p>
+        ) : null}
+        {submitting ? (
+          <span className="spinner" role="status" data-testid="workspace-import-progress">
+            {t("common.saving")}
+          </span>
+        ) : null}
         <div className="workspace-topzone">
           <div className="workspace-bar-row">
             <div className="workspace-bar-search">
               <WorkspaceSearch search={search} onSearch={setSearch} onSelect={select} context={path} />
             </div>
-            {!selectedBusiness ? <WorkspaceCreateMenu
-              canCreate={(kind) => matchLiteral(kind, {
-                councilMatter: () => councilBusinessStore.canCreate,
-                text: () => resourcesStore.collectionCapabilities.create,
-                spreadsheet: () => resourcesStore.collectionCapabilities.create,
-                remote: () => resourcesStore.collectionCapabilities.create,
-                geographic: () => resourcesStore.collectionCapabilities.create,
-                event: () => resourcesStore.collectionCapabilities.create,
-                legalReference: () => resourcesStore.collectionCapabilities.create && resourcesStore.collectionCapabilities.searchLegalReferences,
-                file: () => resourcesStore.collectionCapabilities.uploadDocument || resourcesStore.collectionCapabilities.importSpreadsheet,
-              })}
-              onCreate={async (kind, title) => {
-                const created = await createInFolder(kind, path, title);
-                if (created) select(created, path);
-                return Boolean(created);
-              }}
-            /> : null}
+            {!selectedBusiness ? (
+              <WorkspaceCreateMenu
+                canCreate={(kind) =>
+                  matchLiteral(kind, {
+                    councilMatter: () => councilBusinessStore.canCreate,
+                    text: () => resourcesStore.collectionCapabilities.create,
+                    spreadsheet: () => resourcesStore.collectionCapabilities.create,
+                    remote: () => resourcesStore.collectionCapabilities.create,
+                    geographic: () => resourcesStore.collectionCapabilities.create,
+                    event: () => resourcesStore.collectionCapabilities.create,
+                    legalReference: () =>
+                      resourcesStore.collectionCapabilities.create &&
+                      resourcesStore.collectionCapabilities.searchLegalReferences,
+                    file: () =>
+                      resourcesStore.collectionCapabilities.uploadDocument ||
+                      resourcesStore.collectionCapabilities.importSpreadsheet,
+                  })
+                }
+                onCreate={async (kind, title) => {
+                  const created = await createInFolder(kind, path, title);
+                  if (created) select(created, path);
+                  return Boolean(created);
+                }}
+              />
+            ) : null}
           </div>
           {resourcesStore.collectionCapabilities.uploadDocument ||
           resourcesStore.collectionCapabilities.importSpreadsheet ? (
@@ -255,6 +433,23 @@ export function WorkspacePage() {
               }}
             />
           ) : null}
+          <input
+            ref={folderInput}
+            type="file"
+            {...{ webkitdirectory: "" }}
+            multiple
+            disabled={submitting}
+            className="visually-hidden-input"
+            data-testid="workspace-folder-input"
+            aria-label={t("workspace.importFolder")}
+            onChange={(event) => {
+              const files = Array.from(event.currentTarget.files ?? []);
+              const target = folderTarget.current;
+              if (files.length)
+                void executeFolderImport(Promise.resolve(selectedFolder(files)), target.path, target.business);
+              event.currentTarget.value = "";
+            }}
+          />
           {!searchActive ? <PinnedRow selection={selection} onSelect={select} /> : null}
         </div>
 
@@ -296,6 +491,10 @@ export function WorkspacePage() {
                   resources={pathResources}
                   selection={selection}
                   onSelect={select}
+                  onImportFolder={importFolder}
+                  onDeleteBusiness={setDeleteBusiness}
+                  onImportBundle={() => setImportBundleOpen(true)}
+                  onExportBundle={(business) => setExportBundleId(business.id)}
                   onCreate={createInFolder}
                   onPreview={(resource) => select({ kind: "resource", id: resource.id })}
                   hidden={Boolean(selectedBusiness || selection?.kind === "resource")}
@@ -306,8 +505,13 @@ export function WorkspacePage() {
               {selectedBusiness || selection?.kind === "resource" ? (
                 <section className="workspace-bench workspace-bench-full" aria-label={t("workspace.bench")}>
                   {selectedBusiness ? (
-                    <CouncilBusinessWorkbench key={selectedBusiness.id} business={selectedBusiness}
-                      onCreate={(kind, title) => createInFolder(kind, selectedBusiness.folderPath, title, selectedBusiness)} />
+                    <CouncilBusinessWorkbench
+                      key={selectedBusiness.id}
+                      business={selectedBusiness}
+                      onCreate={(kind, title) =>
+                        createInFolder(kind, selectedBusiness.folderPath, title, selectedBusiness)
+                      }
+                    />
                   ) : selection?.kind === "resource" ? (
                     <ResourceWorkbench key={selection.id} session={resourceSession} onSelect={select} />
                   ) : null}

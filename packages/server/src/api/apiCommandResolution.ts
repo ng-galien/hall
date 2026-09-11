@@ -1,3 +1,4 @@
+// TODO REMOVE_STALE: temporary action audit identity.
 import type { ApiActionName } from "@hall/api-contract";
 import { type AuditTargetType, apiCommandPolicies } from "./apiCommandPolicy.js";
 
@@ -66,6 +67,7 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
       return auditIntent("meeting.add-open-question", id);
     if (method === "POST" && id && child === "record-opening" && !childId)
       return auditIntent("meeting.record-opening", id);
+    if (method === "POST" && id && child === "stale" && !childId) return auditIntent("meeting.mark-stale", id);
     if (method === "POST" && id && child === "close" && !childId) return auditIntent("meeting.close", id);
     if (method === "POST" && id && child === "agenda-items" && !childId) {
       return auditIntent("agenda-item.schedule", null);
@@ -99,8 +101,10 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method === "POST" && child === "generate") return auditIntent("minutes.generate", id);
   }
   if (root === "council-business") {
+    if (method === "DELETE" && id && !child) return auditIntent("council-business.delete", id);
     if (method === "POST" && id && child === "prepared-subjects" && !childId)
       return auditIntent("council-business.create-prepared-subject", id);
+    if (method === "POST" && id === "import-bundle" && !child) return auditIntent("council-business.import-bundle");
     if (method === "POST" && !id) return auditIntent("council-business.create");
     if (method === "POST" && id && child === "resources" && !childId) {
       return auditIntent("council-business.associate-resource", id, body && { resourceId: body.resourceId });

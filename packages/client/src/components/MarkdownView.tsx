@@ -6,9 +6,10 @@ import {
   isResourceEmbedDirective,
   isResourcePresentationKind,
 } from "@hall/templating";
+import type { Root as HtmlRoot } from "hast";
 import type { Root } from "mdast";
 import type { ComponentProps } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkDirective from "remark-directive";
 import remarkGfm from "remark-gfm";
@@ -159,15 +160,45 @@ function ImageFigure({ node, ...props }: ComponentProps<"figure"> & { node?: unk
   return null;
 }
 
-export function MarkdownView({ markdown, className }: { markdown: string; className?: string }) {
+function rehypeConvertedDocument() {
+  return (tree: HtmlRoot) => {
+    visit(tree, "element", (node) => {
+      delete node.properties.style;
+    });
+  };
+}
+
+const embeddedImage = /^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+function embeddedImageUrl(url: string) {
+  return url.length <= 8 * 1024 * 1024 && embeddedImage.test(url) ? url : "";
+}
+
+export function MarkdownView({
+  markdown,
+  className,
+  allowEmbeddedImages = false,
+}: {
+  markdown: string;
+  className?: string;
+  allowEmbeddedImages?: boolean;
+}) {
   return (
     <div className={className ? `markdown-content ${className}` : "markdown-content"}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkDirective, remarkReferences]}
-        rehypePlugins={[rehypeRaw]}
-        allowedElements={allowedElements}
+        remarkPlugins={allowEmbeddedImages ? [remarkGfm] : [remarkGfm, remarkDirective, remarkReferences]}
+        rehypePlugins={allowEmbeddedImages ? [rehypeRaw, rehypeConvertedDocument] : [rehypeRaw]}
+        allowedElements={allowEmbeddedImages ? [...allowedElements, "h1", "h4", "h5", "h6"] : allowedElements}
+        urlTransform={
+          allowEmbeddedImages
+            ? (url, key) => (key === "src" ? embeddedImageUrl(url) : defaultUrlTransform(url))
+            : defaultUrlTransform
+        }
         unwrapDisallowed
-        components={{ span: ReferenceSpan, figure: ImageFigure }}
+        components={
+          allowEmbeddedImages
+            ? { img: ({ src, alt }) => (src ? <img src={src} alt={alt ?? ""} /> : null) }
+            : { span: ReferenceSpan, figure: ImageFigure }
+        }
       >
         {markdown}
       </ReactMarkdown>

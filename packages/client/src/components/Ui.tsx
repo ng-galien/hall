@@ -215,9 +215,9 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   request_failed: "error.request_failed",
   resource_content_unavailable: "error.resource_content_unavailable",
   resource_preview_conversion_failed: "error.resource_preview_conversion_failed",
-  resource_preview_conversion_unavailable: "error.resource_preview_conversion_unavailable",
   resource_preview_unavailable: "error.resource_preview_unavailable",
   resource_not_found: "error.resource_not_found",
+  council_business_has_dependencies: "error.council_business_has_dependencies",
   council_business_not_found: "error.council_business_not_found",
   council_committee_not_found: "error.council_committee_not_found",
   committee_membership_not_found: "error.committee_membership_not_found",
@@ -227,11 +227,23 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   too_many_login_attempts: "error.too_many_login_attempts",
 };
 
-export function RequestErrorBanner({ error }: { error: ApiErrorCode | null }) {
+export function RequestErrorBanner({ error, onDismiss }: { error: ApiErrorCode | null; onDismiss?(): void }) {
   const { t } = useI18n();
   return error ? (
-    <div className="error-banner" role="alert">
-      {t(errorTranslationKeys[error])}
+    <div className={onDismiss ? "error-banner flex items-start gap-3" : "error-banner"} role="alert">
+      <span className={onDismiss ? "flex-1" : undefined}>{t(errorTranslationKeys[error])}</span>
+      {onDismiss ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onDismiss}
+          aria-label={t("common.close")}
+          data-testid="request-error-dismiss"
+        >
+          <CloseIcon />
+        </Button>
+      ) : null}
     </div>
   ) : null;
 }

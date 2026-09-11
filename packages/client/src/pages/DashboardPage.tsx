@@ -1,9 +1,11 @@
+// TODO REMOVE_STALE: the dashboard next session excludes incomplete historical sessions.
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { AgendaIcon, DecisionsIcon, WorkspaceIcon } from "../components/icons";
 import { PageHeader } from "../components/Ui";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { useI18n } from "../i18n/I18nProvider";
+import { councilMeetingIsActive } from "../models/councilMeeting";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
@@ -15,6 +17,7 @@ export function DashboardPage() {
   const { councilDecisions, error: decisionsError } = useCouncilDecisionsStore();
   const error = meetingsError || councilBusinessError || decisionsError;
   const nextMeeting = [...meetings]
+    .filter(councilMeetingIsActive)
     .filter((item) => item.scheduledAt && new Date(item.scheduledAt) >= new Date())
     .sort((a, b) => (a.scheduledAt ?? "").localeCompare(b.scheduledAt ?? ""))[0];
   return (
@@ -24,6 +27,7 @@ export function DashboardPage() {
         {error && <div className="error-banner">{t("common.requestFailed")}</div>}
         <div className="metric-grid">
           <Metric
+            testId="dashboard-next-meeting"
             icon={<AgendaIcon />}
             value={nextMeeting?.scheduledAt ? formatDate(nextMeeting.scheduledAt) : t("dashboard.toSchedule")}
             label={t("dashboard.nextMeeting")}
@@ -56,19 +60,21 @@ export function DashboardPage() {
 
 function Metric({
   icon,
+  testId,
   value,
   label,
   detail,
   to,
 }: {
   icon: ReactNode;
+  testId?: string;
   value: ReactNode;
   label: string;
   detail: string;
   to: string;
 }) {
   return (
-    <Link className="metric-card metric-card-linked" to={to}>
+    <Link data-testid={testId} className="metric-card metric-card-linked" to={to}>
       <span className="metric-icon">{icon}</span>
       <div>
         <strong className="metric-value">{value}</strong>

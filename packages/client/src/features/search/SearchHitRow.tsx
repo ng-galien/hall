@@ -1,3 +1,4 @@
+// TODO REMOVE_STALE: propagate incomplete session marker to canonical status badge.
 import { matchDiscriminated } from "@hall/domain";
 import type { ReactNode } from "react";
 import { KindGlyph } from "../../components/search/kindPresentation";
@@ -107,7 +108,7 @@ export function SearchHitRow<THit extends SearchHit>({
       meta: entry.meeting.scheduledAt
         ? `${formatDate(entry.meeting.scheduledAt)} · ${entry.meeting.location ?? ""}`
         : t("dashboard.toSchedule"),
-      badge: <MeetingStatusBadge status={entry.meeting.phase} />,
+      badge: <MeetingStatusBadge status={entry.meeting.phase} stale={entry.meeting.stale} />,
     }),
     decision: (entry) => ({
       glyph: <KindGlyph kind="decision" />,

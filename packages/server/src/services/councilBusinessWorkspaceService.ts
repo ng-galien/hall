@@ -24,6 +24,7 @@ export interface CouncilBusinessWorkspaceService {
   listWorkspaceItems(): Promise<CouncilBusinessWorkspaceItem[]>;
   get(id: string): Promise<CouncilBusiness>;
   create(input: CreateCouncilBusiness): Promise<CouncilBusiness>;
+  delete(id: string): Promise<CouncilBusiness>;
   listResources(id: string): Promise<CouncilBusinessResourceAssociation[]>;
   listResourceItems(ids: readonly string[]): Promise<CouncilBusinessResourceItem[]>;
   associateResource(id: string, resourceId: string): Promise<CouncilBusinessResourceAssociation>;
@@ -47,6 +48,7 @@ export function createCouncilBusinessWorkspaceService({
       if (!business) throw new DomainError("council_business_not_found", 404);
       return business;
     },
+    delete: (id) => councilClient.deleteBusiness(id).catch(translateFailure),
     create: (input) => councilClient.createBusiness(input).catch(translateFailure),
     listResources: (id) => councilClient.listBusinessResources(id).catch(translateFailure),
     listResourceItems: (ids) => councilClient.listBusinessResourceItems(ids).catch(translateFailure),

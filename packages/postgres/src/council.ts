@@ -7,10 +7,10 @@ import {
   conductBlockersSchema,
   createPreparedCouncilSubjectSchema,
   type MeetingNoticeFacts,
-  meetingDocumentsSchema,
-  meetingDocumentSourceSchema,
   meetingActionBlockersSchema,
   meetingAgendaFreezeSchema,
+  meetingDocumentSourceSchema,
+  meetingDocumentsSchema,
   meetingEntryBlockerSchema,
   meetingNoticeDeadlineSchema,
   meetingNoticeFactsSchema,
@@ -108,6 +108,8 @@ export const postgresCouncilMeetingSchema = z.object({
   quorum: z.number().int().positive().nullable(),
   startedAt: timestampSchema.nullable(),
   closedAt: timestampSchema.nullable(),
+  // TODO REMOVE_STALE: temporary incomplete meeting marker.
+  stale: z.boolean(),
   closureBlockers: z.array(conductBlockerSchema),
   entryBlockers: z.array(meetingEntryBlockerSchema),
   openingBlockers: z.array(meetingOpeningBlockerSchema),
@@ -370,30 +372,53 @@ export class PostgresCouncil {
   meetingDocuments(request: PostgresCouncilRequest, id: string) {
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "meeting.documents.read") },
-      (client) => callJson(client, { text: "SELECT hall_api.meeting_documents($1::uuid) AS payload", values: [resourceIdSchema.parse(id)], schema: meetingDocumentsSchema }),
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.meeting_documents($1::uuid) AS payload",
+          values: [resourceIdSchema.parse(id)],
+          schema: meetingDocumentsSchema,
+        }),
     );
   }
   meetingDocumentResource(request: PostgresCouncilRequest, id: string, resourceId: string) {
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "meeting.document-resource.read") },
-      (client) => callJson(client, {
-        text: "SELECT hall_api.meeting_document_resource($1::uuid,$2::uuid) AS payload",
-        values: [resourceIdSchema.parse(id),resourceIdSchema.parse(resourceId)],
-        schema: z.object({ source: meetingDocumentSourceSchema, resource: postgresResourceDetailSchema,
-          editorAssets: z.array(z.object({ id: resourceIdSchema,title:z.string(),mediaType:z.string() }).strict()) }).strict().nullable(),
-      }),
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.meeting_document_resource($1::uuid,$2::uuid) AS payload",
+          values: [resourceIdSchema.parse(id), resourceIdSchema.parse(resourceId)],
+          schema: z
+            .object({
+              source: meetingDocumentSourceSchema,
+              resource: postgresResourceDetailSchema,
+              editorAssets: z.array(
+                z.object({ id: resourceIdSchema, title: z.string(), mediaType: z.string() }).strict(),
+              ),
+            })
+            .strict()
+            .nullable(),
+        }),
     );
   }
-  meetingDocumentContent(request: PostgresCouncilRequest, id: string, resourceId: string, assetId: string | null = null) {
+  meetingDocumentContent(
+    request: PostgresCouncilRequest,
+    id: string,
+    resourceId: string,
+    assetId: string | null = null,
+  ) {
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "meeting.document-content.read") },
       async (client) => {
         const result = await callJson(client, {
           text: "SELECT hall_api.meeting_document_content($1::uuid,$2::uuid,$3::uuid) AS payload",
-          values: [resourceIdSchema.parse(id),resourceIdSchema.parse(resourceId),resourceIdSchema.nullable().parse(assetId)],
-          schema: z.object({ contentBase64: z.string(),mediaType:z.string() }).strict().nullable(),
+          values: [
+            resourceIdSchema.parse(id),
+            resourceIdSchema.parse(resourceId),
+            resourceIdSchema.nullable().parse(assetId),
+          ],
+          schema: z.object({ contentBase64: z.string(), mediaType: z.string() }).strict().nullable(),
         });
-        return result ? { content: Buffer.from(result.contentBase64,"base64"),mediaType:result.mediaType } : null;
+        return result ? { content: Buffer.from(result.contentBase64, "base64"), mediaType: result.mediaType } : null;
       },
     );
   }
@@ -671,6 +696,37 @@ export class PostgresCouncil {
           targetId: business.id,
           outcome: "succeeded",
         });
+        return business;
+      },
+    );
+  }
+
+  deleteBusiness(request: PostgresCouncilRequest, id: string): Promise<PostgresCouncilBusinessWorkspace> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.delete") },
+      async (client) => {
+        const business = await callJson(client, {
+          text: "SELECT hall_api.delete_council_business($1::uuid) AS payload", values: [id],
+          schema: postgresCouncilBusinessWorkspaceSchema,
+        });
+        await recordAuditEvent(client, { targetType: "council-business", targetId: id, outcome: "succeeded" });
+        return business;
+      },
+    );
+  }
+
+  importBusinessBundle(request: PostgresCouncilRequest, input: {
+    manifest: Record<string, unknown>; files: Record<string, string>; path: string;
+  }): Promise<PostgresCouncilBusinessWorkspace> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.import-bundle") },
+      async (client) => {
+        const business = await callJson(client, {
+          text: "SELECT hall_api.import_council_business_bundle($1::jsonb,$2::jsonb,$3::text) AS payload",
+          values: [JSON.stringify(input.manifest), JSON.stringify(input.files), input.path],
+          schema: postgresCouncilBusinessWorkspaceSchema,
+        });
+        await recordAuditEvent(client, { targetType: "council-business", targetId: business.id, outcome: "succeeded" });
         return business;
       },
     );
@@ -1481,6 +1537,28 @@ export class PostgresCouncil {
           details: { previewId: id, result: ballot.result },
         });
         return ballot;
+      },
+    );
+  }
+
+  // TODO REMOVE_STALE: temporary transition, retaining the ordinary closure authority.
+  markStale(request: PostgresCouncilRequest, id: string) {
+    const target = resourceIdSchema.parse(id);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.mark-stale") },
+      async (client) => {
+        const result = await callJson(client, {
+          text: "SELECT hall_api.mark_council_meeting_stale($1::uuid) AS payload",
+          values: [target],
+          schema: z.object({ staleMeeting: postgresCouncilMeetingSchema, nextMeeting: postgresCouncilMeetingSchema }),
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-meeting",
+          targetId: target,
+          outcome: "succeeded",
+          details: { nextCouncilMeetingId: result.nextMeeting.id },
+        });
+        return result;
       },
     );
   }

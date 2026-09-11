@@ -475,6 +475,24 @@ export class PostgresResources {
     );
   }
 
+  findDocumentsByHashes(request: PostgresResourceRequest, hashes: readonly string[]) {
+    const parsed = z
+      .array(z.string().regex(/^[0-9a-f]{64}$/))
+      .min(1)
+      .max(100)
+      .parse(hashes);
+    const search = new URLSearchParams({ sha256: parsed.join(",") }).toString();
+    return this.readJson(
+      request,
+      "resource.findDocumentsByHashes",
+      {
+        text: `SELECT hall_api.present_resource_collection(hall_api.find_documents_by_hashes($1::text[]), $2::text, false, false) AS payload`,
+        values: [parsed, `/api/resources/documents/by-hashes?${search}`],
+      },
+      presentedResourceCollectionSchema(postgresResourceSummarySchema),
+    );
+  }
+
   searchResources(
     request: PostgresResourceRequest,
     criteria: PostgresResourceSearchCriteria,

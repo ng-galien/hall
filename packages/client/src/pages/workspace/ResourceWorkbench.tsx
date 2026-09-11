@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { RequestErrorBanner } from "../../components/Ui";
 import { DeleteIcon } from "../../components/icons";
+import { RequestErrorBanner } from "../../components/Ui";
 import { ResourcePreviewWithSession } from "../../features/documents/ResourcePreview";
 import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
 import { ResourcePresentationBody } from "../../features/resources/ResourcePresentationBody";
@@ -67,6 +67,7 @@ export function ResourceWorkbench({
         relatedBusinesses={relatedBusinesses}
         canUpdate={session.capabilities.updateMetadata}
         actionError={session.actionError}
+        onDismissError={() => session.setActionError(null)}
         title={session.title}
         onTitleChange={renameResource}
         tags={session.tags}

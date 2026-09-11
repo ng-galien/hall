@@ -85,6 +85,8 @@ AS $function$
     'quorum', (SELECT cardinality(member_ids)/2+1 FROM hall.meeting_membership_record WHERE council_meeting=target.id ORDER BY observed_at DESC LIMIT 1),
     'startedAt', target.started_at,
     'closedAt', target.closed_at,
+    -- TODO REMOVE_STALE: temporary marker exposed without inventing a closure fact.
+    'stale', target.stale,
     'closureBlockers',hall.council_meeting_closure_blockers(target),
     'entryBlockers',hall.council_meeting_entry_blockers(target),
     'openingBlockers',hall.council_meeting_opening_blockers(target)
@@ -246,3 +248,23 @@ BEGIN
   RETURN hall_api.meeting_conduct(target_meeting);
 END;
 $function$;
+
+-- TODO REMOVE_STALE: temporary succession for incomplete historical records, no PV or votes.
+CREATE FUNCTION hall_api.mark_council_meeting_stale(target_meeting UUID)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path=pg_catalog,hall AS $$
+DECLARE target hall.council_meetings; successor hall.council_meetings;
+BEGIN
+  LOCK TABLE hall.council_meetings IN SHARE ROW EXCLUSIVE MODE;
+  SELECT * INTO target FROM hall.council_meetings WHERE id=target_meeting FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='HV901', MESSAGE='unknown council meeting'; END IF;
+  IF target.closed_at IS NOT NULL THEN RAISE EXCEPTION USING ERRCODE='HV114', MESSAGE='a closed council meeting is immutable'; END IF;
+  UPDATE hall.council_meetings SET stale=TRUE WHERE id=target.id RETURNING * INTO target;
+  SELECT * INTO successor FROM hall.council_meetings WHERE previous_council_meeting=target.id;
+  IF NOT FOUND THEN
+    INSERT INTO hall.council_meetings(id,number,previous_council_meeting)
+    VALUES(gen_random_uuid(),target.number+1,target.id) RETURNING * INTO successor;
+  END IF;
+  RETURN jsonb_build_object('staleMeeting',hall.council_meeting_projection(target),
+    'nextMeeting',hall.council_meeting_projection(successor));
+END $$;

@@ -19,7 +19,7 @@ const timestampSchema = z.iso.datetime({ offset: true });
 const dateSchema = z.iso.date();
 const entityIdSchema = z.string().uuid();
 const councilRoleSchema = z.enum(["mayor", "deputyMayor", "councillor"]);
-const committeeRoleSchema = z.enum(["chair", "viceChair", "member"]);
+const committeeRoleSchema = z.enum(["chair", "viceChair", "member", "rapporteur", "primary", "alternate"]);
 
 export const postgresCouncilTermSchema = z.object({
   id: entityIdSchema,

@@ -18,6 +18,7 @@ export function ResourceWorkbenchHeader({
   relatedBusinesses,
   canUpdate,
   actionError,
+  onDismissError,
   title,
   onTitleChange,
   tags,
@@ -31,6 +32,7 @@ export function ResourceWorkbenchHeader({
   relatedBusinesses: CouncilBusinessView[];
   canUpdate: boolean;
   actionError: ApiErrorCode | null;
+  onDismissError?(): void;
   title: string;
   onTitleChange(title: string): Promise<boolean>;
   tags: string[];
@@ -90,6 +92,7 @@ export function ResourceWorkbenchHeader({
         </>
       }
       actionError={actionError}
+      onDismissError={onDismissError}
       metadata={
         <div className="workbench-meta-row">
           <div className="workbench-meta">
