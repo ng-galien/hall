@@ -93,29 +93,6 @@ export function WorkspacePage() {
       ? { kind: "resource", id: searchParams.get("resource") as string }
       : null;
 
-  const select = (next: WorkspaceSelection, nextPath?: string) => {
-    const params = new URLSearchParams();
-    const targetPath = nextPath ?? path;
-    if (targetPath) params.set("path", targetPath);
-    if (next) {
-      matchDiscriminated(next, "kind", {
-        councilBusiness: (entry) => params.set("councilBusiness", entry.id),
-        resource: (entry) => params.set("resource", entry.id),
-      });
-    }
-    void (async () => {
-      if (
-        selection?.kind === "resource" &&
-        resourceSession.resource &&
-        useWorkspaceResourcesStore.getState().details[resourceSession.resource.id] &&
-        !(await resourceSession.flush())
-      ) {
-        return;
-      }
-      setSearchParams(params, { replace: true });
-    })();
-  };
-
   const pathBusinesses = useMemo(
     () => businesses.filter((business) => isUnderPath(business.folderPath, path)),
     [businesses, path],
@@ -141,7 +118,38 @@ export function WorkspacePage() {
   const resourceSession = useResourceSession({
     resourceId: selection?.kind === "resource" ? selection.id : null,
   });
+  const businessReportSession = useResourceSession({
+    resourceId: selectedBusiness?.reportResourceId ?? null,
+  });
   const presentedResource = resourceSession.resource;
+  const openedSession =
+    selection?.kind === "resource"
+      ? resourceSession
+      : selection?.kind === "councilBusiness"
+        ? businessReportSession
+        : null;
+
+  const select = (next: WorkspaceSelection, nextPath?: string) => {
+    const params = new URLSearchParams();
+    const targetPath = nextPath ?? path;
+    if (targetPath) params.set("path", targetPath);
+    if (next) {
+      matchDiscriminated(next, "kind", {
+        councilBusiness: (entry) => params.set("councilBusiness", entry.id),
+        resource: (entry) => params.set("resource", entry.id),
+      });
+    }
+    void (async () => {
+      if (
+        openedSession?.resource &&
+        useWorkspaceResourcesStore.getState().details[openedSession.resource.id] &&
+        !(await openedSession.flush())
+      ) {
+        return;
+      }
+      setSearchParams(params, { replace: true });
+    })();
+  };
 
   const createInFolder = async (
     kind: WorkspaceCreateKind,
@@ -469,14 +477,14 @@ export function WorkspacePage() {
                 originPath={selectedBusiness || selection?.kind === "resource" ? path : undefined}
                 onClose={selectedBusiness || selection?.kind === "resource" ? () => select(null) : undefined}
                 onSelect={select}
-                showSaveStatus={selection?.kind !== "resource"}
+                showSaveStatus={false}
                 statusControl={
-                  selection?.kind === "resource" && resourceSession.canConfigureAutosave ? (
+                  openedSession?.canConfigureAutosave ? (
                     <ResourceAutosaveToggle
-                      enabled={resourceSession.autosaveEnabled}
-                      status={resourceSession.saveStatus}
-                      disabled={resourceSession.submitting}
-                      onChange={resourceSession.updateAutosave}
+                      enabled={openedSession.autosaveEnabled}
+                      status={openedSession.saveStatus}
+                      disabled={openedSession.submitting}
+                      onChange={openedSession.updateAutosave}
                     />
                   ) : null
                 }
@@ -503,6 +511,7 @@ export function WorkspacePage() {
                     <CouncilBusinessWorkbench
                       key={selectedBusiness.id}
                       business={selectedBusiness}
+                      reportSession={businessReportSession}
                       onCreate={(kind, title) =>
                         createInFolder(kind, selectedBusiness.folderPath, title, selectedBusiness)
                       }

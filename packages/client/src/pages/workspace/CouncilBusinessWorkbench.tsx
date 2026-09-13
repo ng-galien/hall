@@ -11,14 +11,14 @@ import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
 import { CouncilBusinessSubjects } from "./CouncilBusinessSubjects";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { FolderIcon, EditIcon, LockIcon, PinIcon, PinnedIcon } from "../../components/icons";
+import { FolderIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { type DocumentaryLeafSummary } from "../../features/documents/DocumentaryResourceGlyph";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
-import { useResourceSession } from "../../features/resources/useResourceSession";
+import type { ResourceSession } from "../../features/resources/useResourceSession";
 import { ReferenceBusinessContext, useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -33,9 +33,11 @@ import { useWorkspacePrefsStore } from "./workspacePrefs";
 
 export function CouncilBusinessWorkbench({
   business,
+  reportSession,
   onCreate,
 }: {
   business: CouncilBusinessView;
+  reportSession: ResourceSession;
   onCreate(kind: WorkspaceCreateKind, title?: string): Promise<WorkspaceSelection>;
 }) {
   const mentionables = useReferenceMentionables(business.id);
@@ -54,7 +56,6 @@ export function CouncilBusinessWorkbench({
     (state) => state.representations[business.folderResourceId] ?? null,
   );
   const folderCapabilities = resourceCapabilities(folderRepresentation);
-  const reportSession = useResourceSession({ resourceId: business.reportResourceId });
   const businessCapabilities = useCouncilBusinessStore((state) => state.capabilitiesById[business.id]);
   const loadCouncilActivity = useWorkspaceCouncilActivityStore((state) => state.load);
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
@@ -139,17 +140,6 @@ export function CouncilBusinessWorkbench({
           editable ? { kind: "updated", value: business.updatedAt } : { kind: "created", value: business.createdAt }
         }
         onTitleChange={folderCapabilities.relocate ? renameBusiness : undefined}
-        hint={
-          reportSession.resource ? (
-            <span
-              data-testid="business-edit-hint"
-              className={`workbench-edit-hint${editable ? "" : " workbench-edit-hint-locked"}`}
-            >
-              {editable ? <EditIcon aria-hidden="true" /> : <LockIcon aria-hidden="true" />}
-              {t(editable ? "workspace.editableHint" : "workspace.lockedHint")}
-            </span>
-          ) : undefined
-        }
         actions={
           <>
             <Tooltip>

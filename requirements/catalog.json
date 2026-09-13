@@ -7265,6 +7265,15 @@
       "acceptanceCriteria": [
         "La page racine affiche uniquement l’explorateur documentaire existant, sans vue complémentaire des affaires du conseil.",
         "L’explorateur présente toute l’arborescence depuis la racine, dossiers compris, ainsi que les éléments directement classés à la racine.",
+        "Un clic sur un dossier déplie ou replie sa branche ; son action dédiée ouvre ce dossier comme dossier courant.",
+        "Un clic hors du titre d’une affaire, d’un document ou d’une note sélectionne seulement l’élément ; un clic sur son titre ouvre sa fiche sans déplier l’affaire.",
+        "Après la sélection d’une affaire, d’un document ou d’une note, le focus reste dans l’arbre afin que la navigation au clavier puisse continuer.",
+        "Depuis une affaire, un document ou une note, la flèche gauche replie son dossier parent et replace le focus sur ce dossier.",
+        "L’explorateur permet la multisélection standard : clic simple pour une sélection unique, Maj pour une plage, Ctrl ou ⌘ pour ajouter ou retirer un élément, et Maj avec les flèches pour étendre la sélection au clavier.",
+        "Le glisser-déposer d’un élément sélectionné déplace tous les éléments de la sélection vers le dossier cible.",
+        "Chaque ligne d’affaire, de document ou de note présente son nom et sa dernière modification, sans en-tête de colonnes ; l’action d’ouverture du dossier reste immédiatement à côté de son nom, sans date de dossier ; le type n’est pas répété sous forme textuelle.",
+        "Les icônes d’affaire, de document et de note sont sobres, légèrement agrandies et alignées, avec leur couleur sémantique mais sans fond de badge.",
+        "L’ouverture d’une affaire reprend la même structure d’en-tête et le même contrôle d’enregistrement automatique que l’ouverture d’une ressource ; seuls le rapport et les rubriques métier qui suivent diffèrent.",
         "L’entrée Espace de travail de la navigation et la racine Tous les dossiers utilisent l’icône commune des affaires.",
         "Un document peut être ouvert puis refermé en retrouvant la liste de la racine."
       ],
@@ -7278,7 +7287,7 @@
         {
           "key": "root-explorer",
           "origin": "product",
-          "statement": "Présenter à la racine le seul explorateur documentaire complet, dossiers compris, et identifier ses accès avec l’icône commune des affaires.",
+          "statement": "Présenter à la racine le seul explorateur documentaire complet, dossiers compris, et identifier ses accès avec l’icône commune des affaires. Les dossiers se déplient au clic et disposent d’une action d’ouverture à côté de leur nom, sans date affichée ; les affaires, documents et notes s’ouvrent au clic sur leur titre sans dépliage d’affaire et conservent le focus dans l’arbre après sélection. Depuis ces éléments, la flèche gauche replie leur dossier parent et replace le focus sur celui-ci. Leur date de dernière modification est présentée dans une colonne dédiée, sans en-tête, et leur type reste porté par une icône colorée, alignée et sans fond. La multisélection suit les gestes standard et son glisser-déposer déplace le groupe.",
           "sourceIds": []
         }
       ]

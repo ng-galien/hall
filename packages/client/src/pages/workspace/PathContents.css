@@ -1,0 +1,27 @@
+/* PathContents adds a date column to the shared ExplorerTree baseline. */
+.path-contents-explorer .workspace-explorer-folder-row,
+.path-contents-explorer .workspace-explorer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 10rem;
+}
+
+.path-contents-explorer .workspace-explorer-date {
+  justify-self: end;
+  color: var(--hall-color-text-subtle);
+  font-size: var(--hall-font-size-body);
+  white-space: nowrap;
+}
+
+.path-contents-explorer .workspace-explorer-primary > .workspace-glyph {
+  display: inline-grid;
+  width: var(--hall-size-tree-toggle);
+  height: var(--hall-size-tree-toggle);
+  place-items: center;
+  border-radius: 0;
+  background: transparent;
+}
+
+.path-contents-explorer .workspace-explorer-primary > .workspace-glyph svg {
+  width: var(--hall-font-size-icon-large);
+  height: var(--hall-font-size-icon-large);
+}

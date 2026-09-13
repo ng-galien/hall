@@ -71,7 +71,7 @@ function TreeNode({
             event.preventDefault();
             setDropping(false);
             const payload = decodeDragPayload(event.dataTransfer.getData(DRAG_TYPE));
-            if (payload) void moveToPath(payload, node.path);
+            if (payload) void Promise.all(payload.map((entry) => moveToPath(entry, node.path)));
           }}
         >
           {node.business ? <CouncilBusinessIcon /> : <FolderIcon />}

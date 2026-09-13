@@ -8,13 +8,31 @@ export const DRAG_TYPE = "application/x-mairie-item";
 
 export type DragPayload = WorkspaceItemReference;
 
-export function encodeDragPayload(payload: DragPayload): string {
-  return `${payload.kind}:${payload.id}`;
+export function encodeDragPayload(payloads: readonly DragPayload[]): string {
+  return JSON.stringify(payloads);
 }
 
-export function decodeDragPayload(raw: string): DragPayload | null {
-  const [kind, id] = raw.split(":");
-  if ((kind === "councilBusiness" || kind === "resource") && id) return { kind, id };
+export function decodeDragPayload(raw: string): DragPayload[] | null {
+  try {
+    const payloads: unknown = JSON.parse(raw);
+    if (!Array.isArray(payloads) || payloads.length === 0) return null;
+    if (
+      payloads.every(
+        (payload) =>
+          typeof payload === "object" &&
+          payload !== null &&
+          "kind" in payload &&
+          "id" in payload &&
+          (payload.kind === "councilBusiness" || payload.kind === "resource") &&
+          typeof payload.id === "string" &&
+          payload.id.length > 0,
+      )
+    ) {
+      return payloads as DragPayload[];
+    }
+  } catch {
+    return null;
+  }
   return null;
 }
 
