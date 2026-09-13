@@ -3,8 +3,9 @@
 La vue `/app/calendar` réunit les rendez-vous documentaires et les séances du
 conseil. Elle emploie FullCalendar Standard (MIT), en vues mois, semaine et jour.
 Les séances conservent leur modèle et leur fiche : le calendrier les affiche à
-leur date prévue et ne modifie pas leur cycle de préparation. Les séances sans
-date apparaissent sous la grille.
+leur date prévue et ouvre leur fiche dans une modale sans quitter le calendrier.
+Il ne modifie pas leur cycle de préparation. Les séances sans date apparaissent
+sous la grille et ouvrent la même modale.
 
 Un rendez-vous est une ressource `event` classée dans un dossier, avec un nom,
 un texte, un lieu, un intervalle et des participants. Les participants désignent
@@ -20,8 +21,8 @@ navigateur.
 
 La sélection d'une plage ouvre la création d'un rendez-vous. Le déplacement et
 le redimensionnement utilisent la mutation documentaire versionnée et reviennent
-à la position précédente en cas d'échec. Un clic ouvre la ressource dans l'espace
-de travail, où sa fiche suit l'autosauvegarde commune. Les capacités Siren
+à la position précédente en cas d'échec. Un clic ouvre la ressource dans une
+modale en préservant le calendrier, où sa fiche suit l'autosauvegarde commune. Les capacités Siren
 déterminent les écritures disponibles ; le MCP réutilise les mêmes commandes et
 schémas. Un rendez-vous n'est pas automatiquement inscrit à l'ordre du jour.
 

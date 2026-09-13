@@ -10,6 +10,24 @@ function compileOnlyRejectsMismatchedVariant() {
 
 void compileOnlyRejectsMismatchedVariant;
 
+type AddedVariant = { kind: "text"; text: string } | { kind: "count"; count: number };
+type AddedNestedVariant =
+  | { properties: { kind: "text" }; text: string }
+  | { properties: { kind: "count" }; count: number };
+
+function compileOnlyRejectsMissingVariants(value: AddedVariant, literal: "left" | "right", nested: AddedNestedVariant) {
+  // @ts-expect-error Adding count to the union requires a count handler.
+  matchDiscriminated(value, "kind", { text: (entry) => entry.text });
+  // @ts-expect-error Adding right to the union requires a right handler.
+  matchLiteral(literal, { left: () => 1 });
+  // @ts-expect-error Nested variants must also be exhaustive.
+  matchVariant(nested, "properties", "kind", { text: (entry) => entry.text });
+  // @ts-expect-error A runtime catalog must include every declared literal.
+  defineExhaustiveLiterals<"left" | "right">()(["left"] as const);
+}
+
+void compileOnlyRejectsMissingVariants;
+
 describe("closed union matchers", () => {
   it("selects the correlated handler for a discriminated union", () => {
     type Value = { kind: "text"; text: string } | { kind: "count"; count: number };
@@ -29,5 +47,14 @@ describe("closed union matchers", () => {
   it("keeps an exhaustive literal catalog unchanged at runtime", () => {
     const values = defineExhaustiveLiterals<"left" | "right">()(["left", "right"] as const);
     expect(values).toEqual(["left", "right"]);
+  });
+
+  it("selects the correlated handler for a nested union", () => {
+    const render = (value: AddedNestedVariant) =>
+      matchVariant(value, "properties", "kind", {
+        text: (entry) => entry.text,
+        count: (entry) => String(entry.count),
+      });
+    expect(render({ properties: { kind: "count" }, count: 3 })).toBe("3");
   });
 });

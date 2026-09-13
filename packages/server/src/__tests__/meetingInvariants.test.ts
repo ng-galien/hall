@@ -391,13 +391,13 @@ describe("council meeting invariants", () => {
 
   it("rejects a non-loopback listener without authentication and a TLS proxy", () => {
     expect(() =>
-      validateServerConfig({ host: "0.0.0.0", port: 3100, database: { kind: "sqlite", path: ":memory:" } }),
+      validateServerConfig({ host: "0.0.0.0", port: 3100, database: { kind: "postgres", url: "postgresql://unused.example/hall" } }),
     ).toThrow();
     expect(() =>
       validateServerConfig({
         host: "0.0.0.0",
         port: 3100,
-        database: { kind: "sqlite", path: ":memory:" },
+        database: { kind: "postgres", url: "postgresql://unused.example/hall" },
         behindTlsProxy: true,
         bootstrapToken: "jeton-initialisation-partage-2026",
       }),

@@ -1,4 +1,4 @@
--- Regression matrix for HALL-FR-WSP-220 and HALL-FR-WSP-230.
+-- Regression matrix for proposal ownership and its durable ballot seal.
 -- Public/secret results, first votes, empty ballots, attachments and atomic edits.
 \set ON_ERROR_STOP on
 BEGIN;
@@ -146,20 +146,28 @@ SET CONSTRAINTS ALL DEFERRED;
 -- Targeted pgTAP checks express requested guarantees; failures are audit findings, not hidden.
 SELECT no_plan();
 SELECT is(outcome,'ALLOWED','before vote: content remains editable') FROM findings WHERE stage='before vote' AND operation='edit text API';
+SELECT is(outcome,'HV823',stage||': meeting start freezes source content') FROM findings
+WHERE operation='edit text API' AND stage IN ('ballot created no votes','secret ballot created no totals');
 SELECT isnt(outcome,'ALLOWED','permanent linkage before vote: '||operation) FROM findings WHERE stage='before vote' AND operation IN ('move text outside business API','retarget mapping business','retarget mapping text','delete proposal text mapping','delete resource envelope');
 SELECT isnt(outcome,'ALLOWED',stage||': source content must be frozen') FROM findings WHERE stage LIKE '% completed' AND operation='edit text API';
 SELECT is(outcome,'HV809','actual guard: prepared subject business immutable') FROM findings WHERE stage='before vote' AND operation='reassign proposal business';
 SELECT is(outcome,'42501','actual ACL: direct application write denied') FROM findings WHERE stage='before vote' AND operation='direct write application role';
 SELECT is(outcome,'HV820','proposal text row deletion guard') FROM findings WHERE stage='before vote' AND operation='delete mapped text row FK';
-SELECT is(outcome,'0',stage||': no Siren mutation action after seal') FROM findings WHERE operation='Siren mutation actions' AND (stage LIKE '% completed' OR stage IN ('first public suffrage','first secret aggregate recorded'));
-SELECT ok(outcome::int>0,stage||': mutations advertised before voting') FROM findings WHERE operation='Siren mutation actions' AND stage IN ('before vote','ballot created no votes','secret ballot created no totals');
+SELECT is(outcome,'0',stage||': no Siren mutation action after meeting start') FROM findings WHERE operation='Siren mutation actions' AND (stage LIKE '% completed' OR stage IN ('ballot created no votes','secret ballot created no totals','first public suffrage','first secret aggregate recorded'));
+SELECT ok(outcome::int>0,stage||': mutations advertised before meeting start') FROM findings WHERE operation='Siren mutation actions' AND stage='before vote';
+SELECT is(outcome,'HV823',stage||': meeting start freezes editor assets: '||operation) FROM findings
+WHERE operation IN ('create editor asset API','update editor asset SQL','delete editor asset SQL') AND stage IN ('ballot created no votes','secret ballot created no totals');
 SELECT is(outcome,'HV821',stage||': editor assets frozen: '||operation) FROM findings WHERE operation IN ('create editor asset API','update editor asset SQL','delete editor asset SQL') AND (stage LIKE '% completed' OR stage IN ('first public suffrage','first secret aggregate recorded'));
 SELECT is(outcome,'HV822',stage||': seal deletion denied') FROM findings WHERE operation='delete seal SQL' AND (stage LIKE '% completed' OR stage IN ('first public suffrage','first secret aggregate recorded'));
 SELECT is(outcome,'HV501','normal vote deletion is prohibited') FROM findings WHERE operation='normal vote deletion';
 SELECT is(outcome,'0','maintenance fixture has removed all votes') FROM findings WHERE operation='votes remaining after controlled removal';
 SELECT is(outcome,'HV821','content still locked despite controlled vote removal') FROM findings WHERE operation='content after all votes removed';
 SELECT is(outcome,'HV821',stage||': tags and rename locked: '||operation) FROM findings WHERE operation IN ('insert tag SQL','update tag SQL','delete tag SQL','rename plus content API') AND (stage LIKE '% completed' OR stage IN ('first public suffrage','first secret aggregate recorded'));
-SELECT is(outcome,'ALLOWED',stage||': editable before seal: '||operation) FROM findings WHERE operation IN ('insert tag SQL','update tag SQL','delete tag SQL','rename plus content API') AND stage IN ('before vote','ballot created no votes','secret ballot created no totals');
+SELECT is(outcome,'HV823',stage||': meeting start freezes title and content: '||operation) FROM findings
+WHERE operation='rename plus content API' AND stage IN ('ballot created no votes','secret ballot created no totals');
+SELECT is(outcome,'ALLOWED',stage||': tags remain outside the title and content lock: '||operation) FROM findings
+WHERE operation IN ('insert tag SQL','update tag SQL','delete tag SQL') AND stage IN ('ballot created no votes','secret ballot created no totals');
+SELECT is(outcome,'ALLOWED',stage||': editable before meeting start: '||operation) FROM findings WHERE operation IN ('insert tag SQL','update tag SQL','delete tag SQL','rename plus content API') AND stage='before vote';
 SELECT is(outcome,'0',stage||': completion without any vote rows') FROM findings WHERE operation='confirmed without vote rows';
 SELECT is(outcome,'HV608','stale expected version rejects atomic edit') FROM findings WHERE operation='stale version name and content';
 SELECT is(outcome,'true','stale version changes neither name nor content') FROM findings WHERE operation='stale edit leaves resource unchanged';

@@ -135,9 +135,13 @@ SELECT set_eq(
     ('council_agenda_item.council_agenda_item_lock_subject -> lock_council_agenda_item_subject'),
     ('council_agenda_item.council_agenda_item_preserve_recusal_meeting -> enforce_recusal_occurrence_meeting'),
     ('council_agenda_item.council_agenda_item_reject_truncate -> enforce_council_agenda_item_lifecycle'),
+    ('council_agenda_item.council_agenda_item_capture_subject_text_locks -> capture_started_agenda_item_subject_text_locks'),
+    ('council_agenda_item.council_agenda_require_previous_minutes -> enforce_required_previous_minutes'),
     ('council_meetings.council_meeting_capture_opening -> snapshot_council_meeting_opening'),
+    ('council_meetings.council_meeting_capture_subject_text_locks -> capture_opened_meeting_subject_text_locks'),
     ('council_meetings.council_meetings_enforce_lifecycle -> enforce_council_meeting_lifecycle'),
     ('council_meetings.council_meetings_enforce_sequence -> enforce_council_meeting_sequence'),
+    ('council_meetings.council_meetings_require_previous_minutes -> enforce_required_previous_minutes'),
     ('council_meetings.council_meetings_reject_truncate -> enforce_council_meeting_lifecycle'),
     ('meeting_attendance.meeting_attendance_enforce_lifecycle -> enforce_meeting_attendance_lifecycle'),
     ('meeting_attendance.meeting_attendance_enforce_proxy_holder -> enforce_meeting_attendance_proxy_holder'),
@@ -153,7 +157,8 @@ SELECT set_eq(
 );
 
 -- HALL-TR-ERR-010 HALL-TR-ERR-020 HALL-TR-ERR-030
--- HALL-TR-TRC-010 HALL-TR-TRC-020
+-- @verifies-requirement HALL-TR-TRC-010
+-- @verifies-requirement HALL-TR-TRC-020
 SELECT pass('the traceability preflight matched every requirement and Hall SQLSTATE before pgTAP started');
 
 SELECT * FROM finish();

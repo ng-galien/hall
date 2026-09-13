@@ -112,6 +112,44 @@ describe("Siren entity class authority", () => {
     ).toEqual(["settings.update"]);
   });
 
+  // @verifies-requirement HALL-FR-WSP-290
+  it("groups council business actions by content, subjects, agenda and business", () => {
+    const actions = objectActions(request("/api/council-business/business-id"), "council-business", {
+      id: "business-id",
+    });
+    expect(actions.map(({ name, title }) => ({ name, title }))).toEqual([
+      { name: "resource.create", title: "Create a resource" },
+      {
+        name: "resource.import-spreadsheet",
+        title: "Create a spreadsheet resource by importing a file",
+      },
+      { name: "resource.create-document", title: "Create a document resource by uploading a file" },
+      { name: "council-business.associate-resource", title: "Attach an existing resource" },
+      { name: "council-business.dissociate-resource", title: "Detach a resource" },
+      { name: "council-business.reorder-resources", title: "Reorder attached resources" },
+      { name: "council-business.create-prepared-subject", title: "Create a prepared subject" },
+      {
+        name: "council-business.schedule-decision-proposal",
+        title: "Add a decision proposal to the agenda",
+      },
+      { name: "council-business.schedule-open-question", title: "Add an open question to the agenda" },
+      { name: "council-business.export-bundle", title: "Export the council business" },
+      { name: "council-business.delete", title: "Delete the council business" },
+    ]);
+    expect(actions.find(({ name }) => name === "council-business.create-prepared-subject")?.fields).toEqual([
+      {
+        name: "kind",
+        type: "text",
+        options: [
+          { value: "councilDecisionProposal", title: "Council decision proposal" },
+          { value: "openQuestion", title: "Open question" },
+        ],
+      },
+      { name: "name", type: "text" },
+      { name: "content", type: "text" },
+    ]);
+  });
+
   it("uses the object action policy for agenda items and ballots embedded in a meeting", () => {
     const currentRequest = request("/api/council-meetings/meeting-slug");
     const agendaItem = {
@@ -153,17 +191,23 @@ describe("Siren entity class authority", () => {
     expect(embeddedBallotActions).toEqual(objectActions(currentRequest, "ballot", { ...aggregate, ballot }));
   });
 
-  it("offers meeting closure only while a started meeting remains open", () => {
+  it("offers the available lifecycle actions while a started meeting remains open", () => {
     const startedMeeting = {
       id: "meeting-id",
       slug: "2026-09-01-001",
       scheduledAt: "2026-09-01T18:00:00.000Z",
       startedAt: "2026-09-01T18:05:00.000Z",
       closedAt: null,
+      stale: false,
       closureBlockers: [],
     };
 
     expect(objectActions(request("/api/council-meetings/2026-09-01-001"), "council-meeting", startedMeeting)).toEqual([
+      expect.objectContaining({
+        name: "meeting.mark-stale",
+        method: "POST",
+        href: "/api/council-meetings/2026-09-01-001/stale",
+      }),
       expect.objectContaining({
         name: "meeting.close",
         method: "POST",

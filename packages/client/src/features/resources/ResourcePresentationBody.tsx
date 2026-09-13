@@ -1,17 +1,17 @@
 import type { ResourceDetail, SirenEntity } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import type { Mentionable } from "../../components/editor/references";
-import { OpenIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { EventResourceEditor } from "../calendar/EventResourceEditor";
 import { DocumentEmbed } from "../documents/DocumentEmbed";
+import { RemoteResourceEmbed } from "../documents/RemoteResourceEmbed";
 import type { UploadedResourceImage } from "../documents/useResourceImageUpload";
 import { GeographicResourceMap } from "../geographic/GeographicResourceMap";
 import { LegalReferenceResolver } from "../legal/LegalReferenceResolver";
@@ -28,7 +28,9 @@ export type ResourcePresentationMode = "read" | "edit";
 
 export type ResourcePresentationCapabilities = ResourceCapabilities;
 
-/** The single type-specific resource body shared by the Workspace and the resource modal. */
+/** The single type-specific resource body shared by the Workspace and the resource modal.
+ * @implements-requirement HALL-FR-SRC-030
+ */
 export function ResourcePresentationBody({
   resource,
   representation,
@@ -65,7 +67,7 @@ export function ResourcePresentationBody({
   refreshConflict: boolean;
   onContentChange(content: string): void;
   onRemoteUrlChange(url: string): void;
-  onRemoteSubmit(): void;
+  onRemoteSubmit(): Promise<boolean>;
   onUploadImage?(file: File): Promise<UploadedResourceImage>;
   onResolvedLegalReference(resource: Extract<ResourceDetail, { kind: "legalReference" }>): void;
   onRefreshLegalReference(): void;
@@ -75,6 +77,7 @@ export function ResourcePresentationBody({
   showContentLabel?: boolean;
 }) {
   const { t } = useI18n();
+  const [editingRemoteId, setEditingRemoteId] = useState<string | null>(null);
   const editing = mode === "edit";
   const editingResource = editing && capabilities.updateContent;
 
@@ -102,20 +105,8 @@ export function ResourcePresentationBody({
       ),
     remote: (entry) => {
       const targetUrl = entry.target.kind === "url" ? entry.target.url : null;
-      if (!editingResource && targetUrl)
-        return (
-          <div className="remote-resource-embed" data-testid="resource-presentation-remote-read">
-            <div className="remote-resource-toolbar">
-              <span className="remote-resource-url" title={targetUrl}>
-                {targetUrl}
-              </span>
-              <a href={targetUrl} target="_blank" rel="noreferrer" className="remote-resource-open">
-                <OpenIcon aria-hidden="true" />
-                {t("workspace.openRemoteResource")}
-              </a>
-            </div>
-          </div>
-        );
+      if (targetUrl && (!editingResource || editingRemoteId !== entry.id))
+        return <RemoteResourceEmbed resource={entry} onEdit={editingResource ? () => setEditingRemoteId(entry.id) : undefined} />;
       if (!editingResource) return <p>{t("workspace.remoteSetupDescription")}</p>;
       return (
         <form
@@ -123,12 +114,12 @@ export function ResourcePresentationBody({
           data-testid="resource-presentation-remote-edit"
           onSubmit={(event) => {
             event.preventDefault();
-            if (remoteUrl.trim()) onRemoteSubmit();
+            if (remoteUrl.trim()) void onRemoteSubmit().then((saved) => { if (saved) setEditingRemoteId(null); });
           }}
         >
           <div>
-            <h2>{t("workspace.remoteSetupTitle")}</h2>
-            <p>{t("workspace.remoteSetupDescription")}</p>
+            <h2>{t(targetUrl ? "workspace.editRemoteUrl" : "workspace.remoteSetupTitle")}</h2>
+            {!targetUrl ? <p>{t("workspace.remoteSetupDescription")}</p> : null}
           </div>
           <Label htmlFor={`remote-resource-url-${entry.id}`}>{t("workspace.remoteUrl")}</Label>
           <div className="remote-resource-setup-field">
@@ -138,10 +129,13 @@ export function ResourcePresentationBody({
               type="url"
               value={remoteUrl}
               placeholder={t("workspace.remoteUrlPlaceholder")}
-              onChange={(event) => onRemoteUrlChange(event.currentTarget.value)}
+              onChange={(event) => {
+                setEditingRemoteId(entry.id);
+                onRemoteUrlChange(event.currentTarget.value);
+              }}
               required
             />
-            <Button type="submit" disabled={submitting || !remoteUrl.trim()}>
+            <Button data-testid="remote-resource-save" type="submit" disabled={submitting || !remoteUrl.trim()}>
               {t(submitting ? "common.saving" : "common.save")}
             </Button>
           </div>
@@ -159,6 +153,7 @@ export function ResourcePresentationBody({
       <EventResourceEditor
         key={entry.id}
         resource={entry}
+        representation={representation}
         canUpdate={editingResource}
         autosaveEnabled={autosaveEnabled}
         onError={onError}

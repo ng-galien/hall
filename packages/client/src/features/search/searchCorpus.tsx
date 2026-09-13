@@ -1,13 +1,11 @@
-import type { CouncilDecisionSummary } from "@hall/api-contract";
-import type { Contact } from "@hall/api-contract";
+import type { Contact, CouncilDecisionSummary } from "@hall/api-contract";
 import type { CouncilMember, ReferenceEntityKind } from "@hall/domain";
-import type { CouncilBusinessView } from "../../models/councilBusiness";
-import type { CouncilMeetingView } from "../../models/councilMeeting";
 import { useMemo } from "react";
-import { type FacetOptionSets, facetOptionsFrom } from "../../components/search/facetSuggestions";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
-import type { Searchable, SearchableMedia, SearchableState } from "../../lib/search";
+import type { Searchable } from "../../lib/search";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
+import type { CouncilMeetingView } from "../../models/councilMeeting";
 import { useContactsStore } from "../../stores/contactsStore";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
@@ -16,7 +14,6 @@ import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { formatMeetingLabel } from "../council-meetings/meetingPresentation";
 import { type DocumentaryLeafSummary, documentaryResourceTone } from "../documents/DocumentaryResourceGlyph";
-import { domainStatusKeys } from "../status/DomainStatusBadge";
 
 /* The searchable corpus per search scope: the workspace searches the documentary space
    (matters and resources), while the global palette and the editor search everything,
@@ -56,10 +53,14 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
   const resourceSummaries = useWorkspaceResourcesStore((state) => state.summaries);
   const resources = useMemo(
     () =>
-      Object.values(resourceSummaries).filter(
-        (resource): resource is DocumentaryLeafSummary => resource.kind !== "folder",
-      ),
-    [resourceSummaries],
+      [
+        ...new Map(
+          [...businesses.flatMap((business) => business.resources), ...Object.values(resourceSummaries)].map(
+            (resource) => [resource.id, resource],
+          ),
+        ).values(),
+      ].filter((resource): resource is DocumentaryLeafSummary => resource.kind !== "folder"),
+    [resourceSummaries, businesses],
   );
   const { meetings } = useCouncilMeetingsStore();
   const { councilDecisions } = useCouncilDecisionsStore();
@@ -78,6 +79,7 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
       })),
       ...resources.map((resource) => ({
         kind: "resource" as const,
+        resourceKind: resource.kind,
         id: resource.id,
         label: resource.name,
         extra: [...resource.tags, resource.kind === "document" ? resource.binary.mediaType : null],
@@ -122,18 +124,4 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
       })),
     ];
   }, [scope, businesses, resources, meetings, councilDecisions, members, contacts, t, formatDate]);
-}
-
-/** Facet options and counts derived once from the same searchable corpus. */
-export function useSearchFacetOptions<TKind extends SearchEntityType>(
-  hits: readonly Searchable<TKind>[],
-): FacetOptionSets<TKind> {
-  const { t } = useI18n();
-  return useMemo(() => {
-    const options = facetOptionsFrom(hits, (kind) => t(searchTypeLabelKeys[kind]), undefined, {
-      state: (state: SearchableState) => t(domainStatusKeys[state]),
-      media: (media: SearchableMedia) => (media === "image" ? t("workspace.type.image") : media),
-    });
-    return { ...options, types: options.types.filter((option) => option.count !== 0) };
-  }, [hits, t]);
 }

@@ -6,7 +6,7 @@ import {
   type SirenEntity,
 } from "@hall/api-contract";
 import { create } from "zustand";
-import { type CouncilBusinessView, councilBusinessView } from "../models/councilBusiness";
+import { type CouncilBusinessView, councilBusinessView, councilBusinessViews } from "../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import {
   associateCouncilBusinessResource,
@@ -157,7 +157,7 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
       const result = await listCouncilBusinesses();
       const resourceItems = await listCouncilBusinessResourceItems(result.data.map(({ id }) => id));
       set({
-        businesses: result.data.map((business) => councilBusinessView(business, resourceItems)),
+        businesses: councilBusinessViews(result.data, resourceItems),
         capabilitiesById: {},
         canImportBundle: Boolean(
           result.representation && findSirenAction(result.representation, "council-business.import-bundle"),

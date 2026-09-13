@@ -40,6 +40,7 @@ const fixture: MinutesDetail = {
         kind: "minutesApproval",
         report: "Rapport figé **important**.",
         proposal: null,
+        discussionSummary: "Notes prises pendant la séance.",
         startedAt: "2026-09-05T18:10:00Z",
         completedAt: "2026-09-05T18:20:00Z",
         adjournedAt: null,

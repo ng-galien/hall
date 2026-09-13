@@ -1,5 +1,5 @@
 export async function seedBusinesses({ get, post, createWorkspaceResource }) {
-  const seedFolderPath = "seed";
+  const seedFolderPath = "";
   console.log("- Affaires durables, projets et questions préparés");
   const councilBusinesses = [
     {
@@ -13,7 +13,7 @@ export async function seedBusinesses({ get, post, createWorkspaceResource }) {
     },
     {
       key: "property",
-      path: "seed/reserves",
+      path: "reserves",
       name: "Réserves et bâtiments",
       reportContent:
         "Affecter le grenier de Cornu au stockage des réserves. Étudier les abris avant de décider des travaux.",
@@ -42,7 +42,7 @@ export async function seedBusinesses({ get, post, createWorkspaceResource }) {
     },
     {
       key: "foodSupply",
-      path: "seed/ravitaillement",
+      path: "ravitaillement",
       name: "Ravitaillement",
       reportContent:
         "Le stock du grenier comprend 120 sacs de céréales. La proposition de répartition de 80 sacs aux abris et 40 sacs aux équipes reste à examiner ; les besoins de chaque groupe doivent être justifiés.",
@@ -70,7 +70,7 @@ export async function seedBusinesses({ get, post, createWorkspaceResource }) {
     },
     {
       key: "commerce",
-      path: "seed/relations",
+      path: "relations",
       name: "Relations avec les alliés",
       reportContent:
         "Préparer une motion de liaison avec les alliés face au siège de César. Le conseil examine les messages à transmettre et la coordination attendue.",
@@ -87,7 +87,7 @@ export async function seedBusinesses({ get, post, createWorkspaceResource }) {
     },
     {
       key: "lighting",
-      path: "seed/defense",
+      path: "defense",
       name: "Défense du plateau",
       reportContent:
         "La première ligne a fait l’objet d’un bilan. La seconde ligne doit protéger les accès aux abris et préserver le passage des convois. Besoin de 96 poutres, 60 hottes de pierre et 30 journées de transport, pour 282 quinaires d’argent séquanes.",
@@ -117,7 +117,7 @@ export async function seedBusinesses({ get, post, createWorkspaceResource }) {
     },
     {
       key: "associations",
-      path: "seed/soutien",
+      path: "soutien",
       name: "Équipes de soutien",
       reportContent:
         "Coordonner les équipes des abris, des convois et des réserves. Moyens proposés : 24 journées de travail, 16 journées de travail et 9 journées de travail, soit 49 journées de travail. Allocations proposées : 48, 32 et 18 quinaires d’argent séquanes, soit 98 quinaires.",
@@ -148,7 +148,7 @@ export async function seedBusinesses({ get, post, createWorkspaceResource }) {
     },
     {
       key: "school",
-      path: "seed/accueil",
+      path: "accueil",
       name: "Accueil des habitants",
       reportContent:
         "Organiser les abris pour 142 habitants. Examiner les réserves de capacité et maintenir un tableau des besoins.",
@@ -172,7 +172,7 @@ export async function seedBusinesses({ get, post, createWorkspaceResource }) {
     },
     {
       key: "roads",
-      path: "seed/acces",
+      path: "acces",
       name: "Accès et convois",
       reportContent:
         "Préparer le transport intérieur des vivres entre le grenier et les abris de Cornu. Le conseil doit examiner les créneaux des convois et les chemins à remettre en état.",
@@ -222,7 +222,7 @@ export async function seedBusinesses({ get, post, createWorkspaceResource }) {
     }
     await createWorkspaceResource({
       kind: "text",
-      path: "seed",
+      path: "",
       name: `Annexe - ${business.name}`,
       councilBusinessId: created.id,
       content: `## Éléments préparatoires\n\n${business.name}\n\n- Étude du dossier par les gardiens des réserves et les artisans.\n- Présentation des options et des observations des habitants.\n- Suivi des projets et questions de cette affaire au fil des séances.`,

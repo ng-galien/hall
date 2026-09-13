@@ -31,6 +31,7 @@ export const apiActionNames = [
   "resource.relocate",
   "resource.update-metadata",
   "resource.update-content",
+  "resource.generate-event-invitation",
   "resource.replace-document-content",
   "resource.import-spreadsheet",
   "resource.search-legal-references",

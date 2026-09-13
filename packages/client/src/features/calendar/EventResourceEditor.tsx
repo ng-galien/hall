@@ -1,39 +1,56 @@
-import { eventDocumentSchema, type ResourceDetail } from "@hall/api-contract";
+import { eventDocumentSchema, findSirenAction, type ResourceDetail, type SirenEntity } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
-import type { ApiErrorCode } from "../../services/apiClient";
+import { apiErrorCode, type ApiErrorCode } from "../../services/apiClient";
+import { downloadEventInvitation } from "../../services/resourcesApi";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { EventFields } from "./EventFields";
+import { eventDocumentUsesQuarterHours } from "./eventDates";
 
 type EventResource = Extract<ResourceDetail, { kind: "event" }>;
+// @implements-requirement HALL-FR-CAL-100
+// @implements-requirement HALL-FR-CAL-110
+// @implements-requirement HALL-FR-CAL-170
+// @implements-requirement HALL-FR-CAL-180
+// @implements-requirement HALL-FR-CAL-190
+// @implements-requirement HALL-FR-CAL-200
 export function EventResourceEditor({
   resource,
+  representation,
   canUpdate,
   autosaveEnabled,
   onError,
   onRegisterFlush,
 }: {
   resource: EventResource;
+  representation: SirenEntity | null;
   canUpdate: boolean;
   autosaveEnabled: boolean;
   onError(error: ApiErrorCode | null): void;
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
 }) {
   const { t } = useI18n();
+  const businesses = useCouncilBusinessStore((state) => state.businesses);
+  const associatedBusiness = businesses.find((business) => business.resources.some((entry) => entry.id === resource.id));
+  const [councilBusinessId, setCouncilBusinessId] = useState<string | null>(associatedBusiness?.id ?? null);
   const [draft, setDraft] = useState(resource.document);
   const latest = useRef(draft);
   const saved = useRef(JSON.stringify(resource.document));
   const version = useRef(resource.version);
   const pending = useRef<Promise<boolean> | null>(null);
+  const councilBusinessPending = useRef<Promise<boolean> | null>(null);
+  const [councilBusinessSaving, setCouncilBusinessSaving] = useState(false);
+  const [generatingInvitation, setGeneratingInvitation] = useState(false);
   const { status, setStatus } = useResourceSaveStatus(resource.id);
-  const valid = eventDocumentSchema.safeParse(draft).success;
+  const valid = eventDocumentSchema.safeParse(draft).success && eventDocumentUsesQuarterHours(draft);
   const save = useCallback((): Promise<boolean> => {
     if (pending.current) return pending.current;
     const run = async () => {
       while (JSON.stringify(latest.current) !== saved.current) {
-        if (!canUpdate || !eventDocumentSchema.safeParse(latest.current).success) return false;
+        if (!canUpdate || !eventDocumentSchema.safeParse(latest.current).success || !eventDocumentUsesQuarterHours(latest.current)) return false;
         const document = latest.current;
         setStatus("saving");
         const updated = await useWorkspaceResourcesStore
@@ -59,7 +76,10 @@ export function EventResourceEditor({
   const saveRef = useRef(save);
   saveRef.current = save;
   useEffect(() => {
-    onRegisterFlush?.(() => saveRef.current());
+    onRegisterFlush?.(async () => {
+      const associationSaved = await (councilBusinessPending.current ?? Promise.resolve(true));
+      return associationSaved && saveRef.current();
+    });
     return () => {
       onRegisterFlush?.(null);
       if (autosaveEnabled) void saveRef.current();
@@ -76,6 +96,33 @@ export function EventResourceEditor({
     <div className="event-resource-editor" data-testid="event-resource-editor">
       <EventFields
         value={draft}
+        councilBusinessId={councilBusinessId}
+        councilBusinessPending={councilBusinessSaving}
+        onCouncilBusinessChange={async (nextId) => {
+          if (councilBusinessPending.current) return;
+          const previousId = councilBusinessId;
+          if (nextId === previousId) return;
+          setCouncilBusinessId(nextId);
+          setCouncilBusinessSaving(true);
+          const run = async () => {
+            const store = useCouncilBusinessStore.getState();
+            const associated = nextId ? await store.associateResource(nextId, resource.id) : true;
+            const dissociated = associated && previousId ? await store.dissociateResource(previousId, resource.id) : associated;
+            if (associated && dissociated) {
+              onError(null);
+              return true;
+            }
+            if (associated && !dissociated && nextId) await store.dissociateResource(nextId, resource.id);
+            setCouncilBusinessId(previousId);
+            onError(store.error);
+            return false;
+          };
+          councilBusinessPending.current = run().finally(() => {
+            councilBusinessPending.current = null;
+            setCouncilBusinessSaving(false);
+          });
+          await councilBusinessPending.current;
+        }}
         readOnly={!canUpdate}
         onChange={(next) => {
           latest.current = next;
@@ -83,6 +130,46 @@ export function EventResourceEditor({
         }}
       />
       {!valid && <p role="alert">{t("calendar.invalidDates")}</p>}
+      {representation && findSirenAction(representation, "resource.generate-event-invitation") ? (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            data-testid="event-invitation-request"
+            disabled={!valid || generatingInvitation || councilBusinessSaving || status === "saving"}
+            onClick={async () => {
+              setGeneratingInvitation(true);
+              try {
+                if (await save()) await downloadEventInvitation(resource, representation, "request");
+              } catch (error) {
+                onError(apiErrorCode(error));
+              } finally {
+                setGeneratingInvitation(false);
+              }
+            }}
+          >
+            {t("calendar.invitationRequest")}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            data-testid="event-invitation-cancel"
+            disabled={!valid || generatingInvitation || councilBusinessSaving || status === "saving"}
+            onClick={async () => {
+              setGeneratingInvitation(true);
+              try {
+                if (await save()) await downloadEventInvitation(resource, representation, "cancel");
+              } catch (error) {
+                onError(apiErrorCode(error));
+              } finally {
+                setGeneratingInvitation(false);
+              }
+            }}
+          >
+            {t("calendar.invitationCancel")}
+          </Button>
+        </div>
+      ) : null}
       {(status === "error" || !autosaveEnabled) && canUpdate && (
         <Button data-testid="event-retry-save" disabled={!valid || status === "saving"} onClick={() => void save()}>
           {t("common.save")}

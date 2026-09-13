@@ -32,7 +32,7 @@ const actionsByPermissions = [
   [["members.manage"], ["member.create", "member.update"]],
   [
     ["workspace.read"],
-    ["council-business.export-bundle", "resource.search-legal-references", "template.preview", "template.preview-pdf", "template.generate"],
+    ["council-business.export-bundle", "resource.search-legal-references", "resource.generate-event-invitation", "template.preview", "template.preview-pdf", "template.generate"],
   ],
   [
     ["workspace.write"],
@@ -444,6 +444,7 @@ const auditCases = [
   ["PATCH", "/api/resources/resource-1/location", undefined, "resource.relocate", "resource", "resource-1"],
   ["PATCH", "/api/resources/resource-1/metadata", undefined, "resource.update-metadata", "resource", "resource-1"],
   ["PUT", "/api/resources/resource-1/content", undefined, "resource.update-content", "resource", "resource-1"],
+  ["POST", "/api/resources/resource-1/event-invitation", { method: "request" }, "resource.generate-event-invitation", "resource", "resource-1"],
   ["PUT", "/api/resources/resource-1/binary", undefined, "resource.replace-document-content", "resource", "resource-1"],
   ["POST", "/api/resources/spreadsheets/import", undefined, "resource.import-spreadsheet", "resource", undefined],
   [

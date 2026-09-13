@@ -18,7 +18,7 @@ const resourceKindEditorPolicies: Record<ResourceKind, StaticResourceEditorPolic
   text: { fillsExtendedView: false, supportsAutosave: true },
   spreadsheet: { fillsExtendedView: true, supportsAutosave: true },
   document: { fillsExtendedView: true, supportsAutosave: false },
-  remote: { fillsExtendedView: false, supportsAutosave: true },
+  remote: { fillsExtendedView: true, supportsAutosave: true },
   geographic: { fillsExtendedView: true, supportsAutosave: true },
   event: { fillsExtendedView: false, supportsAutosave: true },
   legalReference: { fillsExtendedView: false, supportsAutosave: false },

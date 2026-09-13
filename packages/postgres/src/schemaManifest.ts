@@ -69,6 +69,7 @@ export const schemaManifestPaths = [
   "sql/workspace/021-council-business-bundles.sql",
   "sql/workspace/025-decision-proposal-workspace.sql",
   "sql/workspace/026-proposal-text-protection.sql",
+  "sql/workspace/027-agenda-subject-text-editability.sql",
   "sql/workspace/030-council-agenda-api.sql",
   "sql/workspace/035-meeting-documentary-snapshots.sql",
   "sql/workspace/040-meeting-notices.sql",

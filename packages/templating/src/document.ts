@@ -13,15 +13,16 @@ import type { Diagnostic } from "./diagnostics.js";
 import {
   type DirectiveKind,
   directiveSpec,
+  isCouncilDecisionSection,
   isFieldName,
   isImageAlignment,
   isImageDirective,
   isImageWidth,
   isMinutesSection,
-  isCouncilDecisionSection,
   isResourceEmbedDirective,
   isResourcePresentationKind,
 } from "./grammar.js";
+import { remarkUnderline } from "./underline.js";
 
 const processor = unified().use(remarkParse).use(remarkGfm).use(remarkDirective).use(remarkStringify);
 
@@ -136,6 +137,7 @@ const safeHtmlSchema: SanitizeSchema = {
     "th",
     "thead",
     "tr",
+    "u",
     "ul",
   ],
   attributes: {
@@ -159,6 +161,7 @@ const safeHtmlSchema: SanitizeSchema = {
   },
 };
 const htmlProcessor = unified()
+  .use(remarkUnderline)
   .use(remarkRehype, { allowDangerousHtml: true })
   .use(rehypeRaw)
   .use(rehypeTablePresentationPolicy)

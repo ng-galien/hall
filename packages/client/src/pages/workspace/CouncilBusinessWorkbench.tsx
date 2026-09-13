@@ -265,6 +265,8 @@ export function CouncilBusinessWorkbench({
                       compact
                       open={pickingResource}
                       onOpenChange={setPickingResource}
+                      excludedIds={[...associatedIds]}
+                      context={business.folderPath}
                       suggestions={suggestions}
                       others={otherCandidates}
                       disabled={submitting}

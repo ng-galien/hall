@@ -5,6 +5,7 @@ import {
   isReferenceKind,
   isResourceEmbedDirective,
   isResourcePresentationKind,
+  remarkUnderline,
 } from "@hall/templating";
 import type { Root as HtmlRoot } from "hast";
 import type { Root } from "mdast";
@@ -185,7 +186,11 @@ export function MarkdownView({
   return (
     <div className={className ? `markdown-content ${className}` : "markdown-content"}>
       <ReactMarkdown
-        remarkPlugins={allowEmbeddedImages ? [remarkGfm] : [remarkGfm, remarkDirective, remarkReferences]}
+        remarkPlugins={
+          allowEmbeddedImages
+            ? [remarkGfm, remarkUnderline]
+            : [remarkGfm, remarkDirective, remarkReferences, remarkUnderline]
+        }
         rehypePlugins={allowEmbeddedImages ? [rehypeRaw, rehypeConvertedDocument] : [rehypeRaw]}
         allowedElements={allowEmbeddedImages ? [...allowedElements, "h1", "h4", "h5", "h6"] : allowedElements}
         urlTransform={

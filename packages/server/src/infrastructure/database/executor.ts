@@ -28,7 +28,7 @@ export function compileQuery(name: SqlQueryName, dialect: SqlDialect, parameters
   const text = queryText(name, dialect).replace(/(?<!:):([A-Za-z_][A-Za-z0-9_]*)/g, (_match, key: string) => {
     if (!(key in parameters)) throw new Error(`Missing SQL parameter :${key} for query ${name}`);
     values.push(parameters[key] ?? null);
-    return dialect === "postgres" ? `$${values.length}` : "?";
+    return `$${values.length}`;
   });
   return { text, values };
 }

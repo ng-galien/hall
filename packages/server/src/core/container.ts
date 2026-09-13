@@ -77,6 +77,7 @@ import { createMinutesService, type MinutesService } from "../services/minutesSe
 import { createReferenceEntityResolver, type ReferenceEntityResolver } from "../services/referenceEntityResolver.js";
 import { createTemplateRenderingService, type TemplateRenderingService } from "../services/templateRendering.js";
 import type { ServerConfig } from "./config.js";
+import { createEventInvitationService, type EventInvitationService } from "../services/eventInvitationService.js";
 
 export interface ServerCompositionOptions {
   postgresPool?: Pool;
@@ -121,6 +122,7 @@ export interface Cradle {
   councilBusinessBundleExportService: ReturnType<typeof createCouncilBusinessBundleExportService>;
   councilBusinessBundleImportService: ReturnType<typeof createCouncilBusinessBundleImportService>;
   documentaryResourceService: DocumentaryResourceService;
+  eventInvitationService: EventInvitationService;
   referenceEntityResolver: ReferenceEntityResolver;
   authService: AuthService;
   hallSettingsService: HallSettingsService;
@@ -168,6 +170,7 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     councilBusinessBundleImportService: asFunction(createCouncilBusinessBundleImportService).singleton(),
     directoryService: asFunction(createDirectoryService).singleton(),
     documentaryResourceService: asFunction(createDocumentaryResourceService).singleton(),
+    eventInvitationService: asFunction(createEventInvitationService).singleton(),
     referenceEntityResolver: asFunction(createReferenceEntityResolver).singleton(),
     authService: asFunction(createAuthService).singleton(),
     hallSettingsService: asFunction(createHallSettingsService).singleton(),
@@ -181,20 +184,20 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
   if (config.database.kind === "postgres") {
     container.register({
       postgresCouncil: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
-        if (!postgresClient) throw new Error("Council PostgreSQL storage requires DATABASE_KIND=postgres");
+        if (!postgresClient) throw new Error("Council PostgreSQL storage is required");
         return postgresClient.council;
       }).singleton(),
       postgresDirectory: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
-        if (!postgresClient) throw new Error("Directory PostgreSQL storage requires DATABASE_KIND=postgres");
+        if (!postgresClient) throw new Error("Directory PostgreSQL storage is required");
         return postgresClient.directory;
       }).singleton(),
       postgresResources: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
-        if (!postgresClient) throw new Error("Documentary PostgreSQL storage requires DATABASE_KIND=postgres");
+        if (!postgresClient) throw new Error("Documentary PostgreSQL storage is required");
         return postgresClient.resources;
       }).singleton(),
       resourcesClient: asFunction(createPostgresResourcesClient).singleton(),
       postgresMinutes: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
-        if (!postgresClient) throw new Error("Minutes PostgreSQL storage requires DATABASE_KIND=postgres");
+        if (!postgresClient) throw new Error("Minutes PostgreSQL storage is required");
         return postgresClient.minutes;
       }).singleton(),
       minutesClient: asFunction(createPostgresMinutesClient).singleton(),

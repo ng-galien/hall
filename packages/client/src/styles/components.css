@@ -533,6 +533,29 @@
   .admin-save-saving > span { animation: connection-status-pulse var(--hall-motion-status) var(--hall-motion-curve-standard) infinite; }
   .admin-save-saved > span { background: var(--hall-color-success); }
   .admin-save-error > span { background: var(--hall-color-danger); }
+  .save-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--hall-space-1-5);
+    color: var(--hall-color-text-muted);
+    font-size: var(--hall-font-size-caption);
+    white-space: nowrap;
+  }
+  .save-status-indicator-icon { display: inline-flex; font-size: var(--hall-font-size-icon-small); }
+  .save-status-indicator[data-save-status="dirty"],
+  .save-status-indicator[data-save-status="saving"] { color: var(--hall-color-brand); }
+  .save-status-indicator[data-save-status="saved"],
+  .save-status-indicator[data-save-status="idle"] { color: var(--hall-color-success); }
+  .save-status-indicator[data-save-status="error"] { color: var(--hall-color-danger); }
+  .save-status-indicator[data-save-status="saving"] .save-status-indicator-icon {
+    animation: save-status-indicator-saving var(--hall-motion-spinner) var(--hall-motion-curve-decelerate) infinite;
+  }
+  @keyframes save-status-indicator-saving {
+    50% { opacity: var(--hall-opacity-pulse); transform: translateY(calc(var(--hall-motion-distance) / -2)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .save-status-indicator-icon { animation: none !important; }
+  }
   .admin-danger-zone {
     padding: var(--hall-space-4) var(--hall-space-5);
     background: var(--hall-color-danger-surface);

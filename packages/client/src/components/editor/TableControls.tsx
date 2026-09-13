@@ -248,6 +248,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
           <button
             type="button"
             data-testid="editor-table-column-menu"
+            data-editor-table-control
             className="table-handle table-handle-column"
             style={{ left: target.columnCenter, top: target.tableTop }}
             aria-label={t("editor.table.columnMenu")}
@@ -256,7 +257,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
             <MoreIcon />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
+        <DropdownMenuContent align="start" className="table-controls-menu">
           <DropdownMenuItem onSelect={run(() => editor.chain().focus().addColumnBefore().run())}>
             <ColumnBeforeIcon /> {t("editor.table.insertColumnLeft")}
           </DropdownMenuItem>
@@ -295,6 +296,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
         <DropdownMenuTrigger asChild>
           <button
             type="button"
+            data-editor-table-control
             className="table-handle table-handle-row"
             style={{ left: target.tableLeft, top: target.rowCenter }}
             aria-label={t("editor.table.rowMenu")}
@@ -303,7 +305,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
             <MoreVerticalIcon />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
+        <DropdownMenuContent align="start" className="table-controls-menu">
           <DropdownMenuItem onSelect={run(() => editor.chain().focus().addRowBefore().run())}>
             <RowBeforeIcon /> {t("editor.table.insertRowAbove")}
           </DropdownMenuItem>
@@ -324,6 +326,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
         <button
           type="button"
           data-testid={target.canMerge ? "editor-table-merge" : "editor-table-split"}
+          data-editor-table-control
           className="table-action-pill"
           style={{ left: target.selectionCenterX, top: target.selectionBottom }}
           onMouseDown={(event) => event.preventDefault()}
@@ -346,6 +349,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
       <button
         type="button"
         data-testid="editor-table-add-column"
+        data-editor-table-control
         className="table-extend"
         style={{ left: target.tableRight, top: (target.tableTop + target.tableBottom) / 2 }}
         aria-label={t("editor.table.addColumn")}
@@ -358,6 +362,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
       <button
         type="button"
         data-testid="editor-table-add-row"
+        data-editor-table-control
         className="table-extend"
         style={{ left: (target.tableLeft + target.tableRight) / 2, top: target.tableBottom }}
         aria-label={t("editor.table.addRow")}

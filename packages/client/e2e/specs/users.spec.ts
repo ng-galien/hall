@@ -25,7 +25,7 @@ test("creates a linked user, assigns cumulative roles and disables the account",
   await page.getByTestId("user-email").fill(`approvisionnements-${Date.now()}@alesia.example`);
   await page.getByTestId("user-password").fill("Hall-test-2026!");
   await page.getByTestId("user-contact-select").click();
-  await page.getByTestId(`user-contact-option-${contact.id}`).click();
+  await page.getByTestId("user-contact-select-search-result").and(page.locator(`[data-reference-id="${contact.id}"]`)).click();
   await expect(page.getByTestId("user-create-submit")).toBeDisabled();
   await page.getByTestId("user-role-reader").check();
   await page.getByTestId("user-create-submit").click();
@@ -115,7 +115,7 @@ test("preserves a rejected administrator role change and duplicate account form"
   await page.getByTestId("user-role-reader").check();
   await page.getByTestId("user-email").fill(`duplicate-contact-${Date.now()}@alesia.example`);
   await page.getByTestId("user-contact-select").click();
-  await page.getByTestId(`user-contact-option-${contactId}`).click();
+  await page.getByTestId("user-contact-select-search-result").and(page.locator(`[data-reference-id="${contactId}"]`)).click();
   const contactConflict = page.waitForResponse(
     (result) => result.url().endsWith("/api/users") && result.request().method() === "POST",
   );

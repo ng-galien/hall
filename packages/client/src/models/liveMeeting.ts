@@ -178,7 +178,6 @@ export function presentLiveMeeting(
               }
             : {}),
         },
-        // Closing snapshots retain the original position; unfinished items are carried forward.
         status:
           workspace.meeting.closedAt && !item.completedAt && !item.adjournedAt
             ? "carriedForward"

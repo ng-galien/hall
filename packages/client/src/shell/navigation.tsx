@@ -3,12 +3,12 @@ import {
   CalendarIcon,
   CommitteeIcon,
   ContactIcon,
+  CouncilBusinessIcon,
   DecisionsIcon,
   GavelIcon,
   HomeIcon,
   MembersIcon,
-  TextDocumentIcon,
-  WorkspaceIcon,
+  MinutesIcon,
 } from "../components/icons";
 import type { TranslationKey } from "../i18n/en";
 
@@ -34,7 +34,7 @@ export const navigationSections: NavigationSection[] = [
     labelKey: "navigation.council",
     items: [
       { to: "/meetings", labelKey: "navigation.meetings", icon: <GavelIcon /> },
-      { to: "/minutes", labelKey: "navigation.minutes", icon: <TextDocumentIcon /> },
+      { to: "/minutes", labelKey: "navigation.minutes", icon: <MinutesIcon /> },
       {
         to: "/council-decisions",
         labelKey: "navigation.decisions",
@@ -44,7 +44,12 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     items: [
-      { to: "/workspace", labelKey: "navigation.workspace", icon: <WorkspaceIcon />, workspaceTree: true },
+      {
+        to: "/workspace",
+        labelKey: "navigation.workspace",
+        icon: <CouncilBusinessIcon data-testid="workspace-navigation-business-icon" />,
+        workspaceTree: true,
+      },
       { to: "/calendar", labelKey: "navigation.calendar", icon: <CalendarIcon /> },
     ],
   },

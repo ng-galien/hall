@@ -189,7 +189,7 @@ async function declareRecusal(
 ) {
   await expect(page.getByTestId("recusal-submit")).toBeDisabled();
   await page.getByTestId("recusal-member").click();
-  await page.getByTestId(`recusal-member-${memberId}`).click();
+  await page.getByTestId("recusal-member-search-result").and(page.locator(`[data-reference-id="${memberId}"]`)).click();
   await page.getByTestId(`recusal-basis-${basis}`).check();
   await page.screenshot({ path: test.info().outputPath(`recusal-${basis}.png`), fullPage: true });
   await page.getByTestId("recusal-submit").click();
@@ -328,7 +328,7 @@ test("mobile French recusals preserve explicit qualification and show a real ref
   await page.getByTestId("live-recusal-info").click();
   await page.getByTestId("agenda-item-recusal-open").click();
   await page.getByTestId("recusal-member").click();
-  await page.getByTestId(`recusal-member-${members[4]!.id}`).click();
+  await page.getByTestId("recusal-member-search-result").and(page.locator(`[data-reference-id="${members[4]!.id}"]`)).click();
   await page.getByTestId("recusal-basis-personalInterest").check();
   expect(
     (

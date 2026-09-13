@@ -100,6 +100,11 @@ BEGIN
     RETURN actions;
   END IF;
 
+  -- @requirement-reference HALL-FR-WSP-280 MEETING_START_LOCKS_AGENDA_SUBJECT_TEXTS:
+  IF NOT hall.agenda_subject_text_is_editable((resource ->> 'id')::UUID) THEN
+    RETURN actions;
+  END IF;
+
   SELECT EXISTS (SELECT FROM hall.council_decision_proposal_workspace
     WHERE text_resource = (resource ->> 'id')::UUID) INTO proposal_text;
   IF proposal_text AND hall.proposal_text_is_sealed((resource ->> 'id')::UUID) THEN
@@ -123,6 +128,16 @@ BEGIN
     actions := actions || jsonb_build_array(
       hall.siren_action('resource.update-content', 'PUT', '/api/resources/' || reference || '/content')
     );
+    IF resource_kind = 'event' THEN
+      actions := actions || jsonb_build_array(
+        hall.siren_action(
+          'resource.generate-event-invitation',
+          'POST',
+          '/api/resources/' || reference || '/event-invitation',
+          jsonb_build_array(jsonb_build_object('name', 'method', 'type', 'text'))
+        )
+      );
+    END IF;
   ELSIF resource_kind = 'document' THEN
     actions := actions || jsonb_build_array(
       hall.siren_action(

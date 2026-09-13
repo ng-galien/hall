@@ -10,3 +10,17 @@ severity = "error"
 rationale = "Low-level UI primitives implement generic interaction patterns. Hall domain types, application stores, HTTP services, pages, hooks, and business presentation adapters are supplied from the outside so these components do not become a second home for council policy. Editor integration is an application concern and is not classified as a generic primitive."
 expr = "$technical_ui_source AND $dependency_import_ref => NOT ($domain_target OR $application_adapter_target)"
 message = "Technical client UI must receive domain behavior through props or providers instead of importing application adapters."
+
+[[shape.callable.where]]
+id = "search-projection-calls-presentation-authority"
+severity = "error"
+rationale = "The resource search projection supplies insertion metadata. It must delegate the presentation decision to the existing templating authority; a local policy previously made the same PDF appear differently depending on the insertion entry point."
+expr = "name = 'resourceMentionable' => any(out_refs, kind = 'calls' AND target.segment('external_pkg') = '@hall/templating' AND target.name = 'preferredResourcePresentation')"
+message = "resourceMentionable must call @hall/templating preferredResourcePresentation instead of choosing a presentation locally."
+
+[[refs.where]]
+id = "search-projection-consumes-presentation-decision-only"
+severity = "error"
+rationale = "The search projection consumes the preferred presentation decision, not the presentation vocabulary or policy implementation. Importing those types previously enabled a second presentation policy in this adapter."
+expr = "source ~ '**/module:useReferenceMentionables/**' AND $dependency_import_ref AND $templating_target => target.name = 'preferredResourcePresentation'"
+message = "The search projection may import only preferredResourcePresentation from templating; keep presentation policy in its existing owner."

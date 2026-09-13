@@ -58,7 +58,7 @@ L'exclusion territoriale ne supprime aucun de ces deux traitements.
 
 La réalisation et sa traçabilité sont détaillées dans l'[analyse du
 quorum](council-quorum-requirements.md). Le rattachement convenu dans le
-[registre](../packages/postgres/requirements.json) est
+[catalogue](../requirements/catalog.json) est
 `HALL-FR-MTG-270/common-law-scope`, séparément des clauses qui établissent le
 contenu légal du calcul. La clause est présente dans le registre relu.
 
@@ -152,13 +152,24 @@ contrôles effectivement présents des garanties qui restent humaines.
 
 ### Format extractible retenu
 
-Le [registre versionné](../packages/postgres/requirements.json) porte
-`schemaVersion: 1`, un objet `sources` indexé par clé stable et un objet
-`requirements` indexé par ID. L'annotation dans l'autorité reste le point
-d'ancrage ; le registre ne remplace pas la découverte des annotations.
+Le [catalogue versionné](../requirements/catalog.json) porte
+`schemaVersion: 2`, une taxonomie de thèmes, un objet `sources` indexé par
+clé stable et un objet `requirements` indexé par ID. Il constitue l'unique
+source des formulations et critères d'acceptation. Le code, les tests et le
+backlog ne recopient pas ces comportements : ils référencent leurs IDs.
 
-Chaque exigence possède `name`, `nature: functional | technical` et une liste
-non vide `clauses`. Chaque clause possède :
+Chaque exigence possède la même structure descriptive :
+
+- `name`, nom technique stable en anglais ;
+- `nature: functional | technical` ;
+- `statement`, formulation synthétique du comportement attendu ;
+- `acceptanceCriteria`, liste non vide de résultats observables ;
+- `lifecycle`, avec un état explicite et la date depuis laquelle il s'applique ;
+- `clauses`, liste non vide des propositions produit ou réglementaires qui
+  fondent l'exigence.
+
+Cette structure est obligatoire pour tout le catalogue, sans exception pour
+les exigences historiques. Chaque clause possède :
 
 - `key`, identifiant stable unique dans l'exigence ;
 - `origin: regulatory | product`, et `statement`, proposition explicitement
@@ -206,6 +217,16 @@ diagnostic de référence manquante doit rester visible ; `unproven` ne dispense
 pas du contrôle de présence des références.
 
 Le vérificateur expose une commande globale `npm run check:requirements`.
+Il calcule trois preuves distinctes : `@implements-requirement` dans le code,
+`@verifies-requirement` dans les tests et `@tracks-requirement` dans le
+backlog. Les marqueurs historiques nommés restent reconnus pendant leur
+migration, mais aucune nouvelle formulation fonctionnelle ne doit y être
+recopiée.
+
+La [mini-interface du catalogue](../requirements/README.md) est lancée avec
+`npm run requirements:ui`. Elle lit directement le catalogue, présente les
+preuves découvertes et enregistre les reclassements comme overrides explicites
+de la taxonomie. Elle ne maintient aucun second fichier d'exigences.
 Le contrôle council appelle ce contrôle global avant ses propres
 comparaisons pgTAP/SQLSTATE. La validation de frontière, les variantes, les
 obligations de champs et les diagnostics relèvent d'une autorité unique et de
@@ -240,13 +261,14 @@ décrite ci-dessous ajoute cette couverture structurelle.
 
 ### État de l'implémentation relue
 
-Le [vérificateur global](../scripts/check-requirements.mjs) et le registre sont
+Le [vérificateur global](../scripts/check-requirements.mjs) et le catalogue sont
 présents. Le script council l'appelle avant ses propres comparaisons. La
 découverte parcourt récursivement `packages`, pour les fichiers SQL,
 TypeScript/TSX et JavaScript/MJS, en excluant dépendances, distributions et
-répertoires/fichiers de tests. Les `.sql` embarqués dans un template TypeScript
-sont donc inclus. Les définitions sont uniques ; leurs répétitions sont
-marquées explicitement :
+répertoires/fichiers de tests pour les implémentations, et inclut désormais les
+tests pour les preuves de vérification ainsi que le backlog pour le suivi. Les
+`.sql` embarqués dans un template TypeScript sont donc inclus. Les définitions
+historiques sont uniques ; leurs répétitions sont marquées explicitement :
 
 ```sql
 -- @requirement-reference HALL-FR-DOC-010 RESOURCE_HAS_EXACTLY_ONE_NATURE:

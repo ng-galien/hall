@@ -1,4 +1,4 @@
-import { AutosaveOffIcon, AutosaveOnIcon, AutosaveSavingIcon, WarningIcon } from "../../components/icons";
+import { SaveStatusGlyph } from "../../components/ui/save-status-indicator";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { SaveStatus } from "../../pages/workspace/saveStatusStore";
 import "./ResourceAutosaveToggle.css";
@@ -45,15 +45,7 @@ export function ResourceAutosaveToggle({
       onClick={() => onChange(!enabled)}
     >
       <span className="resource-autosave-icon" aria-hidden="true">
-        {status === "error" ? (
-          <WarningIcon weight="bold" />
-        ) : status === "saving" || status === "dirty" ? (
-          <AutosaveSavingIcon weight="bold" />
-        ) : enabled ? (
-          <AutosaveOnIcon weight="bold" />
-        ) : (
-          <AutosaveOffIcon weight="bold" />
-        )}
+        <SaveStatusGlyph status={status} enabled={enabled} />
       </span>
       {showLabel ? (
         <span role="status">

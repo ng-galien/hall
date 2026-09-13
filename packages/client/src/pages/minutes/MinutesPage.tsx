@@ -2,7 +2,7 @@ import type { MinutesSummary } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronRightIcon, TextDocumentIcon } from "../../components/icons";
+import { ChevronRightIcon, MinutesIcon } from "../../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -60,7 +60,7 @@ export function MinutesPage() {
               to={`/minutes/${item.id}`}
               data-testid={`minutes-open-${item.councilMeetingId}`}
             >
-              <TextDocumentIcon aria-hidden="true" />
+              <MinutesIcon aria-hidden="true" />
               <div className="min-w-0 flex-1">
                 <strong>{t("minutes.meetingTitle").replace("{number}", formatNumber(item.meetingNumber))}</strong>
                 <span>{item.scheduledAt ? formatDate(item.scheduledAt) : t("dashboard.toSchedule")}</span>

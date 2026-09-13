@@ -27,6 +27,13 @@ while IFS= read -r file; do
 			;;
 	esac
 	[ -f "$existing_file" ] || continue
+	case "$existing_file" in
+		*.ts|*.tsx|*.mts|*.cts)
+			if ! node scripts/check-exhaustive-dispatch.mjs "$existing_file" >&2; then
+				exit 2
+			fi
+			;;
+	esac
 	set -- "$@" --file "$file"
 done <<CODE_MONIKER_FILES
 $files

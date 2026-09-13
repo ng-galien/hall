@@ -1,16 +1,17 @@
 import type { ResourceDetail, ResourceJsonObject, ResourceJsonValue } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
 import { type CSSProperties, createContext, useContext, useEffect, useMemo, useState } from "react";
-import { MarkdownView } from "../../components/MarkdownView";
-import { EventFields } from "../calendar/EventFields";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { ResourceImageFigure } from "../../components/editor/images";
 import {
   isValidResourceEmbedTableRange,
   type ResourceEmbedAttributes,
   type ResourceEmbedTableSheet,
 } from "../../components/editor/resourceEmbeds";
+import { MarkdownView } from "../../components/MarkdownView";
 import { useI18n } from "../../i18n/I18nProvider";
 import { openDocumentaryResource } from "../../services/resourcesApi";
+import { EventFields } from "../calendar/EventFields";
 import {
   type DocumentaryLeafDetail,
   DocumentaryResourceGlyph,
@@ -221,12 +222,22 @@ function ResourceEmbedBody({
   const unavailable = <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p>;
   const presentation = attributes.presentation;
   return matchLiteral(presentation, {
-    text: () => resource.kind === "text" ? (
-      <div data-testid="resource-embed-presentation-text"><MarkdownView markdown={resource.content} /></div>
-    ) : unavailable,
-    event: () => resource.kind === "event" ? (
-      <div data-testid="resource-embed-presentation-event"><EventFields value={resource.document} onChange={ignorePresentationError} readOnly /></div>
-    ) : unavailable,
+    text: () =>
+      resource.kind === "text" ? (
+        <div data-testid="resource-embed-presentation-text">
+          <MarkdownView markdown={resource.content} />
+        </div>
+      ) : (
+        unavailable
+      ),
+    event: () =>
+      resource.kind === "event" ? (
+        <div data-testid="resource-embed-presentation-event">
+          <EventFields value={resource.document} onChange={ignorePresentationError} readOnly />
+        </div>
+      ) : (
+        unavailable
+      ),
     image: () =>
       resource.kind === "document" && documentaryResourceTone(resource) === "image" ? (
         <ResourceImageFigure
@@ -337,29 +348,25 @@ export function ResourceEmbedPresentation({ attributes }: { attributes: Resource
   if (recursive) return <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p>;
   return (
     <EmbeddedResourceAncestors.Provider value={[...ancestors, attributes.id]}>
-    <article
-      className={`editor-resource-embed editor-resource-embed-${attributes.presentation}`}
-      data-testid="resource-embed-presentation"
-    >
-      <div className="editor-resource-embed-body">
-        {!details && !failed ? (
-          <span className="spinner" role="status">
-            {t("common.loading")}
-          </span>
-        ) : null}
-        {failed ? <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p> : null}
-        {details ? <ResourceEmbedBody resource={details} attributes={attributes} /> : null}
-      </div>
-      {overlay && details ? (
-        <div className="editor-resource-embed-overlay">
-          <DocumentaryResourceGlyph resource={details} />
-          <div>
-            <strong>{overlay.title}</strong>
-            <span>{overlay.type}</span>
-          </div>
+      <article
+        className={`editor-resource-embed editor-resource-embed-${attributes.presentation}`}
+        data-testid="resource-embed-presentation"
+      >
+        <div className="editor-resource-embed-body">
+          {!details && !failed ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
+          {failed ? <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p> : null}
+          {details ? <ResourceEmbedBody resource={details} attributes={attributes} /> : null}
         </div>
-      ) : null}
-    </article>
+        {overlay && details ? (
+          <div className="editor-resource-embed-overlay">
+            <DocumentaryResourceGlyph resource={details} />
+            <div>
+              <strong>{overlay.title}</strong>
+              <span>{overlay.type}</span>
+            </div>
+          </div>
+        ) : null}
+      </article>
     </EmbeddedResourceAncestors.Provider>
   );
 }

@@ -1,5 +1,6 @@
 BEGIN;
 SET LOCAL search_path = hall, hall_api, public, pg_catalog;
+\ir ../../council/test/support/helpers.sql
 SELECT no_plan();
 
 SELECT ok(
@@ -238,9 +239,9 @@ FROM (
   ) AS projected
 ) AS bulk;
 
-INSERT INTO hall.council_meetings (id, number, quorum) VALUES
-  ('10000000-0000-0000-0000-000000000001', 1, 1),
-  ('10000000-0000-0000-0000-000000000002', 99, 1);
+INSERT INTO hall.council_meetings (id, number, stale) VALUES
+  ('10000000-0000-0000-0000-000000000001', 1, FALSE),
+  ('10000000-0000-0000-0000-000000000002', 99, TRUE);
 SELECT hall_api.configure_active_council_term(1);
 CREATE TEMP TABLE contact_result AS
 SELECT hall_api.create_contact('Alice', 'Martin', NULL, NULL, NULL, NULL, '') AS payload;
@@ -259,10 +260,10 @@ VALUES (
 );
 SELECT hall.set_council_meeting_officers('10000000-0000-0000-0000-000000000001',
   (SELECT (payload->>'id')::uuid FROM member_result), (SELECT (payload->>'id')::uuid FROM member_result));
+SELECT test_confirm_declared_membership('10000000-0000-0000-0000-000000000001');
 UPDATE hall.council_meetings
 SET scheduled_at = '2026-01-01 08:30:00+00',
-    location = 'Council chamber',
-    started_at = '2026-01-01 09:00:00+00'
+    location = 'Council chamber'
 WHERE id = '10000000-0000-0000-0000-000000000001';
 
 -- HALL-FR-WSP-060 HALL-FR-WSP-070
@@ -316,6 +317,11 @@ SELECT hall_api.reprogram_council_agenda_item(
   (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'open'),
   '10000000-0000-0000-0000-000000000001',
   2
+);
+SELECT test_prepare_notice('10000000-0000-0000-0000-000000000001');
+SELECT hall.start_council_meeting(
+  '10000000-0000-0000-0000-000000000001',
+  '2026-01-01 09:00:00+00'
 );
 SELECT hall_api.start_council_agenda_item(
   (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'decision'),

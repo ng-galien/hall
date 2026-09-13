@@ -43,7 +43,13 @@ postgresDescribe("frozen meeting agenda documents", () => {
         scheduledAt: "2026-09-10T18:00:00Z",
         location: "Council chamber",
         agendaFrozenAt: "2026-09-06T12:00:00Z",
-        agenda: [{ id: item.id, position: 1, kind: "openQuestion" as const, title: "Lighting & safety" }],
+        agenda: [{
+          id: item.id,
+          position: 1,
+          agendaNumber: item.agendaNumber!,
+          kind: "openQuestion" as const,
+          title: "Lighting & safety",
+        }],
       },
       issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" },
     };
@@ -53,7 +59,7 @@ postgresDescribe("frozen meeting agenda documents", () => {
     const frozen = await council.freezeAgenda(request, meeting.id);
     expect(frozen.agendaFrozenAt).not.toBeNull();
     expect((await council.openAgendaFreeze(request, meeting.id))?.agenda).toEqual([
-      { id: item.id, position: 1, kind: "openQuestion", title: "Lighting & safety" },
+      { id: item.id, position: 1, agendaNumber: 1, kind: "openQuestion", title: "Lighting & safety" },
     ]);
     await expect(council.freezeAgenda(request, meeting.id)).rejects.toMatchObject({ sqlState: "HV803" });
     await expect(pool.query("DELETE FROM hall.council_agenda_item WHERE id=$1", [item.id])).rejects.toMatchObject({

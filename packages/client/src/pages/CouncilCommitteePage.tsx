@@ -1,3 +1,4 @@
+import { ResourceSearch } from "../components/search/ResourceSearch";
 import type { Contact } from "@hall/api-contract";
 import { type CommitteeMembership, type CommitteeRole, committeeRoles, findSirenAction } from "@hall/api-contract";
 import { type DragEvent, type FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
@@ -364,29 +365,7 @@ export function CouncilCommitteePage() {
                   <div className="admin-inline-empty">{t("committees.noAvailableMembers")}</div>
                 ) : (
                   <>
-                    <div className="admin-palette-members">
-                      {availableMembers.map((member) => {
-                        const selected = availableSelection.has(member.id);
-                        return (
-                          <button
-                            className={`vote-card admin-member-chip${selected ? " vote-card-selected" : ""}`}
-                            type="button"
-                            aria-pressed={selected}
-                            data-testid={`committee-contact-option-${member.id}`}
-                            onClick={() => toggleAvailableMember(member.id)}
-                            key={member.id}
-                          >
-                            <span className="vote-card-avatar" aria-hidden="true">
-                              {memberInitials(member)}
-                            </span>
-                            <span className="vote-card-copy">
-                              <strong>{memberName(member, t("contacts.notFound"))}</strong>
-                              <span>{member.email}</span>
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <ResourceSearch testId="committee-contact-search" scope={{types:["contact"],includedIds:availableMembers.map(member=>member.id)}} selectedIds={[...availableSelection]} onPick={item=>toggleAvailableMember(item.id)}/>
                     <div className="admin-palette-actions">
                       <span>{t("committees.selectionCount").replace("{count}", String(availableSelection.size))}</span>
                       {committeeRoles.map((role) => (

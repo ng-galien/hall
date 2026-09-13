@@ -71,6 +71,7 @@ const presentationResources = {
   } satisfies Resource,
 };
 
+// @verifies-requirement HALL-FR-SRC-030
 describe("resource presentation policy", () => {
   it("offers one preferred presentation for each resource", () => {
     expect(preferredResourcePresentation(presentationResources.text)).toBe("text");
@@ -79,7 +80,8 @@ describe("resource presentation policy", () => {
     expect(preferredResourcePresentation(presentationResources.geographic)).toBe("map");
     expect(preferredResourcePresentation(presentationResources.legalReference)).toBe("legal-citation");
     expect(preferredResourcePresentation(presentationResources.image)).toBe("image");
-    expect(preferredResourcePresentation(presentationResources.pdf)).toBe("document");
+    expect(preferredResourcePresentation(presentationResources.pdf)).toBeNull();
+    expect(preferredResourcePresentation({kind:"event"})).toBe("event");
   });
 
   it("owns the compatibility matrix shared by client rendering and PDF export", () => {
@@ -285,6 +287,19 @@ describe("GFM tables", () => {
     expect(html).not.toContain("tracker.example");
     expect(html).not.toContain("background");
     expect(html).not.toContain("999999px");
+  });
+});
+
+describe("underline", () => {
+  it("renders Tiptap underline syntax, including inside another mark", () => {
+    expect(renderHtml(parse("Avant ++souligné++ après"))).toContain("Avant <u>souligné</u> après");
+    expect(renderHtml(parse("**++important++**"))).toContain("<strong><u>important</u></strong>");
+    expect(renderHtml(parse("++**important** aussi++"))).toContain("<u><strong>important</strong> aussi</u>");
+  });
+
+  it("leaves unmatched and empty delimiters untouched", () => {
+    expect(renderHtml(parse("Avant ++inachevé"))).toContain("Avant ++inachevé");
+    expect(renderHtml(parse("Avant ++++ après"))).toContain("Avant ++++ après");
   });
 });
 

@@ -79,6 +79,20 @@ postgresDescribe("PostgreSQL council client", () => {
       agendaFrozenAt: null,
       currentNoticeId: null,
       noticeDeadline: { status: "indeterminate", reason: "scheduleUnknown" },
+      stale: false,
+      openingBlockers: [
+        { code: "meetingNotScheduled" },
+        { code: "meetingLocationMissing" },
+        { code: "agendaNotFrozen" },
+        { code: "currentNoticeMissing" },
+      ],
+      entryBlockers: [
+        { code: "meetingNotScheduled" },
+        { code: "meetingLocationMissing" },
+        { code: "agendaNotFrozen" },
+        { code: "currentNoticeMissing" },
+      ],
+      closureBlockers: [{ code: "meetingNotStarted" }],
     });
     await expect(council.listMeetings(request)).resolves.toEqual([provisioned]);
     await expect(council.provisionInitialMeeting(request, {})).rejects.toMatchObject({ sqlState: "HV123" });

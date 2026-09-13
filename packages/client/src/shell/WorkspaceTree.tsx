@@ -1,6 +1,7 @@
 import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronDownIcon, ChevronRightIcon } from "../components/icons";
+import { ChevronDownIcon, ChevronRightIcon, CouncilBusinessIcon, FolderIcon } from "../components/icons";
+import { councilBusinessHref } from "../features/references/referenceNavigation";
 import { useI18n } from "../i18n/I18nProvider";
 import { buildPathTree, type PathNode } from "../pages/workspace/paths";
 import { DRAG_TYPE, decodeDragPayload, moveToPath } from "../pages/workspace/workspaceOrg";
@@ -16,18 +17,22 @@ function TreeNode({
   node,
   depth,
   activePath,
+  activeBusinessId,
   expanded,
   onToggle,
 }: {
   node: PathNode;
   depth: number;
   activePath: string | null;
+  activeBusinessId: string | null;
   expanded: Set<string>;
   onToggle(path: string): void;
 }) {
   const [dropping, setDropping] = useState(false);
   const isExpanded = expanded.has(node.path);
-  const isActive = activePath === node.path;
+  const isActive = node.business
+    ? activeBusinessId === node.business.id
+    : !activeBusinessId && activePath === node.path;
   return (
     <li>
       <div
@@ -37,6 +42,8 @@ function TreeNode({
         {node.children.length > 0 ? (
           <button
             className="workspace-tree-toggle"
+            data-testid="workspace-sidebar-toggle"
+            data-path={node.path}
             type="button"
             aria-expanded={isExpanded}
             aria-label={node.name}
@@ -49,7 +56,11 @@ function TreeNode({
         )}
         <Link
           className="workspace-tree-link"
-          to={`/workspace?path=${encodeURIComponent(node.path)}`}
+          data-testid="workspace-sidebar-link"
+          data-kind={node.business ? "councilBusiness" : "folder"}
+          data-path={node.path}
+          aria-current={isActive ? "page" : undefined}
+          to={node.business ? councilBusinessHref(node.business) : `/workspace?path=${encodeURIComponent(node.path)}`}
           onDragOver={(event: DragEvent) => {
             if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
             event.preventDefault();
@@ -63,6 +74,7 @@ function TreeNode({
             if (payload) void moveToPath(payload, node.path);
           }}
         >
+          {node.business ? <CouncilBusinessIcon /> : <FolderIcon />}
           <span className="workspace-tree-name">{node.name}</span>
         </Link>
       </div>
@@ -74,6 +86,7 @@ function TreeNode({
               node={child}
               depth={depth + 1}
               activePath={activePath}
+              activeBusinessId={activeBusinessId}
               expanded={expanded}
               onToggle={onToggle}
             />
@@ -91,6 +104,7 @@ export function WorkspaceTree() {
   const loadCatalog = useWorkspaceResourcesStore((state) => state.loadCatalog);
   const location = useLocation();
   const activePath = activePathFrom(location.search, location.pathname);
+  const activeBusinessId = activePath === null ? null : new URLSearchParams(location.search).get("councilBusiness");
   const tree = useMemo(() => buildPathTree(businesses, catalog), [businesses, catalog]);
   const [toggled, setToggled] = useState<{ opened: Set<string>; closed: Set<string> }>({
     opened: new Set(),
@@ -156,6 +170,7 @@ export function WorkspaceTree() {
               node={node}
               depth={0}
               activePath={activePath}
+              activeBusinessId={activeBusinessId}
               expanded={expanded}
               onToggle={onToggle}
             />

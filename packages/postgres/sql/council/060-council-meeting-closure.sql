@@ -341,7 +341,8 @@ SET search_path=pg_catalog,hall AS $$
 BEGIN
  IF EXISTS (
   SELECT FROM hall.council_meetings meeting
-  WHERE meeting.previous_council_meeting IS NOT NULL AND (
+  JOIN hall.council_meetings previous ON previous.id=meeting.previous_council_meeting
+  WHERE NOT previous.stale AND (
    (SELECT count(*) FROM hall.council_agenda_item item
     WHERE item.council_meeting=meeting.id AND item.minutes_approval IS NOT NULL) <> 1
    OR NOT EXISTS (

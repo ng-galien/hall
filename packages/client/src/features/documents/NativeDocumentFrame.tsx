@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { MarkdownView } from "../../components/MarkdownView";
 import { useI18n } from "../../i18n/I18nProvider";
 import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
@@ -41,9 +42,7 @@ function TextDocumentFrame({
       {failed ? (
         <DocumentPreviewFailure onRetry={() => setAttempt((value) => value + 1)} />
       ) : text === null ? (
-        <span className="spinner" role="status">
-          {t("common.loading")}
-        </span>
+        <LoadingIndicator>{t("common.loading")}</LoadingIndicator>
       ) : mediaType === "text/markdown" ? (
         <MarkdownView markdown={text} allowEmbeddedImages />
       ) : (

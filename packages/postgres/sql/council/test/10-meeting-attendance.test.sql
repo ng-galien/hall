@@ -22,10 +22,10 @@ SELECT throws_ok(
   'a meeting is inserted in preparation'
 );
 
-INSERT INTO council_meetings (id, scheduled_at, location) VALUES
-(test_uuid('mtg:main'), NULL, NULL),
-(test_uuid('mtg:other'), NULL, NULL),
-(test_uuid('mtg:no-quorum'), '2026-01-01 08:30:00+00', 'Council chamber');
+INSERT INTO council_meetings (id, scheduled_at, location, stale) VALUES
+(test_uuid('mtg:main'), NULL, NULL, FALSE),
+(test_uuid('mtg:other'), NULL, NULL, TRUE),
+(test_uuid('mtg:no-quorum'), '2026-01-01 08:30:00+00', 'Council chamber', TRUE);
 
 -- Missing reference diagnostic used by HALL-FR-ATT-090.
 SELECT throws_ok(
@@ -270,8 +270,8 @@ SELECT is(
   'quorum counts only the two physically present members'
 );
 
-INSERT INTO council_meetings (id) VALUES
-(test_uuid('mtg:attendance-action'));
+INSERT INTO council_meetings (id, stale) VALUES
+(test_uuid('mtg:attendance-action'), TRUE);
 
 SELECT test_ensure_council_member(test_uuid('member:attendance-action:represented'));
 SELECT test_ensure_council_member(test_uuid('member:attendance-action:present'));

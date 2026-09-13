@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { PreparedCouncilSubject } from "@hall/api-contract";
 import { Button } from "../../components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { EntitySelect } from "../../components/search/EntitySelect";
 import { RequestErrorBanner } from "../../components/Ui";
 import { CalendarAddIcon } from "../../components/icons";
 import { preparedSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
@@ -53,14 +53,9 @@ export function CouncilBusinessSchedule({ businessId, subjectId, meetingIds, onS
   const planningMeetings = meetings.filter((meeting) => meetingIds.includes(meeting.id));
   if (!planningMeetings.length) return <p data-testid="business-schedule-no-meeting">{t("workspace.noPlanningMeeting")}</p>;
   return <div className="modal-form">
-    <Select value={meetingId} onValueChange={setMeetingId}>
-      <SelectTrigger data-testid="business-meeting-select"><SelectValue placeholder={t("workspace.chooseMeeting")} /></SelectTrigger>
-      <SelectContent>{planningMeetings.map((meeting) => (
-        <SelectItem value={meeting.id} key={meeting.id} data-testid={`business-meeting-option-${meeting.id}`}>
-          {formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate, t("workspace.dateToSet"))}
-        </SelectItem>
-      ))}</SelectContent>
-    </Select>
+<EntitySelect type="meeting" testId="business-meeting-select" value={meetingId} onValueChange={setMeetingId} placeholder={t("workspace.chooseMeeting")}
+ options={planningMeetings.map(meeting=>({value:meeting.id,label:formatMeetingLabel(meeting,t("meetings.occurrenceLabel"),formatDate,t("workspace.dateToSet"))}))}/>
+
     {meetingId ? <MeetingSubjectChoices key={meetingId} businessId={businessId} subjectId={subjectId} meetingId={meetingId} onScheduled={onScheduled} /> : null}
   </div>;
 }

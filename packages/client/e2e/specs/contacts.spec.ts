@@ -44,7 +44,7 @@ test("creates a contact, edits it and reuses it for a council mandate", async ({
   await page.getByTestId("navigation-council-members").click();
   await page.getByTestId("member-add").click();
   await page.getByTestId("member-contact-select").click();
-  await page.getByTestId(`member-contact-option-${contact?.id}`).click();
+  await page.getByTestId("member-contact-select-search-result").and(page.locator(`[data-reference-id="${contact?.id}"]`)).click();
   await page.getByTestId("member-term-start").fill("2026-03-22");
   await page.getByTestId("member-create-submit").click();
   await expect(page.getByTestId("member-create-form")).toHaveCount(0);
@@ -75,7 +75,7 @@ test("creates a contact, edits it and reuses it for a council mandate", async ({
   await page.getByTestId("contact-firstName").fill("");
   await page.keyboard.press("Control+K");
   await page.getByTestId("palette-search-input").fill("Nadia");
-  await page.getByTestId("search-hit").first().click();
+  await page.getByTestId("palette-search-result").first().click();
   await expect(page).toHaveURL(new RegExp(`/app/contacts/${contact?.id}$`));
   await expect(page.getByTestId("contact-identity-error")).toBeVisible();
 

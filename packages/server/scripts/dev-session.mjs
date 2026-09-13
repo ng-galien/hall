@@ -141,7 +141,6 @@ async function demoRestart() {
   requireTmux();
   stopProjectListeners();
   killSession();
-  run(process.execPath, [resolve(scriptDirectory, "reset-demo.mjs")]);
   ensurePostgres();
   resetPostgres();
   await start();

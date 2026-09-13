@@ -213,6 +213,12 @@ AS $$
 DECLARE
   participant_number INTEGER;
 BEGIN
+  -- Each ballot fixture is an independent meeting scenario. Release the
+  -- single active slot without closing or deleting the previous fixture.
+  UPDATE council_meetings
+  SET stale = TRUE
+  WHERE closed_at IS NULL AND NOT stale;
+
   INSERT INTO council_meetings (number,id, scheduled_at, location) VALUES
 (
     (SELECT coalesce(max(number),0)+1 FROM council_meetings),

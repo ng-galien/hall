@@ -10,10 +10,12 @@ export function FolderSectionsList<T>({
   sections,
   renderItem,
   itemKey,
+  onFolderSelect,
 }: {
   sections: FolderSection<T>[];
   renderItem(item: T, index: number): ReactNode;
   itemKey(item: T): string;
+  onFolderSelect?(path: string): void;
 }) {
   let index = -1;
   const renderNode = (node: FolderSection<T>): ReactNode => (
@@ -24,7 +26,18 @@ export function FolderSectionsList<T>({
             <FolderOpenIcon />
           </span>
         ) : null}
-        <span className="workspace-explorer-folder-name">{node.label}</span>
+        {onFolderSelect && node.folder ? (
+          <button
+            type="button"
+            className="workspace-explorer-folder-name"
+            data-testid={`search-folder-${node.path}`}
+            onClick={() => onFolderSelect(node.path)}
+          >
+            {node.label}
+          </button>
+        ) : (
+          <span className="workspace-explorer-folder-name">{node.label}</span>
+        )}
       </div>
       <ul className="workspace-explorer-branch">
         {node.items.map((item) => {

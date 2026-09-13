@@ -107,6 +107,7 @@ export function Modal({
   onClose,
   testId,
   initialFocusRef,
+  size = "default",
 }: {
   open: boolean;
   title: string;
@@ -114,12 +115,17 @@ export function Modal({
   onClose(): void;
   testId?: string;
   initialFocusRef?: { current: HTMLElement | null };
+  size?: "default" | "wide";
 }) {
   const { t } = useI18n();
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent
-        className="modal-surface gap-0 p-0 sm:max-w-[var(--hall-size-modal)]"
+        className={`modal-surface gap-0 p-0 ${
+          size === "wide"
+            ? "modal-surface-wide sm:max-w-[var(--hall-size-modal-wide)]"
+            : "sm:max-w-[var(--hall-size-modal)]"
+        }`}
         showCloseButton={false}
         aria-describedby={undefined}
         data-testid={testId}
@@ -134,11 +140,19 @@ export function Modal({
       >
         <header className="modal-header">
           <DialogTitle>{title}</DialogTitle>
-          <Button size="icon" variant="ghost" aria-label={t("common.close")} onClick={onClose}>
+          <Button
+            size="icon"
+            variant="ghost"
+            aria-label={t("common.close")}
+            data-testid={testId ? `${testId}-close` : undefined}
+            onClick={onClose}
+          >
             <CloseIcon />
           </Button>
         </header>
-        <div className="modal-content">{children}</div>
+        <div className="modal-content" data-testid={testId ? `${testId}-content` : undefined}>
+          {children}
+        </div>
       </DialogContent>
     </Dialog>
   );

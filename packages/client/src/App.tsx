@@ -1,5 +1,5 @@
 import { matchDiscriminated, matchLiteral, type ReferenceEntityKind } from "@hall/domain";
-import { lazy, type ReactNode, Suspense, useCallback } from "react";
+import { lazy, type ReactNode, Suspense } from "react";
 import { createBrowserRouter, Route, RouterProvider, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthenticationGate } from "./components/AuthenticationGate";
@@ -131,18 +131,8 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
   const members = useCouncilMembersStore((state) => state.members);
   const contacts = useContactsStore((state) => state.contacts);
-  const searchResourceEmbeds = useCallback(async (query: string) => {
-    await useWorkspaceResourcesStore.getState().hydrate({
-      query,
-      paths: [],
-      kinds: ["remote", "spreadsheet", "geographic", "document", "legalReference"],
-      tags: [],
-      readiness: [],
-      media: [],
-    });
-  }, []);
   const renderResourcePreview = (id: string, onClose: () => void) => (
-    <ResourcePreview resourceId={id} onClose={onClose} />
+    <ResourcePreview resourceId={id} onClose={onClose} readOnly />
   );
   const resourceAppearance = (id: string) => {
     const resource = resourceSummaries[id];
@@ -199,7 +189,6 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
       <ResourceEmbedPresentationProvider
         renderResourceEmbed={(attributes) => <ResourceEmbedPresentation attributes={attributes} />}
         loadTableOptions={loadResourceEmbedTableOptions}
-        searchResourceEmbeds={searchResourceEmbeds}
       >
         <ResourceImagePresentationProvider
           resolveContentHref={documentaryBinaryReferenceContentHref}

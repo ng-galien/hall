@@ -50,7 +50,7 @@ test("edits account identity with autosave and safely changes and resets passwor
   await page.getByTestId("user-display-name").fill("Updated reader account");
   await page.getByTestId("user-email").fill("account-reader-updated@example.test");
   await page.getByTestId("user-contact-select").click();
-  await page.getByTestId(`user-contact-option-${contactIds[1]}`).click();
+  await page.getByTestId("user-contact-select-search-result").and(page.locator(`[data-reference-id="${contactIds[1]}"]`)).click();
   const flushed = page.waitForResponse(
     (response) => response.url().endsWith(`/users/${user.id}`) && response.request().method() === "PUT",
   );

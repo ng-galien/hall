@@ -6,6 +6,7 @@ CREATE TABLE council_meetings (
   id UUID PRIMARY KEY,
 
   -- TODO REMOVE_STALE: temporary import marker and deferred active-meeting uniqueness.
+  -- @implements-requirement HALL-FR-MTG-310
   stale BOOLEAN NOT NULL DEFAULT FALSE,
   active_slot SMALLINT GENERATED ALWAYS AS (
     CASE WHEN closed_at IS NULL AND NOT stale THEN 1::smallint END

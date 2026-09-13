@@ -1,5 +1,6 @@
 import type { DocumentResource } from "@hall/domain";
 import { Button } from "@/components/ui/button";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CloseIcon } from "../../components/icons";
 import { DocumentPreviewFailure } from "../../features/documents/DocumentPreviewFailure";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
@@ -37,11 +38,7 @@ export function MeetingDocumentViewer({
           </div>
         </header>
         <div className="document-viewer-content">
-          {!objectUrl && !failed ? (
-            <span className="spinner" role="status">
-              {t("common.loading")}
-            </span>
-          ) : null}
+          {!objectUrl && !failed ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
           {failed ? <DocumentPreviewFailure onRetry={retry} /> : null}
           {objectUrl && mediaType ? (
             <NativeDocumentFrame

@@ -6,36 +6,62 @@ import themePlugin from "@fullcalendar/react/themes/monarch";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import { type EventDocument, eventDocumentSchema, findSirenAction } from "@hall/api-contract";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { Modal } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { formatMeetingLabel } from "../council-meetings/meetingPresentation";
 import { ResourcePreview } from "../documents/ResourcePreview";
+import { CouncilMeetingPage } from "../../pages/council-meetings/CouncilMeetingPage";
 import { EventFields } from "./EventFields";
-import { emptyEventDocument, localDate, nextDate } from "./eventDates";
+import { emptyEventDocument, eventDocumentUsesQuarterHours, localDate, nextDate } from "./eventDates";
 import "@fullcalendar/react/skeleton.css";
 import "@fullcalendar/react/themes/monarch/theme.css";
 import "./calendar.css";
 
+// @implements-requirement HALL-FR-CAL-010
+// @implements-requirement HALL-FR-CAL-050
+// @implements-requirement HALL-FR-CAL-060
+// @implements-requirement HALL-FR-CAL-070
+// @implements-requirement HALL-FR-CAL-090
+// @implements-requirement HALL-FR-CAL-020
+// @implements-requirement HALL-FR-CAL-030
+// @implements-requirement HALL-FR-CAL-040
+// @implements-requirement HALL-FR-CAL-080
+// @implements-requirement HALL-FR-CAL-100
+// @implements-requirement HALL-FR-CAL-110
+// @implements-requirement HALL-FR-CAL-130
 export function CalendarPage() {
   const { t, locale, formatDate } = useI18n();
-  const navigate = useNavigate();
   const calendar = useRef<CalendarRef>(null);
+  const deleting = useRef(false);
+  const contextMenuListeners = useRef(new WeakMap<HTMLElement, EventListener>());
   const resources = useWorkspaceResourcesStore();
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
+  const businesses = useCouncilBusinessStore((state) => state.businesses);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [name, setName] = useState("");
-  const [path, setPath] = useState("");
+  const [councilBusinessId, setCouncilBusinessId] = useState<string | null>(null);
   const [draft, setDraft] = useState<EventDocument | null>(null);
   const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
+  const [selectedMeetingReference, setSelectedMeetingReference] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
+  const [contextTarget, setContextTarget] = useState<{
+    resourceId?: string;
+    meetingReference?: string;
+    x: number;
+    y: number;
+  } | null>(null);
   const [view, setView] = useState("dayGridMonth");
   useEffect(() => {
     let active = true;
@@ -67,20 +93,22 @@ export function CalendarPage() {
       end: entry.document.schedule.end,
       allDay: entry.document.schedule.kind === "allDay",
       className: "hall-calendar-appointment",
-      editable: Boolean(findSirenAction(resources.representations[entry.id] ?? null, "resource.update-content")),
+      editable: Boolean(resources.representations[entry.id] && findSirenAction(resources.representations[entry.id], "resource.update-content")),
       extendedProps: { resourceId: entry.id },
     })),
     ...meetings
       .filter((entry) => entry.scheduledAt)
       .map((entry) => ({
         id: `meeting-${entry.id}`,
-        title: formatMeetingLabel(entry, t("meetings.occurrenceLabel"), formatDate),
+        title: t("calendar.meetingLabel").replace("{number}", String(entry.number)),
         start: entry.scheduledAt!,
         editable: false,
         className: "hall-calendar-council",
         extendedProps: { meetingReference: entry.reference },
       })),
   ];
+  const contextResource = contextTarget?.resourceId ? resources.details[contextTarget.resourceId] : null;
+  const contextEvent = contextResource?.kind === "event" ? contextResource : null;
   return (
     <div className="hall-calendar" data-testid="calendar-page">
       <div className="calendar-toolbar">
@@ -130,6 +158,7 @@ export function CalendarPage() {
               data-testid="calendar-new"
               onClick={() => {
                 setName("");
+                setCouncilBusinessId(null);
                 setDraft(emptyEventDocument());
               }}
             >
@@ -163,6 +192,7 @@ export function CalendarPage() {
         }}
         select={(info) => {
           setName("");
+          setCouncilBusinessId(null);
           setDraft({
             ...emptyEventDocument(),
             schedule: info.allDay
@@ -173,7 +203,7 @@ export function CalendarPage() {
         }}
         eventClick={(info) => {
           const props = info.event.extendedProps;
-          if (props.meetingReference) navigate(`/meetings/${props.meetingReference}`);
+          if (props.meetingReference) setSelectedMeetingReference(props.meetingReference);
           else {
             const resource = resources.details[props.resourceId];
             if (resource) setSelectedResourceId(resource.id);
@@ -209,13 +239,75 @@ export function CalendarPage() {
           }
           setSaving(false);
         }}
+        eventContent={(info) => {
+          return <span>{info.timeText} {info.event.title}</span>;
+        }}
         eventDidMount={(info) => {
           info.el.dataset.testid = `calendar-event-${info.event.id}`;
+          const listener: EventListener = (rawEvent) => {
+            const event = rawEvent as MouseEvent;
+            event.preventDefault();
+            setContextTarget({
+              resourceId: info.event.extendedProps.resourceId,
+              meetingReference: info.event.extendedProps.meetingReference,
+              x: event.clientX,
+              y: event.clientY,
+            });
+          };
+          contextMenuListeners.current.set(info.el, listener);
+          info.el.addEventListener("contextmenu", listener);
+        }}
+        eventWillUnmount={(info) => {
+          const listener = contextMenuListeners.current.get(info.el);
+          if (listener) info.el.removeEventListener("contextmenu", listener);
         }}
         dayCellDidMount={(info) => {
           info.el.dataset.testid = `calendar-day-${localDate(info.date)}`;
         }}
+        slotLaneDidMount={(info) => {
+          info.el.dataset.testid = `calendar-slot-${info.el.dataset.time}`;
+        }}
       />
+      {contextTarget ? (
+        <DropdownMenu open onOpenChange={(open) => { if (!open) setContextTarget(null); }}>
+          <DropdownMenuTrigger asChild>
+            <span
+              aria-hidden
+              className="fixed size-px"
+              style={{ left: contextTarget.x, top: contextTarget.y }}
+            />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem
+              data-testid="calendar-event-open"
+              onSelect={() => {
+                if (contextTarget.meetingReference) setSelectedMeetingReference(contextTarget.meetingReference);
+                else if (contextTarget.resourceId) setSelectedResourceId(contextTarget.resourceId);
+                setContextTarget(null);
+              }}
+            >
+              {t("workspace.open")}
+            </DropdownMenuItem>
+            {contextTarget.resourceId &&
+            contextEvent &&
+            Date.parse(contextEvent.document.schedule.end) > Date.now() &&
+            resources.representations[contextTarget.resourceId] &&
+            findSirenAction(resources.representations[contextTarget.resourceId], "resource.delete") ? (
+              <DropdownMenuItem
+                data-testid="calendar-event-delete"
+                disabled={saving}
+                onSelect={() => {
+                  setDeleteStep(1);
+                  setDeleteId(contextTarget.resourceId!);
+                  setContextTarget(null);
+                }}
+              >
+                {t("common.delete")}
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
       {meetings.some((meeting) => !meeting.scheduledAt) && (
         <div className="calendar-undated">
           <span>{t("calendar.undated")}</span>
@@ -226,16 +318,47 @@ export function CalendarPage() {
                 variant="ghost"
                 key={meeting.id}
                 data-testid={`calendar-undated-${meeting.id}`}
-                onClick={() => navigate(`/meetings/${meeting.reference}`)}
+                onClick={() => setSelectedMeetingReference(meeting.reference)}
               >
                 {formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
               </Button>
             ))}
         </div>
       )}
+      <Dialog open={deleteId !== null} onOpenChange={(open) => { if (!open && !saving) { setDeleteId(null); setDeleteStep(1); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t(deleteStep === 1 ? "calendar.deleteConfirm" : "calendar.deleteConfirmFinal")}</DialogTitle></DialogHeader>
+          <p>{deleteId ? resources.details[deleteId]?.name : ""}</p>
+          <div className="flex justify-end gap-2">
+            <Button data-testid="calendar-delete-cancel" variant="ghost" disabled={saving} onClick={() => { setDeleteId(null); setDeleteStep(1); }}>{t("calendar.cancel")}</Button>
+            <Button data-testid="calendar-delete-confirm" disabled={saving} onClick={async () => {
+              if (!deleteId || saving || deleting.current) return;
+              if (deleteStep === 1) {
+                setDeleteStep(2);
+                return;
+              }
+              deleting.current = true;
+              setSaving(true);
+              try {
+                if (await resources.remove(deleteId)) { setDeleteId(null); setDeleteStep(1); setSelectedResourceId(null); }
+              } catch { setError(true); }
+              finally { deleting.current = false; setSaving(false); }
+            }}>{t("common.delete")}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {selectedResourceId && (
         <ResourcePreview resourceId={selectedResourceId} onClose={() => setSelectedResourceId(null)} />
       )}
+      <Modal
+        open={selectedMeetingReference !== null}
+        title={t("navigation.meetings")}
+        testId="calendar-meeting-preview"
+        size="wide"
+        onClose={() => setSelectedMeetingReference(null)}
+      >
+        {selectedMeetingReference ? <CouncilMeetingPage meetingReference={selectedMeetingReference} /> : null}
+      </Modal>
       <Dialog
         open={draft !== null}
         onOpenChange={(open) => {
@@ -253,9 +376,19 @@ export function CalendarPage() {
                 event.preventDefault();
                 if (saving) return;
                 setSaving(true);
-                const created = await resources.create({ kind: "event", path, name, document: draft });
+                const business = businesses.find((entry) => entry.id === councilBusinessId);
+                const created = await resources.create({
+                  kind: "event",
+                  path: business?.folderPath ?? "",
+                  name,
+                  document: draft,
+                  ...(councilBusinessId ? { councilBusinessId } : {}),
+                });
                 setSaving(false);
-                if (created) setDraft(null);
+                if (created) {
+                  if (councilBusinessId) await useCouncilBusinessStore.getState().loadResources(councilBusinessId);
+                  setDraft(null);
+                }
                 else setError(true);
               }}
             >
@@ -269,16 +402,13 @@ export function CalendarPage() {
                   onChange={(event) => setName(event.target.value)}
                 />
               </div>
-              <div>
-                <Label htmlFor="calendar-folder">{t("calendar.folder")}</Label>
-                <Input
-                  id="calendar-folder"
-                  data-testid="calendar-folder"
-                  value={path}
-                  onChange={(event) => setPath(event.target.value)}
-                />
-              </div>
-              <EventFields value={draft} onChange={setDraft} readOnly={saving} />
+              <EventFields
+                value={draft}
+                onChange={setDraft}
+                councilBusinessId={councilBusinessId}
+                onCouncilBusinessChange={setCouncilBusinessId}
+                readOnly={saving}
+              />
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"
@@ -291,7 +421,7 @@ export function CalendarPage() {
                 </Button>
                 <Button
                   data-testid="calendar-create"
-                  disabled={saving || !name.trim() || !eventDocumentSchema.safeParse(draft).success}
+                  disabled={saving || !name.trim() || !eventDocumentSchema.safeParse(draft).success || !eventDocumentUsesQuarterHours(draft)}
                 >
                   {t("calendar.create")}
                 </Button>

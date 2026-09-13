@@ -2,6 +2,8 @@ CREATE FUNCTION pg_temp.quorum_case(label TEXT,members INTEGER,present INTEGER)
 RETURNS VOID LANGUAGE plpgsql AS $$
 DECLARE i INTEGER; ids UUID[]:='{}';
 BEGIN
+ -- Each quorum fixture is an independent meeting scenario.
+ UPDATE council_meetings SET stale=TRUE WHERE closed_at IS NULL AND NOT stale;
  INSERT INTO council_meetings(id,number,scheduled_at,location)
  VALUES(test_uuid(label||':meeting'),(SELECT coalesce(max(number),0)+1 FROM council_meetings),'2026-01-01 09:00Z','Chamber');
  FOR i IN 1..members LOOP

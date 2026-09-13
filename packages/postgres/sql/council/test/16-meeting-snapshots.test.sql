@@ -23,7 +23,7 @@ SELECT lives_ok($$SELECT start_council_meeting(test_uuid('snapshot:meeting'), '2
 SELECT is((SELECT count(*)::integer FROM council_meeting_snapshot), 1, 'one snapshot exists after start');
 SELECT throws_ok($$UPDATE council_meeting_snapshot SET payload='{}'$$, 'HV125', NULL, 'snapshots reject updates');
 SELECT throws_ok($$DELETE FROM council_meeting_snapshot$$, 'HV125', NULL, 'snapshots reject deletion');
-SELECT throws_ok($$TRUNCATE council_meeting_snapshot$$, 'HV125', NULL, 'snapshots reject truncate');
+SELECT throws_ok($$TRUNCATE council_meeting_snapshot CASCADE$$, 'HV125', NULL, 'snapshots reject truncate');
 SELECT throws_ok($$SELECT adjourn_council_agenda_item(test_uuid('snapshot:unknown'), NULL)$$,
  'HV230', NULL, 'adjournment requires an explicit timestamp');
 INSERT INTO council_meetings (id) VALUES

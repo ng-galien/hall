@@ -58,7 +58,6 @@ try {
       cwd: clientDirectory,
       env: {
         ...process.env,
-        DATABASE_KIND: "postgres",
         DATABASE_URL: testDatabaseUrl,
         DOCUMENT_STORAGE_PATH: join(temporaryDirectory, "documents"),
         HALL_DEV_AUTO_LOGIN: process.env.HALL_E2E_AUTH_MODE === "true" ? "false" : "true",

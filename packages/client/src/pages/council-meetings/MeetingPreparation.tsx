@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EntitySelect } from "../../components/search/EntitySelect";
 import { EditIcon, FileIcon, PlayIcon } from "../../components/icons";
 import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { MeetingEntryBlockers } from "../../features/council-meetings/MeetingEntryBlockers";
@@ -226,37 +226,15 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             <div className="form-grid">
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-chair`}>{t("meetings.chair")}</Label>
-                <Select name="chairMemberId" defaultValue={meeting.chairMemberId ?? undefined} required>
-                  <SelectTrigger className="w-full" id={`${detailsFieldId}-chair`} data-testid="meeting-edit-chair">
-                    <SelectValue placeholder={t("meetings.chairUndesignated")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rosterMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.contact.firstName} {member.contact.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+<EntitySelect type="member" name="chairMemberId" defaultValue={meeting.chairMemberId??""} testId="meeting-edit-chair" placeholder={t("meetings.chairUndesignated")}
+ options={rosterMembers.map(member=>({value:member.id,label:`${member.contact.firstName} ${member.contact.lastName}`}))}/>
+
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-secretary`}>{t("meetings.secretary")}</Label>
-                <Select name="secretaryMemberId" defaultValue={meeting.secretaryMemberId ?? undefined} required>
-                  <SelectTrigger
-                    className="w-full"
-                    id={`${detailsFieldId}-secretary`}
-                    data-testid="meeting-edit-secretary"
-                  >
-                    <SelectValue placeholder={t("meetings.secretaryUndesignated")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rosterMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.contact.firstName} {member.contact.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+<EntitySelect type="member" name="secretaryMemberId" defaultValue={meeting.secretaryMemberId??""} testId="meeting-edit-secretary" placeholder={t("meetings.secretaryUndesignated")}
+ options={rosterMembers.map(member=>({value:member.id,label:`${member.contact.firstName} ${member.contact.lastName}`}))}/>
+
               </div>
             </div>
             <Button

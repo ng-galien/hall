@@ -1,8 +1,6 @@
-import type { DatabaseKind } from "../../core/config.js";
+export type SqlDialect = "postgres";
 
-export type SqlDialect = DatabaseKind;
-
-type QueryTemplate = string | { default: string; sqlite?: string; postgres?: string };
+type QueryTemplate = string | { default: string; postgres: string };
 
 const agendaSelection = `SELECT
   agenda_items.id,

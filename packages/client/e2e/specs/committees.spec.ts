@@ -21,8 +21,8 @@ test("adds elected and non elected contacts to a committee and preserves a rank 
   const committee = (await created.json()).properties;
   await page.goto(`/app/council-committees/${committee.id}`);
   await page.getByTestId("committee-add-members").click();
-  await page.getByTestId(`committee-contact-option-${nonElected.id}`).click();
-  await page.getByTestId(`committee-contact-option-${members[0].contactId}`).click();
+  await page.getByTestId("committee-contact-search-result").and(page.locator(`[data-reference-id="${nonElected.id}"]`)).click();
+  await page.getByTestId("committee-contact-search-result").and(page.locator(`[data-reference-id="${members[0].contactId}"]`)).click();
   await page.getByTestId("committee-membership-start").fill("2026-09-10");
   await page.getByTestId("committee-add-role-member").click();
   await expect(page.getByTestId(`committee-membership-${nonElected.id}`)).toBeVisible();
@@ -81,7 +81,7 @@ test("assigns rapporteur primary and alternate committee qualities", async ({ ap
   const roles = ["rapporteur", "primary", "alternate"];
   for (const [index, role] of roles.entries()) {
     await page.getByTestId("committee-add-members").click();
-    await page.getByTestId(`committee-contact-option-${contacts[index].id}`).click();
+    await page.getByTestId("committee-contact-search-result").and(page.locator(`[data-reference-id="${contacts[index].id}"]`)).click();
     await page.getByTestId("committee-membership-start").fill("2026-09-10");
     if (index === 0)
       await page

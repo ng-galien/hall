@@ -95,13 +95,14 @@ postgresTest.each(["preparation", "default", "minutes"])(
       const associations = businesses.find((business: { title: string }) => business.title === "Équipes de soutien");
       const propertyResources = await get(`/council-business/${property.id}/resources`);
       const associationResources = await get(`/council-business/${associations.id}/resources`);
+      // @verifies-requirement HALL-FR-WSP-250
       const catalog = await get("/resources/catalog");
       expect(
         catalog.every(
           (resource: { path: string; kind: string; name: string }) =>
-            resource.path === "seed" ||
-            resource.path.startsWith("seed/") ||
-            (resource.kind === "folder" && resource.name === "seed" && resource.path === ""),
+            resource.path !== "seed" &&
+            !resource.path.startsWith("seed/") &&
+            !(resource.kind === "folder" && ["seed", "dossier-vide"].includes(resource.name) && resource.path === ""),
         ),
       ).toBe(true);
       expect(catalog.map((resource: { kind: string }) => resource.kind)).toEqual(
@@ -114,7 +115,7 @@ postgresTest.each(["preparation", "default", "minutes"])(
       expect(associationResources.some((entry: { resourceId: string }) => entry.resourceId === sharedRules.id)).toBe(
         true,
       );
-      expect(sharedRules.path).toBe("seed/reserves/abris");
+      expect(sharedRules.path).toBe("reserves/abris");
       const meetings = await get("/council-meetings");
       if (scenario === "preparation") {
         expect(meetings).toHaveLength(1);

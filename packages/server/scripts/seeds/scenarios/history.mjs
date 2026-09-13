@@ -130,12 +130,21 @@ export async function seedHistory(api, { roster, subjects, proxyDocument, meetin
     await post(`/council-meetings/${current.id}/agenda-items/${currentAgenda[1].id}/complete`, {
       completedAt: at(currentDate, 45),
     });
+    await post(`/council-meetings/${current.id}/agenda-items/${parking.id}/start`, {
+      startedAt: at(currentDate, 50),
+    });
+    await patch(`/council-meetings/${current.id}/agenda-items/${parking.id}/notes`, {
+      discussionSummary: discussions.pendingQuestion,
+    });
+    await post(`/council-meetings/${current.id}/agenda-items/${parking.id}/complete`, {
+      completedAt: at(currentDate, 65),
+    });
     const closure = await post(`/council-meetings/${current.id}/close`, { closedAt: new Date().toISOString() });
     const draft = await get(`/minutes/${closure.minutes.id}`);
     if (
       draft.generatedAt !== null ||
       draft.documentId !== null ||
-      !draft.sections.some((section) => section.content.includes("ses conclusion"))
+      !draft.sections.some((section) => section.content.includes("Points à reprendre dans le procès-verbal"))
     ) {
       throw new Error("Minutes seed must provide an editable draft containing the recorded discussion");
     }

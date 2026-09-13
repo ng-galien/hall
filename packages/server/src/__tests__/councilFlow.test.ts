@@ -238,7 +238,7 @@ describe("council flow", () => {
     expect(domainBody(aggregate).ballots[0]).not.toHaveProperty("votes");
   });
 
-  it("stores and classifies a supporting document in SQLite", async () => {
+  it("stores and classifies a supporting document in PostgreSQL", async () => {
     const { agent } = await createTestServer();
     const uploaded = await agent
       .post("/api/resources/documents")

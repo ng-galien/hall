@@ -2,32 +2,66 @@ import type { EventDocument } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
 import { useState } from "react";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { Autocomplete } from "../../components/ui/autocomplete";
+import { ResourceSearchField } from "../../components/search/ResourceSearchField";
+import { ReferenceBusinessContext } from "../../hooks/useReferenceMentionables";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useContactsStore } from "../../stores/contactsStore";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
+import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { localDateTime, nextDate, shiftDate } from "./eventDates";
 
+// @implements-requirement HALL-FR-CAL-120
+// @implements-requirement HALL-FR-CAL-140
+// @implements-requirement HALL-FR-CAL-150
+// @implements-requirement HALL-FR-CAL-160
+// @implements-requirement HALL-FR-CAL-170
+// @implements-requirement HALL-FR-CAL-100
+// @implements-requirement HALL-FR-CAL-110
+// @implements-requirement HALL-FR-CAL-130
 export function EventFields({
   value,
   onChange,
+  councilBusinessId = null,
+  onCouncilBusinessChange,
+  councilBusinessPending = false,
   readOnly = false,
 }: {
   value: EventDocument;
   onChange(value: EventDocument): void;
+  councilBusinessId?: string | null;
+  onCouncilBusinessChange?(value: string | null): void | Promise<void>;
+  councilBusinessPending?: boolean;
   readOnly?: boolean;
 }) {
   const { t } = useI18n();
   const contacts = useContactsStore((state) => state.contacts);
+  const businesses = useCouncilBusinessStore((state) => state.businesses);
+  const councilMembers = useCouncilMembersStore((state) => state.members);
   const [guest, setGuest] = useState("");
   const allDay = value.schedule.kind === "allDay";
   const updateDate = (field: "start" | "end", raw: string) => {
     if (!raw) return;
-    const next = allDay ? (field === "end" ? nextDate(raw) : raw) : new Date(raw).toISOString();
-    onChange({ ...value, schedule: { ...value.schedule, [field]: next } });
+    const schedule = matchDiscriminated(value.schedule, "kind", {
+      allDay: (current) => ({ ...current, [field]: field === "end" ? nextDate(raw) : raw }),
+      timed: (current) => {
+        const next = new Date(raw).toISOString();
+        const updated = { ...current, [field]: next };
+        const enteredDate = new Date(next);
+        const followsQuarterHourStep = enteredDate.getSeconds() === 0 && enteredDate.getMinutes() % 15 === 0;
+        if (!followsQuarterHourStep) return updated;
+        if (field === "start" && Date.parse(updated.end) <= Date.parse(next)) {
+          const midnight = new Date(next);
+          midnight.setHours(24, 0, 0, 0);
+          updated.end = new Date(Math.min(Date.parse(next) + 60 * 60 * 1000, midnight.getTime())).toISOString();
+        }
+        return updated;
+      },
+    });
+    onChange({ ...value, schedule });
   };
   return (
     <div className="event-fields">
@@ -58,6 +92,7 @@ export function EventFields({
             id="event-start"
             data-testid="event-start"
             type={allDay ? "date" : "datetime-local"}
+            step={allDay ? undefined : 900}
             readOnly={readOnly}
             value={allDay ? value.schedule.start : localDateTime(value.schedule.start)}
             onChange={(event) => updateDate("start", event.target.value)}
@@ -69,12 +104,20 @@ export function EventFields({
             id="event-end"
             data-testid="event-end"
             type={allDay ? "date" : "datetime-local"}
+            step={allDay ? undefined : 900}
             readOnly={readOnly}
             value={allDay ? shiftDate(value.schedule.end, -1) : localDateTime(value.schedule.end)}
             onChange={(event) => updateDate("end", event.target.value)}
           />
         </div>
       </div>
+      {onCouncilBusinessChange ? <div>
+        <Label htmlFor="event-council-business">{t("calendar.councilBusiness")}</Label>
+        <ResourceSearchField testId="event-council-business" label={businesses.find(business=>business.id===councilBusinessId)?.title??t("calendar.noCouncilBusiness")}
+          scope={{types:["councilBusiness"]}} disabled={readOnly||councilBusinessPending} onPick={item=>void onCouncilBusinessChange(item.id)}
+          onClear={()=>void onCouncilBusinessChange(null)} clearLabel={t("calendar.noCouncilBusiness")}/>
+
+      </div> : null}
       <div>
         <Label htmlFor="event-location">{t("calendar.location")}</Label>
         <Input
@@ -121,22 +164,25 @@ export function EventFields({
         </div>
         {!readOnly && (
           <>
-            <Autocomplete
-              testId="event-contact"
-              label={t("calendar.contact")}
-              placeholder={t("calendar.addContact")}
-              options={contacts
-                .filter(
-                  (contact) =>
-                    !value.participants.some(
-                      (participant) => participant.kind === "contact" && participant.contactId === contact.id,
-                    ),
-                )
-                .map((contact) => ({ value: contact.id, label: `${contact.firstName} ${contact.lastName}` }))}
-              onSelect={(contactId) =>
-                onChange({ ...value, participants: [...value.participants, { kind: "contact", contactId }] })
-              }
-            />
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="event-add-council-members"
+              onClick={() => {
+                const existing = new Set(
+                  value.participants.flatMap((participant) => participant.kind === "contact" ? [participant.contactId] : []),
+                );
+                const additions = councilMembers
+                  .filter((member) => member.active && !existing.has(member.contactId))
+                  .map((member) => ({ kind: "contact" as const, contactId: member.contactId }));
+                onChange({ ...value, participants: [...value.participants, ...additions] });
+              }}
+            >
+              {t("calendar.addCouncilMembers")}
+            </Button>
+            <ResourceSearchField testId="event-contact" label={t("calendar.addContact")}
+              scope={{types:["contact"],excludedIds:value.participants.flatMap(participant=>participant.kind==="contact"?[participant.contactId]:[])}}
+              onPick={item=>onChange({...value,participants:[...value.participants,{kind:"contact",contactId:item.id}]})}/>
             <div className="flex gap-2">
               <Input
                 data-testid="event-guest"
@@ -158,16 +204,28 @@ export function EventFields({
             </div>
           </>
         )}
+        {(() => {
+          const missing = value.participants.flatMap((participant) => {
+            if (participant.kind !== "contact") return [];
+            const contact = contacts.find((entry) => entry.id === participant.contactId);
+            return contact && !contact.email ? [`${contact.firstName} ${contact.lastName}`] : [];
+          });
+          return missing.length > 0 ? (
+            <p role="alert" data-testid="event-missing-email-warning">
+              {t("calendar.missingEmails").replace("{names}", missing.join(", "))}
+            </p>
+          ) : null;
+        })()}
       </div>
       <div>
         <Label>{t("calendar.context")}</Label>
-        <MarkdownEditor
+        <ReferenceBusinessContext.Provider value={councilBusinessId??undefined}><MarkdownEditor
           title={t("calendar.context")}
           markdown={value.content}
           onChange={(content) => onChange({ ...value, content })}
           readOnly={readOnly}
           variant="compact"
-        />
+        /></ReferenceBusinessContext.Provider>
       </div>
     </div>
   );

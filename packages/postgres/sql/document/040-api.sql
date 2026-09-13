@@ -200,13 +200,21 @@ AS $function$
 $function$;
 
 -- @requirement-reference HALL-FR-DOC-210 RESOURCE_HYDRATION_IS_SCOPED:
+-- @implements-requirement HALL-FR-SRC-010
+-- @implements-requirement HALL-FR-SRC-020
 CREATE FUNCTION hall_api.search_resources(
   search_query TEXT DEFAULT '',
   search_paths TEXT[] DEFAULT ARRAY[]::TEXT[],
   search_kinds TEXT[] DEFAULT ARRAY[]::TEXT[],
   search_tags TEXT[] DEFAULT ARRAY[]::TEXT[],
   search_readiness TEXT[] DEFAULT ARRAY[]::TEXT[],
-  search_media TEXT[] DEFAULT ARRAY[]::TEXT[]
+  search_media TEXT[] DEFAULT ARRAY[]::TEXT[],
+  search_offset INTEGER DEFAULT 0,
+  search_limit INTEGER DEFAULT 100,
+  search_context TEXT DEFAULT '',
+  preferred_ids UUID[] DEFAULT ARRAY[]::UUID[],
+  excluded_ids UUID[] DEFAULT ARRAY[]::UUID[],
+  included_ids UUID[] DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -219,6 +227,7 @@ DECLARE
   has_criteria BOOLEAN;
   items JSONB;
   facets JSONB;
+  match_count INTEGER := 0;
 BEGIN
   IF search_query IS NULL OR length(search_query) > 200
      OR search_paths IS NULL OR search_kinds IS NULL OR search_tags IS NULL
@@ -236,6 +245,11 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE = 'HV607', MESSAGE = 'Resource search criteria are invalid';
   END IF;
 
+  IF search_offset IS NULL OR search_offset < 0 OR search_limit IS NULL OR search_limit < 1 OR search_limit > 100
+     OR search_context IS NULL OR NOT hall.is_normalized_resource_path(search_context)
+     OR preferred_ids IS NULL OR excluded_ids IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV607', MESSAGE = 'Resource search pagination is invalid';
+  END IF;
   normalized_query := hall.normalize_resource_search(search_query);
   has_criteria := normalized_query <> ''
     OR cardinality(search_paths) > 0
@@ -245,44 +259,37 @@ BEGIN
     OR cardinality(search_media) > 0;
 
   IF has_criteria THEN
-    SELECT coalesce(
-      jsonb_agg(hall.resource_presentation(read_model) ORDER BY read_model.name, read_model.id),
-      '[]'::jsonb
+    WITH matched AS (
+      SELECT read_model.*,
+        (CASE WHEN hall.normalize_resource_search(read_model.name) = normalized_query THEN 1000 ELSE 0 END
+         + coalesce((SELECT sum(CASE
+             WHEN term = ANY(regexp_split_to_array(hall.normalize_resource_search(read_model.name), '[^[:alnum:]]+')) THEN 3
+             WHEN EXISTS (SELECT FROM unnest(regexp_split_to_array(hall.normalize_resource_search(read_model.name), '[^[:alnum:]]+')) word WHERE starts_with(word, term)) THEN 2
+             ELSE 1 END)
+           FROM unnest(regexp_split_to_array(normalized_query, ' +')) term WHERE term <> ''), 0)) AS quality,
+        CASE WHEN read_model.id = ANY(preferred_ids) THEN 1 ELSE 0 END AS preferred,
+        CASE WHEN search_context = '' THEN 0 WHEN read_model.path = search_context THEN 2
+          WHEN starts_with(read_model.path, search_context || '/') OR starts_with(search_context, read_model.path || '/') THEN 1 ELSE 0 END AS proximity
+      FROM hall.resource_read_model read_model
+      WHERE read_model.kind <> 'folder'
+          AND (included_ids IS NULL OR read_model.id=ANY(included_ids))
+        AND NOT (read_model.id = ANY(excluded_ids))
+        AND (cardinality(search_kinds) = 0 OR read_model.kind = ANY(search_kinds))
+        AND (cardinality(search_paths) = 0 OR EXISTS (SELECT FROM unnest(search_paths) selected_path
+          WHERE selected_path = '' OR read_model.path = selected_path OR starts_with(read_model.path, selected_path || '/')))
+        AND (cardinality(search_tags) = 0 OR read_model.tags ?& search_tags)
+        AND (cardinality(search_readiness) = 0 OR read_model.readiness = ANY(search_readiness))
+        AND (cardinality(search_media) = 0 OR ('image' = ANY(search_media) AND read_model.binary ->> 'mediaType' LIKE 'image/%'))
+        AND NOT EXISTS (SELECT FROM unnest(regexp_split_to_array(normalized_query, ' +')) term
+          WHERE term <> '' AND strpos(hall.normalize_resource_search(read_model.name), term) = 0)
+    ), page AS (
+      SELECT * FROM matched ORDER BY quality DESC, preferred DESC, proximity DESC, name, id
+      LIMIT search_limit OFFSET search_offset
     )
-    INTO items
-    FROM hall.resource_read_model AS read_model
-    WHERE read_model.kind <> 'folder'
-      AND (cardinality(search_kinds) = 0 OR read_model.kind = ANY(search_kinds))
-      AND (
-        cardinality(search_paths) = 0
-        OR EXISTS (
-          SELECT
-          FROM unnest(search_paths) AS selected_path
-          WHERE selected_path = ''
-             OR read_model.path = selected_path
-             OR starts_with(read_model.path, selected_path || '/')
-        )
-      )
-      AND (cardinality(search_tags) = 0 OR read_model.tags ?& search_tags)
-      AND (cardinality(search_readiness) = 0 OR read_model.readiness = ANY(search_readiness))
-      AND (
-        cardinality(search_media) = 0
-        OR ('image' = ANY(search_media) AND read_model.binary ->> 'mediaType' LIKE 'image/%')
-      )
-      AND (
-        normalized_query = ''
-        OR NOT EXISTS (
-          SELECT
-          FROM unnest(regexp_split_to_array(normalized_query, ' +')) AS term
-          WHERE term <> ''
-            AND strpos(
-              hall.normalize_resource_search(
-                read_model.name || ' ' || read_model.path || ' ' || read_model.tags::TEXT
-              ),
-              term
-            ) = 0
-        )
-      );
+    SELECT (SELECT count(*) FROM matched), coalesce((SELECT jsonb_agg(
+      hall.resource_presentation(base) ORDER BY page.quality DESC, page.preferred DESC, page.proximity DESC, page.name, page.id)
+      FROM page JOIN hall.resource_read_model base ON base.id = page.id), '[]'::jsonb)
+    INTO match_count, items;
   ELSE
     items := '[]'::jsonb;
   END IF;
@@ -293,6 +300,9 @@ BEGIN
         SELECT DISTINCT read_model.path AS path
         FROM hall.resource_read_model AS read_model
         WHERE read_model.kind <> 'folder'
+          AND (included_ids IS NULL OR read_model.id=ANY(included_ids))
+          AND (cardinality(search_kinds)=0 OR read_model.kind=ANY(search_kinds))
+          AND NOT (read_model.id=ANY(excluded_ids))
       ) AS available_paths),
       '[]'::jsonb
     ),
@@ -301,6 +311,9 @@ BEGIN
         SELECT DISTINCT jsonb_array_elements_text(read_model.tags) AS tag
         FROM hall.resource_read_model AS read_model
         WHERE read_model.kind <> 'folder'
+          AND (included_ids IS NULL OR read_model.id=ANY(included_ids))
+          AND (cardinality(search_kinds)=0 OR read_model.kind=ANY(search_kinds))
+          AND NOT (read_model.id=ANY(excluded_ids))
       ) AS available_tags),
       '[]'::jsonb
     ),
@@ -309,6 +322,9 @@ BEGIN
         SELECT DISTINCT read_model.readiness
         FROM hall.resource_read_model AS read_model
         WHERE read_model.kind <> 'folder'
+          AND (included_ids IS NULL OR read_model.id=ANY(included_ids))
+          AND (cardinality(search_kinds)=0 OR read_model.kind=ANY(search_kinds))
+          AND NOT (read_model.id=ANY(excluded_ids))
       ) AS available_readiness),
       '[]'::jsonb
     ),
@@ -320,7 +336,7 @@ BEGIN
   )
   INTO facets;
 
-  RETURN jsonb_build_object('items', items, 'facets', facets);
+  RETURN jsonb_build_object('items', items, 'total', match_count, 'facets', facets);
 END
 $function$;
 
@@ -686,6 +702,7 @@ DECLARE
   target hall.resource;
   source_full_path TEXT;
   destination_full_path TEXT;
+  descendant RECORD;
 BEGIN
   PERFORM hall.lock_resource_namespace();
   PERFORM hall.require_folder_path(destination_path);
@@ -725,10 +742,17 @@ BEGIN
   WHERE id = resource_id;
 
   IF target.is_folder THEN
-    UPDATE hall.resource
-    SET path = destination_full_path || substr(path, length(source_full_path) + 1)
-    WHERE path = source_full_path
-       OR starts_with(path, source_full_path || '/');
+    -- Move ancestors first so every owned text observes its owner's new path,
+    -- independent of insertion order or the query planner's row order.
+    FOR descendant IN
+      SELECT id, path FROM hall.resource
+      WHERE path = source_full_path OR starts_with(path, source_full_path || '/')
+      ORDER BY length(path), is_folder DESC, id
+    LOOP
+      UPDATE hall.resource
+      SET path = destination_full_path || substr(descendant.path, length(source_full_path) + 1)
+      WHERE id = descendant.id;
+    END LOOP;
   END IF;
 
   RETURN hall.resource_detail(resource_id);

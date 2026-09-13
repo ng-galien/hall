@@ -3,7 +3,7 @@
 État du 6 septembre 2026. Le [registre global des exigences](requirements.md)
 sépare les règles réglementaires, leurs interprétations et les choix produit.
 Les métadonnées versionnées figurent dans
-[requirements.json](../packages/postgres/requirements.json).
+[catalogue des exigences](../requirements/catalog.json).
 
 ## Tranche implémentée : déclarations nominales de déport
 

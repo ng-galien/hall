@@ -382,6 +382,7 @@ export function createTestCouncilClient(
               kind: entry.subject.kind,
               report: "",
               proposal: null,
+              discussionSummary: entry.discussionSummary,
               startedAt: entry.startedAt,
               completedAt: entry.completedAt,
               adjournedAt: entry.adjournedAt,

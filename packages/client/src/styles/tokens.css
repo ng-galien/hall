@@ -178,6 +178,7 @@
   --hall-size-card: 120px;
   --hall-size-vote-zone-min: 120px;
   --hall-size-markdown-min: 120px;
+  --hall-size-editor-compact-min: 88px;
   --hall-size-search-field-min: 120px;
   --hall-size-rollcall-tile-height: 120px;
   --hall-size-pin-title: 180px;
@@ -209,6 +210,7 @@
   --hall-size-table-column-max: 600px;
   --hall-size-dialog-height-max: 640px;
   --hall-size-modal: 680px;
+  --hall-size-modal-wide: 900px;
   --hall-size-embed-height-max: 680px;
   --hall-size-application-min: 720px;
   --hall-size-editor-pdf-preview-max: 900px;

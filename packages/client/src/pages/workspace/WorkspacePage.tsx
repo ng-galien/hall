@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { LoadingIndicator } from "../../components/ui/loading-indicator";
 import { emptyEventDocument } from "../../features/calendar/eventDates";
 import {
   BusinessBundleExportDialog,
@@ -38,13 +39,13 @@ import { isUnderPath } from "./paths";
 import { ResourceWorkbench } from "./ResourceWorkbench";
 import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb";
 import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
-import { WorkspaceHome } from "./WorkspaceHome";
 import { emptySearch, isSearchActive, WorkspaceSearch, type WorkspaceSearchState } from "./WorkspaceSearch";
 import type { WorkspaceCreateKind } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 
 export type { WorkspaceSelection } from "./workspaceItemReference";
 
+/** @implements-requirement HALL-FR-WSP-270 */
 export function WorkspacePage() {
   const { locale, t } = useI18n();
   const { submitting, run } = useSubmitting();
@@ -382,9 +383,7 @@ export function WorkspacePage() {
           </p>
         ) : null}
         {submitting ? (
-          <span className="spinner" role="status" data-testid="workspace-import-progress">
-            {t("common.saving")}
-          </span>
+          <LoadingIndicator data-testid="workspace-import-progress">{t("common.saving")}</LoadingIndicator>
         ) : null}
         <div className="workspace-topzone">
           <div className="workspace-bar-row">
@@ -484,24 +483,20 @@ export function WorkspacePage() {
               />
             </header>
             <div className="workspace-container-body">
-              {path ? (
-                <PathContents
-                  path={path}
-                  businesses={pathBusinesses}
-                  resources={pathResources}
-                  selection={selection}
-                  onSelect={select}
-                  onImportFolder={importFolder}
-                  onDeleteBusiness={setDeleteBusiness}
-                  onImportBundle={() => setImportBundleOpen(true)}
-                  onExportBundle={(business) => setExportBundleId(business.id)}
-                  onCreate={createInFolder}
-                  onPreview={(resource) => select({ kind: "resource", id: resource.id })}
-                  hidden={Boolean(selectedBusiness || selection?.kind === "resource")}
-                />
-              ) : selectedBusiness || selection?.kind === "resource" ? null : (
-                <WorkspaceHome onSelect={select} />
-              )}
+              <PathContents
+                path={path}
+                businesses={pathBusinesses}
+                resources={pathResources}
+                selection={selection}
+                onSelect={select}
+                onImportFolder={importFolder}
+                onDeleteBusiness={setDeleteBusiness}
+                onImportBundle={() => setImportBundleOpen(true)}
+                onExportBundle={(business) => setExportBundleId(business.id)}
+                onCreate={createInFolder}
+                onPreview={(resource) => select({ kind: "resource", id: resource.id })}
+                hidden={Boolean(selectedBusiness || selection?.kind === "resource")}
+              />
               {selectedBusiness || selection?.kind === "resource" ? (
                 <section className="workspace-bench workspace-bench-full" aria-label={t("workspace.bench")}>
                   {selectedBusiness ? (

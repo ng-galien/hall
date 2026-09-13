@@ -8,10 +8,11 @@ import { validateRequirements } from "./check-requirements.mjs";
 function fixture(fn) {
   const root=mkdtempSync(join(tmpdir(),"hall-requirements-"));
   mkdirSync(join(root,"packages/server/src"),{recursive:true});
+  mkdirSync(join(root,"backlog"),{recursive:true});
   const file=join(root,"packages/server/src/model.ts");
   writeFileSync(file,"// @functional-requirement HALL-FR-LOC-010 LOCATION_BELONGS_TO_HALL:\n");
   const source={kind:"legislation",citation:"CGCT L2121-17",localization:"alinéa 1",url:"https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389875",versionId:"LEGIARTI000006389875",validFrom:"1996-02-24",verifiedAt:"2026-09-06",asOf:"2026-09-06",scope:"Ordinary quorum"};
-  const registry={schemaVersion:1,sources:{S1:source},requirements:{"HALL-FR-LOC-010":{name:"LOCATION_BELONGS_TO_HALL",nature:"functional",clauses:[{key:"storage",origin:"product",statement:"Hall ownership",sourceIds:[]}]}}};
+  const registry={schemaVersion:2,taxonomy:{themes:{locations:{label:"Lieux",description:"Lieux de Hall"}},prefixThemes:{LOC:"locations"},requirementThemes:{}},sources:{S1:source},requirements:{"HALL-FR-LOC-010":{name:"LOCATION_BELONGS_TO_HALL",nature:"functional",lifecycle:{state:"accepted",since:"2026-09-06"},statement:"Le lieu appartient à Hall.",acceptanceCriteria:["Un lieu créé dans Hall appartient à ce Hall."],clauses:[{key:"storage",origin:"product",statement:"Hall ownership",sourceIds:[]}]}}};
   try {fn({root,file,registry,entry:registry.requirements["HALL-FR-LOC-010"]});} finally {rmSync(root,{recursive:true,force:true});}
 }
 test("discovers embedded TypeScript SQL requirements and explicit same-name references",()=>fixture(({root,file,registry})=>{
@@ -31,9 +32,9 @@ test("reports unproven legal propositions without pretending that structural suc
   entry.clauses=[{key:"legal",origin:"regulatory",statement:"Unsettled interpretation",sourceIds:["S1"],assessment:"unproven",interpretation:"interpreted"}];
   const result=validateRequirements(root,registry);assert.deepEqual(result.errors,[]);assert.equal(result.unproven.length,1);
 }));
-test("rejects orphan metadata and conflicting identity",()=>fixture(({root,file,registry})=>{
+test("accepts planned catalog entries and rejects conflicting implemented identity",()=>fixture(({root,file,registry})=>{
   writeFileSync(file,"// @functional-requirement HALL-FR-LOC-020 DIFFERENT:\n");
-  assert.match(validateRequirements(root,registry).errors.join("\n"),/orphan metadata/);
+  assert.match(validateRequirements(root,registry).errors.join("\n"),/unknown requirement/);
   writeFileSync(file,"// @functional-requirement HALL-FR-LOC-010 DIFFERENT:\n");
   assert.match(validateRequirements(root,registry).errors.join("\n"),/identity differs/);
 }));
@@ -55,4 +56,28 @@ test("rejects sources later than the legal date or verification date",()=>fixtur
 test("rejects malformed explicit references instead of silently dropping them",()=>fixture(({root,file,registry})=>{
   writeFileSync(file,"// @functional-requirement HALL-FR-LOC-010 LOCATION_BELONGS_TO_HALL:\n// @requirement-reference HALL-FR-LOC-010 missing-name\n");
   assert.match(validateRequirements(root,registry).errors.join("\n"),/malformed/);
+}));
+test("collects simplified implementation, verification and backlog tracking evidence",()=>fixture(({root,file,registry})=>{
+  mkdirSync(join(root,"packages/client/e2e"),{recursive:true});
+  mkdirSync(join(root,"backlog"),{recursive:true});
+  writeFileSync(file,"// @implements-requirement HALL-FR-LOC-010\n");
+  writeFileSync(join(root,"packages/client/e2e/location.spec.ts"),"// @verifies-requirement HALL-FR-LOC-010\n");
+  writeFileSync(join(root,"backlog/backlog.md"),"<!-- @tracks-requirement HALL-FR-LOC-010 -->\n");
+  const result=validateRequirements(root,registry);
+  assert.deepEqual(result.errors,[]);
+  assert.equal(result.implementations,1);
+  assert.equal(result.verifications,1);
+  assert.equal(result.tracked,1);
+}));
+test("requires every catalog entry to resolve to a declared theme",()=>fixture(({root,registry})=>{
+  registry.taxonomy.prefixThemes={};
+  assert.match(validateRequirements(root,registry).errors.join("\n"),/no theme classification/);
+}));
+test("requires the same descriptive structure for every catalog entry",()=>fixture(({root,registry,entry})=>{
+  for (const field of ["statement", "acceptanceCriteria", "lifecycle"]) {
+    const value=entry[field];
+    delete entry[field];
+    assert.throws(()=>validateRequirements(root,registry));
+    entry[field]=value;
+  }
 }));

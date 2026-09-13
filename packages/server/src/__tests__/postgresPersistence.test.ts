@@ -188,11 +188,17 @@ postgres("PostgreSQL persistence", () => {
         reportResourceId: expect.any(String),
       });
       expect((businessRepresentation.actions ?? []).map(({ name }) => name)).toEqual([
+        "resource.create",
+        "resource.import-spreadsheet",
+        "resource.create-document",
         "council-business.associate-resource",
         "council-business.dissociate-resource",
         "council-business.reorder-resources",
+        "council-business.create-prepared-subject",
         "council-business.schedule-decision-proposal",
         "council-business.schedule-open-question",
+        "council-business.export-bundle",
+        "council-business.delete",
       ]);
 
       const businessListResponse = await fetch(`${server.url}/api/council-business`);
@@ -719,17 +725,6 @@ postgres("PostgreSQL persistence", () => {
 
       const meetingId = randomUUID();
       await setup.query("INSERT INTO hall.council_meetings (id) VALUES ($1)", [meetingId]);
-      for (const memberId of memberIds) {
-        await setup.query(
-          `INSERT INTO hall.meeting_attendance (id, council_member, council_meeting, status)
-           VALUES (gen_random_uuid(), $1, $2, 'present')`,
-          [memberId, meetingId],
-        );
-      }
-      const attendances = await setup.query<{ id: string }>(
-        "SELECT id::text FROM hall.meeting_attendance WHERE council_meeting = $1 ORDER BY council_member",
-        [meetingId],
-      );
       const agenda = await setup.query<{ item: { id: string } }>(
         "SELECT hall_api.schedule_council_decision_proposal($1, $2, 2) AS item",
         [business.properties.id, meetingId],
@@ -756,17 +751,32 @@ postgres("PostgreSQL persistence", () => {
         "SELECT hall_api.schedule_council_meeting($1, TIMESTAMPTZ '2026-01-12 08:30:00+00', 'Council chamber')",
         [meetingId],
       );
-      await setup.query("SELECT hall_api.set_council_meeting_officers($1, $2, $3)", [
-        meetingId,
-        memberIds[0],
-        memberIds[1],
-      ]);
       await setup.query("SELECT set_config('hall.actor_id','persistence-test',false)");
+      await setup.query("SELECT hall_api.freeze_council_agenda($1)", [meetingId]);
       await setup.query(
-        "SELECT hall_api.record_meeting_membership($1, TIMESTAMPTZ '2026-01-12 08:30:00+00', 'Explicit fixture mandate roster', $2::uuid[])",
-        [meetingId, memberIds],
+        `SELECT hall_api.generate_meeting_notice(
+          $1,
+          jsonb_build_object(
+            'meeting', hall_api.meeting_notice_facts($1),
+            'hall', jsonb_build_object('name', 'Fixture commune', 'timeZone', 'Europe/Paris')
+          ),
+          convert_to('%PDF-persistence-fixture', 'UTF8')
+        )`,
+        [meetingId],
       );
-      await setup.query("SELECT hall_api.start_council_meeting($1, TIMESTAMPTZ '2026-01-12 09:00:00+00')", [meetingId]);
+      await setup.query(
+        "SELECT hall_api.record_meeting_opening($1, TIMESTAMPTZ '2026-01-12 09:00:00+00', $2::jsonb, $3, $4)",
+        [
+          meetingId,
+          JSON.stringify(memberIds.map((councilMemberId) => ({ council_member_id: councilMemberId, status: "present" }))),
+          memberIds[0],
+          memberIds[1],
+        ],
+      );
+      const attendances = await setup.query<{ id: string }>(
+        "SELECT id::text FROM hall.meeting_attendance WHERE council_meeting = $1 ORDER BY council_member",
+        [meetingId],
+      );
       await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-01-12 09:01:00+00')", [
         openQuestionAgendaItemId,
       ]);

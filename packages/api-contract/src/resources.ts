@@ -436,8 +436,18 @@ export const updateResourceContentSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
+export const eventInvitationMethodSchema = z.enum(["request", "cancel"]);
+export const generateEventInvitationSchema = z.object({ method: eventInvitationMethodSchema }).strict();
+
 export const resourceSearchMediaSchema = z.enum(["image"]);
+// @implements-requirement HALL-FR-SRC-020
 export const resourceSearchCriteriaSchema = z.object({
+  offset: z.number().int().min(0).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+  context: resourcePathSchema.optional(),
+  preferredIds: z.array(resourceIdSchema).optional(),
+  excludedIds: z.array(resourceIdSchema).optional(),
+  includedIds: z.array(resourceIdSchema).optional(),
   query: z.string().max(200).default(""),
   paths: z.array(resourcePathSchema).default([]),
   kinds: z.array(resourceKindSchema).default([]),
@@ -446,6 +456,7 @@ export const resourceSearchCriteriaSchema = z.object({
   media: z.array(resourceSearchMediaSchema).default([]),
 });
 export const resourceSearchResultSchema = z.object({
+  total: z.number().int().nonnegative(),
   items: z.array(resourceSummarySchema),
   facets: z.object({
     paths: z.array(resourcePathSchema),
@@ -464,6 +475,7 @@ export type CreateResource = z.infer<typeof createResourceSchema>;
 export type RelocateResource = z.infer<typeof relocateResourceSchema>;
 export type UpdateResourceMetadata = z.infer<typeof updateResourceMetadataSchema>;
 export type UpdateResourceContent = z.infer<typeof updateResourceContentSchema>;
+export type GenerateEventInvitation = z.infer<typeof generateEventInvitationSchema>;
 export type ResourceSearchCriteria = z.infer<typeof resourceSearchCriteriaSchema>;
 export type ResourceSearchResult = z.infer<typeof resourceSearchResultSchema>;
 export type EditorAsset = z.infer<typeof editorAssetSchema>;

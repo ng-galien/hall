@@ -21,7 +21,7 @@ try {
 }
 console.log("PDF engine verified.");
 const child = spawn("npm", ["run", "dev"], {
-  env: { ...process.env, DATABASE_KIND: "postgres", DATABASE_URL: config.databaseUrl },
+  env: { ...process.env, DATABASE_URL: config.databaseUrl },
   stdio: "inherit",
   detached: true,
 });

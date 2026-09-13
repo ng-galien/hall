@@ -117,6 +117,7 @@ export const postgresResourceSummarySchema = z.discriminatedUnion("kind", [
   documentResourceSummarySchema,
 ]);
 export const postgresResourceSearchResultSchema = z.object({
+  total: z.number().int().nonnegative(),
   items: z.array(postgresResourceSummarySchema),
   facets: z.object({
     paths: z.array(resourcePathSchema),
@@ -183,6 +184,12 @@ export type PostgresDocumentResource = z.infer<typeof documentResourceSchema>;
 
 export type PostgresResourceRequest = PostgresRequest;
 export type PostgresResourceSearchCriteria = Readonly<{
+  offset?: number;
+  limit?: number;
+  context?: string;
+  preferredIds?: readonly string[];
+  excludedIds?: readonly string[];
+  includedIds?: readonly string[];
   query: string;
   paths: readonly string[];
   kinds: readonly PostgresResourceKind[];
@@ -508,7 +515,7 @@ export class PostgresResources {
             $3::text[],
             $4::text[],
             $5::text[],
-            $6::text[]
+            $6::text[], $7::integer, $8::integer, $9::text, $10::uuid[], $11::uuid[], $12::uuid[]
           )
         ) AS payload`,
         values: [
@@ -518,6 +525,8 @@ export class PostgresResources {
           [...criteria.tags],
           [...criteria.readiness],
           [...criteria.media],
+          criteria.offset ?? 0, criteria.limit ?? 100, criteria.context ?? "",
+          [...(criteria.preferredIds ?? [])], [...(criteria.excludedIds ?? [])], criteria.includedIds === undefined ? null : [...criteria.includedIds],
         ],
       },
       presentedResourceSearchSchema,

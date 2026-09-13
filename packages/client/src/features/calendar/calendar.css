@@ -5,6 +5,8 @@
 .calendar-legend { display: flex; gap: 1rem; font-size: .8rem; color: var(--hall-color-text-muted); }
 .calendar-legend span::before { content: ''; display: inline-block; width: .5rem; height: .5rem; margin-right: .4rem; border-radius: 50%; background: var(--hall-color-brand); }
 .calendar-legend .calendar-legend-council::before { background: var(--hall-color-council-business); }
+.hall-calendar .hall-calendar-appointment,
+.hall-calendar .hall-calendar-council { cursor: pointer; }
 .hall-calendar .hall-calendar-council { --fc-event-bg-color: var(--hall-color-council-business); --fc-event-border-color: var(--hall-color-council-business); }
 .hall-calendar { --fc-border-color: var(--hall-color-border); --fc-event-bg-color: var(--hall-color-brand); --fc-event-border-color: var(--hall-color-brand); --fc-page-bg-color: var(--hall-color-surface); }
 .calendar-undated { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; border-top: 1px solid var(--hall-color-border); }

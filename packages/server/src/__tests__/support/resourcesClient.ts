@@ -119,7 +119,7 @@ export function createTestResourcesClient(): ResourcesClient {
       const items = [...resources.values()]
         .filter((resource) => !query || resource.name.toLocaleLowerCase().includes(query))
         .map(summary);
-      const data: ResourceSearchResult = { items, facets: { paths: [], tags: [], readiness: [], media: [] } };
+      const data: ResourceSearchResult = { total:items.length, items:items.slice(criteria.offset??0,(criteria.offset??0)+(criteria.limit??100)), facets: { paths: [], tags: [], readiness: [], media: [] } };
       return {
         data,
         representation: {

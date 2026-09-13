@@ -19,6 +19,10 @@ Une garde qui valide une précondition ou filtre une collection n’est pas un d
 
 Le contrôle `npm run check:architecture` analyse l’AST de tous les fichiers TypeScript des packages et refuse les `switch`. Code Moniker ne représente pas actuellement ces nœuds de contrôle, ce contrôle syntaxique complète donc ses règles de dépendance et d’autorité. Une exception ne doit pas être contournée localement : elle exige de revoir le modèle fermé ou l’autorité de dispatch.
 
+Les hooks post-édition Codex et Claude appellent ce même contrôle AST sur les fichiers TypeScript signalés par l'outil, avant Code Moniker. Ils signalent une violation après l'écriture ; ils ne restaurent pas le fichier et ne couvrent pas les écritures effectuées hors des outils déclarés dans leur configuration. Le contrôle global reste obligatoire avant de déclarer le travail terminé.
+
+`npm run test:architecture`, inclus dans `check:architecture`, vérifie aussi les contrôles eux-mêmes avec des sources temporaires conformes et volontairement invalides, sans modifier l'application en cours. Il lance le contrôle de types du domaine : les contre-exemples de `packages/domain/src/match.test.ts` doivent rester refusés par TypeScript pour chacun des matchers et pour les listes exhaustives. Vitest seul ne prouve pas cette propriété de compilation.
+
 ## Frontières et données externes
 
 L’exhaustivité TypeScript ne valide pas les données d’exécution. Les valeurs venant de HTTP, de la base, d’un fichier ou du stockage navigateur sont validées à leur frontière, puis manipulées comme unions fermées à l’intérieur du système.

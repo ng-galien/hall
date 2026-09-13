@@ -65,6 +65,7 @@ export const apiCommandPolicies = {
   "resource.relocate": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.update-metadata": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.update-content": { permissions: workspaceWrite, auditTargetType: "resource" },
+  "resource.generate-event-invitation": { permissions: workspaceRead, auditTargetType: "resource" },
   "resource.replace-document-content": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.import-spreadsheet": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.search-legal-references": { permissions: workspaceRead, auditTargetType: null },

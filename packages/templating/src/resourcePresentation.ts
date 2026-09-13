@@ -1,6 +1,10 @@
 import { matchDiscriminated, type Resource } from "@hall/domain";
 import type { ResourcePresentationKind } from "./grammar.js";
 
+type ResourcePresentationSource = {
+  [Kind in Resource["kind"] | "event"]: Kind extends "document" ? { kind: Kind; mediaType: string } : { kind: Kind };
+}[Resource["kind"] | "event"];
+
 interface ResourcePresentationPolicy {
   preferred: ResourcePresentationKind | null;
   compatibility: Record<ResourcePresentationKind, boolean>;
@@ -17,8 +21,9 @@ const noPresentationCompatibility = {
   table: false,
 } satisfies Record<ResourcePresentationKind, boolean>;
 
-function resourcePresentationPolicy(resource: Resource): ResourcePresentationPolicy {
+function resourcePresentationPolicy(resource: ResourcePresentationSource): ResourcePresentationPolicy {
   return matchDiscriminated(resource, "kind", {
+    event: () => ({ preferred: "event" as const, compatibility: { ...noPresentationCompatibility, event: true } }),
     text: () => ({ preferred: "text" as const, compatibility: { ...noPresentationCompatibility, text: true } }),
     remote: () => ({
       preferred: "link" as const,
@@ -39,7 +44,7 @@ function resourcePresentationPolicy(resource: Resource): ResourcePresentationPol
     document: (entry) => {
       const isImage = entry.mediaType === "image/jpeg" || entry.mediaType === "image/png";
       return {
-        preferred: isImage ? ("image" as const) : ("document" as const),
+        preferred: isImage ? ("image" as const) : entry.mediaType === "application/pdf" ? null : ("document" as const),
         compatibility: { ...noPresentationCompatibility, image: isImage, document: true },
       };
     },
@@ -50,7 +55,8 @@ function resourcePresentationPolicy(resource: Resource): ResourcePresentationPol
  * Preferred block presentation offered by the editor for a resource.
  * Resource insertion uses the same presentation in every editor.
  */
-export function preferredResourcePresentation(resource: Resource): ResourcePresentationKind | null {
+// @implements-requirement HALL-FR-SRC-030
+export function preferredResourcePresentation(resource: ResourcePresentationSource): ResourcePresentationKind | null {
   return resourcePresentationPolicy(resource).preferred;
 }
 

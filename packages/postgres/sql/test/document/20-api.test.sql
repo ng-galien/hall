@@ -38,6 +38,28 @@ SELECT ok(
   'resource variant determines its content affordance in PostgreSQL'
 );
 
+INSERT INTO api_result (key, payload)
+SELECT 'event', hall_api.create_event_resource(
+  '',
+  'Rendez-vous',
+  '{"content":"","location":"Salle du conseil","schedule":{"kind":"timed","start":"2026-09-17T17:30:00.000Z","end":"2026-09-17T18:30:00.000Z"},"participants":[]}'::JSONB
+);
+
+SELECT ok(
+  hall_api.present_resource((SELECT payload FROM api_result WHERE key = 'event')) @?
+    '$.actions[*] ? (@.name == "resource.generate-event-invitation")',
+  'an event advertises standard calendar invitation generation'
+);
+
+SELECT lives_ok(
+  format(
+    'SELECT hall_api.delete_resource(%L::uuid)',
+    (SELECT payload ->> 'id' FROM api_result WHERE key = 'event')
+  ),
+  'the invitation capability test resource is removed without changing later catalogue expectations'
+);
+DELETE FROM api_result WHERE key = 'event';
+
 SELECT is(
   hall_api.present_resource_collection(
     hall_api.list_resources(),
@@ -629,6 +651,20 @@ SELECT ok(
   format('rename leaves the unrelated folder %L untouched', neighbor_path)
 )
 FROM literal_path_case;
+
+-- @verifies-requirement HALL-FR-SRC-010
+-- @verifies-requirement HALL-FR-SRC-020
+INSERT INTO api_result(key,payload) SELECT 'search-exact',hall_api.create_text_resource('seed/search','École','hidden-content-term');
+INSERT INTO api_result(key,payload) SELECT 'search-near',hall_api.create_text_resource('seed/search','École nouvelle','');
+SELECT is(hall_api.search_resources('ecole',search_kinds=>ARRAY['text'],search_limit=>1)#>>'{items,0,name}','École','HALL-FR-SRC-010 exact normalized title first');
+SELECT is((hall_api.search_resources('ecole',search_kinds=>ARRAY['text'],search_limit=>1)->>'total')::integer,2,'HALL-FR-SRC-020 total precedes pagination');
+SELECT is(hall_api.search_resources('ecole',search_kinds=>ARRAY['text'],search_offset=>1,search_limit=>1)#>>'{items,0,name}','École nouvelle','HALL-FR-SRC-020 next page has no duplicate');
+SELECT is((hall_api.search_resources('hidden-content-term',search_kinds=>ARRAY['text'])->>'total')::integer,0,'HALL-FR-SRC-010 content is not searched');
+SELECT is((hall_api.search_resources('seed/search',search_kinds=>ARRAY['text'])->>'total')::integer,0,'HALL-FR-SRC-010 folder is not title text');
+SELECT is((hall_api.search_resources('ecole',search_kinds=>ARRAY['geographic'])->>'total')::integer,0,'HALL-FR-SRC-020 types are applied before counting');
+SELECT is(hall_api.search_resources('ecole',search_kinds=>ARRAY['text'],search_limit=>1,excluded_ids=>ARRAY[(SELECT(payload->>'id')::uuid FROM api_result WHERE key='search-exact')])#>>'{items,0,name}','École nouvelle','HALL-FR-SRC-020 exclusions precede pagination');
+SELECT is((hall_api.search_resources('',search_paths=>ARRAY['seed/search'],search_kinds=>ARRAY['text'])->>'total')::integer,2,'HALL-FR-SRC-020 an empty query with facets searches all admissible resources');
+SELECT is((hall_api.search_resources('ecole',search_kinds=>ARRAY['text'],included_ids=>ARRAY[]::uuid[])->>'total')::integer,0,'HALL-FR-SRC-020 empty caller admissibility never broadens the search');
 
 SELECT * FROM finish();
 ROLLBACK;

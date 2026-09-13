@@ -63,7 +63,7 @@ export function InlineResourceContent({ resourceId, heading }: { resourceId: str
           refreshConflict={session.refreshConflict}
           onContentChange={session.setContent}
           onRemoteUrlChange={session.setRemoteUrl}
-          onRemoteSubmit={() => void session.save()}
+          onRemoteSubmit={() => session.save()}
           onUploadImage={(file) => uploadImage(file, { kind: "textResourceContent", id: resourceId })}
           onResolvedLegalReference={session.adoptResolvedResource}
           onRefreshLegalReference={session.refreshLegalReference}

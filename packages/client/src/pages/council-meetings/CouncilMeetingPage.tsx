@@ -6,10 +6,10 @@ import { MeetingInProgressHero } from "./MeetingInProgressHero";
 import { MeetingPreparation } from "./MeetingPreparation";
 import { MeetingReport } from "./MeetingReport";
 
-export function CouncilMeetingPage() {
+export function CouncilMeetingPage({ meetingReference }: { meetingReference?: string } = {}) {
   const { meetingId = "" } = useParams();
   const { t } = useI18n();
-  const meetingActions = useCouncilMeeting(meetingId);
+  const meetingActions = useCouncilMeeting(meetingReference ?? meetingId);
   const { meeting: aggregate, error } = meetingActions;
 
   if (error) return <RequestErrorBanner error={error} />;

@@ -11,6 +11,8 @@ export {
   validateStructure,
 } from "./document.js";
 export {
+  type CouncilDecisionSection,
+  councilDecisionSections,
   type DirectiveKind,
   type DirectiveSpec,
   directiveSpec,
@@ -20,14 +22,12 @@ export {
   type ImageAlignment,
   imageAlignments,
   imageWidthRange,
+  isCouncilDecisionSection,
   isFieldName,
   isImageAlignment,
   isImageDirective,
   isImageWidth,
   isMinutesSection,
-  isCouncilDecisionSection,
-  councilDecisionSections,
-  type CouncilDecisionSection,
   isReferenceKind,
   isResourceEmbedDirective,
   isResourcePresentationKind,
@@ -44,3 +44,4 @@ export {
 } from "./grammar.js";
 export { preferredResourcePresentation, resourceSupportsPresentation } from "./resourcePresentation.js";
 export { baseRenderStylesheet } from "./styles.js";
+export { remarkUnderline } from "./underline.js";

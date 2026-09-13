@@ -16,8 +16,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run test",
-    "test:council": "bash sql/council/test/run.sh",
-    "test:document": "bash sql/test/document/run.sh"
+    "test:council": "node ../../scripts/run-postgres-tests.mjs --pgtap council",
+    "test:document": "node ../../scripts/run-postgres-tests.mjs --pgtap document"
   },
   "dependencies": {
     "@hall/domain": "*",

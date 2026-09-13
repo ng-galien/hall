@@ -117,7 +117,10 @@ test("schedules newly prepared proposals and open questions without reloading th
     await expect(schedule).toBeEnabled();
     await schedule.click();
     await page.getByTestId("business-meeting-select").click();
-    await page.getByTestId(`business-meeting-option-${meeting.id}`).click();
+    await page
+      .getByTestId("business-meeting-select-search-result")
+      .and(page.locator(`[data-reference-id="${meeting.id}"]`))
+      .click();
     const scheduled = page.waitForResponse(
       (result) => result.request().method() === "POST" && result.url().endsWith("/agenda-items/from-prepared"),
     );
@@ -444,7 +447,7 @@ test.describe("workspace explorer", () => {
     });
 
     await page.getByTestId("workspace-search-input").fill(renamedName);
-    const hit = page.getByTestId("search-hit").filter({ hasText: renamedName });
+    const hit = page.getByTestId("workspace-search-result").filter({ hasText: renamedName });
     await expect(hit).toBeVisible();
     await hit.click();
     await expect(page.getByTestId("resource-workbench")).toContainText(renamedName);
@@ -457,7 +460,7 @@ test.describe("workspace explorer", () => {
     await expect.poll(async () => (await page.request.get(`/api/resources/${created.id}`)).status()).toBe(404);
   });
 
-  test("shows recently edited council work without inventing lifecycle state", async ({ appPage: page }) => {
+  test("shows council work in the complete folder tree without inventing lifecycle state", async ({ appPage: page }) => {
     const name = `Recent council work ${Date.now()}`;
     const response = await page.request.post("/api/council-business", {
       data: { path: "seed", name, reportName: "Report", reportContent: "Work in preparation" },
@@ -465,14 +468,13 @@ test.describe("workspace explorer", () => {
     expect(response.status()).toBe(201);
     const { properties: business } = (await response.json()) as { properties: { id: string } };
     await page.goto("/app/workspace");
-    const row = page.getByTestId(`workspace-home-business-${business.id}`);
+    const row = page.getByTestId(`workspace-business-open-${business.id}`);
     await expect(row).toBeVisible();
     await expect(row).toContainText(name);
     const agenda = await page.request.get(`/api/council-business/agenda-items?councilBusinessId=${business.id}`);
     expect(agenda.ok()).toBeTruthy();
     expect((await agenda.json()).entities).toEqual([]);
-    await expect(page.getByTestId("workspace-home-unscheduled")).toContainText(name);
-    await expect(page.getByTestId("workspace-home-folder-seed")).toHaveCount(0);
+    await expect(page.getByTestId("workspace-folder-toggle-seed")).toBeVisible();
 
     const meetings = await page.request.get("/api/council-meetings");
     const meeting = (await meetings.json()).entities
@@ -494,17 +496,12 @@ test.describe("workspace explorer", () => {
       (entry: { properties: { id: string; position: number; agendaNumber: number } }) => entry.properties,
     );
     await page.reload();
-    const group = page.getByTestId(`workspace-home-meeting-${meeting.id}`);
-    await expect(group.getByTestId(`workspace-home-business-${business.id}`)).toHaveCount(1);
+    await expect(row).toBeVisible();
     for (const item of items) {
-      await expect(group.getByTestId(`workspace-home-subject-${item.id}`)).toBeVisible();
       expect(item.agendaNumber).toBeGreaterThan(0);
       expect(item.agendaNumber).toBeLessThan(item.position);
     }
-    await expect(group).toContainText("Draft decision");
-    await expect(group).toContainText("Open question");
-    await expect(page.getByTestId(`workspace-home-meeting-link-${meeting.id}`)).toBeVisible();
-    await group.getByTestId(`workspace-home-business-${business.id}`).click();
+    await row.dblclick();
     await expect(page.getByTestId("council-business-workbench")).toContainText(name);
   });
 
@@ -570,11 +567,13 @@ test("composes an agenda from workspace business with an explicit voting purpose
     expect(response.status()).toBe(201);
     const business = (await response.json()).properties;
     await expect(input).toBeHidden();
-    await page.goto("/app/workspace");
-    await page.getByTestId(`workspace-home-business-${business.id}`).click();
+    await page.getByTestId(`workspace-business-open-${business.id}`).dblclick();
     await page.getByTestId(kind === "openQuestion" ? "business-subject-question" : "business-subject-proposal").check();
     await page.getByTestId("business-meeting-select").click();
-    await page.getByTestId(`business-meeting-option-${meeting.id}`).click();
+    await page
+      .getByTestId("business-meeting-select-search-result")
+      .and(page.locator(`[data-reference-id="${meeting.id}"]`))
+      .click();
     await page.getByTestId("business-schedule").click();
     await expect(page.getByTestId("business-scheduled-kind")).toBeVisible();
     await expect(page.getByTestId("business-scheduled-kind")).toContainText(
@@ -629,7 +628,7 @@ test("composes an agenda from workspace business with an explicit voting purpose
     await expect(page.getByTestId(`agenda-item-expand-${agenda[0].id}`)).toBeVisible();
     await expect(page.getByTestId(`agenda-item-position-${agenda[0].id}`)).toHaveText(String(agenda[0].agendaNumber));
     await page.goto("/app/workspace");
-    await expect(page.getByTestId(`workspace-home-business-${business.id}`)).toBeVisible();
+    await expect(page.getByTestId(`workspace-business-open-${business.id}`)).toBeVisible();
   }
 });
 
@@ -730,9 +729,13 @@ test("shows one dismissible deletion refusal and preserves the linked document",
   });
   expect(second.ok()).toBeTruthy();
   const secondBusiness = (await second.json()).properties;
-  expect((await page.request.post(`/api/council-business/${secondBusiness.id}/resources`, {
-    data: { resourceId: document.id },
-  })).ok()).toBeTruthy();
+  expect(
+    (
+      await page.request.post(`/api/council-business/${secondBusiness.id}/resources`, {
+        data: { resourceId: document.id },
+      })
+    ).ok(),
+  ).toBeTruthy();
   await page.getByTestId("resource-delete").click();
   await expect(page.getByRole("alert")).toHaveCount(1);
   await expect(page.getByTestId("resource-workbench").getByRole("alert")).toBeVisible();
@@ -749,7 +752,12 @@ test("shows one dismissible deletion refusal and preserves the linked document",
 
 test("deletes a geographic document from its editable business", async ({ appPage: page }) => {
   const created = await page.request.post("/api/council-business", {
-    data: { path: "seed", name: `Delete location ${crypto.randomUUID()}`, reportName: "Report", reportContent: "Keep report" },
+    data: {
+      path: "seed",
+      name: `Delete location ${crypto.randomUUID()}`,
+      reportName: "Report",
+      reportContent: "Keep report",
+    },
   });
   expect(created.ok()).toBeTruthy();
   const business = (await created.json()).properties;
@@ -783,10 +791,9 @@ test("finds attached documents in the business report reference search", async (
   await page.getByTestId("business-report-editor").getByTestId("editor-insert-reference").click();
   const search = page.getByTestId("reference-search-dialog");
   await search.getByTestId("reference-search-input").fill(name);
-  await expect(search.getByTestId("reference-result")).toHaveCount(1);
-  await expect(search.getByTestId("reference-result")).toContainText(name);
+  await expect(search.getByTestId("reference-search-result")).toHaveCount(1);
+  await expect(search.getByTestId("reference-search-result")).toContainText(name);
 });
-
 
 test("prioritizes business documents and inserts maps and text from the compact editor", async ({ appPage: page }) => {
   const created = await page.request.post("/api/council-business", {
@@ -797,7 +804,13 @@ test("prioritizes business documents and inserts maps and text from the compact 
   const attached: { id: string; name: string }[] = [];
   for (const kind of ["geographic", "text"] as const) {
     const response = await page.request.post("/api/resources", {
-      data: { kind, name: `ZZ attached ${kind} ${crypto.randomUUID()}`, path: "seed", councilBusinessId: business.id, ...(kind === "text" ? { content: "Attached text" } : {}) },
+      data: {
+        kind,
+        name: `ZZ attached ${kind} ${crypto.randomUUID()}`,
+        path: "seed",
+        councilBusinessId: business.id,
+        ...(kind === "text" ? { content: "Attached text" } : {}),
+      },
     });
     expect(response.ok()).toBeTruthy();
     attached.push((await response.json()).properties);
@@ -810,10 +823,21 @@ test("prioritizes business documents and inserts maps and text from the compact 
   const additional: { id: string; name: string; presentation: string }[] = [];
   for (const entry of [
     { kind: "remote", target: { kind: "url", url: "https://example.org" }, presentation: "link" },
-    { kind: "event", document: { content: "Réunion de préparation", location: "Mairie", participants: [], schedule: { kind: "timed", start: "2026-09-11T10:00:00Z", end: "2026-09-11T11:00:00Z" } }, presentation: "event" },
+    {
+      kind: "event",
+      document: {
+        content: "Réunion de préparation",
+        location: "Mairie",
+        participants: [],
+        schedule: { kind: "timed", start: "2026-09-11T10:00:00Z", end: "2026-09-11T11:00:00Z" },
+      },
+      presentation: "event",
+    },
   ]) {
     const { presentation, ...data } = entry;
-    const response = await page.request.post("/api/resources", { data: { ...data, name: `ZZZ ${entry.kind} ${crypto.randomUUID()}`, path: "seed", councilBusinessId: business.id } });
+    const response = await page.request.post("/api/resources", {
+      data: { ...data, name: `ZZZ ${entry.kind} ${crypto.randomUUID()}`, path: "seed", councilBusinessId: business.id },
+    });
     expect(response.ok()).toBeTruthy();
     additional.push({ ...(await response.json()).properties, presentation });
   }
@@ -821,10 +845,16 @@ test("prioritizes business documents and inserts maps and text from the compact 
   const editor = page.getByTestId("business-report-editor");
   await editor.getByTestId("editor-insert-reference").click();
   const dialog = page.getByTestId("reference-search-dialog");
-  await expect(dialog.getByTestId("reference-result").first()).toHaveAttribute("data-reference-id", attached[0].id);
-  await expect(dialog.getByTestId("reference-result").nth(1)).toHaveAttribute("data-reference-id", attached[1].id);
+  await expect(dialog.getByTestId("reference-search-result").first()).toHaveAttribute(
+    "data-reference-id",
+    attached[0].id,
+  );
+  await expect(dialog.getByTestId("reference-search-result").nth(1)).toHaveAttribute(
+    "data-reference-id",
+    attached[1].id,
+  );
   await dialog.getByTestId("reference-search-input").fill(outside.name);
-  await expect(dialog.getByTestId("reference-result")).toHaveCount(1);
+  await expect(dialog.getByTestId("reference-search-result")).toHaveCount(1);
   await dialog.getByTestId("dialog-close").click();
   await editor.getByTestId("editor-writing-area").fill("@");
   await expect(page.getByTestId("editor-mention-result").first()).toHaveAttribute("data-reference-id", attached[0].id);
@@ -835,7 +865,7 @@ test("prioritizes business documents and inserts maps and text from the compact 
   await editor.getByTestId("editor-writing-area").press("End");
   await editor.getByTestId("editor-insert-reference").click();
   await dialog.getByTestId("reference-search-input").fill(attached[1].name);
-  await dialog.getByTestId("reference-result").click();
+  await dialog.getByTestId("reference-search-result").click();
   await expect(editor.getByTestId("resource-embed-presentation-map")).toBeVisible();
   await expect(editor.getByTestId("editor-writing-area")).toContainText("Attached text");
   for (const resource of additional) {
@@ -843,7 +873,7 @@ test("prioritizes business documents and inserts maps and text from the compact 
     await editor.getByTestId("editor-writing-area").press("End");
     await editor.getByTestId("editor-insert-reference").click();
     await dialog.getByTestId("reference-search-input").fill(resource.name);
-    await dialog.getByTestId("reference-result").click();
+    await dialog.getByTestId("reference-search-result").click();
     await expect(editor.getByTestId(`resource-embed-presentation-${resource.presentation}`)).toBeVisible();
   }
   await editor.getByTestId("editor-open-enriched").click();
@@ -851,4 +881,135 @@ test("prioritizes business documents and inserts maps and text from the compact 
   await expect(enriched.getByTestId("resource-embed-presentation-map")).toBeVisible();
   await expect(enriched.getByTestId("resource-embed-presentation-text")).toContainText("Attached text");
   await expect(enriched.getByTestId("resource-embed-presentation-event")).toBeVisible();
+});
+
+// @verifies-requirement HALL-FR-WSP-240
+test("HALL-FR-WSP-240 sidebar opens the council business instead of its folder", async ({ appPage: page }) => {
+  const response = await page.request.get("/api/council-business/workspace-items");
+  expect(response.ok()).toBeTruthy();
+  const businesses = (await response.json()).entities.map(
+    (entry: { properties: { id: string; folderPath: string; folderResourceId: string } }) => entry.properties,
+  );
+  const business =
+    businesses.find((entry: { folderPath: string }) => entry.folderPath === "acces") ??
+    businesses.find((entry: { folderPath: string }) => entry.folderPath);
+  expect(business).toBeTruthy();
+  const folderResponse = await page.request.get(`/api/resources/${business.folderResourceId}`);
+  expect(folderResponse.ok()).toBeTruthy();
+  const folder = (await folderResponse.json()).properties;
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: business.folderPath })}`);
+  const link = page.getByTestId("workspace-sidebar-link").and(page.locator(`[data-path="${folder.fullPath}"]`));
+  await expect(link).toHaveAttribute("data-kind", "councilBusiness");
+  await expect(link.locator("svg")).toHaveCount(1);
+  await expect(link.locator(".workspace-glyph")).toHaveCount(0);
+  await link.click();
+  await expect(page.getByTestId("council-business-workbench")).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`councilBusiness=${business.id}`));
+  await expect(link).toHaveAttribute("aria-current", "page");
+  const parent = page.getByTestId("workspace-sidebar-link").and(page.locator(`[data-path="${business.folderPath}"]`));
+  await expect(parent).toHaveAttribute("data-kind", "folder");
+  await expect(parent.locator("svg")).toHaveCount(1);
+  await parent.click();
+  await expect(page.getByTestId("council-business-workbench")).toBeHidden();
+  expect(new URL(page.url()).searchParams.get("path")).toBe(business.folderPath);
+  expect(new URL(page.url()).searchParams.has("councilBusiness")).toBe(false);
+  await page.screenshot({ path: "/tmp/hall-sidebar-business.png" });
+  await link.focus();
+  await link.press("Enter");
+  await expect(page.getByTestId("council-business-workbench")).toBeVisible();
+});
+
+// @verifies-requirement HALL-FR-WSP-250
+// @verifies-requirement HALL-FR-WSP-260
+test("HALL-FR-WSP-250 HALL-FR-WSP-260 demo folder is at root and document folders have readable names", async ({ appPage: page }) => {
+  const response = await page.request.get("/api/resources/catalog");
+  expect(response.ok()).toBeTruthy();
+  const catalog = (await response.json()).entities.map((entry: { properties: { fullPath: string } }) => entry.properties);
+  expect(catalog.find((entry: { fullPath: string }) => entry.fullPath === "acces")).toMatchObject({ path: "", kind: "folder" });
+  const businessesResponse = await page.request.get("/api/council-business/workspace-items");
+  expect(businessesResponse.ok()).toBeTruthy();
+  const business = (await businessesResponse.json()).entities.map((entry: { properties: { id: string; folderPath: string } }) => entry.properties)
+    .find((entry: { folderPath: string }) => entry.folderPath === "acces");
+  expect(business).toBeTruthy();
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: business.folderPath, councilBusiness: business.id })}`);
+  await expect(page.getByTestId("council-business-workbench")).toBeVisible();
+  // This linked document lives at the workspace root, one level above the business filing path.
+  const parentFolder = page.getByTestId("business-document-folder-..");
+  await expect(parentFolder).toBeVisible();
+  await expect(parentFolder.getByTestId("business-document-folder-..-toggle")).toHaveAttribute("aria-label", "Workspace");
+  await page.screenshot({ path: "/tmp/hall-workspace-root.png" });
+});
+
+// @verifies-requirement HALL-FR-WSP-270
+test("HALL-FR-WSP-270 opens root documents from the shared explorer and returns to the root", async ({ appPage: page }) => {
+  const response = await page.request.get("/api/resources/catalog");
+  expect(response.ok()).toBeTruthy();
+  const catalog = (await response.json()).entities.map(
+    (entry: { properties: { id: string; path: string; fullPath: string; kind: string } }) => entry.properties,
+  );
+  const document = catalog.find((entry: { path: string; kind: string }) => entry.path === "" && entry.kind === "document");
+  const folder = catalog.find(
+    (entry: { fullPath: string; kind: string }) => entry.kind === "folder" && !entry.fullPath.includes("/"),
+  );
+  expect(document).toBeTruthy();
+  expect(folder).toBeTruthy();
+  await page.goto("/app/workspace");
+  await expect(page.getByTestId("workspace-navigation-business-icon")).toBeVisible();
+  await expect(page.getByTestId("workspace-root-business-icon")).toBeVisible();
+  await expect(page.getByTestId("workspace-tree-root")).toContainText("Workspace");
+  await expect(page.locator(".whome")).toHaveCount(0);
+  await expect(page.getByTestId(`workspace-folder-toggle-${folder.fullPath}`)).toBeVisible();
+  await page.getByTestId("workspace-view-resources").click();
+  const row = page.getByTestId(`workspace-resource-open-${document.id}`);
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(page.getByTestId("resource-workbench")).toBeVisible();
+  expect(new URL(page.url()).searchParams.get("resource")).toBe(document.id);
+  await page.getByTestId("workspace-breadcrumb-close").click();
+  await expect(page.getByTestId("resource-workbench")).toBeHidden();
+  await expect(row).toBeVisible();
+  expect(new URL(page.url()).searchParams.get("path") ?? "").toBe("");
+  await page.screenshot({ path: "/tmp/hall-root-documents.png" });
+});
+
+// @verifies-requirement HALL-FR-SRC-030
+test("HALL-FR-SRC-030 web workbench previews a configured URL and edits it explicitly", async ({ appPage: page }) => {
+  const initialUrl = "https://hall-preview.example/initial";
+  const nextUrl = "https://hall-preview.example/updated";
+  await page.route("https://hall-preview.example/**", (route) => route.fulfill({
+    contentType: "text/html", body: '<main data-testid="external-site-content">Site web</main>',
+  }));
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "remote", name: `Web preview ${Date.now()}`, path: "", target: { kind: "url", url: initialUrl } },
+  });
+  expect(created.ok()).toBeTruthy();
+  const resource = (await created.json()).properties;
+  try {
+    await page.goto(`/app/workspace?resource=${resource.id}`);
+    const workbench = page.getByTestId("resource-workbench");
+    await expect(workbench.getByTestId("remote-resource-frame")).toHaveAttribute("src", initialUrl);
+    await expect(workbench.getByTestId("remote-resource-frame").contentFrame().getByTestId("external-site-content")).toBeVisible();
+    await expect(workbench.getByTestId("resource-presentation-remote-edit")).toHaveCount(0);
+    await workbench.getByTestId("remote-resource-edit").click();
+    await expect(workbench.getByTestId("remote-resource-url-input")).toHaveValue(initialUrl);
+    await workbench.getByTestId("remote-resource-url-input").fill(nextUrl);
+    await workbench.getByTestId("remote-resource-save").click();
+    await expect(workbench.getByTestId("resource-presentation-remote-edit")).toHaveCount(0);
+    await expect(workbench.getByTestId("remote-resource-frame")).toHaveAttribute("src", nextUrl);
+    await expect(workbench.getByTestId("remote-resource-open")).toHaveAttribute("href", nextUrl);
+    await page.reload();
+    await expect(workbench.getByTestId("remote-resource-frame")).toHaveAttribute("src", nextUrl);
+    await expect(workbench.getByTestId("resource-presentation-remote-edit")).toHaveCount(0);
+    await workbench.getByTestId("resource-open-extended").click();
+    const preview = page.getByTestId("resource-preview");
+    await expect(preview.getByTestId("remote-resource-frame")).toHaveAttribute("src", nextUrl);
+    await expect(preview.getByTestId("resource-presentation-remote-edit")).toHaveCount(0);
+    await preview.getByTestId("resource-preview-close").click();
+    await expect(workbench.getByTestId("remote-resource-frame")).toHaveAttribute("src", nextUrl);
+    await page.screenshot({ path: "/tmp/hall-web-workbench.png" });
+  } finally {
+    await page.goto("/app/workspace");
+    const removed = await page.request.delete(`/api/resources/${resource.id}`);
+    expect(removed.ok()).toBeTruthy();
+  }
 });

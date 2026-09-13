@@ -1,21 +1,16 @@
-import { matchDiscriminated, type ReferenceEntityKind, referenceEntityKinds } from "@hall/domain";
+import type { ReferenceEntityKind } from "@hall/domain";
 import { imageWidthRange, isReferenceKind, type ResourcePresentationKind } from "@hall/templating";
 import { Extension, mergeAttributes, Node } from "@tiptap/core";
 import { type NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from "@tiptap/react";
 import { exitSuggestion, Suggestion, type SuggestionProps } from "@tiptap/suggestion";
-import { createContext, forwardRef, type ReactNode, useContext, useImperativeHandle, useRef, useState } from "react";
+import { createContext, forwardRef, type ReactNode, useContext, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "../../i18n/I18nProvider";
-import { type Searchable, type SearchableMedia, type SearchableState, searchEntities } from "../../lib/search";
-import { FilterIcon, FolderIcon, ImageIcon, type MemberIcon, SearchIcon, TagIcon } from "../icons";
-import {
-  type FacetSuggestion,
-  type FacetValueLabels,
-  facetHashPattern,
-  facetOptionsFrom,
-  facetSuggestionsFor,
-} from "../search/facetSuggestions";
+import type { Searchable } from "../../lib/search";
+import type { MemberIcon } from "../icons";
+import { type FacetSuggestion, type FacetValueLabels, facetHashPattern } from "../search/facetSuggestions";
+import { ResourceSearch, type ResourceSearchHandle } from "../search/ResourceSearch";
 import { isReferenceEntityKind, referenceKindPresentations } from "./referenceKindPresentation";
 
 type ResourcePreviewRenderer = (id: string, onClose: () => void) => ReactNode;
@@ -246,140 +241,33 @@ export function mentionableFacetValueLabels(items: readonly Mentionable[]): Face
   };
 }
 
-interface MentionListHandle {
-  onKeyDown(event: KeyboardEvent): boolean;
-}
+type MentionListProps = SuggestionProps<Mentionable> & { context?: string; candidates: Mentionable[] };
 
-/** Reads the key name, falling back to `keyCode` for synthetic keyboards. */
-function keyOf(event: KeyboardEvent): string {
-  if (event.key) return event.key;
-  if (event.keyCode === 13) return "Enter";
-  if (event.keyCode === 27) return "Escape";
-  if (event.keyCode === 38) return "ArrowUp";
-  if (event.keyCode === 40) return "ArrowDown";
-  return "";
-}
-
-type MentionListProps = SuggestionProps<Mentionable> & {
-  groupLabels: Record<ReferenceEntityKind, string>;
-  /** Total match count before truncation. */
-  total: number;
-  searchAllLabel: string;
-  facetLabels: Record<FacetSuggestion["facet"], string>;
-  /** `#` criteria for the fragment being typed; when present they replace the entity list. */
-  facets: FacetSuggestion<ReferenceEntityKind>[];
-  /** Facets already applied to this suggestion session. */
-  activeFacets: FacetSuggestion<ReferenceEntityKind>[];
-  onPickFacet(facet: FacetSuggestion<ReferenceEntityKind>): void;
-  /** Opens the full search, prefilled with the current query. */
-  onOpenFull(): void;
-};
-
-function facetIcon(facet: FacetSuggestion<ReferenceEntityKind>): ReactNode {
-  return matchDiscriminated(facet, "facet", {
-    type: () => null,
-    folder: () => <FolderIcon aria-hidden="true" />,
-    tag: () => <TagIcon aria-hidden="true" />,
-    state: () => <FilterIcon aria-hidden="true" />,
-    media: () => <ImageIcon aria-hidden="true" />,
-  });
-}
-
-const MentionList = forwardRef<MentionListHandle, MentionListProps>(function MentionList(
-  { items, command, groupLabels, total, searchAllLabel, facetLabels, facets, activeFacets, onPickFacet, onOpenFull },
-  ref,
-) {
-  const [rawActive, setActive] = useState(0);
-  const facetMode = facets.length > 0;
-  const count = facetMode ? facets.length : items.length;
-  const active = Math.min(rawActive, Math.max(count - 1, 0));
-  useImperativeHandle(ref, () => ({
-    onKeyDown(event) {
-      const key = keyOf(event);
-      if (key === "ArrowDown") {
-        setActive((active + 1) % Math.max(count, 1));
-        return true;
-      }
-      if (key === "ArrowUp") {
-        setActive((active - 1 + Math.max(count, 1)) % Math.max(count, 1));
-        return true;
-      }
-      if (key === "Enter" || (facetMode && event.key === "Tab")) {
-        if (facetMode) {
-          if (facets[active]) onPickFacet(facets[active]);
-          return facets.length > 0;
-        }
-        if (items[active]) command(items[active]);
-        return items.length > 0;
-      }
-      return false;
-    },
-  }));
+// The inline host only adapts the editor range. Search and interactions belong to ResourceSearch.
+// @implements-requirement HALL-FR-SRC-030
+const MentionList = forwardRef<ResourceSearchHandle, MentionListProps>(function MentionList(props, ref) {
   return (
-    <div className="mention-suggestions">
-      <button
-        type="button"
-        className="mention-suggestion-browse"
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={onOpenFull}
-      >
-        <SearchIcon aria-hidden="true" /> {searchAllLabel}
-        <span className="mention-suggestion-count">{total}</span>
-      </button>
-      {activeFacets.length > 0 ? (
-        <div className="mention-suggestion-facets">
-          {activeFacets.map((facet) => (
-            <span className="wsearch-chip" key={`${facet.facet}:${facet.value}`}>
-              {facetIcon(facet)}
-              {facet.label}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      <div className="mention-suggestion-list" role="listbox">
-        {facetMode
-          ? facets.map((facet, index) => (
-              <button
-                key={`${facet.facet}:${facet.value}`}
-                type="button"
-                role="option"
-                aria-selected={index === active}
-                className={`searchbox-suggestion${index === active ? " is-active" : ""}`}
-                onMouseDown={(event) => event.preventDefault()}
-                onMouseEnter={() => setActive(index)}
-                onClick={() => onPickFacet(facet)}
-              >
-                <span className="searchbox-suggestion-facet">
-                  {facetIcon(facet)}
-                  {facetLabels[facet.facet]}
-                </span>
-                <span className="searchbox-suggestion-label">{facet.label}</span>
-                {facet.count !== undefined ? <span className="searchbox-suggestion-count">{facet.count}</span> : null}
-                <kbd>Tab</kbd>
-              </button>
-            ))
-          : items.map((item, index) => {
-              const Icon = mentionableIcon(item);
-              const firstOfKind = index === 0 || items[index - 1].kind !== item.kind;
-              return (
-                <div key={`${item.kind}:${item.id}`}>
-                  {firstOfKind ? <div className="mention-suggestion-group">{groupLabels[item.kind]}</div> : null}
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={index === active}
-                    data-testid="editor-mention-result"
-                    data-reference-id={item.id}
-                    className={index === active ? "mention-suggestion-item is-active" : "mention-suggestion-item"}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => command(item)}
-                  >
-                    <Icon aria-hidden="true" /> {item.label}
-                  </button>
-                </div>
-              );
-            })}
-      </div>
+    <div className={`shared-search-inline${facetHashPattern.test(props.query) ? " is-filtering" : ""}`}>
+      <ResourceSearch
+        ref={ref}
+        inline
+        testId="editor-mention"
+        items={props.candidates}
+        scope={{ context: props.context }}
+        autoFocus={false}
+        externalQuery={props.query}
+        onQueryChange={(query) =>
+          props.editor
+            .chain()
+            .insertContentAt({ from: props.range.from + 1, to: props.range.to }, query)
+            .run()
+        }
+        onPick={props.command}
+        onClose={() => {
+          exitSuggestion(props.editor.view);
+          props.editor.commands.focus();
+        }}
+      />
     </div>
   );
 });
@@ -387,10 +275,36 @@ const MentionList = forwardRef<MentionListHandle, MentionListProps>(function Men
 function placeSuggestions(element: HTMLElement, clientRect: (() => DOMRect | null) | null | undefined) {
   const rect = clientRect?.();
   if (!rect) return;
+  const margin = 8;
   element.style.position = "fixed";
-  element.style.left = `${rect.left}px`;
-  element.style.top = `${rect.bottom + 4}px`;
   element.style.zIndex = "60";
+  const width = element.getBoundingClientRect().width;
+  const height = element.getBoundingClientRect().height;
+  element.style.left = `${Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin))}px`;
+  if (element.querySelector(".shared-search-filter-overlay")) {
+    const center = (rect.top + rect.bottom) / 2;
+    const wheel = element.querySelector<HTMLElement>(".shared-search-filter-wheel");
+    const row = wheel?.querySelector<HTMLElement>("[data-active='true']");
+    if (!wheel || !row) return;
+    const rowHeight = row.offsetHeight;
+    const index = Array.from(wheel.children).indexOf(row);
+    const before = Math.max(0, Math.min(index, 3, Math.floor((center - margin - rowHeight / 2) / rowHeight)));
+    const after = Math.max(
+      0,
+      Math.min(
+        wheel.children.length - index - 1,
+        3,
+        Math.floor((window.innerHeight - margin - center - rowHeight / 2) / rowHeight),
+      ),
+    );
+    element.style.setProperty("--search-filter-height", `${(before + after + 1) * rowHeight}px`);
+    wheel.scrollTop = row.offsetTop - before * rowHeight;
+    element.style.left = `${Math.max(margin, Math.min(rect.right + 8, window.innerWidth - width - margin))}px`;
+    element.style.top = `${Math.max(margin, center - (before + 0.5) * rowHeight - 1)}px`;
+    return;
+  }
+  const below = window.innerHeight - rect.bottom - margin;
+  element.style.top = `${Math.max(margin, below >= height ? rect.bottom + 4 : rect.top - height - 4)}px`;
 }
 
 export interface ReferenceMentionOptions {
@@ -426,52 +340,13 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
   },
 
   addProseMirrorPlugins() {
-    const lastTotal = { value: 0 };
-    const session: {
-      types: Array<Extract<FacetSuggestion<ReferenceEntityKind>, { facet: "type" }>>;
-      folders: string[];
-      tags: string[];
-      states: SearchableState[];
-      media: SearchableMedia[];
-    } = {
-      types: [],
-      folders: [],
-      tags: [],
-      states: [],
-      media: [],
-    };
-    const resetSession = () => {
-      session.types = [];
-      session.folders = [];
-      session.tags = [];
-      session.states = [];
-      session.media = [];
-    };
     return [
       Suggestion<Mentionable>({
         editor: this.editor,
         char: "@",
+        allowSpaces: true,
         decorationClass: "mention-query",
-        items: ({ query }) => {
-          const outcome = searchEntities(this.options.mentionables(), query, {
-            context: this.options.context?.(),
-            kinds: session.types.map((facet) => facet.value),
-            folders: session.folders,
-            tags: session.tags,
-            states: session.states,
-            media: session.media,
-            limit: query.trim() ? 12 : undefined,
-          });
-          lastTotal.value = outcome.total;
-          const preferred = outcome.results.filter((entry) => entry.preferred);
-          const remaining = outcome.results.filter((entry) => !entry.preferred);
-          return [
-            ...preferred,
-            ...(query.trim() ? remaining : referenceEntityKinds.flatMap((kind) =>
-              remaining.filter((entry) => entry.kind === kind).slice(0, 3),
-            )),
-          ];
-        },
+        items: () => [],
         command: ({ editor, range, props }) => {
           if (props.kind === "resource" && this.options.onOpenFull) {
             this.options.onOpenFull(props.label, range, props);
@@ -501,99 +376,77 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
             .run();
         },
         render: () => {
-          let component: ReactRenderer<MentionListHandle, MentionListProps> | null = null;
-          const groupLabels = this.options.groupLabels;
-          const facetLabels = this.options.facetLabels;
-          const searchAllLabel = this.options.searchAllLabel;
-          const openFull = this.options.onOpenFull;
-          const mentionables = this.options.mentionables;
-          const extras = (props: SuggestionProps<Mentionable>) => {
-            const candidates = mentionables();
-            const hashMatch = facetHashPattern.exec(props.query);
-            const selectedTypes = session.types.map((facet) => facet.value);
-            const facets = hashMatch
-              ? facetSuggestionsFor(
-                  hashMatch[1],
-                  facetOptionsFrom(
-                    candidates,
-                    (kind) => groupLabels[kind],
-                    undefined,
-                    mentionableFacetValueLabels(candidates),
-                  ),
-                ).filter(
-                  (facet) =>
-                    (facet.facet !== "type" || !selectedTypes.includes(facet.value)) &&
-                    (facet.facet !== "folder" || !session.folders.includes(facet.value)) &&
-                    (facet.facet !== "tag" || !session.tags.includes(facet.value)) &&
-                    (facet.facet !== "state" || !session.states.includes(facet.value)) &&
-                    (facet.facet !== "media" || !session.media.includes(facet.value)),
-                )
-              : [];
-            const activeFacets = [
-              ...session.types,
-              ...session.folders.map((value) => ({ facet: "folder" as const, value, label: value })),
-              ...session.tags.map((value) => ({ facet: "tag" as const, value, label: value })),
-              ...session.states.map((value) => ({ facet: "state" as const, value, label: value })),
-              ...session.media.map((value) => ({ facet: "media" as const, value, label: value })),
-            ];
-            return {
-              groupLabels,
-              facetLabels,
-              total: lastTotal.value,
-              searchAllLabel,
-              facets,
-              activeFacets,
-              onPickFacet: (facet: FacetSuggestion<ReferenceEntityKind>) => {
-                matchDiscriminated(facet, "facet", {
-                  type: (entry) => {
-                    session.types = [...session.types, entry];
-                  },
-                  folder: (entry) => {
-                    session.folders = [...session.folders, entry.value];
-                  },
-                  tag: (entry) => {
-                    session.tags = [...session.tags, entry.value];
-                  },
-                  state: (entry) => {
-                    session.states = [...session.states, entry.value];
-                  },
-                  media: (entry) => {
-                    session.media = [...session.media, entry.value];
-                  },
+          let component: ReactRenderer<ResourceSearchHandle, MentionListProps> | null = null;
+          let rect: SuggestionProps<Mentionable>["clientRect"];
+          let observer: ResizeObserver | undefined;
+          let selectionObserver: MutationObserver | undefined;
+          let frame = 0;
+          const reposition = () => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+              if (component) placeSuggestions(component.element as HTMLElement, rect);
+            });
+          };
+          const adapted = (props: SuggestionProps<Mentionable>) => ({
+            ...props,
+            candidates: this.options.mentionables(),
+            context: this.options.context?.(),
+          });
+          let live = true,
+            queued = false;
+          let latest: SuggestionProps<Mentionable> | undefined;
+          const render = (props: SuggestionProps<Mentionable>) => {
+            latest = props;
+            rect = facetHashPattern.test(props.query)
+              ? () => {
+                  const position = props.range.from + 1 + props.query.lastIndexOf("#");
+                  const start = props.editor.view.coordsAtPos(position);
+                  const end = props.editor.view.coordsAtPos(position + 1);
+                  return new DOMRect(start.left, start.top, end.left - start.left, start.bottom - start.top);
+                }
+              : props.clientRect;
+            if (queued) return;
+            queued = true;
+            queueMicrotask(() => {
+              queued = false;
+              if (!live || !latest) return;
+              if (component) component.updateProps(adapted(latest));
+              else {
+                component = new ReactRenderer(MentionList, { props: adapted(latest), editor: latest.editor });
+                document.body.appendChild(component.element);
+                observer = new ResizeObserver(reposition);
+                observer.observe(component.element);
+                selectionObserver = new MutationObserver(reposition);
+                selectionObserver.observe(component.element, {
+                  subtree: true,
+                  attributes: true,
+                  attributeFilter: ["data-active"],
+                  childList: true,
                 });
-                const fragmentIndex = props.query.lastIndexOf("#");
-                const from = props.range.from + 1 + fragmentIndex;
-                const to = props.range.from + 1 + props.query.length;
-                props.editor.chain().focus().deleteRange({ from, to }).run();
-              },
-              onOpenFull: () => {
-                exitSuggestion(props.editor.view);
-                openFull?.(props.query, props.range);
-              },
-            };
+                window.addEventListener("resize", reposition);
+                window.addEventListener("scroll", reposition, true);
+              }
+              reposition();
+            });
           };
           return {
             onStart: (props) => {
-              component = new ReactRenderer(MentionList, {
-                props: { ...props, ...extras(props) },
-                editor: props.editor,
-              });
-              document.body.appendChild(component.element);
-              placeSuggestions(component.element as HTMLElement, props.clientRect);
+              live = true;
+              render(props);
             },
-            onUpdate: (props) => {
-              component?.updateProps({ ...props, ...extras(props) });
-              if (component) placeSuggestions(component.element as HTMLElement, props.clientRect);
-            },
-            onKeyDown: (props) => {
-              if (keyOf(props.event) === "Escape") return false;
-              return component?.ref?.onKeyDown(props.event) ?? false;
-            },
+            onUpdate: render,
+            onKeyDown: (props) => component?.ref?.onKeyDown(props.event) ?? false,
             onExit: () => {
-              resetSession();
-              component?.element.remove();
-              component?.destroy();
+              live = false;
+              cancelAnimationFrame(frame);
+              observer?.disconnect();
+              selectionObserver?.disconnect();
+              window.removeEventListener("resize", reposition);
+              window.removeEventListener("scroll", reposition, true);
+              const exiting = component;
               component = null;
+              exiting?.element.remove();
+              queueMicrotask(() => exiting?.destroy());
             },
           };
         },

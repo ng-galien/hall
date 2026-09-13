@@ -4,7 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EntitySelect } from "../components/search/EntitySelect";
 import { DeleteIcon, EditIcon } from "../components/icons";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { PasswordDialog } from "../features/users/PasswordDialog";
@@ -135,24 +135,8 @@ export function UserPage() {
                 <div className="grid gap-1.5">
                   <Label htmlFor={`${fieldId}-contact`}>{t("users.contact")}</Label>
                   {canUpdate[userId] && (
-                    <Select
-                      value={draft.contactId ?? "none"}
-                      onValueChange={(value) => change("contactId", value === "none" ? null : value)}
-                    >
-                      <SelectTrigger id={`${fieldId}-contact`} className="w-full" data-testid="user-contact-select">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none" data-testid="user-contact-none">
-                          {t("users.noContact")}
-                        </SelectItem>
-                        {contacts.map((entry) => (
-                          <SelectItem key={entry.id} value={entry.id} data-testid={`user-contact-option-${entry.id}`}>
-                            {entry.firstName} {entry.lastName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+<EntitySelect type="contact" testId="user-contact-select" value={draft.contactId??""} onValueChange={value=>change("contactId",value||null)}
+ options={contacts.map(contact=>({value:contact.id,label:`${contact.firstName} ${contact.lastName}`}))} placeholder={t("users.noContact")} clearLabel={t("users.noContact")}/>
                   )}
                   {contact ? (
                     <Button asChild variant="link" className="justify-start px-0">

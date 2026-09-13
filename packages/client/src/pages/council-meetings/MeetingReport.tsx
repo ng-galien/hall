@@ -1,19 +1,21 @@
-import { MeetingMinutesAccess } from "./MeetingMinutesAccess";
+import { useState } from "react";
+import { SearchIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
-import { DisclosureBadge } from "../../components/ui/disclosure-badge";
+import { Button } from "../../components/ui/button";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { councilMemberName } from "./ballotParticipants";
+import { MeetingMinutesAccess } from "./MeetingMinutesAccess";
 import { MeetingProceedings } from "./MeetingProceedings";
-import { MeetingStageBar } from "./MeetingStageBar";
 
 export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentation }) {
-  const { t, formatDate, formatDateTime, formatTime, formatNumber } = useI18n();
+  const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { members } = useCouncilMembersStore();
   const { meeting } = aggregate;
+  const [attendanceVisible, setAttendanceVisible] = useState(false);
   const attendanceCounts = aggregate.attendance.reduce(
     (counts, attendance) => {
       counts[attendance.status] += 1;
@@ -34,25 +36,29 @@ export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentatio
 
   return (
     <div className="page">
-      <PageHeader
-        title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
-        description={`${formatDateTime(meeting.startsAt)} · ${meeting.location}`}
-      />
-      <div className="page-content meeting-page-content">
-        <div className="meeting-console">
-          <MeetingStageBar status={meeting.status} />
+      <div className="meeting-report-header">
+        <PageHeader
+          title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
+          description={meeting.location ?? ""}
+        >
+          {meeting.minutesId ? <MeetingMinutesAccess key={meeting.minutesId} id={meeting.minutesId} /> : null}
           <dl className="meeting-facts">
             <div>
-              <dt>{t("meeting.openedAt")}</dt>
+              <dt>{t("calendar.start")}</dt>
               <dd>
                 <strong>{meeting.openedAt ? formatTime(meeting.openedAt) : t("common.none")}</strong>
               </dd>
             </div>
             <div>
-              <dt>{t("meeting.closedAt")}</dt>
+              <dt>{t("calendar.end")}</dt>
               <dd>
                 <strong>{meeting.closedAt ? formatTime(meeting.closedAt) : t("common.none")}</strong>
-                {duration ? <span>{duration}</span> : null}
+              </dd>
+            </div>
+            <div>
+              <dt>{t("meeting.duration")}</dt>
+              <dd>
+                <strong>{duration ?? t("common.none")}</strong>
               </dd>
             </div>
             <div>
@@ -83,34 +89,43 @@ export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentatio
               </dd>
             </div>
           </dl>
-        </div>
-
+        </PageHeader>
+      </div>
+      <div className="page-content meeting-page-content">
         <div className="report-main">
-          <section className="meeting-side-section" aria-labelledby="report-attendance-heading">
-            <h2 id="report-attendance-heading">{t("meeting.attendance")}</h2>
-            <dl className="report-attendance-counts">
-              <div>
-                <dt>{t("attendance.present")}</dt>
-                <dd>{formatNumber(attendanceCounts.present)}</dd>
-              </div>
-              <div>
-                <dt>{t("attendance.represented")}</dt>
-                <dd>{formatNumber(attendanceCounts.represented)}</dd>
-              </div>
-              <div>
-                <dt>{t("attendance.excused")}</dt>
-                <dd>{formatNumber(attendanceCounts.excused)}</dd>
-              </div>
-              <div>
-                <dt>{t("attendance.absent")}</dt>
-                <dd>{formatNumber(attendanceCounts.absent)}</dd>
-              </div>
-            </dl>
-            <details className="conduct-block" data-testid="report-attendance-details">
-              <summary data-testid="report-attendance-toggle">
-                <DisclosureBadge />
-                <span>{t("report.attendanceDetails")}</span>
-              </summary>
+          <section className="meeting-side-section" aria-label={t("meeting.attendance")}>
+            <div className="report-attendance-overview">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="report-attendance-toggle border border-transparent hover:border-[var(--hall-color-border)] hover:bg-[var(--hall-color-surface-subtle)] focus-visible:border-[var(--hall-color-border-strong)] focus-visible:bg-[var(--hall-color-surface-subtle)] aria-expanded:border-[var(--hall-color-border)] aria-expanded:bg-[var(--hall-color-surface-subtle)]"
+                aria-label={t("report.attendanceDetails")}
+                aria-expanded={attendanceVisible}
+                data-testid="report-attendance-toggle"
+                onClick={() => setAttendanceVisible((visible) => !visible)}
+              >
+                <SearchIcon aria-hidden="true" />
+              </Button>
+              <dl className="report-attendance-counts">
+                <div className="report-attendance-count report-attendance-count-present">
+                  <dt>{t("attendance.present")}</dt>
+                  <dd>{formatNumber(attendanceCounts.present)}</dd>
+                </div>
+                <div className="report-attendance-count report-attendance-count-represented">
+                  <dt>{t("attendance.represented")}</dt>
+                  <dd>{formatNumber(attendanceCounts.represented)}</dd>
+                </div>
+                <div className="report-attendance-count report-attendance-count-excused">
+                  <dt>{t("attendance.excused")}</dt>
+                  <dd>{formatNumber(attendanceCounts.excused)}</dd>
+                </div>
+                <div className="report-attendance-count report-attendance-count-absent">
+                  <dt>{t("attendance.absent")}</dt>
+                  <dd>{formatNumber(attendanceCounts.absent)}</dd>
+                </div>
+              </dl>
+            </div>
+            {attendanceVisible ? (
               <ul className="report-attendance-list">
                 {aggregate.attendance.map((attendance) => (
                   <li key={attendance.memberId}>
@@ -119,14 +134,9 @@ export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentatio
                   </li>
                 ))}
               </ul>
-            </details>
+            ) : null}
           </section>
           <MeetingProceedings aggregate={aggregate} defaultCollapsed />
-          {meeting.minutesId ? (
-            <MeetingMinutesAccess key={meeting.minutesId} id={meeting.minutesId} />
-          ) : (
-            <span>{t("minutes.empty")}</span>
-          )}
         </div>
       </div>
     </div>

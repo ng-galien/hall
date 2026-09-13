@@ -16,8 +16,8 @@ asserted_error_codes="${temporary_dir}/asserted-error-codes"
 asserted_native_codes="${temporary_dir}/asserted-native-codes"
 
 find "${sql_dir}" -maxdepth 1 -type f -name '*.sql' -print0 \
-  | xargs -0 grep -hEo '@(functional|technical)-requirement HALL-(FR|TR)-[A-Z]+-[0-9]{3}' \
-  | sed -E 's/^@(functional|technical)-requirement //' \
+  | xargs -0 grep -hEo '@((functional|technical)-requirement|implements-requirement) HALL-(FR|TR)-[A-Z]+-[0-9]{3}' \
+  | sed -E 's/^@((functional|technical)-requirement|implements-requirement) //' \
   | sort > "${production_requirements}"
 
 if [[ -n "$(uniq -d "${production_requirements}")" ]]; then

@@ -98,8 +98,8 @@ SELECT throws_ok(
 
 -- Eligibility fixture: one present chairman, one represented voter, one absent
 -- member and one excused member.
-INSERT INTO council_meetings (id, scheduled_at, location) VALUES
-(test_uuid('ballot:eligibility:meeting'), '2026-01-01 08:30:00+00', 'Council chamber');
+INSERT INTO council_meetings (id, scheduled_at, location, stale) VALUES
+(test_uuid('ballot:eligibility:meeting'), '2026-01-01 08:30:00+00', 'Council chamber', TRUE);
 
 INSERT INTO meeting_attendance (id, council_member, council_meeting, status) VALUES
   (
@@ -312,8 +312,8 @@ SELECT throws_ok(
 -- HALL-FR-BAL-230
 SELECT lives_ok(
   $$
-    INSERT INTO council_meetings (id, scheduled_at, location) VALUES
-(test_uuid('ballot:inactive:meeting'), '2026-01-01 08:30:00+00', 'Council chamber')
+    INSERT INTO council_meetings (id, scheduled_at, location, stale) VALUES
+(test_uuid('ballot:inactive:meeting'), '2026-01-01 08:30:00+00', 'Council chamber', TRUE)
   $$,
   'inactive-agenda-item fixture meeting is created'
 );
@@ -384,8 +384,8 @@ SELECT throws_ok(
 -- HALL-FR-BAL-220: this defensive branch is exercised against a deliberately
 -- inconsistent imported fixture; normal lifecycle operations cannot create a
 -- agenda item before its meeting starts.
-INSERT INTO council_meetings (id) VALUES
-(test_uuid('ballot:unstarted:meeting'));
+INSERT INTO council_meetings (id, stale) VALUES
+(test_uuid('ballot:unstarted:meeting'), TRUE);
 
 SELECT test_create_decision_agenda_item(
   'ballot:unstarted',
@@ -437,8 +437,8 @@ SELECT throws_ok(
 
 -- Native foreign-key SQLSTATE from HALL-TR-ERR-010. The chairman reference is
 -- intentionally deferred, so the violation is forced explicitly.
-INSERT INTO council_meetings (id, scheduled_at, location) VALUES
-(test_uuid('ballot:missing-chair:meeting'), '2026-01-01 08:30:00+00', 'Council chamber');
+INSERT INTO council_meetings (id, scheduled_at, location, stale) VALUES
+(test_uuid('ballot:missing-chair:meeting'), '2026-01-01 08:30:00+00', 'Council chamber', TRUE);
 
 INSERT INTO meeting_attendance (id, council_member, council_meeting, status)
 VALUES (

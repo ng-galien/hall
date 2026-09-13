@@ -1,11 +1,12 @@
 import { findSirenAction, findSirenLink } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router-dom";
+import type { SaveStatus } from "../../components/ui/save-status-indicator";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { generateMinutes, minutesContentHref, openMinutes, updateMinutesDraft } from "../../services/minutesApi";
 
 type OpenedMinutes = Awaited<ReturnType<typeof openMinutes>>;
-export type MinutesSaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
+export type MinutesSaveStatus = SaveStatus;
 type SectionDrafts = Record<string, string>;
 
 function changedSection(opened: OpenedMinutes | null, drafts: SectionDrafts) {
@@ -18,6 +19,9 @@ export function useMinutesDraft(id: string) {
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingSectionId, setSavingSectionId] = useState<string | null>(null);
+  const [savedSectionId, setSavedSectionId] = useState<string | null>(null);
+  const [failedSectionId, setFailedSectionId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [saved, setSaved] = useState(false);
   const latest = useRef<SectionDrafts>({});
@@ -71,26 +75,31 @@ export function useMinutesDraft(id: string) {
   const flush = useCallback((): Promise<boolean> => {
     if (pending.current) return pending.current;
     const save = async () => {
+      let section = changedSection(current.current, latest.current);
       try {
-        let section = changedSection(current.current, latest.current);
         while (current.current && section) {
           setSaving(true);
+          setSavingSectionId(section.agendaItemId);
+          setFailedSectionId(null);
           const result = await updateMinutesDraft(id, {
             expectedVersion: current.current.data.version,
             agendaItemId: section.agendaItemId,
             content: latest.current[section.agendaItemId],
           });
           accept(result);
+          setSavedSectionId(section.agendaItemId);
           section = changedSection(current.current, latest.current);
         }
         setError(null);
         setSaved(true);
         return true;
       } catch (failure) {
+        setFailedSectionId(section?.agendaItemId ?? null);
         setError(apiErrorCode(failure));
         return false;
       } finally {
         setSaving(false);
+        setSavingSectionId(null);
       }
     };
     pending.current = save().finally(() => {
@@ -159,6 +168,15 @@ export function useMinutesDraft(id: string) {
       setError("request_failed");
     },
     saveStatus,
+    sectionSaveStatus(agendaItemId: string): MinutesSaveStatus {
+      const persisted = opened?.data.sections.find((section) => section.agendaItemId === agendaItemId)?.content;
+      const sectionDirty = persisted !== undefined && sections[agendaItemId] !== persisted;
+      if (savingSectionId === agendaItemId) return "saving";
+      if (failedSectionId === agendaItemId && sectionDirty) return "error";
+      if (sectionDirty) return "dirty";
+      if (savedSectionId === agendaItemId) return "saved";
+      return "idle";
+    },
     canEdit: Boolean(opened?.representation && findSirenAction(opened.representation, "minutes.update-draft")),
     canGenerate: Boolean(opened?.representation && findSirenAction(opened.representation, "minutes.generate")),
     canPreview: Boolean(opened?.representation && findSirenLink(opened.representation, "preview")),
@@ -169,6 +187,8 @@ export function useMinutesDraft(id: string) {
       latest.current = { ...latest.current, [agendaItemId]: value };
       setSections(latest.current);
       setError(null);
+      setFailedSectionId(null);
+      if (savedSectionId === agendaItemId) setSavedSectionId(null);
       setSaved(false);
     },
     async generate() {

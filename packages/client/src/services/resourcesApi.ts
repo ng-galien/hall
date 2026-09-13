@@ -7,7 +7,9 @@ import {
   resourceDetailSchema as documentaryResourceDetailSchema,
   resourceSummarySchema as documentaryResourceSummarySchema,
   editorAssetSchema,
+  findSirenAction,
   findSirenLink,
+  generateEventInvitationSchema,
   type LegalReferenceSearchInput,
   legalReferenceSearchResultSchema,
   type ResolveLegalReference,
@@ -65,6 +67,12 @@ export async function searchDocumentaryResources(
   setValues("tags", criteria.tags);
   setValues("readiness", criteria.readiness);
   setValues("media", criteria.media);
+  setValues("preferredIds", criteria.preferredIds ?? []);
+  setValues("excludedIds", criteria.excludedIds ?? []);
+  if(criteria.includedIds!==undefined)url.searchParams.set("includedIds",criteria.includedIds.join(","));
+  if (criteria.limit !== undefined) url.searchParams.set("limit", String(criteria.limit));
+  if (criteria.offset !== undefined) url.searchParams.set("offset", String(criteria.offset));
+  if (criteria.context !== undefined) url.searchParams.set("context", criteria.context);
   const result = await apiSirenRequest<unknown>(apiPathFromHref(url.href));
   const data: ResourceSearchResult = resourceSearchResultSchema.parse(result.representation?.properties ?? result.data);
   return { ...result, data };
@@ -155,6 +163,26 @@ export async function downloadDocumentaryResource(
   const link = window.document.createElement("a");
   link.href = url;
   link.download = resource.name;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadEventInvitation(
+  resource: Extract<ReturnType<typeof documentaryResourceDetailSchema.parse>, { kind: "event" }>,
+  representation: Parameters<typeof findSirenAction>[0],
+  method: "request" | "cancel",
+): Promise<void> {
+  const action = findSirenAction(representation, "resource.generate-event-invitation");
+  if (!action) throw new SirenCapabilityUnavailable("resource.generate-event-invitation");
+  const response = await apiResponse(apiPathFromHref(action.href), {
+    method: action.method,
+    headers: { Accept: "message/rfc822", "Content-Type": "application/json" },
+    body: JSON.stringify(generateEventInvitationSchema.parse({ method })),
+  });
+  const url = URL.createObjectURL(await response.blob());
+  const link = window.document.createElement("a");
+  link.href = url;
+  link.download = `${resource.name}-${method}.eml`;
   link.click();
   URL.revokeObjectURL(url);
 }

@@ -158,9 +158,9 @@ RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN
   -- @functional-requirement HALL-FR-MIN-200 CLOSURE_NOTES_INITIALIZE_THEIR_OWN_SECTION:
   INSERT INTO hall.minutes_section(minutes, agenda_item, content)
-  SELECT NEW.id, (item->>'id')::UUID, coalesce(item->>'discussion_summary','')
-  FROM hall.council_meeting_snapshot snapshot, jsonb_array_elements(snapshot.payload->'agenda') item
-  WHERE snapshot.council_meeting = NEW.council_meeting AND snapshot.phase = 'closing';
+  SELECT NEW.id, agenda_item.id, agenda_item.discussion_summary
+  FROM jsonb_array_elements(NEW.facts->'agenda') item
+  JOIN hall.council_agenda_item agenda_item ON agenda_item.id = (item->>'id')::UUID;
   RETURN NEW;
 END;
 $$;

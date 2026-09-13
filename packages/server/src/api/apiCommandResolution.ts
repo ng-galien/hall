@@ -182,6 +182,8 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method === "PATCH" && id && child === "metadata" && !childId)
       return auditIntent("resource.update-metadata", id);
     if (method === "PUT" && id && child === "content" && !childId) return auditIntent("resource.update-content", id);
+    if (method === "POST" && id && child === "event-invitation" && !childId)
+      return auditIntent("resource.generate-event-invitation", id);
     if (method === "PUT" && id && child === "binary" && !childId)
       return auditIntent("resource.replace-document-content", id);
     if (method === "POST" && id === "spreadsheets" && child === "import" && !childId)

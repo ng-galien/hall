@@ -15,6 +15,10 @@ SET CONSTRAINTS ALL DEFERRED;
 CREATE TEMP TABLE minutes_fixture AS SELECT (payload#>>'{minutes,id}')::UUID id, (payload#>>'{nextMeeting,id}')::UUID next_meeting FROM minutes_closure;
 SELECT is((SELECT count(*) FROM minutes WHERE council_meeting = test_uuid('minutes:meeting')), 1::BIGINT, 'closure creates exactly one standalone draft');
 SELECT is((SELECT content FROM minutes_section JOIN minutes_fixture ON minutes = id WHERE agenda_item = test_uuid('minutes:agenda-item')), 'Notes with a typo.', 'draft starts from recorded discussion notes');
+-- @verifies-requirement HALL-FR-MIN-250
+SELECT ok(NOT (SELECT (facts#>'{agenda,0}') ? 'discussionSummary' FROM minutes JOIN minutes_fixture USING(id)), 'minutes facts do not duplicate discussion notes');
+SELECT is((SELECT hall_api.open_minutes(id)#>>'{facts,agenda,0,discussionSummary}' FROM minutes_fixture), 'Notes with a typo.', 'minutes API reads immutable notes from the agenda item');
+SELECT throws_ok($$UPDATE council_agenda_item SET discussion_summary = 'Changed after closure' WHERE id = test_uuid('minutes:agenda-item')$$, 'HV223', 'a closed council meeting cannot receive agenda changes', 'closed meeting notes cannot be changed');
 SELECT is((SELECT facts#>>'{ballots,0,result}' FROM minutes JOIN minutes_fixture USING(id)), 'approve', 'result is copied from the immutable ballot');
 SELECT is((SELECT jsonb_array_length(facts#>'{ballots,0,votes}') FROM minutes JOIN minutes_fixture USING(id)), 2, 'public recorded votes are copied');
 SELECT is((SELECT facts#>>'{meeting,chair,name}' FROM minutes JOIN minutes_fixture USING(id)), 'Test ' || (SELECT chair_member::TEXT FROM council_meetings WHERE id=test_uuid('minutes:meeting')), 'chair name is frozen');

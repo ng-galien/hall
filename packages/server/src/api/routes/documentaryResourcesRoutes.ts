@@ -3,6 +3,7 @@ import {
   createResourceSchema,
   documentContentHashesSchema,
   editorAssetTitleSchema,
+  generateEventInvitationSchema,
   legalReferenceSearchInputSchema,
   refreshLegalReferenceSchema,
   relocateResourceSchema,
@@ -25,7 +26,7 @@ import { routeParameter } from "../routeParameter.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
-export function createDocumentaryResourcesRouter({ documentaryResourceService, requestContext }: Cradle): Router {
+export function createDocumentaryResourcesRouter({ documentaryResourceService, eventInvitationService, requestContext }: Cradle): Router {
   const router = Router();
   const uploadFile: ReturnType<typeof upload.single> = (request, response, next) => {
     const context = requestContext.current();
@@ -55,6 +56,12 @@ export function createDocumentaryResourcesRouter({ documentaryResourceService, r
 
   router.get("/search", requirePermission("workspace.read"), async (request, response) => {
     const criteria = resourceSearchCriteriaSchema.parse({
+      offset: request.query.offset === undefined ? undefined : Number(request.query.offset),
+      limit: request.query.limit === undefined ? undefined : Number(request.query.limit),
+      context: request.query.context,
+      preferredIds: queryValues(request.query.preferredIds),
+      excludedIds: queryValues(request.query.excludedIds),
+      includedIds: request.query.includedIds===undefined?undefined:queryValues(request.query.includedIds),
       query: typeof request.query.query === "string" ? request.query.query : "",
       paths: queryValues(request.query.paths),
       kinds: queryValues(request.query.kinds),
@@ -276,6 +283,22 @@ export function createDocumentaryResourcesRouter({ documentaryResourceService, r
       ),
     );
   });
+
+  router.post(
+    "/:reference/event-invitation",
+    requireActionPermission("resource.generate-event-invitation"),
+    async (request, response) => {
+      const message = await eventInvitationService.generate(
+        resourceReferenceSchema.parse(routeParameter(request.params.reference)),
+        generateEventInvitationSchema.parse(request.body),
+      );
+      response
+        .status(200)
+        .type(message.mediaType)
+        .setHeader("Content-Disposition", `attachment; filename="${message.fileName}"`)
+        .send(message.content);
+    },
+  );
 
   router.get("/:reference", requirePermission("workspace.read"), async (request, response) => {
     response.json(

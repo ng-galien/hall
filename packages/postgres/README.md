@@ -1,7 +1,7 @@
 # `@hall/postgres`
 
 This package is Hall's PostgreSQL persistence boundary. `@hall/server` uses it
-for the documentary HTTP surface whenever `DATABASE_KIND=postgres`.
+for the documentary HTTP surface through Hall's PostgreSQL runtime.
 
 ## Runtime contract
 

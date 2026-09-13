@@ -97,11 +97,9 @@ export function facetSuggestionsFor<TKind extends string, TState extends string,
     .map((option) => ({ facet: "type" as const, value: option.value, label: option.label, count: option.count }));
   const folders = options.folders
     .filter((option) => matches(option.value))
-    .slice(0, 6)
     .map((option) => ({ facet: "folder" as const, value: option.value, label: option.value, count: option.count }));
   const tags = options.tags
     .filter((option) => matches(option.value))
-    .slice(0, 5)
     .map((option) => ({ facet: "tag" as const, value: option.value, label: option.value, count: option.count }));
   const states = options.states
     .filter((option) => matches(option.label))
@@ -109,5 +107,5 @@ export function facetSuggestionsFor<TKind extends string, TState extends string,
   const media = options.media
     .filter((option) => matches(option.label))
     .map((option) => ({ facet: "media" as const, ...option }));
-  return [...types, ...states, ...media, ...folders, ...tags].slice(0, 14);
+  return [...types, ...states, ...media, ...folders, ...tags];
 }

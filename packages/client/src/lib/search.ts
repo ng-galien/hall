@@ -1,15 +1,24 @@
+import type { ResourceKind } from "@hall/api-contract";
 import type { CouncilDecisionStatus, MeetingStatus, ReferenceEntityKind } from "@hall/domain";
 
 export type SearchableKind = ReferenceEntityKind;
-export type SearchableState = CouncilDecisionStatus | MeetingStatus | import("@hall/api-contract").CouncilDecisionSummary["state"];
+export type SearchType = ReferenceEntityKind | Exclude<ResourceKind, "folder">;
+export type SearchableState =
+  | "incomplete"
+  | "empty"
+  | "ready"
+  | CouncilDecisionStatus
+  | MeetingStatus
+  | import("@hall/api-contract").CouncilDecisionSummary["state"];
 export const searchableMedia = ["image"] as const;
 export type SearchableMedia = (typeof searchableMedia)[number];
 
 export interface Searchable<TKind extends SearchableKind = SearchableKind> {
   kind: TKind;
+  resourceKind?: Exclude<ResourceKind, "folder">;
   id: string;
   label: string;
-  /** Secondary fields the query also matches: number, file name, role. */
+  /** Presentation metadata; deliberately excluded from title search. */
   extra?: readonly (string | null | undefined)[];
   folderPath?: string;
   preferred?: boolean;
@@ -36,13 +45,13 @@ function searchTerms(raw: string): string[] {
     .filter((term) => term.length > 0 && !term.startsWith("#"));
 }
 
-/** Scores a term: label prefix 3, word start 2, substring 1, secondary field 0.5, no match 0. */
-function termQuality(term: string, label: string, extra: string): number {
-  if (label.startsWith(term)) return 3;
-  if (label.includes(` ${term}`) || label.includes(`'${term}`) || label.includes(`-${term}`)) return 2;
-  if (label.includes(term)) return 1;
-  if (extra.includes(term)) return 0.5;
-  return 0;
+/** Title words only: whole word, prefix, substring. */
+// @implements-requirement HALL-FR-SRC-010
+function termQuality(term: string, label: string): number {
+  const words = label.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (words.includes(term)) return 3;
+  if (words.some((word) => word.startsWith(term))) return 2;
+  return label.includes(term) ? 1 : 0;
 }
 
 /** Scores folder nearness: same folder 2, same subtree either way 1, otherwise 0. */
@@ -60,7 +69,7 @@ export interface SearchOptions {
   context?: string;
   limit?: number;
   /** Type facets selected through the structured search state. */
-  kinds?: readonly SearchableKind[];
+  kinds?: readonly SearchType[];
   /** Folder facets; an entry matches when it lives at or under one of them. */
   folders?: readonly string[];
   /** Tag facets; an entry matches when it carries every one of them. */
@@ -91,7 +100,12 @@ export function searchEntities<T extends Searchable>(
   const scored: { item: T; quality: number; nearness: number; label: string }[] = [];
 
   for (const candidate of candidates) {
-    if (kinds.length > 0 && !kinds.includes(candidate.kind)) continue;
+    if (
+      kinds.length > 0 &&
+      !kinds.includes(candidate.kind) &&
+      !(candidate.resourceKind && kinds.includes(candidate.resourceKind))
+    )
+      continue;
     if (states.length > 0 && (!candidate.state || !states.includes(candidate.state))) continue;
     if (media.length > 0 && (!candidate.media || !media.includes(candidate.media))) continue;
     const folder = candidate.folderPath ? normalizeForSearch(candidate.folderPath) : "";
@@ -102,11 +116,10 @@ export function searchEntities<T extends Searchable>(
     }
 
     const label = normalizeForSearch(candidate.label);
-    const extra = normalizeForSearch((candidate.extra ?? []).filter(Boolean).join(" "));
-    let quality = 0;
+    let quality = label === terms.join(" ") ? 1000 : 0;
     let matchesAll = true;
     for (const term of terms) {
-      const termScore = termQuality(term, label, extra);
+      const termScore = termQuality(term, label);
       if (termScore === 0) {
         matchesAll = false;
         break;
@@ -119,7 +132,11 @@ export function searchEntities<T extends Searchable>(
 
   scored.sort(
     (left, right) =>
-      Number(Boolean(right.item.preferred)) - Number(Boolean(left.item.preferred)) || right.nearness - left.nearness || right.quality - left.quality || left.label.localeCompare(right.label, "fr"),
+      right.quality - left.quality ||
+      Number(Boolean(right.item.preferred)) - Number(Boolean(left.item.preferred)) ||
+      right.nearness - left.nearness ||
+      left.label.localeCompare(right.label, "fr") ||
+      left.item.id.localeCompare(right.item.id),
   );
 
   const results = options.limit !== undefined ? scored.slice(0, options.limit) : scored;

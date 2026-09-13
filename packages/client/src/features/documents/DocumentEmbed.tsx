@@ -1,4 +1,5 @@
 import type { ResourceDetail, SirenEntity } from "@hall/api-contract";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { FullscreenIcon } from "../../components/icons";
 import { useDocumentPreview } from "../../hooks/useDocumentPreview";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -22,11 +23,7 @@ export function DocumentEmbed({
 
   return (
     <div className="document-embed">
-      {!objectUrl && !failed ? (
-        <span className="spinner" role="status">
-          {t("common.loading")}
-        </span>
-      ) : null}
+      {!objectUrl && !failed ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
       {failed ? <DocumentPreviewFailure onRetry={retry} /> : null}
       {objectUrl && mediaType ? (
         <NativeDocumentFrame url={objectUrl} mediaType={mediaType} title={resource.name} testId={objectTestId} />

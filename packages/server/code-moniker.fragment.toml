@@ -1,7 +1,7 @@
 fragment = "server"
 
 [aliases]
-persistence_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:repositories/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:database/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:sqlite/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:postgres/**'"
+persistence_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:repositories/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:database/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:infrastructure/dir:postgres/**'"
 composition_at_server_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:core/module:container/**' OR source ~ '**/dir:packages/dir:server/dir:src/dir:core/module:localServer/**'"
 database_test_support_source = "source ~ '**/dir:packages/dir:server/dir:src/dir:__tests__/dir:support/**'"
 persistence_at_server_decoder_target = "target ~ '**/dir:packages/dir:server/dir:src/dir:repositories/module:row/**' OR target ~ '**/dir:packages/dir:server/dir:src/dir:repositories/module:evidenceMapping/**'"

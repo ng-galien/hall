@@ -6,7 +6,7 @@ import { OfficialSourceError } from "../services/legalReferenceProvider.js";
 const config: ServerConfig = {
   host: "127.0.0.1",
   port: 0,
-  database: { kind: "sqlite", path: ":memory:" },
+  database: { kind: "postgres", url: "postgresql://unused.example/hall" },
   legifranceEnvironment: "sandbox",
   legifranceClientId: "test-client",
   legifranceClientSecret: "test-secret",

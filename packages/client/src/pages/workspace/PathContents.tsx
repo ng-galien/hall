@@ -46,7 +46,7 @@ import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
-import { listCatalogPaths } from "./paths";
+import { isUnderPath, listCatalogPaths } from "./paths";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 import { DRAG_TYPE, type DragPayload, decodeDragPayload, encodeDragPayload, moveToPath } from "./workspaceOrg";
@@ -116,6 +116,7 @@ function RenameContextMenu({
 
 function directChildrenOf(parent: string, paths: string[]) {
   return paths.filter((candidate) => {
+    if (parent === "") return candidate !== "" && !candidate.includes("/");
     if (!candidate.startsWith(`${parent}/`)) return false;
     return !candidate.slice(parent.length + 1).includes("/");
   });
@@ -254,19 +255,10 @@ export function PathContents({
     }
     return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
   }, [councilBusinessStore.businesses, resourcesStore.catalog]);
-  const paths = useMemo(() => {
-    const businessFolderIds = new Set(councilBusinessStore.businesses.map((business) => business.folderResourceId));
-    const businessPaths = new Set(
-      resourcesStore.catalog
-        .filter((entry) => entry.kind === "folder" && businessFolderIds.has(entry.id))
-        .map((entry) => entry.fullPath),
-    );
-    return allPaths.filter(
-      (candidate) =>
-        (candidate === path || candidate.startsWith(`${path}/`)) &&
-        (mode === "resources" || query.trim() !== "" || !businessPaths.has(candidate)),
-    );
-  }, [allPaths, path, councilBusinessStore.businesses, resourcesStore.catalog, mode, query]);
+  const paths = useMemo(
+    () => allPaths.filter((candidate) => isUnderPath(candidate, path)),
+    [allPaths, path],
+  );
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const matches = (title: string) => !normalizedQuery || title.toLocaleLowerCase().includes(normalizedQuery);
   const visibleBusinesses = businesses.filter((business) => mode !== "resources" && matches(business.title));
@@ -1212,7 +1204,7 @@ export function PathContents({
   const rootHasDirectItems =
     visibleBusinesses.some((business) => business.folderPath === path) ||
     visibleResources.some((resource) => resource.path === path);
-  const rootName = path.split("/").at(-1) ?? path;
+  const rootName = path ? path.split("/").at(-1) : t("navigation.workspace");
   const rootRow = (
     <fieldset
       className="workspace-explorer-folder-row workspace-explorer-root-row"

@@ -53,11 +53,16 @@ export const domainStatusKeys: Record<DomainStatus, TranslationKey> = {
 
 export function StatusBadge({ value }: { value: DomainStatus }) {
   const { t } = useI18n();
-  const variant = ["adopted", "enforceable", "ready", "present", "published"].includes(value)
-    ? "success"
-    : ["rejected", "cancelled", "absent"].includes(value)
-      ? "destructive"
-      : "secondary";
+  const variant =
+    value === "represented"
+      ? "brand"
+      : value === "excused"
+        ? "warning"
+        : ["adopted", "enforceable", "ready", "present", "published"].includes(value)
+          ? "success"
+          : ["rejected", "cancelled", "absent"].includes(value)
+            ? "destructive"
+            : "secondary";
   return <Badge variant={variant}>{t(domainStatusKeys[value])}</Badge>;
 }
 

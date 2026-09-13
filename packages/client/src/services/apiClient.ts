@@ -258,7 +258,16 @@ export async function apiSirenRequest<T>(path: string, init?: RequestInit): Prom
   const response = await apiResponse(path, init);
   const readRequest = !init?.method || init.method.toUpperCase() === "GET";
   if (response.status === 204) {
-    representations.delete(path.split("#", 1)[0]);
+    const normalized = path.split("#", 1)[0];
+    const deleted = representations.get(normalized);
+    const self = deleted && findSirenLink(deleted, "self");
+    const canonicalPath = self ? apiPathFromHref(self.href) : normalized;
+    for (const [key, representation] of representations) {
+      const link = findSirenLink(representation, "self");
+      if (key === normalized || (link && apiPathFromHref(link.href) === canonicalPath)) {
+        representations.delete(key);
+      }
+    }
     return { data: undefined as T, representation: null };
   }
   const payload = (await response.json()) as SirenEntity<Record<string, unknown>>;

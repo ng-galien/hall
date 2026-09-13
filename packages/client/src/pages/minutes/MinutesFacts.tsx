@@ -1,29 +1,34 @@
 import type { MinutesFacts as Facts } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
 import { Disclosure } from "@/components/ui/disclosure";
-import { MarkdownView } from "../../components/MarkdownView";
-import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
+import { MinutesSectionHint } from "./MinutesSectionHint";
 
+// @implements-requirement HALL-FR-MIN-240
 export function MinutesFacts({ facts }: { facts: Facts }) {
-  const { t, formatDateTime, formatNumber } = useI18n();
+  const { t, formatTime, formatNumber } = useI18n();
+  const present = facts.attendance.filter((entry) => entry.status === "present");
+  const represented = facts.attendance.filter((entry) => entry.status === "represented");
+  const excused = facts.attendance.filter((entry) => entry.status === "excused");
+  const absent = facts.attendance.filter((entry) => entry.status === "absent");
+  const names = (entries: Facts["attendance"]) =>
+    entries.length > 0 ? entries.map((entry) => entry.member.name).join(", ") : t("common.none");
+
   return (
-    <section className="admin-record" data-testid="minutes-facts" aria-labelledby="minutes-facts-title">
+    <section
+      className="admin-record minutes-opening-record"
+      data-testid="minutes-facts"
+      aria-labelledby="minutes-facts-title"
+    >
       <div className="admin-section-heading">
         <div>
-          <h2 id="minutes-facts-title">{t("minutes.facts")}</h2>
-          <p>{t("minutes.factsHint")}</p>
+          <div className="minutes-section-title">
+            <h2 id="minutes-facts-title">{t("minutes.facts")}</h2>
+            <MinutesSectionHint text={t("minutes.factsHint")} />
+          </div>
         </div>
       </div>
-      <dl className="meeting-facts">
-        <div>
-          <dt>{t("meeting.openedAt")}</dt>
-          <dd>{formatDateTime(facts.meeting.startedAt)}</dd>
-        </div>
-        <div>
-          <dt>{t("meeting.closedAt")}</dt>
-          <dd>{formatDateTime(facts.meeting.closedAt)}</dd>
-        </div>
+      <dl className="minutes-prose-facts">
         <div>
           <dt>{t("meetings.chair")}</dt>
           <dd>{facts.meeting.chair?.name ?? t("common.none")}</dd>
@@ -36,31 +41,51 @@ export function MinutesFacts({ facts }: { facts: Facts }) {
           <dt>{t("meeting.quorum")}</dt>
           <dd>{formatNumber(facts.meeting.quorum)}</dd>
         </div>
+        <div>
+          <dt>{t("meeting.openedAt")}</dt>
+          <dd>{formatTime(facts.meeting.startedAt)}</dd>
+        </div>
+        <div>
+          <dt>{t("meeting.closedAt")}</dt>
+          <dd>{formatTime(facts.meeting.closedAt)}</dd>
+        </div>
       </dl>
-      <Disclosure
-        title={t("minutes.attendance")}
-        testId="minutes-attendance"
-        toggleTestId="minutes-attendance-toggle"
-        contentTestId="minutes-attendance-content"
+      <section
+        className="minutes-attendance-text"
+        data-testid="minutes-attendance"
+        aria-labelledby="minutes-attendance-title"
       >
-        <ul className="divide-y divide-border">
-          {facts.attendance.map((entry) => (
-            <li key={entry.id} className="grid gap-2 py-3 sm:grid-cols-3 sm:items-center sm:gap-4">
-              <span className="font-medium">{entry.member.name}</span>
-              <span>
-                <StatusBadge value={entry.status} />
-              </span>
-              {entry.proxyHolderId ? (
-                <span className="text-sm text-muted-foreground">
-                  {t("minutes.proxyHolder")}{" "}
-                  {facts.attendance.find((person) => person.id === entry.proxyHolderId)?.member.name ??
-                    t("common.none")}
-                </span>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      </Disclosure>
+        <h3 id="minutes-attendance-title">{t("minutes.attendance")}</h3>
+        <dl className="minutes-attendance-groups" data-testid="minutes-attendance-content">
+          <div>
+            <dt>{t("minutes.presentMembers").replace("{count}", formatNumber(present.length))}</dt>
+            <dd>{names(present)}</dd>
+          </div>
+          <div>
+            <dt>{t("minutes.excusedMembers").replace("{count}", formatNumber(excused.length))}</dt>
+            <dd>{names(excused)}</dd>
+          </div>
+          <div>
+            <dt>{t("minutes.absentMembers").replace("{count}", formatNumber(absent.length))}</dt>
+            <dd>{names(absent)}</dd>
+          </div>
+          <div>
+            <dt>{t("minutes.proxies").replace("{count}", formatNumber(represented.length))}</dt>
+            <dd>
+              {represented.length > 0
+                ? represented
+                    .map((entry) => {
+                      const holder = facts.attendance.find(
+                        (person) => person.id === entry.proxyHolderId,
+                      );
+                      return `${entry.member.name} : ${t("minutes.proxyHolder")} ${holder?.member.name ?? t("common.none")}`;
+                    })
+                    .join("; ")
+                : t("common.none")}
+            </dd>
+          </div>
+        </dl>
+      </section>
     </section>
   );
 }
@@ -74,51 +99,72 @@ export function MinutesAgendaFacts({ item, ballots }: { item: Facts["agenda"][nu
     blank: t("ballot.blank"),
     invalid: t("ballot.invalid"),
   };
+  const total = (ballot: Facts["ballots"][number], choice: keyof typeof choiceLabels) =>
+    ballot.votes.filter((vote) => vote.choice === choice).reduce((sum, vote) => sum + vote.count, 0);
+  const firstBallot = ballots[0];
+
+  if (!firstBallot) {
+    return (
+      <div className="minutes-vote-empty" data-testid={`minutes-section-vote-${item.id}`}>
+        <strong>{t("minutes.vote")}</strong>
+        <span>{t(item.adjournedAt ? "status.adjourned" : "minutes.noVote")}</span>
+      </div>
+    );
+  }
+
+  const result =
+    firstBallot.result === null
+      ? t("minutes.noResult")
+      : matchLiteral(firstBallot.result, {
+          approve: () => t("status.adopted"),
+          reject: () => t("status.rejected"),
+        });
+
   return (
     <Disclosure
-      title={t("minutes.sectionFacts")}
-      testId={`minutes-section-facts-${item.id}`}
-      toggleTestId={`minutes-section-facts-toggle-${item.id}`}
-      contentTestId={`minutes-section-facts-content-${item.id}`}
+      title={
+        <span className="minutes-vote-summary">
+          <strong>{t("minutes.vote")}</strong>
+          <span>{result}</span>
+          <span>
+            {t("ballot.votesFor")} <strong>{formatNumber(total(firstBallot, "approve"))}</strong>
+          </span>
+          <span>
+            {t("ballot.votesAgainst")} <strong>{formatNumber(total(firstBallot, "reject"))}</strong>
+          </span>
+          <span>
+            {t("ballot.abstentions")} <strong>{formatNumber(total(firstBallot, "abstain"))}</strong>
+          </span>
+        </span>
+      }
+      testId={`minutes-section-vote-${item.id}`}
+      toggleTestId={`minutes-section-vote-toggle-${item.id}`}
+      contentTestId={`minutes-section-vote-content-${item.id}`}
     >
-      <div className="grid gap-4">
-        {item.report ? <MarkdownView markdown={item.report} /> : null}
-        {item.proposal ? <MarkdownView markdown={item.proposal} /> : null}
-        {item.adjournedAt ? <StatusBadge value="adjourned" /> : null}
+      <div className="minutes-vote-details">
         {ballots.map((ballot) => (
-          <div key={ballot.id} className="grid gap-3">
-            <p>
+          <div key={ballot.id} className="minutes-vote-detail">
+            <strong>
               {matchLiteral(ballot.mode, {
                 public: () => t("minutes.publicBallot"),
                 secret: () => t("minutes.secretBallot"),
-              })}{" "}
-              ·{" "}
-              {ballot.result === null
-                ? t("minutes.noResult")
-                : matchLiteral(ballot.result, {
-                    approve: () => t("status.adopted"),
-                    reject: () => t("status.rejected"),
-                  })}
-            </p>
-            <dl className="meeting-facts">
+              })}
+            </strong>
+            <dl className="minutes-vote-totals">
               {(["approve", "reject", "abstain"] as const).map((choice) => (
                 <div key={choice}>
                   <dt>{choiceLabels[choice]}</dt>
-                  <dd>
-                    {formatNumber(
-                      ballot.votes.filter((vote) => vote.choice === choice).reduce((sum, vote) => sum + vote.count, 0),
-                    )}
-                  </dd>
+                  <dd>{formatNumber(total(ballot, choice))}</dd>
                 </div>
               ))}
             </dl>
             {matchLiteral(ballot.mode, {
               public: () => (
-                <ul className="divide-y divide-border text-sm">
+                <ul className="minutes-vote-members">
                   {ballot.votes.map((vote, index) => (
-                    <li key={vote.member?.id ?? index} className="grid grid-cols-2 gap-4 py-2">
-                      <span>{vote.member?.name}</span>
-                      <span className="text-muted-foreground">{choiceLabels[vote.choice]}</span>
+                    <li key={vote.member?.id ?? index}>
+                      <span>{vote.member?.name ?? t("common.none")}</span>
+                      <span>{choiceLabels[vote.choice]}</span>
                     </li>
                   ))}
                 </ul>

@@ -6,6 +6,7 @@ export interface PathNode {
   path: string;
   name: string;
   children: PathNode[];
+  business: CouncilBusinessView | null;
 }
 
 /** All known paths, intermediate segments included, sorted. */
@@ -46,8 +47,16 @@ export function listCatalogPaths(catalog: ResourceCatalogEntry[]): string[] {
   return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
 }
 
-/** Path tree built from the known filing locations. */
+/** Path tree preserving the business identity of its documentary folder.
+ * @implements-requirement HALL-FR-WSP-240
+ */
 export function buildPathTree(businesses: CouncilBusinessView[], catalog: ResourceCatalogEntry[]): PathNode[] {
+  const businessesByFolderId = new Map(businesses.map((business) => [business.folderResourceId, business]));
+  const businessesByPath = new Map(
+    catalog
+      .filter((entry) => entry.kind === "folder")
+      .map((entry) => [entry.fullPath, businessesByFolderId.get(entry.id)]),
+  );
   const knownPaths = new Set(listCatalogPaths(catalog));
   for (const folderPath of businesses.map((business) => business.folderPath)) {
     const segments = folderPath.split("/").filter(Boolean);
@@ -63,7 +72,8 @@ export function buildPathTree(businesses: CouncilBusinessView[], catalog: Resour
       })
       .map((path) => ({
         path,
-        name: path.split("/").at(-1) ?? path,
+        name: businessesByPath.get(path)?.title ?? path.split("/").at(-1) ?? path,
+        business: businessesByPath.get(path) ?? null,
         children: childrenOf(path),
       }))
       .sort((left, right) => left.name.localeCompare(right.name, "fr-FR"));

@@ -21,7 +21,15 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog,
       ORDER BY item.ordinality), '[]'::JSONB)
     FROM hall.minutes_section section JOIN jsonb_array_elements(minutes.facts->'agenda') WITH ORDINALITY item(value, ordinality)
       ON item.value->>'id' = section.agenda_item::TEXT WHERE section.minutes = minutes.id
-  ), 'facts', facts || jsonb_build_object('agenda',(SELECT coalesce(jsonb_agg(item || jsonb_build_object('introducedAt',hall.council_agenda_introduced_at(minutes.council_meeting,(item->>'id')::uuid)) ORDER BY ordinal),'[]'::jsonb) FROM jsonb_array_elements(facts->'agenda') WITH ORDINALITY entry(item,ordinal))))
+  ), 'facts', facts || jsonb_build_object('agenda', (
+    SELECT coalesce(jsonb_agg(item || jsonb_build_object(
+      'introducedAt', hall.council_agenda_introduced_at(minutes.council_meeting, agenda_item.id),
+      -- @functional-requirement HALL-FR-MIN-250 MINUTES_POINT_SEPARATES_SOURCE_VOTE_AND_EDITORIAL_TEXT:
+      'discussionSummary', agenda_item.discussion_summary
+    ) ORDER BY ordinal), '[]'::jsonb)
+    FROM jsonb_array_elements(facts->'agenda') WITH ORDINALITY entry(item, ordinal)
+    JOIN hall.council_agenda_item agenda_item ON agenda_item.id = (item->>'id')::UUID
+  )))
   FROM hall.minutes WHERE id = target_minutes;
 $$;
 

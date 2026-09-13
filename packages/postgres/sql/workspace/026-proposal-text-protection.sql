@@ -1,6 +1,7 @@
 -- A proposal's original text remains owned by its business. Voting seals that
 -- original, independently of the eventual result and of later vote corrections.
--- @functional-requirement HALL-FR-WSP-230 VOTED_PROPOSAL_TEXT_IS_PERMANENTLY_IMMUTABLE:
+-- The ballot seal remains a durable integrity witness in addition to the
+-- meeting-start title and content lock owned by HALL-FR-WSP-280.
 CREATE TABLE hall.proposal_text_seal (
   council_decision_proposal UUID PRIMARY KEY REFERENCES hall.council_decision_proposal(id),
   ballot UUID NOT NULL REFERENCES hall.ballots(id),
@@ -156,6 +157,15 @@ BEGIN
     END IF;
   END IF;
   IF hall.proposal_text_is_sealed(resource_id) AND NEW IS DISTINCT FROM OLD THEN
+    -- The owner folder has already moved. Only its dependent path may follow;
+    -- content, name, identity, tags and seal remain protected. Generated columns
+    -- are recomputed by PostgreSQL after the BEFORE trigger.
+    IF TG_TABLE_NAME = 'resource' THEN
+      IF NEW.path IS DISTINCT FROM OLD.path
+        AND (to_jsonb(NEW) - ARRAY['path', 'full_path', 'is_folder', 'container_path', 'container_is_folder']) = (to_jsonb(OLD) - ARRAY['path', 'full_path', 'is_folder', 'container_path', 'container_is_folder']) THEN
+        RETURN NEW;
+      END IF;
+    END IF;
     RAISE EXCEPTION USING ERRCODE = 'HV821', MESSAGE = 'a voted proposal text is immutable';
   END IF;
   RETURN NEW;

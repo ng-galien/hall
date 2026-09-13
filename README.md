@@ -1,115 +1,82 @@
 # Hall
 
-Desktop-first municipal council management. The first bounded scope covers classified documentary resources, living
-agenda topics, council meetings, attendance and proxies, historical agenda occurrences, council decisions, ballots,
-votes, the minutes lifecycle, and a contact directory distinct from council mandates.
+Hall supports the work of a French municipal council: preparing council business, conducting meetings, and preserving minutes and resulting acts.
 
-Each installation is single-tenant and represents one commune. `GET /api/settings` exposes its `HallSettings`; an
-administrator may update them through the advertised `settings.update` Siren action. These settings hold municipal
-identity, contact details, council defaults, and functional email addresses. SMTP credentials and other secrets stay
-in the deployment environment.
+## Repository structure
 
-## Architecture
+Hall is an npm workspace organized around explicit architectural boundaries:
 
-- `@hall/domain`: shared English technical contracts and validation schemas.
-- `@hall/api-contract`: Siren, Problem Details, action names, and security transport contracts shared over HTTP.
-- `@hall/server`: Express application, Awilix services, named SQL queries, and injected SQLite/PostgreSQL adapters.
-- `@hall/client`: React, Fluent UI, and Zustand renderer with English and French localization. CSS design tokens are
-  the canonical theme source used by both Fluent UI and Tailwind.
-- `@hall/desktop`: Electron Forge shell.
+- `@hall/contracts`: dependency-free identifiers and shared types.
+- `@hall/domain`: aggregates, state machines, invariants, and domain events.
+- `@hall/api-contract`: transport schemas and DTOs.
+- `@hall/postgres`: PostgreSQL migrations, repositories, and pgTAP tests.
+- `@hall/server`: Express composition root and HTTP API.
+- `@hall/client`: React web application.
+- `@hall/templating`: document and PDF templates.
+- `@hall/desktop`: Electron packaging for local distribution.
 
-Electron supports two runtime modes:
+The shared server uses PostgreSQL; desktop local mode uses PGlite. Domain code does not depend on database or HTTP implementation details.
 
-- Local mode starts an embedded server and stores SQLite in Electron `userData`.
-- Shared mode uses `HALL_SERVER_URL`; several desktop applications then use one authoritative server and database.
-  After a successful connection, the desktop app remembers this URL in `connection.json` in Electron `userData`,
-  so later launches from Finder reconnect without an environment variable. Setting `HALL_SERVER_URL` again changes
-  the saved connection. This is the mode to use with the current PostgreSQL-backed Hall server; the historical
-  embedded SQLite mode does not provide the current council and document workflows.
-
-Clients never open the database directly. `DATABASE_KIND=sqlite|postgres` selects the injected executor; each engine
-keeps an explicit schema and may override a named query when its SQL dialect requires it.
-
-The server exposes Siren representations and RFC 9457 Problem Details. Individual users authenticate through an
-`HttpOnly` session cookie. Server-owned roles grant broad permissions, while current domain state determines which
-Siren actions are advertised. An application user may optionally reference a council member. A `Contact` owns identity
-and communication details; a `CouncilMember` is a dated council mandate linked to that contact. The active
-`CouncilTerm` is Hall-owned; persistence permits term history while enforcing a single active term, whose expected member count bounds active mandates. Successful mutations are
-written to the audit log in the same database transaction.
-
-Uploaded files are served as downloads with a server-derived media type, `nosniff`, and a sandbox content policy.
-Document and message templates are stored in the database as Markdown. The isomorphic `@hall/templating` package is
-the only grammar used by the editor and server: it recognizes typed municipal references and a closed list of
-context fields. The server resolves them authoritatively, renders PDF templates with headless Chromium, appends
-selected PDF resources in order, and produces Outlook-compatible `.eml` message scenarios with attachments. Template
-definitions remain editable; generated PDF and EML bytes are standalone outputs and do not depend on Microsoft Graph.
-The product is still being constructed: the server accepts only its current database schema and does not carry legacy
-migrations or compatibility adapters. Development databases may be reset when the contract changes.
-
-Scheduling a meeting freezes its serving-member roster. A complete attendance record is required before opening any
-meeting, including a reconvened meeting. The chair and meeting secretary must both be established and physically
-present when the meeting opens and whenever a ballot is recorded. A reconvened meeting can only be created after an
-explicit, persisted quorum-failure record with complete attendance; its roster and agenda are copied transactionally.
-Every ballot stores immutable participation and quorum evidence, while later attendance changes remain possible and
-use optimistic versions.
-
-A council decision has at most one final ballot across all meetings. A reconvened meeting may still vote on a copied
-agenda item when the first meeting recorded no ballot. Public ballot responses include their named votes; secret
-ballot responses contain aggregate totals only. Idempotency and final-decision conflicts are claimed atomically by
-the repository so a future database adapter must preserve the same cross-connection behavior.
-
-Electron packaging is pinned to Forge 8 alpha because the current stable Forge 7 line still pulls a vulnerable
-archive toolchain. macOS packaging currently produces a ZIP application; DMG generation is deferred until its maker
-dependency has a maintained security fix.
+Read [`docs/architecture.md`](docs/architecture.md) for ownership and dependency rules, [`requirements/catalog.json`](requirements/catalog.json) for expected behavior, and [`AGENTS.md`](AGENTS.md) before making changes.
 
 ## Development
 
-Choose a dataset and a meeting scenario with the [seed guide](docs/seeds.md).
-The supplied [Alésia dataset](docs/demo-alesia.md) is fictional and documents its
-historical context, modern dates and sample accounts.
+Requirements:
 
-Requires Node 22 or newer. Desktop packaging uses the version pinned in `.desktop-node-version`.
+- Node.js 22 or later.
+- Docker with Compose.
+
+Install dependencies and start the shared development runtime:
 
 ```bash
 npm install
-npm run dev
-npm run postgres:up && npm run dev:postgres
-npm run test:backend
-npm run test:postgres
-npm run desktop:dev
-npm run quality
-npm run desktop:package
-npm run desktop:make
+npm run dev:session
 ```
 
-On macOS Apple Silicon, the packaged application is `packages/desktop/out/Hall-darwin-arm64/Hall.app`.
-Connect it to the existing development server on the first launch:
+The web application is available at `http://localhost:5174/app/`; the API listens on `http://127.0.0.1:3100`.
+
+Useful runtime commands:
 
 ```bash
-HALL_SERVER_URL=http://127.0.0.1:5174 packages/desktop/out/Hall-darwin-arm64/Hall.app/Contents/MacOS/Hall
+npm run dev:status
+npm run dev:logs
+npm run dev:restart
+npm run dev:stop
 ```
 
-Subsequent launches can open `Hall.app` directly. The selected server must remain available.
-`desktop:make` also creates a ZIP in `packages/desktop/out/make/zip/darwin/arm64/`.
-
-### Repartir d’une démonstration vide
-
-Une seule commande arrête les serveurs de ce projet déjà présents sur les ports de développement, supprime la base,
-redémarre le serveur et le client, attend l’API puis injecte toutes les données de démonstration :
+To rebuild the disposable demonstration database and load the fictional Alésia dataset through the public API:
 
 ```bash
 npm run demo:restart
 ```
-L’application est alors disponible sur <http://localhost:5174/app/>. Le reset ne touche qu’à
-`packages/server/data/hall.sqlite` et à ses fichiers temporaires SQLite `-shm` et `-wal`.
 
-The HTTP server defaults to `http://127.0.0.1:3100`. SQLite remains the embedded default. The dedicated Docker
-PostgreSQL instance starts with `npm run postgres:up`; `npm run dev:postgres` then runs the same application against it.
-The development command enables a loopback-only administrator
-with every permission so the UI can be developed without a login step. This mode is rejected outside loopback and in
-production. Set `DATABASE_PATH` for SQLite. For a shared deployment, configure `SERVER_HOST` and
-`HALL_BEHIND_TLS_PROXY=true` behind a TLS reverse proxy, then bootstrap the first administrator through
-`POST /api/auth/bootstrap` with a private `HALL_BOOTSTRAP_TOKEN` of at least 24 characters. Use
-`HALL_ALLOWED_ORIGINS` only for explicit browser origins that must differ from the server origin; local Vite origins
-are enabled automatically in development. PostgreSQL production startup requires `DATABASE_KIND=postgres` and a
-private `DATABASE_URL`; the URL is never written to application logs.
+For foreground development, start PostgreSQL and then the application:
+
+```bash
+npm run postgres:up
+npm run dev
+```
+
+See [`docs/seeds.md`](docs/seeds.md), [`docs/demo-alesia.md`](docs/demo-alesia.md), and [`docs/private-runtime.md`](docs/private-runtime.md) for dataset and runtime details.
+
+## Verification
+
+Run the checks appropriate to the change:
+
+```bash
+npm run typecheck
+npm run test
+npm run test:postgres
+npm run test:e2e
+npm run check:requirements
+```
+
+`npm run test:postgres` creates one disposable PostgreSQL database, runs the pgTAP suites, resets the database, and then runs backend integration tests against it.
+
+The requirements workflow and traceability commands are documented in [`docs/requirements.md`](docs/requirements.md) and [`requirements/README.md`](requirements/README.md).
+
+## Desktop and deployment
+
+The desktop package can use its embedded PGlite runtime or connect to a shared Hall server. See [`docs/desktop.md`](docs/desktop.md) for packaging and update channels.
+
+Shared-server deployments require `DATABASE_URL` and the server security configuration. See [`docs/local-production.md`](docs/local-production.md) for the isolated Alésia build, authentication, backup, and restore-verification procedure.

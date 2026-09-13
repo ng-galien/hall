@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exigences Hall</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Hall · référentiel produit</p>
+          <h1>Exigences</h1>
+          <p class="lede">Une vue du catalogue canonique, de sa couverture et de son classement.</p>
+        </div>
+        <div class="source">
+          <span>Source unique</span>
+          <code>requirements/catalog.json</code>
+        </div>
+      </header>
+
+      <section class="summary" data-testid="requirements-summary" aria-label="Synthèse"></section>
+
+      <section class="toolbar" aria-label="Filtres">
+        <label>
+          <span>Rechercher</span>
+          <input data-testid="requirements-search" id="search" type="search" placeholder="ID, nom, formulation…" />
+        </label>
+        <label>
+          <span>Thème</span>
+          <select data-testid="requirements-theme-filter" id="theme-filter"></select>
+        </label>
+        <label>
+          <span>État de preuve</span>
+          <select data-testid="requirements-evidence-filter" id="evidence-filter">
+            <option value="">Tous</option>
+            <option value="implemented">Implémentées</option>
+            <option value="verified">Vérifiées</option>
+            <option value="tracked">Suivies au backlog</option>
+            <option value="unimplemented">Sans implémentation repérée</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="distribution">
+        <div>
+          <p class="eyebrow">Répartition</p>
+          <h2>Exigences par thème</h2>
+        </div>
+        <div id="theme-chart" class="theme-chart" data-testid="requirements-theme-chart"></div>
+      </section>
+
+      <section>
+        <div class="results-heading">
+          <h2>Catalogue</h2>
+          <span id="result-count" aria-live="polite"></span>
+        </div>
+        <div id="requirements" class="requirements" data-testid="requirements-list"></div>
+      </section>
+    </main>
+    <template id="requirement-template">
+      <article class="requirement-card">
+        <div class="card-heading">
+          <div>
+            <code class="requirement-id"></code>
+            <h3 class="requirement-statement"></h3>
+          </div>
+          <span class="nature"></span>
+        </div>
+        <p class="requirement-name"></p>
+        <ul class="criteria"></ul>
+        <div class="evidence"></div>
+        <label class="theme-choice">
+          <span>Thème</span>
+          <select></select>
+        </label>
+        <p class="save-status" aria-live="polite"></p>
+      </article>
+    </template>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

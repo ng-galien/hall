@@ -2,7 +2,7 @@
 
 <!-- TODO REMOVE_STALE: central removal inventory. -->
 
-Décision du propriétaire : une séance historique incomplète peut rester `stale` pour permettre la création de la suivante. Plusieurs séances stale sont possibles, mais une seule séance non clôturée et non stale est active. Ce marqueur ne valide ni ne clôture une séance. Il ne fabrique aucun scrutin, procès-verbal ou point d’approbation, et n’est pas retiré automatiquement. L’import doit privilégier la clôture normale lorsque les données attestées permettent tous les contrôles existants.
+L’exigence canonique `HALL-FR-MTG-310` garantit qu’une seule séance non clôturée et non `stale` est active. Une séance historique incomplète peut rester `stale` pour permettre la création de la suivante. Plusieurs séances stale sont possibles. Ce marqueur ne valide ni ne clôture une séance. Il ne fabrique aucun scrutin, procès-verbal ou point d’approbation, et n’est pas retiré automatiquement. L’import doit privilégier la clôture normale lorsque les données attestées permettent tous les contrôles existants.
 
 Le marqueur `TODO REMOVE_STALE` identifie chaque point temporaire. L’action `meeting.mark-stale`, POST `/api/council-meetings/:id/stale` avec un objet vide, retourne `{staleMeeting, nextMeeting}`. Sa répétition réutilise le successeur. Les droits sont ceux de conduite de séance et la mutation est auditée.
 

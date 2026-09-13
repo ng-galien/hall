@@ -1,11 +1,11 @@
 import { matchLiteral } from "@hall/domain";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { InfoIcon } from "../../components/icons";
+import { MarkdownView } from "../../components/MarkdownView";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "../../components/ui/popover";
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
-import { MarkdownView } from "../../components/MarkdownView";
+import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { liveBusinessTitle } from "../../features/council-business/presentation";
 import { agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
 import { AgendaItemStatusBadge } from "../../features/status/DomainStatusBadge";
@@ -14,7 +14,6 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../models/directory";
 import type {
   LiveMeetingAgendaItem as AgendaItem,
-  LiveMeetingMemberAttendance as Attendance,
   LiveMeetingBallot as Ballot,
   LiveMeetingPresentation,
   LiveVoteChoice as VoteChoice,
@@ -29,6 +28,28 @@ const voteChoiceKeys: Record<VoteChoice, TranslationKey> = {
   abstain: "ballot.choice.abstain",
   notVoting: "ballot.choice.notVoting",
 };
+
+function ReportTextBlock({
+  label,
+  context,
+  tone,
+  children,
+}: {
+  label: string;
+  context: string;
+  tone: "source" | "decision" | "notes";
+  children: ReactNode;
+}) {
+  return (
+    <section className={`report-text-block report-text-block-${tone}`}>
+      <header className="report-text-block-heading">
+        <strong>{label}</strong>
+        <span>{context}</span>
+      </header>
+      <div className="report-text-block-content">{children}</div>
+    </section>
+  );
+}
 
 export function BallotOutcome({
   ballot,
@@ -52,10 +73,7 @@ export function BallotOutcome({
         onClick={() => setDetailsVisible((value) => !value)}
       >
         <DisclosureBadge expanded={detailsVisible} />
-        <Badge
-          className="h-auto text-base font-semibold"
-          variant={ballot.result === "adopted" ? "success" : "destructive"}
-        >
+        <Badge className="report-ballot-verdict" variant={ballot.result === "adopted" ? "success" : "destructive"}>
           {t(ballot.result === "adopted" ? "status.adopted" : "status.rejected")}
         </Badge>
         <span>{t(ballot.method === "public" ? "ballot.method.public" : "ballot.method.secret")}</span>
@@ -173,7 +191,7 @@ export function MeetingProceedings({
   /** Collapses agenda item bodies by default. */
   defaultCollapsed?: boolean;
 }) {
-  const { t, formatTime, formatNumber } = useI18n();
+  const { t, formatTime } = useI18n();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(
     () => new Set(defaultCollapsed ? [] : aggregate.agendaItems.map((item) => item.id)),
   );
@@ -185,7 +203,6 @@ export function MeetingProceedings({
       return next;
     });
   const { members } = useCouncilMembersStore();
-  const { meeting } = aggregate;
   const rosterMembers = members.filter((member) => aggregate.rosterMemberIds.includes(member.id));
   const orderedItems = useMemo(
     () => [...aggregate.agendaItems].sort((left, right) => left.position - right.position),
@@ -201,96 +218,10 @@ export function MeetingProceedings({
       ) ?? null
     );
   };
-  const attendanceCounts = aggregate.attendance.reduce(
-    (counts, attendance) => {
-      counts[attendance.status] += 1;
-      return counts;
-    },
-    { present: 0, represented: 0, excused: 0, absent: 0 },
-  );
-  const attendanceByStatus = (status: Attendance["status"]) =>
-    aggregate.attendance.filter((attendance) => attendance.status === status);
-  const namesOf = (entries: Attendance[]) =>
-    entries.map((attendance) => councilMemberName(members, attendance.memberId)).join(", ");
-
   return (
     <div className="report-main">
-      {meeting.openedAt ? (
-        <details className="conduct-block" data-testid="report-opening">
-          <summary data-testid="report-opening-toggle">
-            <DisclosureBadge />
-            <span id="report-opening-heading">{t("report.openingHeading")}</span>
-          </summary>
-          <p>
-            {t("report.openedBy")
-              .replace("{time}", formatTime(meeting.openedAt))
-              .replace(
-                "{president}",
-                meeting.chairMemberId ? councilMemberName(members, meeting.chairMemberId) : t("common.none"),
-              )}{" "}
-            {t("report.rollCallDone")}
-          </p>
-          <dl className="report-roll-call">
-            <div>
-              <dt>{t("report.presentHeading").replace("{count}", formatNumber(attendanceCounts.present))}</dt>
-              <dd>{namesOf(attendanceByStatus("present")) || t("common.none")}</dd>
-            </div>
-            {attendanceCounts.represented > 0 ? (
-              <div>
-                <dt>{t("report.proxiesHeading").replace("{count}", formatNumber(attendanceCounts.represented))}</dt>
-                <dd>
-                  {attendanceByStatus("represented")
-                    .map((attendance) =>
-                      t("report.proxyLine")
-                        .replace("{member}", councilMemberName(members, attendance.memberId))
-                        .replace(
-                          "{holder}",
-                          attendance.proxyHolderMemberId
-                            ? councilMemberName(members, attendance.proxyHolderMemberId)
-                            : "",
-                        ),
-                    )
-                    .join(" · ")}
-                </dd>
-              </div>
-            ) : null}
-            {attendanceCounts.excused > 0 ? (
-              <div>
-                <dt>{t("report.excusedHeading").replace("{count}", formatNumber(attendanceCounts.excused))}</dt>
-                <dd>{namesOf(attendanceByStatus("excused"))}</dd>
-              </div>
-            ) : null}
-            {attendanceCounts.absent > 0 ? (
-              <div>
-                <dt>{t("report.absentHeading").replace("{count}", formatNumber(attendanceCounts.absent))}</dt>
-                <dd>{namesOf(attendanceByStatus("absent"))}</dd>
-              </div>
-            ) : null}
-          </dl>
-          <p>
-            {t("report.quorumProclaimed")
-              .replace("{present}", formatNumber(aggregate.quorum.physicallyPresent))
-              .replace("{roster}", formatNumber(aggregate.quorum.activeMembers))
-              .replace(
-                "{required}",
-                aggregate.quorum.required === null
-                  ? t("meeting.quorumUnestablished")
-                  : formatNumber(aggregate.quorum.required),
-              )}{" "}
-            {meeting.secretaryMemberId
-              ? t("report.secretaryDesignated").replace(
-                  "{secretary}",
-                  councilMemberName(members, meeting.secretaryMemberId),
-                )
-              : null}
-          </p>
-        </details>
-      ) : null}
-      <details className="conduct-block report-timeline" open data-testid="report-timeline">
-        <summary data-testid="report-timeline-toggle">
-          <DisclosureBadge />
-          <span id="report-timeline-heading">{t("meeting.timeline")}</span>
-        </summary>
+      <section className="conduct-block report-timeline" data-testid="report-timeline">
+        <h2 id="report-timeline-heading">{t("meeting.timeline")}</h2>
         <ol className="report-timeline-list">
           {orderedItems.map((item) => {
             const ballot = ballotForItem(item);
@@ -298,44 +229,57 @@ export function MeetingProceedings({
             return (
               <li className="report-timeline-item" key={item.id}>
                 <button
-                  className="report-timeline-marker report-timeline-marker-toggle"
+                  className="report-timeline-item-toggle"
                   type="button"
                   aria-expanded={expanded}
                   data-testid={`report-item-toggle-${item.id}`}
                   aria-label={liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}
                   onClick={() => toggleItem(item.id)}
                 >
-                  <span>{item.agendaNumber}</span>
-                </button>
-                <div className="report-timeline-body">
-                  <div className="report-timeline-heading">
-                    <div className="report-timeline-title">
+                  <span className="report-timeline-marker">{item.agendaNumber}</span>
+                  <span className="report-timeline-heading">
+                    <span className="report-timeline-title">
                       <strong>{liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}</strong>
                       <span>
                         {t(agendaSubjectPresentation[item.subjectKind].label)}
                         {item.startedAt ? ` · ${formatTime(item.startedAt)}` : ""}
                         {item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}
                       </span>
-                    </div>
+                    </span>
                     <AgendaItemStatusBadge status={item.status} />
-                  </div>
+                  </span>
+                </button>
+                <div className="report-timeline-body report-timeline-content">
                   {expanded ? (
-                    <>
+                    <div className="report-item-texts">
                       {item.business.report ? (
-                        <details className="report-item-report">
-                          <summary>{t("meeting.itemReport")}</summary>
-                          <MarkdownView className="report-timeline-notes" markdown={item.business.report} />
-                        </details>
+                        <ReportTextBlock
+                          label={t("meeting.itemReport")}
+                          context={t("report.preparedBeforeMeeting")}
+                          tone="source"
+                        >
+                          <MarkdownView markdown={item.business.report} />
+                        </ReportTextBlock>
                       ) : null}
                       {item.councilDecisionSnapshot?.draftText ? (
-                        <blockquote className="composer-decision-preview">
+                        <ReportTextBlock
+                          label={t("report.submittedText")}
+                          context={t("report.recordedDuringMeeting")}
+                          tone="decision"
+                        >
                           <MarkdownView markdown={item.councilDecisionSnapshot.draftText} />
-                        </blockquote>
+                        </ReportTextBlock>
                       ) : null}
                       {item.discussionSummary ? (
-                        <MarkdownView className="report-timeline-notes" markdown={item.discussionSummary} />
+                        <ReportTextBlock
+                          label={t("report.sessionNotes")}
+                          context={t("report.recordedDuringItem")}
+                          tone="notes"
+                        >
+                          <MarkdownView markdown={item.discussionSummary} />
+                        </ReportTextBlock>
                       ) : null}
-                    </>
+                    </div>
                   ) : null}
                   {ballot ? <BallotOutcome ballot={ballot} members={rosterMembers} defaultCollapsed /> : null}
                 </div>
@@ -343,15 +287,7 @@ export function MeetingProceedings({
             );
           })}
         </ol>
-      </details>
-      {meeting.closedAt ? (
-        <section className="meeting-side-section report-closing" aria-labelledby="report-closing-heading">
-          <h2 id="report-closing-heading">{t("report.closingHeading")}</h2>
-          <time dateTime={meeting.closedAt} data-testid="report-closing-time">
-            {formatTime(meeting.closedAt)}
-          </time>
-        </section>
-      ) : null}
+      </section>
     </div>
   );
 }

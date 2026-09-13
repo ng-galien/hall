@@ -25,6 +25,16 @@ export function relativeDocumentPath(base: string, path: string): string {
   return [...from.slice(common).map(() => ".."), ...to.slice(common)].join("/");
 }
 
+/** @implements-requirement HALL-FR-WSP-260 */
+function documentFolderLabel(base: string, relativePath: string, rootLabel: string): string {
+  const segments = base.split("/").filter(Boolean);
+  for (const segment of relativePath.split("/").filter(Boolean)) {
+    if (segment === "..") segments.pop();
+    else segments.push(segment);
+  }
+  return segments.at(-1) ?? rootLabel;
+}
+
 export function BusinessDocumentTree({
   resources,
   basePath,
@@ -36,6 +46,7 @@ export function BusinessDocumentTree({
   onOpen(id: string): void;
   onRenamed(): Promise<void>;
 }) {
+  const { t } = useI18n();
   const entries = resources.map((resource) => ({ resource, path: relativeDocumentPath(basePath, resource.path) }));
   const renderFolder = (path: string): ReactNode => {
     const prefix = path ? `${path}/` : "";
@@ -51,7 +62,7 @@ export function BusinessDocumentTree({
         {folders.map((name) => (
           <ExplorerTreeBranch
             key={name}
-            title={name}
+            title={documentFolderLabel(basePath, prefix + name, t("navigation.workspace"))}
             testId={`business-document-folder-${encodeURIComponent(prefix + name)}`}
             defaultOpen
             icon={

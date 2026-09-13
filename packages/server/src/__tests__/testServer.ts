@@ -12,6 +12,7 @@ import { createTestCouncilClient } from "./support/councilClient.js";
 import { createTestDirectoryClient } from "./support/directoryClient.js";
 import { createTestResourcesClient } from "./support/resourcesClient.js";
 import { createTestMinutesClient } from "./support/minutesClient.js";
+import { createPostgresTestPool, resetPostgresTestDatabase } from "./support/postgresTestDatabase.js";
 
 export type TestAgent = ReturnType<typeof request.agent>;
 
@@ -80,14 +81,19 @@ export async function createTestServer(
     expectedCouncilMemberCount?: number | null;
   } = {},
 ) {
-  const container = buildContainer({
-    host: "127.0.0.1",
-    port: 0,
-    database: { kind: "sqlite", path: ":memory:" },
-    devAutoLogin: options.devAutoLogin ?? true,
-    allowedOrigins: ["http://localhost:5174", "http://127.0.0.1:5174"],
-    environment: "test",
-  });
+  const { databaseUrl, pool: postgresPool } = createPostgresTestPool();
+  await resetPostgresTestDatabase(postgresPool);
+  const container = buildContainer(
+    {
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "postgres", url: databaseUrl },
+      devAutoLogin: options.devAutoLogin ?? true,
+      allowedOrigins: ["http://localhost:5174", "http://127.0.0.1:5174"],
+      environment: "test",
+    },
+    { postgresPool },
+  );
   const resourcesClient = createTestResourcesClient();
   const minutes = createTestMinutesClient();
   container.register({
@@ -130,6 +136,7 @@ export async function createTestServer(
       await close(server);
     } finally {
       await container.cradle.sqlExecutor.close();
+      await postgresPool.end();
     }
   });
 

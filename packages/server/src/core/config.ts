@@ -1,6 +1,4 @@
-import { resolve } from "node:path";
-
-export type DatabaseConfig = { kind: "sqlite"; path: string } | { kind: "postgres"; url: string };
+export type DatabaseConfig = { kind: "postgres"; url: string };
 export type DatabaseKind = DatabaseConfig["kind"];
 
 export interface ServerConfig {
@@ -29,14 +27,12 @@ export function isLoopbackHost(host: string): boolean {
 export function configFromEnvironment(): ServerConfig {
   const environment = process.env.NODE_ENV ?? "development";
   const configuredOrigins = process.env.HALL_ALLOWED_ORIGINS;
-  const databaseKind = process.env.DATABASE_KIND ?? "sqlite";
-  if (databaseKind !== "sqlite" && databaseKind !== "postgres") {
-    throw new Error("DATABASE_KIND must be sqlite or postgres");
-  }
-  const database: DatabaseConfig =
-    databaseKind === "postgres"
-      ? { kind: "postgres", url: process.env.DATABASE_URL ?? "" }
-      : { kind: "sqlite", path: process.env.DATABASE_PATH ?? resolve("data", "hall.sqlite") };
+  const database: DatabaseConfig = {
+    kind: "postgres",
+    url:
+      process.env.DATABASE_URL ??
+      (environment === "development" ? "postgresql://hall:hall-dev-only@127.0.0.1:54329/hall" : ""),
+  };
   return {
     host: process.env.SERVER_HOST ?? "127.0.0.1",
     port: Number.parseInt(process.env.SERVER_PORT ?? "3100", 10),
@@ -66,12 +62,7 @@ export function configFromEnvironment(): ServerConfig {
 }
 
 export function validateServerConfig(config: ServerConfig): void {
-  if (config.database.kind === "postgres" && !config.database.url) {
-    throw new Error("DATABASE_URL is required when DATABASE_KIND=postgres");
-  }
-  if (config.database.kind === "sqlite" && !config.database.path) {
-    throw new Error("DATABASE_PATH cannot be empty when DATABASE_KIND=sqlite");
-  }
+  if (!config.database.url) throw new Error("DATABASE_URL is required");
   for (const origin of config.allowedOrigins ?? []) {
     let parsed: URL;
     try {

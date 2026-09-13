@@ -18,7 +18,10 @@ services:
       - hall-postgres-data:/var/lib/postgresql/data
 
   postgres-test:
-    image: postgres:17-alpine
+    build:
+      context: packages/postgres/sql/council/test
+      dockerfile: Dockerfile
+    image: hall-sql-pgtap:pg17
     profiles: ["test"]
     environment:
       POSTGRES_DB: hall_test
@@ -33,6 +36,8 @@ services:
       retries: 20
     tmpfs:
       - /var/lib/postgresql/data
+    volumes:
+      - ./packages/postgres:/work/postgres:ro
 
 volumes:
   hall-postgres-data:

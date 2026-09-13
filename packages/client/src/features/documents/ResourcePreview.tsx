@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
 import { WorkspaceBreadcrumb } from "../../pages/workspace/WorkspaceBreadcrumb";
@@ -8,15 +9,23 @@ import { WorkspaceWorkbenchHeader } from "../../pages/workspace/WorkspaceWorkben
 import { downloadDocumentaryResource } from "../../services/resourcesApi";
 import { ResourceAutosaveToggle } from "../resources/ResourceAutosaveToggle";
 import { ResourcePresentationBody } from "../resources/ResourcePresentationBody";
-import { type ResourceSession, useResourceSession } from "../resources/useResourceSession";
 import { noResourceCapabilities } from "../resources/resourceCapabilities";
+import { type ResourceSession, useResourceSession } from "../resources/useResourceSession";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "./DocumentaryResourceGlyph";
 import { useWorkspaceResourceImageUpload } from "./useWorkspaceResourceImageUpload";
 import "./DocumentViewer.css";
 import "./ResourcePreview.css";
 
 /** Common resource modal. It hosts the same resource session and body as the Workspace and never changes route. */
-export function ResourcePreview({ resourceId, onClose, readOnly = false }: { resourceId: string; onClose(): void; readOnly?: boolean }) {
+export function ResourcePreview({
+  resourceId,
+  onClose,
+  readOnly = false,
+}: {
+  resourceId: string;
+  onClose(): void;
+  readOnly?: boolean;
+}) {
   const session = useResourceSession({ resourceId });
   return <ResourcePreviewWithSession session={session} onClose={onClose} readOnly={readOnly} />;
 }
@@ -102,6 +111,14 @@ export function ResourcePreviewWithSession({
               title={resource.name}
               titleId="resource-preview-title"
               titleLabel={t("resources.textTitle")}
+              onTitleChange={
+                resource.kind === "event" && !readOnly && session.capabilities.updateMetadata
+                  ? async (nextTitle) => {
+                      session.setTitle(nextTitle);
+                      return session.save(nextTitle);
+                    }
+                  : undefined
+              }
               date={documentaryResourceDate(resource)}
               actions={
                 resource.kind === "document" && session.representation ? (
@@ -121,11 +138,7 @@ export function ResourcePreviewWithSession({
         <div
           className={`document-viewer-content resource-preview-content${session.fillsExtendedView ? " resource-preview-content-fill" : ""}`}
         >
-          {!resource && !session.detailsFailed ? (
-            <span className="spinner" role="status">
-              {t("common.loading")}
-            </span>
-          ) : null}
+          {!resource && !session.detailsFailed ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
           {session.detailsFailed ? <p role="alert">{t("common.requestFailed")}</p> : null}
           {resource ? (
             <ResourcePresentationBody
@@ -142,7 +155,7 @@ export function ResourcePreviewWithSession({
               refreshConflict={session.refreshConflict}
               onContentChange={session.setContent}
               onRemoteUrlChange={session.setRemoteUrl}
-              onRemoteSubmit={() => void session.save()}
+              onRemoteSubmit={() => session.save()}
               onUploadImage={(file) => uploadImage(file, { kind: "textResourceContent", id: resource.id })}
               onResolvedLegalReference={session.adoptResolvedResource}
               onRefreshLegalReference={session.refreshLegalReference}

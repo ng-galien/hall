@@ -17,6 +17,14 @@ export function localDateTime(value: string): string {
   return `${localDate(date)}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+export function eventDocumentUsesQuarterHours(document: EventDocument): boolean {
+  if (document.schedule.kind === "allDay") return true;
+  return [document.schedule.start, document.schedule.end].every((value) => {
+    const date = new Date(value);
+    return !Number.isNaN(date.getTime()) && date.getSeconds() === 0 && date.getMilliseconds() === 0 && date.getMinutes() % 15 === 0;
+  });
+}
+
 export function nextDate(date: string): string {
   return shiftDate(date, 1);
 }

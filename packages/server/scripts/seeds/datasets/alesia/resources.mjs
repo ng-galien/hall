@@ -1,24 +1,24 @@
 import { randomUUID } from "node:crypto";
 import { makeDocx, makePng, makeXlsx } from "../../common/files.mjs";
 
+// @implements-requirement HALL-FR-WSP-250
 export async function seedResources(api, { daysFromNow, memberContactIds, caesarContactId }) {
   const { post, createWorkspaceResource, createGeographicResource, uploadPdf, uploadDocument, importSpreadsheet } = api;
-  const seedFolderPath = "seed";
-  await createWorkspaceResource({ kind: "folder", path: "", name: seedFolderPath });
+  const seedFolderPath = "";
 
   console.log("- Ressources (textes, documents, carte et liens web)");
   await createWorkspaceResource(
     {
       kind: "remote",
       name: "Code général des collectivités territoriales",
-      path: "seed/guide/references-techniques",
+      path: "guide/references-techniques",
       target: { kind: "url", url: "https://www.legifrance.gouv.fr/codes/id/LEGITEXT000006070633/" },
     },
     ["droit", "conseil municipal", "référence"],
   );
   await createGeographicResource({
     name: "Défenses de Cornu",
-    path: "seed/defense",
+    path: "defense",
     tags: ["seed", "défense"],
     layers: [
       { id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 },
@@ -60,7 +60,6 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   });
 
   console.log("- Dossier seed de repérage des types de ressources");
-  await createWorkspaceResource({ kind: "folder", path: seedFolderPath, name: "dossier-vide" });
   await createWorkspaceResource(
     {
       kind: "event",
@@ -216,7 +215,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     const legalMatch = legalMatches[0];
     if (!legalMatch) throw new Error("Aucun résultat Légifrance pour L2121-10");
     const legalDraft = await createWorkspaceResource(
-      { kind: "legalReference", name: legalMatch.title, path: "seed/guide/references-techniques" },
+      { kind: "legalReference", name: legalMatch.title, path: "guide/references-techniques" },
       ["seed", "droit"],
     );
     await post(`/resources/${legalDraft.id}/legal-reference/resolve`, {
@@ -230,11 +229,11 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   } catch (error) {
     console.warn(`  Référence juridique non créée : ${error instanceof Error ? error.message : String(error)}`);
   }
-  await createWorkspaceResource({ kind: "folder", path: "seed/defense", name: "a-classer" });
+  await createWorkspaceResource({ kind: "folder", path: "defense", name: "a-classer" });
   await createWorkspaceResource(
     {
       kind: "text",
-      path: "seed/defense",
+      path: "defense",
       name: "Note de cadrage - défense du plateau",
       content:
         "## Objectif\n\nConsolider les accès des abris et la seconde ligne de défense de Cornu.\n\n- Examiner les besoins en bois et en pierre.\n- Maintenir le passage des équipes de ravitaillement.\n- Présenter un bilan au conseil.\n\n",
@@ -244,7 +243,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   await createWorkspaceResource(
     {
       kind: "text",
-      path: "seed/ravitaillement",
+      path: "ravitaillement",
       name: "Organisation de la distribution des vivres",
       content:
         "## Organisation proposée\n\nRecenser les réserves, organiser deux points de distribution et consigner les besoins des abris. La répartition proposée reste soumise au conseil.",
@@ -254,7 +253,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   await uploadPdf({
     title: "Rapport - renforcement de la seconde ligne",
     fileName: "alesia-dossier-1.pdf",
-    folderPath: "seed/defense",
+    folderPath: "defense",
     lines: [
       "CONSEIL D’ALESIA",
       "Vercassivellaunos presente les besoins de la seconde ligne.",
@@ -266,7 +265,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   await uploadPdf({
     title: "Estimation - défense du plateau",
     fileName: "alesia-dossier-2.pdf",
-    folderPath: "seed/defense",
+    folderPath: "defense",
     lines: [
       "CONSEIL D’ALESIA",
       "Bois : 96 poutres a 2 quinaires, soit 192 quinaires",
@@ -278,7 +277,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   await uploadPdf({
     title: "Tableau des moyens de soutien",
     fileName: "alesia-dossier-3.pdf",
-    folderPath: "seed/soutien",
+    folderPath: "soutien",
     lines: [
       "CONSEIL D’ALESIA",
       "Equipe des abris : 24 journees de travail ; allocation de 48 quinaires",
@@ -290,7 +289,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   await uploadPdf({
     title: "Inventaire du grenier de Cornu",
     fileName: "alesia-dossier-4.pdf",
-    folderPath: "seed/reserves",
+    folderPath: "reserves",
     lines: [
       "CONSEIL D’ALESIA",
       "Deux espaces couverts : 60 sacs au nord, 40 au sud et 20 dans la reserve gardee au sud.",
@@ -301,7 +300,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   await uploadPdf({
     title: "Note sur la répartition des céréales",
     fileName: "alesia-dossier-5.pdf",
-    folderPath: "seed/ravitaillement",
+    folderPath: "ravitaillement",
     lines: [
       "CONSEIL D’ALESIA",
       "Stock : 120 sacs de cereales.",
@@ -313,91 +312,91 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   console.log("- Fonds documentaire (plan de classement complet)");
   const libraryTexts = [
     [
-      "seed/reserves",
+      "reserves",
       "Note sur l’affectation du grenier de Cornu",
       ["seed", "Alésia"],
       "Deux espaces couverts sont proposés au stockage commun : 60 sacs au nord, 40 au sud et 20 dans la réserve gardée de l’espace sud, soit 120 sacs.",
     ],
     [
-      "seed/reserves/abris",
+      "reserves/abris",
       "Diagnostic des abris de Cornu",
       ["seed", "Alésia"],
       "Deux couvertures sont à examiner. Une visite doit préciser les réparations nécessaires avant attribution des matériaux.",
     ],
     [
-      "seed/reserves/abris",
+      "reserves/abris",
       "Règlement de mise à disposition",
       ["seed", "Alésia"],
       "Projet de consigne commune : inscrire les créneaux des équipes et signaler tout besoin de réparation.",
     ],
     [
-      "seed/ravitaillement",
+      "ravitaillement",
       "Répartition proposée des vivres",
       ["seed", "Alésia"],
       "Projet initial : 80 sacs aux abris et 40 sacs aux équipes. Les besoins de chaque groupe doivent être examinés avant attribution.",
     ],
     [
-      "seed/defense",
+      "defense",
       "État des défenses - première ligne",
       ["seed", "Alésia"],
       "Le bilan relève trois secteurs à examiner, en priorité près des accès aux abris.",
     ],
     [
-      "seed/accueil",
+      "accueil",
       "Organisation des abris",
       ["seed", "Alésia"],
       "142 habitants sont accueillis. Merlin l’Enchanteur organise les soins près des sources ; Viridomaros recense les besoins en eau et en couvertures.",
     ],
     [
-      "seed/accueil/capacites",
+      "accueil/capacites",
       "Accueil des habitants - capacités de réserve",
       ["seed", "Alésia"],
       "Une extension de 20 places est à étudier. Ce besoin reste une question préparée.",
     ],
     [
-      "seed/acces",
+      "acces",
       "Remise en état des chemins de ravitaillement",
       ["seed", "Alésia"],
       "## Priorités proposées\n\n1. Accès aux réserves\n2. Liaison des abris\n3. Passage des convois",
     ],
     [
-      "seed/acces",
+      "acces",
       "Inventaire des chemins de liaison",
       ["seed", "Alésia"],
       "Inventaire de travail : chemin intérieur entre le grenier et les abris de Cornu. Les porteurs doivent reconnaître le chemin avant le prochain départ.",
     ],
     [
-      "seed/acces",
+      "acces",
       "Consigne de circulation - accès de Cornu",
       ["seed", "Alésia"],
       "Projet : conserver un passage aux équipes de ravitaillement pendant les travaux de défense.",
     ],
     [
-      "seed/soutien",
+      "soutien",
       "Engagements des équipes de soutien",
       ["seed", "Alésia"],
       "Les équipes des abris, des convois et des réserves présentent leurs besoins et rendent compte des moyens utilisés.",
     ],
     [
-      "seed/soutien/moyens/preparation/arbitrages",
+      "soutien/moyens/preparation/arbitrages",
       "Synthèse des moyens proposés",
       ["seed", "Alésia"],
       "| Équipe | Journées | Quinaires d’argent |\n| --- | ---: | ---: |\n| Abris | 24 | 48 |\n| Convois | 16 | 32 |\n| Réserves | 9 | 18 |\n| Total | 49 | 98 |",
     ],
     [
-      "seed/defense/seconde-ligne/preparation/estimations/pieces",
+      "defense/seconde-ligne/preparation/estimations/pieces",
       "Hypothèses de l’estimation",
       ["seed", "Alésia"],
       "96 poutres à 2 quinaires : 192 quinaires. 60 hottes de pierre à 1 quinaire : 60 quinaires. 30 journées de transport à 1 quinaire : 30 quinaires. Total : 282 quinaires d’argent séquanes.",
     ],
     [
-      "seed/relations",
+      "relations",
       "Note de liaison avec les alliés",
       ["seed", "Alésia"],
       "Préparer un message sur les besoins de ravitaillement et la coordination. Commius rassemble les nouvelles des alliés ; Éporédorix vérifie les itinéraires des messagers.",
     ],
     [
-      "seed/conseil",
+      "conseil",
       "Travaux du conseil",
       ["seed", "Alésia"],
       "Convictolitavis rassemble les comptes rendus du conseil. Les questions sur les abris restent à reprendre après la visite des charpentiers.",
@@ -410,7 +409,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
 
   const libraryPdfs = [
     [
-      "seed/defense/seconde-ligne/preparation/estimations/pieces",
+      "defense/seconde-ligne/preparation/estimations/pieces",
       "Bordereau des matériaux",
       "bordereau-materiaux.pdf",
       [
@@ -420,7 +419,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
       ],
     ],
     [
-      "seed/accueil",
+      "accueil",
       "Bilan des abris",
       "bilan-abris.pdf",
       [
@@ -438,28 +437,28 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   await uploadDocument({
     title: "Repère du plateau",
     fileName: "repere-plateau.png",
-    folderPath: "seed/acces",
+    folderPath: "acces",
     content: makePng(),
     mediaType: "image/png",
   });
   await uploadDocument({
     title: "Convention de mise à disposition",
     fileName: "convention-mise-a-disposition.docx",
-    folderPath: "seed/soutien",
+    folderPath: "soutien",
     content: makeDocx("Accord du grenier : Commius l’Atrébate met les espaces couverts à disposition des équipes. Vercassivellaunos l’Arverne examine les couvertures. Les porteurs rendent les paniers et signalent les sacs abîmés."),
     mediaType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
   await importSpreadsheet({
     title: "Export des moyens de soutien",
     fileName: "moyens-soutien.csv",
-    folderPath: "seed",
+    folderPath: "",
     content: Buffer.from("equipe;journees_de_travail;quinaires_argent\nAbris;24;48\nConvois;16;32\nRéserves;9;18\nTotal;49;98\n"),
     mediaType: "text/csv",
   });
   await importSpreadsheet({
     title: "Suivi détaillé des moyens de soutien",
     fileName: "suivi-moyens-soutien.xlsx",
-    folderPath: "seed",
+    folderPath: "",
     content: makeXlsx(
       [
         ["Équipe", "Journées proposées", "Quinaires d’argent", "Objet"],

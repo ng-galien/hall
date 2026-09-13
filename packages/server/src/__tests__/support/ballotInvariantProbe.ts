@@ -1,4 +1,3 @@
-import { DatabaseSync } from "node:sqlite";
 import { matchDiscriminated } from "@hall/domain";
 import { Pool } from "pg";
 import type { DatabaseConfig } from "../../core/config.js";
@@ -10,21 +9,6 @@ export type BallotProbeMutation =
 
 export async function runBallotProbe(database: DatabaseConfig, mutation: BallotProbeMutation): Promise<void> {
   try {
-    if (database.kind === "sqlite") {
-      const connection = new DatabaseSync(database.path);
-      try {
-        connection.exec("PRAGMA busy_timeout = 5000");
-        matchDiscriminated(mutation, "kind", {
-          moveVote: ({ ballotId, voteId }) =>
-            connection.prepare("UPDATE votes SET ballot_id = ? WHERE id = ?").run(ballotId, voteId),
-          setMethod: ({ ballotId, method }) =>
-            connection.prepare("UPDATE ballots SET method = ? WHERE id = ?").run(method, ballotId),
-        });
-      } finally {
-        connection.close();
-      }
-      return;
-    }
     const pool = new Pool({ connectionString: database.url, max: 1 });
     try {
       await matchDiscriminated(mutation, "kind", {

@@ -40,7 +40,12 @@ function resourceCreationActions(request: Request, councilBusinessId?: string): 
   return authorizedActions(request, [
     { ...action("resource.create", "POST", "/api/resources", "Create a resource"), fields: contextFields },
     {
-      ...action("resource.import-spreadsheet", "POST", "/api/resources/spreadsheets/import", "Import a spreadsheet"),
+      ...action(
+        "resource.import-spreadsheet",
+        "POST",
+        "/api/resources/spreadsheets/import",
+        "Create a spreadsheet resource by importing a file",
+      ),
       type: "multipart/form-data",
       fields: [
         { name: "file", type: "file", accept: acceptedSpreadsheetImportExtensions.join(",") },
@@ -50,7 +55,12 @@ function resourceCreationActions(request: Request, councilBusinessId?: string): 
       ],
     },
     {
-      ...action("resource.create-document", "POST", "/api/resources/documents", "Upload a document"),
+      ...action(
+        "resource.create-document",
+        "POST",
+        "/api/resources/documents",
+        "Create a document resource by uploading a file",
+      ),
       type: "multipart/form-data",
       fields: [
         { name: "file", type: "file", accept: acceptedDocumentExtensions.join(",") },
@@ -60,6 +70,108 @@ function resourceCreationActions(request: Request, councilBusinessId?: string): 
       ],
     },
   ]);
+}
+
+// @implements-requirement HALL-FR-WSP-290
+function councilBusinessContentActions(request: Request, id: string, reference: string): SirenAction[] {
+  return [
+    ...resourceCreationActions(request, id),
+    {
+      ...action(
+        "council-business.associate-resource",
+        "POST",
+        `/api/council-business/${reference}/resources`,
+        "Attach an existing resource",
+      ),
+      fields: [{ name: "resourceId", type: "text" }],
+    },
+    {
+      ...action(
+        "council-business.dissociate-resource",
+        "POST",
+        `/api/council-business/${reference}/resources/dissociate`,
+        "Detach a resource",
+      ),
+      fields: [{ name: "resourceId", type: "text" }],
+    },
+    {
+      ...action(
+        "council-business.reorder-resources",
+        "PUT",
+        `/api/council-business/${reference}/resource-order`,
+        "Reorder attached resources",
+      ),
+      fields: [{ name: "resourceIds", type: "text" }],
+    },
+  ];
+}
+
+function councilBusinessSubjectActions(reference: string): SirenAction[] {
+  return [
+    {
+      ...action(
+        "council-business.create-prepared-subject",
+        "POST",
+        `/api/council-business/${reference}/prepared-subjects`,
+        "Create a prepared subject",
+      ),
+      fields: [
+        {
+          name: "kind",
+          type: "text",
+          options: [
+            { value: "councilDecisionProposal", title: "Council decision proposal" },
+            { value: "openQuestion", title: "Open question" },
+          ],
+        },
+        { name: "name", type: "text" },
+        { name: "content", type: "text" },
+      ],
+    },
+  ];
+}
+
+function councilBusinessAgendaActions(reference: string, isMinutesBusiness: boolean): SirenAction[] {
+  if (isMinutesBusiness) return [];
+  const fields = [
+    { name: "councilMeetingId", type: "text" },
+    { name: "position", type: "number" },
+  ];
+  return [
+    {
+      ...action(
+        "council-business.schedule-decision-proposal",
+        "POST",
+        `/api/council-business/${reference}/agenda-items/council-decision-proposals`,
+        "Add a decision proposal to the agenda",
+      ),
+      fields,
+    },
+    {
+      ...action(
+        "council-business.schedule-open-question",
+        "POST",
+        `/api/council-business/${reference}/agenda-items/open-questions`,
+        "Add an open question to the agenda",
+      ),
+      fields,
+    },
+  ];
+}
+
+function councilBusinessSelfActions(reference: string): SirenAction[] {
+  return [
+    {
+      ...action(
+        "council-business.export-bundle",
+        "GET",
+        `/api/council-business/${reference}/bundle`,
+        "Export the council business",
+      ),
+      fields: [{ name: "firstName", type: "text" }, { name: "lastName", type: "text" }],
+    },
+    action("council-business.delete", "DELETE", `/api/council-business/${reference}`, "Delete the council business"),
+  ];
 }
 
 function resourceCollectionActions(request: Request): SirenAction[] {
@@ -437,75 +549,12 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
             (subject as Record<string, unknown>).kind === "minutesApproval"
           );
         });
-      const actions = [
-        ...resourceCreationActions(request, id),
-        action("council-business.delete", "DELETE", `/api/council-business/${reference}`, "Delete a council business"),
-        {
-          ...action("council-business.export-bundle", "GET", `/api/council-business/${reference}/bundle`, "Export a council business bundle"),
-          fields: [{ name: "firstName", type: "text" }, { name: "lastName", type: "text" }],
-        },
-        action(
-          "council-business.create-prepared-subject",
-          "POST",
-          `/api/council-business/${reference}/prepared-subjects`,
-        ),
-        {
-          ...action(
-            "council-business.associate-resource",
-            "POST",
-            `/api/council-business/${reference}/resources`,
-            "Associate a working resource",
-          ),
-          fields: [{ name: "resourceId", type: "text" }],
-        },
-        {
-          ...action(
-            "council-business.dissociate-resource",
-            "POST",
-            `/api/council-business/${reference}/resources/dissociate`,
-            "Dissociate a working resource",
-          ),
-          fields: [{ name: "resourceId", type: "text" }],
-        },
-        {
-          ...action(
-            "council-business.reorder-resources",
-            "PUT",
-            `/api/council-business/${reference}/resource-order`,
-            "Reorder working resources",
-          ),
-          fields: [{ name: "resourceIds", type: "text" }],
-        },
-      ];
-      if (!isMinutesBusiness) {
-        actions.push(
-          {
-            ...action(
-              "council-business.schedule-decision-proposal",
-              "POST",
-              `/api/council-business/${reference}/agenda-items/council-decision-proposals`,
-              "Program a decision proposal",
-            ),
-            fields: [
-              { name: "councilMeetingId", type: "text" },
-              { name: "position", type: "number" },
-            ],
-          },
-          {
-            ...action(
-              "council-business.schedule-open-question",
-              "POST",
-              `/api/council-business/${reference}/agenda-items/open-questions`,
-              "Program an open question",
-            ),
-            fields: [
-              { name: "councilMeetingId", type: "text" },
-              { name: "position", type: "number" },
-            ],
-          },
-        );
-      }
-      return authorizedActions(request, actions);
+      return authorizedActions(request, [
+        ...councilBusinessContentActions(request, id, reference),
+        ...councilBusinessSubjectActions(reference),
+        ...councilBusinessAgendaActions(reference, isMinutesBusiness),
+        ...councilBusinessSelfActions(reference),
+      ]);
     },
     "council-delegation": () => {
       if (!id || !reference || primary?.archivedAt) return [];

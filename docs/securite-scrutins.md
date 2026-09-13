@@ -16,17 +16,17 @@ Ce document est la carte opérationnelle des invariants critiques du vote. Chaqu
 | Un scrutin secret ne persiste ni ne restitue de choix nominatif | service et repository | tests d’intégration API et persistance |
 | Une clé d’idempotence désigne une commande complète et stable | `ballotService.ts` et index SQL | replay et conflit concurrents |
 | Une cible ne possède qu’un scrutin final actif | repository et index SQL | rafales concurrentes multi-connexions |
-| Le scrutin, ses voix et le statut de la décision sont atomiques | unité de travail | injection de panne avant commit sur SQLite et PostgreSQL |
+| Le scrutin, ses voix et le statut de la décision sont atomiques | unité de travail | injection de panne avant commit sur PostgreSQL |
 | Une annulation réouvre la décision dans la même transaction | `ballotService.ts` | injection de panne à la réouverture |
 
 Les règles juridiques de référence restent celles indiquées dans `AGENTS.md`, notamment les articles L2121-17 et L2121-20 du CGCT. Toute automatisation nouvelle impose une nouvelle vérification de leur version en vigueur.
 
 ## Portes exécutables
 
-- `npm run test:ballot` : noyau génératif, parcours XState, rollback et concurrence SQLite.
-- `npm run test:postgres` : même atomicité sur PostgreSQL réel, plus le parcours de persistance complet.
+- `npm run test:ballot` : noyau génératif, parcours XState, rollback et concurrence PostgreSQL.
+- `npm run test:postgres` : suites pgTAP puis backend sur la même base PostgreSQL de test réinitialisée entre les deux phases.
 - `npm run test:ballot:mutation` : mutation ciblée de `participationPolicy.ts` et `ballotMachine.ts`. La campagne casse sous 90 %, signale sous 95 % et ne doit jamais être abaissée pour faire disparaître un survivant non analysé.
-- `npm run test:ballot:model` : exploration TLC bornée de la spécification abstraite déjà linéarisée des opérations record/replay/conflit/annulation. Ce modèle vérifie les invariants du résultat observable ; les interleavings internes, le commit et le rollback sont éprouvés séparément par les contrats de persistance SQLite/PostgreSQL. L’outil officiel TLA+ est épinglé par version et somme de contrôle, puis conservé uniquement dans le répertoire temporaire du système.
+- `npm run test:ballot:model` : exploration TLC bornée de la spécification abstraite déjà linéarisée des opérations record/replay/conflit/annulation. Ce modèle vérifie les invariants du résultat observable ; les interleavings internes, le commit et le rollback sont éprouvés séparément par le contrat de persistance PostgreSQL. L’outil officiel TLA+ est épinglé par version et somme de contrôle, puis conservé uniquement dans le répertoire temporaire du système.
 - `npm run test:backend` : couverture complète des packages serveur et domaine.
 
 La couverture de lignes n’est pas une preuve suffisante. Un changement du vote doit au minimum conserver vertes les quatre premières portes, puis la suite backend complète.

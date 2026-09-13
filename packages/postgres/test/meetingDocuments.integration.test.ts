@@ -139,7 +139,6 @@ postgresDescribe("derived meeting documents", () => {
       mediaType: "application/pdf",
       content: Buffer.from("%PDF-changed"),
     });
-    await resources.rename(request, business.folderResourceId, "Renamed current business");
     await council.dissociateBusinessResource(request, business.id, file.id);
     const historical = await council.meetingDocuments(request, meeting.id);
     expect(historical.groups.find((group) => group.kind === "proxies")?.resources).toEqual([
