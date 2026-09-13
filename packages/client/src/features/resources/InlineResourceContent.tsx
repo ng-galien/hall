@@ -8,40 +8,21 @@ import { ResourcePresentationBody } from "./ResourcePresentationBody";
 import { ResourceAutosaveToggle } from "./ResourceAutosaveToggle";
 import { useResourceSession } from "./useResourceSession";
 
-export function InlineResourceContent({ resourceId, heading }: { resourceId: string; heading?: string }) {
+export function InlineResourceContent({
+  resourceId,
+  heading,
+  compact = false,
+}: {
+  resourceId: string;
+  heading?: string;
+  compact?: boolean;
+}) {
   const session = useResourceSession({ resourceId });
   const mentionables = useReferenceMentionables();
   const { t } = useI18n();
   const { canUpload, uploadImage } = useWorkspaceResourceImageUpload();
-  return (
-    <ExplorerTreeContent
-      testId={`business-inline-resource-${resourceId}`}
-      heading={heading ?? t("resources.textContent")}
-      actions={
-        <>
-          {session.canConfigureAutosave ? (
-            <ResourceAutosaveToggle
-              showLabel
-              enabled={session.autosaveEnabled}
-              status={session.saveStatus}
-              disabled={session.submitting}
-              onChange={session.updateAutosave}
-            />
-          ) : null}
-          {session.editable && (!session.autosaveEnabled || session.actionError) ? (
-            <Button
-              size="sm"
-              variant="outline"
-              data-testid={`business-inline-save-${resourceId}`}
-              disabled={session.submitting || !session.dirty}
-              onClick={() => void session.save()}
-            >
-              {t("common.save")}
-            </Button>
-          ) : null}
-        </>
-      }
-    >
+  const body = (
+    <>
       <RequestErrorBanner error={session.actionError} />
       {session.detailsFailed ? (
         <p role="alert">{t("common.requestFailed")}</p>
@@ -72,6 +53,39 @@ export function InlineResourceContent({ resourceId, heading }: { resourceId: str
           autosaveEnabled={session.autosaveEnabled}
         />
       )}
+    </>
+  );
+  if (compact) return <div className="business-inline-resource" data-testid={`business-inline-resource-${resourceId}`}>{body}</div>;
+  return (
+    <ExplorerTreeContent
+      testId={`business-inline-resource-${resourceId}`}
+      heading={heading ?? t("resources.textContent")}
+      actions={
+        <>
+          {session.canConfigureAutosave ? (
+            <ResourceAutosaveToggle
+              showLabel
+              enabled={session.autosaveEnabled}
+              status={session.saveStatus}
+              disabled={session.submitting}
+              onChange={session.updateAutosave}
+            />
+          ) : null}
+          {session.editable && (!session.autosaveEnabled || session.actionError) ? (
+            <Button
+              size="sm"
+              variant="outline"
+              data-testid={`business-inline-save-${resourceId}`}
+              disabled={session.submitting || !session.dirty}
+              onClick={() => void session.save()}
+            >
+              {t("common.save")}
+            </Button>
+          ) : null}
+        </>
+      }
+    >
+      {body}
     </ExplorerTreeContent>
   );
 }

@@ -7274,6 +7274,7 @@
         "Chaque ligne d’affaire, de document ou de note présente son nom et sa dernière modification, sans en-tête de colonnes ; l’action d’ouverture du dossier reste immédiatement à côté de son nom, sans date de dossier ; le type n’est pas répété sous forme textuelle.",
         "Les icônes d’affaire, de document et de note sont sobres, légèrement agrandies et alignées, avec leur couleur sémantique mais sans fond de badge.",
         "L’ouverture d’une affaire reprend la même structure d’en-tête et le même contrôle d’enregistrement automatique que l’ouverture d’une ressource ; seuls le rapport et les rubriques métier qui suivent diffèrent.",
+        "Dans une affaire, les projets de délibération et les questions ouvertes sont présentés comme deux listes métier compactes ; une seule ligne ouvre à la fois son texte et ses passages en séance. Seuls les documents conservent une arborescence de dossiers dédiée.",
         "L’entrée Espace de travail de la navigation et la racine Tous les dossiers utilisent l’icône commune des affaires.",
         "Un document peut être ouvert puis refermé en retrouvant la liste de la racine."
       ],

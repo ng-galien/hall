@@ -34,7 +34,7 @@ import {
   WorkspaceIcon,
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
-import { ExplorerTree, ExplorerTreeButton, ExplorerTreeRow } from "../../components/ui/explorer-tree";
+import { ExplorerTree, ExplorerTreeRow } from "../../components/ui/explorer-tree";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import {
   type DocumentaryLeafSummary,
@@ -232,7 +232,6 @@ export function PathContents({
   const [mode, setMode] = useState<WorkspaceViewMode>("all");
   const [query, setQuery] = useState("");
   const [folderExpansion, setFolderExpansion] = useState<Map<string, boolean>>(() => new Map());
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
   const [selectionAnchorKey, setSelectionAnchorKey] = useState<string | null>(null);
   const [dropPath, setDropPath] = useState<string | null>(null);
@@ -335,7 +334,6 @@ export function PathContents({
       setActiveRename(null);
       setRenameError(null);
     }
-    setSelectedKey(key);
     if (selection.range && selectionAnchorKey) {
       const keys = treeNodeKeys();
       const start = keys.indexOf(selectionAnchorKey);
@@ -388,7 +386,6 @@ export function PathContents({
     setMoveError(null);
     setRenameError(null);
     const key = itemKey(target);
-    setSelectedKey(key);
     setSelectedKeys(new Set([key]));
     setSelectionAnchorKey(key);
     setRenameSession(session);
@@ -504,8 +501,12 @@ export function PathContents({
         }
         return next;
       });
-      setSelectedKey((current) =>
-        current === `folder:${result.sourcePath}` ? `folder:${result.targetPath}` : current,
+      setSelectedKeys((current) =>
+        new Set(
+          [...current].map((key) =>
+            key === `folder:${result.sourcePath}` ? `folder:${result.targetPath}` : key,
+          ),
+        ),
       );
       if (active) {
         window.requestAnimationFrame(() => {
@@ -574,7 +575,8 @@ export function PathContents({
       councilBusiness: (entry) => `business:${entry.id}`,
     });
     setCreateTarget(null);
-    setSelectedKey(key);
+    setSelectedKeys(new Set([key]));
+    setSelectionAnchorKey(key);
     setFeedback(t("workspace.createdFeedback").replace("{name}", title));
     window.requestAnimationFrame(() => {
       treeRef.current
@@ -894,7 +896,6 @@ export function PathContents({
                       selectTreeItem(key, modifiers);
                       if (!modifiers.toggle && !modifiers.range) onSelect({ kind: "councilBusiness", id: business.id });
                     }}
-                    onFocus={() => setSelectedKey(key)}
                   >
                     <strong>{business.title}</strong>
                   </button>
@@ -986,7 +987,6 @@ export function PathContents({
                       selectTreeItem(key, modifiers);
                       if (!modifiers.toggle && !modifiers.range) onPreview(resource);
                     }}
-                    onFocus={() => setSelectedKey(key)}
                   >
                     <strong>{resource.name}</strong>
                   </button>
@@ -1122,7 +1122,6 @@ export function PathContents({
             type="button"
             aria-expanded={isExpanded}
             aria-label={folderPath.split("/").at(-1) ?? folderPath}
-            onFocus={() => setSelectedKey(key)}
           >
             {isExpanded ? <FolderOpenIcon /> : <FolderIcon />}
           </button>

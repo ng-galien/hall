@@ -1,9 +1,8 @@
 import type { PreparedCouncilSubject } from "@hall/api-contract";
 import { useState } from "react";
-import { ExplorerTreeBranch } from "../../components/ui/explorer-tree";
-import { ContextMenuItem } from "../../components/ui/context-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "../../components/ui/context-menu";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
-import { CalendarAddIcon } from "../../components/icons";
+import { CalendarAddIcon, ChevronRightIcon } from "../../components/icons";
 import { BusinessSubjectHistory } from "./BusinessSubjectHistory";
 import { CouncilBusinessSchedule } from "./CouncilBusinessSchedule";
 import { useBusinessScheduling } from "./useBusinessScheduling";
@@ -14,17 +13,21 @@ import { useResourceRename } from "../../features/resources/useResourceRename";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 
-function SubjectBranch({
+function SubjectRow({
   subject,
   businessId,
   revision,
+  expanded,
   scheduling,
+  onExpand,
   onSchedule,
 }: {
   subject: PreparedCouncilSubject;
   businessId: string;
   revision: number;
+  expanded: boolean;
   scheduling: ReturnType<typeof useBusinessScheduling>;
+  onExpand(): void;
   onSchedule(meetingIds: string[]): void;
 }) {
   const { t } = useI18n();
@@ -35,46 +38,131 @@ function SubjectBranch({
   });
   const meetingIds = scheduling.available[`${subject.kind}:${subject.id}`] ?? [];
   return (
-    <>
-      <ExplorerTreeBranch
-        testId={`business-subject-${subject.id}`}
-        title={subject.title}
-        contextMenu={
-          <>
-            {rename.menuItem}
-            {!scheduling.loading && !scheduling.error && meetingIds.length > 0 ? (
-              <ContextMenuItem
-                data-testid={`business-subject-schedule-${subject.id}`}
-                onSelect={() => onSchedule(meetingIds)}
-              >
-                <CalendarAddIcon />
-                {t("workspace.scheduleInMeeting")}
-              </ContextMenuItem>
-            ) : null}
-            {scheduling.loading ? (
-              <p className="business-menu-hint">{t("common.loading")}</p>
-            ) : scheduling.error ? (
-              <RequestErrorBanner error={scheduling.error} />
-            ) : !meetingIds.length ? (
-              <p className="business-menu-hint" data-testid={`business-subject-schedule-unavailable-${subject.id}`}>
-                {t("workspace.noAvailableScheduling")}
-              </p>
-            ) : null}
-          </>
-        }
-      >
-        <li>
-          <InlineResourceContent
-            resourceId={subject.textResourceId}
-            heading={t(
-              subject.kind === "councilDecisionProposal" ? "workspace.proposalText" : "workspace.questionText",
-            )}
-          />
-        </li>
-        <BusinessSubjectHistory businessId={businessId} subjectId={subject.id} revision={revision} />
-      </ExplorerTreeBranch>
+    <li className="business-subject-item" data-testid={`business-subject-${subject.id}`}>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <button
+            className={`business-subject-row${expanded ? " business-subject-row-open" : ""}`}
+            data-testid={`business-subject-${subject.id}-open`}
+            type="button"
+            aria-expanded={expanded}
+            onClick={onExpand}
+          >
+            <span className="business-subject-row-icon">
+              <AgendaSubjectGlyph kind={subject.kind} tree />
+            </span>
+            <span className="business-subject-row-title">{subject.title}</span>
+            <ChevronRightIcon className="business-subject-row-chevron" aria-hidden="true" />
+          </button>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          {rename.menuItem}
+          {!scheduling.loading && !scheduling.error && meetingIds.length > 0 ? (
+            <ContextMenuItem
+              data-testid={`business-subject-schedule-${subject.id}`}
+              onSelect={() => onSchedule(meetingIds)}
+            >
+              <CalendarAddIcon />
+              {t("workspace.scheduleInMeeting")}
+            </ContextMenuItem>
+          ) : null}
+          {scheduling.loading ? (
+            <p className="business-menu-hint">{t("common.loading")}</p>
+          ) : scheduling.error ? (
+            <RequestErrorBanner error={scheduling.error} />
+          ) : !meetingIds.length ? (
+            <p className="business-menu-hint" data-testid={`business-subject-schedule-unavailable-${subject.id}`}>
+              {t("workspace.noAvailableScheduling")}
+            </p>
+          ) : null}
+        </ContextMenuContent>
+      </ContextMenu>
+      {expanded ? (
+        <div className="business-subject-detail">
+          <InlineResourceContent resourceId={subject.textResourceId} compact />
+          <BusinessSubjectHistory businessId={businessId} subjectId={subject.id} revision={revision} />
+        </div>
+      ) : null}
       {rename.dialog}
-    </>
+    </li>
+  );
+}
+
+function SubjectSection({
+  kind,
+  businessId,
+  subjects,
+  capabilities,
+  revision,
+  scheduling,
+  expandedSubjectId,
+  onExpand,
+  onSchedule,
+}: {
+  kind: "councilDecisionProposal" | "openQuestion";
+  businessId: string;
+  subjects: PreparedCouncilSubject[];
+  capabilities: ReturnType<typeof useCouncilBusinessStore.getState>["capabilitiesById"][string] | undefined;
+  revision: number;
+  scheduling: ReturnType<typeof useBusinessScheduling>;
+  expandedSubjectId: string | null;
+  onExpand(id: string): void;
+  onSchedule(subject: PreparedCouncilSubject, meetingIds: string[]): void;
+}) {
+  const { t } = useI18n();
+  const presentation = agendaSubjectPresentation[kind];
+  return (
+    <WorkspaceCreateMenu
+      compact
+      testId={`business-create-${kind}`}
+      canCreate={() => false}
+      onCreate={async () => false}
+      extraOptions={
+        capabilities?.createPreparedSubject
+          ? [
+              {
+                id: kind,
+                label: t(presentation.label),
+                icon: presentation.icon,
+                create: async (name) =>
+                  Boolean(
+                    await useCouncilBusinessStore
+                      .getState()
+                      .createPreparedSubject(businessId, { kind, name, content: "" }),
+                  ),
+              },
+            ]
+          : []
+      }
+      render={(trigger) => (
+        <section className="business-content-section" data-testid={`business-category-${kind}`}>
+          <header className="business-content-section-header">
+            <span className="business-content-section-icon">
+              <AgendaSubjectGlyph kind={kind} tree />
+            </span>
+            <h2>{t(kind === "councilDecisionProposal" ? "workspace.proposalCategory" : "workspace.questionCategory")}</h2>
+            {subjects.length ? <span className="business-content-section-count">{subjects.length}</span> : null}
+            <span className="business-content-section-actions">{trigger}</span>
+          </header>
+          {subjects.length ? (
+            <ul className="business-subject-list">
+              {subjects.map((subject) => (
+                <SubjectRow
+                  key={subject.id}
+                  subject={subject}
+                  businessId={businessId}
+                  revision={revision}
+                  expanded={expandedSubjectId === subject.id}
+                  scheduling={scheduling}
+                  onExpand={() => onExpand(subject.id)}
+                  onSchedule={(meetingIds) => onSchedule(subject, meetingIds)}
+                />
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      )}
+    />
   );
 }
 
@@ -83,61 +171,25 @@ export function CouncilBusinessSubjects({ businessId }: { businessId: string }) 
   const [scheduledSubject, setScheduledSubject] = useState<{ id: string; title: string; meetingIds: string[] } | null>(
     null,
   );
+  const [expandedSubjectId, setExpandedSubjectId] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const scheduling = useBusinessScheduling(businessId, revision);
   const subjects = useCouncilBusinessStore((state) => state.preparedSubjects);
   const capabilities = useCouncilBusinessStore((state) => state.capabilitiesById[businessId]);
   return (
-    <>
+    <div className="business-content-sections">
       {(["councilDecisionProposal", "openQuestion"] as const).map((kind) => (
-        <WorkspaceCreateMenu
+        <SubjectSection
           key={kind}
-          compact
-          testId={`business-create-${kind}`}
-          canCreate={() => false}
-          onCreate={async () => false}
-          extraOptions={
-            capabilities?.createPreparedSubject
-              ? [
-                  {
-                    id: kind,
-                    label: t(agendaSubjectPresentation[kind].label),
-                    icon: agendaSubjectPresentation[kind].icon,
-                    create: async (name) =>
-                      Boolean(
-                        await useCouncilBusinessStore
-                          .getState()
-                          .createPreparedSubject(businessId, { kind, name, content: "" }),
-                      ),
-                  },
-                ]
-              : []
-          }
-          render={(trigger, contextItems) => (
-            <ExplorerTreeBranch
-              testId={`business-category-${kind}`}
-              defaultOpen
-              title={t(
-                kind === "councilDecisionProposal" ? "workspace.proposalCategory" : "workspace.questionCategory",
-              )}
-              icon={<AgendaSubjectGlyph kind={kind} tree />}
-              actions={trigger}
-              contextMenu={contextItems}
-            >
-              {subjects
-                .filter((subject) => subject.councilBusinessId === businessId && subject.kind === kind)
-                .map((subject) => (
-                  <SubjectBranch
-                    key={subject.id}
-                    subject={subject}
-                    businessId={businessId}
-                    revision={revision}
-                    scheduling={scheduling}
-                    onSchedule={(meetingIds) => setScheduledSubject({ ...subject, meetingIds })}
-                  />
-                ))}
-            </ExplorerTreeBranch>
-          )}
+          kind={kind}
+          businessId={businessId}
+          subjects={subjects.filter((subject) => subject.councilBusinessId === businessId && subject.kind === kind)}
+          capabilities={capabilities}
+          revision={revision}
+          scheduling={scheduling}
+          expandedSubjectId={expandedSubjectId}
+          onExpand={(id) => setExpandedSubjectId((current) => (current === id ? null : id))}
+          onSchedule={(subject, meetingIds) => setScheduledSubject({ ...subject, meetingIds })}
         />
       ))}
       <Modal
@@ -158,6 +210,6 @@ export function CouncilBusinessSubjects({ businessId }: { businessId: string }) 
           />
         ) : null}
       </Modal>
-    </>
+    </div>
   );
 }

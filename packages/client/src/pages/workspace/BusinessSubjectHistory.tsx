@@ -1,11 +1,8 @@
 import type { AgendaItem, CouncilDecisionDetail } from "@hall/api-contract";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { RequestErrorBanner } from "../../components/Ui";
 import { CalendarIcon } from "../../components/icons";
-import { ExplorerTreeBranch, ExplorerTreeContent } from "../../components/ui/explorer-tree";
-import { ContextMenuItem } from "../../components/ui/context-menu";
-import { MarkdownView } from "../../components/MarkdownView";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -26,7 +23,6 @@ export function BusinessSubjectHistory({
   revision: number;
 }) {
   const { t, formatDate } = useI18n();
-  const navigate = useNavigate();
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
   const summaries = useCouncilDecisionsStore((state) => state.councilDecisions);
   const decisionIds = summaries
@@ -55,96 +51,57 @@ export function BusinessSubjectHistory({
       active = false;
     };
   }, [businessId, subjectId, revision, decisionIds]);
+
+  if (error) return <RequestErrorBanner error={error} />;
+  if (!items) return <p className="business-subject-history-empty">{t("common.loading")}</p>;
+  if (items.length === 0) return <p className="business-subject-history-empty">{t("workspace.noPreviousOccurrences")}</p>;
+
+  const orderedItems = items.slice().sort((left, right) => {
+    const dateOf = (id: string) => {
+      const meeting = meetings.find((entry) => entry.id === id);
+      const date = meeting?.scheduledAt ?? meeting?.startedAt;
+      return date ? Date.parse(date) : Number.POSITIVE_INFINITY;
+    };
+    return dateOf(left.councilMeetingId) - dateOf(right.councilMeetingId) || left.id.localeCompare(right.id);
+  });
   return (
-    <ExplorerTreeBranch
-      title={t("workspace.subjectMeetings")}
-      testId={`business-subject-history-${subjectId}`}
-      defaultOpen
-      icon={
-        <span className="workspace-glyph">
-          <CalendarIcon />
-        </span>
-      }
-    >
-      {error ? (
-        <li>
-          <RequestErrorBanner error={error} />
-        </li>
-      ) : null}
-      {!items && !error ? <li>{t("common.loading")}</li> : null}
-      {items
-        ?.slice()
-        .sort((left, right) => {
-          const dateOf = (id: string) => {
-            const meeting = meetings.find((entry) => entry.id === id);
-            const date = meeting?.scheduledAt ?? meeting?.startedAt;
-            return date ? Date.parse(date) : Number.POSITIVE_INFINITY;
-          };
-          return dateOf(left.councilMeetingId) - dateOf(right.councilMeetingId) || left.id.localeCompare(right.id);
-        })
-        .map((item) => {
+    <section className="business-subject-history" aria-label={t("workspace.subjectMeetings")}>
+      <h3>
+        <CalendarIcon aria-hidden="true" />
+        {t("workspace.subjectMeetings")}
+      </h3>
+      <ul>
+        {orderedItems.map((item) => {
           const meeting = meetings.find((entry) => entry.id === item.councilMeetingId);
           if (!meeting) return null;
           const outcomes = decisions.filter((decision) => decision.facts.agendaItemId === item.id);
+          const status = item.adjournedAt
+            ? "adjourned"
+            : outcomes[0]
+              ? outcomes[0].facts.ballot.result === "approve"
+                ? "adopted"
+                : "rejected"
+              : workspaceAgendaItemStatus(item);
           return (
-            <ExplorerTreeBranch
-              key={item.id}
-              title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate, t("workspace.dateToSet"))}
-              testId={`business-subject-occurrence-${item.id}`}
-              expandable={outcomes.length > 0}
-              onActivate={() => navigate(`/meetings/${meeting.reference}`)}
-              meta={
-                <StatusBadge
-                  value={
-                    item.adjournedAt
-                      ? "adjourned"
-                      : outcomes[0]
-                        ? outcomes[0].facts.ballot.result === "approve"
-                          ? "adopted"
-                          : "rejected"
-                        : workspaceAgendaItemStatus(item)
-                  }
-                />
-              }
-              contextMenu={
-                <ContextMenuItem asChild>
-                  <Link data-testid={`business-meeting-open-${item.id}`} to={`/meetings/${meeting.reference}`}>
-                    {t("workspace.openMeeting")}
-                  </Link>
-                </ContextMenuItem>
-              }
-            >
+            <li key={item.id}>
+              <Link data-testid={`business-meeting-open-${item.id}`} to={`/meetings/${meeting.reference}`}>
+                {formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate, t("workspace.dateToSet"))}
+              </Link>
+              <StatusBadge value={status} />
               {outcomes.map((decision) => (
-                <ExplorerTreeBranch
+                <Link
                   key={decision.id}
-                  title={`${t("meeting.itemHasDecision")} · ${decision.number ?? decision.title}`}
-                  testId={`business-subject-decision-${decision.id}`}
-                  meta={<StatusBadge value={decision.facts.ballot.result === "approve" ? "adopted" : "rejected"} />}
-                  contextMenu={
-                    <ContextMenuItem asChild>
-                      <Link
-                        data-testid={`business-decision-open-${decision.id}`}
-                        to={`/council-decisions/${decision.id}`}
-                      >
-                        {t("workspace.openDecision")}
-                      </Link>
-                    </ContextMenuItem>
-                  }
+                  className="business-subject-decision-link"
+                  data-testid={`business-decision-open-${decision.id}`}
+                  to={`/council-decisions/${decision.id}`}
                 >
-                  <li>
-                    <ExplorerTreeContent
-                      heading={t("workspace.decisionText")}
-                      testId={`business-inline-decision-${decision.id}`}
-                    >
-                      <MarkdownView markdown={decision.content} />
-                    </ExplorerTreeContent>
-                  </li>
-                </ExplorerTreeBranch>
+                  {decision.number ?? decision.title}
+                </Link>
               ))}
-            </ExplorerTreeBranch>
+            </li>
           );
         })}
-      {items?.length === 0 ? <li className="workspace-list-empty">{t("workspace.noPreviousOccurrences")}</li> : null}
-    </ExplorerTreeBranch>
+      </ul>
+    </section>
   );
 }

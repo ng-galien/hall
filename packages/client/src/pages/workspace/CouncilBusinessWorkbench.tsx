@@ -1,7 +1,6 @@
-import { ContextMenuItem } from "../../components/ui/context-menu";
 import { BusinessDocumentTree } from "./BusinessDocumentTree";
 import { useEffect, useMemo, useState } from "react";
-import { ExplorerTree, ExplorerTreeBranch } from "../../components/ui/explorer-tree";
+import { ExplorerTree } from "../../components/ui/explorer-tree";
 import { matchLiteral } from "@hall/domain";
 import type { WorkspaceCreateKind } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -30,6 +29,7 @@ import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore
 import { ResourcePicker } from "./ResourcePicker";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
+import "./CouncilBusinessWorkbench.css";
 
 export function CouncilBusinessWorkbench({
   business,
@@ -210,9 +210,8 @@ export function CouncilBusinessWorkbench({
           </div>
         ) : null}
       </section>
-      <ExplorerTree className="business-unified-tree" data-testid="business-resource-tree">
-        <CouncilBusinessSubjects businessId={business.id} />
-        <WorkspaceCreateMenu
+      <CouncilBusinessSubjects businessId={business.id} />
+      <WorkspaceCreateMenu
           compact
           testId="business-create-documents"
           canCreate={(kind) =>
@@ -234,21 +233,14 @@ export function CouncilBusinessWorkbench({
             if (selection.kind === "resource") setViewedResourceId(selection.id);
             return true;
           }}
-          render={(trigger, contextItems) => (
-            <ExplorerTreeBranch
-              title={t("workspace.documentCategory")}
-              testId="business-category-documents"
-              defaultOpen
-              icon={
-                <span className="workspace-glyph">
+          render={(trigger) => (
+            <section className="business-content-section" data-testid="business-category-documents">
+              <header className="business-content-section-header">
+                <span className="business-content-section-icon workspace-glyph">
                   <FolderIcon />
                 </span>
-              }
-              onContextMenuCloseAutoFocus={(event) => {
-                if (pickingResource) event.preventDefault();
-              }}
-              actions={
-                <>
+                <h2>{t("workspace.documentCategory")}</h2>
+                <span className="business-content-section-actions">
                   {trigger}
                   {businessCapabilities?.associateResource ? (
                     <ResourcePicker
@@ -263,25 +255,10 @@ export function CouncilBusinessWorkbench({
                       onPick={(resourceId) => void associateResource(resourceId)}
                     />
                   ) : null}
-                </>
-              }
-              contextMenu={
-                contextItems || businessCapabilities?.associateResource ? (
-                  <>
-                    {contextItems}
-                    {businessCapabilities?.associateResource ? (
-                      <ContextMenuItem
-                        disabled={submitting || !candidateResources.length}
-                        data-testid="business-context-attach"
-                        onSelect={() => setPickingResource(true)}
-                      >
-                        {t("workspace.addResource")}
-                      </ContextMenuItem>
-                    ) : null}
-                  </>
-                ) : undefined
-              }
-            >
+                </span>
+              </header>
+              {attachedResources.length ? (
+                <ExplorerTree className="business-document-tree" data-testid="business-resource-tree">
               <BusinessDocumentTree
                 resources={attachedResources}
                 basePath={business.folderPath}
@@ -290,10 +267,11 @@ export function CouncilBusinessWorkbench({
                   await useCouncilBusinessStore.getState().loadResources(business.id);
                 }}
               />
-            </ExplorerTreeBranch>
+                </ExplorerTree>
+              ) : null}
+            </section>
           )}
         />
-      </ExplorerTree>
 
       {viewedResourceId ? (
         <ResourcePreview
