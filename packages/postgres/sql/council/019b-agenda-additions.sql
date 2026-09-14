@@ -33,7 +33,7 @@ CREATE TRIGGER council_agenda_addition_no_truncate BEFORE TRUNCATE ON hall.counc
 FOR EACH STATEMENT EXECUTE FUNCTION hall.enforce_council_agenda_addition();
 
 CREATE FUNCTION hall.validate_council_agenda_addition()
-RETURNS TRIGGER LANGUAGE plpgsql SET search_path=pg_catalog,hall AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
 BEGIN
   IF NOT EXISTS(SELECT FROM hall.council_agenda_item item WHERE item.id=NEW.agenda_item
     AND item.council_meeting=NEW.council_meeting AND item.open_question IS NOT NULL

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { ContextMenuItem } from "../../components/ui/context-menu";
+import { DropdownMenuItem } from "../../components/ui/dropdown-menu";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -32,18 +33,64 @@ export function useResourceRename({
     if (!representation) void useWorkspaceResourcesStore.getState().open(resourceId);
   }, [resourceId, representation]);
   const canRename = resourceCapabilities(representation ?? null).updateMetadata;
+  const openRename = () => {
+    setName(useWorkspaceResourcesStore.getState().details[resourceId]?.name ?? "");
+    setError(null);
+    setOpen(true);
+  };
+  const commit = async (nextName: string): Promise<boolean> => {
+    if (active.current || !nextName.trim()) return false;
+    active.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const store = useWorkspaceResourcesStore.getState();
+      const current = store.details[resourceId];
+      if (!current) {
+        setError("request_failed");
+        return false;
+      }
+      const updated = await store.updateMetadata(resourceId, {
+        name: nextName.trim(),
+        path: current.path,
+        tags: current.tags,
+        editing:
+          "autosaveEnabled" in current
+            ? { kind: "autosave", enabled: current.autosaveEnabled }
+            : { kind: "fixed" },
+      });
+      if (!updated) {
+        setError(useWorkspaceResourcesStore.getState().error ?? "request_failed");
+        useWorkspaceResourcesStore.setState({ error: null });
+        return false;
+      }
+      await onRenamed?.();
+      return true;
+    } catch (failure) {
+      setError(apiErrorCode(failure));
+      return false;
+    } finally {
+      active.current = false;
+      setBusy(false);
+    }
+  };
   return {
+    canRename,
+    commit,
+    error,
+    dismissError: () => setError(null),
     menuItem: canRename ? (
       <ContextMenuItem
         data-testid={testId}
-        onSelect={() => {
-          setName(useWorkspaceResourcesStore.getState().details[resourceId]?.name ?? "");
-          setError(null);
-          setOpen(true);
-        }}
+        onSelect={openRename}
       >
         {t("common.rename")}
       </ContextMenuItem>
+    ) : null,
+    dropdownMenuItem: canRename ? (
+      <DropdownMenuItem data-testid={testId} onSelect={openRename}>
+        {t("common.rename")}
+      </DropdownMenuItem>
     ) : null,
     dialog: (
       <Modal
@@ -59,39 +106,8 @@ export function useResourceRename({
           className="grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
-            if (active.current || !name.trim()) return;
-            active.current = true;
-            setBusy(true);
-            setError(null);
             void (async () => {
-              try {
-                const store = useWorkspaceResourcesStore.getState();
-                const current = store.details[resourceId];
-                if (!current) {
-                  setError("request_failed");
-                  return;
-                }
-                const updated = await store.updateMetadata(resourceId, {
-                  name: name.trim(),
-                  path: current.path,
-                  tags: current.tags,
-                  editing:
-                    "autosaveEnabled" in current
-                      ? { kind: "autosave", enabled: current.autosaveEnabled }
-                      : { kind: "fixed" },
-                });
-                if (!updated) {
-                  setError(useWorkspaceResourcesStore.getState().error ?? "request_failed");
-                  return;
-                }
-                await onRenamed?.();
-                setOpen(false);
-              } catch (failure) {
-                setError(apiErrorCode(failure));
-              } finally {
-                active.current = false;
-                setBusy(false);
-              }
+              if (await commit(name)) setOpen(false);
             })();
           }}
         >

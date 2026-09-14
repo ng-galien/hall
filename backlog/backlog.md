@@ -134,7 +134,7 @@ séparément l'implémentation, la vérification et le suivi backlog.
 - [x] `[FRONT]` Rendre consultables les documents classés à la racine. @tracks-requirement HALL-FR-WSP-270
 - [x] `[FRONT]` Nommer les dossiers parents des documents au lieu d’afficher « .. ». @tracks-requirement HALL-FR-WSP-260
 - [x] `[FRONT]` Corriger l’identité et l’ouverture des affaires dans l’arbre latéral. @tracks-requirement HALL-FR-WSP-240
-- [x] `[FULL]` Verrouiller le titre et le contenu des projets de délibération et questions ouvertes dès leur entrée dans une séance ouverte. @tracks-requirement HALL-FR-WSP-280
+- [x] `[FULL]` Verrouiller temporairement le titre et le contenu des sujets inscrits pendant la séance, puis conserver le verrou des seuls sujets effectivement commencés. @tracks-requirement HALL-FR-WSP-280
 - [x] `[BACK]` Structurer les actions Siren d’une affaire par contenu, sujets, ordre du jour et affaire. @tracks-requirement HALL-FR-WSP-290
 - [ ] `[BACK]` Étudier la fusion de deux affaires, notamment le devenir de leurs ressources, sujets et occurrences d’ordre du jour, sans préjuger de la règle fonctionnelle ni du modèle.
 

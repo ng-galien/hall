@@ -6,12 +6,31 @@ export const preparedCouncilSubjectKindSchema = z.enum([
   "councilDecisionProposal",
   "openQuestion",
 ]);
+const agendaSchema = z.object({
+  state: z.enum(['notScheduled', 'scheduled', 'started', 'examined', 'adjourned']),
+  agendaItemId: id.nullable(),
+  meeting: z.object({
+    reference: z.string().min(1).nullable(),
+    number: z.number().int().nullable(),
+    scheduledAt: z.iso.datetime({ offset: true }).nullable(),
+    startedAt: z.iso.datetime({ offset: true }).nullable().optional(),
+  }).nullable(),
+}).strict();
+
+const scheduleTargetSchema = z.object({
+  meetingReference: z.string().min(1),
+  position: z.number().int().positive(),
+}).strict().nullable();
+
 const base = {
   councilBusinessId: id,
+  createdAt: z.iso.datetime({ offset: true }),
   title: z.string().min(1),
   folderPath: z.string(),
   reportResourceId: id,
   content: z.string(),
+  agenda: agendaSchema,
+  scheduleTarget: scheduleTargetSchema,
 };
 export const preparedCouncilSubjectSchema = z.discriminatedUnion("kind", [
   z.object({ ...base, id, kind: z.literal("councilDecisionProposal"), textResourceId: id }).strict(),

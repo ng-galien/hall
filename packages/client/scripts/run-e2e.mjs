@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { closeSync, mkdtempSync, openSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -21,11 +21,94 @@ if (process.argv.length === 2) {
 const playwrightCli = require.resolve("@playwright/test/cli");
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "hall-playwright-"));
 const testDatabaseUrl = "postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test";
+const databaseLockPath = join(tmpdir(), "hall-postgres-tests.lock");
 
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: projectDirectory, stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} failed with status ${result.status}`);
+}
+
+function runWithInput(command, args, input) {
+  const result = spawnSync(command, args, { cwd: projectDirectory, input, stdio: ["pipe", "inherit", "inherit"] });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} failed with status ${result.status}`);
+}
+
+function acquireDatabaseLock() {
+  try {
+    const descriptor = openSync(databaseLockPath, "wx");
+    writeFileSync(descriptor, String(process.pid));
+    closeSync(descriptor);
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "EEXIST") {
+      throw new Error("The shared Hall test database is already in use by another test command");
+    }
+    throw error;
+  }
+}
+
+function releaseDatabaseLock() {
+  try {
+    unlinkSync(databaseLockPath);
+  } catch (error) {
+    if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) throw error;
+  }
+}
+
+function resetDatabaseSchema() {
+  runWithInput(
+    "docker",
+    [
+      "compose",
+      "exec",
+      "-T",
+      "postgres-test",
+      "psql",
+      "--set",
+      "ON_ERROR_STOP=1",
+      "--username",
+      "hall_test",
+      "--dbname",
+      "hall_test",
+    ],
+    "DROP SCHEMA IF EXISTS hall_api CASCADE; DROP SCHEMA IF EXISTS hall CASCADE; DROP SCHEMA IF EXISTS hall_meta CASCADE; DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public AUTHORIZATION hall_test;\n",
+  );
+}
+
+function clearDatabaseData() {
+  runWithInput(
+    "docker",
+    [
+      "compose",
+      "exec",
+      "-T",
+      "postgres-test",
+      "psql",
+      "--set",
+      "ON_ERROR_STOP=1",
+      "--username",
+      "hall_test",
+      "--dbname",
+      "hall_test",
+    ],
+    `BEGIN;
+SET LOCAL session_replication_role = replica;
+DO $reset$
+DECLARE tables text;
+BEGIN
+  SELECT string_agg(format('%I.%I', schemaname, tablename), ', ' ORDER BY schemaname, tablename)
+  INTO tables
+  FROM pg_tables
+  WHERE schemaname IN ('hall', 'public') AND tablename <> 'spatial_ref_sys';
+  IF tables IS NOT NULL THEN
+    EXECUTE 'TRUNCATE TABLE ' || tables || ' RESTART IDENTITY CASCADE';
+  END IF;
+END
+$reset$;
+COMMIT;
+`,
+  );
 }
 
 function availablePort() {
@@ -47,9 +130,10 @@ function availablePort() {
 const serverPort = process.env.HALL_E2E_SERVER_PORT ?? (await availablePort());
 const clientPort = process.env.HALL_E2E_CLIENT_PORT ?? (await availablePort());
 
+acquireDatabaseLock();
 try {
-  run("docker", ["compose", "--profile", "test", "rm", "--stop", "--force", "postgres-test"]);
   run("docker", ["compose", "--profile", "test", "up", "-d", "--wait", "postgres-test"]);
+  resetDatabaseSchema();
 
   const result = spawnSync(
     process.execPath,
@@ -71,6 +155,10 @@ try {
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;
 } finally {
-  run("docker", ["compose", "--profile", "test", "rm", "--stop", "--force", "postgres-test"]);
-  rmSync(temporaryDirectory, { recursive: true, force: true });
+  try {
+    clearDatabaseData();
+  } finally {
+    releaseDatabaseLock();
+    rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
 }

@@ -1,215 +1,144 @@
-import type { PreparedCouncilSubject } from "@hall/api-contract";
-import { useState } from "react";
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "../../components/ui/context-menu";
-import { Modal, RequestErrorBanner } from "../../components/Ui";
-import { CalendarAddIcon, ChevronRightIcon } from "../../components/icons";
-import { BusinessSubjectHistory } from "./BusinessSubjectHistory";
-import { CouncilBusinessSchedule } from "./CouncilBusinessSchedule";
-import { useBusinessScheduling } from "./useBusinessScheduling";
+import { findSirenAction, type PreparedCouncilSubject, type SirenEntity } from "@hall/api-contract";
+import { useMemo, useState } from "react";
+import { RequestErrorBanner } from "../../components/Ui";
+import { CalendarAddIcon, CloseIcon, EditIcon } from "../../components/icons";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { InlineRenameField } from "../../components/ui/inline-rename-field";
+import { Link } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
-import { AgendaSubjectGlyph, agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
+import {
+  AgendaSubjectGlyph,
+  agendaSubjectPresentation,
+} from "../../features/council-meetings/AgendaSubjectGlyph";
 import { InlineResourceContent } from "../../features/resources/InlineResourceContent";
 import { useResourceRename } from "../../features/resources/useResourceRename";
 import { useI18n } from "../../i18n/I18nProvider";
+import { apiErrorCode, submitSirenAction, type ApiErrorCode } from "../../services/apiClient";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 
-function SubjectRow({
-  subject,
-  businessId,
-  revision,
-  expanded,
-  scheduling,
-  onExpand,
-  onSchedule,
+function SubjectTableRow({
+  subject, representation, expanded, onExpand,
 }: {
   subject: PreparedCouncilSubject;
-  businessId: string;
-  revision: number;
+  representation: SirenEntity | undefined;
   expanded: boolean;
-  scheduling: ReturnType<typeof useBusinessScheduling>;
   onExpand(): void;
-  onSchedule(meetingIds: string[]): void;
 }) {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
+  const [autosaveActionsHost, setAutosaveActionsHost] = useState<HTMLSpanElement | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
   const rename = useResourceRename({
     resourceId: subject.textResourceId,
     testId: `business-subject-rename-${subject.id}`,
-    onRenamed: () => useCouncilBusinessStore.getState().loadPreparedSubjects(),
+    onRenamed: () => useCouncilBusinessStore.getState().refreshPreparedSubject(subject),
   });
-  const meetingIds = scheduling.available[`${subject.kind}:${subject.id}`] ?? [];
-  return (
-    <li className="business-subject-item" data-testid={`business-subject-${subject.id}`}>
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <button
-            className={`business-subject-row${expanded ? " business-subject-row-open" : ""}`}
-            data-testid={`business-subject-${subject.id}-open`}
-            type="button"
-            aria-expanded={expanded}
-            onClick={onExpand}
-          >
-            <span className="business-subject-row-icon">
-              <AgendaSubjectGlyph kind={subject.kind} tree />
-            </span>
-            <span className="business-subject-row-title">{subject.title}</span>
-            <ChevronRightIcon className="business-subject-row-chevron" aria-hidden="true" />
-          </button>
-        </ContextMenuTrigger>
-        <ContextMenuContent>
-          {rename.menuItem}
-          {!scheduling.loading && !scheduling.error && meetingIds.length > 0 ? (
-            <ContextMenuItem
-              data-testid={`business-subject-schedule-${subject.id}`}
-              onSelect={() => onSchedule(meetingIds)}
-            >
-              <CalendarAddIcon />
-              {t("workspace.scheduleInMeeting")}
-            </ContextMenuItem>
-          ) : null}
-          {scheduling.loading ? (
-            <p className="business-menu-hint">{t("common.loading")}</p>
-          ) : scheduling.error ? (
-            <RequestErrorBanner error={scheduling.error} />
-          ) : !meetingIds.length ? (
-            <p className="business-menu-hint" data-testid={`business-subject-schedule-unavailable-${subject.id}`}>
-              {t("workspace.noAvailableScheduling")}
-            </p>
-          ) : null}
-        </ContextMenuContent>
-      </ContextMenu>
-      {expanded ? (
-        <div className="business-subject-detail">
-          <InlineResourceContent resourceId={subject.textResourceId} compact />
-          <BusinessSubjectHistory businessId={businessId} subjectId={subject.id} revision={revision} />
+  const schedule = representation && findSirenAction(representation, "agenda-item.schedule-prepared");
+  const deprogram = representation && findSirenAction(representation, "agenda-item.deprogram");
+  const meeting = subject.agenda.meeting;
+  const meetingLabel = meeting?.number
+    ? meeting.scheduledAt
+      ? t("workspace.meetingCompact")
+          .replace("{number}", String(meeting.number))
+          .replace("{date}", formatDate(meeting.scheduledAt))
+      : t("workspace.meetingNumberCompact").replace("{number}", String(meeting.number))
+    : null;
+  const run = (name: "agenda-item.schedule-prepared" | "agenda-item.deprogram") => {
+    if (!representation) return;
+    setPending(true); setActionError(null);
+    void submitSirenAction(representation, name)
+      .then(() => useCouncilBusinessStore.getState().refreshPreparedSubject(subject))
+      .catch((failure) => setActionError(apiErrorCode(failure)))
+      .finally(() => setPending(false));
+  };
+  return <>
+    <tr data-testid={`business-subject-${subject.id}`} className={expanded ? "business-subject-table-row-open" : undefined}>
+      <td><Tooltip><TooltipTrigger asChild><span className="business-subject-type"><AgendaSubjectGlyph kind={subject.kind} tree /></span></TooltipTrigger><TooltipContent>{t(agendaSubjectPresentation[subject.kind].label)}</TooltipContent></Tooltip></td>
+      <td>
+        <div className="business-subject-title-stack">
+          <div className="business-subject-title-cell"><InlineRenameField value={subject.title} editing={editingTitle} onEditingChange={(next) => { setEditingTitle(next); if (!next) rename.dismissError(); }} onCommit={rename.commit} label={t("common.rename")} className="workbench-title-inline-input" testId={`business-subject-rename-${subject.id}-name`} invalid={Boolean(rename.error)} onDraftChange={rename.dismissError}><Tooltip><TooltipTrigger asChild><button className="business-subject-title" data-testid={`business-subject-${subject.id}-open`} type="button" aria-expanded={expanded} onClick={onExpand}><span>{subject.title}</span></button></TooltipTrigger><TooltipContent>{subject.title}</TooltipContent></Tooltip></InlineRenameField>{rename.canRename && !editingTitle ? <button type="button" className="workbench-title-edit" data-testid={`business-subject-rename-${subject.id}`} aria-label={`${t("common.edit")} · ${subject.title}`} onClick={() => { rename.dismissError(); setEditingTitle(true); }}><EditIcon aria-hidden="true" /></button> : null}</div>
+          {editingTitle && rename.error ? <RequestErrorBanner compact error={rename.error} /> : null}
         </div>
-      ) : null}
-      {rename.dialog}
-    </li>
-  );
-}
-
-function SubjectSection({
-  kind,
-  businessId,
-  subjects,
-  capabilities,
-  revision,
-  scheduling,
-  expandedSubjectId,
-  onExpand,
-  onSchedule,
-}: {
-  kind: "councilDecisionProposal" | "openQuestion";
-  businessId: string;
-  subjects: PreparedCouncilSubject[];
-  capabilities: ReturnType<typeof useCouncilBusinessStore.getState>["capabilitiesById"][string] | undefined;
-  revision: number;
-  scheduling: ReturnType<typeof useBusinessScheduling>;
-  expandedSubjectId: string | null;
-  onExpand(id: string): void;
-  onSchedule(subject: PreparedCouncilSubject, meetingIds: string[]): void;
-}) {
-  const { t } = useI18n();
-  const presentation = agendaSubjectPresentation[kind];
-  return (
-    <WorkspaceCreateMenu
-      compact
-      testId={`business-create-${kind}`}
-      canCreate={() => false}
-      onCreate={async () => false}
-      extraOptions={
-        capabilities?.createPreparedSubject
-          ? [
-              {
-                id: kind,
-                label: t(presentation.label),
-                icon: presentation.icon,
-                create: async (name) =>
-                  Boolean(
-                    await useCouncilBusinessStore
-                      .getState()
-                      .createPreparedSubject(businessId, { kind, name, content: "" }),
-                  ),
-              },
-            ]
-          : []
-      }
-      render={(trigger) => (
-        <section className="business-content-section" data-testid={`business-category-${kind}`}>
-          <header className="business-content-section-header">
-            <span className="business-content-section-icon">
-              <AgendaSubjectGlyph kind={kind} tree />
-            </span>
-            <h2>{t(kind === "councilDecisionProposal" ? "workspace.proposalCategory" : "workspace.questionCategory")}</h2>
-            {subjects.length ? <span className="business-content-section-count">{subjects.length}</span> : null}
-            <span className="business-content-section-actions">{trigger}</span>
-          </header>
-          {subjects.length ? (
-            <ul className="business-subject-list">
-              {subjects.map((subject) => (
-                <SubjectRow
-                  key={subject.id}
-                  subject={subject}
-                  businessId={businessId}
-                  revision={revision}
-                  expanded={expandedSubjectId === subject.id}
-                  scheduling={scheduling}
-                  onExpand={() => onExpand(subject.id)}
-                  onSchedule={(meetingIds) => onSchedule(subject, meetingIds)}
-                />
-              ))}
-            </ul>
-          ) : null}
-        </section>
-      )}
-    />
-  );
+      </td>
+      <td><div className="business-subject-table-actions"><span ref={setAutosaveActionsHost} />
+        {meeting && meeting.reference && meetingLabel ? <Badge variant="outline" className="business-subject-schedule-badge"><Link data-testid={`business-subject-meeting-${subject.agenda.agendaItemId}`} to={`/meetings/${meeting.reference}`}>{meetingLabel}</Link>{deprogram ? <Button variant="ghost" size="icon-xs" data-testid={`business-subject-unschedule-${subject.id}`} disabled={pending} aria-label={`${t("workspace.unschedule")} · ${meetingLabel}`} onClick={() => run("agenda-item.deprogram")}><CloseIcon /></Button> : null}</Badge> : schedule ? <Button variant="outline" size="xs" data-testid={`business-subject-schedule-${subject.id}`} disabled={pending} onClick={() => run("agenda-item.schedule-prepared")}><CalendarAddIcon />{t("workspace.scheduleInMeeting")}</Button> : null}
+        <RequestErrorBanner compact error={actionError} onDismiss={() => setActionError(null)} testId={`business-subject-action-${subject.id}-error-dismiss`} />
+      </div></td>
+    </tr>
+    {expanded ? <tr className="business-subject-table-detail"><td colSpan={3}><InlineResourceContent resourceId={subject.textResourceId} compact actionsHost={autosaveActionsHost} /></td></tr> : null}
+  </>;
 }
 
 export function CouncilBusinessSubjects({ businessId }: { businessId: string }) {
   const { t } = useI18n();
-  const [scheduledSubject, setScheduledSubject] = useState<{ id: string; title: string; meetingIds: string[] } | null>(
-    null,
-  );
-  const [expandedSubjectId, setExpandedSubjectId] = useState<string | null>(null);
-  const [revision, setRevision] = useState(0);
-  const scheduling = useBusinessScheduling(businessId, revision);
+  const [expandedSubjectIds, setExpandedSubjectIds] = useState<Set<string>>(() => new Set());
   const subjects = useCouncilBusinessStore((state) => state.preparedSubjects);
+  const subjectRepresentations = useCouncilBusinessStore((state) => state.preparedSubjectRepresentations);
   const capabilities = useCouncilBusinessStore((state) => state.capabilitiesById[businessId]);
+  const sortedSubjects = useMemo(
+    () =>
+      subjects
+        .filter((subject) => subject.councilBusinessId === businessId)
+        .slice()
+        .sort((left, right) => right.createdAt.localeCompare(left.createdAt) || right.id.localeCompare(left.id)),
+    [businessId, subjects],
+  );
+
+  const options = (["councilDecisionProposal", "openQuestion"] as const).map((kind) => ({
+    id: kind,
+    label: t(agendaSubjectPresentation[kind].label),
+    icon: agendaSubjectPresentation[kind].icon,
+    create: async (name: string) =>
+      Boolean(
+        await useCouncilBusinessStore.getState().createPreparedSubject(businessId, { kind, name, content: "" }),
+      ),
+  }));
+
   return (
-    <div className="business-content-sections">
-      {(["councilDecisionProposal", "openQuestion"] as const).map((kind) => (
-        <SubjectSection
-          key={kind}
-          kind={kind}
-          businessId={businessId}
-          subjects={subjects.filter((subject) => subject.councilBusinessId === businessId && subject.kind === kind)}
-          capabilities={capabilities}
-          revision={revision}
-          scheduling={scheduling}
-          expandedSubjectId={expandedSubjectId}
-          onExpand={(id) => setExpandedSubjectId((current) => (current === id ? null : id))}
-          onSchedule={(subject, meetingIds) => setScheduledSubject({ ...subject, meetingIds })}
-        />
-      ))}
-      <Modal
-        open={scheduledSubject !== null}
-        title={scheduledSubject?.title ?? t("meeting.addToAgenda")}
-        testId="business-schedule-dialog"
-        onClose={() => setScheduledSubject(null)}
-      >
-        {scheduledSubject ? (
-          <CouncilBusinessSchedule
-            businessId={businessId}
-            subjectId={scheduledSubject.id}
-            meetingIds={scheduledSubject.meetingIds}
-            onScheduled={() => {
-              setScheduledSubject(null);
-              setRevision((value) => value + 1);
-            }}
-          />
-        ) : null}
-      </Modal>
-    </div>
+    <WorkspaceCreateMenu
+      compact
+      testId="business-create-subject"
+      canCreate={() => false}
+      onCreate={async () => false}
+      extraOptions={capabilities?.createPreparedSubject ? options : []}
+      getError={() => useCouncilBusinessStore.getState().error}
+      clearError={() => useCouncilBusinessStore.setState({ error: null })}
+      render={(trigger) => (
+        <section className="business-subject-table-section" data-testid="business-subject-table">
+          <header className="business-content-section-header">
+            <h2>{t("workspace.preparedItems")}</h2>
+            <span className="business-content-section-actions">{trigger}</span>
+          </header>
+          <table className="business-subject-table">
+            <colgroup>
+              <col className="business-subject-table-type-column" />
+              <col />
+              <col className="business-subject-table-actions-column" />
+            </colgroup>
+            <tbody>
+              {sortedSubjects.map((subject) => (
+                <SubjectTableRow
+                  key={subject.id}
+                  subject={subject}
+                  expanded={expandedSubjectIds.has(subject.id)}
+                  representation={subjectRepresentations[`${subject.kind}:${subject.id}`]}
+                  onExpand={() =>
+                    setExpandedSubjectIds((current) => {
+                      const next = new Set(current);
+                      if (next.has(subject.id)) next.delete(subject.id);
+                      else next.add(subject.id);
+                      return next;
+                    })
+                  }
+                />
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+    />
   );
 }

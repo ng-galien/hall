@@ -3,6 +3,7 @@ import {
   type CreatePreparedCouncilSubject,
   findSirenAction,
   type PreparedCouncilSubject,
+  type SirenEmbeddedEntity,
   type SirenEntity,
 } from "@hall/api-contract";
 import { create } from "zustand";
@@ -16,9 +17,9 @@ import {
   listCouncilBusinesses,
   listCouncilBusinessResourceItems,
   listPreparedCouncilSubjects,
+  openPreparedCouncilSubject,
   openCouncilBusiness,
   reorderCouncilBusinessResources,
-  scheduleCouncilBusinessSubject,
 } from "../services/councilBusinessApi";
 import { useWorkspaceResourcesStore } from "./workspaceResourcesStore";
 
@@ -32,14 +33,14 @@ interface CouncilBusinessCapabilities {
   associateResource: boolean;
   dissociateResource: boolean;
   reorderResources: boolean;
-  scheduleDecisionProposal: boolean;
-  scheduleOpenQuestion: boolean;
 }
 
 interface CouncilBusinessStoreState {
   representationsById: Record<string, SirenEntity>;
   preparedSubjects: PreparedCouncilSubject[];
-  loadPreparedSubjects(): Promise<void>;
+  preparedSubjectRepresentations: Record<string, SirenEntity>;
+  loadPreparedSubjects(businessId?: string): Promise<void>;
+  refreshPreparedSubject(subject: PreparedCouncilSubject): Promise<void>;
   createPreparedSubject(id: string, input: CreatePreparedCouncilSubject): Promise<PreparedCouncilSubject | null>;
   businesses: CouncilBusinessView[];
   loading: boolean;
@@ -53,12 +54,6 @@ interface CouncilBusinessStoreState {
   associateResource(id: string, resourceId: string): Promise<boolean>;
   dissociateResource(id: string, resourceId: string): Promise<boolean>;
   reorderResources(id: string, resourceIds: string[]): Promise<boolean>;
-  schedule(
-    id: string,
-    kind: "councilDecisionProposal" | "openQuestion",
-    councilMeetingId: string,
-    position: number,
-  ): Promise<boolean>;
   create(input: CreateCouncilBusiness): Promise<CouncilBusinessView | null>;
 }
 
@@ -74,8 +69,6 @@ function capabilities(representation: SirenEntity | null): CouncilBusinessCapabi
       associateResource: false,
       dissociateResource: false,
       reorderResources: false,
-      scheduleDecisionProposal: false,
-      scheduleOpenQuestion: false,
     };
   }
   return {
@@ -88,8 +81,6 @@ function capabilities(representation: SirenEntity | null): CouncilBusinessCapabi
     associateResource: Boolean(findSirenAction(representation, "council-business.associate-resource")),
     dissociateResource: Boolean(findSirenAction(representation, "council-business.dissociate-resource")),
     reorderResources: Boolean(findSirenAction(representation, "council-business.reorder-resources")),
-    scheduleDecisionProposal: Boolean(findSirenAction(representation, "council-business.schedule-decision-proposal")),
-    scheduleOpenQuestion: Boolean(findSirenAction(representation, "council-business.schedule-open-question")),
   };
 }
 
@@ -127,18 +118,44 @@ async function hydrateCouncilBusiness(id: string): Promise<{
 export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, get) => ({
   representationsById: {},
   preparedSubjects: [],
-  async loadPreparedSubjects() {
+  preparedSubjectRepresentations: {},
+  async loadPreparedSubjects(businessId) {
     try {
-      set({ preparedSubjects: await listPreparedCouncilSubjects() });
+      const result = await listPreparedCouncilSubjects(undefined, businessId);
+      const preparedSubjects = result.data;
+      const representations = Object.fromEntries(
+        (result.representation?.entities ?? [])
+          .filter((entity): entity is SirenEmbeddedEntity => "properties" in entity)
+          .map((entity) => {
+            const subject = entity.properties as PreparedCouncilSubject;
+            return [`${subject.kind}:${subject.id}`, entity];
+          }),
+      );
+      set((state) => ({
+        preparedSubjects: businessId
+          ? [...state.preparedSubjects.filter((subject) => subject.councilBusinessId !== businessId), ...preparedSubjects]
+          : preparedSubjects,
+        preparedSubjectRepresentations: businessId
+          ? { ...state.preparedSubjectRepresentations, ...representations }
+          : representations,
+      }));
     } catch (error) {
       set({ error: apiErrorCode(error) });
     }
+  },
+  async refreshPreparedSubject(subject) {
+    const result = await openPreparedCouncilSubject(subject.kind, subject.id);
+    if (!result.representation) throw new Error("Prepared subject representation is unavailable");
+    set((state) => ({
+      preparedSubjects: state.preparedSubjects.map((candidate) => candidate.id === subject.id && candidate.kind === subject.kind ? result.data : candidate),
+      preparedSubjectRepresentations: { ...state.preparedSubjectRepresentations, [`${subject.kind}:${subject.id}`]: result.representation as SirenEntity },
+    }));
   },
   async createPreparedSubject(id, input) {
     set({ error: null });
     try {
       const subject = await createPreparedCouncilSubject(id, input);
-      await get().loadPreparedSubjects();
+      await get().loadPreparedSubjects(id);
       return subject;
     } catch (error) {
       set({ error: apiErrorCode(error) });
@@ -239,16 +256,6 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
     try {
       await reorderCouncilBusinessResources(id, { resourceIds });
       return await get().loadResources(id);
-    } catch (error) {
-      set({ error: apiErrorCode(error) });
-      return false;
-    }
-  },
-  async schedule(id, kind, councilMeetingId, position) {
-    set({ error: null });
-    try {
-      await scheduleCouncilBusinessSubject(id, kind, { councilMeetingId, position });
-      return true;
     } catch (error) {
       set({ error: apiErrorCode(error) });
       return false;

@@ -40,8 +40,8 @@ CREATE TEMP TABLE opening AS SELECT payload FROM council_meeting_snapshot WHERE 
 SELECT throws_ok(
   $$UPDATE text_resource SET content='Revised proposal' WHERE id IN (SELECT text_resource FROM council_decision_proposal_workspace)$$,
   'HV823',
-  'an agenda subject text is immutable after its meeting starts',
-  'the proposal source cannot change after meeting start'
+  'an agenda subject text is immutable during meeting conduct or after its agenda item starts',
+  'a prepared proposal source is temporarily locked while the meeting is open'
 );
 SELECT lives_ok(
   $$UPDATE text_resource SET content='Changed after opening'
@@ -109,14 +109,14 @@ SELECT is((SELECT payload #>> '{ballots,0,result}' FROM council_meeting_snapshot
 SELECT is((SELECT payload #>> '{votes,0,choice}' FROM council_meeting_snapshot WHERE phase='closing'), 'approve',
  'closing retains the recorded vote');
 SELECT ok((SELECT payload::text LIKE '%Opening proposal%' FROM opening), 'opening owns the proposal text');
-SELECT ok((SELECT payload::text LIKE '%Opening proposal%' FROM council_meeting_snapshot WHERE phase='closing'), 'closing retains the proposal source locked at opening');
+SELECT ok((SELECT payload::text LIKE '%Opening proposal%' FROM council_meeting_snapshot WHERE phase='closing'), 'closing retains the proposal source frozen during conduct');
 SELECT throws_ok(
   $$UPDATE text_resource SET content='Later working text' WHERE id IN (SELECT text_resource FROM council_decision_proposal_workspace)$$,
   'HV821',
   'a voted proposal text is immutable',
   'the proposal source remains immutable after meeting closure'
 );
-SELECT is((SELECT hall_api.open_council_agenda_item(finished) #>> '{subject,content}' FROM items), 'Opening proposal', 'closed proposal reads its locked source version');
+SELECT is((SELECT hall_api.open_council_agenda_item(finished) #>> '{subject,content}' FROM items), 'Opening proposal', 'closed proposal reads the source version locked during conduct');
 SELECT is((SELECT jsonb_array_length(hall_api.list_council_agenda(meeting)) FROM scenario), 5, 'closed agenda retains all original programmed occurrences after carry forward');
 SELECT * FROM finish();
 ROLLBACK;

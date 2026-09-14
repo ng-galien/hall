@@ -50,7 +50,8 @@ export function createCouncilBusinessRouter({ councilBusinessWorkspaceService, c
 
   router.get("/prepared-subjects", requirePermission("workspace.read"), async (request, response) => {
     const meetingId = z.string().uuid().optional().parse(request.query.councilMeetingId);
-    response.json(await councilClient.listPreparedSubjects(meetingId));
+    const businessId = z.string().uuid().optional().parse(request.query.councilBusinessId);
+    response.json(await councilClient.listPreparedSubjects(meetingId, businessId));
   });
   router.get("/prepared-subjects/:kind/:id", requirePermission("workspace.read"), async (request, response) => {
     const kind = preparedCouncilSubjectKindSchema.parse(request.params.kind);

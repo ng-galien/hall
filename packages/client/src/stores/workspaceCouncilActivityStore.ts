@@ -17,6 +17,8 @@ interface WorkspaceCouncilActivityState {
   loading: boolean;
   error: ApiErrorCode | null;
   load(): Promise<void>;
+  upsertOccurrence(businessId: string, agendaItem: AgendaItem): void;
+  removeOccurrence(businessId: string, agendaItemId: string): void;
 }
 
 let pendingLoad: Promise<void> | null = null;
@@ -35,6 +37,27 @@ export const useWorkspaceCouncilActivityStore = create<WorkspaceCouncilActivityS
   occurrencesByBusinessId: {},
   loading: false,
   error: null,
+  upsertOccurrence(businessId, agendaItem) {
+    const meeting = useCouncilMeetingsStore.getState().meetings.find(({ id }) => id === agendaItem.councilMeetingId);
+    if (!meeting) return;
+    set((state) => ({
+      occurrencesByBusinessId: {
+        ...state.occurrencesByBusinessId,
+        [businessId]: [
+          ...(state.occurrencesByBusinessId[businessId] ?? []).filter(({ agendaItem: current }) => current.id !== agendaItem.id),
+          { agendaItem, meeting },
+        ],
+      },
+    }));
+  },
+  removeOccurrence(businessId, agendaItemId) {
+    set((state) => ({
+      occurrencesByBusinessId: {
+        ...state.occurrencesByBusinessId,
+        [businessId]: (state.occurrencesByBusinessId[businessId] ?? []).filter(({ agendaItem }) => agendaItem.id !== agendaItemId),
+      },
+    }));
+  },
   async load() {
     if (pendingLoad) return pendingLoad;
     pendingLoad = (async () => {

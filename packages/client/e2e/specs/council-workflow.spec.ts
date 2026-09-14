@@ -296,7 +296,14 @@ test("mobile French recusals preserve explicit qualification and show a real ref
     startedAt: string | null;
     closedAt: string | null;
   }>(await page.request.get("/api/council-meetings"));
-  const meeting = meetings.find((entry) => entry.scheduledAt && !entry.startedAt && !entry.closedAt)!;
+  const meeting = meetings.find((entry) => !entry.startedAt && !entry.closedAt)!;
+  if (!meeting.scheduledAt) {
+    await sirenProperties(
+      await page.request.put(`/api/council-meetings/${meeting.id}/schedule`, {
+        data: { scheduledAt: new Date(Date.now() - 60_000).toISOString(), location: "E2E recusals room" },
+      }),
+    );
+  }
   const members = await sirenItems<{ id: string }>(await page.request.get("/api/council-members"));
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
   const item = await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
@@ -674,16 +681,14 @@ test("conducts public and secret ballots and provisions the previous minutes app
 
   const meetings = await sirenItems<{
     id: string;
-    slug: string;
+    slug: string | null;
     number: number;
     scheduledAt: string | null;
     startedAt: string | null;
     closedAt: string | null;
     previousCouncilMeetingId: string | null;
   }>(await page.request.get("/api/council-meetings"));
-  const meeting = meetings.find(
-    (candidate) => candidate.scheduledAt && !candidate.startedAt && !candidate.closedAt && candidate.slug,
-  );
+  const meeting = meetings.find((candidate) => !candidate.startedAt && !candidate.closedAt);
   expect(meeting).toBeTruthy();
   const scheduled = await sirenProperties<{ slug: string }>(
     await page.request.put(`/api/council-meetings/${meeting!.id}/schedule`, {

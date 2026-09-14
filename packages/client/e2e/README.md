@@ -1,6 +1,11 @@
 # Editor acceptance tests
 
-The maintained Playwright baseline covers the Editor Lab against the real React application, HTTP server, and SQLite repositories. The runner creates a new temporary database and document directory for every invocation, sets a dedicated API token, allocates two free loopback ports, and removes the temporary data when Playwright exits. It never opens an interactive browser profile or uses the development database.
+The maintained Playwright baseline covers the real React application, HTTP
+server, and PostgreSQL repositories. The runner reuses the shared test database
+container, creates a temporary document directory for every invocation,
+allocates two free loopback ports, and clears the test data when Playwright
+exits. It never opens an interactive browser profile or uses the development
+database.
 
 Install the Chromium runtime once after installing dependencies:
 
@@ -14,10 +19,10 @@ Run the browser suite from the repository root:
 npm run test:e2e
 ```
 
-The runner starts an isolated `postgres-test` container, gives the E2E server a
-PostgreSQL connection, seeds it only through the public HTTP API, and removes
-that test container when Playwright exits. It never stops or replaces the
-shared `hall-dev` runtime.
+The runner reuses the persistent `postgres-test` container, gives the E2E server
+a PostgreSQL connection, and seeds it only through the public HTTP API. The
+schema is initialized once for the Playwright run, then the data is cleared when
+Playwright exits. It never stops or replaces the shared `hall-dev` runtime.
 
 Run the complete static, unit, integration, build, and browser checks:
 

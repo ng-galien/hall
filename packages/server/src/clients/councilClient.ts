@@ -72,7 +72,7 @@ export interface CouncilClient {
     assetId?: string | null,
   ): Promise<{ content: Buffer; mediaType: string } | null>;
 
-  listPreparedSubjects(meetingId?: string | null): Promise<PreparedCouncilSubject[]>;
+  listPreparedSubjects(meetingId?: string | null, businessId?: string | null): Promise<PreparedCouncilSubject[]>;
   openPreparedSubject(id: string, kind: PreparedCouncilSubject["kind"]): Promise<PreparedCouncilSubject | null>;
   createPreparedSubject(businessId: string, input: CreatePreparedCouncilSubject): Promise<PreparedCouncilSubject>;
   schedulePreparedSubject(meetingId: string, input: SchedulePreparedCouncilSubject): Promise<AgendaItem>;

@@ -42,6 +42,8 @@ export function InlineRenameField({
   testId,
   commitUnchanged = false,
   commitOnBlur = true,
+  invalid = false,
+  onDraftChange,
   children,
 }: {
   value: string;
@@ -53,6 +55,8 @@ export function InlineRenameField({
   testId: string;
   commitUnchanged?: boolean;
   commitOnBlur?: boolean;
+  invalid?: boolean;
+  onDraftChange?(): void;
   children: ReactNode;
 }) {
   const [draft, setDraft] = useState(value);
@@ -101,8 +105,12 @@ export function InlineRenameField({
       data-testid={testId}
       value={draft}
       aria-label={label}
+      aria-invalid={invalid || undefined}
       disabled={saving}
-      onChange={(event) => setDraft(event.currentTarget.value)}
+      onChange={(event) => {
+        setDraft(event.currentTarget.value);
+        onDraftChange?.();
+      }}
       onFocus={(event) => event.currentTarget.select()}
       onBlur={() => {
         if (commitOnBlur) void commit("blur");

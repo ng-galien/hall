@@ -423,13 +423,13 @@ export class PostgresCouncil {
     );
   }
 
-  listPreparedSubjects(request: PostgresCouncilRequest, meetingId: string | null = null) {
+  listPreparedSubjects(request: PostgresCouncilRequest, meetingId: string | null = null, businessId: string | null = null) {
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "council-business.list-prepared-subjects") },
       (client) =>
         callJson(client, {
-          text: "SELECT hall_api.list_prepared_council_subjects($1::uuid) AS payload",
-          values: [resourceIdSchema.nullable().parse(meetingId)],
+          text: "SELECT hall_api.list_prepared_council_subjects($1::uuid,$2::uuid) AS payload",
+          values: [resourceIdSchema.nullable().parse(meetingId), resourceIdSchema.nullable().parse(businessId)],
           schema: z.array(preparedCouncilSubjectSchema),
         }),
     );

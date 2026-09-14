@@ -14,8 +14,6 @@ import {
   dissociateCouncilBusinessResourceSchema,
   type ReorderCouncilBusinessResources,
   reorderCouncilBusinessResourcesSchema,
-  type ScheduleCouncilBusinessSubject,
-  scheduleCouncilBusinessSubjectSchema,
   preparedCouncilSubjectSchema,
   createPreparedCouncilSubjectSchema,
   type CreatePreparedCouncilSubject,
@@ -24,11 +22,17 @@ import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
 const councilBusinessPath = (id: string) => `/council-business/${encodeURIComponent(id)}`;
 
-export async function listPreparedCouncilSubjects(councilMeetingId?: string) {
-  const params = new URLSearchParams(councilMeetingId ? { councilMeetingId } : {});
-  return preparedCouncilSubjectSchema.array().parse(
-    await apiRequest<unknown>(`/council-business/prepared-subjects?${params.toString()}`),
-  );
+export async function listPreparedCouncilSubjects(councilMeetingId?: string, councilBusinessId?: string) {
+  const params = new URLSearchParams();
+  if (councilMeetingId) params.set("councilMeetingId", councilMeetingId);
+  if (councilBusinessId) params.set("councilBusinessId", councilBusinessId);
+  const result = await apiSirenRequest<unknown>(`/council-business/prepared-subjects?${params.toString()}`);
+  return { ...result, data: preparedCouncilSubjectSchema.array().parse(result.data) };
+}
+
+export async function openPreparedCouncilSubject(kind: "councilDecisionProposal" | "openQuestion", id: string) {
+  const result = await apiSirenRequest<unknown>(`/council-business/prepared-subjects/${kind}/${id}`);
+  return { ...result, data: preparedCouncilSubjectSchema.parse(result.data) };
 }
 
 export async function createPreparedCouncilSubject(businessId: string, input: CreatePreparedCouncilSubject) {
@@ -99,23 +103,6 @@ export async function listCouncilBusinessAgendaItems(ids: readonly string[]): Pr
   return agendaItemSchema
     .array()
     .parse(await apiRequest<unknown>(`/council-business/agenda-items?${params.toString()}`));
-}
-
-export async function scheduleCouncilBusinessSubject(
-  id: string,
-  kind: "councilDecisionProposal" | "openQuestion",
-  input: ScheduleCouncilBusinessSubject,
-) {
-  const action =
-    kind === "councilDecisionProposal"
-      ? "council-business.schedule-decision-proposal"
-      : "council-business.schedule-open-question";
-  const result = await submitSirenActionAt<unknown>(
-    councilBusinessPath(id),
-    action,
-    scheduleCouncilBusinessSubjectSchema.parse(input),
-  );
-  return agendaItemSchema.parse(result.data);
 }
 
 export async function createCouncilBusiness(input: CreateCouncilBusiness) {

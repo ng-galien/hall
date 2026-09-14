@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { Pool } from "pg";
 import { expect, it } from "vitest";
 import { startHttpServer } from "../src/server.js";
+import { resetPostgresTestDatabase } from "../src/__tests__/support/postgresTestDatabase.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const postgresTest = databaseUrl ? it : it.skip;
@@ -13,9 +14,7 @@ postgresTest.each(["preparation", "default", "minutes"])(
   "seed %s keeps durable businesses, shared evidence and meeting histories",
   async (scenario) => {
     const pool = new Pool({ connectionString: databaseUrl });
-    await pool.query(
-      "DROP SCHEMA IF EXISTS hall_api CASCADE; DROP SCHEMA IF EXISTS hall CASCADE; DROP SCHEMA IF EXISTS hall_meta CASCADE; DROP SCHEMA public CASCADE; CREATE SCHEMA public",
-    );
+    await resetPostgresTestDatabase(pool);
     const server = await startHttpServer({
       host: "127.0.0.1",
       port: 0,

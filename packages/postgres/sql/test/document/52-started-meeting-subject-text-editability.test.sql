@@ -4,7 +4,8 @@ SET LOCAL hall.roles = '["administrator"]';
 \ir ../../council/test/support/helpers.sql
 SELECT no_plan();
 
--- @verifies-requirement HALL-FR-WSP-280 MEETING_START_LOCKS_AGENDA_SUBJECT_TEXTS:
+-- @verifies-requirement HALL-FR-WSP-280 MEETING_CONDUCT_LOCKS_AGENDA_SUBJECT_TEXTS:
+-- @verifies-requirement HALL-FR-AGI-310 COMPLETED_AGENDA_ITEM_REMAINS_PROGRAMMED:
 CREATE TEMP TABLE source_editability_scenario AS
 SELECT
   (hall.provision_initial_council_meeting()).id AS meeting,
@@ -16,44 +17,26 @@ FROM source_editability_scenario;
 CREATE TEMP TABLE source_editability_items AS
 SELECT
   schedule_council_decision_proposal(business, meeting, 1) AS decision_item,
-  schedule_open_question(business, meeting, 2) AS open_item
+  schedule_open_question(business, meeting, 2) AS open_item,
+  schedule_open_question(business, meeting, 3) AS carried_item
 FROM source_editability_scenario;
 
 CREATE TEMP TABLE source_editability_resources(kind TEXT PRIMARY KEY, id UUID NOT NULL);
 INSERT INTO source_editability_resources
 SELECT 'decision', workspace.text_resource
 FROM council_decision_proposal_workspace AS workspace
-JOIN council_agenda_item AS item
-  ON item.council_decision_proposal = workspace.council_decision_proposal
+JOIN council_agenda_item AS item ON item.council_decision_proposal = workspace.council_decision_proposal
 JOIN source_editability_items AS items ON items.decision_item = item.id
 UNION ALL
 SELECT 'open', workspace.text_resource
 FROM open_question_workspace AS workspace
 JOIN council_agenda_item AS item ON item.open_question = workspace.open_question
-JOIN source_editability_items AS items ON items.open_item = item.id;
-
-CREATE TEMP TABLE source_editability_workspace_resources(kind TEXT PRIMARY KEY, id UUID NOT NULL);
-INSERT INTO source_editability_workspace_resources
-SELECT 'folder', workspace.folder_resource
-FROM council_business_workspace AS workspace
-JOIN source_editability_scenario AS scenario ON scenario.business = workspace.council_business
+JOIN source_editability_items AS items ON items.open_item = item.id
 UNION ALL
-SELECT 'report', workspace.report_resource
-FROM council_business_workspace AS workspace
-JOIN source_editability_scenario AS scenario ON scenario.business = workspace.council_business;
-
-CREATE TEMP TABLE source_editability_original_subjects AS
-SELECT source.kind, source.id, resource.name, text.content
-FROM source_editability_resources AS source
-JOIN resource ON resource.id = source.id
-JOIN text_resource AS text ON text.id = source.id;
-
-SELECT ok(
-  jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))) > 0,
-  kind || ' source exposes its mutation actions before meeting start'
-)
-FROM source_editability_resources
-ORDER BY kind;
+SELECT 'carried', workspace.text_resource
+FROM open_question_workspace AS workspace
+JOIN council_agenda_item AS item ON item.open_question = workspace.open_question
+JOIN source_editability_items AS items ON items.carried_item = item.id;
 
 SELECT hall_api.create_folder('', 'archive');
 
@@ -70,257 +53,240 @@ SELECT test_prepare_notice(meeting) FROM source_editability_scenario;
 SELECT start_council_meeting(meeting, '2026-01-01 09:00Z') FROM source_editability_scenario;
 
 SELECT is(
-  jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))),
-  0,
-  kind || ' source exposes no mutation action after meeting start'
+  hall.prepared_council_subject_projection(item.open_question, 'openQuestion')->'agenda'->'meeting'->>'startedAt',
+  '2026-01-01T09:00:00+00:00',
+  'the prepared-subject projection exposes that its meeting has started'
 )
-FROM source_editability_resources
-ORDER BY kind;
+FROM council_agenda_item AS item
+JOIN source_editability_items AS items ON items.open_item = item.id;
 
 SELECT ok(
-  jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))) > 0,
-  kind || ' keeps its own mutation actions after meeting start'
+  jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))) = 0,
+  kind || ' source exposes no mutation actions while its prepared meeting is open'
 )
-FROM source_editability_workspace_resources
+FROM source_editability_resources
 ORDER BY kind;
 
 SELECT throws_ok(
   format(
     'SELECT hall_api.update_text_resource(%L::uuid, (SELECT version FROM hall.text_resource WHERE id = %L::uuid), %L, ARRAY[]::uuid[])',
-    id,
-    id,
-    'late change'
+    id, id, 'updated after meeting opening'
   ),
   'HV823',
-  'an agenda subject text is immutable after its meeting starts',
-  kind || ' source rejects content writes after meeting start'
+  'an agenda subject text is immutable during meeting conduct or after its agenda item starts',
+  kind || ' source rejects content changes while its prepared meeting is open'
 )
 FROM source_editability_resources
 ORDER BY kind;
 
-SELECT lives_ok(
-  format(
-    'SELECT hall_api.move_resource(%L::uuid, %L)',
-    (SELECT id FROM source_editability_workspace_resources WHERE kind = 'folder'),
-    'archive'
-  ),
-  'the business folder remains movable after meeting start'
+SELECT hall_api.move_resource(
+  (SELECT folder_resource FROM council_business_workspace JOIN source_editability_scenario ON council_business = business),
+  'archive'
 );
+
+SELECT start_council_agenda_item(decision_item, '2026-01-01 09:01Z')
+FROM source_editability_items;
 
 SELECT is(
-  resource.path,
-  (SELECT folder.full_path
-   FROM source_editability_workspace_resources AS source
-   JOIN resource AS folder ON folder.id = source.id
-   WHERE source.kind = 'folder'),
-  source.kind || ' path follows the business folder without changing the subject'
+  jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))),
+  0,
+  'a decision source exposes no mutation actions once its agenda item starts'
 )
-FROM source_editability_resources AS source
-JOIN resource ON resource.id = source.id
-ORDER BY source.kind;
+FROM source_editability_resources
+WHERE kind = 'decision';
 
-SELECT is(resource.name, original.name, source.kind || ' title survives the business folder move')
-FROM source_editability_resources AS source
-JOIN source_editability_original_subjects AS original USING (kind, id)
-JOIN resource ON resource.id = source.id
-ORDER BY source.kind;
+SELECT throws_ok(
+  format('SELECT hall_api.rename_resource(%L::uuid, %L)', id, 'locked-decision'),
+  'HV823',
+  'an agenda subject text is immutable during meeting conduct or after its agenda item starts',
+  'a started decision source cannot be renamed'
+)
+FROM source_editability_resources
+WHERE kind = 'decision';
 
-SELECT is(text.content, original.content, source.kind || ' content survives the business folder move')
-FROM source_editability_resources AS source
-JOIN source_editability_original_subjects AS original USING (kind, id)
-JOIN text_resource AS text ON text.id = source.id
-ORDER BY source.kind;
-
-SELECT lives_ok(
+SELECT throws_ok(
   format(
     'SELECT hall_api.update_text_resource(%L::uuid, (SELECT version FROM hall.text_resource WHERE id = %L::uuid), %L, ARRAY[]::uuid[])',
-    id,
-    id,
-    'Updated report after opening'
-  ),
-  'the business report remains editable after meeting start'
-)
-FROM source_editability_workspace_resources
-WHERE kind = 'report';
-
-SELECT throws_ok(
-  format(
-    'SELECT hall_api.rename_resource(%L::uuid, %L)',
-    id,
-    kind || '-renamed-after-opening'
+    id, id, 'forbidden decision update'
   ),
   'HV823',
-  'an agenda subject text is immutable after its meeting starts',
-  kind || ' source rejects renaming after meeting start'
+  'an agenda subject text is immutable during meeting conduct or after its agenda item starts',
+  'a started decision source rejects content changes'
 )
 FROM source_editability_resources
-ORDER BY kind;
+WHERE kind = 'decision';
 
 SELECT throws_ok(
-  format('DELETE FROM hall.resource WHERE id = %L::uuid', id),
-  'HV823',
-  'an agenda subject text is immutable after its meeting starts',
-  kind || ' source rejects deletion after meeting start'
-)
-FROM source_editability_resources
-WHERE kind = 'open'
-ORDER BY kind;
-
-SELECT throws_ok(
-  format(
-    'DELETE FROM hall.resource WHERE id = %L::uuid',
-    (SELECT id FROM source_editability_resources WHERE kind = 'decision')
-  ),
-  'HV820',
-  'a proposal text cannot be deleted or replaced',
-  'the proposal source keeps its stronger permanent deletion guard'
+  $$UPDATE hall.agenda_subject_text_lock SET locked_at = clock_timestamp()
+    WHERE resource = (SELECT id FROM source_editability_resources WHERE kind = 'decision')$$,
+  'HV823', 'an agenda subject text lock is immutable', 'a recorded source lock cannot be rewritten'
 );
+
+SELECT adjourn_council_agenda_item(decision_item, '2026-01-01 09:02Z')
+FROM source_editability_items;
+SELECT start_council_agenda_item(open_item, '2026-01-01 09:03Z')
+FROM source_editability_items;
+
+SELECT is(
+  jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))),
+  0,
+  'an open-question source exposes no mutation actions once its agenda item starts'
+)
+FROM source_editability_resources
+WHERE kind = 'open';
 
 SELECT throws_ok(
   $$UPDATE hall.open_question_workspace
     SET text_resource = (SELECT id FROM source_editability_attachment)
     WHERE text_resource = (SELECT id FROM source_editability_resources WHERE kind = 'open')$$,
   'HV823',
-  'an agenda subject text is immutable after its meeting starts',
-  'the started open question source cannot be retargeted'
+  'an agenda subject text is immutable during meeting conduct or after its agenda item starts',
+  'a started open-question source cannot be retargeted'
 );
 
-SELECT throws_ok(
-  $$DELETE FROM hall.open_question_workspace
-    WHERE text_resource = (SELECT id FROM source_editability_resources WHERE kind = 'open')$$,
-  'HV823',
-  'an agenda subject text is immutable after its meeting starts',
-  'the started open question workspace mapping cannot be deleted'
-);
-
-SELECT throws_ok(
-  $$UPDATE hall.agenda_subject_text_lock
-    SET locked_at = clock_timestamp()
-    WHERE resource = (SELECT id FROM source_editability_resources WHERE kind = 'open')$$,
-  'HV823',
-  'an agenda subject text lock is immutable',
-  'a recorded source lock cannot be rewritten'
-);
-
-SELECT throws_ok(
-  $$DELETE FROM hall.agenda_subject_text_lock
-    WHERE resource = (SELECT id FROM source_editability_resources WHERE kind = 'open')$$,
-  'HV823',
-  'an agenda subject text lock is immutable',
-  'a recorded source lock cannot be deleted'
-);
+SELECT complete_non_voting_agenda_item(open_item, '2026-01-01 09:04Z')
+FROM source_editability_items;
 
 CREATE TEMP TABLE source_editability_successor AS
 SELECT close_council_meeting(meeting, '2026-01-01 10:00Z') AS meeting
 FROM source_editability_scenario;
 
-SELECT is(
-  jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))),
-  0,
-  kind || ' source remains read-only after an unexamined point is carried forward'
-)
-FROM source_editability_resources
-ORDER BY kind;
-
 SELECT ok(
-  jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))) > 0,
-  kind || ' remains mutable after carry-forward'
+  hall.prepared_council_subject_projection(item.open_question, 'openQuestion') #>> '{agenda,state}' = 'examined'
+    AND hall.prepared_council_subject_projection(item.open_question, 'openQuestion') -> 'scheduleTarget' = 'null'::JSONB,
+  'a completed prepared question remains examined and cannot target the next meeting'
 )
-FROM source_editability_workspace_resources
-ORDER BY kind;
+FROM council_agenda_item AS item
+JOIN source_editability_items AS items ON items.open_item = item.id;
 
 SELECT throws_ok(
   format(
-    'SELECT hall_api.rename_resource(%L::uuid, %L)',
-    id,
-    kind || '-renamed-after-carry-forward'
+    'SELECT hall_api.schedule_prepared_council_subject(%L::uuid, %L::uuid, %L, 1)',
+    successor.meeting,
+    item.open_question,
+    'openQuestion'
   ),
-  'HV823',
-  'an agenda subject text is immutable after its meeting starts',
-  kind || ' source remains impossible to rename after carry-forward'
+  'HV810',
+  'an examined prepared subject cannot be inscribed again',
+  'the database refuses to inscribe a completed prepared question in the next meeting'
 )
-FROM source_editability_resources
-ORDER BY kind;
+FROM source_editability_successor AS successor
+CROSS JOIN source_editability_items AS items
+JOIN council_agenda_item AS item ON item.id = items.open_item;
 
 SELECT ok(
   jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))) > 0,
-  'an attached working resource keeps its own mutation actions'
+  'an unstarted carried question remains editable after closure'
 )
-FROM source_editability_attachment;
+FROM source_editability_resources
+WHERE kind = 'carried';
 
 SELECT lives_ok(
-  format(
-    'SELECT hall_api.update_text_resource(%L::uuid, (SELECT version FROM hall.text_resource WHERE id = %L::uuid), %L, ARRAY[]::uuid[])',
-    id,
-    id,
-    'still editable'
-  ),
+  format('SELECT hall_api.rename_resource(%L::uuid, %L)', id, 'carried-question'),
+  'an unstarted carried question can still be renamed'
+)
+FROM source_editability_resources
+WHERE kind = 'carried';
+
+SELECT ok(
+  jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))) > 0,
   'an attached working resource remains editable'
 )
 FROM source_editability_attachment;
 
--- A question introduced during an ongoing meeting is locked as soon as its
--- agenda item is inserted, rather than waiting for another lifecycle event.
-CREATE TEMP TABLE source_editability_late_meeting AS
-SELECT
-  test_uuid('source-editability:late-meeting') AS meeting,
-  create_council_business_workspace(
-    '',
-    'late-agenda-business',
-    'late-agenda-report',
-    'Initial agenda report'
-  ) AS business;
+-- A question added in an open meeting also remains editable until its own
+-- discussion starts, then receives the same durable lock.
+UPDATE council_meetings
+SET stale = TRUE
+WHERE id = (SELECT meeting FROM source_editability_successor);
 
+CREATE TEMP TABLE source_editability_late_meeting AS
+SELECT test_uuid('source-editability:late-meeting') AS meeting,
+  create_council_business_workspace('', 'late-agenda-business', 'late-agenda-report', 'Initial agenda report') AS business;
 INSERT INTO council_meetings(id, number, scheduled_at, location)
-SELECT meeting, 99, '2026-02-01 09:00Z', 'Council chamber'
-FROM source_editability_late_meeting;
-SELECT schedule_open_question(business, meeting, 1)
-FROM source_editability_late_meeting;
+SELECT meeting, 99, '2026-02-01 09:00Z', 'Council chamber' FROM source_editability_late_meeting;
+SELECT schedule_open_question(business, meeting, 1) FROM source_editability_late_meeting;
 SELECT test_ensure_council_member(test_uuid('source-editability:late-member'));
 INSERT INTO meeting_attendance(id, council_member, council_meeting, status)
-SELECT
-  test_uuid('source-editability:late-attendance'),
-  test_uuid('source-editability:late-member'),
-  meeting,
-  'present'
+SELECT test_uuid('source-editability:late-attendance'), test_uuid('source-editability:late-member'), meeting, 'present'
 FROM source_editability_late_meeting;
 SELECT test_designate_present_officers(meeting) FROM source_editability_late_meeting;
 SELECT test_prepare_notice(meeting) FROM source_editability_late_meeting;
 SELECT start_council_meeting(meeting, '2026-02-01 09:00Z') FROM source_editability_late_meeting;
 SELECT start_council_agenda_item(item.id, '2026-02-01 09:01Z')
-FROM council_agenda_item AS item
-JOIN source_editability_late_meeting AS scenario ON scenario.meeting = item.council_meeting;
+FROM council_agenda_item AS item JOIN source_editability_late_meeting AS scenario ON scenario.meeting = item.council_meeting;
 SELECT complete_non_voting_agenda_item(item.id, '2026-02-01 09:02Z')
-FROM council_agenda_item AS item
-JOIN source_editability_late_meeting AS scenario ON scenario.meeting = item.council_meeting;
+FROM council_agenda_item AS item JOIN source_editability_late_meeting AS scenario ON scenario.meeting = item.council_meeting;
 
-CREATE TEMP TABLE source_editability_late_item AS
-SELECT hall_api.add_open_question(
-  meeting,
-  '',
-  'late-open-question',
-  'Question introduced during the meeting'
-) AS item
+-- Prepared subjects remain owned by the workspace after opening. The only
+-- in-meeting addition is created from the live meeting flow below.
+CREATE TEMP TABLE source_editability_late_prepared(kind TEXT PRIMARY KEY, payload JSONB NOT NULL);
+INSERT INTO source_editability_late_prepared(kind, payload)
+SELECT 'councilDecisionProposal', hall_api.create_prepared_council_subject(
+  business,
+  'councilDecisionProposal',
+  'late-prepared-proposal',
+  'Proposal prepared before its discussion'
+)
+FROM source_editability_late_meeting
+UNION ALL
+SELECT 'openQuestion', hall_api.create_prepared_council_subject(
+  business,
+  'openQuestion',
+  'late-prepared-question',
+  'Question prepared before its discussion'
+)
 FROM source_editability_late_meeting;
 
+SELECT ok(
+  payload #>> '{agenda,state}' = 'notScheduled'
+    AND payload -> 'scheduleTarget' = 'null'::JSONB,
+  kind || ' exposes no scheduling target once the meeting is open'
+)
+FROM source_editability_late_prepared
+ORDER BY kind;
+
+SELECT throws_ok(
+  format(
+    'SELECT hall_api.schedule_prepared_council_subject(%L::uuid, %L::uuid, %L, 2)',
+    scenario.meeting,
+    prepared.payload ->> 'id',
+    prepared.kind
+  ),
+  'HV810',
+  'prepared subjects require an unstarted meeting',
+  prepared.kind || ' cannot be inscribed from the workspace once the meeting is open'
+)
+FROM source_editability_late_prepared AS prepared
+CROSS JOIN source_editability_late_meeting AS scenario
+ORDER BY prepared.kind;
+
+SELECT is(
+  (SELECT prosecdef FROM pg_proc WHERE oid = 'hall.validate_council_agenda_addition()'::regprocedure),
+  true,
+  'the deferred addition validator retains access when the API transaction commits'
+);
+
+CREATE TEMP TABLE source_editability_late_item AS
+SELECT hall_api.add_open_question(meeting, '', 'late-open-question', 'Question introduced during the meeting') AS item
+FROM source_editability_late_meeting;
 CREATE TEMP TABLE source_editability_late_resource AS
 SELECT workspace.text_resource AS id
 FROM source_editability_late_item AS added
 JOIN council_agenda_item AS item ON item.id = (added.item ->> 'id')::UUID
 JOIN open_question_workspace AS workspace ON workspace.open_question = item.open_question;
 
+SELECT ok(
+  jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))) > 0,
+  'a question introduced during the meeting remains editable before its item starts'
+)
+FROM source_editability_late_resource;
+SELECT start_council_agenda_item((item.item ->> 'id')::UUID, clock_timestamp())
+FROM source_editability_late_item AS item;
 SELECT is(
   jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))),
   0,
-  'a question introduced during the meeting exposes no mutation action'
-)
-FROM source_editability_late_resource;
-
-SELECT throws_ok(
-  format('SELECT hall_api.rename_resource(%L::uuid, %L)', id, 'renamed-late-question'),
-  'HV823',
-  'an agenda subject text is immutable after its meeting starts',
-  'a question introduced during the meeting cannot be renamed'
+  'a question introduced during the meeting becomes read-only when its item starts'
 )
 FROM source_editability_late_resource;
 

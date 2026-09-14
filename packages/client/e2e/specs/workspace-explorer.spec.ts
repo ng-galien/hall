@@ -68,34 +68,67 @@ test("keeps folder icons upright and navigates workspace rows with the keyboard"
   await expect(page.getByTestId("resource-presentation-text-edit")).toBeVisible();
 });
 
-test("schedules newly prepared proposals and open questions without reloading their business", async ({
-  appPage: page,
-}) => {
+// @verifies-requirement HALL-FR-AGI-280
+// @verifies-requirement HALL-FR-AGI-310
+// @verifies-requirement HALL-FR-AGI-380
+// @verifies-requirement HALL-FR-AGI-410
+// @verifies-requirement HALL-FR-WSP-280
+// @verifies-requirement HALL-FR-WSP-290
+test("runs agenda scheduling, meeting locks, adjournment and reopening end to end", async ({ appPage: page }) => {
+  test.setTimeout(180_000);
   const meetingsResponse = await page.request.get("/api/council-meetings");
   const meetings = (await meetingsResponse.json()).entities.map(
-    (entry: { properties: { id: string; startedAt: string | null } }) => entry.properties,
+    (entry: {
+      properties: {
+        id: string;
+        slug: string;
+        number: number;
+        scheduledAt: string | null;
+        startedAt: string | null;
+        closedAt: string | null;
+      };
+    }) => entry.properties,
   );
-  const meeting = meetings.find((entry: { startedAt: string | null }) => !entry.startedAt);
+  const meeting = meetings.find(
+    (entry: { startedAt: string | null; closedAt: string | null }) => !entry.startedAt && !entry.closedAt,
+  );
   expect(meeting).toBeTruthy();
-  let representation = await (await page.request.get(`/api/council-meetings/${meeting.id}`)).json();
-  const reopening = representation.actions.find((action: { name: string }) => action.name === "meeting.reopen-agenda");
-  if (reopening) {
-    expect((await page.request.post(reopening.href, { data: {} })).ok()).toBeTruthy();
-    representation = await (await page.request.get(`/api/council-meetings/${meeting.id}`)).json();
-  }
+  expect(meeting.scheduledAt).toBeNull();
+  const provisionedRepresentation = await (await page.request.get(`/api/council-meetings/${meeting.id}`)).json();
   expect(
-    representation.actions.some((action: { name: string }) => action.name === "agenda-item.schedule-prepared"),
+    provisionedRepresentation.actions.some(
+      (action: { name: string }) => action.name === "agenda-item.schedule-prepared",
+    ),
   ).toBe(true);
+
   const created = await page.request.post("/api/council-business", {
     data: { path: "seed", name: `Prepared subjects ${Date.now()}`, reportName: "Report", reportContent: "" },
   });
   expect(created.status()).toBe(201);
   const business = (await created.json()).properties;
   await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
-  for (const kind of ["councilDecisionProposal", "openQuestion"] as const) {
-    await page.getByTestId(`business-category-${kind}-open`).click({ button: "right" });
-    await page.getByTestId(`workspace-context-create-${kind}`).click();
-    await page.getByTestId("workspace-create-name").fill(`Prepared ${kind}`);
+  const subjectSpecs = [
+    { key: "treated", kind: "openQuestion", title: "Question examined in the meeting" },
+    { key: "carried", kind: "councilDecisionProposal", title: "Proposal carried to the next meeting" },
+    { key: "waiting", kind: "openQuestion", title: "Question waiting for the next meeting" },
+  ] as const;
+  const subjects = new Map<
+    string,
+    {
+      id: string;
+      kind: "councilDecisionProposal" | "openQuestion";
+      textResourceId: string;
+    }
+  >();
+  const resourceContent = async (resourceId: string) => {
+    const response = await page.request.get(`/api/resources/${resourceId}`);
+    expect(response.ok(), await response.text()).toBeTruthy();
+    return ((await response.json()).properties as { content: string }).content;
+  };
+  for (const spec of subjectSpecs) {
+    await page.getByTestId("business-create-subject").click();
+    await page.getByTestId(`workspace-create-${spec.kind}`).click();
+    await page.getByTestId("workspace-create-name").fill(spec.title);
     const pending = page.waitForResponse(
       (response) => response.request().method() === "POST" && response.url().includes("/prepared-subjects"),
     );
@@ -103,49 +136,241 @@ test("schedules newly prepared proposals and open questions without reloading th
     const response = await pending;
     expect(response.status()).toBe(201);
     const subject = (await response.json()).properties;
-    await page.getByTestId(`business-subject-${subject.id}-open`).click({ button: "right" });
+    subjects.set(spec.key, subject);
+    const conflictingName = `Existing ${spec.kind} ${Date.now()}`;
+    const conflictingSubject = await page.request.post(`/api/council-business/${business.id}/prepared-subjects`, {
+      data: { kind: spec.kind, name: conflictingName, content: "" },
+    });
+    expect(conflictingSubject.status()).toBe(201);
     await page.getByTestId(`business-subject-rename-${subject.id}`).click();
-    await page.getByTestId(`business-subject-rename-${subject.id}-name`).fill(`Renamed ${kind}`);
-    await page.getByTestId(`business-subject-rename-${subject.id}-submit`).click();
-    await expect(page.getByTestId(`business-subject-rename-${subject.id}-dialog`)).toBeHidden();
-    await expect(page.getByTestId(`business-subject-${subject.id}-open`)).toHaveText(`Renamed ${kind}`);
-
-    await page.getByTestId(`business-subject-${subject.id}-toggle`).click();
-    await expect(page.getByTestId(`business-inline-resource-${subject.textResourceId}`)).toBeVisible();
-    await page.getByTestId(`business-subject-${subject.id}-open`).click({ button: "right" });
-    const schedule = page.getByTestId(`business-subject-schedule-${subject.id}`);
-    await expect(schedule).toBeEnabled();
-    await schedule.click();
-    await page.getByTestId("business-meeting-select").click();
-    await page
-      .getByTestId("business-meeting-select-search-result")
-      .and(page.locator(`[data-reference-id="${meeting.id}"]`))
-      .click();
-    const scheduled = page.waitForResponse(
-      (result) => result.request().method() === "POST" && result.url().endsWith("/agenda-items/from-prepared"),
+    const renameInput = page.getByTestId(`business-subject-rename-${subject.id}-name`);
+    await expect(renameInput).toBeVisible();
+    const tableHeightBeforeConflict = await page
+      .getByTestId("business-subject-table")
+      .evaluate((element) => element.clientHeight);
+    const conflictResponse = page.waitForResponse(
+      (result) => result.request().method() === "PATCH" && result.url().endsWith("/metadata"),
     );
-    await page.getByTestId(`business-schedule-subject-${subject.id}`).click();
-    const scheduledResponse = await scheduled;
-    expect(scheduledResponse.status()).toBe(201);
-    const occurrence = (await scheduledResponse.json()).properties;
-    expect(occurrence.subject).toMatchObject({ kind, id: subject.id });
-    expect(occurrence.councilMeetingId).toBe(meeting.id);
-    await expect(page.getByTestId("business-schedule-dialog")).toBeHidden();
-    await expect(page.getByTestId(`business-subject-occurrence-${occurrence.id}`)).toBeVisible();
-    await expect(page.getByTestId(`business-subject-occurrence-${occurrence.id}-toggle`)).toHaveCount(0);
-    const candidates = await (
-      await page.request.get(`/api/council-business/prepared-subjects?councilMeetingId=${meeting.id}`)
-    ).json();
-    expect(
-      candidates.entities.some((entry: { properties: { id: string } }) => entry.properties.id === subject.id),
-    ).toBe(false);
-    if (kind === "openQuestion")
-      await expect(page.getByTestId(`business-subject-decisions-${subject.id}`)).toHaveCount(0);
-    await page.getByTestId(`business-subject-${subject.id}-open`).click({ button: "right" });
-    await expect(page.getByTestId(`business-subject-schedule-unavailable-${subject.id}`)).toBeVisible();
-    await expect(schedule).toHaveCount(0);
-    await page.keyboard.press("Escape");
+    await renameInput.fill(conflictingName);
+    await renameInput.press("Enter");
+    expect((await conflictResponse).status()).toBe(409);
+    await expect(renameInput).toHaveAttribute("aria-invalid", "true");
+    const renameError = page.getByTestId(`business-subject-${subject.id}`).getByRole("alert");
+    await expect(renameError).toBeVisible();
+    await expect(renameError).toContainText(/already has this name|porte déjà ce nom/);
+    expect(await renameError.evaluate((element) => getComputedStyle(element).position)).toBe("absolute");
+    expect(await page.getByTestId("business-subject-table").evaluate((element) => element.clientHeight)).toBe(
+      tableHeightBeforeConflict,
+    );
+    const preparedTitle = `${spec.title} renamed during preparation`;
+    await renameInput.fill(preparedTitle);
+    await expect(renameInput).not.toHaveAttribute("aria-invalid", "true");
+    await expect(renameError).toHaveCount(0);
+    await renameInput.press("Enter");
+    await expect(page.getByTestId(`business-subject-rename-${subject.id}-name`)).toBeHidden();
+    await expect(page.getByTestId(`business-subject-${subject.id}-open`)).toHaveText(preparedTitle);
+    await page.getByTestId(`business-subject-${subject.id}-open`).click();
+    const editor = page
+      .getByTestId(`business-inline-resource-${subject.textResourceId}`)
+      .getByTestId("editor-writing-area");
+    await expect(editor).toHaveAttribute("contenteditable", "true");
+    const preparedContent = `${spec.title} content edited during preparation.`;
+    await editor.fill(preparedContent);
+    await expect.poll(() => resourceContent(subject.textResourceId), { timeout: 15_000 }).toContain(preparedContent);
+    await page.getByTestId(`business-subject-${subject.id}-open`).click();
   }
+
+  const treated = subjects.get("treated")!;
+  const carried = subjects.get("carried")!;
+  const waiting = subjects.get("waiting")!;
+  const scheduleSubject = async (subject: { id: string }) => {
+    const response = page.waitForResponse(
+      (entry) => entry.request().method() === "POST" && entry.url().endsWith("/agenda-items/from-prepared"),
+    );
+    await page.getByTestId(`business-subject-schedule-${subject.id}`).click();
+    const result = await response;
+    expect(result.status(), await result.text()).toBe(201);
+    const item = (await result.json()).properties as { id: string };
+    await expect(page.getByTestId(`business-subject-unschedule-${subject.id}`)).toBeVisible();
+    return item;
+  };
+  const unscheduleSubject = async (subject: { id: string }) => {
+    const response = page.waitForResponse(
+      (entry) => entry.request().method() === "DELETE" && entry.url().includes("/agenda-items/"),
+    );
+    await page.getByTestId(`business-subject-unschedule-${subject.id}`).click();
+    const result = await response;
+    expect(result.ok(), await result.text()).toBeTruthy();
+    await expect(page.getByTestId(`business-subject-schedule-${subject.id}`)).toBeVisible();
+  };
+
+  await scheduleSubject(waiting);
+  await unscheduleSubject(waiting);
+  const carriedItem = await scheduleSubject(carried);
+  const treatedItem = await scheduleSubject(treated);
+
+  const scheduledAt = new Date(Date.now() - 60_000).toISOString();
+  const scheduledMeeting = await page.request.put(`/api/council-meetings/${meeting.id}/schedule`, {
+    data: { scheduledAt, location: "Council room" },
+  });
+  expect(scheduledMeeting.ok(), await scheduledMeeting.text()).toBeTruthy();
+
+  const freeze = await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} });
+  expect(freeze.ok(), await freeze.text()).toBeTruthy();
+  const notice = await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} });
+  expect(notice.status(), await notice.text()).toBe(201);
+
+  const members = (
+    (await (await page.request.get("/api/council-members")).json()).entities as Array<{
+      properties: { id: string; active: boolean };
+    }>
+  )
+    .map((entry) => entry.properties)
+    .filter((member) => member.active);
+  await page.goto(`/app/meetings/${meeting.id}/live`);
+  await expect(page.getByTestId("live-meeting-start")).toBeDisabled();
+  await page.getByTestId("live-attendance-all-present").click();
+  await page.getByTestId(`live-member-actions-${members[0]!.id}`).click();
+  await page.getByTestId(`live-designate-chair-${members[0]!.id}`).click();
+  await page.getByTestId(`live-member-actions-${members[1]!.id}`).click();
+  await page.getByTestId(`live-designate-secretary-${members[1]!.id}`).click();
+  await expect(page.getByTestId("live-meeting-start")).toBeEnabled();
+  const opening = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/record-opening"),
+  );
+  await page.getByTestId("live-meeting-start").click();
+  expect((await opening).ok()).toBeTruthy();
+  const openedRepresentation = await (await page.request.get(`/api/council-meetings/${meeting.id}`)).json();
+  expect(
+    openedRepresentation.actions.some((action: { name: string }) => action.name === "agenda-item.schedule-prepared"),
+  ).toBe(false);
+
+  await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  await expect(page.getByTestId(`business-subject-unschedule-${treated.id}`)).toHaveCount(0);
+  await expect(page.getByTestId(`business-subject-unschedule-${carried.id}`)).toHaveCount(0);
+  await expect(page.getByTestId(`business-subject-schedule-${waiting.id}`)).toHaveCount(0);
+  for (const subject of [treated, carried]) {
+    await expect(page.getByTestId(`business-subject-rename-${subject.id}`)).toHaveCount(0);
+    await page.getByTestId(`business-subject-${subject.id}-open`).click();
+    await expect(
+      page.getByTestId(`business-inline-resource-${subject.textResourceId}`).getByTestId("editor-writing-area"),
+    ).toHaveAttribute("contenteditable", "false");
+    await page.getByTestId(`business-subject-${subject.id}-open`).click();
+  }
+  await expect(page.getByTestId(`business-subject-rename-${waiting.id}`)).toBeVisible();
+  await page.getByTestId(`business-subject-${waiting.id}-open`).click();
+  await expect(
+    page.getByTestId(`business-inline-resource-${waiting.textResourceId}`).getByTestId("editor-writing-area"),
+  ).toHaveAttribute("contenteditable", "true");
+  await page.getByTestId(`business-subject-${waiting.id}-open`).click();
+
+  await page.goto(`/app/meetings/${meeting.id}/live`);
+  await expect(page.getByTestId("live-agenda-add")).toBeVisible();
+  await page.getByTestId("live-agenda-add").click();
+  const questionName = `Live-only question ${crypto.randomUUID()}`;
+  await page.getByTestId("live-add-question-name").fill(questionName);
+  const adding = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/open-questions"),
+  );
+  await page.getByTestId("live-add-question-submit").click();
+  const addedResponse = await adding;
+  expect(addedResponse.status()).toBe(201);
+  const added = (await addedResponse.json()).properties;
+  expect(added.subject.kind).toBe("openQuestion");
+  expect(added.councilBusinessId).not.toBe(business.id);
+  await expect(page.getByTestId(`live-agenda-item-${added.id}`)).toBeVisible();
+
+  await page.getByTestId(`live-agenda-item-${carriedItem.id}`).click();
+  await page.getByTestId("live-agenda-adjourn").click();
+  await expect(page.getByTestId("live-adjourn-dialog")).toBeVisible();
+  const adjourning = page.waitForResponse(
+    (entry) => entry.request().method() === "POST" && entry.url().endsWith(`/agenda-items/${carriedItem.id}/adjourn`),
+  );
+  await page.getByTestId("live-adjourn-confirm").click();
+  expect((await adjourning).status()).toBe(200);
+  const adjourned = (
+    await (await page.request.get(`/api/council-meetings/${meeting.id}/agenda-items/${carriedItem.id}`)).json()
+  ).properties as { startedAt: string | null; adjournedAt: string | null };
+  expect(adjourned.startedAt).toBeNull();
+  expect(adjourned.adjournedAt).not.toBeNull();
+
+  await page.getByTestId(`live-agenda-item-${treatedItem.id}`).click();
+  const starting = page.waitForResponse(
+    (entry) => entry.request().method() === "POST" && entry.url().endsWith(`/agenda-items/${treatedItem.id}/start`),
+  );
+  await page.getByTestId("live-agenda-start").click();
+  expect((await starting).ok()).toBeTruthy();
+  await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  await expect(page.getByTestId(`business-subject-rename-${treated.id}`)).toHaveCount(0);
+  await page.getByTestId(`business-subject-${treated.id}-open`).click();
+  await expect(
+    page.getByTestId(`business-inline-resource-${treated.textResourceId}`).getByTestId("editor-writing-area"),
+  ).toHaveAttribute("contenteditable", "false");
+  await expect(page.getByTestId(`business-subject-rename-${carried.id}`)).toHaveCount(0);
+
+  await page.goto(`/app/meetings/${meeting.id}/live`);
+  await page.getByTestId(`live-agenda-item-${treatedItem.id}`).click();
+  const completing = page.waitForResponse(
+    (entry) => entry.request().method() === "POST" && entry.url().endsWith(`/agenda-items/${treatedItem.id}/complete`),
+  );
+  await page.getByTestId("live-agenda-complete").click();
+  expect((await completing).ok()).toBeTruthy();
+  await page.getByTestId("live-meeting-close").click();
+  await expect(page.getByTestId("live-meeting-close")).toContainText(/not examined|non examinés/i);
+  const closing = page.waitForResponse(
+    (entry) => entry.request().method() === "POST" && entry.url().endsWith("/close"),
+  );
+  await page.getByTestId("live-meeting-close").click();
+  expect((await closing).ok()).toBeTruthy();
+  await expect(page).toHaveURL(/\/app\/meetings$/);
+
+  const afterClosure = (
+    (await (await page.request.get("/api/council-meetings")).json()).entities as Array<{
+      properties: {
+        id: string;
+        previousCouncilMeetingId: string | null;
+        scheduledAt: string | null;
+        startedAt: string | null;
+        closedAt: string | null;
+      };
+    }>
+  ).map((entry) => entry.properties);
+  const nextMeeting = afterClosure.find(
+    (candidate) => candidate.previousCouncilMeetingId === meeting.id && !candidate.startedAt && !candidate.closedAt,
+  );
+  expect(nextMeeting).toBeTruthy();
+  expect(nextMeeting!.scheduledAt).toBeNull();
+
+  await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  await expect(page.getByTestId(`business-subject-rename-${treated.id}`)).toHaveCount(0);
+  await expect(page.getByTestId(`business-subject-schedule-${treated.id}`)).toHaveCount(0);
+  await expect(page.getByTestId(`business-subject-unschedule-${treated.id}`)).toHaveCount(0);
+  await page.getByTestId(`business-subject-${treated.id}-open`).click();
+  await expect(
+    page.getByTestId(`business-inline-resource-${treated.textResourceId}`).getByTestId("editor-writing-area"),
+  ).toHaveAttribute("contenteditable", "false");
+  await page.getByTestId(`business-subject-${treated.id}-open`).click();
+  await expect(page.getByTestId(`business-subject-rename-${carried.id}`)).toBeVisible();
+  await expect(page.getByTestId(`business-subject-unschedule-${carried.id}`)).toBeVisible();
+  await page.getByTestId(`business-subject-rename-${carried.id}`).click();
+  const carriedRename = page.getByTestId(`business-subject-rename-${carried.id}-name`);
+  const reopenedTitle = "Question reopened after adjournment";
+  await carriedRename.fill(reopenedTitle);
+  await carriedRename.press("Enter");
+  await expect(page.getByTestId(`business-subject-${carried.id}-open`)).toHaveText(reopenedTitle);
+  await page.getByTestId(`business-subject-${carried.id}-open`).click();
+  const carriedEditor = page
+    .getByTestId(`business-inline-resource-${carried.textResourceId}`)
+    .getByTestId("editor-writing-area");
+  await expect(carriedEditor).toHaveAttribute("contenteditable", "true");
+  const reopenedContent = "Question content edited after adjournment and meeting closure.";
+  await carriedEditor.fill(reopenedContent);
+  await expect.poll(() => resourceContent(carried.textResourceId), { timeout: 15_000 }).toContain(reopenedContent);
+  await page.getByTestId(`business-subject-${carried.id}-open`).click();
+  await unscheduleSubject(carried);
+  await expect(page.getByTestId(`business-subject-schedule-${waiting.id}`)).toBeVisible();
+  await scheduleSubject(waiting);
+  await unscheduleSubject(waiting);
 });
 
 test("creates a documentary resource from a business and preserves its explicit association", async ({

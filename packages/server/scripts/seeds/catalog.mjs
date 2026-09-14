@@ -4,7 +4,7 @@ import { seedPreparation } from "./scenarios/preparation.mjs";
 
 export const scenarios = {
   preparation: {
-    description: "Une séance future, ordre du jour vide, aucun scrutin.",
+    description: "Une séance provisionnée sans date, ordre du jour vide, aucun scrutin.",
     run: seedPreparation,
   },
   default: {

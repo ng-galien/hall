@@ -1,5 +1,5 @@
 import { findSirenAction } from "@hall/api-contract";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiErrorCode, type ApiErrorCode } from "../../services/apiClient";
 import { listPreparedCouncilSubjects } from "../../services/councilBusinessApi";
 import { openCouncilMeeting } from "../../services/councilMeetingsApi";
@@ -20,11 +20,10 @@ export function useBusinessScheduling(businessId: string, revision: number) {
     let active = true;
     setLoading(true);
     setError(null);
-    setAvailable({});
     void Promise.all(meetingIds.split(",").filter(Boolean).map(async (meetingId) => {
       const meeting = await openCouncilMeeting(meetingId);
       if (!meeting.representation || !findSirenAction(meeting.representation, "agenda-item.schedule-prepared")) return [];
-      const candidates = await listPreparedCouncilSubjects(meetingId);
+      const candidates = (await listPreparedCouncilSubjects(meetingId)).data;
       return candidates.filter((subject) => subject.councilBusinessId === businessId)
         .map((subject) => ({ key: `${subject.kind}:${subject.id}`, meetingId }));
     })).then((groups) => {
@@ -36,5 +35,20 @@ export function useBusinessScheduling(businessId: string, revision: number) {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [businessId, meetingIds, meetingState, subjectIds, revision]);
-  return { available, loading, error };
+  const refreshSubject = useCallback(async (subjectKey: string) => {
+    setError(null);
+    try {
+      const candidates = await Promise.all(meetingIds.split(",").filter(Boolean).map(async (meetingId) => {
+        const meeting = await openCouncilMeeting(meetingId);
+        if (!meeting.representation || !findSirenAction(meeting.representation, "agenda-item.schedule-prepared")) return [];
+        return (await listPreparedCouncilSubjects(meetingId)).data
+          .filter((subject) => subject.councilBusinessId === businessId && `${subject.kind}:${subject.id}` === subjectKey)
+          .map(() => meetingId);
+      }));
+      setAvailable((current) => ({ ...current, [subjectKey]: candidates.flat() }));
+    } catch (failure) {
+      setError(apiErrorCode(failure));
+    }
+  }, [businessId, meetingIds]);
+  return { available, loading, error, refreshSubject };
 }

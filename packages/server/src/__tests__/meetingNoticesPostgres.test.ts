@@ -3,15 +3,14 @@ import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 import { startHttpServer } from "../server.js";
+import { resetPostgresTestDatabase } from "./support/postgresTestDatabase.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const postgres = databaseUrl ? describe : describe.skip;
 postgres("meeting notice PDF and email through PostgreSQL", () => {
   it("persists the rendered agenda, attaches identical PDF bytes and saves text name/content atomically", async () => {
     const pool = new Pool({ connectionString: databaseUrl });
-    await pool.query(
-      "DROP SCHEMA IF EXISTS hall_api CASCADE; DROP SCHEMA IF EXISTS hall CASCADE; DROP SCHEMA IF EXISTS hall_meta CASCADE; DROP SCHEMA public CASCADE; CREATE SCHEMA public",
-    );
+    await resetPostgresTestDatabase(pool);
     const server = await startHttpServer({
       host: "127.0.0.1",
       port: 0,

@@ -35,7 +35,9 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
   if (error instanceof PersistenceError) {
     const code = error.constraint?.startsWith("council_term_")
       ? error.constraint
-      : error.constraint === "one_resource_title_per_folder" ||
+      : error.constraint === "resource_location_unique" ||
+          error.constraint === "resource_folder_target" ||
+          error.constraint === "one_resource_title_per_folder" ||
           error.constraint === "one_council_business_title_per_folder"
         ? "workspace_title_conflict"
         : error.code;

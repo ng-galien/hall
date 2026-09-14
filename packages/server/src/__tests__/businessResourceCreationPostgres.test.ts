@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { expect, it } from "vitest";
 import { startHttpServer } from "../server.js";
+import { resetPostgresTestDatabase } from "./support/postgresTestDatabase.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const postgresTest = databaseUrl ? it : it.skip;
@@ -9,9 +10,7 @@ postgresTest(
   "HTTP creates autonomous subjects and atomically attaches created and imported business resources",
   async () => {
     const pool = new Pool({ connectionString: databaseUrl });
-    await pool.query(
-      "DROP SCHEMA IF EXISTS hall_api CASCADE; DROP SCHEMA IF EXISTS hall CASCADE; DROP SCHEMA IF EXISTS hall_meta CASCADE; DROP SCHEMA public CASCADE; CREATE SCHEMA public",
-    );
+    await resetPostgresTestDatabase(pool);
     const server = await startHttpServer({
       host: "127.0.0.1",
       port: 0,
@@ -68,6 +67,13 @@ postgresTest(
           subjectIds.push(result.properties.id);
         }
       }
+      const duplicateSubject = await post(`/api/council-business/${councilBusinessId}/prepared-subjects`, {
+        kind: "openQuestion",
+        name: "openQuestion 0",
+        content: "Duplicate content",
+      });
+      expect(duplicateSubject.status).toBe(409);
+      await expect(duplicateSubject.json()).resolves.toMatchObject({ code: "workspace_title_conflict" });
       expect(new Set(subjectIds).size).toBe(4);
       expect((await pool.query("SELECT count(*)::int n FROM hall.council_agenda_item")).rows[0].n).toBe(0);
       const createdIds: string[] = [];

@@ -68,7 +68,7 @@ export function CouncilBusinessWorkbench({
   useEffect(() => {
     void Promise.all([
       useCouncilBusinessStore.getState().loadResources(business.id),
-      useCouncilBusinessStore.getState().loadPreparedSubjects(),
+      useCouncilBusinessStore.getState().loadPreparedSubjects(business.id),
       useCouncilDecisionsStore.getState().load(),
     ]);
   }, [business.id, loadCouncilActivity]);
@@ -214,6 +214,13 @@ export function CouncilBusinessWorkbench({
       <WorkspaceCreateMenu
           compact
           testId="business-create-documents"
+          getError={() =>
+            useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error
+          }
+          clearError={() => {
+            useWorkspaceResourcesStore.setState({ error: null });
+            useCouncilBusinessStore.setState({ error: null });
+          }}
           canCreate={(kind) =>
             matchLiteral(kind, {
               councilMatter: () => false,
@@ -278,7 +285,7 @@ export function CouncilBusinessWorkbench({
           resourceId={viewedResourceId}
           onClose={() => {
             setViewedResourceId(null);
-            void useCouncilBusinessStore.getState().loadPreparedSubjects();
+            void useCouncilBusinessStore.getState().loadPreparedSubjects(business.id);
           }}
         />
       ) : null}

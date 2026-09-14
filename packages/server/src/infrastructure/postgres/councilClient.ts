@@ -113,6 +113,12 @@ export function createPostgresCouncilClient({
         if (error.sqlState === "23505" && error.constraint === "agenda_item_recusal_agenda_item_council_member_key") {
           throw new DomainError("recusal_already_recorded", 409);
         }
+        if (
+          error.sqlState === "23505" &&
+          (error.constraint === "resource_location_unique" || error.constraint === "resource_folder_target")
+        ) {
+          throw new DomainError("workspace_title_conflict", 409);
+        }
         const recusalError = councilErrorCodes[error.sqlState];
         if (recusalError) throw new DomainError(recusalError, 409);
         if (error.sqlState === "HV910") throw new DomainError("prepared_subject_not_found", 404);
@@ -156,7 +162,8 @@ export function createPostgresCouncilClient({
     },
     meetingDocumentContent: (id, resourceId, assetId) =>
       call(() => postgresCouncil.meetingDocumentContent(currentRequest(), id, resourceId, assetId)),
-    listPreparedSubjects: (meetingId) => call(() => postgresCouncil.listPreparedSubjects(currentRequest(), meetingId)),
+    listPreparedSubjects: (meetingId, businessId) =>
+      call(() => postgresCouncil.listPreparedSubjects(currentRequest(), meetingId, businessId)),
     openPreparedSubject: (id, kind) => call(() => postgresCouncil.openPreparedSubject(currentRequest(), id, kind)),
     createPreparedSubject: (businessId, input) =>
       call(() => postgresCouncil.createPreparedSubject(currentRequest(), businessId, input)),

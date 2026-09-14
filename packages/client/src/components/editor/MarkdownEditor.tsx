@@ -749,7 +749,10 @@ export function MarkdownEditor({
         const firstControlCenter = firstControlBounds
           ? firstControlBounds.top - toolbarBounds.top + firstControlBounds.height / 2
           : 0;
-        setCompactToolbarTop(caretCenter - containerBounds.top - firstControlCenter);
+        const requestedTop = caretCenter - containerBounds.top - firstControlCenter;
+        const inset = Number.parseFloat(getComputedStyle(container).getPropertyValue("--hall-space-1")) || 4;
+        const maximumTop = Math.max(inset, containerBounds.height - toolbarBounds.height - inset);
+        setCompactToolbarTop(Math.min(maximumTop, Math.max(inset, requestedTop)));
       });
     };
     const observer = new ResizeObserver(updatePosition);

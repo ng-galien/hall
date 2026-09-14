@@ -179,3 +179,164 @@
   margin-left: var(--hall-space-3);
   padding-left: var(--hall-space-3);
 }
+
+.workspace-business-workbench .business-subject-table-section {
+  display: grid;
+  gap: var(--hall-space-2);
+  overflow: visible;
+}
+
+.workspace-business-workbench .business-subject-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-medium);
+}
+
+.workspace-business-workbench .business-subject-table td {
+  padding: var(--hall-space-2) var(--hall-space-3);
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.workspace-business-workbench .business-subject-table-type-column { width: var(--hall-size-control); }
+.workspace-business-workbench .business-subject-table-actions-column { width: 14rem; }
+
+.workspace-business-workbench .business-subject-table tbody tr:not(.business-subject-table-detail):hover td,
+.workspace-business-workbench .business-subject-table-row-open td {
+  background: var(--hall-color-surface-subtle);
+}
+
+.workspace-business-workbench .business-subject-table-row-open,
+.workspace-business-workbench .business-subject-table-detail {
+  position: relative;
+  z-index: var(--hall-z-editor-popup);
+}
+
+.workspace-business-workbench .business-subject-type {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hall-space-1);
+  color: var(--hall-color-text-muted);
+  font-size: var(--hall-font-size-caption);
+  white-space: nowrap;
+}
+
+.workspace-business-workbench .business-subject-type .workspace-glyph {
+  display: inline-grid;
+  width: var(--hall-font-size-icon-large);
+  height: var(--hall-font-size-icon-large);
+  place-items: center;
+  color: var(--hall-color-brand);
+}
+
+.workspace-business-workbench .business-subject-title {
+  display: flex;
+  width: auto;
+  min-width: 0;
+  max-width: calc(100% - var(--hall-size-control-small) - var(--hall-space-1));
+  flex: 0 1 auto;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  color: var(--hall-color-text);
+  background: transparent;
+  font-size: var(--hall-font-size-title);
+  font-weight: var(--hall-font-weight-medium);
+  line-height: var(--hall-line-height-body-large);
+  text-align: left;
+  cursor: pointer;
+}
+
+.workspace-business-workbench .business-subject-title-cell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hall-space-1);
+}
+
+.workspace-business-workbench .business-subject-title-stack {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+
+.workspace-business-workbench .business-subject-title-stack .workbench-title-inline-input[aria-invalid="true"] {
+  border-color: var(--hall-color-danger-border);
+  outline: var(--hall-stroke-thin) solid var(--hall-color-danger-border);
+}
+
+.workspace-business-workbench .business-subject-title-stack > .error-banner-compact {
+  position: absolute;
+  z-index: var(--hall-z-editor-popup);
+  top: calc(100% + var(--hall-space-1));
+  left: 0;
+  width: max-content;
+  max-width: min(30rem, 100%);
+  margin: 0;
+  box-shadow: var(--hall-shadow-medium);
+}
+
+.workspace-business-workbench .business-subject-title span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-business-workbench .business-subject-title:hover span,
+.workspace-business-workbench .business-subject-title:focus-visible span,
+.workspace-business-workbench .business-subject-schedule-badge a:hover,
+.workspace-business-workbench .business-subject-schedule-badge a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: var(--hall-space-0-5);
+}
+
+.workspace-business-workbench .business-subject-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--hall-space-1);
+  white-space: nowrap;
+}
+
+.workspace-business-workbench .business-subject-table-actions .error-banner-compact {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.workspace-business-workbench .business-subject-table-actions > span {
+  display: inline-flex;
+}
+
+.workspace-business-workbench .business-subject-schedule-badge {
+  max-width: 100%;
+  padding-right: var(--hall-space-0-5);
+  color: var(--hall-color-brand);
+}
+
+.workspace-business-workbench .business-subject-schedule-badge a {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  text-overflow: ellipsis;
+}
+
+.workspace-business-workbench .business-subject-schedule-badge button {
+  width: var(--hall-size-control-small);
+  height: var(--hall-size-control-small);
+  color: inherit;
+}
+
+.workspace-business-workbench .business-subject-table-detail td {
+  padding: var(--hall-space-2) var(--hall-space-3);
+  background: var(--hall-color-surface);
+}
+
+.workspace-business-workbench .business-subject-table-detail .business-inline-resource {
+  margin: 0;
+}

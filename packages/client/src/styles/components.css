@@ -311,6 +311,17 @@
     color: var(--hall-color-danger);
     background: var(--hall-color-danger-surface);
   }
+  .error-banner-compact {
+    margin: var(--hall-space-1) 0 0;
+    padding: var(--hall-space-1) var(--hall-space-2);
+    border-radius: var(--hall-radius-small);
+    font-size: var(--hall-font-size-caption);
+    line-height: var(--hall-line-height-body-small);
+  }
+  .error-banner-compact button {
+    width: var(--hall-size-control-small);
+    height: var(--hall-size-control-small);
+  }
   .form-error {
     padding: var(--hall-space-2) var(--hall-space-3);
     border: var(--hall-stroke-thin) solid var(--hall-color-danger-border);

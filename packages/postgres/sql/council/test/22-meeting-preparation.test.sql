@@ -27,6 +27,15 @@ SELECT throws_ok($$INSERT INTO council_agenda_item(id,council_business,council_m
 SELECT is(enum_range(NULL::hall.council_agenda_subject_kind)::text[],ARRAY['minutesApproval','councilDecisionProposal','openQuestion'],
   'only the three supported subject kinds exist');
 INSERT INTO preparation SELECT 'proposal',(hall_api.create_prepared_council_subject(id,'councilDecisionProposal','Budget proposal','Original proposed text')->>'id')::uuid FROM preparation WHERE key='business';
+SELECT ok(
+  hall_api.open_prepared_council_subject((SELECT id FROM preparation WHERE key='proposal'),'councilDecisionProposal') ? 'createdAt',
+  'prepared subject projection exposes its creation date for newest-first presentation'
+);
+SELECT is(
+  jsonb_array_length(hall_api.list_prepared_council_subjects(NULL,(SELECT id FROM preparation WHERE key='business'))),
+  1,
+  'prepared subjects can be loaded for one council business only'
+);
 -- HALL-FR-BUS-050: prepared identity already belongs to its business.
 SELECT throws_ok($$UPDATE council_decision_proposal SET council_business=gen_random_uuid() WHERE id=(SELECT id FROM preparation WHERE key='proposal')$$,'HV809',NULL,'prepared business identity cannot change');
 INSERT INTO preparation SELECT 'proposal-item',(hall_api.schedule_prepared_council_subject(test_uuid('preparation:meeting'),id,'councilDecisionProposal',1)->>'id')::uuid FROM preparation WHERE key='proposal';

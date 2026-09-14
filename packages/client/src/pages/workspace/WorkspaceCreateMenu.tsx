@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useId, useRef, useState } from "react";
 import { AddIcon } from "../../components/icons";
-import { Modal } from "../../components/Ui";
+import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { ContextMenuItem } from "../../components/ui/context-menu";
 import {
@@ -14,6 +14,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
+import { apiErrorCode, type ApiErrorCode } from "../../services/apiClient";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons, workspaceCreateKinds } from "./workspaceCreateKind";
 
 export interface WorkspaceCreationOption {
@@ -40,6 +41,8 @@ export function WorkspaceCreateMenu({
   extraOptions = [],
   compact = false,
   testId = "workspace-create-menu",
+  getError,
+  clearError,
   render,
 }: {
   canCreate(kind: WorkspaceCreateKind): boolean;
@@ -47,6 +50,8 @@ export function WorkspaceCreateMenu({
   extraOptions?: WorkspaceCreationOption[];
   compact?: boolean;
   testId?: string;
+  getError?(): ApiErrorCode | null;
+  clearError?(): void;
   render?(trigger: ReactNode, contextItems: ReactNode): ReactNode;
 }) {
   const { t } = useI18n();
@@ -54,7 +59,7 @@ export function WorkspaceCreateMenu({
   const [extraOption, setExtraOption] = useState<WorkspaceCreationOption | null>(null);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<ApiErrorCode | null>(null);
   const nameId = useId();
   const nameRef = useRef<HTMLInputElement>(null);
   const available = workspaceCreateKinds.filter(canCreate);
@@ -86,7 +91,7 @@ export function WorkspaceCreateMenu({
             key={option.id}
             data-testid={`workspace-create-${option.id}`}
             onSelect={() => {
-              setFailed(false);
+              setFailed(null);
               setKind(null);
               setTitle("");
               setExtraOption(option);
@@ -107,7 +112,7 @@ export function WorkspaceCreateMenu({
                   void onCreate(entry);
                   return;
                 }
-                setFailed(false);
+                setFailed(null);
                 setExtraOption(null);
                 setTitle("");
                 setKind(entry);
@@ -128,7 +133,7 @@ export function WorkspaceCreateMenu({
           key={option.id}
           data-testid={`workspace-context-create-${option.id}`}
           onSelect={() => {
-            setFailed(false);
+            setFailed(null);
             setKind(null);
             setTitle("");
             setExtraOption(option);
@@ -149,7 +154,7 @@ export function WorkspaceCreateMenu({
                 void onCreate(entry);
                 return;
               }
-              setFailed(false);
+              setFailed(null);
               setExtraOption(null);
               setTitle("");
               setKind(entry);
@@ -172,6 +177,8 @@ export function WorkspaceCreateMenu({
         testId="workspace-create-dialog"
         onClose={() => {
           if (!busy) {
+            setFailed(null);
+            clearError?.();
             setKind(null);
             setExtraOption(null);
           }
@@ -183,23 +190,28 @@ export function WorkspaceCreateMenu({
             event.preventDefault();
             if ((!kind && !extraOption) || busy || !title.trim()) return;
             setBusy(true);
-            setFailed(false);
+            setFailed(null);
+            clearError?.();
             const creation = extraOption ? extraOption.create(title.trim()) : onCreate(kind!, title.trim());
             void creation
               .then((created) => {
                 if (created) {
                   setKind(null);
                   setExtraOption(null);
-                } else setFailed(true);
+                } else {
+                  const error = getError?.() ?? "request_failed";
+                  clearError?.();
+                  setFailed(error);
+                }
               })
-              .catch(() => setFailed(true))
+              .catch((error) => setFailed(apiErrorCode(error)))
               .finally(() => setBusy(false));
           }}
         >
           {failed ? (
-            <p role="alert" className="text-destructive" data-testid="workspace-create-error">
-              {t("common.requestFailed")}
-            </p>
+            <div data-testid="workspace-create-error">
+              <RequestErrorBanner error={failed} onDismiss={() => setFailed(null)} />
+            </div>
           ) : null}
           <div className="grid gap-1.5">
             <Label htmlFor={nameId}>{t("workspace.creationName")}</Label>

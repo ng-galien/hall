@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import { afterAll, beforeEach, describe } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe } from "vitest";
 import { PostgresSchemaBootstrap } from "../../src/bootstrap.js";
 
 export const testDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -9,13 +9,48 @@ export function createTestPool(max = 4): Pool {
   return new Pool({ connectionString: testDatabaseUrl ?? "postgresql://unused:unused@127.0.0.1:1/unused", max });
 }
 
+async function clearHallTestData(pool: Pool): Promise<void> {
+  await pool.query(`
+    BEGIN;
+    SET LOCAL session_replication_role = replica;
+
+    DO $reset$
+    DECLARE
+      tables text;
+    BEGIN
+      SELECT string_agg(format('%I.%I', schemaname, tablename), ', ' ORDER BY schemaname, tablename)
+      INTO tables
+      FROM pg_tables
+      WHERE schemaname IN ('hall', 'public')
+        AND tablename <> 'spatial_ref_sys';
+
+      IF tables IS NOT NULL THEN
+        EXECUTE 'TRUNCATE TABLE ' || tables || ' RESTART IDENTITY CASCADE';
+      END IF;
+
+      IF to_regclass('public.hall_settings') IS NOT NULL THEN
+        INSERT INTO public.hall_settings (id)
+        VALUES ('hall')
+        ON CONFLICT (id) DO NOTHING;
+      END IF;
+    END
+    $reset$;
+
+    COMMIT;
+  `);
+}
+
 export function useFreshHallDatabase(pool: Pool): void {
-  beforeEach(async () => {
-    await pool.query("DROP SCHEMA IF EXISTS hall_api CASCADE");
-    await pool.query("DROP SCHEMA IF EXISTS hall CASCADE");
-    await pool.query("DROP SCHEMA IF EXISTS hall_meta CASCADE");
-    await pool.query("DROP TABLE IF EXISTS public.preexisting_table");
+  beforeAll(async () => {
     await new PostgresSchemaBootstrap(pool).install();
+  });
+
+  beforeEach(async () => {
+    await clearHallTestData(pool);
+  });
+
+  afterEach(async () => {
+    await clearHallTestData(pool);
   });
 
   afterAll(async () => {

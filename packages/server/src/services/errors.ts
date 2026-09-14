@@ -109,7 +109,8 @@ export type ErrorCode =
   | "unsupported_document_format"
   | "user_not_found"
   | "workspace_folder_conflict"
-  | "workspace_folder_not_found";
+  | "workspace_folder_not_found"
+  | "workspace_title_conflict";
 
 export class DomainError extends Error {
   constructor(

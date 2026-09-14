@@ -241,10 +241,23 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   too_many_login_attempts: "error.too_many_login_attempts",
 };
 
-export function RequestErrorBanner({ error, onDismiss }: { error: ApiErrorCode | null; onDismiss?(): void }) {
+export function RequestErrorBanner({
+  error,
+  onDismiss,
+  compact = false,
+  testId = "request-error-dismiss",
+}: {
+  error: ApiErrorCode | null;
+  onDismiss?(): void;
+  compact?: boolean;
+  testId?: string;
+}) {
   const { t } = useI18n();
   return error ? (
-    <div className={onDismiss ? "error-banner flex items-start gap-3" : "error-banner"} role="alert">
+    <div
+      className={`${compact ? "error-banner error-banner-compact" : "error-banner"}${onDismiss ? " flex items-center gap-2" : ""}`}
+      role="alert"
+    >
       <span className={onDismiss ? "flex-1" : undefined}>{t(errorTranslationKeys[error])}</span>
       {onDismiss ? (
         <Button
@@ -253,7 +266,7 @@ export function RequestErrorBanner({ error, onDismiss }: { error: ApiErrorCode |
           size="icon"
           onClick={onDismiss}
           aria-label={t("common.close")}
-          data-testid="request-error-dismiss"
+          data-testid={testId}
         >
           <CloseIcon />
         </Button>

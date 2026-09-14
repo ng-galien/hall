@@ -242,6 +242,24 @@ FROM (
 INSERT INTO hall.council_meetings (id, number, stale) VALUES
   ('10000000-0000-0000-0000-000000000001', 1, FALSE),
   ('10000000-0000-0000-0000-000000000002', 99, TRUE);
+
+-- @verifies-requirement HALL-FR-WSP-290
+CREATE TEMP TABLE provisioned_meeting_subject AS
+SELECT hall_api.create_prepared_council_subject(
+  (SELECT (payload ->> 'id')::UUID FROM business_result),
+  'openQuestion',
+  'Question for a provisioned meeting',
+  ''
+) AS payload;
+
+SELECT ok(
+  payload #>> '{agenda,state}' = 'notScheduled'
+    AND payload #>> '{scheduleTarget,meetingReference}' = '10000000-0000-0000-0000-000000000001'
+    AND (payload #>> '{scheduleTarget,position}')::INTEGER = 1,
+  'an undated provisioned meeting is the active scheduling target and is addressed by UUID'
+)
+FROM provisioned_meeting_subject;
+
 SELECT hall_api.configure_active_council_term(1);
 CREATE TEMP TABLE contact_result AS
 SELECT hall_api.create_contact('Alice', 'Martin', NULL, NULL, NULL, NULL, '') AS payload;
@@ -291,6 +309,31 @@ SELECT is(
   2,
   'meeting agenda listing returns its two lightweight occurrences'
 );
+
+-- @verifies-requirement HALL-FR-WSP-290
+SELECT ok(
+  hall_api.open_prepared_council_subject(
+    (SELECT (payload #>> '{subject,id}')::UUID FROM agenda_result WHERE kind = 'decision'),
+    'councilDecisionProposal'
+  ) #>> '{agenda,state}' = 'scheduled',
+  'the prepared-subject projection declares an active scheduled agenda state'
+);
+
+CREATE TEMP TABLE unscheduled_prepared_subject AS
+SELECT hall_api.create_prepared_council_subject(
+  (SELECT (payload ->> 'id')::UUID FROM business_result),
+  'openQuestion',
+  'Question to schedule',
+  ''
+) AS payload;
+
+SELECT ok(
+  payload #>> '{agenda,state}' = 'notScheduled'
+    AND payload #>> '{scheduleTarget,meetingReference}' IS NOT NULL
+    AND (payload #>> '{scheduleTarget,position}')::INTEGER > 0,
+  'the prepared-subject projection supplies the active agenda target and server-calculated position'
+)
+FROM unscheduled_prepared_subject;
 
 -- HALL-FR-WSP-170
 SELECT is(

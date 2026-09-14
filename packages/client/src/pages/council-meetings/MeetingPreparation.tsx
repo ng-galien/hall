@@ -60,8 +60,8 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
     setPreparedSubjectsLoading(canSchedulePrepared);
     if (canSchedulePrepared) {
       void listPreparedCouncilSubjects(meeting.id)
-        .then((subjects) => {
-          if (active) setPreparedSubjects(subjects);
+        .then((result) => {
+          if (active) setPreparedSubjects(result.data);
         })
         .catch((error) => {
           if (active) setPreparedSubjectsError(apiErrorCode(error));

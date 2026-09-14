@@ -22,20 +22,80 @@ FROM hall.open_question subject JOIN hall.open_question_workspace workspace ON w
 
 CREATE FUNCTION hall.prepared_council_subject_projection(target_id UUID, target_kind TEXT)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
-  SELECT jsonb_build_object('kind',subject.kind,'councilBusinessId',subject.council_business,
-    'title',content_resource.name,'folderPath',folder.full_path,'reportResourceId',business.report_resource,
-    'content',content.content,'id',subject.id,'textResourceId',subject.text_resource)
-  FROM hall.prepared_council_subject subject JOIN hall.council_business_workspace business ON business.council_business=subject.council_business
-    JOIN hall.resource folder ON folder.id=business.folder_resource
-    JOIN hall.resource content_resource ON content_resource.id=subject.text_resource
-    JOIN hall.text_resource content ON content.id=subject.text_resource
-  WHERE subject.id=target_id AND subject.kind=target_kind;
+  SELECT jsonb_build_object(
+    'kind', subject.kind,
+    'councilBusinessId', subject.council_business,
+    'createdAt', content_resource.created_at,
+    'title', content_resource.name,
+    'folderPath', folder.full_path,
+    'reportResourceId', business.report_resource,
+    'content', content.content,
+    'id', subject.id,
+    'textResourceId', subject.text_resource,
+    'agenda', jsonb_build_object(
+      'state', CASE
+        WHEN agenda_item.id IS NULL THEN 'notScheduled'
+        WHEN agenda_item.completed_at IS NOT NULL THEN 'examined'
+        WHEN agenda_item.adjourned_at IS NOT NULL THEN 'adjourned'
+        WHEN agenda_item.started_at IS NOT NULL THEN 'started'
+        ELSE 'scheduled'
+      END,
+      'agendaItemId', agenda_item.id,
+      'meeting', CASE WHEN agenda_item.id IS NULL THEN NULL ELSE jsonb_build_object(
+        'reference', CASE
+          WHEN agenda_item.meeting_scheduled_at IS NULL THEN agenda_item.meeting_id::TEXT
+          ELSE to_char(agenda_item.meeting_scheduled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') || '-' || lpad(agenda_item.meeting_number::TEXT, greatest(3, length(agenda_item.meeting_number::TEXT)), '0')
+        END,
+        'number', agenda_item.meeting_number,
+        'scheduledAt', agenda_item.meeting_scheduled_at,
+        'startedAt', agenda_item.meeting_started_at
+      ) END
+    ),
+    'scheduleTarget', CASE WHEN agenda_item.id IS NULL AND schedule_target.id IS NOT NULL THEN jsonb_build_object(
+      'meetingReference', CASE
+        WHEN schedule_target.scheduled_at IS NULL THEN schedule_target.id::TEXT
+        ELSE to_char(schedule_target.scheduled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') || '-' || lpad(schedule_target.number::TEXT, greatest(3, length(schedule_target.number::TEXT)), '0')
+      END,
+      'position', schedule_target.next_position
+    ) ELSE NULL END
+  )
+  FROM hall.prepared_council_subject AS subject
+  JOIN hall.council_business_workspace AS business ON business.council_business = subject.council_business
+  JOIN hall.resource AS folder ON folder.id = business.folder_resource
+  JOIN hall.resource AS content_resource ON content_resource.id = subject.text_resource
+  JOIN hall.text_resource AS content ON content.id = subject.text_resource
+  LEFT JOIN LATERAL (
+    SELECT item.id, item.started_at, item.completed_at, item.adjourned_at, meeting.id AS meeting_id, meeting.number AS meeting_number, meeting.scheduled_at AS meeting_scheduled_at, meeting.started_at AS meeting_started_at
+    FROM hall.council_agenda_item AS item
+    JOIN hall.council_meetings AS meeting ON meeting.id = item.council_meeting
+    WHERE item.position > 0
+      AND item.subject_kind::TEXT = subject.kind
+      AND (item.council_decision_proposal = subject.id OR item.open_question = subject.id)
+    ORDER BY (meeting.closed_at IS NULL AND NOT meeting.stale) DESC, meeting.number DESC, item.id DESC
+    LIMIT 1
+  ) AS agenda_item ON true
+  LEFT JOIN LATERAL (
+    SELECT meeting.*, coalesce(max(item.position), 0) + 1 AS next_position
+    FROM hall.council_meetings AS meeting
+    LEFT JOIN hall.council_agenda_item AS item ON item.council_meeting = meeting.id AND item.position > 0
+    WHERE meeting.closed_at IS NULL
+      AND NOT meeting.stale
+      AND meeting.started_at IS NULL
+      AND NOT EXISTS (SELECT FROM hall.active_council_agenda_freeze AS frozen WHERE frozen.council_meeting = meeting.id)
+    GROUP BY meeting.id
+    ORDER BY meeting.number DESC, meeting.id DESC
+    LIMIT 1
+  ) AS schedule_target ON true
+  WHERE subject.id = target_id AND subject.kind = target_kind;
 $$;
-CREATE FUNCTION hall_api.list_prepared_council_subjects(target_meeting UUID DEFAULT NULL)
+CREATE FUNCTION hall_api.list_prepared_council_subjects(target_meeting UUID DEFAULT NULL, target_business UUID DEFAULT NULL)
 RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
-  SELECT coalesce(jsonb_agg(hall.prepared_council_subject_projection(subject.id,subject.kind) ORDER BY subject.id),'[]'::JSONB)
+  SELECT coalesce(jsonb_agg(hall.prepared_council_subject_projection(subject.id,subject.kind) ORDER BY content_resource.created_at DESC, subject.id DESC),'[]'::JSONB)
   FROM hall.prepared_council_subject subject
-  WHERE (target_meeting IS NULL OR EXISTS (SELECT FROM hall.council_meetings meeting WHERE meeting.id=target_meeting AND meeting.started_at IS NULL
+  JOIN hall.resource content_resource ON content_resource.id=subject.text_resource
+  WHERE (target_business IS NULL OR subject.council_business=target_business)
+  AND (target_meeting IS NULL OR EXISTS (SELECT FROM hall.council_meetings meeting WHERE meeting.id=target_meeting
+    AND meeting.closed_at IS NULL AND NOT meeting.stale AND meeting.started_at IS NULL
     AND NOT EXISTS(SELECT FROM hall.active_council_agenda_freeze WHERE council_meeting=target_meeting)))
   AND NOT EXISTS(SELECT FROM hall.council_agenda_item item WHERE item.council_meeting=target_meeting AND item.position>0
     AND item.subject_kind::TEXT=subject.kind AND (item.council_decision_proposal=subject.id OR item.open_question=subject.id));
@@ -83,6 +143,11 @@ BEGIN
   END IF;
   SELECT * INTO subject FROM hall.prepared_council_subject WHERE id=target_subject AND kind=target_kind;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='HV910',MESSAGE='unknown prepared subject'; END IF;
+  IF EXISTS(SELECT FROM hall.council_agenda_item item WHERE item.completed_at IS NOT NULL
+    AND item.subject_kind::TEXT=target_kind
+    AND (item.council_decision_proposal=target_subject OR item.open_question=target_subject)) THEN
+    RAISE EXCEPTION USING ERRCODE='HV810',MESSAGE='an examined prepared subject cannot be inscribed again';
+  END IF;
   SELECT id INTO existing FROM hall.council_agenda_item WHERE council_meeting=target_meeting
     AND subject_kind::TEXT=target_kind AND (council_decision_proposal=target_subject OR open_question=target_subject);
   IF existing IS NOT NULL AND EXISTS(SELECT FROM hall.council_agenda_item WHERE id=existing AND (position>0 OR started_at IS NOT NULL OR adjourned_at IS NOT NULL)) THEN

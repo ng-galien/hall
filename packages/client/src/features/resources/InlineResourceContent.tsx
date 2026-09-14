@@ -1,4 +1,5 @@
 import { ExplorerTreeContent } from "../../components/ui/explorer-tree";
+import { createPortal } from "react-dom";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
@@ -12,10 +13,12 @@ export function InlineResourceContent({
   resourceId,
   heading,
   compact = false,
+  actionsHost,
 }: {
   resourceId: string;
   heading?: string;
   compact?: boolean;
+  actionsHost?: HTMLElement | null;
 }) {
   const session = useResourceSession({ resourceId });
   const mentionables = useReferenceMentionables();
@@ -35,6 +38,7 @@ export function InlineResourceContent({
           mode={session.mode}
           layout="workbench"
           showContentLabel={false}
+          readOnlyTextEditor={compact}
           capabilities={session.capabilities}
           content={session.content}
           remoteUrl={session.remoteUrl}
@@ -55,34 +59,44 @@ export function InlineResourceContent({
       )}
     </>
   );
-  if (compact) return <div className="business-inline-resource" data-testid={`business-inline-resource-${resourceId}`}>{body}</div>;
+  const actions = (
+    <>
+      {session.canConfigureAutosave ? (
+        <ResourceAutosaveToggle
+          showLabel={!compact}
+          enabled={session.autosaveEnabled}
+          status={session.saveStatus}
+          disabled={session.submitting}
+          onChange={session.updateAutosave}
+        />
+      ) : null}
+      {session.editable && (!session.autosaveEnabled || session.actionError) ? (
+        <Button
+          size="sm"
+          variant="outline"
+          data-testid={`business-inline-save-${resourceId}`}
+          disabled={session.submitting || !session.dirty}
+          onClick={() => void session.save()}
+        >
+          {t("common.save")}
+        </Button>
+      ) : null}
+    </>
+  );
+  if (compact) {
+    return (
+      <div className="business-inline-resource" data-testid={`business-inline-resource-${resourceId}`}>
+        {actionsHost ? createPortal(actions, actionsHost) : null}
+        {body}
+      </div>
+    );
+  }
   return (
     <ExplorerTreeContent
       testId={`business-inline-resource-${resourceId}`}
       heading={heading ?? t("resources.textContent")}
       actions={
-        <>
-          {session.canConfigureAutosave ? (
-            <ResourceAutosaveToggle
-              showLabel
-              enabled={session.autosaveEnabled}
-              status={session.saveStatus}
-              disabled={session.submitting}
-              onChange={session.updateAutosave}
-            />
-          ) : null}
-          {session.editable && (!session.autosaveEnabled || session.actionError) ? (
-            <Button
-              size="sm"
-              variant="outline"
-              data-testid={`business-inline-save-${resourceId}`}
-              disabled={session.submitting || !session.dirty}
-              onClick={() => void session.save()}
-            >
-              {t("common.save")}
-            </Button>
-          ) : null}
-        </>
+        actions
       }
     >
       {body}

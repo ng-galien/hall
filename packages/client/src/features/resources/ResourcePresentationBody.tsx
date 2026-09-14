@@ -53,6 +53,7 @@ export function ResourcePresentationBody({
   onRegisterFlush,
   autosaveEnabled,
   showContentLabel = true,
+  readOnlyTextEditor = false,
 }: {
   resource: ResourceDetail;
   representation: SirenEntity | null;
@@ -75,6 +76,7 @@ export function ResourcePresentationBody({
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
   autosaveEnabled: boolean;
   showContentLabel?: boolean;
+  readOnlyTextEditor?: boolean;
 }) {
   const { t } = useI18n();
   const [editingRemoteId, setEditingRemoteId] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export function ResourcePresentationBody({
   return matchDiscriminated(resource, "kind", {
     folder: () => null,
     text: (entry) =>
-      editingResource ? (
+      editingResource || readOnlyTextEditor ? (
         <div className="grid gap-1.5" data-testid="resource-presentation-text-edit">
           {showContentLabel ? <Label>{t("resources.textContent")}</Label> : null}
           <MarkdownEditor
@@ -94,7 +96,7 @@ export function ResourcePresentationBody({
             mentionables={mentionables}
             searchContext={entry.path}
             onUploadImage={canUploadImage && capabilities.updateContent ? onUploadImage : undefined}
-            readOnly={!capabilities.updateContent}
+            readOnly={!editingResource}
             variant={layout === "extended" ? "enriched" : "compact"}
           />
         </div>

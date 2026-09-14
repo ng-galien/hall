@@ -1,7 +1,7 @@
 -- A proposal's original text remains owned by its business. Voting seals that
 -- original, independently of the eventual result and of later vote corrections.
 -- The ballot seal remains a durable integrity witness in addition to the
--- meeting-start title and content lock owned by HALL-FR-WSP-280.
+-- meeting-conduct and agenda-item-start title/content lock owned by HALL-FR-WSP-280.
 CREATE TABLE hall.proposal_text_seal (
   council_decision_proposal UUID PRIMARY KEY REFERENCES hall.council_decision_proposal(id),
   ballot UUID NOT NULL REFERENCES hall.ballots(id),

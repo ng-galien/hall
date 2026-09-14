@@ -1,4 +1,5 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { closeSync, openSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -13,6 +14,7 @@ const pgtapIndex = runnerArgs.indexOf("--pgtap");
 const pgtapScope = pgtapIndex < 0 ? "all" : runnerArgs[pgtapIndex + 1];
 const runBackend = runnerArgs.includes("--backend") || pgtapIndex < 0;
 const coverage = runnerArgs.includes("--coverage");
+const lockPath = "/tmp/hall-postgres-tests.lock";
 
 if (!new Set(["all", "council", "document"]).has(pgtapScope)) {
   throw new Error("--pgtap must be all, council or document");
@@ -35,7 +37,16 @@ function compose(args, options) {
 function schemaSql() {
   const manifest = readFileSync(resolve(postgresPackage, "src/schemaManifest.ts"), "utf8");
   const paths = [...manifest.matchAll(/^\s+"(sql\/.*\.sql)",$/gm)].map((match) => match[1]);
-  return `BEGIN;\n${paths.map((path) => readFileSync(resolve(postgresPackage, path), "utf8")).join("\n")}\nCOMMIT;\n`;
+  const entries = paths.map((path) => ({ path, sql: readFileSync(resolve(postgresPackage, path), "utf8") }));
+  const hash = createHash("sha256");
+  for (const entry of entries) {
+    hash.update(entry.path, "utf8");
+    hash.update("\0", "utf8");
+    hash.update(entry.sql, "utf8");
+    hash.update("\0", "utf8");
+  }
+  const fingerprint = hash.digest("hex");
+  return `BEGIN;\n${entries.map(({ sql }) => sql).join("\n")}\nINSERT INTO hall_meta.schema_contract (singleton, manifest_sha256) VALUES (true, '${fingerprint}');\nCOMMIT;\n`;
 }
 
 function pgtapFiles(scope) {
@@ -56,10 +67,55 @@ function resetDatabase() {
   );
 }
 
+function clearDatabaseData() {
+  compose(
+    ["exec", "-T", "postgres-test", "psql", "--set", "ON_ERROR_STOP=1", "--username", "hall_test", "--dbname", "hall_test"],
+    {
+      input: `BEGIN;
+SET LOCAL session_replication_role = replica;
+DO $reset$
+DECLARE tables text;
+BEGIN
+  SELECT string_agg(format('%I.%I', schemaname, tablename), ', ' ORDER BY schemaname, tablename)
+  INTO tables
+  FROM pg_tables
+  WHERE schemaname IN ('hall', 'public') AND tablename <> 'spatial_ref_sys';
+  IF tables IS NOT NULL THEN
+    EXECUTE 'TRUNCATE TABLE ' || tables || ' RESTART IDENTITY CASCADE';
+  END IF;
+END
+$reset$;
+COMMIT;
+`,
+    },
+  );
+}
+
+function acquireTestDatabaseLock() {
+  try {
+    const descriptor = openSync(lockPath, "wx");
+    writeFileSync(descriptor, String(process.pid));
+    closeSync(descriptor);
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "EEXIST") {
+      throw new Error("The shared Hall test database is already in use by another test command");
+    }
+    throw error;
+  }
+}
+
+function releaseTestDatabaseLock() {
+  try {
+    unlinkSync(lockPath);
+  } catch (error) {
+    if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) throw error;
+  }
+}
+
+acquireTestDatabaseLock();
 try {
-  compose(["--profile", "test", "build", "postgres-test"]);
-  compose(["--profile", "test", "rm", "--stop", "--force", "postgres-test"]);
   compose(["--profile", "test", "up", "-d", "--wait", "postgres-test"]);
+  resetDatabase();
   run("bash", ["packages/postgres/sql/council/test/verify-traceability.sh"]);
   compose(
     ["exec", "-T", "postgres-test", "psql", "--set", "ON_ERROR_STOP=1", "--username", "hall_test", "--dbname", "hall_test"],
@@ -93,12 +149,21 @@ try {
     ]);
   }
   if (runBackend) {
-    resetDatabase();
-    const vitestArgs = coverage ? ["--coverage", ...backendArgs] : backendArgs;
+    // pgTAP rolls every scenario back. Backend tests reuse this exact schema
+    // and only truncate data between tests.
+    // Every PostgreSQL-backed Vitest file uses the same persistent test database.
+    // Keep files sequential so one file cannot truncate another file's fixtures.
+    const vitestArgs = coverage
+      ? ["--coverage", "--no-file-parallelism", ...backendArgs]
+      : ["--no-file-parallelism", ...backendArgs];
     run("npm", ["run", "test:vitest", "-w", "@hall/server", "--", ...vitestArgs], {
       env: { TEST_DATABASE_URL: databaseUrl, PGTAP_DATABASE_URL: databaseUrl },
     });
   }
 } finally {
-  compose(["--profile", "test", "rm", "--stop", "--force", "postgres-test"]);
+  try {
+    clearDatabaseData();
+  } finally {
+    releaseTestDatabaseLock();
+  }
 }

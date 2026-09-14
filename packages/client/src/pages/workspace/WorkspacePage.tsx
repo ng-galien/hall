@@ -358,7 +358,14 @@ export function WorkspacePage() {
             }}
           />
         ) : null}
-        <RequestErrorBanner error={folderError ?? councilBusinessError ?? resourcesError} />
+        <RequestErrorBanner
+          error={folderError ?? councilBusinessError ?? resourcesError}
+          onDismiss={() => {
+            setFolderError(null);
+            useCouncilBusinessStore.setState({ error: null });
+            useWorkspaceResourcesStore.setState({ error: null });
+          }}
+        />
         {duplicates.length ? (
           <section
             className="data-list"
@@ -400,6 +407,13 @@ export function WorkspacePage() {
             </div>
             {!selectedBusiness ? (
               <WorkspaceCreateMenu
+                getError={() =>
+                  useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error
+                }
+                clearError={() => {
+                  useWorkspaceResourcesStore.setState({ error: null });
+                  useCouncilBusinessStore.setState({ error: null });
+                }}
                 canCreate={(kind) =>
                   matchLiteral(kind, {
                     councilMatter: () => councilBusinessStore.canCreate,

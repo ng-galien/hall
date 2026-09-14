@@ -333,6 +333,38 @@ export function withConductAuthorization(request: Request, value: unknown): unkn
   return result;
 }
 
+function preparedSubjectActions({ request, primary }: ObjectActionContext): SirenAction[] {
+  if (!primary) return [];
+  const agenda = primary.agenda;
+  if (!agenda || typeof agenda !== "object" || Array.isArray(agenda)) return [];
+  const state = (agenda as Record<string, unknown>).state;
+  const agendaItemId = (agenda as Record<string, unknown>).agendaItemId;
+  const meeting = (agenda as Record<string, unknown>).meeting;
+  const meetingReference = meeting && typeof meeting === "object" && !Array.isArray(meeting)
+    ? (meeting as Record<string, unknown>).reference
+    : null;
+  const meetingStartedAt = meeting && typeof meeting === "object" && !Array.isArray(meeting)
+    ? (meeting as Record<string, unknown>).startedAt
+    : null;
+  if (state === "scheduled" && meetingStartedAt == null && typeof agendaItemId === "string" && typeof meetingReference === "string") {
+    return authorizedActions(request, [
+      action("agenda-item.deprogram", "DELETE", `/api/council-meetings/${meetingReference}/agenda-items/${agendaItemId}`, "Remove from the agenda"),
+    ]);
+  }
+  const scheduleTarget = primary.scheduleTarget;
+  if (state !== "notScheduled" || !scheduleTarget || typeof scheduleTarget !== "object" || Array.isArray(scheduleTarget)) return [];
+  const target = scheduleTarget as Record<string, unknown>;
+  if (typeof target.meetingReference !== "string" || typeof target.position !== "number" || typeof primary.id !== "string" || typeof primary.kind !== "string") return [];
+  return authorizedActions(request, [{
+    ...action("agenda-item.schedule-prepared", "POST", `/api/council-meetings/${target.meetingReference}/agenda-items/from-prepared`, "Schedule on the active meeting"),
+    fields: [
+      { name: "subjectId", type: "hidden", value: primary.id },
+      { name: "kind", type: "hidden", value: primary.kind },
+      { name: "position", type: "hidden", value: target.position },
+    ],
+  }]);
+}
+
 function agendaItemActions({ request, primary, id }: ObjectActionContext): SirenAction[] {
   if (!id || !primary) return [];
   const meeting = request.res?.locals.currentCouncilMeeting as Record<string, unknown> | undefined;
@@ -608,7 +640,7 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
       canExecuteAction(request, "settings.update")
         ? [action("settings.update", "PUT", "/api/settings", "Update Hall settings")]
         : [],
-    "prepared-subject": () => [],
+    "prepared-subject": () => preparedSubjectActions(context),
     "meeting-notice": () => [],
     "agenda-freeze": () => [],
     minutes: () =>

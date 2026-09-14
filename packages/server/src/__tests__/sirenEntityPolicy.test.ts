@@ -150,6 +150,64 @@ describe("Siren entity class authority", () => {
     ]);
   });
 
+  // @verifies-requirement HALL-FR-WSP-290
+  it("derives prepared-subject agenda actions from the Siren representation", () => {
+    const currentRequest = request("/api/council-business/prepared-subjects/openQuestion/subject-id");
+    expect(
+      objectActions(currentRequest, "prepared-subject", {
+        id: "subject-id",
+        kind: "openQuestion",
+        agenda: { state: "notScheduled", agendaItemId: null, meeting: null },
+        scheduleTarget: { meetingReference: "2026-09-14-001", position: 4 },
+      }),
+    ).toEqual([
+      {
+        name: "agenda-item.schedule-prepared",
+        method: "POST",
+        href: "/api/council-meetings/2026-09-14-001/agenda-items/from-prepared",
+        type: "application/json",
+        title: "Schedule on the active meeting",
+        fields: [
+          { name: "subjectId", type: "hidden", value: "subject-id" },
+          { name: "kind", type: "hidden", value: "openQuestion" },
+          { name: "position", type: "hidden", value: 4 },
+        ],
+      },
+    ]);
+    expect(
+      objectActions(currentRequest, "prepared-subject", {
+        id: "subject-id",
+        kind: "openQuestion",
+        agenda: {
+          state: "scheduled",
+          agendaItemId: "agenda-item-id",
+          meeting: { reference: "2026-09-14-001", startedAt: null },
+        },
+        scheduleTarget: null,
+      }),
+    ).toEqual([
+      {
+        name: "agenda-item.deprogram",
+        method: "DELETE",
+        href: "/api/council-meetings/2026-09-14-001/agenda-items/agenda-item-id",
+        type: "application/json",
+        title: "Remove from the agenda",
+      },
+    ]);
+    expect(
+      objectActions(currentRequest, "prepared-subject", {
+        id: "subject-id",
+        kind: "openQuestion",
+        agenda: {
+          state: "scheduled",
+          agendaItemId: "agenda-item-id",
+          meeting: { reference: "2026-09-14-001", startedAt: "2026-09-14T18:00:00.000Z" },
+        },
+        scheduleTarget: null,
+      }),
+    ).toEqual([]);
+  });
+
   it("uses the object action policy for agenda items and ballots embedded in a meeting", () => {
     const currentRequest = request("/api/council-meetings/meeting-slug");
     const agendaItem = {

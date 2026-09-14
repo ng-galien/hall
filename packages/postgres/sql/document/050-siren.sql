@@ -100,7 +100,7 @@ BEGIN
     RETURN actions;
   END IF;
 
-  -- @requirement-reference HALL-FR-WSP-280 MEETING_START_LOCKS_AGENDA_SUBJECT_TEXTS:
+  -- @requirement-reference HALL-FR-WSP-280 MEETING_CONDUCT_LOCKS_AGENDA_SUBJECT_TEXTS:
   IF NOT hall.agenda_subject_text_is_editable((resource ->> 'id')::UUID) THEN
     RETURN actions;
   END IF;
