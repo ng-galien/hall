@@ -5,7 +5,7 @@
 -- Ballot and participation identities are created in one transaction. The
 -- caller names meeting attendance facts and never manufactures persistence
 -- identities for BallotParticipation.
-CREATE FUNCTION create_ballot(
+CREATE FUNCTION hall.create_ballot(
   target_agenda_item UUID,
   target_mode ballot_mode,
   participant_attendances UUID[],
@@ -56,7 +56,7 @@ END;
 $function$;
 
 -- @technical-requirement HALL-TR-CON-160 PUBLIC_VOTES_ARE_RECORDED_ATOMICALLY:
-CREATE FUNCTION record_public_ballot_votes(
+CREATE FUNCTION hall.record_public_ballot_votes(
   target_ballot UUID,
   participant_ids UUID[],
   choices vote_choice[]
@@ -83,7 +83,7 @@ AS $function$
 $function$;
 
 -- @technical-requirement HALL-TR-CON-170 SECRET_VOTES_ARE_RECORDED_ATOMICALLY:
-CREATE FUNCTION record_secret_ballot_votes(
+CREATE FUNCTION hall.record_secret_ballot_votes(
   target_ballot UUID, approve_count INTEGER, reject_count INTEGER, abstain_count INTEGER,
   blank_count INTEGER, invalid_count INTEGER, non_participation_count INTEGER
 )
@@ -111,7 +111,7 @@ RETURNS VOID LANGUAGE sql VOLATILE SET search_path=pg_catalog,hall AS $$
 $$;
 
 -- @functional-requirement HALL-FR-BAL-300 BALLOT_COMPLETION_IS_A_NAMED_ACTION:
-CREATE FUNCTION complete_ballot(
+CREATE FUNCTION hall.complete_ballot(
   target_ballot UUID,
   completion_time TIMESTAMPTZ, reviewed_preview UUID
 )

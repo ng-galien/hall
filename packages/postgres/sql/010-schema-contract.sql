@@ -1,6 +1,6 @@
 -- @technical-requirement HALL-TR-SCH-020 EXACT_SCHEMA_MANIFEST:
--- A database contains exactly one fingerprint for the complete ordered SQL
--- manifest that created it. A different fingerprint requires a fresh database.
+-- Hall records the complete ordered SQL manifest only after the installed
+-- schema has converged transactionally to its materialized PostgreSQL target.
 CREATE TABLE hall_meta.schema_contract (
   singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
   manifest_sha256 text NOT NULL CHECK (manifest_sha256 ~ '^[0-9a-f]{64}$'),

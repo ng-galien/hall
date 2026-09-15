@@ -1,7 +1,7 @@
 -- Lifecycle and cross-entity invariants: a vote is inserted once into an open
 -- ballot, uses that ballot's mode and, when public, references a participation
 -- belonging to that exact ballot. Votes are immutable facts after insertion.
-CREATE FUNCTION enforce_vote_immutability()
+CREATE FUNCTION hall.enforce_vote_immutability()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
@@ -93,13 +93,13 @@ END;
 $$;
 
 CREATE TRIGGER votes_enforce_immutability
-BEFORE INSERT OR UPDATE OR DELETE ON votes
+BEFORE INSERT OR UPDATE OR DELETE ON hall.votes
 FOR EACH ROW
 EXECUTE FUNCTION enforce_vote_immutability();
 
 -- @technical-requirement HALL-TR-INT-060 TRUNCATE_CANNOT_BYPASS_VOTE_IMMUTABILITY:
 -- Statement-level deletion cannot bypass vote immutability.
 CREATE TRIGGER votes_reject_truncate
-BEFORE TRUNCATE ON votes
+BEFORE TRUNCATE ON hall.votes
 FOR EACH STATEMENT
 EXECUTE FUNCTION enforce_vote_immutability();

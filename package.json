@@ -10,6 +10,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "trust:run": "node --env-file=.trust/runner.env .agents/skills/trust/scripts/run.js",
     "build": "npm run build -w @hall/contracts && npm run build -w @hall/api-contract && npm run build -w @hall/mcp && npm run build -w @hall/domain && npm run build -w @hall/templating && npm run build -w @hall/postgres && npm run build -w @hall/server && npm run build -w @hall/client && npm run build -w @hall/desktop",
     "dev:server": "npm run dev -w @hall/server",
     "dev:client": "npm run dev -w @hall/client",

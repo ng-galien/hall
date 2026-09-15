@@ -1,7 +1,7 @@
 -- Lifecycle: a meeting is created unstarted, then starts exactly once after
 -- its immutable attendance declarations establish the required quorum. It may
 -- later acquire one immutable closure timestamp.
-CREATE FUNCTION enforce_council_meeting_lifecycle()
+CREATE FUNCTION hall.enforce_council_meeting_lifecycle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
@@ -121,7 +121,7 @@ END;
 $$;
 
 -- @functional-requirement HALL-FR-MTG-250 COUNCIL_MEETING_OFFICERS_ARE_A_NAMED_ACTION:
-CREATE FUNCTION set_council_meeting_officers(
+CREATE FUNCTION hall.set_council_meeting_officers(
   target_meeting UUID,
   target_chair_member UUID,
   target_secretary_member UUID
@@ -166,7 +166,7 @@ END;
 $$;
 
 -- @functional-requirement HALL-FR-MTG-160 COUNCIL_MEETING_SCHEDULE_IS_A_NAMED_ACTION:
-CREATE FUNCTION schedule_council_meeting(
+CREATE FUNCTION hall.schedule_council_meeting(
   target_meeting UUID,
   schedule_time TIMESTAMPTZ,
   meeting_location TEXT
@@ -202,7 +202,7 @@ END;
 $$;
 
 -- @functional-requirement HALL-FR-MTG-170 COUNCIL_MEETING_START_IS_A_NAMED_ACTION:
-CREATE FUNCTION start_council_meeting(
+CREATE FUNCTION hall.start_council_meeting(
   target_meeting UUID,
   start_time TIMESTAMPTZ
 )
@@ -238,7 +238,7 @@ $$;
 -- @functional-requirement HALL-FR-MTG-180 INITIAL_COUNCIL_MEETING_IS_PROVISIONED_ONCE:
 -- This is the sole runtime action for creating the root of the meeting
 -- sequence. Later meetings are provisioned atomically by closure.
-CREATE FUNCTION provision_initial_council_meeting()
+CREATE FUNCTION hall.provision_initial_council_meeting()
 RETURNS council_meetings
 LANGUAGE plpgsql
 VOLATILE
@@ -267,13 +267,13 @@ END;
 $$;
 
 CREATE TRIGGER council_meetings_enforce_lifecycle
-BEFORE INSERT OR UPDATE OR DELETE ON council_meetings
+BEFORE INSERT OR UPDATE OR DELETE ON hall.council_meetings
 FOR EACH ROW
 EXECUTE FUNCTION enforce_council_meeting_lifecycle();
 
 -- @technical-requirement HALL-TR-INT-020 TRUNCATE_CANNOT_BYPASS_MEETING_IMMUTABILITY:
 -- Statement-level deletion cannot bypass meeting immutability.
 CREATE TRIGGER council_meetings_reject_truncate
-BEFORE TRUNCATE ON council_meetings
+BEFORE TRUNCATE ON hall.council_meetings
 FOR EACH STATEMENT
 EXECUTE FUNCTION enforce_council_meeting_lifecycle();

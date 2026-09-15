@@ -2,7 +2,7 @@
 -- be provisioned before its date is known. started_at and closed_at are facts,
 -- not a mutable status: their nullability structurally expresses preparation,
 -- conduct and closure.
-CREATE TABLE council_meetings (
+CREATE TABLE hall.council_meetings (
   id UUID PRIMARY KEY,
 
   -- TODO REMOVE_STALE: temporary import marker and deferred active-meeting uniqueness.

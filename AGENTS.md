@@ -34,6 +34,24 @@ If the behavior has no requirement, the requirement is ambiguous, or the work re
 
 A marker alone does not prove implementation. Verify the acceptance criteria at the appropriate level, update the traceability marker, and rerun `npm run check:requirements`.
 
+## TRUST and visible feature scope
+
+For work explicitly using TRUST and Maket, follow
+[the TRUST requirements workflow](docs/trust-workflow.md). It describes the
+project MCP connection, declared requirements, the living Maket document, its
+readiness Check, the user's review before implementation, and delivery Checks. The requirement catalogue remains
+the source of truth; this guide does not authorize automatic Plan engagement.
+
+For this project's installed TRUST Runner, load `.trust/runner.env` explicitly:
+
+```sh
+npm run trust:run -- '<supplied-check-uri>' --json
+```
+
+Run from the mairie root. The MCP URL does not configure the Runner; its RPC and
+Fact-export endpoints come from this environment file. Use the URI supplied by
+TRUST and do not invoke the bare Runner with its default endpoints.
+
 ## Code and architecture
 
 Before modifying code, read [`docs/principes-code.md`](docs/principes-code.md) and use [`docs/architecture.md`](docs/architecture.md) to locate the existing authority.

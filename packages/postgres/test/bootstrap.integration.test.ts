@@ -34,7 +34,7 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
     expect(contract.rows).toEqual([{ manifest_sha256: manifest.fingerprint }]);
   });
 
-  it("upgrades only the exact predecessor to contact call context without losing existing data", async () => {
+  it("upgrades an older manifest to the materialized target without losing existing data", async () => {
     await reset();
     const current = await loadSchemaManifest();
     const previous = defineSchemaManifest(
@@ -49,15 +49,19 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
           : entry,
       ),
     );
-    expect(previous.fingerprint).toBe("eff3a859e5d1d94e9bd841ccecb197197810d89b2db4d1455f470c0de462ffde");
+    expect(previous.fingerprint).not.toBe(current.fingerprint);
     await new PostgresSchemaBootstrap(pool, async () => previous).install();
+    const preservedTerm = "00000000-0000-4000-8000-000000000901";
     await pool.query(
-      "CREATE TABLE hall.migration_probe(value text); INSERT INTO hall.migration_probe VALUES ('preserved')",
+      "INSERT INTO hall.council_term (id, expected_member_count, started_on, ended_on) VALUES ($1, 1, DATE '2025-01-01', DATE '2025-12-31')",
+      [preservedTerm],
     );
     const bootstrap = new PostgresSchemaBootstrap(pool);
-    await expect(bootstrap.install()).resolves.toBe("verified");
+    await expect(bootstrap.install()).resolves.toBe("upgraded");
     await expect(bootstrap.verify()).resolves.toBeUndefined();
-    expect((await pool.query("SELECT value FROM hall.migration_probe")).rows).toEqual([{ value: "preserved" }]);
+    expect((await pool.query("SELECT id::text FROM hall.council_term WHERE id = $1", [preservedTerm])).rows).toEqual([
+      { id: preservedTerm },
+    ]);
     const connection = await pool.connect();
     try {
       await connection.query("BEGIN");
@@ -71,6 +75,61 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
     } finally {
       connection.release();
     }
+  });
+
+  it("converges columns, indexes, triggers and obsolete routine overloads in one transaction", async () => {
+    await reset();
+    const bootstrap = new PostgresSchemaBootstrap(pool);
+    await bootstrap.install();
+    const preservedTerm = "00000000-0000-4000-8000-000000000902";
+    await pool.query(
+      "INSERT INTO hall.council_term (id, expected_member_count, started_on, ended_on) VALUES ($1, 1, DATE '2024-01-01', DATE '2024-12-31')",
+      [preservedTerm],
+    );
+    await pool.query(`
+      DROP INDEX hall.council_term_one_active;
+      CREATE INDEX obsolete_contact_probe ON hall.contact (id);
+      DROP TRIGGER council_member_enforce_active_mandate ON hall.council_member;
+      CREATE FUNCTION hall.obsolete_upgrade_probe(value integer)
+      RETURNS integer LANGUAGE sql AS $function$ SELECT value $function$;
+      ALTER TABLE hall_meta.schema_contract DROP COLUMN installed_at;
+      REVOKE EXECUTE ON FUNCTION hall_api.schema_fingerprint() FROM hall_api_anonymous;
+      UPDATE hall_meta.schema_contract SET manifest_sha256 = repeat('a', 64);
+    `);
+
+    await expect(bootstrap.install()).resolves.toBe("upgraded");
+    await expect(bootstrap.verify()).resolves.toBeUndefined();
+
+    expect((await pool.query("SELECT id::text FROM hall.council_term WHERE id = $1", [preservedTerm])).rows).toEqual([
+      { id: preservedTerm },
+    ]);
+    expect(
+      (
+        await pool.query(`SELECT
+          to_regclass('hall.council_term_one_active') IS NOT NULL AS target_index,
+          to_regclass('hall.obsolete_contact_probe') IS NULL AS obsolete_index_removed,
+          to_regprocedure('hall.obsolete_upgrade_probe(integer)') IS NULL AS overload_removed,
+          EXISTS (
+            SELECT FROM pg_catalog.pg_trigger
+            WHERE tgname = 'council_member_enforce_active_mandate'
+              AND tgrelid = 'hall.council_member'::regclass
+          ) AS target_trigger,
+          EXISTS (
+            SELECT FROM information_schema.columns
+            WHERE table_schema = 'hall_meta'
+              AND table_name = 'schema_contract'
+              AND column_name = 'installed_at'
+          ) AS target_column`)
+      ).rows,
+    ).toEqual([
+      {
+        target_index: true,
+        obsolete_index_removed: true,
+        overload_removed: true,
+        target_trigger: true,
+        target_column: true,
+      },
+    ]);
   });
 
   it("serializes concurrent installers against one contract", async () => {

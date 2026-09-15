@@ -6,7 +6,7 @@
 -- closed meeting produces its Minutes and the next mandatory MinutesApproval.
 
 -- @functional-requirement HALL-FR-MTG-120 PREVIOUS_MINUTES_ARE_APPROVED_BEFORE_CLOSURE:
-CREATE FUNCTION council_meeting_previous_minutes_are_approved(target_meeting UUID)
+CREATE FUNCTION hall.council_meeting_previous_minutes_are_approved(target_meeting UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
@@ -28,7 +28,7 @@ AS $function$
 $function$;
 
 -- @functional-requirement HALL-FR-BAL-290 OPEN_BALLOT_PREVENTS_MEETING_CLOSURE:
-CREATE FUNCTION council_meeting_has_open_ballot(target_meeting UUID)
+CREATE FUNCTION hall.council_meeting_has_open_ballot(target_meeting UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
@@ -45,7 +45,7 @@ AS $function$
 $function$;
 
 -- @functional-requirement HALL-FR-MTG-110 CLOSED_MEETING_HAS_ONE_SUCCESSOR_AND_MINUTES:
-CREATE FUNCTION council_meeting_closure_is_complete(target_meeting UUID)
+CREATE FUNCTION hall.council_meeting_closure_is_complete(target_meeting UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
@@ -109,7 +109,7 @@ AS $function$
   )
 $function$;
 
-CREATE FUNCTION enforce_council_meeting_sequence()
+CREATE FUNCTION hall.enforce_council_meeting_sequence()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -164,7 +164,7 @@ END
 $function$;
 
 CREATE CONSTRAINT TRIGGER council_meetings_enforce_sequence
-AFTER INSERT OR UPDATE ON council_meetings
+AFTER INSERT OR UPDATE ON hall.council_meetings
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION enforce_council_meeting_sequence();
@@ -173,7 +173,7 @@ EXECUTE FUNCTION enforce_council_meeting_sequence();
 -- @functional-requirement HALL-FR-MTG-130 CLOSURE_PROVISIONS_THE_NEXT_MEETING:
 -- @functional-requirement HALL-FR-MIN-030 CLOSURE_PRODUCES_MINUTES_APPROVAL:
 -- @functional-requirement HALL-FR-AGI-280 UNFINISHED_AGENDA_IS_CARRIED_FORWARD:
-CREATE FUNCTION close_council_meeting(
+CREATE FUNCTION hall.close_council_meeting(
   target_meeting UUID,
   closure_time TIMESTAMPTZ
 )

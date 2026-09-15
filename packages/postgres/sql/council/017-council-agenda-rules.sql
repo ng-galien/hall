@@ -2,7 +2,7 @@
 -- Every membership mutation locks its aggregate root before the deferred
 -- assertion. Concurrent agenda writes for one business therefore cannot create
 -- a write-skew that escapes the final-state check.
-CREATE FUNCTION lock_council_agenda_item_business()
+CREATE FUNCTION hall.lock_council_agenda_item_business()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
@@ -29,7 +29,7 @@ END;
 $$;
 
 CREATE TRIGGER council_agenda_item_lock_business
-BEFORE INSERT OR UPDATE OR DELETE ON council_agenda_item
+BEFORE INSERT OR UPDATE OR DELETE ON hall.council_agenda_item
 FOR EACH ROW
 EXECUTE FUNCTION lock_council_agenda_item_business();
 
@@ -37,7 +37,7 @@ EXECUTE FUNCTION lock_council_agenda_item_business();
 -- A prepared subject may occur on several meetings, but always under the same
 -- CouncilBusiness. Locking the subject row prevents two transactions from
 -- concurrently assigning it to different roots.
-CREATE FUNCTION lock_council_agenda_item_subject()
+CREATE FUNCTION hall.lock_council_agenda_item_subject()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
@@ -57,12 +57,12 @@ END;
 $$;
 
 CREATE TRIGGER council_agenda_item_lock_subject
-BEFORE INSERT OR UPDATE ON council_agenda_item
+BEFORE INSERT OR UPDATE ON hall.council_agenda_item
 FOR EACH ROW
 EXECUTE FUNCTION lock_council_agenda_item_subject();
 
 -- @functional-requirement HALL-FR-BUS-030 AGENDA_SUBJECT_HAS_ONE_COUNCIL_BUSINESS:
-CREATE FUNCTION council_agenda_item_subject_has_one_business(target council_agenda_item)
+CREATE FUNCTION hall.council_agenda_item_subject_has_one_business(target council_agenda_item)
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
@@ -74,7 +74,7 @@ AS $$
     ELSE EXISTS (SELECT FROM open_question WHERE id=target.open_question AND council_business=target.council_business) END;
 $$;
 
-CREATE FUNCTION enforce_council_agenda_item_subject_business()
+CREATE FUNCTION hall.enforce_council_agenda_item_subject_business()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -92,7 +92,7 @@ END;
 $$;
 
 CREATE CONSTRAINT TRIGGER council_agenda_item_enforce_subject_business
-AFTER INSERT OR UPDATE ON council_agenda_item
+AFTER INSERT OR UPDATE ON hall.council_agenda_item
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION enforce_council_agenda_item_subject_business();

@@ -80,8 +80,8 @@ export const schemaManifestPaths = [
   "sql/workspace/053-decision-documentary-context.sql",
   "sql/workspace/054-decision-numbering.sql",
   "sql/workspace/060-meeting-documents.sql",
-  "sql/900-grants.sql",
   "sql/directory/030-contact-representations.sql",
+  "sql/900-grants.sql",
 ] as const;
 
 export type SchemaManifestEntry = Readonly<{

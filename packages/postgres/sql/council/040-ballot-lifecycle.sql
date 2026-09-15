@@ -3,7 +3,7 @@
 -- votes, verifies their cardinality and computes the result inside the same row
 -- update that records completed_at. The agenda item is opened independently
 -- before ballot creation; ballot completion completes it at the same timestamp.
-CREATE FUNCTION enforce_ballot_lifecycle()
+CREATE FUNCTION hall.enforce_ballot_lifecycle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
@@ -188,14 +188,14 @@ END;
 $$;
 
 CREATE TRIGGER ballots_enforce_lifecycle
-BEFORE INSERT OR UPDATE OR DELETE ON ballots
+BEFORE INSERT OR UPDATE OR DELETE ON hall.ballots
 FOR EACH ROW
 EXECUTE FUNCTION enforce_ballot_lifecycle();
 
 -- @technical-requirement HALL-TR-INT-050 TRUNCATE_CANNOT_BYPASS_BALLOT_IMMUTABILITY:
 -- Statement-level deletion cannot bypass ballot immutability.
 CREATE TRIGGER ballots_reject_truncate
-BEFORE TRUNCATE ON ballots
+BEFORE TRUNCATE ON hall.ballots
 FOR EACH STATEMENT
 EXECUTE FUNCTION enforce_ballot_lifecycle();
 
@@ -205,7 +205,7 @@ EXECUTE FUNCTION enforce_ballot_lifecycle();
 -- participation of that same ballot whose
 -- underlying attendance is physically present. The check is deferred because
 -- ballot and participation are created atomically and reference each other.
-CREATE FUNCTION enforce_ballot_chairman()
+CREATE FUNCTION hall.enforce_ballot_chairman()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -226,7 +226,7 @@ END;
 $$;
 
 CREATE CONSTRAINT TRIGGER ballots_enforce_chairman
-AFTER INSERT OR UPDATE ON ballots
+AFTER INSERT OR UPDATE ON hall.ballots
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION enforce_ballot_chairman();

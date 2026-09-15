@@ -2,7 +2,7 @@
 -- chairman is the identifier of
 -- a BallotParticipation, not a council member or attendance declaration. Its
 -- deferred foreign key is added after ballot_participation exists.
-CREATE TABLE ballots (
+CREATE TABLE hall.ballots (
   id UUID PRIMARY KEY,
   council_agenda_item UUID NOT NULL REFERENCES council_agenda_item (id),
   mode ballot_mode NOT NULL,

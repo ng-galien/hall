@@ -9,7 +9,7 @@
 -- Negative positions are durable deprogramming facts. Only the dedicated
 -- deprogram action may introduce one; schedule and reprogram always place an
 -- item on the active agenda.
-CREATE FUNCTION assert_programmed_council_agenda_position(target_position INTEGER)
+CREATE FUNCTION hall.assert_programmed_council_agenda_position(target_position INTEGER)
 RETURNS VOID
 LANGUAGE plpgsql
 IMMUTABLE
@@ -25,7 +25,7 @@ END;
 $$;
 
 -- @functional-requirement HALL-FR-AGI-200 DECISION_PROPOSAL_IS_SCHEDULED_ATOMICALLY:
-CREATE FUNCTION schedule_council_decision_proposal(
+CREATE FUNCTION hall.schedule_council_decision_proposal(
   target_business UUID,
   target_meeting UUID,
   target_position INTEGER
@@ -58,7 +58,7 @@ END;
 $$;
 
 -- @functional-requirement HALL-FR-AGI-210 OPEN_QUESTION_IS_SCHEDULED_ATOMICALLY:
-CREATE FUNCTION schedule_open_question(
+CREATE FUNCTION hall.schedule_open_question(
   target_business UUID,
   target_meeting UUID,
   target_position INTEGER
@@ -91,7 +91,7 @@ END;
 $$;
 
 -- @functional-requirement HALL-FR-AGI-220 MINUTES_APPROVAL_IS_SCHEDULED_ATOMICALLY:
-CREATE FUNCTION schedule_minutes_approval(
+CREATE FUNCTION hall.schedule_minutes_approval(
   target_meeting UUID,
   target_minutes_approval UUID
 )
@@ -124,7 +124,7 @@ END;
 $$;
 
 -- @functional-requirement HALL-FR-AGI-230 AGENDA_ITEM_CAN_BE_DEPROGRAMMED:
-CREATE FUNCTION deprogram_council_agenda_item(target_agenda_item UUID)
+CREATE FUNCTION hall.deprogram_council_agenda_item(target_agenda_item UUID)
 RETURNS council_agenda_item
 LANGUAGE plpgsql
 VOLATILE
@@ -155,7 +155,7 @@ END;
 $$;
 
 -- @functional-requirement HALL-FR-AGI-240 UNSTARTED_AGENDA_ITEM_CAN_BE_REPROGRAMMED:
-CREATE FUNCTION reprogram_council_agenda_item(
+CREATE FUNCTION hall.reprogram_council_agenda_item(
   target_agenda_item UUID,
   target_meeting UUID,
   target_position INTEGER
@@ -193,7 +193,7 @@ $$;
 -- changes only their relative order and therefore preserves intentional gaps
 -- and every deprogrammed negative position.
 -- @technical-requirement HALL-TR-CON-190 COUNCIL_AGENDA_REORDER_IS_ATOMIC:
-CREATE FUNCTION reorder_council_agenda(
+CREATE FUNCTION hall.reorder_council_agenda(
   target_meeting UUID,
   ordered_agenda_items UUID[]
 )
@@ -280,7 +280,7 @@ END;
 $$;
 
 -- @functional-requirement HALL-FR-AGI-250 AGENDA_ITEM_START_IS_A_NAMED_ACTION:
-CREATE FUNCTION start_council_agenda_item(
+CREATE FUNCTION hall.start_council_agenda_item(
   target_agenda_item UUID,
   start_time TIMESTAMPTZ
 )
@@ -310,7 +310,7 @@ END;
 $$;
 
 -- @functional-requirement HALL-FR-AGI-260 OPEN_QUESTION_COMPLETION_IS_A_NAMED_ACTION:
-CREATE FUNCTION complete_non_voting_agenda_item(
+CREATE FUNCTION hall.complete_non_voting_agenda_item(
   target_agenda_item UUID,
   completion_time TIMESTAMPTZ
 )
@@ -340,7 +340,7 @@ END;
 $$;
 
 -- Explicit in-session adjournment, distinct from preparation deprogramming.
-CREATE FUNCTION adjourn_council_agenda_item(target_agenda_item UUID, adjournment_time TIMESTAMPTZ)
+CREATE FUNCTION hall.adjourn_council_agenda_item(target_agenda_item UUID, adjournment_time TIMESTAMPTZ)
 RETURNS council_agenda_item LANGUAGE plpgsql VOLATILE SET search_path = pg_catalog, hall AS $$
 DECLARE changed council_agenda_item;
 BEGIN

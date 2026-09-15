@@ -48,6 +48,7 @@ export {
   type ScheduleCouncilMeetingInput,
   type StartAgendaItemInput,
 } from "./council.js";
+export { PostgresCouncilDecisions } from "./councilDecisions.js";
 export {
   type AddPostgresCommitteeMembership,
   type CreatePostgresCouncilMember,
@@ -106,5 +107,19 @@ export {
   postgresResourceSearchResultSchema,
   postgresResourceSummarySchema,
 } from "./resources.js";
-
-export { PostgresCouncilDecisions } from "./councilDecisions.js";
+export {
+  type HallSchemaComparisonName,
+  type HallSchemaComparisonVerdict,
+  type HallSchemaInspection,
+  hallCatalogDocuments,
+  hallManifestDocuments,
+  inspectHallSchemaUpgrade,
+  verifyUpgradedHallSchema,
+} from "./schemaComparison.js";
+export {
+  type HallSchemaUpgradePlan,
+  HallSchemaUpgradePlanningError,
+  type HallSchemaUpgradeStatement,
+  type HallSchemaUpgradeStatementKind,
+  planHallSchemaUpgrade,
+} from "./schemaUpgrade.js";

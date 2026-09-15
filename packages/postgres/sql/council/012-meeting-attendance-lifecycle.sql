@@ -1,7 +1,7 @@
 -- Lifecycle: attendance declarations form an exact, adjustable preparation
 -- set. The named batch action may replace that set until the meeting starts;
 -- from the start instant onward, every declaration is immutable.
-CREATE FUNCTION enforce_meeting_attendance_lifecycle()
+CREATE FUNCTION hall.enforce_meeting_attendance_lifecycle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
@@ -65,14 +65,14 @@ END;
 $$;
 
 CREATE TRIGGER meeting_attendance_enforce_lifecycle
-BEFORE INSERT OR UPDATE OR DELETE ON meeting_attendance
+BEFORE INSERT OR UPDATE OR DELETE ON hall.meeting_attendance
 FOR EACH ROW
 EXECUTE FUNCTION enforce_meeting_attendance_lifecycle();
 
 -- @technical-requirement HALL-TR-INT-010 TRUNCATE_CANNOT_BYPASS_ATTENDANCE_IMMUTABILITY:
 -- Statement-level deletion cannot bypass row-level immutability.
 CREATE TRIGGER meeting_attendance_reject_truncate
-BEFORE TRUNCATE ON meeting_attendance
+BEFORE TRUNCATE ON hall.meeting_attendance
 FOR EACH STATEMENT
 EXECUTE FUNCTION enforce_meeting_attendance_lifecycle();
 
@@ -81,7 +81,7 @@ EXECUTE FUNCTION enforce_meeting_attendance_lifecycle();
 -- represented member and holder can be inserted in either order atomically.
 -- Functionally, the proxy holder remains a physically present attendance
 -- declaration from the same meeting.
-CREATE FUNCTION enforce_meeting_attendance_proxy_holder()
+CREATE FUNCTION hall.enforce_meeting_attendance_proxy_holder()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -106,7 +106,7 @@ END;
 $$;
 
 CREATE CONSTRAINT TRIGGER meeting_attendance_enforce_proxy_holder
-AFTER INSERT ON meeting_attendance
+AFTER INSERT ON hall.meeting_attendance
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION enforce_meeting_attendance_proxy_holder();

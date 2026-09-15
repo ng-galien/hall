@@ -1,7 +1,7 @@
 -- @functional-requirement HALL-FR-BAL-110 BALLOT_PARTICIPATION_COUNT_USES_DECLARATIONS: The
 -- participation count is the number of attendances declared as taking part in a
 -- ballot. It is the expected number of expressed choices at completion.
-CREATE FUNCTION ballot_participation_count(target_ballot UUID)
+CREATE FUNCTION hall.ballot_participation_count(target_ballot UUID)
 RETURNS INTEGER
 LANGUAGE sql
 STABLE
@@ -16,7 +16,7 @@ $$;
 -- is the number of choices recorded for a ballot. Public votes
 -- contribute one; each secret aggregate contributes its strictly positive
 -- count.
-CREATE FUNCTION ballot_vote_count(target_ballot UUID)
+CREATE FUNCTION hall.ballot_vote_count(target_ballot UUID)
 RETURNS INTEGER
 LANGUAGE sql
 STABLE
@@ -29,7 +29,7 @@ $$;
 
 -- @functional-requirement HALL-FR-BAL-130 BALLOT_CHOICE_COUNT_FILTERS_RECORDED_VOTES: A choice
 -- count is the number of recorded votes carrying that particular choice.
-CREATE FUNCTION ballot_choice_count(
+CREATE FUNCTION hall.ballot_choice_count(
   target_ballot UUID,
   target_choice vote_choice
 )
@@ -47,7 +47,7 @@ $$;
 -- @functional-requirement HALL-FR-BAL-140 BALLOT_CHAIRMAN_IS_PRESENT_PARTICIPATION: The chairman
 -- is a participation in the target
 -- ballot and its underlying attendance is physically present, not represented.
-CREATE FUNCTION ballot_has_valid_chairman(
+CREATE FUNCTION hall.ballot_has_valid_chairman(
   target_ballot UUID,
   target_chairman UUID
 )
@@ -76,7 +76,7 @@ RETURNS hall.ballot_result LANGUAGE sql IMMUTABLE SET search_path=pg_catalog,hal
 $$;
 
 -- Ballot result is derived from the immutable recorded votes.
-CREATE FUNCTION derive_ballot_result(target_ballot UUID)
+CREATE FUNCTION hall.derive_ballot_result(target_ballot UUID)
 RETURNS ballot_result
 LANGUAGE plpgsql
 STABLE

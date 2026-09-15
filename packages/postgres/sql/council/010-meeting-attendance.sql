@@ -1,7 +1,7 @@
 -- Entity: one council member's declared attendance for one council meeting.
 -- The row is the immutable source for physical presence, representation and
 -- voting eligibility during that meeting.
-CREATE TABLE meeting_attendance (
+CREATE TABLE hall.meeting_attendance (
   id UUID PRIMARY KEY,
   -- @functional-requirement HALL-FR-ATT-100 ATTENDANCE_BELONGS_TO_A_COUNCIL_MEMBER:
   council_member UUID NOT NULL REFERENCES hall.council_member (id),
@@ -46,12 +46,12 @@ CREATE TABLE meeting_attendance (
 -- present member can hold at most one proxy in a
 -- meeting. The meeting column legitimately scopes this business uniqueness.
 CREATE UNIQUE INDEX meeting_attendance_one_proxy_per_holder
-  ON meeting_attendance (council_meeting, proxy_holder)
+  ON hall.meeting_attendance (council_meeting, proxy_holder)
   WHERE proxy_holder IS NOT NULL;
 
 -- @functional-requirement HALL-FR-ATT-060 ONE_PROXY_DOCUMENT_USE_PER_MEETING: One written proxy
 -- document can justify at most one representation
 -- in a meeting. A document may legitimately cover another meeting later.
 CREATE UNIQUE INDEX meeting_attendance_one_use_per_proxy_document
-  ON meeting_attendance (council_meeting, proxy_document)
+  ON hall.meeting_attendance (council_meeting, proxy_document)
   WHERE proxy_document IS NOT NULL;

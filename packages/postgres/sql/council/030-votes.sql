@@ -1,7 +1,7 @@
 -- Entity: a recorded choice in a ballot. A public row belongs to one named
 -- BallotParticipation and always counts once. A secret row is anonymous and
 -- aggregates one or more identical choices.
-CREATE TABLE votes (
+CREATE TABLE hall.votes (
   ballot UUID NOT NULL,
   mode ballot_mode NOT NULL,
   choice vote_choice NOT NULL,
@@ -28,12 +28,12 @@ CREATE TABLE votes (
 -- referenced participation already identifies its ballot, so no composite key
 -- is needed here.
 CREATE UNIQUE INDEX votes_one_public_vote_per_participation
-  ON votes (ballot_participation)
+  ON hall.votes (ballot_participation)
   WHERE ballot_participation IS NOT NULL;
 
 -- @functional-requirement HALL-FR-VOT-050 ONE_SECRET_AGGREGATE_PER_CHOICE: A secret ballot stores
 -- at most one aggregate row for each choice.
 -- The ballot legitimately scopes this business uniqueness.
 CREATE UNIQUE INDEX votes_one_secret_count_per_choice
-  ON votes (ballot, choice)
+  ON hall.votes (ballot, choice)
   WHERE mode = 'secret';

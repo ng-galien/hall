@@ -327,27 +327,3 @@ BEGIN
   RETURN hall.delegation_membership_projection(changed);
 END
 $function$;
-REVOKE ALL ON FUNCTION hall.enforce_delegation_membership() FROM PUBLIC;
-REVOKE ALL ON FUNCTION hall.end_memberships_with_delegation() FROM PUBLIC;
-REVOKE ALL ON FUNCTION hall.council_delegation_projection(hall.council_delegation) FROM PUBLIC;
-REVOKE ALL ON FUNCTION hall.delegation_membership_projection(hall.delegation_membership) FROM PUBLIC;
-REVOKE ALL ON FUNCTION hall_api.list_council_delegations(BOOLEAN) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hall_api.list_council_delegations(BOOLEAN) TO hall_api_authenticated,hall_api_worker;
-REVOKE ALL ON FUNCTION hall_api.open_council_delegation(UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hall_api.open_council_delegation(UUID) TO hall_api_authenticated,hall_api_worker;
-REVOKE ALL ON FUNCTION hall_api.create_council_delegation(TEXT,TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hall_api.create_council_delegation(TEXT,TEXT) TO hall_api_authenticated,hall_api_worker;
-REVOKE ALL ON FUNCTION hall_api.update_council_delegation(UUID,TEXT,TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hall_api.update_council_delegation(UUID,TEXT,TEXT) TO hall_api_authenticated,hall_api_worker;
-REVOKE ALL ON FUNCTION hall_api.archive_council_delegation(UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hall_api.archive_council_delegation(UUID) TO hall_api_authenticated,hall_api_worker;
-REVOKE ALL ON FUNCTION hall_api.list_delegation_memberships(UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hall_api.list_delegation_memberships(UUID) TO hall_api_authenticated,hall_api_worker;
-REVOKE ALL ON FUNCTION hall_api.open_delegation_membership(UUID,UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hall_api.open_delegation_membership(UUID,UUID) TO hall_api_authenticated,hall_api_worker;
-REVOKE ALL ON FUNCTION hall_api.add_delegation_membership(UUID,UUID,TEXT,DATE) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hall_api.add_delegation_membership(UUID,UUID,TEXT,DATE) TO hall_api_authenticated,hall_api_worker;
-REVOKE ALL ON FUNCTION hall_api.update_delegation_membership(UUID,UUID,TEXT,DATE,DATE) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hall_api.update_delegation_membership(UUID,UUID,TEXT,DATE,DATE) TO hall_api_authenticated,hall_api_worker;
-REVOKE ALL ON FUNCTION hall_api.end_delegation_membership(UUID,UUID,DATE) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hall_api.end_delegation_membership(UUID,UUID,DATE) TO hall_api_authenticated,hall_api_worker;

@@ -9,6 +9,7 @@ roots = [
   { path = "packages/desktop/src", srcset = "main" },
   { path = "packages/domain/src", srcset = "main" },
   { path = "packages/postgres/src", srcset = "main" },
+  { path = "packages/postgres/sql", srcset = "main" },
   { path = "packages/server/src", srcset = "main" },
   { path = "packages/templating/src", srcset = "main" },
 ]
@@ -69,6 +70,34 @@ rationale = "Comments and generated or user-visible strings use simple punctuati
 expr = "text !~ \\u{2014}"
 message = "Replace the em dash with a comma, colon, semicolon, parentheses, or a plain hyphen as appropriate."
 
+[[sql.shape.callable.where]]
+id = "database-hygiene-requires-schema-qualified-ddl-callables"
+severity = "error"
+rationale = "Hall schema manifests must identify every PostgreSQL object independently of the session search path. Explicit schemas keep source extraction and catalog introspection deterministic."
+expr = "segment('schema') != ''"
+message = "Qualify this SQL callable with its Hall schema."
+
+[[sql.shape.type.where]]
+id = "database-hygiene-requires-schema-qualified-ddl-types"
+severity = "error"
+rationale = "Hall schema manifests must identify every PostgreSQL object independently of the session search path. Explicit schemas keep source extraction and catalog introspection deterministic."
+expr = "segment('schema') != ''"
+message = "Qualify this SQL table, view, type, or domain with its Hall schema."
+
+[[sql.index.where]]
+id = "database-hygiene-requires-schema-qualified-ddl-indexes"
+severity = "error"
+rationale = "Hall schema manifests must identify every PostgreSQL object independently of the session search path. Explicit schemas keep source extraction and catalog introspection deterministic."
+expr = "segment('schema') != ''"
+message = "Qualify this SQL index and its target relation with the Hall schema."
+
+[[sql.trigger.where]]
+id = "database-hygiene-requires-schema-qualified-ddl-triggers"
+severity = "error"
+rationale = "Hall schema manifests must identify every PostgreSQL object independently of the session search path. Explicit schemas keep source extraction and catalog introspection deterministic."
+expr = "segment('schema') != ''"
+message = "Qualify the target relation of this SQL trigger with the Hall schema."
+
 [exclude]
 uris = [
   "**/node_modules/**",
@@ -76,6 +105,7 @@ uris = [
   "**/out/**",
   "**/*.test.ts",
   "**/*.test.tsx",
+  "**/packages/postgres/sql/**/test/**",
 ]
 
 [aliases]

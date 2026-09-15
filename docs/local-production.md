@@ -26,6 +26,35 @@ le gel de production. Le seed et la mise en service attendent le go du propriét
 La connexion réelle nécessite un compte administrateur ; aucun identifiant de
 développement n'est utilisé pour contourner cette authentification.
 
+## Mise à niveau du schéma
+
+Au démarrage d'une nouvelle version, Hall compare l'empreinte du manifeste avec
+la base installée. Si elles diffèrent, il réinitialise une base auxiliaire
+réutilisable nommée d'après la base installée avec le suffixe
+`__hall_schema_target`, y exécute le manifeste livré, puis relit les deux bases
+avec PostgreSQL Workbench. Code Moniker contrôle que les fichiers SQL et la
+cible matérialisée décrivent la même structure.
+
+Hall produit ensuite le DDL entre la base installée et la cible. Il l'applique
+dans une transaction protégée par un verrou, relit la base et exige un dernier
+diff vide avant d'enregistrer la nouvelle empreinte. Les données métier ne sont
+pas copiées dans la base auxiliaire. Celle-ci reste sur l'instance pour la mise à
+niveau suivante ; elle ne contient que le schéma cible.
+
+L'utilisateur PostgreSQL d'installation doit pouvoir créer cette base
+auxiliaire et gérer les rôles Hall. Les anciennes fonctions, vues, triggers et
+index sont supprimés sans `CASCADE`. Une table, une colonne ou un type absent de
+la cible bloque la mise à niveau au lieu d'être supprimé. Un renommage de colonne
+se déclare sur la colonne cible :
+
+```sql
+COMMENT ON COLUMN hall.contact.contact_id
+  IS '@hall renamed-from council_member_id';
+```
+
+Les rôles sont réconciliés avant le DDL. Les révocations et droits d'exécution
+du fichier `sql/900-grants.sql` sont rejoués après convergence.
+
 ## Sauvegardes
 
 ```sh

@@ -6129,15 +6129,18 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "La base conserve une unique empreinte du manifeste SQL ordonné qui l’a créée.",
+      "statement": "Une installation Hall converge vers le schéma structurel de la version livrée avant le démarrage du serveur, puis conserve l’empreinte du manifeste appliqué.",
       "acceptanceCriteria": [
-        "A database contains exactly one fingerprint for the complete ordered SQL manifest that created it. A different fingerprint requires a fresh database."
+        "Le manifeste livré est exécuté dans une base cible réutilisable puis sa projection PostgreSQL est comparée à la structure extraite des fichiers SQL ; toute perte structurelle bloque la mise à jour.",
+        "La projection de la base installée est comparée à celle de la base cible et produit un plan DDL déterministe ; un renommage de colonne exige une annotation renamed-from explicite conservée dans COMMENT ON COLUMN.",
+        "Après application transactionnelle sous verrou, la base installée est relue par la même projection et doit être isomorphe à la cible avant l'enregistrement de la nouvelle empreinte et le démarrage du serveur.",
+        "Les données métier ne sont pas recréées. Les rôles et privilèges sont appliqués séparément par des commandes idempotentes. Les anciennes signatures de routines Hall absentes de la cible sont supprimées sans CASCADE."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "A database contains exactly one fingerprint for the complete ordered SQL manifest that created it. A different fingerprint requires a fresh database.",
+          "statement": "Hall matérialise le manifeste dans une base cible, compare trois fois les projections structurelles PostgreSQL avec Code Moniker, applique un plan DDL transactionnel déterministe qui conserve les données, puis enregistre l'empreinte seulement lorsque le dernier diff est vide.",
           "sourceIds": []
         }
       ]

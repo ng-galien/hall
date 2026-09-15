@@ -1,5 +1,5 @@
 -- @functional-requirement HALL-FR-AGI-160 BALLOT_ITEM_COMPLETION_REQUIRES_COMPLETED_BALLOT:
-CREATE FUNCTION council_agenda_item_has_completed_ballot(
+CREATE FUNCTION hall.council_agenda_item_has_completed_ballot(
   target_agenda_item UUID,
   target_completed_at TIMESTAMPTZ
 )
@@ -19,7 +19,7 @@ $$;
 
 -- Direct completion is valid for an OpenQuestion. A MinutesApproval or
 -- CouncilDecisionProposal completes only through its ballot authority.
-CREATE FUNCTION enforce_council_agenda_item_completion_authority()
+CREATE FUNCTION hall.enforce_council_agenda_item_completion_authority()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
@@ -43,14 +43,14 @@ END;
 $$;
 
 CREATE TRIGGER council_agenda_item_enforce_completion_authority
-AFTER UPDATE ON council_agenda_item
+AFTER UPDATE ON hall.council_agenda_item
 FOR EACH ROW
 WHEN (OLD.completed_at IS NULL AND NEW.completed_at IS NOT NULL)
 EXECUTE FUNCTION enforce_council_agenda_item_completion_authority();
 
 -- @functional-requirement HALL-FR-AGI-170 BALLOT_COMPLETION_COMPLETES_AGENDA_ITEM:
 -- @technical-requirement HALL-TR-CON-070 BALLOT_AND_AGENDA_ITEM_COMPLETE_ATOMICALLY:
-CREATE FUNCTION complete_ballot_agenda_item()
+CREATE FUNCTION hall.complete_ballot_agenda_item()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
@@ -74,7 +74,7 @@ END;
 $$;
 
 CREATE TRIGGER ballots_complete_agenda_item
-AFTER UPDATE ON ballots
+AFTER UPDATE ON hall.ballots
 FOR EACH ROW
 WHEN (OLD.completed_at IS NULL AND NEW.completed_at IS NOT NULL)
 EXECUTE FUNCTION complete_ballot_agenda_item();

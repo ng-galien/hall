@@ -5,7 +5,7 @@
 -- belong to CouncilBusiness; minutes approval references standalone Minutes.
 -- The row owns ordering and
 -- examination timestamps; there is no intermediate Question entity.
-CREATE TABLE council_agenda_item (
+CREATE TABLE hall.council_agenda_item (
   id UUID PRIMARY KEY,
   council_business UUID REFERENCES council_business (id),
   council_meeting UUID NOT NULL REFERENCES council_meetings (id),
@@ -65,38 +65,38 @@ CREATE TABLE council_agenda_item (
 -- Positive and negative forms of one ordinal cannot coexist. Gaps are valid;
 -- ordering never requires global renumbering.
 CREATE UNIQUE INDEX council_agenda_item_absolute_position_unique
-  ON council_agenda_item (council_meeting, abs(position));
+  ON hall.council_agenda_item (council_meeting, abs(position));
 
 -- @functional-requirement HALL-FR-AGI-070 ONE_SUBJECT_OCCURRENCE_PER_MEETING:
 CREATE UNIQUE INDEX council_agenda_item_minutes_once_per_meeting
-  ON council_agenda_item (council_meeting, minutes_approval)
+  ON hall.council_agenda_item (council_meeting, minutes_approval)
   WHERE minutes_approval IS NOT NULL;
 
 CREATE UNIQUE INDEX council_agenda_item_decision_once_per_meeting
-  ON council_agenda_item (council_meeting, council_decision_proposal)
+  ON hall.council_agenda_item (council_meeting, council_decision_proposal)
   WHERE council_decision_proposal IS NOT NULL;
 
 CREATE UNIQUE INDEX council_agenda_item_open_question_once_per_meeting
-  ON council_agenda_item (council_meeting, open_question)
+  ON hall.council_agenda_item (council_meeting, open_question)
   WHERE open_question IS NOT NULL;
 
 -- @functional-requirement HALL-FR-AGI-080 ONE_ACTIVE_AGENDA_ITEM_PER_MEETING:
 CREATE UNIQUE INDEX council_agenda_item_one_active_per_meeting
-  ON council_agenda_item (council_meeting)
+  ON hall.council_agenda_item (council_meeting)
   WHERE position > 0 AND started_at IS NOT NULL AND completed_at IS NULL;
 
 -- Supports the single-table CouncilBusiness membership assertion and locks
 -- only the small agenda slice of the affected aggregate.
 CREATE INDEX council_agenda_item_business_membership
-  ON council_agenda_item (council_business);
+  ON hall.council_agenda_item (council_business);
 
 -- @technical-requirement HALL-TR-CON-130 AGENDA_SUBJECT_OWNER_LOOKUPS_ARE_INDEXED:
 -- Deferred owner validation locates every occurrence of one subject without
 -- scanning unrelated agenda rows.
 CREATE INDEX council_agenda_item_decision_business_membership
-  ON council_agenda_item (council_decision_proposal, council_business)
+  ON hall.council_agenda_item (council_decision_proposal, council_business)
   WHERE council_decision_proposal IS NOT NULL;
 
 CREATE INDEX council_agenda_item_open_question_business_membership
-  ON council_agenda_item (open_question, council_business)
+  ON hall.council_agenda_item (open_question, council_business)
   WHERE open_question IS NOT NULL;

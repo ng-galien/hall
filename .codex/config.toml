@@ -25,3 +25,9 @@ url = "http://127.0.0.1:3100/mcp"
 enabled = true
 startup_timeout_sec = 30
 tool_timeout_sec = 120
+
+[mcp_servers.trust]
+url = "http://127.0.0.1:4498/mcp"
+enabled = true
+startup_timeout_sec = 30
+tool_timeout_sec = 120

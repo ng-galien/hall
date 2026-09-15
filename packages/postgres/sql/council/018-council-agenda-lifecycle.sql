@@ -2,7 +2,7 @@
 -- most once when positively programmed, and completes at most once. Its root
 -- and subject mapping never change; its meeting and signed position may be
 -- adjusted while it remains unstarted.
-CREATE FUNCTION enforce_council_agenda_item_lifecycle()
+CREATE FUNCTION hall.enforce_council_agenda_item_lifecycle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
@@ -213,11 +213,11 @@ END;
 $$;
 
 CREATE TRIGGER council_agenda_item_enforce_lifecycle
-BEFORE INSERT OR UPDATE OR DELETE ON council_agenda_item
+BEFORE INSERT OR UPDATE OR DELETE ON hall.council_agenda_item
 FOR EACH ROW
 EXECUTE FUNCTION enforce_council_agenda_item_lifecycle();
 
 CREATE TRIGGER council_agenda_item_reject_truncate
-BEFORE TRUNCATE ON council_agenda_item
+BEFORE TRUNCATE ON hall.council_agenda_item
 FOR EACH STATEMENT
 EXECUTE FUNCTION enforce_council_agenda_item_lifecycle();

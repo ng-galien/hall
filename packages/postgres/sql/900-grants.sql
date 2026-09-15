@@ -3,6 +3,7 @@
 -- Runtime roles can discover hall_api and call only explicitly granted
 -- functions. They never receive table privileges in hall.
 GRANT USAGE ON SCHEMA hall_api TO hall_api_anonymous, hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.schema_fingerprint() TO hall_api_anonymous;
 GRANT EXECUTE ON FUNCTION hall_api.import_council_business_bundle(JSONB,JSONB,TEXT)
   TO hall_api_authenticated, hall_api_worker;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hall_api FROM PUBLIC;
@@ -256,3 +257,15 @@ GRANT EXECUTE ON FUNCTION hall_api.list_council_decisions(),hall_api.open_counci
 GRANT EXECUTE ON FUNCTION hall_api.meeting_documents(UUID), hall_api.meeting_document_resource(UUID, UUID), hall_api.meeting_document_content(UUID, UUID, UUID) TO hall_api_authenticated, hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.delete_council_business(UUID) TO hall_api_authenticated, hall_api_worker;
+
+GRANT EXECUTE ON FUNCTION hall_api.list_council_delegations(BOOLEAN),
+ hall_api.open_council_delegation(UUID),
+ hall_api.create_council_delegation(TEXT,TEXT),
+ hall_api.update_council_delegation(UUID,TEXT,TEXT),
+ hall_api.archive_council_delegation(UUID),
+ hall_api.list_delegation_memberships(UUID),
+ hall_api.open_delegation_membership(UUID,UUID),
+ hall_api.add_delegation_membership(UUID,UUID,TEXT,DATE),
+ hall_api.update_delegation_membership(UUID,UUID,TEXT,DATE,DATE),
+ hall_api.end_delegation_membership(UUID,UUID,DATE)
+ TO hall_api_authenticated,hall_api_worker;

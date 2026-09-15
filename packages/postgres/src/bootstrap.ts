@@ -1,40 +1,13 @@
 import type { Pool, PoolClient } from "pg";
 import { HallPostgresError, preservePostgresError, SchemaContractError } from "./errors.js";
-import { defineSchemaManifest, loadSchemaManifest, type SchemaManifest } from "./schemaManifest.js";
+import { inspectHallSchemaUpgrade, verifyUpgradedHallSchema } from "./schemaComparison.js";
+import { loadSchemaManifest, type SchemaManifest } from "./schemaManifest.js";
+import { planHallSchemaUpgrade } from "./schemaUpgrade.js";
+import { type HallSchemaUpgradeRuntime, openHallSchemaUpgradeRuntime } from "./schemaUpgradeRuntime.js";
 
-type BootstrapResult = "installed" | "verified";
+type BootstrapResult = "installed" | "upgraded" | "verified";
 type ManifestProvider = () => Promise<SchemaManifest>;
-
-// This one-step migration accepts only the exact predecessor and only the
-// contact identity change. Any other manifest drift still fails closed.
-async function migrateContactCallContext(
-  client: PoolClient,
-  actual: string,
-  manifest: SchemaManifest,
-): Promise<boolean> {
-  const predecessor = "eff3a859e5d1d94e9bd841ccecb197197810d89b2db4d1455f470c0de462ffde";
-  if (actual !== predecessor) return false;
-  const contextEntry = manifest.entries.find((entry) => entry.path === "sql/020-call-context.sql");
-  if (!contextEntry) return false;
-  const previous = defineSchemaManifest(
-    manifest.entries.map((entry) =>
-      entry === contextEntry
-        ? {
-            ...entry,
-            sql: entry.sql
-              .replaceAll("contactId", "councilMemberId")
-              .replaceAll("hall.contact_id", "hall.council_member_id"),
-          }
-        : entry,
-    ),
-  );
-  if (previous.fingerprint !== predecessor) return false;
-  await client.query(contextEntry.sql.replaceAll("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION"));
-  await client.query("UPDATE hall_meta.schema_contract SET manifest_sha256 = $1 WHERE singleton", [
-    manifest.fingerprint,
-  ]);
-  return true;
-}
+type UpgradeRuntimeProvider = (manifest: SchemaManifest) => Promise<HallSchemaUpgradeRuntime>;
 
 async function schemaContractFingerprint(client: PoolClient): Promise<string | null> {
   const contractTable = await client.query<{ contract: string | null }>(
@@ -71,11 +44,96 @@ async function assertDatabaseHasNoHallModel(client: PoolClient, fingerprint: str
 function assertMatchingFingerprint(actual: string, expected: string): void {
   if (actual !== expected) {
     throw new SchemaContractError(
-      "PostgreSQL schema fingerprint differs from the exact Hall manifest; use a fresh database",
+      "PostgreSQL schema fingerprint differs from the exact Hall manifest; run the Hall schema upgrade",
       expected,
       actual,
     );
   }
+}
+
+async function executeUpgrade(
+  client: PoolClient,
+  runtime: HallSchemaUpgradeRuntime,
+  manifest: SchemaManifest,
+): Promise<void> {
+  const inspection = await inspectHallSchemaUpgrade(runtime.codeMoniker, client, runtime.target, manifest);
+  const materialized = inspection.verdicts[0];
+  if (!materialized.comparison.isomorphic) {
+    throw new SchemaContractError(
+      `Delivered Hall manifest does not match its PostgreSQL materialization: ${comparisonSummary(materialized.comparison)}`,
+      manifest.fingerprint,
+    );
+  }
+  const plan = planHallSchemaUpgrade(inspection.installedCatalog, inspection.targetCatalog);
+  const roles = manifest.entries.find((entry) => entry.path === "sql/000-cluster-roles.sql");
+  if (!roles) throw new Error("Hall schema manifest has no cluster roles entry");
+  await client.query(roles.sql);
+  const schemaOwner = await hallSchemaOwner(client);
+  if (schemaOwner === "hall_owner") await client.query("SET LOCAL ROLE hall_owner");
+  for (const statement of plan.statements) {
+    try {
+      await client.query(statement.sql);
+    } catch (error) {
+      const preserved = preservePostgresError(error);
+      if (!(preserved instanceof HallPostgresError)) {
+        throw new Error(
+          `PostgreSQL schema upgrade failed at ${statement.kind} ${statement.identity}: ${preserved.message}`,
+          { cause: preserved },
+        );
+      }
+      throw new HallPostgresError(
+        `PostgreSQL schema upgrade failed at ${statement.kind} ${statement.identity}: ${preserved.message}`,
+        {
+          sqlState: preserved.sqlState,
+          constraint: preserved.constraint,
+          table: preserved.table,
+          column: preserved.column,
+          detail: preserved.detail,
+          schema: preserved.schema,
+        },
+        preserved,
+      );
+    }
+  }
+  const upgraded = await verifyUpgradedHallSchema(runtime.codeMoniker, client, inspection.targetDocuments);
+  if (!upgraded.comparison.isomorphic) {
+    throw new SchemaContractError(
+      `Hall schema upgrade did not converge: ${comparisonSummary(upgraded.comparison)}`,
+      manifest.fingerprint,
+    );
+  }
+  await client.query("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hall, hall_api FROM PUBLIC");
+  const grants = manifest.entries.find((entry) => entry.path === "sql/900-grants.sql");
+  if (!grants) throw new Error("Hall schema manifest has no operational grants entry");
+  await client.query(grants.sql);
+  await client.query("UPDATE hall_meta.schema_contract SET manifest_sha256 = $1 WHERE singleton", [
+    manifest.fingerprint,
+  ]);
+}
+
+async function hallSchemaOwner(client: PoolClient): Promise<string | null> {
+  const result = await client.query<{ owner: string }>(
+    `SELECT pg_catalog.pg_get_userbyid(namespace.nspowner) AS owner
+     FROM pg_catalog.pg_namespace AS namespace
+     WHERE namespace.nspname = 'hall'`,
+  );
+  return result.rows[0]?.owner ?? null;
+}
+
+function comparisonSummary(comparison: {
+  onlyInBase: readonly unknown[];
+  onlyInHead: readonly unknown[];
+  changed: readonly unknown[];
+  references: readonly unknown[];
+  diagnostics: readonly unknown[];
+}): string {
+  return JSON.stringify({
+    onlyInInstalled: comparison.onlyInBase,
+    onlyInTarget: comparison.onlyInHead,
+    changed: comparison.changed,
+    references: comparison.references,
+    diagnostics: comparison.diagnostics,
+  });
 }
 
 async function executeManifest(client: PoolClient, manifest: SchemaManifest): Promise<void> {
@@ -108,6 +166,7 @@ export class PostgresSchemaBootstrap {
   constructor(
     private readonly pool: Pool,
     private readonly manifestProvider: ManifestProvider = loadSchemaManifest,
+    private readonly upgradeRuntimeProvider: UpgradeRuntimeProvider = defaultUpgradeRuntimeProvider(pool),
   ) {}
 
   async install(): Promise<BootstrapResult> {
@@ -118,11 +177,18 @@ export class PostgresSchemaBootstrap {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended('hall.schema.install', 0))");
       const existingFingerprint = await schemaContractFingerprint(client);
       if (existingFingerprint) {
-        if (!(await migrateContactCallContext(client, existingFingerprint, manifest))) {
-          assertMatchingFingerprint(existingFingerprint, manifest.fingerprint);
+        if (existingFingerprint === manifest.fingerprint) {
+          await client.query("COMMIT");
+          return "verified";
+        }
+        const runtime = await this.upgradeRuntimeProvider(manifest);
+        try {
+          await executeUpgrade(client, runtime, manifest);
+        } finally {
+          await runtime.close();
         }
         await client.query("COMMIT");
-        return "verified";
+        return "upgraded";
       }
 
       await assertDatabaseHasNoHallModel(client, manifest.fingerprint);
@@ -173,4 +239,14 @@ export class PostgresSchemaBootstrap {
       client.release();
     }
   }
+}
+
+function defaultUpgradeRuntimeProvider(pool: Pool): UpgradeRuntimeProvider {
+  return async (manifest) => {
+    const connectionString = (pool.options as { connectionString?: unknown }).connectionString;
+    if (typeof connectionString !== "string" || connectionString.length === 0) {
+      throw new Error("Hall schema upgrade requires a PostgreSQL connection string");
+    }
+    return openHallSchemaUpgradeRuntime(connectionString, manifest);
+  };
 }

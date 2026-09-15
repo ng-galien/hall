@@ -1,7 +1,7 @@
 -- Entity: one immutable declaration that a meeting attendance takes part in a
 -- particular ballot. Existence of the row is the participation fact; there is
 -- no participation status.
-CREATE TABLE ballot_participation (
+CREATE TABLE hall.ballot_participation (
   id UUID PRIMARY KEY,
   ballot UUID NOT NULL REFERENCES ballots (id),
   meeting_attendance UUID NOT NULL REFERENCES meeting_attendance (id),
@@ -20,7 +20,7 @@ CREATE TABLE ballot_participation (
 -- @technical-requirement HALL-TR-CON-050 BALLOT_PARTICIPATION_CYCLE_IS_ATOMIC:
 -- Deferred referential validation permits the cyclic ballot and participation
 -- facts to be created atomically in one transaction.
-ALTER TABLE ballots
+ALTER TABLE hall.ballots
   ADD FOREIGN KEY (chairman)
   REFERENCES ballot_participation (id)
   DEFERRABLE INITIALLY DEFERRED;

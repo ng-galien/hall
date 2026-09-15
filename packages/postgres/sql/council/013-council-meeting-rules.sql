@@ -2,7 +2,7 @@
 -- physically present members establish the
 -- council meeting quorum. Represented members remain voting attendances but do
 -- not increase this count.
-CREATE FUNCTION council_meeting_present_member_count(target_meeting UUID)
+CREATE FUNCTION hall.council_meeting_present_member_count(target_meeting UUID)
 RETURNS INTEGER
 LANGUAGE sql
 STABLE

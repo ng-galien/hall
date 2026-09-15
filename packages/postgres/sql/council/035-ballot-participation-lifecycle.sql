@@ -1,7 +1,7 @@
 -- Lifecycle and cross-entity invariants: a participation is inserted only into
 -- an open ballot, is immutable, belongs to the agenda item's meeting, and refers
 -- only to a present or represented attendance declaration.
-CREATE FUNCTION enforce_ballot_participation_lifecycle()
+CREATE FUNCTION hall.enforce_ballot_participation_lifecycle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
@@ -106,13 +106,13 @@ END;
 $$;
 
 CREATE TRIGGER ballot_participation_enforce_lifecycle
-BEFORE INSERT OR UPDATE OR DELETE ON ballot_participation
+BEFORE INSERT OR UPDATE OR DELETE ON hall.ballot_participation
 FOR EACH ROW
 EXECUTE FUNCTION enforce_ballot_participation_lifecycle();
 
 -- @technical-requirement HALL-TR-INT-040 TRUNCATE_CANNOT_BYPASS_PARTICIPATION_IMMUTABILITY:
 -- Statement-level deletion cannot bypass participation immutability.
 CREATE TRIGGER ballot_participation_reject_truncate
-BEFORE TRUNCATE ON ballot_participation
+BEFORE TRUNCATE ON hall.ballot_participation
 FOR EACH STATEMENT
 EXECUTE FUNCTION enforce_ballot_participation_lifecycle();
