@@ -181,7 +181,7 @@ minimal, `CTX-040` désigne l’accès runtime par API uniquement. Les trois anc
 ```sh
 npm run check:requirements
 npm run test:requirements
-bash packages/postgres/sql/council/test/verify-traceability.sh
+npx vitest run --config tests/postgres/vitest.config.ts tests/postgres/traceability.test.mjs
 npm run test:council -w @hall/postgres -- 17-agenda-item-recusals.test.sql
 ```
 

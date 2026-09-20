@@ -1,4 +1,4 @@
-import { liveEventSchema, type LiveEvent } from "@hall/api-contract";
+import { type LiveEvent, liveEventSchema } from "@hall/api-contract";
 
 type LiveTopic = { kind: "meeting" | "resource"; id: string };
 

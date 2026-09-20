@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 import { expect, it } from "vitest";
 
 const execute = promisify(execFile);
-const script = fileURLToPath(new URL("../scripts/seed-dev.mjs", import.meta.url));
+const script = fileURLToPath(new URL("../../../scripts/seed/seed-dev.mjs", import.meta.url));
 const invalidServer = { ...process.env, SEED_API: "http://127.0.0.1:1/api" };
 
 it("lists available datasets and meeting scenarios without connecting to a server", async () => {

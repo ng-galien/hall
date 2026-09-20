@@ -38,8 +38,8 @@ Hall et déclarer la suivante tant qu’il reste du travail.
 
 Les sept lectures utilisent une [Operation commune](sources-read.operation.feature).
 Elles chargent du contexte ; elles ne prouvent pas sa compréhension.
-Les autres points utilisent l’[Operation bornée](coordination.operation.feature)
-et [son script](coordinate.mjs). Les modes sont distincts, les Checks aussi.
+Les autres points utilisent l’Operation publiée dans TRUST. Son exécution
+appartient à l’Operation ; Hall ne conserve pas de script propre à cette mission.
 
 Le script d’identité ne lit ni environnement de processus, ni configuration
 privée, ni contenu métier. Il corrèle le PID de l’API avec le tmux partagé,

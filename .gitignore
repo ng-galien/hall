@@ -18,12 +18,10 @@ packages/client/test-results/
 
 # Local production evidence and credentials must never enter the public repository.
 /docs/operations/
-/scripts/hall-mcp-headers.mjs
 *.dump
 *.backup
 *.pgdump
 *.sql.gz
-/-.png
 
 # Local Codex configuration and TRUST Runner log
 /.codex/config.toml

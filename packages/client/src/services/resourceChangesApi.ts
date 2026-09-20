@@ -1,4 +1,4 @@
-import { resourceChangesSchema, type ResourceChanges, type SirenEntity } from "@hall/api-contract";
+import { type ResourceChanges, resourceChangesSchema, type SirenEntity } from "@hall/api-contract";
 import { followSirenLink } from "./apiClient";
 
 export async function openResourceChanges(representation: SirenEntity): Promise<ResourceChanges> {

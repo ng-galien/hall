@@ -55,8 +55,8 @@ import type {
 } from "../../../models/liveMeeting";
 import { agendaItemDecisionId, pendingBallotDecisions } from "../ballotDecisionPolicy";
 import { councilMemberName } from "../ballotParticipants";
-import { VotePanel } from "./VotePanel";
 import { useConductAgendaSelection } from "./useConductAgendaSelection";
+import { VotePanel } from "./VotePanel";
 
 const RAIL_WIDTH_KEY = "mairie.live.railWidth";
 const RAIL_MIN_WIDTH = 280;
@@ -115,15 +115,8 @@ export function ConductView({
   const { t, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const navigate = useNavigate();
-  const {
-    orderedItems,
-    activeItem,
-    nextItem,
-    selectedItem,
-    setSelectedItemId,
-    openingSelected,
-    setOpeningSelected,
-  } = useConductAgendaSelection(aggregate.agendaItems, meetingActions.liveRevision);
+  const { orderedItems, activeItem, nextItem, selectedItem, setSelectedItemId, openingSelected, setOpeningSelected } =
+    useConductAgendaSelection(aggregate.agendaItems, meetingActions.liveRevision);
   const [adjournConfirming, setAdjournConfirming] = useState(false);
   const [ballotActionContainer, setBallotActionContainer] = useState<HTMLDivElement | null>(null);
   const [notes, setNotes] = useState("");

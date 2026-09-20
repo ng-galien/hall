@@ -3,8 +3,8 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { Pool } from "pg";
 import { expect, it } from "vitest";
-import { startHttpServer } from "../src/server.js";
 import { resetPostgresTestDatabase } from "../src/__tests__/support/postgresTestDatabase.js";
+import { startHttpServer } from "../src/server.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const postgresTest = databaseUrl ? it : it.skip;
@@ -26,7 +26,7 @@ postgresTest.each(["preparation", "default", "minutes"])(
       const result = await execute(
         process.execPath,
         [
-          fileURLToPath(new URL("../scripts/seed-dev.mjs", import.meta.url)),
+          fileURLToPath(new URL("../../../scripts/seed/seed-dev.mjs", import.meta.url)),
           ...(scenario === "preparation" ? [] : ["--dataset", "alesia", "--scenario", scenario]),
         ],
         {
@@ -59,11 +59,13 @@ postgresTest.each(["preparation", "default", "minutes"])(
       });
       const contacts = await get("/contacts");
       expect(contacts).toHaveLength(17);
-      expect(contacts).toEqual(expect.arrayContaining([
-        expect.objectContaining({ firstName: "Merlin", lastName: "l’Enchanteur" }),
-        expect.objectContaining({ firstName: "Jules", lastName: "César" }),
-        expect.objectContaining({ firstName: "Vercingétorix", lastName: "l’Arverne" }),
-      ]));
+      expect(contacts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ firstName: "Merlin", lastName: "l’Enchanteur" }),
+          expect.objectContaining({ firstName: "Jules", lastName: "César" }),
+          expect.objectContaining({ firstName: "Vercingétorix", lastName: "l’Arverne" }),
+        ]),
+      );
       expect(JSON.stringify(contacts)).not.toMatch(/Delcourt|Lefèvre|Préfecture|Perrin/);
       expect(businesses).toHaveLength(8);
       const names = businesses.map((business: { title: string }) => business.title);

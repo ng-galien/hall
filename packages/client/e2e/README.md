@@ -7,6 +7,14 @@ allocates two free loopback ports, and clears the test data when Playwright
 exits. It never opens an interactive browser profile or uses the development
 database.
 
+All browser-test infrastructure is contained in this directory: the runner,
+Playwright configuration, fixtures and scenarios. The complete invocation is
+stopped after ten minutes, including its server processes.
+
+The regular suite uses two lanes. Both lanes share the single `postgres-test`
+server, but each uses its own database, Hall process, Vite process and ports.
+Focused runs use one lane unless `HALL_E2E_LANES` requests two to four lanes.
+
 Install the Chromium runtime once after installing dependencies:
 
 ```sh

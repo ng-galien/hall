@@ -1,7 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 
-root="${CODEX_PROJECT_DIR:-$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)}"
+hook_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+root="${CODEX_PROJECT_DIR:-$hook_root}"
 cd "$root"
 
 input_file=$(mktemp "${TMPDIR:-/tmp}/code-moniker-hook.XXXXXX")
@@ -29,7 +30,7 @@ while IFS= read -r file; do
 	[ -f "$existing_file" ] || continue
 	case "$existing_file" in
 		*.ts|*.tsx|*.mts|*.cts)
-			if ! node scripts/check-exhaustive-dispatch.mjs "$existing_file" >&2; then
+			if ! HALL_DISPATCH_FILE="$existing_file" "$hook_root/node_modules/.bin/vitest" run "$hook_root/tests/meta/exhaustive-dispatch.test.mjs" --root "$hook_root" >&2; then
 				exit 2
 			fi
 			;;

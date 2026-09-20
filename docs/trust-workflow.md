@@ -1,185 +1,53 @@
-# TRUST feature delivery workflow
+# Livraison d'une fonctionnalité Hall avec TRUST
 
-For the project-wide adoption path and the distinction between Hall's
-requirements, Git, Maket and TRUST history, see the
-[TRUST adoption guide](trust-adoption.md).
+Ce workflow commence après approbation du périmètre. Lire d'abord la
+[carte opérationnelle](trust-operations.md) et les
+[méthodes TRUST de Hall](trust-adoption.md).
 
-Use this workflow when a feature is assigned through TRUST with a living Maket
-review document. Make the complete intended behavior visible before implementing
-it, then account for every agreed requirement at delivery.
+## Parcours
 
-For the next Hall feature Plan, author its Procedure and inline child Procedures
-with TRUST's `@intent-chaining` tag. Read the current intent from the Plan before
-each Check, supply that exact intent to the Runner, and declare the next concrete
-intent while work remains. Omit the next intent only for the final Check. Check
-prerequisites and nested missions alone do not provide intention chaining. Keep
-the approved scope and human review gates; this rule does not change completed
-Plans or authorize engagement of a new one.
+1. Lire les exigences concernées dans le
+   [catalogue](../requirements/catalog.json), leurs critères, leur cycle de vie
+   et leurs sources. Enregistrer toute clarification approuvée avant de coder.
+2. Créer ou réutiliser un seul document Maket selon le
+   [contrat du document vivant](living-feature-document.md). Il présente le
+   périmètre, les décisions, les inconnues et le comportement attendu.
+3. Définir la Procedure de livraison et ses missions inline à partir des
+   propriétaires et contrats réels. Utiliser `@intent-chaining` et reprendre
+   l'intention exacte du Plan à chaque Check.
+4. Faire approuver le périmètre présenté. La complétude du document et l'accord
+   du propriétaire sont deux conditions distinctes.
+5. Implémenter par propriétaire. Choisir les contrôles ciblés dans la
+   [carte des contrôles](trust-verification-map.md), puis appliquer les contrôles
+   plus larges imposés par [`AGENTS.md`](../AGENTS.md).
+6. Alimenter le même document Maket avec les résultats réellement observés,
+   leur provenance, les échecs et le reste à faire. L'Operation porte cette
+   exécution; Hall ne crée pas de script propre à la mission.
+7. Livrer le Plan, le document, les exigences couvertes, les contrôles exécutés
+   et les décisions encore ouvertes. Commit, publication et déploiement gardent
+   chacun leur autorisation.
 
-This is the agreed workflow specification. Its Operations and Procedure still
-need to be authored and verified before execution; this guide does not publish
-or engage them.
+## Conditions de livraison
 
-## 1. Declare the feature requirements
-
-Read the relevant entries in [the requirement catalog](../requirements/catalog.json)
-and their acceptance criteria, lifecycle and clauses. Inspect the existing code,
-tests and interface conventions. Find available facts yourself.
-
-Declare the complete requirement set for the mission. Include stable identifiers,
-expected behavior and acceptance criteria. Distinguish existing requirements,
-proposed additions, explicit exclusions and decisions awaiting the user.
-For a resource screen, examine its whole relevant lifecycle, including deletion
-or archiving where appropriate, instead of reducing the request to a form.
-
-Use focused questions and recommended answers to resolve product choices.
-Record approved additions or changes in the catalog before implementation.
-The catalog remains the requirement authority; the Plan carries the mission's
-selected scope and the document presents it. Use supported Plan declarations,
-inputs or metadata after reading their actual schemas.
-
-## 2. Prepare one living Maket document
-
-The living document is the shared feature tracking surface, not a separately
-authored narrative for each iteration. Follow the
-[living feature document contract](living-feature-document.md): preserve typed
-requirements, decisions, reviews, missions and evidence; project them through
-Operations and render the same data on every page. The rejected temporary schema has been removed; no shared-schema migration
-is implied.
-
-Create or reuse one document for the feature through Maket's available MCP tools.
-Present every declared requirement with its identifier, expected user behavior
-and acceptance criteria. Add a sketch, prototype or concrete example where it
-helps the user understand the intended result. Clearly label proposed screens.
-Show exclusions and unresolved decisions explicitly.
-
-Keep this same document throughout the mission. It first explains what will be
-built, then shows what was delivered and verified. Reference the catalog instead
-of maintaining independently editable requirement definitions in Maket.
-
-## 3. Check that the document is ready for review
-
-Author an Operation that reads the actual Maket document and produces observations
-about its identity, observed version or content digest, requirement identifiers,
-and required content present or missing. Compare the document with the complete
-declared requirement set in the Procedure's qualification expressions.
-
-A document-readiness Check is satisfied only when the document is accessible and
-covers every declared requirement with the agreed review content. Return missing
-items explicitly. An agent's statement that the document is finished is insufficient.
-Structural completeness does not establish visual quality or product agreement.
-
-Operations may also create or update the document and report the resulting state.
-Use Maket's supported interfaces. TRUST currently delegates Shell or HTTP
-Operations to its Runner: if the action needs MCP, provide and verify the client
-invocation within that execution contract; do not invent a native MCP Operation
-kind or assume the Runner inherits the conversational agent's tools.
-
-## 4. Review the document with the user
-
-Present the document link once it is ready. Let the user inspect the expected
-behavior, discuss choices and request adjustments. Update the requirements and
-document consistently, then repeat the readiness Check for the revised content.
-
-Begin implementation after the user agrees to the presented scope. Document
-readiness and approval to implement are separate conditions. Record the actual
-agreement and the scope/document version it covers through an available,
-verified mechanism; do not treat an agent declaration as human approval or
-claim a runtime approval gate exists before it is implemented.
-
-## 5. Implement and keep the document current
-
-Implement the agreed requirements and their tests. Preserve unrelated work and
-follow [Hall's agent guide](../AGENTS.md). Escalate a required product or scope
-change rather than dropping a requirement, weakening a test or changing behavior
-to make a check pass.
-
-For a delegated review or implementation mission, include the relevant upstream
-Plan decisions and contracts in its context and check that the agent has read
-them. Record findings, their evidence, and their resolution in the same living
-document. A downstream agent must not reopen a decided question or invent a
-replacement contract. In particular, a frontend mission consumes the HTTP/Siren
-representation and its authorized actions; the server owns permission checks
-and any resource-command routing. In a design review, judge the sufficiency of
-the **planned** upstream contract for the agreed interface, even if no backend
-code has been written yet. Missing implementation is delivery work, not a
-contract-design conflict. When the planned contract omits data or an action the
-interface requires, record the exact gap and its impact in the living document
-and return it to the upstream HTTP/Siren mission. Escalate to the user only a genuine unresolved product conflict,
-not a question already decided upstream or a technical choice owned by another
-layer. A review Check records these findings but never counts as delivery.
-
-After each relevant Check, read TRUST's accepted result and update the same Maket
-document. Show the actual delivered behavior, implementation and test references,
-verification results, failures and remaining work for each requirement.
-Distinguish intended mockups from observed application results. Follow Hall's
-instructions for browser tests and visual verification.
-
-Use Operations to update or verify the document where those Operations have been
-implemented. TRUST owns qualification; neither the agent nor the Runner assigns
-its verdict. A document update failure leaves the document visibly stale, not
-the Plan falsely successful. Preserve the agreed scope through these updates;
-material changes return to review before the affected implementation continues.
-
-## 6. Run the delivery Checks
-
-The Procedure must account for these outcomes across the entire agreed scope:
-
-| Check | Required observation |
+| Contrôle | Résultat attendu |
 | --- | --- |
-| Requirements registered | Every agreed requirement exists in the canonical catalog with the agreed acceptance criteria. |
-| Implementation coverage | Every agreed requirement has an implementation reference in production code. |
-| Test coverage | Every agreed requirement has a corresponding verification reference in tests. |
-| Behavioral verification | The relevant tests and required project checks actually ran and succeeded on the delivered code. |
-| Document current | The living document covers the agreed scope and reflects the recorded delivery and verification results. |
+| Exigences | Chaque comportement accepté existe dans le catalogue. |
+| Implémentation | Chaque exigence possède une référence vers le code de production. |
+| Vérification | Chaque exigence possède une référence vers un test pertinent. |
+| Exécution | Les contrôles adaptés ont réellement réussi sur le candidat livré. |
+| Document | Maket reflète le même périmètre et les résultats actuels. |
 
-Reuse the existing `npm run check:requirements` script for catalog and annotation
-consistency. Its successful exit alone does not establish complete coverage of
-the selected requirements. Its coverage totals describe references, not executed
-tests. Observe the per-requirement results and report missing implementations or
-tests separately; run the applicable project test commands for behavioral results.
+`npm run check:requirements` contrôle les références; il ne prouve pas à lui
+seul le comportement. Un Check TRUST n'est satisfait que par les observations
+acceptées selon sa Procedure.
 
-Code Moniker can supply verified rules where applicable. A native rule joining
-the current catalog and requirement annotations has not yet been demonstrated.
-Keep the working script until a replacement has been tested. Do not add a second
-requirement registry or change tests merely to obtain a successful verdict.
+## Runner installé
 
-An Operation collects the actual results into its declared Produced schema; the
-Procedure qualifies them. A command that crashes or yields no accepted Facts is
-not a successful Check. Never fabricate an observation to advance the Plan.
-
-## 7. Deliver the reviewable result
-
-Provide the Maket document link and the TRUST Plan reference, together with the
-requirements delivered, test outcomes, remaining failures and unresolved choices.
-the user can compare the delivered behavior with the scope reviewed before
-implementation. Commit, publish or deploy only when authorized.
-
-## Connection and operational references
-
-The project `.codex/config.toml` enables TRUST at
-`http://127.0.0.1:4498/mcp`, overriding the disabled global entry. Reuse this
-existing server. Do not create another runtime or database. Maket is configured
-globally; verify access in the current session. Reopen a session if it has not
-loaded the project MCP configuration.
-
-Discover TRUST tools and call `trust_procedure_list` to verify access. Locate
-`agents/SKILL` with `trust_documentation_list`, read it with
-`trust_documentation_read`, and follow the relevant references and page cursors.
-Read an assigned Plan before acting and use the packaged Runner guidance for
-Check execution. Read the Maket skill and call `maket_learn` before operating it.
-Use the user's actual authorization for authoring, publication, engagement and
-host dispatch; this workflow does not automatically authorize those actions.
-
-### Installed Runner connection
-
-The Runner is deployed at `.agents/skills/trust`. From the mairie root, use:
+Depuis la racine de Hall, exécuter uniquement l'URI fournie par TRUST :
 
 ```sh
-npm run trust:run -- '<supplied-check-uri>' --json
+npm run trust:run -- '<uri-du-check>' --json
 ```
 
-`.trust/runner.env` configures RPC and Fact export on port 4498, matching the
-project MCP server. The Runner does not read the Codex MCP configuration.
-Without these variables it defaults to port 4318. Preserve this project-specific
-invocation when following the packaged Runner skill.
+Le Runner lit `.trust/runner.env`. Le MCP du projet est configuré dans
+`.codex/config.toml`. Ne reconstituer ni l'URI ni les endpoints.

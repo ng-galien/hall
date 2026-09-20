@@ -20,5 +20,3 @@ Commandes :
 - `npm run test:lifecycle` : matrices, séquences, atteignabilité et politiques associées ;
 - `npm run test:lifecycle:mutation` : mutation ciblée des quatre machines ;
 - `npm run test:ballot` et `npm run test:ballot:mutation` : protections distinctes du scrutin, dont les gardes dépendent des données de participation.
-
-Un modèle TLA+ supplémentaire n’est pas utilisé ici : ces quatre machines n’ont ni concurrence interne ni état composé. La matrice complète constitue déjà une preuve exhaustive de leur fonction de transition. Les interleavings transactionnels restent testés dans les services qui orchestrent plusieurs machines.

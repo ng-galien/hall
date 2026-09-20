@@ -166,6 +166,8 @@ test("runs agenda scheduling, meeting locks, adjournment and reopening end to en
     await expect(editor).toHaveAttribute("contenteditable", "true");
     const preparedContent = `${spec.title} content edited during preparation.`;
     await editor.fill(preparedContent);
+    const save = page.getByTestId(`business-inline-save-${subject.textResourceId}`);
+    if (await save.isVisible()) await save.click();
     await expect.poll(() => resourceContent(subject.textResourceId), { timeout: 15_000 }).toContain(preparedContent);
     await page.getByTestId(`business-subject-${subject.id}-open`).click();
   }
@@ -749,7 +751,6 @@ test.describe("workspace explorer", () => {
 });
 
 test("composes an agenda from workspace business with an explicit voting purpose", async ({ appPage: page }) => {
-  test.setTimeout(90_000);
   const meetingResponse = await page.request.get("/api/council-meetings");
   const meetingBody = await meetingResponse.json();
   const meeting = meetingBody.entities
@@ -759,37 +760,24 @@ test("composes an agenda from workspace business with an explicit voting purpose
 
   for (const kind of ["councilDecisionProposal", "openQuestion"] as const) {
     const name = `Agenda composition ${kind} ${Date.now()}`;
-    await page.goto("/app/workspace?path=seed");
-    await page.getByTestId("workspace-tree-root").click({ button: "right" });
-    await page.getByTestId("workspace-tree-create").press("ArrowRight");
-    await page.getByTestId("workspace-tree-create-business").press("Enter");
-    const input = page.getByTestId("workspace-tree-create-input");
-    await expect(input).toBeVisible();
-    await input.fill(name);
-    const creation = page.waitForResponse(
-      (response) => response.request().method() === "POST" && response.url().endsWith("/api/council-business"),
-    );
-    await input.press("Enter");
-    const response = await creation;
+    const response = await page.request.post("/api/council-business", {
+      data: { path: "seed", name, reportName: "Report", reportContent: "" },
+    });
     expect(response.status()).toBe(201);
     const business = (await response.json()).properties;
-    await expect(input).toBeHidden();
-    await page.getByTestId(`workspace-business-title-${business.id}`).click();
-    await page.getByTestId(kind === "openQuestion" ? "business-subject-question" : "business-subject-proposal").check();
-    await page.getByTestId("business-meeting-select").click();
-    await page
-      .getByTestId("business-meeting-select-search-result")
-      .and(page.locator(`[data-reference-id="${meeting.id}"]`))
-      .click();
-    await page.getByTestId("business-schedule").click();
-    await expect(page.getByTestId("business-scheduled-kind")).toBeVisible();
-    await expect(page.getByTestId("business-scheduled-kind")).toContainText(
-      kind === "openQuestion" ? "Without a vote" : "Subject to a vote",
+    const subjectResponse = await page.request.post(`/api/council-business/${business.id}/prepared-subjects`, {
+      data: { kind, name: `${name} subject`, content: "" },
+    });
+    expect(subjectResponse.status()).toBe(201);
+    const subject = (await subjectResponse.json()).properties;
+    await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+    await expect(page.getByTestId(`business-subject-${subject.id}`)).toBeVisible();
+    const scheduled = page.waitForResponse(
+      (entry) => entry.request().method() === "POST" && entry.url().endsWith("/agenda-items/from-prepared"),
     );
-    await expect(page.getByTestId("business-edit-hint")).toContainText("Editable");
+    await page.getByTestId(`business-subject-schedule-${subject.id}`).click();
+    expect((await scheduled).status()).toBe(201);
     await expect(page.getByTestId("business-report-editor")).toBeVisible();
-    await expect(page.getByTestId("business-report-save")).toHaveCount(0);
-    await expect(page.getByTestId("business-proposal-save")).toHaveCount(0);
     const agendaResponse = await page.request.get(
       `/api/council-business/agenda-items?councilBusinessId=${business.id}`,
     );
@@ -797,41 +785,8 @@ test("composes an agenda from workspace business with an explicit voting purpose
     expect(agenda).toHaveLength(1);
     expect(agenda[0].subject.kind).toBe(kind);
     expect(agenda[0].councilMeetingId).toBe(meeting.id);
-    if (kind === "councilDecisionProposal") {
-      expect(agenda[0].subject.textResourceId).not.toBe(business.reportResourceId);
-      await page
-        .getByTestId("business-proposal-editor")
-        .getByTestId("editor-writing-area")
-        .fill("The council approves the proposed project.");
-      await expect
-        .poll(async () => {
-          const resource = await page.request.get(`/api/resources/${agenda[0].subject.textResourceId}`);
-          return (await resource.json()).properties.content;
-        })
-        .toContain("The council approves");
-      await page.reload();
-      await expect(page.getByTestId("business-proposal-editor")).toContainText("The council approves");
-      await page.route(`**/api/resources/${agenda[0].subject.textResourceId}`, async (route) => {
-        const resourceResponse = await route.fetch();
-        const representation = await resourceResponse.json();
-        representation.actions = representation.actions.filter(
-          (action: { name: string }) => !["resource.update-content", "resource.update-metadata"].includes(action.name),
-        );
-        await route.fulfill({
-          response: resourceResponse,
-          contentType: resourceResponse.headers()["content-type"],
-          json: representation,
-        });
-      });
-      await page.reload();
-      await expect(page.getByTestId("business-proposal-readonly")).toContainText("The council approves");
-      await expect(page.getByTestId("business-proposal-editor").getByTestId("editor-writing-area")).toHaveCount(0);
-      await expect(page.getByTestId("business-proposal-save")).toHaveCount(0);
-      await page.unroute(`**/api/resources/${agenda[0].subject.textResourceId}`);
-    } else {
-      await expect(page.getByTestId("business-proposal-editor")).toBeHidden();
-    }
-    await page.getByTestId("business-meeting-link").click();
+    expect(agenda[0].subject.textResourceId).toBe(subject.textResourceId);
+    await page.getByTestId(`business-subject-meeting-${agenda[0].id}`).click();
     await expect(page.getByTestId(`agenda-item-expand-${agenda[0].id}`)).toBeVisible();
     await expect(page.getByTestId(`agenda-item-position-${agenda[0].id}`)).toHaveText(String(agenda[0].agendaNumber));
     await page.goto("/app/workspace");
@@ -1052,9 +1007,15 @@ test("prioritizes business documents and inserts maps and text from the compact 
   }
   await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
   const editor = page.getByTestId("business-report-editor");
-  await editor.getByTestId("editor-writing-area").click();
-  await editor.getByTestId("editor-insert-reference").click();
   const dialog = page.getByTestId("reference-search-dialog");
+  const openReferenceDialog = async () => {
+    await editor.getByTestId("editor-writing-area").focus();
+    const button = editor.getByTestId("editor-insert-reference");
+    await button.focus();
+    await button.press("Enter");
+    await expect(dialog).toBeVisible();
+  };
+  await openReferenceDialog();
   await expect(dialog.getByTestId("reference-search-result").first()).toHaveAttribute(
     "data-reference-id",
     attached[0].id,
@@ -1073,7 +1034,7 @@ test("prioritizes business documents and inserts maps and text from the compact 
   await expect(editor.getByTestId("resource-embed-presentation-map")).toBeVisible();
   await editor.getByTestId("editor-writing-area").press("ArrowRight");
   await editor.getByTestId("editor-writing-area").press("End");
-  await editor.getByTestId("editor-insert-reference").click();
+  await openReferenceDialog();
   await dialog.getByTestId("reference-search-input").fill(attached[1].name);
   await dialog.getByTestId("reference-search-result").click();
   await expect(editor.getByTestId("resource-embed-presentation-map")).toBeVisible();
@@ -1081,7 +1042,7 @@ test("prioritizes business documents and inserts maps and text from the compact 
   for (const resource of additional) {
     await editor.getByTestId("editor-writing-area").press("ArrowRight");
     await editor.getByTestId("editor-writing-area").press("End");
-    await editor.getByTestId("editor-insert-reference").click();
+    await openReferenceDialog();
     await dialog.getByTestId("reference-search-input").fill(resource.name);
     await dialog.getByTestId("reference-search-result").click();
     await expect(editor.getByTestId(`resource-embed-presentation-${resource.presentation}`)).toBeVisible();

@@ -57,23 +57,23 @@ qui le possède, jamais depuis un worktree pour remplacer le runtime partagé.
 
 ## Organisation du code
 
-Les fichiers sont dans [packages/server/scripts](../packages/server/scripts/) :
+Les fichiers sont dans [`scripts/seed/`](../scripts/seed/) :
 
 | Emplacement | Responsabilité |
 | --- | --- |
 | `seed-dev.mjs` | Lire la sélection, vérifier le catalogue et la base vide, appeler le jeu puis le scénario |
-| `seeds/catalog.mjs` | Catalogue unique des jeux, descriptions et scénarios acceptés ; catalogue des scénarios |
-| `seeds/common/api.mjs` | Client HTTP injecté, décodage Siren, créations et imports de ressources |
-| `seeds/common/empty-database.mjs` | Vérification préalable des collections existantes, sans suppression |
-| `seeds/common/files.mjs` | Fabrication des fichiers d'exemple PDF, PNG, DOCX et XLSX |
-| `seeds/common/dates.mjs` | Dates relatives utilisées pour les donnéess |
-| `seeds/datasets/alesia/index.mjs` | Orchestration du contenu d'Alésia et correspondance entre ses sujets et les rôles du scénario |
-| `seeds/datasets/alesia/directory.mjs` | Paramètres, élus, contacts externes, commissions, comptes |
-| `seeds/datasets/alesia/resources.mjs` | Catalogue documentaire, exemples de formats, imports et calendrier |
-| `seeds/datasets/alesia/businesses.mjs` | Affaires, projets/questions et associations explicites aux pièces |
-| `seeds/datasets/alesia/templates.mjs` | Templates du jeu, dont les en-têtes Alésia |
-| `seeds/scenarios/preparation.mjs` | Création de la séance future vide |
-| `seeds/scenarios/history.mjs` | Parcours historique partagé par `default` et `minutes`, via les API |
+| `data/catalog.mjs` | Catalogue unique des jeux, descriptions et scénarios acceptés ; catalogue des scénarios |
+| `data/common/api.mjs` | Client HTTP injecté, décodage Siren, créations et imports de ressources |
+| `data/common/empty-database.mjs` | Vérification préalable des collections existantes, sans suppression |
+| `data/common/files.mjs` | Fabrication des fichiers d'exemple PDF, PNG, DOCX et XLSX |
+| `data/common/dates.mjs` | Dates relatives utilisées pour les données |
+| `data/datasets/alesia/index.mjs` | Orchestration du contenu d'Alésia et correspondance entre ses sujets et les rôles du scénario |
+| `data/datasets/alesia/directory.mjs` | Paramètres, élus, contacts externes, commissions, comptes |
+| `data/datasets/alesia/resources.mjs` | Catalogue documentaire, exemples de formats, imports et calendrier |
+| `data/datasets/alesia/businesses.mjs` | Affaires, projets/questions et associations explicites aux pièces |
+| `data/datasets/alesia/templates.mjs` | Templates du jeu, dont les en-têtes Alésia |
+| `data/scenarios/preparation.mjs` | Création de la séance future vide |
+| `data/scenarios/history.mjs` | Parcours historique partagé par `default` et `minutes`, via les API |
 
 Les helpers communs ne choisissent pas de jeu. Les scénarios ne connaissent pas
 les noms des élus ou des affaires d'Alésia : le jeu leur fournit les rôles des

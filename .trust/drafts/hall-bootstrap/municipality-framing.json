@@ -1,0 +1,58 @@
+{
+  "documentName": "Hall — Commune — premier cadrage",
+  "request": {
+    "text": "Créer un écran de configuration de la commune, accessible depuis le menu principal. Cet écran doit permettre de lire les données de la commune avec une habilitation de lecture appropriée et de les modifier avec une habilitation distincte. Le serveur et Siren portent les droits. L’écran réutilise les primitives et le style existants de Hall.",
+    "sourceRef": "the user, échange du 20 septembre 2026"
+  },
+  "initialScope": {
+    "text": "Ce premier cadrage identifie les grands domaines concernés avant toute procédure de feature. Il ne définit pas encore tous les champs ni toutes les conséquences techniques et n’autorise aucune implémentation.",
+    "sourceRef": "the user, échange du 20 septembre 2026"
+  },
+  "decisions": [
+    {
+      "author": "the user",
+      "text": "L’écran de configuration de la commune est accessible depuis le menu principal.",
+      "sourceRef": "the user, échange du 20 septembre 2026"
+    },
+    {
+      "author": "the user",
+      "text": "La lecture et la modification des données de la commune relèvent de deux habilitations distinctes.",
+      "sourceRef": "the user, échange du 20 septembre 2026"
+    },
+    {
+      "author": "the user",
+      "text": "Les droits sont pris en compte par le serveur et exposés par Siren.",
+      "sourceRef": "the user, échange du 20 septembre 2026"
+    },
+    {
+      "author": "the user",
+      "text": "L’écran réutilise les primitives et le style existants de Hall.",
+      "sourceRef": "the user, échange du 20 septembre 2026"
+    }
+  ],
+  "proposals": [],
+  "unknowns": [
+    "Quels champs existants de la commune doivent être visibles ?",
+    "Quels champs doivent être modifiables ?",
+    "Quels profils reçoivent l’habilitation de lecture ?",
+    "Quels profils reçoivent l’habilitation de modification ?"
+  ],
+  "domains": {
+    "ui": {
+      "assessment": "concerned",
+      "consequences": "Un écran accessible depuis le menu principal doit être composé avec les primitives et les interactions existantes de Hall."
+    },
+    "sirenRights": {
+      "assessment": "concerned",
+      "consequences": "Les contrats de lecture et de modification sont distincts, autorisés par le serveur et exposés par Siren."
+    },
+    "postgresql": {
+      "assessment": "concerned",
+      "consequences": "Les données existantes de la commune et leur persistance doivent être vérifiées ; aucune donnée nouvelle n’est décidée dans ce cadrage."
+    },
+    "schemaChange": {
+      "assessment": "uncertain",
+      "consequences": "Aucun changement de schéma n’est approuvé ; la clarification doit d’abord vérifier si les données existantes suffisent."
+    }
+  }
+}

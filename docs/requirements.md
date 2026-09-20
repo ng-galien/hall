@@ -245,7 +245,7 @@ pas partager un ID. Le contrôle doit aussi trouver les marqueurs mal formés,
 au lieu de limiter sa collecte aux seules lignes déjà valides.
 
 Au relevé initial du 6 septembre 2026, le
-[script council](../packages/postgres/sql/council/test/verify-traceability.sh)
+[contrôle PostgreSQL](../tests/postgres/traceability.test.mjs)
 lit les `.sql` immédiatement sous `council` et les `.test.sql` immédiatement
 sous `council/test`. Il compare les IDs FR/TR, refuse les duplications, compare
 les SQLSTATE Hall utilisés/catalogués/cités dans les tests, recherche les quatre
@@ -261,7 +261,7 @@ décrite ci-dessous ajoute cette couverture structurelle.
 
 ### État de l'implémentation relue
 
-Le [vérificateur global](../scripts/check-requirements.mjs) et le catalogue sont
+Le [contrôle global](../scripts/checks/check-requirements.mjs) et le catalogue sont
 présents. Le script council l'appelle avant ses propres comparaisons. La
 découverte parcourt récursivement `packages`, pour les fichiers SQL,
 TypeScript/TSX et JavaScript/MJS, en excluant dépendances, distributions et
@@ -296,8 +296,8 @@ Commandes disponibles depuis la racine :
 
 ```sh
 npm run check:requirements
-node --test scripts/check-requirements.test.mjs
-bash packages/postgres/sql/council/test/verify-traceability.sh
+npx vitest run tests/meta/check-requirements.test.mjs
+npx vitest run --config tests/postgres/vitest.config.ts tests/postgres/traceability.test.mjs
 ```
 
 Résultats communiqués par le propriétaire backend le 6 septembre 2026 :

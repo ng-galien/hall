@@ -51,15 +51,6 @@ ne sont pas implémentées.
 - `npm run desktop:make` : fabrication des formats configurés dans Forge.
 - `npm test -w @hall/server -- --run src/__tests__/localServer.test.ts` : données
   jetables, concurrence des lectures, persistance, fermeture et échec de démarrage.
-- `node docs/prototypes/desktop-smoke.mjs` : recette Electron avec répertoires
-  jetables. Un chemin d’exécutable en argument teste une application empaquetée.
-
-La recette de fenêtre crée une ressource par API, vérifie sa présence dans le
-workspace par `data-testid`, quitte et relance pour vérifier sa persistance.
-Elle ouvre ensuite un serveur HTTP témoin dans le mode connecté et vérifie
-l’absence de répertoire PGlite. Elle conserve screenshot et résultat dans le
-répertoire temporaire annoncé. Les anciens prototypes comparatifs sont
-séparés sous `docs/prototypes/` et ne font pas partie du runtime produit.
 
 ## Résultats du 10 septembre 2026
 

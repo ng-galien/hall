@@ -7,7 +7,7 @@
 - `packages/desktop/src/main.ts` : Electron démarre `startLocalHttpServer` avec un répertoire utilisateur PGlite ; mode connecté distinct via configuration serveur.
 - `packages/server/src/core/localServer.ts` et `infrastructure/database/pgliteRuntime.ts` : même serveur Hall, pont PostgreSQL local et moteur PGlite ; pas de serveur PostgreSQL natif dans l'application individuelle.
 - `packages/desktop/forge.config.mjs` : copie client compilé, runtime serveur et Chromium ; makers Squirrel Windows, ZIP macOS, DEB/RPM Linux.
-- `packages/desktop/scripts/package-runtime.mjs` : résolution récursive des dépendances de production ; manifeste du runtime copié ; dépendances natives et Chromium de l'OS et architecture de construction.
+- `packages/desktop/forge.config.mjs` : résolution récursive des dépendances de production ; manifeste du runtime copié ; dépendances natives et Chromium de l'OS et architecture de construction.
 
 ## Vérifications réalisées
 

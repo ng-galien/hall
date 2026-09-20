@@ -12,15 +12,15 @@
     }
   },
   "scripts": {
-    "build": "node ../../scripts/clean-package-dist.mjs && tsc -p tsconfig.json",
+    "build": "rimraf dist && tsc -p tsconfig.json",
     "dev": "cross-env HALL_DEV_AUTO_LOGIN=true nodemon --watch src --ext ts --exec 'node --import tsx src/index.ts'",
     "start": "node dist/index.js",
-    "seed:dev": "node scripts/seed-dev.mjs",
+    "seed:dev": "node ../../scripts/seed/seed-dev.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node ../../scripts/run-postgres-tests.mjs --pgtap all --backend --",
-    "test:vitest": "vitest run",
-    "test:integration": "node ../../scripts/run-postgres-tests.mjs --pgtap all --backend -- --exclude src/__tests__/postgresPersistence.test.ts",
-    "test:coverage": "node ../../scripts/run-postgres-tests.mjs --pgtap all --backend --coverage --",
+    "test": "vitest run --config ../../tests/postgres/vitest.config.ts",
+    "test:vitest": "vitest run --config ../../tests/postgres/vitest.config.ts",
+    "test:integration": "vitest run --config ../../tests/postgres/vitest.config.ts --exclude src/__tests__/postgresPersistence.test.ts",
+    "test:coverage": "vitest run --config ../../tests/postgres/vitest.config.ts --coverage",
     "test:mutation:policy": "stryker run stryker.config.mjs"
   },
   "dependencies": {

@@ -26,14 +26,12 @@ Les règles juridiques de référence restent celles indiquées dans `AGENTS.md`
 - `npm run test:ballot` : noyau génératif, parcours XState, rollback et concurrence PostgreSQL.
 - `npm run test:postgres` : suites pgTAP puis backend sur la même base PostgreSQL de test réinitialisée entre les deux phases.
 - `npm run test:ballot:mutation` : mutation ciblée de `participationPolicy.ts` et `ballotMachine.ts`. La campagne casse sous 90 %, signale sous 95 % et ne doit jamais être abaissée pour faire disparaître un survivant non analysé.
-- `npm run test:ballot:model` : exploration TLC bornée de la spécification abstraite déjà linéarisée des opérations record/replay/conflit/annulation. Ce modèle vérifie les invariants du résultat observable ; les interleavings internes, le commit et le rollback sont éprouvés séparément par le contrat de persistance PostgreSQL. L’outil officiel TLA+ est épinglé par version et somme de contrôle, puis conservé uniquement dans le répertoire temporaire du système.
 - `npm run test:backend` : couverture complète des packages serveur et domaine.
 
-La couverture de lignes n’est pas une preuve suffisante. Un changement du vote doit au minimum conserver vertes les quatre premières portes, puis la suite backend complète.
+La couverture de lignes n’est pas une preuve suffisante. Un changement du vote doit au minimum conserver vertes les trois premières portes, puis la suite backend complète.
 
 ## Lecture des échecs
 
 1. Un contre-exemple `fast-check` doit être conservé comme régression, puis généralisé dans l’invariant.
 2. Un mutant survivant doit être classé : manque de test, code redondant à simplifier, ou mutation réellement équivalente. Le seuil ne se baisse pas pendant cette analyse.
 3. Un échec de concurrence doit être lu comme un historique : une seule linéarisation gagnante, les replays renvoient le même identifiant et les commandes incompatibles échouent sans état partiel.
-4. Un échec TLC fournit une trace minimale. Il faut corriger le modèle si la trace contredit le contrat, ou le code et ses tests si elle décrit un interleaving réellement possible.

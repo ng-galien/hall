@@ -67,20 +67,23 @@ test("a second session follows conduct events and rereads the current point afte
   const reader = await readerContext.newPage();
   const sockets: WebSocketRoute[] = [];
   const received: string[] = [];
-  let resumeReconnect: () => void = () => {};
+  let resumeReconnect: (() => void) | null = null;
   const reconnectGate = new Promise<void>((resolve) => {
     resumeReconnect = resolve;
   });
   try {
-    await readerContext.routeWebSocket((url) => url.pathname === "/api/live" && url.searchParams.get("kind") === "meeting", async (socket) => {
-      sockets.push(socket);
-      if (sockets.length > 1) await reconnectGate;
-      const upstream = socket.connectToServer();
-      upstream.onMessage((message) => {
-        received.push(String(message));
-        socket.send(message);
-      });
-    });
+    await readerContext.routeWebSocket(
+      (url) => url.pathname === "/api/live" && url.searchParams.get("kind") === "meeting",
+      async (socket) => {
+        sockets.push(socket);
+        if (sockets.length > 1) await reconnectGate;
+        const upstream = socket.connectToServer();
+        upstream.onMessage((message) => {
+          received.push(String(message));
+          socket.send(message);
+        });
+      },
+    );
     await reader.goto(`/app/meetings/${scheduled.slug}/live`);
     await expect(reader.getByTestId(`live-agenda-item-${first.id}`)).toBeVisible();
     await expect.poll(() => sockets.length).toBe(1);
@@ -98,10 +101,10 @@ test("a second session follows conduct events and rereads the current point afte
     await conductor.getByTestId("live-agenda-complete").click();
     await expect(conductor.getByTestId(`live-agenda-item-${second.id}`)).toHaveAttribute("aria-current", "true");
     await expect(reader.getByTestId(`live-agenda-item-${first.id}`)).toHaveAttribute("aria-current", "true");
-    resumeReconnect();
+    resumeReconnect?.();
     await expect(reader.getByTestId(`live-agenda-item-${second.id}`)).toHaveAttribute("aria-current", "true");
   } finally {
-    resumeReconnect();
+    resumeReconnect?.();
     await readerContext.close();
   }
 });

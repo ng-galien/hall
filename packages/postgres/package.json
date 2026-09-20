@@ -12,12 +12,12 @@
     }
   },
   "scripts": {
-    "build": "node ../../scripts/clean-package-dist.mjs && tsc -p tsconfig.json",
+    "build": "rimraf dist && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run test",
-    "test:council": "node ../../scripts/run-postgres-tests.mjs --pgtap council",
-    "test:document": "node ../../scripts/run-postgres-tests.mjs --pgtap document"
+    "test:council": "node ../../tests/postgres/run.mjs --pgtap council",
+    "test:document": "node ../../tests/postgres/run.mjs --pgtap document"
   },
   "dependencies": {
     "@code-moniker/client": "0.12.0",

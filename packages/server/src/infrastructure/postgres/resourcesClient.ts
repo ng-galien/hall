@@ -1,5 +1,4 @@
 import {
-  SIREN_MEDIA_TYPE,
   editorAssetSchema,
   type RelocateResource,
   type ResourceDetail,
@@ -9,6 +8,7 @@ import {
   resourceReferenceSchema,
   resourceSearchResultSchema,
   resourceSummarySchema,
+  SIREN_MEDIA_TYPE,
   type SirenEntity,
   sirenActionSchema,
   sirenLinkSchema,

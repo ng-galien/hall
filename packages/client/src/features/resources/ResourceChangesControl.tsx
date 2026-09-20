@@ -32,10 +32,10 @@ export function ResourceChangesControl({
   const inFlight = useRef<Promise<void> | null>(null);
   const onInvalidatedRef = useRef(onInvalidated);
   onInvalidatedRef.current = onInvalidated;
-  currentResource.current = resourceId;
   const available = Boolean(representation && findSirenLink(representation, "changes"));
 
   useEffect(() => {
+    currentResource.current = resourceId;
     eventVersion.current = 0;
     stale.current = true;
     inFlight.current = null;
@@ -99,7 +99,7 @@ export function ResourceChangesControl({
   }, [available, resourceId]);
 
   useEffect(() => {
-    if (open && stale.current) void loadChanges();
+    if (changeVersion >= 0 && open && stale.current) void loadChanges();
   }, [changeVersion, loadChanges, open]);
 
   if (!available) return null;

@@ -43,6 +43,7 @@ import {
   startMeetingAgendaItem,
   updateMeetingAgendaItemNotes,
 } from "../services/councilMeetingsApi";
+import { subscribeLiveUpdates } from "../services/liveUpdates";
 import {
   openMeetingConduct,
   recordMeetingAttendanceEvents,
@@ -50,7 +51,6 @@ import {
   recordMeetingQuorum,
   recordMeetingReconvocation,
 } from "../services/meetingConductApi";
-import { subscribeLiveUpdates } from "../services/liveUpdates";
 import { freezeMeetingAgenda, reopenMeetingAgenda } from "../services/meetingNoticesApi";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
@@ -185,7 +185,11 @@ export function useCouncilMeeting(meetingReference: string) {
         if (active && refreshed) setLiveRevision((revision) => revision + 1);
       });
     };
-    const unsubscribe = subscribeLiveUpdates({ kind: "meeting", id: workspace.meeting.id }, refreshFromStream, refreshFromStream);
+    const unsubscribe = subscribeLiveUpdates(
+      { kind: "meeting", id: workspace.meeting.id },
+      refreshFromStream,
+      refreshFromStream,
+    );
     return () => {
       active = false;
       unsubscribe();

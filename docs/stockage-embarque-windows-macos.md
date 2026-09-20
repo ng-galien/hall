@@ -114,7 +114,7 @@ le pont sérialise les transactions des différentes connexions.
   d’utiliser HTTP ; Electron gère le processus sans écrire directement les
   données métier. La création du cluster et du schéma doit respecter les
   responsabilités d’installation et d’exécution déjà présentes.
-- Étendre le [packaging existant](../packages/desktop/scripts/package-runtime.mjs),
+- Étendre le [packaging existant](../packages/desktop/forge.config.mjs),
   qui impose déjà un build sur l’OS et l’architecture cibles. Qualifier les
   exécutables et bibliothèques dans les installateurs Windows et macOS signés,
   avec leurs prérequis réels. Aucun nouveau format d’installateur n’est décidé.
@@ -172,14 +172,6 @@ et autorisé dans ce seul projet temporaire.
 Le premier `initdb` a échoué dans la sandbox sur `shmget: Operation not permitted`.
 La relance hors sandbox, autorisée, a réussi. Cela distingue une restriction
 d’exécution du comportement du moteur.
-
-La [source exacte du prototype](prototypes/native-postgres/proof.mjs), le
-[résultat final](prototypes/native-postgres/macos-result.json) et le
-[journal PostgreSQL](prototypes/native-postgres/macos-postgres.log) sont conservés.
-La source est un artefact de preuve lié à ce checkout et au runtime temporaire,
-pas un lanceur de production ni un script Windows. Pour rejouer exactement,
-utiliser la copie `/tmp/hall-native-pg-proof-20260910/proof.mjs` avec ses
-dépendances installées ; chaque exécution crée un nouveau cluster jetable.
 
 Résultats observés :
 
@@ -244,12 +236,6 @@ Versions installées exclusivement dans `/tmp/hall-pglite-proof-20260910` :
 `--ignore-scripts`. Aucun paquet natif supplémentaire. Le moteur se présente
 comme PostgreSQL 18.3, WASM 32 bits. Il diffère donc de la majeure 17 de l’essai
 natif ; le même manifeste Hall a néanmoins été exécuté intégralement.
-
-Le [prototype exact](prototypes/pglite/proof.mjs) et son
-[résultat final](prototypes/pglite/macos-result.json) sont conservés. Comme la
-preuve native, le script est un artefact local lié à ce checkout ; sa copie
-exécutable avec dépendances est `/tmp/hall-pglite-proof-20260910/proof.mjs`.
-Le serveur HTTP, les pools, le pont et la base sont fermés en fin de parcours.
 
 ### Ce qui fonctionne réellement
 

@@ -270,7 +270,9 @@ export function createDocumentaryResourcesRouter({
 
   router.get("/:reference/changes", requirePermission("workspace.read"), async (request, response) => {
     response.json(
-      await documentaryResourceService.listChanges(resourceReferenceSchema.parse(routeParameter(request.params.reference))),
+      await documentaryResourceService.listChanges(
+        resourceReferenceSchema.parse(routeParameter(request.params.reference)),
+      ),
     );
   });
 

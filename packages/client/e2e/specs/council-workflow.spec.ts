@@ -791,8 +791,8 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   await page.getByTestId("live-meeting-start").click();
   await verifyOpeningAfterReload(page, meeting!.id, "met");
 
-  await expect(page.getByTestId("live-agenda-item-" + publicItem.id)).toBeVisible();
-  await page.getByTestId("live-agenda-item-" + publicItem.id).click();
+  await expect(page.getByTestId(`live-agenda-item-${publicItem.id}`)).toBeVisible();
+  await page.getByTestId(`live-agenda-item-${publicItem.id}`).click();
   await expect(page.getByTestId("live-item-progress")).toBeVisible();
   const uiFont = await page.locator("body").evaluate((element) => getComputedStyle(element).fontFamily);
   await expect(page.getByTestId("live-item-title")).toHaveCSS("font-family", uiFont);
@@ -810,7 +810,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   await expect(page.getByTestId("live-rollcall-heading")).toBeVisible();
   await expect(page.getByTestId("live-attendance-save")).toBeEnabled();
   await page.reload();
-  await page.getByTestId("live-agenda-item-" + publicItem.id).click();
+  await page.getByTestId(`live-agenda-item-${publicItem.id}`).click();
   await page.getByTestId("live-recusal-info").click();
   await page.getByTestId("agenda-item-recusal-open").click();
   await declareRecusal(page, members[2]!.id, "personalInterest");
@@ -871,7 +871,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   await expect(rail).toHaveCSS("width", "64px");
   await page.setViewportSize({ width: 1118, height: 1044 });
   await expect(rail).toHaveCSS("width", "64px");
-  await page.getByTestId("live-agenda-item-" + publicItem.id).click();
+  await page.getByTestId(`live-agenda-item-${publicItem.id}`).click();
   await expect(page.getByTestId("live-opening-summary")).toBeHidden();
   await expect(page.getByTestId("live-ballot-preview-open")).toBeEnabled();
   await expect(page.getByTestId("live-item-progress")).toBeVisible();
@@ -890,7 +890,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   );
   expect(lateRecusal.status()).toBe(409);
 
-  await page.getByTestId("live-agenda-item-" + secretItem.id).click();
+  await page.getByTestId(`live-agenda-item-${secretItem.id}`).click();
   await page.getByTestId("live-agenda-start").click();
   await page.getByTestId("live-ballot-open").click();
   await page.getByTestId("live-recusal-info").click();
@@ -913,6 +913,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   await page.getByTestId("live-vote-assign-against").click();
   await expect(page.getByTestId("live-ballot-preview-open")).toBeEnabled();
   await previewAndConfirm(page, meeting!.id, secretItem.id);
+  await page.getByTestId(`live-agenda-item-${secretItem.id}`).click();
   await expect(page.getByTestId("live-ballot-result")).toContainText("Rejected");
   const storedBallots = await sirenItems<{ id: string; agendaItemId: string; mode: string }>(
     await page.request.get(`/api/ballots?meetingId=${meeting!.id}`),
@@ -941,12 +942,12 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   await page.goBack();
   await expect(page.getByTestId("live-meeting-page")).toBeVisible();
 
-  await page.getByTestId("live-agenda-item-" + deferredItem.id).click();
+  await page.getByTestId(`live-agenda-item-${deferredItem.id}`).click();
   await page.getByTestId("live-agenda-start").click();
   await expect(page.getByTestId("live-agenda-start")).toBeHidden();
   await expect(page.getByTestId("live-ballot-open")).toBeHidden();
   await adjournThroughConfirmation(page, deferredItem.id);
-  await expect(page.getByTestId("live-agenda-item-" + deferredItem.id)).toContainText("Adjourned");
+  await expect(page.getByTestId(`live-agenda-item-${deferredItem.id}`)).toContainText("Adjourned");
   const deferred = await sirenProperties<{ adjournedAt: string; completedAt: string | null }>(
     await page.request.get(`/api/council-meetings/${meeting!.slug}/agenda-items/${deferredItem.id}`),
   );
@@ -1231,7 +1232,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
     await expect(page.getByTestId("decision-detail")).toBeVisible();
     const writing = page.getByTestId("decision-writing").getByTestId("editor-writing-area");
     await expect(writing).toBeVisible();
-    await writing.fill(original.content + "\n\nCorrection typographique.");
+    await writing.fill(`${original.content}\n\nCorrection typographique.`);
     await expect
       .poll(
         async () =>

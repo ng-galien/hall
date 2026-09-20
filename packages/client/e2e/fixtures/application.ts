@@ -5,12 +5,20 @@ import { test as base, expect, type Page } from "@playwright/test";
 
 const clientDirectory = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectDirectory = join(clientDirectory, "../..");
-const testDatabaseUrl = "postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test";
+
+function testDatabaseName() {
+  const value = process.env.DATABASE_URL;
+  if (!value) throw new Error("Browser tests require a dedicated PostgreSQL database");
+  const url = new URL(value);
+  const name = decodeURIComponent(url.pathname.slice(1));
+  if (url.hostname !== "127.0.0.1" || url.port !== "54330" || !name.startsWith("hall_e2e_")) {
+    throw new Error("Browser tests may reset only a dedicated Hall E2E database");
+  }
+  return name;
+}
 
 function resetAndSeedTestDatabase(seedScenario: "preparation" | "default" | "minutes") {
-  if (process.env.DATABASE_URL !== testDatabaseUrl) {
-    throw new Error("Browser tests may reset only the dedicated Hall PostgreSQL test database");
-  }
+  const databaseName = testDatabaseName();
   const serverPort = process.env.HALL_E2E_SERVER_PORT;
   if (!serverPort) throw new Error("The dedicated browser test server port is required");
   const reset = spawnSync(
@@ -26,7 +34,7 @@ function resetAndSeedTestDatabase(seedScenario: "preparation" | "default" | "min
       "--username",
       "hall_test",
       "--dbname",
-      "hall_test",
+      databaseName,
     ],
     {
       cwd: projectDirectory,
@@ -52,7 +60,7 @@ COMMIT;
   if (reset.error || reset.status !== 0) {
     throw new Error(`Could not clear the dedicated browser test database: ${reset.error ?? reset.stderr}`);
   }
-  const seed = spawnSync(process.execPath, [join(projectDirectory, "packages/server/scripts/seed-dev.mjs")], {
+  const seed = spawnSync(process.execPath, [join(projectDirectory, "scripts/seed/seed-dev.mjs")], {
     cwd: projectDirectory,
     env: { ...process.env, SEED_MEETING_SCENARIO: seedScenario, SEED_API: `http://127.0.0.1:${serverPort}/api` },
     encoding: "utf8",
