@@ -24,3 +24,7 @@ packages/client/test-results/
 *.pgdump
 *.sql.gz
 /-.png
+
+# Local Codex configuration and TRUST Runner log
+/.codex/config.toml
+/.trust/server/runner.log
