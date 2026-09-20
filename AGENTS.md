@@ -2,9 +2,13 @@
 
 Hall supports the work of a French municipal council: preparing decisions, conducting meetings, and preserving the resulting records. Keep changes within this scope unless the user explicitly extends it.
 
+Repository documentation is written in English. Converse with the user in the
+language they use. Refer to the decision authority as "the user", never by a
+personal name.
+
 ## Decision authority
 
-- the user owns business rules, data-model decisions, product behavior, UI design, and ergonomics.
+- The user owns business rules, data-model decisions, product behavior, UI design, and ergonomics.
 - Do not invent or arbitrate those decisions. Surface an unresolved choice before changing anything that depends on it.
 - Any data-model or integrity-rule change requires explicit approval for that precise change. An interface request does not grant that approval.
 - A request to inspect, inventory, review, or explain authorizes read-only work only.
@@ -22,7 +26,7 @@ Hall supports the work of a French municipal council: preparing decisions, condu
 
 ## Requirements are the source of truth
 
-The canonical behavior catalogue is [`requirements/catalog.json`](requirements/catalog.json). Its governance is defined in [`docs/requirements.md`](docs/requirements.md), and its commands are documented in [`requirements/README.md`](requirements/README.md). [`backlog/backlog.md`](backlog/backlog.md) tracks work; it does not redefine behavior.
+The canonical behavior catalogue is [`requirements/catalog.json`](requirements/catalog.json). Its governance and commands are documented in [`requirements/README.md`](requirements/README.md). [`backlog/backlog.md`](backlog/backlog.md) tracks work; it does not redefine behavior.
 
 Before changing behavior:
 
@@ -37,25 +41,13 @@ A marker alone does not prove implementation. Verify the acceptance criteria at 
 
 ## TRUST and visible feature scope
 
-For any TRUST work, start with the
-[Hall TRUST operational map](docs/trust-operations.md). It records the current
-phase, project methods, published Procedures, known Plans and unresolved product
-decisions. Re-read the named Plans through the TRUST MCP before acting.
-
-Use TRUST's canonical
+For any TRUST work, start with [Hall's TRUST map](docs/trust.md). Use
+TRUST's canonical
 [software production methods guide](http://127.0.0.1:4176/docs/guides/software-methods)
 for progressive method construction; do not restate it in Hall documentation.
-Read [Hall's TRUST methods](docs/trust-adoption.md) for the project adaptation.
-Use the [Hall verification map](docs/trust-verification-map.md) to select an
-existing script or command for each software facet. The
-[script catalogue](docs/script-catalogue.md) lists the executable files, their
-callers and their effects.
-For an approved feature entering delivery, follow
-[the TRUST requirements workflow](docs/trust-workflow.md). The requirement
-catalogue remains the source of truth. These documents do not authorize
-automatic publication, Plan engagement, host dispatch or product decisions.
-
-For every TRUST/Maket feature, use the [living feature document contract](docs/living-feature-document.md): one structured tracking document, fed by Operations, with explicit provenance for decisions, Check verdicts and agent reports. The rejected temporary schema has been removed; do not reinvent page-local delivery states or claim a migration that has not run.
+Read relevant Plans through the TRUST MCP before acting. Plans, states, Results,
+reports, and pending decisions remain in TRUST and are not copied into Hall.
+The requirement catalogue remains the source of truth.
 
 For this project's installed TRUST Runner, load `.trust/runner.env` explicitly:
 
@@ -69,7 +61,7 @@ TRUST and do not invoke the bare Runner with its default endpoints.
 
 ## Code and architecture
 
-Before modifying code, read [`docs/principes-code.md`](docs/principes-code.md) and use [`docs/architecture.md`](docs/architecture.md) to locate the existing authority.
+Before modifying code, read [`docs/project.md`](docs/project.md) to locate the existing authority and project rules.
 
 - Keep behavior dispatch exhaustive and centralized around the documented closed unions.
 - Do not scatter competing `if`, `else`, or `switch` implementations across layers.
@@ -81,15 +73,15 @@ Canonical terms include `HallSettings`, `CouncilTerm`, `Contact`, `CouncilMember
 
 ## Frontend
 
-Before modifying `packages/client`, read [`docs/principes-interface.md`](docs/principes-interface.md).
+Before modifying `packages/client`, read the interface rules in [`docs/project.md`](docs/project.md).
 
-- Read the existing HTTP/Siren contract and the decisions recorded in upstream TRUST reviews before designing a component or asking for an arbitration. During design review, assess whether the **planned** Siren representation and actions are sufficient for the agreed UI; do not confuse a contract that has not yet been implemented with a contract whose design is incomplete. Siren supplies the data and actions available to the user; the server owns permission checks and the mapping of resource commands to a CouncilBusiness. The frontend consumes those actions and does not invent a permission, command, or parallel authorization rule. Report a precise gap in the planned contract to the upstream HTTP/Siren mission; escalate to the user only a genuine unresolved product contradiction.
+- Read the existing HTTP/Siren contract before designing a component or asking for an arbitration. During design review, assess whether the planned Siren representation and actions are sufficient for the agreed UI; do not confuse a contract that has not yet been implemented with an incomplete design. Siren supplies the data and actions available to the user; the server owns permission checks and the mapping of resource commands to a CouncilBusiness. The frontend consumes those actions and does not invent a permission, command, or parallel authorization rule. Escalate to the user only a genuine unresolved product contradiction.
 - Maintain one visual identity and compose screens from shared primitives in `packages/client/src/components/ui/`.
 - Reuse existing components and interactions, including the workspace TreeView.
 - Avoid duplicate information, local visual-token variants, and frontend rules that compete with backend contracts.
 - Give every Playwright interaction target a stable, function-based `data-testid`; do not locate functional controls by translated text, placeholder, `title`, or `aria-label`.
 - After a Playwright failure, rerun the focused scenario first. Run the full suite only after the focused scenario passes.
-- For the embedded-browser TreeView interaction, follow the documented single-call sequence in [`docs/principes-interface.md`](docs/principes-interface.md).
+- For the embedded-browser TreeView interaction, use the existing implementation and its focused tests as the authority.
 
 ## Verification
 
@@ -122,13 +114,13 @@ Always reuse the shared Hall runtime:
 - Status and logs: `npm run dev:status`, `npm run dev:logs`
 - Stop: `npm run dev:stop`
 - Reset and reseed the demonstration: `npm run demo:restart`
-- Start the private Alésia configuration: `npm run dev:private`, following [`docs/private-runtime.md`](docs/private-runtime.md)
+- Start the private Alésia configuration: `npm run dev:private`.
 
-The application is available at `http://localhost:5174/app/`. Test suites use isolated runtimes and must not stop or replace the shared session. See [`docs/local-production.md`](docs/local-production.md) for local production operation.
+The application is available at `http://localhost:5174/app/`. Test suites use isolated runtimes and must not stop or replace the shared session. See [`docs/runtime.md`](docs/runtime.md) for local runtime operation.
 
 ## Demonstration data
 
-The Alésia dataset is fictional. Its reference model is documented in [`docs/seeds.md`](docs/seeds.md) and [`docs/demo-alesia.md`](docs/demo-alesia.md).
+The Alésia dataset is fictional. Its current scenarios are documented in [`docs/development.md`](docs/development.md).
 
 - Seed through the public API, never with direct SQL inserts.
 - Keep stable demonstration resources in the documented Alésia folder tree; do not create a generic `seed` root folder.
@@ -139,7 +131,3 @@ The Alésia dataset is fictional. Its reference model is documented in [`docs/se
 The requirement catalogue owns detailed lifecycle rules and acceptance criteria. Before automating a legal deadline or formality, verify the current institutional source linked from the relevant requirement.
 
 Distinguish statutory obligations, local policy, and internal organization. Preserve the chronology and evidence of material events such as notices, attendance, proxies, ballots, minutes approval, signatures, publication, and legality-control transmission.
-
-## Intervention du 17 septembre 2026
-
-Le journal factuel de la duplication, de la migration et de la bascule de la base PostgreSQL locale de Alésia est dans [`docs/operations/2026-09-17-sample-production-cutover.md`](docs/operations/2026-09-17-sample-production-cutover.md). Il donne les noms des bases, les opérations réellement exécutées, les contrôles, les chemins des sauvegardes, le plan DDL complet et les limites connues. Le consulter avant toute nouvelle opération sur cette production locale.

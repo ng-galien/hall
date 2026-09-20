@@ -17,7 +17,7 @@ Hall is an npm workspace organized around explicit architectural boundaries:
 
 The shared server uses PostgreSQL; desktop local mode uses PGlite. Domain code does not depend on database or HTTP implementation details.
 
-Read [`docs/architecture.md`](docs/architecture.md) for ownership and dependency rules, [`requirements/catalog.json`](requirements/catalog.json) for expected behavior, and [`AGENTS.md`](AGENTS.md) before making changes.
+Read [`docs/README.md`](docs/README.md) for the documentation map, [`requirements/catalog.json`](requirements/catalog.json) for expected behavior, and [`AGENTS.md`](AGENTS.md) before making changes.
 
 ## Development
 
@@ -57,7 +57,7 @@ npm run postgres:up
 npm run dev
 ```
 
-See [`docs/seeds.md`](docs/seeds.md), [`docs/demo-alesia.md`](docs/demo-alesia.md), and [`docs/private-runtime.md`](docs/private-runtime.md) for dataset and runtime details.
+See [`docs/development.md`](docs/development.md) for dataset details.
 
 ## Verification
 
@@ -73,10 +73,10 @@ npm run check:requirements
 
 `npm run test:postgres` creates one disposable PostgreSQL database, runs the pgTAP suites, resets the database, and then runs backend integration tests against it.
 
-The requirements workflow and traceability commands are documented in [`docs/requirements.md`](docs/requirements.md) and [`requirements/README.md`](requirements/README.md).
+The requirements workflow and traceability commands are documented in [`requirements/README.md`](requirements/README.md).
 
 ## Desktop and deployment
 
-The desktop package can use its embedded PGlite runtime or connect to a shared Hall server. See [`docs/desktop.md`](docs/desktop.md) for packaging and update channels.
+The desktop package can use its embedded PGlite runtime or connect to a shared Hall server. See [`docs/runtime.md`](docs/runtime.md) for packaging and local operation.
 
-Shared-server deployments require `DATABASE_URL` and the server security configuration. See [`docs/local-production.md`](docs/local-production.md) for the isolated Alésia build, authentication, backup, and restore-verification procedure.
+Shared-server deployments require `DATABASE_URL` and the server security configuration. See [`docs/runtime.md`](docs/runtime.md) for the isolated Alésia build, authentication, backup, and restore-verification procedure.

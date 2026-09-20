@@ -1,4 +1,4 @@
-/** CLI for explicitly selecting a dataset and a meeting scenario. See docs/seeds.md. */
+/** CLI for explicitly selecting a dataset and a meeting scenario. See docs/development.md. */
 
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";

@@ -1,39 +1,23 @@
-# Catalogue des exigences Hall
+# Hall requirement catalogue
 
-`catalog.json` est l'unique source des formulations, classifications, clauses
-et critères d'acceptation des exigences Hall.
+`catalog.json` is the sole source for Hall requirement wording, classifications, clauses, and acceptance criteria.
 
-Toutes les exigences utilisent la même structure : nom technique stable,
-nature, cycle de vie, formulation synthétique, critères d'acceptation et
-clauses justificatives. `npm run check:requirements` refuse une fiche à
-laquelle l'un de ces éléments manque.
+Every requirement has a stable technical name, kind, lifecycle, summary, acceptance criteria, and supporting clauses. `npm run check:requirements` rejects incomplete entries.
 
-- Le code déclare une réalisation avec
-  `@implements-requirement HALL-FR-DOM-000`.
-- Un test déclare la vérification du comportement avec
-  `@verifies-requirement HALL-FR-DOM-000`.
-- Le backlog suit une tâche avec
-  `@tracks-requirement HALL-FR-DOM-000`.
+- Production code declares implementation with `@implements-requirement HALL-FR-DOM-000`.
+- A test declares verification with `@verifies-requirement HALL-FR-DOM-000`.
+- The backlog tracks work with `@tracks-requirement HALL-FR-DOM-000`.
 
-Ces emplacements référencent l'exigence ; ils ne recopient pas sa formulation.
-Le contrôle `npm run check:requirements` rapproche les trois preuves et refuse
-les IDs inconnus, les annotations mal formées et les exigences sans thème.
+References point to a requirement and do not copy its wording. `npm run check:requirements` rejects unknown identifiers, malformed annotations, and requirements without a theme.
 
-## Interface locale
+## Local interface
 
-Lancer :
+Run:
 
 ```sh
 npm run requirements:ui
 ```
 
-Puis ouvrir [http://localhost:4317](http://localhost:4317). L'interface affiche
-toutes les exigences, leur répartition et leur couverture. Le sélecteur
-« Thème » d'une exigence écrit un override explicite dans
-`taxonomy.requirementThemes`. Revenir au thème déterminé par son préfixe
-supprime l'override devenu redondant.
+Open [http://localhost:4317](http://localhost:4317). The interface lists requirements, classification, and coverage. Changing a requirement's theme writes an explicit override to `taxonomy.requirementThemes`. Returning to the prefix-derived theme removes the redundant override.
 
-Les thèmes et leurs libellés vivent dans `taxonomy.themes`. La table
-`prefixThemes` classe le socle existant ; `requirementThemes` conserve les
-reclassements au cas par cas. L'identifiant de l'exigence ne change jamais lors
-d'un reclassement.
+Themes and labels live in `taxonomy.themes`. `prefixThemes` classifies the existing base; `requirementThemes` stores per-requirement exceptions. Reclassification never changes a requirement identifier.

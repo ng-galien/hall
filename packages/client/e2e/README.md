@@ -1,4 +1,4 @@
-# Editor acceptance tests
+# Browser acceptance tests
 
 The maintained Playwright baseline covers the real React application, HTTP
 server, and PostgreSQL repositories. The runner reuses the shared test database
