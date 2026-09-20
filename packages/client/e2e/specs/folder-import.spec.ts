@@ -85,7 +85,7 @@ test("imports selected folders on a folder and dropped folders on a business pre
     expect(await find("seed/Affaire import dossier/Depot/Sous-dossier", "piece.txt")).toBeTruthy();
     expect(await find("seed/Affaire import dossier/Depot", "Vide")).toBeTruthy();
     await expect(page.getByTestId("workspace-import-progress")).toHaveCount(0);
-    await page.getByTestId(`workspace-business-open-${business.id}`).click({ button: "right" });
+    await page.getByTestId(`workspace-business-title-${business.id}`).click({ button: "right" });
     const businessChooser = page.waitForEvent("filechooser");
     await page.getByTestId("workspace-tree-import-folder").click();
     await (await businessChooser).setFiles(selected);

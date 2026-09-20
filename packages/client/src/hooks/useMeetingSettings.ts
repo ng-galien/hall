@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiErrorCode, type ApiErrorCode } from "../services/apiClient";
+import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import { loadMeetingSettings } from "../services/hallSettingsApi";
 
 export function useMeetingSettings() {

@@ -32,6 +32,7 @@ export interface ApiCommandPolicy {
 
 const workspaceRead = ["workspace.read"] as const;
 const workspaceWrite = ["workspace.write"] as const;
+const councilBusinessUpdate = ["council-business.update"] as const;
 const meetingsPrepare = ["meetings.prepare"] as const;
 const meetingsConduct = ["meetings.conduct"] as const;
 const usersManage = ["users.manage"] as const;
@@ -78,11 +79,13 @@ export const apiCommandPolicies = {
   "agenda-item.schedule-prepared": { permissions: meetingsPrepare, auditTargetType: "agenda-item" },
   "council-business.create": { permissions: workspaceWrite, auditTargetType: "council-business" },
   "council-business.delete": { permissions: workspaceWrite, auditTargetType: "council-business" },
+  "council-business.associate-committee": { permissions: councilBusinessUpdate, auditTargetType: "council-business" },
+  "council-business.dissociate-committee": { permissions: councilBusinessUpdate, auditTargetType: "council-business" },
   "council-business.import-bundle": { permissions: workspaceWrite, auditTargetType: "council-business" },
   "council-business.export-bundle": { permissions: workspaceRead, auditTargetType: null },
-  "council-business.associate-resource": { permissions: workspaceWrite, auditTargetType: "council-business" },
-  "council-business.dissociate-resource": { permissions: workspaceWrite, auditTargetType: "council-business" },
-  "council-business.reorder-resources": { permissions: workspaceWrite, auditTargetType: "council-business" },
+  "council-business.associate-resource": { permissions: councilBusinessUpdate, auditTargetType: "council-business" },
+  "council-business.dissociate-resource": { permissions: councilBusinessUpdate, auditTargetType: "council-business" },
+  "council-business.reorder-resources": { permissions: councilBusinessUpdate, auditTargetType: "council-business" },
   "council-business.schedule-decision-proposal": {
     permissions: meetingsPrepare,
     auditTargetType: "agenda-item",

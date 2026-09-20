@@ -69,7 +69,7 @@ export async function searchDocumentaryResources(
   setValues("media", criteria.media);
   setValues("preferredIds", criteria.preferredIds ?? []);
   setValues("excludedIds", criteria.excludedIds ?? []);
-  if(criteria.includedIds!==undefined)url.searchParams.set("includedIds",criteria.includedIds.join(","));
+  if (criteria.includedIds !== undefined) url.searchParams.set("includedIds", criteria.includedIds.join(","));
   if (criteria.limit !== undefined) url.searchParams.set("limit", String(criteria.limit));
   if (criteria.offset !== undefined) url.searchParams.set("offset", String(criteria.offset));
   if (criteria.context !== undefined) url.searchParams.set("context", criteria.context);

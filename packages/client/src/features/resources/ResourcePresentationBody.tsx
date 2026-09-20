@@ -108,7 +108,12 @@ export function ResourcePresentationBody({
     remote: (entry) => {
       const targetUrl = entry.target.kind === "url" ? entry.target.url : null;
       if (targetUrl && (!editingResource || editingRemoteId !== entry.id))
-        return <RemoteResourceEmbed resource={entry} onEdit={editingResource ? () => setEditingRemoteId(entry.id) : undefined} />;
+        return (
+          <RemoteResourceEmbed
+            resource={entry}
+            onEdit={editingResource ? () => setEditingRemoteId(entry.id) : undefined}
+          />
+        );
       if (!editingResource) return <p>{t("workspace.remoteSetupDescription")}</p>;
       return (
         <form
@@ -116,7 +121,10 @@ export function ResourcePresentationBody({
           data-testid="resource-presentation-remote-edit"
           onSubmit={(event) => {
             event.preventDefault();
-            if (remoteUrl.trim()) void onRemoteSubmit().then((saved) => { if (saved) setEditingRemoteId(null); });
+            if (remoteUrl.trim())
+              void onRemoteSubmit().then((saved) => {
+                if (saved) setEditingRemoteId(null);
+              });
           }}
         >
           <div>

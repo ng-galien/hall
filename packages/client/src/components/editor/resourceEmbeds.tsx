@@ -1,4 +1,4 @@
-import { type ReferenceEntityKind } from "@hall/domain";
+import type { ReferenceEntityKind } from "@hall/domain";
 import {
   imageWidthRange,
   mapPresentationDefaults,
@@ -28,8 +28,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n } from "../../i18n/I18nProvider";
 import { AlignCenterIcon, AlignLeftIcon, CheckIcon, CopyIcon } from "../icons";
-import { insertResourceImage } from "./images";
 import { EditorMediaOverlay } from "./EditorMediaOverlay";
+import { insertResourceImage } from "./images";
 import { type FullSearchRequest, ReferenceSearchDialog } from "./ReferenceSearchDialog";
 import type { Mentionable } from "./references";
 import { useResourceAppearance, useResourcePreviewRenderer } from "./references";
@@ -64,9 +64,7 @@ export function ResourceEmbedPresentationProvider({
   children: ReactNode;
 }) {
   return (
-    <ResourceEmbedPresentationContext.Provider
-      value={{ render: renderResourceEmbed, loadTableOptions }}
-    >
+    <ResourceEmbedPresentationContext.Provider value={{ render: renderResourceEmbed, loadTableOptions }}>
       {children}
     </ResourceEmbedPresentationContext.Provider>
   );
@@ -425,18 +423,20 @@ export function EditorResourceEmbedSearch({
   const [sheetId, setSheetId] = useState("");
   const [range, setRange] = useState("");
   const [failed, setFailed] = useState(false);
-  const embeddables = mentionables.current.filter(
-    (item) => allowedKinds.includes(item.kind),
-  );
+  const embeddables = mentionables.current.filter((item) => allowedKinds.includes(item.kind));
 
   const pick = (item: Mentionable) => {
     if (request.range) editor.chain().focus().deleteRange(request.range).run();
     const presentation = item.resourcePresentation;
     if (!presentation) {
-      editor.chain().focus().insertContent([
-        { type: "reference", attrs: { kind: item.kind, id: item.id, label: item.label } },
-        { type: "text", text: " " },
-      ]).run();
+      editor
+        .chain()
+        .focus()
+        .insertContent([
+          { type: "reference", attrs: { kind: item.kind, id: item.id, label: item.label } },
+          { type: "text", text: " " },
+        ])
+        .run();
       onClose();
       return;
     }

@@ -43,7 +43,10 @@ export function createHallSettingsRepository({ sqlExecutor }: { sqlExecutor: Sql
     const row = await sqlExecutor.get("settings.get");
     if (!row) throw new Error("Hall settings singleton is missing");
     const locations = await sqlExecutor.all("settings.locations");
-    return mapHallSettings(row, locations.map((location) => asString(location.name, "hall_meeting_locations.name")));
+    return mapHallSettings(
+      row,
+      locations.map((location) => asString(location.name, "hall_meeting_locations.name")),
+    );
   };
   return {
     get,

@@ -4,9 +4,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { EntitySelect } from "../components/search/EntitySelect";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AddIcon, EditIcon } from "../components/icons";
+import { EntitySelect } from "../components/search/EntitySelect";
 import {
   CollectionToolbar,
   EmptyState,
@@ -162,8 +162,18 @@ export function UsersPage() {
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${fieldId}-contact`}>{t("users.contact")}</Label>
-<EntitySelect type="contact" testId="user-contact-select" value={contactId==="none"?"":contactId} onValueChange={value=>setContactId(value||"none")}
- options={contacts.map(contact=>({value:contact.id,label:`${contact.firstName} ${contact.lastName}`}))} placeholder={t("users.noContact")} clearLabel={t("users.noContact")}/>
+                <EntitySelect
+                  type="contact"
+                  testId="user-contact-select"
+                  value={contactId === "none" ? "" : contactId}
+                  onValueChange={(value) => setContactId(value || "none")}
+                  options={contacts.map((contact) => ({
+                    value: contact.id,
+                    label: `${contact.firstName} ${contact.lastName}`,
+                  }))}
+                  placeholder={t("users.noContact")}
+                  clearLabel={t("users.noContact")}
+                />
               </div>
             </fieldset>
             <UserRoles value={roles} onChange={setRoles} disabled={submitting} />

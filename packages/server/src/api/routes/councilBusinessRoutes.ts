@@ -1,5 +1,6 @@
 import {
   associateCouncilBusinessResourceSchema,
+  changeCouncilBusinessCommitteeSchema,
   councilBusinessAgendaHistoryQuerySchema,
   createCouncilBusinessSchema,
   createPreparedCouncilSubjectSchema,
@@ -12,37 +13,55 @@ import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
+import { slugify } from "../../repositories/publicIdentifiers.js";
 import { requirePermission } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
-import { slugify } from "../../repositories/publicIdentifiers.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
+import { committeeLinkCollection, committeeLinkResult } from "../councilBusinessCommitteeRepresentation.js";
 import { routeParameter } from "../routeParameter.js";
 
-export function createCouncilBusinessRouter({ councilBusinessWorkspaceService, councilClient,
-  councilBusinessBundleExportService, councilBusinessBundleImportService, requestContext }: Cradle): Router {
+export function createCouncilBusinessRouter({
+  councilBusinessWorkspaceService,
+  councilClient,
+  councilBusinessBundleExportService,
+  councilBusinessBundleImportService,
+  requestContext,
+}: Cradle): Router {
   const router = Router();
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 64 * 1024 * 1024, files: 1 } });
   const uploadBundle: ReturnType<typeof upload.single> = (request, response, next) => {
     const context = requestContext.current();
     upload.single("file")(request, response, (error) => {
-      const resume = () => error ? next(error) : next();
+      const resume = () => (error ? next(error) : next());
       if (context) requestContext.run(context, resume);
       else resume();
     });
   };
-  router.post("/import-bundle", requireActionPermission("council-business.import-bundle"), uploadBundle, async (request, response) => {
-    if (!request.file) throw new DomainError("invalid_request");
-    response.status(201).json(await councilBusinessBundleImportService.import(request.file.buffer));
-  });
-  router.get("/:businessId/bundle", requireActionPermission("council-business.export-bundle"), async (request, response) => {
-    const sender = z.object({ firstName: z.string().trim().min(1).max(200), lastName: z.string().trim().min(1).max(200) }).parse(request.query);
-    const bytes = await councilBusinessBundleExportService.export(routeParameter(request.params.businessId), {
-      ...sender, slug: slugify(`${sender.lastName} ${sender.firstName}`),
-    });
-    response.setHeader("Content-Type", "application/gzip");
-    response.setHeader("Content-Disposition", 'attachment; filename="affaire.hallbundle"');
-    response.send(bytes);
-  });
+  router.post(
+    "/import-bundle",
+    requireActionPermission("council-business.import-bundle"),
+    uploadBundle,
+    async (request, response) => {
+      if (!request.file) throw new DomainError("invalid_request");
+      response.status(201).json(await councilBusinessBundleImportService.import(request.file.buffer));
+    },
+  );
+  router.get(
+    "/:businessId/bundle",
+    requireActionPermission("council-business.export-bundle"),
+    async (request, response) => {
+      const sender = z
+        .object({ firstName: z.string().trim().min(1).max(200), lastName: z.string().trim().min(1).max(200) })
+        .parse(request.query);
+      const bytes = await councilBusinessBundleExportService.export(routeParameter(request.params.businessId), {
+        ...sender,
+        slug: slugify(`${sender.lastName} ${sender.firstName}`),
+      });
+      response.setHeader("Content-Type", "application/gzip");
+      response.setHeader("Content-Disposition", 'attachment; filename="affaire.hallbundle"');
+      response.send(bytes);
+    },
+  );
 
   router.delete("/:businessId", requireActionPermission("council-business.delete"), async (request, response) => {
     response.json(await councilBusinessWorkspaceService.delete(z.string().uuid().parse(request.params.businessId)));
@@ -119,6 +138,41 @@ export function createCouncilBusinessRouter({ councilBusinessWorkspaceService, c
     await councilBusinessWorkspaceService.get(businessId);
     response.json(await councilBusinessWorkspaceService.listResources(businessId));
   });
+
+  router.get("/:businessId/committees", requirePermission("workspace.read"), async (request, response) => {
+    const businessId = routeParameter(request.params.businessId);
+    await councilBusinessWorkspaceService.get(businessId);
+    response.json(
+      committeeLinkCollection(
+        `/api/council-business/${businessId}/committees`,
+        await councilBusinessWorkspaceService.listCommittees(businessId),
+      ),
+    );
+  });
+
+  router.post(
+    "/:businessId/committees",
+    requireActionPermission("council-business.associate-committee"),
+    async (request, response) => {
+      const businessId = routeParameter(request.params.businessId);
+      await councilBusinessWorkspaceService.get(businessId);
+      const { committeeId } = changeCouncilBusinessCommitteeSchema.parse(request.body);
+      const linked = await councilBusinessWorkspaceService.associateCommittee(businessId, committeeId);
+      response.status(201).json(committeeLinkResult(`/api/council-business/${businessId}/committees`, linked));
+    },
+  );
+
+  router.post(
+    "/:businessId/committees/dissociate",
+    requireActionPermission("council-business.dissociate-committee"),
+    async (request, response) => {
+      const businessId = routeParameter(request.params.businessId);
+      await councilBusinessWorkspaceService.get(businessId);
+      const { committeeId } = changeCouncilBusinessCommitteeSchema.parse(request.body);
+      const unlinked = await councilBusinessWorkspaceService.dissociateCommittee(businessId, committeeId);
+      response.json(committeeLinkResult(`/api/council-business/${businessId}/committees`, unlinked));
+    },
+  );
 
   router.post(
     "/:businessId/resources",

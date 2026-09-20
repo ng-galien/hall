@@ -16,7 +16,7 @@ export async function startLocalHttpServer(options: LocalServerOptions): Promise
         database: { kind: "postgres", url: database.url },
         clientDirectory: options.clientDirectory,
       },
-      { postgresPool: database.pool },
+      { postgresPool: database.pool, postgresSchemaUpgradeMode: "verify-only" },
     );
     let closing: Promise<void> | undefined;
     return {

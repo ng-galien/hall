@@ -101,7 +101,10 @@ const councilDecisionSummaryFields = {
   ballotId: id,
   title: z.string(),
   documentDate: z.iso.date().nullable(),
-  number: z.string().regex(/^\d{4}-\d{2}-\d{2,}$/).nullable(),
+  number: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2,}$/)
+    .nullable(),
   version: z.number().int().positive(),
   createdAt: time,
   updatedAt: time,

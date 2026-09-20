@@ -13,6 +13,8 @@ CREATE TEMP TABLE minutes_closure AS SELECT hall_api.close_council_meeting(test_
 SET CONSTRAINTS ALL IMMEDIATE;
 SET CONSTRAINTS ALL DEFERRED;
 CREATE TEMP TABLE minutes_fixture AS SELECT (payload#>>'{minutes,id}')::UUID id, (payload#>>'{nextMeeting,id}')::UUID next_meeting FROM minutes_closure;
+-- @verifies-requirement HALL-FR-MIN-220
+SELECT ok((SELECT hall_api.open_minutes(id)->>'settledAt' IS NULL FROM minutes_fixture), 'a newly created PV is not stopped by document creation');
 SELECT is((SELECT count(*) FROM minutes WHERE council_meeting = test_uuid('minutes:meeting')), 1::BIGINT, 'closure creates exactly one standalone draft');
 SELECT is((SELECT content FROM minutes_section JOIN minutes_fixture ON minutes = id WHERE agenda_item = test_uuid('minutes:agenda-item')), 'Notes with a typo.', 'draft starts from recorded discussion notes');
 -- @verifies-requirement HALL-FR-MIN-250

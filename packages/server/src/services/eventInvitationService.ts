@@ -1,5 +1,5 @@
-import MailComposer from "nodemailer/lib/mail-composer/index.js";
 import type { GenerateEventInvitation } from "@hall/api-contract";
+import MailComposer from "nodemailer/lib/mail-composer/index.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
@@ -20,11 +20,17 @@ function text(value: string): string {
 }
 
 function parameter(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, "'").replace(/[\r\n]/g, " ");
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, "'")
+    .replace(/[\r\n]/g, " ");
 }
 
 function utc(value: string): string {
-  return new Date(value).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  return new Date(value)
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
 }
 
 function compactDate(value: string): string {
@@ -32,7 +38,11 @@ function compactDate(value: string): string {
 }
 
 function safeStem(value: string): string {
-  const stem = value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+  const stem = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
   return stem || "rendez-vous";
 }
 
@@ -84,11 +94,12 @@ export function createEventInvitationService({
       ];
       const method = input.method === "cancel" ? "CANCEL" : "REQUEST";
       const schedule = opened.data.document.schedule;
-      const dateLines = schedule.kind === "allDay"
-        ? [`DTSTART;VALUE=DATE:${compactDate(schedule.start)}`, `DTEND;VALUE=DATE:${compactDate(schedule.end)}`]
-        : [`DTSTART:${utc(schedule.start)}`, `DTEND:${utc(schedule.end)}`];
-      const attendeeLines = recipients.map(({ name, address }) =>
-        `ATTENDEE;CN="${parameter(name)}";ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:${address}`,
+      const dateLines =
+        schedule.kind === "allDay"
+          ? [`DTSTART;VALUE=DATE:${compactDate(schedule.start)}`, `DTEND;VALUE=DATE:${compactDate(schedule.end)}`]
+          : [`DTSTART:${utc(schedule.start)}`, `DTEND:${utc(schedule.end)}`];
+      const attendeeLines = recipients.map(
+        ({ name, address }) => `ATTENDEE;CN="${parameter(name)}";ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:${address}`,
       );
       const calendar = [
         "BEGIN:VCALENDAR",
@@ -110,7 +121,9 @@ export function createEventInvitationService({
         "END:VEVENT",
         "END:VCALENDAR",
         "",
-      ].map(foldCalendarLine).join("\r\n");
+      ]
+        .map(foldCalendarLine)
+        .join("\r\n");
       const cancelling = input.method === "cancel";
       const subject = `${cancelling ? "Annulation" : "Invitation"} : ${opened.data.name}`;
       const composer = new MailComposer({

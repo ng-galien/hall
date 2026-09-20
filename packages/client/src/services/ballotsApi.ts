@@ -1,12 +1,12 @@
 import {
   ballotParticipationSchema,
+  ballotResultPreviewSchema,
   ballotSchema,
   ballotVoteSchema,
-  ballotResultPreviewSchema,
-  createBallotResultPreviewSchema,
   type CreateBallotResultPreview,
+  createBallotResultPreviewSchema,
 } from "@hall/api-contract";
-import { apiRequest, submitSirenActionAt, submitSirenAction } from "./apiClient";
+import { apiRequest, submitSirenAction, submitSirenActionAt } from "./apiClient";
 
 export async function listMeetingBallots(meetingId: string) {
   return ballotSchema.array().parse(await apiRequest<unknown>(`/ballots?meetingId=${encodeURIComponent(meetingId)}`));

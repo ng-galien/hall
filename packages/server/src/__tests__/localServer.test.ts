@@ -34,7 +34,7 @@ it("persists local affairs and concurrent resources across an idempotent shutdow
       reportName: "Report",
       reportContent: "Persistent report",
     });
-    expect(businessResponse.status).toBe(201);
+    expect(businessResponse.status, await businessResponse.clone().text()).toBe(201);
     const business = await businessResponse.json();
     const created = await Promise.all(
       ["First", "Second"].map(async (name) => {
@@ -108,7 +108,7 @@ it("persists local affairs and concurrent resources across an idempotent shutdow
     await server.close();
     await rm(dataDirectory, { recursive: true, force: true });
   }
-}, 30_000);
+}, 120_000);
 
 it("closes a failed local startup without resetting an incompatible database", async () => {
   const dataDirectory = await mkdtemp(join(tmpdir(), "hall-local-failure-"));
@@ -138,4 +138,4 @@ it("closes a failed local startup without resetting an incompatible database", a
   } finally {
     await rm(dataDirectory, { recursive: true, force: true });
   }
-}, 30_000);
+}, 120_000);

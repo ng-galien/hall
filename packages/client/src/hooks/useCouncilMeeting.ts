@@ -2,48 +2,40 @@ import {
   type ApiActionName,
   type BallotResultPreview,
   findSirenAction,
+  type MeetingConductWorkspace,
+  type PrepareCouncilMeeting,
+  type RecordMeetingAttendanceEvents,
   type RecordMeetingOpening,
   type RecordMeetingReconvocation,
-  type MeetingConductWorkspace,
-  type RecordMeetingAttendanceEvents,
   type ScheduleAgendaItem,
   type ScheduleCouncilMeeting,
-  type PrepareCouncilMeeting,
   type SchedulePreparedCouncilSubject,
   type SirenEntity,
 } from "@hall/api-contract";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type CouncilMeetingWorkspace, councilMeetingView } from "../models/councilMeeting";
 import { type LiveBallotSubmission, presentLiveMeeting } from "../models/liveMeeting";
-import { ApiError, type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import { openAgendaItemRecusals } from "../services/agendaItemRecusalsApi";
-import { prepareCouncilMeeting } from "../services/councilMeetingsApi";
-import { freezeMeetingAgenda, reopenMeetingAgenda } from "../services/meetingNoticesApi";
+import { ApiError, type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import {
-  openMeetingConduct,
-  recordMeetingAttendanceEvents,
-  recordMeetingQuorum,
-  recordMeetingOpening,
-  recordMeetingReconvocation,
-} from "../services/meetingConductApi";
-import {
-  confirmBallot,
-  previewBallot,
-  openBallotResultPreview,
   type BallotPreview,
+  confirmBallot,
   listBallotParticipations,
   listBallotVotes,
   listMeetingBallots,
+  openBallotResultPreview,
+  previewBallot,
 } from "../services/ballotsApi";
 import {
+  addMeetingOpenQuestion,
   adjournMeetingAgendaItem,
   closeCouncilMeeting,
   completeMeetingAgendaItem,
-  addMeetingOpenQuestion,
   createAndScheduleCouncilBusiness,
   deprogramMeetingAgendaItem,
   openCouncilMeeting,
   openMeetingAgenda,
+  prepareCouncilMeeting,
   reorderMeetingAgenda,
   scheduleCouncilMeeting,
   scheduleMeetingAgendaItem,
@@ -51,17 +43,28 @@ import {
   startMeetingAgendaItem,
   updateMeetingAgendaItemNotes,
 } from "../services/councilMeetingsApi";
+import {
+  openMeetingConduct,
+  recordMeetingAttendanceEvents,
+  recordMeetingOpening,
+  recordMeetingQuorum,
+  recordMeetingReconvocation,
+} from "../services/meetingConductApi";
+import { subscribeLiveUpdates } from "../services/liveUpdates";
+import { freezeMeetingAgenda, reopenMeetingAgenda } from "../services/meetingNoticesApi";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 
 type LiveActionName = ApiActionName | "meeting.set-officers" | "ballot.record";
 
+// @implements-requirement HALL-FR-MTG-320
 export function useCouncilMeeting(meetingReference: string) {
   const [workspace, setWorkspace] = useState<CouncilMeetingWorkspace | null>(null);
   const [representations, setRepresentations] = useState<SirenEntity<Record<string, unknown>>[]>([]);
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
+  const [liveRevision, setLiveRevision] = useState(0);
   const [ballotVotes, setBallotVotes] = useState<ReadonlyMap<string, Awaited<ReturnType<typeof listBallotVotes>>>>(
     new Map(),
   );
@@ -73,6 +76,7 @@ export function useCouncilMeeting(meetingReference: string) {
   const members = useMemo(() => directoryMembers.filter((member) => member.active), [directoryMembers]);
   const businesses = useCouncilBusinessStore((state) => state.businesses);
   const notesRequests = useRef(new Map<string, { text: string; promise: Promise<boolean> }>());
+  const loadSequence = useRef(0);
   const saveAgendaItemNotes = useCallback(
     (itemId: string, notes: string): Promise<boolean> => {
       const previous = notesRequests.current.get(itemId);
@@ -102,7 +106,8 @@ export function useCouncilMeeting(meetingReference: string) {
     [meetingReference],
   );
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (): Promise<boolean> => {
+    const sequence = ++loadSequence.current;
     try {
       const meetingResult = await openCouncilMeeting(meetingReference);
       const [agendaResult, ballots, conductResult] = await Promise.all([
@@ -110,6 +115,7 @@ export function useCouncilMeeting(meetingReference: string) {
         listMeetingBallots(meetingResult.data.id),
         openMeetingConduct(meetingReference),
       ]);
+      if (sequence !== loadSequence.current) return false;
       const agendaItems = agendaResult.data;
       const currentAttendance = conductResult.data.currentAttendance.map((entry) => ({
         id: entry.id,
@@ -152,19 +158,39 @@ export function useCouncilMeeting(meetingReference: string) {
         }),
       )
         .then((details) => {
+          if (sequence !== loadSequence.current) return;
           setBallotVotes(new Map(details.map(([id, votes]) => [id, votes])));
           setBallotParticipantMembers(new Map(details.map(([id, , participantMembers]) => [id, participantMembers])));
           setBallotPreviews(new Map(details.flatMap(([id, , , preview]) => (preview ? [[id, preview] as const] : []))));
         })
-        .catch((cause) => setError(apiErrorCode(cause)));
+        .catch((cause) => {
+          if (sequence === loadSequence.current) setError(apiErrorCode(cause));
+        });
+      return true;
     } catch (loadFailure) {
-      setError(apiErrorCode(loadFailure));
+      if (sequence === loadSequence.current) setError(apiErrorCode(loadFailure));
+      return false;
     }
   }, [meetingReference]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!workspace?.meeting.id) return;
+    let active = true;
+    const refreshFromStream = () => {
+      void load().then((refreshed) => {
+        if (active && refreshed) setLiveRevision((revision) => revision + 1);
+      });
+    };
+    const unsubscribe = subscribeLiveUpdates({ kind: "meeting", id: workspace.meeting.id }, refreshFromStream, refreshFromStream);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [load, workspace?.meeting.id]);
 
   async function mutate(action: () => Promise<unknown>): Promise<boolean> {
     setActionError(null);
@@ -272,11 +298,14 @@ export function useCouncilMeeting(meetingReference: string) {
 
   return {
     meeting,
+    liveRevision,
     workspace,
     can,
     error,
     actionError,
-    refresh: load,
+    refresh: async () => {
+      await load();
+    },
     freezeAgenda() {
       return mutate(() => freezeMeetingAgenda(meetingReference));
     },

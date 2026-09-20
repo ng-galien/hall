@@ -12,7 +12,17 @@ postgresTest("pgTAP: Hall location integrity and independent meeting snapshots",
   try {
     await client.query("BEGIN");
     await client.query("CREATE EXTENSION IF NOT EXISTS pgtap");
-    await client.query(`CREATE SCHEMA ${schema}; SET LOCAL search_path TO ${schema}, public`);
+    const extension = await client.query<{ name: string }>(`
+      SELECT namespace.nspname AS name
+      FROM pg_extension AS extension
+      JOIN pg_namespace AS namespace ON namespace.oid = extension.extnamespace
+      WHERE extension.extname = 'pgtap'
+    `);
+    await client.query(`CREATE SCHEMA ${schema}`);
+    await client.query("SELECT set_config('search_path', format('%I,%I,public', $1::text, $2::text), true)", [
+      schema,
+      extension.rows[0].name,
+    ]);
     await client.query("CREATE TABLE hall_settings (id TEXT PRIMARY KEY); INSERT INTO hall_settings VALUES ('hall')");
     await client.query(meetingLocationsSchema);
     const results = await client.query(`

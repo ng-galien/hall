@@ -1,175 +1,49 @@
+import type { MinutesDetail } from "@hall/api-contract";
 import { describe, expect, it } from "vitest";
-import { createTestCouncilMember, createTestServer, domainBody, type TestAgent } from "../../src/__tests__/testServer.js";
-
-async function createMember(agent: TestAgent, firstName: string) {
-  return createTestCouncilMember(agent, { firstName });
-}
-
-async function createMeeting(agent: TestAgent, startsAt: string) {
-  return domainBody<{ id: string; slug: string }>(
-    await agent.post("/api/council-meetings").send({ startsAt, location: "Salle du conseil" }).expect(201),
-  );
-}
+import { domainBody } from "../../src/__tests__/testServer.js";
+import { createClosedMeetingWithMinutes } from "./minutesLifecycleFixture.js";
 
 describe("automatic meeting preparation", () => {
-  it("drafts minutes, finalizes them, and provisions the next dated draft without duplicates", async () => {
-    const { agent } = await createTestServer();
-    const members = await Promise.all(["Alice", "Benoît", "Claire"].map((name) => createMember(agent, name)));
-    const firstMeeting = await createMeeting(agent, "2026-09-10T18:30:00+02:00");
-    const nextMeeting = await createMeeting(agent, "2026-10-08T18:30:00+02:00");
-    await createMeeting(agent, "2026-11-12T18:30:00+01:00");
-    expect(firstMeeting.slug).toBe("2026-09-10-001");
-    expect(nextMeeting.slug).toBe("2026-10-08-002");
+  it("creates an editable minutes draft and one approval on the undated successor", async () => {
+    const { agent, pool, meeting, business, subject, agendaItem, closure } =
+      await createClosedMeetingWithMinutes();
+    expect(closure.closedMeeting.id).toBe(meeting.id);
+    expect(closure.minutes.generatedAt).toBeNull();
+    const minutesPath = `/api/minutes/${closure.minutes.id}`;
+    const draft = domainBody<MinutesDetail>(await agent.get(minutesPath).expect(200));
+    expect(draft.sections).toEqual([
+      { agendaItemId: agendaItem.id, content: "Notes prises en séance." },
+    ]);
+    const edited = domainBody<MinutesDetail>(await agent.patch(`${minutesPath}/draft`).send({
+      expectedVersion: draft.version, agendaItemId: agendaItem.id,
+      content: "Notes corrigées par le secrétaire.",
+    }).expect(200));
+    expect(edited.sections).toEqual([
+      { agendaItemId: agendaItem.id, content: "Notes corrigées par le secrétaire." },
+    ]);
+    expect(domainBody<MinutesDetail>(await agent.get(minutesPath).expect(200)).version).toBe(edited.version);
 
-    const supportingResource = domainBody<{ id: string }>(
-      await agent
-        .post("/api/resources/texts")
-        .send({
-          title: "Notes préparatoires du procès-verbal",
-          folderPath: "seances",
-          tags: [],
-          content: "Notes du secrétaire",
-        })
-        .expect(201),
+    const nextAgenda = domainBody<Array<{
+      id: string; councilBusinessId: string | null; position: number;
+      subject: { kind: string; id?: string; minutesId?: string };
+    }>>(await agent.get(`/api/council-meetings/${closure.nextMeeting.id}/agenda-items`).expect(200));
+    expect(nextAgenda).toEqual([
+      expect.objectContaining({
+        councilBusinessId: null, position: 1,
+        subject: expect.objectContaining({ kind: "minutesApproval", minutesId: closure.minutes.id }),
+      }),
+      expect.objectContaining({
+        councilBusinessId: business.id, position: 2,
+        subject: expect.objectContaining({ kind: "openQuestion", id: subject.id }),
+      }),
+    ]);
+    const count = await pool.query<{ count: string }>(
+      "SELECT count(*) FROM hall.minutes_approval WHERE minutes = $1", [closure.minutes.id],
     );
-    await agent
-      .post("/api/council-business")
-      .send({
-        kind: "minutesApproval",
-        minutesOfMeetingId: firstMeeting.id,
-        title: "Approbation du procès-verbal",
-        report: "Brouillon initial",
-        folderPath: "seances",
-        resourceIds: [supportingResource.id],
-      })
-      .expect(201);
-
-    const postponedBusiness = domainBody<{ id: string }>(
-      await agent
-        .post("/api/council-business")
-        .send({
-          kind: "matter",
-          title: "Travaux de voirie",
-          report: "Présentation du programme de travaux.",
-          folderPath: "",
-          resourceIds: [],
-        })
-        .expect(201),
-    );
-    await agent
-      .post(`/api/council-business/${postponedBusiness.id}/schedule`)
-      .send({ meetingId: firstMeeting.id, position: 1 })
-      .expect(201);
-    await agent.put(`/api/council-meetings/${firstMeeting.id}/status`).send({ status: "scheduled" }).expect(200);
-    await agent
-      .put(`/api/council-meetings/${firstMeeting.id}/officers`)
-      .send({ chairMemberId: members[0].id, secretaryMemberId: members[1].id })
-      .expect(200);
-    for (const member of members) {
-      await agent
-        .put(`/api/council-meetings/${firstMeeting.id}/attendance`)
-        .send({ memberId: member.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
-        .expect(200);
-    }
-    await agent.put(`/api/council-meetings/${firstMeeting.id}/status`).send({ status: "inProgress" }).expect(200);
-    await agent.put(`/api/council-meetings/${firstMeeting.id}/status`).send({ status: "closed" }).expect(200);
-
-    const closedResponse = await agent.get(`/api/council-meetings/${firstMeeting.id}`).expect(200);
-    const closed = domainBody<{
-      meeting: { minutesStatus: string; minutesContent: string };
-    }>(closedResponse);
-    expect(closed.meeting.minutesStatus).toBe("draft");
-    expect(closed.meeting.minutesContent).toContain("# Procès-verbal");
-    expect(closed.meeting.minutesContent).toContain("Travaux de voirie");
-    expect(closed.meeting.minutesContent).toContain("Reporté");
-    expect(closedResponse.body.actions).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: "meeting.finalize-minutes", method: "POST" })]),
-    );
-
-    let businesses = domainBody<
-      Array<{
-        id: string;
-        kind: string;
-        minutesOfMeetingId?: string;
-        title: string;
-        report: string;
-        folderPath: string;
-        resources: unknown[];
-      }>
-    >(await agent.get("/api/council-business").expect(200));
-    const minutesApproval = businesses.find(
-      (business) => business.kind === "minutesApproval" && business.minutesOfMeetingId === firstMeeting.id,
-    )!;
-    expect(minutesApproval.report).toContain("Alice Martin");
-    expect(minutesApproval.resources).toHaveLength(1);
-
-    let nextAggregate = domainBody<{
-      agendaItems: Array<{ id: string; business: { id: string; kind: string } }>;
-    }>(await agent.get(`/api/council-meetings/${nextMeeting.id}`).expect(200));
-    expect(nextAggregate.agendaItems.map((item) => item.business.id)).toEqual([postponedBusiness.id]);
-
-    const revisedMinutes = `${minutesApproval.report}\nValidation du secrétaire de séance.\n`;
-    await agent
-      .put(`/api/council-business/${minutesApproval.id}`)
-      .send({
-        title: minutesApproval.title,
-        report: revisedMinutes,
-        folderPath: minutesApproval.folderPath,
-        resourceIds: [],
-      })
-      .expect(200);
-    const finalization = await agent.post(`/api/council-meetings/${firstMeeting.id}/minutes/finalize`).expect(200);
-    expect(domainBody(finalization)).toMatchObject({ minutesStatus: "ready", minutesContent: revisedMinutes });
-    await agent.post(`/api/council-meetings/${firstMeeting.id}/minutes/finalize`).expect(409);
-    await agent
-      .put(`/api/council-business/${minutesApproval.id}`)
-      .send({
-        title: minutesApproval.title,
-        report: `${revisedMinutes}\nModification tardive.`,
-        folderPath: minutesApproval.folderPath,
-        resourceIds: [],
-      })
-      .expect(409);
-
-    nextAggregate = domainBody(
-      await agent.get(`/api/council-meetings/${nextMeeting.id}`).expect(200),
-    ) as typeof nextAggregate;
-    expect(nextAggregate.agendaItems.map((item) => item.business.kind)).toEqual(["minutesApproval", "matter"]);
-    expect(nextAggregate.agendaItems.filter((item) => item.business.kind === "minutesApproval")).toHaveLength(1);
-
-    await agent.put(`/api/council-meetings/${nextMeeting.id}/status`).send({ status: "scheduled" }).expect(200);
-    await agent
-      .put(`/api/council-meetings/${nextMeeting.id}/officers`)
-      .send({ chairMemberId: members[0].id, secretaryMemberId: members[1].id })
-      .expect(200);
-    for (const member of members) {
-      await agent
-        .put(`/api/council-meetings/${nextMeeting.id}/attendance`)
-        .send({ memberId: member.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
-        .expect(200);
-    }
-    await agent.put(`/api/council-meetings/${nextMeeting.id}/status`).send({ status: "inProgress" }).expect(200);
-    const minutesItem = nextAggregate.agendaItems[0];
-    await agent.post(`/api/council-meetings/${nextMeeting.id}/agenda-items/${minutesItem.id}/start`).expect(200);
-    await agent
-      .post(`/api/council-meetings/${nextMeeting.id}/agenda-items/${minutesItem.id}/complete`)
-      .send({ discussionSummary: "Procès-verbal arrêté sans observation.", status: "postponed" })
-      .expect(409);
-    await agent
-      .post(`/api/council-meetings/${nextMeeting.id}/agenda-items/${minutesItem.id}/complete`)
-      .send({ discussionSummary: "Procès-verbal arrêté sans observation.", status: "examined" })
-      .expect(200);
-
-    expect(
-      domainBody<{ meeting: { minutesStatus: string } }>(
-        await agent.get(`/api/council-meetings/${firstMeeting.id}`).expect(200),
-      ).meeting.minutesStatus,
-    ).toBe("approved");
-    businesses = domainBody(await agent.get("/api/council-business").expect(200));
-    expect(
-      businesses.filter(
-        (business) => business.kind === "minutesApproval" && business.minutesOfMeetingId === firstMeeting.id,
-      ),
-    ).toHaveLength(1);
+    expect(count.rows[0].count).toBe("1");
+    await agent.post(`/api/council-meetings/${meeting.id}/close`)
+      .send({ closedAt: "2026-09-10T19:00:00Z" }).expect(409);
+    expect(domainBody(await agent.get(`/api/council-meetings/${closure.nextMeeting.id}/agenda-items`).expect(200)))
+      .toEqual(nextAgenda);
   });
 });

@@ -150,11 +150,26 @@ séparément l'implémentation, la vérification et le suivi backlog.
 
 Critère de sortie : depuis un chemin de travail, l'utilisateur constitue un sujet, lui associe ses pièces et comprend immédiatement son devenir au conseil.
 
+### Commissions associées aux affaires
+
+- @tracks-requirement HALL-FR-BUS-070
+- [ ] `[FULL]` Permettre de rattacher plusieurs commissions à une `CouncilBusiness`, l'affaire suivie dans la durée, puis de consulter les affaires rattachées depuis chaque commission. Préciser avec le propriétaire les règles de rattachement avant de modifier le modèle ou l'interface.
+
 ### Cohérence des ressources documentaires
 
 - [ ] `[FULL]` Auditer chaque type de ressource, son parcours d'édition et son accessibilité dans l'IHM ; relever les opérations disponibles, manquantes ou difficiles à trouver.
 - [ ] `[FULL]` Reprendre l'ergonomie et le sens des parcours d'ajout et de suppression des ressources. Les évolutions fonctionnelles restent à préciser avec le propriétaire.
 - [ ] `[FRONT]` Retravailler la présentation des textes et les dimensions des éditeurs, jugées trop brutes à l'usage.
+
+### Historique des modifications
+
+- [ ] `[FULL]` Vérifier la couverture réelle du journal d'activité : les ajouts de documents et les modifications de textes réussis ne figurent pas dans la liste d'audit exposée par l'application actuelle. Distinguer cet audit des versions de contenu.
+- [ ] `[FULL]` Conserver les versions enregistrées des textes édités en Markdown et permettre de consulter les changements entre deux versions. Relier chaque version à son auteur et à sa date ; préciser la présentation des enregistrements automatiques avec le propriétaire.
+- [ ] `[FULL]` Examiner l'historique des documents remplacés et la suppression des ressources, notamment l'option d'une suppression réversible. Définir les règles de conservation avant toute modification du modèle.
+
+### Notifications des ressources
+
+- [ ] `[FULL]` Informer les utilisateurs concernés lorsqu'une ressource change. Définir avec le propriétaire les événements, les destinataires, le canal et le regroupement des enregistrements automatiques avant de choisir le modèle ou le mécanisme de diffusion.
 
 ### Recherche, insertion et création inline
 
@@ -282,10 +297,17 @@ Critère de sortie : un contact sans mandat peut être géré et référencé ; 
 
 ### Paramètres de la commune, salles, droits et authentification
 
+- [ ] `[FULL]` Clarifier l’écran de configuration de la commune demandé le 20 septembre 2026 : accès par le menu principal, consultation et modification avec habilitations distinctes, cohérence avec l’IHM existante. Les champs et attributions précises restent à décider. @tracks-requirement HALL-FR-COM-010
+
 - [ ] `[FULL]` Examiner les possibilités de configuration de la commune, notamment l'absence signalée de salles prédéfinies. Préciser le besoin avant toute évolution du modèle.
-- [ ] `[FULL]` Auditer et rationaliser les RBAC, les permissions et les rôles ; une gestion plus fine dépend des besoins à préciser avec le propriétaire.
+- [ ] `[FULL]` Auditer et rationaliser les RBAC, les permissions et les rôles. Étudier une granularité globale plus fine, notamment la distinction entre lecture, modification et suppression. Ne pas introduire de droits particuliers par affaire ; préciser avec le propriétaire la liste des actions à séparer avant de modifier le contrat.
 - [ ] `[FULL]` Étudier les connexions avec un compte Microsoft et l'authentification via Active Directory. Présenter options, prérequis et implications avant le choix d'une solution ; aucun fournisseur n'est arrêté.
 - [ ] `[FULL]` Examiner avec le propriétaire les habilitations issues de l'étude SSO.
+
+### Accueil des conseillers et espace personnel
+
+- [ ] `[FULL]` Exploiter le rattachement existant entre compte, contact et mandat de conseiller pour proposer un accueil adapté, notamment une vue « mes affaires ». Définir avec le propriétaire ce qui fait qu'une affaire appartient à cette vue ; distinguer personnalisation de l'accueil et droits d'accès.
+- [ ] `[FULL]` Étudier un espace « mes documents » et des notes personnelles sans rattachement obligatoire à une affaire. Préciser la confidentialité, le partage éventuel et le cycle de vie avant de modifier le modèle.
 
 ### Mandatures et historique du conseil
 

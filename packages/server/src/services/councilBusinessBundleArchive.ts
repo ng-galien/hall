@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";
-import { councilBusinessBundleManifestSchema, type CouncilBusinessBundleManifest } from "@hall/api-contract";
+import { type CouncilBusinessBundleManifest, councilBusinessBundleManifestSchema } from "@hall/api-contract";
 
 const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 const MAX_EXPANDED_BYTES = 128 * 1024 * 1024;
@@ -29,9 +29,9 @@ function validateArchive(input: CouncilBusinessBundleArchive): CouncilBusinessBu
   const identities = new Set(manifest.resources.map(({ data }) => data.id));
   if (identities.size !== manifest.resources.length) throw new InvalidCouncilBusinessBundle("Duplicate resource");
   const report = manifest.resources.find(({ data }) => data.id === manifest.business.reportSourceId);
-  if (!report || report.data.kind !== "text") throw new InvalidCouncilBusinessBundle("Missing report");
+  if (report?.data.kind !== "text") throw new InvalidCouncilBusinessBundle("Missing report");
   const folder = manifest.resources.find(({ data }) => data.id === manifest.business.folderSourceId);
-  if (!folder || folder.data.kind !== "folder" || report.data.path !== folder.data.fullPath) {
+  if (folder?.data.kind !== "folder" || report.data.path !== folder.data.fullPath) {
     throw new InvalidCouncilBusinessBundle("Invalid business folder");
   }
   for (const { data } of manifest.resources) {
@@ -50,8 +50,12 @@ function validateArchive(input: CouncilBusinessBundleArchive): CouncilBusinessBu
   let totalBytes = 0;
   for (const file of manifest.files) {
     const bytes = input.files.get(file.path);
-    if (!bytes || bytes.length !== file.byteSize || bundleContentHash(bytes) !== file.sha256 ||
-      file.path !== `blobs/${file.sha256}`) {
+    if (
+      !bytes ||
+      bytes.length !== file.byteSize ||
+      bundleContentHash(bytes) !== file.sha256 ||
+      file.path !== `blobs/${file.sha256}`
+    ) {
       throw new InvalidCouncilBusinessBundle("File integrity mismatch");
     }
     totalBytes += bytes.length;
@@ -64,17 +68,24 @@ function validateArchive(input: CouncilBusinessBundleArchive): CouncilBusinessBu
     if (resource.data.kind === "document" && !resource.binaryPath) {
       throw new InvalidCouncilBusinessBundle("Document has no original");
     }
-    if (resource.data.kind === "document" && (resource.binaryPath !== `blobs/${resource.data.binary.contentSha256}` ||
-      fileMetadata.get(resource.binaryPath)?.byteSize !== resource.data.binary.byteSize)) {
+    if (
+      resource.data.kind === "document" &&
+      (resource.binaryPath !== `blobs/${resource.data.binary.contentSha256}` ||
+        fileMetadata.get(resource.binaryPath)?.byteSize !== resource.data.binary.byteSize)
+    ) {
       throw new InvalidCouncilBusinessBundle("Document metadata mismatch");
     }
   }
   const assetIds = new Set<string>();
   for (const asset of manifest.editorAssets) {
-    if (assetIds.has(asset.data.id) || identities.has(asset.data.id) || !paths.has(asset.binaryPath) ||
+    if (
+      assetIds.has(asset.data.id) ||
+      identities.has(asset.data.id) ||
+      !paths.has(asset.binaryPath) ||
       asset.binaryPath !== `blobs/${asset.data.contentSha256}` ||
       fileMetadata.get(asset.binaryPath)?.byteSize !== asset.data.byteSize ||
-      !manifest.resources.some(({ data }) => data.id === asset.data.owner.id && data.kind === "text")) {
+      !manifest.resources.some(({ data }) => data.id === asset.data.owner.id && data.kind === "text")
+    ) {
       throw new InvalidCouncilBusinessBundle("Invalid embedded asset");
     }
     assetIds.add(asset.data.id);
@@ -85,11 +96,13 @@ function validateArchive(input: CouncilBusinessBundleArchive): CouncilBusinessBu
 /** Content-addressed entries are never interpreted as filesystem destinations. */
 export function encodeCouncilBusinessBundle(input: CouncilBusinessBundleArchive): Buffer {
   const { manifest, files } = validateArchive(input);
-  const expanded = Buffer.from(JSON.stringify({
-    manifest,
-    manifestSha256: bundleContentHash(Buffer.from(JSON.stringify(manifest))),
-    files: [...files].map(([path, content]) => ({ path, base64: content.toString("base64") })),
-  }));
+  const expanded = Buffer.from(
+    JSON.stringify({
+      manifest,
+      manifestSha256: bundleContentHash(Buffer.from(JSON.stringify(manifest))),
+      files: [...files].map(([path, content]) => ({ path, base64: content.toString("base64") })),
+    }),
+  );
   if (expanded.length > MAX_EXPANDED_BYTES) throw new InvalidCouncilBusinessBundle("Bundle is too large");
   const archive = gzipSync(expanded);
   if (archive.length > MAX_ARCHIVE_BYTES) throw new InvalidCouncilBusinessBundle("Bundle is too large");
@@ -106,18 +119,31 @@ export function decodeCouncilBusinessBundle(archive: Buffer): CouncilBusinessBun
       throw new Error("Invalid envelope fields");
     }
     const { manifest, manifestSha256, files } = envelope as {
-      manifest: unknown; manifestSha256: unknown; files: unknown;
+      manifest: unknown;
+      manifestSha256: unknown;
+      files: unknown;
     };
-    if (typeof manifestSha256 !== "string" ||
-      bundleContentHash(Buffer.from(JSON.stringify(manifest))) !== manifestSha256 || !Array.isArray(files)) {
+    if (
+      typeof manifestSha256 !== "string" ||
+      bundleContentHash(Buffer.from(JSON.stringify(manifest))) !== manifestSha256 ||
+      !Array.isArray(files)
+    ) {
       throw new Error("Invalid envelope integrity");
     }
     if (files.length > 4000) throw new Error("Too many files");
     const decoded = new Map<string, Buffer>();
     for (const entry of files) {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry) ||
-        Object.keys(entry).length !== 2 || typeof entry.path !== "string" || typeof entry.base64 !== "string" ||
-        !/^blobs\/[a-f0-9]{64}$/.test(entry.path) || decoded.has(entry.path)) throw new Error("Invalid file entry");
+      if (
+        !entry ||
+        typeof entry !== "object" ||
+        Array.isArray(entry) ||
+        Object.keys(entry).length !== 2 ||
+        typeof entry.path !== "string" ||
+        typeof entry.base64 !== "string" ||
+        !/^blobs\/[a-f0-9]{64}$/.test(entry.path) ||
+        decoded.has(entry.path)
+      )
+        throw new Error("Invalid file entry");
       const bytes = Buffer.from(entry.base64, "base64");
       if (bytes.toString("base64") !== entry.base64) throw new Error("Invalid binary encoding");
       decoded.set(entry.path, bytes);

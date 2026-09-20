@@ -41,6 +41,8 @@ For work explicitly using TRUST and Maket, follow
 project MCP connection, declared requirements, the living Maket document, its
 readiness Check, the user's review before implementation, and delivery Checks. The requirement catalogue remains
 the source of truth; this guide does not authorize automatic Plan engagement.
+For project-wide adoption, read [the TRUST procedural-history guide](docs/trust-adoption.md) first.
+For every TRUST/Maket feature, use the [living feature document contract](docs/living-feature-document.md): one structured tracking document, fed by Operations, with explicit provenance for decisions, Check verdicts and agent reports. The rejected temporary schema has been removed; do not reinvent page-local delivery states or claim a migration that has not run.
 
 For this project's installed TRUST Runner, load `.trust/runner.env` explicitly:
 
@@ -68,6 +70,7 @@ Canonical terms include `HallSettings`, `CouncilTerm`, `Contact`, `CouncilMember
 
 Before modifying `packages/client`, read [`docs/principes-interface.md`](docs/principes-interface.md).
 
+- Read the existing HTTP/Siren contract and the decisions recorded in upstream TRUST reviews before designing a component or asking for an arbitration. During design review, assess whether the **planned** Siren representation and actions are sufficient for the agreed UI; do not confuse a contract that has not yet been implemented with a contract whose design is incomplete. Siren supplies the data and actions available to the user; the server owns permission checks and the mapping of resource commands to a CouncilBusiness. The frontend consumes those actions and does not invent a permission, command, or parallel authorization rule. Report a precise gap in the planned contract to the upstream HTTP/Siren mission; escalate to the user only a genuine unresolved product contradiction.
 - Maintain one visual identity and compose screens from shared primitives in `packages/client/src/components/ui/`.
 - Reuse existing components and interactions, including the workspace TreeView.
 - Avoid duplicate information, local visual-token variants, and frontend rules that compete with backend contracts.
@@ -120,3 +123,7 @@ The Alésia dataset is fictional. Its reference model is documented in [`docs/se
 The requirement catalogue owns detailed lifecycle rules and acceptance criteria. Before automating a legal deadline or formality, verify the current institutional source linked from the relevant requirement.
 
 Distinguish statutory obligations, local policy, and internal organization. Preserve the chronology and evidence of material events such as notices, attendance, proxies, ballots, minutes approval, signatures, publication, and legality-control transmission.
+
+## Intervention du 17 septembre 2026
+
+Le journal factuel de la duplication, de la migration et de la bascule de la base PostgreSQL locale de Alésia est dans [`docs/operations/2026-09-17-sample-production-cutover.md`](docs/operations/2026-09-17-sample-production-cutover.md). Il donne les noms des bases, les opérations réellement exécutées, les contrôles, les chemins des sauvegardes, le plan DDL complet et les limites connues. Le consulter avant toute nouvelle opération sur cette production locale.

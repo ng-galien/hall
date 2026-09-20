@@ -17,7 +17,7 @@ export function renderMeetingNotice(facts: MeetingNoticeFacts): string {
   const agenda = meeting.agenda
     .map((item) => {
       const title = matchLiteral(item.kind, {
-        minutesApproval: () => "Approbation du procès-verbal de la séance précédente",
+        minutesApproval: () => "Arrêt du procès-verbal de la séance précédente",
         councilDecisionProposal: () => item.title,
         openQuestion: () => item.title,
       });

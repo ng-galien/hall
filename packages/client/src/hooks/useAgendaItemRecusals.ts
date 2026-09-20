@@ -1,7 +1,8 @@
+// biome-ignore-all lint/correctness/useExhaustiveDependencies: The revision token deliberately reloads recusals after a mutation.
 import { findSirenAction, type RecordAgendaItemRecusal } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { openAgendaItemRecusals, recordAgendaItemRecusal } from "../services/agendaItemRecusalsApi";
-import { apiErrorCode, type ApiErrorCode } from "../services/apiClient";
+import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 
 export function useAgendaItemRecusals(meetingReference: string, agendaItemId: string | null, revision: string) {
   const [result, setResult] = useState<Awaited<ReturnType<typeof openAgendaItemRecusals>> | null>(null);

@@ -1,10 +1,5 @@
 import { z } from "zod";
-import {
-  resourceIdSchema,
-  resourceNameSchema,
-  resourcePathSchema,
-  resourceSummarySchema,
-} from "./resources.js";
+import { resourceIdSchema, resourceNameSchema, resourcePathSchema, resourceSummarySchema } from "./resources.js";
 
 export const councilBusinessSchema = z
   .object({
@@ -30,6 +25,26 @@ export const councilBusinessResourceAssociationSchema = z
     position: z.number().int().positive(),
   })
   .strict();
+
+// @implements-requirement HALL-FR-BUS-070
+export const councilBusinessCommitteeLinkSchema = z
+  .object({
+    committeeId: resourceIdSchema,
+    name: resourceNameSchema,
+    archivedAt: z.iso.datetime({ offset: true }).nullable(),
+    href: z.string().startsWith("/api/council-committees/"),
+  })
+  .strict();
+
+export const councilCommitteeBusinessLinkSchema = z
+  .object({
+    councilBusinessId: resourceIdSchema,
+    title: resourceNameSchema,
+    href: z.string().startsWith("/api/council-business/"),
+  })
+  .strict();
+
+export const changeCouncilBusinessCommitteeSchema = z.object({ committeeId: resourceIdSchema }).strict();
 
 /** Flat read model used by list consumers without opening each aggregate. */
 export const councilBusinessWorkspaceItemSchema = councilBusinessSchema
@@ -76,6 +91,9 @@ export const scheduleCouncilBusinessSubjectSchema = z
 export type CouncilBusiness = z.infer<typeof councilBusinessSchema>;
 export type CreateCouncilBusiness = z.infer<typeof createCouncilBusinessSchema>;
 export type CouncilBusinessResourceAssociation = z.infer<typeof councilBusinessResourceAssociationSchema>;
+export type CouncilBusinessCommitteeLink = z.infer<typeof councilBusinessCommitteeLinkSchema>;
+export type CouncilCommitteeBusinessLink = z.infer<typeof councilCommitteeBusinessLinkSchema>;
+export type ChangeCouncilBusinessCommittee = z.infer<typeof changeCouncilBusinessCommitteeSchema>;
 export type CouncilBusinessWorkspaceItem = z.infer<typeof councilBusinessWorkspaceItemSchema>;
 export type CouncilBusinessResourceItem = z.infer<typeof councilBusinessResourceItemSchema>;
 export type AssociateCouncilBusinessResource = z.infer<typeof associateCouncilBusinessResourceSchema>;

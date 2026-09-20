@@ -88,7 +88,21 @@ export function createTestCouncilClient(
   }
 
   return {
-    async deleteBusiness() { throw new Error("Business removal is verified against isolated PostgreSQL-compatible runtime"); },
+    async listBusinessCommittees() {
+      throw new Error("Committee association tests require PostgreSQL");
+    },
+    async listCommitteeBusinesses() {
+      throw new Error("Committee association tests require PostgreSQL");
+    },
+    async associateBusinessCommittee() {
+      throw new Error("Committee association tests require PostgreSQL");
+    },
+    async dissociateBusinessCommittee() {
+      throw new Error("Committee association tests require PostgreSQL");
+    },
+    async deleteBusiness() {
+      throw new Error("Business removal is verified against isolated PostgreSQL-compatible runtime");
+    },
     async importBusinessBundle() {
       throw new Error("Bundle import is verified against the isolated PostgreSQL-compatible runtime");
     },
@@ -145,7 +159,7 @@ export function createTestCouncilClient(
         [...businesses.values()].map(async (business): Promise<CouncilBusinessWorkspaceItem> => {
           const folder = await resourcesClient.open(business.folderResourceId);
           const report = await resourcesClient.open(business.reportResourceId);
-          if (!folder || folder.data.kind !== "folder" || !report || report.data.kind !== "text") {
+          if (folder?.data.kind !== "folder" || report?.data.kind !== "text") {
             throw new CouncilClientError("conflict");
           }
           return {
@@ -353,6 +367,7 @@ export function createTestCouncilClient(
         version: 1,
         generatedAt: null,
         documentId: null,
+        settledAt: null,
         sections: [...agendaItems.values()]
           .filter((entry) => entry.councilMeetingId === id)
           .map((entry) => ({ agendaItemId: entry.id, content: entry.discussionSummary })),

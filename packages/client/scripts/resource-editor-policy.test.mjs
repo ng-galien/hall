@@ -10,7 +10,7 @@ const cases = [
   ["text", false, true],
   ["spreadsheet", true, true],
   ["document", true, false],
-  ["remote", false, true],
+  ["remote", true, true],
   ["geographic", true, true],
   ["legalReference", false, false],
 ];

@@ -43,6 +43,8 @@ export const apiActionNames = [
   "council-business.create",
   "council-business.import-bundle",
   "council-business.delete",
+  "council-business.associate-committee",
+  "council-business.dissociate-committee",
   "council-business.export-bundle",
   "council-business.associate-resource",
   "council-business.dissociate-resource",

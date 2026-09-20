@@ -61,7 +61,7 @@ it("maps recusal storage conflicts to stable API codes without reclassifying unr
   }
 });
 
-it("returns HTTP 409 with a stable pending-minutes code when PostgreSQL refuses closure", async () => {
+it("returns HTTP 409 when PostgreSQL detects a missing previous-PV agenda occurrence", async () => {
   const { default: express } = await import("express");
   const { default: request } = await import("supertest");
   const { errorHandler } = await import("../../api/errorHandler.js");
@@ -73,8 +73,8 @@ it("returns HTTP 409 with a stable pending-minutes code when PostgreSQL refuses 
     .spyOn(postgresCouncil, "close")
     .mockRejectedValue(
       new HallPostgresError(
-        "the previous council meeting minutes must be approved before closure",
-        { sqlState: "HV117", constraint: null, table: null, column: null, detail: null, schema: null },
+        "a successor requires its previous minutes approval in first position",
+        { sqlState: "HV126", constraint: null, table: null, column: null, detail: null, schema: null },
         undefined,
       ),
     );
@@ -82,7 +82,7 @@ it("returns HTTP 409 with a stable pending-minutes code when PostgreSQL refuses 
   app.post("/api/council-meetings/:id/close", async (req, res) => {
     await requestContext.run(
       {
-        requestId: "pending-minutes-http",
+        requestId: "missing-minutes-occurrence-http",
         principal: {
           id: "clerk",
           displayName: "Clerk",
@@ -103,8 +103,8 @@ it("returns HTTP 409 with a stable pending-minutes code when PostgreSQL refuses 
     expect(response.headers["content-type"]).toContain("application/problem+json");
     expect(response.body).toMatchObject({
       status: 409,
-      code: "previous_minutes_pending",
-      type: "/api/problems/previous-minutes-pending",
+      code: "agenda_inconsistent",
+      type: "/api/problems/agenda-inconsistent",
     });
     expect(close).toHaveBeenCalledOnce();
   } finally {

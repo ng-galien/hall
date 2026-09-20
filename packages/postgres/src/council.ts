@@ -69,6 +69,17 @@ export const postgresCouncilBusinessResourceAssociationSchema = z.object({
   position: z.number().int().positive(),
 });
 
+export const postgresCouncilBusinessCommitteeSchema = z.object({
+  committeeId: resourceIdSchema,
+  name: z.string().min(1),
+  archivedAt: timestampSchema.nullable(),
+});
+
+export const postgresCouncilCommitteeBusinessSchema = z.object({
+  councilBusinessId: resourceIdSchema,
+  title: resourceNameSchema,
+});
+
 export const postgresCouncilBusinessWorkspaceItemSchema = postgresCouncilBusinessWorkspaceSchema.extend({
   title: resourceNameSchema,
   folderPath: resourcePathSchema,
@@ -248,6 +259,8 @@ export type PostgresCouncilBusinessWorkspace = z.infer<typeof postgresCouncilBus
 export type PostgresCouncilBusinessResourceAssociation = z.infer<
   typeof postgresCouncilBusinessResourceAssociationSchema
 >;
+export type PostgresCouncilBusinessCommittee = z.infer<typeof postgresCouncilBusinessCommitteeSchema>;
+export type PostgresCouncilCommitteeBusiness = z.infer<typeof postgresCouncilCommitteeBusinessSchema>;
 export type PostgresCouncilBusinessWorkspaceItem = z.infer<typeof postgresCouncilBusinessWorkspaceItemSchema>;
 export type PostgresCouncilBusinessResourceItem = z.infer<typeof postgresCouncilBusinessResourceItemSchema>;
 export type PostgresCouncilMeeting = z.infer<typeof postgresCouncilMeetingSchema>;
@@ -423,7 +436,11 @@ export class PostgresCouncil {
     );
   }
 
-  listPreparedSubjects(request: PostgresCouncilRequest, meetingId: string | null = null, businessId: string | null = null) {
+  listPreparedSubjects(
+    request: PostgresCouncilRequest,
+    meetingId: string | null = null,
+    businessId: string | null = null,
+  ) {
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "council-business.list-prepared-subjects") },
       (client) =>
@@ -706,7 +723,8 @@ export class PostgresCouncil {
       { role: request.role, context: this.runContext(request, "council-business.delete") },
       async (client) => {
         const business = await callJson(client, {
-          text: "SELECT hall_api.delete_council_business($1::uuid) AS payload", values: [id],
+          text: "SELECT hall_api.delete_council_business($1::uuid) AS payload",
+          values: [id],
           schema: postgresCouncilBusinessWorkspaceSchema,
         });
         await recordAuditEvent(client, { targetType: "council-business", targetId: id, outcome: "succeeded" });
@@ -715,9 +733,14 @@ export class PostgresCouncil {
     );
   }
 
-  importBusinessBundle(request: PostgresCouncilRequest, input: {
-    manifest: Record<string, unknown>; files: Record<string, string>; path: string;
-  }): Promise<PostgresCouncilBusinessWorkspace> {
+  importBusinessBundle(
+    request: PostgresCouncilRequest,
+    input: {
+      manifest: Record<string, unknown>;
+      files: Record<string, string>;
+      path: string;
+    },
+  ): Promise<PostgresCouncilBusinessWorkspace> {
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "council-business.import-bundle") },
       async (client) => {
@@ -883,6 +906,90 @@ export class PostgresCouncil {
           values: [parsedBusinessId],
           schema: z.array(postgresCouncilBusinessResourceAssociationSchema),
         }),
+    );
+  }
+
+  listBusinessCommittees(
+    request: PostgresCouncilRequest,
+    businessId: string,
+  ): Promise<PostgresCouncilBusinessCommittee[]> {
+    const parsedBusinessId = resourceIdSchema.parse(businessId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.committees.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.list_council_business_committees($1::uuid) AS payload",
+          values: [parsedBusinessId],
+          schema: z.array(postgresCouncilBusinessCommitteeSchema),
+        }),
+    );
+  }
+
+  listCommitteeBusinesses(
+    request: PostgresCouncilRequest,
+    committeeId: string,
+  ): Promise<PostgresCouncilCommitteeBusiness[]> {
+    const parsedCommitteeId = resourceIdSchema.parse(committeeId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-committee.businesses.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.list_council_committee_businesses($1::uuid) AS payload",
+          values: [parsedCommitteeId],
+          schema: z.array(postgresCouncilCommitteeBusinessSchema),
+        }),
+    );
+  }
+
+  associateBusinessCommittee(
+    request: PostgresCouncilRequest,
+    businessId: string,
+    committeeId: string,
+  ): Promise<PostgresCouncilBusinessCommittee> {
+    const parsedBusinessId = resourceIdSchema.parse(businessId);
+    const parsedCommitteeId = resourceIdSchema.parse(committeeId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.committee.associate") },
+      async (client) => {
+        const association = await callJson(client, {
+          text: "SELECT hall_api.associate_council_business_committee($1::uuid, $2::uuid) AS payload",
+          values: [parsedBusinessId, parsedCommitteeId],
+          schema: postgresCouncilBusinessCommitteeSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-business",
+          targetId: parsedBusinessId,
+          outcome: "succeeded",
+          details: { committeeId: parsedCommitteeId },
+        });
+        return association;
+      },
+    );
+  }
+
+  dissociateBusinessCommittee(
+    request: PostgresCouncilRequest,
+    businessId: string,
+    committeeId: string,
+  ): Promise<PostgresCouncilBusinessCommittee> {
+    const parsedBusinessId = resourceIdSchema.parse(businessId);
+    const parsedCommitteeId = resourceIdSchema.parse(committeeId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.committee.dissociate") },
+      async (client) => {
+        const association = await callJson(client, {
+          text: "SELECT hall_api.dissociate_council_business_committee($1::uuid, $2::uuid) AS payload",
+          values: [parsedBusinessId, parsedCommitteeId],
+          schema: postgresCouncilBusinessCommitteeSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "council-business",
+          targetId: parsedBusinessId,
+          outcome: "succeeded",
+          details: { committeeId: parsedCommitteeId },
+        });
+        return association;
+      },
     );
   }
 

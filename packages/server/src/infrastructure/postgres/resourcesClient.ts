@@ -1,4 +1,5 @@
 import {
+  SIREN_MEDIA_TYPE,
   editorAssetSchema,
   type RelocateResource,
   type ResourceDetail,
@@ -62,10 +63,26 @@ function documentaryRepresentation<Data>(
   };
 }
 
+// @implements-requirement HALL-FR-DOC-280
 function resourceDetail(
   value: PostgresPresentedResource<PostgresResourceDetail>,
 ): ResourceRepresentation<ResourceDetail> {
-  return documentaryRepresentation(value, resourceDetailSchema);
+  const resource = documentaryRepresentation(value, resourceDetailSchema);
+  if (resource.data.kind !== "text") return resource;
+  return {
+    ...resource,
+    representation: {
+      ...resource.representation,
+      links: [
+        ...resource.representation.links,
+        {
+          rel: ["changes"],
+          href: `/api/resources/${encodeURIComponent(resource.data.slug)}/changes`,
+          type: SIREN_MEDIA_TYPE,
+        },
+      ],
+    },
+  };
 }
 
 function persistenceError(error: HallPostgresError): PersistenceError {
@@ -154,6 +171,9 @@ export function createPostgresResourcesClient({
           : postgresResources.openBySlug(currentRequest(), parsed),
       );
       return found ? resourceDetail(found) : null;
+    },
+    listTextResourceChanges(id) {
+      return postgresResources.listTextResourceChanges(currentRequest(), id);
     },
     async create(input: PersistResource) {
       const created = await matchDiscriminated(input, "kind", {

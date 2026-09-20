@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
 import type { HallSettings } from "@hall/domain";
-import type { HallSettingsRepository } from "../repositories/contracts.js";
+import { describe, expect, it } from "vitest";
 import { createTestDirectoryClient } from "../__tests__/support/directoryClient.js";
 import { createTestResourcesClient } from "../__tests__/support/resourcesClient.js";
+import type { HallSettingsRepository } from "../repositories/contracts.js";
 import { createEventInvitationService } from "./eventInvitationService.js";
 
 const hall: HallSettings = {

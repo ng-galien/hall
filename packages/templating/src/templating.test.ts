@@ -81,7 +81,7 @@ describe("resource presentation policy", () => {
     expect(preferredResourcePresentation(presentationResources.legalReference)).toBe("legal-citation");
     expect(preferredResourcePresentation(presentationResources.image)).toBe("image");
     expect(preferredResourcePresentation(presentationResources.pdf)).toBeNull();
-    expect(preferredResourcePresentation({kind:"event"})).toBe("event");
+    expect(preferredResourcePresentation({ kind: "event" })).toBe("event");
   });
 
   it("owns the compatibility matrix shared by client rendering and PDF export", () => {
@@ -146,8 +146,9 @@ describe("canonical serialization", () => {
 
 describe("shared rendering", () => {
   it("preserves documentary layout structure and classes through sanitization", () => {
-    const source='<section class="decision-facts"><div class="decision-facts-columns"><dl><dt>Membres en exercice</dt><dd>15</dd><dt>Présents</dt><dd>14</dd></dl><div><p>Présidence</p></div></div></section><p class="decision-result" onclick="alert(1)" style="position:fixed">Adoptée</p><script>alert(1)</script>';
-    const html=renderHtml(parse(source));
+    const source =
+      '<section class="decision-facts"><div class="decision-facts-columns"><dl><dt>Membres en exercice</dt><dd>15</dd><dt>Présents</dt><dd>14</dd></dl><div><p>Présidence</p></div></div></section><p class="decision-result" onclick="alert(1)" style="position:fixed">Adoptée</p><script>alert(1)</script>';
+    const html = renderHtml(parse(source));
     expect(html).toContain('<section class="decision-facts">');
     expect(html).toContain('<div class="decision-facts-columns"><dl><dt>Membres en exercice</dt><dd>15</dd>');
     expect(html).toContain('<p class="decision-result">Adoptée</p>');
@@ -445,11 +446,16 @@ describe("registry", () => {
   });
 
   it("validates the three documentary decision sections and rejects invalid forms", () => {
-    for(const section of ["facts","content","result"]) expect(validateStructure(parse(`::council-decision{section=${section}}`))).toEqual([]);
-    for(const source of ["::council-decision{section=unknown}",":council-decision{section=facts}"]) {
-      expect(validateStructure(parse(source))).toEqual(expect.arrayContaining([expect.objectContaining({code:"invalid_attribute"})]));
+    for (const section of ["facts", "content", "result"])
+      expect(validateStructure(parse(`::council-decision{section=${section}}`))).toEqual([]);
+    for (const source of ["::council-decision{section=unknown}", ":council-decision{section=facts}"]) {
+      expect(validateStructure(parse(source))).toEqual(
+        expect.arrayContaining([expect.objectContaining({ code: "invalid_attribute" })]),
+      );
     }
-    expect(validateStructure(parse("::council-decision"))).toEqual(expect.arrayContaining([expect.objectContaining({code:"missing_attribute"})]));
+    expect(validateStructure(parse("::council-decision"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "missing_attribute" })]),
+    );
   });
 
   it("exposes the resource presentation directive", () => {
@@ -481,7 +487,16 @@ describe("registry", () => {
       "image",
       "resource-embed",
     ]);
-    expect(resourcePresentationKinds).toEqual(["image", "document", "link", "legal-citation", "map", "table", "text", "event"]);
+    expect(resourcePresentationKinds).toEqual([
+      "image",
+      "document",
+      "link",
+      "legal-citation",
+      "map",
+      "table",
+      "text",
+      "event",
+    ]);
   });
 
   it("exposes the closed list of contextual fields", () => {

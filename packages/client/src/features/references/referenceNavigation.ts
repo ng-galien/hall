@@ -1,5 +1,4 @@
-import type { CouncilDecisionSummary } from "@hall/api-contract";
-import type { Contact } from "@hall/api-contract";
+import type { Contact, CouncilDecisionSummary } from "@hall/api-contract";
 import { type CouncilMember, matchLiteral, type ReferenceEntityKind, type Resource } from "@hall/domain";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { CouncilMeetingView } from "../../models/councilMeeting";

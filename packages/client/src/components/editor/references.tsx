@@ -297,7 +297,7 @@ function placeSuggestions(element: HTMLElement, clientRect: (() => DOMRect | nul
         Math.floor((window.innerHeight - margin - center - rowHeight / 2) / rowHeight),
       ),
     );
-    element.style.setProperty("--search-filter-height", `${(before + after + 1) * rowHeight}px`);
+    element.style.setProperty("--hall-search-filter-height", `${(before + after + 1) * rowHeight}px`);
     wheel.scrollTop = row.offsetTop - before * rowHeight;
     element.style.left = `${Math.max(margin, Math.min(rect.right + 8, window.innerWidth - width - margin))}px`;
     element.style.top = `${Math.max(margin, center - (before + 0.5) * rowHeight - 1)}px`;

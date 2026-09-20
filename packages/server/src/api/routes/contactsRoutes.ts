@@ -34,9 +34,7 @@ export function createContactsRouter({ directoryService }: Cradle): Router {
       directoryService.listCouncilMembers(true),
     ]);
     response.locals.contactArchiveUnavailableIds = new Set(activeMembers.map(({ contactId }) => contactId));
-    response.json(
-      contact,
-    );
+    response.json(contact);
   });
   router.post("/:contactId/archive", requireActionPermission("contact.archive"), async (request, response) => {
     response.json(await directoryService.archiveContact(routeParameter(request.params.contactId)));

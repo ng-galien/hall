@@ -26,6 +26,11 @@ le gel de production. Le seed et la mise en service attendent le go du propriét
 La connexion réelle nécessite un compte administrateur ; aucun identifiant de
 développement n'est utilisé pour contourner cette authentification.
 
+Le comparateur de schéma est fourni par le paquet versionné
+`@ng-galien/postgresql-catalog`. Tant que sa publication npm n'est pas réalisée,
+Hall conserve le tarball vérifié dans `vendor/npm` ; une installation propre ne
+dépend donc d'aucun checkout Workbench adjacent.
+
 ## Mise à niveau du schéma
 
 Au démarrage d'une nouvelle version, Hall compare l'empreinte du manifeste avec
@@ -35,11 +40,24 @@ réutilisable nommée d'après la base installée avec le suffixe
 avec PostgreSQL Workbench. Code Moniker contrôle que les fichiers SQL et la
 cible matérialisée décrivent la même structure.
 
+Hall marque cette base auxiliaire avec le nom de sa base source et vérifie son
+propriétaire avant chaque réutilisation. Une base portant seulement le nom
+attendu, mais sans ce marqueur exact, est refusée et n'est jamais nettoyée.
+
 Hall produit ensuite le DDL entre la base installée et la cible. Il l'applique
 dans une transaction protégée par un verrou, relit la base et exige un dernier
 diff vide avant d'enregistrer la nouvelle empreinte. Les données métier ne sont
 pas copiées dans la base auxiliaire. Celle-ci reste sur l'instance pour la mise à
 niveau suivante ; elle ne contient que le schéma cible.
+
+Après le DDL, la même transaction exécute séparément les fichiers SQL de
+`packages/postgres/sql/migrations/`. Pendant leur DML, la connexion passe
+temporairement à `session_replication_role = replica`, puis revient à son état
+initial avant la vérification finale. Un échec annule le DDL et le DML ensemble.
+Ces fichiers ne font pas partie de l'empreinte structurelle et doivent pouvoir
+être rejoués sans modifier une donnée déjà reprise. La première reprise remplit
+`hall.agenda_subject_text_lock` depuis les points dont l'examen avait déjà
+commencé ; elle ne réécrit ni les séances ni les votes.
 
 L'utilisateur PostgreSQL d'installation doit pouvoir créer cette base
 auxiliaire et gérer les rôles Hall. Les anciennes fonctions, vues, triggers et
@@ -54,6 +72,12 @@ COMMENT ON COLUMN hall.contact.contact_id
 
 Les rôles sont réconciliés avant le DDL. Les révocations et droits d'exécution
 du fichier `sql/900-grants.sql` sont rejoués après convergence.
+Une modification de type de colonne est refusée tant qu'une règle de migration
+préservant explicitement les données n'a pas été déclarée.
+
+Le runtime local PGlite vérifie l'empreinte mais ne lance pas cette mise à niveau
+PostgreSQL, qui exige une base auxiliaire et plusieurs connexions. Une empreinte
+PGlite incompatible bloque le démarrage sans modifier les données locales.
 
 ## Sauvegardes
 

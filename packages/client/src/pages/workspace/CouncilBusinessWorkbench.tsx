@@ -1,19 +1,14 @@
-import { BusinessDocumentTree } from "./BusinessDocumentTree";
-import { useEffect, useMemo, useState } from "react";
-import { ExplorerTree } from "../../components/ui/explorer-tree";
 import { matchLiteral } from "@hall/domain";
-import type { WorkspaceCreateKind } from "./workspaceCreateKind";
-import type { WorkspaceSelection } from "./workspaceItemReference";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
-import { CouncilBusinessSubjects } from "./CouncilBusinessSubjects";
-import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { FolderIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
+import { ExplorerTree } from "../../components/ui/explorer-tree";
+import { CouncilBusinessCommittees } from "../../features/council-business/CouncilBusinessCommittees";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
-import { type DocumentaryLeafSummary } from "../../features/documents/DocumentaryResourceGlyph";
+import type { DocumentaryLeafSummary } from "../../features/documents/DocumentaryResourceGlyph";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
@@ -24,10 +19,16 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
+import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { BusinessDocumentTree } from "./BusinessDocumentTree";
+import { CouncilBusinessSubjects } from "./CouncilBusinessSubjects";
 import { ResourcePicker } from "./ResourcePicker";
+import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
+import type { WorkspaceCreateKind } from "./workspaceCreateKind";
+import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 import "./CouncilBusinessWorkbench.css";
 
@@ -71,7 +72,7 @@ export function CouncilBusinessWorkbench({
       useCouncilBusinessStore.getState().loadPreparedSubjects(business.id),
       useCouncilDecisionsStore.getState().load(),
     ]);
-  }, [business.id, loadCouncilActivity]);
+  }, [business.id]);
 
   const act = (action: () => Promise<boolean>) =>
     run(async () => {
@@ -131,92 +132,91 @@ export function CouncilBusinessWorkbench({
 
   return (
     <ReferenceBusinessContext.Provider value={business.id}>
-    <div className="workbench workspace-business-workbench" data-testid="council-business-workbench">
-      <WorkspaceWorkbenchHeader
-        icon={<CouncilBusinessGlyph business={business} large />}
-        title={business.title}
-        titleLabel={t("meeting.subject")}
-        date={
-          editable ? { kind: "updated", value: business.updatedAt } : { kind: "created", value: business.createdAt }
-        }
-        onTitleChange={folderCapabilities.relocate ? renameBusiness : undefined}
-        actions={
-          <>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
-                  aria-pressed={pinned}
-                  onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
-                >
-                  {pinned ? <PinnedIcon /> : <PinIcon />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
-            </Tooltip>
-          </>
-        }
-        actionError={actionError ?? reportSession.actionError}
-      />
+      <div className="workbench workspace-business-workbench" data-testid="council-business-workbench">
+        <WorkspaceWorkbenchHeader
+          icon={<CouncilBusinessGlyph business={business} large />}
+          title={business.title}
+          titleLabel={t("meeting.subject")}
+          date={
+            editable ? { kind: "updated", value: business.updatedAt } : { kind: "created", value: business.createdAt }
+          }
+          onTitleChange={folderCapabilities.relocate ? renameBusiness : undefined}
+          hint={<CouncilBusinessCommittees businessId={business.id} />}
+          actions={
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
+                    aria-pressed={pinned}
+                    onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
+                  >
+                    {pinned ? <PinnedIcon /> : <PinIcon />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
+              </Tooltip>
+            </>
+          }
+          actionError={actionError ?? reportSession.actionError}
+        />
 
-      <section className="workbench-section" data-testid="business-report" aria-label={t("meeting.report")}>
-        <div className="business-section-heading">
-          <h2>{t("workspace.businessReport")}</h2>
-          <p>{t("workspace.businessReportDescription")}</p>
-        </div>
-        <div className="grid gap-1.5">
-          {reportSession.resource ? (
-            reportSession.editable ? (
-              <div data-testid="business-report-editor">
-                <MarkdownEditor
-                  title={`${t("meeting.report")} : ${business.title}`}
-                  markdown={reportSession.content}
-                  onChange={reportSession.setContent}
-                  mentionables={mentionables}
-                  searchContext={business.folderPath}
-                  onUploadImage={
-                    canUploadImage
-                      ? (file) => uploadImage(file, { kind: "textResourceContent", id: business.reportResourceId })
-                      : undefined
-                  }
-                />
-              </div>
-            ) : (
-              <div data-testid="business-report-readonly">
-                {reportSession.content ? (
-                  <MarkdownView markdown={reportSession.content} />
-                ) : (
-                  <p className="workspace-list-empty">{t("meeting.itemReportEmpty")}</p>
-                )}
-              </div>
-            )
-          ) : (
-            <p>{t("common.loading")}</p>
-          )}
-        </div>
-        {reportSession.editable && (!reportSession.autosaveEnabled || reportSession.actionError) ? (
-          <div className="workbench-actions">
-            <span className="composer-editor-spacer" />
-            <Button
-              data-testid="business-report-save"
-              variant="default"
-              disabled={submitting || reportSession.submitting || !reportSession.dirty || !reportSession.editable}
-              onClick={() => void run(saveReport)}
-            >
-              {t(submitting || reportSession.submitting ? "common.saving" : "common.save")}
-            </Button>
+        <section className="workbench-section" data-testid="business-report" aria-label={t("meeting.report")}>
+          <div className="business-section-heading">
+            <h2>{t("workspace.businessReport")}</h2>
+            <p>{t("workspace.businessReportDescription")}</p>
           </div>
-        ) : null}
-      </section>
-      <CouncilBusinessSubjects businessId={business.id} />
-      <WorkspaceCreateMenu
+          <div className="grid gap-1.5">
+            {reportSession.resource ? (
+              reportSession.editable ? (
+                <div data-testid="business-report-editor">
+                  <MarkdownEditor
+                    title={`${t("meeting.report")} : ${business.title}`}
+                    markdown={reportSession.content}
+                    onChange={reportSession.setContent}
+                    mentionables={mentionables}
+                    searchContext={business.folderPath}
+                    onUploadImage={
+                      canUploadImage
+                        ? (file) => uploadImage(file, { kind: "textResourceContent", id: business.reportResourceId })
+                        : undefined
+                    }
+                  />
+                </div>
+              ) : (
+                <div data-testid="business-report-readonly">
+                  {reportSession.content ? (
+                    <MarkdownView markdown={reportSession.content} />
+                  ) : (
+                    <p className="workspace-list-empty">{t("meeting.itemReportEmpty")}</p>
+                  )}
+                </div>
+              )
+            ) : (
+              <p>{t("common.loading")}</p>
+            )}
+          </div>
+          {reportSession.editable && (!reportSession.autosaveEnabled || reportSession.actionError) ? (
+            <div className="workbench-actions">
+              <span className="composer-editor-spacer" />
+              <Button
+                data-testid="business-report-save"
+                variant="default"
+                disabled={submitting || reportSession.submitting || !reportSession.dirty || !reportSession.editable}
+                onClick={() => void run(saveReport)}
+              >
+                {t(submitting || reportSession.submitting ? "common.saving" : "common.save")}
+              </Button>
+            </div>
+          ) : null}
+        </section>
+        <CouncilBusinessSubjects businessId={business.id} />
+        <WorkspaceCreateMenu
           compact
           testId="business-create-documents"
-          getError={() =>
-            useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error
-          }
+          getError={() => useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error}
           clearError={() => {
             useWorkspaceResourcesStore.setState({ error: null });
             useCouncilBusinessStore.setState({ error: null });
@@ -266,30 +266,30 @@ export function CouncilBusinessWorkbench({
               </header>
               {attachedResources.length ? (
                 <ExplorerTree className="business-document-tree" data-testid="business-resource-tree">
-              <BusinessDocumentTree
-                resources={attachedResources}
-                basePath={business.folderPath}
-                onOpen={setViewedResourceId}
-                onRenamed={async () => {
-                  await useCouncilBusinessStore.getState().loadResources(business.id);
-                }}
-              />
+                  <BusinessDocumentTree
+                    resources={attachedResources}
+                    basePath={business.folderPath}
+                    onOpen={setViewedResourceId}
+                    onRenamed={async () => {
+                      await useCouncilBusinessStore.getState().loadResources(business.id);
+                    }}
+                  />
                 </ExplorerTree>
               ) : null}
             </section>
           )}
         />
 
-      {viewedResourceId ? (
-        <ResourcePreview
-          resourceId={viewedResourceId}
-          onClose={() => {
-            setViewedResourceId(null);
-            void useCouncilBusinessStore.getState().loadPreparedSubjects(business.id);
-          }}
-        />
-      ) : null}
-    </div>
+        {viewedResourceId ? (
+          <ResourcePreview
+            resourceId={viewedResourceId}
+            onClose={() => {
+              setViewedResourceId(null);
+              void useCouncilBusinessStore.getState().loadPreparedSubjects(business.id);
+            }}
+          />
+        ) : null}
+      </div>
     </ReferenceBusinessContext.Provider>
   );
 }

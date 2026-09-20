@@ -1,6 +1,6 @@
 import type { MeetingOpeningBlocker } from "@hall/contracts";
-import { useI18n } from "../../i18n/I18nProvider";
 import type { TranslationKey } from "../../i18n/en";
+import { useI18n } from "../../i18n/I18nProvider";
 
 const labels = {
   meetingClosed: "meeting.entry.meetingClosed",

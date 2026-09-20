@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from "pg";
 import { HallPostgresError, preservePostgresError, SchemaContractError } from "./errors.js";
 import { inspectHallSchemaUpgrade, verifyUpgradedHallSchema } from "./schemaComparison.js";
+import { executeSchemaDataMigrations } from "./schemaDataMigrations.js";
 import { loadSchemaManifest, type SchemaManifest } from "./schemaManifest.js";
 import { planHallSchemaUpgrade } from "./schemaUpgrade.js";
 import { type HallSchemaUpgradeRuntime, openHallSchemaUpgradeRuntime } from "./schemaUpgradeRuntime.js";
@@ -8,6 +9,7 @@ import { type HallSchemaUpgradeRuntime, openHallSchemaUpgradeRuntime } from "./s
 type BootstrapResult = "installed" | "upgraded" | "verified";
 type ManifestProvider = () => Promise<SchemaManifest>;
 type UpgradeRuntimeProvider = (manifest: SchemaManifest) => Promise<HallSchemaUpgradeRuntime>;
+export type PostgresSchemaUpgradeMode = "automatic" | "verify-only";
 
 async function schemaContractFingerprint(client: PoolClient): Promise<string | null> {
   const contractTable = await client.query<{ contract: string | null }>(
@@ -95,6 +97,9 @@ async function executeUpgrade(
       );
     }
   }
+  if (schemaOwner === "hall_owner") await client.query("RESET ROLE");
+  await executeSchemaDataMigrations(client);
+  if (schemaOwner === "hall_owner") await client.query("SET LOCAL ROLE hall_owner");
   const upgraded = await verifyUpgradedHallSchema(runtime.codeMoniker, client, inspection.targetDocuments);
   if (!upgraded.comparison.isomorphic) {
     throw new SchemaContractError(
@@ -102,7 +107,9 @@ async function executeUpgrade(
       manifest.fingerprint,
     );
   }
-  await client.query("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hall, hall_api FROM PUBLIC");
+  await client.query(
+    "REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hall_api FROM PUBLIC, hall_api_anonymous, hall_api_authenticated, hall_api_worker",
+  );
   const grants = manifest.entries.find((entry) => entry.path === "sql/900-grants.sql");
   if (!grants) throw new Error("Hall schema manifest has no operational grants entry");
   await client.query(grants.sql);
@@ -166,6 +173,7 @@ export class PostgresSchemaBootstrap {
   constructor(
     private readonly pool: Pool,
     private readonly manifestProvider: ManifestProvider = loadSchemaManifest,
+    private readonly upgradeMode: PostgresSchemaUpgradeMode = "automatic",
     private readonly upgradeRuntimeProvider: UpgradeRuntimeProvider = defaultUpgradeRuntimeProvider(pool),
   ) {}
 
@@ -180,6 +188,9 @@ export class PostgresSchemaBootstrap {
         if (existingFingerprint === manifest.fingerprint) {
           await client.query("COMMIT");
           return "verified";
+        }
+        if (this.upgradeMode === "verify-only") {
+          assertMatchingFingerprint(existingFingerprint, manifest.fingerprint);
         }
         const runtime = await this.upgradeRuntimeProvider(manifest);
         try {

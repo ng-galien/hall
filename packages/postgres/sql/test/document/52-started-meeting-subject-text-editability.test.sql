@@ -290,5 +290,29 @@ SELECT is(
 )
 FROM source_editability_late_resource;
 
+SET LOCAL session_replication_role = replica;
+DELETE FROM hall.agenda_subject_text_lock;
+SET LOCAL session_replication_role = origin;
+SELECT is((SELECT count(*)::INTEGER FROM hall.agenda_subject_text_lock), 0,
+  'an older database can contain started items without durable text locks');
+
+SET LOCAL session_replication_role = replica;
+\ir ../../migrations/001-agenda-subject-text-lock.sql
+SET LOCAL session_replication_role = origin;
+SELECT is((SELECT count(*)::INTEGER FROM hall.agenda_subject_text_lock), 4,
+  'the data migration restores locks for previously started subjects');
+SELECT ok(NOT hall.agenda_subject_text_is_editable(id),
+  kind || ' started subject stays locked after the data migration')
+FROM source_editability_resources WHERE kind IN ('decision', 'open');
+SELECT ok(hall.agenda_subject_text_is_editable(id),
+  'a never-started subject remains editable after the data migration')
+FROM source_editability_resources WHERE kind = 'carried';
+
+SET LOCAL session_replication_role = replica;
+\ir ../../migrations/001-agenda-subject-text-lock.sql
+SET LOCAL session_replication_role = origin;
+SELECT is((SELECT count(*)::INTEGER FROM hall.agenda_subject_text_lock), 4,
+  'rerunning the data migration creates no duplicate locks');
+
 SELECT * FROM finish();
 ROLLBACK;

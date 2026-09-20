@@ -14,12 +14,20 @@ test("confirmed deletion releases resource aliases and preserves unrelated cache
     const output = join(directory, "api-client.mjs");
     await build({
       entryPoints: [join(import.meta.dirname, "../src/services/apiClient.ts")],
-      bundle: true, platform: "node", format: "esm", outfile: output,
+      bundle: true,
+      platform: "node",
+      format: "esm",
+      outfile: output,
     });
     const { apiSirenRequest, sirenRepresentation } = await import(pathToFileURL(output).href);
     const calls = [];
     let deletionAllowed = false;
-    globalThis.window = { location: { origin: "http://audit.invalid" }, dispatchEvent() {} };
+    globalThis.window = {
+      location: { origin: "http://audit.invalid" },
+      dispatchEvent() {
+        return true;
+      },
+    };
     globalThis.fetch = async (url, init) => {
       calls.push(url);
       if (init.method === "DELETE") {
@@ -28,10 +36,14 @@ test("confirmed deletion releases resource aliases and preserves unrelated cache
           : new Response(JSON.stringify({ code: "permission_denied" }), { status: 403 });
       }
       const id = url.endsWith("other") ? "other" : "one";
-      return new Response(JSON.stringify({
-        class: ["resource"], properties: { id, content: "retained document" },
-        links: [{ rel: ["self"], href: `/api/resources/${id}` }],
-      }), { headers: { "content-type": "application/vnd.siren+json" } });
+      return new Response(
+        JSON.stringify({
+          class: ["resource"],
+          properties: { id, content: "retained document" },
+          links: [{ rel: ["self"], href: `/api/resources/${id}` }],
+        }),
+        { headers: { "content-type": "application/vnd.siren+json" } },
+      );
     };
     await apiSirenRequest("/resources/alias");
     // Reading the canonical path replaces its representation, while the alias retains the older object.

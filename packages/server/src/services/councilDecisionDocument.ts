@@ -68,7 +68,10 @@ function ballotTotals(facts: CouncilDecisionFacts) {
 /** Presentation only: no number allocation, legal certification or inferred signature. */
 // @requirement-reference HALL-FR-DEC-080 DOCUMENTARY_ENVELOPE_USES_HISTORICAL_EVIDENCE:
 export function renderCouncilDecisionFacts(facts: CouncilDecisionFacts, documentDate: string | null = null): string {
-  const shortDate = (value: string | null) => value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`)) : "Non renseignée";
+  const shortDate = (value: string | null) =>
+    value
+      ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`))
+      : "Non renseignée";
   const totals = ballotTotals(facts);
   const opening = facts.opening;
   const attendance = opening?.attendance ?? facts.attendance;

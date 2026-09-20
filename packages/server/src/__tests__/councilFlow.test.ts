@@ -1,261 +1,204 @@
-import { randomUUID } from "node:crypto";
+import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import { describe, expect, it } from "vitest";
-import { createTestCouncilMember, createTestServer, domainBody, type TestAgent } from "./testServer.js";
+import { createPostgresHttpTestServer, createTestCouncilMember, createTestServer, domainBody } from "./testServer.js";
 
-async function createMember(agent: TestAgent, firstName: string, role = "councillor") {
-  return createTestCouncilMember(agent, { firstName, role: role as "mayor" | "councillor" });
+async function prepareDecisionMeeting() {
+  const { agent, pool } = await createPostgresHttpTestServer();
+  const context = {
+    role: "hall_api_authenticated" as const,
+    context: { requestId: "vote-fixture", actorId: "test-clerk", roles: ["administrator"], contactId: null },
+  };
+  await new PostgresDirectory(pool).configureActiveCouncilTerm(context, 3);
+  const members = [];
+  for (const firstName of ["Alice", "Benoît", "Claire"]) {
+    members.push(
+      await createTestCouncilMember(agent, {
+        firstName,
+        role: firstName === "Alice" ? "mayor" : "councillor",
+      }),
+    );
+  }
+  const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
+  await agent
+    .put(`/api/council-meetings/${meeting.id}/prepare`)
+    .send({
+      scheduledAt: "2026-09-10T18:30:00+02:00",
+      location: "Council chamber",
+      chairMemberId: members[0].id,
+      secretaryMemberId: members[1].id,
+    })
+    .expect(200);
+  const business = domainBody<{ id: string }>(
+    await agent
+      .post("/api/council-business")
+      .send({
+        path: "conseil",
+        name: "Convention intercommunale",
+        reportName: "Rapport",
+        reportContent: "Présentation",
+      })
+      .expect(201),
+  );
+  const proposal = domainBody<{ id: string }>(
+    await agent
+      .post(`/api/council-business/${business.id}/prepared-subjects`)
+      .send({
+        kind: "councilDecisionProposal",
+        name: "Approbation de la convention",
+        content: "Le conseil municipal approuve la convention.",
+      })
+      .expect(201),
+  );
+  const item = domainBody<{ id: string }>(
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)
+      .send({ kind: "councilDecisionProposal", subjectId: proposal.id, position: 1 })
+      .expect(201),
+  );
+  const council = new PostgresCouncil(pool);
+  await council.freezeAgenda(context, meeting.id);
+  const facts = await council.noticeFacts(context, meeting.id);
+  if (!facts) throw new Error("Frozen notice facts are required");
+  await council.generateNotice(
+    context,
+    meeting.id,
+    { meeting: facts, issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" } },
+    Buffer.from("%PDF-fixture"),
+  );
+  return { agent, council, context, members, meeting, item };
 }
 
 describe("council flow", () => {
   it("prepares a decision, reaches quorum and records a named public ballot", async () => {
-    const { agent } = await createTestServer();
-    const mayor = await createMember(agent, "Alice", "mayor");
-    const second = await createMember(agent, "Benoît");
-    const represented = await createMember(agent, "Claire");
-
-    const councilDecision = await agent.post("/api/council-decisions").send({
-      title: "Approbation de la convention",
-      draftText: "Le conseil municipal approuve la convention.",
-      legalityReviewRequired: true,
-    });
-    expect(councilDecision.status, `${JSON.stringify(domainBody(councilDecision))} ${councilDecision.text}`).toBe(201);
-
-    const meeting = await agent.post("/api/council-meetings").send({
-      startsAt: "2026-09-10T18:30:00+02:00",
-      location: "Salle du conseil",
-      chairMemberId: mayor.id,
-      secretaryMemberId: second.id,
-    });
-    expect(meeting.status).toBe(201);
-
-    const business = await agent.post("/api/council-business").send({
-      kind: "matter",
-      councilDecisionId: domainBody(councilDecision).id,
-      title: "Convention intercommunale",
-      report: "Rapport préparatoire",
-    });
-    expect(business.status, JSON.stringify(domainBody(business))).toBe(201);
-    const agendaItem = await agent
-      .post(`/api/council-business/${domainBody(business).id}/schedule`)
-      .send({ meetingId: domainBody(meeting).id, position: 1 });
-    expect(agendaItem.status, JSON.stringify(domainBody(agendaItem))).toBe(201);
-
-    const scheduled = await agent
-      .put(`/api/council-meetings/${domainBody(meeting).id}/status`)
-      .send({ status: "scheduled" });
-    expect(scheduled.status).toBe(200);
-
-    for (const memberId of [mayor.id, second.id]) {
-      const attendance = await agent
-        .put(`/api/council-meetings/${domainBody(meeting).id}/attendance`)
-        .send({ memberId, status: "present", proxyHolderMemberId: null, proxyDocumentId: null });
-      expect(attendance.status, `${JSON.stringify(domainBody(attendance))} ${attendance.text}`).toBe(200);
-    }
-    const proxyDocument = await agent
-      .post("/api/resources/documents")
-      .field("meetingId", domainBody(meeting).id)
-      .field("category", "proxy")
-      .attach("file", Buffer.from("%PDF-1.7\nWritten proxy"), { filename: "proxy.pdf", contentType: "text/html" });
-    expect(proxyDocument.status, `${JSON.stringify(domainBody(proxyDocument))} ${proxyDocument.text}`).toBe(201);
-    expect(domainBody(proxyDocument).mediaType).toBe("application/pdf");
-
-    const proxy = await agent.put(`/api/council-meetings/${domainBody(meeting).id}/attendance`).send({
-      memberId: represented.id,
-      status: "represented",
-      proxyHolderMemberId: second.id,
-      proxyDocumentId: domainBody(proxyDocument).id,
-    });
-    expect(proxy.status).toBe(200);
-
-    const opened = await agent
-      .put(`/api/council-meetings/${domainBody(meeting).id}/status`)
-      .send({ status: "inProgress" });
-    expect(opened.status).toBe(200);
+    const { agent, council, context, members, meeting, item } = await prepareDecisionMeeting();
+    const proxy = domainBody<{ id: string }>(
+      await agent
+        .post("/api/resources/documents")
+        .field("path", "conseil/procurations")
+        .attach("file", Buffer.from("%PDF-1.7\nWritten proxy"), {
+          filename: "proxy.pdf",
+          contentType: "application/pdf",
+        })
+        .expect(201),
+    );
     await agent
-      .post(`/api/council-meetings/${domainBody(meeting).id}/agenda-items/${domainBody(agendaItem).id}/start`)
+      .post(`/api/council-meetings/${meeting.id}/record-opening`)
+      .send({
+        observedAt: "2026-09-10T16:30:00Z",
+        chairMemberId: members[0].id,
+        secretaryMemberId: members[1].id,
+        attendance: [
+          ...members.slice(0, 2).map((member) => ({ councilMemberId: member.id, status: "present" })),
+          {
+            councilMemberId: members[2].id,
+            status: "represented",
+            proxyHolderCouncilMemberId: members[1].id,
+            proxyDocumentId: proxy.id,
+          },
+        ],
+      })
       .expect(200);
-
-    const incompleteBallot = await agent.post(`/api/council-meetings/${domainBody(meeting).id}/ballots`).send({
-      method: "public",
-      idempotencyKey: randomUUID(),
-      councilDecisionId: domainBody(councilDecision).id,
-      votes: [{ memberId: mayor.id, castByMemberId: mayor.id, choice: "for" }],
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`)
+      .send({ startedAt: "2026-09-10T16:31:00Z" })
+      .expect(200);
+    const attendance = await council.listAttendance(context, meeting.id);
+    const candidate = {
+      procedure: "ordinaryMajority",
+      mode: "public",
+      participantAttendanceIds: attendance.map((entry) => entry.id),
+      chairmanAttendanceId: attendance.find((entry) => entry.councilMemberId === members[0].id)!.id,
+      votes: attendance.map((entry) => ({ meetingAttendanceId: entry.id, choice: "approve" })),
+      nonParticipations: [],
+    };
+    const incomplete = await agent.post("/api/ballot-previews").send({
+      agendaItemId: item.id,
+      candidate: { ...candidate, votes: candidate.votes.slice(0, 2) },
     });
-    expect(incompleteBallot.status).toBe(400);
-    expect(domainBody(incompleteBallot).code).toBe("conflict");
-
-    const idempotencyKey = randomUUID();
-    const ballot = await agent.post(`/api/council-meetings/${domainBody(meeting).id}/ballots`).send({
-      method: "public",
-      idempotencyKey,
-      councilDecisionId: domainBody(councilDecision).id,
-      votes: [
-        { memberId: mayor.id, castByMemberId: mayor.id, choice: "for" },
-        { memberId: second.id, castByMemberId: second.id, choice: "for" },
-        { memberId: represented.id, castByMemberId: second.id, choice: "for" },
-      ],
-    });
-    expect(ballot.status).toBe(201);
-    expect(domainBody(ballot)).toMatchObject({
-      method: "public",
-      result: "adopted",
-      votesFor: 3,
-      votesAgainst: 0,
-      votes: [
-        { memberId: mayor.id, castByMemberId: mayor.id, choice: "for" },
-        { memberId: second.id, castByMemberId: second.id, choice: "for" },
-        { memberId: represented.id, castByMemberId: second.id, choice: "for" },
-      ],
-    });
-
-    const aggregate = await agent.get(`/api/council-meetings/${domainBody(meeting).id}`);
-    expect(domainBody(aggregate).quorum).toMatchObject({
-      activeMembers: 3,
-      physicallyPresent: 2,
-      required: 2,
-      reached: true,
-    });
-    expect(domainBody(aggregate).ballots).toHaveLength(1);
-    expect(domainBody(aggregate).ballots[0].votes).toHaveLength(3);
-    expect(domainBody(aggregate).councilDecisions[0].status).toBe("adopted");
-    expect(domainBody(aggregate).ballots[0].participationEvidence.quorum).toMatchObject({
-      activeMembers: 3,
-      physicallyPresent: 2,
-      required: 2,
-      reached: true,
-    });
-
-    const repeatedBallot = await agent.post(`/api/council-meetings/${domainBody(meeting).id}/ballots`).send({
-      method: "public",
-      idempotencyKey,
-      councilDecisionId: domainBody(councilDecision).id,
-      votes: [
-        { memberId: mayor.id, castByMemberId: mayor.id, choice: "for" },
-        { memberId: second.id, castByMemberId: second.id, choice: "for" },
-        { memberId: represented.id, castByMemberId: second.id, choice: "for" },
-      ],
-    });
-    expect(domainBody(repeatedBallot).id).toBe(domainBody(ballot).id);
-
-    const changedRetry = await agent.post(`/api/council-meetings/${domainBody(meeting).id}/ballots`).send({
-      method: "public",
-      idempotencyKey,
-      councilDecisionId: domainBody(councilDecision).id,
-      votes: [
-        { memberId: mayor.id, castByMemberId: mayor.id, choice: "against" },
-        { memberId: second.id, castByMemberId: second.id, choice: "for" },
-        { memberId: represented.id, castByMemberId: second.id, choice: "for" },
-      ],
-    });
-    expect(changedRetry.status, `${JSON.stringify(domainBody(changedRetry))} ${changedRetry.text}`).toBe(409);
-    expect(domainBody(changedRetry).code).toBe("conflict");
-
-    const duplicateBallot = await agent.post(`/api/council-meetings/${domainBody(meeting).id}/ballots`).send({
-      method: "public",
-      idempotencyKey: randomUUID(),
-      councilDecisionId: domainBody(councilDecision).id,
-      votes: [
-        { memberId: mayor.id, castByMemberId: mayor.id, choice: "for" },
-        { memberId: second.id, castByMemberId: second.id, choice: "for" },
-        { memberId: represented.id, castByMemberId: second.id, choice: "for" },
-      ],
-    });
-    expect(duplicateBallot.status).toBe(409);
-    expect(domainBody(duplicateBallot).code).toBe("ballot_already_recorded");
-
-    await agent.put(`/api/council-meetings/${domainBody(meeting).id}/attendance`).send({
-      memberId: mayor.id,
-      status: "absent",
-      proxyHolderMemberId: null,
-      proxyDocumentId: null,
-      expectedVersion: 1,
-    });
-    const changedParticipation = await agent.get(`/api/council-meetings/${domainBody(meeting).id}`).expect(200);
-    expect(domainBody(changedParticipation).quorum.reached).toBe(false);
-    expect(domainBody(changedParticipation).ballots[0].participationEvidence.quorum.reached).toBe(true);
-    expect(
-      domainBody(changedParticipation).ballots[0].participationEvidence.attendance.find(
-        (item: { memberId: string }) => item.memberId === mayor.id,
-      ).status,
-    ).toBe("present");
+    expect(incomplete.status, JSON.stringify(incomplete.body)).toBe(409);
+    const preview = domainBody<{ id: string; calculation: { totals: { approve: number } } }>(
+      await agent.post("/api/ballot-previews").send({ agendaItemId: item.id, candidate }).expect(201),
+    );
+    expect(preview.calculation.totals.approve).toBe(3);
+    const ballot = domainBody<{ id: string; mode: string }>(
+      await agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}).expect(200),
+    );
+    expect(ballot.mode).toBe("public");
+    const votes = await agent.get(`/api/ballots/${ballot.id}/votes`).expect(200);
+    expect(votes.body.entities).toHaveLength(3);
+    const participants = await agent.get(`/api/ballots/${ballot.id}/participations`).expect(200);
+    expect(participants.body.entities).toHaveLength(3);
+    await agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}).expect(409);
+    const decision = await agent.get("/api/council-decisions").expect(200);
+    expect(decision.body.entities).toHaveLength(1);
+    expect(decision.body.entities[0].properties).toMatchObject({ ballotId: ballot.id, number: "2026-09-01" });
   });
 
   it("returns aggregate votes for public ballots but never exposes votes for secret ballots", async () => {
-    const { agent } = await createTestServer();
-    const chair = await createMember(agent, "Alice", "mayor");
-    const secretary = await createMember(agent, "Benoît");
-    const third = await createMember(agent, "Claire");
-    const decision = await agent.post("/api/council-decisions").send({
-      title: "Secret decision",
-      draftText: "",
-      legalityReviewRequired: false,
-    });
-    const meeting = await agent.post("/api/council-meetings").send({
-      startsAt: "2026-10-10T18:30:00+02:00",
-      location: "Council chamber",
-      chairMemberId: chair.id,
-      secretaryMemberId: secretary.id,
-    });
-    const business = await agent.post("/api/council-business").send({
-      kind: "matter",
-      councilDecisionId: domainBody(decision).id,
-      title: "Secret decision",
-      report: "",
-    });
-    const agendaItem = await agent
-      .post(`/api/council-business/${domainBody(business).id}/schedule`)
-      .send({ meetingId: domainBody(meeting).id, position: 1 })
-      .expect(201);
+    const { agent, council, context, members, meeting, item } = await prepareDecisionMeeting();
     await agent
-      .put(`/api/council-meetings/${domainBody(meeting).id}/status`)
-      .send({ status: "scheduled" })
-      .expect(200);
-    for (const memberId of [chair.id, secretary.id, third.id]) {
-      await agent
-        .put(`/api/council-meetings/${domainBody(meeting).id}/attendance`)
-        .send({ memberId, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
-        .expect(200);
-    }
-    await agent
-      .put(`/api/council-meetings/${domainBody(meeting).id}/status`)
-      .send({ status: "inProgress" })
+      .post(`/api/council-meetings/${meeting.id}/record-opening`)
+      .send({
+        observedAt: "2026-09-10T16:30:00Z",
+        chairMemberId: members[0].id,
+        secretaryMemberId: members[1].id,
+        attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
+      })
       .expect(200);
     await agent
-      .post(`/api/council-meetings/${domainBody(meeting).id}/agenda-items/${domainBody(agendaItem).id}/start`)
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`)
+      .send({ startedAt: "2026-09-10T16:31:00Z" })
       .expect(200);
-    const secretBallot = await agent.post(`/api/council-meetings/${domainBody(meeting).id}/ballots`).send({
-      method: "secret",
-      idempotencyKey: randomUUID(),
-      councilDecisionId: domainBody(decision).id,
-      totals: { votesFor: 2, votesAgainst: 1, abstentions: 0, notVoting: 0 },
-    });
-    expect(secretBallot.status, JSON.stringify(domainBody(secretBallot))).toBe(201);
-    expect(domainBody(secretBallot).method).toBe("secret");
-    expect(domainBody(secretBallot)).not.toHaveProperty("votes");
-
-    const aggregate = await agent.get(`/api/council-meetings/${domainBody(meeting).id}`).expect(200);
-    expect(domainBody(aggregate).ballots[0].method).toBe("secret");
-    expect(domainBody(aggregate).ballots[0]).not.toHaveProperty("votes");
+    const attendance = await council.listAttendance(context, meeting.id);
+    const candidate = {
+      procedure: "ordinaryMajority",
+      mode: "secret",
+      participantAttendanceIds: attendance.map((entry) => entry.id),
+      chairmanAttendanceId: attendance.find((entry) => entry.councilMemberId === members[0].id)!.id,
+      totals: { approve: 2, reject: 1, abstain: 0, blank: 0, invalid: 0, nonParticipation: 0 },
+    };
+    const preview = domainBody<{ id: string; calculation: { totals: { approve: number; reject: number } } }>(
+      await agent.post("/api/ballot-previews").send({ agendaItemId: item.id, candidate }).expect(201),
+    );
+    expect(preview.calculation.totals).toMatchObject({ approve: 2, reject: 1 });
+    const ballot = domainBody<{ id: string; mode: string }>(
+      await agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}).expect(200),
+    );
+    expect(ballot.mode).toBe("secret");
+    const votes = await agent.get(`/api/ballots/${ballot.id}/votes`).expect(200);
+    expect(votes.body.entities).toEqual(
+      expect.arrayContaining([expect.objectContaining({ properties: expect.objectContaining({ count: 2 }) })]),
+    );
+    expect(JSON.stringify(votes.body)).not.toContain(members[0].id);
+    expect(JSON.stringify(votes.body)).not.toContain(members[1].id);
+    expect(JSON.stringify(votes.body)).not.toContain(members[2].id);
   });
 
   it("stores and classifies a supporting document in PostgreSQL", async () => {
-    const { agent } = await createTestServer();
+    const { agent } = await createPostgresHttpTestServer();
     const uploaded = await agent
       .post("/api/resources/documents")
-      .field("folderPath", "/Voirie/Travaux/")
-      .field("tags", "rapport, Budget,rapport")
-      .field("category", "report")
-      .attach("file", Buffer.from("Rapport"), { filename: "rapport.txt", contentType: "text/plain" });
-    expect(uploaded.status).toBe(201);
-    expect(domainBody(uploaded)).toMatchObject({
+      .field("path", "Voirie/Travaux")
+      .attach("file", Buffer.from("Rapport"), { filename: "rapport.txt", contentType: "text/plain" })
+      .expect(201);
+    const id = domainBody<{ id: string }>(uploaded).id;
+    const classified = await agent
+      .patch(`/api/resources/${id}/metadata`)
+      .send({
+        path: "Voirie/Travaux",
+        name: "rapport.txt",
+        tags: ["budget", "rapport"],
+        editing: { kind: "fixed" },
+      })
+      .expect(200);
+    expect(domainBody(classified)).toMatchObject({
       kind: "document",
-      folderPath: "Voirie/Travaux",
+      path: "Voirie/Travaux",
       tags: ["budget", "rapport"],
     });
-    const content = await agent.get(`/api/resources/${domainBody(uploaded).id}/content`);
-    expect(content.status).toBe(200);
+    const content = await agent.get(`/api/resources/${id}/content`).expect(200);
     expect(content.text).toBe("Rapport");
-    expect(content.headers["content-disposition"]).toContain("attachment");
+    expect(content.headers["content-security-policy"]).toBe("sandbox");
     expect(content.headers["x-content-type-options"]).toBe("nosniff");
   });
 

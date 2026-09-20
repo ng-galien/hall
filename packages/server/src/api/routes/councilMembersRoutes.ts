@@ -19,7 +19,9 @@ export function createCouncilMembersRouter({ directoryService }: Cradle): Router
     response.json(await directoryService.getCouncilMember(routeParameter(request.params.memberId)));
   });
   router.post("/", requireActionPermission("member.create"), async (request, response) => {
-    response.status(201).json(await directoryService.createCouncilMember(createCouncilMemberSchema.parse(request.body)));
+    response
+      .status(201)
+      .json(await directoryService.createCouncilMember(createCouncilMemberSchema.parse(request.body)));
   });
   router.put("/:memberId", requireActionPermission("member.update"), async (request, response) => {
     const memberId = routeParameter(request.params.memberId);

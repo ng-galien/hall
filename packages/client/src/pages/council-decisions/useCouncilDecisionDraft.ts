@@ -1,13 +1,14 @@
+// biome-ignore-all lint/correctness/useExhaustiveDependencies: Each content edit intentionally restarts the autosave timer.
 import { councilDecisionSummarySchema, findSirenAction, findSirenLink } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router-dom";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
-import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import {
+  freezeCouncilDecisionDocument,
   openCouncilDecisionDocument,
   updateCouncilDecisionDraft,
-  freezeCouncilDecisionDocument,
 } from "../../services/councilDecisionsApi";
+import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 
 type Opened = Awaited<ReturnType<typeof openCouncilDecisionDocument>>;
 

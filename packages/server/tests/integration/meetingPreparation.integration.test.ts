@@ -1,346 +1,209 @@
-import { randomUUID } from "node:crypto";
+import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import { describe, expect, it } from "vitest";
-import { createTestCouncilMember, createTestServer, domainBody, type TestAgent } from "../../src/__tests__/testServer.js";
+import { createPostgresHttpTestServer, createTestCouncilMember, domainBody } from "../../src/__tests__/testServer.js";
 
-async function createMember(agent: TestAgent, firstName: string) {
-  return createTestCouncilMember(agent, { firstName });
-}
-
-async function createMeeting(agent: TestAgent) {
-  return domainBody<{ id: string; slug: string }>(
-    await agent
-      .post("/api/council-meetings")
-      .send({
-        startsAt: "2026-11-12T18:30:00+01:00",
-        location: "Salle du conseil",
-      })
-      .expect(201),
-  );
-}
-
-async function createBusiness(agent: TestAgent, title: string, kind: "matter" | "openQuestion" = "matter") {
-  return domainBody<{ id: string }>(
-    await agent
-      .post("/api/council-business")
-      .send({ kind, title, report: "", folderPath: "", resourceIds: [] })
-      .expect(201),
-  );
+async function createNoticedCouncilMeeting() {
+  const { agent, pool } = await createPostgresHttpTestServer();
+  const context = {
+    role: "hall_api_authenticated" as const,
+    context: { requestId: "preparation-fixture", actorId: "test-clerk", roles: ["administrator"], contactId: null },
+  };
+  await new PostgresDirectory(pool).configureActiveCouncilTerm(context, 1);
+  const member = await createTestCouncilMember(agent, { firstName: "Alice", role: "mayor" });
+  const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
+  await agent.put(`/api/council-meetings/${meeting.id}/prepare`).send({
+    scheduledAt: "2026-09-10T18:30:00+02:00", location: "Council chamber",
+    chairMemberId: member.id, secretaryMemberId: member.id,
+  }).expect(200);
+  const business = domainBody<{ id: string }>(await agent.post("/api/council-business").send({
+    path: "conseil", name: "Questions diverses", reportName: "Rapport", reportContent: "",
+  }).expect(201));
+  const subject = domainBody<{ id: string }>(await agent
+    .post(`/api/council-business/${business.id}/prepared-subjects`)
+    .send({ kind: "openQuestion", name: "Questions diverses", content: "" }).expect(201));
+  const item = domainBody<{ id: string }>(await agent
+    .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)
+    .send({ kind: "openQuestion", subjectId: subject.id, position: 1 }).expect(201));
+  const council = new PostgresCouncil(pool);
+  await council.freezeAgenda(context, meeting.id);
+  const facts = await council.noticeFacts(context, meeting.id);
+  if (!facts) throw new Error("Frozen notice facts are required");
+  await council.generateNotice(context, meeting.id,
+    { meeting: facts, issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" } },
+    Buffer.from("%PDF-fixture"));
+  return { agent, pool, context, council, member, meeting, item };
 }
 
 describe("meeting preparation integration", () => {
-  it("does not insert a late matter after questions diverses have started", async () => {
-    const { agent } = await createTestServer();
-    const members = await Promise.all(["Alice", "Benoît", "Claire"].map((name) => createMember(agent, name)));
-    const meeting = await createMeeting(agent);
-    const openQuestion = await createBusiness(agent, "Questions diverses", "openQuestion");
-    const openQuestionItem = domainBody<{ id: string }>(
-      await agent
-        .post(`/api/council-business/${openQuestion.id}/schedule`)
-        .send({ meetingId: meeting.id, position: 1 })
-        .expect(201),
+  it("does not insert a late decision proposal after questions diverses have started", async () => {
+    const { agent, member, meeting, item } = await createNoticedCouncilMeeting();
+    await agent.post(`/api/council-meetings/${meeting.id}/record-opening`).send({
+      observedAt: "2026-09-10T16:30:00Z", chairMemberId: member.id,
+      secretaryMemberId: member.id, attendance: [{ councilMemberId: member.id, status: "present" }],
+    }).expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`)
+      .send({ startedAt: "2026-09-10T16:31:00Z" }).expect(200);
+    const before = domainBody<Array<{ id: string }>>(
+      await agent.get(`/api/council-meetings/${meeting.id}/agenda-items`).expect(200),
     );
-    await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
-    await agent
-      .put(`/api/council-meetings/${meeting.id}/officers`)
-      .send({ chairMemberId: members[0].id, secretaryMemberId: members[1].id })
-      .expect(200);
-    for (const member of members) {
-      await agent
-        .put(`/api/council-meetings/${meeting.id}/attendance`)
-        .send({ memberId: member.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
-        .expect(200);
-    }
-    await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "inProgress" }).expect(200);
-    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${openQuestionItem.id}/start`).expect(200);
-
-    const response = await agent.post(`/api/council-meetings/${meeting.id}/late-business`).send({
-      kind: "matter",
-      title: "Point tardif",
-      report: "",
-      resourceIds: [],
-    });
-    expect(response.status).toBe(409);
-    expect(domainBody(response)).toMatchObject({ code: "agenda_order_invalid" });
+    const latePath = `/api/council-meetings/${meeting.id}/open-questions`;
+    const forbidden = await agent.post(latePath).send({
+      kind: "councilDecisionProposal", path: "conseil", name: "Délibération tardive", content: "Texte",
+    }).expect(400);
+    expect(forbidden.body.code).toBe("invalid_request");
+    const after = domainBody<Array<{ id: string }>>(
+      await agent.get(`/api/council-meetings/${meeting.id}/agenda-items`).expect(200),
+    );
+    expect(after.map((entry) => entry.id)).toEqual(before.map((entry) => entry.id));
+    const lateQuestion = domainBody<{ subject: { kind: string } }>(await agent.post(latePath).send({
+      path: "conseil", name: "Question ajoutée en séance", content: "À discuter",
+    }).expect(201));
+    expect(lateQuestion.subject.kind).toBe("openQuestion");
   });
 
-  it("reorders, removes and adds agenda items through the HTTP contract", async () => {
-    const { agent } = await createTestServer();
-    const members = await Promise.all(["Alice", "Benoît", "Claire"].map((name) => createMember(agent, name)));
-    const meeting = await createMeeting(agent);
-    const firstBusiness = await createBusiness(agent, "Premier point");
-    const secondBusiness = await createBusiness(agent, "Questions diverses", "openQuestion");
-
-    const meetings = domainBody<Array<{ id: string }>>(await agent.get("/api/council-meetings").expect(200));
-    expect(meetings.map((candidate) => candidate.id)).toContain(meeting.id);
-    await agent
-      .put(`/api/council-meetings/${meeting.slug}`)
-      .send({
-        startsAt: "2026-11-12T19:00:00+01:00",
-        location: "Grande salle",
-      })
-      .expect(200);
-
-    const attendanceBeforeScheduling = await agent.put(`/api/council-meetings/${meeting.slug}/attendance`).send({
-      memberId: members[0].id,
-      status: "present",
-      proxyHolderMemberId: null,
-      proxyDocumentId: null,
-    });
-    expect(attendanceBeforeScheduling.status).toBe(409);
-    expect(domainBody(attendanceBeforeScheduling).code).toBe("meeting_roster_locked");
-
-    const firstItem = domainBody<{ id: string }>(
-      await agent
-        .post(`/api/council-business/${firstBusiness.id}/schedule`)
-        .send({ meetingId: meeting.id, position: 1 })
-        .expect(201),
-    );
-    const secondItem = domainBody<{ id: string }>(
-      await agent
-        .post(`/api/council-business/${secondBusiness.id}/schedule`)
-        .send({ meetingId: meeting.id, position: 2 })
-        .expect(201),
-    );
-
-    await agent
-      .put(`/api/council-meetings/${meeting.slug}/agenda-order`)
-      .send({ itemIds: [secondItem.id, firstItem.id] })
-      .expect(409);
-    let aggregate = domainBody(await agent.get(`/api/council-meetings/${meeting.slug}`).expect(200)) as {
-      agendaItems: Array<{ id: string; position: number }>;
+  it("reorders, deprograms and reprograms agenda items through the SQL HTTP contract", async () => {
+    const { agent, pool } = await createPostgresHttpTestServer();
+    const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
+    await agent.put(`/api/council-meetings/${meeting.id}/schedule`).send({
+      scheduledAt: "2026-11-12T18:30:00+01:00", location: "Salle du conseil",
+    }).expect(200);
+    const createItem = async (name: string, position: number) => {
+      const business = domainBody<{ id: string }>(await agent.post("/api/council-business").send({
+        path: "conseil", name, reportName: "Rapport", reportContent: "",
+      }).expect(201));
+      const subject = domainBody<{ id: string }>(await agent
+        .post(`/api/council-business/${business.id}/prepared-subjects`)
+        .send({ kind: "openQuestion", name, content: "" }).expect(201));
+      return domainBody<{ id: string; position: number }>(await agent
+        .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)
+        .send({ kind: "openQuestion", subjectId: subject.id, position }).expect(201));
     };
-    expect(aggregate.agendaItems.map((item) => [item.id, item.position])).toEqual([
-      [firstItem.id, 1],
-      [secondItem.id, 2],
-    ]);
-
-    await agent.delete(`/api/council-meetings/${meeting.slug}/agenda-items/${secondItem.id}`).expect(204);
-    const removedItem = domainBody(await agent.get(`/api/council-business/${secondBusiness.id}`).expect(200)) as {
-      occurrences: Array<{ agendaItem: { id: string } }>;
-    };
-    expect(removedItem.occurrences.some((occurrence) => occurrence.agendaItem.id === secondItem.id)).toBe(false);
-
-    const rescheduledItem = domainBody<{ id: string }>(
-      await agent
-        .post(`/api/council-business/${secondBusiness.id}/schedule`)
-        .send({ meetingId: meeting.id, position: 2 })
-        .expect(201),
+    const first = await createItem("Premier point", 1);
+    const second = await createItem("Second point", 2);
+    const orderPath = `/api/council-meetings/${meeting.id}/agenda-order`;
+    await agent.put(orderPath).send({ agendaItemIds: [first.id, first.id] }).expect(400);
+    await agent.put(orderPath).send({ agendaItemIds: [second.id, first.id] }).expect(200);
+    const reordered = domainBody<Array<{ id: string; position: number }>>(
+      await agent.get(`/api/council-meetings/${meeting.id}/agenda-items`).expect(200),
     );
-    await agent.put(`/api/council-meetings/${meeting.slug}/status`).send({ status: "scheduled" }).expect(200);
-
-    const invalidProxy = await agent.put(`/api/council-meetings/${meeting.slug}/attendance`).send({
-      memberId: members[2].id,
-      status: "represented",
-      proxyHolderMemberId: members[1].id,
-      proxyDocumentId: randomUUID(),
-    });
-    expect(invalidProxy.status).toBe(400);
-    expect(domainBody(invalidProxy).code).toBe("proxy_invalid");
-
-    await agent
-      .put(`/api/council-meetings/${meeting.slug}/officers`)
-      .send({ chairMemberId: members[0].id, secretaryMemberId: members[1].id })
-      .expect(200);
-    for (const member of members) {
-      await agent
-        .put(`/api/council-meetings/${meeting.slug}/attendance`)
-        .send({ memberId: member.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
-        .expect(200);
-    }
-    await agent.put(`/api/council-meetings/${meeting.slug}/status`).send({ status: "inProgress" }).expect(200);
-    await agent
-      .put(`/api/council-meetings/${meeting.slug}`)
-      .send({
-        startsAt: "2026-11-12T20:00:00+01:00",
-        location: "Grande salle",
-      })
-      .expect(409);
-
-    const lateItem = domainBody<{ addedDuringSession: boolean; position: number }>(
-      await agent
-        .post(`/api/council-meetings/${meeting.slug}/late-business`)
-        .send({ kind: "openQuestion", title: "Information ajoutée en séance", report: "", resourceIds: [] })
-        .expect(201),
+    expect(reordered.filter((item) => item.position > 0).map((item) => item.id)).toEqual([second.id, first.id]);
+    const deprogrammed = domainBody<{ position: number }>(
+      await agent.delete(`/api/council-meetings/${meeting.id}/agenda-items/${second.id}`).expect(200),
     );
-    expect(lateItem).toMatchObject({ addedDuringSession: true, position: 3 });
-
-    await agent
-      .put(`/api/council-meetings/${meeting.slug}/agenda-order`)
-      .send({ itemIds: [firstItem.id, rescheduledItem.id] })
-      .expect(409);
-    await agent
-      .put(`/api/council-meetings/${meeting.slug}/officers`)
-      .send({ chairMemberId: members[0].id, secretaryMemberId: members[1].id })
-      .expect(409);
-
-    aggregate = domainBody(await agent.get(`/api/council-meetings/${meeting.slug}`).expect(200)) as {
-      agendaItems: Array<{ id: string }>;
+    expect(deprogrammed.position).toBeLessThan(0);
+    const restoration = await agent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/${second.id}/reprogram`)
+      .send({ councilMeetingId: meeting.id, position: 1 });
+    expect(restoration.status, JSON.stringify(restoration.body)).toBe(200);
+    const restored = domainBody<{ id: string; position: number }>(restoration);
+    expect(restored).toMatchObject({ id: second.id, position: 1 });
+    const council = new PostgresCouncil(pool);
+    const context = {
+      role: "hall_api_authenticated" as const,
+      context: { requestId: "reorder-fixture", actorId: "test-clerk", roles: ["administrator"], contactId: null },
     };
-    expect(aggregate.agendaItems).toHaveLength(3);
+    await council.freezeAgenda(context, meeting.id);
+    await agent.put(orderPath).send({ agendaItemIds: [second.id, first.id] }).expect(409);
   });
 
-  it("returns scheduled council business and decisions to preparation when a meeting is cancelled", async () => {
-    const { agent } = await createTestServer();
-    await createMember(agent, "Alice");
-    const meeting = await createMeeting(agent);
-    const decision = domainBody<{ id: string }>(
-      await agent
-        .post("/api/council-decisions")
-        .send({ title: "Décision annulée", draftText: "Texte", legalityReviewRequired: false })
-        .expect(201),
+  it("deprograms a prepared subject without deleting its history and can reprogram it", async () => {
+    const { agent } = await createPostgresHttpTestServer();
+    const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
+    await agent.put(`/api/council-meetings/${meeting.id}/schedule`).send({
+      scheduledAt: "2026-09-10T18:30:00+02:00", location: "Salle du conseil",
+    }).expect(200);
+    const business = domainBody<{ id: string }>(await agent.post("/api/council-business").send({
+      path: "conseil", name: "Décision reportée", reportName: "Rapport", reportContent: "",
+    }).expect(201));
+    const proposal = domainBody<{ id: string }>(await agent
+      .post(`/api/council-business/${business.id}/prepared-subjects`)
+      .send({ kind: "councilDecisionProposal", name: "Décision reportée", content: "Texte" }).expect(201));
+    const item = domainBody<{ id: string; position: number }>(await agent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)
+      .send({ kind: "councilDecisionProposal", subjectId: proposal.id, position: 1 }).expect(201));
+    const removed = domainBody<{ id: string; position: number }>(await agent
+      .delete(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}`).expect(200));
+    expect(removed).toMatchObject({ id: item.id });
+    expect(removed.position).toBeLessThan(0);
+    const history = domainBody<Array<{ id: string; position: number }>>(
+      await agent.get(`/api/council-meetings/${meeting.id}/agenda-items`).expect(200),
     );
-    const business = domainBody<{ id: string }>(
-      await agent
-        .post("/api/council-business")
-        .send({
-          kind: "matter",
-          councilDecisionId: decision.id,
-          title: "Décision annulée",
-          report: "",
-          resourceIds: [],
-        })
-        .expect(201),
-    );
-    await agent
-      .post(`/api/council-business/${business.id}/schedule`)
-      .send({ meetingId: meeting.id, position: 1 })
-      .expect(201);
-    await agent.put(`/api/council-meetings/${meeting.slug}/status`).send({ status: "scheduled" }).expect(200);
-    await agent.put(`/api/council-meetings/${meeting.slug}/status`).send({ status: "cancelled" }).expect(200);
-
-    const decisions = domainBody<Array<{ id: string; status: string }>>(
-      await agent.get("/api/council-decisions").expect(200),
-    );
-    const aggregate = domainBody(await agent.get(`/api/council-meetings/${meeting.slug}`).expect(200)) as {
-      meeting: { status: string };
-      agendaItems: Array<{ status: string }>;
-    };
-    expect(decisions.find((candidate) => candidate.id === decision.id)?.status).toBe("ready");
-    expect(aggregate.meeting.status).toBe("cancelled");
-    expect(aggregate.agendaItems[0]?.status).toBe("withdrawn");
+    expect(history).toContainEqual(expect.objectContaining({ id: item.id, position: removed.position }));
+    const restored = domainBody<{ id: string; position: number }>(await agent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/reprogram`)
+      .send({ councilMeetingId: meeting.id, position: 1 }).expect(200));
+    expect(restored).toMatchObject({ id: item.id, position: 1 });
   });
 
-  it("enforces agenda order, notes and the ballot prerequisite through a complete session", async () => {
-    const { agent } = await createTestServer();
-    const members = await Promise.all(["Alice", "Benoît", "Claire"].map((name) => createMember(agent, name)));
-    const meeting = await createMeeting(agent);
-    const firstBusiness = await createBusiness(agent, "Présentation sans vote");
-    const secondBusiness = await createBusiness(agent, "Information suivante");
-    const decision = domainBody<{ id: string }>(
-      await agent
-        .post("/api/council-decisions")
-        .send({ title: "Décision rejetée", draftText: "Texte", legalityReviewRequired: false })
-        .expect(201),
-    );
-    const decisionBusiness = domainBody<{ id: string }>(
-      await agent
-        .post("/api/council-business")
-        .send({
-          kind: "matter",
-          councilDecisionId: decision.id,
-          title: "Décision rejetée",
-          report: "",
-          resourceIds: [],
-        })
-        .expect(201),
-    );
-    const agendaItems = [];
-    for (const [index, business] of [decisionBusiness, firstBusiness, secondBusiness].entries()) {
-      agendaItems.push(
-        domainBody<{ id: string }>(
-          await agent
-            .post(`/api/council-business/${business.id}/schedule`)
-            .send({ meetingId: meeting.id, position: index + 1 })
-            .expect(201),
-        ),
-      );
-    }
-    await agent.put(`/api/council-meetings/${meeting.slug}/status`).send({ status: "scheduled" }).expect(200);
-    await agent
-      .put(`/api/council-meetings/${meeting.slug}/officers`)
-      .send({ chairMemberId: members[0].id, secretaryMemberId: members[1].id })
-      .expect(200);
-    for (const member of members) {
-      await agent
-        .put(`/api/council-meetings/${meeting.slug}/attendance`)
-        .send({ memberId: member.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
-        .expect(200);
-    }
-    await agent.put(`/api/council-meetings/${meeting.slug}/status`).send({ status: "inProgress" }).expect(200);
-
-    await agent
-      .put(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[0].id}/notes`)
-      .send({ discussionSummary: "Trop tôt" })
-      .expect(409);
-    await agent.post(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[1].id}/start`).expect(409);
-    await agent.post(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[0].id}/start`).expect(200);
-    await agent.post(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[1].id}/start`).expect(409);
-    await agent
-      .put(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[0].id}/notes`)
-      .send({ discussionSummary: "Présentation consignée" })
-      .expect(200);
-    await agent
-      .post(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[0].id}/complete`)
-      .send({ discussionSummary: "Pas encore votée", status: "examined" })
-      .expect(409);
-
-    await agent
-      .post(`/api/council-meetings/${meeting.slug}/ballots`)
-      .send({
-        method: "public",
-        idempotencyKey: randomUUID(),
-        councilDecisionId: decision.id,
-        votes: members.map((member) => ({
-          memberId: member.id,
-          castByMemberId: member.id,
-          choice: "against",
-        })),
-      })
-      .expect(201);
-    await agent
-      .post(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[0].id}/complete`)
-      .send({ discussionSummary: "Décision rejetée", status: "examined" })
-      .expect(200);
-
-    await agent.post(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[1].id}/start`).expect(200);
-    const agendaBallot = {
-      method: "public",
-      agendaItemId: agendaItems[1].id,
-      votes: members.map((member) => ({
-        memberId: member.id,
-        castByMemberId: member.id,
-        choice: "for",
-      })),
+  it("records notes and requires a confirmed ballot before completing a decision proposal", async () => {
+    const { agent, pool } = await createPostgresHttpTestServer();
+    const context = {
+      role: "hall_api_authenticated" as const,
+      context: { requestId: "conduct-fixture", actorId: "test-clerk", roles: ["administrator"], contactId: null },
     };
-    await agent
-      .post(`/api/council-meetings/${meeting.slug}/ballots`)
-      .send({ ...agendaBallot, idempotencyKey: randomUUID() })
-      .expect(201);
-    await agent
-      .post(`/api/council-meetings/${meeting.slug}/ballots`)
-      .send({ ...agendaBallot, idempotencyKey: randomUUID() })
-      .expect(409);
-    await agent
-      .post(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[1].id}/complete`)
-      .send({ discussionSummary: "Information examinée", status: "examined" })
-      .expect(200);
-    await agent.post(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[2].id}/start`).expect(200);
-    await agent
-      .post(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[2].id}/complete`)
-      .send({ discussionSummary: "Point retiré", status: "withdrawn" })
-      .expect(200);
-    await agent
-      .put(`/api/council-meetings/${meeting.slug}/agenda-items/${agendaItems[2].id}/notes`)
-      .send({ discussionSummary: "Trop tard" })
-      .expect(409);
-    await agent.put(`/api/council-meetings/${meeting.slug}/status`).send({ status: "closed" }).expect(200);
-
-    const decisions = domainBody<Array<{ id: string; status: string; number: string | null }>>(
-      await agent.get("/api/council-decisions").expect(200),
+    await new PostgresDirectory(pool).configureActiveCouncilTerm(context, 1);
+    const member = await createTestCouncilMember(agent, { firstName: "Alice", role: "mayor" });
+    const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
+    await agent.put(`/api/council-meetings/${meeting.id}/prepare`).send({
+      scheduledAt: "2026-09-10T18:30:00+02:00", location: "Council chamber",
+      chairMemberId: member.id, secretaryMemberId: member.id,
+    }).expect(200);
+    const createItem = async (kind: "councilDecisionProposal" | "openQuestion", name: string, position: number) => {
+      const business = domainBody<{ id: string }>(await agent.post("/api/council-business").send({
+        path: "conseil", name, reportName: "Rapport", reportContent: "",
+      }).expect(201));
+      const subject = domainBody<{ id: string }>(await agent
+        .post(`/api/council-business/${business.id}/prepared-subjects`)
+        .send({ kind, name, content: "Texte soumis au conseil" }).expect(201));
+      return domainBody<{ id: string }>(await agent
+        .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)
+        .send({ kind, subjectId: subject.id, position }).expect(201));
+    };
+    const proposal = await createItem("councilDecisionProposal", "Décision rejetée", 1);
+    const question = await createItem("openQuestion", "Question suivante", 2);
+    const council = new PostgresCouncil(pool);
+    await council.freezeAgenda(context, meeting.id);
+    const facts = await council.noticeFacts(context, meeting.id);
+    if (!facts) throw new Error("Frozen notice facts are required");
+    await council.generateNotice(context, meeting.id,
+      { meeting: facts, issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" } },
+      Buffer.from("%PDF-fixture"));
+    await agent.post(`/api/council-meetings/${meeting.id}/record-opening`).send({
+      observedAt: "2026-09-10T16:30:00Z", chairMemberId: member.id,
+      secretaryMemberId: member.id, attendance: [{ councilMemberId: member.id, status: "present" }],
+    }).expect(200);
+    const itemPath = `/api/council-meetings/${meeting.id}/agenda-items/${proposal.id}`;
+    await agent.post(`${itemPath}/start`).send({ startedAt: "2026-09-10T16:31:00Z" }).expect(200);
+    const notes = domainBody<{ discussionSummary: string }>(
+      await agent.patch(`${itemPath}/notes`).send({ discussionSummary: "Présentation consignée" }).expect(200),
     );
-    expect(decisions.find((candidate) => candidate.id === decision.id)).toMatchObject({
-      status: "rejected",
-      number: null,
-    });
+    expect(notes.discussionSummary).toBe("Présentation consignée");
+    const prematureCompletion = await agent.post(`${itemPath}/complete`)
+      .send({ completedAt: "2026-09-10T16:32:00Z" });
+    expect(prematureCompletion.status, JSON.stringify(prematureCompletion.body)).toBe(409);
+    const attendance = await council.listAttendance(context, meeting.id);
+    const candidate = { procedure: "ordinaryMajority", mode: "public",
+      participantAttendanceIds: [attendance[0].id], chairmanAttendanceId: attendance[0].id,
+      votes: [{ meetingAttendanceId: attendance[0].id, choice: "reject" }], nonParticipations: [] };
+    const preview = domainBody<{ id: string; calculation: { result: string } }>(
+      await agent.post("/api/ballot-previews").send({ agendaItemId: proposal.id, candidate }).expect(201),
+    );
+    expect(preview.calculation.result).toBe("reject");
+    await agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}).expect(200);
+    await agent.post(`${itemPath}/complete`)
+      .send({ completedAt: new Date(Date.now() + 1_000).toISOString() }).expect(409);
+    const questionPath = `/api/council-meetings/${meeting.id}/agenda-items/${question.id}`;
+    const questionStart = await agent.post(`${questionPath}/start`)
+      .send({ startedAt: new Date().toISOString() });
+    expect(questionStart.status, JSON.stringify(questionStart.body)).toBe(200);
+    await agent.patch(`${questionPath}/notes`)
+      .send({ discussionSummary: "Question examinée" }).expect(200);
+    await agent.post(`${questionPath}/complete`)
+      .send({ completedAt: new Date().toISOString() }).expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/close`)
+      .send({ closedAt: new Date().toISOString() }).expect(200);
+    const decisions = await agent.get("/api/council-decisions").expect(200);
+    expect(decisions.body.entities).toHaveLength(1);
+    expect(decisions.body.entities[0].properties.ballotId).toBeTruthy();
   });
 });

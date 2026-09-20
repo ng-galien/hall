@@ -1,5 +1,5 @@
 import type { Pool } from "pg";
-import { PostgresSchemaBootstrap } from "./bootstrap.js";
+import { PostgresSchemaBootstrap, type PostgresSchemaUpgradeMode } from "./bootstrap.js";
 import { type HallPostgresConfig, parseHallPostgresConfig } from "./config.js";
 import { PostgresCouncil } from "./council.js";
 import { PostgresCouncilDecisions } from "./councilDecisions.js";
@@ -19,8 +19,9 @@ export class PostgresClient {
   constructor(
     private readonly pool: Pool,
     private readonly ownsPool = true,
+    schemaUpgradeMode: PostgresSchemaUpgradeMode = "automatic",
   ) {
-    this.bootstrap = new PostgresSchemaBootstrap(pool);
+    this.bootstrap = new PostgresSchemaBootstrap(pool, undefined, schemaUpgradeMode);
     this.council = new PostgresCouncil(pool);
     this.directory = new PostgresDirectory(pool);
     this.resources = new PostgresResources(pool);

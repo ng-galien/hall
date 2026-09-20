@@ -14,7 +14,10 @@ const memberName = (members: CouncilMemberView[], memberId: string): string => {
   return member ? `${member.contact.firstName} ${member.contact.lastName}` : memberId;
 };
 
-export function ballotParticipants(aggregate: LiveMeetingPresentation, members: CouncilMemberView[]): BallotParticipant[] {
+export function ballotParticipants(
+  aggregate: LiveMeetingPresentation,
+  members: CouncilMemberView[],
+): BallotParticipant[] {
   return aggregate.attendance
     .filter((attendance) => attendance.status === "present" || attendance.status === "represented")
     .map((attendance) => {

@@ -1,20 +1,20 @@
-import { useState } from "react";
-import { RequestErrorBanner } from "../../components/Ui";
-import { useSubmitting } from "../../hooks/useSubmitting";
-import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
-import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
-import { apiErrorCode, type ApiErrorCode } from "../../services/apiClient";
-import { useResourceRename } from "../../features/resources/useResourceRename";
-import { ContextMenuItem } from "../../components/ui/context-menu";
-import { useI18n } from "../../i18n/I18nProvider";
 import type { ReactNode } from "react";
-import { ExplorerTreeBranch } from "../../components/ui/explorer-tree";
+import { useState } from "react";
 import { FolderIcon } from "../../components/icons";
+import { RequestErrorBanner } from "../../components/Ui";
+import { ContextMenuItem } from "../../components/ui/context-menu";
+import { ExplorerTreeBranch } from "../../components/ui/explorer-tree";
 import {
-  DocumentaryResourceGlyph,
   type DocumentaryLeafSummary,
+  DocumentaryResourceGlyph,
 } from "../../features/documents/DocumentaryResourceGlyph";
 import { InlineResourceContent } from "../../features/resources/InlineResourceContent";
+import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
+import { useResourceRename } from "../../features/resources/useResourceRename";
+import { useSubmitting } from "../../hooks/useSubmitting";
+import { useI18n } from "../../i18n/I18nProvider";
+import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 
 /** Lexical relative filing path; resources outside the base retain their parent segments. */
 export function relativeDocumentPath(base: string, path: string): string {
@@ -99,14 +99,15 @@ function DocumentBranch({
   const canDelete = resourceCapabilities(representation ?? null).deleteResource;
   const { submitting, run } = useSubmitting();
   const [error, setError] = useState<ApiErrorCode | null>(null);
-  const remove = () => void run(async () => {
-    setError(null);
-    try {
-      if (await useWorkspaceResourcesStore.getState().remove(resource.id)) await onRenamed();
-    } catch (failure) {
-      setError(apiErrorCode(failure));
-    }
-  });
+  const remove = () =>
+    void run(async () => {
+      setError(null);
+      try {
+        if (await useWorkspaceResourcesStore.getState().remove(resource.id)) await onRenamed();
+      } catch (failure) {
+        setError(apiErrorCode(failure));
+      }
+    });
   const rename = useResourceRename({
     resourceId: resource.id,
     testId: `business-document-rename-${resource.id}`,
@@ -125,7 +126,11 @@ function DocumentBranch({
             </ContextMenuItem>
             {rename.menuItem}
             {canDelete ? (
-              <ContextMenuItem data-testid={`business-document-delete-${resource.id}`} disabled={submitting} onSelect={remove}>
+              <ContextMenuItem
+                data-testid={`business-document-delete-${resource.id}`}
+                disabled={submitting}
+                onSelect={remove}
+              >
                 {t("workspace.deleteResource")}
               </ContextMenuItem>
             ) : null}

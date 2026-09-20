@@ -1,13 +1,13 @@
 import {
   meetingConductWorkspaceSchema,
-  recordMeetingAttendanceEventsSchema,
-  recordMeetingQuorumSchema,
   type RecordMeetingAttendanceEvents,
-  type RecordMeetingQuorum,
-  recordMeetingReconvocationSchema,
-  type RecordMeetingReconvocation,
-  recordMeetingOpeningSchema,
   type RecordMeetingOpening,
+  type RecordMeetingQuorum,
+  type RecordMeetingReconvocation,
+  recordMeetingAttendanceEventsSchema,
+  recordMeetingOpeningSchema,
+  recordMeetingQuorumSchema,
+  recordMeetingReconvocationSchema,
 } from "@hall/api-contract";
 import { apiSirenRequest, submitSirenActionAt } from "./apiClient";
 

@@ -19,8 +19,14 @@ test("meeting labels derive identity from the occurrence number and date", () =>
 test("undated meeting labels omit the date separator unless an explicit fallback is requested", () => {
   const meeting = { number: 4, scheduledAt: null };
   const template = "Conseil municipal {number}, {date}";
-  assert.equal(formatMeetingLabel(meeting, template, () => "unexpected"), "Conseil municipal 4");
-  assert.equal(formatMeetingLabel(meeting, template, () => "unexpected", "À planifier"), "Conseil municipal 4, À planifier");
+  assert.equal(
+    formatMeetingLabel(meeting, template, () => "unexpected"),
+    "Conseil municipal 4",
+  );
+  assert.equal(
+    formatMeetingLabel(meeting, template, () => "unexpected", "À planifier"),
+    "Conseil municipal 4, À planifier",
+  );
 });
 
 test("an unscheduled meeting proposes today's local date without changing its schedule", () => {

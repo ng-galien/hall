@@ -2,11 +2,16 @@
 -- @technical-requirement HALL-TR-DOC-060 DOCUMENTARY_WRITES_ARE_NAMED:
 -- Runtime roles can discover hall_api and call only explicitly granted
 -- functions. They never receive table privileges in hall.
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hall_api
+  FROM PUBLIC, hall_api_anonymous, hall_api_authenticated, hall_api_worker;
 GRANT USAGE ON SCHEMA hall_api TO hall_api_anonymous, hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.schema_fingerprint() TO hall_api_anonymous;
+GRANT EXECUTE ON FUNCTION hall_api.call_context()
+  TO hall_api_anonymous, hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.record_audit_event(TEXT, TEXT, hall.audit_outcome, JSONB)
+  TO hall_api_anonymous, hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.import_council_business_bundle(JSONB,JSONB,TEXT)
   TO hall_api_authenticated, hall_api_worker;
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hall_api FROM PUBLIC;
 REVOKE ALL ON FUNCTION hall_api.create_ballot(UUID,TEXT,UUID[],UUID),
  hall_api.record_public_ballot_votes(UUID,UUID[],TEXT[]),
  hall_api.record_secret_ballot_votes(UUID,INTEGER,INTEGER,INTEGER,INTEGER,INTEGER,INTEGER),
@@ -63,6 +68,8 @@ GRANT EXECUTE ON FUNCTION hall_api.end_committee_membership(UUID, UUID, DATE)
 
 GRANT EXECUTE ON FUNCTION hall_api.open_resource(UUID)
   TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.list_text_resource_changes(UUID)
+  TO hall_api_authenticated;
 GRANT EXECUTE ON FUNCTION hall_api.open_resource_by_slug(TEXT)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_resources()
@@ -133,6 +140,14 @@ GRANT EXECUTE ON FUNCTION hall_api.associate_council_business_resource(UUID, UUI
 GRANT EXECUTE ON FUNCTION hall_api.dissociate_council_business_resource(UUID, UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.reorder_council_business_resources(UUID, UUID[])
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.list_council_business_committees(UUID)
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.list_council_committee_businesses(UUID)
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.associate_council_business_committee(UUID, UUID)
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.dissociate_council_business_committee(UUID, UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.open_council_agenda_item(UUID)
   TO hall_api_authenticated, hall_api_worker;

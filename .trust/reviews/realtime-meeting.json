@@ -1,0 +1,25 @@
+{
+  "scope": "meeting",
+  "findings": [
+    "HALL-FR-MTG-320 est acceptée : un lecteur autorisé suit le point courant sans action de conduite.",
+    "Les commandes de conduite passent par les routes HTTP et leurs permissions Siren ; le lecteur possède meetings.read, pas meetings.conduct.",
+    "Les mutations PostgreSQL sont transactionnelles ; un signal de séance ne doit suivre qu'une commande réussie et validée par COMMIT.",
+    "Le client charge séance, ordre du jour et conduite au montage, puis après ses propres mutations ; il ne suit pas encore les changements d'une autre session.",
+    "La sélection d'un point est locale au composant ; un nouveau signal de conduite doit redonner la priorité au point courant du serveur.",
+    "Après reconnexion, une relecture des projections serveur permet de rejoindre l'état courant sans supposer que tous les signaux ont été reçus.",
+    "Aucun transport WebSocket ou bus interprocessus n'existe actuellement ; la topologie multi-processus reste une limite technique à instruire, pas une règle métier."
+  ],
+  "evidencePaths": [
+    "requirements/catalog.json",
+    "packages/server/src/api/routes/councilMeetingsRoutes.ts",
+    "packages/server/src/api/apiCommandPolicy.ts",
+    "packages/server/src/api/sirenActionPolicy.ts",
+    "packages/server/src/security/authorization.ts",
+    "packages/server/src/server.ts",
+    "packages/server/src/api/accessControl.ts",
+    "packages/postgres/src/transaction.ts",
+    "packages/client/src/hooks/useCouncilMeeting.ts",
+    "packages/client/src/pages/council-meetings/live/ConductView.tsx"
+  ],
+  "openDecisions": []
+}

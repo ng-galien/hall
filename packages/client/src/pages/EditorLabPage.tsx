@@ -21,24 +21,35 @@ export function EditorLabPage() {
   const [catalogReady, setCatalogReady] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfStatus, setPdfStatus] = useState<"idle" | "loading" | "failed">("idle");
+  const editorInteracted = useRef(false);
   const mentionables = useReferenceMentionables();
   const resourcesStore = useWorkspaceResourcesStore();
-  const resources = useMemo(() => resourcesStore.searchResult?.items.filter((resource) => resource.kind !== "folder") ?? [], [resourcesStore.searchResult]);
+  const resources = useMemo(
+    () => resourcesStore.searchResult?.items.filter((resource) => resource.kind !== "folder") ?? [],
+    [resourcesStore.searchResult],
+  );
   const tableOptions = useRef(new Map<string, ReturnType<typeof loadResourceEmbedTableOptions>>());
 
   useEffect(() => {
     let active = true;
-    void resourcesStore.loadCatalog().then(() =>
-      resourcesStore.search({
-        query: "",
-        paths: [],
-        kinds: resourceKinds.filter((kind) => kind !== "folder"),
-        tags: [],
-        readiness: [],
-        media: [],
-      }),
-    ).then(() => { if (active) setCatalogReady(true); });
-    return () => { active = false; };
+    void resourcesStore
+      .loadCatalog()
+      .then(() =>
+        resourcesStore.search({
+          query: "",
+          paths: [],
+          kinds: resourceKinds.filter((kind) => kind !== "folder"),
+          tags: [],
+          readiness: [],
+          media: [],
+        }),
+      )
+      .then(() => {
+        if (active) setCatalogReady(true);
+      });
+    return () => {
+      active = false;
+    };
   }, [resourcesStore.loadCatalog, resourcesStore.search]);
 
   useEffect(() => {
@@ -79,7 +90,7 @@ export function EditorLabPage() {
       ].filter((block) => block !== null);
       if (!demoImage && blocks.length === 0) return;
       setMarkdown((current) => {
-        if (current.includes("::resource-embed[")) return current;
+        if (editorInteracted.current || current.includes("::resource-embed[")) return current;
         return [
           demoImage
             ? serializeImageDirective({ id: demoImage.id, alt: demoImage.label, align: "center", width: 75 })
@@ -140,7 +151,16 @@ export function EditorLabPage() {
             ) : null}
           </DialogContent>
         </Dialog>
-        <section className="editor-lab-pane" aria-labelledby="editor-lab-write">
+        <section
+          className="editor-lab-pane"
+          aria-labelledby="editor-lab-write"
+          onFocusCapture={() => {
+            editorInteracted.current = true;
+          }}
+          onPointerDownCapture={() => {
+            editorInteracted.current = true;
+          }}
+        >
           <h2 id="editor-lab-write">{t("editor.lab.writing")}</h2>
           <MarkdownEditor
             title={t("editor.lab.editorTitle")}

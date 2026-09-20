@@ -87,10 +87,15 @@ async function replaceEditorText(editor: Locator, value: string): Promise<void> 
   const area = writingArea(editor);
   await area.click();
   await area.press("ControlOrMeta+A");
-  await area.pressSequentially(value);
+  if (value === "") await area.press("Backspace");
+  else await area.pressSequentially(value);
 }
 
 async function openReferenceSearch(editor: Locator): Promise<Locator> {
+  if (await editor.evaluate((element) => element.classList.contains("markdown-editor-compact"))) {
+    await writingArea(editor).click();
+    await expect(editor.locator('[role="toolbar"]')).toHaveAttribute("data-visible", "true");
+  }
   await editor.getByTestId("editor-insert-reference").click();
   const dialog = editor.page().getByTestId("reference-search-dialog");
   await expect(dialog).toBeVisible();
@@ -429,71 +434,68 @@ test.describe("Markdown editor", () => {
     await expect(compactEditor(page).getByRole("table").filter({ hasText: "Harmonie" })).toContainText("1800");
   });
 
-  test("inserts the five non-resource typed references with their immutable UUIDs", async ({ appPage: page }) => {
-    const decisionResponse = await page.request.post("/api/council-decisions", {
-      data: {
-        title: `Décision de référence E2E ${Date.now()}`,
-        draftText: "Projet créé comme précondition du parcours de référence typée.",
-        legalityReviewRequired: true,
-      },
+  test.describe("typed references from an existing decision", () => {
+    test.use({ seedScenario: "default" });
+
+    test("inserts the five non-resource typed references with their immutable UUIDs", async ({ appPage: page }) => {
+      const decisionResponse = await page.request.get("/api/council-decisions");
+      expect(decisionResponse.ok()).toBe(true);
+      const decisionId = (await decisionResponse.json()).entities[0]?.properties.id;
+      expect(decisionId).toBeTruthy();
+      await openEditorLab(page);
+      const editor = await openEnrichedEditor(page);
+      const source = markdownSource(page);
+      const kinds = ["member", "contact", "councilBusiness", "meeting", "decision"] as const;
+
+      for (const directive of kinds) {
+        const dialog = await openReferenceSearch(editor);
+        await dialog.getByTestId("reference-search-add-filter").click();
+        await dialog.getByTestId("reference-search-filter-category-type").click();
+        await dialog.getByTestId(`reference-search-filter-type-${directive}`).click();
+        const results = dialog.getByTestId("reference-search-result");
+        await (directive === "decision"
+          ? results.and(page.locator(`[data-reference-id="${decisionId}"]`))
+          : results.first()
+        ).click();
+        await expect(source).toHaveText(new RegExp(`:${directive}\\[[^\\]]+\\]\\{#[0-9a-f-]{36}\\}`));
+      }
+      const markdown = await source.textContent();
+      expect(markdown).not.toContain("/api/");
+      expect(markdown).not.toContain("slug=");
+
+      const ids = Object.fromEntries(
+        kinds.map((kind) => {
+          const id = new RegExp(`:${kind}\\[[^\\]]+\\]\\{#([0-9a-f-]{36})\\}`).exec(markdown ?? "")?.[1];
+          expect(id, `${kind} reference id`).toBeTruthy();
+          return [kind, id as string];
+        }),
+      ) as Record<(typeof kinds)[number], string>;
+      await closeEnrichedEditor(page);
+      const rendered = compactEditor(page);
+      await expect(rendered.getByTestId(`editor-member-reference-${ids.member}`)).toHaveAttribute(
+        "href",
+        new RegExp(`/app/council-members/${ids.member}$`),
+      );
+      await expect(rendered.getByTestId(`editor-contact-reference-${ids.contact}`)).toHaveAttribute(
+        "href",
+        new RegExp(`/app/contacts/${ids.contact}$`),
+      );
+      await expect(rendered.getByTestId(`editor-councilBusiness-reference-${ids.councilBusiness}`)).toHaveAttribute(
+        "href",
+        /\/app\/workspace\?.*councilBusiness=/,
+      );
+      await expect(rendered.getByTestId(`editor-meeting-reference-${ids.meeting}`)).toHaveAttribute(
+        "href",
+        /\/app\/meetings\//,
+      );
+      await expect(rendered.getByTestId(`editor-decision-reference-${ids.decision}`)).toHaveAttribute(
+        "href",
+        new RegExp(`/app/council-decisions/${ids.decision}$`),
+      );
     });
-    expect(decisionResponse.status()).toBe(201);
-    const decisionId = (await decisionResponse.json()).properties.id;
-    await openEditorLab(page);
-    const editor = await openEnrichedEditor(page);
-    const source = markdownSource(page);
-    const kinds = ["member", "contact", "councilBusiness", "meeting", "decision"] as const;
-
-    for (const directive of kinds) {
-      const dialog = await openReferenceSearch(editor);
-      await dialog.getByTestId("reference-search-add-filter").click();
-      await dialog.getByTestId("reference-search-filter-category-type").click();
-      await dialog.getByTestId(`reference-search-filter-type-${directive}`).click();
-      const results = dialog.getByTestId("reference-search-result");
-      await (directive === "decision"
-        ? results.and(page.locator(`[data-reference-id="${decisionId}"]`))
-        : results.first()
-      ).click();
-      await expect(source).toHaveText(new RegExp(`:${directive}\\[[^\\]]+\\]\\{#[0-9a-f-]{36}\\}`));
-    }
-    const markdown = await source.textContent();
-    expect(markdown).not.toContain("/api/");
-    expect(markdown).not.toContain("slug=");
-
-    const ids = Object.fromEntries(
-      kinds.map((kind) => {
-        const id = new RegExp(`:${kind}\\[[^\\]]+\\]\\{#([0-9a-f-]{36})\\}`).exec(markdown ?? "")?.[1];
-        expect(id, `${kind} reference id`).toBeTruthy();
-        return [kind, id as string];
-      }),
-    ) as Record<(typeof kinds)[number], string>;
-    await closeEnrichedEditor(page);
-    const rendered = compactEditor(page);
-    await expect(rendered.getByTestId(`editor-member-reference-${ids.member}`)).toHaveAttribute(
-      "href",
-      new RegExp(`/app/council-members/${ids.member}$`),
-    );
-    await expect(rendered.getByTestId(`editor-contact-reference-${ids.contact}`)).toHaveAttribute(
-      "href",
-      new RegExp(`/app/contacts/${ids.contact}$`),
-    );
-    await expect(rendered.getByTestId(`editor-councilBusiness-reference-${ids.councilBusiness}`)).toHaveAttribute(
-      "href",
-      /\/app\/workspace\?.*councilBusiness=/,
-    );
-    await expect(rendered.getByTestId(`editor-meeting-reference-${ids.meeting}`)).toHaveAttribute(
-      "href",
-      /\/app\/meetings\//,
-    );
-    await expect(rendered.getByTestId(`editor-decision-reference-${ids.decision}`)).toHaveAttribute(
-      "href",
-      /\/app\/council-decisions$/,
-    );
   });
 
-  test("opens a text resource in the common modal, edits in place, and returns to the snippet", async ({
-    appPage: page,
-  }) => {
+  test("opens a text resource in the common read-only modal and returns to the snippet", async ({ appPage: page }) => {
     const resource = await createWorkspaceText(page, "Texte modal E2E");
 
     await openEditorLab(page);
@@ -508,24 +510,18 @@ test.describe("Markdown editor", () => {
     const routeBefore = page.url();
     await trigger.click();
     const modal = page.getByTestId("resource-preview");
-    await expect(modal).toHaveAttribute("data-resource-mode", "edit");
-    const modalEditor = modal.getByTestId("markdown-editor-enriched");
-    await expect(modalEditor).toBeVisible();
+    await expect(modal).toHaveAttribute("data-resource-mode", "read");
+    await expect(modal.getByTestId("resource-presentation-text-read")).toContainText("Contenu initial du test.");
     await expect(modal.locator('[data-testid="spreadsheet-fullscreen-dialog"]')).toHaveCount(0);
-    const updatedContent = "Texte modifié depuis la vue étendue";
-    await replaceEditorText(modalEditor, updatedContent);
-    await expect
-      .poll(() => persistedResourceContent(page, resource.slug), { timeout: 15_000 })
-      .toContain(updatedContent);
     await modal.getByTestId("resource-preview-close").click();
     await expect(modal).toHaveCount(0);
     await expect(trigger).toBeFocused();
     expect(page.url()).toBe(routeBefore);
     await trigger.click();
-    await expect(page.getByTestId("markdown-editor-enriched")).toContainText(updatedContent);
+    await expect(page.getByTestId("resource-preview")).toHaveAttribute("data-resource-mode", "read");
   });
 
-  test("inserts a PDF resource block, persists its canonical Markdown and reopens the common modal", async ({
+  test("inserts an inline PDF reference, persists its canonical Markdown and reopens the common modal", async ({
     appPage: page,
   }) => {
     const pdf = await firstPdfResource(page);
@@ -537,20 +533,20 @@ test.describe("Markdown editor", () => {
     await search.getByTestId("reference-search-input").fill(pdf.name);
     await search.getByTestId("reference-search-result").first().click();
 
-    await expect(editor.getByTestId(`editor-resource-embed-${pdf.id}`)).toBeVisible();
-    await expect(editor.getByTestId("resource-embed-presentation-document")).toBeVisible();
+    await expect(editor.getByTestId(`editor-resource-reference-${pdf.id}`)).toBeVisible();
+    await expect(editor.getByTestId(`editor-resource-embed-${pdf.id}`)).toHaveCount(0);
     await closeEnrichedEditor(page);
 
-    const directive = `::resource-embed[${pdf.name}]{#${pdf.id} presentation="document"}`;
+    const directive = `:resource[${pdf.name}]{#${pdf.id}}`;
     await expect.poll(() => persistedResourceContent(page, text.slug), { timeout: 15_000 }).toContain(directive);
     await page.reload();
 
-    const block = compactEditor(page).getByTestId(`editor-resource-embed-${pdf.id}`);
-    await expect(block).toBeVisible();
+    const reference = compactEditor(page).getByTestId(`editor-resource-reference-${pdf.id}`);
+    await expect(reference).toBeVisible();
     const nativePdfResponse = page.waitForResponse(
       (response) => /\/api\/resources\/[^/]+\/preview$/.test(response.url()) && response.request().method() === "GET",
     );
-    await block.click();
+    await reference.click();
     const modal = page.getByTestId("resource-preview");
     const loadedPdf = await nativePdfResponse;
     expect(loadedPdf.status()).toBe(200);
@@ -558,12 +554,12 @@ test.describe("Markdown editor", () => {
     await expect(modal.getByTestId("resource-preview-object")).toHaveAttribute("src", /\/preview$/);
     await modal.getByTestId("resource-preview-close").click();
     await expect(modal).toHaveCount(0);
-    await expect(block).toBeFocused();
-    await block.press("Enter");
+    await expect(reference).toBeFocused();
+    await reference.press("Enter");
     await expect(page.getByTestId("resource-preview")).toBeVisible();
   });
 
-  test("sends an inserted resource presentation to the authoritative PDF preview", async ({ appPage: page }) => {
+  test("sends an inserted inline resource reference to the authoritative PDF preview", async ({ appPage: page }) => {
     const pdf = await firstPdfResource(page);
     await openEditorLab(page);
     const editor = await openEnrichedEditor(page);
@@ -571,9 +567,16 @@ test.describe("Markdown editor", () => {
     await search.getByTestId("reference-search-input").fill(pdf.name);
     await search.getByTestId("reference-search-result").first().click();
 
-    await expect(markdownSource(page)).toContainText(
-      `::resource-embed[${pdf.name}]{#${pdf.id} presentation="document"}`,
-    );
+    await expect(markdownSource(page)).toContainText(`:resource[${pdf.name}]{#${pdf.id}}`);
+    const preview = await page.request.post("/api/templates/preview", {
+      data: { kind: "pdf", bodyMarkdown: await markdownSource(page).innerText() },
+    });
+    expect(preview.status()).toBe(200);
+    const diagnostics = (await preview.json()).properties.diagnostics as Array<{ code: string; severity: string }>;
+    expect(
+      diagnostics.filter((entry) => entry.severity === "error"),
+      JSON.stringify(diagnostics),
+    ).toEqual([]);
     await closeEnrichedEditor(page);
     const creationResponse = page.waitForResponse(
       (response) =>
@@ -594,7 +597,7 @@ test.describe("Markdown editor", () => {
     );
   });
 
-  test("includes a bounded spreadsheet range, opens the common editor, and exports it to PDF", async ({
+  test("includes a bounded spreadsheet range, opens its read-only preview, and exports it to PDF", async ({
     appPage: page,
   }) => {
     test.setTimeout(60_000);
@@ -631,8 +634,10 @@ test.describe("Markdown editor", () => {
     await table.hover();
     await expect(editor.getByTestId(`editor-resource-embed-${spreadsheet.id}-info`)).toBeVisible();
     await block.click();
-    await expect(modal).toHaveAttribute("data-resource-mode", "edit");
-    await expect(modal.getByTestId("spreadsheet-editor")).toBeVisible({ timeout: 15_000 });
+    await expect(modal).toHaveAttribute("data-resource-mode", "read");
+    await expect(modal.getByTestId("spreadsheet-grid")).toHaveAttribute("aria-readonly", "true", {
+      timeout: 15_000,
+    });
     await expect(modal.getByTestId("spreadsheet-fullscreen-dialog")).toHaveCount(0);
     const close = modal.getByTestId("resource-preview-close");
     const closeBounds = await close.evaluate((element) => {
@@ -678,13 +683,11 @@ test.describe("Markdown editor", () => {
     await expect(editor.getByTestId("resource-embed-presentation-table")).toHaveCount(0);
   });
 
-  test("inserts and selects an archived image and resizes it without distortion or render drift", async ({
-    appPage: page,
-  }) => {
+  test("inserts a seeded image and resizes it without distortion or render drift", async ({ appPage: page }) => {
     await openEditorLab(page);
     const editor = await openEnrichedEditor(page);
     const search = await openReferenceSearch(editor);
-    await search.getByTestId("reference-search-input").fill("image");
+    await search.getByTestId("reference-search-input").fill("Repère du plateau");
     const imageOption = search.getByTestId("reference-search-result").first();
     await expect(imageOption).toBeVisible();
     await imageOption.click();

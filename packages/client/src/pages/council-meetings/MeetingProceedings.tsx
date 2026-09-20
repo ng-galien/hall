@@ -8,6 +8,7 @@ import { DisclosureBadge } from "../../components/ui/disclosure-badge";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { liveBusinessTitle } from "../../features/council-business/presentation";
 import { agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
+import { ballotVerdictKey } from "../../features/council-meetings/ballotVerdictPresentation";
 import { AgendaItemStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -54,10 +55,12 @@ function ReportTextBlock({
 export function BallotOutcome({
   ballot,
   members,
+  isMinutes,
   defaultCollapsed = true,
 }: {
   ballot: Ballot;
   members: CouncilMemberView[];
+  isMinutes: boolean;
   /** Shows the result and totals; details expand on demand. */
   defaultCollapsed?: boolean;
 }) {
@@ -74,7 +77,7 @@ export function BallotOutcome({
       >
         <DisclosureBadge expanded={detailsVisible} />
         <Badge className="report-ballot-verdict" variant={ballot.result === "adopted" ? "success" : "destructive"}>
-          {t(ballot.result === "adopted" ? "status.adopted" : "status.rejected")}
+          {t(ballotVerdictKey(isMinutes, ballot.result === "adopted"))}
         </Badge>
         <span>{t(ballot.method === "public" ? "ballot.method.public" : "ballot.method.secret")}</span>
         <span className="report-ballot-compact">
@@ -281,7 +284,14 @@ export function MeetingProceedings({
                       ) : null}
                     </div>
                   ) : null}
-                  {ballot ? <BallotOutcome ballot={ballot} members={rosterMembers} defaultCollapsed /> : null}
+                  {ballot ? (
+                    <BallotOutcome
+                      ballot={ballot}
+                      members={rosterMembers}
+                      isMinutes={item.subjectKind === "minutesApproval"}
+                      defaultCollapsed
+                    />
+                  ) : null}
                 </div>
               </li>
             );

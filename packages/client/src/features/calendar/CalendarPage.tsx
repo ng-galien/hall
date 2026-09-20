@@ -6,19 +6,24 @@ import themePlugin from "@fullcalendar/react/themes/monarch";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import { type EventDocument, eventDocumentSchema, findSirenAction } from "@hall/api-contract";
 import { useEffect, useRef, useState } from "react";
+import { Modal } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Modal } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
-import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
+import { CouncilMeetingPage } from "../../pages/council-meetings/CouncilMeetingPage";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
+import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { formatMeetingLabel } from "../council-meetings/meetingPresentation";
 import { ResourcePreview } from "../documents/ResourcePreview";
-import { CouncilMeetingPage } from "../../pages/council-meetings/CouncilMeetingPage";
 import { EventFields } from "./EventFields";
 import { emptyEventDocument, eventDocumentUsesQuarterHours, localDate, nextDate } from "./eventDates";
 import "@fullcalendar/react/skeleton.css";
@@ -93,7 +98,10 @@ export function CalendarPage() {
       end: entry.document.schedule.end,
       allDay: entry.document.schedule.kind === "allDay",
       className: "hall-calendar-appointment",
-      editable: Boolean(resources.representations[entry.id] && findSirenAction(resources.representations[entry.id], "resource.update-content")),
+      editable: Boolean(
+        resources.representations[entry.id] &&
+          findSirenAction(resources.representations[entry.id], "resource.update-content"),
+      ),
       extendedProps: { resourceId: entry.id },
     })),
     ...meetings
@@ -240,7 +248,11 @@ export function CalendarPage() {
           setSaving(false);
         }}
         eventContent={(info) => {
-          return <span>{info.timeText} {info.event.title}</span>;
+          return (
+            <span>
+              {info.timeText} {info.event.title}
+            </span>
+          );
         }}
         eventDidMount={(info) => {
           info.el.dataset.testid = `calendar-event-${info.event.id}`;
@@ -269,13 +281,14 @@ export function CalendarPage() {
         }}
       />
       {contextTarget ? (
-        <DropdownMenu open onOpenChange={(open) => { if (!open) setContextTarget(null); }}>
+        <DropdownMenu
+          open
+          onOpenChange={(open) => {
+            if (!open) setContextTarget(null);
+          }}
+        >
           <DropdownMenuTrigger asChild>
-            <span
-              aria-hidden
-              className="fixed size-px"
-              style={{ left: contextTarget.x, top: contextTarget.y }}
-            />
+            <span aria-hidden className="fixed size-px" style={{ left: contextTarget.x, top: contextTarget.y }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             <DropdownMenuItem
@@ -325,25 +338,59 @@ export function CalendarPage() {
             ))}
         </div>
       )}
-      <Dialog open={deleteId !== null} onOpenChange={(open) => { if (!open && !saving) { setDeleteId(null); setDeleteStep(1); } }}>
+      <Dialog
+        open={deleteId !== null}
+        onOpenChange={(open) => {
+          if (!open && !saving) {
+            setDeleteId(null);
+            setDeleteStep(1);
+          }
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>{t(deleteStep === 1 ? "calendar.deleteConfirm" : "calendar.deleteConfirmFinal")}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{t(deleteStep === 1 ? "calendar.deleteConfirm" : "calendar.deleteConfirmFinal")}</DialogTitle>
+          </DialogHeader>
           <p>{deleteId ? resources.details[deleteId]?.name : ""}</p>
           <div className="flex justify-end gap-2">
-            <Button data-testid="calendar-delete-cancel" variant="ghost" disabled={saving} onClick={() => { setDeleteId(null); setDeleteStep(1); }}>{t("calendar.cancel")}</Button>
-            <Button data-testid="calendar-delete-confirm" disabled={saving} onClick={async () => {
-              if (!deleteId || saving || deleting.current) return;
-              if (deleteStep === 1) {
-                setDeleteStep(2);
-                return;
-              }
-              deleting.current = true;
-              setSaving(true);
-              try {
-                if (await resources.remove(deleteId)) { setDeleteId(null); setDeleteStep(1); setSelectedResourceId(null); }
-              } catch { setError(true); }
-              finally { deleting.current = false; setSaving(false); }
-            }}>{t("common.delete")}</Button>
+            <Button
+              data-testid="calendar-delete-cancel"
+              variant="ghost"
+              disabled={saving}
+              onClick={() => {
+                setDeleteId(null);
+                setDeleteStep(1);
+              }}
+            >
+              {t("calendar.cancel")}
+            </Button>
+            <Button
+              data-testid="calendar-delete-confirm"
+              disabled={saving}
+              onClick={async () => {
+                if (!deleteId || saving || deleting.current) return;
+                if (deleteStep === 1) {
+                  setDeleteStep(2);
+                  return;
+                }
+                deleting.current = true;
+                setSaving(true);
+                try {
+                  if (await resources.remove(deleteId)) {
+                    setDeleteId(null);
+                    setDeleteStep(1);
+                    setSelectedResourceId(null);
+                  }
+                } catch {
+                  setError(true);
+                } finally {
+                  deleting.current = false;
+                  setSaving(false);
+                }
+              }}
+            >
+              {t("common.delete")}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -388,8 +435,7 @@ export function CalendarPage() {
                 if (created) {
                   if (councilBusinessId) await useCouncilBusinessStore.getState().loadResources(councilBusinessId);
                   setDraft(null);
-                }
-                else setError(true);
+                } else setError(true);
               }}
             >
               <div>
@@ -421,7 +467,12 @@ export function CalendarPage() {
                 </Button>
                 <Button
                   data-testid="calendar-create"
-                  disabled={saving || !name.trim() || !eventDocumentSchema.safeParse(draft).success || !eventDocumentUsesQuarterHours(draft)}
+                  disabled={
+                    saving ||
+                    !name.trim() ||
+                    !eventDocumentSchema.safeParse(draft).success ||
+                    !eventDocumentUsesQuarterHours(draft)
+                  }
                 >
                   {t("calendar.create")}
                 </Button>

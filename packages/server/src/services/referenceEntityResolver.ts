@@ -1,17 +1,17 @@
 import type {
-  CouncilDecisionDetail,
-  CouncilDecisionSummary,
   Contact,
   CouncilBusiness,
-  CouncilMember,
+  CouncilDecisionDetail,
+  CouncilDecisionSummary,
   CouncilMeeting,
+  CouncilMember,
   ResourceDetail,
 } from "@hall/api-contract";
 import { matchLiteral, type ReferenceEntityKind } from "@hall/domain";
 import type { CouncilClient } from "../clients/councilClient.js";
+import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
-import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
 
 type ReferenceTargetByKind = {
   member: CouncilMember;
@@ -56,7 +56,7 @@ function decisionLabel(decision: CouncilDecisionSummary): string {
 
 async function councilBusinessLabel(target: CouncilBusiness, resourcesClient: ResourcesClient): Promise<string> {
   const folder = (await resourcesClient.open(target.folderResourceId))?.data ?? null;
-  if (!folder || folder.kind !== "folder") {
+  if (folder?.kind !== "folder") {
     throw new Error(`CouncilBusiness ${target.id} has no valid folder resource`);
   }
   return folder.name;

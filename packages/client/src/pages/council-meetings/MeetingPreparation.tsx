@@ -1,3 +1,4 @@
+// biome-ignore-all lint/correctness/useExhaustiveDependencies: Agenda changes intentionally reload prepared subjects.
 // TODO REMOVE_STALE: propagate incomplete session marker to canonical status badge.
 
 import type { PreparedCouncilSubject } from "@hall/api-contract";
@@ -7,8 +8,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { EntitySelect } from "../../components/search/EntitySelect";
 import { EditIcon, FileIcon, PlayIcon } from "../../components/icons";
+import { EntitySelect } from "../../components/search/EntitySelect";
 import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { MeetingEntryBlockers } from "../../features/council-meetings/MeetingEntryBlockers";
 import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
@@ -226,15 +227,31 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             <div className="form-grid">
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-chair`}>{t("meetings.chair")}</Label>
-<EntitySelect type="member" name="chairMemberId" defaultValue={meeting.chairMemberId??""} testId="meeting-edit-chair" placeholder={t("meetings.chairUndesignated")}
- options={rosterMembers.map(member=>({value:member.id,label:`${member.contact.firstName} ${member.contact.lastName}`}))}/>
-
+                <EntitySelect
+                  type="member"
+                  name="chairMemberId"
+                  defaultValue={meeting.chairMemberId ?? ""}
+                  testId="meeting-edit-chair"
+                  placeholder={t("meetings.chairUndesignated")}
+                  options={rosterMembers.map((member) => ({
+                    value: member.id,
+                    label: `${member.contact.firstName} ${member.contact.lastName}`,
+                  }))}
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-secretary`}>{t("meetings.secretary")}</Label>
-<EntitySelect type="member" name="secretaryMemberId" defaultValue={meeting.secretaryMemberId??""} testId="meeting-edit-secretary" placeholder={t("meetings.secretaryUndesignated")}
- options={rosterMembers.map(member=>({value:member.id,label:`${member.contact.firstName} ${member.contact.lastName}`}))}/>
-
+                <EntitySelect
+                  type="member"
+                  name="secretaryMemberId"
+                  defaultValue={meeting.secretaryMemberId ?? ""}
+                  testId="meeting-edit-secretary"
+                  placeholder={t("meetings.secretaryUndesignated")}
+                  options={rosterMembers.map((member) => ({
+                    value: member.id,
+                    label: `${member.contact.firstName} ${member.contact.lastName}`,
+                  }))}
+                />
               </div>
             </div>
             <Button

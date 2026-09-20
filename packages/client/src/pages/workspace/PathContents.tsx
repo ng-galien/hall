@@ -6,6 +6,7 @@ import {
   type MouseEvent,
   type ReactElement,
   type ReactNode,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -253,10 +254,7 @@ export function PathContents({
     }
     return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
   }, [councilBusinessStore.businesses, resourcesStore.catalog]);
-  const paths = useMemo(
-    () => allPaths.filter((candidate) => isUnderPath(candidate, path)),
-    [allPaths, path],
-  );
+  const paths = useMemo(() => allPaths.filter((candidate) => isUnderPath(candidate, path)), [allPaths, path]);
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const matches = (title: string) => !normalizedQuery || title.toLocaleLowerCase().includes(normalizedQuery);
   const visibleBusinesses = businesses.filter((business) => mode !== "resources" && matches(business.title));
@@ -273,18 +271,24 @@ export function PathContents({
     (resource) => mode !== "businesses" && matches(resource.name) && !representedResourceIds.has(resource.id),
   );
   const refresh = () => onSelect(selection);
-  const hasDirectItems = (folderPath: string) =>
-    businesses.some((business) => business.folderPath === folderPath) ||
-    resources.some((resource) => resource.path === folderPath);
-  const isFolderExpanded = (folderPath: string, states = folderExpansion): boolean => {
-    const explicitState = states.get(folderPath);
-    if (explicitState !== undefined) return explicitState;
-    if (directChildrenOf(path, [folderPath]).length > 0) return true;
-    const separator = folderPath.lastIndexOf("/");
-    if (separator < 0) return false;
-    const parentPath = folderPath.slice(0, separator);
-    return isFolderExpanded(parentPath, states) && !hasDirectItems(parentPath);
-  };
+  const hasDirectItems = useCallback(
+    (folderPath: string) =>
+      businesses.some((business) => business.folderPath === folderPath) ||
+      resources.some((resource) => resource.path === folderPath),
+    [businesses, resources],
+  );
+  const isFolderExpanded = useCallback(
+    function expanded(folderPath: string, states = folderExpansion): boolean {
+      const explicitState = states.get(folderPath);
+      if (explicitState !== undefined) return explicitState;
+      if (directChildrenOf(path, [folderPath]).length > 0) return true;
+      const separator = folderPath.lastIndexOf("/");
+      if (separator < 0) return false;
+      const parentPath = folderPath.slice(0, separator);
+      return expanded(parentPath, states) && !hasDirectItems(parentPath);
+    },
+    [folderExpansion, hasDirectItems, path],
+  );
   const toggle = (folderPath: string) => {
     if (!isFolderExpanded(folderPath)) void resourcesStore.loadFolder(folderPath);
     setFolderExpansion((current) => {
@@ -307,6 +311,12 @@ export function PathContents({
   }, [path, resourcesStore.hydrate, resourcesStore.loadFolder]);
 
   useEffect(() => {
+    for (const folderPath of paths) {
+      if (isFolderExpanded(folderPath)) void resourcesStore.loadFolder(folderPath);
+    }
+  }, [paths, isFolderExpanded, resourcesStore.loadFolder]);
+
+  useEffect(() => {
     void loadCouncilActivity();
   }, [loadCouncilActivity]);
 
@@ -324,10 +334,7 @@ export function PathContents({
     Array.from(treeRef.current?.querySelectorAll<HTMLButtonElement>("button[data-workspace-tree-node]") ?? []).map(
       (node) => node.dataset.workspaceNodeKey ?? "",
     );
-  const selectTreeItem = (
-    key: string,
-    selection: { toggle?: boolean; range?: boolean } = {},
-  ) => {
+  const selectTreeItem = (key: string, selection: { toggle?: boolean; range?: boolean } = {}) => {
     const activeTarget = renameTargetRef.current;
     if (activeTarget && itemKey(activeTarget) !== key) {
       renameSessionRef.current += 1;
@@ -381,8 +388,6 @@ export function PathContents({
   const startRename = (target: RenameTarget) => {
     const session = renameSessionRef.current + 1;
     renameSessionRef.current = session;
-    if (target.kind === "folder") {
-    }
     setMoveError(null);
     setRenameError(null);
     const key = itemKey(target);
@@ -501,12 +506,11 @@ export function PathContents({
         }
         return next;
       });
-      setSelectedKeys((current) =>
-        new Set(
-          [...current].map((key) =>
-            key === `folder:${result.sourcePath}` ? `folder:${result.targetPath}` : key,
+      setSelectedKeys(
+        (current) =>
+          new Set(
+            [...current].map((key) => (key === `folder:${result.sourcePath}` ? `folder:${result.targetPath}` : key)),
           ),
-        ),
       );
       if (active) {
         window.requestAnimationFrame(() => {
@@ -834,7 +838,7 @@ export function PathContents({
       const parentBranch = current.closest("ul.workspace-explorer-branch");
       const parent =
         parentBranch?.parentElement?.querySelector<HTMLButtonElement>(
-          ":scope > fieldset > button[data-workspace-tree-node], :scope > button[data-workspace-tree-node]",
+          ":scope > fieldset button[data-workspace-folder-path], :scope > button[data-workspace-tree-node]",
         ) ?? null;
       const parentFolderPath = parent?.dataset.workspaceFolderPath;
       if (parentFolderPath && isFolderExpanded(parentFolderPath)) toggle(parentFolderPath);
@@ -873,33 +877,34 @@ export function PathContents({
               <span className="workspace-explorer-primary">
                 <CouncilBusinessGlyph business={business} />
                 <span className="workspace-explorer-copy">
-                <InlineRenameField
-                  value={business.title}
-                  editing={renaming}
-                  onEditingChange={(editing, reason) => {
-                    if (!editing) finishRename(payload, renameSession, reason ?? "cancel");
-                  }}
-                  onCommit={(nextTitle) => rename(payload, nextTitle, renameSession)}
-                  label={t("common.rename")}
-                  className="workspace-explorer-rename-input"
-                  testId="workspace-tree-rename-input"
-                >
-                  <button
-                    className="workspace-explorer-title-link"
-                    data-testid={"workspace-business-title-" + business.id}
-                    data-workspace-node-key={key}
-                    data-workspace-tree-node
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      const modifiers = selectionModifiers(event);
-                      selectTreeItem(key, modifiers);
-                      if (!modifiers.toggle && !modifiers.range) onSelect({ kind: "councilBusiness", id: business.id });
+                  <InlineRenameField
+                    value={business.title}
+                    editing={renaming}
+                    onEditingChange={(editing, reason) => {
+                      if (!editing) finishRename(payload, renameSession, reason ?? "cancel");
                     }}
+                    onCommit={(nextTitle) => rename(payload, nextTitle, renameSession)}
+                    label={t("common.rename")}
+                    className="workspace-explorer-rename-input"
+                    testId="workspace-tree-rename-input"
                   >
-                    <strong>{business.title}</strong>
-                  </button>
-                </InlineRenameField>
+                    <button
+                      className="workspace-explorer-title-link"
+                      data-testid={"workspace-business-title-" + business.id}
+                      data-workspace-node-key={key}
+                      data-workspace-tree-node
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        const modifiers = selectionModifiers(event);
+                        selectTreeItem(key, modifiers);
+                        if (!modifiers.toggle && !modifiers.range)
+                          onSelect({ kind: "councilBusiness", id: business.id });
+                      }}
+                    >
+                      <strong>{business.title}</strong>
+                    </button>
+                  </InlineRenameField>
                 </span>
               </span>
               <time className="workspace-explorer-date" dateTime={business.updatedAt}>
@@ -964,38 +969,38 @@ export function PathContents({
               <span className="workspace-explorer-primary">
                 <DocumentaryResourceGlyph resource={resource} />
                 <span className="workspace-explorer-copy">
-                <InlineRenameField
-                  value={resource.name}
-                  editing={renaming}
-                  onEditingChange={(editing, reason) => {
-                    if (!editing) finishRename(payload, renameSession, reason ?? "cancel");
-                  }}
-                  onCommit={(nextTitle) => rename(payload, nextTitle, renameSession)}
-                  label={t("common.rename")}
-                  className="workspace-explorer-rename-input"
-                  testId="workspace-tree-rename-input"
-                >
-                  <button
-                    className="workspace-explorer-title-link"
-                    data-testid={"workspace-resource-title-" + resource.id}
-                    data-workspace-node-key={key}
-                    data-workspace-tree-node
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      const modifiers = selectionModifiers(event);
-                      selectTreeItem(key, modifiers);
-                      if (!modifiers.toggle && !modifiers.range) onPreview(resource);
+                  <InlineRenameField
+                    value={resource.name}
+                    editing={renaming}
+                    onEditingChange={(editing, reason) => {
+                      if (!editing) finishRename(payload, renameSession, reason ?? "cancel");
                     }}
+                    onCommit={(nextTitle) => rename(payload, nextTitle, renameSession)}
+                    label={t("common.rename")}
+                    className="workspace-explorer-rename-input"
+                    testId="workspace-tree-rename-input"
                   >
-                    <strong>{resource.name}</strong>
-                  </button>
-                </InlineRenameField>
-                {resource.state.readiness !== "ready" ? (
-                  <span className={`workspace-resource-state workspace-resource-state-${resource.state.readiness}`}>
-                    {t(`workspace.resourceState.${resource.state.readiness}`)}
-                  </span>
-                ) : null}
+                    <button
+                      className="workspace-explorer-title-link"
+                      data-testid={"workspace-resource-title-" + resource.id}
+                      data-workspace-node-key={key}
+                      data-workspace-tree-node
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        const modifiers = selectionModifiers(event);
+                        selectTreeItem(key, modifiers);
+                        if (!modifiers.toggle && !modifiers.range) onPreview(resource);
+                      }}
+                    >
+                      <strong>{resource.name}</strong>
+                    </button>
+                  </InlineRenameField>
+                  {resource.state.readiness !== "ready" ? (
+                    <span className={`workspace-resource-state workspace-resource-state-${resource.state.readiness}`}>
+                      {t(`workspace.resourceState.${resource.state.readiness}`)}
+                    </span>
+                  ) : null}
                 </span>
               </span>
               <time
@@ -1126,30 +1131,30 @@ export function PathContents({
             {isExpanded ? <FolderOpenIcon /> : <FolderIcon />}
           </button>
           <InlineRenameField
-          value={folderPath.split("/").at(-1) ?? folderPath}
-          editing={renaming}
-          onEditingChange={(editing, reason) => {
-            if (!editing) finishRename(target, renameSession, reason ?? "cancel");
-          }}
-          onCommit={(nextName) => renameFolderPath(folderPath, nextName, renameSession)}
-          label={t("common.rename")}
-          className="workspace-explorer-rename-input workspace-folder-rename-input"
-          testId="workspace-tree-rename-input"
+            value={folderPath.split("/").at(-1) ?? folderPath}
+            editing={renaming}
+            onEditingChange={(editing, reason) => {
+              if (!editing) finishRename(target, renameSession, reason ?? "cancel");
+            }}
+            onCommit={(nextName) => renameFolderPath(folderPath, nextName, renameSession)}
+            label={t("common.rename")}
+            className="workspace-explorer-rename-input workspace-folder-rename-input"
+            testId="workspace-tree-rename-input"
           >
             <span className="workspace-explorer-folder-name" data-testid={`workspace-folder-name-${folderPath}`}>
               {folderPath.split("/").at(-1)}
             </span>
           </InlineRenameField>
           <button
-          className="workspace-explorer-toggle workspace-explorer-folder-open"
-          data-testid={`workspace-folder-open-${folderPath}`}
-          type="button"
-          aria-label={t("workspace.open")}
-          title={t("workspace.open")}
-          onClick={(event) => {
-            event.stopPropagation();
-            onSelect(null, folderPath);
-          }}
+            className="workspace-explorer-toggle workspace-explorer-folder-open"
+            data-testid={`workspace-folder-open-${folderPath}`}
+            type="button"
+            aria-label={t("workspace.open")}
+            title={t("workspace.open")}
+            onClick={(event) => {
+              event.stopPropagation();
+              onSelect(null, folderPath);
+            }}
           >
             <OpenIcon aria-hidden="true" />
           </button>

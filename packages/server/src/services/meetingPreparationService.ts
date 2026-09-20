@@ -22,11 +22,7 @@ import type {
   RecordAttendance,
   UnitOfWork,
 } from "../repositories/contracts.js";
-import {
-  agendaReadiness,
-  normalizedAgendaItemIds,
-  previousCouncilMeeting,
-} from "./agendaOrderPolicy.js";
+import { agendaReadiness, normalizedAgendaItemIds, previousCouncilMeeting } from "./agendaOrderPolicy.js";
 import { DomainError } from "./errors.js";
 import { requireMeeting } from "./meetingContext.js";
 

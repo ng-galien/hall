@@ -2,7 +2,6 @@ import { PROBLEM_MEDIA_TYPE, type ProblemDetails } from "@hall/api-contract";
 import type { Request, Response } from "express";
 
 const titles: Record<string, string> = {
-  previous_minutes_pending: "The previous meeting minutes remain pending approval",
   recusal_already_recorded: "A recusal is already recorded for this member and agenda item",
   recusal_recording_closed: "Recusal recording is closed for this agenda item",
   recusal_member_not_declared: "The member has no attendance declaration in this meeting",

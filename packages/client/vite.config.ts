@@ -13,6 +13,8 @@ export default defineConfig({
     host: "127.0.0.1",
     allowedHosts: ["dev-host.example.test"],
     port: 5174,
-    proxy: { "/api": process.env.VITE_API_TARGET ?? "http://127.0.0.1:3100" },
+    proxy: {
+      "/api": { target: process.env.VITE_API_TARGET ?? "http://127.0.0.1:3100", ws: true },
+    },
   },
 });

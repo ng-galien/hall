@@ -194,6 +194,8 @@ postgres("PostgreSQL persistence", () => {
         "council-business.associate-resource",
         "council-business.dissociate-resource",
         "council-business.reorder-resources",
+        "council-business.associate-committee",
+        "council-business.dissociate-committee",
         "council-business.create-prepared-subject",
         "council-business.schedule-decision-proposal",
         "council-business.schedule-open-question",
@@ -768,7 +770,9 @@ postgres("PostgreSQL persistence", () => {
         "SELECT hall_api.record_meeting_opening($1, TIMESTAMPTZ '2026-01-12 09:00:00+00', $2::jsonb, $3, $4)",
         [
           meetingId,
-          JSON.stringify(memberIds.map((councilMemberId) => ({ council_member_id: councilMemberId, status: "present" }))),
+          JSON.stringify(
+            memberIds.map((councilMemberId) => ({ council_member_id: councilMemberId, status: "present" })),
+          ),
           memberIds[0],
           memberIds[1],
         ],

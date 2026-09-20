@@ -14,8 +14,7 @@ const buttonVariants = cva(
           "border-border bg-background hover:border-[var(--hall-color-brand-border)] hover:bg-[var(--hall-color-brand-subtle)] hover:text-[var(--hall-color-brand)] dark:border-input dark:bg-input/30",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
-        ghost:
-          "hover:bg-[var(--hall-color-brand-subtle)] hover:text-[var(--hall-color-brand)]",
+        ghost: "hover:bg-[var(--hall-color-brand-subtle)] hover:text-[var(--hall-color-brand)]",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 dark:bg-destructive/20 dark:hover:bg-destructive/30",
         link: "text-primary underline-offset-4 hover:underline",

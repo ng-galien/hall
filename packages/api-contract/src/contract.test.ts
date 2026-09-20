@@ -182,6 +182,7 @@ describe("shared HTTP contract", () => {
         quorum: 4,
         startedAt: null,
         closedAt: null,
+        stale: false,
       }),
     ).toMatchObject({ id: meetingId, quorum: 4 });
 

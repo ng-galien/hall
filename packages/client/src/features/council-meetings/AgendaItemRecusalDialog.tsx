@@ -1,9 +1,9 @@
-import { recusalLegalBases, type RecusalLegalBasis } from "@hall/api-contract";
+import { type RecusalLegalBasis, recusalLegalBases } from "@hall/api-contract";
 import { type FormEvent, useId, useState } from "react";
-import { Button } from "../../components/ui/button";
-import { Label } from "../../components/ui/label";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
+import { Button } from "../../components/ui/button";
+import { Label } from "../../components/ui/label";
 import type { useAgendaItemRecusals } from "../../hooks/useAgendaItemRecusals";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../models/directory";
@@ -44,9 +44,18 @@ export function AgendaItemRecusalDialog({
         <RequestErrorBanner error={controller.error} />
         <div className="grid gap-1.5">
           <Label htmlFor={`${id}-member`}>{t("recusal.member")}</Label>
-<EntitySelect type="member" testId="recusal-member" value={memberId} onValueChange={setMemberId} disabled={controller.submitting} placeholder={t("recusal.chooseMember")}
- options={availableMembers.map(member=>({value:member.id,label:`${member.contact.firstName} ${member.contact.lastName}`}))}/>
-
+          <EntitySelect
+            type="member"
+            testId="recusal-member"
+            value={memberId}
+            onValueChange={setMemberId}
+            disabled={controller.submitting}
+            placeholder={t("recusal.chooseMember")}
+            options={availableMembers.map((member) => ({
+              value: member.id,
+              label: `${member.contact.firstName} ${member.contact.lastName}`,
+            }))}
+          />
         </div>
         <fieldset className="grid gap-3" disabled={controller.submitting}>
           <legend>{t("recusal.basis")}</legend>

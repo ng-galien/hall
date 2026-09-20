@@ -10,8 +10,8 @@ export default defineConfig({
   outputDir: process.env.HALL_E2E_OUTPUT_DIR ?? "./test-results/e2e",
   timeout: 30_000,
   expect: { timeout: 5_000 },
-  fullyParallel: true,
-  workers: 3,
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
@@ -25,12 +25,12 @@ export default defineConfig({
     process.env.HALL_E2E_AUTH_MODE === "true"
       ? [{ name: "authentication", testMatch: /user-account\.spec\.ts/, use: { ...devices["Desktop Chrome"] } }]
       : [
-          // The seed runs once after both servers start and before the browser specifications.
+          // Verify the initial seed, then reset and reseed the same database before each browser scenario.
           { name: "seed", testMatch: /seed\.setup\.ts/ },
           {
             name: "chromium",
-            testMatch:
-              /(business-bundles|folder-import|committees|users|calendar|contacts|council-workflow|markdown-editor|workspace-explorer|navigation-and-settings)\.spec\.ts/,
+            testMatch: /\.spec\.ts/,
+            testIgnore: /user-account\.spec\.ts/,
             use: { ...devices["Desktop Chrome"] },
             dependencies: ["seed"],
           },

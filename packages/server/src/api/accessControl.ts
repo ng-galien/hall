@@ -11,7 +11,10 @@ import { resolveAuditIntent } from "./apiCommandResolution.js";
 import { sendProblem } from "./problemDetails.js";
 
 export function cookieValue(request: Request, name: string): string | null {
-  const cookie = request.header("cookie");
+  return cookieValueFromHeader(request.header("cookie"), name);
+}
+
+export function cookieValueFromHeader(cookie: string | undefined, name: string): string | null {
   if (!cookie) return null;
   for (const part of cookie.split(";")) {
     const [rawName, ...rawValue] = part.trim().split("=");

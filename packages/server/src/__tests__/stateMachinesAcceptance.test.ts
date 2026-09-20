@@ -1,171 +1,157 @@
-import { randomUUID } from "node:crypto";
+import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import { describe, expect, it } from "vitest";
-import { createTestCouncilMember, createTestServer, domainBody, type TestAgent } from "./testServer.js";
+import { createPostgresHttpTestServer, createTestCouncilMember, domainBody } from "./testServer.js";
 
-async function createMember(agent: TestAgent, firstName: string) {
-  return createTestCouncilMember(agent, { firstName });
-}
-
-describe("state-machine-backed council workflow", () => {
-  it("moves agenda items, the meeting and its decision only through their machines", async () => {
-    const { agent } = await createTestServer();
-    const members = await Promise.all(["Alice", "Benoît", "Claire"].map((name) => createMember(agent, name)));
-    const councilDecision = domainBody(
-      await agent
-        .post("/api/council-decisions")
-        .send({
-          title: "Rénovation de l’éclairage public",
-          draftText: "Le conseil approuve le programme.",
-          legalityReviewRequired: true,
-        })
-        .expect(201),
-    );
-    const decisionBusiness = domainBody(
-      await agent
-        .post("/api/council-business")
-        .send({
-          kind: "matter",
-          councilDecisionId: councilDecision.id,
-          title: councilDecision.title,
-          report: "Présentation du programme.",
-        })
-        .expect(201),
-    );
-    const informationBusiness = domainBody(
-      await agent
-        .post("/api/council-business")
-        .send({
-          kind: "matter",
-          councilDecisionId: null,
-          title: "Calendrier des travaux",
-          report: "Point d’information.",
-        })
-        .expect(201),
-    );
-    const openQuestion = domainBody(
-      await agent
-        .post("/api/council-business")
-        .send({ kind: "openQuestion", title: "Questions ouvertes", report: "" })
-        .expect(201),
-    );
-    for (const business of [decisionBusiness, informationBusiness, openQuestion]) {
-      expect(business).not.toHaveProperty("state");
-    }
-
-    const meeting = domainBody(
-      await agent
-        .post("/api/council-meetings")
-        .send({
-          startsAt: "2026-09-17T18:30:00+02:00",
-          location: "Salle du conseil",
-          chairMemberId: members[0].id,
-          secretaryMemberId: members[1].id,
-        })
-        .expect(201),
-    );
-    const decisionAgendaItem = domainBody(
-      await agent
-        .post(`/api/council-business/${decisionBusiness.id}/schedule`)
-        .send({ meetingId: meeting.id, position: 1 })
-        .expect(201),
-    );
-    const informationAgendaItem = domainBody(
-      await agent
-        .post(`/api/council-business/${informationBusiness.id}/schedule`)
-        .send({ meetingId: meeting.id, position: 2 })
-        .expect(201),
-    );
-    expect(decisionAgendaItem.business.id).toBe(decisionBusiness.id);
-
-    await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "scheduled" }).expect(200);
-    for (const member of members) {
-      await agent
-        .put(`/api/council-meetings/${meeting.id}/attendance`)
-        .send({ memberId: member.id, status: "present", proxyHolderMemberId: null, proxyDocumentId: null })
-        .expect(200);
-    }
-    await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "inProgress" }).expect(200);
-
-    const prematureBallot = await agent.post(`/api/council-meetings/${meeting.id}/ballots`).send({
-      method: "public",
-      idempotencyKey: randomUUID(),
-      councilDecisionId: councilDecision.id,
-      votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" })),
-    });
-    expect(prematureBallot.status).toBe(409);
-    expect(domainBody(prematureBallot).code).toBe("agenda_sequence_invalid");
-
-    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${decisionAgendaItem.id}/start`).expect(200);
-    const inProgressMeeting = domainBody(await agent.get(`/api/council-meetings/${meeting.id}`).expect(200)) as {
-      agendaItems: Array<{ id: string; status: string }>;
+describe("SQL-backed council workflow", () => {
+  it("guards agenda, ballot and meeting transitions through the real PostgreSQL server", async () => {
+    const { agent, pool } = await createPostgresHttpTestServer();
+    const context = {
+      role: "hall_api_authenticated" as const,
+      context: { requestId: "workflow-acceptance", actorId: "test-clerk", roles: ["administrator"], contactId: null },
     };
-    expect(inProgressMeeting.agendaItems.find((item) => item.id === decisionAgendaItem.id)?.status).toBe("inProgress");
-    const rejectedRecusedVote = await agent.post(`/api/council-meetings/${meeting.id}/ballots`).send({
-      method: "public",
-      idempotencyKey: randomUUID(),
-      councilDecisionId: councilDecision.id,
-      recusedMemberIds: [members[2].id],
-      votes: members.map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" })),
-    });
-    expect(rejectedRecusedVote.status).toBe(400);
-    expect(domainBody(rejectedRecusedVote).code).toBe("conflict");
-    const ballot = await agent
-      .post(`/api/council-meetings/${meeting.id}/ballots`)
+    const council = new PostgresCouncil(pool);
+    await new PostgresDirectory(pool).configureActiveCouncilTerm(context, 3);
+    const members = [];
+    for (const firstName of ["Alice", "Benoît", "Claire"]) {
+      members.push(
+        await createTestCouncilMember(agent, { firstName, role: firstName === "Alice" ? "mayor" : "councillor" }),
+      );
+    }
+    const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
+    await agent
+      .put(`/api/council-meetings/${meeting.id}/prepare`)
       .send({
-        method: "public",
-        idempotencyKey: randomUUID(),
-        councilDecisionId: councilDecision.id,
-        recusedMemberIds: [members[2].id],
-        votes: members.slice(0, 2).map((member) => ({ memberId: member.id, castByMemberId: member.id, choice: "for" })),
+        scheduledAt: "2026-09-10T18:30:00+02:00",
+        location: "Salle du conseil",
+        chairMemberId: members[0].id,
+        secretaryMemberId: members[1].id,
       })
-      .expect(201);
-    expect(domainBody(ballot)).toMatchObject({
-      recusedMemberIds: [members[2].id],
-      votesFor: 2,
-      abstentions: 0,
-      votesCast: 2,
-    });
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${decisionAgendaItem.id}/complete`)
-      .send({ discussionSummary: "Adoptée après déport d’un conseiller.", status: "examined" })
       .expect(200);
+    const decisionBusiness = domainBody<{ id: string }>(
+      await agent
+        .post("/api/council-business")
+        .send({
+          path: "conseil",
+          name: "Rénovation de l’éclairage public",
+          reportName: "Rapport",
+          reportContent: "Présentation du programme.",
+        })
+        .expect(201),
+    );
+    const proposal = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-business/${decisionBusiness.id}/prepared-subjects`)
+        .send({
+          kind: "councilDecisionProposal",
+          name: "Éclairage public",
+          content: "Le conseil approuve le programme.",
+        })
+        .expect(201),
+    );
+    const questionBusiness = domainBody<{ id: string }>(
+      await agent
+        .post("/api/council-business")
+        .send({
+          path: "conseil",
+          name: "Calendrier des travaux",
+          reportName: "Rapport",
+          reportContent: "Point d’information.",
+        })
+        .expect(201),
+    );
+    const question = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-business/${questionBusiness.id}/prepared-subjects`)
+        .send({ kind: "openQuestion", name: "Calendrier des travaux", content: "Point d’information." })
+        .expect(201),
+    );
+    const first = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)
+        .send({ kind: "councilDecisionProposal", subjectId: proposal.id, position: 1 })
+        .expect(201),
+    );
+    const second = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)
+        .send({ kind: "openQuestion", subjectId: question.id, position: 2 })
+        .expect(201),
+    );
 
-    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${informationAgendaItem.id}/start`).expect(200);
+    await council.freezeAgenda(context, meeting.id);
+    const facts = await council.noticeFacts(context, meeting.id);
+    if (!facts) throw new Error("Frozen notice facts are required");
+    await council.generateNotice(
+      context,
+      meeting.id,
+      { meeting: facts, issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" } },
+      Buffer.from("%PDF-fixture"),
+    );
     await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${informationAgendaItem.id}/complete`)
-      .send({ discussionSummary: "Le calendrier sera représenté.", status: "postponed" })
+      .post(`/api/council-meetings/${meeting.id}/record-opening`)
+      .send({
+        observedAt: "2026-09-10T16:30:00Z",
+        chairMemberId: members[0].id,
+        secretaryMemberId: members[1].id,
+        attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
+      })
       .expect(200);
-    const postponedDetails = domainBody(
-      await agent.get(`/api/council-business/${informationBusiness.id}`).expect(200),
-    ) as { occurrences: Array<{ agendaItem: { status: string } }> };
-    expect(postponedDetails.occurrences[0]?.agendaItem.status).toBe("postponed");
-
-    await agent.put(`/api/council-meetings/${meeting.id}/status`).send({ status: "closed" }).expect(200);
-    const finalMeeting = domainBody(await agent.get(`/api/council-meetings/${meeting.id}`).expect(200)) as {
-      agendaItems: Array<{ id: string; status: string }>;
+    const attendance = await council.listAttendance(context, meeting.id);
+    const candidate = {
+      procedure: "ordinaryMajority",
+      mode: "public",
+      participantAttendanceIds: attendance.map((entry) => entry.id),
+      chairmanAttendanceId: attendance[0].id,
+      votes: attendance.map((entry) => ({ meetingAttendanceId: entry.id, choice: "approve" })),
+      nonParticipations: [],
     };
-    expect(finalMeeting.agendaItems).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: decisionAgendaItem.id, status: "examined" }),
-        expect.objectContaining({ id: informationAgendaItem.id, status: "postponed" }),
-      ]),
+    const premature = await agent.post("/api/ballot-previews").send({ agendaItemId: first.id, candidate });
+    expect(premature.status, JSON.stringify(premature.body)).toBe(409);
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/${first.id}/start`)
+      .send({ startedAt: "2026-09-10T16:31:00Z" })
+      .expect(200);
+    const preview = domainBody<{ id: string; calculation: { totals: { approve: number } } }>(
+      await agent.post("/api/ballot-previews").send({ agendaItemId: first.id, candidate }).expect(201),
     );
-    const finalBusinesses = domainBody(await agent.get("/api/council-business").expect(200)) as Array<{
-      kind: string;
-      minutesOfMeetingId?: string;
-    }>;
-    expect(finalBusinesses).toEqual(
-      expect.arrayContaining([expect.objectContaining({ kind: "minutesApproval", minutesOfMeetingId: meeting.id })]),
+    expect(preview.calculation.totals.approve).toBe(3);
+    await agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}).expect(200);
+    await agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}).expect(409);
+    const votedItem = domainBody<{ completedAt: string | null }>(
+      await agent.get(`/api/council-meetings/${meeting.id}/agenda-items/${first.id}`).expect(200),
     );
-    const decisions = await agent.get("/api/council-decisions").expect(200);
-    expect(domainBody(decisions)).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: councilDecision.id, status: "adopted" })]),
+    expect(votedItem.completedAt).not.toBeNull();
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/${second.id}/start`)
+      .send({ startedAt: "2026-09-10T16:46:00Z" })
+      .expect(200);
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/${second.id}/adjourn`)
+      .send({ adjournedAt: "2026-09-10T16:50:00Z" })
+      .expect(200);
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/close`)
+      .send({ closedAt: "2026-09-10T17:00:00Z" })
+      .expect(409);
+    const closureResponse = await agent
+      .post(`/api/council-meetings/${meeting.id}/close`)
+      .send({ closedAt: new Date(Date.now() + 60_000).toISOString() })
+      .expect(200);
+    const closed = domainBody<{ nextMeeting: { id: string }; minutes: { id: string } }>(closureResponse);
+    const nextAgenda = domainBody<Array<{ position: number; subject: { kind: string } }>>(
+      await agent.get(`/api/council-meetings/${closed.nextMeeting.id}/agenda-items`).expect(200),
     );
-
-    const rejectedReschedule = await agent
-      .post(`/api/council-business/${decisionBusiness.id}/schedule`)
-      .send({ meetingId: meeting.id, position: 3 });
-    expect(rejectedReschedule.status).toBe(409);
-    expect(domainBody(rejectedReschedule).code).toBe("agenda_inconsistent");
-  });
+    expect(nextAgenda.map((item) => item.subject.kind)).toEqual(["minutesApproval", "openQuestion"]);
+    expect(nextAgenda.map((item) => item.position)).toEqual([1, 2]);
+    const decisions = domainBody<Array<{ title: string; number: string }>>(
+      await agent.get("/api/council-decisions").expect(200),
+    );
+    expect(decisions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ title: "Éclairage public", number: "2026-09-01" })]),
+    );
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)
+      .send({ kind: "councilDecisionProposal", subjectId: proposal.id, position: 3 })
+      .expect(409);
+  }, 30_000);
 });

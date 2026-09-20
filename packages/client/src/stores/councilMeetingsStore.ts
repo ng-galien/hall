@@ -1,6 +1,6 @@
 import { findSirenAction } from "@hall/api-contract";
 import { create } from "zustand";
-import { councilMeetingView, type CouncilMeetingView } from "../models/councilMeeting";
+import { type CouncilMeetingView, councilMeetingView } from "../models/councilMeeting";
 import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../services/apiClient";
 import { listCouncilMeetings } from "../services/councilMeetingsApi";
 
@@ -22,7 +22,11 @@ export const useCouncilMeetingsStore = create<CouncilMeetingsState>((set) => ({
     try {
       const meetings = (await listCouncilMeetings()).map(councilMeetingView);
       const representation = await sirenRepresentation("/council-meetings");
-      set({ meetings, canProvision: Boolean(findSirenAction(representation, "meeting.provision-initial")), loading: false });
+      set({
+        meetings,
+        canProvision: Boolean(findSirenAction(representation, "meeting.provision-initial")),
+        loading: false,
+      });
     } catch (error) {
       set({ error: apiErrorCode(error), loading: false });
     }

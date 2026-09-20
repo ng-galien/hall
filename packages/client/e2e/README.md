@@ -19,10 +19,11 @@ Run the browser suite from the repository root:
 npm run test:e2e
 ```
 
-The runner reuses the persistent `postgres-test` container, gives the E2E server
-a PostgreSQL connection, and seeds it only through the public HTTP API. The
-schema is initialized once for the Playwright run, then the data is cleared when
-Playwright exits. It never stops or replaces the shared `hall-dev` runtime.
+The runner reuses the persistent `postgres-test` container and gives the E2E server
+a PostgreSQL connection. It initializes the schema once per run, then truncates
+the test data and seeds through the public HTTP API before each browser scenario.
+It clears the data when Playwright exits. It never stops or replaces the shared
+`hall-dev` runtime.
 
 Run the complete static, unit, integration, build, and browser checks:
 
@@ -30,8 +31,9 @@ Run the complete static, unit, integration, build, and browser checks:
 npm run quality:e2e
 ```
 
-`MAIRIE_E2E_SERVER_PORT` and `MAIRIE_E2E_CLIENT_PORT` may be set when CI requires fixed ports. Playwright keeps traces, screenshots, and videos only for failures under `packages/client/test-results`; HTML reports are generated in CI under `packages/client/playwright-report`.
+`HALL_E2E_SERVER_PORT` and `HALL_E2E_CLIENT_PORT` may be set when CI requires fixed ports. Playwright keeps traces, screenshots, and videos only for failures under `packages/client/test-results`; HTML reports are generated in CI under `packages/client/playwright-report`.
 
-Retries are deliberately disabled because the real server owns mutable SQLite state for the duration of a run. A failure is reported against its original deterministic database instead of being retried against partially written data.
-
-`council-workflow.spec.ts` and `navigation-and-settings.spec.ts` are retained as legacy scenarios but are excluded from the maintained baseline. They must be realigned with the current domain and UI contracts before being re-enabled. The active Chromium project runs `contacts.spec.ts`, `markdown-editor.spec.ts`, and `workspace-explorer.spec.ts`.
+Retries are deliberately disabled. Each scenario starts from the same seeded
+PostgreSQL state, so a failure is reported without being hidden by a retry.
+The Chromium project runs every specification listed in `playwright.config.ts`;
+every included scenario is part of the maintained gate.

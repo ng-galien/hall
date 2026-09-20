@@ -66,6 +66,7 @@ test("the documentary Workspace reuses its collection representation without dup
   const api = read("src/services/resourcesApi.ts");
   const store = read("src/stores/workspaceResourcesStore.ts");
   const search = read("src/pages/workspace/WorkspaceSearch.tsx");
+  const sharedSearch = read("src/features/search/useResourceSearch.ts");
   const catalogLoader = store.slice(store.indexOf("async loadCatalog()"), store.indexOf("async loadFolder("));
   const searchApi = api.slice(
     api.indexOf("export async function searchDocumentaryResources"),
@@ -86,8 +87,9 @@ test("the documentary Workspace reuses its collection representation without dup
   assert.equal([...canonicalApi.matchAll(/submitSirenActionAt/g)].length, 1, "only the shared import may remain");
   assert.match(store, /updateDocumentaryResourceMetadata\(representation, input\)/);
   assert.match(store, /updateDocumentaryResourceContent\(representation, input\)/);
-  assert.match(search, /if \(!active \|\| !resourceAllowed\)/);
-  assert.match(search, /searchResources\(resourceCriteria\)/);
+  assert.match(search, /<ResourceSearch/);
+  assert.match(search, /scope=\{\{ types: \["resource", "councilBusiness"\], context \}\}/);
+  assert.match(sharedSearch, /searchDocumentaryResources/);
   assert.doesNotMatch(search, /useSearchCorpus|useResourcesStore/);
 });
 
@@ -241,10 +243,8 @@ test("editor images keep immutable resource references and follow document capab
   assert.match(app, /ResourceImagePresentationProvider[\s\S]{0,220}renderResourcePreview=\{renderResourcePreview\}/);
   assert.match(app, /const EditorLabPage = import\.meta\.env\.DEV/);
   assert.match(styles, /\.hall-template-image[\s\S]*height: auto/);
-  const compactEditor = editor.slice(
-    editor.indexOf('<div className="markdown-editor markdown-editor-compact"'),
-    editor.indexOf("<Dialog"),
-  );
+  const compactStart = editor.indexOf('className="markdown-editor markdown-editor-compact"');
+  const compactEditor = editor.slice(compactStart, editor.indexOf("<Dialog", compactStart));
   const enrichedEditor = editor.slice(editor.indexOf("function EnrichedEditor"));
   assert.ok(compactEditor.length > 0);
   assert.ok(enrichedEditor.length > 0);
@@ -387,6 +387,7 @@ test("active council-term capacity is configurable through the existing settings
 test("editor references use one validated presentation and navigation authority", () => {
   const authority = read("src/components/editor/referenceKindPresentation.ts");
   const references = read("src/components/editor/references.tsx");
+  const search = read("src/features/search/useResourceSearch.ts");
   const dialog = read("src/components/editor/ReferenceSearchDialog.tsx");
   const kindPresentation = read("src/components/search/kindPresentation.tsx");
   const app = read("src/App.tsx");
@@ -396,9 +397,10 @@ test("editor references use one validated presentation and navigation authority"
   assert.match(references, /if \(!isReferenceEntityKind\(kind\)\) return false/);
   assert.match(references, /return isReferenceEntityKind\(kind\)/);
   assert.doesNotMatch(references, /attrs\.kind as ReferenceEntityKind|data-kind[^\n]+as ReferenceEntityKind/);
-  assert.match(references, /mentionableFacetValueLabels\(candidates\)/);
-  assert.match(dialog, /referenceKindPresentations\[kind\]\.groupLabelKey/);
-  assert.match(dialog, /mentionableFacetValueLabels\(pool\)/);
+  assert.match(references, /items=\{props\.candidates\}/);
+  assert.match(search, /state: \(value\) => base\.find\(\(item\) => item\.state === value\)\?\.stateLabel \?\? value/);
+  assert.match(dialog, /<ResourceSearch/);
+  assert.match(dialog, /scope=\{\{ types: allowedKinds, context \}\}/);
   assert.doesNotMatch(dialog, /as Mentionable/);
   assert.match(kindPresentation, /referenceKindPresentations\[kind\]\.icon/);
   assert.match(app, /resolveReferencePresentation/);

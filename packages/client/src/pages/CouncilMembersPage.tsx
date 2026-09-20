@@ -1,4 +1,3 @@
-import { EntitySelect } from "../components/search/EntitySelect";
 import type { CouncilMember } from "@hall/domain";
 import { type FormEvent, useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
@@ -8,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AddIcon, EditIcon } from "../components/icons";
+import { EntitySelect } from "../components/search/EntitySelect";
 import {
   CollectionToolbar,
   EmptyState,
@@ -141,9 +141,16 @@ export function CouncilMembersPage() {
             <div className="form-grid">
               <div className="grid gap-1.5 admin-edit-wide">
                 <Label htmlFor={`${fieldId}-contact`}>{t("members.contact")}</Label>
-<EntitySelect type="contact" name="contactId" testId="member-contact-select" placeholder={t("members.chooseContact")}
- options={eligibleContacts.map(contact=>({value:contact.id,label:`${contact.firstName} ${contact.lastName}`}))}/>
-
+                <EntitySelect
+                  type="contact"
+                  name="contactId"
+                  testId="member-contact-select"
+                  placeholder={t("members.chooseContact")}
+                  options={eligibleContacts.map((contact) => ({
+                    value: contact.id,
+                    label: `${contact.firstName} ${contact.lastName}`,
+                  }))}
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${fieldId}-role`}>{t("members.role")}</Label>

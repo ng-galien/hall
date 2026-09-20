@@ -38,7 +38,7 @@ npm run test:document -w @hall/postgres -- 40-meeting-lifecycle.test.sql
 | `council_meeting_present_member_count` | Meeting-start quorum validation | `10-meeting-attendance.test.sql` |
 | `enforce_council_meeting_lifecycle` | Meeting row lifecycle and `TRUNCATE` triggers | `10-meeting-attendance.test.sql` |
 | `provision_initial_council_meeting` | Serialized creation of the first undated meeting | `12-council-meeting-provisioning.test.sql`, `packages/postgres/test/council.integration.test.ts` |
-| `council_meeting_previous_minutes_are_approved`, `council_meeting_has_open_ballot`, `council_meeting_closure_is_complete` | Structural closure predicates | `15-council-meeting-closure.test.sql` |
+| `council_meeting_has_open_ballot`, `council_meeting_closure_is_complete` | Structural closure predicates | `15-council-meeting-closure.test.sql` |
 | `enforce_council_meeting_sequence`, `close_council_meeting` | Deferred meeting sequence integrity and atomic carry-forward | `15-council-meeting-closure.test.sql` |
 | `enforce_council_agenda_item_lifecycle` | Agenda occurrence lifecycle and `TRUNCATE` triggers | `20-council-agenda.test.sql`, `40-vote-result.test.sql` |
 | `council_business_agenda_members_are_compatible` | Minutes-business exclusivity | `20-council-agenda.test.sql` |

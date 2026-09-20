@@ -85,6 +85,16 @@
   --hall-space-6: 24px;
   --hall-space-7: 28px;
   --hall-space-10: 40px;
+  --hall-task-checkbox-offset: .2em;
+  --hall-meeting-header-actions-width: 15rem;
+  --hall-meeting-facts-date-width: 4.5rem;
+  --hall-meeting-facts-time-width: 7rem;
+  --hall-meeting-facts-short-width: 5rem;
+  --hall-meeting-facts-detail-min-width: 11rem;
+  --hall-minutes-fact-label-width: 10rem;
+  --hall-minutes-point-marker-width: 2rem;
+  --hall-search-filter-height: 12.25rem;
+  --hall-search-field-panel-max-height: 20rem;
 
   --hall-font-family-display: Spectral, Georgia, "Times New Roman", serif;
   --hall-font-family-sans: "Archivo Variable", Archivo, ui-sans-serif, system-ui, sans-serif;

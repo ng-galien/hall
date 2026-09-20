@@ -89,14 +89,13 @@ d'ouverture. `AGI-350` (`DECISION_CONSIDERATION_REQUIRES_RECORDED_CURRENT_QUORUM
 garde l'entrée en examen formel des projets de délibération et de l'approbation
 du PV soumise au quorum applicable ; les points d'information peuvent entrer
 en échange avec leur observation. Le quorum courant au scrutin est contrôlé
-séparément. Le traitement du
-PV précédent restant non approuvé et de la clôture sans vote demeure à résoudre,
-sans approbation présumée. L'avancée `AGI-390`
+séparément. Un PV précédent non arrêté ne présume aucune approbation et ne
+bloque pas la clôture de la séance. L'avancée `AGI-390`
 (`CONDUCT_ACTIONS_EXPLAIN_UNAVAILABILITY`, fonctionnelle et produit) expose
 les motifs typés `ConductBlocker` de PostgreSQL à HTTP et Siren. Elle permet
 l'ajournement du point d'approbation tout en conservant le PV et `completedAt`
-nul. Le motif `previousMinutesPending` identifie le PV en attente et la clôture
-reste refusée par `HV117` ; ni le report ni la cardinalité ne sont tranchés.
+nul. Le PV non arrêté reste attaché à sa séance sans bloquer sa clôture ni être
+réinscrit pour un vote ; le PV de cette séance est programmé sur la suivante.
 Le backend rapporte 22 contrôles réussis couvrant les quatre types de points
 dans `24-conduct-action-blockers.test.sql`, sans réexécution par la curation.
 Le modèle conserve les mouvements de présence

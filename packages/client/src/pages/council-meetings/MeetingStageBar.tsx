@@ -1,4 +1,4 @@
-import { EditIcon, GavelIcon, TextDocumentIcon, MembersIcon } from "../../components/icons";
+import { EditIcon, GavelIcon, MembersIcon, TextDocumentIcon } from "../../components/icons";
 import { createStageProgress } from "../../components/ui/stage-progress";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingStatus } from "../../models/liveMeeting";

@@ -33,7 +33,6 @@ export const conductBlockerSchema = z.discriminatedUnion("code", [
   z.object({ code: z.enum(["earlierAgendaItemPending", "anotherDiscussionActive"]), agendaItemId: z.uuid() }).strict(),
   z.object({ code: z.enum(["ballotAlreadyExists", "ballotInProgress"]), ballotId: z.uuid() }).strict(),
   z.object({ code: z.literal("minutesDocumentMissing"), minutesId: z.uuid() }).strict(),
-  z.object({ code: z.literal("previousMinutesPending"), minutesIds: z.array(z.uuid()).min(1) }).strict(),
 ]);
 export type ConductBlocker = z.infer<typeof conductBlockerSchema>;
 export const conductBlockersSchema = z

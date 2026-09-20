@@ -1,6 +1,6 @@
 import type { ConductBlocker } from "@hall/api-contract";
-import { useI18n } from "../../i18n/I18nProvider";
 import type { TranslationKey } from "../../i18n/en";
+import { useI18n } from "../../i18n/I18nProvider";
 
 const labels = {
   meetingNotStarted: "conduct.blocker.meetingNotStarted",
@@ -25,7 +25,6 @@ const labels = {
   ballotAlreadyExists: "conduct.blocker.ballotAlreadyExists",
   ballotInProgress: "conduct.blocker.ballotInProgress",
   minutesDocumentMissing: "conduct.blocker.minutesDocumentMissing",
-  previousMinutesPending: "conduct.blocker.previousMinutesPending",
 } satisfies Record<ConductBlocker["code"], TranslationKey>;
 
 /** Displays server-owned reasons; never derives permission from local state. */
@@ -44,14 +43,14 @@ export function ConductActionBlockers({
     <div className="conduct-action-blocker" data-testid={`conduct-blockers-${action}`}>
       {label ? <strong>{t("conduct.actionUnavailable").replace("{action}", t(label))}</strong> : null}
       <ul>
-        {blockers.map((blocker, index) => {
+        {blockers.map((blocker) => {
           let text = t(labels[blocker.code]);
           if ("presentCount" in blocker)
             text = text
               .replace("{present}", formatNumber(blocker.presentCount))
               .replace("{required}", formatNumber(blocker.requiredPresent));
           return (
-            <li key={`${blocker.code}-${index}`} data-testid={`conduct-blocker-${action}-${blocker.code}`}>
+            <li key={blocker.code} data-testid={`conduct-blocker-${action}-${blocker.code}`}>
               {text}
             </li>
           );

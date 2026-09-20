@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const clientDirectory = dirname(dirname(fileURLToPath(import.meta.url)));
 const scenarios = [
-  ["public-secret-minutes", "conducts public and secret ballots and provisions the previous minutes approval"],
+  ["public-secret-minutes", "conducts public and secret ballots and leaves an unexamined previous PV unsettled"],
   ["without-quorum", "conducts a meeting without quorum, adjourns voting items and closes without a ballot"],
 ];
 

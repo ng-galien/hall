@@ -20,7 +20,10 @@ describe("event invitation HTTP contract", () => {
       outboundEmailSenderAddress: "conseil@example.test",
     });
     const contact = domainBody<{ id: string }>(
-      await agent.post("/api/contacts").send({ firstName: "Alice", lastName: "Martin", email: "alice@example.test" }).expect(201),
+      await agent
+        .post("/api/contacts")
+        .send({ firstName: "Alice", lastName: "Martin", email: "alice@example.test" })
+        .expect(201),
     );
     const resource = domainBody<{ id: string }>(
       await agent

@@ -22,6 +22,7 @@ Cette carte indique l’autorité qui doit recevoir chaque nature de changement.
 | Procès-verbaux | `packages/postgres/sql/council/061-minutes.sql`, `073-minutes-api.sql`, `packages/server/src/services/minutesService.ts` et `minutesDocument.ts` | Brouillon automatique à la clôture, faits figés, texte corrigible avant génération, PDF immuable référencé par l’approbation ; rendu via `DocumentRenderer` | Ressource du workspace, rapport libre de `CouncilBusiness`, signatures ou publication simulées |
 | Adaptateurs de base historiques | `packages/server/src/infrastructure/database/` et `postgres/` | Exécution PostgreSQL des domaines qui ne sont pas encore raccordés à `@hall/postgres` | Nouvelle persistance documentaire ou décisions d’autorisation |
 | Composition | `packages/server/src/core/container.ts` et `core/localServer.ts` | Construction et injection des adaptateurs ; cycle du serveur local et de son moteur PGlite | Logique métier ou choix selon une variante |
+| Signaux temps réel | `packages/server/src/realtime/` et le montage dans `packages/server/src/server.ts` | Transport WebSocket partagé, diffusion après commande réussie et recontrôle du droit de lecture à chaque émission | Nouvel état métier, autorisation décidée par le client ou signal annoncé avant le succès de la commande |
 | Références et ressources | `packages/api-contract/src/resources.ts`, `packages/templating/src/grammar.ts`, `packages/templating/src/resourcePresentation.ts`, `packages/server/src/services/referenceEntityResolver.ts`, `documentaryResourceService.ts` et `packages/postgres/` | `ReferenceEntityKind`, `ResourceKind`, `ResourcePresentationKind`, compatibilité des présentations, résolution exhaustive, opérations nommées et propriété des actifs documentaires | Dispatch dupliqué dans le rendu, les routes ou l’interface |
 | Grammaire riche | `packages/templating/src/` | Parsing, validation, collecte et sérialisation des directives | Parseur concurrent dans le client ou le serveur |
 | Présentation et interaction | `packages/client/src/features/` et `pages/` | Présentation métier, appels HTTP et composition d’écran | Nouvelle règle métier ou reconstruction d’une permission |
@@ -30,6 +31,8 @@ Cette carte indique l’autorité qui doit recevoir chaque nature de changement.
 | Primitives techniques | `packages/client/src/components/ui/` | Interaction générique pilotée par propriétés | Import du domaine, des stores, services, hooks ou pages |
 
 Le serveur est l’unique autorité d’écriture. Le client consomme le contrat Siren sur HTTP. Ni le client ni Electron n’importent l’implémentation serveur ou n’ouvrent la base directement.
+
+Le bus de signaux temps réel actuel vit dans un seul processus serveur. Les clients relisent les projections HTTP et Siren après un signal ou une reconnexion ; les signaux ne sont pas un historique durable. Une topologie Hall à plusieurs processus nécessitera un relais partagé avant de garantir la diffusion entre instances.
 
 Le desktop autonome appelle l’entrée publique `startLocalHttpServer` de
 `@hall/server`. `core/localServer.ts` compose le moteur persistant de

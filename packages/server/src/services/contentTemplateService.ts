@@ -213,7 +213,12 @@ export function createContentTemplateService({
     },
     generateFromTemplate(template, input) {
       return withGenerationSlot(async () => {
-        const preview = await templateRenderingService.preview(template, input.context, input.meetingNoticeFacts, input.councilDecision);
+        const preview = await templateRenderingService.preview(
+          template,
+          input.context,
+          input.meetingNoticeFacts,
+          input.councilDecision,
+        );
         assertRenderable(preview.diagnostics);
         const selected = [
           ...(await attachments(resourcesClient, input.attachmentResourceIds)),

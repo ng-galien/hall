@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { meetingDocumentsSchema, meetingDocumentResourceDetailSchema } from "@hall/api-contract";
+import { meetingDocumentResourceDetailSchema, meetingDocumentsSchema } from "@hall/api-contract";
 import { Pool } from "pg";
 import { expect, it } from "vitest";
 import { startHttpServer } from "../server.js";

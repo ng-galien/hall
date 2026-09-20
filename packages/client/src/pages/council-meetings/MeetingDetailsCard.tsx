@@ -55,7 +55,10 @@ export function MeetingDetailsCard({
 
   return (
     <aside className="meeting-side-column">
-      <section className={embedded ? "meeting-documents-embedded" : "meeting-side-section"} aria-labelledby={embedded ? undefined : "meeting-documents-heading"}>
+      <section
+        className={embedded ? "meeting-documents-embedded" : "meeting-side-section"}
+        aria-labelledby={embedded ? undefined : "meeting-documents-heading"}
+      >
         {!embedded ? <h2 id="meeting-documents-heading">{t("meeting.meetingDocuments")}</h2> : null}
         <p className="meeting-side-hint">{t("meeting.meetingDocumentsDescription")}</p>
         {(() => {

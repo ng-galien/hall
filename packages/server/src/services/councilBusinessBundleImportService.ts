@@ -1,4 +1,4 @@
-import { CouncilClientError, type CouncilClient } from "../clients/councilClient.js";
+import { type CouncilClient, CouncilClientError } from "../clients/councilClient.js";
 import { slugify } from "../repositories/publicIdentifiers.js";
 import { decodeCouncilBusinessBundle, InvalidCouncilBusinessBundle } from "./councilBusinessBundleArchive.js";
 import { DomainError } from "./errors.js";
@@ -11,7 +11,8 @@ export function createCouncilBusinessBundleImportService({ councilClient }: { co
         const slug = slugify(`${manifest.sender.lastName} ${manifest.sender.firstName}`);
         if (slug !== manifest.sender.slug) throw new InvalidCouncilBusinessBundle("Sender slug mismatch");
         if (await councilClient.openBusiness(manifest.business.sourceId)) throw new DomainError("conflict", 409);
-        return await councilClient.importBusinessBundle({ manifest,
+        return await councilClient.importBusinessBundle({
+          manifest,
           files: Object.fromEntries([...files].map(([path, bytes]) => [path, bytes.toString("base64")])),
           path: `Imports/${slug}`,
         });

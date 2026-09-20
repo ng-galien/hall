@@ -6,8 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { SaveStatusIndicator } from "@/components/ui/save-status-indicator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { UndoIcon } from "../../components/icons";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
+import { UndoIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { useI18n } from "../../i18n/I18nProvider";
 import { MinutesAgendaFacts } from "./MinutesFacts";
@@ -120,10 +120,7 @@ export function MinutesPoint({
                   if (!generating) setConfirmingRestore(open);
                 }}
               >
-                <DialogContent
-                  closeLabel={t("common.close")}
-                  data-testid={`minutes-restore-source-dialog-${item.id}`}
-                >
+                <DialogContent closeLabel={t("common.close")} data-testid={`minutes-restore-source-dialog-${item.id}`}>
                   <DialogTitle>{t("minutes.restoreSourceTitle")}</DialogTitle>
                   <DialogDescription>{t("minutes.restoreSourceConfirmation")}</DialogDescription>
                   <div className="minutes-restore-dialog-actions">

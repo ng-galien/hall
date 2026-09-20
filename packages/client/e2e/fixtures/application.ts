@@ -1,11 +1,86 @@
+import { spawnSync } from "node:child_process";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test as base, expect, type Page } from "@playwright/test";
 
+const clientDirectory = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const projectDirectory = join(clientDirectory, "../..");
+const testDatabaseUrl = "postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test";
+
+function resetAndSeedTestDatabase(seedScenario: "preparation" | "default" | "minutes") {
+  if (process.env.DATABASE_URL !== testDatabaseUrl) {
+    throw new Error("Browser tests may reset only the dedicated Hall PostgreSQL test database");
+  }
+  const serverPort = process.env.HALL_E2E_SERVER_PORT;
+  if (!serverPort) throw new Error("The dedicated browser test server port is required");
+  const reset = spawnSync(
+    "docker",
+    [
+      "compose",
+      "exec",
+      "-T",
+      "postgres-test",
+      "psql",
+      "--set",
+      "ON_ERROR_STOP=1",
+      "--username",
+      "hall_test",
+      "--dbname",
+      "hall_test",
+    ],
+    {
+      cwd: projectDirectory,
+      input: `BEGIN;
+SET LOCAL session_replication_role = replica;
+DO $reset$
+DECLARE tables text;
+BEGIN
+  SELECT string_agg(format('%I.%I', schemaname, tablename), ', ' ORDER BY schemaname, tablename)
+  INTO tables
+  FROM pg_tables
+  WHERE schemaname IN ('hall', 'public') AND tablename NOT IN ('spatial_ref_sys', 'hall_settings');
+  IF tables IS NOT NULL THEN
+    EXECUTE 'TRUNCATE TABLE ' || tables || ' RESTART IDENTITY CASCADE';
+  END IF;
+END
+$reset$;
+COMMIT;
+`,
+      encoding: "utf8",
+    },
+  );
+  if (reset.error || reset.status !== 0) {
+    throw new Error(`Could not clear the dedicated browser test database: ${reset.error ?? reset.stderr}`);
+  }
+  const seed = spawnSync(process.execPath, [join(projectDirectory, "packages/server/scripts/seed-dev.mjs")], {
+    cwd: projectDirectory,
+    env: { ...process.env, SEED_MEETING_SCENARIO: seedScenario, SEED_API: `http://127.0.0.1:${serverPort}/api` },
+    encoding: "utf8",
+  });
+  if (seed.error || seed.status !== 0) {
+    throw new Error(`Could not seed the dedicated browser test database: ${seed.error ?? seed.stdout + seed.stderr}`);
+  }
+}
+
 interface ApplicationFixtures {
+  isolatedDatabase: undefined;
   appPage: Page;
 }
 
-export const test = base.extend<ApplicationFixtures>({
-  appPage: async ({ page }, use) => {
+interface ApplicationOptions {
+  seedScenario: "preparation" | "default" | "minutes";
+}
+
+export const test = base.extend<ApplicationFixtures & ApplicationOptions>({
+  seedScenario: ["preparation", { option: true }],
+  isolatedDatabase: [
+    async ({ seedScenario }, use) => {
+      resetAndSeedTestDatabase(seedScenario);
+      await use(undefined);
+    },
+    { auto: true },
+  ],
+  appPage: async ({ page, isolatedDatabase: _isolatedDatabase }, use) => {
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.addInitScript(() => {

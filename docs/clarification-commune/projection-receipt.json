@@ -1,0 +1,9 @@
+{
+  "documentName": "Hall — Commune — clarification",
+  "revision": 1,
+  "reportCount": 3,
+  "sourceMatch": "yes",
+  "catalogueDigest": "df9b08cf251360666f44ac7d612c767f10a5da9e79778672af4270005bf34dc0",
+  "observedAt": "2026-09-20T00:53:41.971Z",
+  "report": "{\"kind\":\"documentation-projection\",\"documentName\":\"Hall — Commune — clarification\",\"revision\":1,\"sourceMatch\":\"yes\",\"reports\":[{\"perspective\":\"database\",\"sourceDigest\":\"66e68fc0ecdfe4fe540533ad95b5b97c6239d8ed805fd93e49463ea9f42d706f\",\"plan\":\"child-639f8083-1936-4e5e-ae5a-4222b069616a\"},{\"perspective\":\"siren-rights\",\"sourceDigest\":\"4f98dffc7a7c5ce98ddb8772b6f8158bbf999a880fb1b7a3da1e22b506cf533c\",\"plan\":\"child-55a38a64-d6b8-4bd6-b4ac-e929e970bcd3\"},{\"perspective\":\"ui\",\"sourceDigest\":\"044d1899a1b1cb8c9209f6aae337937f009faccedd275560fd5565fd04c35ee4\",\"plan\":\"child-747b6735-e2b4-4d32-9edf-a3b8bc60f5a5\"}],\"meaning\":\"Projection verified; no product approval or independent validation of agent reports.\"}"
+}

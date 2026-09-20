@@ -9,6 +9,9 @@ test("a completed later occurrence does not revive a historical adjournment", ()
 });
 
 test("withdrawing a draft item makes the business available for scheduling again", () => {
-  const withdrawn = { meeting: { phase: "draft", number: 3 }, agendaItem: { position: -2, completedAt: null, adjournedAt: null } };
+  const withdrawn = {
+    meeting: { phase: "draft", number: 3 },
+    agendaItem: { position: -2, completedAt: null, adjournedAt: null },
+  };
   assert.equal(workspaceCurrentOccurrence([withdrawn]), null);
 });

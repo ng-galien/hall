@@ -7,10 +7,12 @@ import {
   ballotSchema,
   ballotVoteSchema,
   type CreateCouncilBusiness,
+  councilBusinessCommitteeLinkSchema,
   councilBusinessResourceAssociationSchema,
   councilBusinessResourceItemSchema,
   councilBusinessSchema,
   councilBusinessWorkspaceItemSchema,
+  councilCommitteeBusinessLinkSchema,
   councilMeetingClosureSchema,
   councilMeetingSchema,
   createdAndScheduledCouncilBusinessSchema,
@@ -29,10 +31,15 @@ import { DomainError, type ErrorCode } from "../../services/errors.js";
 
 const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV235: "conflict",
+  HV821: "conflict",
+  HV706: "conflict",
+  HV219: "conflict",
+  HV221: "agenda_ballot_required",
   HV114: "conflict",
+  HV103: "current_proxy_invalid",
+  HV116: "conduct_chronology_invalid",
   HV223: "meeting_conduct_closed",
-  HV117: "previous_minutes_pending",
-  HV126: "previous_minutes_pending",
+  HV126: "agenda_inconsistent",
   HV809: "prepared_subject_immutable",
   HV810: "prepared_subject_unavailable",
   HV807: "meeting_notice_required",
@@ -44,6 +51,7 @@ const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV805: "meeting_notice_stale",
   HV806: "meeting_notice_invalid",
   HV416: "ballot_procedure_unsupported",
+  HV404: "ballot_candidate_invalid",
   HV418: "ballot_already_confirmed",
   HV420: "ballot_candidate_invalid",
   HV421: "ballot_preview_not_found",
@@ -121,6 +129,8 @@ export function createPostgresCouncilClient({
         }
         const recusalError = councilErrorCodes[error.sqlState];
         if (recusalError) throw new DomainError(recusalError, 409);
+        if (error.sqlState === "HV905") throw new DomainError("council_business_not_found", 404);
+        if (error.sqlState === "HV820") throw new DomainError("council_committee_not_found", 404);
         if (error.sqlState === "HV910") throw new DomainError("prepared_subject_not_found", 404);
         if (error.sqlState === "HV709") throw new DomainError("minutes_not_generated", 409);
         if (error.sqlState === "HV607") {
@@ -203,8 +213,40 @@ export function createPostgresCouncilClient({
         throw error;
       }
     },
+    async listBusinessCommittees(businessId) {
+      const rows = await call(() => postgresCouncil.listBusinessCommittees(currentRequest(), businessId));
+      return councilBusinessCommitteeLinkSchema.array().parse(
+        rows.map((row) => ({
+          ...row,
+          href: `/api/council-committees/${row.committeeId}`,
+        })),
+      );
+    },
+    async listCommitteeBusinesses(committeeId) {
+      const rows = await call(() => postgresCouncil.listCommitteeBusinesses(currentRequest(), committeeId));
+      return councilCommitteeBusinessLinkSchema.array().parse(
+        rows.map((row) => ({
+          ...row,
+          href: `/api/council-business/${row.councilBusinessId}`,
+        })),
+      );
+    },
+    async associateBusinessCommittee(businessId, committeeId) {
+      const row = await call(() =>
+        postgresCouncil.associateBusinessCommittee(currentRequest(), businessId, committeeId),
+      );
+      return councilBusinessCommitteeLinkSchema.parse({ ...row, href: `/api/council-committees/${row.committeeId}` });
+    },
+    async dissociateBusinessCommittee(businessId, committeeId) {
+      const row = await call(() =>
+        postgresCouncil.dissociateBusinessCommittee(currentRequest(), businessId, committeeId),
+      );
+      return councilBusinessCommitteeLinkSchema.parse({ ...row, href: `/api/council-committees/${row.committeeId}` });
+    },
     async importBusinessBundle(input) {
-      return councilBusinessSchema.parse(await call(() => postgresCouncil.importBusinessBundle(currentRequest(), input)));
+      return councilBusinessSchema.parse(
+        await call(() => postgresCouncil.importBusinessBundle(currentRequest(), input)),
+      );
     },
     async listBusinessResources(businessId) {
       return z

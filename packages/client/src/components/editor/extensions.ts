@@ -1,4 +1,4 @@
-import { Extension, generateHTML, type JSONContent } from "@tiptap/core";
+import { type AnyExtension, Extension, generateHTML, type JSONContent } from "@tiptap/core";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { renderTableToMarkdown, Table, TableKit } from "@tiptap/extension-table";
 import { Placeholder } from "@tiptap/extensions";
@@ -25,9 +25,9 @@ function tableExceedsGfm(table: JSONContent): boolean {
 }
 
 /** Schema used only to render tables to HTML, never mounted in an editor. */
-let tableHtmlSchema: (Extension | typeof StarterKit)[] | undefined;
+let tableHtmlSchema: AnyExtension[] | undefined;
 function schemaForTableHtml() {
-  tableHtmlSchema ??= [StarterKit, TableKit];
+  tableHtmlSchema ??= [StarterKit, TableKit, Reference, ResourceImage, ResourceEmbed];
   return tableHtmlSchema;
 }
 

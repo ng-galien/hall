@@ -1,31 +1,10 @@
 -- Council meeting closure
 -- =======================
 --
--- Closing a meeting is one transaction: the previous minutes approval is
--- proved, unfinished work is carried to a newly provisioned successor, and the
--- closed meeting produces its Minutes and the next mandatory MinutesApproval.
-
--- @functional-requirement HALL-FR-MTG-120 PREVIOUS_MINUTES_ARE_APPROVED_BEFORE_CLOSURE:
-CREATE FUNCTION hall.council_meeting_previous_minutes_are_approved(target_meeting UUID)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SET search_path = pg_catalog, hall
-AS $function$
-  SELECT meeting.previous_council_meeting IS NULL OR EXISTS (
-    SELECT
-    FROM hall.council_agenda_item AS agenda_item
-    JOIN hall.minutes_approval AS approval
-      ON approval.id = agenda_item.minutes_approval
-    JOIN hall.minutes AS approved_minutes
-      ON approved_minutes.id = approval.minutes
-    WHERE agenda_item.council_meeting = meeting.id
-      AND approved_minutes.council_meeting = meeting.previous_council_meeting
-      AND agenda_item.completed_at IS NOT NULL
-  )
-  FROM hall.council_meetings AS meeting
-  WHERE meeting.id = target_meeting
-$function$;
+-- Closing a meeting is one transaction: unfinished ordinary subjects are
+-- carried to a newly provisioned successor, while an unexamined previous PV
+-- remains historical and is never submitted for a second vote. The closed
+-- meeting produces its own Minutes and the next mandatory MinutesApproval.
 
 -- @functional-requirement HALL-FR-BAL-290 OPEN_BALLOT_PREVENTS_MEETING_CLOSURE:
 CREATE FUNCTION hall.council_meeting_has_open_ballot(target_meeting UUID)
@@ -92,6 +71,7 @@ AS $function$
         WHERE snapshot.council_meeting = deferred.council_meeting AND snapshot.phase = 'closing'
           AND recorded->>'id' = deferred.id::text AND (recorded->>'position')::integer > 0)))
       AND deferred.completed_at IS NULL
+      AND deferred.minutes_approval IS NULL
       AND deferred.position < 0
       AND NOT EXISTS (
         SELECT
@@ -144,14 +124,6 @@ BEGIN
   END IF;
 
   IF NEW.closed_at IS NOT NULL
-    AND NOT hall.council_meeting_previous_minutes_are_approved(NEW.id)
-  THEN
-    RAISE EXCEPTION USING
-      ERRCODE = 'HV117',
-      MESSAGE = 'the previous council meeting minutes must be approved before closure';
-  END IF;
-
-  IF NEW.closed_at IS NOT NULL
     AND hall.council_meeting_has_open_ballot(NEW.id)
   THEN
     RAISE EXCEPTION USING
@@ -171,6 +143,7 @@ EXECUTE FUNCTION enforce_council_meeting_sequence();
 
 -- @technical-requirement HALL-TR-CON-140 COUNCIL_MEETING_CLOSURE_SERIALIZES_ITS_AGENDA:
 -- @functional-requirement HALL-FR-MTG-130 CLOSURE_PROVISIONS_THE_NEXT_MEETING:
+-- @functional-requirement HALL-FR-MTG-120 PREVIOUS_MINUTES_NEITHER_BLOCK_CLOSURE_NOR_REPEAT:
 -- @functional-requirement HALL-FR-MIN-030 CLOSURE_PRODUCES_MINUTES_APPROVAL:
 -- @functional-requirement HALL-FR-AGI-280 UNFINISHED_AGENDA_IS_CARRIED_FORWARD:
 CREATE FUNCTION hall.close_council_meeting(
@@ -220,12 +193,6 @@ BEGIN
       MESSAGE = 'a closed council meeting is immutable';
   END IF;
 
-  IF NOT council_meeting_previous_minutes_are_approved(target_meeting) THEN
-    RAISE EXCEPTION USING
-      ERRCODE = 'HV117',
-      MESSAGE = 'the previous council meeting minutes must be approved before closure';
-  END IF;
-
   IF council_meeting_has_open_ballot(target_meeting) THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV118',
@@ -258,12 +225,12 @@ BEGIN
     produced_approval
   );
 
-  -- A started but unfinished occurrence stays in the closed meeting as a
-  -- negative historical deferral. Its subject is placed again below.
+  -- Every unfinished occurrence stays in the closed meeting as negative
+  -- history. Only ordinary subjects are placed again below.
   UPDATE council_agenda_item
   SET position = -abs(position)
   WHERE council_meeting = meeting.id
-    AND (started_at IS NOT NULL OR EXISTS (
+    AND (minutes_approval IS NOT NULL OR started_at IS NOT NULL OR EXISTS (
       SELECT FROM hall.agenda_item_recusal WHERE agenda_item = council_agenda_item.id))
     AND completed_at IS NULL
     AND position > 0;
@@ -277,6 +244,7 @@ BEGIN
     FROM council_agenda_item AS agenda_item
     WHERE agenda_item.council_meeting = meeting.id
       AND agenda_item.started_at IS NULL
+      AND agenda_item.minutes_approval IS NULL
       AND agenda_item.position > 0
   )
   UPDATE council_agenda_item AS agenda_item
@@ -320,6 +288,7 @@ BEGIN
         WHERE snapshot.council_meeting = deferred.council_meeting AND snapshot.phase = 'closing'
           AND recorded->>'id' = deferred.id::text AND (recorded->>'position')::integer > 0)))
     AND deferred.completed_at IS NULL
+    AND deferred.minutes_approval IS NULL
     AND deferred.position < 0;
 
   -- This final fact activates the deferred structural checks for the complete
@@ -332,9 +301,9 @@ BEGIN
 END
 $function$;
 
--- A meeting with a predecessor owns exactly one approval, in first position,
--- and that approval targets the predecessor's minutes. Checks run at commit
--- so normal closure can create the successor, minutes and item atomically.
+-- A meeting with a predecessor owns exactly one previous-PV occurrence at
+-- absolute position one. It may be deprogrammed without losing its historical
+-- identity; this does not prevent closure. Checks run at commit.
 CREATE FUNCTION hall.enforce_required_previous_minutes()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET search_path=pg_catalog,hall AS $$
@@ -349,7 +318,7 @@ BEGIN
     SELECT FROM hall.council_agenda_item item
     JOIN hall.minutes_approval approval ON approval.id=item.minutes_approval
     JOIN hall.minutes previous_minutes ON previous_minutes.id=approval.minutes
-    WHERE item.council_meeting=meeting.id AND item.position=1
+    WHERE item.council_meeting=meeting.id AND abs(item.position)=1
       AND previous_minutes.council_meeting=meeting.previous_council_meeting
    )
   )

@@ -32,16 +32,21 @@ SELECT ok(pg_temp.subject_state('councilDecisionProposal')#>'{conductBlockers,st
 SELECT is(pg_temp.subject_state('minutesApproval')#>'{conductBlockers,adjourn}','[]'::jsonb,'minutes approval may be adjourned without pretending approval');
 SELECT lives_ok($$SELECT adjourn_council_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='minutesApproval'),'2026-01-02 18:02Z')$$,'minutes approval can be passed by explicit adjournment');
 SELECT ok((SELECT completed_at IS NULL AND adjourned_at IS NOT NULL FROM council_agenda_item WHERE id=(SELECT id FROM blocker_items WHERE subject_kind='minutesApproval')),'adjourned minutes approval remains unapproved');
-SELECT ok((hall_api.open_council_meeting((SELECT id FROM blocker_meeting))->'closureBlockers') @> '[{"code":"previousMinutesPending"}]','closure explains pending previous minutes');
-SELECT is((hall_api.open_council_meeting((SELECT id FROM blocker_meeting))#>>'{closureBlockers,0,minutesIds,0}')::uuid,(SELECT id FROM minutes WHERE council_meeting=test_uuid('blockers:first')),'closure blocker identifies the exact previous minutes');
+SELECT is((hall_api.open_council_meeting((SELECT id FROM blocker_meeting))->'closureBlockers'),'[]'::jsonb,
+  'an unapproved previous PV does not block closure');
 SELECT lives_ok($$SELECT adjourn_council_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='councilDecisionProposal'),'2026-01-02 18:03Z')$$,'proposal can also be passed without a ballot');
 SELECT lives_ok($$SELECT start_council_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='openQuestion'),'2026-01-02 18:06Z')$$,'open question exchanges start after preceding items are adjourned');
 SELECT ok(pg_temp.subject_state('openQuestion')#>'{conductBlockers,reviewBallot}' @> '[{"code":"nonVotingSubject"}]','open question cannot produce a ballot');
 SELECT complete_non_voting_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='openQuestion'),'2026-01-02 18:07Z');
 SELECT is((SELECT count(*)::int FROM ballots),0,'all three subjects have been passed without a ballot');
-SELECT throws_ok($$SELECT close_council_meeting((SELECT id FROM blocker_meeting),'2026-01-02 18:08Z')$$,'HV117',NULL,'closure remains blocked until the pending-minutes model is decided');
-SELECT ok((SELECT closed_at IS NULL FROM council_meetings WHERE id=(SELECT id FROM blocker_meeting)),'refused closure does not create a false closure fact');
-SELECT is((SELECT count(*)::int FROM council_meetings),2,'refused closure invents no successor');
-SELECT is((SELECT count(*)::int FROM minutes),1,'refused closure invents no replacement minutes');
+CREATE TEMP TABLE closed_blocker_meeting AS
+SELECT close_council_meeting((SELECT id FROM blocker_meeting),'2026-01-02 18:08Z') AS successor;
+SELECT ok((SELECT closed_at IS NOT NULL FROM council_meetings WHERE id=(SELECT id FROM blocker_meeting)),
+  'the meeting closes without approving the preceding PV');
+SELECT is((SELECT count(*)::int FROM council_agenda_item WHERE council_meeting=(SELECT successor FROM closed_blocker_meeting)
+  AND minutes_approval=(SELECT minutes_approval FROM blocker_items JOIN council_agenda_item USING(id)
+    WHERE blocker_items.subject_kind='minutesApproval')),0,'the adjourned PV is not proposed for another vote');
+SELECT is((SELECT count(*)::int FROM council_agenda_item WHERE council_meeting=(SELECT successor FROM closed_blocker_meeting)
+  AND minutes_approval IS NOT NULL),1,'only the newly closed meeting PV is on the following agenda');
 SELECT * FROM finish();
 ROLLBACK;

@@ -1,5 +1,5 @@
-import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { CouncilBusinessIcon } from "../../components/icons";
+import type { CouncilBusinessView } from "../../models/councilBusiness";
 
 export function CouncilBusinessGlyph({ large }: { business: CouncilBusinessView; large?: boolean }) {
   return (

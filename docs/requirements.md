@@ -399,7 +399,7 @@ Autorités : [modèle](../packages/postgres/sql/council/005-council-meetings.sql
 | MTG-090 | Clôture exige démarrage | P — automate. |
 | MTG-100 | Séance close immuable | P — gel des données. |
 | MTG-110 | Clôture produit successeur et PV | M — S3 al. 3 pour PV ; successeur automatique unique choisi par Hall. |
-| MTG-120 | PV précédent approuvé avant clôture | M — règle du commencement établie par S3 al. 3 ; garde de clôture Hall vérifiant l’approbation effective. L’ajournement ne satisfait pas cette garde. |
+| MTG-120 | PV précédent sans blocage ni second vote | M — S3 al. 3 prescrit l’arrêt du PV au commencement de la séance suivante ; Hall conserve le point non achevé dans l’historique, sans bloquer la clôture ni le reporter à une autre séance. |
 | MTG-130 | Création automatique séance suivante | P — aucune obligation de provisioning. |
 | MTG-140 | Successeur après séance close | P — chaînage. |
 | MTG-160 | Programmation par action nommée | P — API. |
@@ -753,11 +753,10 @@ Les points d'information peuvent entrer en échange avec leur observation,
 sans produire une décision adoptée. Le contrôle du quorum courant au scrutin
 reste distinct de ce contrôle à l'examen.
 
-Le point d'approbation du PV précédent conserve sa portée propre (S3). Sans
-approbation effective, il ne doit pas être marqué approuvé pour permettre la
-clôture. Le traitement de son attente et de la clôture sans vote reste à
-résoudre dans le cycle existant ; aucune approbation présumée ni perte de la
-référence au PV n'est autorisée par cette décision.
+Le point consacré au PV précédent conserve sa portée propre (S3). Son absence
+d'achèvement ne vaut pas arrêt du PV et ne bloque pas la clôture. Son occurrence
+reste dans l'historique de cette séance, sans inscription à un nouveau vote ;
+la séance close produit son propre PV pour la séance suivante.
 
 **Décision produit du 7 septembre 2026 — `HALL-FR-AGI-410`
 (`OPEN_QUESTIONS_CAN_BE_APPENDED_DURING_MEETING`)** :
@@ -866,9 +865,10 @@ par le contrat typé `ConductBlocker`. PostgreSQL fournit les motifs métier
 partagés avec les capacités Siren ; HTTP ajoute le refus de permission.
 L'ajournement d'un point d'approbation de PV est désormais permis, en conservant
 l'identité du PV et `completedAt` nul. Il ne vaut pas approbation.
-`closureBlockers.previousMinutesPending` identifie le PV réellement en attente ;
-la clôture reste refusée par `HV117`. La cardinalité, le report et le cycle de
-clôture ne sont pas résolus par cette évolution. Le backend rapporte 22 contrôles
+La garde `HV117` et `closureBlockers.previousMinutesPending` décrits ici ont
+été supprimés par la clarification du 17 septembre 2026 : un PV non arrêté
+reste historique et ne bloque plus la clôture. Le PV de la séance close est seul
+inscrit à l'ordre du jour de la séance suivante. Le backend rapporte 22 contrôles
 réussis dans `24-conduct-action-blockers.test.sql`, couvrant les quatre types
 de points ; ce résultat n'a pas été réexécuté lors de la curation documentaire.
 

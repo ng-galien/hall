@@ -3,6 +3,7 @@ import { HallPostgresError } from "../src/errors.js";
 import { PostgresResources, type PostgresResourceRequest } from "../src/resources.js";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
 
+// @verifies-requirement HALL-FR-DOC-280
 postgresDescribe("PostgreSQL resource client", () => {
   const pool = createTestPool();
   const resources = new PostgresResources(pool);
@@ -51,6 +52,15 @@ postgresDescribe("PostgreSQL resource client", () => {
     ).data;
     expect(updated).toMatchObject({ id: created.id, content: "second", version: 2 });
 
+    await expect(
+      resources.updateText(request, {
+        id: created.id,
+        expectedVersion: 1,
+        content: "outdated",
+        referencedEditorAssetIds: [],
+      }),
+    ).rejects.toMatchObject({ sqlState: "HV608" });
+
     const archive = (await resources.createFolder(request, { path: "", name: "archive" })).data;
     const relocated = (await resources.relocate(request, created.id, "archive", "final.md")).data;
     expect(relocated).toMatchObject({ id: created.id, slug: "brief-md", fullPath: "archive/final.md" });
@@ -62,8 +72,8 @@ postgresDescribe("PostgreSQL resource client", () => {
     });
     await expect(resources.open(request, created.id)).rejects.toMatchObject({ sqlState: "HV601" });
 
-    const audits = await pool.query<{ action: string; target_id: string }>(
-      "SELECT action, target_id FROM hall.audit_event ORDER BY occurred_at, action",
+    const audits = await pool.query<{ action: string; target_id: string; details: { changedFields?: string[] } }>(
+      "SELECT action, target_id, details FROM hall.audit_event ORDER BY occurred_at, action",
     );
     expect(audits.rows.map(({ action }) => action)).toEqual([
       "resource.createText",
@@ -73,6 +83,13 @@ postgresDescribe("PostgreSQL resource client", () => {
       "resource.delete",
     ]);
     expect(audits.rows.filter(({ target_id }) => target_id === created.id)).toHaveLength(4);
+    expect(audits.rows.find(({ action }) => action === "resource.updateText")?.details.changedFields).toEqual([
+      "content",
+    ]);
+    expect(audits.rows.find(({ action }) => action === "resource.relocate")?.details.changedFields).toEqual([
+      "name",
+      "path",
+    ]);
   });
 
   it("keeps binary content outside JSON and replaces it with immutable content-addressed bytes", async () => {

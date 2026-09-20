@@ -34,6 +34,7 @@ function authorizedActions(request: Request, actions: SirenAction[]): SirenActio
 }
 
 function resourceCreationActions(request: Request, councilBusinessId?: string): SirenAction[] {
+  if (councilBusinessId && !canExecuteAction(request, "council-business.associate-resource")) return [];
   const contextFields = councilBusinessId
     ? [{ name: "councilBusinessId", type: "hidden", value: councilBusinessId }]
     : [];
@@ -106,6 +107,31 @@ function councilBusinessContentActions(request: Request, id: string, reference: 
   ];
 }
 
+// @implements-requirement HALL-FR-BUS-070
+function councilBusinessCommitteeActions(reference: string): SirenAction[] {
+  const fields = [{ name: "committeeId", type: "text" }];
+  return [
+    {
+      ...action(
+        "council-business.associate-committee",
+        "POST",
+        `/api/council-business/${reference}/committees`,
+        "Associate a committee",
+      ),
+      fields,
+    },
+    {
+      ...action(
+        "council-business.dissociate-committee",
+        "POST",
+        `/api/council-business/${reference}/committees/dissociate`,
+        "Dissociate a committee",
+      ),
+      fields,
+    },
+  ];
+}
+
 function councilBusinessSubjectActions(reference: string): SirenAction[] {
   return [
     {
@@ -168,7 +194,10 @@ function councilBusinessSelfActions(reference: string): SirenAction[] {
         `/api/council-business/${reference}/bundle`,
         "Export the council business",
       ),
-      fields: [{ name: "firstName", type: "text" }, { name: "lastName", type: "text" }],
+      fields: [
+        { name: "firstName", type: "text" },
+        { name: "lastName", type: "text" },
+      ],
     },
     action("council-business.delete", "DELETE", `/api/council-business/${reference}`, "Delete the council business"),
   ];
@@ -230,7 +259,12 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
               ],
             },
             {
-              ...action("council-business.import-bundle", "POST", "/api/council-business/import-bundle", "Import a council business bundle"),
+              ...action(
+                "council-business.import-bundle",
+                "POST",
+                "/api/council-business/import-bundle",
+                "Import a council business bundle",
+              ),
               type: "multipart/form-data",
               fields: [{ name: "file", type: "file" }],
             },
@@ -340,29 +374,60 @@ function preparedSubjectActions({ request, primary }: ObjectActionContext): Sire
   const state = (agenda as Record<string, unknown>).state;
   const agendaItemId = (agenda as Record<string, unknown>).agendaItemId;
   const meeting = (agenda as Record<string, unknown>).meeting;
-  const meetingReference = meeting && typeof meeting === "object" && !Array.isArray(meeting)
-    ? (meeting as Record<string, unknown>).reference
-    : null;
-  const meetingStartedAt = meeting && typeof meeting === "object" && !Array.isArray(meeting)
-    ? (meeting as Record<string, unknown>).startedAt
-    : null;
-  if (state === "scheduled" && meetingStartedAt == null && typeof agendaItemId === "string" && typeof meetingReference === "string") {
+  const meetingReference =
+    meeting && typeof meeting === "object" && !Array.isArray(meeting)
+      ? (meeting as Record<string, unknown>).reference
+      : null;
+  const meetingStartedAt =
+    meeting && typeof meeting === "object" && !Array.isArray(meeting)
+      ? (meeting as Record<string, unknown>).startedAt
+      : null;
+  if (
+    state === "scheduled" &&
+    meetingStartedAt == null &&
+    typeof agendaItemId === "string" &&
+    typeof meetingReference === "string"
+  ) {
     return authorizedActions(request, [
-      action("agenda-item.deprogram", "DELETE", `/api/council-meetings/${meetingReference}/agenda-items/${agendaItemId}`, "Remove from the agenda"),
+      action(
+        "agenda-item.deprogram",
+        "DELETE",
+        `/api/council-meetings/${meetingReference}/agenda-items/${agendaItemId}`,
+        "Remove from the agenda",
+      ),
     ]);
   }
   const scheduleTarget = primary.scheduleTarget;
-  if (state !== "notScheduled" || !scheduleTarget || typeof scheduleTarget !== "object" || Array.isArray(scheduleTarget)) return [];
+  if (
+    state !== "notScheduled" ||
+    !scheduleTarget ||
+    typeof scheduleTarget !== "object" ||
+    Array.isArray(scheduleTarget)
+  )
+    return [];
   const target = scheduleTarget as Record<string, unknown>;
-  if (typeof target.meetingReference !== "string" || typeof target.position !== "number" || typeof primary.id !== "string" || typeof primary.kind !== "string") return [];
-  return authorizedActions(request, [{
-    ...action("agenda-item.schedule-prepared", "POST", `/api/council-meetings/${target.meetingReference}/agenda-items/from-prepared`, "Schedule on the active meeting"),
-    fields: [
-      { name: "subjectId", type: "hidden", value: primary.id },
-      { name: "kind", type: "hidden", value: primary.kind },
-      { name: "position", type: "hidden", value: target.position },
-    ],
-  }]);
+  if (
+    typeof target.meetingReference !== "string" ||
+    typeof target.position !== "number" ||
+    typeof primary.id !== "string" ||
+    typeof primary.kind !== "string"
+  )
+    return [];
+  return authorizedActions(request, [
+    {
+      ...action(
+        "agenda-item.schedule-prepared",
+        "POST",
+        `/api/council-meetings/${target.meetingReference}/agenda-items/from-prepared`,
+        "Schedule on the active meeting",
+      ),
+      fields: [
+        { name: "subjectId", type: "hidden", value: primary.id },
+        { name: "kind", type: "hidden", value: primary.kind },
+        { name: "position", type: "hidden", value: target.position },
+      ],
+    },
+  ]);
 }
 
 function agendaItemActions({ request, primary, id }: ObjectActionContext): SirenAction[] {
@@ -583,6 +648,7 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
         });
       return authorizedActions(request, [
         ...councilBusinessContentActions(request, id, reference),
+        ...councilBusinessCommitteeActions(reference),
         ...councilBusinessSubjectActions(reference),
         ...councilBusinessAgendaActions(reference, isMinutesBusiness),
         ...councilBusinessSelfActions(reference),

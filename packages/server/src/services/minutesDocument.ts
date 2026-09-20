@@ -32,7 +32,7 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
   });
   const subjects = agenda.map((item) => {
     const title = matchLiteral(item.kind, {
-      minutesApproval: () => "Approbation du procès-verbal de la séance précédente",
+      minutesApproval: () => "Arrêt du procès-verbal de la séance précédente",
       councilDecisionProposal: () => item.title,
       openQuestion: () => item.title,
     });
@@ -41,11 +41,14 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
     const total = (choice: "approve" | "reject" | "abstain" | "blank" | "invalid") =>
       votes.filter((vote) => vote.choice === choice).reduce((sum, vote) => sum + vote.count, 0);
     const outcome = item.adjournedAt ? "Ajourné" : item.completedAt ? "Examiné" : "Non examiné";
-    const result = !ballot?.completedAt
-      ? "Non arrêté"
-      : ballot.result === null
-        ? "Sans décision"
-        : matchLiteral(ballot.result, { approve: () => "Adopté", reject: () => "Rejeté" });
+    const result =
+      item.kind === "minutesApproval"
+        ? ballot?.completedAt && ballot.result === "approve"
+          ? "Arrêté"
+          : "Non arrêté"
+        : !ballot?.completedAt || ballot.result === null
+          ? "Sans décision"
+          : matchLiteral(ballot.result, { approve: () => "Adopté", reject: () => "Rejeté" });
     const individual = ballot
       ? matchLiteral(ballot.mode, {
           secret: () => "",
@@ -83,7 +86,10 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
         return `<li>${escapeHtml(recusal.memberName)} : ${basis}, déport déclaré le ${escapeHtml(date(recusal.declaredAt))}</li>`;
       });
     const recusalEvidence = declarations.length ? `<h4>Déports déclarés</h4><ul>${declarations.join("")}</ul>` : "";
-    const status = ballot?.completedAt && !item.adjournedAt ? "" : `<p>${outcome}</p>`;
+    const status =
+      ballot?.completedAt && !item.adjournedAt
+        ? ""
+        : `<p>${outcome}${item.kind === "minutesApproval" ? " · Non arrêté" : ""}</p>`;
     return `<section><h3>${item.agendaNumber}. ${escapeHtml(title)}</h3>${item.introducedAt ? `<p>Question ajoutée en séance le ${escapeHtml(date(item.introducedAt))}.</p>` : ""}${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${quorum}${recusalEvidence}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>${individual}${nonParticipationNames}` : ""}</section>`;
   });
   return {

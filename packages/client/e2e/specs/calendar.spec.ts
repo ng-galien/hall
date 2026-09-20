@@ -25,7 +25,10 @@ test("calendar creates a workspace appointment and opens council sessions", asyn
   const contact = contacts.entities[0].properties;
   await page.getByTestId("event-contact").click();
   await page.getByTestId("event-contact-search-input").fill(contact.lastName);
-  await page.getByTestId("event-contact-search-result").and(page.locator(`[data-reference-id="${contact.id}"]`)).click();
+  await page
+    .getByTestId("event-contact-search-result")
+    .and(page.locator(`[data-reference-id="${contact.id}"]`))
+    .click();
   await expect(page.getByTestId("event-participant-0")).toContainText(contact.lastName);
   await page.getByTestId("event-remove-participant-0").click();
   await expect(page.getByTestId("event-participant-0")).not.toBeVisible();
@@ -102,6 +105,7 @@ test("calendar creates a workspace appointment and opens council sessions", asyn
     .click();
   const meetingPreview = page.getByTestId("calendar-meeting-preview");
   await expect(meetingPreview).toBeVisible();
+  await expect(meetingPreview.locator(".meeting-page-content")).toBeVisible();
   const previewWidth = (await meetingPreview.boundingBox())!.width;
   expect(previewWidth).toBeGreaterThan(800);
   expect(previewWidth).toBeLessThan(page.viewportSize()!.width * 0.9);
@@ -181,7 +185,10 @@ test("calendar completes every appointment field and changes schedule modes", as
   const contact = (await (await page.request.get("/api/contacts")).json()).entities[0].properties;
   await page.getByTestId("event-contact").click();
   await page.getByTestId("event-contact-search-input").fill(contact.lastName);
-  await page.getByTestId("event-contact-search-result").and(page.locator(`[data-reference-id="${contact.id}"]`)).click();
+  await page
+    .getByTestId("event-contact-search-result")
+    .and(page.locator(`[data-reference-id="${contact.id}"]`))
+    .click();
   await page.getByTestId("event-guest").fill("Intervenant invité");
   await page.getByTestId("event-add-guest").click();
   await expect(page.getByTestId("event-participant-1")).toContainText("Intervenant invité");
@@ -337,9 +344,15 @@ test("calendar selects ranges and moves and resizes timed appointments", async (
   test.setTimeout(90_000);
   await page.clock.setFixedTime(new Date("2026-09-12T12:00:00Z"));
   await page.getByTestId("navigation-calendar").click();
-  await page.getByTestId("calendar-day-2026-09-17").click({ position: { x: 40, y: 45 } });
+  const emptyDay = page
+    .locator('[data-testid^="calendar-day-2026-09-"]')
+    .filter({ hasNot: page.locator(".fc-event") })
+    .first();
+  const date = (await emptyDay.getAttribute("data-testid"))?.slice("calendar-day-".length);
+  expect(date).toBeTruthy();
+  await emptyDay.click();
   await expect(page.getByTestId("event-all-day")).toBeChecked();
-  await expect(page.getByTestId("event-start")).toHaveValue("2026-09-17");
+  await expect(page.getByTestId("event-start")).toHaveValue(date!);
   await page.getByTestId("calendar-cancel").click();
   await page.getByTestId("calendar-view-timeGridDay").click();
   const slot = page.getByTestId("calendar-slot-10:00:00");
@@ -437,9 +450,13 @@ test("calendar presents overlapping appointments and council meetings distinctly
   await page.clock.setFixedTime(new Date("2026-09-12T12:00:00Z"));
   const meetings = await (await page.request.get("/api/council-meetings")).json();
   const meeting = meetings.entities[0].properties;
-  expect((await page.request.put(`/api/council-meetings/${meeting.id}/schedule`, {
-    data: { scheduledAt: "2026-09-12T15:00:00.000Z", location: "Council room" },
-  })).ok()).toBeTruthy();
+  expect(
+    (
+      await page.request.put(`/api/council-meetings/${meeting.id}/schedule`, {
+        data: { scheduledAt: "2026-09-12T15:00:00.000Z", location: "Council room" },
+      })
+    ).ok(),
+  ).toBeTruthy();
   const create = async (name: string) => {
     const response = await page.request.post("/api/resources", {
       data: {
@@ -514,8 +531,7 @@ test("calendar deletes a future appointment after two confirmations with one req
   await page.getByTestId("calendar-delete-confirm").click();
   await expect(page.getByText("Permanently confirm deletion of this appointment?")).toBeVisible();
   const deleted = page.waitForResponse(
-    (candidate) =>
-      candidate.request().method() === "DELETE" && new URL(candidate.url()).pathname === deleteHref,
+    (candidate) => candidate.request().method() === "DELETE" && new URL(candidate.url()).pathname === deleteHref,
   );
   await page.getByTestId("calendar-delete-confirm").dblclick();
   expect((await deleted).status()).toBe(204);
@@ -531,7 +547,9 @@ test("calendar deletes a future appointment after two confirmations with one req
 // @verifies-requirement HALL-FR-CAL-180
 // @verifies-requirement HALL-FR-CAL-190
 // @verifies-requirement HALL-FR-SRC-030
-test("calendar uses one complete form for business, quarter hours and participant groups", async ({ appPage: page }) => {
+test("calendar uses one complete form for business, quarter hours and participant groups", async ({
+  appPage: page,
+}) => {
   await page.clock.setFixedTime(new Date("2026-09-12T12:00:00Z"));
   const businessCollection = await (await page.request.get("/api/council-business/workspace-items")).json();
   const business = businessCollection.entities[0].properties;
@@ -542,7 +560,9 @@ test("calendar uses one complete form for business, quarter hours and participan
   expect(missingContactResponse.status(), await missingContactResponse.text()).toBe(201);
   const missingContact = (await missingContactResponse.json()).properties;
   const membersCollection = await (await page.request.get("/api/council-members")).json();
-  const activeMembers = membersCollection.entities.map((entry: { properties: { active: boolean } }) => entry.properties).filter((member: { active: boolean }) => member.active);
+  const activeMembers = membersCollection.entities
+    .map((entry: { properties: { active: boolean } }) => entry.properties)
+    .filter((member: { active: boolean }) => member.active);
 
   await page.reload();
   await page.getByTestId("navigation-calendar").click();
@@ -550,7 +570,10 @@ test("calendar uses one complete form for business, quarter hours and participan
   await expect(page.getByTestId("calendar-folder")).not.toBeVisible();
   await page.getByTestId("calendar-name").fill(`Complete linked appointment ${Date.now()}`);
   await page.getByTestId("event-council-business").click();
-  await page.getByTestId("event-council-business-search-result").and(page.locator(`[data-reference-id="${business.id}"]`)).click();
+  await page
+    .getByTestId("event-council-business-search-result")
+    .and(page.locator(`[data-reference-id="${business.id}"]`))
+    .click();
   await page.getByTestId("event-all-day").uncheck();
   await expect(page.getByTestId("event-start")).toHaveAttribute("step", "900");
   await page.getByTestId("event-start").fill("2026-09-17T10:10");
@@ -559,11 +582,16 @@ test("calendar uses one complete form for business, quarter hours and participan
   await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17T11:15");
   await page.getByTestId("event-contact").click();
   await page.getByTestId("event-contact-search-input").fill(missingContact.lastName);
-  await page.getByTestId("event-contact-search-result").and(page.locator(`[data-reference-id="${missingContact.id}"]`)).click();
+  await page
+    .getByTestId("event-contact-search-result")
+    .and(page.locator(`[data-reference-id="${missingContact.id}"]`))
+    .click();
   await expect(page.getByTestId("event-missing-email-warning")).toContainText(missingContact.lastName);
   await page.getByTestId("event-add-council-members").click();
   await expect(page.getByTestId(/^event-participant-/)).toHaveCount(activeMembers.length + 1);
-  const creationResponse = page.waitForResponse((candidate) => candidate.url().endsWith("/api/resources") && candidate.request().method() === "POST");
+  const creationResponse = page.waitForResponse(
+    (candidate) => candidate.url().endsWith("/api/resources") && candidate.request().method() === "POST",
+  );
   await page.getByTestId("calendar-create").click();
   const creation = await creationResponse;
   expect(creation.status(), await creation.text()).toBe(201);
@@ -593,7 +621,10 @@ test("calendar uses one complete form for business, quarter hours and participan
       candidate.request().method() === "POST",
   );
   await page.getByTestId("event-council-business").click();
-  await page.getByTestId("event-council-business-search-result").and(page.locator(`[data-reference-id="${otherBusiness.id}"]`)).click();
+  await page
+    .getByTestId("event-council-business-search-result")
+    .and(page.locator(`[data-reference-id="${otherBusiness.id}"]`))
+    .click();
   await expect(page.getByTestId("event-council-business")).toContainText(otherBusiness.title);
   for (const response of await Promise.all([associatedResponse, dissociatedResponse])) {
     expect(response.ok(), await response.text()).toBeTruthy();

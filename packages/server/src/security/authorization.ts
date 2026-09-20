@@ -10,10 +10,11 @@ const rolePermissions: Record<ApiRole, readonly ApiPermission[]> = {
     "members.manage",
     "workspace.read",
     "workspace.write",
+    "council-business.update",
     "meetings.read",
     "meetings.prepare",
   ],
-  contributor: ["contacts.read", "workspace.read", "workspace.write", "meetings.read"],
+  contributor: ["contacts.read", "workspace.read", "workspace.write", "council-business.update", "meetings.read"],
   meetingConductor: ["contacts.read", "workspace.read", "meetings.read", "meetings.conduct"],
   reader: ["contacts.read", "workspace.read", "meetings.read"],
 };

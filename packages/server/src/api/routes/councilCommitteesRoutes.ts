@@ -8,18 +8,31 @@ import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
+import { committeeLinkCollection } from "../councilBusinessCommitteeRepresentation.js";
 import { routeParameter } from "../routeParameter.js";
 
-export function createCouncilCommitteesRouter({ directoryService }: Cradle): Router {
+export function createCouncilCommitteesRouter({ directoryService, councilBusinessWorkspaceService }: Cradle): Router {
   const router = Router();
   router.get("/", requirePermission("meetings.read"), async (request, response) => {
     response.json(await directoryService.listCouncilCommittees(request.query.includeArchived === "true"));
   });
   router.post("/", requireActionPermission("committee.create"), async (request, response) => {
-    response.status(201).json(await directoryService.createCouncilCommittee(saveCouncilCommitteeSchema.parse(request.body)));
+    response
+      .status(201)
+      .json(await directoryService.createCouncilCommittee(saveCouncilCommitteeSchema.parse(request.body)));
   });
   router.get("/:committeeId", requirePermission("meetings.read"), async (request, response) => {
     response.json(await directoryService.getCouncilCommittee(routeParameter(request.params.committeeId)));
+  });
+  router.get("/:committeeId/businesses", requirePermission("meetings.read"), async (request, response) => {
+    const committeeId = routeParameter(request.params.committeeId);
+    await directoryService.getCouncilCommittee(committeeId);
+    response.json(
+      committeeLinkCollection(
+        `/api/council-committees/${committeeId}/businesses`,
+        await councilBusinessWorkspaceService.listCommitteeBusinesses(committeeId),
+      ),
+    );
   });
   router.put("/:committeeId", requireActionPermission("committee.update"), async (request, response) => {
     response.json(

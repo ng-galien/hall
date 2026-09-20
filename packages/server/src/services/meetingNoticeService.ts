@@ -82,7 +82,7 @@ export function createMeetingNoticeService({
         throw new DomainError("meeting_notice_recipients_incomplete", 409);
       if (!preparation.canGenerate) throw new DomainError("meeting_notice_unavailable", 409);
       const notice = await councilClient.openNotice(noticeId);
-      if (!notice || !notice.isCurrent || notice.councilMeetingId !== meetingId)
+      if (!notice?.isCurrent || notice.councilMeetingId !== meetingId)
         throw new DomainError("meeting_notice_stale", 409);
       const content = await councilClient.noticeContent(noticeId);
       if (!content) throw new DomainError("meeting_notice_not_found", 404);
@@ -126,7 +126,12 @@ export function createMeetingNoticeService({
       if (!meeting) throw new DomainError("meeting_notice_unavailable", 409);
       const settings = await hallSettingsService.get();
       const facts: MeetingNoticeFacts = {
-        issuedOn: new Intl.DateTimeFormat("en-CA", { timeZone: settings.timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()),
+        issuedOn: new Intl.DateTimeFormat("en-CA", {
+          timeZone: settings.timeZone,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date()),
         meeting,
         hall: meetingNoticeHallFactsSchema.parse({ name: settings.name, timeZone: settings.timeZone }),
       };

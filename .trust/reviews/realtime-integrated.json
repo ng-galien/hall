@@ -1,0 +1,52 @@
+{
+  "scope": "integrated",
+  "findings": [
+    "HALL-FR-MTG-320 et HALL-FR-DOC-280 sont acceptées dans le catalogue et possèdent des marqueurs d'implémentation et de vérification dans les couches concernées ; le contrôle structurel des exigences passe.",
+    "Les transitions de conduite HTTP émettent meeting.changed après une commande réussie ; le WebSocket autorise la lecture, puis le client relit l'état canonique et abandonne sa sélection locale au changement de séance.",
+    "Les modifications atomiques de ressource texte produisent un audit transactionnel ; une lecture PostgreSQL limitée à la ressource retourne la dernière modification réussie par auteur, exposée par lien Siren et chargée à la demande par l'interface.",
+    "Le WebSocket contrôle la session et la permission à l'abonnement puis avant chaque message ; les tests ciblés couvrent une commande de séance refusée, le refus d'abonnement et la séparation des sujets.",
+    "L'icône nuage de sauvegarde est conservée et le contrôle d'historique distinct ouvre un aperçu puis un panneau superposé en lecture seule ; un test de composant vérifie que l'historique n'altère pas le toggle.",
+    "Code Moniker évalue 25 règles sans violation ; ses deux règles de recherche non classées préexistent à cette fonctionnalité. Aucune nouvelle règle de taxonomie n'est justifiée par les seuls constats de cette revue.",
+    "La priorité du point courant est portée par useConductAgendaSelection, consommé par ConductView ; un test de composant ciblé et un parcours Chromium sur deux contextes distincts vérifient la navigation libre, un vrai signal WebSocket, le retour au point courant et la reconnexion.",
+    "La production locale livrée sert client et API dans un même processus, le développement compose un serveur HTTP partagé, et le desktop local démarre un seul serveur ; le bus mémoire est cohérent avec cette topologie actuelle, pas une garantie pour plusieurs instances.",
+    "Les deux appels SQL internes à update_text_resource hors tests modifient des ressources provisionnées au cours de la même opération de création ou d'import ; ils ne constituent pas une modification entre sessions d'une ressource texte préexistante dans cette livraison.",
+    "Un test ciblé PostgreSQL/HTTP ouvre une souscription WebSocket, modifie une ressource par HTTP, reçoit resource.changed avec auteur, puis lit depuis une autre session le dernier changement de l'auteur via le lien Siren ; une mutation obsolète est refusée."
+  ],
+  "evidencePaths": [
+    "requirements/catalog.json",
+    "packages/api-contract/src/liveEvents.ts",
+    "packages/api-contract/src/resources.ts",
+    "packages/postgres/src/resources.ts",
+    "packages/postgres/sql/document/060-resource-changes.sql",
+    "packages/postgres/sql/test/document/53-resource-changes.test.sql",
+    "packages/server/src/api/routes/councilMeetingsRoutes.ts",
+    "packages/server/src/api/routes/documentaryResourcesRoutes.ts",
+    "packages/server/src/realtime/liveEvents.ts",
+    "packages/server/src/realtime/liveWebSocket.ts",
+    "packages/server/src/realtime/liveWebSocket.test.ts",
+    "packages/server/src/realtime/meetingPublication.test.ts",
+    "packages/server/src/__tests__/resourceChangesPostgres.test.ts",
+    "packages/client/src/hooks/useCouncilMeeting.ts",
+    "packages/client/src/pages/council-meetings/live/ConductView.tsx",
+    "packages/client/src/pages/council-meetings/live/useConductAgendaSelection.ts",
+    "packages/client/src/features/resources/ResourceChangesControl.tsx",
+    "packages/client/scripts/live-updates.test.mjs",
+    "packages/client/scripts/meeting-live-follow.component.test.mjs",
+    "packages/client/scripts/resource-changes.component.test.mjs",
+    "packages/client/e2e/specs/realtime-meeting.spec.ts",
+    "docs/architecture.md",
+    "docs/local-production.md",
+    "scripts/local-production.mjs",
+    "packages/server/scripts/dev-session.mjs",
+    "packages/server/src/core/localServer.ts",
+    "packages/postgres/sql/workspace/021-council-business-bundles.sql",
+    "packages/postgres/sql/workspace/025-decision-proposal-workspace.sql",
+    "packages/postgres/sql/workspace/045-prepared-council-subjects.sql",
+    ".code-moniker.toml"
+  ],
+  "openDecisions": [],
+  "deliveryReady": true,
+  "risks": [
+    "Les scénarios intégrés utilisent l'authentification automatique du runtime de test ; l'autorisation et le refus d'abonnement sont vérifiés séparément dans les tests serveur, pas avec deux utilisateurs réels distincts dans Chromium."
+  ]
+}

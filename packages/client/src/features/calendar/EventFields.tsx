@@ -3,11 +3,11 @@ import { matchDiscriminated } from "@hall/domain";
 import { useState } from "react";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { ResourceSearchField } from "../../components/search/ResourceSearchField";
-import { ReferenceBusinessContext } from "../../hooks/useReferenceMentionables";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { ReferenceBusinessContext } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useContactsStore } from "../../stores/contactsStore";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
@@ -111,13 +111,22 @@ export function EventFields({
           />
         </div>
       </div>
-      {onCouncilBusinessChange ? <div>
-        <Label htmlFor="event-council-business">{t("calendar.councilBusiness")}</Label>
-        <ResourceSearchField testId="event-council-business" label={businesses.find(business=>business.id===councilBusinessId)?.title??t("calendar.noCouncilBusiness")}
-          scope={{types:["councilBusiness"]}} disabled={readOnly||councilBusinessPending} onPick={item=>void onCouncilBusinessChange(item.id)}
-          onClear={()=>void onCouncilBusinessChange(null)} clearLabel={t("calendar.noCouncilBusiness")}/>
-
-      </div> : null}
+      {onCouncilBusinessChange ? (
+        <div>
+          <Label htmlFor="event-council-business">{t("calendar.councilBusiness")}</Label>
+          <ResourceSearchField
+            testId="event-council-business"
+            label={
+              businesses.find((business) => business.id === councilBusinessId)?.title ?? t("calendar.noCouncilBusiness")
+            }
+            scope={{ types: ["councilBusiness"] }}
+            disabled={readOnly || councilBusinessPending}
+            onPick={(item) => void onCouncilBusinessChange(item.id)}
+            onClear={() => void onCouncilBusinessChange(null)}
+            clearLabel={t("calendar.noCouncilBusiness")}
+          />
+        </div>
+      ) : null}
       <div>
         <Label htmlFor="event-location">{t("calendar.location")}</Label>
         <Input
@@ -170,7 +179,9 @@ export function EventFields({
               data-testid="event-add-council-members"
               onClick={() => {
                 const existing = new Set(
-                  value.participants.flatMap((participant) => participant.kind === "contact" ? [participant.contactId] : []),
+                  value.participants.flatMap((participant) =>
+                    participant.kind === "contact" ? [participant.contactId] : [],
+                  ),
                 );
                 const additions = councilMembers
                   .filter((member) => member.active && !existing.has(member.contactId))
@@ -180,9 +191,19 @@ export function EventFields({
             >
               {t("calendar.addCouncilMembers")}
             </Button>
-            <ResourceSearchField testId="event-contact" label={t("calendar.addContact")}
-              scope={{types:["contact"],excludedIds:value.participants.flatMap(participant=>participant.kind==="contact"?[participant.contactId]:[])}}
-              onPick={item=>onChange({...value,participants:[...value.participants,{kind:"contact",contactId:item.id}]})}/>
+            <ResourceSearchField
+              testId="event-contact"
+              label={t("calendar.addContact")}
+              scope={{
+                types: ["contact"],
+                excludedIds: value.participants.flatMap((participant) =>
+                  participant.kind === "contact" ? [participant.contactId] : [],
+                ),
+              }}
+              onPick={(item) =>
+                onChange({ ...value, participants: [...value.participants, { kind: "contact", contactId: item.id }] })
+              }
+            />
             <div className="flex gap-2">
               <Input
                 data-testid="event-guest"
@@ -219,13 +240,15 @@ export function EventFields({
       </div>
       <div>
         <Label>{t("calendar.context")}</Label>
-        <ReferenceBusinessContext.Provider value={councilBusinessId??undefined}><MarkdownEditor
-          title={t("calendar.context")}
-          markdown={value.content}
-          onChange={(content) => onChange({ ...value, content })}
-          readOnly={readOnly}
-          variant="compact"
-        /></ReferenceBusinessContext.Provider>
+        <ReferenceBusinessContext.Provider value={councilBusinessId ?? undefined}>
+          <MarkdownEditor
+            title={t("calendar.context")}
+            markdown={value.content}
+            onChange={(content) => onChange({ ...value, content })}
+            readOnly={readOnly}
+            variant="compact"
+          />
+        </ReferenceBusinessContext.Provider>
       </div>
     </div>
   );

@@ -1,0 +1,27 @@
+{
+  "scope": "resource",
+  "findings": [
+    "HALL-FR-DOC-280 est acceptée : seules les modifications atomiques enregistrées des ressources texte sont à signaler, avec auteur, nature et date.",
+    "Les écritures HTTP de métadonnées et de contenu passent par les commandes de ressources ; le contenu texte vérifie expectedVersion dans hall_api.update_text_resource.",
+    "PostgresResources.mutateJson inscrit hall.audit_event avec actor_id et occurred_at dans la transaction de la mutation ; une mutation refusée ne laisse pas d'audit de succès.",
+    "Les détails de cet audit ne donnent actuellement que fullPath ; ils ne décrivent pas quels champs ont changé.",
+    "L'API /api/audit lit une autre table, audit_events, et exige audit.read ; elle ne constitue pas la projection par ressource accessible à workspace.read.",
+    "La dernière modification par auteur peut être projetée depuis hall.audit_event sans nouvelle table démontrée ; un contrat de lecture ciblé et une description typée du changement restent à construire.",
+    "Des chemins SQL internes créent ou modifient aussi des ressources texte hors de PostgresResources.mutateJson ; leur couverture par le signal temps réel doit être vérifiée pendant l'implémentation.",
+    "Aucun changement précis de schéma ou d'invariant n'est justifié par cette revue ; un tel changement requerrait une approbation distincte."
+  ],
+  "evidencePaths": [
+    "requirements/catalog.json",
+    "packages/server/src/api/routes/documentaryResourcesRoutes.ts",
+    "packages/server/src/infrastructure/postgres/resourcesClient.ts",
+    "packages/postgres/src/resources.ts",
+    "packages/postgres/sql/document/040-api.sql",
+    "packages/postgres/sql/030-audit.sql",
+    "packages/server/src/api/routes/auditRoutes.ts",
+    "packages/server/src/repositories/securityRepository.ts",
+    "packages/postgres/sql/workspace/045-prepared-council-subjects.sql",
+    "packages/postgres/sql/workspace/021-council-business-bundles.sql",
+    "packages/postgres/test/resources.integration.test.ts"
+  ],
+  "openDecisions": []
+}

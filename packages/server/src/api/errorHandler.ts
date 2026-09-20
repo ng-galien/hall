@@ -1,8 +1,8 @@
 import type { ErrorRequestHandler } from "express";
 import { MulterError } from "multer";
 import { ZodError } from "zod";
-import { logger } from "../core/logger.js";
 import { CouncilClientError } from "../clients/councilClient.js";
+import { logger } from "../core/logger.js";
 import { PersistenceError } from "../repositories/errors.js";
 import { DomainError } from "../services/errors.js";
 import { sendProblem } from "./problemDetails.js";

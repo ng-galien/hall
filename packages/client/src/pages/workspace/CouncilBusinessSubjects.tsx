@@ -1,25 +1,25 @@
 import { findSirenAction, type PreparedCouncilSubject, type SirenEntity } from "@hall/api-contract";
 import { useMemo, useState } from "react";
-import { RequestErrorBanner } from "../../components/Ui";
+import { Link } from "react-router-dom";
 import { CalendarAddIcon, CloseIcon, EditIcon } from "../../components/icons";
+import { RequestErrorBanner } from "../../components/Ui";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { InlineRenameField } from "../../components/ui/inline-rename-field";
-import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
-import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
-import {
-  AgendaSubjectGlyph,
-  agendaSubjectPresentation,
-} from "../../features/council-meetings/AgendaSubjectGlyph";
+import { AgendaSubjectGlyph, agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
 import { InlineResourceContent } from "../../features/resources/InlineResourceContent";
 import { useResourceRename } from "../../features/resources/useResourceRename";
 import { useI18n } from "../../i18n/I18nProvider";
-import { apiErrorCode, submitSirenAction, type ApiErrorCode } from "../../services/apiClient";
+import { type ApiErrorCode, apiErrorCode, submitSirenAction } from "../../services/apiClient";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
+import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
 
 function SubjectTableRow({
-  subject, representation, expanded, onExpand,
+  subject,
+  representation,
+  expanded,
+  onExpand,
 }: {
   subject: PreparedCouncilSubject;
   representation: SirenEntity | undefined;
@@ -48,28 +48,133 @@ function SubjectTableRow({
     : null;
   const run = (name: "agenda-item.schedule-prepared" | "agenda-item.deprogram") => {
     if (!representation) return;
-    setPending(true); setActionError(null);
+    setPending(true);
+    setActionError(null);
     void submitSirenAction(representation, name)
       .then(() => useCouncilBusinessStore.getState().refreshPreparedSubject(subject))
       .catch((failure) => setActionError(apiErrorCode(failure)))
       .finally(() => setPending(false));
   };
-  return <>
-    <tr data-testid={`business-subject-${subject.id}`} className={expanded ? "business-subject-table-row-open" : undefined}>
-      <td><Tooltip><TooltipTrigger asChild><span className="business-subject-type"><AgendaSubjectGlyph kind={subject.kind} tree /></span></TooltipTrigger><TooltipContent>{t(agendaSubjectPresentation[subject.kind].label)}</TooltipContent></Tooltip></td>
-      <td>
-        <div className="business-subject-title-stack">
-          <div className="business-subject-title-cell"><InlineRenameField value={subject.title} editing={editingTitle} onEditingChange={(next) => { setEditingTitle(next); if (!next) rename.dismissError(); }} onCommit={rename.commit} label={t("common.rename")} className="workbench-title-inline-input" testId={`business-subject-rename-${subject.id}-name`} invalid={Boolean(rename.error)} onDraftChange={rename.dismissError}><Tooltip><TooltipTrigger asChild><button className="business-subject-title" data-testid={`business-subject-${subject.id}-open`} type="button" aria-expanded={expanded} onClick={onExpand}><span>{subject.title}</span></button></TooltipTrigger><TooltipContent>{subject.title}</TooltipContent></Tooltip></InlineRenameField>{rename.canRename && !editingTitle ? <button type="button" className="workbench-title-edit" data-testid={`business-subject-rename-${subject.id}`} aria-label={`${t("common.edit")} · ${subject.title}`} onClick={() => { rename.dismissError(); setEditingTitle(true); }}><EditIcon aria-hidden="true" /></button> : null}</div>
-          {editingTitle && rename.error ? <RequestErrorBanner compact error={rename.error} /> : null}
-        </div>
-      </td>
-      <td><div className="business-subject-table-actions"><span ref={setAutosaveActionsHost} />
-        {meeting && meeting.reference && meetingLabel ? <Badge variant="outline" className="business-subject-schedule-badge"><Link data-testid={`business-subject-meeting-${subject.agenda.agendaItemId}`} to={`/meetings/${meeting.reference}`}>{meetingLabel}</Link>{deprogram ? <Button variant="ghost" size="icon-xs" data-testid={`business-subject-unschedule-${subject.id}`} disabled={pending} aria-label={`${t("workspace.unschedule")} · ${meetingLabel}`} onClick={() => run("agenda-item.deprogram")}><CloseIcon /></Button> : null}</Badge> : schedule ? <Button variant="outline" size="xs" data-testid={`business-subject-schedule-${subject.id}`} disabled={pending} onClick={() => run("agenda-item.schedule-prepared")}><CalendarAddIcon />{t("workspace.scheduleInMeeting")}</Button> : null}
-        <RequestErrorBanner compact error={actionError} onDismiss={() => setActionError(null)} testId={`business-subject-action-${subject.id}-error-dismiss`} />
-      </div></td>
-    </tr>
-    {expanded ? <tr className="business-subject-table-detail"><td colSpan={3}><InlineResourceContent resourceId={subject.textResourceId} compact actionsHost={autosaveActionsHost} /></td></tr> : null}
-  </>;
+  return (
+    <>
+      <tr
+        data-testid={`business-subject-${subject.id}`}
+        className={expanded ? "business-subject-table-row-open" : undefined}
+      >
+        <td>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="business-subject-type">
+                <AgendaSubjectGlyph kind={subject.kind} tree />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t(agendaSubjectPresentation[subject.kind].label)}</TooltipContent>
+          </Tooltip>
+        </td>
+        <td>
+          <div className="business-subject-title-stack">
+            <div className="business-subject-title-cell">
+              <InlineRenameField
+                value={subject.title}
+                editing={editingTitle}
+                onEditingChange={(next) => {
+                  setEditingTitle(next);
+                  if (!next) rename.dismissError();
+                }}
+                onCommit={rename.commit}
+                label={t("common.rename")}
+                className="workbench-title-inline-input"
+                testId={`business-subject-rename-${subject.id}-name`}
+                invalid={Boolean(rename.error)}
+                onDraftChange={rename.dismissError}
+              >
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      className="business-subject-title"
+                      data-testid={`business-subject-${subject.id}-open`}
+                      type="button"
+                      aria-expanded={expanded}
+                      onClick={onExpand}
+                    >
+                      <span>{subject.title}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{subject.title}</TooltipContent>
+                </Tooltip>
+              </InlineRenameField>
+              {rename.canRename && !editingTitle ? (
+                <button
+                  type="button"
+                  className="workbench-title-edit"
+                  data-testid={`business-subject-rename-${subject.id}`}
+                  aria-label={`${t("common.edit")} · ${subject.title}`}
+                  onClick={() => {
+                    rename.dismissError();
+                    setEditingTitle(true);
+                  }}
+                >
+                  <EditIcon aria-hidden="true" />
+                </button>
+              ) : null}
+            </div>
+            {editingTitle && rename.error ? <RequestErrorBanner compact error={rename.error} /> : null}
+          </div>
+        </td>
+        <td>
+          <div className="business-subject-table-actions">
+            <span ref={setAutosaveActionsHost} />
+            {meeting?.reference && meetingLabel ? (
+              <Badge variant="outline" className="business-subject-schedule-badge">
+                <Link
+                  data-testid={`business-subject-meeting-${subject.agenda.agendaItemId}`}
+                  to={`/meetings/${meeting.reference}`}
+                >
+                  {meetingLabel}
+                </Link>
+                {deprogram ? (
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    data-testid={`business-subject-unschedule-${subject.id}`}
+                    disabled={pending}
+                    aria-label={`${t("workspace.unschedule")} · ${meetingLabel}`}
+                    onClick={() => run("agenda-item.deprogram")}
+                  >
+                    <CloseIcon />
+                  </Button>
+                ) : null}
+              </Badge>
+            ) : schedule ? (
+              <Button
+                variant="outline"
+                size="xs"
+                data-testid={`business-subject-schedule-${subject.id}`}
+                disabled={pending}
+                onClick={() => run("agenda-item.schedule-prepared")}
+              >
+                <CalendarAddIcon />
+                {t("workspace.scheduleInMeeting")}
+              </Button>
+            ) : null}
+            <RequestErrorBanner
+              compact
+              error={actionError}
+              onDismiss={() => setActionError(null)}
+              testId={`business-subject-action-${subject.id}-error-dismiss`}
+            />
+          </div>
+        </td>
+      </tr>
+      {expanded ? (
+        <tr className="business-subject-table-detail">
+          <td colSpan={3}>
+            <InlineResourceContent resourceId={subject.textResourceId} compact actionsHost={autosaveActionsHost} />
+          </td>
+        </tr>
+      ) : null}
+    </>
+  );
 }
 
 export function CouncilBusinessSubjects({ businessId }: { businessId: string }) {
@@ -92,9 +197,7 @@ export function CouncilBusinessSubjects({ businessId }: { businessId: string }) 
     label: t(agendaSubjectPresentation[kind].label),
     icon: agendaSubjectPresentation[kind].icon,
     create: async (name: string) =>
-      Boolean(
-        await useCouncilBusinessStore.getState().createPreparedSubject(businessId, { kind, name, content: "" }),
-      ),
+      Boolean(await useCouncilBusinessStore.getState().createPreparedSubject(businessId, { kind, name, content: "" })),
   }));
 
   return (

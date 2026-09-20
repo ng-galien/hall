@@ -12,6 +12,7 @@ const fixture: MinutesDetail = {
   version: 1,
   generatedAt: null,
   documentId: null,
+  settledAt: null,
   sections: [{ agendaItemId: "agenda", content: "Une correction de rédaction. <script>alert('unsafe')</script>" }],
   facts: {
     meeting: {
@@ -75,7 +76,7 @@ describe("minutes generated document", () => {
     const html = Object.values(renderMinutesSections(fixture)).join("");
     expect(html).toContain("Présidence : Marie Martin");
     expect(html).toContain("Secrétariat : Jean Dupont");
-    expect(html).toContain("Approbation du procès-verbal de la séance précédente");
+    expect(html).toContain("Arrêt du procès-verbal de la séance précédente");
     expect(html).toContain("Rapport figé <strong>important</strong>");
     expect(html).toContain("Marie Martin : Pour");
     expect(html).toContain("Salle &lt;A&gt;");
@@ -166,12 +167,35 @@ describe("minutes generated document", () => {
   it("prints each point once with its discussion before its result", () => {
     const { facts, proceedings } = renderMinutesSections(fixture);
     expect(facts.match(/Ouverture :/g)).toHaveLength(1);
-    expect(proceedings.match(/Approbation du procès-verbal de la séance précédente/g)).toHaveLength(1);
+    expect(proceedings.match(/Arrêt du procès-verbal de la séance précédente/g)).toHaveLength(1);
     expect(proceedings.match(/Une correction de rédaction/g)).toHaveLength(1);
     expect(proceedings.indexOf("Rapport figé")).toBeLessThan(proceedings.indexOf("Une correction de rédaction"));
     expect(proceedings.indexOf("Une correction de rédaction")).toBeLessThan(proceedings.indexOf("Scrutin public"));
     expect(proceedings).not.toContain("<p>Examiné</p>");
-    expect(proceedings).toContain("Adopté");
+    expect(proceedings).toContain("Arrêté");
+    expect(proceedings).not.toContain("Adopté");
+  });
+
+  it("distinguishes a PV not settled from a rejected deliberation", () => {
+    const rejected = {
+      ...fixture,
+      facts: {
+        ...fixture.facts,
+        ballots: [{ ...fixture.facts.ballots[0]!, result: "reject" as const }],
+      },
+    };
+    const pv = renderMinutesSections(rejected).proceedings;
+    expect(pv).toContain("Non arrêté");
+    expect(pv).not.toContain("Rejeté");
+
+    const deliberation: MinutesDetail = {
+      ...rejected,
+      facts: {
+        ...rejected.facts,
+        agenda: [{ ...rejected.facts.agenda[0]!, kind: "councilDecisionProposal", title: "Projet" }],
+      },
+    };
+    expect(renderMinutesSections(deliberation).proceedings).toContain("Rejeté");
   });
 
   it("resolves the proxy holder by attendance identity rather than council member identity", () => {

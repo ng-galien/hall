@@ -8,6 +8,8 @@ import {
   type RelocateResource,
   type ResolveLegalReference,
   type ResourceSearchCriteria,
+  type ResourceChanges,
+  resourceChangesSchema,
   resourceIdSchema,
   type SirenEntity,
   type UpdateResourceContent,
@@ -18,6 +20,7 @@ import { collectResourceReferences, parse } from "@hall/templating";
 import type { ResourceContent, ResourcesClient } from "../clients/resourcesClient.js";
 import { documentPreviewModeForMediaType, inspectDocument } from "../domain/documentPolicy.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
+import type { SecurityRepository } from "../repositories/securityRepository.js";
 import type { DocumentPreviewConverter } from "./documentPreviewConverter.js";
 import { DomainError } from "./errors.js";
 import {
@@ -39,6 +42,7 @@ export interface DocumentaryResourceService {
   findDocumentsByHashes(hashes: readonly string[]): Promise<SirenEntity>;
   search(criteria: ResourceSearchCriteria): Promise<SirenEntity>;
   open(reference: string): Promise<SirenEntity>;
+  listChanges(reference: string): Promise<ResourceChanges>;
   create(input: CreateResource): Promise<SirenEntity>;
   createDocument(input: {
     councilBusinessId?: string;
@@ -115,16 +119,19 @@ function verificationDueAt(fetchedAt: string): string {
   return new Date(Date.parse(fetchedAt) + 24 * 60 * 60 * 1000).toISOString();
 }
 
+// @implements-requirement HALL-FR-DOC-280
 export function createDocumentaryResourceService({
   resourcesClient,
   documentPreviewConverter,
   hallSettingsRepository,
   legalReferenceProvider,
+  securityRepository,
 }: {
   resourcesClient: ResourcesClient;
   documentPreviewConverter: DocumentPreviewConverter;
   hallSettingsRepository: HallSettingsRepository;
   legalReferenceProvider: LegalReferenceProvider;
+  securityRepository: SecurityRepository;
 }): DocumentaryResourceService {
   const requireMutation = async (mutation: ReturnType<ResourcesClient["relocate"]>): Promise<SirenEntity> => {
     const result = await mutation;
@@ -153,6 +160,28 @@ export function createDocumentaryResourceService({
       const resource = await resourcesClient.open(reference);
       if (!resource) throw new DomainError("resource_not_found", 404);
       return resource.representation;
+    },
+    async listChanges(reference) {
+      const resource = await resourcesClient.open(reference);
+      if (!resource) throw new DomainError("resource_not_found", 404);
+      if (resource.data.kind !== "text") throw new DomainError("invalid_request", 400);
+      const auditChanges = await resourcesClient.listTextResourceChanges(resource.data.id);
+      const changes = await Promise.all(
+        auditChanges.map(async (change) => {
+          const author = await securityRepository.findUserById(change.actorId);
+          return {
+            actor: { id: change.actorId, displayName: author?.displayName ?? change.actorId },
+            kind: matchLiteral(change.action, {
+              "resource.updateText": () => "content" as const,
+              "resource.updateMetadata": () => "metadata" as const,
+              "resource.relocate": () => "location" as const,
+            }),
+            fields: [...change.changedFields],
+            occurredAt: change.occurredAt,
+          };
+        }),
+      );
+      return resourceChangesSchema.parse({ resourceId: resource.data.id, changes });
     },
     async create(input) {
       const created = await matchDiscriminated(input, "kind", {

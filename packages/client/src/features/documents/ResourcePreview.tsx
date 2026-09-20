@@ -8,6 +8,7 @@ import { WorkspaceBreadcrumb } from "../../pages/workspace/WorkspaceBreadcrumb";
 import { WorkspaceWorkbenchHeader } from "../../pages/workspace/WorkspaceWorkbenchHeader";
 import { downloadDocumentaryResource } from "../../services/resourcesApi";
 import { ResourceAutosaveToggle } from "../resources/ResourceAutosaveToggle";
+import { ResourceChangesControl } from "../resources/ResourceChangesControl";
 import { ResourcePresentationBody } from "../resources/ResourcePresentationBody";
 import { noResourceCapabilities } from "../resources/resourceCapabilities";
 import { type ResourceSession, useResourceSession } from "../resources/useResourceSession";
@@ -95,13 +96,26 @@ export function ResourcePreviewWithSession({
             closeTestId="resource-preview-close"
             onClose={() => void requestClose()}
             statusControl={
-              !readOnly && session.canConfigureAutosave ? (
-                <ResourceAutosaveToggle
-                  enabled={session.autosaveEnabled}
-                  status={session.saveStatus}
-                  disabled={session.submitting || closing}
-                  onChange={session.updateAutosave}
-                />
+              resource ? (
+                <>
+                  {!readOnly && session.canConfigureAutosave ? (
+                    <ResourceAutosaveToggle
+                      enabled={session.autosaveEnabled}
+                      status={session.saveStatus}
+                      disabled={session.submitting || closing}
+                      onChange={session.updateAutosave}
+                    />
+                  ) : null}
+                  {resource.kind === "text" ? (
+                    <ResourceChangesControl
+                      resourceId={resource.id}
+                      representation={session.representation}
+                      onInvalidated={() => {
+                        if (!session.dirty && !session.submitting) void session.reload();
+                      }}
+                    />
+                  ) : null}
+                </>
               ) : null
             }
           />

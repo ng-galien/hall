@@ -15,3 +15,12 @@ packages/client/test-results/
 
 # Private municipal email imports and attachments
 /local-imports/
+
+# Local production evidence and credentials must never enter the public repository.
+/docs/operations/
+/scripts/hall-mcp-headers.mjs
+*.dump
+*.backup
+*.pgdump
+*.sql.gz
+/-.png

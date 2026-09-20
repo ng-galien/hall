@@ -157,7 +157,9 @@ postgresTest.each(["preparation", "default", "minutes"])(
         const minutes = await get(`/minutes/${third.minutesId}`);
         expect(minutes).toMatchObject({ generatedAt: null, documentId: null });
         expect(
-          minutes.sections.some((section: { content: string }) => section.content.includes("ses conclusion")),
+          minutes.sections.some((section: { content: string }) =>
+            section.content.includes("Points à reprendre dans le procès-verbal"),
+          ),
         ).toBe(true);
       } else {
         expect(meetings.filter((meeting: { closedAt: string | null }) => meeting.closedAt)).toHaveLength(2);

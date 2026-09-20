@@ -15,7 +15,7 @@ import {
   updateResourceContentSchema,
   updateResourceMetadataSchema,
 } from "@hall/api-contract";
-import { Router } from "express";
+import { type NextFunction, type Request, type Response, Router } from "express";
 import multer from "multer";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
@@ -26,8 +26,43 @@ import { routeParameter } from "../routeParameter.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
-export function createDocumentaryResourcesRouter({ documentaryResourceService, eventInvitationService, requestContext }: Cradle): Router {
+// @implements-requirement HALL-FR-DOC-280
+export function createDocumentaryResourcesRouter({
+  documentaryResourceService,
+  councilBusinessWorkspaceService,
+  eventInvitationService,
+  realtimeEvents,
+  requestContext,
+}: Cradle): Router {
   const router = Router();
+  const publishSavedTextChange = (request: Request, representation: { properties?: Record<string, unknown> }): void => {
+    const resourceId = resourceIdSchema.safeParse(representation.properties?.id);
+    if (representation.properties?.kind !== "text" || !resourceId.success || !request.principal) return;
+    realtimeEvents.publish({
+      type: "resource.changed",
+      resourceId: resourceId.data,
+      actor: { id: request.principal.id, displayName: request.principal.displayName },
+    });
+  };
+  const requireBusinessUpdate = requirePermission("council-business.update");
+  const requireBusinessUpdateForContext = (request: Request, response: Response, next: NextFunction): void => {
+    if (request.body?.councilBusinessId) {
+      requireBusinessUpdate(request, response, next);
+      return;
+    }
+    next();
+  };
+  const requireBusinessUpdateForOwnedResource = async (request: Request, response: Response, next: NextFunction) => {
+    const reference = resourceReferenceSchema.parse(routeParameter(request.params.reference));
+    const representation = await documentaryResourceService.open(reference);
+    const resourceId = representation.properties?.id;
+    const businesses = await councilBusinessWorkspaceService.list();
+    const belongsToBusiness = businesses.some(
+      (business) => business.folderResourceId === resourceId || business.reportResourceId === resourceId,
+    );
+    if (belongsToBusiness) return requireBusinessUpdate(request, response, next);
+    next();
+  };
   const uploadFile: ReturnType<typeof upload.single> = (request, response, next) => {
     const context = requestContext.current();
     upload.single("file")(request, response, (error) => {
@@ -61,7 +96,7 @@ export function createDocumentaryResourcesRouter({ documentaryResourceService, e
       context: request.query.context,
       preferredIds: queryValues(request.query.preferredIds),
       excludedIds: queryValues(request.query.excludedIds),
-      includedIds: request.query.includedIds===undefined?undefined:queryValues(request.query.includedIds),
+      includedIds: request.query.includedIds === undefined ? undefined : queryValues(request.query.includedIds),
       query: typeof request.query.query === "string" ? request.query.query : "",
       paths: queryValues(request.query.paths),
       kinds: queryValues(request.query.kinds),
@@ -77,14 +112,20 @@ export function createDocumentaryResourcesRouter({ documentaryResourceService, e
     response.json(await documentaryResourceService.listFolder(path));
   });
 
-  router.post("/", requireActionPermission("resource.create"), async (request, response) => {
-    response.status(201).json(await documentaryResourceService.create(createResourceSchema.parse(request.body)));
-  });
+  router.post(
+    "/",
+    requireActionPermission("resource.create"),
+    requireBusinessUpdateForContext,
+    async (request, response) => {
+      response.status(201).json(await documentaryResourceService.create(createResourceSchema.parse(request.body)));
+    },
+  );
 
   router.post(
     "/documents",
     requireActionPermission("resource.create-document"),
     uploadFile,
+    requireBusinessUpdateForContext,
     async (request, response) => {
       if (!request.file) throw new DomainError("invalid_request");
       response.status(201).json(
@@ -103,6 +144,7 @@ export function createDocumentaryResourcesRouter({ documentaryResourceService, e
     "/spreadsheets/import",
     requireActionPermission("resource.import-spreadsheet"),
     uploadFile,
+    requireBusinessUpdateForContext,
     async (request, response) => {
       if (!request.file) throw new DomainError("invalid_request");
       const name = request.body.name
@@ -226,6 +268,12 @@ export function createDocumentaryResourcesRouter({ documentaryResourceService, e
     response.send(content.content);
   });
 
+  router.get("/:reference/changes", requirePermission("workspace.read"), async (request, response) => {
+    response.json(
+      await documentaryResourceService.listChanges(resourceReferenceSchema.parse(routeParameter(request.params.reference))),
+    );
+  });
+
   router.get("/:reference/preview", requirePermission("workspace.read"), async (request, response) => {
     const preview = await documentaryResourceService.previewDocument(
       resourceReferenceSchema.parse(routeParameter(request.params.reference)),
@@ -253,36 +301,47 @@ export function createDocumentaryResourcesRouter({ documentaryResourceService, e
     },
   );
 
-  router.patch("/:reference/location", requireActionPermission("resource.relocate"), async (request, response) => {
-    response.json(
-      await documentaryResourceService.relocate(
+  router.patch(
+    "/:reference/location",
+    requireActionPermission("resource.relocate"),
+    requireBusinessUpdateForOwnedResource,
+    async (request, response) => {
+      const changed = await documentaryResourceService.relocate(
         resourceReferenceSchema.parse(routeParameter(request.params.reference)),
         relocateResourceSchema.parse(request.body),
-      ),
-    );
-  });
+      );
+      publishSavedTextChange(request, changed);
+      response.json(changed);
+    },
+  );
 
   router.patch(
     "/:reference/metadata",
     requireActionPermission("resource.update-metadata"),
+    requireBusinessUpdateForOwnedResource,
     async (request, response) => {
-      response.json(
-        await documentaryResourceService.updateMetadata(
-          resourceReferenceSchema.parse(routeParameter(request.params.reference)),
-          updateResourceMetadataSchema.parse(request.body),
-        ),
+      const changed = await documentaryResourceService.updateMetadata(
+        resourceReferenceSchema.parse(routeParameter(request.params.reference)),
+        updateResourceMetadataSchema.parse(request.body),
       );
+      publishSavedTextChange(request, changed);
+      response.json(changed);
     },
   );
 
-  router.put("/:reference/content", requireActionPermission("resource.update-content"), async (request, response) => {
-    response.json(
-      await documentaryResourceService.updateContent(
+  router.put(
+    "/:reference/content",
+    requireActionPermission("resource.update-content"),
+    requireBusinessUpdateForOwnedResource,
+    async (request, response) => {
+      const changed = await documentaryResourceService.updateContent(
         resourceReferenceSchema.parse(routeParameter(request.params.reference)),
         updateResourceContentSchema.parse(request.body),
-      ),
-    );
-  });
+      );
+      publishSavedTextChange(request, changed);
+      response.json(changed);
+    },
+  );
 
   router.post(
     "/:reference/event-invitation",

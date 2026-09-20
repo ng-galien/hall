@@ -1,8 +1,8 @@
+import type { ComponentProps } from "react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { ChevronRightIcon } from "../icons";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "./context-menu";
-import type { ComponentProps } from "react";
-import { cn } from "@/lib/utils";
 
 /** Shared rendering extracted from the workspace explorer, retaining its tokens and interaction props. */
 export function ExplorerTree({ className, ...props }: ComponentProps<"ul">) {

@@ -40,6 +40,23 @@ export const resourceSlugSchema = z
 export const resourceIdSchema = z.string().uuid();
 export const resourceReferenceSchema = z.union([resourceIdSchema, resourceSlugSchema]);
 
+// @implements-requirement HALL-FR-DOC-280
+export const resourceChangeKindSchema = z.enum(["content", "metadata", "location"]);
+export const resourceChangeFieldSchema = z.enum(["content", "name", "path", "tags", "autosave"]);
+export const resourceChangeSchema = z
+  .object({
+    actor: z.object({ id: z.string().min(1), displayName: z.string().min(1) }).strict(),
+    kind: resourceChangeKindSchema,
+    fields: z.array(resourceChangeFieldSchema),
+    occurredAt: z.iso.datetime({ offset: true }),
+  })
+  .strict();
+export const resourceChangesSchema = z
+  .object({ resourceId: resourceIdSchema, changes: z.array(resourceChangeSchema) })
+  .strict();
+export type ResourceChange = z.infer<typeof resourceChangeSchema>;
+export type ResourceChanges = z.infer<typeof resourceChangesSchema>;
+
 export const editorAssetTitleSchema = z
   .string()
   .trim()

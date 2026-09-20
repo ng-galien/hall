@@ -10,9 +10,11 @@ import type {
   CompleteAgendaItem,
   CouncilBusiness,
   CouncilBusinessBundleManifest,
+  CouncilBusinessCommitteeLink,
   CouncilBusinessResourceAssociation,
   CouncilBusinessResourceItem,
   CouncilBusinessWorkspaceItem,
+  CouncilCommitteeBusinessLink,
   CouncilMeeting,
   CouncilMeetingClosure,
   CreateAndScheduleCouncilBusiness,
@@ -104,7 +106,15 @@ export interface CouncilClient {
   openBusiness(id: string): Promise<CouncilBusiness | null>;
   createBusiness(input: CreateCouncilBusiness): Promise<CouncilBusiness>;
   deleteBusiness(id: string): Promise<CouncilBusiness>;
-  importBusinessBundle(input: { manifest: CouncilBusinessBundleManifest; files: Record<string, string>; path: string }): Promise<CouncilBusiness>;
+  listBusinessCommittees(businessId: string): Promise<CouncilBusinessCommitteeLink[]>;
+  listCommitteeBusinesses(committeeId: string): Promise<CouncilCommitteeBusinessLink[]>;
+  associateBusinessCommittee(businessId: string, committeeId: string): Promise<CouncilBusinessCommitteeLink>;
+  dissociateBusinessCommittee(businessId: string, committeeId: string): Promise<CouncilBusinessCommitteeLink>;
+  importBusinessBundle(input: {
+    manifest: CouncilBusinessBundleManifest;
+    files: Record<string, string>;
+    path: string;
+  }): Promise<CouncilBusiness>;
   listBusinessResources(businessId: string): Promise<CouncilBusinessResourceAssociation[]>;
   listBusinessResourceItems(businessIds: readonly string[]): Promise<CouncilBusinessResourceItem[]>;
   associateBusinessResource(businessId: string, resourceId: string): Promise<CouncilBusinessResourceAssociation>;

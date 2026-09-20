@@ -64,13 +64,18 @@ export function createCouncilDecisionService({
     async freeze(id, input) {
       for (let attempt = 0; attempt < 5; attempt += 1) {
         const decision = await open(id);
-        if (decision.version !== input.expectedVersion)
-          throw new DomainError("council_decision_conflict", 409);
+        if (decision.version !== input.expectedVersion) throw new DomainError("council_decision_conflict", 409);
         if (decision.state === "frozen") return decision;
         if (!decision.number || !decision.documentDate) throw new DomainError("council_decision_conflict", 409);
         const pdf = await render(decision);
         try {
-          return await councilDecisionClient.freeze(id, input.expectedVersion, decision.number, decision.documentDate, pdf);
+          return await councilDecisionClient.freeze(
+            id,
+            input.expectedVersion,
+            decision.number,
+            decision.documentDate,
+            pdf,
+          );
         } catch (error) {
           if (!(error instanceof DomainError) || error.code !== "council_decision_number_changed") throw error;
         }

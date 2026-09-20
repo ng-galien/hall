@@ -260,7 +260,8 @@ SELECT throws_ok(
   'the closure timestamp cannot be rewritten'
 );
 
--- HALL-FR-MTG-120
+-- HALL-FR-MTG-120: a previous PV that was not examined never blocks closure
+-- and remains a historical point rather than a new vote on the next agenda.
 INSERT INTO meeting_attendance (id, council_member, council_meeting, status)
 SELECT
   test_uuid('closure:next-attendance:' || ordinal),
@@ -282,16 +283,21 @@ SET started_at = '2026-02-01 09:00:00+00'
 FROM closure_result
 WHERE id = closure_result.next_meeting;
 
-SELECT throws_ok(
-  format(
-    'SELECT close_council_meeting(%L::uuid, %L::timestamptz)',
-    (SELECT next_meeting FROM closure_result),
-    '2026-02-01 10:00:00+00'
-  ),
-  'HV117',
-  'the previous council meeting minutes must be approved before closure',
-  'the successor cannot close before approving its exact predecessor minutes'
-);
+CREATE TEMP TABLE second_closure AS
+SELECT close_council_meeting(next_meeting, '2026-02-01 10:00:00+00') AS next_meeting
+FROM closure_result;
+SELECT ok((SELECT closed_at IS NOT NULL FROM council_meetings JOIN closure_result ON id=next_meeting),
+  'the successor closes without completing its previous-PV point');
+SELECT ok((SELECT position=-1 AND started_at IS NULL AND completed_at IS NULL
+  FROM council_agenda_item JOIN closure_result ON council_meeting=next_meeting
+  WHERE minutes_approval IS NOT NULL),
+  'the previous PV remains unexamined in its original meeting');
+SELECT is((SELECT count(*)::integer FROM council_agenda_item JOIN second_closure ON council_meeting=next_meeting
+  WHERE minutes_approval IS NOT NULL),1,'the next meeting has only its own predecessor PV');
+SELECT isnt((SELECT minutes_approval FROM council_agenda_item JOIN closure_result ON council_meeting=next_meeting
+  WHERE minutes_approval IS NOT NULL),
+  (SELECT minutes_approval FROM council_agenda_item JOIN second_closure ON council_meeting=next_meeting
+  WHERE minutes_approval IS NOT NULL),'the unexamined PV is not scheduled for a second vote');
 
 -- HALL-FR-BAL-290
 UPDATE council_meetings SET stale = TRUE WHERE closed_at IS NULL AND NOT stale;

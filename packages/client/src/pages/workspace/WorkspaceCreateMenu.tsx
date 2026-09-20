@@ -14,7 +14,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
-import { apiErrorCode, type ApiErrorCode } from "../../services/apiClient";
+import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons, workspaceCreateKinds } from "./workspaceCreateKind";
 
 export interface WorkspaceCreationOption {

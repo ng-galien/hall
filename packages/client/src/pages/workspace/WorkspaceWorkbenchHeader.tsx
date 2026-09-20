@@ -1,3 +1,4 @@
+// biome-ignore-all lint/a11y/noNoninteractiveTabindex: The focusable title exposes its full-text tooltip to keyboard users.
 import { type ReactNode, useState } from "react";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";

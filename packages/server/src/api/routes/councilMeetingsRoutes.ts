@@ -58,8 +58,15 @@ async function requireMeetingAgendaItem(
 // TODO REMOVE_STALE: remove this temporary API route and its registration below.
 const staleMeetingRoutePath = "/:meetingReference/stale";
 
-export function createCouncilMeetingsRouter({ councilClient, meetingNoticeService }: Cradle): Router {
+// @implements-requirement HALL-FR-MTG-320
+export function createCouncilMeetingsRouter({ councilClient, meetingNoticeService, realtimeEvents }: Cradle): Router {
   const router = Router();
+
+  async function changeMeeting<Result>(meetingId: string, action: () => Promise<Result>): Promise<Result> {
+    const result = await action();
+    realtimeEvents.publish({ type: "meeting.changed", meetingId });
+    return result;
+  }
 
   router.get("/", requirePermission("meetings.read"), async (_request, response) => {
     const meetings = await councilClient.listMeetings();
@@ -203,7 +210,11 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
       response.locals.currentCouncilMeeting = meeting;
       response
         .status(201)
-        .json(await councilClient.addOpenQuestion(meeting.id, addOpenQuestionSchema.parse(request.body)));
+        .json(
+          await changeMeeting(meeting.id, () =>
+            councilClient.addOpenQuestion(meeting.id, addOpenQuestionSchema.parse(request.body)),
+          ),
+        );
     },
   );
   router.get("/:meetingReference/conduct", requirePermission("meetings.read"), async (request, response) => {
@@ -218,9 +229,11 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
       response
         .status(201)
         .json(
-          await councilClient.recordMeetingAttendanceEvents(
-            meeting.id,
-            recordMeetingAttendanceEventsSchema.parse(request.body),
+          await changeMeeting(meeting.id, () =>
+            councilClient.recordMeetingAttendanceEvents(
+              meeting.id,
+              recordMeetingAttendanceEventsSchema.parse(request.body),
+            ),
           ),
         );
     },
@@ -232,7 +245,11 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
       const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
       response
         .status(201)
-        .json(await councilClient.recordMeetingQuorum(meeting.id, recordMeetingQuorumSchema.parse(request.body)));
+        .json(
+          await changeMeeting(meeting.id, () =>
+            councilClient.recordMeetingQuorum(meeting.id, recordMeetingQuorumSchema.parse(request.body)),
+          ),
+        );
     },
   );
   router.post(
@@ -243,9 +260,8 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
       response
         .status(201)
         .json(
-          await councilClient.recordMeetingReconvocation(
-            meeting.id,
-            recordMeetingReconvocationSchema.parse(request.body),
+          await changeMeeting(meeting.id, () =>
+            councilClient.recordMeetingReconvocation(meeting.id, recordMeetingReconvocationSchema.parse(request.body)),
           ),
         );
     },
@@ -293,7 +309,9 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
     async (request, response) => {
       const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
       response.json(
-        await councilClient.recordMeetingOpening(meeting.id, recordMeetingOpeningSchema.parse(request.body)),
+        await changeMeeting(meeting.id, () =>
+          councilClient.recordMeetingOpening(meeting.id, recordMeetingOpeningSchema.parse(request.body)),
+        ),
       );
     },
   );
@@ -306,7 +324,11 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
 
   router.post("/:meetingReference/close", requireActionPermission("meeting.close"), async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
-    response.json(await councilClient.closeMeeting(meeting.id, closeCouncilMeetingSchema.parse(request.body)));
+    response.json(
+      await changeMeeting(meeting.id, () =>
+        councilClient.closeMeeting(meeting.id, closeCouncilMeetingSchema.parse(request.body)),
+      ),
+    );
   });
 
   router.get("/:meetingReference/attendance", requirePermission("meetings.read"), async (request, response) => {
@@ -322,7 +344,11 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
       const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
       response
         .status(201)
-        .json(await councilClient.recordAttendance(meeting.id, recordMeetingAttendanceSchema.parse(request.body)));
+        .json(
+          await changeMeeting(meeting.id, () =>
+            councilClient.recordAttendance(meeting.id, recordMeetingAttendanceSchema.parse(request.body)),
+          ),
+        );
     },
   );
 
@@ -395,7 +421,11 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
       response.locals.currentCouncilMeeting = meeting;
       response
         .status(201)
-        .json(await councilClient.recordAgendaItemRecusal(item.id, recordAgendaItemRecusalSchema.parse(request.body)));
+        .json(
+          await changeMeeting(meeting.id, () =>
+            councilClient.recordAgendaItemRecusal(item.id, recordAgendaItemRecusalSchema.parse(request.body)),
+          ),
+        );
     },
   );
 
@@ -405,7 +435,11 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
     async (request, response) => {
       const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
       const item = await requireMeetingAgendaItem(councilClient, meeting, routeParameter(request.params.agendaItemId));
-      response.json(await councilClient.adjournAgendaItem(item.id, adjournAgendaItemSchema.parse(request.body)));
+      response.json(
+        await changeMeeting(meeting.id, () =>
+          councilClient.adjournAgendaItem(item.id, adjournAgendaItemSchema.parse(request.body)),
+        ),
+      );
     },
   );
 
@@ -459,7 +493,11 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
         routeParameter(request.params.agendaItemId),
       );
       response.locals.currentCouncilMeeting = meeting;
-      response.json(await councilClient.startAgendaItem(agendaItem.id, startAgendaItemSchema.parse(request.body)));
+      response.json(
+        await changeMeeting(meeting.id, () =>
+          councilClient.startAgendaItem(agendaItem.id, startAgendaItemSchema.parse(request.body)),
+        ),
+      );
     },
   );
 
@@ -474,7 +512,9 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
         routeParameter(request.params.agendaItemId),
       );
       response.json(
-        await councilClient.completeAgendaItem(agendaItem.id, completeAgendaItemSchema.parse(request.body)),
+        await changeMeeting(meeting.id, () =>
+          councilClient.completeAgendaItem(agendaItem.id, completeAgendaItemSchema.parse(request.body)),
+        ),
       );
     },
   );
@@ -491,7 +531,9 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
       );
       response.locals.currentCouncilMeeting = meeting;
       response.json(
-        await councilClient.updateAgendaItemNotes(agendaItem.id, updateAgendaItemNotesSchema.parse(request.body)),
+        await changeMeeting(meeting.id, () =>
+          councilClient.updateAgendaItemNotes(agendaItem.id, updateAgendaItemNotesSchema.parse(request.body)),
+        ),
       );
     },
   );

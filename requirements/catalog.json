@@ -45,6 +45,10 @@
       "quality": {
         "label": "Qualité et architecture",
         "description": "Contrats, cohérence, erreurs, intégrité, audit et traçabilité technique."
+      },
+      "municipality": {
+        "label": "Commune",
+        "description": "Configuration de la commune et accès à ses données."
       }
     },
     "prefixThemes": {
@@ -69,7 +73,8 @@
       "INT": "quality",
       "SCH": "quality",
       "TRC": "quality",
-      "SRC": "workspace"
+      "SRC": "workspace",
+      "COM": "municipality"
     },
     "requirementThemes": {}
   },
@@ -370,10 +375,10 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "L’approbation du procès-verbal précédent occupe la première position de l’ordre du jour.",
+      "statement": "Le point où le procès-verbal précédent doit être arrêté occupe la première position de l’ordre du jour.",
       "acceptanceCriteria": [
         "Le procès-verbal est arrêté au commencement de la séance suivante (S3 alinéa 3).",
-        "Hall réalise Approbation PV en première position dans cette autorité logicielle ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire."
+        "Hall place le point d’arrêt du PV en première position ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire."
       ],
       "clauses": [
         {
@@ -389,7 +394,7 @@
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Hall réalise Approbation PV en première position dans cette autorité logicielle ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire.",
+          "statement": "Hall place le point d’arrêt du PV en première position ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire.",
           "sourceIds": []
         }
       ]
@@ -761,15 +766,15 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "La programmation d’une approbation de procès-verbal est atomique.",
+      "statement": "La programmation du point où le procès-verbal doit être arrêté est atomique.",
       "acceptanceCriteria": [
-        "Programmation approbation atomique : P — transaction."
+        "Programmation du point d’arrêt du PV atomique : P — transaction."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Programmation approbation atomique : P — transaction.",
+          "statement": "Programmation du point d’arrêt du PV atomique : P — transaction.",
           "sourceIds": []
         }
       ]
@@ -3263,6 +3268,42 @@
         }
       ]
     },
+    "HALL-FR-DOC-280": {
+      "name": "RESOURCE_CHANGES_ARE_VISIBLE_ACROSS_SESSIONS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-09-18"
+      },
+      "statement": "Après une modification atomique enregistrée d’une ressource texte, les sessions autorisées sont informées ; l’icône nuage existante conserve la sauvegarde et une icône d’historique distincte donne accès à un aperçu et à un panneau informatif affichant, pour chaque auteur, sa dernière modification de cette ressource, sa nature et son horodatage.",
+      "acceptanceCriteria": [
+        "L’icône nuage existante dans l’en-tête reste le contrôle de sauvegarde automatique, avec ses états et son animation ; une petite icône d’historique distincte avec infobulle apparaît à côté. Aucun contrôle à trois segments ni pastille ronde de repli ne les remplace.",
+        "Après une modification de ressource texte enregistrée dans une autre session autorisée, la même icône signale le changement sans recharger toute l’application.",
+        "Le survol ou le focus de l’icône d’historique donne un aperçu superposé de la dernière modification disponible ; son activation ouvre un panneau informatif superposé à droite, sans réduire la ressource, chargé à la demande. Pour chaque auteur visible, il affiche sa dernière modification, ce qui a changé et quand.",
+        "Le serveur ne diffuse l’événement et l’identité de l’auteur qu’aux lecteurs autorisés ; une modification échouée n’émet pas d’événement. Après reconnexion, la vue rejoint l’état serveur courant.",
+        "Le panneau est en lecture seule dans cette livraison. La résolution des éditions concurrentes, les commandes d’historique, la comparaison et la restauration de versions de texte relèvent de futures stories."
+      ],
+      "clauses": [
+        {
+          "key": "cross-session-change",
+          "origin": "product",
+          "statement": "Les modifications validées de ressources texte sont signalées entre sessions avec l’identité de l’auteur authentifié.",
+          "sourceIds": []
+        },
+        {
+          "key": "shared-save-change-history-control",
+          "origin": "product",
+          "statement": "L’icône nuage existante reste le contrôle de sauvegarde et signale le changement ; une icône d’historique distincte avec infobulle ouvre un aperçu au survol ou au focus, puis le panneau informatif superposé à droite de la dernière modification par auteur.",
+          "sourceIds": []
+        },
+        {
+          "key": "atomic-updates-only",
+          "origin": "product",
+          "statement": "Cette première livraison porte sur les mises à jour atomiques ; la résolution des conflits d’édition et l’historique de versions de texte restent à définir séparément.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-LOC-010": {
       "name": "LOCATION_BELONGS_TO_HALL",
       "nature": "functional",
@@ -3361,15 +3402,15 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "Un procès-verbal possède une seule approbation.",
+      "statement": "Un procès-verbal possède un seul point où son arrêt peut être constaté.",
       "acceptanceCriteria": [
-        "Une approbation par PV : P — objet unique n'est pas une obligation de réussir un vote unique."
+        "Un point d’arrêt par PV : P — l’objet est unique, même lorsque le PV demeure non arrêté."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Une approbation par PV : P — objet unique n'est pas une obligation de réussir un vote unique.",
+          "statement": "Un point d’arrêt par PV : P — l’objet est unique, même lorsque le PV demeure non arrêté.",
           "sourceIds": []
         }
       ]
@@ -3381,10 +3422,10 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "La clôture d’une séance crée l’approbation de son procès-verbal.",
+      "statement": "La clôture d’une séance prépare le point où son procès-verbal doit être arrêté.",
       "acceptanceCriteria": [
         "Le procès-verbal est arrêté au commencement de la séance suivante (S3 alinéa 3).",
-        "Hall réalise Clôture crée approbation dans cette autorité logicielle ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire."
+        "Hall prépare le point d’arrêt du PV à la clôture ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire."
       ],
       "clauses": [
         {
@@ -3400,7 +3441,7 @@
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Hall réalise Clôture crée approbation dans cette autorité logicielle ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire.",
+          "statement": "Hall prépare le point d’arrêt du PV à la clôture ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire.",
           "sourceIds": []
         }
       ]
@@ -3432,15 +3473,15 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "L’approbation d’un procès-verbal reste hors de l’espace de travail.",
+      "statement": "Le point d’arrêt d’un procès-verbal reste hors de l’espace de travail.",
       "acceptanceCriteria": [
-        "Approbation hors workspace : P — frontière de domaine."
+        "Point d’arrêt hors espace de travail : P — frontière de domaine."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Approbation hors workspace : P — frontière de domaine.",
+          "statement": "Point d’arrêt hors espace de travail : P — frontière de domaine.",
           "sourceIds": []
         }
       ]
@@ -3614,15 +3655,15 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "Le vote d’approbation référence le PDF généré du procès-verbal.",
+      "statement": "Le scrutin sur l’arrêt du PV référence le PDF généré du procès-verbal.",
       "acceptanceCriteria": [
-        "Vote d'approbation référence PDF généré : P — mécanisme de rattachement."
+        "Le scrutin sur l’arrêt du PV référence le PDF généré : P — mécanisme de rattachement."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Vote d'approbation référence PDF généré : P — mécanisme de rattachement.",
+          "statement": "Le scrutin sur l’arrêt du PV référence le PDF généré : P — mécanisme de rattachement.",
           "sourceIds": []
         }
       ]
@@ -3798,8 +3839,8 @@
       "acceptanceCriteria": [
         "L’en-tête reste visible pendant le défilement de la fiche.",
         "Dans la fiche déjà identifiée comme procès-verbal par la navigation, le titre présente seulement le numéro du conseil ; la date et le lieu de la séance sont présentés une seule fois dans l’en-tête.",
-        "L’état du procès-verbal utilise le badge et la couleur de statut communs.",
-        "Les accès à la séance d’origine et, lorsqu’elle existe, à la séance d’approbation sont regroupés dans l’en-tête et reprennent la présentation du lien vers le procès-verbal depuis une séance.",
+        "L’état arrêté ou non arrêté du procès-verbal est projeté depuis le résultat du scrutin conservé en base et utilise le badge et la couleur de statut communs ; l’état de génération du document est présenté séparément.",
+        "Les accès à la séance d’origine et, lorsqu’elle existe, à la séance où le PV est à arrêter sont regroupés dans l’en-tête et reprennent la présentation du lien vers le procès-verbal depuis une séance.",
         "Les actions de prévisualisation, génération, consultation ou téléchargement du document sont regroupées dans une ligne « Document » distincte du même en-tête ; leur explication est portée par une infobulle et cette section n’est pas répétée en bas de la fiche."
       ],
       "clauses": [
@@ -4016,7 +4057,8 @@
       "statement": "L’ouverture d’une séance conserve le constat initial de quorum, qu’il soit atteint ou non.",
       "acceptanceCriteria": [
         "Le quorum doit être atteint à la mise en discussion de chaque délibération (S1/J1).",
-        "L’ouverture logicielle conserve le constat de quorum, même non atteint. Les échanges sans décision restent possibles ; les délibérations formelles et scrutins sont contrôlés séparément, et les points soumis au vote peuvent être ajournés sans résultat présumé."
+        "L’ouverture logicielle conserve le constat de quorum, même non atteint. Les échanges sans décision restent possibles ; les délibérations formelles et scrutins sont contrôlés séparément, et les points soumis au vote peuvent être ajournés sans résultat présumé.",
+        "Un constat de quorum non atteint ne clôt pas automatiquement la séance et ne crée pas sa séance suivante ; la clôture exige une action distincte."
       ],
       "clauses": [
         {
@@ -4034,6 +4076,12 @@
           "key": "implementation",
           "origin": "product",
           "statement": "L’ouverture logicielle conserve le constat de quorum, même non atteint. Les échanges sans décision restent possibles ; les délibérations formelles et scrutins sont contrôlés séparément, et les points soumis au vote peuvent être ajournés sans résultat présumé.",
+          "sourceIds": []
+        },
+        {
+          "key": "explicit-closure",
+          "origin": "product",
+          "statement": "Un constat de quorum non atteint ne clôt pas automatiquement la séance et ne crée pas sa séance suivante ; la clôture exige une action distincte.",
           "sourceIds": []
         }
       ]
@@ -4130,16 +4178,16 @@
       ]
     },
     "HALL-FR-MTG-120": {
-      "name": "PREVIOUS_MINUTES_ARE_APPROVED_BEFORE_CLOSURE",
+      "name": "PREVIOUS_MINUTES_NEITHER_BLOCK_CLOSURE_NOR_REPEAT",
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "Le point consacré au procès-verbal précédent doit être traité avant la clôture de la séance.",
+      "statement": "Le sort du procès-verbal précédent ne bloque pas la clôture et son point non achevé n’est pas réinscrit à la séance suivante.",
       "acceptanceCriteria": [
         "Le procès-verbal est arrêté au commencement de la séance suivante (S3 alinéa 3).",
-        "Hall réalise PV précédent traité avant clôture dans cette autorité logicielle ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire. La garde avant clôture et le seul achèvement du point ne prouvent ni le moment au commencement ni un résultat favorable."
+        "La clôture reste possible si le point du PV précédent est inachevé ou ajourné. Sa trace demeure dans la séance close, sans être reportée ni soumise de nouveau au vote ; ce PV reste non arrêté. Le PV de la séance close est préparé pour la séance suivante."
       ],
       "clauses": [
         {
@@ -4155,7 +4203,7 @@
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Hall réalise PV précédent traité avant clôture dans cette autorité logicielle ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire. La garde avant clôture et le seul achèvement du point ne prouvent ni le moment au commencement ni un résultat favorable.",
+          "statement": "La clôture reste possible si le point du PV précédent est inachevé ou ajourné. Sa trace demeure dans la séance close, sans être reportée ni soumise de nouveau au vote ; ce PV reste non arrêté. Le PV de la séance close est préparé pour la séance suivante.",
           "sourceIds": []
         }
       ]
@@ -6792,6 +6840,34 @@
         }
       ]
     },
+    "HALL-FR-BUS-070": {
+      "name": "COUNCIL_BUSINESS_COMMITTEE_LINKS_ARE_MANAGEABLE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-09-17"
+      },
+      "statement": "Depuis une affaire du conseil, un utilisateur autorisé peut associer une ou plusieurs commissions et retirer ces rattachements ; chaque commission permet de retrouver les affaires qui lui sont associées.",
+      "acceptanceCriteria": [
+        "Depuis l’en-tête de la fiche d’une affaire, un utilisateur autorisé recherche une commission parmi plusieurs résultats et l’associe par le bouton + du résultat ou par Entrée sur le résultat sélectionné ; chaque association apparaît comme un badge sur la même ligne. Le nom de la commission ouvre sa fiche par un lien dont le soulignement apparaît après un bref survol ; la croix distincte retire le rattachement. Plusieurs commissions peuvent être associées et les liens enregistrés restent visibles après rechargement.",
+        "Depuis la fiche d’une commission, un utilisateur peut retrouver les affaires qui lui sont associées et ouvrir leur fiche.",
+        "L’ajout et le retrait d’une association sont des mises à jour d’une affaire existante et exigent une permission dédiée à cette mise à jour ; cette permission n’autorise ni la création ni la suppression d’une affaire et ne se confond ni avec workspace.write ni avec le droit de préparer les commissions."
+      ],
+      "clauses": [
+        {
+          "key": "classification",
+          "origin": "product",
+          "statement": "Le rattachement des commissions concerne l’affaire du conseil dans la durée et peut être ajouté ou retiré depuis cette affaire.",
+          "sourceIds": []
+        },
+        {
+          "key": "permission",
+          "origin": "product",
+          "statement": "Une permission dédiée à la mise à jour d’une affaire existante couvre ses modifications, dont l’association et la dissociation des commissions, mais pas sa création ni sa suppression ; elle ne se confond ni avec workspace.write ni avec la préparation des commissions.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-AGI-380": {
       "name": "PREPARED_SUBJECT_INSERTION_PRESERVES_NATURE_AND_SHIFTS_ATOMICALLY",
       "nature": "functional",
@@ -7104,13 +7180,13 @@
       },
       "statement": "Chaque action de conduite expose ses motifs d’indisponibilité depuis l’autorité PostgreSQL commune.",
       "acceptanceCriteria": [
-        "Chaque action de conduite expose tous ses motifs courants d’indisponibilité depuis PostgreSQL. Les capacités Siren et les motifs affichés partagent cette autorité ; HTTP ajoute le refus de permission. L’ajournement d’une approbation de PV conserve son identité et son état non approuvé ; tant que le modèle de report multiple n’est pas décidé, la clôture expose les PV précédents en attente et reste refusée."
+        "Chaque action de conduite expose tous ses motifs courants d’indisponibilité depuis PostgreSQL. Les capacités Siren et les motifs affichés partagent cette autorité ; HTTP ajoute le refus de permission. L’ajournement d’un point de PV conserve son identité et son état non arrêté, sans bloquer la clôture ni être reporté pour un nouveau vote."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Chaque action de conduite expose tous ses motifs courants d’indisponibilité depuis PostgreSQL. Les capacités Siren et les motifs affichés partagent cette autorité ; HTTP ajoute le refus de permission. L’ajournement d’une approbation de PV conserve son identité et son état non approuvé ; tant que le modèle de report multiple n’est pas décidé, la clôture expose les PV précédents en attente et reste refusée.",
+          "statement": "Chaque action de conduite expose tous ses motifs courants d’indisponibilité depuis PostgreSQL. Les capacités Siren et les motifs affichés partagent cette autorité ; HTTP ajoute le refus de permission. L’ajournement d’un point de PV conserve son identité et son état non arrêté, sans bloquer la clôture ni être reporté pour un nouveau vote.",
           "sourceIds": []
         }
       ]
@@ -7366,6 +7442,82 @@
           "key": "single-active-meeting",
           "origin": "product",
           "statement": "Conserver une seule séance non clôturée et non `stale` à l’état actif.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MTG-320": {
+      "name": "MEETING_CONDUCT_IS_SHARED_LIVE_WITH_READERS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-09-18"
+      },
+      "statement": "Les lecteurs autorisés suivent en direct le déroulement de la séance conduite par un utilisateur habilité et voient le point en cours sans action de conduite.",
+      "acceptanceCriteria": [
+        "Après une commande de conduite réussie qui change le déroulement de séance, les lecteurs autorisés voient le point en cours et son état actualisés sans recharger la page.",
+        "Le lecteur n’a aucune action Siren de conduite. Il peut consulter un autre sujet, mais un nouvel événement de séance reprend la priorité et le replace sur le point courant.",
+        "Après perte puis retour de la connexion, la vue du lecteur rejoint l’état serveur courant ; une transition échouée ne produit pas de mise à jour fictive."
+      ],
+      "clauses": [
+        {
+          "key": "live-reading",
+          "origin": "product",
+          "statement": "Pendant la séance, le conducteur pilote et les conseillers autorisés suivent le déroulement en lecture seule sur ordinateur ou mobile.",
+          "sourceIds": []
+        },
+        {
+          "key": "meeting-event-priority",
+          "origin": "product",
+          "statement": "Le lecteur peut naviguer, mais un nouvel événement de séance a priorité sur sa position de lecture et le replace sur le point courant.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-COM-010": {
+      "name": "MUNICIPALITY_CONFIGURATION_SCREEN",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-09-20"
+      },
+      "statement": "Un écran accessible par le menu principal permet de consulter et modifier les données de la commune selon des habilitations distinctes, dans la continuité de l’IHM Hall.",
+      "acceptanceCriteria": [
+        "Un écran de configuration de la commune est accessible depuis le menu principal.",
+        "La consultation des données de commune est soumise à une habilitation de lecture appropriée. Les rôles et permissions existants sont examinés avant toute proposition de création ; leur attribution précise aux profils reste à décider avec le propriétaire.",
+        "La modification des données est soumise à une habilitation distincte de la lecture. Le serveur contrôle les droits et Siren expose les capacités autorisées ; le client consomme ces capacités.",
+        "L’écran réutilise les primitives partagées et le style des autres écrans Hall, sans nouveau langage visuel.",
+        "La clarification part des données de commune déjà définies dans Hall. La liste exacte des champs à présenter et modifier reste à préciser avec le propriétaire ; ce besoin ne vaut pas approbation de nouvelles données, salles ou règles de gestion."
+      ],
+      "clauses": [
+        {
+          "key": "main-menu",
+          "origin": "product",
+          "statement": "Un écran de configuration de la commune est accessible depuis le menu principal.",
+          "sourceIds": []
+        },
+        {
+          "key": "read-access",
+          "origin": "product",
+          "statement": "La consultation des données de commune est soumise à une habilitation de lecture appropriée. Les rôles et permissions existants sont examinés avant toute proposition de création ; leur attribution précise aux profils reste à décider avec le propriétaire.",
+          "sourceIds": []
+        },
+        {
+          "key": "write-access",
+          "origin": "product",
+          "statement": "La modification des données est soumise à une habilitation distincte de la lecture. Le serveur contrôle les droits et Siren expose les capacités autorisées ; le client consomme ces capacités.",
+          "sourceIds": []
+        },
+        {
+          "key": "visual-consistency",
+          "origin": "product",
+          "statement": "L’écran réutilise les primitives partagées et le style des autres écrans Hall, sans nouveau langage visuel.",
+          "sourceIds": []
+        },
+        {
+          "key": "scope-to-clarify",
+          "origin": "product",
+          "statement": "La clarification part des données de commune déjà définies dans Hall. La liste exacte des champs à présenter et modifier reste à préciser avec le propriétaire ; ce besoin ne vaut pas approbation de nouvelles données, salles ou règles de gestion.",
           "sourceIds": []
         }
       ]

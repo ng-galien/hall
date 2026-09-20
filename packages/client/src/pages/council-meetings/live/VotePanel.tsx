@@ -1,22 +1,25 @@
-import type {
-  LiveBallotMethod as BallotMethod,
-  LiveBallotSubmission as RecordBallotInput,
-  LiveMeetingPresentation,
-  LiveVoteChoice as VoteChoice,
-} from "../../../models/liveMeeting";
-import type { CouncilMemberView } from "../../../models/directory";
+// biome-ignore-all lint/correctness/useExhaustiveDependencies: Voting-context changes intentionally invalidate a preview.
 import { findSirenAction } from "@hall/api-contract";
-import type { BallotPreview } from "../../../services/ballotsApi";
-import { apiErrorCode, type ApiErrorCode } from "../../../services/apiClient";
-import { Modal, RequestErrorBanner } from "../../../components/Ui";
-import { Button } from "../../../components/ui/button";
+import { matchLiteral } from "@hall/domain";
 import { type DragEvent, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { matchLiteral } from "@hall/domain";
+import { Modal, RequestErrorBanner } from "../../../components/Ui";
+import { Button } from "../../../components/ui/button";
+import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdictPresentation";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import type { TranslationKey } from "../../../i18n/en";
 import { useI18n } from "../../../i18n/I18nProvider";
+import type { CouncilMemberView } from "../../../models/directory";
+import type {
+  LiveBallotMethod as BallotMethod,
+  LiveMeetingPresentation,
+  LiveBallotSubmission as RecordBallotInput,
+  LiveVoteChoice as VoteChoice,
+} from "../../../models/liveMeeting";
+import { type ApiErrorCode, apiErrorCode } from "../../../services/apiClient";
+import type { BallotPreview } from "../../../services/ballotsApi";
 import { type BallotParticipant, ballotParticipants, councilMemberName } from "../ballotParticipants";
+
 type SecretBallotTotals = Extract<RecordBallotInput, { method: "secret" }>["totals"];
 
 type AssignmentChoice = VoteChoice | "blank" | "invalid";
@@ -130,6 +133,7 @@ export function VotePanel({
   aggregate,
   members,
   target,
+  isMinutes,
   open,
   onOpenChange,
   onPreview,
@@ -141,6 +145,7 @@ export function VotePanel({
   aggregate: LiveMeetingPresentation;
   members: CouncilMemberView[];
   target: { councilDecisionId: string } | { agendaItemId: string };
+  isMinutes: boolean;
   open: boolean;
   onOpenChange(open: boolean): void;
   onPreview(input: RecordBallotInput): Promise<BallotPreview>;
@@ -481,7 +486,7 @@ export function VotePanel({
           <div className="ballot-preview" data-testid="live-ballot-preview">
             <p className="ballot-preview-hint">{t("ballot.previewHint")}</p>
             <strong className="ballot-preview-result" data-testid="live-ballot-preview-result">
-              {t(preview.data.calculation.result === "approve" ? "live.adopted" : "live.rejected")}
+              {t(ballotVerdictKey(isMinutes, preview.data.calculation.result === "approve"))}
             </strong>
             <p className="ballot-preview-hint">
               {t("ballot.previewQuorum")} : {formatNumber(preview.data.quorum.presentCount)} /{" "}

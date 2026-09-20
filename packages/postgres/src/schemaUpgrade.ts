@@ -69,12 +69,24 @@ export function planHallSchemaUpgrade(
   const targetColumnRenames = columnRenames(installed, target, installedTables, targetTables);
   const installedConstraints = constraintMap(installed, installedTables);
   const targetConstraints = constraintMap(target, targetTables);
+  const missingRoutines = missingDefinitions(installed.routines, target.routines);
+  const removedViews = missingDefinitions(installed.views, target.views);
+  const routinesTypedByRemovedViews = missingRoutines.filter((routine) =>
+    removedViews.some((view) => routineSignatureReferencesView(routine, view)),
+  );
+  const routinesTypedByRemovedViewOids = new Set(routinesTypedByRemovedViews.map((routine) => routine.oid));
 
   appendDefinitionDrops(statements, installed.triggers, target.triggers, "drop-trigger", dropTrigger);
+  appendDefinitionDropList(statements, routinesTypedByRemovedViews, "drop-routine", dropRoutine);
   appendViewDrops(statements, installed, target);
   appendConstraintDrops(statements, installedConstraints, targetConstraints);
   appendDefinitionDrops(statements, installed.indexes, target.indexes, "drop-index", dropIndex);
-  appendMissingDefinitionDrops(statements, installed.routines, target.routines, "drop-routine", dropRoutine);
+  appendDefinitionDropList(
+    statements,
+    missingRoutines.filter((routine) => !routinesTypedByRemovedViewOids.has(routine.oid)),
+    "drop-routine",
+    dropRoutine,
+  );
 
   for (const schema of target.schemas) {
     if (!installed.schemas.some((candidate) => candidate.schemaName === schema.schemaName)) {
@@ -191,17 +203,33 @@ function appendDefinitionDrops(
   }
 }
 
-function appendMissingDefinitionDrops(
+function appendDefinitionDropList(
   statements: HallSchemaUpgradeStatement[],
-  installed: readonly PostgresCatalogDefinition[],
-  target: readonly PostgresCatalogDefinition[],
+  definitions: readonly PostgresCatalogDefinition[],
   kind: Extract<HallSchemaUpgradeStatementKind, `drop-${string}`>,
   render: (definition: PostgresCatalogDefinition) => string,
 ): void {
-  const targetByIdentity = definitionMap(target);
-  for (const [identity, definition] of definitionMap(installed)) {
-    if (!targetByIdentity.has(identity)) append(statements, kind, identity, render(definition));
+  for (const definition of definitions) {
+    append(statements, kind, definitionIdentity(definition), render(definition));
   }
+}
+
+function missingDefinitions(
+  installed: readonly PostgresCatalogDefinition[],
+  target: readonly PostgresCatalogDefinition[],
+): PostgresCatalogDefinition[] {
+  const targetByIdentity = definitionMap(target);
+  return [...definitionMap(installed).values()].filter(
+    (definition) => !targetByIdentity.has(definitionIdentity(definition)),
+  );
+}
+
+function routineSignatureReferencesView(routine: PostgresCatalogDefinition, view: PostgresCatalogDefinition): boolean {
+  const viewType = `${view.schemaName}.${view.objectName}`.toLowerCase();
+  const signature = `${routine.identityArguments} ${routine.definition.split(/\blanguage\b/i, 1)[0] ?? ""}`
+    .replaceAll('"', "")
+    .toLowerCase();
+  return signature.includes(viewType);
 }
 
 function appendDefinitionCreates(
@@ -228,8 +256,7 @@ function appendViewDrops(
   const targetByIdentity = definitionMap(target.views);
   for (const view of [...installed.views].reverse()) {
     const identity = definitionIdentity(view);
-    const desired = targetByIdentity.get(identity);
-    if (!desired || normalized(desired.definition) !== normalized(view.definition)) {
+    if (!targetByIdentity.has(identity)) {
       append(statements, "drop-view", identity, `DROP VIEW ${qualified(view.schemaName, view.objectName)}`);
     }
   }
@@ -245,11 +272,12 @@ function appendViewCreates(
     const identity = definitionIdentity(view);
     const actual = installedByIdentity.get(identity);
     if (!actual || normalized(actual.definition) !== normalized(view.definition)) {
+      const command = actual ? "CREATE OR REPLACE VIEW" : "CREATE VIEW";
       append(
         statements,
         "create-view",
         identity,
-        `CREATE VIEW ${qualified(view.schemaName, view.objectName)} AS ${withoutTerminator(view.definition)}`,
+        `${command} ${qualified(view.schemaName, view.objectName)} AS ${withoutTerminator(view.definition)}`,
       );
     }
   }
@@ -413,11 +441,9 @@ function appendColumnAlterations(
     );
   }
   if (normalized(actual.dataType) !== normalized(desired.dataType)) {
-    append(
-      statements,
-      "alter-column",
-      identity,
-      `ALTER TABLE ${table} ALTER COLUMN ${column} TYPE ${desired.dataType} USING ${column}::${desired.dataType}`,
+    throw new HallSchemaUpgradePlanningError(
+      `Hall refuses to convert the data type of ${identity} without an explicit data-preserving migration rule`,
+      [`column:${identity}`],
     );
   }
   if (normalized(actual.defaultExpression ?? "") !== normalized(desired.defaultExpression ?? "")) {

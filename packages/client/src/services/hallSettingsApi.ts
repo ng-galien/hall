@@ -1,5 +1,5 @@
-import { councilTermSchema, findSirenAction, type CouncilTerm } from "@hall/api-contract";
-import { updateHallSettingsSchema, type HallSettings } from "@hall/domain";
+import { type CouncilTerm, councilTermSchema, findSirenAction } from "@hall/api-contract";
+import { type HallSettings, updateHallSettingsSchema } from "@hall/domain";
 import { apiSirenRequest, submitSirenAction } from "./apiClient";
 
 export async function loadMeetingSettings() {

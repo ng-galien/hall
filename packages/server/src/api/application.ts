@@ -1,4 +1,3 @@
-import { createCouncilDelegationsRouter } from "./routes/councilDelegationsRoutes.js";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { handleWorkspaceMcp, WorkspaceClient } from "@hall/mcp";
@@ -27,6 +26,7 @@ import { createContentTemplatesRouter } from "./routes/contentTemplatesRoutes.js
 import { createCouncilBusinessRouter } from "./routes/councilBusinessRoutes.js";
 import { createCouncilCommitteesRouter } from "./routes/councilCommitteesRoutes.js";
 import { createCouncilDecisionsRouter } from "./routes/councilDecisionsRoutes.js";
+import { createCouncilDelegationsRouter } from "./routes/councilDelegationsRoutes.js";
 import { createCouncilMeetingsRouter } from "./routes/councilMeetingsRoutes.js";
 import { createCouncilMembersRouter } from "./routes/councilMembersRoutes.js";
 import { createCouncilTermsRouter } from "./routes/councilTermsRoutes.js";

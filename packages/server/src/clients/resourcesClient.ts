@@ -31,6 +31,13 @@ export type ResourceMutationResult =
   | { status: "versionConflict" }
   | { status: "kindMismatch" };
 
+export type TextResourceAuditChange = Readonly<{
+  actorId: string;
+  action: "resource.updateMetadata" | "resource.updateText" | "resource.relocate";
+  changedFields: readonly ("content" | "name" | "path" | "tags" | "autosave")[];
+  occurredAt: string;
+}>;
+
 export type PersistResource =
   | Exclude<CreateResource, { kind: "geographic" | "legalReference" }>
   | (Extract<CreateResource, { kind: "geographic" }> & {
@@ -47,6 +54,7 @@ export interface ResourcesClient {
   findDocumentsByHashes(hashes: readonly string[]): Promise<ResourceRepresentation<ResourceSummary[]>>;
   search(criteria: ResourceSearchCriteria): Promise<ResourceRepresentation<ResourceSearchResult>>;
   open(reference: string): Promise<ResourceRepresentation<ResourceDetail> | null>;
+  listTextResourceChanges(id: string): Promise<TextResourceAuditChange[]>;
   create(input: PersistResource): Promise<ResourceRepresentation<ResourceDetail>>;
   createDocument(input: {
     councilBusinessId?: string;

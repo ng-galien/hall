@@ -20,6 +20,7 @@ export const apiPermissions = [
   "members.manage",
   "workspace.read",
   "workspace.write",
+  "council-business.update",
   "meetings.read",
   "meetings.prepare",
   "meetings.conduct",

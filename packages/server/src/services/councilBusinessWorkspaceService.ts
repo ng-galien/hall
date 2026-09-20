@@ -1,9 +1,11 @@
 import type {
   AgendaItem,
   CouncilBusiness,
-  CouncilBusinessResourceItem,
+  CouncilBusinessCommitteeLink,
   CouncilBusinessResourceAssociation,
+  CouncilBusinessResourceItem,
   CouncilBusinessWorkspaceItem,
+  CouncilCommitteeBusinessLink,
   CreateCouncilBusiness,
   ReorderCouncilBusinessResources,
   ScheduleCouncilBusinessSubject,
@@ -25,6 +27,10 @@ export interface CouncilBusinessWorkspaceService {
   get(id: string): Promise<CouncilBusiness>;
   create(input: CreateCouncilBusiness): Promise<CouncilBusiness>;
   delete(id: string): Promise<CouncilBusiness>;
+  listCommittees(id: string): Promise<CouncilBusinessCommitteeLink[]>;
+  listCommitteeBusinesses(committeeId: string): Promise<CouncilCommitteeBusinessLink[]>;
+  associateCommittee(id: string, committeeId: string): Promise<CouncilBusinessCommitteeLink>;
+  dissociateCommittee(id: string, committeeId: string): Promise<CouncilBusinessCommitteeLink>;
   listResources(id: string): Promise<CouncilBusinessResourceAssociation[]>;
   listResourceItems(ids: readonly string[]): Promise<CouncilBusinessResourceItem[]>;
   associateResource(id: string, resourceId: string): Promise<CouncilBusinessResourceAssociation>;
@@ -49,6 +55,13 @@ export function createCouncilBusinessWorkspaceService({
       return business;
     },
     delete: (id) => councilClient.deleteBusiness(id).catch(translateFailure),
+    listCommittees: (id) => councilClient.listBusinessCommittees(id).catch(translateFailure),
+    listCommitteeBusinesses: (committeeId) =>
+      councilClient.listCommitteeBusinesses(committeeId).catch(translateFailure),
+    associateCommittee: (id, committeeId) =>
+      councilClient.associateBusinessCommittee(id, committeeId).catch(translateFailure),
+    dissociateCommittee: (id, committeeId) =>
+      councilClient.dissociateBusinessCommittee(id, committeeId).catch(translateFailure),
     create: (input) => councilClient.createBusiness(input).catch(translateFailure),
     listResources: (id) => councilClient.listBusinessResources(id).catch(translateFailure),
     listResourceItems: (ids) => councilClient.listBusinessResourceItems(ids).catch(translateFailure),

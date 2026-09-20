@@ -1,11 +1,11 @@
-import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import {
-  councilDecisionDetailSchema,
   ballotResultPreviewSchema,
   ballotSchema,
+  councilDecisionDetailSchema,
   meetingConductWorkspaceSchema,
 } from "@hall/api-contract";
 import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { Pool } from "pg";
 import { expect, it } from "vitest";
 import { startHttpServer } from "../server.js";
@@ -209,7 +209,11 @@ postgresTest(
       const decisionPath = `/api/council-decisions/${summary.id}`;
       const entity = await get(decisionPath);
       const draft = councilDecisionDetailSchema.parse(entity.properties);
-      expect(draft).toMatchObject({ state: "draft", number: expect.stringMatching(/^2026-01-\d+$/), ballotId: ballot.id });
+      expect(draft).toMatchObject({
+        state: "draft",
+        number: expect.stringMatching(/^2026-01-\d+$/),
+        ballotId: ballot.id,
+      });
       expect(entity.actions.map((a: { name: string }) => a.name)).toEqual(["decision.update-draft", "decision.freeze"]);
       expect((await get(decisionPath, readerCookie)).actions ?? []).toEqual([]);
       const forbidden = await fetch(server.url + decisionPath + "/freeze", {

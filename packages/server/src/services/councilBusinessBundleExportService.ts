@@ -1,14 +1,20 @@
-import { resourceIdSchema, type CouncilBusinessBundleManifest } from "@hall/api-contract";
+import { type CouncilBusinessBundleManifest, resourceIdSchema } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
 import { collectResourceReferences, parse } from "@hall/templating";
 import type { CouncilClient } from "../clients/councilClient.js";
-import type { ResourcesClient, ResourceContent } from "../clients/resourcesClient.js";
+import type { ResourceContent, ResourcesClient } from "../clients/resourcesClient.js";
 import { bundleContentHash, encodeCouncilBusinessBundle } from "./councilBusinessBundleArchive.js";
 import { DomainError } from "./errors.js";
 
-export function createCouncilBusinessBundleExportService({ councilClient, resourcesClient }: {
+export function createCouncilBusinessBundleExportService({
+  councilClient,
+  resourcesClient,
+}: {
   councilClient: Pick<CouncilClient, "openBusiness" | "listBusinessResources">;
-  resourcesClient: Pick<ResourcesClient, "open" | "listAll" | "readDocumentContent" | "openEditorAsset" | "readEditorAssetContent">;
+  resourcesClient: Pick<
+    ResourcesClient,
+    "open" | "listAll" | "readDocumentContent" | "openEditorAsset" | "readEditorAssetContent"
+  >;
 }) {
   return {
     async export(id: string, sender: CouncilBusinessBundleManifest["sender"]): Promise<Buffer> {
@@ -18,10 +24,20 @@ export function createCouncilBusinessBundleExportService({ councilClient, resour
       if (!folder) throw new DomainError("resource_not_found", 404);
       const associations = await councilClient.listBusinessResources(id);
       const manifest: CouncilBusinessBundleManifest = {
-        format: "hall-council-business", version: 1, sender,
-        business: { sourceId: id, folderSourceId: folder.data.id, name: folder.data.name, reportSourceId: business.reportResourceId,
-          resourceSourceIds: associations.map((entry) => entry.resourceId) },
-        resources: [], files: [], editorAssets: [], externalReferenceIds: [],
+        format: "hall-council-business",
+        version: 1,
+        sender,
+        business: {
+          sourceId: id,
+          folderSourceId: folder.data.id,
+          name: folder.data.name,
+          reportSourceId: business.reportResourceId,
+          resourceSourceIds: associations.map((entry) => entry.resourceId),
+        },
+        resources: [],
+        files: [],
+        editorAssets: [],
+        externalReferenceIds: [],
       };
       const files = new Map<string, Buffer>();
       const putFile = (binary: ResourceContent): string => {
@@ -36,25 +52,43 @@ export function createCouncilBusinessBundleExportService({ councilClient, resour
         }
         return path;
       };
-      const descendants = (await resourcesClient.listAll()).data.filter((entry) => entry.fullPath.startsWith(`${folder.data.fullPath}/`));
-      const ids = new Set([folder.data.id, business.reportResourceId, ...descendants.map(({ id: resourceId }) => resourceId),
-        ...associations.map((entry) => entry.resourceId)]);
+      const descendants = (await resourcesClient.listAll()).data.filter((entry) =>
+        entry.fullPath.startsWith(`${folder.data.fullPath}/`),
+      );
+      const ids = new Set([
+        folder.data.id,
+        business.reportResourceId,
+        ...descendants.map(({ id: resourceId }) => resourceId),
+        ...associations.map((entry) => entry.resourceId),
+      ]);
       const references = new Set<string>();
       for (const sourceId of ids) {
         const resource = await resourcesClient.open(sourceId);
         if (!resource) throw new DomainError("resource_not_found", 404);
         const data = resource.data;
         await matchDiscriminated(data, "kind", {
-          folder: async (entry) => { manifest.resources.push({ data: entry }); },
+          folder: async (entry) => {
+            manifest.resources.push({ data: entry });
+          },
           text: async (entry) => {
             manifest.resources.push({ data: entry });
             for (const reference of collectResourceReferences(parse(entry.content))) references.add(reference.id);
           },
-          remote: async (entry) => { manifest.resources.push({ data: entry }); },
-          spreadsheet: async (entry) => { manifest.resources.push({ data: entry }); },
-          geographic: async (entry) => { manifest.resources.push({ data: entry }); },
-          event: async (entry) => { manifest.resources.push({ data: entry }); },
-          legalReference: async (entry) => { manifest.resources.push({ data: entry }); },
+          remote: async (entry) => {
+            manifest.resources.push({ data: entry });
+          },
+          spreadsheet: async (entry) => {
+            manifest.resources.push({ data: entry });
+          },
+          geographic: async (entry) => {
+            manifest.resources.push({ data: entry });
+          },
+          event: async (entry) => {
+            manifest.resources.push({ data: entry });
+          },
+          legalReference: async (entry) => {
+            manifest.resources.push({ data: entry });
+          },
           document: async (entry) => {
             const binary = await resourcesClient.readDocumentContent(sourceId);
             if (!binary) throw new DomainError("resource_not_found", 404);

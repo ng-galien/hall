@@ -1,6 +1,5 @@
 export type ErrorCode =
   | "council_business_has_dependencies"
-  | "previous_minutes_pending"
   | "ballot_procedure_unsupported"
   | "ballot_already_confirmed"
   | "ballot_candidate_invalid"

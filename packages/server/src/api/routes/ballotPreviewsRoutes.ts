@@ -3,10 +3,12 @@ import { Router } from "express";
 import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
+import { DomainError } from "../../services/errors.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
-export function createBallotPreviewsRouter({ councilBallotService }: Cradle): Router {
+// @implements-requirement HALL-FR-MTG-320
+export function createBallotPreviewsRouter({ councilBallotService, councilClient, realtimeEvents }: Cradle): Router {
   const router = Router();
   router.post("/", requireActionPermission("ballot.preview"), async (request, response) => {
     response.status(201).json(await councilBallotService.preview(createBallotResultPreviewSchema.parse(request.body)));
@@ -16,7 +18,13 @@ export function createBallotPreviewsRouter({ councilBallotService }: Cradle): Ro
   });
   router.post("/:previewId/confirm", requireActionPermission("ballot.confirm"), async (request, response) => {
     z.object({}).strict().parse(request.body);
-    response.json(await councilBallotService.confirmPreview(routeParameter(request.params.previewId)));
+    const previewId = routeParameter(request.params.previewId);
+    const preview = await councilBallotService.getPreview(previewId);
+    const item = await councilClient.openAgendaItem(preview.agendaItemId);
+    if (!item) throw new DomainError("agenda_item_not_found", 404);
+    const ballot = await councilBallotService.confirmPreview(previewId);
+    realtimeEvents.publish({ type: "meeting.changed", meetingId: item.councilMeetingId });
+    response.json(ballot);
   });
   return router;
 }

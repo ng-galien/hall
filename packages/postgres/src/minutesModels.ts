@@ -95,6 +95,7 @@ export const minutesSummarySchema = z
     version: z.number().int().positive(),
     generatedAt: time.nullable(),
     documentId: id.nullable(),
+    settledAt: time.nullable(),
   })
   .strict();
 export const minutesDetailSchema = minutesSummarySchema.extend({

@@ -6,7 +6,7 @@ import { DropdownMenuItem } from "../../components/ui/dropdown-menu";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
-import { apiErrorCode, type ApiErrorCode } from "../../services/apiClient";
+import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { resourceCapabilities } from "./resourceCapabilities";
 
@@ -55,9 +55,7 @@ export function useResourceRename({
         path: current.path,
         tags: current.tags,
         editing:
-          "autosaveEnabled" in current
-            ? { kind: "autosave", enabled: current.autosaveEnabled }
-            : { kind: "fixed" },
+          "autosaveEnabled" in current ? { kind: "autosave", enabled: current.autosaveEnabled } : { kind: "fixed" },
       });
       if (!updated) {
         setError(useWorkspaceResourcesStore.getState().error ?? "request_failed");
@@ -80,10 +78,7 @@ export function useResourceRename({
     error,
     dismissError: () => setError(null),
     menuItem: canRename ? (
-      <ContextMenuItem
-        data-testid={testId}
-        onSelect={openRename}
-      >
+      <ContextMenuItem data-testid={testId} onSelect={openRename}>
         {t("common.rename")}
       </ContextMenuItem>
     ) : null,

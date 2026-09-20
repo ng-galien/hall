@@ -16,6 +16,7 @@ import {
   DocumentaryResourceGlyph,
 } from "../../features/documents/DocumentaryResourceGlyph";
 import { ResourceAutosaveToggle } from "../../features/resources/ResourceAutosaveToggle";
+import { ResourceChangesControl } from "../../features/resources/ResourceChangesControl";
 import { useResourceSession } from "../../features/resources/useResourceSession";
 import { createEmptySpreadsheetDocument } from "../../features/spreadsheet/univerWorkbook";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -407,9 +408,7 @@ export function WorkspacePage() {
             </div>
             {!selectedBusiness ? (
               <WorkspaceCreateMenu
-                getError={() =>
-                  useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error
-                }
+                getError={() => useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error}
                 clearError={() => {
                   useWorkspaceResourcesStore.setState({ error: null });
                   useCouncilBusinessStore.setState({ error: null });
@@ -493,13 +492,26 @@ export function WorkspacePage() {
                 onSelect={select}
                 showSaveStatus={false}
                 statusControl={
-                  openedSession?.canConfigureAutosave ? (
-                    <ResourceAutosaveToggle
-                      enabled={openedSession.autosaveEnabled}
-                      status={openedSession.saveStatus}
-                      disabled={openedSession.submitting}
-                      onChange={openedSession.updateAutosave}
-                    />
+                  openedSession?.resource ? (
+                    <>
+                      {openedSession.canConfigureAutosave ? (
+                        <ResourceAutosaveToggle
+                          enabled={openedSession.autosaveEnabled}
+                          status={openedSession.saveStatus}
+                          disabled={openedSession.submitting}
+                          onChange={openedSession.updateAutosave}
+                        />
+                      ) : null}
+                      {openedSession.resource.kind === "text" ? (
+                        <ResourceChangesControl
+                          resourceId={openedSession.resource.id}
+                          representation={openedSession.representation}
+                          onInvalidated={() => {
+                            if (!openedSession.dirty && !openedSession.submitting) void openedSession.reload();
+                          }}
+                        />
+                      ) : null}
+                    </>
                   ) : null
                 }
               />

@@ -2,25 +2,29 @@ import { z } from "zod";
 
 const id = z.string().uuid();
 /** Agenda candidates include existing prepared decision proposals and open questions. */
-export const preparedCouncilSubjectKindSchema = z.enum([
-  "councilDecisionProposal",
-  "openQuestion",
-]);
-const agendaSchema = z.object({
-  state: z.enum(['notScheduled', 'scheduled', 'started', 'examined', 'adjourned']),
-  agendaItemId: id.nullable(),
-  meeting: z.object({
-    reference: z.string().min(1).nullable(),
-    number: z.number().int().nullable(),
-    scheduledAt: z.iso.datetime({ offset: true }).nullable(),
-    startedAt: z.iso.datetime({ offset: true }).nullable().optional(),
-  }).nullable(),
-}).strict();
+export const preparedCouncilSubjectKindSchema = z.enum(["councilDecisionProposal", "openQuestion"]);
+const agendaSchema = z
+  .object({
+    state: z.enum(["notScheduled", "scheduled", "started", "examined", "adjourned"]),
+    agendaItemId: id.nullable(),
+    meeting: z
+      .object({
+        reference: z.string().min(1).nullable(),
+        number: z.number().int().nullable(),
+        scheduledAt: z.iso.datetime({ offset: true }).nullable(),
+        startedAt: z.iso.datetime({ offset: true }).nullable().optional(),
+      })
+      .nullable(),
+  })
+  .strict();
 
-const scheduleTargetSchema = z.object({
-  meetingReference: z.string().min(1),
-  position: z.number().int().positive(),
-}).strict().nullable();
+const scheduleTargetSchema = z
+  .object({
+    meetingReference: z.string().min(1),
+    position: z.number().int().positive(),
+  })
+  .strict()
+  .nullable();
 
 const base = {
   councilBusinessId: id,

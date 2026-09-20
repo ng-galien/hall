@@ -301,10 +301,22 @@ export function validateStructure(tree: TemplateAst): Diagnostic[] {
     if (spec.name === "minutes" && directive.attributes.section && !isMinutesSection(directive.attributes.section)) {
       diagnostics.push({ code: "invalid_attribute", severity: "error", message: "Unknown minutes section", anchor });
     }
-    if (spec.name === "council-decision" && directive.attributes.section && !isCouncilDecisionSection(directive.attributes.section)) {
-      diagnostics.push({ code: "invalid_attribute", severity: "error", message: "Unknown council decision section", anchor });
+    if (
+      spec.name === "council-decision" &&
+      directive.attributes.section &&
+      !isCouncilDecisionSection(directive.attributes.section)
+    ) {
+      diagnostics.push({
+        code: "invalid_attribute",
+        severity: "error",
+        message: "Unknown council decision section",
+        anchor,
+      });
     }
-    if ((spec.name === "council-decision" || spec.name === "minutes" || spec.name === "meeting-notice") && directive.node !== "leafDirective") {
+    if (
+      (spec.name === "council-decision" || spec.name === "minutes" || spec.name === "meeting-notice") &&
+      directive.node !== "leafDirective"
+    ) {
       diagnostics.push({
         code: "invalid_attribute",
         severity: "error",

@@ -1,7 +1,7 @@
 import {
   agendaItemRecusalsSchema,
-  recordAgendaItemRecusalSchema,
   type RecordAgendaItemRecusal,
+  recordAgendaItemRecusalSchema,
   type SirenEntity,
 } from "@hall/api-contract";
 import { apiSirenRequest, submitSirenAction } from "./apiClient";

@@ -44,6 +44,13 @@ const resourceSlugSchema = z
   .max(200)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
   .refine((slug) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(slug));
+const textResourceAuditChangeSchema = z.object({
+  actorId: z.string().min(1),
+  action: z.enum(["resource.updateMetadata", "resource.updateText", "resource.relocate"]),
+  changedFields: z.array(z.enum(["content", "name", "path", "tags", "autosave"])),
+  occurredAt: z.iso.datetime({ offset: true }),
+});
+export type PostgresTextResourceAuditChange = z.infer<typeof textResourceAuditChangeSchema>;
 const versionSchema = z.number().int().positive();
 const jsonDocumentSchema = z.record(z.string(), z.unknown());
 const remoteResourceTargetSchema = z.discriminatedUnion("kind", [
@@ -375,6 +382,18 @@ export type PostgresPresentedResourceSearch = Readonly<{
   representation: Readonly<Record<string, unknown>>;
 }>;
 
+// @implements-requirement HALL-FR-DOC-280
+function changedTextFields(before: PostgresResourceDetail, after: PostgresResourceDetail): string[] {
+  if (before.kind !== "text" || after.kind !== "text") return [];
+  const fields: string[] = [];
+  if (before.content !== after.content) fields.push("content");
+  if (before.name !== after.name) fields.push("name");
+  if (before.path !== after.path) fields.push("path");
+  if (before.tags.slice().sort().join("\u0000") !== after.tags.slice().sort().join("\u0000")) fields.push("tags");
+  if (before.autosaveEnabled !== after.autosaveEnabled) fields.push("autosave");
+  return fields;
+}
+
 export class PostgresResources {
   private readonly transactions: PostgresTransactionManager;
 
@@ -403,19 +422,34 @@ export class PostgresResources {
     call: JsonCall,
     schema: ZodType<PostgresPresentedResource<Result>>,
     councilBusinessId?: string,
+    auditBeforeResourceId?: string,
   ): Promise<PostgresPresentedResource<Result>> {
     return this.transactions.run({ role: request.role, context: this.runContext(request, action) }, async (client) => {
+      const before = auditBeforeResourceId
+        ? await callJson(client, {
+            text: "SELECT hall_api.open_resource($1::uuid) AS payload",
+            values: [resourceIdSchema.parse(auditBeforeResourceId)],
+            schema: postgresResourceDetailSchema,
+          })
+        : null;
       const presented = await callJson(client, { ...call, schema });
       if (councilBusinessId)
         await client.query("SELECT hall_api.associate_council_business_resource($1::uuid, $2::uuid)", [
           councilBusinessId,
           presented.data.id,
         ]);
+      const changedFields = before
+        ? changedTextFields(before, postgresResourceDetailSchema.parse(presented.data))
+        : null;
       await recordAuditEvent(client, {
         targetType: "resource",
         targetId: presented.data.id,
         outcome: "succeeded",
-        details: { fullPath: presented.data.fullPath, ...(councilBusinessId ? { councilBusinessId } : {}) },
+        details: {
+          fullPath: presented.data.fullPath,
+          ...(councilBusinessId ? { councilBusinessId } : {}),
+          ...(changedFields ? { changedFields } : {}),
+        },
       });
       return presented;
     });
@@ -445,6 +479,19 @@ export class PostgresResources {
         values: [resourceSlugSchema.parse(slug)],
       },
       presentedResourceSchema(postgresResourceDetailSchema),
+    );
+  }
+
+  // @implements-requirement HALL-FR-DOC-280
+  listTextResourceChanges(request: PostgresResourceRequest, id: string): Promise<PostgresTextResourceAuditChange[]> {
+    return this.readJson(
+      request,
+      "resource.listTextResourceChanges",
+      {
+        text: "SELECT hall_api.list_text_resource_changes($1::uuid) AS payload",
+        values: [resourceIdSchema.parse(id)],
+      },
+      z.array(textResourceAuditChangeSchema),
     );
   }
 
@@ -525,8 +572,12 @@ export class PostgresResources {
           [...criteria.tags],
           [...criteria.readiness],
           [...criteria.media],
-          criteria.offset ?? 0, criteria.limit ?? 100, criteria.context ?? "",
-          [...(criteria.preferredIds ?? [])], [...(criteria.excludedIds ?? [])], criteria.includedIds === undefined ? null : [...criteria.includedIds],
+          criteria.offset ?? 0,
+          criteria.limit ?? 100,
+          criteria.context ?? "",
+          [...(criteria.preferredIds ?? [])],
+          [...(criteria.excludedIds ?? [])],
+          criteria.includedIds === undefined ? null : [...criteria.includedIds],
         ],
       },
       presentedResourceSearchSchema,
@@ -733,6 +784,8 @@ export class PostgresResources {
         ],
       },
       presentedResourceSchema(postgresResourceDetailSchema),
+      undefined,
+      resourceIdSchema.parse(id),
     );
   }
 
@@ -760,6 +813,8 @@ export class PostgresResources {
             values: [parsed.id, parsed.path, parsed.name, parsed.tags, parsed.editing.enabled],
           },
       presentedResourceSchema(postgresResourceDetailSchema),
+      undefined,
+      parsed.id,
     );
   }
 
@@ -784,6 +839,8 @@ export class PostgresResources {
         ],
       },
       presentedResourceSchema(textResourceSchema),
+      undefined,
+      parsed.id,
     );
   }
 

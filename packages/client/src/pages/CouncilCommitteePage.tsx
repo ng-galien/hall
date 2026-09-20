@@ -1,4 +1,3 @@
-import { ResourceSearch } from "../components/search/ResourceSearch";
 import type { Contact } from "@hall/api-contract";
 import { type CommitteeMembership, type CommitteeRole, committeeRoles, findSirenAction } from "@hall/api-contract";
 import { type DragEvent, type FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
@@ -9,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AddIcon, DeleteIcon } from "../components/icons";
+import { ResourceSearch } from "../components/search/ResourceSearch";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { CouncilCommitteeBusinesses } from "../features/council-business/CouncilCommitteeBusinesses";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
 import { useContactsStore } from "../stores/contactsStore";
@@ -316,6 +317,8 @@ export function CouncilCommitteePage() {
             ) : null}
           </section>
 
+          <CouncilCommitteeBusinesses committeeId={committee.id} />
+
           <section className="admin-related" aria-labelledby="committee-members-title">
             <div className="admin-section-heading">
               <div>
@@ -365,7 +368,12 @@ export function CouncilCommitteePage() {
                   <div className="admin-inline-empty">{t("committees.noAvailableMembers")}</div>
                 ) : (
                   <>
-                    <ResourceSearch testId="committee-contact-search" scope={{types:["contact"],includedIds:availableMembers.map(member=>member.id)}} selectedIds={[...availableSelection]} onPick={item=>toggleAvailableMember(item.id)}/>
+                    <ResourceSearch
+                      testId="committee-contact-search"
+                      scope={{ types: ["contact"], includedIds: availableMembers.map((member) => member.id) }}
+                      selectedIds={[...availableSelection]}
+                      onPick={(item) => toggleAvailableMember(item.id)}
+                    />
                     <div className="admin-palette-actions">
                       <span>{t("committees.selectionCount").replace("{count}", String(availableSelection.size))}</span>
                       {committeeRoles.map((role) => (

@@ -88,17 +88,35 @@ test("several terms require every one to match", () => {
 });
 
 // @verifies-requirement HALL-FR-SRC-010
- test("HALL-FR-SRC-010 searches titles, never metadata or contents", () => {
-  for (const query of ["adjointe", "2026-014", "finances"]) assert.equal(searchEntities(corpus,query).total,0);
- });
- test("HALL-FR-SRC-010 text relevance precedes proximity and preference", () => {
-  const items=[{kind:"resource",id:"1",label:"École"},{kind:"resource",id:"2",label:"École neuve",preferred:true},{kind:"resource",id:"3",label:"Ecolerie",folderPath:"here"},{kind:"resource",id:"4",label:"Parecole",preferred:true}];
-  assert.deepEqual(searchEntities(items,"ecole",{context:"here"}).results.map(item=>item.id),["1","2","3","4"]);
- });
- // @verifies-requirement HALL-FR-SRC-020
- test("HALL-FR-SRC-020 a subtype facet isolates that resource type",()=>{
-  assert.deepEqual(searchEntities([{kind:"resource",resourceKind:"geographic",id:"map",label:"test"},{kind:"resource",resourceKind:"text",id:"text",label:"test"}],"",{kinds:["geographic"]}).results.map(item=>item.id),["map"]);
- });
+test("HALL-FR-SRC-010 searches titles, never metadata or contents", () => {
+  for (const query of ["adjointe", "2026-014", "finances"]) assert.equal(searchEntities(corpus, query).total, 0);
+});
+test("HALL-FR-SRC-010 text relevance precedes proximity and preference", () => {
+  const items = [
+    { kind: "resource", id: "1", label: "École" },
+    { kind: "resource", id: "2", label: "École neuve", preferred: true },
+    { kind: "resource", id: "3", label: "Ecolerie", folderPath: "here" },
+    { kind: "resource", id: "4", label: "Parecole", preferred: true },
+  ];
+  assert.deepEqual(
+    searchEntities(items, "ecole", { context: "here" }).results.map((item) => item.id),
+    ["1", "2", "3", "4"],
+  );
+});
+// @verifies-requirement HALL-FR-SRC-020
+test("HALL-FR-SRC-020 a subtype facet isolates that resource type", () => {
+  assert.deepEqual(
+    searchEntities(
+      [
+        { kind: "resource", resourceKind: "geographic", id: "map", label: "test" },
+        { kind: "resource", resourceKind: "text", id: "text", label: "test" },
+      ],
+      "",
+      { kinds: ["geographic"] },
+    ).results.map((item) => item.id),
+    ["map"],
+  );
+});
 
 test("folder context lifts adjacent entities", () => {
   const near = searchEntities(corpus, "", { context: "travaux/ecole" }).results;
@@ -122,6 +140,12 @@ test("business documents precede nearby results without excluding other resource
     { kind: "resource", id: "other", label: "A other", folderPath: "current" },
     { kind: "resource", id: "attached", label: "Z attached", folderPath: "elsewhere", preferred: true },
   ];
-  assert.deepEqual(searchEntities(items, "", { context: "current" }).results.map(item => item.id), ["attached", "other"]);
-  assert.deepEqual(searchEntities(items, "other", { context: "current" }).results.map(item => item.id), ["other"]);
+  assert.deepEqual(
+    searchEntities(items, "", { context: "current" }).results.map((item) => item.id),
+    ["attached", "other"],
+  );
+  assert.deepEqual(
+    searchEntities(items, "other", { context: "current" }).results.map((item) => item.id),
+    ["other"],
+  );
 });

@@ -14,7 +14,7 @@ const groups = [
   ["workspace", ["workspace-explorer.spec.ts"]],
   [
     "public-secret-minutes",
-    ["--grep", "conducts public and secret ballots and provisions the previous minutes approval$"],
+    ["--grep", "conducts public and secret ballots and leaves an unexamined previous PV unsettled$"],
   ],
   [
     "without-quorum",

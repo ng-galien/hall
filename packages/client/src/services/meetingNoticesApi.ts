@@ -1,17 +1,32 @@
 import {
-  councilMeetingSchema, findSirenAction, generateMeetingNoticeMessageSchema,
-  meetingNoticeMessagePreparationSchema, meetingNoticeSchema,
+  councilMeetingSchema,
+  findSirenAction,
+  generateMeetingNoticeMessageSchema,
+  meetingNoticeMessagePreparationSchema,
+  meetingNoticeSchema,
 } from "@hall/api-contract";
-import { apiPathFromHref, apiRequest, apiResponse, apiSirenRequest, sirenRepresentation, SirenCapabilityUnavailable, submitSirenActionAt } from "./apiClient";
+import {
+  apiPathFromHref,
+  apiRequest,
+  apiResponse,
+  apiSirenRequest,
+  SirenCapabilityUnavailable,
+  sirenRepresentation,
+  submitSirenActionAt,
+} from "./apiClient";
 
 const meetingPath = (reference: string) => `/council-meetings/${encodeURIComponent(reference)}`;
 
 export async function freezeMeetingAgenda(reference: string) {
-  return councilMeetingSchema.parse((await submitSirenActionAt<unknown>(meetingPath(reference), "meeting.freeze-agenda", {})).data);
+  return councilMeetingSchema.parse(
+    (await submitSirenActionAt<unknown>(meetingPath(reference), "meeting.freeze-agenda", {})).data,
+  );
 }
 
 export async function reopenMeetingAgenda(reference: string) {
-  return councilMeetingSchema.parse((await submitSirenActionAt<unknown>(meetingPath(reference), "meeting.reopen-agenda", {})).data);
+  return councilMeetingSchema.parse(
+    (await submitSirenActionAt<unknown>(meetingPath(reference), "meeting.reopen-agenda", {})).data,
+  );
 }
 
 export async function listMeetingNotices(reference: string) {
@@ -29,7 +44,9 @@ export async function generateMeetingNotice(reference: string) {
 }
 
 export async function prepareMeetingNoticeMessage(reference: string) {
-  return meetingNoticeMessagePreparationSchema.parse(await apiRequest<unknown>(`${meetingPath(reference)}/notice-message`));
+  return meetingNoticeMessagePreparationSchema.parse(
+    await apiRequest<unknown>(`${meetingPath(reference)}/notice-message`),
+  );
 }
 
 export async function downloadMeetingNoticeMessage(reference: string, noticeId: string) {

@@ -21,7 +21,12 @@ export function eventDocumentUsesQuarterHours(document: EventDocument): boolean 
   if (document.schedule.kind === "allDay") return true;
   return [document.schedule.start, document.schedule.end].every((value) => {
     const date = new Date(value);
-    return !Number.isNaN(date.getTime()) && date.getSeconds() === 0 && date.getMilliseconds() === 0 && date.getMinutes() % 15 === 0;
+    return (
+      !Number.isNaN(date.getTime()) &&
+      date.getSeconds() === 0 &&
+      date.getMilliseconds() === 0 &&
+      date.getMinutes() % 15 === 0
+    );
   });
 }
 

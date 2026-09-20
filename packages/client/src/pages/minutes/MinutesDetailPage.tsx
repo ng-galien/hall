@@ -43,10 +43,7 @@ function MinutesDetail({ id }: { id: string }) {
           }
           description={
             minutes
-              ? [
-                  minutes.scheduledAt ? formatDate(minutes.scheduledAt) : null,
-                  minutes.facts.meeting.location,
-                ]
+              ? [minutes.scheduledAt ? formatDate(minutes.scheduledAt) : null, minutes.facts.meeting.location]
                   .filter(Boolean)
                   .join(" · ")
               : t("minutes.detailDescription")
@@ -54,6 +51,13 @@ function MinutesDetail({ id }: { id: string }) {
         >
           {minutes ? (
             <>
+              <Badge
+                className="minutes-header-status"
+                data-testid="minutes-settlement-status"
+                variant={minutes.settledAt ? "success" : "warning"}
+              >
+                {t(minutes.settledAt ? "minutes.stopped" : "minutes.notStopped")}
+              </Badge>
               <Badge className="minutes-header-status" variant={minutes.generatedAt ? "success" : "warning"}>
                 {t(minutes.generatedAt ? "minutes.generated" : "minutes.draft")}
               </Badge>

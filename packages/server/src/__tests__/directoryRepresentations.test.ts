@@ -112,7 +112,9 @@ it("serves contact-based committees and external representations with global uni
           201,
         )
       ).properties;
-      expect((await call(`/council-committees/${committee.id}/memberships/${membership.id}`)).properties.role).toBe(role);
+      expect((await call(`/council-committees/${committee.id}/memberships/${membership.id}`)).properties.role).toBe(
+        role,
+      );
       const updated = await call(`/council-committees/${committee.id}/memberships/${membership.id}`, "PUT", {
         role,
         startedOn: "2026-03-21",

@@ -1,0 +1,77 @@
+{
+  "status": "COMPILED",
+  "mode": "isolated canonical compilers; no publication, engagement or execution",
+  "title": "Hall — Démarrage de la coordination",
+  "procedure": "hall-work-bootstrap",
+  "version": "0.1.0",
+  "intentChaining": true,
+  "definitionDigest": "bba1eb7e6866ee33276202b942c67ca0103ce8ed16124ad659c0ee10bace0e7f",
+  "operations": [
+    {
+      "operation": "hall.bootstrap-sources-read",
+      "version": "0.1.0"
+    },
+    {
+      "operation": "hall.coordination-bootstrap-step",
+      "version": "0.1.0"
+    }
+  ],
+  "checks": [
+    {
+      "name": "Read project instructions",
+      "operation": "hall.bootstrap-sources-read"
+    },
+    {
+      "name": "Read the current declared Hall version",
+      "operation": "hall.bootstrap-sources-read"
+    },
+    {
+      "name": "Observe the Git baseline",
+      "operation": "hall.coordination-bootstrap-step"
+    },
+    {
+      "name": "Read the current backlog",
+      "operation": "hall.bootstrap-sources-read"
+    },
+    {
+      "name": "Read the requirement catalogue and traceability convention",
+      "operation": "hall.bootstrap-sources-read"
+    },
+    {
+      "name": "Read architecture and code principles",
+      "operation": "hall.bootstrap-sources-read"
+    },
+    {
+      "name": "Read interface principles",
+      "operation": "hall.bootstrap-sources-read"
+    },
+    {
+      "name": "Read established TRUST and Maket practice",
+      "operation": "hall.bootstrap-sources-read"
+    },
+    {
+      "name": "Identify the development runtime and database",
+      "operation": "hall.coordination-bootstrap-step"
+    },
+    {
+      "name": "Observe shared development readiness",
+      "operation": "hall.coordination-bootstrap-step"
+    },
+    {
+      "name": "Load faithful discussion and initial framing",
+      "operation": "hall.coordination-bootstrap-step"
+    },
+    {
+      "name": "Project and reread the initial framing",
+      "operation": "hall.coordination-bootstrap-step"
+    },
+    {
+      "name": "Read the user feature-start decision",
+      "operation": "hall.coordination-bootstrap-step"
+    }
+  ],
+  "rootInputs": [],
+  "agentDeclarations": [
+    "discussion file"
+  ]
+}

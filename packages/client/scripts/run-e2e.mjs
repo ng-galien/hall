@@ -1,27 +1,18 @@
 import { spawnSync } from "node:child_process";
-import { closeSync, mkdtempSync, openSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { acquireTestDatabaseLock, releaseTestDatabaseLock } from "../../../scripts/test-database-lock.mjs";
 
 const require = createRequire(import.meta.url);
 const clientDirectory = dirname(dirname(fileURLToPath(import.meta.url)));
 const projectDirectory = join(clientDirectory, "..", "..");
-if (process.argv.length === 2) {
-  const result = spawnSync(process.execPath, [join(clientDirectory, "scripts/run-desktop-e2e.mjs")], {
-    cwd: clientDirectory,
-    env: process.env,
-    stdio: "inherit",
-  });
-  if (result.error) throw result.error;
-  process.exit(result.status ?? 1);
-}
 const playwrightCli = require.resolve("@playwright/test/cli");
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "hall-playwright-"));
 const testDatabaseUrl = "postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test";
-const databaseLockPath = join(tmpdir(), "hall-postgres-tests.lock");
 
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: projectDirectory, stdio: "inherit" });
@@ -33,27 +24,6 @@ function runWithInput(command, args, input) {
   const result = spawnSync(command, args, { cwd: projectDirectory, input, stdio: ["pipe", "inherit", "inherit"] });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} failed with status ${result.status}`);
-}
-
-function acquireDatabaseLock() {
-  try {
-    const descriptor = openSync(databaseLockPath, "wx");
-    writeFileSync(descriptor, String(process.pid));
-    closeSync(descriptor);
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "EEXIST") {
-      throw new Error("The shared Hall test database is already in use by another test command");
-    }
-    throw error;
-  }
-}
-
-function releaseDatabaseLock() {
-  try {
-    unlinkSync(databaseLockPath);
-  } catch (error) {
-    if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) throw error;
-  }
 }
 
 function resetDatabaseSchema() {
@@ -130,7 +100,7 @@ function availablePort() {
 const serverPort = process.env.HALL_E2E_SERVER_PORT ?? (await availablePort());
 const clientPort = process.env.HALL_E2E_CLIENT_PORT ?? (await availablePort());
 
-acquireDatabaseLock();
+acquireTestDatabaseLock();
 try {
   run("docker", ["compose", "--profile", "test", "up", "-d", "--wait", "postgres-test"]);
   resetDatabaseSchema();
@@ -158,7 +128,7 @@ try {
   try {
     clearDatabaseData();
   } finally {
-    releaseDatabaseLock();
+    releaseTestDatabaseLock();
     rmSync(temporaryDirectory, { recursive: true, force: true });
   }
 }

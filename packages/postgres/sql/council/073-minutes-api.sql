@@ -4,7 +4,14 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     'meetingNumber', (target.facts #>> '{meeting,number}')::INTEGER,
     'scheduledAt', target.facts #>> '{meeting,scheduledAt}',
     'createdAt', target.created_at, 'updatedAt', target.updated_at, 'version', target.version,
-    'generatedAt', document.generated_at, 'documentId', document.id)
+    'generatedAt', document.generated_at, 'documentId', document.id,
+    -- @functional-requirement HALL-FR-MIN-220 MINUTES_HEADER_IDENTIFIES_ORIGIN_AND_STATUS:
+    'settledAt', (SELECT ballot.completed_at
+      FROM hall.minutes_approval approval
+      JOIN hall.council_agenda_item item ON item.minutes_approval = approval.id
+      JOIN hall.ballots ballot ON ballot.council_agenda_item = item.id
+      WHERE approval.minutes = target.id AND ballot.result = 'approve'
+      LIMIT 1))
   FROM (SELECT 1) singleton LEFT JOIN hall.minutes_document document ON document.minutes = target.id;
 $$;
 

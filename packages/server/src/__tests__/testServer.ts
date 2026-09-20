@@ -1,20 +1,48 @@
-import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
 import type { Server } from "node:http";
 import { asValue } from "awilix";
 import request from "supertest";
 import { onTestFinished } from "vitest";
 import { createHttpApplication } from "../api/application.js";
+import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
 import { buildContainer } from "../core/container.js";
+import { startHttpServer } from "../server.js";
 import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
 import type { DocumentRenderer } from "../services/documentRenderer.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
 import { createTestCouncilClient } from "./support/councilClient.js";
 import { createTestDirectoryClient } from "./support/directoryClient.js";
-import { createTestResourcesClient } from "./support/resourcesClient.js";
 import { createTestMinutesClient } from "./support/minutesClient.js";
 import { createPostgresTestPool, resetPostgresTestDatabase } from "./support/postgresTestDatabase.js";
+import { createTestResourcesClient } from "./support/resourcesClient.js";
 
 export type TestAgent = ReturnType<typeof request.agent>;
+
+/** Exercises the production HTTP wiring and PostgreSQL clients, without test client overrides. */
+export async function createPostgresHttpTestServer(options: { devAutoLogin?: boolean } = {}) {
+  const { databaseUrl, pool } = createPostgresTestPool();
+  await resetPostgresTestDatabase(pool);
+  try {
+    const server = await startHttpServer({
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "postgres", url: databaseUrl },
+      environment: "test",
+      devAutoLogin: options.devAutoLogin ?? true,
+      allowedOrigins: ["http://localhost:5174", "http://127.0.0.1:5174"],
+    });
+    onTestFinished(async () => {
+      try {
+        await server.close();
+      } finally {
+        await pool.end();
+      }
+    });
+    return { agent: request.agent(server.url), url: server.url, pool };
+  } catch (error) {
+    await pool.end();
+    throw error;
+  }
+}
 
 // Deliberate assertion boundary: tests see the real HTTP representation and opt in to decoding it.
 // biome-ignore lint/suspicious/noExplicitAny: callers select the domain shape asserted by each acceptance test
@@ -79,6 +107,7 @@ export async function createTestServer(
     documentPreviewConverter?: DocumentPreviewConverter;
     legalReferenceProvider?: LegalReferenceProvider;
     expectedCouncilMemberCount?: number | null;
+    realClients?: boolean;
   } = {},
 ) {
   const { databaseUrl, pool: postgresPool } = createPostgresTestPool();
@@ -94,25 +123,27 @@ export async function createTestServer(
     },
     { postgresPool },
   );
-  const resourcesClient = createTestResourcesClient();
-  const minutes = createTestMinutesClient();
-  container.register({
-    councilClient: asValue(createTestCouncilClient(resourcesClient, minutes.entries)),
-    minutesClient: asValue(minutes.client),
-    councilDecisionClient: asValue<CouncilDecisionClient>({
-      list: async () => [],
-      open: async () => null,
-      content: async () => null,
-      updateDraft: async () => {
-        throw new Error("Use the PostgreSQL decision document integration fixture");
-      },
-      freeze: async () => {
-        throw new Error("Use the PostgreSQL decision document integration fixture");
-      },
-    }),
-    directoryClient: asValue(createTestDirectoryClient()),
-    resourcesClient: asValue(resourcesClient),
-  });
+  if (!options.realClients) {
+    const resourcesClient = createTestResourcesClient();
+    const minutes = createTestMinutesClient();
+    container.register({
+      councilClient: asValue(createTestCouncilClient(resourcesClient, minutes.entries)),
+      minutesClient: asValue(minutes.client),
+      councilDecisionClient: asValue<CouncilDecisionClient>({
+        list: async () => [],
+        open: async () => null,
+        content: async () => null,
+        updateDraft: async () => {
+          throw new Error("Use the PostgreSQL decision document integration fixture");
+        },
+        freeze: async () => {
+          throw new Error("Use the PostgreSQL decision document integration fixture");
+        },
+      }),
+      directoryClient: asValue(createTestDirectoryClient()),
+      resourcesClient: asValue(resourcesClient),
+    });
+  }
   if (options.documentPreviewConverter) {
     container.register({ documentPreviewConverter: asValue(options.documentPreviewConverter) });
   }
@@ -124,7 +155,11 @@ export async function createTestServer(
   }
   await container.cradle.sqlExecutor.ready();
   const expectedCouncilMemberCount =
-    options.expectedCouncilMemberCount === undefined ? 100 : options.expectedCouncilMemberCount;
+    options.expectedCouncilMemberCount === undefined
+      ? options.realClients
+        ? null
+        : 100
+      : options.expectedCouncilMemberCount;
   if (expectedCouncilMemberCount !== null) {
     await container.cradle.directoryClient.configureActiveCouncilTerm(expectedCouncilMemberCount);
   }

@@ -510,13 +510,13 @@
     padding: var(--hall-space-3) 0 0;
     border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
-  .meeting-report-header > header { position: relative; padding-right: calc(var(--hall-space-7) + 15rem); }
+  .meeting-report-header > header { position: relative; padding-right: calc(var(--hall-space-7) + var(--hall-meeting-header-actions-width)); }
   .meeting-minutes-access { display: flex; position: absolute; top: var(--hall-space-4); right: var(--hall-space-7); align-items: center; }
   .record-context-link { display: inline-flex; align-items: center; gap: var(--hall-space-1-5); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-semibold); }
   .record-context-link:hover { text-decoration: underline; text-underline-offset: var(--hall-space-1); }
   .record-context-link-draft { color: var(--hall-color-warning-strong); }
   .record-context-link-generated { color: var(--hall-color-success-strong); }
-  .meeting-report-header .meeting-facts { grid-template-columns: 4.5rem 4.5rem 7rem 5rem minmax(11rem, 1fr) minmax(11rem, 1fr); }
+  .meeting-report-header .meeting-facts { grid-template-columns: var(--hall-meeting-facts-date-width) var(--hall-meeting-facts-date-width) var(--hall-meeting-facts-time-width) var(--hall-meeting-facts-short-width) minmax(var(--hall-meeting-facts-detail-min-width), 1fr) minmax(var(--hall-meeting-facts-detail-min-width), 1fr); }
   .meeting-report-header .meeting-facts > div { padding-inline: var(--hall-space-3); }
   .meeting-report-header .meeting-facts > div:first-child { padding-left: 0; }
   .meeting-preparation > header .meeting-console { margin-top: var(--hall-space-3); margin-bottom: 0; border: 0; box-shadow: none; border-radius: 0; }
@@ -1033,7 +1033,7 @@
     cursor: pointer;
   }
   .report-timeline-item-toggle:hover { background: var(--hall-color-surface-subtle); }
-  .report-timeline-item-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus-ring); outline-offset: var(--hall-space-0-5); }
+  .report-timeline-item-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: var(--hall-space-0-5); }
   .report-timeline-item-toggle[aria-expanded="true"] { background: var(--hall-color-brand-subtle); }
   .report-timeline-item-toggle[aria-expanded="true"] .report-timeline-marker { border-width: var(--hall-stroke-thick); border-color: var(--hall-color-brand); color: var(--hall-color-brand); }
   .report-timeline-title { display: grid; gap: var(--hall-space-0-5); min-width: 0; }
@@ -1074,7 +1074,7 @@
   .report-text-block-heading span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .report-text-block-content { padding: var(--hall-space-3); color: var(--hall-color-text); font-size: var(--hall-font-size-body); white-space: pre-wrap; }
   .report-text-block-source { border-inline-start: var(--hall-stroke-thick) solid var(--hall-color-border-strong); }
-  .report-text-block-decision { border-inline-start: var(--hall-stroke-thick) solid var(--hall-color-business); }
+  .report-text-block-decision { border-inline-start: var(--hall-stroke-thick) solid var(--hall-color-council-business); }
   .report-text-block-notes { border-inline-start: var(--hall-stroke-thick) solid var(--hall-color-brand); }
   .report-ballot {
     display: grid;
@@ -1165,7 +1165,7 @@
   .minutes-prose-facts > div,
   .minutes-attendance-groups > div {
     display: grid;
-    grid-template-columns: 10rem minmax(0, 1fr);
+    grid-template-columns: var(--hall-minutes-fact-label-width) minmax(0, 1fr);
     gap: var(--hall-space-3);
   }
   .minutes-prose-facts dt,
@@ -1190,7 +1190,7 @@
   }
   .minutes-point-title {
     display: grid;
-    grid-template-columns: 2rem minmax(0, 1fr);
+    grid-template-columns: var(--hall-minutes-point-marker-width) minmax(0, 1fr);
     align-items: baseline;
     gap: var(--hall-space-2);
     margin: 0;

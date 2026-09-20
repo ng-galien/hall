@@ -75,7 +75,9 @@ test("stale meetings stay accessible with a yellow review badge and never become
       },
     };
   });
-  await page.route("**/api/council-meetings", (route) => route.fulfill({ contentType: "application/vnd.siren+json", json: { ...source, entities: meetings } }));
+  await page.route("**/api/council-meetings", (route) =>
+    route.fulfill({ contentType: "application/vnd.siren+json", json: { ...source, entities: meetings } }),
+  );
   await page.evaluate(() => localStorage.setItem("mairie.locale", "fr"));
   await page.reload();
   await expect(page.getByTestId("application-sync-status")).toHaveAttribute("data-sync-state", "synchronized");

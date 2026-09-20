@@ -1,8 +1,9 @@
-import { closeSync, openSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { acquireTestDatabaseLock, releaseTestDatabaseLock } from "./test-database-lock.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const postgresPackage = resolve(root, "packages/postgres");
@@ -14,7 +15,6 @@ const pgtapIndex = runnerArgs.indexOf("--pgtap");
 const pgtapScope = pgtapIndex < 0 ? "all" : runnerArgs[pgtapIndex + 1];
 const runBackend = runnerArgs.includes("--backend") || pgtapIndex < 0;
 const coverage = runnerArgs.includes("--coverage");
-const lockPath = "/tmp/hall-postgres-tests.lock";
 
 if (!new Set(["all", "council", "document"]).has(pgtapScope)) {
   throw new Error("--pgtap must be all, council or document");
@@ -89,27 +89,6 @@ COMMIT;
 `,
     },
   );
-}
-
-function acquireTestDatabaseLock() {
-  try {
-    const descriptor = openSync(lockPath, "wx");
-    writeFileSync(descriptor, String(process.pid));
-    closeSync(descriptor);
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "EEXIST") {
-      throw new Error("The shared Hall test database is already in use by another test command");
-    }
-    throw error;
-  }
-}
-
-function releaseTestDatabaseLock() {
-  try {
-    unlinkSync(lockPath);
-  } catch (error) {
-    if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) throw error;
-  }
 }
 
 acquireTestDatabaseLock();

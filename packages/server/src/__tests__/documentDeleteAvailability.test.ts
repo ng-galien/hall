@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { expect, it } from "vitest";
 import { startLocalHttpServer } from "../core/localServer.js";
 
-it("omits delete for an associated document, preserves refusal, and permits a free document", async () => {
+it("allows deletion from one editable business but refuses a shared document until dissociated", async () => {
   const directory = await mkdtemp(join(tmpdir(), "hall-document-delete-"));
   const server = await startLocalHttpServer({ dataDirectory: directory });
   try {
@@ -46,11 +46,23 @@ it("omits delete for an associated document, preserves refusal, and permits a fr
     expect(created.status).toBe(201);
     const businessId = (await created.json()).properties.id;
     expect((await call(`/council-business/${businessId}/resources`, "POST", { resourceId: id })).status).toBe(201);
+    expect(names(await (await call(`/resources/${id}`)).json())).toContain("resource.delete");
+    const second = await call("/council-business", "POST", {
+      path: "seed",
+      name: "Autre affaire",
+      reportName: "Rapport",
+      reportContent: "Rapport",
+    });
+    expect(second.status).toBe(201);
+    const secondBusinessId = (await second.json()).properties.id;
+    expect((await call(`/council-business/${secondBusinessId}/resources`, "POST", { resourceId: id })).status).toBe(
+      201,
+    );
     expect(names(await (await call(`/resources/${id}`)).json())).not.toContain("resource.delete");
     expect((await call(`/resources/${id}`, "DELETE")).status).toBe(409);
     expect((await call(`/resources/${id}`)).status).toBe(200);
     expect(
-      (await call(`/council-business/${businessId}/resources/dissociate`, "POST", { resourceId: id })).status,
+      (await call(`/council-business/${secondBusinessId}/resources/dissociate`, "POST", { resourceId: id })).status,
     ).toBe(200);
     expect(names(await (await call(`/resources/${id}`)).json())).toContain("resource.delete");
     expect((await call(`/resources/${id}`, "DELETE")).status).toBe(204);

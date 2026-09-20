@@ -6,7 +6,7 @@ import { MarkdownView } from "../../components/MarkdownView";
 import { PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "../../components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/ui/dialog";
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -25,10 +25,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
   const { decision } = draft;
   return (
     <div className="page" data-testid="decision-detail">
-      <PageHeader
-        title={decision?.title ?? t("decisions.title")}
-        description={decision?.number ?? ""}
-      />
+      <PageHeader title={decision?.title ?? t("decisions.title")} description={decision?.number ?? ""} />
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={draft.error} />
         {draft.loading ? (
@@ -102,7 +99,10 @@ function CouncilDecisionDetail({ id }: { id: string }) {
               ) : null}
               {draft.downloadHref ? (
                 <Button asChild variant="outline">
-                  <a href={draft.downloadHref} download data-testid="decision-download"><ArrowDownIcon />{t("common.download")}</a>
+                  <a href={draft.downloadHref} download data-testid="decision-download">
+                    <ArrowDownIcon />
+                    {t("common.download")}
+                  </a>
                 </Button>
               ) : null}
               {draft.canFreeze ? (

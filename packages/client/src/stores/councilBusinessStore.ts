@@ -17,8 +17,8 @@ import {
   listCouncilBusinesses,
   listCouncilBusinessResourceItems,
   listPreparedCouncilSubjects,
-  openPreparedCouncilSubject,
   openCouncilBusiness,
+  openPreparedCouncilSubject,
   reorderCouncilBusinessResources,
 } from "../services/councilBusinessApi";
 import { useWorkspaceResourcesStore } from "./workspaceResourcesStore";
@@ -133,7 +133,10 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
       );
       set((state) => ({
         preparedSubjects: businessId
-          ? [...state.preparedSubjects.filter((subject) => subject.councilBusinessId !== businessId), ...preparedSubjects]
+          ? [
+              ...state.preparedSubjects.filter((subject) => subject.councilBusinessId !== businessId),
+              ...preparedSubjects,
+            ]
           : preparedSubjects,
         preparedSubjectRepresentations: businessId
           ? { ...state.preparedSubjectRepresentations, ...representations }
@@ -147,8 +150,13 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
     const result = await openPreparedCouncilSubject(subject.kind, subject.id);
     if (!result.representation) throw new Error("Prepared subject representation is unavailable");
     set((state) => ({
-      preparedSubjects: state.preparedSubjects.map((candidate) => candidate.id === subject.id && candidate.kind === subject.kind ? result.data : candidate),
-      preparedSubjectRepresentations: { ...state.preparedSubjectRepresentations, [`${subject.kind}:${subject.id}`]: result.representation as SirenEntity },
+      preparedSubjects: state.preparedSubjects.map((candidate) =>
+        candidate.id === subject.id && candidate.kind === subject.kind ? result.data : candidate,
+      ),
+      preparedSubjectRepresentations: {
+        ...state.preparedSubjectRepresentations,
+        [`${subject.kind}:${subject.id}`]: result.representation as SirenEntity,
+      },
     }));
   },
   async createPreparedSubject(id, input) {

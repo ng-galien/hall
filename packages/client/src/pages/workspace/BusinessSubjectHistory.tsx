@@ -1,12 +1,13 @@
+// biome-ignore-all lint/correctness/useExhaustiveDependencies: Revision changes intentionally reload subject history.
 import type { AgendaItem, CouncilDecisionDetail } from "@hall/api-contract";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { RequestErrorBanner } from "../../components/Ui";
 import { CalendarIcon } from "../../components/icons";
+import { RequestErrorBanner } from "../../components/Ui";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
-import { apiErrorCode, type ApiErrorCode } from "../../services/apiClient";
+import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { listCouncilBusinessAgendaItems } from "../../services/councilBusinessApi";
 import { openCouncilDecisionDocument } from "../../services/councilDecisionsApi";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
@@ -54,7 +55,8 @@ export function BusinessSubjectHistory({
 
   if (error) return <RequestErrorBanner error={error} />;
   if (!items) return <p className="business-subject-history-empty">{t("common.loading")}</p>;
-  if (items.length === 0) return <p className="business-subject-history-empty">{t("workspace.noPreviousOccurrences")}</p>;
+  if (items.length === 0)
+    return <p className="business-subject-history-empty">{t("workspace.noPreviousOccurrences")}</p>;
 
   const orderedItems = items.slice().sort((left, right) => {
     const dateOf = (id: string) => {

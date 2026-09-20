@@ -1,0 +1,64 @@
+import type { CouncilCommitteeBusinessLink } from "@hall/api-contract";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { RequestErrorBanner } from "../../components/Ui";
+import { Badge } from "../../components/ui/badge";
+import { useI18n } from "../../i18n/I18nProvider";
+import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import { listCouncilCommitteeBusinesses } from "../../services/councilBusinessCommitteesApi";
+
+/** @implements-requirement HALL-FR-BUS-070 */
+export function CouncilCommitteeBusinesses({ committeeId }: { committeeId: string }) {
+  const { t } = useI18n();
+  const [businesses, setBusinesses] = useState<CouncilCommitteeBusinessLink[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ApiErrorCode | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    setLoading(true);
+    setError(null);
+    void listCouncilCommitteeBusinesses(committeeId)
+      .then((links) => {
+        if (current) setBusinesses(links);
+      })
+      .catch((failure) => {
+        if (current) setError(apiErrorCode(failure));
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [committeeId]);
+
+  return (
+    <section className="admin-related" aria-labelledby="committee-businesses-title" data-testid="committee-businesses">
+      <div className="admin-section-heading">
+        <div>
+          <h2 id="committee-businesses-title">{t("committees.businesses")}</h2>
+          <p>{t("committees.businessesDescription")}</p>
+        </div>
+        <Badge variant="secondary">{businesses.length}</Badge>
+      </div>
+      {loading ? <p role="status">{t("common.loading")}</p> : null}
+      {!loading && businesses.length === 0 && !error ? <p>{t("committees.noBusinesses")}</p> : null}
+      {businesses.length > 0 ? (
+        <div className="admin-related-list">
+          {businesses.map((business) => (
+            <Link
+              className="data-row linked"
+              key={business.councilBusinessId}
+              to={`/workspace?${new URLSearchParams({ councilBusiness: business.councilBusinessId })}`}
+              data-testid="committee-business-link"
+            >
+              {business.title}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+      <RequestErrorBanner error={error} onDismiss={() => setError(null)} compact />
+    </section>
+  );
+}

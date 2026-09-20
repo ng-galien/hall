@@ -572,7 +572,7 @@
 /* Task lists retain their checkboxes and nested hierarchy in either editing mode. */
 .tiptap ul[data-type="taskList"] { list-style: none; padding-left: 0; }
 .tiptap li[data-type="taskItem"] { display: flex; align-items: flex-start; gap: var(--hall-space-2); }
-.tiptap li[data-type="taskItem"] > label { flex: none; margin-top: .2em; }
+.tiptap li[data-type="taskItem"] > label { flex: none; margin-top: var(--hall-task-checkbox-offset); }
 .tiptap li[data-type="taskItem"] > div { flex: 1; min-width: 0; }
 .tiptap li[data-type="taskItem"] > div > p { margin-top: 0; }
 .tiptap li[data-type="taskItem"] ul { padding-left: var(--hall-space-4); }

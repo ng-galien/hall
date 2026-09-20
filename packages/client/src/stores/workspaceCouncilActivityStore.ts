@@ -44,7 +44,9 @@ export const useWorkspaceCouncilActivityStore = create<WorkspaceCouncilActivityS
       occurrencesByBusinessId: {
         ...state.occurrencesByBusinessId,
         [businessId]: [
-          ...(state.occurrencesByBusinessId[businessId] ?? []).filter(({ agendaItem: current }) => current.id !== agendaItem.id),
+          ...(state.occurrencesByBusinessId[businessId] ?? []).filter(
+            ({ agendaItem: current }) => current.id !== agendaItem.id,
+          ),
           { agendaItem, meeting },
         ],
       },
@@ -54,7 +56,9 @@ export const useWorkspaceCouncilActivityStore = create<WorkspaceCouncilActivityS
     set((state) => ({
       occurrencesByBusinessId: {
         ...state.occurrencesByBusinessId,
-        [businessId]: (state.occurrencesByBusinessId[businessId] ?? []).filter(({ agendaItem }) => agendaItem.id !== agendaItemId),
+        [businessId]: (state.occurrencesByBusinessId[businessId] ?? []).filter(
+          ({ agendaItem }) => agendaItem.id !== agendaItemId,
+        ),
       },
     }));
   },

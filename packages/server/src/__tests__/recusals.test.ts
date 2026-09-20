@@ -18,7 +18,7 @@ describe("recusal HTTP boundary", () => {
       agendaNumber: 1,
       introducedAt: null,
       discussionSummary: "",
-      canStartDiscussion: false,
+      canStartDiscussion: true,
       canReviewBallot: false,
       conductBlockers: {
         startDiscussion: [],

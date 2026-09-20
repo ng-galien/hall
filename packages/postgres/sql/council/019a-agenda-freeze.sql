@@ -42,12 +42,14 @@ BEGIN
     IF NEW.position = OLD.position THEN RETURN NEW; END IF;
     SELECT started_at INTO source_started FROM hall.council_meetings WHERE id = source;
     -- Closure retains an unfinished occurrence with conduct or recusal evidence
-    -- in the original meeting; its successor receives a separate occurrence.
+    -- in the original meeting. An unexamined previous PV also stays here and
+    -- is not submitted for another vote on the successor agenda.
     -- subject_kind is generated after BEFORE triggers; compare its immutable
     -- source columns instead of its not-yet-computed NEW value.
     IF source_started IS NOT NULL AND OLD.position > 0 AND NEW.position = -OLD.position
       AND OLD.completed_at IS NULL
-      AND (OLD.started_at IS NOT NULL OR EXISTS(SELECT FROM hall.agenda_item_recusal WHERE agenda_item=OLD.id))
+      AND (OLD.minutes_approval IS NOT NULL OR OLD.started_at IS NOT NULL
+        OR EXISTS(SELECT FROM hall.agenda_item_recusal WHERE agenda_item=OLD.id))
       AND (to_jsonb(NEW)-ARRAY['position','subject_kind']) = (to_jsonb(OLD)-ARRAY['position','subject_kind'])
       AND EXISTS(SELECT FROM hall.council_meeting_snapshot WHERE council_meeting=source AND phase='closing')
       AND EXISTS(SELECT FROM hall.council_meetings WHERE previous_council_meeting=source) THEN RETURN NEW; END IF;

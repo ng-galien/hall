@@ -1,14 +1,16 @@
 import type { MinutesDetail, MinutesSummary } from "@hall/api-contract";
+import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 import { createDocumentRenderer } from "../services/documentRenderer.js";
-import { createTestServer, domainBody } from "./testServer.js";
+import { createPostgresHttpTestServer, createTestServer, domainBody } from "./testServer.js";
 
 describe("dedicated minutes HTTP lifecycle", () => {
   it("creates a draft at closure, edits only narrative and freezes a real PDF outside workspace", async () => {
     const renderer = createDocumentRenderer();
     const renderedHtml: string[] = [];
-    const { agent } = await createTestServer({
+    const { agent, container } = await createTestServer({
+      realClients: true,
       documentRenderer: {
         ...renderer,
         async pdf(input) {
@@ -17,6 +19,22 @@ describe("dedicated minutes HTTP lifecycle", () => {
         },
       },
     });
+    const pool = container.cradle.postgresPool;
+    if (!pool) throw new Error("A PostgreSQL pool is required for the real-client minutes scenario");
+    const databaseRequest = {
+      role: "hall_api_authenticated" as const,
+      context: { requestId: "minutes-pdf-fixture", actorId: "test-clerk", roles: ["administrator"], contactId: null },
+    };
+    await new PostgresDirectory(pool).configureActiveCouncilTerm(databaseRequest, 1);
+    const contact = domainBody<{ id: string }>(
+      await agent.post("/api/contacts").send({ firstName: "Martine", lastName: "Test" }).expect(201),
+    );
+    const member = domainBody<{ id: string }>(
+      await agent
+        .post("/api/council-members")
+        .send({ contactId: contact.id, role: "mayor", termStartedOn: "2026-03-22" })
+        .expect(201),
+    );
     const templateInput = {
       kind: "pdf",
       documentType: "minutes",
@@ -26,26 +44,51 @@ describe("dedicated minutes HTTP lifecycle", () => {
     };
     const template = domainBody<{ id: string }>(await agent.post("/api/templates").send(templateInput).expect(201));
     const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
-    const created = domainBody<{ agendaItem: { id: string } }>(
+    const business = domainBody<{ id: string }>(
       await agent
-        .post(`/api/council-meetings/${meeting.id}/council-business`)
-        .send({
-          kind: "openQuestion",
-          path: "seed",
-          name: "Discussion",
-          reportName: "Rapport",
-          reportContent: "",
-          position: 1,
-        })
+        .post("/api/council-business")
+        .send({ path: "seed", name: "Discussion", reportName: "Rapport", reportContent: "" })
+        .expect(201),
+    );
+    const subject = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-business/${business.id}/prepared-subjects`)
+        .send({ kind: "openQuestion", name: "Discussion en séance", content: "" })
+        .expect(201),
+    );
+    const agendaItem = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)
+        .send({ kind: "openQuestion", subjectId: subject.id, position: 1 })
         .expect(201),
     );
     await agent
-      .put(`/api/council-meetings/${meeting.id}/schedule`)
-      .send({ scheduledAt: "2026-09-05T18:00:00Z", location: "Salle du conseil" })
+      .put(`/api/council-meetings/${meeting.id}/prepare`)
+      .send({
+        scheduledAt: "2026-09-05T18:00:00Z",
+        location: "Salle du conseil",
+        chairMemberId: member.id,
+        secretaryMemberId: member.id,
+      })
       .expect(200);
+    const council = new PostgresCouncil(pool);
+    await council.freezeAgenda(databaseRequest, meeting.id);
+    const noticeFacts = await council.noticeFacts(databaseRequest, meeting.id);
+    if (!noticeFacts) throw new Error("Frozen meeting notice facts are required");
+    await council.generateNotice(
+      databaseRequest,
+      meeting.id,
+      { meeting: noticeFacts, issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" } },
+      Buffer.from("%PDF-fixture"),
+    );
     await agent
-      .post(`/api/council-meetings/${meeting.id}/start`)
-      .send({ startedAt: "2026-09-05T18:05:00Z" })
+      .post(`/api/council-meetings/${meeting.id}/record-opening`)
+      .send({
+        observedAt: "2026-09-05T18:05:00Z",
+        chairMemberId: member.id,
+        secretaryMemberId: member.id,
+        attendance: [{ councilMemberId: member.id, status: "present" }],
+      })
       .expect(200);
     const closed = domainBody<{ minutes: MinutesSummary }>(
       await agent
@@ -66,22 +109,20 @@ describe("dedicated minutes HTTP lifecycle", () => {
     await agent.get(`${path}/content`).expect(409);
     await agent
       .patch(`${path}/draft`)
-      .send({ expectedVersion: draft.version, agendaItemId: created.agendaItem.id, content: "Corrected", facts: {} })
+      .send({ expectedVersion: draft.version, agendaItemId: agendaItem.id, content: "Corrected", facts: {} })
       .expect(400);
     const edited = domainBody<MinutesDetail>(
       await agent
         .patch(`${path}/draft`)
         .send({
           expectedVersion: draft.version,
-          agendaItemId: created.agendaItem.id,
+          agendaItemId: agendaItem.id,
           content: "Une correction orthographique.",
         })
         .expect(200),
     );
     expect(edited.facts).toEqual(draft.facts);
-    expect(edited.sections).toEqual([
-      { agendaItemId: created.agendaItem.id, content: "Une correction orthographique." },
-    ]);
+    expect(edited.sections).toEqual([{ agendaItemId: agendaItem.id, content: "Une correction orthographique." }]);
     for (const bodyMarkdown of [
       "::minutes{section=proceedings}",
       `${templateInput.bodyMarkdown}\n\n::minutes{section=facts}`,
@@ -96,10 +137,9 @@ describe("dedicated minutes HTTP lifecycle", () => {
       expect(domainBody(await agent.get(path).expect(200))).toEqual(edited);
     }
     await agent.put(`/api/templates/${template.id}`).send(templateInput).expect(200);
-    const preview = await agent
-      .get(`${path}/preview`)
-      .expect(200)
-      .expect("Content-Type", /application\/pdf/);
+    const preview = await agent.get(`${path}/preview`);
+    expect(preview.status, JSON.stringify(preview.body)).toBe(200);
+    expect(preview.headers["content-type"]).toMatch(/application\/pdf/);
     expect((await PDFDocument.load(preview.body)).getPageCount()).toBeGreaterThan(0);
     expect(renderedHtml.at(-1)).toContain("Mon procès-verbal");
     expect(renderedHtml.at(-1)).toContain("#123456");
@@ -138,36 +178,75 @@ describe("dedicated minutes HTTP lifecycle", () => {
     expect(frozenPreview.body).toEqual(pdf.body);
     await agent
       .patch(`${path}/draft`)
-      .send({ expectedVersion: generated.version, agendaItemId: created.agendaItem.id, content: "Changed" })
+      .send({ expectedVersion: generated.version, agendaItemId: agendaItem.id, content: "Changed" })
       .expect(409);
     await agent.post(`${path}/generate`).send({ expectedVersion: generated.version }).expect(409);
-  });
+  }, 30_000);
 
   it("keeps recorded discussion in the closure draft and rejects later notes", async () => {
-    const { agent } = await createTestServer();
-    const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
-    const created = domainBody<{ agendaItem: { id: string } }>(
+    const { agent, pool } = await createPostgresHttpTestServer();
+    const databaseRequest = {
+      role: "hall_api_authenticated" as const,
+      context: { requestId: "minutes-notes-fixture", actorId: "test-clerk", roles: ["administrator"], contactId: null },
+    };
+    await new PostgresDirectory(pool).configureActiveCouncilTerm(databaseRequest, 1);
+    const contact = domainBody<{ id: string }>(
+      await agent.post("/api/contacts").send({ firstName: "Martine", lastName: "Test" }).expect(201),
+    );
+    const member = domainBody<{ id: string }>(
       await agent
-        .post(`/api/council-meetings/${meeting.id}/council-business`)
-        .send({
-          kind: "openQuestion",
-          path: "seed",
-          name: "Discussion",
-          reportName: "Rapport",
-          reportContent: "",
-          position: 1,
-        })
+        .post("/api/council-members")
+        .send({ contactId: contact.id, role: "mayor", termStartedOn: "2026-03-22" })
+        .expect(201),
+    );
+    const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
+    const business = domainBody<{ id: string }>(
+      await agent
+        .post("/api/council-business")
+        .send({ path: "seed", name: "Discussion", reportName: "Rapport", reportContent: "" })
+        .expect(201),
+    );
+    const subject = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-business/${business.id}/prepared-subjects`)
+        .send({ kind: "openQuestion", name: "Discussion en séance", content: "" })
+        .expect(201),
+    );
+    const item = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)
+        .send({ kind: "openQuestion", subjectId: subject.id, position: 1 })
         .expect(201),
     );
     await agent
-      .put(`/api/council-meetings/${meeting.id}/schedule`)
-      .send({ scheduledAt: "2026-09-05T18:00:00Z", location: "Salle" })
+      .put(`/api/council-meetings/${meeting.id}/prepare`)
+      .send({
+        scheduledAt: "2026-09-05T18:00:00Z",
+        location: "Salle",
+        chairMemberId: member.id,
+        secretaryMemberId: member.id,
+      })
       .expect(200);
+    const council = new PostgresCouncil(pool);
+    await council.freezeAgenda(databaseRequest, meeting.id);
+    const noticeFacts = await council.noticeFacts(databaseRequest, meeting.id);
+    if (!noticeFacts) throw new Error("Frozen meeting notice facts are required");
+    await council.generateNotice(
+      databaseRequest,
+      meeting.id,
+      { meeting: noticeFacts, issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" } },
+      Buffer.from("%PDF-fixture"),
+    );
     await agent
-      .post(`/api/council-meetings/${meeting.id}/start`)
-      .send({ startedAt: "2026-09-05T18:05:00Z" })
+      .post(`/api/council-meetings/${meeting.id}/record-opening`)
+      .send({
+        observedAt: "2026-09-05T18:05:00Z",
+        chairMemberId: member.id,
+        secretaryMemberId: member.id,
+        attendance: [{ councilMemberId: member.id, status: "present" }],
+      })
       .expect(200);
-    const notesPath = `/api/council-meetings/${meeting.id}/agenda-items/${created.agendaItem.id}/notes`;
+    const notesPath = `/api/council-meetings/${meeting.id}/agenda-items/${item.id}/notes`;
     await agent.patch(notesPath).send({ discussionSummary: "La commission présente ses conclusions." }).expect(200);
     const closed = domainBody<{ minutes: MinutesSummary }>(
       await agent
@@ -176,9 +255,10 @@ describe("dedicated minutes HTTP lifecycle", () => {
         .expect(200),
     );
     const minutes = domainBody<MinutesDetail>(await agent.get(`/api/minutes/${closed.minutes.id}`).expect(200));
-    expect(minutes.sections).toEqual([
-      { agendaItemId: created.agendaItem.id, content: "La commission présente ses conclusions." },
-    ]);
-    await agent.patch(notesPath).send({ discussionSummary: "Late change" }).expect(409);
+    expect(minutes.sections).toEqual([{ agendaItemId: item.id, content: "La commission présente ses conclusions." }]);
+    await agent.patch(notesPath).send({ discussionSummary: "Late change" }).expect(404);
+    expect(
+      domainBody<MinutesDetail>(await agent.get(`/api/minutes/${closed.minutes.id}`).expect(200)).sections,
+    ).toEqual([{ agendaItemId: item.id, content: "La commission présente ses conclusions." }]);
   });
 });

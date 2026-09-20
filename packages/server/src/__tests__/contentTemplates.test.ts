@@ -1,8 +1,9 @@
 import { referenceEntityKinds } from "@hall/domain";
+import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import { PDFDocument } from "pdf-lib";
 import type { Response } from "superagent";
 import { describe, expect, it } from "vitest";
-import { createTestServer, domainBody } from "./testServer.js";
+import { createPostgresHttpTestServer, createTestServer, domainBody } from "./testServer.js";
 
 function binaryParser(response: Response, callback: (error: Error | null, body: Buffer) => void): void {
   const chunks: Buffer[] = [];
@@ -11,7 +12,7 @@ function binaryParser(response: Response, callback: (error: Error | null, body: 
   response.on("error", callback);
 }
 
-async function createMemberAndMeeting(server: Awaited<ReturnType<typeof createTestServer>>) {
+async function createMemberAndMeeting(server: { agent: Awaited<ReturnType<typeof createTestServer>>["agent"] }) {
   const { agent } = server;
   const contact = domainBody<{ id: string }>(
     await agent
@@ -121,15 +122,14 @@ describe("content templates", () => {
   });
 
   it("resolves every closed reference kind from current server data", async () => {
-    const server = await createTestServer();
+    const server = await createPostgresHttpTestServer();
     const { agent } = server;
+    const databaseRequest = {
+      role: "hall_api_authenticated" as const,
+      context: { requestId: "reference-fixture", actorId: "test-clerk", roles: ["administrator"], contactId: null },
+    };
+    await new PostgresDirectory(server.pool).configureActiveCouncilTerm(databaseRequest, 1);
     const { contact, member, meeting } = await createMemberAndMeeting(server);
-    const decision = domainBody<{ id: string }>(
-      await agent
-        .post("/api/council-decisions")
-        .send({ title: "Décision actuelle", draftText: "Projet", legalityReviewRequired: false })
-        .expect(201),
-    );
     const business = domainBody<{ id: string }>(
       await agent
         .post("/api/council-business")
@@ -141,6 +141,60 @@ describe("content templates", () => {
         })
         .expect(201),
     );
+    const proposal = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-business/${business.id}/prepared-subjects`)
+        .send({ kind: "councilDecisionProposal", name: "Décision actuelle", content: "Projet" })
+        .expect(201),
+    );
+    const scheduled = domainBody<{ id: string }>(
+      await agent
+        .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)
+        .send({ kind: "councilDecisionProposal", subjectId: proposal.id, position: 1 })
+        .expect(201),
+    );
+    const council = new PostgresCouncil(server.pool);
+    await council.freezeAgenda(databaseRequest, meeting.id);
+    const noticeFacts = await council.noticeFacts(databaseRequest, meeting.id);
+    if (!noticeFacts) throw new Error("Frozen meeting notice facts are required");
+    await council.generateNotice(
+      databaseRequest,
+      meeting.id,
+      { meeting: noticeFacts, issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" } },
+      Buffer.from("%PDF-fixture"),
+    );
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/record-opening`)
+      .send({
+        observedAt: "2026-09-10T16:30:00Z",
+        chairMemberId: member.id,
+        secretaryMemberId: member.id,
+        attendance: [{ councilMemberId: member.id, status: "present" }],
+      })
+      .expect(200);
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/${scheduled.id}/start`)
+      .send({ startedAt: "2026-09-10T16:31:00Z" })
+      .expect(200);
+    const attendance = await council.listAttendance(databaseRequest, meeting.id);
+    const candidate = {
+      procedure: "ordinaryMajority",
+      mode: "public",
+      participantAttendanceIds: [attendance[0].id],
+      chairmanAttendanceId: attendance[0].id,
+      votes: [{ meetingAttendanceId: attendance[0].id, choice: "approve" }],
+      nonParticipations: [],
+    };
+    const ballotPreview = domainBody<{ id: string }>(
+      await agent.post("/api/ballot-previews").send({ agendaItemId: scheduled.id, candidate }).expect(201),
+    );
+    await agent.post(`/api/ballot-previews/${ballotPreview.id}/confirm`).send({}).expect(200);
+    const decisions = domainBody<Array<{ id: string; title: string; number: string | null }>>(
+      await agent.get("/api/council-decisions").expect(200),
+    );
+    expect(decisions).toHaveLength(1);
+    const decision = decisions[0];
+    expect(decision.title).toBe("Décision actuelle");
     const resource = domainBody<{ id: string }>(
       await agent
         .post("/api/resources")
@@ -154,7 +208,7 @@ describe("content templates", () => {
       `:resource[ancienne ressource]{#${resource.id}}`,
       `:councilBusiness[ancien sujet]{#${business.id}}`,
       `:meeting[ancienne séance]{#${meeting.id}}`,
-      `:decision[ancienne décision]{#${decision.id}}`,
+      `:decision[ancienne décision]{#${decision!.id}}`,
     ].join(" · ");
     const preview = domainBody<{ html: string; diagnostics: unknown[] }>(
       await agent.post("/api/templates/preview").send({ kind: "pdf", bodyMarkdown, context: {} }).expect(200),
@@ -174,7 +228,7 @@ describe("content templates", () => {
       resource: { id: resource.id, label: "Ressource actuelle" },
       councilBusiness: { id: business.id, label: "Sujet actuel" },
       meeting: { id: meeting.id, label: `${meeting.number} - ${meeting.scheduledAt.slice(0, 10)}` },
-      decision: { id: decision.id, label: "Décision actuelle" },
+      decision: { id: decision!.id, label: `${decision!.number} - Décision actuelle` },
     } satisfies Record<(typeof referenceEntityKinds)[number], { id: string; label: string }>;
     for (const kind of referenceEntityKinds) {
       const candidates = domainBody<Array<{ type: string; id: string; label: string }>>(

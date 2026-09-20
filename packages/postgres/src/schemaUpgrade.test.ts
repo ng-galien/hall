@@ -127,6 +127,76 @@ describe("Hall PostgreSQL schema upgrade planning", () => {
     ]);
   });
 
+  it("replaces a changed view without dropping the row type used by dependent routines", () => {
+    const installed = emptyCatalog();
+    installed.views.push({
+      oid: "50",
+      schemaName: "hall",
+      objectName: "resource_read_model",
+      definition: "SELECT id, name FROM hall.resource",
+      identityArguments: "",
+    });
+    const target = structuredClone(installed);
+    target.views[0] = { ...target.views[0]!, definition: "SELECT id, trim(name) AS name FROM hall.resource" };
+
+    expect(planHallSchemaUpgrade(installed, target).statements).toEqual([
+      expect.objectContaining({
+        kind: "create-view",
+        sql: 'CREATE OR REPLACE VIEW "hall"."resource_read_model" AS SELECT id, trim(name) AS name FROM hall.resource;',
+      }),
+    ]);
+  });
+
+  it("drops a routine typed by an obsolete view before dropping that view", () => {
+    const installed = emptyCatalog();
+    installed.views.push({
+      oid: "50",
+      schemaName: "hall",
+      objectName: "resource_read_model",
+      definition: "SELECT id, name FROM hall.resource",
+      identityArguments: "",
+    });
+    installed.routines.push({
+      oid: "51",
+      schemaName: "hall",
+      objectName: "resource_presentation",
+      definition:
+        "CREATE FUNCTION hall.resource_presentation(target hall.resource_read_model) RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$",
+      identityArguments: "target hall.resource_read_model",
+      routineKind: "function",
+    });
+
+    expect(planHallSchemaUpgrade(installed, emptyCatalog()).statements).toEqual([
+      expect.objectContaining({
+        kind: "drop-routine",
+        sql: 'DROP FUNCTION "hall"."resource_presentation"(target hall.resource_read_model);',
+      }),
+      expect.objectContaining({ kind: "drop-view", sql: 'DROP VIEW "hall"."resource_read_model";' }),
+    ]);
+  });
+
+  it("refuses an implicit column type conversion", () => {
+    const installed = emptyCatalog();
+    installed.tables.push({ tableOid: "10", schemaName: "hall", tableName: "contact" });
+    installed.columns.push({
+      tableOid: "10",
+      schemaName: "hall",
+      tableName: "contact",
+      columnNumber: 1,
+      columnName: "reference",
+      dataType: "text",
+      notNull: false,
+      identityKind: "",
+      generatedKind: "",
+    });
+    const target = structuredClone(installed);
+    target.columns[0] = { ...target.columns[0]!, dataType: "uuid" };
+
+    expect(() => planHallSchemaUpgrade(installed, target)).toThrow(
+      "without an explicit data-preserving migration rule",
+    );
+  });
+
   it("refuses to infer destructive table, column or type removals", () => {
     const installed = emptyCatalog();
     installed.tables.push({ tableOid: "10", schemaName: "hall", tableName: "contact" });

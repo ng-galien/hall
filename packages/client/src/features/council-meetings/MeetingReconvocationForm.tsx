@@ -1,12 +1,12 @@
 import type { AgendaItem, MeetingQuorumObservation, RecordMeetingReconvocation } from "@hall/api-contract";
-import { useId, useState, type FormEvent } from "react";
+import { type FormEvent, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
-import type { ApiErrorCode } from "../../services/apiClient";
-import { useI18n } from "../../i18n/I18nProvider";
 import { useSubmitting } from "../../hooks/useSubmitting";
+import { useI18n } from "../../i18n/I18nProvider";
+import type { ApiErrorCode } from "../../services/apiClient";
 
 export function MeetingReconvocationForm({
   observation,
@@ -24,7 +24,9 @@ export function MeetingReconvocationForm({
   const { submitting, run } = useSubmitting();
   const prefix = useId();
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const remainingItems = agendaItems.filter((item) => item.completedAt === null && observation.facts.remainingAgendaItemIds.includes(item.id));
+  const remainingItems = agendaItems.filter(
+    (item) => item.completedAt === null && observation.facts.remainingAgendaItemIds.includes(item.id),
+  );
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -43,7 +45,12 @@ export function MeetingReconvocationForm({
   };
   return (
     <>
-      <Button variant="outline" data-testid="live-reconvocation-open" disabled={remainingItems.length === 0} onClick={() => setOpen(true)}>
+      <Button
+        variant="outline"
+        data-testid="live-reconvocation-open"
+        disabled={remainingItems.length === 0}
+        onClick={() => setOpen(true)}
+      >
         {t("meeting.reconveneAction")}
       </Button>
       <Modal
@@ -55,7 +62,11 @@ export function MeetingReconvocationForm({
       >
         <form className="grid gap-4" data-testid="live-reconvocation-form" onSubmit={submit}>
           <p>{t("meeting.reconveneDescription")}</p>
-          <ul className="text-sm text-muted" data-testid="live-reconvocation-agenda">{remainingItems.map((item) => <li key={item.id}>{item.title}</li>)}</ul>
+          <ul className="text-sm text-muted" data-testid="live-reconvocation-agenda">
+            {remainingItems.map((item) => (
+              <li key={item.id}>{item.title}</li>
+            ))}
+          </ul>
           <p className="text-sm text-muted">
             {t("meeting.quorumFailureRecordedAt").replace("{date}", formatDateTime(observation.observedAt))}
           </p>

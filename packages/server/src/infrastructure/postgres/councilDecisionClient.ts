@@ -1,5 +1,5 @@
 import { councilDecisionDetailSchema, councilDecisionSummarySchema } from "@hall/api-contract";
-import { HallPostgresError, type PostgresCouncilRequest, type PostgresCouncilDecisions } from "@hall/postgres";
+import { HallPostgresError, type PostgresCouncilDecisions, type PostgresCouncilRequest } from "@hall/postgres";
 import { z } from "zod";
 import type { CouncilDecisionClient } from "../../clients/councilDecisionClient.js";
 import type { RequestContextStore } from "../../security/requestContext.js";
@@ -59,7 +59,15 @@ export function createPostgresCouncilDecisionClient({
     },
     async freeze(id, expectedVersion, expectedNumber, expectedDocumentDate, content) {
       return councilDecisionDetailSchema.parse(
-        await call(() => postgresCouncilDecisions.freeze(currentRequest(), { id, expectedVersion, expectedNumber, expectedDocumentDate, content })),
+        await call(() =>
+          postgresCouncilDecisions.freeze(currentRequest(), {
+            id,
+            expectedVersion,
+            expectedNumber,
+            expectedDocumentDate,
+            content,
+          }),
+        ),
       );
     },
     async content(id) {

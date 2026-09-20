@@ -1,12 +1,13 @@
-import { ExplorerTreeContent } from "../../components/ui/explorer-tree";
 import { createPortal } from "react-dom";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { ExplorerTreeContent } from "../../components/ui/explorer-tree";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useWorkspaceResourceImageUpload } from "../documents/useWorkspaceResourceImageUpload";
-import { ResourcePresentationBody } from "./ResourcePresentationBody";
 import { ResourceAutosaveToggle } from "./ResourceAutosaveToggle";
+import { ResourceChangesControl } from "./ResourceChangesControl";
+import { ResourcePresentationBody } from "./ResourcePresentationBody";
 import { useResourceSession } from "./useResourceSession";
 
 export function InlineResourceContent({
@@ -70,6 +71,15 @@ export function InlineResourceContent({
           onChange={session.updateAutosave}
         />
       ) : null}
+      {session.resource?.kind === "text" ? (
+        <ResourceChangesControl
+          resourceId={session.resource.id}
+          representation={session.representation}
+          onInvalidated={() => {
+            if (!session.dirty && !session.submitting) void session.reload();
+          }}
+        />
+      ) : null}
       {session.editable && (!session.autosaveEnabled || session.actionError) ? (
         <Button
           size="sm"
@@ -95,9 +105,7 @@ export function InlineResourceContent({
     <ExplorerTreeContent
       testId={`business-inline-resource-${resourceId}`}
       heading={heading ?? t("resources.textContent")}
-      actions={
-        actions
-      }
+      actions={actions}
     >
       {body}
     </ExplorerTreeContent>

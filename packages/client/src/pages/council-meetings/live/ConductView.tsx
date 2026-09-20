@@ -1,11 +1,11 @@
 import { matchLiteral } from "@hall/domain";
-import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DisclosureBadge } from "@/components/ui/disclosure-badge";
-import { createStageProgress } from "@/components/ui/stage-progress";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { createStageProgress } from "@/components/ui/stage-progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MarkdownEditor } from "../../../components/editor/MarkdownEditor";
 import {
@@ -31,16 +31,18 @@ const itemStages = [
 ] as const;
 const VotingItemProgress = createStageProgress(itemStages);
 const DiscussionItemProgress = createStageProgress([itemStages[0], itemStages[1], { id: "2", icon: <CheckIcon /> }]);
+
 import { Modal, RequestErrorBanner } from "../../../components/Ui";
-import { useAgendaItemRecusals } from "../../../hooks/useAgendaItemRecusals";
+import { liveBusinessTitle } from "../../../features/council-business/presentation";
 import { AgendaItemRecusalDialog } from "../../../features/council-meetings/AgendaItemRecusalDialog";
+import { agendaSubjectPresentation } from "../../../features/council-meetings/AgendaSubjectGlyph";
+import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdictPresentation";
 import { ConductActionBlockers } from "../../../features/council-meetings/ConductActionBlockers";
 import { recusalBasisLabel } from "../../../features/council-meetings/recusalPresentation";
-import { liveBusinessTitle } from "../../../features/council-business/presentation";
-import { agendaSubjectPresentation } from "../../../features/council-meetings/AgendaSubjectGlyph";
-import { ResourcePreview } from "../../../features/documents/ResourcePreview";
 import { DocumentaryResourceGlyph } from "../../../features/documents/DocumentaryResourceGlyph";
+import { ResourcePreview } from "../../../features/documents/ResourcePreview";
 import { useResourceImageUpload } from "../../../features/documents/useResourceImageUpload";
+import { useAgendaItemRecusals } from "../../../hooks/useAgendaItemRecusals";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useReferenceMentionables } from "../../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../../hooks/useSubmitting";
@@ -54,6 +56,7 @@ import type {
 import { agendaItemDecisionId, pendingBallotDecisions } from "../ballotDecisionPolicy";
 import { councilMemberName } from "../ballotParticipants";
 import { VotePanel } from "./VotePanel";
+import { useConductAgendaSelection } from "./useConductAgendaSelection";
 
 const RAIL_WIDTH_KEY = "mairie.live.railWidth";
 const RAIL_MIN_WIDTH = 280;
@@ -96,6 +99,7 @@ function elapsedSince(startedAt: string, now: number): string {
   return parts.map((value) => String(value).padStart(2, "0")).join(":");
 }
 
+// @implements-requirement HALL-FR-MTG-320
 export function ConductView({
   aggregate,
   members,
@@ -111,14 +115,15 @@ export function ConductView({
   const { t, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const navigate = useNavigate();
-  const orderedItems = useMemo(
-    () => [...aggregate.agendaItems].sort((left, right) => left.position - right.position),
-    [aggregate.agendaItems],
-  );
-  const activeItem = orderedItems.find((item) => item.status === "inProgress") ?? null;
-  const nextItem = orderedItems.find((item) => item.status === "scheduled" || item.status === "inProgress") ?? null;
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [openingSelected, setOpeningSelected] = useState(false);
+  const {
+    orderedItems,
+    activeItem,
+    nextItem,
+    selectedItem,
+    setSelectedItemId,
+    openingSelected,
+    setOpeningSelected,
+  } = useConductAgendaSelection(aggregate.agendaItems, meetingActions.liveRevision);
   const [adjournConfirming, setAdjournConfirming] = useState(false);
   const [ballotActionContainer, setBallotActionContainer] = useState<HTMLDivElement | null>(null);
   const [notes, setNotes] = useState("");
@@ -161,9 +166,6 @@ export function ConductView({
       ) ?? null
     );
   };
-
-  const selectedItem =
-    orderedItems.find((item) => item.id === selectedItemId) ?? activeItem ?? nextItem ?? orderedItems.at(-1) ?? null;
 
   const selectedItemId2 = selectedItem?.id ?? null;
   const recusals = useAgendaItemRecusals(
@@ -406,7 +408,7 @@ export function ConductView({
                         ) : (
                           <CloseIcon aria-hidden="true" />
                         )}
-                        {t(itemBallot.result === "adopted" ? "live.adopted" : "live.rejected")}{" "}
+                        {t(ballotVerdictKey(item.subjectKind === "minutesApproval", itemBallot.result === "adopted"))}{" "}
                         {formatNumber(itemBallot.votesFor)} · {formatNumber(itemBallot.votesAgainst)} ·{" "}
                         {formatNumber(itemBallot.abstentions)}
                       </span>
@@ -434,7 +436,9 @@ export function ConductView({
                         </span>
                         {itemBallot ? (
                           <span className={`step-tooltip-ballot step-tooltip-ballot-${itemBallot.result}`}>
-                            {t(itemBallot.result === "adopted" ? "live.adopted" : "live.rejected")}{" "}
+                            {t(
+                              ballotVerdictKey(item.subjectKind === "minutesApproval", itemBallot.result === "adopted"),
+                            )}{" "}
                             {formatNumber(itemBallot.votesFor)} · {formatNumber(itemBallot.votesAgainst)} ·{" "}
                             {formatNumber(itemBallot.abstentions)}
                           </span>
@@ -760,6 +764,7 @@ export function ConductView({
                 target={
                   selectedDecision ? { councilDecisionId: selectedDecision.id } : { agendaItemId: selectedItem.id }
                 }
+                isMinutes={selectedItem.subjectKind === "minutesApproval"}
                 open={voteOpen}
                 onOpenChange={setVoteOpen}
                 onPreview={async (input) => {
@@ -783,7 +788,12 @@ export function ConductView({
                 <header className="conduct-result-header">
                   <div className="conduct-result-verdict">
                     <span className={`verdict-stamp verdict-stamp-${selectedBallot.result}`}>
-                      {t(selectedBallot.result === "adopted" ? "live.adopted" : "live.rejected")}
+                      {t(
+                        ballotVerdictKey(
+                          selectedItem.subjectKind === "minutesApproval",
+                          selectedBallot.result === "adopted",
+                        ),
+                      )}
                     </span>
                     <div>
                       <span className="conduct-result-meta">

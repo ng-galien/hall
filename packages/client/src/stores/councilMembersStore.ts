@@ -1,7 +1,7 @@
-import { findSirenAction } from "@hall/api-contract";
 import type { Contact } from "@hall/api-contract";
+import { findSirenAction } from "@hall/api-contract";
 import { create } from "zustand";
-import { councilMemberView, type CouncilMemberView } from "../models/directory";
+import { type CouncilMemberView, councilMemberView } from "../models/directory";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import { getContactSiren, listContactsSiren } from "../services/contactsApi";
 import {

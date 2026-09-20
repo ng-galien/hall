@@ -301,7 +301,9 @@ async function renderResourceEmbed(
   resourcesClient: ResourcesClient,
   geographicMapRenderer: GeographicMapRenderer,
   registerPdfAttachment: (resource: TemplatePdfAttachment) => void,
-  renderText: (source: string) => Promise<{ bodyHtml: string; diagnostics: Diagnostic[]; pdfAttachments: TemplatePdfAttachment[] }>,
+  renderText: (
+    source: string,
+  ) => Promise<{ bodyHtml: string; diagnostics: Diagnostic[]; pdfAttachments: TemplatePdfAttachment[] }>,
 ): Promise<{ node: AstNode; diagnostics: Diagnostic[] }> {
   const id = directive.attributes.id;
   if (!id) return { node: fallbackPresentation(directive), diagnostics: [] };
@@ -375,12 +377,15 @@ async function renderResourceEmbed(
       const rendered = await renderText(resource.document.content);
       rendered.pdfAttachments.forEach(registerPdfAttachment);
       return {
-        node: { type: "root", children: [
-          paragraph([{ type: "strong", children: [textNode(resource.name)] }]),
-          paragraph([textNode(`${resource.document.schedule.start} - ${resource.document.schedule.end}`)]),
-          paragraph([textNode(resource.document.location)]),
-          { type: "html", value: rendered.bodyHtml },
-        ] },
+        node: {
+          type: "root",
+          children: [
+            paragraph([{ type: "strong", children: [textNode(resource.name)] }]),
+            paragraph([textNode(`${resource.document.schedule.start} - ${resource.document.schedule.end}`)]),
+            paragraph([textNode(resource.document.location)]),
+            { type: "html", value: rendered.bodyHtml },
+          ],
+        },
         diagnostics: rendered.diagnostics,
       };
     },
@@ -663,8 +668,15 @@ export function createTemplateRenderingService({
     meeting: context.meetingId ? await councilClient.openMeeting(context.meetingId) : null,
   });
 
-  const renderSource = async (source: string, context: ResolvedContext, ancestors: readonly string[] = []): Promise<{
-    bodyHtml: string; text: string; diagnostics: Diagnostic[]; pdfAttachments: TemplatePdfAttachment[];
+  const renderSource = async (
+    source: string,
+    context: ResolvedContext,
+    ancestors: readonly string[] = [],
+  ): Promise<{
+    bodyHtml: string;
+    text: string;
+    diagnostics: Diagnostic[];
+    pdfAttachments: TemplatePdfAttachment[];
   }> => {
     const minutes = context.minutes ? renderMinutesSections(context.minutes) : null;
     const tree = parse(source);
@@ -714,7 +726,9 @@ export function createTemplateRenderingService({
         const resourceId = directive.attributes.id;
         if (resourceId && ancestors.includes(resourceId)) {
           values.set(key, fallbackPresentation(directive));
-          diagnostics.push(resourceDiagnostic("resource_representation_unavailable", "Cyclic resource insertion", directive));
+          diagnostics.push(
+            resourceDiagnostic("resource_representation_unavailable", "Cyclic resource insertion", directive),
+          );
           continue;
         }
         const rendered = await renderResourceEmbed(

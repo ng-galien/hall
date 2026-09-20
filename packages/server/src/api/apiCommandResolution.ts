@@ -104,6 +104,10 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method === "DELETE" && id && !child) return auditIntent("council-business.delete", id);
     if (method === "POST" && id && child === "prepared-subjects" && !childId)
       return auditIntent("council-business.create-prepared-subject", id);
+    if (method === "POST" && id && child === "committees" && !childId)
+      return auditIntent("council-business.associate-committee", id, body && { committeeId: body.committeeId });
+    if (method === "POST" && id && child === "committees" && childId === "dissociate" && !operation)
+      return auditIntent("council-business.dissociate-committee", id, body && { committeeId: body.committeeId });
     if (method === "POST" && id === "import-bundle" && !child) return auditIntent("council-business.import-bundle");
     if (method === "POST" && !id) return auditIntent("council-business.create");
     if (method === "POST" && id && child === "resources" && !childId) {

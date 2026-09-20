@@ -36,8 +36,8 @@ CREATE TABLE hall.minutes_document (
   generated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
 );
 
--- Entity: the approval of one previous meeting's minutes. The same approval
--- may be placed successively on several agendas when it is not examined.
+-- Entity: the approval of one previous meeting's minutes. An unexamined
+-- approval remains attached to that meeting and is never scheduled again.
 -- @functional-requirement HALL-FR-MIN-020 ONE_APPROVAL_PER_MINUTES:
 CREATE TABLE hall.minutes_approval (
   id UUID PRIMARY KEY,

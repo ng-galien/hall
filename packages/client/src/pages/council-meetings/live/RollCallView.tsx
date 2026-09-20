@@ -1,5 +1,8 @@
+// biome-ignore-all lint/a11y/noNoninteractiveTabindex: The scrollable roll-call region must be focusable for keyboard scrolling.
 import type { ResourceDetail } from "@hall/api-contract";
+
 type ProxyDocument = Extract<ResourceDetail, { kind: "document" }>;
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,8 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MeetingReconvocationForm } from "../../../features/council-meetings/MeetingReconvocationForm";
-import { MeetingEntryBlockers } from "../../../features/council-meetings/MeetingEntryBlockers";
 import {
   CheckCircleIcon,
   FileIcon,
@@ -20,17 +21,19 @@ import {
   WarningIcon,
 } from "../../../components/icons";
 import { Modal, RequestErrorBanner } from "../../../components/Ui";
+import { MeetingEntryBlockers } from "../../../features/council-meetings/MeetingEntryBlockers";
+import { MeetingReconvocationForm } from "../../../features/council-meetings/MeetingReconvocationForm";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import { useI18n } from "../../../i18n/I18nProvider";
+import type { CouncilMemberView } from "../../../models/directory";
+import type { LiveMeetingMemberAttendance as Attendance, LiveMeetingPresentation } from "../../../models/liveMeeting";
+import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../../../services/apiClient";
 import {
   listDocumentaryResourceFolder,
   openDocumentaryResource,
   uploadDocumentaryResource,
 } from "../../../services/resourcesApi";
-import { apiErrorCode, sirenRepresentation, type ApiErrorCode } from "../../../services/apiClient";
-import type { LiveMeetingMemberAttendance as Attendance, LiveMeetingPresentation } from "../../../models/liveMeeting";
-import type { CouncilMemberView } from "../../../models/directory";
 import { meetingOpeningBlock } from "../meetingOpeningPolicy";
 
 const directStatuses = ["present", "excused", "absent"] as const;
@@ -271,11 +274,10 @@ export function RollCallView({
         </div>
       </header>
 
-      <div
+      <section
         className="rollcall-content"
         data-testid="live-rollcall-content"
         tabIndex={0}
-        role="region"
         aria-labelledby="rollcall-heading"
       >
         <ul className="rollcall-grid">
@@ -396,7 +398,7 @@ export function RollCallView({
             );
           })}
         </ul>
-      </div>
+      </section>
       {mode === "opening" ? (
         <footer className="rollcall-footer">
           <div role="status">

@@ -1,6 +1,7 @@
 import type { MinutesFacts as Facts } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
 import { Disclosure } from "@/components/ui/disclosure";
+import { ballotVerdictKey } from "../../features/council-meetings/ballotVerdictPresentation";
 import { useI18n } from "../../i18n/I18nProvider";
 import { MinutesSectionHint } from "./MinutesSectionHint";
 
@@ -75,9 +76,7 @@ export function MinutesFacts({ facts }: { facts: Facts }) {
               {represented.length > 0
                 ? represented
                     .map((entry) => {
-                      const holder = facts.attendance.find(
-                        (person) => person.id === entry.proxyHolderId,
-                      );
+                      const holder = facts.attendance.find((person) => person.id === entry.proxyHolderId);
                       return `${entry.member.name} : ${t("minutes.proxyHolder")} ${holder?.member.name ?? t("common.none")}`;
                     })
                     .join("; ")
@@ -107,17 +106,25 @@ export function MinutesAgendaFacts({ item, ballots }: { item: Facts["agenda"][nu
     return (
       <div className="minutes-vote-empty" data-testid={`minutes-section-vote-${item.id}`}>
         <strong>{t("minutes.vote")}</strong>
-        <span>{t(item.adjournedAt ? "status.adjourned" : "minutes.noVote")}</span>
+        <span>
+          {t(
+            item.kind === "minutesApproval"
+              ? "minutes.notStopped"
+              : item.adjournedAt
+                ? "status.adjourned"
+                : "minutes.noVote",
+          )}
+        </span>
       </div>
     );
   }
 
   const result =
     firstBallot.result === null
-      ? t("minutes.noResult")
+      ? t(item.kind === "minutesApproval" ? "minutes.notStopped" : "minutes.noResult")
       : matchLiteral(firstBallot.result, {
-          approve: () => t("status.adopted"),
-          reject: () => t("status.rejected"),
+          approve: () => t(ballotVerdictKey(item.kind === "minutesApproval", true)),
+          reject: () => t(ballotVerdictKey(item.kind === "minutesApproval", false)),
         });
 
   return (

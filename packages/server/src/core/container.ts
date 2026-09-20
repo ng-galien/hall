@@ -23,6 +23,7 @@ import { createPostgresCouncilDecisionClient } from "../infrastructure/postgres/
 import { createPostgresDirectoryClient } from "../infrastructure/postgres/directoryClient.js";
 import { createPostgresMinutesClient } from "../infrastructure/postgres/minutesClient.js";
 import { createPostgresResourcesClient } from "../infrastructure/postgres/resourcesClient.js";
+import { createLiveEventBus, type LiveEventBus } from "../realtime/liveEvents.js";
 import { createAgendaItemRepository } from "../repositories/agendaItemRepository.js";
 import { createAttendanceRepository } from "../repositories/attendanceRepository.js";
 import { createBallotRepository } from "../repositories/ballotRepository.js";
@@ -50,13 +51,13 @@ import { type AuthService, createAuthService } from "../services/authService.js"
 import { type BallotService, createBallotService } from "../services/ballotService.js";
 import { type ContentTemplateService, createContentTemplateService } from "../services/contentTemplateService.js";
 import { type CouncilBallotService, createCouncilBallotService } from "../services/councilBallotService.js";
+import { createCouncilBusinessBundleExportService } from "../services/councilBusinessBundleExportService.js";
+import { createCouncilBusinessBundleImportService } from "../services/councilBusinessBundleImportService.js";
 import {
   type CouncilBusinessWorkspaceService,
   createCouncilBusinessWorkspaceService,
 } from "../services/councilBusinessWorkspaceService.js";
 import { type CouncilDecisionService, createCouncilDecisionService } from "../services/councilDecisionService.js";
-import { createCouncilBusinessBundleExportService } from "../services/councilBusinessBundleExportService.js";
-import { createCouncilBusinessBundleImportService } from "../services/councilBusinessBundleImportService.js";
 import { type CouncilMeetingService, createCouncilMeetingService } from "../services/councilMeetingService.js";
 import { createDirectoryService, type DirectoryService } from "../services/directoryService.js";
 import {
@@ -65,6 +66,7 @@ import {
 } from "../services/documentaryResourceService.js";
 import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
 import { createDocumentRenderer, type DocumentRenderer } from "../services/documentRenderer.js";
+import { createEventInvitationService, type EventInvitationService } from "../services/eventInvitationService.js";
 import { createGeographicMapRenderer, type GeographicMapRenderer } from "../services/geographicMapRenderer.js";
 import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
@@ -77,16 +79,17 @@ import { createMinutesService, type MinutesService } from "../services/minutesSe
 import { createReferenceEntityResolver, type ReferenceEntityResolver } from "../services/referenceEntityResolver.js";
 import { createTemplateRenderingService, type TemplateRenderingService } from "../services/templateRendering.js";
 import type { ServerConfig } from "./config.js";
-import { createEventInvitationService, type EventInvitationService } from "../services/eventInvitationService.js";
 
 export interface ServerCompositionOptions {
   postgresPool?: Pool;
+  postgresSchemaUpgradeMode?: "automatic" | "verify-only";
 }
 
 export interface Cradle {
   config: ServerConfig;
   postgresPool: Pool | null;
   requestContext: RequestContextStore;
+  realtimeEvents: LiveEventBus;
   sqlExecutor: SqlExecutor;
   postgresClient: PostgresClient | null;
   postgresCouncil: PostgresCouncil;
@@ -140,11 +143,12 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     config: asValue(config),
     postgresPool: asValue(options.postgresPool ?? null),
     requestContext: asFunction(() => new RequestContextStore()).singleton(),
+    realtimeEvents: asFunction(createLiveEventBus).singleton(),
     sqlExecutor: asFunction(createSqlExecutor).singleton(),
     postgresClient: asFunction(({ config, postgresPool }: { config: ServerConfig; postgresPool: Pool | null }) => {
       if (config.database.kind !== "postgres") return null;
       return postgresPool
-        ? new PostgresClient(postgresPool, false)
+        ? new PostgresClient(postgresPool, false, options.postgresSchemaUpgradeMode)
         : createPostgresClient({ connectionString: config.database.url });
     }).singleton(),
     unitOfWork: asFunction(({ sqlExecutor }: { sqlExecutor: SqlExecutor }) => sqlExecutor).singleton(),

@@ -94,6 +94,7 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
       RETURNS integer LANGUAGE sql AS $function$ SELECT value $function$;
       ALTER TABLE hall_meta.schema_contract DROP COLUMN installed_at;
       REVOKE EXECUTE ON FUNCTION hall_api.schema_fingerprint() FROM hall_api_anonymous;
+      GRANT EXECUTE ON FUNCTION hall_api.schema_fingerprint() TO hall_api_worker;
       UPDATE hall_meta.schema_contract SET manifest_sha256 = repeat('a', 64);
     `);
 
@@ -130,6 +131,13 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
         target_column: true,
       },
     ]);
+    expect(
+      (
+        await pool.query(
+          "SELECT has_function_privilege('hall_api_worker', 'hall_api.schema_fingerprint()', 'EXECUTE') AS stale_grant",
+        )
+      ).rows,
+    ).toEqual([{ stale_grant: false }]);
   });
 
   it("serializes concurrent installers against one contract", async () => {

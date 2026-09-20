@@ -1,15 +1,16 @@
-import { z } from "zod";
 import { meetingDocumentSourceSchema } from "@hall/contracts";
+import { z } from "zod";
 import { resourceDetailSchema } from "./resources.js";
+
 export {
-  meetingDocumentsSchema,
-  meetingDocumentGroupSchema,
-  meetingDocumentSourceSchema,
-  meetingDocumentResourceSchema,
-  type MeetingDocuments,
   type MeetingDocumentGroup,
   type MeetingDocumentResource,
   type MeetingDocumentSource,
+  type MeetingDocuments,
+  meetingDocumentGroupSchema,
+  meetingDocumentResourceSchema,
+  meetingDocumentSourceSchema,
+  meetingDocumentsSchema,
 } from "@hall/contracts";
 export const meetingDocumentResourceDetailSchema = z
   .object({

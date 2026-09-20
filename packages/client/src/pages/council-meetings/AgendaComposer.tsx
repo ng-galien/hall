@@ -1,42 +1,43 @@
-import { Link } from "react-router-dom";
-import { type DragEvent, type FormEvent, useId, useMemo, useState } from "react";
+// biome-ignore-all lint/a11y/noStaticElementInteractions: This drop target has a separate keyboard-accessible subject scheduler.
 import type { PreparedCouncilSubject, SchedulePreparedCouncilSubject } from "@hall/api-contract";
+import { type DragEvent, type FormEvent, useId, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   AddIcon,
-  CouncilBusinessIcon,
   ArrowDownIcon,
   ArrowUpIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  CouncilBusinessIcon,
   DeleteIcon,
   DragHandleIcon,
+  GavelIcon,
   TextDocumentIcon,
   VisibleIcon,
-  GavelIcon,
 } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
-import { EmptyState, Modal, RequestErrorBanner, matchesQuery } from "../../components/Ui";
+import { EmptyState, Modal, matchesQuery, RequestErrorBanner } from "../../components/Ui";
 import { liveBusinessTitle } from "../../features/council-business/presentation";
+import { AgendaMinutesApproval } from "../../features/council-meetings/AgendaMinutesApproval";
+import { AgendaSubjectEditor } from "../../features/council-meetings/AgendaSubjectEditor";
 import {
   AgendaSubjectGlyph,
   agendaSubjectPresentation,
-  preparedSubjectPresentation,
   agendaSubjectTextResource,
+  preparedSubjectPresentation,
 } from "../../features/council-meetings/AgendaSubjectGlyph";
-import { AgendaSubjectEditor } from "../../features/council-meetings/AgendaSubjectEditor";
-import { AgendaMinutesApproval } from "../../features/council-meetings/AgendaMinutesApproval";
 import { DocumentaryResourceGlyph } from "../../features/documents/DocumentaryResourceGlyph";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
-import type { ApiErrorCode } from "../../services/apiClient";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import {
   type LiveMeetingAgendaItem as AgendaItem,
   liveAgendaBusinessRank as agendaBusinessRank,
 } from "../../models/liveMeeting";
+import type { ApiErrorCode } from "../../services/apiClient";
 
 export interface QuickCouncilBusinessInput {
   kind: "matter" | "openQuestion";

@@ -130,5 +130,4 @@ describe("persistence decoding", () => {
       ),
     ).toThrow();
   });
-
 });

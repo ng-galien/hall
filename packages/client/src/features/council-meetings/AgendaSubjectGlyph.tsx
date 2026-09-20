@@ -11,7 +11,11 @@ export const agendaSubjectPresentation = {
 
 export function AgendaSubjectGlyph({ kind, tree = false }: { kind: AgendaSubject["kind"]; tree?: boolean }) {
   const Icon = agendaSubjectPresentation[kind].icon;
-  return <span className={tree ? "workspace-glyph" : "composer-subject-glyph"} aria-hidden="true"><Icon /></span>;
+  return (
+    <span className={tree ? "workspace-glyph" : "composer-subject-glyph"} aria-hidden="true">
+      <Icon />
+    </span>
+  );
 }
 
 export function agendaSubjectTextResource(subject: AgendaSubject): string | null {
@@ -23,11 +27,24 @@ export function agendaSubjectTextResource(subject: AgendaSubject): string | null
 }
 
 /** Preserve each prepared subject's identity and text resource. */
-export function preparedSubjectPresentation(subject: PreparedCouncilSubject, position: number): {
-  key: string; previewResourceId: string; command: SchedulePreparedCouncilSubject;
+export function preparedSubjectPresentation(
+  subject: PreparedCouncilSubject,
+  position: number,
+): {
+  key: string;
+  previewResourceId: string;
+  command: SchedulePreparedCouncilSubject;
 } {
   return matchDiscriminated(subject, "kind", {
-    councilDecisionProposal: (project) => ({ key: project.id, previewResourceId: project.textResourceId, command: { kind: project.kind, subjectId: project.id, position } }),
-    openQuestion: (question) => ({ key: question.id, previewResourceId: question.textResourceId, command: { kind: question.kind, subjectId: question.id, position } }),
+    councilDecisionProposal: (project) => ({
+      key: project.id,
+      previewResourceId: project.textResourceId,
+      command: { kind: project.kind, subjectId: project.id, position },
+    }),
+    openQuestion: (question) => ({
+      key: question.id,
+      previewResourceId: question.textResourceId,
+      command: { kind: question.kind, subjectId: question.id, position },
+    }),
   });
 }

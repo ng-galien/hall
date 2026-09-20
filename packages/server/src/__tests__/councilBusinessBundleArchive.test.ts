@@ -1,33 +1,73 @@
 import { randomUUID } from "node:crypto";
-import { gzipSync, gunzipSync } from "node:zlib";
+import { gunzipSync, gzipSync } from "node:zlib";
+import { type CouncilBusinessBundleManifest, resourceDetailSchema } from "@hall/api-contract";
 import { describe, expect, it } from "vitest";
-import { resourceDetailSchema, type CouncilBusinessBundleManifest } from "@hall/api-contract";
-import { createCouncilBusinessBundleExportService } from "../services/councilBusinessBundleExportService.js";
 import {
-  bundleContentHash, decodeCouncilBusinessBundle, encodeCouncilBusinessBundle,
+  bundleContentHash,
+  decodeCouncilBusinessBundle,
+  encodeCouncilBusinessBundle,
 } from "../services/councilBusinessBundleArchive.js";
+import { createCouncilBusinessBundleExportService } from "../services/councilBusinessBundleExportService.js";
 
 function fixture() {
   const id = randomUUID();
   const folderId = randomUUID();
   const manifest: CouncilBusinessBundleManifest = {
-    format: "hall-council-business", version: 1,
+    format: "hall-council-business",
+    version: 1,
     sender: { firstName: "Epona", lastName: "Arverna", slug: "arverna-epona" },
-    business: { sourceId: randomUUID(), folderSourceId: folderId, name: "Eau potable", reportSourceId: id, resourceSourceIds: [] },
-    resources: [{ data: {
-      id, kind: "text", slug: "rapport", path: "Eau", name: "Rapport", fullPath: "Eau/Rapport",
-      tags: [], state: { readiness: "ready", availability: null }, autosaveEnabled: true,
-      createdAt: "2026-09-10T10:00:00Z", updatedAt: "2026-09-10T10:00:00Z", content: "Le rapport", version: 1,
-    } }],
-    files: [], editorAssets: [], externalReferenceIds: [],
+    business: {
+      sourceId: randomUUID(),
+      folderSourceId: folderId,
+      name: "Eau potable",
+      reportSourceId: id,
+      resourceSourceIds: [],
+    },
+    resources: [
+      {
+        data: {
+          id,
+          kind: "text",
+          slug: "rapport",
+          path: "Eau",
+          name: "Rapport",
+          fullPath: "Eau/Rapport",
+          tags: [],
+          state: { readiness: "ready", availability: null },
+          autosaveEnabled: true,
+          createdAt: "2026-09-10T10:00:00Z",
+          updatedAt: "2026-09-10T10:00:00Z",
+          content: "Le rapport",
+          version: 1,
+        },
+      },
+    ],
+    files: [],
+    editorAssets: [],
+    externalReferenceIds: [],
   };
-  manifest.resources.push({ data: resourceDetailSchema.parse({ ...manifest.resources[0]!.data, id: folderId, kind: "folder", name: "Eau",
-    path: "", fullPath: "Eau", slug: "eau" }) });
+  manifest.resources.push({
+    data: resourceDetailSchema.parse({
+      ...manifest.resources[0]!.data,
+      id: folderId,
+      kind: "folder",
+      name: "Eau",
+      path: "",
+      fullPath: "Eau",
+      slug: "eau",
+    }),
+  });
   return { manifest, files: new Map<string, Buffer>() };
 }
 
-function changeEnvelope(archive: Buffer, change: (value: any) => void): Buffer {
-  const value = JSON.parse(gunzipSync(archive).toString());
+type MutableBundleEnvelope = {
+  manifest: CouncilBusinessBundleManifest;
+  manifestSha256: string;
+  files: Array<{ path: string; base64: string }>;
+};
+
+function changeEnvelope(archive: Buffer, change: (value: MutableBundleEnvelope) => void): Buffer {
+  const value = JSON.parse(gunzipSync(archive).toString()) as MutableBundleEnvelope;
   change(value);
   value.manifestSha256 = bundleContentHash(Buffer.from(JSON.stringify(value.manifest)));
   return gzipSync(JSON.stringify(value));
@@ -43,9 +83,15 @@ describe("council business bundle archive", () => {
     let missingAssociation = false;
     const service = createCouncilBusinessBundleExportService({
       councilClient: {
-        openBusiness: async () => ({ id: input.manifest.business.sourceId, folderResourceId: folderId, reportResourceId: report.id }),
-        listBusinessResources: async () => missingAssociation
-          ? [{ councilBusinessId: input.manifest.business.sourceId, resourceId: missingId, position: 1 }] : [],
+        openBusiness: async () => ({
+          id: input.manifest.business.sourceId,
+          folderResourceId: folderId,
+          reportResourceId: report.id,
+        }),
+        listBusinessResources: async () =>
+          missingAssociation
+            ? [{ councilBusinessId: input.manifest.business.sourceId, resourceId: missingId, position: 1 }]
+            : [],
       },
       resourcesClient: {
         open: async (id) => {
@@ -58,7 +104,9 @@ describe("council business bundle archive", () => {
         readEditorAssetContent: async () => null,
       },
     });
-    const exported = decodeCouncilBusinessBundle(await service.export(input.manifest.business.sourceId, input.manifest.sender));
+    const exported = decodeCouncilBusinessBundle(
+      await service.export(input.manifest.business.sourceId, input.manifest.sender),
+    );
     expect(exported.manifest.business.reportSourceId).toBe(report.id);
     expect(exported.manifest.resources).toEqual([input.manifest.resources[1], input.manifest.resources[0]]);
     missingAssociation = true;
@@ -99,10 +147,13 @@ describe("council business bundle archive", () => {
     const input = fixture();
     const archive = encodeCouncilBusinessBundle(input);
     for (const change of [
-      (value: any) => value.manifest.resources.push(value.manifest.resources[0]),
-      (value: any) => { value.manifest.business.reportSourceId = randomUUID(); },
-      (value: any) => value.manifest.business.resourceSourceIds.push(randomUUID()),
-    ]) expect(() => decodeCouncilBusinessBundle(changeEnvelope(archive, change))).toThrow();
+      (value: MutableBundleEnvelope) => value.manifest.resources.push(value.manifest.resources[0]!),
+      (value: MutableBundleEnvelope) => {
+        value.manifest.business.reportSourceId = randomUUID();
+      },
+      (value: MutableBundleEnvelope) => value.manifest.business.resourceSourceIds.push(randomUUID()),
+    ])
+      expect(() => decodeCouncilBusinessBundle(changeEnvelope(archive, change))).toThrow();
   });
 
   it("rejects arbitrary bytes and truncated gzip instead of partially importing", () => {

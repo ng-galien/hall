@@ -1,14 +1,14 @@
-import type { Pool } from "pg";
-import { z } from "zod";
-import { recordAuditEvent } from "./audit.js";
-import type { PostgresRequest } from "./callContext.js";
-import { callJson } from "./jsonCall.js";
 import {
   type CouncilDecisionDetail,
   type CouncilDecisionSummary,
   councilDecisionDetailSchema,
   councilDecisionSummarySchema,
 } from "@hall/contracts";
+import type { Pool } from "pg";
+import { z } from "zod";
+import { recordAuditEvent } from "./audit.js";
+import type { PostgresRequest } from "./callContext.js";
+import { callJson } from "./jsonCall.js";
 import { PostgresTransactionManager } from "./transaction.js";
 
 const idSchema = z.string().uuid();
@@ -16,7 +16,13 @@ const draftInput = z
   .object({ id: idSchema, expectedVersion: z.number().int().positive(), content: z.string() })
   .strict();
 const freezeInput = z
-  .object({ id: idSchema, expectedVersion: z.number().int().positive(), expectedNumber: z.string(), expectedDocumentDate: z.iso.date(), content: z.instanceof(Buffer) })
+  .object({
+    id: idSchema,
+    expectedVersion: z.number().int().positive(),
+    expectedNumber: z.string(),
+    expectedDocumentDate: z.iso.date(),
+    content: z.instanceof(Buffer),
+  })
   .strict();
 const contentSchema = z.object({
   documentId: idSchema,
@@ -89,7 +95,13 @@ export class PostgresCouncilDecisions {
       async (client) => {
         const result = await callJson(client, {
           text: "SELECT hall_api.freeze_council_decision($1::uuid,$2::integer,$3::text,$4::date,$5::bytea) AS payload",
-          values: [parsed.id, parsed.expectedVersion, parsed.expectedNumber, parsed.expectedDocumentDate, parsed.content],
+          values: [
+            parsed.id,
+            parsed.expectedVersion,
+            parsed.expectedNumber,
+            parsed.expectedDocumentDate,
+            parsed.content,
+          ],
           schema: councilDecisionDetailSchema,
         });
         await recordAuditEvent(client, {

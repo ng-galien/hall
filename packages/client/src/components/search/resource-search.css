@@ -16,6 +16,7 @@
 .shared-search-inline { width:min(36rem,calc(100vw - 2rem)); padding:var(--hall-space-3); border:1px solid var(--hall-color-border); border-radius:var(--hall-radius-large); background:var(--hall-color-surface); box-shadow:var(--hall-shadow-large); }
 .shared-search-inline .shared-resource-search { max-height:min(24rem,55vh); }
 .shared-search-field-panel { width:min(38rem,calc(100vw - 2rem)); }
+.shared-search-field-panel .shared-resource-search { max-height:min(42vh,var(--hall-search-field-panel-max-height)); }
 
 .shared-search-category-title { display:flex; justify-content:space-between; align-items:center; width:100%; gap:var(--hall-space-3); }
 .shared-search-category-title>span { color:var(--hall-color-text-muted); font-size:var(--hall-font-size-caption); font-weight:normal; }
@@ -28,7 +29,7 @@
 .shared-search-inline.is-filtering .shared-resource-search { max-height:none; gap:0; }
 .shared-search-inline.is-filtering .searchbox-field { display:none; }
 .shared-search-filter-overlay { position:relative; border-radius:inherit; }
-.shared-search-filter-wheel { position:relative; height:var(--search-filter-height,12.25rem); overflow:hidden; padding:0; box-sizing:border-box; }
+.shared-search-filter-wheel { position:relative; height:var(--hall-search-filter-height); overflow:hidden; padding:0; box-sizing:border-box; }
 .shared-search-wheel-row { display:flex; width:100%; margin:0; align-items:center; gap:var(--hall-space-2); height:1.75rem; padding-inline:var(--hall-space-2); text-align:left; cursor:pointer; border-radius:var(--hall-radius-medium); color:var(--hall-color-text-muted); flex-shrink:0; }
 .shared-search-wheel-row svg { width:1rem; height:1rem; flex:none; }
 .shared-search-wheel-row span:first-of-type { flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }

@@ -4,6 +4,7 @@ import { createHttpApplication } from "./api/application.js";
 import { type ServerConfig, validateServerConfig } from "./core/config.js";
 import { buildContainer, type ServerCompositionOptions } from "./core/container.js";
 import { logger } from "./core/logger.js";
+import { attachLiveWebSocket } from "./realtime/liveWebSocket.js";
 
 export interface HttpServerHandle {
   url: string;
@@ -31,13 +32,15 @@ export async function startHttpServer(
       });
     });
     const address = server.address() as AddressInfo;
+    const liveWebSocket = attachLiveWebSocket(server, container.cradle);
     const url = `http://${config.host}:${address.port}`;
     logger.info({ url, databaseKind: config.database.kind }, "Hall server started");
 
     return {
       url,
-      close: () =>
-        new Promise<void>((resolve, reject) => {
+      close: async () => {
+        await liveWebSocket.close();
+        await new Promise<void>((resolve, reject) => {
           server.close((error) => {
             if (error) reject(error);
             else {
@@ -47,7 +50,8 @@ export async function startHttpServer(
               ]).then(() => resolve(), reject);
             }
           });
-        }),
+        });
+      },
     };
   } catch (error) {
     try {

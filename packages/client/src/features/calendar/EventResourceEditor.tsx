@@ -3,10 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
-import { apiErrorCode, type ApiErrorCode } from "../../services/apiClient";
+import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { downloadEventInvitation } from "../../services/resourcesApi";
-import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
+import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { EventFields } from "./EventFields";
 import { eventDocumentUsesQuarterHours } from "./eventDates";
 
@@ -34,7 +34,9 @@ export function EventResourceEditor({
 }) {
   const { t } = useI18n();
   const businesses = useCouncilBusinessStore((state) => state.businesses);
-  const associatedBusiness = businesses.find((business) => business.resources.some((entry) => entry.id === resource.id));
+  const associatedBusiness = businesses.find((business) =>
+    business.resources.some((entry) => entry.id === resource.id),
+  );
   const [councilBusinessId, setCouncilBusinessId] = useState<string | null>(associatedBusiness?.id ?? null);
   const [draft, setDraft] = useState(resource.document);
   const latest = useRef(draft);
@@ -50,7 +52,12 @@ export function EventResourceEditor({
     if (pending.current) return pending.current;
     const run = async () => {
       while (JSON.stringify(latest.current) !== saved.current) {
-        if (!canUpdate || !eventDocumentSchema.safeParse(latest.current).success || !eventDocumentUsesQuarterHours(latest.current)) return false;
+        if (
+          !canUpdate ||
+          !eventDocumentSchema.safeParse(latest.current).success ||
+          !eventDocumentUsesQuarterHours(latest.current)
+        )
+          return false;
         const document = latest.current;
         setStatus("saving");
         const updated = await useWorkspaceResourcesStore
@@ -107,7 +114,8 @@ export function EventResourceEditor({
           const run = async () => {
             const store = useCouncilBusinessStore.getState();
             const associated = nextId ? await store.associateResource(nextId, resource.id) : true;
-            const dissociated = associated && previousId ? await store.dissociateResource(previousId, resource.id) : associated;
+            const dissociated =
+              associated && previousId ? await store.dissociateResource(previousId, resource.id) : associated;
             if (associated && dissociated) {
               onError(null);
               return true;

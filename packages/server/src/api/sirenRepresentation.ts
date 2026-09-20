@@ -49,9 +49,15 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
     "delegation-membership": () => [],
     "committee-membership": () => [],
     contact: () => [],
-    "council-business": () => [],
+    "council-business": (): SirenLink[] =>
+      reference
+        ? [{ rel: ["committees"], href: `/api/council-business/${reference}/committees`, type: SIREN_MEDIA_TYPE }]
+        : [],
     "council-delegation": () => [],
-    "council-committee": () => [],
+    "council-committee": (): SirenLink[] =>
+      id
+        ? [{ rel: ["council-businesses"], href: `/api/council-committees/${id}/businesses`, type: SIREN_MEDIA_TYPE }]
+        : [],
     "council-decision": (): SirenLink[] =>
       id
         ? [

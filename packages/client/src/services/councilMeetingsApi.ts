@@ -21,13 +21,13 @@ import {
   reorderCouncilAgendaSchema,
   type ScheduleAgendaItem,
   type ScheduleCouncilMeeting,
+  type SchedulePreparedCouncilSubject,
   type StartAgendaItem,
   scheduleAgendaItemSchema,
   scheduleCouncilMeetingSchema,
+  schedulePreparedCouncilSubjectSchema,
   startAgendaItemSchema,
   updateAgendaItemNotesSchema,
-  type SchedulePreparedCouncilSubject,
-  schedulePreparedCouncilSubjectSchema,
 } from "@hall/api-contract";
 import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
 

@@ -1,38 +1,26 @@
 import { mkdir, readFile } from "node:fs/promises";
 import { expect, test } from "../fixtures/application";
 
-test("opens a business on double click without expanding its explorer branch", async ({ appPage: page }) => {
+// @verifies-requirement HALL-FR-WSP-240
+test("opens a business from the workspace list with one click", async ({ appPage: page }) => {
   const response = await page.request.post("/api/council-business", {
-    data: { path: "seed", name: `Double click ${Date.now()}`, reportName: "Report", reportContent: "" },
+    data: { path: "", name: `Double click ${Date.now()}`, reportName: "Report", reportContent: "" },
   });
   expect(response.status()).toBe(201);
   const business = (await response.json()).properties;
-  await page.goto("/app/workspace?path=seed");
-  const row = page.getByTestId(`workspace-business-open-${business.id}`);
+  await page.goto("/app/workspace");
+  const row = page.getByTestId(`workspace-business-title-${business.id}`);
+  await expect(row).toBeVisible();
   await row.click();
-  await expect(row).toHaveAttribute("aria-expanded", "true");
-  await row.press("ArrowLeft");
-  await expect(row).toHaveAttribute("aria-expanded", "false");
-  await row.evaluate((element) => {
-    element.setAttribute("data-expansion-changes", "0");
-    new MutationObserver((records) => {
-      element.setAttribute(
-        "data-expansion-changes",
-        String(Number(element.getAttribute("data-expansion-changes")) + records.length),
-      );
-    }).observe(element, { attributes: true, attributeFilter: ["aria-expanded"] });
-  });
-  await row.dblclick();
   await expect(page.getByTestId("council-business-workbench")).toBeVisible();
-  await page.waitForTimeout(300);
-  await expect(row).toHaveAttribute("data-expansion-changes", "0");
+  await expect(row).not.toHaveAttribute("aria-expanded", /.+/);
 });
 
 test("keeps folder icons upright and navigates workspace rows with the keyboard", async ({ appPage: page }) => {
   const folderName = `Keyboard ${Date.now()}`;
-  const path = `seed/${folderName}`;
+  const path = folderName;
   const folder = await page.request.post("/api/resources", {
-    data: { kind: "folder", path: "seed", name: folderName },
+    data: { kind: "folder", path: "", name: folderName },
   });
   expect(folder.status()).toBe(201);
   const ids: string[] = [];
@@ -43,13 +31,13 @@ test("keeps folder icons upright and navigates workspace rows with the keyboard"
     expect(response.status()).toBe(201);
     ids.push((await response.json()).properties.id);
   }
-  await page.goto("/app/workspace?path=seed");
+  await page.goto("/app/workspace");
   const toggle = page.getByTestId(`workspace-folder-toggle-${path}`);
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   expect(await toggle.evaluate((element) => getComputedStyle(element.querySelector("svg")!).transform)).toBe("none");
   await toggle.press("ArrowRight");
-  const first = page.getByTestId(`workspace-resource-open-${ids[0]}`);
-  const second = page.getByTestId(`workspace-resource-open-${ids[1]}`);
+  const first = page.getByTestId(`workspace-resource-title-${ids[0]}`);
+  const second = page.getByTestId(`workspace-resource-title-${ids[1]}`);
   await expect(first).toBeFocused();
   await first.press("ArrowDown");
   await expect(second).toBeFocused();
@@ -63,6 +51,8 @@ test("keeps folder icons upright and navigates workspace rows with the keyboard"
   await toggle.press("ArrowRight");
   await expect(first).toBeVisible();
   await toggle.press("Tab");
+  await expect(page.getByTestId(`workspace-folder-open-${path}`)).toBeFocused();
+  await page.getByTestId(`workspace-folder-open-${path}`).press("Tab");
   await expect(first).toBeFocused();
   await first.press("Enter");
   await expect(page.getByTestId("resource-presentation-text-edit")).toBeVisible();
@@ -409,12 +399,11 @@ test("creates a documentary resource from a business and preserves its explicit 
   await page.getByTestId(`business-attached-resource-${resource.id}-toggle`).click();
   await expect(page.getByTestId("resource-presentation-text-edit")).toBeVisible();
   await expect(page.getByTestId(`business-inline-resource-${resource.id}`)).toBeVisible();
-  await page.getByTestId("business-category-documents-open").click({ button: "right" });
-  await page.getByTestId("business-context-attach").click();
+  await page.getByTestId("resource-picker-open").click();
   await expect(page.getByTestId("resource-picker-panel")).toBeVisible();
-  await page.getByTestId("resource-picker-search").fill("note");
-  await expect(page.getByTestId("resource-picker-search")).toBeFocused();
-  await page.getByTestId("resource-picker-search").press("Escape");
+  await page.getByTestId("resource-picker-search-input").fill("note");
+  await expect(page.getByTestId("resource-picker-search-input")).toBeFocused();
+  await page.getByTestId("resource-picker-search-input").press("Escape");
   await expect(page.getByTestId("resource-picker-panel")).toBeHidden();
 });
 
@@ -450,14 +439,16 @@ async function dragWorkspaceItem(page: import("@playwright/test").Page, sourceTe
 
 test("persists the complete multi-sheet Univer workbook without concurrent saves", async ({ appPage: page }) => {
   test.setTimeout(45_000);
-  const resourcesResponse = await page.request.get("/api/resources?path=seed");
+  const resourcesResponse = await page.request.get("/api/resources?path=");
   expect(resourcesResponse.ok()).toBeTruthy();
   const resources = (await resourcesResponse.json()) as {
     entities: Array<{ properties: { id: string; kind: string; name: string; path: string } }>;
   };
   const spreadsheet = resources.entities.find(
     ({ properties }) =>
-      properties.kind === "spreadsheet" && properties.name === "Ressource tableur" && properties.path === "seed",
+      properties.kind === "spreadsheet" &&
+      properties.name === "Chiffrage de la seconde ligne" &&
+      properties.path === "",
   )?.properties;
   expect(spreadsheet).toBeTruthy();
   const original = await page.request.get(`/api/resources/${spreadsheet!.id}`);
@@ -466,7 +457,7 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
   const created = await page.request.post("/api/resources", {
     data: {
       kind: "spreadsheet",
-      path: "seed",
+      path: "",
       name: `Concurrent workbook ${crypto.randomUUID()}`,
       document: source.document,
     },
@@ -492,7 +483,7 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
   const firstSaveReleased = new Promise<void>((resolve) => {
     releaseFirstSave = resolve;
   });
-  await page.goto(`/app/workspace?path=seed&resource=${resourceId}`);
+  await page.goto(`/app/workspace?resource=${resourceId}`);
   const grid = page.getByTestId("spreadsheet-grid");
   await expect(grid).toBeVisible({ timeout: 15_000 });
   await expect(grid).toHaveAttribute("aria-readonly", "false");
@@ -527,7 +518,7 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
       inputs.map((input) => (input as HTMLInputElement).value).find((value) => /^A\d+$/.test(value)),
     );
   const firstRow = Number(firstNextAddress?.slice(1)) - 2;
-  expect(putBodies[0]!.document.workbook.sheets.budget?.cellData[String(firstRow)]?.["0"]?.v).toBe(
+  expect(putBodies[0]!.document.workbook.sheets.defense?.cellData[String(firstRow)]?.["0"]?.v).toBe(
     "Première sauvegarde",
   );
 
@@ -548,12 +539,12 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
   await expect(page.getByTestId("spreadsheet-grid")).toHaveCount(0);
 
   const finalWorkbook = putBodies[1]!.document.workbook;
-  expect(finalWorkbook.sheetOrder).toEqual(["budget", "hypotheses"]);
-  expect(finalWorkbook.sheets.budget?.cellData[String(firstRow)]?.["0"]?.v).toBe("Première sauvegarde");
-  expect(finalWorkbook.sheets.budget?.cellData[String(secondRow)]?.["0"]?.v).toBe("Dernière sauvegarde");
-  expect(finalWorkbook.sheets.hypotheses?.cellData["1"]?.["0"]?.v).toBe("Taux de TVA");
+  expect(finalWorkbook.sheetOrder).toEqual(["defense", "hypotheses"]);
+  expect(finalWorkbook.sheets.defense?.cellData[String(firstRow)]?.["0"]?.v).toBe("Première sauvegarde");
+  expect(finalWorkbook.sheets.defense?.cellData[String(secondRow)]?.["0"]?.v).toBe("Dernière sauvegarde");
+  expect(finalWorkbook.sheets.hypotheses?.cellData["1"]?.["0"]?.v).toBe("Monnaie");
 
-  await page.goto(`/app/workspace?path=seed&resource=${resourceId}`);
+  await page.goto(`/app/workspace?resource=${resourceId}`);
   await expect(page.getByTestId("spreadsheet-grid")).toBeVisible({ timeout: 15_000 });
   const detailsResponse = await page.request.get(`/api/resources/${resourceId}`);
   expect(detailsResponse.ok()).toBeTruthy();
@@ -623,7 +614,7 @@ test.describe("workspace explorer", () => {
     await createInCurrentFolder(page, "folder", folderName);
     const created = (await createInCurrentFolder(page, "text", initialName)).properties;
 
-    await page.getByTestId(`workspace-resource-open-${created.id}`).click();
+    await page.getByTestId(`workspace-resource-title-${created.id}`).click();
     const editor = page.getByTestId("markdown-editor-compact").getByTestId("editor-writing-area");
     await editor.fill(content);
     await expect
@@ -659,8 +650,8 @@ test.describe("workspace explorer", () => {
     await page.getByTestId("workspace-tree-rename-input").press("Enter");
     await expect(page.getByTestId(`workspace-folder-name-seed/${renamedFolder}`)).toBeVisible();
     // Renaming the containing folder must retain its loaded children in the current tree.
-    await expect(page.getByTestId(`workspace-resource-open-${created.id}`)).toBeVisible();
-    await page.getByTestId(`workspace-resource-open-${created.id}`).click();
+    await expect(page.getByTestId(`workspace-resource-title-${created.id}`)).toBeVisible();
+    await page.getByTestId(`workspace-resource-title-${created.id}`).click();
     const lastEdit = `${content}, avant fermeture`;
     await page.getByTestId("markdown-editor-compact").getByTestId("editor-writing-area").fill(lastEdit);
     // Close before the debounce expires: the pending content must be flushed first.
@@ -685,21 +676,23 @@ test.describe("workspace explorer", () => {
     await expect.poll(async () => (await page.request.get(`/api/resources/${created.id}`)).status()).toBe(404);
   });
 
-  test("shows council work in the complete folder tree without inventing lifecycle state", async ({ appPage: page }) => {
+  test("shows council work in the complete folder tree without inventing lifecycle state", async ({
+    appPage: page,
+  }) => {
     const name = `Recent council work ${Date.now()}`;
     const response = await page.request.post("/api/council-business", {
-      data: { path: "seed", name, reportName: "Report", reportContent: "Work in preparation" },
+      data: { path: "", name, reportName: "Report", reportContent: "Work in preparation" },
     });
     expect(response.status()).toBe(201);
     const { properties: business } = (await response.json()) as { properties: { id: string } };
     await page.goto("/app/workspace");
-    const row = page.getByTestId(`workspace-business-open-${business.id}`);
+    const row = page.getByTestId(`workspace-business-title-${business.id}`);
     await expect(row).toBeVisible();
     await expect(row).toContainText(name);
     const agenda = await page.request.get(`/api/council-business/agenda-items?councilBusinessId=${business.id}`);
     expect(agenda.ok()).toBeTruthy();
     expect((await agenda.json()).entities).toEqual([]);
-    await expect(page.getByTestId("workspace-folder-toggle-seed")).toBeVisible();
+    await expect(page.getByTestId("workspace-folder-toggle-seed")).toHaveCount(0);
 
     const meetings = await page.request.get("/api/council-meetings");
     const meeting = (await meetings.json()).entities
@@ -726,37 +719,26 @@ test.describe("workspace explorer", () => {
       expect(item.agendaNumber).toBeGreaterThan(0);
       expect(item.agendaNumber).toBeLessThan(item.position);
     }
-    await row.dblclick();
+    await row.click();
     await expect(page.getByTestId("council-business-workbench")).toContainText(name);
   });
 
   test("presents one filtered tree and previews documents directly", async ({ appPage: page }) => {
-    await page.goto("/app/workspace?path=finances");
+    await page.goto("/app/workspace");
     const document = page
-      .locator('[data-testid^="workspace-resource-open-"]')
-      .filter({ hasText: "Compte administratif 2025" });
+      .locator('[data-testid^="workspace-resource-title-"]')
+      .filter({ hasText: "État des réserves de Cornu" });
 
-    await expect(page.getByTestId("workspace-view-all")).toHaveAttribute("aria-pressed", "true");
     await expect(document).toBeVisible();
-    const business = page.locator('[data-testid^="workspace-business-open-"]').first();
+    const business = page.locator('[data-testid^="workspace-business-title-"]').first();
     await expect(business).toBeVisible();
-    await expect(business.locator('[data-testid^="workspace-business-lifecycle-"]')).toBeVisible();
     await expect(business).not.toContainText("pièce");
-    await expect(document.locator('[data-testid^="workspace-resource-metadata-"]')).toContainText("PDF");
-    await expect(document.locator('[data-testid^="workspace-resource-metadata-"]')).toContainText(
-      /\d{2}\/\d{2}\/\d{4}/,
-    );
     await expect(page.locator(".workspace-explorer-count")).toHaveCount(0);
     await expect(page.locator(".workspace-tree-count")).toHaveCount(0);
 
-    await page.getByTestId("workspace-view-resources").click();
-    await expect(page.locator('[data-testid^="workspace-business-open-"]')).toHaveCount(0);
+    await page.getByTestId("workspace-tree-filter").fill("État des réserves de Cornu");
     await expect(document).toBeVisible();
-
-    await page.getByTestId("workspace-view-all").click();
-    await page.getByTestId("workspace-tree-filter").fill("Compte administratif 2025");
-    await expect(document).toBeVisible();
-    await expect(page.locator('[data-testid^="workspace-resource-open-"]')).toHaveCount(1);
+    await expect(page.locator('[data-testid^="workspace-resource-title-"]')).toHaveCount(1);
 
     await document.click();
     await expect(page.getByTestId("resource-workbench")).toBeVisible();
@@ -792,7 +774,7 @@ test("composes an agenda from workspace business with an explicit voting purpose
     expect(response.status()).toBe(201);
     const business = (await response.json()).properties;
     await expect(input).toBeHidden();
-    await page.getByTestId(`workspace-business-open-${business.id}`).dblclick();
+    await page.getByTestId(`workspace-business-title-${business.id}`).click();
     await page.getByTestId(kind === "openQuestion" ? "business-subject-question" : "business-subject-proposal").check();
     await page.getByTestId("business-meeting-select").click();
     await page
@@ -853,7 +835,7 @@ test("composes an agenda from workspace business with an explicit voting purpose
     await expect(page.getByTestId(`agenda-item-expand-${agenda[0].id}`)).toBeVisible();
     await expect(page.getByTestId(`agenda-item-position-${agenda[0].id}`)).toHaveText(String(agenda[0].agendaNumber));
     await page.goto("/app/workspace");
-    await expect(page.getByTestId(`workspace-business-open-${business.id}`)).toBeVisible();
+    await expect(page.getByTestId(`workspace-business-title-${business.id}`)).toBeVisible();
   }
 });
 
@@ -1013,7 +995,9 @@ test("finds attached documents in the business report reference search", async (
   });
   expect(added.ok()).toBeTruthy();
   await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
-  await page.getByTestId("business-report-editor").getByTestId("editor-insert-reference").click();
+  const editor = page.getByTestId("business-report-editor");
+  await editor.getByTestId("editor-writing-area").click();
+  await editor.getByTestId("editor-insert-reference").click();
   const search = page.getByTestId("reference-search-dialog");
   await search.getByTestId("reference-search-input").fill(name);
   await expect(search.getByTestId("reference-search-result")).toHaveCount(1);
@@ -1068,6 +1052,7 @@ test("prioritizes business documents and inserts maps and text from the compact 
   }
   await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
   const editor = page.getByTestId("business-report-editor");
+  await editor.getByTestId("editor-writing-area").click();
   await editor.getByTestId("editor-insert-reference").click();
   const dialog = page.getByTestId("reference-search-dialog");
   await expect(dialog.getByTestId("reference-search-result").first()).toHaveAttribute(
@@ -1146,14 +1131,22 @@ test("HALL-FR-WSP-240 sidebar opens the council business instead of its folder",
 
 // @verifies-requirement HALL-FR-WSP-250
 // @verifies-requirement HALL-FR-WSP-260
-test("HALL-FR-WSP-250 HALL-FR-WSP-260 demo folder is at root and document folders have readable names", async ({ appPage: page }) => {
+test("HALL-FR-WSP-250 HALL-FR-WSP-260 demo folder is at root and document folders have readable names", async ({
+  appPage: page,
+}) => {
   const response = await page.request.get("/api/resources/catalog");
   expect(response.ok()).toBeTruthy();
-  const catalog = (await response.json()).entities.map((entry: { properties: { fullPath: string } }) => entry.properties);
-  expect(catalog.find((entry: { fullPath: string }) => entry.fullPath === "acces")).toMatchObject({ path: "", kind: "folder" });
+  const catalog = (await response.json()).entities.map(
+    (entry: { properties: { fullPath: string } }) => entry.properties,
+  );
+  expect(catalog.find((entry: { fullPath: string }) => entry.fullPath === "acces")).toMatchObject({
+    path: "",
+    kind: "folder",
+  });
   const businessesResponse = await page.request.get("/api/council-business/workspace-items");
   expect(businessesResponse.ok()).toBeTruthy();
-  const business = (await businessesResponse.json()).entities.map((entry: { properties: { id: string; folderPath: string } }) => entry.properties)
+  const business = (await businessesResponse.json()).entities
+    .map((entry: { properties: { id: string; folderPath: string } }) => entry.properties)
     .find((entry: { folderPath: string }) => entry.folderPath === "acces");
   expect(business).toBeTruthy();
   await page.goto(`/app/workspace?${new URLSearchParams({ path: business.folderPath, councilBusiness: business.id })}`);
@@ -1161,18 +1154,25 @@ test("HALL-FR-WSP-250 HALL-FR-WSP-260 demo folder is at root and document folder
   // This linked document lives at the workspace root, one level above the business filing path.
   const parentFolder = page.getByTestId("business-document-folder-..");
   await expect(parentFolder).toBeVisible();
-  await expect(parentFolder.getByTestId("business-document-folder-..-toggle")).toHaveAttribute("aria-label", "Workspace");
+  await expect(parentFolder.getByTestId("business-document-folder-..-toggle")).toHaveAttribute(
+    "aria-label",
+    "Workspace",
+  );
   await page.screenshot({ path: "/tmp/hall-workspace-root.png" });
 });
 
 // @verifies-requirement HALL-FR-WSP-270
-test("HALL-FR-WSP-270 opens root documents from the shared explorer and returns to the root", async ({ appPage: page }) => {
+test("HALL-FR-WSP-270 opens root documents from the shared explorer and returns to the root", async ({
+  appPage: page,
+}) => {
   const response = await page.request.get("/api/resources/catalog");
   expect(response.ok()).toBeTruthy();
   const catalog = (await response.json()).entities.map(
     (entry: { properties: { id: string; path: string; fullPath: string; kind: string } }) => entry.properties,
   );
-  const document = catalog.find((entry: { path: string; kind: string }) => entry.path === "" && entry.kind === "document");
+  const document = catalog.find(
+    (entry: { path: string; kind: string }) => entry.path === "" && entry.kind === "document",
+  );
   const folder = catalog.find(
     (entry: { fullPath: string; kind: string }) => entry.kind === "folder" && !entry.fullPath.includes("/"),
   );
@@ -1184,8 +1184,7 @@ test("HALL-FR-WSP-270 opens root documents from the shared explorer and returns 
   await expect(page.getByTestId("workspace-tree-root")).toContainText("Workspace");
   await expect(page.locator(".whome")).toHaveCount(0);
   await expect(page.getByTestId(`workspace-folder-toggle-${folder.fullPath}`)).toBeVisible();
-  await page.getByTestId("workspace-view-resources").click();
-  const row = page.getByTestId(`workspace-resource-open-${document.id}`);
+  const row = page.getByTestId(`workspace-resource-title-${document.id}`);
   await expect(row).toBeVisible();
   await row.click();
   await expect(page.getByTestId("resource-workbench")).toBeVisible();
@@ -1201,9 +1200,12 @@ test("HALL-FR-WSP-270 opens root documents from the shared explorer and returns 
 test("HALL-FR-SRC-030 web workbench previews a configured URL and edits it explicitly", async ({ appPage: page }) => {
   const initialUrl = "https://hall-preview.example/initial";
   const nextUrl = "https://hall-preview.example/updated";
-  await page.route("https://hall-preview.example/**", (route) => route.fulfill({
-    contentType: "text/html", body: '<main data-testid="external-site-content">Site web</main>',
-  }));
+  await page.route("https://hall-preview.example/**", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: '<main data-testid="external-site-content">Site web</main>',
+    }),
+  );
   const created = await page.request.post("/api/resources", {
     data: { kind: "remote", name: `Web preview ${Date.now()}`, path: "", target: { kind: "url", url: initialUrl } },
   });
@@ -1213,7 +1215,9 @@ test("HALL-FR-SRC-030 web workbench previews a configured URL and edits it expli
     await page.goto(`/app/workspace?resource=${resource.id}`);
     const workbench = page.getByTestId("resource-workbench");
     await expect(workbench.getByTestId("remote-resource-frame")).toHaveAttribute("src", initialUrl);
-    await expect(workbench.getByTestId("remote-resource-frame").contentFrame().getByTestId("external-site-content")).toBeVisible();
+    await expect(
+      workbench.getByTestId("remote-resource-frame").contentFrame().getByTestId("external-site-content"),
+    ).toBeVisible();
     await expect(workbench.getByTestId("resource-presentation-remote-edit")).toHaveCount(0);
     await workbench.getByTestId("remote-resource-edit").click();
     await expect(workbench.getByTestId("remote-resource-url-input")).toHaveValue(initialUrl);

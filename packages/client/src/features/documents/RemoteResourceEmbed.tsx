@@ -1,12 +1,18 @@
 import type { ResourceDetail } from "@hall/api-contract";
 import { useState } from "react";
-import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Button } from "@/components/ui/button";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { EditIcon, OpenIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 
 /** Direct browser preview for an external web resource; Hall never fetches the remote content server-side. */
-export function RemoteResourceEmbed({ resource, onEdit }: { resource: Extract<ResourceDetail, { kind: "remote" }>; onEdit?(): void }) {
+export function RemoteResourceEmbed({
+  resource,
+  onEdit,
+}: {
+  resource: Extract<ResourceDetail, { kind: "remote" }>;
+  onEdit?(): void;
+}) {
   const { t } = useI18n();
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
   if (resource.target.kind !== "url") return null;

@@ -127,6 +127,8 @@ describe("Siren entity class authority", () => {
       { name: "council-business.associate-resource", title: "Attach an existing resource" },
       { name: "council-business.dissociate-resource", title: "Detach a resource" },
       { name: "council-business.reorder-resources", title: "Reorder attached resources" },
+      { name: "council-business.associate-committee", title: "Associate a committee" },
+      { name: "council-business.dissociate-committee", title: "Dissociate a committee" },
       { name: "council-business.create-prepared-subject", title: "Create a prepared subject" },
       {
         name: "council-business.schedule-decision-proposal",
@@ -148,6 +150,36 @@ describe("Siren entity class authority", () => {
       { name: "name", type: "text" },
       { name: "content", type: "text" },
     ]);
+  });
+
+  // @verifies-requirement HALL-FR-BUS-070
+  it("advertises committee mutations only with the dedicated business update permission", () => {
+    const business = { id: "business-id" };
+    const readOnly = objectActions(
+      request("/api/council-business/business-id", ["workspace.read", "meetings.read"]),
+      "council-business",
+      business,
+    );
+    expect(readOnly.some(({ name }) => name === "council-business.associate-committee")).toBe(false);
+    expect(readOnly.some(({ name }) => name === "council-business.dissociate-committee")).toBe(false);
+
+    const updateOnly = objectActions(
+      request("/api/council-business/business-id", ["council-business.update"]),
+      "council-business",
+      business,
+    );
+    expect(updateOnly.map(({ name }) => name)).toEqual([
+      "council-business.associate-resource",
+      "council-business.dissociate-resource",
+      "council-business.reorder-resources",
+      "council-business.associate-committee",
+      "council-business.dissociate-committee",
+    ]);
+    expect(updateOnly.find(({ name }) => name === "council-business.associate-committee")?.fields).toEqual([
+      { name: "committeeId", type: "text" },
+    ]);
+    expect(updateOnly.some(({ name }) => name === "council-business.create")).toBe(false);
+    expect(updateOnly.some(({ name }) => name === "council-business.delete")).toBe(false);
   });
 
   // @verifies-requirement HALL-FR-WSP-290
@@ -374,17 +406,16 @@ describe("conduct reasons in HTTP properties", () => {
     });
     expect(entity.actions ?? []).toEqual([]);
   });
-  it("preserves the pending minutes reason while adding a closure permission refusal", () => {
-    const minutesId = "00000000-0000-4000-8000-000000000001";
+  it("adds a closure permission refusal without inventing a minutes blocker", () => {
     const entity = toSirenRepresentation(request("/api/council-meetings/meeting", []), {
       id: "meeting",
       number: 1,
       startedAt: "2026-01-01T09:00:00Z",
       closedAt: null,
-      closureBlockers: [{ code: "previousMinutesPending", minutesIds: [minutesId] }],
+      closureBlockers: [],
     });
     expect(entity.properties).toMatchObject({
-      closureBlockers: [{ code: "previousMinutesPending", minutesIds: [minutesId] }, { code: "permissionDenied" }],
+      closureBlockers: [{ code: "permissionDenied" }],
     });
     expect(entity.actions ?? []).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ name: "meeting.close" })]),

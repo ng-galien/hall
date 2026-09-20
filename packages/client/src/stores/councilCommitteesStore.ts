@@ -1,4 +1,4 @@
-import { findSirenAction, type CouncilCommittee, type SirenEntity } from "@hall/api-contract";
+import { type CouncilCommittee, findSirenAction, type SirenEntity } from "@hall/api-contract";
 import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import {

@@ -30,14 +30,10 @@ $function$;
 
 CREATE FUNCTION hall.council_meeting_closure_blockers(target hall.council_meetings)
 RETURNS JSONB LANGUAGE plpgsql STABLE SET search_path=pg_catalog,hall AS $$
-DECLARE blockers JSONB:='[]'; pending_minutes UUID[]; ballot RECORD;
+DECLARE blockers JSONB:='[]'; ballot RECORD;
 BEGIN
   IF target.started_at IS NULL THEN blockers:=blockers||'[{"code":"meetingNotStarted"}]'::jsonb; END IF;
   IF target.closed_at IS NOT NULL THEN blockers:=blockers||'[{"code":"meetingClosed"}]'::jsonb; END IF;
-  IF target.previous_council_meeting IS NOT NULL AND NOT hall.council_meeting_previous_minutes_are_approved(target.id) THEN
-    SELECT array_agg(id ORDER BY id) INTO pending_minutes FROM hall.minutes WHERE council_meeting=target.previous_council_meeting;
-    IF pending_minutes IS NOT NULL THEN blockers:=blockers||jsonb_build_array(jsonb_build_object('code','previousMinutesPending','minutesIds',pending_minutes)); END IF;
-  END IF;
   FOR ballot IN SELECT b.id FROM hall.ballots b JOIN hall.council_agenda_item a ON a.id=b.council_agenda_item WHERE a.council_meeting=target.id AND b.completed_at IS NULL LOOP
     blockers:=blockers||jsonb_build_array(jsonb_build_object('code','ballotInProgress','ballotId',ballot.id));
   END LOOP;

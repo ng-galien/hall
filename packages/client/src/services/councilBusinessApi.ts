@@ -1,22 +1,22 @@
 import {
-  agendaItemSchema,
   type AgendaItem,
   type AssociateCouncilBusinessResource,
+  agendaItemSchema,
   associateCouncilBusinessResourceSchema,
   type CouncilBusinessResourceAssociation,
+  type CreateCouncilBusiness,
+  type CreatePreparedCouncilSubject,
   councilBusinessResourceAssociationSchema,
   councilBusinessResourceItemSchema,
   councilBusinessSchema,
   councilBusinessWorkspaceItemSchema,
-  type CreateCouncilBusiness,
   createCouncilBusinessSchema,
+  createPreparedCouncilSubjectSchema,
   type DissociateCouncilBusinessResource,
   dissociateCouncilBusinessResourceSchema,
+  preparedCouncilSubjectSchema,
   type ReorderCouncilBusinessResources,
   reorderCouncilBusinessResourcesSchema,
-  preparedCouncilSubjectSchema,
-  createPreparedCouncilSubjectSchema,
-  type CreatePreparedCouncilSubject,
 } from "@hall/api-contract";
 import { apiRequest, apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
@@ -107,10 +107,6 @@ export async function listCouncilBusinessAgendaItems(ids: readonly string[]): Pr
 
 export async function createCouncilBusiness(input: CreateCouncilBusiness) {
   const parsed = createCouncilBusinessSchema.parse(input);
-  const result = await submitSirenActionAt<unknown>(
-    "/council-business",
-    "council-business.create",
-    parsed,
-  );
+  const result = await submitSirenActionAt<unknown>("/council-business", "council-business.create", parsed);
   return { ...result, data: councilBusinessSchema.parse(result.data) };
 }

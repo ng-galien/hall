@@ -1,6 +1,7 @@
 import { PROBLEM_MEDIA_TYPE, SIREN_MEDIA_TYPE } from "@hall/api-contract";
+import { PostgresDirectory } from "@hall/postgres";
 import { describe, expect, it } from "vitest";
-import { createTestCouncilMember, createTestServer } from "./testServer.js";
+import { createPostgresHttpTestServer, createTestCouncilMember, createTestServer } from "./testServer.js";
 
 const administrator = {
   email: "admin@example.fr",
@@ -113,7 +114,7 @@ describe("users, permissions, audit and Siren affordances", () => {
   });
 
   it("authenticates users, filters actions by role and records successful changes", async () => {
-    const { rawAgent } = await createTestServer({ devAutoLogin: false });
+    const { agent: rawAgent, pool } = await createPostgresHttpTestServer({ devAutoLogin: false });
 
     const initialStatus = await rawAgent.get("/api/auth/status").expect(200);
     expect(initialStatus.body.actions).toEqual(
@@ -136,6 +137,13 @@ describe("users, permissions, audit and Siren affordances", () => {
       .send({ email: administrator.email, password: administrator.password })
       .expect(200);
     expect(login.headers["set-cookie"]?.[0]).toContain("hall_session=");
+    await new PostgresDirectory(pool).configureActiveCouncilTerm(
+      {
+        role: "hall_api_authenticated",
+        context: { requestId: "roles-fixture", actorId: "test-clerk", roles: ["administrator"], contactId: null },
+      },
+      1,
+    );
 
     const member = await createTestCouncilMember(rawAgent, {
       firstName: "Camille",
@@ -146,17 +154,13 @@ describe("users, permissions, audit and Siren affordances", () => {
     const contactId = properties<{ contactId: string }>(
       await rawAgent.get(`/api/council-members/${member.id}`).expect(200),
     ).contactId;
-    const meeting = await rawAgent
-      .post("/api/council-meetings")
-      .send({ startsAt: "2026-09-10T18:30:00.000Z", location: "Hall" })
-      .expect(201);
+    const meeting = await rawAgent.post("/api/council-meetings").send({}).expect(201);
     expect(meeting.body.actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           name: "meeting.schedule",
-          fields: [expect.objectContaining({ value: "scheduled" })],
+          href: expect.stringMatching(/\/schedule$/),
         }),
-        expect.objectContaining({ name: "meeting.cancel", fields: [expect.objectContaining({ value: "cancelled" })] }),
       ]),
     );
     const meetingDetails = await rawAgent.get(meeting.body.links[0].href).expect(200);
@@ -164,7 +168,7 @@ describe("users, permissions, audit and Siren affordances", () => {
       expect.arrayContaining([
         expect.objectContaining({
           name: "meeting.schedule",
-          fields: [expect.objectContaining({ value: "scheduled" })],
+          href: expect.stringMatching(/\/schedule$/),
         }),
       ]),
     );
@@ -204,14 +208,26 @@ describe("users, permissions, audit and Siren affordances", () => {
           targetType: "user",
           targetId: administratorId,
         }),
-        expect.objectContaining({ action: "member.create", actorUserId: administratorId }),
-        expect.objectContaining({ action: "meeting.create", actorUserId: administratorId }),
         expect.objectContaining({ action: "user.create", actorUserId: administratorId }),
         expect.objectContaining({ action: "session.login", actorUserId: administratorId }),
         expect.objectContaining({
           action: "user.assign-role",
           actorUserId: administratorId,
           details: expect.objectContaining({ roles: ["reader"] }),
+        }),
+      ]),
+    );
+    const sqlAudit = await pool.query<{ action: string; actor_id: string; target_id: string }>(
+      "SELECT action, actor_id, target_id FROM hall.audit_event WHERE action = ANY($1::text[]) AND outcome = 'succeeded'",
+      [["member.create", "meeting.provision-initial"]],
+    );
+    expect(sqlAudit.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: "member.create", actor_id: administratorId, target_id: member.id }),
+        expect.objectContaining({
+          action: "meeting.provision-initial",
+          actor_id: administratorId,
+          target_id: properties<{ id: string }>(meeting).id,
         }),
       ]),
     );
@@ -240,10 +256,8 @@ describe("users, permissions, audit and Siren affordances", () => {
       expect.arrayContaining([expect.objectContaining({ name: "council-business.create" })]),
     );
     const resources = await rawAgent.get("/api/resources").expect(200);
-    expect(resources.body.actions).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: "resource.search-legal-references" })]),
-    );
-    expect(resources.body.actions).not.toEqual(
+    expect(resources.body.entities).toEqual(expect.any(Array));
+    expect(resources.body.actions ?? []).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ name: "resource.create-legal-reference" })]),
     );
     const forbidden = await rawAgent

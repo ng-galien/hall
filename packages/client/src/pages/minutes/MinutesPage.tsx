@@ -65,7 +65,7 @@ export function MinutesPage() {
                 <strong>{t("minutes.meetingTitle").replace("{number}", formatNumber(item.meetingNumber))}</strong>
                 <span>{item.scheduledAt ? formatDate(item.scheduledAt) : t("dashboard.toSchedule")}</span>
               </div>
-              <span>{t(item.generatedAt ? "minutes.generated" : "minutes.draft")}</span>
+              <span>{t(item.settledAt ? "minutes.stopped" : "minutes.notStopped")}</span>
               <ChevronRightIcon aria-hidden="true" />
             </Link>
           ))}

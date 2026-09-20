@@ -4,8 +4,8 @@ import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { EntitySelect } from "../components/search/EntitySelect";
 import { DeleteIcon, EditIcon } from "../components/icons";
+import { EntitySelect } from "../components/search/EntitySelect";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { PasswordDialog } from "../features/users/PasswordDialog";
 import { UserRoles } from "../features/users/UserRoles";
@@ -135,8 +135,18 @@ export function UserPage() {
                 <div className="grid gap-1.5">
                   <Label htmlFor={`${fieldId}-contact`}>{t("users.contact")}</Label>
                   {canUpdate[userId] && (
-<EntitySelect type="contact" testId="user-contact-select" value={draft.contactId??""} onValueChange={value=>change("contactId",value||null)}
- options={contacts.map(contact=>({value:contact.id,label:`${contact.firstName} ${contact.lastName}`}))} placeholder={t("users.noContact")} clearLabel={t("users.noContact")}/>
+                    <EntitySelect
+                      type="contact"
+                      testId="user-contact-select"
+                      value={draft.contactId ?? ""}
+                      onValueChange={(value) => change("contactId", value || null)}
+                      options={contacts.map((contact) => ({
+                        value: contact.id,
+                        label: `${contact.firstName} ${contact.lastName}`,
+                      }))}
+                      placeholder={t("users.noContact")}
+                      clearLabel={t("users.noContact")}
+                    />
                   )}
                   {contact ? (
                     <Button asChild variant="link" className="justify-start px-0">

@@ -1,8 +1,20 @@
 # TRUST feature delivery workflow
 
+For the project-wide adoption path and the distinction between Hall's
+requirements, Git, Maket and TRUST history, see the
+[TRUST adoption guide](trust-adoption.md).
+
 Use this workflow when a feature is assigned through TRUST with a living Maket
 review document. Make the complete intended behavior visible before implementing
 it, then account for every agreed requirement at delivery.
+
+For the next Hall feature Plan, author its Procedure and inline child Procedures
+with TRUST's `@intent-chaining` tag. Read the current intent from the Plan before
+each Check, supply that exact intent to the Runner, and declare the next concrete
+intent while work remains. Omit the next intent only for the final Check. Check
+prerequisites and nested missions alone do not provide intention chaining. Keep
+the approved scope and human review gates; this rule does not change completed
+Plans or authorize engagement of a new one.
 
 This is the agreed workflow specification. Its Operations and Procedure still
 need to be authored and verified before execution; this guide does not publish
@@ -27,6 +39,13 @@ selected scope and the document presents it. Use supported Plan declarations,
 inputs or metadata after reading their actual schemas.
 
 ## 2. Prepare one living Maket document
+
+The living document is the shared feature tracking surface, not a separately
+authored narrative for each iteration. Follow the
+[living feature document contract](living-feature-document.md): preserve typed
+requirements, decisions, reviews, missions and evidence; project them through
+Operations and render the same data on every page. The rejected temporary schema has been removed; no shared-schema migration
+is implied.
 
 Create or reuse one document for the feature through Maket's available MCP tools.
 Present every declared requirement with its identifier, expected user behavior
@@ -74,6 +93,21 @@ Implement the agreed requirements and their tests. Preserve unrelated work and
 follow [Hall's agent guide](../AGENTS.md). Escalate a required product or scope
 change rather than dropping a requirement, weakening a test or changing behavior
 to make a check pass.
+
+For a delegated review or implementation mission, include the relevant upstream
+Plan decisions and contracts in its context and check that the agent has read
+them. Record findings, their evidence, and their resolution in the same living
+document. A downstream agent must not reopen a decided question or invent a
+replacement contract. In particular, a frontend mission consumes the HTTP/Siren
+representation and its authorized actions; the server owns permission checks
+and any resource-command routing. In a design review, judge the sufficiency of
+the **planned** upstream contract for the agreed interface, even if no backend
+code has been written yet. Missing implementation is delivery work, not a
+contract-design conflict. When the planned contract omits data or an action the
+interface requires, record the exact gap and its impact in the living document
+and return it to the upstream HTTP/Siren mission. Escalate to the user only a genuine unresolved product conflict,
+not a question already decided upstream or a technical choice owned by another
+layer. A review Check records these findings but never counts as delivery.
 
 After each relevant Check, read TRUST's accepted result and update the same Maket
 document. Show the actual delivered behavior, implementation and test references,
