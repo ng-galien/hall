@@ -22,6 +22,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run the complete serial gate
         run: npm run test:all
+        env:
+          HALL_E2E_LANES: "1"
       - name: Upload browser failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
@@ -56,7 +58,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-2025]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

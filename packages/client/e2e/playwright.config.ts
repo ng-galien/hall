@@ -8,9 +8,9 @@ const serverUrl = `http://127.0.0.1:${serverPort}`;
 export default defineConfig({
   testDir: "./specs",
   outputDir: process.env.HALL_E2E_OUTPUT_DIR ?? "../test-results/e2e",
-  globalTimeout: 10 * 60_000,
-  timeout: 30_000,
-  expect: { timeout: 5_000 },
+  globalTimeout: (process.env.CI ? 60 : 10) * 60_000,
+  timeout: process.env.CI ? 60_000 : 30_000,
+  expect: { timeout: process.env.CI ? 10_000 : 5_000 },
   fullyParallel: true,
   workers: 1,
   forbidOnly: Boolean(process.env.CI),

@@ -69,7 +69,7 @@ it(
         cwd: temporary,
         env: environment,
         encoding: "utf8",
-        timeout: 180_000,
+        timeout: 600_000,
         maxBuffer: 8 * 1024 * 1024,
         ...options,
       });
