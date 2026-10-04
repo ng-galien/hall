@@ -4,11 +4,12 @@ set -eu
 hook_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 root="${CODEX_PROJECT_DIR:-$hook_root}"
 cd "$root"
+code_moniker=$(command -v code-moniker 2>/dev/null || printf "%s" "$HOME/.cargo/bin/code-moniker")
 
 input_file=$(mktemp "${TMPDIR:-/tmp}/code-moniker-hook.XXXXXX")
 trap 'rm -f "$input_file"' EXIT HUP INT TERM
 cat > "$input_file"
-files=$('/Users/user/.cargo/bin/code-moniker' agent tool-files codex "$input_file" 2>/dev/null) || {
+files=$("$code_moniker" agent tool-files codex "$input_file" 2>/dev/null) || {
 	printf '%s\n' 'code-moniker hook could not inspect tool input' >&2
 	exit 2
 }
@@ -44,4 +45,4 @@ if [ "$#" -eq 1 ]; then
 	exit 0
 fi
 
-exec '/Users/user/.cargo/bin/code-moniker' check --rules '.code-moniker.toml' --format codex-hook --max-violations 10 "$@"
+exec "$code_moniker" check --rules '.code-moniker.toml' --format codex-hook --max-violations 10 "$@"
