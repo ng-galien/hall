@@ -41,7 +41,7 @@
     "test:i18n-hmr": "npm run test:i18n-hmr -w @hall/client",
     "check:test-inventory": "node scripts/checks/check-test-inventory.mjs",
     "check:public-artifacts": "node scripts/checks/check-public-artifacts.mjs",
-    "test:all": "npm run check:test-inventory && npm run check:public-artifacts && npm run check:requirements && npm run test:meta && npm run quality && npm run test:backend && npm run test:postgres && npm run test:i18n-hmr && npm run test:e2e && npm run test:e2e:auth && npm run test:ballot:mutation && npm run test:lifecycle:mutation && npm run test:policy:mutation",
+    "test:all": "npm run build && npm run check:test-inventory && npm run check:public-artifacts && npm run check:requirements && npm run test:meta && npm run quality && npm run test:backend && npm run test:postgres && npm run test:i18n-hmr && npm run test:e2e && npm run test:e2e:auth && npm run test:ballot:mutation && npm run test:lifecycle:mutation && npm run test:policy:mutation",
     "check:requirements": "node scripts/checks/check-requirements.mjs",
     "test:requirements": "vitest run tests/meta/check-requirements.test.mjs tests/meta/requirements-ui.test.mjs",
     "test:meta": "vitest run tests/meta/*.test.mjs",
