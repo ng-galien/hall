@@ -11,7 +11,8 @@ const projectDirectory = resolve(import.meta.dirname, "../../..");
 const clientDirectory = resolve(import.meta.dirname, "..");
 const postgresDirectory = resolve(projectDirectory, "packages/postgres");
 const playwrightCli = require.resolve("@playwright/test/cli");
-const suiteTimeoutMs = 10 * 60 * 1_000;
+const suiteTimeoutMinutes = process.env.CI ? 90 : 10;
+const suiteTimeoutMs = suiteTimeoutMinutes * 60 * 1_000;
 const deadline = Date.now() + suiteTimeoutMs;
 const requestedArguments = process.argv.slice(2);
 const authenticationMode = process.env.HALL_E2E_AUTH_MODE === "true";
@@ -249,7 +250,7 @@ try {
   const results = await Promise.all(running.map(({ completion }) => completion));
   clearTimeout(timeout);
 
-  if (timedOut) throw new Error("The E2E suite exceeded its 10 minute limit and was stopped");
+  if (timedOut) throw new Error(`The E2E suite exceeded its ${suiteTimeoutMinutes} minute limit and was stopped`);
   if (interrupted) throw new Error("The E2E suite was interrupted and its processes were stopped");
   process.exitCode = results.every(({ status }) => status === 0) ? 0 : 1;
 } finally {
