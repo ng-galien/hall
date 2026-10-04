@@ -88,7 +88,7 @@ Before modifying `packages/client`, read the interface rules in [`docs/project.m
 Match verification to the change and inspect the final result.
 
 - Vitest is the only runner for JavaScript and TypeScript unit, component, integration, and repository-control tests. These tests live in a `tests/` directory. Do not add `node:test`, another JavaScript test runner, or test files under `scripts/`.
-- Browser and Electron journeys use Playwright. SQL invariants and stored functions use pgTAP through `pg_prove`, with shared fixtures in `packages/postgres/sql/council/test/support/`; PostgreSQL adapters and server contracts still use Vitest. `npm run test:postgres` combines pgTAP and the server Vitest suite on a disposable database. Mutation testing uses Stryker with its Vitest runner. These tools cover execution models that Vitest does not provide.
+- Browser and Electron journeys use Playwright. SQL invariants and stored functions use pgTAP through `pg_prove`, with shared fixtures in `packages/postgres/sql/council/test/support/`; PostgreSQL adapters and server contracts still use Vitest. `npm run test:postgres` combines pgTAP with the PostgreSQL adapter and server Vitest suites on a disposable database. Mutation testing uses Stryker with its Vitest runner. These tools cover execution models that Vitest does not provide.
 
 - Bug fixes must reproduce the failure and verify the same scenario after the change.
 - Documentation-only changes require diff review and local-link verification; do not start application runtimes or application test suites.

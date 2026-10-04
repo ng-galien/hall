@@ -1,6 +1,10 @@
 import { daysFromNow } from "../common/dates.mjs";
 
-export async function seedHistory(api, { roster, subjects, proxyDocument, meetingLocation, discussions }, { editableMinutes = false } = {}) {
+export async function seedHistory(
+  api,
+  { roster, subjects, proxyDocument, meetingLocation, discussions },
+  { editableMinutes = false } = {},
+) {
   const { get, post, put, patch, uploadPdf } = api;
   const memberList = roster.all;
   const chairMemberId = roster.chair.id;
@@ -91,7 +95,9 @@ export async function seedHistory(api, { roster, subjects, proxyDocument, meetin
   await vote(first, firstItems[0], firstAttendance, firstDate, 5, "public", 10, 2, discussions.firstDecision);
   await vote(first, firstItems[1], firstAttendance, firstDate, 20, "public", 4, 8, discussions.rejectedDecision);
   await post(`/council-meetings/${first.id}/agenda-items/${firstItems[2].id}/start`, { startedAt: at(firstDate, 35) });
-  await patch(`/council-meetings/${first.id}/agenda-items/${firstItems[2].id}/notes`, { discussionSummary: discussions.information });
+  await patch(`/council-meetings/${first.id}/agenda-items/${firstItems[2].id}/notes`, {
+    discussionSummary: discussions.information,
+  });
   await post(`/council-meetings/${first.id}/agenda-items/${firstItems[2].id}/complete`, {
     completedAt: at(firstDate, 45),
   });
@@ -106,7 +112,9 @@ export async function seedHistory(api, { roster, subjects, proxyDocument, meetin
   await vote(second, approval1, secondAttendance, secondDate, 2, "public", 13, 0, discussions.approval);
   await vote(second, grants, secondAttendance, secondDate, 15, "public", 11, 1, discussions.secondDecision);
   await vote(second, motion, secondAttendance, secondDate, 30, "secret", 7, 4, discussions.secretDecision);
-  await patch(`/council-meetings/${second.id}/agenda-items/${deferred.id}/notes`, { discussionSummary: discussions.deferredQuestion });
+  await patch(`/council-meetings/${second.id}/agenda-items/${deferred.id}/notes`, {
+    discussionSummary: discussions.deferredQuestion,
+  });
   await post(`/council-meetings/${second.id}/agenda-items/${deferred.id}/adjourn`, { adjournedAt: at(secondDate, 45) });
   const { nextMeeting: current } = await close(second);
 

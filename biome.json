@@ -1,6 +1,15 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.7/schema.json",
-  "files": { "includes": ["packages/**/*.ts", "packages/**/*.tsx", "packages/**/*.mjs"] },
+  "files": {
+    "includes": [
+      "packages/**/*.ts",
+      "packages/**/*.tsx",
+      "packages/**/*.mjs",
+      "scripts/**/*.mjs",
+      "tests/**/*.ts",
+      "tests/**/*.mjs"
+    ]
+  },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
   "linter": {
     "rules": {
@@ -22,5 +31,11 @@
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["packages/*/src/**", "!**/__tests__/**", "!**/*.test.*"],
+      "linter": { "rules": { "suspicious": { "noFocusedTests": "off" } } }
+    }
+  ],
   "javascript": { "formatter": { "quoteStyle": "double", "trailingCommas": "all" } }
 }

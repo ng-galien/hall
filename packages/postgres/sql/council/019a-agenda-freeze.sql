@@ -4,7 +4,7 @@ CREATE TABLE hall.council_agenda_freeze (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   council_meeting UUID NOT NULL REFERENCES hall.council_meetings(id),
   frozen_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
-  agenda JSONB NOT NULL CHECK (jsonb_typeof(agenda) = 'array' AND jsonb_array_length(agenda) > 0)
+  agenda JSONB NOT NULL CONSTRAINT "council_agenda_freeze_agenda_check" CHECK (jsonb_typeof(agenda) = 'array'::text AND jsonb_array_length(agenda) > 0)
 );
 
 CREATE TABLE hall.council_agenda_reopening (
@@ -93,10 +93,10 @@ $$;
 CREATE TABLE hall.meeting_notice (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   council_meeting UUID NOT NULL REFERENCES hall.council_meetings(id),
-  version INTEGER NOT NULL CHECK (version > 0),
+  version INTEGER NOT NULL CONSTRAINT "meeting_notice_version_check" CHECK (version > 0),
   generated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
   binary_object UUID NOT NULL REFERENCES hall.binary_object(id),
-  facts JSONB NOT NULL CHECK (jsonb_typeof(facts) = 'object'),
+  facts JSONB NOT NULL CONSTRAINT "meeting_notice_facts_check" CHECK (jsonb_typeof(facts) = 'object'::text),
   UNIQUE(council_meeting,version)
 );
 CREATE TRIGGER meeting_notice_immutable BEFORE UPDATE OR DELETE ON hall.meeting_notice

@@ -19,7 +19,7 @@ The current sequence is:
 4. Compose delivery from the actual owners, contracts, invariants, and tests.
 5. Publish a shared Procedure only after the method has been validated in Hall.
 
-The published Procedures currently used by Hall are `hall-work-bootstrap@0.1.3` and `hall-municipality-clarification@0.1.0`.
+The published Procedures currently used by Hall are `hall-work-bootstrap@0.1.4` and `hall-municipality-clarification@0.1.0`.
 
 Plans, states, Results, reports, and pending decisions remain in TRUST. They are not copied into repository Markdown or `.trust`. A TRUST Operation owns its execution; Hall does not create scripts for individual TRUST missions.
 

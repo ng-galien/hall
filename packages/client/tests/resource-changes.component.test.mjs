@@ -60,7 +60,7 @@ test("the separate history control reads the server on demand without changing c
       for (const listener of this.listeners.get(type) ?? []) listener(event);
     }
     close() {
-      // No-op test double.
+      return undefined;
     }
   }
   for (const [key, value] of Object.entries({
@@ -78,13 +78,13 @@ test("the separate history control reads the server on demand without changing c
     MutationObserver: dom.window.MutationObserver,
     ResizeObserver: class {
       observe() {
-        // No-op test double.
+        return undefined;
       }
       unobserve() {
-        // No-op test double.
+        return undefined;
       }
       disconnect() {
-        // No-op test double.
+        return undefined;
       }
     },
     Event: dom.window.Event,

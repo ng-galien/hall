@@ -96,7 +96,10 @@ async function waitForHealth() {
   const deadline = Date.now() + 120_000;
   while (Date.now() < deadline) {
     if (await healthReady()) return;
-    const pane = runTmux(["display-message", "-p", "-t", `${sessionName}:0.0`, "#{pane_dead}"], { capture: true, allowFailure: true });
+    const pane = runTmux(["display-message", "-p", "-t", `${sessionName}:0.0`, "#{pane_dead}"], {
+      capture: true,
+      allowFailure: true,
+    });
     if (pane.status !== 0 || pane.stdout.trim() === "1") {
       throw new Error("Hall startup stopped; inspect `npm run dev:logs` for the startup or PDF check failure.");
     }

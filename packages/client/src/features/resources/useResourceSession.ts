@@ -79,6 +79,24 @@ export function useResourceSession({ resourceId }: { resourceId: string | null }
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
   const [refreshConflict, setRefreshConflict] = useState(false);
   const loadSequenceRef = useRef(0);
+  const draftEditRef = useRef(0);
+
+  const editTitle = useCallback((next: string) => {
+    draftEditRef.current += 1;
+    setTitle(next);
+  }, []);
+  const editTags = useCallback((next: string[]) => {
+    draftEditRef.current += 1;
+    setTags(next);
+  }, []);
+  const editContent = useCallback((next: string) => {
+    draftEditRef.current += 1;
+    setContent(next);
+  }, []);
+  const editRemoteUrl = useCallback((next: string) => {
+    draftEditRef.current += 1;
+    setRemoteUrl(next);
+  }, []);
 
   const adopt = useCallback(
     (next: DocumentaryLeafDetail, nextRepresentation: SirenEntity | null, resetDraft: boolean) => {
@@ -106,6 +124,7 @@ export function useResourceSession({ resourceId }: { resourceId: string | null }
     async (resetDraft = true) => {
       if (!resourceId) return false;
       const sequence = ++loadSequenceRef.current;
+      const draftEdit = draftEditRef.current;
       const result = await useWorkspaceResourcesStore.getState().open(resourceId);
       if (sequence !== loadSequenceRef.current) return false;
       if (!result) {
@@ -117,7 +136,8 @@ export function useResourceSession({ resourceId }: { resourceId: string | null }
         setDetailsFailed(true);
         return false;
       }
-      adopt(result.data, result.representation, resetDraft);
+      const draftUneditedDuringRead = draftEdit === draftEditRef.current;
+      adopt(result.data, result.representation, resetDraft && draftUneditedDuringRead);
       return true;
     },
     [adopt, resourceId],
@@ -236,10 +256,10 @@ export function useResourceSession({ resourceId }: { resourceId: string | null }
       mode: editable ? "edit" : "read",
       fillsExtendedView: resource ? resourceFillsExtendedView(resource) : false,
       canConfigureAutosave,
-      setTitle,
-      setTags,
-      setContent,
-      setRemoteUrl,
+      setTitle: editTitle,
+      setTags: editTags,
+      setContent: editContent,
+      setRemoteUrl: editRemoteUrl,
       setActionError,
       save,
       updateAutosave,
@@ -259,6 +279,10 @@ export function useResourceSession({ resourceId }: { resourceId: string | null }
       content,
       detailsFailed,
       dirty,
+      editContent,
+      editRemoteUrl,
+      editTags,
+      editTitle,
       editable,
       flush,
       load,

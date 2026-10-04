@@ -4,7 +4,7 @@
 CREATE TABLE hall.ballot_result_preview (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agenda_item UUID NOT NULL REFERENCES hall.council_agenda_item(id),
-  revision INTEGER NOT NULL CHECK(revision>0),
+  revision INTEGER NOT NULL CONSTRAINT "ballot_result_preview_revision_check" CHECK (revision > 0),
   candidate JSONB NOT NULL,
   context_fingerprint TEXT NOT NULL,
   calculation JSONB NOT NULL,

@@ -22,7 +22,7 @@ async function items<T>(response: APIResponse): Promise<T[]> {
 }
 
 // @verifies-requirement HALL-FR-MTG-320
-test("a second session follows conduct events and rereads the current point after reconnecting", async ({
+test("a second conducting session receives conduct events, keeps its selection and rereads after reconnecting", async ({
   appPage: conductor,
   browser,
 }) => {
@@ -51,7 +51,11 @@ test("a second session follows conduct events and rereads the current point afte
   await conductor.goto(`/app/meetings/${scheduled.slug}`);
   await conductor.getByTestId("meeting-open-notice").click();
   await conductor.getByTestId("meeting-freeze-agenda").click();
+  const noticeResponse = conductor.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/notices"),
+  );
   await conductor.getByTestId("meeting-generate-notice").click();
+  expect((await noticeResponse).ok()).toBeTruthy();
   await conductor.goto(`/app/meetings/${scheduled.slug}/live`);
   await conductor.getByTestId("live-attendance-all-present").click();
   const members = await items<{ id: string }>(await conductor.request.get("/api/council-members"));
@@ -63,8 +67,8 @@ test("a second session follows conduct events and rereads the current point afte
   await conductor.getByTestId("live-meeting-start").click();
   await expect(conductor.getByTestId(`live-agenda-item-${first.id}`)).toBeVisible();
 
-  const readerContext = await browser.newContext();
-  const reader = await readerContext.newPage();
+  const followerContext = await browser.newContext();
+  const follower = await followerContext.newPage();
   const sockets: WebSocketRoute[] = [];
   const received: string[] = [];
   let resumeReconnect: (() => void) | null = null;
@@ -72,7 +76,7 @@ test("a second session follows conduct events and rereads the current point afte
     resumeReconnect = resolve;
   });
   try {
-    await readerContext.routeWebSocket(
+    await followerContext.routeWebSocket(
       (url) => url.pathname === "/api/live" && url.searchParams.get("kind") === "meeting",
       async (socket) => {
         sockets.push(socket);
@@ -84,27 +88,28 @@ test("a second session follows conduct events and rereads the current point afte
         });
       },
     );
-    await reader.goto(`/app/meetings/${scheduled.slug}/live`);
-    await expect(reader.getByTestId(`live-agenda-item-${first.id}`)).toBeVisible();
+    await follower.goto(`/app/meetings/${scheduled.slug}/live`);
+    await expect(follower.getByTestId(`live-agenda-item-${first.id}`)).toBeVisible();
     await expect.poll(() => sockets.length).toBe(1);
 
-    await reader.getByTestId(`live-agenda-item-${second.id}`).click();
-    await expect(reader.getByTestId(`live-agenda-item-${second.id}`)).toHaveAttribute("aria-current", "true");
+    await follower.getByTestId(`live-agenda-item-${second.id}`).click();
+    await expect(follower.getByTestId(`live-agenda-item-${second.id}`)).toHaveAttribute("aria-current", "true");
     await conductor.getByTestId(`live-agenda-item-${first.id}`).click();
     await conductor.getByTestId("live-agenda-start").click();
     await expect.poll(() => received.some((message) => JSON.parse(message).type === "meeting.changed")).toBe(true);
-    await expect(reader.getByTestId(`live-agenda-item-${first.id}`)).toHaveAttribute("aria-current", "true");
+    await expect(follower.getByTestId(`live-agenda-item-${first.id}`)).toContainText("Discussion");
+    await expect(follower.getByTestId(`live-agenda-item-${second.id}`)).toHaveAttribute("aria-current", "true");
 
-    await reader.getByTestId(`live-agenda-item-${first.id}`).click();
     await sockets[0]!.close();
     await expect.poll(() => sockets.length).toBe(2);
     await conductor.getByTestId("live-agenda-complete").click();
     await expect(conductor.getByTestId(`live-agenda-item-${second.id}`)).toHaveAttribute("aria-current", "true");
-    await expect(reader.getByTestId(`live-agenda-item-${first.id}`)).toHaveAttribute("aria-current", "true");
+    await expect(follower.getByTestId(`live-agenda-item-${first.id}`)).toContainText("Discussion");
     resumeReconnect?.();
-    await expect(reader.getByTestId(`live-agenda-item-${second.id}`)).toHaveAttribute("aria-current", "true");
+    await expect(follower.getByTestId(`live-agenda-item-${first.id}`)).not.toContainText("Discussion");
+    await expect(follower.getByTestId(`live-agenda-item-${second.id}`)).toHaveAttribute("aria-current", "true");
   } finally {
     resumeReconnect?.();
-    await readerContext.close();
+    await followerContext.close();
   }
 });

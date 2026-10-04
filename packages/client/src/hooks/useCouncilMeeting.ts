@@ -58,6 +58,21 @@ import { useCouncilMembersStore } from "../stores/councilMembersStore";
 
 type LiveActionName = ApiActionName | "meeting.set-officers" | "ballot.record";
 
+const meetingConductActionNames = [
+  "meeting.record-opening",
+  "meeting.record-attendance",
+  "meeting.record-attendance-events",
+  "meeting.record-reconvocation",
+  "meeting.set-officers",
+  "meeting.add-open-question",
+  "meeting.close",
+  "agenda-item.start",
+  "agenda-item.update-notes",
+  "agenda-item.adjourn",
+  "agenda-item.complete",
+  "ballot.record",
+] as const satisfies readonly LiveActionName[];
+
 // @implements-requirement HALL-FR-MTG-320
 export function useCouncilMeeting(meetingReference: string) {
   const [workspace, setWorkspace] = useState<CouncilMeetingWorkspace | null>(null);
@@ -303,6 +318,7 @@ export function useCouncilMeeting(meetingReference: string) {
   return {
     meeting,
     liveRevision,
+    conducts: meetingConductActionNames.some((actionName) => can(actionName)),
     workspace,
     can,
     error,

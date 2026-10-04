@@ -3,13 +3,13 @@
 CREATE TABLE hall.binary_object (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   content_sha256 TEXT NOT NULL UNIQUE,
-  media_type TEXT NOT NULL CHECK (media_type = btrim(media_type) AND media_type <> ''),
-  byte_size BIGINT NOT NULL CHECK (byte_size >= 0),
+  media_type TEXT NOT NULL CONSTRAINT "binary_object_media_type_check" CHECK (media_type = btrim(media_type) AND media_type <> ''::text),
+  byte_size BIGINT NOT NULL CONSTRAINT "binary_object_byte_size_check" CHECK (byte_size >= 0),
   content BYTEA NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
-  CONSTRAINT binary_object_sha256_shape CHECK (content_sha256 ~ '^[0-9a-f]{64}$'),
-  CONSTRAINT binary_object_byte_size_matches CHECK (byte_size = octet_length(content)),
-  CONSTRAINT binary_object_sha256_matches CHECK (content_sha256 = encode(sha256(content), 'hex'))
+  CONSTRAINT "binary_object_sha256_shape" CHECK (content_sha256 ~ '^[0-9a-f]{64}$'::text),
+  CONSTRAINT "binary_object_byte_size_matches" CHECK (byte_size = octet_length(content)),
+  CONSTRAINT "binary_object_sha256_matches" CHECK (content_sha256 = encode(sha256(content), 'hex'::text))
 );
 
 COMMENT ON TABLE hall.binary_object IS
@@ -28,76 +28,47 @@ CREATE TABLE hall.text_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   content TEXT NOT NULL,
   autosave_enabled BOOLEAN NOT NULL DEFAULT true,
-  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
+  version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "text_resource_version_check" CHECK (version > 0)
 );
 
 CREATE TABLE hall.remote_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   autosave_enabled BOOLEAN NOT NULL DEFAULT true,
-  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
+  version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "remote_resource_version_check" CHECK (version > 0)
 );
 
 -- @functional-requirement HALL-FR-DOC-190 REMOTE_TARGET_IS_STRUCTURAL:
 CREATE TABLE hall.remote_resource_target (
   remote_resource_id UUID PRIMARY KEY REFERENCES hall.remote_resource(id) ON DELETE CASCADE,
-  url TEXT NOT NULL CHECK (url = btrim(url) AND url <> '')
+  url TEXT NOT NULL CONSTRAINT "remote_resource_target_url_check" CHECK (url = btrim(url) AND url <> ''::text)
 );
 
 -- @functional-requirement HALL-FR-DOC-260 STRUCTURED_CONTENT_HAS_A_VALID_SHAPE:
 CREATE TABLE hall.spreadsheet_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document JSONB NOT NULL CHECK (COALESCE((
-    jsonb_typeof(document) = 'object'
-    AND document ->> 'schemaVersion' = '2'
-    AND jsonb_typeof(document -> 'workbook') = 'object'
-  ), false)),
+  document JSONB NOT NULL CONSTRAINT "spreadsheet_resource_document_check" CHECK (COALESCE(jsonb_typeof(document) = 'object'::text AND (document ->> 'schemaVersion'::text) = '2'::text AND jsonb_typeof(document -> 'workbook'::text) = 'object'::text, false)),
   autosave_enabled BOOLEAN NOT NULL DEFAULT true,
-  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
+  version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "spreadsheet_resource_version_check" CHECK (version > 0)
 );
 
 CREATE TABLE hall.event_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document JSONB NOT NULL CHECK (hall.is_valid_event_document(document)),
+  document JSONB NOT NULL CONSTRAINT "event_resource_document_check" CHECK (hall.is_valid_event_document(document)),
   autosave_enabled BOOLEAN NOT NULL DEFAULT true,
-  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
+  version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "event_resource_version_check" CHECK (version > 0)
 );
 
 CREATE TABLE hall.geographic_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document JSONB NOT NULL CHECK (COALESCE((
-    jsonb_typeof(document) = 'object'
-    AND jsonb_typeof(document -> 'view') = 'object'
-    AND jsonb_typeof(document -> 'layers') = 'array'
-    AND jsonb_array_length(document -> 'layers') > 0
-    AND document #>> '{hallLayer,type}' = 'FeatureCollection'
-    AND jsonb_typeof(document #> '{hallLayer,features}') = 'array'
-    AND jsonb_typeof(document -> 'provenance') = 'object'
-    AND document #>> '{provenance,license}' = 'Licence Ouverte 2.0'
-  ), false)),
+  document JSONB NOT NULL CONSTRAINT "geographic_resource_document_check" CHECK (COALESCE(jsonb_typeof(document) = 'object'::text AND jsonb_typeof(document -> 'view'::text) = 'object'::text AND jsonb_typeof(document -> 'layers'::text) = 'array'::text AND jsonb_array_length(document -> 'layers'::text) > 0 AND (document #>> '{hallLayer,type}'::text[]) = 'FeatureCollection'::text AND jsonb_typeof(document #> '{hallLayer,features}'::text[]) = 'array'::text AND jsonb_typeof(document -> 'provenance'::text) = 'object'::text AND (document #>> '{provenance,license}'::text[]) = 'Licence Ouverte 2.0'::text, false)),
   autosave_enabled BOOLEAN NOT NULL DEFAULT true,
-  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
+  version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "geographic_resource_version_check" CHECK (version > 0)
 );
 
 CREATE TABLE hall.legal_reference_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document JSONB NOT NULL CHECK (COALESCE((
-    jsonb_typeof(document) = 'object'
-    AND document ->> 'provider' = 'legifrance'
-    AND document ->> 'referenceKind' = 'article'
-    AND jsonb_typeof(document -> 'snapshots') = 'array'
-    AND (
-      (
-        document ->> 'resolutionStatus' = 'draft'
-        AND jsonb_array_length(document -> 'snapshots') = 0
-      )
-      OR (
-        document ->> 'resolutionStatus' = 'resolved'
-        AND jsonb_array_length(document -> 'snapshots') > 0
-        AND document ->> 'snapshotHash' ~ '^[0-9a-f]{64}$'
-      )
-    )
-  ), false)),
-  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0)
+  document JSONB NOT NULL CONSTRAINT "legal_reference_resource_document_check" CHECK (COALESCE(jsonb_typeof(document) = 'object'::text AND (document ->> 'provider'::text) = 'legifrance'::text AND (document ->> 'referenceKind'::text) = 'article'::text AND jsonb_typeof(document -> 'snapshots'::text) = 'array'::text AND ((document ->> 'resolutionStatus'::text) = 'draft'::text AND jsonb_array_length(document -> 'snapshots'::text) = 0 OR (document ->> 'resolutionStatus'::text) = 'resolved'::text AND jsonb_array_length(document -> 'snapshots'::text) > 0 AND (document ->> 'snapshotHash'::text) ~ '^[0-9a-f]{64}$'::text), false)),
+  version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "legal_reference_resource_version_check" CHECK (version > 0)
 );
 
 -- @requirement-reference HALL-FR-DOC-080 BINARY_CONTENT_IS_SEPARATE:
@@ -114,8 +85,8 @@ CREATE TABLE hall.editor_asset (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_text_resource_id UUID NOT NULL REFERENCES hall.text_resource(id) ON DELETE CASCADE,
   binary_object_id UUID NOT NULL REFERENCES hall.binary_object(id) ON DELETE RESTRICT,
-  title TEXT NOT NULL CHECK (title = btrim(title) AND title <> ''),
-  file_name TEXT NOT NULL CHECK (file_name = btrim(file_name) AND file_name <> ''),
+  title TEXT NOT NULL CONSTRAINT "editor_asset_title_check" CHECK (title = btrim(title) AND title <> ''::text),
+  file_name TEXT NOT NULL CONSTRAINT "editor_asset_file_name_check" CHECK (file_name = btrim(file_name) AND file_name <> ''::text),
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
 );
 
@@ -148,40 +119,21 @@ CREATE TABLE hall.resource (
   legal_reference_resource_id UUID UNIQUE REFERENCES hall.legal_reference_resource(id) ON DELETE RESTRICT,
 
   full_path TEXT GENERATED ALWAYS AS (
-    CASE WHEN path = '' THEN name ELSE path || '/' || name END
+    CASE
+    WHEN (path = ''::text) THEN name
+    ELSE ((path || '/'::text) || name)
+END
   ) STORED,
-  is_folder BOOLEAN GENERATED ALWAYS AS (folder_resource_id IS NOT NULL) STORED,
-  container_path TEXT GENERATED ALWAYS AS (NULLIF(path, '')) STORED,
+  is_folder BOOLEAN GENERATED ALWAYS AS ((folder_resource_id IS NOT NULL)) STORED,
+  container_path TEXT GENERATED ALWAYS AS (NULLIF(path, ''::text)) STORED,
   container_is_folder BOOLEAN GENERATED ALWAYS AS (true) STORED,
 
-  CONSTRAINT resource_path_shape CHECK (hall.is_normalized_resource_path(path)),
-  CONSTRAINT resource_name_shape CHECK (hall.is_valid_resource_name(name)),
-  CONSTRAINT resource_slug_shape CHECK (hall.is_valid_resource_slug(slug)),
+  CONSTRAINT "resource_path_shape" CHECK (hall.is_normalized_resource_path(path)),
+  CONSTRAINT "resource_name_shape" CHECK (hall.is_valid_resource_name(name)),
+  CONSTRAINT "resource_slug_shape" CHECK (hall.is_valid_resource_slug(slug)),
   CONSTRAINT resource_slug_unique UNIQUE (slug),
-  CONSTRAINT resource_one_nature CHECK (
-    num_nonnulls(
-      folder_resource_id,
-      text_resource_id,
-      remote_resource_id,
-      spreadsheet_resource_id,
-      geographic_resource_id,
-      event_resource_id,
-      document_resource_id,
-      legal_reference_resource_id
-    ) = 1
-  ),
-  CONSTRAINT resource_identity_matches_nature CHECK (
-    id = coalesce(
-      folder_resource_id,
-      text_resource_id,
-      remote_resource_id,
-      spreadsheet_resource_id,
-      geographic_resource_id,
-      event_resource_id,
-      document_resource_id,
-      legal_reference_resource_id
-    )
-  ),
+  CONSTRAINT "resource_one_nature" CHECK (num_nonnulls(folder_resource_id, text_resource_id, remote_resource_id, spreadsheet_resource_id, geographic_resource_id, event_resource_id, document_resource_id, legal_reference_resource_id) = 1),
+  CONSTRAINT "resource_identity_matches_nature" CHECK (id = COALESCE(folder_resource_id, text_resource_id, remote_resource_id, spreadsheet_resource_id, geographic_resource_id, event_resource_id, document_resource_id, legal_reference_resource_id)),
   CONSTRAINT resource_location_unique UNIQUE (full_path) DEFERRABLE INITIALLY IMMEDIATE,
   CONSTRAINT resource_folder_target UNIQUE (full_path, is_folder),
   CONSTRAINT resource_container_is_folder FOREIGN KEY (container_path, container_is_folder)
@@ -196,13 +148,12 @@ COMMENT ON TABLE hall.resource IS
 -- @functional-requirement HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
 CREATE TABLE hall.resource_tag (
   resource_id UUID NOT NULL REFERENCES hall.resource(id) ON DELETE CASCADE,
-  value TEXT NOT NULL CHECK (value = btrim(value) AND value <> ''),
+  value TEXT NOT NULL CONSTRAINT "resource_tag_value_check" CHECK (value = btrim(value) AND value <> ''::text),
   PRIMARY KEY (resource_id, value)
 );
 
 -- @technical-requirement HALL-TR-DOC-030 PREFIX_LOOKUPS_ARE_INDEXED:
-CREATE INDEX resource_path_prefix_idx
-  ON hall.resource (path text_pattern_ops);
+CREATE INDEX resource_path_prefix_idx ON hall.resource USING btree (path text_pattern_ops);
 
 -- Derived contact references enforce the same identity integrity as the directory.
 CREATE TABLE hall.event_contact_reference (

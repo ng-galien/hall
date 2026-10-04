@@ -12,8 +12,7 @@ CREATE TABLE hall.council_business_committee (
   PRIMARY KEY (council_business, committee)
 );
 
-CREATE INDEX council_business_committee_by_committee
-  ON hall.council_business_committee (committee, council_business);
+CREATE INDEX council_business_committee_by_committee ON hall.council_business_committee USING btree (committee, council_business);
 
 CREATE FUNCTION hall.council_business_committee_projection(target hall.council_committee)
 RETURNS JSONB

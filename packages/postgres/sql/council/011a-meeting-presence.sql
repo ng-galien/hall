@@ -9,9 +9,8 @@ CREATE TABLE hall.meeting_attendance_event (
   status hall.meeting_attendance_status NOT NULL,
   proxy_holder UUID REFERENCES hall.meeting_attendance(id),
   proxy_document UUID REFERENCES hall.document_resource(id),
-  CHECK ((status = 'represented' AND proxy_holder IS NOT NULL AND proxy_document IS NOT NULL)
-    OR (status <> 'represented' AND proxy_holder IS NULL AND proxy_document IS NULL)),
-  CHECK (proxy_holder IS NULL OR proxy_holder <> meeting_attendance),
+  CONSTRAINT "meeting_attendance_event_check" CHECK (status = 'represented'::hall.meeting_attendance_status AND proxy_holder IS NOT NULL AND proxy_document IS NOT NULL OR status <> 'represented'::hall.meeting_attendance_status AND proxy_holder IS NULL AND proxy_document IS NULL),
+  CONSTRAINT "meeting_attendance_event_check1" CHECK (proxy_holder IS NULL OR proxy_holder <> meeting_attendance),
   UNIQUE(meeting_attendance, observed_at)
 );
 

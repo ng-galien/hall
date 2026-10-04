@@ -23,9 +23,9 @@ CREATE TABLE hall.meeting_reconvocation (
   sent_at TIMESTAMPTZ NOT NULL,
   scheduled_at TIMESTAMPTZ NOT NULL,
   time_zone TEXT NOT NULL,
-  first_notice_evidence TEXT NOT NULL CHECK(btrim(first_notice_evidence)<>''),
-  renewed_notice_evidence TEXT NOT NULL CHECK(btrim(renewed_notice_evidence)<>''),
-  agenda_item_ids UUID[] NOT NULL CHECK(cardinality(agenda_item_ids)>0),
+  first_notice_evidence TEXT NOT NULL CONSTRAINT "meeting_reconvocation_first_notice_evidence_check" CHECK (btrim(first_notice_evidence) <> ''::text),
+  renewed_notice_evidence TEXT NOT NULL CONSTRAINT "meeting_reconvocation_renewed_notice_evidence_check" CHECK (btrim(renewed_notice_evidence) <> ''::text),
+  agenda_item_ids UUID[] NOT NULL CONSTRAINT "meeting_reconvocation_agenda_item_ids_check" CHECK (cardinality(agenda_item_ids) > 0),
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
   recorded_by TEXT NOT NULL
 );

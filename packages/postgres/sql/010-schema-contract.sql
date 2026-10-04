@@ -2,8 +2,8 @@
 -- Hall records the complete ordered SQL manifest only after the installed
 -- schema has converged transactionally to its materialized PostgreSQL target.
 CREATE TABLE hall_meta.schema_contract (
-  singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
-  manifest_sha256 text NOT NULL CHECK (manifest_sha256 ~ '^[0-9a-f]{64}$'),
+  singleton boolean PRIMARY KEY DEFAULT true CONSTRAINT "schema_contract_singleton_check" CHECK (singleton),
+  manifest_sha256 text NOT NULL CONSTRAINT "schema_contract_manifest_sha256_check" CHECK (manifest_sha256 ~ '^[0-9a-f]{64}$'::text),
   installed_at timestamptz NOT NULL DEFAULT statement_timestamp()
 );
 

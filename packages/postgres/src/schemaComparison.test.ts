@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { comparePostgresStructures, type PostgresStructureComparison } from "@ng-galien/postgresql-catalog";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   assertHallSchemaUpgradeCodeMoniker,
   hallCatalogDocuments,
@@ -7,25 +8,29 @@ import {
 } from "./schemaComparison.js";
 import { defineSchemaManifest } from "./schemaManifest.js";
 
+vi.mock("@ng-galien/postgresql-catalog", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@ng-galien/postgresql-catalog")>()),
+  comparePostgresStructures: vi.fn(),
+}));
+
+const compareStructures = vi.mocked(comparePostgresStructures);
+beforeEach(() => compareStructures.mockReset());
+
 describe("Hall schema comparisons", () => {
   it("refuses a Code Moniker runtime that cannot prove the structural capability probe", async () => {
-    const compare = vi.fn().mockResolvedValue({
-      diagnostics: [],
-      symbol_changes: [
-        {
-          kind: "removed",
-          old: {
-            identity: "code-moniker://probe/schema:hall/table:capability_probe/column:value",
-            compact_identity: "sql:schema:hall/table:capability_probe/column:value",
-            kind: "column",
-          },
-        },
-      ],
-      ref_changes: [],
-    });
+    compareStructures.mockResolvedValue(comparison(false));
+    const client = { diffImpact: { compare: vi.fn() }, queryData: vi.fn() };
 
-    await expect(assertHallSchemaUpgradeCodeMoniker({ diffImpact: { compare } })).rejects.toThrow(
+    await expect(assertHallSchemaUpgradeCodeMoniker(client)).rejects.toThrow(
       "cannot compare Hall PostgreSQL schemas reliably",
+    );
+    expect(compareStructures).toHaveBeenCalledWith(
+      client,
+      expect.any(Array),
+      expect.any(Array),
+      "hall-schema-upgrade-capability-probe",
+      "structure",
+      expect.objectContaining({ parse: expect.any(Function) }),
     );
   });
 
@@ -75,9 +80,9 @@ describe("Hall schema comparisons", () => {
     };
     const installed = { query: vi.fn().mockResolvedValue(catalogResult) };
     const target = { query: vi.fn().mockResolvedValue(catalogResult) };
-    const compare = vi.fn().mockResolvedValue({ diagnostics: [], symbol_changes: [], ref_changes: [] });
-
-    const inspection = await inspectHallSchemaUpgrade({ diffImpact: { compare } }, installed, target, manifest);
+    compareStructures.mockResolvedValue(comparison(true));
+    const client = { diffImpact: { compare: vi.fn() }, queryData: vi.fn() };
+    const inspection = await inspectHallSchemaUpgrade(client, installed, target, manifest);
 
     expect(inspection.verdicts.map((verdict) => verdict.name)).toEqual([
       "manifest-to-materialized-target",
@@ -85,6 +90,28 @@ describe("Hall schema comparisons", () => {
     ]);
     expect(inspection.installedCatalog.tables).toEqual([]);
     expect(inspection.targetCatalog.tables).toEqual([]);
-    expect(compare).toHaveBeenCalledTimes(2);
+    expect(compareStructures).toHaveBeenCalledTimes(2);
+    expect(compareStructures).toHaveBeenNthCalledWith(
+      1,
+      client,
+      hallManifestDocuments(manifest),
+      [],
+      "manifest..materialized-target",
+      "structure",
+      expect.objectContaining({ parse: expect.any(Function) }),
+    );
+    expect(compareStructures).toHaveBeenNthCalledWith(2, client, [], [], "installed..target");
   });
 });
+
+function comparison(isomorphic: boolean): PostgresStructureComparison {
+  return {
+    isomorphic,
+    onlyInBase: [],
+    onlyInHead: [],
+    changed: [],
+    references: [],
+    diagnostics: [],
+    raw: { diagnostics: [], symbol_changes: [], ref_changes: [] },
+  };
+}

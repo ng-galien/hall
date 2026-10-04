@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,7 +58,11 @@ function violations(paths) {
 const requestedFile = process.env.HALL_DISPATCH_FILE;
 const cases = [
   { name: "text mentioning switch", source: 'export const label = "switch";\n// switch (value) {}\n', rejected: false },
-  { name: "switch inside a function", source: 'export function choose(value) { switch (value) { default: return 1; } }', rejected: true },
+  {
+    name: "switch inside a function",
+    source: "export function choose(value) { switch (value) { default: return 1; } }",
+    rejected: true,
+  },
 ];
 
 if (requestedFile) {

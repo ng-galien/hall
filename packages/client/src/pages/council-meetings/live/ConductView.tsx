@@ -116,7 +116,9 @@ export function ConductView({
   const { submitting, run } = useSubmitting();
   const navigate = useNavigate();
   const { orderedItems, activeItem, nextItem, selectedItem, setSelectedItemId, openingSelected, setOpeningSelected } =
-    useConductAgendaSelection(aggregate.agendaItems, meetingActions.liveRevision);
+    useConductAgendaSelection(aggregate.agendaItems, meetingActions.liveRevision, {
+      conducts: meetingActions.conducts,
+    });
   const [adjournConfirming, setAdjournConfirming] = useState(false);
   const [ballotActionContainer, setBallotActionContainer] = useState<HTMLDivElement | null>(null);
   const [notes, setNotes] = useState("");

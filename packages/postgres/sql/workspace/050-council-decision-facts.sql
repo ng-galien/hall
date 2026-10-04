@@ -3,7 +3,7 @@
 -- @functional-requirement HALL-FR-DEC-010 CONFIRMED_PROPOSAL_FACTS_ARE_PRESERVED:
 CREATE TABLE hall.council_decision_facts (
   ballot UUID PRIMARY KEY REFERENCES hall.ballots(id),
-  facts JSONB NOT NULL CHECK(jsonb_typeof(facts)='object')
+  facts JSONB NOT NULL CONSTRAINT "council_decision_facts_facts_check" CHECK (jsonb_typeof(facts) = 'object'::text)
 );
 
 CREATE FUNCTION hall.protect_council_decision_facts()

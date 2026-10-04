@@ -10,7 +10,7 @@ CREATE TABLE hall.audit_event (
   target_type text NOT NULL,
   target_id text,
   outcome hall.audit_outcome NOT NULL,
-  details jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(details) = 'object'),
+  details jsonb NOT NULL DEFAULT '{}'::jsonb CONSTRAINT "audit_event_details_check" CHECK (jsonb_typeof(details) = 'object'::text),
   occurred_at timestamptz NOT NULL DEFAULT statement_timestamp()
 );
 

@@ -2,16 +2,14 @@ SET LOCAL ROLE hall_owner;
 CREATE TYPE hall.delegation_role AS ENUM ('primary','alternate');
 CREATE TABLE hall.council_delegation (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL CHECK (btrim(name) <> ''),
-  description TEXT NOT NULL DEFAULT '',
+  name TEXT NOT NULL CONSTRAINT "council_delegation_name_check" CHECK (btrim(name) <> ''::text),
+  description TEXT NOT NULL DEFAULT ''::text,
   archived_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
 );
 
-CREATE UNIQUE INDEX council_delegation_one_active_name
-  ON hall.council_delegation (lower(name))
-  WHERE archived_at IS NULL;
+CREATE UNIQUE INDEX council_delegation_one_active_name ON hall.council_delegation USING btree (lower(name)) WHERE (archived_at IS NULL);
 
 -- @functional-requirement HALL-FR-DIR-140 EXTERNAL_REPRESENTATION_CONTACTS:
 CREATE TABLE hall.delegation_membership (
@@ -21,13 +19,10 @@ CREATE TABLE hall.delegation_membership (
   role hall.delegation_role NOT NULL,
   started_on DATE NOT NULL,
   ended_on DATE,
-  CONSTRAINT delegation_membership_dates_are_ordered
-    CHECK (ended_on IS NULL OR ended_on >= started_on)
+  CONSTRAINT "delegation_membership_dates_are_ordered" CHECK (ended_on IS NULL OR ended_on >= started_on)
 );
 
-CREATE UNIQUE INDEX delegation_membership_one_active_per_member
-  ON hall.delegation_membership (delegation, contact)
-  WHERE ended_on IS NULL;
+CREATE UNIQUE INDEX delegation_membership_one_active_per_member ON hall.delegation_membership USING btree (delegation, contact) WHERE (ended_on IS NULL);
 
 CREATE FUNCTION hall.enforce_delegation_membership()
 RETURNS TRIGGER

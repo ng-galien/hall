@@ -74,7 +74,8 @@
       "SCH": "quality",
       "TRC": "quality",
       "SRC": "workspace",
-      "COM": "municipality"
+      "COM": "municipality",
+      "DST": "quality"
     },
     "requirementThemes": {}
   },
@@ -7457,7 +7458,8 @@
       "acceptanceCriteria": [
         "Après une commande de conduite réussie qui change le déroulement de séance, les lecteurs autorisés voient le point en cours et son état actualisés sans recharger la page.",
         "Le lecteur n’a aucune action Siren de conduite. Il peut consulter un autre sujet, mais un nouvel événement de séance reprend la priorité et le replace sur le point courant.",
-        "Après perte puis retour de la connexion, la vue du lecteur rejoint l’état serveur courant ; une transition échouée ne produit pas de mise à jour fictive."
+        "Après perte puis retour de la connexion, la vue du lecteur rejoint l’état serveur courant ; une transition échouée ne produit pas de mise à jour fictive.",
+        "Un événement de séance actualise la vue du conducteur sans changer le point qu’il a sélectionné, y compris après sa propre commande de conduite."
       ],
       "clauses": [
         {
@@ -7470,6 +7472,12 @@
           "key": "meeting-event-priority",
           "origin": "product",
           "statement": "Le lecteur peut naviguer, mais un nouvel événement de séance a priorité sur sa position de lecture et le replace sur le point courant.",
+          "sourceIds": []
+        },
+        {
+          "key": "conductor-selection",
+          "origin": "product",
+          "statement": "Un événement de séance ne replace jamais le conducteur sur le point courant ; seul le lecteur sans action de conduite est replacé.",
           "sourceIds": []
         }
       ]
@@ -7484,8 +7492,8 @@
       "statement": "Un écran accessible par le menu principal permet de consulter et modifier les données de la commune selon des habilitations distinctes, dans la continuité de l’IHM Hall.",
       "acceptanceCriteria": [
         "Un écran de configuration de la commune est accessible depuis le menu principal.",
-        "La consultation des données de commune est soumise à une habilitation de lecture appropriée. Les rôles et permissions existants sont examinés avant toute proposition de création ; leur attribution précise aux profils reste à décider avec le propriétaire.",
-        "La modification des données est soumise à une habilitation distincte de la lecture. Le serveur contrôle les droits et Siren expose les capacités autorisées ; le client consomme ces capacités.",
+        "La consultation des données de commune est accessible aux utilisateurs connectés, y compris au rôle reader, conformément au contrat existant et à la décision de l’utilisateur du 29 septembre 2026.",
+        "La modification des données de commune est réservée au rôle administrator, niveau maximal existant, conformément à la décision de l’utilisateur du 29 septembre 2026. Le serveur contrôle les droits et Siren expose settings.update ; le client consomme cette capacité sans changer les droits des autres domaines.",
         "L’écran réutilise les primitives partagées et le style des autres écrans Hall, sans nouveau langage visuel.",
         "La clarification part des données de commune déjà définies dans Hall. La liste exacte des champs à présenter et modifier reste à préciser avec le propriétaire ; ce besoin ne vaut pas approbation de nouvelles données, salles ou règles de gestion."
       ],
@@ -7499,13 +7507,13 @@
         {
           "key": "read-access",
           "origin": "product",
-          "statement": "La consultation des données de commune est soumise à une habilitation de lecture appropriée. Les rôles et permissions existants sont examinés avant toute proposition de création ; leur attribution précise aux profils reste à décider avec le propriétaire.",
+          "statement": "La consultation des données de commune est accessible aux utilisateurs connectés, y compris au rôle reader, conformément au contrat existant et à la décision de l’utilisateur du 29 septembre 2026.",
           "sourceIds": []
         },
         {
           "key": "write-access",
           "origin": "product",
-          "statement": "La modification des données est soumise à une habilitation distincte de la lecture. Le serveur contrôle les droits et Siren expose les capacités autorisées ; le client consomme ces capacités.",
+          "statement": "La modification des données de commune est réservée au rôle administrator, niveau maximal existant, conformément à la décision de l’utilisateur du 29 septembre 2026. Le serveur contrôle les droits et Siren expose settings.update ; le client consomme cette capacité sans changer les droits des autres domaines.",
           "sourceIds": []
         },
         {
@@ -7518,6 +7526,32 @@
           "key": "scope-to-clarify",
           "origin": "product",
           "statement": "La clarification part des données de commune déjà définies dans Hall. La liste exacte des champs à présenter et modifier reste à préciser avec le propriétaire ; ce besoin ne vaut pas approbation de nouvelles données, salles ou règles de gestion.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-DST-010": {
+      "name": "STANDALONE_NPM_SERVER_DISTRIBUTION",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-09-25"
+      },
+      "statement": "Hall provides a standalone server, its web interface and a startup command, installable and replaceable through npm.",
+      "acceptanceCriteria": [
+        "The tarball contains the compiled server, web interface and required SQL resources; installation does not depend on the Hall checkout, neighboring checkouts or a development server.",
+        "Internal workspaces remain private; local preparation does not publish any npm package.",
+        "Persistent configuration, backups and PostgreSQL data remain outside files replaced by an npm update.",
+        "Package installation neither starts the server nor migrates a database; prerequisites and startup behavior are documented.",
+        "The priority distribution is the server, web interface and CLI; it does not require embedded PostgreSQL and does not replace the desktop distribution.",
+        "The municipal bootstrap procedure covers a selected existing backup, administrator access, municipality settings, collaborator accounts and effective rights, operation, restart, backup, update and recovery; restoring data preserves existing accounts and configuration.",
+        "The same npm artifact is tested outside the checkout on Linux and Windows; PostgreSQL and prerequisites are provisioned separately, without a Hall executable installer."
+      ],
+      "clauses": [
+        {
+          "key": "authorized-server-scope",
+          "origin": "product",
+          "statement": "The user confirmed local preparation of a standalone npm-installable server, web interface and CLI on 2026-09-25, with persistent configuration and data outside the package. On 2026-09-29 the user authorized implementation of the complete municipal bootstrap and operational procedure for a Windows computer, with separately provisioned prerequisites and no executable installer. Existing model and authorization rules remain unchanged unless precisely approved. External publication and real-data migrations remain separately authorized actions.",
           "sourceIds": []
         }
       ]

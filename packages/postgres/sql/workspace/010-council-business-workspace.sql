@@ -13,8 +13,7 @@ CREATE TABLE hall.council_business_workspace (
     REFERENCES hall.folder_resource (id) ON DELETE RESTRICT,
   report_resource UUID NOT NULL UNIQUE
     REFERENCES hall.text_resource (id) ON DELETE RESTRICT,
-  CONSTRAINT council_business_workspace_resources_differ
-    CHECK (folder_resource <> report_resource)
+  CONSTRAINT "council_business_workspace_resources_differ" CHECK (folder_resource <> report_resource)
 );
 
 -- @functional-requirement HALL-FR-WSP-015 COUNCIL_BUSINESS_ALWAYS_HAS_A_WORKSPACE:
@@ -167,7 +166,7 @@ CREATE TABLE hall.council_business_resource (
     REFERENCES hall.council_business (id) ON DELETE CASCADE,
   resource UUID NOT NULL
     REFERENCES hall.resource (id) ON DELETE RESTRICT,
-  position INTEGER NOT NULL CHECK (position > 0),
+  position INTEGER NOT NULL CONSTRAINT "council_business_resource_position_check" CHECK ("position" > 0),
   PRIMARY KEY (council_business, resource),
   CONSTRAINT council_business_resource_position_unique
     UNIQUE (council_business, position)

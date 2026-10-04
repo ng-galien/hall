@@ -2,9 +2,9 @@
 -- The workspace boundary enriches these facts with copied documentary content.
 CREATE TABLE hall.council_meeting_snapshot (
   council_meeting UUID NOT NULL REFERENCES hall.council_meetings(id),
-  phase TEXT NOT NULL CHECK (phase IN ('opening', 'closing')),
+  phase TEXT NOT NULL CONSTRAINT "council_meeting_snapshot_phase_check" CHECK (phase = ANY (ARRAY['opening'::text, 'closing'::text])),
   captured_at TIMESTAMPTZ NOT NULL,
-  payload JSONB NOT NULL CHECK (jsonb_typeof(payload) = 'object'),
+  payload JSONB NOT NULL CONSTRAINT "council_meeting_snapshot_payload_check" CHECK (jsonb_typeof(payload) = 'object'::text),
   PRIMARY KEY (council_meeting, phase)
 );
 

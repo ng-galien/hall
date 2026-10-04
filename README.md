@@ -19,6 +19,12 @@ The shared server uses PostgreSQL; desktop local mode uses PGlite. Domain code d
 
 Read [`docs/README.md`](docs/README.md) for the documentation map, [`requirements/catalog.json`](requirements/catalog.json) for expected behavior, and [`AGENTS.md`](AGENTS.md) before making changes.
 
+## Standalone server
+
+Build a server and web-interface tarball with `npm run pack:distribution`. See
+[installation, configuration, updates and recovery](docs/distribution.md). The
+root workspace remains private; publication is a separate release action.
+
 ## Development
 
 Requirements:

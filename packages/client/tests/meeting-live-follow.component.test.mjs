@@ -11,7 +11,7 @@ import { test } from "vitest";
 const clientRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 // @verifies-requirement HALL-FR-MTG-320
-test("a passive reader returns to the server's current item after conduct events and reconnection", async () => {
+test("a passive reader returns to the current item after meeting events while the conductor keeps its selection", async () => {
   const temporary = mkdtempSync(join(clientRoot, ".tmp-meeting-live-follow-"));
   const entry = join(temporary, "entry.ts");
   const output = join(temporary, "entry.mjs");
@@ -37,7 +37,7 @@ test("a passive reader returns to the server's current item after conduct events
       for (const listener of this.listeners.get(type) ?? []) listener(event);
     }
     close() {
-      // No-op test double.
+      return undefined;
     }
   }
   for (const [key, value] of Object.entries({
@@ -68,10 +68,10 @@ test("a passive reader returns to the server's current item after conduct events
       logLevel: "silent",
     });
     const { useConductAgendaSelection, subscribeLiveUpdates } = await import(pathToFileURL(output).href);
-    function Reader() {
+    function MeetingView({ conducts }) {
       const [items, setItems] = useState(canonicalItems);
       const [liveRevision, setLiveRevision] = useState(0);
-      const selection = useConductAgendaSelection(items, liveRevision);
+      const selection = useConductAgendaSelection(items, liveRevision, { conducts });
       useEffect(() => {
         const reread = () => {
           reads += 1;
@@ -101,7 +101,7 @@ test("a passive reader returns to the server's current item after conduct events
       );
     }
     root = createRoot(dom.window.document.getElementById("root"));
-    await act(async () => root.render(createElement(Reader)));
+    await act(async () => root.render(createElement(MeetingView, { conducts: false })));
     const selected = () => dom.window.document.querySelector('[data-testid="selected-item"]').textContent;
     const choose = async (name) =>
       act(async () => dom.window.document.querySelector(`[data-testid="choose-${name}"]`).click());
@@ -132,6 +132,22 @@ test("a passive reader returns to the server's current item after conduct events
     await act(async () => sockets[1].emit("open"));
     assert.equal(reads, 3, "reconnection rereads the canonical server state");
     assert.equal(selected(), itemB.id, "the current point also retakes priority after reconnection");
+
+    await act(async () => root.unmount());
+    canonicalItems = [itemA, itemB];
+    root = createRoot(dom.window.document.getElementById("root"));
+    await act(async () => root.render(createElement(MeetingView, { conducts: true })));
+    const conductorSocket = sockets.at(-1);
+    await act(async () => conductorSocket.emit("open"));
+    await choose("a");
+    canonicalItems = [
+      { ...itemA, status: "examined" },
+      { ...itemB, status: "inProgress" },
+    ];
+    await act(async () =>
+      conductorSocket.emit("message", { data: JSON.stringify({ type: "meeting.changed", meetingId }) }),
+    );
+    assert.equal(selected(), itemA.id, "a meeting event keeps the conductor on the selected point");
   } finally {
     if (root) await act(async () => root.unmount());
     for (const [key, descriptor] of Object.entries(originals)) {

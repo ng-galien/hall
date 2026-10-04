@@ -7,7 +7,6 @@ import {
   installSchema,
   postgresPackage,
   resetDatabase,
-  run,
   startDatabase,
 } from "./environment.mjs";
 

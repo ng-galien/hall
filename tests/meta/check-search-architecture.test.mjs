@@ -3,8 +3,8 @@ import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { test } from "vitest";
 import { fileURLToPath } from "node:url";
+import { test } from "vitest";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const callRule = "shape.callable.client.search-projection-calls-presentation-authority";

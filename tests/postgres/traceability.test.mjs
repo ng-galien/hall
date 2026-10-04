@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "vitest";
@@ -63,9 +63,15 @@ test("PostgreSQL requirements and SQLSTATEs remain traceable", () => {
     cataloguedCodes.filter((code, index) => cataloguedCodes[index - 1] === code),
     "SQLSTATE catalogue entries are duplicated",
   );
-  requireEmpty(cataloguedCodes.filter((code) => !usedCodes.has(code)), "Catalogued SQLSTATE codes are unused");
+  requireEmpty(
+    cataloguedCodes.filter((code) => !usedCodes.has(code)),
+    "Catalogued SQLSTATE codes are unused",
+  );
   const assertedCodes = new Set(matches(postgresTests, /'(HV[0-9]{3})'/g));
-  requireEmpty(cataloguedCodes.filter((code) => !assertedCodes.has(code)), "SQLSTATE codes are missing from PostgreSQL tests");
+  requireEmpty(
+    cataloguedCodes.filter((code) => !assertedCodes.has(code)),
+    "SQLSTATE codes are missing from PostgreSQL tests",
+  );
 
   const nativeCodes = [...new Set(matches(postgresTests, /'(235(?:02|03|05|14))'/g))].sort();
   const requiredNativeCodes = ["23502", "23503", "23505", "23514"];

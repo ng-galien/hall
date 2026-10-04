@@ -14,14 +14,10 @@ jobs:
         with:
           node-version: "26"
           cache: npm
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-      - name: Install Code Moniker
-        run: cargo install --git https://github.com/ng-galien/code-moniker.git --rev 1f44b7ff574d35362d18f817beb5d93986ebbdb3 --locked code-moniker
       - name: Install Hall dependencies
         run: npm ci
+      - name: Use the locked Code Moniker executable
+        run: echo "$GITHUB_WORKSPACE/node_modules/@code-moniker/cli-linux-x64/bin" >> "$GITHUB_PATH"
       - name: Install Chromium and operating-system dependencies
         run: npx playwright install --with-deps chromium
       - name: Run the complete serial gate
@@ -34,4 +30,79 @@ jobs:
           path: |
             packages/client/test-results/
             packages/client/playwright-report/
+          if-no-files-found: ignore
+
+  distribution-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run pack:distribution
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hall-npm-package
+          path: dist/npm/*.tgz*
+          if-no-files-found: error
+
+  distribution-install:
+    needs: distribution-build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: hall-npm-package
+          path: dist/npm
+      - name: Prepare disposable PostgreSQL on Linux
+        if: runner.os == 'Linux'
+        run: |
+          docker pull postgres:17-alpine
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+          npx playwright install-deps chromium
+      - name: Prepare disposable PostgreSQL on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cluster = Join-Path $env:RUNNER_TEMP 'hall-package-postgres'
+          & "$env:PGBIN\initdb.exe" -D $cluster -U hall_package_test -A trust --encoding=UTF8 --locale=C
+          if ($LASTEXITCODE -ne 0) { throw 'initdb failed' }
+          & "$env:PGBIN\pg_ctl.exe" -D $cluster -l "$env:RUNNER_TEMP\hall-postgres.log" -o '-p 55432 -h 127.0.0.1' -w start
+          if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL did not start' }
+          $env:PGBIN | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          'HALL_PACKAGE_TEST_DATABASE_URL=postgresql://hall_package_test@127.0.0.1:55432/postgres' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Install the built artifact and verify bootstrap, replacement and restore
+        run: npm run test:distribution:artifact
+      - name: Verify schema convergence using the packaged migration runtime
+        run: npm run test:distribution:upgrade
+      - name: Stop disposable PostgreSQL on Windows
+        if: always() && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cluster = Join-Path $env:RUNNER_TEMP 'hall-package-postgres'
+          if (Test-Path "$cluster\postmaster.pid") {
+            & "$env:PGBIN\pg_ctl.exe" -D $cluster -m immediate -w stop
+            if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL cleanup failed' }
+          }
+      - name: Retain PostgreSQL failure log
+        if: failure() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hall-package-postgres-windows
+          path: ${{ runner.temp }}/hall-postgres.log
           if-no-files-found: ignore

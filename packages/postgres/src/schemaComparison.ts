@@ -1,7 +1,9 @@
 import {
   type CatalogQueryClient,
   type CodeMonikerStructureComparisonClient,
+  type CodeMonikerSyntaxClient,
   comparePostgresStructures,
+  createCodeMonikerSyntaxParser,
   type PostgresCatalogModel,
   type PostgresStructureComparison,
   readPostgresCatalog,
@@ -60,7 +62,7 @@ CREATE INDEX capability_probe_value_idx ON hall.capability_probe USING btree (va
 ];
 
 export async function assertHallSchemaUpgradeCodeMoniker(
-  codeMoniker: CodeMonikerStructureComparisonClient,
+  codeMoniker: CodeMonikerStructureComparisonClient & CodeMonikerSyntaxClient,
 ): Promise<void> {
   const comparison = await comparePostgresStructures(
     codeMoniker,
@@ -68,6 +70,7 @@ export async function assertHallSchemaUpgradeCodeMoniker(
     CAPABILITY_PROBE_HEAD,
     "hall-schema-upgrade-capability-probe",
     "structure",
+    createCodeMonikerSyntaxParser(codeMoniker),
   );
   if (!comparison.isomorphic) {
     throw new Error(
@@ -77,7 +80,7 @@ export async function assertHallSchemaUpgradeCodeMoniker(
 }
 
 export async function inspectHallSchemaUpgrade(
-  codeMoniker: CodeMonikerStructureComparisonClient,
+  codeMoniker: CodeMonikerStructureComparisonClient & CodeMonikerSyntaxClient,
   installed: CatalogQueryClient,
   target: CatalogQueryClient,
   manifest: SchemaManifest,
@@ -94,6 +97,7 @@ export async function inspectHallSchemaUpgrade(
     targetDocuments,
     "manifest..materialized-target",
     "structure",
+    createCodeMonikerSyntaxParser(codeMoniker),
   );
   const installedComparison = await comparePostgresStructures(
     codeMoniker,

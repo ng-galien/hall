@@ -18,5 +18,5 @@ CREATE TABLE hall.ballots (
   -- @functional-requirement HALL-FR-BAL-040 BALLOT_COMPLETION_AND_RESULT_COEXIST: An open ballot
   -- has neither completion fact nor result; a
   -- completed ballot has both.
-  CHECK ((completed_at IS NULL) = (result IS NULL))
+  CONSTRAINT "ballots_check" CHECK ((completed_at IS NULL) = (result IS NULL))
 );

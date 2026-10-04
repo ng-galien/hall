@@ -47,7 +47,10 @@ export async function seedDirectory({ post, put }, { daysFromNow, password }) {
     const contact = await post("/contacts", {
       firstName,
       lastName,
-      email: `${firstName.toLowerCase().normalize("NFD").replace(/[^a-z-]/g, "")}@alesia.example`,
+      email: `${firstName
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[^a-z-]/g, "")}@alesia.example`,
       phone: null,
       organizationName: "Oppidum d’Alésia",
       jobTitle: "Conseil de l’oppidum",
@@ -62,15 +65,21 @@ export async function seedDirectory({ post, put }, { daysFromNow, password }) {
   }
 
   const caesar = await post("/contacts", {
-    firstName: "Jules", lastName: "César",
-    organizationName: "Armée romaine", jobTitle: "Proconsul",
-    email: "jules.cesar@alesia.example", phone: null,
+    firstName: "Jules",
+    lastName: "César",
+    organizationName: "Armée romaine",
+    jobTitle: "Proconsul",
+    email: "jules.cesar@alesia.example",
+    phone: null,
     notes: "Interlocuteur pour les pourparlers devant les lignes romaines.",
   });
   await post("/contacts", {
-    firstName: "Titus", lastName: "Labienus",
-    organizationName: "Armée romaine", jobTitle: "Légat de César",
-    email: "titus.labienus@alesia.example", phone: null,
+    firstName: "Titus",
+    lastName: "Labienus",
+    organizationName: "Armée romaine",
+    jobTitle: "Légat de César",
+    email: "titus.labienus@alesia.example",
+    phone: null,
     notes: "Organisation du passage des délégations entre les deux lignes.",
   });
 

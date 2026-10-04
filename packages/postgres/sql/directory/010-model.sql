@@ -4,36 +4,28 @@
 -- @functional-requirement HALL-FR-DIR-020 ONE_ACTIVE_COUNCIL_TERM:
 CREATE TABLE hall.council_term (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  expected_member_count INTEGER NOT NULL CHECK (expected_member_count > 0),
+  expected_member_count INTEGER NOT NULL CONSTRAINT "council_term_expected_member_count_check" CHECK (expected_member_count > 0),
   started_on DATE NOT NULL,
   ended_on DATE,
-  CONSTRAINT council_term_dates_are_ordered
-    CHECK (ended_on IS NULL OR ended_on >= started_on)
+  CONSTRAINT "council_term_dates_are_ordered" CHECK (ended_on IS NULL OR ended_on >= started_on)
 );
 
-CREATE UNIQUE INDEX council_term_one_active
-  ON hall.council_term ((TRUE))
-  WHERE ended_on IS NULL;
+CREATE UNIQUE INDEX council_term_one_active ON hall.council_term USING btree ((true)) WHERE (ended_on IS NULL);
 
 -- @functional-requirement HALL-FR-DIR-010 CONTACT_EXISTS_INDEPENDENTLY:
 CREATE TABLE hall.contact (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  first_name TEXT NOT NULL CHECK (btrim(first_name) <> ''),
-  last_name TEXT NOT NULL CHECK (btrim(last_name) <> ''),
+  first_name TEXT NOT NULL CONSTRAINT "contact_first_name_check" CHECK (btrim(first_name) <> ''::text),
+  last_name TEXT NOT NULL CONSTRAINT "contact_last_name_check" CHECK (btrim(last_name) <> ''::text),
   organization_name TEXT,
   job_title TEXT,
   email TEXT,
   phone TEXT,
-  notes TEXT NOT NULL DEFAULT '',
+  notes TEXT NOT NULL DEFAULT ''::text,
   archived_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
-  CONSTRAINT contact_optional_fields_are_not_blank CHECK (
-    (organization_name IS NULL OR btrim(organization_name) <> '')
-    AND (job_title IS NULL OR btrim(job_title) <> '')
-    AND (email IS NULL OR btrim(email) <> '')
-    AND (phone IS NULL OR btrim(phone) <> '')
-  )
+  CONSTRAINT "contact_optional_fields_are_not_blank" CHECK ((organization_name IS NULL OR btrim(organization_name) <> ''::text) AND (job_title IS NULL OR btrim(job_title) <> ''::text) AND (email IS NULL OR btrim(email) <> ''::text) AND (phone IS NULL OR btrim(phone) <> ''::text))
 );
 
 -- @requirement-reference HALL-FR-DIR-030 MEMBER_BELONGS_TO_TERM:
@@ -44,18 +36,15 @@ CREATE TABLE hall.council_member (
   council_term UUID NOT NULL REFERENCES hall.council_term (id) ON DELETE RESTRICT,
   role hall.council_role NOT NULL,
   -- @functional-requirement HALL-FR-DIR-130 GLOBAL_RANK_WITHIN_TERM:
-  rank INTEGER CHECK (rank IS NULL OR rank >= 0),
+  rank INTEGER CONSTRAINT "council_member_rank_check" CHECK (rank IS NULL OR rank >= 0),
   UNIQUE (council_term, rank),
   term_started_on DATE NOT NULL,
   term_ended_on DATE,
-  CONSTRAINT council_member_dates_are_ordered
-    CHECK (term_ended_on IS NULL OR term_ended_on >= term_started_on)
+  CONSTRAINT "council_member_dates_are_ordered" CHECK (term_ended_on IS NULL OR term_ended_on >= term_started_on)
 );
 
 -- @functional-requirement HALL-FR-DIR-040 ONE_ACTIVE_MANDATE_PER_CONTACT:
-CREATE UNIQUE INDEX council_member_one_active_mandate_per_contact
-  ON hall.council_member (contact)
-  WHERE term_ended_on IS NULL;
+CREATE UNIQUE INDEX council_member_one_active_mandate_per_contact ON hall.council_member USING btree (contact) WHERE (term_ended_on IS NULL);
 
 CREATE FUNCTION hall.enforce_active_council_member()
 RETURNS TRIGGER
@@ -162,16 +151,14 @@ EXECUTE FUNCTION hall.enforce_contact_archive();
 -- @functional-requirement HALL-FR-DIR-080 COMMITTEE_IS_INDEPENDENT:
 CREATE TABLE hall.council_committee (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL CHECK (btrim(name) <> ''),
-  description TEXT NOT NULL DEFAULT '',
+  name TEXT NOT NULL CONSTRAINT "council_committee_name_check" CHECK (btrim(name) <> ''::text),
+  description TEXT NOT NULL DEFAULT ''::text,
   archived_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
 );
 
-CREATE UNIQUE INDEX council_committee_one_active_name
-  ON hall.council_committee (lower(name))
-  WHERE archived_at IS NULL;
+CREATE UNIQUE INDEX council_committee_one_active_name ON hall.council_committee USING btree (lower(name)) WHERE (archived_at IS NULL);
 
 -- @functional-requirement HALL-FR-DIR-090 ONE_ACTIVE_COMMITTEE_MEMBERSHIP:
 CREATE TABLE hall.committee_membership (
@@ -181,13 +168,10 @@ CREATE TABLE hall.committee_membership (
   role hall.committee_role NOT NULL,
   started_on DATE NOT NULL,
   ended_on DATE,
-  CONSTRAINT committee_membership_dates_are_ordered
-    CHECK (ended_on IS NULL OR ended_on >= started_on)
+  CONSTRAINT "committee_membership_dates_are_ordered" CHECK (ended_on IS NULL OR ended_on >= started_on)
 );
 
-CREATE UNIQUE INDEX committee_membership_one_active_per_member
-  ON hall.committee_membership (committee, contact)
-  WHERE ended_on IS NULL;
+CREATE UNIQUE INDEX committee_membership_one_active_per_member ON hall.committee_membership USING btree (committee, contact) WHERE (ended_on IS NULL);
 
 -- @functional-requirement HALL-FR-DIR-100 ACTIVE_MEMBERSHIP_REQUIRES_ACTIVE_ENTITIES:
 CREATE FUNCTION hall.enforce_committee_membership()

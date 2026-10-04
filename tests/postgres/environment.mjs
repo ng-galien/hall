@@ -1,7 +1,7 @@
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 export const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -47,22 +47,62 @@ export function startDatabase() {
 
 export function resetDatabase() {
   compose(
-    ["exec", "-T", "postgres-test", "psql", "--quiet", "--set", "ON_ERROR_STOP=1", "--username", "hall_test", "--dbname", "hall_test"],
-    { input: "SET client_min_messages = warning; DROP SCHEMA IF EXISTS hall_api CASCADE; DROP SCHEMA IF EXISTS hall CASCADE; DROP SCHEMA IF EXISTS hall_meta CASCADE; DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public AUTHORIZATION hall_test;\n" },
+    [
+      "exec",
+      "-T",
+      "postgres-test",
+      "psql",
+      "--quiet",
+      "--set",
+      "ON_ERROR_STOP=1",
+      "--username",
+      "hall_test",
+      "--dbname",
+      "hall_test",
+    ],
+    {
+      input:
+        "SET client_min_messages = warning; DROP SCHEMA IF EXISTS hall_api CASCADE; DROP SCHEMA IF EXISTS hall CASCADE; DROP SCHEMA IF EXISTS hall_meta CASCADE; DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public AUTHORIZATION hall_test;\n",
+    },
   );
 }
 
 export function installSchema() {
   compose(
-    ["exec", "-T", "postgres-test", "psql", "--quiet", "--set", "ON_ERROR_STOP=1", "--username", "hall_test", "--dbname", "hall_test"],
+    [
+      "exec",
+      "-T",
+      "postgres-test",
+      "psql",
+      "--quiet",
+      "--set",
+      "ON_ERROR_STOP=1",
+      "--username",
+      "hall_test",
+      "--dbname",
+      "hall_test",
+    ],
     { input: `SET client_min_messages = warning;\n${schemaSql()}` },
   );
 }
 
 export function clearDatabaseData() {
   compose(
-    ["exec", "-T", "postgres-test", "psql", "--quiet", "--set", "ON_ERROR_STOP=1", "--username", "hall_test", "--dbname", "hall_test"],
-    { input: `BEGIN;
+    [
+      "exec",
+      "-T",
+      "postgres-test",
+      "psql",
+      "--quiet",
+      "--set",
+      "ON_ERROR_STOP=1",
+      "--username",
+      "hall_test",
+      "--dbname",
+      "hall_test",
+    ],
+    {
+      input: `BEGIN;
 SET LOCAL session_replication_role = replica;
 DO $reset$
 DECLARE tables text;
@@ -77,6 +117,7 @@ BEGIN
 END
 $reset$;
 COMMIT;
-` },
+`,
+    },
   );
 }

@@ -2,7 +2,7 @@
 CREATE TABLE hall.council_decision_recovery (
   ballot UUID PRIMARY KEY REFERENCES hall.council_decision_facts(ballot),
   council_meeting UUID NOT NULL,
-  snapshot_phase TEXT NOT NULL DEFAULT 'closing' CHECK(snapshot_phase='closing'),
+  snapshot_phase TEXT NOT NULL DEFAULT 'closing'::text CONSTRAINT "council_decision_recovery_snapshot_phase_check" CHECK (snapshot_phase = 'closing'::text),
   result_preview UUID NOT NULL REFERENCES hall.ballot_result_preview(id),
   recovered_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
   recovered_by TEXT NOT NULL,

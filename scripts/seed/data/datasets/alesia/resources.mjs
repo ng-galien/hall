@@ -20,9 +20,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     name: "Défenses de Cornu",
     path: "defense",
     tags: ["seed", "défense"],
-    layers: [
-      { id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 },
-    ],
+    layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
     hallLayer: {
       type: "FeatureCollection",
       features: [
@@ -188,7 +186,11 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     fileName: "document-seed.pdf",
     folderPath: seedFolderPath,
     tags: ["seed", "document"],
-    lines: ["ETAT DU GRENIER DE CORNU", "120 sacs : 60 au nord, 40 au sud et 20 dans la reserve gardee de l’espace sud.", "Tenir le compte des sacs remis aux porteurs."],
+    lines: [
+      "ETAT DU GRENIER DE CORNU",
+      "120 sacs : 60 au nord, 40 au sud et 20 dans la reserve gardee de l’espace sud.",
+      "Tenir le compte des sacs remis aux porteurs.",
+    ],
   });
   await createWorkspaceResource(
     {
@@ -422,11 +424,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
       "accueil",
       "Bilan des abris",
       "bilan-abris.pdf",
-      [
-        "CONSEIL D’ALESIA",
-        "142 habitants accueillis.",
-        "Capacite complementaire a etudier : 20 places.",
-      ],
+      ["CONSEIL D’ALESIA", "142 habitants accueillis.", "Capacite complementaire a etudier : 20 places."],
     ],
   ];
   for (const [folderPath, title, fileName, lines] of libraryPdfs) {
@@ -445,14 +443,18 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     title: "Convention de mise à disposition",
     fileName: "convention-mise-a-disposition.docx",
     folderPath: "soutien",
-    content: makeDocx("Accord du grenier : Commius l’Atrébate met les espaces couverts à disposition des équipes. Vercassivellaunos l’Arverne examine les couvertures. Les porteurs rendent les paniers et signalent les sacs abîmés."),
+    content: makeDocx(
+      "Accord du grenier : Commius l’Atrébate met les espaces couverts à disposition des équipes. Vercassivellaunos l’Arverne examine les couvertures. Les porteurs rendent les paniers et signalent les sacs abîmés.",
+    ),
     mediaType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
   await importSpreadsheet({
     title: "Export des moyens de soutien",
     fileName: "moyens-soutien.csv",
     folderPath: "",
-    content: Buffer.from("equipe;journees_de_travail;quinaires_argent\nAbris;24;48\nConvois;16;32\nRéserves;9;18\nTotal;49;98\n"),
+    content: Buffer.from(
+      "equipe;journees_de_travail;quinaires_argent\nAbris;24;48\nConvois;16;32\nRéserves;9;18\nTotal;49;98\n",
+    ),
     mediaType: "text/csv",
   });
   await importSpreadsheet({

@@ -15,6 +15,11 @@ npm run demo:restart
 
 Hall is available at `http://localhost:5174/app/`. Test suites use isolated runtimes and must not stop or replace this session.
 
+## Standalone npm server
+
+See [installation, configuration, updates and recovery](distribution.md). The npm
+server uses external PostgreSQL and serves its bundled client at `/app/`.
+
 ## Desktop
 
 In local mode, Electron starts the public `startLocalHttpServer` entry point and stores PGlite data in the Electron user-data directory. It uses the same HTTP services and SQL contracts as shared Hall. It does not start SQLite or native PostgreSQL.

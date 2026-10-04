@@ -8,8 +8,8 @@ CREATE TABLE hall.meeting_membership_record (
   observed_at TIMESTAMPTZ NOT NULL,
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
   recorded_by TEXT NOT NULL,
-  source_reference TEXT NOT NULL CHECK(btrim(source_reference)<>''),
-  member_ids UUID[] NOT NULL CHECK(cardinality(member_ids)>0),
+  source_reference TEXT NOT NULL CONSTRAINT "meeting_membership_record_source_reference_check" CHECK (btrim(source_reference) <> ''::text),
+  member_ids UUID[] NOT NULL CONSTRAINT "meeting_membership_record_member_ids_check" CHECK (cardinality(member_ids) > 0),
   members JSONB NOT NULL,
   UNIQUE(council_meeting,observed_at)
 );

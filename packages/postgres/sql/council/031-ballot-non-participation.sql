@@ -5,14 +5,12 @@ CREATE TABLE hall.ballot_non_participation (
   ballot UUID NOT NULL REFERENCES hall.ballots(id),
   mode hall.ballot_mode NOT NULL,
   ballot_participation UUID REFERENCES hall.ballot_participation(id),
-  count INTEGER NOT NULL CHECK(count>0),
+  count INTEGER NOT NULL CONSTRAINT "ballot_non_participation_count_check" CHECK (count > 0),
   reason TEXT,
-  CHECK((mode='public' AND ballot_participation IS NOT NULL AND count=1 AND reason IN ('declined','departed'))
-    OR (mode='secret' AND ballot_participation IS NULL AND reason IS NULL))
+  CONSTRAINT "ballot_non_participation_check" CHECK (mode = 'public'::hall.ballot_mode AND ballot_participation IS NOT NULL AND count = 1 AND (reason = ANY (ARRAY['declined'::text, 'departed'::text])) OR mode = 'secret'::hall.ballot_mode AND ballot_participation IS NULL AND reason IS NULL)
 );
-CREATE UNIQUE INDEX ballot_non_participation_once ON hall.ballot_non_participation(ballot_participation)
-WHERE ballot_participation IS NOT NULL;
-CREATE UNIQUE INDEX secret_non_participation_once ON hall.ballot_non_participation(ballot) WHERE mode='secret';
+CREATE UNIQUE INDEX ballot_non_participation_once ON hall.ballot_non_participation USING btree (ballot_participation) WHERE (ballot_participation IS NOT NULL);
+CREATE UNIQUE INDEX secret_non_participation_once ON hall.ballot_non_participation USING btree (ballot) WHERE (mode = 'secret'::hall.ballot_mode);
 CREATE FUNCTION hall.enforce_ballot_non_participation()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path=pg_catalog,hall AS $$
 DECLARE current_ballot hall.ballots;

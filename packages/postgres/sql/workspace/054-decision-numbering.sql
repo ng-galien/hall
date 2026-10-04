@@ -1,7 +1,7 @@
 -- @functional-requirement HALL-FR-DEC-090 DECISION_NUMBERS_ARE_ALLOCATED_MONTHLY_AT_FREEZE:
 CREATE TABLE hall.council_decision_number_counter (
-  period DATE PRIMARY KEY CHECK(extract(day FROM period)=1),
-  last_index INTEGER NOT NULL CHECK(last_index>=0)
+  period DATE PRIMARY KEY CONSTRAINT "council_decision_number_counter_period_check" CHECK (EXTRACT(day FROM period) = 1::numeric),
+  last_index INTEGER NOT NULL CONSTRAINT "council_decision_number_counter_last_index_check" CHECK (last_index >= 0)
 );
 -- Historical PDFs without a number are left intact. Only new freezes allocate one.
 ALTER TABLE hall.council_decision_document ADD COLUMN number TEXT UNIQUE, ADD COLUMN document_date DATE;

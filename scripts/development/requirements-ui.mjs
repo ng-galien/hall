@@ -1,12 +1,12 @@
-import { createServer } from "node:http";
 import { readFile, rename, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   requirementsRegistrySchema,
   resolveRequirementTheme,
   validateRequirements,
-} from "../verification/check-requirements.mjs";
+} from "../checks/check-requirements.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const defaultRoot = resolve(dirname(scriptPath), "../..");
@@ -20,7 +20,7 @@ export async function readRequirementsView(root = defaultRoot) {
   const catalogPath = resolve(root, "requirements/catalog.json");
   const catalog = requirementsRegistrySchema.parse(JSON.parse(await readFile(catalogPath, "utf8")));
   const validation = validateRequirements(root, catalog);
-  const evidence = new Map(validation.evidence.map(item => [item.id, item]));
+  const evidence = new Map(validation.evidence.map((item) => [item.id, item]));
   const requirements = Object.entries(catalog.requirements).map(([id, requirement]) => ({
     id,
     ...requirement,
@@ -86,7 +86,8 @@ export function createRequirementsServer(root = defaultRoot) {
       }
       if (request.method !== "GET") return json(response, 405, { error: "Méthode non autorisée" });
       const relativeAsset = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
-      if (!["index.html", "app.js", "styles.css"].includes(relativeAsset)) return json(response, 404, { error: "Introuvable" });
+      if (!["index.html", "app.js", "styles.css"].includes(relativeAsset))
+        return json(response, 404, { error: "Introuvable" });
       const content = await readFile(resolve(appRoot, relativeAsset));
       response.writeHead(200, { "content-type": contentTypes[extname(relativeAsset)] ?? "application/octet-stream" });
       response.end(content);

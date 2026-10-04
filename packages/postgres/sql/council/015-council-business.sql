@@ -20,8 +20,8 @@ CREATE TABLE hall.minutes (
   id UUID PRIMARY KEY,
   council_meeting UUID NOT NULL UNIQUE REFERENCES council_meetings (id),
   -- @functional-requirement HALL-FR-MIN-160 MINUTES_FACTS_ARE_CAPTURED_AT_CLOSURE:
-  facts JSONB NOT NULL CHECK (jsonb_typeof(facts) = 'object'),
-  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+  facts JSONB NOT NULL CONSTRAINT "minutes_facts_check" CHECK (jsonb_typeof(facts) = 'object'::text),
+  version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "minutes_version_check" CHECK (version > 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
 );

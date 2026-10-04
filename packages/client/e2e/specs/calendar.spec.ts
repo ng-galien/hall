@@ -501,6 +501,7 @@ test("calendar presents overlapping appointments and council meetings distinctly
 
 // @verifies-requirement HALL-FR-CAL-080
 test("calendar deletes a future appointment after two confirmations with one request", async ({ appPage: page }) => {
+  await page.clock.setFixedTime(new Date("2026-09-12T12:00:00Z"));
   const response = await page.request.post("/api/resources", {
     data: {
       kind: "event",

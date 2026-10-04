@@ -9,6 +9,7 @@ export default defineConfig({
   test: {
     include: [
       "tests/postgres/*.test.mjs",
+      "packages/postgres/test/**/*.test.ts",
       "packages/server/src/**/*.test.ts",
       "packages/server/tests/**/*.test.ts",
     ],

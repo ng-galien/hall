@@ -1,8 +1,8 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "vitest";
-import assert from "node:assert/strict";
 import { readRequirementsView, updateRequirementTheme } from "../../scripts/development/requirements-ui.mjs";
 
 function fixture() {
@@ -55,7 +55,9 @@ test("persists explicit theme overrides and removes redundant overrides", async 
   const root = fixture();
   try {
     assert.deepEqual(await updateRequirementTheme(root, "HALL-FR-CAL-010", "meetings"), {
-      id: "HALL-FR-CAL-010", theme: "meetings", overridden: true,
+      id: "HALL-FR-CAL-010",
+      theme: "meetings",
+      overridden: true,
     });
     let catalog = JSON.parse(readFileSync(join(root, "requirements/catalog.json"), "utf8"));
     assert.equal(catalog.taxonomy.requirementThemes["HALL-FR-CAL-010"], "meetings");

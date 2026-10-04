@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 
 const root = resolve(import.meta.dirname, "../..");
 const client = resolve(root, "packages/client");

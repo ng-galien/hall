@@ -23,35 +23,19 @@ CREATE TABLE hall.meeting_attendance (
   -- @functional-requirement HALL-FR-ATT-030 REPRESENTATION_REQUIRES_PROXY_AND_DOCUMENT:
   -- Representation is the only attendance form carrying a written
   -- proxy, and it requires both its holder and its supporting document.
-  CHECK (
-    (
-      status = 'represented'
-      AND proxy_holder IS NOT NULL
-      AND proxy_document IS NOT NULL
-    )
-    OR
-    (
-      status <> 'represented'
-      AND proxy_holder IS NULL
-      AND proxy_document IS NULL
-    )
-  ),
+  CONSTRAINT "meeting_attendance_check" CHECK (status = 'represented'::hall.meeting_attendance_status AND proxy_holder IS NOT NULL AND proxy_document IS NOT NULL OR status <> 'represented'::hall.meeting_attendance_status AND proxy_holder IS NULL AND proxy_document IS NULL),
 
   -- @functional-requirement HALL-FR-ATT-040 MEMBER_CANNOT_HOLD_OWN_PROXY: A member cannot hold
   -- their own proxy.
-  CHECK (proxy_holder IS NULL OR proxy_holder <> id)
+  CONSTRAINT "meeting_attendance_check1" CHECK (proxy_holder IS NULL OR proxy_holder <> id)
 );
 
 -- @functional-requirement HALL-FR-ATT-050 ONE_PROXY_PER_HOLDER_AND_MEETING: One physically
 -- present member can hold at most one proxy in a
 -- meeting. The meeting column legitimately scopes this business uniqueness.
-CREATE UNIQUE INDEX meeting_attendance_one_proxy_per_holder
-  ON hall.meeting_attendance (council_meeting, proxy_holder)
-  WHERE proxy_holder IS NOT NULL;
+CREATE UNIQUE INDEX meeting_attendance_one_proxy_per_holder ON hall.meeting_attendance USING btree (council_meeting, proxy_holder) WHERE (proxy_holder IS NOT NULL);
 
 -- @functional-requirement HALL-FR-ATT-060 ONE_PROXY_DOCUMENT_USE_PER_MEETING: One written proxy
 -- document can justify at most one representation
 -- in a meeting. A document may legitimately cover another meeting later.
-CREATE UNIQUE INDEX meeting_attendance_one_use_per_proxy_document
-  ON hall.meeting_attendance (council_meeting, proxy_document)
-  WHERE proxy_document IS NOT NULL;
+CREATE UNIQUE INDEX meeting_attendance_one_use_per_proxy_document ON hall.meeting_attendance USING btree (council_meeting, proxy_document) WHERE (proxy_document IS NOT NULL);

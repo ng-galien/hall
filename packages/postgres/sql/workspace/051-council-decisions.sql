@@ -5,7 +5,7 @@ CREATE TABLE hall.council_decision (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ballot UUID NOT NULL UNIQUE REFERENCES hall.council_decision_facts(ballot),
   content TEXT NOT NULL,
-  version INTEGER NOT NULL DEFAULT 1 CHECK(version>0),
+  version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "council_decision_version_check" CHECK (version > 0),
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL
 );

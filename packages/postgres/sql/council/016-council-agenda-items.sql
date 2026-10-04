@@ -15,88 +15,63 @@ CREATE TABLE hall.council_agenda_item (
   council_decision_proposal UUID REFERENCES council_decision_proposal (id),
   open_question UUID REFERENCES open_question (id),
   subject_kind council_agenda_subject_kind GENERATED ALWAYS AS (
-    CASE WHEN minutes_approval IS NOT NULL THEN 'minutesApproval'::council_agenda_subject_kind
-      WHEN council_decision_proposal IS NOT NULL THEN 'councilDecisionProposal'::council_agenda_subject_kind
-      WHEN open_question IS NOT NULL THEN 'openQuestion'::council_agenda_subject_kind
-      END
+    CASE
+    WHEN (minutes_approval IS NOT NULL) THEN 'minutesApproval'::hall.council_agenda_subject_kind
+    WHEN (council_decision_proposal IS NOT NULL) THEN 'councilDecisionProposal'::hall.council_agenda_subject_kind
+    WHEN (open_question IS NOT NULL) THEN 'openQuestion'::hall.council_agenda_subject_kind
+    ELSE NULL::hall.council_agenda_subject_kind
+END
   ) STORED,
-  discussion_summary TEXT NOT NULL DEFAULT '',
+  discussion_summary TEXT NOT NULL DEFAULT ''::text,
 
   -- @functional-requirement HALL-FR-MIN-050 MINUTES_APPROVAL_IS_OUTSIDE_THE_WORKSPACE:
-  CONSTRAINT council_agenda_item_business_scope CHECK (
-    (minutes_approval IS NOT NULL) = (council_business IS NULL)
-  ),
+  CONSTRAINT "council_agenda_item_business_scope" CHECK ((minutes_approval IS NOT NULL) = (council_business IS NULL)),
 
   started_at TIMESTAMPTZ,
   completed_at TIMESTAMPTZ,
   adjourned_at TIMESTAMPTZ,
-  CONSTRAINT council_agenda_item_adjournment_shape CHECK (
-    adjourned_at IS NULL OR (position < 0 AND completed_at IS NULL
-      AND (started_at IS NULL OR adjourned_at >= started_at))
-  ),
+  CONSTRAINT "council_agenda_item_adjournment_shape" CHECK (adjourned_at IS NULL OR "position" < 0 AND completed_at IS NULL AND (started_at IS NULL OR adjourned_at >= started_at)),
 
   -- @functional-requirement HALL-FR-AGI-010 AGENDA_ITEM_HAS_EXACTLY_ONE_SUBJECT:
-  CONSTRAINT council_agenda_item_one_subject CHECK (
-    num_nonnulls(minutes_approval, council_decision_proposal, open_question) = 1
-  ),
+  CONSTRAINT "council_agenda_item_one_subject" CHECK (num_nonnulls(minutes_approval, council_decision_proposal, open_question) = 1),
 
   -- @functional-requirement HALL-FR-AGI-020 AGENDA_POSITION_SIGN_ENCODES_PROGRAMMING:
   -- Positive positions are programmed. Negative positions retain a
   -- deprogrammed association for automatic placement on the next agenda.
-  CONSTRAINT council_agenda_item_position_is_nonzero CHECK (position <> 0),
+  CONSTRAINT "council_agenda_item_position_is_nonzero" CHECK ("position" <> 0),
 
   -- @functional-requirement HALL-FR-AGI-030 MINUTES_APPROVAL_IS_FIRST:
-  CONSTRAINT council_agenda_item_minutes_is_first CHECK (
-    minutes_approval IS NULL OR abs(position) = 1
-  ),
+  CONSTRAINT "council_agenda_item_minutes_is_first" CHECK (minutes_approval IS NULL OR abs("position") = 1),
 
   -- @functional-requirement HALL-FR-AGI-040 COMPLETION_REQUIRES_START:
-  CONSTRAINT council_agenda_item_completion_requires_start CHECK (
-    completed_at IS NULL OR started_at IS NOT NULL
-  ),
+  CONSTRAINT "council_agenda_item_completion_requires_start" CHECK (completed_at IS NULL OR started_at IS NOT NULL),
 
   -- @functional-requirement HALL-FR-AGI-050 AGENDA_ITEM_TIME_IS_MONOTONIC:
-  CONSTRAINT council_agenda_item_time_is_monotonic CHECK (
-    completed_at IS NULL OR completed_at >= started_at
-  )
+  CONSTRAINT "council_agenda_item_time_is_monotonic" CHECK (completed_at IS NULL OR completed_at >= started_at)
 );
 
 -- @functional-requirement HALL-FR-AGI-060 ABSOLUTE_POSITION_IS_UNIQUE_PER_MEETING:
 -- Positive and negative forms of one ordinal cannot coexist. Gaps are valid;
 -- ordering never requires global renumbering.
-CREATE UNIQUE INDEX council_agenda_item_absolute_position_unique
-  ON hall.council_agenda_item (council_meeting, abs(position));
+CREATE UNIQUE INDEX council_agenda_item_absolute_position_unique ON hall.council_agenda_item USING btree (council_meeting, abs("position"));
 
 -- @functional-requirement HALL-FR-AGI-070 ONE_SUBJECT_OCCURRENCE_PER_MEETING:
-CREATE UNIQUE INDEX council_agenda_item_minutes_once_per_meeting
-  ON hall.council_agenda_item (council_meeting, minutes_approval)
-  WHERE minutes_approval IS NOT NULL;
+CREATE UNIQUE INDEX council_agenda_item_minutes_once_per_meeting ON hall.council_agenda_item USING btree (council_meeting, minutes_approval) WHERE (minutes_approval IS NOT NULL);
 
-CREATE UNIQUE INDEX council_agenda_item_decision_once_per_meeting
-  ON hall.council_agenda_item (council_meeting, council_decision_proposal)
-  WHERE council_decision_proposal IS NOT NULL;
+CREATE UNIQUE INDEX council_agenda_item_decision_once_per_meeting ON hall.council_agenda_item USING btree (council_meeting, council_decision_proposal) WHERE (council_decision_proposal IS NOT NULL);
 
-CREATE UNIQUE INDEX council_agenda_item_open_question_once_per_meeting
-  ON hall.council_agenda_item (council_meeting, open_question)
-  WHERE open_question IS NOT NULL;
+CREATE UNIQUE INDEX council_agenda_item_open_question_once_per_meeting ON hall.council_agenda_item USING btree (council_meeting, open_question) WHERE (open_question IS NOT NULL);
 
 -- @functional-requirement HALL-FR-AGI-080 ONE_ACTIVE_AGENDA_ITEM_PER_MEETING:
-CREATE UNIQUE INDEX council_agenda_item_one_active_per_meeting
-  ON hall.council_agenda_item (council_meeting)
-  WHERE position > 0 AND started_at IS NOT NULL AND completed_at IS NULL;
+CREATE UNIQUE INDEX council_agenda_item_one_active_per_meeting ON hall.council_agenda_item USING btree (council_meeting) WHERE (("position" > 0) AND (started_at IS NOT NULL) AND (completed_at IS NULL));
 
 -- Supports the single-table CouncilBusiness membership assertion and locks
 -- only the small agenda slice of the affected aggregate.
-CREATE INDEX council_agenda_item_business_membership
-  ON hall.council_agenda_item (council_business);
+CREATE INDEX council_agenda_item_business_membership ON hall.council_agenda_item USING btree (council_business);
 
 -- @technical-requirement HALL-TR-CON-130 AGENDA_SUBJECT_OWNER_LOOKUPS_ARE_INDEXED:
 -- Deferred owner validation locates every occurrence of one subject without
 -- scanning unrelated agenda rows.
-CREATE INDEX council_agenda_item_decision_business_membership
-  ON hall.council_agenda_item (council_decision_proposal, council_business)
-  WHERE council_decision_proposal IS NOT NULL;
+CREATE INDEX council_agenda_item_decision_business_membership ON hall.council_agenda_item USING btree (council_decision_proposal, council_business) WHERE (council_decision_proposal IS NOT NULL);
 
-CREATE INDEX council_agenda_item_open_question_business_membership
-  ON hall.council_agenda_item (open_question, council_business)
-  WHERE open_question IS NOT NULL;
+CREATE INDEX council_agenda_item_open_question_business_membership ON hall.council_agenda_item USING btree (open_question, council_business) WHERE (open_question IS NOT NULL);

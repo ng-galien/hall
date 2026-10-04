@@ -1,11 +1,13 @@
 # Hall documentation
 
-Hall keeps five current documents:
+Hall maintains the following reference documents:
 
 - [Project architecture and rules](project.md)
 - [Domain rules](domain.md)
 - [Development and verification](development.md)
 - [Local runtimes](runtime.md)
+- [Standalone npm installation, updates and recovery](distribution.md)
+- [Municipal installation and recovery](municipal-bootstrap.md)
 - [TRUST in Hall](trust.md)
 
 The canonical behavior catalogue is [`requirements/catalog.json`](../requirements/catalog.json), with maintenance instructions in [`requirements/README.md`](../requirements/README.md). Work that is not yet part of current behavior belongs in [`backlog/backlog.md`](../backlog/backlog.md).

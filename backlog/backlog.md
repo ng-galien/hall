@@ -75,7 +75,7 @@ The user decides business rules, data-model changes, product behavior, UI design
 
 ## Municipality, directory, terms, and access
 
-- [ ] `[FULL]` Clarify the municipality configuration screen, fields, and exact read/write role assignments. @tracks-requirement HALL-FR-COM-010
+- [ ] `[FULL]` Confirm the municipality fields to expose and implement the screen using authenticated reading and administrator-only updates. @tracks-requirement HALL-FR-COM-010
 - [ ] `[FULL]` Clarify whether predefined rooms belong in municipal settings before changing the model.
 - [ ] `[FULL]` Audit and rationalize RBAC, permissions, and roles; define the actions that need separate read, update, and delete rights.
 - [ ] `[FULL]` Assess Microsoft account and Active Directory authentication options before selecting a provider.
@@ -97,6 +97,8 @@ The user decides business rules, data-model changes, product behavior, UI design
 - [ ] `[FRONT]` Define the intended colors and visual differentiation with the user before changing them.
 
 ## Performance and local distribution
+
+- [ ] `[OPS]` Prepare and verify the standalone npm server artifact and its update documentation. @tracks-requirement HALL-TR-DST-010
 
 - [ ] `[FULL]` Define the local dump-loading and restore journey; no synchronization or database merge is currently decided.
 - [ ] `[FULL]` Measure transferred volumes and aggregation size before introducing selective loading.
