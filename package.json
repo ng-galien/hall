@@ -22,7 +22,7 @@
     "dev:postgres": "cross-env DATABASE_URL=postgresql://hall:hall-dev-only@127.0.0.1:54329/hall npm run dev",
     "postgres:up": "docker compose up -d --wait postgres",
     "postgres:down": "docker compose down",
-    "test:postgres": "npm run build -w @hall/contracts && npm run build -w @hall/api-contract && npm run build -w @hall/mcp && npm run build -w @hall/domain && npm run build -w @hall/templating && npm run build -w @hall/postgres && node tests/postgres/run.mjs --pgtap all && vitest run --config tests/postgres/vitest.config.ts",
+    "test:postgres": "npm run build -w @hall/contracts && npm run build -w @hall/api-contract && npm run build -w @hall/mcp && npm run build -w @hall/domain && npm run build -w @hall/templating && npm run build -w @hall/postgres && node tests/postgres/run.mjs --pgtap all && vitest run --config tests/postgres/vitest.adapter.config.ts && vitest run --config tests/postgres/vitest.config.ts",
     "test:postgres:council": "npm run test:council -w @hall/postgres",
     "test:postgres:document": "npm run test:document -w @hall/postgres",
     "test:backend": "npm run test:coverage -w @hall/server && npm run test:coverage -w @hall/domain",
