@@ -426,12 +426,12 @@ describe("content templates", () => {
       cc: [],
       bcc: [],
     };
-    const accepted = Array.from({ length: 6 }, () =>
-      container.cradle.contentTemplateService.generate(template.id, input),
-    );
+    const service = container.cradle.contentTemplateService;
+    const stored = await service.find(template.id);
+    const accepted = Array.from({ length: 6 }, () => service.generateFromTemplate(stored, input));
     await firstTwoLoads;
 
-    await expect(container.cradle.contentTemplateService.generate(template.id, input)).rejects.toMatchObject({
+    await expect(service.generateFromTemplate(stored, input)).rejects.toMatchObject({
       code: "template_generation_busy",
       statusCode: 429,
     });
