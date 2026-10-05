@@ -1,5 +1,5 @@
 import {
-  createPostgresClient,
+  createPostgresPool,
   PostgresClient,
   type PostgresCouncil,
   type PostgresCouncilDecisions,
@@ -21,6 +21,7 @@ import { createLegifranceProvider } from "../infrastructure/legal/legifranceProv
 import { createPostgresCouncilClient } from "../infrastructure/postgres/councilClient.js";
 import { createPostgresCouncilDecisionClient } from "../infrastructure/postgres/councilDecisionClient.js";
 import { createPostgresDirectoryClient } from "../infrastructure/postgres/directoryClient.js";
+import { logIdleConnectionFailures } from "../infrastructure/postgres/idleConnectionFailures.js";
 import { createPostgresMinutesClient } from "../infrastructure/postgres/minutesClient.js";
 import { createPostgresResourcesClient } from "../infrastructure/postgres/resourcesClient.js";
 import { createLiveEventBus, type LiveEventBus } from "../realtime/liveEvents.js";
@@ -149,7 +150,7 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
       if (config.database.kind !== "postgres") return null;
       return postgresPool
         ? new PostgresClient(postgresPool, false, options.postgresSchemaUpgradeMode)
-        : createPostgresClient({ connectionString: config.database.url });
+        : new PostgresClient(logIdleConnectionFailures(createPostgresPool({ connectionString: config.database.url })));
     }).singleton(),
     unitOfWork: asFunction(({ sqlExecutor }: { sqlExecutor: SqlExecutor }) => sqlExecutor).singleton(),
     hallSettingsRepository: asFunction(createHallSettingsRepository).singleton(),

@@ -7,6 +7,7 @@ import { inferAuditTargetId, type RequestContextStore } from "../../security/req
 import { translatePersistenceError } from "../database/errors.js";
 import { compileQuery, type SqlExecutor, type SqlParameters, type SqlRunResult } from "../database/executor.js";
 import type { SqlQueryName } from "../database/queries.js";
+import { logIdleConnectionFailures } from "./idleConnectionFailures.js";
 import {
   postgresBallotVoteConfidentialitySchema,
   postgresCouncilBusinessTitleUniquenessSchema,
@@ -31,7 +32,8 @@ export class PostgresExecutor implements SqlExecutor {
     readonly requestContext: RequestContextStore,
     private readonly sharedPool?: Pool,
   ) {
-    this.#pool = sharedPool ?? new Pool({ connectionString, options: "-c search_path=public" });
+    this.#pool =
+      sharedPool ?? logIdleConnectionFailures(new Pool({ connectionString, options: "-c search_path=public" }));
     this.#ready = this.#initialize();
   }
 

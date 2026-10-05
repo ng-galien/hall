@@ -6,6 +6,7 @@ import { join } from "node:path";
 import EmbeddedPostgres from "embedded-postgres";
 import { Pool } from "pg";
 import { logger } from "../../core/logger.js";
+import { logIdleConnectionFailures } from "../postgres/idleConnectionFailures.js";
 
 export interface LocalDatabaseHandle {
   url: string;
@@ -81,7 +82,7 @@ export async function startEmbeddedPostgresRuntime(directory: string): Promise<L
       await maintenance.end();
     }
     const url = `postgresql://${user}:${encodeURIComponent(password)}@${host}:${port}/${databaseName}`;
-    pool = new Pool({ connectionString: url, options: "-c search_path=public" });
+    pool = logIdleConnectionFailures(new Pool({ connectionString: url, options: "-c search_path=public" }));
     return { url, pool, close };
   } catch (error) {
     await close();

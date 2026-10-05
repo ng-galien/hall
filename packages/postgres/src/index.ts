@@ -82,6 +82,7 @@ export {
   SchemaContractError,
 } from "./errors.js";
 export * from "./minutes.js";
+export { createPostgresPool, type HallPostgresPoolConfig } from "./pool.js";
 export {
   type PostgresDocumentContent,
   type PostgresDocumentResource,
