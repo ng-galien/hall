@@ -41,6 +41,7 @@ import type { ResourceImageAttributes } from "./images";
 import { EditorReferenceSearch, type FullSearchRequest } from "./ReferenceSearchDialog";
 import { referenceKindPresentations } from "./referenceKindPresentation";
 import type { Mentionable } from "./references";
+import { insertMentionedResource } from "./resourceEmbeds";
 import { TableControls } from "./TableControls";
 
 export interface MarkdownEditorProps {
@@ -693,7 +694,8 @@ export function MarkdownEditor({
       mentionFacetLabels: facetLabels,
       mentionSearchAllLabel: t("editor.searchAll"),
       mentionContext: () => context.current,
-      mentionOpenFull: (query, range, selected) => setFullSearch({ query, range, selected }),
+      mentionOpenFull: (mentionEditor, query, range, selected) =>
+        setFullSearch(insertMentionedResource(mentionEditor, { query, range, selected })),
     }),
     content: markdown,
     contentType: "markdown",
@@ -944,7 +946,8 @@ function EnrichedEditor({
       mentionFacetLabels: facetLabels,
       mentionSearchAllLabel: t("editor.searchAll"),
       mentionContext: () => context.current,
-      mentionOpenFull: (query, range, selected) => setFullSearch({ query, range, selected }),
+      mentionOpenFull: (mentionEditor, query, range, selected) =>
+        setFullSearch(insertMentionedResource(mentionEditor, { query, range, selected })),
     }),
     content: initial,
     contentType: "markdown",

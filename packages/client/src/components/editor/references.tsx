@@ -1,6 +1,6 @@
 import type { ReferenceEntityKind } from "@hall/domain";
 import { imageWidthRange, isReferenceKind, type ResourcePresentationKind } from "@hall/templating";
-import { Extension, mergeAttributes, Node } from "@tiptap/core";
+import { type Editor, Extension, mergeAttributes, Node } from "@tiptap/core";
 import { type NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from "@tiptap/react";
 import { exitSuggestion, Suggestion, type SuggestionProps } from "@tiptap/suggestion";
 import { createContext, forwardRef, type ReactNode, useContext, useRef, useState } from "react";
@@ -315,8 +315,8 @@ export interface ReferenceMentionOptions {
   /** Folder used to rank nearby entries first. */
   context?(): string | undefined;
   searchAllLabel: string;
-  /** Opens the full search with the query and the `@` range to replace. */
-  onOpenFull?(query: string, range: { from: number; to: number }, selected?: Mentionable): void;
+  /** Handles a resource picked in the `@` menu, with the `@` range to replace. */
+  onOpenFull?(editor: Editor, query: string, range: { from: number; to: number }, selected?: Mentionable): void;
 }
 
 /** `@` mention menu: plain text searches every kind; `#` adds structured facets. */
@@ -349,7 +349,7 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
         items: () => [],
         command: ({ editor, range, props }) => {
           if (props.kind === "resource" && this.options.onOpenFull) {
-            this.options.onOpenFull(props.label, range, props);
+            this.options.onOpenFull(editor, props.label, range, props);
             return;
           }
           if (props.media === "image") {

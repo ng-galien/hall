@@ -1005,12 +1005,19 @@ test("prioritizes business documents and inserts maps and text from the compact 
     expect(response.ok()).toBeTruthy();
     additional.push({ ...(await response.json()).properties, presentation });
   }
+  const renderErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" && message.text().includes("flushSync")) renderErrors.push(message.text());
+  });
   await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
   const editor = page.getByTestId("business-report-editor");
   const dialog = page.getByTestId("reference-search-dialog");
   const openReferenceDialog = async () => {
-    await editor.getByTestId("editor-writing-area").focus();
+    const writingArea = editor.getByTestId("editor-writing-area");
+    await writingArea.blur();
+    await writingArea.focus();
     const button = editor.getByTestId("editor-insert-reference");
+    await expect(button).toBeVisible();
     await button.focus();
     await button.press("Enter");
     await expect(dialog).toBeVisible();
@@ -1047,6 +1054,7 @@ test("prioritizes business documents and inserts maps and text from the compact 
     await dialog.getByTestId("reference-search-result").click();
     await expect(editor.getByTestId(`resource-embed-presentation-${resource.presentation}`)).toBeVisible();
   }
+  expect(renderErrors).toEqual([]);
   await editor.getByTestId("editor-open-enriched").click();
   const enriched = page.getByTestId("markdown-editor-enriched");
   await expect(enriched.getByTestId("resource-embed-presentation-map")).toBeVisible();

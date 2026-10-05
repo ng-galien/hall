@@ -380,6 +380,43 @@ export function insertResourceEmbed(editor: Editor, attributes: ResourceEmbedAtt
   if (position !== null) editor.commands.setNodeSelection(position);
 }
 
+/**
+ * Inserts a picked resource at the caret, replacing the `@` range when given.
+ * Returns false when a table still needs its sheet and range.
+ */
+export function insertPickedResource(editor: Editor, item: Mentionable, range?: FullSearchRequest["range"]): boolean {
+  const presentation = item.resourcePresentation;
+  if (presentation === "table") {
+    if (range) editor.chain().focus().deleteRange(range).run();
+    return false;
+  }
+  const chain = editor.chain().focus();
+  if (range) chain.deleteRange(range);
+  if (!presentation) {
+    chain
+      .insertContent([
+        { type: "reference", attrs: { kind: item.kind, id: item.id, label: item.label } },
+        { type: "text", text: " " },
+      ])
+      .run();
+    return true;
+  }
+  chain.run();
+  if (presentation === "image") {
+    insertResourceImage(editor, { id: item.id, alt: item.label, align: "left", width: imageWidthRange.default });
+    return true;
+  }
+  insertResourceEmbed(editor, { id: item.id, label: item.label, presentation });
+  return true;
+}
+
+/** Inserts a resource picked in the `@` menu; returns the search still needed to choose table options. */
+export function insertMentionedResource(editor: Editor, request: FullSearchRequest): FullSearchRequest | null {
+  if (!request.selected) return request;
+  if (insertPickedResource(editor, request.selected, request.range)) return null;
+  return { query: request.query, selected: request.selected };
+}
+
 function columnNumber(column: string): number {
   let value = 0;
   for (const character of column.toUpperCase()) value = value * 26 + character.charCodeAt(0) - 64;
@@ -426,31 +463,7 @@ export function EditorResourceEmbedSearch({
   const embeddables = mentionables.current.filter((item) => allowedKinds.includes(item.kind));
 
   const pick = (item: Mentionable) => {
-    if (request.range) editor.chain().focus().deleteRange(request.range).run();
-    const presentation = item.resourcePresentation;
-    if (!presentation) {
-      editor
-        .chain()
-        .focus()
-        .insertContent([
-          { type: "reference", attrs: { kind: item.kind, id: item.id, label: item.label } },
-          { type: "text", text: " " },
-        ])
-        .run();
-      onClose();
-      return;
-    }
-    if (presentation === "image") {
-      insertResourceImage(editor, { id: item.id, alt: item.label, align: "left", width: imageWidthRange.default });
-      onClose();
-      return;
-    }
-    if (presentation !== "table") {
-      insertResourceEmbed(editor, {
-        id: item.id,
-        label: item.label,
-        presentation,
-      });
+    if (insertPickedResource(editor, item, request.range)) {
       onClose();
       return;
     }
