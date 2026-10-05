@@ -48,7 +48,7 @@ async function resolveRendererUrl(): Promise<string> {
   if (app.isPackaged) process.env.PLAYWRIGHT_BROWSERS_PATH = join(process.resourcesPath, "playwright");
   const { startLocalHttpServer } = await import("@hall/server");
   embeddedServer = startLocalHttpServer({
-    dataDirectory: join(app.getPath("userData"), "pglite"),
+    dataDirectory: join(app.getPath("userData"), "postgres"),
     clientDirectory,
   });
   return process.env.HALL_RENDERER_URL ?? applicationUrl((await embeddedServer).url);

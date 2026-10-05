@@ -121,7 +121,7 @@ export default {
   packagerConfig: {
     name: "Hall",
     executableName: "Hall",
-    asar: { unpack: "**/*.node" },
+    asar: false,
     prune: false,
     extraResource: [resolve(import.meta.dirname, "../client/dist"), browserDirectory],
     ignore: [

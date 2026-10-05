@@ -24,8 +24,6 @@
     "test:mutation:policy": "stryker run stryker.config.mjs"
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.5.8",
-    "@electric-sql/pglite-socket": "0.2.11",
     "@hall/api-contract": "*",
     "@hall/contracts": "*",
     "@hall/domain": "*",
@@ -33,6 +31,7 @@
     "@hall/postgres": "*",
     "@hall/templating": "*",
     "awilix": "^13.0.3",
+    "embedded-postgres": "17.10.0-beta.17",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "file-type": "^22.0.2",

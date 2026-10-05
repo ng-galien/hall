@@ -65,7 +65,7 @@ Before modifying code, read [`docs/project.md`](docs/project.md) to locate the e
 
 - Keep behavior dispatch exhaustive and centralized around the documented closed unions.
 - Do not scatter competing `if`, `else`, or `switch` implementations across layers.
-- The shared server uses PostgreSQL; desktop local mode uses PGlite. Do not introduce SQLite compatibility paths.
+- The shared server uses PostgreSQL; desktop local mode uses an embedded PostgreSQL server. Do not introduce SQLite compatibility paths.
 - Use English for code, schema, API contracts, and technical identifiers. User-facing labels are French and belong in frontend localization or templates.
 - Remove fields that carry no business information end to end instead of preserving invented legacy compatibility.
 

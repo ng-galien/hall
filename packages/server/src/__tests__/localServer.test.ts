@@ -1,10 +1,11 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { PGlite } from "@electric-sql/pglite";
 import { expect, it } from "vitest";
 import { startLocalHttpServer } from "../core/localServer.js";
+import { startEmbeddedPostgresRuntime } from "../infrastructure/database/embeddedPostgresRuntime.js";
 
+// @verifies-requirement HALL-TR-DSK-010
 it("persists local affairs and concurrent resources across an idempotent shutdown and restart", async () => {
   const dataDirectory = await mkdtemp(join(tmpdir(), "hall-local-server-"));
   const clientDirectory = join(dataDirectory, ".client");
@@ -90,17 +91,23 @@ it("persists local affairs and concurrent resources across an idempotent shutdow
       expect(response.status).toBe(200);
     }
     await server.close();
-    const database = await PGlite.create(dataDirectory);
+    const database = await startEmbeddedPostgresRuntime(dataDirectory);
     try {
-      const binaries = await database.query<{ content: string }>(
+      const binaries = await database.pool.query<{ content: string }>(
         "SELECT convert_from(content, 'UTF8') content FROM hall.binary_object",
       );
       expect(binaries.rows).toContainEqual({ content: "Local bytes" });
-      const associations = await database.query<{ count: number }>(
+      const associations = await database.pool.query<{ count: number }>(
         "SELECT count(*)::int count FROM hall.council_business_resource WHERE council_business=$1",
         [business.properties.id],
       );
       expect(associations.rows).toEqual([{ count: 3 }]);
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        await expect(database.pool.query("SELECT 1 / $1::int", [0])).rejects.toThrow("division by zero");
+        expect((await database.pool.query<{ value: number }>("SELECT $1::int AS value", [attempt])).rows).toEqual([
+          { value: attempt },
+        ]);
+      }
     } finally {
       await database.close();
     }
@@ -115,19 +122,19 @@ it("closes a failed local startup without resetting an incompatible database", a
   try {
     const server = await startLocalHttpServer({ dataDirectory });
     await server.close();
-    const database = await PGlite.create(dataDirectory);
-    const fingerprint = await database.query<{ manifest_sha256: string }>(
+    const database = await startEmbeddedPostgresRuntime(dataDirectory);
+    const fingerprint = await database.pool.query<{ manifest_sha256: string }>(
       "SELECT manifest_sha256 FROM hall_meta.schema_contract",
     );
-    await database.exec("UPDATE hall_meta.schema_contract SET manifest_sha256=repeat('0', 64)");
+    await database.pool.query("UPDATE hall_meta.schema_contract SET manifest_sha256=repeat('0', 64)");
     await database.close();
     await expect(startLocalHttpServer({ dataDirectory })).rejects.toThrow("schema fingerprint differs");
-    const reopened = await PGlite.create(dataDirectory);
+    const reopened = await startEmbeddedPostgresRuntime(dataDirectory);
     try {
-      expect((await reopened.query("SELECT manifest_sha256 FROM hall_meta.schema_contract")).rows).toEqual([
+      expect((await reopened.pool.query("SELECT manifest_sha256 FROM hall_meta.schema_contract")).rows).toEqual([
         { manifest_sha256: "0".repeat(64) },
       ]);
-      await reopened.query("UPDATE hall_meta.schema_contract SET manifest_sha256=$1", [
+      await reopened.pool.query("UPDATE hall_meta.schema_contract SET manifest_sha256=$1", [
         fingerprint.rows[0].manifest_sha256,
       ]);
     } finally {

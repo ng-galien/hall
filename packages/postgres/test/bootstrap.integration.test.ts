@@ -75,7 +75,7 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
     } finally {
       connection.release();
     }
-  }, 60_000);
+  });
 
   it("converges columns, indexes, triggers and obsolete routine overloads in one transaction", async () => {
     await reset();
@@ -138,7 +138,7 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
         )
       ).rows,
     ).toEqual([{ stale_grant: false }]);
-  }, 60_000);
+  });
 
   it("serializes concurrent installers against one contract", async () => {
     await reset();

@@ -76,7 +76,8 @@
       "SRC": "workspace",
       "COM": "municipality",
       "DST": "quality",
-      "LIV": "quality"
+      "LIV": "quality",
+      "DSK": "quality"
     },
     "requirementThemes": {}
   },
@@ -7302,16 +7303,16 @@
       },
       "statement": "L’espace de travail de la démonstration Alésia présente directement son contenu à la racine, sans répertoire technique seed.",
       "acceptanceCriteria": [
-        "Le menu et le fil d’Ariane ne présentent plus de niveau seed.",
-        "Les ressources, affaires, références et textes votés sont conservés lors du retrait de ce niveau.",
-        "La génération des données Alésia ne recrée pas ce répertoire.",
-        "Le dossier d’exemple dossier-vide est retiré et n’est plus créé dans les données Alésia."
+        "Le menu et le fil d’Ariane ne présentent aucun niveau seed.",
+        "Les ressources, affaires, références et textes votés de la démonstration sont classés directement dans l’arborescence Alésia.",
+        "La génération des données Alésia ne crée pas de répertoire seed.",
+        "Les données Alésia ne contiennent pas de dossier d’exemple vide."
       ],
       "clauses": [
         {
           "key": "demo-root",
           "origin": "product",
-          "statement": "Retirer le répertoire seed en remontant son contenu à la racine, sans supprimer les ressources ni les affaires.",
+          "statement": "Le contenu de la démonstration est placé à la racine de l’espace de travail, sans répertoire technique seed.",
           "sourceIds": []
         }
       ]
@@ -7552,7 +7553,7 @@
         {
           "key": "authorized-server-scope",
           "origin": "product",
-          "statement": "The user confirmed local preparation of a standalone npm-installable server, web interface and CLI on 2026-09-25, with persistent configuration and data outside the package. On 2026-09-29 the user authorized implementation of the complete municipal bootstrap and operational procedure for a Windows computer, with separately provisioned prerequisites and no executable installer. Existing model and authorization rules remain unchanged unless precisely approved. External publication and real-data migrations remain separately authorized actions.",
+          "statement": "Hall is distributed as a standalone npm-installable server with its web interface and CLI; persistent configuration and data stay outside the package. The municipal installation and operating procedure targets a Windows computer with separately provisioned prerequisites and no executable installer. External publication and real-data migrations are separately authorized actions.",
           "sourceIds": []
         }
       ]
@@ -7576,7 +7577,31 @@
         {
           "key": "own-event-rule",
           "origin": "product",
-          "statement": "Le 2026-10-05, l’utilisateur a fixé comme règle générale qu’une session ne réagit jamais à ses propres événements, pour tous les événements temps réel, afin d’éviter les boucles et les rechargements provoqués par ses propres commandes.",
+          "statement": "Une session ne réagit jamais à ses propres événements temps réel, quel que soit leur type.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-DSK-010": {
+      "name": "DESKTOP_LOCAL_MODE_USES_EMBEDDED_POSTGRESQL",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-05"
+      },
+      "statement": "Le mode local de l’application de bureau utilise un serveur PostgreSQL embarqué.",
+      "acceptanceCriteria": [
+        "L’application de bureau en mode local démarre un serveur PostgreSQL 17 embarqué, réservé à l’application et accessible uniquement en boucle locale.",
+        "Les données sont conservées dans le répertoire de données utilisateur de l’application et survivent au redémarrage.",
+        "Le serveur Hall local utilise les mêmes contrats SQL et les mêmes services HTTP que le serveur partagé.",
+        "Une erreur SQL n’interrompt pas les requêtes suivantes.",
+        "La fermeture de l’application arrête le serveur PostgreSQL embarqué."
+      ],
+      "clauses": [
+        {
+          "key": "embedded-postgresql",
+          "origin": "product",
+          "statement": "L’application de bureau fonctionne de manière autonome avec un serveur PostgreSQL embarqué.",
           "sourceIds": []
         }
       ]

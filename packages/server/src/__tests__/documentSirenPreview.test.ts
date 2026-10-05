@@ -1,12 +1,9 @@
-import { readFile } from "node:fs/promises";
-import { PGlite } from "@electric-sql/pglite";
 import { expect, it } from "vitest";
+import { createPostgresTestPool } from "./support/postgresTestDatabase.js";
 
 it("projects PostgreSQL preview media types and omits unsupported Office previews", async () => {
-  const db = new PGlite();
+  const { pool: db } = createPostgresTestPool();
   try {
-    const sql = await readFile(new URL("../../../postgres/sql/document/050-siren.sql", import.meta.url), "utf8");
-    await db.exec(`CREATE SCHEMA hall; ${sql.slice(0, sql.indexOf("CREATE FUNCTION hall.resource_siren_actions"))}`);
     for (const [mediaType, expected] of [
       ["application/pdf", "application/pdf"],
       ["image/png", "image/png"],
@@ -27,6 +24,6 @@ it("projects PostgreSQL preview media types and omits unsupported Office preview
       expect(links.find((link) => link.rel.includes("preview"))?.type ?? null).toBe(expected);
     }
   } finally {
-    await db.close();
+    await db.end();
   }
 });

@@ -22,7 +22,7 @@ server uses external PostgreSQL and serves its bundled client at `/app/`.
 
 ## Desktop
 
-In local mode, Electron starts the public `startLocalHttpServer` entry point and stores PGlite data in the Electron user-data directory. It uses the same HTTP services and SQL contracts as shared Hall. It does not start SQLite or native PostgreSQL.
+In local mode, Electron starts the public `startLocalHttpServer` entry point. It starts an embedded PostgreSQL 17 server (`embedded-postgres`) that listens only on `127.0.0.1` and stores its cluster in the `postgres` folder of the Electron user-data directory, with a generated password in `postgres/credentials.json` (mode 0600). It uses the same HTTP services and SQL contracts as shared Hall, and it stops the PostgreSQL server when the application closes.
 
 In connected mode, `HALL_SERVER_URL` points Electron to an existing Hall server. Electron starts no local database.
 
@@ -32,7 +32,7 @@ npm run desktop:package
 npm run desktop:make
 ```
 
-Packaging includes the server runtime, PGlite assets, and the client application. Signing and publishing are separate release actions.
+Packaging includes the server runtime, the PostgreSQL binaries for the target platform, and the client application. The application is packaged without an asar archive so that the PostgreSQL executables can run. Signing and publishing are separate release actions.
 
 ## Local Alésia production
 
@@ -47,6 +47,6 @@ npm run prod:backup
 npm run prod:verify-backup
 ```
 
-`prod:prepare` builds an isolated release. `prod:start` checks the schema fingerprint and PDF runtime before serving the compiled client and API. PostgreSQL schema upgrades use a marked auxiliary database, apply reviewed DDL and migrations in a locked transaction, and require an empty final schema diff. PGlite does not run this multi-connection upgrade path.
+`prod:prepare` builds an isolated release. `prod:start` checks the schema fingerprint and PDF runtime before serving the compiled client and API. PostgreSQL schema upgrades use a marked auxiliary database, apply reviewed DDL and migrations in a locked transaction, and require an empty final schema diff. The desktop local mode verifies the schema fingerprint and does not run this upgrade path.
 
 Backups include a digest and release reference. Verification restores into a separate temporary database. Preparing a release, seeding production, restoring data, or performing a cutover requires explicit user authorization.

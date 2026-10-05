@@ -17,8 +17,8 @@ For the complete municipal restore, account setup and operating procedure, use
 
 - Node.js 22.12.0 or later and npm.
 - An external PostgreSQL database dedicated to Hall. The repository development
-  configuration uses PostgreSQL 17. PGlite is reserved for the separate desktop
-  distribution and is not the standalone server database.
+  configuration uses PostgreSQL 17. The embedded PostgreSQL server belongs to the
+  separate desktop distribution and is not the standalone server database.
 - A database administrator for initial installation and schema changes. The
   existing bootstrap creates cluster roles and an auxiliary comparison database;
   its data migrations use `session_replication_role`. An ordinary restricted
@@ -209,7 +209,7 @@ with `npx playwright install-deps chromium`. The browser cache is outside the np
 installation directory.
 
 The test does not establish compatibility with every historical Hall database,
-every platform, a desktop PGlite upgrade, or production readiness.
+every platform, a desktop database upgrade, or production readiness.
 The existing desktop uses its own user-data directory and rejects mismatched
 schema fingerprints; it does not use the server's multi-connection upgrade path.
 

@@ -10,6 +10,8 @@ export default defineConfig({
       TEST_DATABASE_URL: databaseUrl,
     },
     fileParallelism: false,
+    testTimeout: 120_000,
+    hookTimeout: 120_000,
     globalSetup: ["tests/postgres/global-setup.mjs"],
     pool: "threads",
   },

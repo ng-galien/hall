@@ -15,7 +15,7 @@ Hall is an npm workspace organized around explicit architectural boundaries:
 - `@hall/templating`: document and PDF templates.
 - `@hall/desktop`: Electron packaging for local distribution.
 
-The shared server uses PostgreSQL; desktop local mode uses PGlite. Domain code does not depend on database or HTTP implementation details.
+The shared server uses PostgreSQL; desktop local mode uses an embedded PostgreSQL server. Domain code does not depend on database or HTTP implementation details.
 
 Read [`docs/README.md`](docs/README.md) for the documentation map, [`requirements/catalog.json`](requirements/catalog.json) for expected behavior, and [`AGENTS.md`](AGENTS.md) before making changes.
 
@@ -83,6 +83,6 @@ The requirements workflow and traceability commands are documented in [`requirem
 
 ## Desktop and deployment
 
-The desktop package can use its embedded PGlite runtime or connect to a shared Hall server. See [`docs/runtime.md`](docs/runtime.md) for packaging and local operation.
+The desktop package can run its embedded PostgreSQL server or connect to a shared Hall server. See [`docs/runtime.md`](docs/runtime.md) for packaging and local operation.
 
 Shared-server deployments require `DATABASE_URL` and the server security configuration. See [`docs/runtime.md`](docs/runtime.md) for the isolated Alésia build, authentication, backup, and restore-verification procedure.

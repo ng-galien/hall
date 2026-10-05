@@ -17,7 +17,7 @@ This document identifies the current technical authorities in Hall and the rules
 | Shared interface primitives | `packages/client/src/components/ui/` |
 | Desktop composition | `packages/desktop/` and `packages/server/src/core/localServer.ts` |
 
-The server is the only write authority. The client consumes HTTP and Siren representations and actions. Electron uses the public local-server entry point; it does not access SQL or PGlite objects directly.
+The server is the only write authority. The client consumes HTTP and Siren representations and actions. Electron uses the public local-server entry point; it does not access SQL or database objects directly.
 
 PostgreSQL owns durable invariants and transactional lifecycle changes. TypeScript services orchestrate those operations. The client presents state and available actions without recreating permissions or business policies.
 
@@ -42,7 +42,7 @@ Do not create a second catalogue, policy, state machine, parser, or permission r
 - Validate external HTTP, database, filesystem, and local-storage data at its boundary.
 - Remove obsolete fields end to end instead of preserving invented compatibility.
 - Keep code, schemas, API identifiers, and technical prose in English. User-facing labels remain in French localization or templates.
-- Use PostgreSQL for the shared server and PGlite for desktop local mode. Do not add SQLite paths.
+- Use PostgreSQL for the shared server and an embedded PostgreSQL server for desktop local mode. Do not add SQLite paths.
 
 ## Interface rules
 

@@ -1,4 +1,4 @@
-import { startPgliteRuntime } from "../infrastructure/database/pgliteRuntime.js";
+import { startEmbeddedPostgresRuntime } from "../infrastructure/database/embeddedPostgresRuntime.js";
 import { type HttpServerHandle, startHttpServer } from "../server.js";
 
 export interface LocalServerOptions {
@@ -7,7 +7,7 @@ export interface LocalServerOptions {
 }
 
 export async function startLocalHttpServer(options: LocalServerOptions): Promise<HttpServerHandle> {
-  const database = await startPgliteRuntime(options.dataDirectory);
+  const database = await startEmbeddedPostgresRuntime(options.dataDirectory);
   try {
     const server = await startHttpServer(
       {
