@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { apiPermissions } from "@hall/api-contract";
+import { apiPermissions, LIVE_ORIGIN_HEADER, liveOriginSchema } from "@hall/api-contract";
 import type { NextFunction, Request, Response } from "express";
 import type { ServerConfig } from "../core/config.js";
 import { logger } from "../core/logger.js";
@@ -34,7 +34,8 @@ export function requestContextMiddleware(requestContext: RequestContextStore) {
     const requestId = request.header("x-request-id") ?? randomUUID();
     request.requestId = requestId;
     response.setHeader("X-Request-Id", requestId);
-    requestContext.run({ requestId }, next);
+    const liveOrigin = liveOriginSchema.safeParse(request.header(LIVE_ORIGIN_HEADER));
+    requestContext.run({ requestId, liveOrigin: liveOrigin.success ? liveOrigin.data : undefined }, next);
   };
 }
 

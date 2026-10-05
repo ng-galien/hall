@@ -1,8 +1,10 @@
 import { type LiveEvent, liveEventSchema } from "@hall/api-contract";
+import { liveOrigin } from "./liveOrigin";
 
 type LiveTopic = { kind: "meeting" | "resource"; id: string };
 
-/** One topic per socket; each event invalidates the canonical HTTP/Siren read. */
+/** One topic per socket; each event from another session invalidates the canonical HTTP/Siren read. */
+// @implements-requirement HALL-TR-LIV-010
 export function subscribeLiveUpdates(
   topic: LiveTopic,
   onEvent: (event: LiveEvent) => void,
@@ -33,7 +35,7 @@ export function subscribeLiveUpdates(
         return;
       }
       const parsed = liveEventSchema.safeParse(decoded);
-      if (!parsed.success) return;
+      if (!parsed.success || parsed.data.origin === liveOrigin) return;
       if (topic.kind === "meeting" && parsed.data.type === "meeting.changed" && parsed.data.meetingId === topic.id) {
         onEvent(parsed.data);
       }

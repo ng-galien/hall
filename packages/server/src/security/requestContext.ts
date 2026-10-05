@@ -13,6 +13,7 @@ export function inferAuditTargetId(intent: AuditIntent, result: unknown): string
 
 export interface RequestContext {
   requestId: string;
+  liveOrigin?: string;
   principal?: ApiPrincipal;
   audit?: AuditIntent;
   auditRecorded?: boolean;

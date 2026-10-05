@@ -2,11 +2,13 @@ import {
   type ApiActionName,
   findSirenAction,
   findSirenLink,
+  LIVE_ORIGIN_HEADER,
   PROBLEM_MEDIA_TYPE,
   SIREN_MEDIA_TYPE,
   type SirenEntity,
   sirenData,
 } from "@hall/api-contract";
+import { liveOrigin } from "./liveOrigin";
 
 export type ApiErrorCode =
   | "ballot_preview_stale"
@@ -210,6 +212,7 @@ export async function apiResponse(path: string, init?: RequestInit): Promise<Res
     const headers = new Headers(init?.headers);
     if (!headers.has("Accept")) headers.set("Accept", `${SIREN_MEDIA_TYPE}, ${PROBLEM_MEDIA_TYPE}`);
     if (!(init?.body instanceof FormData)) headers.set("Content-Type", "application/json");
+    headers.set(LIVE_ORIGIN_HEADER, liveOrigin);
     response = await fetch(`/api${path}`, {
       ...init,
       headers,

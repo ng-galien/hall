@@ -75,7 +75,8 @@
       "TRC": "quality",
       "SRC": "workspace",
       "COM": "municipality",
-      "DST": "quality"
+      "DST": "quality",
+      "LIV": "quality"
     },
     "requirementThemes": {}
   },
@@ -7552,6 +7553,30 @@
           "key": "authorized-server-scope",
           "origin": "product",
           "statement": "The user confirmed local preparation of a standalone npm-installable server, web interface and CLI on 2026-09-25, with persistent configuration and data outside the package. On 2026-09-29 the user authorized implementation of the complete municipal bootstrap and operational procedure for a Windows computer, with separately provisioned prerequisites and no executable installer. Existing model and authorization rules remain unchanged unless precisely approved. External publication and real-data migrations remain separately authorized actions.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-LIV-010": {
+      "name": "SESSIONS_IGNORE_THEIR_OWN_LIVE_EVENTS",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-05"
+      },
+      "statement": "Une session cliente ne réagit pas aux événements temps réel issus de ses propres commandes ; seules les autres sessions sont notifiées et actualisées.",
+      "acceptanceCriteria": [
+        "Chaque commande envoyée par une session porte l’identifiant de cette session, et l’événement temps réel qui en résulte transporte cet identifiant d’origine.",
+        "Une session ignore tout événement temps réel dont elle est l’origine : aucun rechargement, aucun repositionnement, aucun signalement de modification.",
+        "Les autres sessions, y compris une autre session du même utilisateur, reçoivent l’événement et s’actualisent.",
+        "Après une reconnexion, une session relit l’état courant du serveur.",
+        "La règle s’applique à tous les types d’événements temps réel, en un point unique du client."
+      ],
+      "clauses": [
+        {
+          "key": "own-event-rule",
+          "origin": "product",
+          "statement": "Le 2026-10-05, l’utilisateur a fixé comme règle générale qu’une session ne réagit jamais à ses propres événements, pour tous les événements temps réel, afin d’éviter les boucles et les rechargements provoqués par ses propres commandes.",
           "sourceIds": []
         }
       ]

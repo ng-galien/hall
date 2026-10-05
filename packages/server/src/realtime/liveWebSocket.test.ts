@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { afterEach, expect, it } from "vitest";
 import WebSocket from "ws";
 import type { ServerConfig } from "../core/config.js";
+import { RequestContextStore } from "../security/requestContext.js";
 import type { AuthService } from "../services/authService.js";
 import { createLiveEventBus } from "./liveEvents.js";
 import { attachLiveWebSocket } from "./liveWebSocket.js";
@@ -20,7 +21,7 @@ afterEach(async () => {
 });
 
 async function fixture() {
-  const bus = createLiveEventBus();
+  const bus = createLiveEventBus({ requestContext: new RequestContextStore() });
   const server = createServer();
   const config = {
     host: "127.0.0.1",
@@ -102,12 +103,12 @@ it("sends meeting invalidations only to authorized subscribers of that meeting",
   const resource = await connect(base, origin, "resource", resourceId, "reader");
   const expected = nextMessage(reader);
   bus.publish({ type: "meeting.changed", meetingId });
-  await expect(expected).resolves.toEqual({ type: "meeting.changed", meetingId });
+  await expect(expected).resolves.toEqual({ type: "meeting.changed", meetingId, origin: null });
   expect(other.readyState).toBe(WebSocket.OPEN);
   expect(resource.readyState).toBe(WebSocket.OPEN);
   const otherExpected = nextMessage(other);
   bus.publish({ type: "meeting.changed", meetingId: otherMeetingId });
-  await expect(otherExpected).resolves.toEqual({ type: "meeting.changed", meetingId: otherMeetingId });
+  await expect(otherExpected).resolves.toEqual({ type: "meeting.changed", meetingId: otherMeetingId, origin: null });
 });
 
 it("delivers resource invalidations with the authenticated author identity", async () => {
@@ -120,7 +121,7 @@ it("delivers resource invalidations with the authenticated author identity", asy
     actor: { id: "development", displayName: "Development User" },
   };
   bus.publish(event);
-  await expect(expected).resolves.toEqual(event);
+  await expect(expected).resolves.toEqual({ ...event, origin: null });
 });
 
 it("rejects unauthenticated, insufficiently authorized and cross-origin subscriptions", async () => {
@@ -150,5 +151,5 @@ it("accepts a new subscription after the first socket disconnects", async () => 
   const reconnected = await connect(base, origin, "meeting", meetingId, "reader");
   const next = nextMessage(reconnected);
   bus.publish({ type: "meeting.changed", meetingId });
-  await expect(next).resolves.toEqual({ type: "meeting.changed", meetingId });
+  await expect(next).resolves.toEqual({ type: "meeting.changed", meetingId, origin: null });
 });

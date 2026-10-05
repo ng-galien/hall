@@ -194,6 +194,7 @@ test("the separate history control reads the server on demand without changing c
           type: "resource.changed",
           resourceId,
           actor: { id: actorId, displayName: "Alice Martin" },
+          origin: null,
         }),
       });
     });

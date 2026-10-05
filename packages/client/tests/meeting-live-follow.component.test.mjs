@@ -117,7 +117,9 @@ test("a passive reader returns to the current item after meeting events while th
       { ...itemA, status: "examined" },
       { ...itemB, status: "inProgress" },
     ];
-    await act(async () => sockets[0].emit("message", { data: JSON.stringify({ type: "meeting.changed", meetingId }) }));
+    await act(async () =>
+      sockets[0].emit("message", { data: JSON.stringify({ type: "meeting.changed", meetingId, origin: null }) }),
+    );
     assert.equal(reads, 2, "opening and the conduct event reread the canonical server state");
     assert.equal(selected(), itemB.id, "the newly current point takes priority over the reader's old position");
 
@@ -145,7 +147,7 @@ test("a passive reader returns to the current item after meeting events while th
       { ...itemB, status: "inProgress" },
     ];
     await act(async () =>
-      conductorSocket.emit("message", { data: JSON.stringify({ type: "meeting.changed", meetingId }) }),
+      conductorSocket.emit("message", { data: JSON.stringify({ type: "meeting.changed", meetingId, origin: null }) }),
     );
     assert.equal(selected(), itemA.id, "a meeting event keeps the conductor on the selected point");
   } finally {

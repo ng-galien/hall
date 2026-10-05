@@ -1,12 +1,13 @@
-import type { LiveEvent } from "@hall/api-contract";
+import type { LiveEvent, LiveEventPublication } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
 import { logger } from "../core/logger.js";
+import type { RequestContextStore } from "../security/requestContext.js";
 
 export type LiveSubscription = { kind: "meeting" | "resource"; id: string };
 type LiveEventListener = (event: LiveEvent) => void;
 
 export interface LiveEventPublisher {
-  publish(event: LiveEvent): void;
+  publish(event: LiveEventPublication): void;
 }
 
 export interface LiveEventBus extends LiveEventPublisher {
@@ -15,14 +16,15 @@ export interface LiveEventBus extends LiveEventPublisher {
 
 const topic = (target: LiveSubscription) => `${target.kind}:${target.id}`;
 
-function eventTopic(event: LiveEvent): string {
+function eventTopic(event: LiveEventPublication): string {
   return matchDiscriminated(event, "type", {
     "meeting.changed": ({ meetingId }) => topic({ kind: "meeting", id: meetingId }),
     "resource.changed": ({ resourceId }) => topic({ kind: "resource", id: resourceId }),
   });
 }
 
-export function createLiveEventBus(): LiveEventBus {
+// @implements-requirement HALL-TR-LIV-010
+export function createLiveEventBus({ requestContext }: { requestContext: RequestContextStore }): LiveEventBus {
   const listeners = new Map<string, Set<LiveEventListener>>();
   return {
     subscribe(target, listener) {
@@ -35,8 +37,9 @@ export function createLiveEventBus(): LiveEventBus {
         if (subscribers.size === 0) listeners.delete(key);
       };
     },
-    publish(event) {
-      for (const listener of listeners.get(eventTopic(event)) ?? []) {
+    publish(publication) {
+      const event: LiveEvent = { ...publication, origin: requestContext.current()?.liveOrigin ?? null };
+      for (const listener of listeners.get(eventTopic(publication)) ?? []) {
         try {
           listener(event);
         } catch (error) {
