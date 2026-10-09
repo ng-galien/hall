@@ -804,7 +804,7 @@
   }
   .geographic-composition-feature {
     display: grid;
-    grid-template-columns: var(--hall-size-control-small) var(--hall-size-control-small) minmax(0, 1fr) var(--hall-size-glyph-mark-large) var(--hall-size-control-small);
+    grid-template-columns: var(--hall-size-control-small) var(--hall-size-control-small) var(--hall-size-control-small) minmax(0, 1fr) var(--hall-size-glyph-mark-large) var(--hall-size-control-small);
     min-height: var(--hall-size-control);
     align-items: center;
     border: var(--hall-stroke-thin) solid transparent;
@@ -826,6 +826,7 @@
   }
   .geographic-composition-feature-select,
   .geographic-composition-feature-visible,
+  .geographic-composition-feature-fit,
   .geographic-composition-feature-delete {
     display: inline-grid;
     width: var(--hall-size-control-small);

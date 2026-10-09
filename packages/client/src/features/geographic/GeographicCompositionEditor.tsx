@@ -2,7 +2,14 @@ import type { GeographicColor, GeographicResourceData, HallGeoJsonFeatureKind } 
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { ColorPicker, type ColorPickerPreset } from "@/components/ui/color-picker";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
-import { DeleteIcon, DragHandleIcon, HiddenIcon, PointerIcon, VisibleIcon } from "../../components/icons";
+import {
+  DeleteIcon,
+  DragHandleIcon,
+  FitBoundsIcon,
+  HiddenIcon,
+  PointerIcon,
+  VisibleIcon,
+} from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { geographicFeatureKindPolicy, geographicFeatureKinds } from "./geographicFeatureKindPolicy";
 import type { GeographicDrawTool } from "./useGeographicMapRuntime";
@@ -23,6 +30,7 @@ interface GeographicCompositionEditorProps {
   onRenameArmedFeature(id: string | null): void;
   onRename(id: string, label: string): Promise<boolean>;
   onVisibility(id: string, visible: boolean): void;
+  onFitFeature(id: string): void;
   onColor(id: string, color: GeographicColor): void;
   onDelete(): void;
   onPointerDown(event: ReactPointerEvent<HTMLDivElement>): void;
@@ -47,6 +55,7 @@ export function GeographicCompositionEditor({
   onRenameArmedFeature,
   onRename,
   onVisibility,
+  onFitFeature,
   onColor,
   onDelete,
   onPointerDown,
@@ -129,6 +138,16 @@ export function GeographicCompositionEditor({
                   onClick={() => onVisibility(feature.id, !visible)}
                 >
                   {visible ? <VisibleIcon /> : <HiddenIcon />}
+                </button>
+                <button
+                  type="button"
+                  className="geographic-composition-feature-fit"
+                  data-testid={`geographic-composition-feature-fit-${feature.id}`}
+                  aria-label={t("geographic.fitFeature").replace("{name}", feature.properties.label ?? fallbackName)}
+                  title={t("geographic.fitFeature").replace("{name}", feature.properties.label ?? fallbackName)}
+                  onClick={() => onFitFeature(feature.id)}
+                >
+                  <FitBoundsIcon />
                 </button>
                 <InlineRenameField
                   value={feature.properties.label ?? fallbackName}

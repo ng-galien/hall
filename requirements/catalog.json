@@ -3319,6 +3319,7 @@
         "Le bouton de cadrage figure avec les boutons de zoom de la carte dans l’espace de travail et dans la fenêtre de dialogue de la ressource.",
         "Le bouton reste actif lorsque la carte est en lecture seule ; il ne modifie pas la ressource enregistrée.",
         "Le bouton est désactivé lorsque la carte ne contient aucun dessin.",
+        "En mode dessin, chaque élément de la liste de composition propose un bouton qui cadre la vue sur cet élément.",
         "Les pastilles du sélecteur de couleur d’un dessin affichent la couleur qu’elles représentent."
       ],
       "clauses": [

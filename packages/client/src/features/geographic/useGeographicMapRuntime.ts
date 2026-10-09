@@ -265,6 +265,15 @@ export function useGeographicMapRuntime({
     map.getView().fit(extent, { size, padding: [48, 48, 48, 48], maxZoom: 18, duration: 250 });
   };
 
+  const fitFeature = (id: string) => {
+    const map = mapRef.current;
+    const feature = vectorSourceRef.current?.getFeatureById(id);
+    const extent = feature?.getGeometry()?.getExtent();
+    const size = map?.getSize();
+    if (!map || !extent || !size) return;
+    map.getView().fit(extent, { size, padding: [48, 48, 48, 48], maxZoom: 18, duration: 250 });
+  };
+
   return {
     mapElementRef,
     selectedFeatureId: selectedFeature ? String(selectedFeature.getId()) : null,
@@ -275,5 +284,6 @@ export function useGeographicMapRuntime({
     setFeatureColor,
     changeZoom,
     fitComposition,
+    fitFeature,
   };
 }

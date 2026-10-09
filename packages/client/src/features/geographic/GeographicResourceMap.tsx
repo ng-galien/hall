@@ -273,6 +273,7 @@ export function GeographicResourceMap({
           onRenameArmedFeature={setRenameArmedFeatureId}
           onRename={renameFeature}
           onVisibility={mapRuntime.setFeatureVisibility}
+          onFitFeature={mapRuntime.fitFeature}
           onColor={mapRuntime.setFeatureColor}
           onDelete={mapRuntime.deleteSelected}
           onPointerDown={compositionLayout.startDrag}
