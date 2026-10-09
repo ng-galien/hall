@@ -976,6 +976,12 @@ export const en = {
   "settings.title": "Settings",
   "settings.description": "Configure this application.",
   "settings.councilTerm": "Active council term",
+  "settings.meetingLocations": "Meeting locations",
+  "settings.meetingLocationsDescription": "The first location in the list is proposed by default for a meeting.",
+  "settings.meetingLocationNew": "New location",
+  "settings.meetingLocationAdd": "Add",
+  "settings.meetingLocationMoveUp": "Move {name} up",
+  "settings.meetingLocationRemove": "Remove {name}",
   "settings.expectedMemberCount": "Expected council members",
   "settings.expectedMemberCountDescription":
     "This is the maximum number of serving mandates in the active council term.",

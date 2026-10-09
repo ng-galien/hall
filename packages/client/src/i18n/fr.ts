@@ -989,6 +989,12 @@ export const fr: Messages = {
   "settings.title": "Paramètres",
   "settings.description": "Configurer cette application.",
   "settings.councilTerm": "Mandature active",
+  "settings.meetingLocations": "Lieux des séances",
+  "settings.meetingLocationsDescription": "Le premier lieu de la liste est proposé par défaut pour une séance.",
+  "settings.meetingLocationNew": "Nouveau lieu",
+  "settings.meetingLocationAdd": "Ajouter",
+  "settings.meetingLocationMoveUp": "Monter {name}",
+  "settings.meetingLocationRemove": "Retirer {name}",
   "settings.expectedMemberCount": "Nombre de conseillers attendu",
   "settings.expectedMemberCountDescription":
     "Cet effectif limite le nombre de mandats en cours dans la mandature active.",

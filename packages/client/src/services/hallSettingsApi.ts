@@ -29,6 +29,14 @@ export async function loadHallSettings(): Promise<{
   };
 }
 
+// @implements-requirement HALL-FR-LOC-040
+export async function updateMeetingLocations(meetingLocations: string[]): Promise<HallSettings> {
+  const current = await apiSirenRequest<HallSettings>("/settings");
+  if (!current.representation) throw new Error("Missing HallSettings Siren representation");
+  const input = updateHallSettingsSchema.parse({ ...current.data, meetingLocations });
+  return (await submitSirenAction<HallSettings>(current.representation, "settings.update", input)).data;
+}
+
 export async function updateActiveCouncilTermExpectedMemberCount(expectedMemberCount: number): Promise<CouncilTerm> {
   const current = await apiSirenRequest<unknown>("/council-terms");
   if (!current.representation) throw new Error("Missing CouncilTerm Siren representation");

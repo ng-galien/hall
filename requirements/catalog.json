@@ -3391,6 +3391,28 @@
         }
       ]
     },
+    "HALL-FR-LOC-040": {
+      "name": "LOCATIONS_ARE_MANAGED_IN_SETTINGS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-09"
+      },
+      "statement": "Les paramètres de l’application permettent d’ajouter, d’ordonner et de retirer les lieux proposés pour les séances.",
+      "acceptanceCriteria": [
+        "La section « Lieux des séances » des paramètres liste les lieux dans leur ordre ; le premier est proposé par défaut.",
+        "Un lieu peut être ajouté, monté d’un rang ou retiré, puis la liste est enregistrée par l’action de mise à jour des paramètres.",
+        "La section n’apparaît que si la représentation des paramètres expose l’action de mise à jour."
+      ],
+      "clauses": [
+        {
+          "key": "locations-managed-in-settings",
+          "origin": "product",
+          "statement": "Gérer le catalogue des lieux depuis l’interface, sans passer par l’API.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-MIN-010": {
       "name": "ONE_MINUTES_PER_COUNCIL_MEETING",
       "nature": "functional",

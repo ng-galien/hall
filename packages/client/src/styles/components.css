@@ -258,6 +258,28 @@
   .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-3); margin-bottom: var(--hall-space-4); }
   .creation-form > .fui-Field { margin-bottom: var(--hall-space-3); }
   .creation-form textarea { min-height: var(--hall-size-textarea-min); }
+  .settings-location-list {
+    display: grid;
+    gap: var(--hall-space-1);
+    margin: var(--hall-space-3) 0;
+    padding: 0;
+    list-style: none;
+  }
+  .settings-location-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--hall-space-1);
+    padding: var(--hall-space-1) var(--hall-space-2);
+    border: var(--hall-stroke-thin) solid var(--hall-color-border);
+    border-radius: var(--hall-radius-small);
+  }
+  .settings-location-add {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--hall-space-2);
+    margin-bottom: var(--hall-space-4);
+  }
   select, input[type="file"] {
     min-height: var(--hall-size-control);
     padding: var(--hall-space-1) var(--hall-space-2);
