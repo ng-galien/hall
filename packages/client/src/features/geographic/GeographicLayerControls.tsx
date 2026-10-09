@@ -1,7 +1,15 @@
 import type { GeographicLayer, GeographicLayerId } from "@hall/domain";
 import { geographicLayerOptions } from "@hall/domain";
 import { useState } from "react";
-import { DragHandleIcon, EditIcon, HiddenIcon, LayersIcon, MapIcon, VisibleIcon } from "../../components/icons";
+import {
+  DragHandleIcon,
+  EditIcon,
+  FitBoundsIcon,
+  HiddenIcon,
+  LayersIcon,
+  MapIcon,
+  VisibleIcon,
+} from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { GeographicWorkspaceMode } from "./useGeographicMapRuntime";
 
@@ -16,9 +24,12 @@ interface GeographicLayerControlsProps {
   onLayerOpacity(id: GeographicLayerId, opacity: number): void;
   onMoveLayer(sourceId: GeographicLayerId, targetId: GeographicLayerId): void;
   onZoom(delta: number): void;
+  canFit: boolean;
+  onFit(): void;
 }
 
 /** Owns the base-layer controls and their transient drag/drop state. */
+// @implements-requirement HALL-FR-DOC-290
 export function GeographicLayerControls({
   workspaceMode,
   canUpdate,
@@ -30,6 +41,8 @@ export function GeographicLayerControls({
   onLayerOpacity,
   onMoveLayer,
   onZoom,
+  canFit,
+  onFit,
 }: GeographicLayerControlsProps) {
   const { t } = useI18n();
   const [layersOpen, setLayersOpen] = useState(false);
@@ -81,6 +94,16 @@ export function GeographicLayerControls({
           onClick={() => onZoom(-1)}
         >
           −
+        </button>
+        <button
+          type="button"
+          data-testid="geographic-fit-drawings"
+          aria-label={t("geographic.fitComposition")}
+          title={t("geographic.fitComposition")}
+          disabled={!canFit}
+          onClick={onFit}
+        >
+          <FitBoundsIcon />
         </button>
       </fieldset>
       <div className="geographic-layers">

@@ -95,6 +95,7 @@
 
   .color-picker-trigger,
   .color-picker-preset {
+    --color-picker-value: var(--hall-color-transparent);
     display: inline-grid;
     width: var(--hall-size-control-small);
     height: var(--hall-size-control-small);
@@ -108,7 +109,6 @@
   .color-picker-trigger:hover,
   .color-picker-preset:hover { background: var(--hall-color-surface-subtle); }
   .color-picker-swatch {
-    --color-picker-value: var(--hall-color-transparent);
     display: block;
     width: var(--hall-size-glyph-mark);
     height: var(--hall-size-glyph-mark);

@@ -615,10 +615,11 @@
     cursor: pointer;
   }
   .geographic-composition-tools button:hover,
-  .geographic-zoom-tools button:hover,
+  .geographic-zoom-tools button:hover:not(:disabled),
   .geographic-layer-drag-handle:hover:not(:disabled) { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
   .geographic-composition-tools button.geographic-tool-active { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
   .geographic-composition-tools button:disabled,
+  .geographic-zoom-tools button:disabled,
   .geographic-layer-drag-handle:disabled { opacity: var(--hall-opacity-disabled); cursor: default; }
   .geographic-layers {
     top: var(--hall-space-3);
@@ -787,11 +788,6 @@
     gap: var(--hall-space-0-5);
     padding: var(--hall-space-1);
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
-  }
-  .geographic-composition-tools .geographic-composition-fit {
-    margin-left: auto;
-    border-left: var(--hall-stroke-thin) solid var(--hall-color-border);
-    border-radius: 0;
   }
   .geographic-composition-list {
     display: grid;

@@ -3307,6 +3307,29 @@
         }
       ]
     },
+    "HALL-FR-DOC-290": {
+      "name": "GEOGRAPHIC_MAP_FRAMES_DRAWINGS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-09"
+      },
+      "statement": "Une carte géographique propose, à côté du zoom, un bouton qui cadre la vue sur l’ensemble de ses dessins, en consultation comme en modification.",
+      "acceptanceCriteria": [
+        "Le bouton de cadrage figure avec les boutons de zoom de la carte dans l’espace de travail et dans la fenêtre de dialogue de la ressource.",
+        "Le bouton reste actif lorsque la carte est en lecture seule ; il ne modifie pas la ressource enregistrée.",
+        "Le bouton est désactivé lorsque la carte ne contient aucun dessin.",
+        "Les pastilles du sélecteur de couleur d’un dessin affichent la couleur qu’elles représentent."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-map-frame-drawings",
+          "origin": "product",
+          "statement": "Cadrer la carte sur ses dessins depuis les contrôles de navigation, sans passer par le mode dessin.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-LOC-010": {
       "name": "LOCATION_BELONGS_TO_HALL",
       "nature": "functional",

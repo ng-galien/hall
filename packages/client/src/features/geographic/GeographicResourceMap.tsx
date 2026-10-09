@@ -253,6 +253,8 @@ export function GeographicResourceMap({
         }
         onMoveLayer={moveLayer}
         onZoom={mapRuntime.changeZoom}
+        canFit={draft.hallLayer.features.length > 0}
+        onFit={mapRuntime.fitComposition}
       />
       {workspaceMode === "draw" && canUpdate ? (
         <GeographicCompositionEditor
@@ -273,7 +275,6 @@ export function GeographicResourceMap({
           onVisibility={mapRuntime.setFeatureVisibility}
           onColor={mapRuntime.setFeatureColor}
           onDelete={mapRuntime.deleteSelected}
-          onFit={mapRuntime.fitComposition}
           onPointerDown={compositionLayout.startDrag}
           onPointerMove={compositionLayout.move}
           onPointerUp={compositionLayout.stopDrag}

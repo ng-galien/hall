@@ -2,14 +2,7 @@ import type { GeographicColor, GeographicResourceData, HallGeoJsonFeatureKind } 
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { ColorPicker, type ColorPickerPreset } from "@/components/ui/color-picker";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
-import {
-  DeleteIcon,
-  DragHandleIcon,
-  FitBoundsIcon,
-  HiddenIcon,
-  PointerIcon,
-  VisibleIcon,
-} from "../../components/icons";
+import { DeleteIcon, DragHandleIcon, HiddenIcon, PointerIcon, VisibleIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { geographicFeatureKindPolicy, geographicFeatureKinds } from "./geographicFeatureKindPolicy";
 import type { GeographicDrawTool } from "./useGeographicMapRuntime";
@@ -32,7 +25,6 @@ interface GeographicCompositionEditorProps {
   onVisibility(id: string, visible: boolean): void;
   onColor(id: string, color: GeographicColor): void;
   onDelete(): void;
-  onFit(): void;
   onPointerDown(event: ReactPointerEvent<HTMLDivElement>): void;
   onPointerMove(event: ReactPointerEvent<HTMLDivElement>): void;
   onPointerUp(event: ReactPointerEvent<HTMLDivElement>): void;
@@ -57,7 +49,6 @@ export function GeographicCompositionEditor({
   onVisibility,
   onColor,
   onDelete,
-  onFit,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -99,17 +90,6 @@ export function GeographicCompositionEditor({
             <Icon />
           </button>
         ))}
-        <button
-          type="button"
-          className="geographic-composition-fit"
-          data-testid="geographic-composition-fit"
-          aria-label={t("geographic.fitComposition")}
-          title={t("geographic.fitComposition")}
-          disabled={features.length === 0}
-          onClick={onFit}
-        >
-          <FitBoundsIcon />
-        </button>
       </div>
       <ul className="geographic-composition-list" aria-label={t("geographic.compositionFeatures")}>
         {features.length === 0 ? (
