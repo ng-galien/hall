@@ -132,7 +132,7 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
   const members = useCouncilMembersStore((state) => state.members);
   const contacts = useContactsStore((state) => state.contacts);
   const renderResourcePreview = (id: string, onClose: () => void) => (
-    <ResourcePreview resourceId={id} onClose={onClose} readOnly />
+    <ResourcePreview resourceId={id} onClose={onClose} />
   );
   const resourceAppearance = (id: string) => {
     const resource = resourceSummaries[id];
