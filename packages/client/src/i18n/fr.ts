@@ -747,6 +747,8 @@ export const fr: Messages = {
   "meetings.occurrenceLabel": "Conseil municipal {number}, {date}",
   "meetings.schedule": "Planifier une séance",
   "meetings.dateTime": "Date et heure",
+  "meetings.locationsMissing": "Aucun lieu n’est défini pour les séances.",
+  "meetings.locationsConfigure": "Définir les lieux dans les paramètres",
   "meetings.location": "Lieu",
   "meetings.invalidLocalTime": "Cette heure n’existe pas dans le fuseau horaire de la commune.",
   "meetings.chair": "Présidence",
@@ -995,6 +997,9 @@ export const fr: Messages = {
   "settings.meetingLocationAdd": "Ajouter",
   "settings.meetingLocationMoveUp": "Monter {name}",
   "settings.meetingLocationRemove": "Retirer {name}",
+  "settings.meetingLocationRename": "Renommer {name}",
+  "settings.meetingLocationDefault": "par défaut",
+  "settings.meetingLocationsEmpty": "Aucun lieu n’est défini. Ajoutez le lieu où se tiennent les séances.",
   "settings.expectedMemberCount": "Nombre de conseillers attendu",
   "settings.expectedMemberCountDescription":
     "Cet effectif limite le nombre de mandats en cours dans la mandature active.",

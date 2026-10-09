@@ -5,18 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AddIcon, ArrowUpIcon, DeleteIcon } from "../components/icons";
 import { PageHeader, RequestErrorBanner } from "../components/Ui";
+import { MeetingLocationsSettings } from "../features/council-meetings/MeetingLocationsSettings";
 import { PasswordDialog } from "../features/users/PasswordDialog";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { type Locale, useI18n } from "../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import { changePassword, getSessionSiren, logout } from "../services/authApi";
-import {
-  loadHallSettings,
-  updateActiveCouncilTermExpectedMemberCount,
-  updateMeetingLocations,
-} from "../services/hallSettingsApi";
+import { loadHallSettings, updateActiveCouncilTermExpectedMemberCount } from "../services/hallSettingsApi";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { type ThemePreference, useThemePrefsStore } from "../theme/themePrefs";
 
@@ -33,10 +29,6 @@ export function SettingsPage() {
   const [settingsError, setSettingsError] = useState<ApiErrorCode | null>(null);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [settingsUpdateAvailable, setSettingsUpdateAvailable] = useState(false);
-  const [meetingLocations, setMeetingLocations] = useState<string[]>([]);
-  const [newMeetingLocation, setNewMeetingLocation] = useState("");
-  const [meetingLocationsSaved, setMeetingLocationsSaved] = useState(false);
-  const newMeetingLocationId = useId();
   const localeId = useId();
   const themeId = useId();
   const expectedMemberCountId = useId();
@@ -58,7 +50,6 @@ export function SettingsPage() {
       .then(({ settings, canUpdate, councilTerm, canConfigureCouncilTerm }) => {
         setHallSettings(settings);
         setSettingsUpdateAvailable(canUpdate);
-        setMeetingLocations(settings.meetingLocations);
         setCouncilTermUpdateAvailable(canConfigureCouncilTerm);
         setExpectedMemberCount(councilTerm?.expectedMemberCount.toString() ?? "");
       })
@@ -81,32 +72,6 @@ export function SettingsPage() {
         setExpectedMemberCount(String(saved.expectedMemberCount));
         await useCouncilMembersStore.getState().load();
         setSettingsSaved(true);
-        return true;
-      } catch (error) {
-        setSettingsError(apiErrorCode(error));
-        return false;
-      }
-    });
-  };
-  const changeMeetingLocations = (next: string[]) => {
-    setMeetingLocations(next);
-    setMeetingLocationsSaved(false);
-  };
-  const addMeetingLocation = () => {
-    const name = newMeetingLocation.trim();
-    if (!name || meetingLocations.includes(name)) return;
-    changeMeetingLocations([...meetingLocations, name]);
-    setNewMeetingLocation("");
-  };
-  const submitMeetingLocations = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    await run(async () => {
-      setSettingsError(null);
-      try {
-        const saved = await updateMeetingLocations(meetingLocations);
-        setHallSettings(saved);
-        setMeetingLocations(saved.meetingLocations);
-        setMeetingLocationsSaved(true);
         return true;
       } catch (error) {
         setSettingsError(apiErrorCode(error));
@@ -150,83 +115,7 @@ export function SettingsPage() {
           </form>
         ) : null}
         {hallSettings && settingsUpdateAvailable ? (
-          <form className="creation-form" onSubmit={(event) => void submitMeetingLocations(event)}>
-            <h3>{t("settings.meetingLocations")}</h3>
-            <p className="text-xs text-muted">{t("settings.meetingLocationsDescription")}</p>
-            <ul className="settings-location-list" data-testid="settings-meeting-locations">
-              {meetingLocations.map((name, index) => (
-                <li key={name} className="settings-location-row" data-testid={`settings-meeting-location-${index}`}>
-                  <span>{name}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={index === 0}
-                    aria-label={t("settings.meetingLocationMoveUp").replace("{name}", name)}
-                    title={t("settings.meetingLocationMoveUp").replace("{name}", name)}
-                    data-testid={`settings-meeting-location-up-${index}`}
-                    onClick={() =>
-                      changeMeetingLocations([
-                        ...meetingLocations.slice(0, index - 1),
-                        name,
-                        meetingLocations[index - 1] as string,
-                        ...meetingLocations.slice(index + 1),
-                      ])
-                    }
-                  >
-                    <ArrowUpIcon />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t("settings.meetingLocationRemove").replace("{name}", name)}
-                    title={t("settings.meetingLocationRemove").replace("{name}", name)}
-                    data-testid={`settings-meeting-location-remove-${index}`}
-                    onClick={() => changeMeetingLocations(meetingLocations.filter((_, other) => other !== index))}
-                  >
-                    <DeleteIcon />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-            <div className="settings-location-add">
-              <Label htmlFor={newMeetingLocationId} className="sr-only">
-                {t("settings.meetingLocationNew")}
-              </Label>
-              <Input
-                id={newMeetingLocationId}
-                value={newMeetingLocation}
-                maxLength={200}
-                placeholder={t("settings.meetingLocationNew")}
-                data-testid="settings-meeting-location-new"
-                onChange={(event) => setNewMeetingLocation(event.currentTarget.value)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") return;
-                  event.preventDefault();
-                  addMeetingLocation();
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                data-testid="settings-meeting-location-add"
-                disabled={!newMeetingLocation.trim()}
-                onClick={addMeetingLocation}
-              >
-                <AddIcon />
-                {t("settings.meetingLocationAdd")}
-              </Button>
-            </div>
-            <Button variant="default" type="submit" disabled={submitting} data-testid="settings-meeting-locations-save">
-              {t(submitting ? "common.saving" : "common.save")}
-            </Button>
-            {meetingLocationsSaved ? (
-              <span role="status" data-testid="settings-meeting-locations-saved">
-                {t("workspace.saved")}
-              </span>
-            ) : null}
-          </form>
+          <MeetingLocationsSettings initialLocations={hallSettings.meetingLocations} />
         ) : null}
         <div className="creation-form">
           <div className="grid gap-1.5">

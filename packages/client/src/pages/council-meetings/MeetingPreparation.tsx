@@ -215,13 +215,22 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-location`}>{t("meetings.location")}</Label>
-                <MeetingLocationSelect
-                  id={`${detailsFieldId}-location`}
-                  testId="meeting-edit-location"
-                  locations={settings?.meetingLocations ?? []}
-                  current={meeting.location}
-                  placeholder={t("meetings.location")}
-                />
+                {settings?.meetingLocations.length || meeting.location ? (
+                  <MeetingLocationSelect
+                    id={`${detailsFieldId}-location`}
+                    testId="meeting-edit-location"
+                    locations={settings?.meetingLocations ?? []}
+                    current={meeting.location}
+                    placeholder={t("meetings.location")}
+                  />
+                ) : (
+                  <p className="text-xs text-muted" data-testid="meeting-edit-location-missing">
+                    {t("meetings.locationsMissing")}{" "}
+                    <Link to="/settings" data-testid="meeting-edit-location-settings">
+                      {t("meetings.locationsConfigure")}
+                    </Link>
+                  </p>
+                )}
               </div>
             </div>
             <div className="form-grid">

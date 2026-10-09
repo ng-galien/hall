@@ -736,6 +736,8 @@ export const en = {
   "meetings.occurrenceLabel": "Municipal council {number}, {date}",
   "meetings.schedule": "Schedule a meeting",
   "meetings.dateTime": "Date and time",
+  "meetings.locationsMissing": "No meeting location is defined.",
+  "meetings.locationsConfigure": "Define locations in the settings",
   "meetings.location": "Location",
   "meetings.invalidLocalTime": "This time does not exist in the commune's time zone.",
   "meetings.chair": "Chair",
@@ -982,6 +984,9 @@ export const en = {
   "settings.meetingLocationAdd": "Add",
   "settings.meetingLocationMoveUp": "Move {name} up",
   "settings.meetingLocationRemove": "Remove {name}",
+  "settings.meetingLocationRename": "Rename {name}",
+  "settings.meetingLocationDefault": "default",
+  "settings.meetingLocationsEmpty": "No location is defined. Add the place where meetings are held.",
   "settings.expectedMemberCount": "Expected council members",
   "settings.expectedMemberCountDescription":
     "This is the maximum number of serving mandates in the active council term.",

@@ -3398,11 +3398,13 @@
         "state": "accepted",
         "since": "2026-10-09"
       },
-      "statement": "Les paramètres de l’application permettent d’ajouter, d’ordonner et de retirer les lieux proposés pour les séances.",
+      "statement": "Les paramètres de l’application permettent d’ajouter, de renommer, d’ordonner et de retirer les lieux proposés pour les séances ; chaque modification est enregistrée immédiatement.",
       "acceptanceCriteria": [
-        "La section « Lieux des séances » des paramètres liste les lieux dans leur ordre ; le premier est proposé par défaut.",
-        "Un lieu peut être ajouté, monté d’un rang ou retiré, puis la liste est enregistrée par l’action de mise à jour des paramètres.",
-        "La section n’apparaît que si la représentation des paramètres expose l’action de mise à jour."
+        "La section « Lieux des séances » des paramètres liste les lieux dans leur ordre ; le premier est signalé comme lieu par défaut.",
+        "L’ajout, le renommage, la montée d’un rang et le retrait d’un lieu sont enregistrés immédiatement par l’action de mise à jour des paramètres, sans bouton d’enregistrement distinct.",
+        "Un nom vide ou déjà présent est refusé avec un message d’erreur.",
+        "La section n’apparaît que si la représentation des paramètres expose l’action de mise à jour.",
+        "Lorsque aucun lieu n’est défini, les propriétés générales d’une séance l’indiquent et proposent un lien vers les paramètres au lieu d’une liste vide."
       ],
       "clauses": [
         {

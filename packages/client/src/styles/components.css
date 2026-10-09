@@ -274,6 +274,25 @@
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-small);
   }
+  .settings-location-name {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--hall-space-2);
+    padding: 0;
+    border: 0;
+    color: var(--hall-color-text);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: text;
+  }
+  .settings-location-default {
+    color: var(--hall-color-text-muted);
+    font-size: var(--hall-font-size-caption);
+  }
+  .settings-location-input { width: 100%; }
+  .settings-location-empty { margin: var(--hall-space-3) 0; color: var(--hall-color-text-muted); }
   .settings-location-add {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
