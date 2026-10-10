@@ -69,6 +69,14 @@ export const editorAssetTitleSchema = z
     "Editor asset title must be human-readable",
   );
 
+/** First sheet of a spreadsheet file converted to a Markdown table, header row excluded from the row counts. */
+export const spreadsheetMarkdownTableSchema = z.object({
+  markdown: z.string().min(1),
+  rowCount: z.number().int().nonnegative(),
+  includedRowCount: z.number().int().nonnegative(),
+});
+export type SpreadsheetMarkdownTable = z.infer<typeof spreadsheetMarkdownTableSchema>;
+
 export const editorAssetSchema = z.object({
   id: resourceIdSchema,
   title: editorAssetTitleSchema,

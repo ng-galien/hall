@@ -34,6 +34,7 @@ export const apiActionNames = [
   "resource.generate-event-invitation",
   "resource.replace-document-content",
   "resource.import-spreadsheet",
+  "resource.convert-spreadsheet-table",
   "resource.import-geographic-layer",
   "resource.link-geographic-layer",
   "resource.unlink-geographic-layer",

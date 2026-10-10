@@ -57,6 +57,16 @@ function resourceCreationActions(request: Request, councilBusinessId?: string): 
     },
     {
       ...action(
+        "resource.convert-spreadsheet-table",
+        "POST",
+        "/api/resources/spreadsheets/table",
+        "Convert the first sheet of a spreadsheet file into a Markdown table",
+      ),
+      type: "multipart/form-data",
+      fields: [{ name: "file", type: "file", accept: acceptedSpreadsheetImportExtensions.join(",") }],
+    },
+    {
+      ...action(
         "resource.create-document",
         "POST",
         "/api/resources/documents",

@@ -69,6 +69,7 @@ export const apiCommandPolicies = {
   "resource.generate-event-invitation": { permissions: workspaceRead, auditTargetType: "resource" },
   "resource.replace-document-content": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.import-spreadsheet": { permissions: workspaceWrite, auditTargetType: "resource" },
+  "resource.convert-spreadsheet-table": { permissions: workspaceWrite, auditTargetType: null },
   "resource.import-geographic-layer": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.link-geographic-layer": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.unlink-geographic-layer": { permissions: workspaceWrite, auditTargetType: "resource" },

@@ -2,6 +2,7 @@ import { findSirenAction, type SirenEntity } from "@hall/api-contract";
 import { useContext, useMemo } from "react";
 import type { EditorDocumentUpload } from "../../components/editor/imageTransfer";
 import { ReferenceBusinessContext } from "../../hooks/useReferenceMentionables";
+import { convertSpreadsheetTable } from "../../services/resourcesApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 
@@ -26,6 +27,7 @@ function extensionOf(file: File) {
 }
 
 // @implements-requirement HALL-FR-DOC-500
+// @implements-requirement HALL-FR-DOC-510
 /**
  * Uploads a file dropped into a text editor with the upload actions of « Importer un fichier »: in a council business,
  * as a document of the business in its folder; elsewhere, as a document of the folder of the edited text. The accepted
@@ -55,11 +57,18 @@ export function useEditorDocumentUpload(
     const spreadsheets = Array.isArray(spreadsheetList) ? spreadsheetList : [];
     if (!documents && !spreadsheets.length) return undefined;
     const isSpreadsheet = (file: File) => spreadsheets.includes(extensionOf(file));
+    const converts = Boolean(findSirenAction(representation, "resource.convert-spreadsheet-table"));
     const isDocument = (file: File) =>
       documents === "any" || Boolean(documents?.includes(extensionOf(file)));
     return {
       accepts: (file) => isSpreadsheet(file) || isDocument(file),
       accepted: [...(Array.isArray(documents) ? documents : []), ...spreadsheets].join(", "),
+      convertsToTable: (file) => converts && isSpreadsheet(file),
+      async convertTable(file) {
+        const form = new FormData();
+        form.set("file", file);
+        return convertSpreadsheetTable(representation, form);
+      },
       async upload(file) {
         const spreadsheet = isSpreadsheet(file);
         const form = new FormData();

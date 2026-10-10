@@ -20,7 +20,7 @@ import multer from "multer";
 import type { Cradle } from "../../core/container.js";
 import { requirePermission } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
-import { parseSpreadsheetImport } from "../../services/spreadsheetImportService.js";
+import { parseSpreadsheetImport, spreadsheetMarkdownTable } from "../../services/spreadsheetImportService.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
@@ -136,6 +136,18 @@ export function createDocumentaryResourcesRouter({
           fileName: request.file.originalname,
           content: request.file.buffer,
         }),
+      );
+    },
+  );
+
+  router.post(
+    "/spreadsheets/table",
+    requireActionPermission("resource.convert-spreadsheet-table"),
+    uploadFile,
+    async (request, response) => {
+      if (!request.file) throw new DomainError("invalid_request");
+      response.json(
+        await spreadsheetMarkdownTable({ fileName: request.file.originalname, content: request.file.buffer }),
       );
     },
   );

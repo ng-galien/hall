@@ -37,6 +37,7 @@ import {
 import { editorExtensions } from "./extensions";
 import {
   type EditorImageUpload,
+  type ChooseSpreadsheetDrop,
   type EditorDocumentUpload,
   ImageDropZone,
   type ImageUploadStatus,
@@ -44,6 +45,7 @@ import {
   idleUploadStatus,
   imageTransferHandlers,
   useImageDropZone,
+  useSpreadsheetDropChoice,
 } from "./imageTransfer";
 import { EditorReferenceSearch, type FullSearchRequest } from "./ReferenceSearchDialog";
 import { referenceKindPresentations } from "./referenceKindPresentation";
@@ -638,6 +640,8 @@ export function MarkdownEditor({
   imageUpload.current = onUploadImage;
   const documentUpload = useRef<EditorDocumentUpload | undefined>(onUploadDocument);
   documentUpload.current = onUploadDocument;
+  const spreadsheetDrop = useSpreadsheetDropChoice();
+  const spreadsheetChoice = useRef<ChooseSpreadsheetDrop | undefined>(spreadsheetDrop.choose);
   const imageStatusChange = useRef(setImageStatus);
   const inlineDropZone = useImageDropZone(!readOnly);
   const latest = useRef(markdown);
@@ -718,7 +722,7 @@ export function MarkdownEditor({
         class: "markdown-content",
         "aria-label": t("editor.writeArea"),
       },
-      ...imageTransferHandlers(imageUpload, imageStatusChange, documentUpload),
+      ...imageTransferHandlers(imageUpload, imageStatusChange, documentUpload, spreadsheetChoice),
     },
     onUpdate: ({ editor }) => {
       hideCompactToolbar();
@@ -872,6 +876,7 @@ export function MarkdownEditor({
           {inline ? <TableControls editor={inline} canvasRef={inlineCanvas} /> : null}
           <ImageDropZone active={inlineDropZone.active} documents={Boolean(onUploadDocument)} />
           {enriched ? null : <ImageUploadStatusLine status={imageStatus} />}
+          {spreadsheetDrop.dialog}
         </div>
       </div>
       {fullSearch && inline ? (
@@ -958,6 +963,8 @@ function EnrichedEditor({
   imageUpload.current = onUploadImage;
   const documentUpload = useRef<EditorDocumentUpload | undefined>(onUploadDocument);
   documentUpload.current = onUploadDocument;
+  const spreadsheetDrop = useSpreadsheetDropChoice();
+  const spreadsheetChoice = useRef<ChooseSpreadsheetDrop | undefined>(spreadsheetDrop.choose);
   const imageStatusChange = useRef(onImageStatus);
   imageStatusChange.current = onImageStatus;
   const dropZone = useImageDropZone(true);
@@ -983,7 +990,7 @@ function EnrichedEditor({
         class: "markdown-content",
         "aria-label": t("editor.writeArea"),
       },
-      ...imageTransferHandlers(imageUpload, imageStatusChange, documentUpload),
+      ...imageTransferHandlers(imageUpload, imageStatusChange, documentUpload, spreadsheetChoice),
     },
     onUpdate: ({ editor: current }) => callbacks.current.onChange(current.getMarkdown()),
     onBlur: () => callbacks.current.onBlur?.(),
@@ -1059,6 +1066,7 @@ function EnrichedEditor({
         <ImageDropZone active={dropZone.active} documents={Boolean(onUploadDocument)} />
       </div>
       <ImageUploadStatusLine status={imageStatus} />
+      {spreadsheetDrop.dialog}
       {fullSearch && editor ? (
         <EditorReferenceSearch
           editor={editor}

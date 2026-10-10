@@ -209,7 +209,7 @@ function spreadsheetDocument(title: string, worksheets: ExcelJS.Worksheet[]): Sp
   };
 }
 
-async function loadWorksheets(input: SpreadsheetImportInput): Promise<ExcelJS.Worksheet[]> {
+async function loadWorksheets(input: Pick<SpreadsheetImportInput, "fileName" | "content">): Promise<ExcelJS.Worksheet[]> {
   const inspection = await inspectSpreadsheetImport(input.fileName, input.content);
   const workbook = new ExcelJS.Workbook();
   if (inspection.format === "csv") {
@@ -236,4 +236,53 @@ export async function parseSpreadsheetImport(input: SpreadsheetImportInput): Pro
     if (error instanceof DomainError) throw error;
     throw new DomainError("invalid_request", 422);
   }
+}
+
+/** Number of data rows, after the header row, that a spreadsheet converted to a Markdown table keeps. */
+export const spreadsheetTableRowLimit = 100;
+
+export interface SpreadsheetMarkdownTable {
+  markdown: string;
+  /** Data rows of the first sheet, header excluded. */
+  rowCount: number;
+  /** Data rows written in the table. */
+  includedRowCount: number;
+}
+
+function markdownCell(text: string): string {
+  return text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\s*\r?\n\s*/g, " ").trim();
+}
+
+// @implements-requirement HALL-FR-DOC-510
+/**
+ * Converts the first sheet of a CSV or XLSX file into a Markdown table: its first non-empty row is the header and at
+ * most spreadsheetTableRowLimit following non-empty rows are kept; empty trailing columns are dropped.
+ */
+export async function spreadsheetMarkdownTable(
+  input: Pick<SpreadsheetImportInput, "fileName" | "content">,
+): Promise<SpreadsheetMarkdownTable> {
+  let worksheet: ExcelJS.Worksheet | undefined;
+  try {
+    [worksheet] = await loadWorksheets(input);
+  } catch (error) {
+    if (error instanceof DomainError) throw error;
+    throw new DomainError("invalid_request", 422);
+  }
+  if (!worksheet) throw new DomainError("invalid_request", 422);
+  const rows: string[][] = [];
+  for (let index = 1; index <= worksheet.rowCount; index += 1) {
+    const row = worksheet.getRow(index);
+    const cells = Array.from({ length: worksheet.columnCount }, (_, column) => markdownCell(row.getCell(column + 1).text));
+    if (cells.some(Boolean)) rows.push(cells);
+  }
+  const width = Math.max(0, ...rows.map((cells) => cells.findLastIndex(Boolean) + 1));
+  if (!rows.length || width === 0) throw new DomainError("invalid_request", 422);
+  const [header, ...data] = rows.map((cells) => cells.slice(0, width));
+  const included = data.slice(0, spreadsheetTableRowLimit);
+  const line = (cells: string[]) => `| ${cells.join(" | ")} |`;
+  return {
+    markdown: [line(header), line(header.map(() => "---")), ...included.map(line)].join("\n"),
+    rowCount: data.length,
+    includedRowCount: included.length,
+  };
 }

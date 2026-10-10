@@ -51,6 +51,7 @@ const actionsByPermissions = [
       "resource.update-content",
       "resource.replace-document-content",
       "resource.import-spreadsheet",
+      "resource.convert-spreadsheet-table",
       "resource.import-geographic-layer",
       "resource.link-geographic-layer",
       "resource.unlink-geographic-layer",
@@ -562,6 +563,7 @@ const auditCases = [
 
 const nonAuditedCommandCases = [
   ["POST", "/api/resources/legal-references/search"],
+  ["POST", "/api/resources/spreadsheets/table"],
   ["POST", "/api/templates/preview-pdf"],
 ] as const;
 

@@ -88,3 +88,45 @@ test("files dropped on the business report editor become cited documents of the 
   await expect(enriched.locator(".editor-reference-wrapper").filter({ hasText: "annexe.pdf" })).toHaveCount(1);
   await expect(page.getByTestId("business-category-documents-count")).toHaveText("3");
 });
+
+// @verifies-requirement HALL-FR-DOC-510
+test("a csv dropped on the business report editor becomes a table of the text, the rest attached", async ({
+  appPage: page,
+}) => {
+  const created = await page.request.post("/api/council-business", {
+    data: { path: "seed", name: `Tableau ${crypto.randomUUID()}`, reportName: "Report", reportContent: "Rapport." },
+  });
+  expect(created.ok()).toBeTruthy();
+  const business = (await created.json()).properties as { id: string; reportResourceId: string };
+  await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  const compact = page.getByTestId("business-report-editor").getByTestId("markdown-editor-compact");
+  await expect(compact).toBeVisible();
+
+  const smallCsv = "Commune;Montant\nAlésia;1200\nGergovie;850\n";
+  await dropFiles(page, compact, [{ name: "subventions.csv", mimeType: "text/csv", buffer: Buffer.from(smallCsv) }]);
+  await page.getByTestId("editor-spreadsheet-drop-table").click();
+  const table = compact.locator("table").first();
+  await expect(table.locator("tr")).toHaveCount(3);
+  await expect(table).toContainText("Alésia");
+  await expect(table).toContainText("850");
+  await expect(page.getByTestId("business-documents-empty")).toBeVisible();
+  await expect
+    .poll(() => reportContent(page, business.reportResourceId), { timeout: 15_000 })
+    .toMatch(/\|\s*Gergovie\s*\|\s*850\s*\|/);
+
+  const largeCsv = ["Ligne;Valeur", ...Array.from({ length: 105 }, (_, index) => `L${index + 1};${index + 1}`)].join(
+    "\n",
+  );
+  await dropFiles(page, compact, [{ name: "releves.csv", mimeType: "text/csv", buffer: Buffer.from(largeCsv) }]);
+  await page.getByTestId("editor-spreadsheet-drop-table").click();
+  const status = compact.getByTestId("editor-image-status");
+  await expect(status).toHaveAttribute("data-status", "tableTruncated");
+  await expect(status).toContainText("100");
+  await expect(status).toContainText("105");
+  await expect(compact.locator(".editor-reference-wrapper")).toHaveText(["releves"]);
+  await expect(page.getByTestId("business-category-documents-count")).toHaveText("1");
+  await expect
+    .poll(() => reportContent(page, business.reportResourceId), { timeout: 15_000 })
+    .toMatch(/\|\s*L100\s*\|\s*100\s*\|[\s\S]*:resource\[releves\]\{#[0-9a-f-]{36}\}/);
+  expect(await reportContent(page, business.reportResourceId)).not.toContain("L101");
+});

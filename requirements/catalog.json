@@ -3916,6 +3916,30 @@
         }
       ]
     },
+    "HALL-FR-DOC-510": {
+      "name": "EDITOR_SPREADSHEET_DROP_AS_TABLE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Un tableur CSV ou XLSX déposé dans l’éditeur de texte d’une affaire peut être joint comme fichier ou inséré comme tableau du texte.",
+      "acceptanceCriteria": [
+        "Déposer un fichier CSV ou XLSX sur l’éditeur compact ou en plein écran d’un texte d’une affaire ouvre la fenêtre « Tableur déposé », qui propose « Joindre le fichier » et « Insérer comme tableau » ; la fermer annule le dépôt de ce fichier.",
+        "« Joindre le fichier » importe le fichier comme tableur de l’affaire et insère sa référence à l’endroit du dépôt, comme HALL-FR-DOC-500.",
+        "« Insérer comme tableau » insère à l’endroit du dépôt un tableau Markdown construit par le serveur à partir de la première feuille : sa première ligne non vide en est l’en-tête, suivie d’au plus 100 lignes non vides ; les colonnes vides en fin de ligne sont retirées et le texte de chaque cellule est repris tel que le tableur l’affiche.",
+        "Quand la première feuille compte plus de 100 lignes après l’en-tête, le tableau garde les 100 premières, le fichier complet est joint à l’affaire et sa référence suit le tableau ; l’éditeur affiche « Tableau de « nom » inséré : 100 lignes sur N ; le fichier complet est joint. ».",
+        "La conversion est l’action Siren « resource.convert-spreadsheet-table » de l’affaire ; elle lit le fichier avec la bibliothèque ExcelJS déjà utilisée par l’import de tableur (licence MIT) et n’enregistre rien."
+      ],
+      "clauses": [
+        {
+          "key": "editor-spreadsheet-drop-as-table",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 (entrée 9, point 18) : un tableur déposé dans l’éditeur peut devenir un tableau du texte plutôt qu’une simple pièce jointe.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-LOC-010": {
       "name": "LOCATION_BELONGS_TO_HALL",
       "nature": "functional",

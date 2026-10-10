@@ -16,6 +16,7 @@ import {
   type ResourceSearchCriteria,
   type ResourceSearchResult,
   resourceSearchResultSchema,
+  spreadsheetMarkdownTableSchema,
 } from "@hall/api-contract";
 import type { DocumentResource, DocumentUsage, EditorAssetOwner, Resource, ResourceKind } from "@hall/domain";
 import {
@@ -98,6 +99,14 @@ export async function importDocumentarySpreadsheet(
 ) {
   const result = await submitSirenAction<unknown>(collectionRepresentation, "resource.import-spreadsheet", form);
   return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
+}
+
+export async function convertSpreadsheetTable(
+  representation: Parameters<typeof findSirenLink>[0],
+  form: FormData,
+) {
+  const result = await submitSirenAction<unknown>(representation, "resource.convert-spreadsheet-table", form);
+  return spreadsheetMarkdownTableSchema.parse(result.data);
 }
 
 export async function uploadDocumentaryResource(
