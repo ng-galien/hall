@@ -236,7 +236,8 @@ BEGIN
   END IF;
   IF EXISTS (SELECT FROM unnest(search_paths) AS path WHERE NOT hall.is_normalized_resource_path(path))
      OR EXISTS (SELECT FROM unnest(search_kinds) AS kind WHERE kind NOT IN (
-       'folder', 'text', 'remote', 'spreadsheet', 'geographic', 'event', 'document', 'legalReference'
+       'folder', 'text', 'remote', 'spreadsheet', 'geographic', 'event', 'document', 'legalReference',
+       'geographicLayer'
      ))
      OR EXISTS (SELECT FROM unnest(search_readiness) AS readiness WHERE readiness NOT IN (
        'incomplete', 'empty', 'ready'
@@ -1228,6 +1229,11 @@ BEGIN
     DELETE FROM hall.document_resource WHERE id = target.document_resource_id;
   ELSIF target.legal_reference_resource_id IS NOT NULL THEN
     DELETE FROM hall.legal_reference_resource WHERE id = target.legal_reference_resource_id;
+  ELSIF target.geographic_layer_resource_id IS NOT NULL THEN
+    -- @implements-requirement HALL-FR-DOC-330
+    -- A layer linked to a map is protected by the RESTRICT foreign key of
+    -- hall.geographic_map_overlay; its features are removed by cascade.
+    DELETE FROM hall.geographic_layer_resource WHERE id = target.geographic_layer_resource_id;
   END IF;
 
   RETURN deleted_summary;

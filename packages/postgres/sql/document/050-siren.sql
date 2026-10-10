@@ -79,8 +79,66 @@ BEGIN
       );
     END IF;
   END IF;
+  -- @implements-requirement HALL-FR-DOC-310
+  IF resource ->> 'kind' = 'geographicLayer' THEN
+    links := links || jsonb_build_array(
+      hall.siren_link('features', '/api/resources/' || reference || '/features', 'application/geo+json')
+    );
+  END IF;
   RETURN links;
 END
+$function$;
+
+-- @implements-requirement HALL-FR-DOC-330
+-- @implements-requirement HALL-FR-DOC-340
+CREATE FUNCTION hall.geographic_layer_import_siren_action(target_path TEXT, map_id TEXT)
+RETURNS JSONB
+LANGUAGE sql
+IMMUTABLE
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT hall.siren_action(
+    'resource.import-geographic-layer',
+    'POST',
+    '/api/resources/geographic-layers/import',
+    jsonb_build_array(
+      jsonb_build_object('name', 'file', 'type', 'file', 'accept', '.geojson,.json,application/geo+json'),
+      jsonb_build_object('name', 'name', 'type', 'text'),
+      jsonb_build_object('name', 'path', 'type', 'text', 'value', target_path)
+    ) || CASE
+      WHEN map_id IS NULL THEN '[]'::jsonb
+      ELSE jsonb_build_array(jsonb_build_object('name', 'geographicResourceId', 'type', 'hidden', 'value', map_id))
+    END,
+    'multipart/form-data'
+  )
+$function$;
+
+-- @implements-requirement HALL-FR-DOC-330
+CREATE FUNCTION hall.geographic_map_overlay_siren_actions(resource JSONB)
+RETURNS JSONB
+LANGUAGE sql
+STABLE
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT jsonb_build_array(
+    hall.geographic_layer_import_siren_action(resource ->> 'path', resource ->> 'id'),
+    hall.siren_action(
+      'resource.link-geographic-layer',
+      'PUT',
+      '/api/resources/' || hall.resource_public_reference(resource) || '/overlays',
+      jsonb_build_array(
+        jsonb_build_object('name', 'layerId', 'type', 'text'),
+        jsonb_build_object('name', 'visible', 'type', 'checkbox'),
+        jsonb_build_object('name', 'opacity', 'type', 'number')
+      )
+    ),
+    hall.siren_action(
+      'resource.unlink-geographic-layer',
+      'POST',
+      '/api/resources/' || hall.resource_public_reference(resource) || '/overlays/unlink',
+      jsonb_build_array(jsonb_build_object('name', 'layerId', 'type', 'text'))
+    )
+  )
 $function$;
 
 CREATE FUNCTION hall.resource_siren_actions(resource JSONB)
@@ -97,6 +155,12 @@ DECLARE
   proposal_text BOOLEAN;
 BEGIN
   IF NOT hall.is_administrator() THEN
+    -- @implements-requirement HALL-FR-DOC-350
+    IF resource_kind = 'geographic' AND hall.has_permission('workspace.write') THEN
+      RETURN jsonb_build_array(
+        hall.siren_action('resource.update-content', 'PUT', '/api/resources/' || reference || '/content')
+      ) || hall.geographic_map_overlay_siren_actions(resource);
+    END IF;
     RETURN actions;
   END IF;
 
@@ -137,6 +201,11 @@ BEGIN
           jsonb_build_array(jsonb_build_object('name', 'method', 'type', 'text'))
         )
       );
+    END IF;
+    -- @implements-requirement HALL-FR-DOC-330
+    -- @implements-requirement HALL-FR-DOC-340
+    IF resource_kind = 'geographic' THEN
+      actions := actions || hall.geographic_map_overlay_siren_actions(resource);
     END IF;
   ELSIF resource_kind = 'document' THEN
     actions := actions || jsonb_build_array(
@@ -196,6 +265,9 @@ BEGIN
     OR EXISTS (SELECT FROM hall.resource target
       JOIN hall.meeting_attendance_event attendance ON attendance.proxy_document = target.document_resource_id
       WHERE target.id = (resource_siren_actions.resource ->> 'id')::UUID)
+    -- @implements-requirement HALL-FR-DOC-330
+    OR EXISTS (SELECT FROM hall.geographic_map_overlay overlay
+      WHERE overlay.geographic_layer_resource_id = (resource_siren_actions.resource ->> 'id')::UUID)
   THEN
     RETURN actions;
   END IF;
@@ -386,4 +458,28 @@ AS $function$
       hall.siren_link('collection', '/api/resources')
     )
   )
+$function$;
+
+-- @implements-requirement HALL-FR-DOC-310
+CREATE FUNCTION hall_api.present_geographic_layer_collection(layers JSONB)
+RETURNS JSONB
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT jsonb_build_object(
+      'class', jsonb_build_array('resource-collection'),
+      'properties', '{}'::jsonb,
+      'entities', coalesce(
+        (SELECT jsonb_agg(hall.resource_siren_item(layer, true)) FROM jsonb_array_elements(layers) AS layer),
+        '[]'::jsonb
+      ),
+      'links', jsonb_build_array(hall.siren_link('self', '/api/resources/geographic-layers'))
+    )
+    || CASE
+      WHEN hall.is_administrator() OR hall.has_permission('workspace.write')
+        THEN jsonb_build_object('actions', jsonb_build_array(hall.geographic_layer_import_siren_action('', NULL)))
+      ELSE '{}'::jsonb
+    END
 $function$;

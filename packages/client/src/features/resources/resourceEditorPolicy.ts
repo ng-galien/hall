@@ -22,6 +22,7 @@ const resourceKindEditorPolicies: Record<ResourceKind, StaticResourceEditorPolic
   geographic: { fillsExtendedView: true, supportsAutosave: true },
   event: { fillsExtendedView: false, supportsAutosave: true },
   legalReference: { fillsExtendedView: false, supportsAutosave: false },
+  geographicLayer: { fillsExtendedView: false, supportsAutosave: false },
 };
 
 export function resourceEditorState(resource: ResourceDetail): ResourceEditorState {
@@ -34,6 +35,7 @@ export function resourceEditorState(resource: ResourceDetail): ResourceEditorSta
     event: () => ({ content: "", remoteUrl: "" }),
     spreadsheet: () => ({ content: "", remoteUrl: "" }),
     legalReference: () => ({ content: "", remoteUrl: "" }),
+    geographicLayer: () => ({ content: "", remoteUrl: "" }),
   });
 }
 
@@ -56,6 +58,7 @@ export function resourceContentUpdate(
     event: () => null,
     spreadsheet: () => null,
     legalReference: () => null,
+    geographicLayer: () => null,
   });
 }
 
@@ -69,6 +72,7 @@ export function resourceContentDirty(resource: ResourceDetail, state: ResourceEd
     event: () => false,
     spreadsheet: () => false,
     legalReference: () => false,
+    geographicLayer: () => false,
   });
 }
 
@@ -91,5 +95,6 @@ export function resourceCanEdit(resource: ResourceDetail, capabilities: Resource
     spreadsheet: () => capabilities.updateContent,
     legalReference: () => false,
     document: () => false,
+    geographicLayer: () => false,
   });
 }

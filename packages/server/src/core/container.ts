@@ -12,6 +12,7 @@ import type { Pool } from "pg";
 import type { CouncilClient } from "../clients/councilClient.js";
 import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
+import type { GeographicLayersClient } from "../clients/geographicLayersClient.js";
 import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { SqlExecutor } from "../infrastructure/database/executor.js";
@@ -21,6 +22,7 @@ import { createLegifranceProvider } from "../infrastructure/legal/legifranceProv
 import { createPostgresCouncilClient } from "../infrastructure/postgres/councilClient.js";
 import { createPostgresCouncilDecisionClient } from "../infrastructure/postgres/councilDecisionClient.js";
 import { createPostgresDirectoryClient } from "../infrastructure/postgres/directoryClient.js";
+import { createPostgresGeographicLayersClient } from "../infrastructure/postgres/geographicLayersClient.js";
 import { logIdleConnectionFailures } from "../infrastructure/postgres/idleConnectionFailures.js";
 import { createPostgresMinutesClient } from "../infrastructure/postgres/minutesClient.js";
 import { createPostgresResourcesClient } from "../infrastructure/postgres/resourcesClient.js";
@@ -68,6 +70,7 @@ import {
 import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
 import { createDocumentRenderer, type DocumentRenderer } from "../services/documentRenderer.js";
 import { createEventInvitationService, type EventInvitationService } from "../services/eventInvitationService.js";
+import { createGeographicLayerService, type GeographicLayerService } from "../services/geographicLayerService.js";
 import { createGeographicMapRenderer, type GeographicMapRenderer } from "../services/geographicMapRenderer.js";
 import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
@@ -113,6 +116,8 @@ export interface Cradle {
   ballotRepository: BallotRepository;
   councilDecisionRepository: CouncilDecisionRepository;
   resourcesClient: ResourcesClient;
+  geographicLayersClient: GeographicLayersClient;
+  geographicLayerService: GeographicLayerService;
   meetingRosterRepository: MeetingRosterRepository;
   councilBusinessRepository: CouncilBusinessRepository;
   contentTemplateRepository: ContentTemplateRepository;
@@ -175,6 +180,7 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     councilBusinessBundleImportService: asFunction(createCouncilBusinessBundleImportService).singleton(),
     directoryService: asFunction(createDirectoryService).singleton(),
     documentaryResourceService: asFunction(createDocumentaryResourceService).singleton(),
+    geographicLayerService: asFunction(createGeographicLayerService).singleton(),
     eventInvitationService: asFunction(createEventInvitationService).singleton(),
     referenceEntityResolver: asFunction(createReferenceEntityResolver).singleton(),
     authService: asFunction(createAuthService).singleton(),
@@ -201,6 +207,7 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
         return postgresClient.resources;
       }).singleton(),
       resourcesClient: asFunction(createPostgresResourcesClient).singleton(),
+      geographicLayersClient: asFunction(createPostgresGeographicLayersClient).singleton(),
       postgresMinutes: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
         if (!postgresClient) throw new Error("Minutes PostgreSQL storage is required");
         return postgresClient.minutes;

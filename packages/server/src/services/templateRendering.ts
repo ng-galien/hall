@@ -80,6 +80,7 @@ async function resourceReferenceNode(
     geographic: () => textNode(label),
     event: () => textNode(label),
     legalReference: () => textNode(label),
+    geographicLayer: () => textNode(label),
   });
 }
 
@@ -347,6 +348,7 @@ async function renderResourceEmbed(
     geographic: () => presentation === "map",
     event: () => presentation === "event",
     legalReference: () => presentation === "legal-citation",
+    geographicLayer: () => false,
     document: (entry) =>
       presentation === "document" ||
       (presentation === "image" && ["image/jpeg", "image/png"].includes(entry.binary.mediaType)),

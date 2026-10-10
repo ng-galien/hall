@@ -2,19 +2,24 @@ import { type CouncilBusinessBundleManifest, resourceIdSchema } from "@hall/api-
 import { matchDiscriminated } from "@hall/domain";
 import { collectResourceReferences, parse } from "@hall/templating";
 import type { CouncilClient } from "../clients/councilClient.js";
+import type { GeographicLayersClient } from "../clients/geographicLayersClient.js";
 import type { ResourceContent, ResourcesClient } from "../clients/resourcesClient.js";
 import { bundleContentHash, encodeCouncilBusinessBundle } from "./councilBusinessBundleArchive.js";
 import { DomainError } from "./errors.js";
+import { parseGeographicLayerImport } from "./geographicLayerImport.js";
 
+// @implements-requirement HALL-FR-DOC-330
 export function createCouncilBusinessBundleExportService({
   councilClient,
   resourcesClient,
+  geographicLayersClient,
 }: {
   councilClient: Pick<CouncilClient, "openBusiness" | "listBusinessResources">;
   resourcesClient: Pick<
     ResourcesClient,
     "open" | "listAll" | "readDocumentContent" | "openEditorAsset" | "readEditorAssetContent"
   >;
+  geographicLayersClient: Pick<GeographicLayersClient, "readFeatures">;
 }) {
   return {
     async export(id: string, sender: CouncilBusinessBundleManifest["sender"]): Promise<Buffer> {
@@ -82,12 +87,41 @@ export function createCouncilBusinessBundleExportService({
           },
           geographic: async (entry) => {
             manifest.resources.push({ data: entry });
+            for (const overlay of entry.overlays) ids.add(overlay.layerId);
           },
           event: async (entry) => {
             manifest.resources.push({ data: entry });
           },
           legalReference: async (entry) => {
             manifest.resources.push({ data: entry });
+          },
+          geographicLayer: async (entry) => {
+            const collection = await geographicLayersClient.readFeatures(entry.id);
+            if (!collection) throw new DomainError("resource_not_found", 404);
+            const { features } = parseGeographicLayerImport({
+              fileName: entry.source.fileName,
+              content: Buffer.from(
+                JSON.stringify({
+                  type: "FeatureCollection",
+                  features: collection.features.map(({ sourceId, geometry, properties }) => ({
+                    type: "Feature",
+                    ...(sourceId === null ? {} : { id: sourceId }),
+                    geometry,
+                    properties,
+                  })),
+                }),
+              ),
+            });
+            const content = Buffer.from(JSON.stringify({ source: entry.source, features }));
+            manifest.resources.push({
+              data: entry,
+              binaryPath: putFile({
+                content,
+                mediaType: "application/json",
+                byteSize: content.length,
+                contentSha256: bundleContentHash(content),
+              }),
+            });
           },
           document: async (entry) => {
             const binary = await resourcesClient.readDocumentContent(sourceId);

@@ -3,6 +3,7 @@ import {
   CalendarIcon,
   CsvIcon,
   ImageIcon,
+  LayersIcon,
   LegalReferenceIcon,
   MapIcon,
   PdfIcon,
@@ -21,6 +22,7 @@ export type ResourceTone =
   | "text"
   | "remote"
   | "geographic"
+  | "geographicLayer"
   | "legalReference"
   | "pdf"
   | "image"
@@ -36,6 +38,7 @@ export function resourceTone(resource: Resource): ResourceTone {
     spreadsheet: () => "spreadsheet" as const,
     remote: () => "remote" as const,
     geographic: () => "geographic" as const,
+    geographicLayer: () => "geographicLayer" as const,
     legalReference: () => "legalReference" as const,
     document: (entry) =>
       matchLiteral(entry.format, {
@@ -56,6 +59,7 @@ export const toneLabelKeys: Record<ResourceTone, TranslationKey> = {
   text: "workspace.type.text",
   remote: "workspace.type.remote",
   geographic: "workspace.type.geographic",
+  geographicLayer: "workspace.type.geographicLayer",
   event: "workspace.type.event",
   legalReference: "workspace.type.legalReference",
   pdf: "workspace.type.pdf",
@@ -71,6 +75,7 @@ export const toneIcons = {
   text: TextDocumentIcon,
   remote: WebIcon,
   geographic: MapIcon,
+  geographicLayer: LayersIcon,
   event: CalendarIcon,
   legalReference: LegalReferenceIcon,
   pdf: PdfIcon,
@@ -90,6 +95,7 @@ export function resourceDate(resource: Resource): { kind: "updated" | "created";
     remote: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
     spreadsheet: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
     legalReference: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
+    geographicLayer: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
   });
 }
 
@@ -102,6 +108,7 @@ export function useResourceTypeLabel(): (resource: Resource) => string {
       spreadsheet: () => t("workspace.type.spreadsheet"),
       geographic: () => t("workspace.type.geographic"),
       legalReference: () => t("workspace.type.legalReference"),
+      geographicLayer: () => t("workspace.type.geographicLayer"),
       text: () => t("workspace.type.text"),
     });
 }

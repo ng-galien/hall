@@ -192,6 +192,12 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
       return auditIntent("resource.replace-document-content", id);
     if (method === "POST" && id === "spreadsheets" && child === "import" && !childId)
       return auditIntent("resource.import-spreadsheet");
+    if (method === "POST" && id === "geographic-layers" && child === "import" && !childId)
+      return auditIntent("resource.import-geographic-layer");
+    if (method === "PUT" && id && child === "overlays" && !childId)
+      return auditIntent("resource.link-geographic-layer", id);
+    if (method === "POST" && id && child === "overlays" && childId === "unlink" && !operation)
+      return auditIntent("resource.unlink-geographic-layer", id);
     if (method === "POST" && id === "documents" && !child) return auditIntent("resource.create-document");
     if (method === "POST" && id === "editor-assets" && !child) return auditIntent("resource.create-editor-asset");
     if (method === "POST" && id && child === "legal-reference" && childId === "resolve" && !operation)

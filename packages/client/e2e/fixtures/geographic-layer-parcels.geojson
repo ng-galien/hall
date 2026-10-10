@@ -1,0 +1,124 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "id": "essai-1",
+   "properties": {
+    "nom": "Parcelle d'essai A",
+    "surface": 40000
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       4.5,
+       47.5
+      ],
+      [
+       4.502,
+       47.5
+      ],
+      [
+       4.502,
+       47.502
+      ],
+      [
+       4.5,
+       47.502
+      ],
+      [
+       4.5,
+       47.5
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "essai-2",
+   "properties": {
+    "nom": "Parcelle d'essai B",
+    "surface": 41000
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       4.503,
+       47.5
+      ],
+      [
+       4.505,
+       47.5
+      ],
+      [
+       4.505,
+       47.502
+      ],
+      [
+       4.503,
+       47.502
+      ],
+      [
+       4.503,
+       47.5
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "essai-3",
+   "properties": {
+    "nom": "Parcelle d'essai C",
+    "surface": 42000
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       4.506,
+       47.501
+      ],
+      [
+       4.508,
+       47.501
+      ],
+      [
+       4.508,
+       47.503
+      ],
+      [
+       4.506,
+       47.503
+      ],
+      [
+       4.506,
+       47.501
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "essai-4",
+   "properties": {
+    "nom": "Borne d'essai"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     4.5045,
+     47.5035
+    ]
+   }
+  }
+ ]
+}

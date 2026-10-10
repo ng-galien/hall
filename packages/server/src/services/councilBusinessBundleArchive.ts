@@ -69,6 +69,21 @@ function validateArchive(input: CouncilBusinessBundleArchive): CouncilBusinessBu
       throw new InvalidCouncilBusinessBundle("Document has no original");
     }
     if (
+      resource.data.kind === "geographicLayer" &&
+      (!resource.binaryPath || fileMetadata.get(resource.binaryPath)?.mediaType !== "application/json")
+    ) {
+      throw new InvalidCouncilBusinessBundle("Geographic layer has no features");
+    }
+    if (
+      resource.data.kind === "geographic" &&
+      resource.data.overlays.some(
+        (overlay) =>
+          !manifest.resources.some(({ data }) => data.id === overlay.layerId && data.kind === "geographicLayer"),
+      )
+    ) {
+      throw new InvalidCouncilBusinessBundle("Map links a layer that the bundle does not carry");
+    }
+    if (
       resource.data.kind === "document" &&
       (resource.binaryPath !== `blobs/${resource.data.binary.contentSha256}` ||
         fileMetadata.get(resource.binaryPath)?.byteSize !== resource.data.binary.byteSize)

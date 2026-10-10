@@ -89,6 +89,8 @@ export {
   type PostgresEditorAsset,
   type PostgresFolderListing,
   type PostgresFolderResource,
+  type PostgresGeographicLayerFeatureCollection,
+  type PostgresGeographicLayerResource,
   type PostgresGeographicResource,
   type PostgresLegalReferenceResource,
   type PostgresPresentedResource,

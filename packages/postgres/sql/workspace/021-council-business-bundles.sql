@@ -25,6 +25,8 @@ DECLARE
   rewritten TEXT;
   pair RECORD;
   asset_ids UUID[];
+  layer_file JSONB;
+  overlay JSONB;
 BEGIN
   PERFORM hall.lock_resource_namespace();
   IF EXISTS (SELECT FROM hall.council_business WHERE id = source_business) THEN
@@ -60,6 +62,10 @@ BEGIN
       WHEN 'event' THEN created := hall_api.create_event_resource(target_path,item->>'name',item->'document');
       WHEN 'legalReference' THEN created := hall_api.create_legal_reference_resource(target_path,item->>'name',item->'document');
       WHEN 'document' THEN created := hall_api.create_document_resource(target_path,item->>'name',item#>>'{binary,mediaType}',decode(binary_files->>(entry->>'binaryPath'),'base64'));
+      -- @implements-requirement HALL-FR-DOC-330
+      WHEN 'geographicLayer' THEN
+        layer_file := convert_from(decode(binary_files->>(entry->>'binaryPath'),'base64'),'UTF8')::JSONB;
+        created := hall_api.create_geographic_layer_resource(target_path,item->>'name',layer_file->'source',layer_file->'features');
       ELSE RAISE EXCEPTION USING ERRCODE='HV609', MESSAGE='Unsupported bundle resource';
     END CASE;
     identity_map := identity_map || jsonb_build_object(item->>'id',created->>'id');
@@ -82,6 +88,15 @@ BEGIN
       PERFORM hall_api.update_text_resource(local_id,1,rewritten,asset_ids);
     END IF;
     PERFORM hall_api.update_resource_metadata(local_id,(SELECT path FROM hall.resource WHERE id=local_id),item->>'name',ARRAY(SELECT jsonb_array_elements_text(item->'tags')));
+  END LOOP;
+  -- @implements-requirement HALL-FR-DOC-330
+  FOR entry IN SELECT value FROM jsonb_array_elements(bundle->'resources') WHERE value#>>'{data,kind}'='geographic' LOOP
+    FOR overlay IN SELECT value FROM jsonb_array_elements(coalesce(entry#>'{data,overlays}','[]'::JSONB)) ORDER BY (value->>'position')::INTEGER LOOP
+      IF NOT identity_map ? (overlay->>'layerId') THEN
+        RAISE EXCEPTION USING ERRCODE='HV609', MESSAGE='Bundle map links a layer that the bundle does not carry';
+      END IF;
+      PERFORM hall_api.set_geographic_map_overlay((identity_map->>(entry#>>'{data,id}'))::UUID,(identity_map->>(overlay->>'layerId'))::UUID,(overlay->>'visible')::BOOLEAN,(overlay->>'opacity')::NUMERIC);
+    END LOOP;
   END LOOP;
   FOR entry IN SELECT value FROM jsonb_array_elements(bundle#>'{business,resourceSourceIds}') LOOP
     PERFORM hall_api.associate_council_business_resource(source_business,(identity_map->>(entry#>>'{}'))::UUID);

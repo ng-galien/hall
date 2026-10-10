@@ -176,6 +176,7 @@ export function createTestResourcesClient(): ResourcesClient {
             document: entry.document,
             autosaveEnabled: true,
             version: 1,
+            overlays: [],
           }),
         event: (entry) =>
           store({

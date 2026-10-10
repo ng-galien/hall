@@ -21,6 +21,7 @@ export const schemaManifestPaths = [
   "sql/document/040-api.sql",
   "sql/document/050-siren.sql",
   "sql/document/060-resource-changes.sql",
+  "sql/document/070-geographic-layers.sql",
   "sql/council/000-requirements.sql",
   "sql/council/001-types.sql",
   "sql/council/002-error-codes.sql",

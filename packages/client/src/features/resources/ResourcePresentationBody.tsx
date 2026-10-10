@@ -13,6 +13,7 @@ import { EventResourceEditor } from "../calendar/EventResourceEditor";
 import { DocumentEmbed } from "../documents/DocumentEmbed";
 import { RemoteResourceEmbed } from "../documents/RemoteResourceEmbed";
 import type { UploadedResourceImage } from "../documents/useResourceImageUpload";
+import { GeographicLayerResourceView } from "../geographic/GeographicLayerResourceView";
 import { GeographicResourceMap } from "../geographic/GeographicResourceMap";
 import { LegalReferenceResolver } from "../legal/LegalReferenceResolver";
 import { LegalReferenceResourceView } from "../legal/LegalReferenceResourceView";
@@ -193,6 +194,7 @@ export function ResourcePresentationBody({
         />
       </Suspense>
     ),
+    geographicLayer: (entry) => <GeographicLayerResourceView resource={entry} />,
     legalReference: (entry) => {
       if (entry.document.resolutionStatus === "draft") {
         return capabilities.resolveLegalReference ? (

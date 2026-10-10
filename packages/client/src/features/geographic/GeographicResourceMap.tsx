@@ -1,5 +1,5 @@
 import type { ResourceDetail } from "@hall/api-contract";
-import type { GeographicLayer, GeographicLayerId } from "@hall/domain";
+import type { GeographicLayer, GeographicLayerId, GeographicView } from "@hall/domain";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "ol/ol.css";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,13 @@ import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiCli
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { GeographicCompositionEditor } from "./GeographicCompositionEditor";
 import { GeographicLayerControls } from "./GeographicLayerControls";
+import { GeographicLayerUploadDialog } from "./GeographicLayerUploadDialog";
 import { geographicFeatureKindLabels } from "./geographicFeatureKindPolicy";
+import {
+  canImportGeographicLayer,
+  canLinkGeographicLayer,
+  setGeographicOverlayVisibility,
+} from "./geographicLayersApi";
 import {
   geographicDataSignature,
   normalizeGeographicData,
@@ -23,6 +29,7 @@ import {
   type GeographicWorkspaceMode,
   useGeographicMapRuntime,
 } from "./useGeographicMapRuntime";
+import { useGeographicOverlays } from "./useGeographicOverlays";
 
 const GEOGRAPHIC_SAVE_DEBOUNCE_MS = 1_500;
 
@@ -33,6 +40,23 @@ function cssToken(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
+function viewCenter(view: GeographicView): [number, number] {
+  return view.kind === "center"
+    ? view.center
+    : [(view.extent[0] + view.extent[2]) / 2, (view.extent[1] + view.extent[3]) / 2];
+}
+
+function sameGeographicView(left: GeographicView, right: GeographicView): boolean {
+  const [leftLon, leftLat] = viewCenter(left);
+  const [rightLon, rightLat] = viewCenter(right);
+  return (
+    Math.abs(leftLon - rightLon) < 1e-7 &&
+    Math.abs(leftLat - rightLat) < 1e-7 &&
+    Math.abs(left.zoom - right.zoom) < 1e-3
+  );
+}
+
+// @implements-requirement HALL-FR-DOC-340
 export function GeographicResourceMap({
   resource,
   data,
@@ -40,6 +64,7 @@ export function GeographicResourceMap({
   autosaveEnabled = true,
   onError,
   onRegisterFlush,
+  onViewChange,
   embedded = false,
 }: {
   resource: GeographicResource;
@@ -48,6 +73,8 @@ export function GeographicResourceMap({
   autosaveEnabled?: boolean;
   onError(error: ApiErrorCode | null): void;
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
+  /** Receives the displayed view after each move; the displayed view is saved only by the explicit framing action. */
+  onViewChange?(view: GeographicView): void;
   embedded?: boolean;
 }) {
   const { t } = useI18n();
@@ -68,6 +95,7 @@ export function GeographicResourceMap({
   const [editingFeatureId, setEditingFeatureId] = useState<string | null>(null);
   const [renameArmedFeatureId, setRenameArmedFeatureId] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
+  const [displayedView, setDisplayedView] = useState<GeographicView>(normalizedData.view);
 
   const draftSignature = useMemo(() => geographicDataSignature(draft), [draft]);
   const dirty = draftSignature !== savedSignature;
@@ -96,6 +124,13 @@ export function GeographicResourceMap({
     setEditingFeatureId(featureId);
     setRenameArmedFeatureId(null);
   }, []);
+  const changeDisplayedView = useCallback(
+    (view: GeographicView) => {
+      setDisplayedView(view);
+      onViewChange?.(view);
+    },
+    [onViewChange],
+  );
   const mapRuntime = useGeographicMapRuntime({
     data,
     draftLayers: draft.layers,
@@ -109,8 +144,27 @@ export function GeographicResourceMap({
     onDrawTool: setDrawTool,
     onSelection,
     onFeatureCreated,
+    onViewChange: changeDisplayedView,
   });
   const compositionLayout = useGeographicCompositionLayout(resource.id, workspaceMode === "draw");
+  const [overlays, setOverlays] = useState(resource.overlays);
+  const [layerUploadOpen, setLayerUploadOpen] = useState(false);
+  useEffect(() => setOverlays(resource.overlays), [resource.overlays]);
+  const mapRepresentation = useWorkspaceResourcesStore((state) => state.representations[resource.id] ?? null);
+  const canChangeOverlays = canUpdate && canLinkGeographicLayer(mapRepresentation);
+  const canAddLayer = canUpdate && canImportGeographicLayer(mapRepresentation);
+  const overlayStatuses = useGeographicOverlays(mapRuntime.map, overlays);
+  const changeOverlayVisibility = (layerId: string, visible: boolean) => {
+    if (!mapRepresentation) return;
+    const previous = overlays;
+    setOverlays((current) =>
+      current.map((overlay) => (overlay.layerId === layerId ? { ...overlay, visible } : overlay)),
+    );
+    setGeographicOverlayVisibility(mapRepresentation, layerId, visible).then(setOverlays, (failure: unknown) => {
+      setOverlays(previous);
+      onError(apiErrorCode(failure));
+    });
+  };
 
   const save = useCallback(() => {
     if (!canUpdate) return Promise.resolve(true);
@@ -202,6 +256,10 @@ export function GeographicResourceMap({
     if (!mapRuntime.renameFeature(id, label)) return false;
     return save();
   };
+  const saveDisplayedView = () => {
+    updateDraft((current) => ({ ...current, view: displayedView }));
+    void save();
+  };
   const retryConflict = () => {
     conflictRef.current = false;
     setConflict(false);
@@ -255,6 +313,11 @@ export function GeographicResourceMap({
         onZoom={mapRuntime.changeZoom}
         canFit={draft.hallLayer.features.length > 0}
         onFit={mapRuntime.fitComposition}
+        overlays={overlays}
+        overlayStatuses={overlayStatuses}
+        canChangeOverlays={canChangeOverlays}
+        onOverlayVisibility={changeOverlayVisibility}
+        onAddLayer={canAddLayer ? () => setLayerUploadOpen(true) : undefined}
       />
       {workspaceMode === "draw" && canUpdate ? (
         <GeographicCompositionEditor
@@ -279,6 +342,27 @@ export function GeographicResourceMap({
           onPointerDown={compositionLayout.startDrag}
           onPointerMove={compositionLayout.move}
           onPointerUp={compositionLayout.stopDrag}
+        />
+      ) : null}
+      {canUpdate ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="geographic-save-view"
+          data-testid="geographic-save-view"
+          disabled={conflict || sameGeographicView(displayedView, draft.view)}
+          onClick={saveDisplayedView}
+        >
+          {t("geographic.saveView")}
+        </Button>
+      ) : null}
+      {layerUploadOpen && mapRepresentation ? (
+        <GeographicLayerUploadDialog
+          map={mapRepresentation}
+          mapReference={resource.id}
+          onImported={setOverlays}
+          onClose={() => setLayerUploadOpen(false)}
         />
       ) : null}
       {conflict ? (

@@ -43,7 +43,8 @@ BEFORE UPDATE OF
   geographic_resource_id,
   event_resource_id,
   document_resource_id,
-  legal_reference_resource_id
+  legal_reference_resource_id,
+  geographic_layer_resource_id
 ON hall.resource
 FOR EACH ROW
 WHEN (
@@ -55,7 +56,8 @@ WHEN (
     OLD.geographic_resource_id,
     OLD.event_resource_id,
     OLD.document_resource_id,
-    OLD.legal_reference_resource_id
+    OLD.legal_reference_resource_id,
+    OLD.geographic_layer_resource_id
   ) IS DISTINCT FROM ROW(
     NEW.folder_resource_id,
     NEW.text_resource_id,
@@ -64,7 +66,8 @@ WHEN (
     NEW.geographic_resource_id,
     NEW.event_resource_id,
     NEW.document_resource_id,
-    NEW.legal_reference_resource_id
+    NEW.legal_reference_resource_id,
+    NEW.geographic_layer_resource_id
   )
 )
 EXECUTE FUNCTION hall.reject_resource_nature_change();

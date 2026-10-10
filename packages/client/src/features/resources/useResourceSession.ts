@@ -61,6 +61,7 @@ function autosavePreference(resource: ResourceDetail | null): boolean {
     event: (entry) => entry.autosaveEnabled,
     document: () => false,
     legalReference: () => false,
+    geographicLayer: () => false,
   });
 }
 

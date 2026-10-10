@@ -1,7 +1,9 @@
+import type { GeographicMapOverlay } from "@hall/api-contract";
 import type { GeographicLayer, GeographicLayerId } from "@hall/domain";
 import { geographicLayerOptions } from "@hall/domain";
 import { useState } from "react";
 import {
+  AddIcon,
   DragHandleIcon,
   EditIcon,
   FitBoundsIcon,
@@ -11,7 +13,9 @@ import {
   VisibleIcon,
 } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
+import "./geographicLayers.css";
 import type { GeographicWorkspaceMode } from "./useGeographicMapRuntime";
+import type { GeographicOverlayStatus } from "./useGeographicOverlays";
 
 interface GeographicLayerControlsProps {
   workspaceMode: GeographicWorkspaceMode;
@@ -26,10 +30,17 @@ interface GeographicLayerControlsProps {
   onZoom(delta: number): void;
   canFit: boolean;
   onFit(): void;
+  overlays: readonly GeographicMapOverlay[];
+  overlayStatuses: Readonly<Record<string, GeographicOverlayStatus>>;
+  canChangeOverlays: boolean;
+  onOverlayVisibility(layerId: string, visible: boolean): void;
+  /** Present only when the map advertises the layer import action. */
+  onAddLayer?(): void;
 }
 
-/** Owns the base-layer controls and their transient drag/drop state. */
+/** Owns the base-layer controls, the linked data-layer rows and their transient drag/drop state. */
 // @implements-requirement HALL-FR-DOC-290
+// @implements-requirement HALL-FR-DOC-340
 export function GeographicLayerControls({
   workspaceMode,
   canUpdate,
@@ -43,8 +54,13 @@ export function GeographicLayerControls({
   onZoom,
   canFit,
   onFit,
+  overlays,
+  overlayStatuses,
+  canChangeOverlays,
+  onOverlayVisibility,
+  onAddLayer,
 }: GeographicLayerControlsProps) {
-  const { t } = useI18n();
+  const { t, formatNumber } = useI18n();
   const [layersOpen, setLayersOpen] = useState(false);
   const [draggedLayerId, setDraggedLayerId] = useState<GeographicLayerId | null>(null);
   const [dropTargetLayerId, setDropTargetLayerId] = useState<GeographicLayerId | null>(null);
@@ -214,6 +230,53 @@ export function GeographicLayerControls({
                 </li>
               );
             })}
+            {[...overlays]
+              .sort((left, right) => right.position - left.position)
+              .map((overlay) => {
+                const status = overlayStatuses[overlay.layerId] ?? "loading";
+                const label = t("geographic.layerVisible").replace("{name}", overlay.name);
+                return (
+                  <li
+                    className={`geographic-layer-row geographic-overlay-row${overlay.visible ? " geographic-layer-enabled" : ""}`}
+                    key={overlay.layerId}
+                    data-testid={`geographic-overlay-${overlay.layerId}`}
+                    data-overlay-status={status}
+                  >
+                    <span className="geographic-layer-placeholder" />
+                    <button
+                      type="button"
+                      className="geographic-layer-visible"
+                      disabled={!canChangeOverlays}
+                      aria-pressed={overlay.visible}
+                      aria-label={label}
+                      title={label}
+                      data-testid={`geographic-overlay-visible-${overlay.layerId}`}
+                      onClick={() => onOverlayVisibility(overlay.layerId, !overlay.visible)}
+                    >
+                      {overlay.visible ? <VisibleIcon /> : <HiddenIcon />}
+                    </button>
+                    <span className="geographic-layer-name" title={overlay.name}>
+                      {overlay.name}
+                    </span>
+                    <span
+                      className="geographic-overlay-meta"
+                      data-testid={`geographic-overlay-meta-${overlay.layerId}`}
+                    >
+                      {status === "ready"
+                        ? t("geographic.overlayFeatureCount").replace("{count}", formatNumber(overlay.featureCount))
+                        : t(status === "loading" ? "geographic.overlayLoading" : "geographic.overlayUnavailable")}
+                    </span>
+                  </li>
+                );
+              })}
+            {onAddLayer ? (
+              <li className="geographic-layer-add">
+                <button type="button" data-testid="geographic-add-layer" onClick={onAddLayer}>
+                  <AddIcon />
+                  {t("geographic.addLayer")}
+                </button>
+              </li>
+            ) : null}
           </ul>
         ) : null}
       </div>

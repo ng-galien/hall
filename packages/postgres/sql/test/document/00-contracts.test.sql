@@ -61,9 +61,10 @@ SELECT set_eq(
     ('geographic_resource_id'),
     ('event_resource_id'),
     ('document_resource_id'),
-    ('legal_reference_resource_id')
+    ('legal_reference_resource_id'),
+    ('geographic_layer_resource_id')
   $$,
-  'resource exposes exactly the eight technical union references'
+  'resource exposes exactly the nine technical union references'
 );
 
 SELECT hasnt_column('hall', 'resource', 'kind', 'resource nature is derived from the XOR');

@@ -1,4 +1,10 @@
-import type { GeographicColor, GeographicLayer, GeographicResourceData, HallGeoJsonFeatureKind } from "@hall/domain";
+import type {
+  GeographicColor,
+  GeographicLayer,
+  GeographicResourceData,
+  GeographicView,
+  HallGeoJsonFeatureKind,
+} from "@hall/domain";
 import { defaults as defaultControls } from "ol/control/defaults";
 import type Feature from "ol/Feature";
 import type Geometry from "ol/geom/Geometry";
@@ -37,6 +43,8 @@ interface GeographicMapRuntimeOptions {
   onDrawTool(tool: GeographicDrawTool): void;
   onSelection(featureId: string | null): void;
   onFeatureCreated(featureId: string): void;
+  /** Receives the displayed centre and zoom after each move; the view is never written into the draft. */
+  onViewChange(view: GeographicView): void;
 }
 
 const OWN_ESCAPE_SELECTOR =
@@ -49,6 +57,7 @@ function escapeBelongsToTarget(target: EventTarget | null): boolean {
 }
 
 // @implements-requirement HALL-FR-DOC-300
+// @implements-requirement HALL-FR-WSP-350
 /** Owns OpenLayers lifecycle and translates map interactions into geographic draft mutations. */
 export function useGeographicMapRuntime({
   data,
@@ -63,7 +72,10 @@ export function useGeographicMapRuntime({
   onDrawTool,
   onSelection,
   onFeatureCreated,
+  onViewChange,
 }: GeographicMapRuntimeOptions) {
+  const onViewChangeRef = useRef(onViewChange);
+  onViewChangeRef.current = onViewChange;
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<OlMap | null>(null);
   const vectorSourceRef = useRef<VectorSource<Feature<Geometry>> | null>(null);
@@ -72,6 +84,7 @@ export function useGeographicMapRuntime({
   const modifyRef = useRef<Modify | null>(null);
   const tileLayersRef = useRef(createGeographicTileLayers([]).byId);
   const [selectedFeature, setSelectedFeature] = useState<Feature<Geometry> | null>(null);
+  const [openLayersMap, setOpenLayersMap] = useState<OlMap | null>(null);
 
   const clearSelection = useCallback(() => {
     selectRef.current?.getFeatures().clear();
@@ -127,12 +140,14 @@ export function useGeographicMapRuntime({
       const projectedCenter = view.getCenter();
       if (!projectedCenter) return;
       const position = toLonLat(projectedCenter);
-      updateDraft((current) => ({
-        ...current,
-        view: { kind: "center", center: [position[0], position[1]], zoom: view.getZoom() ?? current.view.zoom },
-      }));
+      onViewChangeRef.current({
+        kind: "center",
+        center: [position[0], position[1]],
+        zoom: view.getZoom() ?? data.view.zoom,
+      });
     });
     mapRef.current = map;
+    setOpenLayersMap(map);
     vectorSourceRef.current = vectorSource;
     vectorLayerRef.current = vectorLayer;
     selectRef.current = select;
@@ -156,13 +171,14 @@ export function useGeographicMapRuntime({
       resizeObserver?.disconnect();
       map.setTarget(undefined);
       mapRef.current = null;
+      setOpenLayersMap(null);
       vectorSourceRef.current = null;
       vectorLayerRef.current = null;
       selectRef.current = null;
       modifyRef.current = null;
       tileLayersRef.current = createGeographicTileLayers([]).byId;
     };
-  }, [data.hallLayer, data.layers, data.view, embedded, featureKindLabels, onSelection, syncHallLayer, updateDraft]);
+  }, [data.hallLayer, data.layers, data.view, embedded, featureKindLabels, onSelection, syncHallLayer]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -302,6 +318,7 @@ export function useGeographicMapRuntime({
 
   return {
     mapElementRef,
+    map: openLayersMap,
     selectedFeatureId: selectedFeature ? String(selectedFeature.getId()) : null,
     selectFeature,
     deleteSelected,

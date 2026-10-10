@@ -71,6 +71,51 @@ CREATE TABLE hall.legal_reference_resource (
   version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "legal_reference_resource_version_check" CHECK (version > 0)
 );
 
+-- @implements-requirement HALL-FR-DOC-310
+-- @implements-requirement HALL-FR-DOC-320
+CREATE TABLE hall.geographic_layer_resource (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source JSONB NOT NULL CONSTRAINT "geographic_layer_resource_source_check" CHECK (COALESCE(jsonb_typeof(source) = 'object'::text AND (source ->> 'format'::text) = 'geojson'::text AND (source ->> 'fileName'::text) <> ''::text AND (source ->> 'contentSha256'::text) ~ '^[0-9a-f]{64}$'::text AND jsonb_typeof(source -> 'byteSize'::text) = 'number'::text AND jsonb_typeof(source -> 'importedAt'::text) = 'string'::text, false)),
+  feature_count INTEGER NOT NULL CONSTRAINT "geographic_layer_resource_feature_count_check" CHECK (feature_count >= 1 AND feature_count <= 20000),
+  extent BOX NOT NULL CONSTRAINT "geographic_layer_resource_extent_check" CHECK (extent <@ '(180,90),(-180,-90)'::box),
+  version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "geographic_layer_resource_version_check" CHECK (version > 0)
+);
+
+COMMENT ON TABLE hall.geographic_layer_resource IS
+  'One reusable geographic dataset. Its features are stored one per row in hall.geographic_layer_feature.';
+
+-- @implements-requirement HALL-FR-DOC-310
+-- @implements-requirement HALL-TR-DOC-080
+CREATE TABLE hall.geographic_layer_feature (
+  geographic_layer_resource_id UUID NOT NULL REFERENCES hall.geographic_layer_resource(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL CONSTRAINT "geographic_layer_feature_position_check" CHECK (("position" >= 0)),
+  source_id TEXT,
+  geometry JSONB NOT NULL CONSTRAINT "geographic_layer_feature_geometry_check" CHECK (COALESCE(((geometry ->> 'type'::text) = ANY (ARRAY['Point'::text, 'MultiPoint'::text, 'LineString'::text, 'MultiLineString'::text, 'Polygon'::text, 'MultiPolygon'::text])) AND jsonb_typeof(geometry -> 'coordinates'::text) = 'array'::text, false)),
+  properties JSONB NOT NULL CONSTRAINT "geographic_layer_feature_properties_check" CHECK (jsonb_typeof(properties) = ANY (ARRAY['object'::text, 'null'::text])),
+  extent BOX NOT NULL CONSTRAINT "geographic_layer_feature_extent_check" CHECK (extent <@ '(180,90),(-180,-90)'::box),
+  PRIMARY KEY (geographic_layer_resource_id, position)
+);
+
+COMMENT ON TABLE hall.geographic_layer_feature IS
+  'One GeoJSON feature of a geographic layer: WGS84 geometry, properties as received and a box extent.';
+
+-- @implements-requirement HALL-TR-DOC-080
+CREATE INDEX geographic_layer_feature_extent_idx ON hall.geographic_layer_feature USING gist (extent);
+
+-- @implements-requirement HALL-FR-DOC-330
+CREATE TABLE hall.geographic_map_overlay (
+  geographic_resource_id UUID NOT NULL REFERENCES hall.geographic_resource(id) ON DELETE CASCADE,
+  geographic_layer_resource_id UUID NOT NULL REFERENCES hall.geographic_layer_resource(id) ON DELETE RESTRICT,
+  position INTEGER NOT NULL CONSTRAINT "geographic_map_overlay_position_check" CHECK (("position" >= 0)),
+  visible BOOLEAN NOT NULL DEFAULT true,
+  opacity NUMERIC(3,2) NOT NULL DEFAULT 1 CONSTRAINT "geographic_map_overlay_opacity_check" CHECK (opacity > 0::numeric AND opacity <= 1::numeric),
+  PRIMARY KEY (geographic_resource_id, geographic_layer_resource_id),
+  CONSTRAINT geographic_map_overlay_position_unique UNIQUE (geographic_resource_id, position)
+);
+
+COMMENT ON TABLE hall.geographic_map_overlay IS
+  'Structural link from a map to a geographic layer, with the visibility, opacity and rank saved in the map.';
+
 -- @requirement-reference HALL-FR-DOC-080 BINARY_CONTENT_IS_SEPARATE:
 CREATE TABLE hall.document_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -127,13 +172,15 @@ END
   is_folder BOOLEAN GENERATED ALWAYS AS ((folder_resource_id IS NOT NULL)) STORED,
   container_path TEXT GENERATED ALWAYS AS (NULLIF(path, ''::text)) STORED,
   container_is_folder BOOLEAN GENERATED ALWAYS AS (true) STORED,
+  -- Appended after the generated columns so an upgraded table keeps the same column order.
+  geographic_layer_resource_id UUID UNIQUE REFERENCES hall.geographic_layer_resource(id) ON DELETE RESTRICT,
 
   CONSTRAINT "resource_path_shape" CHECK (hall.is_normalized_resource_path(path)),
   CONSTRAINT "resource_name_shape" CHECK (hall.is_valid_resource_name(name)),
   CONSTRAINT "resource_slug_shape" CHECK (hall.is_valid_resource_slug(slug)),
   CONSTRAINT resource_slug_unique UNIQUE (slug),
-  CONSTRAINT "resource_one_nature" CHECK (num_nonnulls(folder_resource_id, text_resource_id, remote_resource_id, spreadsheet_resource_id, geographic_resource_id, event_resource_id, document_resource_id, legal_reference_resource_id) = 1),
-  CONSTRAINT "resource_identity_matches_nature" CHECK (id = COALESCE(folder_resource_id, text_resource_id, remote_resource_id, spreadsheet_resource_id, geographic_resource_id, event_resource_id, document_resource_id, legal_reference_resource_id)),
+  CONSTRAINT "resource_one_nature" CHECK (num_nonnulls(folder_resource_id, text_resource_id, remote_resource_id, spreadsheet_resource_id, geographic_resource_id, event_resource_id, document_resource_id, legal_reference_resource_id, geographic_layer_resource_id) = 1),
+  CONSTRAINT "resource_identity_matches_nature" CHECK (id = COALESCE(folder_resource_id, text_resource_id, remote_resource_id, spreadsheet_resource_id, geographic_resource_id, event_resource_id, document_resource_id, legal_reference_resource_id, geographic_layer_resource_id)),
   CONSTRAINT resource_location_unique UNIQUE (full_path) DEFERRABLE INITIALLY IMMEDIATE,
   CONSTRAINT resource_folder_target UNIQUE (full_path, is_folder),
   CONSTRAINT resource_container_is_folder FOREIGN KEY (container_path, container_is_folder)

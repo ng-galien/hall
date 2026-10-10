@@ -31,6 +31,7 @@ import { createCouncilMeetingsRouter } from "./routes/councilMeetingsRoutes.js";
 import { createCouncilMembersRouter } from "./routes/councilMembersRoutes.js";
 import { createCouncilTermsRouter } from "./routes/councilTermsRoutes.js";
 import { createDocumentaryResourcesRouter } from "./routes/documentaryResourcesRoutes.js";
+import { createGeographicLayersRouter } from "./routes/geographicLayersRoutes.js";
 import { createMeetingNoticesRouter } from "./routes/meetingNoticesRoutes.js";
 import { createMinutesRouter } from "./routes/minutesRoutes.js";
 import { createSettingsRouter } from "./routes/settingsRoutes.js";
@@ -95,6 +96,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api/meeting-notices", createMeetingNoticesRouter(container.cradle));
   app.use("/api/minutes", createMinutesRouter(container.cradle));
   app.use("/api/council-decisions", createCouncilDecisionsRouter(container.cradle));
+  app.use("/api/resources", createGeographicLayersRouter(container.cradle));
   app.use("/api/resources", createDocumentaryResourcesRouter(container.cradle));
   app.use("/api/templates", createContentTemplatesRouter(container.cradle));
   app.use("/api/settings", createSettingsRouter(container.cradle));

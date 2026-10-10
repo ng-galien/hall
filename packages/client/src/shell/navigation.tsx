@@ -7,6 +7,7 @@ import {
   DecisionsIcon,
   GavelIcon,
   HomeIcon,
+  MapIcon,
   MembersIcon,
   MinutesIcon,
 } from "../components/icons";
@@ -40,6 +41,8 @@ export const navigationSections: NavigationSection[] = [
         labelKey: "navigation.decisions",
         icon: <DecisionsIcon />,
       },
+      // @implements-requirement HALL-FR-WSP-310
+      { to: "/maps", labelKey: "navigation.maps", icon: <MapIcon /> },
     ],
   },
   {

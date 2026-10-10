@@ -10,6 +10,7 @@ export const resourceKinds = [
   "event",
   "document",
   "legalReference",
+  "geographicLayer",
 ] as const;
 
 export const resourceKindSchema = z.enum(resourceKinds);
@@ -240,6 +241,93 @@ export const geographicDocumentSchema = z
   })
   .strict();
 
+// @implements-requirement HALL-FR-DOC-320
+export const GEOGRAPHIC_LAYER_MAX_FILE_BYTES = 20 * 1024 * 1024;
+export const GEOGRAPHIC_LAYER_MAX_FEATURES = 20_000;
+export const geographicLayerGeometryTypes = [
+  "Point",
+  "MultiPoint",
+  "LineString",
+  "MultiLineString",
+  "Polygon",
+  "MultiPolygon",
+] as const;
+export const geographicLayerGeometryTypeSchema = z.enum(geographicLayerGeometryTypes);
+export const geographicExtentSchema = z
+  .tuple([longitudeSchema, latitudeSchema, longitudeSchema, latitudeSchema])
+  .refine(([west, south, east, north]) => west <= east && south <= north, "Invalid geographic extent");
+// @implements-requirement HALL-FR-DOC-310
+export const geographicLayerSourceSchema = z
+  .object({
+    format: z.literal("geojson"),
+    fileName: z.string().trim().min(1),
+    byteSize: z.number().int().nonnegative().max(GEOGRAPHIC_LAYER_MAX_FILE_BYTES),
+    contentSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    importedAt: z.iso.datetime({ offset: true }),
+  })
+  .strict();
+// The features read model is checked for its envelope and geometry type; coordinates were validated at import.
+export const geographicLayerFeatureCollectionSchema = z
+  .object({
+    type: z.literal("FeatureCollection"),
+    features: z
+      .array(
+        z
+          .object({
+            type: z.literal("Feature"),
+            id: z.number().int().nonnegative(),
+            sourceId: z.string().nullable(),
+            geometry: z.object({ type: geographicLayerGeometryTypeSchema, coordinates: z.array(z.unknown()) }).strict(),
+            properties: z.record(z.string(), z.unknown()).nullable(),
+          })
+          .strict(),
+      )
+      .max(GEOGRAPHIC_LAYER_MAX_FEATURES),
+  })
+  .strict();
+// @implements-requirement HALL-FR-DOC-330
+export const geographicMapOverlaySchema = z
+  .object({
+    layerId: z.string().uuid(),
+    slug: z.string().min(1),
+    name: z.string().trim().min(1),
+    featureCount: z.number().int().positive(),
+    version: z.number().int().positive(),
+    position: z.number().int().nonnegative(),
+    visible: z.boolean(),
+    opacity: z.number().gt(0).max(1),
+  })
+  .strict();
+export const linkGeographicLayerSchema = z
+  .object({
+    layerId: z.string().uuid(),
+    visible: z.boolean(),
+    opacity: z.number().gt(0).max(1).optional(),
+  })
+  .strict();
+export const unlinkGeographicLayerSchema = z.object({ layerId: z.string().uuid() }).strict();
+// @implements-requirement HALL-FR-DOC-320
+export const geographicLayerImportIssueSchema = z
+  .object({
+    featureIndex: z.number().int().nonnegative().nullable(),
+    code: z.enum([
+      "invalidJson",
+      "notFeatureCollection",
+      "unsupportedCrs",
+      "tooManyFeatures",
+      "noFeatures",
+      "invalidFeature",
+      "unsupportedGeometry",
+      "invalidCoordinates",
+      "coordinatesOutOfRange",
+      "lineTooShort",
+      "ringTooShort",
+      "ringNotClosed",
+    ]),
+    path: z.string(),
+  })
+  .strict();
+
 export const legalReferenceSnapshotSchema = z
   .object({
     id: resourceIdSchema,
@@ -369,6 +457,7 @@ const eventResourceSummarySchema = resourcePresentationSchema.extend({
   autosaveEnabled: z.boolean(),
 });
 const legalReferenceResourceSummarySchema = resourcePresentationSchema.extend({ kind: z.literal("legalReference") });
+const geographicLayerResourceSummarySchema = resourcePresentationSchema.extend({ kind: z.literal("geographicLayer") });
 const documentResourceSummarySchema = resourcePresentationSchema.extend({
   kind: z.literal("document"),
   binary: binarySummarySchema,
@@ -383,6 +472,7 @@ export const resourceSummarySchema = z.discriminatedUnion("kind", [
   eventResourceSummarySchema,
   legalReferenceResourceSummarySchema,
   documentResourceSummarySchema,
+  geographicLayerResourceSummarySchema,
 ]);
 export const resourceCatalogSchema = z.array(resourceCatalogEntrySchema);
 
@@ -400,6 +490,7 @@ export const resourceDetailSchema = z.discriminatedUnion("kind", [
   geographicResourceSummarySchema.extend({
     document: geographicDocumentSchema,
     version: versionSchema,
+    overlays: z.array(geographicMapOverlaySchema).default([]),
   }),
   eventResourceSummarySchema.extend({ document: eventDocumentSchema, version: versionSchema }),
   legalReferenceResourceSummarySchema.extend({
@@ -407,6 +498,12 @@ export const resourceDetailSchema = z.discriminatedUnion("kind", [
     version: versionSchema,
   }),
   documentResourceSummarySchema,
+  geographicLayerResourceSummarySchema.extend({
+    featureCount: z.number().int().positive().max(GEOGRAPHIC_LAYER_MAX_FEATURES),
+    extent: geographicExtentSchema,
+    source: geographicLayerSourceSchema,
+    version: versionSchema,
+  }),
 ]);
 
 const createResourceBaseSchema = z.object({ path: resourcePathSchema, name: resourceNameSchema }).strict();
@@ -499,6 +596,11 @@ export type EditorAsset = z.infer<typeof editorAssetSchema>;
 export type LegalReferenceSearchInput = z.infer<typeof legalReferenceSearchInputSchema>;
 export type LegalReferenceSearchResult = z.infer<typeof legalReferenceSearchResultSchema>;
 export type ResolveLegalReference = z.infer<typeof resolveLegalReferenceSchema>;
+export type GeographicMapOverlay = z.infer<typeof geographicMapOverlaySchema>;
+export type GeographicLayerFeatureCollection = z.infer<typeof geographicLayerFeatureCollectionSchema>;
+export type GeographicLayerImportIssue = z.infer<typeof geographicLayerImportIssueSchema>;
+export type LinkGeographicLayer = z.infer<typeof linkGeographicLayerSchema>;
+export type UnlinkGeographicLayer = z.infer<typeof unlinkGeographicLayerSchema>;
 
 export type { EventDocument, EventSchedule } from "@hall/contracts";
 export { eventDocumentSchema } from "@hall/contracts";

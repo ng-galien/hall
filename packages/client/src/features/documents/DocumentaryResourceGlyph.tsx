@@ -47,6 +47,7 @@ export function documentaryResourceTone(resource: DocumentaryLeafSummary): Resou
     geographic: () => "geographic" as const,
     event: () => "event" as const,
     legalReference: () => "legalReference" as const,
+    geographicLayer: () => "geographicLayer" as const,
     document: (entry) => documentTone(entry.binary.mediaType),
   });
 }
@@ -63,6 +64,7 @@ export function documentaryResourceDate(resource: DocumentaryLeafSummary): {
     remote: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
     spreadsheet: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
     legalReference: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
+    geographicLayer: (entry) => ({ kind: "created" as const, value: entry.createdAt }),
   });
 }
 

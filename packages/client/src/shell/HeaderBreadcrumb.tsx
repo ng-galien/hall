@@ -7,6 +7,7 @@ import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { useUsersStore } from "../stores/usersStore";
+import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 
 /** Global header breadcrumb derived from the current route. */
 export function HeaderBreadcrumb() {
@@ -17,6 +18,7 @@ export function HeaderBreadcrumb() {
   const contacts = useContactsStore((state) => state.contacts);
   const users = useUsersStore((state) => state.users);
   const committees = useCouncilCommitteesStore((state) => state.committees);
+  const resourceSummaries = useWorkspaceResourcesStore((state) => state.summaries);
 
   const items: BreadcrumbItem[] = [{ label: t("app.name"), to: "/" }];
   const segments = location.pathname.split("/").filter(Boolean);
@@ -36,6 +38,10 @@ export function HeaderBreadcrumb() {
     }
   } else if (segments[0] === "council-decisions") {
     items.push({ label: t("navigation.decisions"), to: "/council-decisions" });
+  } else if (segments[0] === "maps") {
+    items.push({ label: t("navigation.maps"), to: "/maps" });
+    const map = segments[1] ? resourceSummaries[segments[1]] : undefined;
+    if (map) items.push({ label: map.name });
   } else if (segments[0] === "minutes") {
     items.push({ label: t("navigation.minutes"), to: "/minutes" });
   } else if (segments[0] === "council-members") {

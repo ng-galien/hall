@@ -41,6 +41,7 @@ function resourcePresentationPolicy(resource: ResourcePresentationSource): Resou
       preferred: "legal-citation" as const,
       compatibility: { ...noPresentationCompatibility, "legal-citation": true },
     }),
+    geographicLayer: () => ({ preferred: null, compatibility: noPresentationCompatibility }),
     document: (entry) => {
       const isImage = entry.mediaType === "image/jpeg" || entry.mediaType === "image/png";
       return {

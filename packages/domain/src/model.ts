@@ -346,6 +346,14 @@ export interface GeographicResource extends ResourceBase {
   version: number;
 }
 
+/** A reusable geographic dataset whose features are stored outside the resource detail. */
+// @implements-requirement HALL-FR-DOC-310
+export interface GeographicLayerResource extends ResourceBase {
+  kind: "geographicLayer";
+  featureCount: number;
+  version: number;
+}
+
 export interface GeographicResourceData {
   view: GeographicView;
   layers: GeographicLayer[];
@@ -481,7 +489,8 @@ export type Resource =
   | DocumentResource
   | RemoteResource
   | GeographicResource
-  | LegalReferenceResource;
+  | LegalReferenceResource
+  | GeographicLayerResource;
 
 export type ResourceKind = Resource["kind"];
 
@@ -492,6 +501,7 @@ export const resourceKinds = defineExhaustiveLiterals<ResourceKind>()([
   "remote",
   "geographic",
   "legalReference",
+  "geographicLayer",
 ] as const);
 
 export interface AgendaItem {

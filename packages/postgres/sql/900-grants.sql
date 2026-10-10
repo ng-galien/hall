@@ -115,6 +115,19 @@ GRANT EXECUTE ON FUNCTION hall_api.create_legal_reference_resource(TEXT, TEXT, J
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.create_document_resource(TEXT, TEXT, TEXT, BYTEA)
   TO hall_api_authenticated, hall_api_worker;
+-- @implements-requirement HALL-FR-DOC-310
+GRANT EXECUTE ON FUNCTION hall_api.create_geographic_layer_resource(TEXT, TEXT, JSONB, JSONB)
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.list_geographic_layer_resources()
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.geographic_layer_features(UUID)
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.present_geographic_layer_collection(JSONB)
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.set_geographic_map_overlay(UUID, UUID, BOOLEAN, NUMERIC)
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.remove_geographic_map_overlay(UUID, UUID)
+  TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.create_editor_asset(UUID, TEXT, TEXT, TEXT, BYTEA)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.rename_resource(UUID, TEXT)

@@ -18,6 +18,7 @@ AS $function$
     WHEN target.event_resource_id IS NOT NULL THEN 'event'
     WHEN target.document_resource_id IS NOT NULL THEN 'document'
     WHEN target.legal_reference_resource_id IS NOT NULL THEN 'legalReference'
+    WHEN target.geographic_layer_resource_id IS NOT NULL THEN 'geographicLayer'
   END
 $function$;
 
@@ -43,9 +44,27 @@ $function$;
 -- @requirement-reference HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
 -- The view is the sole set-based read model for list presentation. Its joins
 -- are evaluated once per batch; neither SQL nor the HTTP edge opens resources
--- one by one.
+-- one by one. The resource columns are listed explicitly so that a column
+-- appended to hall.resource does not change the view's column list.
 CREATE VIEW hall.resource_read_model AS
-SELECT resource.*,
+SELECT resource.id,
+       resource.path,
+       resource.name,
+       resource.slug,
+       resource.created_at,
+       resource.updated_at,
+       resource.folder_resource_id,
+       resource.text_resource_id,
+       resource.remote_resource_id,
+       resource.spreadsheet_resource_id,
+       resource.event_resource_id,
+       resource.geographic_resource_id,
+       resource.document_resource_id,
+       resource.legal_reference_resource_id,
+       resource.full_path,
+       resource.is_folder,
+       resource.container_path,
+       resource.container_is_folder,
        hall.resource_kind(resource) AS kind,
        coalesce(tags.values, '[]'::jsonb) AS tags,
        CASE
@@ -191,6 +210,48 @@ BEGIN
 END
 $function$;
 
+-- @implements-requirement HALL-FR-DOC-310
+-- A box is projected as [west, south, east, north] in WGS84 degrees.
+CREATE FUNCTION hall.geographic_extent_bounds(extent BOX)
+RETURNS JSONB
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+SET search_path = pg_catalog
+AS $function$
+  SELECT jsonb_build_array((extent[1])[0], (extent[1])[1], (extent[0])[0], (extent[0])[1])
+$function$;
+
+-- @implements-requirement HALL-FR-DOC-330
+CREATE FUNCTION hall.geographic_map_overlays(map_id UUID)
+RETURNS JSONB
+LANGUAGE sql
+STABLE
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'layerId', layer_resource.id,
+        'slug', layer_resource.slug,
+        'name', layer_resource.name,
+        'featureCount', layer.feature_count,
+        'version', layer.version,
+        'position', overlay.position,
+        'visible', overlay.visible,
+        'opacity', overlay.opacity
+      )
+      ORDER BY overlay.position
+    ),
+    '[]'::jsonb
+  )
+  FROM hall.geographic_map_overlay AS overlay
+  JOIN hall.geographic_layer_resource AS layer ON layer.id = overlay.geographic_layer_resource_id
+  JOIN hall.resource AS layer_resource ON layer_resource.geographic_layer_resource_id = layer.id
+  WHERE overlay.geographic_resource_id = map_id
+$function$;
+
 CREATE FUNCTION hall.resource_detail(resource_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -237,10 +298,27 @@ BEGIN
       WHERE spreadsheet_resource.id = target.spreadsheet_resource_id
     );
   ELSIF target.geographic_resource_id IS NOT NULL THEN
+    -- @implements-requirement HALL-FR-DOC-330
     RETURN detail || (
-      SELECT jsonb_build_object('document', geographic_resource.document, 'version', geographic_resource.version)
+      SELECT jsonb_build_object(
+        'document', geographic_resource.document,
+        'version', geographic_resource.version,
+        'overlays', hall.geographic_map_overlays(geographic_resource.id)
+      )
       FROM hall.geographic_resource
       WHERE geographic_resource.id = target.geographic_resource_id
+    );
+  ELSIF target.geographic_layer_resource_id IS NOT NULL THEN
+    -- @implements-requirement HALL-FR-DOC-310
+    RETURN detail || (
+      SELECT jsonb_build_object(
+        'featureCount', layer.feature_count,
+        'extent', hall.geographic_extent_bounds(layer.extent),
+        'source', layer.source,
+        'version', layer.version
+      )
+      FROM hall.geographic_layer_resource AS layer
+      WHERE layer.id = target.geographic_layer_resource_id
     );
   ELSIF target.event_resource_id IS NOT NULL THEN
     RETURN detail || (

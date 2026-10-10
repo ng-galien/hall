@@ -96,6 +96,8 @@ export class ApiError extends Error {
   constructor(
     readonly code: ApiErrorCode,
     readonly status: number,
+    /** Detailed problem entries (`errors` member of the problem document) when the server provides them. */
+    readonly problemErrors: readonly unknown[] = [],
   ) {
     super(code);
     this.name = "ApiError";
@@ -222,7 +224,7 @@ export async function apiResponse(path: string, init?: RequestInit): Promise<Res
     throw new ApiError("network_unavailable", 0);
   }
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { code?: string } | null;
+    const payload = (await response.json().catch(() => null)) as { code?: string; errors?: unknown } | null;
     const code =
       payload?.code && apiErrorCodes.has(payload.code as ApiErrorCode)
         ? (payload.code as ApiErrorCode)
@@ -231,7 +233,7 @@ export async function apiResponse(path: string, init?: RequestInit): Promise<Res
       representations.clear();
       window.dispatchEvent(new Event(AUTHENTICATION_REQUIRED_EVENT));
     }
-    throw new ApiError(code, response.status);
+    throw new ApiError(code, response.status, Array.isArray(payload?.errors) ? payload.errors : []);
   }
   return response;
 }

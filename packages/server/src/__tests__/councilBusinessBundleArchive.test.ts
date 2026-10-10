@@ -103,6 +103,7 @@ describe("council business bundle archive", () => {
         openEditorAsset: async () => null,
         readEditorAssetContent: async () => null,
       },
+      geographicLayersClient: { readFeatures: async () => null },
     });
     const exported = decodeCouncilBusinessBundle(
       await service.export(input.manifest.business.sourceId, input.manifest.sender),
@@ -111,6 +112,61 @@ describe("council business bundle archive", () => {
     expect(exported.manifest.resources).toEqual([input.manifest.resources[1], input.manifest.resources[0]]);
     missingAssociation = true;
     await expect(service.export(input.manifest.business.sourceId, input.manifest.sender)).rejects.toThrow();
+  });
+
+  // @verifies-requirement HALL-FR-DOC-330
+  it("imports a map exported before layers existed and refuses a map linked to a layer the bundle does not carry", () => {
+    const input = fixture();
+    const report = input.manifest.resources[0]!.data;
+    const mapId = randomUUID();
+    const mapWithoutOverlays = {
+      ...report,
+      id: mapId,
+      kind: "geographic",
+      slug: "perimetre",
+      name: "Périmètre",
+      fullPath: "Eau/Périmètre",
+      content: undefined,
+      document: {
+        view: { kind: "center", center: [4.50, 47.53], zoom: 14 },
+        layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
+        hallLayer: { type: "FeatureCollection", features: [] },
+        provenance: {
+          attribution: "IGN",
+          license: "Licence Ouverte 2.0",
+          metadataUrl: "https://geoservices.ign.fr/",
+          configuredAt: "2026-09-10T10:00:00Z",
+          sourceUpdatedAt: null,
+        },
+      },
+    };
+    const legacy = changeEnvelope(encodeCouncilBusinessBundle(input), (value) => {
+      (value.manifest.resources as unknown[]).push({ data: mapWithoutOverlays });
+    });
+    const decoded = decodeCouncilBusinessBundle(legacy);
+    const map = decoded.manifest.resources.find(({ data }) => data.id === mapId)?.data;
+    expect(map?.kind === "geographic" && map.overlays).toEqual([]);
+
+    const dangling = changeEnvelope(encodeCouncilBusinessBundle(input), (value) => {
+      (value.manifest.resources as unknown[]).push({
+        data: {
+          ...mapWithoutOverlays,
+          overlays: [
+            {
+              layerId: randomUUID(),
+              slug: "parcelles",
+              name: "Parcelles",
+              featureCount: 3,
+              version: 1,
+              position: 0,
+              visible: true,
+              opacity: 1,
+            },
+          ],
+        },
+      });
+    });
+    expect(() => decodeCouncilBusinessBundle(dangling)).toThrow("Map links a layer that the bundle does not carry");
   });
 
   it("round trips source identities, rich text and unchanged binary bytes", () => {

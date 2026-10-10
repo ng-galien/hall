@@ -33,6 +33,7 @@ const CalendarPage = lazy(() =>
 const WorkspacePage = lazy(() =>
   import("./pages/workspace/WorkspacePage").then((module) => ({ default: module.WorkspacePage })),
 );
+const MapsPage = lazy(() => import("./pages/maps/MapsPage").then((module) => ({ default: module.MapsPage })));
 const CouncilDecisionsPage = lazy(() =>
   import("./pages/CouncilDecisionsPage").then((module) => ({ default: module.CouncilDecisionsPage })),
 );
@@ -106,6 +107,8 @@ function AuthenticatedApplication() {
         <Route path="workspace" element={<WorkspacePage />} />
         <Route path="council-decisions" element={<CouncilDecisionsPage />} />
         <Route path="council-decisions/:decisionId" element={<CouncilDecisionDetailPage />} />
+        <Route path="maps" element={<MapsPage />} />
+        <Route path="maps/:resourceId" element={<MapsPage />} />
         <Route path="council-members" element={<CouncilMembersPage />} />
         <Route path="council-members/:memberId" element={<CouncilMemberPage />} />
         <Route path="users" element={<UsersPage />} />
@@ -162,6 +165,7 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
                 geographic: () => "workspace.type.geographic" as const,
                 event: () => "workspace.type.event" as const,
                 legalReference: () => "workspace.type.legalReference" as const,
+                geographicLayer: () => "workspace.type.geographicLayer" as const,
                 document: () => "workspace.type.file" as const,
               }),
             );

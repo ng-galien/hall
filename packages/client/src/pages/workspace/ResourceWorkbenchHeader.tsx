@@ -1,8 +1,9 @@
 import type { ResourceDetail } from "@hall/api-contract";
 import type { RefObject } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { FullscreenIcon, PinIcon, PinnedIcon } from "../../components/icons";
+import { FullscreenIcon, MapIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { TagInput } from "../../components/TagInput";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "../../features/documents/DocumentaryResourceGlyph";
@@ -13,6 +14,7 @@ import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 
+/** @implements-requirement HALL-FR-WSP-340 */
 export function ResourceWorkbenchHeader({
   resource,
   relatedBusinesses,
@@ -55,6 +57,23 @@ export function ResourceWorkbenchHeader({
       onTitleChange={canUpdate ? onTitleChange : undefined}
       actions={
         <>
+          {resource.kind === "geographic" ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild variant="outline" className="resource-open-in-maps">
+                  <Link
+                    data-testid="resource-open-in-maps"
+                    aria-label={t("maps.openInMaps")}
+                    to={`/maps/${encodeURIComponent(resource.id)}`}
+                  >
+                    <MapIcon />
+                    <span className="resource-open-in-maps-label">{t("maps.openInMaps")}</span>
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t("maps.openInMaps")}</TooltipContent>
+            </Tooltip>
+          ) : null}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

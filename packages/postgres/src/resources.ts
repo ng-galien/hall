@@ -16,6 +16,7 @@ export const postgresResourceKinds = [
   "event",
   "document",
   "legalReference",
+  "geographicLayer",
 ] as const;
 
 const resourceKindSchema = z.enum(postgresResourceKinds);
@@ -108,6 +109,7 @@ const eventResourceSummarySchema = resourcePresentationSchema.extend({
   autosaveEnabled: z.boolean(),
 });
 const legalReferenceResourceSummarySchema = resourcePresentationSchema.extend({ kind: z.literal("legalReference") });
+const geographicLayerResourceSummarySchema = resourcePresentationSchema.extend({ kind: z.literal("geographicLayer") });
 const documentResourceSummarySchema = resourcePresentationSchema.extend({
   kind: z.literal("document"),
   binary: binarySummarySchema,
@@ -122,6 +124,7 @@ export const postgresResourceSummarySchema = z.discriminatedUnion("kind", [
   eventResourceSummarySchema,
   legalReferenceResourceSummarySchema,
   documentResourceSummarySchema,
+  geographicLayerResourceSummarySchema,
 ]);
 export const postgresResourceSearchResultSchema = z.object({
   total: z.number().int().nonnegative(),
@@ -144,9 +147,49 @@ const spreadsheetResourceSchema = spreadsheetResourceSummarySchema.extend({
   document: jsonDocumentSchema,
   version: versionSchema,
 });
+// @implements-requirement HALL-FR-DOC-330
+const geographicMapOverlaySchema = z.object({
+  layerId: resourceIdSchema,
+  slug: resourceSlugSchema,
+  name: resourceNameSchema,
+  featureCount: z.number().int().positive(),
+  version: versionSchema,
+  position: z.number().int().nonnegative(),
+  visible: z.boolean(),
+  opacity: z.number().gt(0).max(1),
+});
 const geographicResourceSchema = geographicResourceSummarySchema.extend({
   document: jsonDocumentSchema,
   version: versionSchema,
+  overlays: z.array(geographicMapOverlaySchema),
+});
+// @implements-requirement HALL-FR-DOC-310
+const geographicLayerResourceSchema = geographicLayerResourceSummarySchema.extend({
+  featureCount: z.number().int().positive(),
+  extent: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+  source: z.object({
+    format: z.literal("geojson"),
+    fileName: z.string().trim().min(1),
+    byteSize: z.number().int().nonnegative(),
+    contentSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    importedAt: z.iso.datetime({ offset: true }),
+  }),
+  version: versionSchema,
+});
+const geographicLayerFeatureCollectionSchema = z.object({
+  type: z.literal("FeatureCollection"),
+  features: z.array(
+    z.object({
+      type: z.literal("Feature"),
+      id: z.number().int().nonnegative(),
+      sourceId: z.string().nullable(),
+      geometry: z.object({
+        type: z.enum(["Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon"]),
+        coordinates: z.array(z.unknown()),
+      }),
+      properties: z.record(z.string(), z.unknown()).nullable(),
+    }),
+  ),
 });
 const eventResourceSchema = eventResourceSummarySchema.extend({
   document: eventDocumentSchema,
@@ -167,6 +210,7 @@ export const postgresResourceDetailSchema = z.discriminatedUnion("kind", [
   eventResourceSchema,
   documentResourceSchema,
   legalReferenceResourceSchema,
+  geographicLayerResourceSchema,
 ]);
 
 export const postgresFolderListingSchema = z.object({
@@ -188,6 +232,8 @@ export type PostgresSpreadsheetResource = z.infer<typeof spreadsheetResourceSche
 export type PostgresGeographicResource = z.infer<typeof geographicResourceSchema>;
 export type PostgresLegalReferenceResource = z.infer<typeof legalReferenceResourceSchema>;
 export type PostgresDocumentResource = z.infer<typeof documentResourceSchema>;
+export type PostgresGeographicLayerResource = z.infer<typeof geographicLayerResourceSchema>;
+export type PostgresGeographicLayerFeatureCollection = z.infer<typeof geographicLayerFeatureCollectionSchema>;
 
 export type PostgresResourceRequest = PostgresRequest;
 export type PostgresResourceSearchCriteria = Readonly<{
@@ -219,6 +265,34 @@ const createWorkingResourceInputSchema = createFolderInputSchema.extend({
 const createTextInputSchema = createWorkingResourceInputSchema.extend({ content: z.string() });
 const createRemoteInputSchema = createWorkingResourceInputSchema.extend({ target: remoteResourceTargetSchema });
 const createStructuredInputSchema = createWorkingResourceInputSchema.extend({ document: jsonDocumentSchema });
+// @implements-requirement HALL-FR-DOC-320
+const createGeographicLayerInputSchema = createWorkingResourceInputSchema.extend({
+  source: z.object({
+    format: z.literal("geojson"),
+    fileName: z.string().trim().min(1),
+    byteSize: z.number().int().nonnegative(),
+    contentSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    importedAt: z.iso.datetime({ offset: true }),
+  }),
+  features: z
+    .array(
+      z.object({
+        sourceId: z.string().nullable(),
+        geometry: z.object({ type: z.string(), coordinates: z.array(z.unknown()) }),
+        properties: z.unknown(),
+        bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+      }),
+    )
+    .min(1)
+    .max(20_000),
+  geographicResourceId: resourceIdSchema.optional(),
+});
+const geographicMapOverlayInputSchema = z.object({
+  mapId: resourceIdSchema,
+  layerId: resourceIdSchema,
+  visible: z.boolean(),
+  opacity: z.number().gt(0).max(1).optional(),
+});
 const createDocumentInputSchema = createWorkingResourceInputSchema.extend({
   mediaType: z.string().trim().min(1),
   content: z.instanceof(Buffer),
@@ -263,6 +337,8 @@ type CreateTextInput = z.input<typeof createTextInputSchema>;
 type CreateRemoteInput = z.input<typeof createRemoteInputSchema>;
 type CreateStructuredInput = z.input<typeof createStructuredInputSchema>;
 type CreateDocumentInput = z.input<typeof createDocumentInputSchema>;
+type CreateGeographicLayerInput = z.input<typeof createGeographicLayerInputSchema>;
+type GeographicMapOverlayInput = z.input<typeof geographicMapOverlayInputSchema>;
 type UpdateTextWithAssetsInput = z.input<typeof updateTextWithAssetsInputSchema>;
 type UpdateRemoteInput = z.input<typeof updateRemoteInputSchema>;
 type UpdateStructuredInput = z.input<typeof updateStructuredInputSchema>;
@@ -1097,6 +1173,143 @@ export class PostgresResources {
       throw new ProjectionValidationError("PostgreSQL document byte size exceeds the JavaScript safe integer range");
     }
     return { ...parsed.data, byteSize };
+  }
+
+  // @implements-requirement HALL-FR-DOC-320
+  // @implements-requirement HALL-FR-DOC-330
+  createGeographicLayer(
+    request: PostgresResourceRequest,
+    input: CreateGeographicLayerInput,
+  ): Promise<PostgresPresentedResource<PostgresGeographicLayerResource>> {
+    const parsed = createGeographicLayerInputSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "resource.createGeographicLayer") },
+      async (client) => {
+        const presented = await callJson(client, {
+          text: `SELECT hall_api.present_resource(
+            hall_api.create_geographic_layer_resource($1::text, $2::text, $3::jsonb, $4::jsonb)
+          ) AS payload`,
+          values: [parsed.path, parsed.name, JSON.stringify(parsed.source), JSON.stringify(parsed.features)],
+          schema: presentedResourceSchema(geographicLayerResourceSchema),
+        });
+        if (parsed.councilBusinessId)
+          await client.query("SELECT hall_api.associate_council_business_resource($1::uuid, $2::uuid)", [
+            parsed.councilBusinessId,
+            presented.data.id,
+          ]);
+        await recordAuditEvent(client, {
+          targetType: "resource",
+          targetId: presented.data.id,
+          outcome: "succeeded",
+          details: {
+            fullPath: presented.data.fullPath,
+            featureCount: presented.data.featureCount,
+            ...(parsed.councilBusinessId ? { councilBusinessId: parsed.councilBusinessId } : {}),
+          },
+        });
+        if (parsed.geographicResourceId) {
+          const map = await callJson(client, {
+            text: "SELECT hall_api.set_geographic_map_overlay($1::uuid, $2::uuid, true, NULL) AS payload",
+            values: [parsed.geographicResourceId, presented.data.id],
+            schema: geographicResourceSchema,
+          });
+          await recordAuditEvent(client, {
+            targetType: "resource",
+            targetId: map.id,
+            outcome: "succeeded",
+            details: { fullPath: map.fullPath, linkedGeographicLayerId: presented.data.id, visible: true },
+          });
+        }
+        return presented;
+      },
+    );
+  }
+
+  // @implements-requirement HALL-FR-DOC-310
+  listGeographicLayers(
+    request: PostgresResourceRequest,
+  ): Promise<PostgresPresentedResourceCollection<PostgresGeographicLayerResource>> {
+    return this.readJson(
+      request,
+      "resource.listGeographicLayers",
+      {
+        text: `SELECT hall_api.present_geographic_layer_collection(
+          hall_api.list_geographic_layer_resources()
+        ) AS payload`,
+      },
+      presentedResourceCollectionSchema(geographicLayerResourceSchema),
+    );
+  }
+
+  // @implements-requirement HALL-FR-DOC-310
+  readGeographicLayerFeatures(
+    request: PostgresResourceRequest,
+    id: string,
+  ): Promise<PostgresGeographicLayerFeatureCollection> {
+    return this.readJson(
+      request,
+      "resource.readGeographicLayerFeatures",
+      {
+        text: "SELECT hall_api.geographic_layer_features($1::uuid) AS payload",
+        values: [resourceIdSchema.parse(id)],
+      },
+      geographicLayerFeatureCollectionSchema,
+    );
+  }
+
+  /**
+   * Serves the same FeatureCollection as text produced by PostgreSQL, so the HTTP edge neither parses nor
+   * serializes large layers; every feature row was validated at import and is constrained by CHECKs.
+   */
+  // @implements-requirement HALL-FR-DOC-310
+  readGeographicLayerFeaturesText(request: PostgresResourceRequest, id: string): Promise<string> {
+    return this.readJson(
+      request,
+      "resource.readGeographicLayerFeatures",
+      {
+        text: "SELECT hall_api.geographic_layer_features($1::uuid)::text AS payload",
+        values: [resourceIdSchema.parse(id)],
+      },
+      z.string().startsWith('{"type": "FeatureCollection"'),
+    );
+  }
+
+  // @implements-requirement HALL-FR-DOC-330
+  setGeographicMapOverlay(
+    request: PostgresResourceRequest,
+    input: GeographicMapOverlayInput,
+  ): Promise<PostgresPresentedResource<PostgresGeographicResource>> {
+    const parsed = geographicMapOverlayInputSchema.parse(input);
+    return this.mutateJson(
+      request,
+      "resource.setGeographicMapOverlay",
+      {
+        text: `SELECT hall_api.present_resource(
+          hall_api.set_geographic_map_overlay($1::uuid, $2::uuid, $3::boolean, $4::numeric)
+        ) AS payload`,
+        values: [parsed.mapId, parsed.layerId, parsed.visible, parsed.opacity ?? null],
+      },
+      presentedResourceSchema(geographicResourceSchema),
+    );
+  }
+
+  // @implements-requirement HALL-FR-DOC-330
+  removeGeographicMapOverlay(
+    request: PostgresResourceRequest,
+    mapId: string,
+    layerId: string,
+  ): Promise<PostgresPresentedResource<PostgresGeographicResource>> {
+    return this.mutateJson(
+      request,
+      "resource.removeGeographicMapOverlay",
+      {
+        text: `SELECT hall_api.present_resource(
+          hall_api.remove_geographic_map_overlay($1::uuid, $2::uuid)
+        ) AS payload`,
+        values: [resourceIdSchema.parse(mapId), resourceIdSchema.parse(layerId)],
+      },
+      presentedResourceSchema(geographicResourceSchema),
+    );
   }
 
   delete(request: PostgresResourceRequest, id: string): Promise<PostgresPresentedResource<PostgresResourceSummary>> {

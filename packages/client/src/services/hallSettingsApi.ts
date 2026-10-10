@@ -8,6 +8,12 @@ export async function loadMeetingSettings() {
   return { meetingLocations, timeZone };
 }
 
+/** Reads the commune position recorded in HallSettings, or null when none is recorded. */
+export async function loadCommunePosition() {
+  const result = await apiSirenRequest<unknown>("/settings");
+  return updateHallSettingsSchema.parse(result.data).geographicPosition;
+}
+
 export async function loadHallSettings(): Promise<{
   settings: HallSettings;
   canUpdate: boolean;

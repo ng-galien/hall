@@ -106,6 +106,7 @@ export function createPostgresResourcesClient({
         actorId: context.principal.id,
         contactId: context.principal.contactId,
         roles: context.principal.roles,
+        permissions: context.principal.permissions,
       },
     };
   }

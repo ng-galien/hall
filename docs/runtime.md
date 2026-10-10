@@ -34,6 +34,8 @@ npm run desktop:make
 
 Packaging includes the server runtime, the PostgreSQL binaries for the target platform, and the client application. The application is packaged without an asar archive so that the PostgreSQL executables can run. Signing and publishing are separate release actions.
 
+Local mode verifies the schema fingerprint and does not run the schema upgrade (`packages/server/src/core/localServer.ts` uses `verify-only`). A desktop database created before the geographic layers schema (requirement HALL-TR-DOC-080) is therefore refused at startup and must be recreated. Desktop local mode has no upgrade path yet.
+
 ## Local Alésia production
 
 Local production uses database `hall_private_prod` and serves Hall at `http://localhost:3200/app/`. It is independent from development. Startup never seeds or resets production.

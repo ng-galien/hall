@@ -3353,6 +3353,141 @@
         }
       ]
     },
+    "HALL-FR-DOC-310": {
+      "name": "GEOGRAPHIC_LAYER_IS_A_RESOURCE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Une couche géographique est une ressource de l’espace de travail, distincte des cartes, dont chaque entité est enregistrée séparément en coordonnées WGS84.",
+      "acceptanceCriteria": [
+        "Une couche a la nature de ressource « couche géographique » : elle a un nom, un emplacement dans l’arborescence et un identifiant public comme les autres ressources.",
+        "Chaque entité de la couche est enregistrée dans sa propre ligne avec sa géométrie GeoJSON en longitude et latitude WGS84, ses propriétés telles qu’elles ont été reçues, son rang dans le fichier et son identifiant d’origine lorsqu’il existe.",
+        "Chaque entité porte son emprise rectangulaire, indexée pour une recherche par emprise ; la couche porte son nombre d’entités et son emprise d’ensemble.",
+        "La représentation d’une couche donne son nombre d’entités, son emprise, le nom, la taille et l’empreinte SHA-256 du fichier d’origine, la date d’import et un lien vers ses entités.",
+        "Les entités d’une couche sont servies en une seule réponse GeoJSON accompagnée d’une étiquette de version (ETag) ; une requête qui présente l’étiquette courante reçoit une réponse 304 sans contenu.",
+        "Tout rôle qui peut lire l’espace de travail lit les couches et leurs entités.",
+        "Les entités d’une couche sont servies telles qu’enregistrées, sans simplification ni découpage par emprise ; la limite de 20 000 entités appliquée à l’import borne la taille de cette réponse.",
+        "La réponse compressée (gzip) et la réponse non compressée portent des étiquettes de version distinctes ; le corps de la réponse est préparé sans bloquer le serveur."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-layer-resource",
+          "origin": "product",
+          "statement": "Conserver des données géographiques réutilisables par plusieurs cartes, sans extension spatiale de PostgreSQL.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-320": {
+      "name": "GEOGRAPHIC_LAYER_GEOJSON_IMPORT",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Un utilisateur qui peut écrire dans l’espace de travail crée une couche géographique en téléversant un fichier GeoJSON.",
+      "acceptanceCriteria": [
+        "Le fichier est un objet GeoJSON de type FeatureCollection dont chaque entité a une géométrie de type Point, MultiPoint, LineString, MultiLineString, Polygon ou MultiPolygon.",
+        "Les coordonnées sont lues comme longitude puis latitude en WGS84 ; un fichier sans membre crs est accepté comme WGS84, un membre crs n’est accepté que s’il désigne CRS84 ou EPSG:4326.",
+        "Chaque position a des coordonnées finies, une longitude comprise entre -180 et 180 et une latitude comprise entre -90 et 90 ; une ligne a au moins deux positions ; un anneau de polygone a au moins quatre positions et se referme sur sa première position.",
+        "Le fichier pèse au plus 20 Mo et contient de 1 à 20 000 entités.",
+        "Un fichier refusé ne crée aucune ressource ; la réponse énumère les erreurs trouvées avec le rang de l’entité concernée, et l’écran de téléversement les affiche.",
+        "Les propriétés de chaque entité sont conservées telles qu’elles ont été reçues, y compris les valeurs imbriquées.",
+        "L’import enregistre le nom, la taille et l’empreinte SHA-256 du fichier d’origine et la date d’import."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-layer-geojson-import",
+          "origin": "product",
+          "statement": "Ajouter une couche de données à partir d’un fichier GeoJSON produit par un autre outil (cadastre, zonage, inventaire).",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-330": {
+      "name": "GEOGRAPHIC_MAP_OVERLAYS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Une carte géographique superpose des couches géographiques par un lien enregistré dans la carte, qui porte la visibilité, l’opacité et le rang de chaque couche.",
+      "acceptanceCriteria": [
+        "Un utilisateur qui peut modifier la carte lie une couche à la carte, modifie la visibilité de ce lien ou retire le lien ; la couche elle-même reste inchangée.",
+        "Une couche liée à au moins une carte ne peut pas être supprimée ; l’action de suppression n’est pas proposée tant que le lien existe.",
+        "La suppression d’une carte retire ses liens sans supprimer les couches.",
+        "La représentation d’une carte énumère les couches liées avec leur nom, leur nombre d’entités, leur visibilité, leur opacité et leur rang.",
+        "Une couche nouvellement liée prend le rang suivant le dernier rang de la carte, une opacité de 1 et la visibilité demandée.",
+        "Le fichier d’une affaire exporté contient chaque couche placée dans le dossier de l’affaire ou associée à elle et chaque couche liée à une carte exportée, avec toutes ses entités et la description de son fichier d’origine.",
+        "L’import d’un fichier d’affaire recrée ces couches, puis les liens de chaque carte importée avec la même visibilité, la même opacité et le même ordre.",
+        "Les couches transportées restent dans les limites du fichier d’affaire : 64 Mo de contenus, 128 Mo décompressés et 64 Mo compressés ; chaque couche compte au plus 20 000 entités.",
+        "Un fichier d’affaire produit avant l’arrivée des couches, dont les cartes ne décrivent aucun lien, s’importe avec des cartes sans couche liée."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-map-overlays",
+          "origin": "product",
+          "statement": "Réutiliser une même couche dans plusieurs cartes et enregistrer dans chaque carte ce qu’elle affiche.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-layers-travel-with-business-bundles",
+          "origin": "product",
+          "statement": "Une affaire transférée garde les couches de ses cartes.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-340": {
+      "name": "GEOGRAPHIC_LAYER_DISPLAY_AND_UPLOAD",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Le menu « Couches » d’une carte affiche ses couches liées comme des entrées cochables et donne accès au téléversement d’une nouvelle couche.",
+      "acceptanceCriteria": [
+        "Les couches liées apparaissent dans le menu « Couches » sous les lignes « Dessin » et des fonds IGN, une ligne par couche avec son nom, dans l’ordre des rangs.",
+        "Une couche visible est dessinée au-dessus des fonds et au-dessous du dessin de la carte, avec un style unique et neutre : contour sombre fin, remplissage clair translucide, points en petits disques.",
+        "Pour un utilisateur qui peut modifier la carte, cocher ou décocher une couche enregistre sa visibilité dans la carte ; pour un lecteur, la case reflète la visibilité enregistrée et reste inactive.",
+        "Pour un utilisateur qui peut modifier la carte, le menu propose « Ajouter une couche… », qui ouvre un écran de téléversement : choix du fichier, nom de la couche prérempli avec le nom du fichier, bouton d’envoi, liste des erreurs de validation.",
+        "Une couche téléversée depuis cet écran est créée dans le dossier de la carte, liée à la carte et visible, et s’affiche sans recharger la page.",
+        "Le menu n’affiche pas « Ajouter une couche… » à un lecteur."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-layer-display-and-upload",
+          "origin": "product",
+          "statement": "Afficher et ajouter des couches de données depuis la carte, sans quitter la carte.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-350": {
+      "name": "GEOGRAPHIC_MAP_EDITING_FOLLOWS_WORKSPACE_WRITE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Tout rôle qui dispose du droit d’écriture sur l’espace de travail (administrateur, secrétaire, contributeur) modifie une carte et ses couches liées.",
+      "acceptanceCriteria": [
+        "La représentation d’une carte propose à ces rôles la modification de son contenu, l’import d’une couche, la liaison d’une couche et le retrait d’un lien.",
+        "La liste des couches propose à ces rôles l’import d’une couche.",
+        "Le serveur accepte ces opérations pour tout utilisateur qui dispose du droit d’écriture sur l’espace de travail et les refuse aux autres rôles.",
+        "Le déplacement, le renommage et la suppression d’une carte ou d’une couche suivent la règle commune des ressources documentaires."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-map-editing-workspace-write",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 2026-10-10 (choix C) : les secrétaires et les contributeurs modifient les cartes comme les administrateurs.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-LOC-010": {
       "name": "LOCATION_BELONGS_TO_HALL",
       "nature": "functional",
@@ -5943,6 +6078,29 @@
         }
       ]
     },
+    "HALL-TR-DOC-080": {
+      "name": "GEOGRAPHIC_EXTENTS_ARE_INDEXED_WITHOUT_EXTENSION",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Les emprises des entités géographiques utilisent le type box de PostgreSQL et un index GiST, sans extension spatiale.",
+      "acceptanceCriteria": [
+        "La table des entités porte une colonne d’emprise de type box et un index GiST sur cette colonne.",
+        "Le schéma ne requiert aucune extension PostgreSQL absente des environnements de développement, de test, de production locale et de bureau.",
+        "Les tables de couches et de liens s’ajoutent au schéma installé par la mise à niveau vérifiée de Hall, sans perte de données.",
+        "En mode bureau local, le serveur vérifie seulement l’empreinte du schéma : une base de bureau créée avant les couches est refusée au démarrage et doit être recréée, car ce mode n’a pas de chemin de mise à niveau (limite connue de l’étape 1)."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-extents-without-extension",
+          "origin": "product",
+          "statement": "Garder les couches géographiques compatibles avec toutes les installations PostgreSQL de Hall.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-ERR-010": {
       "name": "DECLARATIVE_CONSTRAINTS_KEEP_NATIVE_SQLSTATE",
       "nature": "technical",
@@ -7515,6 +7673,123 @@
           "key": "truncated-label-full-text",
           "origin": "product",
           "statement": "Lire le titre complet d’un élément dont le libellé est raccourci faute de place.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-310": {
+      "name": "MAPS_ENTRY_AND_ADDRESSES",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "L’entrée « Cartes » du menu principal ouvre les cartes de l’espace de travail en consultation, une carte à la fois, à une adresse qui désigne la carte et la vue.",
+      "acceptanceCriteria": [
+        "L’entrée « Cartes » figure dans le groupe « Conseil municipal » du menu principal, après « Délibérations », pour tout utilisateur qui consulte l’espace de travail.",
+        "L’adresse /maps/<identifiant de la carte> ouvre la carte désignée ; le paramètre view=<longitude>,<latitude>,<zoom> fixe le centre et le zoom de la vue à l’ouverture ; un paramètre view mal formé est ignoré.",
+        "Un déplacement ou un zoom remplace le paramètre view de l’adresse sans ajouter d’entrée à l’historique du navigateur ; l’ouverture d’une autre carte ajoute une entrée à l’historique.",
+        "L’adresse /maps sans carte affiche la vue cadrée sur la position de la commune enregistrée dans les réglages ; sans position enregistrée, la vue est cadrée sur l’emprise des dessins de toutes les cartes."
+      ],
+      "clauses": [
+        {
+          "key": "maps-entry-addresses",
+          "origin": "product",
+          "statement": "Accéder directement aux cartes depuis le menu principal et partager une carte avec sa vue par une adresse.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-320": {
+      "name": "MAPS_SELECTOR_PANEL",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Un panneau repliable, à gauche de la carte dans « Cartes », permet de trouver et d’ouvrir une carte.",
+      "acceptanceCriteria": [
+        "La liste des cartes du panneau provient de la recherche des ressources de nature carte de l’espace de travail.",
+        "Un champ de recherche filtre les cartes par nom et par chemin, sans tenir compte des accents ni des majuscules.",
+        "Le panneau liste les cinq dernières cartes ouvertes dans « Cartes » sur ce navigateur ; cette liste est conservée dans le navigateur et n’est pas enregistrée sur le serveur.",
+        "L’arborescence de l’espace de travail du panneau ne montre que les dossiers qui contiennent une carte à une profondeur quelconque, avec leurs cartes ; un dossier d’affaire porte le titre et l’icône de l’affaire.",
+        "Une bascule remplace l’arborescence par la liste des affaires qui ont au moins une carte associée, chacune avec ses cartes ; une carte associée à plusieurs affaires figure sous chacune d’elles.",
+        "Le panneau se replie pour laisser toute la largeur à la carte et se rouvre par le même bouton ; la carte ouverte est signalée dans chaque liste."
+      ],
+      "clauses": [
+        {
+          "key": "maps-selector-panel",
+          "origin": "product",
+          "statement": "Passer rapidement d’une carte à une autre, par recherche, par carte récente, par dossier ou par affaire.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-330": {
+      "name": "MAPS_CONSULTATION_VIEW",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Dans « Cartes », une carte est affichée en lecture seule et la vue n’est jamais enregistrée dans la carte.",
+      "acceptanceCriteria": [
+        "La carte est affichée par le composant de carte de l’espace de travail, en lecture seule quel que soit le rôle de l’utilisateur.",
+        "Déplacer ou zoomer la carte ne crée aucune version de la carte enregistrée.",
+        "À l’ouverture d’une autre carte, le centre et le zoom sont conservés si au moins un dessin visible de la nouvelle carte est dans la vue courante ; sinon la vue est cadrée sur les dessins visibles de la nouvelle carte ; une carte sans dessin visible s’ouvre sur son cadrage enregistré.",
+        "Un paramètre view présent dans l’adresse prime sur cette règle."
+      ],
+      "clauses": [
+        {
+          "key": "maps-consultation-view",
+          "origin": "product",
+          "statement": "Comparer plusieurs cartes du même secteur sans modifier les cartes consultées.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-340": {
+      "name": "MAPS_CONTEXT_LINKS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "« Cartes » relie la carte ouverte à son dossier, à ses affaires et à sa page de l’espace de travail ; la page d’une carte de l’espace de travail ouvre cette carte dans « Cartes ».",
+      "acceptanceCriteria": [
+        "Au-dessus de la carte, le chemin de son dossier est affiché ; chaque segment ouvre le dossier correspondant dans l’espace de travail.",
+        "Chaque affaire associée à la carte est affichée avec un lien vers l’affaire dans l’espace de travail.",
+        "Un lien « Ouvrir dans l’espace de travail » ouvre la page de la carte dans l’espace de travail.",
+        "L’en-tête d’une carte dans l’espace de travail propose « Ouvrir dans Cartes », qui ouvre cette carte à l’adresse /maps/<identifiant de la carte>."
+      ],
+      "clauses": [
+        {
+          "key": "maps-context-links",
+          "origin": "product",
+          "statement": "Passer d’une carte à son classement et à ses affaires, et revenir de l’espace de travail à « Cartes ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-350": {
+      "name": "GEOGRAPHIC_VIEW_SAVED_EXPLICITLY",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Le cadrage enregistré d’une carte ne change que par l’action « Enregistrer ce cadrage ».",
+      "acceptanceCriteria": [
+        "Déplacer ou zoomer une carte dans l’espace de travail ou dans la fenêtre de dialogue de la ressource ne modifie pas la carte enregistrée et ne crée aucune version.",
+        "Lorsque l’utilisateur peut modifier la carte, le bouton « Enregistrer ce cadrage » enregistre le centre et le zoom affichés comme cadrage de la carte ; il est désactivé tant que la vue affichée est le cadrage enregistré.",
+        "Le bouton n’est pas proposé pour une carte en lecture seule, pour une carte intégrée dans un texte, ni dans « Cartes ».",
+        "Les modifications du dessin et des fonds restent enregistrées automatiquement."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-view-saved-explicitly",
+          "origin": "product",
+          "statement": "Consulter une carte sans en modifier le cadrage de référence utilisé par les textes qui l’intègrent et par les documents.",
           "sourceIds": []
         }
       ]
