@@ -8396,20 +8396,13 @@
         "Package installation neither starts the server nor migrates a database; prerequisites and startup behavior are documented.",
         "The priority distribution is the server, web interface and CLI; it does not require embedded PostgreSQL and does not replace the desktop distribution.",
         "The municipal bootstrap procedure covers a selected existing backup, administrator access, municipality settings, collaborator accounts and effective rights, operation, restart, backup, update and recovery; restoring data preserves existing accounts and configuration.",
-        "The same npm artifact is tested outside the checkout on Linux and Windows; PostgreSQL and prerequisites are provisioned separately, without a Hall executable installer.",
-        "The installed `hall` command provides `backup` and `verify-backup`, usable without the Hall checkout: `backup` writes a custom-format dump of `DATABASE_URL` into the absolute directory `HALL_BACKUP_DIRECTORY`, outside the package, checks it with `pg_restore --list` and writes beside it a manifest with its SHA-256 digest, database name, package version and schema fingerprint; `verify-backup` makes a new backup, restores it into a temporary database, counts its meetings and stored files and drops that database."
+        "The same npm artifact is tested outside the checkout on Linux and Windows; PostgreSQL and prerequisites are provisioned separately, without a Hall executable installer."
       ],
       "clauses": [
         {
           "key": "authorized-server-scope",
           "origin": "product",
           "statement": "Hall is distributed as a standalone npm-installable server with its web interface and CLI; persistent configuration and data stay outside the package. The municipal installation and operating procedure targets a Windows computer with separately provisioned prerequisites and no executable installer. External publication and real-data migrations are separately authorized actions.",
-          "sourceIds": []
-        },
-        {
-          "key": "packaged-backup-commands",
-          "origin": "product",
-          "statement": "Décision du propriétaire du 2026-10-10 (questions 633 à 635) : le paquet de distribution fournit les commandes de sauvegarde et de vérification de sauvegarde, appelées par une tâche planifiée Windows sur le PC de la mairie.",
           "sourceIds": []
         }
       ]

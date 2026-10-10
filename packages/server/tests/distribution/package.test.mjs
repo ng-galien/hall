@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
-import { cp, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -247,8 +247,7 @@ it(
       maintenance = new Pool({ connectionString: maintenanceConnection.href });
       await maintenance.query(`CREATE DATABASE "${databaseName}"`);
       pool = new Pool({ connectionString: url });
-      const backupDirectory = join(temporary, "backups");
-      const configuration = `NODE_ENV=production\nLOG_LEVEL=silent\nDATABASE_URL=${url}\nSERVER_HOST=127.0.0.1\nSERVER_PORT=${httpPort}\nHALL_BACKUP_DIRECTORY=${backupDirectory}\n`;
+      const configuration = `NODE_ENV=production\nLOG_LEVEL=silent\nDATABASE_URL=${url}\nSERVER_HOST=127.0.0.1\nSERVER_PORT=${httpPort}\n`;
       await writeFile(envFile, configuration, { mode: 0o600 });
       const empty = command(process.execPath, [cli, "schema-check", "--env-file", envFile]);
       expect(empty.status).not.toBe(0);
@@ -339,28 +338,11 @@ it(
       expect(await resource(id)).toEqual(before);
       await verifyDocument();
       await stop();
-      const dump = run(process.execPath, [cli, "backup", "--env-file", envFile]).match(/Backup complete: (.+)$/m)?.[1];
-      expect(dump?.startsWith(await realpath(backupDirectory))).toBe(true);
+      const dump = join(temporary, "before-update.dump");
+      run("pg_dump", ["--format=custom", "--file", dump, "--dbname", url]);
       const digest = createHash("sha256")
         .update(await readFile(dump))
         .digest("hex");
-      const backupManifest = JSON.parse(await readFile(`${dump}.json`, "utf8"));
-      expect(backupManifest).toMatchObject({
-        sha256: digest,
-        database: databaseName,
-        package: { name: metadata.name, version: rootMetadata.version },
-        schemaFingerprint: release.schemaFingerprint,
-      });
-      expect(run(process.execPath, [cli, "verify-backup", "--env-file", envFile])).toContain(
-        "Backup restored in an isolated database",
-      );
-      expect(
-        (
-          await maintenance.query(
-            "SELECT count(*)::int AS count FROM pg_database WHERE datname LIKE 'hall_restore_check_%'",
-          )
-        ).rows[0].count,
-      ).toBe(0);
 
       const nextPackage = join(temporary, "next-package");
       await cp(installed, nextPackage, { recursive: true });
