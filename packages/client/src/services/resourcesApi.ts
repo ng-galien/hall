@@ -101,10 +101,7 @@ export async function importDocumentarySpreadsheet(
   return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
 }
 
-export async function convertSpreadsheetTable(
-  representation: Parameters<typeof findSirenLink>[0],
-  form: FormData,
-) {
+export async function convertSpreadsheetTable(representation: Parameters<typeof findSirenLink>[0], form: FormData) {
   const result = await submitSirenAction<unknown>(representation, "resource.convert-spreadsheet-table", form);
   return spreadsheetMarkdownTableSchema.parse(result.data);
 }

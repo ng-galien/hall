@@ -209,7 +209,9 @@ function spreadsheetDocument(title: string, worksheets: ExcelJS.Worksheet[]): Sp
   };
 }
 
-async function loadWorksheets(input: Pick<SpreadsheetImportInput, "fileName" | "content">): Promise<ExcelJS.Worksheet[]> {
+async function loadWorksheets(
+  input: Pick<SpreadsheetImportInput, "fileName" | "content">,
+): Promise<ExcelJS.Worksheet[]> {
   const inspection = await inspectSpreadsheetImport(input.fileName, input.content);
   const workbook = new ExcelJS.Workbook();
   if (inspection.format === "csv") {
@@ -250,7 +252,11 @@ export interface SpreadsheetMarkdownTable {
 }
 
 function markdownCell(text: string): string {
-  return text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\s*\r?\n\s*/g, " ").trim();
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/\s*\r?\n\s*/g, " ")
+    .trim();
 }
 
 // @implements-requirement HALL-FR-DOC-510
@@ -272,7 +278,9 @@ export async function spreadsheetMarkdownTable(
   const rows: string[][] = [];
   for (let index = 1; index <= worksheet.rowCount; index += 1) {
     const row = worksheet.getRow(index);
-    const cells = Array.from({ length: worksheet.columnCount }, (_, column) => markdownCell(row.getCell(column + 1).text));
+    const cells = Array.from({ length: worksheet.columnCount }, (_, column) =>
+      markdownCell(row.getCell(column + 1).text),
+    );
     if (cells.some(Boolean)) rows.push(cells);
   }
   const width = Math.max(0, ...rows.map((cells) => cells.findLastIndex(Boolean) + 1));
