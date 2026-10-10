@@ -1,9 +1,7 @@
 import { expect, test } from "../fixtures/application";
 
 // @verifies-requirement HALL-FR-DOC-490
-test("Mesures and Dessin toggle their panel and a second press returns to the plain map", async ({
-  appPage: page,
-}) => {
+test("Mesures and Dessin toggle their panel and a second press returns to the plain map", async ({ appPage: page }) => {
   const created = await page.request.post("/api/resources", {
     data: { kind: "geographic", name: `Mode toggle ${crypto.randomUUID()}`, path: "seed" },
   });

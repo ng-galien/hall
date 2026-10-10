@@ -77,7 +77,12 @@ export function GeographicCompositionEditor({
     })),
   ];
   return (
-    <div ref={panelRef} className="geographic-composition" data-testid="geographic-composition" style={{ ...style, ...sizeStyle }}>
+    <div
+      ref={panelRef}
+      className="geographic-composition"
+      data-testid="geographic-composition"
+      style={{ ...style, ...sizeStyle }}
+    >
       <div
         className="geographic-composition-header"
         data-testid="geographic-composition-drag"
