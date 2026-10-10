@@ -415,7 +415,7 @@ BEGIN
       'POST',
       '/api/resources/documents',
       jsonb_build_array(
-        jsonb_build_object('name', 'file', 'type', 'file'),
+        jsonb_build_object('name', 'file', 'type', 'file', 'accept', '.pdf,.jpg,.jpeg,.png,.docx,.odt,.pptx,.txt'),
         jsonb_build_object('name', 'path', 'type', 'text', 'value', ''),
         jsonb_build_object('name', 'name', 'type', 'text')
       ),
@@ -426,10 +426,18 @@ BEGIN
       'POST',
       '/api/resources/spreadsheets/import',
       jsonb_build_array(
-        jsonb_build_object('name', 'file', 'type', 'file'),
+        jsonb_build_object('name', 'file', 'type', 'file', 'accept', '.csv,.xlsx'),
         jsonb_build_object('name', 'path', 'type', 'text', 'value', ''),
         jsonb_build_object('name', 'name', 'type', 'text')
       ),
+      'multipart/form-data'
+    ),
+    -- @implements-requirement HALL-FR-DOC-510
+    hall.siren_action(
+      'resource.convert-spreadsheet-table',
+      'POST',
+      '/api/resources/spreadsheets/table',
+      jsonb_build_array(jsonb_build_object('name', 'file', 'type', 'file', 'accept', '.csv,.xlsx')),
       'multipart/form-data'
     ),
     hall.editor_asset_siren_action(),

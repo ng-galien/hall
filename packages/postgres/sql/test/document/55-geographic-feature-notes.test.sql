@@ -184,6 +184,18 @@ SELECT is(hall.resource_collection_siren_actions(), '[]'::JSONB, 'a reader is no
 SELECT set_config('hall.permissions', '', true);
 SELECT set_config('hall.roles', '["administrator"]', true);
 
+-- @verifies-requirement HALL-FR-DOC-500
+-- @verifies-requirement HALL-FR-DOC-510
+CREATE TEMP TABLE collection_upload_actions AS
+SELECT action ->> 'name' AS name, action -> 'fields' -> 0 ->> 'accept' AS accept
+FROM jsonb_array_elements(hall.resource_collection_siren_actions()) AS action;
+SELECT is((SELECT accept FROM collection_upload_actions WHERE name = 'resource.create-document'),
+  '.pdf,.jpg,.jpeg,.png,.docx,.odt,.pptx,.txt', 'the workspace document upload lists the accepted formats');
+SELECT is((SELECT accept FROM collection_upload_actions WHERE name = 'resource.import-spreadsheet'),
+  '.csv,.xlsx', 'the workspace spreadsheet import lists the accepted formats');
+SELECT is((SELECT accept FROM collection_upload_actions WHERE name = 'resource.convert-spreadsheet-table'),
+  '.csv,.xlsx', 'the workspace offers the conversion of a spreadsheet into a table');
+
 -- @verifies-requirement HALL-FR-DOC-390
 CREATE TEMP TABLE deletion_notes AS
 SELECT hall_api.create_geographic_feature_note(vintage_2026, 1) AS parcel_note,

@@ -130,3 +130,35 @@ test("a csv dropped on the business report editor becomes a table of the text, t
     .toMatch(/\|\s*L100\s*\|\s*100\s*\|[\s\S]*:resource\[releves\]\{#[0-9a-f-]{36}\}/);
   expect(await reportContent(page, business.reportResourceId)).not.toContain("L101");
 });
+
+// @verifies-requirement HALL-FR-DOC-500
+// @verifies-requirement HALL-FR-DOC-510
+test("files dropped on a workspace text outside a business become documents of its folder", async ({
+  appPage: page,
+}) => {
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "text", name: `Note ${crypto.randomUUID()}`, path: "seed", content: "Note." },
+  });
+  expect(created.ok()).toBe(true);
+  const text = (await created.json()).properties as { id: string };
+  await page.goto(`/app/workspace?path=seed&resource=${encodeURIComponent(text.id)}`);
+  const compact = page.getByTestId("markdown-editor-compact").first();
+  await expect(compact).toBeVisible();
+
+  await dropFiles(page, compact, [
+    { name: "annexe-dossier.pdf", mimeType: "application/pdf", buffer: minimalPdf },
+    { name: "brouillon.md", mimeType: "text/markdown", buffer: Buffer.from("# Brouillon") },
+  ]);
+  const status = compact.getByTestId("editor-image-status");
+  await expect(status).toHaveAttribute("data-status", "documentRefused");
+  await expect(status).toContainText("brouillon.md");
+  await expect(compact.locator(".editor-reference-wrapper")).toHaveText(["annexe-dossier.pdf"]);
+  const folder = await page.request.get("/api/resources?path=seed");
+  expect(JSON.stringify(await folder.json())).toContain("annexe-dossier.pdf");
+
+  await dropFiles(page, compact, [
+    { name: "tarifs.csv", mimeType: "text/csv", buffer: Buffer.from("Salle;Tarif\nPolyvalente;150\n") },
+  ]);
+  await page.getByTestId("editor-spreadsheet-drop-table").click();
+  await expect(compact.locator("table").first()).toContainText("Polyvalente");
+});

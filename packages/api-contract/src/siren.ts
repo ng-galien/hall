@@ -178,6 +178,7 @@ export const sirenActionSchema = z.object({
         type: z.string().optional(),
         value: z.unknown().optional(),
         title: z.string().optional(),
+        accept: z.string().min(1).optional(),
         options: z.array(z.object({ value: z.string(), title: z.string() }).strict()).optional(),
       }),
     )

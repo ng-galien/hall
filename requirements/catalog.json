@@ -3923,13 +3923,13 @@
         "state": "accepted",
         "since": "2026-10-10"
       },
-      "statement": "Un tableur CSV ou XLSX déposé dans l’éditeur de texte d’une affaire peut être joint comme fichier ou inséré comme tableau du texte.",
+      "statement": "Un tableur CSV ou XLSX déposé dans l’éditeur d’un texte d’une affaire ou de l’espace de travail peut être joint comme fichier ou inséré comme tableau du texte.",
       "acceptanceCriteria": [
-        "Déposer un fichier CSV ou XLSX sur l’éditeur compact ou en plein écran d’un texte d’une affaire ouvre la fenêtre « Tableur déposé », qui propose « Joindre le fichier » et « Insérer comme tableau » ; la fermer annule le dépôt de ce fichier.",
-        "« Joindre le fichier » importe le fichier comme tableur de l’affaire et insère sa référence à l’endroit du dépôt, comme HALL-FR-DOC-500.",
+        "Déposer un fichier CSV ou XLSX sur l’éditeur compact ou en plein écran d’un texte d’une affaire, ou d’un texte de l’espace de travail hors affaire, ouvre la fenêtre « Tableur déposé », qui propose « Joindre le fichier » et « Insérer comme tableau » ; la fermer annule le dépôt de ce fichier.",
+        "« Joindre le fichier » importe le fichier comme tableur de l’affaire, ou du dossier du texte hors affaire, et insère sa référence à l’endroit du dépôt, comme HALL-FR-DOC-500.",
         "« Insérer comme tableau » insère à l’endroit du dépôt un tableau Markdown construit par le serveur à partir de la première feuille : sa première ligne non vide en est l’en-tête, suivie d’au plus 100 lignes non vides ; les colonnes vides en fin de ligne sont retirées et le texte de chaque cellule est repris tel que le tableur l’affiche.",
         "Quand la première feuille compte plus de 100 lignes après l’en-tête, le tableau garde les 100 premières, le fichier complet est joint à l’affaire et sa référence suit le tableau ; l’éditeur affiche « Tableau de « nom » inséré : 100 lignes sur N ; le fichier complet est joint. ».",
-        "La conversion est l’action Siren « resource.convert-spreadsheet-table » de l’affaire ; elle lit le fichier avec la bibliothèque ExcelJS déjà utilisée par l’import de tableur (licence MIT) et n’enregistre rien."
+        "La conversion est l’action Siren « resource.convert-spreadsheet-table », proposée par une affaire et par la collection des documents de l’espace de travail avec les mêmes droits que l’import de tableur ; elle lit le fichier avec la bibliothèque ExcelJS déjà utilisée par l’import de tableur (licence MIT) et n’enregistre rien."
       ],
       "clauses": [
         {

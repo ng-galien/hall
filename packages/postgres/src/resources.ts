@@ -430,6 +430,7 @@ const postgresSirenActionSchema = z.object({
         name: z.string().min(1),
         type: z.string().optional(),
         value: z.unknown().optional(),
+        accept: z.string().min(1).optional(),
       }),
     )
     .optional(),
