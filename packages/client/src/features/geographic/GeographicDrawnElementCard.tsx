@@ -1,5 +1,5 @@
 import type { GeographicFeatureNote, SirenEntity } from "@hall/api-contract";
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CenterOnFeatureIcon, CloseIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -49,7 +49,10 @@ export function useGeographicDrawnElementNotes(map: SirenEntity | null, onError:
   return { notes, creating, canCreate: canCreateGeographicFeatureNote(map), create };
 }
 
-/** Card of a selected drawn element: label, nature, centre action, shape modification and its rich-text note. */
+/**
+ * Card of a selected drawn element: label, nature, centre action, shape modification and its rich-text note; read-only
+ * for a reader, with the measures of the drawing and its note without editing actions.
+ */
 // @implements-requirement HALL-FR-DOC-430
 // @implements-requirement HALL-FR-DOC-450
 export function GeographicDrawnElementCard({
@@ -66,7 +69,11 @@ export function GeographicDrawnElementCard({
   onCreateNote,
   onCenter,
   onClose,
+  readOnly = false,
+  measures,
 }: {
+  readOnly?: boolean;
+  measures?: ReactNode;
   label: string;
   kindLabel: string;
   note: GeographicFeatureNote | null;
@@ -76,9 +83,9 @@ export function GeographicDrawnElementCard({
   mapElement: HTMLElement | null;
   /** True while the shape of this drawing is being modified. */
   modifying: boolean;
-  onModify(): void;
-  onStopModifying(): void;
-  onCreateNote(): void;
+  onModify?(): void;
+  onStopModifying?(): void;
+  onCreateNote?(): void;
   onCenter(): void;
   onClose(): void;
 }) {
@@ -88,7 +95,7 @@ export function GeographicDrawnElementCard({
       if (event.key !== "Escape" || escapeBelongsToTarget(event.target, mapElement)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      if (modifying) onStopModifying();
+      if (modifying) onStopModifying?.();
       else onClose();
     };
     window.addEventListener("keydown", leaveOnEscape, { capture: true });
@@ -123,33 +130,36 @@ export function GeographicDrawnElementCard({
         </button>
       </header>
       <div className="geographic-feature-card-body">
-        <div
-          className={`geographic-drawn-element-shape${modifying ? " geographic-drawn-element-shape-modifying" : ""}`}
-          data-testid="geographic-drawn-element-shape"
-          data-modifying={modifying}
-        >
-          {modifying ? (
-            <p className="geographic-feature-card-muted" aria-live="polite">
-              {t("geographic.shape.modifyingHint")}
-            </p>
-          ) : null}
-          <Button
-            type="button"
-            size="sm"
-            variant={modifying ? "default" : "outline"}
-            aria-pressed={modifying}
-            data-testid="geographic-drawn-element-card-modify"
-            onClick={modifying ? onStopModifying : onModify}
+        {measures}
+        {readOnly ? null : (
+          <div
+            className={`geographic-drawn-element-shape${modifying ? " geographic-drawn-element-shape-modifying" : ""}`}
+            data-testid="geographic-drawn-element-shape"
+            data-modifying={modifying}
           >
-            {t(modifying ? "geographic.shape.stopModifying" : "geographic.shape.modify")}
-          </Button>
-        </div>
+            {modifying ? (
+              <p className="geographic-feature-card-muted" aria-live="polite">
+                {t("geographic.shape.modifyingHint")}
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              size="sm"
+              variant={modifying ? "default" : "outline"}
+              aria-pressed={modifying}
+              data-testid="geographic-drawn-element-card-modify"
+              onClick={modifying ? onStopModifying : onModify}
+            >
+              {t(modifying ? "geographic.shape.stopModifying" : "geographic.shape.modify")}
+            </Button>
+          </div>
+        )}
         <div className="geographic-feature-card-note" data-testid="geographic-drawn-element-card-note">
           {loading ? (
             <p className="geographic-feature-card-muted">{t("common.loading")}</p>
           ) : note ? (
             <InlineResourceContent key={note.noteId} resourceId={note.noteId} heading={t("geographicFeature.note")} />
-          ) : canCreateNote ? (
+          ) : canCreateNote && !readOnly ? (
             <Button
               type="button"
               size="sm"

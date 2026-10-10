@@ -19,7 +19,10 @@ export function createCouncilBusinessBundleExportService({
     ResourcesClient,
     "open" | "listAll" | "readDocumentContent" | "openEditorAsset" | "readEditorAssetContent"
   >;
-  geographicLayersClient: Pick<GeographicLayersClient, "readFeatures" | "listNotes" | "readMunicipalProperty">;
+  geographicLayersClient: Pick<
+    GeographicLayersClient,
+    "readFeatures" | "listNotes" | "listDrawnElementNotes" | "readMunicipalProperty"
+  >;
 }) {
   return {
     async export(id: string, sender: CouncilBusinessBundleManifest["sender"]): Promise<Buffer> {
@@ -91,6 +94,17 @@ export function createCouncilBusinessBundleExportService({
           geographic: async (entry) => {
             manifest.resources.push({ data: entry });
             for (const overlay of entry.overlays) ids.add(overlay.layerId);
+            // @implements-requirement HALL-FR-DOC-430
+            for (const note of (await geographicLayersClient.listDrawnElementNotes(entry.id)) ?? []) {
+              ids.add(note.noteId);
+              manifest.geographicFeatureNotes.push({
+                noteSourceId: note.noteId,
+                subjectKind: "drawnElement",
+                layerSourceId: null,
+                mapSourceId: entry.id,
+                key: note.key,
+              });
+            }
           },
           event: async (entry) => {
             manifest.resources.push({ data: entry });
@@ -129,6 +143,7 @@ export function createCouncilBusinessBundleExportService({
                 noteSourceId: note.noteId,
                 subjectKind: note.subjectKind,
                 layerSourceId: note.subjectKind === "layerFeature" ? entry.id : null,
+                mapSourceId: null,
                 key: note.key,
               });
             }

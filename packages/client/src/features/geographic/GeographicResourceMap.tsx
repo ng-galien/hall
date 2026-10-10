@@ -21,7 +21,7 @@ import { GeographicDrawnElementCard, useGeographicDrawnElementNotes } from "./Ge
 import { GeographicFeatureCard } from "./GeographicFeatureCard";
 import { GeographicLayerControls } from "./GeographicLayerControls";
 import { GeographicLayerUploadDialog } from "./GeographicLayerUploadDialog";
-import { GeographicMeasurePanel } from "./GeographicMeasurePanel";
+import { GeographicMeasurePanel, MeasureReadout } from "./GeographicMeasurePanel";
 import type { GeographicPointerState, GeographicPointerTarget } from "./geographicCursorPolicy";
 import { municipalFilterLayerIds } from "./geographicFeatureCardModel";
 import { geographicFeatureKindLabels } from "./geographicFeatureKindPolicy";
@@ -37,6 +37,7 @@ import {
   reorderGeographicLayers,
   setGeographicLayerVisibility,
 } from "./geographicMapModel";
+import { measureGeometry } from "./geographicMeasureModel";
 import { MunicipalPropertyImportDialog } from "./MunicipalPropertyImportDialog";
 import { useGeographicCompositionLayout } from "./useGeographicCompositionLayout";
 import {
@@ -224,8 +225,32 @@ export function GeographicResourceMap({
     [drawingIdAt, modifyingFeatureId, pickFeature, pointerState],
   );
   useGeographicMapCursor(mapRuntime.map, pointerState, pointerTargetAt);
+  // @implements-requirement HALL-FR-DOC-430
+  const readerInspection = !canUpdate && !embedded && workspaceMode === "map" && !measuring;
+  const [inspectedDrawingId, setInspectedDrawingId] = useState<string | null>(null);
+  const olMap = mapRuntime.map;
+  const inspectionCallbacks = useRef({ drawingIdAt, setSelection });
+  inspectionCallbacks.current = { drawingIdAt, setSelection };
+  useEffect(() => {
+    setInspectedDrawingId(null);
+    if (!olMap || !readerInspection) return;
+    const inspect = (event: { pixel: number[] }) => {
+      const drawingId = inspectionCallbacks.current.drawingIdAt(event.pixel);
+      setInspectedDrawingId(drawingId);
+      if (drawingId) inspectionCallbacks.current.setSelection(null);
+    };
+    olMap.on("singleclick", inspect);
+    return () => olMap.un("singleclick", inspect);
+  }, [olMap, readerInspection]);
+  const inspectedDrawing = readerInspection
+    ? (drawings.find(({ id }) => String(id) === inspectedDrawingId) ?? null)
+    : null;
+  const inspectedGeometry = inspectedDrawing
+    ? mapRuntime.drawingSource?.getFeatureById(String(inspectedDrawing.id))?.getGeometry()
+    : undefined;
+  const inspectedMeasure = inspectedGeometry ? measureGeometry(inspectedGeometry) : null;
   const drawnElementNotes = useGeographicDrawnElementNotes(
-    workspaceMode === "draw" && canUpdate ? mapRepresentation : null,
+    (workspaceMode === "draw" && canUpdate) || readerInspection ? mapRepresentation : null,
     onError,
   );
   const selectedDrawnElement =
@@ -475,6 +500,29 @@ export function GeographicResourceMap({
           onPointerDown={compositionLayout.startDrag}
           onPointerMove={compositionLayout.move}
           onPointerUp={compositionLayout.stopDrag}
+        />
+      ) : null}
+      {inspectedDrawing ? (
+        <GeographicDrawnElementCard
+          readOnly
+          label={
+            inspectedDrawing.properties.label ??
+            `${featureKindLabels[inspectedDrawing.properties.kind]} ${drawings.indexOf(inspectedDrawing) + 1}`
+          }
+          kindLabel={featureKindLabels[inspectedDrawing.properties.kind]}
+          measures={
+            inspectedMeasure ? (
+              <MeasureReadout measure={inspectedMeasure} testId="geographic-drawn-element-card-measures" />
+            ) : null
+          }
+          note={drawnElementNotes.notes?.find(({ key }) => key === inspectedDrawing.id) ?? null}
+          loading={drawnElementNotes.notes === null}
+          canCreateNote={false}
+          creatingNote={false}
+          mapElement={mapRuntime.mapElementRef.current}
+          modifying={false}
+          onCenter={() => mapRuntime.fitFeature(String(inspectedDrawing.id))}
+          onClose={() => setInspectedDrawingId(null)}
         />
       ) : null}
       {selectedDrawnElement ? (

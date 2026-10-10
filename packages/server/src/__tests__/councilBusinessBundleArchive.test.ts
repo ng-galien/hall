@@ -108,6 +108,7 @@ describe("council business bundle archive", () => {
       geographicLayersClient: {
         readFeatures: async () => null,
         listNotes: async () => [],
+        listDrawnElementNotes: async () => [],
         readMunicipalProperty: async () => {
           throw new Error("No layer is carried");
         },

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { type CouncilBusinessBundleManifest, councilBusinessBundleManifestSchema } from "@hall/api-contract";
-import { CADASTRE_PARCEL_ID_PATTERN } from "@hall/domain";
+import { CADASTRE_PARCEL_ID_PATTERN, matchLiteral } from "@hall/domain";
 
 const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 const MAX_EXPANDED_BYTES = 128 * 1024 * 1024;
@@ -97,11 +97,13 @@ function validateArchive(input: CouncilBusinessBundleArchive): CouncilBusinessBu
     const layer = link.layerSourceId
       ? manifest.resources.find(({ data }) => data.id === link.layerSourceId)
       : undefined;
-    if (
-      note?.data.kind !== "text" ||
-      (link.subjectKind === "layerFeature" && layer?.data.kind !== "geographicLayer") ||
-      (link.subjectKind === "cadastreParcel" && link.layerSourceId !== null)
-    ) {
+    const map = link.mapSourceId ? manifest.resources.find(({ data }) => data.id === link.mapSourceId) : undefined;
+    const scopeMatches = matchLiteral(link.subjectKind, {
+      cadastreParcel: () => link.layerSourceId === null && link.mapSourceId === null,
+      layerFeature: () => layer?.data.kind === "geographicLayer" && link.mapSourceId === null,
+      drawnElement: () => map?.data.kind === "geographic" && link.layerSourceId === null,
+    });
+    if (note?.data.kind !== "text" || !scopeMatches) {
       throw new InvalidCouncilBusinessBundle("Invalid feature note link");
     }
   }

@@ -81,7 +81,7 @@ function useCoordinateCopy() {
   return { copyOutcome, copy };
 }
 
-function MeasureReadout({ measure, testId }: { measure: GeographicMeasure; testId: string }) {
+export function MeasureReadout({ measure, testId }: { measure: GeographicMeasure; testId: string }) {
   const { t, formatNumber } = useI18n();
   const cardinals = useCardinalLetters();
   if (measure.kind === "length") {

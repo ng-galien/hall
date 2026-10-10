@@ -228,6 +228,7 @@ postgres("geographic layers", () => {
   });
 
   // @verifies-requirement HALL-FR-DOC-330
+  // @verifies-requirement HALL-FR-DOC-430
   it("carries a map, its linked layer and the link through a council business bundle", async () => {
     const source = await createPostgresHttpTestServer();
     const business = domainBody<{ id: string }>(
@@ -253,6 +254,42 @@ postgres("geographic layers", () => {
       .put(`/api/resources/${mapId}/overlays`)
       .send({ layerId, visible: false, opacity: 0.6 })
       .expect(200);
+    const mapRepresentation = (await source.agent.get(`/api/resources/${mapId}`).expect(200)).body;
+    const drawingId = crypto.randomUUID();
+    await source.agent
+      .put(action(mapRepresentation, "resource.update-content").href)
+      .send({
+        kind: "geographic",
+        expectedVersion: mapRepresentation.properties.version,
+        document: {
+          ...mapRepresentation.properties.document,
+          hallLayer: {
+            type: "FeatureCollection",
+            features: [
+              {
+                type: "Feature",
+                id: drawingId,
+                properties: {
+                  kind: "marker",
+                  visible: true,
+                  label: "Chêne",
+                  style: { color: "#2255aa", size: "medium" },
+                },
+                geometry: { type: "Point", coordinates: [4.5, 47.6] },
+              },
+            ],
+          },
+        },
+      })
+      .expect(200);
+    const drawingNote = await source.agent
+      .post(`/api/resources/${mapId}/feature-notes`)
+      .send({ elementId: drawingId })
+      .expect(201);
+    await source.agent
+      .put(`/api/resources/${drawingNote.body.properties.noteId}/content`)
+      .send({ kind: "text", expectedVersion: 1, content: "Chêne à conserver." })
+      .expect(200);
     const exported = await source.agent
       .get(`/api/council-business/${business.id}/bundle?firstName=Epona&lastName=Arverna`)
       .buffer(true)
@@ -266,6 +303,15 @@ postgres("geographic layers", () => {
     const carried = bundle.manifest.resources.find(({ data }) => data.kind === "geographicLayer");
     expect(carried?.data).toMatchObject({ id: layerId, path: "Cartes", featureCount: 4 });
     expect(bundle.manifest.business.resourceSourceIds).toEqual([mapId]);
+    expect(bundle.manifest.geographicFeatureNotes).toEqual([
+      {
+        noteSourceId: drawingNote.body.properties.noteId,
+        subjectKind: "drawnElement",
+        layerSourceId: null,
+        mapSourceId: mapId,
+        key: drawingId,
+      },
+    ]);
 
     const target = await createPostgresHttpTestServer();
     const imported = await target.agent
@@ -294,6 +340,12 @@ postgres("geographic layers", () => {
       domainBody(await target.agent.get(`/api/resources/${importedLayerId}`)),
     );
     expect(importedLayer).toMatchObject({ path: "Imports/arverna-epona/Captage/Cartes", featureCount: 4 });
+    const drawingNotes = await target.agent.get(`/api/resources/${importedMapId}/feature-notes`).expect(200);
+    expect(drawingNotes.body.properties.items).toEqual([expect.objectContaining({ key: drawingId })]);
+    const importedDrawingNote = await target.agent
+      .get(`/api/resources/${drawingNotes.body.properties.items[0].noteId}`)
+      .expect(200);
+    expect(importedDrawingNote.body.properties.content).toBe("Chêne à conserver.");
     const features = await target.agent.get(`/api/resources/${importedLayerId}/features`).expect(200);
     expect(
       geographicLayerFeatureCollectionSchema.parse(JSON.parse(features.text)).features.map(({ sourceId }) => sourceId),
@@ -500,6 +552,7 @@ postgres("geographic layers", () => {
         noteSourceId: note.body.properties.noteId,
         subjectKind: "cadastreParcel",
         layerSourceId: null,
+        mapSourceId: null,
         key: "999990000A0002",
       },
     ]);

@@ -52,13 +52,15 @@ export const councilBusinessBundleManifestSchema = z
       .max(4000),
     externalReferenceIds: z.array(z.string().min(1)).max(4000),
     // @implements-requirement HALL-FR-DOC-390
+    // @implements-requirement HALL-FR-DOC-430
     geographicFeatureNotes: z
       .array(
         z
           .object({
             noteSourceId: resourceIdSchema,
-            subjectKind: z.enum(["cadastreParcel", "layerFeature"]),
+            subjectKind: z.enum(["cadastreParcel", "layerFeature", "drawnElement"]),
             layerSourceId: resourceIdSchema.nullable(),
+            mapSourceId: resourceIdSchema.nullable().default(null),
             key: z.string().min(1),
           })
           .strict(),

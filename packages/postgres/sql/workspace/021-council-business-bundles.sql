@@ -99,14 +99,17 @@ BEGIN
     END LOOP;
   END LOOP;
   -- @implements-requirement HALL-FR-DOC-390
-  INSERT INTO hall.geographic_feature_note (text_resource_id, subject_kind, geographic_layer_resource_id, subject_key)
+  -- @implements-requirement HALL-FR-DOC-430
+  INSERT INTO hall.geographic_feature_note (text_resource_id, subject_kind, geographic_layer_resource_id, geographic_resource_id, subject_key)
   SELECT (identity_map->>(link->>'noteSourceId'))::UUID,
          link->>'subjectKind',
          CASE WHEN link->>'layerSourceId' IS NULL THEN NULL ELSE (identity_map->>(link->>'layerSourceId'))::UUID END,
+         CASE WHEN link->>'mapSourceId' IS NULL THEN NULL ELSE (identity_map->>(link->>'mapSourceId'))::UUID END,
          link->>'key'
   FROM jsonb_array_elements(coalesce(bundle->'geographicFeatureNotes','[]'::JSONB)) AS item(link)
   WHERE identity_map ? (link->>'noteSourceId')
     AND (link->>'layerSourceId' IS NULL OR identity_map ? (link->>'layerSourceId'))
+    AND (link->>'mapSourceId' IS NULL OR identity_map ? (link->>'mapSourceId'))
   ON CONFLICT DO NOTHING;
   -- @implements-requirement HALL-FR-DOC-400
   PERFORM hall.import_municipal_parcels(bundle->'municipalProperty');

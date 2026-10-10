@@ -3692,13 +3692,26 @@
         "Les photos s’insèrent dans la note par le téléversement d’images de l’éditeur, ouvert à qui peut modifier la note, et suivent les règles de stockage et d’aperçu des fichiers de Hall.",
         "La note est rattachée au dessin par son identifiant dans la carte et reste affichée après rechargement.",
         "La suppression d’un dessin détache sa note ; le texte reste dans « Notes cartographiques ». La suppression de la carte détache de même les notes de ses dessins.",
-        "Le fichier d’une affaire exporté transporte les notes des parcelles et des entités des couches de la carte (HALL-FR-DOC-390) ; les notes des dessins restent attachées à la carte de l’espace de travail d’origine."
+        "Le fichier d’une affaire exporté transporte, pour chaque carte qu’il contient, les notes de ses dessins avec leur lien au dessin (identifiant du dessin dans la carte), comme il transporte les notes des parcelles et des entités des couches (HALL-FR-DOC-390) ; l’import restaure chaque note sur le dessin de la carte importée, avec son texte et ses photos.",
+        "Un lecteur sans droit de modifier la carte qui clique sur un dessin, en mode Carte de l’espace de travail comme dans « Cartes », ouvre la fiche du dessin en lecture : libellé, nature, mesures du dessin (longueur, ou surface et périmètre) et note rendue, sans « Modifier la forme », sans création de note et sans modification de la note ; le bouton de fermeture et Échap ferment la fiche."
       ],
       "clauses": [
         {
           "key": "geographic-drawn-element-note",
           "origin": "product",
           "statement": "Attacher à un dessin un contenu plus riche qu’un libellé : texte mis en forme et photos.",
+          "sourceIds": []
+        },
+        {
+          "key": "drawn-element-notes-travel-with-the-map",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 2026-10-10 (question 657) : les notes des dessins voyagent avec la carte dans le lot d’une affaire, à l’export comme à l’import.",
+          "sourceIds": []
+        },
+        {
+          "key": "drawn-element-card-for-readers",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 2026-10-10 (question 658) : un lecteur voit la fiche d’un dessin, ses mesures et sa note en lecture seule.",
           "sourceIds": []
         }
       ]
