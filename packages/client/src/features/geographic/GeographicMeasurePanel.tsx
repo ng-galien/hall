@@ -28,6 +28,7 @@ import {
   useGeographicMeasurements,
   useGeographicPointer,
 } from "./useGeographicMeasurements";
+import { useGeographicPanelSize } from "./useGeographicPanelSize";
 
 interface GeographicMeasurePanelProps {
   map: OlMap | null;
@@ -229,6 +230,8 @@ export function GeographicMeasurePanel({
     showDrawingMeasures,
   );
   const { cursor, center } = useGeographicPointer(map);
+  const panelRef = useRef<HTMLElement | null>(null);
+  const sizeStyle = useGeographicPanelSize("measures", panelRef);
   useEffect(() => {
     if (finished) setCapacityReached(false);
   }, [finished]);
@@ -271,7 +274,13 @@ export function GeographicMeasurePanel({
   };
 
   return (
-    <section className="geographic-measures" data-testid="geographic-measures" aria-label={t("geographic.measures")}>
+    <section
+      ref={panelRef}
+      className="geographic-measures"
+      data-testid="geographic-measures"
+      aria-label={t("geographic.measures")}
+      style={sizeStyle}
+    >
       <Tabs
         className="geographic-measures-tabs"
         defaultValue="measures"

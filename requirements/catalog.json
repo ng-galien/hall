@@ -3864,13 +3864,47 @@
       "acceptanceCriteria": [
         "Les boutons « Mesures » et « Dessin » sont des bascules : une pression sur le mode actif ferme son panneau et laisse la carte seule, sans mode actif (aria-pressed faux sur les deux boutons) ; une pression sur l’autre mode passe directement à ce mode et à son panneau.",
         "Une carte s’ouvre en mode « Mesures », panneau « Mesures » ouvert ; sur la carte seule, un clic sur une entité d’une couche liée ouvre sa fiche comme en mode « Mesures ».",
-        "Échap garde l’ordre décrit par HALL-FR-DOC-300 et HALL-FR-DOC-410 (dessin ou mesure en cours, fiche, puis fenêtre de dialogue) ; le mode actif et son panneau restent ouverts après Échap."
+        "Échap garde l’ordre décrit par HALL-FR-DOC-300 et HALL-FR-DOC-410 (dessin ou mesure en cours, fiche, puis fenêtre de dialogue) ; le mode actif et son panneau restent ouverts après Échap.",
+        "Les panneaux « Composition » et « Mesures » s’ouvrent à la hauteur de leur contenu, au moins celle de leur en-tête, de leurs outils et d’une ligne, au plus celle de la carte sous la barre d’outils ; au-delà, leur liste défile à l’intérieur du panneau, qui reste dans la carte.",
+        "La taille donnée par l’utilisateur à un panneau avec sa poignée de redimensionnement est conservée pendant la session du navigateur, à chaque réouverture du panneau et après un rechargement de la page."
       ],
       "clauses": [
         {
           "key": "geographic-mode-toggle",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : une pression sur le mode actif ferme son panneau et revient à la carte seule.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-panel-height",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : le panneau Composition s’ouvre à la hauteur de son contenu dans les limites de la carte et sa liste défile au-delà ; même règle pour le panneau Mesures.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-500": {
+      "name": "EDITOR_FILE_DROP_AS_DOCUMENT",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Un fichier déposé dans l’éditeur de texte d’une affaire devient un document de l’affaire, cité dans le texte à l’endroit du dépôt.",
+      "acceptanceCriteria": [
+        "Déposer un PDF, un document Word ou tout autre fichier que « Importer un fichier » accepte sur l’éditeur compact ou en plein écran d’un texte d’une affaire (rapport, texte joint) l’importe comme document de l’affaire, dans son dossier, avec la même action Siren et les mêmes droits que « Importer un fichier » du sélecteur « Joindre un document », et insère la référence du document à l’endroit du dépôt ; un tableur CSV ou XLSX devient un tableur de l’affaire, comme par ce sélecteur.",
+        "Le document importé apparaît dans la section « Documents » de l’affaire sans rechargement de la page.",
+        "Dans un texte de l’espace de travail hors affaire, le fichier déposé devient un document du dossier de ce texte, cité de la même façon.",
+        "Plusieurs fichiers déposés ensemble sont importés l’un après l’autre dans l’ordre du dépôt, et leurs références se suivent dans le texte ; un PNG ou un JPEG est inséré comme image du texte lorsque l’éditeur importe des images.",
+        "Pendant l’import, l’éditeur affiche « Import du document N sur T : nom… » ; un échec affiche le nom du document et un message d’erreur.",
+        "Un fichier d’un format que les actions d’import n’acceptent pas, dont un fichier Markdown, n’est pas importé : l’éditeur affiche son nom et la liste des formats acceptés, et importe les autres fichiers du dépôt.",
+        "Pendant le survol d’un fichier, la zone de dépôt affiche « Déposer les fichiers pour les joindre et les citer »."
+      ],
+      "clauses": [
+        {
+          "key": "editor-file-drop",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 (entrée 9, point 17) : déposer dans l’éditeur d’une affaire n’importe quel fichier importable le joint à l’affaire et insère sa référence, comme une image déposée ; un nouveau texte Markdown se crée dans Hall.",
           "sourceIds": []
         }
       ]

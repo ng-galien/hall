@@ -761,34 +761,27 @@
     border-radius: 50%;
     background: var(--hall-color-surface);
   }
-  .geographic-composition {
-    top: calc(var(--hall-space-3) + var(--hall-size-control) + var(--hall-space-2));
+  .geographic-composition,
+  .geographic-measures {
+    --geographic-panel-top: calc(var(--hall-space-3) + var(--hall-size-control) + var(--hall-space-2));
+    top: var(--geographic-panel-top);
     left: var(--hall-space-3);
-    display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
     width: var(--hall-size-entity-card);
     min-width: var(--hall-size-geographic-layers);
-    min-height: calc(var(--hall-size-control) * 3);
+    min-height: calc(var(--hall-size-control-small) + var(--hall-size-control) * 2 + var(--hall-space-4));
     max-width: calc(100% - var(--hall-space-6));
-    max-height: calc(100% - var(--hall-space-6));
+    max-height: calc(100% - var(--geographic-panel-top) - var(--hall-space-3));
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-medium);
     overflow: hidden;
     resize: both;
   }
-  .geographic-measures {
-    top: calc(var(--hall-space-3) + var(--hall-size-control) + var(--hall-space-2));
-    left: var(--hall-space-3);
-    display: grid;
-    grid-template-rows: minmax(0, 1fr);
-    width: var(--hall-size-entity-card);
-    max-width: calc(100% - var(--hall-space-6));
-    max-height: calc(100% - var(--hall-size-control) - var(--hall-space-6));
-    border: var(--hall-stroke-thin) solid var(--hall-color-border);
-    border-radius: var(--hall-radius-medium);
-    overflow: hidden;
-  }
-  .geographic-measures-tabs { display: grid; min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: 0; }
+  .geographic-composition > .geographic-composition-header,
+  .geographic-composition > .geographic-composition-tools { flex: none; }
+  .geographic-composition > .geographic-composition-list { flex: 1 1 auto; }
+  .geographic-measures-tabs { display: grid; flex: 1 1 auto; min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: 0; }
   .geographic-measures-tab-list {
     width: 100%;
     gap: var(--hall-space-3);

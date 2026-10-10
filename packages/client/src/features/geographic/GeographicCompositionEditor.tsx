@@ -13,6 +13,7 @@ import {
 import { useI18n } from "../../i18n/I18nProvider";
 import { geographicFeatureKindPolicy, geographicFeatureKinds } from "./geographicFeatureKindPolicy";
 import type { GeographicDrawTool } from "./useGeographicMapRuntime";
+import { useGeographicPanelSize } from "./useGeographicPanelSize";
 
 interface GeographicCompositionEditorProps {
   panelRef: React.RefObject<HTMLDivElement | null>;
@@ -66,6 +67,7 @@ export function GeographicCompositionEditor({
   onPointerUp,
 }: GeographicCompositionEditorProps) {
   const { t } = useI18n();
+  const sizeStyle = useGeographicPanelSize("composition", panelRef);
   const tools: Array<{ mode: GeographicDrawTool; icon: typeof PointerIcon; label: string }> = [
     { mode: "select", icon: PointerIcon, label: t("geographic.drawSelect") },
     ...geographicFeatureKinds.map((kind) => ({
@@ -75,7 +77,7 @@ export function GeographicCompositionEditor({
     })),
   ];
   return (
-    <div ref={panelRef} className="geographic-composition" data-testid="geographic-composition" style={style}>
+    <div ref={panelRef} className="geographic-composition" data-testid="geographic-composition" style={{ ...style, ...sizeStyle }}>
       <div
         className="geographic-composition-header"
         data-testid="geographic-composition-drag"
