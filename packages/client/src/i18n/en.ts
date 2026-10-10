@@ -610,6 +610,8 @@ export const en = {
   "geographic.measure.west": "W",
   "geographic.measure.coordinates": "Coordinates",
   "geographic.measure.save": "Save the measurement",
+  "geographic.measure.capacityReached":
+    "The measurement is not saved: a map holds at most {features} drawings and measurements and {coordinates} vertices in all. Remove a drawing or a saved measurement, then save the measurement again.",
   "geographic.measure.saved": "Saved measurements",
   "geographic.measure.savedEmpty": "No saved measurement.",
   "geographic.measure.defaultName": "Measurement",

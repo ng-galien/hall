@@ -198,3 +198,56 @@ test("a reader sees the saved measurements in Cartes without saving, renaming or
   await expect(page.getByTestId("geographic-measure-current-length")).toBeVisible();
   await expect(page.getByTestId("geographic-measure-save")).toHaveCount(0);
 });
+
+// @verifies-requirement HALL-FR-DOC-460
+test("a measurement that does not fit the capacity of the map stays current with a message", async ({
+  appPage: page,
+}) => {
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "geographic", name: `Full map ${crypto.randomUUID()}`, path: "seed" },
+  });
+  expect(created.ok()).toBeTruthy();
+  const resource = (await created.json()).properties;
+  const representation = await (await page.request.get(`/api/resources/${resource.id}`)).json();
+  const update = (representation.actions as Array<{ name: string; href: string; method: string }>).find(
+    (action) => action.name === "resource.update-content",
+  );
+  if (!update) throw new Error("The administrator must be able to update the map");
+  const markers = Array.from({ length: 100 }, (_, index) => ({
+    type: "Feature",
+    id: crypto.randomUUID(),
+    properties: {
+      kind: "marker",
+      visible: true,
+      label: `Point ${index + 1}`,
+      style: { color: "#24439b", size: "small" },
+    },
+    geometry: { type: "Point", coordinates: [4.50 + index / 100_000, 47.5] },
+  }));
+  const saved = await page.request.fetch(update.href, {
+    method: update.method,
+    data: {
+      kind: "geographic",
+      expectedVersion: representation.properties.version,
+      document: { ...representation.properties.document, hallLayer: { type: "FeatureCollection", features: markers } },
+    },
+  });
+  expect(saved.ok()).toBeTruthy();
+
+  await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  await expect(page.getByTestId("geographic-measures")).toBeVisible();
+  const box = await page.locator(".geographic-map").boundingBox();
+  if (!box) throw new Error("The map must be rendered");
+  const at = (x: number, y: number) => [box.x + 270 + (box.width - 310) * x, box.y + 300 * y] as const;
+  await page.getByTestId("geographic-measure-tool-length").click();
+  await page.mouse.click(...at(0.2, 0.3));
+  await page.mouse.move(...at(0.6, 0.35), { steps: 4 });
+  await page.mouse.dblclick(...at(0.6, 0.35));
+  await page.getByTestId("geographic-measure-save").click();
+  await expect(page.getByTestId("geographic-measure-capacity")).toContainText("100");
+  await expect(page.getByTestId("geographic-measure-capacity")).toContainText(/5\D?000/);
+  await expect(page.getByTestId("geographic-measure-current-length")).toBeVisible();
+  await expect(page.getByTestId("geographic-measurement-list")).toHaveCount(0);
+  await page.waitForTimeout(2_000);
+  expect(await storedFeatures(page.request, resource.id)).toHaveLength(100);
+});

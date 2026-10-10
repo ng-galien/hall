@@ -616,6 +616,8 @@ export const fr: Messages = {
   "geographic.measure.west": "O",
   "geographic.measure.coordinates": "Coordonnées",
   "geographic.measure.save": "Enregistrer la mesure",
+  "geographic.measure.capacityReached":
+    "La mesure n’est pas enregistrée : une carte contient au plus {features} dessins et mesures et {coordinates} sommets en tout. Supprimez un dessin ou une mesure enregistrée, puis enregistrez de nouveau la mesure.",
   "geographic.measure.saved": "Mesures enregistrées",
   "geographic.measure.savedEmpty": "Aucune mesure enregistrée.",
   "geographic.measure.defaultName": "Mesure",

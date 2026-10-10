@@ -1,4 +1,4 @@
-import type { HallGeoJsonMeasurement } from "@hall/domain";
+import { type HallGeoJsonMeasurement, hallGeoJsonCapacity } from "@hall/domain";
 import type Feature from "ol/Feature";
 import type Geometry from "ol/geom/Geometry";
 import type OlMap from "ol/Map";
@@ -38,7 +38,8 @@ interface GeographicMeasurePanelProps {
   measurements: readonly HallGeoJsonMeasurement[];
   /** True when the map offers the modification of its content: saving, renaming and removing measurements. */
   canSave: boolean;
-  onAddMeasurement(measurement: HallGeoJsonMeasurement): void;
+  /** Adds the measurement to the map; false when the drawings GeoJSON has no room left for it. */
+  onAddMeasurement(measurement: HallGeoJsonMeasurement): boolean;
   onRenameMeasurement(id: string, label: string): Promise<boolean>;
   onRemoveMeasurement(id: string): void;
 }
@@ -220,6 +221,7 @@ export function GeographicMeasurePanel({
   const [tool, setTool] = useState<GeographicMeasureTool>("none");
   const [showDrawingMeasures, setShowDrawingMeasures] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [capacityReached, setCapacityReached] = useState(false);
   const { current, finished, discardCurrent, drawingMeasure } = useGeographicMeasurements(
     map,
     drawingSource,
@@ -227,6 +229,9 @@ export function GeographicMeasurePanel({
     showDrawingMeasures,
   );
   const { cursor, center } = useGeographicPointer(map);
+  useEffect(() => {
+    if (finished) setCapacityReached(false);
+  }, [finished]);
 
   useEffect(() => {
     onMeasuringChange(tool !== "none");
@@ -257,7 +262,10 @@ export function GeographicMeasurePanel({
       finished,
     );
     if (!measurement) return;
-    onAddMeasurement(measurement);
+    if (!onAddMeasurement(measurement)) {
+      setCapacityReached(true);
+      return;
+    }
     discardCurrent();
     setEditingId(id);
   };
@@ -315,6 +323,17 @@ export function GeographicMeasurePanel({
                     >
                       {t("geographic.measure.save")}
                     </Button>
+                  ) : null}
+                  {canSave && finished && capacityReached ? (
+                    <p
+                      className="geographic-measures-hint geographic-measures-error"
+                      data-testid="geographic-measure-capacity"
+                      role="alert"
+                    >
+                      {t("geographic.measure.capacityReached")
+                        .replace("{features}", formatNumber(hallGeoJsonCapacity.features))
+                        .replace("{coordinates}", formatNumber(hallGeoJsonCapacity.coordinates))}
+                    </p>
                   ) : null}
                 </div>
               ) : (

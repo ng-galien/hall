@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hallGeoJsonCapacity, hallGeoJsonCoordinateCount } from "./geographicFeature.js";
 import {
   agendaItemStatuses,
   attendanceStatuses,
@@ -591,7 +592,9 @@ export const geographicLayersSchema = z
 export const hallGeoJsonFeatureCollectionSchema = z
   .object({
     type: z.literal("FeatureCollection"),
-    features: z.array(z.union([hallGeoJsonFeatureSchema, hallGeoJsonMeasurementSchema])).max(100),
+    features: z
+      .array(z.union([hallGeoJsonFeatureSchema, hallGeoJsonMeasurementSchema]))
+      .max(hallGeoJsonCapacity.features),
   })
   .strict()
   .refine(({ features }) => new Set(features.map(({ id }) => id)).size === features.length, {
@@ -599,11 +602,8 @@ export const hallGeoJsonFeatureCollectionSchema = z
   })
   .refine(
     ({ features }) =>
-      features.reduce((count, feature) => {
-        if (feature.geometry.type === "Point") return count + 1;
-        if (feature.geometry.type === "LineString") return count + feature.geometry.coordinates.length;
-        return count + feature.geometry.coordinates.reduce((polygonCount, ring) => polygonCount + ring.length, 0);
-      }, 0) <= 5_000,
+      features.reduce((count, feature) => count + hallGeoJsonCoordinateCount(feature), 0) <=
+      hallGeoJsonCapacity.coordinates,
     "Hall GeoJSON layer exceeds the coordinate limit",
   );
 

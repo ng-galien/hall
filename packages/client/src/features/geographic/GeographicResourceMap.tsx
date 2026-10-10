@@ -6,6 +6,7 @@ import {
   type HallGeoJsonMeasurement,
   hallGeoJsonDrawings,
   hallGeoJsonMeasurements,
+  hallGeoJsonWithinCapacity,
 } from "@hall/domain";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "ol/ol.css";
@@ -354,8 +355,11 @@ export function GeographicResourceMap({
         features: [...hallGeoJsonDrawings(current.hallLayer), ...change(hallGeoJsonMeasurements(current.hallLayer))],
       },
     }));
-  const addMeasurement = (measurement: HallGeoJsonMeasurement) =>
+  const addMeasurement = (measurement: HallGeoJsonMeasurement): boolean => {
+    if (!hallGeoJsonWithinCapacity([...latestDraftRef.current.hallLayer.features, measurement])) return false;
     setMeasurements((current) => [...current, measurement]);
+    return true;
+  };
   const renameMeasurement = (id: string, label: string) => {
     setMeasurements((current) =>
       current.map((measurement) =>

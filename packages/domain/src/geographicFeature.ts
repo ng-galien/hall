@@ -26,6 +26,27 @@ export function hallGeoJsonMeasurements(collection: HallGeoJsonFeatureCollection
   return collection.features.filter(isHallGeoJsonMeasurement);
 }
 
+/** Capacity of the drawings GeoJSON of a map: features, and positions over all their geometries. */
+export const hallGeoJsonCapacity = { features: 100, coordinates: 5_000 } as const;
+
+/** Number of positions of a feature geometry, as counted against the coordinate capacity. */
+export function hallGeoJsonCoordinateCount(feature: HallGeoJsonFeature | HallGeoJsonMeasurement): number {
+  const { geometry } = feature;
+  if (geometry.type === "Point") return 1;
+  if (geometry.type === "LineString") return geometry.coordinates.length;
+  return geometry.coordinates.reduce((count, ring) => count + ring.length, 0);
+}
+
+/** True when the features fit the capacity of the drawings GeoJSON. */
+// @implements-requirement HALL-FR-DOC-460
+export function hallGeoJsonWithinCapacity(features: readonly (HallGeoJsonFeature | HallGeoJsonMeasurement)[]): boolean {
+  return (
+    features.length <= hallGeoJsonCapacity.features &&
+    features.reduce((count, feature) => count + hallGeoJsonCoordinateCount(feature), 0) <=
+      hallGeoJsonCapacity.coordinates
+  );
+}
+
 export type HallGeoJsonFeatureHandlers<Result> = {
   [Kind in HallGeoJsonFeatureKind]: (feature: Extract<HallGeoJsonFeature, { properties: { kind: Kind } }>) => Result;
 };

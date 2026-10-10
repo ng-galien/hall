@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  hallGeoJsonCapacity,
   hallGeoJsonDrawings,
   hallGeoJsonMeasurements,
+  hallGeoJsonWithinCapacity,
   isHallGeoJsonMeasurement,
   matchHallGeoJsonFeature,
 } from "./geographicFeature.js";
@@ -82,5 +84,28 @@ describe("saved measurements in the drawings GeoJSON", () => {
     expect(collection.features.map(isHallGeoJsonMeasurement)).toEqual([false, true, false]);
     expect(hallGeoJsonDrawings(collection).map(({ properties }) => properties.kind)).toEqual(["marker", "area"]);
     expect(hallGeoJsonMeasurements(collection)).toEqual([measurement]);
+  });
+});
+
+// @verifies-requirement HALL-FR-DOC-460
+describe("capacity of the drawings GeoJSON", () => {
+  const measurement = (id: number, positions: number): HallGeoJsonMeasurement => ({
+    type: "Feature",
+    id: `00000000-0000-4000-8000-${String(id).padStart(12, "0")}`,
+    properties: { kind: "lengthMeasurement", label: `Mesure ${id}`, length: 10 },
+    geometry: {
+      type: "LineString",
+      coordinates: Array.from({ length: positions }, (_, index) => [2 + index / 1_000, 48] as [number, number]),
+    },
+  });
+
+  it("counts drawings and saved measurements against 100 features and 5000 positions", () => {
+    const hundred = Array.from({ length: hallGeoJsonCapacity.features }, (_, index) => measurement(index, 2));
+    expect(hallGeoJsonWithinCapacity(hundred)).toBe(true);
+    expect(hallGeoJsonWithinCapacity([...features, ...hundred.slice(features.length)])).toBe(true);
+    expect(hallGeoJsonWithinCapacity([...features, ...hundred])).toBe(false);
+    const tenLong = Array.from({ length: 10 }, (_, index) => measurement(index, 500));
+    expect(hallGeoJsonWithinCapacity(tenLong)).toBe(true);
+    expect(hallGeoJsonWithinCapacity([...tenLong, measurement(10, 2)])).toBe(false);
   });
 });
