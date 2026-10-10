@@ -22,15 +22,26 @@
   font-weight: var(--hall-font-weight-semibold);
 }
 
-.attachment-picker-kinds {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--hall-space-1-5);
-}
-
 .attachment-picker-existing {
   display: flex;
   min-height: 0;
   flex: 1;
   flex-direction: column;
+}
+
+.attachment-picker-kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  gap: var(--hall-space-0-5) var(--hall-space-2);
+}
+
+.attachment-picker-kind {
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.attachment-picker-kind > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

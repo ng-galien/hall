@@ -62,13 +62,21 @@ export function CouncilBusinessWorkbench({
   const pinned = isPinned({ kind: "councilBusiness", id: business.id });
   const editable = reportSession.editable;
 
+  const capabilitiesLoaded = useCouncilBusinessStore((state) => business.id in state.capabilitiesById);
+
   useEffect(() => {
+    const store = useCouncilBusinessStore.getState();
     void Promise.all([
-      useCouncilBusinessStore.getState().loadResources(business.id),
-      useCouncilBusinessStore.getState().loadPreparedSubjects(business.id),
+      business.id in store.capabilitiesById ? store.loadResources(business.id) : null,
+      store.loadPreparedSubjects(business.id),
       useCouncilDecisionsStore.getState().load(),
     ]);
   }, [business.id]);
+
+  /** Reloads the opened business representation whenever its capabilities are absent from the store. */
+  useEffect(() => {
+    if (!capabilitiesLoaded) void useCouncilBusinessStore.getState().loadResources(business.id);
+  }, [business.id, capabilitiesLoaded]);
 
   const renameBusiness = async (nextTitle: string) => {
     const renamed = await run(async () => {

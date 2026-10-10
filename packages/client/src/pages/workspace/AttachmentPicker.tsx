@@ -2,7 +2,6 @@ import { matchLiteral } from "@hall/domain";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AddIcon } from "../../components/icons";
 import { ResourceSearch } from "../../components/search/ResourceSearch";
 import type { DocumentaryLeafSummary } from "../../features/documents/DocumentaryResourceGlyph";
@@ -147,24 +146,21 @@ export function AttachmentPicker({
                   {creatable.map((kind) => {
                     const Icon = workspaceCreateKindIcons[kind];
                     return (
-                      <Tooltip key={kind}>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon-sm"
-                            data-testid={`attachment-picker-create-${kind}`}
-                            aria-label={t(workspaceCreateLabels[kind])}
-                            onClick={() => {
-                              setOpen(false);
-                              creation.start(kind);
-                            }}
-                          >
-                            <Icon />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>{t(workspaceCreateLabels[kind])}</TooltipContent>
-                      </Tooltip>
+                      <Button
+                        key={kind}
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="attachment-picker-kind"
+                        data-testid={`attachment-picker-create-${kind}`}
+                        onClick={() => {
+                          setOpen(false);
+                          creation.start(kind);
+                        }}
+                      >
+                        <Icon />
+                        <span>{t(workspaceCreateLabels[kind])}</span>
+                      </Button>
                     );
                   })}
                 </div>
