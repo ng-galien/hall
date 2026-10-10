@@ -8,10 +8,12 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { I18nProvider } from "./i18n/I18nProvider";
+import { startTruncatedTitles } from "./lib/truncatedTitles";
 import "./styles.css";
 import { startThemeTone } from "./theme/themePrefs";
 
 startThemeTone();
+startTruncatedTitles();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

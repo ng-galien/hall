@@ -587,7 +587,7 @@ export const en = {
   "geographic.compositionFeatures": "Drawn geometries",
   "geographic.compositionEmpty": "No geometry",
   "geographic.fitComposition": "Fit the map to the drawings",
-  "geographic.fitFeature": "Fit the map to {name}",
+  "geographic.fitFeature": "Center the map on “{name}”",
   "geographic.drawSelect": "Select a geometry",
   "geographic.drawNavigate": "Navigate",
   "geographic.drawMarker": "Add a point",

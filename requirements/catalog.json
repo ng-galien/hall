@@ -3319,7 +3319,7 @@
         "Le bouton de cadrage figure avec les boutons de zoom de la carte dans l’espace de travail et dans la fenêtre de dialogue de la ressource.",
         "Le bouton reste actif lorsque la carte est en lecture seule ; il ne modifie pas la ressource enregistrée.",
         "Le bouton est désactivé lorsque la carte ne contient aucun dessin.",
-        "En mode dessin, chaque élément de la liste de composition propose un bouton qui cadre la vue sur cet élément.",
+        "En mode dessin, chaque élément de la liste de composition propose un bouton, signalé par une mire et l’infobulle « Centrer la carte sur « nom de l’élément » », qui centre la vue sur cet élément et l’y cadre.",
         "Les pastilles du sélecteur de couleur d’un dessin affichent la couleur qu’elles représentent."
       ],
       "clauses": [
@@ -3327,6 +3327,28 @@
           "key": "geographic-map-frame-drawings",
           "origin": "product",
           "statement": "Cadrer la carte sur ses dessins depuis les contrôles de navigation, sans passer par le mode dessin.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-300": {
+      "name": "GEOGRAPHIC_DRAWING_ESCAPE_CANCELS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "La touche Échap annule le dessin en cours sur une carte géographique, sans rien enregistrer.",
+      "acceptanceCriteria": [
+        "Pendant un dessin en cours, Échap efface la forme commencée, laisse l’outil de dessin sélectionné et n’ajoute aucun élément à la carte enregistrée, quel que soit l’élément de la carte qui a le focus.",
+        "Dans la fenêtre de dialogue de la ressource, Échap pendant un dessin en cours annule le dessin et laisse la fenêtre ouverte ; Échap ferme la fenêtre lorsqu’aucun dessin n’est en cours.",
+        "Dans un champ de saisie ou dans un menu ouvert au-dessus de la carte, Échap garde son effet habituel sur ce champ ou ce menu."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-drawing-escape-cancels",
+          "origin": "product",
+          "statement": "Annuler au clavier un dessin commencé par erreur sans quitter la carte.",
           "sourceIds": []
         }
       ]
@@ -7471,6 +7493,28 @@
           "key": "council-business-action-families",
           "origin": "product",
           "statement": "Présenter les actions de l’affaire selon les ensembles contenu, sujets, ordre du jour et affaire, sans introduire la fusion avant son étude.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-300": {
+      "name": "TRUNCATED_LABEL_SHOWS_FULL_TEXT",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Un libellé raccourci par des points de suspension affiche son texte complet au survol.",
+      "acceptanceCriteria": [
+        "Au survol, un libellé tronqué par des points de suspension affiche son texte complet en infobulle, notamment dans la liste de composition d’une carte, le fil d’Ariane d’une ressource et l’arborescence de l’espace de travail.",
+        "Un libellé affiché en entier ne reçoit pas d’infobulle ; une infobulle déjà prévue par l’interface est conservée.",
+        "L’affichage du texte complet ne modifie pas la mise en page."
+      ],
+      "clauses": [
+        {
+          "key": "truncated-label-full-text",
+          "origin": "product",
+          "statement": "Lire le titre complet d’un élément dont le libellé est raccourci faute de place.",
           "sourceIds": []
         }
       ]

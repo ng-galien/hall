@@ -36,6 +36,7 @@ export {
   ColumnsPlusLeft as ColumnBeforeIcon,
   ColumnsPlusRight as ColumnAfterIcon,
   Copy as CopyIcon,
+  Crosshair as CenterOnFeatureIcon,
   CursorClick as PointerIcon,
   DotsSixVertical as DragHandleIcon,
   DotsThree as MoreIcon,

@@ -39,6 +39,16 @@ interface GeographicMapRuntimeOptions {
   onFeatureCreated(featureId: string): void;
 }
 
+const OWN_ESCAPE_SELECTOR =
+  "input, textarea, select, [data-radix-popper-content-wrapper], [role='menu'], [role='listbox']";
+
+function escapeBelongsToTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  if (target instanceof HTMLElement && target.isContentEditable) return true;
+  return target.closest(OWN_ESCAPE_SELECTOR) !== null;
+}
+
+// @implements-requirement HALL-FR-DOC-300
 /** Owns OpenLayers lifecycle and translates map interactions into geographic draft mutations. */
 export function useGeographicMapRuntime({
   data,
@@ -159,7 +169,22 @@ export function useGeographicMapRuntime({
     const source = vectorSourceRef.current;
     if (!map || !source || !canUpdate || workspaceMode !== "draw" || drawTool === "select") return;
     const draw = new Draw({ source, type: geographicFeatureKindPolicy[drawTool].drawType });
+    let drawing = false;
+    draw.on("drawstart", () => {
+      drawing = true;
+    });
+    draw.on("drawabort", () => {
+      drawing = false;
+    });
+    const cancelDrawingOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !drawing || escapeBelongsToTarget(event.target)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      draw.abortDrawing();
+    };
+    window.addEventListener("keydown", cancelDrawingOnEscape, { capture: true });
     draw.on("drawend", (event) => {
+      drawing = false;
       event.feature.setId(crypto.randomUUID());
       const existingCount = source
         .getFeatures()
@@ -179,6 +204,7 @@ export function useGeographicMapRuntime({
     });
     map.addInteraction(draw);
     return () => {
+      window.removeEventListener("keydown", cancelDrawingOnEscape, { capture: true });
       map.removeInteraction(draw);
     };
   }, [canUpdate, drawTool, featureKindLabels, onDrawTool, onFeatureCreated, syncHallLayer, workspaceMode]);

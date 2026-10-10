@@ -3,9 +3,9 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { ColorPicker, type ColorPickerPreset } from "@/components/ui/color-picker";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
 import {
+  CenterOnFeatureIcon,
   DeleteIcon,
   DragHandleIcon,
-  FitBoundsIcon,
   HiddenIcon,
   PointerIcon,
   VisibleIcon,
@@ -147,7 +147,7 @@ export function GeographicCompositionEditor({
                   title={t("geographic.fitFeature").replace("{name}", feature.properties.label ?? fallbackName)}
                   onClick={() => onFitFeature(feature.id)}
                 >
-                  <FitBoundsIcon />
+                  <CenterOnFeatureIcon />
                 </button>
                 <InlineRenameField
                   value={feature.properties.label ?? fallbackName}

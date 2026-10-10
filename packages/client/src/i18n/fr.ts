@@ -593,7 +593,7 @@ export const fr: Messages = {
   "geographic.compositionFeatures": "Géométries dessinées",
   "geographic.compositionEmpty": "Aucune géométrie",
   "geographic.fitComposition": "Cadrer la carte sur les dessins",
-  "geographic.fitFeature": "Cadrer la carte sur {name}",
+  "geographic.fitFeature": "Centrer la carte sur « {name} »",
   "geographic.drawSelect": "Sélectionner une géométrie",
   "geographic.drawNavigate": "Naviguer",
   "geographic.drawMarker": "Ajouter un point",
