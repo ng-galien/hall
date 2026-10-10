@@ -584,21 +584,22 @@
     top: var(--hall-space-3);
     left: var(--hall-space-3);
     display: flex;
-    gap: var(--hall-space-0-5);
-    padding: var(--hall-space-1);
-    border: var(--hall-stroke-thin) solid var(--hall-color-border);
+    gap: 0;
+    padding: 0;
+    border: 0;
     border-radius: var(--hall-radius-medium);
     margin: 0;
     min-inline-size: 0;
+    box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
   }
   .geographic-mode-switch button {
     display: inline-flex;
     min-height: var(--hall-size-control);
     align-items: center;
     gap: var(--hall-space-1);
-    padding: 0 var(--hall-space-2);
+    padding: 0 var(--hall-space-1-5);
     border: 0;
-    border-radius: var(--hall-radius-small);
+    border-radius: var(--hall-radius-medium);
     color: var(--hall-color-text-muted);
     background: transparent;
     font: inherit;
@@ -640,14 +641,16 @@
     right: var(--hall-space-3);
     bottom: var(--hall-space-10);
     display: grid;
-    gap: var(--hall-space-0-5);
-    padding: var(--hall-space-1);
-    border: var(--hall-stroke-thin) solid var(--hall-color-border);
+    gap: 0;
+    padding: 0;
+    border: 0;
     border-radius: var(--hall-radius-medium);
+    box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
     margin: 0;
     min-inline-size: 0;
   }
   .geographic-zoom-tools button {
+    border-radius: var(--hall-radius-medium);
     color: var(--hall-color-text);
     background: transparent;
     font-size: var(--hall-font-size-title);
@@ -657,8 +660,8 @@
     display: flex;
     min-height: var(--hall-size-control);
     align-items: center;
-    gap: var(--hall-space-2);
-    padding: var(--hall-space-1) var(--hall-space-3);
+    gap: var(--hall-space-1-5);
+    padding: 0 var(--hall-space-2);
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-medium);
     color: var(--hall-color-text);
@@ -763,7 +766,7 @@
   }
   .geographic-composition,
   .geographic-measures {
-    --geographic-panel-top: calc(var(--hall-space-3) + var(--hall-size-control) + var(--hall-space-2));
+    --geographic-panel-top: calc(var(--hall-space-3) + var(--hall-size-control) + var(--hall-space-1));
     top: var(--geographic-panel-top);
     left: var(--hall-space-3);
     display: flex;

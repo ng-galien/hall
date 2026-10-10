@@ -16,6 +16,20 @@ test("Mesures and Dessin toggle their panel and a second press returns to the pl
   const composition = page.getByTestId("geographic-composition");
   await expect(measures).toBeVisible();
   await expect(measureMode).toHaveAttribute("aria-pressed", "true");
+  const switchBox = await page.locator(".geographic-mode-switch").boundingBox();
+  expect(switchBox!.height).toBeLessThanOrEqual(33);
+  for (const control of [
+    measureMode,
+    drawMode,
+    page.getByTestId("geographic-layers-trigger"),
+    page.getByTestId("geographic-zoom-in"),
+    page.getByTestId("geographic-zoom-out"),
+    page.getByTestId("geographic-fit-drawings"),
+  ]) {
+    const box = await control.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(32);
+    expect(box!.width).toBeGreaterThanOrEqual(32);
+  }
 
   await measureMode.click();
   await expect(measures).toHaveCount(0);

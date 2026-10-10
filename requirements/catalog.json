@@ -3866,7 +3866,8 @@
         "Une carte s’ouvre en mode « Mesures », panneau « Mesures » ouvert ; sur la carte seule, un clic sur une entité d’une couche liée ouvre sa fiche comme en mode « Mesures ».",
         "Échap garde l’ordre décrit par HALL-FR-DOC-300 et HALL-FR-DOC-410 (dessin ou mesure en cours, fiche, puis fenêtre de dialogue) ; le mode actif et son panneau restent ouverts après Échap.",
         "Les panneaux « Composition » et « Mesures » s’ouvrent à la hauteur de leur contenu, au moins celle de leur en-tête, de leurs outils et d’une ligne, au plus celle de la carte sous la barre d’outils ; au-delà, leur liste défile à l’intérieur du panneau, qui reste dans la carte.",
-        "La taille donnée par l’utilisateur à un panneau avec sa poignée de redimensionnement est conservée pendant la session du navigateur, à chaque réouverture du panneau et après un rechargement de la page."
+        "La taille donnée par l’utilisateur à un panneau avec sa poignée de redimensionnement est conservée pendant la session du navigateur, à chaque réouverture du panneau et après un rechargement de la page.",
+        "Le sélecteur « Mesures » / « Dessin », le bouton « Couches » et les outils de zoom forment une barre compacte : sélecteur et outils de zoom sans marge intérieure autour de leurs boutons, hauteur du sélecteur 32 px, icônes à 1 em, libellés à la taille de légende ; chaque bouton offre une cible d’au moins 32 px sur 32 px."
       ],
       "clauses": [
         {
@@ -3879,6 +3880,12 @@
           "key": "geographic-panel-height",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : le panneau Composition s’ouvre à la hauteur de son contenu dans les limites de la carte et sa liste défile au-delà ; même règle pour le panneau Mesures.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-compact-toolbar",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : la barre d’outils de la carte (sélecteur de mode, Couches, zoom) un quart plus compacte, cibles tactiles d’au moins 32 px.",
           "sourceIds": []
         }
       ]
