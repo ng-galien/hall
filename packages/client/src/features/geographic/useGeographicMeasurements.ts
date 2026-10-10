@@ -1,3 +1,4 @@
+import type { HallGeoJsonMeasurement } from "@hall/domain";
 import { asArray } from "ol/color";
 import type { Coordinate } from "ol/coordinate";
 import type Feature from "ol/Feature";
@@ -12,7 +13,7 @@ import type OlMap from "ol/Map";
 import type MapBrowserEvent from "ol/MapBrowserEvent";
 import VectorSource from "ol/source/Vector";
 import { Circle, Fill, Stroke, Style, Text } from "ol/style";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
 import {
   formatGeographicArea,
@@ -20,12 +21,14 @@ import {
   type GeographicMeasure,
   measureGeometry,
 } from "./geographicMeasureModel";
+import { readMeasurementFeatures } from "./geographicOpenLayersAdapter";
 import { escapeBelongsToTarget } from "./useGeographicFeatureCard";
 
 export type GeographicMeasureTool = "none" | "length" | "area";
 
 /** Above the data layers (50 + rank) and the drawing (100). */
 const MEASURE_LAYER_Z_INDEX = 200;
+const SAVED_MEASURE_LAYER_Z_INDEX = 190;
 const DRAWING_MEASURE_LABEL_Z_INDEX = 150;
 
 export interface GeographicDrawingMeasure {
@@ -105,6 +108,57 @@ function measureStyle(format: FormatNumber) {
   };
 }
 
+/** Saved measurement: dashed geometry with its name and the value stored at saving time. */
+function savedMeasurementStyle(format: FormatNumber) {
+  const brand = cssToken("--hall-color-brand");
+  const stroke = new Stroke({ color: brand, width: 2, lineDash: [6, 4] });
+  const fill = new Fill({ color: translucent(brand, 0.08) });
+  return (feature: FeatureLike): Style[] => {
+    const geometry = feature.getGeometry() as Geometry | undefined;
+    if (!geometry) return [];
+    const label = String(feature.get("label") ?? "");
+    if (feature.get("kind") === "areaMeasurement") {
+      return [
+        new Style({ stroke, fill }),
+        new Style({
+          geometry: (geometry as Polygon).getInteriorPoint(),
+          text: labelText(`${label}\n${formatGeographicArea(Number(feature.get("area")), format)}`),
+        }),
+      ];
+    }
+    return [
+      new Style({ stroke }),
+      new Style({
+        geometry: new Point((geometry as LineString).getCoordinateAt(0.5)),
+        text: labelText(`${label}\n${formatGeographicLength(Number(feature.get("length")), format)}`, -10),
+      }),
+    ];
+  };
+}
+
+/** Draws the saved measurements of the map, whatever the active tab or mode. */
+// @implements-requirement HALL-FR-DOC-460
+export function useGeographicSavedMeasurementLayer(map: OlMap | null, measurements: readonly HallGeoJsonMeasurement[]) {
+  const { formatNumber } = useI18n();
+  const source = useMemo(() => new VectorSource<Feature<Geometry>>(), []);
+  useEffect(() => {
+    source.clear();
+    source.addFeatures(readMeasurementFeatures(measurements));
+  }, [measurements, source]);
+  useEffect(() => {
+    if (!map) return;
+    const layer = new VectorLayer({
+      source,
+      style: savedMeasurementStyle(formatNumber),
+      zIndex: SAVED_MEASURE_LAYER_Z_INDEX,
+    });
+    map.addLayer(layer);
+    return () => {
+      map.removeLayer(layer);
+    };
+  }, [formatNumber, map, source]);
+}
+
 /** Measure label of a saved drawing, placed under its own label. */
 function drawingMeasureStyle(format: FormatNumber) {
   return (feature: FeatureLike): Style | undefined => {
@@ -141,6 +195,7 @@ export function useGeographicMeasurements(
   const { formatNumber } = useI18n();
   const source = useMemo(() => new VectorSource<Feature<Geometry>>(), []);
   const [current, setCurrent] = useState<GeographicMeasure | null>(null);
+  const [finished, setFinished] = useState<Geometry | null>(null);
   const [drawingMeasure, setDrawingMeasure] = useState<GeographicDrawingMeasure | null>(null);
 
   useEffect(() => {
@@ -176,6 +231,7 @@ export function useGeographicMeasurements(
   useEffect(() => {
     source.clear();
     setCurrent(null);
+    setFinished(null);
     if (!map || tool === "none") return;
     const draw = new Draw({
       source,
@@ -189,6 +245,7 @@ export function useGeographicMeasurements(
     };
     draw.on("drawstart", (event) => {
       source.clear();
+      setFinished(null);
       sketch = event.feature;
       sketch.getGeometry()?.on("change", update);
       update();
@@ -198,6 +255,7 @@ export function useGeographicMeasurements(
       sketch = null;
       const geometry = event.feature.getGeometry();
       setCurrent(geometry ? measureGeometry(geometry) : null);
+      setFinished(geometry ? geometry.clone() : null);
     });
     draw.on("drawabort", () => {
       sketch = null;
@@ -211,6 +269,7 @@ export function useGeographicMeasurements(
       draw.abortDrawing();
       source.clear();
       setCurrent(null);
+      setFinished(null);
     };
     window.addEventListener("keydown", clearOnEscape, { capture: true });
     map.addInteraction(draw);
@@ -241,7 +300,13 @@ export function useGeographicMeasurements(
     return () => map.un("singleclick", pick);
   }, [drawingSource, map, tool]);
 
-  return { current, drawingMeasure };
+  const discardCurrent = useCallback(() => {
+    source.clear();
+    setCurrent(null);
+    setFinished(null);
+  }, [source]);
+
+  return { current, finished, discardCurrent, drawingMeasure };
 }
 
 /** Cursor and view-centre coordinates in the map projection, updated at most once per animation frame. */

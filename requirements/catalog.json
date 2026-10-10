@@ -3632,7 +3632,7 @@
         "state": "accepted",
         "since": "2026-10-10"
       },
-      "statement": "L’onglet Mesures d’une carte géographique mesure des distances et des surfaces avec des géométries temporaires, affiche les mesures d’un dessin et donne la position du curseur et du centre de la vue.",
+      "statement": "L’onglet Mesures d’une carte géographique mesure des distances et des surfaces, affiche les mesures d’un dessin et donne, dans son onglet Coordonnées, la position du curseur et du centre de la vue.",
       "acceptanceCriteria": [
         "L’onglet de consultation d’une carte s’intitule « Mesures » ; l’onglet Dessin est inchangé.",
         "La règle trace une ligne temporaire point par point ; la longueur de chaque segment et la longueur totale s’affichent sur la carte à côté de la ligne et le total figure dans le panneau Mesures.",
@@ -3640,8 +3640,9 @@
         "Les longueurs et surfaces sont géodésiques, calculées sur la sphère terrestre à partir de la projection de la carte, et non mesurées dans le plan de la projection.",
         "Les longueurs s’expriment en mètres, puis en kilomètres à partir de 1 km ; les surfaces en mètres carrés, puis en hectares à partir de 1 ha, avec un arrondi adapté et la présentation numérique française.",
         "Sans outil de mesure actif, un clic sur un dessin enregistré affiche ses mesures : longueur d’une ligne, périmètre et surface d’une zone, position d’un point ; une option affiche les mesures de tous les dessins sur la carte.",
-        "Le panneau Mesures donne la position du curseur et celle du centre de la vue en WGS84 (latitude et longitude en degrés décimaux) et dans le système projeté de la carte (EPSG:3857, en mètres), chacune copiable.",
-        "Les géométries de mesure ne sont jamais ajoutées au dessin enregistré et ne déclenchent aucun enregistrement ; elles disparaissent au changement d’outil ou d’onglet.",
+        "Le panneau Mesures a deux onglets, « Mesures » et « Coordonnées », atteignables au clavier ; l’onglet « Mesures », ouvert par défaut, ne montre aucune coordonnée ; le panneau garde la même largeur dans les deux onglets.",
+        "L’onglet « Coordonnées » donne la position du curseur et celle du centre de la vue en WGS84 (latitude et longitude en degrés décimaux) et dans le système projeté de la carte (EPSG:3857, en mètres), chacune copiable.",
+        "Une mesure en cours est temporaire : elle n’entre dans la carte enregistrée que par l’action « Enregistrer la mesure » (HALL-FR-DOC-460) ; sinon elle ne déclenche aucun enregistrement et disparaît au changement d’outil ou d’onglet.",
         "Échap efface la mesure en cours sans quitter l’onglet ; dans la fenêtre de dialogue de la ressource, cet Échap ne ferme pas la fenêtre."
       ],
       "clauses": [
@@ -3752,6 +3753,34 @@
           "key": "geographic-drawing-selection-before-shape-modification",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : distinguer la sélection d’un dessin (lecture de ses propriétés, mesures et note) de la modification de sa forme.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-460": {
+      "name": "GEOGRAPHIC_SAVED_MEASUREMENTS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Une mesure de distance ou de surface s’enregistre dans la carte sous un nom ; les mesures enregistrées forment une liste du panneau Mesures et restent dessinées sur la carte.",
+      "acceptanceCriteria": [
+        "Lorsque la représentation de la carte propose la modification de son contenu, une mesure terminée par un double clic s’enregistre par l’action « Enregistrer la mesure » ; elle reçoit le nom « Mesure n », dont le champ de renommage s’ouvre aussitôt.",
+        "L’onglet « Mesures » liste les mesures enregistrées dans l’ordre d’enregistrement, chacune avec son nom, sa valeur (longueur d’une distance, surface et périmètre d’une surface), un renommage en place et une suppression.",
+        "Une mesure enregistrée est dessinée sur la carte de l’espace de travail et de « Cartes », en modes « Mesures » et « Dessin », avec son nom et sa valeur.",
+        "Une mesure enregistrée est un objet du GeoJSON des dessins de la carte (hallLayer) : sa géométrie en WGS84 (LineString pour une distance, Polygon pour une surface), une nature qui la marque comme mesure (lengthMeasurement pour une distance, areaMeasurement pour une surface), son nom (label) et la valeur géodésique calculée à l’enregistrement : length en mètres pour une distance, area en mètres carrés et perimeter en mètres pour une surface.",
+        "Le serveur valide cette forme avec celle des dessins : la nature correspond à la géométrie, le nom est un libellé non vide et chaque valeur est un nombre fini positif ou nul.",
+        "La liste se reconstruit depuis le GeoJSON au rechargement ; une mesure enregistrée suit la carte comme ses dessins, dans son enregistrement automatique et dans le fichier d’une affaire exporté.",
+        "Les mesures enregistrées restent hors de la liste de composition, des dessins sélectionnables, des notes de dessins et du cadrage de « Cartes » sur les dessins.",
+        "Un lecteur voit la liste et les mesures enregistrées ; les actions d’enregistrement, de renommage et de suppression sont réservées à qui peut modifier la carte.",
+        "Une carte intégrée dans un texte et l’image d’une carte dans un document généré montrent les dessins de la carte ; les mesures enregistrées restent dans la carte de l’espace de travail et de « Cartes »."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-saved-measurements",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : une liste de mesures nommées et enregistrées, stockées dans le GeoJSON des dessins pour suivre la carte.",
           "sourceIds": []
         }
       ]

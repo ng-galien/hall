@@ -780,7 +780,7 @@
     top: calc(var(--hall-space-3) + var(--hall-size-control) + var(--hall-space-2));
     left: var(--hall-space-3);
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     width: var(--hall-size-entity-card);
     max-width: calc(100% - var(--hall-space-6));
     max-height: calc(100% - var(--hall-size-control) - var(--hall-space-6));
@@ -788,7 +788,55 @@
     border-radius: var(--hall-radius-medium);
     overflow: hidden;
   }
-  .geographic-measures-header { cursor: default; }
+  .geographic-measures-tabs { display: grid; min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: 0; }
+  .geographic-measures-tab-list {
+    width: 100%;
+    gap: var(--hall-space-3);
+    padding: 0 var(--hall-space-2);
+    background: var(--hall-color-surface-subtle);
+  }
+  .geographic-measures-tab-list [data-slot="tabs-trigger"] { padding-block: var(--hall-space-1); font-size: var(--hall-font-size-caption); }
+  .geographic-measures-tab { display: grid; min-height: 0; grid-template-rows: auto minmax(0, 1fr); }
+  .geographic-measures-tab[data-state="inactive"] { display: none; }
+  .geographic-measures-current { display: grid; justify-items: start; gap: var(--hall-space-1); }
+  .geographic-measurement-list { display: grid; gap: var(--hall-space-0-5); margin: 0; padding: 0; list-style: none; }
+  .geographic-measurement {
+    display: grid;
+    grid-template-columns: var(--hall-size-glyph-mark-large) minmax(0, 1fr) auto var(--hall-size-control-small);
+    min-height: var(--hall-size-control-small);
+    align-items: center;
+    gap: var(--hall-space-1);
+    color: var(--hall-color-text-muted);
+  }
+  .geographic-measurement-name {
+    min-width: 0;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    color: var(--hall-color-text);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: text;
+  }
+  .geographic-measurement-name:disabled { cursor: default; }
+  .geographic-measurement-input { min-width: 0; font: inherit; }
+  .geographic-measurement-value { color: var(--hall-color-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .geographic-measurement-remove {
+    display: inline-grid;
+    width: var(--hall-size-control-small);
+    height: var(--hall-size-control-small);
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: var(--hall-radius-small);
+    color: var(--hall-color-text-muted);
+    background: transparent;
+    cursor: pointer;
+  }
+  .geographic-measurement-remove:hover { color: var(--hall-color-danger); background: var(--hall-color-surface-subtle); }
   .geographic-measures-body {
     display: grid;
     min-height: 0;

@@ -2,6 +2,7 @@ import {
   type GeographicPosition,
   type GeographicView,
   type HallGeoJsonFeatureCollection,
+  hallGeoJsonDrawings,
   matchDiscriminated,
 } from "@hall/domain";
 
@@ -103,7 +104,7 @@ function positionsExtent(positions: readonly (readonly [number, number])[]): Lon
 
 /** Extents of the drawings shown on the map, one per visible feature. */
 export function visibleDrawingExtents(collection: HallGeoJsonFeatureCollection): LonLatExtent[] {
-  return collection.features
+  return hallGeoJsonDrawings(collection)
     .filter((feature) => feature.properties.visible)
     .map((feature) =>
       matchDiscriminated(feature.geometry, "type", {

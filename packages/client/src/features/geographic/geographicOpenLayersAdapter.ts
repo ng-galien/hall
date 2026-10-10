@@ -5,7 +5,9 @@ import type {
   GeographicView,
   HallGeoJsonFeatureCollection,
   HallGeoJsonFeatureKind,
+  HallGeoJsonMeasurement,
 } from "@hall/domain";
+import { hallGeoJsonDrawings } from "@hall/domain";
 import { getHeight, getWidth } from "ol/extent";
 import type { FeatureLike } from "ol/Feature";
 import Feature from "ol/Feature";
@@ -129,8 +131,19 @@ export function initialGeographicFeatureProperties(kind: HallGeoJsonFeatureKind,
   return geographicFeatureKindPolicy[kind].initialProperties(label, cssToken("--hall-color-brand") as GeographicColor);
 }
 
+/** OpenLayers features of the drawings; the saved measurements stay out of the drawing source. */
 export function readHallFeatures(collection: HallGeoJsonFeatureCollection): Feature<Geometry>[] {
-  return geoJson.readFeatures(collection, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" });
+  return geoJson.readFeatures(
+    { type: "FeatureCollection", features: hallGeoJsonDrawings(collection) },
+    { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" },
+  );
+}
+
+export function readMeasurementFeatures(measurements: readonly HallGeoJsonMeasurement[]): Feature<Geometry>[] {
+  return geoJson.readFeatures(
+    { type: "FeatureCollection", features: measurements },
+    { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" },
+  );
 }
 
 export function serializeHallLayer(source: VectorSource<Feature<Geometry>>): HallGeoJsonFeatureCollection {

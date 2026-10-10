@@ -519,6 +519,42 @@ const hallGeoJsonFeatureSchema = z.union([
     .strict(),
 ]);
 
+const geographicMeasurementLabelSchema = z.string().trim().min(1).max(160);
+const geographicMeasureValueSchema = z.number().finite().min(0).max(1e12);
+
+// @implements-requirement HALL-FR-DOC-460
+const hallGeoJsonMeasurementSchema = z.union([
+  z
+    .object({
+      type: z.literal("Feature"),
+      id: z.string().uuid(),
+      properties: z
+        .object({
+          kind: z.literal("lengthMeasurement"),
+          label: geographicMeasurementLabelSchema,
+          length: geographicMeasureValueSchema,
+        })
+        .strict(),
+      geometry: geographicLineStringSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("Feature"),
+      id: z.string().uuid(),
+      properties: z
+        .object({
+          kind: z.literal("areaMeasurement"),
+          label: geographicMeasurementLabelSchema,
+          area: geographicMeasureValueSchema,
+          perimeter: geographicMeasureValueSchema,
+        })
+        .strict(),
+      geometry: geographicPolygonSchema,
+    })
+    .strict(),
+]);
+
 const geographicZoomSchema = z.number().min(0).max(22);
 
 export const geographicViewSchema = z.discriminatedUnion("kind", [
@@ -555,7 +591,7 @@ export const geographicLayersSchema = z
 export const hallGeoJsonFeatureCollectionSchema = z
   .object({
     type: z.literal("FeatureCollection"),
-    features: z.array(hallGeoJsonFeatureSchema).max(100),
+    features: z.array(z.union([hallGeoJsonFeatureSchema, hallGeoJsonMeasurementSchema])).max(100),
   })
   .strict()
   .refine(({ features }) => new Set(features.map(({ id }) => id)).size === features.length, {

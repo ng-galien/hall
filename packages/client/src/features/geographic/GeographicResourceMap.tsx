@@ -1,5 +1,12 @@
 import type { ResourceDetail } from "@hall/api-contract";
-import type { GeographicLayer, GeographicLayerId, GeographicView } from "@hall/domain";
+import {
+  type GeographicLayer,
+  type GeographicLayerId,
+  type GeographicView,
+  type HallGeoJsonMeasurement,
+  hallGeoJsonDrawings,
+  hallGeoJsonMeasurements,
+} from "@hall/domain";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "ol/ol.css";
 import { Button } from "@/components/ui/button";
@@ -42,6 +49,7 @@ import {
   type GeographicWorkspaceMode,
   useGeographicMapRuntime,
 } from "./useGeographicMapRuntime";
+import { useGeographicSavedMeasurementLayer } from "./useGeographicMeasurements";
 import { useGeographicOverlays } from "./useGeographicOverlays";
 
 const GEOGRAPHIC_SAVE_DEBOUNCE_MS = 1_500;
@@ -123,6 +131,8 @@ export function GeographicResourceMap({
   const [measuring, setMeasuring] = useState(false);
 
   const draftSignature = useMemo(() => geographicDataSignature(draft), [draft]);
+  const drawings = useMemo(() => hallGeoJsonDrawings(draft.hallLayer), [draft.hallLayer]);
+  const measurements = useMemo(() => hallGeoJsonMeasurements(draft.hallLayer), [draft.hallLayer]);
   const dirty = draftSignature !== savedSignature;
   autosaveEnabledRef.current = autosaveEnabled;
 
@@ -219,9 +229,10 @@ export function GeographicResourceMap({
   );
   const selectedDrawnElement =
     workspaceMode === "draw" && canUpdate
-      ? (draft.hallLayer.features.find(({ id }) => id === mapRuntime.selectedFeatureId) ?? null)
+      ? (drawings.find(({ id }) => id === mapRuntime.selectedFeatureId) ?? null)
       : null;
-  const selectedDrawnElementIndex = selectedDrawnElement ? draft.hallLayer.features.indexOf(selectedDrawnElement) : -1;
+  const selectedDrawnElementIndex = selectedDrawnElement ? drawings.indexOf(selectedDrawnElement) : -1;
+  useGeographicSavedMeasurementLayer(embedded ? null : mapRuntime.map, measurements);
   const selectedNote = useGeographicFeatureNote(selectedFeature, onError);
   const municipalFilterLayers = municipalFilterLayerIds(
     overlayRuntime.featureKeys,
@@ -335,6 +346,28 @@ export function GeographicResourceMap({
     if (!mapRuntime.renameFeature(id, label)) return false;
     return save();
   };
+  const setMeasurements = (change: (current: HallGeoJsonMeasurement[]) => HallGeoJsonMeasurement[]) =>
+    updateDraft((current) => ({
+      ...current,
+      hallLayer: {
+        type: "FeatureCollection",
+        features: [...hallGeoJsonDrawings(current.hallLayer), ...change(hallGeoJsonMeasurements(current.hallLayer))],
+      },
+    }));
+  const addMeasurement = (measurement: HallGeoJsonMeasurement) =>
+    setMeasurements((current) => [...current, measurement]);
+  const renameMeasurement = (id: string, label: string) => {
+    setMeasurements((current) =>
+      current.map((measurement) =>
+        measurement.id === id
+          ? ({ ...measurement, properties: { ...measurement.properties, label } } as HallGeoJsonMeasurement)
+          : measurement,
+      ),
+    );
+    return save();
+  };
+  const removeMeasurement = (id: string) =>
+    setMeasurements((current) => current.filter((measurement) => measurement.id !== id));
   const saveDisplayedView = () => {
     updateDraft((current) => ({ ...current, view: displayedView }));
     void save();
@@ -390,7 +423,7 @@ export function GeographicResourceMap({
         }
         onMoveLayer={moveLayer}
         onZoom={mapRuntime.changeZoom}
-        canFit={draft.hallLayer.features.length > 0}
+        canFit={drawings.length > 0}
         onFit={mapRuntime.fitComposition}
         overlays={overlays}
         overlayStatuses={overlayStatuses}
@@ -407,6 +440,11 @@ export function GeographicResourceMap({
           map={mapRuntime.map}
           drawingSource={mapRuntime.drawingSource}
           onMeasuringChange={setMeasuring}
+          measurements={measurements}
+          canSave={canUpdate}
+          onAddMeasurement={addMeasurement}
+          onRenameMeasurement={renameMeasurement}
+          onRemoveMeasurement={removeMeasurement}
         />
       ) : null}
       {workspaceMode === "draw" && canUpdate ? (
@@ -414,7 +452,7 @@ export function GeographicResourceMap({
           panelRef={compositionLayout.panelRef}
           style={compositionLayout.style}
           drawTool={drawTool}
-          features={draft.hallLayer.features}
+          features={drawings}
           selectedFeatureId={mapRuntime.selectedFeatureId}
           modifyingFeatureId={mapRuntime.modifyingFeatureId}
           editingFeatureId={editingFeatureId}

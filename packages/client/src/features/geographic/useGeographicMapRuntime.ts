@@ -5,6 +5,7 @@ import type {
   GeographicView,
   HallGeoJsonFeatureKind,
 } from "@hall/domain";
+import { hallGeoJsonMeasurements } from "@hall/domain";
 import Collection from "ol/Collection";
 import { defaults as defaultControls } from "ol/control/defaults";
 import type Feature from "ol/Feature";
@@ -131,7 +132,13 @@ export function useGeographicMapRuntime({
   const syncHallLayer = useCallback(() => {
     const source = vectorSourceRef.current;
     if (!source) return;
-    updateDraft((current) => ({ ...current, hallLayer: serializeHallLayer(source) }));
+    updateDraft((current) => ({
+      ...current,
+      hallLayer: {
+        type: "FeatureCollection",
+        features: [...serializeHallLayer(source).features, ...hallGeoJsonMeasurements(current.hallLayer)],
+      },
+    }));
   }, [updateDraft]);
 
   useEffect(() => {

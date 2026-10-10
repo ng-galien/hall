@@ -220,8 +220,43 @@ const hallGeographicFeatureSchema = z.union([
     })
     .strict(),
 ]);
+const geographicMeasureValueSchema = z.number().finite().min(0);
+const hallGeographicMeasurementSchema = z.union([
+  z
+    .object({
+      type: z.literal("Feature"),
+      id: resourceIdSchema,
+      properties: z
+        .object({
+          kind: z.literal("lengthMeasurement"),
+          label: z.string().trim().min(1).max(160),
+          length: geographicMeasureValueSchema,
+        })
+        .strict(),
+      geometry: geographicLineSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("Feature"),
+      id: resourceIdSchema,
+      properties: z
+        .object({
+          kind: z.literal("areaMeasurement"),
+          label: z.string().trim().min(1).max(160),
+          area: geographicMeasureValueSchema,
+          perimeter: geographicMeasureValueSchema,
+        })
+        .strict(),
+      geometry: geographicPolygonSchema,
+    })
+    .strict(),
+]);
 export const hallGeographicFeatureCollectionSchema = z
-  .object({ type: z.literal("FeatureCollection"), features: z.array(hallGeographicFeatureSchema).max(100) })
+  .object({
+    type: z.literal("FeatureCollection"),
+    features: z.array(z.union([hallGeographicFeatureSchema, hallGeographicMeasurementSchema])).max(100),
+  })
   .strict();
 export const geographicProvenanceSchema = z
   .object({

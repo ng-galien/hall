@@ -92,6 +92,64 @@ describe("geographic resource colors", () => {
     expect(parsed.hallLayer.features[1]?.geometry).toMatchObject({ type: "Polygon", coordinates: [outerRing] });
   });
 
+  // @verifies-requirement HALL-FR-DOC-460
+  it("stores a named length or area measurement beside the drawings", () => {
+    const line = {
+      type: "Feature",
+      id: "44444444-4444-4444-8444-444444444444",
+      properties: { kind: "lengthMeasurement", label: " Chemin du lavoir ", length: 750.7 },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [4.50, 47.54],
+          [4.51, 47.54],
+        ],
+      },
+    };
+    const area = {
+      type: "Feature",
+      id: "55555555-5555-4555-8555-555555555555",
+      properties: { kind: "areaMeasurement", label: "Pré communal", area: 834_600, perimeter: 3_725 },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [4.50, 47.54],
+            [4.51, 47.54],
+            [4.51, 47.55],
+            [4.50, 47.54],
+          ],
+        ],
+      },
+    };
+    const parsed = createGeographicResourceSchema.parse({
+      ...resource,
+      hallLayer: { type: "FeatureCollection", features: [...resource.hallLayer.features, line, area] },
+    });
+    expect(parsed.hallLayer.features.map(({ properties }) => properties.kind)).toEqual([
+      "marker",
+      "lengthMeasurement",
+      "areaMeasurement",
+    ]);
+    expect(parsed.hallLayer.features[1]?.properties).toEqual({
+      kind: "lengthMeasurement",
+      label: "Chemin du lavoir",
+      length: 750.7,
+    });
+
+    const withFeature = (feature: unknown) =>
+      createGeographicResourceSchema.safeParse({
+        ...resource,
+        hallLayer: { type: "FeatureCollection", features: [feature] },
+      }).success;
+    expect(withFeature({ ...line, geometry: area.geometry })).toBe(false);
+    expect(withFeature({ ...area, geometry: line.geometry })).toBe(false);
+    expect(withFeature({ ...line, properties: { ...line.properties, label: "  " } })).toBe(false);
+    expect(withFeature({ ...line, properties: { ...line.properties, length: -1 } })).toBe(false);
+    expect(withFeature({ ...area, properties: { kind: "areaMeasurement", label: "Pré", area: 10 } })).toBe(false);
+    expect(withFeature({ ...line, properties: { ...line.properties, visible: true } })).toBe(false);
+  });
+
   it("requires a geographic extent to have increasing bounds", () => {
     expect(geographicViewSchema.parse({ kind: "extent", extent: [2, 48, 3, 49], zoom: 12 })).toMatchObject({
       kind: "extent",

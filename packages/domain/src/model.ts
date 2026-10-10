@@ -323,9 +323,25 @@ export type HallGeoJsonFeature =
       geometry: Extract<GeographicGeometry, { type: "Polygon" }>;
     };
 
+/** A named distance or area measurement saved in the drawings GeoJSON, with its geodesic value at saving time. */
+// @implements-requirement HALL-FR-DOC-460
+export type HallGeoJsonMeasurement =
+  | {
+      type: "Feature";
+      id: Identifier;
+      properties: { kind: "lengthMeasurement"; label: string; length: number };
+      geometry: Extract<GeographicGeometry, { type: "LineString" }>;
+    }
+  | {
+      type: "Feature";
+      id: Identifier;
+      properties: { kind: "areaMeasurement"; label: string; area: number; perimeter: number };
+      geometry: Extract<GeographicGeometry, { type: "Polygon" }>;
+    };
+
 export interface HallGeoJsonFeatureCollection {
   type: "FeatureCollection";
-  features: HallGeoJsonFeature[];
+  features: Array<HallGeoJsonFeature | HallGeoJsonMeasurement>;
 }
 
 export type GeographicView =

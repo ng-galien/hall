@@ -63,6 +63,52 @@ describe("geographic map PDF rendering", () => {
     expect(svg).toContain("#102a83");
   });
 
+  // @verifies-requirement HALL-FR-DOC-460
+  it("draws the drawings of the map and leaves its saved measurements out of the image", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 503 }));
+    const data: GeographicResourceData = {
+      view: { kind: "center", center: [2.15, 48.15], zoom: 14 },
+      layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
+      hallLayer: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            id: "00000000-0000-4000-8000-000000000002",
+            properties: { kind: "marker", visible: true, label: "Mairie", style: { color: "#24439b", size: "medium" } },
+            geometry: { type: "Point", coordinates: [2.15, 48.15] },
+          },
+          {
+            type: "Feature",
+            id: "00000000-0000-4000-8000-000000000003",
+            properties: { kind: "lengthMeasurement", label: "Distance au stade", length: 820.5 },
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [2.15, 48.15],
+                [2.5, 48.4],
+              ],
+            },
+          },
+        ],
+      },
+      provenance: {
+        attribution: "IGN",
+        license: "Licence Ouverte 2.0",
+        metadataUrl: "https://example.test",
+        configuredAt: "2026-08-31T10:00:00.000Z",
+        sourceUpdatedAt: null,
+      },
+    };
+
+    const image = await createGeographicMapRenderer().render(data, "Plan");
+    const svg = Buffer.from(image.split(",")[1], "base64").toString("utf8");
+
+    expect(svg).toContain("Mairie");
+    expect(svg).not.toContain("Distance au stade");
+    expect(svg).not.toContain("<polyline");
+  });
+
   it("renders every Hall geometry without interactive map dependencies", async () => {
     const request = vi.spyOn(globalThis, "fetch");
     const data: GeographicResourceData = {

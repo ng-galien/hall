@@ -32,6 +32,7 @@ import {
   startAgendaItemSchema,
   updateCommitteeMembershipSchema,
   updateCouncilMemberSchema,
+  updateResourceContentSchema,
 } from "./index.js";
 
 describe("shared HTTP contract", () => {
@@ -462,5 +463,61 @@ describe("shared HTTP contract", () => {
       endedOn: "2026-03-01",
     });
     expect(() => updateCommitteeMembershipSchema.parse({ ...membership, endedOn: "2026-02-28" })).toThrow();
+  });
+});
+
+// @verifies-requirement HALL-FR-DOC-460
+describe("saved measurements in a geographic document", () => {
+  const document = {
+    view: { kind: "center", center: [4.50, 47.54], zoom: 15 },
+    layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
+    provenance: {
+      attribution: "IGN",
+      license: "Licence Ouverte 2.0",
+      metadataUrl: "https://geoservices.ign.fr/",
+      configuredAt: "2026-10-10T10:00:00.000Z",
+      sourceUpdatedAt: null,
+    },
+  };
+  const line = [
+    [4.50, 47.54],
+    [4.51, 47.54],
+  ];
+  const ring = [
+    [4.50, 47.54],
+    [4.51, 47.54],
+    [4.51, 47.55],
+    [4.50, 47.54],
+  ];
+  const update = (feature: unknown) =>
+    updateResourceContentSchema.safeParse({
+      kind: "geographic",
+      expectedVersion: 3,
+      document: { ...document, hallLayer: { type: "FeatureCollection", features: [feature] } },
+    });
+  const length = {
+    type: "Feature",
+    id: "44444444-4444-4444-8444-444444444444",
+    properties: { kind: "lengthMeasurement", label: "Chemin du lavoir", length: 750.7 },
+    geometry: { type: "LineString", coordinates: line },
+  };
+  const area = {
+    type: "Feature",
+    id: "55555555-5555-4555-8555-555555555555",
+    properties: { kind: "areaMeasurement", label: "Pré communal", area: 834_600, perimeter: 3_725 },
+    geometry: { type: "Polygon", coordinates: [ring] },
+  };
+
+  it("accepts a length or area measurement with its geometry, name and value", () => {
+    expect(update(length).success).toBe(true);
+    expect(update(area).success).toBe(true);
+  });
+
+  it("rejects a measurement whose kind, name or value does not match the stored shape", () => {
+    expect(update({ ...length, geometry: area.geometry }).success).toBe(false);
+    expect(update({ ...area, geometry: length.geometry }).success).toBe(false);
+    expect(update({ ...length, properties: { ...length.properties, label: " " } }).success).toBe(false);
+    expect(update({ ...length, properties: { ...length.properties, length: -2 } }).success).toBe(false);
+    expect(update({ ...area, properties: { kind: "areaMeasurement", label: "Pré", area: 4 } }).success).toBe(false);
   });
 });

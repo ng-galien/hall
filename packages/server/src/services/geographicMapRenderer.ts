@@ -2,6 +2,7 @@ import {
   type GeographicPosition,
   type GeographicResourceData,
   type HallGeoJsonFeature,
+  hallGeoJsonDrawings,
   matchHallGeoJsonFeature,
 } from "@hall/domain";
 
@@ -173,7 +174,7 @@ async function wmsImage(layer: GeographicResourceData["layers"][number], bounds:
 export function createGeographicMapRenderer(): GeographicMapRenderer {
   return {
     async render(data, title) {
-      const visibleFeatures = data.hallLayer.features.filter((feature) => feature.properties.visible);
+      const visibleFeatures = hallGeoJsonDrawings(data.hallLayer).filter((feature) => feature.properties.visible);
       const bounds = paddedBounds(featureBounds(visibleFeatures) ?? viewBounds(data));
       const backgrounds = (await Promise.all(data.layers.map((layer) => wmsImage(layer, bounds))))
         .filter((image): image is string => Boolean(image))

@@ -614,6 +614,13 @@ export const fr: Messages = {
   "geographic.measure.south": "S",
   "geographic.measure.east": "E",
   "geographic.measure.west": "O",
+  "geographic.measure.coordinates": "Coordonnées",
+  "geographic.measure.save": "Enregistrer la mesure",
+  "geographic.measure.saved": "Mesures enregistrées",
+  "geographic.measure.savedEmpty": "Aucune mesure enregistrée.",
+  "geographic.measure.defaultName": "Mesure",
+  "geographic.measure.name": "Nom de la mesure",
+  "geographic.measure.remove": "Supprimer la mesure {name}",
   "geographic.measure.drawing": "Dessin",
   "geographic.measure.showDrawings": "Afficher les mesures des dessins",
   "geographic.measure.hintLength":

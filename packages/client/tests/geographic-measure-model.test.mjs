@@ -11,6 +11,8 @@ import {
   formatWgs84,
   geographicPosition,
   measureGeometry,
+  measurementFeature,
+  savedMeasure,
   wgs84ClipboardText,
 } from "../src/features/geographic/geographicMeasureModel.ts";
 
@@ -80,4 +82,44 @@ test("the unit switch follows the rounded figure", () => {
   assert.equal(normalize(formatGeographicLength(9.96, fr)), "10,0 m");
   assert.equal(normalize(formatGeographicArea(9_999.6, fr)), "1,00 ha");
   assert.equal(normalize(formatGeographicArea(10_000, fr)), "1,00 ha");
+});
+
+// @verifies-requirement HALL-FR-DOC-460
+test("a saved measurement stores its WGS84 geometry, kind, name and geodesic value", () => {
+  const line = new LineString([fromLonLat([4.50, 47.54]), fromLonLat([4.51, 47.54])]);
+  const length = measurementFeature("44444444-4444-4444-8444-444444444444", "Chemin", line);
+  assert.equal(length.properties.kind, "lengthMeasurement");
+  assert.equal(length.properties.label, "Chemin");
+  assert.ok(Math.abs(length.properties.length - 750.7) < 2, `${length.properties.length}`);
+  assert.equal(length.properties.length, Math.round(length.properties.length * 100) / 100);
+  assert.deepEqual(length.geometry, {
+    type: "LineString",
+    coordinates: [
+      [4.50, 47.54],
+      [4.51, 47.54],
+    ],
+  });
+  assert.deepEqual(savedMeasure(length), { kind: "length", length: length.properties.length, segments: [] });
+
+  const ring = [
+    [4.50, 47.54],
+    [4.51, 47.54],
+    [4.51, 47.55],
+    [4.50, 47.55],
+    [4.50, 47.54],
+  ];
+  const area = measurementFeature(
+    "55555555-5555-4555-8555-555555555555",
+    "Pré",
+    new Polygon([ring.map((c) => fromLonLat(c))]),
+  );
+  assert.equal(area.properties.kind, "areaMeasurement");
+  assert.ok(Math.abs(area.properties.area - 834_600) / 834_600 < 0.01, `${area.properties.area}`);
+  assert.ok(Math.abs(area.properties.perimeter - 3_725) < 10, `${area.properties.perimeter}`);
+  assert.equal(area.geometry.type, "Polygon");
+  assert.deepEqual(area.geometry.coordinates, [ring]);
+  assert.equal(
+    measurementFeature("66666666-6666-4666-8666-666666666666", "Point", new Point(fromLonLat([6, 46]))),
+    null,
+  );
 });

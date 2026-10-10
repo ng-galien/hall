@@ -62,6 +62,8 @@ test("the Mesures tab measures with temporary geometries that Escape clears with
   if (!map) throw new Error("The map must be rendered");
   const at = (x: number, y: number) => [map.x + map.width * x, map.y + map.height * y] as const;
 
+  await expect(page.getByTestId("geographic-measure-cursor")).toHaveCount(0);
+  await page.getByTestId("geographic-measures-tab-coordinates").click();
   await page.mouse.move(...at(0.6, 0.5));
   await expect(page.getByTestId("geographic-measure-cursor-wgs84")).toHaveText(/\d° [NS], .*\d° [EOW]/);
   await expect(page.getByTestId("geographic-measure-cursor-projected")).toHaveText(/^X .* m, Y .* m$/);
@@ -72,6 +74,7 @@ test("the Mesures tab measures with temporary geometries that Escape clears with
   await expect(page.getByTestId("geographic-measure-copy-status")).not.toBeEmpty();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^-?\d+\.\d{6}, -?\d+\.\d{6}$/);
 
+  await page.getByTestId("geographic-measures-tab-measures").click();
   await page.getByTestId("geographic-measure-tool-length").click();
   await page.mouse.click(...at(0.5, 0.3));
   await page.mouse.move(...at(0.7, 0.4), { steps: 4 });

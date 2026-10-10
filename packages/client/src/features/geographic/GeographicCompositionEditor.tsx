@@ -1,4 +1,4 @@
-import type { GeographicColor, GeographicResourceData, HallGeoJsonFeatureKind } from "@hall/domain";
+import type { GeographicColor, HallGeoJsonFeature, HallGeoJsonFeatureKind } from "@hall/domain";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { ColorPicker, type ColorPickerPreset } from "@/components/ui/color-picker";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
@@ -18,7 +18,7 @@ interface GeographicCompositionEditorProps {
   panelRef: React.RefObject<HTMLDivElement | null>;
   style?: CSSProperties;
   drawTool: GeographicDrawTool;
-  features: GeographicResourceData["hallLayer"]["features"];
+  features: readonly HallGeoJsonFeature[];
   selectedFeatureId: string | null;
   /** Drawing whose shape is being modified; its row carries the modification mark. */
   modifyingFeatureId: string | null;

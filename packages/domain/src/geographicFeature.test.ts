@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { matchHallGeoJsonFeature } from "./geographicFeature.js";
-import type { HallGeoJsonFeature } from "./model.js";
+import {
+  hallGeoJsonDrawings,
+  hallGeoJsonMeasurements,
+  isHallGeoJsonMeasurement,
+  matchHallGeoJsonFeature,
+} from "./geographicFeature.js";
+import type { HallGeoJsonFeature, HallGeoJsonMeasurement } from "./model.js";
 
 const features: HallGeoJsonFeature[] = [
   {
@@ -55,5 +60,27 @@ describe("Hall GeoJSON feature matching", () => {
         }),
       ),
     ).toEqual(["marker:Point", "line:2", "area:1"]);
+  });
+});
+
+// @verifies-requirement HALL-FR-DOC-460
+describe("saved measurements in the drawings GeoJSON", () => {
+  it("separates the drawings from the saved measurements", () => {
+    const measurement: HallGeoJsonMeasurement = {
+      type: "Feature",
+      id: "44444444-4444-4444-8444-444444444444",
+      properties: { kind: "lengthMeasurement", label: "Chemin", length: 1_402.5 },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [2.35, 48.85],
+          [2.36, 48.86],
+        ],
+      },
+    };
+    const collection = { type: "FeatureCollection" as const, features: [features[0]!, measurement, features[2]!] };
+    expect(collection.features.map(isHallGeoJsonMeasurement)).toEqual([false, true, false]);
+    expect(hallGeoJsonDrawings(collection).map(({ properties }) => properties.kind)).toEqual(["marker", "area"]);
+    expect(hallGeoJsonMeasurements(collection)).toEqual([measurement]);
   });
 });

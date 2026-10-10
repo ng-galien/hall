@@ -1,4 +1,6 @@
+import type { HallGeoJsonMeasurement } from "@hall/domain";
 import type { Coordinate } from "ol/coordinate";
+import GeoJSON from "ol/format/GeoJSON";
 import type Geometry from "ol/geom/Geometry";
 import LineString from "ol/geom/LineString";
 import Point from "ol/geom/Point";
@@ -116,4 +118,56 @@ export function wgs84ClipboardText(position: GeographicPosition): string {
 
 export function projectedClipboardText(position: GeographicPosition): string {
   return `${position.x.toFixed(2)}, ${position.y.toFixed(2)}`;
+}
+
+const geoJson = new GeoJSON();
+
+function centimetres(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/**
+ * Saved measurement feature of the drawings GeoJSON: geometry in WGS84, the measurement kind, the name and the
+ * geodesic value at saving time. A point has no saved measurement.
+ */
+// @implements-requirement HALL-FR-DOC-460
+export function measurementFeature(id: string, label: string, geometry: Geometry): HallGeoJsonMeasurement | null {
+  const measure = measureGeometry(geometry);
+  const write = () =>
+    geoJson.writeGeometryObject(geometry, {
+      dataProjection: "EPSG:4326",
+      featureProjection: GEOGRAPHIC_MAP_PROJECTION,
+      decimals: 7,
+    });
+  if (measure?.kind === "length") {
+    return {
+      type: "Feature",
+      id,
+      properties: { kind: "lengthMeasurement", label, length: centimetres(measure.length) },
+      geometry: write() as Extract<HallGeoJsonMeasurement, { properties: { kind: "lengthMeasurement" } }>["geometry"],
+    };
+  }
+  if (measure?.kind === "area") {
+    return {
+      type: "Feature",
+      id,
+      properties: {
+        kind: "areaMeasurement",
+        label,
+        area: centimetres(measure.area),
+        perimeter: centimetres(measure.perimeter),
+      },
+      geometry: write() as Extract<HallGeoJsonMeasurement, { properties: { kind: "areaMeasurement" } }>["geometry"],
+    };
+  }
+  return null;
+}
+
+/** Value of a saved measurement as stored: the length of a distance, the area of a surface. */
+export function savedMeasure(
+  measurement: HallGeoJsonMeasurement,
+): Extract<GeographicMeasure, { kind: "length" | "area" }> {
+  return measurement.properties.kind === "lengthMeasurement"
+    ? { kind: "length", length: measurement.properties.length, segments: [] }
+    : { kind: "area", area: measurement.properties.area, perimeter: measurement.properties.perimeter };
 }
