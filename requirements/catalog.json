@@ -3890,6 +3890,32 @@
         }
       ]
     },
+    "HALL-FR-DOC-500": {
+      "name": "EDITOR_FILE_DROP_AS_DOCUMENT",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Un fichier déposé dans l’éditeur de texte d’une affaire devient un document de l’affaire, cité dans le texte à l’endroit du dépôt.",
+      "acceptanceCriteria": [
+        "Déposer un PDF, un document Word ou tout autre fichier que « Importer un fichier » accepte sur l’éditeur compact ou en plein écran d’un texte d’une affaire (rapport, texte joint) l’importe comme document de l’affaire, dans son dossier, avec la même action Siren et les mêmes droits que « Importer un fichier » du sélecteur « Joindre un document », et insère la référence du document à l’endroit du dépôt ; un tableur CSV ou XLSX devient un tableur de l’affaire, comme par ce sélecteur.",
+        "Le document importé apparaît dans la section « Documents » de l’affaire sans rechargement de la page.",
+        "Dans un texte de l’espace de travail hors affaire, le fichier déposé devient un document du dossier de ce texte, cité de la même façon.",
+        "Plusieurs fichiers déposés ensemble sont importés l’un après l’autre dans l’ordre du dépôt, et leurs références se suivent dans le texte ; un PNG ou un JPEG est inséré comme image du texte lorsque l’éditeur importe des images.",
+        "Pendant l’import, l’éditeur affiche « Import du document N sur T : nom… » ; un échec affiche le nom du document et un message d’erreur.",
+        "Un fichier d’un format que les actions d’import n’acceptent pas, dont un fichier Markdown, n’est pas importé : l’éditeur affiche son nom et la liste des formats acceptés, et importe les autres fichiers du dépôt.",
+        "Pendant le survol d’un fichier, la zone de dépôt affiche « Déposer les fichiers pour les joindre et les citer »."
+      ],
+      "clauses": [
+        {
+          "key": "editor-file-drop",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 (entrée 9, point 17) : déposer dans l’éditeur d’une affaire n’importe quel fichier importable le joint à l’affaire et insère sa référence, comme une image déposée ; un nouveau texte Markdown se crée dans Hall.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-LOC-010": {
       "name": "LOCATION_BELONGS_TO_HALL",
       "nature": "functional",

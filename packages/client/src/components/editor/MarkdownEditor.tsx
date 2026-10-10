@@ -37,9 +37,11 @@ import {
 import { editorExtensions } from "./extensions";
 import {
   type EditorImageUpload,
+  type EditorDocumentUpload,
   ImageDropZone,
   type ImageUploadStatus,
   ImageUploadStatusLine,
+  idleUploadStatus,
   imageTransferHandlers,
   useImageDropZone,
 } from "./imageTransfer";
@@ -63,6 +65,8 @@ export interface MarkdownEditorProps {
   searchContext?: string;
   /** Enables image upload; resolves to the archived resource id and label. */
   onUploadImage?(image: File): Promise<{ id: string; label: string }>;
+  /** Enables the upload of dropped files as documents cited by a reference at the drop point. */
+  onUploadDocument?: EditorDocumentUpload;
   readOnly?: boolean;
   /** Renders the enriched body directly when an outer surface already provides the extended envelope. */
   variant?: "compact" | "enriched";
@@ -623,14 +627,17 @@ export function MarkdownEditor({
   mentionables,
   searchContext,
   onUploadImage,
+  onUploadDocument,
   readOnly = false,
   variant = "compact",
 }: MarkdownEditorProps) {
   const { t } = useI18n();
   const [enriched, setEnriched] = useState(false);
-  const [imageStatus, setImageStatus] = useState<ImageUploadStatus>("idle");
+  const [imageStatus, setImageStatus] = useState<ImageUploadStatus>(idleUploadStatus);
   const imageUpload = useRef<EditorImageUpload | undefined>(onUploadImage);
   imageUpload.current = onUploadImage;
+  const documentUpload = useRef<EditorDocumentUpload | undefined>(onUploadDocument);
+  documentUpload.current = onUploadDocument;
   const imageStatusChange = useRef(setImageStatus);
   const inlineDropZone = useImageDropZone(!readOnly);
   const latest = useRef(markdown);
@@ -711,7 +718,7 @@ export function MarkdownEditor({
         class: "markdown-content",
         "aria-label": t("editor.writeArea"),
       },
-      ...imageTransferHandlers(imageUpload, imageStatusChange),
+      ...imageTransferHandlers(imageUpload, imageStatusChange, documentUpload),
     },
     onUpdate: ({ editor }) => {
       hideCompactToolbar();
@@ -791,6 +798,7 @@ export function MarkdownEditor({
         members={members}
         context={context}
         onUploadImage={onUploadImage}
+        onUploadDocument={onUploadDocument}
         imageStatus={imageStatus}
         onImageStatus={setImageStatus}
         onBlur={() => callbacks.current.onBlur?.()}
@@ -862,7 +870,7 @@ export function MarkdownEditor({
         >
           <EditorContent editor={inline} className="markdown-editor-content" />
           {inline ? <TableControls editor={inline} canvasRef={inlineCanvas} /> : null}
-          <ImageDropZone active={inlineDropZone.active} />
+          <ImageDropZone active={inlineDropZone.active} documents={Boolean(onUploadDocument)} />
           {enriched ? null : <ImageUploadStatusLine status={imageStatus} />}
         </div>
       </div>
@@ -898,6 +906,7 @@ export function MarkdownEditor({
               members={members}
               context={context}
               onUploadImage={onUploadImage}
+              onUploadDocument={onUploadDocument}
               imageStatus={imageStatus}
               onImageStatus={setImageStatus}
               onBlur={() => callbacks.current.onBlur?.()}
@@ -920,6 +929,7 @@ function EnrichedEditor({
   members,
   context,
   onUploadImage,
+  onUploadDocument,
   imageStatus,
   onImageStatus,
   onBlur,
@@ -931,6 +941,7 @@ function EnrichedEditor({
   members: RefObject<Mentionable[]>;
   context: RefObject<string | undefined>;
   onUploadImage?: EditorImageUpload;
+  onUploadDocument?: EditorDocumentUpload;
   imageStatus: ImageUploadStatus;
   onImageStatus(status: ImageUploadStatus): void;
   onBlur?(): void;
@@ -945,6 +956,8 @@ function EnrichedEditor({
   const [fullSearch, setFullSearch] = useState<FullSearchRequest | null>(null);
   const imageUpload = useRef<EditorImageUpload | undefined>(onUploadImage);
   imageUpload.current = onUploadImage;
+  const documentUpload = useRef<EditorDocumentUpload | undefined>(onUploadDocument);
+  documentUpload.current = onUploadDocument;
   const imageStatusChange = useRef(onImageStatus);
   imageStatusChange.current = onImageStatus;
   const dropZone = useImageDropZone(true);
@@ -970,7 +983,7 @@ function EnrichedEditor({
         class: "markdown-content",
         "aria-label": t("editor.writeArea"),
       },
-      ...imageTransferHandlers(imageUpload, imageStatusChange),
+      ...imageTransferHandlers(imageUpload, imageStatusChange, documentUpload),
     },
     onUpdate: ({ editor: current }) => callbacks.current.onChange(current.getMarkdown()),
     onBlur: () => callbacks.current.onBlur?.(),
@@ -1043,7 +1056,7 @@ function EnrichedEditor({
       <div className="markdown-editor-canvas" ref={canvas} {...dropZone.handlers}>
         <EditorContent editor={editor} className="markdown-editor-content" />
         {editor ? <TableControls editor={editor} canvasRef={canvas} /> : null}
-        <ImageDropZone active={dropZone.active} />
+        <ImageDropZone active={dropZone.active} documents={Boolean(onUploadDocument)} />
       </div>
       <ImageUploadStatusLine status={imageStatus} />
       {fullSearch && editor ? (

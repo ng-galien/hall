@@ -12,6 +12,7 @@ import type { ApiErrorCode } from "../../services/apiClient";
 import { EventResourceEditor } from "../calendar/EventResourceEditor";
 import { DocumentEmbed } from "../documents/DocumentEmbed";
 import { RemoteResourceEmbed } from "../documents/RemoteResourceEmbed";
+import { useEditorDocumentUpload } from "../documents/useEditorDocumentUpload";
 import type { UploadedResourceImage } from "../documents/useResourceImageUpload";
 import { GeographicLayerResourceView } from "../geographic/GeographicLayerResourceView";
 import { GeographicResourceMap } from "../geographic/GeographicResourceMap";
@@ -80,6 +81,7 @@ export function ResourcePresentationBody({
   readOnlyTextEditor?: boolean;
 }) {
   const { t } = useI18n();
+  const uploadDocument = useEditorDocumentUpload(resource.path);
   const [editingRemoteId, setEditingRemoteId] = useState<string | null>(null);
   const editing = mode === "edit";
   const editingResource = editing && capabilities.updateContent;
@@ -97,6 +99,7 @@ export function ResourcePresentationBody({
             mentionables={mentionables}
             searchContext={entry.path}
             onUploadImage={canUploadImage && capabilities.updateContent ? onUploadImage : undefined}
+            onUploadDocument={capabilities.updateContent ? uploadDocument : undefined}
             readOnly={!editingResource}
             variant={layout === "extended" ? "enriched" : "compact"}
           />

@@ -9,6 +9,7 @@ import { ExplorerTree } from "../../components/ui/explorer-tree";
 import { CouncilBusinessCommittees } from "../../features/council-business/CouncilBusinessCommittees";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
+import { useEditorDocumentUpload } from "../../features/documents/useEditorDocumentUpload";
 import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
 import type { ResourceSession } from "../../features/resources/useResourceSession";
@@ -41,6 +42,7 @@ export function CouncilBusinessWorkbench({
 }) {
   const mentionables = useReferenceMentionables(business.id);
   const { canUpload: canUploadImage, uploadImage } = useWorkspaceResourceImageUpload();
+  const uploadDocument = useEditorDocumentUpload(business.folderPath, business.id);
   const { t } = useI18n();
   const { submitting, run } = useSubmitting();
   const preparedSubjects = useCouncilBusinessStore((state) => state.preparedSubjects);
@@ -160,6 +162,7 @@ export function CouncilBusinessWorkbench({
                         ? (file) => uploadImage(file, { kind: "textResourceContent", id: business.reportResourceId })
                         : undefined
                     }
+                    onUploadDocument={uploadDocument}
                   />
                 </div>
               ) : (
