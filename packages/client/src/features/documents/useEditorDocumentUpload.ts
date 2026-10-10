@@ -58,8 +58,7 @@ export function useEditorDocumentUpload(
     if (!documents && !spreadsheets.length) return undefined;
     const isSpreadsheet = (file: File) => spreadsheets.includes(extensionOf(file));
     const converts = Boolean(findSirenAction(representation, "resource.convert-spreadsheet-table"));
-    const isDocument = (file: File) =>
-      documents === "any" || Boolean(documents?.includes(extensionOf(file)));
+    const isDocument = (file: File) => documents === "any" || Boolean(documents?.includes(extensionOf(file)));
     return {
       accepts: (file) => isSpreadsheet(file) || isDocument(file),
       accepted: [...(Array.isArray(documents) ? documents : []), ...spreadsheets].join(", "),

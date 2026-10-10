@@ -449,12 +449,15 @@ export const fr: Messages = {
   "editor.imageUploadFailed": "L’image n’a pas pu être importée. Utilisez un fichier PNG ou JPEG puis réessayez.",
   "editor.fileDropZone": "Déposer les fichiers pour les joindre et les citer",
   "editor.documentUploading": "Import du document {position} sur {total} : {name}…",
-  "editor.documentUploadFailed": "Le document « {name} » n’a pas pu être importé. Réessayez ou joignez-le depuis la section Documents.",
+  "editor.documentUploadFailed":
+    "Le document « {name} » n’a pas pu être importé. Réessayez ou joignez-le depuis la section Documents.",
   "editor.documentRefused": "Format non accepté, non importé : {names}. Formats acceptés : {accepted}.",
   "editor.tableConverting": "Conversion de « {name} » en tableau…",
-  "editor.tableTruncated": "Tableau de « {name} » inséré : {included} lignes sur {total} ; le fichier complet est joint.",
+  "editor.tableTruncated":
+    "Tableau de « {name} » inséré : {included} lignes sur {total} ; le fichier complet est joint.",
   "editor.spreadsheetDropTitle": "Tableur déposé",
-  "editor.spreadsheetDropDescription": "« {name} » : joindre le fichier, ou insérer sa première feuille comme tableau dans le texte.",
+  "editor.spreadsheetDropDescription":
+    "« {name} » : joindre le fichier, ou insérer sa première feuille comme tableau dans le texte.",
   "editor.spreadsheetDropAttach": "Joindre le fichier",
   "editor.spreadsheetDropTable": "Insérer comme tableau",
   "editor.imageImported": "Image importée",

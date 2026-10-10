@@ -96,7 +96,10 @@ function placeDocumentReference(
   if (view.isDestroyed) return null;
   const node = view.state.schema.nodes.reference!.create({ kind: "resource", id: document.id, label: document.label });
   view.dispatch(
-    view.state.tr.setSelection(insertionTarget(view, requestedPosition)).replaceSelectionWith(node, false).insertText(" "),
+    view.state.tr
+      .setSelection(insertionTarget(view, requestedPosition))
+      .replaceSelectionWith(node, false)
+      .insertText(" "),
   );
   return view.state.selection.to;
 }

@@ -36,9 +36,9 @@ import {
 } from "../icons";
 import { editorExtensions } from "./extensions";
 import {
-  type EditorImageUpload,
   type ChooseSpreadsheetDrop,
   type EditorDocumentUpload,
+  type EditorImageUpload,
   ImageDropZone,
   type ImageUploadStatus,
   ImageUploadStatusLine,

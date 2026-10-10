@@ -445,7 +445,8 @@ export const en = {
   "editor.imageUploadFailed": "The image could not be uploaded. Use a PNG or JPEG file and try again.",
   "editor.fileDropZone": "Drop the files to attach and cite them",
   "editor.documentUploading": "Uploading document {position} of {total}: {name}…",
-  "editor.documentUploadFailed": "The document “{name}” could not be uploaded. Try again or attach it from the Documents section.",
+  "editor.documentUploadFailed":
+    "The document “{name}” could not be uploaded. Try again or attach it from the Documents section.",
   "editor.documentRefused": "Format not accepted, not uploaded: {names}. Accepted formats: {accepted}.",
   "editor.tableConverting": "Converting “{name}” to a table…",
   "editor.tableTruncated": "Table from “{name}” inserted: {included} rows of {total}; the complete file is attached.",
