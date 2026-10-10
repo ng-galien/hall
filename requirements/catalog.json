@@ -3853,6 +3853,28 @@
         }
       ]
     },
+    "HALL-FR-DOC-490": {
+      "name": "GEOGRAPHIC_MAP_TOOLBAR_AND_PANELS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "La barre d’outils d’une carte ouvre et ferme les panneaux « Mesures » et « Composition » d’une pression, et ces panneaux prennent la hauteur de leur contenu dans les limites de la carte.",
+      "acceptanceCriteria": [
+        "Les boutons « Mesures » et « Dessin » sont des bascules : une pression sur le mode actif ferme son panneau et laisse la carte seule, sans mode actif (aria-pressed faux sur les deux boutons) ; une pression sur l’autre mode passe directement à ce mode et à son panneau.",
+        "Une carte s’ouvre en mode « Mesures », panneau « Mesures » ouvert ; sur la carte seule, un clic sur une entité d’une couche liée ouvre sa fiche comme en mode « Mesures ».",
+        "Échap garde l’ordre décrit par HALL-FR-DOC-300 et HALL-FR-DOC-410 (dessin ou mesure en cours, fiche, puis fenêtre de dialogue) ; le mode actif et son panneau restent ouverts après Échap."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-mode-toggle",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : une pression sur le mode actif ferme son panneau et revient à la carte seule.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-LOC-010": {
       "name": "LOCATION_BELONGS_TO_HALL",
       "nature": "functional",

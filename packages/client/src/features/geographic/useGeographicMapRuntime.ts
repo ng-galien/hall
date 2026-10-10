@@ -33,7 +33,10 @@ import {
   serializeHallLayer,
 } from "./geographicOpenLayersAdapter";
 
-export type GeographicWorkspaceMode = "map" | "draw";
+/** Plain map, Mesures panel open, or Dessin with its Composition panel. */
+export type GeographicWorkspaceMode = "map" | "measure" | "draw";
+/** A mode the toolbar toggles; pressing the active one returns to the plain map. */
+export type GeographicPanelMode = Exclude<GeographicWorkspaceMode, "map">;
 export type GeographicDrawTool = "select" | HallGeoJsonFeatureKind;
 
 interface GeographicMapRuntimeOptions {

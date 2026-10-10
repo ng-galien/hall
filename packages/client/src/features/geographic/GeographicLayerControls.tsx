@@ -15,7 +15,7 @@ import {
 } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import "./geographicLayers.css";
-import type { GeographicWorkspaceMode } from "./useGeographicMapRuntime";
+import type { GeographicPanelMode, GeographicWorkspaceMode } from "./useGeographicMapRuntime";
 import type { GeographicOverlayStatus } from "./useGeographicOverlays";
 
 interface GeographicLayerControlsProps {
@@ -23,7 +23,8 @@ interface GeographicLayerControlsProps {
   canUpdate: boolean;
   hallLayerVisible: boolean;
   layers: readonly GeographicLayer[];
-  onWorkspaceMode(mode: GeographicWorkspaceMode): void;
+  /** Opens the mode, or returns to the plain map when the mode is already active. */
+  onToggleMode(mode: GeographicPanelMode): void;
   onHallLayerVisible(visible: boolean): void;
   onLayerVisibility(id: GeographicLayerId, visible: boolean): void;
   onLayerOpacity(id: GeographicLayerId, opacity: number): void;
@@ -48,12 +49,13 @@ interface GeographicLayerControlsProps {
 /** Owns the base-layer controls, the linked data-layer rows and their transient drag/drop state. */
 // @implements-requirement HALL-FR-DOC-290
 // @implements-requirement HALL-FR-DOC-340
+// @implements-requirement HALL-FR-DOC-490
 export function GeographicLayerControls({
   workspaceMode,
   canUpdate,
   hallLayerVisible,
   layers,
-  onWorkspaceMode,
+  onToggleMode,
   onHallLayerVisible,
   onLayerVisibility,
   onLayerOpacity,
@@ -82,10 +84,10 @@ export function GeographicLayerControls({
         <legend className="sr-only">{t("geographic.mode")}</legend>
         <button
           type="button"
-          className={workspaceMode === "map" ? "geographic-mode-active" : ""}
+          className={workspaceMode === "measure" ? "geographic-mode-active" : ""}
           data-testid="geographic-mode-map"
-          aria-pressed={workspaceMode === "map"}
-          onClick={() => onWorkspaceMode("map")}
+          aria-pressed={workspaceMode === "measure"}
+          onClick={() => onToggleMode("measure")}
         >
           <MapIcon />
           <span>{t("geographic.modeMap")}</span>
@@ -96,7 +98,7 @@ export function GeographicLayerControls({
           data-testid="geographic-mode-draw"
           aria-pressed={workspaceMode === "draw"}
           disabled={!canUpdate}
-          onClick={() => onWorkspaceMode("draw")}
+          onClick={() => onToggleMode("draw")}
         >
           <EditIcon />
           <span>{t("geographic.modeDraw")}</span>
@@ -158,7 +160,7 @@ export function GeographicLayerControls({
                 aria-label={t("geographic.drawingLayerEdit")}
                 title={t("geographic.drawingLayerEdit")}
                 disabled={!canUpdate}
-                onClick={() => onWorkspaceMode(workspaceMode === "draw" ? "map" : "draw")}
+                onClick={() => onToggleMode("draw")}
               >
                 <EditIcon />
               </button>

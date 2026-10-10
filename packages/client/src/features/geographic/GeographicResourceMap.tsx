@@ -48,6 +48,7 @@ import {
 import { useGeographicMapCursor } from "./useGeographicMapCursor";
 import {
   type GeographicDrawTool,
+  type GeographicPanelMode,
   type GeographicWorkspaceMode,
   useGeographicMapRuntime,
 } from "./useGeographicMapRuntime";
@@ -123,7 +124,7 @@ export function GeographicResourceMap({
   const saveRef = useRef<(() => Promise<boolean>) | null>(null);
   const [draft, setDraft] = useState<GeographicResourceData>(normalizedData);
   const [savedSignature, setSavedSignature] = useState(() => geographicDataSignature(normalizedData));
-  const [workspaceMode, setWorkspaceMode] = useState<GeographicWorkspaceMode>("map");
+  const [workspaceMode, setWorkspaceMode] = useState<GeographicWorkspaceMode>("measure");
   const [drawTool, setDrawTool] = useState<GeographicDrawTool>("select");
   const [hallLayerVisible, setHallLayerVisible] = useState(true);
   const [editingFeatureId, setEditingFeatureId] = useState<string | null>(null);
@@ -198,7 +199,7 @@ export function GeographicResourceMap({
   const { setSelection } = featureState;
   useGeographicFeaturePicking(
     mapRuntime.map,
-    workspaceMode === "map" && !embedded && !measuring,
+    workspaceMode !== "draw" && !embedded && !measuring,
     overlayRuntime.pickFeature,
     featureState.selection,
     setSelection,
@@ -206,15 +207,15 @@ export function GeographicResourceMap({
   const selectedFeature = featureState.selection ? overlayRuntime.describeFeature(featureState.selection) : null;
   const pointerState: GeographicPointerState = embedded
     ? "fixed"
-    : workspaceMode === "map"
-      ? measuring
-        ? "measure"
-        : "consult"
-      : drawTool !== "select"
+    : workspaceMode === "draw"
+      ? drawTool !== "select"
         ? "draw"
         : mapRuntime.modifyingFeatureId
           ? "modify"
-          : "select";
+          : "select"
+      : measuring
+        ? "measure"
+        : "consult";
   const { drawingIdAt, modifyingFeatureId } = mapRuntime;
   const { pickFeature } = overlayRuntime;
   const pointerTargetAt = useCallback(
@@ -226,7 +227,7 @@ export function GeographicResourceMap({
     [drawingIdAt, modifyingFeatureId, pickFeature, pointerState],
   );
   useGeographicMapCursor(mapRuntime.map, pointerState, pointerTargetAt);
-  const readerInspection = !canUpdate && !embedded && workspaceMode === "map" && !measuring;
+  const readerInspection = !canUpdate && !embedded && workspaceMode !== "draw" && !measuring;
   const [inspectedDrawingId, setInspectedDrawingId] = useState<string | null>(null);
   const olMap = mapRuntime.map;
   const inspectionCallbacks = useRef({ drawingIdAt, setSelection });
@@ -406,8 +407,8 @@ export function GeographicResourceMap({
     setConflict(false);
     void save();
   };
-  const changeWorkspaceMode = (mode: GeographicWorkspaceMode) => {
-    setWorkspaceMode(mode);
+  const toggleWorkspaceMode = (mode: GeographicPanelMode) => {
+    setWorkspaceMode((current) => (current === mode ? "map" : mode));
     setDrawTool("select");
   };
 
@@ -444,7 +445,7 @@ export function GeographicResourceMap({
         canUpdate={canUpdate}
         hallLayerVisible={hallLayerVisible}
         layers={draft.layers}
-        onWorkspaceMode={changeWorkspaceMode}
+        onToggleMode={toggleWorkspaceMode}
         onHallLayerVisible={setHallLayerVisible}
         onLayerVisibility={setLayerVisibility}
         onLayerOpacity={(id, opacity) =>
@@ -464,7 +465,7 @@ export function GeographicResourceMap({
         onMunicipalOnly={featureState.setMunicipalOnly}
         onImportMunicipalProperty={canUpdate && municipalImport ? () => setMunicipalImportOpen(true) : undefined}
       />
-      {workspaceMode === "map" ? (
+      {workspaceMode === "measure" ? (
         <GeographicMeasurePanel
           map={mapRuntime.map}
           drawingSource={mapRuntime.drawingSource}
