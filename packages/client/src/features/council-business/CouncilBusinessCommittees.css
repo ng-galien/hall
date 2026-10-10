@@ -23,7 +23,7 @@
 .business-committee-remove:hover { background: var(--hall-color-surface-selected); }
 .business-committee-remove:disabled { opacity: .5; cursor: wait; }
 .business-committee-search { position: relative; min-width: 12rem; }
-.business-committee-results { position: absolute; z-index: 20; inset-inline: 0; top: calc(100% + var(--hall-space-1)); max-height: 16rem; overflow-y: auto; padding: var(--hall-space-1); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-small); }
+.business-committee-results { position: absolute; z-index: var(--hall-z-popover); inset-inline: 0; top: calc(100% + var(--hall-space-1)); max-height: 16rem; overflow-y: auto; padding: var(--hall-space-1); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-small); }
 .business-committee-results p { margin: 0; padding: var(--hall-space-2); color: var(--hall-color-text-muted); }
 .business-committee-result { display: flex; align-items: center; gap: var(--hall-space-1); border-radius: var(--hall-radius-small); }
 .business-committee-result:focus-within,

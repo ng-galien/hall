@@ -1,6 +1,6 @@
 .document-viewer-backdrop {
   position: fixed;
-  z-index: var(--hall-z-modal);
+  z-index: var(--hall-z-dialog);
   inset: 0;
   display: grid;
   place-items: center;

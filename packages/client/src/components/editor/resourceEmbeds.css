@@ -25,7 +25,7 @@
 .editor-resource-embed-open {
   position: absolute;
   inset: 0;
-  z-index: var(--hall-z-editor-handle);
+  z-index: calc(var(--hall-z-content) + 1);
   width: 100%;
   padding: 0;
   border: 0;
@@ -51,7 +51,7 @@
   position: absolute;
   right: calc(var(--hall-space-2) * -1);
   bottom: calc(var(--hall-space-2) * -1);
-  z-index: calc(var(--hall-z-editor-handle) + 1);
+  z-index: calc(var(--hall-z-content) + 2);
   width: var(--hall-size-editor-toolbar-control);
   height: var(--hall-size-editor-toolbar-control);
   padding: 0;

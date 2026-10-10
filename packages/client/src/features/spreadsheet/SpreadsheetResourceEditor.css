@@ -32,7 +32,7 @@
 
 .spreadsheet-save-error {
   position: absolute;
-  z-index: var(--hall-z-editor-popup);
+  z-index: var(--hall-z-sticky);
   top: var(--hall-space-2);
   right: var(--hall-space-2);
 }

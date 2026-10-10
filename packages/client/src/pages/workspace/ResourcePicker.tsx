@@ -57,8 +57,9 @@ export function ResourcePicker({
       </PopoverTrigger>
       {open ? (
         <PopoverContent
-          className="resource-picker-panel"
+          className="resource-picker-panel max-h-(--radix-popover-content-available-height) w-(--hall-size-resource-picker) p-(--hall-space-3)"
           align="end"
+          collisionPadding={16}
           side="bottom"
           data-testid="resource-picker-panel"
           aria-label={t("workspace.addResource")}

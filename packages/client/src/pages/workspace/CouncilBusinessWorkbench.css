@@ -212,7 +212,7 @@
 .workspace-business-workbench .business-subject-table-row-open,
 .workspace-business-workbench .business-subject-table-detail {
   position: relative;
-  z-index: var(--hall-z-editor-popup);
+  z-index: var(--hall-z-content);
 }
 
 .workspace-business-workbench .business-subject-type {
@@ -270,7 +270,7 @@
 
 .workspace-business-workbench .business-subject-title-stack > .error-banner-compact {
   position: absolute;
-  z-index: var(--hall-z-editor-popup);
+  z-index: var(--hall-z-content);
   top: calc(100% + var(--hall-space-1));
   left: 0;
   width: max-content;

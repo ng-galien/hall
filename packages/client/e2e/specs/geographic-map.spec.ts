@@ -152,6 +152,7 @@ test("a drawn area too small on screen becomes a selectable marker and its geome
 });
 
 // @verifies-requirement HALL-FR-DOC-430
+// @verifies-requirement HALL-FR-DOC-470
 test("a drawn element carries a rich-text note that survives a reload and outlives the element", async ({
   appPage: page,
 }) => {
@@ -194,47 +195,93 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
     (await (await page.request.get(`/api/resources/${noteId}`)).json()).properties.content as string;
   await expect.poll(noteContent, { timeout: 15_000 }).toContain("Chêne à conserver");
 
+  const png = [
+    ...Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEElEQVR42mNk+M+ABzDhkAIAEwQCAiV7nNwAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  ];
+  const photoTransfer = (name: string) =>
+    page.evaluateHandle(
+      ({ content, fileName }) => {
+        const transfer = new DataTransfer();
+        transfer.items.add(new File([Uint8Array.from(content)], fileName, { type: "image/png" }));
+        return transfer;
+      },
+      { content: png, fileName: name },
+    );
+  const nextUpload = () =>
+    page.waitForResponse(
+      (response) => response.url().endsWith("/api/resources/editor-assets") && response.request().method() === "POST",
+    );
+  const uploadedId = async (response: Promise<import("@playwright/test").Response>) => {
+    const upload = await response;
+    expect(upload.status()).toBe(201);
+    return (await upload.json()).properties.id as string;
+  };
+  const dropOn = async (area: import("@playwright/test").Locator, name: string) => {
+    const transfer = await photoTransfer(name);
+    const areaBox = await area.boundingBox();
+    const position = {
+      clientX: Math.round((areaBox?.x ?? 0) + 20),
+      clientY: Math.round((areaBox?.y ?? 0) + (areaBox?.height ?? 0) - 10),
+    };
+    await area.dispatchEvent("dragenter", { dataTransfer: transfer, ...position });
+    const dropZone = area
+      .locator("xpath=ancestor::div[contains(@class,'markdown-editor-canvas')][1]")
+      .getByTestId("editor-image-drop-zone");
+    await expect(dropZone).toBeVisible();
+    const uploaded = nextUpload();
+    await area.dispatchEvent("drop", { dataTransfer: transfer, ...position });
+    await expect(dropZone).toBeHidden();
+    return uploadedId(uploaded);
+  };
+  const pasteInto = async (area: import("@playwright/test").Locator, name: string) => {
+    const uploaded = nextUpload();
+    await area.evaluate(
+      (element, { content, fileName }) => {
+        const transfer = new DataTransfer();
+        transfer.items.add(new File([Uint8Array.from(content)], fileName, { type: "image/png" }));
+        element.dispatchEvent(
+          new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: transfer }),
+        );
+      },
+      { content: png, fileName: name },
+    );
+    return uploadedId(uploaded);
+  };
+
+  const inlineDropId = await dropOn(writingArea, "chene-fiche.png");
+  await expect(card.locator(`[data-resource-id="${inlineDropId}"] img`)).toBeVisible();
+  await expect.poll(noteContent, { timeout: 15_000 }).toContain(inlineDropId);
+  await writingArea.click();
+  await page.keyboard.press("End");
+  const inlinePasteId = await pasteInto(writingArea, "chene-colle.png");
+  await expect(card.locator(`[data-resource-id="${inlinePasteId}"] img`)).toBeVisible();
+  await expect.poll(noteContent, { timeout: 15_000 }).toContain(inlinePasteId);
+
   await writingArea.click();
   await card.getByTestId("editor-open-enriched").click();
   const enriched = page.getByTestId("markdown-editor-enriched");
   await expect(enriched).toBeVisible();
-  const photo = await page.evaluateHandle(
-    (content) => {
-      const transfer = new DataTransfer();
-      transfer.items.add(new File([Uint8Array.from(content)], "chene.png", { type: "image/png" }));
-      return transfer;
-    },
-    [
-      ...Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEElEQVR42mNk+M+ABzDhkAIAEwQCAiV7nNwAAAAASUVORK5CYII=",
-        "base64",
-      ),
-    ],
-  );
-  const uploaded = page.waitForResponse(
-    (response) => response.url().endsWith("/api/resources/editor-assets") && response.request().method() === "POST",
-  );
   const enrichedArea = enriched.getByTestId("editor-writing-area");
-  const enrichedBox = await enrichedArea.boundingBox();
-  await enrichedArea.dispatchEvent("drop", {
-    dataTransfer: photo,
-    clientX: Math.round((enrichedBox?.x ?? 0) + 20),
-    clientY: Math.round((enrichedBox?.y ?? 0) + (enrichedBox?.height ?? 0) - 10),
-  });
-  const upload = await uploaded;
-  expect(upload.status()).toBe(201);
-  const photoId = (await upload.json()).properties.id as string;
+  const photoId = await dropOn(enrichedArea, "chene.png");
   await expect(enriched.locator(`[data-resource-id="${photoId}"] img`)).toBeVisible();
+  const enrichedPasteId = await pasteInto(enrichedArea, "chene-plein-ecran.png");
+  await expect(enriched.locator(`[data-resource-id="${enrichedPasteId}"] img`)).toBeVisible();
   await page.getByTestId("editor-enriched-dialog").getByTestId("dialog-close").click();
   await expect(enriched).toBeHidden();
   await expect(card).toBeVisible();
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(photoId);
+  await expect.poll(noteContent, { timeout: 15_000 }).toContain(enrichedPasteId);
 
   await page.reload();
   await page.getByTestId("geographic-mode-draw").click();
   await rows.first().locator(".geographic-composition-feature-select").click();
   await expect(card.getByTestId("editor-writing-area")).toContainText("Chêne à conserver");
-  await expect(card.getByTestId(`editor-image-${photoId}`)).toBeVisible();
+  for (const imageId of [inlineDropId, inlinePasteId, photoId, enrichedPasteId]) {
+    await expect(card.getByTestId(`editor-image-${imageId}`)).toBeVisible();
+  }
 
   await rows.first().locator(".geographic-composition-feature-delete").click();
   await expect(rows).toHaveCount(0);

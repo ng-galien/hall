@@ -77,7 +77,8 @@
       "COM": "municipality",
       "DST": "quality",
       "LIV": "quality",
-      "DSK": "quality"
+      "DSK": "quality",
+      "LAY": "quality"
     },
     "requirementThemes": {}
   },
@@ -3782,6 +3783,30 @@
           "key": "geographic-saved-measurements",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : une liste de mesures nommées et enregistrées, stockées dans le GeoJSON des dessins pour suivre la carte.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-470": {
+      "name": "EDITOR_IMAGE_DROP_AND_PASTE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Une image déposée ou collée dans l’éditeur de texte est importée puis insérée, dans l’édition compacte comme dans l’édition en plein écran.",
+      "acceptanceCriteria": [
+        "Déposer un fichier PNG ou JPEG sur la zone de rédaction de l’éditeur compact, par exemple la note d’un dessin dans sa fiche, ou de l’éditeur en plein écran l’importe comme image du texte et l’insère à la position du dépôt.",
+        "Coller une image PNG ou JPEG depuis le presse-papiers dans l’un ou l’autre éditeur l’importe et l’insère à la position du curseur.",
+        "Pendant qu’un fichier est glissé au-dessus de la zone de rédaction, les deux éditeurs affichent la même zone de dépôt : un contour en pointillés et la mention « Déposer l’image pour l’insérer ».",
+        "Pendant l’import, les deux éditeurs affichent « Import de l’image… » ; un format refusé ou un échec d’import affiche dans les deux éditeurs le même message d’erreur.",
+        "Les deux éditeurs partagent un seul traitement du dépôt et du collage d’image."
+      ],
+      "clauses": [
+        {
+          "key": "editor-image-drop-and-paste",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : déposer ou coller une image dans l’éditeur intégré d’une fiche se comporte comme dans l’éditeur en plein écran.",
           "sourceIds": []
         }
       ]
@@ -7797,6 +7822,29 @@
         }
       ]
     },
+    "HALL-FR-SRC-040": {
+      "name": "RESOURCE_PICKER_ROWS_ARE_READABLE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Le sélecteur « Joindre un document » présente chaque document sur deux lignes lisibles : son titre, puis son type et son dossier.",
+      "acceptanceCriteria": [
+        "Le panneau du sélecteur mesure 640 px de large, limité à la largeur de la fenêtre moins une marge ; sa hauteur reste dans l’espace disponible et la liste des résultats défile à l’intérieur du panneau.",
+        "Chaque résultat affiche son titre sur une première ligne, puis le type de document et son dossier de classement sur une seconde ligne.",
+        "Un titre plus long que la ligne se termine par des points de suspension en dernier recours ; le titre complet s’affiche alors en infobulle au survol du résultat.",
+        "La même présentation sur deux lignes s’applique aux résultats de toutes les recherches partagées : recherche globale, recherche de l’espace de travail, champs de sélection et insertion depuis l’éditeur."
+      ],
+      "clauses": [
+        {
+          "key": "resource-picker-readable-rows",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : le sélecteur « Joindre un document » doit permettre de lire le titre complet d’un document, avec son type et sa catégorie sur une seconde ligne.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-WSP-240": {
       "name": "SIDEBAR_OPENS_COUNCIL_BUSINESS_WORKSPACE",
       "nature": "functional",
@@ -8291,6 +8339,30 @@
           "key": "embedded-postgresql",
           "origin": "product",
           "statement": "L’application de bureau fonctionne de manière autonome avec un serveur PostgreSQL embarqué.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-LAY-010": {
+      "name": "INTERFACE_LAYERING_SCALE",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Le client superpose ses éléments selon une échelle unique de cinq niveaux : contenu, éléments collants, fenêtres de dialogue, éléments flottants, notifications.",
+      "acceptanceCriteria": [
+        "Les cinq niveaux sont des jetons CSS de tokens.css, dans cet ordre croissant : --hall-z-content (contenu et contrôles posés sur lui : poignées et repères de l’éditeur, contrôles de la carte, marqueurs de frise), --hall-z-sticky (en-têtes collants), --hall-z-dialog (fenêtres de dialogue, leur fond et la visionneuse de document), --hall-z-popover (popovers, menus déroulants et contextuels, listes de choix, infobulles, suggestions de l’éditeur, listes de résultats sous un champ), --hall-z-toast (notifications passagères).",
+        "Chaque popover, menu, infobulle, liste de choix et fenêtre de dialogue du client prend son niveau dans l’un de ces jetons ; les composants partagés de components/ui en portent la valeur par défaut.",
+        "Les seules autres valeurs sont des décalages locaux calculés à partir de --hall-z-content à l’intérieur d’un même composant, par exemple la barre d’outils flottante de l’éditeur compact au-dessus des poignées de tableau.",
+        "Un élément de la page reste au plus au niveau --hall-z-sticky ; un popover, un menu ou une infobulle ouvert s’affiche donc au-dessus de tout le contenu de la page, y compris un éditeur de texte, son contenu et sa barre d’outils.",
+        "Un popover, un menu, une liste de choix ou une infobulle ouvert depuis une fenêtre de dialogue s’affiche au-dessus de cette fenêtre."
+      ],
+      "clauses": [
+        {
+          "key": "interface-layering-scale",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : une échelle de superposition délibérée et unique pour tous les popovers, menus, infobulles, listes de choix et fenêtres de dialogue, qui ne s’affichent jamais sous le contenu des éditeurs.",
           "sourceIds": []
         }
       ]

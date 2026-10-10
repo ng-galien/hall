@@ -442,6 +442,7 @@ export const fr: Messages = {
   "editor.imageChooseArchived": "Choisir dans les images archivées",
   "editor.imageUpload": "Importer une image",
   "editor.imageDropHint": "Vous pouvez aussi déposer un PNG ou JPEG directement dans la zone de rédaction.",
+  "editor.imageDropZone": "Déposer l’image pour l’insérer",
   "editor.imageUploading": "Import de l’image…",
   "editor.imageUploadFailed": "L’image n’a pas pu être importée. Utilisez un fichier PNG ou JPEG puis réessayez.",
   "editor.imageImported": "Image importée",

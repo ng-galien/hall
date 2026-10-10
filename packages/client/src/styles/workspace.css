@@ -1170,34 +1170,15 @@
 
   /* ---- Resource picker ---- */
   .resource-picker-panel {
-    z-index: var(--hall-z-popover);
     display: flex;
+    max-width: calc(100vw - 2 * var(--hall-space-4));
     flex-direction: column;
-    gap: var(--hall-space-2);
-    width: var(--hall-size-picker-panel);
-    max-height: var(--hall-size-picker-panel-max);
-    padding: var(--hall-space-2);
+    overflow: hidden;
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-large);
     background: var(--hall-color-surface);
     box-shadow: var(--hall-shadow-large);
   }
-  .resource-picker-groups { display: flex; flex-direction: column; gap: var(--hall-space-3); overflow-y: auto; }
-  .resource-picker-group { display: flex; flex-direction: column; gap: var(--hall-space-0-5); }
-  .resource-picker-row {
-    display: flex;
-    align-items: center;
-    gap: var(--hall-space-2);
-    padding: var(--hall-space-1-5) var(--hall-space-2);
-    border: 0;
-    border-radius: var(--hall-radius-medium);
-    color: inherit;
-    background: transparent;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-  .resource-picker-row:hover { background: var(--hall-color-surface-subtle); }
 
   /* ---- Workbench ---- */
   .workspace-bench {

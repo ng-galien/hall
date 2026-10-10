@@ -19,7 +19,7 @@
 
   .modal-backdrop {
     position: fixed;
-    z-index: var(--hall-z-modal);
+    z-index: var(--hall-z-dialog);
     inset: 0;
     display: grid;
     place-items: center;
@@ -459,14 +459,14 @@
   .meeting-page-content { padding-top: var(--hall-space-5); }
   .meeting-report-header {
     position: sticky;
-    z-index: var(--hall-z-content);
+    z-index: var(--hall-z-sticky);
     top: 0;
     background: var(--hall-color-surface);
     box-shadow: var(--hall-shadow-small);
   }
   .minutes-detail-header {
     position: sticky;
-    z-index: var(--hall-z-content);
+    z-index: var(--hall-z-sticky);
     top: 0;
     background: var(--hall-color-surface);
     box-shadow: var(--hall-shadow-small);

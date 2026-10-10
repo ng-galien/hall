@@ -86,3 +86,36 @@ test("the abandoned component libraries leave no trace", () => {
   assert.doesNotMatch(applicationSource, /@fluentui\//, "Fluent UI must not be imported");
   assert.doesNotMatch(applicationSource, /from "lucide-react"/, "Icons must come from the local Phosphor module");
 });
+
+// @verifies-requirement HALL-TR-LAY-010
+test("every layer takes its z-index from the five-level scale", () => {
+  const scale = [...tokens.matchAll(/--hall-z-([a-z]+):\s*(\d+);/g)].map((match) => [match[1], Number(match[2])]);
+  assert.deepEqual(
+    scale.map(([name]) => name),
+    ["content", "sticky", "dialog", "popover", "toast"],
+  );
+  assert.deepEqual(
+    scale.map(([, value]) => value),
+    scale.map(([, value]) => value).toSorted((left, right) => left - right),
+  );
+  const level = /^var\(--hall-z-(?:content|sticky|dialog|popover|toast)\)$/;
+  const localOffset = /^calc\(var\(--hall-z-content\) \+ \d\)$/;
+  const offenders = [];
+  for (const path of allFiles) {
+    const source = readFileSync(path, "utf8");
+    if (path.endsWith(".css")) {
+      for (const [, value] of source.matchAll(/z-index:\s*([^;]+);/g)) {
+        if (!level.test(value.trim()) && !localOffset.test(value.trim())) offenders.push(`${path}: z-index ${value}`);
+      }
+      continue;
+    }
+    for (const [utility] of source.matchAll(/(?<![\w-])z-(?:\d+|\[[^\]]*\]|\([^)]*\))/g)) {
+      if (!/^z-\(--hall-z-(?:content|sticky|dialog|popover|toast)\)$/.test(utility))
+        offenders.push(`${path}: ${utility}`);
+    }
+    for (const [, value] of source.matchAll(/style\.zIndex\s*=\s*"([^"]*)"/g)) {
+      if (!level.test(value)) offenders.push(`${path}: style.zIndex ${value}`);
+    }
+  }
+  assert.deepEqual(offenders, []);
+});

@@ -25,7 +25,7 @@
 .markdown-editor-compact > [role="toolbar"] {
   position: absolute;
   left: 0;
-  z-index: var(--hall-z-editor-popup);
+  z-index: calc(var(--hall-z-content) + 4);
   width: min-content;
   flex-direction: column;
   gap: var(--hall-space-0-5);
@@ -49,9 +49,6 @@
   pointer-events: auto;
   transform: translateX(calc(-100% + var(--hall-space-1))) translateY(0);
   transition-delay: 0s;
-}
-.markdown-editor-toolbar-tooltip {
-  z-index: calc(var(--hall-z-editor-popup) + 1);
 }
 /* Positioning frame for the table handles. */
 .markdown-editor-canvas {
@@ -92,7 +89,7 @@
 .table-handle,
 .table-extend {
   position: absolute;
-  z-index: var(--hall-z-editor-handle);
+  z-index: calc(var(--hall-z-content) + 1);
   display: inline-grid;
   place-items: center;
   padding: 0;
@@ -129,7 +126,7 @@
 
 .table-action-pill {
   position: absolute;
-  z-index: var(--hall-z-editor-handle);
+  z-index: calc(var(--hall-z-content) + 1);
   display: inline-flex;
   align-items: center;
   gap: var(--hall-space-1);
@@ -170,7 +167,7 @@
   top: 0;
   right: calc(var(--hall-size-resize-handle) / -2);
   bottom: 0;
-  z-index: var(--hall-z-editor-guide);
+  z-index: var(--hall-z-content);
   width: var(--hall-size-resize-handle);
   background: var(--hall-color-brand);
   opacity: var(--hall-opacity-guide);
@@ -561,6 +558,36 @@
 }
 .markdown-image-status[role="alert"] {
   color: var(--hall-color-danger);
+}
+.markdown-editor-compact .markdown-image-status {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: calc(var(--hall-z-content) + 3);
+  margin: var(--hall-space-1);
+  padding: var(--hall-space-0-5) var(--hall-space-2);
+  border-radius: var(--hall-radius-small);
+  background: var(--hall-color-surface);
+  box-shadow: var(--hall-shadow-small);
+}
+.markdown-image-drop-zone {
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--hall-z-content) + 3);
+  display: grid;
+  place-items: center;
+  border: var(--hall-stroke-thick) dashed var(--hall-color-brand);
+  border-radius: var(--hall-radius-medium);
+  background: color-mix(in srgb, var(--hall-color-brand) 8%, transparent);
+  color: var(--hall-color-brand);
+  font-size: var(--hall-font-size-caption);
+  font-weight: var(--hall-font-weight-semibold);
+  pointer-events: none;
+}
+.markdown-image-drop-zone > span {
+  padding: var(--hall-space-1) var(--hall-space-2);
+  border-radius: var(--hall-radius-small);
+  background: var(--hall-color-surface);
 }
 
 .workspace-explorer-content-body .resource-preview-text {

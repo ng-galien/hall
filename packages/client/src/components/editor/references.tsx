@@ -277,7 +277,7 @@ function placeSuggestions(element: HTMLElement, clientRect: (() => DOMRect | nul
   if (!rect) return;
   const margin = 8;
   element.style.position = "fixed";
-  element.style.zIndex = "60";
+  element.style.zIndex = "var(--hall-z-popover)";
   const width = element.getBoundingClientRect().width;
   const height = element.getBoundingClientRect().height;
   element.style.left = `${Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin))}px`;

@@ -2,7 +2,7 @@
   position: absolute;
   top: var(--hall-space-2);
   right: var(--hall-space-2);
-  z-index: calc(var(--hall-z-editor-handle) + 2);
+  z-index: calc(var(--hall-z-content) + 3);
   display: flex;
   max-width: min(30rem, calc(100% - 2 * var(--hall-space-2)));
   align-items: center;

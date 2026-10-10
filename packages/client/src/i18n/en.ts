@@ -438,6 +438,7 @@ export const en = {
   "editor.imageChooseArchived": "Choose from archived images",
   "editor.imageUpload": "Upload an image",
   "editor.imageDropHint": "You can also drop a PNG or JPEG directly into the writing area.",
+  "editor.imageDropZone": "Drop the image to insert it",
   "editor.imageUploading": "Uploading image…",
   "editor.imageUploadFailed": "The image could not be uploaded. Use a PNG or JPEG file and try again.",
   "editor.imageImported": "Imported image",

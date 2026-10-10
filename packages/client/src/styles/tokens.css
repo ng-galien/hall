@@ -212,11 +212,13 @@
   --hall-size-search-max: 360px;
   --hall-size-live-rail: 380px;
   --hall-size-picker-panel-max: 380px;
+  --hall-size-resource-picker-max-height: 520px;
   --hall-size-toolbar-attach: 420px;
   --hall-size-auth-panel: 440px;
   --hall-size-preview-failure: 520px;
   --hall-size-rail-max: 560px;
   --hall-size-editor-pdf-preview-min: 560px;
+  --hall-size-resource-picker: 640px;
   --hall-size-table-column-max: 600px;
   --hall-size-dialog-height-max: 640px;
   --hall-size-modal: 680px;
@@ -261,14 +263,12 @@
   --hall-opacity-guide: 0.5;
   --hall-opacity-empty-state: 60%;
   --hall-opacity-backdrop: 42%;
+  /* Layering scale, in increasing order: content < sticky < dialog < popover < toast. */
   --hall-z-content: 1;
-  /* Both stay below the overlays. */
-  --hall-z-editor-guide: 5;
-  --hall-z-editor-handle: 10;
-  --hall-z-overlay: 40;
-  --hall-z-popover: 50;
-  --hall-z-modal: 100;
-  --hall-z-editor-popup: 150;
+  --hall-z-sticky: 10;
+  --hall-z-dialog: 100;
+  --hall-z-popover: 200;
+  --hall-z-toast: 300;
 }
 
 /* Dark theme. Literal values only, never an alias, so the derived layers follow. */

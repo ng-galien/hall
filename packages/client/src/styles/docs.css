@@ -591,7 +591,7 @@ h4.docs-heading {
   position: absolute;
   top: 100%;
   right: 0;
-  z-index: 50;
+  z-index: var(--hall-z-popover);
   margin-top: var(--hall-space-1);
   width: 28rem;
   max-width: 80vw;

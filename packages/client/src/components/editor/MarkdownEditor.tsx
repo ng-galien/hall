@@ -1,5 +1,3 @@
-import { imageWidthRange } from "@hall/templating";
-import { NodeSelection, Selection } from "@tiptap/pm/state";
 import { type Editor, EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { type FormEvent, type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -37,7 +35,14 @@ import {
   UndoIcon,
 } from "../icons";
 import { editorExtensions } from "./extensions";
-import type { ResourceImageAttributes } from "./images";
+import {
+  type EditorImageUpload,
+  ImageDropZone,
+  type ImageUploadStatus,
+  ImageUploadStatusLine,
+  imageTransferHandlers,
+  useImageDropZone,
+} from "./imageTransfer";
 import { EditorReferenceSearch, type FullSearchRequest } from "./ReferenceSearchDialog";
 import { referenceKindPresentations } from "./referenceKindPresentation";
 import type { Mentionable } from "./references";
@@ -63,14 +68,9 @@ export interface MarkdownEditorProps {
   variant?: "compact" | "enriched";
 }
 
-const acceptedImageTypes = new Set(["image/jpeg", "image/png"]);
 const compactFormattingMenuHoldDelay = 1000;
 const compactToolbarIdleDelay = 2400;
 const compactToolbarLeaveDelay = 900;
-
-function imageAttributes(image: { id: string; label: string }): ResourceImageAttributes {
-  return { id: image.id, alt: image.label, align: "left", width: imageWidthRange.default };
-}
 
 function ToolbarButton({
   label,
@@ -103,7 +103,7 @@ function ToolbarButton({
           {children}
         </button>
       </TooltipTrigger>
-      <TooltipContent className="markdown-editor-toolbar-tooltip">{label}</TooltipContent>
+      <TooltipContent>{label}</TooltipContent>
     </Tooltip>
   );
 }
@@ -273,7 +273,7 @@ function LinkControl({ editor, active }: { editor: Editor; active: boolean }) {
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent className="markdown-editor-toolbar-tooltip">{t("editor.link")}</TooltipContent>
+        <TooltipContent>{t("editor.link")}</TooltipContent>
       </Tooltip>
       <PopoverContent align="start" className="markdown-link-popover">
         {open ? <LinkEditorForm editor={editor} active={active} onDone={() => setOpen(false)} /> : null}
@@ -404,12 +404,13 @@ function CompactFormattingMenu({
               </button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
-          <TooltipContent className="markdown-editor-toolbar-tooltip">{t("editor.formatting")}</TooltipContent>
+          <TooltipContent>{t("editor.formatting")}</TooltipContent>
         </Tooltip>
         <DropdownMenuContent
           side="right"
           align="start"
-          className="markdown-formatting-menu z-[var(--hall-z-editor-popup)] w-max"
+          className="markdown-formatting-menu w-max"
+          data-testid="editor-formatting-menu-content"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
           }}
@@ -627,7 +628,11 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const { t } = useI18n();
   const [enriched, setEnriched] = useState(false);
-  const [imageStatus, setImageStatus] = useState<"idle" | "uploading" | "failed">("idle");
+  const [imageStatus, setImageStatus] = useState<ImageUploadStatus>("idle");
+  const imageUpload = useRef<EditorImageUpload | undefined>(onUploadImage);
+  imageUpload.current = onUploadImage;
+  const imageStatusChange = useRef(setImageStatus);
+  const inlineDropZone = useImageDropZone(!readOnly);
   const latest = useRef(markdown);
   const compactEditor = useRef<HTMLDivElement>(null);
   const compactToolbar = useRef<HTMLDivElement>(null);
@@ -706,6 +711,7 @@ export function MarkdownEditor({
         class: "markdown-content",
         "aria-label": t("editor.writeArea"),
       },
+      ...imageTransferHandlers(imageUpload, imageStatusChange),
     },
     onUpdate: ({ editor }) => {
       hideCompactToolbar();
@@ -846,6 +852,7 @@ export function MarkdownEditor({
         <div
           className="markdown-editor-canvas"
           ref={inlineCanvas}
+          {...inlineDropZone.handlers}
           onClickCapture={(event) => {
             const target = event.target;
             if (target instanceof Element && target.closest("[data-editor-table-control], .column-resize-handle"))
@@ -855,6 +862,8 @@ export function MarkdownEditor({
         >
           <EditorContent editor={inline} className="markdown-editor-content" />
           {inline ? <TableControls editor={inline} canvasRef={inlineCanvas} /> : null}
+          <ImageDropZone active={inlineDropZone.active} />
+          {enriched ? null : <ImageUploadStatusLine status={imageStatus} />}
         </div>
       </div>
       {fullSearch && inline ? (
@@ -921,9 +930,9 @@ function EnrichedEditor({
   placeholder?: string;
   members: RefObject<Mentionable[]>;
   context: RefObject<string | undefined>;
-  onUploadImage?: (image: File) => Promise<{ id: string; label: string }>;
-  imageStatus: "idle" | "uploading" | "failed";
-  onImageStatus(status: "idle" | "uploading" | "failed"): void;
+  onUploadImage?: EditorImageUpload;
+  imageStatus: ImageUploadStatus;
+  onImageStatus(status: ImageUploadStatus): void;
   onBlur?(): void;
   onChange(markdown: string): void;
 }) {
@@ -934,8 +943,11 @@ function EnrichedEditor({
   const groupLabels = useMentionGroupLabels();
   const facetLabels = useMentionFacetLabels();
   const [fullSearch, setFullSearch] = useState<FullSearchRequest | null>(null);
-  const imageUpload = useRef(onUploadImage);
+  const imageUpload = useRef<EditorImageUpload | undefined>(onUploadImage);
   imageUpload.current = onUploadImage;
+  const imageStatusChange = useRef(onImageStatus);
+  imageStatusChange.current = onImageStatus;
+  const dropZone = useImageDropZone(true);
 
   const editor = useEditor({
     extensions: editorExtensions({
@@ -958,46 +970,7 @@ function EnrichedEditor({
         class: "markdown-content",
         "aria-label": t("editor.writeArea"),
       },
-      handleDrop: (view, event) => {
-        const file = event.dataTransfer
-          ? [...event.dataTransfer.files].find((candidate) => candidate.type.startsWith("image/"))
-          : undefined;
-        if (!file) return false;
-        event.preventDefault();
-        const upload = imageUpload.current;
-        if (!upload || !acceptedImageTypes.has(file.type)) {
-          onImageStatus("failed");
-          return true;
-        }
-        const dropPosition = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
-        onImageStatus("uploading");
-        void upload(file).then(
-          (image) => {
-            const position = Math.min(dropPosition ?? view.state.selection.from, view.state.doc.content.size);
-            const node = view.state.schema.nodes.resourceImage.create(imageAttributes(image));
-            const transaction = view.state.tr
-              .setSelection(Selection.near(view.state.doc.resolve(position)))
-              .replaceSelectionWith(node);
-            let insertedPosition: number | null = null;
-            transaction.doc.descendants((candidate, candidatePosition) => {
-              if (candidate.type === node.type && candidate.attrs.id === image.id) {
-                insertedPosition = candidatePosition;
-                return false;
-              }
-              return true;
-            });
-            if (insertedPosition === null) {
-              onImageStatus("failed");
-              return;
-            }
-            transaction.setSelection(NodeSelection.create(transaction.doc, insertedPosition));
-            view.dispatch(transaction);
-            onImageStatus("idle");
-          },
-          () => onImageStatus("failed"),
-        );
-        return true;
-      },
+      ...imageTransferHandlers(imageUpload, imageStatusChange),
     },
     onUpdate: ({ editor: current }) => callbacks.current.onChange(current.getMarkdown()),
     onBlur: () => callbacks.current.onBlur?.(),
@@ -1067,15 +1040,12 @@ function EnrichedEditor({
           </>
         ) : null}
       </div>
-      <div className="markdown-editor-canvas" ref={canvas}>
+      <div className="markdown-editor-canvas" ref={canvas} {...dropZone.handlers}>
         <EditorContent editor={editor} className="markdown-editor-content" />
         {editor ? <TableControls editor={editor} canvasRef={canvas} /> : null}
+        <ImageDropZone active={dropZone.active} />
       </div>
-      {imageStatus !== "idle" ? (
-        <p className="markdown-image-status" role={imageStatus === "failed" ? "alert" : "status"}>
-          {t(imageStatus === "uploading" ? "editor.imageUploading" : "editor.imageUploadFailed")}
-        </p>
-      ) : null}
+      <ImageUploadStatusLine status={imageStatus} />
       {fullSearch && editor ? (
         <EditorReferenceSearch
           editor={editor}

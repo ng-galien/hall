@@ -218,6 +218,7 @@ test("the common resource modal reuses Workbench bodies without nested viewers",
   assert.match(images, /focus\(\{ preventScroll: true \}\)/);
 });
 
+// @verifies-requirement HALL-FR-DOC-470
 test("editor images keep immutable resource references and follow document capabilities", () => {
   const editor = read("src/components/editor/MarkdownEditor.tsx");
   const images = read("src/components/editor/images.tsx");
@@ -229,10 +230,12 @@ test("editor images keep immutable resource references and follow document capab
   assert.match(images, /role="slider"/);
   assert.match(images, /aria-valuemin=\{imageWidthRange\.min\}/);
   assert.match(images, /useContext\(ResourceImagePreviewContext\)/);
-  assert.match(editor, /handleDrop:/);
-  assert.match(editor, /imageUpload\.current/);
+  const imageTransfer = read("src/components/editor/imageTransfer.tsx");
+  assert.match(imageTransfer, /handleDrop:/);
+  assert.match(imageTransfer, /handlePaste:/);
+  assert.match(editor, /imageUpload\.current = onUploadImage/);
   assert.doesNotMatch(editor, /type="file"[\s\S]{0,80}accept="image\/png,image\/jpeg"/);
-  assert.doesNotMatch(`${editor}\n${images}`, /FileReader|readAsDataURL|blob:/);
+  assert.doesNotMatch(`${editor}\n${images}\n${imageTransfer}`, /FileReader|readAsDataURL|blob:/);
   assert.doesNotMatch(mentions, /id:\s*(?:resource|business|meeting|decision)\.slug/);
   assert.match(api, /documentaryBinaryReferenceContentHref/);
   assert.match(api, /binary-references\/\$\{encodeURIComponent\(id\)\}\/content/);
@@ -248,9 +251,10 @@ test("editor images keep immutable resource references and follow document capab
   const enrichedEditor = editor.slice(editor.indexOf("function EnrichedEditor"));
   assert.ok(compactEditor.length > 0);
   assert.ok(enrichedEditor.length > 0);
-  assert.doesNotMatch(compactEditor, /<ImageControl|handleDrop:/);
+  assert.doesNotMatch(compactEditor, /<ImageControl/);
   assert.doesNotMatch(enrichedEditor, /<ImageControl/);
-  assert.match(enrichedEditor, /handleDrop:/);
+  for (const surface of [compactEditor, enrichedEditor]) assert.match(surface, /<ImageDropZone active=/);
+  assert.equal(editor.match(/\.\.\.imageTransferHandlers\(imageUpload, imageStatusChange\)/g)?.length, 2);
 });
 
 test("document category translations are exhaustive over the domain type", () => {
