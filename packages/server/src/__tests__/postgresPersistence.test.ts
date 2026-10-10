@@ -190,6 +190,7 @@ postgres("PostgreSQL persistence", () => {
       expect((businessRepresentation.actions ?? []).map(({ name }) => name)).toEqual([
         "resource.create",
         "resource.import-spreadsheet",
+        "resource.convert-spreadsheet-table",
         "resource.create-document",
         "council-business.associate-resource",
         "council-business.dissociate-resource",
@@ -284,6 +285,7 @@ postgres("PostgreSQL persistence", () => {
           "resource.create",
           "resource.create-document",
           "resource.import-spreadsheet",
+          "resource.convert-spreadsheet-table",
           "resource.create-editor-asset",
           "resource.search-legal-references",
         ]),

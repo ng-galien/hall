@@ -256,7 +256,12 @@ test("editor images keep immutable resource references and follow document capab
   assert.doesNotMatch(compactEditor, /<ImageControl/);
   assert.doesNotMatch(enrichedEditor, /<ImageControl/);
   for (const surface of [compactEditor, enrichedEditor]) assert.match(surface, /<ImageDropZone active=/);
-  assert.equal(editor.match(/\.\.\.imageTransferHandlers\(imageUpload, imageStatusChange\)/g)?.length, 2);
+  assert.equal(
+    editor.match(
+      /\.\.\.imageTransferHandlers\(imageUpload, imageStatusChange, documentUpload, spreadsheetChoice\)/g,
+    )?.length,
+    2,
+  );
 });
 
 test("document category translations are exhaustive over the domain type", () => {

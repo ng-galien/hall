@@ -123,6 +123,10 @@ describe("Siren entity class authority", () => {
         name: "resource.import-spreadsheet",
         title: "Create a spreadsheet resource by importing a file",
       },
+      {
+        name: "resource.convert-spreadsheet-table",
+        title: "Convert the first sheet of a spreadsheet file into a Markdown table",
+      },
       { name: "resource.create-document", title: "Create a document resource by uploading a file" },
       { name: "council-business.associate-resource", title: "Attach an existing resource" },
       { name: "council-business.dissociate-resource", title: "Detach a resource" },
