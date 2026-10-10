@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { LinkIcon } from "../../components/icons";
+import { AddIcon } from "../../components/icons";
 import { ResourceSearch } from "../../components/search/ResourceSearch";
 import type { DocumentaryLeafSummary } from "../../features/documents/DocumentaryResourceGlyph";
 import { resourceMentionable } from "../../hooks/useReferenceMentionables";
@@ -126,7 +126,7 @@ export function AttachmentPicker({
               disabled={disabled}
               aria-expanded={open}
             >
-              <LinkIcon />
+              <AddIcon />
             </Button>
           </PopoverTrigger>
         )}
