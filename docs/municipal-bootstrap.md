@@ -121,6 +121,7 @@ DATABASE_URL=postgresql://DATABASE_ADMIN:ENCODED_PASSWORD@127.0.0.1:5432/hall_mu
 SERVER_HOST=127.0.0.1
 SERVER_PORT=3100
 HALL_ALLOWED_ORIGINS=http://127.0.0.1:3100
+HALL_BACKUP_DIRECTORY=C:\Hall\backups
 ```
 
 Do not enable `HALL_DEV_AUTO_LOGIN` for this installation. Existing environment
@@ -250,18 +251,31 @@ this as an interruption requiring the restart checks.
 
 Before a change, stop Hall and all other writers. Keep the exact old release,
 external configuration, database roles, and selected dump together in the
-installation record. Configure the database tools for the intended database.
+installation record. `hall backup` writes a custom-format dump of `DATABASE_URL`
+into `HALL_BACKUP_DIRECTORY`, checks that `pg_restore` can read it, and writes a
+manifest next to it with the SHA-256 digest, the database name, the package
+version and the schema fingerprint. `hall verify-backup` makes a new backup,
+restores it into a temporary database, counts its meetings and stored files, and
+drops that temporary database. Both commands need `pg_dump` and `pg_restore` on
+`PATH`; `verify-backup` also needs the right to create a database.
 
 ```powershell
-$Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$Dump = Join-Path $HallRoot "backups\hall-$Stamp.dump"
-pg_dump --format=custom --file="$Dump.partial" --dbname=$TargetDatabase
+& $Hall backup --env-file $Config
 if ($LASTEXITCODE -ne 0) { throw 'Backup failed' }
-pg_restore --list "$Dump.partial" | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'Backup archive is unreadable' }
-Move-Item -LiteralPath "$Dump.partial" -Destination $Dump
-Get-FileHash -Algorithm SHA256 -LiteralPath $Dump
+& $Hall verify-backup --env-file $Config
+if ($LASTEXITCODE -ne 0) { throw 'Backup restoration check failed' }
 ```
+
+Schedule the daily backup with Windows Task Scheduler under the account that
+starts Hall, with `C:\Hall` as working directory:
+
+```powershell
+$Action = New-ScheduledTaskAction -Execute $Hall -Argument "backup --env-file `"$Config`"" -WorkingDirectory $HallRoot
+$Trigger = New-ScheduledTaskTrigger -Daily -At 22:00
+Register-ScheduledTask -TaskName 'Hall backup' -Action $Action -Trigger $Trigger
+```
+
+Run `verify-backup` at least once a month and after each update.
 
 Protect backups as municipal data. Keep an independent protected copy off the
 computer and periodically restore the chosen file to verify it. A successful

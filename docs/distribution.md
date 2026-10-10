@@ -23,8 +23,9 @@ For the complete municipal restore, account setup and operating procedure, use
   existing bootstrap creates cluster roles and an auxiliary comparison database;
   its data migrations use `session_replication_role`. An ordinary restricted
   application login is not sufficient for all these operations.
-- PostgreSQL client tools (`pg_dump`, `pg_restore`, `createdb`, `psql`) for backup
-  and recovery. Use versions compatible with the database server.
+- PostgreSQL client tools (`pg_dump`, `pg_restore`) on `PATH` for `hall backup`
+  and `hall verify-backup`, and `createdb` for a manual recovery. Use versions
+  compatible with the database server.
 - Chromium and its operating-system libraries for PDF generation. Install the
   browser explicitly with `hall install-browser` under the service account.
   This downloads a browser; it is not part of npm installation.
@@ -131,21 +132,25 @@ For a consistent cutover, stop application writers, then make the final backup.
 that snapshot are not included. Preserve cluster roles separately when recovery
 may target another cluster; a single-database dump does not contain them.
 
-Use the PostgreSQL service/password files of the administrator, with restricted
-permissions. Do not put passwords into the commands or the backup manifest.
-The following is a template to adapt to the explicitly selected database:
+Set `HALL_BACKUP_DIRECTORY` in the environment file to an absolute directory
+outside the installed package, then:
 
 ```sh
-pg_dump --format=custom --file=/var/backups/hall/before-update.dump.partial \
-  --dbname='service=hall-backup'
-pg_restore --list /var/backups/hall/before-update.dump.partial
-mv /var/backups/hall/before-update.dump.partial /var/backups/hall/before-update.dump
-shasum -a 256 /var/backups/hall/before-update.dump
+/srv/hall/releases/0.1.0/node_modules/.bin/hall backup --env-file /etc/hall/hall.env
+/srv/hall/releases/0.1.0/node_modules/.bin/hall verify-backup --env-file /etc/hall/hall.env
 ```
 
-Retain the checksum, timestamp, server version, package version, schema fingerprint
-and configuration reference alongside the dump. Verify the checksum before
-restoring. Checking the archive list alone is not a restoration test.
+`backup` writes `hall-<database>-<timestamp>.dump` through a `.partial` file,
+checks it with `pg_restore --list`, and writes `<dump>.json` with the SHA-256
+digest, creation time, database name, package version and schema fingerprint.
+The password is passed to the PostgreSQL tools through their environment, not on
+the command line. `verify-backup` makes a new backup, restores it into a temporary
+`hall_restore_check_<time>` database, counts meetings and stored files, and drops
+that database; the database user needs the right to create a database.
+
+Retain the dump, its manifest, the server version and the configuration reference
+together. Verify the checksum before restoring. Checking the archive list alone is
+not a restoration test.
 
 Restore that exact dump into a new, explicitly disposable database, never over
 the live database. Provision required roles first when using a separate cluster.
