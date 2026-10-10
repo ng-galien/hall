@@ -85,6 +85,21 @@ export async function createGeographicFeatureNote(
   return geographicFeatureNoteSchema.parse(result.data);
 }
 
+/** Notes linked to the drawn elements of a map, keyed by element id. */
+// @implements-requirement HALL-FR-DOC-430
+export async function readGeographicDrawnElementNotes(map: SirenEntity): Promise<GeographicFeatureNote[]> {
+  const result = await followSirenLink<unknown>(map, "feature-notes");
+  return geographicFeatureNoteSchema.array().parse(result.data);
+}
+
+export async function createGeographicDrawnElementNote(
+  map: SirenEntity,
+  elementId: string,
+): Promise<GeographicFeatureNote> {
+  const result = await submitSirenAction<unknown>(map, "resource.create-geographic-feature-note", { elementId });
+  return geographicFeatureNoteSchema.parse(result.data);
+}
+
 export interface MunicipalPropertyState {
   representation: SirenEntity;
   data: MunicipalProperty;

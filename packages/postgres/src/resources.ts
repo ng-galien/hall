@@ -185,7 +185,7 @@ const geographicLayerResourceSchema = geographicLayerResourceSummarySchema.exten
 // @implements-requirement HALL-FR-DOC-390
 const geographicFeatureNoteSchema = z.object({
   key: z.string().min(1),
-  subjectKind: z.enum(["cadastreParcel", "layerFeature"]),
+  subjectKind: z.enum(["cadastreParcel", "layerFeature", "drawnElement"]),
   noteId: resourceIdSchema,
   slug: resourceSlugSchema,
   name: resourceNameSchema,
@@ -1381,6 +1381,49 @@ export class PostgresResources {
           targetId: note.noteId,
           outcome: "succeeded",
           details: { fullPath: note.fullPath, geographicLayerId: parsedLayerId, subjectKey: note.key },
+        });
+        return note;
+      },
+    );
+  }
+
+  // @implements-requirement HALL-FR-DOC-430
+  listGeographicDrawnElementNotes(
+    request: PostgresResourceRequest,
+    mapId: string,
+  ): Promise<PostgresGeographicFeatureNote[]> {
+    return this.readJson(
+      request,
+      "resource.listGeographicDrawnElementNotes",
+      {
+        text: "SELECT hall_api.geographic_drawn_element_notes($1::uuid) AS payload",
+        values: [resourceIdSchema.parse(mapId)],
+      },
+      z.array(geographicFeatureNoteSchema),
+    );
+  }
+
+  // @implements-requirement HALL-FR-DOC-430
+  createGeographicDrawnElementNote(
+    request: PostgresResourceRequest,
+    mapId: string,
+    elementId: string,
+  ): Promise<PostgresGeographicFeatureNote> {
+    const parsedMapId = resourceIdSchema.parse(mapId);
+    const parsedElementId = z.string().min(1).max(200).parse(elementId);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "resource.createGeographicDrawnElementNote") },
+      async (client) => {
+        const note = await callJson(client, {
+          text: "SELECT hall_api.create_geographic_drawn_element_note($1::uuid, $2::text) AS payload",
+          values: [parsedMapId, parsedElementId],
+          schema: geographicFeatureNoteSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "resource",
+          targetId: note.noteId,
+          outcome: "succeeded",
+          details: { fullPath: note.fullPath, geographicResourceId: parsedMapId, subjectKey: note.key },
         });
         return note;
       },

@@ -128,7 +128,7 @@ export function createGeographicLayersRouter({ geographicLayerService, requestCo
     async (request, response) => {
       const note = await geographicLayerService.createNote(
         resourceReferenceSchema.parse(routeParameter(request.params.reference)),
-        createGeographicFeatureNoteSchema.parse(request.body).position,
+        createGeographicFeatureNoteSchema.parse(request.body),
       );
       response.status(201).json({
         class: ["geographic-feature-note"],

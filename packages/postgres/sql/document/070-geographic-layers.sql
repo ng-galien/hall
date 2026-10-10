@@ -376,6 +376,76 @@ BEGIN
 END
 $function$;
 
+-- @implements-requirement HALL-FR-DOC-430
+-- Lists the notes linked to the drawn elements of a map.
+CREATE FUNCTION hall_api.geographic_drawn_element_notes(map_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+BEGIN
+  PERFORM hall.require_resource(map_id, 'geographic');
+  RETURN coalesce((
+    SELECT jsonb_agg(hall.geographic_feature_note_entry(note) ORDER BY note.subject_key)
+    FROM hall.geographic_feature_note AS note
+    WHERE note.subject_kind = 'drawnElement' AND note.geographic_resource_id = map_id
+  ), '[]'::jsonb);
+END
+$function$;
+
+-- @implements-requirement HALL-FR-DOC-430
+-- Returns the note of a drawn element of the saved map, creating an empty text
+-- resource in the "Notes cartographiques" folder of the map's folder when none exists.
+CREATE FUNCTION hall_api.create_geographic_drawn_element_note(map_id UUID, element_id TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+DECLARE
+  map_resource hall.resource;
+  element_label TEXT;
+  existing hall.geographic_feature_note;
+  folder_path TEXT;
+  base_name TEXT;
+  note_name TEXT;
+  suffix INTEGER := 2;
+  created JSONB;
+BEGIN
+  PERFORM hall.lock_resource_namespace();
+  SELECT * INTO map_resource FROM hall.require_resource(map_id, 'geographic');
+  SELECT nullif(btrim(element.value #>> '{properties,label}'), '') INTO element_label
+  FROM hall.geographic_resource AS map,
+       jsonb_array_elements(map.document #> '{hallLayer,features}') AS element(value)
+  WHERE map.id = map_id AND element.value ->> 'id' = element_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV601', MESSAGE = 'Geographic feature not found';
+  END IF;
+  SELECT * INTO existing FROM hall.geographic_feature_note AS note
+  WHERE note.subject_kind = 'drawnElement' AND note.geographic_resource_id = map_id AND note.subject_key = element_id;
+  IF FOUND THEN
+    RETURN hall.geographic_feature_note_entry(existing);
+  END IF;
+
+  folder_path := CASE WHEN map_resource.path = '' THEN 'Notes cartographiques'
+                      ELSE map_resource.path || '/Notes cartographiques' END;
+  base_name := left(replace(map_resource.name || ' - ' || coalesce(element_label, element_id), '/', '-'), 190);
+  note_name := base_name;
+  WHILE EXISTS (SELECT FROM hall.resource AS resource WHERE resource.path = folder_path AND lower(resource.name) = lower(note_name)) LOOP
+    note_name := base_name || ' (' || suffix::TEXT || ')';
+    suffix := suffix + 1;
+  END LOOP;
+  created := hall_api.create_text_resource(folder_path, note_name, '');
+  INSERT INTO hall.geographic_feature_note (text_resource_id, subject_kind, geographic_resource_id, subject_key)
+  VALUES ((created ->> 'id')::UUID, 'drawnElement', map_id, element_id)
+  RETURNING * INTO existing;
+  RETURN hall.geographic_feature_note_entry(existing);
+END
+$function$;
+
 -- @implements-requirement HALL-FR-DOC-400
 CREATE FUNCTION hall_api.municipal_property()
 RETURNS JSONB

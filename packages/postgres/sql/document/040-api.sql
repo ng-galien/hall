@@ -1023,6 +1023,15 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION USING ERRCODE = 'HV608', MESSAGE = 'Resource version conflict';
   END IF;
+  -- @implements-requirement HALL-FR-DOC-430
+  -- A deleted drawn element loses its note link; the note text stays.
+  DELETE FROM hall.geographic_feature_note AS note
+  WHERE note.subject_kind = 'drawnElement'
+    AND note.geographic_resource_id = resource_id
+    AND NOT EXISTS (
+      SELECT FROM jsonb_array_elements(resource_document #> '{hallLayer,features}') AS element(value)
+      WHERE element.value ->> 'id' = note.subject_key
+    );
   PERFORM hall.touch_resource(resource_id);
   RETURN hall.resource_detail(resource_id);
 END

@@ -198,6 +198,7 @@ postgres("geographic layers", () => {
     const opened = await contributorAgent.get(`/api/resources/${mapId}`).expect(200);
     expect((opened.body.actions as SirenAction[]).map(({ name }) => name)).toEqual([
       "resource.update-content",
+      "resource.create-geographic-feature-note",
       "resource.import-geographic-layer",
       "resource.link-geographic-layer",
       "resource.unlink-geographic-layer",

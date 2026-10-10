@@ -89,6 +89,7 @@ export {
   Rows as RowIcon,
   RowsPlusBottom as RowAfterIcon,
   RowsPlusTop as RowBeforeIcon,
+  Ruler as RulerIcon,
   Scales as OfficialRuleIcon,
   Sidebar as SidebarExpandIcon,
   SidebarSimple as SidebarCollapseIcon,

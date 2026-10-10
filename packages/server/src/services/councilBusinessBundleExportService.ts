@@ -122,6 +122,7 @@ export function createCouncilBusinessBundleExportService({
               for (const feature of features) if (feature.key) carriedParcelIds.add(feature.key);
             }
             for (const note of (await geographicLayersClient.listNotes(entry.id)) ?? []) {
+              if (note.subjectKind === "drawnElement") continue;
               ids.add(note.noteId);
               if (manifest.geographicFeatureNotes.some(({ noteSourceId }) => noteSourceId === note.noteId)) continue;
               manifest.geographicFeatureNotes.push({

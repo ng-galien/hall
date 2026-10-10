@@ -172,8 +172,8 @@ SELECT set_config('hall.roles', '["contributor"]', true);
 SELECT set_config('hall.permissions', '["workspace.read","workspace.write"]', true);
 SELECT is(
   ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(hall.resource_siren_actions(hall_api.open_resource(map))) AS action),
-  ARRAY['resource.update-content', 'resource.import-geographic-layer', 'resource.link-geographic-layer', 'resource.unlink-geographic-layer'],
-  'a role with workspace.write edits the map and its layers but is not offered renaming, moving or deletion'
+  ARRAY['resource.update-content', 'resource.create-geographic-feature-note', 'resource.import-geographic-layer', 'resource.link-geographic-layer', 'resource.unlink-geographic-layer'],
+  'a role with workspace.write edits the map, its layers and the notes of its drawings but is not offered renaming, moving or deletion'
 )
 FROM geographic_layer_fixture;
 SELECT is(

@@ -6,15 +6,20 @@ import type {
   HallGeoJsonFeatureCollection,
   HallGeoJsonFeatureKind,
 } from "@hall/domain";
+import { getHeight, getWidth } from "ol/extent";
 import type { FeatureLike } from "ol/Feature";
 import Feature from "ol/Feature";
 import GeoJSON from "ol/format/GeoJSON";
 import type Geometry from "ol/geom/Geometry";
+import LineString from "ol/geom/LineString";
+import Point from "ol/geom/Point";
+import Polygon from "ol/geom/Polygon";
 import TileLayer from "ol/layer/Tile";
 import { fromLonLat } from "ol/proj";
 import type VectorSource from "ol/source/Vector";
 import XYZ from "ol/source/XYZ";
-import { Fill, Stroke, Style, Text } from "ol/style";
+import { Circle, Fill, Stroke, Style, Text } from "ol/style";
+import { createEditingStyle } from "ol/style/Style";
 import View from "ol/View";
 import { geographicFeatureKindPolicy, isHallGeoJsonFeatureKind } from "./geographicFeatureKindPolicy";
 
@@ -25,7 +30,31 @@ function cssToken(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-export function geographicFeatureStyle(feature: FeatureLike, fallbackLabel?: string): Style {
+/**
+ * Largest side, in screen pixels, of the on-screen extent below which a line or an area is drawn as a marker at its
+ * centre instead of its geometry. Points always keep their marker.
+ */
+export const GEOGRAPHIC_COMPACT_FEATURE_PIXELS = 16;
+
+/** Centre used by the compact marker: interior point of an area, middle of a line, the point itself. */
+export function compactFeatureGeometry(geometry: Geometry): Point | null {
+  if (geometry instanceof Polygon) {
+    const [x, y] = geometry.getInteriorPoint().getCoordinates();
+    return new Point([x!, y!]);
+  }
+  if (geometry instanceof LineString) return new Point(geometry.getCoordinateAt(0.5));
+  return null;
+}
+
+/** True when the element is too small on screen at this resolution to show its geometry. */
+export function isCompactFeature(geometry: Geometry | undefined, resolution: number): boolean {
+  if (!geometry || geometry instanceof Point) return false;
+  const extent = geometry.getExtent();
+  return Math.max(getWidth(extent), getHeight(extent)) / resolution < GEOGRAPHIC_COMPACT_FEATURE_PIXELS;
+}
+
+// @implements-requirement HALL-FR-DOC-420
+export function geographicFeatureStyle(feature: FeatureLike, fallbackLabel?: string, resolution?: number): Style {
   if (!(feature instanceof Feature)) return new Style();
   const properties = feature.get("style") as Record<string, unknown> | undefined;
   if (feature.get("visible") === false) return new Style({});
@@ -40,7 +69,30 @@ export function geographicFeatureStyle(feature: FeatureLike, fallbackLabel?: str
       })
     : undefined;
   if (!isHallGeoJsonFeatureKind(kind)) return new Style();
+  const geometry = feature.getGeometry() as Geometry | undefined;
+  if (resolution !== undefined && geometry && isCompactFeature(geometry, resolution)) {
+    const style = geographicFeatureKindPolicy[kind].compactStyle(properties ?? {}, text);
+    style.setGeometry(compactFeatureGeometry(geometry) ?? geometry);
+    return style;
+  }
   return geographicFeatureKindPolicy[kind].openLayersStyle(properties ?? {}, text);
+}
+
+/** Selection highlight that follows the representation in use: compact marker or geometry. */
+export function geographicSelectedFeatureStyle(feature: FeatureLike, resolution: number): Style | Style[] {
+  const geometry = feature.getGeometry() as Geometry | undefined;
+  if (geometry && isCompactFeature(geometry, resolution)) {
+    return new Style({
+      geometry: compactFeatureGeometry(geometry) ?? geometry,
+      image: new Circle({
+        radius: 11,
+        fill: new Fill({ color: [0, 153, 255, 0.25] }),
+        stroke: new Stroke({ color: [0, 153, 255, 1], width: 3 }),
+      }),
+    });
+  }
+  const editing = createEditingStyle() as Record<string, Style[]>;
+  return editing[geometry?.getType() ?? "Point"] ?? editing.Point!;
 }
 
 export function initialGeographicFeatureProperties(kind: HallGeoJsonFeatureKind, label: string) {

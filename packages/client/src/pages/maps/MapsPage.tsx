@@ -7,6 +7,7 @@ import { RequestErrorBanner } from "../../components/Ui";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { GeographicResourceMap } from "../../features/geographic/GeographicResourceMap";
 import { councilBusinessHref } from "../../features/references/referenceNavigation";
+import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { loadCommunePosition } from "../../services/hallSettingsApi";
@@ -33,6 +34,9 @@ interface MapsSurface {
   routeId: string;
   resource: GeographicResource;
   data: GeographicResourceData;
+  /** Displayed view of the Cartes surface; the map's saved framing stays in `data.view`. */
+  view: GeographicView;
+  canUpdate: boolean;
 }
 
 const SEARCH_PAGE_SIZE = 100;
@@ -59,9 +63,10 @@ async function loadMapSummaries(): Promise<MapSummary[] | null> {
   }
 }
 
-async function openMap(id: string): Promise<GeographicResource | null> {
+async function openMap(id: string): Promise<{ resource: GeographicResource; canUpdate: boolean } | null> {
   const opened = await useWorkspaceResourcesStore.getState().open(id);
-  return opened?.data.kind === "geographic" ? opened.data : null;
+  if (opened?.data.kind !== "geographic") return null;
+  return { resource: opened.data, canUpdate: resourceCapabilities(opened.representation ?? null).updateContent };
 }
 
 /** Read-only surface shown when no map is chosen; it is never sent to the server. */
@@ -82,6 +87,8 @@ function communeSurface(view: MapsView): MapsSurface {
   return {
     routeId: "",
     data: document,
+    view: document.view,
+    canUpdate: false,
     resource: {
       id: COMMUNE_SURFACE_ID,
       kind: "geographic",
@@ -120,6 +127,7 @@ function workspaceResourceHref(resource: GeographicResource): string {
  * @implements-requirement HALL-FR-WSP-310
  * @implements-requirement HALL-FR-WSP-330
  * @implements-requirement HALL-FR-WSP-340
+ * @implements-requirement HALL-FR-WSP-360
  */
 export function MapsPage() {
   const { t } = useI18n();
@@ -175,20 +183,23 @@ export function MapsPage() {
     const size = surfaceSize(surfaceRef.current);
     void (async () => {
       if (resourceId) {
-        const resource = await openMap(resourceId);
+        const openedMap = await openMap(resourceId);
         if (!active) return;
-        if (!resource) {
+        if (!openedMap) {
           setSurface(null);
           setError(useWorkspaceResourcesStore.getState().openErrors[resourceId] ?? "resource_not_found");
           return;
         }
+        const { resource, canUpdate } = openedMap;
         const view =
           requested ?? mapsViewOnOpen({ current: currentViewRef.current, size, document: resource.document });
         setError(null);
         setSurface({
           routeId: resourceId,
           resource,
-          data: { ...resource.document, view: geographicViewFromMapsView(view) },
+          data: resource.document,
+          view: geographicViewFromMapsView(view),
+          canUpdate,
         });
         setRecentIds(rememberRecentMap(resource.id));
         writeView(resourceId, view);
@@ -201,7 +212,7 @@ export function MapsPage() {
           documents: await (async () => {
             const summaries = (await loadMapSummaries()) ?? [];
             const opened = await Promise.all(summaries.map((summary) => openMap(summary.id)));
-            return opened.flatMap((resource) => (resource ? [resource.document] : []));
+            return opened.flatMap((entry) => (entry ? [entry.resource.document] : []));
           })(),
           size,
         });
@@ -307,10 +318,11 @@ export function MapsPage() {
               key={`${surface.routeId}:${surface.resource.id}`}
               resource={surface.resource}
               data={surface.data}
-              canUpdate={false}
-              autosaveEnabled={false}
+              canUpdate={surface.canUpdate}
+              autosaveEnabled={surface.canUpdate}
               onError={setError}
               onViewChange={onViewChange}
+              initialView={surface.view}
             />
           ) : null}
         </div>

@@ -88,9 +88,11 @@ BEGIN
     );
   END IF;
   -- @implements-requirement HALL-FR-DOC-400
+  -- @implements-requirement HALL-FR-DOC-430
   IF resource ->> 'kind' = 'geographic' THEN
     links := links || jsonb_build_array(
-      hall.siren_link('municipal-property', '/api/resources/geographic-layers/municipal-property')
+      hall.siren_link('municipal-property', '/api/resources/geographic-layers/municipal-property'),
+      hall.siren_link('feature-notes', '/api/resources/' || reference || '/feature-notes')
     );
   END IF;
   RETURN links;
@@ -133,6 +135,21 @@ AS $function$
     'POST',
     '/api/resources/' || reference || '/feature-notes',
     jsonb_build_array(jsonb_build_object('name', 'position', 'type', 'number'))
+  )
+$function$;
+
+-- @implements-requirement HALL-FR-DOC-430
+CREATE FUNCTION hall.geographic_drawn_element_note_siren_action(reference TEXT)
+RETURNS JSONB
+LANGUAGE sql
+IMMUTABLE
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT hall.siren_action(
+    'resource.create-geographic-feature-note',
+    'POST',
+    '/api/resources/' || reference || '/feature-notes',
+    jsonb_build_array(jsonb_build_object('name', 'elementId', 'type', 'text'))
   )
 $function$;
 
@@ -181,7 +198,8 @@ BEGIN
     -- @implements-requirement HALL-FR-DOC-350
     IF resource_kind = 'geographic' AND hall.has_permission('workspace.write') THEN
       RETURN jsonb_build_array(
-        hall.siren_action('resource.update-content', 'PUT', '/api/resources/' || reference || '/content')
+        hall.siren_action('resource.update-content', 'PUT', '/api/resources/' || reference || '/content'),
+        hall.geographic_drawn_element_note_siren_action(reference)
       ) || hall.geographic_map_overlay_siren_actions(resource);
     END IF;
     -- @implements-requirement HALL-FR-DOC-390
@@ -239,7 +257,8 @@ BEGIN
     -- @implements-requirement HALL-FR-DOC-330
     -- @implements-requirement HALL-FR-DOC-340
     IF resource_kind = 'geographic' THEN
-      actions := actions || hall.geographic_map_overlay_siren_actions(resource);
+      actions := actions || hall.geographic_map_overlay_siren_actions(resource)
+        || jsonb_build_array(hall.geographic_drawn_element_note_siren_action(reference));
     END IF;
   ELSIF resource_kind = 'document' THEN
     actions := actions || jsonb_build_array(

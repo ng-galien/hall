@@ -125,6 +125,11 @@ GRANT EXECUTE ON FUNCTION hall_api.geographic_feature_notes(UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.create_geographic_feature_note(UUID, INTEGER)
   TO hall_api_authenticated, hall_api_worker;
+-- @implements-requirement HALL-FR-DOC-430
+GRANT EXECUTE ON FUNCTION hall_api.geographic_drawn_element_notes(UUID)
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.create_geographic_drawn_element_note(UUID, TEXT)
+  TO hall_api_authenticated, hall_api_worker;
 -- @implements-requirement HALL-FR-DOC-400
 GRANT EXECUTE ON FUNCTION hall_api.municipal_property()
   TO hall_api_authenticated, hall_api_worker;

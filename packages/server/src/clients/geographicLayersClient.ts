@@ -40,6 +40,11 @@ export interface GeographicLayersClient {
   }): Promise<GeographicOverlayResult>;
   removeOverlay(mapId: string, layerId: string): Promise<GeographicOverlayResult>;
   listNotes(layerId: string): Promise<GeographicFeatureNote[] | null>;
+  listDrawnElementNotes(mapId: string): Promise<GeographicFeatureNote[] | null>;
+  createDrawnElementNote(
+    mapId: string,
+    elementId: string,
+  ): Promise<{ status: "created"; note: GeographicFeatureNote } | { status: "notFound" }>;
   createNote(
     layerId: string,
     position: number,

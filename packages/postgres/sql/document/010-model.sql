@@ -126,17 +126,20 @@ CREATE TABLE hall.geographic_map_overlay (
 );
 
 -- @implements-requirement HALL-FR-DOC-390
+-- @implements-requirement HALL-FR-DOC-430
 -- A note is a text resource attached to a subject: its kind, its scope and its
 -- stable key. Cadastre parcels are global subjects; other layer features are
--- scoped to their layer. Drawn map elements can be added as another kind.
+-- scoped to their layer; drawn elements are scoped to their map.
 CREATE TABLE hall.geographic_feature_note (
   text_resource_id UUID PRIMARY KEY REFERENCES hall.text_resource(id) ON DELETE CASCADE,
-  subject_kind TEXT NOT NULL CONSTRAINT "geographic_feature_note_subject_kind_check" CHECK (subject_kind = ANY (ARRAY['cadastreParcel'::text, 'layerFeature'::text])),
+  subject_kind TEXT NOT NULL CONSTRAINT "geographic_feature_note_subject_kind_check" CHECK (subject_kind = ANY (ARRAY['cadastreParcel'::text, 'layerFeature'::text, 'drawnElement'::text])),
   geographic_layer_resource_id UUID REFERENCES hall.geographic_layer_resource(id) ON DELETE CASCADE,
   subject_key TEXT NOT NULL CONSTRAINT "geographic_feature_note_subject_key_check" CHECK (subject_key <> ''::text),
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
-  CONSTRAINT "geographic_feature_note_scope_matches_kind" CHECK (subject_kind = 'cadastreParcel'::text AND geographic_layer_resource_id IS NULL OR subject_kind = 'layerFeature'::text AND geographic_layer_resource_id IS NOT NULL),
-  CONSTRAINT geographic_feature_note_layer_subject_unique UNIQUE (geographic_layer_resource_id, subject_key)
+  geographic_resource_id UUID REFERENCES hall.geographic_resource(id) ON DELETE CASCADE,
+  CONSTRAINT "geographic_feature_note_scope_matches_kind" CHECK (subject_kind = 'cadastreParcel'::text AND geographic_layer_resource_id IS NULL AND geographic_resource_id IS NULL OR subject_kind = 'layerFeature'::text AND geographic_layer_resource_id IS NOT NULL AND geographic_resource_id IS NULL OR subject_kind = 'drawnElement'::text AND geographic_resource_id IS NOT NULL AND geographic_layer_resource_id IS NULL),
+  CONSTRAINT geographic_feature_note_layer_subject_unique UNIQUE (geographic_layer_resource_id, subject_key),
+  CONSTRAINT geographic_feature_note_map_subject_unique UNIQUE (geographic_resource_id, subject_key)
 );
 
 CREATE UNIQUE INDEX geographic_feature_note_parcel_subject_idx ON hall.geographic_feature_note USING btree (subject_key) WHERE (subject_kind = 'cadastreParcel'::text);

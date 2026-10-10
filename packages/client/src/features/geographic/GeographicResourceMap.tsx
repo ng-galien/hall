@@ -9,9 +9,11 @@ import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { GeographicCompositionEditor } from "./GeographicCompositionEditor";
+import { GeographicDrawnElementCard, useGeographicDrawnElementNotes } from "./GeographicDrawnElementCard";
 import { GeographicFeatureCard } from "./GeographicFeatureCard";
 import { GeographicLayerControls } from "./GeographicLayerControls";
 import { GeographicLayerUploadDialog } from "./GeographicLayerUploadDialog";
+import { GeographicMeasurePanel } from "./GeographicMeasurePanel";
 import { municipalFilterLayerIds } from "./geographicFeatureCardModel";
 import { geographicFeatureKindLabels } from "./geographicFeatureKindPolicy";
 import {
@@ -81,6 +83,7 @@ export function GeographicResourceMap({
   onError,
   onRegisterFlush,
   onViewChange,
+  initialView,
   embedded = false,
 }: {
   resource: GeographicResource;
@@ -91,6 +94,8 @@ export function GeographicResourceMap({
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
   /** Receives the displayed view after each move; the displayed view is saved only by the explicit framing action. */
   onViewChange?(view: GeographicView): void;
+  /** View displayed when the map is created; the saved framing stays `data.view`. */
+  initialView?: GeographicView;
   embedded?: boolean;
 }) {
   const { t } = useI18n();
@@ -111,7 +116,9 @@ export function GeographicResourceMap({
   const [editingFeatureId, setEditingFeatureId] = useState<string | null>(null);
   const [renameArmedFeatureId, setRenameArmedFeatureId] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
-  const [displayedView, setDisplayedView] = useState<GeographicView>(normalizedData.view);
+  const [displayedView, setDisplayedView] = useState<GeographicView>(initialView ?? normalizedData.view);
+  const displayedData = useMemo(() => (initialView ? { ...data, view: initialView } : data), [data, initialView]);
+  const [measuring, setMeasuring] = useState(false);
 
   const draftSignature = useMemo(() => geographicDataSignature(draft), [draft]);
   const dirty = draftSignature !== savedSignature;
@@ -148,7 +155,7 @@ export function GeographicResourceMap({
     [onViewChange],
   );
   const mapRuntime = useGeographicMapRuntime({
-    data,
+    data: displayedData,
     draftLayers: draft.layers,
     canUpdate,
     embedded,
@@ -176,12 +183,21 @@ export function GeographicResourceMap({
   const { setSelection } = featureState;
   useGeographicFeaturePicking(
     mapRuntime.map,
-    workspaceMode === "map" && !embedded,
+    workspaceMode === "map" && !embedded && !measuring,
     overlayRuntime.pickFeature,
     featureState.selection,
     setSelection,
   );
   const selectedFeature = featureState.selection ? overlayRuntime.describeFeature(featureState.selection) : null;
+  const drawnElementNotes = useGeographicDrawnElementNotes(
+    workspaceMode === "draw" && canUpdate ? mapRepresentation : null,
+    onError,
+  );
+  const selectedDrawnElement =
+    workspaceMode === "draw" && canUpdate
+      ? (draft.hallLayer.features.find(({ id }) => id === mapRuntime.selectedFeatureId) ?? null)
+      : null;
+  const selectedDrawnElementIndex = selectedDrawnElement ? draft.hallLayer.features.indexOf(selectedDrawnElement) : -1;
   const selectedNote = useGeographicFeatureNote(selectedFeature, onError);
   const municipalFilterLayers = municipalFilterLayerIds(
     overlayRuntime.featureKeys,
@@ -362,6 +378,13 @@ export function GeographicResourceMap({
         onMunicipalOnly={featureState.setMunicipalOnly}
         onImportMunicipalProperty={canUpdate && municipalImport ? () => setMunicipalImportOpen(true) : undefined}
       />
+      {workspaceMode === "map" ? (
+        <GeographicMeasurePanel
+          map={mapRuntime.map}
+          drawingSource={mapRuntime.drawingSource}
+          onMeasuringChange={setMeasuring}
+        />
+      ) : null}
       {workspaceMode === "draw" && canUpdate ? (
         <GeographicCompositionEditor
           panelRef={compositionLayout.panelRef}
@@ -385,6 +408,23 @@ export function GeographicResourceMap({
           onPointerDown={compositionLayout.startDrag}
           onPointerMove={compositionLayout.move}
           onPointerUp={compositionLayout.stopDrag}
+        />
+      ) : null}
+      {selectedDrawnElement ? (
+        <GeographicDrawnElementCard
+          label={
+            selectedDrawnElement.properties.label ??
+            `${featureKindLabels[selectedDrawnElement.properties.kind]} ${selectedDrawnElementIndex + 1}`
+          }
+          kindLabel={featureKindLabels[selectedDrawnElement.properties.kind]}
+          note={drawnElementNotes.notes?.find(({ key }) => key === selectedDrawnElement.id) ?? null}
+          loading={drawnElementNotes.notes === null}
+          canCreateNote={drawnElementNotes.canCreate}
+          creatingNote={drawnElementNotes.creating}
+          mapElement={mapRuntime.mapElementRef.current}
+          onCreateNote={() => void drawnElementNotes.create(String(selectedDrawnElement.id), save)}
+          onCenter={() => mapRuntime.fitFeature(String(selectedDrawnElement.id))}
+          onClose={mapRuntime.clearSelection}
         />
       ) : null}
       {canUpdate ? (

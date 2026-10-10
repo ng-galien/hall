@@ -134,6 +134,27 @@ export function createPostgresGeographicLayersClient({
         throw error;
       }
     },
+    async listDrawnElementNotes(mapId) {
+      try {
+        return geographicFeatureNoteSchema
+          .array()
+          .parse(await postgresResources.listGeographicDrawnElementNotes(currentRequest(), mapId));
+      } catch (error) {
+        if (error instanceof HallPostgresError && error.sqlState === "HV601") return null;
+        if (error instanceof HallPostgresError) throw persistenceError(error);
+        throw error;
+      }
+    },
+    async createDrawnElementNote(mapId, elementId) {
+      try {
+        const note = await postgresResources.createGeographicDrawnElementNote(currentRequest(), mapId, elementId);
+        return { status: "created", note: geographicFeatureNoteSchema.parse(note) };
+      } catch (error) {
+        if (error instanceof HallPostgresError && error.sqlState === "HV601") return { status: "notFound" };
+        if (error instanceof HallPostgresError) throw persistenceError(error);
+        throw error;
+      }
+    },
     async createNote(layerId, position) {
       try {
         const note = await postgresResources.createGeographicFeatureNote(currentRequest(), layerId, position);

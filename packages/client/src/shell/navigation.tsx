@@ -41,8 +41,6 @@ export const navigationSections: NavigationSection[] = [
         labelKey: "navigation.decisions",
         icon: <DecisionsIcon />,
       },
-      // @implements-requirement HALL-FR-WSP-310
-      { to: "/maps", labelKey: "navigation.maps", icon: <MapIcon /> },
     ],
   },
   {
@@ -53,6 +51,8 @@ export const navigationSections: NavigationSection[] = [
         icon: <CouncilBusinessIcon data-testid="workspace-navigation-business-icon" />,
         workspaceTree: true,
       },
+      // @implements-requirement HALL-FR-WSP-310
+      { to: "/maps", labelKey: "navigation.maps", icon: <MapIcon /> },
       { to: "/calendar", labelKey: "navigation.calendar", icon: <CalendarIcon /> },
     ],
   },

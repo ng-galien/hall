@@ -573,6 +573,7 @@
   .geographic-zoom-tools,
   .geographic-layers,
   .geographic-composition,
+  .geographic-measures,
   .geographic-conflict {
     position: absolute;
     z-index: var(--hall-z-content);
@@ -775,6 +776,64 @@
     overflow: hidden;
     resize: both;
   }
+  .geographic-measures {
+    top: calc(var(--hall-space-3) + var(--hall-size-control) + var(--hall-space-2));
+    left: var(--hall-space-3);
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    width: var(--hall-size-entity-card);
+    max-width: calc(100% - var(--hall-space-6));
+    max-height: calc(100% - var(--hall-size-control) - var(--hall-space-6));
+    border: var(--hall-stroke-thin) solid var(--hall-color-border);
+    border-radius: var(--hall-radius-medium);
+    overflow: hidden;
+  }
+  .geographic-measures-header { cursor: default; }
+  .geographic-measures-body {
+    display: grid;
+    min-height: 0;
+    align-content: start;
+    gap: var(--hall-space-2);
+    overflow-y: auto;
+    padding: var(--hall-space-2);
+    font-size: var(--hall-font-size-caption);
+    line-height: var(--hall-line-height-caption);
+  }
+  .geographic-measures-title { margin: 0; color: var(--hall-color-text); font-weight: var(--hall-font-weight-medium); }
+  .geographic-measures-hint { margin: 0; color: var(--hall-color-text-subtle); }
+  .geographic-measures-error { color: var(--hall-color-danger); }
+  .geographic-measures-values {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: var(--hall-space-0-5) var(--hall-space-2);
+    margin: 0;
+  }
+  .geographic-measures-values dt { color: var(--hall-color-text-muted); }
+  .geographic-measures-values dd {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--hall-space-1);
+    margin: 0;
+    color: var(--hall-color-text);
+    font-variant-numeric: tabular-nums;
+  }
+  .geographic-measures-values dd button {
+    display: inline-grid;
+    width: var(--hall-size-control-small);
+    height: var(--hall-size-control-small);
+    flex: none;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: var(--hall-radius-small);
+    color: var(--hall-color-text-muted);
+    background: transparent;
+    cursor: pointer;
+  }
+  .geographic-measures-values dd button:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
+  .geographic-measures-option { display: flex; align-items: center; gap: var(--hall-space-1); color: var(--hall-color-text-muted); }
+  .geographic-measures-position { display: grid; gap: var(--hall-space-0-5); }
   .geographic-composition-header {
     display: flex;
     min-height: var(--hall-size-control-small);

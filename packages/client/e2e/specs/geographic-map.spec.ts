@@ -41,3 +41,202 @@ test("Escape cancels a drawing in progress before it closes the resource dialog"
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
 });
+
+// @verifies-requirement HALL-FR-DOC-410
+test("the Mesures tab measures with temporary geometries that Escape clears without saving", async ({
+  appPage: page,
+}) => {
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "geographic", name: `Measures ${crypto.randomUUID()}`, path: "seed" },
+  });
+  expect(created.ok()).toBeTruthy();
+  const resource = (await created.json()).properties;
+  const writes: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() !== "GET" && request.url().includes(`/api/resources/`)) writes.push(request.url());
+  });
+  await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  const panel = page.getByTestId("geographic-measures");
+  await expect(panel).toBeVisible();
+  const map = await page.locator(".geographic-map").boundingBox();
+  if (!map) throw new Error("The map must be rendered");
+  const at = (x: number, y: number) => [map.x + map.width * x, map.y + map.height * y] as const;
+
+  await page.mouse.move(...at(0.6, 0.5));
+  await expect(page.getByTestId("geographic-measure-cursor-wgs84")).toHaveText(/\d° [NS], .*\d° [EOW]/);
+  await expect(page.getByTestId("geographic-measure-cursor-projected")).toHaveText(/^X .* m, Y .* m$/);
+
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByTestId("geographic-measure-center-copy-wgs84").click();
+  await expect(page.getByTestId("geographic-measure-center-copy-wgs84")).toHaveAttribute("data-copy-outcome", "copied");
+  await expect(page.getByTestId("geographic-measure-copy-status")).not.toBeEmpty();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^-?\d+\.\d{6}, -?\d+\.\d{6}$/);
+
+  await page.getByTestId("geographic-measure-tool-length").click();
+  await page.mouse.click(...at(0.5, 0.3));
+  await page.mouse.move(...at(0.7, 0.4), { steps: 4 });
+  await page.mouse.dblclick(...at(0.7, 0.4));
+  await expect(page.getByTestId("geographic-measure-current-length")).toHaveText(/^[\d\s,.]+ (m|km)$/);
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("geographic-measure-current")).toHaveCount(0);
+  await expect(page.getByTestId("geographic-mode-map")).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByTestId("geographic-measure-tool-area").click();
+  for (const [x, y] of [
+    [0.5, 0.3],
+    [0.7, 0.3],
+  ] as const) {
+    await page.mouse.move(...at(x, y), { steps: 3 });
+    await page.mouse.click(...at(x, y));
+  }
+  await page.mouse.move(...at(0.6, 0.6), { steps: 3 });
+  await page.mouse.dblclick(...at(0.6, 0.6));
+  await expect(page.getByTestId("geographic-measure-current-area")).toHaveText(/(m²|ha)/);
+  await expect(page.getByTestId("geographic-measure-current-perimeter")).toHaveText(/(m|km)$/);
+
+  const saved = await page.request.get(`/api/resources/${resource.id}`);
+  expect((await saved.json()).properties.document.hallLayer.features).toHaveLength(0);
+  expect(writes).toEqual([]);
+});
+
+// @verifies-requirement HALL-FR-DOC-420
+test("a drawn area too small on screen becomes a selectable marker and its geometry again when zooming in", async ({
+  appPage: page,
+}) => {
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "geographic", name: `Compact ${crypto.randomUUID()}`, path: "seed" },
+  });
+  expect(created.ok()).toBeTruthy();
+  const resource = (await created.json()).properties;
+  await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  await page.getByTestId("geographic-mode-draw").click();
+  const map = await page.locator(".geographic-map").boundingBox();
+  if (!map) throw new Error("The map must be rendered");
+  const at = (x: number, y: number) => [map.x + map.width * x, map.y + map.height * y] as const;
+  await page.getByTestId("geographic-tool-area").click();
+  for (const [x, y] of [
+    [0.5, 0.3],
+    [0.7, 0.35],
+  ] as const) {
+    await page.mouse.move(...at(x, y), { steps: 3 });
+    await page.mouse.click(...at(x, y));
+  }
+  await page.mouse.move(...at(0.6, 0.7), { steps: 3 });
+  await page.mouse.dblclick(...at(0.6, 0.7));
+  const rows = page.locator(
+    '[data-testid="geographic-composition"] li[data-testid^="geographic-composition-feature-"]',
+  );
+  await expect(rows).toHaveCount(1);
+  const featureId = ((await rows.first().getAttribute("data-testid")) ?? "").replace(
+    "geographic-composition-feature-",
+    "",
+  );
+  await page.getByTestId("geographic-tool-select").click();
+  await page.getByTestId(`geographic-composition-feature-fit-${featureId}`).click();
+  await page.mouse.click(...at(0.97, 0.5));
+  await expect(page.locator(".geographic-composition-feature-selected")).toHaveCount(0);
+  for (let step = 0; step < 6; step += 1) {
+    await page.getByTestId("geographic-zoom-out").click();
+    await page.waitForTimeout(250);
+  }
+  const zoomedOut = await page.locator(".geographic-map").boundingBox();
+  if (!zoomedOut) throw new Error("The map must be rendered");
+  await page.mouse.click(zoomedOut.x + zoomedOut.width / 2, zoomedOut.y + zoomedOut.height / 2);
+  await expect(page.getByTestId(`geographic-composition-feature-${featureId}`)).toHaveClass(
+    /geographic-composition-feature-selected/,
+  );
+});
+
+// @verifies-requirement HALL-FR-DOC-430
+test("a drawn element carries a rich-text note that survives a reload and outlives the element", async ({
+  appPage: page,
+}) => {
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "geographic", name: `Noted drawing ${crypto.randomUUID()}`, path: "seed" },
+  });
+  expect(created.ok()).toBeTruthy();
+  const map = (await created.json()).properties;
+  await page.goto(`/app/workspace?path=seed&resource=${map.id}`);
+  await page.getByTestId("geographic-mode-draw").click();
+  const box = await page.locator(".geographic-map").boundingBox();
+  if (!box) throw new Error("The map must be rendered");
+  await page.getByTestId("geographic-tool-marker").click();
+  await page.mouse.click(box.x + box.width * 0.6, box.y + box.height * 0.5);
+  const rows = page.locator(
+    '[data-testid="geographic-composition"] li[data-testid^="geographic-composition-feature-"]',
+  );
+  await expect(rows).toHaveCount(1);
+  const elementId = ((await rows.first().getAttribute("data-testid")) ?? "").replace(
+    "geographic-composition-feature-",
+    "",
+  );
+  await page.keyboard.press("Enter");
+  await rows.first().locator(".geographic-composition-feature-select").click();
+  const card = page.getByTestId("geographic-drawn-element-card");
+  await expect(card).toBeVisible();
+  await card.getByTestId("geographic-drawn-element-note-create").click();
+  const writingArea = card.getByTestId("editor-writing-area");
+  await expect(writingArea).toHaveAttribute("contenteditable", "true");
+  await writingArea.click();
+  await page.keyboard.type("Chêne à conserver");
+  const notes = async () =>
+    (await (await page.request.get(`/api/resources/${map.id}/feature-notes`)).json()).properties.items as Array<{
+      noteId: string;
+      key: string;
+    }>;
+  await expect.poll(async () => (await notes()).map(({ key }) => key)).toEqual([elementId]);
+  const [{ noteId }] = await notes();
+  const noteContent = async () =>
+    (await (await page.request.get(`/api/resources/${noteId}`)).json()).properties.content as string;
+  await expect.poll(noteContent, { timeout: 15_000 }).toContain("Chêne à conserver");
+
+  await writingArea.click();
+  await card.getByTestId("editor-open-enriched").click();
+  const enriched = page.getByTestId("markdown-editor-enriched");
+  await expect(enriched).toBeVisible();
+  const photo = await page.evaluateHandle(
+    (content) => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([Uint8Array.from(content)], "chene.png", { type: "image/png" }));
+      return transfer;
+    },
+    [
+      ...Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEElEQVR42mNk+M+ABzDhkAIAEwQCAiV7nNwAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    ],
+  );
+  const uploaded = page.waitForResponse(
+    (response) => response.url().endsWith("/api/resources/editor-assets") && response.request().method() === "POST",
+  );
+  const enrichedArea = enriched.getByTestId("editor-writing-area");
+  const enrichedBox = await enrichedArea.boundingBox();
+  await enrichedArea.dispatchEvent("drop", {
+    dataTransfer: photo,
+    clientX: Math.round((enrichedBox?.x ?? 0) + 20),
+    clientY: Math.round((enrichedBox?.y ?? 0) + (enrichedBox?.height ?? 0) - 10),
+  });
+  const upload = await uploaded;
+  expect(upload.status()).toBe(201);
+  const photoId = (await upload.json()).properties.id as string;
+  await expect(enriched.locator(`[data-resource-id="${photoId}"] img`)).toBeVisible();
+  await page.getByTestId("editor-enriched-dialog").getByTestId("dialog-close").click();
+  await expect(enriched).toBeHidden();
+  await expect(card).toBeVisible();
+  await expect.poll(noteContent, { timeout: 15_000 }).toContain(photoId);
+
+  await page.reload();
+  await page.getByTestId("geographic-mode-draw").click();
+  await rows.first().locator(".geographic-composition-feature-select").click();
+  await expect(card.getByTestId("editor-writing-area")).toContainText("Chêne à conserver");
+  await expect(card.getByTestId(`editor-image-${photoId}`)).toBeVisible();
+
+  await rows.first().locator(".geographic-composition-feature-delete").click();
+  await expect(rows).toHaveCount(0);
+  await expect.poll(async () => (await notes()).length, { timeout: 15_000 }).toBe(0);
+  const note = await page.request.get(`/api/resources/${noteId}`);
+  expect(note.ok()).toBeTruthy();
+  expect((await note.json()).properties.path).toBe("seed/Notes cartographiques");
+});

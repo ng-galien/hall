@@ -32,7 +32,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       formatDateTime: (date) => new Date(date).toLocaleString(languageTag),
       formatTime: (date) =>
         new Intl.DateTimeFormat(languageTag, { hour: "2-digit", minute: "2-digit" }).format(new Date(date)),
-      formatNumber: (number) => new Intl.NumberFormat(languageTag).format(number),
+      formatNumber: (number, options) => new Intl.NumberFormat(languageTag, options).format(number),
       formatFileSize: (byteSize) =>
         new Intl.NumberFormat(languageTag, {
           style: "unit",

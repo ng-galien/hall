@@ -297,14 +297,18 @@ export const geographicFeatureKeyRuleSchema = z.discriminatedUnion("kind", [
 export const geographicFeatureNoteSchema = z
   .object({
     key: z.string().min(1),
-    subjectKind: z.enum(["cadastreParcel", "layerFeature"]),
+    subjectKind: z.enum(["cadastreParcel", "layerFeature", "drawnElement"]),
     noteId: z.string().uuid(),
     slug: z.string().min(1),
     name: z.string().min(1),
     fullPath: z.string().min(1),
   })
   .strict();
-export const createGeographicFeatureNoteSchema = z.object({ position: z.number().int().nonnegative() }).strict();
+// @implements-requirement HALL-FR-DOC-430
+export const createGeographicFeatureNoteSchema = z.union([
+  z.object({ position: z.number().int().nonnegative() }).strict(),
+  z.object({ elementId: z.string().min(1).max(200) }).strict(),
+]);
 // @implements-requirement HALL-FR-DOC-400
 const municipalPropertySourceSchema = z
   .object({

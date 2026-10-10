@@ -25,8 +25,8 @@ export interface GeographicLayerService {
   features(reference: string): Promise<GeographicLayerFeatures>;
   link(mapReference: string, input: { layerId: string; visible: boolean; opacity?: number }): Promise<SirenEntity>;
   unlink(mapReference: string, layerId: string): Promise<SirenEntity>;
-  notes(layerReference: string): Promise<SirenEntity>;
-  createNote(layerReference: string, position: number): Promise<GeographicFeatureNote>;
+  notes(reference: string): Promise<SirenEntity>;
+  createNote(reference: string, subject: { position: number } | { elementId: string }): Promise<GeographicFeatureNote>;
   municipalProperty(): Promise<SirenEntity>;
   importMunicipalProperty(input: {
     label: string;
@@ -41,6 +41,7 @@ export interface GeographicLayerService {
 // @implements-requirement HALL-FR-DOC-330
 // @implements-requirement HALL-FR-DOC-390
 // @implements-requirement HALL-FR-DOC-400
+// @implements-requirement HALL-FR-DOC-430
 export function createGeographicLayerService({
   geographicLayersClient,
   resourcesClient,
@@ -97,19 +98,33 @@ export function createGeographicLayerService({
       const map = await requireResource(mapReference, "geographic");
       return requireOverlay(await geographicLayersClient.removeOverlay(map.id, layerId));
     },
-    async notes(layerReference) {
-      const layer = await requireResource(layerReference, "geographicLayer");
-      const notes = await geographicLayersClient.listNotes(layer.id);
+    async notes(reference) {
+      const resource = await resourcesClient.open(reference);
+      if (!resource) throw new DomainError("resource_not_found", 404);
+      const subject = resource.data;
+      if (subject.kind !== "geographic" && subject.kind !== "geographicLayer") {
+        throw new DomainError("invalid_request", 400);
+      }
+      const notes =
+        subject.kind === "geographic"
+          ? await geographicLayersClient.listDrawnElementNotes(subject.id)
+          : await geographicLayersClient.listNotes(subject.id);
       if (!notes) throw new DomainError("resource_not_found", 404);
       return {
         class: ["geographic-feature-notes"],
         properties: { items: notes },
-        links: [{ rel: ["self"], href: `/api/resources/${encodeURIComponent(layer.slug)}/feature-notes` }],
+        links: [{ rel: ["self"], href: `/api/resources/${encodeURIComponent(subject.slug)}/feature-notes` }],
       };
     },
-    async createNote(layerReference, position) {
-      const layer = await requireResource(layerReference, "geographicLayer");
-      const result = await geographicLayersClient.createNote(layer.id, position);
+    async createNote(reference, subject) {
+      if ("elementId" in subject) {
+        const map = await requireResource(reference, "geographic");
+        const result = await geographicLayersClient.createDrawnElementNote(map.id, subject.elementId);
+        if (result.status === "notFound") throw new DomainError("resource_not_found", 404);
+        return result.note;
+      }
+      const layer = await requireResource(reference, "geographicLayer");
+      const result = await geographicLayersClient.createNote(layer.id, subject.position);
       if (result.status === "notFound") throw new DomainError("resource_not_found", 404);
       if (result.status === "withoutStableKey") throw new DomainError("invalid_request", 400);
       return result.note;

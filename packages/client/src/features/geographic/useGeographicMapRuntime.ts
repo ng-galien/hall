@@ -22,6 +22,7 @@ import {
   createGeographicTileLayers,
   createGeographicView,
   geographicFeatureStyle,
+  geographicSelectedFeatureStyle,
   initialGeographicFeatureProperties,
   readHallFeatures,
   serializeHallLayer,
@@ -85,6 +86,7 @@ export function useGeographicMapRuntime({
   const tileLayersRef = useRef(createGeographicTileLayers([]).byId);
   const [selectedFeature, setSelectedFeature] = useState<Feature<Geometry> | null>(null);
   const [openLayersMap, setOpenLayersMap] = useState<OlMap | null>(null);
+  const [drawingSource, setDrawingSource] = useState<VectorSource<Feature<Geometry>> | null>(null);
 
   const clearSelection = useCallback(() => {
     selectRef.current?.getFeatures().clear();
@@ -107,11 +109,11 @@ export function useGeographicMapRuntime({
     const vectorSource = new VectorSource<Feature<Geometry>>({ features: readHallFeatures(data.hallLayer) });
     const vectorLayer = new VectorLayer({
       source: vectorSource,
-      style: (feature) => {
+      style: (feature, resolution) => {
         const kind = feature.get("kind");
         const index = Math.max(0, vectorSource.getFeatures().indexOf(feature as Feature<Geometry>));
-        if (!isHallGeoJsonFeatureKind(kind)) return geographicFeatureStyle(feature);
-        return geographicFeatureStyle(feature, `${featureKindLabels[kind]} ${index + 1}`);
+        if (!isHallGeoJsonFeatureKind(kind)) return geographicFeatureStyle(feature, undefined, resolution);
+        return geographicFeatureStyle(feature, `${featureKindLabels[kind]} ${index + 1}`, resolution);
       },
       zIndex: 100,
       visible: true,
@@ -123,7 +125,7 @@ export function useGeographicMapRuntime({
       controls: embedded ? [] : defaultControls({ zoom: false }),
       interactions: embedded ? [] : undefined,
     });
-    const select = new Select({ layers: [vectorLayer] });
+    const select = new Select({ layers: [vectorLayer], style: geographicSelectedFeatureStyle });
     const modify = new Modify({ source: vectorSource });
     select.setActive(false);
     modify.setActive(false);
@@ -148,6 +150,7 @@ export function useGeographicMapRuntime({
     });
     mapRef.current = map;
     setOpenLayersMap(map);
+    setDrawingSource(vectorSource);
     vectorSourceRef.current = vectorSource;
     vectorLayerRef.current = vectorLayer;
     selectRef.current = select;
@@ -173,6 +176,7 @@ export function useGeographicMapRuntime({
       mapRef.current = null;
       setOpenLayersMap(null);
       vectorSourceRef.current = null;
+      setDrawingSource(null);
       vectorLayerRef.current = null;
       selectRef.current = null;
       modifyRef.current = null;
@@ -319,8 +323,10 @@ export function useGeographicMapRuntime({
   return {
     mapElementRef,
     map: openLayersMap,
+    drawingSource,
     selectedFeatureId: selectedFeature ? String(selectedFeature.getId()) : null,
     selectFeature,
+    clearSelection,
     deleteSelected,
     renameFeature,
     setFeatureVisibility,

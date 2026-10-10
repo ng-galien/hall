@@ -10,7 +10,7 @@ export interface I18nContextValue {
   formatDate(value: string | Date): string;
   formatDateTime(value: string | Date): string;
   formatTime(value: string | Date): string;
-  formatNumber(value: number): string;
+  formatNumber(value: number, options?: Intl.NumberFormatOptions): string;
   formatFileSize(byteSize: number): string;
 }
 

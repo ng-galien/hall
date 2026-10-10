@@ -7,6 +7,7 @@ test.describe("navigation and settings", () => {
       ["minutes", /\/app\/minutes$/, "Minutes"],
       ["council-decisions", /\/app\/council-decisions$/, "Council decisions"],
       ["workspace", /\/app\/workspace$/, null],
+      ["maps", /\/app\/maps\?view=/, null],
       ["contacts", /\/app\/contacts$/, "Contacts"],
       ["council-members", /\/app\/council-members$/, "Council composition"],
       ["council-committees", /\/app\/council-committees$/, null],
@@ -21,6 +22,28 @@ test.describe("navigation and settings", () => {
     await page.getByTestId("navigation-settings").click();
     await expect(page).toHaveURL(/\/app\/settings$/);
     await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  });
+
+  // @verifies-requirement HALL-FR-WSP-310
+  test("places Cartes right after the workspace entry and its tree, before the calendar", async ({ appPage: page }) => {
+    await expect(page.getByTestId("workspace-sidebar-link").first()).toBeVisible();
+    const order = await page
+      .locator('[data-testid^="navigation-"], [data-testid="workspace-sidebar-link"]')
+      .evaluateAll((elements) =>
+        elements
+          .map((element) => element.getAttribute("data-testid"))
+          .filter((testId, index, all) => testId !== "workspace-sidebar-link" || all[index - 1] !== testId),
+      );
+    expect(order.slice(0, 8)).toEqual([
+      "navigation-overview",
+      "navigation-meetings",
+      "navigation-minutes",
+      "navigation-council-decisions",
+      "navigation-workspace",
+      "workspace-sidebar-link",
+      "navigation-maps",
+      "navigation-calendar",
+    ]);
   });
 
   test("persists the selected interface language after a reload", async ({ appPage: page }) => {

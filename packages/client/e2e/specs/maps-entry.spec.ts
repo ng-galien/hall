@@ -113,8 +113,8 @@ test("Cartes lists the maps, opens a deep link, switches maps and links back to 
   await expect(page.getByTestId("maps-context-title")).toHaveText("Routes");
   await expect(page).toHaveURL(new RegExp(`/maps/${roads.id}\\?view=5\\.972000,46\\.662000,15$`));
   await expect(page.getByTestId("geographic-resource-map")).toBeVisible();
-  await expect(page.getByTestId("geographic-mode-draw")).toBeDisabled();
-  await expect(page.getByTestId("geographic-save-view")).toHaveCount(0);
+  await expect(page.getByTestId("geographic-mode-draw")).toBeEnabled();
+  await expect(page.getByTestId("geographic-save-view")).toBeVisible();
   await expect(page.getByTestId("maps-context-business")).toHaveAttribute("data-business-id", business.id);
   await expect(page.getByTestId("maps-recent").getByTestId("maps-entry")).toHaveCount(1);
 
@@ -169,4 +169,52 @@ test("Cartes lists the maps, opens a deep link, switches maps and links back to 
   await workbench.getByTestId("resource-open-in-maps").click();
   await expect(page).toHaveURL(new RegExp(`/maps/${roads.id}\\?view=`));
   await expect(page.getByTestId("maps-context-title")).toHaveText("Routes");
+});
+
+// @verifies-requirement HALL-FR-WSP-360
+// @verifies-requirement HALL-FR-WSP-330
+test("a writer draws from Cartes and sees the drawing on the workspace map; a reader keeps a read-only map", async ({
+  appPage: page,
+}) => {
+  const root = `Cartes dessin ${Date.now()}`;
+  const created = await createMap(page.request, { name: "Chantier", path: root });
+  const initial = (await (await page.request.get(`/api/resources/${created.id}`)).json()).properties;
+
+  await page.goto(`/app/maps/${created.id}?view=4.44,47.56,15`);
+  await expect(page.getByTestId("maps-context-title")).toHaveText("Chantier");
+  await expect(page.getByTestId("geographic-measures")).toBeVisible();
+  await page.getByTestId("geographic-mode-draw").click();
+  await page.getByTestId("geographic-tool-marker").click();
+  const map = await page.locator(".maps-surface .geographic-map").boundingBox();
+  if (!map) throw new Error("The map must be rendered");
+  await page.mouse.move(map.x + map.width * 0.75, map.y + map.height * 0.5, { steps: 3 });
+  await page.mouse.click(map.x + map.width * 0.75, map.y + map.height * 0.5);
+  await expect
+    .poll(
+      async () =>
+        (await (await page.request.get(`/api/resources/${created.id}`)).json()).properties.document.hallLayer.features
+          .length,
+    )
+    .toBe(1);
+  const saved = (await (await page.request.get(`/api/resources/${created.id}`)).json()).properties;
+  expect(saved.document.view).toEqual(initial.document.view);
+
+  await page.goto(`/app/workspace?path=${encodeURIComponent(root)}&resource=${created.id}`);
+  const workbench = page.getByTestId("resource-workbench");
+  await workbench.getByTestId("geographic-mode-draw").click();
+  await expect(
+    workbench.locator('[data-testid="geographic-composition"] li[data-testid^="geographic-composition-feature-"]'),
+  ).toHaveCount(1);
+
+  await page.route(`**/api/resources/${created.id}`, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    body.actions = [];
+    await route.fulfill({ response, contentType: "application/vnd.siren+json", body: JSON.stringify(body) });
+  });
+  await page.goto(`/app/maps/${created.id}`);
+  await expect(page.getByTestId("maps-context-title")).toHaveText("Chantier");
+  await expect(page.getByTestId("geographic-mode-draw")).toBeDisabled();
+  await expect(page.getByTestId("geographic-save-view")).toHaveCount(0);
+  await expect(page.getByTestId("geographic-measures")).toBeVisible();
 });

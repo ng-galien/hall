@@ -6,7 +6,7 @@ import {
 } from "@hall/domain";
 import { fromString } from "ol/color";
 import type { Type as OpenLayersGeometryType } from "ol/geom/Geometry";
-import { Circle as CircleStyle, Fill, Stroke, Style, type Text } from "ol/style";
+import { Circle as CircleStyle, Fill, RegularShape, Stroke, Style, type Text } from "ol/style";
 import { AreaIcon, LineIcon, LocationIcon } from "../../components/icons";
 
 type FeatureProperties = HallGeoJsonFeature["properties"];
@@ -23,6 +23,8 @@ interface GeographicFeatureKindPolicy {
   color(style: FeatureStyle): GeographicColor;
   recolor(style: FeatureStyle, color: GeographicColor): FeatureStyle;
   openLayersStyle(style: FeatureStyle, text?: Text): Style;
+  /** Marker drawn at the centre of an element too small on screen to show its geometry. */
+  compactStyle(style: FeatureStyle, text?: Text): Style;
 }
 
 export const geographicFeatureKinds = defineExhaustiveLiterals<HallGeoJsonFeatureKind>()(["marker", "line", "area"]);
@@ -42,18 +44,8 @@ export const geographicFeatureKindPolicy = {
     initialProperties: (label, color) => ({ kind: "marker", visible: true, label, style: { color, size: "medium" } }),
     color: (style) => String(style.color ?? ""),
     recolor: (style, color) => ({ ...style, color }),
-    openLayersStyle: (style, text) => {
-      const sizes = { small: 5, medium: 7, large: 9 };
-      const size = style.size === "small" || style.size === "large" ? style.size : "medium";
-      return new Style({
-        image: new CircleStyle({
-          radius: sizes[size],
-          fill: new Fill({ color: String(style.color ?? "blue") }),
-          stroke: new Stroke({ color: cssToken("--hall-color-surface"), width: 2 }),
-        }),
-        text,
-      });
-    },
+    openLayersStyle: markerStyle,
+    compactStyle: markerStyle,
   },
   line: {
     Icon: LineIcon,
@@ -69,6 +61,7 @@ export const geographicFeatureKindPolicy = {
         text,
       });
     },
+    compactStyle: (style, text) => compactMarker(String(style.color ?? "blue"), 4, 0, text),
   },
   area: {
     Icon: AreaIcon,
@@ -92,6 +85,7 @@ export const geographicFeatureKindPolicy = {
         text,
       });
     },
+    compactStyle: (style, text) => compactMarker(String(style.strokeColor ?? "blue"), 4, Math.PI / 4, text),
   },
 } satisfies Record<HallGeoJsonFeatureKind, GeographicFeatureKindPolicy>;
 
@@ -103,6 +97,33 @@ export function geographicFeatureKindLabels(
     line: translate(geographicFeatureKindPolicy.line.labelKey),
     area: translate(geographicFeatureKindPolicy.area.labelKey),
   };
+}
+
+function markerStyle(style: FeatureStyle, text?: Text): Style {
+  const sizes = { small: 5, medium: 7, large: 9 };
+  const size = style.size === "small" || style.size === "large" ? style.size : "medium";
+  return new Style({
+    image: new CircleStyle({
+      radius: sizes[size],
+      fill: new Fill({ color: String(style.color ?? "blue") }),
+      stroke: new Stroke({ color: cssToken("--hall-color-surface"), width: 2 }),
+    }),
+    text,
+  });
+}
+
+/** A diamond (line) or a square (area), so a compact element stays distinct from a point marker. */
+function compactMarker(color: string, points: number, angle: number, text?: Text): Style {
+  return new Style({
+    image: new RegularShape({
+      points,
+      radius: 8,
+      angle,
+      fill: new Fill({ color }),
+      stroke: new Stroke({ color: cssToken("--hall-color-surface"), width: 2 }),
+    }),
+    text,
+  });
 }
 
 function cssToken(name: string): string {

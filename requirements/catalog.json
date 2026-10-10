@@ -3625,6 +3625,82 @@
         }
       ]
     },
+    "HALL-FR-DOC-410": {
+      "name": "GEOGRAPHIC_MAP_MEASUREMENTS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "L’onglet Mesures d’une carte géographique mesure des distances et des surfaces avec des géométries temporaires, affiche les mesures d’un dessin et donne la position du curseur et du centre de la vue.",
+      "acceptanceCriteria": [
+        "L’onglet de consultation d’une carte s’intitule « Mesures » ; l’onglet Dessin est inchangé.",
+        "La règle trace une ligne temporaire point par point ; la longueur de chaque segment et la longueur totale s’affichent sur la carte à côté de la ligne et le total figure dans le panneau Mesures.",
+        "La mesure de surface trace un polygone temporaire ; son périmètre et sa surface s’affichent sur la carte et dans le panneau Mesures.",
+        "Les longueurs et surfaces sont géodésiques, calculées sur la sphère terrestre à partir de la projection de la carte, et non mesurées dans le plan de la projection.",
+        "Les longueurs s’expriment en mètres, puis en kilomètres à partir de 1 km ; les surfaces en mètres carrés, puis en hectares à partir de 1 ha, avec un arrondi adapté et la présentation numérique française.",
+        "Sans outil de mesure actif, un clic sur un dessin enregistré affiche ses mesures : longueur d’une ligne, périmètre et surface d’une zone, position d’un point ; une option affiche les mesures de tous les dessins sur la carte.",
+        "Le panneau Mesures donne la position du curseur et celle du centre de la vue en WGS84 (latitude et longitude en degrés décimaux) et dans le système projeté de la carte (EPSG:3857, en mètres), chacune copiable.",
+        "Les géométries de mesure ne sont jamais ajoutées au dessin enregistré et ne déclenchent aucun enregistrement ; elles disparaissent au changement d’outil ou d’onglet.",
+        "Échap efface la mesure en cours sans quitter l’onglet ; dans la fenêtre de dialogue de la ressource, cet Échap ne ferme pas la fenêtre."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-map-measurements",
+          "origin": "product",
+          "statement": "Mesurer sur la carte une distance ou une surface et lire une position, sans modifier la carte enregistrée.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-420": {
+      "name": "GEOGRAPHIC_DRAWING_COMPACT_MARKER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Un dessin devenu trop petit à l’écran s’affiche comme un repère à son centre, avec son libellé, et retrouve sa géométrie quand on zoome.",
+      "acceptanceCriteria": [
+        "Une ligne ou une zone dont le plus grand côté de l’emprise à l’écran est inférieur au seuil s’affiche comme un repère à sa couleur, placé en son centre et accompagné de son libellé ; au-delà du seuil elle s’affiche avec sa géométrie.",
+        "Le seuil est une constante unique exprimée en pixels d’écran et documentée dans le code.",
+        "Un point garde son repère à toutes les échelles.",
+        "La sélection d’un dessin, par un clic sur la carte ou depuis la liste de composition, fonctionne sous les deux représentations et se voit sur le repère comme sur la géométrie."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-drawing-compact-marker",
+          "origin": "product",
+          "statement": "Garder lisibles les dessins et points d’intérêt à toutes les échelles.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-430": {
+      "name": "GEOGRAPHIC_DRAWN_ELEMENT_NOTE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Un dessin d’une carte porte une note en texte riche, avec des photos, rédigée avec l’éditeur de Hall depuis la fiche du dessin.",
+      "acceptanceCriteria": [
+        "En mode Dessin, la sélection d’un dessin ouvre sa fiche, présentée comme la fiche d’un objet de couche : libellé, nature, bouton de centrage, fermeture par le bouton ou Échap.",
+        "Qui a le droit d’écrire dans l’espace de travail crée la note depuis la fiche ; la note est un texte ordinaire du dossier « Notes cartographiques » du dossier de la carte, édité dans la fiche avec l’éditeur de Hall et son enregistrement automatique.",
+        "Les photos s’insèrent dans la note par le téléversement d’images de l’éditeur, ouvert à qui peut modifier la note, et suivent les règles de stockage et d’aperçu des fichiers de Hall.",
+        "La note est rattachée au dessin par son identifiant dans la carte et reste affichée après rechargement.",
+        "La suppression d’un dessin détache sa note ; le texte reste dans « Notes cartographiques ». La suppression de la carte détache de même les notes de ses dessins.",
+        "Le fichier d’une affaire exporté transporte les notes des parcelles et des entités des couches de la carte (HALL-FR-DOC-390) ; les notes des dessins restent attachées à la carte de l’espace de travail d’origine."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-drawn-element-note",
+          "origin": "product",
+          "statement": "Attacher à un dessin un contenu plus riche qu’un libellé : texte mis en forme et photos.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-LOC-010": {
       "name": "LOCATION_BELONGS_TO_HALL",
       "nature": "functional",
@@ -7823,7 +7899,7 @@
       },
       "statement": "L’entrée « Cartes » du menu principal ouvre les cartes de l’espace de travail en consultation, une carte à la fois, à une adresse qui désigne la carte et la vue.",
       "acceptanceCriteria": [
-        "L’entrée « Cartes » figure dans le groupe « Conseil municipal » du menu principal, après « Délibérations », pour tout utilisateur qui consulte l’espace de travail.",
+        "L’entrée « Cartes » figure dans le menu principal juste après « Espace de travail » et son arborescence, avant « Calendrier », pour tout utilisateur qui consulte l’espace de travail.",
         "L’adresse /maps/<identifiant de la carte> ouvre la carte désignée ; le paramètre view=<longitude>,<latitude>,<zoom> fixe le centre et le zoom de la vue à l’ouverture ; un paramètre view mal formé est ignoré.",
         "Un déplacement ou un zoom remplace le paramètre view de l’adresse sans ajouter d’entrée à l’historique du navigateur ; l’ouverture d’une autre carte ajoute une entrée à l’historique.",
         "L’adresse /maps sans carte affiche la vue cadrée sur la position de la commune enregistrée dans les réglages ; sans position enregistrée, la vue est cadrée sur l’emprise des dessins de toutes les cartes."
@@ -7869,9 +7945,9 @@
         "state": "accepted",
         "since": "2026-10-10"
       },
-      "statement": "Dans « Cartes », une carte est affichée en lecture seule et la vue n’est jamais enregistrée dans la carte.",
+      "statement": "Dans « Cartes », déplacer ou zoomer une carte n’enregistre jamais la vue dans la carte.",
       "acceptanceCriteria": [
-        "La carte est affichée par le composant de carte de l’espace de travail, en lecture seule quel que soit le rôle de l’utilisateur.",
+        "La carte est affichée par le composant de carte de l’espace de travail ; elle est en lecture seule lorsque sa représentation ne propose pas la modification de son contenu (HALL-FR-WSP-360).",
         "Déplacer ou zoomer la carte ne crée aucune version de la carte enregistrée.",
         "À l’ouverture d’une autre carte, le centre et le zoom sont conservés si au moins un dessin visible de la nouvelle carte est dans la vue courante ; sinon la vue est cadrée sur les dessins visibles de la nouvelle carte ; une carte sans dessin visible s’ouvre sur son cadrage enregistré.",
         "Un paramètre view présent dans l’adresse prime sur cette règle."
@@ -7919,7 +7995,7 @@
       "acceptanceCriteria": [
         "Déplacer ou zoomer une carte dans l’espace de travail ou dans la fenêtre de dialogue de la ressource ne modifie pas la carte enregistrée et ne crée aucune version.",
         "Lorsque l’utilisateur peut modifier la carte, le bouton « Enregistrer ce cadrage » enregistre le centre et le zoom affichés comme cadrage de la carte ; il est désactivé tant que la vue affichée est le cadrage enregistré.",
-        "Le bouton n’est pas proposé pour une carte en lecture seule, pour une carte intégrée dans un texte, ni dans « Cartes ».",
+        "Le bouton n’est pas proposé pour une carte en lecture seule ni pour une carte intégrée dans un texte ; dans « Cartes », il est proposé dans les mêmes conditions que dans l’espace de travail.",
         "Les modifications du dessin et des fonds restent enregistrées automatiquement."
       ],
       "clauses": [
@@ -7927,6 +8003,30 @@
           "key": "geographic-view-saved-explicitly",
           "origin": "product",
           "statement": "Consulter une carte sans en modifier le cadrage de référence utilisé par les textes qui l’intègrent et par les documents.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-360": {
+      "name": "MAPS_DRAWING_FOLLOWS_MAP_ACTIONS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Dans « Cartes », un utilisateur à qui la carte propose la modification de son contenu dessine sur la carte comme dans l’espace de travail ; les autres utilisateurs la consultent en lecture seule.",
+      "acceptanceCriteria": [
+        "Lorsque la représentation de la carte propose la modification de son contenu (HALL-FR-DOC-350), « Cartes » propose le mode « Dessin » avec les outils et le panneau de composition de l’espace de travail.",
+        "Un dessin fait dans « Cartes » est enregistré dans la carte comme dans l’espace de travail et apparaît sur la carte ouverte depuis l’espace de travail.",
+        "Le cadrage de la carte n’est enregistré que par « Enregistrer ce cadrage » (HALL-FR-WSP-350).",
+        "Lorsque la représentation ne propose pas cette modification, le mode « Dessin » est désactivé et la carte reste en lecture seule.",
+        "Les outils de mesure restent disponibles dans les deux cas."
+      ],
+      "clauses": [
+        {
+          "key": "maps-drawing-follows-map-actions",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : dessiner depuis « Cartes » avec les droits de modification des cartes (choix C de la même date).",
           "sourceIds": []
         }
       ]
