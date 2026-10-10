@@ -24,7 +24,7 @@ export interface WorkspaceCreationOption {
   create(name: string): Promise<boolean>;
 }
 
-const labels = {
+export const workspaceCreateLabels = {
   councilMatter: "workspace.createCouncilMatter",
   text: "workspace.createText",
   spreadsheet: "workspace.createSpreadsheet",
@@ -34,6 +34,113 @@ const labels = {
   legalReference: "workspace.createLegalReference",
   file: "workspace.importFile",
 } satisfies Record<WorkspaceCreateKind, TranslationKey>;
+
+/** Creation state shared by the create menu and the attachment picker: the chosen kind and its name dialog. */
+export function useWorkspaceCreation({
+  onCreate,
+  getError,
+  clearError,
+}: {
+  onCreate(kind: WorkspaceCreateKind, title?: string): Promise<boolean>;
+  getError?(): ApiErrorCode | null;
+  clearError?(): void;
+}) {
+  const { t } = useI18n();
+  const [kind, setKind] = useState<WorkspaceCreateKind | null>(null);
+  const [extraOption, setExtraOption] = useState<WorkspaceCreationOption | null>(null);
+  const [title, setTitle] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState<ApiErrorCode | null>(null);
+  const nameId = useId();
+  const nameRef = useRef<HTMLInputElement>(null);
+  const dialogTitle = extraOption?.label ?? (kind ? t(workspaceCreateLabels[kind]) : "");
+  const start = (entry: WorkspaceCreateKind) => {
+    if (entry === "file") {
+      void onCreate(entry);
+      return;
+    }
+    setFailed(null);
+    setExtraOption(null);
+    setTitle("");
+    setKind(entry);
+  };
+  const startOption = (option: WorkspaceCreationOption) => {
+    setFailed(null);
+    setKind(null);
+    setTitle("");
+    setExtraOption(option);
+  };
+  const dialog = (
+    <Modal
+      initialFocusRef={nameRef}
+      open={kind !== null || extraOption !== null}
+      title={dialogTitle}
+      testId="workspace-create-dialog"
+      onClose={() => {
+        if (!busy) {
+          setFailed(null);
+          clearError?.();
+          setKind(null);
+          setExtraOption(null);
+        }
+      }}
+    >
+      <form
+        className="grid gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if ((!kind && !extraOption) || busy || !title.trim()) return;
+          setBusy(true);
+          setFailed(null);
+          clearError?.();
+          const creation = extraOption ? extraOption.create(title.trim()) : onCreate(kind!, title.trim());
+          void creation
+            .then((created) => {
+              if (created) {
+                setKind(null);
+                setExtraOption(null);
+              } else {
+                const error = getError?.() ?? "request_failed";
+                clearError?.();
+                setFailed(error);
+              }
+            })
+            .catch((error) => setFailed(apiErrorCode(error)))
+            .finally(() => setBusy(false));
+        }}
+      >
+        {failed ? (
+          <div data-testid="workspace-create-error">
+            <RequestErrorBanner error={failed} onDismiss={() => setFailed(null)} />
+          </div>
+        ) : null}
+        <div className="grid gap-1.5">
+          <Label htmlFor={nameId}>{t("workspace.creationName")}</Label>
+          <Input
+            ref={nameRef}
+            id={nameId}
+            name="name"
+            autoFocus
+            data-testid="workspace-create-name"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            required
+            disabled={busy}
+          />
+        </div>
+        <Button
+          className="justify-self-end"
+          type="submit"
+          data-testid="workspace-create-submit"
+          disabled={busy || !title.trim()}
+        >
+          {t(busy ? "common.saving" : "common.create")}
+        </Button>
+      </form>
+    </Modal>
+  );
+  return { start, startOption, dialog };
+}
 
 export function WorkspaceCreateMenu({
   canCreate,
@@ -55,16 +162,9 @@ export function WorkspaceCreateMenu({
   render?(trigger: ReactNode, contextItems: ReactNode): ReactNode;
 }) {
   const { t } = useI18n();
-  const [kind, setKind] = useState<WorkspaceCreateKind | null>(null);
-  const [extraOption, setExtraOption] = useState<WorkspaceCreationOption | null>(null);
-  const [title, setTitle] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState<ApiErrorCode | null>(null);
-  const nameId = useId();
-  const nameRef = useRef<HTMLInputElement>(null);
+  const creation = useWorkspaceCreation({ onCreate, getError, clearError });
   const available = workspaceCreateKinds.filter(canCreate);
   const hasOptions = available.length > 0 || extraOptions.length > 0;
-  const dialogTitle = extraOption?.label ?? (kind ? t(labels[kind]) : "");
   const trigger = hasOptions ? (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -90,12 +190,7 @@ export function WorkspaceCreateMenu({
           <DropdownMenuItem
             key={option.id}
             data-testid={`workspace-create-${option.id}`}
-            onSelect={() => {
-              setFailed(null);
-              setKind(null);
-              setTitle("");
-              setExtraOption(option);
-            }}
+            onSelect={() => creation.startOption(option)}
           >
             <option.icon className="size-4 shrink-0" />
             <span>{option.label}</span>
@@ -107,19 +202,10 @@ export function WorkspaceCreateMenu({
             <DropdownMenuItem
               key={entry}
               data-testid={`workspace-create-${entry}`}
-              onSelect={() => {
-                if (entry === "file") {
-                  void onCreate(entry);
-                  return;
-                }
-                setFailed(null);
-                setExtraOption(null);
-                setTitle("");
-                setKind(entry);
-              }}
+              onSelect={() => creation.start(entry)}
             >
               <Icon className="size-4 shrink-0" />
-              <span className="min-w-0 break-words">{t(labels[entry])}</span>
+              <span className="min-w-0 break-words">{t(workspaceCreateLabels[entry])}</span>
             </DropdownMenuItem>
           );
         })}
@@ -132,12 +218,7 @@ export function WorkspaceCreateMenu({
         <ContextMenuItem
           key={option.id}
           data-testid={`workspace-context-create-${option.id}`}
-          onSelect={() => {
-            setFailed(null);
-            setKind(null);
-            setTitle("");
-            setExtraOption(option);
-          }}
+          onSelect={() => creation.startOption(option)}
         >
           <option.icon />
           {option.label}
@@ -149,19 +230,10 @@ export function WorkspaceCreateMenu({
           <ContextMenuItem
             key={entry}
             data-testid={`workspace-context-create-${entry}`}
-            onSelect={() => {
-              if (entry === "file") {
-                void onCreate(entry);
-                return;
-              }
-              setFailed(null);
-              setExtraOption(null);
-              setTitle("");
-              setKind(entry);
-            }}
+            onSelect={() => creation.start(entry)}
           >
             <Icon />
-            {t(labels[entry])}
+            {t(workspaceCreateLabels[entry])}
           </ContextMenuItem>
         );
       })}
@@ -170,73 +242,7 @@ export function WorkspaceCreateMenu({
   return (
     <>
       {render ? render(trigger, contextItems) : trigger}
-      <Modal
-        initialFocusRef={nameRef}
-        open={kind !== null || extraOption !== null}
-        title={dialogTitle}
-        testId="workspace-create-dialog"
-        onClose={() => {
-          if (!busy) {
-            setFailed(null);
-            clearError?.();
-            setKind(null);
-            setExtraOption(null);
-          }
-        }}
-      >
-        <form
-          className="grid gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if ((!kind && !extraOption) || busy || !title.trim()) return;
-            setBusy(true);
-            setFailed(null);
-            clearError?.();
-            const creation = extraOption ? extraOption.create(title.trim()) : onCreate(kind!, title.trim());
-            void creation
-              .then((created) => {
-                if (created) {
-                  setKind(null);
-                  setExtraOption(null);
-                } else {
-                  const error = getError?.() ?? "request_failed";
-                  clearError?.();
-                  setFailed(error);
-                }
-              })
-              .catch((error) => setFailed(apiErrorCode(error)))
-              .finally(() => setBusy(false));
-          }}
-        >
-          {failed ? (
-            <div data-testid="workspace-create-error">
-              <RequestErrorBanner error={failed} onDismiss={() => setFailed(null)} />
-            </div>
-          ) : null}
-          <div className="grid gap-1.5">
-            <Label htmlFor={nameId}>{t("workspace.creationName")}</Label>
-            <Input
-              ref={nameRef}
-              id={nameId}
-              name="name"
-              autoFocus
-              data-testid="workspace-create-name"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              required
-              disabled={busy}
-            />
-          </div>
-          <Button
-            className="justify-self-end"
-            type="submit"
-            data-testid="workspace-create-submit"
-            disabled={busy || !title.trim()}
-          >
-            {t(busy ? "common.saving" : "common.create")}
-          </Button>
-        </form>
-      </Modal>
+      {creation.dialog}
     </>
   );
 }

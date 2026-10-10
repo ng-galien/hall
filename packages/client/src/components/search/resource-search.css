@@ -18,7 +18,7 @@
 .shared-resource-search .wsearch-chip button:first-child { width:auto; height:auto; }
 .shared-search-inline { width:min(36rem,calc(100vw - 2rem)); padding:var(--hall-space-3); border:1px solid var(--hall-color-border); border-radius:var(--hall-radius-large); background:var(--hall-color-surface); box-shadow:var(--hall-shadow-large); }
 .shared-search-inline .shared-resource-search { max-height:min(24rem,55vh); }
-.resource-picker-panel .shared-resource-search { flex:1; min-height:0; max-height:var(--hall-size-resource-picker-max-height); }
+.attachment-picker-panel .shared-resource-search { flex:1; min-height:0; max-height:var(--hall-size-resource-picker-max-height); }
 .shared-search-field-panel { width:min(38rem,calc(100vw - 2rem)); }
 .shared-search-field-panel .shared-resource-search { max-height:min(42vh,var(--hall-search-field-panel-max-height)); }
 

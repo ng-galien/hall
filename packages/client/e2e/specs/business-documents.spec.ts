@@ -96,7 +96,7 @@ test("the business documents section folds by its header and opens each document
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(tree).toBeHidden();
-  await expect(page.getByTestId("resource-picker-open")).toBeVisible();
+  await expect(page.getByTestId("attachment-picker-open")).toBeVisible();
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(tree).toBeVisible();

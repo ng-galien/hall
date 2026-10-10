@@ -381,8 +381,8 @@ test("creates a documentary resource from a business and preserves its explicit 
   const business = (await businessResponse.json()).properties as { id: string };
   await expect(page.getByTestId("council-business-workbench")).toBeVisible();
   const name = "Explicitly associated note";
-  await page.getByTestId("business-create-documents").click();
-  await page.getByTestId("workspace-create-text").click();
+  await page.getByTestId("attachment-picker-open").click();
+  await page.getByTestId("attachment-picker-create-text").click();
   await page.getByTestId("workspace-create-name").fill(name);
   const resourceCreated = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/api/resources"),
@@ -401,12 +401,12 @@ test("creates a documentary resource from a business and preserves its explicit 
   await page.getByTestId(`business-attached-resource-${resource.id}-toggle`).click();
   await expect(page.getByTestId("resource-presentation-text-edit")).toBeVisible();
   await expect(page.getByTestId(`business-inline-resource-${resource.id}`)).toBeVisible();
-  await page.getByTestId("resource-picker-open").click();
-  await expect(page.getByTestId("resource-picker-panel")).toBeVisible();
-  await page.getByTestId("resource-picker-search-input").fill("note");
-  await expect(page.getByTestId("resource-picker-search-input")).toBeFocused();
-  await page.getByTestId("resource-picker-search-input").press("Escape");
-  await expect(page.getByTestId("resource-picker-panel")).toBeHidden();
+  await page.getByTestId("attachment-picker-open").click();
+  await expect(page.getByTestId("attachment-picker-panel")).toBeVisible();
+  await page.getByTestId("attachment-picker-search-input").fill("note");
+  await expect(page.getByTestId("attachment-picker-search-input")).toBeFocused();
+  await page.getByTestId("attachment-picker-search-input").press("Escape");
+  await expect(page.getByTestId("attachment-picker-panel")).toBeHidden();
 });
 
 async function createInCurrentFolder(page: import("@playwright/test").Page, kind: "folder" | "text", name: string) {

@@ -7874,6 +7874,31 @@
         }
       ]
     },
+    "HALL-FR-SRC-050": {
+      "name": "SHARED_ATTACHMENT_PICKER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Un seul sélecteur « Joindre un document » ajoute un document à une affaire du conseil, depuis la vue de l’affaire comme depuis l’arborescence de l’espace de travail.",
+      "acceptanceCriteria": [
+        "Dans la vue d’une affaire, l’en-tête de la section « Documents » porte un seul bouton « Joindre un document » qui ouvre le sélecteur.",
+        "Dans l’arborescence de l’espace de travail, le menu contextuel de la ligne d’une affaire propose « Joindre un document… », qui ouvre le même sélecteur sous la ligne de l’affaire ; le glisser-déposer d’un document sur l’affaire reste disponible.",
+        "Le sélecteur présente d’abord « Nouveau document » avec chaque type que l’affaire permet de créer : texte, tableur, ressource web (lien), carte, rendez-vous, référence juridique et import d’un fichier, dont un PDF ; un type choisi ouvre la fenêtre de nom commune et crée le document dans le dossier de l’affaire, rattaché à elle.",
+        "Il présente ensuite « Document existant » : la recherche partagée, avec ses filtres et la navigation par dossiers, sur tous les types de documents, les documents du dossier de l’affaire en premier ; les documents déjà rattachés, le rapport et les sujets de l’affaire en sont exclus ; un choix rattache le document à l’affaire.",
+        "Le sélecteur ne montre que les créations et le rattachement que les actions Siren de l’affaire autorisent.",
+        "Le sélecteur, sa présentation et son comportement sont un seul composant partagé par les deux vues."
+      ],
+      "clauses": [
+        {
+          "key": "shared-attachment-picker",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : une expérience unique pour joindre documents et liens dans la vue d’une affaire et dans l’espace de travail, avec tous les types de documents partout.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-WSP-240": {
       "name": "SIDEBAR_OPENS_COUNCIL_BUSINESS_WORKSPACE",
       "nature": "functional",

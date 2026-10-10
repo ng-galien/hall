@@ -1168,18 +1168,6 @@
     .legal-reference-content-grid { grid-template-columns: minmax(0, 1fr); }
   }
 
-  /* ---- Resource picker ---- */
-  .resource-picker-panel {
-    display: flex;
-    max-width: calc(100vw - 2 * var(--hall-space-4));
-    flex-direction: column;
-    overflow: hidden;
-    border: var(--hall-stroke-thin) solid var(--hall-color-border);
-    border-radius: var(--hall-radius-large);
-    background: var(--hall-color-surface);
-    box-shadow: var(--hall-shadow-large);
-  }
-
   /* ---- Workbench ---- */
   .workspace-bench {
     min-width: 0;

@@ -1,4 +1,5 @@
 import { matchDiscriminated, matchLiteral } from "@hall/domain";
+import { AttachmentPicker } from "./AttachmentPicker";
 import "./PathContents.css";
 import {
   type DragEvent,
@@ -30,6 +31,7 @@ import {
   FolderAddIcon,
   FolderIcon,
   FolderOpenIcon,
+  LinkIcon,
   OpenIcon,
   SearchIcon,
   WorkspaceIcon,
@@ -69,6 +71,7 @@ function RenameContextMenu({
   children,
   enabled,
   onRename,
+  onAttachDocument,
   onImportFolder,
   onExportBundle,
   onDelete,
@@ -76,16 +79,23 @@ function RenameContextMenu({
   children: ReactElement;
   enabled: boolean;
   onRename(): void;
+  onAttachDocument?(): void;
   onImportFolder?(): void;
   onExportBundle?(): void;
   onDelete?(): void;
 }) {
   const { t } = useI18n();
-  if (!enabled && !onImportFolder && !onExportBundle && !onDelete) return children;
+  if (!enabled && !onAttachDocument && !onImportFolder && !onExportBundle && !onDelete) return children;
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-      <ContextMenuContent>
+      <ContextMenuContent onCloseAutoFocus={onAttachDocument ? (event) => event.preventDefault() : undefined}>
+        {onAttachDocument ? (
+          <ContextMenuItem data-testid="workspace-tree-attach-document" onSelect={onAttachDocument}>
+            <LinkIcon />
+            {t("workspace.attachDocumentToBusiness")}
+          </ContextMenuItem>
+        ) : null}
         {onExportBundle ? (
           <ContextMenuItem data-testid="workspace-tree-export-bundle" onSelect={onExportBundle}>
             <DocumentResourceIcon />
@@ -206,7 +216,12 @@ export function PathContents({
   resources: DocumentaryLeafSummary[];
   selection: WorkspaceSelection;
   onSelect(selection: WorkspaceSelection, path?: string): void;
-  onCreate(kind: WorkspaceCreateKind, folderPath: string, title?: string): Promise<WorkspaceSelection>;
+  onCreate(
+    kind: WorkspaceCreateKind,
+    folderPath: string,
+    title?: string,
+    business?: CouncilBusinessView,
+  ): Promise<WorkspaceSelection>;
   onImportFolder(folderPath: string, business?: CouncilBusinessView, transfer?: DataTransfer): void;
   onImportBundle(): void;
   onExportBundle(business: CouncilBusinessView): void;
@@ -238,6 +253,17 @@ export function PathContents({
   const [dropPath, setDropPath] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
   const [moveError, setMoveError] = useState<ApiErrorCode | null>(null);
+  const [attachTarget, setAttachTarget] = useState<{ business: CouncilBusinessView; x: number; y: number } | null>(
+    null,
+  );
+  const [attachOpen, setAttachOpen] = useState(false);
+  const openAttachmentPicker = (business: CouncilBusinessView) => {
+    const row = treeRef.current?.querySelector(`[data-testid="workspace-business-${business.id}"]`);
+    const bounds = row?.getBoundingClientRect();
+    setMoveError(null);
+    setAttachTarget({ business, x: bounds ? bounds.left + 24 : 24, y: bounds ? bounds.bottom : 24 });
+    setAttachOpen(true);
+  };
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null);
   const [renameSession, setRenameSession] = useState(0);
   const [renameError, setRenameError] = useState<ApiErrorCode | null>(null);
@@ -946,6 +972,11 @@ export function PathContents({
                 onDelete={businessCapabilities?.delete ? () => onDeleteBusiness(business) : undefined}
                 onExportBundle={businessCapabilities?.exportBundle ? () => onExportBundle(business) : undefined}
                 onRename={() => startRename(payload)}
+                onAttachDocument={
+                  businessCapabilities?.associateResource || businessCapabilities?.createResource
+                    ? () => openAttachmentPicker(business)
+                    : undefined
+                }
                 onImportFolder={
                   businessCapabilities?.uploadDocument && resourcesStore.collectionCapabilities.create
                     ? () => onImportFolder(business.folderPath, business)
@@ -1277,6 +1308,29 @@ export function PathContents({
           </ul>
         </li>
       </ExplorerTree>
+      {attachTarget ? (
+        <AttachmentPicker
+          key={attachTarget.business.id}
+          business={businesses.find((business) => business.id === attachTarget.business.id) ?? attachTarget.business}
+          anchorPoint={attachTarget}
+          open={attachOpen}
+          onOpenChange={setAttachOpen}
+          onCreate={async (kind, title) => {
+            const business = attachTarget.business;
+            const created = await onCreate(kind, business.folderPath, title, business);
+            if (!created) return false;
+            await councilBusinessStore.loadResources(business.id);
+            if (title) setFeedback(t("workspace.attachedFeedback").replace("{name}", title));
+            return true;
+          }}
+          onAttached={(resourceId) => {
+            const name = resourcesStore.summaries[resourceId]?.name ?? "";
+            setFeedback(t("workspace.attachedFeedback").replace("{name}", name));
+            void loadCouncilActivity();
+          }}
+          onError={setMoveError}
+        />
+      ) : null}
     </div>
   );
 }

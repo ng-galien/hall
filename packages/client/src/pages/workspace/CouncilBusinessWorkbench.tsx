@@ -1,5 +1,4 @@
-import { matchLiteral } from "@hall/domain";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -9,7 +8,6 @@ import { MarkdownView } from "../../components/MarkdownView";
 import { ExplorerTree } from "../../components/ui/explorer-tree";
 import { CouncilBusinessCommittees } from "../../features/council-business/CouncilBusinessCommittees";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
-import type { DocumentaryLeafSummary } from "../../features/documents/DocumentaryResourceGlyph";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
@@ -18,15 +16,14 @@ import { ReferenceBusinessContext, useReferenceMentionables } from "../../hooks/
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
-import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import type { ApiErrorCode } from "../../services/apiClient";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { AttachmentPicker } from "./AttachmentPicker";
 import { BusinessDocumentTree } from "./BusinessDocumentTree";
 import { CouncilBusinessSubjects } from "./CouncilBusinessSubjects";
-import { ResourcePicker } from "./ResourcePicker";
-import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceCreateKind } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -46,7 +43,6 @@ export function CouncilBusinessWorkbench({
   const { canUpload: canUploadImage, uploadImage } = useWorkspaceResourceImageUpload();
   const { t } = useI18n();
   const { submitting, run } = useSubmitting();
-  const summaries = useWorkspaceResourcesStore((state) => state.summaries);
   const preparedSubjects = useCouncilBusinessStore((state) => state.preparedSubjects);
   const subjectResourceIds = new Set(
     preparedSubjects
@@ -58,10 +54,8 @@ export function CouncilBusinessWorkbench({
     (state) => state.representations[business.folderResourceId] ?? null,
   );
   const folderCapabilities = resourceCapabilities(folderRepresentation);
-  const businessCapabilities = useCouncilBusinessStore((state) => state.capabilitiesById[business.id]);
   const loadCouncilActivity = useWorkspaceCouncilActivityStore((state) => state.load);
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
-  const [pickingResource, setPickingResource] = useState(false);
   const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
   const [documentsOpen, setDocumentsOpen] = useState(true);
   const { isPinned, togglePin } = useWorkspacePrefsStore();
@@ -75,23 +69,6 @@ export function CouncilBusinessWorkbench({
       useCouncilDecisionsStore.getState().load(),
     ]);
   }, [business.id]);
-
-  const act = (action: () => Promise<boolean>) =>
-    run(async () => {
-      setActionError(null);
-      try {
-        const completed = await action();
-        if (!completed) {
-          setActionError(useCouncilBusinessStore.getState().error);
-          return false;
-        }
-        await loadCouncilActivity();
-        return true;
-      } catch (failure) {
-        setActionError(apiErrorCode(failure));
-        return false;
-      }
-    });
 
   const renameBusiness = async (nextTitle: string) => {
     const renamed = await run(async () => {
@@ -115,22 +92,13 @@ export function CouncilBusinessWorkbench({
     return saved;
   };
 
-  const associateResource = (resourceId: string) =>
-    act(() => useCouncilBusinessStore.getState().associateResource(business.id, resourceId));
-
-  const associatedIds = useMemo(
-    () => new Set([business.folderResourceId, business.reportResourceId, ...business.resources.map(({ id }) => id)]),
-    [business.folderResourceId, business.reportResourceId, business.resources],
-  );
-  const candidateResources = useMemo(
-    () =>
-      Object.values(summaries).filter(
-        (resource): resource is DocumentaryLeafSummary => resource.kind !== "folder" && !associatedIds.has(resource.id),
-      ),
-    [associatedIds, summaries],
-  );
-  const suggestions = candidateResources.filter((resource) => resource.path === business.folderPath);
-  const otherCandidates = candidateResources.filter((resource) => resource.path !== business.folderPath);
+  const createDocument = async (kind: WorkspaceCreateKind, title?: string) => {
+    const selection = await onCreate(kind, title);
+    if (!selection) return false;
+    await useCouncilBusinessStore.getState().loadResources(business.id);
+    if (selection.kind === "resource") setViewedResourceId(selection.id);
+    return true;
+  };
 
   return (
     <ReferenceBusinessContext.Provider value={business.id}>
@@ -215,80 +183,41 @@ export function CouncilBusinessWorkbench({
           ) : null}
         </section>
         <CouncilBusinessSubjects businessId={business.id} />
-        <WorkspaceCreateMenu
-          compact
-          testId="business-create-documents"
-          getError={() => useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error}
-          clearError={() => {
-            useWorkspaceResourcesStore.setState({ error: null });
-            useCouncilBusinessStore.setState({ error: null });
-          }}
-          canCreate={(kind) =>
-            matchLiteral(kind, {
-              councilMatter: () => false,
-              text: () => Boolean(businessCapabilities?.createResource),
-              spreadsheet: () => Boolean(businessCapabilities?.createResource),
-              remote: () => Boolean(businessCapabilities?.createResource),
-              geographic: () => Boolean(businessCapabilities?.createResource),
-              event: () => Boolean(businessCapabilities?.createResource),
-              legalReference: () => Boolean(businessCapabilities?.createResource),
-              file: () => Boolean(businessCapabilities?.uploadDocument || businessCapabilities?.importSpreadsheet),
-            })
+        <CollapsibleSection
+          className="business-content-section"
+          testId="business-category-documents"
+          title={t("workspace.documentCategory")}
+          icon={<FolderIcon />}
+          count={attachedResources.length}
+          open={documentsOpen}
+          onOpenChange={setDocumentsOpen}
+          actions={
+            <AttachmentPicker
+              business={business}
+              disabled={submitting}
+              onCreate={createDocument}
+              onAttached={() => void loadCouncilActivity()}
+              onError={setActionError}
+            />
           }
-          onCreate={async (kind, title) => {
-            const selection = await onCreate(kind, title);
-            if (!selection) return false;
-            await useCouncilBusinessStore.getState().loadResources(business.id);
-            if (selection.kind === "resource") setViewedResourceId(selection.id);
-            return true;
-          }}
-          render={(trigger) => (
-            <CollapsibleSection
-              className="business-content-section"
-              testId="business-category-documents"
-              title={t("workspace.documentCategory")}
-              icon={<FolderIcon />}
-              count={attachedResources.length}
-              open={documentsOpen}
-              onOpenChange={setDocumentsOpen}
-              actions={
-                <>
-                  {trigger}
-                  {businessCapabilities?.associateResource ? (
-                    <ResourcePicker
-                      compact
-                      open={pickingResource}
-                      onOpenChange={setPickingResource}
-                      excludedIds={[...associatedIds]}
-                      context={business.folderPath}
-                      suggestions={suggestions}
-                      others={otherCandidates}
-                      disabled={submitting}
-                      onPick={(resourceId) => void associateResource(resourceId)}
-                    />
-                  ) : null}
-                </>
-              }
-            >
-              {attachedResources.length ? (
-                <ExplorerTree className="business-document-tree" data-testid="business-resource-tree">
-                  <BusinessDocumentTree
-                    resources={attachedResources}
-                    basePath={business.folderPath}
-                    onOpen={setViewedResourceId}
-                    onRenamed={async () => {
-                      await useCouncilBusinessStore.getState().loadResources(business.id);
-                    }}
-                  />
-                </ExplorerTree>
-              ) : (
-                <p className="workspace-list-empty" data-testid="business-documents-empty">
-                  {t("workspace.businessDocumentsEmpty")}
-                </p>
-              )}
-            </CollapsibleSection>
+        >
+          {attachedResources.length ? (
+            <ExplorerTree className="business-document-tree" data-testid="business-resource-tree">
+              <BusinessDocumentTree
+                resources={attachedResources}
+                basePath={business.folderPath}
+                onOpen={setViewedResourceId}
+                onRenamed={async () => {
+                  await useCouncilBusinessStore.getState().loadResources(business.id);
+                }}
+              />
+            </ExplorerTree>
+          ) : (
+            <p className="workspace-list-empty" data-testid="business-documents-empty">
+              {t("workspace.businessDocumentsEmpty")}
+            </p>
           )}
-        />
+        </CollapsibleSection>
 
         {viewedResourceId ? (
           <ResourcePreview

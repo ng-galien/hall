@@ -3,7 +3,7 @@ import { type ResourceSearchScope, useResourceSearch } from "../../features/sear
 import { useI18n } from "../../i18n/I18nProvider";
 import type { SearchType } from "../../lib/search";
 import type { Mentionable } from "../editor/references";
-import { CardViewIcon, ListViewIcon } from "../icons";
+import { CardViewIcon, CheckIcon, ListViewIcon } from "../icons";
 import { Button } from "../ui/button";
 import { SearchResultRow } from "../ui/search-result-row";
 import { FolderSectionsList } from "./FolderSectionsList";
@@ -232,7 +232,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
                     }
                     title={item.label}
                     meta={[item.metaLabel, item.folderPath].filter(Boolean).join(" · ")}
-                    badge={selectedIds.includes(item.id) ? <span aria-hidden="true">✓</span> : null}
+                    badge={selectedIds.includes(item.id) ? <CheckIcon aria-hidden="true" /> : null}
                   />
                 );
               })}

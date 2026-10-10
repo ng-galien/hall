@@ -1,0 +1,36 @@
+.attachment-picker-panel {
+  display: flex;
+  max-width: calc(100vw - 2 * var(--hall-space-4));
+  flex-direction: column;
+  gap: var(--hall-space-3);
+  overflow: hidden;
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-large);
+  background: var(--hall-color-surface);
+  box-shadow: var(--hall-shadow-large);
+}
+
+.attachment-picker-section {
+  display: grid;
+  gap: var(--hall-space-2);
+}
+
+.attachment-picker-section h3 {
+  margin: 0;
+  color: var(--hall-color-text-muted);
+  font-size: var(--hall-font-size-caption);
+  font-weight: var(--hall-font-weight-semibold);
+}
+
+.attachment-picker-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hall-space-1-5);
+}
+
+.attachment-picker-existing {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}

@@ -65,11 +65,11 @@ test("the document picker and the editor menu open above an open subject editor,
   await expect(subjectArea).toContainText("Paragraphe 14");
 
   await page.getByTestId("business-category-documents").evaluate((element) => element.scrollIntoView({ block: "end" }));
-  await page.getByTestId("resource-picker-open").click();
-  const panel = page.getByTestId("resource-picker-panel");
+  await page.getByTestId("attachment-picker-open").click();
+  const panel = page.getByTestId("attachment-picker-panel");
   await expect(panel).toBeVisible();
-  await page.getByTestId("resource-picker-search-input").fill(marker);
-  const results = panel.getByTestId("resource-picker-search-result");
+  await page.getByTestId("attachment-picker-search-input").fill(marker);
+  const results = panel.getByTestId("attachment-picker-search-result");
   await expect(results).toHaveCount(2);
   expect((await panel.boundingBox())?.width).toBeGreaterThanOrEqual(600);
   await expectOnTopOf(page, panel, subjectArea);
