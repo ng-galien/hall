@@ -483,7 +483,13 @@
   }
   .minutes-detail-header .page-title { grid-area: title; }
   .minutes-detail-header > header > p { grid-area: description; }
-  .minutes-header-status { grid-area: status; justify-self: end; }
+  .minutes-header-status {
+    display: flex;
+    flex-wrap: wrap;
+    grid-area: status;
+    justify-self: end;
+    gap: var(--hall-space-2);
+  }
   .minutes-header-links {
     display: flex;
     grid-area: links;

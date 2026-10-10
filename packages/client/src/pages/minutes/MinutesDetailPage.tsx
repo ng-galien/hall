@@ -51,16 +51,14 @@ function MinutesDetail({ id }: { id: string }) {
         >
           {minutes ? (
             <>
-              <Badge
-                className="minutes-header-status"
-                data-testid="minutes-settlement-status"
-                variant={minutes.settledAt ? "success" : "warning"}
-              >
-                {t(minutes.settledAt ? "minutes.stopped" : "minutes.notStopped")}
-              </Badge>
-              <Badge className="minutes-header-status" variant={minutes.generatedAt ? "success" : "warning"}>
-                {t(minutes.generatedAt ? "minutes.generated" : "minutes.draft")}
-              </Badge>
+              <div className="minutes-header-status">
+                <Badge data-testid="minutes-settlement-status" variant={minutes.settledAt ? "success" : "warning"}>
+                  {t(minutes.settledAt ? "minutes.stopped" : "minutes.notStopped")}
+                </Badge>
+                <Badge variant={minutes.generatedAt ? "success" : "warning"}>
+                  {t(minutes.generatedAt ? "minutes.generated" : "minutes.draft")}
+                </Badge>
+              </div>
               <div className="minutes-header-links">
                 <Link
                   className="record-context-link"
