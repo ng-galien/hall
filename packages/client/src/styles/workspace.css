@@ -1217,9 +1217,9 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: var(--hall-space-4);
-    container: workbench-header / inline-size;
+    container-type: inline-size;
   }
-  @container workbench-header (max-width: 720px) {
+  @container (max-width: 760px) {
     .resource-open-in-maps-label { display: none; }
   }
   .workbench-grid {
