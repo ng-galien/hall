@@ -3811,6 +3811,35 @@
         }
       ]
     },
+    "HALL-FR-DOC-480": {
+      "name": "SHARED_DOCUMENT_VIEWER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Un document s’ouvre dans une seule visionneuse en plein écran, partagée par tous les endroits qui ouvrent un document.",
+      "acceptanceCriteria": [
+        "La visionneuse est une fenêtre de dialogue qui occupe presque tout l’écran, avec le titre du document et un bouton de fermeture ; ce bouton la ferme, et Échap la ferme lorsque le focus n’est pas dans un éditeur de texte, où Échap reste à l’éditeur.",
+        "Un texte s’y affiche rendu ; un PDF ou un fichier que le navigateur sait afficher s’y affiche dans le cadre du navigateur ; un fichier déposé propose toujours « Télécharger », qui reste le moyen de lire un fichier que le navigateur n’affiche pas.",
+        "La même visionneuse sert à l’ouverture d’un document depuis la section « Documents » d’une affaire, depuis une référence ou une ressource intégrée dans un texte, depuis la recherche, le calendrier, la composition de l’ordre du jour et la conduite de séance, depuis les pièces d’une séance, et pour l’aperçu d’une convocation ou d’un procès-verbal généré.",
+        "La visionneuse présente le document avec les droits de l’utilisateur, quel que soit l’endroit d’où il est ouvert : une carte, un texte ou un tableur que l’utilisateur peut modifier y est modifiable avec son propre éditeur, exactement comme dans la ligne dépliée (pour une carte : mode Dessin, mesures, notes et « Enregistrer ce cadrage »), et il y est présenté en lecture sinon."
+      ],
+      "clauses": [
+        {
+          "key": "shared-document-viewer",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : la visionneuse en plein écran est un seul composant partagé, utilisé partout où un document peut être ouvert.",
+          "sourceIds": []
+        },
+        {
+          "key": "viewer-rights-follow-user",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : une carte ouverte en plein écran depuis les documents d’une affaire doit rester modifiable pour l’utilisateur qui la modifie dans la ligne dépliée ; les droits suivent l’utilisateur, pas le point d’entrée.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-LOC-010": {
       "name": "LOCATION_BELONGS_TO_HALL",
       "nature": "functional",
@@ -8160,6 +8189,29 @@
           "key": "maps-drawing-follows-map-actions",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : dessiner depuis « Cartes » avec les droits de modification des cartes (choix C de la même date).",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-370": {
+      "name": "BUSINESS_DOCUMENTS_SECTION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "La section « Documents » d’une affaire se replie par son en-tête et chaque document s’ouvre en plein écran depuis sa ligne.",
+      "acceptanceCriteria": [
+        "L’en-tête de la section est un bouton de repli qui porte, sur une seule ligne alignée, le chevron, l’icône, le titre « Documents » et le nombre de documents rattachés ; il change de fond au survol et indique son état ouvert ou replié.",
+        "La section est ouverte par défaut ; un clic sur l’en-tête la replie ou la rouvre ; les actions de création et de rattachement restent visibles à droite de l’en-tête dans les deux états.",
+        "Chaque ligne de document porte une action « Ouvrir en plein écran », visible avec son infobulle, qui ouvre le document dans la visionneuse partagée avec les droits de l’utilisateur.",
+        "Le contenu d’un document reste aussi consultable dans la ligne dépliée, comme auparavant."
+      ],
+      "clauses": [
+        {
+          "key": "business-documents-section",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : un repli plus net pour les documents d’une affaire et la possibilité de lire un document dans une visionneuse en plein écran.",
           "sourceIds": []
         }
       ]

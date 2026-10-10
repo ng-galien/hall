@@ -1,6 +1,7 @@
 import { matchLiteral } from "@hall/domain";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { FolderIcon, PinIcon, PinnedIcon } from "../../components/icons";
@@ -62,6 +63,7 @@ export function CouncilBusinessWorkbench({
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
   const [pickingResource, setPickingResource] = useState(false);
   const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
+  const [documentsOpen, setDocumentsOpen] = useState(true);
   const { isPinned, togglePin } = useWorkspacePrefsStore();
   const pinned = isPinned({ kind: "councilBusiness", id: business.id });
   const editable = reportSession.editable;
@@ -241,13 +243,16 @@ export function CouncilBusinessWorkbench({
             return true;
           }}
           render={(trigger) => (
-            <section className="business-content-section" data-testid="business-category-documents">
-              <header className="business-content-section-header">
-                <span className="business-content-section-icon workspace-glyph">
-                  <FolderIcon />
-                </span>
-                <h2>{t("workspace.documentCategory")}</h2>
-                <span className="business-content-section-actions">
+            <CollapsibleSection
+              className="business-content-section"
+              testId="business-category-documents"
+              title={t("workspace.documentCategory")}
+              icon={<FolderIcon />}
+              count={attachedResources.length}
+              open={documentsOpen}
+              onOpenChange={setDocumentsOpen}
+              actions={
+                <>
                   {trigger}
                   {businessCapabilities?.associateResource ? (
                     <ResourcePicker
@@ -262,8 +267,9 @@ export function CouncilBusinessWorkbench({
                       onPick={(resourceId) => void associateResource(resourceId)}
                     />
                   ) : null}
-                </span>
-              </header>
+                </>
+              }
+            >
               {attachedResources.length ? (
                 <ExplorerTree className="business-document-tree" data-testid="business-resource-tree">
                   <BusinessDocumentTree
@@ -275,8 +281,12 @@ export function CouncilBusinessWorkbench({
                     }}
                   />
                 </ExplorerTree>
-              ) : null}
-            </section>
+              ) : (
+                <p className="workspace-list-empty" data-testid="business-documents-empty">
+                  {t("workspace.businessDocumentsEmpty")}
+                </p>
+              )}
+            </CollapsibleSection>
           )}
         />
 

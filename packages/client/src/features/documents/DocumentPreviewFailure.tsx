@@ -12,3 +12,13 @@ export function DocumentPreviewFailure({ onRetry }: { onRetry(): void }) {
     </div>
   );
 }
+
+/** Shown in place of a file the browser cannot display; the viewer keeps its download action. */
+export function DocumentPreviewUnavailable({ testId }: { testId?: string }) {
+  const { t } = useI18n();
+  return (
+    <div className="document-preview-failure" data-testid={testId}>
+      <p role="status">{t("resources.previewUnavailable")}</p>
+    </div>
+  );
+}

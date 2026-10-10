@@ -340,3 +340,12 @@
 .workspace-business-workbench .business-subject-table-detail .business-inline-resource {
   margin: 0;
 }
+
+.workspace-business-workbench .business-document-tree .business-document-view {
+  margin-left: auto;
+  color: var(--hall-color-text-subtle);
+}
+
+.workspace-business-workbench .business-document-tree .business-document-view:hover {
+  color: var(--hall-color-brand);
+}

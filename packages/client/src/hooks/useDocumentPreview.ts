@@ -1,6 +1,6 @@
 import type { SirenEntity } from "@hall/api-contract";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { sirenRepresentation } from "../services/apiClient";
+import { SirenCapabilityUnavailable, sirenRepresentation } from "../services/apiClient";
 import { loadResourcePreviewObjectUrl } from "../services/resourcesApi";
 
 export function useDocumentPreview(resource: { id: string } | null, representation?: SirenEntity | null) {
@@ -8,6 +8,7 @@ export function useDocumentPreview(resource: { id: string } | null, representati
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const request = useMemo(() => ({ resourceId, attempt }), [resourceId, attempt]);
 
@@ -16,6 +17,7 @@ export function useDocumentPreview(resource: { id: string } | null, representati
       setObjectUrl(null);
       setMediaType(null);
       setFailed(false);
+      setUnavailable(false);
       return;
     }
     let active = true;
@@ -23,6 +25,7 @@ export function useDocumentPreview(resource: { id: string } | null, representati
     setObjectUrl(null);
     setMediaType(null);
     setFailed(false);
+    setUnavailable(false);
     void (
       representation
         ? loadResourcePreviewObjectUrl(representation)
@@ -37,8 +40,10 @@ export function useDocumentPreview(resource: { id: string } | null, representati
         setObjectUrl(preview.url);
         setMediaType(preview.mediaType);
       })
-      .catch(() => {
-        if (active) setFailed(true);
+      .catch((error) => {
+        if (!active) return;
+        if (error instanceof SirenCapabilityUnavailable) setUnavailable(true);
+        else setFailed(true);
       });
     return () => {
       active = false;
@@ -47,5 +52,5 @@ export function useDocumentPreview(resource: { id: string } | null, representati
   }, [representation, request]);
 
   const retry = useCallback(() => setAttempt((current) => current + 1), []);
-  return { objectUrl, mediaType, failed, retry };
+  return { objectUrl, mediaType, failed, unavailable, retry };
 }

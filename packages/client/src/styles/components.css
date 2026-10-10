@@ -727,4 +727,52 @@
   .disclosure-badge-minus { display: none; }
   details[open] > summary .disclosure-badge-minus, .disclosure-badge[data-expanded="true"] .disclosure-badge-minus { display: block; }
   details[open] > summary .disclosure-badge-plus, .disclosure-badge[data-expanded="true"] .disclosure-badge-plus { display: none; }
+
+  .collapsible-section { display: grid; gap: var(--hall-space-2); }
+  .collapsible-section-header { display: flex; min-height: var(--hall-size-control-small); align-items: center; gap: var(--hall-space-2); }
+  .collapsible-section-header h2 { display: flex; min-width: 0; margin: 0; font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-semibold); }
+  .collapsible-section-toggle {
+    display: inline-flex;
+    min-width: 0;
+    min-height: var(--hall-size-control-small);
+    align-items: center;
+    gap: var(--hall-space-2);
+    padding: 0 var(--hall-space-2) 0 var(--hall-space-1);
+    border: 0;
+    border-radius: var(--hall-radius-medium);
+    color: var(--hall-color-text);
+    background: transparent;
+    font: inherit;
+    line-height: var(--hall-line-height-body);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--hall-motion-fast) var(--hall-motion-curve-standard);
+  }
+  .collapsible-section-toggle:hover { background: var(--hall-color-surface-subtle); }
+  .collapsible-section-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: var(--hall-stroke-thin); }
+  .collapsible-section-chevron {
+    flex: none;
+    width: var(--hall-font-size-icon);
+    height: var(--hall-font-size-icon);
+    color: var(--hall-color-text-subtle);
+    transition: transform var(--hall-motion-fast) var(--hall-motion-curve-standard);
+  }
+  .collapsible-section-toggle[aria-expanded="true"] .collapsible-section-chevron { transform: rotate(90deg); }
+  .collapsible-section-icon { display: inline-grid; flex: none; place-items: center; color: var(--hall-color-brand); }
+  .collapsible-section-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
+  .collapsible-section-title { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
+  .collapsible-section-count {
+    display: inline-grid;
+    flex: none;
+    min-width: var(--hall-size-glyph-compact);
+    height: var(--hall-size-glyph-compact);
+    place-items: center;
+    padding: 0 var(--hall-space-1-5);
+    border-radius: var(--hall-radius-circular);
+    color: var(--hall-color-text-muted);
+    background: var(--hall-color-surface-selected);
+    font-size: var(--hall-font-size-caption);
+    font-weight: var(--hall-font-weight-medium);
+  }
+  .collapsible-section-actions { display: inline-flex; flex: none; align-items: center; gap: var(--hall-space-1); }
 }

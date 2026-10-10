@@ -212,7 +212,9 @@ test("the common resource modal reuses Workbench bodies without nested viewers",
   assert.match(body, /capabilities\.resolveLegalReference/);
   assert.match(spreadsheet, /updateContent\(resource\.id, \{[\s\S]*kind: "spreadsheet"/);
   assert.match(read("src/features/geographic/GeographicResourceMap.tsx"), /kind: "geographic"/);
-  assert.match(preview, /data-resource-mode=\{readOnly \? "read" : session\.mode\}/);
+  assert.match(preview, /resourceMode=\{session\.mode\}/);
+  assert.match(preview, /capabilities=\{session\.capabilities\}/);
+  assert.doesNotMatch(preview, /readOnly/);
   assert.doesNotMatch(spreadsheet, /<Dialog|spreadsheet-fullscreen-dialog/);
   assert.match(references, /focus\(\{ preventScroll: true \}\)/);
   assert.match(images, /focus\(\{ preventScroll: true \}\)/);

@@ -3,7 +3,7 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { FullscreenIcon } from "../../components/icons";
 import { useDocumentPreview } from "../../hooks/useDocumentPreview";
 import { useI18n } from "../../i18n/I18nProvider";
-import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
+import { DocumentPreviewFailure, DocumentPreviewUnavailable } from "./DocumentPreviewFailure";
 import { NativeDocumentFrame } from "./NativeDocumentFrame";
 
 /** Inline document preview; PDFs and images render in place, with an optional full-screen action. */
@@ -19,11 +19,14 @@ export function DocumentEmbed({
   objectTestId?: string;
 }) {
   const { t } = useI18n();
-  const { objectUrl, mediaType, failed, retry } = useDocumentPreview(resource, representation);
+  const { objectUrl, mediaType, failed, unavailable, retry } = useDocumentPreview(resource, representation);
 
   return (
     <div className="document-embed">
-      {!objectUrl && !failed ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
+      {unavailable ? (
+        <DocumentPreviewUnavailable testId={objectTestId ? `${objectTestId}-unavailable` : undefined} />
+      ) : null}
+      {!objectUrl && !failed && !unavailable ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
       {failed ? <DocumentPreviewFailure onRetry={retry} /> : null}
       {objectUrl && mediaType ? (
         <NativeDocumentFrame url={objectUrl} mediaType={mediaType} title={resource.name} testId={objectTestId} />

@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { FolderIcon } from "../../components/icons";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { FolderIcon, FullscreenIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ContextMenuItem } from "../../components/ui/context-menu";
 import { ExplorerTreeBranch } from "../../components/ui/explorer-tree";
@@ -85,6 +87,7 @@ export function BusinessDocumentTree({
   return <>{renderFolder("")}</>;
 }
 
+// @implements-requirement HALL-FR-WSP-370
 function DocumentBranch({
   resource,
   onOpen,
@@ -119,6 +122,23 @@ function DocumentBranch({
         title={resource.name}
         testId={`business-attached-resource-${resource.id}`}
         icon={<DocumentaryResourceGlyph resource={resource} />}
+        actions={
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="business-document-view"
+                variant="ghost"
+                size="icon-xs"
+                data-testid={`business-document-view-${resource.id}`}
+                aria-label={t("workspace.openDocumentFullscreen")}
+                onClick={() => onOpen(resource.id)}
+              >
+                <FullscreenIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("workspace.openDocumentFullscreen")}</TooltipContent>
+          </Tooltip>
+        }
         contextMenu={
           <>
             <ContextMenuItem data-testid={`business-document-open-${resource.id}`} onSelect={() => onOpen(resource.id)}>

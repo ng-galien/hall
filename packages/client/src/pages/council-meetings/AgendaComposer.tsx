@@ -473,7 +473,7 @@ export function AgendaComposer({
         </form>
       </Modal>
       {viewedResourceId ? (
-        <ResourcePreview resourceId={viewedResourceId} readOnly onClose={() => setViewedResourceId(null)} />
+        <ResourcePreview resourceId={viewedResourceId} onClose={() => setViewedResourceId(null)} />
       ) : null}
     </section>
   );

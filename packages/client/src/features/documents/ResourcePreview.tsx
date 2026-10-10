@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -10,25 +9,17 @@ import { downloadDocumentaryResource } from "../../services/resourcesApi";
 import { ResourceAutosaveToggle } from "../resources/ResourceAutosaveToggle";
 import { ResourceChangesControl } from "../resources/ResourceChangesControl";
 import { ResourcePresentationBody } from "../resources/ResourcePresentationBody";
-import { noResourceCapabilities } from "../resources/resourceCapabilities";
 import { type ResourceSession, useResourceSession } from "../resources/useResourceSession";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "./DocumentaryResourceGlyph";
+import { DocumentViewerDialog } from "./DocumentViewerDialog";
 import { useWorkspaceResourceImageUpload } from "./useWorkspaceResourceImageUpload";
-import "./DocumentViewer.css";
 import "./ResourcePreview.css";
 
-/** Common resource modal. It hosts the same resource session and body as the Workspace and never changes route. */
-export function ResourcePreview({
-  resourceId,
-  onClose,
-  readOnly = false,
-}: {
-  resourceId: string;
-  onClose(): void;
-  readOnly?: boolean;
-}) {
+// @implements-requirement HALL-FR-DOC-480
+/** Common resource modal. It hosts the same resource session and body as the Workspace, with the user's own rights, and never changes route. */
+export function ResourcePreview({ resourceId, onClose }: { resourceId: string; onClose(): void }) {
   const session = useResourceSession({ resourceId });
-  return <ResourcePreviewWithSession session={session} onClose={onClose} readOnly={readOnly} />;
+  return <ResourcePreviewWithSession session={session} onClose={onClose} />;
 }
 
 /** Resource modal shell for a session already owned by its host workbench. */
@@ -36,12 +27,10 @@ export function ResourcePreviewWithSession({
   session,
   onClose,
   refreshSessionOnClose = false,
-  readOnly = false,
 }: {
   session: ResourceSession;
   onClose(): void;
   refreshSessionOnClose?: boolean;
-  readOnly?: boolean;
 }) {
   const { t } = useI18n();
   const mentionables = useReferenceMentionables();
@@ -71,19 +60,16 @@ export function ResourcePreviewWithSession({
     }
   };
   return (
-    <Dialog open onOpenChange={(open) => !open && void requestClose()}>
-      <DialogContent
-        className="document-viewer resource-preview gap-0 p-0 sm:max-w-[var(--hall-size-viewer-width)]"
-        data-testid="resource-preview"
-        data-resource-mode={readOnly ? "read" : session.mode}
-        aria-labelledby="resource-preview-title"
-        showCloseButton={false}
-        onOpenAutoFocus={(event) => {
-          event.preventDefault();
-          closeButtonRef.current?.focus({ preventScroll: true });
-        }}
-        onCloseAutoFocus={(event) => event.preventDefault()}
-      >
+    <DocumentViewerDialog
+      testId="resource-preview"
+      titleId="resource-preview-title"
+      className="resource-preview"
+      contentClassName={`resource-preview-content${session.fillsExtendedView ? " resource-preview-content-fill" : ""}`}
+      resourceMode={session.mode}
+      closeButtonRef={closeButtonRef}
+      restoreFocus={false}
+      onClose={() => void requestClose()}
+      header={
         <div className="resource-preview-shell-header">
           <WorkspaceBreadcrumb
             path={resource?.path ?? ""}
@@ -98,7 +84,7 @@ export function ResourcePreviewWithSession({
             statusControl={
               resource ? (
                 <>
-                  {!readOnly && session.canConfigureAutosave ? (
+                  {session.canConfigureAutosave ? (
                     <ResourceAutosaveToggle
                       enabled={session.autosaveEnabled}
                       status={session.saveStatus}
@@ -126,7 +112,7 @@ export function ResourcePreviewWithSession({
               titleId="resource-preview-title"
               titleLabel={t("resources.textTitle")}
               onTitleChange={
-                resource.kind === "event" && !readOnly && session.capabilities.updateMetadata
+                resource.kind === "event" && session.capabilities.updateMetadata
                   ? async (nextTitle) => {
                       session.setTitle(nextTitle);
                       return session.save(nextTitle);
@@ -136,7 +122,7 @@ export function ResourcePreviewWithSession({
               date={documentaryResourceDate(resource)}
               actions={
                 resource.kind === "document" && session.representation ? (
-                  <Button variant="outline" onClick={download}>
+                  <Button variant="outline" data-testid="resource-preview-download" onClick={download}>
                     {t("common.download")}
                   </Button>
                 ) : null
@@ -149,37 +135,34 @@ export function ResourcePreviewWithSession({
             </header>
           )}
         </div>
-        <div
-          className={`document-viewer-content resource-preview-content${session.fillsExtendedView ? " resource-preview-content-fill" : ""}`}
-        >
-          {!resource && !session.detailsFailed ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
-          {session.detailsFailed ? <p role="alert">{t("common.requestFailed")}</p> : null}
-          {resource ? (
-            <ResourcePresentationBody
-              resource={resource}
-              representation={session.representation}
-              mode={readOnly ? "read" : session.mode}
-              layout="extended"
-              capabilities={readOnly ? noResourceCapabilities : session.capabilities}
-              content={session.content}
-              remoteUrl={session.remoteUrl}
-              mentionables={mentionables}
-              canUploadImage={canUploadImage}
-              submitting={session.submitting}
-              refreshConflict={session.refreshConflict}
-              onContentChange={session.setContent}
-              onRemoteUrlChange={session.setRemoteUrl}
-              onRemoteSubmit={() => session.save()}
-              onUploadImage={(file) => uploadImage(file, { kind: "textResourceContent", id: resource.id })}
-              onResolvedLegalReference={session.adoptResolvedResource}
-              onRefreshLegalReference={session.refreshLegalReference}
-              onError={session.setActionError}
-              onRegisterFlush={session.registerBodyFlush}
-              autosaveEnabled={session.autosaveEnabled}
-            />
-          ) : null}
-        </div>
-      </DialogContent>
-    </Dialog>
+      }
+    >
+      {!resource && !session.detailsFailed ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
+      {session.detailsFailed ? <p role="alert">{t("common.requestFailed")}</p> : null}
+      {resource ? (
+        <ResourcePresentationBody
+          resource={resource}
+          representation={session.representation}
+          mode={session.mode}
+          layout="extended"
+          capabilities={session.capabilities}
+          content={session.content}
+          remoteUrl={session.remoteUrl}
+          mentionables={mentionables}
+          canUploadImage={canUploadImage}
+          submitting={session.submitting}
+          refreshConflict={session.refreshConflict}
+          onContentChange={session.setContent}
+          onRemoteUrlChange={session.setRemoteUrl}
+          onRemoteSubmit={() => session.save()}
+          onUploadImage={(file) => uploadImage(file, { kind: "textResourceContent", id: resource.id })}
+          onResolvedLegalReference={session.adoptResolvedResource}
+          onRefreshLegalReference={session.refreshLegalReference}
+          onError={session.setActionError}
+          onRegisterFlush={session.registerBodyFlush}
+          autosaveEnabled={session.autosaveEnabled}
+        />
+      ) : null}
+    </DocumentViewerDialog>
   );
 }

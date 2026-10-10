@@ -115,6 +115,8 @@ export const fr: Messages = {
   "workspace.questionText": "Texte de la question",
   "workspace.decisionText": "Texte de la délibération",
 
+  "workspace.openDocumentFullscreen": "Ouvrir en plein écran",
+  "workspace.businessDocumentsEmpty": "Aucun document n’est rattaché à cette affaire.",
   "workspace.openDocument": "Ouvrir le document",
   "workspace.proposalCategory": "Projets de délibération",
   "workspace.questionCategory": "Questions ouvertes",
@@ -501,6 +503,8 @@ export const fr: Messages = {
   "workspace.createSubfolder": "Nouveau sous-dossier",
   "workspace.createCouncilMatter": "Nouvelle affaire",
   "workspace.deleteResource": "Supprimer le document",
+  "resources.previewUnavailable":
+    "Le navigateur ne peut pas afficher ce fichier. Utilisez « Télécharger » pour le consulter.",
   "resources.previewFailed": "L’aperçu n’a pas pu être généré. Réessayez ou téléchargez le fichier original.",
   "workspace.dissociate": "Retirer {name}",
   "workspace.emptyBench": "Choisissez un dossier, un sujet ou un document pour commencer.",

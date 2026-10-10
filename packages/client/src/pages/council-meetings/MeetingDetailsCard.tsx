@@ -3,12 +3,12 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircleIcon, FileIcon, OpenIcon, UploadIcon, WarningIcon } from "../../components/icons";
+import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 import { useResourcesStore } from "../../stores/resourcesStore";
-import { MeetingDocumentViewer } from "./MeetingDocumentViewer";
 
 export const documentCategoryKeys: Record<DocumentCategory, TranslationKey> = {
   supporting: "documentCategory.supporting",
@@ -34,7 +34,7 @@ export function MeetingDetailsCard({
 }) {
   const { t, formatFileSize } = useI18n();
   const { submitting, run } = useSubmitting();
-  const { upload, download } = useResourcesStore();
+  const { upload } = useResourcesStore();
   const { meeting } = aggregate;
   const [viewedDocument, setViewedDocument] = useState<DocumentaryResource | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
@@ -136,11 +136,9 @@ export function MeetingDetailsCard({
         ) : null}
       </section>
 
-      <MeetingDocumentViewer
-        document={viewedDocument}
-        onClose={() => setViewedDocument(null)}
-        onDownload={(document) => void download(document)}
-      />
+      {viewedDocument ? (
+        <ResourcePreview resourceId={viewedDocument.id} onClose={() => setViewedDocument(null)} />
+      ) : null}
     </aside>
   );
 }

@@ -114,6 +114,8 @@ export const en = {
   "workspace.questionText": "Question text",
   "workspace.decisionText": "Decision text",
 
+  "workspace.openDocumentFullscreen": "Open full screen",
+  "workspace.businessDocumentsEmpty": "No document is attached to this business.",
   "workspace.openDocument": "Open document",
   "workspace.proposalCategory": "Decision proposals",
   "workspace.questionCategory": "Open questions",
@@ -495,6 +497,7 @@ export const en = {
   "workspace.createSubfolder": "New subfolder",
   "workspace.createCouncilMatter": "New subject",
   "workspace.deleteResource": "Delete the document",
+  "resources.previewUnavailable": "The browser cannot display this file. Use Download to read it.",
   "resources.previewFailed": "The preview could not be generated. Try again or download the original file.",
   "workspace.dissociate": "Remove {name}",
   "workspace.emptyBench": "Choose a folder, a subject or a document to get started.",

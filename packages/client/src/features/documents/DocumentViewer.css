@@ -1,13 +1,3 @@
-.document-viewer-backdrop {
-  position: fixed;
-  z-index: var(--hall-z-dialog);
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: var(--hall-space-2);
-  background: color-mix(in srgb, var(--hall-color-text) var(--hall-opacity-backdrop), transparent);
-}
-
 .document-viewer {
   display: grid;
   width: var(--hall-size-viewer-width);
@@ -22,7 +12,7 @@
   box-shadow: var(--hall-shadow-large);
 }
 
-.document-viewer > header {
+.document-viewer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -31,16 +21,16 @@
   border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
 }
 
-.document-viewer > header > div:first-child {
+.document-viewer-header > div:first-child {
   display: grid;
 }
 
-.document-viewer > header span {
+.document-viewer-header span {
   color: var(--hall-color-text-muted);
   font-size: var(--hall-font-size-caption);
 }
 
-.document-viewer > header h2 {
+.document-viewer-header h2 {
   font-size: var(--hall-font-size-title);
 }
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { MarkdownView } from "../../components/MarkdownView";
 import { useI18n } from "../../i18n/I18nProvider";
-import { DocumentPreviewFailure } from "./DocumentPreviewFailure";
+import { DocumentPreviewFailure, DocumentPreviewUnavailable } from "./DocumentPreviewFailure";
 
 function TextDocumentFrame({
   url,
@@ -52,6 +52,18 @@ function TextDocumentFrame({
   );
 }
 
+/** Media types the browser displays itself; any other file is offered for download. */
+function browserDisplayable(type: string): boolean {
+  return (
+    type === "application/pdf" ||
+    type.startsWith("image/") ||
+    type.startsWith("text/") ||
+    type.startsWith("audio/") ||
+    type.startsWith("video/")
+  );
+}
+
+// @implements-requirement HALL-FR-DOC-480
 /** Shared browser surface for every loaded document representation. */
 export function NativeDocumentFrame({
   url,
@@ -66,9 +78,12 @@ export function NativeDocumentFrame({
   testId?: string;
   onError?(): void;
 }) {
-  const type = mediaType.split(";", 1)[0]?.trim().toLowerCase();
+  const type = mediaType.split(";", 1)[0]?.trim().toLowerCase() ?? "";
   if (type === "text/plain" || type === "text/markdown") {
     return <TextDocumentFrame key={url} url={url} mediaType={type} title={title} testId={testId} />;
+  }
+  if (!browserDisplayable(type)) {
+    return <DocumentPreviewUnavailable testId={testId ? `${testId}-unavailable` : undefined} />;
   }
   return mediaType === "application/pdf" ? (
     <iframe data-testid={testId} src={url} title={title} onError={onError} />

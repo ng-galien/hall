@@ -495,7 +495,10 @@ test.describe("Markdown editor", () => {
     });
   });
 
-  test("opens a text resource in the common read-only modal and returns to the snippet", async ({ appPage: page }) => {
+  // @verifies-requirement HALL-FR-DOC-480
+  test("opens a text resource in the common modal with the user's rights and returns to the snippet", async ({
+    appPage: page,
+  }) => {
     const resource = await createWorkspaceText(page, "Texte modal E2E");
 
     await openEditorLab(page);
@@ -510,15 +513,15 @@ test.describe("Markdown editor", () => {
     const routeBefore = page.url();
     await trigger.click();
     const modal = page.getByTestId("resource-preview");
-    await expect(modal).toHaveAttribute("data-resource-mode", "read");
-    await expect(modal.getByTestId("resource-presentation-text-read")).toContainText("Contenu initial du test.");
+    await expect(modal).toHaveAttribute("data-resource-mode", "edit");
+    await expect(modal.getByTestId("editor-writing-area")).toContainText("Contenu initial du test.");
     await expect(modal.locator('[data-testid="spreadsheet-fullscreen-dialog"]')).toHaveCount(0);
     await modal.getByTestId("resource-preview-close").click();
     await expect(modal).toHaveCount(0);
     await expect(trigger).toBeFocused();
     expect(page.url()).toBe(routeBefore);
     await trigger.click();
-    await expect(page.getByTestId("resource-preview")).toHaveAttribute("data-resource-mode", "read");
+    await expect(page.getByTestId("resource-preview")).toHaveAttribute("data-resource-mode", "edit");
   });
 
   test("inserts an inline PDF reference, persists its canonical Markdown and reopens the common modal", async ({
@@ -597,7 +600,7 @@ test.describe("Markdown editor", () => {
     );
   });
 
-  test("includes a bounded spreadsheet range, opens its read-only preview, and exports it to PDF", async ({
+  test("includes a bounded spreadsheet range, opens its preview with the user's rights, and exports it to PDF", async ({
     appPage: page,
   }) => {
     test.setTimeout(60_000);
@@ -634,8 +637,8 @@ test.describe("Markdown editor", () => {
     await table.hover();
     await expect(editor.getByTestId(`editor-resource-embed-${spreadsheet.id}-info`)).toBeVisible();
     await block.click();
-    await expect(modal).toHaveAttribute("data-resource-mode", "read");
-    await expect(modal.getByTestId("spreadsheet-grid")).toHaveAttribute("aria-readonly", "true", {
+    await expect(modal).toHaveAttribute("data-resource-mode", "edit");
+    await expect(modal.getByTestId("spreadsheet-grid")).toHaveAttribute("aria-readonly", "false", {
       timeout: 15_000,
     });
     await expect(modal.getByTestId("spreadsheet-fullscreen-dialog")).toHaveCount(0);
@@ -1239,7 +1242,7 @@ test("HALL-FR-SRC a web reference opens the shared web preview instead of its ad
   await expect(editor.getByTestId(`editor-resource-reference-${resource.id}`)).toBeVisible();
   await editor.getByTestId(`editor-resource-reference-${resource.id}`).click();
   const preview = page.getByTestId("resource-preview");
-  await expect(preview).toHaveAttribute("data-resource-mode", "read");
+  await expect(preview).toHaveAttribute("data-resource-mode", "edit");
   await expect(preview.getByTestId("resource-presentation-remote-edit")).toHaveCount(0);
   await expect(preview.getByTestId("remote-resource-frame")).toHaveAttribute("src", resource.target.url);
   const content = preview.getByTestId("remote-resource-content");
