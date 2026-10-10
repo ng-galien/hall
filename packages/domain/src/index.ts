@@ -1,6 +1,7 @@
 export * from "./agendaOrderPolicy.js";
 export * from "./ballotPolicy.js";
 export * from "./ballotResultPreview.js";
+export * from "./cadastreParcel.js";
 export * from "./councilBusinessPolicy.js";
 export * from "./geographicFeature.js";
 export * from "./match.js";

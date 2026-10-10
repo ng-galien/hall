@@ -116,7 +116,21 @@ GRANT EXECUTE ON FUNCTION hall_api.create_legal_reference_resource(TEXT, TEXT, J
 GRANT EXECUTE ON FUNCTION hall_api.create_document_resource(TEXT, TEXT, TEXT, BYTEA)
   TO hall_api_authenticated, hall_api_worker;
 -- @implements-requirement HALL-FR-DOC-310
-GRANT EXECUTE ON FUNCTION hall_api.create_geographic_layer_resource(TEXT, TEXT, JSONB, JSONB)
+GRANT EXECUTE ON FUNCTION hall_api.create_geographic_layer_resource(TEXT, TEXT, JSONB, JSONB, TEXT[], JSONB)
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.geographic_layer_features_text(UUID)
+  TO hall_api_authenticated, hall_api_worker;
+-- @implements-requirement HALL-FR-DOC-390
+GRANT EXECUTE ON FUNCTION hall_api.geographic_feature_notes(UUID)
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.create_geographic_feature_note(UUID, INTEGER)
+  TO hall_api_authenticated, hall_api_worker;
+-- @implements-requirement HALL-FR-DOC-400
+GRANT EXECUTE ON FUNCTION hall_api.municipal_property()
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.replace_municipal_property(TEXT, TEXT, TEXT, TEXT[])
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.present_municipal_property(JSONB)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_geographic_layer_resources()
   TO hall_api_authenticated, hall_api_worker;

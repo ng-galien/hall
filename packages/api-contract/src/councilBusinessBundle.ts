@@ -51,6 +51,41 @@ export const councilBusinessBundleManifestSchema = z
       .array(z.object({ data: editorAssetSchema, binaryPath: bundleFileSchema.shape.path }).strict())
       .max(4000),
     externalReferenceIds: z.array(z.string().min(1)).max(4000),
+    // @implements-requirement HALL-FR-DOC-390
+    geographicFeatureNotes: z
+      .array(
+        z
+          .object({
+            noteSourceId: resourceIdSchema,
+            subjectKind: z.enum(["cadastreParcel", "layerFeature"]),
+            layerSourceId: resourceIdSchema.nullable(),
+            key: z.string().min(1),
+          })
+          .strict(),
+      )
+      .max(20_000)
+      .default([]),
+    // @implements-requirement HALL-FR-DOC-400
+    municipalProperty: z
+      .object({
+        sources: z
+          .array(
+            z
+              .object({
+                id: resourceIdSchema,
+                label: z.string().min(1),
+                fileName: z.string().min(1).nullable(),
+                importedAt: z.iso.datetime({ offset: true }),
+                importedBy: z.string().min(1),
+              })
+              .strict(),
+          )
+          .max(1000),
+        parcels: z.array(z.object({ parcelId: z.string().min(1), sourceId: resourceIdSchema }).strict()).max(50_000),
+      })
+      .strict()
+      .nullable()
+      .default(null),
   })
   .strict();
 

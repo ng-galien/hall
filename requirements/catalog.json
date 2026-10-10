@@ -3168,7 +3168,8 @@
       },
       "statement": "Un actif de l’éditeur appartient au contenu texte qui le référence.",
       "acceptanceCriteria": [
-        "Actif éditeur propriété du texte : P"
+        "Actif éditeur propriété du texte : P",
+        "Tout utilisateur à qui la représentation du texte propriétaire propose la modification de son contenu y téléverse une image ; le serveur refuse le téléversement dans un texte dont la représentation ne propose pas cette modification."
       ],
       "clauses": [
         {
@@ -3260,13 +3261,20 @@
         "La barre de l’édition en plein écran expose directement les mêmes commandes.",
         "Le souligné est disponible dans les deux modes et conserve le même rendu dans l’éditeur, l’aperçu HTML et le document produit.",
         "La sortie de l’édition en plein écran déclenche le même signal de fin d’édition que le mode compact.",
-        "Chaque bouton d’outil à icône présente une infobulle dans les modes compact et enrichi."
+        "Chaque bouton d’outil à icône présente une infobulle dans les modes compact et enrichi.",
+        "Dans une fenêtre de dialogue, la touche Échap pressée dans l’éditeur reste à l’éditeur, qui peut l’employer pour fermer ses propres menus, et ne ferme pas la fenêtre ; la fenêtre se ferme par son contrôle de fermeture."
       ],
       "clauses": [
         {
           "key": "adaptive-editor-controls",
           "origin": "product",
           "statement": "Le mode compact regroupe les commandes dans un menu ; le mode plein écran les expose directement.",
+          "sourceIds": []
+        },
+        {
+          "key": "editor-escape-stays-in-editor",
+          "origin": "product",
+          "statement": "Une frappe d’Échap pendant la rédaction ne ferme pas le document en cours d’édition.",
           "sourceIds": []
         }
       ]
@@ -3484,6 +3492,135 @@
           "key": "geographic-map-editing-workspace-write",
           "origin": "product",
           "statement": "Décision du propriétaire du 2026-10-10 (choix C) : les secrétaires et les contributeurs modifient les cartes comme les administrateurs.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-360": {
+      "name": "GEOGRAPHIC_FEATURE_KEY_RULE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Chaque couche géographique enregistre la règle qui donne à ses entités un identifiant stable, déterminée à l’import.",
+      "acceptanceCriteria": [
+        "Lorsque chaque entité porte, dans la propriété idu ou id, un identifiant de parcelle cadastrale de 14 caractères (département, commune, préfixe, section de deux caractères dont au moins une lettre, numéro), tous différents, la couche suit la règle « parcelle cadastrale » et l’identifiant d’une entité est cet identifiant de parcelle ; une section complétée par un zéro, comme 0A, convient, et un numéro SIRET de 14 chiffres n’est jamais pris pour une parcelle.",
+        "Sinon, lorsque chaque entité porte un identifiant GeoJSON (membre id), tous différents, la couche suit la règle « identifiant du fichier » et l’identifiant d’une entité est cet identifiant, propre à la couche.",
+        "Sinon, la couche suit la règle « sans identifiant » : ses entités n’ont ni note ni repère de propriété communale.",
+        "La représentation de la couche donne sa règle et la propriété utilisée ; chaque entité servie porte son identifiant stable.",
+        "Un identifiant de parcelle désigne la même parcelle dans toutes les couches qui suivent la règle « parcelle cadastrale », y compris une couche importée plus tard à partir d’un nouveau millésime."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-feature-key-rule",
+          "origin": "product",
+          "statement": "Rattacher des informations durables aux parcelles malgré le remplacement des fichiers cadastraux.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-370": {
+      "name": "GEOGRAPHIC_PARCEL_LABELS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Une couche qui suit la règle « parcelle cadastrale » affiche le numéro de chaque parcelle sur la carte à partir du niveau de zoom 17.",
+      "acceptanceCriteria": [
+        "L’étiquette d’une parcelle est sa section suivie de son numéro sans zéros de tête, par exemple « A 221 » ; le préfixe précède la section lorsqu’il est différent de 000.",
+        "Section et numéro sont lus dans les propriétés section et numero ; à défaut, ils sont lus dans l’identifiant de parcelle.",
+        "Les étiquettes sont dessinées au centre de chaque parcelle, en texte sombre détouré de clair, et ne se chevauchent pas.",
+        "En dessous du niveau de zoom 17, aucune étiquette n’est dessinée."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-parcel-labels",
+          "origin": "product",
+          "statement": "Lire le numéro des parcelles sur la carte comme sur le plan cadastral.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-380": {
+      "name": "GEOGRAPHIC_FEATURE_CARD",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Un clic sur une entité d’une couche ouvre une fiche qui décrit cette entité.",
+      "acceptanceCriteria": [
+        "En mode « Carte », un clic sur une entité visible d’une couche liée ouvre la fiche dans un panneau à droite de la carte, sous le bouton « Couches », présenté comme le panneau de composition ; l’entité choisie est mise en évidence.",
+        "La fiche donne le nom de la couche, l’étiquette ou l’identifiant stable de l’entité, toutes ses propriétés dans l’ordre de première apparition de leurs clés dans le fichier, enregistré avec la couche à l’import (une clé absente de cet ordre vient en dernier ; une valeur imbriquée est présentée comme texte), et son emprise en coordonnées WGS84.",
+        "Un bouton de la fiche centre et cadre la carte sur l’entité.",
+        "La fiche se ferme par son bouton de fermeture, par la touche Échap ou par un clic sur la carte en dehors de toute entité ; un clic sur une autre entité remplace son contenu.",
+        "En mode « Dessin », un clic reste réservé au dessin et n’ouvre aucune fiche."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-feature-card",
+          "origin": "product",
+          "statement": "Consulter les informations d’une parcelle en cliquant dessus, comme la fiche d’un lieu sur une carte en ligne.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-390": {
+      "name": "GEOGRAPHIC_FEATURE_NOTES",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Une entité qui a un identifiant stable porte une note riche, rédigée avec l’éditeur de texte de Hall et affichée dans sa fiche.",
+      "acceptanceCriteria": [
+        "La note est un document texte de l’espace de travail : tableaux, images téléversées, liens et enregistrement automatique y fonctionnent comme dans les autres documents texte, et la recherche de l’espace de travail la trouve comme les autres textes.",
+        "La note est rattachée à l’identifiant stable de l’entité, non à la ligne de l’entité : une note de parcelle cadastrale s’affiche pour cette parcelle dans toute couche qui suit la règle « parcelle cadastrale », y compris après l’import d’un nouveau millésime ; une note sous la règle « identifiant du fichier » reste propre à sa couche.",
+        "Un utilisateur qui dispose du droit d’écriture sur l’espace de travail crée la note depuis la fiche et la modifie dans la fiche ; un lecteur la consulte.",
+        "La note est créée dans le dossier « Notes cartographiques » placé dans le dossier de la couche, sous le nom « Parcelle A 221 (999990000A0221) » pour une parcelle ou « nom de la couche - identifiant » sinon.",
+        "Une entité a au plus une note ; la suppression de la note dans l’espace de travail la détache de l’entité.",
+        "Le rattachement est décrit par la nature du sujet, sa portée et son identifiant, de sorte que les éléments dessinés d’une carte pourront recevoir des notes par le même mécanisme.",
+        "Le fichier d’une affaire transporte les notes des entités des couches qu’il contient, avec leurs documents texte et leurs rattachements ; son import recrée les documents et les rattachements.",
+        "La suppression d’une couche conserve les rattachements des notes de parcelles cadastrales, qui s’affichent de nouveau dans toute couche importée plus tard pour ces parcelles ; elle détache les notes rattachées à un identifiant du fichier propre à la couche, dont les documents texte restent dans l’espace de travail."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-feature-notes",
+          "origin": "product",
+          "statement": "Consigner durablement ce que la commune sait d’une parcelle.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-feature-notes-survive-layer-deletion",
+          "origin": "product",
+          "statement": "Une note de parcelle survit au remplacement de la couche cadastrale.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-400": {
+      "name": "MUNICIPAL_PROPERTY_PARCELS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Hall enregistre la liste des parcelles qui appartiennent à la commune, importée depuis une liste d’identifiants fournie par la commune, et la montre sur les cartes.",
+      "acceptanceCriteria": [
+        "Un utilisateur qui dispose du droit d’écriture sur l’espace de travail importe la liste depuis un fichier CSV ou texte ou depuis une liste collée ; chaque identifiant de parcelle de 14 caractères dont la section comporte une lettre est retenu, les autres éléments non vides, comme un numéro SIRET, sont signalés comme non reconnus.",
+        "L’import remplace la liste précédente et enregistre sa source : libellé saisi, nom du fichier ou mention d’une liste collée, date et auteur de l’import, nombre de parcelles ; il indique combien de ces parcelles figurent dans les couches de Hall.",
+        "Les parcelles de la liste sont dessinées d’un style distinct dans toutes les couches qui suivent la règle « parcelle cadastrale », et leur fiche porte la mention « Propriété de la commune » avec la source qui a apporté cette parcelle.",
+        "Le menu « Couches » et la fiche proposent un filtre qui n’affiche que les propriétés communales de la couche ; ce filtre est un réglage d’affichage qui n’est pas enregistré dans la carte.",
+        "Tout rôle qui peut lire l’espace de travail consulte la liste et sa source.",
+        "Le fichier d’une affaire transporte les parcelles de la liste communale présentes dans les couches qu’il contient, avec leur source ; son import ajoute à la liste de l’installation les parcelles qui y manquent, sans retirer les autres, et enregistre pour elles la source « libellé d’origine (dossier d’affaire importé) »."
+      ],
+      "clauses": [
+        {
+          "key": "municipal-property-parcels",
+          "origin": "product",
+          "statement": "Savoir ce que possède la commune, à partir de la liste qu’elle tient, puisque les propriétaires ne sont pas une donnée ouverte.",
           "sourceIds": []
         }
       ]

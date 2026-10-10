@@ -175,6 +175,47 @@ const geographicLayerResourceSchema = geographicLayerResourceSummarySchema.exten
     importedAt: z.iso.datetime({ offset: true }),
   }),
   version: versionSchema,
+  featureKey: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("cadastreParcel"), property: z.enum(["idu", "id"]) }),
+    z.object({ kind: z.literal("sourceId") }),
+    z.object({ kind: z.literal("none") }),
+  ]),
+  propertyKeys: z.array(z.string()),
+});
+// @implements-requirement HALL-FR-DOC-390
+const geographicFeatureNoteSchema = z.object({
+  key: z.string().min(1),
+  subjectKind: z.enum(["cadastreParcel", "layerFeature"]),
+  noteId: resourceIdSchema,
+  slug: resourceSlugSchema,
+  name: resourceNameSchema,
+  fullPath: z.string().min(1),
+});
+// @implements-requirement HALL-FR-DOC-400
+const municipalPropertySchema = z.object({
+  source: z
+    .object({
+      id: resourceIdSchema,
+      label: z.string().min(1),
+      fileName: z.string().min(1).nullable(),
+      parcelCount: z.number().int().nonnegative(),
+      importedAt: z.iso.datetime({ offset: true }),
+      importedBy: z.string().min(1),
+    })
+    .nullable(),
+  sources: z.array(
+    z.object({
+      id: resourceIdSchema,
+      label: z.string().min(1),
+      fileName: z.string().min(1).nullable(),
+      parcelCount: z.number().int().nonnegative(),
+      importedAt: z.iso.datetime({ offset: true }),
+      importedBy: z.string().min(1),
+    }),
+  ),
+  parcelIds: z.array(z.string().min(1)),
+  parcelSourceIds: z.record(z.string(), resourceIdSchema),
+  matchedParcelCount: z.number().int().nonnegative(),
 });
 const geographicLayerFeatureCollectionSchema = z.object({
   type: z.literal("FeatureCollection"),
@@ -183,6 +224,8 @@ const geographicLayerFeatureCollectionSchema = z.object({
       type: z.literal("Feature"),
       id: z.number().int().nonnegative(),
       sourceId: z.string().nullable(),
+      key: z.string().min(1).nullable(),
+      label: z.string().min(1).nullable(),
       geometry: z.object({
         type: z.enum(["Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon"]),
         coordinates: z.array(z.unknown()),
@@ -234,6 +277,8 @@ export type PostgresLegalReferenceResource = z.infer<typeof legalReferenceResour
 export type PostgresDocumentResource = z.infer<typeof documentResourceSchema>;
 export type PostgresGeographicLayerResource = z.infer<typeof geographicLayerResourceSchema>;
 export type PostgresGeographicLayerFeatureCollection = z.infer<typeof geographicLayerFeatureCollectionSchema>;
+export type PostgresGeographicFeatureNote = z.infer<typeof geographicFeatureNoteSchema>;
+export type PostgresMunicipalProperty = z.infer<typeof municipalPropertySchema>;
 
 export type PostgresResourceRequest = PostgresRequest;
 export type PostgresResourceSearchCriteria = Readonly<{
@@ -274,10 +319,18 @@ const createGeographicLayerInputSchema = createWorkingResourceInputSchema.extend
     contentSha256: z.string().regex(/^[0-9a-f]{64}$/),
     importedAt: z.iso.datetime({ offset: true }),
   }),
+  featureKeyRule: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("cadastreParcel"), property: z.enum(["idu", "id"]) }),
+    z.object({ kind: z.literal("sourceId") }),
+    z.object({ kind: z.literal("none") }),
+  ]),
+  propertyKeys: z.array(z.string()).max(10_000),
   features: z
     .array(
       z.object({
         sourceId: z.string().nullable(),
+        key: z.string().min(1).nullable(),
+        label: z.string().min(1).nullable(),
         geometry: z.object({ type: z.string(), coordinates: z.array(z.unknown()) }),
         properties: z.unknown(),
         bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]),
@@ -381,6 +434,16 @@ const postgresSirenActionSchema = z.object({
     )
     .optional(),
 });
+
+// @implements-requirement HALL-FR-DOC-400
+const presentedMunicipalPropertySchema = z
+  .object({
+    class: z.tuple([z.literal("municipal-property")]),
+    properties: municipalPropertySchema,
+    actions: z.array(postgresSirenActionSchema).optional(),
+    links: z.array(postgresSirenLinkSchema).min(1),
+  })
+  .transform((representation) => ({ data: representation.properties, representation }));
 
 const postgresEditorAssetSchema = z.object({
   id: resourceIdSchema,
@@ -1187,9 +1250,16 @@ export class PostgresResources {
       async (client) => {
         const presented = await callJson(client, {
           text: `SELECT hall_api.present_resource(
-            hall_api.create_geographic_layer_resource($1::text, $2::text, $3::jsonb, $4::jsonb)
+            hall_api.create_geographic_layer_resource($1::text, $2::text, $3::jsonb, $4::jsonb, $5::text[], $6::jsonb)
           ) AS payload`,
-          values: [parsed.path, parsed.name, JSON.stringify(parsed.source), JSON.stringify(parsed.features)],
+          values: [
+            parsed.path,
+            parsed.name,
+            JSON.stringify(parsed.source),
+            JSON.stringify(parsed.featureKeyRule),
+            parsed.propertyKeys,
+            JSON.stringify(parsed.features),
+          ],
           schema: presentedResourceSchema(geographicLayerResourceSchema),
         });
         if (parsed.councilBusinessId)
@@ -1267,10 +1337,97 @@ export class PostgresResources {
       request,
       "resource.readGeographicLayerFeatures",
       {
-        text: "SELECT hall_api.geographic_layer_features($1::uuid)::text AS payload",
+        text: "SELECT hall_api.geographic_layer_features_text($1::uuid) AS payload",
         values: [resourceIdSchema.parse(id)],
       },
       z.string().startsWith('{"type": "FeatureCollection"'),
+    );
+  }
+
+  // @implements-requirement HALL-FR-DOC-390
+  listGeographicFeatureNotes(
+    request: PostgresResourceRequest,
+    layerId: string,
+  ): Promise<PostgresGeographicFeatureNote[]> {
+    return this.readJson(
+      request,
+      "resource.listGeographicFeatureNotes",
+      {
+        text: "SELECT hall_api.geographic_feature_notes($1::uuid) AS payload",
+        values: [resourceIdSchema.parse(layerId)],
+      },
+      z.array(geographicFeatureNoteSchema),
+    );
+  }
+
+  // @implements-requirement HALL-FR-DOC-390
+  createGeographicFeatureNote(
+    request: PostgresResourceRequest,
+    layerId: string,
+    position: number,
+  ): Promise<PostgresGeographicFeatureNote> {
+    const parsedLayerId = resourceIdSchema.parse(layerId);
+    const parsedPosition = z.number().int().nonnegative().parse(position);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "resource.createGeographicFeatureNote") },
+      async (client) => {
+        const note = await callJson(client, {
+          text: "SELECT hall_api.create_geographic_feature_note($1::uuid, $2::integer) AS payload",
+          values: [parsedLayerId, parsedPosition],
+          schema: geographicFeatureNoteSchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "resource",
+          targetId: note.noteId,
+          outcome: "succeeded",
+          details: { fullPath: note.fullPath, geographicLayerId: parsedLayerId, subjectKey: note.key },
+        });
+        return note;
+      },
+    );
+  }
+
+  // @implements-requirement HALL-FR-DOC-400
+  readMunicipalProperty(request: PostgresResourceRequest) {
+    return this.readJson(
+      request,
+      "resource.readMunicipalProperty",
+      { text: "SELECT hall_api.present_municipal_property(hall_api.municipal_property()) AS payload" },
+      presentedMunicipalPropertySchema,
+    );
+  }
+
+  // @implements-requirement HALL-FR-DOC-400
+  replaceMunicipalProperty(
+    request: PostgresResourceRequest,
+    input: Readonly<{ label: string; fileName: string | null; importerName: string; parcelIds: readonly string[] }>,
+  ) {
+    const parsed = z
+      .object({
+        label: z.string().trim().min(1).max(200),
+        fileName: z.string().trim().min(1).nullable(),
+        importerName: z.string().trim().min(1),
+        parcelIds: z.array(z.string().min(1)).max(50_000),
+      })
+      .parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "resource.replaceMunicipalProperty") },
+      async (client) => {
+        const presented = await callJson(client, {
+          text: `SELECT hall_api.present_municipal_property(
+            hall_api.replace_municipal_property($1::text, $2::text, $3::text, $4::text[])
+          ) AS payload`,
+          values: [parsed.label, parsed.fileName, parsed.importerName, parsed.parcelIds],
+          schema: presentedMunicipalPropertySchema,
+        });
+        await recordAuditEvent(client, {
+          targetType: "municipal-property",
+          targetId: presented.data.source?.id ?? null,
+          outcome: "succeeded",
+          details: { label: parsed.label, fileName: parsed.fileName, parcelCount: presented.data.parcelIds.length },
+        });
+        return presented;
+      },
     );
   }
 

@@ -1,11 +1,16 @@
 import {
   findSirenAction,
   findSirenLink,
+  type GeographicFeatureKeyRule,
+  type GeographicFeatureNote,
   type GeographicLayerFeatureCollection,
   type GeographicLayerImportIssue,
   type GeographicMapOverlay,
+  geographicFeatureNoteSchema,
   geographicLayerFeatureCollectionSchema,
   geographicLayerImportIssueSchema,
+  type MunicipalProperty,
+  municipalPropertySchema,
   PROBLEM_MEDIA_TYPE,
   resourceDetailSchema,
   type SirenEntity,
@@ -14,31 +19,112 @@ import {
   ApiError,
   apiPathFromHref,
   apiResponse,
+  followSirenLink,
   SirenCapabilityUnavailable,
   sirenRepresentation,
   submitSirenAction,
 } from "../../services/apiClient";
 
-const featureCollections = new Map<string, Promise<GeographicLayerFeatureCollection>>();
+export interface GeographicLayerData {
+  layer: SirenEntity;
+  featureKey: GeographicFeatureKeyRule;
+  propertyKeys: string[];
+  collection: GeographicLayerFeatureCollection;
+}
 
-/** Reads the features of one layer version through the link advertised by the layer representation. */
+const layerData = new Map<string, Promise<GeographicLayerData>>();
+
+function layerRepresentation(overlay: GeographicMapOverlay): Promise<SirenEntity> {
+  return sirenRepresentation(`/resources/${encodeURIComponent(overlay.slug)}`);
+}
+
+/** Reads the key rule and the features of one layer version through the links advertised by the layer. */
 // @implements-requirement HALL-FR-DOC-310
-export function readGeographicLayerFeatures(overlay: GeographicMapOverlay): Promise<GeographicLayerFeatureCollection> {
+// @implements-requirement HALL-FR-DOC-360
+export function readGeographicLayer(overlay: GeographicMapOverlay): Promise<GeographicLayerData> {
   const key = `${overlay.layerId}.${overlay.version}`;
-  const cached = featureCollections.get(key);
+  const cached = layerData.get(key);
   if (cached) return cached;
   const pending = (async () => {
-    const layer = await sirenRepresentation(`/resources/${encodeURIComponent(overlay.slug)}`);
+    const layer = await layerRepresentation(overlay);
+    const detail = resourceDetailSchema.parse(layer.properties);
+    if (detail.kind !== "geographicLayer") throw new SirenCapabilityUnavailable("features");
     const link = findSirenLink(layer, "features");
     if (!link) throw new SirenCapabilityUnavailable("features");
     const response = await apiResponse(apiPathFromHref(link.href), {
       headers: { Accept: `application/geo+json, ${PROBLEM_MEDIA_TYPE}` },
     });
-    return geographicLayerFeatureCollectionSchema.parse(await response.json());
+    return {
+      layer,
+      featureKey: detail.featureKey,
+      propertyKeys: detail.propertyKeys,
+      collection: geographicLayerFeatureCollectionSchema.parse(await response.json()),
+    };
   })();
-  featureCollections.set(key, pending);
-  pending.catch(() => featureCollections.delete(key));
+  layerData.set(key, pending);
+  pending.catch(() => layerData.delete(key));
   return pending;
+}
+
+/** Notes of the features of a layer, keyed by stable feature key. */
+// @implements-requirement HALL-FR-DOC-390
+export async function readGeographicFeatureNotes(layer: SirenEntity): Promise<GeographicFeatureNote[]> {
+  const result = await followSirenLink<unknown>(layer, "feature-notes");
+  return geographicFeatureNoteSchema.array().parse(result.data);
+}
+
+export function canCreateGeographicFeatureNote(layer: SirenEntity | null | undefined): boolean {
+  return Boolean(layer && findSirenAction(layer, "resource.create-geographic-feature-note"));
+}
+
+export async function createGeographicFeatureNote(
+  layer: SirenEntity,
+  position: number,
+): Promise<GeographicFeatureNote> {
+  const result = await submitSirenAction<unknown>(layer, "resource.create-geographic-feature-note", { position });
+  return geographicFeatureNoteSchema.parse(result.data);
+}
+
+export interface MunicipalPropertyState {
+  representation: SirenEntity;
+  data: MunicipalProperty;
+}
+
+/** Reads the commune's parcel list through the link advertised by the map. */
+// @implements-requirement HALL-FR-DOC-400
+export async function readMunicipalProperty(mapId: string): Promise<MunicipalPropertyState | null> {
+  const map = await sirenRepresentation(`/resources/${encodeURIComponent(mapId)}`);
+  if (!findSirenLink(map, "municipal-property")) return null;
+  const result = await followSirenLink<unknown>(map, "municipal-property");
+  if (!result.representation) return null;
+  return { representation: result.representation, data: municipalPropertySchema.parse(result.data) };
+}
+
+export type MunicipalPropertyImportResult =
+  | { kind: "imported"; state: MunicipalPropertyState }
+  | { kind: "empty"; rejected: string[] };
+
+export async function importMunicipalProperty(
+  property: SirenEntity,
+  input: { label: string; file: File | null; list: string },
+): Promise<MunicipalPropertyImportResult> {
+  const form = new FormData();
+  form.set("label", input.label);
+  if (input.list.trim()) form.set("list", input.list);
+  if (input.file) form.set("file", input.file, input.file.name);
+  try {
+    const result = await submitSirenAction<unknown>(property, "resource.import-municipal-property", form);
+    if (!result.representation) throw new SirenCapabilityUnavailable("resource.import-municipal-property");
+    return {
+      kind: "imported",
+      state: { representation: result.representation, data: municipalPropertySchema.parse(result.data) },
+    };
+  } catch (failure) {
+    if (failure instanceof ApiError && failure.status === 422) {
+      return { kind: "empty", rejected: failure.problemErrors.filter((value) => typeof value === "string") };
+    }
+    throw failure;
+  }
 }
 
 function geographicOverlays(data: unknown): GeographicMapOverlay[] {

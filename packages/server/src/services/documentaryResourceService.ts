@@ -120,6 +120,7 @@ function verificationDueAt(fetchedAt: string): string {
 }
 
 // @implements-requirement HALL-FR-DOC-280
+// @implements-requirement HALL-FR-DOC-230
 export function createDocumentaryResourceService({
   resourcesClient,
   documentPreviewConverter,
@@ -238,6 +239,12 @@ export function createDocumentaryResourceService({
         .then(({ representation }) => representation);
     },
     async createEditorAsset(input) {
+      const owner = await resourcesClient.open(input.ownerId);
+      if (!owner) throw new DomainError("resource_not_found", 404);
+      if (owner.data.kind !== "text") throw new DomainError("invalid_request", 400);
+      if (!owner.representation.actions?.some(({ name }) => name === "resource.update-content")) {
+        throw new DomainError("permission_denied", 403);
+      }
       const inspection = await inspectDocument(input.fileName, input.content);
       if (inspection.format !== "jpeg" && inspection.format !== "png") {
         throw new DomainError("unsupported_document_format", 415);

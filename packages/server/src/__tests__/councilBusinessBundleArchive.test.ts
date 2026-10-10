@@ -45,6 +45,8 @@ function fixture() {
     files: [],
     editorAssets: [],
     externalReferenceIds: [],
+    geographicFeatureNotes: [],
+    municipalProperty: null,
   };
   manifest.resources.push({
     data: resourceDetailSchema.parse({
@@ -103,7 +105,13 @@ describe("council business bundle archive", () => {
         openEditorAsset: async () => null,
         readEditorAssetContent: async () => null,
       },
-      geographicLayersClient: { readFeatures: async () => null },
+      geographicLayersClient: {
+        readFeatures: async () => null,
+        listNotes: async () => [],
+        readMunicipalProperty: async () => {
+          throw new Error("No layer is carried");
+        },
+      },
     });
     const exported = decodeCouncilBusinessBundle(
       await service.export(input.manifest.business.sourceId, input.manifest.sender),

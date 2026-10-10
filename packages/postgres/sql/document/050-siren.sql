@@ -80,9 +80,17 @@ BEGIN
     END IF;
   END IF;
   -- @implements-requirement HALL-FR-DOC-310
+  -- @implements-requirement HALL-FR-DOC-390
   IF resource ->> 'kind' = 'geographicLayer' THEN
     links := links || jsonb_build_array(
-      hall.siren_link('features', '/api/resources/' || reference || '/features', 'application/geo+json')
+      hall.siren_link('features', '/api/resources/' || reference || '/features', 'application/geo+json'),
+      hall.siren_link('feature-notes', '/api/resources/' || reference || '/feature-notes')
+    );
+  END IF;
+  -- @implements-requirement HALL-FR-DOC-400
+  IF resource ->> 'kind' = 'geographic' THEN
+    links := links || jsonb_build_array(
+      hall.siren_link('municipal-property', '/api/resources/geographic-layers/municipal-property')
     );
   END IF;
   RETURN links;
@@ -110,6 +118,21 @@ AS $function$
       ELSE jsonb_build_array(jsonb_build_object('name', 'geographicResourceId', 'type', 'hidden', 'value', map_id))
     END,
     'multipart/form-data'
+  )
+$function$;
+
+-- @implements-requirement HALL-FR-DOC-390
+CREATE FUNCTION hall.geographic_feature_note_siren_action(reference TEXT)
+RETURNS JSONB
+LANGUAGE sql
+IMMUTABLE
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT hall.siren_action(
+    'resource.create-geographic-feature-note',
+    'POST',
+    '/api/resources/' || reference || '/feature-notes',
+    jsonb_build_array(jsonb_build_object('name', 'position', 'type', 'number'))
   )
 $function$;
 
@@ -160,6 +183,17 @@ BEGIN
       RETURN jsonb_build_array(
         hall.siren_action('resource.update-content', 'PUT', '/api/resources/' || reference || '/content')
       ) || hall.geographic_map_overlay_siren_actions(resource);
+    END IF;
+    -- @implements-requirement HALL-FR-DOC-390
+    IF resource_kind = 'geographicLayer' AND hall.has_permission('workspace.write') THEN
+      RETURN jsonb_build_array(hall.geographic_feature_note_siren_action(reference));
+    END IF;
+    IF resource_kind = 'text' AND hall.has_permission('workspace.write') AND EXISTS (
+      SELECT FROM hall.geographic_feature_note AS note WHERE note.text_resource_id = (resource ->> 'id')::UUID
+    ) THEN
+      RETURN jsonb_build_array(
+        hall.siren_action('resource.update-content', 'PUT', '/api/resources/' || reference || '/content')
+      );
     END IF;
     RETURN actions;
   END IF;
@@ -217,6 +251,8 @@ BEGIN
         'multipart/form-data'
       )
     );
+  ELSIF resource_kind = 'geographicLayer' THEN
+    actions := actions || jsonb_build_array(hall.geographic_feature_note_siren_action(reference));
   ELSIF resource_kind = 'legalReference' THEN
     -- @requirement-reference HALL-FR-DOC-220 DOCUMENTARY_SIREN_IS_DATABASE_OWNED:
     -- A folder listing carries a summary without the legal document. It must
@@ -307,6 +343,26 @@ AS $function$
     || jsonb_build_object('rel', jsonb_build_array('item'))
 $function$;
 
+CREATE FUNCTION hall.editor_asset_siren_action()
+RETURNS JSONB
+LANGUAGE sql
+IMMUTABLE
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT hall.siren_action(
+    'resource.create-editor-asset',
+    'POST',
+    '/api/resources/editor-assets',
+    jsonb_build_array(
+      jsonb_build_object('name', 'file', 'type', 'file'),
+      jsonb_build_object('name', 'ownerKind', 'type', 'text', 'value', 'textResourceContent'),
+      jsonb_build_object('name', 'ownerId', 'type', 'text'),
+      jsonb_build_object('name', 'title', 'type', 'text')
+    ),
+    'multipart/form-data'
+  )
+$function$;
+
 CREATE FUNCTION hall.resource_collection_siren_actions()
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -316,6 +372,12 @@ SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
   IF NOT hall.is_administrator() THEN
+    -- @implements-requirement HALL-FR-DOC-230
+    -- Images may be uploaded by anyone who may edit a text; the server checks
+    -- that the owner text offers resource.update-content to the caller.
+    IF hall.has_permission('workspace.write') THEN
+      RETURN jsonb_build_array(hall.editor_asset_siren_action());
+    END IF;
     RETURN '[]'::jsonb;
   END IF;
   RETURN jsonb_build_array(
@@ -351,18 +413,7 @@ BEGIN
       ),
       'multipart/form-data'
     ),
-    hall.siren_action(
-      'resource.create-editor-asset',
-      'POST',
-      '/api/resources/editor-assets',
-      jsonb_build_array(
-        jsonb_build_object('name', 'file', 'type', 'file'),
-        jsonb_build_object('name', 'ownerKind', 'type', 'text', 'value', 'textResourceContent'),
-        jsonb_build_object('name', 'ownerId', 'type', 'text'),
-        jsonb_build_object('name', 'title', 'type', 'text')
-      ),
-      'multipart/form-data'
-    ),
+    hall.editor_asset_siren_action(),
     hall.siren_action(
       'resource.search-legal-references',
       'POST',
@@ -480,6 +531,40 @@ AS $function$
     || CASE
       WHEN hall.is_administrator() OR hall.has_permission('workspace.write')
         THEN jsonb_build_object('actions', jsonb_build_array(hall.geographic_layer_import_siren_action('', NULL)))
+      ELSE '{}'::jsonb
+    END
+$function$;
+
+-- @implements-requirement HALL-FR-DOC-400
+CREATE FUNCTION hall_api.present_municipal_property(state JSONB)
+RETURNS JSONB
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT jsonb_build_object(
+      'class', jsonb_build_array('municipal-property'),
+      'properties', state,
+      'links', jsonb_build_array(hall.siren_link('self', '/api/resources/geographic-layers/municipal-property'))
+    )
+    || CASE
+      WHEN hall.is_administrator() OR hall.has_permission('workspace.write') THEN jsonb_build_object(
+        'actions',
+        jsonb_build_array(
+          hall.siren_action(
+            'resource.import-municipal-property',
+            'POST',
+            '/api/resources/geographic-layers/municipal-property/import',
+            jsonb_build_array(
+              jsonb_build_object('name', 'label', 'type', 'text'),
+              jsonb_build_object('name', 'file', 'type', 'file'),
+              jsonb_build_object('name', 'list', 'type', 'textarea')
+            ),
+            'multipart/form-data'
+          )
+        )
+      )
       ELSE '{}'::jsonb
     END
 $function$;

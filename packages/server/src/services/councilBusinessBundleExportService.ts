@@ -19,7 +19,7 @@ export function createCouncilBusinessBundleExportService({
     ResourcesClient,
     "open" | "listAll" | "readDocumentContent" | "openEditorAsset" | "readEditorAssetContent"
   >;
-  geographicLayersClient: Pick<GeographicLayersClient, "readFeatures">;
+  geographicLayersClient: Pick<GeographicLayersClient, "readFeatures" | "listNotes" | "readMunicipalProperty">;
 }) {
   return {
     async export(id: string, sender: CouncilBusinessBundleManifest["sender"]): Promise<Buffer> {
@@ -43,7 +43,10 @@ export function createCouncilBusinessBundleExportService({
         files: [],
         editorAssets: [],
         externalReferenceIds: [],
+        geographicFeatureNotes: [],
+        municipalProperty: null,
       };
+      const carriedParcelIds = new Set<string>();
       const files = new Map<string, Buffer>();
       const putFile = (binary: ResourceContent): string => {
         const sha256 = bundleContentHash(binary.content);
@@ -98,7 +101,7 @@ export function createCouncilBusinessBundleExportService({
           geographicLayer: async (entry) => {
             const collection = await geographicLayersClient.readFeatures(entry.id);
             if (!collection) throw new DomainError("resource_not_found", 404);
-            const { features } = parseGeographicLayerImport({
+            const { featureKeyRule, features } = parseGeographicLayerImport({
               fileName: entry.source.fileName,
               content: Buffer.from(
                 JSON.stringify({
@@ -112,7 +115,22 @@ export function createCouncilBusinessBundleExportService({
                 }),
               ),
             });
-            const content = Buffer.from(JSON.stringify({ source: entry.source, features }));
+            const content = Buffer.from(
+              JSON.stringify({ source: entry.source, featureKeyRule, propertyKeys: entry.propertyKeys, features }),
+            );
+            if (featureKeyRule.kind === "cadastreParcel") {
+              for (const feature of features) if (feature.key) carriedParcelIds.add(feature.key);
+            }
+            for (const note of (await geographicLayersClient.listNotes(entry.id)) ?? []) {
+              ids.add(note.noteId);
+              if (manifest.geographicFeatureNotes.some(({ noteSourceId }) => noteSourceId === note.noteId)) continue;
+              manifest.geographicFeatureNotes.push({
+                noteSourceId: note.noteId,
+                subjectKind: note.subjectKind,
+                layerSourceId: note.subjectKind === "layerFeature" ? entry.id : null,
+                key: note.key,
+              });
+            }
             manifest.resources.push({
               data: entry,
               binaryPath: putFile({
@@ -129,6 +147,27 @@ export function createCouncilBusinessBundleExportService({
             manifest.resources.push({ data: entry, binaryPath: putFile(binary) });
           },
         });
+      }
+      if (carriedParcelIds.size > 0) {
+        const property = (await geographicLayersClient.readMunicipalProperty()).data;
+        const parcels = property.parcelIds
+          .filter((parcelId) => carriedParcelIds.has(parcelId))
+          .map((parcelId) => ({ parcelId, sourceId: property.parcelSourceIds[parcelId]! }));
+        const sourceIds = new Set(parcels.map(({ sourceId }) => sourceId));
+        if (parcels.length > 0) {
+          manifest.municipalProperty = {
+            sources: property.sources
+              .filter(({ id: sourceId }) => sourceIds.has(sourceId))
+              .map(({ id: sourceId, label, fileName, importedAt, importedBy }) => ({
+                id: sourceId,
+                label,
+                fileName,
+                importedAt,
+                importedBy,
+              })),
+            parcels,
+          };
+        }
       }
       for (const reference of references) {
         if (ids.has(reference)) continue;

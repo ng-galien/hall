@@ -65,7 +65,7 @@ BEGIN
       -- @implements-requirement HALL-FR-DOC-330
       WHEN 'geographicLayer' THEN
         layer_file := convert_from(decode(binary_files->>(entry->>'binaryPath'),'base64'),'UTF8')::JSONB;
-        created := hall_api.create_geographic_layer_resource(target_path,item->>'name',layer_file->'source',layer_file->'features');
+        created := hall_api.create_geographic_layer_resource(target_path,item->>'name',layer_file->'source',coalesce(layer_file->'featureKeyRule','{"kind": "none"}'::JSONB),ARRAY(SELECT jsonb_array_elements_text(coalesce(layer_file->'propertyKeys',item->'propertyKeys','[]'::JSONB))),layer_file->'features');
       ELSE RAISE EXCEPTION USING ERRCODE='HV609', MESSAGE='Unsupported bundle resource';
     END CASE;
     identity_map := identity_map || jsonb_build_object(item->>'id',created->>'id');
@@ -98,6 +98,18 @@ BEGIN
       PERFORM hall_api.set_geographic_map_overlay((identity_map->>(entry#>>'{data,id}'))::UUID,(identity_map->>(overlay->>'layerId'))::UUID,(overlay->>'visible')::BOOLEAN,(overlay->>'opacity')::NUMERIC);
     END LOOP;
   END LOOP;
+  -- @implements-requirement HALL-FR-DOC-390
+  INSERT INTO hall.geographic_feature_note (text_resource_id, subject_kind, geographic_layer_resource_id, subject_key)
+  SELECT (identity_map->>(link->>'noteSourceId'))::UUID,
+         link->>'subjectKind',
+         CASE WHEN link->>'layerSourceId' IS NULL THEN NULL ELSE (identity_map->>(link->>'layerSourceId'))::UUID END,
+         link->>'key'
+  FROM jsonb_array_elements(coalesce(bundle->'geographicFeatureNotes','[]'::JSONB)) AS item(link)
+  WHERE identity_map ? (link->>'noteSourceId')
+    AND (link->>'layerSourceId' IS NULL OR identity_map ? (link->>'layerSourceId'))
+  ON CONFLICT DO NOTHING;
+  -- @implements-requirement HALL-FR-DOC-400
+  PERFORM hall.import_municipal_parcels(bundle->'municipalProperty');
   FOR entry IN SELECT value FROM jsonb_array_elements(bundle#>'{business,resourceSourceIds}') LOOP
     PERFORM hall_api.associate_council_business_resource(source_business,(identity_map->>(entry#>>'{}'))::UUID);
   END LOOP;

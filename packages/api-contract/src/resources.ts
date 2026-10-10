@@ -277,6 +277,8 @@ export const geographicLayerFeatureCollectionSchema = z
             type: z.literal("Feature"),
             id: z.number().int().nonnegative(),
             sourceId: z.string().nullable(),
+            key: z.string().min(1).nullable(),
+            label: z.string().min(1).nullable(),
             geometry: z.object({ type: geographicLayerGeometryTypeSchema, coordinates: z.array(z.unknown()) }).strict(),
             properties: z.record(z.string(), z.unknown()).nullable(),
           })
@@ -285,6 +287,49 @@ export const geographicLayerFeatureCollectionSchema = z
       .max(GEOGRAPHIC_LAYER_MAX_FEATURES),
   })
   .strict();
+// @implements-requirement HALL-FR-DOC-360
+export const geographicFeatureKeyRuleSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("cadastreParcel"), property: z.enum(["idu", "id"]) }).strict(),
+  z.object({ kind: z.literal("sourceId") }).strict(),
+  z.object({ kind: z.literal("none") }).strict(),
+]);
+// @implements-requirement HALL-FR-DOC-390
+export const geographicFeatureNoteSchema = z
+  .object({
+    key: z.string().min(1),
+    subjectKind: z.enum(["cadastreParcel", "layerFeature"]),
+    noteId: z.string().uuid(),
+    slug: z.string().min(1),
+    name: z.string().min(1),
+    fullPath: z.string().min(1),
+  })
+  .strict();
+export const createGeographicFeatureNoteSchema = z.object({ position: z.number().int().nonnegative() }).strict();
+// @implements-requirement HALL-FR-DOC-400
+const municipalPropertySourceSchema = z
+  .object({
+    id: z.string().uuid(),
+    label: z.string().min(1),
+    fileName: z.string().min(1).nullable(),
+    parcelCount: z.number().int().nonnegative(),
+    importedAt: z.iso.datetime({ offset: true }),
+    importedBy: z.string().min(1),
+  })
+  .strict();
+export const municipalPropertySchema = z
+  .object({
+    source: municipalPropertySourceSchema.nullable(),
+    sources: z.array(municipalPropertySourceSchema),
+    parcelIds: z.array(z.string().min(1)),
+    parcelSourceIds: z.record(z.string(), z.string().uuid()),
+    matchedParcelCount: z.number().int().nonnegative(),
+    rejected: z.array(z.string()).optional(),
+  })
+  .strict();
+export const importMunicipalPropertySchema = z
+  .object({ label: z.string().trim().min(1).max(200), list: z.string().max(5_000_000).optional() })
+  .strict();
+
 // @implements-requirement HALL-FR-DOC-330
 export const geographicMapOverlaySchema = z
   .object({
@@ -503,6 +548,8 @@ export const resourceDetailSchema = z.discriminatedUnion("kind", [
     extent: geographicExtentSchema,
     source: geographicLayerSourceSchema,
     version: versionSchema,
+    featureKey: geographicFeatureKeyRuleSchema.default({ kind: "none" }),
+    propertyKeys: z.array(z.string()).default([]),
   }),
 ]);
 
@@ -597,6 +644,9 @@ export type LegalReferenceSearchInput = z.infer<typeof legalReferenceSearchInput
 export type LegalReferenceSearchResult = z.infer<typeof legalReferenceSearchResultSchema>;
 export type ResolveLegalReference = z.infer<typeof resolveLegalReferenceSchema>;
 export type GeographicMapOverlay = z.infer<typeof geographicMapOverlaySchema>;
+export type GeographicFeatureKeyRule = z.infer<typeof geographicFeatureKeyRuleSchema>;
+export type GeographicFeatureNote = z.infer<typeof geographicFeatureNoteSchema>;
+export type MunicipalProperty = z.infer<typeof municipalPropertySchema>;
 export type GeographicLayerFeatureCollection = z.infer<typeof geographicLayerFeatureCollectionSchema>;
 export type GeographicLayerImportIssue = z.infer<typeof geographicLayerImportIssueSchema>;
 export type LinkGeographicLayer = z.infer<typeof linkGeographicLayerSchema>;

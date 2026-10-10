@@ -315,7 +315,9 @@ BEGIN
         'featureCount', layer.feature_count,
         'extent', hall.geographic_extent_bounds(layer.extent),
         'source', layer.source,
-        'version', layer.version
+        'version', layer.version,
+        'featureKey', layer.feature_key_rule,
+        'propertyKeys', to_jsonb(layer.property_keys)
       )
       FROM hall.geographic_layer_resource AS layer
       WHERE layer.id = target.geographic_layer_resource_id

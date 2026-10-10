@@ -78,7 +78,11 @@ CREATE TABLE hall.geographic_layer_resource (
   source JSONB NOT NULL CONSTRAINT "geographic_layer_resource_source_check" CHECK (COALESCE(jsonb_typeof(source) = 'object'::text AND (source ->> 'format'::text) = 'geojson'::text AND (source ->> 'fileName'::text) <> ''::text AND (source ->> 'contentSha256'::text) ~ '^[0-9a-f]{64}$'::text AND jsonb_typeof(source -> 'byteSize'::text) = 'number'::text AND jsonb_typeof(source -> 'importedAt'::text) = 'string'::text, false)),
   feature_count INTEGER NOT NULL CONSTRAINT "geographic_layer_resource_feature_count_check" CHECK (feature_count >= 1 AND feature_count <= 20000),
   extent BOX NOT NULL CONSTRAINT "geographic_layer_resource_extent_check" CHECK (extent <@ '(180,90),(-180,-90)'::box),
-  version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "geographic_layer_resource_version_check" CHECK (version > 0)
+  version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "geographic_layer_resource_version_check" CHECK (version > 0),
+  -- @implements-requirement HALL-FR-DOC-360
+  feature_key_rule JSONB NOT NULL DEFAULT '{"kind": "none"}'::jsonb CONSTRAINT "geographic_layer_resource_feature_key_rule_check" CHECK ((feature_key_rule ->> 'kind'::text) = ANY (ARRAY['cadastreParcel'::text, 'sourceId'::text, 'none'::text])),
+  -- @implements-requirement HALL-FR-DOC-380
+  property_keys TEXT[] NOT NULL DEFAULT '{}'::text[]
 );
 
 COMMENT ON TABLE hall.geographic_layer_resource IS
@@ -93,6 +97,10 @@ CREATE TABLE hall.geographic_layer_feature (
   geometry JSONB NOT NULL CONSTRAINT "geographic_layer_feature_geometry_check" CHECK (COALESCE(((geometry ->> 'type'::text) = ANY (ARRAY['Point'::text, 'MultiPoint'::text, 'LineString'::text, 'MultiLineString'::text, 'Polygon'::text, 'MultiPolygon'::text])) AND jsonb_typeof(geometry -> 'coordinates'::text) = 'array'::text, false)),
   properties JSONB NOT NULL CONSTRAINT "geographic_layer_feature_properties_check" CHECK (jsonb_typeof(properties) = ANY (ARRAY['object'::text, 'null'::text])),
   extent BOX NOT NULL CONSTRAINT "geographic_layer_feature_extent_check" CHECK (extent <@ '(180,90),(-180,-90)'::box),
+  -- @implements-requirement HALL-FR-DOC-360
+  feature_key TEXT CONSTRAINT "geographic_layer_feature_feature_key_check" CHECK (feature_key <> ''::text),
+  -- @implements-requirement HALL-FR-DOC-370
+  label TEXT CONSTRAINT "geographic_layer_feature_label_check" CHECK (label <> ''::text),
   PRIMARY KEY (geographic_layer_resource_id, position)
 );
 
@@ -101,6 +109,10 @@ COMMENT ON TABLE hall.geographic_layer_feature IS
 
 -- @implements-requirement HALL-TR-DOC-080
 CREATE INDEX geographic_layer_feature_extent_idx ON hall.geographic_layer_feature USING gist (extent);
+
+-- @implements-requirement HALL-FR-DOC-360
+CREATE UNIQUE INDEX geographic_layer_feature_key_idx ON hall.geographic_layer_feature USING btree (geographic_layer_resource_id, feature_key) WHERE (feature_key IS NOT NULL);
+CREATE INDEX geographic_layer_feature_key_lookup_idx ON hall.geographic_layer_feature USING btree (feature_key) WHERE (feature_key IS NOT NULL);
 
 -- @implements-requirement HALL-FR-DOC-330
 CREATE TABLE hall.geographic_map_overlay (
@@ -111,6 +123,42 @@ CREATE TABLE hall.geographic_map_overlay (
   opacity NUMERIC(3,2) NOT NULL DEFAULT 1 CONSTRAINT "geographic_map_overlay_opacity_check" CHECK (opacity > 0::numeric AND opacity <= 1::numeric),
   PRIMARY KEY (geographic_resource_id, geographic_layer_resource_id),
   CONSTRAINT geographic_map_overlay_position_unique UNIQUE (geographic_resource_id, position)
+);
+
+-- @implements-requirement HALL-FR-DOC-390
+-- A note is a text resource attached to a subject: its kind, its scope and its
+-- stable key. Cadastre parcels are global subjects; other layer features are
+-- scoped to their layer. Drawn map elements can be added as another kind.
+CREATE TABLE hall.geographic_feature_note (
+  text_resource_id UUID PRIMARY KEY REFERENCES hall.text_resource(id) ON DELETE CASCADE,
+  subject_kind TEXT NOT NULL CONSTRAINT "geographic_feature_note_subject_kind_check" CHECK (subject_kind = ANY (ARRAY['cadastreParcel'::text, 'layerFeature'::text])),
+  geographic_layer_resource_id UUID REFERENCES hall.geographic_layer_resource(id) ON DELETE CASCADE,
+  subject_key TEXT NOT NULL CONSTRAINT "geographic_feature_note_subject_key_check" CHECK (subject_key <> ''::text),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
+  CONSTRAINT "geographic_feature_note_scope_matches_kind" CHECK (subject_kind = 'cadastreParcel'::text AND geographic_layer_resource_id IS NULL OR subject_kind = 'layerFeature'::text AND geographic_layer_resource_id IS NOT NULL),
+  CONSTRAINT geographic_feature_note_layer_subject_unique UNIQUE (geographic_layer_resource_id, subject_key)
+);
+
+CREATE UNIQUE INDEX geographic_feature_note_parcel_subject_idx ON hall.geographic_feature_note USING btree (subject_key) WHERE (subject_kind = 'cadastreParcel'::text);
+
+-- @implements-requirement HALL-FR-DOC-400
+CREATE TABLE hall.municipal_property_source (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  label TEXT NOT NULL CONSTRAINT "municipal_property_source_label_check" CHECK (label = btrim(label) AND label <> ''::text),
+  file_name TEXT CONSTRAINT "municipal_property_source_file_name_check" CHECK (file_name <> ''::text),
+  parcel_count INTEGER NOT NULL CONSTRAINT "municipal_property_source_parcel_count_check" CHECK (parcel_count >= 0),
+  imported_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
+  imported_by TEXT NOT NULL CONSTRAINT "municipal_property_source_imported_by_check" CHECK (imported_by <> ''::text),
+  imported_by_name TEXT NOT NULL CONSTRAINT "municipal_property_source_imported_by_name_check" CHECK (imported_by_name <> ''::text)
+);
+
+COMMENT ON TABLE hall.municipal_property_source IS
+  'Each import of the list of parcels owned by the commune; the latest one is the current list.';
+
+-- @implements-requirement HALL-FR-DOC-400
+CREATE TABLE hall.municipal_property_parcel (
+  parcel_id TEXT PRIMARY KEY CONSTRAINT "municipal_property_parcel_parcel_id_check" CHECK (parcel_id ~ '^([0-9]{2}|2A|2B)[0-9]{6}([0-9A-Z][A-Z]|[A-Z][0-9A-Z])[0-9]{4}$'::text),
+  municipal_property_source_id UUID NOT NULL REFERENCES hall.municipal_property_source(id) ON DELETE RESTRICT
 );
 
 COMMENT ON TABLE hall.geographic_map_overlay IS

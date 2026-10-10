@@ -10,6 +10,9 @@ const postgres = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 const fixture = readFileSync(
   fileURLToPath(new URL("../../../client/e2e/fixtures/geographic-layer-parcels.geojson", import.meta.url)),
 );
+const cadastreFixture = readFileSync(
+  fileURLToPath(new URL("../../../client/e2e/fixtures/geographic-layer-cadastre.geojson", import.meta.url)),
+);
 const administrator = { email: "admin@example.fr", displayName: "Administration", password: "Mot-de-passe-demo-2026!" };
 const reader = { email: "lecture@example.fr", password: "Mot-de-passe-lecture-2026!" };
 const contributor = { email: "contribution@example.fr", password: "Mot-de-passe-contribution-2026!" };
@@ -209,7 +212,9 @@ postgres("geographic layers", () => {
       .attach("file", fixture, "geographic-layer-parcels.geojson")
       .expect(201);
     const layerId = domainBody<{ id: string }>(created).id;
-    expect(((created.body.actions ?? []) as SirenAction[]).map(({ name }) => name)).toEqual([]);
+    expect(((created.body.actions ?? []) as SirenAction[]).map(({ name }) => name)).toEqual([
+      "resource.create-geographic-feature-note",
+    ]);
     const hidden = await contributorAgent
       .put(action(opened.body, "resource.link-geographic-layer").href)
       .send({ layerId, visible: false })
@@ -292,5 +297,236 @@ postgres("geographic layers", () => {
     expect(
       geographicLayerFeatureCollectionSchema.parse(JSON.parse(features.text)).features.map(({ sourceId }) => sourceId),
     ).toEqual(["essai-1", "essai-2", "essai-3", "essai-4"]);
+  });
+
+  // @verifies-requirement HALL-FR-DOC-360
+  // @verifies-requirement HALL-FR-DOC-390
+  // @verifies-requirement HALL-FR-DOC-400
+  it("keys parcels, keeps their notes across vintages and flags the commune's parcels", async () => {
+    const { agent: administration, url } = await createPostgresHttpTestServer({ devAutoLogin: false });
+    await administration.post("/api/auth/bootstrap").send(administrator).expect(201);
+    await administration.post("/api/auth/login").send(administrator).expect(200);
+    await administration
+      .post("/api/users")
+      .send({ ...reader, displayName: "Lecture seule", roles: ["reader"] })
+      .expect(201);
+    const importLayer = async (name: string) =>
+      administration
+        .post("/api/resources/geographic-layers/import")
+        .field("path", "Cartes")
+        .field("name", name)
+        .attach("file", cadastreFixture, "parcelles.geojson")
+        .expect(201);
+    const first = await importLayer("Parcelles 2026");
+    expect(first.body.properties.featureKey).toEqual({ kind: "cadastreParcel", property: "id" });
+    const features = geographicLayerFeatureCollectionSchema.parse(
+      JSON.parse((await administration.get(`/api/resources/${first.body.properties.id}/features`).expect(200)).text),
+    );
+    expect(features.features.map(({ key, label }) => [key, label])).toEqual([
+      ["999990000A0001", "A 1"],
+      ["999990000A0002", "A 2"],
+      ["999990000A0003", "A 3"],
+    ]);
+
+    const createNote = action(first.body, "resource.create-geographic-feature-note");
+    const note = await administration.post(createNote.href).send({ position: 1 }).expect(201);
+    expect(note.body.properties).toMatchObject({
+      key: "999990000A0002",
+      subjectKind: "cadastreParcel",
+      name: "Parcelle A 2 (999990000A0002)",
+      fullPath: "Cartes/Notes cartographiques/Parcelle A 2 (999990000A0002)",
+    });
+    const noteId = note.body.properties.noteId as string;
+    await administration
+      .put(`/api/resources/${noteId}/content`)
+      .send({ kind: "text", expectedVersion: 1, content: "Bail agricole jusqu’en 2030." })
+      .expect(200);
+    const search = await administration.get("/api/resources/search?query=Parcelle%20A%202").expect(200);
+    expect(search.body.properties.items.map(({ id }: { id: string }) => id)).toContain(noteId);
+
+    const second = await importLayer("Parcelles 2027");
+    const notesLink = (second.body.links as Array<{ rel: string[]; href: string }>).find((link) =>
+      link.rel.includes("feature-notes"),
+    );
+    const notes = await administration.get(notesLink!.href).expect(200);
+    expect(notes.body.properties.items).toEqual([expect.objectContaining({ key: "999990000A0002", noteId })]);
+
+    const empty = await administration
+      .post("/api/resources/geographic-layers/municipal-property/import")
+      .field("label", "Liste vide")
+      .field("list", "aucune parcelle")
+      .expect(422);
+    expect(empty.body).toMatchObject({ code: "municipal_property_empty", errors: ["aucune", "parcelle"] });
+    const imported = await administration
+      .post("/api/resources/geographic-layers/municipal-property/import")
+      .field("label", "Liste du secrétariat")
+      .attach("file", Buffer.from("idu;nature\n999990000A0001;mairie\n999990000A0009;bois\n"), "proprietes.csv")
+      .expect(201);
+    expect(imported.body.properties).toMatchObject({
+      source: {
+        label: "Liste du secrétariat",
+        fileName: "proprietes.csv",
+        parcelCount: 2,
+        importedBy: "Administration",
+      },
+      parcelIds: ["999990000A0001", "999990000A0009"],
+      matchedParcelCount: 1,
+      rejected: ["idu", "nature", "mairie", "bois"],
+    });
+
+    const readerAgent = request.agent(url);
+    await readerAgent.post("/api/auth/login").send(reader).expect(200);
+    const property = await readerAgent.get("/api/resources/geographic-layers/municipal-property").expect(200);
+    expect(property.body.properties.parcelIds).toEqual(["999990000A0001", "999990000A0009"]);
+    expect(property.body.actions).toBeUndefined();
+    await readerAgent.get(notesLink!.href).expect(200);
+    await readerAgent.post(createNote.href).send({ position: 0 }).expect(403);
+    await readerAgent
+      .post("/api/resources/geographic-layers/municipal-property/import")
+      .field("label", "Liste")
+      .field("list", "999990000A0001")
+      .expect(403);
+  });
+
+  // @verifies-requirement HALL-FR-DOC-230
+  // @verifies-requirement HALL-FR-DOC-380
+  it("serves properties in file order and lets a contributor upload images only into texts they may edit", async () => {
+    const { agent: administration, url } = await createPostgresHttpTestServer({ devAutoLogin: false });
+    await administration.post("/api/auth/bootstrap").send(administrator).expect(201);
+    await administration.post("/api/auth/login").send(administrator).expect(200);
+    await administration
+      .post("/api/users")
+      .send({ ...contributor, displayName: "Contribution", roles: ["contributor"] })
+      .expect(201);
+    const layer = await administration
+      .post("/api/resources/geographic-layers/import")
+      .field("path", "Cartes")
+      .attach("file", cadastreFixture, "parcelles.geojson")
+      .expect(201);
+    expect(layer.body.properties.propertyKeys).toEqual(["id", "commune", "prefixe", "section", "numero", "contenance"]);
+    const features = await administration.get(`/api/resources/${layer.body.properties.id}/features`).expect(200);
+    expect(Object.keys(JSON.parse(features.text).features[0].properties)).toEqual([
+      "id",
+      "commune",
+      "prefixe",
+      "section",
+      "numero",
+      "contenance",
+    ]);
+    const ordinaryText = await administration
+      .post("/api/resources")
+      .send({ kind: "text", path: "", name: "Texte du secrétariat", content: "" })
+      .expect(201);
+
+    const contributorAgent = request.agent(url);
+    await contributorAgent.post("/api/auth/login").send(contributor).expect(200);
+    const collection = await contributorAgent.get("/api/resources").expect(200);
+    expect((collection.body.actions as SirenAction[]).map(({ name }) => name)).toEqual([
+      "resource.create-editor-asset",
+    ]);
+    const note = await contributorAgent
+      .post(action(layer.body, "resource.create-geographic-feature-note").href)
+      .send({ position: 0 })
+      .expect(201);
+    const image = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6uAAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    await contributorAgent
+      .post("/api/resources/editor-assets")
+      .field("ownerKind", "textResourceContent")
+      .field("ownerId", note.body.properties.noteId)
+      .field("title", "Photo de la parcelle")
+      .attach("file", image, "parcelle.png")
+      .expect(201);
+    await contributorAgent
+      .post("/api/resources/editor-assets")
+      .field("ownerKind", "textResourceContent")
+      .field("ownerId", ordinaryText.body.properties.id)
+      .field("title", "Photo")
+      .attach("file", image, "photo.png")
+      .expect(403);
+  });
+
+  // @verifies-requirement HALL-FR-DOC-390
+  // @verifies-requirement HALL-FR-DOC-400
+  it("carries parcel notes and the commune's parcels of the carried layers through a council business bundle", async () => {
+    const source = await createPostgresHttpTestServer();
+    const business = domainBody<{ id: string }>(
+      await source.agent
+        .post("/api/council-business")
+        .send({ path: "Travaux", name: "Captage", reportName: "Rapport", reportContent: "État du captage" })
+        .expect(201),
+    );
+    const map = await source.agent
+      .post("/api/resources")
+      .send({ kind: "geographic", path: "Travaux/Captage", name: "Périmètre", councilBusinessId: business.id })
+      .expect(201);
+    const layer = await source.agent
+      .post("/api/resources/geographic-layers/import")
+      .field("path", "Cartes")
+      .field("name", "Parcelles")
+      .field("geographicResourceId", map.body.properties.id)
+      .attach("file", cadastreFixture, "parcelles.geojson")
+      .expect(201);
+    const note = await source.agent
+      .post(action(layer.body, "resource.create-geographic-feature-note").href)
+      .send({ position: 1 })
+      .expect(201);
+    await source.agent
+      .put(`/api/resources/${note.body.properties.noteId}/content`)
+      .send({ kind: "text", expectedVersion: 1, content: "Bail agricole jusqu’en 2030." })
+      .expect(200);
+    const listed = await source.agent
+      .post("/api/resources/geographic-layers/municipal-property/import")
+      .field("label", "Liste du secrétariat")
+      .field("list", "999990000A0001 12345678900012 999990000B0007")
+      .expect(201);
+    expect(listed.body.properties.rejected).toEqual(["12345678900012"]);
+    expect(listed.body.properties.matchedParcelCount).toBe(1);
+    const exported = await source.agent
+      .get(`/api/council-business/${business.id}/bundle?firstName=Epona&lastName=Arverna`)
+      .buffer(true)
+      .parse((response, callback) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        response.on("end", () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+    const bundle = decodeCouncilBusinessBundle(exported.body as Buffer);
+    expect(bundle.manifest.geographicFeatureNotes).toEqual([
+      {
+        noteSourceId: note.body.properties.noteId,
+        subjectKind: "cadastreParcel",
+        layerSourceId: null,
+        key: "999990000A0002",
+      },
+    ]);
+    expect(bundle.manifest.municipalProperty?.parcels.map(({ parcelId }) => parcelId)).toEqual(["999990000A0001"]);
+
+    const target = await createPostgresHttpTestServer();
+    await target.agent
+      .post("/api/resources/geographic-layers/municipal-property/import")
+      .field("label", "Liste locale")
+      .field("list", "999990000A0003")
+      .expect(201);
+    await target.agent
+      .post("/api/council-business/import-bundle")
+      .attach("file", exported.body as Buffer, "captage.hallbundle")
+      .expect(201);
+    const layers = domainBody<Array<{ id: string; slug: string }>>(
+      await target.agent.get("/api/resources/geographic-layers").expect(200),
+    );
+    expect(layers).toHaveLength(1);
+    const notes = await target.agent.get(`/api/resources/${layers[0]!.slug}/feature-notes`).expect(200);
+    expect(notes.body.properties.items).toEqual([expect.objectContaining({ key: "999990000A0002" })]);
+    const importedNote = await target.agent.get(`/api/resources/${notes.body.properties.items[0].noteId}`).expect(200);
+    expect(importedNote.body.properties.content).toBe("Bail agricole jusqu’en 2030.");
+    const property = await target.agent.get("/api/resources/geographic-layers/municipal-property").expect(200);
+    expect(property.body.properties.parcelIds).toEqual(["999990000A0001", "999990000A0003"]);
+    const addedSource = property.body.properties.sources.find(
+      ({ id }: { id: string }) => id === property.body.properties.parcelSourceIds["999990000A0001"],
+    );
+    expect(addedSource.label).toBe("Liste du secrétariat (dossier d’affaire importé)");
   });
 });

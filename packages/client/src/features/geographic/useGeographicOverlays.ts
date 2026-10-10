@@ -1,23 +1,66 @@
-import type { GeographicMapOverlay } from "@hall/api-contract";
+import type {
+  GeographicFeatureKeyRule,
+  GeographicLayerFeatureCollection,
+  GeographicMapOverlay,
+  SirenEntity,
+} from "@hall/api-contract";
 import type Feature from "ol/Feature";
+import type { FeatureLike } from "ol/Feature";
 import GeoJSON from "ol/format/GeoJSON";
 import type Geometry from "ol/geom/Geometry";
 import VectorLayer from "ol/layer/Vector";
 import type OlMap from "ol/Map";
+import { transformExtent } from "ol/proj";
 import VectorSource from "ol/source/Vector";
-import { Circle as CircleStyle, Fill, Stroke, Style } from "ol/style";
-import { useEffect, useRef, useState } from "react";
-import { readGeographicLayerFeatures } from "./geographicLayersApi";
+import { Circle as CircleStyle, Fill, Stroke, Style, Text } from "ol/style";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { readGeographicLayer } from "./geographicLayersApi";
 
 export type GeographicOverlayStatus = "loading" | "ready" | "unavailable";
 
 /** Data layers sit above the IGN backgrounds (z-index 0 to 2) and below the drawing (z-index 100). */
 const OVERLAY_BASE_Z_INDEX = 50;
+/** Parcel numbers are drawn from zoom 17, where a parcel is wide enough for its label. */
+export const PARCEL_LABEL_MIN_ZOOM = 17;
 const geoJson = new GeoJSON();
+
+export interface GeographicFeatureSelection {
+  layerId: string;
+  position: number;
+}
+
+export interface GeographicFeatureDescription {
+  layerId: string;
+  layer: SirenEntity;
+  featureKey: GeographicFeatureKeyRule;
+  /** Property keys in file order, recorded with the layer. */
+  propertyKeys: readonly string[];
+  position: number;
+  key: string | null;
+  label: string | null;
+  sourceId: string | null;
+  properties: Readonly<Record<string, unknown>> | null;
+  /** [west, south, east, north] in WGS84 degrees. */
+  extent: [number, number, number, number];
+}
+
+interface LoadedOverlay {
+  representation: SirenEntity;
+  featureKey: GeographicFeatureKeyRule;
+  propertyKeys: readonly string[];
+  collection: GeographicLayerFeatureCollection;
+}
 
 interface MountedOverlay {
   version: number;
   layer: VectorLayer<VectorSource<Feature<Geometry>>>;
+  loaded: { data: LoadedOverlay | null };
+}
+
+interface OverlayStyleInputs {
+  municipalParcelIds: ReadonlySet<string>;
+  municipalOnlyLayerIds: ReadonlySet<string>;
+  selection: GeographicFeatureSelection | null;
 }
 
 function cssToken(name: string): string {
@@ -31,11 +74,46 @@ function withAlpha(color: string, alpha: number): string {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
-/** One neutral style for every data layer: thin dark outline, light translucent fill, small discs for points. */
-function neutralOverlayStyle(): Style {
-  const stroke = new Stroke({ color: withAlpha(cssToken("--hall-color-text-muted"), 0.9), width: 1.25 });
-  const fill = new Fill({ color: withAlpha(cssToken("--hall-color-surface"), 0.25) });
-  return new Style({ stroke, fill, image: new CircleStyle({ radius: 4, stroke, fill }) });
+/** Feature style; point discs are never decluttered, only parcel labels give way to each other. */
+function featureStyle(strokeColor: string, strokeWidth: number, fillColor: string): Style {
+  const stroke = new Stroke({ color: strokeColor, width: strokeWidth });
+  const fill = new Fill({ color: fillColor });
+  return new Style({ stroke, fill, image: new CircleStyle({ radius: 4, stroke, fill, declutterMode: "none" }) });
+}
+
+/**
+ * Styles of every data layer: neutral (thin dark outline, light translucent fill, small discs), municipal property
+ * (seal colour), selected feature (brand outline), and cached parcel labels.
+ */
+// @implements-requirement HALL-FR-DOC-340
+// @implements-requirement HALL-FR-DOC-370
+// @implements-requirement HALL-FR-DOC-400
+function overlayStyles() {
+  const neutral = featureStyle(
+    withAlpha(cssToken("--hall-color-text-muted"), 0.9),
+    1.25,
+    withAlpha(cssToken("--hall-color-surface"), 0.25),
+  );
+  const municipal = featureStyle(cssToken("--hall-color-seal"), 2, withAlpha(cssToken("--hall-color-seal"), 0.25));
+  const selected = featureStyle(cssToken("--hall-color-brand"), 3, withAlpha(cssToken("--hall-color-brand"), 0.2));
+  const labelFill = new Fill({ color: cssToken("--hall-color-text") });
+  const labelStroke = new Stroke({ color: cssToken("--hall-color-surface"), width: 3 });
+  const labels = new globalThis.Map<string, Style>();
+  const label = (text: string) => {
+    let style = labels.get(text);
+    if (!style) {
+      style = new Style({
+        text: new Text({ text, font: "12px sans-serif", fill: labelFill, stroke: labelStroke, overflow: false }),
+      });
+      labels.set(text, style);
+    }
+    return style;
+  };
+  return { neutral, municipal, selected, label };
+}
+
+function propertiesRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+  return value !== null && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
 
 /**
@@ -43,12 +121,16 @@ function neutralOverlayStyle(): Style {
  * aligned with the saved overlays. Features are fetched once per layer version.
  */
 // @implements-requirement HALL-FR-DOC-340
+// @implements-requirement HALL-FR-DOC-380
 export function useGeographicOverlays(
   map: OlMap | null,
   overlays: readonly GeographicMapOverlay[],
-): Readonly<Record<string, GeographicOverlayStatus>> {
+  styleInputs: OverlayStyleInputs,
+) {
   const mountedRef = useRef(new globalThis.Map<string, MountedOverlay>());
+  const styleInputsRef = useRef(styleInputs);
   const [statuses, setStatuses] = useState<Record<string, GeographicOverlayStatus>>({});
+  const [featureKeys, setFeatureKeys] = useState<Record<string, GeographicFeatureKeyRule>>({});
 
   useEffect(() => {
     if (!map) return;
@@ -77,21 +159,43 @@ export function useGeographicOverlays(
       }
       if (!entry) {
         const source = new VectorSource<Feature<Geometry>>();
-        const layer = new VectorLayer({ source, style: neutralOverlayStyle(), updateWhileInteracting: false });
+        const styles = overlayStyles();
+        const loaded: MountedOverlay["loaded"] = { data: null };
+        const style = (feature: FeatureLike, resolution: number) => {
+          const position = Number(feature.getId());
+          const described = loaded.data?.collection.features[position];
+          const inputs = styleInputsRef.current;
+          const parcel = loaded.data?.featureKey.kind === "cadastreParcel" && described?.key ? described.key : null;
+          const isMunicipal = parcel !== null && inputs.municipalParcelIds.has(parcel);
+          if (inputs.municipalOnlyLayerIds.has(overlay.layerId) && !isMunicipal) return undefined;
+          const isSelected = inputs.selection?.layerId === overlay.layerId && inputs.selection.position === position;
+          const base = isSelected ? styles.selected : isMunicipal ? styles.municipal : styles.neutral;
+          const zoom = map.getView().getZoomForResolution(resolution) ?? 0;
+          if (described?.label && zoom >= PARCEL_LABEL_MIN_ZOOM) return [base, styles.label(described.label)];
+          return base;
+        };
+        const layer = new VectorLayer({ source, style, declutter: true });
         layer.set("hallOverlayLayerId", overlay.layerId);
-        entry = { version: overlay.version, layer };
+        entry = { version: overlay.version, layer, loaded };
         mounted.set(overlay.layerId, entry);
         map.addLayer(layer);
         setStatuses((current) => ({ ...current, [overlay.layerId]: "loading" }));
-        readGeographicLayerFeatures(overlay).then(
-          (collection) => {
+        readGeographicLayer(overlay).then(
+          (data) => {
             if (mounted.get(overlay.layerId)?.layer !== layer) return;
+            loaded.data = {
+              representation: data.layer,
+              featureKey: data.featureKey,
+              propertyKeys: data.propertyKeys,
+              collection: data.collection,
+            };
             source.addFeatures(
-              geoJson.readFeatures(collection, {
+              geoJson.readFeatures(data.collection, {
                 dataProjection: "EPSG:4326",
                 featureProjection: "EPSG:3857",
               }) as Feature<Geometry>[],
             );
+            setFeatureKeys((current) => ({ ...current, [overlay.layerId]: data.featureKey }));
             setStatuses((current) => ({ ...current, [overlay.layerId]: "ready" }));
           },
           () => setStatuses((current) => ({ ...current, [overlay.layerId]: "unavailable" })),
@@ -103,5 +207,65 @@ export function useGeographicOverlays(
     }
   }, [map, overlays]);
 
-  return statuses;
+  const { municipalParcelIds, municipalOnlyLayerIds, selection } = styleInputs;
+  useEffect(() => {
+    styleInputsRef.current = { municipalParcelIds, municipalOnlyLayerIds, selection };
+    for (const { layer } of mountedRef.current.values()) layer.changed();
+  }, [municipalParcelIds, municipalOnlyLayerIds, selection]);
+
+  const pickFeature = useCallback(
+    (pixel: number[]): GeographicFeatureSelection | null => {
+      if (!map) return null;
+      let picked: GeographicFeatureSelection | null = null;
+      map.forEachFeatureAtPixel(
+        pixel,
+        (feature, layer) => {
+          const layerId = layer?.get("hallOverlayLayerId");
+          if (typeof layerId !== "string") return false;
+          picked = { layerId, position: Number(feature.getId()) };
+          return true;
+        },
+        { hitTolerance: 3, layerFilter: (layer) => typeof layer.get("hallOverlayLayerId") === "string" },
+      );
+      return picked;
+    },
+    [map],
+  );
+
+  const describeFeature = useCallback((target: GeographicFeatureSelection): GeographicFeatureDescription | null => {
+    const entry = mountedRef.current.get(target.layerId);
+    const data = entry?.loaded.data;
+    const feature = data?.collection.features[target.position];
+    const geometry = entry?.layer.getSource()?.getFeatureById(target.position)?.getGeometry();
+    if (!entry || !data || !feature || !geometry) return null;
+    const [west, south, east, north] = transformExtent(geometry.getExtent(), "EPSG:3857", "EPSG:4326");
+    return {
+      layerId: target.layerId,
+      layer: data.representation,
+      featureKey: data.featureKey,
+      propertyKeys: data.propertyKeys,
+      position: target.position,
+      key: feature.key,
+      label: feature.label,
+      sourceId: feature.sourceId,
+      properties: propertiesRecord(feature.properties),
+      extent: [west!, south!, east!, north!],
+    };
+  }, []);
+
+  const fitFeature = useCallback(
+    (target: GeographicFeatureSelection) => {
+      const geometry = mountedRef.current
+        .get(target.layerId)
+        ?.layer.getSource()
+        ?.getFeatureById(target.position)
+        ?.getGeometry();
+      const size = map?.getSize();
+      if (!map || !geometry || !size) return;
+      map.getView().fit(geometry.getExtent(), { size, padding: [48, 48, 48, 48], maxZoom: 19, duration: 250 });
+    },
+    [map],
+  );
+
+  return { statuses, featureKeys, pickFeature, describeFeature, fitFeature };
 }

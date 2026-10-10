@@ -33,12 +33,20 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
   );
 }
 
+/** Escape typed inside a rich text editor stays with the editor; the dialog closes by its close control. */
+// @implements-requirement HALL-FR-DOC-270
+export function escapeBelongsToRichTextEditor(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || target.closest(".markdown-editor") !== null;
+}
+
 function DialogContent({
   className,
   children,
   showCloseButton = true,
   closeLabel = "Close",
   placement = "center",
+  onEscapeKeyDown,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
@@ -57,6 +65,10 @@ function DialogContent({
             : "top-1/2 left-1/2 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl sm:max-w-sm data-open:zoom-in-95 data-closed:zoom-out-95",
           className,
         )}
+        onEscapeKeyDown={(event) => {
+          if (escapeBelongsToRichTextEditor(event.target)) event.preventDefault();
+          onEscapeKeyDown?.(event);
+        }}
         {...props}
       >
         {children}

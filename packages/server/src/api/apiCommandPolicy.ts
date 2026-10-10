@@ -72,6 +72,8 @@ export const apiCommandPolicies = {
   "resource.import-geographic-layer": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.link-geographic-layer": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.unlink-geographic-layer": { permissions: workspaceWrite, auditTargetType: "resource" },
+  "resource.create-geographic-feature-note": { permissions: workspaceWrite, auditTargetType: "resource" },
+  "resource.import-municipal-property": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.search-legal-references": { permissions: workspaceRead, auditTargetType: null },
   "resource.resolve-legal-reference": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.refresh-legal-reference": { permissions: workspaceWrite, auditTargetType: "resource" },

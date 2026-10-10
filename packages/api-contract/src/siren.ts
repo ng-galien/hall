@@ -37,6 +37,8 @@ export const apiActionNames = [
   "resource.import-geographic-layer",
   "resource.link-geographic-layer",
   "resource.unlink-geographic-layer",
+  "resource.create-geographic-feature-note",
+  "resource.import-municipal-property",
   "resource.search-legal-references",
   "resource.resolve-legal-reference",
   "resource.refresh-legal-reference",

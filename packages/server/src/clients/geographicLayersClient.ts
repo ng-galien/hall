@@ -1,4 +1,10 @@
-import type { GeographicLayerFeatureCollection, ResourceDetail, SirenEntity } from "@hall/api-contract";
+import type {
+  GeographicFeatureNote,
+  GeographicLayerFeatureCollection,
+  MunicipalProperty,
+  ResourceDetail,
+  SirenEntity,
+} from "@hall/api-contract";
 import type { GeographicLayerImport } from "../services/geographicLayerImport.js";
 import type { ResourceRepresentation } from "./resourcesClient.js";
 
@@ -33,4 +39,18 @@ export interface GeographicLayersClient {
     opacity?: number;
   }): Promise<GeographicOverlayResult>;
   removeOverlay(mapId: string, layerId: string): Promise<GeographicOverlayResult>;
+  listNotes(layerId: string): Promise<GeographicFeatureNote[] | null>;
+  createNote(
+    layerId: string,
+    position: number,
+  ): Promise<
+    { status: "created"; note: GeographicFeatureNote } | { status: "notFound" } | { status: "withoutStableKey" }
+  >;
+  readMunicipalProperty(): Promise<ResourceRepresentation<MunicipalProperty>>;
+  replaceMunicipalProperty(input: {
+    label: string;
+    fileName: string | null;
+    importerName: string;
+    parcelIds: readonly string[];
+  }): Promise<ResourceRepresentation<MunicipalProperty>>;
 }

@@ -9,12 +9,15 @@ import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { GeographicCompositionEditor } from "./GeographicCompositionEditor";
+import { GeographicFeatureCard } from "./GeographicFeatureCard";
 import { GeographicLayerControls } from "./GeographicLayerControls";
 import { GeographicLayerUploadDialog } from "./GeographicLayerUploadDialog";
+import { municipalFilterLayerIds } from "./geographicFeatureCardModel";
 import { geographicFeatureKindLabels } from "./geographicFeatureKindPolicy";
 import {
   canImportGeographicLayer,
   canLinkGeographicLayer,
+  type MunicipalPropertyState,
   setGeographicOverlayVisibility,
 } from "./geographicLayersApi";
 import {
@@ -23,7 +26,13 @@ import {
   reorderGeographicLayers,
   setGeographicLayerVisibility,
 } from "./geographicMapModel";
+import { MunicipalPropertyImportDialog } from "./MunicipalPropertyImportDialog";
 import { useGeographicCompositionLayout } from "./useGeographicCompositionLayout";
+import {
+  useGeographicFeatureNote,
+  useGeographicFeaturePicking,
+  useGeographicFeatureState,
+} from "./useGeographicFeatureCard";
 import {
   type GeographicDrawTool,
   type GeographicWorkspaceMode,
@@ -54,6 +63,13 @@ function sameGeographicView(left: GeographicView, right: GeographicView): boolea
     Math.abs(leftLat - rightLat) < 1e-7 &&
     Math.abs(left.zoom - right.zoom) < 1e-3
   );
+}
+
+/** Source of the commune's list that brought a parcel. */
+function parcelSource(municipal: MunicipalPropertyState | null, parcelId: string | null) {
+  const sourceId = parcelId ? municipal?.data.parcelSourceIds[parcelId] : undefined;
+  const source = municipal?.data.sources.find(({ id }) => id === sourceId);
+  return { sourceLabel: source?.label ?? null, sourceImportedAt: source?.importedAt ?? null };
 }
 
 // @implements-requirement HALL-FR-DOC-340
@@ -153,7 +169,30 @@ export function GeographicResourceMap({
   const mapRepresentation = useWorkspaceResourcesStore((state) => state.representations[resource.id] ?? null);
   const canChangeOverlays = canUpdate && canLinkGeographicLayer(mapRepresentation);
   const canAddLayer = canUpdate && canImportGeographicLayer(mapRepresentation);
-  const overlayStatuses = useGeographicOverlays(mapRuntime.map, overlays);
+  const featureState = useGeographicFeatureState(resource.id);
+  const overlayRuntime = useGeographicOverlays(mapRuntime.map, overlays, featureState.styleInputs);
+  const overlayStatuses = overlayRuntime.statuses;
+  const [municipalImportOpen, setMunicipalImportOpen] = useState(false);
+  const { setSelection } = featureState;
+  useGeographicFeaturePicking(
+    mapRuntime.map,
+    workspaceMode === "map" && !embedded,
+    overlayRuntime.pickFeature,
+    featureState.selection,
+    setSelection,
+  );
+  const selectedFeature = featureState.selection ? overlayRuntime.describeFeature(featureState.selection) : null;
+  const selectedNote = useGeographicFeatureNote(selectedFeature, onError);
+  const municipalFilterLayers = municipalFilterLayerIds(
+    overlayRuntime.featureKeys,
+    featureState.municipalParcelIds.size,
+  );
+  const municipalRepresentation = featureState.municipal?.representation ?? null;
+  const municipalImport = municipalRepresentation?.actions?.some(
+    ({ name }) => name === "resource.import-municipal-property",
+  )
+    ? municipalRepresentation
+    : null;
   const changeOverlayVisibility = (layerId: string, visible: boolean) => {
     if (!mapRepresentation) return;
     const previous = overlays;
@@ -318,6 +357,10 @@ export function GeographicResourceMap({
         canChangeOverlays={canChangeOverlays}
         onOverlayVisibility={changeOverlayVisibility}
         onAddLayer={canAddLayer ? () => setLayerUploadOpen(true) : undefined}
+        municipalFilterLayerIds={municipalFilterLayers}
+        municipalOnlyLayerIds={featureState.municipalOnlyLayerIds}
+        onMunicipalOnly={featureState.setMunicipalOnly}
+        onImportMunicipalProperty={canUpdate && municipalImport ? () => setMunicipalImportOpen(true) : undefined}
       />
       {workspaceMode === "draw" && canUpdate ? (
         <GeographicCompositionEditor
@@ -356,6 +399,37 @@ export function GeographicResourceMap({
         >
           {t("geographic.saveView")}
         </Button>
+      ) : null}
+      {selectedFeature ? (
+        <GeographicFeatureCard
+          feature={selectedFeature}
+          layerName={overlays.find((overlay) => overlay.layerId === selectedFeature.layerId)?.name ?? ""}
+          note={selectedNote.note}
+          notesLoading={selectedNote.loading}
+          canCreateNote={selectedNote.canCreate}
+          creatingNote={selectedNote.creating}
+          municipal={{
+            isMunicipal:
+              selectedFeature.featureKey.kind === "cadastreParcel" &&
+              selectedFeature.key !== null &&
+              featureState.municipalParcelIds.has(selectedFeature.key),
+            ...parcelSource(featureState.municipal, selectedFeature.key),
+            municipalOnly: municipalFilterLayers.has(selectedFeature.layerId)
+              ? featureState.municipalOnlyLayerIds.has(selectedFeature.layerId)
+              : null,
+          }}
+          onCreateNote={() => void selectedNote.create()}
+          onMunicipalOnly={(enabled) => featureState.setMunicipalOnly(selectedFeature.layerId, enabled)}
+          onCenter={() => overlayRuntime.fitFeature(selectedFeature)}
+          onClose={() => setSelection(null)}
+        />
+      ) : null}
+      {municipalImportOpen && municipalImport ? (
+        <MunicipalPropertyImportDialog
+          property={municipalImport}
+          onImported={featureState.setMunicipal}
+          onClose={() => setMunicipalImportOpen(false)}
+        />
       ) : null}
       {layerUploadOpen && mapRepresentation ? (
         <GeographicLayerUploadDialog

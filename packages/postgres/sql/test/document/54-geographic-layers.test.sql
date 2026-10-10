@@ -21,6 +21,7 @@ SELECT
     'Cartes',
     'Parcelles d''essai',
     '{"format":"geojson","fileName":"parcelles.geojson","byteSize":512,"contentSha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","importedAt":"2026-10-10T08:00:00Z"}'::JSONB,
+    '{"kind":"none"}'::JSONB, ARRAY[]::TEXT[],
     '[
       {"sourceId":"A-1","geometry":{"type":"Polygon","coordinates":[[[4.5,47.5],[4.48,47.5],[4.48,47.51],[4.5,47.5]]]},"properties":{"section":"A","numero":"1","owner":{"kind":"commune"}},"bbox":[4.5,47.5,4.48,47.51]},
       {"sourceId":null,"geometry":{"type":"Point","coordinates":[4.52,47.55]},"properties":null,"bbox":[4.52,47.55,4.52,47.55]}
@@ -90,6 +91,7 @@ FROM geographic_layer_fixture;
 SELECT throws_ok(
   $$SELECT hall_api.create_geographic_layer_resource('Cartes', 'Hors bornes',
     '{"format":"geojson","fileName":"x.geojson","byteSize":1,"contentSha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","importedAt":"2026-10-10T08:00:00Z"}'::JSONB,
+    '{"kind":"none"}'::JSONB, ARRAY[]::TEXT[],
     '[{"geometry":{"type":"Point","coordinates":[700000,6600000]},"properties":{},"bbox":[700000,6600000,700000,6600000]}]'::JSONB)$$,
   '23514', NULL,
   'an extent outside the WGS84 bounds is rejected'
@@ -97,6 +99,7 @@ SELECT throws_ok(
 SELECT throws_ok(
   $$SELECT hall_api.create_geographic_layer_resource('Cartes', 'Collection',
     '{"format":"geojson","fileName":"x.geojson","byteSize":1,"contentSha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","importedAt":"2026-10-10T08:00:00Z"}'::JSONB,
+    '{"kind":"none"}'::JSONB, ARRAY[]::TEXT[],
     '[{"geometry":{"type":"GeometryCollection","coordinates":[]},"properties":{},"bbox":[6,46,6,46]}]'::JSONB)$$,
   '23514', NULL,
   'a geometry type outside the closed list is rejected'
@@ -104,6 +107,7 @@ SELECT throws_ok(
 SELECT throws_ok(
   $$SELECT hall_api.create_geographic_layer_resource('Cartes', 'Vide',
     '{"format":"geojson","fileName":"x.geojson","byteSize":1,"contentSha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","importedAt":"2026-10-10T08:00:00Z"}'::JSONB,
+    '{"kind":"none"}'::JSONB, ARRAY[]::TEXT[],
     '[]'::JSONB)$$,
   'HV607', 'Geographic layer features are invalid',
   'a layer without features is rejected'
@@ -173,9 +177,9 @@ SELECT is(
 )
 FROM geographic_layer_fixture;
 SELECT is(
-  hall.resource_siren_actions(hall_api.open_resource((layer ->> 'id')::UUID)),
-  '[]'::JSONB,
-  'the layer itself keeps the common documentary rule for renaming, moving and deletion'
+  ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(hall.resource_siren_actions(hall_api.open_resource((layer ->> 'id')::UUID))) AS action),
+  ARRAY['resource.create-geographic-feature-note'],
+  'the layer offers only feature notes: renaming, moving and deletion keep the common documentary rule'
 )
 FROM geographic_layer_fixture;
 SELECT ok(

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { GeographicLayerImportError, parseGeographicLayerImport } from "./geographicLayerImport.js";
+import {
+  GeographicLayerImportError,
+  keyGeographicLayerFeatures,
+  parseGeographicLayerImport,
+} from "./geographicLayerImport.js";
 
 const square = [
   [
@@ -196,5 +200,39 @@ describe("GeoJSON geographic layer import", () => {
     expect(issuesOf({ type: "FeatureCollection", features: Array.from({ length: 20_001 }, () => point) })).toEqual([
       { code: "tooManyFeatures", path: "features", featureIndex: null },
     ]);
+  });
+
+  // @verifies-requirement HALL-FR-DOC-360
+  // @verifies-requirement HALL-FR-DOC-370
+  it("chooses the parcel id, then the GeoJSON id, then no key, and labels parcels", () => {
+    const point = (sourceId: string | null, properties: unknown) => ({
+      sourceId,
+      properties,
+      geometry: { type: "Point" as const, coordinates: [6, 46] },
+      bbox: [6, 46, 6, 46] as [number, number, number, number],
+    });
+    const parcels = keyGeographicLayerFeatures([
+      point("1", { idu: "999990000A0221", section: "A", numero: "0221" }),
+      point("2", { idu: "999990000B0010" }),
+    ]);
+    expect(parcels.featureKeyRule).toEqual({ kind: "cadastreParcel", property: "idu" });
+    expect(parcels.features.map(({ key, label }) => [key, label])).toEqual([
+      ["999990000A0221", "A 221"],
+      ["999990000B0010", "B 10"],
+    ]);
+    const etalab = keyGeographicLayerFeatures([point(null, { id: "999990000A0221" })]);
+    expect(etalab.featureKeyRule).toEqual({ kind: "cadastreParcel", property: "id" });
+    const duplicated = keyGeographicLayerFeatures([
+      point("R-1", { id: "999990000A0221" }),
+      point("R-2", { id: "999990000A0221" }),
+    ]);
+    expect(duplicated.featureKeyRule).toEqual({ kind: "sourceId" });
+    expect(duplicated.features.map(({ key, label }) => [key, label])).toEqual([
+      ["R-1", null],
+      ["R-2", null],
+    ]);
+    const keyless = keyGeographicLayerFeatures([point("R-1", {}), point(null, {})]);
+    expect(keyless.featureKeyRule).toEqual({ kind: "none" });
+    expect(keyless.features.every(({ key }) => key === null)).toBe(true);
   });
 });

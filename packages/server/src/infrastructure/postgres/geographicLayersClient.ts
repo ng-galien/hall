@@ -1,5 +1,7 @@
 import {
+  geographicFeatureNoteSchema,
   geographicLayerFeatureCollectionSchema,
+  municipalPropertySchema,
   resourceDetailSchema,
   type SirenEntity,
   sirenActionSchema,
@@ -117,6 +119,47 @@ export function createPostgresGeographicLayersClient({
         return await postgresResources.readGeographicLayerFeaturesText(currentRequest(), layerId);
       } catch (error) {
         if (error instanceof HallPostgresError && ["HV601", "HV609"].includes(error.sqlState)) return null;
+        if (error instanceof HallPostgresError) throw persistenceError(error);
+        throw error;
+      }
+    },
+    async listNotes(layerId) {
+      try {
+        return geographicFeatureNoteSchema
+          .array()
+          .parse(await postgresResources.listGeographicFeatureNotes(currentRequest(), layerId));
+      } catch (error) {
+        if (error instanceof HallPostgresError && ["HV601", "HV609"].includes(error.sqlState)) return null;
+        if (error instanceof HallPostgresError) throw persistenceError(error);
+        throw error;
+      }
+    },
+    async createNote(layerId, position) {
+      try {
+        const note = await postgresResources.createGeographicFeatureNote(currentRequest(), layerId, position);
+        return { status: "created", note: geographicFeatureNoteSchema.parse(note) };
+      } catch (error) {
+        if (error instanceof HallPostgresError && error.sqlState === "HV601") return { status: "notFound" };
+        if (error instanceof HallPostgresError && error.sqlState === "HV609") return { status: "withoutStableKey" };
+        if (error instanceof HallPostgresError) throw persistenceError(error);
+        throw error;
+      }
+    },
+    async readMunicipalProperty() {
+      const presented = await postgresResources.readMunicipalProperty(currentRequest());
+      return {
+        data: municipalPropertySchema.parse(presented.data),
+        representation: sirenEntitySchema.parse(presented.representation),
+      };
+    },
+    async replaceMunicipalProperty(input) {
+      try {
+        const presented = await postgresResources.replaceMunicipalProperty(currentRequest(), input);
+        return {
+          data: municipalPropertySchema.parse(presented.data),
+          representation: sirenEntitySchema.parse(presented.representation),
+        };
+      } catch (error) {
         if (error instanceof HallPostgresError) throw persistenceError(error);
         throw error;
       }

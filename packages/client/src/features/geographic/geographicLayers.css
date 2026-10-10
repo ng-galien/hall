@@ -34,3 +34,66 @@
 }
 .geographic-layer-summary dt { color: var(--hall-color-text-muted); }
 .geographic-layer-summary dd { margin: 0; }
+.geographic-feature-card {
+  position: absolute;
+  top: calc(var(--hall-space-3) + var(--hall-size-control) + var(--hall-space-2));
+  right: var(--hall-space-3);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: calc(var(--hall-size-entity-card) * 1.5);
+  max-width: calc(100% - var(--hall-space-6));
+  max-height: calc(100% - var(--hall-size-control) - var(--hall-space-10));
+  overflow: hidden;
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-medium);
+  background: var(--hall-color-surface);
+  box-shadow: var(--hall-shadow-medium);
+}
+.geographic-feature-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hall-space-1);
+  padding: var(--hall-space-2);
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+}
+.geographic-feature-card-title { display: grid; flex: 1; min-width: 0; gap: var(--hall-space-0-5); }
+.geographic-feature-card-title h2 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--hall-color-text);
+  font-size: var(--hall-font-size-body);
+  font-weight: var(--hall-font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.geographic-feature-card-title span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
+.geographic-feature-card-icon {
+  display: inline-grid;
+  flex: none;
+  width: var(--hall-size-control-small);
+  height: var(--hall-size-control-small);
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hall-radius-small);
+  color: var(--hall-color-text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+.geographic-feature-card-icon:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
+.geographic-feature-card-body { display: grid; align-content: start; gap: var(--hall-space-3); overflow-y: auto; padding: var(--hall-space-3); }
+.geographic-feature-card-municipal {
+  margin: 0;
+  padding: var(--hall-space-1) var(--hall-space-2);
+  border-radius: var(--hall-radius-small);
+  color: var(--hall-color-seal);
+  background: var(--hall-color-seal-surface);
+  font-size: var(--hall-font-size-caption);
+  font-weight: var(--hall-font-weight-medium);
+}
+.geographic-feature-card-municipal span { color: var(--hall-color-text-muted); font-weight: normal; }
+.geographic-feature-card-properties { display: grid; gap: var(--hall-space-1); margin: 0; font-size: var(--hall-font-size-caption); }
+.geographic-feature-card-property { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--hall-space-2); }
+.geographic-feature-card-property dt { overflow: hidden; color: var(--hall-color-text-muted); text-overflow: ellipsis; }
+.geographic-feature-card-property dd { margin: 0; overflow-wrap: anywhere; }
+.geographic-feature-card-muted { margin: 0; color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-caption); }

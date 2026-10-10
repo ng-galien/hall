@@ -4,7 +4,7 @@ import {
   type GeographicLayerImportIssue,
   geographicLayerGeometryTypes,
 } from "@hall/api-contract";
-import { matchLiteral } from "@hall/domain";
+import { CADASTRE_PARCEL_ID_PATTERN, cadastreParcelLabel, matchLiteral } from "@hall/domain";
 
 const MAX_REPORTED_ISSUES = 50;
 const WGS84_CRS_NAMES = new Set([
@@ -26,6 +26,75 @@ export interface GeographicLayerImportFeature {
   bbox: Bounds;
 }
 
+export type GeographicFeatureKeyRule =
+  | { kind: "cadastreParcel"; property: "idu" | "id" }
+  | { kind: "sourceId" }
+  | { kind: "none" };
+
+export interface GeographicLayerKeyedFeature extends GeographicLayerImportFeature {
+  key: string | null;
+  label: string | null;
+}
+
+const CADASTRE_PARCEL_PROPERTIES = ["idu", "id"] as const;
+
+function propertyText(properties: unknown, name: string): string | null {
+  if (properties === null || typeof properties !== "object") return null;
+  const value = (properties as Record<string, unknown>)[name];
+  return typeof value === "string" ? value : null;
+}
+
+function allDistinct(values: readonly (string | null)[]): values is string[] {
+  return values.every((value) => value !== null) && new Set(values).size === values.length;
+}
+
+/** Union of the property keys of the features, in order of first appearance. */
+// @implements-requirement HALL-FR-DOC-380
+export function geographicPropertyKeys(features: readonly GeographicLayerImportFeature[]): string[] {
+  const keys = new Set<string>();
+  for (const feature of features) {
+    if (feature.properties !== null && typeof feature.properties === "object") {
+      for (const key of Object.keys(feature.properties)) keys.add(key);
+    }
+  }
+  return [...keys];
+}
+
+/** Chooses the stable identifier rule of a layer and gives each feature its key and, for parcels, its label. */
+// @implements-requirement HALL-FR-DOC-360
+export function keyGeographicLayerFeatures(features: readonly GeographicLayerImportFeature[]): {
+  featureKeyRule: GeographicFeatureKeyRule;
+  features: GeographicLayerKeyedFeature[];
+} {
+  for (const property of CADASTRE_PARCEL_PROPERTIES) {
+    const keys = features.map((feature) => {
+      const value = propertyText(feature.properties, property);
+      return value !== null && CADASTRE_PARCEL_ID_PATTERN.test(value) ? value : null;
+    });
+    if (allDistinct(keys)) {
+      return {
+        featureKeyRule: { kind: "cadastreParcel", property },
+        features: features.map((feature, index) => ({
+          ...feature,
+          key: keys[index]!,
+          label: cadastreParcelLabel(keys[index]!, feature.properties as Record<string, unknown> | null),
+        })),
+      };
+    }
+  }
+  const sourceIds = features.map((feature) => feature.sourceId);
+  if (allDistinct(sourceIds)) {
+    return {
+      featureKeyRule: { kind: "sourceId" },
+      features: features.map((feature, index) => ({ ...feature, key: sourceIds[index]!, label: null })),
+    };
+  }
+  return {
+    featureKeyRule: { kind: "none" },
+    features: features.map((feature) => ({ ...feature, key: null, label: null })),
+  };
+}
+
 export interface GeographicLayerImport {
   source: {
     format: "geojson";
@@ -34,7 +103,10 @@ export interface GeographicLayerImport {
     contentSha256: string;
     importedAt: string;
   };
-  features: GeographicLayerImportFeature[];
+  featureKeyRule: GeographicFeatureKeyRule;
+  /** Property keys in order of first appearance in the file. */
+  propertyKeys: string[];
+  features: GeographicLayerKeyedFeature[];
 }
 
 export class GeographicLayerImportError extends Error {
@@ -221,6 +293,7 @@ export function parseGeographicLayerImport(
       contentSha256: createHash("sha256").update(input.content).digest("hex"),
       importedAt: importedAt.toISOString(),
     },
-    features,
+    propertyKeys: geographicPropertyKeys(features),
+    ...keyGeographicLayerFeatures(features),
   };
 }

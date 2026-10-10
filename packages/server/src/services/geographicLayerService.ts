@@ -1,4 +1,5 @@
-import type { SirenEntity } from "@hall/api-contract";
+import type { GeographicFeatureNote, SirenEntity } from "@hall/api-contract";
+import { cadastreParcelIdsInText } from "@hall/domain";
 import type { GeographicLayersClient, GeographicOverlayResult } from "../clients/geographicLayersClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import { DomainError } from "./errors.js";
@@ -24,11 +25,22 @@ export interface GeographicLayerService {
   features(reference: string): Promise<GeographicLayerFeatures>;
   link(mapReference: string, input: { layerId: string; visible: boolean; opacity?: number }): Promise<SirenEntity>;
   unlink(mapReference: string, layerId: string): Promise<SirenEntity>;
+  notes(layerReference: string): Promise<SirenEntity>;
+  createNote(layerReference: string, position: number): Promise<GeographicFeatureNote>;
+  municipalProperty(): Promise<SirenEntity>;
+  importMunicipalProperty(input: {
+    label: string;
+    fileName: string | null;
+    text: string;
+    importerName: string;
+  }): Promise<SirenEntity | { rejected: string[] }>;
 }
 
 // @implements-requirement HALL-FR-DOC-310
 // @implements-requirement HALL-FR-DOC-320
 // @implements-requirement HALL-FR-DOC-330
+// @implements-requirement HALL-FR-DOC-390
+// @implements-requirement HALL-FR-DOC-400
 export function createGeographicLayerService({
   geographicLayersClient,
   resourcesClient,
@@ -84,6 +96,40 @@ export function createGeographicLayerService({
     async unlink(mapReference, layerId) {
       const map = await requireResource(mapReference, "geographic");
       return requireOverlay(await geographicLayersClient.removeOverlay(map.id, layerId));
+    },
+    async notes(layerReference) {
+      const layer = await requireResource(layerReference, "geographicLayer");
+      const notes = await geographicLayersClient.listNotes(layer.id);
+      if (!notes) throw new DomainError("resource_not_found", 404);
+      return {
+        class: ["geographic-feature-notes"],
+        properties: { items: notes },
+        links: [{ rel: ["self"], href: `/api/resources/${encodeURIComponent(layer.slug)}/feature-notes` }],
+      };
+    },
+    async createNote(layerReference, position) {
+      const layer = await requireResource(layerReference, "geographicLayer");
+      const result = await geographicLayersClient.createNote(layer.id, position);
+      if (result.status === "notFound") throw new DomainError("resource_not_found", 404);
+      if (result.status === "withoutStableKey") throw new DomainError("invalid_request", 400);
+      return result.note;
+    },
+    async municipalProperty() {
+      return (await geographicLayersClient.readMunicipalProperty()).representation;
+    },
+    async importMunicipalProperty(input) {
+      const { parcelIds, rejected } = cadastreParcelIdsInText(input.text);
+      if (parcelIds.length === 0) return { rejected };
+      const replaced = await geographicLayersClient.replaceMunicipalProperty({
+        label: input.label,
+        fileName: input.fileName,
+        importerName: input.importerName,
+        parcelIds,
+      });
+      return {
+        ...replaced.representation,
+        properties: { ...replaced.representation.properties, rejected: rejected.slice(0, 200) },
+      };
     },
   };
 }

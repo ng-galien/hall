@@ -6,6 +6,7 @@ import {
   AddIcon,
   DragHandleIcon,
   EditIcon,
+  FilterIcon,
   FitBoundsIcon,
   HiddenIcon,
   LayersIcon,
@@ -36,6 +37,12 @@ interface GeographicLayerControlsProps {
   onOverlayVisibility(layerId: string, visible: boolean): void;
   /** Present only when the map advertises the layer import action. */
   onAddLayer?(): void;
+  /** Layers whose features can be filtered to the commune's parcels. */
+  municipalFilterLayerIds: ReadonlySet<string>;
+  municipalOnlyLayerIds: ReadonlySet<string>;
+  onMunicipalOnly(layerId: string, enabled: boolean): void;
+  /** Present only when the commune's parcel list advertises its import action. */
+  onImportMunicipalProperty?(): void;
 }
 
 /** Owns the base-layer controls, the linked data-layer rows and their transient drag/drop state. */
@@ -59,6 +66,10 @@ export function GeographicLayerControls({
   canChangeOverlays,
   onOverlayVisibility,
   onAddLayer,
+  municipalFilterLayerIds,
+  municipalOnlyLayerIds,
+  onMunicipalOnly,
+  onImportMunicipalProperty,
 }: GeographicLayerControlsProps) {
   const { t, formatNumber } = useI18n();
   const [layersOpen, setLayersOpen] = useState(false);
@@ -242,7 +253,21 @@ export function GeographicLayerControls({
                     data-testid={`geographic-overlay-${overlay.layerId}`}
                     data-overlay-status={status}
                   >
-                    <span className="geographic-layer-placeholder" />
+                    {municipalFilterLayerIds.has(overlay.layerId) ? (
+                      <button
+                        type="button"
+                        className="geographic-layer-visible"
+                        aria-pressed={municipalOnlyLayerIds.has(overlay.layerId)}
+                        aria-label={t("geographic.municipalOnlyOf").replace("{name}", overlay.name)}
+                        title={t("geographic.municipalOnlyOf").replace("{name}", overlay.name)}
+                        data-testid={`geographic-overlay-municipal-only-${overlay.layerId}`}
+                        onClick={() => onMunicipalOnly(overlay.layerId, !municipalOnlyLayerIds.has(overlay.layerId))}
+                      >
+                        <FilterIcon />
+                      </button>
+                    ) : (
+                      <span className="geographic-layer-placeholder" />
+                    )}
                     <button
                       type="button"
                       className="geographic-layer-visible"
@@ -274,6 +299,18 @@ export function GeographicLayerControls({
                 <button type="button" data-testid="geographic-add-layer" onClick={onAddLayer}>
                   <AddIcon />
                   {t("geographic.addLayer")}
+                </button>
+              </li>
+            ) : null}
+            {onImportMunicipalProperty ? (
+              <li className="geographic-layer-add">
+                <button
+                  type="button"
+                  data-testid="geographic-import-municipal-property"
+                  onClick={onImportMunicipalProperty}
+                >
+                  <AddIcon />
+                  {t("geographic.importMunicipalProperty")}
                 </button>
               </li>
             ) : null}

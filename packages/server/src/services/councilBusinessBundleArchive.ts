@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { type CouncilBusinessBundleManifest, councilBusinessBundleManifestSchema } from "@hall/api-contract";
+import { CADASTRE_PARCEL_ID_PATTERN } from "@hall/domain";
 
 const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 const MAX_EXPANDED_BYTES = 128 * 1024 * 1024;
@@ -89,6 +90,29 @@ function validateArchive(input: CouncilBusinessBundleArchive): CouncilBusinessBu
         fileMetadata.get(resource.binaryPath)?.byteSize !== resource.data.binary.byteSize)
     ) {
       throw new InvalidCouncilBusinessBundle("Document metadata mismatch");
+    }
+  }
+  for (const link of manifest.geographicFeatureNotes) {
+    const note = manifest.resources.find(({ data }) => data.id === link.noteSourceId);
+    const layer = link.layerSourceId
+      ? manifest.resources.find(({ data }) => data.id === link.layerSourceId)
+      : undefined;
+    if (
+      note?.data.kind !== "text" ||
+      (link.subjectKind === "layerFeature" && layer?.data.kind !== "geographicLayer") ||
+      (link.subjectKind === "cadastreParcel" && link.layerSourceId !== null)
+    ) {
+      throw new InvalidCouncilBusinessBundle("Invalid feature note link");
+    }
+  }
+  if (manifest.municipalProperty) {
+    const sourceIds = new Set(manifest.municipalProperty.sources.map(({ id }) => id));
+    if (
+      manifest.municipalProperty.parcels.some(
+        ({ parcelId, sourceId }) => !sourceIds.has(sourceId) || !CADASTRE_PARCEL_ID_PATTERN.test(parcelId),
+      )
+    ) {
+      throw new InvalidCouncilBusinessBundle("Invalid municipal property");
     }
   }
   const assetIds = new Set<string>();

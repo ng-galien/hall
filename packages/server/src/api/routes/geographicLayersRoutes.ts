@@ -2,7 +2,9 @@ import { basename, extname } from "node:path";
 import { promisify } from "node:util";
 import { gzip } from "node:zlib";
 import {
+  createGeographicFeatureNoteSchema,
   GEOGRAPHIC_LAYER_MAX_FILE_BYTES,
+  importMunicipalPropertySchema,
   linkGeographicLayerSchema,
   resourceIdSchema,
   resourcePathSchema,
@@ -26,6 +28,8 @@ const gzipAsync = promisify(gzip);
 // @implements-requirement HALL-FR-DOC-310
 // @implements-requirement HALL-FR-DOC-320
 // @implements-requirement HALL-FR-DOC-330
+// @implements-requirement HALL-FR-DOC-390
+// @implements-requirement HALL-FR-DOC-400
 export function createGeographicLayersRouter({ geographicLayerService, requestContext }: Cradle): Router {
   const router = Router();
   const requireBusinessUpdate = requirePermission("council-business.update");
@@ -77,6 +81,60 @@ export function createGeographicLayersRouter({ geographicLayerService, requestCo
         }
         throw error;
       }
+    },
+  );
+
+  router.get(
+    "/geographic-layers/municipal-property",
+    requirePermission("workspace.read"),
+    async (_request, response) => {
+      response.json(await geographicLayerService.municipalProperty());
+    },
+  );
+
+  router.post(
+    "/geographic-layers/municipal-property/import",
+    requireActionPermission("resource.import-municipal-property"),
+    uploadFile,
+    async (request, response) => {
+      const input = importMunicipalPropertySchema.parse({
+        label: request.body.label,
+        ...(request.body.list ? { list: String(request.body.list) } : {}),
+      });
+      const text = [request.file?.buffer.toString("utf8") ?? "", input.list ?? ""].join("\n");
+      const result = await geographicLayerService.importMunicipalProperty({
+        label: input.label,
+        fileName: request.file?.originalname ?? null,
+        text,
+        importerName: request.principal?.displayName ?? "Hall",
+      });
+      if (!("links" in result)) {
+        sendProblem(request, response, 422, "municipal_property_empty", { errors: result.rejected.slice(0, 200) });
+        return;
+      }
+      response.status(201).json(result);
+    },
+  );
+
+  router.get("/:reference/feature-notes", requirePermission("workspace.read"), async (request, response) => {
+    response.json(
+      await geographicLayerService.notes(resourceReferenceSchema.parse(routeParameter(request.params.reference))),
+    );
+  });
+
+  router.post(
+    "/:reference/feature-notes",
+    requireActionPermission("resource.create-geographic-feature-note"),
+    async (request, response) => {
+      const note = await geographicLayerService.createNote(
+        resourceReferenceSchema.parse(routeParameter(request.params.reference)),
+        createGeographicFeatureNoteSchema.parse(request.body).position,
+      );
+      response.status(201).json({
+        class: ["geographic-feature-note"],
+        properties: note,
+        links: [{ rel: ["note"], href: `/api/resources/${encodeURIComponent(note.slug)}` }],
+      });
     },
   );
 
