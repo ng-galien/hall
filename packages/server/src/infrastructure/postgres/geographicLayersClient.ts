@@ -151,6 +151,7 @@ export function createPostgresGeographicLayersClient({
         return { status: "created", note: geographicFeatureNoteSchema.parse(note) };
       } catch (error) {
         if (error instanceof HallPostgresError && error.sqlState === "HV601") return { status: "notFound" };
+        if (error instanceof HallPostgresError && error.sqlState === "HV613") return { status: "measurement" };
         if (error instanceof HallPostgresError) throw persistenceError(error);
         throw error;
       }

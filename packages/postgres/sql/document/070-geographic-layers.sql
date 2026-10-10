@@ -408,6 +408,7 @@ AS $function$
 DECLARE
   map_resource hall.resource;
   element_label TEXT;
+  element_kind TEXT;
   existing hall.geographic_feature_note;
   folder_path TEXT;
   base_name TEXT;
@@ -417,12 +418,16 @@ DECLARE
 BEGIN
   PERFORM hall.lock_resource_namespace();
   SELECT * INTO map_resource FROM hall.require_resource(map_id, 'geographic');
-  SELECT nullif(btrim(element.value #>> '{properties,label}'), '') INTO element_label
+  SELECT nullif(btrim(element.value #>> '{properties,label}'), ''), element.value #>> '{properties,kind}'
+  INTO element_label, element_kind
   FROM hall.geographic_resource AS map,
        jsonb_array_elements(map.document #> '{hallLayer,features}') AS element(value)
   WHERE map.id = map_id AND element.value ->> 'id' = element_id;
   IF NOT FOUND THEN
     RAISE EXCEPTION USING ERRCODE = 'HV601', MESSAGE = 'Geographic feature not found';
+  END IF;
+  IF element_kind IN ('lengthMeasurement', 'areaMeasurement') THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV613', MESSAGE = 'A saved measurement has no note';
   END IF;
   SELECT * INTO existing FROM hall.geographic_feature_note AS note
   WHERE note.subject_kind = 'drawnElement' AND note.geographic_resource_id = map_id AND note.subject_key = element_id;

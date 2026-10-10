@@ -121,6 +121,7 @@ export function createGeographicLayerService({
         const map = await requireResource(reference, "geographic");
         const result = await geographicLayersClient.createDrawnElementNote(map.id, subject.elementId);
         if (result.status === "notFound") throw new DomainError("resource_not_found", 404);
+        if (result.status === "measurement") throw new DomainError("invalid_request", 400);
         return result.note;
       }
       const layer = await requireResource(reference, "geographicLayer");

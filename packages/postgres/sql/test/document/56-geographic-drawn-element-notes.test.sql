@@ -17,7 +17,11 @@ SELECT jsonb_build_object(
         'properties', jsonb_build_object('kind', 'marker', 'visible', true, 'label', 'Chêne remarquable', 'style', '{}'::jsonb)),
       jsonb_build_object('type', 'Feature', 'id', 'element-2',
         'geometry', jsonb_build_object('type', 'Point', 'coordinates', jsonb_build_array(4.6, 47.5)),
-        'properties', jsonb_build_object('kind', 'marker', 'visible', true, 'style', '{}'::jsonb))
+        'properties', jsonb_build_object('kind', 'marker', 'visible', true, 'style', '{}'::jsonb)),
+      jsonb_build_object('type', 'Feature', 'id', 'measure-1',
+        'geometry', jsonb_build_object('type', 'LineString', 'coordinates', jsonb_build_array(
+          jsonb_build_array(4.5, 47.5), jsonb_build_array(4.6, 47.5))),
+        'properties', jsonb_build_object('kind', 'lengthMeasurement', 'label', 'Haie', 'length', 7650))
     )),
     'provenance', jsonb_build_object(
       'attribution', 'IGN', 'license', 'Licence Ouverte 2.0', 'metadataUrl', 'https://geoservices.ign.fr/',
@@ -52,6 +56,12 @@ SELECT throws_ok(
   format($$SELECT hall_api.create_geographic_drawn_element_note(%L::UUID, 'missing')$$, map),
   'HV601', 'Geographic feature not found',
   'a note needs an element saved in the map'
+)
+FROM drawn_map;
+SELECT throws_ok(
+  format($$SELECT hall_api.create_geographic_drawn_element_note(%L::UUID, 'measure-1')$$, map),
+  'HV613', 'A saved measurement has no note',
+  'a saved measurement is refused as the subject of a note'
 )
 FROM drawn_map;
 SELECT throws_ok(

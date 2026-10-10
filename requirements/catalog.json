@@ -3692,6 +3692,7 @@
         "Les photos s’insèrent dans la note par le téléversement d’images de l’éditeur, ouvert à qui peut modifier la note, et suivent les règles de stockage et d’aperçu des fichiers de Hall.",
         "La note est rattachée au dessin par son identifiant dans la carte et reste affichée après rechargement.",
         "La suppression d’un dessin détache sa note ; le texte reste dans « Notes cartographiques ». La suppression de la carte détache de même les notes de ses dessins.",
+        "La base rattache une note seulement à un dessin de la carte : l’identifiant d’une mesure enregistrée (longueur ou surface) est refusé avec l’erreur HV613 « A saved measurement has no note », et le serveur répond par une requête invalide.",
         "Le fichier d’une affaire exporté transporte, pour chaque carte qu’il contient, les notes de ses dessins avec leur lien au dessin (identifiant du dessin dans la carte), comme il transporte les notes des parcelles et des entités des couches (HALL-FR-DOC-390) ; l’import restaure chaque note sur le dessin de la carte importée, avec son texte et ses photos.",
         "Un lecteur sans droit de modifier la carte qui clique sur un dessin, en mode Carte de l’espace de travail comme dans « Cartes », ouvre la fiche du dessin en lecture : libellé, nature, mesures du dessin (longueur, ou surface et périmètre) et note rendue, sans « Modifier la forme », sans création de note et sans modification de la note ; le bouton de fermeture et Échap ferment la fiche."
       ],

@@ -44,7 +44,7 @@ export interface GeographicLayersClient {
   createDrawnElementNote(
     mapId: string,
     elementId: string,
-  ): Promise<{ status: "created"; note: GeographicFeatureNote } | { status: "notFound" }>;
+  ): Promise<{ status: "created"; note: GeographicFeatureNote } | { status: "notFound" } | { status: "measurement" }>;
   createNote(
     layerId: string,
     position: number,
