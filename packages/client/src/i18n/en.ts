@@ -582,6 +582,11 @@ export const en = {
   "geographic.mode": "Map mode",
   "geographic.modeMap": "Measures",
   "geographic.modeDraw": "Drawing",
+  "geographic.shape.modify": "Modify the shape",
+  "geographic.shape.stopModifying": "Finish modifying",
+  "geographic.shape.modifyingHint":
+    "Modifying the shape: drag a vertex or the shape. Escape finishes the modification.",
+  "geographic.shape.modifyingRow": "Shape being modified",
   "geographic.measures": "Measures",
   "geographic.measure.tools": "Measuring tools",
   "geographic.measure.toolNone": "Read the measures of a drawing",

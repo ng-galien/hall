@@ -49,8 +49,9 @@ export function useGeographicDrawnElementNotes(map: SirenEntity | null, onError:
   return { notes, creating, canCreate: canCreateGeographicFeatureNote(map), create };
 }
 
-/** Card of a selected drawn element: label, nature, centre action and its rich-text note. */
+/** Card of a selected drawn element: label, nature, centre action, shape modification and its rich-text note. */
 // @implements-requirement HALL-FR-DOC-430
+// @implements-requirement HALL-FR-DOC-450
 export function GeographicDrawnElementCard({
   label,
   kindLabel,
@@ -59,6 +60,9 @@ export function GeographicDrawnElementCard({
   canCreateNote,
   creatingNote,
   mapElement,
+  modifying,
+  onModify,
+  onStopModifying,
   onCreateNote,
   onCenter,
   onClose,
@@ -70,21 +74,26 @@ export function GeographicDrawnElementCard({
   canCreateNote: boolean;
   creatingNote: boolean;
   mapElement: HTMLElement | null;
+  /** True while the shape of this drawing is being modified. */
+  modifying: boolean;
+  onModify(): void;
+  onStopModifying(): void;
   onCreateNote(): void;
   onCenter(): void;
   onClose(): void;
 }) {
   const { t } = useI18n();
   useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
+    const leaveOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || escapeBelongsToTarget(event.target, mapElement)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      onClose();
+      if (modifying) onStopModifying();
+      else onClose();
     };
-    window.addEventListener("keydown", closeOnEscape, { capture: true });
-    return () => window.removeEventListener("keydown", closeOnEscape, { capture: true });
-  }, [mapElement, onClose]);
+    window.addEventListener("keydown", leaveOnEscape, { capture: true });
+    return () => window.removeEventListener("keydown", leaveOnEscape, { capture: true });
+  }, [mapElement, modifying, onClose, onStopModifying]);
   return (
     <section className="geographic-feature-card" data-testid="geographic-drawn-element-card" aria-label={label}>
       <header className="geographic-feature-card-header">
@@ -114,6 +123,27 @@ export function GeographicDrawnElementCard({
         </button>
       </header>
       <div className="geographic-feature-card-body">
+        <div
+          className={`geographic-drawn-element-shape${modifying ? " geographic-drawn-element-shape-modifying" : ""}`}
+          data-testid="geographic-drawn-element-shape"
+          data-modifying={modifying}
+        >
+          {modifying ? (
+            <p className="geographic-feature-card-muted" aria-live="polite">
+              {t("geographic.shape.modifyingHint")}
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant={modifying ? "default" : "outline"}
+            aria-pressed={modifying}
+            data-testid="geographic-drawn-element-card-modify"
+            onClick={modifying ? onStopModifying : onModify}
+          >
+            {t(modifying ? "geographic.shape.stopModifying" : "geographic.shape.modify")}
+          </Button>
+        </div>
         <div className="geographic-feature-card-note" data-testid="geographic-drawn-element-card-note">
           {loading ? (
             <p className="geographic-feature-card-muted">{t("common.loading")}</p>

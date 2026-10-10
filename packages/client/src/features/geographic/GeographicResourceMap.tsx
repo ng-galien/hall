@@ -14,6 +14,7 @@ import { GeographicFeatureCard } from "./GeographicFeatureCard";
 import { GeographicLayerControls } from "./GeographicLayerControls";
 import { GeographicLayerUploadDialog } from "./GeographicLayerUploadDialog";
 import { GeographicMeasurePanel } from "./GeographicMeasurePanel";
+import type { GeographicPointerState, GeographicPointerTarget } from "./geographicCursorPolicy";
 import { municipalFilterLayerIds } from "./geographicFeatureCardModel";
 import { geographicFeatureKindLabels } from "./geographicFeatureKindPolicy";
 import {
@@ -35,6 +36,7 @@ import {
   useGeographicFeaturePicking,
   useGeographicFeatureState,
 } from "./useGeographicFeatureCard";
+import { useGeographicMapCursor } from "./useGeographicMapCursor";
 import {
   type GeographicDrawTool,
   type GeographicWorkspaceMode,
@@ -189,6 +191,28 @@ export function GeographicResourceMap({
     setSelection,
   );
   const selectedFeature = featureState.selection ? overlayRuntime.describeFeature(featureState.selection) : null;
+  const pointerState: GeographicPointerState = embedded
+    ? "fixed"
+    : workspaceMode === "map"
+      ? measuring
+        ? "measure"
+        : "consult"
+      : drawTool !== "select"
+        ? "draw"
+        : mapRuntime.modifyingFeatureId
+          ? "modify"
+          : "select";
+  const { drawingIdAt, modifyingFeatureId } = mapRuntime;
+  const { pickFeature } = overlayRuntime;
+  const pointerTargetAt = useCallback(
+    (pixel: number[]): GeographicPointerTarget => {
+      const drawingId = drawingIdAt(pixel);
+      if (drawingId !== null) return drawingId === modifyingFeatureId ? "modifiedShape" : "drawing";
+      return pointerState === "consult" && pickFeature(pixel) ? "layerFeature" : "none";
+    },
+    [drawingIdAt, modifyingFeatureId, pickFeature, pointerState],
+  );
+  useGeographicMapCursor(mapRuntime.map, pointerState, pointerTargetAt);
   const drawnElementNotes = useGeographicDrawnElementNotes(
     workspaceMode === "draw" && canUpdate ? mapRepresentation : null,
     onError,
@@ -392,6 +416,7 @@ export function GeographicResourceMap({
           drawTool={drawTool}
           features={draft.hallLayer.features}
           selectedFeatureId={mapRuntime.selectedFeatureId}
+          modifyingFeatureId={mapRuntime.modifyingFeatureId}
           editingFeatureId={editingFeatureId}
           renameArmedFeatureId={renameArmedFeatureId}
           featureKindLabels={featureKindLabels}
@@ -422,6 +447,9 @@ export function GeographicResourceMap({
           canCreateNote={drawnElementNotes.canCreate}
           creatingNote={drawnElementNotes.creating}
           mapElement={mapRuntime.mapElementRef.current}
+          modifying={mapRuntime.modifyingFeatureId === selectedDrawnElement.id}
+          onModify={mapRuntime.startModifying}
+          onStopModifying={mapRuntime.stopModifying}
           onCreateNote={() => void drawnElementNotes.create(String(selectedDrawnElement.id), save)}
           onCenter={() => mapRuntime.fitFeature(String(selectedDrawnElement.id))}
           onClose={mapRuntime.clearSelection}

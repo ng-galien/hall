@@ -588,6 +588,11 @@ export const fr: Messages = {
   "geographic.mode": "Mode de la carte",
   "geographic.modeMap": "Mesures",
   "geographic.modeDraw": "Dessin",
+  "geographic.shape.modify": "Modifier la forme",
+  "geographic.shape.stopModifying": "Terminer la modification",
+  "geographic.shape.modifyingHint":
+    "Modification de la forme : glissez un sommet ou la forme. Échap termine la modification.",
+  "geographic.shape.modifyingRow": "Forme en cours de modification",
   "geographic.measures": "Mesures",
   "geographic.measure.tools": "Outils de mesure",
   "geographic.measure.toolNone": "Lire les mesures d’un dessin",

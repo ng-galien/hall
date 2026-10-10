@@ -12,6 +12,7 @@ import Feature from "ol/Feature";
 import GeoJSON from "ol/format/GeoJSON";
 import type Geometry from "ol/geom/Geometry";
 import LineString from "ol/geom/LineString";
+import MultiPoint from "ol/geom/MultiPoint";
 import Point from "ol/geom/Point";
 import Polygon from "ol/geom/Polygon";
 import TileLayer from "ol/layer/Tile";
@@ -93,6 +94,35 @@ export function geographicSelectedFeatureStyle(feature: FeatureLike, resolution:
   }
   const editing = createEditingStyle() as Record<string, Style[]>;
   return editing[geometry?.getType() ?? "Point"] ?? editing.Point!;
+}
+
+/** Vertices of a line or an area, the handles shown while its shape is modified. */
+function vertexHandles(geometry: Geometry): MultiPoint | null {
+  if (geometry instanceof LineString) return new MultiPoint(geometry.getCoordinates());
+  if (geometry instanceof Polygon) return new MultiPoint(geometry.getCoordinates().flat());
+  return null;
+}
+
+/** Selection highlight plus a handle on every vertex: the visible mark of the shape modification state. */
+// @implements-requirement HALL-FR-DOC-450
+export function geographicModifiedFeatureStyle(feature: FeatureLike, resolution: number): Style[] {
+  const selected = geographicSelectedFeatureStyle(feature, resolution);
+  const styles = Array.isArray(selected) ? [...selected] : [selected];
+  const geometry = feature.getGeometry() as Geometry | undefined;
+  const handles = geometry && !isCompactFeature(geometry, resolution) ? vertexHandles(geometry) : null;
+  if (handles) {
+    styles.push(
+      new Style({
+        geometry: handles,
+        image: new Circle({
+          radius: 5,
+          fill: new Fill({ color: cssToken("--hall-color-surface") }),
+          stroke: new Stroke({ color: [0, 153, 255, 1], width: 2 }),
+        }),
+      }),
+    );
+  }
+  return styles;
 }
 
 export function initialGeographicFeatureProperties(kind: HallGeoJsonFeatureKind, label: string) {

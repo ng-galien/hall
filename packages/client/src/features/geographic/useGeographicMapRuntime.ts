@@ -5,14 +5,17 @@ import type {
   GeographicView,
   HallGeoJsonFeatureKind,
 } from "@hall/domain";
+import Collection from "ol/Collection";
 import { defaults as defaultControls } from "ol/control/defaults";
 import type Feature from "ol/Feature";
 import type Geometry from "ol/geom/Geometry";
 import Draw from "ol/interaction/Draw";
 import Modify from "ol/interaction/Modify";
 import Select from "ol/interaction/Select";
+import Translate from "ol/interaction/Translate";
 import VectorLayer from "ol/layer/Vector";
 import OlMap from "ol/Map";
+import type MapBrowserEvent from "ol/MapBrowserEvent";
 import { toLonLat } from "ol/proj";
 import VectorSource from "ol/source/Vector";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -22,6 +25,7 @@ import {
   createGeographicTileLayers,
   createGeographicView,
   geographicFeatureStyle,
+  geographicModifiedFeatureStyle,
   geographicSelectedFeatureStyle,
   initialGeographicFeatureProperties,
   readHallFeatures,
@@ -48,6 +52,11 @@ interface GeographicMapRuntimeOptions {
   onViewChange(view: GeographicView): void;
 }
 
+/** Pixel tolerance of the drawing hit test, matching the vertex tolerance of the modification interaction. */
+const DRAWING_HIT_TOLERANCE = 6;
+/** The double click that finishes a line or an area is not a request to modify the new drawing. */
+const DRAW_END_DOUBLE_CLICK_MS = 600;
+
 const OWN_ESCAPE_SELECTOR =
   "input, textarea, select, [data-radix-popper-content-wrapper], [role='menu'], [role='listbox']";
 
@@ -58,8 +67,13 @@ function escapeBelongsToTarget(target: EventTarget | null): boolean {
 }
 
 // @implements-requirement HALL-FR-DOC-300
+// @implements-requirement HALL-FR-DOC-450
 // @implements-requirement HALL-FR-WSP-350
-/** Owns OpenLayers lifecycle and translates map interactions into geographic draft mutations. */
+/**
+ * Owns OpenLayers lifecycle and translates map interactions into geographic draft mutations. A click selects a
+ * drawing; the modification of its shape is a distinct state of one selected drawing, opened by the card or by a
+ * double click on the drawing, and only that drawing takes the drags.
+ */
 export function useGeographicMapRuntime({
   data,
   draftLayers,
@@ -83,16 +97,36 @@ export function useGeographicMapRuntime({
   const vectorLayerRef = useRef<VectorLayer<VectorSource<Feature<Geometry>>> | null>(null);
   const selectRef = useRef<Select | null>(null);
   const modifyRef = useRef<Modify | null>(null);
+  const translateRef = useRef<Translate | null>(null);
+  const modifiedFeaturesRef = useRef(new Collection<Feature<Geometry>>());
+  const modifyingIdRef = useRef<string | null>(null);
+  const lastDrawEndRef = useRef(0);
   const tileLayersRef = useRef(createGeographicTileLayers([]).byId);
   const [selectedFeature, setSelectedFeature] = useState<Feature<Geometry> | null>(null);
+  const [modifyingFeatureId, setModifyingFeatureId] = useState<string | null>(null);
   const [openLayersMap, setOpenLayersMap] = useState<OlMap | null>(null);
   const [drawingSource, setDrawingSource] = useState<VectorSource<Feature<Geometry>> | null>(null);
 
+  const setModifying = useCallback((feature: Feature<Geometry> | null) => {
+    const previousId = modifyingIdRef.current;
+    const modified = modifiedFeaturesRef.current;
+    const previous = modified.item(0);
+    modified.clear();
+    if (feature) modified.push(feature);
+    modifyingIdRef.current = feature ? String(feature.getId()) : null;
+    modifyRef.current?.setActive(feature !== null);
+    translateRef.current?.setActive(feature !== null);
+    previous?.changed();
+    feature?.changed();
+    if (previousId !== modifyingIdRef.current) setModifyingFeatureId(modifyingIdRef.current);
+  }, []);
+
   const clearSelection = useCallback(() => {
+    setModifying(null);
     selectRef.current?.getFeatures().clear();
     setSelectedFeature(null);
     onSelection(null);
-  }, [onSelection]);
+  }, [onSelection, setModifying]);
 
   const syncHallLayer = useCallback(() => {
     const source = vectorSourceRef.current;
@@ -125,18 +159,30 @@ export function useGeographicMapRuntime({
       controls: embedded ? [] : defaultControls({ zoom: false }),
       interactions: embedded ? [] : undefined,
     });
-    const select = new Select({ layers: [vectorLayer], style: geographicSelectedFeatureStyle });
-    const modify = new Modify({ source: vectorSource });
+    const select = new Select({
+      layers: [vectorLayer],
+      style: (feature, resolution) =>
+        feature.getId() !== undefined && String(feature.getId()) === modifyingIdRef.current
+          ? geographicModifiedFeatureStyle(feature, resolution)
+          : geographicSelectedFeatureStyle(feature, resolution),
+      hitTolerance: DRAWING_HIT_TOLERANCE,
+    });
+    const modify = new Modify({ features: modifiedFeaturesRef.current });
+    const translate = new Translate({ features: modifiedFeaturesRef.current, hitTolerance: DRAWING_HIT_TOLERANCE });
     select.setActive(false);
     modify.setActive(false);
+    translate.setActive(false);
     map.addInteraction(select);
+    map.addInteraction(translate);
     map.addInteraction(modify);
     select.on("select", (event) => {
       const feature = (event.selected[0] as Feature<Geometry> | undefined) ?? null;
+      if (!feature || String(feature.getId()) !== modifyingIdRef.current) setModifying(null);
       setSelectedFeature(feature);
       onSelection(feature ? String(feature.getId()) : null);
     });
     modify.on("modifyend", syncHallLayer);
+    translate.on("translateend", syncHallLayer);
     map.on("moveend", () => {
       if (embedded) return;
       const projectedCenter = view.getCenter();
@@ -155,6 +201,7 @@ export function useGeographicMapRuntime({
     vectorLayerRef.current = vectorLayer;
     selectRef.current = select;
     modifyRef.current = modify;
+    translateRef.current = translate;
     tileLayersRef.current = tileLayers.byId;
     let resizeObserver: ResizeObserver | null = null;
     if (embedded) {
@@ -180,9 +227,13 @@ export function useGeographicMapRuntime({
       vectorLayerRef.current = null;
       selectRef.current = null;
       modifyRef.current = null;
+      translateRef.current = null;
+      modifiedFeaturesRef.current.clear();
+      modifyingIdRef.current = null;
+      setModifyingFeatureId(null);
       tileLayersRef.current = createGeographicTileLayers([]).byId;
     };
-  }, [data.hallLayer, data.layers, data.view, embedded, featureKindLabels, onSelection, syncHallLayer]);
+  }, [data.hallLayer, data.layers, data.view, embedded, featureKindLabels, onSelection, setModifying, syncHallLayer]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -205,6 +256,7 @@ export function useGeographicMapRuntime({
     window.addEventListener("keydown", cancelDrawingOnEscape, { capture: true });
     draw.on("drawend", (event) => {
       drawing = false;
+      lastDrawEndRef.current = Date.now();
       event.feature.setId(crypto.randomUUID());
       const existingCount = source
         .getFeatures()
@@ -232,9 +284,43 @@ export function useGeographicMapRuntime({
   useEffect(() => {
     const active = canUpdate && workspaceMode === "draw" && drawTool === "select";
     selectRef.current?.setActive(active);
-    modifyRef.current?.setActive(active);
     if (!active) clearSelection();
   }, [canUpdate, clearSelection, drawTool, workspaceMode]);
+
+  const drawingFeatureAt = useCallback((pixel: number[]): Feature<Geometry> | null => {
+    const map = mapRef.current;
+    const layer = vectorLayerRef.current;
+    if (!map || !layer) return null;
+    let found: Feature<Geometry> | null = null;
+    map.forEachFeatureAtPixel(
+      pixel,
+      (feature) => {
+        found = feature as Feature<Geometry>;
+        return true;
+      },
+      { layerFilter: (candidate) => candidate === layer, hitTolerance: DRAWING_HIT_TOLERANCE },
+    );
+    return found;
+  }, []);
+
+  useEffect(() => {
+    const map = openLayersMap;
+    if (!map || !canUpdate || workspaceMode !== "draw" || drawTool !== "select") return;
+    const modifyOnDoubleClick = (event: MapBrowserEvent) => {
+      if (Date.now() - lastDrawEndRef.current < DRAW_END_DOUBLE_CLICK_MS) return;
+      const feature = drawingFeatureAt(event.pixel);
+      if (!feature) return;
+      event.preventDefault();
+      event.stopPropagation();
+      selectRef.current?.getFeatures().clear();
+      selectRef.current?.getFeatures().push(feature);
+      setSelectedFeature(feature);
+      onSelection(String(feature.getId()));
+      setModifying(feature);
+    };
+    map.on("dblclick", modifyOnDoubleClick);
+    return () => map.un("dblclick", modifyOnDoubleClick);
+  }, [canUpdate, drawTool, drawingFeatureAt, onSelection, openLayersMap, setModifying, workspaceMode]);
 
   useEffect(() => vectorLayerRef.current?.setVisible(hallLayerVisible), [hallLayerVisible]);
 
@@ -247,9 +333,21 @@ export function useGeographicMapRuntime({
     });
   }, [draftLayers]);
 
+  const drawingIdAt = (pixel: number[]): string | null => {
+    const feature = drawingFeatureAt(pixel);
+    return feature ? String(feature.getId()) : null;
+  };
+
+  const startModifying = () => {
+    if (selectedFeature) setModifying(selectedFeature);
+  };
+
+  const stopModifying = () => setModifying(null);
+
   const selectFeature = (id: string) => {
     const feature = vectorSourceRef.current?.getFeatureById(id);
     if (!feature) return;
+    if (id !== modifyingIdRef.current) setModifying(null);
     onDrawTool("select");
     selectRef.current?.getFeatures().clear();
     selectRef.current?.getFeatures().push(feature);
@@ -325,6 +423,10 @@ export function useGeographicMapRuntime({
     map: openLayersMap,
     drawingSource,
     selectedFeatureId: selectedFeature ? String(selectedFeature.getId()) : null,
+    modifyingFeatureId,
+    startModifying,
+    stopModifying,
+    drawingIdAt,
     selectFeature,
     clearSelection,
     deleteSelected,

@@ -3701,6 +3701,61 @@
         }
       ]
     },
+    "HALL-FR-DOC-440": {
+      "name": "GEOGRAPHIC_MAP_CURSOR_PER_TOOL_STATE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "Sur une carte géographique, le curseur de la souris indique avant le clic ce que fera ce clic, selon l’outil actif et l’élément survolé.",
+      "acceptanceCriteria": [
+        "Le curseur change au survol, avant tout clic, dans la carte de l’espace de travail, dans la fenêtre de dialogue de la ressource et dans « Cartes ».",
+        "Table des états et des curseurs — mode « Carte » sans outil de mesure : main (pointer) au survol d’un dessin ou d’une entité de couche cliquable, flèche (default) ailleurs.",
+        "Table des états et des curseurs — règle ou mesure de surface active : croix (crosshair) sur toute la carte, pendant toute la mesure, y compris lorsque la carte est déplacée.",
+        "Table des états et des curseurs — outil de dessin d’une nouvelle forme actif (point, ligne, zone ou autre forme) : croix (crosshair) sur toute la carte, pendant tout le dessin.",
+        "Table des états et des curseurs — mode « Dessin » avec l’outil de sélection : main (pointer) au survol d’un dessin, flèche (default) ailleurs.",
+        "Table des états et des curseurs — modification de la forme d’un dessin : déplacement (move) au survol de la forme modifiée et pendant le glissement d’un sommet ou de la forme ; main (pointer) au survol d’un autre dessin ; flèche (default) ailleurs.",
+        "Table des états et des curseurs — glissement de la carte hors mesure et hors dessin : main fermée (grabbing) pendant le glissement ; le curseur de l’état revient au relâchement.",
+        "Table des états et des curseurs — carte intégrée dans un texte : flèche (default).",
+        "La table est une politique unique du code client, consultée par la carte de l’espace de travail et par « Cartes »."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-map-cursor-per-tool-state",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : un curseur par état d’outil (mesure, dessin, sélection, modification, déplacement), visible au survol avant le clic.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-450": {
+      "name": "GEOGRAPHIC_DRAWING_SELECTION_BEFORE_SHAPE_MODIFICATION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-10"
+      },
+      "statement": "En mode « Dessin », un clic sélectionne un dessin ; la modification de sa forme est un état distinct, ouvert explicitement et quitté de façon visible.",
+      "acceptanceCriteria": [
+        "Avec l’outil de sélection, un clic sur un dessin le sélectionne : mise en évidence sur la carte, ligne sélectionnée dans la liste de composition, fiche du dessin avec sa note ; ses sommets et sa position restent fixes.",
+        "La fiche du dessin sélectionné propose « Modifier la forme » ; un double clic sur un dessin le sélectionne et ouvre de même la modification de sa forme, sans zoomer la carte.",
+        "Pendant la modification, les sommets du dessin modifié sont affichés ; glisser un sommet le déplace, glisser la forme en dehors des sommets déplace toute la forme ; chaque modification est enregistrée automatiquement.",
+        "Seul le dessin en cours de modification est modifiable ; les autres dessins restent fixes et un clic sur l’un d’eux le sélectionne et termine la modification en cours.",
+        "Pendant la modification, la fiche indique l’état de modification et propose « Terminer la modification » ; la ligne du dessin dans la liste de composition porte la marque de modification.",
+        "Échap termine d’abord la modification et laisse le dessin sélectionné ; un second Échap ferme la fiche et retire la sélection.",
+        "La liste de composition et la carte restent synchronisées dans les deux états : une sélection depuis la liste sélectionne le dessin sur la carte, et la modification reste attachée au dessin qui l’a ouverte.",
+        "Le même comportement s’applique dans la carte de l’espace de travail, dans la fenêtre de dialogue de la ressource et dans « Cartes »."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-drawing-selection-before-shape-modification",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-10 : distinguer la sélection d’un dessin (lecture de ses propriétés, mesures et note) de la modification de sa forme.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-LOC-010": {
       "name": "LOCATION_BELONGS_TO_HALL",
       "nature": "functional",

@@ -20,6 +20,8 @@ interface GeographicCompositionEditorProps {
   drawTool: GeographicDrawTool;
   features: GeographicResourceData["hallLayer"]["features"];
   selectedFeatureId: string | null;
+  /** Drawing whose shape is being modified; its row carries the modification mark. */
+  modifyingFeatureId: string | null;
   editingFeatureId: string | null;
   renameArmedFeatureId: string | null;
   featureKindLabels: Record<HallGeoJsonFeatureKind, string>;
@@ -45,6 +47,7 @@ export function GeographicCompositionEditor({
   drawTool,
   features,
   selectedFeatureId,
+  modifyingFeatureId,
   editingFeatureId,
   renameArmedFeatureId,
   featureKindLabels,
@@ -108,14 +111,17 @@ export function GeographicCompositionEditor({
             const policy = geographicFeatureKindPolicy[feature.properties.kind];
             const Icon = policy.Icon;
             const selected = selectedFeatureId === feature.id;
+            const modifying = modifyingFeatureId === feature.id;
             const fallbackName = `${featureKindLabels[feature.properties.kind]} ${index + 1}`;
             const visible = feature.properties.visible !== false;
             const color = policy.color(feature.properties.style);
             return (
               <li
                 key={feature.id}
-                className={`geographic-composition-feature${selected ? " geographic-composition-feature-selected" : ""}`}
+                className={`geographic-composition-feature${selected ? " geographic-composition-feature-selected" : ""}${modifying ? " geographic-composition-feature-modifying" : ""}`}
                 data-testid={`geographic-composition-feature-${feature.id}`}
+                data-modifying={modifying}
+                aria-description={modifying ? t("geographic.shape.modifyingRow") : undefined}
               >
                 <button
                   type="button"

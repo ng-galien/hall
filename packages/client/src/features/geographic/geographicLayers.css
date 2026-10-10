@@ -96,4 +96,5 @@
 .geographic-feature-card-property { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--hall-space-2); }
 .geographic-feature-card-property dt { overflow: hidden; color: var(--hall-color-text-muted); text-overflow: ellipsis; }
 .geographic-feature-card-property dd { margin: 0; overflow-wrap: anywhere; }
+.geographic-drawn-element-shape { display: grid; justify-items: start; gap: var(--hall-space-2); }
 .geographic-feature-card-muted { margin: 0; color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-caption); }

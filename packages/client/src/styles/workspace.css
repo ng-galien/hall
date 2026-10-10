@@ -883,6 +883,10 @@
     border-color: var(--hall-color-brand-border);
     background: var(--hall-color-brand-subtle);
   }
+  .geographic-composition-feature-modifying {
+    border-style: dashed;
+    border-color: var(--hall-color-brand);
+  }
   .geographic-composition-feature button {
     border: 0;
     color: var(--hall-color-text-muted);
