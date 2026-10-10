@@ -73,7 +73,6 @@ export function CouncilBusinessWorkbench({
     ]);
   }, [business.id]);
 
-  /** Reloads the opened business representation whenever its capabilities are absent from the store. */
   useEffect(() => {
     if (!capabilitiesLoaded) void useCouncilBusinessStore.getState().loadResources(business.id);
   }, [business.id, capabilitiesLoaded]);

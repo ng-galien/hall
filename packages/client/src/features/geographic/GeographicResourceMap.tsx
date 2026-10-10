@@ -87,6 +87,7 @@ function parcelSource(municipal: MunicipalPropertyState | null, parcelId: string
 }
 
 // @implements-requirement HALL-FR-DOC-340
+// @implements-requirement HALL-FR-DOC-430
 export function GeographicResourceMap({
   resource,
   data,
@@ -225,7 +226,6 @@ export function GeographicResourceMap({
     [drawingIdAt, modifyingFeatureId, pickFeature, pointerState],
   );
   useGeographicMapCursor(mapRuntime.map, pointerState, pointerTargetAt);
-  // @implements-requirement HALL-FR-DOC-430
   const readerInspection = !canUpdate && !embedded && workspaceMode === "map" && !measuring;
   const [inspectedDrawingId, setInspectedDrawingId] = useState<string | null>(null);
   const olMap = mapRuntime.map;

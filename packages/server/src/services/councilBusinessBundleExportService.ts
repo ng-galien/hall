@@ -9,6 +9,7 @@ import { DomainError } from "./errors.js";
 import { parseGeographicLayerImport } from "./geographicLayerImport.js";
 
 // @implements-requirement HALL-FR-DOC-330
+// @implements-requirement HALL-FR-DOC-430
 export function createCouncilBusinessBundleExportService({
   councilClient,
   resourcesClient,
@@ -94,7 +95,6 @@ export function createCouncilBusinessBundleExportService({
           geographic: async (entry) => {
             manifest.resources.push({ data: entry });
             for (const overlay of entry.overlays) ids.add(overlay.layerId);
-            // @implements-requirement HALL-FR-DOC-430
             for (const note of (await geographicLayersClient.listDrawnElementNotes(entry.id)) ?? []) {
               ids.add(note.noteId);
               manifest.geographicFeatureNotes.push({
