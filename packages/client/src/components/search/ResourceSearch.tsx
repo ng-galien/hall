@@ -68,7 +68,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
   const [rawActive, setActive] = useState(0);
   const [browsing, setBrowsing] = useState(false);
   const root = useRef<HTMLDivElement>(null);
-  const search = useResourceSearch(effective, scope, items);
+  const search = useResourceSearch(effective, scope, items, !hideResultsWhenEmpty || isSearchBoxActive(effective));
   const active = Math.min(rawActive, Math.max(search.items.length - 1, 0));
   const change = (next: SearchBoxState<SearchType>) => {
     setActive(0);

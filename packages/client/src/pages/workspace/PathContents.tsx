@@ -236,12 +236,13 @@ export function PathContents({
   const businessIds = businesses.map((business) => business.id).join("\n");
   const pendingCapabilities = useRef(new Set<string>());
   useEffect(() => {
+    if (hidden) return;
     for (const id of businessIds.split("\n").filter(Boolean)) {
       if (councilBusinessStore.capabilitiesById[id] || pendingCapabilities.current.has(id)) continue;
       pendingCapabilities.current.add(id);
       void councilBusinessStore.loadResources(id).finally(() => pendingCapabilities.current.delete(id));
     }
-  }, [businessIds, councilBusinessStore.loadResources, councilBusinessStore.capabilitiesById]);
+  }, [businessIds, councilBusinessStore.loadResources, councilBusinessStore.capabilitiesById, hidden]);
   const treeRef = useRef<HTMLUListElement | null>(null);
   const renameTargetRef = useRef<RenameTarget | null>(null);
   const renameSessionRef = useRef(0);
@@ -325,6 +326,7 @@ export function PathContents({
   };
 
   useEffect(() => {
+    if (hidden) return;
     void resourcesStore.loadFolder(path);
     void resourcesStore.hydrate({
       query: "",
@@ -334,17 +336,19 @@ export function PathContents({
       readiness: [],
       media: [],
     });
-  }, [path, resourcesStore.hydrate, resourcesStore.loadFolder]);
+  }, [path, resourcesStore.hydrate, resourcesStore.loadFolder, hidden]);
 
   useEffect(() => {
+    if (hidden) return;
     for (const folderPath of paths) {
       if (isFolderExpanded(folderPath)) void resourcesStore.loadFolder(folderPath);
     }
-  }, [paths, isFolderExpanded, resourcesStore.loadFolder]);
+  }, [paths, isFolderExpanded, resourcesStore.loadFolder, hidden]);
 
   useEffect(() => {
+    if (hidden) return;
     void loadCouncilActivity();
-  }, [loadCouncilActivity]);
+  }, [loadCouncilActivity, hidden]);
 
   const itemKey = (target: RenameTarget) =>
     matchDiscriminated(target, "kind", {
@@ -1257,6 +1261,8 @@ export function PathContents({
       </span>
     </fieldset>
   );
+  if (hidden) return null;
+
   return (
     <div className="workspace-explorer path-contents-explorer" hidden={hidden}>
       <div className="workspace-explorer-toolbar">

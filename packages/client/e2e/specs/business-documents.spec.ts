@@ -76,8 +76,12 @@ test("the business documents section folds by its header and opens each document
   const section = page.getByTestId("business-category-documents");
   const toggle = page.getByTestId("business-category-documents-toggle");
   await expect(page.getByTestId("business-category-documents-count")).toHaveText("4");
-  await expect(toggle).toHaveAttribute("aria-expanded", "true");
   const tree = section.getByTestId("business-resource-tree");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(tree).toBeHidden();
+  await expect(page.getByTestId("attachment-picker-open")).toBeVisible();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(tree).toBeVisible();
 
   const chevronBox = await toggle.locator("svg").first().boundingBox();
@@ -133,7 +137,7 @@ test("the business documents section folds by its header and opens each document
   await page.getByTestId(`business-document-view-${map.id}`).click();
   await expect(viewer).toBeVisible();
   await expect(viewer).toHaveAttribute("data-resource-mode", "edit");
-  await viewer.getByTestId("geographic-mode-draw").click();
+  await expect(viewer.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   await viewer.getByTestId("geographic-tool-marker").click();
   const mapBox = await viewer.locator(".geographic-map").boundingBox();
   if (!mapBox) throw new Error("The map must be rendered in the viewer");

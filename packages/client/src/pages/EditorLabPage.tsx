@@ -1,26 +1,20 @@
 import { resourceKinds } from "@hall/api-contract";
 import { serializeResourceEmbedDirective } from "@hall/templating";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { serializeImageDirective } from "../components/editor/images";
 import { MarkdownEditor } from "../components/editor/MarkdownEditor";
-import { PdfIcon } from "../components/icons";
 import { MarkdownView } from "../components/MarkdownView";
 import { PageHeader } from "../components/Ui";
-import { NativeDocumentFrame } from "../features/documents/NativeDocumentFrame";
+import { PdfPreviewButton } from "../features/documents/PdfPreviewButton";
 import { loadResourceEmbedTableOptions } from "../features/resources/ResourceEmbedPresentation";
 import { useReferenceMentionables } from "../hooks/useReferenceMentionables";
 import { useI18n } from "../i18n/I18nProvider";
-import { previewTemplatePdf } from "../services/templatesApi";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 
 export function EditorLabPage() {
   const { t } = useI18n();
   const [markdown, setMarkdown] = useState(() => t("editor.lab.sample"));
   const [catalogReady, setCatalogReady] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [pdfStatus, setPdfStatus] = useState<"idle" | "loading" | "failed">("idle");
   const editorInteracted = useRef(false);
   const mentionables = useReferenceMentionables();
   const resourcesStore = useWorkspaceResourcesStore();
@@ -109,48 +103,17 @@ export function EditorLabPage() {
     };
   }, [catalogReady, mentionables, resources, t]);
 
-  const openPdfPreview = async () => {
-    setPdfStatus("loading");
-    try {
-      setPdfUrl(await previewTemplatePdf(markdown));
-      setPdfStatus("idle");
-    } catch {
-      setPdfStatus("failed");
-    }
-  };
-
   return (
     <div className="page" data-testid="editor-lab-page">
       <PageHeader title={t("editor.lab.title")} description={t("editor.lab.description")} />
       <div className="page-content editor-lab">
         <div className="editor-lab-actions">
-          <Button
-            data-testid="editor-pdf-preview"
-            variant="outline"
-            disabled={pdfStatus === "loading"}
-            onClick={() => void openPdfPreview()}
-          >
-            <PdfIcon />
-            {t(pdfStatus === "loading" ? "editor.pdfPreviewLoading" : "editor.pdfPreview")}
-          </Button>
-          {pdfStatus === "failed" ? <p role="alert">{t("editor.pdfPreviewFailed")}</p> : null}
+          <PdfPreviewButton
+            markdown={markdown}
+            testId="editor-pdf-preview"
+            viewerTestId="editor-pdf-native-viewer"
+          />
         </div>
-        <Dialog open={Boolean(pdfUrl)} onOpenChange={(open) => !open && setPdfUrl(null)}>
-          <DialogContent
-            className="editor-lab-pdf-dialog h-[var(--hall-size-overlay-height)] w-[var(--hall-size-viewer-width)] max-w-[var(--hall-size-viewer-width)] grid-rows-[auto_minmax(0,1fr)] sm:max-w-[var(--hall-size-document-viewer)]"
-            data-testid="editor-pdf-preview-dialog"
-            closeLabel={t("common.close")}
-          >
-            <DialogHeader>
-              <DialogTitle>{t("editor.pdfPreview")}</DialogTitle>
-            </DialogHeader>
-            {pdfUrl ? (
-              <section className="editor-lab-pdf-preview" data-testid="editor-pdf-native-viewer">
-                <NativeDocumentFrame url={pdfUrl} mediaType="application/pdf" title={t("editor.pdfPreview")} />
-              </section>
-            ) : null}
-          </DialogContent>
-        </Dialog>
         <section
           className="editor-lab-pane"
           aria-labelledby="editor-lab-write"

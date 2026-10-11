@@ -83,16 +83,20 @@ export function WorkspacePage() {
   const [folderError, setFolderError] = useState<ApiErrorCode | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    void resourcesStore.loadCatalog();
-  }, [resourcesStore.loadCatalog]);
-
   const path = searchParams.get("path") ?? "";
   const selection: WorkspaceSelection = searchParams.get("councilBusiness")
     ? { kind: "councilBusiness", id: searchParams.get("councilBusiness") as string }
     : searchParams.get("resource")
       ? { kind: "resource", id: searchParams.get("resource") as string }
       : null;
+
+  useEffect(() => {
+    if (selection?.kind === "councilBusiness") void councilBusinessStore.loadSelected(selection.id);
+  }, [selection?.kind, selection?.id, councilBusinessStore.loadSelected]);
+
+  useEffect(() => {
+    if (selection?.kind !== "councilBusiness") void resourcesStore.loadCatalog();
+  }, [selection?.kind, resourcesStore.loadCatalog]);
 
   const pathBusinesses = useMemo(
     () => businesses.filter((business) => isUnderPath(business.folderPath, path)),
@@ -122,6 +126,12 @@ export function WorkspacePage() {
   const businessReportSession = useResourceSession({
     resourceId: selectedBusiness?.reportResourceId ?? null,
   });
+  useEffect(() => {
+    const report = businessReportSession.resource;
+    if (report && selection?.kind === "councilBusiness" && selectedBusiness?.reportResourceId === report.id && report.kind === "text") {
+      councilBusinessStore.adoptReport(selection.id, report);
+    }
+  }, [selection?.kind, selection?.id, selectedBusiness?.reportResourceId, businessReportSession.resource, councilBusinessStore.adoptReport]);
   const presentedResource = resourceSession.resource;
   const openedSession =
     selection?.kind === "resource"
@@ -529,9 +539,9 @@ export function WorkspacePage() {
                 onExportBundle={(business) => setExportBundleId(business.id)}
                 onCreate={createInFolder}
                 onPreview={(resource) => select({ kind: "resource", id: resource.id })}
-                hidden={Boolean(selectedBusiness || selection?.kind === "resource")}
+                hidden={Boolean(selection)}
               />
-              {selectedBusiness || selection?.kind === "resource" ? (
+              {selection ? (
                 <section className="workspace-bench workspace-bench-full" aria-label={t("workspace.bench")}>
                   {selectedBusiness ? (
                     <CouncilBusinessWorkbench
@@ -544,7 +554,11 @@ export function WorkspacePage() {
                     />
                   ) : selection?.kind === "resource" ? (
                     <ResourceWorkbench key={selection.id} session={resourceSession} onSelect={select} />
-                  ) : null}
+                  ) : councilBusinessError ? (
+                    <Button onClick={() => void councilBusinessStore.loadSelected(selection.id)}>{t("common.retry")}</Button>
+                  ) : (
+                    <LoadingIndicator data-testid="business-selection-loading">{t("common.loading")}</LoadingIndicator>
+                  )}
                 </section>
               ) : null}
             </div>

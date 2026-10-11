@@ -5,9 +5,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { FolderIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
+import { RequestErrorBanner } from "../../components/Ui";
 import { ExplorerTree } from "../../components/ui/explorer-tree";
 import { CouncilBusinessCommittees } from "../../features/council-business/CouncilBusinessCommittees";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
+import { PdfPreviewButton } from "../../features/documents/PdfPreviewButton";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useEditorDocumentUpload } from "../../features/documents/useEditorDocumentUpload";
 import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
@@ -31,6 +33,7 @@ import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 import "./CouncilBusinessWorkbench.css";
 
+// @implements-requirement HALL-FR-WSP-370
 export function CouncilBusinessWorkbench({
   business,
   reportSession,
@@ -59,25 +62,28 @@ export function CouncilBusinessWorkbench({
   const loadCouncilActivity = useWorkspaceCouncilActivityStore((state) => state.load);
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
   const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
-  const [documentsOpen, setDocumentsOpen] = useState(true);
+  const [documentsState, setDocumentsState] = useState({ businessId: business.id, open: false });
+  const documentsOpen = documentsState.businessId === business.id && documentsState.open;
+  const setDocumentsOpen = (open: boolean) => setDocumentsState({ businessId: business.id, open });
+  useEffect(() => {
+    setDocumentsState((current) =>
+      current.businessId === business.id ? current : { businessId: business.id, open: false },
+    );
+  }, [business.id]);
   const { isPinned, togglePin } = useWorkspacePrefsStore();
   const pinned = isPinned({ kind: "councilBusiness", id: business.id });
   const editable = reportSession.editable;
 
-  const capabilitiesLoaded = useCouncilBusinessStore((state) => business.id in state.capabilitiesById);
+  const documentsLoaded = useCouncilBusinessStore((state) => Boolean(state.resourceItemsLoadedById?.[business.id]));
+  const documentsError = useCouncilBusinessStore((state) => state.resourceItemsErrorById?.[business.id] ?? null);
 
   useEffect(() => {
     const store = useCouncilBusinessStore.getState();
     void Promise.all([
-      business.id in store.capabilitiesById ? store.loadResources(business.id) : null,
       store.loadPreparedSubjects(business.id),
       useCouncilDecisionsStore.getState().load(),
     ]);
   }, [business.id]);
-
-  useEffect(() => {
-    if (!capabilitiesLoaded) void useCouncilBusinessStore.getState().loadResources(business.id);
-  }, [business.id, capabilitiesLoaded]);
 
   const renameBusiness = async (nextTitle: string) => {
     const renamed = await run(async () => {
@@ -122,29 +128,35 @@ export function CouncilBusinessWorkbench({
           onTitleChange={folderCapabilities.relocate ? renameBusiness : undefined}
           hint={<CouncilBusinessCommittees businessId={business.id} />}
           actions={
-            <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
-                    aria-pressed={pinned}
-                    onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
-                  >
-                    {pinned ? <PinnedIcon /> : <PinIcon />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
-              </Tooltip>
-            </>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
+                  aria-pressed={pinned}
+                  onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
+                >
+                  {pinned ? <PinnedIcon /> : <PinIcon />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
+            </Tooltip>
           }
           actionError={actionError ?? reportSession.actionError}
         />
 
         <section className="workbench-section" data-testid="business-report" aria-label={t("meeting.report")}>
           <div className="business-section-heading">
-            <h2>{t("workspace.businessReport")}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2>{t("workspace.businessReport")}</h2>
+              <PdfPreviewButton
+                key={business.id}
+                markdown={reportSession.content}
+                testId="business-report-pdf-preview"
+                disabled={!reportSession.resource}
+              />
+            </div>
             <p>{t("workspace.businessReportDescription")}</p>
           </div>
           <div className="grid gap-1.5">
@@ -174,8 +186,27 @@ export function CouncilBusinessWorkbench({
                   )}
                 </div>
               )
+            ) : reportSession.detailsFailed ? (
+              <div className="business-report-load-failure" data-testid="business-report-load-error">
+                <RequestErrorBanner error={reportSession.actionError ?? "request_failed"} />
+                <Button
+                  variant="outline"
+                  onClick={() => void reportSession.reload()}
+                  data-testid="business-report-retry"
+                >
+                  {t("common.retry")}
+                </Button>
+              </div>
             ) : (
-              <p>{t("common.loading")}</p>
+              <div className="business-report-loading" role="status" data-testid="business-report-loading">
+                <p>{t("common.loading")}</p>
+                <div className="business-report-loading-placeholder" aria-hidden="true">
+                  <span className="business-report-loading-toolbar" />
+                  <span className="business-report-loading-line" />
+                  <span className="business-report-loading-line business-report-loading-line-short" />
+                  <span className="business-report-loading-line" />
+                </div>
+              </div>
             )}
           </div>
           {reportSession.editable && (!reportSession.autosaveEnabled || reportSession.actionError) ? (
@@ -198,7 +229,7 @@ export function CouncilBusinessWorkbench({
           testId="business-category-documents"
           title={t("workspace.documentCategory")}
           icon={<FolderIcon />}
-          count={attachedResources.length}
+          count={documentsLoaded ? attachedResources.length : undefined}
           open={documentsOpen}
           onOpenChange={setDocumentsOpen}
           actions={
@@ -211,7 +242,16 @@ export function CouncilBusinessWorkbench({
             />
           }
         >
-          {attachedResources.length ? (
+          {!documentsOpen ? null : documentsError ? (
+            <div data-testid="business-documents-load-error">
+              <RequestErrorBanner error={documentsError} />
+              <Button data-testid="business-documents-retry" onClick={() => void useCouncilBusinessStore.getState().loadResources(business.id)}>
+                {t("common.retry")}
+              </Button>
+            </div>
+          ) : !documentsLoaded ? (
+            <p className="workspace-list-empty" role="status">{t("common.loading")}</p>
+          ) : attachedResources.length ? (
             <ExplorerTree className="business-document-tree" data-testid="business-resource-tree">
               <BusinessDocumentTree
                 resources={attachedResources}

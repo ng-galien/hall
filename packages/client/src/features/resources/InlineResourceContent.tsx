@@ -14,11 +14,13 @@ export function InlineResourceContent({
   resourceId,
   heading,
   compact = false,
+  readOnly = false,
   actionsHost,
 }: {
   resourceId: string;
   heading?: string;
   compact?: boolean;
+  readOnly?: boolean;
   actionsHost?: HTMLElement | null;
 }) {
   const session = useResourceSession({ resourceId });
@@ -36,10 +38,10 @@ export function InlineResourceContent({
         <ResourcePresentationBody
           resource={session.resource}
           representation={session.representation}
-          mode={session.mode}
+          mode={readOnly ? "read" : session.mode}
           layout="workbench"
           showContentLabel={false}
-          readOnlyTextEditor={compact}
+          readOnlyTextEditor={compact && !readOnly}
           capabilities={session.capabilities}
           content={session.content}
           remoteUrl={session.remoteUrl}
@@ -96,7 +98,7 @@ export function InlineResourceContent({
   if (compact) {
     return (
       <div className="business-inline-resource" data-testid={`business-inline-resource-${resourceId}`}>
-        {actionsHost ? createPortal(actions, actionsHost) : null}
+        {actionsHost && !readOnly ? createPortal(actions, actionsHost) : null}
         {body}
       </div>
     );
@@ -105,7 +107,7 @@ export function InlineResourceContent({
     <ExplorerTreeContent
       testId={`business-inline-resource-${resourceId}`}
       heading={heading ?? t("resources.textContent")}
-      actions={actions}
+      actions={readOnly ? null : actions}
     >
       {body}
     </ExplorerTreeContent>

@@ -106,6 +106,10 @@ export function createCouncilBusinessRouter({
     response.json(await councilBusinessWorkspaceService.listWorkspaceItems());
   });
 
+  router.get("/workspace-index", requirePermission("workspace.read"), async (_request, response) => {
+    response.json(await councilBusinessWorkspaceService.listNavigationIndex());
+  });
+
   router.get("/resource-items", requirePermission("workspace.read"), async (request, response) => {
     const rawIds = request.query.councilBusinessId;
     const councilBusinessIds = Array.isArray(rawIds) ? rawIds : rawIds === undefined ? [] : [rawIds];

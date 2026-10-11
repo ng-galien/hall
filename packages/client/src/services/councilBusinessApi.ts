@@ -10,6 +10,7 @@ import {
   councilBusinessResourceItemSchema,
   councilBusinessSchema,
   councilBusinessWorkspaceItemSchema,
+  councilBusinessNavigationIndexSchema,
   createCouncilBusinessSchema,
   createPreparedCouncilSubjectSchema,
   type DissociateCouncilBusinessResource,
@@ -47,6 +48,24 @@ export async function createPreparedCouncilSubject(businessId: string, input: Cr
 export async function listCouncilBusinesses() {
   const result = await apiSirenRequest<unknown>("/council-business/workspace-items");
   return { ...result, data: councilBusinessWorkspaceItemSchema.array().parse(result.data) };
+}
+
+async function fetchCouncilBusinessNavigationIndex() {
+  const result = await apiSirenRequest<unknown>("/council-business/workspace-index");
+  return { ...result, data: councilBusinessNavigationIndexSchema.parse(result.data) };
+}
+
+let pendingNavigationIndex: ReturnType<typeof fetchCouncilBusinessNavigationIndex> | null = null;
+
+export function listCouncilBusinessNavigationIndex() {
+  if (pendingNavigationIndex) return pendingNavigationIndex;
+  const pending = fetchCouncilBusinessNavigationIndex();
+  pendingNavigationIndex = pending;
+  void pending.then(
+    () => { if (pendingNavigationIndex === pending) pendingNavigationIndex = null; },
+    () => { if (pendingNavigationIndex === pending) pendingNavigationIndex = null; },
+  );
+  return pending;
 }
 
 export async function openCouncilBusiness(id: string) {

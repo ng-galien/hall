@@ -32,6 +32,7 @@ export function useResourceSearch(
   state: SearchBoxState<SearchType>,
   scope: ResourceSearchScope = emptyScope,
   supplied: readonly Mentionable[] = emptyItems,
+  enabled = true,
 ) {
   const { t } = useI18n();
   const canonical = useReferenceMentionables(scope.businessId);
@@ -82,7 +83,7 @@ export function useResourceSearch(
   } | null>(null);
   const [request, setRequest] = useState<{ key: string; size: number; error: boolean } | null>(null);
   const generation = useRef(0);
-  const canSearchResources = kinds.length > 0 && (state.states.length === 0 || criteria.readiness.length > 0);
+  const canSearchResources = enabled && kinds.length > 0 && (state.states.length === 0 || criteria.readiness.length > 0);
   useEffect(() => {
     if (canSearchResources && !representation) void loadCatalog();
   }, [canSearchResources, representation, loadCatalog]);

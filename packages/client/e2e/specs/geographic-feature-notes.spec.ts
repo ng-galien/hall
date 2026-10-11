@@ -9,6 +9,7 @@ async function openMapDialog(page: Page, mapId: string) {
   await page.getByTestId("resource-open-extended").click();
   const dialog = page.getByTestId("resource-preview");
   await expect(dialog).toBeVisible();
+  await dialog.getByTestId("geographic-mode-map").click();
   await dialog.getByTestId("geographic-layers-trigger").click();
   await expect(dialog.locator('li[data-testid^="geographic-overlay-"]')).toHaveAttribute(
     "data-overlay-status",
@@ -59,13 +60,16 @@ test("a parcel clicked on the map opens its card, receives a note and shows it a
   const card = dialog.getByTestId("geographic-feature-card");
   await expect(card).toBeVisible();
   await expect(card.getByTestId("geographic-feature-card-title")).toHaveText("Parcel A 2");
+  await expect(card.getByTestId("geographic-feature-card-metadata-toggle")).toHaveAttribute("aria-expanded", "false");
+  await expect(card.getByTestId("editor-writing-area")).toBeVisible();
+  await card.getByTestId("geographic-feature-card-metadata-toggle").click();
   await expect(card.getByTestId("geographic-feature-card-properties")).toContainText("999990000A0002");
+  await expect(card.getByTestId("geographic-feature-card-properties")).not.toContainText("Emprise");
   await page.keyboard.press("Escape");
   await expect(card).toHaveCount(0);
   await expect(dialog).toBeVisible();
   await clickMapCentre(page, dialog);
   await expect(card).toBeVisible();
-  await card.getByTestId("geographic-feature-note-create").click();
   const writingArea = card.getByTestId("editor-writing-area");
   await expect(writingArea).toHaveAttribute("contenteditable", "true");
   await writingArea.click();
@@ -207,9 +211,136 @@ test("a reader clicks a drawing and reads its card, measures and note without ed
   };
 
   await page.goto(`/app/workspace?path=seed&resource=${map.id}`);
-  await expect(page.getByTestId("geographic-mode-draw")).toBeDisabled();
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("geographic-tool-area")).toHaveCount(0);
   await readCard(".workspace-bench .geographic-map");
   await page.goto(`/app/maps/${map.id}?view=${centre[0]},${centre[1]},16`);
-  await expect(page.getByTestId("geographic-mode-draw")).toBeDisabled();
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   await readCard(".maps-surface .geographic-map");
+});
+
+// @verifies-requirement HALL-FR-DOC-430
+test("a normal point click opens its note in the default map mode and in a native text inclusion", async ({
+  appPage: page,
+}) => {
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "geographic", name: `Point card ${crypto.randomUUID()}`, path: "seed" },
+  });
+  expect(created.ok()).toBeTruthy();
+  const map = (await created.json()).properties;
+  const elementId = crypto.randomUUID();
+  const saved = await page.request.put(`/api/resources/${map.id}/content`, {
+    data: {
+      kind: "geographic",
+      expectedVersion: map.version,
+      document: {
+        ...map.document,
+        view: { kind: "center", center: [4.50, 47.54], zoom: 16 },
+        hallLayer: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              id: elementId,
+              properties: {
+                kind: "marker",
+                label: "Site documenté",
+                visible: true,
+                style: { color: "#2255aa", size: "large" },
+              },
+              geometry: { type: "Point", coordinates: [4.50, 47.54] },
+            },
+          ],
+        },
+      },
+    },
+  });
+  expect(saved.ok()).toBeTruthy();
+  const attached = await page.request.post(`/api/resources/${map.id}/feature-notes`, { data: { elementId } });
+  expect(attached.ok()).toBeTruthy();
+  const noteId = (await attached.json()).properties.noteId;
+  expect(
+    (
+      await page.request.put(`/api/resources/${noteId}/content`, {
+        data: { kind: "text", expectedVersion: 1, content: "Fiche du **site documenté**." },
+      })
+    ).ok(),
+  ).toBeTruthy();
+  await page.goto(`/app/maps/${map.id}?view=4.50,47.54,16`);
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  let box = await page.locator(".maps-surface .geographic-map").boundingBox();
+  if (!box) throw new Error("Map must be visible");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2 - 8);
+  await expect(page.getByTestId("geographic-drawn-element-card-note").locator("strong")).toHaveText("site documenté");
+  await expect(page.getByTestId("geographic-drawn-element-card-measures")).toHaveCount(0);
+  const imageResponse = await page.request.post("/api/resources/documents", {
+    multipart: {
+      path: "seed",
+      file: {
+        name: "Inclusion image.png",
+        mimeType: "image/png",
+        buffer: Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEElEQVR42mNk+M+ABzDhkAIAEwQCAiV7nNwAAAAASUVORK5CYII=",
+          "base64",
+        ),
+      },
+    },
+  });
+  expect(imageResponse.ok()).toBeTruthy();
+  const image = (await imageResponse.json()).properties;
+  const text = await page.request.post("/api/resources", {
+    data: { kind: "text", name: `Embedded point ${crypto.randomUUID()}`, path: "seed", content: "Carte incluse." },
+  });
+  expect(text.ok()).toBeTruthy();
+  const parent = (await text.json()).properties;
+  expect(
+    (
+      await page.request.put(`/api/resources/${parent.id}/content`, {
+        data: {
+          kind: "text",
+          expectedVersion: parent.version,
+          content: `::resource-embed[Carte de travail]{#${map.id} presentation="map"}\n\n::resource-embed[Image de travail]{#${image.id} presentation="image"}`,
+        },
+      })
+    ).ok(),
+  ).toBeTruthy();
+  await page.goto(`/app/workspace?path=seed&resource=${parent.id}`);
+  await page.getByTestId("resource-open-extended").click();
+  const embed = page.getByTestId("resource-preview").getByTestId("resource-embed-presentation-map");
+  await expect(embed).toBeVisible();
+  const writes: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/feature-notes")) writes.push(request.url());
+  });
+  await expect
+    .poll(() =>
+      embed.locator(".geographic-map").evaluate((element) => {
+        const canvas = element.querySelector("canvas");
+        return canvas?.width === element.clientWidth && canvas?.height === element.clientHeight;
+      }),
+    )
+    .toBe(true);
+  box = await embed.locator(".geographic-map").boundingBox();
+  if (!box) throw new Error("Embedded map must be visible");
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 8);
+  await expect(embed.locator(".ol-viewport")).toHaveCSS("cursor", "pointer");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2 - 8);
+  await expect(embed.getByTestId("geographic-drawn-element-card-title")).toHaveText("Site documenté");
+  await expect(embed.getByTestId("geographic-drawn-element-card-note").locator("strong")).toHaveText("site documenté");
+  await expect(embed.locator('[contenteditable="true"]')).toHaveCount(0);
+  expect(writes).toEqual([]);
+  await embed.getByTestId("geographic-drawn-element-card-close").click();
+  await page.getByTestId("resource-preview").getByTestId(`editor-resource-embed-${map.id}`).click();
+  const mapPreview = page.getByTestId("resource-preview").last();
+  await expect(page.getByTestId("resource-preview")).toHaveCount(2);
+  await expect(mapPreview.getByRole("heading", { name: map.name, exact: true })).toBeVisible();
+  await expect(mapPreview.getByTestId("geographic-mode-draw")).toBeVisible();
+  await mapPreview.getByTestId("resource-preview-close").click();
+  await expect(page.getByTestId("resource-preview")).toHaveCount(1);
+  await page.getByTestId("resource-preview").getByTestId(`editor-resource-embed-${image.id}`).click();
+  const imagePreview = page.getByTestId("resource-preview").last();
+  await expect(page.getByTestId("resource-preview")).toHaveCount(2);
+  await expect(imagePreview.getByTestId("resource-preview-object")).toHaveAttribute("type", "image/png");
+  await imagePreview.getByTestId("resource-preview-close").click();
+  await expect(page.getByTestId("resource-preview")).toHaveCount(1);
 });

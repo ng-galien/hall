@@ -19,6 +19,7 @@ export function useGeographicMapCursor(
   targetAt: (pixel: number[]) => GeographicPointerTarget,
 ) {
   const stateRef = useRef(state);
+  const lastPixelRef = useRef<number[] | null>(null);
   const targetAtRef = useRef(targetAt);
   targetAtRef.current = targetAt;
   const refreshRef = useRef<() => void>(() => undefined);
@@ -28,7 +29,7 @@ export function useGeographicMapCursor(
     const viewport = map.getViewport();
     let target: GeographicPointerTarget = "none";
     let gesture: GeographicPointerGesture = "hover";
-    let lastPixel: number[] | null = null;
+    let lastPixel: number[] | null = lastPixelRef.current;
     let frame = 0;
     const apply = () => {
       viewport.style.cursor = geographicCursor(stateRef.current, target, gesture);
@@ -40,6 +41,7 @@ export function useGeographicMapCursor(
     };
     const move = (event: MapBrowserEvent) => {
       lastPixel = event.pixel;
+      lastPixelRef.current = event.pixel;
       if (event.dragging) {
         if (gesture === "hover") {
           gesture = target === "modifiedShape" ? "dragShape" : "panMap";
@@ -56,12 +58,14 @@ export function useGeographicMapCursor(
     };
     const leave = () => {
       lastPixel = null;
+      lastPixelRef.current = null;
       if (gesture === "hover") hover();
     };
     refreshRef.current = () => {
       gesture = "hover";
       hover();
     };
+    map.once("postrender", hover);
     map.on("pointermove", move);
     map.on("pointerdrag", move);
     window.addEventListener("pointerup", release);
@@ -69,6 +73,7 @@ export function useGeographicMapCursor(
     apply();
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
+      map.un("postrender", hover);
       map.un("pointermove", move);
       map.un("pointerdrag", move);
       window.removeEventListener("pointerup", release);

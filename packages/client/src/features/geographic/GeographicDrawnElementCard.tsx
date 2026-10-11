@@ -1,6 +1,7 @@
 import type { GeographicFeatureNote, SirenEntity } from "@hall/api-contract";
+import type { GeographicLineArrows } from "@hall/domain";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CenterOnFeatureIcon, CloseIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -10,7 +11,7 @@ import {
   createGeographicDrawnElementNote,
   readGeographicDrawnElementNotes,
 } from "./geographicLayersApi";
-import { escapeBelongsToTarget } from "./useGeographicFeatureCard";
+import { escapeBelongsToTarget, useAutomaticGeographicNote } from "./useGeographicFeatureCard";
 
 /** Notes of the drawn elements of a map, read through the map and created on demand. */
 // @implements-requirement HALL-FR-DOC-430
@@ -22,7 +23,11 @@ export function useGeographicDrawnElementNotes(map: SirenEntity | null, onError:
     let current = true;
     readGeographicDrawnElementNotes(map).then(
       (loaded) => {
-        if (current) setNotes(loaded);
+        if (current)
+          setNotes((state) => [
+            ...loaded,
+            ...(state ?? []).filter(({ key }) => !loaded.some((note) => note.key === key)),
+          ]);
       },
       (failure: unknown) => onError(apiErrorCode(failure)),
     );
@@ -32,14 +37,16 @@ export function useGeographicDrawnElementNotes(map: SirenEntity | null, onError:
   }, [map, onError]);
   const create = useCallback(
     async (elementId: string, beforeCreate: () => Promise<boolean>) => {
-      if (!map) return;
+      if (!map) return false;
       setCreating(true);
       try {
-        if (!(await beforeCreate())) return;
+        if (!(await beforeCreate())) return false;
         const created = await createGeographicDrawnElementNote(map, elementId);
         setNotes((state) => [...(state ?? []).filter(({ key }) => key !== created.key), created]);
+        return true;
       } catch (failure) {
         onError(apiErrorCode(failure));
+        return true;
       } finally {
         setCreating(false);
       }
@@ -64,16 +71,19 @@ export function GeographicDrawnElementCard({
   creatingNote,
   mapElement,
   modifying,
-  onModify,
   onStopModifying,
   onCreateNote,
   onCenter,
   onClose,
   readOnly = false,
   measures,
+  arrows,
+  onArrows,
 }: {
   readOnly?: boolean;
   measures?: ReactNode;
+  arrows?: GeographicLineArrows;
+  onArrows?(arrows: GeographicLineArrows): void;
   label: string;
   kindLabel: string;
   note: GeographicFeatureNote | null;
@@ -83,13 +93,13 @@ export function GeographicDrawnElementCard({
   mapElement: HTMLElement | null;
   /** True while the shape of this drawing is being modified. */
   modifying: boolean;
-  onModify?(): void;
   onStopModifying?(): void;
   onCreateNote?(): void;
   onCenter(): void;
   onClose(): void;
 }) {
   const { t } = useI18n();
+  useAutomaticGeographicNote(!readOnly && !loading && !note && canCreateNote && !creatingNote, onCreateNote);
   useEffect(() => {
     const leaveOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || escapeBelongsToTarget(event.target, mapElement)) return;
@@ -102,7 +112,12 @@ export function GeographicDrawnElementCard({
     return () => window.removeEventListener("keydown", leaveOnEscape, { capture: true });
   }, [mapElement, modifying, onClose, onStopModifying]);
   return (
-    <section className="geographic-feature-card" data-testid="geographic-drawn-element-card" aria-label={label}>
+    <section
+      className="geographic-feature-card"
+      data-testid="geographic-drawn-element-card"
+      aria-label={label}
+      contentEditable={readOnly ? false : undefined}
+    >
       <header className="geographic-feature-card-header">
         <div className="geographic-feature-card-title">
           <h2 data-testid="geographic-drawn-element-card-title">{label}</h2>
@@ -142,34 +157,33 @@ export function GeographicDrawnElementCard({
                 {t("geographic.shape.modifyingHint")}
               </p>
             ) : null}
-            <Button
-              type="button"
-              size="sm"
-              variant={modifying ? "default" : "outline"}
-              aria-pressed={modifying}
-              data-testid="geographic-drawn-element-card-modify"
-              onClick={modifying ? onStopModifying : onModify}
-            >
-              {t(modifying ? "geographic.shape.stopModifying" : "geographic.shape.modify")}
-            </Button>
+            {onArrows ? (
+              <Select value={arrows ?? "none"} onValueChange={(value) => onArrows(value as GeographicLineArrows)}>
+                <SelectTrigger data-testid="geographic-line-arrows" aria-label={t("geographic.arrows")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(["none", "forward", "backward", "both"] as const).map((value) => (
+                    <SelectItem key={value} value={value} data-testid={`geographic-line-arrows-${value}`}>
+                      {t(`geographic.arrows.${value}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
           </div>
         )}
         <div className="geographic-feature-card-note" data-testid="geographic-drawn-element-card-note">
-          {loading ? (
+          {loading || creatingNote ? (
             <p className="geographic-feature-card-muted">{t("common.loading")}</p>
           ) : note ? (
-            <InlineResourceContent key={note.noteId} resourceId={note.noteId} heading={t("geographicFeature.note")} />
-          ) : canCreateNote && !readOnly ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={creatingNote}
-              data-testid="geographic-drawn-element-note-create"
-              onClick={onCreateNote}
-            >
-              {t("geographicFeature.addNote")}
-            </Button>
+            <InlineResourceContent
+              key={note.noteId}
+              resourceId={note.noteId}
+              heading={t("geographicFeature.note")}
+              compact={readOnly}
+              readOnly={readOnly}
+            />
           ) : (
             <p className="geographic-feature-card-muted">{t("geographicFeature.noNote")}</p>
           )}

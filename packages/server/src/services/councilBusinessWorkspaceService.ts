@@ -5,12 +5,14 @@ import type {
   CouncilBusinessResourceAssociation,
   CouncilBusinessResourceItem,
   CouncilBusinessWorkspaceItem,
+  CouncilBusinessNavigationIndex,
   CouncilCommitteeBusinessLink,
   CreateCouncilBusiness,
   ReorderCouncilBusinessResources,
   ScheduleCouncilBusinessSubject,
 } from "@hall/api-contract";
 import { type CouncilClient, CouncilClientError } from "../clients/councilClient.js";
+import type { ResourcesClient } from "../clients/resourcesClient.js";
 import { DomainError } from "./errors.js";
 
 function translateFailure(error: unknown): never {
@@ -24,6 +26,7 @@ function translateFailure(error: unknown): never {
 export interface CouncilBusinessWorkspaceService {
   list(): Promise<CouncilBusiness[]>;
   listWorkspaceItems(): Promise<CouncilBusinessWorkspaceItem[]>;
+  listNavigationIndex(): Promise<CouncilBusinessNavigationIndex>;
   get(id: string): Promise<CouncilBusiness>;
   create(input: CreateCouncilBusiness): Promise<CouncilBusiness>;
   delete(id: string): Promise<CouncilBusiness>;
@@ -43,12 +46,30 @@ export interface CouncilBusinessWorkspaceService {
 
 export function createCouncilBusinessWorkspaceService({
   councilClient,
+  resourcesClient,
 }: {
   councilClient: CouncilClient;
+  resourcesClient: ResourcesClient;
 }): CouncilBusinessWorkspaceService {
   return {
     list: () => councilClient.listBusinesses().catch(translateFailure),
     listWorkspaceItems: () => councilClient.listBusinessWorkspaceItems().catch(translateFailure),
+    async listNavigationIndex() {
+      const [businesses, resources] = await Promise.all([
+        councilClient.listBusinesses().catch(translateFailure),
+        resourcesClient.listAll(),
+      ]);
+      const foldersById = new Map(resources.data.filter((entry) => entry.kind === "folder").map((entry) => [entry.id, entry]));
+      return {
+        businesses: businesses.map((business) => {
+          const folder = foldersById.get(business.folderResourceId);
+          if (!folder) throw new DomainError("conflict", 409);
+          return { ...business, title: folder.name, folderPath: folder.path };
+        }),
+        catalog: resources.data.filter((entry) => entry.kind === "folder"),
+        paths: [...new Set(resources.data.map((entry) => entry.kind === "folder" ? entry.fullPath : entry.path).filter(Boolean))],
+      };
+    },
     async get(id) {
       const business = await councilClient.openBusiness(id).catch(translateFailure);
       if (!business) throw new DomainError("council_business_not_found", 404);

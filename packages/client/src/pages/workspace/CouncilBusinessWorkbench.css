@@ -3,6 +3,49 @@
   gap: var(--hall-space-4);
 }
 
+.workspace-business-workbench .business-report-loading {
+  display: grid;
+  gap: var(--hall-space-2);
+  color: var(--hall-color-text-muted);
+}
+
+.workspace-business-workbench .business-report-loading p {
+  margin: 0;
+}
+
+.workspace-business-workbench .business-report-loading-placeholder {
+  display: grid;
+  align-content: start;
+  gap: var(--hall-space-3);
+  min-height: 14rem;
+  padding: var(--hall-space-3);
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-medium);
+  background: var(--hall-color-surface);
+}
+
+.workspace-business-workbench .business-report-loading-placeholder span {
+  display: block;
+  height: var(--hall-space-3);
+  border-radius: var(--hall-radius-small);
+  background: var(--hall-color-surface-subtle);
+}
+
+.workspace-business-workbench .business-report-loading-toolbar {
+  width: 32%;
+  margin-bottom: var(--hall-space-3);
+}
+
+.workspace-business-workbench .business-report-loading-line-short {
+  width: 68%;
+}
+
+.workspace-business-workbench .business-report-load-failure {
+  display: grid;
+  justify-items: start;
+  gap: var(--hall-space-2);
+}
+
 .workspace-business-workbench .business-content-section {
   display: grid;
   gap: var(--hall-space-2);

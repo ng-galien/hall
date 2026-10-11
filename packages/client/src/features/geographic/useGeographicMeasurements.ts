@@ -1,25 +1,29 @@
 import type { HallGeoJsonMeasurement } from "@hall/domain";
 import { asArray } from "ol/color";
 import type { Coordinate } from "ol/coordinate";
-import type Feature from "ol/Feature";
 import type { FeatureLike } from "ol/Feature";
+import Feature from "ol/Feature";
 import type Geometry from "ol/geom/Geometry";
 import type LineString from "ol/geom/LineString";
+import MultiLineString from "ol/geom/MultiLineString";
 import Point from "ol/geom/Point";
 import type Polygon from "ol/geom/Polygon";
 import Draw from "ol/interaction/Draw";
 import VectorLayer from "ol/layer/Vector";
 import type OlMap from "ol/Map";
 import type MapBrowserEvent from "ol/MapBrowserEvent";
-import VectorSource from "ol/source/Vector";
+import VectorSource, { type VectorSourceEvent } from "ol/source/Vector";
 import { Circle, Fill, Stroke, Style, Text } from "ol/style";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
 import {
   formatGeographicArea,
   formatGeographicLength,
   type GeographicMeasure,
   measureGeometry,
+  orientedPolygonExtent,
+  rectangleDimensions,
+  segmentLengths,
 } from "./geographicMeasureModel";
 import { readMeasurementFeatures } from "./geographicOpenLayersAdapter";
 import { escapeBelongsToTarget } from "./useGeographicFeatureCard";
@@ -52,7 +56,7 @@ function labelText(text: string, offsetY = 0): Text {
   return new Text({
     text,
     offsetY,
-    font: "600 12px system-ui, sans-serif",
+    font: `600 ${cssToken("--hall-font-size-body") || "14px"} system-ui, sans-serif`,
     fill: new Fill({ color: cssToken("--hall-color-text") }),
     stroke: new Stroke({ color: cssToken("--hall-color-surface"), width: 4 }),
     overflow: true,
@@ -63,12 +67,79 @@ function midpoint(start: Coordinate, end: Coordinate): Point {
   return new Point([(start[0]! + end[0]!) / 2, (start[1]! + end[1]!) / 2]);
 }
 
+/** Exterior dimension lines are derived render geometry. Their clearance stays constant in screen pixels. */
+// @implements-requirement HALL-FR-DOC-520
+export function polygonDimensionStyles(
+  polygon: Polygon,
+  resolution: number,
+  format: FormatNumber,
+  viewRotation = 0,
+): Style[] {
+  if (!Number.isFinite(resolution) || resolution <= 0) return [];
+  const exact = rectangleDimensions(polygon);
+  const corners = exact ? polygon.getCoordinates()[0]!.slice(0, 4) : orientedPolygonExtent(polygon)?.corners;
+  if (!corners) return [];
+  const lengths = segmentLengths([...corners, corners[0]!]);
+  const center = corners.reduce((sum, p) => [sum[0]! + p[0]! / 4, sum[1]! + p[1]! / 4], [0, 0]);
+  const styles: Style[] = [];
+  const color = cssToken("--hall-color-text");
+  // Adjacent sides place the two dimensions on different exterior edges.
+  for (const index of [0, 1]) {
+    const start = corners[index]!,
+      end = corners[(index + 1) % 4]!;
+    const distance = Math.hypot(end[0]! - start[0]!, end[1]! - start[1]!);
+    const ux = (end[0]! - start[0]!) / distance,
+      uy = (end[1]! - start[1]!) / distance;
+    let nx = -uy,
+      ny = ux;
+    const mid = [(start[0]! + end[0]!) / 2, (start[1]! + end[1]!) / 2];
+    if ((mid[0]! - center[0]!) * nx + (mid[1]! - center[1]!) * ny < 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+    const offset = (point: Coordinate, pixels: number): Coordinate => [
+      point[0]! + nx * pixels * resolution,
+      point[1]! + ny * pixels * resolution,
+    ];
+    const a = offset(start, 28),
+      b = offset(end, 28);
+    const arrow = (tip: Coordinate, direction: number) => [
+      [tip[0]! + (direction * ux * 6 + nx * 3) * resolution, tip[1]! + (direction * uy * 6 + ny * 3) * resolution],
+      tip,
+      [tip[0]! + (direction * ux * 6 - nx * 3) * resolution, tip[1]! + (direction * uy * 6 - ny * 3) * resolution],
+    ];
+    styles.push(
+      new Style({
+        geometry: new MultiLineString([
+          [a, b],
+          [offset(start, 5), offset(start, 35)],
+          [offset(end, 5), offset(end, 35)],
+          arrow(a, 1),
+          arrow(b, -1),
+        ]),
+        stroke: new Stroke({ color, width: 1.25 }),
+      }),
+    );
+    let rotation = Math.atan2(-uy, ux) + viewRotation;
+    rotation = ((((rotation + Math.PI / 2) % Math.PI) + Math.PI) % Math.PI) - Math.PI / 2;
+    if (rotation > Math.PI / 2) rotation -= Math.PI;
+    if (rotation < -Math.PI / 2) rotation += Math.PI;
+    const text = labelText(
+      `${exact ? "" : "≈ "}${formatGeographicLength((lengths[index]! + lengths[index + 2]!) / 2, format)}`,
+    );
+    text.setRotation(rotation);
+    text.setRotateWithView(false);
+    styles.push(new Style({ geometry: new Point(offset(mid, 40)), text }));
+  }
+  return styles;
+}
+
 /** Temporary geometry with its segment lengths, total, perimeter and area drawn next to it. */
-function measureStyle(format: FormatNumber) {
+function measureStyle(format: FormatNumber, rotation: () => number) {
   const brand = cssToken("--hall-color-brand");
   const stroke = new Stroke({ color: brand, width: 2, lineDash: [6, 4] });
   const fill = new Fill({ color: translucent(brand, 0.12) });
-  return (feature: FeatureLike): Style[] => {
+  return (feature: FeatureLike, resolution: number): Style[] => {
     const geometry = feature.getGeometry() as Geometry | undefined;
     if (!geometry) return [];
     const measure = measureGeometry(geometry);
@@ -102,6 +173,7 @@ function measureStyle(format: FormatNumber) {
             `${formatGeographicArea(measure.area, format)}\n${formatGeographicLength(measure.perimeter, format)}`,
           ),
         }),
+        ...polygonDimensionStyles(geometry as Polygon, resolution, format, rotation()),
       ];
     }
     return [new Style({ image: new Circle({ radius: 4, fill: new Fill({ color: brand }) }) })];
@@ -160,25 +232,163 @@ export function useGeographicSavedMeasurementLayer(map: OlMap | null, measuremen
 }
 
 /** Measure label of a saved drawing, placed under its own label. */
-function drawingMeasureStyle(format: FormatNumber) {
-  return (feature: FeatureLike): Style | undefined => {
-    if (feature.get("visible") === false) return undefined;
+// @implements-requirement HALL-FR-DOC-520
+export function drawingMeasureStyle(
+  format: FormatNumber,
+  visibleIds: ReadonlySet<string> | (() => ReadonlySet<string>),
+  rotation: () => number = () => 0,
+) {
+  const cached = new WeakMap<
+    Geometry,
+    {
+      revision: number;
+      resolution: number;
+      rotation: number;
+      theme: string;
+      styles: Style | Style[] | undefined;
+    }
+  >();
+  return (feature: FeatureLike, resolution = 1): Style | Style[] | undefined => {
+    const id = feature.getId();
+    const selectedIds = typeof visibleIds === "function" ? visibleIds() : visibleIds;
+    if (id === undefined || !selectedIds.has(String(id)) || feature.get("visible") === false) return undefined;
     const geometry = feature.getGeometry() as Geometry | undefined;
+    if (!geometry) return undefined;
+    const viewRotation = rotation();
+    const computed = getComputedStyle(document.documentElement);
+    const theme = `${computed.getPropertyValue("--hall-color-text")}|${computed.getPropertyValue("--hall-color-surface")}|${computed.getPropertyValue("--hall-font-size-body")}`;
+    const previous = cached.get(geometry);
+    if (
+      previous?.revision === geometry.getRevision() &&
+      previous.resolution === resolution &&
+      previous.rotation === viewRotation &&
+      previous.theme === theme
+    )
+      return previous.styles;
     const measure = geometry ? measureGeometry(geometry) : null;
+    let styles: Style | Style[] | undefined;
     if (measure?.kind === "length") {
-      return new Style({
+      styles = new Style({
         geometry: new Point((geometry as LineString).getCoordinateAt(0.5)),
         text: labelText(formatGeographicLength(measure.length, format), 14),
       });
     }
     if (measure?.kind === "area") {
-      return new Style({
-        geometry: (geometry as Polygon).getInteriorPoint(),
-        text: labelText(formatGeographicArea(measure.area, format), 14),
-      });
+      styles = [
+        new Style({
+          geometry: (geometry as Polygon).getInteriorPoint(),
+          text: labelText(formatGeographicArea(measure.area, format), 14),
+        }),
+        ...polygonDimensionStyles(geometry as Polygon, resolution, format, viewRotation),
+      ];
     }
-    return undefined;
+    cached.set(geometry, { revision: geometry.getRevision(), resolution, rotation: viewRotation, theme, styles });
+    return styles;
   };
+}
+
+/** Drawing labels belong to the map; their per-drawing visibility is temporary and independent of its panel. */
+// @implements-requirement HALL-FR-DOC-520
+export function useGeographicDrawingMeasureLayer(
+  map: OlMap | null,
+  drawingSource: VectorSource<Feature<Geometry>> | null,
+  visibleIds: ReadonlySet<string>,
+  visible = true,
+) {
+  const { formatNumber } = useI18n();
+  const visibleIdsRef = useRef(visibleIds);
+  visibleIdsRef.current = visibleIds;
+  // Select applies a style directly to the selected drawing. A separate source lets the label layer
+  // keep its own style while sharing the live geometry, including edits in progress.
+  const measureSource = useMemo(() => (drawingSource ? new VectorSource<Feature<Geometry>>() : null), [drawingSource]);
+  const syncFeature = useCallback(
+    (drawing: Feature<Geometry>) => {
+      if (!measureSource) return;
+      const id = drawing.getId();
+      if (id === undefined) return;
+      const key = String(id);
+      const existing = measureSource.getFeatureById(key);
+      if (!visibleIdsRef.current.has(key)) {
+        if (existing) measureSource.removeFeature(existing);
+        return;
+      }
+      const geometry = drawing.getGeometry();
+      if (!geometry) return;
+      if (!existing) {
+        const label = new Feature<Geometry>(geometry);
+        label.setId(key);
+        label.set("visible", drawing.get("visible"));
+        measureSource.addFeature(label);
+        return;
+      }
+      if (existing.getGeometry() !== geometry) existing.setGeometry(geometry);
+      if (existing.get("visible") !== drawing.get("visible")) existing.set("visible", drawing.get("visible"));
+    },
+    [measureSource],
+  );
+  useEffect(() => {
+    if (!drawingSource || !measureSource) return;
+    const update = (event: VectorSourceEvent<Feature<Geometry>>) => {
+      if (event.feature) syncFeature(event.feature);
+    };
+    const remove = (event: VectorSourceEvent<Feature<Geometry>>) => {
+      const id = event.feature?.getId();
+      const label = id === undefined ? null : measureSource.getFeatureById(id);
+      if (label) measureSource.removeFeature(label);
+    };
+    drawingSource.on("addfeature", update);
+    drawingSource.on("changefeature", update);
+    drawingSource.on("removefeature", remove);
+    drawingSource.getFeatures().forEach(syncFeature);
+    return () => {
+      drawingSource.un("addfeature", update);
+      drawingSource.un("changefeature", update);
+      drawingSource.un("removefeature", remove);
+      measureSource.clear();
+    };
+  }, [drawingSource, measureSource, syncFeature]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the new visibility Set updates the derived source membership.
+  useEffect(() => {
+    if (!drawingSource || !measureSource) return;
+    drawingSource.getFeatures().forEach(syncFeature);
+  }, [drawingSource, measureSource, syncFeature, visibleIds]);
+  const layer = useMemo(
+    () =>
+      measureSource
+        ? new VectorLayer({
+            source: measureSource,
+            zIndex: DRAWING_MEASURE_LABEL_Z_INDEX,
+            declutter: false,
+          })
+        : null,
+    [measureSource],
+  );
+  const style = useMemo(
+    () =>
+      drawingMeasureStyle(
+        formatNumber,
+        () => visibleIdsRef.current,
+        () => map?.getView().getRotation() ?? 0,
+      ),
+    [formatNumber, map],
+  );
+  useEffect(() => {
+    if (!map || !layer) return;
+    map.addLayer(layer);
+    const view = map.getView();
+    const rotate = () => layer.changed();
+    view.on("change:rotation", rotate);
+    return () => {
+      view.un("change:rotation", rotate);
+      map.removeLayer(layer);
+    };
+  }, [layer, map]);
+  useEffect(() => {
+    layer?.setStyle(style);
+  }, [layer, style]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each new visibility Set invalidates the stable layer style.
+  useEffect(() => layer?.changed(), [layer, visibleIds]);
+  useEffect(() => layer?.setVisible(visible), [layer, visible]);
 }
 
 /**
@@ -190,7 +400,6 @@ export function useGeographicMeasurements(
   map: OlMap | null,
   drawingSource: VectorSource<Feature<Geometry>> | null,
   tool: GeographicMeasureTool,
-  showDrawingMeasures: boolean,
 ) {
   const { formatNumber } = useI18n();
   const source = useMemo(() => new VectorSource<Feature<Geometry>>(), []);
@@ -202,31 +411,21 @@ export function useGeographicMeasurements(
     if (!map) return;
     const layer = new VectorLayer({
       source,
-      style: measureStyle(formatNumber),
+      style: measureStyle(formatNumber, () => map.getView().getRotation()),
       zIndex: MEASURE_LAYER_Z_INDEX,
       updateWhileAnimating: true,
       updateWhileInteracting: true,
     });
     map.addLayer(layer);
+    const view = map.getView();
+    const rotate = () => layer.changed();
+    view.on("change:rotation", rotate);
     return () => {
+      view.un("change:rotation", rotate);
       map.removeLayer(layer);
       source.clear();
     };
   }, [formatNumber, map, source]);
-
-  useEffect(() => {
-    if (!map || !drawingSource || !showDrawingMeasures) return;
-    const layer = new VectorLayer({
-      source: drawingSource,
-      style: drawingMeasureStyle(formatNumber),
-      zIndex: DRAWING_MEASURE_LABEL_Z_INDEX,
-      declutter: true,
-    });
-    map.addLayer(layer);
-    return () => {
-      map.removeLayer(layer);
-    };
-  }, [drawingSource, formatNumber, map, showDrawingMeasures]);
 
   useEffect(() => {
     source.clear();
@@ -236,7 +435,7 @@ export function useGeographicMeasurements(
     const draw = new Draw({
       source,
       type: tool === "length" ? "LineString" : "Polygon",
-      style: measureStyle(formatNumber),
+      style: measureStyle(formatNumber, () => map.getView().getRotation()),
     });
     let sketch: Feature<Geometry> | null = null;
     const update = () => {

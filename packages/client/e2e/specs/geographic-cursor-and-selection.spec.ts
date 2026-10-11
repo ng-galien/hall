@@ -39,6 +39,7 @@ test("cursors follow the tool state and a click selects a drawing before its sha
 
   await page.mouse.move(...at(0.9, 0.85));
   await expect.poll(cursor).toBe("default");
+  await page.getByTestId("geographic-mode-map").click();
   await page.getByTestId("geographic-measure-tool-length").click();
   await page.mouse.move(...at(0.8, 0.8), { steps: 2 });
   await expect.poll(cursor).toBe("crosshair");
@@ -84,11 +85,14 @@ test("cursors follow the tool state and a click selects a drawing before its sha
   await expect(card).toBeVisible();
   await expect(row).toHaveClass(/geographic-composition-feature-selected/);
   await expect(row).toHaveAttribute("data-modifying", "false");
-  await expect(card.getByTestId("geographic-drawn-element-card-modify")).toHaveAttribute("aria-pressed", "false");
+  await expect(row.getByTestId(`geographic-composition-feature-modify-${featureId}`)).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
   await page.mouse.move(...at(0.6, 0.3), { steps: 3 });
   await expect.poll(cursor).toBe("pointer");
 
-  await card.getByTestId("geographic-drawn-element-card-modify").click();
+  await row.getByTestId(`geographic-composition-feature-modify-${featureId}`).click();
   await expect(card.getByTestId("geographic-drawn-element-shape")).toHaveAttribute("data-modifying", "true");
   await expect(row).toHaveAttribute("data-modifying", "true");
   await page.mouse.move(...at(0.5, 0.4), { steps: 3 });
@@ -120,11 +124,7 @@ test("cursors follow the tool state and a click selects a drawing before its sha
   const saveView = page.getByTestId("geographic-save-view");
   await expect(saveView).toBeDisabled();
   await page.mouse.dblclick(...at(0.5, 0.4));
-  await expect(card).toBeVisible();
-  await expect(card.getByTestId("geographic-drawn-element-shape")).toHaveAttribute("data-modifying", "true");
-  await expect(row).toHaveAttribute("data-modifying", "true");
-  await expect(saveView).toBeDisabled();
-  await page.keyboard.press("Escape");
+  await expect(row).toHaveAttribute("data-modifying", "false");
   await page.keyboard.press("Escape");
   await expect(card).toBeHidden();
 
@@ -213,7 +213,7 @@ test("in Cartes a click selects a drawing and the shape modification is a separa
 
   await page.mouse.move(...middle, { steps: 2 });
   await expect.poll(cursor).toBe("pointer");
-  await page.getByTestId("geographic-mode-draw").click();
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   await page.mouse.move(middle[0] + 1, middle[1] + 1, { steps: 2 });
   await expect.poll(cursor).toBe("pointer");
 
@@ -224,15 +224,17 @@ test("in Cartes a click selects a drawing and the shape modification is a separa
   await expect(row).toHaveClass(/geographic-composition-feature-selected/);
   await expect(row).toHaveAttribute("data-modifying", "false");
 
-  await card.getByTestId("geographic-drawn-element-card-modify").click();
+  await row.getByTestId(`geographic-composition-feature-modify-${featureId}`).click();
   await expect(row).toHaveAttribute("data-modifying", "true");
-  await page.mouse.move(middle[0] + 2, middle[1] + 2, { steps: 2 });
+  // Automatic note editors cover the map centre; target the visible lower portion of this same area.
+  const visibleShape = [middle[0], box.y + box.height * 0.72] as const;
+  await page.mouse.move(...visibleShape, { steps: 2 });
   await expect.poll(cursor).toBe("move");
 
   await page.keyboard.press("Escape");
   await expect(row).toHaveAttribute("data-modifying", "false");
   await expect(card).toBeVisible();
-  await page.mouse.move(middle[0] + 1, middle[1] + 1, { steps: 2 });
+  await page.mouse.move(visibleShape[0] + 1, visibleShape[1] + 1, { steps: 2 });
   await expect.poll(cursor).toBe("pointer");
   await page.keyboard.press("Escape");
   await expect(card).toBeHidden();

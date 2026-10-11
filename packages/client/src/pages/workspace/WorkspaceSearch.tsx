@@ -1,6 +1,8 @@
+import { useEffect, useRef } from "react";
 import { ResourceSearch } from "../../components/search/ResourceSearch";
 import { emptySearchBoxState, isSearchBoxActive, type SearchBoxState } from "../../components/search/SearchBox";
 import type { SearchType } from "../../lib/search";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 
 export type WorkspaceSearchState = SearchBoxState<SearchType>;
@@ -18,6 +20,12 @@ export function WorkspaceSearch({
   onSelect(selection: WorkspaceSelection, path?: string): void;
   context?: string;
 }) {
+  const wasActive = useRef(false);
+  useEffect(() => {
+    const active = isSearchActive(search);
+    if (active && !wasActive.current) void useCouncilBusinessStore.getState().load();
+    wasActive.current = active;
+  }, [search]);
   return (
     <div className="wsearch">
       <ResourceSearch

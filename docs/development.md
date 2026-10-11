@@ -63,3 +63,23 @@ Hall preserves the original imported file. A preview is read-only and never repl
 | XLSX, CSV | Spreadsheet import flow |
 
 DOCX conversion uses Mammoth and Turndown. It preserves document structure where possible but does not reproduce Word pagination. Generated Hall PDFs use the separate Chromium renderer.
+
+
+## Native Markdown resource references
+
+Use the grammar owned by [`@hall/templating`](../packages/templating/README.md)
+for links and embedded resources in text resources. The implementation and
+accepted attributes live in [`grammar.ts`](../packages/templating/src/grammar.ts).
+
+```markdown
+:resource[Study document]{#resource-uuid}
+:contact[Named contact]{#contact-uuid}
+
+::resource-embed[Working map]{#resource-uuid presentation="map"}
+
+::resource-embed[PNG photograph]{#resource-uuid presentation="image"}
+```
+
+Map inclusions read the existing map; they do not copy or replace its drawings.
+Image presentation requires a compatible image document. PDFs remain document
+references. Reusable `::snippet` directives are not part of the grammar.

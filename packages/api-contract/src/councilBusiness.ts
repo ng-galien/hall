@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { resourceIdSchema, resourceNameSchema, resourcePathSchema, resourceSummarySchema } from "./resources.js";
+import { resourceCatalogEntrySchema, resourceIdSchema, resourceNameSchema, resourcePathSchema, resourceSummarySchema } from "./resources.js";
 
 export const councilBusinessSchema = z
   .object({
@@ -57,6 +57,13 @@ export const councilBusinessWorkspaceItemSchema = councilBusinessSchema
   })
   .strict();
 
+/** Navigation metadata only: never carries report content or associated resource summaries. */
+export const councilBusinessNavigationIndexSchema = z.object({
+  businesses: councilBusinessSchema.extend({ title: resourceNameSchema, folderPath: resourcePathSchema }).strict().array(),
+  catalog: resourceCatalogEntrySchema.array(),
+  paths: resourcePathSchema.array(),
+}).strict();
+
 /** Flat association row: the Resource presentation is not nested in CouncilBusiness. */
 export const councilBusinessResourceItemSchema = z.intersection(
   z.object({ councilBusinessId: resourceIdSchema, position: z.number().int().positive() }).strict(),
@@ -95,6 +102,7 @@ export type CouncilBusinessCommitteeLink = z.infer<typeof councilBusinessCommitt
 export type CouncilCommitteeBusinessLink = z.infer<typeof councilCommitteeBusinessLinkSchema>;
 export type ChangeCouncilBusinessCommittee = z.infer<typeof changeCouncilBusinessCommitteeSchema>;
 export type CouncilBusinessWorkspaceItem = z.infer<typeof councilBusinessWorkspaceItemSchema>;
+export type CouncilBusinessNavigationIndex = z.infer<typeof councilBusinessNavigationIndexSchema>;
 export type CouncilBusinessResourceItem = z.infer<typeof councilBusinessResourceItemSchema>;
 export type AssociateCouncilBusinessResource = z.infer<typeof associateCouncilBusinessResourceSchema>;
 export type DissociateCouncilBusinessResource = z.infer<typeof dissociateCouncilBusinessResourceSchema>;

@@ -10,6 +10,7 @@ import {
   FitBoundsIcon,
   HiddenIcon,
   LayersIcon,
+  ListViewIcon,
   MapIcon,
   VisibleIcon,
 } from "../../components/icons";
@@ -84,6 +85,16 @@ export function GeographicLayerControls({
         <legend className="sr-only">{t("geographic.mode")}</legend>
         <button
           type="button"
+          className={workspaceMode === "draw" ? "geographic-mode-active" : ""}
+          data-testid="geographic-mode-draw"
+          aria-pressed={workspaceMode === "draw"}
+          onClick={() => onToggleMode("draw")}
+        >
+          <ListViewIcon />
+          <span>{t("geographic.modeDraw")}</span>
+        </button>
+        <button
+          type="button"
           className={workspaceMode === "measure" ? "geographic-mode-active" : ""}
           data-testid="geographic-mode-map"
           aria-pressed={workspaceMode === "measure"}
@@ -91,17 +102,6 @@ export function GeographicLayerControls({
         >
           <MapIcon />
           <span>{t("geographic.modeMap")}</span>
-        </button>
-        <button
-          type="button"
-          className={workspaceMode === "draw" ? "geographic-mode-active" : ""}
-          data-testid="geographic-mode-draw"
-          aria-pressed={workspaceMode === "draw"}
-          disabled={!canUpdate}
-          onClick={() => onToggleMode("draw")}
-        >
-          <EditIcon />
-          <span>{t("geographic.modeDraw")}</span>
         </button>
       </fieldset>
       <fieldset className="geographic-zoom-tools">

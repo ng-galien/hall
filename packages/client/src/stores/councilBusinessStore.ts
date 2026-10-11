@@ -5,9 +5,10 @@ import {
   type PreparedCouncilSubject,
   type SirenEmbeddedEntity,
   type SirenEntity,
+  type ResourceDetail,
 } from "@hall/api-contract";
 import { create } from "zustand";
-import { type CouncilBusinessView, councilBusinessView, councilBusinessViews } from "../models/councilBusiness";
+import { type CouncilBusinessView, councilBusinessView } from "../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import {
   associateCouncilBusinessResource,
@@ -48,7 +49,11 @@ interface CouncilBusinessStoreState {
   canImportBundle: boolean;
   canCreate: boolean;
   capabilitiesById: Record<string, CouncilBusinessCapabilities>;
+  resourceItemsLoadedById: Record<string, boolean>;
+  resourceItemsErrorById: Record<string, ApiErrorCode | null>;
   load(): Promise<void>;
+  loadSelected(id: string): Promise<CouncilBusinessView | null>;
+  adoptReport(id: string, report: Extract<ResourceDetail, { kind: "text" }>): void;
   refresh(id: string): Promise<CouncilBusinessView | null>;
   loadResources(id: string): Promise<boolean>;
   associateResource(id: string, resourceId: string): Promise<boolean>;
@@ -115,6 +120,8 @@ async function hydrateCouncilBusiness(id: string): Promise<{
   };
 }
 
+const pendingSelectedLoads = new Map<string, Promise<CouncilBusinessView | null>>();
+
 export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, get) => ({
   representationsById: {},
   preparedSubjects: [],
@@ -176,34 +183,97 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
   canImportBundle: false,
   canCreate: false,
   capabilitiesById: {},
+  resourceItemsLoadedById: {},
+  resourceItemsErrorById: {},
   async load() {
     set({ loading: true, error: null });
     try {
       const result = await listCouncilBusinesses();
-      const resourceItems = await listCouncilBusinessResourceItems(result.data.map(({ id }) => id));
-      set({
-        businesses: councilBusinessViews(result.data, resourceItems),
-        capabilitiesById: {},
+      set((state) => ({
+        businesses: result.data.map((business) => {
+          const current = state.businesses.find((entry) => entry.id === business.id);
+          if (current && business.id in state.capabilitiesById) return current;
+          return { ...business, resources: current && state.resourceItemsLoadedById[business.id] ? current.resources : [] };
+        }),
         canImportBundle: Boolean(
           result.representation && findSirenAction(result.representation, "council-business.import-bundle"),
         ),
         canCreate: Boolean(result.representation && findSirenAction(result.representation, "council-business.create")),
         loading: false,
-      });
+      }));
     } catch (error) {
       set({ error: apiErrorCode(error), loading: false });
     }
+  },
+  async loadSelected(id) {
+    const existing = pendingSelectedLoads.get(id);
+    if (existing) return existing;
+    const pending = (async () => {
+      set({ error: null });
+      try {
+        const opened = await openCouncilBusiness(id);
+        const business = opened.data;
+        const resources = useWorkspaceResourcesStore.getState();
+        const folder = await resources.open(business.folderResourceId);
+        if (!folder || folder.data.kind !== "folder") throw new Error("CouncilBusiness folder resource is unavailable");
+        const current = get().businesses.find((entry) => entry.id === id);
+        const view: CouncilBusinessView = {
+          ...business,
+          title: folder.data.name,
+          folderPath: folder.data.path,
+          report: current?.reportResourceId === business.reportResourceId ? current.report : "",
+          createdAt: folder.data.createdAt,
+          updatedAt: current && current.updatedAt > folder.data.updatedAt ? current.updatedAt : folder.data.updatedAt,
+          resources: current && get().resourceItemsLoadedById[id] ? current.resources : [],
+        };
+        set((state) => ({
+          businesses: state.businesses.some((entry) => entry.id === id)
+            ? state.businesses.map((entry) => entry.id === id ? view : entry)
+            : [...state.businesses, view],
+          capabilitiesById: { ...state.capabilitiesById, [id]: capabilities(opened.representation) },
+          representationsById: opened.representation
+            ? { ...state.representationsById, [id]: opened.representation }
+            : state.representationsById,
+        }));
+        if (!get().resourceItemsLoadedById[id]) void get().loadResources(id);
+        return view;
+      } catch (error) {
+        set({ error: apiErrorCode(error) });
+        return null;
+      }
+    })();
+    pendingSelectedLoads.set(id, pending);
+    return pending.finally(() => {
+      if (pendingSelectedLoads.get(id) === pending) pendingSelectedLoads.delete(id);
+    });
+  },
+  adoptReport(id, report) {
+    set((state) => ({
+      businesses: state.businesses.map((business) =>
+        business.id === id && business.reportResourceId === report.id
+          ? {
+              ...business,
+              report: report.content,
+              updatedAt: business.updatedAt > report.updatedAt ? business.updatedAt : report.updatedAt,
+            }
+          : business,
+      ),
+    }));
   },
   async refresh(id) {
     set({ error: null });
     try {
       const refreshed = await hydrateCouncilBusiness(id);
       set((state) => ({
-        businesses: state.businesses.map((business) => (business.id === id ? refreshed.view : business)),
+        businesses: state.businesses.some((business) => business.id === id)
+          ? state.businesses.map((business) => (business.id === id ? refreshed.view : business))
+          : [...state.businesses, refreshed.view],
         capabilitiesById: {
           ...state.capabilitiesById,
           [id]: capabilities(refreshed.representation),
         },
+        resourceItemsLoadedById: { ...state.resourceItemsLoadedById, [id]: true },
+        resourceItemsErrorById: { ...state.resourceItemsErrorById, [id]: null },
         representationsById: refreshed.representation
           ? { ...state.representationsById, [id]: refreshed.representation }
           : state.representationsById,
@@ -215,10 +285,12 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
     }
   },
   async loadResources(id) {
-    set({ error: null });
+    set((state) => ({ error: null, resourceItemsErrorById: { ...state.resourceItemsErrorById, [id]: null } }));
     try {
-      const [opened, resourceItems] = await Promise.all([
-        openCouncilBusiness(id),
+      const [representation, resourceItems] = await Promise.all([
+        id in get().capabilitiesById
+          ? Promise.resolve(get().representationsById[id] ?? null)
+          : openCouncilBusiness(id).then((opened) => opened.representation),
         listCouncilBusinessResourceItems([id]),
       ]);
       set((state) => ({
@@ -227,15 +299,20 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
         ),
         capabilitiesById: {
           ...state.capabilitiesById,
-          [id]: capabilities(opened.representation),
+          [id]: capabilities(representation),
         },
-        representationsById: opened.representation
-          ? { ...state.representationsById, [id]: opened.representation }
+        resourceItemsLoadedById: { ...state.resourceItemsLoadedById, [id]: true },
+        resourceItemsErrorById: { ...state.resourceItemsErrorById, [id]: null },
+        representationsById: representation
+          ? { ...state.representationsById, [id]: representation }
           : state.representationsById,
       }));
       return true;
     } catch (error) {
-      set({ error: apiErrorCode(error) });
+      set((state) => ({
+        error: apiErrorCode(error),
+        resourceItemsErrorById: { ...state.resourceItemsErrorById, [id]: apiErrorCode(error) },
+      }));
       return false;
     }
   },

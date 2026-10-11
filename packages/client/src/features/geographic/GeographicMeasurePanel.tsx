@@ -102,6 +102,30 @@ export function MeasureReadout({ measure, testId }: { measure: GeographicMeasure
   if (measure.kind === "area") {
     return (
       <dl className="geographic-measures-values" data-testid={testId}>
+        {measure.rectangleDimensions ? (
+          <>
+            <dt>{t("geographic.measure.width")}</dt>
+            <dd data-testid={`${testId}-width`}>
+              {formatGeographicLength(measure.rectangleDimensions.width, formatNumber)}
+            </dd>
+            <dt>{t("geographic.measure.height")}</dt>
+            <dd data-testid={`${testId}-height`}>
+              {formatGeographicLength(measure.rectangleDimensions.height, formatNumber)}
+            </dd>
+          </>
+        ) : null}
+        {measure.approximateExtent ? (
+          <>
+            <dt>{t("geographic.measure.approximateWidth")}</dt>
+            <dd data-testid={`${testId}-approximate-width`}>
+              {formatGeographicLength(measure.approximateExtent.width, formatNumber)}
+            </dd>
+            <dt>{t("geographic.measure.approximateLength")}</dt>
+            <dd data-testid={`${testId}-approximate-length`}>
+              {formatGeographicLength(measure.approximateExtent.length, formatNumber)}
+            </dd>
+          </>
+        ) : null}
         <dt>{t("geographic.measure.area")}</dt>
         <dd data-testid={`${testId}-area`}>
           {formatGeographicArea(measure.area, formatNumber)}
@@ -220,15 +244,9 @@ export function GeographicMeasurePanel({
 }: GeographicMeasurePanelProps) {
   const { t, formatNumber } = useI18n();
   const [tool, setTool] = useState<GeographicMeasureTool>("none");
-  const [showDrawingMeasures, setShowDrawingMeasures] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [capacityReached, setCapacityReached] = useState(false);
-  const { current, finished, discardCurrent, drawingMeasure } = useGeographicMeasurements(
-    map,
-    drawingSource,
-    tool,
-    showDrawingMeasures,
-  );
+  const { current, finished, discardCurrent, drawingMeasure } = useGeographicMeasurements(map, drawingSource, tool);
   const { cursor, center } = useGeographicPointer(map);
   const panelRef = useRef<HTMLElement | null>(null);
   const sizeStyle = useGeographicPanelSize("measures", panelRef);
@@ -350,7 +368,7 @@ export function GeographicMeasurePanel({
                   {t(tool === "length" ? "geographic.measure.hintLength" : "geographic.measure.hintArea")}
                 </p>
               )
-            ) : drawingMeasure ? (
+            ) : drawingMeasure && drawingMeasure.measure.kind !== "position" ? (
               <div data-testid="geographic-measure-drawing">
                 <p className="geographic-measures-title">{drawingMeasure.label ?? t("geographic.measure.drawing")}</p>
                 <MeasureReadout measure={drawingMeasure.measure} testId="geographic-measure-drawing-values" />
@@ -358,15 +376,6 @@ export function GeographicMeasurePanel({
             ) : (
               <p className="geographic-measures-hint">{t("geographic.measure.hintDrawing")}</p>
             )}
-            <label className="geographic-measures-option">
-              <input
-                type="checkbox"
-                data-testid="geographic-measure-show-drawings"
-                checked={showDrawingMeasures}
-                onChange={(event) => setShowDrawingMeasures(event.target.checked)}
-              />
-              <span>{t("geographic.measure.showDrawings")}</span>
-            </label>
             <p className="geographic-measures-title">{t("geographic.measure.saved")}</p>
             <SavedMeasurementList
               measurements={measurements}

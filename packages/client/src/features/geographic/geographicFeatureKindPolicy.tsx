@@ -5,8 +5,11 @@ import {
   type HallGeoJsonFeatureKind,
 } from "@hall/domain";
 import { fromString } from "ol/color";
+import type Geometry from "ol/geom/Geometry";
 import type { Type as OpenLayersGeometryType } from "ol/geom/Geometry";
-import { Circle as CircleStyle, Fill, RegularShape, Stroke, Style, type Text } from "ol/style";
+import LineString from "ol/geom/LineString";
+import Point from "ol/geom/Point";
+import { Fill, Icon, RegularShape, Stroke, Style, type Text } from "ol/style";
 import { AreaIcon, LineIcon, LocationIcon } from "../../components/icons";
 
 type FeatureProperties = HallGeoJsonFeature["properties"];
@@ -22,7 +25,7 @@ interface GeographicFeatureKindPolicy {
   initialProperties(label: string, color: GeographicColor): FeatureProperties;
   color(style: FeatureStyle): GeographicColor;
   recolor(style: FeatureStyle, color: GeographicColor): FeatureStyle;
-  openLayersStyle(style: FeatureStyle, text?: Text): Style;
+  openLayersStyle(style: FeatureStyle, text?: Text, geometry?: Geometry): Style | Style[];
   /** Marker drawn at the centre of an element too small on screen to show its geometry. */
   compactStyle(style: FeatureStyle, text?: Text): Style;
 }
@@ -55,12 +58,13 @@ export const geographicFeatureKindPolicy = {
     initialProperties: (label, color) => ({ kind: "line", visible: true, label, style: { color, width: 3 } }),
     color: (style) => String(style.color ?? ""),
     recolor: (style, color) => ({ ...style, color }),
-    openLayersStyle: (style, text) => {
-      return new Style({
+    openLayersStyle: (style, text, geometry) => [
+      new Style({
         stroke: new Stroke({ color: String(style.color ?? "blue"), width: Number(style.width ?? 3) }),
         text,
-      });
-    },
+      }),
+      ...lineArrowStyles(style, geometry),
+    ],
     compactStyle: (style, text) => compactMarker(String(style.color ?? "blue"), 4, 0, text),
   },
   area: {
@@ -99,17 +103,56 @@ export function geographicFeatureKindLabels(
   };
 }
 
+/** A pin anchored at the exact coordinate, rather than a circle centred above it. */
+// @implements-requirement HALL-FR-DOC-420
 function markerStyle(style: FeatureStyle, text?: Text): Style {
-  const sizes = { small: 5, medium: 7, large: 9 };
+  const sizes = { small: 0.8, medium: 1, large: 1.2 };
   const size = style.size === "small" || style.size === "large" ? style.size : "medium";
+  const color = String(style.color ?? "#102a83");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32"><path d="M12 31C9 26 1 19 1 12a11 11 0 0 1 22 0c0 7-8 14-11 19Z" fill="${color}" stroke="white" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="white"/></svg>`;
   return new Style({
-    image: new CircleStyle({
-      radius: sizes[size],
-      fill: new Fill({ color: String(style.color ?? "blue") }),
-      stroke: new Stroke({ color: cssToken("--hall-color-surface"), width: 2 }),
+    image: new Icon({
+      src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
+      anchor: [0.5, 1],
+      scale: sizes[size],
     }),
     text,
   });
+}
+
+/** End arrows use the nearest non-zero segment, including lines with repeated end vertices. */
+// @implements-requirement HALL-FR-DOC-540
+export function lineArrowStyles(style: FeatureStyle, geometry?: Geometry): Style[] {
+  if (!(geometry instanceof LineString) || !style.arrows || style.arrows === "none") return [];
+  const points = geometry.getCoordinates();
+  const arrows: Style[] = [];
+  for (const backward of [true, false]) {
+    if (
+      backward
+        ? !["backward", "both"].includes(String(style.arrows))
+        : !["forward", "both"].includes(String(style.arrows))
+    )
+      continue;
+    const ordered = backward ? points : [...points].reverse();
+    const end = ordered[0];
+    const previous = end && ordered.find((point) => point[0] !== end[0] || point[1] !== end[1]);
+    if (!end || !previous) continue;
+    arrows.push(
+      new Style({
+        geometry: new Point(end),
+        image: new RegularShape({
+          points: 3,
+          radius: 8,
+          angle: Math.PI / 2,
+          rotation: -Math.atan2(end[1] - previous[1], end[0] - previous[0]),
+          rotateWithView: true,
+          fill: new Fill({ color: String(style.color ?? "#102a83") }),
+          stroke: new Stroke({ color: cssToken("--hall-color-surface"), width: 1 }),
+        }),
+      }),
+    );
+  }
+  return arrows;
 }
 
 /** A diamond (line) or a square (area), so a compact element stays distinct from a point marker. */

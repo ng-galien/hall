@@ -182,8 +182,7 @@ test("a writer draws from Cartes and sees the drawing on the workspace map; a re
 
   await page.goto(`/app/maps/${created.id}?view=4.44,47.56,15`);
   await expect(page.getByTestId("maps-context-title")).toHaveText("Chantier");
-  await expect(page.getByTestId("geographic-measures")).toBeVisible();
-  await page.getByTestId("geographic-mode-draw").click();
+  await expect(page.getByTestId("geographic-composition")).toBeVisible();
   await page.getByTestId("geographic-tool-marker").click();
   const map = await page.locator(".maps-surface .geographic-map").boundingBox();
   if (!map) throw new Error("The map must be rendered");
@@ -201,7 +200,7 @@ test("a writer draws from Cartes and sees the drawing on the workspace map; a re
 
   await page.goto(`/app/workspace?path=${encodeURIComponent(root)}&resource=${created.id}`);
   const workbench = page.getByTestId("resource-workbench");
-  await workbench.getByTestId("geographic-mode-draw").click();
+  await expect(workbench.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   await expect(
     workbench.locator('[data-testid="geographic-composition"] li[data-testid^="geographic-composition-feature-"]'),
   ).toHaveCount(1);
@@ -214,7 +213,8 @@ test("a writer draws from Cartes and sees the drawing on the workspace map; a re
   });
   await page.goto(`/app/maps/${created.id}`);
   await expect(page.getByTestId("maps-context-title")).toHaveText("Chantier");
-  await expect(page.getByTestId("geographic-mode-draw")).toBeDisabled();
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("geographic-save-view")).toHaveCount(0);
-  await expect(page.getByTestId("geographic-measures")).toBeVisible();
+  await expect(page.getByTestId("geographic-composition")).toBeVisible();
+  await expect(page.getByTestId("geographic-tool-marker")).toHaveCount(0);
 });

@@ -3,7 +3,7 @@ import { imageWidthRange, isReferenceKind, type ResourcePresentationKind } from 
 import { type Editor, Extension, mergeAttributes, Node } from "@tiptap/core";
 import { type NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from "@tiptap/react";
 import { exitSuggestion, Suggestion, type SuggestionProps } from "@tiptap/suggestion";
-import { createContext, forwardRef, type ReactNode, useContext, useRef, useState } from "react";
+import { Children, createContext, forwardRef, type ReactNode, useContext, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -18,11 +18,17 @@ export type ResourceReferenceAppearance = { tone: string; icon: ReactNode; glyph
 export type ReferenceTarget = {
   label: string;
   tooltip: string;
-  open: { kind: "resourcePreview" } | { kind: "route"; href: string } | null;
+  open:
+    | { kind: "resourcePreview" }
+    | { kind: "contactPreview" | "memberPreview"; href: string }
+    | { kind: "route"; href: string }
+    | null;
 };
 
 const ResourcePreviewContext = createContext<{
   renderResourcePreview: ResourcePreviewRenderer;
+  renderContactPreview?: ResourcePreviewRenderer;
+  renderMemberPreview?: ResourcePreviewRenderer;
   resourceAppearance(id: string): ResourceReferenceAppearance | null;
   referenceTarget(kind: ReferenceEntityKind, id: string): ReferenceTarget | null;
 } | null>(null);
@@ -38,17 +44,23 @@ export function useResourceAppearance(id: string): ResourceReferenceAppearance |
 /** Supplies the resource preview renderer used by reference badges. */
 export function ReferencePresentationProvider({
   renderResourcePreview,
+  renderContactPreview,
+  renderMemberPreview,
   resourceAppearance,
   referenceTarget,
   children,
 }: {
   renderResourcePreview: ResourcePreviewRenderer;
+  renderContactPreview?: ResourcePreviewRenderer;
+  renderMemberPreview?: ResourcePreviewRenderer;
   resourceAppearance(id: string): ResourceReferenceAppearance | null;
   referenceTarget(kind: ReferenceEntityKind, id: string): ReferenceTarget | null;
   children: ReactNode;
 }) {
   return (
-    <ResourcePreviewContext.Provider value={{ renderResourcePreview, resourceAppearance, referenceTarget }}>
+    <ResourcePreviewContext.Provider
+      value={{ renderResourcePreview, renderContactPreview, renderMemberPreview, resourceAppearance, referenceTarget }}
+    >
       {children}
     </ResourcePreviewContext.Provider>
   );
@@ -66,7 +78,7 @@ export function ReferenceBadge({
 }) {
   const { t } = useI18n();
   const [previewing, setPreviewing] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | HTMLAnchorElement | null>(null);
   const scrollRef = useRef({ x: 0, y: 0 });
   const presentation = useContext(ResourcePreviewContext);
   const target = id ? presentation?.referenceTarget(kind, id) : null;
@@ -74,10 +86,13 @@ export function ReferenceBadge({
   const open = target?.open ?? null;
   const openable = open !== null;
   const className = `editor-reference editor-reference-${kind}${appearance ? ` editor-reference-tone-${appearance.tone}` : ""}`;
+  const hasExplicitLabel = Children.toArray(children).some((child) =>
+    typeof child === "string" ? child.trim().length > 0 : true,
+  );
   const content = (
     <>
       {appearance?.icon}
-      {target?.label ?? children}
+      {hasExplicitLabel ? children : (target?.label ?? children)}
     </>
   );
   return (
@@ -86,7 +101,9 @@ export function ReferenceBadge({
         <TooltipTrigger asChild>
           {open?.kind === "resourcePreview" ? (
             <button
-              ref={triggerRef}
+              ref={(element) => {
+                triggerRef.current = element;
+              }}
               type="button"
               className={`${className} is-openable`}
               data-testid={`editor-resource-reference-${id}`}
@@ -97,6 +114,33 @@ export function ReferenceBadge({
             >
               {content}
             </button>
+          ) : open?.kind === "contactPreview" || open?.kind === "memberPreview" ? (
+            <Link
+              ref={(element) => {
+                triggerRef.current = element;
+              }}
+              to={open.href}
+              className={`${className} is-openable`}
+              data-testid={`editor-${kind}-reference-${id}`}
+              onClick={(event) => {
+                if (
+                  !(open.kind === "contactPreview"
+                    ? presentation?.renderContactPreview
+                    : presentation?.renderMemberPreview) ||
+                  event.button !== 0 ||
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey
+                )
+                  return;
+                event.preventDefault();
+                scrollRef.current = { x: window.scrollX, y: window.scrollY };
+                setPreviewing(true);
+              }}
+            >
+              {content}
+            </Link>
           ) : open?.kind === "route" ? (
             <Link to={open.href} className={`${className} is-openable`} data-testid={`editor-${kind}-reference-${id}`}>
               {content}
@@ -110,8 +154,14 @@ export function ReferenceBadge({
           {openable ? ` · ${t("editor.openHint")}` : null}
         </TooltipContent>
       </Tooltip>
-      {previewing && id !== null && open?.kind === "resourcePreview"
-        ? presentation?.renderResourcePreview(id, () => {
+      {previewing &&
+      id !== null &&
+      (open?.kind === "resourcePreview" || open?.kind === "contactPreview" || open?.kind === "memberPreview")
+        ? (open.kind === "contactPreview"
+            ? presentation?.renderContactPreview
+            : open.kind === "memberPreview"
+              ? presentation?.renderMemberPreview
+              : presentation?.renderResourcePreview)?.(id, () => {
             setPreviewing(false);
             window.requestAnimationFrame(() => {
               triggerRef.current?.focus({ preventScroll: true });

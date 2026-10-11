@@ -12,6 +12,7 @@ import {
   geographicPosition,
   measureGeometry,
   measurementFeature,
+  rectangleDimensions,
   savedMeasure,
   wgs84ClipboardText,
 } from "../src/features/geographic/geographicMeasureModel.ts";
@@ -20,6 +21,164 @@ const fr = (value, options) => new Intl.NumberFormat("fr-FR", options).format(va
 const normalize = (text) => text.replace(/[  ]/g, " ");
 const frenchCardinals = { north: "N", south: "S", east: "E", west: "O" };
 const englishCardinals = { north: "N", south: "S", east: "E", west: "W" };
+
+function projectedRectangle(width, height, degrees = 0, latitude = 47.54) {
+  const origin = fromLonLat([6.03, latitude]);
+  const angle = (degrees * Math.PI) / 180;
+  const coordinates = [
+    [0, 0],
+    [width, 0],
+    [width, height],
+    [0, height],
+    [0, 0],
+  ].map(([x, y]) => [
+    origin[0] + x * Math.cos(angle) - y * Math.sin(angle),
+    origin[1] + x * Math.sin(angle) + y * Math.cos(angle),
+  ]);
+  return new Polygon([coordinates]);
+}
+
+// @verifies-requirement HALL-FR-DOC-520
+test("rectangle dimensions follow geodesic opposite sides and rotation, without changing the geometry", () => {
+  const polygon = projectedRectangle(200, 100, 30);
+  const before = polygon.getCoordinates();
+  const dimensions = rectangleDimensions(polygon);
+  assert.ok(dimensions);
+  const measure = measureGeometry(polygon);
+  assert.deepEqual(measure.rectangleDimensions, dimensions);
+  assert.ok(Math.abs(dimensions.width - 134.9) < 0.5, `${dimensions.width}`);
+  assert.ok(Math.abs(dimensions.height - 67.4) < 0.5, `${dimensions.height}`);
+  assert.deepEqual(polygon.getCoordinates(), before);
+  const rotated = rectangleDimensions(projectedRectangle(200, 100, 70));
+  assert.ok(Math.abs(rotated.width - dimensions.height) < 0.5);
+  assert.ok(Math.abs(rotated.height - dimensions.width) < 0.5);
+  const reversed = new Polygon([before[0].toReversed()]);
+  assert.deepEqual(rectangleDimensions(reversed), dimensions);
+});
+
+// @verifies-requirement HALL-FR-DOC-520
+test("near rectangles have four distinct corners, no holes, convex turns and bounded angle and side deviations", () => {
+  const polygon = (ring, holes = []) => new Polygon([[...ring, ring[0]], ...holes]);
+  assert.ok(
+    rectangleDimensions(
+      polygon([
+        [0, 0],
+        [100, 0],
+        [104, 100],
+        [0, 100],
+      ]),
+    ),
+  );
+  assert.equal(
+    rectangleDimensions(
+      polygon([
+        [0, 0],
+        [100, 0],
+        [120, 100],
+        [0, 100],
+      ]),
+    ),
+    null,
+  );
+  assert.equal(
+    rectangleDimensions(
+      polygon([
+        [0, 0],
+        [100, 0],
+        [88, 1_000],
+        [0, 1_000],
+      ]),
+    ),
+    null,
+  );
+  assert.ok(
+    rectangleDimensions(
+      polygon([
+        [0, 0],
+        [100, 0],
+        [92, 1_000],
+        [0, 1_000],
+      ]),
+    ),
+  );
+  assert.equal(
+    rectangleDimensions(
+      polygon([
+        [0, 0],
+        [100, 0],
+        [100, 0],
+        [0, 100],
+      ]),
+    ),
+    null,
+  );
+  assert.equal(
+    rectangleDimensions(
+      polygon([
+        [0, 0],
+        [100, 100],
+        [100, 0],
+        [0, 100],
+      ]),
+    ),
+    null,
+  );
+  assert.equal(
+    rectangleDimensions(
+      polygon([
+        [0, 0],
+        [100, 0],
+        [20, 20],
+        [0, 100],
+      ]),
+    ),
+    null,
+  );
+  assert.equal(
+    rectangleDimensions(
+      polygon([
+        [0, 0],
+        [100, 0],
+        [100, 100],
+        [50, 120],
+        [0, 100],
+      ]),
+    ),
+    null,
+  );
+  assert.equal(
+    rectangleDimensions(
+      polygon(
+        [
+          [0, 0],
+          [100, 0],
+          [100, 100],
+          [0, 100],
+        ],
+        [
+          [
+            [20, 20],
+            [30, 20],
+            [20, 30],
+            [20, 20],
+          ],
+        ],
+      ),
+    ),
+    null,
+  );
+  const triangle = measureGeometry(
+    polygon([
+      [0, 0],
+      [100, 0],
+      [0, 100],
+    ]),
+  );
+  assert.equal(triangle.kind, "area");
+  assert.equal(triangle.rectangleDimensions, undefined);
+  assert.ok(triangle.area > 0);
+  assert.ok(triangle.perimeter > 0);
+});
 
 // @verifies-requirement HALL-FR-DOC-410
 test("lengths are geodesic, not measured in the Web Mercator plane", () => {
@@ -118,6 +277,7 @@ test("a saved measurement stores its WGS84 geometry, kind, name and geodesic val
   assert.ok(Math.abs(area.properties.perimeter - 3_725) < 10, `${area.properties.perimeter}`);
   assert.equal(area.geometry.type, "Polygon");
   assert.deepEqual(area.geometry.coordinates, [ring]);
+  assert.deepEqual(Object.keys(area.properties).sort(), ["area", "kind", "label", "perimeter"]);
   assert.equal(
     measurementFeature("66666666-6666-4666-8666-666666666666", "Point", new Point(fromLonLat([6, 46]))),
     null,

@@ -1,9 +1,12 @@
 import type { GeographicFeatureNote } from "@hall/api-contract";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { CenterOnFeatureIcon, CloseIcon, FilterIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { InlineResourceContent } from "../resources/InlineResourceContent";
 import { geographicPropertyText, orderedGeographicProperties } from "./geographicFeatureCardModel";
+import { useAutomaticGeographicNote } from "./useGeographicFeatureCard";
 import type { GeographicFeatureDescription } from "./useGeographicOverlays";
 
 export interface GeographicFeatureMunicipalState {
@@ -14,7 +17,7 @@ export interface GeographicFeatureMunicipalState {
   municipalOnly: boolean | null;
 }
 
-/** Detail card of one data-layer feature: properties, extent, centre action, municipal property and note. */
+/** Detail card of one data-layer feature: properties, centre action, municipal property and note. */
 // @implements-requirement HALL-FR-DOC-380
 // @implements-requirement HALL-FR-DOC-390
 // @implements-requirement HALL-FR-DOC-400
@@ -44,12 +47,20 @@ export function GeographicFeatureCard({
   onClose(): void;
 }) {
   const { t, formatDate } = useI18n();
+  const [metadataOpen, setMetadataOpen] = useState(false);
+  useAutomaticGeographicNote(
+    feature.featureKey.kind !== "none" &&
+      Boolean(feature.key) &&
+      !notesLoading &&
+      !note &&
+      canCreateNote &&
+      !creatingNote,
+    onCreateNote,
+  );
   const title =
     feature.featureKey.kind === "cadastreParcel" && feature.label
       ? t("geographicFeature.parcelTitle").replace("{label}", feature.label)
       : (feature.key ?? t("geographicFeature.untitled").replace("{index}", String(feature.position + 1)));
-  const coordinate = (value: number) => value.toFixed(6);
-  const [west, south, east, north] = feature.extent;
   const properties = orderedGeographicProperties(feature.properties, feature.propertyKeys);
   return (
     <section
@@ -110,44 +121,35 @@ export function GeographicFeatureCard({
             {t(municipal.municipalOnly ? "geographicFeature.showAll" : "geographic.municipalOnly")}
           </Button>
         ) : null}
-        <dl className="geographic-feature-card-properties" data-testid="geographic-feature-card-properties">
-          {feature.key ? (
-            <div className="geographic-feature-card-property">
-              <dt>{t("geographicFeature.key")}</dt>
-              <dd>{feature.key}</dd>
-            </div>
-          ) : null}
-          {properties.map(([name, value]) => (
-            <div key={name} className="geographic-feature-card-property">
-              <dt>{name}</dt>
-              <dd>{geographicPropertyText(value)}</dd>
-            </div>
-          ))}
-          <div className="geographic-feature-card-property">
-            <dt>{t("geographicFeature.extent")}</dt>
-            <dd>
-              {coordinate(west)}, {coordinate(south)} – {coordinate(east)}, {coordinate(north)}
-            </dd>
-          </div>
-        </dl>
+        <CollapsibleSection
+          title={t("geographicFeature.metadata")}
+          open={metadataOpen}
+          onOpenChange={setMetadataOpen}
+          testId="geographic-feature-card-metadata"
+          className="geographic-feature-card-metadata"
+        >
+          <dl className="geographic-feature-card-properties" data-testid="geographic-feature-card-properties">
+            {feature.key ? (
+              <div className="geographic-feature-card-property">
+                <dt>{t("geographicFeature.key")}</dt>
+                <dd>{feature.key}</dd>
+              </div>
+            ) : null}
+            {properties.map(([name, value]) => (
+              <div key={name} className="geographic-feature-card-property">
+                <dt>{name}</dt>
+                <dd>{geographicPropertyText(value)}</dd>
+              </div>
+            ))}
+          </dl>
+        </CollapsibleSection>
         <div className="geographic-feature-card-note" data-testid="geographic-feature-card-note">
           {feature.featureKey.kind === "none" || !feature.key ? (
             <p className="geographic-feature-card-muted">{t("geographicFeature.noStableKey")}</p>
-          ) : notesLoading ? (
+          ) : notesLoading || creatingNote ? (
             <p className="geographic-feature-card-muted">{t("common.loading")}</p>
           ) : note ? (
             <InlineResourceContent key={note.noteId} resourceId={note.noteId} heading={t("geographicFeature.note")} />
-          ) : canCreateNote ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={creatingNote}
-              data-testid="geographic-feature-note-create"
-              onClick={onCreateNote}
-            >
-              {t("geographicFeature.addNote")}
-            </Button>
           ) : (
             <p className="geographic-feature-card-muted">{t("geographicFeature.noNote")}</p>
           )}

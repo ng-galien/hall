@@ -1,5 +1,6 @@
 import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import type { CouncilBusinessNavigationIndex } from "@hall/api-contract";
 import { ChevronDownIcon, ChevronRightIcon, CouncilBusinessIcon, FolderIcon } from "../components/icons";
 import { councilBusinessHref } from "../features/references/referenceNavigation";
 import { useI18n } from "../i18n/I18nProvider";
@@ -7,11 +8,14 @@ import { buildPathTree, type PathNode } from "../pages/workspace/paths";
 import { DRAG_TYPE, decodeDragPayload, moveToPath } from "../pages/workspace/workspaceOrg";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
+import { listCouncilBusinessNavigationIndex } from "../services/councilBusinessApi";
 
 function activePathFrom(search: string, pathname: string): string | null {
   if (pathname !== "/workspace") return null;
   return new URLSearchParams(search).get("path") ?? "";
 }
+
+type TreeBusiness = CouncilBusinessNavigationIndex["businesses"][number];
 
 function TreeNode({
   node,
@@ -21,7 +25,7 @@ function TreeNode({
   expanded,
   onToggle,
 }: {
-  node: PathNode;
+  node: PathNode<TreeBusiness>;
   depth: number;
   activePath: string | null;
   activeBusinessId: string | null;
@@ -99,13 +103,22 @@ function TreeNode({
 
 /** Filing path tree rendered in the sidebar under the workspace entry. */
 export function WorkspaceTree() {
-  const { businesses } = useCouncilBusinessStore();
-  const catalog = useWorkspaceResourcesStore((state) => state.catalog);
-  const loadCatalog = useWorkspaceResourcesStore((state) => state.loadCatalog);
+  const selectedBusinesses = useCouncilBusinessStore((state) => state.businesses);
+  const liveCatalog = useWorkspaceResourcesStore((state) => state.catalog);
+  const fullCatalogLoaded = useWorkspaceResourcesStore((state) => Boolean(state.collectionRepresentation));
+  const [index, setIndex] = useState<CouncilBusinessNavigationIndex | null>(null);
   const location = useLocation();
   const activePath = activePathFrom(location.search, location.pathname);
   const activeBusinessId = activePath === null ? null : new URLSearchParams(location.search).get("councilBusiness");
-  const tree = useMemo(() => buildPathTree(businesses, catalog), [businesses, catalog]);
+  const businesses = useMemo(() => {
+    const byId = new Map<string, TreeBusiness>(index?.businesses.map((business) => [business.id, business]) ?? []);
+    for (const business of selectedBusinesses) byId.set(business.id, business);
+    return [...byId.values()];
+  }, [index, selectedBusinesses]);
+  const tree = useMemo(
+    () => buildPathTree(businesses, fullCatalogLoaded ? liveCatalog : index?.catalog ?? [], fullCatalogLoaded ? [] : index?.paths ?? []),
+    [businesses, index, liveCatalog, fullCatalogLoaded],
+  );
   const [toggled, setToggled] = useState<{ opened: Set<string>; closed: Set<string> }>({
     opened: new Set(),
     closed: new Set(),
@@ -142,8 +155,12 @@ export function WorkspaceTree() {
   const { t } = useI18n();
 
   useEffect(() => {
-    void loadCatalog();
-  }, [loadCatalog]);
+    let active = true;
+    void listCouncilBusinessNavigationIndex()
+      .then(({ data }) => { if (active) setIndex(data); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [location.pathname, location.search]);
 
   if (tree.length === 0) return null;
 

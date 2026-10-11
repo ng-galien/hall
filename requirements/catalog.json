@@ -3329,7 +3329,8 @@
         "Le bouton reste actif lorsque la carte est en lecture seule ; il ne modifie pas la ressource enregistrée.",
         "Le bouton est désactivé lorsque la carte ne contient aucun dessin.",
         "En mode dessin, chaque élément de la liste de composition propose un bouton, signalé par une mire et l’infobulle « Centrer la carte sur « nom de l’élément » », qui centre la vue sur cet élément et l’y cadre.",
-        "Les pastilles du sélecteur de couleur d’un dessin affichent la couleur qu’elles représentent."
+        "Les pastilles du sélecteur de couleur d’un dessin affichent la couleur qu’elles représentent.",
+        "Les trois commandes zoom avant, zoom arrière et cadrage ont les mêmes dimensions et leurs symboles sont centrés sur le même axe."
       ],
       "clauses": [
         {
@@ -3554,16 +3555,23 @@
       "statement": "Un clic sur une entité d’une couche ouvre une fiche qui décrit cette entité.",
       "acceptanceCriteria": [
         "En mode « Carte », un clic sur une entité visible d’une couche liée ouvre la fiche dans un panneau à droite de la carte, sous le bouton « Couches », présenté comme le panneau de composition ; l’entité choisie est mise en évidence.",
-        "La fiche donne le nom de la couche, l’étiquette ou l’identifiant stable de l’entité, toutes ses propriétés dans l’ordre de première apparition de leurs clés dans le fichier, enregistré avec la couche à l’import (une clé absente de cet ordre vient en dernier ; une valeur imbriquée est présentée comme texte), et son emprise en coordonnées WGS84.",
+        "La fiche donne le nom de la couche, l’étiquette ou l’identifiant stable de l’entité et toutes ses propriétés dans l’ordre de première apparition de leurs clés dans le fichier, enregistré avec la couche à l’import (une clé absente de cet ordre vient en dernier ; une valeur imbriquée est présentée comme texte). Elle n’ajoute pas de coordonnées WGS84 ni d’emprise calculée.",
         "Un bouton de la fiche centre et cadre la carte sur l’entité.",
         "La fiche se ferme par son bouton de fermeture, par la touche Échap ou par un clic sur la carte en dehors de toute entité ; un clic sur une autre entité remplace son contenu.",
-        "En mode « Dessin », un clic reste réservé au dessin et n’ouvre aucune fiche."
+        "En mode « Dessin », un clic reste réservé au dessin et n’ouvre aucune fiche.",
+        "Les propriétés sont regroupées dans une section « Métadonnées » repliée par défaut ; la note reste visible en dehors de cette section. Chaque nouvelle entité sélectionnée commence avec ses métadonnées repliées."
       ],
       "clauses": [
         {
           "key": "geographic-feature-card",
           "origin": "product",
           "statement": "Consulter les informations d’une parcelle en cliquant dessus, comme la fiche d’un lieu sur une carte en ligne.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-feature-card-no-coordinates",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 11 octobre 2026 : retirer les coordonnées de la fiche d’un élément cartographique, sans modifier sa géométrie enregistrée.",
           "sourceIds": []
         }
       ]
@@ -3584,7 +3592,9 @@
         "Une entité a au plus une note ; la suppression de la note dans l’espace de travail la détache de l’entité.",
         "Le rattachement est décrit par la nature du sujet, sa portée et son identifiant, de sorte que les éléments dessinés d’une carte pourront recevoir des notes par le même mécanisme.",
         "Le fichier d’une affaire transporte les notes des entités des couches qu’il contient, avec leurs documents texte et leurs rattachements ; son import recrée les documents et les rattachements.",
-        "La suppression d’une couche conserve les rattachements des notes de parcelles cadastrales, qui s’affichent de nouveau dans toute couche importée plus tard pour ces parcelles ; elle détache les notes rattachées à un identifiant du fichier propre à la couche, dont les documents texte restent dans l’espace de travail."
+        "La suppression d’une couche conserve les rattachements des notes de parcelles cadastrales, qui s’affichent de nouveau dans toute couche importée plus tard pour ces parcelles ; elle détache les notes rattachées à un identifiant du fichier propre à la couche, dont les documents texte restent dans l’espace de travail.",
+        "Pour qui peut créer la note, l’ouverture de la fiche prépare directement la note vide existante ou nouvelle et son éditeur, sans bouton « Ajouter une note ». Un lecteur ne crée aucune note ; les erreurs sont signalées sans relance automatique en boucle.",
+        "La fiche d’un marqueur sélectionné et la lecture d’un marqueur dans le panneau Mesures n’affichent pas ses coordonnées WGS84 en guise de mesure ; les coordonnées restent disponibles dans l’onglet dédié du panneau Mesures."
       ],
       "clauses": [
         {
@@ -3640,7 +3650,7 @@
         "La mesure de surface trace un polygone temporaire ; son périmètre et sa surface s’affichent sur la carte et dans le panneau Mesures.",
         "Les longueurs et surfaces sont géodésiques, calculées sur la sphère terrestre à partir de la projection de la carte, et non mesurées dans le plan de la projection.",
         "Les longueurs s’expriment en mètres, puis en kilomètres à partir de 1 km ; les surfaces en mètres carrés, puis en hectares à partir de 1 ha, avec un arrondi adapté et la présentation numérique française.",
-        "Sans outil de mesure actif, un clic sur un dessin enregistré affiche ses mesures : longueur d’une ligne, périmètre et surface d’une zone, position d’un point ; une option affiche les mesures de tous les dessins sur la carte.",
+        "Le menu de chaque dessin dans Composition permet d’afficher ses mesures sur la carte ; il remplace l’option globale du panneau Mesures.",
         "Le panneau Mesures a deux onglets, « Mesures » et « Coordonnées », atteignables au clavier ; l’onglet « Mesures », ouvert par défaut, ne montre aucune coordonnée ; le panneau garde la même largeur dans les deux onglets.",
         "L’onglet « Coordonnées » donne la position du curseur et celle du centre de la vue en WGS84 (latitude et longitude en degrés décimaux) et dans le système projeté de la carte (EPSG:3857, en mètres), chacune copiable.",
         "Une mesure en cours est temporaire : elle n’entre dans la carte enregistrée que par l’action « Enregistrer la mesure » (HALL-FR-DOC-460) ; sinon elle ne déclenche aucun enregistrement et disparaît au changement d’outil ou d’onglet.",
@@ -3667,13 +3677,21 @@
         "Une ligne ou une zone dont le plus grand côté de l’emprise à l’écran est inférieur au seuil s’affiche comme un repère à sa couleur, placé en son centre et accompagné de son libellé ; au-delà du seuil elle s’affiche avec sa géométrie.",
         "Le seuil est une constante unique exprimée en pixels d’écran et documentée dans le code.",
         "Un point garde son repère à toutes les échelles.",
-        "La sélection d’un dessin, par un clic sur la carte ou depuis la liste de composition, fonctionne sous les deux représentations et se voit sur le repère comme sur la géométrie."
+        "La sélection d’un dessin, par un clic sur la carte ou depuis la liste de composition, fonctionne sous les deux représentations et se voit sur le repère comme sur la géométrie.",
+        "Un point est représenté par une épingle cartographique colorée, ancrée à sa position ; les lignes et zones compactes conservent leur symbole distinct.",
+        "Les libellés des dessins, des couches liées et des mesures cartographiques utilisent une taille légèrement accrue, alignée sur le jeton de corps de texte (14 px), en conservant leur halo clair et la taille des épingles."
       ],
       "clauses": [
         {
           "key": "geographic-drawing-compact-marker",
           "origin": "product",
           "statement": "Garder lisibles les dessins et points d’intérêt à toutes les échelles.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-map-label-legibility",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 11 octobre 2026 : augmenter légèrement la taille des libellés sur la carte, sans perdre leur détourage ni modifier les icônes des points.",
           "sourceIds": []
         }
       ]
@@ -3687,14 +3705,15 @@
       },
       "statement": "Un dessin d’une carte porte une note en texte riche, avec des photos, rédigée avec l’éditeur de Hall depuis la fiche du dessin.",
       "acceptanceCriteria": [
-        "En mode Dessin, la sélection d’un dessin ouvre sa fiche, présentée comme la fiche d’un objet de couche : libellé, nature, bouton de centrage, fermeture par le bouton ou Échap.",
+        "Un clic normal sur un dessin ouvre sa fiche et sa note sans devoir activer Dessin, y compris dans une carte incluse dans un texte ou un aperçu ; un outil de dessin ou de mesure en cours reste prioritaire. La fiche présente libellé, nature, centrage et fermeture par bouton ou Échap.",
         "Qui a le droit d’écrire dans l’espace de travail crée la note depuis la fiche ; la note est un texte ordinaire du dossier « Notes cartographiques » du dossier de la carte, édité dans la fiche avec l’éditeur de Hall et son enregistrement automatique.",
         "Les photos s’insèrent dans la note par le téléversement d’images de l’éditeur, ouvert à qui peut modifier la note, et suivent les règles de stockage et d’aperçu des fichiers de Hall.",
         "La note est rattachée au dessin par son identifiant dans la carte et reste affichée après rechargement.",
         "La suppression d’un dessin détache sa note ; le texte reste dans « Notes cartographiques ». La suppression de la carte détache de même les notes de ses dessins.",
         "La base rattache une note seulement à un dessin de la carte : l’identifiant d’une mesure enregistrée (longueur ou surface) est refusé avec l’erreur HV613 « A saved measurement has no note », et le serveur répond par une requête invalide.",
         "Le fichier d’une affaire exporté transporte, pour chaque carte qu’il contient, les notes de ses dessins avec leur lien au dessin (identifiant du dessin dans la carte), comme il transporte les notes des parcelles et des entités des couches (HALL-FR-DOC-390) ; l’import restaure chaque note sur le dessin de la carte importée, avec son texte et ses photos.",
-        "Un lecteur sans droit de modifier la carte qui clique sur un dessin, en mode Carte de l’espace de travail comme dans « Cartes », ouvre la fiche du dessin en lecture : libellé, nature, mesures du dessin (longueur, ou surface et périmètre) et note rendue, sans « Modifier la forme », sans création de note et sans modification de la note ; le bouton de fermeture et Échap ferment la fiche."
+        "Un lecteur sans droit de modifier la carte qui clique sur un dessin, en mode Carte de l’espace de travail comme dans « Cartes », ouvre la fiche du dessin en lecture : libellé, nature, mesures du dessin (longueur, ou surface et périmètre) et note rendue, sans « Modifier la forme », sans création de note et sans modification de la note ; le bouton de fermeture et Échap ferment la fiche.",
+        "Pour qui peut créer la note, l’ouverture de la fiche prépare directement la note vide existante ou nouvelle et son éditeur, sans bouton « Ajouter une note ». Un lecteur ne crée aucune note ; les erreurs sont signalées sans relance automatique en boucle."
       ],
       "clauses": [
         {
@@ -3755,13 +3774,14 @@
       "statement": "En mode « Dessin », un clic sélectionne un dessin ; la modification de sa forme est un état distinct, ouvert explicitement et quitté de façon visible.",
       "acceptanceCriteria": [
         "Avec l’outil de sélection, un clic sur un dessin le sélectionne : mise en évidence sur la carte, ligne sélectionnée dans la liste de composition, fiche du dessin avec sa note ; ses sommets et sa position restent fixes.",
-        "La fiche du dessin sélectionné propose « Modifier la forme » ; un double clic sur un dessin le sélectionne et ouvre de même la modification de sa forme, sans zoomer la carte.",
-        "Pendant la modification, les sommets du dessin modifié sont affichés ; glisser un sommet le déplace, glisser la forme en dehors des sommets déplace toute la forme ; chaque modification est enregistrée automatiquement.",
+        "Pendant la modification, les sommets du dessin modifié sont affichés ; glisser un sommet le déplace, glisser la forme en dehors des sommets déplace toute la forme ; chaque modification est enregistrée automatiquement. L’instance de carte et ses sources de tuiles sont conservées pendant les mutations des dessins : un fond déjà affiché ne disparaît pas après déplacement d’un sommet ou de la forme.",
         "Seul le dessin en cours de modification est modifiable ; les autres dessins restent fixes et un clic sur l’un d’eux le sélectionne et termine la modification en cours.",
-        "Pendant la modification, la fiche indique l’état de modification et propose « Terminer la modification » ; la ligne du dessin dans la liste de composition porte la marque de modification.",
         "Échap termine d’abord la modification et laisse le dessin sélectionné ; un second Échap ferme la fiche et retire la sélection.",
         "La liste de composition et la carte restent synchronisées dans les deux états : une sélection depuis la liste sélectionne le dessin sur la carte, et la modification reste attachée au dessin qui l’a ouverte.",
-        "Le même comportement s’applique dans la carte de l’espace de travail, dans la fenêtre de dialogue de la ressource et dans « Cartes »."
+        "Le même comportement s’applique dans la carte de l’espace de travail, dans la fenêtre de dialogue de la ressource et dans « Cartes ».",
+        "Pendant la modification, les arêtes et les poignées de tous les sommets restent dessinées, même si la forme serait compacte à cette échelle ; la modification ne change pas les couleurs enregistrées.",
+        "La liste Composition porte pour chaque dessin un contrôle d’édition de forme actif ou verrouillé. Seul ce contrôle active la modification ; le clic ou le double-clic sélectionne sans activer la modification. Le même contrôle termine la modification.",
+        "La fiche ne porte pas de bouton pour modifier la forme ; elle conserve la note et les réglages du dessin."
       ],
       "clauses": [
         {
@@ -3863,18 +3883,30 @@
       },
       "statement": "La barre d’outils d’une carte ouvre et ferme les panneaux « Mesures » et « Composition » d’une pression, et ces panneaux prennent la hauteur de leur contenu dans les limites de la carte.",
       "acceptanceCriteria": [
-        "Les boutons « Mesures » et « Dessin » sont des bascules : une pression sur le mode actif ferme son panneau et laisse la carte seule, sans mode actif (aria-pressed faux sur les deux boutons) ; une pression sur l’autre mode passe directement à ce mode et à son panneau.",
-        "Une carte s’ouvre en mode « Mesures », panneau « Mesures » ouvert ; sur la carte seule, un clic sur une entité d’une couche liée ouvre sa fiche comme en mode « Mesures ».",
+        "Les boutons « Éléments » et « Mesures », dans cet ordre, sont des bascules : une pression sur le mode actif ferme son panneau et laisse la carte seule, sans mode actif (aria-pressed faux sur les deux boutons) ; une pression sur l’autre mode passe directement à ce mode et à son panneau. Le bouton « Éléments » utilise l’icône de liste d’objets existante.",
+        "Une carte s’ouvre en mode « Éléments », panneau de composition ouvert, à chaque ouverture et changement de carte ; en lecture seule, la liste reste consultable sans commandes d’édition. Sur la carte seule, un clic sur une entité d’une couche liée ouvre sa fiche comme en mode « Mesures ».",
         "Échap garde l’ordre décrit par HALL-FR-DOC-300 et HALL-FR-DOC-410 (dessin ou mesure en cours, fiche, puis fenêtre de dialogue) ; le mode actif et son panneau restent ouverts après Échap.",
         "Les panneaux « Composition » et « Mesures » s’ouvrent à la hauteur de leur contenu, au moins celle de leur en-tête, de leurs outils et d’une ligne, au plus celle de la carte sous la barre d’outils ; au-delà, leur liste défile à l’intérieur du panneau, qui reste dans la carte.",
         "La taille donnée par l’utilisateur à un panneau avec sa poignée de redimensionnement est conservée pendant la session du navigateur, à chaque réouverture du panneau et après un rechargement de la page.",
-        "Le sélecteur « Mesures » / « Dessin », le bouton « Couches » et les outils de zoom forment une barre compacte : sélecteur et outils de zoom sans marge intérieure autour de leurs boutons, hauteur du sélecteur 32 px, icônes à 1 em, libellés à la taille de légende ; chaque bouton offre une cible d’au moins 32 px sur 32 px."
+        "Le sélecteur « Éléments » / « Mesures », le bouton « Couches » et les outils de zoom forment une barre compacte : sélecteur et outils de zoom sans marge intérieure autour de leurs boutons, hauteur du sélecteur 32 px, icônes à 1 em, libellés à la taille de légende ; chaque bouton offre une cible d’au moins 32 px sur 32 px."
       ],
       "clauses": [
         {
           "key": "geographic-mode-toggle",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : une pression sur le mode actif ferme son panneau et revient à la carte seule.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-mode-elements-label-order",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-11, Topic Graph request 7dbd26f9-5b7b-4ca8-9e84-0cf6978297c8 : renommer le mode Dessin en Éléments, utiliser l’icône de liste d’objets existante et placer Éléments avant Mesures, sans changer le mode actif par défaut ni les interactions.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-elements-default-opening",
+          "origin": "product",
+          "statement": "Nouvelle demande du propriétaire du 11 octobre 2026, remplaçant le choix initial de mode par défaut : ouvrir chaque carte sur Éléments, y compris après réouverture ou changement de ressource, avec une liste de consultation pour les lecteurs.",
           "sourceIds": []
         },
         {
@@ -7935,6 +7967,10 @@
         "La sélection inline ne rouvre pas une recherche ; seule une configuration propre à la ressource peut suivre.",
         "L’insertion d’un PDF, depuis @ ou le bouton de recherche, utilise la référence inline existante (icône et nom cliquable) et non une carte pleine largeur. Le choix de présentation appartient à une seule autorité partagée.",
         "Toutes les références inline partagent le même alignement avec le texte environnant, avec ou sans icône et quel que soit leur type (contact, membre, lien, ressource documentaire ou géographique). L’édition compacte, l’édition enrichie et le rendu utilisent cette présentation commune.",
+        "Une référence native conserve le libellé explicitement fourni dans le texte, pour les ressources comme pour les contacts, sans renommer sa cible ; en l’absence de libellé, elle affiche le titre courant de la cible. Son lien et sa présentation inline sont conservés.",
+        "Un clic normal sur une référence native de contact ouvre une fiche contact en lecture dans une modale dédiée, depuis le rapport, l’espace de travail, un document ou son aperçu agrandi. L’affaire, le document et le défilement restent en place ; Échap ou Fermer ferme la fiche et restitue le focus au lien. Les clics modifiés conservent le lien vers la page contact. Le chargement, le contact introuvable et le refus d’accès sont signalés dans la modale.",
+        "La fiche contact modale reprend la hiérarchie visuelle et les composants de Hall : identité en en-tête, fonction et organisme, coordonnées regroupées, puis notes lisibles. Elle conserve toutes les informations du contact dans une présentation adaptée aux fenêtres étroites et reste en lecture seule.",
+        "Un clic normal sur une référence native de membre du conseil ouvre sa fiche en lecture dans une modale dédiée, depuis l’affaire, sans perdre le document ou le défilement ; elle présente son identité, sa fonction réellement enregistrée, son mandat et ses coordonnées avec les composants de Hall. Échap ou Fermer restitue le focus au lien, les clics modifiés conservent l’accès à la page membre, et les états de chargement, d’absence ou de refus d’accès restent dans la modale.",
         "L’aperçu ouvert depuis une référence consulte la ressource dans la modale commune. Une ressource web configurée y affiche sa page via le composant d’aperçu web et conserve un lien pour ouvrir le site ; elle n’affiche pas le formulaire de saisie de son adresse à la place de l’aperçu. Ce comportement s’applique aussi à la fiche de l’espace de travail et aux contenus intégrés : le droit de modifier ne remplace pas l’aperçu par le formulaire. L’action explicite Modifier l’adresse ouvre le formulaire existant ; une sauvegarde réussie revient à l’aperçu. La page remplit la hauteur disponible sous l’en-tête jusqu’au bas de la modale, y compris après redimensionnement. L’affichage intégré reste soumis aux restrictions du site distant.",
         "L’aperçu web affiche l’indicateur de chargement commun jusqu’à la fin du chargement de la page. Les indicateurs de chargement de l’application réutilisent le même composant et le même style partagé.",
         "Les types de ressources documentaires sont distincts et les dossiers peuvent être explorés sans quitter le sélecteur.",
@@ -8329,15 +8365,42 @@
       "statement": "La section « Documents » d’une affaire se replie par son en-tête et chaque document s’ouvre en plein écran depuis sa ligne.",
       "acceptanceCriteria": [
         "L’en-tête de la section est un bouton de repli qui porte, sur une seule ligne alignée, le chevron, l’icône, le titre « Documents » et le nombre de documents rattachés ; il change de fond au survol et indique son état ouvert ou replié.",
-        "La section est ouverte par défaut ; un clic sur l’en-tête la replie ou la rouvre ; les actions de création et de rattachement restent visibles à droite de l’en-tête dans les deux états.",
+        "La section est repliée à l’ouverture d’une affaire et lors du changement d’affaire ; un clic sur l’en-tête la replie ou la rouvre ; une actualisation de la même affaire conserve le choix manuel et les branches de documents dépliées. Les actions de création et de rattachement restent visibles à droite de l’en-tête dans les deux états.",
         "Chaque ligne de document porte une action « Ouvrir en plein écran », visible avec son infobulle, qui ouvre le document dans la visionneuse partagée avec les droits de l’utilisateur.",
-        "Le contenu d’un document reste aussi consultable dans la ligne dépliée, comme auparavant."
+        "Le contenu d’un document reste aussi consultable dans la ligne dépliée, comme auparavant.",
+        "Le rapport d’une affaire propose « Aperçu PDF » en lecture comme en édition ; l’action envoie le contenu courant du rapport, y compris les retouches non encore enregistrées, au même aperçu PDF temporaire que le Lab et l’affiche dans la visionneuse native sans modifier l’affaire ni rassembler les documents non référencés de son dossier. Les PDF référencés dans le rapport suivent le traitement du Lab et sont ajoutés à l’aperçu ; le bouton indique la génération et un échec lisible ; fermer l’aperçu ou changer d’affaire conserve le contexte et ne révèle pas un ancien PDF.",
+        "Pendant le chargement initial réel du rapport, la section affiche un emplacement stable et un statut de chargement accessible. Dès que la ressource est prête, elle affiche l’éditeur ou le contenu en lecture, y compris lorsque le rapport est vide ; un échec de chargement affiche une erreur avec une action pour réessayer. Les retouches et les enregistrements ultérieurs ne réaffichent pas le chargement initial.",
+        "L’ouverture directe d’une affaire charge son identité et son rapport sans attendre la liste des autres affaires, leurs ressources rattachées ni les annuaires sans rapport avec la vue. Les documents de cette affaire chargent séparément pour fournir leur nombre exact ; une section repliée ne construit pas les sous-vues des documents et un panneau de dossier caché ne précharge pas ses autres affaires. L’arbre et la recherche peuvent charger les index globaux lorsque l’utilisateur demande leur contenu complet."
       ],
       "clauses": [
         {
           "key": "business-documents-section",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : un repli plus net pour les documents d’une affaire et la possibilité de lire un document dans une visionneuse en plein écran.",
+          "sourceIds": []
+        },
+        {
+          "key": "business-documents-default-collapsed",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-11 : ouvrir une affaire avec la section Documents repliée par défaut, conserver son ouverture manuelle pendant les actualisations et la replier lors du changement d’affaire.",
+          "sourceIds": []
+        },
+        {
+          "key": "business-report-pdf-preview",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-11 : avoir dans une affaire un bouton d’aperçu PDF du rapport, comme dans le Lab.",
+          "sourceIds": []
+        },
+        {
+          "key": "business-report-initial-loading",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-11 : afficher un chargement propre pendant l’ouverture initiale du rapport dans une affaire du conseil.",
+          "sourceIds": []
+        },
+        {
+          "key": "business-direct-load-isolation",
+          "origin": "product",
+          "statement": "Correction du défaut de chargement demandée par le propriétaire le 2026-10-11 : une affaire ouverte par son lien direct ne dépend pas de l’inventaire des autres affaires et de toutes leurs ressources pour afficher son rapport ; les données globales sont chargées lorsque leur navigation ou leur recherche est demandée.",
           "sourceIds": []
         }
       ]
@@ -8541,6 +8604,82 @@
           "key": "interface-layering-scale",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : une échelle de superposition délibérée et unique pour tous les popovers, menus, infobulles, listes de choix et fenêtres de dialogue, qui ne s’affichent jamais sous le contenu des éditeurs.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-520": {
+      "name": "GEOGRAPHIC_DRAWING_MEASURES_AND_RECTANGLE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-11"
+      },
+      "statement": "Les mesures s’affichent dessin par dessin depuis une commande directe de chaque ligne de Composition ; une zone proche d’un rectangle donne sa largeur et sa hauteur, une autre zone donne les dimensions approximatives de son emprise orientée.",
+      "acceptanceCriteria": [
+        "Un bouton compact avec l’icône de mesure dans chaque ligne ou zone mesurable active ou masque ses mesures sur la carte, indépendamment des autres dessins et du panneau Mesures ; son état actif est accessible, le choix reste temporaire et ne modifie pas la géométrie. Aucun bouton de mesure n’apparaît pour un marqueur ponctuel.",
+        "L’option globale d’affichage des mesures des dessins dans le panneau Mesures et l’option de mesure du menu « … » sont remplacées par ces boutons directs.",
+        "Quand les mesures de deux polygones sont activées successivement, les deux affichages restent visibles ensemble ; masquer l’un conserve l’autre et le réactiver restitue son affichage.",
+        "Un polygone convexe sans trou avec quatre coins distincts, angles proches de 90° (écart maximal 5°) et côtés opposés de longueur voisine (écart maximal 10%) peut être reconnu comme un rectangle approximatif. Les dimensions sont calculées en mètres géodésiques, non en mètres projetés.",
+        "La largeur et la hauteur d’un rectangle reconnu apparaissent avant l’aire et le périmètre dans sa lecture de mesures ; la carte conserve l’aire sur la forme et présente les deux dimensions sur des lignes de cote extérieures aux côtés de l’emprise, avec rappels et flèches. Un autre polygone conserve ses mesures de surface et affiche la largeur et la longueur approximatives du rectangle orienté de plus petite aire encadrant son enveloppe convexe ; ces dimensions géodésiques sont explicitement approximatives dans la lecture et les cotes extérieures de carte (≈). L’écart des cotes reste constant en pixels à chaque niveau de zoom ; aucun dessin de cotation n’est enregistré.",
+        "La reconnaissance ne modifie ni les sommets ni les mesures enregistrées. Des points répétés, trous, formes concaves ou quadrilatères hors tolérance ne sont pas qualifiés de rectangles ; leur emprise peut être approximée sans altérer la forme. Une emprise dégénérée ou non finie ne produit aucune dimension."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-drawing-measures-menu-and-rectangle",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 11 octobre 2026 : menu par dessin pour afficher les mesures et largeur/hauteur pour les formes proches d’un rectangle.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-drawing-measures-direct-control",
+          "origin": "product",
+          "statement": "Retour du propriétaire du 11 octobre 2026 : commande compacte directe de mesure par ligne, état actif visible et accessible, affichage simultané de plusieurs polygones et délai de bascule à corriger.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-530": {
+      "name": "GEOGRAPHIC_DRAWING_LEGEND",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-11"
+      },
+      "statement": "La carte affiche une légende des couleurs de ses dessins, enregistrée dans leur collection GeoJSON et modifiable dans le panneau Dessin.",
+      "acceptanceCriteria": [
+        "La collection GeoJSON des dessins porte une liste optionnelle legend de couples color et label ; une carte sans légende continue de fonctionner.",
+        "La légende apparaît par défaut en bandeau horizontal compact en superposition à l’intérieur du bas de la carte, avec retour à la ligne selon la largeur disponible, sans couvrir les contrôles de zoom ni les attributions ; le bouton « Légende » et « Enregistrer ce cadrage » sont côte à côte. Elle est consultable en lecture seule et dans les cartes incorporées, et reste accessible sans défilement externe dans l’aperçu plein écran.",
+        "Dans le panneau Dessin, qui peut modifier la carte ajoute, renomme, recolore et retire les entrées de légende. Les libellés vides, couleurs invalides et listes de plus de 16 entrées sont refusés.",
+        "La légende est conservée lors de la modification des dessins, des mesures et du cadrage, après sauvegarde et rechargement, et voyage dans le document de la carte."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-drawing-legend",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 11 octobre 2026 : conserver et afficher la correspondance entre couleurs et signification, et la modifier à côté des dessins.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-540": {
+      "name": "GEOGRAPHIC_LINE_ARROWS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-11"
+      },
+      "statement": "Une ligne dessinée propose aucune flèche, une flèche dans le sens du tracé, une flèche en sens inverse ou des flèches dans les deux sens.",
+      "acceptanceCriteria": [
+        "Le choix est disponible dans la fiche de la ligne pour qui peut modifier la carte, enregistré dans son style et conservé après rechargement.",
+        "Les flèches suivent le premier et le dernier segment non nul du tracé ; une ligne sans déplacement ne produit pas de flèche orientée arbitrairement.",
+        "Les lignes existantes sans choix explicite restent sans flèches ; les flèches restent visibles pendant la sélection et la modification de forme."
+      ],
+      "clauses": [
+        {
+          "key": "geographic-line-arrows",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 11 octobre 2026 : une ligne doit pouvoir porter une flèche dans un sens, dans l’autre ou dans les deux sens.",
           "sourceIds": []
         }
       ]

@@ -1,4 +1,4 @@
-import type { ResourceDetail, ResourceJsonObject, ResourceJsonValue } from "@hall/api-contract";
+import type { ResourceDetail, ResourceJsonObject, ResourceJsonValue, SirenEntity } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
 import { type CSSProperties, createContext, useContext, useEffect, useMemo, useState } from "react";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
@@ -213,9 +213,11 @@ function SpreadsheetRangeTable({
 
 function ResourceEmbedBody({
   resource,
+  representation,
   attributes,
 }: {
   resource: DocumentaryLeafDetail;
+  representation: SirenEntity | null;
   attributes: ResourceEmbedAttributes;
 }) {
   const { t, formatDate } = useI18n();
@@ -292,6 +294,7 @@ function ResourceEmbedBody({
         <div className="resource-embed-map" data-testid="resource-embed-presentation-map">
           <GeographicResourceMap
             resource={resource}
+            representation={representation}
             data={resource.document}
             canUpdate={false}
             onError={ignorePresentationError}
@@ -320,14 +323,19 @@ export function ResourceEmbedPresentation({ attributes }: { attributes: Resource
   const recursive = ancestors.includes(attributes.id);
   const [details, setDetails] = useState<DocumentaryLeafDetail | null>(null);
   const [failed, setFailed] = useState(false);
+  const [representation, setRepresentation] = useState<SirenEntity | null>(null);
 
   useEffect(() => {
     let active = true;
     setDetails(null);
+    setRepresentation(null);
     setFailed(false);
     void openDocumentaryResource(attributes.id).then(
       (result) => {
-        if (active && result.data.kind !== "folder") setDetails(result.data);
+        if (active && result.data.kind !== "folder") {
+          setDetails(result.data);
+          setRepresentation(result.representation);
+        }
       },
       () => active && setFailed(true),
     );
@@ -355,7 +363,9 @@ export function ResourceEmbedPresentation({ attributes }: { attributes: Resource
         <div className="editor-resource-embed-body">
           {!details && !failed ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
           {failed ? <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p> : null}
-          {details ? <ResourceEmbedBody resource={details} attributes={attributes} /> : null}
+          {details ? (
+            <ResourceEmbedBody resource={details} representation={representation} attributes={attributes} />
+          ) : null}
         </div>
         {overlay && details ? (
           <div className="editor-resource-embed-overlay">

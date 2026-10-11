@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import type { ApiErrorCode } from "../services/apiClient";
 import { type ApplicationSyncPhase, useApplicationSyncStore } from "../stores/applicationSyncStore";
 import { useContactsStore } from "../stores/contactsStore";
@@ -10,9 +11,15 @@ import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { useWorkspaceCouncilActivityStore } from "../stores/workspaceCouncilActivityStore";
 
 export function useApplicationData(): void {
+  const location = useLocation();
+  const selectedBusiness = location.pathname === "/workspace" && new URLSearchParams(location.search).has("councilBusiness");
   useEffect(() => {
+    if (selectedBusiness) {
+      useApplicationSyncStore.getState().finish(null);
+      return;
+    }
     void reloadApplicationData();
-  }, []);
+  }, [selectedBusiness]);
 }
 
 export async function reloadApplicationData(): Promise<ApiErrorCode | null> {

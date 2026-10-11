@@ -490,7 +490,13 @@ const hallGeoJsonFeatureSchema = z.union([
           kind: z.literal("line"),
           visible: z.boolean().default(true),
           label: geographicLabelSchema,
-          style: z.object({ color: geographicColorSchema, width: z.number().int().min(1).max(8) }).strict(),
+          style: z
+            .object({
+              color: geographicColorSchema,
+              width: z.number().int().min(1).max(8),
+              arrows: z.enum(["none", "forward", "backward", "both"]).optional(),
+            })
+            .strict(),
         })
         .strict(),
       geometry: geographicLineStringSchema,
@@ -589,9 +595,14 @@ export const geographicLayersSchema = z
     message: "At least one geographic layer must be visible",
   });
 
+// @implements-requirement HALL-FR-DOC-530
 export const hallGeoJsonFeatureCollectionSchema = z
   .object({
     type: z.literal("FeatureCollection"),
+    legend: z
+      .array(z.object({ color: geographicColorSchema, label: z.string().trim().min(1).max(160) }).strict())
+      .max(16)
+      .optional(),
     features: z
       .array(z.union([hallGeoJsonFeatureSchema, hallGeoJsonMeasurementSchema]))
       .max(hallGeoJsonCapacity.features),

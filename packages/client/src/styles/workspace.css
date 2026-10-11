@@ -649,6 +649,7 @@
     margin: 0;
     min-inline-size: 0;
   }
+  .geographic-zoom-tools button svg { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); display: block; }
   .geographic-zoom-tools button {
     border-radius: var(--hall-radius-medium);
     color: var(--hall-color-text);
@@ -914,7 +915,7 @@
   }
   .geographic-composition-feature {
     display: grid;
-    grid-template-columns: var(--hall-size-control-small) var(--hall-size-control-small) var(--hall-size-control-small) minmax(0, 1fr) var(--hall-size-glyph-mark-large) var(--hall-size-control-small);
+    grid-template-columns: var(--hall-size-control-small) var(--hall-size-control-small) var(--hall-size-control-small) var(--hall-size-control-small) minmax(0, 1fr) var(--hall-size-control-small) var(--hall-size-glyph-mark-large) var(--hall-size-control-small);
     min-height: var(--hall-size-control);
     align-items: center;
     border: var(--hall-stroke-thin) solid transparent;
@@ -927,6 +928,10 @@
     border-color: var(--hall-color-brand-border);
     background: var(--hall-color-brand-subtle);
   }
+  .geographic-composition-feature-readonly {
+    grid-template-columns: var(--hall-size-control-small) minmax(0, 1fr) var(--hall-size-control-small) var(--hall-size-control-small);
+  }
+  .geographic-composition-feature-readonly > svg { justify-self: center; }
   .geographic-composition-feature-modifying {
     border-style: dashed;
     border-color: var(--hall-color-brand);
@@ -941,7 +946,10 @@
   .geographic-composition-feature-select,
   .geographic-composition-feature-visible,
   .geographic-composition-feature-fit,
-  .geographic-composition-feature-delete {
+  .geographic-composition-feature-modify,
+  .geographic-composition-feature-measures,
+  .geographic-composition-feature-delete,
+  .geographic-composition-feature-menu {
     display: inline-grid;
     width: var(--hall-size-control-small);
     height: var(--hall-size-control-small);
@@ -949,6 +957,8 @@
     padding: 0;
     border-radius: var(--hall-radius-small);
   }
+  .geographic-composition-feature-modify[aria-pressed="true"] { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
+  .geographic-composition-feature-measures[aria-pressed="true"] { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
   .geographic-composition-feature-visible[aria-pressed="true"] { color: var(--hall-color-brand); }
   .geographic-composition-feature .geographic-composition-feature-delete { color: var(--hall-color-danger); }
   .geographic-composition-feature-name {
@@ -994,10 +1004,7 @@
   }
   .geographic-conflict button { flex: none; }
   .geographic-save-view {
-    position: absolute;
-    z-index: var(--hall-z-content);
-    bottom: var(--hall-space-3);
-    left: var(--hall-space-3);
+    justify-self: start;
     background: var(--hall-color-surface);
     box-shadow: var(--hall-shadow-medium);
   }

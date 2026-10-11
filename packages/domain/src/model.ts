@@ -288,6 +288,8 @@ export interface GeographicLayer {
   opacity: number;
 }
 
+export type GeographicLineArrows = "none" | "forward" | "backward" | "both";
+
 export type HallGeoJsonFeature =
   | {
       type: "Feature";
@@ -307,7 +309,7 @@ export type HallGeoJsonFeature =
         kind: "line";
         visible: boolean;
         label: string | null;
-        style: { color: GeographicColor; width: number };
+        style: { color: GeographicColor; width: number; arrows?: GeographicLineArrows };
       };
       geometry: Extract<GeographicGeometry, { type: "LineString" }>;
     }
@@ -339,9 +341,16 @@ export type HallGeoJsonMeasurement =
       geometry: Extract<GeographicGeometry, { type: "Polygon" }>;
     };
 
+/** Legend entries travel with the drawings, independently of their geometry. */
+export interface GeographicLegendEntry {
+  color: GeographicColor;
+  label: string;
+}
+
 export interface HallGeoJsonFeatureCollection {
   type: "FeatureCollection";
   features: Array<HallGeoJsonFeature | HallGeoJsonMeasurement>;
+  legend?: GeographicLegendEntry[];
 }
 
 export type GeographicView =

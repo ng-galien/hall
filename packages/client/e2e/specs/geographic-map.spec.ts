@@ -1,4 +1,58 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "../fixtures/application";
+
+// @verifies-requirement HALL-FR-WSP-330
+// @verifies-requirement HALL-FR-WSP-350
+test("incoming URL framing updates the same map and saves the displayed view", async ({ appPage: page }) => {
+  await page.route(/^https:\/\/data\.geopf\.fr\/wmts\?/, (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#148c5a"/></svg>',
+    }),
+  );
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "geographic", name: `Incoming framing ${crypto.randomUUID()}`, path: "seed" },
+  });
+  expect(created.ok()).toBeTruthy();
+  const resource = (await created.json()).properties;
+  await page.goto(`/app/maps/${resource.id}?view=4.50,47.54,17`);
+  const mapElement = page.locator(".maps-surface .geographic-map");
+  await expect(mapElement.locator(".ol-viewport")).toBeVisible();
+  await page.getByTestId("geographic-mode-map").click();
+  await page.getByTestId("geographic-measures-tab-coordinates").click();
+  const center = page.getByTestId("geographic-measure-center-wgs84");
+  await expect(center).toContainText("47.540000");
+  const viewport = await mapElement.locator(".ol-viewport").elementHandle();
+  const navigateFraming = async (view: string) => {
+    await page.evaluate((requested) => {
+      window.history.pushState(window.history.state, "", `?view=${requested}`);
+      window.dispatchEvent(new PopStateEvent("popstate", { state: window.history.state }));
+    }, view);
+  };
+  await navigateFraming("4.51,47.55,18");
+  await expect(center).toContainText("47.550000");
+  await expect(center).toContainText("4.510000");
+  expect(await viewport?.evaluate((element) => element.isConnected)).toBe(true);
+  // Internal navigation must not loop back to the last incoming framing.
+  await page.getByTestId("geographic-zoom-in").click();
+  await expect.poll(() => Number(new URL(page.url()).searchParams.get("view")?.split(",")[2])).toBe(19);
+  await expect(center).toContainText("47.550000");
+  const beforeSave = (await (await page.request.get(`/api/resources/${resource.id}`)).json()).properties;
+  expect(beforeSave.version).toBe(resource.version);
+  await page.getByTestId("geographic-save-view").click();
+  await expect
+    .poll(async () => {
+      const view = (await (await page.request.get(`/api/resources/${resource.id}`)).json()).properties.document.view;
+      return { ...view, center: view.center?.map((coordinate: number) => Number(coordinate.toFixed(6))) };
+    })
+    .toEqual({ kind: "center", center: [4.51, 47.55], zoom: 19 });
+  // Restore an earlier history framing without remounting the map.
+  await navigateFraming("4.50,47.54,17");
+  await expect(center).toContainText("47.540000");
+  expect(await viewport?.evaluate((element) => element.isConnected)).toBe(true);
+  await page.screenshot({ path: "/tmp/geographic-map-incoming-view-after-fix.png" });
+});
 
 // @verifies-requirement HALL-FR-DOC-300
 test("Escape cancels a drawing in progress before it closes the resource dialog", async ({ appPage: page }) => {
@@ -12,7 +66,7 @@ test("Escape cancels a drawing in progress before it closes the resource dialog"
   await page.getByTestId("resource-open-extended").click();
   const dialog = page.getByTestId("resource-preview");
   await expect(dialog).toBeVisible();
-  await dialog.getByTestId("geographic-mode-draw").click();
+  await expect(dialog.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   const features = dialog.locator(
     '[data-testid="geographic-composition"] li[data-testid^="geographic-composition-feature-"]',
   );
@@ -56,6 +110,7 @@ test("the Mesures tab measures with temporary geometries that Escape clears with
     if (request.method() !== "GET" && request.url().includes(`/api/resources/`)) writes.push(request.url());
   });
   await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  await page.getByTestId("geographic-mode-map").click();
   const panel = page.getByTestId("geographic-measures");
   await expect(panel).toBeVisible();
   const map = await page.locator(".geographic-map").boundingBox();
@@ -113,7 +168,7 @@ test("a drawn area too small on screen becomes a selectable marker and its geome
   expect(created.ok()).toBeTruthy();
   const resource = (await created.json()).properties;
   await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
-  await page.getByTestId("geographic-mode-draw").click();
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   const map = await page.locator(".geographic-map").boundingBox();
   if (!map) throw new Error("The map must be rendered");
   const at = (x: number, y: number) => [map.x + map.width * x, map.y + map.height * y] as const;
@@ -137,7 +192,7 @@ test("a drawn area too small on screen becomes a selectable marker and its geome
   );
   await page.getByTestId("geographic-tool-select").click();
   await page.getByTestId(`geographic-composition-feature-fit-${featureId}`).click();
-  await page.mouse.click(...at(0.97, 0.5));
+  await page.getByTestId("geographic-drawn-element-card-close").click();
   await expect(page.locator(".geographic-composition-feature-selected")).toHaveCount(0);
   for (let step = 0; step < 6; step += 1) {
     await page.getByTestId("geographic-zoom-out").click();
@@ -161,8 +216,27 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   });
   expect(created.ok()).toBeTruthy();
   const map = (await created.json()).properties;
+  let injectedConflict = false;
+  await page.route("**/api/resources/*/content", async (route) => {
+    const payload = route.request().postDataJSON();
+    if (!injectedConflict && payload?.kind === "geographic") {
+      injectedConflict = true;
+      const remote = await route.fetch({
+        postData: JSON.stringify({
+          ...payload,
+          document: { ...payload.document, hallLayer: { ...payload.document.hallLayer, features: [] } },
+        }),
+      });
+      expect(remote.ok()).toBeTruthy();
+      await route.fulfill({
+        status: 409,
+        contentType: "application/problem+json",
+        body: JSON.stringify({ code: "conflict", status: 409 }),
+      });
+    } else await route.continue();
+  });
   await page.goto(`/app/workspace?path=seed&resource=${map.id}`);
-  await page.getByTestId("geographic-mode-draw").click();
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   const box = await page.locator(".geographic-map").boundingBox();
   if (!box) throw new Error("The map must be rendered");
   await page.getByTestId("geographic-tool-marker").click();
@@ -179,7 +253,9 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   await rows.first().locator(".geographic-composition-feature-select").click();
   const card = page.getByTestId("geographic-drawn-element-card");
   await expect(card).toBeVisible();
-  await card.getByTestId("geographic-drawn-element-note-create").click();
+  await page.getByTestId("geographic-conflict-retry").click();
+  await expect(page.getByTestId("geographic-conflict-retry")).toBeHidden();
+  await expect(rows).toHaveCount(1);
   const writingArea = card.getByTestId("editor-writing-area");
   await expect(writingArea).toHaveAttribute("contenteditable", "true");
   await writingArea.click();
@@ -276,17 +352,189 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(enrichedPasteId);
 
   await page.reload();
-  await page.getByTestId("geographic-mode-draw").click();
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   await rows.first().locator(".geographic-composition-feature-select").click();
   await expect(card.getByTestId("editor-writing-area")).toContainText("Chêne à conserver");
   for (const imageId of [inlineDropId, inlinePasteId, photoId, enrichedPasteId]) {
     await expect(card.getByTestId(`editor-image-${imageId}`)).toBeVisible();
   }
 
-  await rows.first().locator(".geographic-composition-feature-delete").click();
+  await page.getByTestId(`geographic-composition-feature-menu-${elementId}`).click();
+  await page.getByTestId(`geographic-composition-feature-delete-${elementId}`).click();
   await expect(rows).toHaveCount(0);
   await expect.poll(async () => (await notes()).length, { timeout: 15_000 }).toBe(0);
   const note = await page.request.get(`/api/resources/${noteId}`);
   expect(note.ok()).toBeTruthy();
   expect((await note.json()).properties.path).toBe("seed/Notes cartographiques");
+});
+
+// @verifies-requirement HALL-FR-DOC-520
+// @verifies-requirement HALL-FR-DOC-450
+// @verifies-requirement HALL-FR-DOC-520
+test("drawing edit retains rendered base tiles and exterior dimension overlays", async ({ appPage: page }) => {
+  await page.setViewportSize({ width: 1800, height: 950 });
+  let rejectNewTiles = false;
+  let rejectedTileRequests = 0;
+  await page.route(/^https:\/\/data\.geopf\.fr\/wmts\?/, async (route) => {
+    if (rejectNewTiles) {
+      rejectedTileRequests += 1;
+      return route.fulfill({ status: 404 });
+    }
+    return route.fulfill({
+      contentType: "image/svg+xml",
+      headers: { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" },
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#148c5a"/></svg>',
+    });
+  });
+  const snapshot = process.env.HALL_EXTENT_DIAGNOSTIC_SNAPSHOT;
+  const owner = snapshot
+    ? JSON.parse(readFileSync(snapshot, "utf8")).properties
+    : {
+        document: {
+          hallLayer: {
+            features: [
+              {
+                type: "Feature",
+                id: "five-vertex-area",
+                properties: { kind: "area", label: "Stationnement usagers", visible: true },
+                geometry: {
+                  type: "Polygon",
+                  coordinates: [
+                    [
+                      [4.50, 47.54],
+                      [4.50008, 47.54001],
+                      [4.50015, 47.5397],
+                      [4.50014, 47.53966],
+                      [4.50006, 47.53966],
+                      [4.50, 47.54],
+                    ],
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      };
+  const original = owner.document.hallLayer.features.find(
+    (feature: { properties: { label?: string } }) => feature.properties.label === "Stationnement usagers",
+  );
+  expect(original.geometry.coordinates[0]).toHaveLength(6);
+  const copied = structuredClone(original);
+  copied.id = crypto.randomUUID();
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "geographic", name: `Extent diagnostic ${crypto.randomUUID()}`, path: "seed" },
+  });
+  expect(created.ok()).toBeTruthy();
+  const map = (await created.json()).properties;
+  const ring = copied.geometry.coordinates[0] as number[][];
+  const center = [0, 1].map(
+    (axis) => (Math.min(...ring.map((p) => p[axis]!)) + Math.max(...ring.map((p) => p[axis]!))) / 2,
+  );
+  const saved = await page.request.put(`/api/resources/${map.id}/content`, {
+    data: {
+      kind: "geographic",
+      expectedVersion: map.version,
+      document: {
+        ...map.document,
+        view: { kind: "center", center, zoom: 20 },
+        hallLayer: { type: "FeatureCollection", features: [copied] },
+      },
+    },
+  });
+  expect(saved.ok()).toBeTruthy();
+  // This fixture note prevents automatic preparation; the protected source map is never addressed by this runtime.
+  expect(
+    (await page.request.post(`/api/resources/${map.id}/feature-notes`, { data: { elementId: copied.id } })).ok(),
+  ).toBeTruthy();
+  await page.goto(`/app/maps/${map.id}?view=${center[0]},${center[1]},19`);
+  const mapElement = page.locator(".maps-surface .geographic-map");
+  await expect.poll(() => mapElement.evaluate((el) => el.querySelector("canvas")?.width === el.clientWidth)).toBe(true);
+  const box = await mapElement.boundingBox();
+  if (!box) throw new Error("Map must be visible");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(page.getByTestId("geographic-measure-drawing-values-approximate-width")).toBeVisible();
+  await expect(page.getByTestId("geographic-measure-drawing-values-approximate-length")).toBeVisible();
+  await expect(page.getByTestId("geographic-measure-drawing-values")).toContainText(
+    /Largeur d’emprise approximative|Approximate extent width/,
+  );
+  await expect(page.getByTestId("geographic-measure-drawing-values")).toContainText(
+    /Longueur d’emprise approximative|Approximate extent length/,
+  );
+  await expect(page.getByTestId("geographic-measure-drawing-values-area")).toBeVisible();
+  const unchanged = (await (await page.request.get(`/api/resources/${map.id}`)).json()).properties.document.hallLayer
+    .features[0];
+  expect(unchanged.geometry).toEqual(original.geometry);
+  const tilePixel = () =>
+    mapElement.evaluate((el) => {
+      const canvas = el.querySelector(".ol-layer canvas") as HTMLCanvasElement | null;
+      return canvas ? Array.from(canvas.getContext("2d")!.getImageData(10, 10, 1, 1).data) : [];
+    });
+  await expect.poll(tilePixel).toEqual([20, 140, 90, 255]);
+  rejectNewTiles = true;
+  await page.getByTestId("geographic-zoom-in").click();
+  await expect.poll(() => Number(new URL(page.url()).searchParams.get("view")?.split(",")[2])).toBe(20);
+  await expect.poll(() => rejectedTileRequests).toBeGreaterThan(0);
+  // At the unavailable zoom, the previously loaded parent tiles are still visible.
+  await expect.poll(tilePixel).toEqual([20, 140, 90, 255]);
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId(`geographic-composition-feature-modify-${copied.id}`).click();
+  await expect(page.getByTestId(`geographic-composition-feature-${copied.id}`)).toHaveAttribute(
+    "data-modifying",
+    "true",
+  );
+  const projected = (p: number[]) => [
+    (p[0]! * 20037508.342789244) / 180,
+    Math.log(Math.tan(((90 + p[1]!) * Math.PI) / 360)) * 6378137,
+  ];
+  const worldCenter = projected(center),
+    vertex = projected(ring[0]!);
+  const resolution = 156543.03392804097 / 2 ** 20;
+  const viewport = await mapElement.boundingBox();
+  if (!viewport) throw new Error("Map must be visible");
+  const x = viewport.x + viewport.width / 2 + (vertex[0]! - worldCenter[0]!) / resolution;
+  const y = viewport.y + viewport.height / 2 - (vertex[1]! - worldCenter[1]!) / resolution;
+  const oldViewport = await mapElement.locator(".ol-viewport").elementHandle();
+  const framingBeforeEditing = new URL(page.url()).searchParams.get("view");
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 12, y + 8, { steps: 8 });
+  await page.mouse.up();
+  await expect
+    .poll(
+      async () =>
+        (await (await page.request.get(`/api/resources/${map.id}`)).json()).properties.document.hallLayer.features[0]
+          .geometry,
+    )
+    .not.toEqual(original.geometry);
+  expect(await oldViewport?.evaluate((el) => el.isConnected)).toBe(true);
+  expect(new URL(page.url()).searchParams.get("view")).toBe(framingBeforeEditing);
+  await expect(page.getByTestId(`geographic-composition-feature-${copied.id}`)).toHaveAttribute(
+    "data-modifying",
+    "true",
+  );
+  await expect(page.getByTestId("geographic-drawn-element-card-title")).toHaveText("Stationnement usagers");
+  // Cached, actually rendered raster pixels must survive the geometry update; vectors alone cannot pass this.
+  await expect.poll(tilePixel).toEqual([20, 140, 90, 255]);
+  await page.screenshot({ path: "/tmp/geographic-map-base-tiles-after-fix.png" });
+  await page.getByTestId(`geographic-composition-feature-menu-${copied.id}`).click();
+  await page.getByTestId(`geographic-composition-feature-measures-${copied.id}`).click();
+  await page.getByTestId("geographic-mode-draw").click();
+  const close = page.getByTestId("geographic-drawn-element-card-close");
+  if (await close.isVisible()) await close.click();
+  await page.screenshot({ path: "/tmp/geographic-map-exterior-dimensions-normal.png" });
+  rejectNewTiles = false;
+  await page.setViewportSize({ width: 1150, height: 950 });
+  await expect.poll(() => mapElement.evaluate((el) => el.querySelector("canvas")?.width === el.clientWidth)).toBe(true);
+  const narrow = await mapElement.boundingBox();
+  if (!narrow) throw new Error("Narrow map must be visible");
+  await page.keyboard.down("Alt");
+  await page.keyboard.down("Shift");
+  await page.mouse.move(narrow.x + narrow.width / 2 + 100, narrow.y + narrow.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(narrow.x + narrow.width / 2, narrow.y + narrow.height / 2 + 100, { steps: 8 });
+  await page.mouse.up();
+  await page.keyboard.up("Shift");
+  await page.keyboard.up("Alt");
+  await expect.poll(tilePixel).toEqual([20, 140, 90, 255]);
+  await page.screenshot({ path: "/tmp/geographic-map-exterior-dimensions-narrow-rotated.png" });
 });

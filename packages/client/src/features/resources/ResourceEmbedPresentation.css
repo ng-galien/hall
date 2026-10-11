@@ -120,7 +120,6 @@
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: var(--hall-radius-medium);
-  pointer-events: none;
 }
 
 .resource-embed-map .geographic-resource {

@@ -12,6 +12,8 @@ import { formatMeetingLabel } from "./features/council-meetings/meetingPresentat
 import { DocumentaryResourceGlyph, documentaryResourceTone } from "./features/documents/DocumentaryResourceGlyph";
 import { toneIcons, toneLabelKeys } from "./features/documents/ResourceGlyph";
 import { ResourcePreview } from "./features/documents/ResourcePreview";
+import { ContactReferenceDialog } from "./features/references/ContactReferenceDialog";
+import { MemberReferenceDialog } from "./features/references/MemberReferenceDialog";
 import { resolveReferencePresentation } from "./features/references/referencePresentation";
 import {
   loadResourceEmbedTableOptions,
@@ -171,6 +173,22 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
             );
       return { label: resource.name, tooltip, open: { kind: "resourcePreview" } };
     }
+    if (kind === "contact") {
+      const contact = contacts.find((candidate) => candidate.id === id);
+      return {
+        label: contact ? `${contact.firstName} ${contact.lastName}` : t("contacts.title"),
+        tooltip: t("contacts.detailDescription"),
+        open: { kind: "contactPreview", href: `/contacts/${id}` },
+      };
+    }
+    if (kind === "member") {
+      const member = members.find((candidate) => candidate.id === id);
+      return {
+        label: member ? `${member.contact.firstName} ${member.contact.lastName}` : t("members.unknownMember"),
+        tooltip: t("members.referenceDescription"),
+        open: { kind: "memberPreview", href: `/council-members/${id}` },
+      };
+    }
     const resolved = resolveReferencePresentation(
       kind,
       id,
@@ -187,6 +205,8 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
   return (
     <ReferencePresentationProvider
       renderResourcePreview={renderResourcePreview}
+      renderContactPreview={(id, onClose) => <ContactReferenceDialog contactId={id} onClose={onClose} />}
+      renderMemberPreview={(id, onClose) => <MemberReferenceDialog memberId={id} onClose={onClose} />}
       resourceAppearance={resourceAppearance}
       referenceTarget={referenceTarget}
     >

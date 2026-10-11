@@ -1,7 +1,9 @@
 import { expect, test } from "../fixtures/application";
 
 // @verifies-requirement HALL-FR-DOC-490
-test("Mesures and Dessin toggle their panel and a second press returns to the plain map", async ({ appPage: page }) => {
+test("Elements opens by default, and each panel returns to the plain map on a second press", async ({
+  appPage: page,
+}) => {
   const created = await page.request.post("/api/resources", {
     data: { kind: "geographic", name: `Mode toggle ${crypto.randomUUID()}`, path: "seed" },
   });
@@ -12,8 +14,8 @@ test("Mesures and Dessin toggle their panel and a second press returns to the pl
   const drawMode = page.getByTestId("geographic-mode-draw");
   const measures = page.getByTestId("geographic-measures");
   const composition = page.getByTestId("geographic-composition");
-  await expect(measures).toBeVisible();
-  await expect(measureMode).toHaveAttribute("aria-pressed", "true");
+  await expect(composition).toBeVisible();
+  await expect(drawMode).toHaveAttribute("aria-pressed", "true");
   const switchBox = await page.locator(".geographic-mode-switch").boundingBox();
   expect(switchBox!.height).toBeLessThanOrEqual(33);
   for (const control of [
@@ -29,7 +31,7 @@ test("Mesures and Dessin toggle their panel and a second press returns to the pl
     expect(box!.width).toBeGreaterThanOrEqual(32);
   }
 
-  await measureMode.click();
+  await drawMode.click();
   await expect(measures).toHaveCount(0);
   await expect(composition).toHaveCount(0);
   await expect(measureMode).toHaveAttribute("aria-pressed", "false");
@@ -62,6 +64,34 @@ test("Mesures and Dessin toggle their panel and a second press returns to the pl
   await expect(composition).toHaveCount(0);
   await expect(measureMode).toHaveAttribute("aria-pressed", "true");
   await expect(drawMode).toHaveAttribute("aria-pressed", "false");
+});
+
+// @verifies-requirement HALL-FR-DOC-490
+test("Elements is selected again for a different map and each modal opening", async ({ appPage: page }) => {
+  const createMap = async () => {
+    const created = await page.request.post("/api/resources", {
+      data: { kind: "geographic", name: `Opening mode ${crypto.randomUUID()}`, path: "seed" },
+    });
+    expect(created.ok()).toBeTruthy();
+    return (await created.json()).properties.id as string;
+  };
+  const first = await createMap();
+  const second = await createMap();
+  await page.goto(`/app/workspace?path=seed&resource=${first}`);
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("geographic-mode-map").click();
+  await page.getByTestId("resource-open-extended").click();
+  let dialog = page.getByTestId("resource-preview");
+  await expect(dialog.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await dialog.getByTestId("geographic-mode-map").click();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await page.getByTestId("resource-open-extended").click();
+  dialog = page.getByTestId("resource-preview");
+  await expect(dialog.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
+  await page.goto(`/app/workspace?path=seed&resource=${second}`);
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
 });
 
 type SirenAction = { name: string; href: string; method: string };
@@ -127,8 +157,9 @@ test("the Composition and Mesures panels take their content height inside the ma
     await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
     const map = page.getByTestId("geographic-resource-map");
     const measures = page.getByTestId("geographic-measures");
-    await expect(measures).toBeVisible();
+    await expect(composition).toBeVisible();
     const mapBox = await map.boundingBox();
+    await page.getByTestId("geographic-mode-map").click();
     const measuresBox = await measures.boundingBox();
     if (!mapBox || !measuresBox) throw new Error("The map and its Mesures panel must be rendered");
     expect(measuresBox.y + measuresBox.height).toBeLessThanOrEqual(mapBox.y + mapBox.height);
@@ -167,7 +198,6 @@ test("the Composition and Mesures panels take their content height inside the ma
   await expect(composition).toBeVisible();
   expect(Math.round((await composition.boundingBox())!.height)).toBe(Math.round(resized!.height));
   await page.reload();
-  await page.getByTestId("geographic-mode-draw").click();
   await expect(composition).toBeVisible();
   expect(Math.round((await composition.boundingBox())!.height)).toBe(Math.round(resized!.height));
 });

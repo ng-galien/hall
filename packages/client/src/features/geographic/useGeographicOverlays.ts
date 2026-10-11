@@ -103,7 +103,13 @@ function overlayStyles() {
     let style = labels.get(text);
     if (!style) {
       style = new Style({
-        text: new Text({ text, font: "12px sans-serif", fill: labelFill, stroke: labelStroke, overflow: false }),
+        text: new Text({
+          text,
+          font: `${cssToken("--hall-font-size-body") || "14px"} sans-serif`,
+          fill: labelFill,
+          stroke: labelStroke,
+          overflow: false,
+        }),
       });
       labels.set(text, style);
     }

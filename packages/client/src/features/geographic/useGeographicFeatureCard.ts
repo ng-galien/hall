@@ -121,7 +121,14 @@ export function useGeographicFeatureNote(
     let current = true;
     readGeographicFeatureNotes(layer).then(
       (notes) => {
-        if (current) setNotesByLayer((state) => ({ ...state, [layerId]: notes }));
+        if (current)
+          setNotesByLayer((state) => ({
+            ...state,
+            [layerId]: [
+              ...notes,
+              ...(state[layerId] ?? []).filter(({ key }) => !notes.some((note) => note.key === key)),
+            ],
+          }));
       },
       (failure: unknown) => onError(apiErrorCode(failure)),
     );
@@ -151,4 +158,14 @@ export function useGeographicFeatureNote(
     creating,
     create,
   };
+}
+
+/** Prepare a missing note once per mounted card, after its read has completed. Never creates for a reader. */
+export function useAutomaticGeographicNote(ready: boolean, onCreate?: () => void) {
+  const attempted = useRef(false);
+  useEffect(() => {
+    if (!ready || !onCreate || attempted.current) return;
+    attempted.current = true;
+    void onCreate();
+  }, [ready, onCreate]);
 }

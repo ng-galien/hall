@@ -2,11 +2,13 @@ import type { ResourceCatalogEntry } from "@hall/api-contract";
 import type { Resource } from "@hall/domain";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 
-export interface PathNode {
+export type PathBusiness = Pick<CouncilBusinessView, "id" | "folderResourceId" | "folderPath" | "title">;
+
+export interface PathNode<TBusiness extends PathBusiness = CouncilBusinessView> {
   path: string;
   name: string;
-  children: PathNode[];
-  business: CouncilBusinessView | null;
+  children: PathNode<TBusiness>[];
+  business: TBusiness | null;
 }
 
 /** All known paths, intermediate segments included, sorted. */
@@ -50,7 +52,7 @@ export function listCatalogPaths(catalog: ResourceCatalogEntry[]): string[] {
 /** Path tree preserving the business identity of its documentary folder.
  * @implements-requirement HALL-FR-WSP-240
  */
-export function buildPathTree(businesses: CouncilBusinessView[], catalog: ResourceCatalogEntry[]): PathNode[] {
+export function buildPathTree<TBusiness extends PathBusiness>(businesses: TBusiness[], catalog: ResourceCatalogEntry[], additionalPaths: string[] = []): PathNode<TBusiness>[] {
   const businessesByFolderId = new Map(businesses.map((business) => [business.folderResourceId, business]));
   const businessesByPath = new Map(
     catalog
@@ -58,15 +60,16 @@ export function buildPathTree(businesses: CouncilBusinessView[], catalog: Resour
       .map((entry) => [entry.fullPath, businessesByFolderId.get(entry.id)]),
   );
   const knownPaths = new Set(listCatalogPaths(catalog));
-  for (const folderPath of businesses.map((business) => business.folderPath)) {
+  for (const folderPath of [...additionalPaths, ...businesses.map((business) => business.folderPath)]) {
     const segments = folderPath.split("/").filter(Boolean);
     segments.forEach((_segment, index) => {
       knownPaths.add(segments.slice(0, index + 1).join("/"));
     });
   }
-  const childrenOf = (parent: string): PathNode[] =>
+  const childrenOf = (parent: string): PathNode<TBusiness>[] =>
     [...knownPaths]
       .filter((path) => {
+        if (!path || path === parent) return false;
         if (parent === "") return !path.includes("/");
         return path.startsWith(`${parent}/`) && !path.slice(parent.length + 1).includes("/");
       })

@@ -20,6 +20,7 @@ test("the Coordonnées tab holds the positions and is reached with the keyboard"
   expect(created.ok()).toBeTruthy();
   const resource = (await created.json()).properties;
   await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  await page.getByTestId("geographic-mode-map").click();
   const panel = page.getByTestId("geographic-measures");
   await expect(panel).toBeVisible();
   await expect(page.getByTestId("geographic-measures-panel-measures")).toBeVisible();
@@ -51,6 +52,7 @@ test("measurements are saved under a name in the drawings GeoJSON, renamed, remo
   expect(created.ok()).toBeTruthy();
   const resource = (await created.json()).properties;
   await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  await page.getByTestId("geographic-mode-map").click();
   await expect(page.getByTestId("geographic-measures")).toBeVisible();
   const box = await page.locator(".geographic-map").boundingBox();
   if (!box) throw new Error("The map must be rendered");
@@ -116,6 +118,7 @@ test("measurements are saved under a name in the drawings GeoJSON, renamed, remo
     .toBe("Chemin rural");
 
   await page.reload();
+  await page.getByTestId("geographic-mode-map").click();
   await expect(rows).toHaveCount(2);
   await expect(page.getByTestId(`geographic-measurement-rename-${lengthId}`)).toHaveText("Chemin rural");
   await expect(rows.nth(1)).toHaveAttribute("data-measurement-kind", "areaMeasurement");
@@ -183,7 +186,8 @@ test("a reader sees the saved measurements in Cartes without saving, renaming or
     await route.fulfill({ response, contentType: "application/vnd.siren+json", body: JSON.stringify(body) });
   });
   await page.goto(`/app/maps/${resource.id}?view=4.501,47.54,16`);
-  await expect(page.getByTestId("geographic-mode-draw")).toBeDisabled();
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("geographic-mode-map").click();
   await expect(page.getByTestId(`geographic-measurement-rename-${measurementId}`)).toHaveText("Clôture du stade");
   await expect(page.getByTestId(`geographic-measurement-rename-${measurementId}`)).toBeDisabled();
   await expect(page.getByTestId(`geographic-measurement-value-${measurementId}`)).toHaveText(/^152 m$/);
@@ -235,6 +239,7 @@ test("a measurement that does not fit the capacity of the map stays current with
   expect(saved.ok()).toBeTruthy();
 
   await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  await page.getByTestId("geographic-mode-map").click();
   await expect(page.getByTestId("geographic-measures")).toBeVisible();
   const box = await page.locator(".geographic-map").boundingBox();
   if (!box) throw new Error("The map must be rendered");

@@ -1,4 +1,4 @@
-import type { ResourceDetail } from "@hall/api-contract";
+import type { ResourceDetail, SirenEntity } from "@hall/api-contract";
 import {
   type GeographicLayer,
   type GeographicLayerId,
@@ -8,7 +8,7 @@ import {
   hallGeoJsonMeasurements,
   hallGeoJsonWithinCapacity,
 } from "@hall/domain";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "ol/ol.css";
 import { Button } from "@/components/ui/button";
 import type { ColorPickerPreset } from "@/components/ui/color-picker";
@@ -21,6 +21,7 @@ import { GeographicDrawnElementCard, useGeographicDrawnElementNotes } from "./Ge
 import { GeographicFeatureCard } from "./GeographicFeatureCard";
 import { GeographicLayerControls } from "./GeographicLayerControls";
 import { GeographicLayerUploadDialog } from "./GeographicLayerUploadDialog";
+import { GeographicLegend } from "./GeographicLegend";
 import { GeographicMeasurePanel, MeasureReadout } from "./GeographicMeasurePanel";
 import type { GeographicPointerState, GeographicPointerTarget } from "./geographicCursorPolicy";
 import { municipalFilterLayerIds } from "./geographicFeatureCardModel";
@@ -52,7 +53,7 @@ import {
   type GeographicWorkspaceMode,
   useGeographicMapRuntime,
 } from "./useGeographicMapRuntime";
-import { useGeographicSavedMeasurementLayer } from "./useGeographicMeasurements";
+import { useGeographicDrawingMeasureLayer, useGeographicSavedMeasurementLayer } from "./useGeographicMeasurements";
 import { useGeographicOverlays } from "./useGeographicOverlays";
 
 const GEOGRAPHIC_SAVE_DEBOUNCE_MS = 1_500;
@@ -91,6 +92,7 @@ function parcelSource(municipal: MunicipalPropertyState | null, parcelId: string
 // @implements-requirement HALL-FR-DOC-430
 export function GeographicResourceMap({
   resource,
+  representation,
   data,
   canUpdate,
   autosaveEnabled = true,
@@ -101,6 +103,7 @@ export function GeographicResourceMap({
   embedded = false,
 }: {
   resource: GeographicResource;
+  representation?: SirenEntity | null;
   data: GeographicResourceData;
   canUpdate: boolean;
   autosaveEnabled?: boolean;
@@ -124,15 +127,39 @@ export function GeographicResourceMap({
   const saveRef = useRef<(() => Promise<boolean>) | null>(null);
   const [draft, setDraft] = useState<GeographicResourceData>(normalizedData);
   const [savedSignature, setSavedSignature] = useState(() => geographicDataSignature(normalizedData));
-  const [workspaceMode, setWorkspaceMode] = useState<GeographicWorkspaceMode>("measure");
+  const [workspaceMode, setWorkspaceMode] = useState<GeographicWorkspaceMode>("draw");
   const [drawTool, setDrawTool] = useState<GeographicDrawTool>("select");
   const [hallLayerVisible, setHallLayerVisible] = useState(true);
   const [editingFeatureId, setEditingFeatureId] = useState<string | null>(null);
   const [renameArmedFeatureId, setRenameArmedFeatureId] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
+  const mapOverlayRef = useRef<HTMLDivElement | null>(null);
+  const [mapOverlayHeight, setMapOverlayHeight] = useState(0);
+  useEffect(() => {
+    const overlay = mapOverlayRef.current;
+    if (!overlay) return;
+    const updateHeight = () => setMapOverlayHeight(overlay.getBoundingClientRect().height);
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(overlay);
+    return () => observer.disconnect();
+  }, []);
+  const mapStageStyle = { "--geographic-overlay-height": `${mapOverlayHeight}px` } as CSSProperties;
+  const [notePreparationRetry, setNotePreparationRetry] = useState(0);
   const [displayedView, setDisplayedView] = useState<GeographicView>(initialView ?? normalizedData.view);
-  const displayedData = useMemo(() => (initialView ? { ...data, view: initialView } : data), [data, initialView]);
+  const displayedData = useMemo(
+    () => ({ ...data, hallLayer: draft.hallLayer, ...(initialView ? { view: initialView } : {}) }),
+    [data, draft.hallLayer, initialView],
+  );
   const [measuring, setMeasuring] = useState(false);
+  const [measuredDrawingIds, setMeasuredDrawingIds] = useState<ReadonlySet<string>>(() => new Set());
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: opening another map resets its temporary panel state.
+  useEffect(() => {
+    setWorkspaceMode("draw");
+    setDrawTool("select");
+    setMeasuredDrawingIds(new Set());
+  }, [resource.id]);
 
   const draftSignature = useMemo(() => geographicDataSignature(draft), [draft]);
   const drawings = useMemo(() => hallGeoJsonDrawings(draft.hallLayer), [draft.hallLayer]);
@@ -171,7 +198,9 @@ export function GeographicResourceMap({
     [onViewChange],
   );
   const mapRuntime = useGeographicMapRuntime({
+    resourceId: resource.id,
     data: displayedData,
+    requestedView: initialView,
     draftLayers: draft.layers,
     canUpdate,
     embedded,
@@ -189,7 +218,8 @@ export function GeographicResourceMap({
   const [overlays, setOverlays] = useState(resource.overlays);
   const [layerUploadOpen, setLayerUploadOpen] = useState(false);
   useEffect(() => setOverlays(resource.overlays), [resource.overlays]);
-  const mapRepresentation = useWorkspaceResourcesStore((state) => state.representations[resource.id] ?? null);
+  const storedRepresentation = useWorkspaceResourcesStore((state) => state.representations[resource.id] ?? null);
+  const mapRepresentation = representation ?? storedRepresentation;
   const canChangeOverlays = canUpdate && canLinkGeographicLayer(mapRepresentation);
   const canAddLayer = canUpdate && canImportGeographicLayer(mapRepresentation);
   const featureState = useGeographicFeatureState(resource.id);
@@ -199,15 +229,14 @@ export function GeographicResourceMap({
   const { setSelection } = featureState;
   useGeographicFeaturePicking(
     mapRuntime.map,
-    workspaceMode !== "draw" && !embedded && !measuring,
+    (workspaceMode !== "draw" || !canUpdate) && !embedded && !measuring,
     overlayRuntime.pickFeature,
     featureState.selection,
     setSelection,
   );
   const selectedFeature = featureState.selection ? overlayRuntime.describeFeature(featureState.selection) : null;
-  const pointerState: GeographicPointerState = embedded
-    ? "fixed"
-    : workspaceMode === "draw"
+  const pointerState: GeographicPointerState =
+    workspaceMode === "draw" && canUpdate
       ? drawTool !== "select"
         ? "draw"
         : mapRuntime.modifyingFeatureId
@@ -227,7 +256,7 @@ export function GeographicResourceMap({
     [drawingIdAt, modifyingFeatureId, pickFeature, pointerState],
   );
   useGeographicMapCursor(mapRuntime.map, pointerState, pointerTargetAt);
-  const readerInspection = !canUpdate && !embedded && workspaceMode !== "draw" && !measuring;
+  const readerInspection = (embedded || workspaceMode !== "draw" || !canUpdate) && !measuring;
   const [inspectedDrawingId, setInspectedDrawingId] = useState<string | null>(null);
   const olMap = mapRuntime.map;
   const inspectionCallbacks = useRef({ drawingIdAt, setSelection });
@@ -260,6 +289,7 @@ export function GeographicResourceMap({
       : null;
   const selectedDrawnElementIndex = selectedDrawnElement ? drawings.indexOf(selectedDrawnElement) : -1;
   useGeographicSavedMeasurementLayer(embedded ? null : mapRuntime.map, measurements);
+  useGeographicDrawingMeasureLayer(mapRuntime.map, mapRuntime.drawingSource, measuredDrawingIds, hallLayerVisible);
   const selectedNote = useGeographicFeatureNote(selectedFeature, onError);
   const municipalFilterLayers = municipalFilterLayerIds(
     overlayRuntime.featureKeys,
@@ -310,7 +340,10 @@ export function GeographicResourceMap({
           savedSignatureRef.current = signature;
           setSavedSignature(signature);
         } catch (failure) {
-          if (failure instanceof ApiError && failure.status === 409) {
+          if (
+            (failure instanceof ApiError && failure.status === 409) ||
+            useWorkspaceResourcesStore.getState().error === "conflict"
+          ) {
             const latest = await useWorkspaceResourcesStore.getState().open(resource.id);
             if (latest?.data.kind === "geographic") latestVersionRef.current = latest.data.version;
             conflictRef.current = true;
@@ -377,6 +410,7 @@ export function GeographicResourceMap({
     updateDraft((current) => ({
       ...current,
       hallLayer: {
+        ...current.hallLayer,
         type: "FeatureCollection",
         features: [...hallGeoJsonDrawings(current.hallLayer), ...change(hallGeoJsonMeasurements(current.hallLayer))],
       },
@@ -405,7 +439,9 @@ export function GeographicResourceMap({
   const retryConflict = () => {
     conflictRef.current = false;
     setConflict(false);
-    void save();
+    void save().then((saved) => {
+      if (saved) setNotePreparationRetry((attempt) => attempt + 1);
+    });
   };
   const toggleWorkspaceMode = (mode: GeographicPanelMode) => {
     setWorkspaceMode((current) => (current === mode ? "map" : mode));
@@ -413,6 +449,10 @@ export function GeographicResourceMap({
   };
 
   const selectFeature = (id: string) => {
+    if (!canUpdate) {
+      setInspectedDrawingId(id);
+      return;
+    }
     setDrawTool("select");
     mapRuntime.selectFeature(id);
     setEditingFeatureId(null);
@@ -429,183 +469,228 @@ export function GeographicResourceMap({
     { value: cssToken("--hall-color-text"), label: t("geographic.color.black") },
   ];
 
+  const inspectedDrawingCard = inspectedDrawing ? (
+    <GeographicDrawnElementCard
+      key={inspectedDrawing.id}
+      readOnly={!canUpdate || embedded}
+      label={
+        inspectedDrawing.properties.label ??
+        `${featureKindLabels[inspectedDrawing.properties.kind]} ${drawings.indexOf(inspectedDrawing) + 1}`
+      }
+      kindLabel={featureKindLabels[inspectedDrawing.properties.kind]}
+      measures={
+        inspectedMeasure && inspectedMeasure.kind !== "position" ? (
+          <MeasureReadout measure={inspectedMeasure} testId="geographic-drawn-element-card-measures" />
+        ) : null
+      }
+      note={drawnElementNotes.notes?.find(({ key }) => key === inspectedDrawing.id) ?? null}
+      loading={drawnElementNotes.notes === null}
+      canCreateNote={canUpdate && !embedded && drawnElementNotes.canCreate && !conflict}
+      creatingNote={drawnElementNotes.creating}
+      mapElement={mapRuntime.mapElementRef.current}
+      modifying={false}
+      onCreateNote={() => drawnElementNotes.create(String(inspectedDrawing.id), save)}
+      onCenter={() => mapRuntime.fitFeature(String(inspectedDrawing.id))}
+      onClose={() => setInspectedDrawingId(null)}
+    />
+  ) : null;
+
   if (embedded) {
     return (
       <div className="geographic-resource" data-testid="geographic-resource-map" data-geographic-mode="embedded">
-        <div ref={mapRuntime.mapElementRef} className="geographic-map" />
+        <div className="geographic-map-stage" style={mapStageStyle}>
+          <div ref={mapRuntime.mapElementRef} className="geographic-map" />
+          {inspectedDrawingCard}
+          <div ref={mapOverlayRef} className="geographic-map-overlay" data-testid="geographic-map-overlay">
+            <GeographicLegend entries={draft.hallLayer.legend ?? []} />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="geographic-resource" data-testid="geographic-resource-map">
-      <div ref={mapRuntime.mapElementRef} className="geographic-map" />
-      <GeographicLayerControls
-        workspaceMode={workspaceMode}
-        canUpdate={canUpdate}
-        hallLayerVisible={hallLayerVisible}
-        layers={draft.layers}
-        onToggleMode={toggleWorkspaceMode}
-        onHallLayerVisible={setHallLayerVisible}
-        onLayerVisibility={setLayerVisibility}
-        onLayerOpacity={(id, opacity) =>
-          updateLayers(draft.layers.map((layer) => (layer.id === id ? { ...layer, opacity } : layer)))
-        }
-        onMoveLayer={moveLayer}
-        onZoom={mapRuntime.changeZoom}
-        canFit={drawings.length > 0}
-        onFit={mapRuntime.fitComposition}
-        overlays={overlays}
-        overlayStatuses={overlayStatuses}
-        canChangeOverlays={canChangeOverlays}
-        onOverlayVisibility={changeOverlayVisibility}
-        onAddLayer={canAddLayer ? () => setLayerUploadOpen(true) : undefined}
-        municipalFilterLayerIds={municipalFilterLayers}
-        municipalOnlyLayerIds={featureState.municipalOnlyLayerIds}
-        onMunicipalOnly={featureState.setMunicipalOnly}
-        onImportMunicipalProperty={canUpdate && municipalImport ? () => setMunicipalImportOpen(true) : undefined}
-      />
-      {workspaceMode === "measure" ? (
-        <GeographicMeasurePanel
-          map={mapRuntime.map}
-          drawingSource={mapRuntime.drawingSource}
-          onMeasuringChange={setMeasuring}
-          measurements={measurements}
-          canSave={canUpdate}
-          onAddMeasurement={addMeasurement}
-          onRenameMeasurement={renameMeasurement}
-          onRemoveMeasurement={removeMeasurement}
-        />
-      ) : null}
-      {workspaceMode === "draw" && canUpdate ? (
-        <GeographicCompositionEditor
-          panelRef={compositionLayout.panelRef}
-          style={compositionLayout.style}
-          drawTool={drawTool}
-          features={drawings}
-          selectedFeatureId={mapRuntime.selectedFeatureId}
-          modifyingFeatureId={mapRuntime.modifyingFeatureId}
-          editingFeatureId={editingFeatureId}
-          renameArmedFeatureId={renameArmedFeatureId}
-          featureKindLabels={featureKindLabels}
-          colorPresets={featureColorPresets}
-          onDrawTool={setDrawTool}
-          onSelect={selectFeature}
-          onEditingFeature={setEditingFeatureId}
-          onRenameArmedFeature={setRenameArmedFeatureId}
-          onRename={renameFeature}
-          onVisibility={mapRuntime.setFeatureVisibility}
-          onFitFeature={mapRuntime.fitFeature}
-          onColor={mapRuntime.setFeatureColor}
-          onDelete={mapRuntime.deleteSelected}
-          onPointerDown={compositionLayout.startDrag}
-          onPointerMove={compositionLayout.move}
-          onPointerUp={compositionLayout.stopDrag}
-        />
-      ) : null}
-      {inspectedDrawing ? (
-        <GeographicDrawnElementCard
-          readOnly
-          label={
-            inspectedDrawing.properties.label ??
-            `${featureKindLabels[inspectedDrawing.properties.kind]} ${drawings.indexOf(inspectedDrawing) + 1}`
+      <div className="geographic-map-stage" style={mapStageStyle}>
+        <div ref={mapRuntime.mapElementRef} className="geographic-map" />
+        <GeographicLayerControls
+          workspaceMode={workspaceMode}
+          canUpdate={canUpdate}
+          hallLayerVisible={hallLayerVisible}
+          layers={draft.layers}
+          onToggleMode={toggleWorkspaceMode}
+          onHallLayerVisible={setHallLayerVisible}
+          onLayerVisibility={setLayerVisibility}
+          onLayerOpacity={(id, opacity) =>
+            updateLayers(draft.layers.map((layer) => (layer.id === id ? { ...layer, opacity } : layer)))
           }
-          kindLabel={featureKindLabels[inspectedDrawing.properties.kind]}
-          measures={
-            inspectedMeasure ? (
-              <MeasureReadout measure={inspectedMeasure} testId="geographic-drawn-element-card-measures" />
-            ) : null
-          }
-          note={drawnElementNotes.notes?.find(({ key }) => key === inspectedDrawing.id) ?? null}
-          loading={drawnElementNotes.notes === null}
-          canCreateNote={false}
-          creatingNote={false}
-          mapElement={mapRuntime.mapElementRef.current}
-          modifying={false}
-          onCenter={() => mapRuntime.fitFeature(String(inspectedDrawing.id))}
-          onClose={() => setInspectedDrawingId(null)}
+          onMoveLayer={moveLayer}
+          onZoom={mapRuntime.changeZoom}
+          canFit={drawings.length > 0}
+          onFit={mapRuntime.fitComposition}
+          overlays={overlays}
+          overlayStatuses={overlayStatuses}
+          canChangeOverlays={canChangeOverlays}
+          onOverlayVisibility={changeOverlayVisibility}
+          onAddLayer={canAddLayer ? () => setLayerUploadOpen(true) : undefined}
+          municipalFilterLayerIds={municipalFilterLayers}
+          municipalOnlyLayerIds={featureState.municipalOnlyLayerIds}
+          onMunicipalOnly={featureState.setMunicipalOnly}
+          onImportMunicipalProperty={canUpdate && municipalImport ? () => setMunicipalImportOpen(true) : undefined}
         />
-      ) : null}
-      {selectedDrawnElement ? (
-        <GeographicDrawnElementCard
-          label={
-            selectedDrawnElement.properties.label ??
-            `${featureKindLabels[selectedDrawnElement.properties.kind]} ${selectedDrawnElementIndex + 1}`
-          }
-          kindLabel={featureKindLabels[selectedDrawnElement.properties.kind]}
-          note={drawnElementNotes.notes?.find(({ key }) => key === selectedDrawnElement.id) ?? null}
-          loading={drawnElementNotes.notes === null}
-          canCreateNote={drawnElementNotes.canCreate}
-          creatingNote={drawnElementNotes.creating}
-          mapElement={mapRuntime.mapElementRef.current}
-          modifying={mapRuntime.modifyingFeatureId === selectedDrawnElement.id}
-          onModify={mapRuntime.startModifying}
-          onStopModifying={mapRuntime.stopModifying}
-          onCreateNote={() => void drawnElementNotes.create(String(selectedDrawnElement.id), save)}
-          onCenter={() => mapRuntime.fitFeature(String(selectedDrawnElement.id))}
-          onClose={mapRuntime.clearSelection}
-        />
-      ) : null}
-      {canUpdate ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="geographic-save-view"
-          data-testid="geographic-save-view"
-          disabled={conflict || sameGeographicView(displayedView, draft.view)}
-          onClick={saveDisplayedView}
-        >
-          {t("geographic.saveView")}
-        </Button>
-      ) : null}
-      {selectedFeature ? (
-        <GeographicFeatureCard
-          feature={selectedFeature}
-          layerName={overlays.find((overlay) => overlay.layerId === selectedFeature.layerId)?.name ?? ""}
-          note={selectedNote.note}
-          notesLoading={selectedNote.loading}
-          canCreateNote={selectedNote.canCreate}
-          creatingNote={selectedNote.creating}
-          municipal={{
-            isMunicipal:
-              selectedFeature.featureKey.kind === "cadastreParcel" &&
-              selectedFeature.key !== null &&
-              featureState.municipalParcelIds.has(selectedFeature.key),
-            ...parcelSource(featureState.municipal, selectedFeature.key),
-            municipalOnly: municipalFilterLayers.has(selectedFeature.layerId)
-              ? featureState.municipalOnlyLayerIds.has(selectedFeature.layerId)
-              : null,
-          }}
-          onCreateNote={() => void selectedNote.create()}
-          onMunicipalOnly={(enabled) => featureState.setMunicipalOnly(selectedFeature.layerId, enabled)}
-          onCenter={() => overlayRuntime.fitFeature(selectedFeature)}
-          onClose={() => setSelection(null)}
-        />
-      ) : null}
-      {municipalImportOpen && municipalImport ? (
-        <MunicipalPropertyImportDialog
-          property={municipalImport}
-          onImported={featureState.setMunicipal}
-          onClose={() => setMunicipalImportOpen(false)}
-        />
-      ) : null}
-      {layerUploadOpen && mapRepresentation ? (
-        <GeographicLayerUploadDialog
-          map={mapRepresentation}
-          mapReference={resource.id}
-          onImported={setOverlays}
-          onClose={() => setLayerUploadOpen(false)}
-        />
-      ) : null}
-      {conflict ? (
-        <div className="geographic-conflict" role="alert">
-          <span>{t("geographic.conflict")}</span>
-          <Button type="button" variant="outline" onClick={retryConflict}>
-            {t("geographic.retryConflict")}
-          </Button>
+        {workspaceMode === "measure" ? (
+          <GeographicMeasurePanel
+            map={mapRuntime.map}
+            drawingSource={mapRuntime.drawingSource}
+            onMeasuringChange={setMeasuring}
+            measurements={measurements}
+            canSave={canUpdate}
+            onAddMeasurement={addMeasurement}
+            onRenameMeasurement={renameMeasurement}
+            onRemoveMeasurement={removeMeasurement}
+          />
+        ) : null}
+        {workspaceMode === "draw" ? (
+          <GeographicCompositionEditor
+            readOnly={!canUpdate}
+            panelRef={compositionLayout.panelRef}
+            style={compositionLayout.style}
+            drawTool={drawTool}
+            features={drawings}
+            selectedFeatureId={mapRuntime.selectedFeatureId}
+            modifyingFeatureId={mapRuntime.modifyingFeatureId}
+            editingFeatureId={editingFeatureId}
+            renameArmedFeatureId={renameArmedFeatureId}
+            featureKindLabels={featureKindLabels}
+            colorPresets={featureColorPresets}
+            onDrawTool={setDrawTool}
+            onSelect={selectFeature}
+            onEditingFeature={setEditingFeatureId}
+            onRenameArmedFeature={setRenameArmedFeatureId}
+            onRename={renameFeature}
+            onVisibility={mapRuntime.setFeatureVisibility}
+            onFitFeature={mapRuntime.fitFeature}
+            onColor={mapRuntime.setFeatureColor}
+            measuredDrawingIds={measuredDrawingIds}
+            onDrawingMeasures={(id, visible) =>
+              setMeasuredDrawingIds((previous) => {
+                const next = new Set(previous);
+                if (visible) next.add(id);
+                else next.delete(id);
+                return next;
+              })
+            }
+            onDelete={mapRuntime.deleteSelected}
+            onToggleModifying={(id) =>
+              mapRuntime.modifyingFeatureId === id ? mapRuntime.stopModifying() : mapRuntime.startModifying(id)
+            }
+            legend={draft.hallLayer.legend ?? []}
+            onLegend={(legend) =>
+              updateDraft((current) => ({ ...current, hallLayer: { ...current.hallLayer, legend } }))
+            }
+            onPointerDown={compositionLayout.startDrag}
+            onPointerMove={compositionLayout.move}
+            onPointerUp={compositionLayout.stopDrag}
+          />
+        ) : null}
+        {inspectedDrawingCard}
+        {selectedDrawnElement ? (
+          <GeographicDrawnElementCard
+            key={`${selectedDrawnElement.id}:${notePreparationRetry}`}
+            arrows={
+              selectedDrawnElement.properties.kind === "line" ? selectedDrawnElement.properties.style.arrows : undefined
+            }
+            onArrows={
+              selectedDrawnElement.properties.kind === "line"
+                ? (arrows) => mapRuntime.setFeatureArrows(String(selectedDrawnElement.id), arrows)
+                : undefined
+            }
+            label={
+              selectedDrawnElement.properties.label ??
+              `${featureKindLabels[selectedDrawnElement.properties.kind]} ${selectedDrawnElementIndex + 1}`
+            }
+            kindLabel={featureKindLabels[selectedDrawnElement.properties.kind]}
+            note={drawnElementNotes.notes?.find(({ key }) => key === selectedDrawnElement.id) ?? null}
+            loading={drawnElementNotes.notes === null}
+            canCreateNote={drawnElementNotes.canCreate && !conflict}
+            creatingNote={drawnElementNotes.creating}
+            mapElement={mapRuntime.mapElementRef.current}
+            modifying={mapRuntime.modifyingFeatureId === selectedDrawnElement.id}
+            onStopModifying={mapRuntime.stopModifying}
+            onCreateNote={() => drawnElementNotes.create(String(selectedDrawnElement.id), save)}
+            onCenter={() => mapRuntime.fitFeature(String(selectedDrawnElement.id))}
+            onClose={mapRuntime.clearSelection}
+          />
+        ) : null}
+        {selectedFeature ? (
+          <GeographicFeatureCard
+            key={`${selectedFeature.layerId}:${selectedFeature.position}`}
+            feature={selectedFeature}
+            layerName={overlays.find((overlay) => overlay.layerId === selectedFeature.layerId)?.name ?? ""}
+            note={selectedNote.note}
+            notesLoading={selectedNote.loading}
+            canCreateNote={selectedNote.canCreate}
+            creatingNote={selectedNote.creating}
+            municipal={{
+              isMunicipal:
+                selectedFeature.featureKey.kind === "cadastreParcel" &&
+                selectedFeature.key !== null &&
+                featureState.municipalParcelIds.has(selectedFeature.key),
+              ...parcelSource(featureState.municipal, selectedFeature.key),
+              municipalOnly: municipalFilterLayers.has(selectedFeature.layerId)
+                ? featureState.municipalOnlyLayerIds.has(selectedFeature.layerId)
+                : null,
+            }}
+            onCreateNote={() => selectedNote.create()}
+            onMunicipalOnly={(enabled) => featureState.setMunicipalOnly(selectedFeature.layerId, enabled)}
+            onCenter={() => overlayRuntime.fitFeature(selectedFeature)}
+            onClose={() => setSelection(null)}
+          />
+        ) : null}
+        {municipalImportOpen && municipalImport ? (
+          <MunicipalPropertyImportDialog
+            property={municipalImport}
+            onImported={featureState.setMunicipal}
+            onClose={() => setMunicipalImportOpen(false)}
+          />
+        ) : null}
+        {layerUploadOpen && mapRepresentation ? (
+          <GeographicLayerUploadDialog
+            map={mapRepresentation}
+            mapReference={resource.id}
+            onImported={setOverlays}
+            onClose={() => setLayerUploadOpen(false)}
+          />
+        ) : null}
+        {conflict ? (
+          <div className="geographic-conflict" role="alert">
+            <span>{t("geographic.conflict")}</span>
+            <Button type="button" variant="outline" data-testid="geographic-conflict-retry" onClick={retryConflict}>
+              {t("geographic.retryConflict")}
+            </Button>
+          </div>
+        ) : null}
+        <div ref={mapOverlayRef} className="geographic-map-overlay" data-testid="geographic-map-overlay">
+          <GeographicLegend
+            entries={hallLayerVisible ? (draft.hallLayer.legend ?? []) : []}
+            actions={
+              canUpdate ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="geographic-save-view"
+                  data-testid="geographic-save-view"
+                  disabled={conflict || sameGeographicView(displayedView, draft.view)}
+                  onClick={saveDisplayedView}
+                >
+                  {t("geographic.saveView")}
+                </Button>
+              ) : null
+            }
+          />
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
