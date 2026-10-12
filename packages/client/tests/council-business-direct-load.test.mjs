@@ -9,7 +9,7 @@ const api = vi.hoisted(() => ({
   listCouncilBusinessResourceItems: vi.fn(),
   openCouncilBusiness: vi.fn(),
 }));
-const opened = vi.hoisted(() => ({ open: vi.fn() }));
+const opened = vi.hoisted(() => ({ open: vi.fn(), adoptSummaries: vi.fn() }));
 
 vi.mock("../src/services/councilBusinessApi", async (importOriginal) => ({
   ...(await importOriginal()),
@@ -19,22 +19,59 @@ vi.mock("../src/stores/workspaceResourcesStore", () => ({
   useWorkspaceResourcesStore: { getState: () => opened },
 }));
 
-import { useCouncilBusinessStore } from "../src/stores/councilBusinessStore.ts";
 import { useResourceSession } from "../src/features/resources/useResourceSession.ts";
+import { useCouncilBusinessStore } from "../src/stores/councilBusinessStore.ts";
+
+const documentSummary = {
+  id: "4bfcfbc2-7acb-4ea0-bd22-39d9719a77bf",
+  kind: "document",
+  name: "Study.pdf",
+  slug: "study-pdf",
+  path: "Tourisme",
+  fullPath: "Tourisme/Study.pdf",
+  tags: [],
+  state: { readiness: "ready", availability: "available" },
+  createdAt: "2026-01-01T00:00:00Z",
+  updatedAt: "2026-01-02T00:00:00Z",
+  binary: {
+    id: "48288252-4028-41a0-b5ca-c1f3c9f01d0d",
+    mediaType: "application/pdf",
+    byteSize: 128,
+    contentSha256: "0".repeat(64),
+  },
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useCouncilBusinessStore.setState({ businesses: [], capabilitiesById: {}, representationsById: {}, resourceItemsLoadedById: {}, resourceItemsErrorById: {}, error: null });
+  useCouncilBusinessStore.setState({
+    businesses: [],
+    capabilitiesById: {},
+    representationsById: {},
+    resourceItemsLoadedById: {},
+    resourceItemsErrorById: {},
+    error: null,
+  });
 });
 
 // @verifies-requirement HALL-FR-WSP-370
 test("selected document failure is identified per business and a retry restores the exact list", async () => {
   api.openCouncilBusiness.mockResolvedValue({
-    data: { id: "selected", folderResourceId: "folder", reportResourceId: "report" }, representation: null,
+    data: { id: "selected", folderResourceId: "folder", reportResourceId: "report" },
+    representation: null,
   });
-  opened.open.mockImplementation(async (id) => id === "folder"
-    ? { data: { kind: "folder", name: "Tourisme", path: "Tourisme et loisirs", createdAt: "2026-01-01", updatedAt: "2026-01-02" } }
-    : { data: { kind: "text", content: "Rapport courant", updatedAt: "2026-01-03" } });
+  opened.open.mockImplementation(async (id) =>
+    id === "folder"
+      ? {
+          data: {
+            kind: "folder",
+            name: "Tourisme",
+            path: "Tourisme et loisirs",
+            createdAt: "2026-01-01",
+            updatedAt: "2026-01-02",
+          },
+        }
+      : { data: { kind: "text", content: "Rapport courant", updatedAt: "2026-01-03" } },
+  );
   api.listCouncilBusinessResourceItems.mockRejectedValueOnce(new Error("temporary failure"));
 
   await useCouncilBusinessStore.getState().loadSelected("selected");
@@ -42,18 +79,24 @@ test("selected document failure is identified per business and a retry restores 
   assert.equal(useCouncilBusinessStore.getState().resourceItemsLoadedById.selected, undefined);
 
   api.listCouncilBusinessResourceItems.mockResolvedValueOnce([
-    { id: "document", kind: "document", councilBusinessId: "selected", position: 1 },
+    { ...documentSummary, councilBusinessId: "selected", position: 1 },
   ]);
   assert.equal(await useCouncilBusinessStore.getState().loadResources("selected"), true);
   assert.equal(useCouncilBusinessStore.getState().resourceItemsErrorById.selected, null);
   assert.equal(useCouncilBusinessStore.getState().resourceItemsLoadedById.selected, true);
-  assert.deepEqual(useCouncilBusinessStore.getState().businesses[0].resources.map(({ id }) => id), ["document"]);
+  assert.deepEqual(
+    useCouncilBusinessStore.getState().businesses[0].resources.map(({ id }) => id),
+    [documentSummary.id],
+  );
+  assert.deepEqual(opened.adoptSummaries.mock.calls, [[[documentSummary]]]);
 });
 
 // @verifies-requirement HALL-FR-WSP-370
 test("a direct business opens its report before its own documents and without the global business index", async () => {
   let releaseDocuments;
-  const documents = new Promise((resolve) => { releaseDocuments = resolve; });
+  const documents = new Promise((resolve) => {
+    releaseDocuments = resolve;
+  });
   api.openCouncilBusiness.mockResolvedValue({
     data: { id: "selected", folderResourceId: "folder", reportResourceId: "report" },
     representation: null,
@@ -61,10 +104,31 @@ test("a direct business opens its report before its own documents and without th
   api.listCouncilBusinessResourceItems.mockReturnValue(documents);
   let reportReads = 0;
   opened.open.mockImplementation(async (id) => {
-    if (id === "folder") return { data: { kind: "folder", name: "Tourisme", path: "Tourisme et loisirs", createdAt: "2026-01-01", updatedAt: "2026-01-02" } };
+    if (id === "folder")
+      return {
+        data: {
+          kind: "folder",
+          name: "Tourisme",
+          path: "Tourisme et loisirs",
+          createdAt: "2026-01-01",
+          updatedAt: "2026-01-02",
+        },
+      };
     reportReads += 1;
     return reportReads === 1
-      ? { data: { id: "report", kind: "text", name: "Rapport", path: "", tags: [], content: "Rapport courant", autosaveEnabled: true, updatedAt: "2026-01-03" }, representation: null }
+      ? {
+          data: {
+            id: "report",
+            kind: "text",
+            name: "Rapport",
+            path: "",
+            tags: [],
+            content: "Rapport courant",
+            autosaveEnabled: true,
+            updatedAt: "2026-01-03",
+          },
+          representation: null,
+        }
       : null;
   });
 
@@ -97,7 +161,11 @@ test("a direct business opens its report before its own documents and without th
     await act(async () => root.unmount());
   }
 
-  releaseDocuments([{ id: "document", kind: "document", councilBusinessId: "selected", position: 0 }]);
+  releaseDocuments([{ ...documentSummary, councilBusinessId: "selected", position: 0 }]);
   await vi.waitFor(() => assert.equal(useCouncilBusinessStore.getState().resourceItemsLoadedById.selected, true));
-  assert.deepEqual(useCouncilBusinessStore.getState().businesses[0].resources.map(({ id }) => id), ["document"]);
+  assert.deepEqual(
+    useCouncilBusinessStore.getState().businesses[0].resources.map(({ id }) => id),
+    [documentSummary.id],
+  );
+  assert.deepEqual(opened.adoptSummaries.mock.calls, [[[documentSummary]]]);
 });

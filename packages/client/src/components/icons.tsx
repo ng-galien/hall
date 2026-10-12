@@ -9,6 +9,7 @@ export {
   ArrowLeft as BackIcon,
   ArrowRight as ForwardIcon,
   ArrowSquareOut as OpenIcon,
+  ArrowsHorizontal as BothDirectionsIcon,
   ArrowsInLineHorizontal as MergeCellsIcon,
   ArrowsOut as FullscreenIcon,
   ArrowsOutLineHorizontal as SplitCellIcon,

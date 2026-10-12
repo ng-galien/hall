@@ -9,9 +9,17 @@ export interface ColorPickerPreset {
   label: string;
 }
 
+// @implements-requirement HALL-FR-DOC-530
+/** Colors that carry a meaning (a map legend): listed with their label above the plain swatches. */
+export interface ColorPickerNamedPresets {
+  title: string;
+  presets: ColorPickerPreset[];
+}
+
 export function ColorPicker({
   value,
   presets,
+  namedPresets,
   ariaLabel,
   customLabel,
   className,
@@ -19,6 +27,7 @@ export function ColorPicker({
 }: {
   value: string;
   presets: ColorPickerPreset[];
+  namedPresets?: ColorPickerNamedPresets;
   ariaLabel: string;
   customLabel: string;
   className?: string;
@@ -56,6 +65,24 @@ export function ColorPicker({
         </button>
       </PopoverTrigger>
       <PopoverContent className="color-picker-popover w-auto p-2" align="end">
+        {namedPresets?.presets.length ? (
+          <fieldset className="color-picker-named">
+            <legend className="color-picker-named-title">{namedPresets.title}</legend>
+            {namedPresets.presets.map((preset, index) => (
+              <button
+                // biome-ignore lint/suspicious/noArrayIndexKey: two meanings may share one color.
+                key={`${index}:${preset.value}`}
+                type="button"
+                className="color-picker-named-preset"
+                aria-pressed={preset.value.toLowerCase() === draftValue.toLowerCase()}
+                onClick={() => setDraftValue(preset.value)}
+              >
+                <span className="color-picker-swatch" style={swatchStyle(preset.value)} />
+                <span className="color-picker-named-label">{preset.label}</span>
+              </button>
+            ))}
+          </fieldset>
+        ) : null}
         <fieldset className="color-picker-presets">
           <legend className="sr-only">{ariaLabel}</legend>
           {presets.map((preset) => (

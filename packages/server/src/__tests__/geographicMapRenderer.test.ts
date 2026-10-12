@@ -199,13 +199,56 @@ describe("geographic map PDF rendering", () => {
     const svg = Buffer.from(image.split(",")[1], "base64").toString("utf8");
 
     expect(request).not.toHaveBeenCalled();
-    expect(svg).toContain("<circle");
+    // Markers are the pin of the interactive map, not dots.
+    expect(svg).toContain('d="M12 31C9 26 1 19 1 12a11 11 0 0 1 22 0c0 7-8 14-11 19Z"');
     expect(svg).toContain("<polyline");
     expect(svg).toContain("<polygon");
     expect(svg).toContain("Mairie &amp; annexe &lt;Nord&gt;");
     expect(svg).toContain('aria-label="Plan &quot;Nord&quot;"');
     expect(svg).toContain("Fond cartographique indisponible");
     expect(svg).not.toContain("Masqué");
+  });
+
+  it("draws line arrows, the legend and non-overlapping labels like the interactive map", async () => {
+    const line = (id: string, label: string, arrows: "forward" | "both") => ({
+      type: "Feature" as const,
+      id,
+      properties: { kind: "line" as const, visible: true, label, style: { color: "#5b6472", width: 3, arrows } },
+      geometry: {
+        type: "LineString" as const,
+        coordinates: [
+          [2.1, 48.1],
+          [2.2, 48.2],
+        ] as [number, number][],
+      },
+    });
+    const data: GeographicResourceData = {
+      view: { kind: "center", center: [2.15, 48.15], zoom: 14 },
+      layers: [],
+      hallLayer: {
+        type: "FeatureCollection",
+        legend: [{ color: "#1f7a4a", label: "Zone de change" }],
+        features: [
+          line("00000000-0000-4000-8000-000000000021", "Sens de la descente", "forward"),
+          line("00000000-0000-4000-8000-000000000022", "Même tracé", "both"),
+        ],
+      },
+      provenance: {
+        attribution: "IGN",
+        license: "Licence Ouverte 2.0",
+        metadataUrl: "https://example.test",
+        configuredAt: "2026-08-31T10:00:00.000Z",
+        sourceUpdatedAt: null,
+      },
+    };
+    const image = await createGeographicMapRenderer().render(data, "Sens");
+    const svg = Buffer.from(image.split(",")[1], "base64").toString("utf8");
+    // One arrow for the forward line, two for the line with arrows at both ends.
+    expect(svg.match(/<polygon points="[^"]*" fill="#5b6472"/g)).toHaveLength(3);
+    expect(svg).toContain("Zone de change");
+    // The two labels sit at the same place: only the first one is drawn.
+    expect(svg).toContain("Sens de la descente");
+    expect(svg).not.toContain("Même tracé");
   });
 
   it("degrades to the printable fallback when GeoPF rejects or cannot answer", async () => {

@@ -1,14 +1,14 @@
+import type { CouncilBusinessNavigationIndex } from "@hall/api-contract";
 import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import type { CouncilBusinessNavigationIndex } from "@hall/api-contract";
 import { ChevronDownIcon, ChevronRightIcon, CouncilBusinessIcon, FolderIcon } from "../components/icons";
 import { councilBusinessHref } from "../features/references/referenceNavigation";
 import { useI18n } from "../i18n/I18nProvider";
 import { buildPathTree, type PathNode } from "../pages/workspace/paths";
 import { DRAG_TYPE, decodeDragPayload, moveToPath } from "../pages/workspace/workspaceOrg";
+import { listCouncilBusinessNavigationIndex } from "../services/councilBusinessApi";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
-import { listCouncilBusinessNavigationIndex } from "../services/councilBusinessApi";
 
 function activePathFrom(search: string, pathname: string): string | null {
   if (pathname !== "/workspace") return null;
@@ -116,7 +116,12 @@ export function WorkspaceTree() {
     return [...byId.values()];
   }, [index, selectedBusinesses]);
   const tree = useMemo(
-    () => buildPathTree(businesses, fullCatalogLoaded ? liveCatalog : index?.catalog ?? [], fullCatalogLoaded ? [] : index?.paths ?? []),
+    () =>
+      buildPathTree(
+        businesses,
+        fullCatalogLoaded ? liveCatalog : (index?.catalog ?? []),
+        fullCatalogLoaded ? [] : (index?.paths ?? []),
+      ),
     [businesses, index, liveCatalog, fullCatalogLoaded],
   );
   const [toggled, setToggled] = useState<{ opened: Set<string>; closed: Set<string> }>({
@@ -154,13 +159,30 @@ export function WorkspaceTree() {
   const [showAll, setShowAll] = useState(false);
   const { t } = useI18n();
 
+  // The index is read once, then again only when a business or a folder known to the application changes:
+  // navigating between pages does not change the filing structure.
+  const structure = useMemo(
+    () =>
+      [
+        ...selectedBusinesses.map((business) => `${business.id}:${business.title}:${business.folderPath}`),
+        ...liveCatalog.filter((entry) => entry.kind === "folder").map((entry) => `${entry.id}:${entry.fullPath}`),
+      ]
+        .sort()
+        .join("\n"),
+    [selectedBusinesses, liveCatalog],
+  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the structure signature is the refresh trigger.
   useEffect(() => {
     let active = true;
     void listCouncilBusinessNavigationIndex()
-      .then(({ data }) => { if (active) setIndex(data); })
+      .then(({ data }) => {
+        if (active) setIndex(data);
+      })
       .catch(() => undefined);
-    return () => { active = false; };
-  }, [location.pathname, location.search]);
+    return () => {
+      active = false;
+    };
+  }, [structure]);
 
   if (tree.length === 0) return null;
 

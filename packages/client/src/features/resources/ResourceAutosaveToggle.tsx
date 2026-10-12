@@ -3,18 +3,20 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { SaveStatus } from "../../pages/workspace/saveStatusStore";
 import "./ResourceAutosaveToggle.css";
 
+/**
+ * Autosave switch shown as its icon only: the icon carries the save state, its tooltip names the switch and the
+ * current state, and a press turns autosave on or off.
+ */
 export function ResourceAutosaveToggle({
   enabled,
   status,
   disabled = false,
   onChange,
-  showLabel = false,
 }: {
   enabled: boolean;
   status: SaveStatus;
   disabled?: boolean;
   onChange(enabled: boolean): void;
-  showLabel?: boolean;
 }) {
   const { t } = useI18n();
   const statusLabel =
@@ -32,7 +34,7 @@ export function ResourceAutosaveToggle({
 
   return (
     <button
-      className={`resource-autosave-toggle${showLabel ? " resource-autosave-toggle-labeled" : ""}`}
+      className="resource-autosave-toggle"
       data-testid="resource-autosave-toggle"
       data-enabled={enabled}
       data-save-status={status}
@@ -47,12 +49,6 @@ export function ResourceAutosaveToggle({
       <span className="resource-autosave-icon" aria-hidden="true">
         <SaveStatusGlyph status={status} enabled={enabled} />
       </span>
-      {showLabel ? (
-        <span role="status">
-          {t("workspace.autosave")}
-          {statusLabel ? ` · ${statusLabel}` : ""}
-        </span>
-      ) : null}
     </button>
   );
 }

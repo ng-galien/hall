@@ -3,7 +3,7 @@ import { imageWidthRange, isReferenceKind, type ResourcePresentationKind } from 
 import { type Editor, Extension, mergeAttributes, Node } from "@tiptap/core";
 import { type NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from "@tiptap/react";
 import { exitSuggestion, Suggestion, type SuggestionProps } from "@tiptap/suggestion";
-import { Children, createContext, forwardRef, type ReactNode, useContext, useRef, useState } from "react";
+import { Children, createContext, forwardRef, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -31,6 +31,7 @@ const ResourcePreviewContext = createContext<{
   renderMemberPreview?: ResourcePreviewRenderer;
   resourceAppearance(id: string): ResourceReferenceAppearance | null;
   referenceTarget(kind: ReferenceEntityKind, id: string): ReferenceTarget | null;
+  requestReference?(kind: ReferenceEntityKind, id: string): void;
 } | null>(null);
 
 export function useResourcePreviewRenderer() {
@@ -48,6 +49,7 @@ export function ReferencePresentationProvider({
   renderMemberPreview,
   resourceAppearance,
   referenceTarget,
+  requestReference,
   children,
 }: {
   renderResourcePreview: ResourcePreviewRenderer;
@@ -55,11 +57,20 @@ export function ReferencePresentationProvider({
   renderMemberPreview?: ResourcePreviewRenderer;
   resourceAppearance(id: string): ResourceReferenceAppearance | null;
   referenceTarget(kind: ReferenceEntityKind, id: string): ReferenceTarget | null;
+  /** Asks for the target of a reference the loaded projections do not know; its arrival re-renders the badge. */
+  requestReference?(kind: ReferenceEntityKind, id: string): void;
   children: ReactNode;
 }) {
   return (
     <ResourcePreviewContext.Provider
-      value={{ renderResourcePreview, renderContactPreview, renderMemberPreview, resourceAppearance, referenceTarget }}
+      value={{
+        renderResourcePreview,
+        renderContactPreview,
+        renderMemberPreview,
+        resourceAppearance,
+        referenceTarget,
+        requestReference,
+      }}
     >
       {children}
     </ResourcePreviewContext.Provider>
@@ -82,6 +93,11 @@ export function ReferenceBadge({
   const scrollRef = useRef({ x: 0, y: 0 });
   const presentation = useContext(ResourcePreviewContext);
   const target = id ? presentation?.referenceTarget(kind, id) : null;
+  const unresolved = Boolean(id) && !target;
+  const requestReference = presentation?.requestReference;
+  useEffect(() => {
+    if (unresolved && id) requestReference?.(kind, id);
+  }, [unresolved, requestReference, kind, id]);
   const appearance = kind === "resource" && id ? presentation?.resourceAppearance(id) : null;
   const open = target?.open ?? null;
   const openable = open !== null;

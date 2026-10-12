@@ -79,10 +79,7 @@ export function CouncilBusinessWorkbench({
 
   useEffect(() => {
     const store = useCouncilBusinessStore.getState();
-    void Promise.all([
-      store.loadPreparedSubjects(business.id),
-      useCouncilDecisionsStore.getState().load(),
-    ]);
+    void Promise.all([store.loadPreparedSubjects(business.id), useCouncilDecisionsStore.getState().load()]);
   }, [business.id]);
 
   const renameBusiness = async (nextTitle: string) => {
@@ -128,37 +125,33 @@ export function CouncilBusinessWorkbench({
           onTitleChange={folderCapabilities.relocate ? renameBusiness : undefined}
           hint={<CouncilBusinessCommittees businessId={business.id} />}
           actions={
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
-                  aria-pressed={pinned}
-                  onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
-                >
-                  {pinned ? <PinnedIcon /> : <PinIcon />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
-            </Tooltip>
-          }
-          actionError={actionError ?? reportSession.actionError}
-        />
-
-        <section className="workbench-section" data-testid="business-report" aria-label={t("meeting.report")}>
-          <div className="business-section-heading">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2>{t("workspace.businessReport")}</h2>
+            <>
               <PdfPreviewButton
                 key={business.id}
                 markdown={reportSession.content}
                 testId="business-report-pdf-preview"
                 disabled={!reportSession.resource}
               />
-            </div>
-            <p>{t("workspace.businessReportDescription")}</p>
-          </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
+                    aria-pressed={pinned}
+                    onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
+                  >
+                    {pinned ? <PinnedIcon /> : <PinIcon />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
+              </Tooltip>
+            </>
+          }
+          actionError={actionError ?? reportSession.actionError}
+        />
+
+        <section className="workbench-section" data-testid="business-report" aria-label={t("meeting.report")}>
           <div className="grid gap-1.5">
             {reportSession.resource ? (
               reportSession.editable ? (
@@ -245,12 +238,17 @@ export function CouncilBusinessWorkbench({
           {!documentsOpen ? null : documentsError ? (
             <div data-testid="business-documents-load-error">
               <RequestErrorBanner error={documentsError} />
-              <Button data-testid="business-documents-retry" onClick={() => void useCouncilBusinessStore.getState().loadResources(business.id)}>
+              <Button
+                data-testid="business-documents-retry"
+                onClick={() => void useCouncilBusinessStore.getState().loadResources(business.id)}
+              >
                 {t("common.retry")}
               </Button>
             </div>
           ) : !documentsLoaded ? (
-            <p className="workspace-list-empty" role="status">{t("common.loading")}</p>
+            <p className="workspace-list-empty" role="status">
+              {t("common.loading")}
+            </p>
           ) : attachedResources.length ? (
             <ExplorerTree className="business-document-tree" data-testid="business-resource-tree">
               <BusinessDocumentTree

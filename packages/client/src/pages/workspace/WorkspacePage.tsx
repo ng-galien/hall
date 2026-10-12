@@ -128,10 +128,21 @@ export function WorkspacePage() {
   });
   useEffect(() => {
     const report = businessReportSession.resource;
-    if (report && selection?.kind === "councilBusiness" && selectedBusiness?.reportResourceId === report.id && report.kind === "text") {
+    if (
+      report &&
+      selection?.kind === "councilBusiness" &&
+      selectedBusiness?.reportResourceId === report.id &&
+      report.kind === "text"
+    ) {
       councilBusinessStore.adoptReport(selection.id, report);
     }
-  }, [selection?.kind, selection?.id, selectedBusiness?.reportResourceId, businessReportSession.resource, councilBusinessStore.adoptReport]);
+  }, [
+    selection?.kind,
+    selection?.id,
+    selectedBusiness?.reportResourceId,
+    businessReportSession.resource,
+    councilBusinessStore.adoptReport,
+  ]);
   const presentedResource = resourceSession.resource;
   const openedSession =
     selection?.kind === "resource"
@@ -555,7 +566,9 @@ export function WorkspacePage() {
                   ) : selection?.kind === "resource" ? (
                     <ResourceWorkbench key={selection.id} session={resourceSession} onSelect={select} />
                   ) : councilBusinessError ? (
-                    <Button onClick={() => void councilBusinessStore.loadSelected(selection.id)}>{t("common.retry")}</Button>
+                    <Button onClick={() => void councilBusinessStore.loadSelected(selection.id)}>
+                      {t("common.retry")}
+                    </Button>
                   ) : (
                     <LoadingIndicator data-testid="business-selection-loading">{t("common.loading")}</LoadingIndicator>
                   )}

@@ -16,16 +16,24 @@ import {
 } from "./resourceEditorPolicy";
 import { useResourcePersistence } from "./useResourcePersistence";
 
-const pendingSessionOpens = new Map<string, ReturnType<ReturnType<typeof useWorkspaceResourcesStore.getState>["open"]>>();
+const pendingSessionOpens = new Map<
+  string,
+  ReturnType<ReturnType<typeof useWorkspaceResourcesStore.getState>["open"]>
+>();
 
-function openSessionResource(resourceId: string) {
+/** Opens a resource once per pending request, shared by the resource sessions and the reference badges. */
+export function openSessionResource(resourceId: string) {
   const existing = pendingSessionOpens.get(resourceId);
   if (existing) return existing;
   const pending = useWorkspaceResourcesStore.getState().open(resourceId);
   pendingSessionOpens.set(resourceId, pending);
   void pending.then(
-    () => { if (pendingSessionOpens.get(resourceId) === pending) pendingSessionOpens.delete(resourceId); },
-    () => { if (pendingSessionOpens.get(resourceId) === pending) pendingSessionOpens.delete(resourceId); },
+    () => {
+      if (pendingSessionOpens.get(resourceId) === pending) pendingSessionOpens.delete(resourceId);
+    },
+    () => {
+      if (pendingSessionOpens.get(resourceId) === pending) pendingSessionOpens.delete(resourceId);
+    },
   );
   return pending;
 }

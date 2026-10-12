@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -16,6 +16,30 @@ const suiteTimeoutMs = suiteTimeoutMinutes * 60 * 1_000;
 const deadline = Date.now() + suiteTimeoutMs;
 const requestedArguments = process.argv.slice(2);
 const authenticationMode = process.env.HALL_E2E_AUTH_MODE === "true";
+
+const buildPackages = [
+  { name: "@hall/contracts", directory: "contracts" },
+  { name: "@hall/api-contract", directory: "api-contract" },
+  { name: "@hall/mcp", directory: "mcp" },
+  { name: "@hall/domain", directory: "domain" },
+  { name: "@hall/templating", directory: "templating" },
+  { name: "@hall/server", directory: "server" },
+];
+
+function newestModification(path) {
+  const stats = statSync(path);
+  if (!stats.isDirectory()) return stats.mtimeMs;
+  return readdirSync(path).reduce((newest, entry) => Math.max(newest, newestModification(join(path, entry))), 0);
+}
+
+function isPackageStale({ directory }) {
+  const packageDirectory = resolve(projectDirectory, "packages", directory);
+  const builtEntry = resolve(packageDirectory, "dist/index.js");
+  if (!existsSync(builtEntry)) return true;
+  const inputs = ["src", "package.json", "tsconfig.json"].map((entry) => resolve(packageDirectory, entry));
+  const newestInput = Math.max(...inputs.filter(existsSync).map(newestModification));
+  return newestInput > statSync(builtEntry).mtimeMs;
+}
 
 function remainingTime() {
   return Math.max(1, deadline - Date.now());
@@ -208,22 +232,10 @@ for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) process.once(signal, onInt
 
 try {
   compose(["--profile", "test", "up", "-d", "--wait", "postgres-test"]);
-  run("npm", [
-    "run",
-    "build",
-    "-w",
-    "@hall/contracts",
-    "-w",
-    "@hall/api-contract",
-    "-w",
-    "@hall/mcp",
-    "-w",
-    "@hall/domain",
-    "-w",
-    "@hall/templating",
-    "-w",
-    "@hall/server",
-  ]);
+  // The running development session imports these packages' dist folders: rebuilding them when nothing changed
+  // would reload every open Hall page, so only packages whose sources are newer than their build are rebuilt.
+  const stalePackages = buildPackages.filter(isPackageStale);
+  if (stalePackages.length) run("npm", ["run", "build", ...stalePackages.flatMap(({ name }) => ["-w", name])]);
   recreateDatabase(templateDatabase);
   templateCreated = true;
   installDatabase(templateDatabase);

@@ -7,6 +7,7 @@ import { FullscreenIcon, MapIcon, PinIcon, PinnedIcon } from "../../components/i
 import { TagInput } from "../../components/TagInput";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "../../features/documents/DocumentaryResourceGlyph";
+import { PdfPreviewButton } from "../../features/documents/PdfPreviewButton";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { ApiErrorCode } from "../../services/apiClient";
@@ -29,6 +30,7 @@ export function ResourceWorkbenchHeader({
   onOpenExtended,
   onDownload,
   extendedViewTriggerRef,
+  pdfMarkdown,
 }: {
   resource: Exclude<ResourceDetail, { kind: "folder" }>;
   relatedBusinesses: CouncilBusinessView[];
@@ -43,6 +45,8 @@ export function ResourceWorkbenchHeader({
   onOpenExtended(): void;
   onDownload?(): void;
   extendedViewTriggerRef: RefObject<HTMLButtonElement | null>;
+  /** The current text of a text document, previewed as a PDF. */
+  pdfMarkdown?: string;
 }) {
   const { t } = useI18n();
   const { isPinned, togglePin } = useWorkspacePrefsStore();
@@ -103,6 +107,9 @@ export function ResourceWorkbenchHeader({
             </TooltipTrigger>
             <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
           </Tooltip>
+          {pdfMarkdown !== undefined ? (
+            <PdfPreviewButton key={resource.id} markdown={pdfMarkdown} testId="resource-pdf-preview" />
+          ) : null}
           {resource.kind === "document" && onDownload ? (
             <Button variant="outline" onClick={onDownload}>
               {t("common.download")}

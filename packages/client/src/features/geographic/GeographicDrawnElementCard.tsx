@@ -1,7 +1,5 @@
 import type { GeographicFeatureNote, SirenEntity } from "@hall/api-contract";
-import type { GeographicLineArrows } from "@hall/domain";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { CenterOnFeatureIcon, CloseIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -12,6 +10,7 @@ import {
   readGeographicDrawnElementNotes,
 } from "./geographicLayersApi";
 import { escapeBelongsToTarget, useAutomaticGeographicNote } from "./useGeographicFeatureCard";
+import { useGeographicPanelSize } from "./useGeographicPanelSize";
 
 /** Notes of the drawn elements of a map, read through the map and created on demand. */
 // @implements-requirement HALL-FR-DOC-430
@@ -46,7 +45,7 @@ export function useGeographicDrawnElementNotes(map: SirenEntity | null, onError:
         return true;
       } catch (failure) {
         onError(apiErrorCode(failure));
-        return true;
+        return false;
       } finally {
         setCreating(false);
       }
@@ -65,6 +64,9 @@ export function useGeographicDrawnElementNotes(map: SirenEntity | null, onError:
 export function GeographicDrawnElementCard({
   label,
   kindLabel,
+  kindIcon,
+  actions,
+  hidden = false,
   note,
   loading,
   canCreateNote,
@@ -77,15 +79,17 @@ export function GeographicDrawnElementCard({
   onClose,
   readOnly = false,
   measures,
-  arrows,
-  onArrows,
 }: {
   readOnly?: boolean;
   measures?: ReactNode;
-  arrows?: GeographicLineArrows;
-  onArrows?(arrows: GeographicLineArrows): void;
   label: string;
   kindLabel: string;
+  /** Geometry icon shown before the label; the nature itself is only announced to assistive technologies. */
+  kindIcon: ReactNode;
+  /** The drawing's color and actions menu, the same as its Composition row. */
+  actions?: ReactNode;
+  /** A hidden drawing shows its name struck through, as in Composition. */
+  hidden?: boolean;
   note: GeographicFeatureNote | null;
   loading: boolean;
   canCreateNote: boolean;
@@ -99,6 +103,8 @@ export function GeographicDrawnElementCard({
   onClose(): void;
 }) {
   const { t } = useI18n();
+  const cardRef = useRef<HTMLElement | null>(null);
+  const sizeStyle = useGeographicPanelSize(cardRef, "card");
   useAutomaticGeographicNote(!readOnly && !loading && !note && canCreateNote && !creatingNote, onCreateNote);
   useEffect(() => {
     const leaveOnEscape = (event: KeyboardEvent) => {
@@ -113,16 +119,27 @@ export function GeographicDrawnElementCard({
   }, [mapElement, modifying, onClose, onStopModifying]);
   return (
     <section
-      className="geographic-feature-card"
+      ref={cardRef}
+      className="geographic-feature-card geographic-feature-card-resizable"
       data-testid="geographic-drawn-element-card"
+      style={sizeStyle}
       aria-label={label}
       contentEditable={readOnly ? false : undefined}
     >
       <header className="geographic-feature-card-header">
+        <span className="geographic-feature-card-kind" role="img" aria-label={kindLabel} title={kindLabel}>
+          {kindIcon}
+        </span>
         <div className="geographic-feature-card-title">
-          <h2 data-testid="geographic-drawn-element-card-title">{label}</h2>
-          <span>{kindLabel}</span>
+          <h2
+            data-testid="geographic-drawn-element-card-title"
+            data-hidden={hidden}
+            title={hidden ? t("geographic.drawing.hidden") : undefined}
+          >
+            {label}
+          </h2>
         </div>
+        {actions}
         <button
           type="button"
           className="geographic-feature-card-icon"
@@ -156,20 +173,6 @@ export function GeographicDrawnElementCard({
               <p className="geographic-feature-card-muted" aria-live="polite">
                 {t("geographic.shape.modifyingHint")}
               </p>
-            ) : null}
-            {onArrows ? (
-              <Select value={arrows ?? "none"} onValueChange={(value) => onArrows(value as GeographicLineArrows)}>
-                <SelectTrigger data-testid="geographic-line-arrows" aria-label={t("geographic.arrows")}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(["none", "forward", "backward", "both"] as const).map((value) => (
-                    <SelectItem key={value} value={value} data-testid={`geographic-line-arrows-${value}`}>
-                      {t(`geographic.arrows.${value}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             ) : null}
           </div>
         )}

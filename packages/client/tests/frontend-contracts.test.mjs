@@ -257,9 +257,8 @@ test("editor images keep immutable resource references and follow document capab
   assert.doesNotMatch(enrichedEditor, /<ImageControl/);
   for (const surface of [compactEditor, enrichedEditor]) assert.match(surface, /<ImageDropZone active=/);
   assert.equal(
-    editor.match(
-      /\.\.\.imageTransferHandlers\(imageUpload, imageStatusChange, documentUpload, spreadsheetChoice\)/g,
-    )?.length,
+    editor.match(/\.\.\.imageTransferHandlers\(imageUpload, imageStatusChange, documentUpload, spreadsheetChoice\)/g)
+      ?.length,
     2,
   );
 });

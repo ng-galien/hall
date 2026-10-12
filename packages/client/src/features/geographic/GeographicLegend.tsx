@@ -1,7 +1,6 @@
 import type { GeographicColor, GeographicLegendEntry } from "@hall/domain";
 import { type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ColorPicker, type ColorPickerPreset } from "@/components/ui/color-picker";
 import { Input } from "@/components/ui/input";
 import { DeleteIcon } from "../../components/icons";
@@ -26,7 +25,6 @@ export function GeographicLegend({
           type="button"
           variant="outline"
           size="sm"
-          className="geographic-legend-toggle"
           data-testid="geographic-legend-toggle"
           aria-expanded={open}
           aria-controls={contentId}
@@ -62,18 +60,10 @@ export function GeographicLegendEditor({
   onChange(entries: GeographicLegendEntry[]): void;
 }) {
   const { t } = useI18n();
-  const [open, setOpen] = useState(false);
   const change = (index: number, entry: GeographicLegendEntry) =>
     onChange(entries.map((previous, at) => (at === index ? entry : previous)));
   return (
-    <CollapsibleSection
-      title={t("geographic.legend")}
-      count={entries.length}
-      open={open}
-      onOpenChange={setOpen}
-      testId="geographic-legend-editor"
-      className="geographic-legend-editor"
-    >
+    <div className="geographic-legend-editor" data-testid="geographic-legend-editor">
       <div className="geographic-legend-editor-entries">
         {entries.map((entry, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: ordered value pairs have no identity; label changes intentionally remount the input.
@@ -129,6 +119,6 @@ export function GeographicLegendEditor({
           {t("geographic.legend.add")}
         </Button>
       </div>
-    </CollapsibleSection>
+    </div>
   );
 }

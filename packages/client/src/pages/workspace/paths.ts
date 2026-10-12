@@ -52,7 +52,11 @@ export function listCatalogPaths(catalog: ResourceCatalogEntry[]): string[] {
 /** Path tree preserving the business identity of its documentary folder.
  * @implements-requirement HALL-FR-WSP-240
  */
-export function buildPathTree<TBusiness extends PathBusiness>(businesses: TBusiness[], catalog: ResourceCatalogEntry[], additionalPaths: string[] = []): PathNode<TBusiness>[] {
+export function buildPathTree<TBusiness extends PathBusiness>(
+  businesses: TBusiness[],
+  catalog: ResourceCatalogEntry[],
+  additionalPaths: string[] = [],
+): PathNode<TBusiness>[] {
   const businessesByFolderId = new Map(businesses.map((business) => [business.folderResourceId, business]));
   const businessesByPath = new Map(
     catalog

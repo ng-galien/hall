@@ -23,13 +23,16 @@ test("links several commissions from an affair and navigates both directions", a
   await page.goto(businessUrl);
   const search = page.getByTestId("business-committee-search-input");
   await expect(search).toBeVisible();
+  // A click opens the whole list of available commissions, like a combo box; typing narrows it.
+  await search.click();
+  await expect(page.getByTestId("business-committee-result").filter({ hasText: committees[0].name })).toBeVisible();
+  await search.press("Escape");
+  await expect(page.getByTestId("business-committee-results")).toHaveCount(0);
+  await search.press("ArrowDown");
+  await expect(page.getByTestId("business-committee-results")).toBeVisible();
   await search.fill("Commission lien");
   await expect(page.getByTestId("business-committee-result")).toHaveCount(2);
-  await page
-    .getByTestId("business-committee-result")
-    .filter({ hasText: committees[0].name })
-    .getByTestId("business-committee-result-add")
-    .click();
+  await page.getByTestId("business-committee-result").filter({ hasText: committees[0].name }).click();
   await expect(page.getByTestId("business-committee-badge")).toHaveCount(1);
 
   await search.fill("jeunesse");

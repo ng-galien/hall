@@ -1,5 +1,5 @@
 import { matchDiscriminated, matchLiteral, type ReferenceEntityKind } from "@hall/domain";
-import { lazy, type ReactNode, Suspense } from "react";
+import { lazy, type ReactNode, Suspense, useCallback } from "react";
 import { createBrowserRouter, Route, RouterProvider, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthenticationGate } from "./components/AuthenticationGate";
@@ -19,6 +19,7 @@ import {
   loadResourceEmbedTableOptions,
   ResourceEmbedPresentation,
 } from "./features/resources/ResourceEmbedPresentation";
+import { openSessionResource } from "./features/resources/useResourceSession";
 import { useApplicationData } from "./hooks/useApplicationData";
 import { useI18n } from "./i18n/I18nProvider";
 import { documentaryBinaryReferenceContentHref } from "./services/resourcesApi";
@@ -127,7 +128,7 @@ function AuthenticatedApplication() {
   );
 }
 
-function ApplicationPresentationProviders({ children }: { children: ReactNode }) {
+export function ApplicationPresentationProviders({ children }: { children: ReactNode }) {
   const { t, formatDate } = useI18n();
   const resourceSummaries = useWorkspaceResourcesStore((state) => state.summaries);
   const resourceCatalog = useWorkspaceResourcesStore((state) => state.catalog);
@@ -136,6 +137,10 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
   const members = useCouncilMembersStore((state) => state.members);
   const contacts = useContactsStore((state) => state.contacts);
+  // Concurrent badges of one reference share its pending request; returning to the text retries a failed one.
+  const requestReference = useCallback((kind: ReferenceEntityKind, id: string) => {
+    if (kind === "resource") void openSessionResource(id);
+  }, []);
   const renderResourcePreview = (id: string, onClose: () => void) => (
     <ResourcePreview resourceId={id} onClose={onClose} />
   );
@@ -209,6 +214,7 @@ function ApplicationPresentationProviders({ children }: { children: ReactNode })
       renderMemberPreview={(id, onClose) => <MemberReferenceDialog memberId={id} onClose={onClose} />}
       resourceAppearance={resourceAppearance}
       referenceTarget={referenceTarget}
+      requestReference={requestReference}
     >
       <ResourceEmbedPresentationProvider
         renderResourceEmbed={(attributes) => <ResourceEmbedPresentation attributes={attributes} />}

@@ -81,6 +81,7 @@ export function ResourceWorkbench({
             : undefined;
         })()}
         extendedViewTriggerRef={extendedViewTriggerRef}
+        pdfMarkdown={resource.kind === "text" ? session.content : undefined}
       />
 
       <div className="workbench-main">

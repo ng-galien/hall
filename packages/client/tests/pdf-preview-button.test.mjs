@@ -9,7 +9,14 @@ import { previewTemplatePdf } from "../src/services/templatesApi.ts";
 vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
 vi.mock("../src/services/templatesApi.ts", () => ({ previewTemplatePdf: vi.fn() }));
 vi.mock("../src/i18n/I18nProvider", () => ({ useI18n: () => ({ t: (key) => key }) }));
-vi.mock("../src/components/icons", () => ({ PdfIcon: () => null }));
+vi.mock("../src/components/icons", () => ({ PdfIcon: () => null, ChevronDownIcon: () => null }));
+vi.mock("../src/components/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }) => h("div", {}, children),
+  DropdownMenuTrigger: ({ children }) => children,
+  DropdownMenuContent: ({ children }) => h("div", { role: "menu" }, children),
+  DropdownMenuItem: ({ children, onSelect, ...props }) =>
+    h("button", { type: "button", role: "menuitem", ...props, onClick: onSelect }, children),
+}));
 vi.mock("../src/components/ui/button", () => ({
   Button: ({ children, ...props }) => h("button", { type: "button", ...props }, children),
 }));
@@ -76,7 +83,7 @@ test("PDF preview uses current unsaved Markdown, then closes without changing it
   await render("Rapport corrigé mais non enregistré");
   const button = host.querySelector('[data-testid="business-report-pdf-preview"]');
   await act(async () => button.click());
-  assert.deepEqual(vi.mocked(previewTemplatePdf).mock.calls, [["Rapport corrigé mais non enregistré"]]);
+  assert.deepEqual(vi.mocked(previewTemplatePdf).mock.calls, [["Rapport corrigé mais non enregistré", false]]);
   assert.equal(button.disabled, true);
   assert.match(button.textContent, /Loading/);
   assert.equal(host.querySelector("iframe"), null);
@@ -106,4 +113,26 @@ test("PDF preview reports failure and ignores a response after changing affairs"
   await act(async () => complete("/api/templates/preview-pdf/old"));
   assert.equal(host.querySelector("iframe"), null);
   assert.equal(host.querySelector('[role="alert"]'), null);
+});
+
+// @verifies-requirement HALL-FR-WSP-370
+test("a text referencing documents asks whether the referenced PDF documents follow it", async () => {
+  vi.mocked(previewTemplatePdf).mockResolvedValue("/api/templates/preview-pdf/current");
+  const { host, render } = mount();
+  await render("Voir le :resource[courrier]{#00000000-0000-4000-8000-000000000001}.");
+  assert.ok(host.querySelector('[role="menu"]'), "the button offers the two choices");
+  await act(async () => host.querySelector('[data-testid="business-report-pdf-preview-without-documents"]').click());
+  await act(async () => host.querySelector('[data-testid="close-preview"]').click());
+  await act(async () => host.querySelector('[data-testid="business-report-pdf-preview-with-documents"]').click());
+  assert.deepEqual(
+    vi.mocked(previewTemplatePdf).mock.calls.map(([, attach]) => attach),
+    [false, true],
+  );
+});
+
+test("a text without document references keeps a single PDF preview button", async () => {
+  vi.mocked(previewTemplatePdf).mockResolvedValue("/api/templates/preview-pdf/current");
+  const { host, render } = mount();
+  await render("Texte sans référence.");
+  assert.equal(host.querySelector('[role="menu"]'), null);
 });

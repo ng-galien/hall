@@ -37,7 +37,8 @@ export function SaveStatusIndicator({
       <span className="save-status-indicator-icon" aria-hidden="true">
         <SaveStatusGlyph status={status} />
       </span>
-      <span>{label}</span>
+      {/* The icon carries the state; its text is read on hover and by assistive technologies only. */}
+      <span className="sr-only">{label}</span>
     </span>
   );
 }

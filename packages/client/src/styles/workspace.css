@@ -782,29 +782,22 @@
     overflow: hidden;
     resize: both;
   }
-  .geographic-composition > .geographic-composition-header,
-  .geographic-composition > .geographic-composition-tools { flex: none; }
   .geographic-composition > .geographic-composition-list { flex: 1 1 auto; }
-  .geographic-measures-tabs { display: grid; flex: 1 1 auto; min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: 0; }
-  .geographic-measures-tab-list {
-    width: 100%;
-    gap: var(--hall-space-3);
-    padding: 0 var(--hall-space-2);
-    background: var(--hall-color-surface-subtle);
-  }
-  .geographic-measures-tab-list [data-slot="tabs-trigger"] { padding-block: var(--hall-space-1); font-size: var(--hall-font-size-caption); }
   .geographic-measures-tab { display: grid; min-height: 0; grid-template-rows: auto minmax(0, 1fr); }
   .geographic-measures-tab[data-state="inactive"] { display: none; }
   .geographic-measures-current { display: grid; justify-items: start; gap: var(--hall-space-1); }
   .geographic-measurement-list { display: grid; gap: var(--hall-space-0-5); margin: 0; padding: 0; list-style: none; }
   .geographic-measurement {
     display: grid;
-    grid-template-columns: var(--hall-size-glyph-mark-large) minmax(0, 1fr) auto var(--hall-size-control-small);
+    grid-template-columns: var(--hall-size-control-small) minmax(0, 1fr) auto var(--hall-size-control-small);
     min-height: var(--hall-size-control-small);
     align-items: center;
-    gap: var(--hall-space-1);
+    justify-items: start;
     color: var(--hall-color-text-muted);
+    font-size: var(--hall-font-size-caption);
+    line-height: var(--hall-line-height-caption);
   }
+  .geographic-measurement > svg { justify-self: center; }
   .geographic-measurement-name {
     min-width: 0;
     overflow: hidden;
@@ -879,25 +872,30 @@
   .geographic-measures-values dd button:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
   .geographic-measures-option { display: flex; align-items: center; gap: var(--hall-space-1); color: var(--hall-color-text-muted); }
   .geographic-measures-position { display: grid; gap: var(--hall-space-0-5); }
-  .geographic-composition-header {
+  .geographic-panel-header {
     display: flex;
+    flex: none;
     min-height: var(--hall-size-control-small);
     align-items: center;
     gap: var(--hall-space-1);
     padding: 0 var(--hall-space-2);
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
     color: var(--hall-color-text-muted);
+    background: var(--hall-color-surface-subtle);
     font-size: var(--hall-font-size-caption);
     font-weight: var(--hall-font-weight-medium);
     cursor: grab;
     touch-action: none;
     user-select: none;
   }
-  .geographic-composition-header:active { cursor: grabbing; }
+  .geographic-panel-header:active { cursor: grabbing; }
+  .geographic-panel-title { padding-block: var(--hall-space-1-5); color: var(--hall-color-text); }
+  .geographic-panel-tab-list { gap: var(--hall-space-3); border-bottom: 0; }
+  .geographic-panel-tab-list [data-slot="tabs-trigger"] { padding-block: var(--hall-space-1-5); font-size: var(--hall-font-size-caption); cursor: pointer; }
   .geographic-composition-tools {
     display: flex;
     gap: var(--hall-space-0-5);
-    padding: var(--hall-space-1);
+    padding: var(--hall-space-0-5) var(--hall-space-1);
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
   .geographic-composition-list {
@@ -915,8 +913,8 @@
   }
   .geographic-composition-feature {
     display: grid;
-    grid-template-columns: var(--hall-size-control-small) var(--hall-size-control-small) var(--hall-size-control-small) var(--hall-size-control-small) minmax(0, 1fr) var(--hall-size-control-small) var(--hall-size-glyph-mark-large) var(--hall-size-control-small);
-    min-height: var(--hall-size-control);
+    grid-template-columns: var(--hall-space-4) var(--hall-size-control-small) minmax(0, 1fr) var(--hall-size-control-small) var(--hall-size-glyph-mark-large) var(--hall-size-control-small);
+    min-height: var(--hall-size-control-small);
     align-items: center;
     border: var(--hall-stroke-thin) solid transparent;
     border-radius: var(--hall-radius-small);
@@ -928,6 +926,18 @@
     border-color: var(--hall-color-brand-border);
     background: var(--hall-color-brand-subtle);
   }
+  .geographic-composition-feature-drag {
+    display: inline-grid;
+    width: var(--hall-space-4);
+    height: var(--hall-size-control-small);
+    place-items: center;
+    padding: 0;
+    color: var(--hall-color-text-subtle);
+    cursor: grab;
+  }
+  .geographic-composition-feature-drag:active { cursor: grabbing; }
+  .geographic-composition-feature-dragging { opacity: var(--hall-opacity-disabled); }
+  .geographic-composition-feature-drop-target { border-top-color: var(--hall-color-brand); }
   .geographic-composition-feature-readonly {
     grid-template-columns: var(--hall-size-control-small) minmax(0, 1fr) var(--hall-size-control-small) var(--hall-size-control-small);
   }
@@ -944,11 +954,8 @@
     cursor: pointer;
   }
   .geographic-composition-feature-select,
-  .geographic-composition-feature-visible,
   .geographic-composition-feature-fit,
-  .geographic-composition-feature-modify,
   .geographic-composition-feature-measures,
-  .geographic-composition-feature-delete,
   .geographic-composition-feature-menu {
     display: inline-grid;
     width: var(--hall-size-control-small);
@@ -957,10 +964,10 @@
     padding: 0;
     border-radius: var(--hall-radius-small);
   }
-  .geographic-composition-feature-modify[aria-pressed="true"] { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .geographic-composition-feature-measures[aria-pressed="true"] { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .geographic-composition-feature-visible[aria-pressed="true"] { color: var(--hall-color-brand); }
-  .geographic-composition-feature .geographic-composition-feature-delete { color: var(--hall-color-danger); }
+  .geographic-composition-feature[data-hidden="true"] .geographic-composition-feature-name {
+    color: var(--hall-color-text-subtle);
+    text-decoration: line-through;
+  }
   .geographic-composition-feature-name {
     height: var(--hall-size-editor-toolbar-control);
     min-width: 0;
@@ -1404,9 +1411,6 @@
   .workspace-explorer-content-body { padding: var(--hall-space-3); }
 
   .business-menu-hint { max-width: var(--hall-size-viewer-width); padding: var(--hall-space-2); font-size: var(--hall-font-size-caption); color: var(--hall-color-text-muted); }
-  .business-section-heading { display: grid; gap: var(--hall-space-1); margin-bottom: var(--hall-space-3); }
-  .business-section-heading h2 { margin: 0; font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-semibold); }
-  .business-section-heading p { margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); line-height: var(--hall-line-height-body-small); }
   .workspace-explorer-chevron[aria-expanded="true"] svg { transform: rotate(90deg); }
   .business-tree-resource { cursor: pointer; padding-block: var(--hall-space-2); }
   .business-tree-resource svg { display: inline-block; width: var(--hall-space-5); height: var(--hall-space-5); margin-right: var(--hall-space-2); vertical-align: middle; }

@@ -1,10 +1,9 @@
 import { type CouncilBusinessCommitteeLink, findSirenAction, type SirenEntity } from "@hall/api-contract";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { AddIcon, CloseIcon } from "../../components/icons";
+import { ChevronDownIcon, CloseIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
 import { SearchInput } from "../../components/ui/search-input";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../../services/apiClient";
@@ -27,7 +26,9 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
   const [representation, setRepresentation] = useState<SirenEntity | null>(null);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [focused, setFocused] = useState(false);
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
   const [loading, setLoading] = useState(true);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<ApiErrorCode | null>(null);
@@ -41,6 +42,7 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
     setCandidates([]);
     setRepresentation(null);
     setPendingId(null);
+    setOpen(false);
     void Promise.all([
       listCouncilBusinessCommittees(businessId),
       sirenRepresentation(`/council-business/${encodeURIComponent(businessId)}`),
@@ -77,7 +79,8 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
     () => matchingCommitteeCandidates(candidates, associations, query),
     [candidates, associations, query],
   );
-  const resultsOpen = canAssociate && focused && query.trim().length > 0 && !loading;
+  // A combo box: a click or the down arrow lists every commission still available, typing narrows the list.
+  const resultsOpen = canAssociate && open && !loading;
 
   const mutate = async (committeeId: string, kind: "associate" | "dissociate") => {
     if (!representation || pendingId || (kind === "associate" ? !canAssociate : !canDissociate)) return;
@@ -95,6 +98,7 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
       setRepresentation(entity);
       setQuery("");
       setSelectedIndex(0);
+      setOpen(false);
     } catch (failure) {
       if (activeBusinessId.current === businessId) setError(apiErrorCode(failure));
     } finally {
@@ -132,25 +136,37 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
         {canAssociate ? (
           <div className="business-committee-search" data-testid="business-committee-search">
             <SearchInput
+              ref={inputRef}
+              className="business-committee-search-input"
               data-testid="business-committee-search-input"
+              role="combobox"
+              aria-expanded={resultsOpen}
+              aria-controls={listId}
+              aria-autocomplete="list"
+              aria-activedescendant={resultsOpen && matches[selectedIndex] ? `${listId}-${selectedIndex}` : undefined}
               aria-label={t("business.searchCommittee")}
               placeholder={t("business.searchCommittee")}
               value={query}
               disabled={pendingId !== null}
-              onFocus={() => setFocused(true)}
+              onClick={() => setOpen(true)}
               onBlur={(event) => {
-                if (!event.currentTarget.parentElement?.parentElement?.contains(event.relatedTarget as Node))
-                  setFocused(false);
+                const search = event.currentTarget.closest(".business-committee-search");
+                if (!search?.contains(event.relatedTarget as Node)) setOpen(false);
               }}
               onChange={(event) => {
                 setQuery(event.currentTarget.value);
                 setSelectedIndex(0);
+                setOpen(true);
               }}
               onKeyDown={(event) => {
-                if (event.key === "Escape") setFocused(false);
-                if (event.key === "ArrowDown" && resultsOpen) {
+                if (event.key === "Escape" && resultsOpen) {
                   event.preventDefault();
-                  setSelectedIndex((index) => Math.min(index + 1, Math.max(matches.length - 1, 0)));
+                  setOpen(false);
+                }
+                if (event.key === "ArrowDown") {
+                  event.preventDefault();
+                  if (!resultsOpen) setOpen(true);
+                  else setSelectedIndex((index) => Math.min(index + 1, Math.max(matches.length - 1, 0)));
                 }
                 if (event.key === "ArrowUp" && resultsOpen) {
                   event.preventDefault();
@@ -162,44 +178,46 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
                 }
               }}
             />
+            <button
+              type="button"
+              tabIndex={-1}
+              className="business-committee-search-toggle"
+              data-testid="business-committee-search-toggle"
+              aria-label={t("business.showCommittees")}
+              aria-expanded={resultsOpen}
+              disabled={pendingId !== null}
+              onClick={() => {
+                setOpen(!resultsOpen);
+                inputRef.current?.focus();
+              }}
+            >
+              <ChevronDownIcon aria-hidden="true" />
+            </button>
             {resultsOpen ? (
               <div className="business-committee-results" data-testid="business-committee-results">
                 {matches.length === 0 ? (
                   <p>{t("business.noCommitteeResults")}</p>
                 ) : (
-                  <>
+                  <div id={listId} role="listbox" aria-label={t("business.committees")}>
                     {matches.map((candidate, index) => (
-                      <div
-                        className="business-committee-result"
+                      <button
+                        type="button"
                         key={candidate.id}
+                        id={`${listId}-${index}`}
+                        role="option"
+                        tabIndex={-1}
+                        aria-selected={index === selectedIndex}
+                        className="business-committee-result"
                         data-testid="business-committee-result"
+                        disabled={pendingId !== null}
+                        onMouseEnter={() => setSelectedIndex(index)}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => void mutate(candidate.id, "associate")}
                       >
-                        <button
-                          type="button"
-                          className="business-committee-result-name"
-                          data-testid="business-committee-result-select"
-                          aria-current={index === selectedIndex ? "true" : undefined}
-                          disabled={pendingId !== null}
-                          onFocus={() => setSelectedIndex(index)}
-                          onClick={() => void mutate(candidate.id, "associate")}
-                        >
-                          {candidate.name}
-                        </button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          data-testid="business-committee-result-add"
-                          aria-label={t("business.addCommittee").replace("{name}", candidate.name)}
-                          disabled={pendingId !== null}
-                          onClick={() => void mutate(candidate.id, "associate")}
-                        >
-                          <AddIcon aria-hidden="true" />
-                        </Button>
-                      </div>
+                        {candidate.name}
+                      </button>
                     ))}
-                    <p className="business-committee-keyboard-hint">{t("business.committeeEnterHint")}</p>
-                  </>
+                  </div>
                 )}
               </div>
             ) : null}

@@ -112,6 +112,7 @@ function markerStyle(style: FeatureStyle, text?: Text): Style {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32"><path d="M12 31C9 26 1 19 1 12a11 11 0 0 1 22 0c0 7-8 14-11 19Z" fill="${color}" stroke="white" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="white"/></svg>`;
   return new Style({
     image: new Icon({
+      declutterMode: "none",
       src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
       anchor: [0.5, 1],
       scale: sizes[size],
@@ -141,6 +142,7 @@ export function lineArrowStyles(style: FeatureStyle, geometry?: Geometry): Style
       new Style({
         geometry: new Point(end),
         image: new RegularShape({
+          declutterMode: "none",
           points: 3,
           radius: 8,
           angle: Math.PI / 2,
@@ -159,6 +161,7 @@ export function lineArrowStyles(style: FeatureStyle, geometry?: Geometry): Style
 function compactMarker(color: string, points: number, angle: number, text?: Text): Style {
   return new Style({
     image: new RegularShape({
+      declutterMode: "none",
       points,
       radius: 8,
       angle,
@@ -177,4 +180,13 @@ function colorWithOpacity(color: string, opacity: number): number[] {
   const parsed = [...fromString(color)];
   parsed[3] = opacity;
   return parsed;
+}
+
+/** Name of a drawing: its label, or its nature followed by its rank in the Composition list. */
+export function geographicDrawingName(
+  feature: { properties: { kind: HallGeoJsonFeatureKind; label?: string | null } },
+  index: number,
+  kindLabels: Record<HallGeoJsonFeatureKind, string>,
+): string {
+  return feature.properties.label ?? `${kindLabels[feature.properties.kind]} ${index + 1}`;
 }

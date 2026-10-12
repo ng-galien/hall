@@ -3713,7 +3713,11 @@
         "La base rattache une note seulement à un dessin de la carte : l’identifiant d’une mesure enregistrée (longueur ou surface) est refusé avec l’erreur HV613 « A saved measurement has no note », et le serveur répond par une requête invalide.",
         "Le fichier d’une affaire exporté transporte, pour chaque carte qu’il contient, les notes de ses dessins avec leur lien au dessin (identifiant du dessin dans la carte), comme il transporte les notes des parcelles et des entités des couches (HALL-FR-DOC-390) ; l’import restaure chaque note sur le dessin de la carte importée, avec son texte et ses photos.",
         "Un lecteur sans droit de modifier la carte qui clique sur un dessin, en mode Carte de l’espace de travail comme dans « Cartes », ouvre la fiche du dessin en lecture : libellé, nature, mesures du dessin (longueur, ou surface et périmètre) et note rendue, sans « Modifier la forme », sans création de note et sans modification de la note ; le bouton de fermeture et Échap ferment la fiche.",
-        "Pour qui peut créer la note, l’ouverture de la fiche prépare directement la note vide existante ou nouvelle et son éditeur, sans bouton « Ajouter une note ». Un lecteur ne crée aucune note ; les erreurs sont signalées sans relance automatique en boucle."
+        "Pour qui peut créer la note, l’ouverture de la fiche prépare directement la note vide existante ou nouvelle et son éditeur, sans bouton « Ajouter une note ». Un lecteur ne crée aucune note ; les erreurs sont signalées sans relance automatique en boucle.",
+        "La fiche d’un dessin est la même en mode Éléments et en mode Mesures : icône de la géométrie à la place de sa nature écrite, nom, couleur et menu « ⋯ » de la ligne du dessin pour qui peut modifier la carte, centrage et fermeture ; « Modifier la forme » choisi en mode Mesures ouvre Éléments sur ce dessin.",
+        "Les mesures d’une ligne ou d’une zone s’affichent dans sa fiche quand elles sont affichées sur la carte ; en mode Mesures, un clic sur un dessin affiche ses mesures sur la carte et dans la fiche ; un lecteur voit toujours les mesures dans la fiche.",
+        "La note occupe directement le corps de la fiche, sans second cadre ni bandeau, en gardant la place de la barre de mise en forme de l’éditeur.",
+        "La fiche d’un dessin se redimensionne avec sa poignée, dans la carte et au-dessus des outils de zoom ; sa taille est conservée pendant la session du navigateur."
       ],
       "clauses": [
         {
@@ -3732,6 +3736,12 @@
           "key": "drawn-element-card-for-readers",
           "origin": "product",
           "statement": "Décision du propriétaire du 2026-10-10 (question 658) : un lecteur voit la fiche d’un dessin, ses mesures et sa note en lecture seule.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-card-unified",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-12 : une seule fiche de dessin, celle du mode Éléments, compacte, avec les contrôles de la ligne du dessin ; les mesures affichées sur la carte apparaissent aussi dans la fiche.",
           "sourceIds": []
         }
       ]
@@ -3888,7 +3898,15 @@
         "Échap garde l’ordre décrit par HALL-FR-DOC-300 et HALL-FR-DOC-410 (dessin ou mesure en cours, fiche, puis fenêtre de dialogue) ; le mode actif et son panneau restent ouverts après Échap.",
         "Les panneaux « Composition » et « Mesures » s’ouvrent à la hauteur de leur contenu, au moins celle de leur en-tête, de leurs outils et d’une ligne, au plus celle de la carte sous la barre d’outils ; au-delà, leur liste défile à l’intérieur du panneau, qui reste dans la carte.",
         "La taille donnée par l’utilisateur à un panneau avec sa poignée de redimensionnement est conservée pendant la session du navigateur, à chaque réouverture du panneau et après un rechargement de la page.",
-        "Le sélecteur « Éléments » / « Mesures », le bouton « Couches » et les outils de zoom forment une barre compacte : sélecteur et outils de zoom sans marge intérieure autour de leurs boutons, hauteur du sélecteur 32 px, icônes à 1 em, libellés à la taille de légende ; chaque bouton offre une cible d’au moins 32 px sur 32 px."
+        "Le sélecteur « Éléments » / « Mesures », le bouton « Couches » et les outils de zoom forment une barre compacte : sélecteur et outils de zoom sans marge intérieure autour de leurs boutons, hauteur du sélecteur 32 px, icônes à 1 em, libellés à la taille de légende ; chaque bouton offre une cible d’au moins 32 px sur 32 px.",
+        "Le panneau « Éléments » porte deux onglets, « Éléments » (outils et liste des dessins, avec leur nombre) et « Légende » (éditeur de la légende), sur un seul bandeau qui sert aussi de poignée de déplacement ; le panneau « Mesures » porte ses onglets « Mesures » et « Coordonnées » sur le même bandeau ; seule la liste ou la légende défile.",
+        "Chaque ligne de dessin porte une poignée de déplacement ; glisser une ligne sur une autre la place à cet endroit, et l’ordre de la liste, qui est l’ordre enregistré dans la collection GeoJSON, est conservé au-delà de neuf dessins.",
+        "Le bouton « Mesures » de la barre d’outils porte l’icône de règle.",
+        "Les libellés des dessins qui se chevauchent sont masqués jusqu’à ce que le zoom les sépare ; les repères, les flèches et les formes restent toujours affichés.",
+        "Une ligne de dessin montre la poignée, l’icône de sa géométrie, son nom, le bouton de centrage, sa couleur et le menu « ⋯ » ; le menu contient « Masquer sur la carte » ou « Afficher sur la carte », « Modifier la forme », « Afficher les mesures » pour une ligne ou une zone, les flèches pour une ligne (sans flèche, sens du tracé, sens inverse, deux sens) et « Supprimer ».",
+        "Le nom d’un dessin masqué est barré, dans la liste comme dans sa fiche.",
+        "« Éléments » et « Mesures » sont une même fenêtre : la position et la taille données à l’une sont celles de l’autre quand on change de mode, pendant la session du navigateur.",
+        "Après une action choisie dans le menu d’un dessin, Échap revient à la carte : il termine la modification de forme en cours puis ferme la fiche."
       ],
       "clauses": [
         {
@@ -3919,6 +3937,18 @@
           "key": "geographic-compact-toolbar",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : la barre d’outils de la carte (sélecteur de mode, Couches, zoom) un quart plus compacte, cibles tactiles d’au moins 32 px.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-composition-tabs-and-order",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-12 : la légende dans un onglet du panneau Composition plutôt qu’à la suite de la liste, une poignée pour réordonner et regrouper les dessins, une icône de règle pour Mesures et des libellés lisibles sans chevauchement.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-row-menu-and-shared-window",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-12 : lignes de dessin compactes avec centrage, couleur et un menu pour l’affichage, la modification, les mesures, les flèches et la suppression ; nom barré pour un dessin masqué ; « Éléments » et « Mesures » réutilisent la même fenêtre et le même en-tête.",
           "sourceIds": []
         }
       ]
@@ -7567,7 +7597,8 @@
       "acceptanceCriteria": [
         "Depuis l’en-tête de la fiche d’une affaire, un utilisateur autorisé recherche une commission parmi plusieurs résultats et l’associe par le bouton + du résultat ou par Entrée sur le résultat sélectionné ; chaque association apparaît comme un badge sur la même ligne. Le nom de la commission ouvre sa fiche par un lien dont le soulignement apparaît après un bref survol ; la croix distincte retire le rattachement. Plusieurs commissions peuvent être associées et les liens enregistrés restent visibles après rechargement.",
         "Depuis la fiche d’une commission, un utilisateur peut retrouver les affaires qui lui sont associées et ouvrir leur fiche.",
-        "L’ajout et le retrait d’une association sont des mises à jour d’une affaire existante et exigent une permission dédiée à cette mise à jour ; cette permission n’autorise ni la création ni la suppression d’une affaire et ne se confond ni avec workspace.write ni avec le droit de préparer les commissions."
+        "L’ajout et le retrait d’une association sont des mises à jour d’une affaire existante et exigent une permission dédiée à cette mise à jour ; cette permission n’autorise ni la création ni la suppression d’une affaire et ne se confond ni avec workspace.write ni avec le droit de préparer les commissions.",
+        "Le choix d’une commission sur la fiche d’une affaire est une liste déroulante avec recherche, à la hauteur d’un petit contrôle : un clic ou la flèche vers le bas affiche toutes les commissions encore disponibles, la saisie filtre la liste, Entrée ou un clic associe la commission choisie, Échap ferme la liste."
       ],
       "clauses": [
         {
@@ -7580,6 +7611,12 @@
           "key": "permission",
           "origin": "product",
           "statement": "Une permission dédiée à la mise à jour d’une affaire existante couvre ses modifications, dont l’association et la dissociation des commissions, mais pas sa création ni sa suppression ; elle ne se confond ni avec workspace.write ni avec la préparation des commissions.",
+          "sourceIds": []
+        },
+        {
+          "key": "committee-combo-box",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-12 : le sélecteur de commission est une liste déroulante avec recherche, plus compacte, qui montre toute la liste au clic ou à la flèche vers le bas.",
           "sourceIds": []
         }
       ]
@@ -8370,7 +8407,13 @@
         "Le contenu d’un document reste aussi consultable dans la ligne dépliée, comme auparavant.",
         "Le rapport d’une affaire propose « Aperçu PDF » en lecture comme en édition ; l’action envoie le contenu courant du rapport, y compris les retouches non encore enregistrées, au même aperçu PDF temporaire que le Lab et l’affiche dans la visionneuse native sans modifier l’affaire ni rassembler les documents non référencés de son dossier. Les PDF référencés dans le rapport suivent le traitement du Lab et sont ajoutés à l’aperçu ; le bouton indique la génération et un échec lisible ; fermer l’aperçu ou changer d’affaire conserve le contexte et ne révèle pas un ancien PDF.",
         "Pendant le chargement initial réel du rapport, la section affiche un emplacement stable et un statut de chargement accessible. Dès que la ressource est prête, elle affiche l’éditeur ou le contenu en lecture, y compris lorsque le rapport est vide ; un échec de chargement affiche une erreur avec une action pour réessayer. Les retouches et les enregistrements ultérieurs ne réaffichent pas le chargement initial.",
-        "L’ouverture directe d’une affaire charge son identité et son rapport sans attendre la liste des autres affaires, leurs ressources rattachées ni les annuaires sans rapport avec la vue. Les documents de cette affaire chargent séparément pour fournir leur nombre exact ; une section repliée ne construit pas les sous-vues des documents et un panneau de dossier caché ne précharge pas ses autres affaires. L’arbre et la recherche peuvent charger les index globaux lorsque l’utilisateur demande leur contenu complet."
+        "L’ouverture directe d’une affaire charge son identité et son rapport sans attendre la liste des autres affaires, leurs ressources rattachées ni les annuaires sans rapport avec la vue. Les documents de cette affaire chargent séparément pour fournir leur nombre exact ; une section repliée ne construit pas les sous-vues des documents et un panneau de dossier caché ne précharge pas ses autres affaires. L’arbre et la recherche peuvent charger les index globaux lorsque l’utilisateur demande leur contenu complet.",
+        "Quand le texte référence des documents, « Aperçu PDF » propose deux choix : « Sans les documents », où chaque référence à un PDF reste du texte simple sans lecture de son contenu, et « Avec les documents PDF référencés », qui les ajoute à la suite comme auparavant. Sans référence, le bouton génère directement l’aperçu.",
+        "Un document texte de l’espace de travail propose le même « Aperçu PDF » dans son en-tête.",
+        "Dans l’affaire ouverte par son lien direct, chaque référence du rapport à une ressource s’ouvre : les résumés viennent des documents de l’affaire déjà chargés et une ressource non rattachée est lue seule, sans charger le catalogue complet.",
+        "L’image d’une carte incluse dans un PDF reprend les repères en épingle de la carte, des traits et des zones assez épais pour la largeur de la page, et des libellés sans chevauchement.",
+        "La page d’une affaire ne porte ni titre « Rapport du sujet » ni phrase de présentation fixe ; le bouton d’aperçu PDF du rapport est dans l’en-tête de l’affaire.",
+        "Le bouton de sauvegarde automatique d’un document montre seulement son icône d’état ; son infobulle donne l’état de la sauvegarde automatique et de l’enregistrement, et un clic l’active ou la désactive. L’indicateur d’enregistrement d’un procès-verbal suit la même règle."
       ],
       "clauses": [
         {
@@ -8401,6 +8444,18 @@
           "key": "business-direct-load-isolation",
           "origin": "product",
           "statement": "Correction du défaut de chargement demandée par le propriétaire le 2026-10-11 : une affaire ouverte par son lien direct ne dépend pas de l’inventaire des autres affaires et de toutes leurs ressources pour afficher son rapport ; les données globales sont chargées lorsque leur navigation ou leur recherche est demandée.",
+          "sourceIds": []
+        },
+        {
+          "key": "business-report-pdf-choice-and-references",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-12 : choisir de joindre ou non les documents à l’export PDF d’une affaire et d’un document texte, retrouver des références cliquables et une carte exportée identique à la carte.",
+          "sourceIds": []
+        },
+        {
+          "key": "business-page-without-fixed-text",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-12 : retirer de la page d’affaire et des documents les textes fixes ou répétés (« Rapport du sujet », phrase de présentation, « Sauvegarde auto ») ; l’icône porte l’information.",
           "sourceIds": []
         }
       ]
@@ -8651,13 +8706,21 @@
         "La collection GeoJSON des dessins porte une liste optionnelle legend de couples color et label ; une carte sans légende continue de fonctionner.",
         "La légende apparaît par défaut en bandeau horizontal compact en superposition à l’intérieur du bas de la carte, avec retour à la ligne selon la largeur disponible, sans couvrir les contrôles de zoom ni les attributions ; le bouton « Légende » et « Enregistrer ce cadrage » sont côte à côte. Elle est consultable en lecture seule et dans les cartes incorporées, et reste accessible sans défilement externe dans l’aperçu plein écran.",
         "Dans le panneau Dessin, qui peut modifier la carte ajoute, renomme, recolore et retire les entrées de légende. Les libellés vides, couleurs invalides et listes de plus de 16 entrées sont refusés.",
-        "La légende est conservée lors de la modification des dessins, des mesures et du cadrage, après sauvegarde et rechargement, et voyage dans le document de la carte."
+        "La légende est conservée lors de la modification des dessins, des mesures et du cadrage, après sauvegarde et rechargement, et voyage dans le document de la carte.",
+        "Le choix de couleur d’un dessin propose d’abord les couleurs de la légende, chacune avec sa signification, puis les couleurs standard et les couleurs déjà utilisées par les dessins de la carte, y compris les couleurs personnalisées.",
+        "L’image d’une carte incluse dans un PDF porte sa légende."
       ],
       "clauses": [
         {
           "key": "geographic-drawing-legend",
           "origin": "product",
           "statement": "Demande du propriétaire du 11 octobre 2026 : conserver et afficher la correspondance entre couleurs et signification, et la modifier à côté des dessins.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-legend-color-presets-and-export",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-12 : retrouver les couleurs de la légende et les couleurs personnalisées déjà utilisées dans le choix de couleur des dessins, et garder la légende dans l’export PDF.",
           "sourceIds": []
         }
       ]
@@ -8673,13 +8736,20 @@
       "acceptanceCriteria": [
         "Le choix est disponible dans la fiche de la ligne pour qui peut modifier la carte, enregistré dans son style et conservé après rechargement.",
         "Les flèches suivent le premier et le dernier segment non nul du tracé ; une ligne sans déplacement ne produit pas de flèche orientée arbitrairement.",
-        "Les lignes existantes sans choix explicite restent sans flèches ; les flèches restent visibles pendant la sélection et la modification de forme."
+        "Les lignes existantes sans choix explicite restent sans flèches ; les flèches restent visibles pendant la sélection et la modification de forme.",
+        "L’image d’une carte incluse dans un PDF dessine les mêmes flèches au bout des lignes."
       ],
       "clauses": [
         {
           "key": "geographic-line-arrows",
           "origin": "product",
           "statement": "Demande du propriétaire du 11 octobre 2026 : une ligne doit pouvoir porter une flèche dans un sens, dans l’autre ou dans les deux sens.",
+          "sourceIds": []
+        },
+        {
+          "key": "geographic-line-arrows-export",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-10-12 : l’export PDF d’une carte doit afficher les dessins comme la carte.",
           "sourceIds": []
         }
       ]

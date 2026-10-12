@@ -200,4 +200,15 @@ test("the Composition and Mesures panels take their content height inside the ma
   await page.reload();
   await expect(composition).toBeVisible();
   expect(Math.round((await composition.boundingBox())!.height)).toBe(Math.round(resized!.height));
+
+  // Mesures reopens the same window: same place and same size as the Éléments the user resized.
+  const elementsBox = (await composition.boundingBox())!;
+  await page.getByTestId("geographic-mode-map").click();
+  const measures = page.getByTestId("geographic-measures");
+  await expect(measures).toBeVisible();
+  const measuresBox = (await measures.boundingBox())!;
+  expect(Math.round(measuresBox.x)).toBe(Math.round(elementsBox.x));
+  expect(Math.round(measuresBox.y)).toBe(Math.round(elementsBox.y));
+  expect(Math.round(measuresBox.width)).toBe(Math.round(elementsBox.width));
+  expect(Math.round(measuresBox.height)).toBe(Math.round(elementsBox.height));
 });

@@ -14,14 +14,25 @@ describe("CouncilBusiness workspace contracts", () => {
   it("lists navigation without reading other business reports", async () => {
     const { agent } = await createTestServer();
     const business = domainBody<CouncilBusiness>(
-      await agent.post("/api/council-business").send({ path: "culture", name: "library", reportName: "report", reportContent: "Private report body" }).expect(201),
+      await agent
+        .post("/api/council-business")
+        .send({ path: "culture", name: "library", reportName: "report", reportContent: "Private report body" })
+        .expect(201),
     );
-    const index = domainBody<{ businesses: { id: string; folderResourceId: string; title: string; folderPath: string }[]; catalog: { id: string }[] }>(
-      await agent.get("/api/council-business/workspace-index").expect(200),
+    const index = domainBody<{
+      businesses: { id: string; folderResourceId: string; title: string; folderPath: string }[];
+      catalog: { id: string }[];
+    }>(await agent.get("/api/council-business/workspace-index").expect(200));
+    expect(index.businesses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: business.id,
+          folderResourceId: business.folderResourceId,
+          title: "library",
+          folderPath: "culture",
+        }),
+      ]),
     );
-    expect(index.businesses).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: business.id, folderResourceId: business.folderResourceId, title: "library", folderPath: "culture" }),
-    ]));
     expect(JSON.stringify(index)).not.toContain("Private report body");
     expect(index.catalog).toEqual(expect.arrayContaining([expect.objectContaining({ id: business.folderResourceId })]));
   });

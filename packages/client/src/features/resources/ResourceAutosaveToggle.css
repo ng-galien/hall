@@ -100,10 +100,3 @@
   }
 }
 
-.resource-autosave-toggle-labeled {
-  width: auto;
-  gap: var(--hall-space-1-5);
-  padding-inline: var(--hall-space-2);
-  border-radius: var(--hall-radius-small);
-  font-size: var(--hall-font-size-caption);
-}

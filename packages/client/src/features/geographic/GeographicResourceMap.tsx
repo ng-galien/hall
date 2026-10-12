@@ -17,6 +17,7 @@ import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { GeographicCompositionEditor } from "./GeographicCompositionEditor";
+import { DrawingActionsMenu, DrawingColorControl } from "./GeographicDrawingControls";
 import { GeographicDrawnElementCard, useGeographicDrawnElementNotes } from "./GeographicDrawnElementCard";
 import { GeographicFeatureCard } from "./GeographicFeatureCard";
 import { GeographicLayerControls } from "./GeographicLayerControls";
@@ -25,7 +26,11 @@ import { GeographicLegend } from "./GeographicLegend";
 import { GeographicMeasurePanel, MeasureReadout } from "./GeographicMeasurePanel";
 import type { GeographicPointerState, GeographicPointerTarget } from "./geographicCursorPolicy";
 import { municipalFilterLayerIds } from "./geographicFeatureCardModel";
-import { geographicFeatureKindLabels } from "./geographicFeatureKindPolicy";
+import {
+  geographicDrawingName,
+  geographicFeatureKindLabels,
+  geographicFeatureKindPolicy,
+} from "./geographicFeatureKindPolicy";
 import {
   canImportGeographicLayer,
   canLinkGeographicLayer,
@@ -214,7 +219,10 @@ export function GeographicResourceMap({
     onFeatureCreated,
     onViewChange: changeDisplayedView,
   });
-  const compositionLayout = useGeographicCompositionLayout(resource.id, workspaceMode === "draw");
+  const compositionLayout = useGeographicCompositionLayout(
+    resource.id,
+    workspaceMode === "draw" || workspaceMode === "measure" ? workspaceMode : null,
+  );
   const [overlays, setOverlays] = useState(resource.overlays);
   const [layerUploadOpen, setLayerUploadOpen] = useState(false);
   useEffect(() => setOverlays(resource.overlays), [resource.overlays]);
@@ -259,15 +267,20 @@ export function GeographicResourceMap({
   const readerInspection = (embedded || workspaceMode !== "draw" || !canUpdate) && !measuring;
   const [inspectedDrawingId, setInspectedDrawingId] = useState<string | null>(null);
   const olMap = mapRuntime.map;
-  const inspectionCallbacks = useRef({ drawingIdAt, setSelection });
-  inspectionCallbacks.current = { drawingIdAt, setSelection };
+  // In Mesures, a click on a drawing shows its measures on the map and in its card.
+  const measureClickedDrawing = workspaceMode === "measure";
+  const inspectionCallbacks = useRef({ drawingIdAt, setSelection, measureClickedDrawing });
+  inspectionCallbacks.current = { drawingIdAt, setSelection, measureClickedDrawing };
   useEffect(() => {
     setInspectedDrawingId(null);
     if (!olMap || !readerInspection) return;
     const inspect = (event: { pixel: number[] }) => {
       const drawingId = inspectionCallbacks.current.drawingIdAt(event.pixel);
       setInspectedDrawingId(drawingId);
-      if (drawingId) inspectionCallbacks.current.setSelection(null);
+      if (!drawingId) return;
+      inspectionCallbacks.current.setSelection(null);
+      if (inspectionCallbacks.current.measureClickedDrawing)
+        setMeasuredDrawingIds((previous) => (previous.has(drawingId) ? previous : new Set(previous).add(drawingId)));
     };
     olMap.on("singleclick", inspect);
     return () => olMap.un("singleclick", inspect);
@@ -275,10 +288,6 @@ export function GeographicResourceMap({
   const inspectedDrawing = readerInspection
     ? (drawings.find(({ id }) => String(id) === inspectedDrawingId) ?? null)
     : null;
-  const inspectedGeometry = inspectedDrawing
-    ? mapRuntime.drawingSource?.getFeatureById(String(inspectedDrawing.id))?.getGeometry()
-    : undefined;
-  const inspectedMeasure = inspectedGeometry ? measureGeometry(inspectedGeometry) : null;
   const drawnElementNotes = useGeographicDrawnElementNotes(
     (workspaceMode === "draw" && canUpdate) || readerInspection ? mapRepresentation : null,
     onError,
@@ -287,7 +296,6 @@ export function GeographicResourceMap({
     workspaceMode === "draw" && canUpdate
       ? (drawings.find(({ id }) => id === mapRuntime.selectedFeatureId) ?? null)
       : null;
-  const selectedDrawnElementIndex = selectedDrawnElement ? drawings.indexOf(selectedDrawnElement) : -1;
   useGeographicSavedMeasurementLayer(embedded ? null : mapRuntime.map, measurements);
   useGeographicDrawingMeasureLayer(mapRuntime.map, mapRuntime.drawingSource, measuredDrawingIds, hallLayerVisible);
   const selectedNote = useGeographicFeatureNote(selectedFeature, onError);
@@ -334,23 +342,22 @@ export function GeographicResourceMap({
             expectedVersion: latestVersionRef.current,
           });
           if (updated?.kind !== "geographic") {
-            throw new Error(useWorkspaceResourcesStore.getState().error ?? "request_failed");
+            // The store reports the failure of this call as its error code, read right after the call returns.
+            throw new ApiError(useWorkspaceResourcesStore.getState().error ?? "request_failed", 0);
           }
           latestVersionRef.current = updated.version;
           savedSignatureRef.current = signature;
           setSavedSignature(signature);
         } catch (failure) {
-          if (
-            (failure instanceof ApiError && failure.status === 409) ||
-            useWorkspaceResourcesStore.getState().error === "conflict"
-          ) {
+          const code = apiErrorCode(failure);
+          if ((failure instanceof ApiError && failure.status === 409) || code === "conflict") {
             const latest = await useWorkspaceResourcesStore.getState().open(resource.id);
             if (latest?.data.kind === "geographic") latestVersionRef.current = latest.data.version;
             conflictRef.current = true;
             setConflict(true);
             onError(null);
           } else {
-            onError(apiErrorCode(failure));
+            onError(code);
           }
           setSaveStatus("error");
           return false;
@@ -468,32 +475,124 @@ export function GeographicResourceMap({
     { value: cssToken("--hall-color-text-muted"), label: t("geographic.color.gray") },
     { value: cssToken("--hall-color-text"), label: t("geographic.color.black") },
   ];
+  // Colors already used by this map's drawings, custom ones included, are offered again after the standard ones.
+  const knownColors = new Set(featureColorPresets.map((preset) => preset.value.toLowerCase()));
+  const mapColorPresets: ColorPickerPreset[] = [];
+  for (const drawing of drawings) {
+    const color = geographicFeatureKindPolicy[drawing.properties.kind].color(drawing.properties.style);
+    if (!color || knownColors.has(color.toLowerCase())) continue;
+    knownColors.add(color.toLowerCase());
+    mapColorPresets.push({ value: color, label: t("geographic.color.used") });
+  }
+  const drawingColorPresets = [...featureColorPresets, ...mapColorPresets];
+  // The colors the map gives a meaning to are offered with that meaning, above the plain colors.
+  const legendColorPresets: ColorPickerPreset[] = (draft.hallLayer.legend ?? []).map(({ color, label }) => ({
+    value: color,
+    label,
+  }));
 
-  const inspectedDrawingCard = inspectedDrawing ? (
-    <GeographicDrawnElementCard
-      key={inspectedDrawing.id}
-      readOnly={!canUpdate || embedded}
-      label={
-        inspectedDrawing.properties.label ??
-        `${featureKindLabels[inspectedDrawing.properties.kind]} ${drawings.indexOf(inspectedDrawing) + 1}`
-      }
-      kindLabel={featureKindLabels[inspectedDrawing.properties.kind]}
-      measures={
-        inspectedMeasure && inspectedMeasure.kind !== "position" ? (
-          <MeasureReadout measure={inspectedMeasure} testId="geographic-drawn-element-card-measures" />
-        ) : null
-      }
-      note={drawnElementNotes.notes?.find(({ key }) => key === inspectedDrawing.id) ?? null}
-      loading={drawnElementNotes.notes === null}
-      canCreateNote={canUpdate && !embedded && drawnElementNotes.canCreate && !conflict}
-      creatingNote={drawnElementNotes.creating}
-      mapElement={mapRuntime.mapElementRef.current}
-      modifying={false}
-      onCreateNote={() => drawnElementNotes.create(String(inspectedDrawing.id), save)}
-      onCenter={() => mapRuntime.fitFeature(String(inspectedDrawing.id))}
-      onClose={() => setInspectedDrawingId(null)}
-    />
-  ) : null;
+  const setDrawingMeasured = (id: string, visible: boolean) =>
+    setMeasuredDrawingIds((previous) => {
+      const next = new Set(previous);
+      if (visible) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  const drawingName = (drawing: (typeof drawings)[number]) =>
+    geographicDrawingName(drawing, drawings.indexOf(drawing), featureKindLabels);
+  const drawingKindIcon = (drawing: (typeof drawings)[number]) => {
+    const Icon = geographicFeatureKindPolicy[drawing.properties.kind].Icon;
+    return <Icon />;
+  };
+  // The card repeats the controls of the drawing's Composition row, so either place acts the same way.
+  // @implements-requirement HALL-FR-DOC-430
+  const drawingActions = (drawing: (typeof drawings)[number]) => {
+    const id = String(drawing.id);
+    const name = drawingName(drawing);
+    const modifying = mapRuntime.modifyingFeatureId === id;
+    return (
+      <>
+        <DrawingColorControl
+          name={name}
+          color={geographicFeatureKindPolicy[drawing.properties.kind].color(drawing.properties.style)}
+          presets={drawingColorPresets}
+          legendPresets={legendColorPresets}
+          className="geographic-feature-card-color"
+          onChange={(color) => mapRuntime.setFeatureColor(id, color)}
+        />
+        <DrawingActionsMenu
+          name={name}
+          className="geographic-feature-card-icon"
+          testId={(part) => `geographic-drawn-element-card-${part}`}
+          kind={drawing.properties.kind}
+          visible={drawing.properties.visible !== false}
+          onVisibility={(visible) => mapRuntime.setFeatureVisibility(id, visible)}
+          modifying={modifying}
+          onToggleModifying={() => {
+            if (modifying) return mapRuntime.stopModifying();
+            // The shape is modified in Éléments: from Mesures the action opens Éléments on this drawing.
+            if (workspaceMode !== "draw") {
+              setInspectedDrawingId(null);
+              setWorkspaceMode("draw");
+              setDrawTool("select");
+            }
+            mapRuntime.startModifying(id);
+          }}
+          measuresActive={measuredDrawingIds.has(id)}
+          onMeasures={(active) => setDrawingMeasured(id, active)}
+          arrows={drawing.properties.kind === "line" ? drawing.properties.style.arrows : undefined}
+          onArrows={(arrows) => mapRuntime.setFeatureArrows(id, arrows)}
+          onDelete={() => mapRuntime.deleteSelected(id)}
+        />
+      </>
+    );
+  };
+
+  // One card for a drawing whatever the mode: the same header, measures, line arrows and note; a reader gets it
+  // without the editing actions.
+  // @implements-requirement HALL-FR-DOC-430
+  const drawingCard = (
+    drawing: (typeof drawings)[number],
+    { key, editable, onClose }: { key: string; editable: boolean; onClose(): void },
+  ) => {
+    const id = String(drawing.id);
+    const geometry = mapRuntime.drawingSource?.getFeatureById(id)?.getGeometry();
+    const measure = geometry ? measureGeometry(geometry) : null;
+    return (
+      <GeographicDrawnElementCard
+        key={key}
+        readOnly={!editable}
+        label={drawingName(drawing)}
+        kindLabel={featureKindLabels[drawing.properties.kind]}
+        kindIcon={drawingKindIcon(drawing)}
+        actions={editable ? drawingActions(drawing) : undefined}
+        hidden={drawing.properties.visible === false}
+        // The measures shown on the map for this drawing are also read in its card; a reader always sees them.
+        measures={
+          measure && measure.kind !== "position" && (!editable || measuredDrawingIds.has(id)) ? (
+            <MeasureReadout measure={measure} testId="geographic-drawn-element-card-measures" />
+          ) : null
+        }
+        note={drawnElementNotes.notes?.find((note) => note.key === drawing.id) ?? null}
+        loading={drawnElementNotes.notes === null}
+        canCreateNote={editable && drawnElementNotes.canCreate && !conflict}
+        creatingNote={drawnElementNotes.creating}
+        mapElement={mapRuntime.mapElementRef.current}
+        modifying={mapRuntime.modifyingFeatureId === id}
+        onStopModifying={mapRuntime.stopModifying}
+        onCreateNote={() => drawnElementNotes.create(id, save)}
+        onCenter={() => mapRuntime.fitFeature(id)}
+        onClose={onClose}
+      />
+    );
+  };
+  const inspectedDrawingCard = inspectedDrawing
+    ? drawingCard(inspectedDrawing, {
+        key: String(inspectedDrawing.id),
+        editable: canUpdate && !embedded,
+        onClose: () => setInspectedDrawingId(null),
+      })
+    : null;
 
   if (embedded) {
     return (
@@ -540,6 +639,11 @@ export function GeographicResourceMap({
         />
         {workspaceMode === "measure" ? (
           <GeographicMeasurePanel
+            panelRef={compositionLayout.panelRef}
+            style={compositionLayout.style}
+            onPointerDown={compositionLayout.startDrag}
+            onPointerMove={compositionLayout.move}
+            onPointerUp={compositionLayout.stopDrag}
             map={mapRuntime.map}
             drawingSource={mapRuntime.drawingSource}
             onMeasuringChange={setMeasuring}
@@ -562,7 +666,8 @@ export function GeographicResourceMap({
             editingFeatureId={editingFeatureId}
             renameArmedFeatureId={renameArmedFeatureId}
             featureKindLabels={featureKindLabels}
-            colorPresets={featureColorPresets}
+            colorPresets={drawingColorPresets}
+            legendColorPresets={legendColorPresets}
             onDrawTool={setDrawTool}
             onSelect={selectFeature}
             onEditingFeature={setEditingFeatureId}
@@ -571,16 +676,11 @@ export function GeographicResourceMap({
             onVisibility={mapRuntime.setFeatureVisibility}
             onFitFeature={mapRuntime.fitFeature}
             onColor={mapRuntime.setFeatureColor}
+            onArrows={mapRuntime.setFeatureArrows}
             measuredDrawingIds={measuredDrawingIds}
-            onDrawingMeasures={(id, visible) =>
-              setMeasuredDrawingIds((previous) => {
-                const next = new Set(previous);
-                if (visible) next.add(id);
-                else next.delete(id);
-                return next;
-              })
-            }
+            onDrawingMeasures={setDrawingMeasured}
             onDelete={mapRuntime.deleteSelected}
+            onMoveFeature={mapRuntime.moveFeature}
             onToggleModifying={(id) =>
               mapRuntime.modifyingFeatureId === id ? mapRuntime.stopModifying() : mapRuntime.startModifying(id)
             }
@@ -594,34 +694,13 @@ export function GeographicResourceMap({
           />
         ) : null}
         {inspectedDrawingCard}
-        {selectedDrawnElement ? (
-          <GeographicDrawnElementCard
-            key={`${selectedDrawnElement.id}:${notePreparationRetry}`}
-            arrows={
-              selectedDrawnElement.properties.kind === "line" ? selectedDrawnElement.properties.style.arrows : undefined
-            }
-            onArrows={
-              selectedDrawnElement.properties.kind === "line"
-                ? (arrows) => mapRuntime.setFeatureArrows(String(selectedDrawnElement.id), arrows)
-                : undefined
-            }
-            label={
-              selectedDrawnElement.properties.label ??
-              `${featureKindLabels[selectedDrawnElement.properties.kind]} ${selectedDrawnElementIndex + 1}`
-            }
-            kindLabel={featureKindLabels[selectedDrawnElement.properties.kind]}
-            note={drawnElementNotes.notes?.find(({ key }) => key === selectedDrawnElement.id) ?? null}
-            loading={drawnElementNotes.notes === null}
-            canCreateNote={drawnElementNotes.canCreate && !conflict}
-            creatingNote={drawnElementNotes.creating}
-            mapElement={mapRuntime.mapElementRef.current}
-            modifying={mapRuntime.modifyingFeatureId === selectedDrawnElement.id}
-            onStopModifying={mapRuntime.stopModifying}
-            onCreateNote={() => drawnElementNotes.create(String(selectedDrawnElement.id), save)}
-            onCenter={() => mapRuntime.fitFeature(String(selectedDrawnElement.id))}
-            onClose={mapRuntime.clearSelection}
-          />
-        ) : null}
+        {selectedDrawnElement
+          ? drawingCard(selectedDrawnElement, {
+              key: `${selectedDrawnElement.id}:${notePreparationRetry}`,
+              editable: true,
+              onClose: mapRuntime.clearSelection,
+            })
+          : null}
         {selectedFeature ? (
           <GeographicFeatureCard
             key={`${selectedFeature.layerId}:${selectedFeature.position}`}

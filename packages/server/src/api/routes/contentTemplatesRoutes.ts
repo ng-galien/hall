@@ -53,7 +53,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
 
   router.post("/preview-pdf", requireActionPermission("template.preview-pdf"), async (request, response) => {
     const input = previewPdfSchema.parse(request.body);
-    const content = await contentTemplateService.previewPdf(input.bodyMarkdown, input.context);
+    const content = await contentTemplateService.previewPdf(input.bodyMarkdown, input.context, input.attachPdfDocuments);
     if (request.query.delivery === "url") {
       const now = Date.now();
       for (const [id, preview] of pdfPreviews) if (preview.expiresAt <= now) pdfPreviews.delete(id);

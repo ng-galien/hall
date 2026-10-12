@@ -12,7 +12,8 @@ import { useWorkspaceCouncilActivityStore } from "../stores/workspaceCouncilActi
 
 export function useApplicationData(): void {
   const location = useLocation();
-  const selectedBusiness = location.pathname === "/workspace" && new URLSearchParams(location.search).has("councilBusiness");
+  const selectedBusiness =
+    location.pathname === "/workspace" && new URLSearchParams(location.search).has("councilBusiness");
   useEffect(() => {
     if (selectedBusiness) {
       useApplicationSyncStore.getState().finish(null);

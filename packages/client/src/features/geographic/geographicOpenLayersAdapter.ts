@@ -200,6 +200,16 @@ export function reconcileHallDrawingSource(
       existing.setGeometry(feature.getGeometry());
     }
   }
+  const ordered = source.getFeaturesCollection();
+  const inOrder = (features: readonly Feature<Geometry>[]) =>
+    features.length === desired.length &&
+    features.every((candidate, index) => String(candidate.getId()) === desired[index].id);
+  if (ordered && !inOrder(ordered.getArray())) {
+    const byId = new Map(ordered.getArray().map((candidate) => [String(candidate.getId()), candidate]));
+    const reordered = desired.flatMap(({ id }) => byId.get(id) ?? []);
+    ordered.clear();
+    ordered.extend(reordered);
+  }
   return ids;
 }
 

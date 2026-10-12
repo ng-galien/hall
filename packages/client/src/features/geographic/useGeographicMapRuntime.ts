@@ -19,6 +19,7 @@ import OlMap from "ol/Map";
 import { toLonLat } from "ol/proj";
 import VectorSource from "ol/source/Vector";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { escapeOwnedByControl } from "./geographicEscape";
 import { geographicFeatureKindPolicy, isHallGeoJsonFeatureKind } from "./geographicFeatureKindPolicy";
 import { completeGeographicLayers } from "./geographicMapModel";
 import {
@@ -62,15 +63,6 @@ interface GeographicMapRuntimeOptions {
 
 /** Pixel tolerance of the drawing hit test, matching the vertex tolerance of the modification interaction. */
 const DRAWING_HIT_TOLERANCE = 6;
-
-const OWN_ESCAPE_SELECTOR =
-  "input, textarea, select, [data-radix-popper-content-wrapper], [role='menu'], [role='listbox']";
-
-function escapeBelongsToTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false;
-  if (target instanceof HTMLElement && target.isContentEditable) return true;
-  return target.closest(OWN_ESCAPE_SELECTOR) !== null;
-}
 
 // @implements-requirement HALL-FR-DOC-300
 // @implements-requirement HALL-FR-DOC-450
@@ -175,7 +167,10 @@ export function useGeographicMapRuntime({
     const normalizedLayers = completeGeographicLayers(initialData.layers);
     const view = createGeographicView(retainedViewRef.current ?? initialData.view);
     const tileLayers = createGeographicTileLayers(normalizedLayers);
-    const vectorSource = new VectorSource<Feature<Geometry>>({ features: readHallFeatures(initialData.hallLayer) });
+    // An ordered collection keeps the Composition order: the spatial index alone does not preserve it.
+    const vectorSource = new VectorSource<Feature<Geometry>>({
+      features: new Collection(readHallFeatures(initialData.hallLayer)),
+    });
     const vectorLayer = new VectorLayer({
       source: vectorSource,
       style: (feature, resolution) => {
@@ -185,6 +180,8 @@ export function useGeographicMapRuntime({
         return geographicFeatureStyle(feature, `${featureKindLabelsRef.current[kind]} ${index + 1}`, resolution);
       },
       zIndex: 100,
+      // Overlapping labels of close drawings are hidden until the zoom separates them; symbols always stay.
+      declutter: true,
       visible: true,
     });
     const map = new OlMap({
@@ -338,7 +335,7 @@ export function useGeographicMapRuntime({
       drawing = false;
     });
     const cancelDrawingOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || !drawing || escapeBelongsToTarget(event.target)) return;
+      if (event.key !== "Escape" || !drawing || escapeOwnedByControl(event.target)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       draw.abortDrawing();
@@ -479,6 +476,21 @@ export function useGeographicMapRuntime({
     syncHallLayer();
   };
 
+  // @implements-requirement HALL-FR-DOC-490
+  /** Moves a drawing before or after another one in the Composition order, which is the saved order. */
+  const moveFeature = (sourceId: string, targetId: string) => {
+    const features = vectorSourceRef.current?.getFeaturesCollection();
+    if (!features || sourceId === targetId) return;
+    const ordered = features.getArray();
+    const from = ordered.findIndex((feature) => String(feature.getId()) === sourceId);
+    const to = ordered.findIndex((feature) => String(feature.getId()) === targetId);
+    if (from < 0 || to < 0) return;
+    const moved = features.removeAt(from);
+    if (!moved) return;
+    features.insertAt(to, moved);
+    syncHallLayer();
+  };
+
   const setFeatureArrows = (id: string, arrows: "none" | "forward" | "backward" | "both") => {
     const feature = vectorSourceRef.current?.getFeatureById(id);
     if (feature?.get("kind") !== "line") return;
@@ -529,6 +541,7 @@ export function useGeographicMapRuntime({
     setFeatureVisibility,
     setFeatureColor,
     setFeatureArrows,
+    moveFeature,
     changeZoom,
     fitComposition,
     fitFeature,

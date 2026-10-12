@@ -396,7 +396,12 @@ test("drawing edit retains rendered base tiles and exterior dimension overlays",
               {
                 type: "Feature",
                 id: "five-vertex-area",
-                properties: { kind: "area", label: "Stationnement usagers", visible: true },
+                properties: {
+                  kind: "area",
+                  label: "Stationnement usagers",
+                  visible: true,
+                  style: { fillColor: "#1f7a4a", fillOpacity: 0.2, strokeColor: "#1f7a4a", strokeWidth: 2 },
+                },
                 geometry: {
                   type: "Polygon",
                   coordinates: [
@@ -449,6 +454,8 @@ test("drawing edit retains rendered base tiles and exterior dimension overlays",
   await page.goto(`/app/maps/${map.id}?view=${center[0]},${center[1]},19`);
   const mapElement = page.locator(".maps-surface .geographic-map");
   await expect.poll(() => mapElement.evaluate((el) => el.querySelector("canvas")?.width === el.clientWidth)).toBe(true);
+  // Maps open on Elements, where a click opens the drawing card: the drawing readout belongs to Mesures.
+  await page.getByTestId("geographic-mode-map").click();
   const box = await mapElement.boundingBox();
   if (!box) throw new Error("Map must be visible");
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -476,7 +483,9 @@ test("drawing edit retains rendered base tiles and exterior dimension overlays",
   await expect.poll(() => rejectedTileRequests).toBeGreaterThan(0);
   // At the unavailable zoom, the previously loaded parent tiles are still visible.
   await expect.poll(tilePixel).toEqual([20, 140, 90, 255]);
+  await page.getByTestId("geographic-mode-draw").click();
   await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId(`geographic-composition-feature-menu-${copied.id}`).click();
   await page.getByTestId(`geographic-composition-feature-modify-${copied.id}`).click();
   await expect(page.getByTestId(`geographic-composition-feature-${copied.id}`)).toHaveAttribute(
     "data-modifying",

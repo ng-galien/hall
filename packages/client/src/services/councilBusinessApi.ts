@@ -6,11 +6,11 @@ import {
   type CouncilBusinessResourceAssociation,
   type CreateCouncilBusiness,
   type CreatePreparedCouncilSubject,
+  councilBusinessNavigationIndexSchema,
   councilBusinessResourceAssociationSchema,
   councilBusinessResourceItemSchema,
   councilBusinessSchema,
   councilBusinessWorkspaceItemSchema,
-  councilBusinessNavigationIndexSchema,
   createCouncilBusinessSchema,
   createPreparedCouncilSubjectSchema,
   type DissociateCouncilBusinessResource,
@@ -62,8 +62,12 @@ export function listCouncilBusinessNavigationIndex() {
   const pending = fetchCouncilBusinessNavigationIndex();
   pendingNavigationIndex = pending;
   void pending.then(
-    () => { if (pendingNavigationIndex === pending) pendingNavigationIndex = null; },
-    () => { if (pendingNavigationIndex === pending) pendingNavigationIndex = null; },
+    () => {
+      if (pendingNavigationIndex === pending) pendingNavigationIndex = null;
+    },
+    () => {
+      if (pendingNavigationIndex === pending) pendingNavigationIndex = null;
+    },
   );
   return pending;
 }

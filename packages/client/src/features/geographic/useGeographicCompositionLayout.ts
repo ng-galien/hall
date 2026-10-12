@@ -35,9 +35,14 @@ function persistLayout(resourceId: string, layout: CompositionLayout): void {
   }
 }
 
-/** Persists and constrains the position of the draggable composition panel; its size follows its content or the user's resize. */
-export function useGeographicCompositionLayout(resourceId: string, active: boolean) {
-  const panelRef = useRef<HTMLDivElement | null>(null);
+/**
+ * Persists and constrains the position of the map's side window, shared by Éléments and Mesures so that switching
+ * mode keeps the window where the user put it; its size follows its content or the user's resize.
+ */
+// @implements-requirement HALL-FR-DOC-490
+export function useGeographicCompositionLayout(resourceId: string, panel: string | null) {
+  const active = panel !== null;
+  const panelRef = useRef<HTMLElement | null>(null);
   const dragOffsetRef = useRef<{ x: number; y: number } | null>(null);
   const [layout, setLayout] = useState<CompositionLayout | null>(() => storedLayout(resourceId));
 
@@ -54,13 +59,14 @@ export function useGeographicCompositionLayout(resourceId: string, active: boole
 
   useEffect(() => setLayout(storedLayout(resourceId)), [resourceId]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the observed element changes when the other panel opens.
   useEffect(() => {
     if (!active) return;
-    const panel = panelRef.current;
-    const container = panel?.parentElement;
-    if (!panel || !container) return;
+    const element = panelRef.current;
+    const container = element?.parentElement;
+    if (!element || !container) return;
     const captureLayout = () => {
-      const panelRect = panel.getBoundingClientRect();
+      const panelRect = element.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
       const width = Math.min(panelRect.width, containerRect.width);
       const height = Math.min(panelRect.height, containerRect.height);
@@ -78,13 +84,15 @@ export function useGeographicCompositionLayout(resourceId: string, active: boole
     };
     captureLayout();
     const observer = new ResizeObserver(captureLayout);
-    observer.observe(panel);
+    observer.observe(element);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [active, updateLayout]);
+  }, [active, panel, updateLayout]);
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    // A press on a control of the header (a tab, a button) uses that control; elsewhere it moves the window.
     if (event.button !== 0 || !panelRef.current) return;
+    if ((event.target as Element).closest("button, a, input, [role='tab']")) return;
     const panelRect = panelRef.current.getBoundingClientRect();
     const containerRect = panelRef.current.parentElement?.getBoundingClientRect();
     if (!containerRect) return;
@@ -95,11 +103,11 @@ export function useGeographicCompositionLayout(resourceId: string, active: boole
 
   const move = (event: ReactPointerEvent<HTMLDivElement>) => {
     const offset = dragOffsetRef.current;
-    const panel = panelRef.current;
-    const container = panel?.parentElement;
-    if (!offset || !panel || !container) return;
+    const element = panelRef.current;
+    const container = element?.parentElement;
+    if (!offset || !element || !container) return;
     const containerRect = container.getBoundingClientRect();
-    const panelRect = panel.getBoundingClientRect();
+    const panelRect = element.getBoundingClientRect();
     updateLayout(() => ({
       left: Math.max(0, Math.min(event.clientX - containerRect.left - offset.x, containerRect.width - panelRect.width)),
       top: Math.max(0, Math.min(event.clientY - containerRect.top - offset.y, containerRect.height - panelRect.height)),

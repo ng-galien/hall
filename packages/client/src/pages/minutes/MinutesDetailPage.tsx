@@ -148,43 +148,39 @@ function MinutesDetail({ id }: { id: string }) {
           </Button>
         ) : null}
         {minutes ? (
-          <>
-            <div className="admin-detail-surface minutes-editorial-surface">
-              <MinutesFacts facts={minutes.facts} />
-              <section className="admin-record" aria-labelledby="minutes-sections-title">
-                <div className="admin-section-heading">
-                  <div>
-                    <div className="minutes-section-title">
-                      <h2 id="minutes-sections-title">
-                        {t(minutes.generatedAt ? "minutes.recordedSections" : "minutes.sections")}
-                      </h2>
-                      <MinutesSectionHint
-                        text={t(minutes.generatedAt ? "minutes.frozenHint" : "minutes.sectionsHint")}
-                      />
-                    </div>
+          <div className="admin-detail-surface minutes-editorial-surface">
+            <MinutesFacts facts={minutes.facts} />
+            <section className="admin-record" aria-labelledby="minutes-sections-title">
+              <div className="admin-section-heading">
+                <div>
+                  <div className="minutes-section-title">
+                    <h2 id="minutes-sections-title">
+                      {t(minutes.generatedAt ? "minutes.recordedSections" : "minutes.sections")}
+                    </h2>
+                    <MinutesSectionHint text={t(minutes.generatedAt ? "minutes.frozenHint" : "minutes.sectionsHint")} />
                   </div>
                 </div>
-                {minutes.facts.agenda.map((item) => (
-                  <MinutesPoint
-                    key={item.id}
-                    item={item}
-                    ballots={minutes.facts.ballots.filter((ballot) => ballot.agendaItemId === item.id)}
-                    editorialText={draft.sections[item.id] ?? ""}
-                    saveStatus={draft.sectionSaveStatus(item.id)}
-                    canEdit={draft.canEdit}
-                    generating={draft.generating}
-                    onEdit={(content) => draft.edit(item.id, content)}
-                    onBlur={() => void draft.flush()}
-                  />
-                ))}
-                {draft.saveStatus === "error" ? (
-                  <Button variant="outline" data-testid="minutes-save-retry" onClick={() => void draft.flush()}>
-                    {t("common.retry")}
-                  </Button>
-                ) : null}
-              </section>
-            </div>
-          </>
+              </div>
+              {minutes.facts.agenda.map((item) => (
+                <MinutesPoint
+                  key={item.id}
+                  item={item}
+                  ballots={minutes.facts.ballots.filter((ballot) => ballot.agendaItemId === item.id)}
+                  editorialText={draft.sections[item.id] ?? ""}
+                  saveStatus={draft.sectionSaveStatus(item.id)}
+                  canEdit={draft.canEdit}
+                  generating={draft.generating}
+                  onEdit={(content) => draft.edit(item.id, content)}
+                  onBlur={() => void draft.flush()}
+                />
+              ))}
+              {draft.saveStatus === "error" ? (
+                <Button variant="outline" data-testid="minutes-save-retry" onClick={() => void draft.flush()}>
+                  {t("common.retry")}
+                </Button>
+              ) : null}
+            </section>
+          </div>
         ) : null}
       </div>
       {draft.documentUrl ? (

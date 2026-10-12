@@ -2,6 +2,7 @@ import type { GeographicFeatureNote } from "@hall/api-contract";
 import type OlMap from "ol/Map";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import { escapeOwnedByControl } from "./geographicEscape";
 import {
   canCreateGeographicFeatureNote,
   createGeographicFeatureNote,
@@ -11,14 +12,10 @@ import {
 } from "./geographicLayersApi";
 import type { GeographicFeatureDescription, GeographicFeatureSelection } from "./useGeographicOverlays";
 
-const OWN_ESCAPE_SELECTOR =
-  "input, textarea, select, [data-radix-popper-content-wrapper], [role='menu'], [role='listbox']";
-
 /** Escape belongs to a field, an editor, a menu, or a dialog opened above the map, not to the dialog holding it. */
 export function escapeBelongsToTarget(target: EventTarget | null, mapElement: HTMLElement | null): boolean {
+  if (escapeOwnedByControl(target)) return true;
   if (!(target instanceof Element)) return false;
-  if (target instanceof HTMLElement && target.isContentEditable) return true;
-  if (target.closest(OWN_ESCAPE_SELECTOR) !== null) return true;
   const dialog = target.closest("[role='dialog']");
   return dialog !== null && !(mapElement && dialog.contains(mapElement));
 }

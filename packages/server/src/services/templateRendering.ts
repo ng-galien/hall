@@ -62,12 +62,14 @@ async function resourceReferenceNode(
   resource: ResourceDetail,
   label: string,
   resourcesClient: ResourcesClient,
-  registerPdfAttachment: (resource: TemplatePdfAttachment) => void,
+  /** Null when the PDF does not carry its referenced documents: the reference is then plain text. */
+  registerPdfAttachment: ((resource: TemplatePdfAttachment) => void) | null,
 ): Promise<AstNode> {
   return matchDiscriminated(resource, "kind", {
     folder: () => textNode(label),
     document: async (entry) => {
       if (entry.binary.mediaType === "application/pdf") {
+        if (!registerPdfAttachment) return textNode(label);
         const content = await resourcesClient.readDocumentContent(entry.id);
         if (content) registerPdfAttachment({ id: entry.id, content: content.content });
         return { type: "link", url: pdfAttachmentHref(entry.id), children: [textNode(label)] };
@@ -98,6 +100,8 @@ export interface TemplatePreview {
 }
 
 interface ResolvedContext {
+  /** Whether the PDF carries the PDF documents its text references, appended after it and linked. */
+  attachPdfDocuments: boolean;
   notice: MeetingNoticeFacts | null;
   councilDecision: CouncilDecisionDetail | null;
   minutes: MinutesDetail | null;
@@ -301,7 +305,7 @@ async function renderResourceEmbed(
   directive: TemplateDirective,
   resourcesClient: ResourcesClient,
   geographicMapRenderer: GeographicMapRenderer,
-  registerPdfAttachment: (resource: TemplatePdfAttachment) => void,
+  registerPdfAttachment: ((resource: TemplatePdfAttachment) => void) | null,
   renderText: (
     source: string,
   ) => Promise<{ bodyHtml: string; diagnostics: Diagnostic[]; pdfAttachments: TemplatePdfAttachment[] }>,
@@ -371,13 +375,13 @@ async function renderResourceEmbed(
     text: async () => {
       if (resource.kind !== "text") return incompatible("a TextResource");
       const rendered = await renderText(resource.content);
-      rendered.pdfAttachments.forEach(registerPdfAttachment);
+      if (registerPdfAttachment) rendered.pdfAttachments.forEach(registerPdfAttachment);
       return { node: { type: "html", value: rendered.bodyHtml }, diagnostics: rendered.diagnostics };
     },
     event: async () => {
       if (resource.kind !== "event") return incompatible("an EventResource");
       const rendered = await renderText(resource.document.content);
-      rendered.pdfAttachments.forEach(registerPdfAttachment);
+      if (registerPdfAttachment) rendered.pdfAttachments.forEach(registerPdfAttachment);
       return {
         node: {
           type: "root",
@@ -431,6 +435,7 @@ async function renderResourceEmbed(
     document: async () => {
       if (resource.kind !== "document") return incompatible("a DocumentResource");
       if (resource.binary.mediaType === "application/pdf") {
+        if (!registerPdfAttachment) return { node: paragraph([textNode(resource.name)]), diagnostics: [] };
         const content = await resourcesClient.readDocumentContent(resource.id);
         if (!content) {
           return {
@@ -644,6 +649,7 @@ export interface TemplateRenderingService {
     context?: TemplateRenderContext,
     notice?: MeetingNoticeFacts,
     councilDecision?: CouncilDecisionDetail,
+    options?: { attachPdfDocuments?: boolean },
   ): Promise<TemplatePreview>;
 }
 
@@ -663,6 +669,7 @@ export function createTemplateRenderingService({
   minutesClient: MinutesClient;
 }): TemplateRenderingService {
   const loadContext = async (context: TemplateRenderContext = {}): Promise<ResolvedContext> => ({
+    attachPdfDocuments: true,
     notice: null,
     councilDecision: null,
     minutes: context.minutesId ? await minutesClient.open(context.minutesId) : null,
@@ -685,9 +692,11 @@ export function createTemplateRenderingService({
     const diagnostics = validateStructure(tree);
     const values = new Map<string, AstNode>();
     const pdfAttachments = new Map<string, TemplatePdfAttachment>();
-    const registerPdfAttachment = (resource: TemplatePdfAttachment) => {
-      if (!pdfAttachments.has(resource.id)) pdfAttachments.set(resource.id, resource);
-    };
+    const registerPdfAttachment = context.attachPdfDocuments
+      ? (resource: TemplatePdfAttachment) => {
+          if (!pdfAttachments.has(resource.id)) pdfAttachments.set(resource.id, resource);
+        }
+      : null;
     for (const directive of collectDirectives(tree)) {
       const key = `${directive.name}:${directive.occurrence}`;
       if (directive.name === "council-decision") {
@@ -849,8 +858,9 @@ export function createTemplateRenderingService({
   };
 
   return {
-    async preview(template, renderContext = {}, notice, councilDecision) {
+    async preview(template, renderContext = {}, notice, councilDecision, options = {}) {
       const context = await loadContext(renderContext);
+      context.attachPdfDocuments = options.attachPdfDocuments ?? true;
       context.councilDecision = councilDecision ?? null;
       const meetingFacts =
         !notice && renderContext.meetingId ? await councilClient.noticeFacts(renderContext.meetingId) : null;

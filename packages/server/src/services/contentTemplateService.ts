@@ -47,7 +47,7 @@ export interface ContentTemplateService {
   update(id: string, input: SaveContentTemplate): Promise<ContentTemplate>;
   delete(id: string): Promise<void>;
   preview(draft: TemplateDraft, context: TemplateRenderContext): Promise<TemplatePreview>;
-  previewPdf(bodyMarkdown: string, context: TemplateRenderContext): Promise<Buffer>;
+  previewPdf(bodyMarkdown: string, context: TemplateRenderContext, attachPdfDocuments?: boolean): Promise<Buffer>;
   generate(id: string, input: GenerateTemplateInput): Promise<GeneratedFile>;
   generateFromTemplate(template: ContentTemplate, input: GenerateTemplateInput): Promise<GeneratedFile>;
 }
@@ -184,7 +184,7 @@ export function createContentTemplateService({
       );
       return unitOfWork.execute(async () => preview);
     },
-    previewPdf(bodyMarkdown, context) {
+    previewPdf(bodyMarkdown, context, attachPdfDocuments = true) {
       return withGenerationSlot(async () => {
         const preview = await templateRenderingService.preview(
           {
@@ -195,6 +195,9 @@ export function createContentTemplateService({
             footerHtml: "",
           },
           context,
+          undefined,
+          undefined,
+          { attachPdfDocuments },
         );
         assertRenderable(preview.diagnostics);
         const generated = await documentRenderer.pdf({

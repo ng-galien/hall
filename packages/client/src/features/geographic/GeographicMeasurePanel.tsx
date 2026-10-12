@@ -3,12 +3,22 @@ import type Feature from "ol/Feature";
 import type Geometry from "ol/geom/Geometry";
 import type OlMap from "ol/Map";
 import type VectorSource from "ol/source/Vector";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AreaIcon, CopyIcon, DeleteIcon, PointerIcon, RulerIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
+import { GeographicPanelHeader } from "./GeographicPanelHeader";
 import {
   type CardinalLetters,
   formatGeographicArea,
@@ -31,6 +41,12 @@ import {
 import { useGeographicPanelSize } from "./useGeographicPanelSize";
 
 interface GeographicMeasurePanelProps {
+  /** The side window shared with Éléments: same position, size and drag handle. */
+  panelRef: RefObject<HTMLElement | null>;
+  style?: CSSProperties;
+  onPointerDown(event: ReactPointerEvent<HTMLDivElement>): void;
+  onPointerMove(event: ReactPointerEvent<HTMLDivElement>): void;
+  onPointerUp(event: ReactPointerEvent<HTMLDivElement>): void;
   map: OlMap | null;
   drawingSource: VectorSource<Feature<Geometry>> | null;
   /** Receives true while a measuring tool takes the map clicks. */
@@ -241,6 +257,11 @@ export function GeographicMeasurePanel({
   onAddMeasurement,
   onRenameMeasurement,
   onRemoveMeasurement,
+  panelRef,
+  style,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
 }: GeographicMeasurePanelProps) {
   const { t, formatNumber } = useI18n();
   const [tool, setTool] = useState<GeographicMeasureTool>("none");
@@ -248,8 +269,7 @@ export function GeographicMeasurePanel({
   const [capacityReached, setCapacityReached] = useState(false);
   const { current, finished, discardCurrent, drawingMeasure } = useGeographicMeasurements(map, drawingSource, tool);
   const { cursor, center } = useGeographicPointer(map);
-  const panelRef = useRef<HTMLElement | null>(null);
-  const sizeStyle = useGeographicPanelSize("measures", panelRef);
+  const sizeStyle = useGeographicPanelSize(panelRef);
   useEffect(() => {
     if (finished) setCapacityReached(false);
   }, [finished]);
@@ -293,27 +313,32 @@ export function GeographicMeasurePanel({
 
   return (
     <section
-      ref={panelRef}
+      ref={panelRef as RefObject<HTMLElement>}
       className="geographic-measures"
       data-testid="geographic-measures"
       aria-label={t("geographic.measures")}
-      style={sizeStyle}
+      style={{ ...style, ...sizeStyle }}
     >
       <Tabs
-        className="geographic-measures-tabs"
+        className="geographic-panel-tabs"
         defaultValue="measures"
         onValueChange={(value) => {
           if (value === "coordinates") setTool("none");
         }}
       >
-        <TabsList className="geographic-measures-tab-list w-full" aria-label={t("geographic.measures")}>
-          <TabsTrigger value="measures" data-testid="geographic-measures-tab-measures">
-            {t("geographic.measures")}
-          </TabsTrigger>
-          <TabsTrigger value="coordinates" data-testid="geographic-measures-tab-coordinates">
-            {t("geographic.measure.coordinates")}
-          </TabsTrigger>
-        </TabsList>
+        <GeographicPanelHeader testId="geographic-measures-drag" drag={{ onPointerDown, onPointerMove, onPointerUp }}>
+          <TabsList className="geographic-panel-tab-list" aria-label={t("geographic.measures")}>
+            <TabsTrigger value="measures" data-testid="geographic-measures-tab-measures">
+              {t("geographic.measures")}
+              {measurements.length ? (
+                <span className="geographic-composition-tab-count">{measurements.length}</span>
+              ) : null}
+            </TabsTrigger>
+            <TabsTrigger value="coordinates" data-testid="geographic-measures-tab-coordinates">
+              {t("geographic.measure.coordinates")}
+            </TabsTrigger>
+          </TabsList>
+        </GeographicPanelHeader>
         <TabsContent
           value="measures"
           className="geographic-measures-tab"

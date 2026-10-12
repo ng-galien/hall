@@ -66,7 +66,6 @@ export function InlineResourceContent({
     <>
       {session.canConfigureAutosave ? (
         <ResourceAutosaveToggle
-          showLabel={!compact}
           enabled={session.autosaveEnabled}
           status={session.saveStatus}
           disabled={session.submitting}

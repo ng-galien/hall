@@ -85,16 +85,30 @@ test("cursors follow the tool state and a click selects a drawing before its sha
   await expect(card).toBeVisible();
   await expect(row).toHaveClass(/geographic-composition-feature-selected/);
   await expect(row).toHaveAttribute("data-modifying", "false");
-  await expect(row.getByTestId(`geographic-composition-feature-modify-${featureId}`)).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  // The card is resized with its handle.
+  const cardBox = (await card.boundingBox())!;
+  await page.mouse.move(cardBox.x + cardBox.width - 3, cardBox.y + cardBox.height - 3);
+  await page.mouse.down();
+  await page.mouse.move(cardBox.x + cardBox.width - 3, cardBox.y + cardBox.height - 43, { steps: 4 });
+  await page.mouse.up();
+  const resizedCard = (await card.boundingBox())!;
+  expect(resizedCard.height).toBeLessThan(cardBox.height - 20);
   await page.mouse.move(...at(0.6, 0.3), { steps: 3 });
   await expect.poll(cursor).toBe("pointer");
 
-  await row.getByTestId(`geographic-composition-feature-modify-${featureId}`).click();
+  await row.getByTestId(`geographic-composition-feature-menu-${featureId}`).click();
+  await expect(page.getByTestId(`geographic-composition-feature-modify-${featureId}`)).toHaveAttribute(
+    "data-state",
+    "off",
+  );
+  await page.getByTestId(`geographic-composition-feature-modify-${featureId}`).click();
   await expect(card.getByTestId("geographic-drawn-element-shape")).toHaveAttribute("data-modifying", "true");
   await expect(row).toHaveAttribute("data-modifying", "true");
+  // The card offers the same actions menu as the row, reflecting the same modification state.
+  await card.getByTestId("geographic-drawn-element-card-menu").click();
+  await expect(page.getByTestId("geographic-drawn-element-card-modify")).toHaveAttribute("data-state", "on");
+  await expect(page.getByTestId("geographic-drawn-element-card-visible")).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.mouse.move(...at(0.5, 0.4), { steps: 3 });
   await expect.poll(cursor).toBe("move");
   await page.mouse.move(...at(0.6, 0.3), { steps: 3 });
@@ -224,7 +238,8 @@ test("in Cartes a click selects a drawing and the shape modification is a separa
   await expect(row).toHaveClass(/geographic-composition-feature-selected/);
   await expect(row).toHaveAttribute("data-modifying", "false");
 
-  await row.getByTestId(`geographic-composition-feature-modify-${featureId}`).click();
+  await row.getByTestId(`geographic-composition-feature-menu-${featureId}`).click();
+  await page.getByTestId(`geographic-composition-feature-modify-${featureId}`).click();
   await expect(row).toHaveAttribute("data-modifying", "true");
   // Automatic note editors cover the map centre; target the visible lower portion of this same area.
   const visibleShape = [middle[0], box.y + box.height * 0.72] as const;

@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { resourceCatalogEntrySchema, resourceIdSchema, resourceNameSchema, resourcePathSchema, resourceSummarySchema } from "./resources.js";
+import {
+  resourceCatalogEntrySchema,
+  resourceIdSchema,
+  resourceNameSchema,
+  resourcePathSchema,
+  resourceSummarySchema,
+} from "./resources.js";
 
 export const councilBusinessSchema = z
   .object({
@@ -58,11 +64,16 @@ export const councilBusinessWorkspaceItemSchema = councilBusinessSchema
   .strict();
 
 /** Navigation metadata only: never carries report content or associated resource summaries. */
-export const councilBusinessNavigationIndexSchema = z.object({
-  businesses: councilBusinessSchema.extend({ title: resourceNameSchema, folderPath: resourcePathSchema }).strict().array(),
-  catalog: resourceCatalogEntrySchema.array(),
-  paths: resourcePathSchema.array(),
-}).strict();
+export const councilBusinessNavigationIndexSchema = z
+  .object({
+    businesses: councilBusinessSchema
+      .extend({ title: resourceNameSchema, folderPath: resourcePathSchema })
+      .strict()
+      .array(),
+    catalog: resourceCatalogEntrySchema.array(),
+    paths: resourcePathSchema.array(),
+  })
+  .strict();
 
 /** Flat association row: the Resource presentation is not nested in CouncilBusiness. */
 export const councilBusinessResourceItemSchema = z.intersection(

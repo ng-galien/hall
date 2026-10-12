@@ -23,6 +23,28 @@ import {
   useGeographicDrawingMeasureLayer,
 } from "../src/features/geographic/useGeographicMeasurements.ts";
 
+// The drawing's actions menu renders its items in place, so the measures action can be pressed without opening it.
+vi.mock("../src/components/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }) => createElement("div", {}, children),
+  DropdownMenuTrigger: ({ children }) => children,
+  DropdownMenuContent: ({ children }) => createElement("div", { role: "menu" }, children),
+  DropdownMenuSeparator: () => null,
+  DropdownMenuLabel: ({ children }) => createElement("span", {}, children),
+  DropdownMenuRadioGroup: ({ children, value, onValueChange }) =>
+    createElement(
+      "div",
+      {
+        role: "radiogroup",
+        "data-value": value,
+        onClick: (event) => onValueChange(event.target.closest("[data-radio-value]")?.dataset.radioValue),
+      },
+      children,
+    ),
+  DropdownMenuRadioItem: ({ children, value, ...props }) =>
+    createElement("button", { type: "button", role: "menuitemradio", "data-radio-value": value, ...props }, children),
+  DropdownMenuItem: ({ children, onSelect, variant: _variant, ...props }) =>
+    createElement("button", { type: "button", role: "menuitem", ...props, onClick: onSelect }, children),
+}));
 vi.mock("../src/i18n/I18nProvider.tsx", () => {
   const formatNumber = (value, options) => new Intl.NumberFormat("en-GB", options).format(value);
   return { useI18n: () => ({ formatNumber, t: (key) => key }) };
@@ -322,14 +344,14 @@ test("composition has one direct accessible measure button per measurable drawin
     );
     const button = (id) => host.querySelector(`[data-testid="geographic-composition-feature-measures-${id}"]`);
     assert.equal(button("pin"), null);
-    assert.equal(button("rectangle")?.getAttribute("aria-pressed"), "false");
+    assert.equal(button("rectangle")?.getAttribute("data-state"), "off");
     await act(async () => button("rectangle").click());
     assert.deepEqual(toggled, [["rectangle", true]]);
     await act(async () =>
       root.render(createElement(GeographicCompositionEditor, { ...props, measuredDrawingIds: new Set(["rectangle"]) })),
     );
-    assert.equal(button("rectangle")?.getAttribute("aria-pressed"), "true");
-    assert.equal(button("triangle")?.getAttribute("aria-pressed"), "false");
+    assert.equal(button("rectangle")?.getAttribute("data-state"), "on");
+    assert.equal(button("triangle")?.getAttribute("data-state"), "off");
     await act(async () => button("triangle").click());
     assert.deepEqual(toggled, [
       ["rectangle", true],
@@ -505,4 +527,75 @@ test("irregular extent dimensions are approximate in model, map label and readou
   assert.equal(normal[1].getGeometry().getCoordinates()[1], -40);
   assert.equal(zoomed[1].getGeometry().getCoordinates()[1], -80);
   assert.deepEqual(irregular.getCoordinates(), before);
+});
+
+// @verifies-requirement HALL-FR-DOC-490
+test("a line offers its arrows in its actions menu, other drawings do not", async () => {
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  const previousObserver = globalThis.ResizeObserver;
+  globalThis.ResizeObserver = class {
+    observe() {
+      return undefined;
+    }
+    disconnect() {
+      return undefined;
+    }
+  };
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  const changed = [];
+  const features = [
+    { id: "path", properties: { kind: "line", label: "path", visible: true, style: { arrows: "forward" } } },
+    { id: "zone", properties: { kind: "area", label: "zone", visible: true, style: {} } },
+  ];
+  const noop = () => undefined;
+  try {
+    await act(async () =>
+      root.render(
+        createElement(GeographicCompositionEditor, {
+          panelRef: { current: null },
+          drawTool: "select",
+          features,
+          selectedFeatureId: null,
+          modifyingFeatureId: null,
+          editingFeatureId: null,
+          renameArmedFeatureId: null,
+          featureKindLabels: { area: "Area", line: "Line", marker: "Marker" },
+          colorPresets: [],
+          legendColorPresets: [],
+          measuredDrawingIds: new Set(),
+          legend: [],
+          onDrawTool: noop,
+          onSelect: noop,
+          onEditingFeature: noop,
+          onRenameArmedFeature: noop,
+          onRename: async () => true,
+          onVisibility: noop,
+          onFitFeature: noop,
+          onColor: noop,
+          onArrows: (id, arrows) => changed.push([id, arrows]),
+          onDelete: noop,
+          onMoveFeature: noop,
+          onDrawingMeasures: noop,
+          onToggleModifying: noop,
+          onLegend: noop,
+          onPointerDown: noop,
+          onPointerMove: noop,
+          onPointerUp: noop,
+        }),
+      ),
+    );
+    const arrows = (id, value) =>
+      host.querySelector(`[data-testid="geographic-composition-feature-arrows-${id}-${value}"]`);
+    assert.equal(arrows("zone", "none"), null);
+    assert.equal(host.querySelector('[role="radiogroup"]')?.getAttribute("data-value"), "forward");
+    await act(async () => arrows("path", "both").click());
+    assert.deepEqual(changed, [["path", "both"]]);
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+    globalThis.ResizeObserver = previousObserver;
+    delete globalThis.IS_REACT_ACT_ENVIRONMENT;
+  }
 });

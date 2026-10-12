@@ -76,6 +76,14 @@ interface WorkspaceResourcesState {
   relocate(reference: string, input: RelocateResource): Promise<ResourceDetail | null>;
   remove(reference: string): Promise<boolean>;
   invalidate(invalidation: { ids?: readonly string[]; paths?: readonly string[] }): void;
+  /** Summaries read through another projection (a business's documents) without loading the catalog. */
+  adoptSummaries(summaries: readonly ResourceSummary[]): void;
+}
+
+function sameSummary(stored: ResourceSummary | undefined, incoming: ResourceSummary): boolean {
+  if (!stored) return false;
+  const keys = Object.keys(incoming) as (keyof ResourceSummary)[];
+  return keys.length === Object.keys(stored).length && keys.every((key) => stored[key] === incoming[key]);
 }
 
 const folderLoads = new Map<string, Promise<void>>();
@@ -520,6 +528,13 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
           : null,
       }));
       return true;
+    },
+    adoptSummaries(summaries) {
+      const current = get().summaries;
+      if (summaries.every((summary) => sameSummary(current[summary.id], summary))) return;
+      set((state) => ({
+        summaries: { ...state.summaries, ...Object.fromEntries(summaries.map((summary) => [summary.id, summary])) },
+      }));
     },
     invalidate({ ids = [], paths = [] }) {
       const invalidIds = new Set(ids);

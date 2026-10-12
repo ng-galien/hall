@@ -112,6 +112,35 @@ describe("authoritative resource presentation rendering", () => {
     expect(appendedIds).toEqual([second.id, first.id]);
   });
 
+  it("leaves referenced PDF documents out, as plain text, when the PDF does not carry them", async () => {
+    const appendedIds: string[] = [];
+    let renderedHtml = "";
+    const { container } = await createTestServer({
+      documentRenderer: {
+        async pdf({ html }) {
+          renderedHtml = html;
+          return Buffer.from("body");
+        },
+        async appendPdfs(primary, attachments) {
+          appendedIds.push(...attachments.map((attachment) => attachment.id));
+          return primary;
+        },
+      },
+    });
+    const pdf = (
+      await container.cradle.resourcesClient.createDocument({
+        name: "Arrêté",
+        path: "seed",
+        mediaType: "application/pdf",
+        content: Buffer.from("arrêté"),
+      })
+    ).data;
+    await container.cradle.contentTemplateService.previewPdf(`Voir :resource[l’arrêté]{#${pdf.id}}.`, {}, false);
+    expect(appendedIds).toEqual([]);
+    expect(renderedHtml).toContain("Arrêté");
+    expect(renderedHtml).not.toContain("pdf-attachments");
+  });
+
   it("feeds the exact authoritative preview body to the PDF renderer", async () => {
     let renderedHtml = "";
     const { container } = await createTestServer({

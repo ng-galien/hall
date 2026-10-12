@@ -11,7 +11,7 @@ import {
   HiddenIcon,
   LayersIcon,
   ListViewIcon,
-  MapIcon,
+  RulerIcon,
   VisibleIcon,
 } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -100,7 +100,7 @@ export function GeographicLayerControls({
           aria-pressed={workspaceMode === "measure"}
           onClick={() => onToggleMode("measure")}
         >
-          <MapIcon />
+          <RulerIcon />
           <span>{t("geographic.modeMap")}</span>
         </button>
       </fieldset>

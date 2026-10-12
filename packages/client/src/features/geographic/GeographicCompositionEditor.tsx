@@ -1,34 +1,30 @@
-import type { GeographicColor, GeographicLegendEntry, HallGeoJsonFeature, HallGeoJsonFeatureKind } from "@hall/domain";
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
-import { ColorPicker, type ColorPickerPreset } from "@/components/ui/color-picker";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import type {
+  GeographicColor,
+  GeographicLegendEntry,
+  GeographicLineArrows,
+  HallGeoJsonFeature,
+  HallGeoJsonFeatureKind,
+} from "@hall/domain";
+import { type CSSProperties, type PointerEvent as ReactPointerEvent, useState } from "react";
+import type { ColorPickerPreset } from "@/components/ui/color-picker";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
-import {
-  CenterOnFeatureIcon,
-  DeleteIcon,
-  DragHandleIcon,
-  EditIcon,
-  HiddenIcon,
-  LockIcon,
-  MoreIcon,
-  PointerIcon,
-  RulerIcon,
-  VisibleIcon,
-} from "../../components/icons";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CenterOnFeatureIcon, DragHandleIcon, PointerIcon, RulerIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
+import { DrawingActionsMenu, DrawingColorControl } from "./GeographicDrawingControls";
 import { GeographicLegendEditor } from "./GeographicLegend";
-import { geographicFeatureKindPolicy, geographicFeatureKinds } from "./geographicFeatureKindPolicy";
+import { GeographicPanelHeader } from "./GeographicPanelHeader";
+import {
+  geographicDrawingName,
+  geographicFeatureKindPolicy,
+  geographicFeatureKinds,
+} from "./geographicFeatureKindPolicy";
 import type { GeographicDrawTool } from "./useGeographicMapRuntime";
 import { useGeographicPanelSize } from "./useGeographicPanelSize";
 
 interface GeographicCompositionEditorProps {
   readOnly?: boolean;
-  panelRef: React.RefObject<HTMLDivElement | null>;
+  panelRef: React.RefObject<HTMLElement | null>;
   style?: CSSProperties;
   drawTool: GeographicDrawTool;
   features: readonly HallGeoJsonFeature[];
@@ -48,10 +44,13 @@ interface GeographicCompositionEditorProps {
   onFitFeature(id: string): void;
   onColor(id: string, color: GeographicColor): void;
   onDelete(id: string): void;
+  onArrows(id: string, arrows: GeographicLineArrows): void;
+  onMoveFeature(sourceId: string, targetId: string): void;
   measuredDrawingIds: ReadonlySet<string>;
   onDrawingMeasures(id: string, visible: boolean): void;
   onToggleModifying(id: string): void;
   legend: readonly GeographicLegendEntry[];
+  legendColorPresets?: ColorPickerPreset[];
   onLegend(entries: GeographicLegendEntry[]): void;
   onPointerDown(event: ReactPointerEvent<HTMLDivElement>): void;
   onPointerMove(event: ReactPointerEvent<HTMLDivElement>): void;
@@ -80,17 +79,20 @@ export function GeographicCompositionEditor({
   onFitFeature,
   onColor,
   onDelete,
+  onArrows,
+  onMoveFeature,
   measuredDrawingIds,
   onDrawingMeasures,
   onToggleModifying,
   legend,
+  legendColorPresets = [],
   onLegend,
   onPointerDown,
   onPointerMove,
   onPointerUp,
 }: GeographicCompositionEditorProps) {
   const { t } = useI18n();
-  const sizeStyle = useGeographicPanelSize("composition", panelRef);
+  const sizeStyle = useGeographicPanelSize(panelRef);
   const tools: Array<{ mode: GeographicDrawTool; icon: typeof PointerIcon; label: string }> = [
     { mode: "select", icon: PointerIcon, label: t("geographic.drawSelect") },
     ...geographicFeatureKinds.map((kind) => ({
@@ -99,32 +101,32 @@ export function GeographicCompositionEditor({
       label: t(geographicFeatureKindPolicy[kind].drawLabelKey),
     })),
   ];
+  const [draggedFeatureId, setDraggedFeatureId] = useState<string | null>(null);
+  const [dropTargetFeatureId, setDropTargetFeatureId] = useState<string | null>(null);
   if (readOnly) {
     return (
       <div
-        ref={panelRef}
+        ref={panelRef as React.RefObject<HTMLDivElement | null>}
         className="geographic-composition"
         data-testid="geographic-composition"
         style={{ ...style, ...sizeStyle }}
       >
-        <div
-          className="geographic-composition-header"
-          data-testid="geographic-composition-drag"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+        <GeographicPanelHeader
+          testId="geographic-composition-drag"
+          drag={{ onPointerDown, onPointerMove, onPointerUp }}
         >
-          <DragHandleIcon />
-          <span>{t("geographic.composition")}</span>
-        </div>
+          <span className="geographic-panel-title">
+            {t("geographic.modeDraw")}
+            {features.length ? <span className="geographic-composition-tab-count">{features.length}</span> : null}
+          </span>
+        </GeographicPanelHeader>
         <ul className="geographic-composition-list" aria-label={t("geographic.compositionFeatures")}>
           {features.length === 0 ? (
             <li className="geographic-composition-empty">{t("geographic.compositionEmpty")}</li>
           ) : (
             features.map((feature, index) => {
               const Icon = geographicFeatureKindPolicy[feature.properties.kind].Icon;
-              const label = feature.properties.label ?? `${featureKindLabels[feature.properties.kind]} ${index + 1}`;
+              const label = geographicDrawingName(feature, index, featureKindLabels);
               return (
                 <li
                   key={feature.id}
@@ -179,193 +181,187 @@ export function GeographicCompositionEditor({
   }
   return (
     <div
-      ref={panelRef}
+      ref={panelRef as React.RefObject<HTMLDivElement | null>}
       className="geographic-composition"
       data-testid="geographic-composition"
       style={{ ...style, ...sizeStyle }}
     >
-      <div
-        className="geographic-composition-header"
-        data-testid="geographic-composition-drag"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
-        <DragHandleIcon />
-        <span>{t("geographic.composition")}</span>
-      </div>
-      <div className="geographic-composition-tools" role="toolbar" aria-label={t("geographic.compositionTools")}>
-        {tools.map(({ mode, icon: Icon, label }) => (
-          <button
-            key={mode}
-            type="button"
-            className={drawTool === mode ? "geographic-tool-active" : ""}
-            data-testid={`geographic-tool-${mode}`}
-            aria-label={label}
-            title={label}
-            aria-pressed={drawTool === mode}
-            onClick={() => onDrawTool(mode)}
-          >
-            <Icon />
-          </button>
-        ))}
-      </div>
-      <ul className="geographic-composition-list" aria-label={t("geographic.compositionFeatures")}>
-        {features.length === 0 ? (
-          <li className="geographic-composition-empty">{t("geographic.compositionEmpty")}</li>
-        ) : (
-          features.map((feature, index) => {
-            const policy = geographicFeatureKindPolicy[feature.properties.kind];
-            const Icon = policy.Icon;
-            const selected = selectedFeatureId === feature.id;
-            const modifying = modifyingFeatureId === feature.id;
-            const fallbackName = `${featureKindLabels[feature.properties.kind]} ${index + 1}`;
-            const visible = feature.properties.visible !== false;
-            const color = policy.color(feature.properties.style);
-            return (
-              <li
-                key={feature.id}
-                className={`geographic-composition-feature${selected ? " geographic-composition-feature-selected" : ""}${modifying ? " geographic-composition-feature-modifying" : ""}`}
-                data-testid={`geographic-composition-feature-${feature.id}`}
-                data-modifying={modifying}
-                aria-description={modifying ? t("geographic.shape.modifyingRow") : undefined}
+      <Tabs className="geographic-panel-tabs" defaultValue="elements">
+        <GeographicPanelHeader
+          testId="geographic-composition-drag"
+          drag={{ onPointerDown, onPointerMove, onPointerUp }}
+        >
+          <TabsList className="geographic-panel-tab-list" aria-label={t("geographic.composition")}>
+            <TabsTrigger value="elements" data-testid="geographic-composition-tab-elements">
+              {t("geographic.modeDraw")}
+              {features.length ? <span className="geographic-composition-tab-count">{features.length}</span> : null}
+            </TabsTrigger>
+            <TabsTrigger value="legend" data-testid="geographic-composition-tab-legend">
+              {t("geographic.legend")}
+              {legend.length ? <span className="geographic-composition-tab-count">{legend.length}</span> : null}
+            </TabsTrigger>
+          </TabsList>
+        </GeographicPanelHeader>
+        <TabsContent
+          value="elements"
+          className="geographic-composition-tab"
+          data-testid="geographic-composition-panel-elements"
+        >
+          <div className="geographic-composition-tools" role="toolbar" aria-label={t("geographic.compositionTools")}>
+            {tools.map(({ mode, icon: Icon, label }) => (
+              <button
+                key={mode}
+                type="button"
+                className={drawTool === mode ? "geographic-tool-active" : ""}
+                data-testid={`geographic-tool-${mode}`}
+                aria-label={label}
+                title={label}
+                aria-pressed={drawTool === mode}
+                onClick={() => onDrawTool(mode)}
               >
-                <button
-                  type="button"
-                  className="geographic-composition-feature-select"
-                  aria-pressed={selected}
-                  aria-label={feature.properties.label ?? fallbackName}
-                  onClick={() => onSelect(feature.id)}
-                >
-                  <Icon />
-                </button>
-                <button
-                  type="button"
-                  className="geographic-composition-feature-visible"
-                  aria-pressed={visible}
-                  aria-label={t("geographic.featureVisible").replace(
-                    "{name}",
-                    feature.properties.label ?? fallbackName,
-                  )}
-                  title={t("geographic.featureVisible").replace("{name}", feature.properties.label ?? fallbackName)}
-                  onClick={() => onVisibility(feature.id, !visible)}
-                >
-                  {visible ? <VisibleIcon /> : <HiddenIcon />}
-                </button>
-                <button
-                  type="button"
-                  className="geographic-composition-feature-fit"
-                  data-testid={`geographic-composition-feature-fit-${feature.id}`}
-                  aria-label={t("geographic.fitFeature").replace("{name}", feature.properties.label ?? fallbackName)}
-                  title={t("geographic.fitFeature").replace("{name}", feature.properties.label ?? fallbackName)}
-                  onClick={() => onFitFeature(feature.id)}
-                >
-                  <CenterOnFeatureIcon />
-                </button>
-                <button
-                  type="button"
-                  className="geographic-composition-feature-modify"
-                  data-testid={`geographic-composition-feature-modify-${feature.id}`}
-                  aria-pressed={modifying}
-                  aria-label={t(modifying ? "geographic.shape.stopModifying" : "geographic.shape.modify")}
-                  title={t(modifying ? "geographic.shape.stopModifying" : "geographic.shape.modify")}
-                  onClick={() => onToggleModifying(feature.id)}
-                >
-                  {modifying ? <EditIcon /> : <LockIcon />}
-                </button>
-                <InlineRenameField
-                  value={feature.properties.label ?? fallbackName}
-                  editing={selected && editingFeatureId === feature.id}
-                  onEditingChange={(editing) => {
-                    if (!editing) {
-                      onEditingFeature(null);
-                      onRenameArmedFeature(null);
-                    }
-                  }}
-                  onCommit={(label) => onRename(feature.id, label)}
-                  label={t("geographic.featureLabel")}
-                  className="geographic-composition-feature-input"
-                  testId={`geographic-composition-feature-name-${feature.id}`}
-                >
-                  <button
-                    type="button"
-                    className="geographic-composition-feature-name"
-                    onClick={() => {
-                      if (selected && renameArmedFeatureId === feature.id) {
-                        onEditingFeature(feature.id);
-                        onRenameArmedFeature(null);
-                      } else {
-                        onSelect(feature.id);
-                        onRenameArmedFeature(feature.id);
-                      }
+                <Icon />
+              </button>
+            ))}
+          </div>
+          <ul className="geographic-composition-list" aria-label={t("geographic.compositionFeatures")}>
+            {features.length === 0 ? (
+              <li className="geographic-composition-empty">{t("geographic.compositionEmpty")}</li>
+            ) : (
+              features.map((feature, index) => {
+                const policy = geographicFeatureKindPolicy[feature.properties.kind];
+                const Icon = policy.Icon;
+                const selected = selectedFeatureId === feature.id;
+                const modifying = modifyingFeatureId === feature.id;
+                const name = geographicDrawingName(feature, index, featureKindLabels);
+                const visible = feature.properties.visible !== false;
+                const color = policy.color(feature.properties.style);
+                return (
+                  <li
+                    key={feature.id}
+                    className={`geographic-composition-feature${selected ? " geographic-composition-feature-selected" : ""}${modifying ? " geographic-composition-feature-modifying" : ""}${draggedFeatureId === feature.id ? " geographic-composition-feature-dragging" : ""}${dropTargetFeatureId === feature.id && draggedFeatureId !== feature.id ? " geographic-composition-feature-drop-target" : ""}`}
+                    data-testid={`geographic-composition-feature-${feature.id}`}
+                    data-modifying={modifying}
+                    data-hidden={!visible}
+                    aria-description={modifying ? t("geographic.shape.modifyingRow") : undefined}
+                    onDragOver={(event) => {
+                      if (!draggedFeatureId) return;
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                      setDropTargetFeatureId(feature.id);
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      if (draggedFeatureId) onMoveFeature(draggedFeatureId, feature.id);
+                      setDraggedFeatureId(null);
+                      setDropTargetFeatureId(null);
                     }}
                   >
-                    {feature.properties.label ?? fallbackName}
-                  </button>
-                </InlineRenameField>
-                {feature.properties.kind === "marker" ? (
-                  <span className="geographic-composition-feature-measure-placeholder" aria-hidden="true" />
-                ) : (
-                  <button
-                    type="button"
-                    className="geographic-composition-feature-measures"
-                    data-testid={`geographic-composition-feature-measures-${feature.id}`}
-                    aria-pressed={measuredDrawingIds.has(feature.id)}
-                    aria-label={t(
-                      measuredDrawingIds.has(feature.id)
-                        ? "geographic.measure.hideDrawing"
-                        : "geographic.measure.showDrawing",
-                    ).replace("{name}", feature.properties.label ?? fallbackName)}
-                    title={t(
-                      measuredDrawingIds.has(feature.id)
-                        ? "geographic.measure.hideDrawing"
-                        : "geographic.measure.showDrawing",
-                    ).replace("{name}", feature.properties.label ?? fallbackName)}
-                    onClick={() => onDrawingMeasures(feature.id, !measuredDrawingIds.has(feature.id))}
-                  >
-                    <RulerIcon />
-                  </button>
-                )}
-                <ColorPicker
-                  className="geographic-composition-feature-color"
-                  value={color}
-                  presets={colorPresets}
-                  ariaLabel={t("geographic.featureColor").replace("{name}", feature.properties.label ?? fallbackName)}
-                  customLabel={t("geographic.color.custom")}
-                  onValueChange={(nextColor) => onColor(feature.id, nextColor as GeographicColor)}
-                />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="geographic-composition-feature-menu"
-                      data-testid={`geographic-composition-feature-menu-${feature.id}`}
-                      aria-label={t("geographic.drawingMenu").replace(
-                        "{name}",
-                        feature.properties.label ?? fallbackName,
-                      )}
+                      className="geographic-composition-feature-drag"
+                      draggable
+                      data-testid={`geographic-composition-feature-drag-${feature.id}`}
+                      aria-label={t("geographic.featureDrag").replace("{name}", name)}
+                      title={t("geographic.featureDrag").replace("{name}", name)}
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", feature.id);
+                        setDraggedFeatureId(feature.id);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedFeatureId(null);
+                        setDropTargetFeatureId(null);
+                      }}
                     >
-                      <MoreIcon />
+                      <DragHandleIcon />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="geographic-composition-actions">
-                    <DropdownMenuItem
-                      variant="destructive"
-                      data-testid={`geographic-composition-feature-delete-${feature.id}`}
-                      onSelect={() => onDelete(feature.id)}
+                    <button
+                      type="button"
+                      className="geographic-composition-feature-select"
+                      aria-pressed={selected}
+                      aria-label={name}
+                      onClick={() => onSelect(feature.id)}
                     >
-                      <DeleteIcon />
-                      {t("common.delete")}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </li>
-            );
-          })
-        )}
-      </ul>
-      <GeographicLegendEditor entries={legend} presets={colorPresets} onChange={onLegend} />
+                      <Icon />
+                    </button>
+                    <InlineRenameField
+                      value={name}
+                      editing={selected && editingFeatureId === feature.id}
+                      onEditingChange={(editing) => {
+                        if (!editing) {
+                          onEditingFeature(null);
+                          onRenameArmedFeature(null);
+                        }
+                      }}
+                      onCommit={(label) => onRename(feature.id, label)}
+                      label={t("geographic.featureLabel")}
+                      className="geographic-composition-feature-input"
+                      testId={`geographic-composition-feature-name-${feature.id}`}
+                    >
+                      <button
+                        type="button"
+                        className="geographic-composition-feature-name"
+                        title={visible ? undefined : t("geographic.drawing.hidden")}
+                        onClick={() => {
+                          if (selected && renameArmedFeatureId === feature.id) {
+                            onEditingFeature(feature.id);
+                            onRenameArmedFeature(null);
+                          } else {
+                            onSelect(feature.id);
+                            onRenameArmedFeature(feature.id);
+                          }
+                        }}
+                      >
+                        {name}
+                      </button>
+                    </InlineRenameField>
+                    <button
+                      type="button"
+                      className="geographic-composition-feature-fit"
+                      data-testid={`geographic-composition-feature-fit-${feature.id}`}
+                      aria-label={t("geographic.fitFeature").replace("{name}", name)}
+                      title={t("geographic.fitFeature").replace("{name}", name)}
+                      onClick={() => onFitFeature(feature.id)}
+                    >
+                      <CenterOnFeatureIcon />
+                    </button>
+                    <DrawingColorControl
+                      name={name}
+                      color={color}
+                      presets={colorPresets}
+                      legendPresets={legendColorPresets}
+                      className="geographic-composition-feature-color"
+                      onChange={(nextColor) => onColor(feature.id, nextColor)}
+                    />
+                    <DrawingActionsMenu
+                      name={name}
+                      className="geographic-composition-feature-menu"
+                      testId={(part) => `geographic-composition-feature-${part}-${feature.id}`}
+                      kind={feature.properties.kind}
+                      visible={visible}
+                      onVisibility={(next) => onVisibility(feature.id, next)}
+                      modifying={modifying}
+                      onToggleModifying={() => onToggleModifying(feature.id)}
+                      measuresActive={measuredDrawingIds.has(feature.id)}
+                      onMeasures={(active) => onDrawingMeasures(feature.id, active)}
+                      arrows={feature.properties.kind === "line" ? feature.properties.style.arrows : undefined}
+                      onArrows={(arrows) => onArrows(feature.id, arrows)}
+                      onDelete={() => onDelete(feature.id)}
+                    />
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </TabsContent>
+        <TabsContent
+          value="legend"
+          className="geographic-composition-tab"
+          data-testid="geographic-composition-panel-legend"
+        >
+          <GeographicLegendEditor entries={legend} presets={colorPresets} onChange={onLegend} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

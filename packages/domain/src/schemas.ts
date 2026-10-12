@@ -188,6 +188,8 @@ export const previewContentTemplateSchema = z.discriminatedUnion("kind", [
 export const previewPdfSchema = z.object({
   bodyMarkdown: z.string().max(500_000),
   context: templateRenderContextSchema.default({}),
+  /** Append the PDF documents the text references, linked from the text; otherwise they stay plain text. */
+  attachPdfDocuments: z.boolean().default(true),
 });
 
 export const generateContentTemplateSchema = z.object({

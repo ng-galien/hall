@@ -54,13 +54,31 @@ test("failed document loading shows a retry instead of an endless loading state"
   store.loadResources.mockClear();
   const host = document.createElement("div");
   const root = createRoot(host);
-  const business = { id: "business", title: "Affaire", reportResourceId: "report", folderResourceId: "folder", folderPath: "path", resources: [] };
-  const reportSession = { resource: null, detailsFailed: false, actionError: null, editable: false, content: "", reload: vi.fn() };
-  const render = async () => act(async () => root.render(h(CouncilBusinessWorkbench, { business, reportSession, onCreate: vi.fn() })));
+  const business = {
+    id: "business",
+    title: "Affaire",
+    reportResourceId: "report",
+    folderResourceId: "folder",
+    folderPath: "path",
+    resources: [],
+  };
+  const reportSession = {
+    resource: null,
+    detailsFailed: false,
+    actionError: null,
+    editable: false,
+    content: "",
+    reload: vi.fn(),
+  };
+  const render = async () =>
+    act(async () => root.render(h(CouncilBusinessWorkbench, { business, reportSession, onCreate: vi.fn() })));
   try {
     await render();
     await act(async () => host.querySelector('[data-testid="business-category-documents-toggle"]').click());
-    assert.equal(host.querySelector('[data-testid="business-documents-load-error"] [role="alert"]')?.textContent, "request_failed");
+    assert.equal(
+      host.querySelector('[data-testid="business-documents-load-error"] [role="alert"]')?.textContent,
+      "request_failed",
+    );
     assert.equal(host.querySelector('[data-testid="business-category-documents-count"]'), null);
     await act(async () => host.querySelector('[data-testid="business-documents-retry"]').click());
     assert.deepEqual(store.loadResources.mock.calls.at(-1), ["business"]);

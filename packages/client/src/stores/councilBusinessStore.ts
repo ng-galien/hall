@@ -3,9 +3,9 @@ import {
   type CreatePreparedCouncilSubject,
   findSirenAction,
   type PreparedCouncilSubject,
+  type ResourceDetail,
   type SirenEmbeddedEntity,
   type SirenEntity,
-  type ResourceDetail,
 } from "@hall/api-contract";
 import { create } from "zustand";
 import { type CouncilBusinessView, councilBusinessView } from "../models/councilBusiness";
@@ -89,6 +89,17 @@ function capabilities(representation: SirenEntity | null): CouncilBusinessCapabi
   };
 }
 
+// @implements-requirement HALL-FR-WSP-370
+/** A business's documents carry the summaries its report references need: adopt them without the catalog. */
+async function loadBusinessResourceItems(ids: readonly string[]) {
+  const items = await listCouncilBusinessResourceItems(ids);
+  useWorkspaceResourcesStore.getState().adoptSummaries(
+    // Each item was validated by the API client as a summary plus its position in the business.
+    items.map(({ councilBusinessId: _business, position: _position, ...summary }) => summary),
+  );
+  return items;
+}
+
 async function hydrateCouncilBusiness(id: string): Promise<{
   view: CouncilBusinessView;
   representation: SirenEntity | null;
@@ -99,7 +110,7 @@ async function hydrateCouncilBusiness(id: string): Promise<{
   const [folder, report, resourceItems] = await Promise.all([
     resources.open(business.folderResourceId),
     resources.open(business.reportResourceId),
-    listCouncilBusinessResourceItems([business.id]),
+    loadBusinessResourceItems([business.id]),
   ]);
   if (!folder || !report) throw new Error("CouncilBusiness documentary resources are unavailable");
   if (folder.data.kind !== "folder") throw new Error("CouncilBusiness folder resource is invalid");
@@ -193,7 +204,10 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
         businesses: result.data.map((business) => {
           const current = state.businesses.find((entry) => entry.id === business.id);
           if (current && business.id in state.capabilitiesById) return current;
-          return { ...business, resources: current && state.resourceItemsLoadedById[business.id] ? current.resources : [] };
+          return {
+            ...business,
+            resources: current && state.resourceItemsLoadedById[business.id] ? current.resources : [],
+          };
         }),
         canImportBundle: Boolean(
           result.representation && findSirenAction(result.representation, "council-business.import-bundle"),
@@ -215,7 +229,7 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
         const business = opened.data;
         const resources = useWorkspaceResourcesStore.getState();
         const folder = await resources.open(business.folderResourceId);
-        if (!folder || folder.data.kind !== "folder") throw new Error("CouncilBusiness folder resource is unavailable");
+        if (folder?.data.kind !== "folder") throw new Error("CouncilBusiness folder resource is unavailable");
         const current = get().businesses.find((entry) => entry.id === id);
         const view: CouncilBusinessView = {
           ...business,
@@ -228,7 +242,7 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
         };
         set((state) => ({
           businesses: state.businesses.some((entry) => entry.id === id)
-            ? state.businesses.map((entry) => entry.id === id ? view : entry)
+            ? state.businesses.map((entry) => (entry.id === id ? view : entry))
             : [...state.businesses, view],
           capabilitiesById: { ...state.capabilitiesById, [id]: capabilities(opened.representation) },
           representationsById: opened.representation
@@ -291,7 +305,7 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
         id in get().capabilitiesById
           ? Promise.resolve(get().representationsById[id] ?? null)
           : openCouncilBusiness(id).then((opened) => opened.representation),
-        listCouncilBusinessResourceItems([id]),
+        loadBusinessResourceItems([id]),
       ]);
       set((state) => ({
         businesses: state.businesses.map((business) =>

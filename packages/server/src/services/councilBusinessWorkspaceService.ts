@@ -2,10 +2,10 @@ import type {
   AgendaItem,
   CouncilBusiness,
   CouncilBusinessCommitteeLink,
+  CouncilBusinessNavigationIndex,
   CouncilBusinessResourceAssociation,
   CouncilBusinessResourceItem,
   CouncilBusinessWorkspaceItem,
-  CouncilBusinessNavigationIndex,
   CouncilCommitteeBusinessLink,
   CreateCouncilBusiness,
   ReorderCouncilBusinessResources,
@@ -59,7 +59,9 @@ export function createCouncilBusinessWorkspaceService({
         councilClient.listBusinesses().catch(translateFailure),
         resourcesClient.listAll(),
       ]);
-      const foldersById = new Map(resources.data.filter((entry) => entry.kind === "folder").map((entry) => [entry.id, entry]));
+      const foldersById = new Map(
+        resources.data.filter((entry) => entry.kind === "folder").map((entry) => [entry.id, entry]),
+      );
       return {
         businesses: businesses.map((business) => {
           const folder = foldersById.get(business.folderResourceId);
@@ -67,7 +69,11 @@ export function createCouncilBusinessWorkspaceService({
           return { ...business, title: folder.name, folderPath: folder.path };
         }),
         catalog: resources.data.filter((entry) => entry.kind === "folder"),
-        paths: [...new Set(resources.data.map((entry) => entry.kind === "folder" ? entry.fullPath : entry.path).filter(Boolean))],
+        paths: [
+          ...new Set(
+            resources.data.map((entry) => (entry.kind === "folder" ? entry.fullPath : entry.path)).filter(Boolean),
+          ),
+        ],
       };
     },
     async get(id) {
