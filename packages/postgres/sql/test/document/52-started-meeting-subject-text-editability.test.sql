@@ -9,7 +9,8 @@ SELECT no_plan();
 CREATE TEMP TABLE source_editability_scenario AS
 SELECT
   (hall.provision_initial_council_meeting()).id AS meeting,
-  create_council_business_workspace('', 'source-editability', 'report', 'Initial report') AS business;
+  create_council_business_workspace('', 'source-editability', 'report', 'Initial report') AS business,
+  create_council_business_workspace('', 'carried-decision', 'carried-report', 'Carried report') AS carried_business;
 
 SELECT schedule_council_meeting(meeting, '2026-01-01 09:00Z', 'Council chamber')
 FROM source_editability_scenario;
@@ -18,7 +19,8 @@ CREATE TEMP TABLE source_editability_items AS
 SELECT
   schedule_council_decision_proposal(business, meeting, 1) AS decision_item,
   schedule_open_question(business, meeting, 2) AS open_item,
-  schedule_open_question(business, meeting, 3) AS carried_item
+  schedule_open_question(business, meeting, 3) AS carried_item,
+  schedule_council_decision_proposal(carried_business, meeting, 4) AS carried_decision_item
 FROM source_editability_scenario;
 
 CREATE TEMP TABLE source_editability_resources(kind TEXT PRIMARY KEY, id UUID NOT NULL);
@@ -36,7 +38,15 @@ UNION ALL
 SELECT 'carried', workspace.text_resource
 FROM open_question_workspace AS workspace
 JOIN council_agenda_item AS item ON item.open_question = workspace.open_question
-JOIN source_editability_items AS items ON items.carried_item = item.id;
+JOIN source_editability_items AS items ON items.carried_item = item.id
+UNION ALL
+SELECT 'carried-decision', workspace.text_resource
+FROM council_decision_proposal_workspace AS workspace
+JOIN council_agenda_item AS item ON item.council_decision_proposal = workspace.council_decision_proposal
+JOIN source_editability_items AS items ON items.carried_decision_item = item.id;
+
+INSERT INTO resource_tag(resource_id, value)
+SELECT id, 'initial' FROM source_editability_resources;
 
 SELECT hall_api.create_folder('', 'archive');
 
@@ -78,6 +88,21 @@ SELECT throws_ok(
 )
 FROM source_editability_resources
 ORDER BY kind;
+
+-- @verifies-requirement HALL-FR-WSP-280 MEETING_CONDUCT_LOCKS_AGENDA_SUBJECT_TEXTS:
+SELECT throws_ok(
+  format(statement, id),
+  'HV823',
+  'an agenda subject text is immutable during meeting conduct or after its agenda item starts',
+  kind || ' source rejects tag ' || operation || ' while its prepared meeting is open'
+)
+FROM source_editability_resources
+CROSS JOIN (VALUES
+  ('insertion', 'INSERT INTO hall.resource_tag(resource_id, value) VALUES (%L, ''added'')'),
+  ('change', 'UPDATE hall.resource_tag SET value = ''changed'' WHERE resource_id = %L'),
+  ('removal', 'DELETE FROM hall.resource_tag WHERE resource_id = %L')
+) AS tag_operation(operation, statement)
+ORDER BY kind, operation;
 
 SELECT hall_api.move_resource(
   (SELECT folder_resource FROM council_business_workspace JOIN source_editability_scenario ON council_business = business),
@@ -187,6 +212,50 @@ SELECT lives_ok(
 )
 FROM source_editability_resources
 WHERE kind = 'carried';
+
+SELECT ok(
+  jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))) > 0,
+  'an unstarted carried decision proposal remains editable after closure'
+)
+FROM source_editability_resources
+WHERE kind = 'carried-decision';
+
+SELECT throws_ok(
+  format(statement, id),
+  'HV823',
+  'an agenda subject text is immutable during meeting conduct or after its agenda item starts',
+  kind || ' started source still rejects tag ' || operation || ' after closure'
+)
+FROM source_editability_resources
+CROSS JOIN (VALUES
+  ('insertion', 'INSERT INTO hall.resource_tag(resource_id, value) VALUES (%L, ''added'')'),
+  ('change', 'UPDATE hall.resource_tag SET value = ''changed'' WHERE resource_id = %L'),
+  ('removal', 'DELETE FROM hall.resource_tag WHERE resource_id = %L')
+) AS tag_operation(operation, statement)
+WHERE kind IN ('decision', 'open')
+ORDER BY kind, operation;
+
+SELECT lives_ok(
+  format(statement, id),
+  kind || ' unstarted carried source accepts tag ' || operation || ' after closure'
+)
+FROM source_editability_resources
+CROSS JOIN (VALUES
+  ('1 insertion', 'INSERT INTO hall.resource_tag(resource_id, value) VALUES (%L, ''added'')'),
+  ('2 change', 'UPDATE hall.resource_tag SET value = ''changed'' WHERE resource_id = %L AND value = ''added'''),
+  ('3 removal', 'DELETE FROM hall.resource_tag WHERE resource_id = %L')
+) AS tag_operation(operation, statement)
+WHERE kind IN ('carried', 'carried-decision')
+ORDER BY kind, operation;
+
+SELECT is(
+  (SELECT count(*)::INTEGER FROM hall.resource_tag WHERE resource_id = source.id),
+  0,
+  source.kind || ' unstarted carried source tags were changed and removed'
+)
+FROM source_editability_resources AS source
+WHERE kind IN ('carried', 'carried-decision')
+ORDER BY kind;
 
 SELECT ok(
   jsonb_array_length(hall.resource_siren_actions(hall.resource_detail(id))) > 0,
@@ -306,7 +375,7 @@ SELECT ok(NOT hall.agenda_subject_text_is_editable(id),
 FROM source_editability_resources WHERE kind IN ('decision', 'open');
 SELECT ok(hall.agenda_subject_text_is_editable(id),
   'a never-started subject remains editable after the data migration')
-FROM source_editability_resources WHERE kind = 'carried';
+FROM source_editability_resources WHERE kind IN ('carried', 'carried-decision');
 
 SET LOCAL session_replication_role = replica;
 \ir ../../migrations/001-agenda-subject-text-lock.sql

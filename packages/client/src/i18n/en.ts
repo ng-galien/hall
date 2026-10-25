@@ -1115,6 +1115,7 @@ export const en = {
     "Choose the contact of an elected member in office for the Council member role.",
   "error.personal_workspace_resource_not_associable":
     "This document is still in a council member’s personal folder: the clerk first moves it into a common folder.",
+  "error.council_business_report_not_deletable": "A council business report is deleted only with its council business.",
   "error.council_decision_not_found": "The selected council decision no longer exists.",
   "error.council_member_not_found": "The selected council member is not part of this meeting.",
   "error.council_term_not_configured": "Set the expected council size before adding a council member.",

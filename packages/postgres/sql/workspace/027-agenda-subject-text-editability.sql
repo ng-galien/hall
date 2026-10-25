@@ -1,6 +1,10 @@
 -- A prepared subject remains editable while its meeting is being prepared.
 -- Opening the meeting temporarily locks every subject on the frozen agenda;
 -- starting an item permanently locks that subject's title and content.
+-- The lock covers the subject text only: the business report and attachments
+-- stay editable after the vote.
+
+-- @implements-requirement HALL-FR-WSP-430
 
 -- @implements-requirement HALL-FR-WSP-280
 CREATE TABLE hall.agenda_subject_text_lock (
@@ -212,6 +216,11 @@ FOR EACH ROW EXECUTE FUNCTION hall.protect_started_agenda_subject_text();
 
 CREATE TRIGGER started_meeting_subject_asset_protected
 BEFORE INSERT OR UPDATE OR DELETE ON hall.editor_asset
+FOR EACH ROW EXECUTE FUNCTION hall.protect_started_agenda_subject_text();
+
+-- Tags of an agenda subject follow its title and content lock.
+CREATE TRIGGER started_meeting_subject_tags_protected
+BEFORE INSERT OR UPDATE OR DELETE ON hall.resource_tag
 FOR EACH ROW EXECUTE FUNCTION hall.protect_started_agenda_subject_text();
 
 -- Replacing the text mapping would bypass the title and content lock. Proposal

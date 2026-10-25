@@ -134,6 +134,22 @@ BEGIN
  PERFORM pg_temp.audit_subject(label,label||' completed');
  END LOOP;END LOOP;
 END $$;
+-- The council business stays editable after its proposal is adopted.
+DO $$
+DECLARE b UUID; report UUID; annex UUID;
+BEGIN
+ SELECT council_business INTO b FROM hall.council_decision_proposal WHERE id=test_uuid('public-adopted:a:proposal');
+ SELECT report_resource INTO report FROM hall.council_business_workspace WHERE council_business=b;
+ annex:=(hall_api.create_text_resource('seed','public-adopted-annex','Annex')->>'id')::uuid;
+ PERFORM hall_api.associate_council_business_resource(b,annex);
+ PERFORM pg_temp.probe('after adoption','update report API',format('SELECT hall_api.update_text_resource(%L,%s,''Report after the vote'',''{}''::uuid[],''report-after-vote'')',report,(SELECT version FROM hall.text_resource WHERE id=report)),true);
+ PERFORM pg_temp.probe('after adoption','update attachment API',format('SELECT hall_api.update_text_resource(%L,%s,''Annex after the vote'',''{}''::uuid[],''annex-after-vote'')',annex,(SELECT version FROM hall.text_resource WHERE id=annex)),true);
+ PERFORM pg_temp.probe('after adoption','dissociate attachment API',format('SELECT hall_api.dissociate_council_business_resource(%L,%L)',b,annex),true);
+ PERFORM pg_temp.probe('after adoption','associate new attachment API',format('SELECT hall_api.associate_council_business_resource(%L,(hall_api.create_text_resource(''seed'',''public-adopted-new-annex'',''New annex'')->>''id'')::uuid)',b),true);
+ PERFORM pg_temp.probe('after adoption','create new proposal API',format('SELECT hall_api.create_prepared_council_subject(%L,''councilDecisionProposal'',''public-adopted-second-proposal'',''Second proposal'')',b),true);
+ PERFORM pg_temp.probe('after adoption','edit adopted proposal API',format('SELECT hall_api.update_text_resource(%L,%s,''Changed'',''{}''::uuid[])',w.text_resource,(SELECT version FROM hall.text_resource WHERE id=w.text_resource)),true)
+ FROM hall.council_decision_proposal_workspace w WHERE w.council_decision_proposal=test_uuid('public-adopted:a:proposal');
+END $$;
 -- Distinct maintenance robustness check: normal vote deletion is itself forbidden.
 SELECT pg_temp.probe('maintenance','normal vote deletion',format('DELETE FROM hall.votes WHERE ballot=(SELECT id FROM hall.ballots WHERE council_agenda_item=%L)',test_uuid('before:a:agenda-item')));
 SET CONSTRAINTS ALL IMMEDIATE;
@@ -165,9 +181,15 @@ SELECT is(outcome,'HV821','content still locked despite controlled vote removal'
 SELECT is(outcome,'HV821',stage||': tags and rename locked: '||operation) FROM findings WHERE operation IN ('insert tag SQL','update tag SQL','delete tag SQL','rename plus content API') AND (stage LIKE '% completed' OR stage IN ('first public suffrage','first secret aggregate recorded'));
 SELECT is(outcome,'HV823',stage||': meeting start freezes title and content: '||operation) FROM findings
 WHERE operation='rename plus content API' AND stage IN ('ballot created no votes','secret ballot created no totals');
-SELECT is(outcome,'ALLOWED',stage||': tags remain outside the title and content lock: '||operation) FROM findings
+-- @verifies-requirement HALL-FR-WSP-280 MEETING_CONDUCT_LOCKS_AGENDA_SUBJECT_TEXTS:
+SELECT is(outcome,'HV823',stage||': meeting start freezes tags with title and content: '||operation) FROM findings
 WHERE operation IN ('insert tag SQL','update tag SQL','delete tag SQL') AND stage IN ('ballot created no votes','secret ballot created no totals');
 SELECT is(outcome,'ALLOWED',stage||': editable before meeting start: '||operation) FROM findings WHERE operation IN ('insert tag SQL','update tag SQL','delete tag SQL','rename plus content API') AND stage='before vote';
+-- @verifies-requirement HALL-FR-WSP-430 COUNCIL_BUSINESS_STAYS_EDITABLE_AFTER_VOTE:
+SELECT is(outcome,'ALLOWED',stage||': council business remains editable: '||operation) FROM findings
+WHERE stage='after adoption' AND operation IN ('update report API','update attachment API','dissociate attachment API','associate new attachment API','create new proposal API');
+SELECT is(outcome,'HV821',stage||': the adopted proposal text stays intact beside the editable business') FROM findings
+WHERE stage='after adoption' AND operation='edit adopted proposal API';
 SELECT is(outcome,'0',stage||': completion without any vote rows') FROM findings WHERE operation='confirmed without vote rows';
 SELECT is(outcome,'HV608','stale expected version rejects atomic edit') FROM findings WHERE operation='stale version name and content';
 SELECT is(outcome,'true','stale version changes neither name nor content') FROM findings WHERE operation='stale edit leaves resource unchanged';

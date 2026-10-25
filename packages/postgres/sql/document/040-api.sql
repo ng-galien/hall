@@ -1356,6 +1356,10 @@ BEGIN
   WHERE EXISTS (SELECT FROM hall.council_business_resource link
     WHERE link.resource = resource_id AND link.council_business = business.id)
   ORDER BY business.id FOR UPDATE;
+  -- @implements-requirement HALL-FR-WSP-440
+  IF EXISTS (SELECT FROM hall.council_business_workspace WHERE report_resource = resource_id) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV713', MESSAGE = 'a council business report is deleted only with its council business';
+  END IF;
   IF NOT hall.resource_business_allows_deletion(resource_id) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV703', MESSAGE = 'resource is shared or its council business is no longer editable';
   END IF;

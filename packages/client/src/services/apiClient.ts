@@ -52,6 +52,7 @@ export type ApiErrorCode =
   | "last_administrator_required"
   | "councillor_requires_active_member"
   | "personal_workspace_resource_not_associable"
+  | "council_business_report_not_deletable"
   | "ballot_already_recorded"
   | "ballot_not_found"
   | "ballot_voters_invalid"
@@ -165,6 +166,7 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "last_administrator_required",
   "councillor_requires_active_member",
   "personal_workspace_resource_not_associable",
+  "council_business_report_not_deletable",
   "ballot_already_recorded",
   "ballot_not_found",
   "ballot_voters_invalid",

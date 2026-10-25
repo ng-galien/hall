@@ -44,7 +44,8 @@ it("allows deletion from one editable business but refuses a shared document unt
       reportContent: "Rapport",
     });
     expect(created.status).toBe(201);
-    const businessId = (await created.json()).properties.id;
+    const business = (await created.json()).properties;
+    const businessId = business.id;
     expect((await call(`/council-business/${businessId}/resources`, "POST", { resourceId: id })).status).toBe(201);
     expect(names(await (await call(`/resources/${id}`)).json())).toContain("resource.delete");
     const second = await call("/council-business", "POST", {
@@ -67,6 +68,18 @@ it("allows deletion from one editable business but refuses a shared document unt
     expect(names(await (await call(`/resources/${id}`)).json())).toContain("resource.delete");
     expect((await call(`/resources/${id}`, "DELETE")).status).toBe(204);
     expect((await call(`/resources/${id}`)).status).toBe(404);
+
+    // @verifies-requirement HALL-FR-WSP-440 COUNCIL_BUSINESS_REPORT_IS_DELETED_WITH_ITS_BUSINESS:
+    const reportId = business.reportResourceId;
+    expect(names(await (await call(`/resources/${reportId}`)).json()).sort()).toEqual([
+      "resource.relocate",
+      "resource.update-content",
+      "resource.update-metadata",
+    ]);
+    const refused = await call(`/resources/${reportId}`, "DELETE");
+    expect(refused.status).toBe(409);
+    expect((await refused.json()).code).toBe("council_business_report_not_deletable");
+    expect((await call(`/resources/${reportId}`)).status).toBe(200);
   } finally {
     await server.close();
     await rm(directory, { recursive: true, force: true });

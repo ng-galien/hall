@@ -95,6 +95,7 @@ export type ErrorCode =
   | "last_administrator_required"
   | "permission_denied"
   | "personal_workspace_resource_not_associable"
+  | "council_business_report_not_deletable"
   | "councillor_requires_active_member"
   | "proxy_invalid"
   | "quorum_not_reached"

@@ -192,6 +192,7 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   last_administrator_required: "error.last_administrator_required",
   councillor_requires_active_member: "error.councillor_requires_active_member",
   personal_workspace_resource_not_associable: "error.personal_workspace_resource_not_associable",
+  council_business_report_not_deletable: "error.council_business_report_not_deletable",
   ballot_already_recorded: "error.ballot_already_recorded",
   ballot_not_found: "error.ballot_not_found",
   ballot_voters_invalid: "error.ballot_voters_invalid",

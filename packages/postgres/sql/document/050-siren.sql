@@ -314,6 +314,9 @@ BEGIN
   -- Availability mirrors existing restrictive references. DELETE still rechecks
   -- all constraints atomically, including links created after this projection.
   IF NOT hall.resource_business_allows_deletion((resource_siren_actions.resource ->> 'id')::UUID)
+    -- @implements-requirement HALL-FR-WSP-440
+    OR EXISTS (SELECT FROM hall.council_business_workspace workspace
+      WHERE workspace.report_resource = (resource_siren_actions.resource ->> 'id')::UUID)
     OR EXISTS (SELECT FROM hall.resource target
       JOIN hall.meeting_attendance attendance ON attendance.proxy_document = target.document_resource_id
       WHERE target.id = (resource_siren_actions.resource ->> 'id')::UUID)

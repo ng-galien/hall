@@ -19,6 +19,7 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
   // @implements-requirement HALL-FR-WSP-390
   // @implements-requirement HALL-FR-WSP-420
   // @implements-requirement HALL-FR-DIR-150
+  // @implements-requirement HALL-FR-WSP-440
   switch (postgresSqlState(error)) {
     case "HV614":
     case "HV615":
@@ -29,6 +30,9 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
       return;
     case "HV707":
       sendProblem(request, response, 409, "personal_workspace_resource_not_associable");
+      return;
+    case "HV713":
+      sendProblem(request, response, 409, "council_business_report_not_deletable");
       return;
   }
   if (error instanceof URIError) {

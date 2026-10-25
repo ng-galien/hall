@@ -1134,6 +1134,7 @@ export const fr: Messages = {
     "Choisissez le contact d’un élu en exercice pour le rôle Conseiller municipal.",
   "error.personal_workspace_resource_not_associable":
     "Ce document est encore dans le dossier personnel d’un conseiller : le secrétariat le déplace d’abord dans un dossier commun.",
+  "error.council_business_report_not_deletable": "Le rapport d’une affaire ne se supprime qu’avec l’affaire.",
   "error.council_decision_not_found": "La délibération sélectionnée n’existe plus.",
   "error.council_member_not_found": "Le membre sélectionné ne fait pas partie de cette séance.",
   "error.council_term_not_configured": "Renseignez l’effectif attendu du conseil avant d’ajouter un membre.",

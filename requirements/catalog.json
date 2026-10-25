@@ -7762,6 +7762,12 @@
           "origin": "product",
           "statement": "La rédaction documentaire reste corrigible avant gel, séparément des faits et sans modification du texte soumis. Elle doit transcrire fidèlement la décision ; aucune correction de fond ne découle de cette capacité.",
           "sourceIds": []
+        },
+        {
+          "key": "draft-until-freeze",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (b0768a95) : la rédaction d’une délibération reste modifiable sans délai jusqu’à son gel.",
+          "sourceIds": []
         }
       ]
     },
@@ -8237,13 +8243,33 @@
         "Dès que le point commence, le backend enregistre un verrou durable de son sujet ; ce verrou subsiste après achèvement, ajournement ou clôture.",
         "Après la clôture, un point qui n’a jamais commencé et qui est reporté sur la séance suivante redevient modifiable et peut être renommé ou désinscrit pendant la nouvelle préparation.",
         "Une question créée depuis la conduite de la séance reste modifiable jusqu’au début effectif de son propre examen.",
-        "Le déplacement du dossier de l’affaire et de son rapport principal reste autorisé ; les chemins des textes peuvent suivre ce déplacement sans modifier leur titre ni leur contenu."
+        "Le déplacement du dossier de l’affaire et de son rapport principal reste autorisé ; les chemins des textes peuvent suivre ce déplacement sans modifier leur titre ni leur contenu.",
+        "Les étiquettes d’un projet de délibération ou d’une question suivent le même verrou que son titre et son contenu : pendant la séance ouverte et dès que le point a commencé, le backend refuse leur ajout, leur changement et leur retrait, y compris par écriture directe en base, avec le même refus que le titre et le contenu.",
+        "Un projet dont l’examen a commencé puis a été ajourné reste figé tel qu’il a été examiné ; une version amendée est présentée par un nouveau projet de délibération."
       ],
       "clauses": [
         {
           "key": "meeting-conduct-source-lock",
           "origin": "product",
           "statement": "Déduire le verrou temporaire des sujets inscrits tant que leur séance est ouverte. Enregistrer un verrou durable uniquement lors du passage de `AgendaItem.startedAt` de nul à renseigné. La clôture libère les sujets jamais commencés ; une question ajoutée pendant la conduite n’est verrouillée qu’au démarrage de son propre point.",
+          "sourceIds": []
+        },
+        {
+          "key": "never-started-carried-subject",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (c4dcf0a2) : un projet inscrit mais jamais examiné redevient modifiable après la clôture de la séance.",
+          "sourceIds": []
+        },
+        {
+          "key": "started-adjourned-subject",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (4c2656ac) : un projet dont l’examen a commencé puis a été ajourné reste figé ; une version amendée passe par un nouveau projet.",
+          "sourceIds": []
+        },
+        {
+          "key": "subject-tags",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (a5e6ca98) : les étiquettes d’un projet en cours d’examen ou examiné sont figées comme son titre et son contenu, à l’écran, par l’API et en base.",
           "sourceIds": []
         }
       ]
@@ -8616,6 +8642,68 @@
           "key": "affair-pieces",
           "origin": "product",
           "statement": "Décision du propriétaire du 25 octobre 2026 (D4, 58b84185) : un document encore chez un conseiller n’est pas joint à une affaire ; le secrétariat le reprend d’abord. Sens inverse accepté par la relecture be9112ae.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-430": {
+      "name": "COUNCIL_BUSINESS_STAYS_EDITABLE_AFTER_VOTE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-25"
+      },
+      "statement": "Une affaire du conseil reste modifiable au long cours : après le vote d’un de ses projets, son rapport et ses pièces jointes restent modifiables et elle peut recevoir un nouveau projet de délibération ; seul le texte du projet voté reste figé.",
+      "acceptanceCriteria": [
+        "Après le vote d’un projet, le rapport de l’affaire se modifie (titre et contenu) comme avant la séance.",
+        "Après le vote, les pièces jointes de l’affaire se modifient, se détachent, et de nouvelles pièces s’y associent.",
+        "Après le vote, un nouveau projet de délibération se crée dans l’affaire et s’inscrit à une séance suivante ; le texte du projet voté reste celui qui a été soumis au vote."
+      ],
+      "clauses": [
+        {
+          "key": "living-business",
+          "origin": "product",
+          "statement": "Principe énoncé par le propriétaire le 25 octobre 2026 (4a8635e2) : une affaire du conseil est vivante et se modifie au long cours ; ce qui est associé à une séance, le projet de délibération ou la question, se fige selon son propre cycle de vie (HALL-FR-WSP-280).",
+          "sourceIds": []
+        },
+        {
+          "key": "report-after-vote",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (2702f3a5) : le rapport de l’affaire reste modifiable après le vote.",
+          "sourceIds": []
+        },
+        {
+          "key": "attachments-after-vote",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (bf13df2d) : les pièces jointes d’une affaire votée restent modifiables, détachables et ajoutables.",
+          "sourceIds": []
+        },
+        {
+          "key": "new-proposal-after-vote",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (6cdd7256) : une affaire dont le projet a été voté peut recevoir un nouveau projet de délibération ; le projet voté reste intact.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-440": {
+      "name": "COUNCIL_BUSINESS_REPORT_IS_DELETED_WITH_ITS_BUSINESS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-25"
+      },
+      "statement": "Le rapport d’une affaire, votée ou non, est supprimé avec son affaire.",
+      "acceptanceCriteria": [
+        "Sur le rapport d’une affaire, l’IHM propose le déplacement et la modification du titre, des étiquettes et du contenu.",
+        "Une suppression du seul rapport demandée à l’API reçoit un refus explicite qui nomme cette règle ; le rapport et l’affaire restent intacts.",
+        "La suppression de l’affaire supprime son rapport."
+      ],
+      "clauses": [
+        {
+          "key": "report-deletion",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (2702f3a5) : la suppression du rapport aboutit à un refus nommé plutôt qu’à une erreur technique. La règle vaut pour toute affaire : le rapport est déjà retenu par la clé council_business_workspace.report_resource (ON DELETE RESTRICT).",
           "sourceIds": []
         }
       ]
