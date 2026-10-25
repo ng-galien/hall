@@ -14,13 +14,16 @@ const help = `Hall standalone server
 Usage:
   hall start [--env-file /absolute/path/hall.env]
   hall schema-check [--env-file /absolute/path/hall.env]
+  hall migrate [--env-file /absolute/path/hall.env]
   hall install-browser
   hall --version
   hall --help
 
 DATABASE_URL must identify an external PostgreSQL database.
 Configuration, backups and database files must stay outside this package.
-start uses Hall's existing schema bootstrap and may upgrade an existing database.
+start verifies the installed schema and refuses an absent or incompatible schema.
+migrate explicitly installs or upgrades the schema without starting HTTP.
+Stop application writers and verify a backup before migrate on an existing database.
 schema-check only verifies the installed schema fingerprint; it does not migrate.
 install-browser explicitly installs Chromium for PDF generation.
 `;
@@ -51,7 +54,7 @@ async function main() {
     return;
   }
   if (
-    !["start", "schema-check"].includes(command) ||
+    !["start", "schema-check", "migrate"].includes(command) ||
     !(args.length === 0 || (args.length === 2 && args[0] === "--env-file"))
   ) {
     throw new Error("Invalid command or arguments. Run hall --help.");
@@ -69,13 +72,25 @@ async function main() {
   const { configFromEnvironment, validateServerConfig } = await import("../src/core/config.ts");
   const config = { ...configFromEnvironment(), clientDirectory: resolve(packageRoot, "client") };
   validateServerConfig(config);
-  if (command === "schema-check") {
+  if (command === "schema-check" || command === "migrate") {
     const { Pool } = await import("pg");
     const { PostgresSchemaBootstrap } = await import("../../postgres/src/bootstrap.ts");
     const pool = new Pool({ connectionString: config.database.url, max: 1 });
     try {
-      await new PostgresSchemaBootstrap(pool).verify();
-      process.stdout.write("Hall schema fingerprint matches this package. No migration performed.\n");
+      const bootstrap = new PostgresSchemaBootstrap(pool);
+      if (command === "migrate") {
+        const { initializeServerSchema } = await import("../src/infrastructure/postgres/executor.ts");
+        const result = await bootstrap.install(async (client) => {
+          await client.query("RESET ROLE");
+          await client.query("SET LOCAL search_path = public");
+          await initializeServerSchema(client);
+        });
+        await bootstrap.verify();
+        process.stdout.write(`Hall schema ${result}; fingerprint verified. HTTP was not started.\n`);
+      } else {
+        await bootstrap.verify();
+        process.stdout.write("Hall schema fingerprint matches this package. No migration performed.\n");
+      }
     } finally {
       await pool.end();
     }
@@ -83,7 +98,18 @@ async function main() {
   }
   await access(resolve(config.clientDirectory, "index.html"), constants.R_OK);
   const { startHttpServer } = await import("../src/server.ts");
-  const handle = await startHttpServer(config);
+  let handle;
+  try {
+    handle = await startHttpServer(config, {
+      schemaInitializationMode: "verify-only",
+      postgresSchemaUpgradeMode: "verify-only",
+    });
+  } catch (error) {
+    throw new Error(
+      `${error instanceof Error ? error.message : String(error)}\nIf the schema is absent or incompatible, rehearse and run hall migrate explicitly before starting.`,
+      { cause: error },
+    );
+  }
   process.stdout.write(`Hall ready: ${handle.url}/app/\n`);
   let stopping;
   const stop = () => {

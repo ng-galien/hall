@@ -8,10 +8,12 @@ export function createSqlExecutor({
   config,
   requestContext,
   postgresPool,
+  schemaUpgradeMode,
 }: {
   config: ServerConfig;
   requestContext: RequestContextStore;
   postgresPool?: Pool | null;
+  schemaUpgradeMode?: "automatic" | "verify-only";
 }): SqlExecutor {
-  return createPostgresExecutor({ config, requestContext, postgresPool });
+  return createPostgresExecutor({ config, requestContext, postgresPool, schemaUpgradeMode });
 }

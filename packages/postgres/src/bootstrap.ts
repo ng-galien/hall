@@ -9,6 +9,7 @@ import { type HallSchemaUpgradeRuntime, openHallSchemaUpgradeRuntime } from "./s
 type BootstrapResult = "installed" | "upgraded" | "verified";
 type ManifestProvider = () => Promise<SchemaManifest>;
 type UpgradeRuntimeProvider = (manifest: SchemaManifest) => Promise<HallSchemaUpgradeRuntime>;
+type TransactionalInitialization = (client: PoolClient) => Promise<void>;
 export type PostgresSchemaUpgradeMode = "automatic" | "verify-only";
 
 async function schemaContractFingerprint(client: PoolClient): Promise<string | null> {
@@ -177,7 +178,8 @@ export class PostgresSchemaBootstrap {
     private readonly upgradeRuntimeProvider: UpgradeRuntimeProvider = defaultUpgradeRuntimeProvider(pool),
   ) {}
 
-  async install(): Promise<BootstrapResult> {
+  // The optional initializer shares this transaction and must not commit or release its client.
+  async install(initialize?: TransactionalInitialization): Promise<BootstrapResult> {
     const manifest = await this.manifestProvider();
     const client = await this.pool.connect();
     try {
@@ -186,6 +188,7 @@ export class PostgresSchemaBootstrap {
       const existingFingerprint = await schemaContractFingerprint(client);
       if (existingFingerprint) {
         if (existingFingerprint === manifest.fingerprint) {
+          await initialize?.(client);
           await client.query("COMMIT");
           return "verified";
         }
@@ -198,12 +201,14 @@ export class PostgresSchemaBootstrap {
         } finally {
           await runtime.close();
         }
+        await initialize?.(client);
         await client.query("COMMIT");
         return "upgraded";
       }
 
       await assertDatabaseHasNoHallModel(client, manifest.fingerprint);
       await executeManifest(client, manifest);
+      await initialize?.(client);
       await client.query("COMMIT");
       return "installed";
     } catch (error) {

@@ -34,6 +34,31 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
     expect(contract.rows).toEqual([{ manifest_sha256: manifest.fingerprint }]);
   });
 
+  it("rolls back the managed schema and caller initialization together before commit", async () => {
+    await reset();
+    const bootstrap = new PostgresSchemaBootstrap(pool);
+    await expect(
+      bootstrap.install(async (client) => {
+        await client.query("RESET ROLE");
+        await client.query("CREATE TABLE public.preexisting_table (id integer)");
+        throw new Error("initializer failure");
+      }),
+    ).rejects.toThrow("initializer failure");
+    expect(
+      (await pool.query("SELECT to_regnamespace('hall') AS hall, to_regclass('public.preexisting_table') AS probe"))
+        .rows[0],
+    ).toEqual({ hall: null, probe: null });
+    await expect(bootstrap.install()).resolves.toBe("installed");
+    await expect(
+      bootstrap.install(async (client) => {
+        await client.query("CREATE TABLE public.preexisting_table (id integer)");
+        throw new Error("matching-schema initializer failure");
+      }),
+    ).rejects.toThrow("matching-schema initializer failure");
+    expect((await pool.query("SELECT to_regclass('public.preexisting_table') AS probe")).rows[0].probe).toBeNull();
+    await expect(bootstrap.verify()).resolves.toBeUndefined();
+  });
+
   it("upgrades an older manifest to the materialized target without losing existing data", async () => {
     await reset();
     const current = await loadSchemaManifest();

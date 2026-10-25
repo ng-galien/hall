@@ -46,11 +46,7 @@ export const postgresCouncilBusinessTitleUniquenessSchema = `
     ON council_business(folder_path, title);
 `;
 
-export const postgresBallotVoteConfidentialitySchema = `
-  CREATE OR REPLACE FUNCTION enforce_public_ballot_votes()
-  RETURNS trigger
-  LANGUAGE plpgsql
-  AS $$
+export const postgresPublicBallotVotesBody = `
   DECLARE
     ballot_method TEXT;
   BEGIN
@@ -65,18 +61,9 @@ export const postgresBallotVoteConfidentialitySchema = `
     END IF;
     RETURN NEW;
   END;
-  $$;
+  `;
 
-  DROP TRIGGER IF EXISTS votes_require_public_ballot ON votes;
-  CREATE TRIGGER votes_require_public_ballot
-  BEFORE INSERT OR UPDATE ON votes
-  FOR EACH ROW
-  EXECUTE FUNCTION enforce_public_ballot_votes();
-
-  CREATE OR REPLACE FUNCTION enforce_public_method_for_ballots_with_votes()
-  RETURNS trigger
-  LANGUAGE plpgsql
-  AS $$
+export const postgresPublicMethodForBallotsBody = `
   BEGIN
     IF NEW.method <> 'public' AND EXISTS (
       SELECT 1 FROM votes
@@ -87,7 +74,24 @@ export const postgresBallotVoteConfidentialitySchema = `
     END IF;
     RETURN NEW;
   END;
-  $$;
+  `;
+
+export const postgresBallotVoteConfidentialitySchema = `
+  CREATE OR REPLACE FUNCTION enforce_public_ballot_votes()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  AS $$${postgresPublicBallotVotesBody}$$;
+
+  DROP TRIGGER IF EXISTS votes_require_public_ballot ON votes;
+  CREATE TRIGGER votes_require_public_ballot
+  BEFORE INSERT OR UPDATE ON votes
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_public_ballot_votes();
+
+  CREATE OR REPLACE FUNCTION enforce_public_method_for_ballots_with_votes()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  AS $$${postgresPublicMethodForBallotsBody}$$;
 
   DROP TRIGGER IF EXISTS ballots_with_votes_require_public_method ON ballots;
   CREATE TRIGGER ballots_with_votes_require_public_method

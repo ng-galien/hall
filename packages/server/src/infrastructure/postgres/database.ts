@@ -7,10 +7,12 @@ export function createPostgresExecutor({
   config,
   requestContext,
   postgresPool,
+  schemaUpgradeMode,
 }: {
   config: ServerConfig;
   requestContext: RequestContextStore;
   postgresPool?: Pool | null;
+  schemaUpgradeMode?: "automatic" | "verify-only";
 }): PostgresExecutor {
-  return new PostgresExecutor(config.database.url, requestContext, postgresPool ?? undefined);
+  return new PostgresExecutor(config.database.url, requestContext, postgresPool ?? undefined, schemaUpgradeMode);
 }

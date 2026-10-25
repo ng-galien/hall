@@ -18,7 +18,10 @@ export async function startHttpServer(
   validateServerConfig(config);
   const container = buildContainer(config, options);
   try {
-    if (container.cradle.postgresClient) await container.cradle.postgresClient.bootstrap.install();
+    if (container.cradle.postgresClient) {
+      if (options.schemaInitializationMode === "verify-only") await container.cradle.postgresClient.bootstrap.verify();
+      else await container.cradle.postgresClient.bootstrap.install();
+    }
     await container.cradle.sqlExecutor.ready();
     const application = createHttpApplication(container);
 

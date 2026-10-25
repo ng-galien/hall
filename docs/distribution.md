@@ -84,6 +84,7 @@ Provision the dedicated empty database separately. Do not pass an unrelated
 database to Hall. Run:
 
 ```sh
+/srv/hall/releases/0.1.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
 /srv/hall/releases/0.1.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
 ```
 
@@ -118,11 +119,20 @@ and runtime dependency versions, registry archive URLs and lockfile integrities.
 These recorded identifiers do not assert npm provenance attestation. Keep this
 metadata with the tarball and backup manifest.
 
-**Starting Hall can change the schema.** The existing server bootstrap installs an
-empty database or attempts to upgrade a different fingerprint before listening.
-Installing or replacing an npm package is therefore a different operation from
-starting its server against an existing database. There is no automatic backup
-or restore gate in the startup path.
+**The standalone `hall start` command does not migrate.** It refuses an empty or
+incompatible schema before listening. Install or upgrade the schema explicitly:
+
+```sh
+/srv/hall/releases/0.1.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
+/srv/hall/releases/0.1.0/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
+/srv/hall/releases/0.1.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
+```
+
+Use `migrate` only after stopping application writers and verifying recovery from
+the selected backup. It reuses the existing schema engine and does not start HTTP,
+install another npm version, download prerequisites, back up, or restore data.
+Repeat the exact source-to-target operation on a disposable restored copy first.
+Repository development and desktop bootstrap retain their existing behavior.
 
 ## Backup and restoration verification
 
@@ -166,9 +176,11 @@ they are not an invitation to use the shared development or production database.
 1. Keep the current tarball, configuration and verified backup.
 2. Install the candidate into a new release directory without starting it.
 3. Verify its assets, dependencies and release metadata. Rehearse startup and any
-   schema change on a restored copy, including retained records and failure cases.
+   schema change with `hall migrate` on a restored copy, including retained records
+   and failure cases, then use `schema-check` and `start`.
 4. During the authorized maintenance window, stop every writer and take the final
-   backup. Run the rehearsed update and verify the API and application data before
+   backup. Run the candidate's `hall migrate`, then `schema-check` and `start`;
+   verify the API and application data before
    allowing writes again.
 5. Retain the old release and backup until recovery requirements are satisfied.
 
@@ -176,8 +188,16 @@ If npm installation is interrupted, discard only the incomplete candidate code
 directory and reinstall it; configuration and PostgreSQL data remain external.
 Do not overwrite the active release while its process is running.
 
-The Hall schema upgrade uses a transaction and advisory lock. A failed transaction
-must leave the installed schema and fingerprint unchanged. An interrupted attempt
+`migrate` runs the Hall schema upgrade and existing server-table initialization
+in one transaction with advisory locks. An error in either initializer rolls back
+both; the installed schema, fingerprint and existing data remain unchanged. Stop
+writers, retain the error, correct its cause, then rerun the same candidate command.
+A matching schema is verified on retry; no automatic downgrade is attempted.
+If the connection is lost while committing, the outcome may be unknown. Keep
+writers stopped, inspect the schema with the same candidate and rerun `migrate`
+to verify or finish initialization; do not infer rollback from a missing success
+message. Recheck representative data before reopening access.
+An interrupted attempt
 can leave the marked auxiliary comparison database, which the existing runtime
 can reuse after validating its identity. Do not delete an unrecognized database.
 

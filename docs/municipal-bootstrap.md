@@ -138,14 +138,16 @@ Open `http://127.0.0.1:3100/app/`. The process stays in the foreground. Use a se
 terminal to check `Invoke-RestMethod http://127.0.0.1:3100/api/health`.
 
 `schema-check` only reads the schema fingerprint. A matching fingerprint does not
-prove the correctness of every record. `start` can install or migrate the schema
-before listening; never use it as a harmless probe of an unknown live backup.
+prove the correctness of every record. Standalone `start` refuses an absent or
+incompatible schema without migrating it. Use `migrate` explicitly on the selected
+database after successful rehearsal and recovery verification.
 If fingerprints differ, use the original matching release first, then rehearse
 the exact candidate on another restored copy. A capability-check failure in Code
 Moniker is a migration blocker, not permission to rewrite the fingerprint.
 
 For a genuinely new installation without a backup, provision a new empty database,
-point the configuration to it, and run `start` to install the initial schema. Do
+point the configuration to it, run `migrate` to install the initial schema, then
+`schema-check` and `start`. Do
 not initialize that database before subsequently restoring a backup into it.
 
 ## Administrator and municipality
@@ -270,15 +272,29 @@ with restricted access. The database contains Hall document bytes; preserve any
 external resources referenced by URL according to the municipality's policy.
 
 Install an update into a new release directory and verify it without touching the
-active release. Rehearse startup on a restored copy, including login, municipality
+active release. Rehearse `migrate`, `schema-check` and startup on a restored copy, including login, municipality
 values, collaborator permissions, counts, text and binary content, and PDFs.
 Schema migrations require a compatible Code Moniker runtime. The migration list
 has no individual applied-version ledger; exact source-to-target rehearsal is
 required, even when structural fingerprints converge.
 
 During the authorized maintenance window, stop every writer, take the final
-verified backup, change the launcher to the candidate release/configuration,
-start it, and perform the same acceptance checks before allowing work again.
+verified backup, select the candidate release/configuration, and execute:
+
+```powershell
+# $Hall must refer to the candidate release, $Config to the selected database.
+& $Hall --version
+if ($LASTEXITCODE -ne 0) { throw 'Candidate release is not executable' }
+& $Hall migrate --env-file $Config
+if ($LASTEXITCODE -ne 0) { throw 'Migration failed; keep writers stopped and inspect the error' }
+& $Hall schema-check --env-file $Config
+if ($LASTEXITCODE -ne 0) { throw 'Schema verification failed; do not reopen access' }
+& $Hall start --env-file $Config
+```
+
+Perform the same acceptance checks before allowing work again. `migrate` does not
+fetch a release, make a backup, or start the web server. The operator retains control
+of the selected version, database, maintenance window and recovery decision.
 If npm installation fails, retain the old release and reinstall only the candidate.
 If migration or startup fails, keep the error logs and do not bypass schema checks.
 

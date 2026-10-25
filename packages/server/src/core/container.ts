@@ -87,6 +87,7 @@ import type { ServerConfig } from "./config.js";
 export interface ServerCompositionOptions {
   postgresPool?: Pool;
   postgresSchemaUpgradeMode?: "automatic" | "verify-only";
+  schemaInitializationMode?: "automatic" | "verify-only";
 }
 
 export interface Cradle {
@@ -150,12 +151,18 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     postgresPool: asValue(options.postgresPool ?? null),
     requestContext: asFunction(() => new RequestContextStore()).singleton(),
     realtimeEvents: asFunction(createLiveEventBus).singleton(),
-    sqlExecutor: asFunction(createSqlExecutor).singleton(),
+    sqlExecutor: asFunction(({ config, requestContext, postgresPool }: Cradle) =>
+      createSqlExecutor({ config, requestContext, postgresPool, schemaUpgradeMode: options.schemaInitializationMode }),
+    ).singleton(),
     postgresClient: asFunction(({ config, postgresPool }: { config: ServerConfig; postgresPool: Pool | null }) => {
       if (config.database.kind !== "postgres") return null;
       return postgresPool
         ? new PostgresClient(postgresPool, false, options.postgresSchemaUpgradeMode)
-        : new PostgresClient(logIdleConnectionFailures(createPostgresPool({ connectionString: config.database.url })));
+        : new PostgresClient(
+            logIdleConnectionFailures(createPostgresPool({ connectionString: config.database.url })),
+            true,
+            options.postgresSchemaUpgradeMode,
+          );
     }).singleton(),
     unitOfWork: asFunction(({ sqlExecutor }: { sqlExecutor: SqlExecutor }) => sqlExecutor).singleton(),
     hallSettingsRepository: asFunction(createHallSettingsRepository).singleton(),

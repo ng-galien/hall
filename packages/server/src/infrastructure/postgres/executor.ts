@@ -11,6 +11,8 @@ import { logIdleConnectionFailures } from "./idleConnectionFailures.js";
 import {
   postgresBallotVoteConfidentialitySchema,
   postgresCouncilBusinessTitleUniquenessSchema,
+  postgresPublicBallotVotesBody,
+  postgresPublicMethodForBallotsBody,
   postgresSchema,
   postgresTables,
   postgresUserContactMigration,
@@ -20,6 +22,90 @@ type TransactionContext = {
   client: PoolClient;
   queue: Promise<void>;
 };
+
+// The caller owns the transaction. This initializer never commits or releases the client.
+export async function initializeServerSchema(
+  client: PoolClient,
+  mode: "automatic" | "verify-only" = "automatic",
+): Promise<void> {
+  await client.query("SELECT pg_advisory_xact_lock(hashtext('hall.schema.bootstrap'))");
+  const result = await client.query<{ table_name: string }>(
+    `SELECT table_name FROM information_schema.tables
+     WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'
+     ORDER BY table_name`,
+  );
+  const tables = result.rows.map((row) => row.table_name);
+  if (tables.length === 0) {
+    if (mode === "verify-only") throw new Error("PostgreSQL schema is absent; run hall migrate before starting Hall");
+    await client.query(postgresSchema);
+  } else {
+    const expected = [...postgresTables].sort();
+    if (tables.length !== expected.length || tables.some((table, index) => table !== expected[index])) {
+      throw new Error("Unsupported PostgreSQL schema; inspect compatibility before running hall migrate");
+    }
+    const votesColumns = await client.query<{ column_name: string }>(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_schema = current_schema() AND table_name = 'votes'`,
+    );
+    if (!votesColumns.rows.some((row) => row.column_name === "position")) {
+      throw new Error("Obsolete PostgreSQL schema; inspect compatibility before running hall migrate");
+    }
+    if (mode === "verify-only") {
+      const userColumns = await client.query<{ column_name: string }>(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_schema = current_schema() AND table_name = 'users'`,
+      );
+      if (
+        !userColumns.rows.some((row) => row.column_name === "contact_id") ||
+        userColumns.rows.some((row) => row.column_name === "council_member_id")
+      ) {
+        throw new Error("Server user schema requires migration; run hall migrate before starting Hall");
+      }
+      await verifyServerInvariants(client);
+    }
+  }
+  if (mode === "automatic") {
+    await client.query(postgresUserContactMigration);
+    await client.query(postgresBallotVoteConfidentialitySchema);
+    await client.query(postgresCouncilBusinessTitleUniquenessSchema);
+  }
+}
+
+async function verifyServerInvariants(client: PoolClient): Promise<void> {
+  const result = await client.query<{ valid: boolean }>(
+    `SELECT
+       (SELECT count(*) = 2
+        FROM pg_catalog.pg_trigger t
+        JOIN pg_catalog.pg_proc p ON p.oid = t.tgfoid
+        JOIN pg_catalog.pg_language l ON l.oid = p.prolang
+        WHERE NOT t.tgisinternal AND t.tgenabled = 'O'
+          AND NOT p.prosecdef AND p.proconfig IS NULL
+          AND p.pronargs = 0 AND p.prorettype = 'trigger'::regtype AND l.lanname = 'plpgsql'
+          AND t.tgqual IS NULL AND t.tgnargs = 0
+          AND ((t.tgname = 'votes_require_public_ballot'
+                AND t.tgrelid = 'public.votes'::regclass AND t.tgtype = 23 AND t.tgattr::text = ''
+                AND p.oid = to_regprocedure('public.enforce_public_ballot_votes()') AND p.prosrc = $1)
+            OR (t.tgname = 'ballots_with_votes_require_public_method'
+                AND t.tgrelid = 'public.ballots'::regclass AND t.tgtype = 19
+                AND t.tgattr::text = (SELECT attnum::text FROM pg_catalog.pg_attribute
+                  WHERE attrelid = 'public.ballots'::regclass AND attname = 'method')
+                AND p.oid = to_regprocedure('public.enforce_public_method_for_ballots_with_votes()') AND p.prosrc = $2)))
+       AND EXISTS (
+         SELECT FROM pg_catalog.pg_index i
+         WHERE i.indexrelid = to_regclass('public.one_council_business_title_per_folder')
+           AND i.indrelid = 'public.council_business'::regclass
+           AND i.indisunique AND i.indisvalid AND i.indisready
+           AND i.indnkeyatts = 2 AND i.indnatts = 2 AND i.indpred IS NULL AND i.indexprs IS NULL
+           AND i.indkey::text = (SELECT string_agg(attnum::text, ' ' ORDER BY CASE attname WHEN 'folder_path' THEN 1 ELSE 2 END)
+             FROM pg_catalog.pg_attribute WHERE attrelid = 'public.council_business'::regclass
+               AND attname IN ('folder_path', 'title'))
+       ) AS valid`,
+    [postgresPublicBallotVotesBody, postgresPublicMethodForBallotsBody],
+  );
+  if (result.rows[0]?.valid !== true) {
+    throw new Error("Server schema invariants require migration; run hall migrate before starting Hall");
+  }
+}
 
 export class PostgresExecutor implements SqlExecutor {
   readonly dialect = "postgres" as const;
@@ -31,6 +117,7 @@ export class PostgresExecutor implements SqlExecutor {
     connectionString: string,
     readonly requestContext: RequestContextStore,
     private readonly sharedPool?: Pool,
+    private readonly schemaUpgradeMode: "automatic" | "verify-only" = "automatic",
   ) {
     this.#pool =
       sharedPool ?? logIdleConnectionFailures(new Pool({ connectionString, options: "-c search_path=public" }));
@@ -119,33 +206,9 @@ export class PostgresExecutor implements SqlExecutor {
   async #initialize(): Promise<void> {
     const client = await this.#pool.connect();
     try {
-      await client.query("BEGIN");
+      await client.query(this.schemaUpgradeMode === "verify-only" ? "BEGIN READ ONLY" : "BEGIN");
       try {
-        await client.query("SELECT pg_advisory_xact_lock(hashtext('hall.schema.bootstrap'))");
-        const result = await client.query<{ table_name: string }>(
-          `SELECT table_name FROM information_schema.tables
-           WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'
-           ORDER BY table_name`,
-        );
-        const tables = result.rows.map((row) => row.table_name);
-        if (tables.length === 0) {
-          await client.query(postgresSchema);
-        } else {
-          const expected = [...postgresTables].sort();
-          if (tables.length !== expected.length || tables.some((table, index) => table !== expected[index])) {
-            throw new Error("Unsupported PostgreSQL schema: reset the database before starting Hall");
-          }
-          const votesColumns = await client.query<{ column_name: string }>(
-            `SELECT column_name FROM information_schema.columns
-             WHERE table_schema = current_schema() AND table_name = 'votes'`,
-          );
-          if (!votesColumns.rows.some((row) => row.column_name === "position")) {
-            throw new Error("Obsolete PostgreSQL schema: reset the database before starting Hall");
-          }
-        }
-        await client.query(postgresUserContactMigration);
-        await client.query(postgresBallotVoteConfidentialitySchema);
-        await client.query(postgresCouncilBusinessTitleUniquenessSchema);
+        await initializeServerSchema(client, this.schemaUpgradeMode);
         await client.query("COMMIT");
       } catch (error) {
         await client.query("ROLLBACK");
