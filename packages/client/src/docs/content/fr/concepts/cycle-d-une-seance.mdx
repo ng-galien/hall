@@ -1,0 +1,87 @@
+---
+title: "Cycle d’une séance"
+summary: "Préparation, programmation, ordre du jour figé, convocation, ouverture, examen des points, clôture et séance suivante."
+order: 2
+screen: /meetings
+---
+
+## Numéro et création
+
+Chaque séance porte un numéro : Conseil municipal 1, 2, 3…
+Le numéro suit l’ordre des séances et ne change jamais.
+La première séance est créée une seule fois.
+Chaque séance suivante est créée automatiquement à la clôture de la précédente.
+Une séance ne peut pas être supprimée.
+Hall tient une seule séance active à la fois.
+
+## États d’une séance
+
+| État affiché | Signification |
+| --- | --- |
+| En préparation | La date ou le lieu manque encore. |
+| Programmée | La date et le lieu sont fixés ; la séance n’est pas ouverte. |
+| En séance | La séance est ouverte. |
+| Terminée | La séance est close. |
+| À réviser | La séance appartient à un historique incomplet. |
+
+## Préparation et programmation
+
+Pendant la préparation, la date de la séance peut rester vide.
+Une séance programmée a toujours une date et un lieu.
+Le président et le secrétaire de séance sont choisis parmi les membres du conseil.
+Les points de l’ordre du jour peuvent être ajoutés, déplacés et retirés tant que l’ordre du jour n’est pas figé.
+
+## Ordre du jour figé et convocation
+
+Figer l’ordre du jour conserve une copie des points et de leur ordre.
+Cette copie ne change plus, même si les affaires sont modifiées ensuite.
+Le figeage est possible sur une séance programmée, non ouverte, qui compte au moins un point.
+
+La convocation est un PDF généré à partir de l’ordre du jour figé.
+Chaque génération crée une version ; les versions antérieures restent consultables.
+Avant l’ouverture, l’ordre du jour peut être rouvert, modifié et figé à nouveau.
+Une nouvelle convocation doit alors être générée.
+
+## Conditions d’ouverture
+
+Hall permet d’ouvrir la séance quand toutes ces conditions sont réunies :
+
+- la séance est programmée et son heure est atteinte ;
+- l’ordre du jour est figé ;
+- la convocation courante correspond à l’ordre du jour figé et à la date, l’heure et le lieu actuels de la séance ;
+- la présence de chaque membre en exercice est renseignée ;
+- le président et le secrétaire de séance sont physiquement présents.
+
+Modifier la date, l’heure ou le lieu après la génération demande donc une nouvelle convocation.
+
+L’ouverture enregistre en une seule fois l’appel, les pouvoirs, le bureau de séance et le constat du quorum.
+Après l’ouverture, la liste initiale des présences ne change plus.
+Les règles de présence et de quorum sont décrites dans [Présences, pouvoirs et quorum](/docs/concepts/presences-pouvoirs-et-quorum).
+
+## Examen des points
+
+Un seul point est en cours d’examen à la fois.
+Les points sont examinés dans l’ordre de l’ordre du jour.
+Le début et la fin de chaque point sont horodatés.
+Un point soumis au vote se termine à la confirmation de son scrutin.
+Une question ouverte se termine sans scrutin.
+Un point peut être ajourné.
+Une question ouverte peut être ajoutée en fin d’ordre du jour pendant la séance.
+Elle ne donne lieu à aucun vote.
+
+## Clôture
+
+La clôture n’est pas possible tant qu’un scrutin est en cours.
+Hall demande une confirmation si des points n’ont pas été examinés.
+Une séance close ne peut plus être modifiée.
+
+À la clôture, Hall :
+
+- conserve les faits de la séance : présences, ordre du jour, notes et votes ;
+- crée le brouillon du procès-verbal ;
+- crée la séance suivante ;
+- inscrit en premier point de la séance suivante l’arrêt du procès-verbal de cette séance ;
+- inscrit à la séance suivante les points qui n’ont pas été terminés.
+
+Le point d’arrêt du procès-verbal précédent n’est pas reporté s’il n’a pas été traité.
+Les documents produits ensuite sont décrits dans [Convocation, délibération et procès-verbal en PDF](/docs/concepts/documents-officiels).

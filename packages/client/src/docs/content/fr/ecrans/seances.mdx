@@ -1,13 +1,85 @@
 ---
-title: Séances
-summary: La liste des séances, le hub de préparation et le mode séance.
-order: 1
-draft: true
+title: "Séances"
+summary: "La liste des séances et la fiche d’une séance : étapes, ordre du jour, pièces de séance, propriétés générales, convocation."
+order: 2
 screen: /meetings
 ---
 
-La page **Séances** liste les séances passées et à venir. Chaque séance a son
-hub de préparation : détails, composeur d'ordre du jour, pièces de séance
-(convocation comprise). Le mode séance plein écran se lance depuis ce hub.
+## Liste des séances
 
-Cette page sera illustrée par des captures d'écran de chaque état.
+L’écran **Séances du conseil** présente en tête la **Prochaine séance**, puis les **Séances passées**.
+Chaque séance affiche son numéro, sa date, son heure, son lieu et son état.
+Les états sont décrits dans [Cycle d’une séance](/docs/concepts/cycle-d-une-seance).
+
+- **Rechercher** filtre la liste.
+- **Vue liste** et **Vue cartes** changent la présentation.
+- Un clic sur une séance ouvre sa fiche.
+
+## Fiche d’une séance en préparation
+
+En tête, la fiche affiche le titre, la date et le lieu.
+Quatre étapes indiquent l’avancement : **Préparer**, **Établir les présences**, **Dérouler la séance**, **Finaliser les actes**.
+Sous les étapes figurent le nombre de points inscrits, le nombre de membres en exercice, le nombre de présences préparées et l’état.
+
+Les conditions qui manquent pour ouvrir la séance sont listées, par exemple « Ordre du jour à figer. » ou « Convocation à générer. ».
+
+| Bouton | Effet |
+| --- | --- |
+| **Ordre du jour** | Ouvre la fenêtre **Convocation**. |
+| **Pièces de séance** | Ouvre la liste des pièces : convocation, pouvoirs écrits et annexes. |
+| **Propriétés générales** | Ouvre la date et l’heure, le lieu, la présidence et le secrétaire de séance. |
+| **Passer en mode séance** | Ouvre le [mode séance](/docs/ecrans/mode-seance). |
+| **Reprendre la séance** | Remplace le bouton précédent quand la séance est ouverte. |
+
+## Propriétés générales
+
+- **Date et heure** : la date et l’heure de la séance.
+- **Lieu** : un des lieux définis dans les [paramètres](/docs/ecrans/parametres). Le lien **Définir les lieux dans les paramètres** apparaît quand aucun lieu n’existe.
+- **Présidence** et **Secrétaire de séance** : un membre du conseil, choisi dans une liste avec recherche.
+- **Enregistrer** applique les modifications.
+
+Une séance avec une date et un lieu passe à l’état **Programmée**.
+
+## Ordre du jour
+
+La section **Ordre du jour** liste les points dans l’ordre de la séance.
+Chaque point affiche son numéro, son titre, sa nature et l’affaire d’origine.
+Un point soumis au vote porte la mention **Vote requis**.
+
+| Action | Effet |
+| --- | --- |
+| **Question ouverte** | Crée une question ouverte et l’inscrit à la fin de l’ordre du jour. |
+| **Monter**, **Descendre** | Déplacent le point d’une position. |
+| **Retirer ce point** | Retire le point de l’ordre du jour ; l’élément reste dans son affaire. |
+| **Ouvrir l’affaire** | Ouvre la page de l’affaire du point. |
+
+Sous la liste, **Inscrire un sujet préparé** présente les éléments préparés de toutes les affaires.
+**Rechercher** filtre cette liste.
+**Ajouter** inscrit l’élément à la fin de l’ordre du jour.
+Un élément peut aussi être glissé dans la zone « Déposer un sujet ici pour l’ajouter à la fin de l’ordre du jour ».
+
+Quand l’ordre du jour est figé, la section affiche « L’ordre du jour de cette séance ne peut plus être modifié. ».
+
+## Fenêtre Convocation
+
+| Bouton | Effet |
+| --- | --- |
+| **Figer l’ordre du jour** | Fige les points et leur ordre. |
+| **Modifier l’ordre du jour** | Rouvre l’ordre du jour avant l’ouverture de la séance. |
+| **Générer le PDF** | Crée la convocation à partir de l’ordre du jour figé. |
+| **Régénérer le PDF** | Crée une nouvelle version de la convocation. |
+| **Voir le PDF** | Ouvre une version dans la visionneuse. |
+
+Chaque version affiche sa date de génération et la mention **Version courante** ou **Version antérieure**.
+
+La section **Courriel aux conseillers** liste les destinataires avec leur adresse.
+« Adresse électronique manquante » signale un conseiller sans adresse.
+**Télécharger le courriel Outlook** télécharge un message avec les destinataires et le PDF courant joint.
+L’envoi se fait ensuite depuis la messagerie.
+
+## Fiche d’une séance close
+
+La fiche d’une séance terminée affiche le début, la fin, la durée, le quorum, la présidence, le secrétaire et le nombre de présents, représentés, excusés et absents.
+**Détail** déplie la liste nominative.
+La section **Déroulé de la séance** liste chaque point avec ses heures, son résultat et le détail du scrutin.
+Le lien **Procès-verbal** ouvre le [procès-verbal](/docs/ecrans/proces-verbaux) de la séance.

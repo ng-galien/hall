@@ -1,0 +1,78 @@
+---
+title: "Écran principal"
+summary: "Connexion, menu de gauche, arborescence des dossiers, fil d’Ariane, état du serveur, recherche rapide et déconnexion."
+order: 1
+screen: /
+---
+
+## Connexion
+
+L’écran **Connexion** demande l’adresse électronique et le mot de passe du compte.
+**Se connecter** ouvre la **Vue d’ensemble**.
+Les comptes sont créés par un administrateur depuis l’écran [Utilisateurs](/docs/ecrans/utilisateurs).
+
+## Menu de gauche
+
+Le menu donne accès à chaque écran de Hall.
+
+| Groupe | Entrées |
+| --- | --- |
+| Sans titre | **Vue d’ensemble** |
+| Conseil municipal | **Séances**, **Procès-verbaux**, **Délibérations** |
+| Sans titre | **Espace de travail**, **Cartes**, **Calendrier** |
+| Administration | **Utilisateurs**, **Contacts**, **Membres du conseil**, **Commissions** |
+| Bas du menu | **Documentation**, **Paramètres de l’application** |
+
+L’entrée **Utilisateurs** apparaît seulement pour un administrateur.
+
+Sous **Espace de travail**, le menu affiche l’arborescence des dossiers.
+
+- La flèche devant un dossier affiche ses sous-dossiers.
+- Un clic sur le nom d’un dossier ouvre son contenu.
+- Un clic sur une affaire ouvre la page de l’affaire.
+- **Afficher plus de dossiers…** affiche les dossiers suivants.
+- **Replier les dossiers** referme toute l’arborescence.
+
+Le bouton en haut à gauche, **Réduire la navigation**, masque le menu ; le même bouton le réaffiche.
+
+## Barre du haut
+
+Le fil d’Ariane indique l’écran ouvert et ses niveaux supérieurs.
+Chaque niveau est un lien.
+
+À droite, l’état du serveur s’affiche :
+
+| État | Signification |
+| --- | --- |
+| Serveur connecté | Hall reçoit les données et les mises à jour. |
+| Connexion au serveur | Hall établit la connexion. |
+| Synchronisation | Hall recharge des données. |
+| Serveur indisponible | Hall ne joint pas le serveur. |
+
+Quand une autre personne modifie une donnée affichée, l’écran se met à jour.
+
+## Recherche rapide
+
+Les touches **Ctrl+K**, ou **Cmd+K** sur Mac, ouvrent la fenêtre **Recherche rapide**.
+La recherche porte sur les titres et les noms : affaires, documents, séances, délibérations, membres et contacts.
+Elle ne porte pas sur le contenu des textes.
+Les résultats tiennent compte des droits du compte connecté.
+
+- **Ajouter un filtre** restreint la recherche par type, dossier, étiquette, état ou média.
+- Le caractère « # » dans le champ propose les mêmes filtres.
+- **Explorer les dossiers** parcourt l’espace de travail dossier par dossier.
+- Un clic sur un résultat ouvre l’élément.
+
+La même recherche est proposée en haut de l’[espace de travail](/docs/ecrans/espace-de-travail).
+
+## Libellés raccourcis
+
+Un titre trop long pour sa place se termine par des points de suspension.
+Le survol du titre affiche le texte complet.
+
+## Déconnexion et mot de passe
+
+La section **Session** de **Paramètres de l’application** propose :
+
+- **Changer mon mot de passe** : demande le mot de passe actuel, puis le nouveau mot de passe deux fois ;
+- **Se déconnecter** : ferme la session et revient à l’écran **Connexion**.

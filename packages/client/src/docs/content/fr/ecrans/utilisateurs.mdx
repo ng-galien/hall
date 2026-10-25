@@ -1,0 +1,42 @@
+---
+title: "Utilisateurs"
+summary: "Création d’un compte, contact rattaché, rôles, réinitialisation du mot de passe et désactivation."
+order: 17
+screen: /users
+---
+
+L’écran **Utilisateurs** liste les comptes d’accès à Hall.
+Il est réservé aux administrateurs.
+Les rôles sont décrits dans [Rôles et droits](/docs/concepts/roles-et-droits).
+
+## Liste
+
+Chaque compte affiche son nom, son état (**Actif** ou **Désactivé**), son adresse et ses rôles.
+**Rechercher**, **Vue liste** et **Vue cartes** filtrent et présentent la liste.
+Un clic sur un compte ouvre sa fiche.
+
+## Création d’un compte
+
+**Créer un utilisateur** ouvre le formulaire :
+
+| Champ | Contenu |
+| --- | --- |
+| **Nom affiché** | Le nom montré dans Hall. |
+| **Adresse e-mail** | L’adresse de connexion. |
+| **Mot de passe initial** | 12 caractères au minimum. |
+| **Contact rattaché** | Le contact de la personne, ou **Aucun rattachement**. |
+| **Rôles** | Une ou plusieurs cases parmi les six rôles. |
+
+**Créer** enregistre le compte et ouvre sa fiche.
+Le rôle **Conseiller municipal** exige le contact d’un élu en exercice ; son dossier personnel est créé à l’enregistrement.
+
+## Fiche d’un compte
+
+| Section | Actions |
+| --- | --- |
+| **Identité du compte** | Nom affiché, adresse e-mail, état du compte et contact rattaché. |
+| **Rôles** | **Modifier les rôles**, puis **Attribuer les rôles**. |
+| **Mot de passe** | **Réinitialiser le mot de passe** remplace le mot de passe et ferme toutes les sessions du compte. |
+| **Désactiver le compte** | Retire l’accès à Hall et ferme les sessions, après confirmation. |
+
+Le message « Vérifiez que cette adresse e-mail et ce contact ne sont pas déjà associés à un autre compte » signale une adresse ou un contact déjà utilisés.

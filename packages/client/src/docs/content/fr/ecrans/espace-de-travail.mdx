@@ -1,13 +1,74 @@
 ---
-title: Espace de travail
-summary: La recherche à facettes, les dossiers et les établis.
-order: 2
-draft: true
+title: "Espace de travail"
+summary: "L’arborescence, la recherche et ses filtres, le menu « Nouveau », l’import, la vue du dossier, l’épinglage, le déplacement et la suppression."
+order: 6
 screen: /workspace
 ---
 
-L'accueil de l'espace de travail combine la recherche à facettes, la création
-rapide (sujet, texte, fichier), les épinglés et les derniers sujets. La
-sélection s'ouvre en dessous, sans changer de page.
+L’écran **Espace de travail** affiche le contenu d’un dossier et l’élément ouvert.
+Les dossiers, les types de documents et les droits sont décrits dans [Dossiers et documents](/docs/concepts/dossiers-et-documents).
 
-Cette page sera illustrée par des captures d'écran de chaque volet.
+## Recherche
+
+Le champ **Rechercher…** cherche dans les titres des affaires et des documents.
+**Ajouter un filtre** propose les filtres **Type**, **Dossier** et **Média**, avec le nombre d’éléments de chaque valeur.
+**Fermer** replie la liste des filtres.
+Un clic sur un résultat ouvre l’élément.
+
+## Contenu du dossier
+
+La barre de chemin indique le dossier ouvert ; chaque niveau est un lien.
+**Tous les dossiers** revient à la racine.
+**Parcourir le dossier** affiche le dossier de l’élément ouvert.
+
+La **Vue du dossier** propose trois onglets : **Tout**, **Affaires**, **Notes et documents**.
+**Filtrer ce dossier…** restreint la liste par le titre.
+Chaque ligne affiche l’icône du type, le titre et la date de dernière modification.
+Un clic sur une ligne ouvre l’élément sous la liste.
+
+## Menu Nouveau
+
+**Nouveau** propose, selon les droits du compte :
+
+- **Nouvelle affaire** ;
+- **Nouveau texte**, **Nouveau tableur**, **Nouvelle ressource web**, **Nouvelle carte**, **Nouveau rendez-vous**, **Nouvelle référence juridique** ;
+- **Importer un fichier**.
+
+Chaque création demande un **Intitulé** puis **Créer**.
+L’élément est créé dans le dossier ouvert et s’affiche aussitôt.
+
+Pour un conseiller municipal, le bouton **Mon espace** ouvre son dossier personnel ; **Nouveau** y crée les documents.
+
+## Menu contextuel
+
+Un clic droit sur un dossier propose **Importer un dossier**, **Importer une affaire** et le sous-menu **Créer** : **Nouveau sous-dossier**, **Nouvelle affaire**, **Nouveau texte**, **Nouveau tableur**, **Nouvelle ressource web**, **Nouvelle carte**, **Nouvelle référence juridique** et **Importer un fichier**. Le sous-menu **Créer** ne propose pas de rendez-vous ; un rendez-vous se crée par **Nouveau** ou depuis le [calendrier](/docs/ecrans/calendrier).
+
+Un clic droit sur une affaire propose **Joindre un document…**, **Exporter l’affaire**, **Importer un dossier**, **Supprimer l’affaire** et **Renommer**.
+
+**Renommer**, ou la touche **F2**, modifie le titre sur place.
+
+## Déplacement et rattachement
+
+Une ligne se glisse sur un dossier pour y déplacer l’élément.
+Un document glissé sur une affaire est joint à cette affaire ; la ligne affiche « Déposer pour rattacher ».
+
+## Élément ouvert
+
+L’en-tête de l’élément ouvert propose :
+
+| Bouton | Effet |
+| --- | --- |
+| **Modifier · Intitulé** | Modifie le titre ; pour une affaire, le bouton s’intitule **Modifier · Objet**. |
+| **Plein écran** | Affiche l’élément sur toute la fenêtre. |
+| **Épingler** | Ajoute l’élément à la rangée des épinglés, sous la recherche ; ce choix est propre au navigateur utilisé. |
+| **Voir les modifications** | Ouvre l’[historique des modifications](/docs/ecrans/historique-des-modifications). |
+| **Fermer** | Referme l’élément. |
+
+L’indicateur **Sauvegarde automatique activée** montre que les modifications s’enregistrent seules.
+
+Sous l’en-tête, **Tags** liste les étiquettes ; **Ajouter un tag…** en ajoute une et la croix la retire.
+**Affaires rattachées** liste les affaires auxquelles le document est joint.
+**Supprimer le document** supprime le document immédiatement, sans demande de confirmation.
+
+Le contenu dépend du type : [éditeur de texte](/docs/ecrans/editeur-de-texte), [tableur](/docs/ecrans/tableur), [référence juridique](/docs/ecrans/reference-juridique), [fichiers et ressources web](/docs/ecrans/fichiers-et-pages-web), [carte](/docs/ecrans/cartes), [rendez-vous](/docs/ecrans/calendrier).
+Une affaire s’ouvre dans la [page d’une affaire](/docs/ecrans/affaire).

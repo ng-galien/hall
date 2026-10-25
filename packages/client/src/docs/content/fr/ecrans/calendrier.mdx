@@ -1,0 +1,69 @@
+---
+title: "Calendrier"
+summary: "Vues mois, semaine et jour ; séances ; rendez-vous : création, modification, déplacement, suppression ; participants ; invitation."
+order: 16
+screen: /calendar
+---
+
+L’écran **Calendrier** affiche les séances du conseil et les rendez-vous.
+Un rendez-vous est un document de l’espace de travail, de type **Rendez-vous**.
+
+## Navigation
+
+| Bouton | Effet |
+| --- | --- |
+| **Mois**, **Semaine**, **Jour** | Changent la vue. |
+| **Aujourd’hui** | Revient à la date du jour. |
+| **‹**, **›** | Affichent la période précédente ou suivante. |
+
+Les rendez-vous simultanés s’affichent côte à côte.
+Une séance programmée affiche son heure et un titre court, par exemple « Conseil municipal 8 ».
+Un clic sur une séance ouvre sa fiche dans une fenêtre, sans quitter le calendrier.
+La liste **Séances sans date** regroupe les séances en préparation qui n’ont pas encore de date.
+
+## Création d’un rendez-vous
+
+**Nouveau rendez-vous** ouvre le formulaire :
+
+| Champ | Contenu |
+| --- | --- |
+| **Sujet** | Le titre du rendez-vous. |
+| **Toute la journée** | Coché, le rendez-vous occupe la journée ; décoché, il a une heure de début et de fin. |
+| **Début**, **Fin** | Les dates, et les heures par quarts d’heure. Une fin antérieure au nouveau début est recalculée. |
+| **Affaire du conseil** | Une affaire facultative ; **Aucune affaire** par défaut. |
+| **Lieu** | Le lieu de la réunion. |
+| **Participants** | Les personnes invitées. |
+| **Contexte et sujet de la réunion** | Un texte, rédigé dans l’éditeur de texte. |
+
+Pour les participants :
+
+- **Ajouter tous les membres du conseil** ajoute les membres en exercice ;
+- **Ajouter un contact…** choisit une personne dans les contacts ;
+- **Nom du participant** puis **Ajouter ce participant** ajoute une personne absente des contacts ;
+- la croix retire un participant.
+
+**Créer le rendez-vous** enregistre le rendez-vous.
+**Annuler** ferme le formulaire sans rien enregistrer.
+
+## Modification
+
+Un clic sur un rendez-vous l’ouvre dans une fenêtre, sans quitter le calendrier.
+Le formulaire est le même qu’à la création ; les modifications s’enregistrent automatiquement.
+Un rendez-vous se déplace en le glissant et se redimensionne en tirant son bord.
+Si un déplacement échoue, Hall affiche « Le déplacement n’a pas été enregistré. ».
+
+## Invitation
+
+| Bouton | Effet |
+| --- | --- |
+| **Créer ou mettre à jour l’invitation** | Télécharge un message électronique contenant l’invitation « invitation.ics ». |
+| **Créer l’annulation de l’invitation** | Télécharge le message qui annule une invitation déjà envoyée. |
+
+Les destinataires sont les participants du rendez-vous.
+« Adresse électronique manquante pour » suivi des noms signale les participants sans adresse.
+Le message s’ouvre dans la messagerie, qui l’envoie.
+
+## Suppression
+
+Le clic droit sur un rendez-vous futur propose sa suppression.
+Hall demande « Supprimer ce rendez-vous ? », puis une confirmation définitive.

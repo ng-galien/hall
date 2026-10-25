@@ -1,0 +1,80 @@
+---
+title: "Dessins, mesures et légende d’une carte"
+summary: "Points, lignes et zones, flèches, modification d’une forme, note avec photos, mesures enregistrées, composition et légende."
+order: 14
+screen: /maps
+---
+
+Une carte porte des dessins : des points, des lignes et des zones.
+La barre d’outils de la carte ouvre et ferme deux panneaux d’une pression : **Éléments** (composition et dessin) et **Mesures**.
+Chaque panneau prend la hauteur de son contenu, dans les limites de la carte.
+
+## Outils de dessin
+
+| Outil | Effet |
+| --- | --- |
+| **Sélectionner une géométrie** | Un clic sur un dessin le sélectionne. |
+| **Ajouter un point** | Un clic place un point. |
+| **Tracer une ligne** | Chaque clic ajoute un sommet ; un double clic termine la ligne. |
+| **Tracer une zone** | Chaque clic ajoute un sommet ; un double clic ferme la zone. |
+
+La touche **Échap** annule le dessin en cours sans rien enregistrer.
+Avant le clic, le curseur de la souris indique ce que fera ce clic, selon l’outil actif et l’élément survolé.
+
+## Sélection et modification d’une forme
+
+En mode dessin, un clic sélectionne un dessin sans modifier sa forme.
+**Modifier la forme** ouvre la modification : on glisse un sommet ou la forme entière.
+La ligne du dessin affiche alors « Forme en cours de modification ».
+**Terminer la modification**, ou la touche **Échap**, quitte cet état.
+**Supprimer l’élément sélectionné** supprime le dessin.
+
+## Composition
+
+Le panneau **Composition** liste les **Géométries dessinées**.
+Pour chaque dessin :
+
+- le **Libellé** nomme le dessin ;
+- **Couleur de** suivi du nom choisit une couleur ; « Couleur déjà utilisée sur cette carte » signale une couleur déjà prise ;
+- **Centrer la carte sur** suivi du nom cadre la vue sur le dessin ;
+- **Déplacer** suivi du nom change l’ordre de la liste ;
+- **Actions de** suivi du nom propose **Masquer sur la carte**, **Afficher sur la carte**, **Afficher les mesures** et **Masquer les mesures**.
+
+Une ligne propose **Flèches de la ligne** : **Sans flèche**, **Sens du tracé**, **Sens inverse** ou **Deux sens**.
+
+Un dessin devenu trop petit à l’écran s’affiche comme un repère à son centre, avec son libellé.
+Il retrouve sa forme quand on zoome.
+
+## Note d’un dessin
+
+La fiche d’un dessin porte une **Note** en texte riche.
+La note se rédige dans l’[éditeur de texte](/docs/ecrans/editeur-de-texte) et peut contenir des photos.
+
+## Légende
+
+La section **Légende** associe une signification à chaque couleur utilisée.
+**Ajouter une entrée** crée une ligne ; **Signification de la couleur** reçoit le texte.
+**Retirer cette entrée** supprime la ligne.
+La légende s’affiche sur la carte.
+
+## Mesures
+
+Le panneau **Mesures** a deux onglets : **Mesures** et **Coordonnées**.
+
+| Outil | Effet |
+| --- | --- |
+| **Lire les mesures d’un dessin** | Un clic sur un dessin affiche ses mesures. |
+| **Mesurer une distance** | Chaque clic ajoute un point ; un double clic termine. La longueur s’affiche segment par segment. |
+| **Mesurer une surface** | Chaque clic ajoute un sommet ; un double clic termine. La surface et le périmètre s’affichent. |
+
+Pendant une mesure, **Échap** efface la mesure en cours.
+
+Pour une zone proche d’un rectangle, Hall donne sa **Largeur** et sa **Hauteur**.
+Pour une autre zone, Hall donne la **Largeur d’emprise approximative** et la **Longueur d’emprise approximative**.
+
+**Enregistrer la mesure** conserve une mesure sous un **Nom de la mesure**.
+Les mesures enregistrées forment la liste **Mesures enregistrées** et restent dessinées sur la carte.
+**Supprimer la mesure** suivi du nom en retire une.
+
+L’onglet **Coordonnées** affiche la position du **Curseur** et du **Centre de la vue**, en WGS84 et en EPSG:3857.
+**Copier les coordonnées** les place dans le presse-papiers.

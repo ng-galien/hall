@@ -1,0 +1,103 @@
+---
+title: "Mode séance"
+summary: "L’écran plein cadre de la séance : appel et ouverture, point en cours, déports, vote, présences, question ajoutée, clôture, suivi en direct."
+order: 3
+screen: /meetings
+---
+
+Le mode séance occupe toute la fenêtre.
+Il s’ouvre par **Passer en mode séance** ou **Reprendre la séance** depuis la fiche de la séance.
+En haut, il affiche le titre de la séance, le dernier constat de quorum et l’heure.
+**Quitter le mode séance** revient à la fiche de la séance.
+
+Les règles appliquées sont décrites dans [Présences, pouvoirs et quorum](/docs/concepts/presences-pouvoirs-et-quorum) et [Scrutins et votes](/docs/concepts/votes).
+
+## Appel des membres
+
+Avant l’ouverture, l’écran **Appel des membres** présente une carte par membre en exercice.
+Le compteur indique le nombre de membres renseignés.
+
+| Action | Effet |
+| --- | --- |
+| **Présent**, **Excusé**, **Absent** | Fixe l’état du membre. |
+| **Pouvoir** | Ouvre la fenêtre du pouvoir écrit du membre. |
+| **Tout marquer présent** | Marque présents tous les membres. |
+| **Actions du membre** | Propose **Désigner président de séance** et **Désigner secrétaire de séance**. |
+
+La fenêtre **Pouvoir écrit** demande le **Porteur du pouvoir**, choisi parmi les membres présents, et le document par **Téléverser un pouvoir écrit** (PDF ou image).
+**Valider le pouvoir** enregistre le pouvoir ; la carte affiche « Représenté par » suivi du nom du porteur.
+
+En bas de l’écran, Hall indique ce qui manque, par exemple « L’ouverture sera possible à partir du » suivi de la date.
+**Constater le quorum et ouvrir la séance** enregistre l’appel et ouvre la séance.
+
+## Ordre du jour et point en cours
+
+À gauche, la colonne **Ordre du jour** liste l’ouverture de la séance puis chaque point avec son état : À venir, Discussion, Adoptée, Rejetée, Ajourné.
+Un clic sur une ligne affiche ce point ; **Réduire l’ordre du jour** masque la colonne.
+
+À droite, le point affiché présente son numéro, sa nature, son titre et une barre d’avancement : Programmé, Discussion, Vote, Résultat ou Terminé.
+Il montre le **Rapport présenté au conseil**, le **Projet de délibération** et les **Pièces présentées**.
+Un clic sur une pièce l’ouvre dans la visionneuse.
+
+| Bouton | Effet |
+| --- | --- |
+| **Déports sur ce point** | Ouvre la déclaration d’un déport. |
+| **Commencer l’examen du point** | Démarre le point et son chronomètre. |
+| **Passer au vote** | Ouvre la saisie du vote d’un projet de délibération. |
+| **Clôturer et passer au sujet suivant** | Termine une question ouverte. |
+| **Ajourner le point** | Demande confirmation, puis ajourne le point. |
+
+Pendant l’examen, la zone **Notes de discussion et observations** reçoit les notes du point.
+Ces notes alimentent le procès-verbal.
+
+Une action impossible est affichée avec son motif, par exemple « Quorum non atteint : 5 présents sur 8 requis ».
+
+## Déport
+
+**Déports sur ce point** puis **Conflit d’intérêts** ouvre la déclaration.
+Le formulaire demande le **Membre du conseil** et le fondement : **Intérêt personnel (régime général)** ou **Représentation d’un organisme (régime spécial qualifié)**.
+**Déclarer le déport** enregistre la déclaration.
+
+## Saisie du vote
+
+La section **Vote sur ce point** propose **Scrutin public** ou **Scrutin secret**.
+Elle indique combien de conseillers peuvent prendre part au scrutin.
+
+Les votants apparaissent sous forme de badges dans **Votants à pointer**.
+Le badge d’un membre représenté porte la mention « pouvoir porté par » suivi du nom du porteur.
+
+1. Cliquer un ou plusieurs badges pour les sélectionner.
+2. Cliquer **Déposer** dans la zone choisie : Pour, Contre, Abstention ou N’a pas pris part au vote. Les badges peuvent aussi être glissés dans la zone.
+3. **Tous les restants votent pour** place tous les votants non pointés dans la zone Pour.
+4. **Recommencer le pointage** remet tous les votants à pointer.
+
+En scrutin secret, les zones Bulletins blancs et Bulletins nuls s’ajoutent ; seuls les totaux sont transmis.
+
+**Président du scrutin** se choisit parmi les membres présents.
+**Prévisualiser le résultat** ouvre la fenêtre **Vérifier le scrutin avant confirmation** avec le résultat calculé et le quorum constaté pour ce scrutin.
+**Corriger la saisie** revient au pointage.
+**Confirmer et clore le point** enregistre le résultat et passe au point suivant.
+**Annuler** abandonne la saisie.
+
+## Présences pendant la séance
+
+**Présences** ouvre l’écran **Ajuster les présences**.
+Les boutons d’état et **Pouvoir** enregistrent une arrivée, un départ ou un changement de pouvoir à l’heure courante.
+**Revenir à l’ordre du jour** retourne au point en cours.
+
+## Question ajoutée en séance
+
+**Ajouter une question ouverte** ouvre une fenêtre avec un champ **Objet**.
+**Ajouter** place la question à la fin de l’ordre du jour, sans vote.
+
+## Clôture
+
+**Clore la séance** clôt la séance.
+Si des points n’ont pas été examinés, le bouton devient « Clore avec N points non examinés ? » et un second clic confirme.
+Après la clôture, Hall revient à la liste des séances.
+
+## Suivi en direct
+
+Un compte qui ne conduit pas la séance ouvre le même écran par **Reprendre la séance**.
+Il voit le point en cours et les résultats au fur et à mesure.
+Les actions de conduite sont affichées avec le motif « Vous ne disposez pas de l’autorisation nécessaire. ».
