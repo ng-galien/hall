@@ -165,23 +165,24 @@ export function createDocumentaryResourceService({
     async listChanges(reference) {
       const resource = await resourcesClient.open(reference);
       if (!resource) throw new DomainError("resource_not_found", 404);
-      if (resource.data.kind !== "text") throw new DomainError("invalid_request", 400);
-      const auditChanges = await resourcesClient.listTextResourceChanges(resource.data.id);
-      const changes = await Promise.all(
-        auditChanges.map(async (change) => {
-          const author = await securityRepository.findUserById(change.actorId);
-          return {
-            actor: { id: change.actorId, displayName: author?.displayName ?? change.actorId },
-            kind: matchLiteral(change.action, {
-              "resource.updateText": () => "content" as const,
-              "resource.updateMetadata": () => "metadata" as const,
-              "resource.relocate": () => "location" as const,
-            }),
-            fields: [...change.changedFields],
-            occurredAt: change.occurredAt,
-          };
-        }),
+      const auditChanges = await resourcesClient.listResourceChanges(resource.data.id);
+      const authors = new Map(
+        await Promise.all(
+          [...new Set(auditChanges.flatMap((change) => (change.actorId ? [change.actorId] : [])))].map(async (id) => {
+            const author = await securityRepository.findUserById(id);
+            return [id, author?.displayName ?? id] as const;
+          }),
+        ),
       );
+      const changes = auditChanges.map((change) => ({
+        id: change.id,
+        actor: change.actorId
+          ? { id: change.actorId, displayName: authors.get(change.actorId) ?? change.actorId }
+          : null,
+        kind: change.kind,
+        fields: [...change.changedFields],
+        occurredAt: change.occurredAt,
+      }));
       return resourceChangesSchema.parse({ resourceId: resource.data.id, changes });
     },
     async create(input) {

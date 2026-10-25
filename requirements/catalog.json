@@ -3285,33 +3285,21 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-09-18"
+        "since": "2026-10-16"
       },
-      "statement": "Après une modification atomique enregistrée d’une ressource texte, les sessions autorisées sont informées ; l’icône nuage existante conserve la sauvegarde et une icône d’historique distincte donne accès à un aperçu et à un panneau informatif affichant, pour chaque auteur, sa dernière modification de cette ressource, sa nature et son horodatage.",
+      "statement": "Every readable documentary resource exposes the chronology of its recorded successful changes, with author, date and time, nature and recorded changed fields, without collapsing changes by author.",
       "acceptanceCriteria": [
-        "L’icône nuage existante dans l’en-tête reste le contrôle de sauvegarde automatique, avec ses états et son animation ; une petite icône d’historique distincte avec infobulle apparaît à côté. Aucun contrôle à trois segments ni pastille ronde de repli ne les remplace.",
-        "Après une modification de ressource texte enregistrée dans une autre session autorisée, la même icône signale le changement sans recharger toute l’application.",
-        "Le survol ou le focus de l’icône d’historique donne un aperçu superposé de la dernière modification disponible ; son activation ouvre un panneau informatif superposé à droite, sans réduire la ressource, chargé à la demande. Pour chaque auteur visible, il affiche sa dernière modification, ce qui a changé et quand.",
-        "Le serveur ne diffuse l’événement et l’identité de l’auteur qu’aux lecteurs autorisés ; une modification échouée n’émet pas d’événement. Après reconnexion, la vue rejoint l’état serveur courant.",
-        "Le panneau est en lecture seule dans cette livraison. La résolution des éditions concurrentes, les commandes d’historique, la comparaison et la restauration de versions de texte relèvent de futures stories."
+        "The existing save control remains distinct from the history control; the history panel opens on demand without reducing the resource.",
+        "Text and non-text documentary resources expose the same authorized history link. Multiple changes by one author remain visible, newest first with deterministic event ordering.",
+        "Each event displays its recorded author when available, date and time, change nature and recorded fields. Missing historical audit facts are not reconstructed or claimed complete.",
+        "Only authorized resource readers may read the projection. Failed mutations do not appear as successful changes, and no secrets or document contents are exposed in the history projection.",
+        "The existing cross-session text update notification and reconnect behavior remain available. Version comparison, restoration, conflict resolution and time grouping are outside this delivery."
       ],
       "clauses": [
         {
-          "key": "cross-session-change",
+          "key": "recorded-resource-chronology",
           "origin": "product",
-          "statement": "Les modifications validées de ressources texte sont signalées entre sessions avec l’identité de l’auteur authentifié.",
-          "sourceIds": []
-        },
-        {
-          "key": "shared-save-change-history-control",
-          "origin": "product",
-          "statement": "L’icône nuage existante reste le contrôle de sauvegarde et signale le changement ; une icône d’historique distincte avec infobulle ouvre un aperçu au survol ou au focus, puis le panneau informatif superposé à droite de la dernière modification par auteur.",
-          "sourceIds": []
-        },
-        {
-          "key": "atomic-updates-only",
-          "origin": "product",
-          "statement": "Cette première livraison porte sur les mises à jour atomiques ; la résolution des conflits d’édition et l’historique de versions de texte restent à définir séparément.",
+          "statement": "Owner request 2026-10-16, Topic Graph mairie 8b9a5fca-9259-46c9-94f1-9a656582172f: complete resource audit using existing journal, superseding text-only latest-per-author projection.",
           "sourceIds": []
         }
       ]

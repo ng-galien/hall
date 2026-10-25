@@ -45,13 +45,14 @@ const resourceSlugSchema = z
   .max(200)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
   .refine((slug) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(slug));
-const textResourceAuditChangeSchema = z.object({
-  actorId: z.string().min(1),
-  action: z.enum(["resource.updateMetadata", "resource.updateText", "resource.relocate"]),
+const resourceAuditChangeSchema = z.object({
+  id: z.string().uuid(),
+  actorId: z.string().min(1).nullable(),
+  kind: z.enum(["content", "metadata", "location", "creation", "operation"]),
   changedFields: z.array(z.enum(["content", "name", "path", "tags", "autosave"])),
   occurredAt: z.iso.datetime({ offset: true }),
 });
-export type PostgresTextResourceAuditChange = z.infer<typeof textResourceAuditChangeSchema>;
+export type PostgresResourceAuditChange = z.infer<typeof resourceAuditChangeSchema>;
 const versionSchema = z.number().int().positive();
 const jsonDocumentSchema = z.record(z.string(), z.unknown());
 const remoteResourceTargetSchema = z.discriminatedUnion("kind", [
@@ -523,14 +524,21 @@ export type PostgresPresentedResourceSearch = Readonly<{
 }>;
 
 // @implements-requirement HALL-FR-DOC-280
-function changedTextFields(before: PostgresResourceDetail, after: PostgresResourceDetail): string[] {
-  if (before.kind !== "text" || after.kind !== "text") return [];
+function changedResourceFields(before: PostgresResourceDetail, after: PostgresResourceDetail): string[] {
   const fields: string[] = [];
-  if (before.content !== after.content) fields.push("content");
+  const contentChanged =
+    ("content" in before && "content" in after && before.content !== after.content) ||
+    ("document" in before &&
+      "document" in after &&
+      JSON.stringify(before.document) !== JSON.stringify(after.document)) ||
+    ("target" in before && "target" in after && JSON.stringify(before.target) !== JSON.stringify(after.target)) ||
+    ("contentSha256" in before && "contentSha256" in after && before.contentSha256 !== after.contentSha256);
+  if (contentChanged) fields.push("content");
   if (before.name !== after.name) fields.push("name");
   if (before.path !== after.path) fields.push("path");
   if (before.tags.slice().sort().join("\u0000") !== after.tags.slice().sort().join("\u0000")) fields.push("tags");
-  if (before.autosaveEnabled !== after.autosaveEnabled) fields.push("autosave");
+  if ("autosaveEnabled" in before && "autosaveEnabled" in after && before.autosaveEnabled !== after.autosaveEnabled)
+    fields.push("autosave");
   return fields;
 }
 
@@ -579,7 +587,7 @@ export class PostgresResources {
           presented.data.id,
         ]);
       const changedFields = before
-        ? changedTextFields(before, postgresResourceDetailSchema.parse(presented.data))
+        ? changedResourceFields(before, postgresResourceDetailSchema.parse(presented.data))
         : null;
       await recordAuditEvent(client, {
         targetType: "resource",
@@ -623,15 +631,15 @@ export class PostgresResources {
   }
 
   // @implements-requirement HALL-FR-DOC-280
-  listTextResourceChanges(request: PostgresResourceRequest, id: string): Promise<PostgresTextResourceAuditChange[]> {
+  listResourceChanges(request: PostgresResourceRequest, id: string): Promise<PostgresResourceAuditChange[]> {
     return this.readJson(
       request,
-      "resource.listTextResourceChanges",
+      "resource.listResourceChanges",
       {
-        text: "SELECT hall_api.list_text_resource_changes($1::uuid) AS payload",
+        text: "SELECT hall_api.list_resource_changes($1::uuid) AS payload",
         values: [resourceIdSchema.parse(id)],
       },
-      z.array(textResourceAuditChangeSchema),
+      z.array(resourceAuditChangeSchema),
     );
   }
 
@@ -885,6 +893,8 @@ export class PostgresResources {
         values: [resourceIdSchema.parse(id), resourceNameSchema.parse(name)],
       },
       presentedResourceSchema(postgresResourceDetailSchema),
+      undefined,
+      resourceIdSchema.parse(id),
     );
   }
 
@@ -901,6 +911,8 @@ export class PostgresResources {
         values: [resourceIdSchema.parse(id), resourcePathSchema.parse(destinationPath)],
       },
       presentedResourceSchema(postgresResourceDetailSchema),
+      undefined,
+      resourceIdSchema.parse(id),
     );
   }
 
@@ -1006,6 +1018,8 @@ export class PostgresResources {
             values: [parsed.id, parsed.expectedVersion, parsed.target.url],
           },
       presentedResourceSchema(remoteResourceSchema),
+      undefined,
+      parsed.id,
     );
   }
 
@@ -1070,6 +1084,8 @@ export class PostgresResources {
         values: [parsed.id, parsed.expectedVersion, parsed.name, JSON.stringify(parsed.document)],
       },
       presentedResourceSchema(legalReferenceResourceSchema),
+      undefined,
+      parsed.id,
     );
   }
 
@@ -1095,6 +1111,8 @@ export class PostgresResources {
         values: [parsed.id, parsed.expectedVersion, JSON.stringify(parsed.document)],
       },
       presentedResourceSchema(schema),
+      undefined,
+      parsed.id,
     );
   }
 
@@ -1113,6 +1131,8 @@ export class PostgresResources {
         values: [parsed.id, parsed.mediaType, parsed.content],
       },
       presentedResourceSchema(documentResourceSchema),
+      undefined,
+      parsed.id,
     );
   }
 
@@ -1491,6 +1511,8 @@ export class PostgresResources {
         values: [parsed.mapId, parsed.layerId, parsed.visible, parsed.opacity ?? null],
       },
       presentedResourceSchema(geographicResourceSchema),
+      undefined,
+      parsed.mapId,
     );
   }
 
@@ -1510,6 +1532,8 @@ export class PostgresResources {
         values: [resourceIdSchema.parse(mapId), resourceIdSchema.parse(layerId)],
       },
       presentedResourceSchema(geographicResourceSchema),
+      undefined,
+      resourceIdSchema.parse(mapId),
     );
   }
 

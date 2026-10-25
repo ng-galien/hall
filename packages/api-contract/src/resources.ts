@@ -42,11 +42,15 @@ export const resourceIdSchema = z.string().uuid();
 export const resourceReferenceSchema = z.union([resourceIdSchema, resourceSlugSchema]);
 
 // @implements-requirement HALL-FR-DOC-280
-export const resourceChangeKindSchema = z.enum(["content", "metadata", "location"]);
+export const resourceChangeKindSchema = z.enum(["content", "metadata", "location", "creation", "operation"]);
 export const resourceChangeFieldSchema = z.enum(["content", "name", "path", "tags", "autosave"]);
 export const resourceChangeSchema = z
   .object({
-    actor: z.object({ id: z.string().min(1), displayName: z.string().min(1) }).strict(),
+    id: z.string().uuid(),
+    actor: z
+      .object({ id: z.string().min(1), displayName: z.string().min(1) })
+      .strict()
+      .nullable(),
     kind: resourceChangeKindSchema,
     fields: z.array(resourceChangeFieldSchema),
     occurredAt: z.iso.datetime({ offset: true }),

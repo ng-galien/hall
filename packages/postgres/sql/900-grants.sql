@@ -68,7 +68,7 @@ GRANT EXECUTE ON FUNCTION hall_api.end_committee_membership(UUID, UUID, DATE)
 
 GRANT EXECUTE ON FUNCTION hall_api.open_resource(UUID)
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.list_text_resource_changes(UUID)
+GRANT EXECUTE ON FUNCTION hall_api.list_resource_changes(UUID)
   TO hall_api_authenticated;
 GRANT EXECUTE ON FUNCTION hall_api.open_resource_by_slug(TEXT)
   TO hall_api_authenticated, hall_api_worker;

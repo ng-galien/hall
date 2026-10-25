@@ -6,9 +6,9 @@ import { createPostgresHttpTestServer, domainBody } from "./testServer.js";
 
 const postgres = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 
-postgres("text resource changes", () => {
+postgres("resource change chronology", () => {
   // @verifies-requirement HALL-FR-DOC-280
-  it("exposes only committed last change for a text resource through its Siren link", async () => {
+  it("exposes all committed changes for a text resource through its Siren link", async () => {
     const { agent, url } = await createPostgresHttpTestServer();
     const created = await agent
       .post("/api/resources")
@@ -21,7 +21,7 @@ postgres("text resource changes", () => {
     expect(changesLink?.href).toBe(`/api/resources/${created.body.properties.slug}/changes`);
     expect(resourceChangesSchema.parse(domainBody(await agent.get(changesLink!.href).expect(200)))).toEqual({
       resourceId: resource.id,
-      changes: [],
+      changes: [expect.objectContaining({ kind: "creation" })],
     });
 
     const reader = request.agent(url);
@@ -59,10 +59,69 @@ postgres("text resource changes", () => {
 
     const projected = resourceChangesSchema.parse(domainBody(await reader.get(changesLink!.href).expect(200)));
     expect(projected.resourceId).toBe(resource.id);
-    expect(projected.changes).toHaveLength(1);
+    expect(projected.changes).toHaveLength(2);
     expect(projected.changes[0]).toMatchObject({ kind: "content", fields: ["content"] });
-    expect(projected.changes[0].actor.id).toBeTruthy();
-    expect(projected.changes[0].actor.displayName).toBeTruthy();
+    expect(projected.changes[0].actor?.id).toBeTruthy();
+    expect(projected.changes[0].actor?.displayName).toBeTruthy();
     expect(Date.parse(projected.changes[0].occurredAt)).not.toBeNaN();
+  });
+  // @verifies-requirement HALL-FR-DOC-280
+  it("retains repeated non-text changes and restricts history through authenticated read rights", async () => {
+    const { agent, url } = await createPostgresHttpTestServer({ devAutoLogin: false });
+    const admin = {
+      email: "audit-admin@example.fr",
+      displayName: "Audit Admin",
+      password: "Audit-test-password-2026!",
+    };
+    await agent.post("/api/auth/bootstrap").send(admin).expect(201);
+    await agent.post("/api/auth/login").send(admin).expect(200);
+    const created = await agent
+      .post("/api/resources")
+      .send({ kind: "remote", path: "", name: "Tracked link", target: { kind: "unconfigured" } })
+      .expect(201);
+    const resource = domainBody<{ id: string; version: number }>(created);
+    const link = created.body.links.find((entry: { rel: string[] }) => entry.rel.includes("changes")).href;
+    const first = await agent
+      .put(`/api/resources/${resource.id}/content`)
+      .send({
+        kind: "remote",
+        expectedVersion: resource.version,
+        target: { kind: "url", url: "https://example.org/first" },
+      })
+      .expect(200);
+    await agent
+      .put(`/api/resources/${resource.id}/content`)
+      .send({
+        kind: "remote",
+        expectedVersion: domainBody<{ version: number }>(first).version,
+        target: { kind: "url", url: "https://example.org/second" },
+      })
+      .expect(200);
+    const history = resourceChangesSchema.parse(domainBody(await agent.get(link).expect(200)));
+    expect(history.changes).toHaveLength(3);
+    expect(new Set(history.changes.map((change) => change.id)).size).toBe(3);
+    expect(history.changes.slice(0, 2)).toEqual([
+      expect.objectContaining({
+        kind: "content",
+        fields: ["content"],
+        actor: expect.objectContaining({ displayName: "Audit Admin" }),
+      }),
+      expect.objectContaining({ kind: "content", fields: ["content"] }),
+    ]);
+    const readerCredentials = { email: "audit-reader@example.fr", password: "Audit-reader-password-2026!" };
+    await agent
+      .post("/api/users")
+      .send({ ...readerCredentials, displayName: "Reader", roles: ["reader"], contactId: null })
+      .expect(201);
+    const reader = request.agent(url);
+    await reader.get(link).expect(401);
+    await reader.post("/api/auth/login").send(readerCredentials).expect(200);
+    await reader.get(link).expect(200);
+    await reader
+      .put(`/api/resources/${resource.id}/content`)
+      .send({ kind: "remote", expectedVersion: 3, target: { kind: "unconfigured" } })
+      .expect(403);
+    expect(resourceChangesSchema.parse(domainBody(await reader.get(link).expect(200))).changes).toHaveLength(3);
+    await reader.get("/api/audit-events").expect(403);
   });
 });

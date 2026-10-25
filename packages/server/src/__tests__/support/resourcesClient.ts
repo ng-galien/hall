@@ -137,7 +137,7 @@ export function createTestResourcesClient(): ResourcesClient {
       const resource = find(reference);
       return resource ? representation(resource) : null;
     },
-    async listTextResourceChanges() {
+    async listResourceChanges() {
       return [];
     },
     async create(input: PersistResource) {

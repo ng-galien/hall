@@ -68,7 +68,6 @@ function resourceDetail(
   value: PostgresPresentedResource<PostgresResourceDetail>,
 ): ResourceRepresentation<ResourceDetail> {
   const resource = documentaryRepresentation(value, resourceDetailSchema);
-  if (resource.data.kind !== "text") return resource;
   return {
     ...resource,
     representation: {
@@ -173,8 +172,8 @@ export function createPostgresResourcesClient({
       );
       return found ? resourceDetail(found) : null;
     },
-    listTextResourceChanges(id) {
-      return postgresResources.listTextResourceChanges(currentRequest(), id);
+    listResourceChanges(id) {
+      return postgresResources.listResourceChanges(currentRequest(), id);
     },
     async create(input: PersistResource) {
       const created = await matchDiscriminated(input, "kind", {

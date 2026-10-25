@@ -120,6 +120,8 @@ export function ResourceChangesControl({
         content: () => "resourceChanges.kind.content" as const,
         metadata: () => "resourceChanges.kind.metadata" as const,
         location: () => "resourceChanges.kind.location" as const,
+        creation: () => "resourceChanges.kind.creation" as const,
+        operation: () => "resourceChanges.kind.operation" as const,
       }),
     );
   const detail = (change: ResourceChange) =>
@@ -152,7 +154,7 @@ export function ResourceChangesControl({
             : failed
               ? t("resourceChanges.error")
               : latest
-                ? `${latest.actor.displayName} · ${detail(latest)} · ${formatDateTime(latest.occurredAt)}`
+                ? `${latest.actor?.displayName ?? t("resourceChanges.unknownAuthor")} · ${detail(latest)} · ${formatDateTime(latest.occurredAt)}`
                 : t("resourceChanges.empty")}
         </TooltipContent>
       </Tooltip>
@@ -173,8 +175,8 @@ export function ResourceChangesControl({
           {changes && changes.length > 0 ? (
             <ol className="resource-changes-list" data-testid="resource-changes-list">
               {changes.map((change) => (
-                <li key={change.actor.id} data-testid="resource-changes-item">
-                  <strong>{change.actor.displayName}</strong>
+                <li key={change.id} data-testid="resource-changes-item">
+                  <strong>{change.actor?.displayName ?? t("resourceChanges.unknownAuthor")}</strong>
                   <span>{detail(change)}</span>
                   <time dateTime={change.occurredAt}>{formatDateTime(change.occurredAt)}</time>
                 </li>

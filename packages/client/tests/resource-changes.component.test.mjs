@@ -109,10 +109,25 @@ test("the separate history control reads the server on demand without changing c
           resourceId,
           changes: [
             {
+              id: "44444444-4444-4444-8444-444444444444",
               actor: { id: actorId, displayName: "Alice Martin" },
               kind: "content",
               fields: ["content"],
               occurredAt: "2026-09-18T10:00:00.000Z",
+            },
+            {
+              id: "55555555-5555-4555-8555-555555555555",
+              actor: { id: actorId, displayName: "Alice Martin" },
+              kind: "metadata",
+              fields: ["tags"],
+              occurredAt: "2026-09-18T09:00:00.000Z",
+            },
+            {
+              id: "66666666-6666-4666-8666-666666666666",
+              actor: null,
+              kind: "operation",
+              fields: [],
+              occurredAt: "2026-09-18T08:00:00.000Z",
             },
           ],
         },
@@ -187,7 +202,8 @@ test("the separate history control reads the server on demand without changing c
     assert.ok(panel, dom.window.document.body.innerHTML);
     assert.match(panel.textContent, /Alice Martin/);
     assert.match(panel.textContent, /content/);
-    assert.equal(panel.querySelectorAll('[data-testid="resource-changes-item"]').length, 1);
+    assert.match(panel.textContent, /Author not recorded/);
+    assert.equal(panel.querySelectorAll('[data-testid="resource-changes-item"]').length, 3);
     await act(async () => {
       sockets[0].emit("message", {
         data: JSON.stringify({

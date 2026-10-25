@@ -72,7 +72,7 @@ export function InlineResourceContent({
           onChange={session.updateAutosave}
         />
       ) : null}
-      {session.resource?.kind === "text" ? (
+      {session.resource ? (
         <ResourceChangesControl
           resourceId={session.resource.id}
           representation={session.representation}

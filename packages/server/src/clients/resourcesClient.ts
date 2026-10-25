@@ -31,9 +31,10 @@ export type ResourceMutationResult =
   | { status: "versionConflict" }
   | { status: "kindMismatch" };
 
-export type TextResourceAuditChange = Readonly<{
-  actorId: string;
-  action: "resource.updateMetadata" | "resource.updateText" | "resource.relocate";
+export type ResourceAuditChange = Readonly<{
+  id: string;
+  actorId: string | null;
+  kind: "content" | "metadata" | "location" | "creation" | "operation";
   changedFields: readonly ("content" | "name" | "path" | "tags" | "autosave")[];
   occurredAt: string;
 }>;
@@ -54,7 +55,7 @@ export interface ResourcesClient {
   findDocumentsByHashes(hashes: readonly string[]): Promise<ResourceRepresentation<ResourceSummary[]>>;
   search(criteria: ResourceSearchCriteria): Promise<ResourceRepresentation<ResourceSearchResult>>;
   open(reference: string): Promise<ResourceRepresentation<ResourceDetail> | null>;
-  listTextResourceChanges(id: string): Promise<TextResourceAuditChange[]>;
+  listResourceChanges(id: string): Promise<ResourceAuditChange[]>;
   create(input: PersistResource): Promise<ResourceRepresentation<ResourceDetail>>;
   createDocument(input: {
     councilBusinessId?: string;

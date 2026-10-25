@@ -92,7 +92,7 @@ export function ResourcePreviewWithSession({
                       onChange={session.updateAutosave}
                     />
                   ) : null}
-                  {resource.kind === "text" ? (
+                  {resource ? (
                     <ResourceChangesControl
                       resourceId={resource.id}
                       representation={session.representation}
