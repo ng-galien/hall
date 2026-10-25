@@ -114,7 +114,7 @@ Always reuse the shared Hall runtime:
 - Status and logs: `npm run dev:status`, `npm run dev:logs`
 - Stop: `npm run dev:stop`
 - Reset and reseed the demonstration: `npm run demo:restart`
-- Start the private Alésia configuration: `npm run dev:private`.
+- Start the private runtime configuration: `npm run dev:private`.
 
 The application is available at `http://localhost:5174/app/`. Test suites use isolated runtimes and must not stop or replace the shared session. See [`docs/runtime.md`](docs/runtime.md) for local runtime operation.
 

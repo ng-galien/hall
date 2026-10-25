@@ -85,4 +85,4 @@ The requirements workflow and traceability commands are documented in [`requirem
 
 The desktop package can run its embedded PostgreSQL server or connect to a shared Hall server. See [`docs/runtime.md`](docs/runtime.md) for packaging and local operation.
 
-Shared-server deployments require `DATABASE_URL` and the server security configuration. See [`docs/runtime.md`](docs/runtime.md) for the isolated Alésia build, authentication, backup, and restore-verification procedure.
+Shared-server deployments require `DATABASE_URL` and the server security configuration. See [`docs/runtime.md`](docs/runtime.md) for the isolated local production build, authentication, backup, and restore-verification procedure.

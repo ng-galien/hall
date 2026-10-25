@@ -22,7 +22,8 @@ async function configuration() {
   if (!["postgres:", "postgresql:"].includes(url.protocol) || !["localhost", "127.0.0.1"].includes(url.hostname)) {
     throw new Error("A local PostgreSQL database is required.");
   }
-  if (url.pathname !== "/hall_private_prod") throw new Error("Expected the dedicated hall_private_prod database.");
+  if (!/^\/hall_[a-z0-9_]+_prod$/.test(url.pathname))
+    throw new Error("Expected a dedicated hall_<name>_prod database.");
   return { ...config, url };
 }
 function postgresEnvironment(url) {
@@ -118,7 +119,7 @@ async function backup() {
         sha256,
         createdAt: new Date().toISOString(),
         release: JSON.parse(await readFile(join(home, "release.json"), "utf8")),
-        database: "hall_private_prod",
+        database: config.url.pathname.slice(1),
       },
       null,
       2,

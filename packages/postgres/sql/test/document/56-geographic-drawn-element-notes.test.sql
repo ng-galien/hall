@@ -9,18 +9,18 @@ SELECT no_plan();
 -- @verifies-requirement HALL-FR-DOC-430
 CREATE TEMP TABLE drawn_fixture AS
 SELECT jsonb_build_object(
-    'view', jsonb_build_object('kind', 'center', 'center', jsonb_build_array(4.5, 47.5), 'zoom', 14),
+    'view', jsonb_build_object('kind', 'center', 'center', jsonb_build_array(4.47, 47.50), 'zoom', 14),
     'layers', jsonb_build_array(jsonb_build_object('id', 'GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2', 'visible', true, 'opacity', 1)),
     'hallLayer', jsonb_build_object('type', 'FeatureCollection', 'features', jsonb_build_array(
       jsonb_build_object('type', 'Feature', 'id', 'element-1',
-        'geometry', jsonb_build_object('type', 'Point', 'coordinates', jsonb_build_array(4.5, 47.5)),
+        'geometry', jsonb_build_object('type', 'Point', 'coordinates', jsonb_build_array(4.47, 47.50)),
         'properties', jsonb_build_object('kind', 'marker', 'visible', true, 'label', 'Chêne remarquable', 'style', '{}'::jsonb)),
       jsonb_build_object('type', 'Feature', 'id', 'element-2',
-        'geometry', jsonb_build_object('type', 'Point', 'coordinates', jsonb_build_array(4.6, 47.5)),
+        'geometry', jsonb_build_object('type', 'Point', 'coordinates', jsonb_build_array(4.57, 47.50)),
         'properties', jsonb_build_object('kind', 'marker', 'visible', true, 'style', '{}'::jsonb)),
       jsonb_build_object('type', 'Feature', 'id', 'measure-1',
         'geometry', jsonb_build_object('type', 'LineString', 'coordinates', jsonb_build_array(
-          jsonb_build_array(4.5, 47.5), jsonb_build_array(4.6, 47.5))),
+          jsonb_build_array(4.47, 47.50), jsonb_build_array(4.57, 47.50))),
         'properties', jsonb_build_object('kind', 'lengthMeasurement', 'label', 'Haie', 'length', 7650))
     )),
     'provenance', jsonb_build_object(

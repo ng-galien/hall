@@ -168,7 +168,7 @@ test("cursors follow the tool state and a click selects a drawing before its sha
 test("in Cartes a click selects a drawing and the shape modification is a separate state", async ({
   appPage: page,
 }) => {
-  const [longitude, latitude, size] = [4.50, 47.54, 0.004];
+  const [longitude, latitude, size] = [4.5, 47.54, 0.004];
   const created = await page.request.post("/api/resources", {
     data: { kind: "geographic", name: `Cartes selection ${crypto.randomUUID()}`, path: "seed" },
   });

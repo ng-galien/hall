@@ -469,7 +469,7 @@ describe("shared HTTP contract", () => {
 // @verifies-requirement HALL-FR-DOC-460
 describe("saved measurements in a geographic document", () => {
   const document = {
-    view: { kind: "center", center: [4.50, 47.54], zoom: 15 },
+    view: { kind: "center", center: [4.5, 47.54], zoom: 15 },
     layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
     provenance: {
       attribution: "IGN",
@@ -480,14 +480,14 @@ describe("saved measurements in a geographic document", () => {
     },
   };
   const line = [
-    [4.50, 47.54],
+    [4.5, 47.54],
     [4.51, 47.54],
   ];
   const ring = [
-    [4.50, 47.54],
+    [4.5, 47.54],
     [4.51, 47.54],
     [4.51, 47.55],
-    [4.50, 47.54],
+    [4.5, 47.54],
   ];
   const update = (feature: unknown) =>
     updateResourceContentSchema.safeParse({
@@ -498,13 +498,13 @@ describe("saved measurements in a geographic document", () => {
   const length = {
     type: "Feature",
     id: "44444444-4444-4444-8444-444444444444",
-    properties: { kind: "lengthMeasurement", label: "Chemin du lavoir", length: 750.7 },
+    properties: { kind: "lengthMeasurement", label: "Chemin du lavoir", length: 764.3 },
     geometry: { type: "LineString", coordinates: line },
   };
   const area = {
     type: "Feature",
     id: "55555555-5555-4555-8555-555555555555",
-    properties: { kind: "areaMeasurement", label: "Pré communal", area: 834_600, perimeter: 3_725 },
+    properties: { kind: "areaMeasurement", label: "Pré communal", area: 849_800, perimeter: 3_752 },
     geometry: { type: "Polygon", coordinates: [ring] },
   };
 

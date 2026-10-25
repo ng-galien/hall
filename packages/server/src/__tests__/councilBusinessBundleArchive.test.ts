@@ -137,7 +137,7 @@ describe("council business bundle archive", () => {
       fullPath: "Eau/Périmètre",
       content: undefined,
       document: {
-        view: { kind: "center", center: [4.50, 47.53], zoom: 14 },
+        view: { kind: "center", center: [4.5, 47.53], zoom: 14 },
         layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
         hallLayer: { type: "FeatureCollection", features: [] },
         provenance: {

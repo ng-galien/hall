@@ -125,7 +125,7 @@ test("a parcel clicked on the map opens its card, receives a note and shows it a
 test("a reader clicks a drawing and reads its card, measures and note without editing actions", async ({
   appPage: page,
 }) => {
-  const [longitude, latitude, size] = [4.50, 47.54, 0.004];
+  const [longitude, latitude, size] = [4.5, 47.54, 0.004];
   const created = await page.request.post("/api/resources", {
     data: { kind: "geographic", name: `Read drawing ${crypto.randomUUID()}`, path: "seed" },
   });
@@ -235,7 +235,7 @@ test("a normal point click opens its note in the default map mode and in a nativ
       expectedVersion: map.version,
       document: {
         ...map.document,
-        view: { kind: "center", center: [4.50, 47.54], zoom: 16 },
+        view: { kind: "center", center: [4.5, 47.54], zoom: 16 },
         hallLayer: {
           type: "FeatureCollection",
           features: [
@@ -248,7 +248,7 @@ test("a normal point click opens its note in the default map mode and in a nativ
                 visible: true,
                 style: { color: "#2255aa", size: "large" },
               },
-              geometry: { type: "Point", coordinates: [4.50, 47.54] },
+              geometry: { type: "Point", coordinates: [4.5, 47.54] },
             },
           ],
         },

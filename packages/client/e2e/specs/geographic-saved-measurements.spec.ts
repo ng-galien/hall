@@ -167,7 +167,7 @@ test("a reader sees the saved measurements in Cartes without saving, renaming or
               geometry: {
                 type: "LineString",
                 coordinates: [
-                  [4.50, 47.54],
+                  [4.5, 47.54],
                   [4.502, 47.54],
                 ],
               },
@@ -226,7 +226,7 @@ test("a measurement that does not fit the capacity of the map stays current with
       label: `Point ${index + 1}`,
       style: { color: "#24439b", size: "small" },
     },
-    geometry: { type: "Point", coordinates: [4.50 + index / 100_000, 47.5] },
+    geometry: { type: "Point", coordinates: [4.5 + index / 100_000, 47.5] },
   }));
   const saved = await page.request.fetch(update.href, {
     method: update.method,

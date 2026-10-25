@@ -97,11 +97,11 @@ describe("geographic resource colors", () => {
     const line = {
       type: "Feature",
       id: "44444444-4444-4444-8444-444444444444",
-      properties: { kind: "lengthMeasurement", label: " Chemin du lavoir ", length: 750.7 },
+      properties: { kind: "lengthMeasurement", label: " Chemin du lavoir ", length: 764.3 },
       geometry: {
         type: "LineString",
         coordinates: [
-          [4.50, 47.54],
+          [4.5, 47.54],
           [4.51, 47.54],
         ],
       },
@@ -109,15 +109,15 @@ describe("geographic resource colors", () => {
     const area = {
       type: "Feature",
       id: "55555555-5555-4555-8555-555555555555",
-      properties: { kind: "areaMeasurement", label: "Pré communal", area: 834_600, perimeter: 3_725 },
+      properties: { kind: "areaMeasurement", label: "Pré communal", area: 849_800, perimeter: 3_752 },
       geometry: {
         type: "Polygon",
         coordinates: [
           [
-            [4.50, 47.54],
+            [4.5, 47.54],
             [4.51, 47.54],
             [4.51, 47.55],
-            [4.50, 47.54],
+            [4.5, 47.54],
           ],
         ],
       },
@@ -134,7 +134,7 @@ describe("geographic resource colors", () => {
     expect(parsed.hallLayer.features[1]?.properties).toEqual({
       kind: "lengthMeasurement",
       label: "Chemin du lavoir",
-      length: 750.7,
+      length: 764.3,
     });
 
     const withFeature = (feature: unknown) =>

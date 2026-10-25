@@ -11,7 +11,7 @@ import {
 } from "../src/pages/maps/mapsView.ts";
 
 const size = { width: 1000, height: 800 };
-const savedView = { kind: "center", center: [4.6, 47.6], zoom: 12 };
+const savedView = { kind: "center", center: [4.57, 47.6], zoom: 12 };
 
 function area(id, ring, visible = true) {
   return {
@@ -41,10 +41,10 @@ function document(features) {
 }
 
 const sampleArea = area("a", [
-  [4.5, 47.55],
+  [4.47, 47.55],
   [4.49, 47.55],
   [4.49, 47.57],
-  [4.5, 47.55],
+  [4.47, 47.55],
 ]);
 
 // @verifies-requirement HALL-FR-WSP-330
@@ -61,16 +61,16 @@ test("the view frames the drawings when none of them is inside the current view"
   assert.ok(Math.abs(next.center[0] - 4.48) < 1e-6);
   assert.ok(Math.abs(next.center[1] - 47.56) < 1e-3);
   const [west, south, east, north] = mapsViewExtent(next, size);
-  assert.ok(west <= 4.5 && east >= 4.49 && south <= 47.55 && north >= 47.57, "the framed view contains the drawing");
+  assert.ok(west <= 4.47 && east >= 4.49 && south <= 47.55 && north >= 47.57, "the framed view contains the drawing");
 });
 
 // @verifies-requirement HALL-FR-WSP-330
 test("hidden drawings are ignored and a map without visible drawings opens on its saved framing", () => {
   const current = { center: [4.48, 47.56], zoom: 13 };
   const hiddenOnly = document([area("hidden", sampleArea.geometry.coordinates[0], false)]);
-  assert.deepEqual(mapsViewOnOpen({ current, size, document: hiddenOnly }), { center: [4.6, 47.6], zoom: 12 });
+  assert.deepEqual(mapsViewOnOpen({ current, size, document: hiddenOnly }), { center: [4.57, 47.6], zoom: 12 });
   assert.deepEqual(mapsViewOnOpen({ current: null, size, document: document([]) }), {
-    center: [4.6, 47.6],
+    center: [4.57, 47.6],
     zoom: 12,
   });
 });
@@ -80,7 +80,7 @@ test("a first opening without a current view frames the drawings; a single point
   const point = mapsViewOnOpen({ current: null, size, document: document([marker("p", [4.52, 47.56])]) });
   assert.equal(point.zoom, 18);
   assert.ok(Math.abs(point.center[0] - 4.52) < 1e-9 && Math.abs(point.center[1] - 47.56) < 1e-9);
-  const framed = fitMapsView([4.5, 47.55, 4.49, 47.57], size);
+  const framed = fitMapsView([4.47, 47.55, 4.49, 47.57], size);
   assert.ok(framed.zoom > 12 && framed.zoom < 18);
 });
 
@@ -103,13 +103,13 @@ test("the commune view uses the recorded position, otherwise the extent of every
   });
   const all = communeMapsView({
     position: null,
-    documents: [document([sampleArea]), document([marker("p", [4.6, 47.6])])],
+    documents: [document([sampleArea]), document([marker("p", [4.57, 47.6])])],
     size,
   });
   const [west, south, east, north] = mapsViewExtent(all, size);
-  assert.ok(west <= 4.5 && east >= 4.6 && south <= 47.55 && north >= 46.7);
+  assert.ok(west <= 4.47 && east >= 4.57 && south <= 47.55 && north >= 47.6);
   assert.deepEqual(communeMapsView({ position: null, documents: [document([])], size }), {
-    center: [4.6, 47.6],
+    center: [4.57, 47.6],
     zoom: 12,
   });
 });

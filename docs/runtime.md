@@ -17,6 +17,10 @@ The selected private runtime configuration is recorded in `local-imports/runtime
 
 Hall is available at `http://localhost:5174/app/`. Test suites use isolated runtimes and must not stop or replace this session.
 
+`npm run dev:private` restarts the session with the private configuration `local-imports/runtime/private/runtime.json`.
+
+The Vite development server accepts requests for `localhost` and `127.0.0.1`. To reach it through another host name, set `HALL_DEV_ALLOWED_HOSTS` to a comma-separated list of host names in the environment that starts the session.
+
 ## Standalone npm server
 
 See [installation, configuration, updates and recovery](distribution.md). The npm
@@ -38,11 +42,11 @@ Packaging includes the server runtime, the PostgreSQL binaries for the target pl
 
 Local mode verifies the schema fingerprint and does not run the schema upgrade (`packages/server/src/core/localServer.ts` uses `verify-only`). A desktop database created before the geographic layers schema (requirement HALL-TR-DOC-080) is therefore refused at startup and must be recreated. Desktop local mode has no upgrade path yet.
 
-## Local Alésia production
+## Local production
 
-Local production uses database `hall_private_prod` and serves Hall at `http://localhost:3200/app/`. It is independent from development. Startup never seeds or resets production.
+Local production uses a dedicated database named `hall_<name>_prod` and serves Hall at `http://localhost:3200/app/`. It is independent from development. Startup never seeds or resets production.
 
-Private configuration lives under `local-imports/production/private/` and remains outside Git.
+Private configuration lives under `local-imports/production/private/` and remains outside Git. Its `config.json` holds `databaseUrl` and an optional `port`.
 
 ```sh
 npm run prod:prepare

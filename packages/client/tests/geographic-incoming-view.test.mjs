@@ -29,7 +29,7 @@ test("incoming framing updates the existing view without resetting internal navi
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
-  const first = { kind: "center", center: [4.50, 47.54], zoom: 17 };
+  const first = { kind: "center", center: [4.5, 47.54], zoom: 17 };
   const incoming = { kind: "center", center: [4.51, 47.55], zoom: 18 };
   let runtime;
   let displayed;

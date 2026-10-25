@@ -111,7 +111,7 @@ test("Cartes lists the maps, opens a deep link, switches maps and links back to 
 
   await page.goto(`/app/maps/${roads.id}?view=4.442,47.562,15`);
   await expect(page.getByTestId("maps-context-title")).toHaveText("Routes");
-  await expect(page).toHaveURL(new RegExp(`/maps/${roads.id}\\?view=5\\.972000,46\\.662000,15$`));
+  await expect(page).toHaveURL(new RegExp(`/maps/${roads.id}\\?view=4\\.442000,47\\.562000,15$`));
   await expect(page.getByTestId("geographic-resource-map")).toBeVisible();
   await expect(page.getByTestId("geographic-mode-draw")).toBeEnabled();
   await expect(page.getByTestId("geographic-save-view")).toBeVisible();
@@ -120,7 +120,7 @@ test("Cartes lists the maps, opens a deep link, switches maps and links back to 
 
   await page.getByTestId(`maps-tree-map-${bridges.id}-open`).click();
   await expect(page.getByTestId("maps-context-title")).toHaveText("Ponts");
-  await expect(page).toHaveURL(new RegExp(`/maps/${bridges.id}\\?view=5\\.972000,46\\.662000,15$`));
+  await expect(page).toHaveURL(new RegExp(`/maps/${bridges.id}\\?view=4\\.442000,47\\.562000,15$`));
 
   const map = await page.locator(".maps-surface .geographic-map").boundingBox();
   if (!map) throw new Error("The map must be rendered");

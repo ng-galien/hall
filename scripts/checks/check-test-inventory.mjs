@@ -20,11 +20,12 @@ function listedSpecs(authMode) {
   return result.stdout;
 }
 
+const authenticationSpecs = new Set(["user-account.spec.ts", "personal-workspaces.spec.ts"]);
 const regular = listedSpecs(false);
 const authentication = listedSpecs(true);
 for (const spec of specs) {
-  const expected = spec === "user-account.spec.ts" ? authentication : regular;
-  const other = spec === "user-account.spec.ts" ? regular : authentication;
+  const expected = authenticationSpecs.has(spec) ? authentication : regular;
+  const other = authenticationSpecs.has(spec) ? regular : authentication;
   assert.ok(expected.includes(spec), `${spec} is missing from its Playwright suite`);
   assert.ok(!other.includes(spec), `${spec} is present in both Playwright suites`);
 }

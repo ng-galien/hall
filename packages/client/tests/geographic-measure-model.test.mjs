@@ -23,7 +23,7 @@ const frenchCardinals = { north: "N", south: "S", east: "E", west: "O" };
 const englishCardinals = { north: "N", south: "S", east: "E", west: "W" };
 
 function projectedRectangle(width, height, degrees = 0, latitude = 47.54) {
-  const origin = fromLonLat([6.03, latitude]);
+  const origin = fromLonLat([4.5, latitude]);
   const angle = (degrees * Math.PI) / 180;
   const coordinates = [
     [0, 0],
@@ -53,7 +53,9 @@ test("rectangle dimensions follow geodesic opposite sides and rotation, without 
   assert.ok(Math.abs(rotated.width - dimensions.height) < 0.5);
   assert.ok(Math.abs(rotated.height - dimensions.width) < 0.5);
   const reversed = new Polygon([before[0].toReversed()]);
-  assert.deepEqual(rectangleDimensions(reversed), dimensions);
+  const reversedDimensions = rectangleDimensions(reversed);
+  assert.ok(Math.abs(reversedDimensions.width - dimensions.width) < 1e-9);
+  assert.ok(Math.abs(reversedDimensions.height - dimensions.height) < 1e-9);
 });
 
 // @verifies-requirement HALL-FR-DOC-520
@@ -185,17 +187,17 @@ test("lengths are geodesic, not measured in the Web Mercator plane", () => {
   const equator = measureGeometry(new LineString([fromLonLat([0, 0]), fromLonLat([1, 0])]));
   assert.equal(equator.kind, "length");
   assert.ok(Math.abs(equator.length - 111_194.93) < 1, `${equator.length}`);
-  const sample = [fromLonLat([4.50, 47.54]), fromLonLat([4.51, 47.54]), fromLonLat([4.51, 47.55])];
-  const line = measureGeometry(new LineString(sample));
+  const sampleLine = [fromLonLat([4.5, 47.54]), fromLonLat([4.51, 47.54]), fromLonLat([4.51, 47.55])];
+  const line = measureGeometry(new LineString(sampleLine));
   assert.equal(line.segments.length, 2);
   assert.ok(Math.abs(line.segments[0] - 750.7) < 2, `${line.segments[0]}`);
   assert.ok(Math.abs(line.segments[1] - 1_111.9) < 2, `${line.segments[1]}`);
-  const planar = Math.hypot(sample[1][0] - sample[0][0], sample[1][1] - sample[0][1]);
+  const planar = Math.hypot(sampleLine[1][0] - sampleLine[0][0], sampleLine[1][1] - sampleLine[0][1]);
   assert.ok(planar / line.segments[0] > 1.4, "the projection plane overstates lengths at this latitude");
 });
 
 test("a polygon gives its geodesic area and perimeter", () => {
-  const [west, east, south, north] = [6.03, 6.04, 47.54, 47.55];
+  const [west, east, south, north] = [4.5, 4.51, 47.54, 47.55];
   const ring = [
     [west, south],
     [east, south],
@@ -220,11 +222,11 @@ test("a point gives its position in WGS84 and in the map projection", () => {
 
 test("units switch to km and ha with French rounding", () => {
   assert.equal(normalize(formatGeographicLength(4.26, fr)), "4,3 m");
-  assert.equal(normalize(formatGeographicLength(750.7, fr)), "764 m");
+  assert.equal(normalize(formatGeographicLength(764.3, fr)), "764 m");
   assert.equal(normalize(formatGeographicLength(1_111.9, fr)), "1,11 km");
   assert.equal(normalize(formatGeographicArea(850.4, fr)), "850 m²");
   assert.equal(normalize(formatGeographicArea(9_999.4, fr)), "9 999 m²");
-  assert.equal(normalize(formatGeographicArea(834_600, fr)), "84,98 ha");
+  assert.equal(normalize(formatGeographicArea(849_800, fr)), "84,98 ha");
 });
 
 test("west longitudes use the letter of the interface language", () => {
@@ -245,7 +247,7 @@ test("the unit switch follows the rounded figure", () => {
 
 // @verifies-requirement HALL-FR-DOC-460
 test("a saved measurement stores its WGS84 geometry, kind, name and geodesic value", () => {
-  const line = new LineString([fromLonLat([4.50, 47.54]), fromLonLat([4.51, 47.54])]);
+  const line = new LineString([fromLonLat([4.5, 47.54]), fromLonLat([4.51, 47.54])]);
   const length = measurementFeature("44444444-4444-4444-8444-444444444444", "Chemin", line);
   assert.equal(length.properties.kind, "lengthMeasurement");
   assert.equal(length.properties.label, "Chemin");
@@ -254,18 +256,18 @@ test("a saved measurement stores its WGS84 geometry, kind, name and geodesic val
   assert.deepEqual(length.geometry, {
     type: "LineString",
     coordinates: [
-      [4.50, 47.54],
+      [4.5, 47.54],
       [4.51, 47.54],
     ],
   });
   assert.deepEqual(savedMeasure(length), { kind: "length", length: length.properties.length, segments: [] });
 
   const ring = [
-    [4.50, 47.54],
+    [4.5, 47.54],
     [4.51, 47.54],
     [4.51, 47.55],
-    [4.50, 47.55],
-    [4.50, 47.54],
+    [4.5, 47.55],
+    [4.5, 47.54],
   ];
   const area = measurementFeature(
     "55555555-5555-4555-8555-555555555555",

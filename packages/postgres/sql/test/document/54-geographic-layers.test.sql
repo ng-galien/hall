@@ -10,7 +10,7 @@ SELECT no_plan();
 CREATE TEMP TABLE geographic_layer_fixture AS
 SELECT
   (hall_api.create_geographic_resource('Cartes', 'Plan communal', jsonb_build_object(
-    'view', jsonb_build_object('kind', 'center', 'center', jsonb_build_array(4.5, 47.5), 'zoom', 14),
+    'view', jsonb_build_object('kind', 'center', 'center', jsonb_build_array(4.47, 47.50), 'zoom', 14),
     'layers', jsonb_build_array(jsonb_build_object('id', 'GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2', 'visible', true, 'opacity', 1)),
     'hallLayer', jsonb_build_object('type', 'FeatureCollection', 'features', '[]'::jsonb),
     'provenance', jsonb_build_object(
@@ -23,7 +23,7 @@ SELECT
     '{"format":"geojson","fileName":"parcelles.geojson","byteSize":512,"contentSha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","importedAt":"2026-10-10T08:00:00Z"}'::JSONB,
     '{"kind":"none"}'::JSONB, ARRAY[]::TEXT[],
     '[
-      {"sourceId":"A-1","geometry":{"type":"Polygon","coordinates":[[[4.5,47.5],[4.48,47.5],[4.48,47.51],[4.5,47.5]]]},"properties":{"section":"A","numero":"1","owner":{"kind":"commune"}},"bbox":[4.5,47.5,4.48,47.51]},
+      {"sourceId":"A-1","geometry":{"type":"Polygon","coordinates":[[[4.47,47.50],[4.48,47.50],[4.48,47.51],[4.47,47.50]]]},"properties":{"section":"A","numero":"1","owner":{"kind":"commune"}},"bbox":[4.47,47.50,4.48,47.51]},
       {"sourceId":null,"geometry":{"type":"Point","coordinates":[4.52,47.55]},"properties":null,"bbox":[4.52,47.55,4.52,47.55]}
     ]'::JSONB
   ) AS layer;
@@ -32,7 +32,7 @@ SELECT is(layer ->> 'kind', 'geographicLayer', 'a layer is a resource of nature 
 FROM geographic_layer_fixture;
 SELECT is((layer ->> 'featureCount')::INTEGER, 2, 'the layer records its feature count')
 FROM geographic_layer_fixture;
-SELECT is(layer -> 'extent', '[4.5, 47.5, 4.52, 47.55]'::JSONB, 'the layer extent is the union of the feature extents')
+SELECT is(layer -> 'extent', '[4.47, 47.50, 4.52, 47.55]'::JSONB, 'the layer extent is the union of the feature extents')
 FROM geographic_layer_fixture;
 SELECT is(layer #>> '{source,fileName}', 'parcelles.geojson', 'the layer keeps the source file name')
 FROM geographic_layer_fixture;

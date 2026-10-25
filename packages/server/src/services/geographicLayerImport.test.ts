@@ -7,11 +7,11 @@ import {
 
 const square = [
   [
-    [4.5, 47.5],
+    [4.47, 47.5],
     [4.48, 47.5],
     [4.48, 47.51],
-    [4.5, 47.51],
-    [4.5, 47.5],
+    [4.47, 47.51],
+    [4.47, 47.5],
   ],
 ];
 
@@ -43,8 +43,8 @@ describe("GeoJSON geographic layer import", () => {
             properties: { nested: { a: 1 } },
             geometry: { type: "Polygon", coordinates: square },
           },
-          { type: "Feature", id: 7, properties: null, geometry: { type: "Point", coordinates: [4.7, 47.6] } },
-          { type: "Feature", properties: {}, geometry: { type: "MultiPoint", coordinates: [[4.6, 47.5]] } },
+          { type: "Feature", id: 7, properties: null, geometry: { type: "Point", coordinates: [4.67, 47.6] } },
+          { type: "Feature", properties: {}, geometry: { type: "MultiPoint", coordinates: [[4.57, 47.5]] } },
           {
             type: "Feature",
             properties: {},
@@ -85,9 +85,9 @@ describe("GeoJSON geographic layer import", () => {
     expect(imported.features[0]).toMatchObject({
       sourceId: "A-1",
       properties: { nested: { a: 1 } },
-      bbox: [4.5, 47.5, 4.48, 47.51],
+      bbox: [4.47, 47.5, 4.48, 47.51],
     });
-    expect(imported.features[1]).toMatchObject({ sourceId: "7", properties: null, bbox: [4.7, 47.6, 4.7, 47.6] });
+    expect(imported.features[1]).toMatchObject({ sourceId: "7", properties: null, bbox: [4.67, 47.6, 4.67, 47.6] });
     expect(imported.source).toMatchObject({
       format: "geojson",
       fileName: "couche.geojson",

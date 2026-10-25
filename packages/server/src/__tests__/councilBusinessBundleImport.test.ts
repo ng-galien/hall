@@ -157,7 +157,9 @@ it("transfers a whole business across clean installations and refuses duplicate 
     const folders = (await b("/resources?path=Imports%2Farverna-epona%2FCaptage")).entities.map(
       (e: { properties: { id: string; fullPath: string } }) => e.properties,
     );
-    const nestedFolder = folders.find((r: { fullPath: string }) => r.fullPath === "Imports/arverna-epona/Captage/Études");
+    const nestedFolder = folders.find(
+      (r: { fullPath: string }) => r.fullPath === "Imports/arverna-epona/Captage/Études",
+    );
     await b(`/resources/${nestedFolder.id}/location`, "PATCH", { path: "Archives", name: "Études conservées" });
     await b(`/council-business/${imported.id}`, "DELETE");
     expect((await b(`/resources/${document.id}`)).properties.path).toBe("Archives");

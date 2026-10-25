@@ -285,7 +285,7 @@ postgres("geographic layers", () => {
                   label: "Chêne",
                   style: { color: "#2255aa", size: "medium" },
                 },
-                geometry: { type: "Point", coordinates: [4.5, 47.6] },
+                geometry: { type: "Point", coordinates: [4.47, 47.6] },
               },
             ],
           },

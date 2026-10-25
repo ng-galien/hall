@@ -98,7 +98,7 @@ type SirenAction = { name: string; href: string; method: string };
 
 function squares(count: number) {
   return Array.from({ length: count }, (_, index) => {
-    const [longitude, latitude, size] = [4.5 + (index % 8) * 0.01, 47.5 + Math.floor(index / 8) * 0.01, 0.004];
+    const [longitude, latitude, size] = [4.47 + (index % 8) * 0.01, 47.5 + Math.floor(index / 8) * 0.01, 0.004];
     return {
       type: "Feature",
       id: crypto.randomUUID(),

@@ -28,7 +28,7 @@ test("a feature card keeps the data properties but omits generated geographic ex
         position: 0,
         properties: { usage: "verger" },
         propertyKeys: ["usage"],
-        extent: [4.50, 47.54, 4.51, 47.55],
+        extent: [4.5, 47.54, 4.51, 47.55],
       },
       layerName: "Parcelles",
       note: null,
