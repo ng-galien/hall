@@ -49,7 +49,7 @@ import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
-import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { isUnderPath, listCatalogPaths } from "./paths";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -699,27 +699,28 @@ export function PathContents({
   };
 
   const withFolderContextMenu = (children: ReactElement, folderPath: string, onRename?: () => void): ReactElement => {
-    const canCreateResource = resourcesStore.collectionCapabilities.create;
-    const canCreateLegalReference = canCreateResource && resourcesStore.collectionCapabilities.searchLegalReferences;
+    const capabilities = folderCapabilitiesAt(resourcesStore, folderPath);
+    const canCreateResource = capabilities.create;
+    const canCreateLegalReference = canCreateResource && capabilities.searchLegalReferences;
     const hasCreateActions =
       canCreateResource ||
-      councilBusinessStore.canCreate ||
+      capabilities.createCouncilBusiness ||
       canCreateLegalReference ||
-      resourcesStore.collectionCapabilities.uploadDocument ||
-      resourcesStore.collectionCapabilities.importSpreadsheet;
-    const hasActions = Boolean(onRename) || hasCreateActions || councilBusinessStore.canImportBundle;
+      capabilities.uploadDocument ||
+      capabilities.importSpreadsheet;
+    const hasActions = Boolean(onRename) || hasCreateActions || capabilities.importCouncilBusinessBundle;
     if (!hasActions) return children;
     return (
       <ContextMenu>
         <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
         <ContextMenuContent>
-          {resourcesStore.collectionCapabilities.create && resourcesStore.collectionCapabilities.uploadDocument ? (
+          {capabilities.create && capabilities.uploadDocument ? (
             <ContextMenuItem data-testid="workspace-tree-import-folder" onSelect={() => onImportFolder(folderPath)}>
               <DocumentResourceIcon />
               {t("workspace.importFolder")}
             </ContextMenuItem>
           ) : null}
-          {councilBusinessStore.canImportBundle ? (
+          {capabilities.importCouncilBusinessBundle ? (
             <ContextMenuItem data-testid="workspace-tree-import-bundle" onSelect={onImportBundle}>
               <DocumentResourceIcon />
               {t("bundles.import")}
@@ -741,7 +742,7 @@ export function PathContents({
                     {t("workspace.createSubfolder")}
                   </ContextMenuItem>
                 ) : null}
-                {councilBusinessStore.canCreate ? (
+                {capabilities.createCouncilBusiness ? (
                   <ContextMenuItem
                     data-testid="workspace-tree-create-business"
                     onSelect={() => afterContextMenuCloses(() => startInlineCreate("councilMatter", folderPath))}
@@ -795,8 +796,7 @@ export function PathContents({
                     {t("workspace.createLegalReference")}
                   </ContextMenuItem>
                 ) : null}
-                {resourcesStore.collectionCapabilities.uploadDocument ||
-                resourcesStore.collectionCapabilities.importSpreadsheet ? (
+                {capabilities.uploadDocument || capabilities.importSpreadsheet ? (
                   <ContextMenuItem
                     data-testid="workspace-tree-import-file"
                     onSelect={() => void onCreate("file", folderPath)}
@@ -963,7 +963,7 @@ export function PathContents({
               dragPayloads={dragPayloadsFor(payload)}
               movable={!renaming && folderCapabilities.relocate}
               onFolderDrop={
-                businessCapabilities?.uploadDocument && resourcesStore.collectionCapabilities.create
+                businessCapabilities?.uploadDocument && folderCapabilitiesAt(resourcesStore, business.folderPath).create
                   ? (transfer) => onImportFolder(business.folderPath, business, transfer)
                   : undefined
               }
@@ -982,7 +982,8 @@ export function PathContents({
                     : undefined
                 }
                 onImportFolder={
-                  businessCapabilities?.uploadDocument && resourcesStore.collectionCapabilities.create
+                  businessCapabilities?.uploadDocument &&
+                  folderCapabilitiesAt(resourcesStore, business.folderPath).create
                     ? () => onImportFolder(business.folderPath, business)
                     : undefined
                 }
@@ -1110,8 +1111,8 @@ export function PathContents({
         onDragOver={(event) => {
           if (
             event.dataTransfer.types.includes("Files") &&
-            resourcesStore.collectionCapabilities.create &&
-            resourcesStore.collectionCapabilities.uploadDocument
+            folderCapabilitiesAt(resourcesStore, folderPath).create &&
+            folderCapabilitiesAt(resourcesStore, folderPath).uploadDocument
           ) {
             event.preventDefault();
             event.stopPropagation();
@@ -1130,8 +1131,8 @@ export function PathContents({
           setDropPath(null);
           if (
             event.dataTransfer.types.includes("Files") &&
-            resourcesStore.collectionCapabilities.create &&
-            resourcesStore.collectionCapabilities.uploadDocument
+            folderCapabilitiesAt(resourcesStore, folderPath).create &&
+            folderCapabilitiesAt(resourcesStore, folderPath).uploadDocument
           ) {
             event.stopPropagation();
             onImportFolder(folderPath, undefined, event.dataTransfer);
@@ -1234,8 +1235,8 @@ export function PathContents({
       onDragOver={(event) => {
         if (
           event.dataTransfer.types.includes("Files") &&
-          resourcesStore.collectionCapabilities.create &&
-          resourcesStore.collectionCapabilities.uploadDocument
+          folderCapabilitiesAt(resourcesStore, "").create &&
+          folderCapabilitiesAt(resourcesStore, "").uploadDocument
         ) {
           event.preventDefault();
           event.dataTransfer.dropEffect = "copy";
@@ -1244,8 +1245,8 @@ export function PathContents({
       onDrop={(event) => {
         if (
           event.dataTransfer.types.includes("Files") &&
-          resourcesStore.collectionCapabilities.create &&
-          resourcesStore.collectionCapabilities.uploadDocument
+          folderCapabilitiesAt(resourcesStore, "").create &&
+          folderCapabilitiesAt(resourcesStore, "").uploadDocument
         ) {
           event.preventDefault();
           event.stopPropagation();

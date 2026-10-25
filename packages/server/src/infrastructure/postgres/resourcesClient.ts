@@ -190,6 +190,13 @@ export function createPostgresResourcesClient({
       });
       return resourceDetail(created);
     },
+    async provisionPersonalWorkspace(contactId) {
+      return resourceDetail(await postgresResources.provisionPersonalWorkspace(currentRequest(), contactId));
+    },
+    async personalWorkspace() {
+      const found = await postgresResources.currentPersonalWorkspace(currentRequest());
+      return found ? resourceDetail(found) : null;
+    },
     async createDocument(input) {
       try {
         return resourceDetail(await postgresResources.createDocument(currentRequest(), input));

@@ -253,6 +253,17 @@ CREATE TABLE hall.resource_tag (
 -- @implements-requirement HALL-TR-DOC-030
 CREATE INDEX resource_path_prefix_idx ON hall.resource USING btree (path text_pattern_ops);
 
+-- @implements-requirement HALL-FR-WSP-380
+-- Ownership is a relation to the folder identity, never derived from the
+-- folder name or from the contact name.
+CREATE TABLE hall.personal_workspace (
+  contact UUID PRIMARY KEY REFERENCES hall.contact(id) ON DELETE RESTRICT,
+  folder_resource UUID NOT NULL UNIQUE REFERENCES hall.folder_resource(id) ON DELETE CASCADE
+);
+
+COMMENT ON TABLE hall.personal_workspace IS
+  'Personal folder of one council member contact, placed directly under the reserved personal workspaces root.';
+
 -- Derived contact references enforce the same identity integrity as the directory.
 CREATE TABLE hall.event_contact_reference (
   event_resource_id UUID NOT NULL REFERENCES hall.event_resource(id) ON DELETE CASCADE,

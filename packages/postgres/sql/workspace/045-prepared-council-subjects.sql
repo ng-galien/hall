@@ -115,8 +115,9 @@ BEGIN
     INSERT INTO hall.open_question(id,council_business) VALUES(subject_id,target_business);
   ELSE RAISE EXCEPTION USING ERRCODE='HV910',MESSAGE='unknown prepared subject kind'; END IF;
   SELECT text_resource INTO resource_id FROM hall.prepared_council_subject WHERE id=subject_id AND kind=target_kind;
-  PERFORM hall_api.rename_resource(resource_id,subject_name);
-  PERFORM hall_api.update_text_resource(resource_id,1,subject_content,'{}'::UUID[]);
+  -- Authorized by the calling command; the subject text lives in its common affair folder.
+  PERFORM hall.relocate_resource(resource_id,(SELECT path FROM hall.resource WHERE id=resource_id),subject_name);
+  PERFORM hall.update_text_resource(resource_id,1,subject_content,'{}'::UUID[]);
   RETURN hall.prepared_council_subject_projection(subject_id,target_kind);
 END;
 $$;

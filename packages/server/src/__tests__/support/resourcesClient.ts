@@ -79,6 +79,12 @@ export function createTestResourcesClient(): ResourcesClient {
     resource ? { status: "updated", resource: representation(resource) } : { status: "notFound" };
 
   return {
+    async provisionPersonalWorkspace() {
+      throw new Error("Personal workspaces are covered by the PostgreSQL integration tests");
+    },
+    async personalWorkspace() {
+      return null;
+    },
     async listAll() {
       const data: ResourceCatalogEntry[] = [...resources.values()];
       return {

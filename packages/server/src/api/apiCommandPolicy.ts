@@ -32,6 +32,10 @@ export interface ApiCommandPolicy {
 
 const workspaceRead = ["workspace.read"] as const;
 const workspaceWrite = ["workspace.write"] as const;
+// @implements-requirement HALL-FR-WSP-390
+// PostgreSQL decides the writable location; this guard only admits the two
+// permissions that can write somewhere in the workspace.
+const resourceWrite = ["workspace.write", "personal-workspace.write"] as const;
 const councilBusinessUpdate = ["council-business.update"] as const;
 const meetingsPrepare = ["meetings.prepare"] as const;
 const meetingsConduct = ["meetings.conduct"] as const;
@@ -62,25 +66,25 @@ export const apiCommandPolicies = {
   "committee.end-membership": { permissions: meetingsPrepare, auditTargetType: "committee-membership" },
   "decision.update-draft": { permissions: meetingsPrepare, auditTargetType: "council-decision" },
   "decision.freeze": { permissions: meetingsPrepare, auditTargetType: "council-decision" },
-  "resource.create": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.relocate": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.update-metadata": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.update-content": { permissions: workspaceWrite, auditTargetType: "resource" },
+  "resource.create": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.relocate": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.update-metadata": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.update-content": { permissions: resourceWrite, auditTargetType: "resource" },
   "resource.generate-event-invitation": { permissions: workspaceRead, auditTargetType: "resource" },
-  "resource.replace-document-content": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.import-spreadsheet": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.convert-spreadsheet-table": { permissions: workspaceWrite, auditTargetType: null },
-  "resource.import-geographic-layer": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.link-geographic-layer": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.unlink-geographic-layer": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.create-geographic-feature-note": { permissions: workspaceWrite, auditTargetType: "resource" },
+  "resource.replace-document-content": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.import-spreadsheet": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.convert-spreadsheet-table": { permissions: resourceWrite, auditTargetType: null },
+  "resource.import-geographic-layer": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.link-geographic-layer": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.unlink-geographic-layer": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.create-geographic-feature-note": { permissions: resourceWrite, auditTargetType: "resource" },
   "resource.import-municipal-property": { permissions: workspaceWrite, auditTargetType: "resource" },
   "resource.search-legal-references": { permissions: workspaceRead, auditTargetType: null },
-  "resource.resolve-legal-reference": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.refresh-legal-reference": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.create-document": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.create-editor-asset": { permissions: workspaceWrite, auditTargetType: "resource" },
-  "resource.delete": { permissions: workspaceWrite, auditTargetType: "resource" },
+  "resource.resolve-legal-reference": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.refresh-legal-reference": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.create-document": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.create-editor-asset": { permissions: resourceWrite, auditTargetType: "resource" },
+  "resource.delete": { permissions: resourceWrite, auditTargetType: "resource" },
   "council-business.create-prepared-subject": { permissions: workspaceWrite, auditTargetType: "council-business" },
   "agenda-item.schedule-prepared": { permissions: meetingsPrepare, auditTargetType: "agenda-item" },
   "council-business.create": { permissions: workspaceWrite, auditTargetType: "council-business" },

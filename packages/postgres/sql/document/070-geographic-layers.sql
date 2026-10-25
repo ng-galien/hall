@@ -50,6 +50,7 @@ BEGIN
   END IF;
 
   PERFORM hall.lock_resource_namespace();
+  PERFORM hall.require_location_write(hall.child_full_path(parent_path, coalesce(resource_name, '')));
   PERFORM hall.ensure_folder_path(parent_path);
 
   WITH feature_extent AS (
@@ -218,7 +219,7 @@ BEGIN
   IF overlay_visible IS NULL THEN
     RAISE EXCEPTION USING ERRCODE = 'HV607', MESSAGE = 'Geographic overlay visibility is required';
   END IF;
-  PERFORM hall.require_resource(map_id, 'geographic');
+  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(map_id, 'geographic')));
   PERFORM hall.require_resource(layer_id, 'geographicLayer');
   PERFORM 1 FROM hall.geographic_resource WHERE id = map_id FOR UPDATE;
 
@@ -254,7 +255,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  PERFORM hall.require_resource(map_id, 'geographic');
+  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(map_id, 'geographic')));
   PERFORM 1 FROM hall.geographic_resource WHERE id = map_id FOR UPDATE;
   DELETE FROM hall.geographic_map_overlay
   WHERE geographic_resource_id = map_id

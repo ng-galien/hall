@@ -109,6 +109,7 @@ export function useResourceSearch(
             limit: Math.min(100, size - items.length),
           });
           if (current !== generation.current) return;
+          useWorkspaceResourcesStore.getState().adoptSearchRepresentations(result.representation);
           total = result.data.total;
           facets = result.data.facets;
           items.push(

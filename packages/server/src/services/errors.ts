@@ -94,6 +94,8 @@ export type ErrorCode =
   | "meeting_roster_locked"
   | "last_administrator_required"
   | "permission_denied"
+  | "personal_workspace_resource_not_associable"
+  | "councillor_requires_active_member"
   | "proxy_invalid"
   | "quorum_not_reached"
   | "resource_content_unavailable"

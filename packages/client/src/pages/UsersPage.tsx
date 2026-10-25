@@ -177,6 +177,11 @@ export function UsersPage() {
               </div>
             </fieldset>
             <UserRoles value={roles} onChange={setRoles} disabled={submitting} />
+            {roles.includes("councillor") && (
+              <p className="text-sm text-muted-foreground" data-testid="user-councillor-contact-hint">
+                {t("users.councillorContactHint")}
+              </p>
+            )}
             <Button type="submit" disabled={submitting || roles.length === 0} data-testid="user-create-submit">
               {t(submitting ? "common.saving" : "common.create")}
             </Button>

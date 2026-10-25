@@ -57,6 +57,8 @@ export interface ResourcesClient {
   open(reference: string): Promise<ResourceRepresentation<ResourceDetail> | null>;
   listResourceChanges(id: string): Promise<ResourceAuditChange[]>;
   create(input: PersistResource): Promise<ResourceRepresentation<ResourceDetail>>;
+  provisionPersonalWorkspace(contactId: string): Promise<ResourceRepresentation<ResourceDetail>>;
+  personalWorkspace(): Promise<ResourceRepresentation<ResourceDetail> | null>;
   createDocument(input: {
     councilBusinessId?: string;
     path: string;

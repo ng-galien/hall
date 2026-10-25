@@ -26,6 +26,7 @@ import {
   listDocumentaryResourceCatalog,
   listDocumentaryResourceFolder,
   openDocumentaryResource,
+  openPersonalWorkspace,
   refreshDocumentaryLegalReference,
   relocateDocumentaryResource,
   resolveDocumentaryLegalReference,
@@ -42,6 +43,8 @@ interface WorkspaceResourceCollectionCapabilities {
   createEditorAsset: boolean;
   uploadDocument: boolean;
   searchLegalReferences: boolean;
+  createCouncilBusiness: boolean;
+  importCouncilBusinessBundle: boolean;
 }
 
 interface WorkspaceResourcesState {
@@ -51,6 +54,12 @@ interface WorkspaceResourcesState {
   representations: Record<string, SirenEntity>;
   collectionRepresentation: SirenEntity | null;
   collectionCapabilities: WorkspaceResourceCollectionCapabilities;
+  /** Creation affordances of each listed folder; a folder offers only what the caller may create in it. */
+  folderRepresentations: Record<string, SirenEntity>;
+  folderCapabilities: Record<string, WorkspaceResourceCollectionCapabilities>;
+  /** Full path of the signed-in council member's personal folder, when the account has one. */
+  personalWorkspacePath: string | null;
+  loadPersonalWorkspace(): Promise<void>;
   catalogLoading: boolean;
   loadedPaths: string[];
   loadingPaths: string[];
@@ -78,6 +87,33 @@ interface WorkspaceResourcesState {
   invalidate(invalidation: { ids?: readonly string[]; paths?: readonly string[] }): void;
   /** Summaries read through another projection (a business's documents) without loading the catalog. */
   adoptSummaries(summaries: readonly ResourceSummary[]): void;
+  /** Keeps the action-less entities of search results for resources whose representation is not loaded. */
+  adoptSearchRepresentations(representation: SirenEntity | null): void;
+}
+
+function collectionCapabilities(representation: SirenEntity): WorkspaceResourceCollectionCapabilities {
+  return {
+    create: Boolean(findSirenAction(representation, "resource.create")),
+    importSpreadsheet: Boolean(findSirenAction(representation, "resource.import-spreadsheet")),
+    createEditorAsset: Boolean(findSirenAction(representation, "resource.create-editor-asset")),
+    uploadDocument: Boolean(findSirenAction(representation, "resource.create-document")),
+    searchLegalReferences: Boolean(findSirenAction(representation, "resource.search-legal-references")),
+    createCouncilBusiness: Boolean(findSirenAction(representation, "council-business.create")),
+    importCouncilBusinessBundle: Boolean(findSirenAction(representation, "council-business.import-bundle")),
+  };
+}
+
+function formPath(form: FormData): string {
+  const path = form.get("path");
+  return typeof path === "string" ? path : "";
+}
+
+/** Creation capabilities in one folder, from its own listing once loaded. */
+export function folderCapabilitiesAt(
+  state: Pick<WorkspaceResourcesState, "collectionCapabilities" | "folderCapabilities">,
+  path: string,
+): WorkspaceResourceCollectionCapabilities {
+  return state.folderCapabilities[path] ?? state.collectionCapabilities;
 }
 
 function sameSummary(stored: ResourceSummary | undefined, incoming: ResourceSummary): boolean {
@@ -216,6 +252,20 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
       createEditorAsset: false,
       uploadDocument: false,
       searchLegalReferences: false,
+      createCouncilBusiness: false,
+      importCouncilBusinessBundle: false,
+    },
+    folderRepresentations: {},
+    folderCapabilities: {},
+    personalWorkspacePath: null,
+    // @implements-requirement HALL-FR-WSP-380
+    async loadPersonalWorkspace() {
+      try {
+        const folder = await openPersonalWorkspace();
+        set({ personalWorkspacePath: folder?.fullPath ?? null });
+      } catch (error) {
+        set({ error: apiErrorCode(error) });
+      }
     },
     catalogLoading: false,
     loadedPaths: [],
@@ -241,13 +291,7 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
               Object.entries(state.representations).filter(([id]) => knownIds.has(id)),
             ),
             collectionRepresentation: representation,
-            collectionCapabilities: {
-              create: Boolean(findSirenAction(representation, "resource.create")),
-              importSpreadsheet: Boolean(findSirenAction(representation, "resource.import-spreadsheet")),
-              createEditorAsset: Boolean(findSirenAction(representation, "resource.create-editor-asset")),
-              uploadDocument: Boolean(findSirenAction(representation, "resource.create-document")),
-              searchLegalReferences: Boolean(findSirenAction(representation, "resource.search-legal-references")),
-            },
+            collectionCapabilities: collectionCapabilities(representation),
             catalogLoading: false,
           }));
         } catch (error) {
@@ -284,6 +328,15 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
             return {
               summaries,
               representations: { ...state.representations, ...representations },
+              ...(result.representation
+                ? {
+                    folderRepresentations: { ...state.folderRepresentations, [path]: result.representation },
+                    folderCapabilities: {
+                      ...state.folderCapabilities,
+                      [path]: collectionCapabilities(result.representation),
+                    },
+                  }
+                : {}),
               loadedPaths: state.loadedPaths.includes(path) ? state.loadedPaths : [...state.loadedPaths, path],
             };
           });
@@ -320,7 +373,8 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
             ...state.summaries,
             ...Object.fromEntries(result.data.items.map((item) => [item.id, item])),
           },
-          representations: { ...state.representations, ...representations },
+          // Search entities carry no actions: they never replace a loaded representation.
+          representations: { ...representations, ...state.representations },
         }));
         return result.data;
       } catch (error) {
@@ -345,7 +399,8 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
             ...state.summaries,
             ...Object.fromEntries(result.data.items.map((item) => [item.id, item])),
           },
-          representations: { ...state.representations, ...representations },
+          // Search entities carry no actions: they never replace a loaded representation.
+          representations: { ...representations, ...state.representations },
         }));
         return result.data;
       } catch (error) {
@@ -360,7 +415,7 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
     async create(input, source) {
       set({ error: null });
       try {
-        const representation = get().collectionRepresentation;
+        const representation = get().folderRepresentations[input.path] ?? get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
         const result = await createDocumentaryResource(source ?? representation, input);
         adopt(result.data, result.representation);
@@ -373,7 +428,7 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
     async importSpreadsheet(form, source) {
       set({ error: null });
       try {
-        const representation = get().collectionRepresentation;
+        const representation = get().folderRepresentations[formPath(form)] ?? get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
         const result = await importDocumentarySpreadsheet(source ?? representation, form);
         adopt(result.data, result.representation);
@@ -386,7 +441,7 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
     async uploadDocument(form, source) {
       set({ error: null });
       try {
-        const representation = get().collectionRepresentation;
+        const representation = get().folderRepresentations[formPath(form)] ?? get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
         const result = await uploadDocumentaryResource(source ?? representation, form);
         adopt(result.data, result.representation);
@@ -528,6 +583,12 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
           : null,
       }));
       return true;
+    },
+    adoptSearchRepresentations(representation) {
+      const found = embeddedResourceRepresentations(representation);
+      set((state) => ({
+        representations: { ...found, ...state.representations },
+      }));
     },
     adoptSummaries(summaries) {
       const current = get().summaries;

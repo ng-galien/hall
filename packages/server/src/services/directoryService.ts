@@ -17,6 +17,7 @@ import type {
   UpdateDelegationMembership,
 } from "@hall/api-contract";
 import { type DirectoryClient, DirectoryClientError } from "../clients/directoryClient.js";
+import type { AuthService } from "./authService.js";
 import { DomainError, type ErrorCode } from "./errors.js";
 
 const failureCodes: Record<DirectoryClientError["failure"], ErrorCode> = {
@@ -97,7 +98,13 @@ export interface DirectoryService {
   endDelegationMembership(delegationId: string, membershipId: string, endedOn: string): Promise<DelegationMembership>;
 }
 
-export function createDirectoryService({ directoryClient }: { directoryClient: DirectoryClient }): DirectoryService {
+export function createDirectoryService({
+  directoryClient,
+  authService,
+}: {
+  directoryClient: DirectoryClient;
+  authService: Pick<AuthService, "endCouncillorAccess">;
+}): DirectoryService {
   const requireContact = async (id: string): Promise<Contact> => {
     const contact = await directoryClient.openContact(id).catch(translateFailure);
     if (!contact) throw new DomainError("contact_not_found", 404);
@@ -151,7 +158,14 @@ export function createDirectoryService({ directoryClient }: { directoryClient: D
     getCouncilMember: requireCouncilMember,
     councilMemberCreationAvailable: () => directoryClient.councilMemberCreationAvailable().catch(translateFailure),
     createCouncilMember: (input) => directoryClient.createCouncilMember(input).catch(translateFailure),
-    updateCouncilMember: (id, input) => directoryClient.updateCouncilMember(id, input).catch(translateFailure),
+    // @implements-requirement HALL-FR-DIR-160
+    // The account and the mandate live in two transactions, ordered to fail on the safe
+    // side: the councillor account is disabled before the end of the mandate is recorded.
+    // If recording fails, the account stays disabled and the administrator retries.
+    async updateCouncilMember(id, input) {
+      if (input.termEndedOn !== null) await authService.endCouncillorAccess((await requireCouncilMember(id)).contactId);
+      return directoryClient.updateCouncilMember(id, input).catch(translateFailure);
+    },
     listCouncilCommittees: (includeArchived = false) =>
       directoryClient.listCouncilCommittees(includeArchived).catch(translateFailure),
     getCouncilCommittee: requireCouncilCommittee,

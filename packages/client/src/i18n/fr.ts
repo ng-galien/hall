@@ -57,6 +57,9 @@ export const fr: Messages = {
   "users.role.contributor": "Contributeur",
   "users.role.meetingConductor": "Conduite de séance",
   "users.role.reader": "Lecteur",
+  "users.role.councillor": "Conseiller municipal",
+  "users.councillorContactHint":
+    "Le rôle Conseiller municipal exige le contact d’un élu en exercice ; son dossier personnel est créé à l’enregistrement.",
   "users.status.active": "Actif",
   "users.status.disabled": "Désactivé",
   "users.status": "État du compte",
@@ -73,6 +76,8 @@ export const fr: Messages = {
   "users.disableConfirm": "Désactiver le compte de {name} ? Ses sessions seront fermées.",
   "workspace.type.event": "Rendez-vous",
   "workspace.createEvent": "Nouveau rendez-vous",
+  "workspace.personalWorkspace": "Mon espace",
+  "workspace.attachmentPersonalTakeOver": "Dossier personnel : à reprendre d’abord par le secrétariat",
   "navigation.calendar": "Calendrier",
   "calendar.meetingLabel": "Conseil municipal {number}",
   "calendar.deleteConfirm": "Supprimer ce rendez-vous ?",
@@ -1125,6 +1130,10 @@ export const fr: Messages = {
   "error.invalid_credentials": "L’adresse électronique ou le mot de passe est incorrect.",
   "error.bootstrap_unavailable": "L’administrateur initial a déjà été créé.",
   "error.last_administrator_required": "Le dernier administrateur actif doit être conservé.",
+  "error.councillor_requires_active_member":
+    "Choisissez le contact d’un élu en exercice pour le rôle Conseiller municipal.",
+  "error.personal_workspace_resource_not_associable":
+    "Ce document est encore dans le dossier personnel d’un conseiller : le secrétariat le déplace d’abord dans un dossier commun.",
   "error.council_decision_not_found": "La délibération sélectionnée n’existe plus.",
   "error.council_member_not_found": "Le membre sélectionné ne fait pas partie de cette séance.",
   "error.council_term_not_configured": "Renseignez l’effectif attendu du conseil avant d’ajouter un membre.",

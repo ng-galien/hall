@@ -38,6 +38,8 @@ export interface ResourceSearchProps {
   selectedIds?: readonly string[];
   allowLayout?: boolean;
   hideResultsWhenEmpty?: boolean;
+  /** Adapts the presentation of each result row for the calling picker. */
+  presentItem?(item: Mentionable): Mentionable;
 }
 // @implements-requirement HALL-FR-SRC-030
 export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchProps>(function ResourceSearch(
@@ -57,6 +59,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
     selectedIds = [],
     allowLayout = false,
     hideResultsWhenEmpty = false,
+    presentItem,
   },
   ref,
 ) {
@@ -69,7 +72,8 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
   const [browsing, setBrowsing] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const search = useResourceSearch(effective, scope, items, !hideResultsWhenEmpty || isSearchBoxActive(effective));
-  const active = Math.min(rawActive, Math.max(search.items.length - 1, 0));
+  const shownItems = presentItem ? search.items.map(presentItem) : search.items;
+  const active = Math.min(rawActive, Math.max(shownItems.length - 1, 0));
   const change = (next: SearchBoxState<SearchType>) => {
     setActive(0);
     setLocal(next);
@@ -89,14 +93,14 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       setActive(
-        (active + (event.key === "ArrowDown" ? 1 : -1) + Math.max(search.items.length, 1)) %
-          Math.max(search.items.length, 1),
+        (active + (event.key === "ArrowDown" ? 1 : -1) + Math.max(shownItems.length, 1)) %
+          Math.max(shownItems.length, 1),
       );
       return true;
     }
-    if (event.key === "Enter" && search.items[active] && !search.loading) {
+    if (event.key === "Enter" && shownItems[active] && !search.loading) {
       event.preventDefault();
-      pick(search.items[active]);
+      pick(shownItems[active]);
       return true;
     }
     return false;
@@ -195,7 +199,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
                 </button>
               </div>
             ) : null}
-            {!search.loading && !search.error && !search.items.length ? (
+            {!search.loading && !search.error && !shownItems.length ? (
               <p data-testid={`${testId}-empty`}>{t("workspace.noResults")}</p>
             ) : null}
             <div
@@ -204,7 +208,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
               data-testid={`${testId}-results`}
               aria-busy={search.loading}
             >
-              {search.items.map((item, index) => {
+              {shownItems.map((item, index) => {
                 const Icon = item.icon;
                 return (
                   <SearchResultRow
@@ -237,7 +241,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
                 );
               })}
             </div>
-            {search.items.length < search.total ? (
+            {shownItems.length < search.total ? (
               <button type="button" disabled={search.loading} data-testid={`${testId}-more`} onClick={search.more}>
                 {t("search.more")}
               </button>

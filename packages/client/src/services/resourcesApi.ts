@@ -20,6 +20,7 @@ import {
 } from "@hall/api-contract";
 import type { DocumentResource, DocumentUsage, EditorAssetOwner, Resource, ResourceKind } from "@hall/domain";
 import {
+  ApiError,
   apiPathFromHref,
   apiRequest,
   apiResponse,
@@ -42,6 +43,17 @@ export async function listDocumentaryResourceCatalog() {
     collectionRepresentation,
     data: documentaryResourceCatalogSchema.parse(result.data),
   };
+}
+
+/** Reads the personal folder of the signed-in council member, or null when the account has none. */
+export async function openPersonalWorkspace() {
+  try {
+    const result = await apiSirenRequest<unknown>("/resources/personal-workspace");
+    return documentaryResourceDetailSchema.parse(result.data);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
 }
 
 /** Reads the presentation summaries directly contained in one folder. */

@@ -43,7 +43,7 @@ const actionsByPermissions = [
     ],
   ],
   [
-    ["workspace.write"],
+    ["workspace.write", "personal-workspace.write"],
     [
       "resource.create",
       "resource.relocate",
@@ -56,12 +56,17 @@ const actionsByPermissions = [
       "resource.link-geographic-layer",
       "resource.unlink-geographic-layer",
       "resource.create-geographic-feature-note",
-      "resource.import-municipal-property",
       "resource.resolve-legal-reference",
       "resource.refresh-legal-reference",
       "resource.create-document",
       "resource.create-editor-asset",
       "resource.delete",
+    ],
+  ],
+  [
+    ["workspace.write"],
+    [
+      "resource.import-municipal-property",
       "council-business.create",
       "council-business.import-bundle",
       "council-business.delete",
@@ -567,6 +572,7 @@ const nonAuditedCommandCases = [
   ["POST", "/api/templates/preview-pdf"],
 ] as const;
 
+// @verifies-requirement HALL-FR-WSP-390
 describe("API command policy", () => {
   it("is exhaustive over the shared action-name authority", () => {
     expect(Object.keys(apiCommandPolicies).sort()).toEqual([...apiActionNames].sort());

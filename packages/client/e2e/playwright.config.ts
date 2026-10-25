@@ -24,12 +24,18 @@ export default defineConfig({
   },
   projects:
     process.env.HALL_E2E_AUTH_MODE === "true"
-      ? [{ name: "authentication", testMatch: /user-account\.spec\.ts/, use: { ...devices["Desktop Chrome"] } }]
+      ? [
+          {
+            name: "authentication",
+            testMatch: /(user-account|personal-workspaces)\.spec\.ts/,
+            use: { ...devices["Desktop Chrome"] },
+          },
+        ]
       : [
           {
             name: "chromium",
             testMatch: /\.spec\.ts/,
-            testIgnore: /user-account\.spec\.ts/,
+            testIgnore: /(user-account|personal-workspaces)\.spec\.ts/,
             use: { ...devices["Desktop Chrome"] },
           },
         ],

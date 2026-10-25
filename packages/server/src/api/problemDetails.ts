@@ -10,6 +10,9 @@ const titles: Record<string, string> = {
   recusal_occurrence_locked: "An agenda item with recusals must remain in its meeting",
   authentication_required: "Authentication required",
   permission_denied: "Permission denied",
+  personal_workspace_resource_not_associable:
+    "A document of a personal workspace is taken over into a common folder before it joins an affair",
+  councillor_requires_active_member: "A council member account requires a contact with an active mandate",
   invalid_credentials: "Invalid credentials",
   invalid_current_password: "Current password is incorrect",
   invalid_request: "Invalid request",

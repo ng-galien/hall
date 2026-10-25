@@ -90,13 +90,17 @@ GRANT EXECUTE ON FUNCTION hall_api.read_binary_reference_content(UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.present_resource(JSONB)
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.present_resource_collection(JSONB, TEXT, BOOLEAN, BOOLEAN)
+GRANT EXECUTE ON FUNCTION hall_api.present_resource_collection(JSONB, TEXT, BOOLEAN, BOOLEAN, TEXT)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.present_resource_search(JSONB)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.present_editor_asset(JSONB)
   TO hall_api_authenticated, hall_api_worker;
 
+GRANT EXECUTE ON FUNCTION hall_api.provision_personal_workspace(UUID)
+  TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.current_personal_workspace()
+  TO hall_api_authenticated;
 GRANT EXECUTE ON FUNCTION hall_api.create_folder(TEXT, TEXT)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.create_text_resource(TEXT, TEXT, TEXT)

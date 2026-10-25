@@ -10,6 +10,7 @@ const rolePermissions: Record<ApiRole, readonly ApiPermission[]> = {
     "members.manage",
     "workspace.read",
     "workspace.write",
+    "personal-workspaces.manage",
     "council-business.update",
     "meetings.read",
     "meetings.prepare",
@@ -17,6 +18,9 @@ const rolePermissions: Record<ApiRole, readonly ApiPermission[]> = {
   contributor: ["contacts.read", "workspace.read", "workspace.write", "council-business.update", "meetings.read"],
   meetingConductor: ["contacts.read", "workspace.read", "meetings.read", "meetings.conduct"],
   reader: ["contacts.read", "workspace.read", "meetings.read"],
+  // @implements-requirement HALL-FR-WSP-390
+  // @implements-requirement HALL-FR-WSP-400
+  councillor: ["contacts.read", "workspace.read", "personal-workspace.write", "meetings.read"],
 };
 
 export function permissionsForRoles(roles: readonly ApiRole[]): ApiPermission[] {

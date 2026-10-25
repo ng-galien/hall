@@ -25,7 +25,7 @@ import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { type DocumentDuplicate, findDocumentDuplicates } from "../../services/documentDuplicates";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
-import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { CouncilBusinessWorkbench } from "./CouncilBusinessWorkbench";
 import {
   droppedFolder,
@@ -84,6 +84,11 @@ export function WorkspacePage() {
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   const path = searchParams.get("path") ?? "";
+  const folderCapabilities = folderCapabilitiesAt(resourcesStore, path);
+  const loadPersonalWorkspace = resourcesStore.loadPersonalWorkspace;
+  useEffect(() => {
+    void loadPersonalWorkspace();
+  }, [loadPersonalWorkspace]);
   const selection: WorkspaceSelection = searchParams.get("councilBusiness")
     ? { kind: "councilBusiness", id: searchParams.get("councilBusiness") as string }
     : searchParams.get("resource")
@@ -437,6 +442,15 @@ export function WorkspacePage() {
             <div className="workspace-bar-search">
               <WorkspaceSearch search={search} onSearch={setSearch} onSelect={select} context={path} />
             </div>
+            {resourcesStore.personalWorkspacePath ? (
+              <Button
+                variant="outline"
+                data-testid="workspace-personal-open"
+                onClick={() => select(null, resourcesStore.personalWorkspacePath ?? "")}
+              >
+                {t("workspace.personalWorkspace")}
+              </Button>
+            ) : null}
             {!selectedBusiness ? (
               <WorkspaceCreateMenu
                 getError={() => useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error}
@@ -446,18 +460,14 @@ export function WorkspacePage() {
                 }}
                 canCreate={(kind) =>
                   matchLiteral(kind, {
-                    councilMatter: () => councilBusinessStore.canCreate,
-                    text: () => resourcesStore.collectionCapabilities.create,
-                    spreadsheet: () => resourcesStore.collectionCapabilities.create,
-                    remote: () => resourcesStore.collectionCapabilities.create,
-                    geographic: () => resourcesStore.collectionCapabilities.create,
-                    event: () => resourcesStore.collectionCapabilities.create,
-                    legalReference: () =>
-                      resourcesStore.collectionCapabilities.create &&
-                      resourcesStore.collectionCapabilities.searchLegalReferences,
-                    file: () =>
-                      resourcesStore.collectionCapabilities.uploadDocument ||
-                      resourcesStore.collectionCapabilities.importSpreadsheet,
+                    councilMatter: () => folderCapabilities.createCouncilBusiness,
+                    text: () => folderCapabilities.create,
+                    spreadsheet: () => folderCapabilities.create,
+                    remote: () => folderCapabilities.create,
+                    geographic: () => folderCapabilities.create,
+                    event: () => folderCapabilities.create,
+                    legalReference: () => folderCapabilities.create && folderCapabilities.searchLegalReferences,
+                    file: () => folderCapabilities.uploadDocument || folderCapabilities.importSpreadsheet,
                   })
                 }
                 onCreate={async (kind, title) => {
@@ -468,8 +478,7 @@ export function WorkspacePage() {
               />
             ) : null}
           </div>
-          {resourcesStore.collectionCapabilities.uploadDocument ||
-          resourcesStore.collectionCapabilities.importSpreadsheet ? (
+          {folderCapabilities.uploadDocument || folderCapabilities.importSpreadsheet ? (
             <input
               ref={fileInput}
               type="file"

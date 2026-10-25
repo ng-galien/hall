@@ -117,6 +117,10 @@ export function createDocumentaryResourcesRouter({
     response.json(await documentaryResourceService.search(criteria));
   });
 
+  router.get("/personal-workspace", requirePermission("workspace.read"), async (_request, response) => {
+    response.json(await documentaryResourceService.personalWorkspace());
+  });
+
   router.get("/", requirePermission("workspace.read"), async (request, response) => {
     const path = resourcePathSchema.parse(typeof request.query.path === "string" ? request.query.path : "");
     response.json(await documentaryResourceService.listFolder(path));

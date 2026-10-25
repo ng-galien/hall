@@ -238,3 +238,67 @@ CREATE TRIGGER council_business_resource_enforce_invariants
 BEFORE INSERT OR UPDATE OR DELETE ON hall.council_business_resource
 FOR EACH ROW
 EXECUTE FUNCTION hall.enforce_council_business_resource();
+
+-- @implements-requirement HALL-FR-WSP-420
+-- The pieces of an affair stay in the common folders: a document of a
+-- personal folder is taken over before its association, and neither an
+-- associated resource nor the folder or report of an affair enters a
+-- personal folder.
+CREATE FUNCTION hall.require_business_resource_outside_personal_workspace(target_resource UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+BEGIN
+  IF EXISTS (
+    SELECT
+    FROM hall.resource AS candidate
+    WHERE candidate.id = target_resource
+      AND hall.is_personal_workspace_location(candidate.full_path)
+      AND (
+        EXISTS (SELECT FROM hall.council_business_resource AS link WHERE link.resource = candidate.id)
+        OR EXISTS (
+          SELECT FROM hall.council_business_workspace AS workspace
+          WHERE candidate.id IN (workspace.folder_resource, workspace.report_resource)
+        )
+      )
+  ) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV707',
+      MESSAGE = 'A council business resource cannot be located in a personal workspace';
+  END IF;
+END
+$function$;
+
+CREATE FUNCTION hall.enforce_business_resource_outside_personal_workspace()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+BEGIN
+  IF TG_TABLE_NAME = 'council_business_workspace' THEN
+    PERFORM hall.require_business_resource_outside_personal_workspace(NEW.folder_resource);
+    PERFORM hall.require_business_resource_outside_personal_workspace(NEW.report_resource);
+  ELSIF TG_TABLE_NAME = 'council_business_resource' THEN
+    PERFORM hall.require_business_resource_outside_personal_workspace(NEW.resource);
+  ELSE
+    PERFORM hall.require_business_resource_outside_personal_workspace(NEW.id);
+  END IF;
+  RETURN NULL;
+END
+$function$;
+
+CREATE TRIGGER council_business_workspace_outside_personal_workspace
+AFTER INSERT OR UPDATE ON hall.council_business_workspace
+FOR EACH ROW EXECUTE FUNCTION hall.enforce_business_resource_outside_personal_workspace();
+
+CREATE TRIGGER council_business_resource_outside_personal_workspace
+AFTER INSERT OR UPDATE ON hall.council_business_resource
+FOR EACH ROW EXECUTE FUNCTION hall.enforce_business_resource_outside_personal_workspace();
+
+CREATE TRIGGER resource_business_outside_personal_workspace
+AFTER INSERT OR UPDATE OF path, name ON hall.resource
+FOR EACH ROW EXECUTE FUNCTION hall.enforce_business_resource_outside_personal_workspace();

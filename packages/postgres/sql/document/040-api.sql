@@ -390,6 +390,7 @@ DECLARE
   resource_id UUID := gen_random_uuid();
 BEGIN
   PERFORM hall.lock_resource_namespace();
+  PERFORM hall.require_location_write(hall.child_full_path(parent_path, coalesce(resource_name, '')));
   PERFORM hall.ensure_folder_path(parent_path);
 
   IF resource_name IS NULL OR NOT hall.is_valid_resource_name(resource_name) THEN
@@ -404,6 +405,77 @@ BEGIN
 END
 $function$;
 
+-- @implements-requirement HALL-FR-DIR-150
+-- @implements-requirement HALL-FR-WSP-380
+-- Idempotent: an existing personal folder is returned unchanged.
+CREATE FUNCTION hall_api.provision_personal_workspace(target_contact UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+DECLARE
+  existing_folder UUID;
+  folder_id UUID := gen_random_uuid();
+  base_name TEXT;
+  candidate TEXT;
+  suffix_number INTEGER := 2;
+BEGIN
+  IF NOT (hall.is_administrator() OR hall.has_permission('users.manage')) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV614', MESSAGE = 'The caller cannot provision a personal workspace';
+  END IF;
+  PERFORM hall.lock_resource_namespace();
+
+  IF NOT EXISTS (
+    SELECT FROM hall.council_member AS member
+    WHERE member.contact = target_contact AND member.term_ended_on IS NULL
+  ) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV617',
+      MESSAGE = 'A personal workspace requires a contact with an active council mandate';
+  END IF;
+
+  SELECT workspace.folder_resource INTO existing_folder
+  FROM hall.personal_workspace AS workspace
+  WHERE workspace.contact = target_contact;
+  IF FOUND THEN
+    RETURN hall.resource_detail(existing_folder);
+  END IF;
+
+  SELECT btrim(contact.first_name) || ' ' || btrim(contact.last_name) INTO base_name
+  FROM hall.contact WHERE contact.id = target_contact;
+  candidate := base_name;
+  WHILE EXISTS (
+    SELECT FROM hall.resource
+    WHERE resource.full_path = hall.child_full_path(hall.personal_workspaces_root(), candidate)
+  ) LOOP
+    candidate := base_name || ' ' || suffix_number::TEXT;
+    suffix_number := suffix_number + 1;
+  END LOOP;
+
+  PERFORM hall.ensure_folder_path(hall.personal_workspaces_root());
+  INSERT INTO hall.folder_resource (id) VALUES (folder_id);
+  INSERT INTO hall.resource (id, path, name, slug, folder_resource_id)
+  VALUES (folder_id, hall.personal_workspaces_root(), candidate, hall.claim_resource_slug(candidate), folder_id);
+  INSERT INTO hall.personal_workspace (contact, folder_resource) VALUES (target_contact, folder_id);
+  RETURN hall.resource_detail(folder_id);
+END
+$function$;
+
+-- @implements-requirement HALL-FR-WSP-380
+CREATE FUNCTION hall_api.current_personal_workspace()
+RETURNS JSONB
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT hall.resource_detail(workspace.folder_resource)
+  FROM hall.personal_workspace AS workspace
+  WHERE workspace.contact::TEXT = nullif(current_setting('hall.contact_id', true), '')
+$function$;
+
 CREATE FUNCTION hall_api.create_text_resource(parent_path TEXT, resource_name TEXT, resource_content TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -415,6 +487,7 @@ DECLARE
   resource_id UUID := gen_random_uuid();
 BEGIN
   PERFORM hall.lock_resource_namespace();
+  PERFORM hall.require_location_write(hall.child_full_path(parent_path, coalesce(resource_name, '')));
   PERFORM hall.ensure_folder_path(parent_path);
   INSERT INTO hall.text_resource (id, content) VALUES (resource_id, resource_content);
   INSERT INTO hall.resource (id, path, name, slug, text_resource_id)
@@ -435,6 +508,7 @@ DECLARE
   resource_id UUID := gen_random_uuid();
 BEGIN
   PERFORM hall.lock_resource_namespace();
+  PERFORM hall.require_location_write(hall.child_full_path(parent_path, coalesce(resource_name, '')));
   PERFORM hall.ensure_folder_path(parent_path);
   INSERT INTO hall.remote_resource (id) VALUES (resource_id);
   INSERT INTO hall.resource (id, path, name, slug, remote_resource_id)
@@ -477,6 +551,7 @@ DECLARE
   resource_id UUID := gen_random_uuid();
 BEGIN
   PERFORM hall.lock_resource_namespace();
+  PERFORM hall.require_location_write(hall.child_full_path(parent_path, coalesce(resource_name, '')));
   PERFORM hall.ensure_folder_path(parent_path);
   INSERT INTO hall.spreadsheet_resource (id, document) VALUES (resource_id, resource_document);
   INSERT INTO hall.resource (id, path, name, slug, spreadsheet_resource_id)
@@ -496,6 +571,7 @@ DECLARE
   resource_id UUID := gen_random_uuid();
 BEGIN
   PERFORM hall.lock_resource_namespace();
+  PERFORM hall.require_location_write(hall.child_full_path(parent_path, coalesce(resource_name, '')));
   PERFORM hall.ensure_folder_path(parent_path);
   INSERT INTO hall.geographic_resource (id, document) VALUES (resource_id, resource_document);
   INSERT INTO hall.resource (id, path, name, slug, geographic_resource_id)
@@ -515,6 +591,7 @@ DECLARE
   resource_id UUID := gen_random_uuid();
 BEGIN
   PERFORM hall.lock_resource_namespace();
+  PERFORM hall.require_location_write(hall.child_full_path(parent_path, coalesce(resource_name, '')));
   PERFORM hall.ensure_folder_path(parent_path);
   INSERT INTO hall.event_resource (id, document) VALUES (resource_id, resource_document);
   INSERT INTO hall.resource (id, path, name, slug, event_resource_id)
@@ -538,6 +615,7 @@ DECLARE
   resource_id UUID := gen_random_uuid();
 BEGIN
   PERFORM hall.lock_resource_namespace();
+  PERFORM hall.require_location_write(hall.child_full_path(parent_path, coalesce(resource_name, '')));
   PERFORM hall.ensure_folder_path(parent_path);
   INSERT INTO hall.legal_reference_resource (id, document) VALUES (resource_id, resource_document);
   INSERT INTO hall.resource (id, path, name, slug, legal_reference_resource_id)
@@ -593,6 +671,7 @@ DECLARE
   binary_id UUID;
 BEGIN
   PERFORM hall.lock_resource_namespace();
+  PERFORM hall.require_location_write(hall.child_full_path(parent_path, coalesce(resource_name, '')));
   PERFORM hall.ensure_folder_path(parent_path);
   binary_id := hall.store_binary_object(resource_media_type, resource_content);
 
@@ -621,7 +700,7 @@ DECLARE
   asset_id UUID := gen_random_uuid();
   binary_id UUID;
 BEGIN
-  PERFORM hall.require_resource(owner_resource_id, 'text');
+  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(owner_resource_id, 'text')));
   binary_id := hall.store_binary_object(asset_media_type, asset_content);
   INSERT INTO hall.editor_asset (
     id, owner_text_resource_id, binary_object_id, title, file_name
@@ -760,6 +839,29 @@ BEGIN
 END
 $function$;
 
+-- @implements-requirement HALL-FR-WSP-380
+-- @implements-requirement HALL-FR-WSP-390
+-- @implements-requirement HALL-FR-WSP-410
+-- Guards the documentary relocation entry points. Internal council workflows
+-- authorized by their own permission relocate through hall.relocate_resource.
+CREATE FUNCTION hall.require_relocation_write(resource_id UUID, destination_path TEXT, destination_name TEXT)
+RETURNS VOID
+LANGUAGE plpgsql
+STABLE
+SET search_path = pg_catalog, hall
+AS $function$
+DECLARE
+  target hall.resource;
+BEGIN
+  SELECT * INTO target FROM hall.require_resource(resource_id);
+  PERFORM hall.require_location_write(target.full_path);
+  IF target.path IS DISTINCT FROM destination_path OR target.name IS DISTINCT FROM destination_name THEN
+    PERFORM hall.require_personal_workspace_structure_change(target);
+    PERFORM hall.require_location_write(hall.child_full_path(coalesce(destination_path, ''), coalesce(destination_name, '')));
+  END IF;
+END
+$function$;
+
 CREATE FUNCTION hall_api.rename_resource(resource_id UUID, resource_name TEXT)
 RETURNS JSONB
 LANGUAGE sql
@@ -767,6 +869,11 @@ VOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
+  SELECT hall.require_relocation_write(
+    resource_id,
+    (SELECT resource.path FROM hall.require_resource(resource_id) AS resource),
+    resource_name
+  );
   SELECT hall.relocate_resource(
     resource_id,
     (SELECT resource.path FROM hall.require_resource(resource_id) AS resource),
@@ -781,6 +888,11 @@ VOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
+  SELECT hall.require_relocation_write(
+    resource_id,
+    destination_path,
+    (SELECT resource.name FROM hall.require_resource(resource_id) AS resource)
+  );
   SELECT hall.relocate_resource(
     resource_id,
     destination_path,
@@ -796,6 +908,7 @@ VOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
+  SELECT hall.require_relocation_write(resource_id, destination_path, destination_name);
   SELECT hall.relocate_resource(resource_id, destination_path, destination_name)
 $function$;
 
@@ -832,6 +945,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
+  PERFORM hall.require_relocation_write(resource_id, destination_path, destination_name);
   PERFORM hall.relocate_resource(resource_id, destination_path, destination_name);
   PERFORM hall.replace_resource_tags(resource_id, resource_tags);
   PERFORM hall.touch_resource(resource_id);
@@ -881,7 +995,7 @@ END
 $function$;
 
 -- @implements-requirement HALL-FR-DOC-140
-CREATE FUNCTION hall_api.update_text_resource(
+CREATE FUNCTION hall.update_text_resource(
   resource_id UUID,
   expected_version INTEGER,
   resource_content TEXT,
@@ -891,13 +1005,12 @@ CREATE FUNCTION hall_api.update_text_resource(
 RETURNS JSONB
 LANGUAGE plpgsql
 VOLATILE
-SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
   PERFORM hall.require_resource(resource_id, 'text');
   IF resource_name IS NOT NULL THEN
-    PERFORM hall_api.rename_resource(resource_id, resource_name);
+    PERFORM hall.relocate_resource(resource_id, (SELECT resource.path FROM hall.require_resource(resource_id) AS resource), resource_name);
   END IF;
 
   -- @implements-requirement HALL-FR-DOC-240
@@ -930,6 +1043,30 @@ BEGIN
 END
 $function$;
 
+CREATE FUNCTION hall_api.update_text_resource(
+  resource_id UUID,
+  expected_version INTEGER,
+  resource_content TEXT,
+  referenced_editor_asset_ids UUID[],
+  resource_name TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+BEGIN
+  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(resource_id, 'text')));
+  IF resource_name IS NOT NULL THEN
+    PERFORM hall.require_relocation_write(
+      resource_id, (SELECT resource.path FROM hall.require_resource(resource_id) AS resource), resource_name
+    );
+  END IF;
+  RETURN hall.update_text_resource(resource_id, expected_version, resource_content, referenced_editor_asset_ids, resource_name);
+END
+$function$;
+
 CREATE FUNCTION hall_api.update_remote_resource_target(resource_id UUID, expected_version INTEGER, resource_url TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -938,7 +1075,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  PERFORM hall.require_resource(resource_id, 'remote');
+  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(resource_id, 'remote')));
   INSERT INTO hall.remote_resource_target (remote_resource_id, url)
   VALUES (resource_id, resource_url)
   ON CONFLICT (remote_resource_id) DO UPDATE SET url = EXCLUDED.url;
@@ -962,7 +1099,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  PERFORM hall.require_resource(resource_id, 'remote');
+  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(resource_id, 'remote')));
   UPDATE hall.remote_resource
   SET version = version + 1
   WHERE id = resource_id
@@ -988,7 +1125,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  PERFORM hall.require_resource(resource_id, 'spreadsheet');
+  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(resource_id, 'spreadsheet')));
   UPDATE hall.spreadsheet_resource
   SET document = resource_document,
       version = version + 1
@@ -1014,7 +1151,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  PERFORM hall.require_resource(resource_id, 'geographic');
+  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(resource_id, 'geographic')));
   UPDATE hall.geographic_resource
   SET document = resource_document,
       version = version + 1
@@ -1049,7 +1186,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  PERFORM hall.require_resource(resource_id, 'event');
+  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(resource_id, 'event')));
   UPDATE hall.event_resource
   SET document = resource_document,
       version = version + 1
@@ -1075,7 +1212,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  PERFORM hall.require_resource(resource_id, 'legalReference');
+  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(resource_id, 'legalReference')));
   UPDATE hall.legal_reference_resource
   SET document = resource_document,
       version = version + 1
@@ -1105,6 +1242,7 @@ DECLARE
   target hall.resource;
 BEGIN
   SELECT * INTO target FROM hall.require_resource(resource_id, 'legalReference');
+  PERFORM hall.require_relocation_write(resource_id, target.path, resource_name);
   PERFORM hall.relocate_resource(resource_id, target.path, resource_name);
   UPDATE hall.legal_reference_resource
   SET document = resource_document,
@@ -1129,7 +1267,7 @@ AS $function$
 DECLARE
   binary_id UUID;
 BEGIN
-  PERFORM hall.require_resource(resource_id, 'document');
+  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(resource_id, 'document')));
   binary_id := hall.store_binary_object(resource_media_type, resource_content);
   UPDATE hall.document_resource
   SET binary_object_id = binary_id
@@ -1203,6 +1341,8 @@ DECLARE
 BEGIN
   PERFORM hall.lock_resource_namespace();
   SELECT * INTO target FROM hall.require_resource(resource_id);
+  PERFORM hall.require_location_write(target.full_path);
+  PERFORM hall.require_personal_workspace_structure_change(target);
   deleted_summary := hall.resource_summary(target);
   PERFORM 1 FROM hall.resource WHERE id = resource_id FOR UPDATE;
 

@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { ApiRole, ApiUser } from "@hall/api-contract";
 import type { DirectoryClient } from "../clients/directoryClient.js";
+import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { UnitOfWork } from "../repositories/contracts.js";
 import type { SecurityRepository, StoredUser } from "../repositories/securityRepository.js";
 import { permissionsForRoles, principalForUser } from "../security/authorization.js";
@@ -55,16 +56,19 @@ export interface AuthService {
   changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void>;
   resetPassword(userId: string, newPassword: string): Promise<void>;
   disableUser(userId: string): Promise<ApiUser>;
+  endCouncillorAccess(contactId: string): Promise<void>;
 }
 
 export function createAuthService({
   securityRepository,
   directoryClient,
+  resourcesClient,
   unitOfWork,
   requestContext,
 }: {
   securityRepository: SecurityRepository;
   directoryClient: DirectoryClient;
+  resourcesClient: ResourcesClient;
   unitOfWork: UnitOfWork;
   requestContext: RequestContextStore;
 }): AuthService {
@@ -73,6 +77,16 @@ export function createAuthService({
     if (!(await directoryClient.openContact(contactId))) {
       throw new DomainError("contact_not_found", 404);
     }
+  };
+
+  // @implements-requirement HALL-FR-DIR-150
+  // The folder and the account live in two transactions, ordered to fail on the safe
+  // side: the idempotent folder is provisioned first, then the role is recorded; a
+  // retry reuses the folder. PostgreSQL refuses a contact without an active mandate.
+  const provisionCouncillor = async (roles: readonly ApiRole[], contactId: string | null) => {
+    if (!roles.includes("councillor")) return;
+    if (!contactId) throw new DomainError("councillor_requires_active_member", 422);
+    await resourcesClient.provisionPersonalWorkspace(contactId);
   };
 
   const replacePassword = async (userId: string, newPassword: string, currentPassword?: string) => {
@@ -158,12 +172,16 @@ export function createAuthService({
     },
     async createUser(input) {
       await validateContact(input.contactId);
+      await provisionCouncillor(input.roles, input.contactId);
       const passwordHash = await hashPassword(input.password);
       const created = await unitOfWork.execute(() => securityRepository.createUser({ ...input, passwordHash }));
       return publicUserWithProtection(created, securityRepository);
     },
     async updateUser(userId, input) {
       await validateContact(input.contactId);
+      const current = await securityRepository.findUserById(userId);
+      if (!current) throw new DomainError("user_not_found", 404);
+      if (current.contactId !== input.contactId) await provisionCouncillor(current.roles, input.contactId);
       return unitOfWork.execute(async () => {
         const user = await securityRepository.updateUser(userId, input);
         if (!user) throw new DomainError("user_not_found", 404);
@@ -172,7 +190,10 @@ export function createAuthService({
     },
     changePassword: (userId, currentPassword, newPassword) => replacePassword(userId, newPassword, currentPassword),
     resetPassword: (userId, newPassword) => replacePassword(userId, newPassword),
-    assignRoles(userId, roles) {
+    async assignRoles(userId, roles) {
+      const target = await securityRepository.findUserById(userId);
+      if (!target) throw new DomainError("user_not_found", 404);
+      await provisionCouncillor(roles, target.contactId);
       return unitOfWork.execute(async () => {
         await securityRepository.lockAdministratorInvariant();
         const current = await securityRepository.findUserById(userId);
@@ -189,6 +210,18 @@ export function createAuthService({
         if (!updated) throw new DomainError("user_not_found", 404);
         return publicUserWithProtection(updated, securityRepository);
       });
+    },
+    // @implements-requirement HALL-FR-DIR-160
+    async endCouncillorAccess(contactId) {
+      const accounts = (await securityRepository.listUsers()).filter(
+        (user) => user.contactId === contactId && user.status === "active" && user.roles.includes("councillor"),
+      );
+      for (const account of accounts) {
+        await this.disableUser(account.id).catch((error: unknown) => {
+          if (error instanceof DomainError && error.code === "last_administrator_required") return;
+          throw error;
+        });
+      }
     },
     disableUser(userId) {
       return unitOfWork.execute(async () => {

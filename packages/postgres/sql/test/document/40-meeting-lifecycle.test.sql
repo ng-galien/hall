@@ -1,5 +1,6 @@
 BEGIN;
 SET LOCAL search_path = hall, hall_api, public, pg_catalog;
+SET LOCAL hall.roles = '["administrator"]';
 \ir ../../council/test/support/helpers.sql
 SELECT no_plan();
 

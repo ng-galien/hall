@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const apiRoles = ["administrator", "clerk", "contributor", "meetingConductor", "reader"] as const;
+export const apiRoles = ["administrator", "clerk", "contributor", "meetingConductor", "reader", "councillor"] as const;
 export type ApiRole = (typeof apiRoles)[number];
 export const apiRoleSchema = z.enum(apiRoles);
 const apiRoleListSchema = z
@@ -20,6 +20,8 @@ export const apiPermissions = [
   "members.manage",
   "workspace.read",
   "workspace.write",
+  "personal-workspace.write",
+  "personal-workspaces.manage",
   "council-business.update",
   "meetings.read",
   "meetings.prepare",

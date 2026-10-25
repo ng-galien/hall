@@ -258,6 +258,11 @@ export function UserPage() {
           <form className="modal-form" onSubmit={saveRoles}>
             <RequestErrorBanner error={error} />
             <UserRoles value={roles} onChange={setRoles} disabled={submitting} />
+            {roles.includes("councillor") && (
+              <p className="text-sm text-muted-foreground" data-testid="user-councillor-contact-hint">
+                {t("users.councillorContactHint")}
+              </p>
+            )}
             <Button type="submit" disabled={submitting || roles.length === 0} data-testid="user-roles-submit">
               {t(submitting ? "common.saving" : "users.applyRoles")}
             </Button>

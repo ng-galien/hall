@@ -39,6 +39,7 @@ const DEFAULT_GEOGRAPHIC_LAYERS = [
 export interface DocumentaryResourceService {
   listAll(): Promise<SirenEntity>;
   listFolder(path: string): Promise<SirenEntity>;
+  personalWorkspace(): Promise<SirenEntity>;
   findDocumentsByHashes(hashes: readonly string[]): Promise<SirenEntity>;
   search(criteria: ResourceSearchCriteria): Promise<SirenEntity>;
   open(reference: string): Promise<SirenEntity>;
@@ -145,6 +146,12 @@ export function createDocumentaryResourceService({
   return {
     listAll() {
       return resourcesClient.listAll().then(({ representation }) => representation);
+    },
+    // @implements-requirement HALL-FR-WSP-380
+    async personalWorkspace() {
+      const folder = await resourcesClient.personalWorkspace();
+      if (!folder) throw new DomainError("resource_not_found", 404);
+      return folder.representation;
     },
     async listFolder(path) {
       const resources = await resourcesClient.listFolder(path);

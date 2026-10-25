@@ -2720,6 +2720,50 @@
         }
       ]
     },
+    "HALL-FR-DIR-150": {
+      "name": "COUNCILLOR_ACCOUNT_REQUIRES_ELECTED_MEMBER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-25"
+      },
+      "statement": "Un compte « Conseiller municipal » est lié au contact d’un élu en exercice ; l’attribution du rôle crée le dossier personnel de cet élu.",
+      "acceptanceCriteria": [
+        "Un administrateur attribue le rôle « Conseiller municipal » à la création ou à la modification d’un compte lié au contact d’un élu dont le mandat est en cours ; le dossier « Espaces personnels/Prénom Nom » de l’élu existe aussitôt.",
+        "Pour un compte sans contact ou lié à un contact sans mandat en cours, Hall affiche un message qui demande de choisir le contact d’un élu en exercice et n’enregistre pas le rôle.",
+        "Le compte conseiller lit les contacts, l’espace de travail et les séances, et écrit seulement dans son dossier personnel."
+      ],
+      "clauses": [
+        {
+          "key": "councillor-account",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (topic graph hall-personal-workspaces, 0a8f2682) : nouveau type de compte « Conseiller municipal », accordé seulement à un élu en exercice.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DIR-160": {
+      "name": "MANDATE_END_DISABLES_COUNCILLOR_ACCOUNT",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-25"
+      },
+      "statement": "À la fin du mandat d’un élu, son compte « Conseiller municipal » est désactivé ; son dossier personnel reste en place et lisible.",
+      "acceptanceCriteria": [
+        "L’enregistrement de la date de fin du mandat d’un élu désactive son compte conseiller ; la page des utilisateurs l’affiche désactivé et la connexion avec ce compte est refusée.",
+        "Le dossier personnel de l’ancien élu reste à sa place, lisible par tous ; le Secrétariat et les administrateurs y écrivent encore.",
+        "La base accepte l’écriture d’un conseiller dans son dossier tant que son mandat est en cours."
+      ],
+      "clauses": [
+        {
+          "key": "mandate-end",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (D5, 091d620d) : à la fin du mandat, compte désactivé, dossier en place, lisible, seul le secrétariat y écrit encore.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-DOC-010": {
       "name": "RESOURCE_HAS_EXACTLY_ONE_NATURE",
       "nature": "functional",
@@ -3475,13 +3519,19 @@
         "La représentation d’une carte propose à ces rôles la modification de son contenu, l’import d’une couche, la liaison d’une couche et le retrait d’un lien.",
         "La liste des couches propose à ces rôles l’import d’une couche.",
         "Le serveur accepte ces opérations pour tout utilisateur qui dispose du droit d’écriture sur l’espace de travail et les refuse aux autres rôles.",
-        "Le déplacement, le renommage et la suppression d’une carte ou d’une couche suivent la règle commune des ressources documentaires."
+        "Le déplacement, le renommage et la suppression d’une carte ou d’une couche suivent la règle commune des ressources documentaires (HALL-FR-DOC-550)."
       ],
       "clauses": [
         {
           "key": "geographic-map-editing-workspace-write",
           "origin": "product",
           "statement": "Décision du propriétaire du 2026-10-10 (choix C) : les secrétaires et les contributeurs modifient les cartes comme les administrateurs.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-document-rule",
+          "origin": "product",
+          "statement": "Rattachement du 25 octobre 2026 : la modification des cartes est un cas de HALL-FR-DOC-550 ; le déplacement, le renommage et la suppression d’une carte commune suivent désormais la même règle (D3, 87a55a21).",
           "sourceIds": []
         }
       ]
@@ -6328,15 +6378,21 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "Les actions Siren sont calculées en base selon une matrice de rôles minimale et centralisée.",
+      "statement": "Les actions Siren documentaires sont calculées en base par un prédicat d’écriture par emplacement, à partir des permissions de l’appelant et de son dossier personnel.",
       "acceptanceCriteria": [
-        "Siren affordances are derived in PostgreSQL. This first connection keeps the RBAC intentionally narrow: only the administrator role receives documentary mutation affordances. The role matrix can later move to relations without changing the Siren contract."
+        "PostgreSQL dérive les actions Siren documentaires du même prédicat d’écriture par emplacement que celui qui accepte les écritures : dossiers communs pour workspace.write, dossiers personnels pour personal-workspaces.manage, dossier de son contact pour personal-workspace.write."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
           "statement": "Siren affordances are derived in PostgreSQL. This first connection keeps the RBAC intentionally narrow: only the administrator role receives documentary mutation affordances. The role matrix can later move to relations without changing the Siren contract.",
+          "sourceIds": []
+        },
+        {
+          "key": "location-write-predicate",
+          "origin": "product",
+          "statement": "Révision du 25 octobre 2026 : les actions documentaires ne sont plus réservées au rôle administrateur (décisions a6702014 et D3 87a55a21, espaces personnels 0a8f2682).",
           "sourceIds": []
         }
       ]
@@ -8448,6 +8504,122 @@
         }
       ]
     },
+    "HALL-FR-WSP-380": {
+      "name": "PERSONAL_WORKSPACE_FOLDER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-25"
+      },
+      "statement": "Chaque conseiller a un dossier à son nom sous le dossier racine « Espaces personnels » ; seul un administrateur renomme, déplace ou supprime ce dossier.",
+      "acceptanceCriteria": [
+        "Le dossier personnel d’un élu est « Espaces personnels/Prénom Nom », directement sous la racine « Espaces personnels » ; Hall connaît l’élu propriétaire par une relation enregistrée, qui suit le dossier renommé.",
+        "Sur son dossier, le conseiller crée, importe et range à l’intérieur ; le renommage, le déplacement et la suppression du dossier lui-même sont proposés à l’administrateur.",
+        "L’entrée « Mon espace » de l’espace de travail ouvre le dossier personnel du conseiller connecté."
+      ],
+      "clauses": [
+        {
+          "key": "personal-folder",
+          "origin": "product",
+          "statement": "Décisions du propriétaire du 25 octobre 2026 (0a8f2682) : un dossier à son nom par conseiller, propriété connue de Hall ; dossiers rangés sous « Espaces personnels », administrés seulement par un administrateur.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 25 octobre 2026 (3d7e566d) : « qu’ils aient un espèce d’espace perso dans le workspace, où ils mettent leurs documents ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-390": {
+      "name": "COUNCILLOR_WRITES_ONLY_IN_PERSONAL_FOLDER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-25"
+      },
+      "statement": "Un conseiller crée, modifie, déplace et supprime des documents dans son dossier personnel et seulement là, y compris par appel direct à l’API.",
+      "acceptanceCriteria": [
+        "Dans son dossier et ses sous-dossiers, le conseiller crée un texte, importe un document et un tableur, crée un sous-dossier, renomme, déplace entre ses dossiers, modifie et supprime ; chaque changement porte son nom dans l’historique.",
+        "Sur un élément commun ou d’un collègue, le conseiller dispose des actions d’ouverture, de lecture, d’historique et de téléchargement.",
+        "Une requête qui écrit ailleurs reçoit un refus d’autorisation et laisse l’espace de travail inchangé ; la base applique la même règle que les actions proposées à l’écran."
+      ],
+      "clauses": [
+        {
+          "key": "councillor-write-scope",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 25 octobre 2026 (3d7e566d) : « accès lecture et accès écriture sur leur workspace personnel » ; changement M4 approuvé le 25 octobre (0a8f2682).",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-400": {
+      "name": "COUNCILLOR_READS_EVERYTHING",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-25"
+      },
+      "statement": "Un conseiller lit tout l’espace de travail, dossiers personnels de ses collègues compris, les affaires, les procès-verbaux et les contacts, et suit en direct une séance en cours.",
+      "acceptanceCriteria": [
+        "Le conseiller ouvre les dossiers communs, les dossiers personnels de ses collègues, leurs documents et les retrouve par la recherche.",
+        "Il ouvre les affaires, leurs documents, les ordres du jour et les procès-verbaux.",
+        "Pendant une séance, il suit le point en cours, l’ordre du jour, les présences et les résultats en lecture."
+      ],
+      "clauses": [
+        {
+          "key": "read-everything",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (D1, 18080e27) : tout le monde lit tout, dossiers personnels compris.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-410": {
+      "name": "CLERK_MANAGES_PERSONAL_FOLDERS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-25"
+      },
+      "statement": "Le Secrétariat et les administrateurs écrivent dans les dossiers personnels et reprennent un document d’un conseiller en le déplaçant dans un dossier commun ; le contributeur lit les dossiers personnels.",
+      "acceptanceCriteria": [
+        "Un compte Secrétariat crée, modifie et supprime un document dans le dossier d’un conseiller ; l’historique le nomme comme auteur.",
+        "Le Secrétariat reprend un document en le déplaçant vers un dossier commun : le document garde son adresse, son historique et ses liens, et le conseiller le lit ensuite avec les actions de lecture.",
+        "Un compte contributeur ouvre et lit un dossier personnel avec les actions de lecture."
+      ],
+      "clauses": [
+        {
+          "key": "clerk-personal-folders",
+          "origin": "product",
+          "statement": "Décisions du propriétaire du 25 octobre 2026 : D6 (85ee5fe3) le secrétariat écrit dans les dossiers personnels ; D2 (097e6aa9) la reprise est un déplacement ; D7 (fa594a1b) seuls le Secrétariat et les administrateurs, pas les contributeurs.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-420": {
+      "name": "AFFAIR_PIECES_STAY_IN_COMMON_FOLDERS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-25"
+      },
+      "statement": "Un document d’un dossier personnel est repris par le secrétariat avant d’être joint à une affaire ; une pièce d’affaire n’entre pas dans un dossier personnel.",
+      "acceptanceCriteria": [
+        "Le sélecteur « Joindre un document » d’une affaire présente un document d’un dossier personnel avec la mention qu’il est à reprendre d’abord par le secrétariat ; après sa reprise dans un dossier commun, il se joint à l’affaire.",
+        "Une association demandée directement à l’API pour un document d’un dossier personnel reçoit un refus explicite.",
+        "Dans l’autre sens, une pièce associée à une affaire n’est pas déplacée dans un dossier personnel et le dossier d’une affaire n’y est pas créé, pour que les pièces d’une affaire ne changent pas sans le secrétariat."
+      ],
+      "clauses": [
+        {
+          "key": "affair-pieces",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 25 octobre 2026 (D4, 58b84185) : un document encore chez un conseiller n’est pas joint à une affaire ; le secrétariat le reprend d’abord. Sens inverse accepté par la relecture be9112ae.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-MTG-310": {
       "name": "ONE_ACTIVE_COUNCIL_MEETING",
       "nature": "functional",
@@ -8771,6 +8943,28 @@
           "key": "geographic-line-arrows-export",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-12 : l’export PDF d’une carte doit afficher les dessins comme la carte.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-550": {
+      "name": "WORKSPACE_WRITERS_MANAGE_COMMON_DOCUMENTS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-25"
+      },
+      "statement": "Toute personne qui écrit dans l’espace de travail crée, importe, convertit, déplace, modifie et supprime un document dans les dossiers communs ; l’écran propose exactement les actions que le serveur accepte.",
+      "acceptanceCriteria": [
+        "Dans un dossier commun, un compte Secrétariat et un compte contributeur voient dans le menu de création la création de document, l’import de document, l’import de tableur et la conversion de tableur, et les utilisent.",
+        "Sur un document commun, ils déplacent, renomment, modifient et suppriment ; les verrous des affaires et des séances restent appliqués.",
+        "Les actions de création proposées sont celles du dossier ouvert."
+      ],
+      "clauses": [
+        {
+          "key": "common-documents",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 10 octobre 2026 (a6702014) pour la création, l’import et la conversion ; décision du 25 octobre 2026 (D3, 87a55a21) pour le déplacement, la modification et la suppression ; question 3839 (972f77d8).",
           "sourceIds": []
         }
       ]

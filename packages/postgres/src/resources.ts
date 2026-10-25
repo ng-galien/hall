@@ -473,7 +473,11 @@ export type PostgresEditorAsset = z.infer<typeof postgresEditorAssetSchema>;
 
 function resourceSirenEntitySchema<Resource>(resourceSchema: ZodType<Resource>) {
   return z.object({
-    class: z.tuple([z.literal("resource")]),
+    // @implements-requirement HALL-FR-WSP-420
+    class: z.union([
+      z.tuple([z.literal("resource")]),
+      z.tuple([z.literal("resource"), z.literal("personal-workspace")]),
+    ]),
     properties: resourceSchema,
     actions: z.array(postgresSirenActionSchema).optional(),
     links: z.array(postgresSirenLinkSchema).min(1),
@@ -506,6 +510,7 @@ const presentedResourceSearchSchema = z
   .object({
     class: z.tuple([z.literal("resource-search")]),
     properties: postgresResourceSearchResultSchema,
+    entities: z.array(resourceSirenEntitySchema(z.unknown()).extend({ rel: z.tuple([z.literal("item")]) })),
     links: z.array(postgresSirenLinkSchema).min(1),
   })
   .transform((representation) => ({ data: representation.properties, representation }));
@@ -654,7 +659,7 @@ export class PostgresResources {
       "resource.listFolder",
       {
         text: `SELECT hall_api.present_resource_collection(
-          hall_api.list_folder($1::text) -> 'resources', $2::text, true, true
+          hall_api.list_folder($1::text) -> 'resources', $2::text, true, true, $1::text
         ) AS payload`,
         values: [parsedPath, `/api/resources?${search}`],
       },
@@ -745,6 +750,38 @@ export class PostgresResources {
         values: [parsed.path, parsed.name],
       },
       presentedResourceSchema(folderResourceSchema),
+    );
+  }
+
+  // @implements-requirement HALL-FR-DIR-150
+  // @implements-requirement HALL-FR-WSP-380
+  provisionPersonalWorkspace(
+    request: PostgresResourceRequest,
+    contactId: string,
+  ): Promise<PostgresPresentedResource<PostgresFolderResource>> {
+    return this.mutateJson(
+      request,
+      "resource.provisionPersonalWorkspace",
+      {
+        text: "SELECT hall_api.present_resource(hall_api.provision_personal_workspace($1::uuid)) AS payload",
+        values: [resourceIdSchema.parse(contactId)],
+      },
+      presentedResourceSchema(folderResourceSchema),
+    );
+  }
+
+  // @implements-requirement HALL-FR-WSP-380
+  currentPersonalWorkspace(
+    request: PostgresResourceRequest,
+  ): Promise<PostgresPresentedResource<PostgresFolderResource> | null> {
+    return this.readJson(
+      request,
+      "resource.currentPersonalWorkspace",
+      {
+        text: `SELECT CASE WHEN folder IS NULL THEN 'null'::jsonb ELSE hall_api.present_resource(folder) END AS payload
+          FROM (SELECT hall_api.current_personal_workspace() AS folder) AS personal`,
+      },
+      presentedResourceSchema(folderResourceSchema).nullable(),
     );
   }
 

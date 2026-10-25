@@ -297,10 +297,12 @@ test("meeting mutations follow the lifecycle and fixed roster", () => {
   assert.match(preparation, /meetingActions\.can\("meeting\.prepare"\)/);
   assert.match(preparation, /documentsEditable=\{canUpload\}/);
   const pathContents = read("src/pages/workspace/PathContents.tsx");
-  assert.match(pathContents, /councilBusinessStore\.canCreate \?/);
-  assert.match(pathContents, /resourcesStore\.collectionCapabilities\.create/);
-  assert.match(pathContents, /resourcesStore\.collectionCapabilities\.uploadDocument/);
-  assert.match(pathContents, /resourcesStore\.collectionCapabilities\.importSpreadsheet/);
+  assert.match(pathContents, /capabilities\.createCouncilBusiness \?/);
+  // Creation affordances come from the Siren actions of each listed folder.
+  assert.match(pathContents, /const capabilities = folderCapabilitiesAt\(resourcesStore, folderPath\)/);
+  assert.match(pathContents, /capabilities\.create/);
+  assert.match(pathContents, /capabilities\.uploadDocument/);
+  assert.match(pathContents, /capabilities\.importSpreadsheet/);
   const resourceCapabilities = read("src/features/resources/resourceCapabilities.ts");
   assert.match(resourceCapabilities, /findSirenAction\(representation, "resource\.update-metadata"\)/);
   assert.match(resourceCapabilities, /findSirenAction\(representation, "resource\.update-content"\)/);

@@ -168,18 +168,19 @@ SELECT ok(
 )
 FROM geographic_layer_fixture;
 -- @verifies-requirement HALL-FR-DOC-350
+-- @verifies-requirement HALL-FR-DOC-550
 SELECT set_config('hall.roles', '["contributor"]', true);
 SELECT set_config('hall.permissions', '["workspace.read","workspace.write"]', true);
 SELECT is(
   ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(hall.resource_siren_actions(hall_api.open_resource(map))) AS action),
-  ARRAY['resource.update-content', 'resource.create-geographic-feature-note', 'resource.import-geographic-layer', 'resource.link-geographic-layer', 'resource.unlink-geographic-layer'],
-  'a role with workspace.write edits the map, its layers and the notes of its drawings but is not offered renaming, moving or deletion'
+  ARRAY['resource.relocate', 'resource.update-metadata', 'resource.update-content', 'resource.import-geographic-layer', 'resource.link-geographic-layer', 'resource.unlink-geographic-layer', 'resource.create-geographic-feature-note', 'resource.delete'],
+  'a role with workspace.write edits, renames, moves and deletes a common map, its layers and the notes of its drawings'
 )
 FROM geographic_layer_fixture;
 SELECT is(
   ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(hall.resource_siren_actions(hall_api.open_resource((layer ->> 'id')::UUID))) AS action),
-  ARRAY['resource.create-geographic-feature-note'],
-  'the layer offers only feature notes: renaming, moving and deletion keep the common documentary rule'
+  ARRAY['resource.relocate', 'resource.update-metadata', 'resource.create-geographic-feature-note'],
+  'a linked layer offers feature notes, renaming and moving; its deletion stays blocked by the map link'
 )
 FROM geographic_layer_fixture;
 SELECT ok(

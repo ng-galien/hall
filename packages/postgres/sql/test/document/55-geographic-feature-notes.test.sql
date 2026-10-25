@@ -96,8 +96,8 @@ SELECT set_config('hall.permissions', '["workspace.read","workspace.write"]', tr
 SELECT is(
   ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(
     hall.resource_siren_actions(hall_api.open_resource((note ->> 'noteId')::UUID))) AS action),
-  ARRAY['resource.update-content'],
-  'a role with workspace.write edits a feature note'
+  ARRAY['resource.relocate', 'resource.update-metadata', 'resource.update-content', 'resource.delete'],
+  'a role with workspace.write edits, renames, moves and deletes a common feature note'
 )
 FROM first_note;
 SELECT ok(
@@ -177,8 +177,12 @@ SELECT lives_ok(
 -- @verifies-requirement HALL-FR-DOC-230
 SELECT set_config('hall.roles', '["contributor"]', true);
 SELECT set_config('hall.permissions', '["workspace.read","workspace.write"]', true);
-SELECT is(hall.resource_collection_siren_actions() -> 0 ->> 'name', 'resource.create-editor-asset',
-  'a role with workspace.write is offered the image upload');
+SELECT is(
+  ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(hall.resource_collection_siren_actions()) AS action),
+  ARRAY['resource.create', 'resource.create-document', 'resource.import-spreadsheet',
+    'resource.convert-spreadsheet-table', 'resource.create-editor-asset', 'resource.search-legal-references',
+    'council-business.create', 'council-business.import-bundle'],
+  'a role with workspace.write is offered creation, imports, the image upload and affairs in a common folder');
 SELECT set_config('hall.permissions', '["workspace.read"]', true);
 SELECT is(hall.resource_collection_siren_actions(), '[]'::JSONB, 'a reader is not offered the image upload');
 SELECT set_config('hall.permissions', '', true);

@@ -194,25 +194,14 @@ DECLARE
   resource_kind TEXT := resource ->> 'kind';
   proposal_text BOOLEAN;
 BEGIN
-  IF NOT hall.is_administrator() THEN
-    -- @implements-requirement HALL-FR-DOC-350
-    IF resource_kind = 'geographic' AND hall.has_permission('workspace.write') THEN
-      RETURN jsonb_build_array(
-        hall.siren_action('resource.update-content', 'PUT', '/api/resources/' || reference || '/content'),
-        hall.geographic_drawn_element_note_siren_action(reference)
-      ) || hall.geographic_map_overlay_siren_actions(resource);
-    END IF;
-    -- @implements-requirement HALL-FR-DOC-390
-    IF resource_kind = 'geographicLayer' AND hall.has_permission('workspace.write') THEN
-      RETURN jsonb_build_array(hall.geographic_feature_note_siren_action(reference));
-    END IF;
-    IF resource_kind = 'text' AND hall.has_permission('workspace.write') AND EXISTS (
-      SELECT FROM hall.geographic_feature_note AS note WHERE note.text_resource_id = (resource ->> 'id')::UUID
-    ) THEN
-      RETURN jsonb_build_array(
-        hall.siren_action('resource.update-content', 'PUT', '/api/resources/' || reference || '/content')
-      );
-    END IF;
+  -- @implements-requirement HALL-FR-DOC-350
+  -- @implements-requirement HALL-FR-DOC-550
+  -- @implements-requirement HALL-FR-WSP-390
+  -- The same location predicate decides the affordances and the accepted writes.
+  IF NOT hall.can_write_location(coalesce(
+    resource ->> 'fullPath',
+    hall.child_full_path(resource ->> 'path', resource ->> 'name')
+  )) THEN
     RETURN actions;
   END IF;
 
@@ -306,6 +295,17 @@ BEGIN
     END IF;
   END IF;
 
+  -- @implements-requirement HALL-FR-WSP-380
+  IF NOT hall.is_administrator() AND (
+    resource ->> 'fullPath' = hall.personal_workspaces_root()
+    OR EXISTS (SELECT FROM hall.personal_workspace AS workspace
+      WHERE workspace.folder_resource = (resource ->> 'id')::UUID)
+  ) THEN
+    SELECT coalesce(jsonb_agg(action), '[]'::jsonb) INTO actions
+    FROM jsonb_array_elements(actions) action WHERE action ->> 'name' <> 'resource.relocate';
+    RETURN actions;
+  END IF;
+
   IF proposal_text THEN
     SELECT coalesce(jsonb_agg(action), '[]'::jsonb) INTO actions
     FROM jsonb_array_elements(actions) action WHERE action ->> 'name' <> 'resource.relocate';
@@ -339,8 +339,17 @@ STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
+  -- @implements-requirement HALL-FR-WSP-420
+  -- A resource of a personal folder carries the personal-workspace class: an
+  -- affair picker presents it as to be taken over before its association.
   SELECT jsonb_build_object(
-      'class', jsonb_build_array('resource'),
+      'class', jsonb_build_array('resource') || CASE
+        WHEN hall.is_personal_workspace_location(coalesce(
+          resource ->> 'fullPath',
+          hall.child_full_path(resource ->> 'path', resource ->> 'name')
+        )) THEN jsonb_build_array('personal-workspace')
+        ELSE '[]'::jsonb
+      END,
       'properties', resource,
       'links', hall.resource_siren_links(resource)
     )
@@ -382,7 +391,11 @@ AS $function$
   )
 $function$;
 
-CREATE FUNCTION hall.resource_collection_siren_actions()
+-- @implements-requirement HALL-FR-DOC-550
+-- @implements-requirement HALL-FR-WSP-390
+-- Creation affordances belong to the listed folder: they follow the same
+-- location predicate as the accepted creations in that folder.
+CREATE FUNCTION hall.resource_collection_siren_actions(collection_path TEXT DEFAULT '')
 RETURNS JSONB
 LANGUAGE plpgsql
 STABLE
@@ -390,11 +403,11 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  IF NOT hall.is_administrator() THEN
+  IF NOT hall.can_write_location(collection_path) THEN
     -- @implements-requirement HALL-FR-DOC-230
     -- Images may be uploaded by anyone who may edit a text; the server checks
     -- that the owner text offers resource.update-content to the caller.
-    IF hall.has_permission('workspace.write') THEN
+    IF hall.has_permission('workspace.write') OR hall.has_permission('personal-workspace.write') THEN
       RETURN jsonb_build_array(hall.editor_asset_siren_action());
     END IF;
     RETURN '[]'::jsonb;
@@ -406,7 +419,7 @@ BEGIN
       '/api/resources',
       jsonb_build_array(
         jsonb_build_object('name', 'kind', 'type', 'text'),
-        jsonb_build_object('name', 'path', 'type', 'text', 'value', ''),
+        jsonb_build_object('name', 'path', 'type', 'text', 'value', collection_path),
         jsonb_build_object('name', 'name', 'type', 'text')
       )
     ),
@@ -416,7 +429,7 @@ BEGIN
       '/api/resources/documents',
       jsonb_build_array(
         jsonb_build_object('name', 'file', 'type', 'file', 'accept', '.pdf,.jpg,.jpeg,.png,.docx,.odt,.pptx,.txt'),
-        jsonb_build_object('name', 'path', 'type', 'text', 'value', ''),
+        jsonb_build_object('name', 'path', 'type', 'text', 'value', collection_path),
         jsonb_build_object('name', 'name', 'type', 'text')
       ),
       'multipart/form-data'
@@ -427,7 +440,7 @@ BEGIN
       '/api/resources/spreadsheets/import',
       jsonb_build_array(
         jsonb_build_object('name', 'file', 'type', 'file', 'accept', '.csv,.xlsx'),
-        jsonb_build_object('name', 'path', 'type', 'text', 'value', ''),
+        jsonb_build_object('name', 'path', 'type', 'text', 'value', collection_path),
         jsonb_build_object('name', 'name', 'type', 'text')
       ),
       'multipart/form-data'
@@ -446,7 +459,33 @@ BEGIN
       'POST',
       '/api/resources/legal-references/search'
     )
-  );
+  ) || CASE
+    -- @implements-requirement HALL-FR-WSP-420
+    -- An affair is created or imported only in a common folder.
+    WHEN (hall.is_administrator() OR hall.has_permission('workspace.write'))
+      AND NOT hall.is_personal_workspace_location(collection_path)
+    THEN jsonb_build_array(
+      hall.siren_action(
+        'council-business.create',
+        'POST',
+        '/api/council-business',
+        jsonb_build_array(
+          jsonb_build_object('name', 'path', 'type', 'text', 'value', collection_path),
+          jsonb_build_object('name', 'name', 'type', 'text'),
+          jsonb_build_object('name', 'reportName', 'type', 'text'),
+          jsonb_build_object('name', 'reportContent', 'type', 'text', 'value', '')
+        )
+      ),
+      hall.siren_action(
+        'council-business.import-bundle',
+        'POST',
+        '/api/council-business/import-bundle',
+        jsonb_build_array(jsonb_build_object('name', 'file', 'type', 'file')),
+        'multipart/form-data'
+      )
+    )
+    ELSE '[]'::jsonb
+  END;
 END
 $function$;
 
@@ -490,7 +529,8 @@ CREATE FUNCTION hall_api.present_resource_collection(
   resources JSONB,
   self_href TEXT,
   include_item_actions BOOLEAN DEFAULT true,
-  include_collection_actions BOOLEAN DEFAULT true
+  include_collection_actions BOOLEAN DEFAULT true,
+  collection_path TEXT DEFAULT ''
 )
 RETURNS JSONB
 LANGUAGE sql
@@ -515,8 +555,8 @@ AS $function$
       )
     )
     || CASE
-      WHEN include_collection_actions AND jsonb_array_length(hall.resource_collection_siren_actions()) > 0
-        THEN jsonb_build_object('actions', hall.resource_collection_siren_actions())
+      WHEN include_collection_actions AND jsonb_array_length(hall.resource_collection_siren_actions(collection_path)) > 0
+        THEN jsonb_build_object('actions', hall.resource_collection_siren_actions(collection_path))
       ELSE '{}'::jsonb
     END
 $function$;
@@ -528,9 +568,17 @@ STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
+  -- @implements-requirement HALL-FR-WSP-420
+  -- Each result carries its resource entity, without actions, so a picker reads
+  -- the classes projected by the base.
   SELECT jsonb_build_object(
     'class', jsonb_build_array('resource-search'),
     'properties', search_result,
+    'entities', coalesce(
+      (SELECT jsonb_agg(hall.resource_siren_item(item, false))
+       FROM jsonb_array_elements(search_result -> 'items') AS item),
+      '[]'::jsonb
+    ),
     'links', jsonb_build_array(
       hall.siren_link('self', '/api/resources/search'),
       hall.siren_link('collection', '/api/resources')

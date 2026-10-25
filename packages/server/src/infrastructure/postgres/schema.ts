@@ -22,6 +22,13 @@ export const postgresUserContactMigration = `
   END $migration$;
 `;
 
+// @implements-requirement HALL-FR-DIR-150
+export const postgresUserRoleCatalogSchema = `
+  ALTER TABLE user_roles DROP CONSTRAINT IF EXISTS user_roles_role_check;
+  ALTER TABLE user_roles ADD CONSTRAINT user_roles_role_check
+    CHECK (role IN ('administrator', 'clerk', 'contributor', 'meetingConductor', 'reader', 'councillor'));
+`;
+
 export const postgresTables = [
   "agenda_items",
   "attendance",
@@ -169,7 +176,7 @@ export const postgresSchema = `
 
   CREATE TABLE user_roles (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role TEXT NOT NULL CHECK (role IN ('administrator', 'clerk', 'contributor', 'meetingConductor', 'reader')),
+    role TEXT NOT NULL CONSTRAINT user_roles_role_check CHECK (role IN ('administrator', 'clerk', 'contributor', 'meetingConductor', 'reader', 'councillor')),
     PRIMARY KEY (user_id, role)
   );
 

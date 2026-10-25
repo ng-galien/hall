@@ -1,3 +1,4 @@
+import { HallPostgresError } from "@hall/postgres";
 import type { ErrorRequestHandler } from "express";
 import { MulterError } from "multer";
 import { ZodError } from "zod";
@@ -7,7 +8,29 @@ import { PersistenceError } from "../repositories/errors.js";
 import { DomainError } from "../services/errors.js";
 import { sendProblem } from "./problemDetails.js";
 
+function postgresSqlState(error: unknown): string | null {
+  for (let current = error; current instanceof Error; current = current.cause) {
+    if (current instanceof HallPostgresError) return current.sqlState;
+  }
+  return null;
+}
+
 export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
+  // @implements-requirement HALL-FR-WSP-390
+  // @implements-requirement HALL-FR-WSP-420
+  // @implements-requirement HALL-FR-DIR-150
+  switch (postgresSqlState(error)) {
+    case "HV614":
+    case "HV615":
+      sendProblem(request, response, 403, "permission_denied");
+      return;
+    case "HV617":
+      sendProblem(request, response, 422, "councillor_requires_active_member");
+      return;
+    case "HV707":
+      sendProblem(request, response, 409, "personal_workspace_resource_not_associable");
+      return;
+  }
   if (error instanceof URIError) {
     sendProblem(request, response, 400, "invalid_request");
     return;

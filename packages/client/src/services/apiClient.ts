@@ -50,6 +50,8 @@ export type ApiErrorCode =
   | "too_many_login_attempts"
   | "bootstrap_unavailable"
   | "last_administrator_required"
+  | "councillor_requires_active_member"
+  | "personal_workspace_resource_not_associable"
   | "ballot_already_recorded"
   | "ballot_not_found"
   | "ballot_voters_invalid"
@@ -161,6 +163,8 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "too_many_login_attempts",
   "bootstrap_unavailable",
   "last_administrator_required",
+  "councillor_requires_active_member",
+  "personal_workspace_resource_not_associable",
   "ballot_already_recorded",
   "ballot_not_found",
   "ballot_voters_invalid",

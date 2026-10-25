@@ -1,5 +1,6 @@
 BEGIN;
 SET LOCAL search_path = hall, hall_api, public, pg_catalog;
+SET LOCAL hall.roles = '["administrator"]';
 SELECT no_plan();
 
 CREATE TEMP TABLE api_result (

@@ -16,6 +16,7 @@ import {
   postgresSchema,
   postgresTables,
   postgresUserContactMigration,
+  postgresUserRoleCatalogSchema,
 } from "./schema.js";
 
 type TransactionContext = {
@@ -66,6 +67,7 @@ export async function initializeServerSchema(
   }
   if (mode === "automatic") {
     await client.query(postgresUserContactMigration);
+    await client.query(postgresUserRoleCatalogSchema);
     await client.query(postgresBallotVoteConfidentialitySchema);
     await client.query(postgresCouncilBusinessTitleUniquenessSchema);
   }
@@ -90,6 +92,11 @@ async function verifyServerInvariants(client: PoolClient): Promise<void> {
                 AND t.tgattr::text = (SELECT attnum::text FROM pg_catalog.pg_attribute
                   WHERE attrelid = 'public.ballots'::regclass AND attname = 'method')
                 AND p.oid = to_regprocedure('public.enforce_public_method_for_ballots_with_votes()') AND p.prosrc = $2)))
+       AND EXISTS (
+         SELECT FROM pg_catalog.pg_constraint c
+         WHERE c.conrelid = 'public.user_roles'::regclass AND c.conname = 'user_roles_role_check'
+           AND pg_catalog.pg_get_constraintdef(c.oid) LIKE '%councillor%'
+       )
        AND EXISTS (
          SELECT FROM pg_catalog.pg_index i
          WHERE i.indexrelid = to_regclass('public.one_council_business_title_per_folder')

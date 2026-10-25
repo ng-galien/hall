@@ -182,7 +182,8 @@ postgres("geographic layers", () => {
   });
 
   // @verifies-requirement HALL-FR-DOC-350
-  it("offers map editing and layer import, link and unlink to a contributor, not renaming or deletion", async () => {
+  // @verifies-requirement HALL-FR-DOC-550
+  it("offers a contributor the editing, layers, renaming, moving and deletion of a common map", async () => {
     const { agent: administration, url } = await createPostgresHttpTestServer({ devAutoLogin: false });
     await administration.post("/api/auth/bootstrap").send(administrator).expect(201);
     await administration.post("/api/auth/login").send(administrator).expect(200);
@@ -200,11 +201,14 @@ postgres("geographic layers", () => {
     await contributorAgent.post("/api/auth/login").send(contributor).expect(200);
     const opened = await contributorAgent.get(`/api/resources/${mapId}`).expect(200);
     expect((opened.body.actions as SirenAction[]).map(({ name }) => name)).toEqual([
+      "resource.relocate",
+      "resource.update-metadata",
       "resource.update-content",
-      "resource.create-geographic-feature-note",
       "resource.import-geographic-layer",
       "resource.link-geographic-layer",
       "resource.unlink-geographic-layer",
+      "resource.create-geographic-feature-note",
+      "resource.delete",
     ]);
     const listed = await contributorAgent.get("/api/resources/geographic-layers").expect(200);
     expect((listed.body.actions as SirenAction[]).map(({ name }) => name)).toEqual([
@@ -217,7 +221,10 @@ postgres("geographic layers", () => {
       .expect(201);
     const layerId = domainBody<{ id: string }>(created).id;
     expect(((created.body.actions ?? []) as SirenAction[]).map(({ name }) => name)).toEqual([
+      "resource.relocate",
+      "resource.update-metadata",
       "resource.create-geographic-feature-note",
+      "resource.delete",
     ]);
     const hidden = await contributorAgent
       .put(action(opened.body, "resource.link-geographic-layer").href)
@@ -471,14 +478,21 @@ postgres("geographic layers", () => {
     ]);
     const ordinaryText = await administration
       .post("/api/resources")
-      .send({ kind: "text", path: "", name: "Texte du secrétariat", content: "" })
+      .send({ kind: "text", path: "Espaces personnels", name: "Texte du secrétariat", content: "" })
       .expect(201);
 
     const contributorAgent = request.agent(url);
     await contributorAgent.post("/api/auth/login").send(contributor).expect(200);
     const collection = await contributorAgent.get("/api/resources").expect(200);
     expect((collection.body.actions as SirenAction[]).map(({ name }) => name)).toEqual([
+      "resource.create",
+      "resource.create-document",
+      "resource.import-spreadsheet",
+      "resource.convert-spreadsheet-table",
       "resource.create-editor-asset",
+      "resource.search-legal-references",
+      "council-business.create",
+      "council-business.import-bundle",
     ]);
     const note = await contributorAgent
       .post(action(layer.body, "resource.create-geographic-feature-note").href)

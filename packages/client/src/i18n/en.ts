@@ -55,6 +55,9 @@ export const en = {
   "users.role.contributor": "Contributor",
   "users.role.meetingConductor": "Meeting conductor",
   "users.role.reader": "Reader",
+  "users.role.councillor": "Council member",
+  "users.councillorContactHint":
+    "The Council member role requires the contact of an elected member in office; their personal folder is created on save.",
   "users.status.active": "Active",
   "users.status.disabled": "Disabled",
   "users.status": "Account status",
@@ -109,6 +112,8 @@ export const en = {
 
   "workspace.type.event": "Meeting",
   "workspace.createEvent": "New meeting",
+  "workspace.personalWorkspace": "My space",
+  "workspace.attachmentPersonalTakeOver": "Personal folder: to be taken over by the clerk first",
   "workspace.proposalText": "Proposal text",
   "workspace.questionText": "Question text",
   "workspace.decisionText": "Decision text",
@@ -1106,6 +1111,10 @@ export const en = {
   "error.invalid_credentials": "The email address or password is incorrect.",
   "error.bootstrap_unavailable": "The initial administrator has already been created.",
   "error.last_administrator_required": "The last active administrator must remain enabled.",
+  "error.councillor_requires_active_member":
+    "Choose the contact of an elected member in office for the Council member role.",
+  "error.personal_workspace_resource_not_associable":
+    "This document is still in a council member’s personal folder: the clerk first moves it into a common folder.",
   "error.council_decision_not_found": "The selected council decision no longer exists.",
   "error.council_member_not_found": "The selected council member is not part of this meeting.",
   "error.council_term_not_configured": "Set the expected council size before adding a council member.",

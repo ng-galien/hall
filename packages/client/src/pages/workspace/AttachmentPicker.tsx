@@ -51,6 +51,7 @@ export function AttachmentPicker({
   };
   const capabilities = useCouncilBusinessStore((state) => state.capabilitiesById[business.id]);
   const summaries = useWorkspaceResourcesStore((state) => state.summaries);
+  const representations = useWorkspaceResourcesStore((state) => state.representations);
   const preparedSubjects = useCouncilBusinessStore((state) => state.preparedSubjects);
   const creation = useWorkspaceCreation({
     onCreate,
@@ -176,6 +177,13 @@ export function AttachmentPicker({
                     ...resourceMentionable(resource, t),
                     preferred: resource.path === business.folderPath,
                   }))}
+                  // @implements-requirement HALL-FR-WSP-420
+                  // PostgreSQL marks a resource of a personal folder; the server refuses its association.
+                  presentItem={(item) =>
+                    item.kind === "resource" && representations[item.id]?.class?.includes("personal-workspace")
+                      ? { ...item, metaLabel: `${t("workspace.attachmentPersonalTakeOver")} · ${item.metaLabel ?? ""}` }
+                      : item
+                  }
                   onPick={(item) => void attach(item.id)}
                   onClose={() => setOpen(false)}
                 />
