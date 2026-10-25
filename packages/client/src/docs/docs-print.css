@@ -1,0 +1,102 @@
+/* Print view of the whole documentation (`#/docs-print` in the standalone site), printed to PDF by
+   `npm run build:docs:pdf`: A4, one documentation page per sheet, content only. */
+
+@page {
+  size: A4;
+}
+
+.docs-print-root,
+.docs-print-root body,
+.docs-print-root #root {
+  height: auto;
+  overflow: visible;
+  background: var(--hall-color-surface);
+}
+
+.docs-print {
+  overflow: visible;
+  color: var(--hall-color-text);
+  background: var(--hall-color-surface);
+}
+
+.docs-print .docs-article-inner {
+  max-width: none;
+  padding: 0;
+}
+
+.docs-print-cover {
+  display: flex;
+  min-height: 240mm;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--hall-space-4);
+}
+
+.docs-print-brand {
+  font-size: var(--hall-font-size-body);
+  font-weight: var(--hall-font-weight-semibold);
+  letter-spacing: var(--hall-letter-spacing-brand);
+  color: var(--hall-color-text-muted);
+}
+
+.docs-print-cover-title {
+  font-size: var(--hall-font-size-heading-large);
+  font-weight: var(--hall-font-weight-semibold);
+}
+
+.docs-print-cover-summary {
+  font-size: var(--hall-font-size-body);
+  color: var(--hall-color-text-muted);
+}
+
+.docs-print-toc,
+.docs-print-page {
+  break-before: page;
+}
+
+.docs-print-toc h1 {
+  margin-bottom: var(--hall-space-4);
+  font-size: var(--hall-font-size-heading-large);
+  font-weight: var(--hall-font-weight-semibold);
+}
+
+.docs-print-toc ol {
+  list-style: none;
+  padding-left: 0;
+}
+
+.docs-print-toc li {
+  margin-block: var(--hall-space-1);
+}
+
+.docs-print-toc li[data-depth="1"] {
+  margin-top: var(--hall-space-3);
+  font-weight: var(--hall-font-weight-semibold);
+}
+
+.docs-print-toc li[data-depth="2"] {
+  padding-left: var(--hall-space-6);
+}
+
+.docs-print-toc a,
+.docs-print a {
+  color: inherit;
+}
+
+.docs-print h1,
+.docs-print h2,
+.docs-print h3 {
+  break-after: avoid;
+}
+
+.docs-print table,
+.docs-print .docs-callout,
+.docs-print .docs-steps > li,
+.docs-print figure {
+  break-inside: avoid;
+}
+
+.docs-print .docs-anchor,
+.docs-print .docs-external-mark {
+  display: none;
+}

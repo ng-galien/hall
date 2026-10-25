@@ -353,6 +353,7 @@ export const fr: Messages = {
   "docs.search.placeholder": "Rechercher dans la documentation…",
   "docs.search.label": "Rechercher dans la documentation",
   "docs.search.noResult": "Aucune page ne correspond.",
+  "docs.download.pdf": "Télécharger en PDF",
   "docs.page.notFound": "Cette page n’existe pas.",
   "docs.page.backHome": "Revenir à l’accueil de la documentation",
   "docs.page.openScreen": "Ouvrir l’écran",

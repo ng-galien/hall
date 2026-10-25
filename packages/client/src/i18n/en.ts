@@ -348,6 +348,7 @@ export const en = {
   "docs.search.placeholder": "Search the documentation…",
   "docs.search.label": "Search the documentation",
   "docs.search.noResult": "No page matches.",
+  "docs.download.pdf": "Download as PDF",
   "docs.page.notFound": "This page does not exist.",
   "docs.page.backHome": "Back to the documentation home",
   "docs.page.openScreen": "Open the screen",

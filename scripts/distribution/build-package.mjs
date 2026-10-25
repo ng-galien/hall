@@ -21,7 +21,11 @@ function run(command, args, cwd = root) {
   if (result.status !== 0) throw new Error(`${command} failed (${result.status})`);
 }
 const workspaces = ["contracts", "api-contract", "mcp", "domain", "templating", "postgres", "server", "client"];
-for (const name of workspaces) run("npm", ["run", "build", "-w", `@hall/${name}`]);
+for (const name of workspaces) {
+  // The documentation PDF lands in the client's public folder, which the client build copies into dist.
+  if (name === "client") run("npm", ["run", "build:docs:pdf", "-w", "@hall/client"]);
+  run("npm", ["run", "build", "-w", `@hall/${name}`]);
+}
 await rm(stage, { recursive: true, force: true });
 await mkdir(join(stage, "bin"), { recursive: true });
 

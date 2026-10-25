@@ -546,6 +546,31 @@ h4.docs-heading {
 
 /* -------------------------------------------------------------- search */
 
+.docs-pdf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hall-space-1-5);
+  flex-shrink: 0;
+  height: var(--hall-size-glyph);
+  padding-inline: var(--hall-space-2-5);
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-small);
+  color: var(--hall-color-text-muted);
+  font-size: var(--hall-font-size-caption);
+  white-space: nowrap;
+}
+
+.docs-pdf-link:hover {
+  background: var(--hall-color-surface-subtle);
+  color: var(--hall-color-text);
+}
+
+@media (max-width: 1280px) {
+  .docs-toolbar .docs-pdf-link span {
+    display: none;
+  }
+}
+
 .docs-search {
   position: relative;
   width: var(--hall-size-fixed-288px);

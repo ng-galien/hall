@@ -12,6 +12,8 @@ export default defineConfig({
   plugins: [hallDocsMdx(), react(), tailwindcss(), viteSingleFile({ removeViteModuleLoader: true })],
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   define: { "import.meta.env.VITE_HALL_DOCS_STANDALONE": JSON.stringify("1") },
+  // The documentation PDF in public/ is placed next to the site by build:docs:pdf, not copied by Vite.
+  publicDir: false,
   build: {
     outDir: "dist-docs",
     emptyOutDir: true,
