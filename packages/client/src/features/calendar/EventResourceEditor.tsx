@@ -38,6 +38,17 @@ export function EventResourceEditor({
     business.resources.some((entry) => entry.id === resource.id),
   );
   const [councilBusinessId, setCouncilBusinessId] = useState<string | null>(associatedBusiness?.id ?? null);
+  // @implements-requirement HALL-FR-WSP-370
+  // Business documents load on demand: the association is known once they are loaded.
+  const businessIds = useCouncilBusinessStore((state) => state.businesses.map((business) => business.id).join(","));
+  useEffect(() => {
+    if (businessIds) void useCouncilBusinessStore.getState().loadResourceItems(businessIds.split(","));
+  }, [businessIds]);
+  const councilBusinessChosen = useRef(false);
+  const associatedBusinessId = associatedBusiness?.id ?? null;
+  useEffect(() => {
+    if (!councilBusinessChosen.current) setCouncilBusinessId(associatedBusinessId);
+  }, [associatedBusinessId]);
   const [draft, setDraft] = useState(resource.document);
   const latest = useRef(draft);
   const saved = useRef(JSON.stringify(resource.document));
@@ -109,6 +120,7 @@ export function EventResourceEditor({
           if (councilBusinessPending.current) return;
           const previousId = councilBusinessId;
           if (nextId === previousId) return;
+          councilBusinessChosen.current = true;
           setCouncilBusinessId(nextId);
           setCouncilBusinessSaving(true);
           const run = async () => {

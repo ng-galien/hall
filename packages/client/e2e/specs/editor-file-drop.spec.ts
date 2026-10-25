@@ -58,6 +58,7 @@ test("files dropped on the business report editor become cited documents of the 
   await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
   const compact = page.getByTestId("business-report-editor").getByTestId("markdown-editor-compact");
   await expect(compact).toBeVisible();
+  await page.getByTestId("business-category-documents-toggle").click();
   await expect(page.getByTestId("business-documents-empty")).toBeVisible();
 
   await dropFiles(page, compact, [
@@ -101,6 +102,7 @@ test("a csv dropped on the business report editor becomes a table of the text, t
   await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
   const compact = page.getByTestId("business-report-editor").getByTestId("markdown-editor-compact");
   await expect(compact).toBeVisible();
+  await page.getByTestId("business-category-documents-toggle").click();
 
   const smallCsv = "Commune;Montant\nAlésia;1200\nGergovie;850\n";
   await dropFiles(page, compact, [{ name: "subventions.csv", mimeType: "text/csv", buffer: Buffer.from(smallCsv) }]);

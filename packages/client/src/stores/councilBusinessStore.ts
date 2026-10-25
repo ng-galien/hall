@@ -56,6 +56,8 @@ interface CouncilBusinessStoreState {
   adoptReport(id: string, report: Extract<ResourceDetail, { kind: "text" }>): void;
   refresh(id: string): Promise<CouncilBusinessView | null>;
   loadResources(id: string): Promise<boolean>;
+  /** Loads, in one request, the documents of the listed businesses that are not loaded yet. */
+  loadResourceItems(ids: readonly string[]): Promise<void>;
   associateResource(id: string, resourceId: string): Promise<boolean>;
   dissociateResource(id: string, resourceId: string): Promise<boolean>;
   reorderResources(id: string, resourceIds: string[]): Promise<boolean>;
@@ -295,6 +297,27 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
     } catch (error) {
       set({ error: apiErrorCode(error) });
       return null;
+    }
+  },
+  // @implements-requirement HALL-FR-WSP-370
+  async loadResourceItems(ids) {
+    const missing = [...new Set(ids)].filter((id) => !get().resourceItemsLoadedById[id]);
+    if (missing.length === 0) return;
+    try {
+      const resourceItems = await loadBusinessResourceItems(missing);
+      set((state) => ({
+        businesses: state.businesses.map((business) =>
+          missing.includes(business.id) && !state.resourceItemsLoadedById[business.id]
+            ? councilBusinessView(business, resourceItems)
+            : business,
+        ),
+        resourceItemsLoadedById: {
+          ...state.resourceItemsLoadedById,
+          ...Object.fromEntries(missing.map((id) => [id, true])),
+        },
+      }));
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
     }
   },
   async loadResources(id) {

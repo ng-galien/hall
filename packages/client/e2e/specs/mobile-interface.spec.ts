@@ -32,9 +32,12 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
       await expect(menu).toBeVisible();
       if (width === 360 && destination === "contacts")
         await page.screenshot({ path: testInfo.outputPath("phone-menu.png"), animations: "disabled" });
-      await menu.getByTestId(`navigation-${destination}`).tap();
+      const link = menu.getByTestId(`navigation-${destination}`);
+      const route = (await link.getAttribute("href"))?.replace(/^\/app/, "");
+      await link.tap();
       await expect(menu).toBeHidden();
-      await expect(page.getByTestId("application-main")).toBeVisible();
+      // The layout closes the menu when the route commits: wait for it before reopening the menu.
+      await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", route ?? "");
       await expect
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
         .toBe(true);

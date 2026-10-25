@@ -304,6 +304,7 @@ test.describe("Markdown editor", () => {
         /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/.test(response.url()) && response.request().method() === "GET",
     );
     await page.getByTestId("editor-pdf-preview").click();
+    await page.getByTestId("editor-pdf-preview-with-documents").click();
     expect((await creationResponse).status()).toBe(201);
     expect((await nativePdfResponse).status()).toBe(200);
     const viewer = page.getByTestId("editor-pdf-native-viewer");
@@ -590,6 +591,7 @@ test.describe("Markdown editor", () => {
         /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/.test(response.url()) && response.request().method() === "GET",
     );
     await page.getByTestId("editor-pdf-preview").click();
+    await page.getByTestId("editor-pdf-preview-with-documents").click();
     expect((await creationResponse).status()).toBe(201);
     const loadedPdf = await nativePdfResponse;
     expect(loadedPdf.status()).toBe(200);
@@ -664,6 +666,7 @@ test.describe("Markdown editor", () => {
         /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/.test(response.url()) && response.request().method() === "GET",
     );
     await page.getByTestId("editor-pdf-preview").click();
+    await page.getByTestId("editor-pdf-preview-with-documents").click();
     expect((await creationResponse).status()).toBe(201);
     const loadedPdf = await nativePdfResponse;
     expect(loadedPdf.status()).toBe(200);

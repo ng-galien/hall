@@ -11,9 +11,9 @@ test("opens a business from the workspace list with one click", async ({ appPage
   await page.goto("/app/workspace");
   const row = page.getByTestId(`workspace-business-title-${business.id}`);
   await expect(row).toBeVisible();
+  await expect(row).not.toHaveAttribute("aria-expanded", /.+/);
   await row.click();
   await expect(page.getByTestId("council-business-workbench")).toBeVisible();
-  await expect(row).not.toHaveAttribute("aria-expanded", /.+/);
 });
 
 test("keeps folder icons upright and navigates workspace rows with the keyboard", async ({ appPage: page }) => {
@@ -395,6 +395,7 @@ test("creates a documentary resource from a business and preserves its explicit 
   await expect(page.getByTestId("resource-preview-close")).toBeVisible();
   await page.getByTestId("resource-preview-close").click();
   await page.reload();
+  await page.getByTestId("business-category-documents-toggle").click();
   const attached = page.getByTestId(`business-attached-resource-${resource.id}`);
   await expect(attached).toBeVisible();
   await expect(attached).toContainText(name);
@@ -929,6 +930,7 @@ test("deletes a geographic document from its editable business", async ({ appPag
   expect(added.ok()).toBeTruthy();
   const resource = (await added.json()).properties;
   await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  await page.getByTestId("business-category-documents-toggle").click();
   const row = page.getByTestId(`business-attached-resource-${resource.id}`);
   await expect(row).toBeVisible();
   await row.click({ button: "right" });
@@ -1120,6 +1122,7 @@ test("HALL-FR-WSP-250 HALL-FR-WSP-260 demo folder is at root and document folder
   expect(business).toBeTruthy();
   await page.goto(`/app/workspace?${new URLSearchParams({ path: business.folderPath, councilBusiness: business.id })}`);
   await expect(page.getByTestId("council-business-workbench")).toBeVisible();
+  await page.getByTestId("business-category-documents-toggle").click();
   // This linked document lives at the workspace root, one level above the business filing path.
   const parentFolder = page.getByTestId("business-document-folder-..");
   await expect(parentFolder).toBeVisible();

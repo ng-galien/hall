@@ -35,6 +35,7 @@ test("one attachment picker attaches and creates documents from the business vie
   }
 
   await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  await page.getByTestId("business-category-documents-toggle").click();
   await page.getByTestId("attachment-picker-open").click();
   const panel = page.getByTestId("attachment-picker-panel");
   await expect(panel).toBeVisible();
@@ -62,9 +63,15 @@ test("one attachment picker attaches and creates documents from the business vie
   await page.getByTestId("resource-preview-close").click();
   await expect(page.getByTestId(`business-attached-resource-${remote.id}`)).toBeVisible();
 
+  // The tree offers business actions once the business capabilities are loaded.
+  const capabilitiesLoaded = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/api/council-business/${business.id}`) && response.request().method() === "GET",
+  );
   await page.goto("/app/workspace?path=seed");
   const row = page.getByTestId(`workspace-business-${business.id}`);
   await expect(row).toBeVisible();
+  await capabilitiesLoaded;
   await row.click({ button: "right" });
   await page.getByTestId("workspace-tree-attach-document").click();
   await expect(panel).toBeVisible();

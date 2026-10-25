@@ -54,7 +54,11 @@ export function Layout() {
         ) : (
           <AppSidebar compact={compact} />
         )}
-        <main className="app-main min-w-0 flex-1 overflow-y-auto" data-testid="application-main">
+        <main
+          className="app-main min-w-0 flex-1 overflow-y-auto"
+          data-testid="application-main"
+          data-route={location.pathname}
+        >
           <Suspense fallback={<div className="page-content">{t("common.loading")}</div>}>
             <Outlet />
           </Suspense>

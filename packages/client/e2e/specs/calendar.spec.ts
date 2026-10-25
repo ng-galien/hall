@@ -344,6 +344,8 @@ test("calendar selects ranges and moves and resizes timed appointments", async (
   test.setTimeout(90_000);
   await page.clock.setFixedTime(new Date("2026-09-12T12:00:00Z"));
   await page.getByTestId("navigation-calendar").click();
+  // Days become selectable once the creation affordance is loaded.
+  await expect(page.getByTestId("calendar-new")).toBeVisible();
   const emptyDay = page
     .locator('[data-testid^="calendar-day-2026-09-"]')
     .filter({ hasNot: page.locator(".fc-event") })

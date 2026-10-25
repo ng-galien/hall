@@ -241,6 +241,13 @@ export function MapsPage() {
   const openMapRoute = useCallback((id: string) => navigate(`/maps/${encodeURIComponent(id)}`), [navigate]);
 
   const opened = surface?.routeId ? surface.resource : null;
+  // @implements-requirement HALL-FR-WSP-340
+  // The businesses of the opened map are found among the documents of every business, loaded on demand.
+  const openedId = opened?.id ?? null;
+  const businessIds = useMemo(() => businesses.map((business) => business.id).join(","), [businesses]);
+  useEffect(() => {
+    if (openedId && businessIds) void useCouncilBusinessStore.getState().loadResourceItems(businessIds.split(","));
+  }, [openedId, businessIds]);
   const relatedBusinesses = useMemo(
     () =>
       opened ? businesses.filter((business) => business.resources.some((resource) => resource.id === opened.id)) : [],

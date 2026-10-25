@@ -223,6 +223,21 @@ export function useCouncilMeeting(meetingReference: string) {
     }
   }
 
+  // @implements-requirement HALL-FR-WSP-370
+  // The documents of each agenda business are loaded on demand, as in the business view.
+  const agendaBusinessIds = useMemo(
+    () =>
+      (workspace?.agendaItems ?? [])
+        .map((item) => item.councilBusinessId)
+        .filter((id): id is string => Boolean(id))
+        .sort()
+        .join(","),
+    [workspace],
+  );
+  useEffect(() => {
+    if (agendaBusinessIds) void useCouncilBusinessStore.getState().loadResourceItems(agendaBusinessIds.split(","));
+  }, [agendaBusinessIds]);
+
   const meeting = useMemo(
     () =>
       workspace
