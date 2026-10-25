@@ -4,6 +4,7 @@ import request from "supertest";
 import { onTestFinished } from "vitest";
 import { createHttpApplication } from "../api/application.js";
 import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
+import type { ServerConfig } from "../core/config.js";
 import { buildContainer } from "../core/container.js";
 import { startHttpServer } from "../server.js";
 import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
@@ -12,7 +13,11 @@ import type { LegalReferenceProvider } from "../services/legalReferenceProvider.
 import { createTestCouncilClient } from "./support/councilClient.js";
 import { createTestDirectoryClient } from "./support/directoryClient.js";
 import { createTestMinutesClient } from "./support/minutesClient.js";
-import { createPostgresTestPool, resetPostgresTestDatabase } from "./support/postgresTestDatabase.js";
+import {
+  configureTestCouncilTerm,
+  createPostgresTestPool,
+  resetPostgresTestDatabase,
+} from "./support/postgresTestDatabase.js";
 import { createTestResourcesClient } from "./support/resourcesClient.js";
 
 export type TestAgent = ReturnType<typeof request.agent>;
@@ -45,7 +50,7 @@ export async function createPostgresHttpTestServer(options: { devAutoLogin?: boo
 }
 
 // Deliberate assertion boundary: tests see the real HTTP representation and opt in to decoding it.
-// biome-ignore lint/suspicious/noExplicitAny: callers select the domain shape asserted by each acceptance test
+// biome-ignore-start lint/suspicious/noExplicitAny: callers select the domain shape asserted by each acceptance test
 export function domainBody<T = any>(response: { body: unknown; headers: Record<string, string | undefined> }): T {
   if (!response.headers["content-type"]?.startsWith("application/vnd.siren+json")) return response.body as T;
   const representation = response.body as {
@@ -64,6 +69,7 @@ export function domainBody<T = any>(response: { body: unknown; headers: Record<s
   if (!properties) return response.body as T;
   return (Array.isArray(properties.items) ? properties.items : properties) as T;
 }
+// biome-ignore-end lint/suspicious/noExplicitAny: callers select the domain shape asserted by each acceptance test
 
 /** Creates the contact identity and its council mandate through the same public contracts as production clients. */
 export async function createTestCouncilMember(
@@ -108,6 +114,7 @@ export async function createTestServer(
     legalReferenceProvider?: LegalReferenceProvider;
     expectedCouncilMemberCount?: number | null;
     realClients?: boolean;
+    config?: Partial<ServerConfig>;
   } = {},
 ) {
   const { databaseUrl, pool: postgresPool } = createPostgresTestPool();
@@ -120,10 +127,11 @@ export async function createTestServer(
       devAutoLogin: options.devAutoLogin ?? true,
       allowedOrigins: ["http://localhost:5174", "http://127.0.0.1:5174"],
       environment: "test",
+      ...options.config,
     },
     { postgresPool },
   );
-  if (!options.realClients) {
+  if (options.realClients === false) {
     const resourcesClient = createTestResourcesClient();
     const minutes = createTestMinutesClient();
     container.register({
@@ -155,13 +163,11 @@ export async function createTestServer(
   }
   await container.cradle.sqlExecutor.ready();
   const expectedCouncilMemberCount =
-    options.expectedCouncilMemberCount === undefined
-      ? options.realClients
-        ? null
-        : 100
-      : options.expectedCouncilMemberCount;
+    options.expectedCouncilMemberCount === undefined ? 100 : options.expectedCouncilMemberCount;
   if (expectedCouncilMemberCount !== null) {
-    await container.cradle.directoryClient.configureActiveCouncilTerm(expectedCouncilMemberCount);
+    if (options.realClients === false)
+      await container.cradle.directoryClient.configureActiveCouncilTerm(expectedCouncilMemberCount);
+    else await configureTestCouncilTerm(postgresPool, expectedCouncilMemberCount);
   }
   const application = createHttpApplication(container);
   const server = await listen(application);
@@ -177,6 +183,11 @@ export async function createTestServer(
 
   const agent = request.agent(server);
   return { agent, rawAgent: agent, statelessAgent: request(server), container };
+}
+
+/** Isolated service-rendering fixture with explicit in-memory clients; not HTTP/database acceptance evidence. */
+export function createServiceTestServer(options: Parameters<typeof createTestServer>[0] = {}) {
+  return createTestServer({ ...options, realClients: false });
 }
 
 function listen(application: ReturnType<typeof createHttpApplication>): Promise<Server> {

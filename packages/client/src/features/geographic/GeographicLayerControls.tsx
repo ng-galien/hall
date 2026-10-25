@@ -168,8 +168,8 @@ export function GeographicLayerControls({
                 type="button"
                 className="geographic-layer-visible"
                 aria-pressed={hallLayerVisible}
-                aria-label={t("geographic.layerVisible").replace("{name}", t("geographic.drawingLayer"))}
-                title={t("geographic.layerVisible").replace("{name}", t("geographic.drawingLayer"))}
+                aria-label={t("geographic.layerVisible", { name: t("geographic.drawingLayer") })}
+                title={t("geographic.layerVisible", { name: t("geographic.drawingLayer") })}
                 onClick={() => onHallLayerVisible(!hallLayerVisible)}
               >
                 {hallLayerVisible ? <VisibleIcon /> : <HiddenIcon />}
@@ -203,8 +203,8 @@ export function GeographicLayerControls({
                     draggable={canUpdate}
                     disabled={!canUpdate}
                     data-testid={`geographic-layer-drag-${layer.id}`}
-                    aria-label={t("geographic.layerDrag").replace("{name}", name)}
-                    title={t("geographic.layerDrag").replace("{name}", name)}
+                    aria-label={t("geographic.layerDrag", { name: name })}
+                    title={t("geographic.layerDrag", { name: name })}
                     onDragStart={(event) => {
                       event.dataTransfer.effectAllowed = "move";
                       event.dataTransfer.setData("text/plain", layer.id);
@@ -222,8 +222,8 @@ export function GeographicLayerControls({
                     className="geographic-layer-visible"
                     disabled={!canUpdate}
                     aria-pressed={layer.visible}
-                    aria-label={t("geographic.layerVisible").replace("{name}", name)}
-                    title={t("geographic.layerVisible").replace("{name}", name)}
+                    aria-label={t("geographic.layerVisible", { name: name })}
+                    title={t("geographic.layerVisible", { name: name })}
                     onClick={() => onLayerVisibility(layer.id, !layer.visible)}
                   >
                     {layer.visible ? <VisibleIcon /> : <HiddenIcon />}
@@ -237,7 +237,7 @@ export function GeographicLayerControls({
                     step="0.05"
                     value={layer.opacity}
                     disabled={!canUpdate || !layer.visible}
-                    aria-label={t("geographic.layerOpacity").replace("{name}", name)}
+                    aria-label={t("geographic.layerOpacity", { name: name })}
                     onChange={(event) => onLayerOpacity(layer.id, Number(event.currentTarget.value))}
                   />
                 </li>
@@ -247,7 +247,7 @@ export function GeographicLayerControls({
               .sort((left, right) => right.position - left.position)
               .map((overlay) => {
                 const status = overlayStatuses[overlay.layerId] ?? "loading";
-                const label = t("geographic.layerVisible").replace("{name}", overlay.name);
+                const label = t("geographic.layerVisible", { name: overlay.name });
                 return (
                   <li
                     className={`geographic-layer-row geographic-overlay-row${overlay.visible ? " geographic-layer-enabled" : ""}`}
@@ -260,8 +260,8 @@ export function GeographicLayerControls({
                         type="button"
                         className="geographic-layer-visible"
                         aria-pressed={municipalOnlyLayerIds.has(overlay.layerId)}
-                        aria-label={t("geographic.municipalOnlyOf").replace("{name}", overlay.name)}
-                        title={t("geographic.municipalOnlyOf").replace("{name}", overlay.name)}
+                        aria-label={t("geographic.municipalOnlyOf", { name: overlay.name })}
+                        title={t("geographic.municipalOnlyOf", { name: overlay.name })}
                         data-testid={`geographic-overlay-municipal-only-${overlay.layerId}`}
                         onClick={() => onMunicipalOnly(overlay.layerId, !municipalOnlyLayerIds.has(overlay.layerId))}
                       >
@@ -290,7 +290,7 @@ export function GeographicLayerControls({
                       data-testid={`geographic-overlay-meta-${overlay.layerId}`}
                     >
                       {status === "ready"
-                        ? t("geographic.overlayFeatureCount").replace("{count}", formatNumber(overlay.featureCount))
+                        ? t("geographic.overlayFeatureCount", { count: formatNumber(overlay.featureCount) })
                         : t(status === "loading" ? "geographic.overlayLoading" : "geographic.overlayUnavailable")}
                     </span>
                   </li>

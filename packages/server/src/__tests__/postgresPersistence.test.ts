@@ -6,7 +6,8 @@ import { buildContainer } from "../core/container.js";
 import { startHttpServer } from "../server.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
-const postgres = databaseUrl ? describe : describe.skip;
+if (!databaseUrl) throw new Error("TEST_DATABASE_URL is required; use test:postgres");
+const postgres = describe;
 const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6uAAAAABJRU5ErkJggg==",
   "base64",
@@ -110,7 +111,7 @@ postgres("PostgreSQL persistence", () => {
     try {
       const response = await fetch(`${server.url}/api/health`);
       expect(response.status).toBe(200);
-      await expect(response.json()).resolves.toEqual({ status: "ok" });
+      await expect(response.json()).resolves.toEqual({ status: "ok", version: "unidentified" });
 
       const inspection = new Pool({ connectionString: ownerUrl });
       const schemas = await inspection.query<{ documentary: boolean; legacy: boolean }>(

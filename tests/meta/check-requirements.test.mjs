@@ -10,7 +10,7 @@ function fixture(fn) {
   mkdirSync(join(root, "packages/server/src"), { recursive: true });
   mkdirSync(join(root, "backlog"), { recursive: true });
   const file = join(root, "packages/server/src/model.ts");
-  writeFileSync(file, "// @functional-requirement HALL-FR-LOC-010 LOCATION_BELONGS_TO_HALL:\n");
+  writeFileSync(file, "// @implements-requirement HALL-FR-LOC-010\n");
   const source = {
     kind: "legislation",
     citation: "CGCT L2121-17",
@@ -51,11 +51,11 @@ test("discovers embedded TypeScript SQL requirements and explicit same-name refe
   fixture(({ root, file, registry }) => {
     writeFileSync(
       file,
-      "export const sql=`\n-- @functional-requirement HALL-FR-LOC-010 LOCATION_BELONGS_TO_HALL:\n-- @requirement-reference HALL-FR-LOC-010 LOCATION_BELONGS_TO_HALL:\n`;\n",
+      "export const sql=`\n-- @implements-requirement HALL-FR-LOC-010\n-- @implements-requirement HALL-FR-LOC-010\n`;\n",
     );
     const result = validateRequirements(root, registry);
     assert.deepEqual(result.errors, []);
-    assert.equal(result.references, 1);
+    assert.equal(result.implementations, 1);
   }));
 test("rejects unknown or absent origin without defaulting to product", () =>
   fixture(({ root, registry, entry }) => {
@@ -130,7 +130,7 @@ test("rejects malformed explicit references instead of silently dropping them", 
   fixture(({ root, file, registry }) => {
     writeFileSync(
       file,
-      "// @functional-requirement HALL-FR-LOC-010 LOCATION_BELONGS_TO_HALL:\n// @requirement-reference HALL-FR-LOC-010 missing-name\n",
+      "// @implements-requirement HALL-FR-LOC-010\n// @requirement-reference HALL-FR-LOC-010 missing-name\n",
     );
     assert.match(validateRequirements(root, registry).errors.join("\n"), /malformed/);
   }));
@@ -160,4 +160,24 @@ test("requires the same descriptive structure for every catalog entry", () =>
       assert.throws(() => validateRequirements(root, registry));
       entry[field] = value;
     }
+  }));
+
+// @verifies-requirement HALL-TR-TRC-010
+test("rejects legacy copied wording and bare citations", () =>
+  fixture(({ root, file, registry }) => {
+    writeFileSync(
+      file,
+      "// @functional-requirement HALL-FR-LOC-010 LOCATION_BELONGS_TO_HALL: copied wording\n// HALL-FR-LOC-010\n",
+    );
+    assert.match(validateRequirements(root, registry).errors.join("\n"), /copied requirement wording/);
+    assert.match(validateRequirements(root, registry).errors.join("\n"), /bare requirement citation/);
+  }));
+// @verifies-requirement HALL-TR-TRC-020
+test("preserves assigned identities and allows insertion without renumbering", () =>
+  fixture(({ root, registry }) => {
+    const baseline = structuredClone(registry);
+    registry.requirements["HALL-FR-LOC-010"].name = "REUSED";
+    assert.match(validateRequirements(root, registry, baseline).errors.join("\n"), /cannot be reused/);
+    delete registry.requirements["HALL-FR-LOC-010"];
+    assert.match(validateRequirements(root, registry, baseline).errors.join("\n"), /must remain/);
   }));

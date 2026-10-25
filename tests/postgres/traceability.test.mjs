@@ -43,15 +43,20 @@ test("PostgreSQL requirements and SQLSTATEs remain traceable", () => {
   const postgresTests = contents(sqlFiles(testDirectory).filter((file) => file.endsWith(".test.sql")));
   const catalogueSql = readFileSync(resolve(councilDirectory, "002-error-codes.sql"), "utf8");
 
-  const productionRequirements = matches(
-    productionSql,
-    /@(?:functional-requirement|technical-requirement|implements-requirement) (HALL-(?:FR|TR)-[A-Z]+-[0-9]{3})/g,
-  ).sort();
-  requireEmpty(
-    productionRequirements.filter((requirement, index) => productionRequirements[index - 1] === requirement),
-    "Requirement annotations are reused",
+  const productionRequirements = [
+    ...new Set(
+      matches(
+        productionSql,
+        /@(?:functional-requirement|technical-requirement|implements-requirement) (HALL-(?:FR|TR)-[A-Z]+-[0-9]{3})/g,
+      ),
+    ),
+  ].sort();
+  const coveredRequirements = new Set(
+    matches(
+      [...postgresTests, readFileSync(resolve(root, "tests/meta/check-requirements.test.mjs"), "utf8")],
+      /@verifies-requirement (HALL-(?:FR|TR)-[A-Z]+-[0-9]{3})/g,
+    ),
   );
-  const coveredRequirements = new Set(matches(postgresTests, /(HALL-(?:FR|TR)-[A-Z]+-[0-9]{3})/g));
   requireEmpty(
     productionRequirements.filter((requirement) => !coveredRequirements.has(requirement)),
     "Council requirements are missing from PostgreSQL tests",

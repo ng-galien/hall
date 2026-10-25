@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AddIcon, DeleteIcon } from "../components/icons";
 import { ResourceSearch } from "../components/search/ResourceSearch";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { localDate } from "../features/calendar/eventDates";
 import { CouncilCommitteeBusinesses } from "../features/council-business/CouncilCommitteeBusinesses";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
@@ -18,7 +19,7 @@ import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localDate(new Date());
 const memberName = (member: Contact | undefined, fallback: string) =>
   member ? `${member.firstName} ${member.lastName}` : fallback;
 const memberInitials = (member: Contact | undefined) =>
@@ -375,7 +376,7 @@ export function CouncilCommitteePage() {
                       onPick={(item) => toggleAvailableMember(item.id)}
                     />
                     <div className="admin-palette-actions">
-                      <span>{t("committees.selectionCount").replace("{count}", String(availableSelection.size))}</span>
+                      <span>{t("committees.selectionCount", { count: String(availableSelection.size) })}</span>
                       {committeeRoles.map((role) => (
                         <Button
                           type="button"
@@ -385,7 +386,7 @@ export function CouncilCommitteePage() {
                           onClick={() => void addSelectedMembers(role)}
                           key={role}
                         >
-                          {t("committees.addToRole").replace("{role}", t(`committeeRole.${role}`))}
+                          {t("committees.addToRole", { role: t(`committeeRole.${role}`) })}
                         </Button>
                       ))}
                     </div>
@@ -459,9 +460,7 @@ export function CouncilCommitteePage() {
                                 </span>
                                 <span className="vote-card-copy">
                                   <strong>{memberName(member, t("contacts.notFound"))}</strong>
-                                  <span>
-                                    {t("committees.sinceDate").replace("{date}", formatDate(membership.startedOn))}
-                                  </span>
+                                  <span>{t("committees.sinceDate", { date: formatDate(membership.startedOn) })}</span>
                                 </span>
                               </button>
                             );
@@ -498,9 +497,7 @@ export function CouncilCommitteePage() {
 
             {endedMemberships.length > 0 ? (
               <details className="admin-membership-history">
-                <summary>
-                  {t("committees.membershipHistory").replace("{count}", String(endedMemberships.length))}
-                </summary>
+                <summary>{t("committees.membershipHistory", { count: String(endedMemberships.length) })}</summary>
                 <div className="admin-related-list">
                   {endedMemberships.map((membership) => {
                     const member = memberById.get(membership.contactId);

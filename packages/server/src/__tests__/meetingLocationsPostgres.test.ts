@@ -26,7 +26,9 @@ postgresTest("pgTAP: Hall location integrity and independent meeting snapshots",
     await client.query("CREATE TABLE hall_settings (id TEXT PRIMARY KEY); INSERT INTO hall_settings VALUES ('hall')");
     await client.query(meetingLocationsSchema);
     const results = await client.query(`
-      -- HALL-FR-LOC-010 HALL-FR-LOC-020 HALL-FR-LOC-030
+      -- @verifies-requirement HALL-FR-LOC-010
+      -- @verifies-requirement HALL-FR-LOC-020
+      -- @verifies-requirement HALL-FR-LOC-030
       SELECT plan(8);
       SELECT lives_ok($$INSERT INTO hall_meeting_locations VALUES ('hall', 1, 'Salle A'), ('hall', 2, 'Salle B')$$, 'ordered catalogue');
       SELECT is((SELECT name FROM hall_meeting_locations ORDER BY position LIMIT 1), 'Salle A', 'first location is the only default');

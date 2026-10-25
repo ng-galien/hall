@@ -1,4 +1,4 @@
--- @functional-requirement HALL-FR-AGI-410 OPEN_QUESTIONS_CAN_BE_APPENDED_DURING_MEETING:
+-- @implements-requirement HALL-FR-AGI-410
 -- The event belongs to the original meeting even when its occurrence is later
 -- carried forward. It does not amend the frozen notice or opening observation.
 CREATE TABLE hall.council_agenda_addition (

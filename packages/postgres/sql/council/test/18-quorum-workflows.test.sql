@@ -5,15 +5,19 @@ SET LOCAL hall.actor_id='quorum-clerk';
 SELECT no_plan();
 \ir support/quorum.sql
 SELECT pg_temp.quorum_case('ordinary',15,8);
--- HALL-FR-MTG-270: explicit membership, never the theoretical seat count.
+-- @verifies-requirement HALL-FR-MTG-270
+-- explicit membership, never the theoretical seat count.
 SELECT is(calculate_meeting_quorum(test_uuid('ordinary:meeting'),NULL,'2026-01-01 09:00Z')->>'memberCount','15','N is the confirmed nominal roster');
 SELECT is(calculate_meeting_quorum(test_uuid('ordinary:meeting'),NULL,'2026-01-01 09:00Z')->>'requiredPresent','8','N15 requires8 present');
 SELECT test_prepare_notice(test_uuid('ordinary:meeting'));
 SELECT lives_ok($$SELECT start_council_meeting(test_uuid('ordinary:meeting'),'2026-01-01 09:00Z')$$,'opening records current quorum');
--- HALL-FR-AGI-350 HALL-FR-AGI-360: direct row transition cannot bypass observation.
+-- @verifies-requirement HALL-FR-AGI-350
+-- @verifies-requirement HALL-FR-AGI-360
+-- direct row transition cannot bypass observation.
 SELECT lives_ok($$UPDATE council_agenda_item SET started_at='2026-01-01 09:01Z' WHERE id=test_uuid('ordinary:a:agenda-item')$$,'first affair records an authoritative observation');
 CREATE TEMP TABLE retained AS SELECT facts FROM meeting_quorum_observation WHERE agenda_item=test_uuid('ordinary:a:agenda-item');
--- HALL-FR-ATT-120: a departure preserves opening attendance and the first affair.
+-- @verifies-requirement HALL-FR-ATT-120
+-- a departure preserves opening attendance and the first affair.
 INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status)
 VALUES(test_uuid('ordinary:att:8'),'2026-01-01 09:02Z','absent');
 SELECT is((SELECT status::text FROM meeting_attendance WHERE id=test_uuid('ordinary:att:8')),'present','opening roll call is preserved');
@@ -45,7 +49,9 @@ SELECT start_council_meeting(test_uuid('special:meeting'),'2026-01-01 09:00Z');
 SELECT lives_ok($$SELECT start_council_agenda_item(test_uuid('special:a:agenda-item'),'2026-01-01 09:01Z')$$,'qualified special conflict reduces denominator13 and7 present suffice');
 SELECT is((SELECT facts->>'denominator' FROM meeting_quorum_observation WHERE agenda_item=test_uuid('special:a:agenda-item')),'13','special denominator reduction is retained');
 
--- HALL-FR-MTG-290: ordinary failed first call, clear days, identified affairs.
+-- @verifies-requirement HALL-FR-MTG-290
+
+-- ordinary failed first call, clear days, identified affairs.
 SELECT pg_temp.quorum_case('renewed',15,7);
 CREATE TEMP TABLE first_failure AS SELECT (record_meeting_quorum(test_uuid('renewed:meeting'),NULL,'2026-01-01 09:00Z')).*;
 SELECT throws_ok($$INSERT INTO meeting_reconvocation(council_meeting,failed_observation,sent_at,scheduled_at,time_zone,first_notice_evidence,renewed_notice_evidence,agenda_item_ids)
@@ -91,7 +97,10 @@ SELECT is(calculate_meeting_quorum(test_uuid('replacement:meeting'),NULL,'2026-0
 SELECT is((SELECT count(*)::int FROM meeting_membership_record WHERE council_meeting=test_uuid('replacement:meeting')),2,'membership change preserves both nominal records');
 
 
--- HALL-FR-ATT-130: factual holder departure does not invent revocation of the written power.
+-- @verifies-requirement HALL-FR-ATT-130
+
+
+-- factual holder departure does not invent revocation of the written power.
 SELECT pg_temp.quorum_case('power',3,2);
 SELECT test_ensure_document_resource(test_uuid('power:document'));
 UPDATE meeting_attendance SET status='represented',proxy_holder=test_uuid('power:att:2'),proxy_document=test_uuid('power:document') WHERE id=test_uuid('power:att:3');

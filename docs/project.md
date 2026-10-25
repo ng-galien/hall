@@ -11,7 +11,8 @@ This document identifies the current technical authorities in Hall and the rules
 | HTTP and Siren contracts | `packages/api-contract/src/` |
 | PostgreSQL schema, invariants, and stored operations | `packages/postgres/` |
 | Server use cases and authorization | `packages/server/src/services/` and `packages/server/src/api/` |
-| Persistent row decoding | `packages/server/src/repositories/` |
+| PostgreSQL row decoding and documentary Siren projections | `packages/postgres/src/` |
+| Server-owned persistence row decoding | `packages/server/src/repositories/` and `packages/server/src/infrastructure/postgres/` |
 | Resource grammar and presentation compatibility | `packages/templating/src/` |
 | Client features and pages | `packages/client/src/features/` and `packages/client/src/pages/` |
 | Shared interface primitives | `packages/client/src/components/ui/` |

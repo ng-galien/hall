@@ -4,7 +4,7 @@ SET LOCAL hall.actor_id='numbering-clerk';
 \ir support/helpers.sql
 \ir support/quorum.sql
 SELECT no_plan();
--- HALL-FR-DEC-090
+-- @verifies-requirement HALL-FR-DEC-090
 SELECT pg_temp.quorum_case('numbering',3,3);
 SELECT test_prepare_notice(test_uuid('numbering:meeting'));
 SELECT start_council_meeting(test_uuid('numbering:meeting'),'2026-01-01 09:00Z');

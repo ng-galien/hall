@@ -10,7 +10,7 @@
   border-radius: var(--hall-radius-circular);
   color: var(--hall-color-text-muted);
   background: transparent;
-  font-size: calc(var(--hall-font-size-icon) + 1px);
+  font-size: calc(var(--hall-font-size-icon) + var(--hall-stroke-thin));
   cursor: pointer;
   transition:
     color var(--hall-motion-fast) var(--hall-motion-curve-standard),

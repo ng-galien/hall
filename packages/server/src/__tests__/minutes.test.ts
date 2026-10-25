@@ -90,7 +90,7 @@ describe("dedicated minutes HTTP lifecycle", () => {
         attendance: [{ councilMemberId: member.id, status: "present" }],
       })
       .expect(200);
-    const closed = domainBody<{ minutes: MinutesSummary }>(
+    const closed = domainBody<{ minutes: MinutesSummary; nextMeeting: { id: string } }>(
       await agent
         .post(`/api/council-meetings/${meeting.id}/close`)
         .send({ closedAt: "2026-09-05T20:00:00Z" })
@@ -181,6 +181,63 @@ describe("dedicated minutes HTTP lifecycle", () => {
       .send({ expectedVersion: generated.version, agendaItemId: agendaItem.id, content: "Changed" })
       .expect(409);
     await agent.post(`${path}/generate`).send({ expectedVersion: generated.version }).expect(409);
+    const nextId = closed.nextMeeting.id;
+    await agent
+      .put(`/api/council-meetings/${nextId}/prepare`)
+      .send({
+        scheduledAt: "2026-10-05T18:00:00Z",
+        location: "Salle du conseil",
+        chairMemberId: member.id,
+        secretaryMemberId: member.id,
+      })
+      .expect(200);
+    await council.freezeAgenda(databaseRequest, nextId);
+    const nextFacts = await council.noticeFacts(databaseRequest, nextId);
+    if (!nextFacts) throw new Error("Next meeting notice facts missing");
+    await council.generateNotice(
+      databaseRequest,
+      nextId,
+      { meeting: nextFacts, issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" } },
+      Buffer.from("%PDF-fixture"),
+    );
+    await agent
+      .post(`/api/council-meetings/${nextId}/record-opening`)
+      .send({
+        observedAt: "2026-10-05T18:05:00Z",
+        chairMemberId: member.id,
+        secretaryMemberId: member.id,
+        attendance: [{ councilMemberId: member.id, status: "present" }],
+      })
+      .expect(200);
+    const approval = domainBody<Array<{ id: string; subject: { kind: string } }>>(
+      await agent.get(`/api/council-meetings/${nextId}/agenda-items`).expect(200),
+    ).find((item) => item.subject.kind === "minutesApproval")!;
+    await agent
+      .post(`/api/council-meetings/${nextId}/agenda-items/${approval.id}/start`)
+      .send({ startedAt: "2026-10-05T18:06:00Z" })
+      .expect(200);
+    const attendance = await council.listAttendance(databaseRequest, nextId);
+    const previewVote = domainBody<{ id: string }>(
+      await agent
+        .post("/api/ballot-previews")
+        .send({
+          agendaItemId: approval.id,
+          candidate: {
+            procedure: "ordinaryMajority",
+            mode: "public",
+            participantAttendanceIds: attendance.map((entry) => entry.id),
+            chairmanAttendanceId: attendance[0].id,
+            votes: attendance.map((entry) => ({ meetingAttendanceId: entry.id, choice: "approve" })),
+            nonParticipations: [],
+          },
+        })
+        .expect(201),
+    );
+    await agent.post(`/api/ballot-previews/${previewVote.id}/confirm`).send({}).expect(200);
+    const settled = domainBody<MinutesDetail>(await agent.get(path).expect(200));
+    expect(settled.settledAt).not.toBeNull();
+    expect(settled.documentId).toBe(generated.documentId);
+    expect((await agent.get(`${path}/content`).expect(200)).body).toEqual(pdf.body);
   }, 30_000);
 
   it("keeps recorded discussion in the closure draft and rejects later notes", async () => {
@@ -248,7 +305,7 @@ describe("dedicated minutes HTTP lifecycle", () => {
       .expect(200);
     const notesPath = `/api/council-meetings/${meeting.id}/agenda-items/${item.id}/notes`;
     await agent.patch(notesPath).send({ discussionSummary: "La commission présente ses conclusions." }).expect(200);
-    const closed = domainBody<{ minutes: MinutesSummary }>(
+    const closed = domainBody<{ minutes: MinutesSummary; nextMeeting: { id: string } }>(
       await agent
         .post(`/api/council-meetings/${meeting.id}/close`)
         .send({ closedAt: "2026-09-05T20:00:00Z" })

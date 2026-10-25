@@ -38,7 +38,7 @@ function MinutesDetail({ id }: { id: string }) {
         <PageHeader
           title={
             minutes
-              ? t("minutes.councilNumber").replace("{number}", formatNumber(minutes.meetingNumber))
+              ? t("minutes.councilNumber", { number: formatNumber(minutes.meetingNumber) })
               : t("navigation.minutes")
           }
           description={
@@ -76,7 +76,7 @@ function MinutesDetail({ id }: { id: string }) {
                   >
                     <CalendarIcon aria-hidden="true" />
                     {t("minutes.approvalMeeting")} ·{" "}
-                    {t("minutes.councilNumber").replace("{number}", formatNumber(approvalMeeting.number))}
+                    {t("minutes.councilNumber", { number: formatNumber(approvalMeeting.number) })}
                   </Link>
                 ) : null}
               </div>

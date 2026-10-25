@@ -62,13 +62,14 @@ export function MunicipalPropertyImportDialog({
       {result ? (
         <div className="modal-form" data-testid="municipal-property-import-result">
           <p>
-            {t("municipalProperty.import.done")
-              .replace("{count}", formatNumber(result.data.parcelIds.length))
-              .replace("{matched}", formatNumber(result.data.matchedParcelCount))}
+            {t("municipalProperty.import.done", {
+              count: formatNumber(result.data.parcelIds.length),
+              matched: formatNumber(result.data.matchedParcelCount),
+            })}
           </p>
           {result.data.rejected && result.data.rejected.length > 0 ? (
             <p className="geographic-feature-card-muted">
-              {t("municipalProperty.import.ignored").replace("{values}", result.data.rejected.slice(0, 20).join(", "))}
+              {t("municipalProperty.import.ignored", { values: result.data.rejected.slice(0, 20).join(", ") })}
             </p>
           ) : null}
           <Button type="button" data-testid="municipal-property-import-close" onClick={onClose}>

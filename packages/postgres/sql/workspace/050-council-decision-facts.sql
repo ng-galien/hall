@@ -1,6 +1,6 @@
 -- This observation exists independently of the policy selecting documentary drafts.
 -- It does not allocate a publication number or record publication/transmission.
--- @functional-requirement HALL-FR-DEC-010 CONFIRMED_PROPOSAL_FACTS_ARE_PRESERVED:
+-- @implements-requirement HALL-FR-DEC-010
 CREATE TABLE hall.council_decision_facts (
   ballot UUID PRIMARY KEY REFERENCES hall.ballots(id),
   facts JSONB NOT NULL CONSTRAINT "council_decision_facts_facts_check" CHECK (jsonb_typeof(facts) = 'object'::text)
@@ -43,7 +43,7 @@ BEGIN
   SELECT NEW.id,jsonb_build_object(
     'proposal',jsonb_build_object('id',item.council_decision_proposal,'title',resource.name,'submittedText',text.content),
     'agendaItemId',item.id,'agendaNumber',(SELECT agenda_number FROM hall.council_agenda_presentation_numbers(meeting.id) WHERE agenda_item=item.id),
-    -- @functional-requirement HALL-FR-DEC-060 DECISIONS_HAVE_AN_ORDER_WITHIN_THE_MEETING:
+    -- @implements-requirement HALL-FR-DEC-060
     'decisionNumber',(SELECT count(*)+1 FROM hall.council_decision_facts WHERE facts#>>'{meeting,id}'=meeting.id::text),
     'confirmedAt',NEW.completed_at,
     'meeting',jsonb_build_object('id',meeting.id,'number',meeting.number,'scheduledAt',meeting.scheduled_at,'startedAt',meeting.started_at,

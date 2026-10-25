@@ -41,7 +41,7 @@ export function ConductActionBlockers({
   if (blockers.length === 0) return null;
   return (
     <div className="conduct-action-blocker" data-testid={`conduct-blockers-${action}`}>
-      {label ? <strong>{t("conduct.actionUnavailable").replace("{action}", t(label))}</strong> : null}
+      {label ? <strong>{t("conduct.actionUnavailable", { action: t(label) })}</strong> : null}
       <ul>
         {blockers.map((blocker) => {
           let text = t(labels[blocker.code]);

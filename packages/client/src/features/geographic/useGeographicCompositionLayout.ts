@@ -40,6 +40,7 @@ function persistLayout(resourceId: string, layout: CompositionLayout): void {
  * mode keeps the window where the user put it; its size follows its content or the user's resize.
  */
 // @implements-requirement HALL-FR-DOC-490
+// biome-ignore-start lint/correctness/useExhaustiveDependencies: the observed element changes when the other panel opens.
 export function useGeographicCompositionLayout(resourceId: string, panel: string | null) {
   const active = panel !== null;
   const panelRef = useRef<HTMLElement | null>(null);
@@ -59,7 +60,6 @@ export function useGeographicCompositionLayout(resourceId: string, panel: string
 
   useEffect(() => setLayout(storedLayout(resourceId)), [resourceId]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the observed element changes when the other panel opens.
   useEffect(() => {
     if (!active) return;
     const element = panelRef.current;
@@ -90,7 +90,6 @@ export function useGeographicCompositionLayout(resourceId: string, panel: string
   }, [active, panel, updateLayout]);
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    // A press on a control of the header (a tab, a button) uses that control; elsewhere it moves the window.
     if (event.button !== 0 || !panelRef.current) return;
     if ((event.target as Element).closest("button, a, input, [role='tab']")) return;
     const panelRect = panelRef.current.getBoundingClientRect();
@@ -126,3 +125,4 @@ export function useGeographicCompositionLayout(resourceId: string, panel: string
 
   return { panelRef, style, startDrag, move, stopDrag };
 }
+// biome-ignore-end lint/correctness/useExhaustiveDependencies: the observed element changes when the other panel opens.

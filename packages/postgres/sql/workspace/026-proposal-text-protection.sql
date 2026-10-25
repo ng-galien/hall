@@ -63,7 +63,7 @@ FOR EACH ROW EXECUTE FUNCTION hall.seal_voted_proposal_text();
 CREATE TRIGGER ballot_seals_proposal_text AFTER INSERT OR UPDATE ON hall.ballots
 FOR EACH ROW EXECUTE FUNCTION hall.seal_voted_proposal_text();
 
--- @functional-requirement HALL-FR-WSP-220 PROPOSAL_TEXT_BELONGS_PERMANENTLY_TO_ITS_BUSINESS:
+-- @implements-requirement HALL-FR-WSP-220
 CREATE FUNCTION hall.protect_proposal_workspace()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN

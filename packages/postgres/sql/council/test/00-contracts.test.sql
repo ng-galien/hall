@@ -1,7 +1,13 @@
 BEGIN;
 SELECT no_plan();
 
--- HALL-FR-BAL-010 HALL-FR-BAL-020 HALL-FR-VOT-010 HALL-FR-ATT-010
+-- @verifies-requirement HALL-FR-BAL-010
+
+-- @verifies-requirement HALL-FR-BAL-020
+
+-- @verifies-requirement HALL-FR-VOT-010
+
+-- @verifies-requirement HALL-FR-ATT-010
 SELECT set_eq(
   $$SELECT typname FROM pg_type
     WHERE typname IN ('ballot_mode', 'ballot_result', 'meeting_attendance_status', 'vote_choice')$$,
@@ -153,10 +159,11 @@ SELECT set_eq(
   'each lifecycle authority is wired to its owning relation'
 );
 
--- HALL-TR-ERR-010 HALL-TR-ERR-020 HALL-TR-ERR-030
--- @verifies-requirement HALL-TR-TRC-010
--- @verifies-requirement HALL-TR-TRC-020
-SELECT pass('the traceability preflight matched every requirement and Hall SQLSTATE before pgTAP started');
+-- @verifies-requirement HALL-TR-ERR-010
+
+-- @verifies-requirement HALL-TR-ERR-020
+
+-- @verifies-requirement HALL-TR-ERR-030
 
 SELECT * FROM finish();
 ROLLBACK;

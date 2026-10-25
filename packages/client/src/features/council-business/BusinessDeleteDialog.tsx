@@ -30,7 +30,7 @@ export function BusinessDeleteDialog({
     >
       <div className="modal-form">
         <RequestErrorBanner error={error} />
-        <p>{t("business.deleteConfirm").replace("{name}", name)}</p>
+        <p>{t("business.deleteConfirm", { name: name })}</p>
         <Button
           variant="destructive"
           disabled={submitting}

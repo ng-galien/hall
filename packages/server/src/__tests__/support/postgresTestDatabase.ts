@@ -1,3 +1,4 @@
+import { PostgresDirectory } from "@hall/postgres";
 import { Pool } from "pg";
 
 export function createPostgresTestPool(): { databaseUrl: string; pool: Pool } {
@@ -35,4 +36,14 @@ export async function resetPostgresTestDatabase(pool: Pool): Promise<void> {
 
     COMMIT;
   `);
+}
+
+export async function configureTestCouncilTerm(pool: Pool, expectedCouncilMemberCount: number): Promise<void> {
+  await new PostgresDirectory(pool).configureActiveCouncilTerm(
+    {
+      role: "hall_api_authenticated",
+      context: { requestId: "test-fixture", actorId: "test", roles: ["administrator"], contactId: null },
+    },
+    expectedCouncilMemberCount,
+  );
 }

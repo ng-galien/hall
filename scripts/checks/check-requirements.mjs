@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
@@ -108,7 +109,9 @@ function discoverEvidence(root) {
   const errors = [];
   const packageRoot = resolve(root, "packages");
   const backlogRoot = resolve(root, "backlog");
-  const packageFiles = filesBelow(packageRoot, /\.(sql|ts|tsx|js|mjs)$/);
+  const packageFiles = [packageRoot, resolve(root, "scripts"), resolve(root, "tests")].flatMap((directory) =>
+    existsSync(directory) ? filesBelow(directory, /\.(sql|ts|tsx|js|mjs|css)$/) : [],
+  );
   const backlogFiles = filesBelow(backlogRoot, /\.md$/);
 
   for (const path of [...packageFiles, ...backlogFiles]) {
@@ -116,6 +119,7 @@ function discoverEvidence(root) {
     const lines = readFileSync(path, "utf8").split("\n");
     lines.forEach((line, index) => {
       const location = `${relative(root, path)}:${index + 1}`;
+      if (category !== "backlog" && !/^\s*(?:\/\/|--|\/\*|\*)/.test(line)) return;
       const legacy = line.match(
         /@(functional-requirement|technical-requirement|requirement-reference)\s+(HALL-(FR|TR)-[A-Z]+-\d{3})\s+([A-Z][A-Z0-9_]+):/,
       );
@@ -129,6 +133,10 @@ function discoverEvidence(root) {
       if (/FR-HALL-[A-Z]+-\d+/.test(line) || (hasMarker && !legacy && !simplified)) {
         errors.push(`${location}: malformed requirement annotation`);
       }
+      if (legacy)
+        errors.push(`${location}: copied requirement wording is forbidden; use the dedicated identifier marker`);
+      if (/^\s*(?:--|\/\/|\*)\s+HALL-(?:FR|TR)-[A-Z]+-\d{3}/.test(line))
+        errors.push(`${location}: bare requirement citation needs a dedicated marker`);
       if (legacy) {
         const [, kind, id, idNature, name] = legacy;
         records.push({
@@ -154,7 +162,9 @@ function discoverEvidence(root) {
   return { records, errors };
 }
 
-export function validateRequirements(root, rawRegistry) {
+// @implements-requirement HALL-TR-TRC-010
+// @implements-requirement HALL-TR-TRC-020
+export function validateRequirements(root, rawRegistry, baseline = null) {
   const registry = requirementsRegistrySchema.parse(rawRegistry);
   const definitions = new Map();
   const evidence = new Map(
@@ -173,6 +183,22 @@ export function validateRequirements(root, rawRegistry) {
   );
   const errors = [];
   const unproven = [];
+  if (baseline) {
+    for (const [id, previous] of Object.entries(baseline.requirements)) {
+      const current = registry.requirements[id];
+      if (!current) errors.push(`${id}: an assigned identity must remain in the catalogue (use lifecycle retirement)`);
+      else if (current.name !== previous.name) errors.push(`${id}: an assigned identity cannot be reused or renamed`);
+    }
+    for (const id of Object.keys(registry.requirements).filter((id) => !baseline.requirements[id])) {
+      const number = Number(id.slice(-3));
+      const prefix = id.slice(0, -3);
+      const assigned = Object.keys(baseline.requirements)
+        .filter((key) => key.startsWith(prefix))
+        .map((key) => Number(key.slice(-3)));
+      if (number % 10 !== 0 && !(assigned.some((n) => n < number) && assigned.some((n) => n > number)))
+        errors.push(`${id}: new identities advance by ten unless inserted in an existing interval`);
+    }
+  }
 
   for (const [prefix, theme] of Object.entries(registry.taxonomy.prefixThemes)) {
     if (!registry.taxonomy.themes[theme]) errors.push(`${prefix}: unresolved theme ${theme}`);
@@ -261,13 +287,16 @@ if (process.argv[1] && resolve(process.argv[1]) === scriptPath) {
   try {
     const root = resolve(dirname(scriptPath), "../..");
     const registry = JSON.parse(readFileSync(resolve(root, "requirements/catalog.json"), "utf8"));
-    const result = validateRequirements(root, registry);
+    const baseline = JSON.parse(
+      execFileSync("git", ["show", "HEAD:requirements/catalog.json"], { cwd: root, encoding: "utf8" }),
+    );
+    const result = validateRequirements(root, registry, baseline);
     for (const error of result.errors) console.error(error);
     for (const item of result.unproven) console.warn(`UNPROVEN: ${item}`);
     if (result.errors.length) process.exitCode = 1;
     else
       console.log(
-        `Requirements structure OK: ${result.requirements} catalog entries, ${result.implementations} implemented, ${result.verifications} verified, ${result.tracked} tracked, ${result.sources} legal sources; ${result.unproven.length} explicitly unproven clauses. This is not legal or behavioral certification.`,
+        `Requirements structure OK: ${result.requirements} catalog entries, ${result.implementations} implemented, ${result.verifications} with verification markers, ${result.tracked} tracked, ${result.sources} legal sources; ${result.unproven.length} explicitly unproven clauses. This is not legal or behavioral certification.`,
       );
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

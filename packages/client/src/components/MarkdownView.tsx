@@ -191,7 +191,7 @@ export function MarkdownView({
             ? [remarkGfm, remarkUnderline]
             : [remarkGfm, remarkDirective, remarkReferences, remarkUnderline]
         }
-        rehypePlugins={allowEmbeddedImages ? [rehypeRaw, rehypeConvertedDocument] : [rehypeRaw]}
+        rehypePlugins={[rehypeRaw, rehypeConvertedDocument]}
         allowedElements={allowEmbeddedImages ? [...allowedElements, "h1", "h4", "h5", "h6"] : allowedElements}
         urlTransform={
           allowEmbeddedImages

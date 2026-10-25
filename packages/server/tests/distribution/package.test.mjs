@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -247,7 +247,7 @@ it(
       maintenance = new Pool({ connectionString: maintenanceConnection.href });
       await maintenance.query(`CREATE DATABASE "${databaseName}"`);
       pool = new Pool({ connectionString: url });
-      const configuration = `NODE_ENV=production\nLOG_LEVEL=silent\nDATABASE_URL=${url}\nSERVER_HOST=127.0.0.1\nSERVER_PORT=${httpPort}\n`;
+      const configuration = `NODE_ENV=production\nLOG_LEVEL=info\nDATABASE_URL=${url}\nSERVER_HOST=127.0.0.1\nSERVER_PORT=${httpPort}\n`;
       await writeFile(envFile, configuration, { mode: 0o600 });
       const empty = command(process.execPath, [cli, "schema-check", "--env-file", envFile]);
       expect(empty.status).not.toBe(0);
@@ -260,6 +260,15 @@ it(
       expect(run(process.execPath, [cli, "migrate", "--env-file", envFile])).toContain("schema installed");
       expect(run(process.execPath, [cli, "migrate", "--env-file", envFile])).toContain("schema verified");
       await start();
+      const runningVersion = `${release.version}:${release.source.commit}:${release.source.dirty ? "dirty" : "clean"}`;
+      expect(await (await request("/health")).json()).toEqual({ status: "ok", version: runningVersion });
+      const persistentLog = join(temporary, "logs/hall.log");
+      await expect.poll(async () => readFile(persistentLog, "utf8")).toContain("Hall server started");
+      expect(await readFile(persistentLog, "utf8")).toContain(runningVersion);
+      if (process.platform !== "win32") {
+        expect((await stat(persistentLog)).mode & 0o777).toBe(0o600);
+        expect((await stat(join(temporary, "logs"))).mode & 0o777).toBe(0o700);
+      }
       expect((await request("/users", { session: "" })).status).toBe(401);
       expect((await (await request("/auth/status")).json()).properties.bootstrapRequired).toBe(true);
       const bootstrap = await request("/auth/bootstrap", { method: "POST", body: administrator });

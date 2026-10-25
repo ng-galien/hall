@@ -71,6 +71,8 @@ const DRAWING_HIT_TOLERANCE = 6;
  * Owns OpenLayers lifecycle and translates map interactions into geographic draft mutations. A click selects a
  * drawing; the modification of its shape is a distinct state of one selected drawing, controlled by its Composition flag, and only that drawing takes the drags.
  */
+// @implements-requirement HALL-FR-WSP-330
+// @implements-requirement HALL-FR-DOC-490
 export function useGeographicMapRuntime({
   resourceId,
   data,
@@ -167,7 +169,6 @@ export function useGeographicMapRuntime({
     const normalizedLayers = completeGeographicLayers(initialData.layers);
     const view = createGeographicView(retainedViewRef.current ?? initialData.view);
     const tileLayers = createGeographicTileLayers(normalizedLayers);
-    // An ordered collection keeps the Composition order: the spatial index alone does not preserve it.
     const vectorSource = new VectorSource<Feature<Geometry>>({
       features: new Collection(readHallFeatures(initialData.hallLayer)),
     });
@@ -180,7 +181,6 @@ export function useGeographicMapRuntime({
         return geographicFeatureStyle(feature, `${featureKindLabelsRef.current[kind]} ${index + 1}`, resolution);
       },
       zIndex: 100,
-      // Overlapping labels of close drawings are hidden until the zoom separates them; symbols always stay.
       declutter: true,
       visible: true,
     });
@@ -285,8 +285,6 @@ export function useGeographicMapRuntime({
     };
   }, [resourceId, embedded, onSelection, setModifying, syncHallLayer]);
 
-  // URL/history framing is authoritative, but an unchanged saved view must not undo a user's pan or zoom.
-  // @implements-requirement HALL-FR-WSP-330
   useEffect(() => {
     if (!openLayersMap || mapRef.current !== openLayersMap || embedded) return;
     const signature = JSON.stringify(data.view);
@@ -306,8 +304,6 @@ export function useGeographicMapRuntime({
     }
   }, [data.view, requestedView, openLayersMap, embedded]);
 
-  // Drawing mutations keep the map, XYZ sources and their parent-tile caches alive.
-  // Adopt an external replacement in place so selection and modification retain feature identity.
   useEffect(() => {
     const source = vectorSourceRef.current;
     if (!source || !openLayersMap || mapRef.current !== openLayersMap) return;
@@ -476,8 +472,6 @@ export function useGeographicMapRuntime({
     syncHallLayer();
   };
 
-  // @implements-requirement HALL-FR-DOC-490
-  /** Moves a drawing before or after another one in the Composition order, which is the saved order. */
   const moveFeature = (sourceId: string, targetId: string) => {
     const features = vectorSourceRef.current?.getFeaturesCollection();
     if (!features || sourceId === targetId) return;

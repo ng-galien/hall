@@ -2,7 +2,7 @@ BEGIN;
 \ir support/helpers.sql
 SELECT no_plan();
 
--- HALL-FR-MTG-010
+-- @verifies-requirement HALL-FR-MTG-010
 SELECT throws_ok(
   $$INSERT INTO council_meetings (id) VALUES
 (NULL)$$,
@@ -11,7 +11,7 @@ SELECT throws_ok(
   'declarative NOT NULL violations keep their native SQLSTATE'
 );
 
--- HALL-FR-MTG-040
+-- @verifies-requirement HALL-FR-MTG-040
 SELECT throws_ok(
   $$
     INSERT INTO council_meetings (id, started_at) VALUES
@@ -51,7 +51,7 @@ VALUES (
   'present'
 );
 
--- HALL-FR-ATT-100
+-- @verifies-requirement HALL-FR-ATT-100
 SELECT throws_ok(
   $$DELETE FROM hall.council_member WHERE id = test_uuid('member:present-1')$$,
   '23503',
@@ -59,7 +59,11 @@ SELECT throws_ok(
   'an attendance keeps its CouncilMember mandate referenced'
 );
 
--- HALL-TR-CON-010 HALL-TR-CON-030 HALL-FR-ATT-070
+-- @verifies-requirement HALL-TR-CON-010
+
+-- @verifies-requirement HALL-TR-CON-030
+
+-- @verifies-requirement HALL-FR-ATT-070
 SELECT lives_ok(
   $$
     SELECT test_execute_deferred(ARRAY[
@@ -89,7 +93,7 @@ SELECT lives_ok(
   'represented and holder attendances can be inserted atomically in reverse order'
 );
 
--- HALL-FR-ATT-110
+-- @verifies-requirement HALL-FR-ATT-110
 SELECT throws_ok(
   $$DELETE FROM hall.document_resource WHERE id = test_uuid('document:proxy-1')$$,
   '23503',
@@ -97,7 +101,7 @@ SELECT throws_ok(
   'represented attendance keeps its written DocumentResource evidence referenced'
 );
 
--- HALL-FR-ATT-030
+-- @verifies-requirement HALL-FR-ATT-030
 SELECT throws_ok(
   $$
     INSERT INTO meeting_attendance (id, council_member, council_meeting, status)
@@ -131,7 +135,7 @@ SELECT throws_ok(
   'a non-represented attendance cannot carry proxy data'
 );
 
--- HALL-FR-ATT-040
+-- @verifies-requirement HALL-FR-ATT-040
 SELECT throws_ok(
   $$
     INSERT INTO meeting_attendance (
@@ -150,7 +154,7 @@ SELECT throws_ok(
   'a member cannot hold their own proxy'
 );
 
--- HALL-FR-ATT-020
+-- @verifies-requirement HALL-FR-ATT-020
 SELECT throws_ok(
   $$
     INSERT INTO meeting_attendance (id, council_member, council_meeting, status)
@@ -179,7 +183,7 @@ SELECT lives_ok(
   'the same member can have attendance in another meeting'
 );
 
--- HALL-FR-ATT-050
+-- @verifies-requirement HALL-FR-ATT-050
 SELECT throws_ok(
   $$
     INSERT INTO meeting_attendance (
@@ -198,7 +202,7 @@ SELECT throws_ok(
   'one present attendance holds at most one proxy in a meeting'
 );
 
--- HALL-FR-ATT-060
+-- @verifies-requirement HALL-FR-ATT-060
 SELECT throws_ok(
   $$
     INSERT INTO meeting_attendance (
@@ -263,7 +267,7 @@ SELECT ok(
   'the proxy predicate rejects a represented holder'
 );
 
--- HALL-FR-MTG-020
+-- @verifies-requirement HALL-FR-MTG-020
 SELECT is(
   council_meeting_present_member_count(test_uuid('mtg:main')),
   2,
@@ -276,7 +280,8 @@ INSERT INTO council_meetings (id, stale) VALUES
 SELECT test_ensure_council_member(test_uuid('member:attendance-action:represented'));
 SELECT test_ensure_council_member(test_uuid('member:attendance-action:present'));
 SELECT test_ensure_document_resource(test_uuid('document:attendance-action:proxy'));
--- HALL-TR-CON-040 HALL-TR-INT-070
+-- @verifies-requirement HALL-TR-CON-040
+-- @verifies-requirement HALL-TR-INT-070
 SELECT lives_ok(
   format(
     $sql$
@@ -323,7 +328,7 @@ SELECT is(
   'the projection exposes the proxy holder CouncilMember rather than its persistence row'
 );
 
--- HALL-FR-ATT-030
+-- @verifies-requirement HALL-FR-ATT-030
 SELECT throws_ok(
   $$
     SELECT hall_api.record_meeting_attendance(
@@ -336,7 +341,7 @@ SELECT throws_ok(
   'the named action rejects a declaration payload that is not an array'
 );
 
--- HALL-FR-MTG-050
+-- @verifies-requirement HALL-FR-MTG-050
 SELECT throws_ok(
   $$UPDATE council_meetings SET number = number + 1000 WHERE id = test_uuid('mtg:main')$$,
   'HV113',
@@ -352,14 +357,14 @@ VALUES (
   'present'
 );
 
--- HALL-FR-MTG-070
+-- @verifies-requirement HALL-FR-MTG-070
 INSERT INTO meeting_attendance(id,council_member,council_meeting,status) VALUES(test_uuid('att:no-quorum-absent'),test_uuid('member:no-quorum-absent'),test_uuid('mtg:no-quorum'),'absent');
 SELECT test_confirm_declared_membership(test_uuid('mtg:no-quorum'));
 SELECT test_prepare_notice(test_uuid('mtg:no-quorum'));
 SELECT set_council_meeting_officers(test_uuid('mtg:no-quorum'),test_uuid('member:no-quorum-present'),test_uuid('member:no-quorum-present'));
 SELECT lives_ok($$UPDATE council_meetings SET started_at='2026-01-01 09:00:00+00' WHERE id=test_uuid('mtg:no-quorum')$$,'opening records insufficient quorum without preventing the session');
 
--- HALL-FR-MTG-160
+-- @verifies-requirement HALL-FR-MTG-160
 SELECT throws_ok(
   $$SELECT schedule_council_meeting(test_uuid('mtg:main'), NULL, 'Council chamber')$$,
   'HV122',
@@ -385,13 +390,15 @@ SELECT is(
 SELECT test_designate_present_officers(test_uuid('mtg:main'));
 SELECT test_prepare_notice(test_uuid('mtg:main'));
 
--- HALL-FR-MTG-170
+-- @verifies-requirement HALL-FR-MTG-170
 SELECT lives_ok(
   $$SELECT start_council_meeting(test_uuid('mtg:main'), '2026-01-01 09:00:00+00')$$,
   'a meeting starts through its named action once physical quorum is reached'
 );
 
--- HALL-FR-ATT-080 HALL-TR-INT-010
+-- @verifies-requirement HALL-FR-ATT-080
+
+-- @verifies-requirement HALL-TR-INT-010
 SELECT throws_ok(
   $$UPDATE meeting_attendance SET status = 'absent' WHERE id = test_uuid('att:present-1')$$,
   'HV102',
@@ -416,7 +423,7 @@ SELECT throws_ok(
 SET CONSTRAINTS ALL DEFERRED;
 
 
--- HALL-FR-ATT-090
+-- @verifies-requirement HALL-FR-ATT-090
 SELECT throws_ok(
   $$
     INSERT INTO meeting_attendance (id, council_member, council_meeting, status)
@@ -432,7 +439,7 @@ SELECT throws_ok(
   'attendance closes when its meeting starts'
 );
 
--- HALL-FR-MTG-060
+-- @verifies-requirement HALL-FR-MTG-060
 SELECT throws_ok(
   $$
     UPDATE council_meetings
@@ -449,7 +456,9 @@ SELECT lives_ok(
   'an observationally harmless meeting no-op remains legal'
 );
 
--- HALL-FR-MTG-030 HALL-TR-INT-020
+-- @verifies-requirement HALL-FR-MTG-030
+
+-- @verifies-requirement HALL-TR-INT-020
 SELECT throws_ok(
   $$DELETE FROM council_meetings WHERE id = test_uuid('mtg:main')$$,
   'HV111',
@@ -466,7 +475,9 @@ SELECT throws_ok(
 );
 SET CONSTRAINTS ALL DEFERRED;
 
--- HALL-TR-CON-020: pgTAP cannot prove two-session scheduling; it does verify
+-- @verifies-requirement HALL-TR-CON-020
+
+-- pgTAP cannot prove two-session scheduling; it does verify
 -- that the insertion authority locks the meeting row used by the invariant.
 SELECT ok(
   pg_get_functiondef('enforce_meeting_attendance_lifecycle()'::regprocedure)

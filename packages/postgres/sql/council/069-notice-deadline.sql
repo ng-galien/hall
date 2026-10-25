@@ -11,7 +11,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-NOT-110 MEETING_NOTICE_USES_APPLICABLE_CLEAR_DAYS:
+-- @implements-requirement HALL-FR-NOT-110
 -- Ordinary regimes: CGCT L2121-11 and L2121-12; CE 13/10/1993 no 141677.
 -- Both boundary dates are excluded. Weekends and holidays count; no next-workday extension.
 CREATE FUNCTION hall.notice_clear_day_deadline(meeting_time TIMESTAMPTZ, zone TEXT, clear_days INTEGER)
@@ -19,7 +19,7 @@ RETURNS DATE LANGUAGE sql IMMUTABLE STRICT SET search_path = pg_catalog AS $$
   SELECT (meeting_time AT TIME ZONE zone)::DATE - (clear_days + 1);
 $$;
 
--- @technical-requirement HALL-TR-NOT-020 NOTICE_DEADLINE_IS_PROJECTED_BY_POSTGRESQL:
+-- @implements-requirement HALL-TR-NOT-020
 -- Unknown legal qualification must not turn an ordinary reference date into an
 -- assertion of an applicable deadline or transmission compliance.
 CREATE FUNCTION hall.meeting_notice_deadline(target hall.council_meetings)
@@ -47,7 +47,7 @@ BEGIN
   result := jsonb_build_object('deadlineDate',deadline,'meetingDate',(meeting_time AT TIME ZONE zone)::DATE,
     'clearDays',notice_days,'timeZone',zone,'reminder',reminder);
   IF reconvocation.id IS NOT NULL THEN
-    -- @requirement-reference HALL-FR-MTG-290 SECOND_CONVOCATION_REQUIRES_RECORDED_FAILURE_AND_NOTICE:
+    -- @implements-requirement HALL-FR-MTG-290
     RETURN jsonb_build_object('status','determined','regime','secondConvocation','deadline',result);
   END IF;
   RETURN jsonb_build_object('status','qualificationRequired','reason','noticeRegimeUnqualified','ordinaryReference',result);

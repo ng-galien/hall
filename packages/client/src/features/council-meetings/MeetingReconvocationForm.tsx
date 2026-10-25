@@ -68,10 +68,10 @@ export function MeetingReconvocationForm({
             ))}
           </ul>
           <p className="text-sm text-muted">
-            {t("meeting.quorumFailureRecordedAt").replace("{date}", formatDateTime(observation.observedAt))}
+            {t("meeting.quorumFailureRecordedAt", { date: formatDateTime(observation.observedAt) })}
           </p>
           <RequestErrorBanner error={error} />
-          <p className="text-sm text-muted">{t("meeting.reconvocationLocalTime").replace("{zone}", timeZone)}</p>
+          <p className="text-sm text-muted">{t("meeting.reconvocationLocalTime", { zone: timeZone })}</p>
           <div className="grid gap-1.5">
             <Label htmlFor={`${prefix}-sent`}>{t("meeting.noticeSentAt")}</Label>
             <Input

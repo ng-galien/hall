@@ -1,4 +1,4 @@
--- @technical-requirement HALL-TR-AUD-010 AUDIT_IS_ATOMIC_WITH_COMMAND:
+-- @implements-requirement HALL-TR-AUD-010
 -- A successful command and its audit fact commit or roll back together.
 CREATE TYPE hall.audit_outcome AS ENUM ('succeeded', 'denied', 'failed');
 

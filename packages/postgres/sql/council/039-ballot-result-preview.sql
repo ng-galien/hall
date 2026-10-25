@@ -1,4 +1,4 @@
--- @functional-requirement HALL-FR-BAL-320 BALLOT_RESULT_REQUIRES_EXPLICIT_REVIEW_AND_CONFIRMATION:
+-- @implements-requirement HALL-FR-BAL-320
 -- Product decision: a preview retains a candidate, not votes or a decision.
 -- Each replacement preview is a new version; only confirmation makes the act.
 CREATE TABLE hall.ballot_result_preview (
@@ -183,7 +183,7 @@ BEGIN
    'nonParticipation',coalesce((SELECT sum(count) FROM hall.ballot_non_participation WHERE ballot=b.id),0)));
 END $$;
 
--- @technical-requirement HALL-TR-CON-200 BALLOT_CONFIRMATION_BINDS_REVIEWED_CANDIDATE_AND_CONTEXT:
+-- @implements-requirement HALL-TR-CON-200
 CREATE FUNCTION hall.require_current_ballot_preview(target_ballot UUID,preview_id UUID)
 RETURNS VOID LANGUAGE plpgsql VOLATILE SET search_path=pg_catalog,hall AS $$
 DECLARE preview hall.ballot_result_preview; b hall.ballots;

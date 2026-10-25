@@ -16,6 +16,7 @@ export interface ColorPickerNamedPresets {
   presets: ColorPickerPreset[];
 }
 
+// biome-ignore-start lint/suspicious/noArrayIndexKey: two meanings may share one color.
 export function ColorPicker({
   value,
   presets,
@@ -70,7 +71,6 @@ export function ColorPicker({
             <legend className="color-picker-named-title">{namedPresets.title}</legend>
             {namedPresets.presets.map((preset, index) => (
               <button
-                // biome-ignore lint/suspicious/noArrayIndexKey: two meanings may share one color.
                 key={`${index}:${preset.value}`}
                 type="button"
                 className="color-picker-named-preset"
@@ -113,3 +113,4 @@ export function ColorPicker({
     </Popover>
   );
 }
+// biome-ignore-end lint/suspicious/noArrayIndexKey: two meanings may share one color.

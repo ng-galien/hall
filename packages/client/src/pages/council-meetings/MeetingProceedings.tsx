@@ -120,18 +120,17 @@ export function BallotOutcome({
                   <p className="report-ballot-note">{t("ballot.chairTieBreakApplied")}</p>
                 ) : null}
                 <p className="report-ballot-note">
-                  {t("ballot.expressedMajority").replace("{expressed}", formatNumber(ballot.votesCast))}
+                  {t("ballot.expressedMajority", { expressed: formatNumber(ballot.votesCast) })}
                 </p>
                 <p className="report-ballot-note">
-                  {t("ballot.participationEvidence")
-                    .replace("{present}", formatNumber(ballot.participationEvidence.quorum.physicallyPresent))
-                    .replace(
-                      "{required}",
+                  {t("ballot.participationEvidence", {
+                    present: formatNumber(ballot.participationEvidence.quorum.physicallyPresent),
+                    required:
                       ballot.participationEvidence.quorum.required === null
                         ? t("meeting.quorumUnestablished")
                         : formatNumber(ballot.participationEvidence.quorum.required),
-                    )
-                    .replace("{roster}", formatNumber(ballot.participationEvidence.quorum.activeMembers))}
+                    roster: formatNumber(ballot.participationEvidence.quorum.activeMembers),
+                  })}
                 </p>
               </PopoverContent>
             </Popover>
@@ -168,9 +167,7 @@ export function BallotOutcome({
                       </td>
                       <td>
                         {vote.castByMemberId !== vote.memberId ? (
-                          <span>
-                            {t("ballot.castBy").replace("{holder}", councilMemberName(members, vote.castByMemberId))}
-                          </span>
+                          <span>{t("ballot.castBy", { holder: councilMemberName(members, vote.castByMemberId) })}</span>
                         ) : null}
                       </td>
                     </tr>

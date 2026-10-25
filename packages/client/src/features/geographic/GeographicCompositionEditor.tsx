@@ -144,8 +144,8 @@ export function GeographicCompositionEditor({
                   <button
                     type="button"
                     className="geographic-composition-feature-fit"
-                    aria-label={t("geographic.fitFeature").replace("{name}", label)}
-                    title={t("geographic.fitFeature").replace("{name}", label)}
+                    aria-label={t("geographic.fitFeature", { name: label })}
+                    title={t("geographic.fitFeature", { name: label })}
                     onClick={() => onFitFeature(feature.id)}
                   >
                     <CenterOnFeatureIcon />
@@ -160,12 +160,14 @@ export function GeographicCompositionEditor({
                         measuredDrawingIds.has(feature.id)
                           ? "geographic.measure.hideDrawing"
                           : "geographic.measure.showDrawing",
-                      ).replace("{name}", label)}
+                        { name: label },
+                      )}
                       title={t(
                         measuredDrawingIds.has(feature.id)
                           ? "geographic.measure.hideDrawing"
                           : "geographic.measure.showDrawing",
-                      ).replace("{name}", label)}
+                        { name: label },
+                      )}
                       onClick={() => onDrawingMeasures(feature.id, !measuredDrawingIds.has(feature.id))}
                     >
                       <RulerIcon />
@@ -261,8 +263,8 @@ export function GeographicCompositionEditor({
                       className="geographic-composition-feature-drag"
                       draggable
                       data-testid={`geographic-composition-feature-drag-${feature.id}`}
-                      aria-label={t("geographic.featureDrag").replace("{name}", name)}
-                      title={t("geographic.featureDrag").replace("{name}", name)}
+                      aria-label={t("geographic.featureDrag", { name: name })}
+                      title={t("geographic.featureDrag", { name: name })}
                       onDragStart={(event) => {
                         event.dataTransfer.effectAllowed = "move";
                         event.dataTransfer.setData("text/plain", feature.id);
@@ -319,8 +321,8 @@ export function GeographicCompositionEditor({
                       type="button"
                       className="geographic-composition-feature-fit"
                       data-testid={`geographic-composition-feature-fit-${feature.id}`}
-                      aria-label={t("geographic.fitFeature").replace("{name}", name)}
-                      title={t("geographic.fitFeature").replace("{name}", name)}
+                      aria-label={t("geographic.fitFeature", { name: name })}
+                      title={t("geographic.fitFeature", { name: name })}
                       onClick={() => onFitFeature(feature.id)}
                     >
                       <CenterOnFeatureIcon />

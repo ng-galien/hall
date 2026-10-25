@@ -11,7 +11,7 @@ CREATE TYPE hall.recusal_legal_basis AS ENUM ('personalInterest', 'designatedRep
 -- identity. CGCT L1111-13 paragraph 3 sentence 2 (2025-12-24) motivates prior
 -- disclosure; it does not prescribe this table or its immutable lifecycle.
 -- https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053147122
--- @functional-requirement HALL-FR-AGI-370 RECUSAL_IDENTIFIES_MEMBER_AND_AGENDA_ITEM:
+-- @implements-requirement HALL-FR-AGI-370
 CREATE TABLE hall.agenda_item_recusal (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agenda_item UUID NOT NULL REFERENCES hall.council_agenda_item(id),
@@ -101,7 +101,7 @@ $$;
 -- with CE 1983-01-19 n33241 (deliberation 36-79), not an explicit 2025 formula.
 -- https://www.legifrance.gouv.fr/ceta/id/CETATEXT000007679121
 -- No post-reform confirming decision was identified by the legal review.
--- @functional-requirement HALL-FR-MTG-280 RECUSAL_QUORUM_EFFECT_REQUIRES_LEGAL_BASIS:
+-- @implements-requirement HALL-FR-MTG-280
 -- This is an impact on recorded attendance, NOT an observation of the legal
 -- membership denominator or of arrivals/departures during the meeting.
 -- Actual discussion presence followed by a recorded departure permits only

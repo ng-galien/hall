@@ -21,7 +21,7 @@ BEGIN
 
   target_meeting := CASE WHEN TG_OP = 'DELETE' THEN OLD.council_meeting ELSE NEW.council_meeting END;
 
-  -- @technical-requirement HALL-TR-CON-020 ATTENDANCE_INSERT_SERIALIZES_WITH_MEETING_START:
+  -- @implements-requirement HALL-TR-CON-020
   -- Attendance insertion locks its meeting so it cannot
   -- race with the one-time update that starts that same meeting.
   SELECT started_at,closed_at
@@ -38,7 +38,7 @@ BEGIN
       MESSAGE = format('unknown council meeting %s', NEW.council_meeting);
   END IF;
 
-  -- @functional-requirement HALL-FR-ATT-090 ATTENDANCE_CLOSES_WHEN_MEETING_STARTS: The attendance
+  -- @implements-requirement HALL-FR-ATT-090
   -- set is complete and frozen from the
   -- instant the council meeting starts.
   IF meeting_closed_at IS NULL AND meeting_started_at IS NOT NULL AND TG_OP='INSERT'
@@ -57,7 +57,7 @@ BEGIN
       MESSAGE = 'a started council meeting cannot receive attendance';
   END IF;
 
-  -- @functional-requirement HALL-FR-ATT-080 MEETING_ATTENDANCE_IS_IMMUTABLE_AFTER_START:
+  -- @implements-requirement HALL-FR-ATT-080
   -- Before start, the named exact-set action may insert or remove preparation
   -- declarations. The start transition freezes the complete set.
   RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
@@ -69,14 +69,14 @@ BEFORE INSERT OR UPDATE OR DELETE ON hall.meeting_attendance
 FOR EACH ROW
 EXECUTE FUNCTION enforce_meeting_attendance_lifecycle();
 
--- @technical-requirement HALL-TR-INT-010 TRUNCATE_CANNOT_BYPASS_ATTENDANCE_IMMUTABILITY:
+-- @implements-requirement HALL-TR-INT-010
 -- Statement-level deletion cannot bypass row-level immutability.
 CREATE TRIGGER meeting_attendance_reject_truncate
 BEFORE TRUNCATE ON hall.meeting_attendance
 FOR EACH STATEMENT
 EXECUTE FUNCTION enforce_meeting_attendance_lifecycle();
 
--- @technical-requirement HALL-TR-CON-030 PROXY_VALIDATION_IS_DEFERRED:
+-- @implements-requirement HALL-TR-CON-030
 -- A represented member's proxy holder is validated at transaction end so the
 -- represented member and holder can be inserted in either order atomically.
 -- Functionally, the proxy holder remains a physically present attendance

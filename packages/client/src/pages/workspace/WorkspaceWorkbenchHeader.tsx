@@ -80,10 +80,9 @@ export function WorkspaceWorkbenchHeader({
               ) : null}
             </div>
             <span className="workbench-eyebrow">
-              {t(date.kind === "created" ? "workspace.createdOn" : "workspace.updatedOn").replace(
-                "{date}",
-                formatDate(date.value),
-              )}
+              {t(date.kind === "created" ? "workspace.createdOn" : "workspace.updatedOn", {
+                date: formatDate(date.value),
+              })}
             </span>
             {hint}
           </div>

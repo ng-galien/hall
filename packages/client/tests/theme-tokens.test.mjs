@@ -5,16 +5,6 @@ import { test } from "vitest";
 
 const sourceRoot = join(import.meta.dirname, "..", "src");
 const tokens = readFileSync(join(sourceRoot, "styles", "tokens.css"), "utf8");
-const styleFiles = [
-  "styles.css",
-  "styles/base.css",
-  "styles/components.css",
-  "styles/editor.css",
-  "styles/live.css",
-  "styles/meeting-workspace.css",
-  "styles/workspace.css",
-];
-const styles = styleFiles.map((path) => readFileSync(join(sourceRoot, path), "utf8")).join("\n");
 
 function sourceFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -25,6 +15,8 @@ function sourceFiles(directory) {
 }
 
 const allFiles = sourceFiles(sourceRoot);
+const styleFiles = allFiles.filter((path) => path.endsWith(".css") && !path.endsWith("/tokens.css"));
+const styles = styleFiles.map((path) => readFileSync(path, "utf8")).join("\n");
 const applicationSource = allFiles.map((path) => readFileSync(path, "utf8")).join("\n");
 /* Shadcn components are vendored and may use raw Tailwind utilities. Project rules target authored code. */
 const authoredSource = allFiles
@@ -40,9 +32,7 @@ test("measurements come from the token scale, never from a literal", () => {
   const measurement = /(?<![\w-])-?\d+(?:\.\d+)?(?:px|rem|em|ch)\b/g;
   const offenders = [];
   for (const path of styleFiles) {
-    const source = readFileSync(join(sourceRoot, path), "utf8").replace(/\/\*[\s\S]*?\*\//g, (comment) =>
-      comment.replace(/[^\n]/g, " "),
-    );
+    const source = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "));
     for (const [index, line] of source.split("\n").entries()) {
       if (/@(?:media|container)\s*\(/.test(line)) continue;
       for (const match of line.matchAll(measurement)) offenders.push(`${path}:${index + 1} ${match[0]}`);
@@ -58,8 +48,8 @@ test("breakpoints follow the three-step ladder", () => {
 });
 
 test("every CSS variable used by the styles or the components resolves", () => {
-  const declarations = new Set([...`${tokens}\n${styles}`.matchAll(/(--[\w-]+)\s*:/g)].map((match) => match[1]));
-  const references = [...applicationSource.matchAll(/var\((--[\w-]+)[,)]/g)].map((match) => match[1]);
+  const declarations = new Set([...applicationSource.matchAll(/(--[\w-]+)["']?\s*:/g)].map((match) => match[1]));
+  const references = [...applicationSource.matchAll(/var\((--[\w-]+)(?:,|\))/g)].map((match) => match[1]);
   assert.deepEqual([...new Set(references.filter((reference) => !declarations.has(reference)))], []);
 });
 

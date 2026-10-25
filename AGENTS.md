@@ -97,8 +97,8 @@ Match verification to the change and inspect the final result.
 For changes under `packages/postgres/` or any SQL schema, migration, invariant, seed, or PostgreSQL test helper, run all of these before completion:
 
 1. The focused SQL or pgTAP test during iteration.
-2. `npm run test:db:council`.
-3. `npm run test:db:document`.
+2. `npm run test:postgres:council`.
+3. `npm run test:postgres:document`.
 4. `npm run test:postgres`.
 
 `npm run test:postgres` uses one disposable PostgreSQL database: pgTAP runs first, then the database is reset before backend integration tests. Do not retain stale fixtures to accommodate removed schema fields.
@@ -110,7 +110,7 @@ PDF rendering tests launch Chromium. A `MachPortRendezvousServer` or `EPERM` fai
 Always reuse the shared Hall runtime:
 
 - Start or reuse: `npm run dev:session`
-- Restart without resetting data: `npm run dev:restart`
+- Restart with the same explicit runtime configuration (startup may upgrade its schema): `npm run dev:restart`
 - Status and logs: `npm run dev:status`, `npm run dev:logs`
 - Stop: `npm run dev:stop`
 - Reset and reseed the demonstration: `npm run demo:restart`

@@ -1,4 +1,4 @@
--- @functional-requirement HALL-FR-MTG-270 QUORUM_USES_CONFIRMED_MEMBERS_IN_OFFICE:
+-- @implements-requirement HALL-FR-MTG-270
 -- L2121-17 requires members actually in office, not theoretical seats or roll
 -- call cardinality. Hall records the active mandates of the current council
 -- term atomically with roll call, retaining the historical roster.

@@ -7,7 +7,9 @@ CREATE TEMP TABLE api_result (
   payload JSONB NOT NULL
 );
 
--- HALL-FR-DOC-120: creating one resource ensures its durable folder chain.
+-- @verifies-requirement HALL-FR-DOC-120
+
+-- creating one resource ensures its durable folder chain.
 INSERT INTO api_result (key, payload)
 SELECT 'text', hall_api.create_text_resource('team/2026', 'note.md', 'first');
 
@@ -23,7 +25,9 @@ SELECT is(
   'create allocates a normalized public slug'
 );
 
--- HALL-FR-DOC-220: PostgreSQL owns documentary Siren and its minimal RBAC.
+-- @verifies-requirement HALL-FR-DOC-220
+
+-- PostgreSQL owns documentary Siren and its minimal RBAC.
 SELECT set_config('hall.roles', '["administrator"]', true);
 
 SELECT is(
@@ -86,7 +90,9 @@ SELECT set_eq(
   'missing parent folders are created as durable folder resources'
 );
 
--- HALL-FR-DOC-110: a listing contains direct children, never all descendants.
+-- @verifies-requirement HALL-FR-DOC-110
+
+-- a listing contains direct children, never all descendants.
 SELECT is(
   jsonb_array_length(hall_api.list_folder('') -> 'resources'),
   1,
@@ -105,7 +111,9 @@ SELECT is(
   'folder listing exposes its direct resource'
 );
 
--- HALL-FR-DOC-180: the workspace catalogue is flat and content-free.
+-- @verifies-requirement HALL-FR-DOC-180
+
+-- the workspace catalogue is flat and content-free.
 SELECT is(
   jsonb_array_length(hall_api.list_resources()),
   3,
@@ -122,7 +130,9 @@ SELECT ok(
   'workspace catalogue does not aggregate presentation metadata'
 );
 
--- HALL-FR-DOC-190: remote resources can exist before a required target row.
+-- @verifies-requirement HALL-FR-DOC-190
+
+-- remote resources can exist before a required target row.
 INSERT INTO api_result (key, payload)
 SELECT 'remote', hall_api.create_remote_resource('', 'portal');
 
@@ -217,7 +227,9 @@ SELECT lives_ok(
   'legal reference fixture is removed before namespace assertions'
 );
 
--- HALL-FR-DOC-210: search is an explicit async projection, not startup hydration.
+-- @verifies-requirement HALL-FR-DOC-210
+
+-- search is an explicit async projection, not startup hydration.
 SELECT is(
   jsonb_array_length(hall_api.search_resources() -> 'items'),
   0,
@@ -254,7 +266,9 @@ SELECT is(
   'open by slug resolves the same stable resource identity'
 );
 
--- HALL-FR-DOC-140: editable updates use optimistic versions.
+-- @verifies-requirement HALL-FR-DOC-140
+
+-- editable updates use optimistic versions.
 INSERT INTO api_result (key, payload)
 SELECT 'updated', hall_api.update_text_resource(
   (SELECT (payload ->> 'id')::UUID FROM api_result WHERE key = 'text'),
@@ -280,7 +294,11 @@ SELECT throws_ok(
   'stale editable update is rejected'
 );
 
--- HALL-FR-DOC-230 HALL-FR-DOC-240: private images follow their text owner.
+-- @verifies-requirement HALL-FR-DOC-230
+
+-- @verifies-requirement HALL-FR-DOC-240
+
+-- private images follow their text owner.
 INSERT INTO api_result (key, payload)
 SELECT 'asset', hall_api.create_editor_asset(
   (SELECT (payload ->> 'id')::UUID FROM api_result WHERE key = 'text'),
@@ -384,7 +402,9 @@ SELECT is(
   'unreferenced editor asset is no longer addressable'
 );
 
--- HALL-FR-DOC-200: presentation metadata is persisted by its named mutation.
+-- @verifies-requirement HALL-FR-DOC-200
+
+-- presentation metadata is persisted by its named mutation.
 INSERT INTO api_result (key, payload)
 SELECT 'metadata', hall_api.update_editable_resource_metadata(
   (SELECT (payload ->> 'id')::UUID FROM api_result WHERE key = 'text'),
@@ -418,7 +438,9 @@ SELECT throws_ok(
   'editable metadata mutation rejects a resource variant that does not own autosave'
 );
 
--- HALL-FR-DOC-130: a folder rename moves its complete subtree.
+-- @verifies-requirement HALL-FR-DOC-130
+
+-- a folder rename moves its complete subtree.
 INSERT INTO api_result (key, payload)
 SELECT 'renamed', hall_api.relocate_resource(
   (SELECT id FROM hall.resource WHERE full_path = 'team'),
@@ -514,7 +536,11 @@ SELECT is(
   'resource deletion removes its concrete component'
 );
 
--- HALL-FR-DOC-080 HALL-TR-DOC-040: binary bytes stay outside JSONB.
+-- @verifies-requirement HALL-FR-DOC-080
+
+-- @verifies-requirement HALL-TR-DOC-040
+
+-- binary bytes stay outside JSONB.
 INSERT INTO api_result (key, payload)
 SELECT 'document', hall_api.create_document_resource(
   '',
@@ -601,7 +627,11 @@ SELECT throws_ok(
   'content-addressed bytes cannot acquire conflicting media metadata'
 );
 
--- HALL-FR-DOC-130 HALL-FR-DOC-210: folder prefixes are literal paths,
+-- @verifies-requirement HALL-FR-DOC-130
+
+-- @verifies-requirement HALL-FR-DOC-210
+
+-- folder prefixes are literal paths,
 -- including characters that have special meaning in a SQL LIKE pattern.
 CREATE TEMP TABLE literal_path_case (
   source_path TEXT PRIMARY KEY,

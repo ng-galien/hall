@@ -96,7 +96,7 @@ export function CouncilCommitteesPage() {
                 <p>{committee.description || t("committees.noDescription")}</p>
                 <span className="entity-card-footer">
                   <Badge variant="outline">
-                    {t("members.count").replace("{count}", String(activeMembershipCount(committee.id)))}
+                    {t("members.count", { count: String(activeMembershipCount(committee.id)) })}
                   </Badge>
                   <Badge variant={committee.archivedAt ? "secondary" : "success"}>
                     {t(committee.archivedAt ? "committees.archived" : "committees.active")}
@@ -115,7 +115,7 @@ export function CouncilCommitteesPage() {
                 </div>
                 <span className="flex items-center gap-2">
                   <Badge variant="outline">
-                    {t("members.count").replace("{count}", String(activeMembershipCount(committee.id)))}
+                    {t("members.count", { count: String(activeMembershipCount(committee.id)) })}
                   </Badge>
                   <Badge variant={committee.archivedAt ? "secondary" : "success"}>
                     {t(committee.archivedAt ? "committees.archived" : "committees.active")}

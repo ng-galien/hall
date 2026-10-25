@@ -11,7 +11,7 @@ CREATE TABLE hall.council_delegation (
 
 CREATE UNIQUE INDEX council_delegation_one_active_name ON hall.council_delegation USING btree (lower(name)) WHERE (archived_at IS NULL);
 
--- @functional-requirement HALL-FR-DIR-140 EXTERNAL_REPRESENTATION_CONTACTS:
+-- @implements-requirement HALL-FR-DIR-140
 CREATE TABLE hall.delegation_membership (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   delegation UUID NOT NULL REFERENCES hall.council_delegation (id) ON DELETE RESTRICT,
@@ -115,7 +115,7 @@ AS $function$
   )
 $function$;
 
--- @requirement-reference HALL-FR-DIR-080 COMMITTEE_IS_INDEPENDENT:
+-- @implements-requirement HALL-FR-DIR-080
 CREATE FUNCTION hall_api.list_council_delegations(include_archived BOOLEAN DEFAULT FALSE)
 RETURNS JSONB
 LANGUAGE sql

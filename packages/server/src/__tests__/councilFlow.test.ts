@@ -134,6 +134,47 @@ describe("council flow", () => {
     expect(decision.body.entities[0].properties).toMatchObject({ ballotId: ballot.id, number: "2026-09-01" });
   });
 
+  it("serializes concurrent confirmations so a decision and ballot are recorded exactly once", async () => {
+    const { agent, council, context, members, meeting, item } = await prepareDecisionMeeting();
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/record-opening`)
+      .send({
+        observedAt: "2026-09-10T16:30:00Z",
+        chairMemberId: members[0].id,
+        secretaryMemberId: members[1].id,
+        attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
+      })
+      .expect(200);
+    await agent
+      .post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`)
+      .send({ startedAt: "2026-09-10T16:31:00Z" })
+      .expect(200);
+    const attendance = await council.listAttendance(context, meeting.id);
+    const preview = domainBody<{ id: string }>(
+      await agent
+        .post("/api/ballot-previews")
+        .send({
+          agendaItemId: item.id,
+          candidate: {
+            procedure: "ordinaryMajority",
+            mode: "public",
+            participantAttendanceIds: attendance.map((entry) => entry.id),
+            chairmanAttendanceId: attendance.find((entry) => entry.councilMemberId === members[0].id)!.id,
+            votes: attendance.map((entry) => ({ meetingAttendanceId: entry.id, choice: "approve" })),
+            nonParticipations: [],
+          },
+        })
+        .expect(201),
+    );
+    const results = await Promise.all([
+      agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}),
+      agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}),
+    ]);
+    expect(results.map((response) => response.status).sort()).toEqual([200, 409]);
+    expect((await agent.get(`/api/ballots?meetingId=${meeting.id}`).expect(200)).body.entities).toHaveLength(1);
+    expect((await agent.get("/api/council-decisions").expect(200)).body.entities).toHaveLength(1);
+  });
+
   it("returns aggregate votes for public ballots but never exposes votes for secret ballots", async () => {
     const { agent, council, context, members, meeting, item } = await prepareDecisionMeeting();
     await agent

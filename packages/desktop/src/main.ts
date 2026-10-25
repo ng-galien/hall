@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { HttpServerHandle } from "@hall/server";
 import { app, BrowserWindow, dialog, shell } from "electron";
+import { isSafeExternalUrl } from "./externalUrl.js";
 
 let mainWindow: BrowserWindow | null = null;
 let embeddedServer: Promise<HttpServerHandle> | null = null;
@@ -69,7 +70,7 @@ async function createMainWindow(): Promise<void> {
     },
   });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
+    if (isSafeExternalUrl(url)) void shell.openExternal(url);
     return { action: "deny" };
   });
   await mainWindow.loadURL(await resolveRendererUrl());

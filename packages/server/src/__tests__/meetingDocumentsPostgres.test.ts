@@ -1,3 +1,6 @@
+if (!process.env.TEST_DATABASE_URL)
+  throw new Error("TEST_DATABASE_URL is required; use the isolated test:postgres entry point");
+
 import { randomUUID } from "node:crypto";
 import { meetingDocumentResourceDetailSchema, meetingDocumentsSchema } from "@hall/api-contract";
 import { Pool } from "pg";
@@ -62,7 +65,21 @@ postgresTest(
         position: 1,
       });
       expect(schedule.status).toBe(201);
+      const upload = new FormData();
+      upload.set("file", new Blob(["%PDF-1.7\nMeeting document"], { type: "application/pdf" }), "document.pdf");
+      upload.set("councilBusinessId", business.id);
+      const uploadedResponse = await fetch(server.url + "/api/resources/documents", {
+        method: "POST",
+        headers: { cookie },
+        body: upload,
+      });
+      expect(uploadedResponse.status).toBe(201);
+      const uploaded = (await uploadedResponse.json()).properties;
       const base = `/api/council-meetings/${meeting.id}/documents`;
+      const binaryContent = await get(`${base}/resources/${uploaded.id}/content`);
+      expect(binaryContent.status).toBe(200);
+      expect(binaryContent.headers.get("content-security-policy")).toBe("sandbox");
+      expect(binaryContent.headers.get("x-content-type-options")).toBe("nosniff");
       const index = await get(base);
       expect(index.status).toBe(200);
       const entity = await index.json();

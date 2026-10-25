@@ -108,7 +108,7 @@ export function CalendarPage() {
       .filter((entry) => entry.scheduledAt)
       .map((entry) => ({
         id: `meeting-${entry.id}`,
-        title: t("calendar.meetingLabel").replace("{number}", String(entry.number)),
+        title: t("calendar.meetingLabel", { number: String(entry.number) }),
         start: entry.scheduledAt!,
         editable: false,
         className: "hall-calendar-council",

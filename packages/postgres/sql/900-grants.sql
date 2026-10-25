@@ -1,5 +1,5 @@
--- @technical-requirement HALL-TR-CTX-040 API_ONLY_RUNTIME_ACCESS:
--- @technical-requirement HALL-TR-DOC-060 DOCUMENTARY_WRITES_ARE_NAMED:
+-- @implements-requirement HALL-TR-CTX-040
+-- @implements-requirement HALL-TR-DOC-060
 -- Runtime roles can discover hall_api and call only explicitly granted
 -- functions. They never receive table privileges in hall.
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hall_api

@@ -1,4 +1,4 @@
--- @functional-requirement HALL-FR-DEC-080 DOCUMENTARY_ENVELOPE_USES_HISTORICAL_EVIDENCE:
+-- @implements-requirement HALL-FR-DEC-080
 -- Read-only enrichment from immutable evidence. Missing observations remain null;
 -- no current HallSettings, directory identity or PDF generation date is an attestation.
 CREATE FUNCTION hall.decision_documentary_facts(source JSONB)

@@ -26,7 +26,7 @@ import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 
 export function CouncilMembersPage() {
-  const { t, formatDate } = useI18n();
+  const { t, plural, formatDate } = useI18n();
   const { submitting, run } = useSubmitting();
   const { members, create: createMember, error, canCreate } = useCouncilMembersStore();
   const contacts = useContactsStore((state) => state.contacts);
@@ -80,10 +80,7 @@ export function CouncilMembersPage() {
         ))}
         {remaining > 0 ? (
           <Link to={`/council-members/${memberId}#committees`}>
-            {t(remaining === 1 ? "members.moreCommittees.one" : "members.moreCommittees.other").replace(
-              "{count}",
-              String(remaining),
-            )}
+            {plural(remaining, "members.moreCommittees.one", "members.moreCommittees.other")}
           </Link>
         ) : null}
       </span>
@@ -91,7 +88,7 @@ export function CouncilMembersPage() {
   };
   const renderEditAction = (member: CouncilMember) => {
     const fullName = `${member.contact.firstName} ${member.contact.lastName}`;
-    const label = t("members.editNamed").replace("{name}", fullName);
+    const label = t("members.editNamed", { name: fullName });
     return (
       <Tooltip>
         <TooltipTrigger asChild>
@@ -237,7 +234,7 @@ export function CouncilMembersPage() {
                   ) : (
                     <span>{t("members.noPhone")}</span>
                   )}
-                  <span>{t("members.termSince").replace("{date}", formatDate(member.termStartedOn))}</span>
+                  <span>{t("members.termSince", { date: formatDate(member.termStartedOn) })}</span>
                 </div>
                 {renderCommitteeLinks(member.id)}
                 <span className="entity-card-footer">
@@ -283,7 +280,7 @@ export function CouncilMembersPage() {
                   ) : (
                     <span>{t("members.noPhone")}</span>
                   )}
-                  <span>{t("members.termSince").replace("{date}", formatDate(member.termStartedOn))}</span>
+                  <span>{t("members.termSince", { date: formatDate(member.termStartedOn) })}</span>
                 </div>
                 <span className="council-member-list-committees">{renderCommitteeLinks(member.id)}</span>
                 <span className="council-member-list-status">

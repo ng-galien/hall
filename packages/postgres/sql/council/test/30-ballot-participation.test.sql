@@ -2,7 +2,11 @@ BEGIN;
 \ir support/helpers.sql
 SELECT no_plan();
 
--- HALL-TR-CON-050 HALL-FR-BAL-060 HALL-FR-BAL-140
+-- @verifies-requirement HALL-TR-CON-050
+
+-- @verifies-requirement HALL-FR-BAL-060
+
+-- @verifies-requirement HALL-FR-BAL-140
 SELECT lives_ok(
   $$SELECT test_prepare_open_ballot('ballot:main', 'public', 2)$$,
   'ballot and chairman participation can be created atomically'
@@ -16,14 +20,14 @@ SELECT ok(
   'the chairman predicate accepts a present participation of the ballot'
 );
 
--- HALL-FR-BAL-110
+-- @verifies-requirement HALL-FR-BAL-110
 SELECT is(
   ballot_participation_count(test_uuid('ballot:main:ballot')),
   2,
   'participation count is derived from participation declarations'
 );
 
--- HALL-FR-BAL-030
+-- @verifies-requirement HALL-FR-BAL-030
 SELECT throws_ok(
   $$
     INSERT INTO ballots (id, council_agenda_item, mode, chairman)
@@ -39,7 +43,7 @@ SELECT throws_ok(
   'an agenda item has at most one ballot'
 );
 
--- HALL-FR-BAL-040
+-- @verifies-requirement HALL-FR-BAL-040
 SELECT is(
   (
     SELECT COUNT(*)::INTEGER
@@ -52,7 +56,7 @@ SELECT is(
   'a declarative CHECK couples ballot completion and result'
 );
 
--- HALL-FR-BAL-050
+-- @verifies-requirement HALL-FR-BAL-050
 SELECT throws_ok(
   $$
     INSERT INTO ballot_participation (id, ballot, meeting_attendance)
@@ -159,7 +163,9 @@ UPDATE council_agenda_item
 SET started_at = '2026-01-01 09:05:00+00'
 WHERE id = test_uuid('ballot:eligibility:agenda-item');
 
--- HALL-TR-CON-090: the represented participation exists, but chairman
+-- @verifies-requirement HALL-TR-CON-090
+
+-- the represented participation exists, but chairman
 -- validation remains deferred until the atomic cycle is complete.
 SELECT throws_ok(
   $$
@@ -221,7 +227,7 @@ SELECT lives_ok(
   'present and represented attendances can participate while only present chairs'
 );
 
--- HALL-FR-BAL-100
+-- @verifies-requirement HALL-FR-BAL-100
 SELECT throws_ok(
   $$
     INSERT INTO ballot_participation (id, ballot, meeting_attendance)
@@ -250,7 +256,7 @@ SELECT throws_ok(
   'an excused member cannot participate'
 );
 
--- HALL-FR-BAL-090
+-- @verifies-requirement HALL-FR-BAL-090
 SELECT throws_ok(
   $$
     INSERT INTO ballot_participation (id, ballot, meeting_attendance)
@@ -265,7 +271,9 @@ SELECT throws_ok(
   'participation cannot cross meeting boundaries'
 );
 
--- HALL-FR-BAL-070 HALL-TR-INT-040
+-- @verifies-requirement HALL-FR-BAL-070
+
+-- @verifies-requirement HALL-TR-INT-040
 SELECT throws_ok(
   $$
     UPDATE ballot_participation
@@ -309,7 +317,7 @@ SELECT throws_ok(
   'ballot insertion reports an unknown agenda item explicitly'
 );
 
--- HALL-FR-BAL-230
+-- @verifies-requirement HALL-FR-BAL-230
 SELECT lives_ok(
   $$
     INSERT INTO council_meetings (id, scheduled_at, location, stale) VALUES
@@ -381,7 +389,9 @@ SELECT throws_ok(
   'an open question is structurally outside the ballot lifecycle'
 );
 
--- HALL-FR-BAL-220: this defensive branch is exercised against a deliberately
+-- @verifies-requirement HALL-FR-BAL-220
+
+-- this defensive branch is exercised against a deliberately
 -- inconsistent imported fixture; normal lifecycle operations cannot create a
 -- agenda item before its meeting starts.
 INSERT INTO council_meetings (id, stale) VALUES
@@ -417,7 +427,7 @@ SELECT throws_ok(
   'the ballot authority rejects an inconsistent unstarted-meeting fixture'
 );
 
--- HALL-FR-BAL-210
+-- @verifies-requirement HALL-FR-BAL-210
 SELECT throws_ok(
   $$
     INSERT INTO ballots (id, council_agenda_item, mode, chairman, completed_at, result)
@@ -484,7 +494,7 @@ SELECT throws_ok(
   'a missing deferred chairman reference keeps the native foreign-key SQLSTATE'
 );
 
--- HALL-FR-BAL-240
+-- @verifies-requirement HALL-FR-BAL-240
 SELECT throws_ok(
   $$UPDATE ballots SET mode = 'secret' WHERE id = test_uuid('ballot:main:ballot')$$,
   'HV405',
@@ -492,7 +502,7 @@ SELECT throws_ok(
   'ballot mode cannot be rewritten'
 );
 
--- HALL-FR-BAL-260
+-- @verifies-requirement HALL-FR-BAL-260
 SELECT throws_ok(
   $$UPDATE ballots SET result = 'approve' WHERE id = test_uuid('ballot:main:ballot')$$,
   'HV407',
@@ -500,7 +510,9 @@ SELECT throws_ok(
   'callers cannot set the ballot result manually'
 );
 
--- HALL-FR-BAL-200 HALL-TR-INT-050
+-- @verifies-requirement HALL-FR-BAL-200
+
+-- @verifies-requirement HALL-TR-INT-050
 SELECT throws_ok(
   $$DELETE FROM ballots WHERE id = test_uuid('ballot:main:ballot')$$,
   'HV401',
@@ -517,7 +529,11 @@ SELECT throws_ok(
 );
 SET CONSTRAINTS ALL DEFERRED;
 
--- HALL-TR-CON-060 HALL-TR-CON-080: pgTAP verifies the deterministic lock
+-- @verifies-requirement HALL-TR-CON-060
+
+-- @verifies-requirement HALL-TR-CON-080
+
+-- pgTAP verifies the deterministic lock
 -- declarations; a two-session scheduler is required to prove blocking order.
 SELECT ok(
   pg_get_functiondef('enforce_ballot_participation_lifecycle()'::regprocedure)

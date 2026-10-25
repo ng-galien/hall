@@ -254,3 +254,18 @@ shared municipal cluster. The test uses no development autologin or sibling
 Code Moniker binary. Hosted CI results must be observed before asserting Windows
 compatibility. The workflow also runs the schema-convergence gate; a failure is
 not waived for release.
+
+## Runtime diagnostics
+
+`hall start` checks Chromium PDF generation before opening its HTTP listener. Its
+`/api/health` endpoint queries PostgreSQL and returns the packaged release identity
+(version, source commit and dirty-checkout flag), or HTTP 503 on database failure.
+A successful health response is not a municipal workflow acceptance.
+
+The process appends JSON logs to `logs/hall.log` beside the supplied environment file
+(or under the working directory when no environment file is supplied). Set
+`HALL_LOG_FILE` to an explicit private path to choose another local destination.
+New log directories and files are owner-only. Rotation, retention and external
+backup are not configured by this command. Preserve startup output as well when
+running through a scheduler: configuration or Chromium failures occur before the
+HTTP application logger starts.

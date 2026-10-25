@@ -17,7 +17,7 @@
   display: grid;
   align-content: start;
   gap: var(--hall-space-3);
-  min-height: 14rem;
+  min-height: var(--hall-size-relative-14rem);
   padding: var(--hall-space-3);
   border: var(--hall-stroke-thin) solid var(--hall-color-border);
   border-radius: var(--hall-radius-medium);
@@ -245,7 +245,7 @@
 }
 
 .workspace-business-workbench .business-subject-table-type-column { width: var(--hall-size-control); }
-.workspace-business-workbench .business-subject-table-actions-column { width: 14rem; }
+.workspace-business-workbench .business-subject-table-actions-column { width: var(--hall-size-relative-14rem); }
 
 .workspace-business-workbench .business-subject-table tbody tr:not(.business-subject-table-detail):hover td,
 .workspace-business-workbench .business-subject-table-row-open td {
@@ -317,7 +317,7 @@
   top: calc(100% + var(--hall-space-1));
   left: 0;
   width: max-content;
-  max-width: min(30rem, 100%);
+  max-width: min(var(--hall-size-relative-30rem), 100%);
   margin: 0;
   box-shadow: var(--hall-shadow-medium);
 }

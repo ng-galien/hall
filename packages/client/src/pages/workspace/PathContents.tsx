@@ -611,7 +611,7 @@ export function PathContents({
     setCreateTarget(null);
     setSelectedKeys(new Set([key]));
     setSelectionAnchorKey(key);
-    setFeedback(t("workspace.createdFeedback").replace("{name}", title));
+    setFeedback(t("workspace.createdFeedback", { name: title }));
     window.requestAnimationFrame(() => {
       treeRef.current
         ?.querySelector<HTMLButtonElement>(`button[data-workspace-node-key="${key}"]`)
@@ -629,7 +629,7 @@ export function PathContents({
     }
     const createdPath = created.fullPath;
     setCreatingFolderParent(null);
-    setFeedback(t("workspace.folderCreatedFeedback").replace("{name}", name));
+    setFeedback(t("workspace.folderCreatedFeedback", { name: name }));
     window.requestAnimationFrame(() => {
       treeRef.current
         ?.querySelector<HTMLButtonElement>(`button[data-workspace-node-key="folder:${createdPath}"]`)
@@ -886,7 +886,7 @@ export function PathContents({
       setMoveError(useCouncilBusinessStore.getState().error);
       return;
     }
-    setFeedback(t("workspace.attachedFeedback").replace("{name}", resource.name));
+    setFeedback(t("workspace.attachedFeedback", { name: resource.name }));
   };
 
   const renderItems = (folderPath: string) => (
@@ -1147,7 +1147,7 @@ export function PathContents({
               setMoveError(error);
               return;
             }
-            setFeedback(t("workspace.movedFeedback").replace("{name}", folderPath.split("/").at(-1) ?? folderPath));
+            setFeedback(t("workspace.movedFeedback", { name: folderPath.split("/").at(-1) ?? folderPath }));
             refresh();
           });
         }}
@@ -1326,12 +1326,12 @@ export function PathContents({
             const created = await onCreate(kind, business.folderPath, title, business);
             if (!created) return false;
             await councilBusinessStore.loadResources(business.id);
-            if (title) setFeedback(t("workspace.attachedFeedback").replace("{name}", title));
+            if (title) setFeedback(t("workspace.attachedFeedback", { name: title }));
             return true;
           }}
           onAttached={(resourceId) => {
             const name = resourcesStore.summaries[resourceId]?.name ?? "";
-            setFeedback(t("workspace.attachedFeedback").replace("{name}", name));
+            setFeedback(t("workspace.attachedFeedback", { name: name }));
             void loadCouncilActivity();
           }}
           onError={setMoveError}

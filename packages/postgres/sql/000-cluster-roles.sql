@@ -1,4 +1,4 @@
--- @technical-requirement HALL-TR-CTX-010 CLOSED_DATABASE_ROLES:
+-- @implements-requirement HALL-TR-CTX-010
 -- Hall owns a closed set of PostgreSQL roles. Runtime identities receive only
 -- function execution privileges and never direct table privileges.
 DO $hall_roles$

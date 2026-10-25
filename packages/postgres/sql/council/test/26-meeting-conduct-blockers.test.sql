@@ -1,4 +1,5 @@
--- HALL-FR-AGI-390: explain unavailable conduct actions from current meeting facts.
+-- @verifies-requirement HALL-FR-AGI-390
+-- explain unavailable conduct actions from current meeting facts.
 BEGIN;
 SET LOCAL search_path=hall,public,pg_catalog;
 SET LOCAL hall.roles='["administrator"]';

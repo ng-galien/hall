@@ -33,7 +33,7 @@ import { MeetingDetailsCard } from "./MeetingDetailsCard";
 import { MeetingStageBar } from "./MeetingStageBar";
 
 export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnType<typeof useCouncilMeeting> }) {
-  const { t, formatDate, formatDateTime, formatNumber } = useI18n();
+  const { t, plural, formatDate, formatDateTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const detailsFieldId = useId();
   const aggregate = meetingActions.meeting!;
@@ -119,7 +119,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             <div className="meeting-prep-facts">
               <span>
                 <strong>{formatNumber(aggregate.agendaItems.length)}</strong>{" "}
-                {t(aggregate.agendaItems.length === 1 ? "meeting.agendaCount.one" : "meeting.agendaCount.other")}
+                {plural(aggregate.agendaItems.length, "meeting.agendaCount.one", "meeting.agendaCount.other")}
               </span>
               <span aria-hidden="true">·</span>
               <span>
@@ -129,9 +129,10 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                 <>
                   <span aria-hidden="true">·</span>
                   <span>
-                    {t("meeting.attendancePrepared")
-                      .replace("{recorded}", formatNumber(attendanceRecorded))
-                      .replace("{total}", formatNumber(rosterMembers.length))}
+                    {t("meeting.attendancePrepared", {
+                      recorded: formatNumber(attendanceRecorded),
+                      total: formatNumber(rosterMembers.length),
+                    })}
                   </span>
                 </>
               ) : null}
@@ -180,16 +181,14 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
           ) : null}
           {meeting.quorumFailure ? (
             <p className="meeting-evidence">
-              {t("meeting.quorumFailureEvidence")
-                .replace("{present}", formatNumber(meeting.quorumFailure.quorum.physicallyPresent))
-                .replace(
-                  "{required}",
+              {t("meeting.quorumFailureEvidence", {
+                present: formatNumber(meeting.quorumFailure.quorum.physicallyPresent),
+                required:
                   meeting.quorumFailure.quorum.required === null
                     ? t("meeting.quorumUnestablished")
                     : formatNumber(meeting.quorumFailure.quorum.required),
-                )}{" "}
-              ·{" "}
-              {t("meeting.quorumFailureRecordedAt").replace("{date}", formatDateTime(meeting.quorumFailure.recordedAt))}
+              })}{" "}
+              · {t("meeting.quorumFailureRecordedAt", { date: formatDateTime(meeting.quorumFailure.recordedAt) })}
             </p>
           ) : null}
         </div>

@@ -4,7 +4,7 @@ DECLARE meeting hall.council_meetings; questions JSONB;
 BEGIN
   SELECT * INTO meeting FROM hall.council_meetings WHERE id = target_meeting FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV901', MESSAGE = 'unknown council meeting'; END IF;
-  -- @functional-requirement HALL-FR-NOT-040 AGENDA_FREEZE_REQUIRES_A_PROGRAMMED_PREPARATION:
+  -- @implements-requirement HALL-FR-NOT-040
   IF meeting.started_at IS NOT NULL OR meeting.scheduled_at IS NULL
     OR EXISTS (SELECT FROM hall.active_council_agenda_freeze WHERE council_meeting = target_meeting) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV803', MESSAGE = 'agenda freezing is unavailable';
@@ -61,16 +61,16 @@ DECLARE meeting hall.council_meetings; binary_id UUID; notice hall.meeting_notic
 BEGIN
   SELECT * INTO meeting FROM hall.council_meetings WHERE id = target_meeting FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV901', MESSAGE = 'unknown council meeting'; END IF;
-  -- @functional-requirement HALL-FR-NOT-060 NOTICE_USES_A_FROZEN_AGENDA_BEFORE_MEETING_START:
+  -- @implements-requirement HALL-FR-NOT-060
   IF meeting.started_at IS NOT NULL OR NOT EXISTS (
     SELECT FROM hall.active_council_agenda_freeze WHERE council_meeting = target_meeting) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV804', MESSAGE = 'notice generation requires a frozen preparation';
   END IF;
-  -- @technical-requirement HALL-TR-NOT-010 NOTICE_PERSISTENCE_CHECKS_THE_RENDERED_FACTS:
+  -- @implements-requirement HALL-TR-NOT-010
   IF expected_facts->'meeting' IS DISTINCT FROM hall.meeting_notice_meeting_facts(target_meeting) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV805', MESSAGE = 'meeting facts changed during notice rendering';
   END IF;
-  -- @functional-requirement HALL-FR-NOT-070 NOTICE_REQUIRES_PDF_BYTES:
+  -- @implements-requirement HALL-FR-NOT-070
   IF pdf_content IS NULL OR octet_length(pdf_content) <= 5
     OR substring(pdf_content FROM 1 FOR 5) <> convert_to('%PDF-', 'UTF8') THEN
     RAISE EXCEPTION USING ERRCODE = 'HV806', MESSAGE = 'notice requires PDF content';
@@ -92,7 +92,7 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog,
   WHERE notice.id = target_notice;
 $$;
 
--- @functional-requirement HALL-FR-NOT-100 AGENDA_REOPENING_PRESERVES_PREVIOUS_VERSIONS:
+-- @implements-requirement HALL-FR-NOT-100
 CREATE FUNCTION hall_api.reopen_council_agenda(target_meeting UUID)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE meeting hall.council_meetings; frozen_id UUID;

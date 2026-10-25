@@ -6,7 +6,7 @@
 -- remains historical and is never submitted for a second vote. The closed
 -- meeting produces its own Minutes and the next mandatory MinutesApproval.
 
--- @functional-requirement HALL-FR-BAL-290 OPEN_BALLOT_PREVENTS_MEETING_CLOSURE:
+-- @implements-requirement HALL-FR-BAL-290
 CREATE FUNCTION hall.council_meeting_has_open_ballot(target_meeting UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -23,7 +23,7 @@ AS $function$
   )
 $function$;
 
--- @functional-requirement HALL-FR-MTG-110 CLOSED_MEETING_HAS_ONE_SUCCESSOR_AND_MINUTES:
+-- @implements-requirement HALL-FR-MTG-110
 CREATE FUNCTION hall.council_meeting_closure_is_complete(target_meeting UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -96,7 +96,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  -- @functional-requirement HALL-FR-MTG-140 SUCCESSOR_FOLLOWS_A_CLOSED_MEETING:
+  -- @implements-requirement HALL-FR-MTG-140
   -- A successor is not merely labelled with a predecessor: at transaction end
   -- that predecessor is an immutable closed meeting.
   IF NEW.previous_council_meeting IS NOT NULL
@@ -141,11 +141,11 @@ DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION enforce_council_meeting_sequence();
 
--- @technical-requirement HALL-TR-CON-140 COUNCIL_MEETING_CLOSURE_SERIALIZES_ITS_AGENDA:
--- @functional-requirement HALL-FR-MTG-130 CLOSURE_PROVISIONS_THE_NEXT_MEETING:
--- @functional-requirement HALL-FR-MTG-120 PREVIOUS_MINUTES_NEITHER_BLOCK_CLOSURE_NOR_REPEAT:
--- @functional-requirement HALL-FR-MIN-030 CLOSURE_PRODUCES_MINUTES_APPROVAL:
--- @functional-requirement HALL-FR-AGI-280 UNFINISHED_AGENDA_IS_CARRIED_FORWARD:
+-- @implements-requirement HALL-TR-CON-140
+-- @implements-requirement HALL-FR-MTG-130
+-- @implements-requirement HALL-FR-MTG-120
+-- @implements-requirement HALL-FR-MIN-030
+-- @implements-requirement HALL-FR-AGI-280
 CREATE FUNCTION hall.close_council_meeting(
   target_meeting UUID,
   closure_time TIMESTAMPTZ

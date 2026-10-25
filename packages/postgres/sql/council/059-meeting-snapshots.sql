@@ -66,7 +66,7 @@ AFTER UPDATE ON hall.council_meetings
 FOR EACH ROW WHEN (OLD.started_at IS NULL AND NEW.started_at IS NOT NULL)
 EXECUTE FUNCTION hall.snapshot_council_meeting_opening();
 
--- @functional-requirement HALL-FR-AGI-400 AGENDA_PRESENTATION_NUMBERS_ARE_CONTINUOUS:
+-- @implements-requirement HALL-FR-AGI-400
 -- Position is an ordering key, never the number shown to a reader. Closing
 -- observations remain the source after carry-over moves working occurrences.
 CREATE FUNCTION hall.council_agenda_presentation_numbers(target_meeting UUID)

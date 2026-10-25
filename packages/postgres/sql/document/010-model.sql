@@ -1,5 +1,5 @@
--- @functional-requirement HALL-FR-DOC-080 BINARY_CONTENT_IS_SEPARATE:
--- @technical-requirement HALL-TR-DOC-010 UUID_IDENTITIES:
+-- @implements-requirement HALL-FR-DOC-080
+-- @implements-requirement HALL-TR-DOC-010
 CREATE TABLE hall.binary_object (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   content_sha256 TEXT NOT NULL UNIQUE,
@@ -18,12 +18,12 @@ COMMENT ON TABLE hall.binary_object IS
 -- Concrete components intentionally do not reference hall.resource. Resource
 -- owns one component through the structural XOR declared below.
 
--- @functional-requirement HALL-FR-DOC-030 FOLDER_IS_A_RESOURCE:
+-- @implements-requirement HALL-FR-DOC-030
 CREATE TABLE hall.folder_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid()
 );
 
--- @functional-requirement HALL-FR-DOC-070 COMPLEX_CONTENT_IS_STRUCTURED:
+-- @implements-requirement HALL-FR-DOC-070
 CREATE TABLE hall.text_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   content TEXT NOT NULL,
@@ -37,13 +37,13 @@ CREATE TABLE hall.remote_resource (
   version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "remote_resource_version_check" CHECK (version > 0)
 );
 
--- @functional-requirement HALL-FR-DOC-190 REMOTE_TARGET_IS_STRUCTURAL:
+-- @implements-requirement HALL-FR-DOC-190
 CREATE TABLE hall.remote_resource_target (
   remote_resource_id UUID PRIMARY KEY REFERENCES hall.remote_resource(id) ON DELETE CASCADE,
   url TEXT NOT NULL CONSTRAINT "remote_resource_target_url_check" CHECK (url = btrim(url) AND url <> ''::text)
 );
 
--- @functional-requirement HALL-FR-DOC-260 STRUCTURED_CONTENT_HAS_A_VALID_SHAPE:
+-- @implements-requirement HALL-FR-DOC-260
 CREATE TABLE hall.spreadsheet_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   document JSONB NOT NULL CONSTRAINT "spreadsheet_resource_document_check" CHECK (COALESCE(jsonb_typeof(document) = 'object'::text AND (document ->> 'schemaVersion'::text) = '2'::text AND jsonb_typeof(document -> 'workbook'::text) = 'object'::text, false)),
@@ -167,7 +167,7 @@ CREATE TABLE hall.municipal_property_parcel (
 COMMENT ON TABLE hall.geographic_map_overlay IS
   'Structural link from a map to a geographic layer, with the visibility, opacity and rank saved in the map.';
 
--- @requirement-reference HALL-FR-DOC-080 BINARY_CONTENT_IS_SEPARATE:
+-- @implements-requirement HALL-FR-DOC-080
 CREATE TABLE hall.document_resource (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   binary_object_id UUID NOT NULL REFERENCES hall.binary_object(id) ON DELETE RESTRICT
@@ -176,7 +176,7 @@ CREATE TABLE hall.document_resource (
 COMMENT ON TABLE hall.document_resource IS
   'One technical document resource. Business usages are modeled later by external relations.';
 
--- @functional-requirement HALL-FR-DOC-230 EDITOR_ASSET_BELONGS_TO_TEXT_CONTENT:
+-- @implements-requirement HALL-FR-DOC-230
 CREATE TABLE hall.editor_asset (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_text_resource_id UUID NOT NULL REFERENCES hall.text_resource(id) ON DELETE CASCADE,
@@ -189,14 +189,14 @@ CREATE TABLE hall.editor_asset (
 COMMENT ON TABLE hall.editor_asset IS
   'Private image owned by one text resource. It is intentionally outside the workspace Resource union.';
 
--- @functional-requirement HALL-FR-DOC-010 RESOURCE_HAS_EXACTLY_ONE_NATURE:
--- @requirement-reference HALL-FR-DOC-020 RESOURCE_LOCATION_IS_NORMALIZED:
--- @requirement-reference HALL-FR-DOC-030 FOLDER_IS_A_RESOURCE:
--- @functional-requirement HALL-FR-DOC-040 CONTAINER_IS_A_FOLDER:
--- @functional-requirement HALL-FR-DOC-050 ROOT_IS_IMPLICIT:
--- @functional-requirement HALL-FR-DOC-060 FOLDER_DELETION_IS_EXPLICIT:
--- @requirement-reference HALL-TR-DOC-010 UUID_IDENTITIES:
--- @technical-requirement HALL-TR-DOC-020 DECLARATIVE_INVARIANTS_ARE_INLINE:
+-- @implements-requirement HALL-FR-DOC-010
+-- @implements-requirement HALL-FR-DOC-020
+-- @implements-requirement HALL-FR-DOC-030
+-- @implements-requirement HALL-FR-DOC-040
+-- @implements-requirement HALL-FR-DOC-050
+-- @implements-requirement HALL-FR-DOC-060
+-- @implements-requirement HALL-TR-DOC-010
+-- @implements-requirement HALL-TR-DOC-020
 CREATE TABLE hall.resource (
   id UUID PRIMARY KEY,
   path TEXT NOT NULL,
@@ -243,14 +243,14 @@ END
 COMMENT ON TABLE hall.resource IS
   'Flat resource namespace. Every non-root path references a durable folder resource.';
 
--- @functional-requirement HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
+-- @implements-requirement HALL-FR-DOC-200
 CREATE TABLE hall.resource_tag (
   resource_id UUID NOT NULL REFERENCES hall.resource(id) ON DELETE CASCADE,
   value TEXT NOT NULL CONSTRAINT "resource_tag_value_check" CHECK (value = btrim(value) AND value <> ''::text),
   PRIMARY KEY (resource_id, value)
 );
 
--- @technical-requirement HALL-TR-DOC-030 PREFIX_LOOKUPS_ARE_INDEXED:
+-- @implements-requirement HALL-TR-DOC-030
 CREATE INDEX resource_path_prefix_idx ON hall.resource USING btree (path text_pattern_ops);
 
 -- Derived contact references enforce the same identity integrity as the directory.

@@ -8,7 +8,7 @@ SET search_path = pg_catalog, hall
 AS $$
 DECLARE observation RECORD;
 BEGIN
-  -- @functional-requirement HALL-FR-MTG-030 COUNCIL_MEETING_IS_IMMUTABLE: A council meeting is a
+  -- @implements-requirement HALL-FR-MTG-030
   -- durable fact and cannot be deleted, either
   -- row by row or by truncating the table.
   IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
@@ -17,7 +17,7 @@ BEGIN
       MESSAGE = 'a council meeting is immutable';
   END IF;
 
-  -- @functional-requirement HALL-FR-MTG-040 COUNCIL_MEETING_IS_CREATED_UNSTARTED: A meeting is
+  -- @implements-requirement HALL-FR-MTG-040
   -- always created in preparation; its
   -- attendance declarations must exist before the distinct start transition.
   IF TG_OP = 'INSERT' THEN
@@ -31,7 +31,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- @functional-requirement HALL-FR-MTG-050 COUNCIL_MEETING_DEFINITION_IS_IMMUTABLE: Neither
+  -- @implements-requirement HALL-FR-MTG-050
   -- meeting identity for
   -- this occurrence can be rewritten during its lifecycle.
   IF NEW.id IS DISTINCT FROM OLD.id
@@ -43,7 +43,7 @@ BEGIN
       MESSAGE = 'a council meeting definition is immutable';
   END IF;
 
-  -- @functional-requirement HALL-FR-MTG-100 CLOSED_COUNCIL_MEETING_IS_IMMUTABLE:
+  -- @implements-requirement HALL-FR-MTG-100
   -- Closure is a fact. Once recorded, no meeting field can be rewritten; an
   -- identical no-op update remains observationally harmless.
   IF OLD.closed_at IS NOT NULL THEN
@@ -56,7 +56,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- @functional-requirement HALL-FR-MTG-060 COUNCIL_MEETING_TIMES_ARE_ONE_WAY_FACTS:
+  -- @implements-requirement HALL-FR-MTG-060
   -- Once the meeting has started, its start and scheduled date are immutable.
   -- The only remaining effective transition is NULL -> closed_at.
   IF OLD.started_at IS NOT NULL THEN
@@ -87,12 +87,12 @@ BEGIN
       MESSAGE = 'a council meeting cannot start and close in one transition';
   END IF;
 
-  -- @functional-requirement HALL-FR-MTG-070 COUNCIL_MEETING_OPENING_RECORDS_QUORUM:
+  -- @implements-requirement HALL-FR-MTG-070
   -- Opening records attendance facts even without quorum. Formal consideration
   -- of a decision and voting retain their own applicable quorum guards.
   observation := hall.record_meeting_quorum(OLD.id,NULL,NEW.started_at);
 
-  -- @functional-requirement HALL-FR-MTG-240 COUNCIL_MEETING_START_REQUIRES_PRESENT_OFFICERS:
+  -- @implements-requirement HALL-FR-MTG-240
   -- The president and secretary are designated CouncilMembers and each has a
   -- physical-presence declaration in this meeting before it can start.
   IF OLD.chair_member IS NULL
@@ -120,7 +120,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-MTG-250 COUNCIL_MEETING_OFFICERS_ARE_A_NAMED_ACTION:
+-- @implements-requirement HALL-FR-MTG-250
 CREATE FUNCTION hall.set_council_meeting_officers(
   target_meeting UUID,
   target_chair_member UUID,
@@ -165,7 +165,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-MTG-160 COUNCIL_MEETING_SCHEDULE_IS_A_NAMED_ACTION:
+-- @implements-requirement HALL-FR-MTG-160
 CREATE FUNCTION hall.schedule_council_meeting(
   target_meeting UUID,
   schedule_time TIMESTAMPTZ,
@@ -201,7 +201,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-MTG-170 COUNCIL_MEETING_START_IS_A_NAMED_ACTION:
+-- @implements-requirement HALL-FR-MTG-170
 CREATE FUNCTION hall.start_council_meeting(
   target_meeting UUID,
   start_time TIMESTAMPTZ
@@ -235,7 +235,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-MTG-180 INITIAL_COUNCIL_MEETING_IS_PROVISIONED_ONCE:
+-- @implements-requirement HALL-FR-MTG-180
 -- This is the sole runtime action for creating the root of the meeting
 -- sequence. Later meetings are provisioned atomically by closure.
 CREATE FUNCTION hall.provision_initial_council_meeting()
@@ -247,7 +247,7 @@ AS $$
 DECLARE
   provisioned council_meetings;
 BEGIN
-  -- @technical-requirement HALL-TR-CON-180 INITIAL_COUNCIL_MEETING_PROVISIONING_IS_SERIALIZED:
+  -- @implements-requirement HALL-TR-CON-180
   -- Competing bootstrap transactions cannot both observe an empty relation.
   -- Runtime roles cannot write the table directly and must use this action.
   LOCK TABLE council_meetings IN SHARE ROW EXCLUSIVE MODE;
@@ -271,7 +271,7 @@ BEFORE INSERT OR UPDATE OR DELETE ON hall.council_meetings
 FOR EACH ROW
 EXECUTE FUNCTION enforce_council_meeting_lifecycle();
 
--- @technical-requirement HALL-TR-INT-020 TRUNCATE_CANNOT_BYPASS_MEETING_IMMUTABILITY:
+-- @implements-requirement HALL-TR-INT-020
 -- Statement-level deletion cannot bypass meeting immutability.
 CREATE TRIGGER council_meetings_reject_truncate
 BEFORE TRUNCATE ON hall.council_meetings

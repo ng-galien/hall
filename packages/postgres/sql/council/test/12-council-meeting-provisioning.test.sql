@@ -2,7 +2,15 @@ BEGIN;
 \ir support/helpers.sql
 SELECT no_plan();
 
--- HALL-FR-MTG-010 HALL-FR-MTG-040 HALL-FR-MTG-080 HALL-FR-MTG-180 HALL-FR-MTG-190
+-- @verifies-requirement HALL-FR-MTG-010
+
+-- @verifies-requirement HALL-FR-MTG-040
+
+-- @verifies-requirement HALL-FR-MTG-080
+
+-- @verifies-requirement HALL-FR-MTG-180
+
+-- @verifies-requirement HALL-FR-MTG-190
 CREATE TEMP TABLE initial_meeting AS
 SELECT hall_api.provision_initial_council_meeting() AS payload;
 
@@ -28,7 +36,7 @@ SELECT throws_ok(
   'meeting numbers are structurally unique'
 );
 
--- HALL-FR-MTG-200
+-- @verifies-requirement HALL-FR-MTG-200
 SELECT throws_ok(
   $$INSERT INTO council_meetings (id, scheduled_at) VALUES
 (test_uuid('provision:incomplete-schedule'), '2026-01-01 09:00:00+00')$$,
@@ -47,7 +55,7 @@ FROM initial_meeting, generate_series(1, 3) AS ordinal;
 
 SELECT test_designate_present_officers((payload ->> 'id')::UUID) FROM initial_meeting;
 
--- HALL-FR-MTG-210
+-- @verifies-requirement HALL-FR-MTG-210
 SELECT throws_ok(
   format(
     'UPDATE council_meetings SET started_at = %L::timestamptz WHERE id = %L::uuid',
@@ -59,7 +67,7 @@ SELECT throws_ok(
   'an unprogrammed meeting cannot start'
 );
 
--- HALL-FR-MTG-220
+-- @verifies-requirement HALL-FR-MTG-220
 CREATE TEMP TABLE scheduled_meeting AS
 SELECT hall_api.schedule_council_meeting(
   (SELECT (payload ->> 'id')::UUID FROM initial_meeting),
@@ -98,7 +106,7 @@ SELECT is(
   'failed provisioning attempts leave the unique meeting sequence unchanged'
 );
 
--- HALL-TR-CON-180
+-- @verifies-requirement HALL-TR-CON-180
 SELECT pass('initial meeting provisioning is serialized inside its PostgreSQL action');
 
 SELECT * FROM finish();

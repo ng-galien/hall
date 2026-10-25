@@ -79,7 +79,6 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
     () => matchingCommitteeCandidates(candidates, associations, query),
     [candidates, associations, query],
   );
-  // A combo box: a click or the down arrow lists every commission still available, typing narrows the list.
   const resultsOpen = canAssociate && open && !loading;
 
   const mutate = async (committeeId: string, kind: "associate" | "dissociate") => {
@@ -124,7 +123,7 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
                 type="button"
                 className="business-committee-remove"
                 data-testid="business-committee-remove"
-                aria-label={t("business.removeCommittee").replace("{name}", association.name)}
+                aria-label={t("business.removeCommittee", { name: association.name })}
                 disabled={pendingId !== null}
                 onClick={() => void mutate(association.committeeId, "dissociate")}
               >

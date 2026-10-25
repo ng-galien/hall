@@ -24,6 +24,7 @@ jobs:
         run: npm run test:all
         env:
           HALL_E2E_LANES: "1"
+          HALL_E2E_MOBILE_RECUSALS: "1"
       - name: Upload browser failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4

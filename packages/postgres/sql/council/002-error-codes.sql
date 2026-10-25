@@ -1,17 +1,17 @@
 -- Canonical Hall SQLSTATE catalogue.
 --
--- @technical-requirement HALL-TR-ERR-010 DECLARATIVE_CONSTRAINTS_KEEP_NATIVE_SQLSTATE:
+-- @implements-requirement HALL-TR-ERR-010
 -- Declarative PostgreSQL constraints keep their native SQLSTATE. In
 -- particular, NOT NULL, foreign key, uniqueness and CHECK violations remain
 -- 23502, 23503, 23505 and 23514; clients can refine them with the constraint
 -- name carried by the database error.
 --
--- @technical-requirement HALL-TR-ERR-020 BUSINESS_ERRORS_USE_STABLE_CUSTOM_SQLSTATE:
+-- @implements-requirement HALL-TR-ERR-020
 -- Trigger-enforced business invariants use the custom HV class below. These
 -- codes are a stable machine-readable contract. The English RAISE message is
 -- diagnostic only and may change without changing the code.
 --
--- @technical-requirement HALL-TR-ERR-030 ERROR_CODES_TRACE_FUNCTIONAL_REQUIREMENTS:
+-- @implements-requirement HALL-TR-ERR-030
 -- Every business error code below identifies the functional requirement it
 -- protects. Missing-reference diagnostics are deliberately not functional
 -- requirements.

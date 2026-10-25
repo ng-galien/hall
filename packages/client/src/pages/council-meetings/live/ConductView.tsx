@@ -501,7 +501,7 @@ export function ConductView({
                 ? t("common.saving")
                 : closeConfirming
                   ? remainingCount > 0
-                    ? t("live.confirmCloseRemaining").replace("{count}", formatNumber(remainingCount))
+                    ? t("live.confirmCloseRemaining", { count: formatNumber(remainingCount) })
                     : t("live.confirmClose")
                   : t("meeting.action.close")}
           </button>
@@ -536,14 +536,13 @@ export function ConductView({
               </div>
             </dl>
             <p>
-              {t("meeting.quorumFailureEvidence")
-                .replace("{present}", formatNumber(aggregate.quorum.physicallyPresent))
-                .replace(
-                  "{required}",
+              {t("meeting.quorumFailureEvidence", {
+                present: formatNumber(aggregate.quorum.physicallyPresent),
+                required:
                   aggregate.quorum.required === null
                     ? t("meeting.quorumUnestablished")
                     : formatNumber(aggregate.quorum.required),
-                )}
+              })}
             </p>
             <dl className="conduct-opening-roster">
               {aggregate.attendance.map((entry) => (
@@ -566,10 +565,9 @@ export function ConductView({
       >
         <header className="conduct-stage-header conduct-stage-fixed-header" data-testid="live-item-header">
           <span className="live-eyebrow">
-            {t("live.itemEyebrow").replace(
-              "{position}",
-              selectedItem.agendaNumber === null ? "" : formatNumber(selectedItem.agendaNumber),
-            )}{" "}
+            {t("live.itemEyebrow", {
+              position: selectedItem.agendaNumber === null ? "" : formatNumber(selectedItem.agendaNumber),
+            })}{" "}
             · {t(agendaSubjectPresentation[selectedItem.subjectKind].label)}
             {selectedItem.business.folderPath ? ` · ${selectedItem.business.folderPath}` : ""}
           </span>
@@ -793,7 +791,7 @@ export function ConductView({
                     <div>
                       <span className="conduct-result-meta">
                         {t(selectedBallot.method === "public" ? "ballot.method.public" : "ballot.method.secret")} ·{" "}
-                        {t("live.recordedAt").replace("{time}", formatTime(selectedBallot.createdAt))}
+                        {t("live.recordedAt", { time: formatTime(selectedBallot.createdAt) })}
                       </span>
                     </div>
                   </div>
@@ -841,10 +839,9 @@ export function ConductView({
                                   <em>
                                     {" "}
                                     ·{" "}
-                                    {t("live.proxyVoteSuffix").replace(
-                                      "{holder}",
-                                      councilMemberName(members, vote.castByMemberId),
-                                    )}
+                                    {t("live.proxyVoteSuffix", {
+                                      holder: councilMemberName(members, vote.castByMemberId),
+                                    })}
                                   </em>
                                 ) : null}
                               </span>
@@ -856,18 +853,17 @@ export function ConductView({
                   </div>
                 ) : null}
                 <p className="report-ballot-note">
-                  {t("ballot.expressedMajority").replace("{expressed}", formatNumber(selectedBallot.votesCast))}
+                  {t("ballot.expressedMajority", { expressed: formatNumber(selectedBallot.votesCast) })}
                 </p>
                 <p className="report-ballot-note">
-                  {t("ballot.participationEvidence")
-                    .replace("{present}", formatNumber(selectedBallot.participationEvidence.quorum.physicallyPresent))
-                    .replace(
-                      "{required}",
+                  {t("ballot.participationEvidence", {
+                    present: formatNumber(selectedBallot.participationEvidence.quorum.physicallyPresent),
+                    required:
                       selectedBallot.participationEvidence.quorum.required === null
                         ? t("meeting.quorumUnestablished")
                         : formatNumber(selectedBallot.participationEvidence.quorum.required),
-                    )
-                    .replace("{roster}", formatNumber(selectedBallot.participationEvidence.quorum.activeMembers))}
+                    roster: formatNumber(selectedBallot.participationEvidence.quorum.activeMembers),
+                  })}
                 </p>
                 {selectedBallot.chairTieBreakApplied ? (
                   <p className="report-ballot-note">{t("ballot.chairTieBreakApplied")}</p>

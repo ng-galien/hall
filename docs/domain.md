@@ -32,6 +32,6 @@ The applicable SQL tests are colocated with the council SQL under `packages/post
 
 Hall distinguishes statutory duties, municipal choices, and internal organization. A legal deadline or formality is automated only when the relevant requirement links to a current primary source and defines the expected evidence.
 
-Hall records material facts such as notices, attendance, proxies, ballots, minutes approval, signatures, publication, and legality-control transmission. A generated file or timestamp is not treated as proof of an external act unless the requirement defines that evidence.
+Hall records notice generation, attendance, proxies, ballots and minutes approval. Signatures, external publication, display, delivery of notices and legality-control transmission do not yet have a recorded-event model. Generated documents and freeze timestamps do not establish those external acts; their representation and evidence remain pending product decisions.
 
 The user decides unresolved business rules, data-model changes, product behavior, and interface choices. Record an accepted clarification in the requirement catalogue before changing dependent behavior.

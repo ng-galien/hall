@@ -295,19 +295,13 @@ export function ImageUploadStatusLine({ status }: { status: ImageUploadStatus })
     uploading: () => t("editor.imageUploading"),
     failed: () => t("editor.imageUploadFailed"),
     documentUploading: ({ name, position, total }) =>
-      t("editor.documentUploading")
-        .replace("{name}", name)
-        .replace("{position}", String(position))
-        .replace("{total}", String(total)),
-    documentFailed: ({ name }) => t("editor.documentUploadFailed").replace("{name}", name),
+      t("editor.documentUploading", { name: name, position: String(position), total: String(total) }),
+    documentFailed: ({ name }) => t("editor.documentUploadFailed", { name: name }),
     documentRefused: ({ names, accepted }) =>
-      t("editor.documentRefused").replace("{names}", names.join(", ")).replace("{accepted}", accepted),
-    tableConverting: ({ name }) => t("editor.tableConverting").replace("{name}", name),
+      t("editor.documentRefused", { names: names.join(", "), accepted: accepted }),
+    tableConverting: ({ name }) => t("editor.tableConverting", { name: name }),
     tableTruncated: ({ name, included, total }) =>
-      t("editor.tableTruncated")
-        .replace("{name}", name)
-        .replace("{included}", String(included))
-        .replace("{total}", String(total)),
+      t("editor.tableTruncated", { name: name, included: String(included), total: String(total) }),
   });
   return (
     <p
@@ -347,7 +341,7 @@ export function useSpreadsheetDropChoice() {
   const dialog = pending ? (
     <Modal open title={t("editor.spreadsheetDropTitle")} onClose={() => settle(null)} testId="editor-spreadsheet-drop">
       <div className="modal-form">
-        <p>{t("editor.spreadsheetDropDescription").replace("{name}", pending.file.name)}</p>
+        <p>{t("editor.spreadsheetDropDescription", { name: pending.file.name })}</p>
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="outline" data-testid="editor-spreadsheet-drop-attach" onClick={() => settle("attach")}>
             {t("editor.spreadsheetDropAttach")}

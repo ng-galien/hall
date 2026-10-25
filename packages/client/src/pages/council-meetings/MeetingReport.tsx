@@ -29,9 +29,10 @@ export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentatio
       0,
       Math.round((new Date(meeting.closedAt).getTime() - new Date(meeting.openedAt).getTime()) / 60000),
     );
-    return t("meeting.durationValue")
-      .replace("{hours}", formatNumber(Math.floor(minutes / 60)))
-      .replace("{minutes}", formatNumber(minutes % 60));
+    return t("meeting.durationValue", {
+      hours: formatNumber(Math.floor(minutes / 60)),
+      minutes: formatNumber(minutes % 60),
+    });
   })();
 
   return (

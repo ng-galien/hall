@@ -12,14 +12,14 @@ DECLARE
   meeting_closed_at TIMESTAMPTZ;
   source_closed_at TIMESTAMPTZ;
 BEGIN
-  -- @technical-requirement HALL-TR-INT-030 TRUNCATE_CANNOT_BYPASS_AGENDA_HISTORY:
+  -- @implements-requirement HALL-TR-INT-030
   IF TG_OP = 'TRUNCATE' THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV213',
       MESSAGE = 'council agenda history cannot be truncated';
   END IF;
 
-  -- @functional-requirement HALL-FR-AGI-270 CLOSED_MEETING_REJECTS_AGENDA_WRITES:
+  -- @implements-requirement HALL-FR-AGI-270
   -- Every insertion or update locks its target meeting. Closure and agenda
   -- mutation therefore cannot cross while each sees a stale meeting state.
   IF TG_OP IN ('INSERT', 'UPDATE') THEN
@@ -67,7 +67,7 @@ BEGIN
     END IF;
   END IF;
 
-  -- @functional-requirement HALL-FR-AGI-090 AGENDA_ITEM_IS_CREATED_INACTIVE:
+  -- @implements-requirement HALL-FR-AGI-090
   IF TG_OP = 'INSERT' THEN
     IF EXISTS(SELECT FROM hall.council_agenda_addition WHERE agenda_item=NEW.id)
       AND NEW.position <= (SELECT coalesce(max(abs(position)),0) FROM council_agenda_item WHERE council_meeting=NEW.council_meeting) THEN
@@ -81,7 +81,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- @functional-requirement HALL-FR-AGI-100 STARTED_AGENDA_ITEM_CANNOT_BE_DELETED:
+  -- @implements-requirement HALL-FR-AGI-100
   IF TG_OP = 'DELETE' THEN
     IF OLD.started_at IS NOT NULL THEN
       RAISE EXCEPTION USING
@@ -91,7 +91,7 @@ BEGIN
     RETURN OLD;
   END IF;
 
-  -- @functional-requirement HALL-FR-AGI-110 AGENDA_ITEM_SUBJECT_IS_IMMUTABLE:
+  -- @implements-requirement HALL-FR-AGI-110
   IF NEW.id IS DISTINCT FROM OLD.id
     OR NEW.council_business IS DISTINCT FROM OLD.council_business
     OR NEW.minutes_approval IS DISTINCT FROM OLD.minutes_approval
@@ -109,7 +109,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- @functional-requirement HALL-FR-AGI-120 AGENDA_ITEM_START_REQUIRES_STARTED_MEETING:
+  -- @implements-requirement HALL-FR-AGI-120
   IF OLD.started_at IS NULL AND NEW.started_at IS NOT NULL THEN
     IF NEW.started_at < hall.council_agenda_introduced_at(NEW.council_meeting,NEW.id) THEN
       RAISE EXCEPTION USING ERRCODE='HV235',MESSAGE='discussion cannot precede the question addition';
@@ -127,7 +127,7 @@ BEGIN
     END IF;
 
     IF NEW.completed_at IS NOT NULL THEN
-      -- @functional-requirement HALL-FR-AGI-180 AGENDA_ITEM_START_PRECEDES_COMPLETION:
+      -- @implements-requirement HALL-FR-AGI-180
       RAISE EXCEPTION USING
         ERRCODE = 'HV217',
         MESSAGE = 'an agenda item must start before it completes';
@@ -136,14 +136,14 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- @functional-requirement HALL-FR-AGI-130 AGENDA_ITEM_START_TIME_IS_IMMUTABLE:
+  -- @implements-requirement HALL-FR-AGI-130
   IF NEW.started_at IS DISTINCT FROM OLD.started_at THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV218',
       MESSAGE = 'an agenda item start time is immutable';
   END IF;
 
-  -- @functional-requirement HALL-FR-AGI-320 DEPROGRAMMED_AGENDA_ITEM_CANNOT_COMPLETE:
+  -- @implements-requirement HALL-FR-AGI-320
   -- A negative occurrence is no longer under consideration in this meeting.
   -- Its unfinished subject is carried forward when the meeting closes.
   IF OLD.completed_at IS NULL
@@ -155,14 +155,14 @@ BEGIN
       MESSAGE = 'a deprogrammed agenda item cannot complete';
   END IF;
 
-  -- @functional-requirement HALL-FR-AGI-140 AGENDA_ITEM_COMPLETION_TIME_IS_IMMUTABLE:
+  -- @implements-requirement HALL-FR-AGI-140
   IF OLD.completed_at IS NOT NULL AND NEW.completed_at IS DISTINCT FROM OLD.completed_at THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV219',
       MESSAGE = 'an agenda item completion time is immutable';
   END IF;
 
-  -- @functional-requirement HALL-FR-AGI-310 COMPLETED_AGENDA_ITEM_REMAINS_PROGRAMMED:
+  -- @implements-requirement HALL-FR-AGI-310
   -- A completed occurrence is part of the meeting record. Deprogramming is
   -- reserved for an unstarted item or an explicitly deferred active item.
   IF OLD.completed_at IS NOT NULL AND NEW.position IS DISTINCT FROM OLD.position THEN
@@ -171,7 +171,7 @@ BEGIN
       MESSAGE = 'a completed agenda item cannot be deprogrammed';
   END IF;
 
-  -- @functional-requirement HALL-FR-AGI-330 OPEN_BALLOT_PREVENTS_DEPROGRAMMING:
+  -- @implements-requirement HALL-FR-AGI-330
   -- Otherwise the ballot could neither complete its now-inactive item nor be
   -- removed, leaving the meeting permanently impossible to close.
   IF OLD.position > 0
@@ -188,7 +188,7 @@ BEGIN
       MESSAGE = 'an agenda item with an open ballot cannot be deprogrammed';
   END IF;
 
-  -- @functional-requirement HALL-FR-AGI-340 STARTED_DEPROGRAMMING_IS_ONE_WAY:
+  -- @implements-requirement HALL-FR-AGI-340
   -- Once consideration has been explicitly deferred, the historical
   -- occurrence remains negative and closure creates its next occurrence.
   IF OLD.started_at IS NOT NULL AND OLD.position < 0 AND NEW.position > 0 THEN
@@ -202,7 +202,7 @@ BEGIN
   IF NEW.council_meeting IS DISTINCT FROM OLD.council_meeting
     OR abs(NEW.position) IS DISTINCT FROM abs(OLD.position)
   THEN
-    -- @functional-requirement HALL-FR-AGI-190 STARTED_AGENDA_ITEM_PLACEMENT_IS_IMMUTABLE:
+    -- @implements-requirement HALL-FR-AGI-190
     RAISE EXCEPTION USING
       ERRCODE = 'HV220',
       MESSAGE = 'a started agenda item placement is immutable';

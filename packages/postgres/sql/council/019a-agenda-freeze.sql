@@ -1,5 +1,5 @@
 -- The agenda freeze is a preparation decision, independent of meeting conduct.
--- @functional-requirement HALL-FR-NOT-010 FROZEN_AGENDA_PRESERVES_QUESTIONS_AND_ORDER:
+-- @implements-requirement HALL-FR-NOT-010
 CREATE TABLE hall.council_agenda_freeze (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   council_meeting UUID NOT NULL REFERENCES hall.council_meetings(id),
@@ -15,7 +15,7 @@ CREATE VIEW hall.active_council_agenda_freeze AS
 SELECT frozen.* FROM hall.council_agenda_freeze frozen
 WHERE NOT EXISTS (SELECT FROM hall.council_agenda_reopening reopening WHERE reopening.agenda_freeze = frozen.id);
 
--- @functional-requirement HALL-FR-NOT-020 FROZEN_AGENDA_CANNOT_BE_RECOMPOSED:
+-- @implements-requirement HALL-FR-NOT-020
 CREATE FUNCTION hall.enforce_frozen_agenda_composition()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 DECLARE source UUID; target UUID; source_started TIMESTAMPTZ;
@@ -63,7 +63,7 @@ $$;
 CREATE TRIGGER council_agenda_item_z_freeze_composition BEFORE INSERT OR UPDATE OR DELETE ON hall.council_agenda_item
 FOR EACH ROW EXECUTE FUNCTION hall.enforce_frozen_agenda_composition();
 
--- @functional-requirement HALL-FR-NOT-030 PREPARATION_DOCUMENT_HISTORY_IS_IMMUTABLE:
+-- @implements-requirement HALL-FR-NOT-030
 CREATE FUNCTION hall.reject_preparation_history_change()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN
@@ -88,7 +88,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   FROM hall.council_meetings meeting JOIN hall.active_council_agenda_freeze frozen ON frozen.council_meeting = meeting.id
   WHERE meeting.id = target_meeting;
 $$;
--- @functional-requirement HALL-FR-NOT-050 NOTICE_GENERATION_PERSISTS_A_VERSION_WITHOUT_TRANSMISSION:
+-- @implements-requirement HALL-FR-NOT-050
 -- This artifact records no sending, publication, receipt, or legal deadline.
 CREATE TABLE hall.meeting_notice (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -124,7 +124,7 @@ BEGIN
   RETURN blockers;
 END $$;
 
--- @functional-requirement HALL-FR-NOT-090 MEETING_START_REQUIRES_THE_CURRENT_NOTICE:
+-- @implements-requirement HALL-FR-NOT-090
 CREATE FUNCTION hall.require_current_notice_for_start()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN

@@ -1,4 +1,4 @@
--- @functional-requirement HALL-FR-MTG-020 QUORUM_COUNTS_ONLY_PHYSICALLY_PRESENT_MEMBERS: Only
+-- @implements-requirement HALL-FR-MTG-020
 -- physically present members establish the
 -- council meeting quorum. Represented members remain voting attendances but do
 -- not increase this count.

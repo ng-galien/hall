@@ -59,8 +59,8 @@ export function GeographicFeatureCard({
   );
   const title =
     feature.featureKey.kind === "cadastreParcel" && feature.label
-      ? t("geographicFeature.parcelTitle").replace("{label}", feature.label)
-      : (feature.key ?? t("geographicFeature.untitled").replace("{index}", String(feature.position + 1)));
+      ? t("geographicFeature.parcelTitle", { label: feature.label })
+      : (feature.key ?? t("geographicFeature.untitled", { index: String(feature.position + 1) }));
   const properties = orderedGeographicProperties(feature.properties, feature.propertyKeys);
   return (
     <section
@@ -101,9 +101,10 @@ export function GeographicFeatureCard({
             {t("geographicFeature.municipal")}
             {municipal.sourceLabel ? (
               <span>
-                {t("geographicFeature.municipalSource")
-                  .replace("{label}", municipal.sourceLabel)
-                  .replace("{date}", municipal.sourceImportedAt ? formatDate(municipal.sourceImportedAt) : "")}
+                {t("geographicFeature.municipalSource", {
+                  label: municipal.sourceLabel,
+                  date: municipal.sourceImportedAt ? formatDate(municipal.sourceImportedAt) : "",
+                })}
               </span>
             ) : null}
           </p>

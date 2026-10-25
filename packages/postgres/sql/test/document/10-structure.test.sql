@@ -51,7 +51,7 @@ SELECT is(
   'folder nature is derived from the folder component'
 );
 
--- HALL-FR-DOC-010
+-- @verifies-requirement HALL-FR-DOC-010
 SELECT throws_ok(
   $$
     INSERT INTO hall.resource (id, path, name, slug)
@@ -104,7 +104,7 @@ SELECT throws_ok(
   'resource and nature identities must match'
 );
 
--- HALL-FR-DOC-090
+-- @verifies-requirement HALL-FR-DOC-090
 INSERT INTO hall.text_resource (id, content)
 VALUES ('10000000-0000-0000-0000-000000000002', 'alternate nature');
 
@@ -120,7 +120,7 @@ SELECT throws_ok(
   'resource nature cannot change after creation'
 );
 
--- HALL-FR-DOC-170
+-- @verifies-requirement HALL-FR-DOC-170
 SELECT throws_ok(
   $$
     UPDATE hall.resource
@@ -132,7 +132,7 @@ SELECT throws_ok(
   'resource slug cannot change after creation'
 );
 
--- HALL-FR-DOC-020
+-- @verifies-requirement HALL-FR-DOC-020
 SELECT throws_ok(
   $$
     INSERT INTO hall.resource (id, path, name, slug, text_resource_id)
@@ -149,7 +149,9 @@ SELECT throws_ok(
   'leading slash is rejected'
 );
 
--- HALL-FR-DOC-040: a missing containing folder fails at the deferred FK.
+-- @verifies-requirement HALL-FR-DOC-040
+
+-- a missing containing folder fails at the deferred FK.
 SET CONSTRAINTS resource_container_is_folder DEFERRED;
 INSERT INTO hall.text_resource (id, content)
 VALUES ('20000000-0000-0000-0000-000000000020', 'missing folder');
@@ -227,7 +229,9 @@ SELECT throws_ok(
   'two resource natures cannot occupy the same full path'
 );
 
--- HALL-FR-DOC-060: a non-empty folder is protected by the same FK.
+-- @verifies-requirement HALL-FR-DOC-060
+
+-- a non-empty folder is protected by the same FK.
 SET CONSTRAINTS resource_container_is_folder DEFERRED;
 SELECT throws_ok(
   $$
@@ -276,7 +280,7 @@ SELECT set_eq(
   'folder identity survives a prefix rename'
 );
 
--- HALL-FR-DOC-080
+-- @verifies-requirement HALL-FR-DOC-080
 INSERT INTO hall.binary_object (id, content_sha256, media_type, byte_size, content)
 VALUES (
   '30000000-0000-0000-0000-000000000001',

@@ -93,10 +93,9 @@ function capabilities(representation: SirenEntity | null): CouncilBusinessCapabi
 /** A business's documents carry the summaries its report references need: adopt them without the catalog. */
 async function loadBusinessResourceItems(ids: readonly string[]) {
   const items = await listCouncilBusinessResourceItems(ids);
-  useWorkspaceResourcesStore.getState().adoptSummaries(
-    // Each item was validated by the API client as a summary plus its position in the business.
-    items.map(({ councilBusinessId: _business, position: _position, ...summary }) => summary),
-  );
+  useWorkspaceResourcesStore
+    .getState()
+    .adoptSummaries(items.map(({ councilBusinessId: _business, position: _position, ...summary }) => summary));
   return items;
 }
 

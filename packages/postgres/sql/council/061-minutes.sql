@@ -8,7 +8,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   WHERE member.id = target;
 $$;
 
--- @functional-requirement HALL-FR-MIN-060 MINUTES_CAPTURE_IDENTITIES_AND_VOTES:
+-- @implements-requirement HALL-FR-MIN-060
 -- Names are copied now: later directory edits cannot rewrite a closed record.
 CREATE FUNCTION hall.capture_minutes_facts(target_meeting UUID)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
@@ -27,7 +27,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     -- Product evidence, not a literal requirement for a separate recusal
     -- section in CGCT L2121-15 paragraph 4 (version 2022-07-01).
     -- https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044190488
-    -- @functional-requirement HALL-FR-MIN-210 MINUTES_PRESERVE_RECUSAL_EVIDENCE:
+    -- @implements-requirement HALL-FR-MIN-210
     'recusals', snapshot.payload->'recusals',
     'conduct', snapshot.payload->'conduct',
     'agenda', coalesce((SELECT jsonb_agg(jsonb_build_object(
@@ -77,11 +77,11 @@ $$;
 CREATE FUNCTION hall.enforce_minutes_lifecycle()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN
-  -- @functional-requirement HALL-FR-MIN-070 MINUTES_HISTORY_CANNOT_BE_DELETED:
+  -- @implements-requirement HALL-FR-MIN-070
   IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
     RAISE EXCEPTION USING ERRCODE = 'HV701', MESSAGE = 'minutes history cannot be deleted';
   END IF;
-  -- @functional-requirement HALL-FR-MIN-080 CLOSURE_PRODUCES_THE_INITIAL_DRAFT:
+  -- @implements-requirement HALL-FR-MIN-080
   IF TG_OP = 'INSERT' THEN
     NEW.facts := hall.capture_minutes_facts(NEW.council_meeting);
     IF NEW.facts IS NULL THEN
@@ -92,12 +92,12 @@ BEGIN
     NEW.updated_at := NEW.created_at;
     RETURN NEW;
   END IF;
-  -- @functional-requirement HALL-FR-MIN-090 FACTS_AND_ORIGIN_ARE_IMMUTABLE:
+  -- @implements-requirement HALL-FR-MIN-090
   IF NEW.id IS DISTINCT FROM OLD.id OR NEW.council_meeting IS DISTINCT FROM OLD.council_meeting
     OR NEW.facts IS DISTINCT FROM OLD.facts OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
     RAISE EXCEPTION USING ERRCODE = 'HV703', MESSAGE = 'minutes facts and origin are immutable';
   END IF;
-  -- @functional-requirement HALL-FR-MIN-100 GENERATED_DRAFT_IS_FROZEN:
+  -- @implements-requirement HALL-FR-MIN-100
   IF EXISTS (SELECT FROM hall.minutes_document WHERE minutes = OLD.id) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV704', MESSAGE = 'generated minutes cannot be edited';
   END IF;
@@ -111,7 +111,7 @@ FOR EACH ROW EXECUTE FUNCTION hall.enforce_minutes_lifecycle();
 CREATE TRIGGER minutes_no_truncate BEFORE TRUNCATE ON hall.minutes
 FOR EACH STATEMENT EXECUTE FUNCTION hall.enforce_minutes_lifecycle();
 
--- @functional-requirement HALL-FR-MIN-170 ONE_EDITORIAL_SECTION_PER_CAPTURED_AGENDA_ITEM:
+-- @implements-requirement HALL-FR-MIN-170
 -- Section identity is its minutes and agenda occurrence. Ordering and titles
 -- remain the immutable facts, rather than a second mutable editorial outline.
 CREATE TABLE hall.minutes_section (
@@ -124,20 +124,20 @@ CREATE TABLE hall.minutes_section (
 CREATE FUNCTION hall.enforce_minutes_section_lifecycle()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN
-  -- @functional-requirement HALL-FR-MIN-180 EDITORIAL_OUTLINE_CANNOT_BE_REMOVED_OR_REASSIGNED:
+  -- @implements-requirement HALL-FR-MIN-180
   IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
     RAISE EXCEPTION USING ERRCODE = 'HV710', MESSAGE = 'minutes sections cannot be removed';
   END IF;
   IF TG_OP = 'UPDATE' AND (NEW.minutes IS DISTINCT FROM OLD.minutes OR NEW.agenda_item IS DISTINCT FROM OLD.agenda_item) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV711', MESSAGE = 'minutes section identity is immutable';
   END IF;
-  -- @functional-requirement HALL-FR-MIN-190 SECTION_BELONGS_TO_THE_CAPTURED_AGENDA:
+  -- @implements-requirement HALL-FR-MIN-190
   PERFORM 1 FROM hall.minutes WHERE id = NEW.minutes FOR UPDATE;
   IF NOT EXISTS (SELECT FROM hall.minutes, jsonb_array_elements(facts->'agenda') item
     WHERE minutes.id = NEW.minutes AND item->>'id' = NEW.agenda_item::TEXT) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV712', MESSAGE = 'unknown minutes section';
   END IF;
-  -- @technical-requirement HALL-TR-MIN-040 SECTION_EDITS_SHARE_THE_MINUTES_VERSION_LOCK:
+  -- @implements-requirement HALL-TR-MIN-040
   -- Updating the parent invokes the existing freeze guard and increments its
   -- global version. Generation therefore observes all section edits atomically.
   IF TG_OP = 'UPDATE' THEN
@@ -156,7 +156,7 @@ FOR EACH STATEMENT EXECUTE FUNCTION hall.enforce_minutes_section_lifecycle();
 CREATE FUNCTION hall.initialize_minutes_sections()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN
-  -- @functional-requirement HALL-FR-MIN-200 CLOSURE_NOTES_INITIALIZE_THEIR_OWN_SECTION:
+  -- @implements-requirement HALL-FR-MIN-200
   INSERT INTO hall.minutes_section(minutes, agenda_item, content)
   SELECT NEW.id, agenda_item.id, agenda_item.discussion_summary
   FROM jsonb_array_elements(NEW.facts->'agenda') item
@@ -170,13 +170,13 @@ FOR EACH ROW EXECUTE FUNCTION hall.initialize_minutes_sections();
 CREATE FUNCTION hall.enforce_minutes_document_lifecycle()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN
-  -- @functional-requirement HALL-FR-MIN-110 GENERATED_DOCUMENT_IS_IMMUTABLE:
+  -- @implements-requirement HALL-FR-MIN-110
   IF TG_OP <> 'INSERT' THEN
     RAISE EXCEPTION USING ERRCODE = 'HV705', MESSAGE = 'generated minutes document is immutable';
   END IF;
-  -- @technical-requirement HALL-TR-MIN-010 GENERATION_SERIALIZES_WITH_DRAFT_EDITS:
+  -- @implements-requirement HALL-TR-MIN-010
   PERFORM 1 FROM hall.minutes WHERE id = NEW.minutes FOR UPDATE;
-  -- @functional-requirement HALL-FR-MIN-120 GENERATED_MINUTES_CONTAINS_PDF_BYTES:
+  -- @implements-requirement HALL-FR-MIN-120
   IF NOT EXISTS (SELECT FROM hall.binary_object WHERE id = NEW.binary_object
     AND media_type = 'application/pdf' AND byte_size > 5 AND substring(content FROM 1 FOR 5) = convert_to('%PDF-', 'UTF8')) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV706', MESSAGE = 'minutes document requires PDF content';

@@ -3,7 +3,7 @@
 -- hall owns invariants and reusable transactional primitives. hall_api owns
 -- the named runtime entry points. No runtime role can write the tables.
 
--- @technical-requirement HALL-TR-DOC-050 NAMESPACE_WRITES_ARE_SERIALIZED:
+-- @implements-requirement HALL-TR-DOC-050
 CREATE FUNCTION hall.lock_resource_namespace()
 RETURNS VOID
 LANGUAGE sql
@@ -13,7 +13,7 @@ AS $function$
   SELECT pg_advisory_xact_lock(hashtextextended('hall.resource.namespace', 0))
 $function$;
 
--- @requirement-reference HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
+-- @implements-requirement HALL-FR-DOC-200
 CREATE FUNCTION hall.touch_resource(resource_id UUID)
 RETURNS VOID
 LANGUAGE sql
@@ -25,8 +25,8 @@ AS $function$
   WHERE id = resource_id
 $function$;
 
--- @requirement-reference HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
--- @technical-requirement HALL-TR-DOC-070 SLUG_ALLOCATION_IS_SERIALIZED:
+-- @implements-requirement HALL-FR-DOC-170
+-- @implements-requirement HALL-TR-DOC-070
 CREATE FUNCTION hall.claim_resource_slug(resource_name TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -68,14 +68,14 @@ AS $function$
 DECLARE
   target_is_folder BOOLEAN;
 BEGIN
-  -- @requirement-reference HALL-FR-DOC-020 RESOURCE_LOCATION_IS_NORMALIZED:
+  -- @implements-requirement HALL-FR-DOC-020
   IF folder_path IS NULL OR NOT hall.is_normalized_resource_path(folder_path) THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV607',
       MESSAGE = 'Resource path is not normalized';
   END IF;
 
-  -- @requirement-reference HALL-FR-DOC-050 ROOT_IS_IMPLICIT:
+  -- @implements-requirement HALL-FR-DOC-050
   IF folder_path = '' THEN
     RETURN;
   END IF;
@@ -85,7 +85,7 @@ BEGIN
   FROM hall.resource AS resource
   WHERE resource.full_path = folder_path;
 
-  -- @functional-requirement HALL-FR-DOC-110 FOLDER_LISTS_DIRECT_CHILDREN:
+  -- @implements-requirement HALL-FR-DOC-110
   IF NOT FOUND THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV602',
@@ -100,7 +100,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-DOC-120 PARENT_FOLDERS_ARE_ENSURED:
+-- @implements-requirement HALL-FR-DOC-120
 CREATE FUNCTION hall.ensure_folder_path(folder_path TEXT)
 RETURNS UUID
 LANGUAGE plpgsql
@@ -161,7 +161,7 @@ BEGIN
 END
 $function$;
 
--- @requirement-reference HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
+-- @implements-requirement HALL-FR-DOC-100
 CREATE FUNCTION hall_api.open_resource(resource_id UUID)
 RETURNS JSONB
 LANGUAGE sql
@@ -172,7 +172,7 @@ AS $function$
   SELECT hall.resource_detail(resource_id)
 $function$;
 
--- @requirement-reference HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
+-- @implements-requirement HALL-FR-DOC-170
 CREATE FUNCTION hall_api.open_resource_by_slug(resource_slug TEXT)
 RETURNS JSONB
 LANGUAGE sql
@@ -184,7 +184,7 @@ AS $function$
   FROM hall.require_resource_by_slug(resource_slug) AS resource
 $function$;
 
--- @requirement-reference HALL-FR-DOC-180 WORKSPACE_CATALOG_IS_FLAT:
+-- @implements-requirement HALL-FR-DOC-180
 CREATE FUNCTION hall_api.list_resources()
 RETURNS JSONB
 LANGUAGE sql
@@ -199,7 +199,7 @@ AS $function$
   FROM hall.resource AS resource
 $function$;
 
--- @requirement-reference HALL-FR-DOC-210 RESOURCE_HYDRATION_IS_SCOPED:
+-- @implements-requirement HALL-FR-DOC-210
 -- @implements-requirement HALL-FR-SRC-010
 -- @implements-requirement HALL-FR-SRC-020
 CREATE FUNCTION hall_api.search_resources(
@@ -341,7 +341,7 @@ BEGIN
 END
 $function$;
 
--- @requirement-reference HALL-FR-DOC-110 FOLDER_LISTS_DIRECT_CHILDREN:
+-- @implements-requirement HALL-FR-DOC-110
 CREATE FUNCTION hall_api.list_folder(folder_path TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -378,7 +378,7 @@ BEGIN
 END
 $function$;
 
--- @requirement-reference HALL-FR-DOC-120 PARENT_FOLDERS_ARE_ENSURED:
+-- @implements-requirement HALL-FR-DOC-120
 CREATE FUNCTION hall_api.create_folder(parent_path TEXT, resource_name TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -423,7 +423,7 @@ BEGIN
 END
 $function$;
 
--- @requirement-reference HALL-FR-DOC-190 REMOTE_TARGET_IS_STRUCTURAL:
+-- @implements-requirement HALL-FR-DOC-190
 CREATE FUNCTION hall_api.create_remote_resource(parent_path TEXT, resource_name TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -566,7 +566,7 @@ BEGIN
   FROM hall.binary_object
   WHERE binary_object.content_sha256 = calculated_sha256;
 
-  -- @functional-requirement HALL-FR-DOC-160 BINARY_METADATA_IS_CONSISTENT:
+  -- @implements-requirement HALL-FR-DOC-160
   IF stored_media_type <> resource_media_type THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV610',
@@ -603,7 +603,7 @@ BEGIN
 END
 $function$;
 
--- @requirement-reference HALL-FR-DOC-230 EDITOR_ASSET_BELONGS_TO_TEXT_CONTENT:
+-- @implements-requirement HALL-FR-DOC-230
 CREATE FUNCTION hall_api.create_editor_asset(
   owner_resource_id UUID,
   asset_title TEXT,
@@ -663,7 +663,7 @@ AS $function$
   WHERE editor_asset.id = asset_id
 $function$;
 
--- @functional-requirement HALL-FR-DOC-250 BINARY_REFERENCE_IS_UNIFIED:
+-- @implements-requirement HALL-FR-DOC-250
 CREATE FUNCTION hall_api.read_binary_reference_content(reference_id UUID)
 RETURNS TABLE (
   content BYTEA,
@@ -719,7 +719,7 @@ BEGIN
     ELSE destination_path || '/' || destination_name
   END;
 
-  -- @functional-requirement HALL-FR-DOC-130 LOCATION_CHANGE_IS_ATOMIC:
+  -- @implements-requirement HALL-FR-DOC-130
   -- Folder names are literal segments: %, _ and backslash never act as
   -- pattern operators when identifying descendants or unrelated neighbors.
   IF target.is_folder AND (
@@ -788,7 +788,7 @@ AS $function$
   )
 $function$;
 
--- @requirement-reference HALL-FR-DOC-130 LOCATION_CHANGE_IS_ATOMIC:
+-- @implements-requirement HALL-FR-DOC-130
 CREATE FUNCTION hall_api.relocate_resource(resource_id UUID, destination_path TEXT, destination_name TEXT)
 RETURNS JSONB
 LANGUAGE sql
@@ -799,7 +799,7 @@ AS $function$
   SELECT hall.relocate_resource(resource_id, destination_path, destination_name)
 $function$;
 
--- @requirement-reference HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
+-- @implements-requirement HALL-FR-DOC-200
 CREATE FUNCTION hall.replace_resource_tags(resource_id UUID, resource_tags TEXT[])
 RETURNS VOID
 LANGUAGE plpgsql
@@ -880,7 +880,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-DOC-140 EDITABLE_CONTENT_IS_VERSIONED:
+-- @implements-requirement HALL-FR-DOC-140
 CREATE FUNCTION hall_api.update_text_resource(
   resource_id UUID,
   expected_version INTEGER,
@@ -900,7 +900,7 @@ BEGIN
     PERFORM hall_api.rename_resource(resource_id, resource_name);
   END IF;
 
-  -- @functional-requirement HALL-FR-DOC-240 EDITOR_ASSETS_FOLLOW_REFERENCES:
+  -- @implements-requirement HALL-FR-DOC-240
   IF EXISTS (
     SELECT 1
     FROM hall.editor_asset
@@ -1139,7 +1139,7 @@ BEGIN
 END
 $function$;
 
--- @requirement-reference HALL-TR-DOC-040 JSON_PROJECTIONS_ARE_EXPLICIT:
+-- @implements-requirement HALL-TR-DOC-040
 CREATE FUNCTION hall_api.read_document_content(resource_id UUID)
 RETURNS TABLE (
   content BYTEA,
@@ -1165,7 +1165,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-DOC-150 RESOURCE_DELETION_IS_COMPLETE:
+-- @implements-requirement HALL-FR-DOC-150
 CREATE FUNCTION hall.resource_business_allows_deletion(resource_id UUID)
 RETURNS BOOLEAN LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, hall AS $function$

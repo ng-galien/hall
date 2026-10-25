@@ -63,16 +63,14 @@ export function LiveMeetingPage() {
   }
   const observedItem = aggregate.agendaItems.find((item) => item.id === quorumObservation?.agendaItemId);
   const quorumLabel = quorumObservation
-    ? t(quorumObservation.agendaItemId ? "live.quorumItemChip" : "live.quorumMeetingChip")
-        .replace(
-          "{point}",
-          observedItem
-            ? liveBusinessTitle(observedItem.business, t("agendaSubject.minutesApproval"))
-            : t("live.quorumItemFallback"),
-        )
-        .replace("{time}", formatDateTime(quorumObservation.observedAt))
-        .replace("{present}", formatNumber(quorumObservation.facts.presentCount))
-        .replace("{required}", formatNumber(quorumObservation.facts.requiredPresent))
+    ? t(quorumObservation.agendaItemId ? "live.quorumItemChip" : "live.quorumMeetingChip", {
+        point: observedItem
+          ? liveBusinessTitle(observedItem.business, t("agendaSubject.minutesApproval"))
+          : t("live.quorumItemFallback"),
+        time: formatDateTime(quorumObservation.observedAt),
+        present: formatNumber(quorumObservation.facts.presentCount),
+        required: formatNumber(quorumObservation.facts.requiredPresent),
+      })
     : t("live.quorumUnestablished");
   const rosterMembers = members.filter((member) => aggregate.rosterMemberIds.includes(member.id));
   const showRollCall = meeting.status === "scheduled" || (meeting.status === "inProgress" && rollCallVisible);
@@ -95,9 +93,10 @@ export function LiveMeetingPage() {
             title={quorumLabel}
           >
             {quorumObservation
-              ? t("live.quorumCompact")
-                  .replace("{present}", formatNumber(quorumObservation.facts.presentCount))
-                  .replace("{required}", formatNumber(quorumObservation.facts.requiredPresent))
+              ? t("live.quorumCompact", {
+                  present: formatNumber(quorumObservation.facts.presentCount),
+                  required: formatNumber(quorumObservation.facts.requiredPresent),
+                })
               : quorumLabel}
           </span>
           <LiveClock />

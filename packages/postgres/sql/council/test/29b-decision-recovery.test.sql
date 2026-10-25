@@ -4,7 +4,8 @@ SET LOCAL hall.actor_id='recovery-clerk';
 \ir support/helpers.sql
 \ir support/quorum.sql
 SELECT no_plan();
--- HALL-FR-DEC-070: simulate a vote confirmed before documentary provisioning existed.
+-- @verifies-requirement HALL-FR-DEC-070
+-- simulate a vote confirmed before documentary provisioning existed.
 SELECT pg_temp.quorum_case('recovery',3,3);
 UPDATE hall.text_resource SET content='Retained submitted text' WHERE id=(SELECT text_resource FROM hall.council_decision_proposal_workspace WHERE council_decision_proposal=(SELECT council_decision_proposal FROM hall.council_agenda_item WHERE id=test_uuid('recovery:a:agenda-item')));
 SELECT test_prepare_notice(test_uuid('recovery:meeting'));

@@ -35,7 +35,7 @@ function renderSummary() {
   const items = [
     ["Exigences", summary.requirements],
     ["Implémentées", summary.implemented],
-    ["Vérifiées", summary.verified],
+    ["Marquées par un test", summary.verified],
     ["Au backlog", summary.tracked],
   ];
   elements.summary.innerHTML = items.map(([label, value]) =>
@@ -110,7 +110,7 @@ function renderRequirements() {
     criteria.innerHTML = values.map(value => `<li>${value}</li>`).join("");
     fragment.querySelector(".evidence").innerHTML = [
       evidenceBadge("Implémentée", requirement.evidence.implemented),
-      evidenceBadge("Vérifiée", requirement.evidence.verified),
+      evidenceBadge("Marquée par un test", requirement.evidence.verified),
       evidenceBadge("Backlog", requirement.evidence.tracked),
     ].join("");
     const select = fragment.querySelector(".theme-choice select");

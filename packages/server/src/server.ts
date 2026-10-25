@@ -37,7 +37,10 @@ export async function startHttpServer(
     const address = server.address() as AddressInfo;
     const liveWebSocket = attachLiveWebSocket(server, container.cradle);
     const url = `http://${config.host}:${address.port}`;
-    logger.info({ url, databaseKind: config.database.kind }, "Hall server started");
+    logger.info(
+      { url, databaseKind: config.database.kind, version: config.version ?? "unidentified" },
+      "Hall server started",
+    );
 
     return {
       url,

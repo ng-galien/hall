@@ -123,6 +123,10 @@ await writeFile(
     {
       name: manifest.name,
       version: manifest.version,
+      source: {
+        commit: spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).stdout?.trim() || null,
+        dirty: Boolean(spawnSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" }).stdout?.trim()),
+      },
       schemaFingerprint: (await loadSchemaManifest()).fingerprint,
       runtimeDependencies: Object.fromEntries(
         Object.keys(manifest.dependencies).map((name) => {

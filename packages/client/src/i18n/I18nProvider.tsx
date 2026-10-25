@@ -2,6 +2,7 @@ import { type ReactNode, useContext, useEffect, useMemo, useState } from "react"
 import { en } from "./en";
 import { fr } from "./fr";
 import { I18nContext, type I18nContextValue, type Locale } from "./i18nContext";
+import { interpolateMessage, pluralMessage } from "./messageFormat";
 
 export type { Locale } from "./i18nContext";
 
@@ -27,7 +28,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     return {
       locale,
       setLocale,
-      t: (key) => messages[key],
+      t: (key, values) => interpolateMessage(messages[key], values),
+      plural: (count, one, other) => pluralMessage(languageTag, count, messages[one], messages[other]),
       formatDate: (date) => new Date(date).toLocaleDateString(languageTag),
       formatDateTime: (date) => new Date(date).toLocaleString(languageTag),
       formatTime: (date) =>

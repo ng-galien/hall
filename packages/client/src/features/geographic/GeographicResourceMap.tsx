@@ -95,6 +95,8 @@ function parcelSource(municipal: MunicipalPropertyState | null, parcelId: string
 
 // @implements-requirement HALL-FR-DOC-340
 // @implements-requirement HALL-FR-DOC-430
+// biome-ignore-start lint/correctness/useExhaustiveDependencies: opening another map resets its temporary panel state.
+// @implements-requirement HALL-FR-DOC-430
 export function GeographicResourceMap({
   resource,
   representation,
@@ -159,7 +161,6 @@ export function GeographicResourceMap({
   const [measuring, setMeasuring] = useState(false);
   const [measuredDrawingIds, setMeasuredDrawingIds] = useState<ReadonlySet<string>>(() => new Set());
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: opening another map resets its temporary panel state.
   useEffect(() => {
     setWorkspaceMode("draw");
     setDrawTool("select");
@@ -267,7 +268,6 @@ export function GeographicResourceMap({
   const readerInspection = (embedded || workspaceMode !== "draw" || !canUpdate) && !measuring;
   const [inspectedDrawingId, setInspectedDrawingId] = useState<string | null>(null);
   const olMap = mapRuntime.map;
-  // In Mesures, a click on a drawing shows its measures on the map and in its card.
   const measureClickedDrawing = workspaceMode === "measure";
   const inspectionCallbacks = useRef({ drawingIdAt, setSelection, measureClickedDrawing });
   inspectionCallbacks.current = { drawingIdAt, setSelection, measureClickedDrawing };
@@ -342,7 +342,6 @@ export function GeographicResourceMap({
             expectedVersion: latestVersionRef.current,
           });
           if (updated?.kind !== "geographic") {
-            // The store reports the failure of this call as its error code, read right after the call returns.
             throw new ApiError(useWorkspaceResourcesStore.getState().error ?? "request_failed", 0);
           }
           latestVersionRef.current = updated.version;
@@ -475,7 +474,6 @@ export function GeographicResourceMap({
     { value: cssToken("--hall-color-text-muted"), label: t("geographic.color.gray") },
     { value: cssToken("--hall-color-text"), label: t("geographic.color.black") },
   ];
-  // Colors already used by this map's drawings, custom ones included, are offered again after the standard ones.
   const knownColors = new Set(featureColorPresets.map((preset) => preset.value.toLowerCase()));
   const mapColorPresets: ColorPickerPreset[] = [];
   for (const drawing of drawings) {
@@ -485,7 +483,6 @@ export function GeographicResourceMap({
     mapColorPresets.push({ value: color, label: t("geographic.color.used") });
   }
   const drawingColorPresets = [...featureColorPresets, ...mapColorPresets];
-  // The colors the map gives a meaning to are offered with that meaning, above the plain colors.
   const legendColorPresets: ColorPickerPreset[] = (draft.hallLayer.legend ?? []).map(({ color, label }) => ({
     value: color,
     label,
@@ -504,8 +501,6 @@ export function GeographicResourceMap({
     const Icon = geographicFeatureKindPolicy[drawing.properties.kind].Icon;
     return <Icon />;
   };
-  // The card repeats the controls of the drawing's Composition row, so either place acts the same way.
-  // @implements-requirement HALL-FR-DOC-430
   const drawingActions = (drawing: (typeof drawings)[number]) => {
     const id = String(drawing.id);
     const name = drawingName(drawing);
@@ -548,9 +543,6 @@ export function GeographicResourceMap({
     );
   };
 
-  // One card for a drawing whatever the mode: the same header, measures, line arrows and note; a reader gets it
-  // without the editing actions.
-  // @implements-requirement HALL-FR-DOC-430
   const drawingCard = (
     drawing: (typeof drawings)[number],
     { key, editable, onClose }: { key: string; editable: boolean; onClose(): void },
@@ -567,7 +559,6 @@ export function GeographicResourceMap({
         kindIcon={drawingKindIcon(drawing)}
         actions={editable ? drawingActions(drawing) : undefined}
         hidden={drawing.properties.visible === false}
-        // The measures shown on the map for this drawing are also read in its card; a reader always sees them.
         measures={
           measure && measure.kind !== "position" && (!editable || measuredDrawingIds.has(id)) ? (
             <MeasureReadout measure={measure} testId="geographic-drawn-element-card-measures" />
@@ -773,3 +764,4 @@ export function GeographicResourceMap({
     </div>
   );
 }
+// biome-ignore-end lint/correctness/useExhaustiveDependencies: opening another map resets its temporary panel state.

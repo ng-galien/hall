@@ -14,7 +14,7 @@ DECLARE
   target_item UUID;
   departure_accounted BOOLEAN;
 BEGIN
-  -- @functional-requirement HALL-FR-BAL-070 BALLOT_PARTICIPATION_IS_IMMUTABLE: Ballot
+  -- @implements-requirement HALL-FR-BAL-070
   -- participation is an immutable declaration; only insertion
   -- is legal, including against attempts to delete or truncate it later.
   IF TG_OP <> 'INSERT' THEN
@@ -26,7 +26,7 @@ BEGIN
   PERFORM 1 FROM hall.council_meetings m JOIN hall.council_agenda_item item ON item.council_meeting=m.id
     JOIN hall.ballots b ON b.council_agenda_item=item.id WHERE b.id=NEW.ballot FOR UPDATE OF m;
 
-  -- @technical-requirement HALL-TR-CON-060 PARTICIPATION_INSERT_SERIALIZES_WITH_BALLOT_COMPLETION:
+  -- @implements-requirement HALL-TR-CON-060
   -- Lock the ballot while declaring participation so the
   -- declaration cannot race with completion of that same ballot.
   SELECT ballots.completed_at, council_agenda_item.council_meeting, council_agenda_item.id
@@ -43,7 +43,7 @@ BEGIN
       MESSAGE = format('unknown ballot %s', NEW.ballot);
   END IF;
 
-  -- @functional-requirement HALL-FR-BAL-080 COMPLETED_BALLOT_REJECTS_PARTICIPATION: The
+  -- @implements-requirement HALL-FR-BAL-080
   -- participation set is frozen once the ballot is
   -- completed.
   IF ballot_completed_at IS NOT NULL THEN
@@ -66,7 +66,7 @@ BEGIN
       MESSAGE = format('unknown meeting attendance %s', NEW.meeting_attendance);
   END IF;
 
-  -- @functional-requirement HALL-FR-BAL-090 BALLOT_PARTICIPATION_BELONGS_TO_BALLOT_MEETING: A
+  -- @implements-requirement HALL-FR-BAL-090
   -- ballot can use only attendance declared for the meeting
   -- in which its agenda item is examined.
   IF attendance_meeting IS DISTINCT FROM ballot_meeting THEN
@@ -78,7 +78,7 @@ BEGIN
   SELECT hall.candidate_accounts_for_departure(target_item,p.candidate,NEW.meeting_attendance)
   INTO departure_accounted FROM hall.ballots b JOIN hall.ballot_result_preview p ON p.id=b.result_preview
   WHERE b.id=NEW.ballot;
-  -- @functional-requirement HALL-FR-BAL-100 BALLOT_PARTICIPATION_REQUIRES_VOTING_ATTENDANCE:
+  -- @implements-requirement HALL-FR-BAL-100
   -- Present or represented members can vote. A member whose departure after
   -- discussion is evidenced can only be retained for explicit non-participation
   -- accounting in the reviewed candidate, never to express a new vote.
@@ -93,7 +93,7 @@ BEGIN
   -- preserving public/secret vote shapes rather than adding a vote choice.
   -- https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053153029
   -- https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053153012
-  -- @functional-requirement HALL-FR-BAL-310 RECUSED_MEMBER_CANNOT_PARTICIPATE:
+  -- @implements-requirement HALL-FR-BAL-310
   -- A recused member cannot vote personally or exercise a written proxy.
   IF NOT hall.agenda_item_attendance_is_eligible(target_item, NEW.meeting_attendance) AND NOT coalesce(departure_accounted,false) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV305', MESSAGE = 'a recused member cannot participate in this ballot';
@@ -110,7 +110,7 @@ BEFORE INSERT OR UPDATE OR DELETE ON hall.ballot_participation
 FOR EACH ROW
 EXECUTE FUNCTION enforce_ballot_participation_lifecycle();
 
--- @technical-requirement HALL-TR-INT-040 TRUNCATE_CANNOT_BYPASS_PARTICIPATION_IMMUTABILITY:
+-- @implements-requirement HALL-TR-INT-040
 -- Statement-level deletion cannot bypass participation immutability.
 CREATE TRIGGER ballot_participation_reject_truncate
 BEFORE TRUNCATE ON hall.ballot_participation

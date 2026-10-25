@@ -1,5 +1,56 @@
 import { expect, it } from "vitest";
-import { createPostgresHttpTestServer } from "./testServer.js";
+import { createPostgresHttpTestServer, createTestServer, domainBody } from "./testServer.js";
+
+// @verifies-requirement HALL-FR-DIR-120
+// @verifies-requirement HALL-FR-DIR-140
+it("keeps dated contact memberships readable after committee and representation updates and closure", async () => {
+  const { rawAgent } = await createTestServer();
+  const contact = domainBody(
+    await rawAgent.post("/api/contacts").send({ firstName: "Camille", lastName: "Externe" }).expect(201),
+  );
+  for (const [collection, role] of [
+    ["council-committees", "member"],
+    ["council-delegations", "primary"],
+  ] as const) {
+    const base = `/api/${collection}`;
+    const entity = domainBody(
+      await rawAgent.post(base).send({ name: "Instance", description: "Initiale" }).expect(201),
+    );
+    const path = `${base}/${entity.id}`;
+    expect(
+      domainBody(await rawAgent.put(path).send({ name: "Instance renommée", description: "Actualisée" }).expect(200)),
+    ).toMatchObject({ name: "Instance renommée", description: "Actualisée" });
+    const membership = domainBody(
+      await rawAgent
+        .post(`${path}/memberships`)
+        .send({ contactId: contact.id, role, startedOn: "2026-01-01" })
+        .expect(201),
+    );
+    expect(domainBody(await rawAgent.get(`${path}/memberships/${membership.id}`).expect(200))).toMatchObject({
+      contactId: contact.id,
+      endedOn: null,
+    });
+    await rawAgent.post(`${path}/memberships/${membership.id}/end`).send({ endedOn: "2026-05-01" }).expect(200);
+    expect(domainBody(await rawAgent.get(`${path}/memberships/${membership.id}`).expect(200)).endedOn).toBe(
+      "2026-05-01",
+    );
+    const next = domainBody(
+      await rawAgent
+        .post(`${path}/memberships`)
+        .send({ contactId: contact.id, role, startedOn: "2026-06-01" })
+        .expect(201),
+    );
+    await rawAgent.post(`${path}/archive`).send({}).expect(200);
+    expect(domainBody(await rawAgent.get(`${path}/memberships/${next.id}`).expect(200)).endedOn).not.toBeNull();
+    expect(domainBody(await rawAgent.get(base).expect(200))).toEqual([]);
+    expect(domainBody(await rawAgent.get(`${base}?includeArchived=true`).expect(200))).toEqual([
+      expect.objectContaining({ id: entity.id, name: "Instance renommée" }),
+    ]);
+    const missing = "00000000-0000-4000-8000-000000000098";
+    await rawAgent.get(`${base}/${missing}`).expect(404);
+    await rawAgent.get(`${path}/memberships/${missing}`).expect(404);
+  }
+});
 
 it("serves contact-based committees and external representations with global unique council ranks", async () => {
   const server = await createPostgresHttpTestServer({ devAutoLogin: false });
@@ -165,3 +216,45 @@ it("serves contact-based committees and external representations with global uni
     (await server.pool.query("SELECT count(*)::integer AS count FROM hall.council_member WHERE rank=0")).rows,
   ).toEqual([{ count: 2 }]);
 }, 30000);
+
+it("preserves contact edits and archive visibility through real HTTP clients", async () => {
+  const { rawAgent } = await createTestServer();
+  const contact = domainBody(
+    await rawAgent.post("/api/contacts").send({ firstName: "Élise", lastName: "Test" }).expect(201),
+  );
+  const url = `/api/contacts/${contact.id}`;
+  expect(domainBody(await rawAgent.get(url).expect(200))).toMatchObject({ firstName: "Élise", archivedAt: null });
+  const input = { firstName: "Élise", lastName: "Updated", email: "ELISE@example.fr", notes: "Contact conservé" };
+  expect(domainBody(await rawAgent.put(url).send(input).expect(200))).toMatchObject({
+    lastName: "Updated",
+    email: "elise@example.fr",
+  });
+  expect(domainBody(await rawAgent.get(url).expect(200)).notes).toBe("Contact conservé");
+  expect(domainBody(await rawAgent.post(`${url}/archive`).send({}).expect(200)).archivedAt).not.toBeNull();
+  expect(domainBody(await rawAgent.get("/api/contacts").expect(200))).toEqual([]);
+  expect(domainBody(await rawAgent.get("/api/contacts?includeArchived=true").expect(200))).toEqual([
+    expect.objectContaining({ id: contact.id, lastName: "Updated" }),
+  ]);
+  await rawAgent.put(url).send(input).expect(409);
+  await rawAgent.get("/api/contacts/00000000-0000-4000-8000-000000000099").expect(404);
+});
+
+it("retrieves the configured council term and preserves an active mandate when archive is refused", async () => {
+  const { rawAgent } = await createTestServer({ expectedCouncilMemberCount: null });
+  expect(domainBody(await rawAgent.get("/api/council-terms").expect(200))).toEqual([]);
+  const term = domainBody(await rawAgent.put("/api/council-terms").send({ expectedMemberCount: 2 }).expect(200));
+  expect(domainBody(await rawAgent.get("/api/council-terms").expect(200))).toEqual([term]);
+  const contact = domainBody(
+    await rawAgent.post("/api/contacts").send({ firstName: "Mayor", lastName: "Test" }).expect(201),
+  );
+  await rawAgent
+    .post("/api/council-members")
+    .send({ contactId: contact.id, role: "mayor", termStartedOn: "2026-03-22" })
+    .expect(201);
+  const representation = await rawAgent.get(`/api/contacts/${contact.id}`).expect(200);
+  expect(representation.body.actions.map((action: { name: string }) => action.name)).not.toContain("contact.archive");
+  await rawAgent.post(`/api/contacts/${contact.id}/archive`).send({}).expect(409);
+  expect(domainBody(await rawAgent.get(`/api/contacts/${contact.id}`).expect(200)).archivedAt).toBeNull();
+  await rawAgent.put("/api/council-terms").send({ expectedMemberCount: 0 }).expect(400);
+  expect(domainBody(await rawAgent.get("/api/council-terms").expect(200))).toEqual([term]);
+});

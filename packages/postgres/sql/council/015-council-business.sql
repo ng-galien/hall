@@ -6,7 +6,7 @@
 -- entities: one business may prepare many decision proposals and open questions.
 -- Each prepared subject owns its business association before any agenda occurrence.
 
--- @functional-requirement HALL-FR-BUS-010 COUNCIL_BUSINESS_IS_THE_PREPARATION_ROOT:
+-- @implements-requirement HALL-FR-BUS-010
 CREATE TABLE hall.council_business (
   id UUID PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
@@ -15,18 +15,18 @@ CREATE TABLE hall.council_business (
 -- Entity: the minutes produced by exactly one council meeting. Approval is a
 -- distinct subject because minutes exist before the following council examines
 -- them.
--- @functional-requirement HALL-FR-MIN-010 ONE_MINUTES_PER_COUNCIL_MEETING:
+-- @implements-requirement HALL-FR-MIN-010
 CREATE TABLE hall.minutes (
   id UUID PRIMARY KEY,
   council_meeting UUID NOT NULL UNIQUE REFERENCES council_meetings (id),
-  -- @functional-requirement HALL-FR-MIN-160 MINUTES_FACTS_ARE_CAPTURED_AT_CLOSURE:
+  -- @implements-requirement HALL-FR-MIN-160
   facts JSONB NOT NULL CONSTRAINT "minutes_facts_check" CHECK (jsonb_typeof(facts) = 'object'::text),
   version INTEGER NOT NULL DEFAULT 1 CONSTRAINT "minutes_version_check" CHECK (version > 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
 );
 
--- @functional-requirement HALL-FR-MIN-040 GENERATED_MINUTES_ARE_A_DISTINCT_IMMUTABLE_DOCUMENT:
+-- @implements-requirement HALL-FR-MIN-040
 -- A generated PDF is not a workspace resource. The shared binary object owns
 -- its bytes; this row owns its identity and immutable relation to the draft.
 CREATE TABLE hall.minutes_document (
@@ -38,7 +38,7 @@ CREATE TABLE hall.minutes_document (
 
 -- Entity: the approval of one previous meeting's minutes. An unexamined
 -- approval remains attached to that meeting and is never scheduled again.
--- @functional-requirement HALL-FR-MIN-020 ONE_APPROVAL_PER_MINUTES:
+-- @implements-requirement HALL-FR-MIN-020
 CREATE TABLE hall.minutes_approval (
   id UUID PRIMARY KEY,
   minutes UUID NOT NULL UNIQUE REFERENCES minutes (id)
@@ -46,7 +46,7 @@ CREATE TABLE hall.minutes_approval (
 
 -- Entity: one proposal prepared for a decision by the council. Its documentary
 -- content is attached through the workspace boundary, not duplicated here.
--- @functional-requirement HALL-FR-BUS-050 PREPARED_SUBJECT_OWNS_ITS_BUSINESS_BEFORE_SCHEDULING:
+-- @implements-requirement HALL-FR-BUS-050
 CREATE TABLE hall.council_decision_proposal (
   id UUID PRIMARY KEY,
   council_business UUID NOT NULL REFERENCES council_business(id)

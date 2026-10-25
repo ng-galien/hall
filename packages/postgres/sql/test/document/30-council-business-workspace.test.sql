@@ -29,7 +29,7 @@ SELECT ok(
   'meeting closure is exposed only through the authenticated application surface'
 );
 
--- HALL-FR-WSP-015
+-- @verifies-requirement HALL-FR-WSP-015
 SELECT throws_ok(
   $$INSERT INTO hall.council_business (id)
       VALUES ('00000000-0000-0000-0000-000000000001');
@@ -39,7 +39,11 @@ SELECT throws_ok(
   'a CouncilBusiness cannot commit without its documentary workspace'
 );
 
--- HALL-FR-WSP-010 HALL-FR-WSP-040 HALL-FR-WSP-050
+-- @verifies-requirement HALL-FR-WSP-010
+
+-- @verifies-requirement HALL-FR-WSP-040
+
+-- @verifies-requirement HALL-FR-WSP-050
 CREATE TEMP TABLE business_result AS
 SELECT hall_api.create_council_business('', 'cantine', 'rapport', '# Cantine') AS payload;
 
@@ -67,7 +71,7 @@ SELECT is(
 FROM hall.resource AS report, business_result
 WHERE report.id = (business_result.payload ->> 'reportResourceId')::UUID;
 
--- HALL-FR-WSP-020
+-- @verifies-requirement HALL-FR-WSP-020
 SELECT ok(
   hall.council_business_workspace_is_valid((payload ->> 'id')::UUID),
   'the primary report is contained directly by its CouncilBusiness folder'
@@ -85,7 +89,7 @@ SELECT throws_ok(
   'the primary report cannot leave its CouncilBusiness folder'
 );
 
--- HALL-FR-WSP-030
+-- @verifies-requirement HALL-FR-WSP-030
 SELECT lives_ok(
   format(
     'SELECT hall_api.relocate_resource(%L::uuid, %L, %L)',
@@ -119,7 +123,15 @@ SELECT is(
 )
 FROM business_result;
 
--- HALL-FR-WSP-090 HALL-FR-WSP-100 HALL-FR-WSP-140 HALL-FR-WSP-150 HALL-FR-WSP-160
+-- @verifies-requirement HALL-FR-WSP-090
+
+-- @verifies-requirement HALL-FR-WSP-100
+
+-- @verifies-requirement HALL-FR-WSP-140
+
+-- @verifies-requirement HALL-FR-WSP-150
+
+-- @verifies-requirement HALL-FR-WSP-160
 CREATE TEMP TABLE supporting_resource (id UUID PRIMARY KEY, original_path TEXT NOT NULL);
 INSERT INTO supporting_resource
 SELECT (resource ->> 'id')::UUID, resource ->> 'path'
@@ -186,7 +198,7 @@ SELECT is(
   'dissociation also preserves the resource FolderPath'
 );
 
--- HALL-FR-WSP-180
+-- @verifies-requirement HALL-FR-WSP-180
 SELECT ok(
   has_function_privilege(
     'hall_api_authenticated',
@@ -212,7 +224,7 @@ SELECT ok(
 FROM jsonb_array_elements(hall_api.list_council_business_workspace_items()) AS projected(item)
 WHERE item ->> 'id' = (SELECT payload ->> 'id' FROM business_result);
 
--- HALL-FR-WSP-190
+-- @verifies-requirement HALL-FR-WSP-190
 SELECT ok(
   has_function_privilege(
     'hall_api_authenticated',
@@ -284,7 +296,9 @@ SET scheduled_at = '2026-01-01 08:30:00+00',
     location = 'Council chamber'
 WHERE id = '10000000-0000-0000-0000-000000000001';
 
--- HALL-FR-WSP-060 HALL-FR-WSP-070
+-- @verifies-requirement HALL-FR-WSP-060
+
+-- @verifies-requirement HALL-FR-WSP-070
 CREATE TEMP TABLE agenda_result (kind TEXT PRIMARY KEY, payload JSONB NOT NULL);
 INSERT INTO agenda_result VALUES
   ('decision', hall_api.schedule_council_decision_proposal(
@@ -335,7 +349,7 @@ SELECT ok(
 )
 FROM unscheduled_prepared_subject;
 
--- HALL-FR-WSP-170
+-- @verifies-requirement HALL-FR-WSP-170
 SELECT is(
   jsonb_array_length(
     hall_api.list_council_business_agenda_items(
@@ -389,7 +403,7 @@ SELECT ok(
   'an open question completes through its named action without a ballot'
 );
 
--- HALL-FR-MIN-140
+-- @verifies-requirement HALL-FR-MIN-140
 CREATE TEMP TABLE meeting_closure_result AS
 SELECT hall_api.close_council_meeting(
   '10000000-0000-0000-0000-000000000001',

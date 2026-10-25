@@ -2,14 +2,14 @@ BEGIN;
 \ir support/helpers.sql
 SELECT no_plan();
 
--- HALL-FR-MTG-080
+-- @verifies-requirement HALL-FR-MTG-080
 SELECT lives_ok(
   $$INSERT INTO council_meetings (id) VALUES
 (test_uuid('closure:unstarted'))$$,
   'a next meeting can be provisioned before its date is fixed'
 );
 
--- HALL-FR-MTG-090
+-- @verifies-requirement HALL-FR-MTG-090
 SELECT throws_ok(
   $$UPDATE council_meetings
     SET closed_at = '2026-01-01 10:00:00+00'
@@ -29,7 +29,7 @@ SELECT throws_ok(
   'the named action rejects an unstarted meeting before writing its closure bundle'
 );
 
--- HALL-FR-MTG-140
+-- @verifies-requirement HALL-FR-MTG-140
 SELECT throws_ok(
   $$SELECT test_execute_deferred(ARRAY[
     $statement$
@@ -94,7 +94,7 @@ UPDATE council_meetings
 SET started_at = '2026-01-01 09:05:00+00'
 WHERE id = test_uuid('closure:main');
 
--- HALL-FR-MTG-110
+-- @verifies-requirement HALL-FR-MTG-110
 SELECT throws_ok(
   $$UPDATE council_meetings
     SET closed_at = '2026-01-01 10:00:00+00'
@@ -148,7 +148,11 @@ SELECT close_council_meeting(
 SET CONSTRAINTS ALL IMMEDIATE;
 SET CONSTRAINTS ALL DEFERRED;
 
--- HALL-TR-CON-140 HALL-FR-MTG-130 HALL-FR-MIN-030
+-- @verifies-requirement HALL-TR-CON-140
+
+-- @verifies-requirement HALL-FR-MTG-130
+
+-- @verifies-requirement HALL-FR-MIN-030
 SELECT ok(
   (
     SELECT previous_council_meeting = test_uuid('closure:main')
@@ -177,7 +181,7 @@ SELECT throws_ok(
   'the predecessor key admits only one successor'
 );
 
--- HALL-FR-AGI-280
+-- @verifies-requirement HALL-FR-AGI-280
 SELECT ok(
   (
     SELECT agenda_item.council_meeting = closure_result.next_meeting
@@ -220,7 +224,7 @@ SELECT ok(
   'a completed occurrence remains unchanged on the closed meeting'
 );
 
--- HALL-FR-AGI-270
+-- @verifies-requirement HALL-FR-AGI-270
 SELECT throws_ok(
   format(
     'SELECT schedule_open_question(%L::uuid, %L::uuid, 8)',
@@ -232,7 +236,7 @@ SELECT throws_ok(
   'a closed meeting rejects a new agenda occurrence'
 );
 
--- HALL-FR-BAL-280
+-- @verifies-requirement HALL-FR-BAL-280
 SELECT throws_ok(
   format(
     'INSERT INTO ballots (id, council_agenda_item, mode, chairman) VALUES (%L::uuid, %L::uuid, %L, %L::uuid)',
@@ -250,7 +254,7 @@ SELECT throws_ok(
   'ballot creation checks meeting closure before agenda eligibility'
 );
 
--- HALL-FR-MTG-100
+-- @verifies-requirement HALL-FR-MTG-100
 SELECT throws_ok(
   $$UPDATE council_meetings
     SET closed_at = '2026-01-01 10:01:00+00'
@@ -260,7 +264,9 @@ SELECT throws_ok(
   'the closure timestamp cannot be rewritten'
 );
 
--- HALL-FR-MTG-120: a previous PV that was not examined never blocks closure
+-- @verifies-requirement HALL-FR-MTG-120
+
+-- a previous PV that was not examined never blocks closure
 -- and remains a historical point rather than a new vote on the next agenda.
 INSERT INTO meeting_attendance (id, council_member, council_meeting, status)
 SELECT
@@ -299,7 +305,7 @@ SELECT isnt((SELECT minutes_approval FROM council_agenda_item JOIN closure_resul
   (SELECT minutes_approval FROM council_agenda_item JOIN second_closure ON council_meeting=next_meeting
   WHERE minutes_approval IS NOT NULL),'the unexamined PV is not scheduled for a second vote');
 
--- HALL-FR-BAL-290
+-- @verifies-requirement HALL-FR-BAL-290
 UPDATE council_meetings SET stale = TRUE WHERE closed_at IS NULL AND NOT stale;
 SELECT test_prepare_open_ballot('closure:open-ballot', 'public', 2);
 SELECT throws_ok(

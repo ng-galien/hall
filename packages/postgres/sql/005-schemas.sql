@@ -1,4 +1,4 @@
--- @technical-requirement HALL-TR-SCH-010 PRIVATE_AND_API_SCHEMAS:
+-- @implements-requirement HALL-TR-SCH-010
 -- Durable state is private to hall. Explicit callable boundaries live in
 -- hall_api. The schema fingerprint is private to hall_meta.
 CREATE SCHEMA hall_meta AUTHORIZATION hall_owner;

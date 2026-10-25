@@ -7,6 +7,7 @@ import { DeleteIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 
 // @implements-requirement HALL-FR-DOC-530
+// biome-ignore-start lint/suspicious/noArrayIndexKey: ordered value pairs have no identity; label changes intentionally remount the input.
 export function GeographicLegend({
   entries,
   actions,
@@ -37,7 +38,6 @@ export function GeographicLegend({
       <div id={contentId} className="geographic-legend-content" data-testid="geographic-legend-content" hidden={!open}>
         <ul>
           {entries.map(({ color, label }, index) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: ordered value pairs have no identity; label changes intentionally remount the input.
             <li key={`${index}:${color}:${label}`}>
               <span className="geographic-legend-swatch" style={{ backgroundColor: color }} aria-hidden="true" />
               <span>{label}</span>
@@ -48,8 +48,10 @@ export function GeographicLegend({
     </aside>
   );
 }
+// biome-ignore-end lint/suspicious/noArrayIndexKey: ordered value pairs have no identity; label changes intentionally remount the input.
 
 // @implements-requirement HALL-FR-DOC-530
+// biome-ignore-start lint/suspicious/noArrayIndexKey: ordered value pairs have no identity; label changes intentionally remount the input.
 export function GeographicLegendEditor({
   entries,
   presets,
@@ -66,12 +68,11 @@ export function GeographicLegendEditor({
     <div className="geographic-legend-editor" data-testid="geographic-legend-editor">
       <div className="geographic-legend-editor-entries">
         {entries.map((entry, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: ordered value pairs have no identity; label changes intentionally remount the input.
           <div className="geographic-legend-editor-row" key={`${index}:${entry.label}`}>
             <ColorPicker
               value={entry.color}
               presets={presets}
-              ariaLabel={t("geographic.featureColor").replace("{name}", entry.label)}
+              ariaLabel={t("geographic.featureColor", { name: entry.label })}
               customLabel={t("geographic.color.custom")}
               onValueChange={(color) => change(index, { ...entry, color: color as GeographicColor })}
             />
@@ -122,3 +123,4 @@ export function GeographicLegendEditor({
     </div>
   );
 }
+// biome-ignore-end lint/suspicious/noArrayIndexKey: ordered value pairs have no identity; label changes intentionally remount the input.

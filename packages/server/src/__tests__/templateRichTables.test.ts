@@ -1,7 +1,7 @@
 import { PDFDocument } from "pdf-lib";
 import type { Response } from "superagent";
 import { describe, expect, it } from "vitest";
-import { createTestServer, domainBody } from "./testServer.js";
+import { createServiceTestServer, domainBody } from "./testServer.js";
 
 function binaryParser(response: Response, callback: (error: Error | null, body: Buffer) => void): void {
   const chunks: Buffer[] = [];
@@ -21,7 +21,7 @@ const richTable = [
 
 describe("rich table template rendering", () => {
   it("preserves the sanitized Tiptap table contract in backend previews", async () => {
-    const { container } = await createTestServer();
+    const { container } = await createServiceTestServer();
     const preview = await container.cradle.templateRenderingService.preview({
       bodyMarkdown: richTable,
       subject: null,
@@ -40,7 +40,7 @@ describe("rich table template rendering", () => {
   });
 
   it("prints a rich Tiptap table through the real Chromium PDF pipeline", async () => {
-    const { agent } = await createTestServer();
+    const { agent } = await createServiceTestServer();
     const template = domainBody<{ id: string }>(
       await agent
         .post("/api/templates")

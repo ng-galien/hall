@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it } from "vitest";
-import { createTestServer } from "./testServer.js";
+import { createServiceTestServer } from "./testServer.js";
 
 const template = (bodyMarkdown: string) => ({
   bodyMarkdown,
@@ -74,9 +74,141 @@ async function extractedPdfText(content: Buffer): Promise<string> {
 }
 
 describe("authoritative resource presentation rendering", () => {
+  it("reports missing meeting, minutes and decision contexts instead of inventing official document facts", async () => {
+    const { container } = await createServiceTestServer();
+    const preview = await container.cradle.templateRenderingService.preview(
+      template(
+        [
+          "::meeting-notice",
+          "::minutes{section=attendance}",
+          "::council-decision{section=result}",
+          ":field{name=meeting.location}",
+        ].join("\n\n"),
+      ),
+    );
+    expect(preview.diagnostics.filter(({ code }) => code === "unresolved_reference")).toHaveLength(4);
+    expect(preview.diagnostics.map(({ message }) => message)).toEqual(
+      expect.arrayContaining([
+        "A frozen meeting notice context is required",
+        "Minutes context or section unavailable",
+        "Council decision context or section unavailable",
+        "Required context is unavailable for field meeting.location",
+      ]),
+    );
+    expect(preview.pdfAttachments).toEqual([]);
+  });
+
+  it("keeps inline non-PDF references as current labels without copying their contents or attaching files", async () => {
+    const { container } = await createServiceTestServer();
+    const resources = container.cradle.resourcesClient;
+    const folder = (await resources.create({ kind: "folder", name: "Annexes actuelles", path: "seed" })).data;
+    const text = (
+      await resources.create({ kind: "text", name: "Rapport actuel", path: "seed", content: "Contenu non demandé" })
+    ).data;
+    const image = (
+      await resources.createDocument({
+        name: "Photo actuelle",
+        path: "seed",
+        mediaType: "image/png",
+        content: Buffer.from("bytes"),
+      })
+    ).data;
+    const preview = await container.cradle.templateRenderingService.preview(
+      template([folder, text, image].map(({ id }) => `:resource[Ancien libellé]{#${id}}`).join("\n\n")),
+    );
+    expect(preview.diagnostics).toEqual([]);
+    for (const resource of [folder, text, image]) expect(preview.printHtml).toContain(resource.name);
+    expect(preview.printHtml).not.toContain("Ancien libellé");
+    expect(preview.printHtml).not.toContain("Contenu non demandé");
+    expect(preview.printHtml).not.toContain("data:image");
+    expect(preview.pdfAttachments).toEqual([]);
+  });
+
+  it("renders persisted percentages, dates, booleans and escaped text without running formulas", async () => {
+    const { container } = await createServiceTestServer();
+    const resource = (
+      await container.cradle.resourcesClient.create({
+        kind: "spreadsheet",
+        path: "seed",
+        name: "Valeurs",
+        document: {
+          schemaVersion: 2,
+          workbook: {
+            id: "values",
+            name: "Valeurs",
+            sheetOrder: ["sheet"],
+            sheets: {
+              sheet: {
+                id: "sheet",
+                name: "Valeurs",
+                rowCount: 20,
+                columnCount: 8,
+                cellData: {
+                  0: { 0: { v: "Taux" }, 1: { v: "Date" }, 2: { v: "État" }, 3: { v: "Texte" } },
+                  1: {
+                    0: {
+                      v: 0.125,
+                      s: { n: { pattern: "0.0%" }, it: 1, ht: 2, cl: { rgb: "#112233" }, bg: { rgb: "#AABBCC" } },
+                    },
+                    1: { v: 46023, s: { n: { pattern: "dd/mm/yyyy" } } },
+                    2: { v: false },
+                    3: { v: '<script>alert("x")</script>' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      })
+    ).data;
+    const preview = await container.cradle.templateRenderingService.preview(
+      template(`::resource-embed[Valeurs]{#${resource.id} presentation="table" sheet="sheet" range="A1:D2"}`),
+    );
+    expect(preview.diagnostics).toEqual([]);
+    expect(preview.printHtml).toContain("12,5");
+    expect(preview.printHtml).toContain("01/01/2026");
+    expect(preview.printHtml).toContain("FALSE");
+    expect(preview.printHtml).toContain("font-style: italic");
+    expect(preview.printHtml).toContain("text-align: center");
+    expect(preview.printHtml).not.toContain('<script>alert("x")</script>');
+    expect(preview.printHtml).toMatch(/(?:&lt;|&#x3C;)script(?:&gt;|>)/i);
+    for (const [sheet, range] of [
+      ["absent", "A1:B2"],
+      ["sheet", "B2:A1"],
+      ["sheet", "A1:A21"],
+    ]) {
+      const refused = await container.cradle.templateRenderingService.preview(
+        template(`::resource-embed[Valeurs]{#${resource.id} presentation="table" sheet="${sheet}" range="${range}"}`),
+      );
+      expect(refused.diagnostics).toContainEqual(
+        expect.objectContaining({ code: "resource_representation_unavailable" }),
+      );
+      expect(refused.printHtml).not.toContain("12,5");
+    }
+  });
+
+  it("stops cyclic text insertion with a diagnostic and keeps the fallback label", async () => {
+    const { container } = await createServiceTestServer();
+    const client = container.cradle.resourcesClient;
+    const resource = (await client.create({ kind: "text", name: "Récursif", path: "seed", content: "Texte" })).data;
+    if (resource.kind !== "text") throw new Error("Expected the created text resource");
+    await client.updateContent(resource.id, {
+      kind: "text",
+      expectedVersion: resource.version,
+      content: `::resource-embed[Fin du cycle]{#${resource.id} presentation="text"}`,
+    });
+    const preview = await container.cradle.templateRenderingService.preview(
+      template(`::resource-embed[Début]{#${resource.id} presentation="text"}`),
+    );
+    expect(preview.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "resource_representation_unavailable", message: "Cyclic resource insertion" }),
+    );
+    expect(preview.printHtml).toContain("Fin du cycle");
+  });
+
   it("appends inline PDF resources once in first-appearance order", async () => {
     const appendedIds: string[] = [];
-    const { container } = await createTestServer({
+    const { container } = await createServiceTestServer({
       documentRenderer: {
         async pdf() {
           return Buffer.from("body");
@@ -115,7 +247,7 @@ describe("authoritative resource presentation rendering", () => {
   it("leaves referenced PDF documents out, as plain text, when the PDF does not carry them", async () => {
     const appendedIds: string[] = [];
     let renderedHtml = "";
-    const { container } = await createTestServer({
+    const { container } = await createServiceTestServer({
       documentRenderer: {
         async pdf({ html }) {
           renderedHtml = html;
@@ -143,7 +275,7 @@ describe("authoritative resource presentation rendering", () => {
 
   it("feeds the exact authoritative preview body to the PDF renderer", async () => {
     let renderedHtml = "";
-    const { container } = await createTestServer({
+    const { container } = await createServiceTestServer({
       documentRenderer: {
         async pdf(input) {
           renderedHtml = input.html;
@@ -172,7 +304,7 @@ describe("authoritative resource presentation rendering", () => {
   });
 
   it("renders every presentation for which the server owns static source data", async () => {
-    const { container } = await createTestServer();
+    const { container } = await createServiceTestServer();
     const resourcesClient = container.cradle.resourcesClient;
     const text = (
       await resourcesClient.create({
@@ -286,7 +418,7 @@ describe("authoritative resource presentation rendering", () => {
   });
 
   it("keeps the legal citation and article text in the final Chromium PDF", async () => {
-    const { container } = await createTestServer();
+    const { container } = await createServiceTestServer();
     const resourcesClient = container.cradle.resourcesClient;
     const legalContent =
       "Toute convocation est faite par le maire. Elle indique les questions portées à l'ordre du jour.";
@@ -313,7 +445,7 @@ describe("authoritative resource presentation rendering", () => {
   });
 
   it("diagnoses missing and incompatible resources while rendering the persisted map", async () => {
-    const { container } = await createTestServer();
+    const { container } = await createServiceTestServer();
     const resourcesClient = container.cradle.resourcesClient;
     const text = (await resourcesClient.create({ kind: "text", name: "Texte", path: "seed", content: "Texte" })).data;
     const geography = (
@@ -351,7 +483,7 @@ describe("authoritative resource presentation rendering", () => {
 
   it("feeds the rendered map image to the real PDF preview pipeline", async () => {
     let renderedHtml = "";
-    const { container } = await createTestServer({
+    const { container } = await createServiceTestServer({
       documentRenderer: {
         async pdf(input) {
           renderedHtml = input.html;
@@ -382,7 +514,7 @@ describe("authoritative resource presentation rendering", () => {
   }, 20_000);
 
   it("never recalculates a spreadsheet formula that has no persisted value", async () => {
-    const { container } = await createTestServer();
+    const { container } = await createServiceTestServer();
     const spreadsheet = (
       await container.cradle.resourcesClient.create({
         kind: "spreadsheet",
@@ -424,7 +556,7 @@ describe("authoritative resource presentation rendering", () => {
 });
 
 it("renders inserted text and event content through the authoritative renderer", async () => {
-  const { container } = await createTestServer();
+  const { container } = await createServiceTestServer();
   const resources = container.cradle.resourcesClient;
   const text = (await resources.create({ kind: "text", name: "Note", path: "seed", content: "**Contenu inséré**" }))
     .data;

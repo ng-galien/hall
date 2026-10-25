@@ -3,7 +3,7 @@ import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import { PDFDocument } from "pdf-lib";
 import type { Response } from "superagent";
 import { describe, expect, it } from "vitest";
-import { createPostgresHttpTestServer, createTestServer, domainBody } from "./testServer.js";
+import { createPostgresHttpTestServer, createServiceTestServer, createTestServer, domainBody } from "./testServer.js";
 
 function binaryParser(response: Response, callback: (error: Error | null, body: Buffer) => void): void {
   const chunks: Buffer[] = [];
@@ -349,7 +349,7 @@ describe("content templates", () => {
   });
 
   it("caps the cumulative attachment payload", async () => {
-    const { agent, container } = await createTestServer();
+    const { agent, container } = await createServiceTestServer();
     const template = domainBody<{ id: string }>(
       await agent
         .post("/api/templates")
@@ -382,7 +382,7 @@ describe("content templates", () => {
   });
 
   it("bounds the complete generation pipeline before loading attachments", async () => {
-    const { agent, container } = await createTestServer();
+    const { agent, container } = await createServiceTestServer();
     const template = domainBody<{ id: string }>(
       await agent
         .post("/api/templates")

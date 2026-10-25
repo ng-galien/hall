@@ -1,4 +1,4 @@
--- @requirement-reference HALL-FR-DOC-080 BINARY_CONTENT_IS_SEPARATE:
+-- @implements-requirement HALL-FR-DOC-080
 -- Content-addressed bytes never change in place. Replacing content creates a
 -- new binary object and updates the owning document through a future API.
 CREATE FUNCTION hall.reject_binary_object_change()
@@ -19,7 +19,7 @@ ON hall.binary_object
 FOR EACH ROW
 EXECUTE FUNCTION hall.reject_binary_object_change();
 
--- @functional-requirement HALL-FR-DOC-090 RESOURCE_NATURE_IS_IMMUTABLE:
+-- @implements-requirement HALL-FR-DOC-090
 -- Location changes update path or name. They never replace the concrete
 -- resource component and therefore never change the resource nature.
 CREATE FUNCTION hall.reject_resource_nature_change()
@@ -72,7 +72,7 @@ WHEN (
 )
 EXECUTE FUNCTION hall.reject_resource_nature_change();
 
--- @requirement-reference HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
+-- @implements-requirement HALL-FR-DOC-170
 CREATE FUNCTION hall.reject_resource_slug_change()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -92,7 +92,7 @@ FOR EACH ROW
 WHEN (OLD.slug IS DISTINCT FROM NEW.slug)
 EXECUTE FUNCTION hall.reject_resource_slug_change();
 
--- @requirement-reference HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
+-- @implements-requirement HALL-FR-DOC-200
 CREATE FUNCTION hall.touch_resource_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql

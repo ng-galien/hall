@@ -104,7 +104,7 @@ CREATE FUNCTION hall_api.open_prepared_council_subject(target_id UUID,target_kin
 RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
   SELECT hall.prepared_council_subject_projection(target_id,target_kind);
 $$;
--- @functional-requirement HALL-FR-BUS-060 PREPARED_PROJECTS_HAVE_EDITABLE_CONTENT_WITHOUT_AN_AGENDA:
+-- @implements-requirement HALL-FR-BUS-060
 CREATE FUNCTION hall_api.create_prepared_council_subject(target_business UUID,target_kind TEXT,subject_name TEXT,subject_content TEXT)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
 DECLARE subject_id UUID:=gen_random_uuid(); resource_id UUID;
@@ -127,7 +127,7 @@ RETURNS INTEGER LANGUAGE sql IMMUTABLE STRICT SET search_path=pg_catalog AS $$
     WHEN 'openQuestion' THEN 2 END;
 $$;
 
--- @functional-requirement HALL-FR-AGI-380 PREPARED_SUBJECT_INSERTION_PRESERVES_NATURE_AND_SHIFTS_ATOMICALLY:
+-- @implements-requirement HALL-FR-AGI-380
 CREATE FUNCTION hall_api.schedule_prepared_council_subject(target_meeting UUID,target_subject UUID,target_kind TEXT,target_position INTEGER)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
 DECLARE meeting hall.council_meetings; subject hall.prepared_council_subject; existing UUID; shifted RECORD;

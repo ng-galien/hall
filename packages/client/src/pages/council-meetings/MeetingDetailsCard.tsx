@@ -95,7 +95,7 @@ export function MeetingDetailsCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  aria-label={t("meeting.viewDocument").replace("{name}", document.fileName)}
+                  aria-label={t("meeting.viewDocument", { name: document.fileName })}
                   onClick={() => setViewedDocument(document)}
                 >
                   <OpenIcon />

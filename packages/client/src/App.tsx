@@ -137,7 +137,6 @@ export function ApplicationPresentationProviders({ children }: { children: React
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
   const members = useCouncilMembersStore((state) => state.members);
   const contacts = useContactsStore((state) => state.contacts);
-  // Concurrent badges of one reference share its pending request; returning to the text retries a failed one.
   const requestReference = useCallback((kind: ReferenceEntityKind, id: string) => {
     if (kind === "resource") void openSessionResource(id);
   }, []);

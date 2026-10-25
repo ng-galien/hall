@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createTestServer } from "./testServer.js";
+import { createServiceTestServer } from "./testServer.js";
 
 describe("template images", () => {
   it("renders a stored image reference without persisting binary content in Markdown", async () => {
-    const { container } = await createTestServer();
+    const { container } = await createServiceTestServer();
     const content = Buffer.from("89504e470d0a1a0a", "hex");
     const resource = await container.cradle.resourcesClient.createDocument({
       name: "Plan du quartier",
@@ -29,7 +29,7 @@ describe("template images", () => {
   });
 
   it("diagnoses missing and non-image resources instead of emitting an unsafe source", async () => {
-    const { container } = await createTestServer();
+    const { container } = await createServiceTestServer();
     const pdf = await container.cradle.resourcesClient.createDocument({
       name: "Annexe PDF",
       path: "",

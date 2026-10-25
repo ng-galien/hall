@@ -23,14 +23,13 @@ export function MeetingInProgressHero({ aggregate }: { aggregate: LiveMeetingPre
           <h2>{t("meeting.inProgressTitle")}</h2>
           <p>
             <MeetingStatusBadge status={meeting.status} stale={meeting.stale} />
-            {meeting.openedAt ? (
-              <> {t("meeting.inProgressSince").replace("{time}", formatTime(meeting.openedAt))}</>
-            ) : null}
+            {meeting.openedAt ? <> {t("meeting.inProgressSince", { time: formatTime(meeting.openedAt) })}</> : null}
           </p>
           <p>
-            {t("meeting.inProgressProgress")
-              .replace("{completed}", formatNumber(completedCount))
-              .replace("{total}", formatNumber(aggregate.agendaItems.length))}
+            {t("meeting.inProgressProgress", {
+              completed: formatNumber(completedCount),
+              total: formatNumber(aggregate.agendaItems.length),
+            })}
           </p>
           <Link className="live-mode-link live-mode-link-large" to={`/meetings/${meeting.slug}/live`}>
             <PlayIcon aria-hidden="true" />

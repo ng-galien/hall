@@ -48,7 +48,7 @@ export function DrawingColorControl({
       value={color}
       presets={presets}
       namedPresets={{ title: t("geographic.legend"), presets: legendPresets }}
-      ariaLabel={t("geographic.featureColor").replace("{name}", name)}
+      ariaLabel={t("geographic.featureColor", { name: name })}
       customLabel={t("geographic.color.custom")}
       onValueChange={(nextColor) => onChange(nextColor as GeographicColor)}
     />
@@ -107,8 +107,8 @@ export function DrawingActionsMenu({
           type="button"
           className={className}
           data-testid={testId("menu")}
-          aria-label={t("geographic.drawingMenu").replace("{name}", name)}
-          title={t("geographic.drawingMenu").replace("{name}", name)}
+          aria-label={t("geographic.drawingMenu", { name: name })}
+          title={t("geographic.drawingMenu", { name: name })}
         >
           <MoreIcon />
         </button>
@@ -116,7 +116,6 @@ export function DrawingActionsMenu({
       <DropdownMenuContent
         align="end"
         className="geographic-composition-actions"
-        // After an action the focus does not return to the menu button, so Escape keeps acting on the map.
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
         <DropdownMenuItem

@@ -1,4 +1,4 @@
--- @functional-requirement HALL-FR-VOT-100 NON_PARTICIPATION_IS_DISTINCT_FROM_ABSTENTION:
+-- @implements-requirement HALL-FR-VOT-100
 -- Product evidence of a choice not expressed. S2 excludes it from suffrages;
 -- it is not a new vote choice and never reduces a discussion quorum.
 CREATE TABLE hall.ballot_non_participation (

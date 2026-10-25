@@ -130,3 +130,9 @@ export function inspectDocument(fileName: string, content: Buffer): Promise<Docu
 export function inspectSpreadsheetImport(fileName: string, content: Buffer): Promise<DocumentInspection> {
   return inspect(spreadsheetImportPoliciesByExtension, fileName, content);
 }
+
+export function inspectStoredDocument(mediaType: string, content: Buffer): Promise<DocumentInspection> {
+  const policy = Object.entries(documentPoliciesByExtension).find(([, candidate]) => candidate.mediaType === mediaType);
+  if (!policy) throw new DomainError("unsupported_document_format", 415);
+  return inspectDocument(`import${policy[0]}`, content);
+}

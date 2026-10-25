@@ -5,7 +5,7 @@
 -- They compose structural writes; triggers and constraints remain the final
 -- authority for every invariant.
 
--- @functional-requirement HALL-FR-AGI-300 NAMED_PROGRAMMING_REQUIRES_POSITIVE_POSITION:
+-- @implements-requirement HALL-FR-AGI-300
 -- Negative positions are durable deprogramming facts. Only the dedicated
 -- deprogram action may introduce one; schedule and reprogram always place an
 -- item on the active agenda.
@@ -24,7 +24,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-AGI-200 DECISION_PROPOSAL_IS_SCHEDULED_ATOMICALLY:
+-- @implements-requirement HALL-FR-AGI-200
 CREATE FUNCTION hall.schedule_council_decision_proposal(
   target_business UUID,
   target_meeting UUID,
@@ -57,7 +57,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-AGI-210 OPEN_QUESTION_IS_SCHEDULED_ATOMICALLY:
+-- @implements-requirement HALL-FR-AGI-210
 CREATE FUNCTION hall.schedule_open_question(
   target_business UUID,
   target_meeting UUID,
@@ -90,7 +90,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-AGI-220 MINUTES_APPROVAL_IS_SCHEDULED_ATOMICALLY:
+-- @implements-requirement HALL-FR-AGI-220
 CREATE FUNCTION hall.schedule_minutes_approval(
   target_meeting UUID,
   target_minutes_approval UUID
@@ -123,7 +123,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-AGI-230 AGENDA_ITEM_CAN_BE_DEPROGRAMMED:
+-- @implements-requirement HALL-FR-AGI-230
 CREATE FUNCTION hall.deprogram_council_agenda_item(target_agenda_item UUID)
 RETURNS council_agenda_item
 LANGUAGE plpgsql
@@ -154,7 +154,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-AGI-240 UNSTARTED_AGENDA_ITEM_CAN_BE_REPROGRAMMED:
+-- @implements-requirement HALL-FR-AGI-240
 CREATE FUNCTION hall.reprogram_council_agenda_item(
   target_agenda_item UUID,
   target_meeting UUID,
@@ -188,11 +188,11 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-AGI-290 COUNCIL_AGENDA_REORDER_IS_EXACT:
+-- @implements-requirement HALL-FR-AGI-290
 -- The command names every currently programmed occurrence exactly once. It
 -- changes only their relative order and therefore preserves intentional gaps
 -- and every deprogrammed negative position.
--- @technical-requirement HALL-TR-CON-190 COUNCIL_AGENDA_REORDER_IS_ATOMIC:
+-- @implements-requirement HALL-TR-CON-190
 CREATE FUNCTION hall.reorder_council_agenda(
   target_meeting UUID,
   ordered_agenda_items UUID[]
@@ -279,7 +279,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-AGI-250 AGENDA_ITEM_START_IS_A_NAMED_ACTION:
+-- @implements-requirement HALL-FR-AGI-250
 CREATE FUNCTION hall.start_council_agenda_item(
   target_agenda_item UUID,
   start_time TIMESTAMPTZ
@@ -309,7 +309,7 @@ BEGIN
 END;
 $$;
 
--- @functional-requirement HALL-FR-AGI-260 OPEN_QUESTION_COMPLETION_IS_A_NAMED_ACTION:
+-- @implements-requirement HALL-FR-AGI-260
 CREATE FUNCTION hall.complete_non_voting_agenda_item(
   target_agenda_item UUID,
   completion_time TIMESTAMPTZ

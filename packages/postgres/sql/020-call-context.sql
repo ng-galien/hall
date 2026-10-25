@@ -1,4 +1,4 @@
--- @technical-requirement HALL-TR-CTX-020 TRANSACTION_LOCAL_CALL_CONTEXT:
+-- @implements-requirement HALL-TR-CTX-020
 -- Database functions read an immutable request context installed with SET LOCAL
 -- semantics. Missing mandatory values are rejected instead of being invented.
 CREATE FUNCTION hall.require_setting(setting_name text)
@@ -42,7 +42,7 @@ $function$;
 ALTER FUNCTION hall.call_context() OWNER TO hall_owner;
 REVOKE ALL ON FUNCTION hall.call_context() FROM PUBLIC;
 
--- @technical-requirement HALL-TR-CTX-030 MINIMAL_DATABASE_RBAC_CONTEXT:
+-- @implements-requirement HALL-TR-CTX-030
 -- Siren affordances are derived in PostgreSQL. This first connection keeps the
 -- RBAC intentionally narrow: only the administrator role receives documentary
 -- mutation affordances. The role matrix can later move to relations without

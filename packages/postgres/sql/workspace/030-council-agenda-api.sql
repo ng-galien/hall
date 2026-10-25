@@ -4,7 +4,7 @@
 -- Agenda projections contain only council identities and lifecycle facts.
 -- Documentary resources are fetched independently through their own API.
 
--- @functional-requirement HALL-FR-AGI-390 CONDUCT_ACTIONS_EXPLAIN_UNAVAILABILITY:
+-- @implements-requirement HALL-FR-AGI-390
 -- Capabilities and explanations share the command authorities and are read-only.
 CREATE FUNCTION hall.council_agenda_item_capabilities(target hall.council_agenda_item)
 RETURNS JSONB LANGUAGE plpgsql STABLE SET search_path=pg_catalog,hall AS $$
@@ -58,7 +58,7 @@ BEGIN
   RETURN jsonb_build_object('canStartDiscussion',jsonb_array_length(start_blockers)=0,'canReviewBallot',jsonb_array_length(review_blockers)=0,'conductBlockers',blockers);
 END $$;
 
--- @functional-requirement HALL-FR-WSP-060 COUNCIL_AGENDA_PROJECTION_IS_SCOPED:
+-- @implements-requirement HALL-FR-WSP-060
 CREATE FUNCTION hall.council_agenda_item_projection(target hall.council_agenda_item)
 RETURNS JSONB
 LANGUAGE sql
@@ -120,7 +120,7 @@ AS $function$
   WHERE agenda_item.id = target_agenda_item
 $function$;
 
--- @functional-requirement HALL-FR-MIN-150 MEETING_NOTES_REMAIN_EDITABLE_UNTIL_CLOSURE:
+-- @implements-requirement HALL-FR-MIN-150
 -- The agenda lifecycle trigger locks the meeting and rejects every edit after
 -- closure. Notes are copied into the closure snapshot and initial minutes draft.
 CREATE FUNCTION hall_api.update_council_agenda_item_notes(target_agenda_item UUID, notes TEXT)
@@ -157,7 +157,7 @@ AS $function$
   ) AS agenda_item
 $function$;
 
--- @functional-requirement HALL-FR-WSP-170 BUSINESS_AGENDA_HISTORY_IS_BULK_PROJECTED:
+-- @implements-requirement HALL-FR-WSP-170
 -- The caller supplies the visible CouncilBusiness identities once. The result
 -- remains a flat, lightweight AgendaItem projection that can be grouped by its
 -- councilBusinessId without one query per affair.
@@ -199,7 +199,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-WSP-070 COUNCIL_AGENDA_ACTIONS_RETURN_THE_SCOPED_PROJECTION:
+-- @implements-requirement HALL-FR-WSP-070
 CREATE FUNCTION hall_api.schedule_council_decision_proposal(
   target_business UUID,
   target_meeting UUID,
@@ -240,7 +240,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-WSP-200 COUNCIL_BUSINESS_CREATION_AND_DECISION_PROGRAMMING_ARE_ATOMIC:
+-- @implements-requirement HALL-FR-WSP-200
 CREATE FUNCTION hall_api.create_and_schedule_council_decision_proposal(
   parent_path TEXT,
   business_name TEXT,
@@ -272,7 +272,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-WSP-210 COUNCIL_BUSINESS_CREATION_AND_OPEN_QUESTION_PROGRAMMING_ARE_ATOMIC:
+-- @implements-requirement HALL-FR-WSP-210
 CREATE FUNCTION hall_api.create_and_schedule_open_question(
   parent_path TEXT,
   business_name TEXT,

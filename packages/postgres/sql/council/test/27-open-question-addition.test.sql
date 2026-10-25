@@ -1,4 +1,5 @@
--- HALL-FR-AGI-410: append a non-voting question after the agenda is finished.
+-- @verifies-requirement HALL-FR-AGI-410
+-- append a non-voting question after the agenda is finished.
 BEGIN;
 SET LOCAL search_path=hall,public,pg_catalog;
 SET LOCAL hall.roles='["administrator"]';

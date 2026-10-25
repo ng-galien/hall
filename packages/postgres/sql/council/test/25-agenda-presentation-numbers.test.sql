@@ -1,4 +1,5 @@
--- HALL-FR-AGI-400: one presentation sequence across API, frozen notice and minutes.
+-- @verifies-requirement HALL-FR-AGI-400
+-- one presentation sequence across API, frozen notice and minutes.
 BEGIN;
 SET LOCAL search_path=hall,public,pg_catalog;
 SET LOCAL hall.roles='["administrator"]';

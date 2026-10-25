@@ -11,7 +11,7 @@ DECLARE
   expected_mode ballot_mode;
   participation_ballot UUID;
 BEGIN
-  -- @functional-requirement HALL-FR-VOT-060 VOTE_IS_IMMUTABLE: A recorded vote is an immutable
+  -- @implements-requirement HALL-FR-VOT-060
   -- fact. Updates, deletes and table
   -- truncation are rejected by the same trigger function.
   IF TG_OP <> 'INSERT' THEN
@@ -20,13 +20,13 @@ BEGIN
       MESSAGE = 'a vote is immutable';
   END IF;
 
-  -- @technical-requirement HALL-TR-CON-220 CONDUCT_CHANGES_SERIALIZE_WITH_VOTING:
+  -- @implements-requirement HALL-TR-CON-220
   -- All physical-presence and membership writes lock the meeting. Expression
   -- of a vote joins that lock order before locking its ballot.
   PERFORM 1 FROM hall.council_meetings m JOIN hall.council_agenda_item item ON item.council_meeting=m.id
     JOIN hall.ballots b ON b.council_agenda_item=item.id WHERE b.id=NEW.ballot FOR UPDATE OF m;
 
-  -- @technical-requirement HALL-TR-CON-100 VOTE_INSERT_SERIALIZES_WITH_BALLOT_COMPLETION:
+  -- @implements-requirement HALL-TR-CON-100
   -- Lock the ballot before recording the vote so vote
   -- insertion cannot race with ballot completion.
   SELECT completed_at, mode
@@ -42,7 +42,7 @@ BEGIN
       MESSAGE = format('unknown ballot %s', NEW.ballot);
   END IF;
 
-  -- @functional-requirement HALL-FR-VOT-070 COMPLETED_BALLOT_REJECTS_VOTES: Completion freezes
+  -- @implements-requirement HALL-FR-VOT-070
   -- the set of recorded votes.
   IF ballot_completed_at IS NOT NULL THEN
     RAISE EXCEPTION USING
@@ -50,7 +50,7 @@ BEGIN
       MESSAGE = 'a completed ballot cannot receive votes';
   END IF;
 
-  -- @functional-requirement HALL-FR-VOT-080 VOTE_MODE_MATCHES_BALLOT_MODE: The representation of
+  -- @implements-requirement HALL-FR-VOT-080
   -- a vote is dictated by its ballot;
   -- a public vote cannot be stored as secret, nor the reverse.
   IF NEW.mode IS DISTINCT FROM expected_mode THEN
@@ -59,7 +59,7 @@ BEGIN
       MESSAGE = 'vote mode must match ballot mode';
   END IF;
 
-  -- @functional-requirement HALL-FR-VOT-090 PUBLIC_VOTE_PARTICIPATION_BELONGS_TO_BALLOT: A named
+  -- @implements-requirement HALL-FR-VOT-090
   -- public vote uses a participation belonging to this
   -- exact ballot. Secret aggregate votes have no participation and skip this
   -- named-voter check.
@@ -97,7 +97,7 @@ BEFORE INSERT OR UPDATE OR DELETE ON hall.votes
 FOR EACH ROW
 EXECUTE FUNCTION enforce_vote_immutability();
 
--- @technical-requirement HALL-TR-INT-060 TRUNCATE_CANNOT_BYPASS_VOTE_IMMUTABILITY:
+-- @implements-requirement HALL-TR-INT-060
 -- Statement-level deletion cannot bypass vote immutability.
 CREATE TRIGGER votes_reject_truncate
 BEFORE TRUNCATE ON hall.votes

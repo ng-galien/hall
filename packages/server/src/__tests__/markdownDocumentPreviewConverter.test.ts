@@ -3,14 +3,14 @@ import type { Request } from "express";
 import { describe, expect, it } from "vitest";
 import { objectLinks } from "../api/sirenRepresentation.js";
 import { createMarkdownDocumentPreviewConverter } from "../infrastructure/documents/markdownDocumentPreviewConverter.js";
-import { createTestServer, domainBody } from "./testServer.js";
+import { createServiceTestServer, domainBody } from "./testServer.js";
 
 const fixture = new URL("./fixtures/document-preview.docx", import.meta.url);
 
 describe("local DOCX Markdown preview", () => {
   it("converts legal text, lists, tables and raster images while preserving the original", async () => {
     const original = await readFile(fixture);
-    const { agent } = await createTestServer({
+    const { agent } = await createServiceTestServer({
       documentPreviewConverter: createMarkdownDocumentPreviewConverter(),
     });
     const response = await agent

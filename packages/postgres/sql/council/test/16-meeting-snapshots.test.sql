@@ -8,11 +8,13 @@ INSERT INTO meeting_attendance(id, council_member, council_meeting, status)
 VALUES(test_uuid('snapshot:attendance'), test_uuid('snapshot:member'), test_uuid('snapshot:meeting'), 'present');
 SELECT test_confirm_declared_membership(test_uuid('snapshot:meeting'));
 SELECT test_prepare_notice(test_uuid('snapshot:meeting'));
--- HALL-FR-MTG-230 HALL-FR-MTG-240 HALL-FR-MTG-250
+-- @verifies-requirement HALL-FR-MTG-230
+-- @verifies-requirement HALL-FR-MTG-240
+-- @verifies-requirement HALL-FR-MTG-250
 SELECT throws_ok($$SELECT start_council_meeting(test_uuid('snapshot:meeting'), '2026-01-01 09:00Z')$$,
  'HV124', NULL, 'start requires designated officers');
 SELECT is((SELECT count(*)::integer FROM council_meeting_snapshot), 0, 'failed start produces no snapshot');
--- HALL-FR-MTG-260
+-- @verifies-requirement HALL-FR-MTG-260
 SELECT throws_ok($$SELECT hall_api.prepare_council_meeting(test_uuid('snapshot:meeting'), '2026-02-01 09:00Z', 'Other room', test_uuid('missing-officer'), test_uuid('snapshot:member'))$$,
  'HV124', NULL, 'failed officer designation rolls the schedule back too');
 SELECT is((SELECT location FROM council_meetings WHERE id=test_uuid('snapshot:meeting')), 'Chamber', 'failed preparation preserves the old location');

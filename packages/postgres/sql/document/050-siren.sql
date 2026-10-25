@@ -1,7 +1,7 @@
 -- Documentary Siren is a PostgreSQL projection because its affordances depend
 -- on the persisted resource variant and on the database authorization context.
 
--- @functional-requirement HALL-FR-DOC-220 DOCUMENTARY_SIREN_IS_DATABASE_OWNED:
+-- @implements-requirement HALL-FR-DOC-220
 CREATE FUNCTION hall.siren_link(relation TEXT, target_href TEXT, target_type TEXT DEFAULT 'application/vnd.siren+json')
 RETURNS JSONB
 LANGUAGE sql
@@ -53,7 +53,7 @@ DECLARE
   media_type TEXT;
   preview_type TEXT;
 BEGIN
-  -- @requirement-reference HALL-FR-DOC-180 WORKSPACE_CATALOG_IS_FLAT:
+  -- @implements-requirement HALL-FR-DOC-180
   -- A catalogue entry intentionally omits binary metadata. Content and preview
   -- links are therefore advertised only by hydrated document projections; a
   -- flat catalogue must never manufacture a Siren link whose media type is
@@ -216,7 +216,7 @@ BEGIN
     RETURN actions;
   END IF;
 
-  -- @requirement-reference HALL-FR-WSP-280 MEETING_CONDUCT_LOCKS_AGENDA_SUBJECT_TEXTS:
+  -- @implements-requirement HALL-FR-WSP-280
   IF NOT hall.agenda_subject_text_is_editable((resource ->> 'id')::UUID) THEN
     RETURN actions;
   END IF;
@@ -273,7 +273,7 @@ BEGIN
   ELSIF resource_kind = 'geographicLayer' THEN
     actions := actions || jsonb_build_array(hall.geographic_feature_note_siren_action(reference));
   ELSIF resource_kind = 'legalReference' THEN
-    -- @requirement-reference HALL-FR-DOC-220 DOCUMENTARY_SIREN_IS_DATABASE_OWNED:
+    -- @implements-requirement HALL-FR-DOC-220
     -- A folder listing carries a summary without the legal document. It must
     -- never advertise an action as JSON null; detail projections add the
     -- state-dependent legal action once the resolution status is available.

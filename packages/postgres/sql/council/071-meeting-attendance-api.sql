@@ -44,14 +44,14 @@ AS $function$
   WHERE attendance.council_meeting = target_meeting
 $function$;
 
--- @technical-requirement HALL-TR-INT-070 MEETING_ATTENDANCE_WRITES_ARE_NAMED:
+-- @implements-requirement HALL-TR-INT-070
 -- Runtime roles record attendance only through this named atomic action. The
 -- underlying tables remain inaccessible to them.
--- @technical-requirement HALL-TR-CON-040 PROXY_DECLARATIONS_ARE_ATOMIC:
+-- @implements-requirement HALL-TR-CON-040
 -- Non-represented attendances are inserted before represented attendances in
 -- the same transaction. A proxy can therefore name a holder declared in the
 -- same input batch without exposing persistence identities to the caller.
--- @functional-requirement HALL-FR-MTG-300 OPENING_USES_CURRENT_TERM_MEMBERS_IN_ONE_TRANSACTION:
+-- @implements-requirement HALL-FR-MTG-300
 CREATE FUNCTION hall_api.record_meeting_attendance(
   target_meeting UUID,
   attendance_declarations JSONB,

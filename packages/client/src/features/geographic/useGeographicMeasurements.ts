@@ -83,7 +83,6 @@ export function polygonDimensionStyles(
   const center = corners.reduce((sum, p) => [sum[0]! + p[0]! / 4, sum[1]! + p[1]! / 4], [0, 0]);
   const styles: Style[] = [];
   const color = cssToken("--hall-color-text");
-  // Adjacent sides place the two dimensions on different exterior edges.
   for (const index of [0, 1]) {
     const start = corners[index]!,
       end = corners[(index + 1) % 4]!;
@@ -289,6 +288,8 @@ export function drawingMeasureStyle(
 
 /** Drawing labels belong to the map; their per-drawing visibility is temporary and independent of its panel. */
 // @implements-requirement HALL-FR-DOC-520
+// biome-ignore-start lint/correctness/useExhaustiveDependencies: the new visibility Set updates the derived source membership.
+// biome-ignore-start lint/correctness/useExhaustiveDependencies: each new visibility Set invalidates the stable layer style.
 export function useGeographicDrawingMeasureLayer(
   map: OlMap | null,
   drawingSource: VectorSource<Feature<Geometry>> | null,
@@ -298,8 +299,6 @@ export function useGeographicDrawingMeasureLayer(
   const { formatNumber } = useI18n();
   const visibleIdsRef = useRef(visibleIds);
   visibleIdsRef.current = visibleIds;
-  // Select applies a style directly to the selected drawing. A separate source lets the label layer
-  // keep its own style while sharing the live geometry, including edits in progress.
   const measureSource = useMemo(() => (drawingSource ? new VectorSource<Feature<Geometry>>() : null), [drawingSource]);
   const syncFeature = useCallback(
     (drawing: Feature<Geometry>) => {
@@ -347,7 +346,6 @@ export function useGeographicDrawingMeasureLayer(
       measureSource.clear();
     };
   }, [drawingSource, measureSource, syncFeature]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the new visibility Set updates the derived source membership.
   useEffect(() => {
     if (!drawingSource || !measureSource) return;
     drawingSource.getFeatures().forEach(syncFeature);
@@ -386,10 +384,11 @@ export function useGeographicDrawingMeasureLayer(
   useEffect(() => {
     layer?.setStyle(style);
   }, [layer, style]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: each new visibility Set invalidates the stable layer style.
   useEffect(() => layer?.changed(), [layer, visibleIds]);
   useEffect(() => layer?.setVisible(visible), [layer, visible]);
 }
+// biome-ignore-end lint/correctness/useExhaustiveDependencies: the new visibility Set updates the derived source membership.
+// biome-ignore-end lint/correctness/useExhaustiveDependencies: each new visibility Set invalidates the stable layer style.
 
 /**
  * Temporary measurements of the Mesures tab. Their source never joins the drawing source, so nothing measured

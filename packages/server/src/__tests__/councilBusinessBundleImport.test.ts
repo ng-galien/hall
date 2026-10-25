@@ -94,6 +94,15 @@ it("transfers a whole business across clean installations and refuses duplicate 
       f.set("file", new Blob([exported.bytes]), "captage.hallbundle");
       return f;
     };
+    const forged = decodeCouncilBusinessBundle(exported.bytes);
+    const forgedDocument = forged.manifest.resources.find(({ data }) => data.kind === "document")!;
+    if (forgedDocument.data.kind !== "document") throw new Error("Missing document fixture");
+    forgedDocument.data.binary.mediaType = "text/html";
+    forged.manifest.files.find((file) => file.path === forgedDocument.binaryPath)!.mediaType = "text/html";
+    const forgedForm = new FormData();
+    forgedForm.set("file", new Blob([new Uint8Array(encodeCouncilBusinessBundle(forged))]), "forged.hallbundle");
+    await b("/council-business/import-bundle", "POST", forgedForm, 415);
+    expect((await b("/council-business/workspace-items")).entities).toHaveLength(0);
     const invalid = decodeCouncilBusinessBundle(exported.bytes);
     invalid.manifest.resources.find(({ data }) => data.id === text.id)!.data.name = "Rapport";
     invalid.manifest.resources.find(({ data }) => data.id === text.id)!.data.path = "Travaux/Captage";

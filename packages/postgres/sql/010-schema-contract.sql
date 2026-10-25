@@ -1,4 +1,4 @@
--- @technical-requirement HALL-TR-SCH-020 EXACT_SCHEMA_MANIFEST:
+-- @implements-requirement HALL-TR-SCH-020
 -- Hall records the complete ordered SQL manifest only after the installed
 -- schema has converged transactionally to its materialized PostgreSQL target.
 CREATE TABLE hall_meta.schema_contract (

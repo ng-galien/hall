@@ -232,9 +232,10 @@ export function RollCallView({
             {t(mode === "opening" ? "live.rollCallTitle" : "live.rollCallAdjustTitle")}
           </h1>
           <p>
-            {t("meeting.attendanceProgress")
-              .replace("{recorded}", formatNumber(draftAttendance.length))
-              .replace("{total}", formatNumber(members.length))}
+            {t("meeting.attendanceProgress", {
+              recorded: formatNumber(draftAttendance.length),
+              total: formatNumber(members.length),
+            })}
           </p>
         </div>
         <div className="rollcall-header-actions">
@@ -385,13 +386,12 @@ export function RollCallView({
                 </div>
                 {current?.status === "represented" && current.proxyHolderMemberId ? (
                   <p className="rollcall-proxy-summary">
-                    {t("ballot.representedBy").replace(
-                      "{holder}",
-                      (() => {
+                    {t("ballot.representedBy", {
+                      holder: (() => {
                         const holder = members.find((candidate) => candidate.id === current.proxyHolderMemberId);
                         return holder ? `${holder.contact.firstName} ${holder.contact.lastName}` : "";
                       })(),
-                    )}
+                    })}
                   </p>
                 ) : null}
               </li>
@@ -406,9 +406,10 @@ export function RollCallView({
             {openingObservation?.facts.verdict === "notMet" ? (
               <span className="rollcall-check rollcall-check-pending" data-testid="live-opening-quorum-not-met">
                 <WarningIcon aria-hidden="true" />
-                {t("meeting.openingRecordedWithoutQuorum")
-                  .replace("{present}", formatNumber(openingObservation.facts.presentCount))
-                  .replace("{required}", formatNumber(openingObservation.facts.requiredPresent))}
+                {t("meeting.openingRecordedWithoutQuorum", {
+                  present: formatNumber(openingObservation.facts.presentCount),
+                  required: formatNumber(openingObservation.facts.requiredPresent),
+                })}
               </span>
             ) : openingBlock ? (
               <span className="rollcall-check rollcall-check-pending">
@@ -518,7 +519,7 @@ function ProxyModal({
     <Modal
       open
       testId="live-proxy-dialog"
-      title={t("live.proxyModalTitle").replace("{member}", `${member.contact.firstName} ${member.contact.lastName}`)}
+      title={t("live.proxyModalTitle", { member: `${member.contact.firstName} ${member.contact.lastName}` })}
       onClose={onClose}
     >
       <div className="modal-form">

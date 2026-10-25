@@ -19,13 +19,13 @@ vi.stubGlobal(
   "ResizeObserver",
   class {
     observe() {
-      /* jsdom has no layout */
+      return undefined;
     }
     unobserve() {
-      /* jsdom has no layout */
+      return undefined;
     }
     disconnect() {
-      /* jsdom has no layout */
+      return undefined;
     }
   },
 );

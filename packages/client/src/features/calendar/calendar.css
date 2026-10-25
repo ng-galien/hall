@@ -1,17 +1,17 @@
-.hall-calendar { height: calc(100svh - 4rem); padding: 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
-.hall-calendar > .fc { flex: 1; min-height: 24rem; }
-.calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-.calendar-toolbar h1 { font-size: 1.25rem; font-weight: 600; }
-.calendar-legend { display: flex; gap: 1rem; font-size: .8rem; color: var(--hall-color-text-muted); }
-.calendar-legend span::before { content: ''; display: inline-block; width: .5rem; height: .5rem; margin-right: .4rem; border-radius: 50%; background: var(--hall-color-brand); }
+.hall-calendar { height: calc(100svh - var(--hall-size-relative-4rem)); padding: var(--hall-size-relative-1-25rem); display: flex; flex-direction: column; gap: .var(--hall-size-relative-75rem); }
+.hall-calendar > .fc { flex: 1; min-height: var(--hall-size-relative-24rem); }
+.calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--hall-size-relative-1rem); flex-wrap: wrap; }
+.calendar-toolbar h1 { font-size: var(--hall-size-relative-1-25rem); font-weight: 600; }
+.calendar-legend { display: flex; gap: var(--hall-size-relative-1rem); font-size: .var(--hall-size-relative-8rem); color: var(--hall-color-text-muted); }
+.calendar-legend span::before { content: ''; display: inline-block; width: .var(--hall-size-relative-5rem); height: .var(--hall-size-relative-5rem); margin-right: .var(--hall-size-relative-4rem); border-radius: 50%; background: var(--hall-color-brand); }
 .calendar-legend .calendar-legend-council::before { background: var(--hall-color-council-business); }
 .hall-calendar .hall-calendar-appointment,
 .hall-calendar .hall-calendar-council { cursor: pointer; }
 .hall-calendar .hall-calendar-council { --fc-event-bg-color: var(--hall-color-council-business); --fc-event-border-color: var(--hall-color-council-business); }
 .hall-calendar { --fc-border-color: var(--hall-color-border); --fc-event-bg-color: var(--hall-color-brand); --fc-event-border-color: var(--hall-color-brand); --fc-page-bg-color: var(--hall-color-surface); }
-.calendar-undated { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; border-top: 1px solid var(--hall-color-border); }
-.event-fields { display: grid; gap: 1rem; }
-.event-fields select { border: 1px solid var(--hall-color-border); border-radius: .375rem; padding: .5rem; background: var(--hall-color-surface); }
+.calendar-undated { display: flex; align-items: center; flex-wrap: wrap; gap: .var(--hall-size-relative-5rem); border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
+.event-fields { display: grid; gap: var(--hall-size-relative-1rem); }
+.event-fields select { border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: .var(--hall-size-relative-375rem); padding: .var(--hall-size-relative-5rem); background: var(--hall-color-surface); }
 .workspace-glyph-event { color: var(--hall-color-brand); }
 
 /* FullCalendar theme bridges to Hall's existing semantic palette. */
@@ -71,7 +71,7 @@
 }
 .event-fields .event-participant-badge {
   height: auto;
-  min-height: 1.75rem;
+  min-height: var(--hall-size-relative-1-75rem);
   max-width: 100%;
   gap: var(--hall-space-2);
   padding: var(--hall-space-1) var(--hall-space-2);
@@ -85,12 +85,12 @@
 }
 .event-fields .event-participant-remove {
   flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: var(--hall-size-relative-1-25rem);
+  height: var(--hall-size-relative-1-25rem);
   min-height: 0;
   padding: 0;
   color: var(--hall-color-text-muted);
 }
-@media (max-width: 600px) {
+@media (max-width: 760px) {
   .event-date-fields { grid-template-columns: minmax(0, 1fr); }
 }

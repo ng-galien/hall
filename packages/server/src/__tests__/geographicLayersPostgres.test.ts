@@ -1,3 +1,6 @@
+if (!process.env.TEST_DATABASE_URL)
+  throw new Error("TEST_DATABASE_URL is required; use the isolated test:postgres entry point");
+
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { geographicLayerFeatureCollectionSchema, resourceDetailSchema, type SirenAction } from "@hall/api-contract";

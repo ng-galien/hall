@@ -1,4 +1,4 @@
--- @technical-requirement HALL-TR-CON-110 COUNCIL_BUSINESS_AGENDA_WRITES_ARE_SERIALIZED:
+-- @implements-requirement HALL-TR-CON-110
 -- Every membership mutation locks its aggregate root before the deferred
 -- assertion. Concurrent agenda writes for one business therefore cannot create
 -- a write-skew that escapes the final-state check.
@@ -33,7 +33,7 @@ BEFORE INSERT OR UPDATE OR DELETE ON hall.council_agenda_item
 FOR EACH ROW
 EXECUTE FUNCTION lock_council_agenda_item_business();
 
--- @technical-requirement HALL-TR-CON-120 COUNCIL_AGENDA_SUBJECT_WRITES_ARE_SERIALIZED:
+-- @implements-requirement HALL-TR-CON-120
 -- A prepared subject may occur on several meetings, but always under the same
 -- CouncilBusiness. Locking the subject row prevents two transactions from
 -- concurrently assigning it to different roots.
@@ -61,7 +61,7 @@ BEFORE INSERT OR UPDATE ON hall.council_agenda_item
 FOR EACH ROW
 EXECUTE FUNCTION lock_council_agenda_item_subject();
 
--- @functional-requirement HALL-FR-BUS-030 AGENDA_SUBJECT_HAS_ONE_COUNCIL_BUSINESS:
+-- @implements-requirement HALL-FR-BUS-030
 CREATE FUNCTION hall.council_agenda_item_subject_has_one_business(target council_agenda_item)
 RETURNS BOOLEAN
 LANGUAGE sql

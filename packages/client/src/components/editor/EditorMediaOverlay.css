@@ -4,7 +4,7 @@
   right: var(--hall-space-2);
   z-index: calc(var(--hall-z-content) + 3);
   display: flex;
-  max-width: min(30rem, calc(100% - 2 * var(--hall-space-2)));
+  max-width: min(var(--hall-size-relative-30rem), calc(100% - 2 * var(--hall-space-2)));
   align-items: center;
   gap: var(--hall-space-2);
   padding: var(--hall-space-1);
@@ -81,13 +81,13 @@
   color: var(--hall-color-text);
   text-decoration: underline;
   text-decoration-thickness: var(--hall-stroke-thin);
-  text-underline-offset: 0.15em;
+  text-underline-offset: var(--hall-letter-spacing-feature-kicker);
 }
 
 .editor-media-overlay-title-link:focus-visible {
   outline: none;
   text-decoration: underline;
-  text-underline-offset: 0.15em;
+  text-underline-offset: var(--hall-letter-spacing-feature-kicker);
 }
 
 .editor-media-overlay-actions {

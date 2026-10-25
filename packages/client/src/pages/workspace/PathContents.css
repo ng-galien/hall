@@ -2,7 +2,7 @@
 .path-contents-explorer .workspace-explorer-folder-row,
 .path-contents-explorer .workspace-explorer-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 10rem;
+  grid-template-columns: minmax(0, 1fr) var(--hall-size-relative-10rem);
 }
 
 .path-contents-explorer .workspace-explorer-date {

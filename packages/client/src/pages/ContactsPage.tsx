@@ -61,7 +61,7 @@ export function ContactsPage() {
   };
   const editAction = (contact: Contact) => {
     const name = `${contact.firstName} ${contact.lastName}`;
-    const label = t("contacts.editNamed").replace("{name}", name);
+    const label = t("contacts.editNamed", { name: name });
     return (
       <Tooltip>
         <TooltipTrigger asChild>

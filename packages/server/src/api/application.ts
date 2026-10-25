@@ -8,6 +8,7 @@ import { SESSION_COOKIE_NAME } from "../services/authService.js";
 import {
   auditApiRequest,
   cookieValue,
+  enforceRequestHost,
   enforceSameOrigin,
   loadAuthentication,
   persistFailedAudit,
@@ -43,8 +44,23 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   const app = express();
   const { authService, config, requestContext, securityRepository } = container.cradle;
 
+  app.disable("x-powered-by");
+  app.use(enforceRequestHost(config));
+  app.use((_request, response, next) => {
+    response.set("X-Content-Type-Options", "nosniff");
+    response.set("Referrer-Policy", "same-origin");
+    response.set("Content-Security-Policy", "object-src 'self' blob:; base-uri 'self'; frame-ancestors 'self'");
+    next();
+  });
   if (config.behindTlsProxy) app.set("trust proxy", 1);
-  app.get("/api/health", (_request, response) => response.json({ status: "ok" }));
+  app.get("/api/health", async (_request, response) => {
+    try {
+      await container.cradle.sqlExecutor.get("health.check");
+      response.json({ status: "ok", version: config.version ?? "unidentified" });
+    } catch {
+      response.status(503).json({ status: "unavailable", version: config.version ?? "unidentified" });
+    }
+  });
   app.all(
     "/mcp",
     requestContextMiddleware(requestContext),

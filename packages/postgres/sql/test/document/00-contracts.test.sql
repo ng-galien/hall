@@ -2,7 +2,9 @@ BEGIN;
 SET LOCAL search_path = hall, hall_api, public, pg_catalog;
 SELECT no_plan();
 
--- HALL-FR-DOC-010 HALL-FR-DOC-030
+-- @verifies-requirement HALL-FR-DOC-010
+
+-- @verifies-requirement HALL-FR-DOC-030
 SELECT set_eq(
   $$
     SELECT table_name
@@ -76,14 +78,14 @@ SELECT has_column('hall', 'resource', 'name', 'resource stores its local name');
 SELECT has_check('hall', 'resource', 'resource XOR and path shapes are declarative checks');
 SELECT col_type_is('hall', 'resource', 'id', 'uuid', 'resource identity uses PostgreSQL UUID');
 
--- HALL-FR-DOC-070
+-- @verifies-requirement HALL-FR-DOC-070
 SELECT col_not_null('hall', 'text_resource', 'content', 'text content is structurally required');
 SELECT col_not_null('hall', 'spreadsheet_resource', 'document', 'spreadsheet content is structurally required');
 SELECT col_not_null('hall', 'geographic_resource', 'document', 'geographic content is structurally required');
 SELECT col_not_null('hall', 'event_resource', 'document', 'event content is structurally required');
 SELECT col_not_null('hall', 'legal_reference_resource', 'document', 'legal-reference content is structurally required');
 
--- HALL-FR-DOC-190
+-- @verifies-requirement HALL-FR-DOC-190
 SELECT hasnt_column('hall', 'remote_resource', 'url', 'an unconfigured remote stores no nullable target');
 SELECT col_not_null('hall', 'remote_resource_target', 'url', 'a configured remote target always has a URL');
 SELECT fk_ok(
@@ -96,13 +98,17 @@ SELECT fk_ok(
   'remote target is structurally owned by its remote resource'
 );
 
--- HALL-FR-DOC-200
+-- @verifies-requirement HALL-FR-DOC-200
 SELECT col_not_null('hall', 'resource', 'created_at', 'resource creation time is authoritative');
 SELECT col_not_null('hall', 'resource', 'updated_at', 'resource update time is authoritative');
 SELECT has_table('hall', 'resource_tag', 'resource tags are normalized rows');
 SELECT has_trigger('hall', 'resource', 'resource_touch_updated_at', 'resource mutations refresh updated_at');
 
--- HALL-FR-DOC-020 HALL-FR-DOC-040 HALL-FR-DOC-050
+-- @verifies-requirement HALL-FR-DOC-020
+
+-- @verifies-requirement HALL-FR-DOC-040
+
+-- @verifies-requirement HALL-FR-DOC-050
 SELECT is(
   (
     SELECT count(*)::INTEGER
@@ -143,7 +149,7 @@ SELECT is(
   'resource path has the anchored-prefix operator index'
 );
 
--- HALL-FR-DOC-080
+-- @verifies-requirement HALL-FR-DOC-080
 SELECT fk_ok(
   'hall',
   'document_resource',
@@ -168,7 +174,11 @@ SELECT is(
   'resource slug is globally unique'
 );
 
--- HALL-FR-DOC-100 HALL-TR-DOC-040 HALL-TR-DOC-060
+-- @verifies-requirement HALL-FR-DOC-100
+
+-- @verifies-requirement HALL-TR-DOC-040
+
+-- @verifies-requirement HALL-TR-DOC-060
 SELECT set_eq(
   $$
     SELECT routine_name

@@ -7,17 +7,17 @@ CREATE TABLE hall.ballot_participation (
   meeting_attendance UUID NOT NULL REFERENCES meeting_attendance (id),
   physically_present BOOLEAN NOT NULL,
 
-  -- @functional-requirement HALL-FR-BAL-050 ONE_PARTICIPATION_PER_ATTENDANCE_AND_BALLOT: One
+  -- @implements-requirement HALL-FR-BAL-050
   -- attendance participates at most once in one ballot. This
   -- composite uniqueness scopes a business fact; it is not the entity identity.
   UNIQUE (ballot, meeting_attendance)
 );
 
--- @functional-requirement HALL-FR-BAL-060 BALLOT_CHAIRMAN_IS_BALLOT_PARTICIPATION: The ballot
+-- @implements-requirement HALL-FR-BAL-060
 -- chairman directly references a BallotParticipation. The
 -- foreign key is deferred because the ballot and its participations form one
 -- atomic creation cycle.
--- @technical-requirement HALL-TR-CON-050 BALLOT_PARTICIPATION_CYCLE_IS_ATOMIC:
+-- @implements-requirement HALL-TR-CON-050
 -- Deferred referential validation permits the cyclic ballot and participation
 -- facts to be created atomically in one transaction.
 ALTER TABLE hall.ballots

@@ -3,7 +3,8 @@ SET LOCAL search_path=hall,public,pg_catalog;
 SET LOCAL hall.roles='["administrator"]';
 \ir support/helpers.sql
 SELECT no_plan();
--- HALL-FR-MTG-300: source roster is the active term, independent of attendance.
+-- @verifies-requirement HALL-FR-MTG-300
+-- source roster is the active term, independent of attendance.
 SELECT test_ensure_council_member(test_uuid('opening:member:'||n)) FROM generate_series(1,16)n;
 UPDATE council_member SET term_ended_on='2025-12-31' WHERE id=test_uuid('opening:member:16');
 INSERT INTO council_term(id,expected_member_count,started_on,ended_on) VALUES(test_uuid('opening:old-term'),20,'2010-01-01','2019-12-31');

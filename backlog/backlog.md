@@ -13,12 +13,10 @@ The user decides business rules, data-model changes, product behavior, UI design
 - [ ] `[FULL]` Fix blockers that prevent the complete demonstration journey.
 - [ ] `[OPS]` Document one short, repeatable demonstration recipe.
 - [ ] `[FULL]` Define how a late arrival changes attendance and quorum before implementing it.
-- [ ] `[FULL]` Define the workflow when the previous minutes are not approved, including adjournment, ballot cancellation, unanimous abstention, and rejection.
+- [ ] `[FULL]` Verify the established previous-minutes workflow (approval, rejection, unanimous abstention and postponement); any extension requires a new decision.
 - [ ] `[FRONT]` Keep meeting context when navigating between screens and links.
-- [ ] `[FULL]` Define the expected shared live-update behavior before choosing a transport.
 - [ ] `[FRONT]` Improve the conducted-meeting and projector layouts at the target resolutions.
 - [ ] `[BACK]` Revalidate summons dates, clear-day calculation, and timezone handling.
-- [ ] `[BACK]` Complete the second-summons model after lack of quorum.
 - [ ] `[BACK]` Model evidence of delivery and publication.
 - [ ] `[BACK]` Add population and urgency variants only after legal validation.
 
@@ -32,7 +30,6 @@ The user decides business rules, data-model changes, product behavior, UI design
 - [ ] `[FRONT]` Make tags, filters, pins, business references, and badges actionable and consistent.
 - [ ] `[FULL]` Pass the current folder context to reference searches.
 - [ ] `[FRONT]` Use the shared search engine for meetings, decisions, and members where it improves the journey.
-- [ ] `[FULL]` Define how multiple committees attach to a `CouncilBusiness` before changing the model or UI.
 
 ## Resources, editing, and history
 
@@ -98,7 +95,7 @@ The user decides business rules, data-model changes, product behavior, UI design
 
 ## Performance and local distribution
 
-- [ ] `[OPS]` Prepare and verify the standalone npm server artifact and its update documentation. @tracks-requirement HALL-TR-DST-010
+- [ ] `[OPS]` Verify the standalone installation and update on the chosen municipal target; local artifact checks do not establish target acceptance. @tracks-requirement HALL-TR-DST-010
 
 - [ ] `[FULL]` Define the local dump-loading and restore journey; no synchronization or database merge is currently decided.
 - [ ] `[FULL]` Measure transferred volumes and aggregation size before introducing selective loading.
@@ -116,7 +113,3 @@ The user decides business rules, data-model changes, product behavior, UI design
 - [ ] `[FULL]` Review domains, features, intended user actions, actual accessibility, and gaps against the product documentation.
 
 ## Shared resource search
-
-- [ ] Implement title search and classification. @tracks-requirement HALL-FR-SRC-010
-- [ ] Implement server search scope and progressive loading. @tracks-requirement HALL-FR-SRC-020
-- [ ] Complete the shared controller, interactions, forms, and editor integration. @tracks-requirement HALL-FR-SRC-030

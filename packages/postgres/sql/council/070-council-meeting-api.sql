@@ -4,7 +4,7 @@
 -- Meeting projections expose lifecycle facts and identities only. Minutes
 -- report content remains an independently fetched documentary resource.
 
--- @functional-requirement HALL-FR-MTG-220 COUNCIL_MEETING_SLUG_IS_DERIVED:
+-- @implements-requirement HALL-FR-MTG-220
 -- A scheduled meeting has one readable technical slug derived only from its
 -- UTC calendar date and durable sequence number. An unscheduled next meeting
 -- has no invented date and therefore no slug yet.
@@ -189,7 +189,7 @@ BEGIN
 END;
 $function$;
 
--- @functional-requirement HALL-FR-MTG-260 COUNCIL_MEETING_PREPARATION_IS_ATOMIC:
+-- @implements-requirement HALL-FR-MTG-260
 -- Initial programming records the schedule and both officers in one database
 -- transaction. The individual named actions remain available for later edits.
 CREATE FUNCTION hall_api.prepare_council_meeting(

@@ -71,6 +71,8 @@ async function main() {
   process.env.NODE_ENV ??= "production";
   const { configFromEnvironment, validateServerConfig } = await import("../src/core/config.ts");
   const config = { ...configFromEnvironment(), clientDirectory: resolve(packageRoot, "client") };
+  const release = JSON.parse(await readFile(new URL("../release.json", import.meta.url), "utf8"));
+  config.version = `${release.version}:${release.source?.commit ?? "unknown"}:${release.source?.dirty ? "dirty" : "clean"}`;
   validateServerConfig(config);
   if (command === "schema-check" || command === "migrate") {
     const { Pool } = await import("pg");
@@ -96,7 +98,17 @@ async function main() {
     }
     return;
   }
+  process.env.HALL_LOG_FILE ??= resolve(args.length ? dirname(args[1]) : process.cwd(), "logs/hall.log");
   await access(resolve(config.clientDirectory, "index.html"), constants.R_OK);
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.setContent("<p>Hall PDF readiness</p>");
+    if (!(await page.pdf()).subarray(0, 5).equals(Buffer.from("%PDF-"))) throw new Error("PDF runtime check failed");
+  } finally {
+    await browser.close();
+  }
   const { startHttpServer } = await import("../src/server.ts");
   let handle;
   try {

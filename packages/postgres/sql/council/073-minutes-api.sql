@@ -5,7 +5,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     'scheduledAt', target.facts #>> '{meeting,scheduledAt}',
     'createdAt', target.created_at, 'updatedAt', target.updated_at, 'version', target.version,
     'generatedAt', document.generated_at, 'documentId', document.id,
-    -- @functional-requirement HALL-FR-MIN-220 MINUTES_HEADER_IDENTIFIES_ORIGIN_AND_STATUS:
+    -- @implements-requirement HALL-FR-MIN-220
     'settledAt', (SELECT ballot.completed_at
       FROM hall.minutes_approval approval
       JOIN hall.council_agenda_item item ON item.minutes_approval = approval.id
@@ -31,7 +31,7 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog,
   ), 'facts', facts || jsonb_build_object('agenda', (
     SELECT coalesce(jsonb_agg(item || jsonb_build_object(
       'introducedAt', hall.council_agenda_introduced_at(minutes.council_meeting, agenda_item.id),
-      -- @functional-requirement HALL-FR-MIN-250 MINUTES_POINT_SEPARATES_SOURCE_VOTE_AND_EDITORIAL_TEXT:
+      -- @implements-requirement HALL-FR-MIN-250
       'discussionSummary', agenda_item.discussion_summary
     ) ORDER BY ordinal), '[]'::jsonb)
     FROM jsonb_array_elements(facts->'agenda') WITH ORDINALITY entry(item, ordinal)
@@ -44,7 +44,7 @@ CREATE FUNCTION hall_api.update_minutes_draft(target_minutes UUID, expected_vers
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE draft hall.minutes;
 BEGIN
-  -- @technical-requirement HALL-TR-MIN-020 DRAFT_WRITES_CHECK_THE_OBSERVED_VERSION:
+  -- @implements-requirement HALL-TR-MIN-020
   SELECT * INTO draft FROM hall.minutes WHERE id = target_minutes FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV707', MESSAGE = 'unknown minutes'; END IF;
   IF expected_version IS DISTINCT FROM draft.version THEN
@@ -60,7 +60,7 @@ CREATE FUNCTION hall_api.generate_minutes(target_minutes UUID, expected_version 
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE draft hall.minutes; binary_id UUID;
 BEGIN
-  -- @technical-requirement HALL-TR-MIN-030 PDF_PUBLICATION_REQUIRES_THE_RENDERED_DRAFT_VERSION:
+  -- @implements-requirement HALL-TR-MIN-030
   -- PDF rendering occurs outside the transaction. Its observed version must
   -- still match before publishing bytes and freezing the draft atomically.
   SELECT * INTO draft FROM hall.minutes WHERE id = target_minutes FOR UPDATE;
@@ -88,7 +88,7 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog,
   WHERE document.minutes = target_minutes;
 $$;
 
--- @functional-requirement HALL-FR-MIN-130 APPROVAL_BALLOT_REFERENCES_A_GENERATED_DOCUMENT:
+-- @implements-requirement HALL-FR-MIN-130
 CREATE FUNCTION hall.require_generated_minutes_for_ballot()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 DECLARE approval_id UUID;

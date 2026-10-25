@@ -11,6 +11,7 @@ export interface ServerConfig {
   bootstrapToken?: string;
   allowedOrigins?: string[];
   environment?: string;
+  version?: string;
   legifranceEnvironment?: "sandbox" | "production";
   legifranceClientId?: string;
   legifranceClientSecret?: string;
@@ -50,6 +51,7 @@ export function configFromEnvironment(): ServerConfig {
         ? ["http://localhost:5174", "http://127.0.0.1:5174"]
         : [],
     environment,
+    version: process.env.HALL_RELEASE_ID ?? process.env.npm_package_version,
     legifranceEnvironment: process.env.HALL_LEGIFRANCE_ENVIRONMENT === "production" ? "production" : "sandbox",
     legifranceClientId: process.env.HALL_LEGIFRANCE_CLIENT_ID,
     legifranceClientSecret: process.env.HALL_LEGIFRANCE_CLIENT_SECRET,
@@ -82,7 +84,10 @@ export function validateServerConfig(config: ServerConfig): void {
       "A non-loopback server requires HALL_BOOTSTRAP_TOKEN with at least 24 characters for first-administrator setup",
     );
   }
-  if (config.devAutoLogin && (!isLoopbackHost(config.host) || config.environment === "production")) {
+  if (
+    config.devAutoLogin &&
+    (!isLoopbackHost(config.host) || config.behindTlsProxy || config.environment === "production")
+  ) {
     throw new Error("HALL_DEV_AUTO_LOGIN is restricted to a non-production loopback server");
   }
   if (Boolean(config.legifranceClientId) !== Boolean(config.legifranceClientSecret)) {

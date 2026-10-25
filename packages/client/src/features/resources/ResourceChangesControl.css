@@ -33,13 +33,13 @@
 }
 
 .resource-changes-preview {
-  max-width: min(24rem, 85vw);
+  max-width: min(var(--hall-size-relative-24rem), 85vw);
   line-height: 1.4;
 }
 
 .resource-changes-panel {
-  width: min(25rem, 100vw);
-  max-width: min(25rem, 100vw);
+  width: min(var(--hall-size-relative-25rem), 100vw);
+  max-width: min(var(--hall-size-relative-25rem), 100vw);
   gap: var(--hall-space-5);
   box-shadow: var(--hall-shadow-large);
 }
@@ -62,7 +62,7 @@
   display: grid;
   gap: var(--hall-space-1);
   padding-block: var(--hall-space-4);
-  border-top: 1px solid var(--hall-color-border);
+  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
 }
 
 .resource-changes-list strong {

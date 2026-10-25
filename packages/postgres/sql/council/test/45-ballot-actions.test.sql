@@ -55,7 +55,7 @@ UPDATE council_agenda_item
 SET started_at = '2026-01-01 09:05:00+00'
 WHERE id = test_uuid('actions:public:agenda-item');
 
--- HALL-TR-CON-150
+-- @verifies-requirement HALL-TR-CON-150
 SELECT lives_ok(
   $$
     SELECT create_ballot(
@@ -84,7 +84,7 @@ SELECT is(
   'the ballot chairman is the participation backed by the selected present attendance'
 );
 
--- HALL-TR-CON-160
+-- @verifies-requirement HALL-TR-CON-160
 SELECT lives_ok(
   $$
     SELECT record_public_ballot_votes(
@@ -109,7 +109,7 @@ SELECT lives_ok(
   'public votes are recorded as one atomic nominative batch'
 );
 
--- HALL-FR-BAL-300
+-- @verifies-requirement HALL-FR-BAL-300
 SELECT lives_ok(
   $$
     SELECT test_confirm_ballot(
@@ -185,7 +185,7 @@ SELECT create_ballot(
   test_uuid('actions:secret:attendance:1')
 );
 
--- HALL-TR-CON-170
+-- @verifies-requirement HALL-TR-CON-170
 SELECT lives_ok(
   $$
     SELECT record_secret_ballot_votes(

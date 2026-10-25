@@ -169,7 +169,6 @@ function featureSvg(feature: HallGeoJsonFeature, bounds: Bounds): { shape: strin
   const labelAt = (x: number, y: number): PlacedLabel | null => (text ? { x, y, text } : null);
   return matchHallGeoJsonFeature(feature, {
     marker: (entry) => {
-      // The same pin as the interactive map, its tip on the exact coordinate; the label stands above it.
       const [x, y] = project(entry.geometry.coordinates, bounds);
       const scale = { small: 0.8, medium: 1, large: 1.2 }[entry.properties.style.size] * EXPORT_SCALE;
       const shape = `<g transform="translate(${(x - 12 * scale).toFixed(2)} ${(y - 31 * scale).toFixed(2)}) scale(${scale.toFixed(3)})"><path d="M12 31C9 26 1 19 1 12a11 11 0 0 1 22 0c0 7-8 14-11 19Z" fill="${entry.properties.style.color}" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="#fff"/></g>`;

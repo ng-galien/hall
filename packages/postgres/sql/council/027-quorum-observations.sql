@@ -1,7 +1,7 @@
 CREATE TYPE hall.quorum_regime AS ENUM ('ordinary','secondConvocation');
 CREATE TYPE hall.quorum_verdict AS ENUM ('met','notMet','exempt');
 
--- @functional-requirement HALL-FR-AGI-360 QUORUM_OBSERVATIONS_PRESERVE_THEIR_INPUTS:
+-- @implements-requirement HALL-FR-AGI-360
 CREATE TABLE hall.meeting_quorum_observation (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   council_meeting UUID NOT NULL REFERENCES hall.council_meetings(id),
@@ -12,7 +12,7 @@ CREATE TABLE hall.meeting_quorum_observation (
   facts JSONB NOT NULL
 );
 
--- @functional-requirement HALL-FR-MTG-290 SECOND_CONVOCATION_REQUIRES_RECORDED_FAILURE_AND_NOTICE:
+-- @implements-requirement HALL-FR-MTG-290
 -- L2121-17 and CE 16 June 1997, 142691: three clear calendar days from
 -- sending the renewed notice, including a quorum loss during proceedings.
 -- Restricting the exemption to identified remaining affairs is a Hall guard.
@@ -62,7 +62,7 @@ BEGIN
   FROM hall.current_meeting_attendance(target_meeting)
   WHERE status='present' AND council_member=ANY(membership.member_ids) AND NOT council_member=ANY(excluded_members);
   denominator:=cardinality(membership.member_ids)-cardinality(special_members);
-  -- @functional-requirement HALL-FR-MTG-010 COUNCIL_MEETING_QUORUM_IS_POSITIVE:
+  -- @implements-requirement HALL-FR-MTG-010
   required:=denominator/2+1;
   SELECT * INTO renewed FROM hall.meeting_reconvocation WHERE council_meeting=target_meeting ORDER BY sent_at DESC LIMIT 1;
   IF renewed.id IS NOT NULL THEN
@@ -140,7 +140,7 @@ FOR EACH ROW EXECUTE FUNCTION hall.enforce_meeting_reconvocation();
 CREATE TRIGGER meeting_reconvocation_no_truncate BEFORE TRUNCATE ON hall.meeting_reconvocation
 FOR EACH STATEMENT EXECUTE FUNCTION hall.enforce_meeting_reconvocation();
 
--- @functional-requirement HALL-FR-AGI-350 DECISION_CONSIDERATION_REQUIRES_RECORDED_CURRENT_QUORUM:
+-- @implements-requirement HALL-FR-AGI-350
 CREATE FUNCTION hall.guard_agenda_quorum()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path=pg_catalog,hall AS $$
 DECLARE observation hall.meeting_quorum_observation;

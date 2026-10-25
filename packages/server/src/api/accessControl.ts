@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
+import type { IncomingHttpHeaders } from "node:http";
 import { apiPermissions, LIVE_ORIGIN_HEADER, liveOriginSchema } from "@hall/api-contract";
 import type { NextFunction, Request, Response } from "express";
-import type { ServerConfig } from "../core/config.js";
+import { isLoopbackHost, type ServerConfig } from "../core/config.js";
 import { logger } from "../core/logger.js";
 import type { SecurityRepository } from "../repositories/securityRepository.js";
 import type { RequestContextStore } from "../security/requestContext.js";
@@ -9,6 +10,35 @@ import type { AuthService } from "../services/authService.js";
 import { principalForSession, SESSION_COOKIE_NAME } from "../services/authService.js";
 import { resolveAuditIntent } from "./apiCommandResolution.js";
 import { sendProblem } from "./problemDetails.js";
+
+export function isForwarded(headers: IncomingHttpHeaders): boolean {
+  return Object.keys(headers).some((name) => name === "forwarded" || name.startsWith("x-forwarded-"));
+}
+
+export function requestHostAllowed(headers: IncomingHttpHeaders, config: ServerConfig): boolean {
+  if (!headers.host) return false;
+  let url: URL;
+  try {
+    url = new URL(`http://${headers.host}`);
+  } catch {
+    return false;
+  }
+  if (url.username || url.password || url.pathname !== "/" || url.search || url.hash) return false;
+  const local = isLoopbackHost(url.hostname.replace(/^\[|\]$/g, ""));
+  if (config.devAutoLogin) return local && !isForwarded(headers) && !config.behindTlsProxy;
+  if (!isLoopbackHost(config.host)) return true;
+  return local || (config.allowedOrigins ?? []).some((origin) => new URL(origin).host === url.host);
+}
+
+export function enforceRequestHost(config: ServerConfig) {
+  return (request: Request, response: Response, next: NextFunction): void => {
+    if (!requestHostAllowed(request.headers, config)) {
+      sendProblem(request, response, 403, "permission_denied");
+      return;
+    }
+    next();
+  };
+}
 
 export function cookieValue(request: Request, name: string): string | null {
   return cookieValueFromHeader(request.header("cookie"), name);
@@ -31,7 +61,7 @@ export function cookieValueFromHeader(cookie: string | undefined, name: string):
 
 export function requestContextMiddleware(requestContext: RequestContextStore) {
   return (request: Request, response: Response, next: NextFunction): void => {
-    const requestId = request.header("x-request-id") ?? randomUUID();
+    const requestId = randomUUID();
     request.requestId = requestId;
     response.setHeader("X-Request-Id", requestId);
     const liveOrigin = liveOriginSchema.safeParse(request.header(LIVE_ORIGIN_HEADER));

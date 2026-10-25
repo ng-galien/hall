@@ -110,18 +110,11 @@ function VoteBadge({
       <span className="vote-card-copy">
         <strong>{participant.memberName}</strong>
         <span>
-          {proxyVote
-            ? t("live.carriedBy").replace("{holder}", participant.castByName)
-            : member
-              ? t(`role.${member.role}`)
-              : ""}
+          {proxyVote ? t("live.carriedBy", { holder: participant.castByName }) : member ? t(`role.${member.role}`) : ""}
         </span>
       </span>
       {!proxyVote && carriedCount > 0 ? (
-        <span
-          className="vote-card-proxy-count"
-          title={t("live.holdsProxies").replace("{count}", formatNumber(carriedCount))}
-        >
+        <span className="vote-card-proxy-count" title={t("live.holdsProxies", { count: formatNumber(carriedCount) })}>
           +{formatNumber(carriedCount)}
         </span>
       ) : null}
@@ -333,9 +326,7 @@ export function VotePanel({
   if (!open) {
     return (
       <section className="vote-panel vote-panel-collapsed">
-        <p className="vote-eligible-hint">
-          {t("ballot.eligibleCount").replace("{count}", formatNumber(participants.length))}
-        </p>
+        <p className="vote-eligible-hint">{t("ballot.eligibleCount", { count: formatNumber(participants.length) })}</p>
       </section>
     );
   }
@@ -425,7 +416,7 @@ export function VotePanel({
                           data-testid={`live-vote-assign-${zone.choice}`}
                           onClick={() => dropIntoZone(zone.choice)}
                         >
-                          {t("live.dropSelectionHere").replace("{count}", formatNumber(selectedMemberIds.size))}
+                          {t("live.dropSelectionHere", { count: formatNumber(selectedMemberIds.size) })}
                         </button>
                       ) : null}
                       <strong>{formatNumber(zoneParticipants.length)}</strong>
@@ -574,16 +565,18 @@ export function VotePanel({
               </>
             ) : (
               <span className="vote-total-invalid">
-                {t("live.assignedProgress")
-                  .replace("{assigned}", formatNumber(participants.length - unassigned.length))
-                  .replace("{total}", formatNumber(participants.length))}
+                {t("live.assignedProgress", {
+                  assigned: formatNumber(participants.length - unassigned.length),
+                  total: formatNumber(participants.length),
+                })}
               </span>
             )
           ) : (
             <span className={secretValid ? "vote-total-for" : "vote-total-invalid"}>
-              {t("live.secretTotal")
-                .replace("{count}", formatNumber(secretTotalCount))
-                .replace("{expected}", formatNumber(secretParticipants.length))}
+              {t("live.secretTotal", {
+                count: formatNumber(secretTotalCount),
+                expected: formatNumber(secretParticipants.length),
+              })}
             </span>
           )}
         </div>

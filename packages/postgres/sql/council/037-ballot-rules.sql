@@ -1,4 +1,4 @@
--- @functional-requirement HALL-FR-BAL-110 BALLOT_PARTICIPATION_COUNT_USES_DECLARATIONS: The
+-- @implements-requirement HALL-FR-BAL-110
 -- participation count is the number of attendances declared as taking part in a
 -- ballot. It is the expected number of expressed choices at completion.
 CREATE FUNCTION hall.ballot_participation_count(target_ballot UUID)
@@ -12,7 +12,7 @@ AS $$
   WHERE ballot = target_ballot;
 $$;
 
--- @functional-requirement HALL-FR-BAL-120 BALLOT_VOTE_COUNT_SUMS_RECORDED_COUNTS: The vote count
+-- @implements-requirement HALL-FR-BAL-120
 -- is the number of choices recorded for a ballot. Public votes
 -- contribute one; each secret aggregate contributes its strictly positive
 -- count.
@@ -27,7 +27,7 @@ AS $$
   WHERE ballot = target_ballot;
 $$;
 
--- @functional-requirement HALL-FR-BAL-130 BALLOT_CHOICE_COUNT_FILTERS_RECORDED_VOTES: A choice
+-- @implements-requirement HALL-FR-BAL-130
 -- count is the number of recorded votes carrying that particular choice.
 CREATE FUNCTION hall.ballot_choice_count(
   target_ballot UUID,
@@ -44,7 +44,7 @@ AS $$
     AND choice = target_choice;
 $$;
 
--- @functional-requirement HALL-FR-BAL-140 BALLOT_CHAIRMAN_IS_PRESENT_PARTICIPATION: The chairman
+-- @implements-requirement HALL-FR-BAL-140
 -- is a participation in the target
 -- ballot and its underlying attendance is physically present, not represented.
 CREATE FUNCTION hall.ballot_has_valid_chairman(
@@ -103,16 +103,16 @@ BEGIN
       MESSAGE = format('unknown ballot %s', target_ballot);
   END IF;
 
-  -- @functional-requirement HALL-FR-BAL-150 ABSTENTION_IS_EXCLUDED_FROM_MAJORITY: Abstentions are
+  -- @implements-requirement HALL-FR-BAL-150
   -- not suffrages expressed and are therefore
   -- deliberately absent from both counts.
   approve_count := ballot_choice_count(target_ballot, 'approve');
   reject_count := ballot_choice_count(target_ballot, 'reject');
 
-  -- @functional-requirement HALL-FR-BAL-160 APPROVE_MAJORITY_ADOPTS_BALLOT:
-  -- @functional-requirement HALL-FR-BAL-170 REJECT_MAJORITY_REJECTS_BALLOT:
-  -- @functional-requirement HALL-FR-BAL-180 PUBLIC_TIE_USES_CHAIRMAN_CHOICE:
-  -- @functional-requirement HALL-FR-BAL-190 SECRET_OR_UNDECIDED_TIE_REJECTS_BALLOT:
+  -- @implements-requirement HALL-FR-BAL-160
+  -- @implements-requirement HALL-FR-BAL-170
+  -- @implements-requirement HALL-FR-BAL-180
+  -- @implements-requirement HALL-FR-BAL-190
   SELECT choice INTO chairman_choice FROM votes WHERE ballot=target_ballot AND ballot_participation=current_chairman;
   RETURN hall.ordinary_majority_result(current_mode,approve_count,reject_count,chairman_choice);
 END;

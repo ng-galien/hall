@@ -1,4 +1,4 @@
--- @functional-requirement HALL-FR-AGI-160 BALLOT_ITEM_COMPLETION_REQUIRES_COMPLETED_BALLOT:
+-- @implements-requirement HALL-FR-AGI-160
 CREATE FUNCTION hall.council_agenda_item_has_completed_ballot(
   target_agenda_item UUID,
   target_completed_at TIMESTAMPTZ
@@ -25,7 +25,7 @@ LANGUAGE plpgsql
 SET search_path = pg_catalog, hall
 AS $$
 BEGIN
-  -- @functional-requirement HALL-FR-AGI-150 OPEN_QUESTION_COMPLETES_WITHOUT_BALLOT:
+  -- @implements-requirement HALL-FR-AGI-150
   -- An open question has no ballot by nature. Its explicit completion is the
   -- authoritative record that consideration ended.
   IF NEW.completed_at IS NULL OR NEW.open_question IS NOT NULL THEN
@@ -48,8 +48,8 @@ FOR EACH ROW
 WHEN (OLD.completed_at IS NULL AND NEW.completed_at IS NOT NULL)
 EXECUTE FUNCTION enforce_council_agenda_item_completion_authority();
 
--- @functional-requirement HALL-FR-AGI-170 BALLOT_COMPLETION_COMPLETES_AGENDA_ITEM:
--- @technical-requirement HALL-TR-CON-070 BALLOT_AND_AGENDA_ITEM_COMPLETE_ATOMICALLY:
+-- @implements-requirement HALL-FR-AGI-170
+-- @implements-requirement HALL-TR-CON-070
 CREATE FUNCTION hall.complete_ballot_agenda_item()
 RETURNS TRIGGER
 LANGUAGE plpgsql

@@ -62,7 +62,7 @@ export function MinutesPage() {
             >
               <MinutesIcon aria-hidden="true" />
               <div className="min-w-0 flex-1">
-                <strong>{t("minutes.meetingTitle").replace("{number}", formatNumber(item.meetingNumber))}</strong>
+                <strong>{t("minutes.meetingTitle", { number: formatNumber(item.meetingNumber) })}</strong>
                 <span>{item.scheduledAt ? formatDate(item.scheduledAt) : t("dashboard.toSchedule")}</span>
               </div>
               <span>{t(item.settledAt ? "minutes.stopped" : "minutes.notStopped")}</span>

@@ -1,7 +1,7 @@
 -- Council directory model
 -- =======================
 
--- @functional-requirement HALL-FR-DIR-020 ONE_ACTIVE_COUNCIL_TERM:
+-- @implements-requirement HALL-FR-DIR-020
 CREATE TABLE hall.council_term (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   expected_member_count INTEGER NOT NULL CONSTRAINT "council_term_expected_member_count_check" CHECK (expected_member_count > 0),
@@ -12,7 +12,7 @@ CREATE TABLE hall.council_term (
 
 CREATE UNIQUE INDEX council_term_one_active ON hall.council_term USING btree ((true)) WHERE (ended_on IS NULL);
 
--- @functional-requirement HALL-FR-DIR-010 CONTACT_EXISTS_INDEPENDENTLY:
+-- @implements-requirement HALL-FR-DIR-010
 CREATE TABLE hall.contact (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   first_name TEXT NOT NULL CONSTRAINT "contact_first_name_check" CHECK (btrim(first_name) <> ''::text),
@@ -28,14 +28,14 @@ CREATE TABLE hall.contact (
   CONSTRAINT "contact_optional_fields_are_not_blank" CHECK ((organization_name IS NULL OR btrim(organization_name) <> ''::text) AND (job_title IS NULL OR btrim(job_title) <> ''::text) AND (email IS NULL OR btrim(email) <> ''::text) AND (phone IS NULL OR btrim(phone) <> ''::text))
 );
 
--- @requirement-reference HALL-FR-DIR-030 MEMBER_BELONGS_TO_TERM:
--- @functional-requirement HALL-FR-DIR-070 MANDATE_DATES_ARE_ORDERED:
+-- @implements-requirement HALL-FR-DIR-030
+-- @implements-requirement HALL-FR-DIR-070
 CREATE TABLE hall.council_member (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   contact UUID NOT NULL REFERENCES hall.contact (id) ON DELETE RESTRICT,
   council_term UUID NOT NULL REFERENCES hall.council_term (id) ON DELETE RESTRICT,
   role hall.council_role NOT NULL,
-  -- @functional-requirement HALL-FR-DIR-130 GLOBAL_RANK_WITHIN_TERM:
+  -- @implements-requirement HALL-FR-DIR-130
   rank INTEGER CONSTRAINT "council_member_rank_check" CHECK (rank IS NULL OR rank >= 0),
   UNIQUE (council_term, rank),
   term_started_on DATE NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE hall.council_member (
   CONSTRAINT "council_member_dates_are_ordered" CHECK (term_ended_on IS NULL OR term_ended_on >= term_started_on)
 );
 
--- @functional-requirement HALL-FR-DIR-040 ONE_ACTIVE_MANDATE_PER_CONTACT:
+-- @implements-requirement HALL-FR-DIR-040
 CREATE UNIQUE INDEX council_member_one_active_mandate_per_contact ON hall.council_member USING btree (contact) WHERE (term_ended_on IS NULL);
 
 CREATE FUNCTION hall.enforce_active_council_member()
@@ -61,7 +61,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- @technical-requirement HALL-TR-DIR-030 CONCURRENT_CAPACITY_IS_SERIALIZED:
+  -- @implements-requirement HALL-TR-DIR-030
   SELECT term.*
   INTO active_term
   FROM hall.council_term AS term
@@ -74,14 +74,14 @@ BEGIN
       MESSAGE = 'An active council term is required';
   END IF;
 
-  -- @requirement-reference HALL-FR-DIR-030 MEMBER_BELONGS_TO_TERM:
+  -- @implements-requirement HALL-FR-DIR-030
   IF NEW.council_term <> active_term.id THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV807',
       MESSAGE = 'An active mandate must belong to the active council term';
   END IF;
 
-  -- @functional-requirement HALL-FR-DIR-060 ARCHIVED_CONTACT_HAS_NO_ACTIVE_MANDATE:
+  -- @implements-requirement HALL-FR-DIR-060
   SELECT contact.archived_at IS NOT NULL
   INTO contact_is_archived
   FROM hall.contact AS contact
@@ -93,7 +93,7 @@ BEGIN
       MESSAGE = 'An archived contact cannot hold an active council mandate';
   END IF;
 
-  -- @functional-requirement HALL-FR-DIR-050 ACTIVE_TERM_CAPACITY_IS_ENFORCED:
+  -- @implements-requirement HALL-FR-DIR-050
   SELECT count(*)::INTEGER
   INTO active_member_count
   FROM hall.council_member AS member
@@ -123,7 +123,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  -- @requirement-reference HALL-FR-DIR-060 ARCHIVED_CONTACT_HAS_NO_ACTIVE_MANDATE:
+  -- @implements-requirement HALL-FR-DIR-060
   IF NEW.archived_at IS NOT NULL
     AND OLD.archived_at IS NULL
     AND EXISTS (
@@ -148,7 +148,7 @@ ON hall.contact
 FOR EACH ROW
 EXECUTE FUNCTION hall.enforce_contact_archive();
 
--- @functional-requirement HALL-FR-DIR-080 COMMITTEE_IS_INDEPENDENT:
+-- @implements-requirement HALL-FR-DIR-080
 CREATE TABLE hall.council_committee (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL CONSTRAINT "council_committee_name_check" CHECK (btrim(name) <> ''::text),
@@ -160,7 +160,7 @@ CREATE TABLE hall.council_committee (
 
 CREATE UNIQUE INDEX council_committee_one_active_name ON hall.council_committee USING btree (lower(name)) WHERE (archived_at IS NULL);
 
--- @functional-requirement HALL-FR-DIR-090 ONE_ACTIVE_COMMITTEE_MEMBERSHIP:
+-- @implements-requirement HALL-FR-DIR-090
 CREATE TABLE hall.committee_membership (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   committee UUID NOT NULL REFERENCES hall.council_committee (id) ON DELETE RESTRICT,
@@ -173,7 +173,7 @@ CREATE TABLE hall.committee_membership (
 
 CREATE UNIQUE INDEX committee_membership_one_active_per_member ON hall.committee_membership USING btree (committee, contact) WHERE (ended_on IS NULL);
 
--- @functional-requirement HALL-FR-DIR-100 ACTIVE_MEMBERSHIP_REQUIRES_ACTIVE_ENTITIES:
+-- @implements-requirement HALL-FR-DIR-100
 CREATE FUNCTION hall.enforce_committee_membership()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -217,7 +217,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  -- @functional-requirement HALL-FR-DIR-120 CLOSURE_ENDS_MEMBERSHIPS:
+  -- @implements-requirement HALL-FR-DIR-120
   IF OLD.archived_at IS NULL AND NEW.archived_at IS NOT NULL THEN
     UPDATE hall.committee_membership
     SET ended_on = NEW.archived_at::DATE

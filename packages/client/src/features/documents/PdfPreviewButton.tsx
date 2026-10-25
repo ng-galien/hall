@@ -29,7 +29,6 @@ export function PdfPreviewButton({
   const { t } = useI18n();
   const [url, setUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "failed">("idle");
-  // Only a text that references or embeds documents can carry them after it.
   const referencesDocuments = useMemo(
     () =>
       collectResourceReferences(parse(markdown)).some(
@@ -75,7 +74,6 @@ export function PdfPreviewButton({
   return (
     <>
       {referencesDocuments ? (
-        // A text that references documents asks whether they follow it in the PDF.
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button {...buttonProps}>

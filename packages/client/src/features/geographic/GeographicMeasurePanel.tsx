@@ -230,8 +230,8 @@ function SavedMeasurementList({
               type="button"
               className="geographic-measurement-remove"
               data-testid={`geographic-measurement-remove-${measurement.id}`}
-              aria-label={t("geographic.measure.remove").replace("{name}", measurement.properties.label)}
-              title={t("geographic.measure.remove").replace("{name}", measurement.properties.label)}
+              aria-label={t("geographic.measure.remove", { name: measurement.properties.label })}
+              title={t("geographic.measure.remove", { name: measurement.properties.label })}
               onClick={() => onRemove(measurement.id)}
             >
               <DeleteIcon />
@@ -382,9 +382,10 @@ export function GeographicMeasurePanel({
                       data-testid="geographic-measure-capacity"
                       role="alert"
                     >
-                      {t("geographic.measure.capacityReached")
-                        .replace("{features}", formatNumber(hallGeoJsonCapacity.features))
-                        .replace("{coordinates}", formatNumber(hallGeoJsonCapacity.coordinates))}
+                      {t("geographic.measure.capacityReached", {
+                        features: formatNumber(hallGeoJsonCapacity.features),
+                        coordinates: formatNumber(hallGeoJsonCapacity.coordinates),
+                      })}
                     </p>
                   ) : null}
                 </div>

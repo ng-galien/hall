@@ -120,7 +120,7 @@
 /* Éléments and Mesures are one side window: same width by default, same position and size once the user moves it;
    only its list, legend or measures scroll. */
 .geographic-map-stage > .geographic-composition,
-.geographic-map-stage > .geographic-measures { --geographic-panel-available-height: max(0px, calc(100% - var(--geographic-panel-top) - var(--geographic-overlay-height, 0px) - var(--hall-space-10) - var(--hall-space-2))); width: max(var(--hall-size-entity-card), 22rem); min-height: min(var(--geographic-panel-min-height), var(--geographic-panel-available-height)); max-height: var(--geographic-panel-available-height); overflow: hidden; }
+.geographic-map-stage > .geographic-measures { --geographic-panel-available-height: max(var(--hall-size-zero), calc(100% - var(--geographic-panel-top) - var(--geographic-overlay-height, var(--hall-size-zero)) - var(--hall-space-10) - var(--hall-space-2))); width: max(var(--hall-size-entity-card), var(--hall-size-relative-22rem)); min-height: min(var(--geographic-panel-min-height), var(--geographic-panel-available-height)); max-height: var(--geographic-panel-available-height); overflow: hidden; }
 .geographic-panel-tabs { display: grid; flex: 1 1 auto; min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: 0; }
 .geographic-feature-card-title h2[data-hidden="true"] { color: var(--hall-color-text-subtle); text-decoration: line-through; }
 .geographic-composition-tab { display: flex; flex-direction: column; min-height: 0; }

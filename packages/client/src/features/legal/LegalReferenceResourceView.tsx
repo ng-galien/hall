@@ -99,10 +99,10 @@ export function LegalReferenceResourceView({
           <dt>{t("legalReference.validity")}</dt>
           <dd>
             {currentSnapshot?.validFrom
-              ? t("legalReference.validFrom").replace("{date}", formatDate(currentSnapshot.validFrom))
+              ? t("legalReference.validFrom", { date: formatDate(currentSnapshot.validFrom) })
               : t("common.none")}
             {currentSnapshot?.validTo
-              ? ` · ${t("legalReference.validTo").replace("{date}", formatDate(currentSnapshot.validTo))}`
+              ? ` · ${t("legalReference.validTo", { date: formatDate(currentSnapshot.validTo) })}`
               : ""}
           </dd>
         </div>

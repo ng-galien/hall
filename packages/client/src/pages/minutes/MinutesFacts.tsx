@@ -59,19 +59,19 @@ export function MinutesFacts({ facts }: { facts: Facts }) {
         <h3 id="minutes-attendance-title">{t("minutes.attendance")}</h3>
         <dl className="minutes-attendance-groups" data-testid="minutes-attendance-content">
           <div>
-            <dt>{t("minutes.presentMembers").replace("{count}", formatNumber(present.length))}</dt>
+            <dt>{t("minutes.presentMembers", { count: formatNumber(present.length) })}</dt>
             <dd>{names(present)}</dd>
           </div>
           <div>
-            <dt>{t("minutes.excusedMembers").replace("{count}", formatNumber(excused.length))}</dt>
+            <dt>{t("minutes.excusedMembers", { count: formatNumber(excused.length) })}</dt>
             <dd>{names(excused)}</dd>
           </div>
           <div>
-            <dt>{t("minutes.absentMembers").replace("{count}", formatNumber(absent.length))}</dt>
+            <dt>{t("minutes.absentMembers", { count: formatNumber(absent.length) })}</dt>
             <dd>{names(absent)}</dd>
           </div>
           <div>
-            <dt>{t("minutes.proxies").replace("{count}", formatNumber(represented.length))}</dt>
+            <dt>{t("minutes.proxies", { count: formatNumber(represented.length) })}</dt>
             <dd>
               {represented.length > 0
                 ? represented

@@ -10,12 +10,12 @@ CREATE TABLE hall.ballots (
   completed_at TIMESTAMPTZ,
   result ballot_result,
 
-  -- @functional-requirement HALL-FR-BAL-030 ONE_BALLOT_PER_AGENDA_ITEM: One agenda occurrence can
+  -- @implements-requirement HALL-FR-BAL-030
   -- produce at most one ballot. Its meeting is already carried by the agenda
   -- mapping and is never repeated here.
   UNIQUE (council_agenda_item),
 
-  -- @functional-requirement HALL-FR-BAL-040 BALLOT_COMPLETION_AND_RESULT_COEXIST: An open ballot
+  -- @implements-requirement HALL-FR-BAL-040
   -- has neither completion fact nor result; a
   -- completed ballot has both.
   CONSTRAINT "ballots_check" CHECK ((completed_at IS NULL) = (result IS NULL))

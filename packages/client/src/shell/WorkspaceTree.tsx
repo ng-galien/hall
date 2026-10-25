@@ -102,6 +102,7 @@ function TreeNode({
 }
 
 /** Filing path tree rendered in the sidebar under the workspace entry. */
+// biome-ignore-start lint/correctness/useExhaustiveDependencies: the structure signature is the refresh trigger.
 export function WorkspaceTree() {
   const selectedBusinesses = useCouncilBusinessStore((state) => state.businesses);
   const liveCatalog = useWorkspaceResourcesStore((state) => state.catalog);
@@ -159,8 +160,6 @@ export function WorkspaceTree() {
   const [showAll, setShowAll] = useState(false);
   const { t } = useI18n();
 
-  // The index is read once, then again only when a business or a folder known to the application changes:
-  // navigating between pages does not change the filing structure.
   const structure = useMemo(
     () =>
       [
@@ -171,7 +170,6 @@ export function WorkspaceTree() {
         .join("\n"),
     [selectedBusinesses, liveCatalog],
   );
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the structure signature is the refresh trigger.
   useEffect(() => {
     let active = true;
     void listCouncilBusinessNavigationIndex()
@@ -228,3 +226,4 @@ export function WorkspaceTree() {
     </div>
   );
 }
+// biome-ignore-end lint/correctness/useExhaustiveDependencies: the structure signature is the refresh trigger.

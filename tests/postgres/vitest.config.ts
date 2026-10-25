@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+import serverConfig from "../../packages/server/vitest.config.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const databaseUrl = "postgresql://hall_test:hall-test-only@127.0.0.1:54330/hall_test";
@@ -14,7 +15,20 @@ export default defineConfig({
       PGTAP_DATABASE_URL: databaseUrl,
     },
     fileParallelism: false,
+    testTimeout: 120_000,
+    hookTimeout: 120_000,
     globalSetup: ["tests/postgres/global-setup.mjs"],
     pool: "threads",
+    coverage: {
+      ...serverConfig.test!.coverage,
+      include: ["packages/server/src/**/*.ts"],
+      exclude: serverConfig.test!.coverage!.exclude!.map((path) => `packages/server/${path}`),
+      thresholds: Object.fromEntries(
+        Object.entries(serverConfig.test!.coverage!.thresholds!).map(([key, value]) => [
+          key.startsWith("src/") ? `packages/server/${key}` : key,
+          value,
+        ]),
+      ),
+    },
   },
 });

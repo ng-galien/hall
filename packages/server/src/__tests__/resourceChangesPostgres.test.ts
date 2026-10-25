@@ -1,3 +1,6 @@
+if (!process.env.TEST_DATABASE_URL)
+  throw new Error("TEST_DATABASE_URL is required; use the isolated test:postgres entry point");
+
 import { resourceChangesSchema } from "@hall/api-contract";
 import request from "supertest";
 import { describe, expect, it } from "vitest";

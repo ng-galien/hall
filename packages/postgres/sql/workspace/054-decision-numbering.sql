@@ -1,4 +1,4 @@
--- @functional-requirement HALL-FR-DEC-090 DECISION_NUMBERS_ARE_ALLOCATED_MONTHLY_AT_FREEZE:
+-- @implements-requirement HALL-FR-DEC-090
 CREATE TABLE hall.council_decision_number_counter (
   period DATE PRIMARY KEY CONSTRAINT "council_decision_number_counter_period_check" CHECK (EXTRACT(day FROM period) = 1::numeric),
   last_index INTEGER NOT NULL CONSTRAINT "council_decision_number_counter_last_index_check" CHECK (last_index >= 0)

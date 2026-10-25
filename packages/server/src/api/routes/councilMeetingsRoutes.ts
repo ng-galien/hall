@@ -125,6 +125,8 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
       );
       if (!content) throw new DomainError("resource_not_found", 404);
       response.set("Cache-Control", "private, no-store");
+      response.set("Content-Security-Policy", "sandbox");
+      response.set("X-Content-Type-Options", "nosniff");
       response.type(content.mediaType).send(content.content);
     },
   );

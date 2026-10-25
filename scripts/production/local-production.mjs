@@ -66,6 +66,7 @@ async function prepare() {
 }
 async function start() {
   process.env.NODE_ENV = "production";
+  process.env.HALL_LOG_FILE ??= join(home, "logs", "hall.log");
   const config = await configuration();
   const { release } = JSON.parse(await readFile(join(home, "release.json"), "utf8"));
   const { chromium } = await import(pathToFileURL(join(release, "node_modules/playwright/index.mjs")).href);
@@ -78,15 +79,19 @@ async function start() {
     await browser.close();
   }
   const { startHttpServer } = await import(pathToFileURL(join(release, "packages/server/dist/index.js")).href);
-  const handle = await startHttpServer({
-    host: "127.0.0.1",
-    port: config.port ?? 3200,
-    database: { kind: "postgres", url: config.databaseUrl },
-    environment: "production",
-    devAutoLogin: false,
-    clientDirectory: join(release, "packages/client/dist"),
-    allowedOrigins: [`http://localhost:${config.port ?? 3200}`, `http://127.0.0.1:${config.port ?? 3200}`],
-  });
+  const handle = await startHttpServer(
+    {
+      host: "127.0.0.1",
+      port: config.port ?? 3200,
+      database: { kind: "postgres", url: config.databaseUrl },
+      environment: "production",
+      version: release,
+      devAutoLogin: false,
+      clientDirectory: join(release, "packages/client/dist"),
+      allowedOrigins: [`http://localhost:${config.port ?? 3200}`, `http://127.0.0.1:${config.port ?? 3200}`],
+    },
+    { schemaInitializationMode: "verify-only", postgresSchemaUpgradeMode: "verify-only" },
+  );
   console.log(`Hall production ready: ${handle.url}/app/; PDF verified. Ctrl+C to stop.`);
   const stop = async () => {
     await handle.close();

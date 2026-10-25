@@ -21,7 +21,7 @@ export function MeetingEntryBlockers({ blockers }: { blockers: readonly MeetingO
       {blockers.map((blocker) => (
         <li key={blocker.code} data-testid={`meeting-entry-blocker-${blocker.code}`}>
           {"scheduledAt" in blocker
-            ? t(labels[blocker.code]).replace("{date}", formatDateTime(blocker.scheduledAt))
+            ? t(labels[blocker.code], { date: formatDateTime(blocker.scheduledAt) })
             : t(labels[blocker.code])}
         </li>
       ))}

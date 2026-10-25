@@ -1,4 +1,4 @@
--- @functional-requirement HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
+-- @implements-requirement HALL-FR-DOC-100
 -- This is the single derivation of the public resource discriminant. The
 -- discriminant is projected from the structural XOR; it is never persisted.
 CREATE FUNCTION hall.resource_kind(target hall.resource)
@@ -22,7 +22,7 @@ AS $function$
   END
 $function$;
 
--- @functional-requirement HALL-FR-DOC-180 WORKSPACE_CATALOG_IS_FLAT:
+-- @implements-requirement HALL-FR-DOC-180
 CREATE FUNCTION hall.resource_catalog_entry(target hall.resource)
 RETURNS JSONB
 LANGUAGE sql
@@ -41,7 +41,7 @@ AS $function$
   )
 $function$;
 
--- @requirement-reference HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
+-- @implements-requirement HALL-FR-DOC-200
 -- The view is the sole set-based read model for list presentation. Its joins
 -- are evaluated once per batch; neither SQL nor the HTTP edge opens resources
 -- one by one. The resource columns are listed explicitly so that a column
@@ -139,7 +139,7 @@ AS $function$
   END
 $function$;
 
--- @technical-requirement HALL-TR-DOC-040 JSON_PROJECTIONS_ARE_EXPLICIT:
+-- @implements-requirement HALL-TR-DOC-040
 CREATE FUNCTION hall.resource_summary(target hall.resource)
 RETURNS JSONB
 LANGUAGE sql
@@ -161,7 +161,7 @@ AS $function$
 DECLARE
   target hall.resource;
 BEGIN
-  -- @requirement-reference HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
+  -- @implements-requirement HALL-FR-DOC-170
   SELECT resource.*
   INTO target
   FROM hall.resource AS resource
@@ -186,7 +186,7 @@ AS $function$
 DECLARE
   target hall.resource;
 BEGIN
-  -- @requirement-reference HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
+  -- @implements-requirement HALL-FR-DOC-100
   SELECT resource.*
   INTO target
   FROM hall.resource AS resource
@@ -198,7 +198,7 @@ BEGIN
       MESSAGE = 'Resource not found';
   END IF;
 
-  -- @requirement-reference HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
+  -- @implements-requirement HALL-FR-DOC-100
   -- A variant-specific operation cannot reinterpret another resource nature.
   IF expected_kind IS NOT NULL AND hall.resource_kind(target) <> expected_kind THEN
     RAISE EXCEPTION USING
@@ -265,7 +265,7 @@ BEGIN
   SELECT * INTO target FROM hall.require_resource(resource_id);
   detail := hall.resource_summary(target);
 
-  -- @requirement-reference HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
+  -- @implements-requirement HALL-FR-DOC-100
   -- Each branch enriches the same summary with only the data owned by its
   -- concrete component. The XOR guarantees exactly one branch.
   IF target.folder_resource_id IS NOT NULL THEN
@@ -359,7 +359,7 @@ BEGIN
 END
 $function$;
 
--- @requirement-reference HALL-FR-DOC-230 EDITOR_ASSET_BELONGS_TO_TEXT_CONTENT:
+-- @implements-requirement HALL-FR-DOC-230
 CREATE FUNCTION hall.editor_asset_detail(asset_id UUID)
 RETURNS JSONB
 LANGUAGE sql

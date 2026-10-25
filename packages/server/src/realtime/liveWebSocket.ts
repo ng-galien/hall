@@ -3,7 +3,7 @@ import type { Duplex } from "node:stream";
 import { liveEventSchema } from "@hall/api-contract";
 import WebSocket, { WebSocketServer } from "ws";
 import { z } from "zod";
-import { cookieValueFromHeader } from "../api/accessControl.js";
+import { cookieValueFromHeader, requestHostAllowed } from "../api/accessControl.js";
 import type { ServerConfig } from "../core/config.js";
 import { logger } from "../core/logger.js";
 import { hasPermission } from "../security/authorization.js";
@@ -56,7 +56,7 @@ export function attachLiveWebSocket(
       rejectUpgrade(socket, 400);
       return;
     }
-    if (!sameOrigin(request, config)) {
+    if (!requestHostAllowed(request.headers, config) || !sameOrigin(request, config)) {
       rejectUpgrade(socket, 403);
       return;
     }

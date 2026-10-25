@@ -1,10 +1,11 @@
 import { execFile, spawn, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { chromium } from "playwright";
+import { readRuntimeSelection, resolveRuntimeSelection } from "./runtime-selection.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDirectory = dirname(scriptPath);
@@ -14,8 +15,24 @@ const sessionName = "hall-dev";
 const socketName = "hall-mairie";
 const command = process.argv[2] ?? "start";
 const configIndex = process.argv.indexOf("--runtime-config");
-const runtimeConfig = configIndex < 0 ? null : resolve(projectRoot, process.argv[configIndex + 1] ?? "");
+let runtimeConfig = configIndex < 0 ? null : resolve(projectRoot, process.argv[configIndex + 1] ?? "");
 if (runtimeConfig && !existsSync(runtimeConfig)) throw new Error("Private runtime configuration not found.");
+const runtimeStatePath = resolve(projectRoot, "local-imports/runtime/active-session.json");
+function recordRuntime() {
+  mkdirSync(dirname(runtimeStatePath), { recursive: true, mode: 0o700 });
+  writeFileSync(runtimeStatePath, JSON.stringify({ runtimeConfig }), { mode: 0o600 });
+}
+function recordedRuntime() {
+  return readRuntimeSelection(runtimeStatePath);
+}
+function selectRecordedRuntime(required) {
+  runtimeConfig = resolveRuntimeSelection({
+    explicit: configIndex >= 0,
+    requested: runtimeConfig,
+    recorded: recordedRuntime(),
+    required,
+  });
+}
 const shellQuote = (value) => "'" + value.replaceAll("'", "'\\''") + "'";
 const healthUrls = ["http://127.0.0.1:3100/api/health", "http://127.0.0.1:5174/app/"];
 
@@ -86,7 +103,9 @@ function hasSession() {
 async function healthReady() {
   try {
     const responses = await Promise.all(healthUrls.map((url) => fetch(url, { signal: AbortSignal.timeout(2_000) })));
-    return responses.every((response) => response.ok);
+    if (!responses.every((response) => response.ok)) return false;
+    const health = await responses[0].json();
+    return health.status === "ok";
   } catch {
     return false;
   }
@@ -270,14 +289,21 @@ async function runConfiguredRuntime(configPath) {
 
 async function start() {
   requireTmux();
-  ensurePostgres();
+  selectRecordedRuntime(false);
   if (hasSession()) {
+    const recorded = recordedRuntime();
+    if (recorded === undefined || recorded !== runtimeConfig)
+      throw new Error(
+        "The active runtime configuration is unknown or differs; no database switch was performed. Use an explicit restart after identifying it.",
+      );
     if (await healthReady()) {
       console.log(`Session ${sessionName} déjà active : http://127.0.0.1:5174/app/`);
       return;
     }
     killSession();
   }
+  ensurePostgres();
+  recordRuntime();
   runTmux(["new-session", "-d", "-s", sessionName, "-c", projectRoot]);
   runTmux(["set-window-option", "-t", `${sessionName}:0`, "remain-on-exit", "on"]);
   const launch = runtimeConfig
@@ -290,6 +316,7 @@ async function start() {
 
 async function restart() {
   requireTmux();
+  selectRecordedRuntime(true);
   killSession();
   await stopProjectListeners();
   await start();
@@ -297,6 +324,8 @@ async function restart() {
 
 async function demoRestart() {
   requireTmux();
+  runtimeConfig = null;
+  recordRuntime();
   await stopProjectListeners();
   killSession();
   ensurePostgres();

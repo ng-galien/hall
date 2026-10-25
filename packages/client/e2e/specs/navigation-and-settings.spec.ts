@@ -1,6 +1,23 @@
 import { expect, test } from "../fixtures/application";
 
 test.describe("navigation and settings", () => {
+  test("keeps primary navigation focus visible and keyboard-operable", async ({ appPage: page }) => {
+    await page.getByTestId("navigation-overview").focus();
+    await page.keyboard.press("Tab");
+    const meetings = page.getByTestId("navigation-meetings");
+    await expect(meetings).toBeFocused();
+    const focus = await meetings.evaluate((element) => ({
+      visible: element.matches(":focus-visible"),
+      style: getComputedStyle(element).outlineStyle,
+      width: parseFloat(getComputedStyle(element).outlineWidth),
+    }));
+    expect(focus.visible).toBe(true);
+    expect(focus.style).not.toBe("none");
+    expect(focus.width).toBeGreaterThan(0);
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/app\/meetings$/);
+  });
+
   test("loads every lazy route from the primary navigation", async ({ appPage: page }) => {
     const routes = [
       ["meetings", /\/app\/meetings$/, "Council meetings"],
@@ -28,7 +45,7 @@ test.describe("navigation and settings", () => {
   test("places Cartes right after the workspace entry and its tree, before the calendar", async ({ appPage: page }) => {
     await expect(page.getByTestId("workspace-sidebar-link").first()).toBeVisible();
     const order = await page
-      .locator('[data-testid^="navigation-"], [data-testid="workspace-sidebar-link"]')
+      .locator('a[data-testid^="navigation-"], a[data-testid="workspace-sidebar-link"]')
       .evaluateAll((elements) =>
         elements
           .map((element) => element.getAttribute("data-testid"))

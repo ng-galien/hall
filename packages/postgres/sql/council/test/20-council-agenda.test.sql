@@ -24,7 +24,11 @@ SELECT test_designate_present_officers(test_uuid('agenda:previous-meeting'));
 SELECT test_prepare_notice(test_uuid('agenda:previous-meeting'));
 SELECT start_council_meeting(test_uuid('agenda:previous-meeting'), '2026-01-01 09:00Z');
 
--- HALL-FR-BUS-010 HALL-FR-AGI-200 HALL-FR-AGI-210
+-- @verifies-requirement HALL-FR-BUS-010
+
+-- @verifies-requirement HALL-FR-AGI-200
+
+-- @verifies-requirement HALL-FR-AGI-210
 SELECT test_ensure_business(test_uuid('agenda:business'));
 
 CREATE TEMP TABLE scheduled_item (kind TEXT PRIMARY KEY, id UUID NOT NULL);
@@ -42,7 +46,11 @@ SELECT is(
   'one CouncilBusiness can prepare several decision and open subjects'
 );
 
--- HALL-FR-MIN-010 HALL-FR-MIN-020 HALL-FR-AGI-220
+-- @verifies-requirement HALL-FR-MIN-010
+
+-- @verifies-requirement HALL-FR-MIN-020
+
+-- @verifies-requirement HALL-FR-AGI-220
 SELECT capture_council_meeting_snapshot(test_uuid('agenda:previous-meeting'), 'closing', '2026-01-01 10:00Z');
 INSERT INTO minutes (id, council_meeting)
 VALUES (test_uuid('agenda:minutes'), test_uuid('agenda:previous-meeting'));
@@ -72,7 +80,9 @@ SELECT throws_ok(
   'one Minutes has at most one MinutesApproval'
 );
 
--- HALL-FR-AGI-290 HALL-TR-CON-190
+-- @verifies-requirement HALL-FR-AGI-290
+
+-- @verifies-requirement HALL-TR-CON-190
 -- Reordering is one exact, atomic permutation of the programmed agenda. The
 -- minutes approval remains first, gaps are preserved and deprogrammed rows do
 -- not participate in the command.
@@ -172,7 +182,7 @@ SELECT results_eq(
   'every rejected reorder leaves the complete agenda unchanged'
 );
 
--- HALL-FR-AGI-010
+-- @verifies-requirement HALL-FR-AGI-010
 SELECT throws_ok(
   $$INSERT INTO council_agenda_item (
       id, council_business, council_meeting, position
@@ -185,7 +195,7 @@ SELECT throws_ok(
   'an agenda item requires exactly one subject'
 );
 
--- HALL-FR-AGI-020
+-- @verifies-requirement HALL-FR-AGI-020
 SELECT throws_ok(
   $$SELECT schedule_open_question(
       test_uuid('agenda:business'), test_uuid('agenda:other-meeting'), 0
@@ -195,7 +205,7 @@ SELECT throws_ok(
   'agenda position zero has no business meaning'
 );
 
--- HALL-FR-AGI-300
+-- @verifies-requirement HALL-FR-AGI-300
 SELECT throws_ok(
   $$SELECT schedule_open_question(
       test_uuid('agenda:business'), test_uuid('agenda:other-meeting'), -8
@@ -205,7 +215,7 @@ SELECT throws_ok(
   'a named schedule action cannot create a deprogrammed occurrence'
 );
 
--- HALL-FR-AGI-030
+-- @verifies-requirement HALL-FR-AGI-030
 SELECT throws_ok(
   $$INSERT INTO council_agenda_item (
       id, council_business, council_meeting, position, minutes_approval
@@ -233,7 +243,9 @@ SELECT is(
   'deprogrammed minutes approval retains absolute position one'
 );
 
--- HALL-FR-AGI-040 HALL-FR-AGI-050
+-- @verifies-requirement HALL-FR-AGI-040
+
+-- @verifies-requirement HALL-FR-AGI-050
 SELECT throws_ok(
   $$UPDATE council_agenda_item
     SET completed_at = '2026-01-01 08:00:00+00'
@@ -243,7 +255,7 @@ SELECT throws_ok(
   'completion structurally requires a start and a monotonic timestamp'
 );
 
--- HALL-FR-AGI-060
+-- @verifies-requirement HALL-FR-AGI-060
 INSERT INTO open_question (id,council_business) VALUES (test_uuid('agenda:absolute-position-question'),test_uuid('agenda:business'));
 SELECT throws_ok(
   $$INSERT INTO council_agenda_item (
@@ -257,7 +269,7 @@ SELECT throws_ok(
   'positive and negative forms of one meeting position cannot coexist'
 );
 
--- HALL-FR-AGI-070
+-- @verifies-requirement HALL-FR-AGI-070
 SELECT throws_ok(
   format(
     'INSERT INTO council_agenda_item (id, council_business, council_meeting, position, council_decision_proposal) VALUES (%L::uuid, %L::uuid, %L::uuid, 4, %L::uuid)',
@@ -271,14 +283,16 @@ SELECT throws_ok(
   'one subject occurs at most once in one meeting'
 );
 
--- HALL-TR-CON-110
+-- @verifies-requirement HALL-TR-CON-110
 SELECT throws_ok(
   $$INSERT INTO council_agenda_item(id,council_business,council_meeting,position,minutes_approval)
     VALUES(test_uuid('agenda:bad-minutes-owner'),test_uuid('agenda:business'),test_uuid('agenda:other-meeting'),1,test_uuid('agenda:minutes-approval'))$$,
   '23514', NULL, 'minutes approval cannot belong to a workspace business'
 );
 
--- HALL-FR-BUS-030 HALL-TR-CON-120
+-- @verifies-requirement HALL-FR-BUS-030
+
+-- @verifies-requirement HALL-TR-CON-120
 SELECT test_ensure_business(test_uuid('agenda:other-business'));
 SELECT throws_ok(
   format(
@@ -298,7 +312,7 @@ SELECT throws_ok(
   'one prepared subject cannot be reassigned to another CouncilBusiness'
 );
 
--- HALL-TR-CON-130
+-- @verifies-requirement HALL-TR-CON-130
 SELECT is(
   (
     SELECT count(*)::INTEGER
@@ -323,7 +337,7 @@ SELECT throws_ok(
   'agenda creation reports an unknown CouncilBusiness explicitly'
 );
 
--- HALL-FR-AGI-090
+-- @verifies-requirement HALL-FR-AGI-090
 INSERT INTO council_decision_proposal (id,council_business) VALUES (test_uuid('agenda:insert-active-proposal'),test_uuid('agenda:business'));
 SELECT throws_ok(
   $$INSERT INTO council_agenda_item (
@@ -338,7 +352,9 @@ SELECT throws_ok(
   'an agenda item is always created inactive'
 );
 
--- HALL-FR-AGI-230 HALL-FR-AGI-240
+-- @verifies-requirement HALL-FR-AGI-230
+
+-- @verifies-requirement HALL-FR-AGI-240
 SELECT is(
   (deprogram_council_agenda_item((SELECT id FROM scheduled_item WHERE kind = 'decision'))).position,
   -2,
@@ -364,7 +380,7 @@ SELECT is(
   'an unstarted agenda item can be reprogrammed on another meeting'
 );
 
--- HALL-FR-AGI-120
+-- @verifies-requirement HALL-FR-AGI-120
 SELECT is(
   (deprogram_council_agenda_item((SELECT id FROM scheduled_item WHERE kind = 'decision'))).position,
   -2,
@@ -403,7 +419,7 @@ SELECT reprogram_council_agenda_item(
   2
 );
 
--- HALL-FR-AGI-080
+-- @verifies-requirement HALL-FR-AGI-080
 SELECT reprogram_council_agenda_item(
   (SELECT id FROM scheduled_item WHERE kind = 'open'),
   test_uuid('agenda:other-meeting'),
@@ -415,7 +431,7 @@ SELECT test_designate_present_officers(test_uuid('agenda:other-meeting'));
 SELECT test_prepare_notice(test_uuid('agenda:other-meeting'));
 SELECT start_council_meeting(test_uuid('agenda:other-meeting'), '2026-01-01 09:00Z');
 
--- HALL-FR-AGI-180
+-- @verifies-requirement HALL-FR-AGI-180
 SELECT throws_ok(
   format(
     'UPDATE council_agenda_item SET started_at = %L::timestamptz, completed_at = %L::timestamptz WHERE id = %L::uuid',
@@ -427,7 +443,7 @@ SELECT throws_ok(
   'start and completion are two distinct business facts'
 );
 
--- HALL-FR-AGI-250
+-- @verifies-requirement HALL-FR-AGI-250
 SELECT lives_ok(
   format(
     'SELECT start_council_agenda_item(%L::uuid, %L::timestamptz)',
@@ -448,7 +464,7 @@ SELECT throws_ok(
   'one meeting has at most one active agenda item'
 );
 
--- HALL-FR-AGI-110
+-- @verifies-requirement HALL-FR-AGI-110
 SELECT throws_ok(
   format(
     'UPDATE council_agenda_item SET council_business = %L::uuid WHERE id = %L::uuid',
@@ -460,7 +476,7 @@ SELECT throws_ok(
   'a started agenda item cannot change aggregate root'
 );
 
--- HALL-FR-AGI-130
+-- @verifies-requirement HALL-FR-AGI-130
 SELECT throws_ok(
   format(
     'UPDATE council_agenda_item SET started_at = %L::timestamptz WHERE id = %L::uuid',
@@ -472,7 +488,7 @@ SELECT throws_ok(
   'agenda start time cannot be rewritten'
 );
 
--- HALL-FR-AGI-190
+-- @verifies-requirement HALL-FR-AGI-190
 SELECT throws_ok(
   format(
     'UPDATE council_agenda_item SET position = 5 WHERE id = %L::uuid',
@@ -483,7 +499,7 @@ SELECT throws_ok(
   'a started item cannot change its absolute position'
 );
 
--- HALL-FR-AGI-160
+-- @verifies-requirement HALL-FR-AGI-160
 SELECT throws_ok(
   format(
     'UPDATE council_agenda_item SET completed_at = %L::timestamptz WHERE id = %L::uuid',
@@ -501,7 +517,7 @@ SELECT is(
   'a started but deferred item retains its original absolute order'
 );
 
--- HALL-FR-AGI-340
+-- @verifies-requirement HALL-FR-AGI-340
 SELECT throws_ok(
   format(
     'SELECT reprogram_council_agenda_item(%L::uuid, %L::uuid, 2)',
@@ -513,7 +529,9 @@ SELECT throws_ok(
   'a started deferral remains historical until closure carries its subject forward'
 );
 
--- HALL-FR-AGI-100 HALL-TR-INT-030
+-- @verifies-requirement HALL-FR-AGI-100
+
+-- @verifies-requirement HALL-TR-INT-030
 SELECT throws_ok(
   format(
     'DELETE FROM council_agenda_item WHERE id = %L::uuid',
@@ -533,7 +551,9 @@ SELECT throws_ok(
 );
 SET CONSTRAINTS ALL DEFERRED;
 
--- HALL-FR-AGI-150 HALL-FR-AGI-260
+-- @verifies-requirement HALL-FR-AGI-150
+
+-- @verifies-requirement HALL-FR-AGI-260
 SELECT lives_ok(
   format(
     'SELECT start_council_agenda_item(%L::uuid, %L::timestamptz)',
@@ -551,7 +571,7 @@ SELECT lives_ok(
   'an open question completes without a ballot'
 );
 
--- HALL-FR-AGI-310
+-- @verifies-requirement HALL-FR-AGI-310
 SELECT throws_ok(
   format(
     'UPDATE council_agenda_item SET position = -abs(position) WHERE id = %L::uuid',
@@ -562,7 +582,7 @@ SELECT throws_ok(
   'a completed occurrence remains in the conducted meeting record'
 );
 
--- HALL-FR-AGI-320
+-- @verifies-requirement HALL-FR-AGI-320
 SELECT start_council_agenda_item(
   (SELECT id FROM deferred_open_item),
   '2026-01-01 09:23:00+00'
@@ -579,7 +599,7 @@ SELECT throws_ok(
   'a deferred open question remains unfinished for carry-forward'
 );
 
--- HALL-FR-AGI-330
+-- @verifies-requirement HALL-FR-AGI-330
 SELECT test_prepare_open_ballot('agenda:open-ballot', 'public', 2);
 SELECT throws_ok(
   format(
@@ -591,7 +611,7 @@ SELECT throws_ok(
   'deprogramming cannot strand an immutable open ballot'
 );
 
--- HALL-FR-AGI-140
+-- @verifies-requirement HALL-FR-AGI-140
 SELECT throws_ok(
   format(
     'UPDATE council_agenda_item SET completed_at = %L::timestamptz WHERE id = %L::uuid',

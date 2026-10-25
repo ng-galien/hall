@@ -29,7 +29,7 @@ SELECT throws_ok(
   'vote insertion reports an unknown ballot explicitly'
 );
 
--- HALL-FR-VOT-030
+-- @verifies-requirement HALL-FR-VOT-030
 SELECT throws_ok(
   $$
     INSERT INTO votes (ballot, mode, choice, ballot_participation, count)
@@ -56,7 +56,7 @@ SELECT throws_ok(
   'a public vote always counts exactly once'
 );
 
--- HALL-FR-VOT-020
+-- @verifies-requirement HALL-FR-VOT-020
 SELECT throws_ok(
   $$
     INSERT INTO votes (ballot, mode, choice, ballot_participation, count)
@@ -73,7 +73,7 @@ SELECT throws_ok(
   'a vote count must be strictly positive'
 );
 
--- HALL-FR-VOT-080
+-- @verifies-requirement HALL-FR-VOT-080
 SELECT throws_ok(
   $$
     INSERT INTO votes (ballot, mode, choice, ballot_participation, count)
@@ -84,7 +84,7 @@ SELECT throws_ok(
   'a secret-shaped vote cannot be recorded in a public ballot'
 );
 
--- HALL-FR-VOT-090
+-- @verifies-requirement HALL-FR-VOT-090
 SELECT throws_ok(
   $$
     INSERT INTO votes (ballot, mode, choice, ballot_participation, count)
@@ -110,7 +110,7 @@ VALUES (
   1
 );
 
--- HALL-FR-VOT-040
+-- @verifies-requirement HALL-FR-VOT-040
 SELECT throws_ok(
   $$
     INSERT INTO votes (ballot, mode, choice, ballot_participation, count)
@@ -150,14 +150,14 @@ INSERT INTO votes (ballot, mode, choice, ballot_participation, count) VALUES
     1
   );
 
--- HALL-FR-BAL-120
+-- @verifies-requirement HALL-FR-BAL-120
 SELECT is(
   ballot_vote_count(test_uuid('vote:public:ballot')),
   4,
   'public vote count sums four singular recorded votes'
 );
 
--- HALL-FR-BAL-130
+-- @verifies-requirement HALL-FR-BAL-130
 SELECT is(
   ballot_choice_count(test_uuid('vote:public:ballot'), 'approve'),
   2,
@@ -170,7 +170,9 @@ SELECT is(
   'abstention remains a recorded choice'
 );
 
--- HALL-FR-VOT-060 HALL-TR-INT-060
+-- @verifies-requirement HALL-FR-VOT-060
+
+-- @verifies-requirement HALL-TR-INT-060
 SELECT throws_ok(
   $$
     UPDATE votes
@@ -201,7 +203,11 @@ SELECT throws_ok(
   'TRUNCATE cannot bypass vote immutability'
 );
 
--- HALL-FR-BAL-150 HALL-FR-BAL-160 HALL-FR-VOT-010
+-- @verifies-requirement HALL-FR-BAL-150
+
+-- @verifies-requirement HALL-FR-BAL-160
+
+-- @verifies-requirement HALL-FR-VOT-010
 SELECT is(
   derive_ballot_result(test_uuid('vote:public:ballot')),
   'approve'::ballot_result,
@@ -215,7 +221,9 @@ SELECT throws_ok(
   'result derivation reports an unknown ballot explicitly'
 );
 
--- HALL-FR-AGI-170 HALL-TR-CON-070
+-- @verifies-requirement HALL-FR-AGI-170
+
+-- @verifies-requirement HALL-TR-CON-070
 SELECT lives_ok(
   $$
     UPDATE ballots
@@ -249,7 +257,7 @@ SELECT is(
   'agenda-item completion uses the exact ballot completion timestamp'
 );
 
--- HALL-FR-AGI-160
+-- @verifies-requirement HALL-FR-AGI-160
 SELECT ok(
   council_agenda_item_has_completed_ballot(
     test_uuid('vote:public:agenda-item'),
@@ -258,7 +266,7 @@ SELECT ok(
   'agenda-item completion authority recognizes its completed ballot'
 );
 
--- HALL-FR-AGI-140
+-- @verifies-requirement HALL-FR-AGI-140
 SELECT throws_ok(
   $$
     UPDATE council_agenda_item
@@ -270,7 +278,7 @@ SELECT throws_ok(
   'a completed agenda-item timestamp cannot change'
 );
 
--- HALL-FR-VOT-070
+-- @verifies-requirement HALL-FR-VOT-070
 SELECT throws_ok(
   $$
     INSERT INTO votes (ballot, mode, choice, ballot_participation, count)
@@ -287,7 +295,7 @@ SELECT throws_ok(
   'ballot completion freezes votes before uniqueness is considered'
 );
 
--- HALL-FR-BAL-080
+-- @verifies-requirement HALL-FR-BAL-080
 SELECT throws_ok(
   $$
     INSERT INTO ballot_participation (id, ballot, meeting_attendance)
@@ -302,7 +310,7 @@ SELECT throws_ok(
   'ballot completion freezes participation before uniqueness is considered'
 );
 
--- HALL-FR-BAL-250
+-- @verifies-requirement HALL-FR-BAL-250
 SELECT throws_ok(
   $$
     UPDATE ballots
@@ -319,7 +327,7 @@ SELECT lives_ok(
   'an observationally harmless completed-ballot no-op remains legal'
 );
 
--- HALL-FR-BAL-270
+-- @verifies-requirement HALL-FR-BAL-270
 SELECT lives_ok(
   $$SELECT test_prepare_open_ballot('vote:mismatch', 'public', 2)$$,
   'vote mismatch fixture is open with two participants'
@@ -345,7 +353,7 @@ SELECT throws_ok(
   'completion rejects a missing participant vote'
 );
 
--- HALL-FR-BAL-170
+-- @verifies-requirement HALL-FR-BAL-170
 SELECT lives_ok(
   $$SELECT test_prepare_open_ballot('result:reject', 'public', 3)$$,
   'reject-majority fixture is open'
@@ -362,7 +370,7 @@ SELECT is(
   'reject majority rejects the ballot'
 );
 
--- HALL-FR-BAL-180
+-- @verifies-requirement HALL-FR-BAL-180
 SELECT lives_ok(
   $$SELECT test_prepare_open_ballot('result:chair-approve', 'public', 2)$$,
   'public chairman tie fixture is open'
@@ -418,7 +426,7 @@ INSERT INTO votes (ballot, mode, choice, ballot_participation, count) VALUES
     1
   );
 
--- HALL-FR-BAL-190
+-- @verifies-requirement HALL-FR-BAL-190
 SELECT is(
   derive_ballot_result(test_uuid('result:chair-abstain:ballot')),
   'reject'::ballot_result,
@@ -430,7 +438,9 @@ SELECT lives_ok(
   'secret aggregate fixture is open with four participants'
 );
 
--- HALL-FR-VOT-020 on the anonymous shape, where only the positive-count CHECK
+-- @verifies-requirement HALL-FR-VOT-020
+
+-- on the anonymous shape, where only the positive-count CHECK
 -- can reject the row.
 SELECT throws_ok(
   $$
@@ -463,7 +473,7 @@ INSERT INTO votes (ballot, mode, choice, ballot_participation, count) VALUES
   (test_uuid('vote:secret-tie:ballot'), 'secret', 'approve', NULL, 2),
   (test_uuid('vote:secret-tie:ballot'), 'secret', 'reject', NULL, 2);
 
--- HALL-FR-VOT-050
+-- @verifies-requirement HALL-FR-VOT-050
 SELECT throws_ok(
   $$
     INSERT INTO votes (ballot, mode, choice, ballot_participation, count)
@@ -495,7 +505,9 @@ SELECT lives_ok(
   'a secret ballot closes from anonymous aggregate rows'
 );
 
--- HALL-TR-CON-070 rollback branch: the fixture deliberately bypasses only the
+-- @verifies-requirement HALL-TR-CON-070
+
+-- rollback branch: the fixture deliberately bypasses only the
 -- agenda-item completion authority, then proves a failed synchronization leaves
 -- the ballot open and result-less.
 SELECT lives_ok(
@@ -540,7 +552,9 @@ SELECT ok(
   'failed synchronization rolls back both ballot completion fields'
 );
 
--- HALL-TR-CON-100: pgTAP verifies the deterministic lock declaration; a
+-- @verifies-requirement HALL-TR-CON-100
+
+-- pgTAP verifies the deterministic lock declaration; a
 -- multi-connection barrier harness is needed to prove the scheduling race.
 SELECT ok(
   pg_get_functiondef('enforce_vote_immutability()'::regprocedure)

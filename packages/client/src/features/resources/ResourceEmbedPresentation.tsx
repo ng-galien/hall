@@ -274,7 +274,7 @@ function ResourceEmbedBody({
       const legal = resource.document;
       const snapshot = legal.snapshots.find((candidate) => candidate.snapshotHash === legal.snapshotHash) ?? null;
       const validity = snapshot?.validFrom
-        ? t("legalReference.validFrom").replace("{date}", formatDate(snapshot.validFrom))
+        ? t("legalReference.validFrom", { date: formatDate(snapshot.validFrom) })
         : legal.effectiveAt
           ? `${t("legalReference.effectiveVersion")} : ${formatDate(legal.effectiveAt)}`
           : null;

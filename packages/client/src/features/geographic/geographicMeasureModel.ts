@@ -120,7 +120,6 @@ export function orientedPolygonExtent(
   };
   const hull = [...half(distinct), ...half([...distinct].reverse())];
   if (hull.length < 3) return null;
-  // Use local coordinates to avoid cancellation at large projected map coordinates.
   const origin = hull[0]!;
   const local = hull.map(([x, y]) => [x! - origin[0]!, y! - origin[1]!] as const);
   let bestArea = Number.POSITIVE_INFINITY;

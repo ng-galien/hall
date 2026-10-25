@@ -22,12 +22,12 @@
 .business-committee-remove { display: inline-grid; width: var(--hall-size-tree-toggle); height: var(--hall-size-tree-toggle); place-items: center; border-radius: var(--hall-radius-small); }
 .business-committee-remove:hover { background: var(--hall-color-surface-selected); }
 .business-committee-remove:disabled { opacity: .5; cursor: wait; }
-.business-committee-search { position: relative; width: 14rem; }
+.business-committee-search { position: relative; width: var(--hall-size-relative-14rem); }
 .business-committee-search .business-committee-search-input { height: var(--hall-size-control-small); padding-right: var(--hall-size-control-small); font-size: var(--hall-font-size-caption); }
 .business-committee-search-toggle { position: absolute; top: 0; right: 0; display: inline-grid; width: var(--hall-size-control-small); height: var(--hall-size-control-small); place-items: center; color: var(--hall-color-text-muted); }
 .business-committee-search-toggle:hover { color: var(--hall-color-text); }
 .business-committee-search-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-.business-committee-results { position: absolute; z-index: var(--hall-z-popover); inset-inline-start: 0; top: calc(100% + var(--hall-space-1)); max-height: 16rem; min-width: 100%; width: max-content; max-width: 24rem; overflow-y: auto; padding: var(--hall-space-1); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-small); }
+.business-committee-results { position: absolute; z-index: var(--hall-z-popover); inset-inline-start: 0; top: calc(100% + var(--hall-space-1)); max-height: var(--hall-size-relative-16rem); min-width: 100%; width: max-content; max-width: var(--hall-size-relative-24rem); overflow-y: auto; padding: var(--hall-space-1); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-small); }
 .business-committee-results p { margin: 0; padding: var(--hall-space-2); color: var(--hall-color-text-muted); }
 .business-committee-result { display: block; width: 100%; padding: var(--hall-space-1) var(--hall-space-2); border-radius: var(--hall-radius-small); color: var(--hall-color-text); font-size: var(--hall-font-size-caption); text-align: left; }
 .business-committee-result[aria-selected="true"] { background: var(--hall-color-surface-subtle); }

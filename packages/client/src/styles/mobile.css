@@ -101,3 +101,15 @@
   .app-main .path-contents-explorer .workspace-explorer-row { grid-template-columns: minmax(0, 1fr); }
   .app-main .path-contents-explorer .workspace-explorer-date { justify-self: start; padding-left: var(--hall-space-6); }
 }
+
+@media (max-width: 760px) {
+  .conduct { flex-direction: column; overflow-y: auto; }
+  .conduct .conduct-rail { width: 100% !important; border-right: 0; border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
+  .conduct-timeline { flex: none; max-height: var(--hall-size-tree-max); overflow-y: auto; }
+  .conduct-rail-resizer { display: none; }
+  .conduct .conduct-stage { flex: none; overflow: visible; }
+  .conduct-stage-scroll { flex: none; overflow: visible; }
+  .conduct-stage-fixed-header, .conduct-stage-scroll, .conduct-stage-actions { padding: var(--hall-space-3); }
+  .conduct-title-timer { flex-wrap: wrap; }
+  .conduct-stage-actions > button { flex: 1; }
+}

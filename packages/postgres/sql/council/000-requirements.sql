@@ -11,8 +11,8 @@
 --   implements-requirement HALL-(FR|TR)-<DOMAIN>-<NUMBER>
 --
 -- Tests use verifies-requirement and backlog tasks use tracks-requirement
--- with the same stable identifier. Historical named
--- markers remain accepted while existing authorities migrate.
+-- with the same stable identifier. The checker rejects copied requirement wording
+-- and bare identifier comments.
 --
 -- @implements-requirement HALL-TR-TRC-020
 -- NUMBER has three digits and advances by ten inside each domain. Gaps are

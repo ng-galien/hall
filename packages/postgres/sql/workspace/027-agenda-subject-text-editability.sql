@@ -2,7 +2,7 @@
 -- Opening the meeting temporarily locks every subject on the frozen agenda;
 -- starting an item permanently locks that subject's title and content.
 
--- @functional-requirement HALL-FR-WSP-280 MEETING_CONDUCT_LOCKS_AGENDA_SUBJECT_TEXTS:
+-- @implements-requirement HALL-FR-WSP-280
 CREATE TABLE hall.agenda_subject_text_lock (
   resource UUID PRIMARY KEY REFERENCES hall.resource(id) ON DELETE RESTRICT,
   council_meeting UUID NOT NULL REFERENCES hall.council_meetings(id) ON DELETE RESTRICT,

@@ -1,5 +1,5 @@
 -- Opening attendance is retained. Later observations never rewrite it.
--- @functional-requirement HALL-FR-ATT-120 PRESENCE_MOVEMENTS_PRESERVE_OPENING_ROLL_CALL:
+-- @implements-requirement HALL-FR-ATT-120
 CREATE TABLE hall.meeting_attendance_event (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   meeting_attendance UUID NOT NULL REFERENCES hall.meeting_attendance(id),
@@ -66,7 +66,7 @@ CREATE TRIGGER meeting_attendance_event_no_truncate
 BEFORE TRUNCATE ON hall.meeting_attendance_event
 FOR EACH STATEMENT EXECUTE FUNCTION hall.enforce_meeting_attendance_event();
 
--- @functional-requirement HALL-FR-ATT-130 CURRENT_POWERS_REQUIRE_VALID_UNIQUE_HOLDERS:
+-- @implements-requirement HALL-FR-ATT-130
 -- A holder departure suspends voting eligibility without fabricating a written
 -- power revocation. The current eligibility authority checks physical presence.
 -- Deferred validation rejects dangling holders and competing current powers.

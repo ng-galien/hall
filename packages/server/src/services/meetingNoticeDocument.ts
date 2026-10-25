@@ -4,7 +4,7 @@ import { matchLiteral } from "@hall/domain";
 const escapeHtml = (value: string) =>
   value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 
-// @functional-requirement HALL-FR-NOT-080 MEETING_NOTICE_IDENTIFIES_CONVENING_AUTHORITY_AND_AGENDA_QUESTIONS:
+// @implements-requirement HALL-FR-NOT-080
 // The document names the mayor and questions; it does not prove an actual decision to convene.
 /** Printed wording is presentation; the frozen questions remain occurrence data. */
 export function renderMeetingNotice(facts: MeetingNoticeFacts): string {

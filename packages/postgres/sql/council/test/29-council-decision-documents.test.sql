@@ -8,7 +8,11 @@ CREATE FUNCTION pg_temp.freeze_decision(id UUID,v INTEGER,pdf BYTEA) RETURNS JSO
  SELECT hall_api.freeze_council_decision(id,v,hall_api.open_council_decision(id)->>'number',
    (hall_api.open_council_decision(id)->>'documentDate')::date,pdf);
 $$;
--- HALL-FR-DEC-020 HALL-FR-DEC-040 HALL-FR-DEC-050 HALL-FR-DEC-060 HALL-TR-DEC-010
+-- @verifies-requirement HALL-FR-DEC-020
+-- @verifies-requirement HALL-FR-DEC-040
+-- @verifies-requirement HALL-FR-DEC-050
+-- @verifies-requirement HALL-FR-DEC-060
+-- @verifies-requirement HALL-TR-DEC-010
 SELECT pg_temp.quorum_case('document-decision',3,3);
 SELECT test_prepare_notice(test_uuid('document-decision:meeting'));
 SELECT start_council_meeting(test_uuid('document-decision:meeting'),'2026-01-01 09:00Z');
@@ -19,7 +23,7 @@ SELECT is((SELECT count(*)::int FROM hall.council_decision),1,'adoption creates 
 SELECT is((SELECT payload->>'state' FROM origin),'draft','confirmation does not freeze or publish');
 SELECT is((SELECT payload#>>'{facts,decisionNumber}' FROM origin),'1','first decision has its own order within meeting');
 SELECT is((SELECT payload->>'number' FROM origin),'2026-01-01','draft proposes the next monthly number');
--- HALL-FR-DEC-080
+-- @verifies-requirement HALL-FR-DEC-080
 SELECT ok((SELECT payload#>>'{facts,meeting,chairRole}' IS NOT NULL FROM origin),'confirmation retains the actual chair role');
 SELECT is((SELECT payload#>>'{facts,opening,quorum,verdict}' FROM origin),'met','opening quorum comes from its own historical observation');
 UPDATE hall.council_member SET role='deputyMayor';

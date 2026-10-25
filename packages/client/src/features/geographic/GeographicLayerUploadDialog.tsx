@@ -100,10 +100,7 @@ export function GeographicLayerUploadDialog({
                 <li key={`${issue.code}-${issue.path}`} data-testid="geographic-layer-upload-issue">
                   {issue.featureIndex === null
                     ? null
-                    : t("geographicLayer.upload.featurePrefix").replace(
-                        "{index}",
-                        formatNumber(issue.featureIndex + 1),
-                      )}
+                    : t("geographicLayer.upload.featurePrefix", { index: formatNumber(issue.featureIndex + 1) })}
                   {t(issueKeys[issue.code])}
                 </li>
               ))}

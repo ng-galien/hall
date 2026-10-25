@@ -13,6 +13,8 @@ npm run dev:stop
 npm run demo:restart
 ```
 
+The selected private runtime configuration is recorded in `local-imports/runtime/active-session.json`. A restart reuses it; an existing session with unknown configuration requires an explicit `--runtime-config` before restart. Development restart may upgrade its selected schema and requires the corresponding authority and a backup of valuable data. `demo:restart` deliberately resets the demonstration database.
+
 Hall is available at `http://localhost:5174/app/`. Test suites use isolated runtimes and must not stop or replace this session.
 
 ## Standalone npm server
@@ -50,5 +52,7 @@ npm run prod:verify-backup
 ```
 
 `prod:prepare` builds an isolated release. `prod:start` checks the schema fingerprint and PDF runtime before serving the compiled client and API. PostgreSQL schema upgrades use a marked auxiliary database, apply reviewed DDL and migrations in a locked transaction, and require an empty final schema diff. The desktop local mode verifies the schema fingerprint and does not run this upgrade path.
+
+`prod:start` sets `HALL_LOG_FILE` to the private production directory’s `logs/hall.log` unless explicitly configured. The log is appended with owner-only permissions; rotation and retention are separate operational decisions. `/api/health` tests a database query and reports the release identity, returning 503 if the query fails. A source runtime without a release identity reports `unidentified`.
 
 Backups include a digest and release reference. Verification restores into a separate temporary database. Preparing a release, seeding production, restoring data, or performing a cutover requires explicit user authorization.

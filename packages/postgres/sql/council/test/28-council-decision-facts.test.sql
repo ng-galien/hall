@@ -4,7 +4,8 @@ SET LOCAL hall.actor_id='decision-clerk';
 \ir support/helpers.sql
 \ir support/quorum.sql
 SELECT no_plan();
--- HALL-FR-DEC-010: public facts are copied only at confirmation and survive later changes.
+-- @verifies-requirement HALL-FR-DEC-010
+-- public facts are copied only at confirmation and survive later changes.
 SELECT pg_temp.quorum_case('decision-facts',3,3);
 UPDATE hall.text_resource SET content='Submitted proposal text' WHERE id=(SELECT text_resource FROM hall.council_decision_proposal_workspace WHERE council_decision_proposal=(SELECT council_decision_proposal FROM hall.council_agenda_item WHERE id=test_uuid('decision-facts:a:agenda-item')));
 SELECT test_prepare_notice(test_uuid('decision-facts:meeting'));

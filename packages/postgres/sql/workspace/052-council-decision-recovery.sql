@@ -19,7 +19,7 @@ RETURNS JSONB LANGUAGE sql IMMUTABLE SET search_path=pg_catalog AS $$
  FROM jsonb_array_elements(members) entry WHERE entry->>'councilMemberId'=target_member::text;
 $$;
 
--- @functional-requirement HALL-FR-DEC-070 HISTORICAL_DECISION_RECOVERY_USES_RETAINED_EVIDENCE:
+-- @implements-requirement HALL-FR-DEC-070
 CREATE FUNCTION hall.recover_council_decision(target_ballot UUID)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SET search_path=pg_catalog,hall AS $$
 DECLARE b hall.ballots; item hall.council_agenda_item; snapshot hall.council_meeting_snapshot;

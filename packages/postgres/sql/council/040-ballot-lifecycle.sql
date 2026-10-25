@@ -17,7 +17,7 @@ DECLARE
   agenda_item_minutes_approval UUID;
   agenda_item_decision_proposal UUID;
 BEGIN
-  -- @functional-requirement HALL-FR-BAL-200 BALLOT_IS_IMMUTABLE: A ballot is a durable voting
+  -- @implements-requirement HALL-FR-BAL-200
   -- fact and cannot be removed by row
   -- deletion or table truncation.
   IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
@@ -29,7 +29,7 @@ BEGIN
   -- Initial-state invariants are evaluated independently from completion rules:
   -- every ballot starts open and belongs to an active, ballot-eligible agenda item.
   IF TG_OP = 'INSERT' THEN
-    -- @functional-requirement HALL-FR-BAL-210 BALLOT_IS_CREATED_OPEN: Result and completion
+    -- @implements-requirement HALL-FR-BAL-210
     -- timestamp are both absent on creation;
     -- their structural equivalence is also enforced inline on the table.
     IF NEW.completed_at IS NOT NULL OR NEW.result IS NOT NULL THEN
@@ -41,7 +41,7 @@ BEGIN
     PERFORM 1 FROM hall.council_meetings m JOIN hall.council_agenda_item item ON item.council_meeting=m.id
       WHERE item.id=NEW.council_agenda_item FOR UPDATE OF m;
 
-    -- @technical-requirement HALL-TR-CON-080 BALLOT_CREATION_SERIALIZES_WITH_AGENDA_COMPLETION:
+    -- @implements-requirement HALL-TR-CON-080
     -- Lock the agenda item while attaching its unique ballot so completion or
     -- deprogramming cannot race with ballot creation.
     SELECT
@@ -73,7 +73,7 @@ BEGIN
         MESSAGE = format('unknown council agenda item %s', NEW.council_agenda_item);
     END IF;
 
-    -- @functional-requirement HALL-FR-BAL-220 BALLOT_REQUIRES_STARTED_MEETING: A ballot is part
+    -- @implements-requirement HALL-FR-BAL-220
     -- of the conduct of a started council
     -- meeting, never its preparation.
     IF meeting_started_at IS NULL THEN
@@ -82,14 +82,14 @@ BEGIN
         MESSAGE = 'a ballot requires a started council meeting';
     END IF;
 
-    -- @functional-requirement HALL-FR-BAL-280 CLOSED_MEETING_REJECTS_NEW_BALLOTS:
+    -- @implements-requirement HALL-FR-BAL-280
     IF meeting_closed_at IS NOT NULL THEN
       RAISE EXCEPTION USING
         ERRCODE = 'HV412',
         MESSAGE = 'a closed council meeting cannot receive a ballot';
     END IF;
 
-    -- @functional-requirement HALL-FR-BAL-230 BALLOT_REQUIRES_ACTIVE_AGENDA_ITEM: Opening the
+    -- @implements-requirement HALL-FR-BAL-230
     -- agenda item is independent and precedes ballot creation. A deprogrammed,
     -- completed or open-question item cannot receive a ballot.
     IF agenda_item_started_at IS NULL
@@ -118,7 +118,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- @functional-requirement HALL-FR-BAL-240 BALLOT_DEFINITION_IS_IMMUTABLE: Ballot identity,
+  -- @implements-requirement HALL-FR-BAL-240
   -- agenda item, secrecy mode and chairman are
   -- fixed for the entire ballot lifecycle.
   IF NEW.id IS DISTINCT FROM OLD.id
@@ -131,7 +131,7 @@ BEGIN
       MESSAGE = 'a ballot definition is immutable';
   END IF;
 
-  -- @functional-requirement HALL-FR-BAL-250 COMPLETED_BALLOT_IS_IMMUTABLE: Once completed, every
+  -- @implements-requirement HALL-FR-BAL-250
   -- ballot field is immutable;
   -- an identical no-op update remains observationally harmless.
   IF OLD.completed_at IS NOT NULL THEN
@@ -145,7 +145,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- @functional-requirement HALL-FR-BAL-260 BALLOT_RESULT_IS_DERIVED: Callers record only
+  -- @implements-requirement HALL-FR-BAL-260
   -- completed_at. The database alone
   -- derives result from the immutable votes.
   IF NEW.result IS DISTINCT FROM OLD.result THEN
@@ -160,7 +160,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- @functional-requirement HALL-FR-BAL-270 BALLOT_COMPLETION_REQUIRES_ACCOUNTING_FOR_EVERY_PARTICIPATION:
+  -- @implements-requirement HALL-FR-BAL-270
   -- At completion every declared participation has
   -- produced exactly one choice. Public rows count one and secret rows carry an
   -- aggregate count, so totals rather than row counts are compared.
@@ -192,14 +192,14 @@ BEFORE INSERT OR UPDATE OR DELETE ON hall.ballots
 FOR EACH ROW
 EXECUTE FUNCTION enforce_ballot_lifecycle();
 
--- @technical-requirement HALL-TR-INT-050 TRUNCATE_CANNOT_BYPASS_BALLOT_IMMUTABILITY:
+-- @implements-requirement HALL-TR-INT-050
 -- Statement-level deletion cannot bypass ballot immutability.
 CREATE TRIGGER ballots_reject_truncate
 BEFORE TRUNCATE ON hall.ballots
 FOR EACH STATEMENT
 EXECUTE FUNCTION enforce_ballot_lifecycle();
 
--- @technical-requirement HALL-TR-CON-090 BALLOT_CHAIRMAN_VALIDATION_IS_DEFERRED:
+-- @implements-requirement HALL-TR-CON-090
 -- Chairman validation is deferred so the ballot and its participation can be
 -- created in the same transaction. Functionally, Ballot.chairman is a
 -- participation of that same ballot whose

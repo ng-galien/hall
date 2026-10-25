@@ -4,141 +4,141 @@
 -- Functional identifiers use HALL-FR-DOC-NNN. Technical identifiers use
 -- HALL-TR-DOC-NNN. Numbers advance by ten and are never reused.
 
--- @requirement-reference HALL-FR-DOC-010 RESOURCE_HAS_EXACTLY_ONE_NATURE:
+-- @implements-requirement HALL-FR-DOC-010
 -- A resource shares its identity with exactly one concrete technical
 -- component. Its nature is derived from that component and is not stored as a
 -- second discriminant.
 
--- @requirement-reference HALL-FR-DOC-020 RESOURCE_LOCATION_IS_NORMALIZED:
+-- @implements-requirement HALL-FR-DOC-020
 -- A resource has a normalized containing path and one non-empty local name.
 -- Their composition is its unique full path.
 
--- @requirement-reference HALL-FR-DOC-030 FOLDER_IS_A_RESOURCE:
+-- @implements-requirement HALL-FR-DOC-030
 -- A folder is a durable resource nature. It has the same stable identity and
 -- location rules as every other resource.
 
--- @requirement-reference HALL-FR-DOC-040 CONTAINER_IS_A_FOLDER:
+-- @implements-requirement HALL-FR-DOC-040
 -- Every non-root containing path resolves to an existing resource whose
 -- concrete nature is folder.
 
--- @requirement-reference HALL-FR-DOC-050 ROOT_IS_IMPLICIT:
+-- @implements-requirement HALL-FR-DOC-050
 -- The empty containing path denotes the implicit workspace root. The root is
 -- not persisted as a special resource row.
 
--- @requirement-reference HALL-FR-DOC-060 FOLDER_DELETION_IS_EXPLICIT:
+-- @implements-requirement HALL-FR-DOC-060
 -- A folder that contains resources cannot be deleted. Removing its last child
 -- never deletes the folder automatically.
 
--- @requirement-reference HALL-FR-DOC-070 COMPLEX_CONTENT_IS_STRUCTURED:
+-- @implements-requirement HALL-FR-DOC-070
 -- Text, spreadsheet, geographic and legal-reference content keep their own
 -- required component data. They are never nullable packages on resource.
 
--- @requirement-reference HALL-FR-DOC-080 BINARY_CONTENT_IS_SEPARATE:
+-- @implements-requirement HALL-FR-DOC-080
 -- Document bytes are immutable content-addressed objects. A document resource
 -- references one such object without carrying a council classification.
 
--- @requirement-reference HALL-FR-DOC-090 RESOURCE_NATURE_IS_IMMUTABLE:
+-- @implements-requirement HALL-FR-DOC-090
 -- The concrete nature selected when a resource is created cannot later be
 -- replaced by another union component.
 
--- @requirement-reference HALL-FR-DOC-100 RESOURCE_READ_MODEL_IS_STABLE:
+-- @implements-requirement HALL-FR-DOC-100
 -- A resource is opened by its stable identifier. Folder listings expose the
 -- same lightweight resource summary as resource details, independently of the
 -- concrete storage tables.
 
--- @requirement-reference HALL-FR-DOC-110 FOLDER_LISTS_DIRECT_CHILDREN:
+-- @implements-requirement HALL-FR-DOC-110
 -- Listing a folder returns exactly the resources whose containing path is that
 -- folder. Descendants remain accessible through their own folder listing.
 
--- @requirement-reference HALL-FR-DOC-120 PARENT_FOLDERS_ARE_ENSURED:
+-- @implements-requirement HALL-FR-DOC-120
 -- Creating a resource ensures each missing folder in its containing path.
 -- Existing folder identities are retained and a non-folder path is rejected.
 
--- @requirement-reference HALL-FR-DOC-130 LOCATION_CHANGE_IS_ATOMIC:
+-- @implements-requirement HALL-FR-DOC-130
 -- Renaming or moving a folder updates that folder and every descendant in one
 -- namespace transaction without changing any resource identity or nature.
 
--- @requirement-reference HALL-FR-DOC-140 EDITABLE_CONTENT_IS_VERSIONED:
+-- @implements-requirement HALL-FR-DOC-140
 -- Updating editable content requires its current version and increments that
 -- version exactly once. A stale writer cannot overwrite a newer value.
 
--- @requirement-reference HALL-FR-DOC-150 RESOURCE_DELETION_IS_COMPLETE:
+-- @implements-requirement HALL-FR-DOC-150
 -- Deleting a resource removes its envelope and its concrete component. An
 -- immutable binary object remains content-addressed and may still be shared.
 
--- @requirement-reference HALL-FR-DOC-160 BINARY_METADATA_IS_CONSISTENT:
+-- @implements-requirement HALL-FR-DOC-160
 -- Reusing immutable bytes reuses their content-addressed object only when the
 -- declared media type is identical. Conflicting metadata is rejected.
 
--- @requirement-reference HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
+-- @implements-requirement HALL-FR-DOC-170
 -- Every resource receives one globally unique public slug when it is created.
 -- The slug does not change when the resource is renamed or moved. UUID remains
 -- the identity used by internal relations; the slug is a public lookup key.
 
--- @requirement-reference HALL-FR-DOC-180 WORKSPACE_CATALOG_IS_FLAT:
+-- @implements-requirement HALL-FR-DOC-180
 -- The workspace can retrieve every resource identity and location in one
 -- flat, deterministic catalogue. The catalogue carries no presentation,
 -- content, binary metadata or council aggregate; the client renders its tree.
 
--- @requirement-reference HALL-FR-DOC-190 REMOTE_TARGET_IS_STRUCTURAL:
+-- @implements-requirement HALL-FR-DOC-190
 -- A remote resource exists before it has a target. A configured target is a
 -- separate required row; the database never stores an empty or nullable URL.
 
--- @requirement-reference HALL-FR-DOC-200 RESOURCE_PRESENTATION_IS_AUTHORITATIVE:
+-- @implements-requirement HALL-FR-DOC-200
 -- Resource timestamps, tags and editable autosave preferences are stored by
 -- their owning entities. Readiness and availability are derived from concrete
 -- content; the HTTP edge never invents presentation defaults.
 
--- @requirement-reference HALL-FR-DOC-210 RESOURCE_HYDRATION_IS_SCOPED:
+-- @implements-requirement HALL-FR-DOC-210
 -- Presentation is loaded by direct folder or explicit search, never by
 -- recursively opening each catalogue entry. Mutations can invalidate only the
 -- affected identities and paths, ready for targeted server events.
 
--- @requirement-reference HALL-FR-DOC-220 DOCUMENTARY_SIREN_IS_DATABASE_OWNED:
+-- @implements-requirement HALL-FR-DOC-220
 -- Documentary links and affordances are projected from persisted state and
 -- the PostgreSQL call context. The HTTP edge does not reconstruct them.
 
--- @requirement-reference HALL-FR-DOC-230 EDITOR_ASSET_BELONGS_TO_TEXT_CONTENT:
+-- @implements-requirement HALL-FR-DOC-230
 -- An editor image is not a workspace resource. It belongs to exactly one text
 -- resource, keeps immutable binary bytes, and is reachable only by its stable
 -- asset identity.
 
--- @requirement-reference HALL-FR-DOC-240 EDITOR_ASSETS_FOLLOW_REFERENCES:
+-- @implements-requirement HALL-FR-DOC-240
 -- Updating text content atomically rejects references to another owner's
 -- editor assets and removes this owner's assets that are no longer referenced.
 
--- @requirement-reference HALL-FR-DOC-250 BINARY_REFERENCE_IS_UNIFIED:
+-- @implements-requirement HALL-FR-DOC-250
 -- A persisted editor directive resolves one binary identity without requiring
 -- the client to guess whether it denotes a document resource or editor asset.
 
--- @requirement-reference HALL-FR-DOC-260 STRUCTURED_CONTENT_HAS_A_VALID_SHAPE:
+-- @implements-requirement HALL-FR-DOC-260
 -- Every structured document keeps the minimum shape that identifies a valid
 -- spreadsheet, geographic composition or legal-reference lifecycle state.
 -- PostgreSQL rejects incomplete JSON packages before they can be projected.
 
--- @requirement-reference HALL-TR-DOC-010 UUID_IDENTITIES:
+-- @implements-requirement HALL-TR-DOC-010
 -- Documentary entities use PostgreSQL UUID identities and real foreign keys.
 
--- @requirement-reference HALL-TR-DOC-020 DECLARATIVE_INVARIANTS_ARE_INLINE:
+-- @implements-requirement HALL-TR-DOC-020
 -- Row-local and referential invariants use CHECK, UNIQUE and FOREIGN KEY
 -- constraints declared inline whenever PostgreSQL permits it.
 
--- @requirement-reference HALL-TR-DOC-030 PREFIX_LOOKUPS_ARE_INDEXED:
+-- @implements-requirement HALL-TR-DOC-030
 -- The materialized containing path has a B-tree operator-class index for
 -- equality and anchored-prefix lookups.
 
--- @requirement-reference HALL-TR-DOC-040 JSON_PROJECTIONS_ARE_EXPLICIT:
+-- @implements-requirement HALL-TR-DOC-040
 -- Named hall_api functions return one documented JSONB projection. Binary
 -- bytes use a separate typed function and never enter that JSON projection.
 
--- @requirement-reference HALL-TR-DOC-050 NAMESPACE_WRITES_ARE_SERIALIZED:
+-- @implements-requirement HALL-TR-DOC-050
 -- Every named operation that changes resource locations takes the same
 -- transaction-scoped advisory lock before reading or writing the namespace.
 
--- @requirement-reference HALL-TR-DOC-060 DOCUMENTARY_WRITES_ARE_NAMED:
+-- @implements-requirement HALL-TR-DOC-060
 -- Runtime roles mutate documentary state only through named hall_api
 -- functions. They never receive direct privileges on the private tables.
 
--- @requirement-reference HALL-TR-DOC-070 SLUG_ALLOCATION_IS_SERIALIZED:
+-- @implements-requirement HALL-TR-DOC-070
 -- Slug generation and suffix allocation run under the documentary namespace
 -- lock. Concurrent creations therefore cannot observe and claim the same slug.

@@ -1,4 +1,5 @@
 import { type CouncilClient, CouncilClientError } from "../clients/councilClient.js";
+import { inspectDocument, inspectStoredDocument } from "../domain/documentPolicy.js";
 import { slugify } from "../repositories/publicIdentifiers.js";
 import { decodeCouncilBusinessBundle, InvalidCouncilBusinessBundle } from "./councilBusinessBundleArchive.js";
 import { DomainError } from "./errors.js";
@@ -8,6 +9,24 @@ export function createCouncilBusinessBundleImportService({ councilClient }: { co
     async import(content: Buffer) {
       try {
         const { manifest, files } = decodeCouncilBusinessBundle(content);
+        for (const resource of manifest.resources) {
+          if (resource.data.kind !== "document" || !resource.binaryPath) continue;
+          const inspection = await inspectStoredDocument(
+            resource.data.binary.mediaType,
+            files.get(resource.binaryPath)!,
+          );
+          if (
+            inspection.mediaType !== resource.data.binary.mediaType ||
+            inspection.mediaType !== manifest.files.find((file) => file.path === resource.binaryPath)?.mediaType
+          ) {
+            throw new InvalidCouncilBusinessBundle("Document media type mismatch");
+          }
+        }
+        for (const asset of manifest.editorAssets) {
+          const inspection = await inspectDocument(asset.data.fileName, files.get(asset.binaryPath)!);
+          if (inspection.mediaType !== asset.data.mediaType)
+            throw new InvalidCouncilBusinessBundle("Asset media type mismatch");
+        }
         const slug = slugify(`${manifest.sender.lastName} ${manifest.sender.firstName}`);
         if (slug !== manifest.sender.slug) throw new InvalidCouncilBusinessBundle("Sender slug mismatch");
         if (await councilClient.openBusiness(manifest.business.sourceId)) throw new DomainError("conflict", 409);

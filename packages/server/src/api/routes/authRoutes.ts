@@ -16,7 +16,7 @@ import type { Cradle } from "../../core/container.js";
 import { hasPermission, requirePermission } from "../../security/authorization.js";
 import { principalForSession, SESSION_COOKIE_NAME } from "../../services/authService.js";
 import { DomainError } from "../../services/errors.js";
-import { requireAuthentication } from "../accessControl.js";
+import { isForwarded, requireAuthentication } from "../accessControl.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
@@ -97,16 +97,18 @@ export function createAuthRouter({ authService, config }: Cradle): Router {
 
   const accountKey = (email: string) => email.trim().toLowerCase();
   const requestIp = (request: Request) => request.ip ?? request.socket.remoteAddress ?? "unknown";
-  const bootstrapAllowed = isLoopbackHost(config.host) || Boolean(config.bootstrapToken);
-  const validBootstrapToken = (value: unknown) => {
-    if (isLoopbackHost(config.host)) return true;
+  const requiresBootstrapToken = (request: Request) =>
+    !isLoopbackHost(config.host) || config.behindTlsProxy === true || isForwarded(request.headers);
+  const bootstrapAllowed = (request: Request) => !requiresBootstrapToken(request) || Boolean(config.bootstrapToken);
+  const validBootstrapToken = (request: Request, value: unknown) => {
+    if (!requiresBootstrapToken(request)) return true;
     if (typeof value !== "string" || !config.bootstrapToken) return false;
     const received = Buffer.from(value);
     const expected = Buffer.from(config.bootstrapToken);
     return received.length === expected.length && timingSafeEqual(received, expected);
   };
 
-  router.get("/status", async (_request, response) => {
+  router.get("/status", async (request, response) => {
     const developmentAccess = config.devAutoLogin === true;
     const bootstrapRequired = developmentAccess ? false : await authService.bootstrapRequired();
     const representation: SirenEntity<{
@@ -118,13 +120,13 @@ export function createAuthRouter({ authService, config }: Cradle): Router {
       class: ["authentication-status"],
       properties: {
         bootstrapRequired,
-        bootstrapAllowed,
-        bootstrapTokenRequired: !isLoopbackHost(config.host),
+        bootstrapAllowed: bootstrapAllowed(request),
+        bootstrapTokenRequired: requiresBootstrapToken(request),
         developmentAccess,
       },
       actions: developmentAccess
         ? []
-        : bootstrapRequired && !bootstrapAllowed
+        : bootstrapRequired && !bootstrapAllowed(request)
           ? []
           : [
               bootstrapRequired
@@ -134,7 +136,7 @@ export function createAuthRouter({ authService, config }: Cradle): Router {
                     method: "POST",
                     href: "/api/auth/bootstrap",
                     type: "application/json",
-                    fields: isLoopbackHost(config.host) ? undefined : [{ name: "setupToken", type: "password" }],
+                    fields: requiresBootstrapToken(request) ? [{ name: "setupToken", type: "password" }] : undefined,
                   }
                 : {
                     name: "session.login",
@@ -150,7 +152,7 @@ export function createAuthRouter({ authService, config }: Cradle): Router {
   });
 
   router.post("/bootstrap", async (request, response) => {
-    if (!bootstrapAllowed || !validBootstrapToken(request.body?.setupToken)) {
+    if (!bootstrapAllowed(request) || !validBootstrapToken(request, request.body?.setupToken)) {
       throw new DomainError("permission_denied", 403);
     }
     const now = Date.now();

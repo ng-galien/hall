@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { createTestServer, domainBody } from "./testServer.js";
+import { createServiceTestServer, domainBody } from "./testServer.js";
 
 describe("plain text document preview", () => {
   it("returns the original UTF-8 text without invoking document conversion", async () => {
     const convertToMarkdown = vi.fn().mockRejectedValue(new Error("Converter unavailable"));
-    const { agent } = await createTestServer({ documentPreviewConverter: { convertToMarkdown } });
+    const { agent } = await createServiceTestServer({ documentPreviewConverter: { convertToMarkdown } });
     const text = "Réunion du conseil\n\nTexte <sans HTML> et accents : été.";
     const resource = domainBody<{ id: string }>(
       await agent
@@ -24,7 +24,7 @@ describe("plain text document preview", () => {
   });
   it("keeps a renamed PDF native without invoking document conversion", async () => {
     const convertToMarkdown = vi.fn().mockRejectedValue(new Error("Must remain native"));
-    const { agent } = await createTestServer({ documentPreviewConverter: { convertToMarkdown } });
+    const { agent } = await createServiceTestServer({ documentPreviewConverter: { convertToMarkdown } });
     const pdf = Buffer.from("%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF");
     const resource = domainBody<{ id: string }>(
       await agent

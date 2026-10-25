@@ -314,23 +314,24 @@ test("mobile French recusals preserve explicit qualification and show a real ref
   const members = await sirenItems<{ id: string }>(await page.request.get("/api/council-members"));
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
   const item = await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
-  expect(
-    (
-      await page.request.post(`/api/council-meetings/${meeting.id}/record-opening`, {
-        data: {
-          observedAt: new Date().toISOString(),
-          chairMemberId: members[0]!.id,
-          secretaryMemberId: members[1]!.id,
-          attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
-        },
-      })
-    ).ok(),
-  ).toBeTruthy();
+  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
+  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
+  await sirenProperties(
+    await page.request.post(`/api/council-meetings/${meeting.id}/record-opening`, {
+      data: {
+        observedAt: new Date().toISOString(),
+        chairMemberId: members[0]!.id,
+        secretaryMemberId: members[1]!.id,
+        attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
+      },
+    }),
+  );
   await page.evaluate(() => localStorage.setItem("mairie.locale", "fr"));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/app/meetings/${meeting.id}/live`);
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
   await page.getByTestId(`live-agenda-item-${item.id}`).click();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.getByTestId("live-recusal-info").click();
   await page.getByTestId("agenda-item-recusal-open").click();
   await declareRecusal(page, members[2]!.id, "personalInterest");

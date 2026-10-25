@@ -81,7 +81,7 @@ export function MeetingLocationsSettings({ initialLocations }: { initialLocation
                 editing={renaming === name}
                 onEditingChange={(editing) => setRenaming(editing ? name : null)}
                 onCommit={(value) => rename(index, value)}
-                label={t("settings.meetingLocationRename").replace("{name}", name)}
+                label={t("settings.meetingLocationRename", { name: name })}
                 className="settings-location-input"
                 testId={`settings-meeting-location-name-input-${index}`}
               >
@@ -89,7 +89,7 @@ export function MeetingLocationsSettings({ initialLocations }: { initialLocation
                   type="button"
                   className="settings-location-name"
                   data-testid={`settings-meeting-location-name-${index}`}
-                  title={t("settings.meetingLocationRename").replace("{name}", name)}
+                  title={t("settings.meetingLocationRename", { name: name })}
                   disabled={submitting}
                   onClick={() => setRenaming(name)}
                 >
@@ -104,8 +104,8 @@ export function MeetingLocationsSettings({ initialLocations }: { initialLocation
                 variant="ghost"
                 size="icon-sm"
                 disabled={submitting || index === 0}
-                aria-label={t("settings.meetingLocationMoveUp").replace("{name}", name)}
-                title={t("settings.meetingLocationMoveUp").replace("{name}", name)}
+                aria-label={t("settings.meetingLocationMoveUp", { name: name })}
+                title={t("settings.meetingLocationMoveUp", { name: name })}
                 data-testid={`settings-meeting-location-up-${index}`}
                 onClick={() => moveUp(index)}
               >
@@ -116,8 +116,8 @@ export function MeetingLocationsSettings({ initialLocations }: { initialLocation
                 variant="ghost"
                 size="icon-sm"
                 disabled={submitting}
-                aria-label={t("settings.meetingLocationRemove").replace("{name}", name)}
-                title={t("settings.meetingLocationRemove").replace("{name}", name)}
+                aria-label={t("settings.meetingLocationRemove", { name: name })}
+                title={t("settings.meetingLocationRemove", { name: name })}
                 data-testid={`settings-meeting-location-remove-${index}`}
                 onClick={() => remove(index)}
               >

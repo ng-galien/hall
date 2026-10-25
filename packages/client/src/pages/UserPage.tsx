@@ -272,7 +272,7 @@ export function UserPage() {
         >
           <div className="modal-form">
             <RequestErrorBanner error={error} />
-            <p>{t("users.disableConfirm").replace("{name}", user?.displayName ?? "")}</p>
+            <p>{t("users.disableConfirm", { name: user?.displayName ?? "" })}</p>
             <Button
               variant="destructive"
               disabled={submitting}

@@ -41,10 +41,8 @@ function SubjectTableRow({
   const meeting = subject.agenda.meeting;
   const meetingLabel = meeting?.number
     ? meeting.scheduledAt
-      ? t("workspace.meetingCompact")
-          .replace("{number}", String(meeting.number))
-          .replace("{date}", formatDate(meeting.scheduledAt))
-      : t("workspace.meetingNumberCompact").replace("{number}", String(meeting.number))
+      ? t("workspace.meetingCompact", { number: String(meeting.number), date: formatDate(meeting.scheduledAt) })
+      : t("workspace.meetingNumberCompact", { number: String(meeting.number) })
     : null;
   const run = (name: "agenda-item.schedule-prepared" | "agenda-item.deprogram") => {
     if (!representation) return;

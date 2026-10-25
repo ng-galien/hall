@@ -4,7 +4,7 @@
 -- The projection returns only aggregate and resource identities. The report
 -- content remains an independently fetched Resource, keeping hydration scoped.
 
--- @functional-requirement HALL-FR-WSP-040 COUNCIL_BUSINESS_PROJECTION_IS_SCOPED:
+-- @implements-requirement HALL-FR-WSP-040
 CREATE FUNCTION hall.council_business_workspace_projection(target_business UUID)
 RETURNS JSONB
 LANGUAGE sql
@@ -47,7 +47,7 @@ AS $function$
   FROM hall.council_business AS business
 $function$;
 
--- @functional-requirement HALL-FR-WSP-180 BUSINESS_WORKSPACE_LIST_IS_BULK_PROJECTED:
+-- @implements-requirement HALL-FR-WSP-180
 -- This list projection deliberately carries the primary report because the
 -- existing search, meeting preparation and live-meeting UI all consume it.
 -- Working-resource presentations remain on the separate flat bulk projection
@@ -84,7 +84,7 @@ AS $function$
     ON report_content.id = workspace.report_resource
 $function$;
 
--- @functional-requirement HALL-FR-WSP-050 COUNCIL_BUSINESS_WORKSPACE_IS_CREATED_ATOMICALLY:
+-- @implements-requirement HALL-FR-WSP-050
 -- This internal named action is reused by the standalone creation API and by
 -- the atomic create-and-schedule commands. It returns only the new identity;
 -- each public operation chooses its own scoped projection.
@@ -182,7 +182,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-WSP-130 BUSINESS_RESOURCE_PROJECTION_IS_SCOPED:
+-- @implements-requirement HALL-FR-WSP-130
 CREATE FUNCTION hall.council_business_resource_projection(target hall.council_business_resource)
 RETURNS JSONB
 LANGUAGE sql
@@ -216,7 +216,7 @@ AS $function$
   WHERE association.council_business = target_business
 $function$;
 
--- @functional-requirement HALL-FR-WSP-190 BUSINESS_RESOURCES_ARE_BULK_PROJECTED:
+-- @implements-requirement HALL-FR-WSP-190
 -- Each result row is flat and independently parseable. The caller groups rows
 -- by councilBusinessId without one HTTP/SQL query per aggregate.
 CREATE FUNCTION hall_api.list_council_business_resource_items(target_businesses UUID[])
@@ -260,7 +260,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-WSP-140 BUSINESS_RESOURCE_IS_ASSOCIATED_WITHOUT_RELOCATION:
+-- @implements-requirement HALL-FR-WSP-140
 CREATE FUNCTION hall_api.associate_council_business_resource(
   target_business UUID,
   target_resource UUID
@@ -299,7 +299,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-WSP-150 BUSINESS_RESOURCE_CAN_BE_DISSOCIATED:
+-- @implements-requirement HALL-FR-WSP-150
 CREATE FUNCTION hall_api.dissociate_council_business_resource(
   target_business UUID,
   target_resource UUID
@@ -328,7 +328,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-WSP-160 BUSINESS_RESOURCE_REORDER_IS_EXACT:
+-- @implements-requirement HALL-FR-WSP-160
 CREATE FUNCTION hall_api.reorder_council_business_resources(
   target_business UUID,
   ordered_resources UUID[]

@@ -119,6 +119,16 @@ export function WorkspacePage() {
         }),
       })
     : { business: null, resource: null };
+  const currentFolder =
+    !selection && path
+      ? Object.values(resourcesStore.summaries).find(
+          (resource) => resource.kind === "folder" && resource.fullPath === path,
+        )
+      : undefined;
+  const currentFolderId = currentFolder?.id;
+  useEffect(() => {
+    if (currentFolderId) void resourcesStore.open(currentFolderId);
+  }, [currentFolderId, resourcesStore.open]);
   const selectedBusiness = selected.business;
   const resourceSession = useResourceSession({
     resourceId: selection?.kind === "resource" ? selection.id : null,
@@ -397,7 +407,7 @@ export function WorkspacePage() {
           >
             {duplicates.map((duplicate) => (
               <div className="data-row" key={duplicate.id}>
-                <span>{t("workspace.identicalFile").replace("{name}", duplicate.fileName)}</span>
+                <span>{t("workspace.identicalFile", { name: duplicate.fileName })}</span>
                 <span>
                   {duplicate.existing.map((resource) => (
                     <Button
@@ -523,7 +533,7 @@ export function WorkspacePage() {
                           onChange={openedSession.updateAutosave}
                         />
                       ) : null}
-                      {openedSession.resource.kind === "text" ? (
+                      {openedSession.resource ? (
                         <ResourceChangesControl
                           resourceId={openedSession.resource.id}
                           representation={openedSession.representation}
@@ -533,6 +543,14 @@ export function WorkspacePage() {
                         />
                       ) : null}
                     </>
+                  ) : currentFolder ? (
+                    <ResourceChangesControl
+                      resourceId={currentFolder.id}
+                      representation={resourcesStore.representations[currentFolder.id] ?? null}
+                      onInvalidated={() => {
+                        void resourcesStore.open(currentFolder.id);
+                      }}
+                    />
                   ) : null
                 }
               />

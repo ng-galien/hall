@@ -4,7 +4,10 @@ SET LOCAL hall.roles='["administrator"]';
 SET LOCAL hall.actor_id='conduct-blockers-test';
 \ir support/helpers.sql
 SELECT no_plan();
--- HALL-FR-AGI-390 HALL-FR-MTG-300 HALL-FR-AGI-350: all three subject kinds expose SQL reasons.
+-- @verifies-requirement HALL-FR-AGI-390
+-- @verifies-requirement HALL-FR-MTG-300
+-- @verifies-requirement HALL-FR-AGI-350
+-- all three subject kinds expose SQL reasons.
 SELECT test_ensure_council_member(test_uuid('blockers:member:'||n)) FROM generate_series(1,15)n;
 CREATE FUNCTION pg_temp.blocker_attendance(present_count integer) RETURNS jsonb LANGUAGE sql AS $$
  SELECT jsonb_agg(jsonb_build_object('council_member_id',test_uuid('blockers:member:'||n),'status',CASE WHEN n<=present_count THEN 'present' ELSE 'absent' END)) FROM generate_series(1,15)n;

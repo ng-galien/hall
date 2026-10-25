@@ -76,7 +76,7 @@ export function PinnedRow({
             <button
               className="wpins-remove"
               type="button"
-              aria-label={t("workspace.unpin").replace("{name}", title)}
+              aria-label={t("workspace.unpin", { name: title })}
               onClick={() => togglePin(pin)}
             >
               <CloseIcon />

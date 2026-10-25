@@ -7,7 +7,7 @@ import { createTestServer, domainBody } from "./testServer.js";
 describe("recusal HTTP boundary", () => {
   it("exposes the SQL capability and dispatches explicit qualifications without interpreting them", async () => {
     const { agent, container } = await createTestServer();
-    const meeting = await container.cradle.councilClient.provisionInitialMeeting({});
+    const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
     const item: AgendaItem = {
       id: randomUUID(),
       title: "Discussion",

@@ -1,6 +1,6 @@
 -- A decision is the documentary record of any definitively voted proposal,
 -- including rejection. Minutes approval has a separate documentary lifecycle.
--- @functional-requirement HALL-FR-DEC-020 CONFIRMED_PROPOSALS_PRODUCE_DOCUMENTARY_DRAFTS:
+-- @implements-requirement HALL-FR-DEC-020
 CREATE TABLE hall.council_decision (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ballot UUID NOT NULL UNIQUE REFERENCES hall.council_decision_facts(ballot),
@@ -31,7 +31,7 @@ BEGIN
     NEW.version:=1;
     RETURN NEW;
   END IF;
-  -- @functional-requirement HALL-FR-DEC-040 DOCUMENTARY_EDITS_PRESERVE_FACTS_AND_IDENTITY:
+  -- @implements-requirement HALL-FR-DEC-040
   IF NEW.id IS DISTINCT FROM OLD.id OR NEW.ballot IS DISTINCT FROM OLD.ballot
     OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
     RAISE EXCEPTION USING ERRCODE='HV733',MESSAGE='decision origin is immutable';
@@ -60,7 +60,7 @@ FOR EACH ROW EXECUTE FUNCTION hall.provision_council_decision();
 CREATE FUNCTION hall.enforce_council_decision_document()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path=pg_catalog,hall AS $$
 BEGIN
-  -- @functional-requirement HALL-FR-DEC-050 EXPLICIT_FREEZE_RETAINS_AN_IMMUTABLE_PDF:
+  -- @implements-requirement HALL-FR-DEC-050
   IF TG_OP<>'INSERT' THEN
     RAISE EXCEPTION USING ERRCODE='HV735',MESSAGE='frozen decision document is immutable';
   END IF;
@@ -99,7 +99,7 @@ CREATE FUNCTION hall_api.update_council_decision_draft(target_decision UUID,expe
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
 DECLARE draft hall.council_decision;
 BEGIN
-  -- @technical-requirement HALL-TR-DEC-010 EDITING_AND_FREEZING_CHECK_THE_OBSERVED_VERSION:
+  -- @implements-requirement HALL-TR-DEC-010
   SELECT * INTO draft FROM hall.council_decision WHERE id=target_decision FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='HV737',MESSAGE='unknown council decision'; END IF;
   IF draft.version IS DISTINCT FROM expected_version THEN RAISE EXCEPTION USING ERRCODE='HV738',MESSAGE='decision version conflict'; END IF;

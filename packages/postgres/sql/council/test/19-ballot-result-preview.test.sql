@@ -8,7 +8,9 @@ SELECT pg_temp.quorum_case('review',3,3);
 SELECT test_prepare_notice(test_uuid('review:meeting'));
 SELECT start_council_meeting(test_uuid('review:meeting'),'2026-01-01 09:00Z');
 SELECT start_council_agenda_item(test_uuid('review:a:agenda-item'),'2026-01-01 09:01Z');
--- HALL-FR-BAL-320 HALL-TR-CON-200: preview is reversible entry, confirmation is atomic.
+-- @verifies-requirement HALL-FR-BAL-320
+-- @verifies-requirement HALL-TR-CON-200
+-- preview is reversible entry, confirmation is atomic.
 CREATE TEMP TABLE previews(payload JSONB);
 INSERT INTO previews SELECT hall_api.create_ballot_result_preview(test_uuid('review:a:agenda-item'),pg_temp.public_candidate('review',3,1));
 SELECT is((SELECT payload->'calculation'->>'result' FROM previews),'reject','server calculates the first candidate');
@@ -27,7 +29,9 @@ SELECT throws_ok($$SELECT hall_api.confirm_ballot_result_preview((SELECT (payloa
 SELECT throws_ok($$UPDATE ballot_result_preview SET calculation='{}'$$,'HV425',NULL,'a review cannot be rewritten');
 SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(test_uuid('review:b:agenda-item'),pg_temp.public_candidate('review',3,2))$$,'HV404',NULL,'an unstarted affair cannot be reviewed');
 
--- HALL-TR-CON-220: context mutations invalidate review; concurrent lock barrier also tested in PostgreSQL integration.
+-- @verifies-requirement HALL-TR-CON-220
+
+-- context mutations invalidate review; concurrent lock barrier also tested in PostgreSQL integration.
 SELECT pg_temp.quorum_case('context',3,3);
 SELECT test_prepare_notice(test_uuid('context:meeting'));
 SELECT start_council_meeting(test_uuid('context:meeting'),'2026-01-01 09:00Z');
@@ -39,7 +43,9 @@ SELECT is((SELECT count(*)::int FROM ballots WHERE council_agenda_item=test_uuid
 SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(test_uuid('context:a:agenda-item'),pg_temp.public_candidate('context',3,2))$$,'HV305',NULL,'a new candidate must use current eligible participants');
 SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(test_uuid('context:a:agenda-item'),jsonb_set(pg_temp.public_candidate('context',2,1),'{procedure}','"cfu"'))$$,'HV416',NULL,'special procedures are outside the ordinary-majority engine');
 
--- HALL-FR-VOT-100: anonymous accounting distinguishes non-participation from abstention.
+-- @verifies-requirement HALL-FR-VOT-100
+
+-- anonymous accounting distinguishes non-participation from abstention.
 
 -- A recorded departure is accounted for explicitly without authorizing a new vote.
 SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(test_uuid('context:a:agenda-item'),

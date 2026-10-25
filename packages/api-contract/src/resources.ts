@@ -539,7 +539,13 @@ const binarySummarySchema = z.object({
 });
 export const remoteResourceTargetSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("unconfigured") }),
-  z.object({ kind: z.literal("url"), url: z.string().trim().min(1) }),
+  z.object({
+    kind: z.literal("url"),
+    url: z.url({ protocol: /^https?$/ }).refine((value) => {
+      const url = new URL(value);
+      return !url.username && !url.password;
+    }),
+  }),
 ]);
 
 const folderResourceSummarySchema = resourcePresentationSchema.extend({ kind: z.literal("folder") });

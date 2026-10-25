@@ -21,7 +21,9 @@ END;
 $$;
 SELECT test_recusal_case('r');
 
--- HALL-FR-AGI-370: two declared legal regimes, no fourth suffrage.
+-- @verifies-requirement HALL-FR-AGI-370
+
+-- two declared legal regimes, no fourth suffrage.
 SELECT is((SELECT array_agg(enumlabel::text ORDER BY enumsortorder) FROM pg_enum
  WHERE enumtypid='recusal_legal_basis'::regtype),ARRAY['personalInterest','designatedRepresentativeConflict'],
  'the tranche contains exactly the two declared legal qualifications');
@@ -35,7 +37,8 @@ SELECT lives_ok($$INSERT INTO agenda_item_recusal(agenda_item,council_member,leg
 SELECT throws_ok($$INSERT INTO agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at)
  VALUES(test_uuid('r:agenda-item'),test_uuid('r:member:2'),'designatedRepresentativeConflict',now())$$,
  '23505',NULL,'same member and occurrence cannot acquire conflicting declarations');
--- HALL-FR-MTG-280: qualified effects on declarations, not a global quorum verdict.
+-- @verifies-requirement HALL-FR-MTG-280
+-- qualified effects on declarations, not a global quorum verdict.
 SELECT is(agenda_item_recusal_state(test_uuid('r:agenda-item'))#>>'{quorumImpact,denominatorReduction}','0','general recusal never reduces denominator');
 SELECT is(jsonb_array_length(agenda_item_recusal_state(test_uuid('r:agenda-item'))#>'{quorumImpact,eligibleDeclaredPresentMemberIds}'),5,'general recusal excludes declared presence; proxy not counted');
 INSERT INTO agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at)
@@ -58,7 +61,9 @@ SELECT test_prepare_notice(test_uuid('r:meeting'));
 SELECT start_council_meeting(test_uuid('r:meeting'),'2026-01-01 09:00Z');
 SELECT start_council_agenda_item(test_uuid('r:agenda-item'),'2026-01-01 09:01Z');
 
--- HALL-FR-BAL-310: both regimes excluded, also through a proxy, public and secret.
+-- @verifies-requirement HALL-FR-BAL-310
+
+-- both regimes excluded, also through a proxy, public and secret.
 SELECT throws_ok($$SELECT create_ballot(test_uuid('r:agenda-item'),'public',
  ARRAY[test_uuid('r:att:1'),test_uuid('r:att:2')],test_uuid('r:att:1'))$$,'HV305',NULL,'general recusal blocks public participation');
 SELECT throws_ok($$SELECT create_ballot(test_uuid('r:agenda-item'),'secret',
@@ -77,7 +82,9 @@ SELECT test_confirm_ballot(id,'2026-01-01 09:10Z') FROM allowed_ballot;
 SELECT is((SELECT sum(count)::int FROM votes),1,'abstention remains one recorded choice, recusals add none');
 SELECT ok(NOT EXISTS(SELECT FROM votes WHERE ballot_participation IS NOT NULL),'secret votes have no member link');
 
--- HALL-FR-MIN-210: product evidence, not a statutory requirement for a named section.
+-- @verifies-requirement HALL-FR-MIN-210
+
+-- product evidence, not a statutory requirement for a named section.
 UPDATE hall.contact SET first_name='Changed' WHERE id=test_uuid('r:member:2');
 SELECT capture_council_meeting_snapshot(test_uuid('r:meeting'),'closing','2026-01-01 09:20Z');
 SELECT is(jsonb_array_length(capture_minutes_facts(test_uuid('r:meeting'))->'recusals'),2,'minutes facts include both declarations');

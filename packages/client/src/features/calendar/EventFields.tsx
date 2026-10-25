@@ -233,7 +233,7 @@ export function EventFields({
           });
           return missing.length > 0 ? (
             <p role="alert" data-testid="event-missing-email-warning">
-              {t("calendar.missingEmails").replace("{names}", missing.join(", "))}
+              {t("calendar.missingEmails", { names: missing.join(", ") })}
             </p>
           ) : null;
         })()}

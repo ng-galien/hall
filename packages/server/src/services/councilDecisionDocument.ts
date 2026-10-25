@@ -66,7 +66,7 @@ function ballotTotals(facts: CouncilDecisionFacts) {
 }
 
 /** Presentation only: no number allocation, legal certification or inferred signature. */
-// @requirement-reference HALL-FR-DEC-080 DOCUMENTARY_ENVELOPE_USES_HISTORICAL_EVIDENCE:
+// @implements-requirement HALL-FR-DEC-080
 export function renderCouncilDecisionFacts(facts: CouncilDecisionFacts, documentDate: string | null = null): string {
   const shortDate = (value: string | null) =>
     value

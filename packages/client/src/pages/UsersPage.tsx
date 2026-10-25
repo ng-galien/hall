@@ -60,14 +60,14 @@ export function UsersPage() {
         <Button asChild variant="ghost" size="icon">
           <Link
             to={`/users/${user.id}`}
-            aria-label={t("users.openNamed").replace("{name}", user.displayName)}
+            aria-label={t("users.openNamed", { name: user.displayName })}
             data-testid={`user-open-${user.id}`}
           >
             <EditIcon />
           </Link>
         </Button>
       </TooltipTrigger>
-      <TooltipContent>{t("users.openNamed").replace("{name}", user.displayName)}</TooltipContent>
+      <TooltipContent>{t("users.openNamed", { name: user.displayName })}</TooltipContent>
     </Tooltip>
   );
   const identity = (user: ApiUser, card = false) => (

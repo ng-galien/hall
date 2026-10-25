@@ -1,7 +1,7 @@
 -- The documentary structural model needs no PostgreSQL enum.
 -- Resource nature is derived from the single non-null component reference.
 
--- @functional-requirement HALL-FR-DOC-020 RESOURCE_LOCATION_IS_NORMALIZED:
+-- @implements-requirement HALL-FR-DOC-020
 CREATE FUNCTION hall.is_normalized_resource_path(candidate TEXT)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -33,7 +33,7 @@ AS $function$
     AND candidate NOT IN ('.', '..')
 $function$;
 
--- @functional-requirement HALL-FR-DOC-170 RESOURCE_SLUG_IS_STABLE:
+-- @implements-requirement HALL-FR-DOC-170
 CREATE FUNCTION hall.is_valid_resource_slug(candidate TEXT)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -79,7 +79,7 @@ AS $function$
   )
 $function$;
 
--- @functional-requirement HALL-FR-DOC-210 RESOURCE_HYDRATION_IS_SCOPED:
+-- @implements-requirement HALL-FR-DOC-210
 CREATE FUNCTION hall.normalize_resource_search(candidate TEXT)
 RETURNS TEXT
 LANGUAGE sql

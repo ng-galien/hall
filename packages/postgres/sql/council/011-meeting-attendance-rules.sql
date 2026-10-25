@@ -1,4 +1,4 @@
--- @functional-requirement HALL-FR-ATT-070 PROXY_HOLDER_IS_PRESENT_IN_SAME_MEETING: A proxy
+-- @implements-requirement HALL-FR-ATT-070
 -- holder is a physically present attendance
 -- declaration from the represented member's exact council meeting.
 CREATE FUNCTION hall.meeting_attendance_is_valid_proxy_holder(

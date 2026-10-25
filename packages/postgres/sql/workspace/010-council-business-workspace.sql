@@ -5,7 +5,7 @@
 -- documentary namespace. It contains identifiers, never copied paths: moving
 -- or renaming the folder therefore leaves CouncilBusiness stable.
 
--- @functional-requirement HALL-FR-WSP-010 COUNCIL_BUSINESS_HAS_ONE_FOLDER_AND_ONE_REPORT:
+-- @implements-requirement HALL-FR-WSP-010
 CREATE TABLE hall.council_business_workspace (
   council_business UUID PRIMARY KEY
     REFERENCES hall.council_business (id) ON DELETE RESTRICT,
@@ -16,7 +16,7 @@ CREATE TABLE hall.council_business_workspace (
   CONSTRAINT "council_business_workspace_resources_differ" CHECK (folder_resource <> report_resource)
 );
 
--- @functional-requirement HALL-FR-WSP-015 COUNCIL_BUSINESS_ALWAYS_HAS_A_WORKSPACE:
+-- @implements-requirement HALL-FR-WSP-015
 CREATE FUNCTION hall.council_business_has_workspace(target_business UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -55,7 +55,7 @@ DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION hall.enforce_council_business_has_workspace();
 
--- @functional-requirement HALL-FR-WSP-020 COUNCIL_BUSINESS_REPORT_IS_IN_ITS_FOLDER:
+-- @implements-requirement HALL-FR-WSP-020
 CREATE FUNCTION hall.council_business_workspace_is_valid(target_business UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -145,7 +145,7 @@ BEGIN
 END
 $function$;
 
--- @functional-requirement HALL-FR-WSP-030 RESOURCE_RELOCATION_PRESERVES_BUSINESS_IDENTITY:
+-- @implements-requirement HALL-FR-WSP-030
 CREATE CONSTRAINT TRIGGER resource_enforce_council_business_workspace
 AFTER UPDATE OF path, name, folder_resource_id, text_resource_id ON hall.resource
 DEFERRABLE INITIALLY DEFERRED
@@ -159,8 +159,8 @@ EXECUTE FUNCTION hall.enforce_council_business_workspace_resource();
 -- affair. It deliberately carries no path: association, dissociation and
 -- ordering never relocate the resource in the workspace namespace.
 
--- @functional-requirement HALL-FR-WSP-090 BUSINESS_RESOURCE_ASSOCIATION_PRESERVES_LOCATION:
--- @functional-requirement HALL-FR-WSP-100 BUSINESS_RESOURCES_HAVE_A_STABLE_ORDER:
+-- @implements-requirement HALL-FR-WSP-090
+-- @implements-requirement HALL-FR-WSP-100
 CREATE TABLE hall.council_business_resource (
   council_business UUID NOT NULL
     REFERENCES hall.council_business (id) ON DELETE CASCADE,
@@ -184,7 +184,7 @@ AS $function$
 DECLARE
   associated_is_folder BOOLEAN;
 BEGIN
-  -- @technical-requirement HALL-TR-CON-210 BUSINESS_RESOURCE_WRITES_ARE_SERIALIZED:
+  -- @implements-requirement HALL-TR-CON-210
   -- One aggregate-root lock serializes append, dissociation and exact reorder.
   PERFORM 1
   FROM hall.council_business
@@ -195,7 +195,7 @@ BEGIN
     RETURN OLD;
   END IF;
 
-  -- @functional-requirement HALL-FR-WSP-110 BUSINESS_RESOURCE_IDENTITY_IS_IMMUTABLE:
+  -- @implements-requirement HALL-FR-WSP-110
   IF TG_OP = 'UPDATE'
     AND (
       NEW.council_business IS DISTINCT FROM OLD.council_business
@@ -212,7 +212,7 @@ BEGIN
   FROM hall.resource AS candidate
   WHERE candidate.id = NEW.resource;
 
-  -- @functional-requirement HALL-FR-WSP-120 BUSINESS_RESOURCE_IS_A_WORKING_RESOURCE:
+  -- @implements-requirement HALL-FR-WSP-120
   -- The intrinsic folder and report already have dedicated identities. A
   -- folder cannot be attached as a working document and the report cannot be
   -- duplicated in the ordered association.

@@ -33,6 +33,7 @@ const templateSelection = `SELECT id, kind, document_type, name, body_markdown, 
 FROM templates`;
 
 export const queries = {
+  "health.check": "SELECT 1 AS healthy",
   "agenda.listByMeeting": `${agendaSelection}
     WHERE agenda_items.meeting_id = :meetingId ORDER BY agenda_items.position`,
   "agenda.listByBusiness": `${agendaSelection}

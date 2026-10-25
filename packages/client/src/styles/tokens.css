@@ -234,6 +234,38 @@
   --hall-size-document-viewer: 1200px;
   --hall-size-content-max: 1500px;
 
+  /* Shared relative and fixed sizes used by feature styles. */
+  --hall-size-fixed-256px: 256px;
+  --hall-size-relative-52rem: 52rem;
+  --hall-letter-spacing-tight: -0.01em;
+  --hall-size-fixed-208px: 208px;
+  --hall-letter-spacing-feature-label: 0.06em;
+  --hall-size-fixed-288px: 288px;
+  --hall-size-relative-28rem: 28rem;
+  --hall-size-glyph-intermediate: 18px;
+  --hall-letter-spacing-feature-heading: 0.14em;
+  --hall-size-relative-4rem: 4rem;
+  --hall-size-relative-1-25rem: 1.25rem;
+  --hall-size-relative-75rem: 75rem;
+  --hall-size-relative-24rem: 24rem;
+  --hall-size-relative-1rem: 1rem;
+  --hall-size-relative-8rem: 8rem;
+  --hall-size-relative-5rem: 5rem;
+  --hall-size-relative-375rem: 375rem;
+  --hall-size-relative-1-75rem: 1.75rem;
+  --hall-size-relative-25rem: 25rem;
+  --hall-size-zero: 0px;
+  --hall-size-relative-22rem: 22rem;
+  --hall-size-relative-14rem: 14rem;
+  --hall-size-relative-16rem: 16rem;
+  --hall-size-relative-40rem: 40rem;
+  --hall-size-relative-36rem: 36rem;
+  --hall-size-relative-2rem: 2rem;
+  --hall-size-relative-38rem: 38rem;
+  --hall-size-relative-30rem: 30rem;
+  --hall-letter-spacing-feature-kicker: 0.15em;
+  --hall-size-relative-10rem: 10rem;
+
   /* Breakpoints are 760, 1000, 1280. A CSS variable is not readable inside a media query,
      so they stay literal in the sheets. */
 
