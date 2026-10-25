@@ -40,6 +40,7 @@ export function Layout() {
           <Dialog open={navigationOpen} onOpenChange={setNavigationOpen}>
             <DialogContent
               className="app-mobile-navigation"
+              placement="left"
               closeLabel={t("common.close")}
               aria-describedby={undefined}
               data-testid="mobile-navigation"
