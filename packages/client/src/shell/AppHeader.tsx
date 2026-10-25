@@ -23,9 +23,10 @@ export function AppHeader({ compact, onToggleSidebar }: AppHeaderProps) {
   const pending = phase === "initializing" || phase === "synchronizing";
 
   return (
-    <header className="flex h-(--hall-size-header) shrink-0 items-center gap-5 border-b border-border bg-surface px-3">
+    <header className="app-header flex h-(--hall-size-header) shrink-0 items-center gap-5 border-b border-border bg-surface px-3">
       <button
         type="button"
+        data-testid="navigation-toggle"
         className="icon-button"
         aria-label={compact ? t("common.expandNavigation") : t("common.collapseNavigation")}
         aria-expanded={!compact}
@@ -34,14 +35,14 @@ export function AppHeader({ compact, onToggleSidebar }: AppHeaderProps) {
         {compact ? <SidebarExpandIcon /> : <SidebarCollapseIcon />}
       </button>
 
-      <a href="/app/" className="flex w-52 shrink-0 items-center gap-2.5" aria-label={t("app.home")}>
+      <a href="/app/" className="app-brand flex w-52 shrink-0 items-center gap-2.5" aria-label={t("app.home")}>
         <span className="grid h-7 w-7 place-items-center rounded-(--radius-small) bg-brand text-xs font-bold text-on-brand">
           M
         </span>
         <span className="text-sm font-bold tracking-brand text-text">{t("app.name")}</span>
       </a>
 
-      <div className="flex min-w-0 items-center">
+      <div className="app-breadcrumb flex min-w-0 items-center">
         <HeaderBreadcrumb />
       </div>
 
@@ -56,7 +57,7 @@ export function AppHeader({ compact, onToggleSidebar }: AppHeaderProps) {
           aria-hidden="true"
           className={`h-1.5 w-1.5 rounded-full ${error ? "bg-danger" : pending ? "connection-status-pending bg-warning" : "bg-success"}`}
         />
-        <span>{connectionLabel}</span>
+        <span className="app-connection-label">{connectionLabel}</span>
       </div>
     </header>
   );

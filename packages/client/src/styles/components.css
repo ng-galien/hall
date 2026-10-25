@@ -133,7 +133,7 @@
   .color-picker-named {
     display: grid;
     gap: var(--hall-space-0-5);
-    max-width: 18rem;
+    max-width: var(--hall-size-color-picker-named);
     margin: 0 0 var(--hall-space-1);
     padding: 0 0 var(--hall-space-1);
     border: 0;

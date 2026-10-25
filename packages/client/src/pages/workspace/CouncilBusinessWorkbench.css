@@ -392,3 +392,18 @@
 .workspace-business-workbench .business-document-tree .business-document-view:hover {
   color: var(--hall-color-brand);
 }
+
+/* @implements-requirement HALL-FR-LAY-010 */
+@media (max-width: 1000px) {
+  .workspace-business-workbench .business-subject-table,
+  .workspace-business-workbench .business-subject-table tbody { display: block; }
+  .workspace-business-workbench .business-subject-table colgroup { display: none; }
+  .workspace-business-workbench .business-subject-table tr { display: grid; grid-template-columns: var(--hall-size-control) minmax(0, 1fr); }
+  .workspace-business-workbench .business-subject-table td { min-width: 0; }
+  .workspace-business-workbench .business-subject-table td:nth-child(3) { grid-column: 1 / -1; }
+  .workspace-business-workbench .business-subject-title { max-width: 100%; flex: 1; min-height: var(--hall-size-control); }
+  .workspace-business-workbench .business-subject-title span { white-space: normal; overflow-wrap: anywhere; }
+  .workspace-business-workbench .business-subject-table-actions { flex-wrap: wrap; justify-content: flex-start; white-space: normal; }
+  .workspace-business-workbench .business-subject-table .business-subject-table-detail { display: block; }
+  .workspace-business-workbench .business-subject-table-detail td { display: block; }
+}

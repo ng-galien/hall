@@ -435,6 +435,8 @@ export const en = {
   "editor.imageInsert": "Insert an image",
   "editor.imageChooseArchived": "Choose from archived images",
   "editor.imageUpload": "Upload an image",
+  "editor.choosePhoto": "Choose a photo",
+  "editor.takePhoto": "Take a photo",
   "editor.imageDropHint": "You can also drop a PNG or JPEG directly into the writing area.",
   "editor.imageDropZone": "Drop the image to insert it",
   "editor.imageUploading": "Uploading image…",

@@ -252,7 +252,11 @@ export function CouncilMembersPage() {
         ) : (
           <div className="data-list">
             {visibleMembers.map((member) => (
-              <div className="data-row council-member-row" data-testid={`member-record-${member.id}`} key={member.id}>
+              <div
+                className="data-row council-member-row council-member-record"
+                data-testid={`member-record-${member.id}`}
+                key={member.id}
+              >
                 <div className="member-identity">
                   <span className="member-avatar" aria-hidden="true">
                     {member.contact.firstName.slice(0, 1)}

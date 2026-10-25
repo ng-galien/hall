@@ -117,7 +117,7 @@ function placeMarkdown(view: EditorView, markdown: string, requestedPosition: nu
   return view.state.selection.to;
 }
 
-function insertImage(
+export function insertImage(
   view: EditorView,
   file: File,
   requestedPosition: number | undefined,

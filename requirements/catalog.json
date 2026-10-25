@@ -8721,6 +8721,31 @@
         }
       ]
     },
+    "HALL-FR-LAY-010": {
+      "name": "MOBILE_INTERFACE_AND_PHOTO_INPUT",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-16"
+      },
+      "statement": "Hall est utilisable depuis un téléphone et permet d’ajouter une image existante ou une photo prise avec le téléphone.",
+      "acceptanceCriteria": [
+        "La navigation principale s’ouvre et se ferme sur petit écran sans occuper en permanence la largeur du contenu ; choisir une destination referme le menu.",
+        "Les pages, formulaires, dialogues et commandes partagées restent accessibles sur une largeur de téléphone ; les contenus larges défilent dans leur propre conteneur.",
+        "En vue liste des élus, les identités restent lisibles sans chevauchement avec avatar, mandat ou commissions. Les titres et commandes des éléments préparés et de l’ordre du jour restent accessibles dans les séances et les affaires aux formats téléphone, tablette et bureau (correction propriétaire du 16 octobre 2026, Topic Graph 420eb39d-e972-418d-bdaf-cd7b6b433d47).",
+        "Un texte modifiable propose le choix d’une photo existante et la capture depuis le téléphone dans l’éditeur compact comme en plein écran.",
+        "L’import utilise les permissions, formats et stockage existants ; une image importée reste présente après réouverture et un échec est visible sans perte du texte.",
+        "L’adaptation mobile conserve les fonctions et les permissions existantes sur ordinateur."
+      ],
+      "clauses": [
+        {
+          "key": "owner-mobile-interface-and-photo",
+          "origin": "product",
+          "statement": "Demande propriétaire du 16 octobre 2026, Topic Graph mairie 8b9a5fca-9259-46c9-94f1-9a656582172f : version mobile de Hall, ajout d’une image ou photo depuis le téléphone. Cadrage hall-mobile-v1 3bfb14e2-c9df-4847-a1ae-65152c56738e accepté par revue bdc3982f-079e-46a3-bf06-faf27ee4412a.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-DOC-540": {
       "name": "GEOGRAPHIC_LINE_ARROWS",
       "nature": "functional",

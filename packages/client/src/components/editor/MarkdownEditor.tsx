@@ -35,6 +35,7 @@ import {
   UndoIcon,
 } from "../icons";
 import { editorExtensions } from "./extensions";
+import { ImageFileControls } from "./ImageFileControls";
 import {
   type ChooseSpreadsheetDrop,
   type EditorDocumentUpload,
@@ -821,12 +822,13 @@ export function MarkdownEditor({
         className="markdown-editor markdown-editor-compact"
         data-testid={testId ?? "markdown-editor-compact"}
       >
+        {inline && !readOnly && onUploadImage ? (
+          <ImageFileControls editor={inline} upload={onUploadImage} status={imageStatus} onStatus={setImageStatus} />
+        ) : null}
         <div
           ref={compactToolbar}
           role="toolbar"
-          aria-orientation="vertical"
           aria-label={t("editor.writeArea")}
-          aria-hidden={!compactToolbarVisible}
           className={cn("markdown-editor-compact-toolbar", compactToolbarVisible && "is-visible")}
           data-visible={compactToolbarVisible ? "true" : "false"}
           style={compactToolbarTop === null ? undefined : { top: compactToolbarTop }}
@@ -1000,6 +1002,9 @@ function EnrichedEditor({
 
   return (
     <div className="markdown-editor markdown-editor-large" data-testid={testId ?? "markdown-editor-enriched"}>
+      {editor && onUploadImage ? (
+        <ImageFileControls editor={editor} upload={onUploadImage} status={imageStatus} onStatus={onImageStatus} />
+      ) : null}
       <div role="toolbar" aria-label={t("editor.enrich")}>
         {editor && state ? (
           <>

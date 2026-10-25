@@ -440,6 +440,8 @@ export const fr: Messages = {
   "editor.imageInsert": "Insérer une image",
   "editor.imageChooseArchived": "Choisir dans les images archivées",
   "editor.imageUpload": "Importer une image",
+  "editor.choosePhoto": "Choisir une photo",
+  "editor.takePhoto": "Prendre une photo",
   "editor.imageDropHint": "Vous pouvez aussi déposer un PNG ou JPEG directement dans la zone de rédaction.",
   "editor.imageDropZone": "Déposer l’image pour l’insérer",
   "editor.imageUploading": "Import de l’image…",

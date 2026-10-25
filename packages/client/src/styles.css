@@ -8,6 +8,7 @@
 @import "./styles/workspace.css";
 @import "./styles/live.css";
 @import "./styles/docs.css";
+@import "./styles/mobile.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
