@@ -165,6 +165,24 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
     ).toEqual([{ stale_grant: false }]);
   });
 
+  it("recreates SQL routines that call each other whatever their catalog order", async () => {
+    await reset();
+    const bootstrap = new PostgresSchemaBootstrap(pool);
+    await bootstrap.install();
+    await pool.query(`
+      DROP FUNCTION hall.is_personal_workspace_location(text);
+      DROP FUNCTION hall.personal_workspaces_root();
+      UPDATE hall_meta.schema_contract SET manifest_sha256 = repeat('b', 64);
+    `);
+
+    await expect(bootstrap.install()).resolves.toBe("upgraded");
+    await expect(bootstrap.verify()).resolves.toBeUndefined();
+    expect(
+      (await pool.query("SELECT hall.is_personal_workspace_location(hall.personal_workspaces_root()) AS located")).rows[0]
+        .located,
+    ).toBe(true);
+  });
+
   it("serializes concurrent installers against one contract", async () => {
     await reset();
     const bootstrap = new PostgresSchemaBootstrap(pool);
