@@ -7,7 +7,11 @@ export async function prepareMeeting(page: Page, prefix?: string) {
     if (prefix) await capture(page, `${prefix}/${name}`);
   };
   await page.waitForLoadState("networkidle");
-  if (prefix) await capture(page, "ecrans/vue-d-ensemble");
+  if (prefix) {
+    await expect(page.getByText("Affaires en préparation").first()).toBeVisible();
+    await page.waitForTimeout(1500);
+    await capture(page, "ecrans/vue-d-ensemble");
+  }
   await page.getByRole("link", { name: "Séances" }).first().click();
   await expect(page.getByRole("heading", { name: "Séances du conseil" })).toBeVisible();
   await shot("01-liste-des-seances");

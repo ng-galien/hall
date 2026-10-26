@@ -34,8 +34,6 @@ async function open(page: Page, route: string, name: string, settle?: () => Prom
 }
 
 test("les écrans de Hall sur le jeu Alésia", async ({ docsPage: page }) => {
-  await open(page, "/", "vue-d-ensemble");
-
   const meetings = await entities(page, "/api/council-meetings");
   const inProgress = meetings.find((meeting) => meeting.startedAt && !meeting.closedAt);
   const closed = meetings.find((meeting) => meeting.closedAt);

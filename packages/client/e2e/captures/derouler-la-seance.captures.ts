@@ -9,52 +9,72 @@ test("dérouler la séance : examen du point, vote, clôture", async ({ docsPage
   await openMeeting(page);
   await capture(page, `${journey}/01-premier-point`);
 
+  // Le premier point est l’arrêt du procès-verbal précédent : il se vote sans captures.
+  await page.getByTestId("live-agenda-start").click();
+  await page.getByTestId("live-ballot-open").click();
+  await page.getByTestId("live-ballot-all-for").click();
+  await page.getByTestId("live-ballot-preview-open").click();
+  await expect(page.getByTestId("live-ballot-preview")).toBeVisible();
+  await page.getByTestId("live-ballot-preview-confirm").click();
+  await expect(page.getByTestId("live-ballot-preview")).toBeHidden();
+  await page
+    .getByTestId(/^live-agenda-item-/)
+    .nth(1)
+    .click();
+  await expect(page.getByTestId("live-agenda-start")).toBeVisible();
+  await capture(page, `${journey}/02-projet-de-deliberation`);
+
   await page.getByTestId("live-recusal-info").click();
   await page.getByTestId("agenda-item-recusal-open").click();
   await expect(page.getByTestId("recusal-form")).toBeVisible();
-  await capture(page, `${journey}/02-deports`);
+  await capture(page, `${journey}/03-deports`);
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("recusal-form")).toBeHidden();
 
   await page.getByTestId("live-agenda-start").click();
   await expect(page.getByTestId("live-ballot-open")).toBeVisible();
-  await capture(page, `${journey}/03-discussion`);
+  await capture(page, `${journey}/04-discussion`);
 
   await page.getByTestId("live-ballot-open").click();
   await expect(page.getByTestId("live-ballot-all-for")).toBeVisible();
-  await capture(page, `${journey}/04-vote-ouvert`);
+  await capture(page, `${journey}/05-vote-ouvert`);
   await page.getByTestId("live-ballot-all-for").click();
   await page
     .getByTestId(/^live-vote-member-/)
     .first()
     .click();
   await page.getByTestId("live-vote-assign-against").click();
-  await capture(page, `${journey}/05-votes-saisis`);
+  await capture(page, `${journey}/06-votes-saisis`);
 
   await page.getByTestId("live-ballot-preview-open").click();
   await expect(page.getByTestId("live-ballot-preview")).toBeVisible();
-  await capture(page, `${journey}/06-previsualisation`);
+  await capture(page, `${journey}/07-previsualisation`);
   await page.getByTestId("live-ballot-preview-confirm").click();
+  await expect(page.getByTestId("live-ballot-preview")).toBeHidden();
+  await page
+    .getByTestId(/^live-agenda-item-/)
+    .nth(1)
+    .click();
   await expect(page.getByTestId("live-ballot-result")).toBeVisible();
-  await capture(page, `${journey}/07-resultat`);
+  await capture(page, `${journey}/08-resultat`);
 
   await page.getByTestId("live-closed-session-open").click();
   await expect(page.getByTestId("live-closed-session-form")).toBeVisible();
-  await capture(page, `${journey}/08-huis-clos`);
+  await capture(page, `${journey}/09-huis-clos`);
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("live-closed-session-form")).toBeHidden();
 
   await page.getByRole("button", { name: "Présences" }).click();
   await expect(page.getByTestId("live-rollcall-heading")).toBeVisible();
-  await capture(page, `${journey}/09-presences-en-seance`);
+  await capture(page, `${journey}/10-presences-en-seance`);
   await page.getByRole("button", { name: /Revenir à l’ordre du jour/ }).click();
 
   await expect(page.getByTestId("live-meeting-close")).toBeEnabled();
   await page.getByTestId("live-meeting-close").click();
-  await expect(page.getByTestId("live-meeting-close")).toContainText("Confirmer");
-  await capture(page, `${journey}/10-confirmer-la-cloture`);
+  await expect(page.getByTestId("live-meeting-close")).toContainText(/Confirmer|non examiné/);
+  await capture(page, `${journey}/11-confirmer-la-cloture`);
   await page.getByTestId("live-meeting-close").click();
   await expect(page).not.toHaveURL(/\/live$/, { timeout: 30_000 });
   await page.waitForLoadState("networkidle");
-  await capture(page, `${journey}/11-seance-close`);
+  await capture(page, `${journey}/12-seance-close`);
 });
