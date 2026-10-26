@@ -59,7 +59,10 @@ export function renderOfflinePage() {
     __RETRY__: escapeHtml(frenchText("app.offlineRetry")),
     __ICON__: icon,
   };
-  return Object.entries(values).reduce((page, [marker, value]) => page.replaceAll(marker, value), read("web-app/offline.html"));
+  return Object.entries(values).reduce(
+    (page, [marker, value]) => page.replaceAll(marker, value),
+    read("web-app/offline.html"),
+  );
 }
 
 export function cacheName({ version, commit }) {
@@ -90,7 +93,11 @@ export function hallWebApp() {
       });
     },
     generateBundle() {
-      this.emitFile({ type: "asset", fileName: "manifest.webmanifest", source: `${JSON.stringify(renderManifest(base), null, 2)}\n` });
+      this.emitFile({
+        type: "asset",
+        fileName: "manifest.webmanifest",
+        source: `${JSON.stringify(renderManifest(base), null, 2)}\n`,
+      });
       this.emitFile({ type: "asset", fileName: "offline.html", source: renderOfflinePage() });
       this.emitFile({ type: "asset", fileName: "sw.js", source: renderServiceWorker(buildIdentity()) });
     },

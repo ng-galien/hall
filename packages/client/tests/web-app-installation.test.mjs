@@ -31,8 +31,8 @@ function startServiceWorker(existingCaches = []) {
     addEventListener: (type, listener) => {
       listeners[type] = listener;
     },
-    skipWaiting: async () => {},
-    clients: { claim: async () => {} },
+    skipWaiting: async () => undefined,
+    clients: { claim: async () => undefined },
   };
   let online = true;
   const fetch = async (request) => {
@@ -47,7 +47,15 @@ function startServiceWorker(existingCaches = []) {
       this.method = init.method ?? "GET";
     }
   }
-  runInNewContext(renderServiceWorker(identity), { self, caches, fetch, Request, URL, Promise, Response: { error: () => null } });
+  runInNewContext(renderServiceWorker(identity), {
+    self,
+    caches,
+    fetch,
+    Request,
+    URL,
+    Promise,
+    Response: { error: () => null },
+  });
   const lifecycle = async (type) => {
     let pending;
     listeners[type]({ waitUntil: (promise) => (pending = promise) });
@@ -55,7 +63,10 @@ function startServiceWorker(existingCaches = []) {
   };
   const request = (path, init) => {
     let answer;
-    listeners.fetch({ request: new Request(new URL(path, scope).href, init), respondWith: (response) => (answer = response) });
+    listeners.fetch({
+      request: new Request(new URL(path, scope).href, init),
+      respondWith: (response) => (answer = response),
+    });
     return answer;
   };
   return { stores, network, lifecycle, request, goOffline: () => (online = false) };
