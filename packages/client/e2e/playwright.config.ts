@@ -23,7 +23,16 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   projects:
-    process.env.HALL_E2E_AUTH_MODE === "true"
+    process.env.HALL_DOCS_CAPTURES === "true"
+      ? [
+          {
+            name: "docs-captures",
+            testDir: "./captures",
+            testMatch: /\.captures\.ts$/,
+            use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, locale: "fr-FR" },
+          },
+        ]
+      : process.env.HALL_E2E_AUTH_MODE === "true"
       ? [
           {
             name: "authentication",

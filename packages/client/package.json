@@ -11,6 +11,7 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run tests/*.test.mjs --exclude tests/*.acceptance.test.mjs",
     "test:e2e": "node e2e/run.mjs",
+    "docs:captures": "cross-env HALL_DOCS_CAPTURES=true node e2e/run.mjs --project=docs-captures",
     "test:i18n-hmr": "vitest run tests/i18n-hmr.acceptance.test.mjs"
   },
   "dependencies": {
