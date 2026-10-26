@@ -208,5 +208,6 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
    'recordedAt',recorded_at,'recordedBy',recorded_by) ORDER BY sent_at)
    FROM hall.meeting_reconvocation WHERE council_meeting=target_meeting),'[]'::jsonb),
  'officerChanges',hall.meeting_officer_change_json(target_meeting),
- 'auxiliaryAttendances',hall.meeting_auxiliary_attendance_json(target_meeting));
+ 'auxiliaryAttendances',hall.meeting_auxiliary_attendance_json(target_meeting),
+ 'proxyExceptions',hall.meeting_proxy_exception_json(target_meeting));
 $$;

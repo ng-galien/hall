@@ -392,6 +392,7 @@ export function createTestCouncilClient(
             reconvocations: [],
             officerChanges: [],
             auxiliaryAttendances: [],
+            proxyExceptions: [],
           },
           agenda: [...agendaItems.values()]
             .filter((entry) => entry.councilMeetingId === id)

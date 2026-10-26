@@ -37,6 +37,7 @@ export type ErrorCode =
   | "meeting_officer_change_invalid"
   | "auxiliary_attendance_invalid"
   | "attendance_outside_membership"
+  | "proxy_consecutive_limit"
   | "recusal_immutable"
   | "recusal_occurrence_locked"
   | "agenda_ballot_required"

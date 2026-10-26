@@ -115,6 +115,14 @@ BEGIN
   DELETE FROM hall.meeting_attendance
   WHERE council_meeting = target_meeting;
 
+  -- @implements-requirement HALL-FR-ATT-160
+  -- The exceptions to the three-meeting limit follow the declared set.
+  DELETE FROM hall.meeting_proxy_exception WHERE council_meeting = target_meeting;
+  INSERT INTO hall.meeting_proxy_exception(council_meeting, proxy_document, basis, declared_at)
+  SELECT target_meeting, item.proxy_document_id, item.proxy_exception::hall.proxy_limit_exception, observation_time
+  FROM jsonb_to_recordset(attendance_declarations) AS item(status TEXT, proxy_document_id UUID, proxy_exception TEXT)
+  WHERE item.status = 'represented' AND item.proxy_exception IS NOT NULL AND item.proxy_document_id IS NOT NULL;
+
   FOR declaration IN
     SELECT *
     FROM jsonb_to_recordset(attendance_declarations) AS item(

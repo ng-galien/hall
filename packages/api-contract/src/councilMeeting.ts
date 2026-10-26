@@ -8,7 +8,7 @@ import {
 } from "@hall/contracts";
 import { z } from "zod";
 import { councilBusinessSchema } from "./councilBusiness.js";
-import { meetingConductStateSchema } from "./meetingConduct.js";
+import { meetingConductStateSchema, proxyLimitExceptionSchema } from "./meetingConduct.js";
 import { minutesSummarySchema } from "./minutes.js";
 import { agendaItemBallotStateSchema, agendaItemRecusalStateSchema } from "./recusal.js";
 import { resourceIdSchema, resourceNameSchema, resourcePathSchema } from "./resources.js";
@@ -89,6 +89,7 @@ export const meetingAttendanceDeclarationSchema = z.discriminatedUnion("status",
       status: z.literal("represented"),
       proxyHolderCouncilMemberId: resourceIdSchema,
       proxyDocumentId: resourceIdSchema,
+      proxyException: proxyLimitExceptionSchema.nullable().optional(),
     })
     .strict(),
 ]);

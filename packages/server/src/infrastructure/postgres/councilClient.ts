@@ -98,6 +98,7 @@ const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV127: "meeting_officer_change_invalid",
   HV128: "auxiliary_attendance_invalid",
   HV150: "attendance_outside_membership",
+  HV151: "proxy_consecutive_limit",
 };
 
 export function createPostgresCouncilClient({

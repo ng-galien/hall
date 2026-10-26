@@ -34,6 +34,7 @@ const fixture: MinutesDetail = {
       reconvocations: [],
       officerChanges: [],
       auxiliaryAttendances: [],
+      proxyExceptions: [],
     },
     attendance: [
       { id: "attendance", member: { id: "chair", name: "Marie Martin" }, status: "present", proxyHolderId: null },

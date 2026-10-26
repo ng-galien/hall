@@ -9478,6 +9478,51 @@
           "sourceIds": []
         }
       ]
+    },
+    "HALL-FR-ATT-160": {
+      "name": "WRITTEN_PROXY_LIMITED_TO_THREE_CONSECUTIVE_MEETINGS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-26"
+      },
+      "statement": "Un même pouvoir écrit ne vaut pas plus de trois séances consécutives, sauf maladie dûment constatée ou congé de maternité déclarés avec la représentation.",
+      "acceptanceCriteria": [
+        "Le pouvoir est toujours révocable ; sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.",
+        "Hall compte, pour la pièce de pouvoir d’une représentation, les séances qui précèdent immédiatement la séance dans la suite des séances et où la même pièce a justifié une représentation ; une séance où la pièce n’a pas servi interrompt le compte.",
+        "Hall refuse, avec un code dédié, la représentation dont la pièce a déjà servi aux trois séances consécutives précédentes, à l’appel comme en ajustement des présences, sauf exception déclarée pour cette séance et cette pièce.",
+        "La fenêtre du pouvoir à l’appel propose l’exception « maladie dûment constatée » ou « congé de maternité » ; l’exception déclarée est horodatée, rattachée à la séance et à la pièce, immuable une fois la séance ouverte et reprise dans la preuve de conduite."
+      ],
+      "clauses": [
+        {
+          "key": "legal-limit",
+          "origin": "regulatory",
+          "statement": "Le pouvoir est toujours révocable ; sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.",
+          "sourceIds": [
+            "S2"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "count",
+          "origin": "product",
+          "statement": "Hall compte, pour la pièce de pouvoir d’une représentation, les séances qui précèdent immédiatement la séance dans la suite des séances et où la même pièce a justifié une représentation ; une séance où la pièce n’a pas servi interrompt le compte.",
+          "sourceIds": []
+        },
+        {
+          "key": "refusal",
+          "origin": "product",
+          "statement": "Hall refuse, avec un code dédié, la représentation dont la pièce a déjà servi aux trois séances consécutives précédentes, à l’appel comme en ajustement des présences, sauf exception déclarée pour cette séance et cette pièce.",
+          "sourceIds": []
+        },
+        {
+          "key": "exception",
+          "origin": "product",
+          "statement": "La fenêtre du pouvoir à l’appel propose l’exception « maladie dûment constatée » ou « congé de maternité » ; l’exception déclarée est horodatée, rattachée à la séance et à la pièce, immuable une fois la séance ouverte et reprise dans la preuve de conduite.",
+          "sourceIds": []
+        }
+      ]
     }
   }
 }

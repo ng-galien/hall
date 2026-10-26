@@ -267,6 +267,8 @@ export const en = {
     "This person cannot be declared as attending: a council member attends as a member.",
   "error.attendance_outside_membership":
     "A member attendance is declared for a person outside the membership roster of the meeting.",
+  "error.proxy_consecutive_limit":
+    "This proxy already served in the three preceding consecutive meetings: a new proxy is required, except for duly established illness or maternity leave.",
   "error.recused_member_cannot_participate": "A recused member cannot participate, personally or as a proxy holder.",
   "error.recusal_immutable": "A recorded recusal cannot be rewritten.",
   "error.recusal_occurrence_locked": "An agenda item with recorded recusals must remain attached to its meeting.",
@@ -1377,6 +1379,12 @@ export const en = {
   "live.proxyModalTitle": "Written proxy: {member}",
   "live.proxyModalDescription":
     "Pick the present member who carries the proxy, and attach the written proxy for this meeting.",
+  "live.proxyException.maternityLeave": "Maternity leave",
+  "live.proxyException.illness": "Duly established illness",
+  "live.proxyException.none": "No exception",
+  "live.proxyExceptionHint":
+    "A written proxy is valid for three consecutive meetings at most, except for duly established illness or maternity leave.",
+  "live.proxyException": "Proxy duration",
   "live.chairChip": "Meeting chair",
   "live.secretaryChip": "Meeting secretary",
   "live.makeChair": "Designate as meeting chair",

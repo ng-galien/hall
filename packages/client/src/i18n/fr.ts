@@ -270,6 +270,8 @@ export const fr: Messages = {
     "Cette personne ne peut pas être déclarée comme assistant : un membre du conseil siège comme membre.",
   "error.attendance_outside_membership":
     "Une présence de membre est déclarée pour une personne hors du registre des mandats de la séance.",
+  "error.proxy_consecutive_limit":
+    "Ce pouvoir a déjà servi aux trois séances consécutives précédentes : il faut un nouveau pouvoir, sauf maladie dûment constatée ou congé de maternité.",
   "error.recused_member_cannot_participate":
     "Un membre déporté ne peut pas participer, personnellement ou comme porteur d’un pouvoir.",
   "error.recusal_immutable": "Un déport enregistré ne peut pas être réécrit.",
@@ -1402,6 +1404,12 @@ export const fr: Messages = {
   "live.proxyModalTitle": "Pouvoir écrit : {member}",
   "live.proxyModalDescription":
     "Choisissez le membre présent qui porte le pouvoir et rattachez le pouvoir écrit de cette séance.",
+  "live.proxyException.maternityLeave": "Congé de maternité",
+  "live.proxyException.illness": "Maladie dûment constatée",
+  "live.proxyException.none": "Aucune exception",
+  "live.proxyExceptionHint":
+    "Un même pouvoir vaut au plus trois séances consécutives, sauf maladie dûment constatée ou congé de maternité.",
+  "live.proxyException": "Durée du pouvoir",
   "live.chairChip": "Président de séance",
   "live.secretaryChip": "Secrétaire de séance",
   "live.makeChair": "Désigner président de séance",

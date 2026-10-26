@@ -41,12 +41,18 @@ BEGIN
  IF jsonb_typeof(changes) IS DISTINCT FROM 'array' OR jsonb_array_length(changes)=0 THEN
    RAISE EXCEPTION USING ERRCODE = 'HV104',MESSAGE='attendance changes require a nonempty array';
  END IF;
- FOR change IN SELECT * FROM jsonb_to_recordset(changes) AS c("councilMemberId" UUID,status TEXT,"proxyHolderCouncilMemberId" UUID,"proxyDocumentId" UUID) ORDER BY status='represented' LOOP
+ FOR change IN SELECT * FROM jsonb_to_recordset(changes) AS c("councilMemberId" UUID,status TEXT,"proxyHolderCouncilMemberId" UUID,"proxyDocumentId" UUID,"proxyException" TEXT) ORDER BY status='represented' LOOP
    SELECT id INTO attendance_id FROM hall.meeting_attendance WHERE council_meeting=target_meeting AND council_member=change."councilMemberId";
    holder_id:=NULL;
    IF change."proxyHolderCouncilMemberId" IS NOT NULL THEN
      SELECT id INTO holder_id FROM hall.meeting_attendance WHERE council_meeting=target_meeting AND council_member=change."proxyHolderCouncilMemberId";
      IF holder_id IS NULL THEN RAISE EXCEPTION USING ERRCODE = 'HV134',MESSAGE='unknown proxy holder in this meeting'; END IF;
+   END IF;
+   -- @implements-requirement HALL-FR-ATT-160
+   IF change.status='represented' AND change."proxyException" IS NOT NULL AND change."proxyDocumentId" IS NOT NULL THEN
+     INSERT INTO hall.meeting_proxy_exception(council_meeting,proxy_document,basis,declared_at)
+     VALUES(target_meeting,change."proxyDocumentId",change."proxyException"::hall.proxy_limit_exception,observation_time)
+     ON CONFLICT (council_meeting,proxy_document) DO NOTHING;
    END IF;
    IF attendance_id IS NULL THEN
      INSERT INTO hall.meeting_attendance(id,council_meeting,council_member,status,proxy_holder,proxy_document,declared_at)

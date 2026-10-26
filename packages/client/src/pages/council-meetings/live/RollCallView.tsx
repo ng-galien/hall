@@ -1,5 +1,5 @@
 // biome-ignore-all lint/a11y/noNoninteractiveTabindex: The scrollable roll-call region must be focusable for keyboard scrolling.
-import type { ResourceDetail } from "@hall/api-contract";
+import type { ProxyLimitException, ResourceDetail } from "@hall/api-contract";
 
 type ProxyDocument = Extract<ResourceDetail, { kind: "document" }>;
 
@@ -62,6 +62,16 @@ export function RollCallView({
   const [uploadError, setUploadError] = useState<ApiErrorCode | null>(null);
   const [proxyMemberId, setProxyMemberId] = useState<string | null>(null);
   const conduct = meetingActions.workspace?.conduct;
+  // @implements-requirement HALL-FR-ATT-160
+  const [proxyExceptions, setProxyExceptions] = useState<ReadonlyMap<string, ProxyLimitException>>(
+    () => new Map((conduct?.proxyExceptions ?? []).map((entry) => [entry.proxyDocumentId, entry.basis])),
+  );
+  const persistedExceptions = JSON.stringify(conduct?.proxyExceptions ?? []);
+  useEffect(() => {
+    const entries: { proxyDocumentId: string; basis: ProxyLimitException }[] = JSON.parse(persistedExceptions);
+    setProxyExceptions(new Map(entries.map((entry) => [entry.proxyDocumentId, entry.basis])));
+  }, [persistedExceptions]);
+  const proxyException = (documentId: string | null) => (documentId ? (proxyExceptions.get(documentId) ?? null) : null);
   const openingObservation = conduct?.quorumObservations
     .filter((observation) => observation.agendaItemId === null)
     .at(-1);
@@ -148,7 +158,18 @@ export function RollCallView({
     );
   };
 
-  const submitProxy = (memberId: string, proxyHolderMemberId: string, proxyDocumentId: string) => {
+  const submitProxy = (
+    memberId: string,
+    proxyHolderMemberId: string,
+    proxyDocumentId: string,
+    exception: ProxyLimitException | null,
+  ) => {
+    setProxyExceptions((current) => {
+      const next = new Map(current);
+      if (exception) next.set(proxyDocumentId, exception);
+      else next.delete(proxyDocumentId);
+      return next;
+    });
     setDraftAttendance((current) => [
       ...current.filter((entry) => entry.memberId !== memberId),
       {
@@ -217,6 +238,7 @@ export function RollCallView({
                 status: entry.status,
                 proxyHolderCouncilMemberId: entry.proxyHolderMemberId!,
                 proxyDocumentId: entry.proxyDocumentId!,
+                proxyException: proxyException(entry.proxyDocumentId),
               }
             : { councilMemberId: entry.memberId, status: entry.status },
         ),
@@ -264,6 +286,7 @@ export function RollCallView({
                       status: entry.status,
                       proxyHolderCouncilMemberId: entry.proxyHolderMemberId,
                       proxyDocumentId: entry.proxyDocumentId,
+                      proxyException: entry.status === "represented" ? proxyException(entry.proxyDocumentId) : null,
                     })),
                   });
                   if (saved) onDone();
@@ -483,13 +506,14 @@ export function RollCallView({
           <ProxyModal
             member={proxyMember}
             current={attendanceByMember.get(proxyMember.id)}
+            currentException={proxyException(attendanceByMember.get(proxyMember.id)?.proxyDocumentId ?? null)}
             holderCandidates={holderCandidates}
             proxyDocuments={proxyDocuments}
             submitting={submitting}
             uploadError={uploadError}
             onDismissError={() => setUploadError(null)}
             onUploadFile={uploadProxyDocument}
-            onSubmit={(holderId, documentId) => submitProxy(proxyMember.id, holderId, documentId)}
+            onSubmit={(holderId, documentId, exception) => submitProxy(proxyMember.id, holderId, documentId, exception)}
             onClose={() => setProxyMemberId(null)}
           />
         );
@@ -498,9 +522,12 @@ export function RollCallView({
   );
 }
 
+const proxyExceptionChoices = ["none", "illness", "maternityLeave"] as const;
+
 function ProxyModal({
   member,
   current,
+  currentException,
   holderCandidates,
   proxyDocuments,
   submitting,
@@ -512,18 +539,20 @@ function ProxyModal({
 }: {
   member: CouncilMemberView;
   current: Attendance | undefined;
+  currentException: ProxyLimitException | null;
   holderCandidates: { member: CouncilMemberView; alreadyHolding: boolean }[];
   proxyDocuments: ProxyDocument[];
   uploadError: ApiErrorCode | null;
   onDismissError(): void;
   submitting: boolean;
   onUploadFile(file: File): Promise<ProxyDocument | null | undefined>;
-  onSubmit(holderId: string, documentId: string): void;
+  onSubmit(holderId: string, documentId: string, exception: ProxyLimitException | null): void;
   onClose(): void;
 }) {
   const { t, formatFileSize } = useI18n();
   const [holderId, setHolderId] = useState<string | null>(current?.proxyHolderMemberId ?? null);
   const [documentId, setDocumentId] = useState<string | null>(current?.proxyDocumentId ?? null);
+  const [exception, setException] = useState<ProxyLimitException | null>(currentException);
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   return (
@@ -623,6 +652,23 @@ function ProxyModal({
           </div>
         </section>
 
+        <fieldset className="grid gap-2" data-testid="live-proxy-exception">
+          <legend className="picker-heading">{t("live.proxyException")}</legend>
+          <p className="text-sm text-muted">{t("live.proxyExceptionHint")}</p>
+          {proxyExceptionChoices.map((choice) => (
+            <label className="flex items-center gap-2" key={choice}>
+              <input
+                type="radio"
+                name="proxyException"
+                data-testid={`live-proxy-exception-${choice}`}
+                checked={(exception ?? "none") === choice}
+                onChange={() => setException(choice === "none" ? null : choice)}
+              />
+              {t(`live.proxyException.${choice}`)}
+            </label>
+          ))}
+        </fieldset>
+
         <div className="rollcall-proxy-actions">
           <Button data-testid="live-proxy-cancel" variant="outline" type="button" onClick={onClose}>
             {t("common.cancel")}
@@ -631,7 +677,7 @@ function ProxyModal({
             variant="default"
             data-testid="live-proxy-confirm"
             disabled={submitting || !holderId || !documentId}
-            onClick={() => holderId && documentId && onSubmit(holderId, documentId)}
+            onClick={() => holderId && documentId && onSubmit(holderId, documentId, exception)}
           >
             {t(submitting ? "common.saving" : "meeting.confirmProxy")}
           </Button>

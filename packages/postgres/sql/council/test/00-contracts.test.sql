@@ -148,6 +148,7 @@ SELECT set_eq(
     ('council_meetings.council_meetings_reject_truncate -> enforce_council_meeting_lifecycle'),
     ('meeting_attendance.meeting_attendance_enforce_lifecycle -> enforce_meeting_attendance_lifecycle'),
     ('meeting_attendance.meeting_attendance_enforce_proxy_holder -> enforce_meeting_attendance_proxy_holder'),
+    ('meeting_attendance.meeting_attendance_proxy_consecutive_limit -> enforce_proxy_consecutive_limit'),
     ('meeting_attendance.meeting_attendance_reject_truncate -> enforce_meeting_attendance_lifecycle'),
     ('votes.votes_enforce_immutability -> enforce_vote_immutability'),
     ('votes.votes_reject_truncate -> enforce_vote_immutability'),

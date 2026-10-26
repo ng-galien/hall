@@ -76,6 +76,21 @@ export const meetingReconvocationSchema = z
     recordedBy: z.string().min(1),
   })
   .strict();
+// Exceptions to the three-meeting limit of a written proxy (CGCT L2121-20).
+export const proxyLimitExceptionSchema = z.enum(["illness", "maternityLeave"]);
+export type ProxyLimitException = z.infer<typeof proxyLimitExceptionSchema>;
+export const meetingProxyExceptionSchema = z
+  .object({
+    id,
+    councilMeetingId: id,
+    proxyDocumentId: id,
+    basis: proxyLimitExceptionSchema,
+    declaredAt: time,
+    recordedAt: time,
+    recordedBy: z.string().min(1),
+  })
+  .strict();
+export type MeetingProxyException = z.infer<typeof meetingProxyExceptionSchema>;
 export const meetingOfficeSchema = z.enum(["chair", "secretary"]);
 export type MeetingOffice = z.infer<typeof meetingOfficeSchema>;
 export const meetingOfficerBasisSchema = z.enum([
@@ -121,6 +136,7 @@ export const meetingConductEvidenceSchema = z
     // Minutes closed before these events existed carry no such entries.
     officerChanges: z.array(meetingOfficerChangeSchema).default([]),
     auxiliaryAttendances: z.array(meetingAuxiliaryAttendanceSchema).default([]),
+    proxyExceptions: z.array(meetingProxyExceptionSchema).default([]),
   })
   .strict();
 const handoverOption = z.object({ councilMemberId: id, basis: meetingOfficerBasisSchema }).strict();
@@ -157,6 +173,7 @@ export const recordMeetingAttendanceEventsSchema = z
             status: z.enum(["present", "represented", "excused", "absent"]),
             proxyHolderCouncilMemberId: id.nullable(),
             proxyDocumentId: id.nullable(),
+            proxyException: proxyLimitExceptionSchema.nullable().optional(),
           })
           .strict(),
       )

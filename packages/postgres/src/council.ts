@@ -36,6 +36,7 @@ import {
   declareMeetingAuxiliaryAttendanceSchema,
   matchDiscriminated,
   meetingConductStateSchema,
+  proxyLimitExceptionSchema,
   type RecordAgendaItemRecusal,
   type RecordMeetingAttendanceEvents,
   type RecordMeetingOfficerChange,
@@ -157,6 +158,7 @@ export const postgresMeetingAttendanceDeclarationSchema = z.discriminatedUnion("
     status: z.literal("represented"),
     proxyHolderCouncilMemberId: resourceIdSchema,
     proxyDocumentId: resourceIdSchema,
+    proxyException: proxyLimitExceptionSchema.nullable().optional(),
   }),
 ]);
 
@@ -383,6 +385,7 @@ function attendanceDeclarationsPayload(declarations: PostgresMeetingAttendanceDe
         status: value.status,
         proxy_holder_council_member_id: value.proxyHolderCouncilMemberId,
         proxy_document_id: value.proxyDocumentId,
+        proxy_exception: value.proxyException ?? null,
       }),
     }),
   );
