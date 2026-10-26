@@ -3,7 +3,7 @@ import { capture, expect, test } from "./fixtures";
 
 /** Every screen of the "Écrans" section, on the dataset with closed meetings and one meeting in progress. */
 const scenario = (process.env.HALL_DOCS_SCENARIO ?? "default") as "preparation" | "default" | "minutes";
-test.setTimeout(3 * 60_000);
+test.setTimeout(8 * 60_000);
 test.use({ seedScenario: scenario });
 
 interface Entity {
@@ -62,7 +62,18 @@ test("les écrans de Hall sur le jeu Alésia", async ({ docsPage: page }) => {
   const resources = await entities(page, "/api/resources");
   const byKind = (kind: string) => resources.find((resource) => resource.kind === kind);
   const text = byKind("text");
-  if (text) await open(page, `/workspace?resource=${text.id}`, "editeur-de-texte");
+  if (text) {
+    await open(page, `/workspace?resource=${text.id}`, "editeur-de-texte");
+    await open(page, `/workspace?resource=${text.id}`, "historique-des-modifications", async () => {
+      await page.getByTestId("resource-changes-trigger").first().click();
+      await expect(page.getByTestId("resource-changes-panel")).toBeVisible();
+    });
+  }
+  await open(page, "/workspace", "reference-juridique", async () => {
+    await page.getByTestId("workspace-create-menu").first().click();
+    await page.getByTestId("workspace-create-legalReference").click();
+    await page.waitForTimeout(800);
+  });
   const spreadsheet = byKind("spreadsheet");
   if (spreadsheet) {
     await open(page, `/workspace?resource=${spreadsheet.id}`, "tableur", async () => {

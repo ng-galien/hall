@@ -14,6 +14,8 @@ test("délibérations après le vote : du brouillon au document figé", async ({
     .first()
     .click();
   await expect(page.getByTestId("decision-detail")).toBeVisible();
+  await expect(page.getByTestId("decision-view")).toBeVisible({ timeout: 30_000 });
+  await page.waitForTimeout(800);
   await capture(page, `${journey}/02-fiche-de-la-deliberation`);
 
   await page.getByTestId("decision-submitted-toggle").click();
