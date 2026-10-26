@@ -124,7 +124,7 @@
 
 -- HV135 membership observations are immutable.
 
--- HV136 a closed meeting cannot receive membership observations.
+-- HV136 a closed or opened meeting cannot receive membership observations.
 
 -- HV137 membership requires distinct known mandates of one council term.
 

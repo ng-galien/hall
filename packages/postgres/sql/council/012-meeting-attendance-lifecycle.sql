@@ -38,19 +38,6 @@ BEGIN
       MESSAGE = format('unknown council meeting %s', NEW.council_meeting);
   END IF;
 
-  -- @implements-requirement HALL-FR-ATT-090
-  -- set is complete and frozen from the
-  -- instant the council meeting starts.
-  IF meeting_closed_at IS NULL AND meeting_started_at IS NOT NULL AND TG_OP='INSERT'
-    AND NEW.declared_at>=meeting_started_at AND NEW.declared_at<=clock_timestamp()
-    AND EXISTS(SELECT FROM hall.meeting_membership_record r
-      WHERE r.id=(SELECT id FROM hall.meeting_membership_record WHERE council_meeting=target_meeting ORDER BY observed_at DESC LIMIT 1)
-        AND NEW.council_member=ANY(r.member_ids) AND NEW.declared_at>=r.observed_at)
-    AND NOT EXISTS(SELECT FROM hall.meeting_membership_record r
-      WHERE r.id=(SELECT id FROM hall.meeting_membership_record WHERE council_meeting=target_meeting ORDER BY observed_at LIMIT 1)
-        AND NEW.council_member=ANY(r.member_ids)) THEN
-    RETURN NEW;
-  END IF;
   -- @implements-requirement HALL-FR-ATT-150
   IF meeting_started_at IS NOT NULL AND meeting_closed_at IS NULL AND TG_OP = 'INSERT'
     AND EXISTS(SELECT FROM hall.meeting_membership_record WHERE council_meeting=target_meeting)
@@ -63,6 +50,8 @@ BEGIN
         coalesce((SELECT contact.first_name||' '||contact.last_name FROM hall.council_member member
           JOIN hall.contact contact ON contact.id=member.contact WHERE member.id=NEW.council_member), NEW.council_member::TEXT));
   END IF;
+  -- @implements-requirement HALL-FR-ATT-090
+  -- The set is complete and frozen from the instant the meeting starts.
   IF meeting_started_at IS NOT NULL THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV102',

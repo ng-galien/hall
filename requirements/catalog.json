@@ -7282,13 +7282,14 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-09-06"
+        "since": "2026-10-26"
       },
-      "statement": "Le quorum de droit commun utilise l’effectif nominatif confirmé des membres en exercice.",
+      "statement": "Le quorum de droit commun utilise l’effectif nominatif confirmé des membres en exercice, fixé par le registre des mandats en vigueur à l’ouverture de la séance.",
       "acceptanceCriteria": [
         "Le quorum de droit commun utilise les membres effectivement en exercice.",
         "Hall conserve un effectif nominatif historique issu des membres actifs de la mandature actuelle lors de l’enregistrement atomique de l’appel ; cet effectif ne se déduit ni des seuls présents ni du nombre théorique de sièges.",
-        "Hall prend en charge le régime de droit commun du quorum ; le régime territorial particulier d’Alsace-Moselle est exclu du périmètre produit."
+        "Hall prend en charge le régime de droit commun du quorum ; le régime territorial particulier d’Alsace-Moselle est exclu du périmètre produit.",
+        "Le registre des mandats en vigueur à l’ouverture de la séance est la seule référence des présences de la séance : Hall refuse d’enregistrer un registre après l’ouverture, et un mandat qui commence pendant la séance n’y entre pas."
       ],
       "clauses": [
         {
@@ -7312,6 +7313,12 @@
           "key": "common-law-scope",
           "origin": "product",
           "statement": "Hall prend en charge le régime de droit commun du quorum ; le régime territorial particulier d’Alsace-Moselle est exclu du périmètre produit.",
+          "sourceIds": []
+        },
+        {
+          "key": "opening-roster",
+          "origin": "product",
+          "statement": "Le registre des mandats en vigueur à l’ouverture de la séance est la seule référence des présences de la séance : Hall refuse d’enregistrer un registre après l’ouverture, et un mandat qui commence pendant la séance n’y entre pas.",
           "sourceIds": []
         }
       ]
@@ -9403,10 +9410,10 @@
         "state": "accepted",
         "since": "2026-10-26"
       },
-      "statement": "Une présence de membre déclarée pour une personne hors du registre des mandats de la séance est refusée avec un message qui nomme la personne.",
+      "statement": "Une présence de membre déclarée pour une personne hors du registre des mandats en vigueur à l’ouverture de la séance est refusée avec un message qui nomme la personne.",
       "acceptanceCriteria": [
         "Le quorum se compte sur les membres en exercice ; une présence hors de cet effectif ne peut pas être retenue.",
-        "Hall refuse, avec un code dédié et le nom de la personne, l’enregistrement d’une présence de membre pour une personne sans mandat actif, et refuse le calcul du quorum quand une présence de membre ne figure ni dans le registre en vigueur à l’ouverture ni dans un registre ultérieur de la séance ; un mandat remplacé en cours de séance reste dans le registre d’ouverture.",
+        "Hall refuse, avec un code dédié et le nom de la personne, l’enregistrement d’une présence de membre pour une personne sans mandat actif ou hors du registre d’ouverture, et refuse le calcul du quorum quand une présence de membre ne figure pas dans le registre en vigueur à l’ouverture ; aucun mandat n’est remplacé en cours de séance.",
         "L’écran de conduite affiche ce refus comme blocage nommé de la discussion et du scrutin."
       ],
       "clauses": [
@@ -9423,7 +9430,7 @@
         {
           "key": "refusal",
           "origin": "product",
-          "statement": "Hall refuse, avec un code dédié et le nom de la personne, l’enregistrement d’une présence de membre pour une personne sans mandat actif, et refuse le calcul du quorum quand une présence de membre ne figure ni dans le registre en vigueur à l’ouverture ni dans un registre ultérieur de la séance ; un mandat remplacé en cours de séance reste dans le registre d’ouverture.",
+          "statement": "Hall refuse, avec un code dédié et le nom de la personne, l’enregistrement d’une présence de membre pour une personne sans mandat actif ou hors du registre d’ouverture, et refuse le calcul du quorum quand une présence de membre ne figure pas dans le registre en vigueur à l’ouverture ; aucun mandat n’est remplacé en cours de séance.",
           "sourceIds": []
         },
         {

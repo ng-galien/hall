@@ -31,24 +31,21 @@ CREATE TABLE hall.meeting_reconvocation (
 );
 
 -- @implements-requirement HALL-FR-ATT-150
--- A member attendance names a mandate of the roster in force: the latest
--- roster before opening, then the opening roster and every later one. Hall
--- refuses the attendance set instead of ignoring it, and names the person. A
--- mandate replaced during the meeting stays in the opening roster and is only
--- left out of the current count (HALL-FR-MTG-270).
+-- A member attendance names a mandate of the roster in force at the opening,
+-- the only roster of the meeting. Hall refuses the attendance set instead of
+-- ignoring it, and names the person.
 CREATE FUNCTION hall.meeting_attendance_outsider_name(target_meeting UUID)
 RETURNS TEXT LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   WITH opening AS (
-    SELECT r.observed_at FROM hall.meeting_membership_record r JOIN hall.council_meetings m ON m.id=r.council_meeting
+    SELECT r.member_ids FROM hall.meeting_membership_record r JOIN hall.council_meetings m ON m.id=r.council_meeting
     WHERE r.council_meeting=target_meeting AND (m.started_at IS NULL OR r.observed_at<=m.started_at)
     ORDER BY r.observed_at DESC LIMIT 1)
   SELECT coalesce(contact.first_name||' '||contact.last_name, a.council_member::TEXT)
   FROM hall.current_meeting_attendance(target_meeting) a
+  CROSS JOIN opening
   LEFT JOIN hall.council_member member ON member.id=a.council_member
   LEFT JOIN hall.contact contact ON contact.id=member.contact
-  WHERE NOT EXISTS(SELECT FROM hall.meeting_membership_record r
-    WHERE r.council_meeting=target_meeting AND a.council_member=ANY(r.member_ids)
-      AND r.observed_at>=coalesce((SELECT observed_at FROM opening),'-infinity'::timestamptz))
+  WHERE NOT a.council_member=ANY(opening.member_ids)
   ORDER BY contact.last_name, contact.first_name, a.council_member LIMIT 1;
 $$;
 
