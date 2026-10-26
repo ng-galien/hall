@@ -87,6 +87,12 @@ BEGIN
       ERRCODE = 'HV901',
       MESSAGE = format('unknown council meeting %s', target_meeting);
   END IF;
+  -- @implements-requirement HALL-FR-ATT-090
+  IF EXISTS(SELECT FROM hall.council_meetings WHERE id = target_meeting AND started_at IS NOT NULL) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV102',
+      MESSAGE = 'a started council meeting cannot receive attendance';
+  END IF;
 
   SELECT id INTO active_term_id FROM hall.council_term WHERE ended_on IS NULL FOR UPDATE;
   PERFORM 1 FROM hall.council_member WHERE council_term=active_term_id AND term_ended_on IS NULL ORDER BY id FOR SHARE;
