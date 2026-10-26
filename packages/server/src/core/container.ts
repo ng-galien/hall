@@ -27,31 +27,12 @@ import { logIdleConnectionFailures } from "../infrastructure/postgres/idleConnec
 import { createPostgresMinutesClient } from "../infrastructure/postgres/minutesClient.js";
 import { createPostgresResourcesClient } from "../infrastructure/postgres/resourcesClient.js";
 import { createLiveEventBus, type LiveEventBus } from "../realtime/liveEvents.js";
-import { createAgendaItemRepository } from "../repositories/agendaItemRepository.js";
-import { createAttendanceRepository } from "../repositories/attendanceRepository.js";
-import { createBallotRepository } from "../repositories/ballotRepository.js";
 import { createContentTemplateRepository } from "../repositories/contentTemplateRepository.js";
-import type {
-  AgendaItemRepository,
-  AttendanceRepository,
-  BallotRepository,
-  ContentTemplateRepository,
-  CouncilBusinessRepository,
-  CouncilDecisionRepository,
-  CouncilMeetingRepository,
-  HallSettingsRepository,
-  MeetingRosterRepository,
-  UnitOfWork,
-} from "../repositories/contracts.js";
-import { createCouncilBusinessRepository } from "../repositories/councilBusinessRepository.js";
-import { createCouncilDecisionRepository } from "../repositories/councilDecisionRepository.js";
-import { createCouncilMeetingRepository } from "../repositories/councilMeetingRepository.js";
+import type { ContentTemplateRepository, HallSettingsRepository, UnitOfWork } from "../repositories/contracts.js";
 import { createHallSettingsRepository } from "../repositories/hallSettingsRepository.js";
-import { createMeetingRosterRepository } from "../repositories/meetingRosterRepository.js";
 import { createSecurityRepository, type SecurityRepository } from "../repositories/securityRepository.js";
 import { RequestContextStore } from "../security/requestContext.js";
 import { type AuthService, createAuthService } from "../services/authService.js";
-import { type BallotService, createBallotService } from "../services/ballotService.js";
 import { type ContentTemplateService, createContentTemplateService } from "../services/contentTemplateService.js";
 import { type CouncilBallotService, createCouncilBallotService } from "../services/councilBallotService.js";
 import { createCouncilBusinessBundleExportService } from "../services/councilBusinessBundleExportService.js";
@@ -61,7 +42,6 @@ import {
   createCouncilBusinessWorkspaceService,
 } from "../services/councilBusinessWorkspaceService.js";
 import { type CouncilDecisionService, createCouncilDecisionService } from "../services/councilDecisionService.js";
-import { type CouncilMeetingService, createCouncilMeetingService } from "../services/councilMeetingService.js";
 import { createDirectoryService, type DirectoryService } from "../services/directoryService.js";
 import {
   createDocumentaryResourceService,
@@ -75,10 +55,6 @@ import { createGeographicMapRenderer, type GeographicMapRenderer } from "../serv
 import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
 import { createMeetingNoticeService, type MeetingNoticeService } from "../services/meetingNoticeService.js";
-import {
-  createMeetingPreparationService,
-  type MeetingPreparationService,
-} from "../services/meetingPreparationService.js";
 import { createMinutesService, type MinutesService } from "../services/minutesService.js";
 import { createReferenceEntityResolver, type ReferenceEntityResolver } from "../services/referenceEntityResolver.js";
 import { createTemplateRenderingService, type TemplateRenderingService } from "../services/templateRendering.js";
@@ -111,22 +87,12 @@ export interface Cradle {
   councilClient: CouncilClient;
   unitOfWork: UnitOfWork;
   hallSettingsRepository: HallSettingsRepository;
-  councilMeetingRepository: CouncilMeetingRepository;
-  attendanceRepository: AttendanceRepository;
-  agendaItemRepository: AgendaItemRepository;
-  ballotRepository: BallotRepository;
-  councilDecisionRepository: CouncilDecisionRepository;
   resourcesClient: ResourcesClient;
   geographicLayersClient: GeographicLayersClient;
   geographicLayerService: GeographicLayerService;
-  meetingRosterRepository: MeetingRosterRepository;
-  councilBusinessRepository: CouncilBusinessRepository;
   contentTemplateRepository: ContentTemplateRepository;
   securityRepository: SecurityRepository;
   directoryService: DirectoryService;
-  councilMeetingService: CouncilMeetingService;
-  meetingPreparationService: MeetingPreparationService;
-  ballotService: BallotService;
   councilBallotService: CouncilBallotService;
   councilBusinessWorkspaceService: CouncilBusinessWorkspaceService;
   councilBusinessBundleExportService: ReturnType<typeof createCouncilBusinessBundleExportService>;
@@ -166,21 +132,11 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     }).singleton(),
     unitOfWork: asFunction(({ sqlExecutor }: { sqlExecutor: SqlExecutor }) => sqlExecutor).singleton(),
     hallSettingsRepository: asFunction(createHallSettingsRepository).singleton(),
-    councilMeetingRepository: asFunction(createCouncilMeetingRepository).singleton(),
-    attendanceRepository: asFunction(createAttendanceRepository).singleton(),
-    agendaItemRepository: asFunction(createAgendaItemRepository).singleton(),
-    ballotRepository: asFunction(createBallotRepository).singleton(),
-    councilDecisionRepository: asFunction(createCouncilDecisionRepository).singleton(),
-    meetingRosterRepository: asFunction(createMeetingRosterRepository).singleton(),
-    councilBusinessRepository: asFunction(createCouncilBusinessRepository).singleton(),
     contentTemplateRepository: asFunction(createContentTemplateRepository).singleton(),
     securityRepository: asFunction(createSecurityRepository).singleton(),
-    councilMeetingService: asFunction(createCouncilMeetingService).singleton(),
     minutesService: asFunction(createMinutesService).singleton(),
     councilDecisionService: asFunction(createCouncilDecisionService).singleton(),
     meetingNoticeService: asFunction(createMeetingNoticeService).singleton(),
-    meetingPreparationService: asFunction(createMeetingPreparationService).singleton(),
-    ballotService: asFunction(createBallotService).singleton(),
     councilBallotService: asFunction(createCouncilBallotService).singleton(),
     councilBusinessWorkspaceService: asFunction(createCouncilBusinessWorkspaceService).singleton(),
     councilBusinessBundleExportService: asFunction(createCouncilBusinessBundleExportService).singleton(),

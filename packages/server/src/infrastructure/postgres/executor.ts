@@ -9,10 +9,8 @@ import { compileQuery, type SqlExecutor, type SqlParameters, type SqlRunResult }
 import type { SqlQueryName } from "../database/queries.js";
 import { logIdleConnectionFailures } from "./idleConnectionFailures.js";
 import {
-  postgresBallotVoteConfidentialitySchema,
-  postgresCouncilBusinessTitleUniquenessSchema,
-  postgresPublicBallotVotesBody,
-  postgresPublicMethodForBallotsBody,
+  formerMeetingEngineTables,
+  postgresFormerMeetingEngineRemoval,
   postgresSchema,
   postgresTables,
   postgresUserContactMigration,
@@ -40,18 +38,18 @@ export async function initializeServerSchema(
     if (mode === "verify-only") throw new Error("PostgreSQL schema is absent; run hall migrate before starting Hall");
     await client.query(postgresSchema);
   } else {
-    const expected = [...postgresTables].sort();
-    if (tables.length !== expected.length || tables.some((table, index) => table !== expected[index])) {
+    const formerTables: readonly string[] = formerMeetingEngineTables;
+    const serverTables: readonly string[] = postgresTables;
+    if (
+      serverTables.some((table) => !tables.includes(table)) ||
+      tables.some((table) => !serverTables.includes(table) && !formerTables.includes(table))
+    ) {
       throw new Error("Unsupported PostgreSQL schema; inspect compatibility before running hall migrate");
     }
-    const votesColumns = await client.query<{ column_name: string }>(
-      `SELECT column_name FROM information_schema.columns
-       WHERE table_schema = current_schema() AND table_name = 'votes'`,
-    );
-    if (!votesColumns.rows.some((row) => row.column_name === "position")) {
-      throw new Error("Obsolete PostgreSQL schema; inspect compatibility before running hall migrate");
-    }
     if (mode === "verify-only") {
+      if (tables.some((table) => formerTables.includes(table))) {
+        throw new Error("Former meeting engine tables remain; run hall migrate before starting Hall");
+      }
       const userColumns = await client.query<{ column_name: string }>(
         `SELECT column_name FROM information_schema.columns
          WHERE table_schema = current_schema() AND table_name = 'users'`,
@@ -68,46 +66,18 @@ export async function initializeServerSchema(
   if (mode === "automatic") {
     await client.query(postgresUserContactMigration);
     await client.query(postgresUserRoleCatalogSchema);
-    await client.query(postgresBallotVoteConfidentialitySchema);
-    await client.query(postgresCouncilBusinessTitleUniquenessSchema);
+    await client.query(postgresFormerMeetingEngineRemoval);
   }
 }
 
 async function verifyServerInvariants(client: PoolClient): Promise<void> {
   const result = await client.query<{ valid: boolean }>(
-    `SELECT
-       (SELECT count(*) = 2
-        FROM pg_catalog.pg_trigger t
-        JOIN pg_catalog.pg_proc p ON p.oid = t.tgfoid
-        JOIN pg_catalog.pg_language l ON l.oid = p.prolang
-        WHERE NOT t.tgisinternal AND t.tgenabled = 'O'
-          AND NOT p.prosecdef AND p.proconfig IS NULL
-          AND p.pronargs = 0 AND p.prorettype = 'trigger'::regtype AND l.lanname = 'plpgsql'
-          AND t.tgqual IS NULL AND t.tgnargs = 0
-          AND ((t.tgname = 'votes_require_public_ballot'
-                AND t.tgrelid = 'public.votes'::regclass AND t.tgtype = 23 AND t.tgattr::text = ''
-                AND p.oid = to_regprocedure('public.enforce_public_ballot_votes()') AND p.prosrc = $1)
-            OR (t.tgname = 'ballots_with_votes_require_public_method'
-                AND t.tgrelid = 'public.ballots'::regclass AND t.tgtype = 19
-                AND t.tgattr::text = (SELECT attnum::text FROM pg_catalog.pg_attribute
-                  WHERE attrelid = 'public.ballots'::regclass AND attname = 'method')
-                AND p.oid = to_regprocedure('public.enforce_public_method_for_ballots_with_votes()') AND p.prosrc = $2)))
-       AND EXISTS (
-         SELECT FROM pg_catalog.pg_constraint c
-         WHERE c.conrelid = 'public.user_roles'::regclass AND c.conname = 'user_roles_role_check'
-           AND pg_catalog.pg_get_constraintdef(c.oid) LIKE '%councillor%'
-       )
-       AND EXISTS (
-         SELECT FROM pg_catalog.pg_index i
-         WHERE i.indexrelid = to_regclass('public.one_council_business_title_per_folder')
-           AND i.indrelid = 'public.council_business'::regclass
-           AND i.indisunique AND i.indisvalid AND i.indisready
-           AND i.indnkeyatts = 2 AND i.indnatts = 2 AND i.indpred IS NULL AND i.indexprs IS NULL
-           AND i.indkey::text = (SELECT string_agg(attnum::text, ' ' ORDER BY CASE attname WHEN 'folder_path' THEN 1 ELSE 2 END)
-             FROM pg_catalog.pg_attribute WHERE attrelid = 'public.council_business'::regclass
-               AND attname IN ('folder_path', 'title'))
-       ) AS valid`,
-    [postgresPublicBallotVotesBody, postgresPublicMethodForBallotsBody],
+    `SELECT EXISTS (
+       SELECT FROM pg_catalog.pg_constraint c
+       WHERE c.conrelid = to_regclass(format('%I.user_roles', current_schema()))
+         AND c.conname = 'user_roles_role_check'
+         AND pg_catalog.pg_get_constraintdef(c.oid) LIKE '%councillor%'
+     ) AS valid`,
   );
   if (result.rows[0]?.valid !== true) {
     throw new Error("Server schema invariants require migration; run hall migrate before starting Hall");

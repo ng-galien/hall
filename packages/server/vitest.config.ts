@@ -30,14 +30,6 @@ export default defineConfig({
         "src/domain/documentPolicy.ts": { statements: 100, functions: 100, lines: 100 },
         "src/services/hallSettingsService.ts": { 100: true },
         "src/services/meetingContentPolicy.ts": { 100: true },
-        "src/services/participationEvidence.ts": { 100: true },
-        "src/services/{ballotService,councilMeetingService,meetingPreparationService,meetingContentPolicy,meetingContext,participationEvidence,reconvocationPolicy}.ts":
-          {
-            statements: 88,
-            branches: 83,
-            functions: 98,
-            lines: 94,
-          },
       },
     },
   },

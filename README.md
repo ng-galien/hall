@@ -7,7 +7,7 @@ Hall supports the work of a French municipal council: preparing council business
 Hall is an npm workspace organized around explicit architectural boundaries:
 
 - `@hall/contracts`: dependency-free identifiers and shared types.
-- `@hall/domain`: aggregates, state machines, invariants, and domain events.
+- `@hall/domain`: aggregates, invariants, and domain events.
 - `@hall/api-contract`: transport schemas and DTOs.
 - `@hall/postgres`: PostgreSQL migrations, repositories, and pgTAP tests.
 - `@hall/server`: Express composition root and HTTP API.

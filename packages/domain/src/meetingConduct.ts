@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { matchLiteral } from "./match.js";
+import type { MeetingStatus } from "./model.js";
 
 const id = z.uuid();
 const time = z.iso.datetime({ offset: true });
@@ -126,3 +128,13 @@ export const recordMeetingReconvocationSchema = z
 export type RecordMeetingAttendanceEvents = z.infer<typeof recordMeetingAttendanceEventsSchema>;
 export type RecordMeetingQuorum = z.infer<typeof recordMeetingQuorumSchema>;
 export type RecordMeetingReconvocation = z.infer<typeof recordMeetingReconvocationSchema>;
+
+export function meetingAgendaCanChange(status: MeetingStatus): boolean {
+  return matchLiteral(status, {
+    draft: () => true,
+    scheduled: () => true,
+    inProgress: () => false,
+    closed: () => false,
+    cancelled: () => false,
+  });
+}

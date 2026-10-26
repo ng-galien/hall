@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  meetingAgendaCanChange,
   meetingConductStateSchema,
   meetingQuorumObservationSchema,
   meetingReconvocationSchema,
@@ -142,5 +143,15 @@ describe("meeting conduct commands", () => {
     expect(recordMeetingReconvocationSchema.parse(command).firstNoticeEvidence).toBe("Convocation du 26 septembre");
     expect(() => recordMeetingReconvocationSchema.parse({ ...command, renewedNoticeEvidence: "   " })).toThrow();
     expect(() => recordMeetingReconvocationSchema.parse({ ...command, agendaItemIds: [] })).toThrow();
+  });
+});
+
+describe("meeting agenda changes", () => {
+  it("allows agenda changes only before the meeting opens", () => {
+    expect(meetingAgendaCanChange("draft")).toBe(true);
+    expect(meetingAgendaCanChange("scheduled")).toBe(true);
+    expect(meetingAgendaCanChange("inProgress")).toBe(false);
+    expect(meetingAgendaCanChange("closed")).toBe(false);
+    expect(meetingAgendaCanChange("cancelled")).toBe(false);
   });
 });

@@ -6386,7 +6386,7 @@
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Siren affordances are derived in PostgreSQL. This first connection keeps the RBAC intentionally narrow: only the administrator role receives documentary mutation affordances. The role matrix can later move to relations without changing the Siren contract.",
+          "statement": "Siren affordances are derived in PostgreSQL from the permissions the server installs for the caller. hall.can_write_location is the single write predicate per location for both accepted writes and documentary affordances: an administrator writes everywhere, common folders follow workspace.write, personal folders follow personal-workspaces.manage, and a caller holding personal-workspace.write writes only inside the personal folder of their own contact while their mandate is active.",
           "sourceIds": []
         },
         {

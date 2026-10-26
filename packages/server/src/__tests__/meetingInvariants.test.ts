@@ -2,7 +2,6 @@ import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import type { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 import { validateServerConfig } from "../core/config.js";
-import { hasThreeClearDays } from "../services/reconvocationPolicy.js";
 import {
   createPostgresHttpTestServer,
   createTestCouncilMember,
@@ -112,13 +111,6 @@ async function openWithoutQuorumThenExplicitlyClose(agent: TestAgent, pool: Pool
 }
 
 describe("council meeting invariants", () => {
-  it("computes the three clear days of a second notice from local calendar dates", () => {
-    expect(hasThreeClearDays("2026-09-10T23:59:00+02:00", "2026-09-14T00:00:00+02:00")).toBe(true);
-    expect(hasThreeClearDays("2026-09-10T00:01:00+02:00", "2026-09-13T23:59:00+02:00")).toBe(false);
-    expect(hasThreeClearDays("2026-09-10T12:00:00+02:00", "2026-09-09T18:30:00+02:00")).toBe(false);
-    expect(hasThreeClearDays("2026-03-27T23:30:00+01:00", "2026-03-31T00:00:00+02:00")).toBe(true);
-  });
-
   it("captures the serving council when the meeting opens, not when it is scheduled", async () => {
     const { agent, pool } = await createPostgresHttpTestServer();
     const context = {

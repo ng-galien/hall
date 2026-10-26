@@ -373,14 +373,14 @@ it(
       expect((await (await request(`/users/${accountBefore.id}`)).json()).properties).toEqual(accountBefore);
       expect(await resource(id)).toEqual(before);
       await stop();
-      await pool.query("DROP TRIGGER votes_require_public_ballot ON public.votes");
+      await pool.query("ALTER TABLE public.user_roles DROP CONSTRAINT user_roles_role_check");
       const missingInvariantStart = command(process.execPath, [cli, "start", "--env-file", envFile]);
       expect(missingInvariantStart.status).not.toBe(0);
       expect(missingInvariantStart.stderr).toContain("Server schema invariants require migration");
       expect(
         (
           await pool.query(
-            "SELECT tgname FROM pg_trigger WHERE tgrelid='public.votes'::regclass AND tgname='votes_require_public_ballot'",
+            "SELECT conname FROM pg_constraint WHERE conrelid='public.user_roles'::regclass AND conname='user_roles_role_check'",
           )
         ).rows,
       ).toHaveLength(0);

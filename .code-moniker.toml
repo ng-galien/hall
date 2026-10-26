@@ -130,8 +130,6 @@ template_rendering_at_server_source = "source ~ '**/dir:packages/dir:server/dir:
 server_target = "target ~ '**/dir:packages/dir:server/dir:src/**' OR target.segment('external_pkg') = '@hall/server'"
 desktop_target = "target ~ '**/dir:packages/dir:desktop/dir:src/**' OR target.segment('external_pkg') = '@hall/desktop'"
 database_target = "target ~ '**/sdk:ts/path:node:sqlite/**' OR target.segment('external_pkg') = 'pg' OR target.segment('external_pkg') = 'embedded-postgres' OR target ~ '**/dir:packages/dir:postgres/**' OR target.segment('external_pkg') = '@hall/postgres' OR target ~ '**/dir:infrastructure/dir:database/**' OR target ~ '**/dir:infrastructure/dir:sqlite/**' OR target ~ '**/dir:infrastructure/dir:postgres/**'"
-state_machine_at_domain_source = "source ~ '**/dir:packages/dir:domain/dir:src/dir:state-machines/**'"
-state_machine_runtime_target = "target ~ '**/external_pkg:xstate/**'"
 authorization_at_server_permission_catalog_target = "target.name = 'apiPermissions'"
 authorization_at_server_command_policy_target = "target ~ '**/dir:packages/dir:server/dir:src/dir:api/module:apiCommandPolicy/**'"
 templating_grammar_runtime_target = "target ~ '**/external_pkg:unified/**' OR target ~ '**/external_pkg:remark-parse/**' OR target ~ '**/external_pkg:remark-stringify/**' OR target ~ '**/external_pkg:remark-directive/**' OR target ~ '**/external_pkg:remark-gfm/**' OR target ~ '**/external_pkg:remark-rehype/**' OR target ~ '**/external_pkg:rehype-stringify/**'"
