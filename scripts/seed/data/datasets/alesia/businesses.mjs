@@ -31,7 +31,7 @@ Le conseil est invité à dire s’il retient cette organisation et à désigner
     },
     {
       key: "property",
-      path: "Réserves et bâtiments",
+      path: "Réserves",
       name: "Réserves et bâtiments",
       committee: "supply",
       reportContent: `Le grenier de Cornu dispose de deux espaces couverts. L’espace nord reçoit 60 sacs de céréales, l’espace sud 40 sacs et une réserve gardée de 20 sacs. L’inventaire du matin établit le stock à 120 sacs.
@@ -128,7 +128,7 @@ Le relevé des distributions des vingt derniers jours sert de base à une nouvel
     },
     {
       key: "allies",
-      path: "Relations avec les alliés",
+      path: "Relations",
       name: "Relations avec les alliés",
       committee: "defense",
       reportContent: `Les liaisons avec les alliés au-delà des lignes romaines sont interrompues depuis douze jours. Deux messagers sont revenus sans avoir pu franchir la ligne extérieure.
@@ -175,7 +175,7 @@ Le passage de l’est est le plus court mais il est surveillé après le coucher
     },
     {
       key: "defense",
-      path: "Défense du plateau",
+      path: "Défense",
       name: "Défense du plateau",
       committee: "defense",
       reportContent: `La première ligne de défense a fait l’objet d’un bilan : trois secteurs sont à consolider, en priorité près des accès aux abris.
@@ -226,7 +226,7 @@ La commission présentera les besoins de consolidation de chaque secteur et l’
     },
     {
       key: "support",
-      path: "Équipes de soutien",
+      path: "Soutien",
       name: "Équipes de soutien",
       committee: "defense",
       reportContent: `Trois équipes de soutien travaillent pour l’oppidum : l’équipe des abris, l’équipe des convois intérieurs et l’équipe des réserves.
@@ -275,7 +275,7 @@ La commission propose d’appliquer les mêmes consignes de garde et de restitut
     },
     {
       key: "shelters",
-      path: "Accueil des habitants",
+      path: "Accueil",
       name: "Accueil des habitants",
       committee: "supply",
       reportContent: `Les abris accueillent 142 habitants. Merlin organise les soins près des sources et Viridomaros recense les besoins en eau et en couvertures.
@@ -311,7 +311,7 @@ Luctérios vérifiera avec les charpentiers si les cloisons peuvent être dépla
     },
     {
       key: "roads",
-      path: "Accès et convois",
+      path: "Accès",
       name: "Accès et convois",
       committee: "supply",
       reportContent: `Les convois relient le grenier aux abris par un chemin intérieur long d’environ 600 pas. Au passage le plus étroit, le croisement des porteurs et des chariots ralentit les distributions.

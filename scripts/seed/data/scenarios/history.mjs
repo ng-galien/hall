@@ -87,7 +87,7 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
     return closure;
   }
   async function plan(meeting, date, subjectKeys) {
-    await put(`/council-meetings/${meeting.id}/schedule`, { scheduledAt: date, location: meetingLocation });
+    if (date) await put(`/council-meetings/${meeting.id}/schedule`, { scheduledAt: date, location: meetingLocation });
     for (const [index, key] of subjectKeys.entries()) await schedule(meeting, key, index + 2);
   }
   return { at, schedule, open, vote, present, close, plan };

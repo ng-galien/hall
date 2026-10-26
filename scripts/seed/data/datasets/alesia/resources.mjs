@@ -2,19 +2,20 @@ import { randomUUID } from "node:crypto";
 import { makeDocx, makePng, makeXlsx } from "../../common/files.mjs";
 
 const folders = {
-  access: "Accès et convois",
-  shelters: "Accueil des habitants",
-  shelterCapacity: "Accueil des habitants/Capacités",
+  root: "",
+  access: "Accès",
+  shelters: "Accueil",
+  shelterCapacity: "Accueil/Capacités",
   council: "Conseil",
-  defense: "Défense du plateau",
-  defenseEstimates: "Défense du plateau/Seconde ligne/Estimations",
+  defense: "Défense",
+  secondLine: "Défense/Seconde ligne",
   legal: "Guide/Références juridiques",
   supply: "Ravitaillement",
-  allies: "Relations avec les alliés",
-  reserves: "Réserves et bâtiments",
-  reserveShelters: "Réserves et bâtiments/Abris",
-  support: "Équipes de soutien",
-  supportMeans: "Équipes de soutien/Moyens",
+  allies: "Relations",
+  reserves: "Réserves",
+  reserveShelters: "Réserves/Abris",
+  support: "Soutien",
+  supportMeans: "Soutien/Moyens",
   watch: "Veille",
 };
 
@@ -291,7 +292,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     {
       kind: "remote",
       name: "Code général des collectivités territoriales",
-      path: folders.legal,
+      path: folders.root,
       target: { kind: "url", url: "https://www.legifrance.gouv.fr/codes/id/LEGITEXT000006070633/" },
     },
     ["droit", "conseil municipal"],
@@ -321,7 +322,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   const layers = [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }];
   await createGeographicResource({
     name: "Défenses de Cornu",
-    path: folders.defense,
+    path: folders.root,
     tags: ["défense", "carte"],
     view,
     layers,
@@ -499,7 +500,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     {
       kind: "spreadsheet",
       name: "Chiffrage de la seconde ligne",
-      path: folders.defenseEstimates,
+      path: folders.root,
       document: defenseCostingWorkbook(daysFromNow),
     },
     ["défense", "chiffrage"],
@@ -522,7 +523,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   console.log("- Textes classés");
   const texts = [
     [
-      folders.council,
+      folders.root,
       "Situation de l’oppidum",
       ["conseil"],
       "## Situation de l’oppidum\n\nLes lignes romaines resserrent l’étau autour de Cornu. Vercingétorix réunit le conseil : garder le grenier, consolider les abris et obtenir des nouvelles des alliés.\n\nCommius prépare les messages tandis que Vercassivellaunos inspecte les défenses. Les pourparlers avec César porteront sur une trêve et le passage des habitants vulnérables ; aucun passage ne sera engagé avant accord sur les garanties.",
@@ -625,7 +626,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
       ],
     ],
     [
-      folders.reserves,
+      folders.root,
       "Inventaire du grenier de Cornu",
       "inventaire-grenier-cornu.pdf",
       [
@@ -658,7 +659,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
       ],
     ],
     [
-      folders.defense,
+      folders.secondLine,
       "Rapport - renforcement de la seconde ligne",
       "rapport-seconde-ligne.pdf",
       [

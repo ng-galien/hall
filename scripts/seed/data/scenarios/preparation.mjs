@@ -1,4 +1,3 @@
-import { daysFromNow } from "../common/dates.mjs";
 import { seedFirstMeeting } from "./history.mjs";
 
 export async function seedPreparation(api, fixture) {
@@ -8,11 +7,6 @@ export async function seedPreparation(api, fixture) {
     chair: roster.chair,
     secretary: roster.alternateSecretary,
   });
-  await conduct.plan(nextMeeting, daysFromNow(10, 18, 0), [
-    "secondDecision",
-    "secretDecision",
-    "preparedInformation",
-    "pendingQuestion",
-  ]);
-  console.log(`  Séance en préparation, datée, cinq points : /app/meetings/${nextMeeting.id}`);
+  await conduct.plan(nextMeeting, null, ["secondDecision", "secretDecision", "preparedInformation", "pendingQuestion"]);
+  console.log(`  Séance en préparation, sans date, cinq points : /app/meetings/${nextMeeting.id}`);
 }

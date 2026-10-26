@@ -4,7 +4,8 @@ import { seedPreparation } from "./scenarios/preparation.mjs";
 
 export const scenarios = {
   preparation: {
-    description: "Une séance close à trois scrutins, puis la séance suivante datée, en préparation, avec cinq points.",
+    description:
+      "Une séance close à trois scrutins, puis la séance suivante en préparation, sans date, avec cinq points.",
     run: seedPreparation,
   },
   default: {

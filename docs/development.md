@@ -31,11 +31,11 @@ Regular Playwright execution uses two lanes on one PostgreSQL server, with one d
 
 ## Demonstration dataset
 
-Alésia is the only maintained dataset. It is fictional and contains municipal settings, contacts, accounts, two committees of four members, eight businesses with their reports, documents and prepared subjects, two drawn maps, three spreadsheets of at least fifteen rows, calendar events, and document templates. Resources are classified in French folders: `Accès et convois`, `Accueil des habitants`, `Conseil`, `Défense du plateau`, `Guide/Références juridiques`, `Ravitaillement`, `Relations avec les alliés`, `Réserves et bâtiments`, `Équipes de soutien`, and `Veille`.
+Alésia is the only maintained dataset. It is fictional and contains municipal settings, contacts, accounts, two committees of four members, eight businesses with their reports, documents and prepared subjects, two drawn maps, three spreadsheets of at least fifteen rows, calendar events, and document templates. Resources are classified in French folders: `Accès`, `Accueil`, `Conseil`, `Défense`, `Guide/Références juridiques`, `Ravitaillement`, `Relations`, `Réserves`, `Soutien`, and `Veille`; the root keeps one resource of each kind used by the screen captures.
 
 | Scenario | Result |
 | --- | --- |
-| `preparation` | One closed meeting with three ballots, then the next meeting dated ten days ahead, in preparation, with five agenda items: minutes approval, two decision proposals, one information item and one open question |
+| `preparation` | One closed meeting with three ballots, then the next meeting in preparation, without a date, with five agenda items: minutes approval, two decision proposals, one information item and one open question |
 | `default` | Two closed meetings with three ballots each, plus one meeting in progress |
 | `minutes` | The same history with the current meeting closed, its minutes still editable, and the next meeting dated two weeks ahead |
 
