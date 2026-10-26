@@ -15,25 +15,24 @@ function postgresSqlState(error: unknown): string | null {
   return null;
 }
 
+// @implements-requirement HALL-FR-WSP-390
+// @implements-requirement HALL-FR-WSP-420
+// @implements-requirement HALL-FR-DIR-150
+// @implements-requirement HALL-FR-WSP-440
+const postgresProblems: ReadonlyMap<string, { readonly status: number; readonly code: string }> = new Map([
+  ["HV614", { status: 403, code: "permission_denied" }],
+  ["HV615", { status: 403, code: "permission_denied" }],
+  ["HV617", { status: 422, code: "councillor_requires_active_member" }],
+  ["HV707", { status: 409, code: "personal_workspace_resource_not_associable" }],
+  ["HV713", { status: 409, code: "council_business_report_not_deletable" }],
+]);
+
 export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
-  // @implements-requirement HALL-FR-WSP-390
-  // @implements-requirement HALL-FR-WSP-420
-  // @implements-requirement HALL-FR-DIR-150
-  // @implements-requirement HALL-FR-WSP-440
-  switch (postgresSqlState(error)) {
-    case "HV614":
-    case "HV615":
-      sendProblem(request, response, 403, "permission_denied");
-      return;
-    case "HV617":
-      sendProblem(request, response, 422, "councillor_requires_active_member");
-      return;
-    case "HV707":
-      sendProblem(request, response, 409, "personal_workspace_resource_not_associable");
-      return;
-    case "HV713":
-      sendProblem(request, response, 409, "council_business_report_not_deletable");
-      return;
+  const sqlState = postgresSqlState(error);
+  const postgresProblem = sqlState === null ? undefined : postgresProblems.get(sqlState);
+  if (postgresProblem) {
+    sendProblem(request, response, postgresProblem.status, postgresProblem.code);
+    return;
   }
   if (error instanceof URIError) {
     sendProblem(request, response, 400, "invalid_request");
