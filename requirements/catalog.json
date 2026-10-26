@@ -9582,6 +9582,47 @@
           "sourceIds": []
         }
       ]
+    },
+    "HALL-FR-DOC-560": {
+      "name": "USER_DOCUMENTATION_PDF_IS_GENERATED_ON_DEMAND",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-26"
+      },
+      "statement": "Hall produit à la demande, depuis l’application, le PDF complet de la documentation utilisateur en vigueur, sans fichier préconstruit.",
+      "acceptanceCriteria": [
+        "Dans l’aire Documentation, l’action « Exporter la documentation en PDF » fait produire le PDF par le serveur au moment du clic, à partir de la documentation française que sert le client en vigueur.",
+        "Le PDF contient une page de titre, un sommaire cliquable, un signet par page de documentation dans l’ordre du sommaire et la pagination de chaque feuille.",
+        "Le rendu utilise le navigateur Chromium que Hall emploie pour ses autres documents ; seule la vue d’impression de la documentation’est rendue avec JavaScript, et seules les ressources de sa propre origine sont chargées.",
+        "Aucun PDF ni rendu HTML de la documentation n’est conservé dans le dépôt ni embarqué dans le paquet d’installation."
+      ],
+      "clauses": [
+        {
+          "key": "on-demand",
+          "origin": "product",
+          "statement": "Dans l’aire Documentation, l’action « Exporter la documentation en PDF » fait produire le PDF par le serveur au moment du clic, à partir de la documentation française que sert le client en vigueur.",
+          "sourceIds": []
+        },
+        {
+          "key": "structure",
+          "origin": "product",
+          "statement": "Le PDF contient une page de titre, un sommaire cliquable, un signet par page de documentation dans l’ordre du sommaire et la pagination de chaque feuille.",
+          "sourceIds": []
+        },
+        {
+          "key": "engine",
+          "origin": "product",
+          "statement": "Le rendu utilise le navigateur Chromium que Hall emploie pour ses autres documents ; seule la vue d’impression de la documentation’est rendue avec JavaScript, et seules les ressources de sa propre origine sont chargées.",
+          "sourceIds": []
+        },
+        {
+          "key": "nothing-stored",
+          "origin": "product",
+          "statement": "Aucun PDF ni rendu HTML de la documentation n’est conservé dans le dépôt ni embarqué dans le paquet d’installation.",
+          "sourceIds": []
+        }
+      ]
     }
   }
 }

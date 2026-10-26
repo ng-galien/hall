@@ -7,6 +7,11 @@ export interface PdfRenderInput {
   footerHtml: string;
 }
 
+export interface DocumentationPrintInput {
+  url: string;
+  footerHtml: string;
+}
+
 export interface PdfAttachment {
   id: string;
   content: Buffer;
@@ -25,6 +30,54 @@ function annotationUri(annotation: PDFDict): string | null {
   const action = annotation.lookupMaybe(PDFName.of("A"), PDFDict);
   const uri = action?.lookupMaybe(PDFName.of("URI"), PDFString, PDFHexString);
   return uri?.decodeText() ?? null;
+}
+
+function originOf(url: string): string | null {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
+export async function printDocumentation(input: DocumentationPrintInput): Promise<Buffer> {
+  const printOrigin = originOf(input.url);
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext({
+      javaScriptEnabled: true,
+      serviceWorkers: "block",
+      locale: "fr-FR",
+      colorScheme: "light",
+    });
+    await context.route("**/*", (route) => {
+      const url = route.request().url();
+      const allowed =
+        url.startsWith("about:") ||
+        url.startsWith("data:") ||
+        url.startsWith("blob:") ||
+        (printOrigin !== null && originOf(url) === printOrigin);
+      return allowed ? route.continue() : route.abort();
+    });
+    const page = await context.newPage();
+    await page.goto(input.url, { waitUntil: "load" });
+    await page.waitForSelector("html[data-docs-print-ready]", { state: "attached", timeout: 60_000 });
+    await page.evaluate("document.fonts.ready.then(() => true)");
+    const bytes = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      outline: true,
+      tagged: true,
+      displayHeaderFooter: true,
+      headerTemplate: "<span></span>",
+      footerTemplate: input.footerHtml,
+      margin: { top: "16mm", right: "16mm", bottom: "18mm", left: "16mm" },
+    });
+    await context.close();
+    return Buffer.from(bytes);
+  } finally {
+    await browser.close();
+  }
 }
 
 export function createDocumentRenderer(): DocumentRenderer {

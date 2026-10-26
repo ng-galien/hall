@@ -32,6 +32,7 @@ import { createCouncilMeetingsRouter } from "./routes/councilMeetingsRoutes.js";
 import { createCouncilMembersRouter } from "./routes/councilMembersRoutes.js";
 import { createCouncilTermsRouter } from "./routes/councilTermsRoutes.js";
 import { createDocumentaryResourcesRouter } from "./routes/documentaryResourcesRoutes.js";
+import { createDocumentationRouter } from "./routes/documentationRoutes.js";
 import { createGeographicLayersRouter } from "./routes/geographicLayersRoutes.js";
 import { createMeetingNoticesRouter } from "./routes/meetingNoticesRoutes.js";
 import { createMinutesRouter } from "./routes/minutesRoutes.js";
@@ -116,6 +117,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api/resources", createDocumentaryResourcesRouter(container.cradle));
   app.use("/api/templates", createContentTemplatesRouter(container.cradle));
   app.use("/api/settings", createSettingsRouter(container.cradle));
+  app.use("/api/documentation", createDocumentationRouter(container.cradle));
   app.use("/api", (request, response) => sendProblem(request, response, 404, "route_not_found"));
 
   if (config.clientDirectory && existsSync(join(config.clientDirectory, "index.html"))) {

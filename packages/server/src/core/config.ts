@@ -6,6 +6,7 @@ export interface ServerConfig {
   port: number;
   database: DatabaseConfig;
   clientDirectory?: string;
+  documentationPrintOrigin?: string;
   behindTlsProxy?: boolean;
   devAutoLogin?: boolean;
   bootstrapToken?: string;
@@ -39,6 +40,9 @@ export function configFromEnvironment(): ServerConfig {
     port: Number.parseInt(process.env.SERVER_PORT ?? "3100", 10),
     database,
     clientDirectory: process.env.CLIENT_DIRECTORY,
+    documentationPrintOrigin:
+      process.env.HALL_DOCUMENTATION_PRINT_ORIGIN ??
+      (environment === "development" ? "http://127.0.0.1:5174" : undefined),
     behindTlsProxy: process.env.HALL_BEHIND_TLS_PROXY === "true",
     devAutoLogin: process.env.HALL_DEV_AUTO_LOGIN === "true",
     bootstrapToken: process.env.HALL_BOOTSTRAP_TOKEN,
@@ -74,6 +78,23 @@ export function validateServerConfig(config: ServerConfig): void {
     }
     if (!["http:", "https:"].includes(parsed.protocol) || parsed.origin !== origin) {
       throw new Error(`HALL_ALLOWED_ORIGINS entries must be exact HTTP(S) origins: ${origin}`);
+    }
+  }
+  if (config.documentationPrintOrigin) {
+    let parsed: URL | null = null;
+    try {
+      parsed = new URL(config.documentationPrintOrigin);
+    } catch {
+      parsed = null;
+    }
+    if (
+      !parsed ||
+      !["http:", "https:"].includes(parsed.protocol) ||
+      parsed.origin !== config.documentationPrintOrigin
+    ) {
+      throw new Error(
+        `HALL_DOCUMENTATION_PRINT_ORIGIN must be an exact HTTP(S) origin: ${config.documentationPrintOrigin}`,
+      );
     }
   }
   if (!isLoopbackHost(config.host) && !config.behindTlsProxy) {
