@@ -33,7 +33,9 @@ async function withProbeSchema(test: (client: PoolClient) => Promise<void>): Pro
 
 async function createFormerTables(client: PoolClient): Promise<void> {
   for (const table of formerMeetingEngineTables) await client.query(`CREATE TABLE ${table} (id TEXT PRIMARY KEY)`);
-  await client.query("CREATE FUNCTION enforce_public_ballot_votes() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'");
+  await client.query(
+    "CREATE FUNCTION enforce_public_ballot_votes() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'",
+  );
 }
 
 describe("former meeting engine tables", () => {
