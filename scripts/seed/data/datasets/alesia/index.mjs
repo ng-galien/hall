@@ -5,9 +5,12 @@ import { seedResources } from "./resources.mjs";
 import { seedTemplates } from "./templates.mjs";
 
 export async function seedAlesia(api, options) {
-  const { members, memberContactIds, caesarContactId } = await seedDirectory(api, { daysFromNow, ...options });
+  const { members, memberContactIds, caesarContactId, committees } = await seedDirectory(api, {
+    daysFromNow,
+    ...options,
+  });
   await seedResources(api, { daysFromNow, memberContactIds, caesarContactId });
-  const subjects = await seedBusinesses(api);
+  const subjects = await seedBusinesses(api, { committees });
   await seedTemplates(api);
   const memberLabels = {
     Commius: "Commius l’Atrébate",
@@ -110,6 +113,16 @@ Après échange, le conseil retient deux conditions d’exécution :
 2. présenter chaque soir l’avancement des travaux et les matériaux consommés.
 
 ${memberRef("Vercingétorix")} soumet le projet ainsi précisé au scrutin public.`,
+      roadRepairs: `### Travaux sur le chemin intérieur
+
+${memberRef("Drappès")} présente l’inventaire des chemins de liaison. Les ornières près du grenier et les pierres déchaussées au passage des abris ralentissent chaque convoi d’environ un quart d’heure.
+
+${memberRef("Commius")} demande que les travaux n’interrompent pas les distributions. L’équipe des convois propose de travailler par moitié de chemin, en laissant toujours un passage libre.
+
+Le conseil retient :
+
+- une remise en état par tronçons, sans fermeture complète du chemin ;
+- un relevé des temps de parcours avant et après les travaux.`,
       approval: `### Lecture du procès-verbal précédent
 
 ${memberRef("Convictolitavis")} relit les passages relatifs aux réserves, aux pouvoirs et aux résultats des scrutins. Les membres vérifient les quantités consignées ainsi que les noms des conseillers ayant pris part aux votes.
@@ -164,6 +177,7 @@ ${memberRef("Vercassivellaunos")} demande de conserver un accès permanent pour 
       all: Object.values(members),
       chair: members["Vercingétorix"],
       secretary: members["Convictolitavis"],
+      alternateSecretary: members["Commius"],
       proxyGiver: members["Dumnacos"],
       proxyHolder: members["Vercassivellaunos"],
       excused: members["Cotuatos"],
@@ -172,7 +186,12 @@ ${memberRef("Vercassivellaunos")} demande de conserver un accès permanent pour 
     subjects: new Map([
       ["firstDecision", subjects.get("granaryAllocation")],
       ["rejectedDecision", subjects.get("grainAllocation")],
+      ["roadRepairs", subjects.get("supplyRoadRepairs")],
       ["information", subjects.get("shelterReport")],
+      ["preparedInformation", subjects.get("shelterCapacity")],
+      ["upcomingReview", subjects.get("firstDefenseLineReview")],
+      ["upcomingAllocation", subjects.get("grainAllocationReview")],
+      ["upcomingWatch", subjects.get("watchRelief")],
       ["secondDecision", subjects.get("supportFunding")],
       ["secretDecision", subjects.get("alliedCoordination")],
       ["deferredQuestion", subjects.get("shelterStudy")],
@@ -181,11 +200,11 @@ ${memberRef("Vercassivellaunos")} demande de conserver un accès permanent pour 
     ]),
     proxyDocument: {
       title: "Pouvoir de Dumnacos à Vercassivellaunos",
-      fileName: "pouvoir-demo.pdf",
-      folderPath: "",
+      fileName: "pouvoir-dumnacos.pdf",
+      folderPath: "Conseil",
       lines: [
-        "CONSEIL D’ALESIA",
-        "Dumnacos l’Andécave donne pouvoir a Vercassivellaunos l’Arverne pour la seance du conseil.",
+        "CONSEIL D’ALÉSIA",
+        "Dumnacos l’Andécave donne pouvoir à Vercassivellaunos l’Arverne pour la séance du conseil.",
         "Dumnacos reste auprès des porteurs ; Vercassivellaunos le représente au conseil.",
       ],
     },

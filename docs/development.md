@@ -31,13 +31,15 @@ Regular Playwright execution uses two lanes on one PostgreSQL server, with one d
 
 ## Demonstration dataset
 
-Alésia is the only maintained dataset. It is fictional and contains municipal settings, contacts, accounts, committees, businesses, resources, and document templates.
+Alésia is the only maintained dataset. It is fictional and contains municipal settings, contacts, accounts, two committees of four members, eight businesses with their reports, documents and prepared subjects, two drawn maps, three spreadsheets of at least fifteen rows, calendar events, and document templates. Resources are classified in French folders: `Accès et convois`, `Accueil des habitants`, `Conseil`, `Défense du plateau`, `Guide/Références juridiques`, `Ravitaillement`, `Relations avec les alliés`, `Réserves et bâtiments`, `Équipes de soutien`, and `Veille`.
 
 | Scenario | Result |
 | --- | --- |
-| `preparation` | A future empty meeting ready for preparation |
-| `default` | Closed meetings plus one meeting in progress |
-| `minutes` | The same history with the current meeting closed and its minutes still editable |
+| `preparation` | One closed meeting with three ballots, then the next meeting dated ten days ahead, in preparation, with five agenda items: minutes approval, two decision proposals, one information item and one open question |
+| `default` | Two closed meetings with three ballots each, plus one meeting in progress |
+| `minutes` | The same history with the current meeting closed, its minutes still editable, and the next meeting dated two weeks ahead |
+
+The legal reference to article L2121-10 is created only when the server has Légifrance credentials; otherwise the loader prints a warning and continues.
 
 List or load a scenario through the public API:
 

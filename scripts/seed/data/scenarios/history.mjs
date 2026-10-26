@@ -1,16 +1,10 @@
 import { daysFromNow } from "../common/dates.mjs";
 
-export async function seedHistory(
-  api,
-  { roster, subjects, proxyDocument, meetingLocation, discussions },
-  { editableMinutes = false } = {},
-) {
-  const { get, post, put, patch, uploadPdf } = api;
+/** Meeting operations shared by the scenarios, bound to the dataset roles of the fixture. */
+export function createMeetingConduct(api, { roster, subjects, meetingLocation }) {
+  const { get, post, put, patch } = api;
   const memberList = roster.all;
-  const chairMemberId = roster.chair.id;
-  const secretaryMemberId = roster.secretary.id;
   const at = (base, minutes) => new Date(new Date(base).getTime() + minutes * 60_000).toISOString();
-  const proxy = await uploadPdf(proxyDocument);
   async function schedule(meeting, subjectKey, position) {
     const subject = subjects.get(subjectKey);
     if (!subject) throw new Error(`Unknown seeded subject: ${subjectKey}`);
@@ -20,7 +14,9 @@ export async function seedHistory(
       position,
     });
   }
-  async function open(meeting, date) {
+  async function open(meeting, date, proxy, officers = { chair: roster.chair, secretary: roster.secretary }) {
+    const chairMemberId = officers.chair.id;
+    const secretaryMemberId = officers.secretary.id;
     await put(`/council-meetings/${meeting.id}/prepare`, {
       scheduledAt: date,
       location: meetingLocation,
@@ -77,30 +73,54 @@ export async function seedHistory(
     const preview = await post("/ballot-previews", { agendaItemId: item.id, candidate });
     await post(`/ballot-previews/${preview.id}/confirm`, {});
   }
+  async function present(meeting, item, date, minute, duration, discussionSummary) {
+    await post(`/council-meetings/${meeting.id}/agenda-items/${item.id}/start`, { startedAt: at(date, minute) });
+    await patch(`/council-meetings/${meeting.id}/agenda-items/${item.id}/notes`, { discussionSummary });
+    await post(`/council-meetings/${meeting.id}/agenda-items/${item.id}/complete`, {
+      completedAt: at(date, minute + duration),
+    });
+  }
   async function close(meeting) {
     const closure = await post(`/council-meetings/${meeting.id}/close`, { closedAt: new Date().toISOString() });
     const draft = await get(`/minutes/${closure.minutes.id}`);
     await post(`/minutes/${draft.id}/generate`, { expectedVersion: draft.version });
     return closure;
   }
-  const first = await post("/council-meetings", {});
-  const firstItems = [
-    await schedule(first, "firstDecision", 1),
-    await schedule(first, "rejectedDecision", 2),
-    await schedule(first, "information", 3),
+  async function plan(meeting, date, subjectKeys) {
+    await put(`/council-meetings/${meeting.id}/schedule`, { scheduledAt: date, location: meetingLocation });
+    for (const [index, key] of subjectKeys.entries()) await schedule(meeting, key, index + 2);
+  }
+  return { at, schedule, open, vote, present, close, plan };
+}
+
+/** First closed meeting: three ballots and one information item, minutes generated. */
+export async function seedFirstMeeting(api, fixture, officers) {
+  const { discussions, proxyDocument } = fixture;
+  const conduct = createMeetingConduct(api, fixture);
+  const proxy = await api.uploadPdf(proxyDocument);
+  const first = await api.post("/council-meetings", {});
+  const items = [
+    await conduct.schedule(first, "firstDecision", 1),
+    await conduct.schedule(first, "rejectedDecision", 2),
+    await conduct.schedule(first, "roadRepairs", 3),
+    await conduct.schedule(first, "information", 4),
   ];
-  const firstDate = daysFromNow(-60);
-  const firstAttendance = await open(first, firstDate);
-  await vote(first, firstItems[0], firstAttendance, firstDate, 5, "public", 10, 2, discussions.firstDecision);
-  await vote(first, firstItems[1], firstAttendance, firstDate, 20, "public", 4, 8, discussions.rejectedDecision);
-  await post(`/council-meetings/${first.id}/agenda-items/${firstItems[2].id}/start`, { startedAt: at(firstDate, 35) });
-  await patch(`/council-meetings/${first.id}/agenda-items/${firstItems[2].id}/notes`, {
-    discussionSummary: discussions.information,
-  });
-  await post(`/council-meetings/${first.id}/agenda-items/${firstItems[2].id}/complete`, {
-    completedAt: at(firstDate, 45),
-  });
-  const { nextMeeting: second } = await close(first);
+  const date = daysFromNow(-60);
+  const attendance = await conduct.open(first, date, proxy, officers);
+  await conduct.vote(first, items[0], attendance, date, 5, "public", 10, 2, discussions.firstDecision);
+  await conduct.vote(first, items[1], attendance, date, 20, "public", 4, 8, discussions.rejectedDecision);
+  await conduct.vote(first, items[2], attendance, date, 35, "public", 11, 1, discussions.roadRepairs);
+  await conduct.present(first, items[3], date, 50, 10, discussions.information);
+  const { nextMeeting } = await conduct.close(first);
+  return { conduct, proxy, nextMeeting };
+}
+
+export async function seedHistory(api, fixture, { editableMinutes = false } = {}) {
+  const { get, post, put, patch } = api;
+  const { discussions } = fixture;
+  const { conduct, proxy, nextMeeting: second } = await seedFirstMeeting(api, fixture);
+  const { at, schedule, vote, close } = conduct;
+  const open = (meeting, date) => conduct.open(meeting, date, proxy);
 
   const approval1 = (await get(`/council-meetings/${second.id}/agenda-items`))[0];
   const grants = await schedule(second, "secondDecision", 2);
@@ -155,11 +175,18 @@ export async function seedHistory(
     ) {
       throw new Error("Minutes seed must provide an editable draft containing the recorded discussion");
     }
+    await conduct.plan(closure.nextMeeting, daysFromNow(14, 18, 0), [
+      "upcomingReview",
+      "upcomingAllocation",
+      "upcomingWatch",
+    ]);
     console.log(`  PV à corriger puis générer : /app/minutes/${draft.id}`);
-    console.log("  Deux PV historiques générés ; le troisième reste en brouillon, avec présences et résultats figés.");
+    console.log(
+      "  Deux PV historiques générés ; le troisième reste en brouillon, avec présences et résultats figés ; séance suivante datée.",
+    );
     return;
   }
   console.log(
-    `  Deux séances clôturées, sept scrutins terminés, une séance en cours : /app/meetings/${current.id}/live`,
+    `  Deux séances clôturées, huit scrutins terminés, une séance en cours : /app/meetings/${current.id}/live`,
   );
 }

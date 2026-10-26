@@ -92,26 +92,23 @@ export async function seedDirectory({ post, put }, { daysFromNow, password }) {
     name: "Commission défense et soutien",
     description: "Examine les besoins de défense du plateau et de coordination des équipes de soutien.",
   });
-  await post(`/council-committees/${supplyCommittee.id}/memberships`, {
-    contactId: members["Commius"].contactId,
-    role: "chair",
-    startedOn: daysFromNow(-100).slice(0, 10),
-  });
-  await post(`/council-committees/${supplyCommittee.id}/memberships`, {
-    contactId: members["Convictolitavis"].contactId,
-    role: "member",
-    startedOn: daysFromNow(-100).slice(0, 10),
-  });
-  await post(`/council-committees/${defenseCommittee.id}/memberships`, {
-    contactId: members["Luctérios"].contactId,
-    role: "chair",
-    startedOn: daysFromNow(-100).slice(0, 10),
-  });
-  await post(`/council-committees/${defenseCommittee.id}/memberships`, {
-    contactId: members["Éporédorix"].contactId,
-    role: "member",
-    startedOn: daysFromNow(-100).slice(0, 10),
-  });
+  const committeeMemberships = [
+    [supplyCommittee, "Commius", "chair"],
+    [supplyCommittee, "Convictolitavis", "member"],
+    [supplyCommittee, "Viridomaros", "member"],
+    [supplyCommittee, "Merlin", "member"],
+    [defenseCommittee, "Luctérios", "chair"],
+    [defenseCommittee, "Éporédorix", "member"],
+    [defenseCommittee, "Vercassivellaunos", "member"],
+    [defenseCommittee, "Drappès", "member"],
+  ];
+  for (const [committee, firstName, role] of committeeMemberships) {
+    await post(`/council-committees/${committee.id}/memberships`, {
+      contactId: members[firstName].contactId,
+      role,
+      startedOn: daysFromNow(-100).slice(0, 10),
+    });
+  }
 
   console.log("- Utilisateurs, rôles et rattachements au conseil");
   const usersSpec = [
@@ -155,5 +152,10 @@ export async function seedDirectory({ post, put }, { daysFromNow, password }) {
   }
   console.log(`  Mot de passe de démonstration : ${password}`);
 
-  return { members, memberContactIds, caesarContactId: caesar.id };
+  return {
+    members,
+    memberContactIds,
+    caesarContactId: caesar.id,
+    committees: { supply: supplyCommittee, defense: defenseCommittee },
+  };
 }

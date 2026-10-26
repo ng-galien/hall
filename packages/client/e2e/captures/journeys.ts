@@ -6,12 +6,14 @@ export async function prepareMeeting(page: Page, prefix?: string) {
   const shot = async (name: string) => {
     if (prefix) await capture(page, `${prefix}/${name}`);
   };
+  await page.waitForLoadState("networkidle");
+  if (prefix) await capture(page, "ecrans/vue-d-ensemble");
   await page.getByRole("link", { name: "Séances" }).first().click();
   await expect(page.getByRole("heading", { name: "Séances du conseil" })).toBeVisible();
   await shot("01-liste-des-seances");
 
   await page
-    .getByRole("link", { name: /Conseil municipal 1/ })
+    .getByRole("link", { name: /Conseil municipal 2\b/ })
     .first()
     .click();
   await expect(page.getByTestId("meeting-edit-details")).toBeVisible();

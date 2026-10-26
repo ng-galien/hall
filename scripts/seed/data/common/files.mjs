@@ -194,9 +194,61 @@ function pngChunk(type, data) {
   return chunk;
 }
 
-export function makePng() {
-  const width = 320;
-  const height = 180;
+/**
+ * Generates an RGB PNG from simple shapes drawn in order on a plain background.
+ * Shapes: { kind: "rect", x, y, width, height, color, stroke? }, { kind: "disc", x, y, radius, color },
+ * { kind: "path", points: [[x, y], ...], width, color, dash? }.
+ */
+export function makePng({ width, height, background, shapes }) {
+  const pixels = Buffer.alloc(width * height * 3);
+  const paint = (x, y, [red, green, blue]) => {
+    const px = Math.round(x);
+    const py = Math.round(y);
+    if (px < 0 || py < 0 || px >= width || py >= height) return;
+    const offset = (py * width + px) * 3;
+    pixels[offset] = red;
+    pixels[offset + 1] = green;
+    pixels[offset + 2] = blue;
+  };
+  for (let y = 0; y < height; y += 1) for (let x = 0; x < width; x += 1) paint(x, y, background);
+  for (const shape of shapes) {
+    if (shape.kind === "rect") {
+      const stroke = shape.stroke ?? 0;
+      for (let y = shape.y; y < shape.y + shape.height; y += 1) {
+        for (let x = shape.x; x < shape.x + shape.width; x += 1) {
+          const onEdge =
+            x < shape.x + stroke ||
+            x >= shape.x + shape.width - stroke ||
+            y < shape.y + stroke ||
+            y >= shape.y + shape.height - stroke;
+          if (stroke === 0 || onEdge) paint(x, y, shape.color);
+        }
+      }
+    } else if (shape.kind === "disc") {
+      for (let y = -shape.radius; y <= shape.radius; y += 1) {
+        for (let x = -shape.radius; x <= shape.radius; x += 1) {
+          if (x * x + y * y <= shape.radius * shape.radius) paint(shape.x + x, shape.y + y, shape.color);
+        }
+      }
+    } else if (shape.kind === "path") {
+      let travelled = 0;
+      for (let index = 1; index < shape.points.length; index += 1) {
+        const [x0, y0] = shape.points[index - 1];
+        const [x1, y1] = shape.points[index];
+        const length = Math.hypot(x1 - x0, y1 - y0);
+        for (let step = 0; step <= length; step += 0.5) {
+          const along = travelled + step;
+          if (shape.dash && Math.floor(along / shape.dash) % 2 === 1) continue;
+          const x = x0 + ((x1 - x0) * step) / length;
+          const y = y0 + ((y1 - y0) * step) / length;
+          const half = shape.width / 2;
+          for (let dy = -half; dy <= half; dy += 1)
+            for (let dx = -half; dx <= half; dx += 1) paint(x + dx, y + dy, shape.color);
+        }
+        travelled += length;
+      }
+    }
+  }
   const header = Buffer.alloc(13);
   header.writeUInt32BE(width, 0);
   header.writeUInt32BE(height, 4);
@@ -204,13 +256,7 @@ export function makePng() {
   header[9] = 2;
   const scanlines = Buffer.alloc((width * 3 + 1) * height);
   for (let y = 0; y < height; y += 1) {
-    const row = y * (width * 3 + 1);
-    for (let x = 0; x < width; x += 1) {
-      const pixel = row + 1 + x * 3;
-      scanlines[pixel] = 30 + Math.round((x / width) * 50);
-      scanlines[pixel + 1] = 90 + Math.round((y / height) * 80);
-      scanlines[pixel + 2] = 150;
-    }
+    pixels.copy(scanlines, y * (width * 3 + 1) + 1, y * width * 3, (y + 1) * width * 3);
   }
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
