@@ -122,6 +122,7 @@
     overflow-y: auto;
     padding: var(--hall-space-2) var(--hall-space-7) var(--hall-space-6);
   }
+  .rollcall-attending { padding: 0 var(--hall-space-7) var(--hall-space-6); }
   .rollcall-tile {
     display: flex;
     overflow: hidden;
@@ -818,6 +819,7 @@
     .live-header-status { margin-left: auto; gap: var(--hall-space-2); }
     .rollcall-header { flex-wrap: wrap; gap: var(--hall-space-2); padding: var(--hall-space-3); }
     .rollcall-grid { padding: var(--hall-space-2) var(--hall-space-3); }
+    .rollcall-attending { padding: 0 var(--hall-space-3) var(--hall-space-3); }
     .rollcall-footer { flex-direction: column; align-items: stretch; gap: var(--hall-space-2); padding: var(--hall-space-3); }
     .rollcall-footer-actions { flex-wrap: wrap; }
     .rollcall-footer .live-primary-action { width: 100%; justify-content: center; }

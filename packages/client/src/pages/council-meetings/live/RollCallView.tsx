@@ -423,14 +423,16 @@ export function RollCallView({
           })}
         </ul>
         {conduct ? (
-          <MeetingAttendingPersons
-            entries={conduct.auxiliaryAttendances}
-            members={members}
-            canDeclare={meetingActions.can("meeting.declare-auxiliary-attendance")}
-            canCorrect={meetingActions.can("meeting.correct-auxiliary-attendance")}
-            onDeclare={meetingActions.declareAuxiliaryAttendance}
-            onCorrect={meetingActions.correctAuxiliaryAttendance}
-          />
+          <div className="rollcall-attending">
+            <MeetingAttendingPersons
+              entries={conduct.auxiliaryAttendances}
+              members={members}
+              canDeclare={meetingActions.can("meeting.declare-auxiliary-attendance")}
+              canCorrect={meetingActions.can("meeting.correct-auxiliary-attendance")}
+              onDeclare={meetingActions.declareAuxiliaryAttendance}
+              onCorrect={meetingActions.correctAuxiliaryAttendance}
+            />
+          </div>
         ) : null}
       </section>
       {mode === "opening" ? (
