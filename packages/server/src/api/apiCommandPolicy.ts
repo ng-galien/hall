@@ -126,7 +126,6 @@ export const apiCommandPolicies = {
   "meeting.reorder-agenda": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
   "agenda-item.schedule": { permissions: meetingsPrepare, auditTargetType: "agenda-item" },
   "agenda-item.record-recusal": { permissions: meetingsConduct, auditTargetType: "agenda-item" },
-  "agenda-item.record-presidency": { permissions: meetingsConduct, auditTargetType: "agenda-item" },
   "agenda-item.adjourn": { permissions: meetingsConduct, auditTargetType: "agenda-item" },
   "agenda-item.deprogram": { permissions: meetingsPrepare, auditTargetType: "agenda-item" },
   "agenda-item.reprogram": { permissions: meetingsPrepare, auditTargetType: "agenda-item" },

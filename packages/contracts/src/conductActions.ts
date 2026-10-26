@@ -19,7 +19,6 @@ export const conductBlockerSchema = z.discriminatedUnion("code", [
         "observationChronology",
         "reconvocationPending",
         "freshObservationsRequired",
-        "ballotChairUndetermined",
         "permissionDenied",
       ]),
     })
@@ -36,7 +35,7 @@ export const conductBlockerSchema = z.discriminatedUnion("code", [
   z.object({ code: z.literal("minutesDocumentMissing"), minutesId: z.uuid() }).strict(),
   z
     .object({
-      code: z.enum(["ballotChairNotPresent", "meetingSecretaryNotPresent"]),
+      code: z.enum(["ballotChairRecused", "ballotChairNotPresent", "meetingSecretaryNotPresent"]),
       councilMemberId: z.uuid().nullable(),
     })
     .strict(),

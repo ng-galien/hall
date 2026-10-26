@@ -1631,13 +1631,12 @@
         "state": "accepted",
         "since": "2026-10-26"
       },
-      "statement": "Le président du scrutin n’est pas choisi : Hall le détermine. C’est le président de séance en titre au moment du vote, sauf point présidé par un président élu ou désigné et sauf point où le président en titre est déporté ; il participe physiquement présent au scrutin et sa voix départage une égalité en scrutin public.",
+      "statement": "Le président du scrutin n’est pas choisi à chaque vote : c’est le président de séance en titre, désigné avant l’ouverture ou assigné par la dernière passation ; il participe physiquement présent au scrutin et sa voix départage une égalité en scrutin public.",
       "acceptanceCriteria": [
         "Le conseil est présidé par le maire et, à défaut, par celui qui le remplace ; en cas de partage égal des voix, sauf scrutin secret, la voix du président est prépondérante : le président du scrutin est le président de séance en titre au moment du vote.",
-        "Un membre intéressé à l’affaire ne prend pas part à la délibération : quand le président de séance en titre est déporté sur un point, ce point est présidé par son remplaçant de droit, le premier adjoint présent et non déporté dans l’ordre des nominations.",
-        "La candidature de scrutin ne porte pas de président ; Hall refuse une candidature qui en nomme un autre que le président déterminé, refuse une candidature dont le président déterminé ne fait pas partie des participants, et enregistre le président déterminé dans la prévisualisation et dans le scrutin.",
-        "L’écran de conduite de séance affiche le président du scrutin déterminé et le fondement de sa présidence ; il n’offre aucun choix du président.",
-        "Quand le président en titre est déporté et qu’aucun adjoint présent et non déporté ne peut être déterminé par son rang, Hall refuse le scrutin jusqu’à la désignation du président du point par le conseil."
+        "Hall retient comme président du scrutin le président de séance en titre : le président désigné avant l’ouverture, ou le membre assigné par la dernière passation enregistrée dans le formulaire de passation. Hall ne détermine aucun remplaçant de lui-même.",
+        "La candidature de scrutin ne porte pas de président ; Hall refuse une candidature qui en nomme un autre que le président en titre, refuse une candidature dont le président en titre ne fait pas partie des participants, et enregistre le président en titre dans la prévisualisation et dans le scrutin.",
+        "L’écran de conduite de séance affiche le président du scrutin et indique s’il est déporté sur le point ; il n’offre aucun choix du président au moment du vote."
       ],
       "clauses": [
         {
@@ -1652,32 +1651,21 @@
           "interpretation": "direct"
         },
         {
-          "key": "recused-chair",
-          "origin": "regulatory",
-          "statement": "Un membre intéressé à l’affaire ne prend pas part à la délibération : quand le président de séance en titre est déporté sur un point, ce point est présidé par son remplaçant de droit, le premier adjoint présent et non déporté dans l’ordre des nominations.",
-          "sourceIds": [
-            "S5",
-            "S16"
-          ],
-          "assessment": "verified",
-          "interpretation": "interpreted"
+          "key": "in-office",
+          "origin": "product",
+          "statement": "Hall retient comme président du scrutin le président de séance en titre : le président désigné avant l’ouverture, ou le membre assigné par la dernière passation enregistrée dans le formulaire de passation. Hall ne détermine aucun remplaçant de lui-même.",
+          "sourceIds": []
         },
         {
           "key": "determined-not-chosen",
           "origin": "product",
-          "statement": "La candidature de scrutin ne porte pas de président ; Hall refuse une candidature qui en nomme un autre que le président déterminé, refuse une candidature dont le président déterminé ne fait pas partie des participants, et enregistre le président déterminé dans la prévisualisation et dans le scrutin.",
+          "statement": "La candidature de scrutin ne porte pas de président ; Hall refuse une candidature qui en nomme un autre que le président en titre, refuse une candidature dont le président en titre ne fait pas partie des participants, et enregistre le président en titre dans la prévisualisation et dans le scrutin.",
           "sourceIds": []
         },
         {
           "key": "displayed",
           "origin": "product",
-          "statement": "L’écran de conduite de séance affiche le président du scrutin déterminé et le fondement de sa présidence ; il n’offre aucun choix du président.",
-          "sourceIds": []
-        },
-        {
-          "key": "undetermined",
-          "origin": "product",
-          "statement": "Quand le président en titre est déporté et qu’aucun adjoint présent et non déporté ne peut être déterminé par son rang, Hall refuse le scrutin jusqu’à la désignation du président du point par le conseil.",
+          "statement": "L’écran de conduite de séance affiche le président du scrutin et indique s’il est déporté sur le point ; il n’offre aucun choix du président au moment du vote.",
           "sourceIds": []
         }
       ]
@@ -9121,7 +9109,7 @@
       "name": "AGENDA_ITEM_PRESIDENCY_IS_ELECTED_OR_DESIGNATED",
       "nature": "functional",
       "lifecycle": {
-        "state": "accepted",
+        "state": "retired",
         "since": "2026-10-26"
       },
       "statement": "Un point peut recevoir sa propre présidence : président élu par le conseil pour le compte financier unique, maire retiré au vote ; ou membre désigné par le conseil quand le président en titre est déporté sans adjoint déterminable.",
@@ -9180,11 +9168,13 @@
         "state": "accepted",
         "since": "2026-10-26"
       },
-      "statement": "Aucun scrutin n’est prévisualisé ni enregistré tant que le président du scrutin ou le secrétaire de séance en titre n’est pas physiquement présent.",
+      "statement": "Aucun scrutin n’est prévisualisé ni enregistré tant que le président de séance en titre est déporté sur le point ou n’est pas physiquement présent, ou que le secrétaire de séance en titre n’est pas physiquement présent.",
       "acceptanceCriteria": [
         "Le conseil est présidé par le maire ou son remplaçant et le secrétaire de séance est nommé par le conseil parmi ses membres.",
-        "Hall refuse la prévisualisation et la création d’un scrutin, avec un code dédié, quand la personne qui préside le scrutin ou le secrétaire en titre n’a pas une présence courante physique ; quand le président en titre ne préside pas le point (déport, compte financier unique), c’est la présence de la personne qui préside le scrutin qui est exigée.",
-        "L’écran de conduite reçoit ces refus comme blocages de la prévisualisation du scrutin, avec l’identité de l’officier absent, avant toute saisie du vote."
+        "Un membre intéressé à l’affaire ne prend pas part à la délibération : un président de séance déporté sur un point ne préside pas le vote de ce point.",
+        "Hall refuse la prévisualisation et la création d’un scrutin, avec un code dédié, quand le président de séance en titre est déporté sur le point ou n’a pas une présence courante physique, ou quand le secrétaire en titre n’a pas une présence courante physique ; le vote reste bloqué jusqu’à l’assignation d’un autre président ou secrétaire dans le formulaire de passation.",
+        "Un secrétaire de séance déporté sur un point reste secrétaire : il ne vote pas sur ce point et sa présence physique reste exigée.",
+        "L’écran de conduite reçoit ces refus comme blocages de la prévisualisation du scrutin, avec l’identité de l’officier en cause, avant toute saisie du vote."
       ],
       "clauses": [
         {
@@ -9199,15 +9189,31 @@
           "interpretation": "direct"
         },
         {
+          "key": "recused-chair",
+          "origin": "regulatory",
+          "statement": "Un membre intéressé à l’affaire ne prend pas part à la délibération : un président de séance déporté sur un point ne préside pas le vote de ce point.",
+          "sourceIds": [
+            "S5"
+          ],
+          "assessment": "verified",
+          "interpretation": "interpreted"
+        },
+        {
           "key": "presence",
           "origin": "product",
-          "statement": "Hall refuse la prévisualisation et la création d’un scrutin, avec un code dédié, quand la personne qui préside le scrutin ou le secrétaire en titre n’a pas une présence courante physique ; quand le président en titre ne préside pas le point (déport, compte financier unique), c’est la présence de la personne qui préside le scrutin qui est exigée.",
+          "statement": "Hall refuse la prévisualisation et la création d’un scrutin, avec un code dédié, quand le président de séance en titre est déporté sur le point ou n’a pas une présence courante physique, ou quand le secrétaire en titre n’a pas une présence courante physique ; le vote reste bloqué jusqu’à l’assignation d’un autre président ou secrétaire dans le formulaire de passation.",
+          "sourceIds": []
+        },
+        {
+          "key": "secretary-recused",
+          "origin": "product",
+          "statement": "Un secrétaire de séance déporté sur un point reste secrétaire : il ne vote pas sur ce point et sa présence physique reste exigée.",
           "sourceIds": []
         },
         {
           "key": "blockers",
           "origin": "product",
-          "statement": "L’écran de conduite reçoit ces refus comme blocages de la prévisualisation du scrutin, avec l’identité de l’officier absent, avant toute saisie du vote.",
+          "statement": "L’écran de conduite reçoit ces refus comme blocages de la prévisualisation du scrutin, avec l’identité de l’officier en cause, avant toute saisie du vote.",
           "sourceIds": []
         }
       ]
@@ -9219,18 +9225,19 @@
         "state": "accepted",
         "since": "2026-10-26"
       },
-      "statement": "La présidence peut passer en cours de séance par un geste horodaté : Hall propose le maire présent qui reprend la présidence ou le premier adjoint présent dans l’ordre des nominations, et n’accepte un conseiller qu’à défaut d’adjoint présent.",
+      "statement": "Tout retrait du président de séance, déport sur un point ou départ, se traite par le formulaire de passation : le secrétariat y assigne le président du prochain vote ; Hall propose par défaut le premier adjoint présent par rang.",
       "acceptanceCriteria": [
-        "Le maire empêché est remplacé par un adjoint dans l’ordre des nominations et, à défaut d’adjoint, par un conseiller désigné par le conseil ou, à défaut, pris dans l’ordre du tableau ; le conseil est présidé par le maire et, à défaut, par celui qui le remplace.",
-        "L’ordre des nominations des adjoints est leur rang dans la mandature ; quand aucun adjoint présent n’a de rang connu, Hall ne peut pas les ordonner et accepte chacun d’eux.",
-        "La passation est enregistrée pendant la séance ouverte, pour un membre physiquement présent, après le dernier mouvement de présence enregistré ; elle est immuable et devient le président en titre pour la suite de la séance.",
-        "Chaque passation est un événement de séance horodaté avec son fondement et le nom copié du membre, repris dans la preuve de conduite et mentionné au procès-verbal."
+        "Le maire empêché est remplacé par un adjoint dans l’ordre des nominations et, à défaut d’adjoint, par un conseiller désigné par le conseil ; le conseil est présidé par le maire et, à défaut, par celui qui le remplace.",
+        "Le formulaire de passation accepte comme président tout membre physiquement présent autre que le président en titre et non déporté sur le point en cours de discussion ; il propose par défaut le premier adjoint présent et non déporté dans l’ordre de son rang dans la mandature, sans proposition quand aucun tel adjoint n’a de rang connu ; l’ordre du tableau n’est pas modélisé.",
+        "Le maire qui revient reprend la présidence par le même formulaire.",
+        "La passation est enregistrée pendant la séance ouverte, après le dernier mouvement de présence enregistré ; elle est immuable et le membre assigné devient le président en titre pour la suite de la séance.",
+        "Chaque passation est un événement de séance horodaté avec son fondement (reprise par le maire, premier adjoint présent dans l’ordre des nominations, désignation par le conseil) et le nom copié du membre, repris dans la preuve de conduite et mentionné au procès-verbal."
       ],
       "clauses": [
         {
           "key": "statutory-order",
           "origin": "regulatory",
-          "statement": "Le maire empêché est remplacé par un adjoint dans l’ordre des nominations et, à défaut d’adjoint, par un conseiller désigné par le conseil ou, à défaut, pris dans l’ordre du tableau ; le conseil est présidé par le maire et, à défaut, par celui qui le remplace.",
+          "statement": "Le maire empêché est remplacé par un adjoint dans l’ordre des nominations et, à défaut d’adjoint, par un conseiller désigné par le conseil ; le conseil est présidé par le maire et, à défaut, par celui qui le remplace.",
           "sourceIds": [
             "S16",
             "S8"
@@ -9239,21 +9246,27 @@
           "interpretation": "direct"
         },
         {
-          "key": "nomination-order",
+          "key": "form",
           "origin": "product",
-          "statement": "L’ordre des nominations des adjoints est leur rang dans la mandature ; quand aucun adjoint présent n’a de rang connu, Hall ne peut pas les ordonner et accepte chacun d’eux.",
+          "statement": "Le formulaire de passation accepte comme président tout membre physiquement présent autre que le président en titre et non déporté sur le point en cours de discussion ; il propose par défaut le premier adjoint présent et non déporté dans l’ordre de son rang dans la mandature, sans proposition quand aucun tel adjoint n’a de rang connu ; l’ordre du tableau n’est pas modélisé.",
+          "sourceIds": []
+        },
+        {
+          "key": "resumption",
+          "origin": "product",
+          "statement": "Le maire qui revient reprend la présidence par le même formulaire.",
           "sourceIds": []
         },
         {
           "key": "gesture",
           "origin": "product",
-          "statement": "La passation est enregistrée pendant la séance ouverte, pour un membre physiquement présent, après le dernier mouvement de présence enregistré ; elle est immuable et devient le président en titre pour la suite de la séance.",
+          "statement": "La passation est enregistrée pendant la séance ouverte, après le dernier mouvement de présence enregistré ; elle est immuable et le membre assigné devient le président en titre pour la suite de la séance.",
           "sourceIds": []
         },
         {
           "key": "evidence",
           "origin": "product",
-          "statement": "Chaque passation est un événement de séance horodaté avec son fondement et le nom copié du membre, repris dans la preuve de conduite et mentionné au procès-verbal.",
+          "statement": "Chaque passation est un événement de séance horodaté avec son fondement (reprise par le maire, premier adjoint présent dans l’ordre des nominations, désignation par le conseil) et le nom copié du membre, repris dans la preuve de conduite et mentionné au procès-verbal.",
           "sourceIds": []
         }
       ]
@@ -9265,10 +9278,10 @@
         "state": "accepted",
         "since": "2026-10-26"
       },
-      "statement": "Le secrétariat de séance peut passer en cours de séance à un autre membre physiquement présent, par une nomination du conseil horodatée et mentionnée au procès-verbal.",
+      "statement": "Le secrétariat de séance peut passer en cours de séance à un autre membre physiquement présent, dans le même formulaire de passation, par une nomination du conseil horodatée et mentionnée au procès-verbal.",
       "acceptanceCriteria": [
         "Le conseil nomme un ou plusieurs de ses membres pour remplir les fonctions de secrétaire ; le maire ne désigne pas lui-même le secrétaire.",
-        "Hall enregistre la nomination d’un membre physiquement présent autre que le secrétaire en titre, comme décision du conseil ; elle est immuable et devient le secrétaire en titre pour la suite de la séance.",
+        "Le formulaire de passation enregistre la nomination d’un membre physiquement présent autre que le secrétaire en titre, comme décision du conseil ; elle est immuable et devient le secrétaire en titre pour la suite de la séance.",
         "Chaque nomination est un événement de séance horodaté repris dans la preuve de conduite et mentionné au procès-verbal."
       ],
       "clauses": [
@@ -9285,7 +9298,7 @@
         {
           "key": "gesture",
           "origin": "product",
-          "statement": "Hall enregistre la nomination d’un membre physiquement présent autre que le secrétaire en titre, comme décision du conseil ; elle est immuable et devient le secrétaire en titre pour la suite de la séance.",
+          "statement": "Le formulaire de passation enregistre la nomination d’un membre physiquement présent autre que le secrétaire en titre, comme décision du conseil ; elle est immuable et devient le secrétaire en titre pour la suite de la séance.",
           "sourceIds": []
         },
         {
@@ -9428,10 +9441,10 @@
         "state": "accepted",
         "since": "2026-10-26"
       },
-      "statement": "Le procès-verbal mentionne les passations de présidence et de secrétariat, la présidence propre d’un point et les personnes qui assistaient à la séance.",
+      "statement": "Le procès-verbal mentionne les passations de présidence et de secrétariat et les personnes qui assistaient à la séance.",
       "acceptanceCriteria": [
         "Le procès-verbal est rédigé par le ou les secrétaires et mentionne notamment la date et l’heure, les présents et représentés, le quorum, l’ordre du jour et les délibérations.",
-        "Les faits du procès-verbal copient ces événements de la preuve de conduite à la clôture ; le rendu les mentionne avec l’heure, le nom, l’office et le fondement, et les personnes qui assistaient avec leur qualité."
+        "Les faits du procès-verbal copient ces événements de la preuve de conduite à la clôture ; le rendu mentionne chaque passation avec l’heure, le nom, l’office et le fondement, et les personnes qui assistaient avec leur qualité quand elle est renseignée."
       ],
       "clauses": [
         {
@@ -9447,7 +9460,7 @@
         {
           "key": "rendering",
           "origin": "product",
-          "statement": "Les faits du procès-verbal copient ces événements de la preuve de conduite à la clôture ; le rendu les mentionne avec l’heure, le nom, l’office et le fondement, et les personnes qui assistaient avec leur qualité.",
+          "statement": "Les faits du procès-verbal copient ces événements de la preuve de conduite à la clôture ; le rendu mentionne chaque passation avec l’heure, le nom, l’office et le fondement, et les personnes qui assistaient avec leur qualité quand elle est renseignée.",
           "sourceIds": []
         }
       ]

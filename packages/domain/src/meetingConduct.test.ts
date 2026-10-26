@@ -86,7 +86,6 @@ describe("meeting conduct evidence", () => {
         {
           id: "99999999-9999-4999-8999-999999999999",
           councilMeetingId: meetingId,
-          agendaItemId: null,
           office: "chair",
           basis: "deputyInNominationOrder",
           councilMemberId: memberId,
@@ -111,7 +110,11 @@ describe("meeting conduct evidence", () => {
       currentAttendance: [attendance],
       canRecordAttendanceEvents: true,
       currentOfficers: { chairMemberId: memberId, secretaryMemberId: null },
-      officerHandoverOptions: { chair: [], secretary: [{ councilMemberId: memberId, basis: "councilNomination" }] },
+      officerHandoverOptions: {
+        chair: [],
+        secretary: [{ councilMemberId: memberId, basis: "councilNomination" }],
+        proposedChairMemberId: null,
+      },
       canRecordOfficerChange: true,
       canDeclareAuxiliaryAttendance: true,
       canRecordQuorum: true,

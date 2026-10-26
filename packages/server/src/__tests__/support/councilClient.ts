@@ -543,9 +543,6 @@ export function createTestCouncilClient(
     async recordAgendaItemRecusal() {
       throw new Error("Recusal acceptance requires the PostgreSQL council client");
     },
-    async recordAgendaItemPresidency() {
-      throw new Error("Presidency acceptance requires the PostgreSQL council client");
-    },
     async recordMeetingOfficerChange() {
       throw new Error("Conduct acceptance requires PostgreSQL");
     },

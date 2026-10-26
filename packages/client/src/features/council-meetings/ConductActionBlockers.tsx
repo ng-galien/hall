@@ -25,7 +25,7 @@ const labels = {
   ballotAlreadyExists: "conduct.blocker.ballotAlreadyExists",
   ballotInProgress: "conduct.blocker.ballotInProgress",
   minutesDocumentMissing: "conduct.blocker.minutesDocumentMissing",
-  ballotChairUndetermined: "conduct.blocker.ballotChairUndetermined",
+  ballotChairRecused: "conduct.blocker.ballotChairRecused",
   ballotChairNotPresent: "conduct.blocker.ballotChairNotPresent",
   meetingSecretaryNotPresent: "conduct.blocker.meetingSecretaryNotPresent",
   attendanceOutsideMembership: "conduct.blocker.attendanceOutsideMembership",

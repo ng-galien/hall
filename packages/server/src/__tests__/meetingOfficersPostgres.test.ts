@@ -14,8 +14,8 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 // @verifies-requirement HALL-FR-MTG-340
 // @verifies-requirement HALL-FR-ATT-140
 // @verifies-requirement HALL-FR-BAL-140
-// @verifies-requirement HALL-FR-BAL-330
-it("conducts handovers, attending persons and the item presidency through Siren actions", async () => {
+// @verifies-requirement HALL-FR-BAL-340
+it("conducts handovers through the form, attending persons and the ballot chair through Siren actions", async () => {
   const pool = new Pool({ connectionString: databaseUrl });
   await resetPostgresTestDatabase(pool);
   const server = await startHttpServer({
@@ -122,16 +122,16 @@ it("conducts handovers, attending persons and the item presidency through Siren 
 
     const opened = await send(`/api/council-meetings/${meeting.id}/conduct`, undefined, 200, "GET");
     const conduct = meetingConductWorkspaceSchema.parse(opened.properties);
-    expect(conduct.officerHandoverOptions.chair).toEqual([
-      { councilMemberId: deputy.id, basis: "deputyInNominationOrder" },
-    ]);
+    expect(conduct.officerHandoverOptions.chair.map((option) => option.councilMemberId).sort()).toEqual(
+      [deputy.id, councillor.id].sort(),
+    );
     expect(opened.actions.map((action: { name: string }) => action.name)).toEqual(
       expect.arrayContaining(["meeting.record-officer-change", "meeting.declare-auxiliary-attendance"]),
     );
 
     const refused = await send(
       `/api/council-meetings/${meeting.id}/officer-changes`,
-      { office: "chair", councilMemberId: councillor.id, observedAt: new Date().toISOString() },
+      { office: "chair", councilMemberId: mayor.id, observedAt: new Date().toISOString() },
       409,
     );
     expect(refused.code).toBe("meeting_officer_change_invalid");
@@ -169,30 +169,19 @@ it("conducts handovers, attending persons and the item presidency through Siren 
     );
     expect(member.code).toBe("auxiliary_attendance_invalid");
 
+    const recusalsPath = `/api/council-meetings/${meeting.id}/agenda-items/${item.id}/recusals`;
+    await send(
+      recusalsPath,
+      { councilMemberId: mayor.id, legalBasis: "personalInterest", declaredAt: new Date().toISOString() },
+      201,
+    );
     await send(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`, {
       startedAt: new Date().toISOString(),
     });
-    const recusalsPath = `/api/council-meetings/${meeting.id}/agenda-items/${item.id}/recusals`;
-    const beforeElection = await send(recusalsPath, undefined, 200, "GET");
-    const state = agendaItemRecusalsSchema.parse(beforeElection.properties);
-    expect(state.ballotChair).toMatchObject({ councilMemberId: mayor.id, basis: "meetingChair" });
-    expect(beforeElection.actions.map((action: { name: string }) => action.name)).toContain(
-      "agenda-item.record-presidency",
-    );
-    const elected = agendaItemRecusalsSchema.parse(
-      (
-        await send(
-          `/api/council-meetings/${meeting.id}/agenda-items/${item.id}/presidency`,
-          { councilMemberId: councillor.id, basis: "financialStatementElection", observedAt: new Date().toISOString() },
-          201,
-        )
-      ).properties,
-    );
-    expect(elected.ballotChair).toMatchObject({ councilMemberId: councillor.id, basis: "financialStatementElection" });
+    const state = agendaItemRecusalsSchema.parse((await send(recusalsPath, undefined, 200, "GET")).properties);
+    expect(state.ballotChair).toMatchObject({ councilMemberId: mayor.id, recused: true });
     const attendance = await council.listAttendance(context, meeting.id);
     const attendanceOf = (memberId: string) => attendance.find((entry) => entry.councilMemberId === memberId)!.id;
-    expect(elected.eligibleParticipantAttendanceIds).not.toContain(attendanceOf(mayor.id));
-
     const candidate = {
       procedure: "ordinaryMajority",
       mode: "public",
@@ -203,6 +192,18 @@ it("conducts handovers, attending persons and the item presidency through Siren 
       ],
       nonParticipations: [],
     };
+    const blocked = await send("/api/ballot-previews", { agendaItemId: item.id, candidate }, 409);
+    expect(blocked.code).toBe("ballot_officers_not_present");
+    const assigned = meetingConductWorkspaceSchema.parse(
+      (
+        await send(
+          `/api/council-meetings/${meeting.id}/officer-changes`,
+          { office: "chair", councilMemberId: councillor.id, observedAt: new Date().toISOString() },
+          201,
+        )
+      ).properties,
+    );
+    expect(assigned.currentOfficers.chairMemberId).toBe(councillor.id);
     await send(
       "/api/ballot-previews",
       { agendaItemId: item.id, candidate: { ...candidate, chairmanAttendanceId: attendanceOf(deputy.id) } },

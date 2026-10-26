@@ -9,7 +9,6 @@ import {
   declareMeetingAuxiliaryAttendanceSchema,
   prepareCouncilMeetingSchema,
   provisionInitialCouncilMeetingSchema,
-  recordAgendaItemPresidencySchema,
   recordAgendaItemRecusalSchema,
   recordMeetingAttendanceEventsSchema,
   recordMeetingAttendanceSchema,
@@ -460,23 +459,6 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
         .json(
           await changeMeeting(meeting.id, () =>
             councilClient.recordAgendaItemRecusal(item.id, recordAgendaItemRecusalSchema.parse(request.body)),
-          ),
-        );
-    },
-  );
-
-  router.post(
-    "/:meetingReference/agenda-items/:agendaItemId/presidency",
-    requireActionPermission("agenda-item.record-presidency"),
-    async (request, response) => {
-      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
-      const item = await requireMeetingAgendaItem(councilClient, meeting, routeParameter(request.params.agendaItemId));
-      response.locals.currentCouncilMeeting = meeting;
-      response
-        .status(201)
-        .json(
-          await changeMeeting(meeting.id, () =>
-            councilClient.recordAgendaItemPresidency(item.id, recordAgendaItemPresidencySchema.parse(request.body)),
           ),
         );
     },

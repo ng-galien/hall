@@ -34,7 +34,6 @@ const DiscussionItemProgress = createStageProgress([itemStages[0], itemStages[1]
 
 import { Modal, RequestErrorBanner } from "../../../components/Ui";
 import { liveBusinessTitle } from "../../../features/council-business/presentation";
-import { AgendaItemPresidencyDialog } from "../../../features/council-meetings/AgendaItemPresidencyDialog";
 import { AgendaItemRecusalDialog } from "../../../features/council-meetings/AgendaItemRecusalDialog";
 import { agendaSubjectPresentation } from "../../../features/council-meetings/AgendaSubjectGlyph";
 import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdictPresentation";
@@ -44,7 +43,6 @@ import {
   auxiliaryQualityLabel,
   officeLabel,
   officerBasisLabel,
-  presidencyBasisLabel,
 } from "../../../features/council-meetings/meetingOfficerPresentation";
 import { recusalBasisLabel } from "../../../features/council-meetings/recusalPresentation";
 import { DocumentaryResourceGlyph } from "../../../features/documents/DocumentaryResourceGlyph";
@@ -177,7 +175,6 @@ export function ConductView({
     `${selectedItem?.status}:${aggregate.ballots.length}:${JSON.stringify(aggregate.attendance)}`,
   );
   const [recusalOpen, setRecusalOpen] = useState(false);
-  const [presidencyOpen, setPresidencyOpen] = useState(false);
   const [officersOpen, setOfficersOpen] = useState(false);
   const [recusalDetailsOpen, setRecusalDetailsOpen] = useState(false);
   const selectedItemRef = useRef(selectedItem);
@@ -187,7 +184,6 @@ export function ConductView({
     setNotes(selectedItemRef.current?.discussionSummary ?? "");
     setVoteOpen(false);
     setRecusalOpen(false);
-    setPresidencyOpen(false);
     setRecusalDetailsOpen(false);
   }, [selectedItemId2]);
 
@@ -575,16 +571,14 @@ export function ConductView({
                 </>
               ) : null}
             </dl>
-            {conduct?.officerChanges.some((change) => change.agendaItemId === null) ? (
+            {conduct && conduct.officerChanges.length > 0 ? (
               <ul className="grid gap-1" data-testid="live-opening-handovers">
-                {conduct.officerChanges
-                  .filter((change) => change.agendaItemId === null)
-                  .map((change) => (
-                    <li key={change.id}>
-                      {formatTime(change.observedAt)} · {t(officeLabel(change.office))} ·{" "}
-                      <strong>{change.memberName}</strong> · {t(officerBasisLabel(change.basis))}
-                    </li>
-                  ))}
+                {conduct.officerChanges.map((change) => (
+                  <li key={change.id}>
+                    {formatTime(change.observedAt)} · {t(officeLabel(change.office))} ·{" "}
+                    <strong>{change.memberName}</strong> · {t(officerBasisLabel(change.basis))}
+                  </li>
+                ))}
               </ul>
             ) : null}
             {conduct && conduct.auxiliaryAttendances.length > 0 ? (
@@ -687,18 +681,7 @@ export function ConductView({
                 </PopoverContent>
               </Popover>
             ) : null}
-            {recusals.canRecordPresidency ? (
-              <Button variant="outline" data-testid="live-presidency-open" onClick={() => setPresidencyOpen(true)}>
-                {t("presidency.title")}
-              </Button>
-            ) : null}
           </div>
-          {recusals.state?.presidency ? (
-            <p data-testid="live-item-presidency">
-              {t("presidency.current")} : <strong>{recusals.state.presidency.memberName}</strong> ·{" "}
-              {t(presidencyBasisLabel(recusals.state.presidency.basis))}
-            </p>
-          ) : null}
           {hasVotingStage ? (
             <VotingItemProgress
               currentStep={String(progressIndex)}
@@ -1055,14 +1038,6 @@ export function ConductView({
           controller={recusals}
           members={members}
           onClose={() => setRecusalOpen(false)}
-        />
-      ) : null}
-      {presidencyOpen ? (
-        <AgendaItemPresidencyDialog
-          key={selectedItem.id}
-          controller={recusals}
-          members={members}
-          onClose={() => setPresidencyOpen(false)}
         />
       ) : null}
       {officersOpen && conduct ? (

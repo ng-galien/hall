@@ -30,7 +30,6 @@ function officerChange(change: OfficerChange): string {
     deputyInNominationOrder: () => "adjoint dans l’ordre des nominations",
     councilDesignation: () => "désignation par le conseil",
     councilNomination: () => "nomination par le conseil",
-    financialStatementElection: () => "élection par le conseil pour le compte financier unique",
   });
   return `${escapeHtml(date(change.observedAt))}, ${office} à ${escapeHtml(change.memberName)} (${basis})`;
 }
@@ -104,19 +103,13 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
         return `<li>${escapeHtml(recusal.memberName)} : ${basis}, déport déclaré le ${escapeHtml(date(recusal.declaredAt))}</li>`;
       });
     const recusalEvidence = declarations.length ? `<h4>Déports déclarés</h4><ul>${declarations.join("")}</ul>` : "";
-    const presidency = conduct.officerChanges
-      .filter((change) => change.agendaItemId === item.id)
-      .map((change) => `<p>Présidence du point : ${officerChange(change)}.</p>`)
-      .join("");
     const status =
       ballot?.completedAt && !item.adjournedAt
         ? ""
         : `<p>${outcome}${item.kind === "minutesApproval" ? " · Non arrêté" : ""}</p>`;
-    return `<section><h3>${item.agendaNumber}. ${escapeHtml(title)}</h3>${item.introducedAt ? `<p>Question ajoutée en séance le ${escapeHtml(date(item.introducedAt))}.</p>` : ""}${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${quorum}${recusalEvidence}${presidency}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>${individual}${nonParticipationNames}` : ""}</section>`;
+    return `<section><h3>${item.agendaNumber}. ${escapeHtml(title)}</h3>${item.introducedAt ? `<p>Question ajoutée en séance le ${escapeHtml(date(item.introducedAt))}.</p>` : ""}${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${quorum}${recusalEvidence}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>${individual}${nonParticipationNames}` : ""}</section>`;
   });
-  const handovers = conduct.officerChanges
-    .filter((change) => change.agendaItemId === null)
-    .map((change) => `<li>${officerChange(change)}</li>`);
+  const handovers = conduct.officerChanges.map((change) => `<li>${officerChange(change)}</li>`);
   const attending = conduct.auxiliaryAttendances.map(
     (entry) =>
       `<li>${escapeHtml(entry.name)} - ${matchLiteral(entry.quality, {

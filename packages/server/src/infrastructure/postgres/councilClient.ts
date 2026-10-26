@@ -97,7 +97,6 @@ const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV415: "ballot_officers_not_present",
   HV127: "meeting_officer_change_invalid",
   HV128: "auxiliary_attendance_invalid",
-  HV129: "agenda_item_presidency_invalid",
   HV150: "attendance_outside_membership",
 };
 
@@ -451,11 +450,6 @@ export function createPostgresCouncilClient({
     async declareMeetingAuxiliaryAttendance(id, input) {
       return meetingConductWorkspaceSchema.parse(
         await call(() => postgresCouncil.declareMeetingAuxiliaryAttendance(currentRequest(), id, input)),
-      );
-    },
-    async recordAgendaItemPresidency(id, input) {
-      return agendaItemRecusalsSchema.parse(
-        await call(() => postgresCouncil.recordAgendaItemPresidency(currentRequest(), id, input)),
       );
     },
     async agendaItemRecusals(id) {

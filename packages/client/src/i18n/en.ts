@@ -203,16 +203,13 @@ export const en = {
   "ballot.blank": "Blank ballots",
   "ballot.invalid": "Invalid ballots",
   "ballot.chairman": "Ballot chairman",
-  "ballot.chairUndetermined": "Not determined: the council designates the chair of this item",
-  "ballot.chairBasis.meetingChair": "Chair of the meeting in office",
-  "ballot.chairBasis.statutoryReplacement":
-    "Replacement of the recused chair, first present deputy in the order of nominations",
-  "ballot.chairBasis.financialStatementElection": "Chair elected for the single financial statement",
-  "ballot.chairBasis.councilDesignation": "Chair designated by the council for this item",
-  "conduct.blocker.ballotChairUndetermined":
-    "The ballot chair cannot be determined: the council designates the chair of this item.",
+  "ballot.chairRecused": "Meeting chair in office, recused on this item: assign a chair in the handover form",
+  "ballot.chairInOffice": "Meeting chair in office",
+  "ballot.chairUndetermined": "No meeting chair designated",
   "conduct.blocker.ballotChairNotPresent":
     "The ballot chair, {name}, is not physically present: record a handover of the chair.",
+  "conduct.blocker.ballotChairRecused":
+    "The meeting chair, {name}, is recused on this item: assign a chair for the vote in the handover form.",
   "conduct.blocker.meetingSecretaryNotPresent":
     "The meeting secretary, {name}, is not physically present: record the nomination of another secretary.",
   "conduct.blocker.attendanceOutsideMembership":
@@ -227,15 +224,15 @@ export const en = {
   "officers.chooseSuccessor": "Choose the member",
   "officers.noCandidate": "No admissible member is present",
   "officers.chairRule":
-    "Hall proposes the mayor resuming the chair or the first present deputy in the order of nominations; a councillor only when no deputy is present.",
+    "Assign any present member who is not recused on the current item; Hall proposes the first present deputy in the order of nominations. The returning mayor resumes the chair through this same form.",
+  "officers.proposed": "proposed",
   "officers.secretaryRule": "The council nominates another present member as secretary.",
   "officers.office.chair": "Chair",
   "officers.office.secretary": "Secretary",
   "officers.basis.mayor": "Mayor resuming the chair",
-  "officers.basis.deputyInNominationOrder": "Deputy in the order of nominations",
+  "officers.basis.deputyInNominationOrder": "First present deputy in the order of nominations",
   "officers.basis.councilDesignation": "Designated by the council",
   "officers.basis.councilNomination": "Nominated by the council",
-  "officers.basis.financialStatementElection": "Elected for the single financial statement",
   "auxiliary.title": "Also attending",
   "auxiliary.description":
     "Persons who are not council members attend without taking part in the deliberations. They are not counted in the quorum, do not vote, hold no proxy and do not recuse.",
@@ -249,19 +246,6 @@ export const en = {
   "auxiliary.quality.auxiliarySecretary": "Auxiliary secretary",
   "auxiliary.quality.guest": "Guest",
   "auxiliary.quality.expert": "Expert",
-  "presidency.title": "Chair of the item",
-  "presidency.current": "Chair of the item",
-  "presidency.basis": "Basis",
-  "presidency.member": "Member",
-  "presidency.chooseMember": "Choose the member",
-  "presidency.record": "Record the chair of the item",
-  "presidency.immutableHint": "The chair of the item is kept as recorded and appears in the minutes.",
-  "presidency.financialStatementElection": "Election for the single financial statement",
-  "presidency.councilDesignation": "Designation by the council",
-  "presidency.electionHint":
-    "The council elects its chair for the vote of the single financial statement; the mayor withdraws at the vote.",
-  "presidency.designationHint":
-    "The chair in office is recused and no deputy can replace him: the council designates the chair of this item.",
   "ballot.previewTitle": "Check the ballot before confirmation",
   "ballot.previewHint": "This is a preview. No final vote has been recorded and the item remains open.",
   "ballot.previewQuorum": "Quorum for this ballot",
@@ -280,7 +264,6 @@ export const en = {
     "This member cannot take over this office: the order of replacement or physical presence is not respected.",
   "error.auxiliary_attendance_invalid":
     "This person cannot be declared as attending: a council member attends as a member.",
-  "error.agenda_item_presidency_invalid": "This member cannot chair this item on this basis.",
   "error.attendance_outside_membership":
     "A member attendance is declared for a person outside the membership roster of the meeting.",
   "error.recused_member_cannot_participate": "A recused member cannot participate, personally or as a proxy holder.",

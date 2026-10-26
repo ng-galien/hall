@@ -84,14 +84,12 @@ export const meetingOfficerBasisSchema = z.enum([
   "deputyInNominationOrder",
   "councilDesignation",
   "councilNomination",
-  "financialStatementElection",
 ]);
 export type MeetingOfficerBasis = z.infer<typeof meetingOfficerBasisSchema>;
 export const meetingOfficerChangeSchema = z
   .object({
     id,
     councilMeetingId: id,
-    agendaItemId: id.nullable(),
     office: meetingOfficeSchema,
     basis: meetingOfficerBasisSchema,
     councilMemberId: id,
@@ -136,7 +134,13 @@ export const meetingConductStateSchema = meetingConductEvidenceSchema
     currentAttendance: z.array(currentMeetingAttendanceSchema),
     canRecordAttendanceEvents: z.boolean(),
     currentOfficers: z.object({ chairMemberId: id.nullable(), secretaryMemberId: id.nullable() }).strict(),
-    officerHandoverOptions: z.object({ chair: z.array(handoverOption), secretary: z.array(handoverOption) }).strict(),
+    officerHandoverOptions: z
+      .object({
+        chair: z.array(handoverOption),
+        secretary: z.array(handoverOption),
+        proposedChairMemberId: id.nullable(),
+      })
+      .strict(),
     canRecordOfficerChange: z.boolean(),
     canDeclareAuxiliaryAttendance: z.boolean(),
     canRecordQuorum: z.boolean(),

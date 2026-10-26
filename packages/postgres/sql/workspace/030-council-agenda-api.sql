@@ -411,32 +411,14 @@ END;
 $$;
 
 -- @implements-requirement HALL-FR-BAL-140
--- @implements-requirement HALL-FR-BAL-330
--- The participant state carries the determined ballot chair and the item
--- presidency options; the client displays them and never chooses the chair.
+-- The participant state carries the ballot chair, the chair in office, which
+-- the client displays and never chooses.
 CREATE FUNCTION hall_api.agenda_item_recusals(target_item UUID)
 RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
   SELECT hall.agenda_item_recusal_state(target_item)
     || jsonb_build_object('agendaItem', hall.council_agenda_item_projection(item),
-      'ballotChair', hall.agenda_item_ballot_chair(item.id),
-      'presidency', (SELECT jsonb_build_object('id', change.id, 'basis', change.basis, 'councilMemberId', change.council_member,
-        'memberName', change.member_name, 'observedAt', change.observed_at)
-        FROM hall.meeting_officer_change change WHERE change.agenda_item = item.id),
-      'presidencyOptions', hall.agenda_item_presidency_options(item.id))
+      'ballotChair', hall.agenda_item_ballot_chair(item.id))
   FROM hall.council_agenda_item item WHERE item.id = target_item;
-$$;
-
--- @implements-requirement HALL-FR-BAL-330
-CREATE FUNCTION hall_api.record_agenda_item_presidency(target_item UUID, target_member UUID,
-  presidency_basis TEXT, observation_time TIMESTAMPTZ)
-RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
-BEGIN
-  IF presidency_basis IS NULL OR presidency_basis NOT IN ('financialStatementElection', 'councilDesignation') THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV129', MESSAGE = 'an item presidency is an election or a council designation';
-  END IF;
-  PERFORM hall.record_agenda_item_presidency(target_item, target_member, presidency_basis::hall.meeting_officer_basis, observation_time);
-  RETURN hall_api.agenda_item_recusals(target_item);
-END;
 $$;
 
 CREATE FUNCTION hall_api.record_agenda_item_recusal(target_item UUID, target_member UUID,

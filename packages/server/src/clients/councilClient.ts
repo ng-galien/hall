@@ -27,7 +27,6 @@ import type {
   MeetingDocumentResourceDetail,
   PrepareCouncilMeeting,
   ProvisionInitialCouncilMeeting,
-  RecordAgendaItemPresidency,
   RecordAgendaItemRecusal,
   RecordMeetingAttendance,
   RecordMeetingAttendanceEvents,
@@ -152,7 +151,6 @@ export interface CouncilClient {
   recordAttendance(meetingId: string, input: RecordMeetingAttendance): Promise<MeetingAttendance[]>;
   agendaItemRecusals(id: string): Promise<AgendaItemRecusals>;
   recordAgendaItemRecusal(id: string, input: RecordAgendaItemRecusal): Promise<AgendaItemRecusals>;
-  recordAgendaItemPresidency(id: string, input: RecordAgendaItemPresidency): Promise<AgendaItemRecusals>;
   listAgenda(meetingId: string): Promise<AgendaItem[]>;
   openAgendaItem(id: string): Promise<AgendaItem | null>;
   scheduleAgendaItem(meetingId: string, input: ScheduleAgendaItem): Promise<AgendaItem>;

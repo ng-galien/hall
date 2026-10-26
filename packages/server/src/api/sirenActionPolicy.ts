@@ -616,22 +616,7 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
               ),
             ])
           : [];
-      const presidencyOptions = (value as Record<string, unknown>).presidencyOptions as
-        | { financialStatementElection?: unknown[]; councilDesignation?: unknown[] }
-        | undefined;
-      const presidencyActions =
-        presidencyOptions &&
-        ((presidencyOptions.financialStatementElection?.length ?? 0) > 0 ||
-          (presidencyOptions.councilDesignation?.length ?? 0) > 0)
-          ? authorizedActions(request, [
-              action(
-                "agenda-item.record-presidency",
-                "POST",
-                `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary?.councilMeetingId}/agenda-items/${id}/presidency`,
-              ),
-            ])
-          : [];
-      return [...agendaItemActions(context), ...notes, ...recusalActions, ...presidencyActions];
+      return [...agendaItemActions(context), ...notes, ...recusalActions];
     },
     attendance: () => [],
     "audit-event": () => [],

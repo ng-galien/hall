@@ -39,9 +39,7 @@ describe("recusal HTTP boundary", () => {
       departedParticipantAttendanceIds: [],
       canRecordRecusal: true,
       quorumImpact: { excludedMemberIds: [], denominatorReduction: 0, eligibleDeclaredPresentMemberIds: [] },
-      ballotChair: { councilMemberId: null, basis: null, meetingAttendanceId: null, physicallyPresent: false },
-      presidency: null,
-      presidencyOptions: { financialStatementElection: [], councilDesignation: [] },
+      ballotChair: { councilMemberId: null, meetingAttendanceId: null, physicallyPresent: false, recused: false },
     };
     vi.spyOn(container.cradle.councilClient, "agendaItemRecusals").mockResolvedValue(result);
     const record = vi.spyOn(container.cradle.councilClient, "recordAgendaItemRecusal").mockResolvedValue(result);

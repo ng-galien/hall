@@ -40,47 +40,17 @@ export const agendaItemRecusalStateSchema = z
   })
   .strict();
 
-export const ballotChairBasisSchema = z.enum([
-  "meetingChair",
-  "statutoryReplacement",
-  "financialStatementElection",
-  "councilDesignation",
-]);
-export type BallotChairBasis = z.infer<typeof ballotChairBasisSchema>;
-export const agendaItemPresidencyBasisSchema = z.enum(["financialStatementElection", "councilDesignation"]);
-export type AgendaItemPresidencyBasis = z.infer<typeof agendaItemPresidencyBasisSchema>;
-// The ballot chair is determined by the meeting and only displayed.
+// The ballot chair is the chair in office; it is only displayed.
 export const agendaItemBallotStateSchema = z
   .object({
     ballotChair: z
       .object({
         councilMemberId: z.uuid().nullable(),
-        basis: ballotChairBasisSchema.nullable(),
         meetingAttendanceId: z.uuid().nullable(),
         physicallyPresent: z.boolean(),
+        recused: z.boolean(),
       })
-      .strict(),
-    presidency: z
-      .object({
-        id: z.uuid(),
-        basis: agendaItemPresidencyBasisSchema,
-        councilMemberId: z.uuid(),
-        memberName: z.string(),
-        observedAt: z.iso.datetime({ offset: true }),
-      })
-      .strict()
-      .nullable(),
-    presidencyOptions: z
-      .object({ financialStatementElection: z.array(z.uuid()), councilDesignation: z.array(z.uuid()) })
       .strict(),
   })
   .strict();
 export type AgendaItemBallotState = z.infer<typeof agendaItemBallotStateSchema>;
-export const recordAgendaItemPresidencySchema = z
-  .object({
-    councilMemberId: z.uuid(),
-    basis: agendaItemPresidencyBasisSchema,
-    observedAt: z.iso.datetime({ offset: true }),
-  })
-  .strict();
-export type RecordAgendaItemPresidency = z.infer<typeof recordAgendaItemPresidencySchema>;

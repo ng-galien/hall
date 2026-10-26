@@ -6,7 +6,6 @@ import { createPortal } from "react-dom";
 import { Modal, RequestErrorBanner } from "../../../components/Ui";
 import { Button } from "../../../components/ui/button";
 import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdictPresentation";
-import { ballotChairBasisLabel } from "../../../features/council-meetings/meetingOfficerPresentation";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import type { TranslationKey } from "../../../i18n/en";
 import { useI18n } from "../../../i18n/I18nProvider";
@@ -452,11 +451,9 @@ export function VotePanel({
             ? councilMemberName(members, ballotChair.councilMemberId)
             : t("ballot.chairUndetermined")}
         </strong>
-        {ballotChair.basis ? (
-          <span className="text-muted-foreground" data-testid="live-ballot-chairman-basis">
-            {t(ballotChairBasisLabel(ballotChair.basis))}
-          </span>
-        ) : null}
+        <span className="text-muted-foreground" data-testid="live-ballot-chairman-basis">
+          {t(ballotChair.recused ? "ballot.chairRecused" : "ballot.chairInOffice")}
+        </span>
       </p>
       <RequestErrorBanner error={error} />
       {preview ? (

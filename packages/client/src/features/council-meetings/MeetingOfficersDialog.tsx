@@ -55,7 +55,7 @@ export function MeetingOfficersDialog({
   const { t, formatTime } = useI18n();
   const id = useId();
   const [office, setOffice] = useState<MeetingOffice>("chair");
-  const [successor, setSuccessor] = useState("");
+  const [successor, setSuccessor] = useState(conduct.officerHandoverOptions.proposedChairMemberId ?? "");
   const [contactId, setContactId] = useState("");
   const [quality, setQuality] = useState<AuxiliaryAttendanceQuality>();
   const [submitting, setSubmitting] = useState(false);
@@ -69,7 +69,8 @@ export function MeetingOfficersDialog({
   const attendingCandidates = contacts.filter(
     (contact) => !contact.archivedAt && !memberContactIds.has(contact.id) && !declaredContactIds.has(contact.id),
   );
-  const meetingWideChanges = conduct.officerChanges.filter((change) => change.agendaItemId === null);
+  const meetingWideChanges = conduct.officerChanges;
+  const proposedChair = conduct.officerHandoverOptions.proposedChairMemberId;
 
   const handover = async (event: FormEvent) => {
     event.preventDefault();
@@ -136,7 +137,7 @@ export function MeetingOfficersDialog({
                   checked={office === value}
                   onChange={() => {
                     setOffice(value);
-                    setSuccessor("");
+                    setSuccessor(value === "chair" ? (proposedChair ?? "") : "");
                   }}
                 />
                 {t(officeLabel(value))}
@@ -157,7 +158,12 @@ export function MeetingOfficersDialog({
               placeholder={t(options.length === 0 ? "officers.noCandidate" : "officers.chooseSuccessor")}
               options={options.map((option) => ({
                 value: option.councilMemberId,
-                label: `${memberName(members, option.councilMemberId)} · ${t(officerBasisLabel(option.basis))}`,
+                label:
+                  option.basis === "mayor"
+                    ? `${memberName(members, option.councilMemberId)} · ${t(officerBasisLabel(option.basis))}`
+                    : office === "chair" && option.councilMemberId === proposedChair
+                      ? `${memberName(members, option.councilMemberId)} · ${t("officers.proposed")}`
+                      : memberName(members, option.councilMemberId),
               }))}
             />
           </div>

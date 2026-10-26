@@ -204,16 +204,14 @@ export const fr: Messages = {
   "ballot.blank": "Bulletins blancs",
   "ballot.invalid": "Bulletins nuls",
   "ballot.chairman": "Président du scrutin",
-  "ballot.chairUndetermined": "Non déterminé : le conseil désigne le président de ce point",
-  "ballot.chairBasis.meetingChair": "Président de séance en titre",
-  "ballot.chairBasis.statutoryReplacement":
-    "Remplaçant du président déporté, premier adjoint présent dans l’ordre des nominations",
-  "ballot.chairBasis.financialStatementElection": "Président élu pour le compte financier unique",
-  "ballot.chairBasis.councilDesignation": "Président désigné par le conseil pour ce point",
-  "conduct.blocker.ballotChairUndetermined":
-    "Le président du scrutin ne peut pas être déterminé : le conseil désigne le président de ce point.",
+  "ballot.chairRecused":
+    "Président de séance en titre, déporté sur ce point : assignez un président dans le formulaire de passation",
+  "ballot.chairInOffice": "Président de séance en titre",
+  "ballot.chairUndetermined": "Aucun président de séance désigné",
   "conduct.blocker.ballotChairNotPresent":
     "Le président du scrutin, {name}, n’est pas physiquement présent : enregistrez une passation de la présidence.",
+  "conduct.blocker.ballotChairRecused":
+    "Le président de séance, {name}, est déporté sur ce point : assignez un président pour le vote dans le formulaire de passation.",
   "conduct.blocker.meetingSecretaryNotPresent":
     "Le secrétaire de séance, {name}, n’est pas physiquement présent : enregistrez la nomination d’un autre secrétaire.",
   "conduct.blocker.attendanceOutsideMembership":
@@ -228,15 +226,15 @@ export const fr: Messages = {
   "officers.chooseSuccessor": "Choisir le membre",
   "officers.noCandidate": "Aucun membre admissible n’est présent",
   "officers.chairRule":
-    "Hall propose le maire qui reprend la présidence ou le premier adjoint présent dans l’ordre des nominations ; un conseiller seulement à défaut d’adjoint présent.",
+    "Assignez tout membre présent qui n’est pas déporté sur le point en cours ; Hall propose le premier adjoint présent dans l’ordre des nominations. Le maire qui revient reprend la présidence par ce même formulaire.",
+  "officers.proposed": "proposé",
   "officers.secretaryRule": "Le conseil nomme un autre membre présent comme secrétaire.",
   "officers.office.chair": "Présidence",
   "officers.office.secretary": "Secrétariat",
   "officers.basis.mayor": "Reprise par le maire",
-  "officers.basis.deputyInNominationOrder": "Adjoint dans l’ordre des nominations",
+  "officers.basis.deputyInNominationOrder": "Premier adjoint présent dans l’ordre des nominations",
   "officers.basis.councilDesignation": "Désignation par le conseil",
   "officers.basis.councilNomination": "Nomination par le conseil",
-  "officers.basis.financialStatementElection": "Élection pour le compte financier unique",
   "auxiliary.title": "Assistent également",
   "auxiliary.description":
     "Les personnes qui ne sont pas membres du conseil assistent sans participer aux délibérations. Elles ne comptent pas dans le quorum, ne votent pas, ne portent pas de pouvoir et ne se déportent pas.",
@@ -250,19 +248,6 @@ export const fr: Messages = {
   "auxiliary.quality.auxiliarySecretary": "Secrétaire auxiliaire",
   "auxiliary.quality.guest": "Invité",
   "auxiliary.quality.expert": "Expert",
-  "presidency.title": "Présidence du point",
-  "presidency.current": "Présidence du point",
-  "presidency.basis": "Fondement",
-  "presidency.member": "Membre",
-  "presidency.chooseMember": "Choisir le membre",
-  "presidency.record": "Enregistrer la présidence du point",
-  "presidency.immutableHint": "La présidence du point est conservée telle qu’enregistrée et figure au procès-verbal.",
-  "presidency.financialStatementElection": "Élection pour le compte financier unique",
-  "presidency.councilDesignation": "Désignation par le conseil",
-  "presidency.electionHint":
-    "Le conseil élit son président pour le vote du compte financier unique ; le maire se retire au moment du vote.",
-  "presidency.designationHint":
-    "Le président en titre est déporté et aucun adjoint ne peut le remplacer : le conseil désigne le président de ce point.",
   "ballot.previewTitle": "Vérifier le scrutin avant confirmation",
   "ballot.previewHint": "Ceci est un aperçu. Aucun vote définitif n’est enregistré et le point reste ouvert.",
   "ballot.previewQuorum": "Quorum constaté pour ce scrutin",
@@ -282,7 +267,6 @@ export const fr: Messages = {
     "Ce membre ne peut pas reprendre cette fonction : l’ordre de remplacement ou la présence physique n’est pas respecté.",
   "error.auxiliary_attendance_invalid":
     "Cette personne ne peut pas être déclarée comme assistant : un membre du conseil siège comme membre.",
-  "error.agenda_item_presidency_invalid": "Ce membre ne peut pas présider ce point à ce titre.",
   "error.attendance_outside_membership":
     "Une présence de membre est déclarée pour une personne hors du registre des mandats de la séance.",
   "error.recused_member_cannot_participate":
