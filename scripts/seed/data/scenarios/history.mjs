@@ -62,7 +62,6 @@ export async function seedHistory(
       procedure: "ordinaryMajority",
       mode,
       participantAttendanceIds: attendance.map((entry) => entry.id),
-      chairmanAttendanceId: attendance.find((entry) => entry.councilMemberId === chairMemberId).id,
     };
     const candidate =
       mode === "public"
