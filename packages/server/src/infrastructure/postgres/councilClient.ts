@@ -452,6 +452,11 @@ export function createPostgresCouncilClient({
         await call(() => postgresCouncil.declareMeetingAuxiliaryAttendance(currentRequest(), id, input)),
       );
     },
+    async correctMeetingAuxiliaryAttendance(id, input) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.correctMeetingAuxiliaryAttendance(currentRequest(), id, input)),
+      );
+    },
     async agendaItemRecusals(id) {
       return agendaItemRecusalsSchema.parse(await call(() => postgresCouncil.agendaItemRecusals(currentRequest(), id)));
     },

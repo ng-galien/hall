@@ -28,7 +28,9 @@ import {
   agendaItemRecusalStateSchema,
   type BallotResultPreview,
   ballotResultPreviewSchema,
+  type CorrectMeetingAuxiliaryAttendance,
   type CreateBallotResultPreview,
+  correctMeetingAuxiliaryAttendanceSchema,
   createBallotResultPreviewSchema,
   type DeclareMeetingAuxiliaryAttendance,
   declareMeetingAuxiliaryAttendanceSchema,
@@ -888,9 +890,37 @@ export class PostgresCouncil {
       request,
       meetingId,
       "meeting.declare-auxiliary-attendance",
-      "SELECT hall_api.declare_meeting_auxiliary_attendance($1::uuid,$2::uuid,$3::text,$4::timestamptz) AS payload",
-      [value.contactId, value.quality, value.declaredAt],
+      "SELECT hall_api.declare_meeting_auxiliary_attendance($1::uuid,$2::uuid,$3::text,$4::text,$5::text,$6::timestamptz) AS payload",
+      matchDiscriminated(value.person, "kind", {
+        contact: (person) => [person.contactId, null, null, value.quality, value.declaredAt],
+        newContact: (person) => [null, person.firstName, person.lastName, value.quality, value.declaredAt],
+      }),
     );
+  }
+  correctMeetingAuxiliaryAttendance(
+    request: PostgresCouncilRequest,
+    meetingId: string,
+    input: CorrectMeetingAuxiliaryAttendance,
+  ): Promise<PostgresMeetingConduct> {
+    const value = correctMeetingAuxiliaryAttendanceSchema.parse(input);
+    return matchDiscriminated(value, "kind", {
+      quality: (correction) =>
+        this.conductMutation(
+          request,
+          meetingId,
+          "meeting.correct-auxiliary-attendance",
+          "SELECT hall_api.update_meeting_auxiliary_attendance($1::uuid,$2::uuid,$3::text) AS payload",
+          [correction.attendanceId, correction.quality],
+        ),
+      removal: (correction) =>
+        this.conductMutation(
+          request,
+          meetingId,
+          "meeting.correct-auxiliary-attendance",
+          "SELECT hall_api.remove_meeting_auxiliary_attendance($1::uuid,$2::uuid) AS payload",
+          [correction.attendanceId],
+        ),
+    });
   }
 
   agendaItemRecusals(request: PostgresCouncilRequest, id: string): Promise<PostgresAgendaItemRecusals> {

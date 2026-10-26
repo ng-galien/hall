@@ -8,6 +8,7 @@ import type {
   BallotVote,
   CloseCouncilMeeting,
   CompleteAgendaItem,
+  CorrectMeetingAuxiliaryAttendance,
   CouncilBusiness,
   CouncilBusinessBundleManifest,
   CouncilBusinessCommitteeLink,
@@ -106,6 +107,10 @@ export interface CouncilClient {
   declareMeetingAuxiliaryAttendance(
     meetingId: string,
     input: DeclareMeetingAuxiliaryAttendance,
+  ): Promise<MeetingConductWorkspace>;
+  correctMeetingAuxiliaryAttendance(
+    meetingId: string,
+    input: CorrectMeetingAuxiliaryAttendance,
   ): Promise<MeetingConductWorkspace>;
 
   listBusinesses(): Promise<CouncilBusiness[]>;

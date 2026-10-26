@@ -206,15 +206,25 @@ describe("minutes generated document", () => {
         councilMeetingId: "meeting",
         contactId: "contact",
         name: "Claire <Martin>",
-        quality: "townHallSecretary",
+        quality: "secrétaire de mairie",
         declaredAt: "2026-09-05T18:00:00Z",
         recordedAt: "2026-09-05T18:00:00Z",
+        recordedBy: "clerk",
+      },
+      {
+        id: "guest",
+        councilMeetingId: "meeting",
+        contactId: "guest-contact",
+        name: "Jean Libre",
+        quality: null,
+        declaredAt: "2026-09-05T18:05:00Z",
+        recordedAt: "2026-09-05T18:05:00Z",
         recordedBy: "clerk",
       },
     ];
     const { facts } = renderMinutesSections(minutes);
     expect(facts).toContain(
-      "Assistaient également :</p><ul><li>Claire &lt;Martin&gt; - secrétaire de mairie</li></ul>",
+      "Assistaient également :</p><ul><li>Claire &lt;Martin&gt; - secrétaire de mairie</li><li>Jean Libre</li></ul>",
     );
     expect(facts).toContain("présidence confiée à Paul &lt;Adjoint&gt; (adjoint dans l’ordre des nominations)");
     expect(facts).toContain("secrétariat confié à Lise Conseillère (nomination par le conseil)");

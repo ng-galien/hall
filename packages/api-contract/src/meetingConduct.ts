@@ -99,16 +99,13 @@ export const meetingOfficerChangeSchema = z
   })
   .strict();
 export type MeetingOfficerChange = z.infer<typeof meetingOfficerChangeSchema>;
-export const auxiliaryAttendanceQualitySchema = z.enum(["townHallSecretary", "auxiliarySecretary", "guest", "expert"]);
-export type AuxiliaryAttendanceQuality = z.infer<typeof auxiliaryAttendanceQualitySchema>;
-export const auxiliaryAttendanceQualities = auxiliaryAttendanceQualitySchema.options;
 export const meetingAuxiliaryAttendanceSchema = z
   .object({
     id,
     councilMeetingId: id,
     contactId: id,
     name: z.string(),
-    quality: auxiliaryAttendanceQualitySchema,
+    quality: z.string().nullable(),
     declaredAt: time,
     recordedAt: time,
     recordedBy: z.string().min(1),
@@ -171,10 +168,33 @@ export const recordMeetingOfficerChangeSchema = z
   .object({ office: meetingOfficeSchema, councilMemberId: id, observedAt: time })
   .strict();
 export type RecordMeetingOfficerChange = z.infer<typeof recordMeetingOfficerChangeSchema>;
+const auxiliaryQuality = z
+  .string()
+  .trim()
+  .transform((value) => value || null)
+  .nullable();
 export const declareMeetingAuxiliaryAttendanceSchema = z
-  .object({ contactId: id, quality: auxiliaryAttendanceQualitySchema, declaredAt: time })
+  .object({
+    person: z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("contact"), contactId: id }).strict(),
+      z
+        .object({
+          kind: z.literal("newContact"),
+          firstName: z.string().trim().min(1),
+          lastName: z.string().trim().min(1),
+        })
+        .strict(),
+    ]),
+    quality: auxiliaryQuality,
+    declaredAt: time,
+  })
   .strict();
-export type DeclareMeetingAuxiliaryAttendance = z.infer<typeof declareMeetingAuxiliaryAttendanceSchema>;
+export type DeclareMeetingAuxiliaryAttendance = z.input<typeof declareMeetingAuxiliaryAttendanceSchema>;
+export const correctMeetingAuxiliaryAttendanceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("quality"), attendanceId: id, quality: auxiliaryQuality }).strict(),
+  z.object({ kind: z.literal("removal"), attendanceId: id }).strict(),
+]);
+export type CorrectMeetingAuxiliaryAttendance = z.input<typeof correctMeetingAuxiliaryAttendanceSchema>;
 export const recordMeetingReconvocationSchema = z
   .object({
     failedObservationId: id,

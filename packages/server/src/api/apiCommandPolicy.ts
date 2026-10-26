@@ -115,6 +115,7 @@ export const apiCommandPolicies = {
   "meeting.record-reconvocation": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "meeting.record-officer-change": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "meeting.declare-auxiliary-attendance": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
+  "meeting.correct-auxiliary-attendance": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "meeting.add-open-question": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "meeting.record-opening": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   // TODO REMOVE_STALE: same conduct permission as meeting succession.

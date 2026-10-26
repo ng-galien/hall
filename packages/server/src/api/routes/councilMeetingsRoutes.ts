@@ -5,6 +5,7 @@ import {
   type CouncilMeeting,
   closeCouncilMeetingSchema,
   completeAgendaItemSchema,
+  correctMeetingAuxiliaryAttendanceSchema,
   createAndScheduleCouncilBusinessSchema,
   declareMeetingAuxiliaryAttendanceSchema,
   prepareCouncilMeetingSchema,
@@ -271,6 +272,21 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
             ),
           ),
         );
+    },
+  );
+  router.patch(
+    "/:meetingReference/auxiliary-attendances",
+    requireActionPermission("meeting.correct-auxiliary-attendance"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response.json(
+        await changeMeeting(meeting.id, () =>
+          councilClient.correctMeetingAuxiliaryAttendance(
+            meeting.id,
+            correctMeetingAuxiliaryAttendanceSchema.parse(request.body),
+          ),
+        ),
+      );
     },
   );
   router.post(

@@ -281,7 +281,9 @@ GRANT EXECUTE ON FUNCTION hall_api.list_ballot_non_participations(UUID) TO hall_
 GRANT EXECUTE ON FUNCTION hall_api.meeting_conduct(UUID),
  hall_api.record_meeting_attendance_events(UUID,TIMESTAMPTZ,JSONB),
  hall_api.record_meeting_officer_change(UUID,TEXT,UUID,TIMESTAMPTZ),
- hall_api.declare_meeting_auxiliary_attendance(UUID,UUID,TEXT,TIMESTAMPTZ),
+ hall_api.declare_meeting_auxiliary_attendance(UUID,UUID,TEXT,TEXT,TEXT,TIMESTAMPTZ),
+ hall_api.update_meeting_auxiliary_attendance(UUID,UUID,TEXT),
+ hall_api.remove_meeting_auxiliary_attendance(UUID,UUID),
  hall_api.record_meeting_quorum(UUID,UUID,TIMESTAMPTZ),
  hall_api.record_meeting_reconvocation(UUID,UUID,TIMESTAMPTZ,TIMESTAMPTZ,TEXT,TEXT,TEXT,UUID[])
  TO hall_api_authenticated,hall_api_worker;

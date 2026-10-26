@@ -21,6 +21,7 @@ import {
   WarningIcon,
 } from "../../../components/icons";
 import { Modal, RequestErrorBanner } from "../../../components/Ui";
+import { MeetingAttendingPersons } from "../../../features/council-meetings/MeetingAttendingPersons";
 import { MeetingEntryBlockers } from "../../../features/council-meetings/MeetingEntryBlockers";
 import { MeetingReconvocationForm } from "../../../features/council-meetings/MeetingReconvocationForm";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
@@ -398,6 +399,16 @@ export function RollCallView({
             );
           })}
         </ul>
+        {conduct ? (
+          <MeetingAttendingPersons
+            entries={conduct.auxiliaryAttendances}
+            members={members}
+            canDeclare={meetingActions.can("meeting.declare-auxiliary-attendance")}
+            canCorrect={meetingActions.can("meeting.correct-auxiliary-attendance")}
+            onDeclare={meetingActions.declareAuxiliaryAttendance}
+            onCorrect={meetingActions.correctAuxiliaryAttendance}
+          />
+        ) : null}
       </section>
       {mode === "opening" ? (
         <footer className="rollcall-footer">

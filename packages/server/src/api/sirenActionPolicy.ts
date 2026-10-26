@@ -529,6 +529,11 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
         "POST",
         `/api/council-meetings/${meetingReference}/auxiliary-attendances`,
       ),
+      action(
+        "meeting.correct-auxiliary-attendance",
+        "PATCH",
+        `/api/council-meetings/${meetingReference}/auxiliary-attendances`,
+      ),
     );
   if (conduct.canRecordQuorum === true)
     actions.push(

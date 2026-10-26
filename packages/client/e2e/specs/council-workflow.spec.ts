@@ -381,7 +381,7 @@ test("mobile French recusals preserve explicit qualification and show a real ref
 // @verifies-requirement HALL-FR-MTG-340
 // @verifies-requirement HALL-FR-ATT-140
 // @verifies-requirement HALL-FR-BAL-140
-test("records a secretary handover, an attending person and shows the determined ballot chair", async ({
+test("records a secretary handover, other persons present and shows the ballot chair", async ({
   appPage: page,
 }, testInfo) => {
   test.setTimeout(120_000);
@@ -435,17 +435,24 @@ test("records a secretary handover, an attending person and shows the determined
     .click();
   await page.getByTestId("live-officers-handover-submit").click();
   await expect(page.getByTestId("live-officers-history")).toContainText("Nomination par le conseil");
+  await page.screenshot({ path: testInfo.outputPath("meeting-officers-dialog.png"), fullPage: true });
+  await page.keyboard.press("Escape");
+  await page.getByTestId("live-attendance-adjust").click();
   await page.getByTestId("live-auxiliaries-contact").click();
   await page
     .getByTestId("live-auxiliaries-contact-search-result")
     .and(page.locator(`[data-reference-id="${contact.id}"]`))
     .click();
-  await page.getByTestId("live-auxiliaries-quality-townHallSecretary").check();
+  await page.getByTestId("live-auxiliaries-quality").fill("secrétaire de mairie");
   await page.getByTestId("live-auxiliaries-submit").click();
   await expect(page.getByTestId(`live-auxiliary-${contact.id}`)).toContainText("Claire Assistante");
-  await expect(page.getByTestId(`live-auxiliary-${contact.id}`)).toContainText("Secrétaire de mairie");
-  await page.screenshot({ path: testInfo.outputPath("meeting-officers-dialog.png"), fullPage: true });
-  await page.keyboard.press("Escape");
+  await expect(page.getByTestId(`live-auxiliary-quality-${contact.id}`)).toHaveValue("secrétaire de mairie");
+  await page.getByTestId("live-auxiliaries-first-name").fill("Jean");
+  await page.getByTestId("live-auxiliaries-last-name").fill("Libre");
+  await page.getByTestId("live-auxiliaries-submit").click();
+  await expect(page.getByTestId("live-auxiliaries-list")).toContainText("Jean Libre");
+  await page.screenshot({ path: testInfo.outputPath("meeting-attending-persons.png"), fullPage: true });
+  await page.getByTestId("live-attendance-save").click();
   await page.getByTestId(`live-agenda-item-${item.id}`).click();
   await page.getByTestId("live-agenda-start").click();
   await page.getByTestId("live-ballot-open").click();

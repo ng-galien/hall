@@ -89,13 +89,45 @@ BEGIN
 END $$;
 
 -- @implements-requirement HALL-FR-ATT-140
-CREATE FUNCTION hall_api.declare_meeting_auxiliary_attendance(target_meeting UUID,target_contact UUID,target_quality TEXT,declaration_time TIMESTAMPTZ)
+-- An attending person is an existing contact or a contact created from the
+-- entered first and last names.
+CREATE FUNCTION hall_api.declare_meeting_auxiliary_attendance(target_meeting UUID,target_contact UUID,
+ contact_first_name TEXT,contact_last_name TEXT,target_quality TEXT,declaration_time TIMESTAMPTZ)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+DECLARE person UUID:=target_contact;
 BEGIN
- IF target_quality IS NULL OR target_quality NOT IN ('townHallSecretary','auxiliarySecretary','guest','expert') THEN
-   RAISE EXCEPTION USING ERRCODE = 'HV128',MESSAGE='unknown auxiliary attendance quality';
+ IF (target_contact IS NULL) = (contact_first_name IS NULL AND contact_last_name IS NULL) THEN
+   RAISE EXCEPTION USING ERRCODE = 'HV128',MESSAGE='an attending person is an existing contact or a new name';
+ END IF;
+ IF person IS NULL THEN
+   IF nullif(btrim(contact_first_name),'') IS NULL OR nullif(btrim(contact_last_name),'') IS NULL THEN
+     RAISE EXCEPTION USING ERRCODE = 'HV128',MESSAGE='a new attending person requires a first and a last name';
+   END IF;
+   IF EXISTS(SELECT FROM hall.council_meetings WHERE id=target_meeting AND closed_at IS NOT NULL) THEN
+     RAISE EXCEPTION USING ERRCODE = 'HV128',MESSAGE='the attending persons of a closed meeting are immutable';
+   END IF;
+   INSERT INTO hall.contact(first_name,last_name) VALUES(btrim(contact_first_name),btrim(contact_last_name)) RETURNING id INTO person;
  END IF;
  INSERT INTO hall.meeting_auxiliary_attendance(council_meeting,contact,quality,declared_at)
- VALUES(target_meeting,target_contact,target_quality::hall.auxiliary_attendance_quality,declaration_time);
+ VALUES(target_meeting,person,target_quality,declaration_time);
+ RETURN hall_api.meeting_conduct(target_meeting);
+END $$;
+
+-- @implements-requirement HALL-FR-ATT-140
+CREATE FUNCTION hall_api.update_meeting_auxiliary_attendance(target_meeting UUID,target_attendance UUID,target_quality TEXT)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+BEGIN
+ UPDATE hall.meeting_auxiliary_attendance SET quality=target_quality
+ WHERE id=target_attendance AND council_meeting=target_meeting;
+ IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV128',MESSAGE='unknown attending person in this meeting'; END IF;
+ RETURN hall_api.meeting_conduct(target_meeting);
+END $$;
+
+-- @implements-requirement HALL-FR-ATT-140
+CREATE FUNCTION hall_api.remove_meeting_auxiliary_attendance(target_meeting UUID,target_attendance UUID)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+BEGIN
+ DELETE FROM hall.meeting_auxiliary_attendance WHERE id=target_attendance AND council_meeting=target_meeting;
+ IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV128',MESSAGE='unknown attending person in this meeting'; END IF;
  RETURN hall_api.meeting_conduct(target_meeting);
 END $$;

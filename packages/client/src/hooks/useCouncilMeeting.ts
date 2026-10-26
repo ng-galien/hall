@@ -1,6 +1,7 @@
 import {
   type ApiActionName,
   type BallotResultPreview,
+  type CorrectMeetingAuxiliaryAttendance,
   type DeclareMeetingAuxiliaryAttendance,
   findSirenAction,
   type MeetingConductWorkspace,
@@ -47,6 +48,7 @@ import {
 } from "../services/councilMeetingsApi";
 import { subscribeLiveUpdates } from "../services/liveUpdates";
 import {
+  correctMeetingAuxiliaryAttendance,
   declareMeetingAuxiliaryAttendance,
   openMeetingConduct,
   recordMeetingAttendanceEvents,
@@ -69,6 +71,7 @@ const meetingConductActionNames = [
   "meeting.record-reconvocation",
   "meeting.record-officer-change",
   "meeting.declare-auxiliary-attendance",
+  "meeting.correct-auxiliary-attendance",
   "meeting.set-officers",
   "meeting.add-open-question",
   "meeting.close",
@@ -365,6 +368,9 @@ export function useCouncilMeeting(meetingReference: string) {
     },
     declareAuxiliaryAttendance(input: DeclareMeetingAuxiliaryAttendance) {
       return mutate(() => declareMeetingAuxiliaryAttendance(meetingReference, input));
+    },
+    correctAuxiliaryAttendance(input: CorrectMeetingAuxiliaryAttendance) {
+      return mutate(() => correctMeetingAuxiliaryAttendance(meetingReference, input));
     },
     recordQuorum() {
       return mutate(() =>

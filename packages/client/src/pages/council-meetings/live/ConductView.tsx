@@ -39,11 +39,7 @@ import { agendaSubjectPresentation } from "../../../features/council-meetings/Ag
 import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdictPresentation";
 import { ConductActionBlockers } from "../../../features/council-meetings/ConductActionBlockers";
 import { MeetingOfficersDialog } from "../../../features/council-meetings/MeetingOfficersDialog";
-import {
-  auxiliaryQualityLabel,
-  officeLabel,
-  officerBasisLabel,
-} from "../../../features/council-meetings/meetingOfficerPresentation";
+import { officeLabel, officerBasisLabel } from "../../../features/council-meetings/meetingOfficerPresentation";
 import { recusalBasisLabel } from "../../../features/council-meetings/recusalPresentation";
 import { DocumentaryResourceGlyph } from "../../../features/documents/DocumentaryResourceGlyph";
 import { ResourcePreview } from "../../../features/documents/ResourcePreview";
@@ -586,9 +582,7 @@ export function ConductView({
                 <strong>{t("auxiliary.title")}</strong>
                 <ul>
                   {conduct.auxiliaryAttendances.map((entry) => (
-                    <li key={entry.id}>
-                      {entry.name} · {t(auxiliaryQualityLabel(entry.quality))}
-                    </li>
+                    <li key={entry.id}>{entry.quality ? `${entry.name} · ${entry.quality}` : entry.name}</li>
                   ))}
                 </ul>
               </section>
@@ -1045,10 +1039,8 @@ export function ConductView({
           conduct={conduct}
           members={members}
           canRecordOfficerChange={meetingActions.can("meeting.record-officer-change")}
-          canDeclareAuxiliaryAttendance={meetingActions.can("meeting.declare-auxiliary-attendance")}
           error={meetingActions.actionError}
           onRecordOfficerChange={meetingActions.recordOfficerChange}
-          onDeclareAuxiliaryAttendance={meetingActions.declareAuxiliaryAttendance}
           onClose={() => setOfficersOpen(false)}
         />
       ) : null}

@@ -101,7 +101,7 @@ describe("meeting conduct evidence", () => {
           councilMeetingId: meetingId,
           contactId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
           name: "Claire Martin",
-          quality: "townHallSecretary",
+          quality: "secrétaire de mairie",
           declaredAt: time,
           recordedAt: time,
           recordedBy: "secretary",
@@ -134,11 +134,18 @@ describe("meeting conduct evidence", () => {
     ).toMatchObject({ officerChanges: [], auxiliaryAttendances: [] });
   });
 
-  it("rejects an unknown attending capacity", () => {
+  it("accepts a free capacity and requires either a contact or a full new name", () => {
+    expect(
+      declareMeetingAuxiliaryAttendanceSchema.parse({
+        person: { kind: "contact", contactId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
+        quality: "  ",
+        declaredAt: time,
+      }).quality,
+    ).toBeNull();
     expect(() =>
       declareMeetingAuxiliaryAttendanceSchema.parse({
-        contactId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-        quality: "spectator",
+        person: { kind: "newContact", firstName: "Jean", lastName: " " },
+        quality: null,
         declaredAt: time,
       }),
     ).toThrow();

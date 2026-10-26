@@ -111,14 +111,9 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
   });
   const handovers = conduct.officerChanges.map((change) => `<li>${officerChange(change)}</li>`);
   const attending = conduct.auxiliaryAttendances.map(
-    (entry) =>
-      `<li>${escapeHtml(entry.name)} - ${matchLiteral(entry.quality, {
-        townHallSecretary: () => "secrétaire de mairie",
-        auxiliarySecretary: () => "secrétaire auxiliaire",
-        guest: () => "invité",
-        expert: () => "expert",
-      })}</li>`,
+    (entry) => `<li>${escapeHtml(entry.name)}${entry.quality ? ` - ${escapeHtml(entry.quality)}` : ""}</li>`,
   );
+
   return {
     facts: `<p>Séance n° ${meeting.number}<br>Ouverture : ${escapeHtml(date(meeting.startedAt))}<br>Clôture : ${escapeHtml(date(meeting.closedAt))}<br>Lieu : ${escapeHtml(meeting.location ?? "Non renseigné")}</p><p>Présidence : ${escapeHtml(meeting.chair?.name ?? "Non renseignée")}<br>Secrétariat : ${escapeHtml(meeting.secretary?.name ?? "Non renseigné")}<br>Quorum requis : ${meeting.quorum} · Présents : ${attendance.filter((entry) => entry.status === "present").length}</p><ul>${rows.join("")}</ul>${attending.length ? `<p>Assistaient également :</p><ul>${attending.join("")}</ul>` : ""}${handovers.length ? `<p>Passations en séance :</p><ul>${handovers.join("")}</ul>` : ""}`,
     proceedings: subjects.join(""),

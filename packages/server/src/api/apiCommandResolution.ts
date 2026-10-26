@@ -60,6 +60,8 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
       return auditIntent("meeting.record-officer-change", id);
     if (method === "POST" && id && child === "auxiliary-attendances" && !childId)
       return auditIntent("meeting.declare-auxiliary-attendance", id);
+    if (method === "PATCH" && id && child === "auxiliary-attendances" && !childId)
+      return auditIntent("meeting.correct-auxiliary-attendance", id);
     if (method === "POST" && id && child === "council-business" && !childId) {
       return auditIntent(
         "meeting.create-and-schedule-business",

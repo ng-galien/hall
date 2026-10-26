@@ -549,6 +549,9 @@ export function createTestCouncilClient(
     async declareMeetingAuxiliaryAttendance() {
       throw new Error("Conduct acceptance requires PostgreSQL");
     },
+    async correctMeetingAuxiliaryAttendance() {
+      throw new Error("Conduct acceptance requires PostgreSQL");
+    },
     async listAgenda(meetingId) {
       requireMeeting(meetingId);
       return [...agendaItems.values()]

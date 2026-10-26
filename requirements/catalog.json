@@ -9354,13 +9354,14 @@
         "state": "accepted",
         "since": "2026-10-26"
       },
-      "statement": "Une personne qui n’est pas membre du conseil peut être déclarée comme assistant à la séance, avec sa qualité ; elle n’entre ni dans le quorum, ni dans les votes, ni dans les pouvoirs, ni dans les déports.",
+      "statement": "À l’appel, le secrétariat saisit les autres personnes présentes qui ne sont pas membres du conseil, par un contact existant ou par un nom qui crée le contact, avec une qualité libre facultative ; elles n’entrent ni dans le quorum, ni dans les votes, ni dans les pouvoirs, ni dans les déports.",
       "acceptanceCriteria": [
         "Le conseil peut adjoindre à ses secrétaires des auxiliaires pris en dehors de ses membres, qui assistent aux séances sans participer aux délibérations.",
         "Les séances sont publiques ; le public n’est ni nommé ni compté par Hall.",
-        "Le rôle de conduite de séance déclare, jusqu’à la clôture, un contact sans mandat actif et non archivé avec sa qualité : secrétaire de mairie, secrétaire auxiliaire, invité ou expert ; la déclaration est horodatée, unique par séance et immuable ; un membre du conseil est refusé avec un message qui le nomme.",
-        "La déclaration ne crée aucune présence de membre : elle ne change ni le quorum, ni les participants admissibles d’un scrutin, ni les porteurs de pouvoir, ni les déports.",
-        "La séance affiche les personnes qui assistent ; le procès-verbal les reprend sous « Assistaient également » avec leur qualité."
+        "L’écran d’appel, à l’ouverture comme en ajustement des présences, ajoute une personne présente en choisissant un contact existant non archivé ou en saisissant un prénom et un nom, qui créent le contact ; la qualité est un texte libre facultatif ; une personne figure une fois par séance ; un membre du conseil est refusé avec un message qui le nomme.",
+        "Jusqu’à la clôture de la séance, la qualité se modifie et la personne se retire ; après la clôture, la liste est immuable.",
+        "La saisie ne crée aucune présence de membre : elle ne change ni le quorum, ni les participants admissibles d’un scrutin, ni les porteurs de pouvoir, ni les déports.",
+        "La séance affiche les autres personnes présentes ; le procès-verbal les reprend sous « Assistaient également » avec leur qualité quand elle est renseignée."
       ],
       "clauses": [
         {
@@ -9384,21 +9385,27 @@
           "interpretation": "direct"
         },
         {
-          "key": "declaration",
+          "key": "entry",
           "origin": "product",
-          "statement": "Le rôle de conduite de séance déclare, jusqu’à la clôture, un contact sans mandat actif et non archivé avec sa qualité : secrétaire de mairie, secrétaire auxiliaire, invité ou expert ; la déclaration est horodatée, unique par séance et immuable ; un membre du conseil est refusé avec un message qui le nomme.",
+          "statement": "L’écran d’appel, à l’ouverture comme en ajustement des présences, ajoute une personne présente en choisissant un contact existant non archivé ou en saisissant un prénom et un nom, qui créent le contact ; la qualité est un texte libre facultatif ; une personne figure une fois par séance ; un membre du conseil est refusé avec un message qui le nomme.",
+          "sourceIds": []
+        },
+        {
+          "key": "correction",
+          "origin": "product",
+          "statement": "Jusqu’à la clôture de la séance, la qualité se modifie et la personne se retire ; après la clôture, la liste est immuable.",
           "sourceIds": []
         },
         {
           "key": "exclusion",
           "origin": "product",
-          "statement": "La déclaration ne crée aucune présence de membre : elle ne change ni le quorum, ni les participants admissibles d’un scrutin, ni les porteurs de pouvoir, ni les déports.",
+          "statement": "La saisie ne crée aucune présence de membre : elle ne change ni le quorum, ni les participants admissibles d’un scrutin, ni les porteurs de pouvoir, ni les déports.",
           "sourceIds": []
         },
         {
           "key": "display",
           "origin": "product",
-          "statement": "La séance affiche les personnes qui assistent ; le procès-verbal les reprend sous « Assistaient également » avec leur qualité.",
+          "statement": "La séance affiche les autres personnes présentes ; le procès-verbal les reprend sous « Assistaient également » avec leur qualité quand elle est renseignée.",
           "sourceIds": []
         }
       ]

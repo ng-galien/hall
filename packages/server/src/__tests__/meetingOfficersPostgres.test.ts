@@ -126,7 +126,11 @@ it("conducts handovers through the form, attending persons and the ballot chair 
       [deputy.id, councillor.id].sort(),
     );
     expect(opened.actions.map((action: { name: string }) => action.name)).toEqual(
-      expect.arrayContaining(["meeting.record-officer-change", "meeting.declare-auxiliary-attendance"]),
+      expect.arrayContaining([
+        "meeting.record-officer-change",
+        "meeting.declare-auxiliary-attendance",
+        "meeting.correct-auxiliary-attendance",
+      ]),
     );
 
     const refused = await send(
@@ -149,22 +153,51 @@ it("conducts handovers through the form, attending persons and the ballot chair 
       expect.objectContaining({ office: "secretary", basis: "councilNomination", memberName: "Paul Adjoint" }),
     ]);
 
+    const auxiliariesPath = `/api/council-meetings/${meeting.id}/auxiliary-attendances`;
     const declared = meetingConductWorkspaceSchema.parse(
       (
         await send(
-          `/api/council-meetings/${meeting.id}/auxiliary-attendances`,
-          { contactId: secretaryOfTownHall.id, quality: "townHallSecretary", declaredAt: new Date().toISOString() },
+          auxiliariesPath,
+          {
+            person: { kind: "contact", contactId: secretaryOfTownHall.id },
+            quality: "secrétaire de mairie",
+            declaredAt: new Date().toISOString(),
+          },
           201,
         )
       ).properties,
     );
     expect(declared.auxiliaryAttendances).toEqual([
-      expect.objectContaining({ name: "Claire Martin", quality: "townHallSecretary" }),
+      expect.objectContaining({ name: "Claire Martin", quality: "secrétaire de mairie" }),
     ]);
     expect(declared.currentAttendance).toHaveLength(3);
+    const withNewContact = meetingConductWorkspaceSchema.parse(
+      (
+        await send(
+          auxiliariesPath,
+          {
+            person: { kind: "newContact", firstName: "Jean", lastName: "Libre" },
+            quality: "",
+            declaredAt: new Date().toISOString(),
+          },
+          201,
+        )
+      ).properties,
+    );
+    const created = withNewContact.auxiliaryAttendances.find((entry) => entry.name === "Jean Libre")!;
+    expect(created.quality).toBeNull();
+    const corrected = meetingConductWorkspaceSchema.parse(
+      (await send(auxiliariesPath, { kind: "quality", attendanceId: created.id, quality: "invité" }, 200, "PATCH"))
+        .properties,
+    );
+    expect(corrected.auxiliaryAttendances.find((entry) => entry.id === created.id)?.quality).toBe("invité");
+    const removed = meetingConductWorkspaceSchema.parse(
+      (await send(auxiliariesPath, { kind: "removal", attendanceId: created.id }, 200, "PATCH")).properties,
+    );
+    expect(removed.auxiliaryAttendances.map((entry) => entry.name)).toEqual(["Claire Martin"]);
     const member = await send(
-      `/api/council-meetings/${meeting.id}/auxiliary-attendances`,
-      { contactId: mayorContact.id, quality: "guest", declaredAt: new Date().toISOString() },
+      auxiliariesPath,
+      { person: { kind: "contact", contactId: mayorContact.id }, quality: null, declaredAt: new Date().toISOString() },
       409,
     );
     expect(member.code).toBe("auxiliary_attendance_invalid");
