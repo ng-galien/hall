@@ -9,7 +9,10 @@ test("ouvrir la séance : de la séance programmée à la séance ouverte", asyn
   await expect(page.getByRole("heading", { name: "Séances du conseil" })).toBeVisible();
   await capture(page, `${journey}/01-liste-des-seances`);
 
-  await page.getByRole("link", { name: /Conseil municipal 1/ }).first().click();
+  await page
+    .getByRole("link", { name: /Conseil municipal 1/ })
+    .first()
+    .click();
   await expect(page.getByTestId("meeting-edit-details")).toBeVisible();
 
   await page.getByTestId("meeting-edit-details").click();
@@ -23,7 +26,10 @@ test("ouvrir la séance : de la séance programmée à la séance ouverte", asyn
   await expect(page.getByText("Programmée", { exact: true })).toBeVisible();
   await capture(page, `${journey}/03-seance-programmee`);
 
-  await page.getByTestId(/^agenda-candidate-add-/).first().click();
+  await page
+    .getByTestId(/^agenda-candidate-add-/)
+    .first()
+    .click();
   await expect(page.getByTestId(/^agenda-item-position-/).first()).toBeVisible();
   await capture(page, `${journey}/04-point-inscrit`);
 

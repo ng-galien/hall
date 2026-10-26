@@ -2,7 +2,7 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
-import { expect, test as base } from "../fixtures/application";
+import { test as base, expect } from "../fixtures/application";
 
 /** The documentation captures: every screen of the user documentation, taken on the Alésia dataset. */
 const capturesDirectory = join(dirname(fileURLToPath(import.meta.url)), "../../public/documentation/captures");

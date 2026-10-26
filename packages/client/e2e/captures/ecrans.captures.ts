@@ -20,11 +20,11 @@ async function entities(page: Page, path: string): Promise<Record<string, unknow
 const misses: string[] = [];
 
 /** Opens a screen and captures it; a screen that cannot be reached is reported at the end, not fatal. */
-async function open(page: Page, route: string, name: string, settle: () => Promise<void> = async () => {}) {
+async function open(page: Page, route: string, name: string, settle?: () => Promise<void>) {
   try {
     await page.goto(`/app${route}`);
     await page.waitForLoadState("networkidle");
-    await settle();
+    if (settle) await settle();
     await page.waitForTimeout(800);
     await capture(page, `ecrans/${name}`);
   } catch (error) {
