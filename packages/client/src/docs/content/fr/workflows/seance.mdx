@@ -1,54 +1,76 @@
 ---
-title: "Déroulement de la séance"
-summary: "Passer en mode séance, faire l’appel et ouvrir la séance, examiner chaque point, saisir les votes, clore."
+title: "Dérouler la séance"
+summary: "De la séance ouverte à la séance close : examen de chaque point, vote, résultat, huis clos, mouvements de présence, clôture."
 order: 3
 screen: /meetings
 ---
 
-Ce parcours couvre le jour du conseil, de l’appel à la clôture.
-Il se fait avec un compte qui a le rôle **Conduite de séance** ou **Administrateur**.
-L’écran utilisé est décrit dans [Mode séance](/docs/ecrans/mode-seance).
-Le secrétariat consigne les faits ; il ne choisit pas le résultat d’un vote.
+Ce parcours commence quand la séance est ouverte, après [Ouvrir la séance](/docs/workflows/ouvrir-la-seance), et va jusqu’à la clôture.
+Il se fait avec le compte du secrétariat, en mode séance.
+Le secrétariat consigne ce qui se passe ; il ne choisit pas le résultat d’un vote.
 
-## Appel
+## 1. Le premier point
 
-1. Ouvrir **Séances**, puis la séance, et cliquer **Passer en mode séance**.
-2. Pour chaque membre, cliquer **Présent**, **Excusé** ou **Absent**. **Tout marquer présent** accélère la saisie.
-3. Pour un membre qui a donné pouvoir, cliquer **Pouvoir**, choisir le porteur présent, téléverser le pouvoir écrit et cliquer **Valider le pouvoir**.
-4. Vérifier la présidence et le secrétariat de séance ; **Actions du membre** permet de les désigner.
+À l’ouverture, Hall affiche le premier point de l’ordre du jour : le rapport présenté au conseil, le projet de délibération, les pièces. La colonne de gauche liste les points et leur état. En bas, **Commencer l’examen du point** ouvre la discussion.
 
-## Ouverture
+![Le premier point de l’ordre du jour, programmé, avec son rapport et ses pièces](/app/documentation/captures/derouler-la-seance/01-premier-point.png)
 
-5. Lire les conditions qui manquent, affichées en bas de l’écran, et les régler.
-6. Cliquer **Constater le quorum et ouvrir la séance**.
-7. Lire le constat affiché en haut : « Quorum : présents / requis ».
+## 2. Déclarer les déports avant la discussion
 
-Si le quorum n’est pas atteint, suivre [Séance sans quorum et seconde convocation](/docs/workflows/seconde-convocation).
+Si un membre ne doit pas prendre part au point, cliquer **Déports sur ce point** en haut à droite, choisir le membre et le motif, puis **Enregistrer**. Un membre déporté ne vote pas sur ce point et ne compte pas dans sa majorité.
 
-## Examen des points
+![La fenêtre Déports sur ce point](/app/documentation/captures/derouler-la-seance/02-deports.png)
 
-8. Avant la discussion, déclarer les déports avec **Déports sur ce point**.
-9. Cliquer **Commencer l’examen du point**.
-10. Saisir les notes dans **Notes de discussion et observations**.
-11. Pour une question ouverte, cliquer **Clôturer et passer au sujet suivant**.
-12. Si le point ne peut pas être traité, cliquer **Ajourner le point** et confirmer.
+## 3. Examiner le point
 
-## Saisie d’un vote
+Cliquer **Commencer l’examen du point**. Le point passe en **Discussion**. Les notes de discussion se saisissent dans le champ prévu ; elles iront au procès-verbal. Pour une question ouverte, **Clôturer et passer au sujet suivant** termine le point sans vote. Si le point ne peut pas être traité, **Ajourner le point** le reporte à la séance suivante.
 
-13. Cliquer **Passer au vote**, puis choisir **Scrutin public** ou **Scrutin secret**.
-14. Pointer chaque votant dans sa zone, ou saisir les totaux pour un scrutin secret.
-15. Choisir le **Président du scrutin**.
-16. Cliquer **Prévisualiser le résultat** et faire vérifier les totaux et la conclusion.
-17. Cliquer **Corriger la saisie** si besoin, sinon **Confirmer et clore le point**.
+![Le point en discussion, avec le champ des notes et le bouton Passer au vote](/app/documentation/captures/derouler-la-seance/03-discussion.png)
 
-## Mouvements et questions en séance
+## 4. Ouvrir le vote
 
-18. Enregistrer une arrivée ou un départ avec **Présences**, puis **Revenir à l’ordre du jour**.
-19. Ajouter une question en fin d’ordre du jour avec **Ajouter une question ouverte**.
+Cliquer **Passer au vote**. Hall affiche les votants, le président du scrutin, et le choix entre **Scrutin public** et **Scrutin secret**.
 
-## Clôture
+![Le vote ouvert : les votants, le président du scrutin, le mode de scrutin](/app/documentation/captures/derouler-la-seance/04-vote-ouvert.png)
 
-20. Cliquer **Clore la séance**, puis confirmer si des points n’ont pas été examinés.
+## 5. Saisir les votes
 
-Hall crée alors le brouillon du procès-verbal et la séance suivante.
-La suite est décrite dans [Délibérations après le vote](/docs/workflows/deliberations) et [Procès-verbal après la séance](/docs/workflows/proces-verbal).
+Pour un scrutin public, **Tous pour** place tout le monde dans la zone Pour ; cliquer ensuite un votant puis **Contre** ou **Abstention** pour le déplacer. Pour un scrutin secret, saisir les totaux.
+
+![Les votes saisis : un votant déplacé dans la zone Contre](/app/documentation/captures/derouler-la-seance/05-votes-saisis.png)
+
+## 6. Vérifier avant de confirmer
+
+Cliquer **Prévisualiser le résultat**. Hall montre les totaux et la conclusion (adopté ou rejeté) avant tout enregistrement. **Corriger la saisie** revient aux zones ; **Confirmer et clore le point** enregistre le scrutin.
+
+![La prévisualisation du résultat : totaux et conclusion](/app/documentation/captures/derouler-la-seance/06-previsualisation.png)
+
+## 7. Le résultat
+
+Après confirmation, le point est terminé et affiche son résultat. Hall crée le brouillon de la délibération ; sa rédaction est décrite dans [Délibérations après le vote](/docs/workflows/deliberations).
+
+![Le point terminé avec son résultat](/app/documentation/captures/derouler-la-seance/07-resultat.png)
+
+## 8. Huis clos
+
+À la demande du maire ou de trois membres présents, cliquer **Huis clos** dans la colonne de gauche, indiquer les demandeurs, le nombre de voix pour et la portée (toute la suite de la séance ou des points désignés). Hall refuse sans majorité absolue des présents et représentés. Les points concernés sont marqués dans la conduite et au procès-verbal.
+
+![La fenêtre Huis clos : demandeurs, voix pour, portée](/app/documentation/captures/derouler-la-seance/08-huis-clos.png)
+
+## 9. Arrivées et départs en séance
+
+Cliquer **Présences** dans la colonne de gauche pour enregistrer une arrivée, un départ ou un pouvoir qui arrive en séance, puis **Revenir à l’ordre du jour**. Un membre absent du registre de l’ouverture ne peut pas être ajouté : seuls les membres appelés à l’ouverture siègent.
+
+![L’écran des présences pendant la séance](/app/documentation/captures/derouler-la-seance/09-presences-en-seance.png)
+
+## 10. Clore la séance
+
+Quand le dernier point est traité, cliquer **Clore la séance** dans la colonne de gauche. Le bouton devient **Confirmer la clôture de la séance** ; si des points n’ont pas été examinés, Hall le dit à ce moment et ces points sont reportés. Cliquer une seconde fois pour confirmer.
+
+![Le bouton Confirmer la clôture de la séance](/app/documentation/captures/derouler-la-seance/10-confirmer-la-cloture.png)
+
+À la clôture, Hall revient à la liste des séances : la séance passe à **Terminée**, et la séance suivante est créée, en préparation, avec le brouillon du procès-verbal à arrêter.
+
+![La liste des séances après la clôture : la séance terminée et la suivante en préparation](/app/documentation/captures/derouler-la-seance/11-seance-close.png)
+
+La suite est décrite dans [Procès-verbal après la séance](/docs/workflows/proces-verbal).

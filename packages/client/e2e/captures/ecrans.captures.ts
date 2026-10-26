@@ -28,6 +28,7 @@ async function open(page: Page, route: string, name: string, settle?: () => Prom
     await page.waitForTimeout(800);
     await capture(page, `ecrans/${name}`);
   } catch (error) {
+    await capture(page, `ecrans/${name}-echec`).catch(() => undefined);
     misses.push(`${name} (${route}) : ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
   }
 }
@@ -36,7 +37,7 @@ test("les écrans de Hall sur le jeu Alésia", async ({ docsPage: page }) => {
   await open(page, "/", "vue-d-ensemble");
 
   const meetings = await entities(page, "/api/council-meetings");
-  const inProgress = meetings.find((meeting) => meeting.openedAt && !meeting.closedAt);
+  const inProgress = meetings.find((meeting) => meeting.startedAt && !meeting.closedAt);
   const closed = meetings.find((meeting) => meeting.closedAt);
   await open(page, "/meetings", "seances");
   if (closed) await open(page, `/meetings/${closed.id}`, "seance-close");
@@ -65,7 +66,8 @@ test("les écrans de Hall sur le jeu Alésia", async ({ docsPage: page }) => {
   const spreadsheet = byKind("spreadsheet");
   if (spreadsheet) {
     await open(page, `/workspace?resource=${spreadsheet.id}`, "tableur", async () => {
-      await expect(page.getByText("Chargement du tableur…")).toBeHidden({ timeout: 30_000 });
+      await expect(page.getByText("Démarrer", { exact: true })).toBeVisible({ timeout: 180_000 });
+      await page.waitForTimeout(1500);
     });
   }
   const document = byKind("document");
