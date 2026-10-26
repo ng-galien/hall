@@ -33,11 +33,13 @@ export async function prepareMeeting(page: Page, prefix?: string) {
   await expect(page.getByText("Programmée", { exact: true })).toBeVisible();
   await shot("03-seance-programmee");
 
-  await page
-    .getByTestId(/^agenda-candidate-add-/)
-    .first()
-    .click();
+  const candidate = page.getByTestId(/^agenda-candidate-add-/).first();
+  if ((await candidate.count()) && (await candidate.isEnabled())) await candidate.click();
   await expect(page.getByTestId(/^agenda-item-position-/).first()).toBeVisible();
+  await page
+    .getByTestId(/^agenda-item-position-/)
+    .first()
+    .scrollIntoViewIfNeeded();
   await shot("04-point-inscrit");
 
   await page.getByRole("button", { name: "Ordre du jour" }).click();
