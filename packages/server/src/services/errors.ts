@@ -38,6 +38,7 @@ export type ErrorCode =
   | "auxiliary_attendance_invalid"
   | "attendance_outside_membership"
   | "proxy_consecutive_limit"
+  | "closed_session_invalid"
   | "recusal_immutable"
   | "recusal_occurrence_locked"
   | "agenda_ballot_required"

@@ -31,6 +31,7 @@ import type {
   RecordAgendaItemRecusal,
   RecordMeetingAttendance,
   RecordMeetingAttendanceEvents,
+  RecordMeetingClosedSession,
   RecordMeetingOfficerChange,
   RecordMeetingOpening,
   RecordMeetingQuorum,
@@ -108,6 +109,7 @@ export interface CouncilClient {
     meetingId: string,
     input: DeclareMeetingAuxiliaryAttendance,
   ): Promise<MeetingConductWorkspace>;
+  recordMeetingClosedSession(meetingId: string, input: RecordMeetingClosedSession): Promise<MeetingConductWorkspace>;
   correctMeetingAuxiliaryAttendance(
     meetingId: string,
     input: CorrectMeetingAuxiliaryAttendance,

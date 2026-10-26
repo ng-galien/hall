@@ -15,6 +15,7 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 // @verifies-requirement HALL-FR-ATT-140
 // @verifies-requirement HALL-FR-BAL-140
 // @verifies-requirement HALL-FR-BAL-340
+// @verifies-requirement HALL-FR-MTG-350
 it("conducts handovers through the form, attending persons and the ballot chair through Siren actions", async () => {
   const pool = new Pool({ connectionString: databaseUrl });
   await resetPostgresTestDatabase(pool);
@@ -130,6 +131,7 @@ it("conducts handovers through the form, attending persons and the ballot chair 
         "meeting.record-officer-change",
         "meeting.declare-auxiliary-attendance",
         "meeting.correct-auxiliary-attendance",
+        "meeting.record-closed-session",
       ]),
     );
 
@@ -202,6 +204,35 @@ it("conducts handovers through the form, attending persons and the ballot chair 
     );
     expect(member.code).toBe("auxiliary_attendance_invalid");
 
+    const closedSessionsPath = `/api/council-meetings/${meeting.id}/closed-sessions`;
+    const notAdopted = await send(
+      closedSessionsPath,
+      {
+        requesterMemberIds: [mayor.id],
+        approvals: 1,
+        scope: { kind: "agendaItems", agendaItemIds: [item.id] },
+        observedAt: new Date().toISOString(),
+      },
+      409,
+    );
+    expect(notAdopted.code).toBe("closed_session_invalid");
+    const closed = meetingConductWorkspaceSchema.parse(
+      (
+        await send(
+          closedSessionsPath,
+          {
+            requesterMemberIds: [mayor.id, deputy.id, councillor.id],
+            approvals: 2,
+            scope: { kind: "agendaItems", agendaItemIds: [item.id] },
+            observedAt: new Date().toISOString(),
+          },
+          201,
+        )
+      ).properties,
+    );
+    expect(closed.closedSessions).toEqual([
+      expect.objectContaining({ approvals: 2, presentOrRepresented: 3, wholeMeeting: false, agendaItemIds: [item.id] }),
+    ]);
     const recusalsPath = `/api/council-meetings/${meeting.id}/agenda-items/${item.id}/recusals`;
     await send(
       recusalsPath,

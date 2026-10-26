@@ -244,6 +244,24 @@ export const fr: Messages = {
   "auxiliary.quality": "Qualité (facultatif)",
   "auxiliary.declare": "Ajouter la personne",
   "auxiliary.remove": "Retirer",
+  "closedSession.summaryItems":
+    "Huis clos pour des points désignés, {approvals} voix sur {count} membres présents ou représentés",
+  "closedSession.summaryWhole":
+    "Huis clos pour la suite de la séance, {approvals} voix sur {count} membres présents ou représentés",
+  "closedSession.mark": "Huis clos",
+  "closedSession.record": "Enregistrer le huis clos",
+  "closedSession.someItems": "Les points désignés",
+  "closedSession.wholeMeeting": "Toute la suite de la séance",
+  "closedSession.scope": "Portée",
+  "closedSession.majorityHint": "{count} membres présents ou représentés : {required} voix au moins.",
+  "closedSession.approvals": "Voix pour le huis clos",
+  "closedSession.threeMembers": "Trois membres présents",
+  "closedSession.mayorAbsent": "Le maire (absent)",
+  "closedSession.mayor": "Le maire, {name}",
+  "closedSession.requestedBy": "Demande",
+  "closedSession.description":
+    "Sur la demande de trois membres ou du maire, le conseil décide sans débat, à la majorité absolue des membres présents ou représentés, de se réunir à huis clos.",
+  "closedSession.title": "Huis clos",
   "auxiliary.saveQuality": "Enregistrer",
   "auxiliary.qualityPlaceholder": "Par exemple : secrétaire de mairie",
   "auxiliary.lastName": "Nom",
@@ -272,6 +290,8 @@ export const fr: Messages = {
     "Une présence de membre est déclarée pour une personne hors du registre des mandats de la séance.",
   "error.proxy_consecutive_limit":
     "Ce pouvoir a déjà servi aux trois séances consécutives précédentes : il faut un nouveau pouvoir, sauf maladie dûment constatée ou congé de maternité.",
+  "error.closed_session_invalid":
+    "Le huis clos ne peut pas être enregistré : vérifiez la demande, la majorité absolue et les points désignés.",
   "error.recused_member_cannot_participate":
     "Un membre déporté ne peut pas participer, personnellement ou comme porteur d’un pouvoir.",
   "error.recusal_immutable": "Un déport enregistré ne peut pas être réécrit.",

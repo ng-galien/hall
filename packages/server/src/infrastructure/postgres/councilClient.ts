@@ -99,6 +99,7 @@ const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV128: "auxiliary_attendance_invalid",
   HV150: "attendance_outside_membership",
   HV151: "proxy_consecutive_limit",
+  HV152: "closed_session_invalid",
 };
 
 export function createPostgresCouncilClient({
@@ -451,6 +452,11 @@ export function createPostgresCouncilClient({
     async declareMeetingAuxiliaryAttendance(id, input) {
       return meetingConductWorkspaceSchema.parse(
         await call(() => postgresCouncil.declareMeetingAuxiliaryAttendance(currentRequest(), id, input)),
+      );
+    },
+    async recordMeetingClosedSession(id, input) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.recordMeetingClosedSession(currentRequest(), id, input)),
       );
     },
     async correctMeetingAuxiliaryAttendance(id, input) {

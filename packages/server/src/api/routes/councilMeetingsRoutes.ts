@@ -13,6 +13,7 @@ import {
   recordAgendaItemRecusalSchema,
   recordMeetingAttendanceEventsSchema,
   recordMeetingAttendanceSchema,
+  recordMeetingClosedSessionSchema,
   recordMeetingOfficerChangeSchema,
   recordMeetingOpeningSchema,
   recordMeetingQuorumSchema,
@@ -270,6 +271,20 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
               meeting.id,
               declareMeetingAuxiliaryAttendanceSchema.parse(request.body),
             ),
+          ),
+        );
+    },
+  );
+  router.post(
+    "/:meetingReference/closed-sessions",
+    requireActionPermission("meeting.record-closed-session"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response
+        .status(201)
+        .json(
+          await changeMeeting(meeting.id, () =>
+            councilClient.recordMeetingClosedSession(meeting.id, recordMeetingClosedSessionSchema.parse(request.body)),
           ),
         );
     },

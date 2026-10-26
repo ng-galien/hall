@@ -24,9 +24,10 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ha
    'currentOfficers',jsonb_build_object('chairMemberId',hall.current_meeting_officer(m.id,'chair'),
      'secretaryMemberId',hall.current_meeting_officer(m.id,'secretary')),
    'officerHandoverOptions',CASE WHEN jsonb_array_length(blockers.value->'recordOfficerChange')=0
-     THEN hall.meeting_officer_handover_options(m.id) ELSE '{"chair":[],"secretary":[]}'::jsonb END,
+     THEN hall.meeting_officer_handover_options(m.id) ELSE '{"chair":[],"secretary":[],"proposedChairMemberId":null}'::jsonb END,
    'canRecordOfficerChange',jsonb_array_length(blockers.value->'recordOfficerChange')=0,
    'canDeclareAuxiliaryAttendance',jsonb_array_length(blockers.value->'declareAuxiliaryAttendance')=0,
+   'canRecordClosedSession',m.started_at IS NOT NULL AND m.closed_at IS NULL,
    'canRecordQuorum',m.closed_at IS NULL AND EXISTS(SELECT FROM hall.meeting_membership_record WHERE council_meeting=m.id),
    'canRecordReconvocation',m.closed_at IS NULL AND EXISTS(SELECT FROM hall.meeting_quorum_observation o
      WHERE o.council_meeting=m.id AND o.facts->>'verdict'='notMet'
@@ -135,5 +136,17 @@ RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_cata
 BEGIN
  DELETE FROM hall.meeting_auxiliary_attendance WHERE id=target_attendance AND council_meeting=target_meeting;
  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV128',MESSAGE='unknown attending person in this meeting'; END IF;
+ RETURN hall_api.meeting_conduct(target_meeting);
+END $$;
+
+-- @implements-requirement HALL-FR-MTG-350
+CREATE FUNCTION hall_api.record_meeting_closed_session(target_meeting UUID,requester_ids UUID[],approval_count INTEGER,
+ covers_whole_meeting BOOLEAN,item_ids UUID[],observation_time TIMESTAMPTZ)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+BEGIN
+ INSERT INTO hall.meeting_closed_session(council_meeting,requester_member_ids,requesters,approvals,present_or_represented,
+   whole_meeting,agenda_item_ids,observed_at)
+ VALUES(target_meeting,requester_ids,'[]',approval_count,0,coalesce(covers_whole_meeting,false),
+   CASE WHEN covers_whole_meeting THEN '{}'::uuid[] ELSE coalesce(item_ids,'{}'::uuid[]) END,observation_time);
  RETURN hall_api.meeting_conduct(target_meeting);
 END $$;

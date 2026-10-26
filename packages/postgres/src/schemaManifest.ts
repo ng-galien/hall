@@ -46,6 +46,7 @@ export const schemaManifestPaths = [
   "sql/council/021-meeting-officers.sql",
   "sql/council/025-ballot-participation.sql",
   "sql/council/026-agenda-item-recusals.sql",
+  "sql/council/026a-meeting-closed-sessions.sql",
   "sql/council/027-quorum-observations.sql",
   "sql/council/028-ballot-chair.sql",
   "sql/council/030-votes.sql",

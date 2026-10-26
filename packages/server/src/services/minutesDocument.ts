@@ -102,12 +102,30 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
         });
         return `<li>${escapeHtml(recusal.memberName)} : ${basis}, déport déclaré le ${escapeHtml(date(recusal.declaredAt))}</li>`;
       });
+    // @implements-requirement HALL-FR-MTG-350
+    const closedSession = conduct.closedSessions.some((session) => session.agendaItemIds.includes(item.id))
+      ? "<p>Point examiné à huis clos.</p>"
+      : "";
     const recusalEvidence = declarations.length ? `<h4>Déports déclarés</h4><ul>${declarations.join("")}</ul>` : "";
     const status =
       ballot?.completedAt && !item.adjournedAt
         ? ""
         : `<p>${outcome}${item.kind === "minutesApproval" ? " · Non arrêté" : ""}</p>`;
-    return `<section><h3>${item.agendaNumber}. ${escapeHtml(title)}</h3>${item.introducedAt ? `<p>Question ajoutée en séance le ${escapeHtml(date(item.introducedAt))}.</p>` : ""}${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${quorum}${recusalEvidence}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>${individual}${nonParticipationNames}` : ""}</section>`;
+    return `<section><h3>${item.agendaNumber}. ${escapeHtml(title)}</h3>${item.introducedAt ? `<p>Question ajoutée en séance le ${escapeHtml(date(item.introducedAt))}.</p>` : ""}${closedSession}${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${quorum}${recusalEvidence}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>${individual}${nonParticipationNames}` : ""}</section>`;
+  });
+  // @implements-requirement HALL-FR-MTG-350
+  const closedSessions = conduct.closedSessions.map((session) => {
+    const request =
+      session.requesters.length === 1
+        ? `sur demande du maire, ${escapeHtml(session.requesters[0]!.name)}`
+        : `sur demande de ${session.requesters.map((requester) => escapeHtml(requester.name)).join(", ")}`;
+    const scope = session.wholeMeeting
+      ? "pour la suite de la séance"
+      : `pour les points ${agenda
+          .filter((entry) => session.agendaItemIds.includes(entry.id))
+          .map((entry) => entry.agendaNumber)
+          .join(", ")}`;
+    return `<li>${escapeHtml(date(session.observedAt))}, huis clos décidé sans débat ${request}, par ${session.approvals} voix sur ${session.presentOrRepresented} membres présents ou représentés, ${scope}</li>`;
   });
   const handovers = conduct.officerChanges.map((change) => `<li>${officerChange(change)}</li>`);
   const attending = conduct.auxiliaryAttendances.map(
@@ -115,7 +133,7 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
   );
 
   return {
-    facts: `<p>Séance n° ${meeting.number}<br>Ouverture : ${escapeHtml(date(meeting.startedAt))}<br>Clôture : ${escapeHtml(date(meeting.closedAt))}<br>Lieu : ${escapeHtml(meeting.location ?? "Non renseigné")}</p><p>Présidence : ${escapeHtml(meeting.chair?.name ?? "Non renseignée")}<br>Secrétariat : ${escapeHtml(meeting.secretary?.name ?? "Non renseigné")}<br>Quorum requis : ${meeting.quorum} · Présents : ${attendance.filter((entry) => entry.status === "present").length}</p><ul>${rows.join("")}</ul>${attending.length ? `<p>Assistaient également :</p><ul>${attending.join("")}</ul>` : ""}${handovers.length ? `<p>Passations en séance :</p><ul>${handovers.join("")}</ul>` : ""}`,
+    facts: `<p>Séance n° ${meeting.number}<br>Ouverture : ${escapeHtml(date(meeting.startedAt))}<br>Clôture : ${escapeHtml(date(meeting.closedAt))}<br>Lieu : ${escapeHtml(meeting.location ?? "Non renseigné")}</p><p>Présidence : ${escapeHtml(meeting.chair?.name ?? "Non renseignée")}<br>Secrétariat : ${escapeHtml(meeting.secretary?.name ?? "Non renseigné")}<br>Quorum requis : ${meeting.quorum} · Présents : ${attendance.filter((entry) => entry.status === "present").length}</p><ul>${rows.join("")}</ul>${attending.length ? `<p>Assistaient également :</p><ul>${attending.join("")}</ul>` : ""}${handovers.length ? `<p>Passations en séance :</p><ul>${handovers.join("")}</ul>` : ""}${closedSessions.length ? `<p>Huis clos :</p><ul>${closedSessions.join("")}</ul>` : ""}`,
     proceedings: subjects.join(""),
   };
 }

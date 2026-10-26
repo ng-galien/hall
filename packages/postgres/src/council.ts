@@ -39,11 +39,13 @@ import {
   proxyLimitExceptionSchema,
   type RecordAgendaItemRecusal,
   type RecordMeetingAttendanceEvents,
+  type RecordMeetingClosedSession,
   type RecordMeetingOfficerChange,
   type RecordMeetingQuorum,
   type RecordMeetingReconvocation,
   recordAgendaItemRecusalSchema,
   recordMeetingAttendanceEventsSchema,
+  recordMeetingClosedSessionSchema,
   recordMeetingOfficerChangeSchema,
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
@@ -897,6 +899,29 @@ export class PostgresCouncil {
       matchDiscriminated(value.person, "kind", {
         contact: (person) => [person.contactId, null, null, value.quality, value.declaredAt],
         newContact: (person) => [null, person.firstName, person.lastName, value.quality, value.declaredAt],
+      }),
+    );
+  }
+  recordMeetingClosedSession(
+    request: PostgresCouncilRequest,
+    meetingId: string,
+    input: RecordMeetingClosedSession,
+  ): Promise<PostgresMeetingConduct> {
+    const value = recordMeetingClosedSessionSchema.parse(input);
+    return this.conductMutation(
+      request,
+      meetingId,
+      "meeting.record-closed-session",
+      "SELECT hall_api.record_meeting_closed_session($1::uuid,$2::uuid[],$3::integer,$4::boolean,$5::uuid[],$6::timestamptz) AS payload",
+      matchDiscriminated(value.scope, "kind", {
+        wholeMeeting: () => [value.requesterMemberIds, value.approvals, true, null, value.observedAt],
+        agendaItems: (scope) => [
+          value.requesterMemberIds,
+          value.approvals,
+          false,
+          scope.agendaItemIds,
+          value.observedAt,
+        ],
       }),
     );
   }

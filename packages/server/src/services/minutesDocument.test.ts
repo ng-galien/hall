@@ -35,6 +35,7 @@ const fixture: MinutesDetail = {
       officerChanges: [],
       auxiliaryAttendances: [],
       proxyExceptions: [],
+      closedSessions: [],
     },
     attendance: [
       { id: "attendance", member: { id: "chair", name: "Marie Martin" }, status: "present", proxyHolderId: null },
@@ -229,6 +230,31 @@ describe("minutes generated document", () => {
     );
     expect(facts).toContain("présidence confiée à Paul &lt;Adjoint&gt; (adjoint dans l’ordre des nominations)");
     expect(facts).toContain("secrétariat confié à Lise Conseillère (nomination par le conseil)");
+  });
+
+  // @verifies-requirement HALL-FR-MTG-350
+  it("mentions a closed session and marks the items held in closed session", () => {
+    const minutes = structuredClone(fixture);
+    minutes.facts.conduct.closedSessions = [
+      {
+        id: "closed",
+        councilMeetingId: "meeting",
+        requesters: [{ councilMemberId: "chair", name: "Marie Martin" }],
+        approvals: 5,
+        presentOrRepresented: 9,
+        wholeMeeting: false,
+        agendaItemIds: ["agenda"],
+        observedAt: "2026-09-05T18:20:00Z",
+        recordedAt: "2026-09-05T18:20:00Z",
+        recordedBy: "clerk",
+      },
+    ];
+    const { facts, proceedings } = renderMinutesSections(minutes);
+    expect(facts).toContain("Huis clos :</p><ul><li>");
+    expect(facts).toContain(
+      "huis clos décidé sans débat sur demande du maire, Marie Martin, par 5 voix sur 9 membres présents ou représentés, pour les points 1</li>",
+    );
+    expect(proceedings).toContain("<p>Point examiné à huis clos.</p>");
   });
 
   it("prints each point once with its discussion before its result", () => {

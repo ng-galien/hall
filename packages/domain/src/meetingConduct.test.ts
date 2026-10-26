@@ -107,6 +107,8 @@ describe("meeting conduct evidence", () => {
           recordedBy: "secretary",
         },
       ],
+      proxyExceptions: [],
+      closedSessions: [],
       currentAttendance: [attendance],
       canRecordAttendanceEvents: true,
       currentOfficers: { chairMemberId: memberId, secretaryMemberId: null },
@@ -117,6 +119,7 @@ describe("meeting conduct evidence", () => {
       },
       canRecordOfficerChange: true,
       canDeclareAuxiliaryAttendance: true,
+      canRecordClosedSession: true,
       canRecordQuorum: true,
       canRecordReconvocation: false,
     };
@@ -131,7 +134,7 @@ describe("meeting conduct evidence", () => {
         quorumObservations: [],
         reconvocations: [],
       }),
-    ).toMatchObject({ officerChanges: [], auxiliaryAttendances: [] });
+    ).toMatchObject({ officerChanges: [], auxiliaryAttendances: [], proxyExceptions: [], closedSessions: [] });
   });
 
   it("accepts a free capacity and requires either a contact or a full new name", () => {

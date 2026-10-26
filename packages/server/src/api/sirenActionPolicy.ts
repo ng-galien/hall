@@ -535,6 +535,10 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
         `/api/council-meetings/${meetingReference}/auxiliary-attendances`,
       ),
     );
+  if (conduct.canRecordClosedSession === true)
+    actions.push(
+      action("meeting.record-closed-session", "POST", `/api/council-meetings/${meetingReference}/closed-sessions`),
+    );
   if (conduct.canRecordQuorum === true)
     actions.push(
       action("meeting.record-quorum", "POST", `/api/council-meetings/${meetingReference}/quorum-observations`),

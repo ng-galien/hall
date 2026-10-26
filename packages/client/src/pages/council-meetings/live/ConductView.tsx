@@ -17,6 +17,7 @@ import {
   FileIcon,
   GavelIcon,
   InfoIcon,
+  LockIcon,
   MembersIcon,
   PlayIcon,
   WarningIcon,
@@ -38,6 +39,7 @@ import { AgendaItemRecusalDialog } from "../../../features/council-meetings/Agen
 import { agendaSubjectPresentation } from "../../../features/council-meetings/AgendaSubjectGlyph";
 import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdictPresentation";
 import { ConductActionBlockers } from "../../../features/council-meetings/ConductActionBlockers";
+import { MeetingClosedSessionDialog } from "../../../features/council-meetings/MeetingClosedSessionDialog";
 import { MeetingOfficersDialog } from "../../../features/council-meetings/MeetingOfficersDialog";
 import { officeLabel, officerBasisLabel } from "../../../features/council-meetings/meetingOfficerPresentation";
 import { recusalBasisLabel } from "../../../features/council-meetings/recusalPresentation";
@@ -172,6 +174,7 @@ export function ConductView({
   );
   const [recusalOpen, setRecusalOpen] = useState(false);
   const [officersOpen, setOfficersOpen] = useState(false);
+  const [closedSessionOpen, setClosedSessionOpen] = useState(false);
   const [recusalDetailsOpen, setRecusalDetailsOpen] = useState(false);
   const selectedItemRef = useRef(selectedItem);
   selectedItemRef.current = selectedItem;
@@ -208,6 +211,8 @@ export function ConductView({
 
   const selectedDecisionId = agendaItemDecisionId(selectedItem);
   const conduct = meetingActions.workspace?.conduct ?? null;
+  // @implements-requirement HALL-FR-MTG-350
+  const closedSessionItemIds = new Set(conduct?.closedSessions.flatMap((session) => session.agendaItemIds) ?? []);
   const meetingBlockers = conduct?.meetingActionBlockers;
   const blockerMemberName = (memberId: string) => councilMemberName(members, memberId);
   const blockers = meetingActions.workspace?.agendaItems.find((item) => item.id === selectedItem.id)?.conductBlockers;
@@ -392,6 +397,9 @@ export function ConductView({
                 {!railCollapsed ? (
                   <span className="conduct-step-copy">
                     <strong>{liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}</strong>
+                    {closedSessionItemIds.has(item.id) ? (
+                      <span data-testid={`live-agenda-item-closed-session-${item.id}`}>{t("closedSession.mark")}</span>
+                    ) : null}
                     {!itemBallot ? (
                       <span>
                         {itemActive
@@ -501,6 +509,17 @@ export function ConductView({
             {!railCollapsed ? t("officers.title") : null}
           </button>
           <button
+            className="live-primary-action conduct-rail-tool"
+            type="button"
+            title={railCollapsed ? t("closedSession.title") : undefined}
+            data-testid="live-closed-session-open"
+            disabled={!conduct || !meetingActions.can("meeting.record-closed-session")}
+            onClick={() => setClosedSessionOpen(true)}
+          >
+            <LockIcon aria-hidden="true" />
+            {!railCollapsed ? t("closedSession.title") : null}
+          </button>
+          <button
             className="live-primary-action live-danger-action conduct-rail-tool"
             type="button"
             disabled={submitting || !meetingActions.can("meeting.close")}
@@ -573,6 +592,19 @@ export function ConductView({
                   <li key={change.id}>
                     {formatTime(change.observedAt)} · {t(officeLabel(change.office))} ·{" "}
                     <strong>{change.memberName}</strong> · {t(officerBasisLabel(change.basis))}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {conduct && conduct.closedSessions.length > 0 ? (
+              <ul className="grid gap-1" data-testid="live-closed-sessions">
+                {conduct.closedSessions.map((session) => (
+                  <li key={session.id}>
+                    {formatTime(session.observedAt)} ·{" "}
+                    {t(session.wholeMeeting ? "closedSession.summaryWhole" : "closedSession.summaryItems", {
+                      approvals: formatNumber(session.approvals),
+                      count: formatNumber(session.presentOrRepresented),
+                    })}
                   </li>
                 ))}
               </ul>
@@ -1032,6 +1064,28 @@ export function ConductView({
           controller={recusals}
           members={members}
           onClose={() => setRecusalOpen(false)}
+        />
+      ) : null}
+      {closedSessionOpen && conduct ? (
+        <MeetingClosedSessionDialog
+          presentMembers={members.filter((member) =>
+            conduct.currentAttendance.some(
+              (entry) => entry.councilMemberId === member.id && entry.status === "present",
+            ),
+          )}
+          presentOrRepresentedCount={
+            conduct.currentAttendance.filter((entry) => entry.status === "present" || entry.status === "represented")
+              .length
+          }
+          openItems={aggregate.agendaItems
+            .filter((item) => item.status !== "examined" && item.status !== "adjourned")
+            .map((item) => ({
+              id: item.id,
+              label: `${item.agendaNumber}. ${liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}`,
+            }))}
+          error={meetingActions.actionError}
+          onRecord={meetingActions.recordClosedSession}
+          onClose={() => setClosedSessionOpen(false)}
         />
       ) : null}
       {officersOpen && conduct ? (

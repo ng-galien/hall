@@ -242,6 +242,24 @@ export const en = {
   "auxiliary.quality": "Capacity (optional)",
   "auxiliary.declare": "Add the person",
   "auxiliary.remove": "Remove",
+  "closedSession.summaryItems":
+    "Closed session for designated items, {approvals} votes of {count} members present or represented",
+  "closedSession.summaryWhole":
+    "Closed session for the rest of the meeting, {approvals} votes of {count} members present or represented",
+  "closedSession.mark": "Closed session",
+  "closedSession.record": "Record the closed session",
+  "closedSession.someItems": "The designated items",
+  "closedSession.wholeMeeting": "The rest of the meeting",
+  "closedSession.scope": "Scope",
+  "closedSession.majorityHint": "{count} members present or represented: at least {required} votes.",
+  "closedSession.approvals": "Votes for the closed session",
+  "closedSession.threeMembers": "Three present members",
+  "closedSession.mayorAbsent": "The mayor (absent)",
+  "closedSession.mayor": "The mayor, {name}",
+  "closedSession.requestedBy": "Request",
+  "closedSession.description":
+    "On the request of three members or of the mayor, the council decides without debate, by the absolute majority of the members present or represented, to meet in closed session.",
+  "closedSession.title": "Closed session",
   "auxiliary.saveQuality": "Save",
   "auxiliary.qualityPlaceholder": "For example: town hall secretary",
   "auxiliary.lastName": "Last name",
@@ -269,6 +287,8 @@ export const en = {
     "A member attendance is declared for a person outside the membership roster of the meeting.",
   "error.proxy_consecutive_limit":
     "This proxy already served in the three preceding consecutive meetings: a new proxy is required, except for duly established illness or maternity leave.",
+  "error.closed_session_invalid":
+    "The closed session cannot be recorded: check the request, the absolute majority and the designated items.",
   "error.recused_member_cannot_participate": "A recused member cannot participate, personally or as a proxy holder.",
   "error.recusal_immutable": "A recorded recusal cannot be rewritten.",
   "error.recusal_occurrence_locked": "An agenda item with recorded recusals must remain attached to its meeting.",

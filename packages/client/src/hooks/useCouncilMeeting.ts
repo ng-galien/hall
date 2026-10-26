@@ -7,6 +7,7 @@ import {
   type MeetingConductWorkspace,
   type PrepareCouncilMeeting,
   type RecordMeetingAttendanceEvents,
+  type RecordMeetingClosedSession,
   type RecordMeetingOfficerChange,
   type RecordMeetingOpening,
   type RecordMeetingReconvocation,
@@ -52,6 +53,7 @@ import {
   declareMeetingAuxiliaryAttendance,
   openMeetingConduct,
   recordMeetingAttendanceEvents,
+  recordMeetingClosedSession,
   recordMeetingOfficerChange,
   recordMeetingOpening,
   recordMeetingQuorum,
@@ -72,6 +74,7 @@ const meetingConductActionNames = [
   "meeting.record-officer-change",
   "meeting.declare-auxiliary-attendance",
   "meeting.correct-auxiliary-attendance",
+  "meeting.record-closed-session",
   "meeting.set-officers",
   "meeting.add-open-question",
   "meeting.close",
@@ -368,6 +371,9 @@ export function useCouncilMeeting(meetingReference: string) {
     },
     declareAuxiliaryAttendance(input: DeclareMeetingAuxiliaryAttendance) {
       return mutate(() => declareMeetingAuxiliaryAttendance(meetingReference, input));
+    },
+    recordClosedSession(input: RecordMeetingClosedSession) {
+      return mutate(() => recordMeetingClosedSession(meetingReference, input));
     },
     correctAuxiliaryAttendance(input: CorrectMeetingAuxiliaryAttendance) {
       return mutate(() => correctMeetingAuxiliaryAttendance(meetingReference, input));

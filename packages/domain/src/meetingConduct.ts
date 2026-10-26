@@ -92,6 +92,22 @@ export const meetingProxyExceptionSchema = z
   })
   .strict();
 export type MeetingProxyException = z.infer<typeof meetingProxyExceptionSchema>;
+// Closed session decided without debate (CGCT L2121-18).
+export const meetingClosedSessionSchema = z
+  .object({
+    id,
+    councilMeetingId: id,
+    requesters: z.array(memberIdentity).min(1),
+    approvals: z.number().int().nonnegative(),
+    presentOrRepresented: z.number().int().nonnegative(),
+    wholeMeeting: z.boolean(),
+    agendaItemIds: z.array(id),
+    observedAt: time,
+    recordedAt: time,
+    recordedBy: z.string().min(1),
+  })
+  .strict();
+export type MeetingClosedSession = z.infer<typeof meetingClosedSessionSchema>;
 export const meetingOfficeSchema = z.enum(["chair", "secretary"]);
 export type MeetingOffice = z.infer<typeof meetingOfficeSchema>;
 export const meetingOfficerBasisSchema = z.enum([
@@ -138,6 +154,7 @@ export const meetingConductEvidenceSchema = z
     officerChanges: z.array(meetingOfficerChangeSchema).default([]),
     auxiliaryAttendances: z.array(meetingAuxiliaryAttendanceSchema).default([]),
     proxyExceptions: z.array(meetingProxyExceptionSchema).default([]),
+    closedSessions: z.array(meetingClosedSessionSchema).default([]),
   })
   .strict();
 const handoverOption = z.object({ councilMemberId: id, basis: meetingOfficerBasisSchema }).strict();
@@ -156,6 +173,7 @@ export const meetingConductStateSchema = meetingConductEvidenceSchema
       .strict(),
     canRecordOfficerChange: z.boolean(),
     canDeclareAuxiliaryAttendance: z.boolean(),
+    canRecordClosedSession: z.boolean(),
     canRecordQuorum: z.boolean(),
     canRecordReconvocation: z.boolean(),
   })
@@ -180,6 +198,18 @@ export const recordMeetingAttendanceEventsSchema = z
       .min(1),
   })
   .strict();
+export const recordMeetingClosedSessionSchema = z
+  .object({
+    requesterMemberIds: z.array(id).min(1).max(3),
+    approvals: z.number().int().nonnegative(),
+    scope: z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("wholeMeeting") }).strict(),
+      z.object({ kind: z.literal("agendaItems"), agendaItemIds: z.array(id).min(1) }).strict(),
+    ]),
+    observedAt: time,
+  })
+  .strict();
+export type RecordMeetingClosedSession = z.infer<typeof recordMeetingClosedSessionSchema>;
 export const recordMeetingQuorumSchema = z.object({ agendaItemId: id.nullable(), observedAt: time }).strict();
 export const recordMeetingOfficerChangeSchema = z
   .object({ office: meetingOfficeSchema, councilMemberId: id, observedAt: time })

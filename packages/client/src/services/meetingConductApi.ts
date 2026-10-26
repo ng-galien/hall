@@ -5,11 +5,13 @@ import {
   declareMeetingAuxiliaryAttendanceSchema,
   meetingConductWorkspaceSchema,
   type RecordMeetingAttendanceEvents,
+  type RecordMeetingClosedSession,
   type RecordMeetingOfficerChange,
   type RecordMeetingOpening,
   type RecordMeetingQuorum,
   type RecordMeetingReconvocation,
   recordMeetingAttendanceEventsSchema,
+  recordMeetingClosedSessionSchema,
   recordMeetingOfficerChangeSchema,
   recordMeetingOpeningSchema,
   recordMeetingQuorumSchema,
@@ -54,6 +56,13 @@ export async function recordMeetingOfficerChange(reference: string, input: Recor
     conductPath(reference),
     "meeting.record-officer-change",
     recordMeetingOfficerChangeSchema.parse(input),
+  );
+}
+export async function recordMeetingClosedSession(reference: string, input: RecordMeetingClosedSession) {
+  return submitSirenActionAt(
+    conductPath(reference),
+    "meeting.record-closed-session",
+    recordMeetingClosedSessionSchema.parse(input),
   );
 }
 export async function correctMeetingAuxiliaryAttendance(reference: string, input: CorrectMeetingAuxiliaryAttendance) {

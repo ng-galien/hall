@@ -9523,6 +9523,65 @@
           "sourceIds": []
         }
       ]
+    },
+    "HALL-FR-MTG-350": {
+      "name": "CLOSED_SESSION_IS_A_RECORDED_MEETING_DECISION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-26"
+      },
+      "statement": "Un huis clos est enregistré comme événement de séance avec sa demande, son vote sans débat à la majorité absolue des membres présents ou représentés et sa portée ; il est mentionné au procès-verbal et les points concernés sont marqués.",
+      "acceptanceCriteria": [
+        "Les séances des conseils municipaux sont publiques ; sur la demande de trois membres ou du maire, le conseil municipal peut décider, sans débat, à la majorité absolue des membres présents ou représentés, qu’il se réunit à huis clos.",
+        "Hall enregistre la demande du maire ou de trois membres distincts ; les demandeurs sont physiquement présents au moment de la demande.",
+        "Hall compte les membres présents ou représentés du registre d’ouverture au moment de la décision et refuse, avec un code dédié, un huis clos dont le nombre de voix pour n’atteint pas la majorité absolue de ce nombre ; une demande rejetée n’est pas enregistrée.",
+        "Le huis clos porte sur toute la suite de la séance, c’est-à-dire les points non terminés au moment de la décision, ou sur des points désignés non terminés de la séance.",
+        "Le huis clos est un événement horodaté, immuable, enregistré pendant la séance ouverte, repris dans la preuve de conduite ; l’écran de conduite marque les points concernés « Huis clos ».",
+        "Le procès-verbal mentionne chaque huis clos avec l’heure, les demandeurs, le nombre de voix et la portée, et indique pour chaque point concerné qu’il a été examiné à huis clos."
+      ],
+      "clauses": [
+        {
+          "key": "closed-session",
+          "origin": "regulatory",
+          "statement": "Les séances des conseils municipaux sont publiques ; sur la demande de trois membres ou du maire, le conseil municipal peut décider, sans débat, à la majorité absolue des membres présents ou représentés, qu’il se réunit à huis clos.",
+          "sourceIds": [
+            "S17"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "request",
+          "origin": "product",
+          "statement": "Hall enregistre la demande du maire ou de trois membres distincts ; les demandeurs sont physiquement présents au moment de la demande.",
+          "sourceIds": []
+        },
+        {
+          "key": "vote",
+          "origin": "product",
+          "statement": "Hall compte les membres présents ou représentés du registre d’ouverture au moment de la décision et refuse, avec un code dédié, un huis clos dont le nombre de voix pour n’atteint pas la majorité absolue de ce nombre ; une demande rejetée n’est pas enregistrée.",
+          "sourceIds": []
+        },
+        {
+          "key": "scope",
+          "origin": "product",
+          "statement": "Le huis clos porte sur toute la suite de la séance, c’est-à-dire les points non terminés au moment de la décision, ou sur des points désignés non terminés de la séance.",
+          "sourceIds": []
+        },
+        {
+          "key": "evidence",
+          "origin": "product",
+          "statement": "Le huis clos est un événement horodaté, immuable, enregistré pendant la séance ouverte, repris dans la preuve de conduite ; l’écran de conduite marque les points concernés « Huis clos ».",
+          "sourceIds": []
+        },
+        {
+          "key": "minutes",
+          "origin": "product",
+          "statement": "Le procès-verbal mentionne chaque huis clos avec l’heure, les demandeurs, le nombre de voix et la portée, et indique pour chaque point concerné qu’il a été examiné à huis clos.",
+          "sourceIds": []
+        }
+      ]
     }
   }
 }

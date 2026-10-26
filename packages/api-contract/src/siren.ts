@@ -74,6 +74,7 @@ export const apiActionNames = [
   "meeting.record-officer-change",
   "meeting.declare-auxiliary-attendance",
   "meeting.correct-auxiliary-attendance",
+  "meeting.record-closed-session",
 
   "meeting.close",
   // TODO REMOVE_STALE: temporary succession action.

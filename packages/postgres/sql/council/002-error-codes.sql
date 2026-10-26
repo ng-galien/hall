@@ -38,6 +38,7 @@
 -- HV128  AUXILIARY_ATTENDANCE_INVALID                      HALL-FR-ATT-140
 -- HV150  ATTENDANCE_OUTSIDE_MEMBERSHIP                     HALL-FR-ATT-150
 -- HV151  PROXY_CONSECUTIVE_MEETING_LIMIT                  HALL-FR-ATT-160
+-- HV152  CLOSED_SESSION_INVALID                           HALL-FR-MTG-350
 --
 -- Council business and agenda
 -- HV212  AGENDA_ITEM_INSERT_ACTIVE                     HALL-FR-AGI-090

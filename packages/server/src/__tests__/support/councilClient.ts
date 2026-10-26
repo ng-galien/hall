@@ -393,6 +393,7 @@ export function createTestCouncilClient(
             officerChanges: [],
             auxiliaryAttendances: [],
             proxyExceptions: [],
+            closedSessions: [],
           },
           agenda: [...agendaItems.values()]
             .filter((entry) => entry.councilMeetingId === id)
@@ -548,6 +549,9 @@ export function createTestCouncilClient(
       throw new Error("Conduct acceptance requires PostgreSQL");
     },
     async declareMeetingAuxiliaryAttendance() {
+      throw new Error("Conduct acceptance requires PostgreSQL");
+    },
+    async recordMeetingClosedSession() {
       throw new Error("Conduct acceptance requires PostgreSQL");
     },
     async correctMeetingAuxiliaryAttendance() {
