@@ -3,7 +3,7 @@ import { capture, expect, test } from "./fixtures";
 
 /** Every screen of the "Écrans" section, on the dataset with closed meetings and one meeting in progress. */
 const scenario = (process.env.HALL_DOCS_SCENARIO ?? "default") as "preparation" | "default" | "minutes";
-test.setTimeout(10 * 60_000);
+test.setTimeout(3 * 60_000);
 test.use({ seedScenario: scenario });
 
 interface Entity {

@@ -1,8 +1,8 @@
 import type { Page } from "@playwright/test";
 import { capture, expect, localDateTimeInput } from "./fixtures";
 
-/** From the meeting in preparation to the opened meeting; captures each step under `prefix` when given. */
-export async function openMeeting(page: Page, prefix?: string) {
+/** From the meeting in preparation to the roll call screen; captures each step under `prefix` when given. */
+export async function prepareMeeting(page: Page, prefix?: string) {
   const shot = async (name: string) => {
     if (prefix) await capture(page, `${prefix}/${name}`);
   };
@@ -53,6 +53,14 @@ export async function openMeeting(page: Page, prefix?: string) {
   await page.getByTestId("meeting-enter-live").click();
   await expect(page.getByTestId("live-rollcall-heading")).toBeVisible();
   await shot("09-appel-des-membres");
+}
+
+/** From the meeting in preparation to the opened meeting with every member present. */
+export async function openMeeting(page: Page, prefix?: string) {
+  const shot = async (name: string) => {
+    if (prefix) await capture(page, `${prefix}/${name}`);
+  };
+  await prepareMeeting(page, prefix);
   await page.getByTestId("live-attendance-all-present").click();
   await expect(page.getByTestId("live-meeting-start")).toBeEnabled();
   await shot("10-appel-complet");

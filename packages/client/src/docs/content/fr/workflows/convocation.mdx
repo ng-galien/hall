@@ -1,57 +1,44 @@
 ---
-title: "Convocation"
-summary: "Figer l’ordre du jour, générer et vérifier le PDF, télécharger le courriel, recueillir les pouvoirs."
+title: "Convocation et pouvoirs"
+summary: "Figer l’ordre du jour, générer la convocation, préparer le courriel, recueillir les pouvoirs écrits et les enregistrer à l’appel."
 order: 2
 screen: /meetings
 ---
 
-Ce parcours commence quand l’ordre du jour est arrêté par le maire et que la date, l’heure et le lieu sont connus.
-Il se termine quand la convocation est envoyée et que les pouvoirs écrits sont recueillis.
-La convocation relève du maire ; le secrétariat prépare le document et sa transmission.
-Les règles du figeage et des versions sont décrites dans [Cycle d’une séance](/docs/concepts/cycle-d-une-seance).
+La convocation se prépare depuis la fiche de la séance, une fois la date, le lieu et les points inscrits ; les premières étapes sont celles d’[Ouvrir la séance](/docs/workflows/ouvrir-la-seance). Ce parcours détaille la convocation elle-même, son envoi et les pouvoirs écrits.
 
-## Figeage de l’ordre du jour
+## 1. Figer l’ordre du jour
 
-1. Ouvrir **Séances**, puis la séance.
-2. Vérifier la date, l’heure, le lieu et les points inscrits.
-3. Cliquer **Ordre du jour** pour ouvrir la fenêtre **Convocation**.
-4. Cliquer **Figer l’ordre du jour**.
+Sur la fiche de la séance, cliquer **Ordre du jour**, puis **Figer l’ordre du jour**. Un seul PDF contient la convocation et l’ordre du jour figé ; pour corriger l’ordre du jour après le gel, cliquer **Modifier l’ordre du jour**, corriger, puis figer et générer de nouveau.
 
-## Génération et contrôle de la convocation
+![La fenêtre Convocation avant le gel](/app/documentation/captures/ouvrir-la-seance/05-figer-ordre-du-jour.png)
 
-5. Cliquer **Générer le PDF**.
-6. Cliquer **Voir le PDF** et relire la convocation et l’ordre du jour.
-7. Pour corriger l’ordre du jour, cliquer **Modifier l’ordre du jour**, corriger dans la fiche de la séance, puis figer et générer de nouveau.
-8. Après toute modification de la date, de l’heure ou du lieu, cliquer **Régénérer le PDF**.
+## 2. Générer le PDF
 
-La version à envoyer porte la mention **Version courante**.
-Les versions antérieures restent consultables.
+Cliquer **Générer le PDF**. Le PDF s’ouvre pour relecture. Après tout changement de date, d’heure ou de lieu, le bouton devient **Régénérer le PDF** et la convocation doit être refaite avant le passage en mode séance.
 
-## Envoi
+![La fenêtre Convocation après le gel, prête à générer](/app/documentation/captures/ouvrir-la-seance/06-generer-convocation.png)
 
-9. Dans **Courriel aux conseillers**, vérifier la liste des destinataires.
-10. Compléter l’adresse des conseillers signalés par « Adresse électronique manquante », dans **Contacts**.
-11. Cliquer **Télécharger le courriel Outlook**.
-12. Ouvrir le fichier téléchargé dans la messagerie, vérifier le message et l’envoyer.
-13. Conserver la trace de l’envoi selon l’usage de la commune.
+## 3. Préparer le courriel
 
-Hall n’envoie aucun message.
-Le PDF généré ne prouve pas l’envoi ; voir [Convocation, délibération et procès-verbal en PDF](/docs/concepts/documents-officiels).
+La fenêtre montre la version générée, **Voir le PDF**, et la liste des conseillers avec leur adresse. Un conseiller signalé **Adresse électronique manquante** se complète dans **Contacts**. **Télécharger le courriel Outlook** prépare le message avec le PDF joint ; l’envoi se fait depuis Outlook, et la trace de l’envoi se conserve selon l’usage de la commune.
 
-## Pouvoirs et pièces avant le conseil
+![La convocation générée : version, liste des conseillers, courriel Outlook](/app/documentation/captures/ouvrir-la-seance/07-convocation-generee.png)
 
-14. Recueillir les pouvoirs écrits des conseillers absents, sous forme de PDF ou d’image.
-15. Noter les excuses reçues.
-16. Vérifier que les documents de chaque affaire sont à jour.
+## 4. Recueillir les pouvoirs écrits
 
-Les présences ne sont pas saisies à l’avance : elles sont constatées à l’appel.
+Avant le conseil, recueillir les pouvoirs écrits des conseillers absents, en PDF ou en image, et noter les excuses reçues. Un pouvoir vaut pour une séance ; sans exception déclarée, une même pièce ne peut pas servir au-delà de trois séances consécutives.
 
-## Changement de l’ordre du jour après l’envoi
+## 5. Enregistrer un pouvoir à l’appel
 
-17. Faire décider par le maire des suites à donner.
-18. Rouvrir l’ordre du jour avec **Modifier l’ordre du jour**, corriger, figer et générer une nouvelle version.
-19. Transmettre la nouvelle version selon la décision du maire.
+Le soir du conseil, dans l’écran **Appel des membres**, cliquer **Pouvoir** sur le conseiller représenté. Hall demande le porteur, parmi les membres présents, puis la pièce : **Téléverser** le pouvoir écrit ou choisir un document déjà déposé, et l’exception éventuelle (maladie dûment constatée, congé de maternité).
 
-La séance ne peut pas être ouverte tant que la convocation courante ne correspond pas à l’ordre du jour figé et aux propriétés de la séance.
+![La fenêtre du pouvoir : choix du porteur et de la pièce](/app/documentation/captures/convocation/01-pouvoir-porteur.png)
 
-La suite est décrite dans [Dérouler la séance](/docs/workflows/seance).
+Cliquer le porteur, joindre la pièce, puis **Valider le pouvoir**. Le conseiller apparaît **Représenté** à l’appel et compte dans le quorum et les votes par la voix de son porteur.
+
+![Le porteur choisi, avant la validation](/app/documentation/captures/convocation/02-pouvoir-porteur-choisi.png)
+
+## 6. Changer l’ordre du jour après l’envoi
+
+Faire décider par le maire des suites à donner. Rouvrir l’ordre du jour avec **Modifier l’ordre du jour**, corriger, figer et générer une nouvelle version, puis la transmettre selon la décision du maire.

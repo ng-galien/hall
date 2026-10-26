@@ -1,52 +1,38 @@
 ---
 title: "Séance sans quorum et seconde convocation"
-summary: "Ce que Hall enregistre quand le quorum n’est pas atteint à l’ouverture, et la séance suivante qu’il crée à la clôture."
+summary: "Ce que Hall enregistre quand le quorum n’est pas atteint à l’ouverture, la seconde convocation, et la séance suivante créée à la clôture."
 order: 4
 screen: /meetings
 ---
 
-Ce parcours s’applique quand l’appel compte moins de membres physiquement présents que le quorum requis.
-Le calcul du quorum est décrit dans [Présences, pouvoirs et quorum](/docs/concepts/presences-pouvoirs-et-quorum).
+Quand le quorum n’est pas atteint à l’appel, la séance s’ouvre quand même pour constater le défaut de quorum, mais aucun point ne peut être voté. Ce parcours montre ce que Hall enregistre et comment la seconde convocation se prépare.
 
-## Constat du défaut de quorum
+## 1. L’appel sans quorum
 
-1. Faire l’appel dans le [mode séance](/docs/ecrans/mode-seance), comme pour toute séance.
-2. Vérifier chaque état de présence et chaque pouvoir.
-3. Cliquer **Constater le quorum et ouvrir la séance**.
+Faire l’appel comme pour toute séance. Hall compte les présents et les représentés ; en dessous du quorum, le bandeau le dit avant même l’ouverture.
 
-Hall ouvre la séance et enregistre l’appel et le constat du quorum, avec le nombre de présents, le nombre requis, la date et l’auteur.
-L’en-tête affiche le constat, par exemple « Quorum : 5 / 8 ».
+![L’appel avec quatre présents sur quinze](/app/documentation/captures/seconde-convocation/01-appel-sans-quorum.png)
 
-## Points bloqués
+## 2. Constater le défaut de quorum
 
-4. Ouvrir le premier point de l’ordre du jour.
-5. Lire le motif affiché : « Quorum non atteint : présents sur requis ».
+Cliquer **Constater le quorum et ouvrir la séance**. Hall ouvre la séance et enregistre le constat : « Quorum non atteint : présents sur requis ». Ce constat entre dans la preuve de conduite et au procès-verbal.
 
-Aucun point ne peut être examiné ni voté.
-Les actions **Commencer l’examen du point** et **Passer au vote** ne sont pas proposées.
+![La séance ouverte sans quorum, avec le constat](/app/documentation/captures/seconde-convocation/02-quorum-non-atteint.png)
 
-## Seconde convocation dans Hall
+## 3. Les points bloqués
 
-Le formulaire **Consigner la seconde convocation** n’apparaît que dans l’écran **Appel des membres**, avant l’ouverture de la séance.
-Après l’ouverture, Hall ne propose aucune action qui consigne une seconde convocation.
+Chaque point de l’ordre du jour reste bloqué, avec le motif affiché. Aucun vote n’est possible ; les points seront reportés.
 
-## Clôture de la séance
+![Un point bloqué par le défaut de quorum](/app/documentation/captures/seconde-convocation/03-point-bloque.png)
 
-6. Cliquer **Clore la séance**.
-7. Hall affiche « Clore avec N points non examinés ? » ; cliquer de nouveau pour confirmer.
+## 4. Clore la séance
 
-À la clôture, Hall conserve l’appel et le constat du quorum.
-Il crée le brouillon du procès-verbal de la séance.
-Il crée la séance suivante, avec en premier point l’arrêt de ce procès-verbal, puis les points non examinés.
+Cliquer **Clore la séance** ; Hall indique le nombre de points non examinés et demande une seconde confirmation.
 
-## Séance suivante
+![La clôture avec des points non examinés](/app/documentation/captures/seconde-convocation/04-clore-avec-points-non-examines.png)
 
-La séance suivante est une séance ordinaire.
-Hall n’y enregistre aucune seconde convocation.
-Son ouverture constate le quorum ordinaire ; si le quorum n’est pas atteint, ses points restent bloqués de la même façon.
+## 5. La séance suivante
 
-8. Ouvrir **Séances**, puis la nouvelle séance.
-9. Renseigner la date, l’heure et le lieu dans **Propriétés générales**.
-10. Vérifier l’ordre du jour, puis suivre le parcours [Convocation](/docs/workflows/convocation).
+À la clôture, Hall crée la séance suivante avec les points reportés et le procès-verbal de la séance sans quorum à arrêter. Sa convocation se prépare comme dans [Convocation et pouvoirs](/docs/workflows/convocation) ; convoquée une seconde fois sur le même ordre du jour, cette séance délibère valablement sans condition de quorum, selon l’article L2121-17 du code général des collectivités territoriales.
 
-Le procès-verbal de la séance sans quorum se rédige comme les autres ; voir [Procès-verbal après la séance](/docs/workflows/proces-verbal).
+![La liste des séances après la clôture sans quorum](/app/documentation/captures/seconde-convocation/05-seance-suivante-creee.png)

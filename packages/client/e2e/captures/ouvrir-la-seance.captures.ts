@@ -1,7 +1,7 @@
 import { test } from "./fixtures";
 import { openMeeting } from "./journeys";
 
-test.setTimeout(10 * 60_000);
+test.setTimeout(3 * 60_000);
 test.use({ seedScenario: "preparation" });
 
 test("ouvrir la séance : de la séance programmée à la séance ouverte", async ({ docsPage: page }) => {

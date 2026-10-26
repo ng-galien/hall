@@ -1,7 +1,7 @@
 import { capture, expect, test } from "./fixtures";
 import { openMeeting } from "./journeys";
 
-test.setTimeout(10 * 60_000);
+test.setTimeout(3 * 60_000);
 test.use({ seedScenario: "preparation" });
 
 test("dérouler la séance : examen du point, vote, clôture", async ({ docsPage: page }) => {
