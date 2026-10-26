@@ -26,7 +26,7 @@ import type { Locale } from "../i18n/I18nProvider";
 import { useI18n } from "../i18n/I18nProvider";
 import { Callout, Compare, Details, Figure, Legend, PageCards, Step, Steps } from "./blocks";
 import { type DocsNode, type DocsPage, findPage, pageSequence, pageTree, searchPages } from "./pages";
-import { DocsPdfLink } from "./pdf";
+import { DocsPdfExport } from "./pdf";
 import { standalone } from "./standalone";
 
 /* The documentation area: contents tree, article, "on this page". Pages are MDX under `content/`;
@@ -65,7 +65,7 @@ export function DocsArea() {
             {navOpen ? <SidebarCollapseIcon aria-hidden="true" /> : <SidebarExpandIcon aria-hidden="true" />}
           </button>
           <DocsBreadcrumb path={path} locale={locale} />
-          {standalone ? null : <DocsPdfLink className="docs-pdf-link" />}
+          {standalone ? null : <DocsPdfExport className="docs-pdf-link" />}
           <DocsSearch locale={locale} />
         </div>
         <div className="docs-body">

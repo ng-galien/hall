@@ -4,8 +4,8 @@ import { mdxComponents } from "./DocsArea";
 import { pageSequence } from "./pages";
 import "./docs-print.css";
 
-/* Every French page in reading order, after a title page and a table of contents: the view that
-   `npm run build:docs:pdf` prints to PDF from the standalone site (`#/docs-print`). */
+/* Every French page in reading order, after a title page and a table of contents: the view served at
+   /app/docs-print that the server prints to PDF on request (`GET /api/documentation/pdf`). */
 
 const anchorOf = (path: string) => `doc-${path ? path.replaceAll("/", "-") : "accueil"}`;
 

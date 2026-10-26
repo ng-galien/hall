@@ -1,5 +1,5 @@
-/* Print view of the whole documentation (`#/docs-print` in the standalone site), printed to PDF by
-   `npm run build:docs:pdf`: A4, one documentation page per sheet, content only. */
+/* Print view of the whole documentation (/app/docs-print), printed to PDF by the server on request:
+   A4, one documentation page per sheet, content only. */
 
 @page {
   size: A4;

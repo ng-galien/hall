@@ -81,6 +81,7 @@ const EditorLabPage = import.meta.env.DEV
   : null;
 const DashboardPage = lazy(() => import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
 const DocsArea = lazy(() => import("./docs/DocsArea").then((module) => ({ default: module.DocsArea })));
+const DocsPrint = lazy(() => import("./docs/DocsPrint").then((module) => ({ default: module.DocsPrint })));
 const SettingsPage = lazy(() => import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 
 function LiveFallback() {
@@ -240,7 +241,20 @@ function RoutedApplication() {
   );
 }
 
-const applicationRouter = createBrowserRouter([{ path: "*", element: <RoutedApplication /> }], { basename: "/app" });
+const applicationRouter = createBrowserRouter(
+  [
+    {
+      path: "/docs-print",
+      element: (
+        <Suspense fallback={null}>
+          <DocsPrint />
+        </Suspense>
+      ),
+    },
+    { path: "*", element: <RoutedApplication /> },
+  ],
+  { basename: "/app" },
+);
 
 export function App() {
   return (
