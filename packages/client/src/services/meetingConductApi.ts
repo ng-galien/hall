@@ -1,10 +1,14 @@
 import {
+  type DeclareMeetingAuxiliaryAttendance,
+  declareMeetingAuxiliaryAttendanceSchema,
   meetingConductWorkspaceSchema,
   type RecordMeetingAttendanceEvents,
+  type RecordMeetingOfficerChange,
   type RecordMeetingOpening,
   type RecordMeetingQuorum,
   type RecordMeetingReconvocation,
   recordMeetingAttendanceEventsSchema,
+  recordMeetingOfficerChangeSchema,
   recordMeetingOpeningSchema,
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
@@ -42,4 +46,18 @@ export async function recordMeetingAttendanceEvents(reference: string, input: Re
 }
 export async function recordMeetingQuorum(reference: string, input: RecordMeetingQuorum) {
   return submitSirenActionAt(conductPath(reference), "meeting.record-quorum", recordMeetingQuorumSchema.parse(input));
+}
+export async function recordMeetingOfficerChange(reference: string, input: RecordMeetingOfficerChange) {
+  return submitSirenActionAt(
+    conductPath(reference),
+    "meeting.record-officer-change",
+    recordMeetingOfficerChangeSchema.parse(input),
+  );
+}
+export async function declareMeetingAuxiliaryAttendance(reference: string, input: DeclareMeetingAuxiliaryAttendance) {
+  return submitSirenActionAt(
+    conductPath(reference),
+    "meeting.declare-auxiliary-attendance",
+    declareMeetingAuxiliaryAttendanceSchema.parse(input),
+  );
 }

@@ -31,6 +31,10 @@ BEGIN
       WHEN SQLSTATE 'HV143' THEN quorum_blockers:='[{"code":"observationChronology"}]';
       WHEN SQLSTATE 'HV144' THEN quorum_blockers:='[{"code":"reconvocationPending"}]';
       WHEN SQLSTATE 'HV149' THEN quorum_blockers:='[{"code":"freshObservationsRequired"}]';
+      -- @implements-requirement HALL-FR-ATT-150
+      WHEN SQLSTATE 'HV150' THEN
+        quorum_blockers:=jsonb_build_array(jsonb_build_object('code','attendanceOutsideMembership',
+          'memberName',hall.meeting_attendance_outsider_name(meeting.id)));
     END;
   END IF;
   SELECT id INTO earlier FROM hall.council_agenda_item WHERE council_meeting=meeting.id AND position>0 AND completed_at IS NULL AND position<target.position ORDER BY position LIMIT 1;
@@ -45,6 +49,11 @@ BEGIN
   IF target.started_at IS NULL THEN review_blockers:=review_blockers||'[{"code":"discussionNotStarted"}]'::jsonb;
   ELSIF voting AND NOT EXISTS(SELECT FROM hall.meeting_quorum_observation observation WHERE observation.agenda_item=target.id AND observation.facts->>'verdict' IN ('met','exempt')) THEN review_blockers:=review_blockers||'[{"code":"discussionQuorumMissing"}]'::jsonb; END IF;
   IF existing_ballot.id IS NOT NULL THEN review_blockers:=review_blockers||jsonb_build_array(jsonb_build_object('code','ballotAlreadyExists','ballotId',existing_ballot.id)); END IF;
+  -- @implements-requirement HALL-FR-BAL-340
+  IF voting AND existing_ballot.id IS NULL AND meeting.started_at IS NOT NULL AND meeting.closed_at IS NULL
+    AND target.position>0 AND target.completed_at IS NULL THEN
+    review_blockers:=review_blockers||hall.agenda_item_ballot_officer_blockers(target.id);
+  END IF;
   IF target.minutes_approval IS NOT NULL THEN
     SELECT minutes INTO target_minutes FROM hall.minutes_approval WHERE id=target.minutes_approval;
     IF NOT EXISTS(SELECT FROM hall.minutes_document WHERE minutes=target_minutes) THEN review_blockers:=review_blockers||jsonb_build_array(jsonb_build_object('code','minutesDocumentMissing','minutesId',target_minutes)); END IF;
@@ -401,11 +410,33 @@ BEGIN
 END;
 $$;
 
+-- @implements-requirement HALL-FR-BAL-140
+-- @implements-requirement HALL-FR-BAL-330
+-- The participant state carries the determined ballot chair and the item
+-- presidency options; the client displays them and never chooses the chair.
 CREATE FUNCTION hall_api.agenda_item_recusals(target_item UUID)
 RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
   SELECT hall.agenda_item_recusal_state(target_item)
-    || jsonb_build_object('agendaItem', hall.council_agenda_item_projection(item))
+    || jsonb_build_object('agendaItem', hall.council_agenda_item_projection(item),
+      'ballotChair', hall.agenda_item_ballot_chair(item.id),
+      'presidency', (SELECT jsonb_build_object('id', change.id, 'basis', change.basis, 'councilMemberId', change.council_member,
+        'memberName', change.member_name, 'observedAt', change.observed_at)
+        FROM hall.meeting_officer_change change WHERE change.agenda_item = item.id),
+      'presidencyOptions', hall.agenda_item_presidency_options(item.id))
   FROM hall.council_agenda_item item WHERE item.id = target_item;
+$$;
+
+-- @implements-requirement HALL-FR-BAL-330
+CREATE FUNCTION hall_api.record_agenda_item_presidency(target_item UUID, target_member UUID,
+  presidency_basis TEXT, observation_time TIMESTAMPTZ)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+BEGIN
+  IF presidency_basis IS NULL OR presidency_basis NOT IN ('financialStatementElection', 'councilDesignation') THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV129', MESSAGE = 'an item presidency is an election or a council designation';
+  END IF;
+  PERFORM hall.record_agenda_item_presidency(target_item, target_member, presidency_basis::hall.meeting_officer_basis, observation_time);
+  RETURN hall_api.agenda_item_recusals(target_item);
+END;
 $$;
 
 CREATE FUNCTION hall_api.record_agenda_item_recusal(target_item UUID, target_member UUID,

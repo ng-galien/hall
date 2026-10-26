@@ -71,6 +71,8 @@ export const apiActionNames = [
   "meeting.record-attendance-events",
   "meeting.record-quorum",
   "meeting.record-reconvocation",
+  "meeting.record-officer-change",
+  "meeting.declare-auxiliary-attendance",
 
   "meeting.close",
   // TODO REMOVE_STALE: temporary succession action.
@@ -86,6 +88,7 @@ export const apiActionNames = [
   "agenda-item.deprogram",
   "agenda-item.adjourn",
   "agenda-item.record-recusal",
+  "agenda-item.record-presidency",
   "agenda-item.reprogram",
   "agenda-item.start",
   "agenda-item.complete",

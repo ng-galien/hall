@@ -292,9 +292,8 @@ export function presentLiveMeeting(
   };
 }
 
-export type LiveBallotSubmission = ({ agendaItemId: string } | { councilDecisionId: string }) & {
-  chairmanMemberId: string;
-} & (
+export type LiveBallotSubmission = ({ agendaItemId: string } | { councilDecisionId: string }) &
+  (
     | {
         method: "public";
         votes: Array<{ memberId: string; castByMemberId: string; choice: LiveVoteChoice }>;

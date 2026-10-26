@@ -16,30 +16,31 @@ export const ordinaryBallotTotalsSchema = z
 const candidateBase = {
   procedure: z.literal("ordinaryMajority"),
   participantAttendanceIds: z.array(id).min(1),
-  chairmanAttendanceId: id,
 };
+const publicCandidate = {
+  mode: z.literal("public"),
+  votes: z.array(z.object({ meetingAttendanceId: id, choice: z.enum(["approve", "reject", "abstain"]) }).strict()),
+  nonParticipations: z
+    .array(z.object({ meetingAttendanceId: id, reason: z.enum(["declined", "departed"]) }).strict())
+    .default([]),
+};
+const secretCandidate = {
+  mode: z.literal("secret"),
+  totals: ordinaryBallotTotalsSchema.extend({
+    blank: count.default(0),
+    invalid: count.default(0),
+    nonParticipation: count.default(0),
+  }),
+};
+// The submitted candidate never names the ballot chair: the meeting determines it.
 export const ordinaryBallotCandidateSchema = z.discriminatedUnion("mode", [
-  z
-    .object({
-      ...candidateBase,
-      mode: z.literal("public"),
-      votes: z.array(z.object({ meetingAttendanceId: id, choice: z.enum(["approve", "reject", "abstain"]) }).strict()),
-      nonParticipations: z
-        .array(z.object({ meetingAttendanceId: id, reason: z.enum(["declined", "departed"]) }).strict())
-        .default([]),
-    })
-    .strict(),
-  z
-    .object({
-      ...candidateBase,
-      mode: z.literal("secret"),
-      totals: ordinaryBallotTotalsSchema.extend({
-        blank: count.default(0),
-        invalid: count.default(0),
-        nonParticipation: count.default(0),
-      }),
-    })
-    .strict(),
+  z.object({ ...candidateBase, ...publicCandidate }).strict(),
+  z.object({ ...candidateBase, ...secretCandidate }).strict(),
+]);
+// The reviewed candidate carries the ballot chair determined by the meeting.
+export const reviewedBallotCandidateSchema = z.discriminatedUnion("mode", [
+  z.object({ ...candidateBase, chairmanAttendanceId: id, ...publicCandidate }).strict(),
+  z.object({ ...candidateBase, chairmanAttendanceId: id, ...secretCandidate }).strict(),
 ]);
 export const createBallotResultPreviewSchema = z
   .object({ agendaItemId: id, candidate: ordinaryBallotCandidateSchema })
@@ -50,7 +51,7 @@ export const ballotResultPreviewSchema = z
     agendaItemId: id,
     canConfirm: z.boolean(),
     revision: z.number().int().positive(),
-    candidate: ordinaryBallotCandidateSchema,
+    candidate: reviewedBallotCandidateSchema,
     calculation: z
       .object({
         tieBreakApplied: z.boolean(),

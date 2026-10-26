@@ -27,7 +27,14 @@ const fixture: MinutesDetail = {
       secretary: { id: "secretary", name: "Jean Dupont" },
     },
     recusals: [],
-    conduct: { membershipRecords: [], attendanceEvents: [], quorumObservations: [], reconvocations: [] },
+    conduct: {
+      membershipRecords: [],
+      attendanceEvents: [],
+      quorumObservations: [],
+      reconvocations: [],
+      officerChanges: [],
+      auxiliaryAttendances: [],
+    },
     attendance: [
       { id: "attendance", member: { id: "chair", name: "Marie Martin" }, status: "present", proxyHolderId: null },
     ],
@@ -162,6 +169,70 @@ describe("minutes generated document", () => {
     expect(html).toContain("Scrutin secret");
     expect(html).toContain("Pour : 5");
     expect(html).not.toContain("Marie Martin : Pour");
+  });
+
+  // @verifies-requirement HALL-FR-MIN-260
+  // @verifies-requirement HALL-FR-ATT-140
+  it("mentions officer handovers, the item presidency and the persons attending", () => {
+    const minutes = structuredClone(fixture);
+    const change = {
+      councilMeetingId: "meeting",
+      office: "chair" as const,
+      recordedAt: "2026-09-05T18:30:00Z",
+      recordedBy: "clerk",
+    };
+    minutes.facts.conduct.officerChanges = [
+      {
+        ...change,
+        id: "handover",
+        agendaItemId: null,
+        basis: "deputyInNominationOrder",
+        councilMemberId: "deputy",
+        memberName: "Paul <Adjoint>",
+        observedAt: "2026-09-05T18:30:00Z",
+      },
+      {
+        ...change,
+        id: "secretary",
+        agendaItemId: null,
+        office: "secretary",
+        basis: "councilNomination",
+        councilMemberId: "councillor",
+        memberName: "Lise Conseillère",
+        observedAt: "2026-09-05T18:31:00Z",
+      },
+      {
+        ...change,
+        id: "presidency",
+        agendaItemId: "agenda",
+        basis: "financialStatementElection",
+        councilMemberId: "elected",
+        memberName: "Eva Élue",
+        observedAt: "2026-09-05T18:12:00Z",
+      },
+    ];
+    minutes.facts.conduct.auxiliaryAttendances = [
+      {
+        id: "aux",
+        councilMeetingId: "meeting",
+        contactId: "contact",
+        name: "Claire <Martin>",
+        quality: "townHallSecretary",
+        declaredAt: "2026-09-05T18:00:00Z",
+        recordedAt: "2026-09-05T18:00:00Z",
+        recordedBy: "clerk",
+      },
+    ];
+    const { facts, proceedings } = renderMinutesSections(minutes);
+    expect(facts).toContain(
+      "Assistaient également :</p><ul><li>Claire &lt;Martin&gt; - secrétaire de mairie</li></ul>",
+    );
+    expect(facts).toContain("présidence confiée à Paul &lt;Adjoint&gt; (adjoint dans l’ordre des nominations)");
+    expect(facts).toContain("secrétariat confié à Lise Conseillère (nomination par le conseil)");
+    expect(facts).not.toContain("Eva Élue");
+    expect(proceedings).toContain(
+      "Présidence du point : 5 septembre 2026 à 20:12, présidence confiée à Eva Élue (élection par le conseil pour le compte financier unique).",
+    );
   });
 
   it("prints each point once with its discussion before its result", () => {

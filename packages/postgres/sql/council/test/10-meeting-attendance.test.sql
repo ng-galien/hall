@@ -434,9 +434,9 @@ SELECT throws_ok(
       'present'
     )
   $$,
-  'HV102',
-  'a started council meeting cannot receive attendance',
-  'attendance closes when its meeting starts'
+  'HV150',
+  NULL,
+  'attendance closes when its meeting starts, and an attendance outside the roster is refused by name'
 );
 
 -- @verifies-requirement HALL-FR-MTG-060

@@ -535,7 +535,6 @@ postgresDescribe("PostgreSQL council client", () => {
         procedure: "ordinaryMajority",
         mode: "public",
         participantAttendanceIds: attendance.map((a) => a.id),
-        chairmanAttendanceId: chairmanAttendance.id,
         votes: attendance.map((a, index) => ({
           meetingAttendanceId: a.id,
           choice: index === 0 ? "reject" : "approve",
@@ -638,14 +637,12 @@ postgresDescribe("PostgreSQL council client", () => {
       agendaItemId: agendaItem.id,
       startedAt: "2026-08-13T09:10:00.000Z",
     });
-    const chairmanAttendance = attendance.find((item) => item.councilMemberId === members[0]!.id)!;
     const preview = await council.createBallotResultPreview(request, {
       agendaItemId: agendaItem.id,
       candidate: {
         procedure: "ordinaryMajority",
         mode: "secret",
         participantAttendanceIds: attendance.map((a) => a.id),
-        chairmanAttendanceId: chairmanAttendance.id,
         totals: { approve: 2, reject: 1, abstain: 0, blank: 0, invalid: 0, nonParticipation: 0 },
       },
     });

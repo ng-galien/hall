@@ -362,8 +362,14 @@ export function withConductAuthorization(request: Request, value: unknown): unkn
       blockers.addAgendaItem.push({ code: "permissionDenied" });
     if (!canExecuteAction(request, "meeting.record-attendance-events"))
       blockers.recordAttendanceEvents.push({ code: "permissionDenied" });
+    if (!canExecuteAction(request, "meeting.record-officer-change"))
+      blockers.recordOfficerChange.push({ code: "permissionDenied" });
+    if (!canExecuteAction(request, "meeting.declare-auxiliary-attendance"))
+      blockers.declareAuxiliaryAttendance.push({ code: "permissionDenied" });
     result.meetingActionBlockers = blockers;
     result.canRecordAttendanceEvents = blockers.recordAttendanceEvents.length === 0;
+    result.canRecordOfficerChange = blockers.recordOfficerChange.length === 0;
+    result.canDeclareAuxiliaryAttendance = blockers.declareAuxiliaryAttendance.length === 0;
   }
   if (result.closureBlockers !== undefined) {
     const blockers = conductBlockerSchema.array().parse(result.closureBlockers);
@@ -512,6 +518,18 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
     actions.push(
       action("meeting.record-attendance-events", "POST", `/api/council-meetings/${meetingReference}/attendance-events`),
     );
+  if (conduct.canRecordOfficerChange === true)
+    actions.push(
+      action("meeting.record-officer-change", "POST", `/api/council-meetings/${meetingReference}/officer-changes`),
+    );
+  if (conduct.canDeclareAuxiliaryAttendance === true)
+    actions.push(
+      action(
+        "meeting.declare-auxiliary-attendance",
+        "POST",
+        `/api/council-meetings/${meetingReference}/auxiliary-attendances`,
+      ),
+    );
   if (conduct.canRecordQuorum === true)
     actions.push(
       action("meeting.record-quorum", "POST", `/api/council-meetings/${meetingReference}/quorum-observations`),
@@ -598,7 +616,22 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
               ),
             ])
           : [];
-      return [...agendaItemActions(context), ...notes, ...recusalActions];
+      const presidencyOptions = (value as Record<string, unknown>).presidencyOptions as
+        | { financialStatementElection?: unknown[]; councilDesignation?: unknown[] }
+        | undefined;
+      const presidencyActions =
+        presidencyOptions &&
+        ((presidencyOptions.financialStatementElection?.length ?? 0) > 0 ||
+          (presidencyOptions.councilDesignation?.length ?? 0) > 0)
+          ? authorizedActions(request, [
+              action(
+                "agenda-item.record-presidency",
+                "POST",
+                `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary?.councilMeetingId}/agenda-items/${id}/presidency`,
+              ),
+            ])
+          : [];
+      return [...agendaItemActions(context), ...notes, ...recusalActions, ...presidencyActions];
     },
     attendance: () => [],
     "audit-event": () => [],

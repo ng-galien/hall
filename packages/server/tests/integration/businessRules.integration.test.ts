@@ -302,7 +302,6 @@ describe("backend business-rule coverage", () => {
       procedure: "ordinaryMajority",
       mode: "public",
       participantAttendanceIds: attendance.map((entry) => entry.id),
-      chairmanAttendanceId: attendance.find((entry) => entry.councilMemberId === members[0].id)!.id,
       votes: attendance.map((entry) => ({ meetingAttendanceId: entry.id, choice: "approve" })),
       nonParticipations: [],
     };

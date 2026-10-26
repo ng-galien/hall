@@ -241,7 +241,10 @@ BEGIN
     );
   END LOOP;
 
-  PERFORM test_designate_present_officers(test_uuid(fixture || ':meeting'));
+  -- The first participation chairs the ballot: its member is the meeting chair.
+  PERFORM set_council_meeting_officers(test_uuid(fixture || ':meeting'),
+    test_uuid(fixture || ':member:1'), test_uuid(fixture || ':member:1'));
+  PERFORM test_confirm_declared_membership(test_uuid(fixture || ':meeting'));
   PERFORM test_create_decision_agenda_item(
     fixture,
     test_uuid(fixture || ':meeting'),

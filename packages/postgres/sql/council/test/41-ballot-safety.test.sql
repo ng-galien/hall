@@ -507,15 +507,25 @@ SELECT lives_ok($$SELECT pg_temp.confirm(pg_temp.item('recused-proxy',1),pg_temp
 SELECT lives_ok($$SELECT pg_temp.confirm(pg_temp.item('recused-proxy',2),pg_temp.public_candidate_of(
  ARRAY[test_uuid('recused-proxy:att:1'),test_uuid('recused-proxy:att:2'),test_uuid('recused-proxy:att:4'),test_uuid('recused-proxy:att:5')],
  ARRAY['approve','reject','approve','abstain'],test_uuid('recused-proxy:att:1')))$$,'the recusal of a represented member is accepted with that member left out');
-SELECT pg_temp.safety_meeting('recusal-absent',ARRAY['present','present','absent'],1);
-SELECT todo('Divergence from the former rule, for the user to decide: hall accepts the recusal of a member declared absent',1);
+-- Only a member present or represented can recuse (user decision of 26 October 2026, question 1).
+-- @verifies-requirement HALL-FR-AGI-420
+SELECT pg_temp.safety_meeting('recusal-absent',ARRAY['present','present','absent','excused'],1);
 SELECT throws_ok($$INSERT INTO agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at)
  VALUES(pg_temp.item('recusal-absent',1),test_uuid('recusal-absent:member:3'),'personalInterest','2026-01-01 09:00:30Z')$$,
- NULL,NULL,'a recusal of an absent member is refused (former rule)');
+ 'HV236','a recusal requires a member present or represented','a recusal of an absent member is refused');
+SELECT throws_ok($$INSERT INTO agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at)
+ VALUES(pg_temp.item('recusal-absent',1),test_uuid('recusal-absent:member:4'),'personalInterest','2026-01-01 09:00:30Z')$$,
+ 'HV236','a recusal requires a member present or represented','a recusal of an excused member is refused');
 
--- 12. Meeting officers are identified and physically present.
+-- 12. Meeting officers are identified and physically present; the ballot
+-- chair is determined, never chosen (user decisions of 26 October 2026,
+-- questions 2, 3 and 5).
 -- @verifies-requirement HALL-FR-MTG-240
 -- @verifies-requirement HALL-FR-MTG-250
+-- @verifies-requirement HALL-FR-BAL-140
+-- @verifies-requirement HALL-FR-BAL-340
+-- @verifies-requirement HALL-FR-MTG-330
+-- @verifies-requirement HALL-FR-MTG-340
 SELECT pg_temp.safety_meeting('officers',ARRAY['present','present','present','absent','present'],1,'{}',FALSE);
 SELECT throws_ok($$SELECT set_council_meeting_officers(test_uuid('officers:meeting'),NULL,test_uuid('officers:member:2'))$$,'HV124',NULL,'a missing chair is refused');
 SELECT throws_ok($$SELECT set_council_meeting_officers(test_uuid('officers:meeting'),test_uuid('officers:member:1'),NULL)$$,'HV124',NULL,'a missing secretary is refused');
@@ -531,27 +541,75 @@ SELECT start_council_agenda_item(pg_temp.item('officers',1),'2026-01-01 09:01Z')
 INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status) VALUES(test_uuid('officers:att:1'),'2026-01-01 09:02Z','absent');
 SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(pg_temp.item('officers',1),pg_temp.public_candidate_of(
  ARRAY[test_uuid('officers:att:1'),test_uuid('officers:att:2'),test_uuid('officers:att:3')],ARRAY['departed','approve','reject'],test_uuid('officers:att:1')))$$,
- 'HV410',NULL,'a departed chair cannot chair the ballot');
-SELECT todo('Divergence from the former rule, for the user to decide: hall lets another member chair the ballot after the meeting chair departs',1);
+ 'HV415',NULL,'a departed chair cannot chair the ballot');
 SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(pg_temp.item('officers',1),pg_temp.public_candidate_of(
  ARRAY[test_uuid('officers:att:2'),test_uuid('officers:att:3')],ARRAY['approve','reject'],test_uuid('officers:att:2')))$$,
- NULL,NULL,'a ballot is refused while the meeting chair is not physically present (former rule)');
-SELECT pg_temp.safety_meeting('secretary-departure',ARRAY['present','present','present','present','present'],1,'{}',FALSE);
+ 'HV415','the ballot chair and the meeting secretary must be physically present',
+ 'a ballot is refused while the meeting chair is not physically present');
+SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(pg_temp.item('officers',1),pg_temp.public_candidate_of(
+ ARRAY[test_uuid('officers:att:2'),test_uuid('officers:att:3')],ARRAY['approve','reject'],test_uuid('officers:att:2'))-'chairmanAttendanceId')$$,
+ 'HV415',NULL,'a candidate without chair is also refused while the meeting chair is not physically present');
+SELECT is(agenda_item_ballot_officer_blockers(pg_temp.item('officers',1)),
+ jsonb_build_array(jsonb_build_object('code','ballotChairNotPresent','councilMemberId',test_uuid('officers:member:1'))),
+ 'the conduct screen receives the absent chair as a ballot blocker');
+SELECT is((SELECT jsonb_agg(option ORDER BY option->>'councilMemberId') FROM jsonb_array_elements(hall_api.meeting_conduct(test_uuid('officers:meeting'))#>'{officerHandoverOptions,chair}') option),
+ (SELECT jsonb_agg(jsonb_build_object('councilMemberId',id,'basis','councilDesignation') ORDER BY id::text)
+  FROM unnest(ARRAY[test_uuid('officers:member:2'),test_uuid('officers:member:3'),test_uuid('officers:member:5')]) id),
+ 'without mayor or deputy present, every present councillor can be designated');
+SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('officers:meeting'),'chair',test_uuid('officers:member:3'),'2026-01-01 09:03Z')$$,
+ 'the chair is handed over in the meeting');
+SELECT is(hall_api.meeting_conduct(test_uuid('officers:meeting'))#>>'{currentOfficers,chairMemberId}',test_uuid('officers:member:3')::text,
+ 'the member who took over is the chair in office');
+SELECT is((SELECT jsonb_build_object('office',office,'basis',basis,'member',council_member,'observedAt',observed_at)
+ FROM meeting_officer_change WHERE council_meeting=test_uuid('officers:meeting')),
+ jsonb_build_object('office','chair','basis','councilDesignation','member',test_uuid('officers:member:3'),'observedAt','2026-01-01T09:03:00+00:00'::timestamptz),
+ 'the handover is a timestamped meeting event with its legal basis');
+SELECT lives_ok($$SELECT pg_temp.confirm(pg_temp.item('officers',1),pg_temp.public_candidate_of(
+ ARRAY[test_uuid('officers:att:1'),test_uuid('officers:att:2'),test_uuid('officers:att:3')],ARRAY['departed','approve','reject'],test_uuid('officers:att:3')))$$,
+ 'after the handover the ballot is chaired by the new chair in office');
+SELECT is((SELECT p.meeting_attendance FROM ballots b JOIN ballot_participation p ON p.id=b.chairman WHERE b.council_agenda_item=pg_temp.item('officers',1)),
+ test_uuid('officers:att:3'),'the stored ballot chairman is the chair in office at the vote');
+SELECT pg_temp.safety_meeting('secretary-departure',ARRAY['present','present','present','present','present'],2,'{}',FALSE);
 SELECT set_council_meeting_officers(test_uuid('secretary-departure:meeting'),test_uuid('secretary-departure:member:1'),test_uuid('secretary-departure:member:2'));
 SELECT start_council_meeting(test_uuid('secretary-departure:meeting'),'2026-01-01 09:00Z');
 SELECT start_council_agenda_item(pg_temp.item('secretary-departure',1),'2026-01-01 09:01Z');
 INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status) VALUES(test_uuid('secretary-departure:att:2'),'2026-01-01 09:02Z','absent');
-SELECT todo('Divergence from the former rule, for the user to decide: hall accepts a ballot after the meeting secretary departs',1);
 SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(pg_temp.item('secretary-departure',1),pg_temp.public_candidate_of(
  ARRAY[test_uuid('secretary-departure:att:1'),test_uuid('secretary-departure:att:2'),test_uuid('secretary-departure:att:3'),test_uuid('secretary-departure:att:4')],
  ARRAY['approve','departed','reject','approve'],test_uuid('secretary-departure:att:1')))$$,
- NULL,NULL,'a ballot is refused while the meeting secretary is not physically present (former rule)');
-
-SELECT todo('Divergence from the former rule and from the user decision of 25 October 2026, for the user to decide: hall lets any present participant chair the ballot while the meeting chair is present and not recused',1);
-SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(pg_temp.item('secretary-departure',1),pg_temp.public_candidate_of(
+ 'HV415','the ballot chair and the meeting secretary must be physically present',
+ 'a ballot is refused while the meeting secretary is not physically present');
+SELECT is(agenda_item_ballot_officer_blockers(pg_temp.item('secretary-departure',1)),
+ jsonb_build_array(jsonb_build_object('code','meetingSecretaryNotPresent','councilMemberId',test_uuid('secretary-departure:member:2'))),
+ 'the conduct screen receives the absent secretary as a ballot blocker');
+SELECT throws_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('secretary-departure:meeting'),'secretary',test_uuid('secretary-departure:member:2'),'2026-01-01 09:03Z')$$,
+ 'HV127',NULL,'an absent member cannot be nominated secretary');
+SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('secretary-departure:meeting'),'secretary',test_uuid('secretary-departure:member:4'),'2026-01-01 09:03Z')$$,
+ 'the council nominates another present member as secretary');
+SELECT is((SELECT basis::text FROM meeting_officer_change WHERE council_meeting=test_uuid('secretary-departure:meeting')),'councilNomination',
+ 'the secretary replacement is recorded as a council nomination');
+SELECT lives_ok($$SELECT pg_temp.confirm(pg_temp.item('secretary-departure',1),pg_temp.public_candidate_of(
  ARRAY[test_uuid('secretary-departure:att:1'),test_uuid('secretary-departure:att:2'),test_uuid('secretary-departure:att:3'),test_uuid('secretary-departure:att:4')],
- ARRAY['approve','departed','reject','approve'],test_uuid('secretary-departure:att:3')))$$,
- NULL,NULL,'the tie-breaking ballot chairman is the present meeting chair (former rule)');
+ ARRAY['approve','departed','reject','approve'],test_uuid('secretary-departure:att:1')))$$,
+ 'with the new secretary present the ballot is accepted');
+
+-- The ballot chair is the chair in office and cannot be chosen.
+SELECT start_council_agenda_item(pg_temp.item('secretary-departure',2),clock_timestamp());
+SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(pg_temp.item('secretary-departure',2),pg_temp.public_candidate_of(
+ ARRAY[test_uuid('secretary-departure:att:1'),test_uuid('secretary-departure:att:3'),test_uuid('secretary-departure:att:4')],
+ ARRAY['approve','reject','approve'],test_uuid('secretary-departure:att:3')))$$,
+ 'HV410','the ballot chair is determined by the meeting and cannot be chosen',
+ 'the tie-breaking ballot chairman is the present meeting chair');
+SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(pg_temp.item('secretary-departure',2),pg_temp.public_candidate_of(
+ ARRAY[test_uuid('secretary-departure:att:3'),test_uuid('secretary-departure:att:4')],
+ ARRAY['approve','reject'],test_uuid('secretary-departure:att:3'))-'chairmanAttendanceId')$$,
+ 'HV410','the ballot chair must take part in the ballot','the ballot chair takes part in the ballot');
+SELECT is((hall_api.create_ballot_result_preview(pg_temp.item('secretary-departure',2),pg_temp.public_candidate_of(
+ ARRAY[test_uuid('secretary-departure:att:1'),test_uuid('secretary-departure:att:3')],
+ ARRAY['approve','reject'],test_uuid('secretary-departure:att:1'))-'chairmanAttendanceId'))#>>'{candidate,chairmanAttendanceId}',
+ test_uuid('secretary-departure:att:1')::text,'a candidate without chair receives the chair in office');
+SELECT is((SELECT calculation->>'result' FROM ballot_result_preview WHERE agenda_item=pg_temp.item('secretary-departure',2) ORDER BY revision DESC LIMIT 1),
+ 'approve','the voice of the chair in office prevails on a public tie');
 
 -- 13. Quorum evidence and attendance sets.
 -- @verifies-requirement HALL-FR-ATT-020
@@ -566,15 +624,15 @@ INSERT INTO meeting_membership_record(council_meeting,observed_at,source_referen
  ARRAY[test_uuid('evidence:member:1'),test_uuid('evidence:member:2'),test_uuid('evidence:member:3'),test_uuid('quorum:member:undeclared')]);
 SELECT throws_ok($$SELECT calculate_meeting_quorum(test_uuid('evidence:meeting'),NULL,'2026-01-01 09:00:03Z')$$,'HV141',NULL,'a roster member without attendance makes the attendance set incomplete');
 SELECT throws_ok($$UPDATE meeting_quorum_observation SET facts='{}' WHERE council_meeting=test_uuid('bounds-2:meeting')$$,'HV145',NULL,'recorded quorum facts cannot be rewritten');
+-- @verifies-requirement HALL-FR-ATT-150
 SELECT pg_temp.safety_meeting('outsider',ARRAY['present','present','present'],1,'{}',FALSE);
 INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids)
  VALUES(test_uuid('outsider:meeting'),'2026-01-01 09:00:01Z','roster without the third declared member',ARRAY[test_uuid('outsider:member:1'),test_uuid('outsider:member:2')]);
-SELECT is(calculate_meeting_quorum(test_uuid('outsider:meeting'),NULL,'2026-01-01 09:00:02Z')->'presentMemberIds',
- (SELECT jsonb_agg(id ORDER BY id) FROM unnest(ARRAY[test_uuid('outsider:member:1'),test_uuid('outsider:member:2')]) id),
- 'an attendance outside the roster is not counted as present');
-SELECT todo('Divergence from the former rule, for the user to decide: hall ignores an attendance declaration outside the roster instead of refusing the attendance set',1);
 SELECT throws_ok($$SELECT calculate_meeting_quorum(test_uuid('outsider:meeting'),NULL,'2026-01-01 09:00:02Z')$$,
- NULL,NULL,'an attendance set naming a member outside the roster is refused (former rule)');
+ 'HV150',format('Test %s has a member attendance but is not in the membership roster of this meeting',test_uuid('outsider:member:3')),
+ 'an attendance set naming a member outside the roster is refused and names the person');
+SELECT is(meeting_attendance_outsider_name(test_uuid('outsider:meeting')),'Test '||test_uuid('outsider:member:3'),
+ 'the refused person is identified by name');
 
 SELECT * FROM finish();
 ROLLBACK;

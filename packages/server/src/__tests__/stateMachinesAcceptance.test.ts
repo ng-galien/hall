@@ -101,7 +101,6 @@ describe("SQL-backed council workflow", () => {
       procedure: "ordinaryMajority",
       mode: "public",
       participantAttendanceIds: attendance.map((entry) => entry.id),
-      chairmanAttendanceId: attendance[0].id,
       votes: attendance.map((entry) => ({ meetingAttendanceId: entry.id, choice: "approve" })),
       nonParticipations: [],
     };

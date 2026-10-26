@@ -17,6 +17,24 @@ function markdown(value: string): string {
   });
 }
 
+type OfficerChange = MinutesDetail["facts"]["conduct"]["officerChanges"][number];
+
+// @implements-requirement HALL-FR-MIN-260
+function officerChange(change: OfficerChange): string {
+  const office = matchLiteral(change.office, {
+    chair: () => "présidence confiée",
+    secretary: () => "secrétariat confié",
+  });
+  const basis = matchLiteral(change.basis, {
+    mayor: () => "reprise par le maire",
+    deputyInNominationOrder: () => "adjoint dans l’ordre des nominations",
+    councilDesignation: () => "désignation par le conseil",
+    councilNomination: () => "nomination par le conseil",
+    financialStatementElection: () => "élection par le conseil pour le compte financier unique",
+  });
+  return `${escapeHtml(date(change.observedAt))}, ${office} à ${escapeHtml(change.memberName)} (${basis})`;
+}
+
 /** The printable facts come exclusively from the immutable closure snapshot. */
 export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSection, string> {
   const { meeting, attendance, agenda, ballots, recusals, conduct } = minutes.facts;
@@ -86,14 +104,30 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
         return `<li>${escapeHtml(recusal.memberName)} : ${basis}, déport déclaré le ${escapeHtml(date(recusal.declaredAt))}</li>`;
       });
     const recusalEvidence = declarations.length ? `<h4>Déports déclarés</h4><ul>${declarations.join("")}</ul>` : "";
+    const presidency = conduct.officerChanges
+      .filter((change) => change.agendaItemId === item.id)
+      .map((change) => `<p>Présidence du point : ${officerChange(change)}.</p>`)
+      .join("");
     const status =
       ballot?.completedAt && !item.adjournedAt
         ? ""
         : `<p>${outcome}${item.kind === "minutesApproval" ? " · Non arrêté" : ""}</p>`;
-    return `<section><h3>${item.agendaNumber}. ${escapeHtml(title)}</h3>${item.introducedAt ? `<p>Question ajoutée en séance le ${escapeHtml(date(item.introducedAt))}.</p>` : ""}${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${quorum}${recusalEvidence}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>${individual}${nonParticipationNames}` : ""}</section>`;
+    return `<section><h3>${item.agendaNumber}. ${escapeHtml(title)}</h3>${item.introducedAt ? `<p>Question ajoutée en séance le ${escapeHtml(date(item.introducedAt))}.</p>` : ""}${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${quorum}${recusalEvidence}${presidency}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>${individual}${nonParticipationNames}` : ""}</section>`;
   });
+  const handovers = conduct.officerChanges
+    .filter((change) => change.agendaItemId === null)
+    .map((change) => `<li>${officerChange(change)}</li>`);
+  const attending = conduct.auxiliaryAttendances.map(
+    (entry) =>
+      `<li>${escapeHtml(entry.name)} - ${matchLiteral(entry.quality, {
+        townHallSecretary: () => "secrétaire de mairie",
+        auxiliarySecretary: () => "secrétaire auxiliaire",
+        guest: () => "invité",
+        expert: () => "expert",
+      })}</li>`,
+  );
   return {
-    facts: `<p>Séance n° ${meeting.number}<br>Ouverture : ${escapeHtml(date(meeting.startedAt))}<br>Clôture : ${escapeHtml(date(meeting.closedAt))}<br>Lieu : ${escapeHtml(meeting.location ?? "Non renseigné")}</p><p>Présidence : ${escapeHtml(meeting.chair?.name ?? "Non renseignée")}<br>Secrétariat : ${escapeHtml(meeting.secretary?.name ?? "Non renseigné")}<br>Quorum requis : ${meeting.quorum} · Présents : ${attendance.filter((entry) => entry.status === "present").length}</p><ul>${rows.join("")}</ul>`,
+    facts: `<p>Séance n° ${meeting.number}<br>Ouverture : ${escapeHtml(date(meeting.startedAt))}<br>Clôture : ${escapeHtml(date(meeting.closedAt))}<br>Lieu : ${escapeHtml(meeting.location ?? "Non renseigné")}</p><p>Présidence : ${escapeHtml(meeting.chair?.name ?? "Non renseignée")}<br>Secrétariat : ${escapeHtml(meeting.secretary?.name ?? "Non renseigné")}<br>Quorum requis : ${meeting.quorum} · Présents : ${attendance.filter((entry) => entry.status === "present").length}</p><ul>${rows.join("")}</ul>${attending.length ? `<p>Assistaient également :</p><ul>${attending.join("")}</ul>` : ""}${handovers.length ? `<p>Passations en séance :</p><ul>${handovers.join("")}</ul>` : ""}`,
     proceedings: subjects.join(""),
   };
 }

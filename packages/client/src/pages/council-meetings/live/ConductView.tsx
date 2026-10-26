@@ -34,10 +34,18 @@ const DiscussionItemProgress = createStageProgress([itemStages[0], itemStages[1]
 
 import { Modal, RequestErrorBanner } from "../../../components/Ui";
 import { liveBusinessTitle } from "../../../features/council-business/presentation";
+import { AgendaItemPresidencyDialog } from "../../../features/council-meetings/AgendaItemPresidencyDialog";
 import { AgendaItemRecusalDialog } from "../../../features/council-meetings/AgendaItemRecusalDialog";
 import { agendaSubjectPresentation } from "../../../features/council-meetings/AgendaSubjectGlyph";
 import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdictPresentation";
 import { ConductActionBlockers } from "../../../features/council-meetings/ConductActionBlockers";
+import { MeetingOfficersDialog } from "../../../features/council-meetings/MeetingOfficersDialog";
+import {
+  auxiliaryQualityLabel,
+  officeLabel,
+  officerBasisLabel,
+  presidencyBasisLabel,
+} from "../../../features/council-meetings/meetingOfficerPresentation";
 import { recusalBasisLabel } from "../../../features/council-meetings/recusalPresentation";
 import { DocumentaryResourceGlyph } from "../../../features/documents/DocumentaryResourceGlyph";
 import { ResourcePreview } from "../../../features/documents/ResourcePreview";
@@ -169,6 +177,8 @@ export function ConductView({
     `${selectedItem?.status}:${aggregate.ballots.length}:${JSON.stringify(aggregate.attendance)}`,
   );
   const [recusalOpen, setRecusalOpen] = useState(false);
+  const [presidencyOpen, setPresidencyOpen] = useState(false);
+  const [officersOpen, setOfficersOpen] = useState(false);
   const [recusalDetailsOpen, setRecusalDetailsOpen] = useState(false);
   const selectedItemRef = useRef(selectedItem);
   selectedItemRef.current = selectedItem;
@@ -177,6 +187,7 @@ export function ConductView({
     setNotes(selectedItemRef.current?.discussionSummary ?? "");
     setVoteOpen(false);
     setRecusalOpen(false);
+    setPresidencyOpen(false);
     setRecusalDetailsOpen(false);
   }, [selectedItemId2]);
 
@@ -204,7 +215,9 @@ export function ConductView({
   }
 
   const selectedDecisionId = agendaItemDecisionId(selectedItem);
-  const meetingBlockers = meetingActions.workspace?.conduct.meetingActionBlockers;
+  const conduct = meetingActions.workspace?.conduct ?? null;
+  const meetingBlockers = conduct?.meetingActionBlockers;
+  const blockerMemberName = (memberId: string) => councilMemberName(members, memberId);
   const blockers = meetingActions.workspace?.agendaItems.find((item) => item.id === selectedItem.id)?.conductBlockers;
   const selectedDecision = selectedDecisionId
     ? (aggregate.councilDecisions.find((decision) => decision.id === selectedDecisionId) ?? null)
@@ -485,6 +498,17 @@ export function ConductView({
             blockers={meetingBlockers?.recordAttendanceEvents ?? []}
           />
           <button
+            className="live-primary-action conduct-rail-tool"
+            type="button"
+            title={railCollapsed ? t("officers.title") : undefined}
+            data-testid="live-officers-open"
+            disabled={!conduct}
+            onClick={() => setOfficersOpen(true)}
+          >
+            <GavelIcon aria-hidden="true" />
+            {!railCollapsed ? t("officers.title") : null}
+          </button>
+          <button
             className="live-primary-action live-danger-action conduct-rail-tool"
             type="button"
             disabled={submitting || !meetingActions.can("meeting.close")}
@@ -534,7 +558,47 @@ export function ConductView({
                 <dt>{t("meetings.secretary")}</dt>
                 <dd>{councilMemberName(members, aggregate.meeting.secretaryMemberId ?? "")}</dd>
               </div>
+              {conduct ? (
+                <>
+                  <div>
+                    <dt>{t("officers.currentChair")}</dt>
+                    <dd data-testid="live-current-chair">
+                      {councilMemberName(members, conduct.currentOfficers.chairMemberId ?? "")}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t("officers.currentSecretary")}</dt>
+                    <dd data-testid="live-current-secretary">
+                      {councilMemberName(members, conduct.currentOfficers.secretaryMemberId ?? "")}
+                    </dd>
+                  </div>
+                </>
+              ) : null}
             </dl>
+            {conduct?.officerChanges.some((change) => change.agendaItemId === null) ? (
+              <ul className="grid gap-1" data-testid="live-opening-handovers">
+                {conduct.officerChanges
+                  .filter((change) => change.agendaItemId === null)
+                  .map((change) => (
+                    <li key={change.id}>
+                      {formatTime(change.observedAt)} · {t(officeLabel(change.office))} ·{" "}
+                      <strong>{change.memberName}</strong> · {t(officerBasisLabel(change.basis))}
+                    </li>
+                  ))}
+              </ul>
+            ) : null}
+            {conduct && conduct.auxiliaryAttendances.length > 0 ? (
+              <section className="grid gap-1" data-testid="live-opening-auxiliaries">
+                <strong>{t("auxiliary.title")}</strong>
+                <ul>
+                  {conduct.auxiliaryAttendances.map((entry) => (
+                    <li key={entry.id}>
+                      {entry.name} · {t(auxiliaryQualityLabel(entry.quality))}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
             <p>
               {t("meeting.quorumFailureEvidence", {
                 present: formatNumber(aggregate.quorum.physicallyPresent),
@@ -623,7 +687,18 @@ export function ConductView({
                 </PopoverContent>
               </Popover>
             ) : null}
+            {recusals.canRecordPresidency ? (
+              <Button variant="outline" data-testid="live-presidency-open" onClick={() => setPresidencyOpen(true)}>
+                {t("presidency.title")}
+              </Button>
+            ) : null}
           </div>
+          {recusals.state?.presidency ? (
+            <p data-testid="live-item-presidency">
+              {t("presidency.current")} : <strong>{recusals.state.presidency.memberName}</strong> ·{" "}
+              {t(presidencyBasisLabel(recusals.state.presidency.basis))}
+            </p>
+          ) : null}
           {hasVotingStage ? (
             <VotingItemProgress
               currentStep={String(progressIndex)}
@@ -753,6 +828,7 @@ export function ConductView({
                 members={members}
                 eligibleAttendanceIds={ballotParticipants.eligibleParticipantAttendanceIds}
                 departedAttendanceIds={ballotParticipants.departedParticipantAttendanceIds}
+                ballotChair={ballotParticipants.ballotChair}
                 actionContainer={ballotActionContainer}
                 target={
                   selectedDecision ? { councilDecisionId: selectedDecision.id } : { agendaItemId: selectedItem.id }
@@ -886,7 +962,11 @@ export function ConductView({
             </button>
           ) : null}
           {continuation === "none" ? (
-            <ConductActionBlockers action="continue" blockers={continuationBlockers ?? []} />
+            <ConductActionBlockers
+              action="continue"
+              blockers={continuationBlockers ?? []}
+              memberName={blockerMemberName}
+            />
           ) : null}
           <div className="conduct-continuation" ref={setBallotActionContainer} data-testid="live-item-continuation">
             {matchLiteral(continuation, {
@@ -975,6 +1055,26 @@ export function ConductView({
           controller={recusals}
           members={members}
           onClose={() => setRecusalOpen(false)}
+        />
+      ) : null}
+      {presidencyOpen ? (
+        <AgendaItemPresidencyDialog
+          key={selectedItem.id}
+          controller={recusals}
+          members={members}
+          onClose={() => setPresidencyOpen(false)}
+        />
+      ) : null}
+      {officersOpen && conduct ? (
+        <MeetingOfficersDialog
+          conduct={conduct}
+          members={members}
+          canRecordOfficerChange={meetingActions.can("meeting.record-officer-change")}
+          canDeclareAuxiliaryAttendance={meetingActions.can("meeting.declare-auxiliary-attendance")}
+          error={meetingActions.actionError}
+          onRecordOfficerChange={meetingActions.recordOfficerChange}
+          onDeclareAuxiliaryAttendance={meetingActions.declareAuxiliaryAttendance}
+          onClose={() => setOfficersOpen(false)}
         />
       ) : null}
       {addItemOpen ? (

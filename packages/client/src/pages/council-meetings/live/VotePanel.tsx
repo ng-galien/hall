@@ -1,11 +1,12 @@
 // biome-ignore-all lint/correctness/useExhaustiveDependencies: Voting-context changes intentionally invalidate a preview.
-import { findSirenAction } from "@hall/api-contract";
+import { type AgendaItemRecusals, findSirenAction } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
 import { type DragEvent, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Modal, RequestErrorBanner } from "../../../components/Ui";
 import { Button } from "../../../components/ui/button";
 import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdictPresentation";
+import { ballotChairBasisLabel } from "../../../features/council-meetings/meetingOfficerPresentation";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import type { TranslationKey } from "../../../i18n/en";
 import { useI18n } from "../../../i18n/I18nProvider";
@@ -133,6 +134,7 @@ export function VotePanel({
   onConfirm,
   eligibleAttendanceIds,
   departedAttendanceIds,
+  ballotChair,
   actionContainer,
 }: {
   aggregate: LiveMeetingPresentation;
@@ -145,6 +147,7 @@ export function VotePanel({
   onConfirm(preview: BallotPreview): Promise<boolean>;
   eligibleAttendanceIds: readonly string[];
   departedAttendanceIds: readonly string[];
+  ballotChair: AgendaItemRecusals["ballotChair"];
   actionContainer: HTMLElement | null;
 }) {
   const { t, formatNumber } = useI18n();
@@ -156,7 +159,7 @@ export function VotePanel({
   const [dropZone, setDropZone] = useState<ZoneChoice | null>(null);
   const [preview, setPreview] = useState<BallotPreview | null>(null);
   const [error, setError] = useState<ApiErrorCode | null>(null);
-  const [chairmanMemberId, setChairmanMemberId] = useState(aggregate.meeting.chairMemberId ?? "");
+  const chairPresent = Boolean(ballotChair.councilMemberId && ballotChair.physicallyPresent);
   const departedParticipants = aggregate.attendance
     .filter((entry) => departedAttendanceIds.includes(entry.id))
     .map((entry) => ({
@@ -177,7 +180,7 @@ export function VotePanel({
   const eligibleIdentity = [...eligibleAttendanceIds, ...departedAttendanceIds].join(",");
   useEffect(() => {
     setPreview(null);
-  }, [method, assignments, chairmanMemberId, eligibleIdentity]);
+  }, [method, assignments, eligibleIdentity]);
 
   const memberById = new Map(members.map((member) => [member.id, member]));
   const carriedCountByHolder = participants.reduce<Map<string, number>>((accumulator, participant) => {
@@ -256,7 +259,6 @@ export function VotePanel({
         method === "public"
           ? {
               method,
-              chairmanMemberId,
               ...target,
               votes: participants.map((participant) => ({
                 memberId: participant.memberId,
@@ -268,7 +270,6 @@ export function VotePanel({
             }
           : {
               method,
-              chairmanMemberId,
               ...target,
               participantMemberIds: participants.map((participant) => participant.memberId),
               totals: secretTotals,
@@ -444,27 +445,19 @@ export function VotePanel({
         </>
       }
 
-      <label className="grid gap-2">
-        {t("ballot.chairman")}
-        <select
-          data-testid="live-ballot-chairman"
-          value={chairmanMemberId}
-          onChange={(event) => setChairmanMemberId(event.target.value)}
-        >
-          <option value="">{t("ballot.chooseChairman")}</option>
-          {participants
-            .filter((participant) =>
-              aggregate.attendance.some(
-                (entry) => entry.memberId === participant.memberId && entry.status === "present",
-              ),
-            )
-            .map((participant) => (
-              <option key={participant.memberId} value={participant.memberId}>
-                {participant.memberName}
-              </option>
-            ))}
-        </select>
-      </label>
+      <p className="grid gap-1" data-testid="live-ballot-chairman">
+        <span>{t("ballot.chairman")}</span>
+        <strong data-testid="live-ballot-chairman-name">
+          {ballotChair.councilMemberId
+            ? councilMemberName(members, ballotChair.councilMemberId)
+            : t("ballot.chairUndetermined")}
+        </strong>
+        {ballotChair.basis ? (
+          <span className="text-muted-foreground" data-testid="live-ballot-chairman-basis">
+            {t(ballotChairBasisLabel(ballotChair.basis))}
+          </span>
+        ) : null}
+      </p>
       <RequestErrorBanner error={error} />
       {preview ? (
         <Modal
@@ -589,17 +582,7 @@ export function VotePanel({
                 <button
                   className="live-primary-action"
                   type="button"
-                  disabled={
-                    submitting ||
-                    !participants.some(
-                      (participant) =>
-                        participant.memberId === chairmanMemberId &&
-                        aggregate.attendance.some(
-                          (entry) => entry.memberId === chairmanMemberId && entry.status === "present",
-                        ),
-                    ) ||
-                    (method === "public" ? !publicComplete : !secretValid)
-                  }
+                  disabled={submitting || !chairPresent || (method === "public" ? !publicComplete : !secretValid)}
                   data-testid="live-ballot-preview-open"
                   onClick={() => void record()}
                 >

@@ -6,7 +6,12 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
   'recordAttendanceEvents',
     CASE WHEN target.closed_at IS NOT NULL THEN '[{"code":"meetingClosed"}]'::jsonb
       WHEN target.started_at IS NULL AND NOT EXISTS(SELECT FROM hall.meeting_reconvocation WHERE council_meeting=target.id)
-      THEN '[{"code":"meetingNotStarted"}]'::jsonb ELSE '[]'::jsonb END
+      THEN '[{"code":"meetingNotStarted"}]'::jsonb ELSE '[]'::jsonb END,
+  'recordOfficerChange',
+    CASE WHEN target.closed_at IS NOT NULL THEN '[{"code":"meetingClosed"}]'::jsonb
+      WHEN target.started_at IS NULL THEN '[{"code":"meetingNotStarted"}]'::jsonb ELSE '[]'::jsonb END,
+  'declareAuxiliaryAttendance',
+    CASE WHEN target.closed_at IS NOT NULL THEN '[{"code":"meetingClosed"}]'::jsonb ELSE '[]'::jsonb END
  );
 $$;
 
@@ -16,6 +21,12 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ha
    'currentAttendance',hall.current_attendance_json(m.id),
    'meetingActionBlockers', blockers.value,
    'canRecordAttendanceEvents',jsonb_array_length(blockers.value->'recordAttendanceEvents')=0,
+   'currentOfficers',jsonb_build_object('chairMemberId',hall.current_meeting_officer(m.id,'chair'),
+     'secretaryMemberId',hall.current_meeting_officer(m.id,'secretary')),
+   'officerHandoverOptions',CASE WHEN jsonb_array_length(blockers.value->'recordOfficerChange')=0
+     THEN hall.meeting_officer_handover_options(m.id) ELSE '{"chair":[],"secretary":[]}'::jsonb END,
+   'canRecordOfficerChange',jsonb_array_length(blockers.value->'recordOfficerChange')=0,
+   'canDeclareAuxiliaryAttendance',jsonb_array_length(blockers.value->'declareAuxiliaryAttendance')=0,
    'canRecordQuorum',m.closed_at IS NULL AND EXISTS(SELECT FROM hall.meeting_membership_record WHERE council_meeting=m.id),
    'canRecordReconvocation',m.closed_at IS NULL AND EXISTS(SELECT FROM hall.meeting_quorum_observation o
      WHERE o.council_meeting=m.id AND o.facts->>'verdict'='notMet'
@@ -62,5 +73,29 @@ BEGIN
  INSERT INTO hall.meeting_reconvocation(council_meeting,failed_observation,sent_at,scheduled_at,time_zone,
    first_notice_evidence,renewed_notice_evidence,agenda_item_ids)
  VALUES(target_meeting,failure,notice_sent_at,meeting_time,zone,first_evidence,renewed_evidence,items);
+ RETURN hall_api.meeting_conduct(target_meeting);
+END $$;
+
+-- @implements-requirement HALL-FR-MTG-330
+-- @implements-requirement HALL-FR-MTG-340
+CREATE FUNCTION hall_api.record_meeting_officer_change(target_meeting UUID,target_office TEXT,target_member UUID,observation_time TIMESTAMPTZ)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+BEGIN
+ IF target_office IS NULL OR target_office NOT IN ('chair','secretary') THEN
+   RAISE EXCEPTION USING ERRCODE = 'HV127',MESSAGE='the office is the chair or the secretary';
+ END IF;
+ PERFORM hall.record_meeting_officer_change(target_meeting,target_office::hall.meeting_office,target_member,observation_time);
+ RETURN hall_api.meeting_conduct(target_meeting);
+END $$;
+
+-- @implements-requirement HALL-FR-ATT-140
+CREATE FUNCTION hall_api.declare_meeting_auxiliary_attendance(target_meeting UUID,target_contact UUID,target_quality TEXT,declaration_time TIMESTAMPTZ)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+BEGIN
+ IF target_quality IS NULL OR target_quality NOT IN ('townHallSecretary','auxiliarySecretary','guest','expert') THEN
+   RAISE EXCEPTION USING ERRCODE = 'HV128',MESSAGE='unknown auxiliary attendance quality';
+ END IF;
+ INSERT INTO hall.meeting_auxiliary_attendance(council_meeting,contact,quality,declared_at)
+ VALUES(target_meeting,target_contact,target_quality::hall.auxiliary_attendance_quality,declaration_time);
  RETURN hall_api.meeting_conduct(target_meeting);
 END $$;

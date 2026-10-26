@@ -434,20 +434,32 @@ it.each([true, false])("keeps attendance reasons and Siren permission consistent
       councilMeetingId: "meeting",
       meeting: { id: "meeting", number: 1, startedAt: "2026-01-01T09:00:00Z", closedAt: null, closureBlockers: [] },
       canRecordAttendanceEvents: true,
+      canRecordOfficerChange: true,
+      canDeclareAuxiliaryAttendance: true,
       meetingActionBlockers: {
         addAgendaItem: [],
         recordAttendanceEvents: [],
+        recordOfficerChange: [],
+        declareAuxiliaryAttendance: [],
       },
     },
   );
   expect(entity.properties).toMatchObject({
     canRecordAttendanceEvents: permitted,
+    canRecordOfficerChange: permitted,
+    canDeclareAuxiliaryAttendance: permitted,
     meetingActionBlockers: {
       addAgendaItem: permitted ? [] : [{ code: "permissionDenied" }],
       recordAttendanceEvents: permitted ? [] : [{ code: "permissionDenied" }],
+      recordOfficerChange: permitted ? [] : [{ code: "permissionDenied" }],
+      declareAuxiliaryAttendance: permitted ? [] : [{ code: "permissionDenied" }],
     },
   });
   expect(entity.actions?.some((action) => action.name === "meeting.record-attendance-events") ?? false).toBe(permitted);
+  expect(entity.actions?.some((action) => action.name === "meeting.record-officer-change") ?? false).toBe(permitted);
+  expect(entity.actions?.some((action) => action.name === "meeting.declare-auxiliary-attendance") ?? false).toBe(
+    permitted,
+  );
   expect(entity.actions?.some((action) => action.name === "meeting.add-open-question") ?? false).toBe(permitted);
   expect(entity.actions?.some((action) => action.name.includes("late")) ?? false).toBe(false);
 });

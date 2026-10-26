@@ -109,8 +109,8 @@
       "citation": "CGCT L2121-17, al. 1 et 2",
       "localization": "CGCT L2121-17, al. 1 et 2",
       "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389875",
-      "verifiedAt": "2026-09-06",
-      "asOf": "2026-09-06",
+      "verifiedAt": "2026-10-26",
+      "asOf": "2026-10-26",
       "scope": "Majorité des membres en exercice présents ; exception de seconde convocation après premier défaut, sous conditions. Un seuil positif libre ne démontre pas cette règle.",
       "kind": "legislation",
       "versionId": "LEGIARTI000006389875",
@@ -120,8 +120,8 @@
       "citation": "CGCT L2121-20, al. 1 à 3",
       "localization": "CGCT L2121-20, al. 1 à 3",
       "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053152931",
-      "verifiedAt": "2026-09-06",
-      "asOf": "2026-09-06",
+      "verifiedAt": "2026-10-26",
+      "asOf": "2026-10-26",
       "scope": "Pouvoir écrit à un collègue, unique par porteur et révocable ; limite de trois séances consécutives avec exceptions maladie constatée et congé de maternité. Majorité absolue des exprimés ; prépondérance présidentielle sauf secret.",
       "kind": "legislation",
       "versionId": "LEGIARTI000053152931",
@@ -131,9 +131,9 @@
       "citation": "CGCT L2121-15, al. 1 à 6",
       "localization": "CGCT L2121-15, al. 1 à 6",
       "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044190488",
-      "verifiedAt": "2026-09-06",
-      "asOf": "2026-09-06",
-      "scope": "Secrétaire(s) membre(s), auxiliaires possibles ; PV arrêté au commencement suivant, signé ; mentions obligatoires al. 4, publicité al. 5, pérennité de l'original al. 6. Pas de format SQL/PDF prescrit.",
+      "verifiedAt": "2026-10-26",
+      "asOf": "2026-10-26",
+      "scope": "Secrétaire(s) membre(s) nommés par le conseil au début de chaque séance, jamais par le maire ; auxiliaires pris hors du conseil, qui assistent aux séances sans participer aux délibérations ; PV arrêté au commencement suivant, signé ; mentions obligatoires al. 4, publicité al. 5, pérennité de l'original al. 6. Pas de format SQL/PDF prescrit.",
       "kind": "legislation",
       "versionId": "LEGIARTI000044190488",
       "validFrom": "2022-07-01"
@@ -153,8 +153,8 @@
       "citation": "CGCT L2131-11, phrases 1 à 3",
       "localization": "CGCT L2131-11, phrases 1 à 3",
       "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053153029",
-      "verifiedAt": "2026-09-06",
-      "asOf": "2026-09-06",
+      "verifiedAt": "2026-10-26",
+      "asOf": "2026-10-26",
       "scope": "Participation de l'intéressé personnellement ou comme mandataire ; seule présence insuffisante pour caractériser participation ; exclusion de l'effectif pour L1111-6 II.",
       "kind": "legislation",
       "versionId": "LEGIARTI000053153029",
@@ -186,8 +186,8 @@
       "citation": "CGCT L2121-14, al. 1 à 3 et note d'application",
       "localization": "CGCT L2121-14, al. 1 à 3 et note d'application",
       "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051731835",
-      "verifiedAt": "2026-09-06",
-      "asOf": "2026-09-06",
+      "verifiedAt": "2026-10-26",
+      "asOf": "2026-10-26",
       "scope": "Présidence maire/remplaçant ; pour CFU, président élu et retrait du maire au vote. Régime distinct des deux conflits modélisés.",
       "kind": "legislation",
       "versionId": "LEGIARTI000051731835",
@@ -329,6 +329,28 @@
       "kind": "legislation",
       "versionId": "LEGIARTI000031069083",
       "validFrom": "2015-08-19"
+    },
+    "S16": {
+      "citation": "CGCT L2122-17",
+      "localization": "alinéa unique",
+      "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389936",
+      "verifiedAt": "2026-10-26",
+      "asOf": "2026-10-26",
+      "scope": "En cas d'absence, de suspension, de révocation ou de tout autre empêchement, le maire est provisoirement remplacé par un adjoint dans l'ordre des nominations et, à défaut d'adjoint, par un conseiller désigné par le conseil ou, à défaut, pris dans l'ordre du tableau. La suppléance joue sans délibération.",
+      "kind": "legislation",
+      "versionId": "LEGIARTI000006389936",
+      "validFrom": "1996-02-24"
+    },
+    "S17": {
+      "citation": "CGCT L2121-18, al. 1 et 2",
+      "localization": "alinéas 1 et 2",
+      "url": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389876",
+      "verifiedAt": "2026-10-26",
+      "asOf": "2026-10-26",
+      "scope": "Les séances sont publiques ; huis clos sur demande de trois membres ou du maire, décidé sans débat à la majorité absolue des membres présents ou représentés. Le public n'est ni nommé ni compté.",
+      "kind": "legislation",
+      "versionId": "LEGIARTI000006389876",
+      "validFrom": "1996-02-24"
     }
   },
   "requirements": {
@@ -1607,17 +1629,55 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-09-06"
+        "since": "2026-10-26"
       },
-      "statement": "Le président du scrutin est une participation physiquement présente à la même séance.",
+      "statement": "Le président du scrutin n’est pas choisi : Hall le détermine. C’est le président de séance en titre au moment du vote, sauf point présidé par un président élu ou désigné et sauf point où le président en titre est déporté ; il participe physiquement présent au scrutin et sa voix départage une égalité en scrutin public.",
       "acceptanceCriteria": [
-        "Hall réalise Président participant physiquement présent dans cette autorité logicielle ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire."
+        "Le conseil est présidé par le maire et, à défaut, par celui qui le remplace ; en cas de partage égal des voix, sauf scrutin secret, la voix du président est prépondérante : le président du scrutin est le président de séance en titre au moment du vote.",
+        "Un membre intéressé à l’affaire ne prend pas part à la délibération : quand le président de séance en titre est déporté sur un point, ce point est présidé par son remplaçant de droit, le premier adjoint présent et non déporté dans l’ordre des nominations.",
+        "La candidature de scrutin ne porte pas de président ; Hall refuse une candidature qui en nomme un autre que le président déterminé, refuse une candidature dont le président déterminé ne fait pas partie des participants, et enregistre le président déterminé dans la prévisualisation et dans le scrutin.",
+        "L’écran de conduite de séance affiche le président du scrutin déterminé et le fondement de sa présidence ; il n’offre aucun choix du président.",
+        "Quand le président en titre est déporté et qu’aucun adjoint présent et non déporté ne peut être déterminé par son rang, Hall refuse le scrutin jusqu’à la désignation du président du point par le conseil."
       ],
       "clauses": [
         {
-          "key": "implementation",
+          "key": "meeting-chair",
+          "origin": "regulatory",
+          "statement": "Le conseil est présidé par le maire et, à défaut, par celui qui le remplace ; en cas de partage égal des voix, sauf scrutin secret, la voix du président est prépondérante : le président du scrutin est le président de séance en titre au moment du vote.",
+          "sourceIds": [
+            "S8",
+            "S2"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "recused-chair",
+          "origin": "regulatory",
+          "statement": "Un membre intéressé à l’affaire ne prend pas part à la délibération : quand le président de séance en titre est déporté sur un point, ce point est présidé par son remplaçant de droit, le premier adjoint présent et non déporté dans l’ordre des nominations.",
+          "sourceIds": [
+            "S5",
+            "S16"
+          ],
+          "assessment": "verified",
+          "interpretation": "interpreted"
+        },
+        {
+          "key": "determined-not-chosen",
           "origin": "product",
-          "statement": "Hall réalise Président participant physiquement présent dans cette autorité logicielle ; cette réalisation ne prouve pas à elle seule toute la proposition réglementaire.",
+          "statement": "La candidature de scrutin ne porte pas de président ; Hall refuse une candidature qui en nomme un autre que le président déterminé, refuse une candidature dont le président déterminé ne fait pas partie des participants, et enregistre le président déterminé dans la prévisualisation et dans le scrutin.",
+          "sourceIds": []
+        },
+        {
+          "key": "displayed",
+          "origin": "product",
+          "statement": "L’écran de conduite de séance affiche le président du scrutin déterminé et le fondement de sa présidence ; il n’offre aucun choix du président.",
+          "sourceIds": []
+        },
+        {
+          "key": "undetermined",
+          "origin": "product",
+          "statement": "Quand le président en titre est déporté et qu’aucun adjoint présent et non déporté ne peut être déterminé par son rang, Hall refuse le scrutin jusqu’à la désignation du président du point par le conseil.",
           "sourceIds": []
         }
       ]
@@ -9053,6 +9113,341 @@
           "key": "common-documents",
           "origin": "product",
           "statement": "Décision du propriétaire du 10 octobre 2026 (a6702014) pour la création, l’import et la conversion ; décision du 25 octobre 2026 (D3, 87a55a21) pour le déplacement, la modification et la suppression ; question 3839 (972f77d8).",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-BAL-330": {
+      "name": "AGENDA_ITEM_PRESIDENCY_IS_ELECTED_OR_DESIGNATED",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-26"
+      },
+      "statement": "Un point peut recevoir sa propre présidence : président élu par le conseil pour le compte financier unique, maire retiré au vote ; ou membre désigné par le conseil quand le président en titre est déporté sans adjoint déterminable.",
+      "acceptanceCriteria": [
+        "Dans les séances où le compte financier unique est débattu, le conseil élit son président ; le maire peut assister à la discussion mais doit se retirer au moment du vote.",
+        "Hall enregistre l’élection du président pour un point de projet de délibération non encore voté, parmi les membres physiquement présents autres que le maire et non déportés ; le président élu préside le scrutin de ce point et le maire n’y participe ni personnellement ni comme porteur de pouvoir.",
+        "À défaut d’adjoint, le remplaçant est un conseiller désigné par le conseil ou, à défaut, pris dans l’ordre du tableau.",
+        "Hall n’accepte la désignation d’un membre pour présider un point que si le président en titre est déporté sur ce point et qu’aucun adjoint présent et non déporté n’est déterminable ; le membre désigné est physiquement présent, n’est ni le président en titre ni déporté.",
+        "La présidence d’un point est un événement de séance horodaté, immuable, unique pour le point, repris dans la preuve de conduite et au procès-verbal."
+      ],
+      "clauses": [
+        {
+          "key": "financial-statement",
+          "origin": "regulatory",
+          "statement": "Dans les séances où le compte financier unique est débattu, le conseil élit son président ; le maire peut assister à la discussion mais doit se retirer au moment du vote.",
+          "sourceIds": [
+            "S8"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "financial-statement-gesture",
+          "origin": "product",
+          "statement": "Hall enregistre l’élection du président pour un point de projet de délibération non encore voté, parmi les membres physiquement présents autres que le maire et non déportés ; le président élu préside le scrutin de ce point et le maire n’y participe ni personnellement ni comme porteur de pouvoir.",
+          "sourceIds": []
+        },
+        {
+          "key": "designation",
+          "origin": "regulatory",
+          "statement": "À défaut d’adjoint, le remplaçant est un conseiller désigné par le conseil ou, à défaut, pris dans l’ordre du tableau.",
+          "sourceIds": [
+            "S16"
+          ],
+          "assessment": "verified",
+          "interpretation": "interpreted"
+        },
+        {
+          "key": "designation-gesture",
+          "origin": "product",
+          "statement": "Hall n’accepte la désignation d’un membre pour présider un point que si le président en titre est déporté sur ce point et qu’aucun adjoint présent et non déporté n’est déterminable ; le membre désigné est physiquement présent, n’est ni le président en titre ni déporté.",
+          "sourceIds": []
+        },
+        {
+          "key": "evidence",
+          "origin": "product",
+          "statement": "La présidence d’un point est un événement de séance horodaté, immuable, unique pour le point, repris dans la preuve de conduite et au procès-verbal.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-BAL-340": {
+      "name": "BALLOT_REQUIRES_PRESENT_CHAIR_AND_SECRETARY",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-26"
+      },
+      "statement": "Aucun scrutin n’est prévisualisé ni enregistré tant que le président du scrutin ou le secrétaire de séance en titre n’est pas physiquement présent.",
+      "acceptanceCriteria": [
+        "Le conseil est présidé par le maire ou son remplaçant et le secrétaire de séance est nommé par le conseil parmi ses membres.",
+        "Hall refuse la prévisualisation et la création d’un scrutin, avec un code dédié, quand la personne qui préside le scrutin ou le secrétaire en titre n’a pas une présence courante physique ; quand le président en titre ne préside pas le point (déport, compte financier unique), c’est la présence de la personne qui préside le scrutin qui est exigée.",
+        "L’écran de conduite reçoit ces refus comme blocages de la prévisualisation du scrutin, avec l’identité de l’officier absent, avant toute saisie du vote."
+      ],
+      "clauses": [
+        {
+          "key": "officers",
+          "origin": "regulatory",
+          "statement": "Le conseil est présidé par le maire ou son remplaçant et le secrétaire de séance est nommé par le conseil parmi ses membres.",
+          "sourceIds": [
+            "S8",
+            "S3"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "presence",
+          "origin": "product",
+          "statement": "Hall refuse la prévisualisation et la création d’un scrutin, avec un code dédié, quand la personne qui préside le scrutin ou le secrétaire en titre n’a pas une présence courante physique ; quand le président en titre ne préside pas le point (déport, compte financier unique), c’est la présence de la personne qui préside le scrutin qui est exigée.",
+          "sourceIds": []
+        },
+        {
+          "key": "blockers",
+          "origin": "product",
+          "statement": "L’écran de conduite reçoit ces refus comme blocages de la prévisualisation du scrutin, avec l’identité de l’officier absent, avant toute saisie du vote.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MTG-330": {
+      "name": "MEETING_CHAIR_HANDOVER_FOLLOWS_STATUTORY_ORDER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-26"
+      },
+      "statement": "La présidence peut passer en cours de séance par un geste horodaté : Hall propose le maire présent qui reprend la présidence ou le premier adjoint présent dans l’ordre des nominations, et n’accepte un conseiller qu’à défaut d’adjoint présent.",
+      "acceptanceCriteria": [
+        "Le maire empêché est remplacé par un adjoint dans l’ordre des nominations et, à défaut d’adjoint, par un conseiller désigné par le conseil ou, à défaut, pris dans l’ordre du tableau ; le conseil est présidé par le maire et, à défaut, par celui qui le remplace.",
+        "L’ordre des nominations des adjoints est leur rang dans la mandature ; quand aucun adjoint présent n’a de rang connu, Hall ne peut pas les ordonner et accepte chacun d’eux.",
+        "La passation est enregistrée pendant la séance ouverte, pour un membre physiquement présent, après le dernier mouvement de présence enregistré ; elle est immuable et devient le président en titre pour la suite de la séance.",
+        "Chaque passation est un événement de séance horodaté avec son fondement et le nom copié du membre, repris dans la preuve de conduite et mentionné au procès-verbal."
+      ],
+      "clauses": [
+        {
+          "key": "statutory-order",
+          "origin": "regulatory",
+          "statement": "Le maire empêché est remplacé par un adjoint dans l’ordre des nominations et, à défaut d’adjoint, par un conseiller désigné par le conseil ou, à défaut, pris dans l’ordre du tableau ; le conseil est présidé par le maire et, à défaut, par celui qui le remplace.",
+          "sourceIds": [
+            "S16",
+            "S8"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "nomination-order",
+          "origin": "product",
+          "statement": "L’ordre des nominations des adjoints est leur rang dans la mandature ; quand aucun adjoint présent n’a de rang connu, Hall ne peut pas les ordonner et accepte chacun d’eux.",
+          "sourceIds": []
+        },
+        {
+          "key": "gesture",
+          "origin": "product",
+          "statement": "La passation est enregistrée pendant la séance ouverte, pour un membre physiquement présent, après le dernier mouvement de présence enregistré ; elle est immuable et devient le président en titre pour la suite de la séance.",
+          "sourceIds": []
+        },
+        {
+          "key": "evidence",
+          "origin": "product",
+          "statement": "Chaque passation est un événement de séance horodaté avec son fondement et le nom copié du membre, repris dans la preuve de conduite et mentionné au procès-verbal.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MTG-340": {
+      "name": "MEETING_SECRETARY_REPLACEMENT_IS_COUNCIL_NOMINATION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-26"
+      },
+      "statement": "Le secrétariat de séance peut passer en cours de séance à un autre membre physiquement présent, par une nomination du conseil horodatée et mentionnée au procès-verbal.",
+      "acceptanceCriteria": [
+        "Le conseil nomme un ou plusieurs de ses membres pour remplir les fonctions de secrétaire ; le maire ne désigne pas lui-même le secrétaire.",
+        "Hall enregistre la nomination d’un membre physiquement présent autre que le secrétaire en titre, comme décision du conseil ; elle est immuable et devient le secrétaire en titre pour la suite de la séance.",
+        "Chaque nomination est un événement de séance horodaté repris dans la preuve de conduite et mentionné au procès-verbal."
+      ],
+      "clauses": [
+        {
+          "key": "council-nomination",
+          "origin": "regulatory",
+          "statement": "Le conseil nomme un ou plusieurs de ses membres pour remplir les fonctions de secrétaire ; le maire ne désigne pas lui-même le secrétaire.",
+          "sourceIds": [
+            "S3"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "gesture",
+          "origin": "product",
+          "statement": "Hall enregistre la nomination d’un membre physiquement présent autre que le secrétaire en titre, comme décision du conseil ; elle est immuable et devient le secrétaire en titre pour la suite de la séance.",
+          "sourceIds": []
+        },
+        {
+          "key": "evidence",
+          "origin": "product",
+          "statement": "Chaque nomination est un événement de séance horodaté repris dans la preuve de conduite et mentionné au procès-verbal.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-AGI-420": {
+      "name": "RECUSAL_REQUIRES_PRESENT_OR_REPRESENTED_MEMBER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-26"
+      },
+      "statement": "Seul un membre présent ou représenté peut se déporter ; le déport d’un membre absent ou excusé est refusé.",
+      "acceptanceCriteria": [
+        "Le déport porte sur la participation à la délibération, personnellement ou comme mandataire ; un membre absent ne participe pas.",
+        "Hall refuse avec un code dédié le déport d’un membre dont la présence courante n’est ni « présent » ni « représenté » ; le déport d’un membre représenté par pouvoir reste accepté."
+      ],
+      "clauses": [
+        {
+          "key": "participation",
+          "origin": "regulatory",
+          "statement": "Le déport porte sur la participation à la délibération, personnellement ou comme mandataire ; un membre absent ne participe pas.",
+          "sourceIds": [
+            "S5"
+          ],
+          "assessment": "verified",
+          "interpretation": "interpreted"
+        },
+        {
+          "key": "refusal",
+          "origin": "product",
+          "statement": "Hall refuse avec un code dédié le déport d’un membre dont la présence courante n’est ni « présent » ni « représenté » ; le déport d’un membre représenté par pouvoir reste accepté.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-ATT-140": {
+      "name": "NON_MEMBER_ATTENDANCE_IS_DECLARED_AND_EXCLUDED",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-26"
+      },
+      "statement": "Une personne qui n’est pas membre du conseil peut être déclarée comme assistant à la séance, avec sa qualité ; elle n’entre ni dans le quorum, ni dans les votes, ni dans les pouvoirs, ni dans les déports.",
+      "acceptanceCriteria": [
+        "Le conseil peut adjoindre à ses secrétaires des auxiliaires pris en dehors de ses membres, qui assistent aux séances sans participer aux délibérations.",
+        "Les séances sont publiques ; le public n’est ni nommé ni compté par Hall.",
+        "Le rôle de conduite de séance déclare, jusqu’à la clôture, un contact sans mandat actif et non archivé avec sa qualité : secrétaire de mairie, secrétaire auxiliaire, invité ou expert ; la déclaration est horodatée, unique par séance et immuable ; un membre du conseil est refusé avec un message qui le nomme.",
+        "La déclaration ne crée aucune présence de membre : elle ne change ni le quorum, ni les participants admissibles d’un scrutin, ni les porteurs de pouvoir, ni les déports.",
+        "La séance affiche les personnes qui assistent ; le procès-verbal les reprend sous « Assistaient également » avec leur qualité."
+      ],
+      "clauses": [
+        {
+          "key": "auxiliaries",
+          "origin": "regulatory",
+          "statement": "Le conseil peut adjoindre à ses secrétaires des auxiliaires pris en dehors de ses membres, qui assistent aux séances sans participer aux délibérations.",
+          "sourceIds": [
+            "S3"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "public",
+          "origin": "regulatory",
+          "statement": "Les séances sont publiques ; le public n’est ni nommé ni compté par Hall.",
+          "sourceIds": [
+            "S17"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "declaration",
+          "origin": "product",
+          "statement": "Le rôle de conduite de séance déclare, jusqu’à la clôture, un contact sans mandat actif et non archivé avec sa qualité : secrétaire de mairie, secrétaire auxiliaire, invité ou expert ; la déclaration est horodatée, unique par séance et immuable ; un membre du conseil est refusé avec un message qui le nomme.",
+          "sourceIds": []
+        },
+        {
+          "key": "exclusion",
+          "origin": "product",
+          "statement": "La déclaration ne crée aucune présence de membre : elle ne change ni le quorum, ni les participants admissibles d’un scrutin, ni les porteurs de pouvoir, ni les déports.",
+          "sourceIds": []
+        },
+        {
+          "key": "display",
+          "origin": "product",
+          "statement": "La séance affiche les personnes qui assistent ; le procès-verbal les reprend sous « Assistaient également » avec leur qualité.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-ATT-150": {
+      "name": "MEMBER_ATTENDANCE_REQUIRES_MEMBERSHIP_ROSTER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-26"
+      },
+      "statement": "Une présence de membre déclarée pour une personne hors du registre des mandats de la séance est refusée avec un message qui nomme la personne.",
+      "acceptanceCriteria": [
+        "Le quorum se compte sur les membres en exercice ; une présence hors de cet effectif ne peut pas être retenue.",
+        "Hall refuse, avec un code dédié et le nom de la personne, l’enregistrement d’une présence de membre pour une personne sans mandat actif, et refuse le calcul du quorum quand une présence de membre ne figure ni dans le registre en vigueur à l’ouverture ni dans un registre ultérieur de la séance ; un mandat remplacé en cours de séance reste dans le registre d’ouverture.",
+        "L’écran de conduite affiche ce refus comme blocage nommé de la discussion et du scrutin."
+      ],
+      "clauses": [
+        {
+          "key": "members-in-office",
+          "origin": "regulatory",
+          "statement": "Le quorum se compte sur les membres en exercice ; une présence hors de cet effectif ne peut pas être retenue.",
+          "sourceIds": [
+            "S1"
+          ],
+          "assessment": "verified",
+          "interpretation": "interpreted"
+        },
+        {
+          "key": "refusal",
+          "origin": "product",
+          "statement": "Hall refuse, avec un code dédié et le nom de la personne, l’enregistrement d’une présence de membre pour une personne sans mandat actif, et refuse le calcul du quorum quand une présence de membre ne figure ni dans le registre en vigueur à l’ouverture ni dans un registre ultérieur de la séance ; un mandat remplacé en cours de séance reste dans le registre d’ouverture.",
+          "sourceIds": []
+        },
+        {
+          "key": "display",
+          "origin": "product",
+          "statement": "L’écran de conduite affiche ce refus comme blocage nommé de la discussion et du scrutin.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MIN-260": {
+      "name": "MINUTES_MENTION_OFFICER_EVENTS_AND_ATTENDING_PERSONS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-26"
+      },
+      "statement": "Le procès-verbal mentionne les passations de présidence et de secrétariat, la présidence propre d’un point et les personnes qui assistaient à la séance.",
+      "acceptanceCriteria": [
+        "Le procès-verbal est rédigé par le ou les secrétaires et mentionne notamment la date et l’heure, les présents et représentés, le quorum, l’ordre du jour et les délibérations.",
+        "Les faits du procès-verbal copient ces événements de la preuve de conduite à la clôture ; le rendu les mentionne avec l’heure, le nom, l’office et le fondement, et les personnes qui assistaient avec leur qualité."
+      ],
+      "clauses": [
+        {
+          "key": "minutes-content",
+          "origin": "regulatory",
+          "statement": "Le procès-verbal est rédigé par le ou les secrétaires et mentionne notamment la date et l’heure, les présents et représentés, le quorum, l’ordre du jour et les délibérations.",
+          "sourceIds": [
+            "S3"
+          ],
+          "assessment": "verified",
+          "interpretation": "interpreted"
+        },
+        {
+          "key": "rendering",
+          "origin": "product",
+          "statement": "Les faits du procès-verbal copient ces événements de la preuve de conduite à la clôture ; le rendu les mentionne avec l’heure, le nom, l’office et le fondement, et les personnes qui assistaient avec leur qualité.",
           "sourceIds": []
         }
       ]

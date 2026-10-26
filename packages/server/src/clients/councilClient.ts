@@ -21,14 +21,17 @@ import type {
   CreateBallotResultPreview,
   CreateCouncilBusiness,
   CreatedAndScheduledCouncilBusiness,
+  DeclareMeetingAuxiliaryAttendance,
   MeetingAttendance,
   MeetingConductWorkspace,
   MeetingDocumentResourceDetail,
   PrepareCouncilMeeting,
   ProvisionInitialCouncilMeeting,
+  RecordAgendaItemPresidency,
   RecordAgendaItemRecusal,
   RecordMeetingAttendance,
   RecordMeetingAttendanceEvents,
+  RecordMeetingOfficerChange,
   RecordMeetingOpening,
   RecordMeetingQuorum,
   RecordMeetingReconvocation,
@@ -100,6 +103,11 @@ export interface CouncilClient {
   ): Promise<MeetingConductWorkspace>;
   recordMeetingQuorum(meetingId: string, input: RecordMeetingQuorum): Promise<MeetingConductWorkspace>;
   recordMeetingReconvocation(meetingId: string, input: RecordMeetingReconvocation): Promise<MeetingConductWorkspace>;
+  recordMeetingOfficerChange(meetingId: string, input: RecordMeetingOfficerChange): Promise<MeetingConductWorkspace>;
+  declareMeetingAuxiliaryAttendance(
+    meetingId: string,
+    input: DeclareMeetingAuxiliaryAttendance,
+  ): Promise<MeetingConductWorkspace>;
 
   listBusinesses(): Promise<CouncilBusiness[]>;
   listBusinessWorkspaceItems(): Promise<CouncilBusinessWorkspaceItem[]>;
@@ -144,6 +152,7 @@ export interface CouncilClient {
   recordAttendance(meetingId: string, input: RecordMeetingAttendance): Promise<MeetingAttendance[]>;
   agendaItemRecusals(id: string): Promise<AgendaItemRecusals>;
   recordAgendaItemRecusal(id: string, input: RecordAgendaItemRecusal): Promise<AgendaItemRecusals>;
+  recordAgendaItemPresidency(id: string, input: RecordAgendaItemPresidency): Promise<AgendaItemRecusals>;
   listAgenda(meetingId: string): Promise<AgendaItem[]>;
   openAgendaItem(id: string): Promise<AgendaItem | null>;
   scheduleAgendaItem(meetingId: string, input: ScheduleAgendaItem): Promise<AgendaItem>;

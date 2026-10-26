@@ -30,6 +30,38 @@ CREATE TABLE hall.meeting_reconvocation (
   recorded_by TEXT NOT NULL
 );
 
+-- @implements-requirement HALL-FR-ATT-150
+-- A member attendance names a mandate of the roster in force: the latest
+-- roster before opening, then the opening roster and every later one. Hall
+-- refuses the attendance set instead of ignoring it, and names the person. A
+-- mandate replaced during the meeting stays in the opening roster and is only
+-- left out of the current count (HALL-FR-MTG-270).
+CREATE FUNCTION hall.meeting_attendance_outsider_name(target_meeting UUID)
+RETURNS TEXT LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
+  WITH opening AS (
+    SELECT r.observed_at FROM hall.meeting_membership_record r JOIN hall.council_meetings m ON m.id=r.council_meeting
+    WHERE r.council_meeting=target_meeting AND (m.started_at IS NULL OR r.observed_at<=m.started_at)
+    ORDER BY r.observed_at DESC LIMIT 1)
+  SELECT coalesce(contact.first_name||' '||contact.last_name, a.council_member::TEXT)
+  FROM hall.current_meeting_attendance(target_meeting) a
+  LEFT JOIN hall.council_member member ON member.id=a.council_member
+  LEFT JOIN hall.contact contact ON contact.id=member.contact
+  WHERE NOT EXISTS(SELECT FROM hall.meeting_membership_record r
+    WHERE r.council_meeting=target_meeting AND a.council_member=ANY(r.member_ids)
+      AND r.observed_at>=coalesce((SELECT observed_at FROM opening),'-infinity'::timestamptz))
+  ORDER BY contact.last_name, contact.first_name, a.council_member LIMIT 1;
+$$;
+
+CREATE FUNCTION hall.require_attendance_within_membership(target_meeting UUID)
+RETURNS VOID LANGUAGE plpgsql STABLE SET search_path = pg_catalog, hall AS $$
+DECLARE outsider TEXT := hall.meeting_attendance_outsider_name(target_meeting);
+BEGIN
+  IF outsider IS NOT NULL THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV150',
+      MESSAGE = format('%s has a member attendance but is not in the membership roster of this meeting', outsider);
+  END IF;
+END $$;
+
 CREATE FUNCTION hall.calculate_meeting_quorum(target_meeting UUID, target_item UUID, observation_time TIMESTAMPTZ)
 RETURNS JSONB LANGUAGE plpgsql STABLE SET search_path = pg_catalog, hall AS $$
 DECLARE membership hall.meeting_membership_record; meeting hall.council_meetings;
@@ -53,6 +85,8 @@ BEGIN
   IF EXISTS(SELECT member FROM unnest(membership.member_ids) member
     WHERE NOT EXISTS(SELECT FROM hall.current_meeting_attendance(target_meeting) a WHERE a.council_member=member))
   THEN RAISE EXCEPTION USING ERRCODE = 'HV141',MESSAGE='every confirmed member requires an explicit attendance declaration'; END IF;
+  -- @implements-requirement HALL-FR-ATT-150
+  PERFORM hall.require_attendance_within_membership(target_meeting);
   SELECT coalesce(array_agg(council_member ORDER BY council_member),'{}'::uuid[]) INTO excluded_members
   FROM hall.agenda_item_recusal WHERE agenda_item=target_item AND council_member=ANY(membership.member_ids);
   SELECT coalesce(array_agg(council_member ORDER BY council_member),'{}'::uuid[]) INTO special_members
@@ -175,5 +209,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
    'failedObservationId',failed_observation,'sentAt',sent_at,'scheduledAt',scheduled_at,'timeZone',time_zone,
    'firstNoticeEvidence',first_notice_evidence,'renewedNoticeEvidence',renewed_notice_evidence,'agendaItemIds',agenda_item_ids,
    'recordedAt',recorded_at,'recordedBy',recorded_by) ORDER BY sent_at)
-   FROM hall.meeting_reconvocation WHERE council_meeting=target_meeting),'[]'::jsonb));
+   FROM hall.meeting_reconvocation WHERE council_meeting=target_meeting),'[]'::jsonb),
+ 'officerChanges',hall.meeting_officer_change_json(target_meeting),
+ 'auxiliaryAttendances',hall.meeting_auxiliary_attendance_json(target_meeting));
 $$;

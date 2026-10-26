@@ -113,6 +113,8 @@ export const apiCommandPolicies = {
   "meeting.record-attendance-events": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "meeting.record-quorum": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "meeting.record-reconvocation": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
+  "meeting.record-officer-change": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
+  "meeting.declare-auxiliary-attendance": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "meeting.add-open-question": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   "meeting.record-opening": { permissions: meetingsConduct, auditTargetType: "council-meeting" },
   // TODO REMOVE_STALE: same conduct permission as meeting succession.
@@ -124,6 +126,7 @@ export const apiCommandPolicies = {
   "meeting.reorder-agenda": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
   "agenda-item.schedule": { permissions: meetingsPrepare, auditTargetType: "agenda-item" },
   "agenda-item.record-recusal": { permissions: meetingsConduct, auditTargetType: "agenda-item" },
+  "agenda-item.record-presidency": { permissions: meetingsConduct, auditTargetType: "agenda-item" },
   "agenda-item.adjourn": { permissions: meetingsConduct, auditTargetType: "agenda-item" },
   "agenda-item.deprogram": { permissions: meetingsPrepare, auditTargetType: "agenda-item" },
   "agenda-item.reprogram": { permissions: meetingsPrepare, auditTargetType: "agenda-item" },

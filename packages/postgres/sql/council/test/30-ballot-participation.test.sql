@@ -146,8 +146,10 @@ SELECT lives_ok(
 );
 
 INSERT INTO meeting_attendance(id,council_member,council_meeting,status) SELECT test_uuid('eligibility:extra:'||n),test_uuid('eligibility:extra-member:'||n),test_uuid('ballot:eligibility:meeting'),'present' FROM generate_series(1,3)n;
-SELECT test_designate_present_officers(id) FROM council_meetings
-WHERE started_at IS NULL AND EXISTS (SELECT FROM meeting_attendance WHERE council_meeting=council_meetings.id AND status='present');
+-- The present member chairs the meeting, hence the ballot.
+SELECT set_council_meeting_officers(test_uuid('ballot:eligibility:meeting'),
+  test_uuid('ballot:eligibility:present-member'),test_uuid('ballot:eligibility:present-member'));
+SELECT test_confirm_declared_membership(test_uuid('ballot:eligibility:meeting'));
 SELECT test_create_decision_agenda_item(
   'ballot:eligibility',
   test_uuid('ballot:eligibility:meeting'),

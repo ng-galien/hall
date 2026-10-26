@@ -93,6 +93,16 @@ BEGIN
   SELECT array_agg(id ORDER BY id) INTO active_members FROM hall.active_council_members();
   SELECT array_agg(council_member_id ORDER BY council_member_id) INTO declared_members
   FROM jsonb_to_recordset(attendance_declarations) item(council_member_id UUID);
+  -- @implements-requirement HALL-FR-ATT-150
+  IF EXISTS(SELECT FROM unnest(declared_members) declared WHERE NOT declared=ANY(coalesce(active_members,'{}'::uuid[]))) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV150', MESSAGE = format('%s has a member attendance but holds no active mandate of the current council term',
+      (SELECT coalesce(contact.first_name||' '||contact.last_name, declared::TEXT)
+       FROM unnest(declared_members) declared
+       LEFT JOIN hall.council_member member ON member.id=declared
+       LEFT JOIN hall.contact contact ON contact.id=member.contact
+       WHERE NOT declared=ANY(coalesce(active_members,'{}'::uuid[]))
+       ORDER BY contact.last_name, contact.first_name, declared LIMIT 1));
+  END IF;
   IF active_members IS NULL OR declared_members IS DISTINCT FROM active_members THEN
     RAISE EXCEPTION USING ERRCODE = 'HV137', MESSAGE='attendance must declare every active member of the current council term exactly once';
   END IF;

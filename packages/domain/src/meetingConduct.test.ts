@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  declareMeetingAuxiliaryAttendanceSchema,
   meetingAgendaCanChange,
+  meetingConductEvidenceSchema,
   meetingConductStateSchema,
   meetingQuorumObservationSchema,
   meetingReconvocationSchema,
@@ -80,12 +82,63 @@ describe("meeting conduct evidence", () => {
       ],
       quorumObservations: [observation],
       reconvocations: [reconvocation],
+      officerChanges: [
+        {
+          id: "99999999-9999-4999-8999-999999999999",
+          councilMeetingId: meetingId,
+          agendaItemId: null,
+          office: "chair",
+          basis: "deputyInNominationOrder",
+          councilMemberId: memberId,
+          memberName: "Camille Martin",
+          observedAt: time,
+          recordedAt: time,
+          recordedBy: "secretary",
+        },
+      ],
+      auxiliaryAttendances: [
+        {
+          id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          councilMeetingId: meetingId,
+          contactId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          name: "Claire Martin",
+          quality: "townHallSecretary",
+          declaredAt: time,
+          recordedAt: time,
+          recordedBy: "secretary",
+        },
+      ],
       currentAttendance: [attendance],
       canRecordAttendanceEvents: true,
+      currentOfficers: { chairMemberId: memberId, secretaryMemberId: null },
+      officerHandoverOptions: { chair: [], secretary: [{ councilMemberId: memberId, basis: "councilNomination" }] },
+      canRecordOfficerChange: true,
+      canDeclareAuxiliaryAttendance: true,
       canRecordQuorum: true,
       canRecordReconvocation: false,
     };
     expect(meetingConductStateSchema.parse(state)).toEqual(state);
+  });
+
+  it("reads conduct evidence closed before officer events and attending persons existed", () => {
+    expect(
+      meetingConductEvidenceSchema.parse({
+        membershipRecords: [],
+        attendanceEvents: [],
+        quorumObservations: [],
+        reconvocations: [],
+      }),
+    ).toMatchObject({ officerChanges: [], auxiliaryAttendances: [] });
+  });
+
+  it("rejects an unknown attending capacity", () => {
+    expect(() =>
+      declareMeetingAuxiliaryAttendanceSchema.parse({
+        contactId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        quality: "spectator",
+        declaredAt: time,
+      }),
+    ).toThrow();
   });
 
   it("requires a time-zone offset on observed instants", () => {

@@ -11,7 +11,6 @@ const publicCandidate = {
   procedure: "ordinaryMajority",
   mode: "public",
   participantAttendanceIds: [chairmanAttendanceId, otherAttendanceId],
-  chairmanAttendanceId,
   votes: [
     { meetingAttendanceId: chairmanAttendanceId, choice: "approve" },
     { meetingAttendanceId: otherAttendanceId, choice: "reject" },
@@ -31,7 +30,6 @@ describe("ballot result preview commands", () => {
         procedure: "ordinaryMajority",
         mode: "secret",
         participantAttendanceIds: [chairmanAttendanceId],
-        chairmanAttendanceId,
         totals: { approve: 1, reject: 0, abstain: 0 },
       },
     });
@@ -43,6 +41,13 @@ describe("ballot result preview commands", () => {
       invalid: 0,
       nonParticipation: 0,
     });
+  });
+
+  // @verifies-requirement HALL-FR-BAL-140
+  it("rejects a submitted candidate that names the ballot chair", () => {
+    expect(() =>
+      createBallotResultPreviewSchema.parse({ agendaItemId, candidate: { ...publicCandidate, chairmanAttendanceId } }),
+    ).toThrow();
   });
 
   it("rejects individual votes in a secret ballot", () => {
@@ -74,7 +79,6 @@ describe("ballot result preview commands", () => {
           procedure: "ordinaryMajority",
           mode: "secret",
           participantAttendanceIds: [chairmanAttendanceId],
-          chairmanAttendanceId,
           totals: { approve: -1, reject: 0, abstain: 0 },
         },
       }),
@@ -88,7 +92,7 @@ describe("ballot result preview", () => {
     agendaItemId,
     canConfirm: true,
     revision: 1,
-    candidate: { ...publicCandidate, nonParticipations: [] },
+    candidate: { ...publicCandidate, chairmanAttendanceId, nonParticipations: [] },
     calculation: {
       tieBreakApplied: true,
       result: "approve",
@@ -120,6 +124,11 @@ describe("ballot result preview", () => {
 
   it("accepts a calculated preview with its quorum facts", () => {
     expect(ballotResultPreviewSchema.parse(preview)).toEqual(preview);
+  });
+
+  it("requires the ballot chair determined by the meeting in a reviewed candidate", () => {
+    const { chairmanAttendanceId: _chair, ...candidate } = preview.candidate;
+    expect(() => ballotResultPreviewSchema.parse({ ...preview, candidate })).toThrow();
   });
 
   it("rejects a revision below one and an undecided result", () => {

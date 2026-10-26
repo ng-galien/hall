@@ -107,7 +107,6 @@ describe("council flow", () => {
       procedure: "ordinaryMajority",
       mode: "public",
       participantAttendanceIds: attendance.map((entry) => entry.id),
-      chairmanAttendanceId: attendance.find((entry) => entry.councilMemberId === members[0].id)!.id,
       votes: attendance.map((entry) => ({ meetingAttendanceId: entry.id, choice: "approve" })),
       nonParticipations: [],
     };
@@ -159,7 +158,6 @@ describe("council flow", () => {
             procedure: "ordinaryMajority",
             mode: "public",
             participantAttendanceIds: attendance.map((entry) => entry.id),
-            chairmanAttendanceId: attendance.find((entry) => entry.councilMemberId === members[0].id)!.id,
             votes: attendance.map((entry) => ({ meetingAttendanceId: entry.id, choice: "approve" })),
             nonParticipations: [],
           },
@@ -195,7 +193,6 @@ describe("council flow", () => {
       procedure: "ordinaryMajority",
       mode: "secret",
       participantAttendanceIds: attendance.map((entry) => entry.id),
-      chairmanAttendanceId: attendance.find((entry) => entry.councilMemberId === members[0].id)!.id,
       totals: { approve: 2, reject: 1, abstain: 0, blank: 0, invalid: 0, nonParticipation: 0 },
     };
     const preview = domainBody<{ id: string; calculation: { totals: { approve: number; reject: number } } }>(

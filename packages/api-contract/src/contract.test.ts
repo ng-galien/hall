@@ -384,7 +384,6 @@ describe("shared HTTP contract", () => {
     const base = {
       procedure: "ordinaryMajority",
       participantAttendanceIds: [attendanceId],
-      chairmanAttendanceId: attendanceId,
     };
     expect(
       createBallotResultPreviewSchema.parse({

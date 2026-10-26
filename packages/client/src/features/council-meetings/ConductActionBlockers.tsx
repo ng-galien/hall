@@ -25,6 +25,10 @@ const labels = {
   ballotAlreadyExists: "conduct.blocker.ballotAlreadyExists",
   ballotInProgress: "conduct.blocker.ballotInProgress",
   minutesDocumentMissing: "conduct.blocker.minutesDocumentMissing",
+  ballotChairUndetermined: "conduct.blocker.ballotChairUndetermined",
+  ballotChairNotPresent: "conduct.blocker.ballotChairNotPresent",
+  meetingSecretaryNotPresent: "conduct.blocker.meetingSecretaryNotPresent",
+  attendanceOutsideMembership: "conduct.blocker.attendanceOutsideMembership",
 } satisfies Record<ConductBlocker["code"], TranslationKey>;
 
 /** Displays server-owned reasons; never derives permission from local state. */
@@ -32,10 +36,12 @@ export function ConductActionBlockers({
   action,
   label,
   blockers,
+  memberName,
 }: {
   action: string;
   label?: TranslationKey;
   blockers: readonly ConductBlocker[];
+  memberName?(memberId: string): string;
 }) {
   const { t, formatNumber } = useI18n();
   if (blockers.length === 0) return null;
@@ -49,6 +55,14 @@ export function ConductActionBlockers({
             text = text
               .replace("{present}", formatNumber(blocker.presentCount))
               .replace("{required}", formatNumber(blocker.requiredPresent));
+          if ("memberName" in blocker) text = text.replace("{name}", blocker.memberName);
+          if ("councilMemberId" in blocker)
+            text = text.replace(
+              "{name}",
+              blocker.councilMemberId && memberName
+                ? memberName(blocker.councilMemberId)
+                : t("conduct.blocker.unnamedOfficer"),
+            );
           return (
             <li key={blocker.code} data-testid={`conduct-blocker-${action}-${blocker.code}`}>
               {text}

@@ -51,7 +51,7 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
     return;
   }
   if (error instanceof DomainError) {
-    sendProblem(request, response, error.statusCode, error.code);
+    sendProblem(request, response, error.statusCode, error.code, error.detail ? { detail: error.detail } : {});
     return;
   }
   if (error instanceof CouncilClientError) {

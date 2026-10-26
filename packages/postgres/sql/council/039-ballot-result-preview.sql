@@ -120,6 +120,7 @@ $$;
 CREATE FUNCTION hall.enforce_ballot_result_preview()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path=pg_catalog,hall AS $$
 DECLARE item hall.council_agenda_item; meeting hall.council_meetings; participant UUID; existing_ballot UUID; departed_count INTEGER:=0;
+  chair_attendance UUID;
 BEGIN
  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION USING ERRCODE = 'HV425',MESSAGE='result previews are immutable evidence'; END IF;
  SELECT m.* INTO meeting FROM hall.council_meetings m JOIN hall.council_agenda_item a ON a.council_meeting=m.id
@@ -128,6 +129,21 @@ BEGIN
  IF item.id IS NULL OR item.started_at IS NULL OR item.position<0 OR item.completed_at IS NOT NULL
    OR meeting.closed_at IS NOT NULL OR item.subject_kind='openQuestion' THEN
    RAISE EXCEPTION USING ERRCODE = 'HV404',MESSAGE='a result preview requires an active ballot-eligible affair';
+ END IF;
+ -- @implements-requirement HALL-FR-BAL-140
+ -- @implements-requirement HALL-FR-BAL-340
+ -- The ballot chair is determined by the meeting, never chosen by the caller.
+ chair_attendance:=hall.require_ballot_officers(item.id);
+ IF jsonb_typeof(NEW.candidate)='object' THEN
+   IF NEW.candidate ? 'chairmanAttendanceId'
+     AND lower(NEW.candidate->>'chairmanAttendanceId') IS DISTINCT FROM chair_attendance::TEXT THEN
+     RAISE EXCEPTION USING ERRCODE = 'HV410',MESSAGE='the ballot chair is determined by the meeting and cannot be chosen';
+   END IF;
+   IF jsonb_typeof(NEW.candidate->'participantAttendanceIds')='array' AND NOT EXISTS(
+     SELECT FROM jsonb_array_elements_text(NEW.candidate->'participantAttendanceIds') value WHERE lower(value)=chair_attendance::TEXT) THEN
+     RAISE EXCEPTION USING ERRCODE = 'HV410',MESSAGE='the ballot chair must take part in the ballot';
+   END IF;
+   NEW.candidate:=NEW.candidate||jsonb_build_object('chairmanAttendanceId',chair_attendance);
  END IF;
  NEW.candidate:=hall.normalize_ballot_candidate(NEW.candidate);
  SELECT id INTO existing_ballot FROM hall.ballots WHERE council_agenda_item=item.id;

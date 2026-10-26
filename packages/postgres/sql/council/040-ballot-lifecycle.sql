@@ -114,6 +114,8 @@ BEGIN
     IF hall.calculate_meeting_quorum((SELECT council_meeting FROM hall.council_agenda_item WHERE id=NEW.council_agenda_item),NEW.council_agenda_item,clock_timestamp())->>'verdict'='notMet' THEN
       RAISE EXCEPTION USING ERRCODE = 'HV142',MESSAGE='a ballot requires the applicable current quorum';
     END IF;
+    -- @implements-requirement HALL-FR-BAL-340
+    PERFORM hall.require_ballot_officers(NEW.council_agenda_item);
     -- The new open ballot satisfies its meeting and agenda invariants.
     RETURN NEW;
   END IF;
@@ -218,6 +220,17 @@ BEGIN
     RAISE EXCEPTION USING
       ERRCODE = 'HV410',
       MESSAGE = 'the ballot chairman must be a present ballot participation';
+  END IF;
+
+  -- @implements-requirement HALL-FR-BAL-140
+  -- The chairman participation belongs to the ballot chair determined for the
+  -- agenda item when the ballot is created.
+  IF TG_OP = 'INSERT' AND (SELECT meeting_attendance FROM ballot_participation WHERE id = NEW.chairman)
+    IS DISTINCT FROM (hall.agenda_item_ballot_chair(NEW.council_agenda_item)->>'meetingAttendanceId')::UUID
+  THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV410',
+      MESSAGE = 'the ballot chairman must be the ballot chair determined for the agenda item';
   END IF;
 
   -- The deferred cyclic Ballot/Participation relation is valid at commit time.

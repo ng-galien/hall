@@ -6,11 +6,14 @@ import {
   closeCouncilMeetingSchema,
   completeAgendaItemSchema,
   createAndScheduleCouncilBusinessSchema,
+  declareMeetingAuxiliaryAttendanceSchema,
   prepareCouncilMeetingSchema,
   provisionInitialCouncilMeetingSchema,
+  recordAgendaItemPresidencySchema,
   recordAgendaItemRecusalSchema,
   recordMeetingAttendanceEventsSchema,
   recordMeetingAttendanceSchema,
+  recordMeetingOfficerChangeSchema,
   recordMeetingOpeningSchema,
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
@@ -241,6 +244,37 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
     },
   );
   router.post(
+    "/:meetingReference/officer-changes",
+    requireActionPermission("meeting.record-officer-change"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response
+        .status(201)
+        .json(
+          await changeMeeting(meeting.id, () =>
+            councilClient.recordMeetingOfficerChange(meeting.id, recordMeetingOfficerChangeSchema.parse(request.body)),
+          ),
+        );
+    },
+  );
+  router.post(
+    "/:meetingReference/auxiliary-attendances",
+    requireActionPermission("meeting.declare-auxiliary-attendance"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response
+        .status(201)
+        .json(
+          await changeMeeting(meeting.id, () =>
+            councilClient.declareMeetingAuxiliaryAttendance(
+              meeting.id,
+              declareMeetingAuxiliaryAttendanceSchema.parse(request.body),
+            ),
+          ),
+        );
+    },
+  );
+  router.post(
     "/:meetingReference/quorum-observations",
     requireActionPermission("meeting.record-quorum"),
     async (request, response) => {
@@ -426,6 +460,23 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
         .json(
           await changeMeeting(meeting.id, () =>
             councilClient.recordAgendaItemRecusal(item.id, recordAgendaItemRecusalSchema.parse(request.body)),
+          ),
+        );
+    },
+  );
+
+  router.post(
+    "/:meetingReference/agenda-items/:agendaItemId/presidency",
+    requireActionPermission("agenda-item.record-presidency"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      const item = await requireMeetingAgendaItem(councilClient, meeting, routeParameter(request.params.agendaItemId));
+      response.locals.currentCouncilMeeting = meeting;
+      response
+        .status(201)
+        .json(
+          await changeMeeting(meeting.id, () =>
+            councilClient.recordAgendaItemPresidency(item.id, recordAgendaItemPresidencySchema.parse(request.body)),
           ),
         );
     },

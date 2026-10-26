@@ -121,7 +121,6 @@ postgresTest(
         procedure: "ordinaryMajority",
         mode: "public",
         participantAttendanceIds: [attendance[0].id],
-        chairmanAttendanceId: attendance[0].id,
         votes: [{ meetingAttendanceId: attendance[0].id, choice: "reject" }],
         nonParticipations: [],
       };

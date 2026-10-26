@@ -1,6 +1,8 @@
 import {
   agendaItemRecusalsSchema,
+  type RecordAgendaItemPresidency,
   type RecordAgendaItemRecusal,
+  recordAgendaItemPresidencySchema,
   recordAgendaItemRecusalSchema,
   type SirenEntity,
 } from "@hall/api-contract";
@@ -21,6 +23,18 @@ export async function recordAgendaItemRecusal(
     representation,
     "agenda-item.record-recusal",
     recordAgendaItemRecusalSchema.parse(input),
+  );
+  return { ...result, data: agendaItemRecusalsSchema.parse(result.data) };
+}
+
+export async function recordAgendaItemPresidency(
+  representation: SirenEntity<Record<string, unknown>>,
+  input: RecordAgendaItemPresidency,
+) {
+  const result = await submitSirenAction<unknown>(
+    representation,
+    "agenda-item.record-presidency",
+    recordAgendaItemPresidencySchema.parse(input),
   );
   return { ...result, data: agendaItemRecusalsSchema.parse(result.data) };
 }

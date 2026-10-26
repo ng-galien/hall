@@ -19,6 +19,7 @@ export const conductBlockerSchema = z.discriminatedUnion("code", [
         "observationChronology",
         "reconvocationPending",
         "freshObservationsRequired",
+        "ballotChairUndetermined",
         "permissionDenied",
       ]),
     })
@@ -33,6 +34,13 @@ export const conductBlockerSchema = z.discriminatedUnion("code", [
   z.object({ code: z.enum(["earlierAgendaItemPending", "anotherDiscussionActive"]), agendaItemId: z.uuid() }).strict(),
   z.object({ code: z.enum(["ballotAlreadyExists", "ballotInProgress"]), ballotId: z.uuid() }).strict(),
   z.object({ code: z.literal("minutesDocumentMissing"), minutesId: z.uuid() }).strict(),
+  z
+    .object({
+      code: z.enum(["ballotChairNotPresent", "meetingSecretaryNotPresent"]),
+      councilMemberId: z.uuid().nullable(),
+    })
+    .strict(),
+  z.object({ code: z.literal("attendanceOutsideMembership"), memberName: z.string().min(1) }).strict(),
 ]);
 export type ConductBlocker = z.infer<typeof conductBlockerSchema>;
 export const conductBlockersSchema = z
@@ -50,6 +58,8 @@ export const meetingActionBlockersSchema = z
   .object({
     addAgendaItem: z.array(conductBlockerSchema),
     recordAttendanceEvents: z.array(conductBlockerSchema),
+    recordOfficerChange: z.array(conductBlockerSchema),
+    declareAuxiliaryAttendance: z.array(conductBlockerSchema),
   })
   .strict();
 export type MeetingActionBlockers = z.infer<typeof meetingActionBlockersSchema>;

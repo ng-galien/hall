@@ -780,9 +780,9 @@ postgres("PostgreSQL persistence", () => {
           memberIds[1],
         ],
       );
-      const attendances = await setup.query<{ id: string }>(
-        "SELECT id::text FROM hall.meeting_attendance WHERE council_meeting = $1 ORDER BY council_member",
-        [meetingId],
+      const attendances = await setup.query<{ id: string; chair: boolean }>(
+        "SELECT id::text, council_member = $2 AS chair FROM hall.meeting_attendance WHERE council_meeting = $1 ORDER BY council_member",
+        [meetingId, memberIds[0]],
       );
       await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-01-12 09:01:00+00')", [
         openQuestionAgendaItemId,
@@ -837,10 +837,9 @@ postgres("PostgreSQL persistence", () => {
             procedure: "ordinaryMajority",
             mode: "public",
             participantAttendanceIds: attendances.rows.map(({ id }) => id),
-            chairmanAttendanceId: attendances.rows[0]!.id,
-            votes: attendances.rows.map(({ id }, index) => ({
+            votes: attendances.rows.map(({ id, chair }) => ({
               meetingAttendanceId: id,
-              choice: index === 0 ? "approve" : "reject",
+              choice: chair ? "approve" : "reject",
             })),
             nonParticipations: [],
           },

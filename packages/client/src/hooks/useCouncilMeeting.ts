@@ -1,10 +1,12 @@
 import {
   type ApiActionName,
   type BallotResultPreview,
+  type DeclareMeetingAuxiliaryAttendance,
   findSirenAction,
   type MeetingConductWorkspace,
   type PrepareCouncilMeeting,
   type RecordMeetingAttendanceEvents,
+  type RecordMeetingOfficerChange,
   type RecordMeetingOpening,
   type RecordMeetingReconvocation,
   type ScheduleAgendaItem,
@@ -45,8 +47,10 @@ import {
 } from "../services/councilMeetingsApi";
 import { subscribeLiveUpdates } from "../services/liveUpdates";
 import {
+  declareMeetingAuxiliaryAttendance,
   openMeetingConduct,
   recordMeetingAttendanceEvents,
+  recordMeetingOfficerChange,
   recordMeetingOpening,
   recordMeetingQuorum,
   recordMeetingReconvocation,
@@ -63,6 +67,8 @@ const meetingConductActionNames = [
   "meeting.record-attendance",
   "meeting.record-attendance-events",
   "meeting.record-reconvocation",
+  "meeting.record-officer-change",
+  "meeting.declare-auxiliary-attendance",
   "meeting.set-officers",
   "meeting.add-open-question",
   "meeting.close",
@@ -274,12 +280,10 @@ export function useCouncilMeeting(meetingReference: string) {
         : new Set(input.participantMemberIds);
     const selectedAttendance = eligibleAttendance.filter((entry) => participantMemberIds.has(entry.councilMemberId));
     if (selectedAttendance.length !== participantMemberIds.size) throw new ApiError("ballot_voters_invalid", 409);
-    const chairman = selectedAttendance.find((entry) => entry.councilMemberId === input.chairmanMemberId);
-    if (!chairman || selectedAttendance.length === 0) throw new Error("A ballot requires a present chairman");
+    if (selectedAttendance.length === 0) throw new ApiError("ballot_voters_invalid", 409);
     const base = {
       procedure: "ordinaryMajority" as const,
       participantAttendanceIds: selectedAttendance.map((entry) => entry.id),
-      chairmanAttendanceId: chairman.id,
     };
     if (input.method === "public") {
       const choiceByMember = new Map(
@@ -355,6 +359,12 @@ export function useCouncilMeeting(meetingReference: string) {
     },
     recordAttendanceEvents(input: RecordMeetingAttendanceEvents) {
       return mutate(() => recordMeetingAttendanceEvents(meetingReference, input));
+    },
+    recordOfficerChange(input: RecordMeetingOfficerChange) {
+      return mutate(() => recordMeetingOfficerChange(meetingReference, input));
+    },
+    declareAuxiliaryAttendance(input: DeclareMeetingAuxiliaryAttendance) {
+      return mutate(() => declareMeetingAuxiliaryAttendance(meetingReference, input));
     },
     recordQuorum() {
       return mutate(() =>

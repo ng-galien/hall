@@ -56,6 +56,10 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method === "POST" && id && child === "reconvocations" && !childId)
       return auditIntent("meeting.record-reconvocation", id);
     if (method === "PUT" && id && child === "officers" && !childId) return auditIntent("meeting.set-officers", id);
+    if (method === "POST" && id && child === "officer-changes" && !childId)
+      return auditIntent("meeting.record-officer-change", id);
+    if (method === "POST" && id && child === "auxiliary-attendances" && !childId)
+      return auditIntent("meeting.declare-auxiliary-attendance", id);
     if (method === "POST" && id && child === "council-business" && !childId) {
       return auditIntent(
         "meeting.create-and-schedule-business",
@@ -77,6 +81,7 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (id && child === "agenda-items" && childId) {
       if (method === "PATCH" && operation === "notes") return auditIntent("agenda-item.update-notes", childId);
       if (method === "POST" && operation === "recusals") return auditIntent("agenda-item.record-recusal", childId);
+      if (method === "POST" && operation === "presidency") return auditIntent("agenda-item.record-presidency", childId);
       if (method === "POST" && operation === "adjourn") return auditIntent("agenda-item.adjourn", childId);
       if (method === "POST" && operation === "start") return auditIntent("agenda-item.start", childId);
       if (method === "POST" && operation === "complete") return auditIntent("agenda-item.complete", childId);

@@ -51,6 +51,18 @@ BEGIN
         AND NEW.council_member=ANY(r.member_ids)) THEN
     RETURN NEW;
   END IF;
+  -- @implements-requirement HALL-FR-ATT-150
+  IF meeting_started_at IS NOT NULL AND meeting_closed_at IS NULL AND TG_OP = 'INSERT'
+    AND EXISTS(SELECT FROM hall.meeting_membership_record WHERE council_meeting=target_meeting)
+    AND NOT EXISTS(SELECT FROM hall.meeting_membership_record r
+      WHERE r.id=(SELECT id FROM hall.meeting_membership_record WHERE council_meeting=target_meeting ORDER BY observed_at DESC LIMIT 1)
+        AND NEW.council_member=ANY(r.member_ids)) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV150',
+      MESSAGE = format('%s has a member attendance but is not in the membership roster of this meeting',
+        coalesce((SELECT contact.first_name||' '||contact.last_name FROM hall.council_member member
+          JOIN hall.contact contact ON contact.id=member.contact WHERE member.id=NEW.council_member), NEW.council_member::TEXT));
+  END IF;
   IF meeting_started_at IS NOT NULL THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV102',

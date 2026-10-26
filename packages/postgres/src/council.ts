@@ -24,19 +24,26 @@ import {
   schedulePreparedCouncilSubjectSchema,
 } from "@hall/contracts";
 import {
+  agendaItemBallotStateSchema,
   agendaItemRecusalStateSchema,
   type BallotResultPreview,
   ballotResultPreviewSchema,
   type CreateBallotResultPreview,
   createBallotResultPreviewSchema,
+  type DeclareMeetingAuxiliaryAttendance,
+  declareMeetingAuxiliaryAttendanceSchema,
   matchDiscriminated,
   meetingConductStateSchema,
+  type RecordAgendaItemPresidency,
   type RecordAgendaItemRecusal,
   type RecordMeetingAttendanceEvents,
+  type RecordMeetingOfficerChange,
   type RecordMeetingQuorum,
   type RecordMeetingReconvocation,
+  recordAgendaItemPresidencySchema,
   recordAgendaItemRecusalSchema,
   recordMeetingAttendanceEventsSchema,
+  recordMeetingOfficerChangeSchema,
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
 } from "@hall/domain";
@@ -200,9 +207,9 @@ export const postgresMeetingConductSchema = meetingConductStateSchema
   .strict();
 export type PostgresMeetingConduct = z.infer<typeof postgresMeetingConductSchema>;
 
-export const postgresAgendaItemRecusalsSchema = agendaItemRecusalStateSchema.extend({
-  agendaItem: postgresCouncilAgendaItemSchema,
-});
+export const postgresAgendaItemRecusalsSchema = agendaItemRecusalStateSchema
+  .extend(agendaItemBallotStateSchema.shape)
+  .extend({ agendaItem: postgresCouncilAgendaItemSchema });
 export type PostgresAgendaItemRecusals = z.infer<typeof postgresAgendaItemRecusalsSchema>;
 
 export const postgresCreatedAndScheduledCouncilBusinessSchema = z.object({
@@ -859,6 +866,35 @@ export class PostgresCouncil {
     );
   }
 
+  recordMeetingOfficerChange(
+    request: PostgresCouncilRequest,
+    meetingId: string,
+    input: RecordMeetingOfficerChange,
+  ): Promise<PostgresMeetingConduct> {
+    const value = recordMeetingOfficerChangeSchema.parse(input);
+    return this.conductMutation(
+      request,
+      meetingId,
+      "meeting.record-officer-change",
+      "SELECT hall_api.record_meeting_officer_change($1::uuid,$2::text,$3::uuid,$4::timestamptz) AS payload",
+      [value.office, value.councilMemberId, value.observedAt],
+    );
+  }
+  declareMeetingAuxiliaryAttendance(
+    request: PostgresCouncilRequest,
+    meetingId: string,
+    input: DeclareMeetingAuxiliaryAttendance,
+  ): Promise<PostgresMeetingConduct> {
+    const value = declareMeetingAuxiliaryAttendanceSchema.parse(input);
+    return this.conductMutation(
+      request,
+      meetingId,
+      "meeting.declare-auxiliary-attendance",
+      "SELECT hall_api.declare_meeting_auxiliary_attendance($1::uuid,$2::uuid,$3::text,$4::timestamptz) AS payload",
+      [value.contactId, value.quality, value.declaredAt],
+    );
+  }
+
   agendaItemRecusals(request: PostgresCouncilRequest, id: string): Promise<PostgresAgendaItemRecusals> {
     const itemId = resourceIdSchema.parse(id);
     return this.transactions.run(
@@ -885,6 +921,27 @@ export class PostgresCouncil {
         const result = await callJson(client, {
           text: "SELECT hall_api.record_agenda_item_recusal($1::uuid, $2::uuid, $3::text, $4::timestamptz) AS payload",
           values: [itemId, parsed.councilMemberId, parsed.legalBasis, parsed.declaredAt],
+          schema: postgresAgendaItemRecusalsSchema,
+        });
+        await recordAuditEvent(client, { targetType: "agenda-item", targetId: itemId, outcome: "succeeded" });
+        return result;
+      },
+    );
+  }
+
+  recordAgendaItemPresidency(
+    request: PostgresCouncilRequest,
+    id: string,
+    input: RecordAgendaItemPresidency,
+  ): Promise<PostgresAgendaItemRecusals> {
+    const itemId = resourceIdSchema.parse(id);
+    const parsed = recordAgendaItemPresidencySchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.record-presidency") },
+      async (client) => {
+        const result = await callJson(client, {
+          text: "SELECT hall_api.record_agenda_item_presidency($1::uuid, $2::uuid, $3::text, $4::timestamptz) AS payload",
+          values: [itemId, parsed.councilMemberId, parsed.basis, parsed.observedAt],
           schema: postgresAgendaItemRecusalsSchema,
         });
         await recordAuditEvent(client, { targetType: "agenda-item", targetId: itemId, outcome: "succeeded" });

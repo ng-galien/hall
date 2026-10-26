@@ -77,19 +77,68 @@ export const meetingReconvocationSchema = z
     recordedBy: z.string().min(1),
   })
   .strict();
+export const meetingOfficeSchema = z.enum(["chair", "secretary"]);
+export type MeetingOffice = z.infer<typeof meetingOfficeSchema>;
+export const meetingOfficerBasisSchema = z.enum([
+  "mayor",
+  "deputyInNominationOrder",
+  "councilDesignation",
+  "councilNomination",
+  "financialStatementElection",
+]);
+export type MeetingOfficerBasis = z.infer<typeof meetingOfficerBasisSchema>;
+export const meetingOfficerChangeSchema = z
+  .object({
+    id,
+    councilMeetingId: id,
+    agendaItemId: id.nullable(),
+    office: meetingOfficeSchema,
+    basis: meetingOfficerBasisSchema,
+    councilMemberId: id,
+    memberName: z.string(),
+    observedAt: time,
+    recordedAt: time,
+    recordedBy: z.string().min(1),
+  })
+  .strict();
+export type MeetingOfficerChange = z.infer<typeof meetingOfficerChangeSchema>;
+export const auxiliaryAttendanceQualitySchema = z.enum(["townHallSecretary", "auxiliarySecretary", "guest", "expert"]);
+export type AuxiliaryAttendanceQuality = z.infer<typeof auxiliaryAttendanceQualitySchema>;
+export const auxiliaryAttendanceQualities = auxiliaryAttendanceQualitySchema.options;
+export const meetingAuxiliaryAttendanceSchema = z
+  .object({
+    id,
+    councilMeetingId: id,
+    contactId: id,
+    name: z.string(),
+    quality: auxiliaryAttendanceQualitySchema,
+    declaredAt: time,
+    recordedAt: time,
+    recordedBy: z.string().min(1),
+  })
+  .strict();
+export type MeetingAuxiliaryAttendance = z.infer<typeof meetingAuxiliaryAttendanceSchema>;
 export const meetingConductEvidenceSchema = z
   .object({
     membershipRecords: z.array(meetingMembershipRecordSchema),
     attendanceEvents: z.array(meetingAttendanceEventSchema),
     quorumObservations: z.array(meetingQuorumObservationSchema),
     reconvocations: z.array(meetingReconvocationSchema),
+    // Minutes closed before these events existed carry no such entries.
+    officerChanges: z.array(meetingOfficerChangeSchema).default([]),
+    auxiliaryAttendances: z.array(meetingAuxiliaryAttendanceSchema).default([]),
   })
   .strict();
+const handoverOption = z.object({ councilMemberId: id, basis: meetingOfficerBasisSchema }).strict();
 export const meetingConductStateSchema = meetingConductEvidenceSchema
   .extend({
     councilMeetingId: id,
     currentAttendance: z.array(currentMeetingAttendanceSchema),
     canRecordAttendanceEvents: z.boolean(),
+    currentOfficers: z.object({ chairMemberId: id.nullable(), secretaryMemberId: id.nullable() }).strict(),
+    officerHandoverOptions: z.object({ chair: z.array(handoverOption), secretary: z.array(handoverOption) }).strict(),
+    canRecordOfficerChange: z.boolean(),
+    canDeclareAuxiliaryAttendance: z.boolean(),
     canRecordQuorum: z.boolean(),
     canRecordReconvocation: z.boolean(),
   })
@@ -114,6 +163,14 @@ export const recordMeetingAttendanceEventsSchema = z
   })
   .strict();
 export const recordMeetingQuorumSchema = z.object({ agendaItemId: id.nullable(), observedAt: time }).strict();
+export const recordMeetingOfficerChangeSchema = z
+  .object({ office: meetingOfficeSchema, councilMemberId: id, observedAt: time })
+  .strict();
+export type RecordMeetingOfficerChange = z.infer<typeof recordMeetingOfficerChangeSchema>;
+export const declareMeetingAuxiliaryAttendanceSchema = z
+  .object({ contactId: id, quality: auxiliaryAttendanceQualitySchema, declaredAt: time })
+  .strict();
+export type DeclareMeetingAuxiliaryAttendance = z.infer<typeof declareMeetingAuxiliaryAttendanceSchema>;
 export const recordMeetingReconvocationSchema = z
   .object({
     failedObservationId: id,

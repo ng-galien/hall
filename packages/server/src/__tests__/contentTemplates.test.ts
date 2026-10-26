@@ -181,7 +181,6 @@ describe("content templates", () => {
       procedure: "ordinaryMajority",
       mode: "public",
       participantAttendanceIds: [attendance[0].id],
-      chairmanAttendanceId: attendance[0].id,
       votes: [{ meetingAttendanceId: attendance[0].id, choice: "approve" }],
       nonParticipations: [],
     };

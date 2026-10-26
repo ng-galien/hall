@@ -183,7 +183,7 @@ describe("meeting preparation integration", () => {
     expect(prematureCompletion.status, JSON.stringify(prematureCompletion.body)).toBe(409);
     const attendance = await council.listAttendance(context, meeting.id);
     const candidate = { procedure: "ordinaryMajority", mode: "public",
-      participantAttendanceIds: [attendance[0].id], chairmanAttendanceId: attendance[0].id,
+      participantAttendanceIds: [attendance[0].id],
       votes: [{ meetingAttendanceId: attendance[0].id, choice: "reject" }], nonParticipations: [] };
     const preview = domainBody<{ id: string; calculation: { result: string } }>(
       await agent.post("/api/ballot-previews").send({ agendaItemId: proposal.id, candidate }).expect(201),

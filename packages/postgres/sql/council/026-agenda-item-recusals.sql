@@ -57,6 +57,14 @@ BEGIN
   THEN
     RAISE EXCEPTION USING ERRCODE = 'HV233', MESSAGE = 'recusal requires a member declared in this meeting';
   END IF;
+  -- @implements-requirement HALL-FR-AGI-420
+  -- CGCT L2131-11 (2025-12-24) concerns taking part in the deliberation: only
+  -- a member present or represented when the recusal is declared can recuse.
+  IF NOT EXISTS(SELECT FROM hall.current_meeting_attendance(target_meeting) a
+    WHERE a.council_member = NEW.council_member AND a.status IN ('present','represented'))
+  THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV236', MESSAGE = 'a recusal requires a member present or represented';
+  END IF;
   SELECT contact.first_name || ' ' || contact.last_name INTO NEW.member_name
   FROM hall.council_member member JOIN hall.contact contact ON contact.id = member.contact
   WHERE member.id = NEW.council_member;
@@ -93,6 +101,13 @@ RETURNS BOOLEAN LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
         AND holder.council_member=ANY(membership.member_ids)))
       AND NOT EXISTS (SELECT FROM hall.agenda_item_recusal r WHERE r.agenda_item=target_item
         AND (r.council_member=a.council_member OR r.council_member=holder.council_member))
+      -- @implements-requirement HALL-FR-BAL-330
+      -- CGCT L2121-14: for the single financial statement the mayor withdraws
+      -- at the vote, personally and as a proxy holder.
+      AND NOT (EXISTS (SELECT FROM hall.meeting_officer_change presidency
+          WHERE presidency.agenda_item=target_item AND presidency.basis='financialStatementElection')
+        AND EXISTS (SELECT FROM hall.council_member mayor WHERE mayor.role='mayor'
+          AND (mayor.id=a.council_member OR mayor.id=holder.council_member)))
   );
 $$;
 

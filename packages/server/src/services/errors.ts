@@ -31,6 +31,13 @@ export type ErrorCode =
   | "recusal_recording_closed"
   | "recusal_member_not_declared"
   | "recused_member_cannot_participate"
+  | "recusal_member_not_present"
+  | "ballot_chair_invalid"
+  | "ballot_officers_not_present"
+  | "meeting_officer_change_invalid"
+  | "auxiliary_attendance_invalid"
+  | "agenda_item_presidency_invalid"
+  | "attendance_outside_membership"
   | "recusal_immutable"
   | "recusal_occurrence_locked"
   | "agenda_ballot_required"
@@ -118,7 +125,8 @@ export class DomainError extends Error {
   constructor(
     readonly code: ErrorCode,
     readonly statusCode = 400,
-    message = code,
+    message: string = code,
+    readonly detail?: string,
   ) {
     super(message);
     this.name = "DomainError";

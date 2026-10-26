@@ -68,7 +68,6 @@ postgresDescribe("reviewed ballot confirmation", () => {
       procedure: "ordinaryMajority" as const,
       mode: "public" as const,
       participantAttendanceIds: attendance.map((a) => a.id),
-      chairmanAttendanceId: attendance.find((a) => a.councilMemberId === members[0].id)!.id,
       votes: attendance.map((a) => ({ meetingAttendanceId: a.id, choice: "approve" as const })),
       nonParticipations: [],
     };

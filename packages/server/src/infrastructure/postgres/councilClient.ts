@@ -29,6 +29,8 @@ import { type CouncilClient, CouncilClientError } from "../../clients/councilCli
 import type { RequestContextStore } from "../../security/requestContext.js";
 import { DomainError, type ErrorCode } from "../../services/errors.js";
 
+// @implements-requirement HALL-FR-ATT-150
+// A refused attendance outside the roster carries the named person as problem detail.
 const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV235: "conflict",
   HV821: "conflict",
@@ -90,6 +92,13 @@ const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV233: "recusal_member_not_declared",
   HV234: "recusal_occurrence_locked",
   HV305: "recused_member_cannot_participate",
+  HV236: "recusal_member_not_present",
+  HV410: "ballot_chair_invalid",
+  HV415: "ballot_officers_not_present",
+  HV127: "meeting_officer_change_invalid",
+  HV128: "auxiliary_attendance_invalid",
+  HV129: "agenda_item_presidency_invalid",
+  HV150: "attendance_outside_membership",
 };
 
 export function createPostgresCouncilClient({
@@ -126,6 +135,10 @@ export function createPostgresCouncilClient({
           (error.constraint === "resource_location_unique" || error.constraint === "resource_folder_target")
         ) {
           throw new DomainError("workspace_title_conflict", 409);
+        }
+        if (error.sqlState === "HV150") {
+          const memberName = error.message.split(" has a member attendance")[0];
+          throw new DomainError("attendance_outside_membership", 409, error.message, memberName);
         }
         const recusalError = councilErrorCodes[error.sqlState];
         if (recusalError) throw new DomainError(recusalError, 409);
@@ -428,6 +441,21 @@ export function createPostgresCouncilClient({
     async recordMeetingReconvocation(id, input) {
       return meetingConductWorkspaceSchema.parse(
         await call(() => postgresCouncil.recordMeetingReconvocation(currentRequest(), id, input)),
+      );
+    },
+    async recordMeetingOfficerChange(id, input) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.recordMeetingOfficerChange(currentRequest(), id, input)),
+      );
+    },
+    async declareMeetingAuxiliaryAttendance(id, input) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.declareMeetingAuxiliaryAttendance(currentRequest(), id, input)),
+      );
+    },
+    async recordAgendaItemPresidency(id, input) {
+      return agendaItemRecusalsSchema.parse(
+        await call(() => postgresCouncil.recordAgendaItemPresidency(currentRequest(), id, input)),
       );
     },
     async agendaItemRecusals(id) {

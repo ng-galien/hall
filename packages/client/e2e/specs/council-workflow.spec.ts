@@ -216,7 +216,6 @@ async function previewAndConfirm(page: Page, meetingId: string, agendaItemId: st
   const submitted = previewResponse.request().postDataJSON();
   if (submitted.candidate.mode === "secret") {
     expect(Object.keys(submitted.candidate).sort()).toEqual([
-      "chairmanAttendanceId",
       "mode",
       "participantAttendanceIds",
       "procedure",
@@ -232,7 +231,7 @@ async function previewAndConfirm(page: Page, meetingId: string, agendaItemId: st
     ]);
     expect(Object.values(submitted.candidate.totals).every((value) => typeof value === "number")).toBeTruthy();
   }
-  const preview = await sirenProperties<{ id: string; candidate: unknown }>(previewResponse);
+  const preview = await sirenProperties<{ id: string; candidate: { chairmanAttendanceId: string } }>(previewResponse);
   await expect(page.getByTestId("live-ballot-preview")).toBeVisible();
   for (const key of ["approve", "reject", "abstain", "nonParticipation"]) {
     await expect(page.getByTestId(`live-ballot-preview-total-${key}`)).toBeVisible();
@@ -261,8 +260,10 @@ async function previewAndConfirm(page: Page, meetingId: string, agendaItemId: st
   );
   expect(ballots.some((ballot) => ballot.agendaItemId === agendaItemId)).toBe(false);
   if (checkStale) {
+    const { chairmanAttendanceId: determinedChair, ...submitted } = preview.candidate;
+    expect(determinedChair).toBeTruthy();
     expect(
-      (await page.request.post("/api/ballot-previews", { data: { agendaItemId, candidate: preview.candidate } })).ok(),
+      (await page.request.post("/api/ballot-previews", { data: { agendaItemId, candidate: submitted } })).ok(),
     ).toBeTruthy();
     await page.getByTestId("live-ballot-preview-confirm").click();
     await expect(page.getByTestId("live-ballot-preview").getByRole("alert")).toContainText("out of date");
@@ -375,6 +376,82 @@ test("mobile French recusals preserve explicit qualification and show a real ref
   await page.screenshot({ path: testInfo.outputPath("mobile-fr-secret-participation.png"), fullPage: true });
   await page.getByTestId("live-ballot-preview-open").scrollIntoViewIfNeeded();
   await expect(page.getByTestId("live-ballot-preview-open")).toBeVisible();
+});
+
+// @verifies-requirement HALL-FR-MTG-340
+// @verifies-requirement HALL-FR-ATT-140
+// @verifies-requirement HALL-FR-BAL-140
+test("records a secretary handover, an attending person and shows the determined ballot chair", async ({
+  appPage: page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  // biome-ignore lint/suspicious/noSkippedTests: This scenario is opt-in because it requires a dedicated fresh meeting fixture.
+  test.skip(
+    process.env.HALL_E2E_MEETING_OFFICERS !== "1",
+    "Dedicated fresh meeting fixture: HALL_E2E_MEETING_OFFICERS=1 with --grep 'secretary handover'",
+  );
+  const meetings = await sirenItems<{
+    id: string;
+    scheduledAt: string | null;
+    startedAt: string | null;
+    closedAt: string | null;
+  }>(await page.request.get("/api/council-meetings"));
+  const meeting = meetings.find((entry) => !entry.startedAt && !entry.closedAt)!;
+  if (!meeting.scheduledAt) {
+    await sirenProperties(
+      await page.request.put(`/api/council-meetings/${meeting.id}/schedule`, {
+        data: { scheduledAt: new Date(Date.now() - 60_000).toISOString(), location: "E2E officers room" },
+      }),
+    );
+  }
+  const members = await sirenItems<{ id: string }>(await page.request.get("/api/council-members"));
+  const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
+  const item = await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
+  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
+  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
+  await sirenProperties(
+    await page.request.post(`/api/council-meetings/${meeting.id}/record-opening`, {
+      data: {
+        observedAt: new Date().toISOString(),
+        chairMemberId: members[0]!.id,
+        secretaryMemberId: members[1]!.id,
+        attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
+      },
+    }),
+  );
+  const contact = await sirenProperties<{ id: string }>(
+    await page.request.post("/api/contacts", { data: { firstName: "Claire", lastName: "Assistante" } }),
+  );
+  await page.evaluate(() => localStorage.setItem("mairie.locale", "fr"));
+  await page.goto(`/app/meetings/${meeting.id}/live`);
+  await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  await page.getByTestId("live-officers-open").click();
+  await expect(page.getByTestId("live-officers-current-secretary")).not.toBeEmpty();
+  await page.getByTestId("live-officers-office-secretary").check();
+  await page.getByTestId("live-officers-successor").click();
+  await page
+    .getByTestId("live-officers-successor-search-result")
+    .and(page.locator(`[data-reference-id="${members[2]!.id}"]`))
+    .click();
+  await page.getByTestId("live-officers-handover-submit").click();
+  await expect(page.getByTestId("live-officers-history")).toContainText("Nomination par le conseil");
+  await page.getByTestId("live-auxiliaries-contact").click();
+  await page
+    .getByTestId("live-auxiliaries-contact-search-result")
+    .and(page.locator(`[data-reference-id="${contact.id}"]`))
+    .click();
+  await page.getByTestId("live-auxiliaries-quality-townHallSecretary").check();
+  await page.getByTestId("live-auxiliaries-submit").click();
+  await expect(page.getByTestId(`live-auxiliary-${contact.id}`)).toContainText("Claire Assistante");
+  await expect(page.getByTestId(`live-auxiliary-${contact.id}`)).toContainText("Secrétaire de mairie");
+  await page.screenshot({ path: testInfo.outputPath("meeting-officers-dialog.png"), fullPage: true });
+  await page.keyboard.press("Escape");
+  await page.getByTestId(`live-agenda-item-${item.id}`).click();
+  await page.getByTestId("live-agenda-start").click();
+  await page.getByTestId("live-ballot-open").click();
+  await expect(page.getByTestId("live-ballot-chairman-basis")).toHaveText("Président de séance en titre");
+  await expect(page.getByTestId("live-ballot-chairman").locator("select")).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("determined-ballot-chair.png"), fullPage: true });
 });
 
 test("conducts a meeting without quorum, adjourns voting items and closes without a ballot", async ({
