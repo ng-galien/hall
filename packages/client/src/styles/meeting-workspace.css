@@ -623,17 +623,8 @@
   #meeting-live-entry-reason {
     margin-top: var(--hall-space-3);
   }
-  .meeting-notice-icon {
-    position: relative;
-    display: inline-flex;
-  }
-  .meeting-notice-icon .meeting-notice-attention {
-    position: absolute;
-    right: calc(-1 * var(--hall-space-2));
-    top: calc(-1 * var(--hall-space-2));
+  .meeting-notice-attention {
     color: var(--hall-color-warning-strong);
-    background: var(--hall-color-warning-surface);
-    border-radius: var(--hall-radius-small);
   }
   .meeting-evidence {
     padding: var(--hall-space-3) var(--hall-space-4);

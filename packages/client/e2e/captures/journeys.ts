@@ -31,6 +31,8 @@ export async function prepareMeeting(page: Page, prefix?: string) {
   await shot("02-proprietes-generales");
   await page.getByTestId("meeting-edit-submit").click();
   await expect(page.getByText("Programmée", { exact: true })).toBeVisible();
+  // Choosing the officers scrolls the page under the dialog; the capture starts from the page title.
+  await page.locator("main").evaluate((element) => element.scrollTo({ top: 0 }));
   await shot("03-seance-programmee");
 
   const candidate = page.getByTestId(/^agenda-candidate-add-/).first();

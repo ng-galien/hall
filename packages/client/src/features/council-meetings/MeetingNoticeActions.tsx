@@ -84,17 +84,11 @@ export function MeetingNoticeActions({ meetingActions }: { meetingActions: Retur
   return (
     <>
       <Button variant="outline" data-testid="meeting-open-notice" onClick={() => setOpen(true)}>
-        <span className="meeting-notice-icon">
-          <FileIcon />
-          {needsAttention ? (
-            <WarningIcon
-              className="meeting-notice-attention"
-              data-testid="meeting-notice-attention"
-              aria-hidden="true"
-            />
-          ) : null}
-        </span>
+        <FileIcon />
         {t("meeting.agenda")}
+        {needsAttention ? (
+          <WarningIcon className="meeting-notice-attention" data-testid="meeting-notice-attention" aria-hidden="true" />
+        ) : null}
       </Button>
       <Modal open={open} title={t("meeting.notice.title")} onClose={() => setOpen(false)}>
         <div className="meeting-notice-panel">
