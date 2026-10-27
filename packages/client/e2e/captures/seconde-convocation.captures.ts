@@ -127,9 +127,23 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
     chairMemberId: chair!,
     secretaryMemberId: reconvenedSecretary!,
   });
+  // The roll call of the reconvened meeting is recorded at its convened date through the same opening route.
+  const reconvenedDate = new Date(reconvened.scheduledAt!);
+  const at = (minutes: number) => new Date(reconvenedDate.getTime() + minutes * 60_000).toISOString();
+  await properties(
+    await page.request.post(`/api/council-meetings/${reconvened.id}/record-opening`, {
+      data: {
+        attendance: members.map((memberId) => ({
+          councilMemberId: memberId,
+          status: present.has(memberId) ? "present" : "absent",
+        })),
+        observedAt: at(5),
+        chairMemberId: chair,
+        secretaryMemberId: reconvenedSecretary,
+      },
+    }),
+  );
   await page.goto(`/app/meetings/${reconvened.id}/live`);
-  await rollCall(page, members, present);
-  await page.getByTestId("live-meeting-start").click();
   await expect(page.getByTestId("live-quorum-observation")).toContainText(/Seconde convocation/);
   await page.waitForTimeout(500);
   await capture(page, `${journey}/07-ouverture-en-seconde-convocation`);
@@ -139,11 +153,25 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   await page.waitForLoadState("networkidle");
   await capture(page, `${journey}/08-proces-verbal-premiere-seance`);
 
-  await page.goto(`/app/meetings/${reconvened.id}/live`);
-  await page.getByTestId("live-meeting-close").click();
-  await page.waitForTimeout(1000);
-  if (/\/live$/.test(page.url())) await page.getByTestId("live-meeting-close").click();
-  await expect(page).not.toHaveURL(/\/live$/, { timeout: 30_000 });
+  // The carried affair is discussed then adjourned, and the meeting closes on the same evening.
+  const carried = (
+    await items<{ id: string; position: number }>(
+      await page.request.get(`/api/council-meetings/${reconvened.id}/agenda-items`),
+    )
+  ).find((item) => item.position === 2)!;
+  await properties(
+    await page.request.post(`/api/council-meetings/${reconvened.id}/agenda-items/${carried.id}/start`, {
+      data: { startedAt: at(10) },
+    }),
+  );
+  await properties(
+    await page.request.post(`/api/council-meetings/${reconvened.id}/agenda-items/${carried.id}/adjourn`, {
+      data: { adjournedAt: at(55) },
+    }),
+  );
+  await properties(
+    await page.request.post(`/api/council-meetings/${reconvened.id}/close`, { data: { closedAt: at(70) } }),
+  );
   const reconvenedMinutes = (await items<Meeting>(await page.request.get("/api/council-meetings"))).find(
     (meeting) => meeting.id === reconvened.id,
   )!.minutesId;
