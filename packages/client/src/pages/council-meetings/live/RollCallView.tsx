@@ -24,6 +24,7 @@ import { Modal, RequestErrorBanner } from "../../../components/Ui";
 import { MeetingAttendingPersons } from "../../../features/council-meetings/MeetingAttendingPersons";
 import { MeetingEntryBlockers } from "../../../features/council-meetings/MeetingEntryBlockers";
 import { MeetingReconvocationForm } from "../../../features/council-meetings/MeetingReconvocationForm";
+import { quorumFailureAwaitingReconvocation } from "../../../features/council-meetings/reconvocationPolicy";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import { useI18n } from "../../../i18n/I18nProvider";
@@ -75,13 +76,7 @@ export function RollCallView({
   const openingObservation = conduct?.quorumObservations
     .filter((observation) => observation.agendaItemId === null)
     .at(-1);
-  const failedObservation = conduct?.quorumObservations
-    .filter(
-      (observation) =>
-        observation.facts.verdict === "notMet" &&
-        !conduct.reconvocations.some((entry) => entry.failedObservationId === observation.id),
-    )
-    .at(-1);
+  const failedObservation = quorumFailureAwaitingReconvocation(conduct);
   const [draftOfficers, setDraftOfficers] = useState({
     chairMemberId: aggregate.meeting.chairMemberId,
     secretaryMemberId: aggregate.meeting.secretaryMemberId,

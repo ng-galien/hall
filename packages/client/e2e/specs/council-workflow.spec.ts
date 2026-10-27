@@ -1490,3 +1490,76 @@ test("prepares a meeting through its general properties and follows it when its 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("10/12/2026");
   await page.screenshot({ path: test.info().outputPath("meeting-followed-after-date-change.png") });
 });
+
+test("records the second convocation from the conduct of a meeting opened without quorum", async ({
+  appPage: page,
+}) => {
+  test.setTimeout(150_000);
+  const localInput = (date: Date) => {
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+  const meetings = await sirenItems<{ id: string; startedAt: string | null; closedAt: string | null }>(
+    await page.request.get("/api/council-meetings"),
+  );
+  const meeting = meetings.find((item) => !item.startedAt && !item.closedAt)!;
+  expect(meeting).toBeTruthy();
+  await sirenProperties(
+    await page.request.put(`/api/council-meetings/${meeting.id}/schedule`, {
+      data: { scheduledAt: new Date(Date.now() - 60_000).toISOString(), location: "E2E second convocation room" },
+    }),
+  );
+  const members = (
+    await sirenItems<{ id: string; active: boolean }>(await page.request.get("/api/council-members"))
+  ).filter((member) => member.active);
+  const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
+  const proposal = await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
+  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
+  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
+
+  await page.goto(`/app/meetings/${meeting.id}/live`);
+  for (const [index, member] of members.entries())
+    await page.getByTestId(`live-attendance-${member.id}-${index < 4 ? "present" : "absent"}`).click();
+  await page.getByTestId(`live-member-actions-${members[0]!.id}`).click();
+  await page.getByTestId(`live-designate-chair-${members[0]!.id}`).click();
+  await page.getByTestId(`live-member-actions-${members[1]!.id}`).click();
+  await page.getByTestId(`live-designate-secretary-${members[1]!.id}`).click();
+  const opening = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/record-opening"),
+  );
+  await page.getByTestId("live-meeting-start").click();
+  const opened = await sirenProperties<{
+    quorumObservations: Array<{ observedAt: string; facts: { verdict: string } }>;
+  }>(await opening);
+  const failure = opened.quorumObservations.at(-1)!;
+  expect(failure.facts.verdict).toBe("notMet");
+
+  // The notice is sent after the recorded failure, at a whole minute the form can express.
+  const sentAt = new Date(Math.ceil((Date.parse(failure.observedAt) + 1) / 60_000) * 60_000);
+  const renewedAt = new Date(sentAt.getTime() + 5 * 86_400_000);
+  renewedAt.setHours(18, 30, 0, 0);
+  await page.getByTestId("live-reconvocation-open").click();
+  await expect(page.getByTestId("live-reconvocation-form")).toBeVisible();
+  await expect(page.getByTestId("live-reconvocation-agenda")).toContainText(/\S/);
+  await page.getByTestId("live-reconvocation-sent-at").fill(localInput(sentAt));
+  await page.getByTestId("live-reconvocation-scheduled-at").fill(localInput(renewedAt));
+  await page.getByTestId("live-reconvocation-first-evidence").fill("Convocation du conseil affichée en mairie");
+  await page.getByTestId("live-reconvocation-renewed-evidence").fill("Seconde convocation remise aux conseillers");
+  await page.screenshot({ path: test.info().outputPath("second-convocation-form.png") });
+  await expect.poll(() => Date.now(), { timeout: 65_000, intervals: [1_000] }).toBeGreaterThan(sentAt.getTime());
+  const recording = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/reconvocations"),
+  );
+  await page.getByTestId("live-reconvocation-submit").click();
+  expect((await recording).ok()).toBeTruthy();
+  await expect(page.getByTestId("live-reconvocation-form")).toBeHidden();
+  await expect(page.getByTestId("live-reconvocation-open")).toHaveCount(0);
+  const conduct = await sirenProperties<{
+    reconvocations: Array<{ failedObservationId: string; agendaItemIds: string[]; scheduledAt: string }>;
+    quorumObservations: Array<{ id: string; facts: { verdict: string } }>;
+  }>(await page.request.get(`/api/council-meetings/${meeting.id}/conduct`));
+  expect(conduct.reconvocations).toHaveLength(1);
+  expect(conduct.reconvocations[0]!.failedObservationId).toBe(conduct.quorumObservations.at(-1)!.id);
+  expect(conduct.reconvocations[0]!.agendaItemIds).toContain(proposal.id);
+  expect(Date.parse(conduct.reconvocations[0]!.scheduledAt)).toBe(renewedAt.getTime());
+});

@@ -1,5 +1,5 @@
 import type { AgendaItem, MeetingQuorumObservation, RecordMeetingReconvocation } from "@hall/api-contract";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,11 +13,14 @@ export function MeetingReconvocationForm({
   agendaItems,
   onSubmit,
   error,
+  trigger,
 }: {
   observation: MeetingQuorumObservation;
   agendaItems: AgendaItem[];
   onSubmit(input: RecordMeetingReconvocation): Promise<boolean>;
   error: ApiErrorCode | null;
+  /** Renders the control that opens the form; the roll call uses the default outline button. */
+  trigger?(control: { open(): void; disabled: boolean; label: string }): ReactNode;
 }) {
   const { t, formatDateTime } = useI18n();
   const [open, setOpen] = useState(false);
@@ -45,14 +48,22 @@ export function MeetingReconvocationForm({
   };
   return (
     <>
-      <Button
-        variant="outline"
-        data-testid="live-reconvocation-open"
-        disabled={remainingItems.length === 0}
-        onClick={() => setOpen(true)}
-      >
-        {t("meeting.reconveneAction")}
-      </Button>
+      {trigger ? (
+        trigger({
+          open: () => setOpen(true),
+          disabled: remainingItems.length === 0,
+          label: t("meeting.reconveneAction"),
+        })
+      ) : (
+        <Button
+          variant="outline"
+          data-testid="live-reconvocation-open"
+          disabled={remainingItems.length === 0}
+          onClick={() => setOpen(true)}
+        >
+          {t("meeting.reconveneAction")}
+        </Button>
+      )}
       <Modal
         open={open}
         title={t("meeting.reconveneAction")}

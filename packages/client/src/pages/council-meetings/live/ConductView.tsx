@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { MarkdownEditor } from "../../../components/editor/MarkdownEditor";
 import {
   AddIcon,
+  CalendarAddIcon,
   CheckIcon,
   CloseIcon,
   CollapseIcon,
@@ -41,7 +42,9 @@ import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdi
 import { ConductActionBlockers } from "../../../features/council-meetings/ConductActionBlockers";
 import { MeetingClosedSessionDialog } from "../../../features/council-meetings/MeetingClosedSessionDialog";
 import { MeetingOfficersDialog } from "../../../features/council-meetings/MeetingOfficersDialog";
+import { MeetingReconvocationForm } from "../../../features/council-meetings/MeetingReconvocationForm";
 import { officeLabel, officerBasisLabel } from "../../../features/council-meetings/meetingOfficerPresentation";
+import { quorumFailureAwaitingReconvocation } from "../../../features/council-meetings/reconvocationPolicy";
 import { recusalBasisLabel } from "../../../features/council-meetings/recusalPresentation";
 import { DocumentaryResourceGlyph } from "../../../features/documents/DocumentaryResourceGlyph";
 import { ResourcePreview } from "../../../features/documents/ResourcePreview";
@@ -214,6 +217,7 @@ export function ConductView({
   // @implements-requirement HALL-FR-MTG-350
   const closedSessionItemIds = new Set(conduct?.closedSessions.flatMap((session) => session.agendaItemIds) ?? []);
   const meetingBlockers = conduct?.meetingActionBlockers;
+  const quorumFailure = quorumFailureAwaitingReconvocation(conduct);
   const blockerMemberName = (memberId: string) => councilMemberName(members, memberId);
   const blockers = meetingActions.workspace?.agendaItems.find((item) => item.id === selectedItem.id)?.conductBlockers;
   const selectedDecision = selectedDecisionId
@@ -519,6 +523,27 @@ export function ConductView({
             <LockIcon aria-hidden="true" />
             {!railCollapsed ? t("closedSession.title") : null}
           </button>
+          {quorumFailure && meetingActions.can("meeting.record-reconvocation") ? (
+            <MeetingReconvocationForm
+              observation={quorumFailure}
+              agendaItems={meetingActions.workspace?.agendaItems ?? []}
+              onSubmit={meetingActions.recordReconvocation}
+              error={meetingActions.actionError}
+              trigger={({ open, disabled, label }) => (
+                <button
+                  className="live-primary-action conduct-rail-tool"
+                  type="button"
+                  title={railCollapsed ? label : undefined}
+                  data-testid="live-reconvocation-open"
+                  disabled={disabled}
+                  onClick={open}
+                >
+                  <CalendarAddIcon aria-hidden="true" />
+                  {!railCollapsed ? label : null}
+                </button>
+              )}
+            />
+          ) : null}
           <button
             className="live-primary-action live-danger-action conduct-rail-tool"
             type="button"
