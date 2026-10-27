@@ -9,6 +9,7 @@ import {
   completeAgendaItemSchema,
   councilBusinessSchema,
   councilMeetingSchema,
+  confirmBallotResultPreviewSchema,
   createBallotResultPreviewSchema,
   createCouncilBusinessSchema,
   createCouncilMemberSchema,
@@ -415,6 +416,15 @@ describe("shared HTTP contract", () => {
         candidate: { ...base, procedure: "cfu", mode: "public", votes: [] },
       }),
     ).toThrow();
+  });
+
+  it("accepts a ballot confirmation with or without its dated time", () => {
+    expect(confirmBallotResultPreviewSchema.parse({})).toEqual({});
+    expect(confirmBallotResultPreviewSchema.parse({ confirmedAt: "2026-09-12T19:40:00+02:00" })).toEqual({
+      confirmedAt: "2026-09-12T19:40:00+02:00",
+    });
+    expect(() => confirmBallotResultPreviewSchema.parse({ confirmedAt: "19:40" })).toThrow();
+    expect(() => confirmBallotResultPreviewSchema.parse({ candidate: {} })).toThrow();
   });
 
   it("keeps contacts and council mandates normalized", () => {

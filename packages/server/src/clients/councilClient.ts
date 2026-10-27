@@ -94,7 +94,7 @@ export interface CouncilClient {
 
   createBallotResultPreview(input: CreateBallotResultPreview): Promise<BallotResultPreview>;
   openBallotResultPreview(id: string): Promise<BallotResultPreview | null>;
-  confirmBallotResultPreview(id: string): Promise<Ballot>;
+  confirmBallotResultPreview(id: string, confirmedAt?: string): Promise<Ballot>;
 
   addOpenQuestion(meetingId: string, input: AddOpenQuestion): Promise<AgendaItem>;
   meetingConduct(meetingId: string): Promise<MeetingConductWorkspace>;

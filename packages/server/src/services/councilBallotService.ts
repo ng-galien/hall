@@ -16,7 +16,7 @@ function translateFailure(error: unknown): never {
 export interface CouncilBallotService {
   preview(input: CreateBallotResultPreview): Promise<BallotResultPreview>;
   getPreview(id: string): Promise<BallotResultPreview>;
-  confirmPreview(id: string): Promise<Ballot>;
+  confirmPreview(id: string, confirmedAt?: string): Promise<Ballot>;
 
   listForMeeting(meetingId: string): Promise<Ballot[]>;
   get(ballotId: string): Promise<Ballot>;
@@ -38,7 +38,8 @@ export function createCouncilBallotService({ councilClient }: { councilClient: C
       if (!preview) throw new DomainError("ballot_preview_not_found", 404);
       return preview;
     },
-    confirmPreview: (id) => councilClient.confirmBallotResultPreview(id).catch(translateFailure),
+    confirmPreview: (id, confirmedAt) =>
+      councilClient.confirmBallotResultPreview(id, confirmedAt).catch(translateFailure),
     listForMeeting: (meetingId) => councilClient.listBallots(meetingId).catch(translateFailure),
     get,
     async listParticipations(ballotId) {

@@ -7154,7 +7154,8 @@
       "statement": "Un résultat de scrutin n’est enregistré qu’après revue et confirmation explicites du candidat calculé.",
       "acceptanceCriteria": [
         "La saisie candidate est calculée par SQL et conservée dans un aperçu immuable versionné sans créer scrutin, votes ni résultat définitif. Une correction exige un nouvel aperçu ; seule la confirmation explicite produit ces faits atomiquement.",
-        "Choix produit supplémentaire au constat de discussion : le quorum actuel applicable doit permettre le vote au moment de l’aperçu. Un défaut interdit cet aperçu et laisse possible l’ajournement ; il ne réécrit pas le constat juridique initial."
+        "Choix produit supplémentaire au constat de discussion : le quorum actuel applicable doit permettre le vote au moment de l’aperçu. Un défaut interdit cet aperçu et laisse possible l’ajournement ; il ne réécrit pas le constat juridique initial.",
+        "La confirmation peut porter une heure, comprise entre le début du point et l’heure du serveur ; cette heure devient la fin du scrutin et du point. Sans heure, l’heure du serveur fait foi."
       ],
       "clauses": [
         {
@@ -7167,6 +7168,12 @@
           "key": "current-quorum-before-preview",
           "origin": "product",
           "statement": "Choix produit supplémentaire au constat de discussion : le quorum actuel applicable doit permettre le vote au moment de l’aperçu. Un défaut interdit cet aperçu et laisse possible l’ajournement ; il ne réécrit pas le constat juridique initial.",
+          "sourceIds": []
+        },
+        {
+          "key": "dated-confirmation",
+          "origin": "product",
+          "statement": "La confirmation peut porter une heure, comprise entre le début du point et l’heure du serveur ; cette heure devient la fin du scrutin et du point. Sans heure, l’heure du serveur fait foi.",
           "sourceIds": []
         }
       ]

@@ -9,11 +9,14 @@ CREATE FUNCTION hall_api.open_ballot_result_preview(target_preview UUID)
 RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
  SELECT hall.ballot_result_preview_projection(p) FROM hall.ballot_result_preview p WHERE id=target_preview;
 $$;
-CREATE FUNCTION hall_api.confirm_ballot_result_preview(target_preview UUID)
+CREATE FUNCTION hall_api.confirm_ballot_result_preview(target_preview UUID,confirmation_time TIMESTAMPTZ DEFAULT NULL)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
 DECLARE preview hall.ballot_result_preview; b hall.ballots; item hall.council_agenda_item;
   candidate JSONB; input_row RECORD; participation_id UUID; counts JSONB;
 BEGIN
+ IF confirmation_time>clock_timestamp() THEN
+   RAISE EXCEPTION USING ERRCODE = 'HV143',MESSAGE='a ballot confirmation cannot be dated in the future';
+ END IF;
  SELECT * INTO preview FROM hall.ballot_result_preview WHERE id=target_preview;
  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV421',MESSAGE='unknown ballot result preview'; END IF;
  PERFORM 1 FROM hall.council_meetings m JOIN hall.council_agenda_item a ON a.council_meeting=m.id
@@ -48,6 +51,6 @@ BEGIN
        (counts->>'abstain')::integer,(counts->>'blank')::integer,(counts->>'invalid')::integer,(counts->>'nonParticipation')::integer);
    END IF;
  END IF;
- PERFORM hall.complete_ballot(b.id,clock_timestamp(),preview.id);
+ PERFORM hall.complete_ballot(b.id,coalesce(confirmation_time,clock_timestamp()),preview.id);
  RETURN hall_api.open_ballot(b.id);
 END $$;

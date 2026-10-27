@@ -418,8 +418,10 @@ export function createPostgresCouncilClient({
         .nullable()
         .parse(await call(() => postgresCouncil.openBallotResultPreview(currentRequest(), id)));
     },
-    async confirmBallotResultPreview(id) {
-      return ballotSchema.parse(await call(() => postgresCouncil.confirmBallotResultPreview(currentRequest(), id)));
+    async confirmBallotResultPreview(id, confirmedAt) {
+      return ballotSchema.parse(
+        await call(() => postgresCouncil.confirmBallotResultPreview(currentRequest(), id, confirmedAt)),
+      );
     },
     async meetingConduct(id) {
       return meetingConductWorkspaceSchema.parse(

@@ -1719,14 +1719,18 @@ export class PostgresCouncil {
     );
   }
 
-  confirmBallotResultPreview(request: PostgresCouncilRequest, previewId: string): Promise<PostgresBallot> {
+  confirmBallotResultPreview(
+    request: PostgresCouncilRequest,
+    previewId: string,
+    confirmedAt?: string,
+  ): Promise<PostgresBallot> {
     const id = resourceIdSchema.parse(previewId);
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "ballot.confirm") },
       async (client) => {
         const ballot = await callJson(client, {
-          text: "SELECT hall_api.confirm_ballot_result_preview($1::uuid) AS payload",
-          values: [id],
+          text: "SELECT hall_api.confirm_ballot_result_preview($1::uuid, $2::timestamptz) AS payload",
+          values: [id, confirmedAt ?? null],
           schema: postgresBallotSchema,
         });
         await recordAuditEvent(client, {

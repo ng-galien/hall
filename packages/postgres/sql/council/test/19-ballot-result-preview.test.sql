@@ -29,6 +29,22 @@ SELECT throws_ok($$SELECT hall_api.confirm_ballot_result_preview((SELECT (payloa
 SELECT throws_ok($$UPDATE ballot_result_preview SET calculation='{}'$$,'HV425',NULL,'a review cannot be rewritten');
 SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(test_uuid('review:b:agenda-item'),pg_temp.public_candidate('review',3,2))$$,'HV404',NULL,'an unstarted affair cannot be reviewed');
 
+SELECT ok((SELECT completed_at>=now() FROM ballots WHERE council_agenda_item=test_uuid('review:a:agenda-item')),'an undated confirmation takes the server time');
+
+-- @verifies-requirement HALL-FR-BAL-320
+-- a dated confirmation lies between the start of the affair and the server time.
+SELECT pg_temp.quorum_case('dated',3,3);
+SELECT test_prepare_notice(test_uuid('dated:meeting'));
+SELECT start_council_meeting(test_uuid('dated:meeting'),'2026-01-01 09:00Z');
+SELECT start_council_agenda_item(test_uuid('dated:a:agenda-item'),'2026-01-01 09:01Z');
+CREATE TEMP TABLE dated_preview AS SELECT hall_api.create_ballot_result_preview(test_uuid('dated:a:agenda-item'),pg_temp.public_candidate('dated',3,2)) payload;
+SELECT throws_ok($$SELECT hall_api.confirm_ballot_result_preview((SELECT (payload->>'id')::uuid FROM dated_preview),'2026-01-01 09:00Z')$$,'HV417',NULL,'a confirmation cannot be dated before the affair started');
+SELECT throws_ok($$SELECT hall_api.confirm_ballot_result_preview((SELECT (payload->>'id')::uuid FROM dated_preview),clock_timestamp()+interval '1 hour')$$,'HV143',NULL,'a confirmation cannot be dated in the future');
+SELECT is((SELECT count(*)::int FROM ballots WHERE council_agenda_item=test_uuid('dated:a:agenda-item')),0,'a refused date stores no ballot');
+SELECT lives_ok($$SELECT hall_api.confirm_ballot_result_preview((SELECT (payload->>'id')::uuid FROM dated_preview),'2026-01-01 10:15Z')$$,'a confirmation dated within the meeting is accepted');
+SELECT is((SELECT completed_at FROM ballots WHERE council_agenda_item=test_uuid('dated:a:agenda-item')),'2026-01-01 10:15Z'::timestamptz,'the ballot ends at the confirmed time');
+SELECT is((SELECT completed_at FROM council_agenda_item WHERE id=test_uuid('dated:a:agenda-item')),'2026-01-01 10:15Z'::timestamptz,'the affair ends at the confirmed time');
+
 -- @verifies-requirement HALL-TR-CON-220
 
 -- context mutations invalidate review; concurrent lock barrier also tested in PostgreSQL integration.

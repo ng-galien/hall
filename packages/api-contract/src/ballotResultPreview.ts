@@ -45,6 +45,9 @@ export const reviewedBallotCandidateSchema = z.discriminatedUnion("mode", [
 export const createBallotResultPreviewSchema = z
   .object({ agendaItemId: id, candidate: ordinaryBallotCandidateSchema })
   .strict();
+export const confirmBallotResultPreviewSchema = z
+  .object({ confirmedAt: z.iso.datetime({ offset: true }).optional() })
+  .strict();
 export const ballotResultPreviewSchema = z
   .object({
     id,
@@ -67,4 +70,5 @@ export const ballotResultPreviewSchema = z
   })
   .strict();
 export type CreateBallotResultPreview = z.input<typeof createBallotResultPreviewSchema>;
+export type ConfirmBallotResultPreview = z.infer<typeof confirmBallotResultPreviewSchema>;
 export type BallotResultPreview = z.infer<typeof ballotResultPreviewSchema>;

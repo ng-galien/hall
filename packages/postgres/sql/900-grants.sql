@@ -290,7 +290,7 @@ GRANT EXECUTE ON FUNCTION hall_api.meeting_conduct(UUID),
  TO hall_api_authenticated,hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.create_ballot_result_preview(UUID,JSONB),
- hall_api.open_ballot_result_preview(UUID),hall_api.confirm_ballot_result_preview(UUID)
+ hall_api.open_ballot_result_preview(UUID),hall_api.confirm_ballot_result_preview(UUID,TIMESTAMPTZ)
  TO hall_api_authenticated,hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.freeze_council_agenda(UUID), hall_api.open_council_agenda_freeze(UUID),
