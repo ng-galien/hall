@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DeleteIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
@@ -28,6 +28,12 @@ export function ResourceWorkbench({
   const viewerTransitionRef = useRef(false);
   const resource = session.resource;
   const businesses = useCouncilBusinessStore((state) => state.businesses);
+  // The businesses of the opened resource are found among the documents of every business, loaded on demand.
+  const openedId = resource?.id ?? null;
+  const businessIds = useMemo(() => businesses.map((business) => business.id).join(","), [businesses]);
+  useEffect(() => {
+    if (openedId && businessIds) void useCouncilBusinessStore.getState().loadResourceItems(businessIds.split(","));
+  }, [openedId, businessIds]);
   const relatedBusinesses = useMemo(
     () =>
       resource

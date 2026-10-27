@@ -329,17 +329,21 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     hallLayer: {
       type: "FeatureCollection",
       legend: [
-        { color: colors.navy, label: "Seconde ligne et liaisons intérieures" },
-        { color: colors.red, label: "Fossé extérieur" },
-        { color: colors.blue, label: "Chantier en cours" },
-        { color: colors.slate, label: "Dépôt de pierre" },
+        {
+          color: colors.navy,
+          label:
+            "Seconde ligne : poste de commandement de Vercassivellaunos, porte ouest gardée jour et nuit, tour de guet nord relevée toutes les quatre heures",
+        },
+        { color: colors.red, label: "Fossé extérieur : à recreuser sur la partie sud" },
+        { color: colors.blue, label: "Chantier de la seconde ligne : 96 poutres et 60 hottes de pierre" },
+        { color: colors.slate, label: "Dépôt de pierre : déplacé au sud pour libérer le chemin du grenier" },
       ],
       features: [
-        marker("Seconde ligne : poste de commandement de Vercassivellaunos", [4.438, 47.558], colors.navy, "large"),
-        marker("Porte ouest : entrée des convois, gardée jour et nuit", [4.433, 47.5575], colors.navy),
-        marker("Tour de guet nord : relève toutes les quatre heures", [4.4385, 47.5605], colors.navy),
+        marker("Poste de commandement", [4.438, 47.558], colors.navy, "large"),
+        marker("Porte ouest des convois", [4.433, 47.5575], colors.navy),
+        marker("Tour de guet nord", [4.4385, 47.5605], colors.navy),
         line(
-          "Fossé extérieur : à recreuser sur la partie sud",
+          "Fossé extérieur de l’oppidum",
           [
             [4.432, 47.5555],
             [4.4325, 47.56],
@@ -361,7 +365,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
           3,
         ),
         area(
-          "Chantier de la seconde ligne : 96 poutres et 60 hottes de pierre",
+          "Chantier de la seconde ligne",
           [
             [4.436, 47.557],
             [4.44, 47.557],
@@ -373,7 +377,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
           colors.navy,
         ),
         area(
-          "Dépôt de pierre : déplacé au sud pour libérer le chemin du grenier",
+          "Dépôt de pierre",
           [
             [4.437, 47.555],
             [4.439, 47.555],
@@ -403,10 +407,14 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     hallLayer: {
       type: "FeatureCollection",
       legend: [
-        { color: colors.blue, label: "Grenier et réserves" },
-        { color: colors.slate, label: "Abris des habitants" },
-        { color: colors.green, label: "Point d’eau" },
-        { color: colors.navy, label: "Chemins des convois" },
+        { color: colors.blue, label: "Grenier de Cornu : 120 sacs, garde permanente" },
+        {
+          color: colors.slate,
+          label:
+            "Abris : nord, 78 habitants, couvertures à renouveler ; sud, 64 habitants, deux couvertures affaissées",
+        },
+        { color: colors.green, label: "Point d’eau : gardé la nuit" },
+        { color: colors.navy, label: "Chemins des convois : départs aux heures paires, retours aux heures impaires" },
       ],
       features: [
         area(
@@ -422,17 +430,11 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
           colors.slate,
           0.1,
         ),
-        marker("Grenier de Cornu : 120 sacs, garde permanente", [4.44, 47.559], colors.blue, "large"),
-        marker("Abri nord : 78 habitants, couvertures à renouveler", [4.4355, 47.56], colors.slate),
-        marker("Abri sud : 64 habitants, deux couvertures affaissées", [4.435, 47.5565], colors.slate),
-        marker("Point d’eau : gardé la nuit", [4.437, 47.5578], colors.green),
-        line(
-          "Chemin des convois : départs aux heures paires, retours aux heures impaires",
-          convoyPath,
-          colors.navy,
-          4,
-          "forward",
-        ),
+        marker("Grenier de Cornu", [4.44, 47.559], colors.blue, "large"),
+        marker("Abri nord des habitants", [4.4355, 47.56], colors.slate),
+        marker("Abri sud des habitants", [4.435, 47.5565], colors.slate),
+        marker("Point d’eau de l’oppidum", [4.437, 47.5578], colors.green),
+        line("Chemin des convois", convoyPath, colors.navy, 4, "forward"),
         line(
           "Chemin des abris sud",
           [
