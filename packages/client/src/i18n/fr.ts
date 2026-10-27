@@ -935,6 +935,11 @@ export const fr: Messages = {
   "meetings.chairUndesignated": "À désigner",
   "meetings.secretary": "Secrétaire de séance",
   "meetings.secretaryUndesignated": "À désigner",
+  "meetings.locationRequired": "Choisissez le lieu de la séance.",
+  "meetings.officersDesignatedTogether":
+    "La présidence et le secrétaire de séance se désignent ensemble : choisissez les deux, ou laissez les deux « À désigner ».",
+  "meetings.officerCannotBeRemoved":
+    "Ce rôle est déjà attribué et ne peut pas revenir à « À désigner » : choisissez un membre.",
   "meetings.empty": "La première séance peut être planifiée ici.",
   "meeting.minutes": "Procès-verbal",
   "meeting.stage.prepare": "Préparer",

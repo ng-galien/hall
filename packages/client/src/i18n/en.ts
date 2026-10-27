@@ -915,6 +915,11 @@ export const en = {
   "meetings.chairUndesignated": "To be designated",
   "meetings.secretary": "Meeting secretary",
   "meetings.secretaryUndesignated": "To be designated",
+  "meetings.locationRequired": "Choose the meeting location.",
+  "meetings.officersDesignatedTogether":
+    "The chair and the meeting secretary are designated together: choose both, or leave both to be designated.",
+  "meetings.officerCannotBeRemoved":
+    "This role is already assigned and cannot return to “to be designated”: choose a member.",
   "meetings.empty": "The first meeting can be scheduled here.",
   "meeting.minutes": "Minutes",
   "meeting.stage.prepare": "Prepare",

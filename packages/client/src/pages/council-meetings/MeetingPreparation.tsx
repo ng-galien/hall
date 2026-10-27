@@ -23,6 +23,7 @@ import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useMeetingSettings } from "../../hooks/useMeetingSettings";
 import { useSubmitting } from "../../hooks/useSubmitting";
+import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { listPreparedCouncilSubjects } from "../../services/councilBusinessApi";
@@ -31,6 +32,7 @@ import { useResourcesStore } from "../../stores/resourcesStore";
 import { AgendaComposer } from "./AgendaComposer";
 import { MeetingDetailsCard } from "./MeetingDetailsCard";
 import { MeetingStageBar } from "./MeetingStageBar";
+import { type MeetingDetailsField, meetingDetailsSubmission } from "./meetingDetailsPolicy";
 
 export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnType<typeof useCouncilMeeting> }) {
   const { t, plural, formatDate, formatDateTime, formatNumber } = useI18n();
@@ -77,6 +79,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   }, [meeting.id, canSchedulePrepared, agendaSnapshot]);
   const attendanceRecorded = aggregate.attendance.length;
   const [editOpen, setEditOpen] = useState(false);
+  const [detailsErrors, setDetailsErrors] = useState<Partial<Record<MeetingDetailsField, TranslationKey>>>({});
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const { settings, error: settingsError } = useMeetingSettings();
   const detailsEditable = meetingActions.can("meeting.prepare");
@@ -86,21 +89,44 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
     event.preventDefault();
     if (!settings) return;
     const form = new FormData(event.currentTarget);
-    const scheduledAt = meetingScheduleInstant(String(form.get("startsAt")), settings.timeZone);
-    const dateInput = event.currentTarget.elements.namedItem("startsAt") as HTMLInputElement;
-    dateInput.setCustomValidity(scheduledAt ? "" : t("meetings.invalidLocalTime"));
-    if (!event.currentTarget.reportValidity() || !scheduledAt) return;
+    const submission = meetingDetailsSubmission(
+      {
+        scheduledAt: meetingScheduleInstant(String(form.get("startsAt") ?? ""), settings.timeZone),
+        location: String(form.get("location") ?? ""),
+        chairMemberId: String(form.get("chairMemberId") ?? ""),
+        secretaryMemberId: String(form.get("secretaryMemberId") ?? ""),
+      },
+      meeting,
+    );
+    if (submission.kind === "invalid") {
+      setDetailsErrors(submission.errors);
+      return;
+    }
+    setDetailsErrors({});
     await run(async () => {
-      const saved = await meetingActions.prepare({
-        scheduledAt,
-        location: String(form.get("location")),
-        chairMemberId: String(form.get("chairMemberId")),
-        secretaryMemberId: String(form.get("secretaryMemberId")),
-      });
+      const saved =
+        submission.kind === "prepare"
+          ? await meetingActions.prepare(submission.input)
+          : await meetingActions.schedule(submission.input);
       if (saved) setEditOpen(false);
       return saved;
     });
   };
+  const detailsFieldError = (field: MeetingDetailsField) => {
+    const message = detailsErrors[field];
+    return message ? (
+      <p
+        className="form-error"
+        role="alert"
+        id={`${detailsFieldId}-${field}-error`}
+        data-testid={`meeting-edit-${field}-error`}
+      >
+        {t(message)}
+      </p>
+    ) : null;
+  };
+  const detailsFieldInvalid = (field: MeetingDetailsField) =>
+    detailsErrors[field] ? { "aria-invalid": true, "aria-describedby": `${detailsFieldId}-${field}-error` } : {};
 
   return (
     <div className="page meeting-preparation">
@@ -152,7 +178,10 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                   data-testid="meeting-edit-details"
                   disabled={submitting || !settings}
                   variant={meeting.scheduledAt ? "outline" : "default"}
-                  onClick={() => setEditOpen(true)}
+                  onClick={() => {
+                    setDetailsErrors({});
+                    setEditOpen(true);
+                  }}
                 >
                   <EditIcon />
                   {t("meeting.generalProperties")}
@@ -208,9 +237,10 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                   data-testid="meeting-edit-starts-at"
                   type="datetime-local"
                   defaultValue={startsAtLocalValue}
-                  onChange={(event) => event.currentTarget.setCustomValidity("")}
                   required
+                  {...detailsFieldInvalid("startsAt")}
                 />
+                {detailsFieldError("startsAt")}
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-location`}>{t("meetings.location")}</Label>
@@ -230,6 +260,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                     </Link>
                   </p>
                 )}
+                {detailsFieldError("location")}
               </div>
             </div>
             <div className="form-grid">
@@ -246,6 +277,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                     label: `${member.contact.firstName} ${member.contact.lastName}`,
                   }))}
                 />
+                {detailsFieldError("chairMemberId")}
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-secretary`}>{t("meetings.secretary")}</Label>
@@ -260,6 +292,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                     label: `${member.contact.firstName} ${member.contact.lastName}`,
                   }))}
                 />
+                {detailsFieldError("secretaryMemberId")}
               </div>
             </div>
             <Button
