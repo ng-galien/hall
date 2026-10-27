@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { capture, expect, localDateTimeInput } from "./fixtures";
+import { capture, expect, localDateTimeInput, waitForPageEntrance } from "./fixtures";
 
 /** From the meeting in preparation to the roll call screen; captures each step under `prefix` when given. */
 export async function prepareMeeting(page: Page, prefix?: string) {
@@ -21,6 +21,7 @@ export async function prepareMeeting(page: Page, prefix?: string) {
     .first()
     .click();
   await expect(page.getByTestId("meeting-edit-details")).toBeVisible();
+  await waitForPageEntrance(page);
 
   await page.getByTestId("meeting-edit-details").click();
   await page.getByTestId("meeting-edit-starts-at").fill(localDateTimeInput(new Date(Date.now() - 30 * 60_000)));
@@ -31,8 +32,6 @@ export async function prepareMeeting(page: Page, prefix?: string) {
   await shot("02-proprietes-generales");
   await page.getByTestId("meeting-edit-submit").click();
   await expect(page.getByText("Programmée", { exact: true })).toBeVisible();
-  // Choosing the officers scrolls the page under the dialog; the capture starts from the page title.
-  await page.locator("main").evaluate((element) => element.scrollTo({ top: 0 }));
   await shot("03-seance-programmee");
 
   const candidate = page.getByTestId(/^agenda-candidate-add-/).first();

@@ -19,6 +19,18 @@ export function localDateTimeInput(instant: Date) {
   return `${instant.getFullYear()}-${pad(instant.getMonth() + 1)}-${pad(instant.getDate())}T${pad(instant.getHours())}:${pad(instant.getMinutes())}`;
 }
 
+/** Waits for the finite animations of the page, such as its entrance, so that a click lands on a still target. */
+export async function waitForPageEntrance(page: Page) {
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY)
+        .map((animation) => animation.finished.catch(() => undefined)),
+    ),
+  );
+}
+
 export const test = base.extend<{ docsPage: Page }>({
   docsPage: async ({ page, isolatedDatabase: _isolatedDatabase }, use) => {
     await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
