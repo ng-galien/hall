@@ -1,8 +1,8 @@
 import { defineExhaustiveLiterals } from "./match.js";
 
-export type Identifier = string;
-export type IsoDate = string;
-export type IsoDateTime = string;
+type Identifier = string;
+type IsoDate = string;
+type IsoDateTime = string;
 
 /** Business entities that can be addressed by an internal reference. */
 export const referenceEntityKinds = [
@@ -16,57 +16,17 @@ export const referenceEntityKinds = [
 
 export type ReferenceEntityKind = (typeof referenceEntityKinds)[number];
 
-export type CouncilRole = "mayor" | "deputyMayor" | "councillor";
+type CouncilRole = "mayor" | "deputyMayor" | "councillor";
 export type MeetingStatus = "draft" | "scheduled" | "inProgress" | "closed" | "cancelled";
 export type MinutesStatus = "notStarted" | "draft" | "ready" | "approved" | "signed" | "published";
 export type AttendanceStatus = "present" | "represented" | "excused" | "absent";
 export type AgendaItemStatus = "scheduled" | "inProgress" | "examined" | "postponed" | "withdrawn";
 export type CouncilDecisionStatus = "draft" | "ready" | "scheduled" | "adopted" | "rejected" | "enforceable";
 export type BallotMethod = "public" | "secret";
-export type BallotResult = "adopted" | "rejected";
+type BallotResult = "adopted" | "rejected";
 export type VoteChoice = "for" | "against" | "abstain" | "notVoting";
-export type TemplateKind = "pdf" | "message";
+type TemplateKind = "pdf" | "message";
 
-export const councilRoles = defineExhaustiveLiterals<CouncilRole>()(["mayor", "deputyMayor", "councillor"] as const);
-export const meetingStatuses = defineExhaustiveLiterals<MeetingStatus>()([
-  "draft",
-  "scheduled",
-  "inProgress",
-  "closed",
-  "cancelled",
-] as const);
-export const minutesStatuses = defineExhaustiveLiterals<MinutesStatus>()([
-  "notStarted",
-  "draft",
-  "ready",
-  "approved",
-  "signed",
-  "published",
-] as const);
-export const attendanceStatuses = defineExhaustiveLiterals<AttendanceStatus>()([
-  "present",
-  "represented",
-  "excused",
-  "absent",
-] as const);
-export const agendaItemStatuses = defineExhaustiveLiterals<AgendaItemStatus>()([
-  "scheduled",
-  "inProgress",
-  "examined",
-  "postponed",
-  "withdrawn",
-] as const);
-export const councilDecisionStatuses = defineExhaustiveLiterals<CouncilDecisionStatus>()([
-  "draft",
-  "ready",
-  "scheduled",
-  "adopted",
-  "rejected",
-  "enforceable",
-] as const);
-export const ballotMethods = defineExhaustiveLiterals<BallotMethod>()(["public", "secret"] as const);
-export const ballotResults = defineExhaustiveLiterals<BallotResult>()(["adopted", "rejected"] as const);
-export const voteChoices = defineExhaustiveLiterals<VoteChoice>()(["for", "against", "abstain", "notVoting"] as const);
 export const templateKinds = defineExhaustiveLiterals<TemplateKind>()(["pdf", "message"] as const);
 
 /** Legacy meeting infrastructure term shape; directory APIs use the PostgreSQL CouncilTerm contract. */
@@ -134,7 +94,7 @@ export interface Contact {
   updatedAt: IsoDateTime;
 }
 
-export type ContactSummary = Omit<Contact, "notes" | "activeCouncilMemberId" | "createdAt" | "updatedAt">;
+type ContactSummary = Omit<Contact, "notes" | "activeCouncilMemberId" | "createdAt" | "updatedAt">;
 
 export interface CouncilMember {
   id: Identifier;
@@ -172,9 +132,7 @@ export interface CouncilMeeting {
   updatedAt: IsoDateTime;
 }
 
-export interface Attendance {
-  id: Identifier;
-  meetingId: Identifier;
+interface AttendanceEvidence {
   memberId: Identifier;
   status: AttendanceStatus;
   proxyHolderMemberId: Identifier | null;
@@ -182,44 +140,22 @@ export interface Attendance {
   version: number;
 }
 
-export interface AttendanceEvidence {
-  memberId: Identifier;
-  status: AttendanceStatus;
-  proxyHolderMemberId: Identifier | null;
-  proxyDocumentId: Identifier | null;
-  version: number;
-}
-
-export interface ParticipationEvidence {
+interface ParticipationEvidence {
   rosterMemberIds: Identifier[];
   attendance: AttendanceEvidence[];
   quorum: { activeMembers: number; physicallyPresent: number; required: number; reached: boolean };
 }
 
-export interface QuorumFailureEvidence extends ParticipationEvidence {
+interface QuorumFailureEvidence extends ParticipationEvidence {
   recordedAt: IsoDateTime;
 }
 
-export type FolderPath = string;
+type FolderPath = string;
 
-export interface FolderCreateResult {
-  path: FolderPath;
-  createdAt: IsoDateTime;
-}
+type ResourceReadiness = "incomplete" | "empty" | "ready";
+type ResourceAvailability = "unchecked" | "available" | "unavailable";
 
-export interface FolderRenameResult {
-  sourcePath: FolderPath;
-  targetPath: FolderPath;
-  folderCount: number;
-  resourceCount: number;
-  councilBusinessCount: number;
-  updatedAt: IsoDateTime;
-}
-
-export type ResourceReadiness = "incomplete" | "empty" | "ready";
-export type ResourceAvailability = "unchecked" | "available" | "unavailable";
-
-export interface ResourceState {
+interface ResourceState {
   readiness: ResourceReadiness;
   availability: ResourceAvailability | null;
 }
@@ -261,14 +197,14 @@ export interface RemoteResource extends ResourceBase {
 
 export type GeographicPosition = [number, number];
 
-export type GeographicGeometry =
+type GeographicGeometry =
   | { type: "Point"; coordinates: GeographicPosition }
   | { type: "LineString"; coordinates: GeographicPosition[] }
   | { type: "Polygon"; coordinates: GeographicPosition[][] };
 
 export type GeographicColor = string;
 
-export const geographicLayerIds = [
+const geographicLayerIds = [
   "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2",
   "ORTHOIMAGERY.ORTHOPHOTOS",
   "CADASTRALPARCELS.PARCELLAIRE_EXPRESS",
@@ -357,7 +293,7 @@ export type GeographicView =
   | { kind: "center"; center: GeographicPosition; zoom: number }
   | { kind: "extent"; extent: [number, number, number, number]; zoom: number };
 
-export interface GeographicProvenance {
+interface GeographicProvenance {
   attribution: string;
   license: "Licence Ouverte 2.0";
   metadataUrl: string;
@@ -373,7 +309,7 @@ export interface GeographicResource extends ResourceBase {
 
 /** A reusable geographic dataset whose features are stored outside the resource detail. */
 // @implements-requirement HALL-FR-DOC-310
-export interface GeographicLayerResource extends ResourceBase {
+interface GeographicLayerResource extends ResourceBase {
   kind: "geographicLayer";
   featureCount: number;
   version: number;
@@ -386,15 +322,9 @@ export interface GeographicResourceData {
   provenance: GeographicProvenance;
 }
 
-export type LegalReferenceKind = "article";
+type LegalReferenceKind = "article";
 export type LegalReferenceFund = "CODE_ETAT" | "CODE_DATE";
-export type LegalReferenceVerificationStatus = "current" | "verificationUnavailable";
-
-export const legalReferenceFunds = defineExhaustiveLiterals<LegalReferenceFund>()(["CODE_ETAT", "CODE_DATE"] as const);
-export const legalReferenceVerificationStatuses = defineExhaustiveLiterals<LegalReferenceVerificationStatus>()([
-  "current",
-  "verificationUnavailable",
-] as const);
+type LegalReferenceVerificationStatus = "current" | "verificationUnavailable";
 
 export interface LegalReferenceSearchResult {
   provider: "legifrance";
@@ -408,7 +338,7 @@ export interface LegalReferenceSearchResult {
   sourceUrl: string;
 }
 
-export interface LegalReferenceSnapshot {
+interface LegalReferenceSnapshot {
   id: Identifier;
   commonId: string;
   versionId: string;
@@ -422,14 +352,14 @@ export interface LegalReferenceSnapshot {
   snapshotHash: string;
 }
 
-export interface LegalReferenceDraftResource extends ResourceBase {
+interface LegalReferenceDraftResource extends ResourceBase {
   kind: "legalReference";
   resolutionStatus: "draft";
   provider: "legifrance";
   referenceKind: LegalReferenceKind;
 }
 
-export interface LegalReferenceResolvedResource extends ResourceBase {
+interface LegalReferenceResolvedResource extends ResourceBase {
   kind: "legalReference";
   resolutionStatus: "resolved";
   provider: "legifrance";
@@ -458,28 +388,11 @@ export type DocumentFormat = (typeof documentFormats)[number];
 
 export type DocumentCategory = "report" | "draftCouncilDecision" | "meetingNotice" | "minutes" | "proxy" | "supporting";
 
-export const documentCategories = defineExhaustiveLiterals<DocumentCategory>()([
-  "report",
-  "draftCouncilDecision",
-  "meetingNotice",
-  "minutes",
-  "proxy",
-  "supporting",
-] as const);
-
 export type EditorAssetOwner =
   | { kind: "textResourceContent"; id: Identifier }
   | { kind: "councilBusinessReport"; id: Identifier }
   | { kind: "councilDecisionDraft"; id: Identifier }
   | { kind: "agendaItemDiscussionSummary"; id: Identifier };
-
-export type EditorAssetOwnerKind = EditorAssetOwner["kind"];
-export const editorAssetOwnerKinds = defineExhaustiveLiterals<EditorAssetOwnerKind>()([
-  "textResourceContent",
-  "councilBusinessReport",
-  "councilDecisionDraft",
-  "agendaItemDiscussionSummary",
-] as const);
 
 interface DocumentResourceBase extends ResourceBase {
   kind: "document";
@@ -497,7 +410,7 @@ export interface DocumentaryResource extends DocumentResourceBase {
   editorOwner: null;
 }
 
-export interface EditorAssetResource extends DocumentResourceBase {
+interface EditorAssetResource extends DocumentResourceBase {
   usage: "editorAsset";
   category: null;
   editorOwner: EditorAssetOwner;
@@ -506,8 +419,6 @@ export interface EditorAssetResource extends DocumentResourceBase {
 export type DocumentResource = DocumentaryResource | EditorAssetResource;
 
 export type DocumentUsage = DocumentResource["usage"];
-export const documentUsages = defineExhaustiveLiterals<DocumentUsage>()(["document", "editorAsset"] as const);
-
 export type Resource =
   | TextResource
   | SpreadsheetResource
@@ -555,29 +466,22 @@ interface CouncilBusinessBase {
   updatedAt: IsoDateTime;
 }
 
-export interface CouncilMatter extends CouncilBusinessBase {
+interface CouncilMatter extends CouncilBusinessBase {
   kind: "matter";
   councilDecisionId: Identifier | null;
   committeeId: Identifier | null;
 }
 
-export interface MinutesApproval extends CouncilBusinessBase {
+interface MinutesApproval extends CouncilBusinessBase {
   kind: "minutesApproval";
   minutesOfMeetingId: Identifier;
 }
 
-export interface OpenQuestion extends CouncilBusinessBase {
+interface OpenQuestion extends CouncilBusinessBase {
   kind: "openQuestion";
 }
 
-export type CouncilBusinessKind = CouncilBusiness["kind"];
-export const councilBusinessKinds = defineExhaustiveLiterals<CouncilBusinessKind>()([
-  "matter",
-  "minutesApproval",
-  "openQuestion",
-] as const);
-
-export interface CouncilDecision {
+interface CouncilDecision {
   id: Identifier;
   number: string | null;
   slug: string;
@@ -591,22 +495,18 @@ export interface CouncilDecision {
   updatedAt: IsoDateTime;
 }
 
-export interface CouncilDecisionListEntry extends CouncilDecision {
-  meetingId: Identifier | null;
-}
-
-export interface VoteInput {
+interface VoteInput {
   memberId: Identifier;
   castByMemberId: Identifier;
   choice: VoteChoice;
 }
 
-export interface Vote extends VoteInput {
+interface Vote extends VoteInput {
   id: Identifier;
   ballotId: Identifier;
 }
 
-export type BallotTarget = { kind: "councilDecision"; id: Identifier } | { kind: "agendaItem"; id: Identifier };
+type BallotTarget = { kind: "councilDecision"; id: Identifier } | { kind: "agendaItem"; id: Identifier };
 
 interface BallotBase {
   id: Identifier;
@@ -632,40 +532,16 @@ interface BallotBase {
   cancelledAt: IsoDateTime | null;
 }
 
-export interface PublicBallot extends BallotBase {
+interface PublicBallot extends BallotBase {
   method: "public";
   votes: Vote[];
 }
 
-export interface SecretBallot extends BallotBase {
+interface SecretBallot extends BallotBase {
   method: "secret";
 }
 
 export type Ballot = PublicBallot | SecretBallot;
-
-export interface MeetingAggregate {
-  meeting: CouncilMeeting;
-  agendaReady: boolean;
-  requiredMinutesOfMeetingId: Identifier | null;
-  activeMemberCount: number;
-  rosterMemberIds: Identifier[];
-  attendance: Attendance[];
-  agendaItems: AgendaItem[];
-  councilDecisions: CouncilDecision[];
-  ballots: Ballot[];
-  quorum: { activeMembers: number; physicallyPresent: number; required: number; reached: boolean };
-}
-
-export interface CouncilBusinessOccurrence {
-  meeting: CouncilMeeting;
-  agendaItem: AgendaItem;
-}
-
-export interface CouncilBusinessDetails {
-  business: CouncilBusiness;
-  councilDecision: CouncilDecision | null;
-  occurrences: CouncilBusinessOccurrence[];
-}
 
 export interface ResourceDetails {
   resource: Resource;

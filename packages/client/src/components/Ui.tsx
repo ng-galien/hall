@@ -215,7 +215,6 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   meeting_not_found: "error.meeting_not_found",
   meeting_officers_required: "error.meeting_officers_required",
   minutes_approval_required: "error.minutes_approval_required",
-  meeting_roster_locked: "error.meeting_roster_locked",
   network_unavailable: "error.network_unavailable",
   official_source_access_denied: "error.official_source_access_denied",
   official_source_invalid_response: "error.official_source_invalid_response",

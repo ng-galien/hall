@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  agendaItemRecusalSchema,
-  agendaItemRecusalStateSchema,
-  recordAgendaItemRecusalSchema,
-  recusalLegalBases,
-} from "./recusal.js";
+import { agendaItemRecusalSchema, agendaItemRecusalStateSchema, recordAgendaItemRecusalSchema } from "./recusal.js";
 
 const memberId = "11111111-1111-4111-8111-111111111111";
 const command = {
@@ -23,7 +18,9 @@ const recusal = {
 
 describe("agenda item recusal", () => {
   it("offers exactly the two declared legal bases", () => {
-    expect(recusalLegalBases).toEqual(["personalInterest", "designatedRepresentativeConflict"]);
+    for (const legalBasis of ["personalInterest", "designatedRepresentativeConflict"]) {
+      expect(recordAgendaItemRecusalSchema.parse({ ...command, legalBasis }).legalBasis).toBe(legalBasis);
+    }
   });
 
   it("requires an explicit legal basis", () => {

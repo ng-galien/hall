@@ -4,7 +4,6 @@ import {
   hallGeoJsonDrawings,
   hallGeoJsonMeasurements,
   hallGeoJsonWithinCapacity,
-  isHallGeoJsonMeasurement,
   matchHallGeoJsonFeature,
 } from "./geographicFeature.js";
 import type { HallGeoJsonFeature, HallGeoJsonMeasurement } from "./model.js";
@@ -81,7 +80,6 @@ describe("saved measurements in the drawings GeoJSON", () => {
       },
     };
     const collection = { type: "FeatureCollection" as const, features: [features[0]!, measurement, features[2]!] };
-    expect(collection.features.map(isHallGeoJsonMeasurement)).toEqual([false, true, false]);
     expect(hallGeoJsonDrawings(collection).map(({ properties }) => properties.kind)).toEqual(["marker", "area"]);
     expect(hallGeoJsonMeasurements(collection)).toEqual([measurement]);
   });

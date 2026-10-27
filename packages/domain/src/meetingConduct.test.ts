@@ -4,8 +4,6 @@ import {
   meetingAgendaCanChange,
   meetingConductEvidenceSchema,
   meetingConductStateSchema,
-  meetingQuorumObservationSchema,
-  meetingReconvocationSchema,
   recordMeetingAttendanceEventsSchema,
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
@@ -18,6 +16,14 @@ const recordId = "44444444-4444-4444-8444-444444444444";
 const agendaItemId = "55555555-5555-4555-8555-555555555555";
 const observationId = "66666666-6666-4666-8666-666666666666";
 const time = "2026-10-03T18:00:00+02:00";
+const conductEvidenceWith = (entries: Record<string, unknown[]>) =>
+  meetingConductEvidenceSchema.parse({
+    membershipRecords: [],
+    attendanceEvents: [],
+    quorumObservations: [],
+    reconvocations: [],
+    ...entries,
+  });
 
 const attendance = {
   id: attendanceId,
@@ -154,27 +160,36 @@ describe("meeting conduct evidence", () => {
     ).toThrow();
   });
 
+  it("accepts a well-formed quorum observation and reconvocation", () => {
+    expect(conductEvidenceWith({ quorumObservations: [observation], reconvocations: [reconvocation] })).toMatchObject({
+      quorumObservations: [{ id: observationId }],
+      reconvocations: [{ failedObservationId: observationId }],
+    });
+  });
+
   it("requires a time-zone offset on observed instants", () => {
-    expect(() => meetingQuorumObservationSchema.parse({ ...observation, observedAt: "2026-10-03T18:00:00" })).toThrow();
+    expect(() =>
+      conductEvidenceWith({ quorumObservations: [{ ...observation, observedAt: "2026-10-03T18:00:00" }] }),
+    ).toThrow();
   });
 
   it("rejects an unknown quorum verdict or regime", () => {
     expect(() =>
-      meetingQuorumObservationSchema.parse({ ...observation, facts: { ...facts, verdict: "pending" } }),
+      conductEvidenceWith({ quorumObservations: [{ ...observation, facts: { ...facts, verdict: "pending" } }] }),
     ).toThrow();
     expect(() =>
-      meetingQuorumObservationSchema.parse({ ...observation, facts: { ...facts, regime: "urgent" } }),
+      conductEvidenceWith({ quorumObservations: [{ ...observation, facts: { ...facts, regime: "urgent" } }] }),
     ).toThrow();
   });
 
   it("rejects quorum facts without members in office", () => {
     expect(() =>
-      meetingQuorumObservationSchema.parse({ ...observation, facts: { ...facts, membersInOffice: [] } }),
+      conductEvidenceWith({ quorumObservations: [{ ...observation, facts: { ...facts, membersInOffice: [] } }] }),
     ).toThrow();
   });
 
   it("rejects undeclared fields", () => {
-    expect(() => meetingReconvocationSchema.parse({ ...reconvocation, note: "x" })).toThrow();
+    expect(() => conductEvidenceWith({ reconvocations: [{ ...reconvocation, note: "x" }] })).toThrow();
   });
 });
 

@@ -6,7 +6,7 @@ const id = z.uuid();
 const time = z.iso.datetime({ offset: true });
 const memberIdentity = z.object({ councilMemberId: id, name: z.string() }).strict();
 const evidence = { id, councilMeetingId: id, observedAt: time, recordedAt: time, recordedBy: z.string().min(1) };
-export const currentMeetingAttendanceSchema = z
+const currentMeetingAttendanceSchema = z
   .object({
     id,
     councilMemberId: id,
@@ -16,14 +16,14 @@ export const currentMeetingAttendanceSchema = z
     observedAt: time.nullable(),
   })
   .strict();
-export const meetingMembershipRecordSchema = z
+const meetingMembershipRecordSchema = z
   .object({
     ...evidence,
     sourceReference: z.string().min(1),
     members: z.array(memberIdentity).min(1),
   })
   .strict();
-export const meetingAttendanceEventSchema = z
+const meetingAttendanceEventSchema = z
   .object({
     id,
     meetingAttendanceId: id,
@@ -55,14 +55,14 @@ export const meetingQuorumFactsSchema = z
     remainingAgendaItemIds: z.array(id),
   })
   .strict();
-export const meetingQuorumObservationSchema = z
+const meetingQuorumObservationSchema = z
   .object({
     ...evidence,
     agendaItemId: id.nullable(),
     facts: meetingQuorumFactsSchema,
   })
   .strict();
-export const meetingReconvocationSchema = z
+const meetingReconvocationSchema = z
   .object({
     id,
     councilMeetingId: id,
@@ -79,8 +79,7 @@ export const meetingReconvocationSchema = z
   .strict();
 // Exceptions to the three-meeting limit of a written proxy (CGCT L2121-20).
 export const proxyLimitExceptionSchema = z.enum(["illness", "maternityLeave"]);
-export type ProxyLimitException = z.infer<typeof proxyLimitExceptionSchema>;
-export const meetingProxyExceptionSchema = z
+const meetingProxyExceptionSchema = z
   .object({
     id,
     councilMeetingId: id,
@@ -91,9 +90,8 @@ export const meetingProxyExceptionSchema = z
     recordedBy: z.string().min(1),
   })
   .strict();
-export type MeetingProxyException = z.infer<typeof meetingProxyExceptionSchema>;
 // Closed session decided without debate (CGCT L2121-18).
-export const meetingClosedSessionSchema = z
+const meetingClosedSessionSchema = z
   .object({
     id,
     councilMeetingId: id,
@@ -107,17 +105,14 @@ export const meetingClosedSessionSchema = z
     recordedBy: z.string().min(1),
   })
   .strict();
-export type MeetingClosedSession = z.infer<typeof meetingClosedSessionSchema>;
-export const meetingOfficeSchema = z.enum(["chair", "secretary"]);
-export type MeetingOffice = z.infer<typeof meetingOfficeSchema>;
-export const meetingOfficerBasisSchema = z.enum([
+const meetingOfficeSchema = z.enum(["chair", "secretary"]);
+const meetingOfficerBasisSchema = z.enum([
   "mayor",
   "deputyInNominationOrder",
   "councilDesignation",
   "councilNomination",
 ]);
-export type MeetingOfficerBasis = z.infer<typeof meetingOfficerBasisSchema>;
-export const meetingOfficerChangeSchema = z
+const meetingOfficerChangeSchema = z
   .object({
     id,
     councilMeetingId: id,
@@ -130,8 +125,7 @@ export const meetingOfficerChangeSchema = z
     recordedBy: z.string().min(1),
   })
   .strict();
-export type MeetingOfficerChange = z.infer<typeof meetingOfficerChangeSchema>;
-export const meetingAuxiliaryAttendanceSchema = z
+const meetingAuxiliaryAttendanceSchema = z
   .object({
     id,
     councilMeetingId: id,
@@ -143,7 +137,6 @@ export const meetingAuxiliaryAttendanceSchema = z
     recordedBy: z.string().min(1),
   })
   .strict();
-export type MeetingAuxiliaryAttendance = z.infer<typeof meetingAuxiliaryAttendanceSchema>;
 export const meetingConductEvidenceSchema = z
   .object({
     membershipRecords: z.array(meetingMembershipRecordSchema),
@@ -178,8 +171,6 @@ export const meetingConductStateSchema = meetingConductEvidenceSchema
     canRecordReconvocation: z.boolean(),
   })
   .strict();
-export type MeetingQuorumObservation = z.infer<typeof meetingQuorumObservationSchema>;
-export type MeetingConductState = z.infer<typeof meetingConductStateSchema>;
 export const recordMeetingAttendanceEventsSchema = z
   .object({
     observedAt: time,

@@ -99,7 +99,6 @@ export type ErrorCode =
   | "official_source_access_denied"
   | "official_source_invalid_response"
   | "official_source_unavailable"
-  | "meeting_roster_locked"
   | "last_administrator_required"
   | "permission_denied"
   | "personal_workspace_resource_not_associable"

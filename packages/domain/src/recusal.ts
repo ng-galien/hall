@@ -1,10 +1,8 @@
 import { z } from "zod";
 
 // One closed legal qualification. It is declared explicitly, never inferred.
-export const recusalLegalBasisSchema = z.enum(["personalInterest", "designatedRepresentativeConflict"]);
+const recusalLegalBasisSchema = z.enum(["personalInterest", "designatedRepresentativeConflict"]);
 export type RecusalLegalBasis = z.infer<typeof recusalLegalBasisSchema>;
-export const recusalLegalBases = recusalLegalBasisSchema.options;
-
 export const recordAgendaItemRecusalSchema = z
   .object({
     councilMemberId: z.uuid(),
@@ -21,8 +19,6 @@ export const agendaItemRecusalSchema = recordAgendaItemRecusalSchema.extend({
   recordedBy: z.string().min(1),
   memberName: z.string(),
 });
-export type AgendaItemRecusal = z.infer<typeof agendaItemRecusalSchema>;
-
 // These are impacts on declarations, not a legal membership/quorum observation.
 export const agendaItemRecusalStateSchema = z
   .object({
@@ -53,4 +49,3 @@ export const agendaItemBallotStateSchema = z
       .strict(),
   })
   .strict();
-export type AgendaItemBallotState = z.infer<typeof agendaItemBallotStateSchema>;

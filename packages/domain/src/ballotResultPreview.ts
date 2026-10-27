@@ -3,7 +3,7 @@ import { meetingQuorumFactsSchema } from "./meetingConduct.js";
 
 const id = z.uuid();
 const count = z.number().int().nonnegative();
-export const ordinaryBallotTotalsSchema = z
+const ordinaryBallotTotalsSchema = z
   .object({
     approve: count,
     reject: count,
@@ -33,12 +33,12 @@ const secretCandidate = {
   }),
 };
 // The submitted candidate never names the ballot chair: the meeting determines it.
-export const ordinaryBallotCandidateSchema = z.discriminatedUnion("mode", [
+const ordinaryBallotCandidateSchema = z.discriminatedUnion("mode", [
   z.object({ ...candidateBase, ...publicCandidate }).strict(),
   z.object({ ...candidateBase, ...secretCandidate }).strict(),
 ]);
 // The reviewed candidate carries the ballot chair determined by the meeting.
-export const reviewedBallotCandidateSchema = z.discriminatedUnion("mode", [
+const reviewedBallotCandidateSchema = z.discriminatedUnion("mode", [
   z.object({ ...candidateBase, chairmanAttendanceId: id, ...publicCandidate }).strict(),
   z.object({ ...candidateBase, chairmanAttendanceId: id, ...secretCandidate }).strict(),
 ]);

@@ -1,4 +1,4 @@
-export type DiscriminatedHandlers<T, D extends keyof T> = {
+type DiscriminatedHandlers<T, D extends keyof T> = {
   [K in Extract<T[D], PropertyKey>]: (value: Extract<T, Record<D, K>>) => unknown;
 };
 
@@ -19,7 +19,7 @@ export function matchDiscriminated<
   return handler(value as never);
 }
 
-export type LiteralHandlers<T extends PropertyKey> = {
+type LiteralHandlers<T extends PropertyKey> = {
   [K in T]: () => unknown;
 };
 
@@ -31,7 +31,7 @@ export function matchLiteral<T extends PropertyKey, H extends LiteralHandlers<T>
   return handlers[value]() as HandlerResult<H>;
 }
 
-export type NestedDiscriminatedHandlers<T, P extends keyof T, D extends keyof T[P]> = {
+type NestedDiscriminatedHandlers<T, P extends keyof T, D extends keyof T[P]> = {
   [K in Extract<T[P][D], PropertyKey>]: (value: Extract<T, Record<P, Record<D, K>>>) => unknown;
 };
 

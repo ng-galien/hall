@@ -83,7 +83,6 @@ export type ApiErrorCode =
   | "meeting_not_found"
   | "meeting_officers_required"
   | "minutes_approval_required"
-  | "meeting_roster_locked"
   | "network_unavailable"
   | "official_source_access_denied"
   | "official_source_invalid_response"
@@ -205,7 +204,6 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "meeting_not_found",
   "meeting_officers_required",
   "minutes_approval_required",
-  "meeting_roster_locked",
   "network_unavailable",
   "official_source_access_denied",
   "official_source_invalid_response",

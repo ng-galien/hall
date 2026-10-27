@@ -1212,7 +1212,6 @@ export const en = {
   "error.request_too_large": "The request exceeds the server size limit.",
   "error.invalid_meeting_transition": "This meeting cannot move to the requested stage.",
   "error.meeting_not_found": "The council meeting no longer exists.",
-  "error.meeting_roster_locked": "Attendance can only be changed after the meeting roster has been fixed.",
   "error.quorum_not_reached": "The ballot cannot be recorded because quorum has not been reached.",
   "error.proxy_invalid": "The written proxy or its holder is not valid for this meeting.",
   "error.ballot_already_recorded": "A ballot has already been recorded for this council decision.",

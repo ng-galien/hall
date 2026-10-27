@@ -5,7 +5,7 @@ import LineString from "ol/geom/LineString";
 import Polygon from "ol/geom/Polygon";
 import VectorSource from "ol/source/Vector";
 import { test } from "vitest";
-import { hallGeoJsonFeatureCollectionSchema } from "../../domain/src/schemas.ts";
+import { hallGeographicFeatureCollectionSchema } from "../../api-contract/src/resources.ts";
 import { lineArrowStyles } from "../src/features/geographic/geographicFeatureKindPolicy.tsx";
 import {
   geographicModifiedFeatureStyle,
@@ -29,13 +29,13 @@ const line = {
 // @verifies-requirement HALL-FR-DOC-530
 test("legend and directional line round trip; invalid labels, colors and capacity are rejected", () => {
   const value = { type: "FeatureCollection", features: [line], legend };
-  assert.deepEqual(hallGeoJsonFeatureCollectionSchema.parse(JSON.parse(JSON.stringify(value))), value);
+  assert.deepEqual(hallGeographicFeatureCollectionSchema.parse(JSON.parse(JSON.stringify(value))), value);
   for (const invalid of [
     [{ color: "#ffffff", label: " " }],
     [{ color: "garbage", label: "Source" }],
     Array.from({ length: 17 }, () => legend[0]),
   ])
-    assert.equal(hallGeoJsonFeatureCollectionSchema.safeParse({ ...value, legend: invalid }).success, false);
+    assert.equal(hallGeographicFeatureCollectionSchema.safeParse({ ...value, legend: invalid }).success, false);
   const source = new VectorSource({ features: readHallFeatures(value) });
   source.getFeatures()[0].set("label", "Renamed");
   const edited = { ...value, features: serializeHallLayer(source).features };

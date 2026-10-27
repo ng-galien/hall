@@ -1234,8 +1234,6 @@ export const fr: Messages = {
   "error.request_too_large": "La requête dépasse la taille maximale autorisée par le serveur.",
   "error.invalid_meeting_transition": "Cette séance ne peut pas passer à l’étape demandée.",
   "error.meeting_not_found": "Cette séance du conseil n’existe plus.",
-  "error.meeting_roster_locked":
-    "Les présences ne peuvent être modifiées qu’après avoir figé la composition de la séance.",
   "error.quorum_not_reached": "Le scrutin ne peut pas être enregistré car le quorum n’est pas atteint.",
   "error.proxy_invalid": "Le pouvoir écrit ou son porteur n’est pas valable pour cette séance.",
   "error.ballot_already_recorded": "Un scrutin a déjà été enregistré pour cette délibération.",
