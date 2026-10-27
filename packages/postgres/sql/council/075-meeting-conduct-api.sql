@@ -5,8 +5,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
     WHEN target.started_at IS NULL THEN '[{"code":"meetingNotStarted"}]'::jsonb ELSE '[]'::jsonb END,
   'recordAttendanceEvents',
     CASE WHEN target.closed_at IS NOT NULL THEN '[{"code":"meetingClosed"}]'::jsonb
-      WHEN target.started_at IS NULL AND NOT EXISTS(SELECT FROM hall.meeting_reconvocation WHERE council_meeting=target.id)
-      THEN '[{"code":"meetingNotStarted"}]'::jsonb ELSE '[]'::jsonb END,
+      WHEN target.started_at IS NULL THEN '[{"code":"meetingNotStarted"}]'::jsonb ELSE '[]'::jsonb END,
   'recordOfficerChange',
     CASE WHEN target.closed_at IS NOT NULL THEN '[{"code":"meetingClosed"}]'::jsonb
       WHEN target.started_at IS NULL THEN '[{"code":"meetingNotStarted"}]'::jsonb ELSE '[]'::jsonb END,
@@ -29,7 +28,7 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ha
    'canDeclareAuxiliaryAttendance',jsonb_array_length(blockers.value->'declareAuxiliaryAttendance')=0,
    'canRecordClosedSession',m.started_at IS NOT NULL AND m.closed_at IS NULL,
    'canRecordQuorum',m.closed_at IS NULL AND EXISTS(SELECT FROM hall.meeting_membership_record WHERE council_meeting=m.id),
-   'canRecordReconvocation',m.closed_at IS NULL AND EXISTS(SELECT FROM hall.meeting_quorum_observation o
+   'canRecordReconvocation',m.started_at IS NOT NULL AND m.closed_at IS NULL AND EXISTS(SELECT FROM hall.meeting_quorum_observation o
      WHERE o.council_meeting=m.id AND o.facts->>'verdict'='notMet'
        AND NOT EXISTS(SELECT FROM hall.meeting_reconvocation WHERE failed_observation=o.id)))
  FROM hall.council_meetings m CROSS JOIN LATERAL (SELECT hall.council_meeting_action_blockers(m) value) blockers WHERE m.id=target_meeting;

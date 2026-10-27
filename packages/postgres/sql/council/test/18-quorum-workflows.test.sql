@@ -51,21 +51,54 @@ SELECT is((SELECT facts->>'denominator' FROM meeting_quorum_observation WHERE ag
 
 -- @verifies-requirement HALL-FR-MTG-290
 
--- ordinary failed first call, clear days, identified affairs.
+-- ordinary failed first call, clear days, identified affairs; the meeting held
+-- after the second convocation is a new meeting linked to the first one.
 SELECT pg_temp.quorum_case('renewed',15,7);
-CREATE TEMP TABLE first_failure AS SELECT (record_meeting_quorum(test_uuid('renewed:meeting'),NULL,'2026-01-01 09:00Z')).*;
+SELECT test_prepare_notice(test_uuid('renewed:meeting'));
+SELECT start_council_meeting(test_uuid('renewed:meeting'),'2026-01-01 09:00Z');
+CREATE TEMP TABLE first_failure AS SELECT * FROM meeting_quorum_observation WHERE council_meeting=test_uuid('renewed:meeting') AND agenda_item IS NULL;
+SELECT is((SELECT facts->>'verdict' FROM first_failure),'notMet','the opening records the failed quorum');
 SELECT throws_ok($$INSERT INTO meeting_reconvocation(council_meeting,failed_observation,sent_at,scheduled_at,time_zone,first_notice_evidence,renewed_notice_evidence,agenda_item_ids)
  SELECT test_uuid('renewed:meeting'),id,'2026-01-01 10:00Z','2026-01-04 18:00Z','Europe/Paris','regular first notice','renewed transmission',ARRAY[test_uuid('renewed:a:agenda-item')] FROM first_failure$$,'HV147',NULL,'three elapsed days are not three clear days');
+SELECT throws_ok($$INSERT INTO meeting_reconvocation(council_meeting,failed_observation,sent_at,scheduled_at,time_zone,first_notice_evidence,renewed_notice_evidence,agenda_item_ids)
+ SELECT test_uuid('renewed:meeting'),id,'2026-01-01 10:00Z','2026-01-05 09:00Z','Europe/Paris','first','second',ARRAY[test_uuid('power:a:agenda-item')] FROM first_failure$$,'HV148',NULL,'renewed notice cannot invent another meeting affair');
 SELECT lives_ok($$INSERT INTO meeting_reconvocation(council_meeting,failed_observation,sent_at,scheduled_at,time_zone,first_notice_evidence,renewed_notice_evidence,agenda_item_ids)
  SELECT test_uuid('renewed:meeting'),id,'2026-01-01 10:00Z','2026-01-05 09:00Z','Europe/Paris','regular first notice','renewed transmission',ARRAY[test_uuid('renewed:a:agenda-item')] FROM first_failure$$,'D+4 satisfies three clear calendar days including weekend');
-SELECT throws_ok($$SELECT start_council_meeting(test_uuid('renewed:meeting'),'2026-01-05 09:00Z')$$,'HV149',NULL,'renewed actual meeting requires fresh membership and presence');
-INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids) SELECT council_meeting,'2026-01-05 09:00Z','Reconfirmed mandates',member_ids FROM meeting_membership_record WHERE council_meeting=test_uuid('renewed:meeting');
-INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status) SELECT id,'2026-01-05 09:00Z',status FROM meeting_attendance WHERE council_meeting=test_uuid('renewed:meeting');
-SELECT test_prepare_notice(test_uuid('renewed:meeting'));
-SELECT lives_ok($$SELECT start_council_meeting(test_uuid('renewed:meeting'),'2026-01-05 09:00Z')$$,'second call admits opening below ordinary quorum');
+SELECT is(calculate_meeting_quorum(test_uuid('renewed:meeting'),NULL,'2026-01-01 10:01Z')->>'regime','ordinary','the meeting without quorum is not continued under the second convocation');
+SELECT lives_ok($$SELECT close_council_meeting(test_uuid('renewed:meeting'),'2026-01-01 10:05Z')$$,'the meeting without quorum closes on its failed quorum');
+SET CONSTRAINTS ALL IMMEDIATE;
+SET CONSTRAINTS ALL DEFERRED;
+CREATE TEMP TABLE reconvened AS SELECT * FROM council_meetings WHERE previous_council_meeting=test_uuid('renewed:meeting');
+SELECT is((SELECT scheduled_at FROM reconvened),'2026-01-05 09:00Z'::timestamptz,'the reconvened meeting is dated by the second convocation');
+SELECT is((SELECT location FROM reconvened),'Chamber','the reconvened meeting keeps the place of the first meeting');
+SELECT is((SELECT council_meeting_projection(m)->>'reconvocationId' FROM council_meetings m WHERE m.id=(SELECT id FROM reconvened)),(SELECT id::text FROM meeting_reconvocation WHERE council_meeting=test_uuid('renewed:meeting')),'the reconvened meeting names its second convocation');
+SELECT is((SELECT council_meeting_projection(m)->'noticeDeadline'->>'regime' FROM council_meetings m WHERE m.id=(SELECT id FROM reconvened)),'secondConvocation','its notice follows the second-convocation regime');
+SELECT is((SELECT council_meeting FROM council_agenda_item WHERE id=test_uuid('renewed:a:agenda-item')),(SELECT id FROM reconvened),'the unexamined affair is carried to the reconvened meeting');
+INSERT INTO meeting_attendance(id,council_member,council_meeting,status,declared_at)
+ SELECT test_uuid('renewed:again:att:'||i),test_uuid('renewed:member:'||i),(SELECT id FROM reconvened),
+  CASE WHEN i<=7 THEN 'present'::meeting_attendance_status ELSE 'absent'::meeting_attendance_status END,'2026-01-05 09:00Z' FROM generate_series(1,15) i;
+INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids)
+ SELECT (SELECT id FROM reconvened),'2026-01-05 09:00Z','Reconfirmed mandates',member_ids FROM meeting_membership_record WHERE council_meeting=test_uuid('renewed:meeting');
+SELECT set_council_meeting_officers((SELECT id FROM reconvened),test_uuid('renewed:member:1'),test_uuid('renewed:member:2'));
+SELECT test_prepare_notice((SELECT id FROM reconvened));
+SELECT lives_ok($$SELECT start_council_meeting((SELECT id FROM reconvened),'2026-01-05 09:00Z')$$,'second call admits opening below ordinary quorum');
+SELECT is((SELECT secretary_member FROM council_meetings WHERE id=(SELECT id FROM reconvened)),test_uuid('renewed:member:2'),'the reconvened meeting has its own secretary');
+SELECT is((SELECT facts->>'verdict' FROM meeting_quorum_observation WHERE council_meeting=(SELECT id FROM reconvened) AND agenda_item IS NULL),'exempt','the opening of the reconvened meeting is exempt from quorum');
 SELECT lives_ok($$SELECT start_council_agenda_item(test_uuid('renewed:a:agenda-item'),'2026-01-05 09:01Z')$$,'identified affair has the recorded exemption');
-SELECT is((SELECT facts->>'verdict' FROM meeting_quorum_observation WHERE agenda_item=test_uuid('renewed:a:agenda-item')),'exempt','exemption is distinguishable from ordinary quorum met');
-SELECT is(calculate_meeting_quorum(test_uuid('renewed:meeting'),test_uuid('renewed:b:agenda-item'),'2026-01-05 09:01Z')->>'verdict','notMet','an affair outside renewed notice has no automatic exemption');
+SELECT is((SELECT facts->>'verdict' FROM meeting_quorum_observation WHERE agenda_item=test_uuid('renewed:a:agenda-item') AND council_meeting=(SELECT id FROM reconvened)),'exempt','exemption is distinguishable from ordinary quorum met');
+SELECT is(calculate_meeting_quorum((SELECT id FROM reconvened),test_uuid('renewed:b:agenda-item'),'2026-01-05 09:01Z')->>'verdict','notMet','an affair outside renewed notice has no automatic exemption');
+SELECT adjourn_council_agenda_item(test_uuid('renewed:a:agenda-item'),'2026-01-05 09:30Z');
+SELECT close_council_meeting((SELECT id FROM reconvened),'2026-01-05 10:00Z');
+SET CONSTRAINTS ALL IMMEDIATE;
+SET CONSTRAINTS ALL DEFERRED;
+SELECT is(capture_minutes_facts((SELECT id FROM reconvened))#>>'{meeting,reconvenedFrom,number}',(SELECT number::text FROM council_meetings WHERE id=test_uuid('renewed:meeting')),'the minutes of the reconvened meeting name the meeting without quorum');
+SELECT is(jsonb_array_length(capture_minutes_facts(test_uuid('renewed:meeting'))#>'{conduct,reconvocations}'),1,'the minutes of the meeting without quorum keep its second convocation');
+SELECT ok(capture_minutes_facts(test_uuid('renewed:meeting'))#>'{meeting,reconvenedFrom}'='null'::jsonb,'the meeting without quorum was not itself reconvened');
+-- A renewed convocation follows an opened meeting.
+SELECT pg_temp.quorum_case('unopened',3,1);
+CREATE TEMP TABLE unopened_failure AS SELECT (record_meeting_quorum(test_uuid('unopened:meeting'),NULL,'2026-01-01 09:00Z')).*;
+SELECT throws_ok($$INSERT INTO meeting_reconvocation(council_meeting,failed_observation,sent_at,scheduled_at,time_zone,first_notice_evidence,renewed_notice_evidence,agenda_item_ids)
+ SELECT test_uuid('unopened:meeting'),id,'2026-01-01 10:00Z','2026-01-05 09:00Z','Europe/Paris','first','second',ARRAY[test_uuid('unopened:a:agenda-item')] FROM unopened_failure$$,'HV144',NULL,'an unopened meeting cannot be reconvened');
 -- Legal review1: no synthetic failure before the actual scheduled meeting.
 SELECT pg_temp.quorum_case('bounds',3,1);
 SELECT throws_ok($$SELECT record_meeting_quorum(test_uuid('bounds:meeting'),NULL,'2026-01-01 08:59Z')$$,'HV143',NULL,'a premature observation cannot unlock reconvocation');
@@ -123,7 +156,6 @@ INSERT INTO council_meetings(id,number,scheduled_at,location) VALUES(test_uuid('
 SELECT throws_ok($$SELECT record_meeting_quorum(test_uuid('no-membership:meeting'),NULL,'2026-01-01 09:00Z')$$,'HV140',NULL,'quorum has no inferred roster fallback');
 SELECT throws_ok($$SELECT test_execute_deferred(ARRAY[$q$INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status,proxy_holder,proxy_document) VALUES(test_uuid('power:att:1'),'2026-01-01 09:04Z','represented',test_uuid('ordinary:att:1'),test_uuid('power:document'))$q$])$$,'HV134',NULL,'a proxy holder must belong to the same current meeting');
 SELECT throws_ok($$INSERT INTO meeting_reconvocation(council_meeting,failed_observation,sent_at,scheduled_at,time_zone,first_notice_evidence,renewed_notice_evidence,agenda_item_ids) SELECT test_uuid('power:meeting'),id,'2026-01-01 10:00Z','2026-01-05 09:00Z','Europe/Paris','first','second',ARRAY[test_uuid('power:a:agenda-item')] FROM meeting_quorum_observation WHERE council_meeting=test_uuid('power:meeting') LIMIT 1$$,'HV144',NULL,'a successful quorum cannot unlock exemption');
-SELECT throws_ok($$INSERT INTO meeting_reconvocation(council_meeting,failed_observation,sent_at,scheduled_at,time_zone,first_notice_evidence,renewed_notice_evidence,agenda_item_ids) SELECT test_uuid('renewed:meeting'),id,'2026-01-01 10:00Z','2026-01-05 09:00Z','Europe/Paris','first','second',ARRAY[test_uuid('power:a:agenda-item')] FROM first_failure$$,'HV148',NULL,'renewed notice cannot invent another meeting affair');
 
 SELECT * FROM finish();
 ROLLBACK;

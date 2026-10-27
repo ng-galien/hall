@@ -262,7 +262,7 @@ export function presentLiveMeeting(
       openedAt: workspace.meeting.startedAt,
       chairMemberId: workspace.meeting.chairMemberId,
       secretaryMemberId: workspace.meeting.secretaryMemberId,
-      isReconvenedMeeting: false,
+      isReconvenedMeeting: workspace.meeting.reconvocationId !== null,
       quorumFailure: null,
     },
     agendaReady: agendaItems.length > 0,

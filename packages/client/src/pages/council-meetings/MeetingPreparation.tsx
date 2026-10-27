@@ -164,7 +164,12 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               ) : null}
               <MeetingStatusBadge status={meeting.status} stale={meeting.stale} />
               {meeting.isReconvenedMeeting ? (
-                <span className="decision-meeting-chip decision-meeting-chip-none">{t("meeting.reconvenedChip")}</span>
+                <span
+                  className="decision-meeting-chip decision-meeting-chip-none"
+                  data-testid="meeting-reconvened-chip"
+                >
+                  {t("meeting.reconvenedChip")}
+                </span>
               ) : null}
             </div>
             <div className="meeting-prep-actions">

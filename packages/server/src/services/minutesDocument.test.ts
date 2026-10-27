@@ -25,6 +25,7 @@ const fixture: MinutesDetail = {
       quorum: 1,
       chair: { id: "chair", name: "Marie Martin" },
       secretary: { id: "secretary", name: "Jean Dupont" },
+      reconvenedFrom: null,
     },
     recusals: [],
     conduct: {

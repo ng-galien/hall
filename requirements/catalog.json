@@ -7228,7 +7228,7 @@
       "statement": "Une seconde convocation conserve le défaut de quorum, les deux convocations et les affaires concernées dans un épisode distinct.",
       "acceptanceCriteria": [
         "Après défaut de quorum, une nouvelle convocation permet de délibérer sans quorum sur les affaires concernées après trois jours francs suivant son envoi.",
-        "Un épisode distinct conserve défaut effectif, preuves des deux convocations, envoi, date réelle, fuseau et affaires inachevées identifiées. Effectif et présences sont reconstatés à cette nouvelle réunion."
+        "La séance sans quorum conserve le défaut effectif, les preuves des deux convocations, l’envoi, la date réelle, le fuseau et les affaires inachevées identifiées, puis se clôt. Sa clôture crée la séance reconvoquée, nouvelle séance liée à elle, datée de la nouvelle réunion, avec les affaires non examinées ; cette séance a son propre bureau, son appel et son procès-verbal, qui nomme la première séance. Effectif et présences y sont constatés."
       ],
       "clauses": [
         {
@@ -7246,7 +7246,7 @@
         {
           "key": "evidence-and-scope",
           "origin": "product",
-          "statement": "Un épisode distinct conserve défaut effectif, preuves des deux convocations, envoi, date réelle, fuseau et affaires inachevées identifiées. Effectif et présences sont reconstatés à cette nouvelle réunion.",
+          "statement": "La séance sans quorum conserve le défaut effectif, les preuves des deux convocations, l’envoi, la date réelle, le fuseau et les affaires inachevées identifiées, puis se clôt. Sa clôture crée la séance reconvoquée, nouvelle séance liée à elle, datée de la nouvelle réunion, avec les affaires non examinées ; cette séance a son propre bureau, son appel et son procès-verbal, qui nomme la première séance. Effectif et présences y sont constatés.",
           "sourceIds": []
         }
       ]

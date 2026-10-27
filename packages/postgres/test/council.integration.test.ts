@@ -68,6 +68,7 @@ postgresDescribe("PostgreSQL council client", () => {
       number: 1,
       slug: null,
       previousCouncilMeetingId: null,
+      reconvocationId: null,
       minutesId: null,
       chairMemberId: null,
       secretaryMemberId: null,

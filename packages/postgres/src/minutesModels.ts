@@ -20,6 +20,11 @@ export const minutesFactsSchema = z
         quorum: z.number().int().positive(),
         chair: person.nullable(),
         secretary: person.nullable(),
+        // The meeting without quorum whose second convocation called this meeting.
+        reconvenedFrom: z
+          .object({ id, number: z.number().int().positive(), scheduledAt: time, startedAt: time })
+          .strict()
+          .nullable(),
       })
       .strict(),
     attendance: z.array(

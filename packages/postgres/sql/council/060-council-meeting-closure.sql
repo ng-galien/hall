@@ -160,6 +160,7 @@ DECLARE
   next_meeting UUID := gen_random_uuid();
   produced_minutes UUID := gen_random_uuid();
   produced_approval UUID := gen_random_uuid();
+  renewed meeting_reconvocation;
 BEGIN
   -- The meeting-row lock serializes closure with attendance, agenda writes and
   -- any competing closure attempt.
@@ -201,17 +202,24 @@ BEGIN
 
   PERFORM hall.capture_council_meeting_snapshot(meeting.id, 'closing', closure_time);
 
-  -- The successor is provisioned without a scheduled date or a presumed membership. Its predecessor link cannot be duplicated.
+  -- @implements-requirement HALL-FR-MTG-290
+  -- After a second convocation, the successor is the reconvened meeting, dated
+  -- by that convocation at the same place. Otherwise it is provisioned without
+  -- a scheduled date. It never presumes a membership; its predecessor link
+  -- cannot be duplicated.
+  SELECT * INTO renewed FROM meeting_reconvocation WHERE council_meeting = meeting.id ORDER BY sent_at DESC LIMIT 1;
   INSERT INTO council_meetings (
     id,
     number,
     previous_council_meeting,
-    scheduled_at
+    scheduled_at,
+    location
   ) VALUES (
     next_meeting,
     meeting.number + 1,
     meeting.id,
-    NULL
+    renewed.scheduled_at,
+    CASE WHEN renewed.id IS NOT NULL THEN meeting.location END
   );
 
   INSERT INTO minutes (id, council_meeting)

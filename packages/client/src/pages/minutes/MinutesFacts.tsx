@@ -7,7 +7,10 @@ import { MinutesSectionHint } from "./MinutesSectionHint";
 
 // @implements-requirement HALL-FR-MIN-240
 export function MinutesFacts({ facts }: { facts: Facts }) {
-  const { t, formatTime, formatNumber } = useI18n();
+  const { t, formatTime, formatNumber, formatDate, formatDateTime } = useI18n();
+  const openingQuorum = facts.conduct.quorumObservations.find((observation) => observation.agendaItemId === null);
+  const reconvocation = facts.conduct.reconvocations.at(-1);
+  const reconvenedFrom = facts.meeting.reconvenedFrom;
   const present = facts.attendance.filter((entry) => entry.status === "present");
   const represented = facts.attendance.filter((entry) => entry.status === "represented");
   const excused = facts.attendance.filter((entry) => entry.status === "excused");
@@ -50,6 +53,40 @@ export function MinutesFacts({ facts }: { facts: Facts }) {
           <dt>{t("meeting.closedAt")}</dt>
           <dd>{formatTime(facts.meeting.closedAt)}</dd>
         </div>
+        {openingQuorum ? (
+          <div data-testid="minutes-opening-quorum">
+            <dt>{t("minutes.openingQuorum")}</dt>
+            <dd>
+              {t("minutes.openingQuorumValue", {
+                verdict: t(`minutes.quorumVerdict.${openingQuorum.facts.verdict}`),
+                present: formatNumber(openingQuorum.facts.presentCount),
+                required: formatNumber(openingQuorum.facts.requiredPresent),
+              })}
+            </dd>
+          </div>
+        ) : null}
+        {reconvocation ? (
+          <div data-testid="minutes-second-convocation">
+            <dt>{t("minutes.secondConvocation")}</dt>
+            <dd>
+              {t("minutes.secondConvocationValue", {
+                sentAt: formatDateTime(reconvocation.sentAt),
+                scheduledAt: formatDateTime(reconvocation.scheduledAt),
+              })}
+            </dd>
+          </div>
+        ) : null}
+        {reconvenedFrom ? (
+          <div data-testid="minutes-reconvened-from">
+            <dt>{t("minutes.reconvenedFrom")}</dt>
+            <dd>
+              {t("minutes.reconvenedFromValue", {
+                number: formatNumber(reconvenedFrom.number),
+                date: formatDate(reconvenedFrom.scheduledAt),
+              })}
+            </dd>
+          </div>
+        ) : null}
       </dl>
       <section
         className="minutes-attendance-text"

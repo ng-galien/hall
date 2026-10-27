@@ -45,7 +45,7 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION USING ERRCODE = 'HV903', MESSAGE='unknown meeting attendance';
   END IF;
-  IF meeting.closed_at IS NOT NULL OR (meeting.started_at IS NULL AND NOT EXISTS(SELECT FROM hall.meeting_reconvocation WHERE council_meeting=meeting.id AND scheduled_at<=NEW.observed_at)) THEN
+  IF meeting.closed_at IS NOT NULL OR meeting.started_at IS NULL THEN
     RAISE EXCEPTION USING ERRCODE = 'HV132', MESSAGE='attendance movements require an ongoing meeting';
   END IF;
   SELECT max(event.observed_at) INTO last_observation

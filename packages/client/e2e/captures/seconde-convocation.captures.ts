@@ -1,52 +1,154 @@
+import type { APIResponse, Page } from "@playwright/test";
 import { capture, expect, localDateTimeInput, test } from "./fixtures";
-import { prepareMeeting } from "./journeys";
 
-test.setTimeout(3 * 60_000);
+test.setTimeout(4 * 60_000);
 test.use({ seedScenario: "preparation" });
 
-test("séance sans quorum : constat, points bloqués, seconde convocation, clôture", async ({ docsPage: page }) => {
-  const journey = "seconde-convocation";
-  await prepareMeeting(page);
+interface Entity<T> {
+  properties: T;
+}
 
-  const response = await page.request.get("/api/council-members");
-  const members = ((await response.json()) as { entities: Array<{ properties: { id: string } }> }).entities.map(
-    (entity) => entity.properties.id,
-  );
-  const meetings = (await (await page.request.get("/api/council-meetings")).json()) as {
-    entities: Array<{ properties: { chairMemberId: string; secretaryMemberId: string } }>;
-  };
-  const officers = meetings.entities[0]?.properties;
-  const present = new Set([officers?.chairMemberId, officers?.secretaryMemberId, ...members.slice(0, 2)]);
+async function properties<T>(response: APIResponse): Promise<T> {
+  expect(response.ok(), response.url()).toBeTruthy();
+  return ((await response.json()) as Entity<T>).properties;
+}
+
+async function items<T>(response: APIResponse): Promise<T[]> {
+  expect(response.ok(), response.url()).toBeTruthy();
+  return (((await response.json()) as { entities?: Entity<T>[] }).entities ?? []).map((entity) => entity.properties);
+}
+
+interface Meeting {
+  id: string;
+  startedAt: string | null;
+  closedAt: string | null;
+  previousCouncilMeetingId: string | null;
+  scheduledAt: string | null;
+  location: string | null;
+  minutesId: string | null;
+  chairMemberId: string | null;
+  secretaryMemberId: string | null;
+}
+
+async function prepare(page: Page, meetingId: string, input: Record<string, string>) {
+  await properties(await page.request.put(`/api/council-meetings/${meetingId}/prepare`, { data: input }));
+  await properties(await page.request.post(`/api/council-meetings/${meetingId}/agenda-freeze`, { data: {} }));
+  await properties(await page.request.post(`/api/council-meetings/${meetingId}/notices`, { data: {} }));
+}
+
+async function rollCall(page: Page, members: string[], present: Set<string>) {
   for (const memberId of members) {
     await page.getByTestId(`live-attendance-${memberId}-${present.has(memberId) ? "present" : "absent"}`).click();
   }
+}
+
+test("séance sans quorum, seconde convocation et séance reconvoquée", async ({ docsPage: page }) => {
+  const journey = "seconde-convocation";
+  const members = (await items<{ id: string; active: boolean }>(await page.request.get("/api/council-members")))
+    .filter((member) => member.active)
+    .map((member) => member.id);
+  const first = (await items<Meeting>(await page.request.get("/api/council-meetings"))).find(
+    (meeting) => !meeting.startedAt && !meeting.closedAt,
+  )!;
+
+  // The new meeting is held at least four days after the second convocation is sent: the first
+  // meeting is dated eight days earlier.
+  const firstDate = new Date(Date.now() - 8 * 86_400_000);
+  firstDate.setHours(18, 30, 0, 0);
+  const location = "Maison commune de l’oppidum";
+  const [chair, firstSecretary, reconvenedSecretary] = members;
+  await prepare(page, first.id, {
+    scheduledAt: firstDate.toISOString(),
+    location,
+    chairMemberId: chair!,
+    secretaryMemberId: firstSecretary!,
+  });
+  const present = new Set([chair!, firstSecretary!, reconvenedSecretary!, members[3]!]);
+
+  await page.goto(`/app/meetings/${first.id}/live`);
+  await rollCall(page, members, present);
   await expect(page.getByTestId("live-meeting-start")).toBeEnabled();
   await capture(page, `${journey}/01-appel-sans-quorum`);
 
-  await page.getByTestId("live-meeting-start").click();
+  // The roll call is recorded at the date of the first meeting through the opening route of the roll-call screen.
+  await properties(
+    await page.request.post(`/api/council-meetings/${first.id}/record-opening`, {
+      data: {
+        attendance: members.map((memberId) => ({
+          councilMemberId: memberId,
+          status: present.has(memberId) ? "present" : "absent",
+        })),
+        observedAt: new Date(firstDate.getTime() + 5 * 60_000).toISOString(),
+        chairMemberId: chair,
+        secretaryMemberId: firstSecretary,
+      },
+    }),
+  );
+  await page.reload();
   await expect(page.getByText(/Quorum non atteint/).first()).toBeVisible();
   await capture(page, `${journey}/02-quorum-non-atteint`);
-
   await page.waitForTimeout(500);
   await capture(page, `${journey}/03-point-bloque`);
 
+  const sentAt = new Date(firstDate.getTime() + 60 * 60_000);
+  const renewedAt = new Date(sentAt.getTime() + 5 * 86_400_000);
+  renewedAt.setHours(18, 30, 0, 0);
   await page.getByTestId("live-reconvocation-open").click();
   await expect(page.getByTestId("live-reconvocation-form")).toBeVisible();
-  const renewedAt = new Date(Date.now() + 5 * 86_400_000);
-  renewedAt.setHours(18, 30, 0, 0);
-  await page.getByTestId("live-reconvocation-sent-at").fill(localDateTimeInput(new Date()));
+  await page.getByTestId("live-reconvocation-sent-at").fill(localDateTimeInput(sentAt));
   await page.getByTestId("live-reconvocation-scheduled-at").fill(localDateTimeInput(renewedAt));
-  await page.getByTestId("live-reconvocation-first-evidence").fill("Convocation du 12 mars affichée en mairie");
+  await page.getByTestId("live-reconvocation-first-evidence").fill("Convocation affichée en mairie");
   await page.getByTestId("live-reconvocation-renewed-evidence").fill("Seconde convocation remise aux conseillers");
   await capture(page, `${journey}/04-seconde-convocation`);
-  await page.getByTestId("live-reconvocation-cancel").click();
-  await expect(page.getByTestId("live-reconvocation-form")).toBeHidden();
+  await page.getByTestId("live-reconvocation-submit").click();
+  await expect(page.getByTestId("live-reconvocation-open")).toHaveCount(0);
 
   await page.getByTestId("live-meeting-close").click();
   await expect(page.getByTestId("live-meeting-close")).toContainText(/Confirmer|non examiné/);
-  await capture(page, `${journey}/05-clore-avec-points-non-examines`);
-  await page.getByTestId("live-meeting-close").click();
-  await expect(page).not.toHaveURL(/\/live$/, { timeout: 30_000 });
+  await capture(page, `${journey}/05-clore-la-premiere-seance`);
+  // The closure is recorded on the evening of the first meeting through the closure route of this button.
+  await properties(
+    await page.request.post(`/api/council-meetings/${first.id}/close`, {
+      data: { closedAt: new Date(firstDate.getTime() + 75 * 60_000).toISOString() },
+    }),
+  );
+
+  const meetings = await items<Meeting>(await page.request.get("/api/council-meetings"));
+  const reconvened = meetings.find((meeting) => meeting.previousCouncilMeetingId === first.id)!;
+  const closedFirst = meetings.find((meeting) => meeting.id === first.id)!;
+  await page.goto(`/app/meetings/${reconvened.id}`);
+  await expect(page.getByTestId("meeting-reconvened-chip")).toBeVisible();
   await page.waitForLoadState("networkidle");
-  await capture(page, `${journey}/06-seance-suivante-creee`);
+  await capture(page, `${journey}/06-seance-reconvoquee`);
+
+  await prepare(page, reconvened.id, {
+    scheduledAt: reconvened.scheduledAt!,
+    location: reconvened.location!,
+    chairMemberId: chair!,
+    secretaryMemberId: reconvenedSecretary!,
+  });
+  await page.goto(`/app/meetings/${reconvened.id}/live`);
+  await rollCall(page, members, present);
+  await page.getByTestId("live-meeting-start").click();
+  await expect(page.getByTestId("live-quorum-observation")).toContainText(/Seconde convocation/);
+  await page.waitForTimeout(500);
+  await capture(page, `${journey}/07-ouverture-en-seconde-convocation`);
+
+  await page.goto(`/app/minutes/${closedFirst.minutesId}`);
+  await expect(page.getByTestId("minutes-second-convocation")).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await capture(page, `${journey}/08-proces-verbal-premiere-seance`);
+
+  await page.goto(`/app/meetings/${reconvened.id}/live`);
+  await page.getByTestId("live-meeting-close").click();
+  await page.waitForTimeout(1000);
+  if (/\/live$/.test(page.url())) await page.getByTestId("live-meeting-close").click();
+  await expect(page).not.toHaveURL(/\/live$/, { timeout: 30_000 });
+  const reconvenedMinutes = (await items<Meeting>(await page.request.get("/api/council-meetings"))).find(
+    (meeting) => meeting.id === reconvened.id,
+  )!.minutesId;
+  await page.goto(`/app/minutes/${reconvenedMinutes}`);
+  await expect(page.getByTestId("minutes-reconvened-from")).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await capture(page, `${journey}/09-proces-verbal-seance-reconvoquee`);
 });

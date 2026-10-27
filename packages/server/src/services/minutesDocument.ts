@@ -128,12 +128,26 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
     return `<li>${escapeHtml(date(session.observedAt))}, huis clos décidé sans débat ${request}, par ${session.approvals} voix sur ${session.presentOrRepresented} membres présents ou représentés, ${scope}</li>`;
   });
   const handovers = conduct.officerChanges.map((change) => `<li>${officerChange(change)}</li>`);
+  // @implements-requirement HALL-FR-MTG-290
+  const openingQuorum = conduct.quorumObservations.find((observation) => observation.agendaItemId === null);
+  const reconvocation = conduct.reconvocations.at(-1);
+  const convocation = [
+    openingQuorum
+      ? `Quorum à l’ouverture : ${matchLiteral(openingQuorum.facts.verdict, { met: () => "atteint", notMet: () => "non atteint", exempt: () => "seconde convocation, sans condition de quorum" })}, ${openingQuorum.facts.presentCount} présents sur ${openingQuorum.facts.requiredPresent} requis.`
+      : "",
+    reconvocation
+      ? `Seconde convocation envoyée le ${escapeHtml(date(reconvocation.sentAt))} pour une nouvelle séance le ${escapeHtml(date(reconvocation.scheduledAt))}.`
+      : "",
+    meeting.reconvenedFrom
+      ? `Séance tenue sur seconde convocation après la séance n° ${meeting.reconvenedFrom.number} du ${escapeHtml(date(meeting.reconvenedFrom.scheduledAt))}, tenue sans quorum.`
+      : "",
+  ].filter(Boolean);
   const attending = conduct.auxiliaryAttendances.map(
     (entry) => `<li>${escapeHtml(entry.name)}${entry.quality ? ` - ${escapeHtml(entry.quality)}` : ""}</li>`,
   );
 
   return {
-    facts: `<p>Séance n° ${meeting.number}<br>Ouverture : ${escapeHtml(date(meeting.startedAt))}<br>Clôture : ${escapeHtml(date(meeting.closedAt))}<br>Lieu : ${escapeHtml(meeting.location ?? "Non renseigné")}</p><p>Présidence : ${escapeHtml(meeting.chair?.name ?? "Non renseignée")}<br>Secrétariat : ${escapeHtml(meeting.secretary?.name ?? "Non renseigné")}<br>Quorum requis : ${meeting.quorum} · Présents : ${attendance.filter((entry) => entry.status === "present").length}</p><ul>${rows.join("")}</ul>${attending.length ? `<p>Assistaient également :</p><ul>${attending.join("")}</ul>` : ""}${handovers.length ? `<p>Passations en séance :</p><ul>${handovers.join("")}</ul>` : ""}${closedSessions.length ? `<p>Huis clos :</p><ul>${closedSessions.join("")}</ul>` : ""}`,
+    facts: `<p>Séance n° ${meeting.number}<br>Ouverture : ${escapeHtml(date(meeting.startedAt))}<br>Clôture : ${escapeHtml(date(meeting.closedAt))}<br>Lieu : ${escapeHtml(meeting.location ?? "Non renseigné")}</p><p>Présidence : ${escapeHtml(meeting.chair?.name ?? "Non renseignée")}<br>Secrétariat : ${escapeHtml(meeting.secretary?.name ?? "Non renseigné")}<br>Quorum requis : ${meeting.quorum} · Présents : ${attendance.filter((entry) => entry.status === "present").length}</p>${convocation.length ? `<p>${convocation.join("<br>")}</p>` : ""}<ul>${rows.join("")}</ul>${attending.length ? `<p>Assistaient également :</p><ul>${attending.join("")}</ul>` : ""}${handovers.length ? `<p>Passations en séance :</p><ul>${handovers.join("")}</ul>` : ""}${closedSessions.length ? `<p>Huis clos :</p><ul>${closedSessions.join("")}</ul>` : ""}`,
     proceedings: subjects.join(""),
   };
 }

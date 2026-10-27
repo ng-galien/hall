@@ -70,6 +70,8 @@ AS $function$
     'number', target.number,
     'slug', hall.council_meeting_slug(target),
     'previousCouncilMeetingId', target.previous_council_meeting,
+    'reconvocationId', (SELECT id FROM hall.meeting_reconvocation
+      WHERE council_meeting = target.previous_council_meeting ORDER BY sent_at DESC LIMIT 1),
     'minutesId', (SELECT id FROM hall.minutes WHERE council_meeting = target.id),
     'noticeDeadline', hall.meeting_notice_deadline(target),
     'currentNoticeId', hall.current_meeting_notice_id(target.id),

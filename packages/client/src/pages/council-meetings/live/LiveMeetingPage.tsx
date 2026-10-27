@@ -93,7 +93,7 @@ export function LiveMeetingPage() {
             title={quorumLabel}
           >
             {quorumObservation
-              ? t("live.quorumCompact", {
+              ? t(quorumObservation.facts.verdict === "exempt" ? "live.quorumCompactExempt" : "live.quorumCompact", {
                   present: formatNumber(quorumObservation.facts.presentCount),
                   required: formatNumber(quorumObservation.facts.requiredPresent),
                 })

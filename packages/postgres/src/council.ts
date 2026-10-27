@@ -118,6 +118,7 @@ export const postgresCouncilMeetingSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}-\d+$/)
     .nullable(),
   previousCouncilMeetingId: resourceIdSchema.nullable(),
+  reconvocationId: resourceIdSchema.nullable(),
   minutesId: resourceIdSchema.nullable(),
   noticeDeadline: meetingNoticeDeadlineSchema,
   currentNoticeId: resourceIdSchema.nullable(),

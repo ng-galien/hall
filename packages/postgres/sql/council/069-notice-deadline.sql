@@ -28,10 +28,11 @@ DECLARE context JSONB; zone TEXT; population INTEGER; notice_days INTEGER;
   meeting_time TIMESTAMPTZ; deadline DATE; local_today DATE; reminder TEXT;
   reconvocation hall.meeting_reconvocation; result JSONB;
 BEGIN
-  SELECT * INTO reconvocation FROM hall.meeting_reconvocation WHERE council_meeting=target.id ORDER BY sent_at DESC LIMIT 1;
+  SELECT * INTO reconvocation FROM hall.meeting_reconvocation
+  WHERE council_meeting=target.previous_council_meeting ORDER BY sent_at DESC LIMIT 1;
   context := hall.notice_deadline_context();
   zone := coalesce(reconvocation.time_zone,context->>'timeZone');
-  meeting_time := coalesce(reconvocation.scheduled_at,target.scheduled_at);
+  meeting_time := coalesce(target.scheduled_at,reconvocation.scheduled_at);
   IF meeting_time IS NULL THEN RETURN jsonb_build_object('status','indeterminate','reason','scheduleUnknown'); END IF;
   IF zone IS NULL OR NOT EXISTS(SELECT FROM pg_timezone_names WHERE name=zone) THEN
     RETURN jsonb_build_object('status','indeterminate','reason','timeZoneUnknown');

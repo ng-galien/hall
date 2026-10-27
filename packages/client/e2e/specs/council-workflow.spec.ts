@@ -1563,3 +1563,135 @@ test("records the second convocation from the conduct of a meeting opened withou
   expect(conduct.reconvocations[0]!.agendaItemIds).toContain(proposal.id);
   expect(Date.parse(conduct.reconvocations[0]!.scheduledAt)).toBe(renewedAt.getTime());
 });
+
+test("holds the meeting after a second convocation as a new linked meeting under the second-convocation regime", async ({
+  appPage: page,
+}) => {
+  test.setTimeout(180_000);
+  const localInput = (date: Date) => {
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+  const meetings = await sirenItems<{ id: string; startedAt: string | null; closedAt: string | null }>(
+    await page.request.get("/api/council-meetings"),
+  );
+  const first = meetings.find((item) => !item.startedAt && !item.closedAt)!;
+  expect(first).toBeTruthy();
+  // The reconvened meeting opens at least four days after the second convocation is sent,
+  // so the first meeting is dated eight days ago.
+  const firstDate = new Date(Date.now() - 8 * 86_400_000);
+  firstDate.setHours(18, 30, 0, 0);
+  const location = "E2E reconvened meeting room";
+  await sirenProperties(
+    await page.request.put(`/api/council-meetings/${first.id}/schedule`, {
+      data: { scheduledAt: firstDate.toISOString(), location },
+    }),
+  );
+  const members = (
+    await sirenItems<{ id: string; active: boolean }>(await page.request.get("/api/council-members"))
+  ).filter((member) => member.active);
+  const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
+  const proposal = await scheduleVotingItem(page, first.id, businesses[0]!.id, 1);
+  await sirenProperties(await page.request.post(`/api/council-meetings/${first.id}/agenda-freeze`, { data: {} }));
+  await sirenProperties(await page.request.post(`/api/council-meetings/${first.id}/notices`, { data: {} }));
+
+  // Roll call without quorum and its finding, dated at the first meeting through the roll-call opening route.
+  const attendance = members.map((member, index) => ({
+    councilMemberId: member.id,
+    status: index < 4 ? "present" : "absent",
+  }));
+  const opened = await sirenProperties<{ quorumObservations: Array<{ facts: { verdict: string } }> }>(
+    await page.request.post(`/api/council-meetings/${first.id}/record-opening`, {
+      data: {
+        attendance,
+        observedAt: new Date(firstDate.getTime() + 5 * 60_000).toISOString(),
+        chairMemberId: members[0]!.id,
+        secretaryMemberId: members[1]!.id,
+      },
+    }),
+  );
+  expect(opened.quorumObservations.at(-1)!.facts.verdict).toBe("notMet");
+
+  // Second convocation recorded from the conduct, then closure of the first meeting.
+  const sentAt = new Date(firstDate.getTime() + 60 * 60_000);
+  const renewedAt = new Date(sentAt.getTime() + 5 * 86_400_000);
+  renewedAt.setHours(18, 30, 0, 0);
+  await page.goto(`/app/meetings/${first.id}/live`);
+  await page.getByTestId("live-reconvocation-open").click();
+  await expect(page.getByTestId("live-reconvocation-form")).toBeVisible();
+  await page.getByTestId("live-reconvocation-sent-at").fill(localInput(sentAt));
+  await page.getByTestId("live-reconvocation-scheduled-at").fill(localInput(renewedAt));
+  await page.getByTestId("live-reconvocation-first-evidence").fill("Convocation du conseil affichée en mairie");
+  await page.getByTestId("live-reconvocation-renewed-evidence").fill("Seconde convocation remise aux conseillers");
+  const recording = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/reconvocations"),
+  );
+  await page.getByTestId("live-reconvocation-submit").click();
+  expect((await recording).ok()).toBeTruthy();
+  await expect(page.getByTestId("live-reconvocation-open")).toHaveCount(0);
+  await page.getByTestId("live-meeting-close").click();
+  await page.getByTestId("live-meeting-close").click();
+  await expect(page).not.toHaveURL(/\/live$/, { timeout: 30_000 });
+
+  // The reconvened meeting is a new meeting, linked to the first one and dated by the second convocation.
+  const conduct = await sirenProperties<{ reconvocations: Array<{ id: string }> }>(
+    await page.request.get(`/api/council-meetings/${first.id}/conduct`),
+  );
+  const reconvened = (
+    await sirenItems<{
+      id: string;
+      previousCouncilMeetingId: string | null;
+      reconvocationId: string | null;
+      scheduledAt: string | null;
+      location: string | null;
+    }>(await page.request.get("/api/council-meetings"))
+  ).find((item) => item.previousCouncilMeetingId === first.id)!;
+  expect(reconvened.reconvocationId).toBe(conduct.reconvocations[0]!.id);
+  expect(Date.parse(reconvened.scheduledAt!)).toBe(renewedAt.getTime());
+  expect(reconvened.location).toBe(location);
+  const agenda = await sirenItems<{ id: string }>(
+    await page.request.get(`/api/council-meetings/${reconvened.id}/agenda-items`),
+  );
+  expect(agenda.map((item) => item.id)).toContain(proposal.id);
+
+  // Its own officers, notice and roll call; the opening applies the second-convocation regime.
+  await sirenProperties(
+    await page.request.put(`/api/council-meetings/${reconvened.id}/prepare`, {
+      data: {
+        scheduledAt: reconvened.scheduledAt,
+        location,
+        chairMemberId: members[0]!.id,
+        secretaryMemberId: members[2]!.id,
+      },
+    }),
+  );
+  await sirenProperties(await page.request.post(`/api/council-meetings/${reconvened.id}/agenda-freeze`, { data: {} }));
+  await sirenProperties(await page.request.post(`/api/council-meetings/${reconvened.id}/notices`, { data: {} }));
+  await page.goto(`/app/meetings/${reconvened.id}`);
+  await expect(page.getByTestId("meeting-reconvened-chip")).toBeVisible();
+  await page.goto(`/app/meetings/${reconvened.id}/live`);
+  for (const [index, member] of members.entries())
+    await page.getByTestId(`live-attendance-${member.id}-${index < 4 ? "present" : "absent"}`).click();
+  const opening = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/record-opening"),
+  );
+  await page.getByTestId("live-meeting-start").click();
+  const reopened = await sirenProperties<{
+    meeting: { secretaryMemberId: string };
+    quorumObservations: Array<{ facts: { regime: string; verdict: string } }>;
+  }>(await opening);
+  expect(reopened.meeting.secretaryMemberId).toBe(members[2]!.id);
+  expect(reopened.quorumObservations.at(-1)!.facts).toMatchObject({ regime: "secondConvocation", verdict: "exempt" });
+  const started = await page.request.post(`/api/council-meetings/${reconvened.id}/agenda-items/${proposal.id}/start`, {
+    data: { startedAt: new Date().toISOString() },
+  });
+  expect(started.ok()).toBeTruthy();
+
+  // The minutes of the first meeting state the failed quorum and the second convocation.
+  const firstMeeting = await sirenProperties<{ minutesId: string }>(
+    await page.request.get(`/api/council-meetings/${first.id}`),
+  );
+  await page.goto(`/app/minutes/${firstMeeting.minutesId}`);
+  await expect(page.getByTestId("minutes-opening-quorum")).toBeVisible();
+  await expect(page.getByTestId("minutes-second-convocation")).toBeVisible();
+});

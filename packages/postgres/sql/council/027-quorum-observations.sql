@@ -95,7 +95,11 @@ BEGIN
   denominator:=cardinality(membership.member_ids)-cardinality(special_members);
   -- @implements-requirement HALL-FR-MTG-010
   required:=denominator/2+1;
-  SELECT * INTO renewed FROM hall.meeting_reconvocation WHERE council_meeting=target_meeting ORDER BY sent_at DESC LIMIT 1;
+  -- @implements-requirement HALL-FR-MTG-290
+  -- The meeting held after a second convocation is the successor of the meeting
+  -- without quorum; it carries the regime for its opening and the listed affairs.
+  SELECT * INTO renewed FROM hall.meeting_reconvocation
+  WHERE council_meeting=meeting.previous_council_meeting ORDER BY sent_at DESC LIMIT 1;
   IF renewed.id IS NOT NULL THEN
     IF membership.observed_at<renewed.scheduled_at OR EXISTS(
       SELECT FROM hall.current_meeting_attendance(target_meeting) a WHERE a.council_member=ANY(membership.member_ids)
@@ -105,7 +109,13 @@ BEGIN
     IF observation_time<renewed.scheduled_at THEN
       RAISE EXCEPTION USING ERRCODE = 'HV144',MESSAGE='the renewed meeting has not reached its scheduled time';
     END IF;
-    IF target_item IS NULL OR target_item=ANY(renewed.agenda_item_ids) THEN regime:='secondConvocation'; END IF;
+    IF target_item IS NULL OR EXISTS(SELECT FROM hall.council_agenda_item item
+      JOIN hall.council_agenda_item listed ON listed.id=ANY(renewed.agenda_item_ids)
+      WHERE item.id=target_item AND item.council_business=listed.council_business
+        AND item.minutes_approval IS NOT DISTINCT FROM listed.minutes_approval
+        AND item.council_decision_proposal IS NOT DISTINCT FROM listed.council_decision_proposal
+        AND item.open_question IS NOT DISTINCT FROM listed.open_question)
+    THEN regime:='secondConvocation'; END IF;
   END IF;
   verdict:=CASE WHEN regime='secondConvocation' THEN 'exempt'::hall.quorum_verdict
     WHEN cardinality(present_members)>=required THEN 'met'::hall.quorum_verdict ELSE 'notMet'::hall.quorum_verdict END;
@@ -147,11 +157,14 @@ END $$;
 
 CREATE FUNCTION hall.enforce_meeting_reconvocation()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path=pg_catalog,hall AS $$
-DECLARE failure hall.meeting_quorum_observation;
+DECLARE failure hall.meeting_quorum_observation; meeting hall.council_meetings;
 BEGIN
  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION USING ERRCODE = 'HV146',MESSAGE='renewed convocation evidence is immutable'; END IF;
- PERFORM 1 FROM hall.council_meetings WHERE id=NEW.council_meeting AND closed_at IS NULL FOR UPDATE;
+ SELECT * INTO meeting FROM hall.council_meetings WHERE id=NEW.council_meeting AND closed_at IS NULL FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV136',MESSAGE='a closed or unknown meeting cannot be reconvened'; END IF;
+ IF meeting.started_at IS NULL THEN
+   RAISE EXCEPTION USING ERRCODE = 'HV144',MESSAGE='renewed convocation follows an opened meeting without quorum';
+ END IF;
  SELECT * INTO failure FROM hall.meeting_quorum_observation WHERE id=NEW.failed_observation;
  IF failure.council_meeting IS DISTINCT FROM NEW.council_meeting OR failure.facts->>'verdict' IS DISTINCT FROM 'notMet'
    OR NEW.sent_at>clock_timestamp() OR NEW.sent_at<failure.observed_at OR NOT EXISTS(SELECT FROM pg_timezone_names WHERE name=NEW.time_zone)

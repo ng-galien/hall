@@ -18,7 +18,13 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
       'startedAt', meeting.started_at, 'closedAt', snapshot.captured_at,
       'location', meeting.location, 'quorum', (SELECT (facts->>'requiredPresent')::integer FROM hall.meeting_quorum_observation WHERE council_meeting=meeting.id AND agenda_item IS NULL ORDER BY observed_at LIMIT 1),
       'chair', hall.minutes_member_identity(meeting.chair_member),
-      'secretary', hall.minutes_member_identity(meeting.secretary_member)
+      'secretary', hall.minutes_member_identity(meeting.secretary_member),
+      -- @implements-requirement HALL-FR-MTG-290
+      'reconvenedFrom', (SELECT jsonb_build_object('id', previous.id, 'number', previous.number,
+          'scheduledAt', previous.scheduled_at, 'startedAt', previous.started_at)
+        FROM hall.council_meetings previous
+        WHERE previous.id = meeting.previous_council_meeting
+          AND EXISTS (SELECT FROM hall.meeting_reconvocation WHERE council_meeting = previous.id))
     ),
     'attendance', coalesce((SELECT jsonb_agg(jsonb_build_object(
       'id', entry->>'id', 'member', hall.minutes_member_identity((entry->>'council_member')::UUID),

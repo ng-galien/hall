@@ -22,6 +22,7 @@ export const councilMeetingSchema = z
     slug: z.string().min(1).nullable(),
     number: z.number().int().positive(),
     previousCouncilMeetingId: resourceIdSchema.nullable(),
+    reconvocationId: resourceIdSchema.nullable(),
     minutesId: resourceIdSchema.nullable(),
     noticeDeadline: meetingNoticeDeadlineSchema,
     currentNoticeId: resourceIdSchema.nullable(),
