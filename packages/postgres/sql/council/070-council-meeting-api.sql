@@ -112,6 +112,9 @@ BEGIN
 END;
 $function$;
 
+-- A slug names the scheduled meeting carrying its durable number, so an
+-- address kept from a former date still opens the meeting; the projection
+-- carries the slug derived from the current date.
 CREATE FUNCTION hall_api.open_council_meeting_by_slug(target_slug TEXT)
 RETURNS JSONB
 LANGUAGE sql
@@ -123,7 +126,7 @@ AS $function$
   FROM hall.council_meetings AS meeting
   WHERE target_slug ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]+$'
     AND meeting.number = substring(target_slug FROM '[0-9]+$')::INTEGER
-    AND hall.council_meeting_slug(meeting) = target_slug
+    AND meeting.scheduled_at IS NOT NULL
 $function$;
 
 CREATE FUNCTION hall_api.open_council_meeting(target_meeting UUID)

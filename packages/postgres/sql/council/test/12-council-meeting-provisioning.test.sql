@@ -93,6 +93,31 @@ SELECT is(
   'an invalid slug is not coerced into another identifier'
 );
 
+SELECT is(
+  hall_api.open_council_meeting_by_slug('2026-09-12-002'),
+  NULL,
+  'a slug whose number designates no scheduled meeting opens nothing'
+);
+
+CREATE TEMP TABLE rescheduled_meeting AS
+SELECT hall_api.schedule_council_meeting(
+  (SELECT (payload ->> 'id')::UUID FROM initial_meeting),
+  '2026-09-19 09:00:00+00',
+  'Council chamber'
+) AS payload;
+
+SELECT is(
+  (SELECT payload ->> 'slug' FROM rescheduled_meeting),
+  '2026-09-19-001',
+  'a rescheduled meeting derives its slug from its new date'
+);
+
+SELECT is(
+  hall_api.open_council_meeting_by_slug('2026-09-12-001') ->> 'slug',
+  '2026-09-19-001',
+  'the slug of a former date still opens the meeting, which carries its current slug'
+);
+
 SELECT throws_ok(
   $$SELECT hall_api.provision_initial_council_meeting()$$,
   'HV123',

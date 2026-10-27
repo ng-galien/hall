@@ -1,4 +1,5 @@
-import { useParams } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { EmptyState, RequestErrorBanner } from "../../components/Ui";
 import { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -11,6 +12,13 @@ export function CouncilMeetingPage({ meetingReference }: { meetingReference?: st
   const { t } = useI18n();
   const meetingActions = useCouncilMeeting(meetingReference ?? meetingId);
   const { meeting: aggregate, error } = meetingActions;
+  const navigate = useNavigate();
+  const currentSlug = aggregate?.meeting.slug;
+  // A meeting reached by a former or technical reference is shown under its current slug.
+  useEffect(() => {
+    if (!meetingReference && currentSlug && meetingId !== currentSlug)
+      navigate(`/meetings/${currentSlug}`, { replace: true });
+  }, [currentSlug, meetingId, meetingReference, navigate]);
 
   if (error) return <RequestErrorBanner error={error} />;
   if (!aggregate) return <EmptyState>{t("meeting.loading")}</EmptyState>;

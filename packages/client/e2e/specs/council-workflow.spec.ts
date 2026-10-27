@@ -1439,3 +1439,54 @@ test("uploads a written proxy and selects the created documentary resource", asy
   await expect(page.getByTestId("live-proxy-confirm")).toBeEnabled();
   expect(duplicateUploads).toBe(0);
 });
+
+test("prepares a meeting through its general properties and follows it when its date changes", async ({
+  appPage: page,
+}) => {
+  test.setTimeout(90_000);
+  const meetings = await sirenItems<{
+    id: string;
+    number: number;
+    startedAt: string | null;
+    closedAt: string | null;
+    chairMemberId: string | null;
+    secretaryMemberId: string | null;
+  }>(await page.request.get("/api/council-meetings"));
+  const meeting = meetings.find(
+    (candidate) =>
+      !candidate.startedAt && !candidate.closedAt && !candidate.chairMemberId && !candidate.secretaryMemberId,
+  )!;
+  expect(meeting).toBeTruthy();
+  const slug = (date: string) => `${date}-${String(meeting.number).padStart(3, "0")}`;
+  const saveGeneralProperties = async (startsAt: string, officers: boolean) => {
+    await page.getByTestId("meeting-edit-details").click();
+    await page.getByTestId("meeting-edit-starts-at").fill(startsAt);
+    if (officers) {
+      await page.getByTestId("meeting-edit-chair").click();
+      await page.getByRole("option").first().click();
+      await page.getByTestId("meeting-edit-secretary").click();
+      await page.getByRole("option").nth(1).click();
+    }
+    await page.getByTestId("meeting-edit-submit").click();
+    await expect(page.getByTestId("meeting-edit-submit")).toBeHidden();
+  };
+
+  await page.goto(`/app/meetings/${meeting.id}`);
+  await saveGeneralProperties("2026-12-03T12:00", false);
+  await expect(page).toHaveURL(new RegExp(`/app/meetings/${slug("2026-12-03")}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("03/12/2026");
+
+  await saveGeneralProperties("2026-12-10T12:00", true);
+  await expect(page).toHaveURL(new RegExp(`/app/meetings/${slug("2026-12-10")}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("10/12/2026");
+  const prepared = await sirenProperties<{ chairMemberId: string | null; secretaryMemberId: string | null }>(
+    await page.request.get(`/api/council-meetings/${meeting.id}`),
+  );
+  expect(prepared.chairMemberId).toBeTruthy();
+  expect(prepared.secretaryMemberId).toBeTruthy();
+
+  await page.goto(`/app/meetings/${slug("2026-12-03")}`);
+  await expect(page).toHaveURL(new RegExp(`/app/meetings/${slug("2026-12-10")}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("10/12/2026");
+  await page.screenshot({ path: test.info().outputPath("meeting-followed-after-date-change.png") });
+});
