@@ -9135,6 +9135,30 @@
         }
       ]
     },
+    "HALL-FR-LAY-020": {
+      "name": "TOUCH_TARGETS_AND_PHONE_WIDTH",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-28"
+      },
+      "statement": "Sous un pointeur tactile, chaque écran de Hall tient dans la largeur d’un téléphone sans défilement horizontal ni élément coupé, chaque cible mesure au moins 44 × 44 et aucun texte n’est plus petit que 12 pixels.",
+      "acceptanceCriteria": [
+        "À 390 et à 768 de large, sous pointer: coarse, aucun écran n’a de défilement horizontal du document ni d’élément qui dépasse le bord droit.",
+        "Chaque bouton, champ, lien hors d’une phrase, onglet et case (avec son libellé) offre une cible d’au moins 44 × 44 ; un lien dans une phrase garde sa place dans le texte.",
+        "Aucun texte visible n’est plus petit que 12 pixels et aucun libellé d’action n’est coupé.",
+        "L’appel des membres et la saisie d’un vote se font au toucher.",
+        "L’affichage à la souris, au poste de travail, ne change pas."
+      ],
+      "clauses": [
+        {
+          "key": "phone-review",
+          "origin": "product",
+          "statement": "Premier chantier décidé par le propriétaire le 25 octobre 2026 (sujet hall-mobile) ; demande du coordinateur du 28 octobre 2026 (9e9a0bc9).",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-DOC-540": {
       "name": "GEOGRAPHIC_LINE_ARROWS",
       "nature": "functional",

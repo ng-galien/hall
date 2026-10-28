@@ -67,7 +67,8 @@ export function CalendarPage() {
     x: number;
     y: number;
   } | null>(null);
-  const [view, setView] = useState("dayGridMonth");
+  const [phoneWidth] = useState(() => window.matchMedia("(max-width: 600px)").matches);
+  const [view, setView] = useState(phoneWidth ? "timeGridDay" : "dayGridMonth");
   useEffect(() => {
     let active = true;
     void (async () => {
@@ -185,7 +186,7 @@ export function CalendarPage() {
         ref={calendar}
         plugins={[themePlugin, dayGridPlugin, timeGridPlugin, interactionPlugin]}
         locale={locale === "fr" ? frLocale : "en"}
-        initialView="dayGridMonth"
+        initialView={phoneWidth ? "timeGridDay" : "dayGridMonth"}
         headerToolbar={false}
         height="100%"
         events={events}

@@ -95,6 +95,16 @@
 }
 
 @media (max-width: 760px) {
+  .docs-toolbar { flex-wrap: wrap; height: auto; padding-block: var(--hall-space-2); }
+  .docs-toolbar .docs-search { flex: 1 1 100%; }
+  .workspace-explorer-copy, .workspace-explorer-title-link { min-width: 0; max-width: 100%; }
+  .workspace-explorer-title-link { text-align: left; }
+  .workspace-explorer-title-link strong { white-space: normal; overflow-wrap: anywhere; }
+  .data-list > .data-row.linked { flex-wrap: wrap; }
+  .data-list > .data-row.linked > div { flex: 1 1 100%; }
+  .meeting-prep-actionbar { flex-wrap: wrap; }
+  .meeting-prep-actions { flex: 1 1 100%; flex-wrap: wrap; min-width: 0; }
+  .docs-search { width: auto; flex: 1 1 auto; min-width: 0; }
   .conduct { flex-direction: column; overflow-y: auto; }
   .conduct .conduct-rail { width: 100% !important; border-right: 0; border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .conduct-timeline { flex: none; max-height: var(--hall-size-tree-max); overflow-y: auto; }
@@ -104,4 +114,49 @@
   .conduct-stage-fixed-header, .conduct-stage-scroll, .conduct-stage-actions { padding: var(--hall-space-3); }
   .conduct-title-timer { flex-wrap: wrap; }
   .conduct-stage-actions > button { flex: 1; }
+}
+
+/* @implements-requirement HALL-FR-LAY-020 */
+/* Under a finger, every control offers a 44-point target and no text is smaller than 12 pixels.
+   Links inside running text keep their place in the sentence; a check box takes its label as target. */
+@media (pointer: coarse) {
+  :root {
+    --hall-font-size-caption-small: var(--hall-font-size-caption);
+    --hall-size-control: var(--hall-size-touch-control);
+    --hall-size-control-small: var(--hall-size-touch-control);
+  }
+}
+@layer base {
+@media (pointer: coarse) {
+  :where(
+      button,
+      select,
+      summary,
+      [role="button"],
+      [role="tab"],
+      [role="menuitem"],
+      [role="option"],
+      [role="switch"],
+      [data-slot="button"],
+      [data-slot="select-trigger"]
+    ) {
+    min-height: var(--hall-size-touch-control);
+    min-width: var(--hall-size-touch-control);
+  }
+  :where(input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="file"], [type="range"]), textarea) {
+    min-height: var(--hall-size-touch-control);
+  }
+  :where(label:has(> input[type="checkbox"], > input[type="radio"])) {
+    min-height: var(--hall-size-touch-control);
+    min-width: var(--hall-size-touch-control);
+    display: inline-flex;
+    align-items: center;
+  }
+  :where(a[href]:not(:is(p, .docs-prose, .markdown-body, .prose) a)) {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--hall-size-touch-control);
+    min-width: var(--hall-size-touch-control);
+  }
+}
 }
