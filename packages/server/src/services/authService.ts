@@ -59,6 +59,10 @@ export interface AuthService {
   endCouncillorAccess(contactId: string): Promise<void>;
 }
 
+// @implements-requirement HALL-FR-DIR-150 (provisionCouncillor: the folder and the account live in two transactions,
+// ordered to fail on the safe side: the idempotent folder is provisioned first, then the role is recorded; a retry
+// reuses the folder. PostgreSQL refuses a contact without an active mandate.)
+// @implements-requirement HALL-FR-DIR-160 (endCouncillorAccess)
 export function createAuthService({
   securityRepository,
   directoryClient,
@@ -79,10 +83,6 @@ export function createAuthService({
     }
   };
 
-  // @implements-requirement HALL-FR-DIR-150
-  // The folder and the account live in two transactions, ordered to fail on the safe
-  // side: the idempotent folder is provisioned first, then the role is recorded; a
-  // retry reuses the folder. PostgreSQL refuses a contact without an active mandate.
   const provisionCouncillor = async (roles: readonly ApiRole[], contactId: string | null) => {
     if (!roles.includes("councillor")) return;
     if (!contactId) throw new DomainError("councillor_requires_active_member", 422);
@@ -211,7 +211,6 @@ export function createAuthService({
         return publicUserWithProtection(updated, securityRepository);
       });
     },
-    // @implements-requirement HALL-FR-DIR-160
     async endCouncillorAccess(contactId) {
       const accounts = (await securityRepository.listUsers()).filter(
         (user) => user.contactId === contactId && user.status === "active" && user.roles.includes("councillor"),

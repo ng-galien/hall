@@ -126,7 +126,8 @@ function workspaceResourceHref(resource: GeographicResource): string {
  * Cartes entry: one map at a time, read-only, with a view that lives in the address and is never saved.
  * @implements-requirement HALL-FR-WSP-310
  * @implements-requirement HALL-FR-WSP-330
- * @implements-requirement HALL-FR-WSP-340
+ * @implements-requirement HALL-FR-WSP-340 (also: the businesses of the opened map are found among the documents of
+ * every business, loaded on demand)
  * @implements-requirement HALL-FR-WSP-360
  */
 export function MapsPage() {
@@ -241,8 +242,6 @@ export function MapsPage() {
   const openMapRoute = useCallback((id: string) => navigate(`/maps/${encodeURIComponent(id)}`), [navigate]);
 
   const opened = surface?.routeId ? surface.resource : null;
-  // @implements-requirement HALL-FR-WSP-340
-  // The businesses of the opened map are found among the documents of every business, loaded on demand.
   const openedId = opened?.id ?? null;
   const businessIds = useMemo(() => businesses.map((business) => business.id).join(","), [businesses]);
   useEffect(() => {

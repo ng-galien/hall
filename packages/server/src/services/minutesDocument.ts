@@ -34,7 +34,11 @@ function officerChange(change: OfficerChange): string {
   return `${escapeHtml(date(change.observedAt))}, ${office} à ${escapeHtml(change.memberName)} (${basis})`;
 }
 
-/** The printable facts come exclusively from the immutable closure snapshot. */
+/**
+ * The printable facts come exclusively from the immutable closure snapshot.
+ * @implements-requirement HALL-FR-MTG-350 (each item examined in closed session, and the closed sessions decided)
+ * @implements-requirement HALL-FR-MTG-290 (the quorum observed at the opening)
+ */
 export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSection, string> {
   const { meeting, attendance, agenda, ballots, recusals, conduct } = minutes.facts;
   const rows = attendance.map((entry) => {
@@ -102,7 +106,6 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
         });
         return `<li>${escapeHtml(recusal.memberName)} : ${basis}, déport déclaré le ${escapeHtml(date(recusal.declaredAt))}</li>`;
       });
-    // @implements-requirement HALL-FR-MTG-350
     const closedSession = conduct.closedSessions.some((session) => session.agendaItemIds.includes(item.id))
       ? "<p>Point examiné à huis clos.</p>"
       : "";
@@ -113,7 +116,6 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
         : `<p>${outcome}${item.kind === "minutesApproval" ? " · Non arrêté" : ""}</p>`;
     return `<section><h3>${item.agendaNumber}. ${escapeHtml(title)}</h3>${item.introducedAt ? `<p>Question ajoutée en séance le ${escapeHtml(date(item.introducedAt))}.</p>` : ""}${closedSession}${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${quorum}${recusalEvidence}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>${individual}${nonParticipationNames}` : ""}</section>`;
   });
-  // @implements-requirement HALL-FR-MTG-350
   const closedSessions = conduct.closedSessions.map((session) => {
     const request =
       session.requesters.length === 1
@@ -128,7 +130,6 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
     return `<li>${escapeHtml(date(session.observedAt))}, huis clos décidé sans débat ${request}, par ${session.approvals} voix sur ${session.presentOrRepresented} membres présents ou représentés, ${scope}</li>`;
   });
   const handovers = conduct.officerChanges.map((change) => `<li>${officerChange(change)}</li>`);
-  // @implements-requirement HALL-FR-MTG-290
   const openingQuorum = conduct.quorumObservations.find((observation) => observation.agendaItemId === null);
   const reconvocation = conduct.reconvocations.at(-1);
   const convocation = [

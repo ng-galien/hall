@@ -17,6 +17,8 @@ type EventResource = Extract<ResourceDetail, { kind: "event" }>;
 // @implements-requirement HALL-FR-CAL-180
 // @implements-requirement HALL-FR-CAL-190
 // @implements-requirement HALL-FR-CAL-200
+// @implements-requirement HALL-FR-WSP-370 (the business of the appointment is known once the documents of every
+// business, loaded on demand, are loaded)
 export function EventResourceEditor({
   resource,
   representation,
@@ -38,8 +40,6 @@ export function EventResourceEditor({
     business.resources.some((entry) => entry.id === resource.id),
   );
   const [councilBusinessId, setCouncilBusinessId] = useState<string | null>(associatedBusiness?.id ?? null);
-  // @implements-requirement HALL-FR-WSP-370
-  // Business documents load on demand: the association is known once they are loaded.
   const businessIds = useCouncilBusinessStore((state) => state.businesses.map((business) => business.id).join(","));
   useEffect(() => {
     if (businessIds) void useCouncilBusinessStore.getState().loadResourceItems(businessIds.split(","));

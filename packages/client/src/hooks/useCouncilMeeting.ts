@@ -85,6 +85,8 @@ const meetingConductActionNames = [
   "ballot.record",
 ] as const satisfies readonly LiveActionName[];
 
+// @implements-requirement HALL-FR-WSP-370 (the documents of each agenda business are loaded on demand, as in the
+// business view)
 // @implements-requirement HALL-FR-MTG-320
 export function useCouncilMeeting(meetingReference: string) {
   const [workspace, setWorkspace] = useState<CouncilMeetingWorkspace | null>(null);
@@ -235,8 +237,6 @@ export function useCouncilMeeting(meetingReference: string) {
     }
   }
 
-  // @implements-requirement HALL-FR-WSP-370
-  // The documents of each agenda business are loaded on demand, as in the business view.
   const agendaBusinessIds = useMemo(
     () =>
       (workspace?.agendaItems ?? [])

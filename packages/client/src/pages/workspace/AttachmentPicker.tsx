@@ -21,6 +21,8 @@ const attachmentKinds = workspaceCreateKinds.filter((kind) => kind !== "councilM
 /**
  * The one attachment picker of a council business: it creates a document of any kind in the business, or attaches
  * an existing document found with the shared search, its filters and its folder browsing.
+ * A document of a personal folder, marked by PostgreSQL, is shown as not attachable; the server refuses its association.
+ * @implements-requirement HALL-FR-WSP-420
  */
 export function AttachmentPicker({
   business,
@@ -177,8 +179,6 @@ export function AttachmentPicker({
                     ...resourceMentionable(resource, t),
                     preferred: resource.path === business.folderPath,
                   }))}
-                  // @implements-requirement HALL-FR-WSP-420
-                  // PostgreSQL marks a resource of a personal folder; the server refuses its association.
                   presentItem={(item) =>
                     item.kind === "resource" && representations[item.id]?.class?.includes("personal-workspace")
                       ? { ...item, metaLabel: `${t("workspace.attachmentPersonalTakeOver")} · ${item.metaLabel ?? ""}` }

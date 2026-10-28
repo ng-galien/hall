@@ -54,6 +54,7 @@ function assertMatchingFingerprint(actual: string, expected: string): void {
   }
 }
 
+/** Routines are created in catalog order, not dependency order: PostgreSQL validates SQL-language bodies at call time instead. */
 async function executeUpgrade(
   client: PoolClient,
   runtime: HallSchemaUpgradeRuntime,
@@ -73,7 +74,6 @@ async function executeUpgrade(
   await client.query(roles.sql);
   const schemaOwner = await hallSchemaOwner(client);
   if (schemaOwner === "hall_owner") await client.query("SET LOCAL ROLE hall_owner");
-  // Routines are created in catalog order, not dependency order: PostgreSQL validates SQL-language bodies at call time instead.
   await client.query("SET LOCAL check_function_bodies = off");
   for (const statement of plan.statements) {
     try {

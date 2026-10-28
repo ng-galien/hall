@@ -122,6 +122,7 @@ function verificationDueAt(fetchedAt: string): string {
 
 // @implements-requirement HALL-FR-DOC-280
 // @implements-requirement HALL-FR-DOC-230
+// @implements-requirement HALL-FR-WSP-380 (personalWorkspace)
 export function createDocumentaryResourceService({
   resourcesClient,
   documentPreviewConverter,
@@ -147,7 +148,6 @@ export function createDocumentaryResourceService({
     listAll() {
       return resourcesClient.listAll().then(({ representation }) => representation);
     },
-    // @implements-requirement HALL-FR-WSP-380
     async personalWorkspace() {
       const folder = await resourcesClient.personalWorkspace();
       if (!folder) throw new DomainError("resource_not_found", 404);

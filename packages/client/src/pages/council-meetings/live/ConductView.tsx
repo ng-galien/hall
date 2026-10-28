@@ -107,6 +107,7 @@ function elapsedSince(startedAt: string, now: number): string {
 }
 
 // @implements-requirement HALL-FR-MTG-320
+// @implements-requirement HALL-FR-MTG-350 (the agenda items examined in closed session are marked)
 export function ConductView({
   aggregate,
   members,
@@ -214,7 +215,6 @@ export function ConductView({
 
   const selectedDecisionId = agendaItemDecisionId(selectedItem);
   const conduct = meetingActions.workspace?.conduct ?? null;
-  // @implements-requirement HALL-FR-MTG-350
   const closedSessionItemIds = new Set(conduct?.closedSessions.flatMap((session) => session.agendaItemIds) ?? []);
   const meetingBlockers = conduct?.meetingActionBlockers;
   const quorumFailure = quorumFailureAwaitingReconvocation(conduct);

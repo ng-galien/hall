@@ -471,9 +471,9 @@ const presentedEditorAssetSchema = postgresEditorAssetSirenSchema.transform((rep
 
 export type PostgresEditorAsset = z.infer<typeof postgresEditorAssetSchema>;
 
+// @implements-requirement HALL-FR-WSP-420 (the class of a resource carries the personal-workspace mark)
 function resourceSirenEntitySchema<Resource>(resourceSchema: ZodType<Resource>) {
   return z.object({
-    // @implements-requirement HALL-FR-WSP-420
     class: z.union([
       z.tuple([z.literal("resource")]),
       z.tuple([z.literal("resource"), z.literal("personal-workspace")]),

@@ -98,6 +98,9 @@ export interface DirectoryService {
   endDelegationMembership(delegationId: string, membershipId: string, endedOn: string): Promise<DelegationMembership>;
 }
 
+// @implements-requirement HALL-FR-DIR-160 (updateCouncilMember: the account and the mandate live in two transactions,
+// ordered to fail on the safe side: the councillor account is disabled before the end of the mandate is recorded; if
+// recording fails, the account stays disabled and the administrator retries.)
 export function createDirectoryService({
   directoryClient,
   authService,
@@ -158,10 +161,6 @@ export function createDirectoryService({
     getCouncilMember: requireCouncilMember,
     councilMemberCreationAvailable: () => directoryClient.councilMemberCreationAvailable().catch(translateFailure),
     createCouncilMember: (input) => directoryClient.createCouncilMember(input).catch(translateFailure),
-    // @implements-requirement HALL-FR-DIR-160
-    // The account and the mandate live in two transactions, ordered to fail on the safe
-    // side: the councillor account is disabled before the end of the mandate is recorded.
-    // If recording fails, the account stays disabled and the administrator retries.
     async updateCouncilMember(id, input) {
       if (input.termEndedOn !== null) await authService.endCouncillorAccess((await requireCouncilMember(id)).contactId);
       return directoryClient.updateCouncilMember(id, input).catch(translateFailure);

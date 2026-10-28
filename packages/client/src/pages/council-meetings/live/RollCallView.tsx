@@ -44,6 +44,7 @@ export function memberInitials(member: CouncilMemberView): string {
   return `${member.contact.firstName.slice(0, 1)}${member.contact.lastName.slice(0, 1)}`;
 }
 
+// @implements-requirement HALL-FR-ATT-160 (the exception declared for each written proxy at the roll call)
 export function RollCallView({
   aggregate,
   members,
@@ -63,7 +64,6 @@ export function RollCallView({
   const [uploadError, setUploadError] = useState<ApiErrorCode | null>(null);
   const [proxyMemberId, setProxyMemberId] = useState<string | null>(null);
   const conduct = meetingActions.workspace?.conduct;
-  // @implements-requirement HALL-FR-ATT-160
   const [proxyExceptions, setProxyExceptions] = useState<ReadonlyMap<string, ProxyLimitException>>(
     () => new Map((conduct?.proxyExceptions ?? []).map((entry) => [entry.proxyDocumentId, entry.basis])),
   );

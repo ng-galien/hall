@@ -1,19 +1,11 @@
-import { HallPostgresError } from "@hall/postgres";
 import type { ErrorRequestHandler } from "express";
 import { MulterError } from "multer";
 import { ZodError } from "zod";
 import { CouncilClientError } from "../clients/councilClient.js";
 import { logger } from "../core/logger.js";
-import { PersistenceError } from "../repositories/errors.js";
+import { hallSqlState, PersistenceError } from "../repositories/errors.js";
 import { DomainError } from "../services/errors.js";
 import { sendProblem } from "./problemDetails.js";
-
-function postgresSqlState(error: unknown): string | null {
-  for (let current = error; current instanceof Error; current = current.cause) {
-    if (current instanceof HallPostgresError) return current.sqlState;
-  }
-  return null;
-}
 
 // @implements-requirement HALL-FR-WSP-390
 // @implements-requirement HALL-FR-WSP-420
@@ -28,7 +20,7 @@ const postgresProblems: ReadonlyMap<string, { readonly status: number; readonly 
 ]);
 
 export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
-  const sqlState = postgresSqlState(error);
+  const sqlState = hallSqlState(error);
   const postgresProblem = sqlState === null ? undefined : postgresProblems.get(sqlState);
   if (postgresProblem) {
     sendProblem(request, response, postgresProblem.status, postgresProblem.code);

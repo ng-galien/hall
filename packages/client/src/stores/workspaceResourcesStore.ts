@@ -163,6 +163,7 @@ function resourceBefore(state: WorkspaceResourcesState, reference: string) {
 /**
  * Canonical documentary authority for the Workspace. Council meeting consumers remain on resourcesStore
  * until their own resource projections are explicitly migrated; Workspace code must never read both stores.
+ * Search entities carry no actions: a search result never replaces a loaded representation.
  */
 export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, get) => {
   const adopt = (
@@ -373,7 +374,6 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
             ...state.summaries,
             ...Object.fromEntries(result.data.items.map((item) => [item.id, item])),
           },
-          // Search entities carry no actions: they never replace a loaded representation.
           representations: { ...representations, ...state.representations },
         }));
         return result.data;
@@ -399,7 +399,6 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
             ...state.summaries,
             ...Object.fromEntries(result.data.items.map((item) => [item.id, item])),
           },
-          // Search entities carry no actions: they never replace a loaded representation.
           representations: { ...representations, ...state.representations },
         }));
         return result.data;

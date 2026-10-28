@@ -7,6 +7,7 @@ import { MeetingInProgressHero } from "./MeetingInProgressHero";
 import { MeetingPreparation } from "./MeetingPreparation";
 import { MeetingReport } from "./MeetingReport";
 
+/** A meeting reached by a former or technical reference is shown under its current slug. */
 export function CouncilMeetingPage({ meetingReference }: { meetingReference?: string } = {}) {
   const { meetingId = "" } = useParams();
   const { t } = useI18n();
@@ -14,7 +15,6 @@ export function CouncilMeetingPage({ meetingReference }: { meetingReference?: st
   const { meeting: aggregate, error } = meetingActions;
   const navigate = useNavigate();
   const currentSlug = aggregate?.meeting.slug;
-  // A meeting reached by a former or technical reference is shown under its current slug.
   useEffect(() => {
     if (!meetingReference && currentSlug && meetingId !== currentSlug)
       navigate(`/meetings/${currentSlug}`, { replace: true });

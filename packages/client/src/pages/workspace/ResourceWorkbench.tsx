@@ -13,6 +13,7 @@ import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { ResourceWorkbenchHeader } from "./ResourceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 
+/** The businesses of the opened resource are found among the documents of every business, loaded on demand. */
 export function ResourceWorkbench({
   session,
   onSelect,
@@ -28,7 +29,6 @@ export function ResourceWorkbench({
   const viewerTransitionRef = useRef(false);
   const resource = session.resource;
   const businesses = useCouncilBusinessStore((state) => state.businesses);
-  // The businesses of the opened resource are found among the documents of every business, loaded on demand.
   const openedId = resource?.id ?? null;
   const businessIds = useMemo(() => businesses.map((business) => business.id).join(","), [businesses]);
   useEffect(() => {

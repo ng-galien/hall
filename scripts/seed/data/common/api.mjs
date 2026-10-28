@@ -1,5 +1,9 @@
 import { makePdf } from "./files.mjs";
 
+/**
+ * The seed API client. On a server without development access and without any account,
+ * signInAsFirstAdministrator creates the first administrator and the seed then runs as them.
+ */
 export function createSeedApi(baseUrl) {
   function unwrapRepresentation(payload) {
     if (!payload || typeof payload !== "object" || !Array.isArray(payload.class)) return payload;
@@ -27,7 +31,6 @@ export function createSeedApi(baseUrl) {
   }
   const get = (path) => request("GET", path);
 
-  /** On a server without development access and without any account, creates the first administrator and seeds as them. */
   async function signInAsFirstAdministrator(administrator, password) {
     const status = await get("/auth/status");
     if (status.developmentAccess || !status.bootstrapRequired) return false;
