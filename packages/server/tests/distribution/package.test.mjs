@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
-import { cp, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -247,7 +247,8 @@ it(
       maintenance = new Pool({ connectionString: maintenanceConnection.href });
       await maintenance.query(`CREATE DATABASE "${databaseName}"`);
       pool = new Pool({ connectionString: url });
-      const configuration = `NODE_ENV=production\nLOG_LEVEL=info\nDATABASE_URL=${url}\nSERVER_HOST=127.0.0.1\nSERVER_PORT=${httpPort}\n`;
+      const backups = join(temporary, "hall backups");
+      const configuration = `NODE_ENV=production\nLOG_LEVEL=info\nDATABASE_URL=${url}\nSERVER_HOST=127.0.0.1\nSERVER_PORT=${httpPort}\nHALL_BACKUP_DIRECTORY=${backups}\nHALL_BACKUP_RETENTION=2\n`;
       await writeFile(envFile, configuration, { mode: 0o600 });
       const empty = command(process.execPath, [cli, "schema-check", "--env-file", envFile]);
       expect(empty.status).not.toBe(0);
@@ -388,8 +389,36 @@ it(
       await start();
       expect(await resource(id)).toEqual(before);
       await stop();
-      const dump = join(temporary, "before-update.dump");
-      run("pg_dump", ["--format=custom", "--file", dump, "--dbname", url]);
+      // @verifies-requirement HALL-TR-DST-020
+      for (let attempt = 0; attempt < 3; attempt++) {
+        expect(run(process.execPath, [cli, "backup", "--env-file", envFile])).toContain("Backup written");
+      }
+      const archives = (await readdir(backups)).filter((name) => name.endsWith(".dump")).sort();
+      expect(archives).toHaveLength(2);
+      for (const name of archives) {
+        const manifest = JSON.parse(await readFile(join(backups, `${name}.json`), "utf8"));
+        expect(manifest.sha256).toBe(
+          createHash("sha256")
+            .update(await readFile(join(backups, name)))
+            .digest("hex"),
+        );
+        expect(manifest.hall.version).toBe(rootMetadata.version);
+        expect(manifest.database).toBe(databaseName);
+      }
+      const dump = join(backups, archives.at(-1));
+      expect(run(process.execPath, [cli, "verify-backup", "--env-file", envFile])).toContain("Backup verified");
+      expect(
+        (await maintenance.query("SELECT count(*)::int AS count FROM pg_database WHERE datname LIKE 'hall_verify_%'"))
+          .rows[0].count,
+      ).toBe(0);
+      const altered = join(temporary, "altered.dump");
+      const alteredBytes = await readFile(dump);
+      alteredBytes[alteredBytes.length - 1] ^= 0xff;
+      await writeFile(altered, alteredBytes);
+      await cp(`${dump}.json`, `${altered}.json`);
+      const refused = command(process.execPath, [cli, "verify-backup", "--env-file", envFile, "--archive", altered]);
+      expect(refused.status).not.toBe(0);
+      expect(refused.stderr).toContain("does not match its manifest");
       const digest = createHash("sha256")
         .update(await readFile(dump))
         .digest("hex");
@@ -437,6 +466,18 @@ it(
           .digest("hex"),
       ).toBe(digest);
       run("pg_restore", ["--exit-on-error", "--dbname", restoredUrl.href, dump]);
+      const restoredPrivileges = new Pool({ connectionString: restoredUrl.href, max: 1 });
+      try {
+        expect(
+          (
+            await restoredPrivileges.query(
+              "SELECT bool_and(has_schema_privilege(role, 'hall_api', 'USAGE')) AS granted FROM unnest(ARRAY['hall_api_authenticated','hall_api_worker']) AS role",
+            )
+          ).rows[0].granted,
+        ).toBe(true);
+      } finally {
+        await restoredPrivileges.end();
+      }
       const restoredConfig = configuration.replace(url, restoredUrl.href);
       await writeFile(envFile, restoredConfig);
       run(process.execPath, [cli, "schema-check", "--env-file", envFile]);

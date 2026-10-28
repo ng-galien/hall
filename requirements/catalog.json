@@ -8931,6 +8931,28 @@
         }
       ]
     },
+    "HALL-TR-DST-020": {
+      "name": "STANDALONE_BACKUP_AND_VERIFIED_RESTORE",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-28"
+      },
+      "statement": "The standalone package writes dated, checksummed backups with retention and proves a backup by restoring it into a temporary database where the hall_api privileges and the API are verified.",
+      "acceptanceCriteria": [
+        "hall backup writes a custom-format pg_dump archive named after the database and the time, checks it with pg_restore --list, records its SHA-256, the Hall name, version and commit and the schema fingerprint in a manifest beside it, and keeps the newest HALL_BACKUP_RETENTION archives in HALL_BACKUP_DIRECTORY.",
+        "hall verify-backup refuses an archive that does not match its manifest, restores it without dropping owners or privileges into a temporary database, requires USAGE on hall_api for hall_api_authenticated and hall_api_worker and a matching schema fingerprint, starts the API on that database and requires /api/health and /api/auth/status to answer, then drops the temporary database.",
+        "The Windows installation procedure schedules a nightly backup and a weekly verification under the account that runs Hall."
+      ],
+      "clauses": [
+        {
+          "key": "backups",
+          "origin": "product",
+          "statement": "Demande du coordinateur du 28 octobre 2026 (295e30cf) sur l étude des manques de Hall demandée par le propriétaire : les données du conseil sur le PC de la mairie n ont aucune sauvegarde ; destination et rétention restent réglables, leur choix revenant au propriétaire et au SIDEC.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-LIV-010": {
       "name": "SESSIONS_IGNORE_THEIR_OWN_LIVE_EVENTS",
       "nature": "technical",

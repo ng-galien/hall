@@ -248,6 +248,59 @@ reboot and subsequent sign-in under that account before claiming automatic
 recovery. Ending a task can terminate it abruptly; stop writers first and treat
 this as an interruption requiring the restart checks.
 
+## Schedule nightly backups
+
+Add the backup settings to `C:\Hall\config\hall.env`. The destination and
+retention below are defaults to confirm with the municipality and the SIDEC; a
+folder on another disk or a network share protects better than `C:\Hall`.
+
+```dotenv
+HALL_BACKUP_DIRECTORY=C:\Hall\backups
+HALL_BACKUP_RETENTION=14
+```
+
+The role of `DATABASE_URL` needs `CREATEDB` for the weekly verification, which
+restores into a temporary database. Run both commands once by hand, then register
+the tasks under the Windows account that runs Hall:
+
+```powershell
+$Config = Join-Path $HallRoot 'config\hall.env'
+& $Hall backup --env-file $Config
+if ($LASTEXITCODE -ne 0) { throw 'Backup failed: check DATABASE_URL and the PostgreSQL client tools' }
+& $Hall verify-backup --env-file $Config
+if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed: do not rely on this archive' }
+$Node = (Get-Command node).Source
+$Cli = "$Release\node_modules\@ng-galien\hall\bin\hall.mjs"
+$Log = Join-Path $HallRoot 'logs'
+$Backup = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c `"`"$Node`" `"$Cli`" backup --env-file `"$Config`" >> `"$Log\backup.log`" 2>&1`""
+$Verify = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c `"`"$Node`" `"$Cli`" verify-backup --env-file `"$Config`" >> `"$Log\verify-backup.log`" 2>&1`""
+Register-ScheduledTask -TaskName 'Hall - sauvegarde' -Action $Backup -Trigger (New-ScheduledTaskTrigger -Daily -At 2am) -User $env:USERNAME -RunLevel Limited
+Register-ScheduledTask -TaskName 'Hall - verification de sauvegarde' -Action $Verify -Trigger (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At 3am) -User $env:USERNAME -RunLevel Limited
+```
+
+`Register-ScheduledTask` asks for the account password when the task must run
+while nobody is signed in. Check `Get-ScheduledTaskInfo 'Hall - sauvegarde'` the
+next morning: `LastTaskResult` is `0` after a successful backup. These commands
+were written for this procedure and have not yet been run on a Windows machine.
+
+## Pour le secrétariat : sauvegardes
+
+Chaque nuit à 2 h, l ordinateur de la mairie enregistre une copie complète des
+données de Hall dans le dossier de sauvegarde (par défaut `C:\Hall\backups`).
+Chaque copie est un fichier dont le nom porte la date, accompagné d une petite
+fiche de contrôle du même nom terminée par `.json`. Hall garde les quatorze
+dernières copies et efface les plus anciennes.
+
+Chaque dimanche à 3 h, Hall reprend la dernière copie, la remet en place dans une
+base d essai, vérifie que l application répond avec, puis efface cette base
+d essai. Le résultat est écrit dans `C:\Hall\logs\verify-backup.log` : la ligne
+« Backup verified » dit que la copie est bonne.
+
+Si une copie manque ou si la vérification échoue, prévenir la personne chargée de
+l informatique de la mairie. Seule cette personne restaure une copie, en suivant la
+section « Restore the selected backup before starting Hall » ci-dessus ; une
+restauration ne se fait jamais par-dessus la base en service.
+
 ## Back up, update and recover
 
 Before a change, stop Hall and all other writers. Keep the exact old release,
@@ -255,15 +308,15 @@ external configuration, database roles, and selected dump together in the
 installation record. Configure the database tools for the intended database.
 
 ```powershell
-$Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$Dump = Join-Path $HallRoot "backups\hall-$Stamp.dump"
-pg_dump --format=custom --file="$Dump.partial" --dbname=$TargetDatabase
+& $Hall backup --env-file $Config
 if ($LASTEXITCODE -ne 0) { throw 'Backup failed' }
-pg_restore --list "$Dump.partial" | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'Backup archive is unreadable' }
-Move-Item -LiteralPath "$Dump.partial" -Destination $Dump
-Get-FileHash -Algorithm SHA256 -LiteralPath $Dump
+& $Hall verify-backup --env-file $Config
+if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed: do not change anything' }
 ```
+
+The archive and its `.json` manifest are in `HALL_BACKUP_DIRECTORY`; record their
+names and SHA-256 in the installation record. Copy a pre-update archive elsewhere
+as well, since retention removes the oldest archives of that folder.
 
 Protect backups as municipal data. Keep an independent protected copy off the
 computer and periodically restore the chosen file to verify it. A successful

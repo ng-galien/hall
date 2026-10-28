@@ -136,6 +136,34 @@ Repository development and desktop bootstrap retain their existing behavior.
 
 ## Backup and restoration verification
 
+### Scheduled backups with the package
+
+`hall backup --env-file <file>` writes a custom-format `pg_dump` archive named
+`hall-<database>-<UTC time>.dump`, checks it with `pg_restore --list`, and writes
+`<archive>.json` beside it with the SHA-256, the creation time, the database, the
+Hall name, version and commit, and the schema fingerprint. It then keeps the newest
+archives only. Two values of the environment file control it:
+
+- `HALL_BACKUP_DIRECTORY`: destination folder, relative to the environment file
+  when not absolute; default `backups` beside the environment file.
+- `HALL_BACKUP_RETENTION`: number of archives kept; default `14`.
+
+The final destination and retention are a decision of the municipality and its
+IT provider; the defaults keep two weeks of nightly archives on the same machine,
+which does not protect against the loss of that machine.
+
+`hall verify-backup --env-file <file> [--archive <path>]` takes the newest archive
+(or the given one), refuses it when it no longer matches its manifest, restores it
+into a temporary `hall_verify_<time>` database on the same PostgreSQL server
+without `--no-owner` or `--no-acl`, requires `USAGE` on `hall_api` for
+`hall_api_authenticated` and `hall_api_worker` and a matching schema fingerprint,
+starts the API on that database, requires `/api/health` and `/api/auth/status` to
+answer, then drops the temporary database. The role of `DATABASE_URL` needs the
+`CREATEDB` privilege for this command. The PostgreSQL client tools must be on the
+`PATH`; credentials are passed through `PG*` variables, never on the command line.
+
+### Manual backup and restoration
+
 For a consistent cutover, stop application writers, then make the final backup.
 `pg_dump` produces a consistent database snapshot, but changes committed after
 that snapshot are not included. Preserve cluster roles separately when recovery
