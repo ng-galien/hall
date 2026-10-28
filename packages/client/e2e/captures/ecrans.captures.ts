@@ -67,11 +67,6 @@ test("les écrans de Hall sur le jeu Alésia", async ({ docsPage: page }) => {
       await expect(page.getByTestId("resource-changes-panel")).toBeVisible();
     });
   }
-  await open(page, "/workspace", "reference-juridique", async () => {
-    await page.getByTestId("workspace-create-menu").first().click();
-    await page.getByTestId("workspace-create-legalReference").click();
-    await page.waitForTimeout(800);
-  });
   const spreadsheet = byKind("spreadsheet");
   if (spreadsheet) {
     await open(page, `/workspace?resource=${spreadsheet.id}`, "tableur", async () => {
@@ -103,6 +98,5 @@ test("les écrans de Hall sur le jeu Alésia", async ({ docsPage: page }) => {
   if (member) await open(page, `/council-members/${member.id}`, "membre-du-conseil");
   await open(page, "/users", "utilisateurs");
   await open(page, "/settings", "parametres");
-  await open(page, "/docs", "documentation");
   expect(misses, "écrans non capturés").toEqual([]);
 });

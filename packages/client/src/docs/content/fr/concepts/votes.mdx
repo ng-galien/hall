@@ -1,63 +1,19 @@
 ---
 title: "Scrutins et votes"
-summary: "Scrutin public ou secret, abstention et non-participation, majorité, égalité, confirmation du résultat."
+summary: "Le vote d’un projet de délibération dans Hall : scrutin public ou secret, choix de chacun, résultat."
 order: 4
 screen: /meetings
 ---
 
-## Scrutin
+Le **scrutin** est le vote du conseil sur un projet de délibération.
+Il se saisit dans le [mode séance](/docs/ecrans/mode-seance), par le bouton **Passer au vote** du point en cours.
 
-Un point soumis au vote a au plus un scrutin.
-Le scrutin est ouvert pendant l’examen du point.
-Il exige une séance ouverte et un point en cours d’examen.
-Un président du scrutin est choisi parmi les membres physiquement présents.
-Un scrutin ne peut pas être supprimé.
+En **scrutin public**, la secrétaire note le choix de chaque conseiller : **Pour**, **Contre**, **Abstention** ou **N’a pas pris part au vote**.
+En **scrutin secret**, elle saisit seulement le nombre de bulletins de chaque sorte, blancs et nuls compris.
+Un conseiller représenté vote par son porteur de pouvoir.
 
-## Scrutin public et scrutin secret
+Hall calcule le résultat et le montre d’abord en aperçu ; rien n’est enregistré tant que la secrétaire n’a pas cliqué **Confirmer et clore le point**.
+Le projet est adopté à la majorité des suffrages exprimés ; les abstentions ne comptent pas.
+Une fois confirmé, le vote ne se modifie plus et Hall prépare le brouillon de la délibération.
 
-| Mode | Ce que Hall conserve |
-| --- | --- |
-| Scrutin public | Le choix de chaque votant, nominativement. |
-| Scrutin secret | Les seuls totaux par choix, sans aucun choix individuel. |
-
-Le scrutin secret ajoute deux totaux : bulletins blancs et bulletins nuls.
-
-## Votants
-
-Seuls les membres présents ou représentés participent au scrutin.
-Un membre représenté vote par l’intermédiaire du porteur de son pouvoir.
-Un membre déporté ne participe pas au scrutin du point.
-Chaque participant est compté une seule fois.
-
-## Choix
-
-| Choix | Effet sur le résultat |
-| --- | --- |
-| Pour | Suffrage exprimé en faveur de la proposition. |
-| Contre | Suffrage exprimé contre la proposition. |
-| Abstention | Enregistrée, mais exclue des suffrages exprimés. |
-| N’a pas pris part au vote | Enregistrée, distincte de l’abstention. |
-
-Hall ne crée aucune obligation de voter.
-
-## Résultat
-
-Le résultat est calculé par Hall à partir des votes enregistrés.
-Une proposition est adoptée à la majorité absolue des suffrages exprimés.
-Elle est rejetée quand les suffrages exprimés contre sont majoritaires.
-
-En cas d’égalité :
-
-- en scrutin public, la voix du président du scrutin départage ;
-- en scrutin secret, ou sans voix décisive du président, la proposition est rejetée.
-
-## Aperçu et confirmation
-
-Le résultat calculé est d’abord présenté en aperçu.
-L’aperçu n’enregistre aucun vote et le point reste ouvert.
-Le résultat est enregistré seulement après une confirmation explicite.
-La confirmation clôt le scrutin et termine le point.
-
-Après confirmation, le scrutin et ses votes ne peuvent plus être modifiés.
-Hall conserve alors une copie du texte soumis au vote, des données de la séance, du quorum, des déports et du résultat.
-La confirmation d’un scrutin sur un projet de délibération crée le brouillon de la délibération, que le projet soit adopté ou rejeté ; voir [Convocation, délibération et procès-verbal en PDF](/docs/concepts/documents-officiels).
+Parcours : [Dérouler la séance](/docs/workflows/seance), puis [Délibérations après le vote](/docs/workflows/deliberations).

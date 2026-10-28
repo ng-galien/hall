@@ -1,53 +1,22 @@
 ---
 title: "Procès-verbaux"
-summary: "La liste des procès-verbaux et la fiche d’un procès-verbal : ouverture, présences, déroulé, notes de séance, rédaction, aperçu et génération."
+summary: "La liste des procès-verbaux et la fiche où la secrétaire rédige celui d’une séance close."
 order: 4
 screen: /minutes
 ---
 
-## Liste
-
-![L’écran Procès-verbaux de Hall](/app/documentation/captures/ecrans/proces-verbaux.png)
-
 L’écran **Procès-verbaux** liste un procès-verbal par séance close, du plus récent au plus ancien.
-Chaque ligne affiche le numéro du conseil, la date et l’état : **Non arrêté** ou **Arrêté**.
-Un clic ouvre la fiche.
+Chacun porte le numéro et la date de la séance, et dit s’il est déjà arrêté par le conseil.
 
-## En-tête de la fiche
+![La liste des procès-verbaux](/app/documentation/captures/ecrans/proces-verbaux.png)
 
-L’en-tête affiche le numéro du conseil, la date, le lieu et l’état.
-Il indique aussi l’état du document : **Brouillon à préparer** ou **Document généré**.
+Un clic ouvre la fiche du procès-verbal.
+En haut, Hall reprend ce qu’il a noté pendant la séance : la présidence, le secrétaire de séance, le quorum, les heures, les présences et les pouvoirs.
+Dessous, chaque point examiné apparaît avec son vote ; pour chacun, l’onglet **Notes de séance** montre les notes prises le soir même et l’onglet **Rédaction du procès-verbal** reçoit le texte définitif.
+**Prévisualiser** montre le PDF ; **Générer le procès-verbal** le produit et le conserve.
 
-| Lien ou bouton | Effet |
-| --- | --- |
-| **Séance d’origine** | Ouvre la fiche de la séance. |
-| **Séance où le PV est à arrêter** | Ouvre la séance où le conseil arrêtera ce procès-verbal. |
-| **Prévisualiser** | Affiche le PDF du brouillon sans le conserver. |
-| **Générer le procès-verbal** | Produit et conserve le PDF ; la rédaction n’est plus modifiable. |
-| **Voir le document** | Ouvre le PDF généré. |
-| **Télécharger le PDF** | Télécharge le PDF généré. |
+![La fiche d’un procès-verbal : les faits de la séance et la rédaction de chaque point](/app/documentation/captures/ecrans/proces-verbal.png)
 
-## Ouverture de la séance
+Le procès-verbal est ensuite arrêté par un vote du conseil, à la séance suivante.
 
-La section **Ouverture de la séance** affiche la présidence, le secrétaire de séance, le quorum et les heures d’ouverture et de clôture.
-**Présences et pouvoirs** liste les présents, les excusés, les absents et les pouvoirs.
-Ces faits sont figés à la clôture de la séance.
-
-## Déroulé de la séance
-
-La section **Déroulé de la séance** présente chaque point examiné avec son vote : résultat et décompte, ou « Aucun vote enregistré ».
-
-Chaque point a deux onglets :
-
-| Onglet | Contenu |
-| --- | --- |
-| **Notes de séance** | Les notes saisies pendant la séance, en lecture seule. |
-| **Rédaction du procès-verbal** | Le texte du procès-verbal pour ce point, modifiable dans l’éditeur. |
-
-La rédaction commence avec le texte des notes de séance.
-Elle s’enregistre automatiquement ; la mention **Enregistré** le confirme.
-Le bouton **Remplacer la rédaction par la note de séance originale** recharge les notes de séance dans la rédaction, après confirmation.
-
-Le PDF généré et son arrêt sont décrits dans [Convocation, délibération et procès-verbal en PDF](/docs/concepts/documents-officiels).
-
-![Un procès-verbal](/app/documentation/captures/ecrans/proces-verbal.png)
+Parcours : [Procès-verbal après la séance](/docs/workflows/proces-verbal).
