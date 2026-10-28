@@ -1,4 +1,4 @@
-import { capture, expect, test } from "./fixtures";
+import { capture, expect, test, waitForPageEntrance } from "./fixtures";
 import { openMeeting } from "./journeys";
 
 test.setTimeout(3 * 60_000);
@@ -75,6 +75,10 @@ test("dérouler la séance : examen du point, vote, clôture", async ({ docsPage
   await capture(page, `${journey}/11-confirmer-la-cloture`);
   await page.getByTestId("live-meeting-close").click();
   await expect(page).not.toHaveURL(/\/live$/, { timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Séances du conseil" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Terminée", { exact: true }).first()).toBeVisible();
   await page.waitForLoadState("networkidle");
+  await waitForPageEntrance(page);
+  await page.mouse.move(800, 700);
   await capture(page, `${journey}/12-seance-close`);
 });
