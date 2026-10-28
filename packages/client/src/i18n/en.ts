@@ -13,7 +13,7 @@ export const en = {
   "committees.noBusinesses": "No council business is associated with this committee.",
   "business.deleteConfirm": "Delete “{name}”? This action is permanent.",
   "error.council_business_has_dependencies":
-    "This business can no longer be deleted: it already has a proposal, a question, a committee, an agenda item or an attached document.",
+    "This business can no longer be deleted: it already has a proposal, a question, a committee, an agenda item or an attached document, or its folder holds a document other than the report.",
 
   "bundles.export": "Export business",
   "bundles.import": "Import business",

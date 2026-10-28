@@ -15,7 +15,7 @@ export const fr: Messages = {
   "committees.noBusinesses": "Aucune affaire n’est associée à cette commission.",
   "business.deleteConfirm": "Supprimer l’affaire « {name} » ? Cette action est définitive.",
   "error.council_business_has_dependencies":
-    "Cette affaire ne peut plus être supprimée : elle a déjà un projet, une question, une commission, un point d’ordre du jour ou un document joint.",
+    "Cette affaire ne peut plus être supprimée : elle a déjà un projet, une question, une commission, un point d’ordre du jour ou un document joint, ou son dossier contient un autre document que le rapport.",
 
   "bundles.export": "Exporter l’affaire",
   "bundles.import": "Importer une affaire",

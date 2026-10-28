@@ -27,6 +27,7 @@ test("offers business deletion only when Hall accepts it, never for its folder",
   expect(examined, "an Alésia business examined in a meeting").toBeTruthy();
   expect(examined.actions?.map(({ name }) => name)).not.toContain("council-business.delete");
   const folder = (await (await page.request.get(`/api/resources/${examined.properties.folderResourceId}`)).json()) as {
+    properties: { fullPath: string };
     actions?: { name: string }[];
   };
   expect(folder.actions?.map(({ name }) => name)).not.toContain("resource.delete");
@@ -39,6 +40,10 @@ test("offers business deletion only when Hall accepts it, never for its folder",
   await examinedRow.click({ button: "right" });
   await expect(page.getByTestId("workspace-tree-rename")).toBeVisible();
   await expect(page.getByTestId("workspace-tree-delete-business")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.getByTestId(`workspace-folder-${folder.properties.fullPath}`).first().click({ button: "right" });
+  await expect(page.getByTestId("workspace-tree-create")).toBeVisible();
+  await expect(page.getByRole("menu").getByTestId(/delete/)).toHaveCount(0);
   await page.keyboard.press("Escape");
 
   await page.getByTestId("workspace-create-menu").click();
