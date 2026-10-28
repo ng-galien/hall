@@ -1,3 +1,4 @@
+import { alesiaAdministrator } from "./datasets/alesia/directory.mjs";
 import { seedAlesia } from "./datasets/alesia/index.mjs";
 import { seedHistory } from "./scenarios/history.mjs";
 import { seedPreparation } from "./scenarios/preparation.mjs";
@@ -23,6 +24,7 @@ export const datasets = {
     description:
       "Commune fictive : 15 élus, 2 contacts externes, 2 commissions de quatre membres, 5 comptes, 8 affaires, 16 sujets, deux cartes, trois tableurs, ressources et templates.",
     scenarios: ["preparation", "default", "minutes"],
+    administrator: alesiaAdministrator,
     run: seedAlesia,
   },
 };

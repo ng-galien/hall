@@ -2,8 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 const clientPort = Number.parseInt(process.env.HALL_E2E_CLIENT_PORT ?? "5175", 10);
 const serverPort = Number.parseInt(process.env.HALL_E2E_SERVER_PORT ?? "3110", 10);
-const clientUrl = `http://127.0.0.1:${clientPort}`;
 const serverUrl = `http://127.0.0.1:${serverPort}`;
+/** Documentation captures use the built client served by the test server itself; other projects use the Vite client. */
+const builtClient = Boolean(process.env.CLIENT_DIRECTORY);
+const clientUrl = builtClient ? serverUrl : `http://127.0.0.1:${clientPort}`;
 
 export default defineConfig({
   testDir: "./specs",
@@ -67,16 +69,20 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 120_000,
     },
-    {
-      command: `npm run dev -- --host 127.0.0.1 --port ${clientPort} --strictPort`,
-      cwd: "..",
-      env: {
-        ...process.env,
-        VITE_API_TARGET: serverUrl,
-      },
-      url: `${clientUrl}/app/`,
-      reuseExistingServer: false,
-      timeout: 120_000,
-    },
+    ...(builtClient
+      ? []
+      : [
+          {
+            command: `npm run dev -- --host 127.0.0.1 --port ${clientPort} --strictPort`,
+            cwd: "..",
+            env: {
+              ...process.env,
+              VITE_API_TARGET: serverUrl,
+            },
+            url: `${clientUrl}/app/`,
+            reuseExistingServer: false,
+            timeout: 120_000,
+          },
+        ]),
   ],
 });

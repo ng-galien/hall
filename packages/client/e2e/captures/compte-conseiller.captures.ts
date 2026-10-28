@@ -1,10 +1,12 @@
-import { capture, expect, test } from "./fixtures";
+import { capture, expect, test, useAccount } from "./fixtures";
 
 test.setTimeout(3 * 60_000);
 test.use({ seedScenario: "preparation" });
 
 test("compte et dossier personnel d’un conseiller", async ({ docsPage: page }) => {
   const journey = "compte-conseiller";
+  // Accounts are created by the administrator; the secretariat follows the councillor's folder and term.
+  await useAccount(page, "administrateur");
   await page.goto("/app/users");
   await expect(page.getByTestId("users-collection")).toBeVisible();
   await capture(page, `${journey}/01-utilisateurs`);
@@ -22,6 +24,7 @@ test("compte et dossier personnel d’un conseiller", async ({ docsPage: page })
   await expect(page.getByTestId("user-detail")).toBeVisible();
   await capture(page, `${journey}/03-compte-cree`);
 
+  await useAccount(page, "secretariat");
   await page.goto("/app/workspace");
   await page.waitForLoadState("networkidle");
   const personal = page.getByText("Espaces personnels").first();

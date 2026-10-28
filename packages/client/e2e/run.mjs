@@ -16,6 +16,8 @@ const suiteTimeoutMs = suiteTimeoutMinutes * 60 * 1_000;
 const deadline = Date.now() + suiteTimeoutMs;
 const requestedArguments = process.argv.slice(2);
 const authenticationMode = process.env.HALL_E2E_AUTH_MODE === "true";
+// Documentation captures show Hall as delivered: the built client, served by the test server, with real sign-in.
+const documentationCaptures = process.env.HALL_DOCS_CAPTURES === "true";
 
 const buildPackages = [
   { name: "@hall/contracts", directory: "contracts" },
@@ -194,7 +196,8 @@ function startLane({ lane, lanes, name, serverPort, clientPort, temporaryDirecto
         ...process.env,
         DATABASE_URL: databaseUrl(name),
         DOCUMENT_STORAGE_PATH: join(temporaryDirectory, "documents"),
-        HALL_DEV_AUTO_LOGIN: authenticationMode ? "false" : "true",
+        HALL_DEV_AUTO_LOGIN: authenticationMode || documentationCaptures ? "false" : "true",
+        ...(builtClientDirectory ? { CLIENT_DIRECTORY: builtClientDirectory } : {}),
         HALL_E2E_CLIENT_PORT: clientPort,
         HALL_E2E_DATABASE_NAME: name,
         HALL_E2E_LANE: String(lane),
@@ -219,6 +222,7 @@ const running = [];
 let timedOut = false;
 let interrupted = false;
 let templateCreated = false;
+let builtClientDirectory = null;
 
 function stopAll(signal) {
   for (const { child } of running) stopProcessGroup(child, signal);
@@ -236,6 +240,10 @@ try {
   // would reload every open Hall page, so only packages whose sources are newer than their build are rebuilt.
   const stalePackages = buildPackages.filter(isPackageStale);
   if (stalePackages.length) run("npm", ["run", "build", ...stalePackages.flatMap(({ name }) => ["-w", name])]);
+  if (documentationCaptures) {
+    builtClientDirectory = mkdtempSync(join(tmpdir(), "hall-docs-client-"));
+    run("npm", ["run", "build", "-w", "@hall/client", "--", "--outDir", builtClientDirectory, "--emptyOutDir"]);
+  }
   recreateDatabase(templateDatabase);
   templateCreated = true;
   installDatabase(templateDatabase);
@@ -275,4 +283,5 @@ try {
     }
   }
   if (templateCreated) dropDatabase(templateDatabase);
+  if (builtClientDirectory) rmSync(builtClientDirectory, { recursive: true, force: true });
 }

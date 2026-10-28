@@ -1,5 +1,5 @@
 import type { APIResponse, Page } from "@playwright/test";
-import { capture, expect, localDateTimeInput, test } from "./fixtures";
+import { capture, expect, localDateTimeInput, signIn, test, useAccount } from "./fixtures";
 
 test.setTimeout(4 * 60_000);
 test.use({ seedScenario: "preparation" });
@@ -65,7 +65,8 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   });
   const present = new Set([chair!, firstSecretary!, reconvenedSecretary!, members[3]!]);
 
-  await page.goto(`/app/meetings/${first.id}/live`);
+  // The roll call and the conduct are done by the account with the meeting conduct role.
+  await signIn(page, "conduite", `/app/meetings/${first.id}/live`);
   await rollCall(page, members, present);
   await expect(page.getByTestId("live-meeting-start")).toBeEnabled();
   await capture(page, `${journey}/01-appel-sans-quorum`);
@@ -116,7 +117,7 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   const meetings = await items<Meeting>(await page.request.get("/api/council-meetings"));
   const reconvened = meetings.find((meeting) => meeting.previousCouncilMeetingId === first.id)!;
   const closedFirst = meetings.find((meeting) => meeting.id === first.id)!;
-  await page.goto(`/app/meetings/${reconvened.id}`);
+  await signIn(page, "secretariat", `/app/meetings/${reconvened.id}`);
   await expect(page.getByTestId("meeting-reconvened-chip")).toBeVisible();
   await page.waitForLoadState("networkidle");
   await capture(page, `${journey}/06-seance-reconvoquee`);
@@ -128,6 +129,7 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
     secretaryMemberId: reconvenedSecretary!,
   });
   // The roll call of the reconvened meeting is recorded at its convened date through the same opening route.
+  await useAccount(page, "conduite");
   const reconvenedDate = new Date(reconvened.scheduledAt!);
   const at = (minutes: number) => new Date(reconvenedDate.getTime() + minutes * 60_000).toISOString();
   await properties(
@@ -148,12 +150,13 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   await page.waitForTimeout(500);
   await capture(page, `${journey}/07-ouverture-en-seconde-convocation`);
 
-  await page.goto(`/app/minutes/${closedFirst.minutesId}`);
+  await signIn(page, "secretariat", `/app/minutes/${closedFirst.minutesId}`);
   await expect(page.getByTestId("minutes-second-convocation")).toBeVisible();
   await page.waitForLoadState("networkidle");
   await capture(page, `${journey}/08-proces-verbal-premiere-seance`);
 
   // The carried affair is discussed then adjourned, and the meeting closes on the same evening.
+  await useAccount(page, "conduite");
   const carried = (
     await items<{ id: string; position: number }>(
       await page.request.get(`/api/council-meetings/${reconvened.id}/agenda-items`),
@@ -175,7 +178,7 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   const reconvenedMinutes = (await items<Meeting>(await page.request.get("/api/council-meetings"))).find(
     (meeting) => meeting.id === reconvened.id,
   )!.minutesId;
-  await page.goto(`/app/minutes/${reconvenedMinutes}`);
+  await signIn(page, "secretariat", `/app/minutes/${reconvenedMinutes}`);
   await expect(page.getByTestId("minutes-reconvened-from")).toBeVisible();
   await page.waitForLoadState("networkidle");
   await capture(page, `${journey}/09-proces-verbal-seance-reconvoquee`);

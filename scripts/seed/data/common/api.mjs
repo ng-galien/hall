@@ -10,12 +10,15 @@ export function createSeedApi(baseUrl) {
     return payload.properties ?? payload;
   }
 
+  let sessionCookie = null;
+  let signedInEmail = null;
+
   async function request(method, path, body) {
-    const init = { method };
+    const init = { method, headers: sessionCookie ? { Cookie: sessionCookie } : {} };
     if (body instanceof FormData) {
       init.body = body;
     } else if (body !== undefined) {
-      init.headers = { "Content-Type": "application/json" };
+      init.headers = { ...init.headers, "Content-Type": "application/json" };
       init.body = JSON.stringify(body);
     }
     const response = await fetch(`${baseUrl}${path}`, init);
@@ -23,6 +26,23 @@ export function createSeedApi(baseUrl) {
     return response.status === 204 ? null : unwrapRepresentation(await response.json());
   }
   const get = (path) => request("GET", path);
+
+  /** On a server without development access and without any account, creates the first administrator and seeds as them. */
+  async function signInAsFirstAdministrator(administrator, password) {
+    const status = await get("/auth/status");
+    if (status.developmentAccess || !status.bootstrapRequired) return false;
+    const response = await fetch(`${baseUrl}/auth/bootstrap`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...administrator, password }),
+    });
+    if (!response.ok) throw new Error(`POST /auth/bootstrap -> ${response.status} ${await response.text()}`);
+    const cookie = response.headers.get("set-cookie");
+    if (!cookie) throw new Error("POST /auth/bootstrap n’a pas ouvert de session");
+    sessionCookie = cookie.split(";", 1)[0];
+    signedInEmail = administrator.email;
+    return true;
+  }
   const post = (path, body) => request("POST", path, body);
   const put = (path, body) => request("PUT", path, body);
   const patch = (path, body) => request("PATCH", path, body);
@@ -86,6 +106,10 @@ export function createSeedApi(baseUrl) {
 
   return {
     get,
+    signInAsFirstAdministrator,
+    get signedInEmail() {
+      return signedInEmail;
+    },
     post,
     put,
     patch,

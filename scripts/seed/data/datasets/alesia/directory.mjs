@@ -1,4 +1,7 @@
-export async function seedDirectory({ post, put }, { daysFromNow, password }) {
+/** The Alésia administrator: the first account on a server without development access. */
+export const alesiaAdministrator = { email: "vercingetorix@alesia.example", displayName: "Vercingétorix l’Arverne" };
+
+export async function seedDirectory({ post, put, signedInEmail }, { daysFromNow, password }) {
   console.log("- Configuration de la commune");
   await put("/settings", {
     name: "Alésia",
@@ -113,8 +116,7 @@ export async function seedDirectory({ post, put }, { daysFromNow, password }) {
   console.log("- Utilisateurs, rôles et rattachements au conseil");
   const usersSpec = [
     {
-      email: "vercingetorix@alesia.example",
-      displayName: "Vercingétorix l’Arverne",
+      ...alesiaAdministrator,
       roles: ["administrator"],
       contactId: null,
     },
@@ -143,7 +145,9 @@ export async function seedDirectory({ post, put }, { daysFromNow, password }) {
       contactId: null,
     },
   ];
-  for (const user of usersSpec) await post("/users", { ...user, password: password });
+  for (const user of usersSpec) {
+    if (user.email !== signedInEmail) await post("/users", { ...user, password: password });
+  }
   for (const user of usersSpec) {
     const authenticated = await post("/auth/login", { email: user.email, password: password });
     if (authenticated.email !== user.email || user.roles.some((role) => !authenticated.roles.includes(role))) {

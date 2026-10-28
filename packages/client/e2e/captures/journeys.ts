@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { capture, expect, localDateTimeInput, waitForPageEntrance } from "./fixtures";
+import { capture, expect, localDateTimeInput, signIn, waitForPageEntrance } from "./fixtures";
 
 /** From the meeting in preparation to the roll call screen; captures each step under `prefix` when given. */
 export async function prepareMeeting(page: Page, prefix?: string) {
@@ -57,7 +57,10 @@ export async function prepareMeeting(page: Page, prefix?: string) {
   await shot("07-convocation-generee");
   await page.keyboard.press("Escape");
 
+  // From the meeting mode on, the roll call and the conduct are done by the account with the meeting conduct role.
+  await signIn(page, "conduite");
   await expect(page.getByTestId("meeting-enter-live")).toBeEnabled();
+  await waitForPageEntrance(page);
   await shot("08-passer-en-mode-seance");
   await page.getByTestId("meeting-enter-live").click();
   await expect(page.getByTestId("live-rollcall-heading")).toBeVisible();

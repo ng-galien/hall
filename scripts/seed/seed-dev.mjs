@@ -33,8 +33,12 @@ export async function main(args = process.argv.slice(2), env = process.env) {
   if (!["http:", "https:"].includes(baseUrl.protocol)) throw new Error("SEED_API doit être une URL HTTP ou HTTPS");
   const api = createSeedApi(baseUrl.href.replace(/\/$/, ""));
   console.log(`Jeu : ${datasetName} ; scénario : ${scenarioName}`);
+  const password = env.SEED_DEMO_PASSWORD ?? "Hall-demo-2026!";
+  if (await api.signInAsFirstAdministrator(dataset.administrator, password)) {
+    console.log(`Serveur sans accès de développement : jeu semé sous le compte de ${dataset.administrator.displayName}`);
+  }
   await assertEmptyDatabase(api);
-  const fixture = await dataset.run(api, { password: env.SEED_DEMO_PASSWORD ?? "Hall-demo-2026!" });
+  const fixture = await dataset.run(api, { password });
   await scenario.run(api, fixture);
   console.log("Seed terminé.");
 }
