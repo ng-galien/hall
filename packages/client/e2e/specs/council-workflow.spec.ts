@@ -385,11 +385,6 @@ test("records a secretary handover, other persons present and shows the ballot c
   appPage: page,
 }, testInfo) => {
   test.setTimeout(120_000);
-  // biome-ignore lint/suspicious/noSkippedTests: This scenario is opt-in because it requires a dedicated fresh meeting fixture.
-  test.skip(
-    process.env.HALL_E2E_MEETING_OFFICERS !== "1",
-    "Dedicated fresh meeting fixture: HALL_E2E_MEETING_OFFICERS=1 with --grep 'secretary handover'",
-  );
   const meetings = await sirenItems<{
     id: string;
     scheduledAt: string | null;
@@ -406,7 +401,7 @@ test("records a secretary handover, other persons present and shows the ballot c
   }
   const members = await sirenItems<{ id: string }>(await page.request.get("/api/council-members"));
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
-  const item = await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
+  await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
   await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
   await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
   await sirenProperties(
@@ -453,7 +448,10 @@ test("records a secretary handover, other persons present and shows the ballot c
   await expect(page.getByTestId("live-auxiliaries-list")).toContainText("Jean Libre");
   await page.screenshot({ path: testInfo.outputPath("meeting-attending-persons.png"), fullPage: true });
   await page.getByTestId("live-attendance-save").click();
-  await page.getByTestId(`live-agenda-item-${item.id}`).click();
+  await page
+    .getByTestId(/^live-agenda-item-/)
+    .first()
+    .click();
   await page.getByTestId("live-agenda-start").click();
   await page.getByTestId("live-ballot-open").click();
   await expect(page.getByTestId("live-ballot-chairman-basis")).toHaveText("Président de séance en titre");

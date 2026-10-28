@@ -5,7 +5,7 @@ import { capture, expect, localDateTimeInput, signIn, waitForPageEntrance } from
  * From the meeting in preparation to the roll call screen; captures each step under `prefix` when given.
  * The secretariat prepares the meeting; from the meeting mode on, the account with the meeting conduct role takes over.
  */
-export async function prepareMeeting(page: Page, prefix?: string) {
+export async function prepareMeeting(page: Page, prefix?: string, meetingNumber = 2) {
   const shot = async (name: string) => {
     if (prefix) await capture(page, `${prefix}/${name}`);
   };
@@ -20,7 +20,7 @@ export async function prepareMeeting(page: Page, prefix?: string) {
   await shot("01-liste-des-seances");
 
   await page
-    .getByRole("link", { name: /Conseil municipal 2\b/ })
+    .getByRole("link", { name: new RegExp(`Conseil municipal ${meetingNumber}\\b`) })
     .first()
     .click();
   await expect(page.getByTestId("meeting-edit-details")).toBeVisible();

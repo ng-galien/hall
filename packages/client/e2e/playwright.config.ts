@@ -25,12 +25,12 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   projects:
-    process.env.HALL_DOCS_CAPTURES === "true" || process.env.HALL_DOCS_JOURNEYS === "true"
+    process.env.HALL_E2E_MEETING_RULES === "true"
       ? [
           {
-            name: process.env.HALL_DOCS_CAPTURES === "true" ? "docs-captures" : "docs-journeys",
-            testDir: "./captures",
-            testMatch: /\.captures\.ts$/,
+            name: "meeting-rules",
+            testDir: "./meeting-rules",
+            testMatch: /\.spec\.ts$/,
             use: {
               ...devices["Desktop Chrome"],
               viewport: { width: 1440, height: 900 },
@@ -39,22 +39,36 @@ export default defineConfig({
             },
           },
         ]
-      : process.env.HALL_E2E_AUTH_MODE === "true"
+      : process.env.HALL_DOCS_CAPTURES === "true" || process.env.HALL_DOCS_JOURNEYS === "true"
         ? [
             {
-              name: "authentication",
-              testMatch: /(user-account|personal-workspaces)\.spec\.ts/,
-              use: { ...devices["Desktop Chrome"] },
+              name: process.env.HALL_DOCS_CAPTURES === "true" ? "docs-captures" : "docs-journeys",
+              testDir: "./captures",
+              testMatch: /\.captures\.ts$/,
+              use: {
+                ...devices["Desktop Chrome"],
+                viewport: { width: 1440, height: 900 },
+                locale: "fr-FR",
+                launchOptions: { args: ["--lang=fr-FR"] },
+              },
             },
           ]
-        : [
-            {
-              name: "chromium",
-              testMatch: /\.spec\.ts/,
-              testIgnore: /(user-account|personal-workspaces)\.spec\.ts/,
-              use: { ...devices["Desktop Chrome"] },
-            },
-          ],
+        : process.env.HALL_E2E_AUTH_MODE === "true"
+          ? [
+              {
+                name: "authentication",
+                testMatch: /(user-account|personal-workspaces)\.spec\.ts/,
+                use: { ...devices["Desktop Chrome"] },
+              },
+            ]
+          : [
+              {
+                name: "chromium",
+                testMatch: /\.spec\.ts/,
+                testIgnore: /(user-account|personal-workspaces)\.spec\.ts/,
+                use: { ...devices["Desktop Chrome"] },
+              },
+            ],
   webServer: [
     {
       command: "node packages/server/dist/index.js",

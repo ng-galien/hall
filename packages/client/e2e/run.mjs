@@ -16,9 +16,12 @@ const suiteTimeoutMs = suiteTimeoutMinutes * 60 * 1_000;
 const deadline = Date.now() + suiteTimeoutMs;
 const requestedArguments = process.argv.slice(2);
 const authenticationMode = process.env.HALL_E2E_AUTH_MODE === "true";
-// Documentation journeys (with or without writing captures) run Hall as delivered: the built client, served by the
+// Documentation journeys (with or without writing captures) and the meeting-rule journeys run Hall as delivered: the built client, served by the
 // test server, with real sign-in.
-const documentationCaptures = process.env.HALL_DOCS_CAPTURES === "true" || process.env.HALL_DOCS_JOURNEYS === "true";
+const documentationCaptures =
+  process.env.HALL_DOCS_CAPTURES === "true" ||
+  process.env.HALL_DOCS_JOURNEYS === "true" ||
+  process.env.HALL_E2E_MEETING_RULES === "true";
 
 const buildPackages = [
   { name: "@hall/contracts", directory: "contracts" },

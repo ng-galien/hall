@@ -10,7 +10,7 @@ const specs = readdirSync(resolve(client, "e2e/specs")).filter((name) => name.en
 const require = createRequire(import.meta.url);
 const playwright = require.resolve("@playwright/test/cli");
 
-function listedSpecs(authMode, documentationJourneys = false) {
+function listedSpecs(authMode, documentationJourneys = false, meetingRules = false) {
   const result = spawnSync(process.execPath, [playwright, "test", "--config", "e2e/playwright.config.ts", "--list"], {
     cwd: client,
     env: {
@@ -18,6 +18,7 @@ function listedSpecs(authMode, documentationJourneys = false) {
       HALL_E2E_AUTH_MODE: String(authMode),
       HALL_DOCS_CAPTURES: "false",
       HALL_DOCS_JOURNEYS: String(documentationJourneys),
+      HALL_E2E_MEETING_RULES: String(meetingRules),
     },
     encoding: "utf8",
   });
@@ -43,6 +44,18 @@ for (const journey of journeys) {
   );
   assert.ok(!regular.includes(journey) && !authentication.includes(journey), `${journey} is present in another suite`);
 }
+const ruleSpecs = readdirSync(resolve(client, "e2e/meeting-rules")).filter((name) => name.endsWith(".spec.ts"));
+const rules = listedSpecs(false, false, true);
+for (const spec of ruleSpecs) {
+  assert.ok(
+    rules.includes("[meeting-rules]") && rules.includes(spec),
+    `${spec} is missing from the meeting-rules project`,
+  );
+  assert.ok(
+    !regular.includes(spec) && !authentication.includes(spec) && !documentation.includes(spec),
+    `${spec} is present in another suite`,
+  );
+}
 console.log(
-  `Playwright inventory OK: ${specs.length} specifications in the regular and authentication suites, ${journeys.length} documentation journeys in docs-journeys`,
+  `Playwright inventory OK: ${specs.length} specifications in the regular and authentication suites, ${journeys.length} documentation journeys in docs-journeys, ${ruleSpecs.length} meeting-rule journeys in meeting-rules`,
 );
