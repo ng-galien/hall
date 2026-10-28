@@ -63,7 +63,12 @@ async function requireMeetingAgendaItem(
 const staleMeetingRoutePath = "/:meetingReference/stale";
 
 // @implements-requirement HALL-FR-MTG-320
-export function createCouncilMeetingsRouter({ councilClient, meetingNoticeService, realtimeEvents }: Cradle): Router {
+export function createCouncilMeetingsRouter({
+  councilClient,
+  meetingDossierService,
+  meetingNoticeService,
+  realtimeEvents,
+}: Cradle): Router {
   const router = Router();
 
   async function changeMeeting<Result>(meetingId: string, action: () => Promise<Result>): Promise<Result> {
@@ -174,6 +179,17 @@ export function createCouncilMeetingsRouter({ councilClient, meetingNoticeServic
     },
   );
 
+  router.get(
+    "/:meetingReference/dossier",
+    requireActionPermission("meeting.generate-dossier"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      const dossier = await meetingDossierService.dossier(meeting.id);
+      response.set("Content-Disposition", `attachment; filename="${dossier.fileName}"`);
+      response.set("Cache-Control", "private, no-store");
+      response.type("application/pdf").send(dossier.content);
+    },
+  );
   router.get("/:meetingReference/notice-message", requirePermission("meetings.prepare"), async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     response.json(await meetingNoticeService.messagePreparation(meeting.id));

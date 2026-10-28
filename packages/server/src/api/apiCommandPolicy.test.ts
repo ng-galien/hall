@@ -111,6 +111,7 @@ const actionsByPermissions = [
       "meeting.reopen-agenda",
       "meeting.generate-notice",
       "meeting.generate-notice-message",
+      "meeting.generate-dossier",
       "agenda-item.schedule-prepared",
       "decision.update-draft",
       "decision.freeze",

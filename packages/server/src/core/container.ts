@@ -54,6 +54,7 @@ import { createGeographicLayerService, type GeographicLayerService } from "../se
 import { createGeographicMapRenderer, type GeographicMapRenderer } from "../services/geographicMapRenderer.js";
 import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
+import { createMeetingDossierService, type MeetingDossierService } from "../services/meetingDossierService.js";
 import { createMeetingNoticeService, type MeetingNoticeService } from "../services/meetingNoticeService.js";
 import { createMinutesService, type MinutesService } from "../services/minutesService.js";
 import { createReferenceEntityResolver, type ReferenceEntityResolver } from "../services/referenceEntityResolver.js";
@@ -82,6 +83,7 @@ export interface Cradle {
   postgresCouncilDecisions: PostgresCouncilDecisions;
   councilDecisionClient: CouncilDecisionClient;
   councilDecisionService: CouncilDecisionService;
+  meetingDossierService: MeetingDossierService;
   meetingNoticeService: MeetingNoticeService;
   directoryClient: DirectoryClient;
   councilClient: CouncilClient;
@@ -136,6 +138,7 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     securityRepository: asFunction(createSecurityRepository).singleton(),
     minutesService: asFunction(createMinutesService).singleton(),
     councilDecisionService: asFunction(createCouncilDecisionService).singleton(),
+    meetingDossierService: asFunction(createMeetingDossierService).singleton(),
     meetingNoticeService: asFunction(createMeetingNoticeService).singleton(),
     councilBallotService: asFunction(createCouncilBallotService).singleton(),
     councilBusinessWorkspaceService: asFunction(createCouncilBusinessWorkspaceService).singleton(),

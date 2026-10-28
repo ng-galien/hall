@@ -7632,6 +7632,29 @@
         }
       ]
     },
+    "HALL-FR-NOT-120": {
+      "name": "MEETING_DOSSIER_GATHERS_FROZEN_AGENDA_REPORTS_AND_PIECES",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-28"
+      },
+      "statement": "Une fois l’ordre du jour figé, Hall produit à la demande le dossier de séance : un PDF unique qui réunit l’ordre du jour figé puis, point par point dans l’ordre de la séance, le rapport, le texte du projet ou de la question et les pièces de l’affaire.",
+      "acceptanceCriteria": [
+        "Le dossier est proposé dans les pièces de séance d’une séance à l’ordre du jour figé et refusé avant le gel par un message nommé.",
+        "Les pièces PDF sont insérées à la suite de leur point ; les autres pièces sont nommées avec la mention « consultable dans Hall ».",
+        "Le dossier n’est pas conservé : il reflète les pièces des affaires au moment où il est produit.",
+        "Le courriel de convocation préparé pour Outlook joint le dossier après la convocation."
+      ],
+      "clauses": [
+        {
+          "key": "dossier",
+          "origin": "product",
+          "statement": "Demande du coordinateur du 28 octobre 2026 (4f89c089) sur l’étude des manques de Hall demandée par le propriétaire ; la conservation versionnée du dossier, qui serait une donnée nouvelle, reste à décider par le propriétaire.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-NOT-020": {
       "name": "NOTICE_DEADLINE_IS_PROJECTED_BY_POSTGRESQL",
       "nature": "technical",

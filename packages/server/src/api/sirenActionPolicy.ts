@@ -587,6 +587,7 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
         action("meeting.reopen-agenda", "POST", `/api/council-meetings/${meetingReference}/agenda-reopening`),
       );
       actions.push(action("meeting.generate-notice", "POST", `/api/council-meetings/${meetingReference}/notices`));
+      actions.push(action("meeting.generate-dossier", "GET", `/api/council-meetings/${meetingReference}/dossier`));
     }
     actions.push(action("meeting.prepare", "PUT", `/api/council-meetings/${meetingReference}/prepare`));
     const openingBlockers = meetingOpeningBlockerSchema.array().safeParse(meeting.openingBlockers);

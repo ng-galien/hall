@@ -8,6 +8,7 @@ import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
+import { apiResponse } from "../../services/apiClient";
 import { useResourcesStore } from "../../stores/resourcesStore";
 
 export const documentCategoryKeys: Record<DocumentCategory, TranslationKey> = {
@@ -21,15 +22,18 @@ export const documentCategoryKeys: Record<DocumentCategory, TranslationKey> = {
 
 const meetingDocumentCategories: DocumentCategory[] = ["meetingNotice", "proxy", "supporting"];
 
+// @implements-requirement HALL-FR-NOT-120 (the meeting dossier is offered with the meeting pieces)
 export function MeetingDetailsCard({
   aggregate,
   documents,
   documentsEditable,
+  dossierAvailable = false,
   embedded = false,
 }: {
   aggregate: LiveMeetingPresentation;
   documents: DocumentaryResource[];
   documentsEditable: boolean;
+  dossierAvailable?: boolean;
   embedded?: boolean;
 }) {
   const { t, formatFileSize } = useI18n();
@@ -39,6 +43,27 @@ export function MeetingDetailsCard({
   const [viewedDocument, setViewedDocument] = useState<DocumentaryResource | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [uploadCategory, setUploadCategory] = useState<DocumentCategory>("meetingNotice");
+  const [dossierState, setDossierState] = useState<"idle" | "pending" | "failed">("idle");
+  const downloadDossier = async () => {
+    setDossierState("pending");
+    try {
+      const response = await apiResponse(`/council-meetings/${meeting.id}/dossier`, {
+        headers: { Accept: "application/pdf" },
+      });
+      const url = URL.createObjectURL(await response.blob());
+      try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "dossier-seance.pdf";
+        link.click();
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+      setDossierState("idle");
+    } catch {
+      setDossierState("failed");
+    }
+  };
   const uploadMeetingDocument = () => {
     const file = fileInput.current?.files?.[0];
     if (!file) return;
@@ -81,6 +106,31 @@ export function MeetingDetailsCard({
           }
           return null;
         })()}
+        {dossierAvailable ? (
+          <ul className="meeting-side-documents" data-testid="meeting-dossier">
+            <li>
+              <FileIcon aria-hidden="true" />
+              <span className="composer-item-copy">
+                <strong>{t("meeting.dossier")}</strong>
+                <span>{t("meeting.dossierDescription")}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="meeting-dossier-download"
+                disabled={dossierState === "pending"}
+                onClick={() => void downloadDossier()}
+              >
+                {t(dossierState === "pending" ? "meeting.dossierPending" : "meeting.dossierDownload")}
+              </Button>
+            </li>
+            {dossierState === "failed" ? (
+              <li role="alert" data-testid="meeting-dossier-error">
+                {t("meeting.dossierFailed")}
+              </li>
+            ) : null}
+          </ul>
+        ) : null}
         {documents.length > 0 ? (
           <ul className="meeting-side-documents">
             {documents.map((document) => (

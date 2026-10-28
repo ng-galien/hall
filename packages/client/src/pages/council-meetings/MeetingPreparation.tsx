@@ -340,6 +340,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                 resource.kind === "document" && resource.usage === "document" && resource.meetingId === meeting.id,
             )}
             documentsEditable={canUpload}
+            dossierAvailable={meetingActions.can("meeting.generate-dossier")}
           />
         </Modal>
       </div>

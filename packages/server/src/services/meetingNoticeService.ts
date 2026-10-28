@@ -7,6 +7,7 @@ import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { ContentTemplateService, GeneratedFile } from "./contentTemplateService.js";
 import { DomainError } from "./errors.js";
 import type { HallSettingsService } from "./hallSettingsService.js";
+import type { MeetingDossierService } from "./meetingDossierService.js";
 
 export interface MeetingNoticeService {
   messagePreparation(meetingId: string): Promise<MeetingNoticeMessagePreparation>;
@@ -21,8 +22,10 @@ export function createMeetingNoticeService({
   hallSettingsService,
   contentTemplateService,
   directoryClient,
+  meetingDossierService,
 }: {
   directoryClient: DirectoryClient;
+  meetingDossierService: MeetingDossierService;
   councilClient: CouncilClient;
   hallSettingsService: HallSettingsService;
   contentTemplateService: ContentTemplateService;
@@ -86,6 +89,7 @@ export function createMeetingNoticeService({
         throw new DomainError("meeting_notice_stale", 409);
       const content = await councilClient.noticeContent(noticeId);
       if (!content) throw new DomainError("meeting_notice_not_found", 404);
+      const dossier = await meetingDossierService.dossier(meetingId);
       const message = await contentTemplateService.generateFromTemplate(
         await template("message", "meeting-notice-message"),
         {
@@ -98,6 +102,12 @@ export function createMeetingNoticeService({
               fileName: `convocation-${notice.facts.meeting.number}-v${notice.version}.pdf`,
               mediaType: "application/pdf",
               content,
+            },
+            {
+              id: `${notice.id}-dossier`,
+              fileName: dossier.fileName,
+              mediaType: "application/pdf",
+              content: dossier.content,
             },
           ],
           to: [

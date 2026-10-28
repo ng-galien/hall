@@ -194,6 +194,7 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   personal_workspace_resource_not_associable: "error.personal_workspace_resource_not_associable",
   council_business_report_not_deletable: "error.council_business_report_not_deletable",
   council_business_folder_not_deletable: "error.council_business_folder_not_deletable",
+  meeting_dossier_unavailable: "error.meeting_dossier_unavailable",
   ballot_already_recorded: "error.ballot_already_recorded",
   ballot_not_found: "error.ballot_not_found",
   ballot_voters_invalid: "error.ballot_voters_invalid",

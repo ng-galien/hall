@@ -59,6 +59,10 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
   await expect(page.getByRole("button", { name: /Télécharger le courriel Outlook/ })).toBeVisible();
   await shot("07-convocation-generee");
   await page.keyboard.press("Escape");
+  await page.getByTestId("meeting-open-documents").click();
+  await expect(page.getByTestId("meeting-dossier-download")).toBeVisible();
+  await shot("07b-dossier-de-seance");
+  await page.keyboard.press("Escape");
 
   await signIn(page, "conduite");
   await expect(page.getByTestId("meeting-enter-live")).toBeEnabled();

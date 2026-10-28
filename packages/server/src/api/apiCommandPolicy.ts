@@ -105,6 +105,7 @@ export const apiCommandPolicies = {
   "meeting.schedule": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
   "meeting.reopen-agenda": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
   "meeting.generate-notice-message": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
+  "meeting.generate-dossier": { permissions: meetingsPrepare, auditTargetType: null },
   "meeting.freeze-agenda": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
   "meeting.generate-notice": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },
   "meeting.prepare": { permissions: meetingsPrepare, auditTargetType: "council-meeting" },

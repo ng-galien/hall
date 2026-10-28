@@ -104,6 +104,7 @@ export type ErrorCode =
   | "personal_workspace_resource_not_associable"
   | "council_business_report_not_deletable"
   | "council_business_folder_not_deletable"
+  | "meeting_dossier_unavailable"
   | "councillor_requires_active_member"
   | "proxy_invalid"
   | "quorum_not_reached"
