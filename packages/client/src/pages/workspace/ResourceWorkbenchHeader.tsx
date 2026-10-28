@@ -125,7 +125,7 @@ export function ResourceWorkbenchHeader({
             <span className="workbench-meta-label">{t("workspace.tags")}</span>
             <TagInput value={tags} onChange={onTagsChange} readOnly={!canUpdate} label={t("workspace.tags")} />
           </div>
-          <div className="workbench-meta">
+          <div className="workbench-meta" data-testid="resource-related-businesses">
             <span className="workbench-meta-label">{t("workspace.relatedCouncilBusiness")}</span>
             {relatedBusinesses.length === 0 ? (
               <span className="workbench-meta-empty">{t("workspace.noRelatedCouncilBusiness")}</span>
@@ -134,6 +134,7 @@ export function ResourceWorkbenchHeader({
                 <button
                   key={business.id}
                   className="workbench-business-chip"
+                  data-testid={`resource-related-business-${business.id}`}
                   type="button"
                   onClick={() => onSelect({ kind: "councilBusiness", id: business.id })}
                 >
