@@ -1,5 +1,5 @@
 import type { APIResponse, Page } from "@playwright/test";
-import { capture, expect, localDateTimeInput, signIn, test, useAccount } from "./fixtures";
+import { capture, expect, localDateTimeInput, signIn, switchAccount, test } from "./fixtures";
 
 test.setTimeout(4 * 60_000);
 test.use({ seedScenario: "preparation" });
@@ -129,7 +129,7 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
     secretaryMemberId: reconvenedSecretary!,
   });
   // The roll call of the reconvened meeting is recorded at its convened date through the same opening route.
-  await useAccount(page, "conduite");
+  await switchAccount(page, "conduite");
   const reconvenedDate = new Date(reconvened.scheduledAt!);
   const at = (minutes: number) => new Date(reconvenedDate.getTime() + minutes * 60_000).toISOString();
   await properties(
@@ -156,7 +156,7 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   await capture(page, `${journey}/08-proces-verbal-premiere-seance`);
 
   // The carried affair is discussed then adjourned, and the meeting closes on the same evening.
-  await useAccount(page, "conduite");
+  await switchAccount(page, "conduite");
   const carried = (
     await items<{ id: string; position: number }>(
       await page.request.get(`/api/council-meetings/${reconvened.id}/agenda-items`),

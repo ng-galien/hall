@@ -10,10 +10,15 @@ const specs = readdirSync(resolve(client, "e2e/specs")).filter((name) => name.en
 const require = createRequire(import.meta.url);
 const playwright = require.resolve("@playwright/test/cli");
 
-function listedSpecs(authMode) {
+function listedSpecs(authMode, documentationJourneys = false) {
   const result = spawnSync(process.execPath, [playwright, "test", "--config", "e2e/playwright.config.ts", "--list"], {
     cwd: client,
-    env: { ...process.env, HALL_E2E_AUTH_MODE: String(authMode) },
+    env: {
+      ...process.env,
+      HALL_E2E_AUTH_MODE: String(authMode),
+      HALL_DOCS_CAPTURES: "false",
+      HALL_DOCS_JOURNEYS: String(documentationJourneys),
+    },
     encoding: "utf8",
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -29,4 +34,15 @@ for (const spec of specs) {
   assert.ok(expected.includes(spec), `${spec} is missing from its Playwright suite`);
   assert.ok(!other.includes(spec), `${spec} is present in both Playwright suites`);
 }
-console.log(`Playwright inventory OK: ${specs.length} specifications in the regular and authentication suites`);
+const journeys = readdirSync(resolve(client, "e2e/captures")).filter((name) => name.endsWith(".captures.ts"));
+const documentation = listedSpecs(false, true);
+for (const journey of journeys) {
+  assert.ok(
+    documentation.includes(`[docs-journeys]`) && documentation.includes(journey),
+    `${journey} is missing from the docs-journeys project`,
+  );
+  assert.ok(!regular.includes(journey) && !authentication.includes(journey), `${journey} is present in another suite`);
+}
+console.log(
+  `Playwright inventory OK: ${specs.length} specifications in the regular and authentication suites, ${journeys.length} documentation journeys in docs-journeys`,
+);

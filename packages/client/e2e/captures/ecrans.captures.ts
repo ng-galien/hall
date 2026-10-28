@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { capture, expect, test, useAccount } from "./fixtures";
+import { capture, expect, switchAccount, test } from "./fixtures";
 
 /** Every screen of the "Écrans" section, on the dataset with closed meetings and one meeting in progress. */
 const scenario = (process.env.HALL_DOCS_SCENARIO ?? "default") as "preparation" | "default" | "minutes";
@@ -42,11 +42,11 @@ test("les écrans de Hall sur le jeu Alésia", async ({ docsPage: page }) => {
   if (inProgress) {
     await open(page, `/meetings/${inProgress.id}`, "seance-en-cours");
     // The meeting mode is shown to the account that conducts the meeting.
-    await useAccount(page, "conduite");
+    await switchAccount(page, "conduite");
     await open(page, `/meetings/${inProgress.id}/live`, "mode-seance", async () => {
       await expect(page.getByText(/Séance du conseil municipal/i).first()).toBeVisible();
     });
-    await useAccount(page, "secretariat");
+    await switchAccount(page, "secretariat");
   }
 
   await open(page, "/minutes", "proces-verbaux");
@@ -100,7 +100,7 @@ test("les écrans de Hall sur le jeu Alésia", async ({ docsPage: page }) => {
   const [member] = await entities(page, "/api/council-members");
   if (member) await open(page, `/council-members/${member.id}`, "membre-du-conseil");
   // Users and the reserved settings are screens of the administrator.
-  await useAccount(page, "administrateur");
+  await switchAccount(page, "administrateur");
   await open(page, "/users", "utilisateurs");
   await open(page, "/settings", "parametres");
   expect(misses, "écrans non capturés").toEqual([]);

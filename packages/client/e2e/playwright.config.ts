@@ -25,10 +25,10 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   projects:
-    process.env.HALL_DOCS_CAPTURES === "true"
+    process.env.HALL_DOCS_CAPTURES === "true" || process.env.HALL_DOCS_JOURNEYS === "true"
       ? [
           {
-            name: "docs-captures",
+            name: process.env.HALL_DOCS_CAPTURES === "true" ? "docs-captures" : "docs-journeys",
             testDir: "./captures",
             testMatch: /\.captures\.ts$/,
             use: {

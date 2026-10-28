@@ -7,7 +7,9 @@ import { test as base, expect } from "../fixtures/application";
 /** The documentation captures: every screen of the user documentation, taken on the Alésia dataset. */
 const capturesDirectory = join(dirname(fileURLToPath(import.meta.url)), "../../public/documentation/captures");
 
+/** Writes the capture only when producing the documentation images; the CI journeys run every step without writing. */
 export async function capture(page: Page, name: string) {
+  if (process.env.HALL_DOCS_CAPTURES !== "true") return;
   const path = join(capturesDirectory, `${name}.png`);
   await mkdir(dirname(path), { recursive: true });
   await page.screenshot({ path, animations: "disabled", caret: "hide" });
@@ -44,7 +46,7 @@ export const accounts = {
 export const demoPassword = process.env.SEED_DEMO_PASSWORD ?? "Hall-demo-2026!";
 
 /** Opens a real session of an Alésia account for the page and its API requests, without navigating. */
-export async function useAccount(page: Page, account: keyof typeof accounts) {
+export async function switchAccount(page: Page, account: keyof typeof accounts) {
   const response = await page.request.post("/api/auth/login", {
     data: { email: accounts[account], password: demoPassword },
   });
@@ -53,7 +55,7 @@ export async function useAccount(page: Page, account: keyof typeof accounts) {
 
 /** Signs in with an Alésia account, then reopens the current address or `path`. */
 export async function signIn(page: Page, account: keyof typeof accounts, path?: string) {
-  await useAccount(page, account);
+  await switchAccount(page, account);
   await page.goto(path ?? page.url());
   await page.waitForLoadState("networkidle");
 }
@@ -61,7 +63,7 @@ export async function signIn(page: Page, account: keyof typeof accounts, path?: 
 export const test = base.extend<{ docsPage: Page }>({
   docsPage: async ({ page, isolatedDatabase: _isolatedDatabase }, use) => {
     await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
-    await useAccount(page, "secretariat");
+    await switchAccount(page, "secretariat");
     await page.goto("/app/");
     await expect(page.getByTestId("application-sync-status")).toHaveAttribute("data-sync-state", "synchronized");
     await use(page);
