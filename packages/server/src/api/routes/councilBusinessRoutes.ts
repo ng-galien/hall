@@ -99,6 +99,9 @@ export function createCouncilBusinessRouter({
       businesses.length === 0
         ? []
         : await councilBusinessWorkspaceService.listAgendaItems(businesses.map(({ id }) => id));
+    response.locals.deletableCouncilBusinessIds = new Set(
+      await councilClient.listDeletableBusinesses(businesses.map(({ id }) => id)),
+    );
     response.json(businesses);
   });
 
@@ -119,6 +122,7 @@ export function createCouncilBusinessRouter({
 
   router.post("/", requireActionPermission("council-business.create"), async (request, response) => {
     const created = await councilBusinessWorkspaceService.create(createCouncilBusinessSchema.parse(request.body));
+    response.locals.deletableCouncilBusinessIds = new Set(await councilClient.listDeletableBusinesses([created.id]));
     response.status(201).json(created);
   });
 
@@ -134,6 +138,7 @@ export function createCouncilBusinessRouter({
     response.locals.currentCouncilBusinessAgendaItems = await councilBusinessWorkspaceService.listAgendaItems([
       business.id,
     ]);
+    response.locals.deletableCouncilBusinessIds = new Set(await councilClient.listDeletableBusinesses([business.id]));
     response.json(business);
   });
 

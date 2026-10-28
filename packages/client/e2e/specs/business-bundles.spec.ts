@@ -110,20 +110,16 @@ test("refuses deleting linked businesses without data loss and deletes only afte
   await page.goto("/app/workspace?path=seed");
   const row = page.getByTestId(`workspace-business-${business.id}`);
   await expect(row).toHaveAttribute("data-folder-import-enabled", "true", { timeout: 15_000 });
-  await row.click({ button: "right" });
-  await page.getByTestId("workspace-tree-delete-business").click();
-  const confirm = page.getByTestId("business-delete-confirm");
-  const deleteResponse = () =>
-    page.waitForResponse(
-      (response) =>
-        response.url().endsWith(`/api/council-business/${business.id}`) && response.request().method() === "DELETE",
-    );
-  const blocked = deleteResponse();
-  await confirm.click();
-  expect((await blocked).status()).toBe(409);
-  await expect(page.getByTestId("business-delete-dialog").getByRole("alert")).toContainText("still contains resources");
-  await mkdir("/tmp/hall-business-bundles", { recursive: true });
-  await page.screenshot({ animations: "disabled", path: "/tmp/hall-business-bundles/delete-blocked.png" });
+  const openMenu = async () => {
+    await page.goto("/app/workspace?path=seed");
+    await expect(row).toHaveAttribute("data-folder-import-enabled", "true", { timeout: 15_000 });
+    await row.click({ button: "right" });
+    await expect(page.getByTestId("workspace-tree-rename")).toBeVisible();
+  };
+  await openMenu();
+  await expect(page.getByTestId("workspace-tree-delete-business")).toHaveCount(0);
+  const blocked = await page.request.delete(`/api/council-business/${business.id}`);
+  expect(blocked.status()).toBe(409);
   for (const id of [business.reportResourceId, business.folderResourceId, document.id]) {
     expect((await page.request.get(`/api/resources/${id}`)).ok()).toBeTruthy();
   }
@@ -131,16 +127,20 @@ test("refuses deleting linked businesses without data loss and deletes only afte
     data: { resourceId: document.id },
   });
   expect(unlink.ok()).toBeTruthy();
-  const stillInFolder = deleteResponse();
-  await confirm.click();
-  expect((await stillInFolder).status()).toBe(409);
+  await openMenu();
+  await expect(page.getByTestId("workspace-tree-delete-business")).toHaveCount(0);
   expect((await page.request.get(`/api/resources/${business.reportResourceId}`)).ok()).toBeTruthy();
   const moved = await page.request.patch(`/api/resources/${document.id}/location`, {
     data: { path: "seed", name: "à-conserver.txt" },
   });
   expect(moved.ok()).toBeTruthy();
-  const allowed = deleteResponse();
-  await confirm.click();
+  await openMenu();
+  await page.getByTestId("workspace-tree-delete-business").click();
+  const allowed = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/api/council-business/${business.id}`) && response.request().method() === "DELETE",
+  );
+  await page.getByTestId("business-delete-confirm").click();
   expect((await allowed).status()).toBe(200);
   await expect(page.getByTestId("business-delete-dialog")).toHaveCount(0);
   await expect(page.getByTestId(`workspace-business-${business.id}`)).toHaveCount(0);

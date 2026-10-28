@@ -15,7 +15,7 @@ export const fr: Messages = {
   "committees.noBusinesses": "Aucune affaire n’est associée à cette commission.",
   "business.deleteConfirm": "Supprimer l’affaire « {name} » ? Cette action est définitive.",
   "error.council_business_has_dependencies":
-    "L’affaire contient encore des ressources ou des éléments liés. Déplacez les pièces à conserver et retirez les liens avant de la supprimer.",
+    "Cette affaire ne peut plus être supprimée : elle a déjà un projet, une question, une commission, un point d’ordre du jour ou un document joint.",
 
   "bundles.export": "Exporter l’affaire",
   "bundles.import": "Importer une affaire",
@@ -1234,6 +1234,7 @@ export const fr: Messages = {
   "error.personal_workspace_resource_not_associable":
     "Ce document est encore dans le dossier personnel d’un conseiller : le secrétariat le déplace d’abord dans un dossier commun.",
   "error.council_business_report_not_deletable": "Le rapport d’une affaire ne se supprime qu’avec l’affaire.",
+  "error.council_business_folder_not_deletable": "Le dossier d’une affaire ne se supprime qu’avec l’affaire.",
   "error.council_decision_not_found": "La délibération sélectionnée n’existe plus.",
   "error.council_member_not_found": "Le membre sélectionné ne fait pas partie de cette séance.",
   "error.council_term_not_configured": "Renseignez l’effectif attendu du conseil avant d’ajouter un membre.",

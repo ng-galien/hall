@@ -317,6 +317,10 @@ BEGIN
     -- @implements-requirement HALL-FR-WSP-440
     OR EXISTS (SELECT FROM hall.council_business_workspace workspace
       WHERE workspace.report_resource = (resource_siren_actions.resource ->> 'id')::UUID)
+    -- @implements-requirement HALL-FR-WSP-450
+    OR EXISTS (SELECT FROM hall.council_business_workspace workspace
+      JOIN hall.resource folder ON folder.folder_resource_id = workspace.folder_resource
+      WHERE folder.id = (resource_siren_actions.resource ->> 'id')::UUID)
     OR EXISTS (SELECT FROM hall.resource target
       JOIN hall.meeting_attendance attendance ON attendance.proxy_document = target.document_resource_id
       WHERE target.id = (resource_siren_actions.resource ->> 'id')::UUID)

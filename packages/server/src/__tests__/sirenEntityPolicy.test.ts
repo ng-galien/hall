@@ -113,10 +113,19 @@ describe("Siren entity class authority", () => {
   });
 
   // @verifies-requirement HALL-FR-WSP-290
+  // @verifies-requirement HALL-FR-WSP-450
   it("groups council business actions by content, subjects, agenda and business", () => {
-    const actions = objectActions(request("/api/council-business/business-id"), "council-business", {
+    const deletable = request("/api/council-business/business-id");
+    Object.assign(deletable, { res: { locals: { deletableCouncilBusinessIds: new Set(["business-id"]) } } });
+    const actions = objectActions(deletable, "council-business", {
       id: "business-id",
     });
+    const kept = objectActions(request("/api/council-business/business-id"), "council-business", {
+      id: "business-id",
+    });
+    expect(kept.map(({ name }) => name)).toEqual(
+      actions.map(({ name }) => name).filter((name) => name !== "council-business.delete"),
+    );
     expect(actions.map(({ name, title }) => ({ name, title }))).toEqual([
       { name: "resource.create", title: "Create a resource" },
       {

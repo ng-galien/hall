@@ -8770,6 +8770,28 @@
         }
       ]
     },
+    "HALL-FR-WSP-450": {
+      "name": "COUNCIL_BUSINESS_DELETION_IS_OFFERED_ONLY_WHEN_ACCEPTED",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-28"
+      },
+      "statement": "L’écran ne propose la suppression d’une affaire que lorsque Hall l’accepte, et ne propose jamais la suppression du dossier d’une affaire ; un refus restant est expliqué en français courant.",
+      "acceptanceCriteria": [
+        "Supprimer l’affaire n’est proposée que pour une affaire sans document joint, sans projet de délibération, sans question, sans commission associée, sans point d’ordre du jour et dont le dossier ne contient que le rapport ; une affaire examinée en séance n’a donc jamais cette action.",
+        "Le dossier d’une affaire n’offre pas sa suppression ; une suppression demandée à l’API reçoit le refus nommé « Le dossier d’une affaire ne se supprime qu’avec l’affaire. ».",
+        "Les conditions de suppression restent celles de PostgreSQL, qui les revérifie dans la transaction de suppression."
+      ],
+      "clauses": [
+        {
+          "key": "offered-deletion",
+          "origin": "product",
+          "statement": "Demande du coordinateur du 28 octobre 2026 (89403976), sur l’étude des manques de Hall demandée par le propriétaire : l’écran ne propose que les actions que le serveur accepte ; aucune règle d’intégrité ne change.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-MTG-310": {
       "name": "ONE_ACTIVE_COUNCIL_MEETING",
       "nature": "functional",

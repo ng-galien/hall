@@ -1002,6 +1002,20 @@ export class PostgresCouncil {
     );
   }
 
+  /** The given council businesses whose removal the current constraints accept. */
+  listDeletableBusinesses(request: PostgresCouncilRequest, businessIds: readonly string[]): Promise<string[]> {
+    const parsedIds = z.array(resourceIdSchema).parse(businessIds);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.deletable.list") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.deletable_council_businesses($1::uuid[]) AS payload",
+          values: [parsedIds],
+          schema: z.array(resourceIdSchema),
+        }),
+    );
+  }
+
   listBusinessCommittees(
     request: PostgresCouncilRequest,
     businessId: string,

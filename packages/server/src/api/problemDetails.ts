@@ -13,6 +13,7 @@ const titles: Record<string, string> = {
   personal_workspace_resource_not_associable:
     "A document of a personal workspace is taken over into a common folder before it joins an affair",
   council_business_report_not_deletable: "A council business report is deleted only with its council business",
+  council_business_folder_not_deletable: "A council business folder is deleted only with its council business",
   councillor_requires_active_member: "A council member account requires a contact with an active mandate",
   invalid_credentials: "Invalid credentials",
   invalid_current_password: "Current password is incorrect",

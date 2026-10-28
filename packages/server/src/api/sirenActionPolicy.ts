@@ -195,7 +195,9 @@ function councilBusinessAgendaActions(reference: string, isMinutesBusiness: bool
   ];
 }
 
-function councilBusinessSelfActions(reference: string): SirenAction[] {
+// @implements-requirement HALL-FR-WSP-450
+/** Deletion is offered only for a business whose removal PostgreSQL accepts, as read by the route. */
+function councilBusinessSelfActions(reference: string, deletable: boolean): SirenAction[] {
   return [
     {
       ...action(
@@ -209,7 +211,16 @@ function councilBusinessSelfActions(reference: string): SirenAction[] {
         { name: "lastName", type: "text" },
       ],
     },
-    action("council-business.delete", "DELETE", `/api/council-business/${reference}`, "Delete the council business"),
+    ...(deletable
+      ? [
+          action(
+            "council-business.delete",
+            "DELETE",
+            `/api/council-business/${reference}`,
+            "Delete the council business",
+          ),
+        ]
+      : []),
   ];
 }
 
@@ -669,6 +680,7 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
     },
     "council-business": () => {
       if (!id || !reference) return [];
+      const deletableBusinessIds = request.res?.locals.deletableCouncilBusinessIds;
       const agendaItems = request.res?.locals.currentCouncilBusinessAgendaItems;
       const isMinutesBusiness =
         Array.isArray(agendaItems) &&
@@ -688,7 +700,7 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
         ...councilBusinessCommitteeActions(reference),
         ...councilBusinessSubjectActions(reference),
         ...councilBusinessAgendaActions(reference, isMinutesBusiness),
-        ...councilBusinessSelfActions(reference),
+        ...councilBusinessSelfActions(reference, deletableBusinessIds instanceof Set && deletableBusinessIds.has(id)),
       ]);
     },
     "council-delegation": () => {

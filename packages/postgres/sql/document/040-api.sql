@@ -1360,6 +1360,10 @@ BEGIN
   IF EXISTS (SELECT FROM hall.council_business_workspace WHERE report_resource = resource_id) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV713', MESSAGE = 'a council business report is deleted only with its council business';
   END IF;
+  -- @implements-requirement HALL-FR-WSP-450
+  IF EXISTS (SELECT FROM hall.council_business_workspace WHERE folder_resource = target.folder_resource_id) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV714', MESSAGE = 'a council business folder is deleted only with its council business';
+  END IF;
   IF NOT hall.resource_business_allows_deletion(resource_id) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV703', MESSAGE = 'resource is shared or its council business is no longer editable';
   END IF;

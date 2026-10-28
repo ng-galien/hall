@@ -13,7 +13,7 @@ export const en = {
   "committees.noBusinesses": "No council business is associated with this committee.",
   "business.deleteConfirm": "Delete “{name}”? This action is permanent.",
   "error.council_business_has_dependencies":
-    "The business still contains resources or linked records. Move documents you wish to keep and remove links before deleting it.",
+    "This business can no longer be deleted: it already has a proposal, a question, a committee, an agenda item or an attached document.",
 
   "bundles.export": "Export business",
   "bundles.import": "Import business",
@@ -1212,6 +1212,7 @@ export const en = {
   "error.personal_workspace_resource_not_associable":
     "This document is still in a council member’s personal folder: the clerk first moves it into a common folder.",
   "error.council_business_report_not_deletable": "A council business report is deleted only with its council business.",
+  "error.council_business_folder_not_deletable": "A council business folder is deleted only with its council business.",
   "error.council_decision_not_found": "The selected council decision no longer exists.",
   "error.council_member_not_found": "The selected council member is not part of this meeting.",
   "error.council_term_not_configured": "Set the expected council size before adding a council member.",

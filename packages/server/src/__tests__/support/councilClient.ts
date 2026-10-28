@@ -100,6 +100,9 @@ export function createTestCouncilClient(
     async dissociateBusinessCommittee() {
       throw new Error("Committee association tests require PostgreSQL");
     },
+    async listDeletableBusinesses() {
+      return [];
+    },
     async deleteBusiness() {
       throw new Error("Business removal is verified against isolated PostgreSQL-compatible runtime");
     },

@@ -120,6 +120,7 @@ export interface CouncilClient {
   openBusiness(id: string): Promise<CouncilBusiness | null>;
   createBusiness(input: CreateCouncilBusiness): Promise<CouncilBusiness>;
   deleteBusiness(id: string): Promise<CouncilBusiness>;
+  listDeletableBusinesses(businessIds: readonly string[]): Promise<string[]>;
   listBusinessCommittees(businessId: string): Promise<CouncilBusinessCommitteeLink[]>;
   listCommitteeBusinesses(committeeId: string): Promise<CouncilCommitteeBusinessLink[]>;
   associateBusinessCommittee(businessId: string, committeeId: string): Promise<CouncilBusinessCommitteeLink>;

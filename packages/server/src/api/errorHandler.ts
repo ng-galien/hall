@@ -11,12 +11,14 @@ import { sendProblem } from "./problemDetails.js";
 // @implements-requirement HALL-FR-WSP-420
 // @implements-requirement HALL-FR-DIR-150
 // @implements-requirement HALL-FR-WSP-440
+// @implements-requirement HALL-FR-WSP-450
 const postgresProblems: ReadonlyMap<string, { readonly status: number; readonly code: string }> = new Map([
   ["HV614", { status: 403, code: "permission_denied" }],
   ["HV615", { status: 403, code: "permission_denied" }],
   ["HV617", { status: 422, code: "councillor_requires_active_member" }],
   ["HV707", { status: 409, code: "personal_workspace_resource_not_associable" }],
   ["HV713", { status: 409, code: "council_business_report_not_deletable" }],
+  ["HV714", { status: 409, code: "council_business_folder_not_deletable" }],
 ]);
 
 export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {

@@ -142,3 +142,26 @@ BEGIN
   RETURN hall.council_business_committee_projection(selected_committee);
 END
 $function$;
+
+-- @implements-requirement HALL-FR-WSP-450
+-- The council businesses whose removal the current constraints accept: no attached
+-- resource, prepared subject, committee or agenda item, and a folder holding only the
+-- report. Read for the offered actions; removal still rechecks every constraint atomically.
+CREATE FUNCTION hall_api.deletable_council_businesses(candidates UUID[])
+RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = pg_catalog, hall AS $function$
+  SELECT coalesce(jsonb_agg(business.id ORDER BY business.id), '[]'::jsonb)
+  FROM hall.council_business AS business
+  WHERE business.id = ANY (candidates)
+    AND NOT EXISTS (SELECT FROM hall.council_business_resource AS link WHERE link.council_business = business.id)
+    AND NOT EXISTS (SELECT FROM hall.council_decision_proposal AS proposal WHERE proposal.council_business = business.id)
+    AND NOT EXISTS (SELECT FROM hall.open_question AS question WHERE question.council_business = business.id)
+    AND NOT EXISTS (SELECT FROM hall.council_business_committee AS committee WHERE committee.council_business = business.id)
+    AND NOT EXISTS (SELECT FROM hall.council_agenda_item AS item WHERE item.council_business = business.id)
+    AND NOT EXISTS (
+      SELECT FROM hall.council_business_workspace AS workspace
+      JOIN hall.resource AS folder ON folder.id = workspace.folder_resource
+      JOIN hall.resource AS content ON content.container_path = folder.full_path
+      WHERE workspace.council_business = business.id AND content.id <> workspace.report_resource
+    );
+$function$;

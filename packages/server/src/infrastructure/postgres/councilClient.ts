@@ -227,6 +227,10 @@ export function createPostgresCouncilClient({
         throw error;
       }
     },
+    async listDeletableBusinesses(businessIds) {
+      if (businessIds.length === 0) return [];
+      return call(() => postgresCouncil.listDeletableBusinesses(currentRequest(), businessIds));
+    },
     async listBusinessCommittees(businessId) {
       const rows = await call(() => postgresCouncil.listBusinessCommittees(currentRequest(), businessId));
       return councilBusinessCommitteeLinkSchema.array().parse(
