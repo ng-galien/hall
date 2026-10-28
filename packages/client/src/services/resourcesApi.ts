@@ -31,6 +31,7 @@ import {
   submitSirenAction,
   submitSirenActionAt,
 } from "./apiClient";
+import { downloadFile, type SharedFile } from "./fileSharing";
 
 const documentaryResourcePath = (reference: string) => `/resources/${encodeURIComponent(reference)}`;
 
@@ -171,18 +172,20 @@ export function documentaryLink(representation: Parameters<typeof findSirenLink>
   return link;
 }
 
+export async function documentaryResourceFile(
+  resource: Extract<ReturnType<typeof documentaryResourceDetailSchema.parse>, { kind: "document" }>,
+  representation: Parameters<typeof findSirenLink>[0],
+): Promise<SharedFile> {
+  const content = documentaryLink(representation, "content");
+  const response = await apiResponse(apiPathFromHref(content.href));
+  return { blob: await response.blob(), fileName: resource.name };
+}
+
 export async function downloadDocumentaryResource(
   resource: Extract<ReturnType<typeof documentaryResourceDetailSchema.parse>, { kind: "document" }>,
   representation: Parameters<typeof findSirenLink>[0],
 ): Promise<void> {
-  const content = documentaryLink(representation, "content");
-  const response = await apiResponse(apiPathFromHref(content.href));
-  const url = URL.createObjectURL(await response.blob());
-  const link = window.document.createElement("a");
-  link.href = url;
-  link.download = resource.name;
-  link.click();
-  URL.revokeObjectURL(url);
+  downloadFile(await documentaryResourceFile(resource, representation));
 }
 
 export async function downloadEventInvitation(

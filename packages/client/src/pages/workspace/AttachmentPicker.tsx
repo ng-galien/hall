@@ -92,6 +92,8 @@ export function AttachmentPicker({
       event: () => Boolean(capabilities?.createResource),
       legalReference: () => Boolean(capabilities?.createResource),
       file: () => Boolean(capabilities?.uploadDocument || capabilities?.importSpreadsheet),
+      takePhoto: () => Boolean(capabilities?.uploadDocument),
+      choosePhoto: () => Boolean(capabilities?.uploadDocument),
     });
   const creatable = attachmentKinds.filter(canCreate);
   const canAttach = Boolean(capabilities?.associateResource);

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FullscreenIcon, MapIcon, PinIcon, PinnedIcon } from "../../components/icons";
+import { ShareButton } from "../../components/ShareButton";
 import { TagInput } from "../../components/TagInput";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "../../features/documents/DocumentaryResourceGlyph";
@@ -11,6 +12,7 @@ import { PdfPreviewButton } from "../../features/documents/PdfPreviewButton";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { ApiErrorCode } from "../../services/apiClient";
+import type { SharedFile } from "../../services/fileSharing";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
@@ -29,6 +31,7 @@ export function ResourceWorkbenchHeader({
   onSelect,
   onOpenExtended,
   onDownload,
+  shareFile,
   extendedViewTriggerRef,
   pdfMarkdown,
 }: {
@@ -44,6 +47,7 @@ export function ResourceWorkbenchHeader({
   onSelect(selection: WorkspaceSelection, path?: string): void;
   onOpenExtended(): void;
   onDownload?(): void;
+  shareFile?(): Promise<SharedFile>;
   extendedViewTriggerRef: RefObject<HTMLButtonElement | null>;
   /** The current text of a text document, previewed as a PDF. */
   pdfMarkdown?: string;
@@ -110,8 +114,11 @@ export function ResourceWorkbenchHeader({
           {pdfMarkdown !== undefined ? (
             <PdfPreviewButton key={resource.id} markdown={pdfMarkdown} testId="resource-pdf-preview" />
           ) : null}
+          {resource.kind === "document" && shareFile ? (
+            <ShareButton testId="resource-workbench-share" file={shareFile} />
+          ) : null}
           {resource.kind === "document" && onDownload ? (
-            <Button variant="outline" onClick={onDownload}>
+            <Button variant="outline" data-testid="resource-workbench-download" onClick={onDownload}>
               {t("common.download")}
             </Button>
           ) : null}

@@ -1,7 +1,8 @@
 import type { Page } from "@playwright/test";
 import { capture, expect, signIn, switchAccount, test, waitForPageEntrance } from "./fixtures";
 
-/** Hall on a phone for the getting-started guide: a meeting page, the roll call and a vote, taken with the finger. */
+/** Hall on a phone for the getting-started guide: a meeting page, a folder's New menu with its photo entries, the roll
+    call and a vote, taken with the finger. */
 test.setTimeout(4 * 60_000);
 test.use({ seedScenario: "preparation", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
@@ -47,6 +48,13 @@ test("Hall sur un téléphone : séance, appel et vote", async ({ docsPage: page
   await page.waitForLoadState("networkidle");
   await waitForPageEntrance(page);
   await capture(page, `${journey}/08-telephone-seance`);
+
+  await page.goto("/app/workspace");
+  await page.getByTestId("workspace-create-menu").tap();
+  await expect(page.getByTestId("workspace-create-takePhoto")).toBeVisible();
+  await waitForPageEntrance(page);
+  await capture(page, `${journey}/11-telephone-photo`);
+  await page.keyboard.press("Escape");
 
   await switchAccount(page, "conduite");
   await signIn(page, "conduite", `/app/meetings/${meeting.id}/live`);

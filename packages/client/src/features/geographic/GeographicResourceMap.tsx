@@ -16,6 +16,8 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { photoFile } from "../documents/photoFile";
+import { useEditorDocumentUpload } from "../documents/useEditorDocumentUpload";
 import { GeographicCompositionEditor } from "./GeographicCompositionEditor";
 import { DrawingActionsMenu, DrawingColorControl } from "./GeographicDrawingControls";
 import { GeographicDrawnElementCard, useGeographicDrawnElementNotes } from "./GeographicDrawnElementCard";
@@ -124,6 +126,14 @@ export function GeographicResourceMap({
 }) {
   const { t } = useI18n();
   const { setStatus: setSaveStatus } = useResourceSaveStatus(resource.id);
+  const documentUpload = useEditorDocumentUpload(resource.path);
+  const uploadDrawingPhoto = useMemo(
+    () =>
+      documentUpload
+        ? (photo: File) => documentUpload.upload(photoFile(photo, (date) => t("workspace.photoName", { date })))
+        : undefined,
+    [documentUpload, t],
+  );
   const normalizedData = useMemo(() => normalizeGeographicData(data), [data]);
   const latestDraftRef = useRef<GeographicResourceData>(normalizedData);
   const latestVersionRef = useRef(resource.version);
@@ -574,6 +584,7 @@ export function GeographicResourceMap({
         onCreateNote={() => drawnElementNotes.create(id, save)}
         onCenter={() => mapRuntime.fitFeature(id)}
         onClose={onClose}
+        uploadPhoto={editable ? uploadDrawingPhoto : undefined}
       />
     );
   };

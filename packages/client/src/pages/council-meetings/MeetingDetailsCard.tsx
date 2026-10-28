@@ -3,12 +3,13 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircleIcon, FileIcon, OpenIcon, UploadIcon, WarningIcon } from "../../components/icons";
+import { ShareButton } from "../../components/ShareButton";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
-import { apiResponse } from "../../services/apiClient";
+import { apiFile, downloadFile } from "../../services/fileSharing";
 import { useResourcesStore } from "../../stores/resourcesStore";
 
 export const documentCategoryKeys: Record<DocumentCategory, TranslationKey> = {
@@ -44,21 +45,11 @@ export function MeetingDetailsCard({
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [uploadCategory, setUploadCategory] = useState<DocumentCategory>("meetingNotice");
   const [dossierState, setDossierState] = useState<"idle" | "pending" | "failed">("idle");
+  const dossierFile = () => apiFile(`/council-meetings/${meeting.id}/dossier`, "dossier-seance.pdf", "application/pdf");
   const downloadDossier = async () => {
     setDossierState("pending");
     try {
-      const response = await apiResponse(`/council-meetings/${meeting.id}/dossier`, {
-        headers: { Accept: "application/pdf" },
-      });
-      const url = URL.createObjectURL(await response.blob());
-      try {
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "dossier-seance.pdf";
-        link.click();
-      } finally {
-        URL.revokeObjectURL(url);
-      }
+      downloadFile(await dossierFile());
       setDossierState("idle");
     } catch {
       setDossierState("failed");
@@ -123,6 +114,12 @@ export function MeetingDetailsCard({
               >
                 {t(dossierState === "pending" ? "meeting.dossierPending" : "meeting.dossierDownload")}
               </Button>
+              <ShareButton
+                size="sm"
+                testId="meeting-dossier-share"
+                file={dossierFile}
+                onError={() => setDossierState("failed")}
+              />
             </li>
             {dossierState === "failed" ? (
               <li role="alert" data-testid="meeting-dossier-error">

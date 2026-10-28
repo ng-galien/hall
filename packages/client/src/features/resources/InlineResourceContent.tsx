@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import type { EditorImageUpload } from "../../components/editor/imageTransfer";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { ExplorerTreeContent } from "../../components/ui/explorer-tree";
@@ -16,7 +17,10 @@ export function InlineResourceContent({
   compact = false,
   readOnly = false,
   actionsHost,
+  uploadPhoto,
 }: {
+  /** Replaces the editor image upload: the photo is imported as a file and the note shows it. */
+  uploadPhoto?: EditorImageUpload;
   resourceId: string;
   heading?: string;
   compact?: boolean;
@@ -46,13 +50,13 @@ export function InlineResourceContent({
           content={session.content}
           remoteUrl={session.remoteUrl}
           mentionables={mentionables}
-          canUploadImage={canUpload}
+          canUploadImage={Boolean(uploadPhoto) || canUpload}
           submitting={session.submitting}
           refreshConflict={session.refreshConflict}
           onContentChange={session.setContent}
           onRemoteUrlChange={session.setRemoteUrl}
           onRemoteSubmit={() => session.save()}
-          onUploadImage={(file) => uploadImage(file, { kind: "textResourceContent", id: resourceId })}
+          onUploadImage={uploadPhoto ?? ((file) => uploadImage(file, { kind: "textResourceContent", id: resourceId }))}
           onResolvedLegalReference={session.adoptResolvedResource}
           onRefreshLegalReference={session.refreshLegalReference}
           onError={session.setActionError}

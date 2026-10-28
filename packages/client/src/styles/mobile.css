@@ -95,6 +95,8 @@
 }
 
 @media (max-width: 760px) {
+  /* On a narrow map, the card of the selected element covers the Elements panel instead of sliding under it. */
+  .geographic-feature-card { z-index: calc(var(--hall-z-content) + 1); }
   .docs-toolbar { flex-wrap: wrap; height: auto; padding-block: var(--hall-space-2); }
   .docs-toolbar .docs-search { flex: 1 1 100%; }
   .workspace-explorer-copy, .workspace-explorer-title-link { min-width: 0; max-width: 100%; }
@@ -125,6 +127,10 @@
     --hall-size-control: var(--hall-size-touch-control);
     --hall-size-control-small: var(--hall-size-touch-control);
   }
+  /* A short event of the day view stays a finger-sized target with readable text; the calendar forbids a minimum
+     height on the event itself, so its positioned frame receives it. */
+  .hall-calendar :has(> .hall-calendar-event) { min-height: calc(var(--hall-size-touch-control) + var(--hall-stroke-thick)); }
+  .hall-calendar-event-label { font-size: var(--hall-font-size-caption); }
 }
 @layer base {
 @media (pointer: coarse) {

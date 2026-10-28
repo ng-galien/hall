@@ -1,11 +1,12 @@
 import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { ShareButton } from "../../components/ShareButton";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
 import { WorkspaceBreadcrumb } from "../../pages/workspace/WorkspaceBreadcrumb";
 import { WorkspaceWorkbenchHeader } from "../../pages/workspace/WorkspaceWorkbenchHeader";
-import { downloadDocumentaryResource } from "../../services/resourcesApi";
+import { documentaryResourceFile, downloadDocumentaryResource } from "../../services/resourcesApi";
 import { ResourceAutosaveToggle } from "../resources/ResourceAutosaveToggle";
 import { ResourceChangesControl } from "../resources/ResourceChangesControl";
 import { ResourcePresentationBody } from "../resources/ResourcePresentationBody";
@@ -122,9 +123,15 @@ export function ResourcePreviewWithSession({
               date={documentaryResourceDate(resource)}
               actions={
                 resource.kind === "document" && session.representation ? (
-                  <Button variant="outline" data-testid="resource-preview-download" onClick={download}>
-                    {t("common.download")}
-                  </Button>
+                  <>
+                    <ShareButton
+                      testId="resource-preview-share"
+                      file={() => documentaryResourceFile(resource, session.representation!)}
+                    />
+                    <Button variant="outline" data-testid="resource-preview-download" onClick={download}>
+                      {t("common.download")}
+                    </Button>
+                  </>
                 ) : null
               }
               actionError={session.actionError}

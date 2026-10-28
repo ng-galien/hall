@@ -8,7 +8,7 @@ import { ResourcePresentationBody } from "../../features/resources/ResourcePrese
 import type { ResourceSession } from "../../features/resources/useResourceSession";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
-import { downloadDocumentaryResource } from "../../services/resourcesApi";
+import { documentaryResourceFile, downloadDocumentaryResource } from "../../services/resourcesApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { ResourceWorkbenchHeader } from "./ResourceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -84,6 +84,12 @@ export function ResourceWorkbench({
           const representation = session.representation;
           return resource.kind === "document" && representation
             ? () => void downloadDocumentaryResource(resource, representation)
+            : undefined;
+        })()}
+        shareFile={(() => {
+          const representation = session.representation;
+          return resource.kind === "document" && representation
+            ? () => documentaryResourceFile(resource, representation)
             : undefined;
         })()}
         extendedViewTriggerRef={extendedViewTriggerRef}

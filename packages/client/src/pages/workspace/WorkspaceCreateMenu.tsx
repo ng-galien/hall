@@ -15,7 +15,12 @@ import { Label } from "../../components/ui/label";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
-import { type WorkspaceCreateKind, workspaceCreateKindIcons, workspaceCreateKinds } from "./workspaceCreateKind";
+import {
+  type WorkspaceCreateKind,
+  workspaceCreateKindIcons,
+  workspaceCreateKinds,
+  workspacePickedKinds,
+} from "./workspaceCreateKind";
 
 export interface WorkspaceCreationOption {
   id: string;
@@ -33,6 +38,8 @@ export const workspaceCreateLabels = {
   event: "workspace.createEvent",
   legalReference: "workspace.createLegalReference",
   file: "workspace.importFile",
+  takePhoto: "workspace.takePhoto",
+  choosePhoto: "workspace.choosePhoto",
 } satisfies Record<WorkspaceCreateKind, TranslationKey>;
 
 /** Creation state shared by the create menu and the attachment picker: the chosen kind and its name dialog. */
@@ -55,7 +62,7 @@ export function useWorkspaceCreation({
   const nameRef = useRef<HTMLInputElement>(null);
   const dialogTitle = extraOption?.label ?? (kind ? t(workspaceCreateLabels[kind]) : "");
   const start = (entry: WorkspaceCreateKind) => {
-    if (entry === "file") {
+    if (workspacePickedKinds.includes(entry)) {
       void onCreate(entry);
       return;
     }

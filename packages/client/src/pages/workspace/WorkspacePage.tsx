@@ -15,6 +15,7 @@ import {
   type DocumentaryLeafSummary,
   DocumentaryResourceGlyph,
 } from "../../features/documents/DocumentaryResourceGlyph";
+import { photoFile } from "../../features/documents/photoFile";
 import { ResourceAutosaveToggle } from "../../features/resources/ResourceAutosaveToggle";
 import { ResourceChangesControl } from "../../features/resources/ResourceChangesControl";
 import { useResourceSession } from "../../features/resources/useResourceSession";
@@ -82,6 +83,8 @@ export function WorkspacePage() {
   const [importBundleOpen, setImportBundleOpen] = useState(false);
   const [folderError, setFolderError] = useState<ApiErrorCode | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
+  const cameraInput = useRef<HTMLInputElement | null>(null);
+  const galleryInput = useRef<HTMLInputElement | null>(null);
 
   const path = searchParams.get("path") ?? "";
   const folderCapabilities = folderCapabilitiesAt(resourcesStore, path);
@@ -204,6 +207,14 @@ export function WorkspacePage() {
     return matchLiteral(kind, {
       file: () => {
         fileInput.current?.click();
+        return Promise.resolve(null);
+      },
+      takePhoto: () => {
+        cameraInput.current?.click();
+        return Promise.resolve(null);
+      },
+      choosePhoto: () => {
+        galleryInput.current?.click();
         return Promise.resolve(null);
       },
       councilMatter: async () => {
@@ -468,6 +479,8 @@ export function WorkspacePage() {
                     event: () => folderCapabilities.create,
                     legalReference: () => folderCapabilities.create && folderCapabilities.searchLegalReferences,
                     file: () => folderCapabilities.uploadDocument || folderCapabilities.importSpreadsheet,
+                    takePhoto: () => folderCapabilities.uploadDocument,
+                    choosePhoto: () => folderCapabilities.uploadDocument,
                   })
                 }
                 onCreate={async (kind, title) => {
@@ -493,6 +506,27 @@ export function WorkspacePage() {
               }}
             />
           ) : null}
+          {[
+            { ref: cameraInput, testId: "workspace-camera-input", capture: true },
+            { ref: galleryInput, testId: "workspace-photo-input", capture: false },
+          ].map((photo) => (
+            <input
+              key={photo.testId}
+              ref={photo.ref}
+              type="file"
+              accept="image/jpeg,image/png"
+              capture={photo.capture ? "environment" : undefined}
+              disabled={submitting}
+              className="visually-hidden-input"
+              data-testid={photo.testId}
+              aria-label={t(photo.capture ? "workspace.takePhoto" : "workspace.choosePhoto")}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                if (file) importFile(photoFile(file, (date) => t("workspace.photoName", { date })));
+                event.currentTarget.value = "";
+              }}
+            />
+          ))}
           <input
             ref={folderInput}
             type="file"

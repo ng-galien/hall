@@ -1,4 +1,5 @@
 import { type FormEvent, useId, useState } from "react";
+import { ShareIcon } from "../../components/icons";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -6,8 +7,14 @@ import { Label } from "../../components/ui/label";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
-import { exportCouncilBusinessBundle, importCouncilBusinessBundle } from "../../services/councilBusinessBundlesApi";
+import {
+  councilBusinessBundleFile,
+  exportCouncilBusinessBundle,
+  importCouncilBusinessBundle,
+} from "../../services/councilBusinessBundlesApi";
+import { shareOrDownload } from "../../services/fileSharing";
 
+// @implements-requirement HALL-FR-DOC-570
 export function BusinessBundleExportDialog({ businessId, onClose }: { businessId: string; onClose(): void }) {
   const { t } = useI18n();
   const id = useId();
@@ -15,17 +22,21 @@ export function BusinessBundleExportDialog({ businessId, onClose }: { businessId
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [error, setError] = useState<ApiErrorCode | null>(null);
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
+  const sender = () => ({ firstName: firstName.trim(), lastName: lastName.trim() });
+  const deliver = (share: boolean) =>
     void run(async () => {
       setError(null);
       try {
-        await exportCouncilBusinessBundle(businessId, { firstName: firstName.trim(), lastName: lastName.trim() });
+        if (share) await shareOrDownload(await councilBusinessBundleFile(businessId, sender()));
+        else await exportCouncilBusinessBundle(businessId, sender());
         onClose();
       } catch (failure) {
         setError(apiErrorCode(failure));
       }
     });
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    deliver(false);
   };
   return (
     <Modal
@@ -69,6 +80,16 @@ export function BusinessBundleExportDialog({ businessId, onClose }: { businessId
           data-testid="bundle-export-submit"
         >
           {t(submitting ? "common.loading" : "bundles.export")}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={submitting || !firstName.trim() || !lastName.trim()}
+          data-testid="bundle-export-share"
+          onClick={() => deliver(true)}
+        >
+          <ShareIcon aria-hidden="true" />
+          {t("common.share")}
         </Button>
       </form>
     </Modal>

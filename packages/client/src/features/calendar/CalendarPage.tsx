@@ -250,13 +250,14 @@ export function CalendarPage() {
         }}
         eventContent={(info) => {
           return (
-            <span>
+            <span className="hall-calendar-event-label">
               {info.timeText} {info.event.title}
             </span>
           );
         }}
         eventDidMount={(info) => {
           info.el.dataset.testid = `calendar-event-${info.event.id}`;
+          info.el.classList.add("hall-calendar-event");
           const listener: EventListener = (rawEvent) => {
             const event = rawEvent as MouseEvent;
             event.preventDefault();

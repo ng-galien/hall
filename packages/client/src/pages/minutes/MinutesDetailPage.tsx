@@ -4,9 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ArrowDownIcon, CalendarIcon, CloseIcon, PdfIcon, VisibleIcon } from "../../components/icons";
+import { ShareButton } from "../../components/ShareButton";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
 import { useI18n } from "../../i18n/I18nProvider";
+import { apiFile } from "../../services/fileSharing";
 import { minutesContentHref } from "../../services/minutesApi";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { MinutesFacts } from "./MinutesFacts";
@@ -124,6 +126,11 @@ function MinutesDetail({ id }: { id: string }) {
                         <VisibleIcon aria-hidden="true" />
                         {t("minutes.viewDocument")}
                       </Button>
+                      <ShareButton
+                        size="sm"
+                        testId="minutes-share"
+                        file={() => apiFile(minutesContentHref(id), "proces-verbal.pdf")}
+                      />
                       <Button asChild variant="outline" size="sm">
                         <a href={minutesContentHref(id)} download data-testid="minutes-download">
                           <ArrowDownIcon aria-hidden="true" />

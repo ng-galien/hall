@@ -153,7 +153,8 @@ test("document download and preview follow their distinct Siren links", () => {
   assert.match(resources, /const preview = documentaryLink\(representation, "preview"\)/);
   assert.match(resources, /mediaType: preview\.type \|\| "application\/octet-stream"/);
   assert.match(canonical, /apiResponse\(apiPathFromHref\(content\.href\)\)/);
-  assert.match(canonical, /link\.download = resource\.name/);
+  assert.match(canonical, /fileName: resource\.name/);
+  assert.match(canonical, /downloadFile\(await documentaryResourceFile\(resource, representation\)\)/);
   assert.doesNotMatch(`${canonical}\n${preview}`, /resources\/\$\{[^}]+\}\/(?:content|preview)/);
   assert.match(read("src/hooks/useDocumentPreview.ts"), /setAttempt\(\(current\) => current \+ 1\)/);
   assert.match(read("src/features/documents/DocumentPreviewFailure.tsx"), /resources\.previewFailed/);

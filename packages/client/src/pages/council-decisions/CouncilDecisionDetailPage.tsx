@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { ArrowDownIcon, CalendarIcon, CloseIcon, PdfIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
+import { ShareButton } from "../../components/ShareButton";
 import { PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -10,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../com
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
 import { useI18n } from "../../i18n/I18nProvider";
+import { apiFile } from "../../services/fileSharing";
 import { useCouncilDecisionDraft } from "./useCouncilDecisionDraft";
 import "../../features/documents/DocumentViewer.css";
 
@@ -96,6 +98,12 @@ function CouncilDecisionDetail({ id }: { id: string }) {
                   <PdfIcon />
                   {t(decision.state === "frozen" ? "decisionDocument.view" : "minutes.preview")}
                 </Button>
+              ) : null}
+              {draft.downloadHref ? (
+                <ShareButton
+                  testId="decision-share"
+                  file={() => apiFile(draft.downloadHref!, `${decision.title}.pdf`)}
+                />
               ) : null}
               {draft.downloadHref ? (
                 <Button asChild variant="outline">

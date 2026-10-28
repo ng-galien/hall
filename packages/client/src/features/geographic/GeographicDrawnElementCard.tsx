@@ -1,5 +1,6 @@
 import type { GeographicFeatureNote, SirenEntity } from "@hall/api-contract";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import type { EditorImageUpload } from "../../components/editor/imageTransfer";
 import { CenterOnFeatureIcon, CloseIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -61,6 +62,7 @@ export function useGeographicDrawnElementNotes(map: SirenEntity | null, onError:
  */
 // @implements-requirement HALL-FR-DOC-430
 // @implements-requirement HALL-FR-DOC-450
+// @implements-requirement HALL-FR-WSP-460
 export function GeographicDrawnElementCard({
   label,
   kindLabel,
@@ -79,7 +81,10 @@ export function GeographicDrawnElementCard({
   onClose,
   readOnly = false,
   measures,
+  uploadPhoto,
 }: {
+  /** Imports a photo of the drawing as a file at the map's location; its note then shows it. */
+  uploadPhoto?: EditorImageUpload;
   readOnly?: boolean;
   measures?: ReactNode;
   label: string;
@@ -186,6 +191,7 @@ export function GeographicDrawnElementCard({
               heading={t("geographicFeature.note")}
               compact={readOnly}
               readOnly={readOnly}
+              uploadPhoto={uploadPhoto}
             />
           ) : (
             <p className="geographic-feature-card-muted">{t("geographicFeature.noNote")}</p>

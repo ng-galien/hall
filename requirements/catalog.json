@@ -8815,6 +8815,28 @@
         }
       ]
     },
+    "HALL-FR-WSP-460": {
+      "name": "PHOTO_IMPORTED_INTO_BUSINESS_FOLDER_OR_DRAWING",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-29"
+      },
+      "statement": "Depuis le téléphone, une affaire, un dossier et un dessin de carte reçoivent une photo prise sur place ou choisie dans la galerie, enregistrée comme fichier importé à cet emplacement.",
+      "acceptanceCriteria": [
+        "Le menu Nouveau d’un dossier et le menu d’ajout d’une affaire proposent Prendre une photo, qui ouvre l’appareil photo arrière, et Choisir une photo, qui ouvre la galerie, à qui peut importer un fichier à cet endroit.",
+        "La photo devient un fichier importé nommé « Photo du AAAA-MM-JJ HH-MM-SS » avec l’extension de son format, dans le dossier ou dans le dossier de l’affaire et rattaché à l’affaire ; elle est ouverte aussitôt et Voir les modifications montre sa création.",
+        "La note d’un dessin de carte propose Prendre une photo et Choisir une photo ; la photo devient un fichier importé à l’emplacement de la carte et la note la montre, modification visible dans Voir les modifications de la note."
+      ],
+      "clauses": [
+        {
+          "key": "phone-photo",
+          "origin": "product",
+          "statement": "Demande du coordinateur du 28 octobre 2026 (4bb06cd6), sur l’étude des manques de Hall demandée par le propriétaire (sujet hall-mobile).",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-MTG-310": {
       "name": "ONE_ACTIVE_COUNCIL_MEETING",
       "nature": "functional",
@@ -9718,6 +9740,29 @@
           "key": "nothing-stored",
           "origin": "product",
           "statement": "Aucun PDF ni rendu HTML de la documentation n’est conservé dans le dépôt ni embarqué dans le paquet d’installation.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DOC-570": {
+      "name": "SHARE_OPENS_DEVICE_SHEET_OR_DOWNLOADS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-29"
+      },
+      "statement": "Un fichier importé, une délibération, un procès-verbal, le dossier de séance et l’export d’une affaire proposent Partager, qui ouvre la feuille de partage du téléphone avec le fichier quand le navigateur sait partager un fichier et le télécharge sinon.",
+      "acceptanceCriteria": [
+        "Partager remet le fichier lui-même, avec son nom, à la feuille de partage du navigateur.",
+        "Fermer la feuille de partage ne fait rien d’autre.",
+        "Sans partage de fichier, comme sur la plupart des navigateurs de bureau, ou quand le navigateur refuse le partage, Partager télécharge le même fichier.",
+        "Télécharger reste proposé à côté de Partager."
+      ],
+      "clauses": [
+        {
+          "key": "phone-share",
+          "origin": "product",
+          "statement": "Demande du coordinateur du 28 octobre 2026 (4bb06cd6), sur l’étude des manques de Hall demandée par le propriétaire (sujet hall-mobile).",
           "sourceIds": []
         }
       ]

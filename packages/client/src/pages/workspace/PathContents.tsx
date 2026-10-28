@@ -57,7 +57,7 @@ import { DRAG_TYPE, type DragPayload, decodeDragPayload, encodeDragPayload, move
 
 export type WorkspaceViewMode = "all" | "businesses" | "resources";
 type RenameTarget = DragPayload | { kind: "folder"; path: string };
-type InlineCreateKind = Exclude<WorkspaceCreateKind, "file">;
+type InlineCreateKind = Exclude<WorkspaceCreateKind, "file" | "takePhoto" | "choosePhoto">;
 type CreateTarget = { kind: InlineCreateKind; folderPath: string };
 
 const TextResourceIcon = workspaceCreateKindIcons.text;

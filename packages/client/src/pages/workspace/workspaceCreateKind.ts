@@ -7,7 +7,12 @@ export const workspaceCreateKinds = [
   "event",
   "legalReference",
   "file",
+  "takePhoto",
+  "choosePhoto",
 ] as const;
+
+/** Kinds that open a file picker instead of asking for a name. */
+export const workspacePickedKinds: readonly WorkspaceCreateKind[] = ["file", "takePhoto", "choosePhoto"];
 
 export type WorkspaceCreateKind = (typeof workspaceCreateKinds)[number];
 
@@ -21,11 +26,15 @@ export const workspaceCreateKindIcons: Record<WorkspaceCreateKind, typeof FileIc
   event: CalendarIcon,
   legalReference: LegalReferenceIcon,
   file: FileIcon,
+  takePhoto: CameraIcon,
+  choosePhoto: ImageIcon,
 };
 
 import {
   CalendarIcon,
+  CameraIcon,
   FileIcon,
+  ImageIcon,
   LegalReferenceIcon,
   MapIcon,
   TableIcon,

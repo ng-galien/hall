@@ -6,21 +6,21 @@ import {
   sirenRepresentation,
   submitSirenActionAt,
 } from "./apiClient";
+import { downloadFile, type SharedFile } from "./fileSharing";
 
-export async function exportCouncilBusinessBundle(id: string, sender: { firstName: string; lastName: string }) {
+export async function councilBusinessBundleFile(
+  id: string,
+  sender: { firstName: string; lastName: string },
+): Promise<SharedFile> {
   const representation = await sirenRepresentation(`/council-business/${encodeURIComponent(id)}`);
   const action = findSirenAction(representation, "council-business.export-bundle");
   if (!action) throw new SirenCapabilityUnavailable("council-business.export-bundle");
   const response = await apiResponse(`${apiPathFromHref(action.href)}?${new URLSearchParams(sender)}`);
-  const url = URL.createObjectURL(await response.blob());
-  try {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "affaire.hallbundle";
-    link.click();
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  return { blob: await response.blob(), fileName: "affaire.hallbundle" };
+}
+
+export async function exportCouncilBusinessBundle(id: string, sender: { firstName: string; lastName: string }) {
+  downloadFile(await councilBusinessBundleFile(id, sender));
 }
 
 export async function importCouncilBusinessBundle(file: File) {
