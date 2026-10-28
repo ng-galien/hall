@@ -40,10 +40,25 @@ test("prise en main de Hall", async ({ docsPage: page }) => {
   await capture(page, `${journey}/04-recherche-rapide`);
   await page.keyboard.press("Escape");
 
+  // The development sign-in has no session to close: the session answer receives the actions of a signed-in account.
+  await page.route("**/api/auth/session", async (route) => {
+    const { "if-none-match": _cached, ...headers } = route.request().headers();
+    const response = await route.fetch({ headers });
+    const entity = (await response.json()) as { actions?: unknown[] };
+    entity.actions = [
+      ...(entity.actions ?? []),
+      { name: "session.logout", method: "POST", href: "/api/auth/logout", type: "application/json" },
+      { name: "session.change-password", method: "POST", href: "/api/auth/change-password", type: "application/json" },
+    ];
+    await route.fulfill({ response, body: JSON.stringify(entity) });
+  });
   await page.goto("/app/settings");
   await expect(page.getByRole("heading", { name: "Paramètres" })).toBeVisible();
+  await expect(page.getByTestId("settings-logout")).toBeVisible();
+  await page.getByTestId("settings-logout").scrollIntoViewIfNeeded();
   await page.waitForLoadState("networkidle");
   await capture(page, `${journey}/05-parametres`);
+  await page.unroute("**/api/auth/session");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/app/");
