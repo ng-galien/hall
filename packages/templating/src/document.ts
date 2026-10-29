@@ -314,7 +314,10 @@ export function validateStructure(tree: TemplateAst): Diagnostic[] {
       });
     }
     if (
-      (spec.name === "council-decision" || spec.name === "minutes" || spec.name === "meeting-notice") &&
+      (spec.name === "council-decision" ||
+        spec.name === "minutes" ||
+        spec.name === "meeting-notice" ||
+        spec.name === "deliberation-list") &&
       directive.node !== "leafDirective"
     ) {
       diagnostics.push({

@@ -31,6 +31,17 @@ export async function seedTemplates({ post }) {
 
   await post("/templates", {
     kind: "pdf",
+    documentType: "deliberation-list",
+    name: "Liste des délibérations du conseil de l’oppidum",
+    bodyMarkdown: "::deliberation-list",
+    stylesheet:
+      "h1 { color: #102a83; } table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 4px; border-bottom: 1px solid #bbb; }",
+    headerHtml: '<div style="font-size:10px">Oppidum d’Alésia</div>',
+    footerHtml: "",
+  });
+
+  await post("/templates", {
+    kind: "pdf",
     documentType: "council-decision",
     name: "Délibération du conseil de l’oppidum",
     bodyMarkdown:

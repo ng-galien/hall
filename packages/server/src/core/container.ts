@@ -42,6 +42,7 @@ import {
   createCouncilBusinessWorkspaceService,
 } from "../services/councilBusinessWorkspaceService.js";
 import { type CouncilDecisionService, createCouncilDecisionService } from "../services/councilDecisionService.js";
+import { createDeliberationListService, type DeliberationListService } from "../services/deliberationListService.js";
 import { createDirectoryService, type DirectoryService } from "../services/directoryService.js";
 import {
   createDocumentaryResourceService,
@@ -85,6 +86,7 @@ export interface Cradle {
   councilDecisionService: CouncilDecisionService;
   meetingDossierService: MeetingDossierService;
   meetingNoticeService: MeetingNoticeService;
+  deliberationListService: DeliberationListService;
   directoryClient: DirectoryClient;
   councilClient: CouncilClient;
   unitOfWork: UnitOfWork;
@@ -140,6 +142,7 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     councilDecisionService: asFunction(createCouncilDecisionService).singleton(),
     meetingDossierService: asFunction(createMeetingDossierService).singleton(),
     meetingNoticeService: asFunction(createMeetingNoticeService).singleton(),
+    deliberationListService: asFunction(createDeliberationListService).singleton(),
     councilBallotService: asFunction(createCouncilBallotService).singleton(),
     councilBusinessWorkspaceService: asFunction(createCouncilBusinessWorkspaceService).singleton(),
     councilBusinessBundleExportService: asFunction(createCouncilBusinessBundleExportService).singleton(),

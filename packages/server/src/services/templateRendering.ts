@@ -33,6 +33,7 @@ import {
   renderCouncilDecisionFacts,
   renderCouncilDecisionResult,
 } from "./councilDecisionDocument.js";
+import { renderDeliberationList } from "./deliberationListDocument.js";
 import { pdfAttachmentHref } from "./documentRenderer.js";
 import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
 import { renderMeetingNotice } from "./meetingNoticeDocument.js";
@@ -722,6 +723,19 @@ export function createTemplateRenderingService({
             diagnostic("unresolved_reference", "A frozen meeting notice context is required", directive),
           );
         else values.set(key, { type: "html", value: renderMeetingNotice(context.notice) });
+        continue;
+      }
+      if (directive.name === "deliberation-list") {
+        if (!context.minutes)
+          diagnostics.push(diagnostic("unresolved_reference", "A closed meeting context is required", directive));
+        else
+          values.set(key, {
+            type: "html",
+            value: renderDeliberationList(context.minutes.facts, {
+              name: context.hall.name,
+              timeZone: context.hall.timeZone,
+            }),
+          });
         continue;
       }
       if (directive.name === "minutes") {

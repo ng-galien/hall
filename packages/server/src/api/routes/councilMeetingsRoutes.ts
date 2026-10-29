@@ -65,6 +65,7 @@ const staleMeetingRoutePath = "/:meetingReference/stale";
 // @implements-requirement HALL-FR-MTG-320
 export function createCouncilMeetingsRouter({
   councilClient,
+  deliberationListService,
   meetingDossierService,
   meetingNoticeService,
   realtimeEvents,
@@ -164,6 +165,17 @@ export function createCouncilMeetingsRouter({
     if (!freeze) throw new DomainError("agenda_freeze_unavailable", 404);
     response.json(freeze);
   });
+  router.get(
+    "/:meetingReference/deliberation-list.pdf",
+    requirePermission("meetings.read"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      const content = await deliberationListService.content(meeting.id);
+      response.set("Content-Disposition", `inline; filename="liste-des-deliberations-${meeting.number}.pdf"`);
+      response.set("Cache-Control", "private, no-store");
+      response.type("application/pdf").send(content);
+    },
+  );
   router.get("/:meetingReference/notices", requirePermission("meetings.read"), async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     response.locals.currentCouncilMeeting = meeting;

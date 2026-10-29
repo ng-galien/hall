@@ -467,6 +467,7 @@ describe("registry", () => {
       "decision",
       "meeting",
       "meeting-notice",
+      "deliberation-list",
       "minutes",
       "council-decision",
       "image",
@@ -479,9 +480,10 @@ describe("registry", () => {
     expect(directiveSpecs.some((spec) => spec.name === ("snippet" as never))).toBe(false);
   });
 
-  it("reserves block directives for meeting notices, minutes sections, archived images and resource presentations", () => {
+  it("reserves block directives for meeting notices, deliberation lists, minutes sections, archived images and resource presentations", () => {
     expect(directiveSpecs.filter((spec) => spec.node === "leafDirective").map((spec) => spec.name)).toEqual([
       "meeting-notice",
+      "deliberation-list",
       "minutes",
       "council-decision",
       "image",

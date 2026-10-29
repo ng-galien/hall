@@ -81,4 +81,20 @@ test("dérouler la séance : examen du point, vote, clôture", async ({ docsPage
   await waitForPageEntrance(page);
   await page.mouse.move(800, 700);
   await capture(page, `${journey}/12-seance-close`);
+
+  const meetings = (
+    (await (await page.request.get("/api/council-meetings")).json()) as {
+      entities: Array<{ properties: { id: string; closedAt: string | null } }>;
+    }
+  ).entities.map((entity) => entity.properties);
+  const closed = meetings
+    .filter((meeting) => meeting.closedAt)
+    .toSorted((left, right) => right.closedAt!.localeCompare(left.closedAt!))[0]!;
+  await page.goto(`/app/meetings/${closed.id}`);
+  await expect(page.getByTestId("meeting-deliberation-list-open")).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await waitForPageEntrance(page);
+  await capture(page, `${journey}/13-liste-des-deliberations`);
+  await page.getByTestId("meeting-deliberation-list-open").click();
+  await expect(page.getByTestId("document-object-viewer")).toBeVisible();
 });

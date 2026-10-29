@@ -71,6 +71,21 @@ export const knownTemplateTypes: ReadonlyArray<{
       footerHtml: "",
     },
   },
+  {
+    documentType: "deliberation-list",
+    kind: "pdf",
+    label: "templates.type.deliberationList",
+    starter: {
+      kind: "pdf",
+      documentType: "deliberation-list",
+      bodyMarkdown: "::deliberation-list",
+      subject: null,
+      stylesheet:
+        "table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 4px; border-bottom: 1px solid #bbb; }",
+      headerHtml: "",
+      footerHtml: "",
+    },
+  },
 ];
 
 export function templateTypeLabel(documentType: string, kind: TemplateInput["kind"]): TranslationKey | null {

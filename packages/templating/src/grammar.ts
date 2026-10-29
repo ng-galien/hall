@@ -41,6 +41,7 @@ export type DirectiveKind =
   | "field"
   | "minutes"
   | "meeting-notice"
+  | "deliberation-list"
   | "council-decision";
 
 /** What a directive accepts. */
@@ -71,6 +72,7 @@ const reference = (name: ReferenceKind): DirectiveSpec => ({
 export const directiveSpecs: readonly DirectiveSpec[] = [
   ...referenceKinds.map(reference),
   { name: "meeting-notice", node: "leafDirective", label: false, attributes: [], attributesRequired: [] },
+  { name: "deliberation-list", node: "leafDirective", label: false, attributes: [], attributesRequired: [] },
   { name: "minutes", node: "leafDirective", label: false, attributes: ["section"], attributesRequired: ["section"] },
   {
     name: "council-decision",

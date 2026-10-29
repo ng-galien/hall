@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { SearchIcon } from "../../components/icons";
+import { FileIcon, SearchIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
+import { DocumentObjectViewer } from "../../features/documents/DocumentObjectViewer";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
@@ -11,11 +12,18 @@ import { councilMemberName } from "./ballotParticipants";
 import { MeetingMinutesAccess } from "./MeetingMinutesAccess";
 import { MeetingProceedings } from "./MeetingProceedings";
 
-export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentation }) {
+export function MeetingReport({
+  aggregate,
+  deliberationListHref,
+}: {
+  aggregate: LiveMeetingPresentation;
+  deliberationListHref: string | null;
+}) {
   const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { members } = useCouncilMembersStore();
   const { meeting } = aggregate;
   const [attendanceVisible, setAttendanceVisible] = useState(false);
+  const [deliberationListOpen, setDeliberationListOpen] = useState(false);
   const attendanceCounts = aggregate.attendance.reduce(
     (counts, attendance) => {
       counts[attendance.status] += 1;
@@ -43,6 +51,16 @@ export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentatio
           description={meeting.location ?? ""}
         >
           {meeting.minutesId ? <MeetingMinutesAccess key={meeting.minutesId} id={meeting.minutesId} /> : null}
+          {deliberationListHref ? (
+            <Button
+              variant="outline"
+              data-testid="meeting-deliberation-list-open"
+              onClick={() => setDeliberationListOpen(true)}
+            >
+              <FileIcon aria-hidden="true" />
+              {t("meeting.deliberationList")}
+            </Button>
+          ) : null}
           <dl className="meeting-facts">
             <div>
               <dt>{t("calendar.start")}</dt>
@@ -140,6 +158,14 @@ export function MeetingReport({ aggregate }: { aggregate: LiveMeetingPresentatio
           <MeetingProceedings aggregate={aggregate} defaultCollapsed />
         </div>
       </div>
+      {deliberationListHref && deliberationListOpen ? (
+        <DocumentObjectViewer
+          title={t("meeting.deliberationList")}
+          objectUrl={deliberationListHref}
+          mediaType="application/pdf"
+          onClose={() => setDeliberationListOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

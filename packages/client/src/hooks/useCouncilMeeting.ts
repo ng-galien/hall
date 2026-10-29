@@ -4,6 +4,7 @@ import {
   type CorrectMeetingAuxiliaryAttendance,
   type DeclareMeetingAuxiliaryAttendance,
   findSirenAction,
+  findSirenLink,
   type MeetingConductWorkspace,
   type PrepareCouncilMeeting,
   type RecordMeetingAttendanceEvents,
@@ -267,6 +268,14 @@ export function useCouncilMeeting(meetingReference: string) {
     );
   }
 
+  function link(rel: string): string | null {
+    for (const representation of representations) {
+      const found = "links" in representation ? findSirenLink(representation, rel) : undefined;
+      if (found) return found.href;
+    }
+    return null;
+  }
+
   async function previewLiveBallot(input: LiveBallotSubmission) {
     if (!workspace) throw new Error("The meeting is not loaded");
     const agendaItemId =
@@ -346,6 +355,7 @@ export function useCouncilMeeting(meetingReference: string) {
     conducts: meetingConductActionNames.some((actionName) => can(actionName)),
     workspace,
     can,
+    link,
     error,
     actionError,
     refresh: async () => {

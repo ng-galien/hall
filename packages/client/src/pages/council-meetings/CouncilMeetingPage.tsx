@@ -27,7 +27,7 @@ export function CouncilMeetingPage({ meetingReference }: { meetingReference?: st
     return <MeetingInProgressHero aggregate={aggregate} />;
   }
   if (aggregate.meeting.status === "closed" || aggregate.meeting.status === "cancelled") {
-    return <MeetingReport aggregate={aggregate} />;
+    return <MeetingReport aggregate={aggregate} deliberationListHref={meetingActions.link("deliberation-list")} />;
   }
   return <MeetingPreparation meetingActions={meetingActions} />;
 }

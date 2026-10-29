@@ -63,6 +63,7 @@ export type ApiErrorCode =
   | "council_business_report_not_deletable"
   | "council_business_folder_not_deletable"
   | "meeting_dossier_unavailable"
+  | "deliberation_list_unavailable"
   | "ballot_already_recorded"
   | "ballot_not_found"
   | "ballot_voters_invalid"
@@ -186,6 +187,7 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "council_business_report_not_deletable",
   "council_business_folder_not_deletable",
   "meeting_dossier_unavailable",
+  "deliberation_list_unavailable",
   "ballot_already_recorded",
   "ballot_not_found",
   "ballot_voters_invalid",
