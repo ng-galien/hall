@@ -9333,7 +9333,8 @@
           "statement": "Le conseil est présidé par le maire ou son remplaçant et le secrétaire de séance est nommé par le conseil parmi ses membres.",
           "sourceIds": [
             "S8",
-            "S3"
+            "S3",
+            "S16"
           ],
           "assessment": "verified",
           "interpretation": "direct"

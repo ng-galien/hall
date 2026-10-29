@@ -198,7 +198,7 @@ SELECT is((SELECT count(*)::int FROM generate_series(0,20) a CROSS JOIN generate
 CREATE TEMP TABLE quorum_bounds(size INTEGER,present INTEGER,regime TEXT,item TEXT,facts JSONB);
 CREATE TEMP TABLE forged_quorum(size INTEGER,stored JSONB,computed JSONB);
 DO $$
-DECLARE v_size INTEGER; v_present INTEGER; v_meeting UUID; v_label TEXT; v_failure UUID; v_at TIMESTAMPTZ;
+DECLARE v_size INTEGER; v_present INTEGER; v_meeting UUID; v_label TEXT; v_failure UUID; v_reconvened UUID;
 BEGIN
  FOR v_size IN 1..80 LOOP
   v_label:='bounds-'||v_size; v_meeting:=test_uuid(v_label||':meeting');
@@ -221,24 +221,33 @@ BEGIN
   VALUES(v_meeting,'2026-01-01 09:00Z',jsonb_build_object('memberCount',99,'presentCount',v_size-1,'requiredPresent',99,'verdict','notMet'));
   INSERT INTO forged_quorum SELECT v_size,facts,calculate_meeting_quorum(v_meeting,NULL,'2026-01-01 09:00Z')
    FROM meeting_quorum_observation WHERE council_meeting=v_meeting;
-  -- A real failure with nobody present, then a renewed convocation listing one affair.
-  UPDATE meeting_attendance SET status='absent' WHERE council_meeting=v_meeting;
-  v_failure:=(record_meeting_quorum(v_meeting,NULL,'2026-01-01 09:01Z')).id;
+  -- The meeting opens with its single officer present, who then leaves: the
+  -- quorum observed with nobody present fails; the second convocation lists
+  -- one affair, and the closure creates the reconvened meeting where both
+  -- unexamined affairs are carried.
+  UPDATE meeting_attendance SET status=CASE WHEN id=test_uuid(v_label||':att:1') THEN 'present'::meeting_attendance_status ELSE 'absent' END
+   WHERE council_meeting=v_meeting;
+  PERFORM set_council_meeting_officers(v_meeting,test_uuid('bounds:member:1'),test_uuid('bounds:member:1'));
+  PERFORM test_prepare_notice(v_meeting);
+  PERFORM start_council_meeting(v_meeting,'2026-01-01 09:01Z');
+  INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status) VALUES(test_uuid(v_label||':att:1'),'2026-01-01 09:02Z','absent');
+  v_failure:=(record_meeting_quorum(v_meeting,NULL,'2026-01-01 09:03Z')).id;
   INSERT INTO meeting_reconvocation(council_meeting,failed_observation,sent_at,scheduled_at,time_zone,first_notice_evidence,renewed_notice_evidence,agenda_item_ids)
   VALUES(v_meeting,v_failure,'2026-01-01 10:00Z','2026-01-05 09:00Z','Europe/Paris','first notice','renewed notice',ARRAY[test_uuid(v_label||':listed:agenda-item')]);
+  PERFORM close_council_meeting(v_meeting,'2026-01-01 10:05Z');
+  v_reconvened:=(SELECT id FROM council_meetings WHERE previous_council_meeting=v_meeting);
+  INSERT INTO meeting_attendance(id,council_member,council_meeting,status,declared_at)
+  SELECT test_uuid(v_label||':again:att:'||k),test_uuid('bounds:member:'||k),v_reconvened,'absent','2026-01-05 09:00Z' FROM generate_series(1,v_size) k;
   INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids)
-  SELECT council_meeting,'2026-01-05 09:00Z','Reconfirmed mandates',member_ids FROM meeting_membership_record WHERE council_meeting=v_meeting;
-  INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status)
-  SELECT id,'2026-01-05 09:00Z','absent' FROM meeting_attendance WHERE council_meeting=v_meeting;
+  SELECT v_reconvened,'2026-01-05 09:00Z','Reconfirmed mandates',member_ids FROM meeting_membership_record WHERE council_meeting=v_meeting;
   FOR v_present IN 0..v_size LOOP
-   v_at:='2026-01-05 09:00Z'::timestamptz+make_interval(secs=>v_present);
    IF v_present>0 THEN
-    INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status) VALUES(test_uuid(v_label||':att:'||v_present),v_at,'present');
+    UPDATE meeting_attendance SET status='present' WHERE id=test_uuid(v_label||':again:att:'||v_present);
    END IF;
    INSERT INTO quorum_bounds VALUES
-    (v_size,v_present,'reconvened','meeting',calculate_meeting_quorum(v_meeting,NULL,v_at)),
-    (v_size,v_present,'reconvened','listed',calculate_meeting_quorum(v_meeting,test_uuid(v_label||':listed:agenda-item'),v_at)),
-    (v_size,v_present,'reconvened','other',calculate_meeting_quorum(v_meeting,test_uuid(v_label||':other:agenda-item'),v_at));
+    (v_size,v_present,'reconvened','meeting',calculate_meeting_quorum(v_reconvened,NULL,'2026-01-05 09:00Z')),
+    (v_size,v_present,'reconvened','listed',calculate_meeting_quorum(v_reconvened,test_uuid(v_label||':listed:agenda-item'),'2026-01-05 09:00Z')),
+    (v_size,v_present,'reconvened','other',calculate_meeting_quorum(v_reconvened,test_uuid(v_label||':other:agenda-item'),'2026-01-05 09:00Z'));
   END LOOP;
  END LOOP;
 END $$;
@@ -259,7 +268,7 @@ SELECT is((SELECT count(*)::int FROM forged_quorum WHERE stored<>computed OR (st
  'forged quorum facts are replaced by the computed facts for every council size');
 -- A council without members cannot be attested: the former zero-member case.
 SELECT throws_ok($$INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids)
- VALUES(test_uuid('bounds-1:meeting'),'2026-01-05 10:00Z','empty roster','{}')$$,'HV137',NULL,'an empty roster is refused, so no quorum can be reached without members');
+ SELECT id,'2026-01-05 10:00Z','empty roster','{}' FROM council_meetings WHERE previous_council_meeting=test_uuid('bounds-1:meeting')$$,'HV137',NULL,'an empty roster is refused, so no quorum can be reached without members');
 
 -- 3. Generated public ballots up to eighty voters: conservation and semantics.
 CREATE TEMP TABLE public_generated AS
