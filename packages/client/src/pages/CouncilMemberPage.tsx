@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { formatPhoneNumber, phoneHref } from "../features/council-members/phonePresentation";
+import { MemberDelegations } from "../features/representative-bodies/MemberDelegations";
+import { committeeKind } from "../features/representative-bodies/representativeBodyKinds";
 import { StatusBadge } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
 import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
@@ -19,7 +21,7 @@ export function CouncilMemberPage() {
   const { memberId = "" } = useParams();
   const { t, formatDate } = useI18n();
   const { members, error: memberError, canUpdate, clearError, loadDetail, update } = useCouncilMembersStore();
-  const { committees, details, error, load, loadAllDetails } = useCouncilCommitteesStore();
+  const { bodies: committees, details, error, load, loadAllDetails } = useCouncilCommitteesStore();
   const member = members.find((candidate) => candidate.id === memberId);
   const [role, setRole] = useState<CouncilMember["role"]>("councillor");
   const [rank, setRank] = useState("");
@@ -116,7 +118,7 @@ export function CouncilMemberPage() {
     .flatMap((detail) =>
       detail.memberships
         .filter((membership) => membership.contactId === member.contact.id)
-        .map((membership) => ({ committee: detail.committee, membership })),
+        .map((membership) => ({ committee: detail.body, membership })),
     )
     .sort((left, right) => right.membership.startedOn.localeCompare(left.membership.startedOn));
   const saveLabels: Record<SaveState, string> = {
@@ -265,7 +267,7 @@ export function CouncilMemberPage() {
                     <div>
                       <strong>{committee.name}</strong>
                       <span>
-                        {t(`committeeRole.${membership.role}`)} · {formatDate(membership.startedOn)}
+                        {t(committeeKind.roleLabel(membership.role))} · {formatDate(membership.startedOn)}
                         {membership.endedOn ? ` - ${formatDate(membership.endedOn)}` : ""}
                       </span>
                     </div>
@@ -277,6 +279,8 @@ export function CouncilMemberPage() {
               </div>
             )}
           </section>
+
+          <MemberDelegations contactId={member.contact.id} />
         </div>
       </div>
     </div>

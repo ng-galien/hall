@@ -64,6 +64,12 @@ const CouncilMemberPage = lazy(() =>
 const CouncilCommitteesPage = lazy(() =>
   import("./pages/CouncilCommitteesPage").then((module) => ({ default: module.CouncilCommitteesPage })),
 );
+const CouncilDelegationsPage = lazy(() =>
+  import("./pages/CouncilDelegationsPage").then((module) => ({ default: module.CouncilDelegationsPage })),
+);
+const CouncilDelegationPage = lazy(() =>
+  import("./pages/CouncilDelegationPage").then((module) => ({ default: module.CouncilDelegationPage })),
+);
 const CouncilCommitteePage = lazy(() =>
   import("./pages/CouncilCommitteePage").then((module) => ({ default: module.CouncilCommitteePage })),
 );
@@ -121,6 +127,8 @@ function AuthenticatedApplication() {
         <Route path="contacts/:contactId" element={<ContactPage />} />
         <Route path="council-committees" element={<CouncilCommitteesPage />} />
         <Route path="council-committees/:committeeId" element={<CouncilCommitteePage />} />
+        <Route path="council-delegations" element={<CouncilDelegationsPage />} />
+        <Route path="council-delegations/:delegationId" element={<CouncilDelegationPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="docs/*" element={<DocsArea />} />
         {EditorLabPage ? <Route path="editor-lab" element={<EditorLabPage />} /> : null}

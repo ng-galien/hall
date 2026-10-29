@@ -59,6 +59,7 @@ export {
   Gavel as GavelIcon,
   Gear as SettingsIcon,
   Globe as WebIcon,
+  Handshake as DelegationIcon,
   Highlighter as HighlightIcon,
   House as HomeIcon,
   Image as ImageIcon,

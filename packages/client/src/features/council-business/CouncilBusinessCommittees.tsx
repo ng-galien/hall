@@ -12,7 +12,8 @@ import {
   dissociateCouncilBusinessCommittee,
   listCouncilBusinessCommittees,
 } from "../../services/councilBusinessCommitteesApi";
-import { listCouncilCommitteesSiren } from "../../services/councilCommitteesApi";
+import { representativeBodiesApi } from "../../services/representativeBodiesApi";
+import { committeeKind } from "../representative-bodies/representativeBodyKinds";
 import { type CommitteeCandidate, matchingCommitteeCandidates } from "./committeeSearch";
 import "./CouncilBusinessCommittees.css";
 
@@ -52,7 +53,7 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
         setAssociations(links);
         setRepresentation(entity);
         if (findSirenAction(entity, "council-business.associate-committee")) {
-          const result = await listCouncilCommitteesSiren();
+          const result = await representativeBodiesApi(committeeKind).list();
           if (current) setCandidates(result.data);
         } else {
           setCandidates([]);

@@ -4,6 +4,7 @@ import { formatMeetingLabel } from "../features/council-meetings/meetingPresenta
 import { useI18n } from "../i18n/I18nProvider";
 import { useContactsStore } from "../stores/contactsStore";
 import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
+import { useCouncilDelegationsStore } from "../stores/councilDelegationsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { useUsersStore } from "../stores/usersStore";
@@ -17,7 +18,8 @@ export function HeaderBreadcrumb() {
   const members = useCouncilMembersStore((state) => state.members);
   const contacts = useContactsStore((state) => state.contacts);
   const users = useUsersStore((state) => state.users);
-  const committees = useCouncilCommitteesStore((state) => state.committees);
+  const committees = useCouncilCommitteesStore((state) => state.bodies);
+  const delegations = useCouncilDelegationsStore((state) => state.bodies);
   const resourceSummaries = useWorkspaceResourcesStore((state) => state.summaries);
 
   const items: BreadcrumbItem[] = [{ label: t("app.name"), to: "/" }];
@@ -65,6 +67,12 @@ export function HeaderBreadcrumb() {
     if (segments[1]) {
       const committee = committees.find((candidate) => candidate.id === segments[1]);
       if (committee) items.push({ label: committee.name });
+    }
+  } else if (segments[0] === "council-delegations") {
+    items.push({ label: t("navigation.delegations"), to: "/council-delegations" });
+    if (segments[1]) {
+      const delegation = delegations.find((candidate) => candidate.id === segments[1]);
+      if (delegation) items.push({ label: delegation.name });
     }
   } else if (segments[0] === "settings") {
     items.push({ label: t("common.settings") });

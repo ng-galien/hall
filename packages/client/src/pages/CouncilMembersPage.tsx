@@ -30,7 +30,7 @@ export function CouncilMembersPage() {
   const { submitting, run } = useSubmitting();
   const { members, create: createMember, error, canCreate } = useCouncilMembersStore();
   const contacts = useContactsStore((state) => state.contacts);
-  const { committees, details, load: loadCommittees, loadAllDetails } = useCouncilCommitteesStore();
+  const { bodies: committees, details, load: loadCommittees, loadAllDetails } = useCouncilCommitteesStore();
   const [addOpen, setAddOpen] = useState(false);
   const { layout, setLayout, query, setQuery } = useCollectionView();
   const fieldId = useId();
@@ -60,7 +60,7 @@ export function CouncilMembersPage() {
       .filter((detail) =>
         detail.memberships.some((membership) => membership.contactId === contactId && !membership.endedOn),
       )
-      .map((detail) => detail.committee)
+      .map((detail) => detail.body)
       .sort((left, right) => left.name.localeCompare(right.name));
   };
   const renderCommitteeLinks = (memberId: string) => {

@@ -314,37 +314,39 @@ test("meeting mutations follow the lifecycle and fixed roster", () => {
   assert.match(read("src/pages/council-meetings/live/ConductView.tsx"), /pendingBallotDecisions\(aggregate\)/);
 });
 
-test("council administration follows committee Siren capabilities", () => {
-  const api = read("src/services/councilCommitteesApi.ts");
-  const store = read("src/stores/councilCommitteesStore.ts");
-  const committeePage = read("src/pages/CouncilCommitteePage.tsx");
+test("council administration follows committee and representation Siren capabilities", () => {
+  const kinds = read("src/features/representative-bodies/representativeBodyKinds.ts");
+  const api = read("src/services/representativeBodiesApi.ts");
+  const store = read("src/stores/representativeBodiesStore.ts");
+  const bodyPage = read("src/features/representative-bodies/RepresentativeBodyPage.tsx");
   const memberApi = read("src/services/councilMembersApi.ts");
   const memberStore = read("src/stores/councilMembersStore.ts");
   const memberPage = read("src/pages/CouncilMemberPage.tsx");
-  assert.match(api, /"committee\.create"/);
-  assert.match(api, /"committee\.update"/);
-  assert.match(api, /"committee\.archive"/);
-  assert.match(api, /"committee\.add-membership"/);
-  assert.match(api, /submitSirenAction<CommitteeMembership>\(representation, "committee\.update-membership"/);
-  assert.match(api, /submitSirenAction<CommitteeMembership>\(representation, "committee\.end-membership"/);
-  assert.match(store, /findSirenAction\(result\.committeeRepresentation, "committee\.update"\)/);
-  assert.match(store, /findSirenAction\(result\.committeeRepresentation, "committee\.add-membership"\)/);
-  assert.match(store, /entity\.class\?\.includes\("committee-membership"\)/);
-  assert.match(committeePage, /findSirenAction\(representation, "committee\.update-membership"\)/);
-  assert.match(committeePage, /findSirenAction\(representation, "committee\.end-membership"\)/);
-  assert.match(committeePage, /const addSelectedMembers = \(role: CommitteeRole\)/);
-  assert.match(committeePage, /const moveMembership = \(membership: CommitteeMembership, role: CommitteeRole\)/);
-  assert.match(committeePage, /onDragStart=/);
-  assert.match(committeePage, /onDrop:/);
-  assert.match(committeePage, /aria-pressed=\{selected\}/);
-  assert.match(committeePage, /capability\?\.canUpdate/);
-  assert.match(committeePage, /capability\?\.canAddMembership/);
-  assert.match(committeePage, /window\.setTimeout\(\(\) => void save\(\), 1000\)/);
+  for (const kind of ["committee", "delegation"]) {
+    for (const action of ["create", "update", "archive", "add-membership", "update-membership", "end-membership"])
+      assert.match(kinds, new RegExp(`"${kind}\\.${action}"`));
+    assert.match(kinds, new RegExp(`membershipClass: "${kind}-membership"`));
+  }
+  assert.match(api, /submitSirenAction<BodyMembership>\(representation, actions\.updateMembership/);
+  assert.match(api, /submitSirenAction<BodyMembership>\(representation, actions\.endMembership/);
+  assert.match(store, /findSirenAction\(result\.bodyRepresentation, bodyKind\.actions\.update\)/);
+  assert.match(store, /findSirenAction\(result\.bodyRepresentation, bodyKind\.actions\.addMembership\)/);
+  assert.match(store, /entity\.class\?\.includes\(bodyKind\.membershipClass\)/);
+  assert.match(bodyPage, /findSirenAction\(representation, bodyKind\.actions\.updateMembership\)/);
+  assert.match(bodyPage, /findSirenAction\(representation, bodyKind\.actions\.endMembership\)/);
+  assert.match(bodyPage, /const addSelectedMembers = \(role: string\)/);
+  assert.match(bodyPage, /const moveMembership = \(membership: BodyMembership, role: string\)/);
+  assert.match(bodyPage, /onDragStart=/);
+  assert.match(bodyPage, /onDrop:/);
+  assert.match(bodyPage, /aria-pressed=\{selected\}/);
+  assert.match(bodyPage, /capability\?\.canUpdate/);
+  assert.match(bodyPage, /capability\?\.canAddMembership/);
+  assert.match(bodyPage, /window\.setTimeout\(\(\) => void save\(\), 1000\)/);
   assert.match(memberApi, /submitSirenAction<CouncilMember>\(representation, "member\.update"/);
   assert.match(memberStore, /findSirenAction\(result\.representation, "member\.update"\)/);
   assert.match(memberPage, /window\.setTimeout\(\(\) => void save\(\), 1000\)/);
   assert.doesNotMatch(
-    `${api}\n${memberApi}\n${committeePage}\n${memberPage}`,
+    `${api}\n${memberApi}\n${bodyPage}\n${memberPage}`,
     /fetch\(|method:\s*["'](?:POST|PUT|DELETE)/,
   );
 });

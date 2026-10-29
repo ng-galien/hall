@@ -5,6 +5,7 @@ import {
   ContactIcon,
   CouncilBusinessIcon,
   DecisionsIcon,
+  DelegationIcon,
   GavelIcon,
   HomeIcon,
   MapIcon,
@@ -67,6 +68,7 @@ export const navigationSections: NavigationSection[] = [
         labelKey: "navigation.committees",
         icon: <CommitteeIcon />,
       },
+      { to: "/council-delegations", labelKey: "navigation.delegations", icon: <DelegationIcon /> },
     ],
   },
 ];
