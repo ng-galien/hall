@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { capture, expect, signIn, switchAccount, test, waitForPageEntrance } from "./fixtures";
+import { capture, conductMemberId, expect, signIn, switchAccount, test, waitForPageEntrance } from "./fixtures";
 
 /** Hall on a phone for the getting-started guide: a meeting page, a folder's New menu with its photo entries, the roll
     call and a vote, taken with the finger. */
@@ -32,7 +32,7 @@ test("Hall sur un téléphone : séance, appel et vote", async ({ docsPage: page
         scheduledAt: new Date(Date.now() - 30 * 60_000).toISOString(),
         location: "Maison commune de l’oppidum",
         chairMemberId: members.find((member) => member.role === "mayor")!.id,
-        secretaryMemberId: members.find((member) => member.role === "deputyMayor")!.id,
+        secretaryMemberId: await conductMemberId(page),
       },
     ],
     ["post", `/api/council-meetings/${meeting.id}/agenda-freeze`, {}],

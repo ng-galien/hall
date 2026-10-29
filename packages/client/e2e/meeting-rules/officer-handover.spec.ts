@@ -1,4 +1,4 @@
-import { expect, test } from "../captures/fixtures";
+import { expect, signIn, test } from "../captures/fixtures";
 import { openMeeting } from "../captures/journeys";
 import { councillors, properties } from "./support";
 
@@ -39,6 +39,8 @@ test("le départ de la secrétaire bloque le scrutin, la passation le débloque"
   await page.getByTestId("live-officers-handover-submit").click();
   await expect(page.getByTestId("live-officers-history").locator("li")).toHaveCount(1);
   await page.keyboard.press("Escape");
+  // The departed secretary no longer conducts the meeting: the administrator continues.
+  await signIn(page, "administrateur");
 
   await expect(page.getByTestId("live-ballot-open")).toBeEnabled();
   await page.getByTestId("live-ballot-open").click();

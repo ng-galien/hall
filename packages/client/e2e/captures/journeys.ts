@@ -37,7 +37,7 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
   await page.getByTestId("meeting-edit-chair").click();
   await page.getByRole("option", { name: /Vercingétorix/ }).click();
   await page.getByTestId("meeting-edit-secretary").click();
-  await page.getByRole("option", { name: /Commius/ }).click();
+  await page.getByRole("option", { name: /Vercassivellaunos/ }).click();
   await shot("02-proprietes-generales");
   await page.getByTestId("meeting-edit-submit").click();
   await expect(page.getByText("Programmée", { exact: true })).toBeVisible();

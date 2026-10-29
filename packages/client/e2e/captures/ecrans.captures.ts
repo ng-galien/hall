@@ -41,8 +41,8 @@ test("les écrans de Hall sur le jeu Alésia", async ({ docsPage: page }) => {
   if (closed) await open(page, `/meetings/${closed.id}`, "seance-close");
   if (inProgress) {
     await open(page, `/meetings/${inProgress.id}`, "seance-en-cours");
-    // The meeting mode is shown to the account that conducts the meeting.
-    await switchAccount(page, "conduite");
+    // The meeting mode is shown to an account that conducts the meeting: the administrator conducts every meeting.
+    await switchAccount(page, "administrateur");
     await open(page, `/meetings/${inProgress.id}/live`, "mode-seance", async () => {
       await expect(page.getByText(/Séance du conseil municipal/i).first()).toBeVisible();
     });

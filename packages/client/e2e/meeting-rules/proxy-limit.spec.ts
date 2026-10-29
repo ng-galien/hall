@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, signIn, switchAccount, test } from "../captures/fixtures";
+import { conductMemberId, expect, signIn, switchAccount, test } from "../captures/fixtures";
 import { prepareMeeting } from "../captures/journeys";
 import { councillors, items, properties } from "./support";
 
@@ -35,7 +35,7 @@ async function holdMeetingWithProxy(
   )!;
   const scheduledAt = new Date(Date.now() - daysAgo * 86_400_000);
   const chair = members.find((member) => member.role === "mayor")!.id;
-  const secretary = members.find((member) => member.role === "deputyMayor")!.id;
+  const secretary = await conductMemberId(page);
   await switchAccount(page, "secretariat");
   await properties(
     await page.request.put(`/api/council-meetings/${meeting.id}/prepare`, {

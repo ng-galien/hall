@@ -54,7 +54,7 @@ test("représentations extérieures : la liste, une représentation et sa lectur
   await waitForPageEntrance(page);
   await capture(page, "ecrans/representation-exterieure");
 
-  // The account that conducts meetings has no preparation right: it reads the representation without changing it.
+  // A councillor account has no preparation right: it reads the representation without changing it.
   await switchAccount(page, "conduite");
   await page.goto(`/app/council-delegations/${first}`);
   await expect(page.getByTestId(`delegation-membership-${outsider.id}`)).toBeVisible();

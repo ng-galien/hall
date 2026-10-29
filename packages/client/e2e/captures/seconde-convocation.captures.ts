@@ -1,5 +1,5 @@
 import type { APIResponse, Page } from "@playwright/test";
-import { capture, expect, localDateTimeInput, signIn, switchAccount, test } from "./fixtures";
+import { capture, conductMemberId, expect, localDateTimeInput, signIn, switchAccount, test } from "./fixtures";
 
 test.setTimeout(4 * 60_000);
 test.use({ seedScenario: "preparation" });
@@ -56,14 +56,18 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   const firstDate = new Date(Date.now() - 8 * 86_400_000);
   firstDate.setHours(18, 30, 0, 0);
   const location = "Maison commune de l’oppidum";
-  const [chair, firstSecretary, reconvenedSecretary] = members;
+  // The conduct account is the secretary of both meetings: an officer of the meeting conducts it.
+  const conductor = await conductMemberId(page);
+  const [chair, ...others] = members.filter((member) => member !== conductor);
+  const firstSecretary = conductor;
+  const reconvenedSecretary = conductor;
   await prepare(page, first.id, {
     scheduledAt: firstDate.toISOString(),
     location,
     chairMemberId: chair!,
     secretaryMemberId: firstSecretary!,
   });
-  const present = new Set([chair!, firstSecretary!, reconvenedSecretary!, members[3]!]);
+  const present = new Set([chair!, conductor, others[0]!, others[1]!]);
 
   // The roll call and the conduct are done by the account with the meeting conduct role.
   await signIn(page, "conduite", `/app/meetings/${first.id}/live`);

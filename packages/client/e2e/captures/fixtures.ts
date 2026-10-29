@@ -37,7 +37,10 @@ export async function waitForPageEntrance(page: Page) {
 export const accounts = {
   /** Écriture du conseil - Convictolitavis, role Secrétariat: preparation, decisions, minutes, appointments. */
   secretariat: "secretariat@alesia.example",
-  /** Vercassivellaunos l’Arverne, role Conduite de séance: roll call, votes and conduct of the meeting. */
+  /**
+   * Vercassivellaunos l’Arverne, councillor linked to his contact: designated secretary of the meetings of the
+   * journeys, he records the roll call, the votes and the conduct as an officer of the meeting.
+   */
   conduite: "vercassivellaunos@alesia.example",
   /** Vercingétorix l’Arverne, role Administrateur: users and reserved settings only. */
   administrateur: "vercingetorix@alesia.example",
@@ -71,3 +74,20 @@ export const test = base.extend<{ docsPage: Page }>({
 });
 
 export { expect };
+
+/** The council member of the conduct account, whom the journeys designate secretary of the meeting. */
+export async function conductMemberId(page: Page): Promise<string> {
+  const entities = async <T>(path: string): Promise<T[]> => {
+    const response = await page.request.get(path);
+    expect(response.ok(), path).toBeTruthy();
+    return (((await response.json()) as { entities?: Array<{ properties: T }> }).entities ?? []).map(
+      (entity) => entity.properties,
+    );
+  };
+  const contact = (await entities<{ id: string; firstName: string }>("/api/contacts")).find(
+    (entry) => entry.firstName === "Vercassivellaunos",
+  )!;
+  return (await entities<{ id: string; contactId: string; active: boolean }>("/api/council-members")).find(
+    (member) => member.contactId === contact.id && member.active,
+  )!.id;
+}
