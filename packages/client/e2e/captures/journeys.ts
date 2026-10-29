@@ -4,6 +4,8 @@ import { capture, expect, localDateTimeInput, signIn, waitForPageEntrance } from
 /**
  * From the meeting in preparation to the roll call screen; captures each step under `prefix` when given.
  * The secretariat prepares the meeting; from the meeting mode on, the account with the meeting conduct role takes over.
+ * The documentation shows a meeting scheduled two weeks ahead; the journey then dates it half an hour ago, without
+ * capture, because the meeting can only be opened once its scheduled time is reached.
  */
 export async function prepareMeeting(page: Page, prefix?: string, meetingNumber = 2) {
   const shot = async (name: string) => {
@@ -26,8 +28,6 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
   await expect(page.getByTestId("meeting-edit-details")).toBeVisible();
   await waitForPageEntrance(page);
 
-  // The documentation shows a meeting scheduled two weeks ahead; the journey then dates it half an hour ago, without
-  // capture, because the meeting can only be opened once its scheduled time is reached.
   const startsAt = new Date(Date.now() - 30 * 60_000);
   const scheduledAhead = new Date();
   scheduledAhead.setDate(scheduledAhead.getDate() + 14);
