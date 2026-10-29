@@ -286,7 +286,7 @@ test("gives council members read access and a personal folder that only they and
     await brunoPage.context().close();
   });
 
-  await test.step("a contributor creates, converts, edits, renames, moves and deletes in a common folder and only reads a personal folder", async () => {
+  await test.step("a contributor creates, converts, edits, renames and moves in a common folder without deleting, and only reads a personal folder", async () => {
     const contributorPage = await sessionPage(browser, origin, "contributor@example.test");
     await contributorPage.goto(workspaceAt("Commun"));
     await contributorPage.getByTestId("workspace-create-menu").click();
@@ -323,9 +323,8 @@ test("gives council members read access and a personal folder that only they and
       name: "Contribution v2",
     });
     await contributorPage.goto(`/app/workspace?resource=${contribution}`);
-    const deletion = contributorPage.waitForResponse((response) => response.request().method() === "DELETE");
-    await contributorPage.getByTestId("resource-delete").click();
-    expect((await deletion).ok()).toBeTruthy();
+    await expect(contributorPage.getByTestId("workspace-workbench-title")).toHaveText("Contribution v2");
+    await expect(contributorPage.getByTestId("resource-delete")).toHaveCount(0);
     await contributorPage.goto(workspaceAt(aliceFolder));
     await expect(contributorPage.getByTestId("workspace-tree-root")).toBeVisible();
     await expect(contributorPage.getByTestId("workspace-create-menu")).toHaveCount(0);

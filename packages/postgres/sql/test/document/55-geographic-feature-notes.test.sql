@@ -92,27 +92,32 @@ SELECT throws_ok(
 FROM note_fixture;
 
 SELECT set_config('hall.roles', '["contributor"]', true);
-SELECT set_config('hall.permissions', '["workspace.read","workspace.write"]', true);
+SELECT is(
+  ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(
+    hall.resource_siren_actions(hall_api.open_resource((note ->> 'noteId')::UUID))) AS action),
+  ARRAY['resource.relocate', 'resource.update-metadata', 'resource.update-content'],
+  'a contributor edits, renames and moves a common feature note without deleting it'
+)
+FROM first_note;
+SELECT is(hall_api.present_municipal_property(hall_api.municipal_property()) -> 'actions', NULL,
+  'a contributor cannot import the municipal property list, reference data of the municipality');
+SELECT set_config('hall.roles', '["clerk"]', true);
 SELECT is(
   ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(
     hall.resource_siren_actions(hall_api.open_resource((note ->> 'noteId')::UUID))) AS action),
   ARRAY['resource.relocate', 'resource.update-metadata', 'resource.update-content', 'resource.delete'],
-  'a role with workspace.write edits, renames, moves and deletes a common feature note'
+  'the secretariat edits, renames, moves and deletes a common feature note'
 )
 FROM first_note;
 SELECT ok(
   hall_api.present_municipal_property(hall_api.municipal_property()) -> 'actions' @> '[{"name":"resource.import-municipal-property"}]'::JSONB,
-  'a role with workspace.write may import the municipal property list'
+  'the secretariat may import the municipal property list'
 );
-SELECT set_config('hall.roles', '["reader"]', true);
-SELECT set_config('hall.permissions', '["workspace.read"]', true);
+SELECT set_config('hall.roles', '["councillor"]', true);
 SELECT is(hall.resource_siren_actions(hall_api.open_resource((note ->> 'noteId')::UUID)), '[]'::JSONB,
-  'a reader reads the note without editing it')
+  'a councillor reads a common note without editing it')
 FROM first_note;
-SELECT is(hall_api.present_municipal_property(hall_api.municipal_property()) -> 'actions', NULL,
-  'a reader cannot import the municipal property list');
 SELECT set_config('hall.roles', '["administrator"]', true);
-SELECT set_config('hall.permissions', '', true);
 
 SELECT is(hall_api.municipal_property() -> 'source', 'null'::JSONB, 'no municipal property list exists at first');
 SELECT is(
@@ -176,16 +181,14 @@ SELECT lives_ok(
 
 -- @verifies-requirement HALL-FR-DOC-230
 SELECT set_config('hall.roles', '["contributor"]', true);
-SELECT set_config('hall.permissions', '["workspace.read","workspace.write"]', true);
 SELECT is(
   ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(hall.resource_collection_siren_actions()) AS action),
   ARRAY['resource.create', 'resource.create-document', 'resource.import-spreadsheet',
     'resource.convert-spreadsheet-table', 'resource.create-editor-asset', 'resource.search-legal-references',
     'council-business.create', 'council-business.import-bundle'],
-  'a role with workspace.write is offered creation, imports, the image upload and affairs in a common folder');
-SELECT set_config('hall.permissions', '["workspace.read"]', true);
-SELECT is(hall.resource_collection_siren_actions(), '[]'::JSONB, 'a reader is not offered the image upload');
-SELECT set_config('hall.permissions', '', true);
+  'a contributor is offered creation, imports, the image upload and affairs in a common folder');
+SELECT set_config('hall.roles', '[]', true);
+SELECT is(hall.resource_collection_siren_actions(), '[]'::JSONB, 'an account without role is not offered the image upload');
 SELECT set_config('hall.roles', '["administrator"]', true);
 
 -- @verifies-requirement HALL-FR-DOC-500

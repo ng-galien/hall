@@ -31,9 +31,12 @@ function fixture({ permission = true, fails = false } = {}) {
     req.principal = {
       id: "00000000-0000-4000-8000-000000000003",
       displayName: "Council user",
-      roles: permission ? ["meetingConductor"] : ["reader"],
-      permissions: permission ? ["meetings.read", "meetings.conduct"] : ["meetings.read"],
+      roles: permission ? ["administrator"] : ["councillor"],
       contactId: null,
+    };
+    req.authorization = {
+      allows: async () => permission,
+      allowedActions: async () => new Set(permission ? ["meeting.record-quorum"] : []),
     };
     next();
   });

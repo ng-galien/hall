@@ -1,4 +1,4 @@
-import { type ApiPermission, apiPermissions } from "@hall/api-contract";
+import { apiActionNames } from "@hall/api-contract";
 import type { Request } from "express";
 import { describe, expect, it } from "vitest";
 import { collectionActions, objectActions } from "../api/sirenActionPolicy.js";
@@ -12,7 +12,7 @@ import {
 } from "../api/sirenEntityIdentity.js";
 import { toSirenRepresentation } from "../api/sirenRepresentation.js";
 
-function request(path: string, permissions: readonly ApiPermission[] = apiPermissions): Request {
+function request(path: string, allowedActions: readonly string[] = apiActionNames): Request {
   return {
     method: "GET",
     originalUrl: path,
@@ -22,9 +22,9 @@ function request(path: string, permissions: readonly ApiPermission[] = apiPermis
       id: "user-id",
       displayName: "Administrator",
       roles: ["administrator"],
-      permissions: [...permissions],
       contactId: null,
     },
+    allowedActions: new Set(allowedActions),
   } as unknown as Request;
 }
 
@@ -168,16 +168,18 @@ describe("Siren entity class authority", () => {
   // @verifies-requirement HALL-FR-BUS-070
   it("advertises committee mutations only with the dedicated business update permission", () => {
     const business = { id: "business-id" };
-    const readOnly = objectActions(
-      request("/api/council-business/business-id", ["workspace.read", "meetings.read"]),
-      "council-business",
-      business,
-    );
+    const readOnly = objectActions(request("/api/council-business/business-id", []), "council-business", business);
     expect(readOnly.some(({ name }) => name === "council-business.associate-committee")).toBe(false);
     expect(readOnly.some(({ name }) => name === "council-business.dissociate-committee")).toBe(false);
 
     const updateOnly = objectActions(
-      request("/api/council-business/business-id", ["council-business.update"]),
+      request("/api/council-business/business-id", [
+        "council-business.associate-resource",
+        "council-business.dissociate-resource",
+        "council-business.reorder-resources",
+        "council-business.associate-committee",
+        "council-business.dissociate-committee",
+      ]),
       "council-business",
       business,
     );
@@ -324,11 +326,7 @@ describe("Siren entity class authority", () => {
       }),
     ).toEqual([]);
     expect(
-      objectActions(
-        request("/api/council-meetings/2026-09-01-001", ["meetings.read"]),
-        "council-meeting",
-        startedMeeting,
-      ),
+      objectActions(request("/api/council-meetings/2026-09-01-001", []), "council-meeting", startedMeeting),
     ).toEqual([]);
   });
 
@@ -438,7 +436,7 @@ describe("conduct reasons in HTTP properties", () => {
 
 it.each([true, false])("keeps attendance reasons and Siren permission consistent: permitted=%s", (permitted) => {
   const entity = toSirenRepresentation(
-    request("/api/council-meetings/meeting/conduct", permitted ? apiPermissions : []),
+    request("/api/council-meetings/meeting/conduct", permitted ? apiActionNames : []),
     {
       councilMeetingId: "meeting",
       meeting: { id: "meeting", number: 1, startedAt: "2026-01-01T09:00:00Z", closedAt: null, closureBlockers: [] },

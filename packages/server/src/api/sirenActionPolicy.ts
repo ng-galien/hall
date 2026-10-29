@@ -12,7 +12,7 @@ import { meetingActionBlockersSchema, meetingOpeningBlockerSchema } from "@hall/
 import { matchLiteral } from "@hall/domain";
 import type { Request } from "express";
 import { acceptedDocumentExtensions, acceptedSpreadsheetImportExtensions } from "../domain/documentPolicy.js";
-import { actionIsPermitted } from "./apiCommandAuthorization.js";
+import { canExecute } from "../security/authorization.js";
 import {
   meetingReferenceFromRequest,
   objectId,
@@ -26,7 +26,7 @@ export function action(name: ApiActionName, method: SirenAction["method"], href:
 }
 
 function canExecuteAction(request: Request, actionName: ApiActionName): boolean {
-  return actionIsPermitted(request.principal, actionName);
+  return canExecute(request, actionName);
 }
 
 function authorizedActions(request: Request, actions: SirenAction[]): SirenAction[] {

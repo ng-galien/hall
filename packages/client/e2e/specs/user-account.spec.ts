@@ -35,7 +35,7 @@ test("edits account identity with autosave and safely changes and resets passwor
       displayName: "Reader account",
       email: "account-reader@example.test",
       password: initialPassword,
-      roles: ["reader"],
+      roles: ["contributor"],
       contactId: contactIds[0],
     },
   });

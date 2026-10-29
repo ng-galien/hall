@@ -1,13 +1,12 @@
 import { createCouncilMemberSchema, updateCouncilMemberSchema } from "@hall/api-contract";
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
-import { requirePermission } from "../../security/authorization.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
 export function createCouncilMembersRouter({ directoryService }: Cradle): Router {
   const router = Router();
-  router.get("/", requirePermission("meetings.read"), async (_request, response) => {
+  router.get("/", async (_request, response) => {
     const [members, canCreate] = await Promise.all([
       directoryService.listCouncilMembers(),
       directoryService.councilMemberCreationAvailable(),
@@ -15,7 +14,7 @@ export function createCouncilMembersRouter({ directoryService }: Cradle): Router
     response.locals.councilMemberCreationAvailable = canCreate;
     response.json(members);
   });
-  router.get("/:memberId", requirePermission("meetings.read"), async (request, response) => {
+  router.get("/:memberId", async (request, response) => {
     response.json(await directoryService.getCouncilMember(routeParameter(request.params.memberId)));
   });
   router.post("/", requireActionPermission("member.create"), async (request, response) => {

@@ -100,7 +100,7 @@ export function classifySirenEntity(request: Request, value: unknown): SirenEnti
     if (path.includes("/attendance")) return "attendance";
     return "council-meeting";
   }
-  if (value && typeof value === "object" && "permissions" in value) return "session";
+  if (value && typeof value === "object" && "roles" in value && !("email" in value)) return "session";
   return "entity";
 }
 

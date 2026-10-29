@@ -56,7 +56,6 @@ export function createPostgresGeographicLayersClient({
         actorId: context.principal.id,
         contactId: context.principal.contactId,
         roles: context.principal.roles,
-        permissions: context.principal.permissions,
       },
     };
   }

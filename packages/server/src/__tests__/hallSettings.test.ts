@@ -75,7 +75,7 @@ describe("Hall settings", () => {
     );
   });
 
-  it("allows authenticated readers to read settings but not update them", async () => {
+  it("allows an account outside the secretariat to read settings but not update them", async () => {
     const { rawAgent } = await createTestServer({ devAutoLogin: false });
     const administrator = {
       email: "admin@example.fr",
@@ -89,7 +89,7 @@ describe("Hall settings", () => {
         email: "lecture@example.fr",
         displayName: "Lecture seule",
         password: "Mot-de-passe-lecture-2026!",
-        roles: ["reader"],
+        roles: ["contributor"],
         contactId: null,
       })
       .expect(201);

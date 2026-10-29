@@ -43,7 +43,6 @@ async function mapUser(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<Stor
     status: apiUserStatusSchema.parse(row.status),
     contactId: identifierSchema.nullable().parse(row.contact_id),
     roles,
-    permissions: [],
     createdAt: asString(row.created_at, "security_user.created_at"),
     updatedAt: asString(row.updated_at, "security_user.updated_at"),
   };

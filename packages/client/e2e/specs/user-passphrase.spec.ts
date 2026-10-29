@@ -19,7 +19,7 @@ test("creates an account with a generated passphrase shown once, then revokes it
   await page.getByTestId("users-add").click();
   await page.getByTestId("user-display-name").fill("Élue de test");
   await page.getByTestId("user-email").fill("elue@example.test");
-  await page.getByTestId("user-role-reader").check();
+  await page.getByTestId("user-role-contributor").check();
   await page.getByTestId("passphrase-generate").click();
   const passphrase = (await page.getByTestId("passphrase-value").textContent())!.trim();
   expect(passphrase).toMatch(/^[a-z]{4,8}(-[a-z]{4,8}){4}$/);

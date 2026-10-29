@@ -14,7 +14,7 @@ function properties<T>(response: { body: { properties?: unknown } }): T {
 }
 
 describe("users, permissions, audit and Siren affordances", () => {
-  it("links accounts to contacts without mandates, preserves role permissions and enforces uniqueness", async () => {
+  it("links accounts to contacts without mandates, keeps their roles and enforces uniqueness", async () => {
     const { rawAgent } = await createTestServer();
     const contact = await rawAgent.post("/api/contacts").send({ firstName: "Alex", lastName: "Contact" }).expect(201);
     const contactId = properties<{ id: string }>(contact).id;
@@ -23,12 +23,12 @@ describe("users, permissions, audit and Siren affordances", () => {
         email,
         displayName: "Compte",
         password: "Mot-de-passe-test-2026!",
-        roles: ["reader"],
+        roles: ["contributor"],
         contactId: link,
       });
     const linked = await account("linked@example.fr", contactId).expect(201);
-    expect(properties(linked)).toMatchObject({ contactId, roles: ["reader"] });
-    expect(properties<{ permissions: string[] }>(linked).permissions).not.toContain("users.manage");
+    expect(properties(linked)).toMatchObject({ contactId, roles: ["contributor"] });
+    expect(properties(linked)).not.toHaveProperty("permissions");
     expect(properties(linked)).not.toHaveProperty("councilMemberId");
     await account("duplicate@example.fr", contactId).expect(409);
     await account("missing@example.fr", "00000000-0000-4000-8000-000000000001").expect(404);
@@ -48,16 +48,16 @@ describe("users, permissions, audit and Siren affordances", () => {
     const credentials = { email: "elected@example.fr", password: "Mot-de-passe-test-2026!" };
     await rawAgent
       .post("/api/users")
-      .send({ ...credentials, displayName: "Camille", roles: ["reader"], contactId })
+      .send({ ...credentials, displayName: "Camille", roles: ["contributor"], contactId })
       .expect(201);
     await rawAgent.post("/api/auth/logout").expect(204);
     expect(properties(await rawAgent.post("/api/auth/login").send(credentials).expect(200))).toMatchObject({
       contactId,
-      roles: ["reader"],
+      roles: ["contributor"],
     });
     expect(properties(await rawAgent.get("/api/auth/session").expect(200))).toMatchObject({ contactId });
   });
-  it("starts the loopback development server with every permission", async () => {
+  it("starts the loopback development server as an administrator", async () => {
     const { rawAgent } = await createTestServer();
     const status = await rawAgent.get("/api/auth/status").expect(200);
     expect(status.headers["content-type"]).toContain(SIREN_MEDIA_TYPE);
@@ -70,7 +70,8 @@ describe("users, permissions, audit and Siren affordances", () => {
     expect(status.body.actions).toEqual([]);
 
     const session = await rawAgent.get("/api/auth/session").expect(200);
-    expect(properties<{ permissions: string[] }>(session).permissions).toContain("users.manage");
+    expect(properties(session)).toMatchObject({ roles: ["administrator"] });
+    expect(properties(session)).not.toHaveProperty("permissions");
     expect(session.body.actions ?? []).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ name: "session.logout" })]),
     );
@@ -179,7 +180,7 @@ describe("users, permissions, audit and Siren affordances", () => {
         email: "lecture@example.fr",
         displayName: "Lecture seule",
         password: "Mot-de-passe-lecture-2026!",
-        roles: ["reader"],
+        roles: ["councillor"],
         contactId,
       })
       .expect(201);
@@ -187,12 +188,12 @@ describe("users, permissions, audit and Siren affordances", () => {
     expect(readerUser.contactId).toBe(contactId);
     await rawAgent
       .put(`/api/users/${readerUser.id}/roles`)
-      .send({ roles: ["reader"] })
+      .send({ roles: ["councillor"] })
       .expect(200);
 
     const lastAdministrator = await rawAgent
       .put(`/api/users/${administratorId}/roles`)
-      .send({ roles: ["reader"] })
+      .send({ roles: ["contributor"] })
       .expect(409);
     expect(lastAdministrator.body.code).toBe("last_administrator_required");
 
@@ -213,7 +214,7 @@ describe("users, permissions, audit and Siren affordances", () => {
         expect.objectContaining({
           action: "user.assign-role",
           actorUserId: administratorId,
-          details: expect.objectContaining({ roles: ["reader"] }),
+          details: expect.objectContaining({ roles: ["councillor"] }),
         }),
       ]),
     );
@@ -235,7 +236,7 @@ describe("users, permissions, audit and Siren affordances", () => {
       expect.arrayContaining([
         expect.objectContaining({
           action: "user.create",
-          details: expect.objectContaining({ roles: ["reader"], contactId }),
+          details: expect.objectContaining({ roles: ["councillor"], contactId }),
         }),
       ]),
     );

@@ -42,40 +42,6 @@ $function$;
 ALTER FUNCTION hall.call_context() OWNER TO hall_owner;
 REVOKE ALL ON FUNCTION hall.call_context() FROM PUBLIC;
 
--- @implements-requirement HALL-TR-CTX-030
--- Siren affordances are derived in PostgreSQL. This first connection keeps the
--- RBAC intentionally narrow: only the administrator role receives documentary
--- mutation affordances. The role matrix can later move to relations without
--- changing the Siren contract.
-CREATE FUNCTION hall.is_administrator()
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = pg_catalog
-AS $function$
-  SELECT coalesce(nullif(current_setting('hall.roles', true), '')::jsonb, '[]'::jsonb) ? 'administrator'
-$function$;
-
-ALTER FUNCTION hall.is_administrator() OWNER TO hall_owner;
-REVOKE ALL ON FUNCTION hall.is_administrator() FROM PUBLIC;
-
--- @implements-requirement HALL-FR-DOC-350
--- The server owns the role to permission matrix and installs the permissions
--- granted to the caller; PostgreSQL reads them to project affordances.
-CREATE FUNCTION hall.has_permission(permission TEXT)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = pg_catalog
-AS $function$
-  SELECT coalesce(nullif(current_setting('hall.permissions', true), '')::jsonb, '[]'::jsonb) ? permission
-$function$;
-
-ALTER FUNCTION hall.has_permission(TEXT) OWNER TO hall_owner;
-REVOKE ALL ON FUNCTION hall.has_permission(TEXT) FROM PUBLIC;
-
 CREATE FUNCTION hall_api.call_context()
 RETURNS jsonb
 LANGUAGE sql

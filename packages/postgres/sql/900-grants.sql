@@ -10,6 +10,8 @@ GRANT EXECUTE ON FUNCTION hall_api.call_context()
   TO hall_api_anonymous, hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.record_audit_event(TEXT, TEXT, hall.audit_outcome, JSONB)
   TO hall_api_anonymous, hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.allows(TEXT, JSONB), hall_api.allowed_actions(JSONB)
+  TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.import_council_business_bundle(JSONB,JSONB,TEXT)
   TO hall_api_authenticated, hall_api_worker;
 REVOKE ALL ON FUNCTION hall_api.create_ballot(UUID,TEXT,UUID[],UUID),

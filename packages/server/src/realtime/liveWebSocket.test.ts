@@ -32,7 +32,7 @@ async function fixture() {
   const authService = {
     async authenticate(token: string) {
       if (!sessionActive || !["reader", "conductor", "workspace"].includes(token)) return null;
-      const roles = token === "conductor" ? ["meetingConductor"] : token === "workspace" ? [] : ["reader"];
+      const roles = token === "conductor" ? ["administrator"] : token === "workspace" ? [] : ["councillor"];
       return {
         sessionId: token,
         user: {

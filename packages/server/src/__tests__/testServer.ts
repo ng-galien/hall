@@ -106,6 +106,23 @@ export async function createTestCouncilMember(
   );
 }
 
+/**
+ * The contact of a council member with an active mandate, needed by a councillor account: the read-only account
+ * of a test. A council term is configured first when none is active.
+ */
+export async function createTestMandateContact(agent: TestAgent, firstName = "Lecture"): Promise<string> {
+  const terms = domainBody<unknown[]>(await agent.get("/api/council-terms").expect(200));
+  if (terms.length === 0) await agent.put("/api/council-terms").send({ expectedMemberCount: 100 }).expect(200);
+  const contact = domainBody<{ id: string }>(
+    await agent.post("/api/contacts").send({ firstName, lastName: "Seule" }).expect(201),
+  );
+  await agent
+    .post("/api/council-members")
+    .send({ contactId: contact.id, role: "councillor", termStartedOn: "2026-03-22" })
+    .expect(201);
+  return contact.id;
+}
+
 export async function createTestServer(
   options: {
     devAutoLogin?: boolean;

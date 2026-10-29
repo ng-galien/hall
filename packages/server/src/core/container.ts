@@ -1,5 +1,6 @@
 import {
   createPostgresPool,
+  type PostgresAuthorization,
   PostgresClient,
   type PostgresCouncil,
   type PostgresCouncilDecisions,
@@ -31,6 +32,8 @@ import { createContentTemplateRepository } from "../repositories/contentTemplate
 import type { ContentTemplateRepository, HallSettingsRepository, UnitOfWork } from "../repositories/contracts.js";
 import { createHallSettingsRepository } from "../repositories/hallSettingsRepository.js";
 import { createSecurityRepository, type SecurityRepository } from "../repositories/securityRepository.js";
+import { createPostgresAuthorizationClient } from "../infrastructure/postgres/authorizationClient.js";
+import type { AuthorizationClient } from "../security/authorization.js";
 import { RequestContextStore } from "../security/requestContext.js";
 import { type AuthService, createAuthService } from "../services/authService.js";
 import { type ContentTemplateService, createContentTemplateService } from "../services/contentTemplateService.js";
@@ -75,6 +78,8 @@ export interface Cradle {
   realtimeEvents: LiveEventBus;
   sqlExecutor: SqlExecutor;
   postgresClient: PostgresClient | null;
+  postgresAuthorization: PostgresAuthorization;
+  authorizationClient: AuthorizationClient;
   postgresCouncil: PostgresCouncil;
   postgresDirectory: PostgresDirectory;
   postgresResources: PostgresResources;
@@ -163,6 +168,11 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
   });
   if (config.database.kind === "postgres") {
     container.register({
+      postgresAuthorization: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
+        if (!postgresClient) throw new Error("Authorization PostgreSQL storage is required");
+        return postgresClient.authorization;
+      }).singleton(),
+      authorizationClient: asFunction(createPostgresAuthorizationClient).singleton(),
       postgresCouncil: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
         if (!postgresClient) throw new Error("Council PostgreSQL storage is required");
         return postgresClient.council;

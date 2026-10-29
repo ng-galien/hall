@@ -11,7 +11,13 @@ async function setup() {
   await server.rawAgent.post("/api/auth/bootstrap").send(admin).expect(201);
   const response = await server.rawAgent
     .post("/api/users")
-    .send({ email: "user@example.fr", displayName: "User", password: oldPassword, roles: ["reader"], contactId: null })
+    .send({
+      email: "user@example.fr",
+      displayName: "User",
+      password: oldPassword,
+      roles: ["contributor"],
+      contactId: null,
+    })
     .expect(201);
   const userId: string = response.body.properties.id;
   const login = async (password = oldPassword) => {
@@ -32,11 +38,11 @@ it("allows administrators to edit identity/contact without changing permissions 
   const selfCookie = await login();
   await statelessAgent.put(`/api/users/${userId}`).set("Cookie", selfCookie).send(input).expect(403);
   const edited = await rawAgent.put(`/api/users/${userId}`).send(input).expect(200);
-  expect(edited.body.properties).toMatchObject({ ...input, roles: ["reader"], status: "active" });
+  expect(edited.body.properties).toMatchObject({ ...input, roles: ["contributor"], status: "active" });
   expect(edited.body.actions.map((action: { name: string }) => action.name)).toContain("user.update");
   const second = await rawAgent
     .post("/api/users")
-    .send({ email: "second@example.fr", displayName: "Second", password: oldPassword, roles: ["reader"] })
+    .send({ email: "second@example.fr", displayName: "Second", password: oldPassword, roles: ["contributor"] })
     .expect(201);
   const secondId = second.body.properties.id;
   await rawAgent
@@ -98,7 +104,7 @@ it("resets another account only as administrator, invalidates sessions and retai
   await statelessAgent.post("/api/auth/login").send({ email: "user@example.fr", password: oldPassword }).expect(401);
   await login(resetPassword);
   const user = await rawAgent.get(`/api/users/${userId}`).expect(200);
-  expect(user.body.properties).toMatchObject({ roles: ["reader"], status: "active" });
+  expect(user.body.properties).toMatchObject({ roles: ["contributor"], status: "active" });
   expect(user.body.properties).not.toHaveProperty("passwordHash");
   const audit = await rawAgent.get("/api/audit-events").expect(200);
   expect(audit.body.entities.map((entry: { properties: unknown }) => entry.properties)).toContainEqual(

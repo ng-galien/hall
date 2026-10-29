@@ -23,10 +23,19 @@ export const postgresUserContactMigration = `
 `;
 
 // @implements-requirement HALL-FR-DIR-150
+// @implements-requirement HALL-FR-USR-030
+// Four roles: an account that held only the removed reader or meeting conductor
+// role becomes a councillor; the conduct of a meeting follows its officers.
 export const postgresUserRoleCatalogSchema = `
   ALTER TABLE user_roles DROP CONSTRAINT IF EXISTS user_roles_role_check;
+  INSERT INTO user_roles (user_id, role)
+    SELECT DISTINCT former.user_id, 'councillor' FROM user_roles former
+    WHERE former.role IN ('reader', 'meetingConductor')
+      AND NOT EXISTS (SELECT FROM user_roles kept WHERE kept.user_id = former.user_id
+        AND kept.role NOT IN ('reader', 'meetingConductor'));
+  DELETE FROM user_roles WHERE role IN ('reader', 'meetingConductor');
   ALTER TABLE user_roles ADD CONSTRAINT user_roles_role_check
-    CHECK (role IN ('administrator', 'clerk', 'contributor', 'meetingConductor', 'reader', 'councillor'));
+    CHECK (role IN ('administrator', 'clerk', 'contributor', 'councillor'));
 `;
 
 export const postgresTables = [
@@ -140,7 +149,7 @@ export const postgresSchema = `
 
   CREATE TABLE user_roles (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role TEXT NOT NULL CONSTRAINT user_roles_role_check CHECK (role IN ('administrator', 'clerk', 'contributor', 'meetingConductor', 'reader', 'councillor')),
+    role TEXT NOT NULL CONSTRAINT user_roles_role_check CHECK (role IN ('administrator', 'clerk', 'contributor', 'councillor')),
     PRIMARY KEY (user_id, role)
   );
 

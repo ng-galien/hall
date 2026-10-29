@@ -76,11 +76,11 @@ SELECT is(
   'documentary Siren collections expose no counter'
 );
 
-SELECT set_config('hall.roles', '["reader"]', true);
+SELECT set_config('hall.roles', '["councillor"]', true);
 
 SELECT ok(
   NOT (hall_api.present_resource((SELECT payload FROM api_result WHERE key = 'text')) ? 'actions'),
-  'non-administrator receives no documentary mutation affordance in the minimal database RBAC'
+  'a councillor receives no documentary mutation affordance in the common workspace'
 );
 
 SELECT set_config('hall.roles', '["administrator"]', true);

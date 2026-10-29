@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { IncomingHttpHeaders } from "node:http";
-import { apiPermissions, LIVE_ORIGIN_HEADER, liveOriginSchema } from "@hall/api-contract";
+import { LIVE_ORIGIN_HEADER, liveOriginSchema } from "@hall/api-contract";
 import type { NextFunction, Request, Response } from "express";
 import { isLoopbackHost, type ServerConfig } from "../core/config.js";
 import { logger } from "../core/logger.js";
 import type { SecurityRepository } from "../repositories/securityRepository.js";
+import { type AuthorizationClient, loadRequestAuthorization } from "../security/authorization.js";
 import type { RequestContextStore } from "../security/requestContext.js";
 import type { AuthService } from "../services/authService.js";
 import { principalForSession, SESSION_COOKIE_NAME } from "../services/authService.js";
@@ -80,7 +81,6 @@ export function loadAuthentication(
         id: "development",
         displayName: "Development administrator",
         roles: ["administrator"],
-        permissions: [...apiPermissions],
         contactId: null,
       };
       requestContext.setPrincipal(request.principal);
@@ -98,6 +98,15 @@ export function loadAuthentication(
       request.sessionId = session.sessionId;
       requestContext.setPrincipal(request.principal);
     }
+    next();
+  };
+}
+
+/** Gives the request the database authorization and loads the actions its account may take. */
+export function loadAuthorization(authorizationClient: AuthorizationClient) {
+  return async (request: Request, _response: Response, next: NextFunction): Promise<void> => {
+    request.authorization = authorizationClient;
+    await loadRequestAuthorization(request);
     next();
   };
 }

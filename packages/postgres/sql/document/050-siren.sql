@@ -296,7 +296,7 @@ BEGIN
   END IF;
 
   -- @implements-requirement HALL-FR-WSP-380
-  IF NOT hall.is_administrator() AND (
+  IF NOT hall.allows('personal-workspace.restructure') AND (
     resource ->> 'fullPath' = hall.personal_workspaces_root()
     OR EXISTS (SELECT FROM hall.personal_workspace AS workspace
       WHERE workspace.folder_resource = (resource ->> 'id')::UUID)
@@ -331,6 +331,12 @@ BEGIN
     OR EXISTS (SELECT FROM hall.geographic_map_overlay overlay
       WHERE overlay.geographic_layer_resource_id = (resource_siren_actions.resource ->> 'id')::UUID)
   THEN
+    RETURN actions;
+  END IF;
+  IF NOT hall.can_delete_location(coalesce(
+    resource ->> 'fullPath',
+    hall.child_full_path(resource ->> 'path', resource ->> 'name')
+  )) THEN
     RETURN actions;
   END IF;
   RETURN actions || jsonb_build_array(
@@ -414,7 +420,7 @@ BEGIN
     -- @implements-requirement HALL-FR-DOC-230
     -- Images may be uploaded by anyone who may edit a text; the server checks
     -- that the owner text offers resource.update-content to the caller.
-    IF hall.has_permission('workspace.write') OR hall.has_permission('personal-workspace.write') THEN
+    IF hall.holds_access('common-resource.write') OR hall.holds_access('personal-resource.write') THEN
       RETURN jsonb_build_array(hall.editor_asset_siren_action());
     END IF;
     RETURN '[]'::jsonb;
@@ -469,7 +475,7 @@ BEGIN
   ) || CASE
     -- @implements-requirement HALL-FR-WSP-420
     -- An affair is created or imported only in a common folder.
-    WHEN (hall.is_administrator() OR hall.has_permission('workspace.write'))
+    WHEN hall.allows('council-business.create')
       AND NOT hall.is_personal_workspace_location(collection_path)
     THEN jsonb_build_array(
       hall.siren_action(
@@ -611,7 +617,7 @@ AS $function$
       'links', jsonb_build_array(hall.siren_link('self', '/api/resources/geographic-layers'))
     )
     || CASE
-      WHEN hall.is_administrator() OR hall.has_permission('workspace.write')
+      WHEN hall.allows('resource.import-geographic-layer', jsonb_build_object('location', ''))
         THEN jsonb_build_object('actions', jsonb_build_array(hall.geographic_layer_import_siren_action('', NULL)))
       ELSE '{}'::jsonb
     END
@@ -631,7 +637,7 @@ AS $function$
       'links', jsonb_build_array(hall.siren_link('self', '/api/resources/geographic-layers/municipal-property'))
     )
     || CASE
-      WHEN hall.is_administrator() OR hall.has_permission('workspace.write') THEN jsonb_build_object(
+      WHEN hall.allows('resource.import-municipal-property') THEN jsonb_build_object(
         'actions',
         jsonb_build_array(
           hall.siren_action(

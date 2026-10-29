@@ -1,3 +1,4 @@
+export { PostgresAuthorization, type PostgresAuthorizationTarget } from "./authorization.js";
 export { PostgresSchemaBootstrap } from "./bootstrap.js";
 export {
   type DatabaseRole,

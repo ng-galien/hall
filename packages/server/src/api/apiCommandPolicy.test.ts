@@ -1,168 +1,8 @@
-// TODO REMOVE_STALE: temporary action permission and audit coverage.
-import { type ApiActionName, type ApiPermission, type ApiPrincipal, apiActionNames } from "@hall/api-contract";
-import type { NextFunction, Request, Response } from "express";
-import { describe, expect, it, vi } from "vitest";
-import { actionIsPermitted, requireActionPermission } from "./apiCommandAuthorization.js";
+// TODO REMOVE_STALE: temporary action audit coverage.
+import { apiActionNames } from "@hall/api-contract";
+import { describe, expect, it } from "vitest";
 import { apiCommandPolicies } from "./apiCommandPolicy.js";
 import { resolveAuditIntent } from "./apiCommandResolution.js";
-
-const admin: ApiPrincipal = {
-  id: "admin",
-  displayName: "Administration",
-  roles: ["administrator"],
-  permissions: [
-    "users.manage",
-    "settings.manage",
-    "contacts.read",
-    "contacts.manage",
-    "members.manage",
-    "workspace.read",
-    "workspace.write",
-    "council-business.update",
-    "meetings.read",
-    "meetings.prepare",
-    "meetings.conduct",
-    "audit.read",
-  ],
-  contactId: null,
-};
-
-const actionsByPermissions = [
-  [[], ["session.bootstrap", "session.login", "session.logout", "session.change-password"]],
-  [["contacts.manage"], ["contact.create", "contact.update", "contact.archive"]],
-  [["members.manage"], ["member.create", "member.update"]],
-  [
-    ["workspace.read"],
-    [
-      "council-business.export-bundle",
-      "resource.search-legal-references",
-      "resource.generate-event-invitation",
-      "template.preview",
-      "template.preview-pdf",
-      "template.generate",
-    ],
-  ],
-  [
-    ["workspace.write", "personal-workspace.write"],
-    [
-      "resource.create",
-      "resource.relocate",
-      "resource.update-metadata",
-      "resource.update-content",
-      "resource.replace-document-content",
-      "resource.import-spreadsheet",
-      "resource.convert-spreadsheet-table",
-      "resource.import-geographic-layer",
-      "resource.link-geographic-layer",
-      "resource.unlink-geographic-layer",
-      "resource.create-geographic-feature-note",
-      "resource.resolve-legal-reference",
-      "resource.refresh-legal-reference",
-      "resource.create-document",
-      "resource.create-editor-asset",
-      "resource.delete",
-    ],
-  ],
-  [
-    ["workspace.write"],
-    [
-      "resource.import-municipal-property",
-      "council-business.create",
-      "council-business.import-bundle",
-      "council-business.delete",
-      "council-business.create-prepared-subject",
-      "template.create",
-      "template.update",
-      "template.delete",
-    ],
-  ],
-  [
-    ["council-business.update"],
-    [
-      "council-business.associate-committee",
-      "council-business.dissociate-committee",
-      "council-business.associate-resource",
-      "council-business.dissociate-resource",
-      "council-business.reorder-resources",
-    ],
-  ],
-  [
-    ["meetings.prepare"],
-    [
-      "delegation.create",
-      "delegation.update",
-      "delegation.archive",
-      "delegation.add-membership",
-      "delegation.update-membership",
-      "delegation.end-membership",
-      "committee.create",
-      "committee.update",
-      "committee.archive",
-      "committee.add-membership",
-      "committee.update-membership",
-      "committee.end-membership",
-      "meeting.provision-initial",
-      "meeting.schedule",
-      "meeting.prepare",
-      "meeting.set-officers",
-      "meeting.create-and-schedule-business",
-      "meeting.reorder-agenda",
-      "meeting.freeze-agenda",
-      "meeting.reopen-agenda",
-      "meeting.generate-notice",
-      "meeting.generate-notice-message",
-      "meeting.generate-dossier",
-      "agenda-item.schedule-prepared",
-      "decision.update-draft",
-      "decision.freeze",
-      "minutes.update-draft",
-      "minutes.generate",
-      "agenda-item.schedule",
-      "agenda-item.deprogram",
-      "agenda-item.reprogram",
-      "council-business.schedule-decision-proposal",
-      "council-business.schedule-open-question",
-    ],
-  ],
-  [
-    ["meetings.conduct"],
-    [
-      "meeting.record-opening",
-      "meeting.add-open-question",
-      "meeting.close",
-      "meeting.mark-stale",
-      "meeting.record-attendance",
-      "agenda-item.start",
-      "agenda-item.complete",
-      "agenda-item.update-notes",
-      "agenda-item.adjourn",
-      "agenda-item.record-recusal",
-      "meeting.record-attendance-events",
-      "meeting.record-quorum",
-      "meeting.record-reconvocation",
-      "meeting.record-officer-change",
-      "meeting.declare-auxiliary-attendance",
-      "meeting.correct-auxiliary-attendance",
-      "meeting.record-closed-session",
-      "ballot.preview",
-      "ballot.confirm",
-    ],
-  ],
-  [
-    ["users.manage"],
-    [
-      "user.create",
-      "user.disable",
-      "user.revoke-access",
-      "user.reactivate",
-      "user.generate-passphrase",
-      "user.assign-role",
-      "user.update",
-      "user.reset-password",
-    ],
-  ],
-  [["settings.manage"], ["council-term.configure", "settings.update"]],
-] as const satisfies readonly (readonly [readonly ApiPermission[], readonly ApiActionName[]])[];
 
 const auditCases = [
   [
@@ -604,8 +444,8 @@ const auditCases = [
   ["POST", "/api/resources/documents", undefined, "resource.create-document", "resource", undefined],
   ["POST", "/api/resources/editor-assets", undefined, "resource.create-editor-asset", "resource", undefined],
   ["DELETE", "/api/resources/resource-1", undefined, "resource.delete", "resource", "resource-1"],
-  ["POST", "/api/users", { roles: ["reader"], contactId: "member-1" }, "user.create", "user", null],
-  ["PUT", "/api/users/user-1/roles", { roles: ["reader"] }, "user.assign-role", "user", "user-1"],
+  ["POST", "/api/users", { roles: ["councillor"], contactId: "member-1" }, "user.create", "user", null],
+  ["PUT", "/api/users/user-1/roles", { roles: ["councillor"] }, "user.assign-role", "user", "user-1"],
   ["POST", "/api/users/user-1/disable", undefined, "user.disable", "user", "user-1"],
   ["POST", "/api/users/user-1/revoke-access", undefined, "user.revoke-access", "user", "user-1"],
   ["POST", "/api/users/user-1/reactivate", undefined, "user.reactivate", "user", "user-1"],
@@ -630,18 +470,6 @@ describe("API command policy", () => {
     expect(Object.keys(apiCommandPolicies).sort()).toEqual([...apiActionNames].sort());
     const auditedActions = apiActionNames.filter((action) => apiCommandPolicies[action].auditTargetType !== null);
     expect(new Set(auditCases.map(([, , , action]) => action))).toEqual(new Set(auditedActions));
-  });
-
-  it("assigns the independently specified permission set to every command", () => {
-    const expected = new Map<ApiActionName, readonly ApiPermission[]>();
-    for (const [permissions, actions] of actionsByPermissions) {
-      for (const action of actions) {
-        expect(expected.has(action)).toBe(false);
-        expected.set(action, permissions);
-      }
-    }
-    expect(new Set(expected.keys())).toEqual(new Set(apiActionNames));
-    for (const action of apiActionNames) expect(apiCommandPolicies[action].permissions).toEqual(expected.get(action));
   });
 
   it.each(auditCases)("classifies %s %s as %s", (method, path, body, action, targetType, targetId) => {
@@ -747,12 +575,12 @@ describe("API command policy", () => {
       resolveAuditIntent({
         method: "POST",
         path: "/api/users",
-        body: { roles: ["reader"], contactId: "member-1" },
+        body: { roles: ["councillor"], contactId: "member-1" },
       }),
-    ).toMatchObject({ details: { roles: ["reader"], contactId: "member-1" } });
+    ).toMatchObject({ details: { roles: ["councillor"], contactId: "member-1" } });
     expect(
-      resolveAuditIntent({ method: "PUT", path: "/api/users/user-1/roles", body: { roles: ["reader"] } }),
-    ).toMatchObject({ details: { roles: ["reader"] } });
+      resolveAuditIntent({ method: "PUT", path: "/api/users/user-1/roles", body: { roles: ["councillor"] } }),
+    ).toMatchObject({ details: { roles: ["councillor"] } });
     expect(resolveAuditIntent({ method: "POST", path: "/api/users", body: [] })).toMatchObject({
       details: undefined,
     });
@@ -762,53 +590,5 @@ describe("API command policy", () => {
     expect(
       resolveAuditIntent({ method: "POST", path: "/api/council-meetings/meeting-1/attendance", body: null }),
     ).toMatchObject({ details: undefined });
-  });
-
-  it("allows every command to an administrator and only unauthenticated session commands without a principal", () => {
-    for (const action of apiActionNames) {
-      expect(actionIsPermitted(admin, action)).toBe(true);
-      expect(actionIsPermitted(undefined, action)).toBe(apiCommandPolicies[action].permissions.length === 0);
-    }
-  });
-
-  it("applies the catalogued permission boundary to representative commands", () => {
-    const principal = (permissions: ApiPrincipal["permissions"]): ApiPrincipal => ({ ...admin, permissions });
-    expect(actionIsPermitted(principal(["workspace.read"]), "template.preview")).toBe(true);
-    expect(actionIsPermitted(principal(["workspace.read"]), "resource.create")).toBe(false);
-    expect(actionIsPermitted(principal(["workspace.write"]), "resource.create")).toBe(true);
-    expect(actionIsPermitted(principal(["meetings.prepare"]), "meeting.schedule")).toBe(true);
-    expect(actionIsPermitted(principal(["meetings.prepare"]), "meeting.record-opening")).toBe(false);
-    expect(actionIsPermitted(principal(["meetings.conduct"]), "meeting.record-opening")).toBe(true);
-    expect(actionIsPermitted(principal(["users.manage"]), "user.create")).toBe(true);
-    expect(actionIsPermitted(principal(["settings.manage"]), "settings.update")).toBe(true);
-    expect(actionIsPermitted(principal(["contacts.manage"]), "contact.create")).toBe(true);
-    expect(actionIsPermitted(principal(["members.manage"]), "member.create")).toBe(true);
-    expect(actionIsPermitted(principal(["meetings.prepare"]), "agenda-item.reprogram")).toBe(true);
-    expect(actionIsPermitted(principal(["workspace.write"]), "agenda-item.reprogram")).toBe(false);
-  });
-
-  it("fails closed at the HTTP boundary and continues only when the action is permitted", () => {
-    const response = {
-      status: vi.fn().mockReturnThis(),
-      type: vi.fn().mockReturnThis(),
-      json: vi.fn().mockReturnThis(),
-    } as unknown as Response;
-    const next = vi.fn() as NextFunction;
-    const request = (principal: ApiPrincipal | undefined) =>
-      ({ principal, originalUrl: "/api/resources", requestId: "request-1" }) as Request;
-    const authorize = requireActionPermission("resource.create");
-
-    authorize(request(undefined), response, next);
-    expect(response.status).toHaveBeenLastCalledWith(401);
-    expect(response.json).toHaveBeenLastCalledWith(expect.objectContaining({ code: "authentication_required" }));
-    expect(next).not.toHaveBeenCalled();
-
-    authorize(request({ ...admin, permissions: ["workspace.read"] }), response, next);
-    expect(response.status).toHaveBeenLastCalledWith(403);
-    expect(response.json).toHaveBeenLastCalledWith(expect.objectContaining({ code: "permission_denied" }));
-    expect(next).not.toHaveBeenCalled();
-
-    authorize(request({ ...admin, permissions: ["workspace.write"] }), response, next);
-    expect(next).toHaveBeenCalledOnce();
   });
 });

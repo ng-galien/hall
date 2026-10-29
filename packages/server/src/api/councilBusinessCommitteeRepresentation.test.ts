@@ -16,8 +16,7 @@ describe("committee association collection self links", () => {
       req.principal = {
         id: randomUUID(),
         displayName: "Reader",
-        roles: ["reader"],
-        permissions: ["workspace.read", "meetings.read"],
+        roles: ["councillor"],
         contactId: null,
       };
       next();

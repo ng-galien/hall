@@ -4,7 +4,7 @@ import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { UnitOfWork } from "../repositories/contracts.js";
 import type { SecurityRepository, StoredUser } from "../repositories/securityRepository.js";
-import { permissionsForRoles, principalForUser } from "../security/authorization.js";
+import { principalForUser } from "../security/authorization.js";
 import { generatePassphrase } from "../security/passphrase.js";
 import { hashPassword, verifyPassword } from "../security/password.js";
 import type { RequestContextStore } from "../security/requestContext.js";
@@ -21,7 +21,7 @@ export function hashSessionToken(token: string): string {
 
 function publicUser(user: StoredUser): ApiUser {
   const { passwordHash: _passwordHash, ...safeUser } = user;
-  return { ...safeUser, permissions: permissionsForRoles(user.roles) };
+  return safeUser;
 }
 
 async function publicUserWithProtection(user: StoredUser, securityRepository: SecurityRepository): Promise<ApiUser> {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTestServer } from "./testServer.js";
+import { createTestMandateContact, createTestServer } from "./testServer.js";
 
 const administrator = { email: "mcp-admin@example.fr", displayName: "MCP test", password: "Test-MCP-Password-2026!" };
 
@@ -40,7 +40,13 @@ describe("workspace MCP over HTTP", () => {
     await agent.post("/api/auth/bootstrap").send(administrator).expect(201);
     await agent
       .post("/api/users")
-      .send({ email: "reader@example.fr", displayName: "Reader", password: administrator.password, roles: ["reader"] })
+      .send({
+        email: "reader@example.fr",
+        displayName: "Reader",
+        password: administrator.password,
+        roles: ["councillor"],
+        contactId: await createTestMandateContact(agent),
+      })
       .expect(201);
     const login = await statelessAgent
       .post("/api/auth/login")

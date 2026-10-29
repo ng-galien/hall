@@ -141,6 +141,22 @@ postgresTest(
         content: "stale",
       });
       expect(stale.isError).toBe(true);
+      const post = async (path: string, body: object) => {
+        const response = await fetch(`${server.url}${path}`, {
+          method: path === "/api/council-terms" ? "PUT" : "POST",
+          headers: { cookie, "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        expect(response.status, path).toBeLessThan(300);
+        return (await response.json()).properties;
+      };
+      await post("/api/council-terms", { expectedMemberCount: 10 });
+      const readerContact = await post("/api/contacts", { firstName: "Lecture", lastName: "Seule" });
+      await post("/api/council-members", {
+        contactId: readerContact.id,
+        role: "councillor",
+        termStartedOn: "2026-03-22",
+      });
       const userResponse = await fetch(`${server.url}/api/users`, {
         method: "POST",
         headers: { cookie, "content-type": "application/json" },
@@ -148,7 +164,8 @@ postgresTest(
           email: "reader@example.fr",
           displayName: "Reader",
           password: "MCP-Test-Password-2026!",
-          roles: ["reader"],
+          roles: ["councillor"],
+          contactId: readerContact.id,
         }),
       });
       expect(userResponse.status).toBe(201);

@@ -2,7 +2,7 @@ import { SIREN_MEDIA_TYPE, type SirenEmbeddedEntity, type SirenEntity, type Sire
 import { documentFormatSchema, matchLiteral } from "@hall/domain";
 import type { NextFunction, Request, Response } from "express";
 import { documentPreviewMode } from "../domain/documentPolicy.js";
-import { hasPermission } from "../security/authorization.js";
+import { canExecute } from "../security/authorization.js";
 import { collectionActions, objectActions, withConductAuthorization } from "./sirenActionPolicy.js";
 import {
   canonicalHref,
@@ -217,33 +217,23 @@ export function apiRootRepresentation(request: Request): SirenEntity<{ authentic
   if (request.principal) {
     links.push({ rel: ["session"], href: "/api/auth/session", type: SIREN_MEDIA_TYPE });
     links.push({ rel: ["settings"], href: "/api/settings", type: SIREN_MEDIA_TYPE });
-    if (hasPermission(request.principal, "meetings.read")) {
-      links.push(
-        { rel: ["council-meetings"], href: "/api/council-meetings", type: SIREN_MEDIA_TYPE },
-        { rel: ["minutes"], href: "/api/minutes", type: SIREN_MEDIA_TYPE },
-        { rel: ["council-decisions"], href: "/api/council-decisions", type: SIREN_MEDIA_TYPE },
-        { rel: ["council-members"], href: "/api/council-members", type: SIREN_MEDIA_TYPE },
-        { rel: ["council-terms"], href: "/api/council-terms", type: SIREN_MEDIA_TYPE },
-      );
-    }
-    if (hasPermission(request.principal, "contacts.read")) {
-      links.push({ rel: ["contacts"], href: "/api/contacts", type: SIREN_MEDIA_TYPE });
-    }
-    if (hasPermission(request.principal, "workspace.read")) {
-      links.push(
-        { rel: ["resources"], href: "/api/resources", type: SIREN_MEDIA_TYPE },
-        { rel: ["council-business"], href: "/api/council-business", type: SIREN_MEDIA_TYPE },
-        { rel: ["templates"], href: "/api/templates", type: SIREN_MEDIA_TYPE },
-      );
-    }
-    if (hasPermission(request.principal, "meetings.read")) {
-      links.push({ rel: ["council-delegations"], href: "/api/council-delegations", type: SIREN_MEDIA_TYPE });
-      links.push({ rel: ["council-committees"], href: "/api/council-committees", type: SIREN_MEDIA_TYPE });
-    }
-    if (hasPermission(request.principal, "users.manage")) {
+    links.push(
+      { rel: ["council-meetings"], href: "/api/council-meetings", type: SIREN_MEDIA_TYPE },
+      { rel: ["minutes"], href: "/api/minutes", type: SIREN_MEDIA_TYPE },
+      { rel: ["council-decisions"], href: "/api/council-decisions", type: SIREN_MEDIA_TYPE },
+      { rel: ["council-members"], href: "/api/council-members", type: SIREN_MEDIA_TYPE },
+      { rel: ["council-terms"], href: "/api/council-terms", type: SIREN_MEDIA_TYPE },
+      { rel: ["contacts"], href: "/api/contacts", type: SIREN_MEDIA_TYPE },
+      { rel: ["resources"], href: "/api/resources", type: SIREN_MEDIA_TYPE },
+      { rel: ["council-business"], href: "/api/council-business", type: SIREN_MEDIA_TYPE },
+      { rel: ["templates"], href: "/api/templates", type: SIREN_MEDIA_TYPE },
+      { rel: ["council-delegations"], href: "/api/council-delegations", type: SIREN_MEDIA_TYPE },
+      { rel: ["council-committees"], href: "/api/council-committees", type: SIREN_MEDIA_TYPE },
+    );
+    if (canExecute(request, "user.list")) {
       links.push({ rel: ["users"], href: "/api/users", type: SIREN_MEDIA_TYPE });
     }
-    if (hasPermission(request.principal, "audit.read")) {
+    if (canExecute(request, "audit-event.list")) {
       links.push({ rel: ["audit-events"], href: "/api/audit-events", type: SIREN_MEDIA_TYPE });
     }
   }

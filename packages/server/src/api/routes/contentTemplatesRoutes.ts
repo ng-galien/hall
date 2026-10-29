@@ -10,7 +10,6 @@ import {
 import { Router } from "express";
 import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
-import { requirePermission } from "../../security/authorization.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
@@ -30,11 +29,11 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
   const router = Router();
   const pdfPreviews = new Map<string, { content: Buffer; expiresAt: number }>();
 
-  router.get("/", requirePermission("workspace.read"), async (_request, response) => {
+  router.get("/", async (_request, response) => {
     response.json(await contentTemplateService.list());
   });
 
-  router.get("/references", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/references", async (request, response) => {
     const { type, query } = referenceQuerySchema.parse(request.query);
     const references = await referenceEntityResolver.list(type);
     response.json(
@@ -74,7 +73,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
     response.send(content);
   });
 
-  router.get("/preview-pdf/:previewId", requirePermission("workspace.read"), (request, response) => {
+  router.get("/preview-pdf/:previewId", (request, response) => {
     const id = routeParameter(request.params.previewId);
     const preview = pdfPreviews.get(id);
     if (!preview || preview.expiresAt <= Date.now()) {
@@ -93,7 +92,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
     response.status(201).json(await contentTemplateService.create(createContentTemplateSchema.parse(request.body)));
   });
 
-  router.get("/:templateId", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/:templateId", async (request, response) => {
     response.json(await contentTemplateService.find(routeParameter(request.params.templateId)));
   });
 

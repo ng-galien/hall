@@ -1,13 +1,12 @@
 import { saveContactSchema } from "@hall/api-contract";
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
-import { requirePermission } from "../../security/authorization.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
 export function createContactsRouter({ directoryService }: Cradle): Router {
   const router = Router();
-  router.get("/", requirePermission("contacts.read"), async (request, response) => {
+  router.get("/", async (request, response) => {
     const [contacts, activeMembers] = await Promise.all([
       directoryService.listContacts(request.query.includeArchived === "true"),
       directoryService.listCouncilMembers(true),
@@ -15,7 +14,7 @@ export function createContactsRouter({ directoryService }: Cradle): Router {
     response.locals.contactArchiveUnavailableIds = new Set(activeMembers.map(({ contactId }) => contactId));
     response.json(contacts);
   });
-  router.get("/:contactId", requirePermission("contacts.read"), async (request, response) => {
+  router.get("/:contactId", async (request, response) => {
     const contactId = routeParameter(request.params.contactId);
     const [contact, activeMembers] = await Promise.all([
       directoryService.getContact(contactId),

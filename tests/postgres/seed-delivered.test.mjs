@@ -47,7 +47,7 @@ describe("delivered demonstration seed", () => {
       const administrator = await signIn(baseUrl, "vercingetorix@alesia.example");
       expect(administrator.user).toMatchObject({ displayName: "Vercingétorix l’Arverne", roles: ["administrator"] });
       expect((await signIn(baseUrl, "secretariat@alesia.example")).user.roles).toEqual(["clerk"]);
-      expect((await signIn(baseUrl, "vercassivellaunos@alesia.example")).user.roles).toEqual(["meetingConductor"]);
+      expect((await signIn(baseUrl, "vercassivellaunos@alesia.example")).user.roles).toEqual(["councillor"]);
 
       const catalog = await read(baseUrl, "/resources/catalog", administrator.cookie);
       const entries = catalog.properties?.items ?? catalog.entities?.map((entity) => entity.properties) ?? [];

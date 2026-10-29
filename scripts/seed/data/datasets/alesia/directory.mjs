@@ -135,14 +135,14 @@ export async function seedDirectory({ post, put, signedInEmail }, { daysFromNow,
     {
       email: "vercassivellaunos@alesia.example",
       displayName: "Vercassivellaunos l’Arverne",
-      roles: ["meetingConductor"],
-      contactId: null,
+      roles: ["councillor"],
+      contactId: members.Vercassivellaunos.contactId,
     },
     {
       email: "viridomaros@alesia.example",
       displayName: "Viridomaros l’Éduen",
-      roles: ["reader"],
-      contactId: null,
+      roles: ["councillor"],
+      contactId: members.Viridomaros.contactId,
     },
   ];
   for (const user of usersSpec) {

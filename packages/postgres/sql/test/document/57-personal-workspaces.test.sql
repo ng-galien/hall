@@ -5,30 +5,23 @@ SET LOCAL hall.request_id = 'pgtap-personal-workspaces';
 SET LOCAL hall.action = 'pgtap';
 SELECT no_plan();
 
-CREATE FUNCTION pg_temp.act_as(roles TEXT, permissions TEXT, contact UUID DEFAULT NULL)
+CREATE FUNCTION pg_temp.act_as(roles TEXT, contact UUID DEFAULT NULL)
 RETURNS VOID LANGUAGE sql AS $$
   SELECT set_config('hall.roles', roles, true),
-    set_config('hall.permissions', permissions, true),
     set_config('hall.contact_id', coalesce(contact::TEXT, ''), true);
 $$;
 
 CREATE FUNCTION pg_temp.as_administrator() RETURNS VOID LANGUAGE sql AS $$
-  SELECT pg_temp.act_as('["administrator"]', '[]');
+  SELECT pg_temp.act_as('["administrator"]');
 $$;
 CREATE FUNCTION pg_temp.as_clerk() RETURNS VOID LANGUAGE sql AS $$
-  SELECT pg_temp.act_as('["clerk"]',
-    '["contacts.read","contacts.manage","members.manage","workspace.read","workspace.write","personal-workspaces.manage","council-business.update","meetings.read","meetings.prepare"]');
+  SELECT pg_temp.act_as('["clerk"]');
 $$;
 CREATE FUNCTION pg_temp.as_contributor() RETURNS VOID LANGUAGE sql AS $$
-  SELECT pg_temp.act_as('["contributor"]',
-    '["contacts.read","workspace.read","workspace.write","council-business.update","meetings.read"]');
-$$;
-CREATE FUNCTION pg_temp.as_reader() RETURNS VOID LANGUAGE sql AS $$
-  SELECT pg_temp.act_as('["reader"]', '["contacts.read","workspace.read","meetings.read"]');
+  SELECT pg_temp.act_as('["contributor"]');
 $$;
 CREATE FUNCTION pg_temp.as_councillor(contact UUID) RETURNS VOID LANGUAGE sql AS $$
-  SELECT pg_temp.act_as('["councillor"]',
-    '["contacts.read","workspace.read","meetings.read","personal-workspace.write"]', contact);
+  SELECT pg_temp.act_as('["councillor"]', contact);
 $$;
 
 SELECT test_ensure_council_member(test_uuid('member:alice'));
@@ -41,10 +34,10 @@ INSERT INTO hall.contact (id, first_name, last_name) VALUES (test_uuid('contact:
 
 -- @verifies-requirement HALL-FR-DIR-150
 -- @verifies-requirement HALL-FR-WSP-380
-SELECT pg_temp.as_reader();
+SELECT pg_temp.as_contributor();
 SELECT throws_ok(
   $$SELECT hall_api.provision_personal_workspace(test_uuid('member:alice'))$$,
-  'HV614', NULL, 'only an account manager provisions a personal workspace'
+  'HV614', NULL, 'only the secretariat or an administrator provisions a personal workspace'
 );
 
 SELECT pg_temp.as_administrator();
@@ -109,18 +102,30 @@ SELECT lives_ok($$SELECT hall_api.create_text_resource('Commun', 'Du contributeu
 SELECT lives_ok(
   $$SELECT hall_api.rename_resource((SELECT id FROM hall.resource WHERE full_path = 'Commun/Du contributeur'), 'Contribution')$$,
   'a contributor renames a common document');
+-- @verifies-requirement HALL-FR-USR-040
+SELECT throws_ok(
+  $$SELECT hall_api.delete_resource((SELECT id FROM hall.resource WHERE full_path = 'Commun/Contribution'))$$,
+  'HV614', NULL, 'a contributor does not delete a common document');
+SELECT ok(
+  hall.resource_siren_actions(hall_api.open_resource(common_text)) @> '[{"name":"resource.relocate"},{"name":"resource.update-content"}]'::JSONB
+    AND NOT hall.resource_siren_actions(hall_api.open_resource(common_text)) @> '[{"name":"resource.delete"}]'::JSONB,
+  'a contributor is offered move and edit, not delete, on a common document')
+FROM fixture;
+SELECT pg_temp.as_clerk();
+SELECT ok(
+  hall.resource_siren_actions(hall_api.open_resource(common_text)) @> '[{"name":"resource.delete"}]'::JSONB,
+  'the secretariat is offered to delete a common document')
+FROM fixture;
 SELECT lives_ok(
   $$SELECT hall_api.delete_resource((SELECT id FROM hall.resource WHERE full_path = 'Commun/Contribution'))$$,
-  'a contributor deletes a common document');
-SELECT ok(
-  hall.resource_siren_actions(hall_api.open_resource(common_text)) @> '[{"name":"resource.relocate"},{"name":"resource.update-content"},{"name":"resource.delete"}]'::JSONB,
-  'a contributor is offered move, edit and delete on a common document')
-FROM fixture;
+  'the secretariat deletes a common document');
+SELECT pg_temp.as_contributor();
 SELECT ok(
   hall.resource_collection_siren_actions('Commun') @> '[{"name":"resource.create"},{"name":"resource.create-document"},{"name":"resource.import-spreadsheet"},{"name":"resource.convert-spreadsheet-table"}]'::JSONB,
   'a contributor is offered creation and import in a common folder');
 
 -- @verifies-requirement HALL-FR-WSP-390
+-- @verifies-requirement HALL-FR-USR-030
 SELECT pg_temp.as_councillor(test_uuid('member:alice'));
 SELECT lives_ok($$SELECT hall_api.create_text_resource('Espaces personnels/Alice Martin', 'Brouillon', 'v1')$$,
   'a council member creates a text in their personal folder');
@@ -133,6 +138,14 @@ SELECT lives_ok(
 SELECT lives_ok(
   $$SELECT hall_api.update_text_resource((SELECT id FROM hall.resource WHERE full_path = 'Espaces personnels/Alice Martin/Dossiers/Brouillon'), 1, 'v2', '{}')$$,
   'a council member edits their own document');
+SELECT lives_ok($$SELECT hall_api.create_text_resource('Espaces personnels/Alice Martin', 'Jetable', '')$$,
+  'a council member creates a draft to discard');
+SELECT lives_ok(
+  $$SELECT hall_api.delete_resource((SELECT id FROM hall.resource WHERE full_path = 'Espaces personnels/Alice Martin/Jetable'))$$,
+  'a council member deletes their own work in their personal folder');
+SELECT throws_ok(
+  $$SELECT hall_api.delete_resource((SELECT common_text FROM fixture))$$,
+  'HV614', NULL, 'a council member does not delete a common document');
 SELECT throws_ok($$SELECT hall_api.create_text_resource('Commun', 'Intrusion', '')$$,
   'HV614', NULL, 'a council member does not create in a common folder');
 SELECT throws_ok(
@@ -183,15 +196,21 @@ SELECT is(
   hall.resource_siren_actions(hall_api.open_resource((SELECT id FROM hall.resource WHERE full_path = 'Espaces personnels/Alice Martin/Dossiers/Brouillon'))),
   '[]'::JSONB,
   'a contributor reads a personal document without change actions');
-SELECT pg_temp.as_reader();
-SELECT throws_ok($$SELECT hall_api.create_text_resource('Commun', 'Lecteur', '')$$,
-  'HV614', NULL, 'a reader does not create in a common folder');
+SELECT pg_temp.act_as('[]');
+SELECT throws_ok($$SELECT hall_api.create_text_resource('Commun', 'Sans rôle', '')$$,
+  'HV614', NULL, 'an account without role does not create in a common folder');
 
 SELECT pg_temp.as_clerk();
 SELECT lives_ok($$SELECT hall_api.create_text_resource('Espaces personnels/Alice Martin', 'Ajout du secrétariat', '')$$,
   'the clerk writes in a council member''s personal folder');
-SELECT throws_ok($$SELECT hall_api.rename_resource((SELECT alice_folder FROM fixture), 'Alice')$$,
-  'HV615', NULL, 'the clerk does not rename a personal folder');
+SELECT lives_ok($$SELECT hall_api.rename_resource((SELECT alice_folder FROM fixture), 'Alice')$$,
+  'the secretariat renames a personal folder');
+SELECT lives_ok($$SELECT hall_api.rename_resource((SELECT alice_folder FROM fixture), 'Alice Martin')$$,
+  'the secretariat gives the personal folder its name back');
+SELECT ok(
+  hall.resource_siren_actions(hall_api.open_resource(alice_folder)) @> '[{"name":"resource.relocate"},{"name":"resource.delete"}]'::JSONB,
+  'the secretariat is offered to move and delete a personal folder')
+FROM fixture;
 SELECT lives_ok(
   $$SELECT hall_api.move_resource((SELECT id FROM hall.resource WHERE full_path = 'Espaces personnels/Alice Martin/Dossiers/Brouillon'), 'Commun')$$,
   'the clerk takes a document over into a common folder by moving it');

@@ -422,7 +422,7 @@ DECLARE
   candidate TEXT;
   suffix_number INTEGER := 2;
 BEGIN
-  IF NOT (hall.is_administrator() OR hall.has_permission('users.manage')) THEN
+  IF NOT hall.allows('personal-workspace.create') THEN
     RAISE EXCEPTION USING ERRCODE = 'HV614', MESSAGE = 'The caller cannot provision a personal workspace';
   END IF;
   PERFORM hall.lock_resource_namespace();
@@ -1341,7 +1341,7 @@ DECLARE
 BEGIN
   PERFORM hall.lock_resource_namespace();
   SELECT * INTO target FROM hall.require_resource(resource_id);
-  PERFORM hall.require_location_write(target.full_path);
+  PERFORM hall.require_location_delete(target.full_path);
   PERFORM hall.require_personal_workspace_structure_change(target);
   deleted_summary := hall.resource_summary(target);
   PERFORM 1 FROM hall.resource WHERE id = resource_id FOR UPDATE;

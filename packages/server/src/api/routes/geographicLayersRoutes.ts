@@ -14,7 +14,7 @@ import {
 import { type NextFunction, type Request, type Response, Router } from "express";
 import multer from "multer";
 import type { Cradle } from "../../core/container.js";
-import { requirePermission } from "../../security/authorization.js";
+import { requireAction } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
 import { GeographicLayerImportError } from "../../services/geographicLayerImport.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
@@ -32,7 +32,7 @@ const gzipAsync = promisify(gzip);
 // @implements-requirement HALL-FR-DOC-400
 export function createGeographicLayersRouter({ geographicLayerService, requestContext }: Cradle): Router {
   const router = Router();
-  const requireBusinessUpdate = requirePermission("council-business.update");
+  const requireBusinessUpdate = requireAction("council-business.associate-resource");
   const requireBusinessUpdateForContext = (request: Request, response: Response, next: NextFunction): void => {
     if (request.body?.councilBusinessId) {
       requireBusinessUpdate(request, response, next);
@@ -49,7 +49,7 @@ export function createGeographicLayersRouter({ geographicLayerService, requestCo
     });
   };
 
-  router.get("/geographic-layers", requirePermission("workspace.read"), async (_request, response) => {
+  router.get("/geographic-layers", async (_request, response) => {
     response.json(await geographicLayerService.list());
   });
 
@@ -84,13 +84,9 @@ export function createGeographicLayersRouter({ geographicLayerService, requestCo
     },
   );
 
-  router.get(
-    "/geographic-layers/municipal-property",
-    requirePermission("workspace.read"),
-    async (_request, response) => {
-      response.json(await geographicLayerService.municipalProperty());
-    },
-  );
+  router.get("/geographic-layers/municipal-property", async (_request, response) => {
+    response.json(await geographicLayerService.municipalProperty());
+  });
 
   router.post(
     "/geographic-layers/municipal-property/import",
@@ -116,7 +112,7 @@ export function createGeographicLayersRouter({ geographicLayerService, requestCo
     },
   );
 
-  router.get("/:reference/feature-notes", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/:reference/feature-notes", async (request, response) => {
     response.json(
       await geographicLayerService.notes(resourceReferenceSchema.parse(routeParameter(request.params.reference))),
     );
@@ -138,7 +134,7 @@ export function createGeographicLayersRouter({ geographicLayerService, requestCo
     },
   );
 
-  router.get("/:reference/features", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/:reference/features", async (request, response) => {
     const features = await geographicLayerService.features(
       resourceReferenceSchema.parse(routeParameter(request.params.reference)),
     );

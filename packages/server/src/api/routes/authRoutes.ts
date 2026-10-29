@@ -14,7 +14,7 @@ import { type Request, Router } from "express";
 import { z } from "zod";
 import { isLoopbackHost } from "../../core/config.js";
 import type { Cradle } from "../../core/container.js";
-import { hasPermission, requirePermission } from "../../security/authorization.js";
+import { requireAction } from "../../security/authorization.js";
 import { generatePassphrase } from "../../security/passphrase.js";
 import { principalForSession, SESSION_COOKIE_NAME } from "../../services/authService.js";
 import { DomainError } from "../../services/errors.js";
@@ -230,12 +230,12 @@ export function createUsersRouter({ authService }: Cradle): Router {
   const router = Router();
   router.get("/:userId", requireAuthentication, async (request, response) => {
     const userId = routeParameter(request.params.userId);
-    if (request.principal?.id !== userId && !hasPermission(request.principal, "users.manage")) {
+    if (request.principal?.id !== userId && !(await request.authorization?.allows("user.list"))) {
       throw new DomainError("permission_denied", 403);
     }
     response.json(await authService.getUser(userId));
   });
-  router.get("/", requirePermission("users.manage"), async (_request, response) =>
+  router.get("/", requireAction("user.list"), async (_request, response) =>
     response.json(await authService.listUsers()),
   );
   router.post("/passphrases", requireActionPermission("user.generate-passphrase"), async (request, response) => {

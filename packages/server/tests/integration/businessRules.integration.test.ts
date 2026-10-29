@@ -342,7 +342,7 @@ describe("backend business-rule coverage", () => {
       email: "invalide@example.fr",
       displayName: "Lien invalide",
       password: "Mot-de-passe-invalide-2026!",
-      roles: ["reader"],
+      roles: ["contributor"],
       contactId: randomUUID(),
     });
     expect(invalidMember.status).toBe(404);

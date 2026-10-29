@@ -5,7 +5,7 @@ import { resourceChangesSchema } from "@hall/api-contract";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import WebSocket from "ws";
-import { createPostgresHttpTestServer, domainBody } from "./testServer.js";
+import { createPostgresHttpTestServer, createTestMandateContact, domainBody } from "./testServer.js";
 
 const postgres = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 
@@ -114,7 +114,12 @@ postgres("resource change chronology", () => {
     const readerCredentials = { email: "audit-reader@example.fr", password: "Audit-reader-password-2026!" };
     await agent
       .post("/api/users")
-      .send({ ...readerCredentials, displayName: "Reader", roles: ["reader"], contactId: null })
+      .send({
+        ...readerCredentials,
+        displayName: "Reader",
+        roles: ["councillor"],
+        contactId: await createTestMandateContact(agent),
+      })
       .expect(201);
     const reader = request.agent(url);
     await reader.get(link).expect(401);

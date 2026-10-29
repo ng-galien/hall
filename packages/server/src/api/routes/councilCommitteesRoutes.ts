@@ -6,14 +6,13 @@ import {
 } from "@hall/api-contract";
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
-import { requirePermission } from "../../security/authorization.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { committeeLinkCollection } from "../councilBusinessCommitteeRepresentation.js";
 import { routeParameter } from "../routeParameter.js";
 
 export function createCouncilCommitteesRouter({ directoryService, councilBusinessWorkspaceService }: Cradle): Router {
   const router = Router();
-  router.get("/", requirePermission("meetings.read"), async (request, response) => {
+  router.get("/", async (request, response) => {
     response.json(await directoryService.listCouncilCommittees(request.query.includeArchived === "true"));
   });
   router.post("/", requireActionPermission("committee.create"), async (request, response) => {
@@ -21,10 +20,10 @@ export function createCouncilCommitteesRouter({ directoryService, councilBusines
       .status(201)
       .json(await directoryService.createCouncilCommittee(saveCouncilCommitteeSchema.parse(request.body)));
   });
-  router.get("/:committeeId", requirePermission("meetings.read"), async (request, response) => {
+  router.get("/:committeeId", async (request, response) => {
     response.json(await directoryService.getCouncilCommittee(routeParameter(request.params.committeeId)));
   });
-  router.get("/:committeeId/businesses", requirePermission("meetings.read"), async (request, response) => {
+  router.get("/:committeeId/businesses", async (request, response) => {
     const committeeId = routeParameter(request.params.committeeId);
     await directoryService.getCouncilCommittee(committeeId);
     response.json(
@@ -45,7 +44,7 @@ export function createCouncilCommitteesRouter({ directoryService, councilBusines
   router.post("/:committeeId/archive", requireActionPermission("committee.archive"), async (request, response) => {
     response.json(await directoryService.archiveCouncilCommittee(routeParameter(request.params.committeeId)));
   });
-  router.get("/:committeeId/memberships", requirePermission("meetings.read"), async (request, response) => {
+  router.get("/:committeeId/memberships", async (request, response) => {
     response.json(await directoryService.listCommitteeMemberships(routeParameter(request.params.committeeId)));
   });
   router.post(
@@ -62,18 +61,14 @@ export function createCouncilCommitteesRouter({ directoryService, councilBusines
         );
     },
   );
-  router.get(
-    "/:committeeId/memberships/:membershipId",
-    requirePermission("meetings.read"),
-    async (request, response) => {
-      response.json(
-        await directoryService.getCommitteeMembership(
-          routeParameter(request.params.committeeId),
-          routeParameter(request.params.membershipId),
-        ),
-      );
-    },
-  );
+  router.get("/:committeeId/memberships/:membershipId", async (request, response) => {
+    response.json(
+      await directoryService.getCommitteeMembership(
+        routeParameter(request.params.committeeId),
+        routeParameter(request.params.membershipId),
+      ),
+    );
+  });
   router.put(
     "/:committeeId/memberships/:membershipId",
     requireActionPermission("committee.update-membership"),

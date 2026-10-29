@@ -192,7 +192,7 @@ describe("hardened HTTP and hypermedia contract", () => {
     );
   });
 
-  it("enforces every role at the real server boundary and permits a late open question to the conductor", async () => {
+  it("enforces every role at the real server boundary and permits a late open question to the meeting chair", async () => {
     const { agent: rawAgent, pool } = await createPostgresHttpTestServer({ devAutoLogin: false });
     await rawAgent.post("/api/auth/bootstrap").send(admin).expect(201);
     const context = {
@@ -253,21 +253,25 @@ describe("hardened HTTP and hypermedia contract", () => {
         attendance: [chair, secretary].map((member) => ({ councilMemberId: member.id, status: "present" })),
       })
       .expect(200);
+    const chairContactId = properties<{ contactId: string }>(
+      await rawAgent.get(`/api/council-members/${chair.id}`).expect(200),
+    ).contactId;
+    // The conductor is the account of the meeting chair; the last account is a contributor outside the officers.
     const profiles = [
-      ["clerk", "greffe@hall.test"],
-      ["contributor", "contribution@hall.test"],
-      ["meetingConductor", "conduite@hall.test"],
-      ["reader", "lecture@hall.test"],
+      ["clerk", "greffe@hall.test", null],
+      ["contributor", "contribution@hall.test", null],
+      ["councillor", "conduite@hall.test", chairContactId],
+      ["contributor", "lecture@hall.test", null],
     ] as const;
-    for (const [role, email] of profiles) {
+    for (const [role, email, contactId] of profiles) {
       await rawAgent
         .post("/api/users")
         .send({
           email,
-          displayName: role,
+          displayName: email,
           password: "Mot-de-passe-role-2026!",
           roles: [role],
-          contactId: null,
+          contactId,
         })
         .expect(201);
     }

@@ -156,40 +156,44 @@ $$;
 -- @implements-requirement HALL-FR-WSP-390
 -- @implements-requirement HALL-FR-WSP-410
 -- @implements-requirement HALL-FR-DIR-160
--- One write predicate per location serves both the accepted writes and the
--- Siren affordances: common folders follow workspace.write, personal folders
--- follow personal-workspaces.manage, and a council member writes only inside
--- the personal folder of their own contact while their mandate is active.
+-- The write and delete predicates per location are the authorization predicate
+-- on a representative resource action: common folders follow the common
+-- workspace accesses, personal folders follow the personal ones, and a council
+-- member writes and deletes only inside the folder of their own contact while
+-- their mandate is active.
 CREATE FUNCTION hall.can_write_location(target_full_path TEXT)
 RETURNS BOOLEAN
-LANGUAGE plpgsql
+LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $$
-DECLARE
-  caller_contact TEXT := nullif(current_setting('hall.contact_id', true), '');
-  owner_contact UUID;
+  SELECT hall.allows('resource.update-content', jsonb_build_object('location', target_full_path))
+$$;
+
+-- @implements-requirement HALL-FR-USR-040
+CREATE FUNCTION hall.can_delete_location(target_full_path TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $$
+  SELECT hall.allows('resource.delete', jsonb_build_object('location', target_full_path))
+$$;
+
+CREATE FUNCTION hall.require_location_delete(target_full_path TEXT)
+RETURNS VOID
+LANGUAGE plpgsql
+STABLE
+SET search_path = pg_catalog, hall
+AS $$
 BEGIN
-  IF hall.is_administrator() THEN
-    RETURN TRUE;
+  IF NOT hall.can_delete_location(target_full_path) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV614',
+      MESSAGE = 'The caller cannot delete at this workspace location';
   END IF;
-  IF NOT hall.is_personal_workspace_location(target_full_path) THEN
-    RETURN hall.has_permission('workspace.write');
-  END IF;
-  IF hall.has_permission('personal-workspaces.manage') THEN
-    RETURN TRUE;
-  END IF;
-  IF caller_contact IS NULL OR NOT hall.has_permission('personal-workspace.write') THEN
-    RETURN FALSE;
-  END IF;
-  owner_contact := hall.personal_workspace_owner(target_full_path);
-  RETURN owner_contact IS NOT NULL
-    AND owner_contact::TEXT = caller_contact
-    AND EXISTS (
-      SELECT FROM hall.council_member AS member
-      WHERE member.contact = owner_contact AND member.term_ended_on IS NULL
-    );
 END;
 $$;
 
@@ -229,10 +233,10 @@ STABLE
 SET search_path = pg_catalog, hall
 AS $$
 BEGIN
-  IF hall.is_personal_workspace_structure(target) AND NOT hall.is_administrator() THEN
+  IF hall.is_personal_workspace_structure(target) AND NOT hall.allows('personal-workspace.restructure') THEN
     RAISE EXCEPTION USING
       ERRCODE = 'HV615',
-      MESSAGE = 'Only an administrator renames, moves or deletes a personal workspace folder';
+      MESSAGE = 'Only the secretariat or an administrator renames, moves or deletes a personal workspace folder';
   END IF;
 END;
 $$;

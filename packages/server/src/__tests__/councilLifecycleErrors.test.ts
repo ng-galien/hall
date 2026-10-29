@@ -32,7 +32,6 @@ it.each([
         id: "administrator",
         displayName: "Administrator",
         roles: ["administrator"],
-        permissions: [],
         contactId: null,
       },
     },

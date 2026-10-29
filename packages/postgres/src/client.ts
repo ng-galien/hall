@@ -1,4 +1,5 @@
 import type { Pool } from "pg";
+import { PostgresAuthorization } from "./authorization.js";
 import { PostgresSchemaBootstrap, type PostgresSchemaUpgradeMode } from "./bootstrap.js";
 import { type HallPostgresConfig, parseHallPostgresConfig } from "./config.js";
 import { PostgresCouncil } from "./council.js";
@@ -10,6 +11,7 @@ import { PostgresResources } from "./resources.js";
 
 export class PostgresClient {
   readonly bootstrap: PostgresSchemaBootstrap;
+  readonly authorization: PostgresAuthorization;
   readonly council: PostgresCouncil;
   readonly directory: PostgresDirectory;
   readonly resources: PostgresResources;
@@ -22,6 +24,7 @@ export class PostgresClient {
     schemaUpgradeMode: PostgresSchemaUpgradeMode = "automatic",
   ) {
     this.bootstrap = new PostgresSchemaBootstrap(pool, undefined, schemaUpgradeMode);
+    this.authorization = new PostgresAuthorization(pool);
     this.council = new PostgresCouncil(pool);
     this.directory = new PostgresDirectory(pool);
     this.resources = new PostgresResources(pool);

@@ -1,90 +1,54 @@
-import { type ApiRole, apiPermissions, apiRoles, assignUserRolesSchema, createUserSchema } from "@hall/api-contract";
+import { type ApiRole, apiRoles, assignUserRolesSchema, createUserSchema } from "@hall/api-contract";
 import type { NextFunction, Request, Response } from "express";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import {
-  hasPermission,
-  permissionsForRoles,
-  requireAnyPermission,
-  requirePermission,
-} from "../security/authorization.js";
+import { type AuthorizationClient, canExecute, requireAction } from "../security/authorization.js";
 
 const roleArbitrary = fc.constantFrom(...apiRoles);
 
-describe("RBAC algebra properties", () => {
-  it("never grants a permission without a principal", () => {
-    for (const permission of apiPermissions) expect(hasPermission(undefined, permission)).toBe(false);
-  });
-
-  it("is invariant under role order and duplication", () => {
-    fc.assert(
-      fc.property(fc.array(roleArbitrary, { maxLength: 50 }), (roles) => {
-        const granted = permissionsForRoles(roles);
-        const reorderedAndDuplicated = permissionsForRoles([...roles].reverse().concat(roles, roles));
-
-        expect(reorderedAndDuplicated).toEqual(granted);
-        expect(new Set(granted).size).toBe(granted.length);
-        expect(granted).toEqual(apiPermissions.filter((permission) => granted.includes(permission)));
-      }),
-      { numRuns: 1_000 },
-    );
-  });
-
-  it("maps a union of roles to the canonical union of their permissions", () => {
-    fc.assert(
-      fc.property(
-        fc.array(roleArbitrary, { maxLength: 25 }),
-        fc.array(roleArbitrary, { maxLength: 25 }),
-        (leftRoles, rightRoles) => {
-          const leftPermissions = permissionsForRoles(leftRoles);
-          const rightPermissions = permissionsForRoles(rightRoles);
-          const expectedUnion = apiPermissions.filter(
-            (permission) => leftPermissions.includes(permission) || rightPermissions.includes(permission),
-          );
-
-          expect(permissionsForRoles([...leftRoles, ...rightRoles])).toEqual(expectedUnion);
-        },
-      ),
-      { numRuns: 1_000 },
-    );
-  });
-
-  it("enforces authentication and authorization in both permission middleware variants", () => {
+describe("action guard", () => {
+  it("asks the database for the action and maps the answer to 401, 403 or the next handler", async () => {
     const response = {
       status: vi.fn().mockReturnThis(),
       type: vi.fn().mockReturnThis(),
       json: vi.fn().mockReturnThis(),
     } as unknown as Response;
     const next = vi.fn() as NextFunction;
-    const anonymous = { originalUrl: "/api/protected", requestId: "request-id" } as Request;
-    const reader = {
-      ...anonymous,
-      principal: {
-        id: "reader-id",
-        displayName: "Reader",
-        roles: ["reader"],
-        permissions: permissionsForRoles(["reader"]),
-        contactId: null,
+    const asked: Array<[string, unknown]> = [];
+    const authorization: AuthorizationClient = {
+      allows: async (action, target) => {
+        asked.push([action, target]);
+        return action === "council-business.create";
       },
-    } as Request;
+      allowedActions: async () => new Set(["council-business.create"]),
+    };
+    const anonymous = { originalUrl: "/api/protected", requestId: "request-id" } as Request;
+    const contributor = {
+      ...anonymous,
+      principal: { id: "contributor-id", displayName: "Contributor", roles: ["contributor"], contactId: null },
+      authorization,
+      authorizationTarget: { meetingId: "meeting-id" },
+    } as unknown as Request;
 
-    requirePermission("workspace.read")(anonymous, response, next);
+    await requireAction("council-business.create")(anonymous, response, next);
     expect(response.status).toHaveBeenLastCalledWith(401);
     expect(response.json).toHaveBeenLastCalledWith(expect.objectContaining({ code: "authentication_required" }));
-    requirePermission("workspace.write")(reader, response, next);
+    await requireAction("council-business.delete")(contributor, response, next);
     expect(response.status).toHaveBeenLastCalledWith(403);
     expect(response.json).toHaveBeenLastCalledWith(expect.objectContaining({ code: "permission_denied" }));
-    requirePermission("workspace.read")(reader, response, next);
+    await requireAction("council-business.create")(contributor, response, next);
     expect(next).toHaveBeenCalledTimes(1);
+    expect(asked).toEqual([
+      ["council-business.delete", { meetingId: "meeting-id" }],
+      ["council-business.create", { meetingId: "meeting-id" }],
+    ]);
+  });
 
-    requireAnyPermission("workspace.read", "meetings.read")(anonymous, response, next);
-    expect(response.status).toHaveBeenLastCalledWith(401);
-    expect(response.json).toHaveBeenLastCalledWith(expect.objectContaining({ code: "authentication_required" }));
-    requireAnyPermission("users.manage", "audit.read")(reader, response, next);
-    expect(response.status).toHaveBeenLastCalledWith(403);
-    expect(response.json).toHaveBeenLastCalledWith(expect.objectContaining({ code: "permission_denied" }));
-    requireAnyPermission("users.manage", "meetings.read")(reader, response, next);
-    expect(next).toHaveBeenCalledTimes(2);
+  it("offers in Siren only the actions loaded from the database for the request", () => {
+    const request = { allowedActions: new Set(["template.generate"]) } as unknown as Request;
+    expect(canExecute(request, "template.generate")).toBe(true);
+    expect(canExecute(request, "template.delete")).toBe(false);
+    expect(canExecute({} as Request, "template.generate")).toBe(false);
   });
 });
 

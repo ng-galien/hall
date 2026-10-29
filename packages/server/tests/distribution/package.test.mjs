@@ -278,7 +278,7 @@ it(
       const administratorId = (await bootstrap.json()).properties.id;
       const account = await request("/users", {
         method: "POST",
-        body: { ...collaborator, roles: ["reader"], contactId: null },
+        body: { ...collaborator, roles: ["contributor"], contactId: null },
       });
       expect(account.status, await account.clone().text()).toBe(201);
       const accountBefore = (await account.json()).properties;

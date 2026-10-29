@@ -6,8 +6,7 @@ import { z } from "zod";
 import { cookieValueFromHeader, requestHostAllowed } from "../api/accessControl.js";
 import type { ServerConfig } from "../core/config.js";
 import { logger } from "../core/logger.js";
-import { hasPermission } from "../security/authorization.js";
-import { type AuthService, principalForSession, SESSION_COOKIE_NAME } from "../services/authService.js";
+import { type AuthService, SESSION_COOKIE_NAME } from "../services/authService.js";
 import type { LiveEventBus, LiveSubscription } from "./liveEvents.js";
 
 const subscriptionSchema = z.object({ kind: z.enum(["meeting", "resource"]), id: z.uuid() }).strict();
@@ -65,9 +64,7 @@ export function attachLiveWebSocket(
       if (config.devAutoLogin) return true;
       if (!token) return false;
       const session = await authService.authenticate(token);
-      if (!session) return false;
-      const permission = target.kind === "meeting" ? "meetings.read" : "workspace.read";
-      return hasPermission(principalForSession(session), permission);
+      return (session?.user.roles.length ?? 0) > 0;
     };
     try {
       if (!(await permitted())) {

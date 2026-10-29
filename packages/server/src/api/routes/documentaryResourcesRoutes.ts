@@ -18,7 +18,7 @@ import {
 import { type NextFunction, type Request, type Response, Router } from "express";
 import multer from "multer";
 import type { Cradle } from "../../core/container.js";
-import { requirePermission } from "../../security/authorization.js";
+import { requireAction } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
 import { parseSpreadsheetImport, spreadsheetMarkdownTable } from "../../services/spreadsheetImportService.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
@@ -53,7 +53,7 @@ export function createDocumentaryResourcesRouter({
       actor: { id: request.principal.id, displayName: request.principal.displayName },
     });
   };
-  const requireBusinessUpdate = requirePermission("council-business.update");
+  const requireBusinessUpdate = requireAction("council-business.associate-resource");
   const requireBusinessUpdateForContext = (request: Request, response: Response, next: NextFunction): void => {
     if (request.body?.councilBusinessId) {
       requireBusinessUpdate(request, response, next);
@@ -82,7 +82,7 @@ export function createDocumentaryResourcesRouter({
     });
   };
 
-  router.get("/catalog", requirePermission("workspace.read"), async (_request, response) => {
+  router.get("/catalog", async (_request, response) => {
     response.json(await documentaryResourceService.listAll());
   });
 
@@ -94,12 +94,12 @@ export function createDocumentaryResourcesRouter({
           .filter(Boolean)
       : [];
 
-  router.get("/documents/by-hashes", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/documents/by-hashes", async (request, response) => {
     const hashes = documentContentHashesSchema.parse(queryValues(request.query.sha256));
     response.json(await documentaryResourceService.findDocumentsByHashes(hashes));
   });
 
-  router.get("/search", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/search", async (request, response) => {
     const criteria = resourceSearchCriteriaSchema.parse({
       offset: request.query.offset === undefined ? undefined : Number(request.query.offset),
       limit: request.query.limit === undefined ? undefined : Number(request.query.limit),
@@ -117,11 +117,11 @@ export function createDocumentaryResourcesRouter({
     response.json(await documentaryResourceService.search(criteria));
   });
 
-  router.get("/personal-workspace", requirePermission("workspace.read"), async (_request, response) => {
+  router.get("/personal-workspace", async (_request, response) => {
     response.json(await documentaryResourceService.personalWorkspace());
   });
 
-  router.get("/", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/", async (request, response) => {
     const path = resourcePathSchema.parse(typeof request.query.path === "string" ? request.query.path : "");
     response.json(await documentaryResourceService.listFolder(path));
   });
@@ -251,7 +251,7 @@ export function createDocumentaryResourcesRouter({
     },
   );
 
-  router.get("/editor-assets/:id/content", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/editor-assets/:id/content", async (request, response) => {
     const content = await documentaryResourceService.readEditorAssetContent(
       resourceIdSchema.parse(routeParameter(request.params.id)),
     );
@@ -263,14 +263,14 @@ export function createDocumentaryResourcesRouter({
     response.send(content.content);
   });
 
-  router.get("/editor-assets/:id", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/editor-assets/:id", async (request, response) => {
     const asset = await documentaryResourceService.openEditorAsset(
       resourceIdSchema.parse(routeParameter(request.params.id)),
     );
     response.json(asset.representation);
   });
 
-  router.get("/binary-references/:id/content", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/binary-references/:id/content", async (request, response) => {
     const content = await documentaryResourceService.readBinaryReferenceContent(
       resourceIdSchema.parse(routeParameter(request.params.id)),
     );
@@ -282,7 +282,7 @@ export function createDocumentaryResourcesRouter({
     response.send(content.content);
   });
 
-  router.get("/:reference/content", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/:reference/content", async (request, response) => {
     const content = await documentaryResourceService.readDocumentContent(
       resourceReferenceSchema.parse(routeParameter(request.params.reference)),
     );
@@ -294,7 +294,7 @@ export function createDocumentaryResourcesRouter({
     response.send(content.content);
   });
 
-  router.get("/:reference/changes", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/:reference/changes", async (request, response) => {
     response.json(
       await documentaryResourceService.listChanges(
         resourceReferenceSchema.parse(routeParameter(request.params.reference)),
@@ -302,7 +302,7 @@ export function createDocumentaryResourcesRouter({
     );
   });
 
-  router.get("/:reference/preview", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/:reference/preview", async (request, response) => {
     const preview = await documentaryResourceService.previewDocument(
       resourceReferenceSchema.parse(routeParameter(request.params.reference)),
     );
@@ -387,7 +387,7 @@ export function createDocumentaryResourcesRouter({
     },
   );
 
-  router.get("/:reference", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/:reference", async (request, response) => {
     response.json(
       await documentaryResourceService.open(resourceReferenceSchema.parse(routeParameter(request.params.reference))),
     );

@@ -14,7 +14,6 @@ import multer from "multer";
 import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
 import { slugify } from "../../repositories/publicIdentifiers.js";
-import { requirePermission } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { committeeLinkCollection, committeeLinkResult } from "../councilBusinessCommitteeRepresentation.js";
@@ -67,12 +66,12 @@ export function createCouncilBusinessRouter({
     response.json(await councilBusinessWorkspaceService.delete(z.string().uuid().parse(request.params.businessId)));
   });
 
-  router.get("/prepared-subjects", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/prepared-subjects", async (request, response) => {
     const meetingId = z.string().uuid().optional().parse(request.query.councilMeetingId);
     const businessId = z.string().uuid().optional().parse(request.query.councilBusinessId);
     response.json(await councilClient.listPreparedSubjects(meetingId, businessId));
   });
-  router.get("/prepared-subjects/:kind/:id", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/prepared-subjects/:kind/:id", async (request, response) => {
     const kind = preparedCouncilSubjectKindSchema.parse(request.params.kind);
     const subject = await councilClient.openPreparedSubject(routeParameter(request.params.id), kind);
     if (!subject) throw new DomainError("prepared_subject_not_found", 404);
@@ -93,7 +92,7 @@ export function createCouncilBusinessRouter({
     },
   );
 
-  router.get("/", requirePermission("workspace.read"), async (_request, response) => {
+  router.get("/", async (_request, response) => {
     const businesses = await councilBusinessWorkspaceService.list();
     response.locals.currentCouncilBusinessAgendaItems =
       businesses.length === 0
@@ -105,15 +104,15 @@ export function createCouncilBusinessRouter({
     response.json(businesses);
   });
 
-  router.get("/workspace-items", requirePermission("workspace.read"), async (_request, response) => {
+  router.get("/workspace-items", async (_request, response) => {
     response.json(await councilBusinessWorkspaceService.listWorkspaceItems());
   });
 
-  router.get("/workspace-index", requirePermission("workspace.read"), async (_request, response) => {
+  router.get("/workspace-index", async (_request, response) => {
     response.json(await councilBusinessWorkspaceService.listNavigationIndex());
   });
 
-  router.get("/resource-items", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/resource-items", async (request, response) => {
     const rawIds = request.query.councilBusinessId;
     const councilBusinessIds = Array.isArray(rawIds) ? rawIds : rawIds === undefined ? [] : [rawIds];
     const query = councilBusinessAgendaHistoryQuerySchema.parse({ councilBusinessIds });
@@ -126,14 +125,14 @@ export function createCouncilBusinessRouter({
     response.status(201).json(created);
   });
 
-  router.get("/agenda-items", requirePermission("meetings.read"), async (request, response) => {
+  router.get("/agenda-items", async (request, response) => {
     const rawIds = request.query.councilBusinessId;
     const councilBusinessIds = Array.isArray(rawIds) ? rawIds : rawIds === undefined ? [] : [rawIds];
     const query = councilBusinessAgendaHistoryQuerySchema.parse({ councilBusinessIds });
     response.json(await councilBusinessWorkspaceService.listAgendaItems(query.councilBusinessIds));
   });
 
-  router.get("/:businessId", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/:businessId", async (request, response) => {
     const business = await councilBusinessWorkspaceService.get(routeParameter(request.params.businessId));
     response.locals.currentCouncilBusinessAgendaItems = await councilBusinessWorkspaceService.listAgendaItems([
       business.id,
@@ -142,13 +141,13 @@ export function createCouncilBusinessRouter({
     response.json(business);
   });
 
-  router.get("/:businessId/resources", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/:businessId/resources", async (request, response) => {
     const businessId = routeParameter(request.params.businessId);
     await councilBusinessWorkspaceService.get(businessId);
     response.json(await councilBusinessWorkspaceService.listResources(businessId));
   });
 
-  router.get("/:businessId/committees", requirePermission("workspace.read"), async (request, response) => {
+  router.get("/:businessId/committees", async (request, response) => {
     const businessId = routeParameter(request.params.businessId);
     await councilBusinessWorkspaceService.get(businessId);
     response.json(

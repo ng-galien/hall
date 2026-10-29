@@ -161,20 +161,26 @@ SELECT throws_ok(
 )
 FROM geographic_layer_fixture;
 
-SELECT set_config('hall.roles', '["reader"]', true);
+SELECT set_config('hall.roles', '["councillor"]', true);
 SELECT ok(
   NOT hall.resource_siren_actions(hall_api.open_resource(map)) @> '[{"name":"resource.link-geographic-layer"}]'::JSONB,
-  'a reader is not offered the link action'
+  'a councillor is not offered the link action on a common map'
 )
 FROM geographic_layer_fixture;
 -- @verifies-requirement HALL-FR-DOC-350
 -- @verifies-requirement HALL-FR-DOC-550
-SELECT set_config('hall.roles', '["contributor"]', true);
-SELECT set_config('hall.permissions', '["workspace.read","workspace.write"]', true);
+SELECT set_config('hall.roles', '["clerk"]', true);
 SELECT is(
   ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(hall.resource_siren_actions(hall_api.open_resource(map))) AS action),
   ARRAY['resource.relocate', 'resource.update-metadata', 'resource.update-content', 'resource.import-geographic-layer', 'resource.link-geographic-layer', 'resource.unlink-geographic-layer', 'resource.create-geographic-feature-note', 'resource.delete'],
-  'a role with workspace.write edits, renames, moves and deletes a common map, its layers and the notes of its drawings'
+  'the secretariat edits, renames, moves and deletes a common map, its layers and the notes of its drawings'
+)
+FROM geographic_layer_fixture;
+SELECT set_config('hall.roles', '["contributor"]', true);
+SELECT is(
+  ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(hall.resource_siren_actions(hall_api.open_resource(map))) AS action),
+  ARRAY['resource.relocate', 'resource.update-metadata', 'resource.update-content', 'resource.import-geographic-layer', 'resource.link-geographic-layer', 'resource.unlink-geographic-layer', 'resource.create-geographic-feature-note'],
+  'a contributor edits, renames and moves a common map without deleting it'
 )
 FROM geographic_layer_fixture;
 SELECT is(
@@ -185,15 +191,14 @@ SELECT is(
 FROM geographic_layer_fixture;
 SELECT ok(
   hall_api.present_geographic_layer_collection('[]'::JSONB) -> 'actions' @> '[{"name":"resource.import-geographic-layer"}]'::JSONB,
-  'the layer list offers the import to a role with workspace.write'
+  'the layer list offers the import to a contributor'
 );
-SELECT set_config('hall.permissions', '["workspace.read"]', true);
+SELECT set_config('hall.roles', '["councillor"]', true);
 SELECT is(
   hall_api.present_geographic_layer_collection('[]'::JSONB) -> 'actions',
   NULL,
-  'the layer list offers no import without workspace.write'
+  'the layer list offers no import to a councillor'
 );
-SELECT set_config('hall.permissions', '', true);
 SELECT set_config('hall.roles', '["administrator"]', true);
 
 SELECT is(

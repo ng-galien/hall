@@ -11,9 +11,8 @@ export type PostgresCallContext = Readonly<{
   actorId: string | null;
   action: string;
   contactId: string | null;
+  /** The roles of the account; PostgreSQL applies the role matrix and its conditions. */
   roles?: readonly string[];
-  /** Permissions granted by the server's role matrix; PostgreSQL reads them to project affordances. */
-  permissions?: readonly string[];
 }>;
 
 export type PostgresRequest = Readonly<{

@@ -134,9 +134,9 @@ postgresTest(
         "/api/users",
         {
           email: "reader@example.fr",
-          displayName: "Reader",
+          displayName: "Contributor outside the meeting officers",
           password: "Test-reader-2026!",
-          roles: ["reader"],
+          roles: ["contributor"],
           contactId: null,
         },
         201,

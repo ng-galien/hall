@@ -30,7 +30,7 @@ test("creates a linked user, assigns cumulative roles and disables the account",
     .and(page.locator(`[data-reference-id="${contact.id}"]`))
     .click();
   await expect(page.getByTestId("user-create-submit")).toBeDisabled();
-  await page.getByTestId("user-role-reader").check();
+  await page.getByTestId("user-role-clerk").check();
   await page.getByTestId("user-create-submit").click();
   await expect(page.getByTestId("user-detail")).toBeVisible();
   const detailUrl = page.url();
@@ -41,7 +41,7 @@ test("creates a linked user, assigns cumulative roles and disables the account",
   await page.getByTestId("user-roles-submit").click();
   await expect(page.getByTestId("user-roles-submit")).toHaveCount(0);
   await page.reload();
-  await expect(page.getByTestId("user-roles")).toHaveText("Contributor · Reader");
+  await expect(page.getByTestId("user-roles")).toHaveText("Clerk · Contributor");
   await page.getByTestId("navigation-users").click();
   await page.getByTestId("collection-search").fill("Responsable des approvisionnements");
   await page.getByTestId("collection-layout-cards").click();
@@ -66,13 +66,13 @@ test("preserves a rejected administrator role change and duplicate account form"
   await expect(page.getByTestId("user-disable")).toHaveCount(0);
   await page.getByTestId("user-edit-roles").click();
   await page.getByTestId("user-role-administrator").uncheck();
-  await page.getByTestId("user-role-reader").check();
+  await page.getByTestId("user-role-contributor").check();
   const rejection = page.waitForResponse(
     (result) => result.url().endsWith(`/users/${admin.id}/roles`) && result.request().method() === "PUT",
   );
   await page.getByTestId("user-roles-submit").click();
   expect((await rejection).status()).toBe(409);
-  await expect(page.getByTestId("user-role-reader")).toBeChecked();
+  await expect(page.getByTestId("user-role-contributor")).toBeChecked();
   await expect(page.getByTestId("user-role-administrator")).not.toBeChecked();
   await page.keyboard.press("Escape");
   await page.getByTestId("navigation-users").click();
@@ -80,7 +80,7 @@ test("preserves a rejected administrator role change and duplicate account form"
   await page.getByTestId("user-display-name").fill("Doublon à corriger");
   await page.getByTestId("user-email").fill(admin.email);
   await page.getByTestId("user-password").fill("Hall-test-2026!");
-  await page.getByTestId("user-role-reader").check();
+  await page.getByTestId("user-role-contributor").check();
   const conflict = page.waitForResponse(
     (result) => result.url().endsWith("/api/users") && result.request().method() === "POST",
   );
@@ -106,7 +106,7 @@ test("preserves a rejected administrator role change and duplicate account form"
       displayName: "Compte déjà lié",
       email: `linked-contact-${Date.now()}@alesia.example`,
       password: "Hall-test-2026!",
-      roles: ["reader"],
+      roles: ["contributor"],
       contactId,
     },
   });
@@ -115,7 +115,7 @@ test("preserves a rejected administrator role change and duplicate account form"
   await page.getByTestId("users-add").click();
   await page.getByTestId("user-display-name").fill("Doublon à corriger");
   await page.getByTestId("user-password").fill("Hall-test-2026!");
-  await page.getByTestId("user-role-reader").check();
+  await page.getByTestId("user-role-contributor").check();
   await page.getByTestId("user-email").fill(`duplicate-contact-${Date.now()}@alesia.example`);
   await page.getByTestId("user-contact-select").click();
   await page

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const apiRoles = ["administrator", "clerk", "contributor", "meetingConductor", "reader", "councillor"] as const;
+export const apiRoles = ["administrator", "clerk", "contributor", "councillor"] as const;
 export type ApiRole = (typeof apiRoles)[number];
 export const apiRoleSchema = z.enum(apiRoles);
 const apiRoleListSchema = z
@@ -12,29 +12,10 @@ export const apiUserStatuses = ["active", "disabled"] as const;
 export type ApiUserStatus = (typeof apiUserStatuses)[number];
 export const apiUserStatusSchema = z.enum(apiUserStatuses);
 
-export const apiPermissions = [
-  "users.manage",
-  "settings.manage",
-  "contacts.read",
-  "contacts.manage",
-  "members.manage",
-  "workspace.read",
-  "workspace.write",
-  "personal-workspace.write",
-  "personal-workspaces.manage",
-  "council-business.update",
-  "meetings.read",
-  "meetings.prepare",
-  "meetings.conduct",
-  "audit.read",
-] as const;
-export type ApiPermission = (typeof apiPermissions)[number];
-
 export interface ApiPrincipal {
   id: string;
   displayName: string;
   roles: ApiRole[];
-  permissions: ApiPermission[];
   contactId: string | null;
 }
 

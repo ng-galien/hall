@@ -7,7 +7,7 @@ import { geographicLayerFeatureCollectionSchema, resourceDetailSchema, type Sire
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { decodeCouncilBusinessBundle } from "../services/councilBusinessBundleArchive.js";
-import { createPostgresHttpTestServer, domainBody } from "./testServer.js";
+import { createPostgresHttpTestServer, createTestMandateContact, domainBody } from "./testServer.js";
 
 const postgres = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 const fixture = readFileSync(
@@ -143,13 +143,18 @@ postgres("geographic layers", () => {
 
   // @verifies-requirement HALL-FR-DOC-310
   // @verifies-requirement HALL-FR-DOC-330
-  it("lets a reader read layers and features but not import or link them", async () => {
+  it("lets a councillor read layers and features but not import or link them", async () => {
     const { agent: administration, url } = await createPostgresHttpTestServer({ devAutoLogin: false });
     await administration.post("/api/auth/bootstrap").send(administrator).expect(201);
     await administration.post("/api/auth/login").send(administrator).expect(200);
     await administration
       .post("/api/users")
-      .send({ ...reader, displayName: "Lecture seule", roles: ["reader"] })
+      .send({
+        ...reader,
+        displayName: "Lecture seule",
+        roles: ["councillor"],
+        contactId: await createTestMandateContact(administration),
+      })
       .expect(201);
     const map = await administration
       .post("/api/resources")
@@ -183,7 +188,8 @@ postgres("geographic layers", () => {
 
   // @verifies-requirement HALL-FR-DOC-350
   // @verifies-requirement HALL-FR-DOC-550
-  it("offers a contributor the editing, layers, renaming, moving and deletion of a common map", async () => {
+  // @verifies-requirement HALL-FR-USR-040
+  it("offers a contributor the editing, layers, renaming and moving of a common map, not its deletion", async () => {
     const { agent: administration, url } = await createPostgresHttpTestServer({ devAutoLogin: false });
     await administration.post("/api/auth/bootstrap").send(administrator).expect(201);
     await administration.post("/api/auth/login").send(administrator).expect(200);
@@ -208,7 +214,6 @@ postgres("geographic layers", () => {
       "resource.link-geographic-layer",
       "resource.unlink-geographic-layer",
       "resource.create-geographic-feature-note",
-      "resource.delete",
     ]);
     const listed = await contributorAgent.get("/api/resources/geographic-layers").expect(200);
     expect((listed.body.actions as SirenAction[]).map(({ name }) => name)).toEqual([
@@ -224,8 +229,8 @@ postgres("geographic layers", () => {
       "resource.relocate",
       "resource.update-metadata",
       "resource.create-geographic-feature-note",
-      "resource.delete",
     ]);
+    await contributorAgent.delete(`/api/resources/${mapId}`).expect(403);
     const hidden = await contributorAgent
       .put(action(opened.body, "resource.link-geographic-layer").href)
       .send({ layerId, visible: false })
@@ -371,7 +376,12 @@ postgres("geographic layers", () => {
     await administration.post("/api/auth/login").send(administrator).expect(200);
     await administration
       .post("/api/users")
-      .send({ ...reader, displayName: "Lecture seule", roles: ["reader"] })
+      .send({
+        ...reader,
+        displayName: "Lecture seule",
+        roles: ["councillor"],
+        contactId: await createTestMandateContact(administration),
+      })
       .expect(201);
     const importLayer = async (name: string) =>
       administration

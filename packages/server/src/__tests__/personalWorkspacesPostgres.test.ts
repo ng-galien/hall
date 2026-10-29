@@ -73,6 +73,7 @@ postgres("council member personal workspaces", () => {
   // @verifies-requirement HALL-FR-WSP-400
   // @verifies-requirement HALL-FR-WSP-410
   // @verifies-requirement HALL-FR-DOC-550
+  // @verifies-requirement HALL-FR-USR-040
   it("limits each role to its writable locations through the real HTTP surface", async () => {
     const { admin, aliceAgent, brunoAgent, clerk, contributor, commonText } = await personalWorkspaceScenario();
     const aliceFolder = "Espaces personnels/Alice Martin";
@@ -138,9 +139,11 @@ postgres("council member personal workspaces", () => {
     );
     const contributed = await contributor.get(`/api/resources/${contribution.id}`).expect(200);
     expect(actionNames(contributed.body)).toEqual(
-      expect.arrayContaining(["resource.relocate", "resource.update-content", "resource.delete"]),
+      expect.arrayContaining(["resource.relocate", "resource.update-content"]),
     );
-    await contributor.delete(`/api/resources/${contribution.id}`).expect(204);
+    expect(actionNames(contributed.body)).not.toContain("resource.delete");
+    await contributor.delete(`/api/resources/${contribution.id}`).expect(403);
+    await clerk.delete(`/api/resources/${contribution.id}`).expect(204);
 
     await createText(clerk, aliceFolder, "Ajout du secrétariat").expect(201);
     const beforeTakeover = await admin.get(`/api/resources/${draft.id}`).expect(200);

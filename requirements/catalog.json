@@ -3574,12 +3574,12 @@
         "state": "accepted",
         "since": "2026-10-10"
       },
-      "statement": "Tout rôle qui dispose du droit d’écriture sur l’espace de travail (administrateur, secrétaire, contributeur) modifie une carte et ses couches liées.",
+      "statement": "Tout rôle qui écrit dans l’espace commun selon la matrice des rôles de la base (administrateur, secrétariat, contributeur) modifie une carte et ses couches liées ; la suppression d’une carte suit la règle de suppression réservée (HALL-FR-USR-040).",
       "acceptanceCriteria": [
         "La représentation d’une carte propose à ces rôles la modification de son contenu, l’import d’une couche, la liaison d’une couche et le retrait d’un lien.",
         "La liste des couches propose à ces rôles l’import d’une couche.",
-        "Le serveur accepte ces opérations pour tout utilisateur qui dispose du droit d’écriture sur l’espace de travail et les refuse aux autres rôles.",
-        "Le déplacement, le renommage et la suppression d’une carte ou d’une couche suivent la règle commune des ressources documentaires (HALL-FR-DOC-550)."
+        "PostgreSQL décide, par la matrice des rôles livrée avec le schéma et le prédicat hall.allows, que ces opérations sont acceptées pour ces rôles et refusées aux autres ; le serveur ne garde pas de matrice et lui pousse les rôles et le contact du compte.",
+        "Le déplacement et le renommage d’une carte ou d’une couche suivent la règle commune des ressources documentaires (HALL-FR-DOC-550) ; leur suppression est réservée au secrétariat et à l’administrateur."
       ],
       "clauses": [
         {
@@ -3592,6 +3592,12 @@
           "key": "common-document-rule",
           "origin": "product",
           "statement": "Rattachement du 25 octobre 2026 : la modification des cartes est un cas de HALL-FR-DOC-550 ; le déplacement, le renommage et la suppression d’une carte commune suivent désormais la même règle (D3, 87a55a21).",
+          "sourceIds": []
+        },
+        {
+          "key": "database-decides",
+          "origin": "product",
+          "statement": "Révision du 29 octobre 2026 : la matrice des rôles est en base ; la suppression d’une carte commune est réservée. Demande 308df4b5 du 29 octobre 2026, arbitrage a3119719 (la base est la seule source des autorisations), matrice 627af3ec, revue 67603a49, décisions du 29 octobre 656cb5af, ff96773a et 5a8cc19c.",
           "sourceIds": []
         }
       ]
@@ -6438,15 +6444,18 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "Les actions Siren documentaires sont calculées en base par un prédicat d’écriture par emplacement, à partir des permissions de l’appelant et de son dossier personnel.",
+      "statement": "La matrice des rôles, ses conditions et le rattachement de chaque action à un accès sont livrés en SQL avec le schéma ; un prédicat unique en base décide de chaque action, et les actions Siren documentaires en dérivent par emplacement.",
       "acceptanceCriteria": [
-        "PostgreSQL dérive les actions Siren documentaires du même prédicat d’écriture par emplacement que celui qui accepte les écritures : dossiers communs pour workspace.write, dossiers personnels pour personal-workspaces.manage, dossier de son contact pour personal-workspace.write."
+        "Le schéma livre hall.access (accès ressource × opération), hall.role_access (rôle, accès, condition) et hall.action_access (chaque action rattachée à un seul accès).",
+        "hall.allows(action, cible) lit les rôles et le contact reçus dans le contexte d’appel et applique les conditions : officier de la séance en fonction, titulaire du dossier personnel en mandat ; pour une ressource, l’emplacement choisit l’accès de l’espace commun ou du dossier personnel.",
+        "hall.can_write_location et hall.can_delete_location sont ce prédicat sur l’emplacement et servent à la fois aux écritures acceptées et aux actions Siren documentaires ; aucune fonction ne teste un rôle en dur.",
+        "hall_api.allows et hall_api.allowed_actions servent aux gardes des routes et au Siren encore composé par le serveur."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Siren affordances are derived in PostgreSQL from the permissions the server installs for the caller. hall.can_write_location is the single write predicate per location for both accepted writes and documentary affordances: an administrator writes everywhere, common folders follow workspace.write, personal folders follow personal-workspaces.manage, and a caller holding personal-workspace.write writes only inside the personal folder of their own contact while their mandate is active.",
+          "statement": "Révision du 29 octobre 2026 selon l’observation 40c860ff : la clause d’implémentation précédente (permissions installées par le serveur, administrateur qui écrit partout) est périmée. Les règles sont en base, le serveur pousse les rôles et le contact. Demande 308df4b5 du 29 octobre 2026, arbitrage a3119719 (la base est la seule source des autorisations), matrice 627af3ec, revue 67603a49, décisions du 29 octobre 656cb5af, ff96773a et 5a8cc19c.",
           "sourceIds": []
         },
         {
@@ -8657,10 +8666,10 @@
         "state": "accepted",
         "since": "2026-10-25"
       },
-      "statement": "Chaque conseiller a un dossier à son nom sous le dossier racine « Espaces personnels » ; seul un administrateur renomme, déplace ou supprime ce dossier.",
+      "statement": "Chaque conseiller a un dossier à son nom sous le dossier racine « Espaces personnels » ; seuls le secrétariat et l’administrateur renomment, déplacent ou suppriment ce dossier.",
       "acceptanceCriteria": [
         "Le dossier personnel d’un élu est « Espaces personnels/Prénom Nom », directement sous la racine « Espaces personnels » ; Hall connaît l’élu propriétaire par une relation enregistrée, qui suit le dossier renommé.",
-        "Sur son dossier, le conseiller crée, importe et range à l’intérieur ; le renommage, le déplacement et la suppression du dossier lui-même sont proposés à l’administrateur.",
+        "Sur son dossier, le conseiller crée, importe et range à l’intérieur ; le renommage, le déplacement et la suppression du dossier lui-même sont proposés au secrétariat et à l’administrateur, qui créent aussi un dossier manquant.",
         "L’entrée « Mon espace » de l’espace de travail ouvre le dossier personnel du conseiller connecté."
       ],
       "clauses": [
@@ -8674,6 +8683,12 @@
           "key": "owner-request",
           "origin": "product",
           "statement": "Demande du propriétaire du 25 octobre 2026 (3d7e566d) : « qu’ils aient un espèce d’espace perso dans le workspace, où ils mettent leurs documents ».",
+          "sourceIds": []
+        },
+        {
+          "key": "secretariat-structure",
+          "origin": "product",
+          "statement": "Révision du 29 octobre 2026 : le secrétariat renomme, déplace et supprime dans tous les dossiers personnels (matrice 627af3ec). Demande 308df4b5 du 29 octobre 2026, arbitrage a3119719 (la base est la seule source des autorisations), matrice 627af3ec, revue 67603a49, décisions du 29 octobre 656cb5af, ff96773a et 5a8cc19c.",
           "sourceIds": []
         }
       ]
@@ -8939,8 +8954,8 @@
       "statement": "Un écran accessible par le menu principal permet de consulter et modifier les données de la commune selon des habilitations distinctes, dans la continuité de l’IHM Hall.",
       "acceptanceCriteria": [
         "Un écran de configuration de la commune est accessible depuis le menu principal.",
-        "La consultation des données de commune est accessible aux utilisateurs connectés, y compris au rôle reader, conformément au contrat existant et à la décision de l’utilisateur du 29 septembre 2026.",
-        "La modification des données de commune est réservée au rôle administrator, niveau maximal existant, conformément à la décision de l’utilisateur du 29 septembre 2026. Le serveur contrôle les droits et Siren expose settings.update ; le client consomme cette capacité sans changer les droits des autres domaines.",
+        "La consultation des données de commune est accessible à tout compte actif.",
+        "La modification des données de commune est réservée au secrétariat et à l’administrateur ; PostgreSQL décide par la matrice des rôles et Siren expose settings.update ; le client consomme cette capacité sans changer les droits des autres domaines.",
         "L’écran réutilise les primitives partagées et le style des autres écrans Hall, sans nouveau langage visuel.",
         "Liste retenue par la disposition du coordinateur du 28 octobre 2026 sur la demande 848f8d54, à faire confirmer par le propriétaire : nom, code INSEE, SIREN, adresse (deux lignes, code postal, localité), population et sa date de référence, téléphone, site web, nom et adresse de l’expéditeur des courriels, présentés dans Paramètres de l’application. La position géographique, l’adresse de contact, l’adresse de réponse, le fuseau horaire et les lieux des séances ne sont pas présentés dans cette partie et ne changent pas à son enregistrement."
       ],
@@ -8954,13 +8969,13 @@
         {
           "key": "read-access",
           "origin": "product",
-          "statement": "La consultation des données de commune est accessible aux utilisateurs connectés, y compris au rôle reader, conformément au contrat existant et à la décision de l’utilisateur du 29 septembre 2026.",
+          "statement": "La consultation des données de commune est accessible à tout compte actif.",
           "sourceIds": []
         },
         {
           "key": "write-access",
           "origin": "product",
-          "statement": "La modification des données de commune est réservée au rôle administrator, niveau maximal existant, conformément à la décision de l’utilisateur du 29 septembre 2026. Le serveur contrôle les droits et Siren expose settings.update ; le client consomme cette capacité sans changer les droits des autres domaines.",
+          "statement": "La modification des données de commune est réservée au secrétariat et à l’administrateur ; PostgreSQL décide par la matrice des rôles et Siren expose settings.update ; le client consomme cette capacité sans changer les droits des autres domaines. Révision du 29 octobre 2026, réglages ouverts au secrétariat (proposition 3dc399e1, matrice 627af3ec).",
           "sourceIds": []
         },
         {
@@ -9252,10 +9267,10 @@
         "state": "accepted",
         "since": "2026-10-25"
       },
-      "statement": "Toute personne qui écrit dans l’espace de travail crée, importe, convertit, déplace, modifie et supprime un document dans les dossiers communs ; l’écran propose exactement les actions que le serveur accepte.",
+      "statement": "Toute personne qui écrit dans l’espace de travail crée, importe, convertit, déplace et modifie un document dans les dossiers communs ; seuls le secrétariat et l’administrateur le suppriment ; l’écran propose exactement les actions que la base accepte.",
       "acceptanceCriteria": [
         "Dans un dossier commun, un compte Secrétariat et un compte contributeur voient dans le menu de création la création de document, l’import de document, l’import de tableur et la conversion de tableur, et les utilisent.",
-        "Sur un document commun, ils déplacent, renomment, modifient et suppriment ; les verrous des affaires et des séances restent appliqués.",
+        "Sur un document commun, ils déplacent, renomment et modifient ; le secrétariat et l’administrateur le suppriment, le contributeur non ; les verrous des affaires et des séances restent appliqués.",
         "Les actions de création proposées sont celles du dossier ouvert."
       ],
       "clauses": [
@@ -9263,6 +9278,12 @@
           "key": "common-documents",
           "origin": "product",
           "statement": "Décision du propriétaire du 10 octobre 2026 (a6702014) pour la création, l’import et la conversion ; décision du 25 octobre 2026 (D3, 87a55a21) pour le déplacement, la modification et la suppression ; question 3839 (972f77d8).",
+          "sourceIds": []
+        },
+        {
+          "key": "reserved-deletion",
+          "origin": "product",
+          "statement": "Révision du 29 octobre 2026 : « supprimer n’est pas modifier », la suppression d’un document commun est réservée au secrétariat et à l’administrateur. Demande 308df4b5 du 29 octobre 2026, arbitrage a3119719 (la base est la seule source des autorisations), matrice 627af3ec, revue 67603a49, décisions du 29 octobre 656cb5af, ff96773a et 5a8cc19c.",
           "sourceIds": []
         }
       ]
@@ -9810,7 +9831,7 @@
         "state": "accepted",
         "since": "2026-10-29"
       },
-      "statement": "La page Modèles de documents liste les modèles d’après lesquels Hall produit la convocation, son message, le procès-verbal, les délibérations et la liste des délibérations examinées ; un compte qui modifie l’espace de travail change leur texte, leur en-tête et leur pied de page, y place une image, et crée le modèle d’un type qui n’en a pas ; les documents générés ensuite suivent le modèle modifié.",
+      "statement": "La page Modèles de documents liste les modèles d’après lesquels Hall produit la convocation, son message, le procès-verbal, les délibérations et la liste des délibérations examinées ; le secrétariat et l’administrateur changent leur texte, leur en-tête et leur pied de page, y place une image, et crée le modèle d’un type qui n’en a pas ; les documents générés ensuite suivent le modèle modifié.",
       "acceptanceCriteria": [
         "La liste donne pour chaque modèle son nom, son type de document en clair et sa forme, PDF ou message.",
         "La fiche d’un modèle PDF modifie son nom, son texte dans l’éditeur de Hall, son en-tête et son pied de page, fragments HTML imprimés sur chaque page ; « Insérer une image » y intègre une image JPEG ou PNG de 60 Ko au plus. Une image placée dans le texte devient un fichier importé du dossier « Modèles de documents ».",
@@ -9825,6 +9846,12 @@
           "key": "templates-screen",
           "origin": "product",
           "statement": "Demande du coordinateur du 28 octobre 2026 (994cd5b2), disposition du 29 octobre sur le blocage précédent : écran sans donnée nouvelle, droits actuels (workspace.write). Hall n’a pas de type de document « pouvoir » ; les modèles n’ont pas d’historique des modifications.",
+          "sourceIds": []
+        },
+        {
+          "key": "template-access",
+          "origin": "product",
+          "statement": "Révision du 29 octobre 2026 : création, modification et suppression des modèles réservées au secrétariat et à l’administrateur. Demande 308df4b5 du 29 octobre 2026, arbitrage a3119719 (la base est la seule source des autorisations), matrice 627af3ec, revue 67603a49, décisions du 29 octobre 656cb5af, ff96773a et 5a8cc19c.",
           "sourceIds": []
         }
       ]
@@ -9938,6 +9965,122 @@
           "key": "criterion-3",
           "origin": "product",
           "statement": "« Réactiver » rend actif un compte désactivé avec une nouvelle phrase de passe générée par Hall, affichée une seule fois avec « Copier » et la confirmation de remise ; l’ancienne ne connecte plus ; un compte de conseiller exige toujours un mandat actif.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-USR-030": {
+      "name": "MEETING_CONDUCT_BY_OFFICERS_IN_OFFICE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-29"
+      },
+      "statement": "Une séance est conduite par le compte lié au président ou au secrétaire de séance en fonction, passations comprises, et par l’administrateur ; le rôle de conduite de séance n’existe plus.",
+      "acceptanceCriteria": [
+        "Les actions de conduite (appel, présences, quorum, ouverture, pouvoirs, déports, points, scrutins, passation, autres personnes présentes, huis clos, question en séance, clôture) sont acceptées pour le compte dont le contact est le président ou le secrétaire en fonction de cette séance, quel que soit son rôle, et pour l’administrateur.",
+        "Un autre compte, secrétariat compris, reçoit un refus (403) et l’écran de conduite affiche le blocage permissionDenied.",
+        "Après une passation, le nouveau président ou secrétaire conduit la séance et l’ancien ne la conduit plus.",
+        "Les rôles de compte sont administrateur, secrétariat, contributeur et conseiller ; un compte qui ne portait que le rôle lecteur ou conduite de séance devient conseiller au démarrage."
+      ],
+      "clauses": [
+        {
+          "key": "criterion-1",
+          "origin": "product",
+          "statement": "Les actions de conduite (appel, présences, quorum, ouverture, pouvoirs, déports, points, scrutins, passation, autres personnes présentes, huis clos, question en séance, clôture) sont acceptées pour le compte dont le contact est le président ou le secrétaire en fonction de cette séance, quel que soit son rôle, et pour l’administrateur. Principes d’Alexandre du 25 octobre 2026 (a3098719) : « le conducteur, c’est soit le président de séance, soit le secrétaire de séance, et l’administrateur aussi ». Demande 308df4b5 du 29 octobre 2026, arbitrage a3119719 (la base est la seule source des autorisations), matrice 627af3ec, revue 67603a49, décisions du 29 octobre 656cb5af, ff96773a et 5a8cc19c.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-2",
+          "origin": "product",
+          "statement": "Un autre compte, secrétariat compris, reçoit un refus (403) et l’écran de conduite affiche le blocage permissionDenied.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-3",
+          "origin": "product",
+          "statement": "Après une passation, le nouveau président ou secrétaire conduit la séance et l’ancien ne la conduit plus.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-4",
+          "origin": "product",
+          "statement": "Les rôles de compte sont administrateur, secrétariat, contributeur et conseiller ; un compte qui ne portait que le rôle lecteur ou conduite de séance devient conseiller au démarrage.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-USR-040": {
+      "name": "RESERVED_DELETION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-29"
+      },
+      "statement": "Supprimer n’est pas modifier : la suppression d’une affaire, d’un document de l’espace commun et d’un modèle est réservée au secrétariat et à l’administrateur ; un conseiller supprime son propre travail dans son dossier personnel.",
+      "acceptanceCriteria": [
+        "Un contributeur crée et modifie les affaires et les documents communs mais ne les supprime pas ; la suppression ne lui est ni proposée ni acceptée.",
+        "Le secrétariat et l’administrateur suppriment une affaire, un document commun et un modèle, dans les limites des verrous existants.",
+        "Dans son dossier personnel et tant que son mandat est actif, un conseiller crée, modifie et supprime ses documents ; il ne supprime rien ailleurs."
+      ],
+      "clauses": [
+        {
+          "key": "criterion-1",
+          "origin": "product",
+          "statement": "Un contributeur crée et modifie les affaires et les documents communs mais ne les supprime pas ; la suppression ne lui est ni proposée ni acceptée. Proposition 3dc399e1, décision ff96773a du 29 octobre 2026. Demande 308df4b5 du 29 octobre 2026, arbitrage a3119719 (la base est la seule source des autorisations), matrice 627af3ec, revue 67603a49, décisions du 29 octobre 656cb5af, ff96773a et 5a8cc19c.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-2",
+          "origin": "product",
+          "statement": "Le secrétariat et l’administrateur suppriment une affaire, un document commun et un modèle, dans les limites des verrous existants.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-3",
+          "origin": "product",
+          "statement": "Dans son dossier personnel et tant que son mandat est actif, un conseiller crée, modifie et supprime ses documents ; il ne supprime rien ailleurs.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-USR-050": {
+      "name": "FOUR_ROLE_MATRIX",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-29"
+      },
+      "statement": "Tout compte actif lit et exporte tout Hall ; l’écriture suit la matrice des quatre rôles : le contributeur écrit les affaires et l’espace commun, le secrétariat prépare les séances, rédige délibérations et procès-verbaux, gère contacts, membres, commissions, délégations, modèles, réglages et mandature, l’administrateur fait tout et seul gère les comptes.",
+      "acceptanceCriteria": [
+        "Lecture et export (documents générés, dossier de séance, export d’affaire) par tout compte actif.",
+        "Le journal d’audit, la liste des comptes et le message de convocation généré sont lus par le secrétariat et l’administrateur seulement ; la gestion des comptes, phrases de passe comprises, par l’administrateur seul.",
+        "Les réglages de la commune, la mandature et l’import du patrimoine communal sont modifiés par le secrétariat et l’administrateur.",
+        "Le serveur ne porte ni matrice ni permissions : ses routes et son Siren interrogent la base."
+      ],
+      "clauses": [
+        {
+          "key": "criterion-1",
+          "origin": "product",
+          "statement": "Lecture et export (documents générés, dossier de séance, export d’affaire) par tout compte actif. Matrice 627af3ec, décisions 656cb5af et 5a8cc19c du 29 octobre 2026. Demande 308df4b5 du 29 octobre 2026, arbitrage a3119719 (la base est la seule source des autorisations), matrice 627af3ec, revue 67603a49, décisions du 29 octobre 656cb5af, ff96773a et 5a8cc19c.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-2",
+          "origin": "product",
+          "statement": "Le journal d’audit, la liste des comptes et le message de convocation généré sont lus par le secrétariat et l’administrateur seulement ; la gestion des comptes, phrases de passe comprises, par l’administrateur seul.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-3",
+          "origin": "product",
+          "statement": "Les réglages de la commune, la mandature et l’import du patrimoine communal sont modifiés par le secrétariat et l’administrateur.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-4",
+          "origin": "product",
+          "statement": "Le serveur ne porte ni matrice ni permissions : ses routes et son Siren interrogent la base.",
           "sourceIds": []
         }
       ]

@@ -51,6 +51,18 @@ RETURNS UUID LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
       FROM hall.council_meetings meeting WHERE meeting.id = target_meeting));
 $$;
 
+-- @implements-requirement HALL-FR-USR-030
+-- The account conducts a meeting when its linked contact is the chair or the
+-- secretary in office, handovers included.
+CREATE FUNCTION hall.is_meeting_officer(target_meeting UUID)
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+  SELECT EXISTS (
+    SELECT FROM hall.council_member member
+    WHERE member.contact::TEXT = nullif(current_setting('hall.contact_id', true), '')
+      AND member.id IN (hall.current_meeting_officer(target_meeting, 'chair'),
+        hall.current_meeting_officer(target_meeting, 'secretary')));
+$$;
+
 CREATE FUNCTION hall.meeting_member_is_physically_present(target_meeting UUID, target_member UUID)
 RETURNS BOOLEAN LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   SELECT EXISTS (SELECT FROM hall.current_meeting_attendance(target_meeting) attendance

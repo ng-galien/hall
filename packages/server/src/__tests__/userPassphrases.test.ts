@@ -27,7 +27,13 @@ it("generates a hyphenated passphrase, revokes the access by disabling the accou
 
   const created = await rawAgent
     .post("/api/users")
-    .send({ email: "elu@example.fr", displayName: "Élu", password: passphrase, roles: ["reader"], contactId: null })
+    .send({
+      email: "elu@example.fr",
+      displayName: "Élu",
+      password: passphrase,
+      roles: ["contributor"],
+      contactId: null,
+    })
     .expect(201);
   const userId: string = created.body.properties.id;
   const login = (password: string) =>
