@@ -1,10 +1,6 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 export default {
-  mutate: [
-    "src/api/apiCommandAuthorization.ts",
-    "src/api/apiCommandResolution.ts",
-    "src/security/authorization.ts",
-  ],
+  mutate: ["src/api/apiCommandAuthorization.ts", "src/api/apiCommandResolution.ts", "src/security/authorization.ts"],
   testRunner: "vitest",
   coverageAnalysis: "perTest",
   vitest: {

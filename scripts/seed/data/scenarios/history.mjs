@@ -134,7 +134,9 @@ export async function seedHistory(api, fixture, { editableMinutes = false } = {}
   await patch(`/council-meetings/${second.id}/agenda-items/${deferred.id}/notes`, {
     discussionSummary: discussions.deferredQuestion,
   });
-  await post(`/council-meetings/${second.id}/agenda-items/${deferred.id}/adjourn`, { adjournedAt: at(secondDate, 115) });
+  await post(`/council-meetings/${second.id}/agenda-items/${deferred.id}/adjourn`, {
+    adjournedAt: at(secondDate, 115),
+  });
   const { nextMeeting: current } = await close(second, at(secondDate, 150));
 
   const currentAgenda = await get(`/council-meetings/${current.id}/agenda-items`);

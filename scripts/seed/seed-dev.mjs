@@ -35,7 +35,9 @@ export async function main(args = process.argv.slice(2), env = process.env) {
   console.log(`Jeu : ${datasetName} ; scénario : ${scenarioName}`);
   const password = env.SEED_DEMO_PASSWORD ?? "Hall-demo-2026!";
   if (await api.signInAsFirstAdministrator(dataset.administrator, password)) {
-    console.log(`Serveur sans accès de développement : jeu semé sous le compte de ${dataset.administrator.displayName}`);
+    console.log(
+      `Serveur sans accès de développement : jeu semé sous le compte de ${dataset.administrator.displayName}`,
+    );
   }
   await assertEmptyDatabase(api);
   const fixture = await dataset.run(api, { password });

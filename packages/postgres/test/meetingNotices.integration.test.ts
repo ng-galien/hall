@@ -43,15 +43,18 @@ postgresDescribe("frozen meeting agenda documents", () => {
         scheduledAt: "2026-09-10T18:00:00Z",
         location: "Council chamber",
         agendaFrozenAt: "2026-09-06T12:00:00Z",
-        agenda: [{
-          id: item.id,
-          position: 1,
-          agendaNumber: item.agendaNumber!,
-          kind: "openQuestion" as const,
-          title: "Lighting & safety",
-        }],
+        agenda: [
+          {
+            id: item.id,
+            position: 1,
+            agendaNumber: item.agendaNumber!,
+            kind: "openQuestion" as const,
+            title: "Lighting & safety",
+          },
+        ],
       },
-      issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" },
+      issuedOn: null,
+      hall: { name: "Test commune", timeZone: "Europe/Paris" },
     };
     await expect(
       council.generateNotice(request, meeting.id, unfrozenFacts, Buffer.from("%PDF-test")),
@@ -72,7 +75,8 @@ postgresDescribe("frozen meeting agenda documents", () => {
     await new PostgresResources(pool).rename(request, business.folderResourceId, "Renamed working folder");
     const facts = {
       meeting: (await council.noticeFacts(request, meeting.id))!,
-      issuedOn: null, hall: { name: "Test commune", timeZone: "Europe/Paris" },
+      issuedOn: null,
+      hall: { name: "Test commune", timeZone: "Europe/Paris" },
     };
     expect(facts.meeting.agenda[0].title).toBe("Lighting & safety");
     await expect(council.generateNotice(request, meeting.id, facts, Buffer.from("not pdf"))).rejects.toMatchObject({

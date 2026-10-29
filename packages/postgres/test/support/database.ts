@@ -1,4 +1,6 @@
-if (!process.env.TEST_DATABASE_URL) throw new Error("TEST_DATABASE_URL is required; use the isolated test:postgres entry point");
+if (!process.env.TEST_DATABASE_URL)
+  throw new Error("TEST_DATABASE_URL is required; use the isolated test:postgres entry point");
+
 import { Pool } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe } from "vitest";
 import { PostgresSchemaBootstrap } from "../../src/bootstrap.js";

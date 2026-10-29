@@ -345,10 +345,7 @@ test("council administration follows committee and representation Siren capabili
   assert.match(memberApi, /submitSirenAction<CouncilMember>\(representation, "member\.update"/);
   assert.match(memberStore, /findSirenAction\(result\.representation, "member\.update"\)/);
   assert.match(memberPage, /window\.setTimeout\(\(\) => void save\(\), 1000\)/);
-  assert.doesNotMatch(
-    `${api}\n${memberApi}\n${bodyPage}\n${memberPage}`,
-    /fetch\(|method:\s*["'](?:POST|PUT|DELETE)/,
-  );
+  assert.doesNotMatch(`${api}\n${memberApi}\n${bodyPage}\n${memberPage}`, /fetch\(|method:\s*["'](?:POST|PUT|DELETE)/);
 });
 
 test("council member collections expose distinct semantic destinations", () => {

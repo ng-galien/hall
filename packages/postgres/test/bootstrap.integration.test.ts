@@ -178,8 +178,8 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
     await expect(bootstrap.install()).resolves.toBe("upgraded");
     await expect(bootstrap.verify()).resolves.toBeUndefined();
     expect(
-      (await pool.query("SELECT hall.is_personal_workspace_location(hall.personal_workspaces_root()) AS located")).rows[0]
-        .located,
+      (await pool.query("SELECT hall.is_personal_workspace_location(hall.personal_workspaces_root()) AS located"))
+        .rows[0].located,
     ).toBe(true);
   });
 

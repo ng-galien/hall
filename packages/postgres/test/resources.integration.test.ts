@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { HallPostgresError } from "../src/errors.js";
-import { PostgresResources, type PostgresResourceRequest } from "../src/resources.js";
+import { type PostgresResourceRequest, PostgresResources } from "../src/resources.js";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
 
 // @verifies-requirement HALL-FR-DOC-280
@@ -44,10 +44,10 @@ postgresDescribe("PostgreSQL resource client", () => {
 
     const updated = (
       await resources.updateText(request, {
-      id: created.id,
-      expectedVersion: 1,
-      content: "second",
-      referencedEditorAssetIds: [],
+        id: created.id,
+        expectedVersion: 1,
+        content: "second",
+        referencedEditorAssetIds: [],
       })
     ).data;
     expect(updated).toMatchObject({ id: created.id, content: "second", version: 2 });
@@ -95,10 +95,10 @@ postgresDescribe("PostgreSQL resource client", () => {
   it("keeps binary content outside JSON and replaces it with immutable content-addressed bytes", async () => {
     const created = (
       await resources.createDocument(request, {
-      path: "proofs",
-      name: "proof.txt",
-      mediaType: "text/plain",
-      content: Buffer.from("one"),
+        path: "proofs",
+        name: "proof.txt",
+        mediaType: "text/plain",
+        content: Buffer.from("one"),
       })
     ).data;
     expect(created).toMatchObject({
@@ -116,9 +116,9 @@ postgresDescribe("PostgreSQL resource client", () => {
 
     const replaced = (
       await resources.replaceDocumentContent(request, {
-      id: created.id,
-      mediaType: "text/plain",
-      content: Buffer.from("two"),
+        id: created.id,
+        mediaType: "text/plain",
+        content: Buffer.from("two"),
       })
     ).data;
     expect(replaced).toMatchObject({ id: created.id, binary: { byteSize: 3 } });
@@ -169,9 +169,9 @@ postgresDescribe("PostgreSQL resource client", () => {
   it("preserves version conflicts and database role denials", async () => {
     const created = (
       await resources.createRemote(request, {
-      path: "",
-      name: "reference",
-      target: { kind: "url", url: "https://example.test" },
+        path: "",
+        name: "reference",
+        target: { kind: "url", url: "https://example.test" },
       })
     ).data;
     const conflict = await resources
@@ -198,9 +198,9 @@ postgresDescribe("PostgreSQL resource client", () => {
   it("validates every structured resource variant on create and versioned update", async () => {
     const spreadsheet = (
       await resources.createSpreadsheet(request, {
-      path: "structured",
-      name: "budget",
-      document: { schemaVersion: 2, workbook: {} },
+        path: "structured",
+        name: "budget",
+        document: { schemaVersion: 2, workbook: {} },
       })
     ).data;
     await expect(
@@ -213,20 +213,20 @@ postgresDescribe("PostgreSQL resource client", () => {
 
     const geographic = (
       await resources.createGeographic(request, {
-      path: "structured",
-      name: "map",
-      document: {
-        view: { kind: "center", center: [2.2137, 46.2276], zoom: 6 },
-        layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
-        hallLayer: { type: "FeatureCollection", features: [] },
-        provenance: {
-          attribution: "Source : IGN",
-          license: "Licence Ouverte 2.0",
-          metadataUrl: "https://example.test/ign",
-          configuredAt: "2026-09-02T10:00:00.000Z",
-          sourceUpdatedAt: null,
+        path: "structured",
+        name: "map",
+        document: {
+          view: { kind: "center", center: [2.2137, 46.2276], zoom: 6 },
+          layers: [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }],
+          hallLayer: { type: "FeatureCollection", features: [] },
+          provenance: {
+            attribution: "Source : IGN",
+            license: "Licence Ouverte 2.0",
+            metadataUrl: "https://example.test/ign",
+            configuredAt: "2026-09-02T10:00:00.000Z",
+            sourceUpdatedAt: null,
+          },
         },
-      },
       })
     ).data;
     await expect(
@@ -250,14 +250,14 @@ postgresDescribe("PostgreSQL resource client", () => {
 
     const legalReference = (
       await resources.createLegalReference(request, {
-      path: "structured",
-      name: "article",
-      document: {
-        resolutionStatus: "draft",
-        provider: "legifrance",
-        referenceKind: "article",
-        snapshots: [],
-      },
+        path: "structured",
+        name: "article",
+        document: {
+          resolutionStatus: "draft",
+          provider: "legifrance",
+          referenceKind: "article",
+          snapshots: [],
+        },
       })
     ).data;
     await expect(
