@@ -3,6 +3,7 @@ import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import { PDFDocument } from "pdf-lib";
 import type { Response } from "superagent";
 import { describe, expect, it } from "vitest";
+import type { DocumentRenderer, PdfRenderInput } from "../services/documentRenderer.js";
 import { createPostgresHttpTestServer, createServiceTestServer, createTestServer, domainBody } from "./testServer.js";
 
 function binaryParser(response: Response, callback: (error: Error | null, body: Buffer) => void): void {
@@ -310,6 +311,88 @@ describe("content templates", () => {
 
     const audit = domainBody<Array<{ action: string }>>(await agent.get("/api/audit-events").expect(200));
     expect(audit).toEqual(expect.arrayContaining([expect.objectContaining({ action: "template.generate" })]));
+  });
+
+  // @verifies-requirement HALL-FR-DOC-580
+  it("prints the next generated PDF with the text, header image and body image saved in the template", async () => {
+    const rendered: PdfRenderInput[] = [];
+    const renderer: DocumentRenderer = {
+      async pdf(input) {
+        rendered.push(input);
+        const document = await PDFDocument.create();
+        document.addPage();
+        return Buffer.from(await document.save());
+      },
+      async appendPdfs(primary) {
+        return primary;
+      },
+    };
+    const server = await createTestServer({ documentRenderer: renderer });
+    const { agent } = server;
+    const { meeting } = await createMemberAndMeeting(server);
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEElEQVR42mNk+M+ABzDhkAIAEwQCAiV7nNwAAAAASUVORK5CYII=",
+      "base64",
+    );
+    const logo = domainBody<{ id: string }>(
+      await agent
+        .post("/api/resources/documents")
+        .field("path", "")
+        .field("name", "blason.png")
+        .attach("file", png, { filename: "blason.png", contentType: "image/png" })
+        .expect(201),
+    );
+    const template = domainBody<{ id: string }>(
+      await agent
+        .post("/api/templates")
+        .send({
+          kind: "pdf",
+          documentType: "meeting-notice",
+          name: "Convocation",
+          bodyMarkdown: "# Convocation\n\nLieu : :field{name=meeting.location}",
+          headerHtml: "<div>Ancien en-tête</div>",
+          footerHtml: "<div>Conseil municipal</div>",
+        })
+        .expect(201),
+    );
+    const generate = () =>
+      agent
+        .post(`/api/templates/${template.id}/generate`)
+        .send({ context: { meetingId: meeting.id } })
+        .buffer(true)
+        .parse(binaryParser)
+        .expect(200);
+    await generate();
+    expect(rendered.at(-1)?.headerHtml).toContain("Ancien en-tête");
+
+    const headerImage = `<img src="data:image/png;base64,${png.toString("base64")}" alt="blason" style="width:35mm">`;
+    const updated = {
+      kind: "pdf",
+      documentType: "meeting-notice",
+      name: "Convocation de la mairie",
+      bodyMarkdown: `# Convocation du conseil\n\n::image[Blason]{#${logo.id} align="center" width="40"}\n\nLieu : :field{name=meeting.location}`,
+      stylesheet: "",
+      headerHtml: `${headerImage}<div>Mairie d’Alésia</div>`,
+      footerHtml: "<div>Hôtel de ville</div>",
+    };
+    await agent.put(`/api/templates/${template.id}`).send(updated).expect(200);
+    const reread = domainBody<Record<string, string>>(await agent.get(`/api/templates/${template.id}`).expect(200));
+    expect(reread).toMatchObject({
+      name: updated.name,
+      headerHtml: updated.headerHtml,
+      footerHtml: updated.footerHtml,
+    });
+    expect(reread.bodyMarkdown).toContain(`#${logo.id}`);
+
+    await generate();
+    const printed = rendered.at(-1)!;
+    expect(printed.headerHtml).toContain("Mairie d’Alésia");
+    expect(printed.headerHtml).toContain(`src="data:image/png;base64,${png.toString("base64")}"`);
+    expect(printed.headerHtml).not.toContain("Ancien en-tête");
+    expect(printed.footerHtml).toContain("Hôtel de ville");
+    expect(printed.html).toContain("Convocation du conseil");
+    expect(printed.html).toContain(`src="data:image/png;base64,${png.toString("base64")}"`);
+    expect(printed.html).toContain("Salle du conseil");
   });
 
   it("renders an ad hoc PDF preview without persisting or auditing a template", async () => {

@@ -292,6 +292,11 @@
   .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-3); margin-bottom: var(--hall-space-4); }
   .creation-form > .fui-Field { margin-bottom: var(--hall-space-3); }
   .creation-form textarea { min-height: var(--hall-size-textarea-min); }
+  .template-editor .creation-form { display: grid; gap: var(--hall-space-4); }
+  .template-editor-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); margin: 0 0 var(--hall-space-3); }
+  .template-decoration-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--hall-space-2); }
+  .template-decoration-source { min-height: var(--hall-size-textarea-min); font-family: var(--hall-font-family-monospace); font-size: var(--hall-font-size-caption); }
+  .template-preview-frame { width: 100%; height: var(--hall-size-embed-height); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface); }
   .settings-commune-fields {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--hall-size-entity-card)), 1fr));

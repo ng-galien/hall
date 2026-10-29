@@ -9789,6 +9789,32 @@
           "sourceIds": []
         }
       ]
+    },
+    "HALL-FR-DOC-580": {
+      "name": "DOCUMENT_TEMPLATES_SCREEN",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-29"
+      },
+      "statement": "La page Modèles de documents liste les modèles d’après lesquels Hall produit la convocation, son message, le procès-verbal et les délibérations ; un compte qui modifie l’espace de travail change leur texte, leur en-tête et leur pied de page, y place une image, et crée le modèle d’un type qui n’en a pas ; les documents générés ensuite suivent le modèle modifié.",
+      "acceptanceCriteria": [
+        "La liste donne pour chaque modèle son nom, son type de document en clair et sa forme, PDF ou message.",
+        "La fiche d’un modèle PDF modifie son nom, son texte dans l’éditeur de Hall, son en-tête et son pied de page, fragments HTML imprimés sur chaque page ; « Insérer une image » y intègre une image JPEG ou PNG de 60 Ko au plus. Une image placée dans le texte devient un fichier importé du dossier « Modèles de documents ».",
+        "La fiche d’un modèle de message modifie son nom, son objet et son texte.",
+        "« Aperçu » montre le modèle tel que le serveur le rend, en-tête et pied de page compris.",
+        "« Nouveau modèle » ne propose que les types de document qui n’ont pas encore de modèle, avec un texte de départ qui contient les directives que la génération exige.",
+        "Sans l’action template.update, la fiche se lit sans champ modifiable ; sans template.create, la liste ne propose pas de création.",
+        "La génération qui suit l’enregistrement emploie le texte, l’en-tête et le pied de page enregistrés."
+      ],
+      "clauses": [
+        {
+          "key": "templates-screen",
+          "origin": "product",
+          "statement": "Demande du coordinateur du 28 octobre 2026 (994cd5b2), disposition du 29 octobre sur le blocage précédent : écran sans donnée nouvelle, droits actuels (workspace.write). Hall n’a pas de type de document « pouvoir » ; les modèles n’ont pas d’historique des modifications.",
+          "sourceIds": []
+        }
+      ]
     }
   }
 }

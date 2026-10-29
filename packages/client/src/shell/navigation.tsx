@@ -11,6 +11,7 @@ import {
   MapIcon,
   MembersIcon,
   MinutesIcon,
+  TemplateIcon,
 } from "../components/icons";
 import type { TranslationKey } from "../i18n/en";
 
@@ -69,6 +70,7 @@ export const navigationSections: NavigationSection[] = [
         icon: <CommitteeIcon />,
       },
       { to: "/council-delegations", labelKey: "navigation.delegations", icon: <DelegationIcon /> },
+      { to: "/templates", labelKey: "navigation.templates", icon: <TemplateIcon /> },
     ],
   },
 ];

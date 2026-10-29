@@ -100,6 +100,7 @@ export {
   Sigma as SumIcon,
   SquaresFour as CardViewIcon,
   Stack as LayersIcon,
+  Stamp as TemplateIcon,
   Sun as LightThemeIcon,
   Table as TableIcon,
   Tag as TagIcon,

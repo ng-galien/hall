@@ -64,6 +64,8 @@ const CouncilMemberPage = lazy(() =>
 const CouncilCommitteesPage = lazy(() =>
   import("./pages/CouncilCommitteesPage").then((module) => ({ default: module.CouncilCommitteesPage })),
 );
+const TemplatesPage = lazy(() => import("./pages/TemplatesPage").then((module) => ({ default: module.TemplatesPage })));
+const TemplatePage = lazy(() => import("./pages/TemplatePage").then((module) => ({ default: module.TemplatePage })));
 const CouncilDelegationsPage = lazy(() =>
   import("./pages/CouncilDelegationsPage").then((module) => ({ default: module.CouncilDelegationsPage })),
 );
@@ -128,6 +130,8 @@ function AuthenticatedApplication() {
         <Route path="council-committees" element={<CouncilCommitteesPage />} />
         <Route path="council-committees/:committeeId" element={<CouncilCommitteePage />} />
         <Route path="council-delegations" element={<CouncilDelegationsPage />} />
+        <Route path="templates" element={<TemplatesPage />} />
+        <Route path="templates/:templateId" element={<TemplatePage />} />
         <Route path="council-delegations/:delegationId" element={<CouncilDelegationPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="docs/*" element={<DocsArea />} />

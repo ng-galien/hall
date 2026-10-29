@@ -74,6 +74,8 @@ export function HeaderBreadcrumb() {
       const delegation = delegations.find((candidate) => candidate.id === segments[1]);
       if (delegation) items.push({ label: delegation.name });
     }
+  } else if (segments[0] === "templates") {
+    items.push({ label: t("navigation.templates"), to: "/templates" });
   } else if (segments[0] === "settings") {
     items.push({ label: t("common.settings") });
   } else if (segments[0] === "docs") {
