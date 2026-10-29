@@ -292,6 +292,20 @@
   .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-3); margin-bottom: var(--hall-space-4); }
   .creation-form > .fui-Field { margin-bottom: var(--hall-space-3); }
   .creation-form textarea { min-height: var(--hall-size-textarea-min); }
+  .settings-commune-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--hall-size-entity-card)), 1fr));
+    gap: var(--hall-space-3);
+    margin: var(--hall-space-3) 0 var(--hall-space-4);
+  }
+  .settings-commune-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--hall-size-entity-card)), 1fr));
+    gap: var(--hall-space-3);
+    margin: var(--hall-space-3) 0 0;
+  }
+  .settings-commune-facts dt { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
+  .settings-commune-facts dd { margin: 0; overflow-wrap: anywhere; }
   .settings-location-list {
     display: grid;
     gap: var(--hall-space-1);

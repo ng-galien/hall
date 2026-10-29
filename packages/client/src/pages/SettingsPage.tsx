@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, RequestErrorBanner } from "../components/Ui";
 import { MeetingLocationsSettings } from "../features/council-meetings/MeetingLocationsSettings";
+import { CommuneSettings } from "../features/settings/CommuneSettings";
 import { PasswordDialog } from "../features/users/PasswordDialog";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { type Locale, useI18n } from "../i18n/I18nProvider";
@@ -84,6 +85,7 @@ export function SettingsPage() {
       <PageHeader title={t("settings.title")} description={t("settings.description")} />
       <div className="page-content">
         <RequestErrorBanner error={settingsError} />
+        {hallSettings ? <CommuneSettings settings={hallSettings} canUpdate={settingsUpdateAvailable} /> : null}
         {hallSettings && councilTermUpdateAvailable ? (
           <form className="creation-form" onSubmit={(event) => void submitCouncilTerm(event)}>
             <h3>{t("settings.councilTerm")}</h3>

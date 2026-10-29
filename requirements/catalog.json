@@ -7655,6 +7655,29 @@
         }
       ]
     },
+    "HALL-FR-NOT-130": {
+      "name": "MEETING_PAGE_SHOWS_INDICATIVE_NOTICE_PERIOD",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-29"
+      },
+      "statement": "La fiche d’une séance qui n’est pas encore ouverte affiche la référence du délai de convocation calculée par PostgreSQL, comme une indication, sans jamais dire si une convocation respecte ce délai.",
+      "acceptanceCriteria": [
+        "Sans qualification du régime, la fiche affiche la référence ordinaire : date limite d’envoi, nombre de jours francs, date de la séance et rappel (date à venir, aujourd’hui ou passée), avec la mention que Hall ne vérifie ni l’envoi ni le régime applicable.",
+        "Pour une séance reconvoquée, la fiche affiche la date déterminée par la seconde convocation et ses trois jours francs.",
+        "Quand la population de la commune n’est pas renseignée, la fiche le dit et renvoie à Paramètres ; quand le fuseau horaire est inconnu, elle dit que la référence ne peut pas être calculée ; sans date de séance, elle n’affiche rien.",
+        "Aucune mention de respect ou de non-respect du délai."
+      ],
+      "clauses": [
+        {
+          "key": "indicative-display",
+          "origin": "product",
+          "statement": "Demande du coordinateur du 28 octobre 2026 (848f8d54), sur l’étude des manques de Hall ; le calcul reste celui de HALL-TR-NOT-020.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-NOT-020": {
       "name": "NOTICE_DEADLINE_IS_PROJECTED_BY_POSTGRESQL",
       "nature": "technical",
@@ -8907,7 +8930,7 @@
         "La consultation des données de commune est accessible aux utilisateurs connectés, y compris au rôle reader, conformément au contrat existant et à la décision de l’utilisateur du 29 septembre 2026.",
         "La modification des données de commune est réservée au rôle administrator, niveau maximal existant, conformément à la décision de l’utilisateur du 29 septembre 2026. Le serveur contrôle les droits et Siren expose settings.update ; le client consomme cette capacité sans changer les droits des autres domaines.",
         "L’écran réutilise les primitives partagées et le style des autres écrans Hall, sans nouveau langage visuel.",
-        "La clarification part des données de commune déjà définies dans Hall. La liste exacte des champs à présenter et modifier reste à préciser avec le propriétaire ; ce besoin ne vaut pas approbation de nouvelles données, salles ou règles de gestion."
+        "Liste retenue par la disposition du coordinateur du 28 octobre 2026 sur la demande 848f8d54, à faire confirmer par le propriétaire : nom, code INSEE, SIREN, adresse (deux lignes, code postal, localité), population et sa date de référence, téléphone, site web, nom et adresse de l’expéditeur des courriels, présentés dans Paramètres de l’application. La position géographique, l’adresse de contact, l’adresse de réponse, le fuseau horaire et les lieux des séances ne sont pas présentés dans cette partie et ne changent pas à son enregistrement."
       ],
       "clauses": [
         {
@@ -8937,7 +8960,7 @@
         {
           "key": "scope-to-clarify",
           "origin": "product",
-          "statement": "La clarification part des données de commune déjà définies dans Hall. La liste exacte des champs à présenter et modifier reste à préciser avec le propriétaire ; ce besoin ne vaut pas approbation de nouvelles données, salles ou règles de gestion.",
+          "statement": "Liste retenue par la disposition du coordinateur du 28 octobre 2026 sur la demande 848f8d54, à faire confirmer par le propriétaire : nom, code INSEE, SIREN, adresse (deux lignes, code postal, localité), population et sa date de référence, téléphone, site web, nom et adresse de l’expéditeur des courriels, présentés dans Paramètres de l’application. La position géographique, l’adresse de contact, l’adresse de réponse, le fuseau horaire et les lieux des séances ne sont pas présentés dans cette partie et ne changent pas à son enregistrement.",
           "sourceIds": []
         }
       ]

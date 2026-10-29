@@ -14,6 +14,7 @@ import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { MeetingEntryBlockers } from "../../features/council-meetings/MeetingEntryBlockers";
 import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
 import { MeetingNoticeActions } from "../../features/council-meetings/MeetingNoticeActions";
+import { MeetingNoticeDeadline } from "../../features/council-meetings/MeetingNoticeDeadline";
 import {
   formatMeetingLabel,
   meetingScheduleInputValue,
@@ -210,6 +211,9 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             </div>
           </div>
           <MeetingEntryBlockers blockers={entryBlockers} />
+          {meeting.status === "draft" || meeting.status === "scheduled" ? (
+            <MeetingNoticeDeadline deadline={meeting.noticeDeadline} />
+          ) : null}
           {meeting.status === "draft" && !aggregate.agendaReady && aggregate.requiredMinutesOfMeetingId ? (
             <p className="meeting-evidence">{t("meeting.agendaNotReady")}</p>
           ) : null}

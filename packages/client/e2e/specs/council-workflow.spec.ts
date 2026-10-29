@@ -1562,6 +1562,7 @@ test("records the second convocation from the conduct of a meeting opened withou
   expect(Date.parse(conduct.reconvocations[0]!.scheduledAt)).toBe(renewedAt.getTime());
 });
 
+// @verifies-requirement HALL-FR-NOT-130
 test("holds the meeting after a second convocation as a new linked meeting under the second-convocation regime", async ({
   appPage: page,
 }) => {
@@ -1667,6 +1668,17 @@ test("holds the meeting after a second convocation as a new linked meeting under
   await sirenProperties(await page.request.post(`/api/council-meetings/${reconvened.id}/notices`, { data: {} }));
   await page.goto(`/app/meetings/${reconvened.id}`);
   await expect(page.getByTestId("meeting-reconvened-chip")).toBeVisible();
+  const reconvenedDeadline = (
+    await sirenProperties<{
+      noticeDeadline: { status: string; deadline: { deadlineDate: string; clearDays: number } };
+    }>(await page.request.get(`/api/council-meetings/${reconvened.id}`))
+  ).noticeDeadline;
+  expect(reconvenedDeadline).toMatchObject({ status: "determined", deadline: { clearDays: 3 } });
+  await expect(page.getByTestId("meeting-notice-deadline")).toHaveAttribute("data-status", "determined");
+  await expect(page.getByTestId("meeting-notice-deadline-date")).toContainText(
+    new Date(`${reconvenedDeadline.deadline.deadlineDate}T12:00:00`).toLocaleDateString("en-GB"),
+  );
+  await expect(page.getByTestId("meeting-notice-deadline-date")).toContainText("3 clear days");
   await page.goto(`/app/meetings/${reconvened.id}/live`);
   for (const [index, member] of members.entries())
     await page.getByTestId(`live-attendance-${member.id}-${index < 4 ? "present" : "absent"}`).click();

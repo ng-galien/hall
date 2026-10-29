@@ -50,3 +50,29 @@ export async function updateActiveCouncilTermExpectedMemberCount(expectedMemberC
     (await submitSirenAction<unknown>(current.representation, "council-term.configure", { expectedMemberCount })).data,
   );
 }
+
+/** The municipality fields an administrator edits in Settings; the other settings keep their stored values. */
+export type CommuneSettings = Pick<
+  HallSettings,
+  | "name"
+  | "inseeCode"
+  | "siren"
+  | "addressLine1"
+  | "addressLine2"
+  | "postalCode"
+  | "city"
+  | "population"
+  | "populationReferenceDate"
+  | "phone"
+  | "website"
+  | "outboundEmailSenderName"
+  | "outboundEmailSenderAddress"
+>;
+
+// @implements-requirement HALL-FR-COM-010
+export async function updateCommuneSettings(commune: CommuneSettings): Promise<HallSettings> {
+  const current = await apiSirenRequest<HallSettings>("/settings");
+  if (!current.representation) throw new Error("Missing HallSettings Siren representation");
+  const input = updateHallSettingsSchema.parse({ ...current.data, ...commune });
+  return (await submitSirenAction<HallSettings>(current.representation, "settings.update", input)).data;
+}
