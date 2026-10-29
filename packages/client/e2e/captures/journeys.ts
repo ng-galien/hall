@@ -26,8 +26,14 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
   await expect(page.getByTestId("meeting-edit-details")).toBeVisible();
   await waitForPageEntrance(page);
 
+  // The documentation shows a meeting scheduled two weeks ahead; the journey then dates it half an hour ago, without
+  // capture, because the meeting can only be opened once its scheduled time is reached.
+  const startsAt = new Date(Date.now() - 30 * 60_000);
+  const scheduledAhead = new Date();
+  scheduledAhead.setDate(scheduledAhead.getDate() + 14);
+  scheduledAhead.setHours(18, 30, 0, 0);
   await page.getByTestId("meeting-edit-details").click();
-  await page.getByTestId("meeting-edit-starts-at").fill(localDateTimeInput(new Date(Date.now() - 30 * 60_000)));
+  await page.getByTestId("meeting-edit-starts-at").fill(localDateTimeInput(prefix ? scheduledAhead : startsAt));
   await page.getByTestId("meeting-edit-chair").click();
   await page.getByRole("option", { name: /Vercingétorix/ }).click();
   await page.getByTestId("meeting-edit-secretary").click();
@@ -35,7 +41,14 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
   await shot("02-proprietes-generales");
   await page.getByTestId("meeting-edit-submit").click();
   await expect(page.getByText("Programmée", { exact: true })).toBeVisible();
-  await shot("03-seance-programmee");
+  if (prefix) {
+    await expect(page.getByTestId("meeting-notice-deadline-date")).toContainText("Cette date est à venir.");
+    await shot("03-seance-programmee");
+    await page.getByTestId("meeting-edit-details").click();
+    await page.getByTestId("meeting-edit-starts-at").fill(localDateTimeInput(startsAt));
+    await page.getByTestId("meeting-edit-submit").click();
+    await expect(page.getByTestId("meeting-edit-submit")).toBeHidden();
+  }
 
   const candidate = page.getByTestId(/^agenda-candidate-add-/).first();
   if ((await candidate.count()) && (await candidate.isEnabled())) await candidate.click();

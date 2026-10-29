@@ -10,7 +10,7 @@ test("meeting scheduling belongs to the detail rather than the collection", () =
   const list = read("src/pages/council-meetings/CouncilMeetingsPage.tsx");
   const detail = read("src/pages/council-meetings/MeetingPreparation.tsx");
   assert.doesNotMatch(list, /meeting-schedule|<Modal|useMeetingSettings|useSubmitting/);
-  assert.equal((detail.match(/onClick=\{\(\) => setEditOpen\(true\)\}/g) ?? []).length, 1);
+  assert.equal((detail.match(/setEditOpen\(true\)/g) ?? []).length, 1);
   assert.match(detail, /data-testid="meeting-edit-details"/);
   assert.match(detail, /t\("meeting\.generalProperties"\)/);
 });
