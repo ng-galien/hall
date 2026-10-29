@@ -26,7 +26,12 @@ function listedSpecs(authMode, documentationJourneys = false, meetingRules = fal
   return result.stdout;
 }
 
-const authenticationSpecs = new Set(["user-account.spec.ts", "user-passphrase.spec.ts", "personal-workspaces.spec.ts"]);
+const authenticationSpecs = new Set([
+  "user-account.spec.ts",
+  "user-passphrase.spec.ts",
+  "personal-workspaces.spec.ts",
+  "authorization-roles.spec.ts",
+]);
 const regular = listedSpecs(false);
 const authentication = listedSpecs(true);
 for (const spec of specs) {

@@ -57,7 +57,7 @@ export default defineConfig({
           ? [
               {
                 name: "authentication",
-                testMatch: /(user-account|user-passphrase|personal-workspaces)\.spec\.ts/,
+                testMatch: /(user-account|user-passphrase|personal-workspaces|authorization-roles)\.spec\.ts/,
                 use: { ...devices["Desktop Chrome"] },
               },
             ]
@@ -65,7 +65,7 @@ export default defineConfig({
               {
                 name: "chromium",
                 testMatch: /\.spec\.ts/,
-                testIgnore: /(user-account|user-passphrase|personal-workspaces)\.spec\.ts/,
+                testIgnore: /(user-account|user-passphrase|personal-workspaces|authorization-roles)\.spec\.ts/,
                 use: { ...devices["Desktop Chrome"] },
               },
             ],

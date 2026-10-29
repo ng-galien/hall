@@ -1,20 +1,27 @@
 ---
 title: "Utilisateurs"
-summary: "Les comptes qui donnent accès à Hall, réservés à l’administrateur."
+summary: "Les comptes qui donnent accès à Hall, leurs quatre rôles et la conduite des séances."
 order: 14
 screen: /users
 ---
 
 L’écran **Utilisateurs** liste les comptes qui permettent d’entrer dans Hall.
-Seul l’administrateur le voit dans le menu.
+L’administrateur et le secrétariat le voient dans le menu ; seul l’administrateur modifie les comptes.
 
 ![La liste des comptes d’Alésia](/app/documentation/captures/ecrans/utilisateurs.png)
 
-Chaque personne a son propre compte, avec un ou plusieurs rôles qui disent ce qu’elle peut faire : **Administrateur**, **Secrétariat**, **Contributeur**, **Conduite de séance**, **Lecteur** ou **Conseiller municipal**.
-Hall n’affiche à chacun que les actions que ses rôles permettent.
+Chaque personne a son propre compte, avec un ou plusieurs rôles qui disent ce qu’elle peut faire. Hall n’affiche à chacun que les actions que ses rôles permettent.
 
-**Créer un utilisateur** demande le nom, l’adresse électronique, un premier mot de passe d’au moins douze caractères, le contact de la personne et ses rôles.
+- **Administrateur** : tout ; seul il crée et modifie les comptes, leurs rôles et leurs phrases de passe.
+- **Secrétariat** : contacts, membres du conseil, commissions et représentations, mandature, réglages de la commune et patrimoine communal, modèles de documents ; préparation des séances, projets de délibération et procès-verbaux ; suppression des affaires, des documents communs et des modèles ; tous les dossiers personnels. Il lit la liste des comptes et le journal d’audit.
+- **Contributeur** : crée et modifie les affaires et les documents de l’espace commun, sans les supprimer.
+- **Conseiller municipal** : crée, modifie et supprime son propre travail dans son dossier personnel, tant que son mandat est en cours.
+
+Tous les comptes actifs lisent tout Hall et exportent les documents. Les rôles Lecteur et Conduite de séance n’existent plus.
+Une séance se conduit avec le compte lié au président ou au secrétaire de cette séance, désignés dans sa préparation ou par une passation, quel que soit le rôle du compte, ou avec le compte de l’administrateur ; les autres comptes suivent la séance sans action de conduite.
+
+**Créer un utilisateur** demande le nom, l’adresse électronique, le contact de la personne, ses rôles et un mot de passe initial : **Générer une phrase de passe** le fait produire par Hall, qui l’affiche une seule fois.
 Le rôle Conseiller municipal se donne à un élu en exercice et lui crée son dossier personnel.
-Sur la fiche d’un compte, l’administrateur change les rôles, remplace le mot de passe oublié ou désactive le compte d’une personne qui n’utilise plus Hall.
+Sur la fiche d’un compte, l’administrateur change les rôles, remplace le mot de passe oublié, révoque l’accès d’un compte ou le réactive, et désactive le compte d’une personne qui n’utilise plus Hall.
 
 Parcours : [Compte et dossier personnel d’un conseiller](/docs/workflows/espace-personnel-conseiller).
