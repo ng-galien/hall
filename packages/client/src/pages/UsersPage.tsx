@@ -16,9 +16,12 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../components/Ui";
+import { GeneratedPassphrase } from "../features/users/GeneratedPassphrase";
 import { UserRoles } from "../features/users/UserRoles";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
+import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
+import { generatePassphrase } from "../services/usersApi";
 import { useContactsStore } from "../stores/contactsStore";
 import { useUsersStore } from "../stores/usersStore";
 
@@ -26,11 +29,15 @@ export function UsersPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { submitting, run } = useSubmitting();
-  const { users, loading, load, create, error, canCreate, clearError } = useUsersStore();
+  const { users, loading, load, create, error, canCreate, canGeneratePassphrase, clearError } = useUsersStore();
   const contacts = useContactsStore((state) => state.contacts);
   const [addOpen, setAddOpen] = useState(false);
   const [roles, setRoles] = useState<ApiRole[]>([]);
   const [contactId, setContactId] = useState("none");
+  const [password, setPassword] = useState("");
+  const [passphrase, setPassphrase] = useState<string | null>(null);
+  const [handedOver, setHandedOver] = useState(false);
+  const [generationError, setGenerationError] = useState<ApiErrorCode | null>(null);
   const { layout, setLayout, query, setQuery } = useCollectionView();
   const fieldId = useId();
   useEffect(() => {
@@ -46,7 +53,7 @@ export function UsersPage() {
       const created = await create({
         displayName: form.get("displayName"),
         email: form.get("email"),
-        password: form.get("password"),
+        password,
         roles,
         contactId: contactId === "none" ? null : contactId,
       });
@@ -103,6 +110,10 @@ export function UsersPage() {
                 clearError();
                 setRoles([]);
                 setContactId("none");
+                setPassword("");
+                setPassphrase(null);
+                setHandedOver(false);
+                setGenerationError(null);
                 setAddOpen(true);
               }}
               data-testid="users-add"
@@ -116,11 +127,14 @@ export function UsersPage() {
           open={addOpen && canCreate}
           title={t("users.add")}
           onClose={() => {
-            if (!submitting) setAddOpen(false);
+            if (submitting) return;
+            setAddOpen(false);
+            setPassword("");
+            setPassphrase(null);
           }}
         >
           <form className="modal-form" onSubmit={submit} data-testid="user-create-form">
-            <RequestErrorBanner error={error} />
+            <RequestErrorBanner error={error ?? generationError} />
             <fieldset disabled={submitting} className="form-grid">
               <div className="grid gap-1.5">
                 <Label htmlFor={`${fieldId}-name`}>{t("users.displayName")}</Label>
@@ -148,7 +162,13 @@ export function UsersPage() {
                 <Input
                   id={`${fieldId}-password`}
                   name="password"
-                  type="password"
+                  type={passphrase ? "text" : "password"}
+                  value={password}
+                  onChange={(event) => {
+                    setPassword(event.currentTarget.value);
+                    setPassphrase(null);
+                    setHandedOver(false);
+                  }}
                   required
                   minLength={12}
                   maxLength={256}
@@ -176,13 +196,47 @@ export function UsersPage() {
                 />
               </div>
             </fieldset>
+            <div className="grid gap-2">
+              {canGeneratePassphrase && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-self-start"
+                  data-testid="passphrase-generate"
+                  onClick={() =>
+                    void generatePassphrase().then(
+                      (generated) => {
+                        setGenerationError(null);
+                        setPassword(generated);
+                        setPassphrase(generated);
+                        setHandedOver(false);
+                      },
+                      (failure) => setGenerationError(apiErrorCode(failure)),
+                    )
+                  }
+                >
+                  {t("users.passphraseGenerate")}
+                </Button>
+              )}
+              {passphrase && (
+                <GeneratedPassphrase
+                  passphrase={passphrase}
+                  handedOver={handedOver}
+                  onHandedOverChange={setHandedOver}
+                />
+              )}
+            </div>
             <UserRoles value={roles} onChange={setRoles} disabled={submitting} />
             {roles.includes("councillor") && (
               <p className="text-sm text-muted-foreground" data-testid="user-councillor-contact-hint">
                 {t("users.councillorContactHint")}
               </p>
             )}
-            <Button type="submit" disabled={submitting || roles.length === 0} data-testid="user-create-submit">
+            <Button
+              type="submit"
+              disabled={submitting || roles.length === 0 || (passphrase !== null && !handedOver)}
+              data-testid="user-create-submit"
+            >
               {t(submitting ? "common.saving" : "common.create")}
             </Button>
           </form>

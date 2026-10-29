@@ -1,6 +1,6 @@
 ---
 title: "Compte et dossier personnel d’un conseiller"
-summary: "Créer le compte d’un élu, lui transmettre ses accès, son dossier dans « Espaces personnels », la reprise d’un document par le secrétariat, la fin de mandat."
+summary: "Créer le compte d’un élu avec une phrase de passe générée par Hall, son dossier dans « Espaces personnels », la reprise d’un document par le secrétariat, la fin de mandat, la révocation et la réactivation de l’accès."
 order: 7
 screen: /users
 ---
@@ -18,11 +18,11 @@ Dans le menu de gauche, cliquer **Utilisateurs**. La page liste les comptes exis
 
 ![La page Utilisateurs](/app/documentation/captures/compte-conseiller/01-utilisateurs.png)
 
-Cliquer **Créer un utilisateur**. Saisir le **Nom affiché**, l’**Adresse e-mail**, un **Mot de passe initial** d’au moins douze caractères, rattacher le contact de l’élu et cocher le rôle **Conseiller municipal**.
+Cliquer **Créer un utilisateur**. Saisir le **Nom affiché** et l’**Adresse e-mail**, rattacher le contact de l’élu et cocher le rôle **Conseiller municipal**. Cliquer **Générer une phrase de passe** : Hall remplit le mot de passe initial avec cinq mots séparés par des tirets, par exemple `lampe-riviere-cheval-nuage-foret`, et l’affiche en clair avec **Copier**. Hall n’affiche cette phrase qu’une seule fois : la noter, puis cocher **J’ai noté la phrase pour la remettre en main propre**. Un mot de passe choisi d’au moins douze caractères peut aussi être saisi à la main.
 
-![Le formulaire de création d’un utilisateur, avec le rôle Conseiller municipal coché](/app/documentation/captures/compte-conseiller/02-creer-un-utilisateur.png)
+![Le formulaire de création d’un utilisateur, avec la phrase de passe générée et le rôle Conseiller municipal coché](/app/documentation/captures/compte-conseiller/02-creer-un-utilisateur.png)
 
-Cliquer **Créer**. La fiche du compte s’ouvre : état, rôles, contact rattaché. Transmettre à l’élu son adresse de connexion et son mot de passe initial par un moyen sûr ; il le change ensuite dans **Paramètres de l’application**, avec **Changer mon mot de passe**.
+Cliquer **Créer**. La fiche du compte s’ouvre : état, rôles, contact rattaché ; la phrase n’y figure plus. Remettre à l’élu son adresse de connexion et sa phrase de passe en main propre ; il peut la changer ensuite dans **Paramètres de l’application**, avec **Changer mon mot de passe**. Si l’élu oublie sa phrase, **Réinitialiser le mot de passe** sur sa fiche propose aussi **Générer une phrase de passe**.
 
 ![La fiche du compte créé](/app/documentation/captures/compte-conseiller/03-compte-cree.png)
 
@@ -41,3 +41,13 @@ Pour qu’un document serve au conseil, le secrétariat ouvre le dossier du cons
 Dans **Membres du conseil**, ouvrir la fiche de l’élu et renseigner la **Fin du mandat**. Le conseiller sort de la composition des séances suivantes ; son compte se désactive depuis sa fiche **Utilisateurs**.
 
 ![La fiche d’un membre du conseil, avec la fin du mandat](/app/documentation/captures/compte-conseiller/05-fin-de-mandat.png)
+
+## 6. Révoquer et réactiver l’accès
+
+Si la phrase de passe d’un élu a été perdue ou divulguée, ouvrir sa fiche dans **Utilisateurs** avec un compte administrateur et cliquer **Révoquer l’accès**, puis confirmer. Le compte passe à **Désactivé** et ses sessions sont fermées : un navigateur resté connecté est déconnecté à sa prochaine action. Le journal d’audit garde la révocation comme motif de la désactivation.
+
+![La confirmation de la révocation de l’accès](/app/documentation/captures/compte-conseiller/06-revoquer-l-acces.png)
+
+Pour rendre l’accès, cliquer **Réactiver** sur la fiche du compte désactivé. Hall génère une nouvelle phrase de passe et l’affiche une seule fois ; l’ancienne ne fonctionne plus. Noter la phrase, cocher **J’ai noté la phrase pour la remettre en main propre**, puis **Fermer**, et la remettre à l’élu.
+
+![La nouvelle phrase de passe affichée à la réactivation](/app/documentation/captures/compte-conseiller/07-reactiver.png)

@@ -5,6 +5,7 @@ import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { UnitOfWork } from "../repositories/contracts.js";
 import type { SecurityRepository, StoredUser } from "../repositories/securityRepository.js";
 import { permissionsForRoles, principalForUser } from "../security/authorization.js";
+import { generatePassphrase } from "../security/passphrase.js";
 import { hashPassword, verifyPassword } from "../security/password.js";
 import type { RequestContextStore } from "../security/requestContext.js";
 import { DomainError } from "./errors.js";
@@ -56,6 +57,7 @@ export interface AuthService {
   changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void>;
   resetPassword(userId: string, newPassword: string): Promise<void>;
   disableUser(userId: string): Promise<ApiUser>;
+  reactivateUser(userId: string): Promise<{ user: ApiUser; passphrase: string }>;
   endCouncillorAccess(contactId: string): Promise<void>;
 }
 
@@ -63,6 +65,7 @@ export interface AuthService {
 // ordered to fail on the safe side: the idempotent folder is provisioned first, then the role is recorded; a retry
 // reuses the folder. PostgreSQL refuses a contact without an active mandate.)
 // @implements-requirement HALL-FR-DIR-160 (endCouncillorAccess)
+// @implements-requirement HALL-FR-USR-020 (reactivateUser; the revocation is disableUser, audited as user.revoke-access)
 export function createAuthService({
   securityRepository,
   directoryClient,
@@ -221,6 +224,19 @@ export function createAuthService({
           throw error;
         });
       }
+    },
+    async reactivateUser(userId) {
+      const target = await securityRepository.findUserById(userId);
+      if (!target) throw new DomainError("user_not_found", 404);
+      if (target.status !== "disabled") throw new DomainError("conflict", 409);
+      await provisionCouncillor(target.roles, target.contactId);
+      const passphrase = generatePassphrase();
+      const passwordHash = await hashPassword(passphrase);
+      return unitOfWork.execute(async () => {
+        const reactivated = await securityRepository.reactivateUser(userId, passwordHash);
+        if (!reactivated) throw new DomainError("conflict", 409);
+        return { user: await publicUserWithProtection(reactivated, securityRepository), passphrase };
+      });
     },
     disableUser(userId) {
       return unitOfWork.execute(async () => {

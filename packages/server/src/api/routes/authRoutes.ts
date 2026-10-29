@@ -11,9 +11,11 @@ import {
   updateUserSchema,
 } from "@hall/api-contract";
 import { type Request, Router } from "express";
+import { z } from "zod";
 import { isLoopbackHost } from "../../core/config.js";
 import type { Cradle } from "../../core/container.js";
 import { hasPermission, requirePermission } from "../../security/authorization.js";
+import { generatePassphrase } from "../../security/passphrase.js";
 import { principalForSession, SESSION_COOKIE_NAME } from "../../services/authService.js";
 import { DomainError } from "../../services/errors.js";
 import { isForwarded, requireAuthentication } from "../accessControl.js";
@@ -236,6 +238,13 @@ export function createUsersRouter({ authService }: Cradle): Router {
   router.get("/", requirePermission("users.manage"), async (_request, response) =>
     response.json(await authService.listUsers()),
   );
+  router.post("/passphrases", requireActionPermission("user.generate-passphrase"), async (request, response) => {
+    z.object({})
+      .strict()
+      .parse(request.body ?? {});
+    response.set("Cache-Control", "no-store");
+    response.json({ passphrase: generatePassphrase() });
+  });
   router.post("/", requireActionPermission("user.create"), async (request, response) => {
     response.status(201).json(await authService.createUser(createUserSchema.parse(request.body)));
   });
@@ -255,6 +264,14 @@ export function createUsersRouter({ authService }: Cradle): Router {
   });
   router.post("/:userId/disable", requireActionPermission("user.disable"), async (request, response) => {
     response.json(await authService.disableUser(routeParameter(request.params.userId)));
+  });
+  router.post("/:userId/revoke-access", requireActionPermission("user.revoke-access"), async (request, response) => {
+    response.json(await authService.disableUser(routeParameter(request.params.userId)));
+  });
+  router.post("/:userId/reactivate", requireActionPermission("user.reactivate"), async (request, response) => {
+    const { user, passphrase } = await authService.reactivateUser(routeParameter(request.params.userId));
+    response.set("Cache-Control", "no-store");
+    response.json({ ...user, passphrase });
   });
   return router;
 }

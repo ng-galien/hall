@@ -148,7 +148,19 @@ const actionsByPermissions = [
       "ballot.confirm",
     ],
   ],
-  [["users.manage"], ["user.create", "user.disable", "user.assign-role", "user.update", "user.reset-password"]],
+  [
+    ["users.manage"],
+    [
+      "user.create",
+      "user.disable",
+      "user.revoke-access",
+      "user.reactivate",
+      "user.generate-passphrase",
+      "user.assign-role",
+      "user.update",
+      "user.reset-password",
+    ],
+  ],
   [["settings.manage"], ["council-term.configure", "settings.update"]],
 ] as const satisfies readonly (readonly [readonly ApiPermission[], readonly ApiActionName[]])[];
 
@@ -595,6 +607,9 @@ const auditCases = [
   ["POST", "/api/users", { roles: ["reader"], contactId: "member-1" }, "user.create", "user", null],
   ["PUT", "/api/users/user-1/roles", { roles: ["reader"] }, "user.assign-role", "user", "user-1"],
   ["POST", "/api/users/user-1/disable", undefined, "user.disable", "user", "user-1"],
+  ["POST", "/api/users/user-1/revoke-access", undefined, "user.revoke-access", "user", "user-1"],
+  ["POST", "/api/users/user-1/reactivate", undefined, "user.reactivate", "user", "user-1"],
+  ["POST", "/api/users/passphrases", undefined, "user.generate-passphrase", "user", undefined],
   ["PUT", "/api/settings", undefined, "settings.update", "hall-settings", "hall"],
   ["POST", "/api/templates", undefined, "template.create", "template", undefined],
   ["POST", "/api/templates/preview", undefined, "template.preview", "template", undefined],

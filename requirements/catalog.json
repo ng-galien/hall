@@ -78,7 +78,8 @@
       "DST": "quality",
       "LIV": "quality",
       "DSK": "quality",
-      "LAY": "quality"
+      "LAY": "quality",
+      "USR": "municipality"
     },
     "requirementThemes": {}
   },
@@ -9869,6 +9870,74 @@
           "key": "template-type",
           "origin": "product",
           "statement": "« Nouveau modèle » propose le type « Liste des délibérations » quand il n’a pas de modèle, avec un texte de départ qui contient la directive ::deliberation-list.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-USR-010": {
+      "name": "GENERATED_PASSPHRASE_SHOWN_ONCE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-29"
+      },
+      "statement": "Hall génère pour un compte une phrase de passe de cinq mots à tirets, affichée une seule fois à l’administrateur qui la remet en main propre.",
+      "acceptanceCriteria": [
+        "Le formulaire de création d’un compte et la réinitialisation du mot de passe par un administrateur proposent « Générer une phrase de passe » : Hall tire cinq mots français courants sans accent, en minuscules, d’une liste d’au moins 1 024 mots, avec un générateur cryptographique, et les joint par des tirets.",
+        "La phrase s’affiche une seule fois, en clair, avec « Copier » ; Créer ou Réinitialiser ne s’activent qu’après la case « J’ai noté la phrase pour la remettre en main propre » ; elle n’est plus lisible après la fermeture du formulaire.",
+        "La phrase n’est ni enregistrée en clair ni écrite au journal d’audit ; la réponse qui la porte n’est pas mise en cache ; la saisie d’un mot de passe choisi reste possible."
+      ],
+      "clauses": [
+        {
+          "key": "criterion-1",
+          "origin": "product",
+          "statement": "Le formulaire de création d’un compte et la réinitialisation du mot de passe par un administrateur proposent « Générer une phrase de passe » : Hall tire cinq mots français courants sans accent, en minuscules, d’une liste d’au moins 1 024 mots, avec un générateur cryptographique, et les joint par des tirets. Décision du propriétaire du 25 octobre 2026 (hall-accounts-activation-mail, message 4998) : phrases de passe longues à tirets générées par Hall, remises à la main, révocables et regénérables.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-2",
+          "origin": "product",
+          "statement": "La phrase s’affiche une seule fois, en clair, avec « Copier » ; Créer ou Réinitialiser ne s’activent qu’après la case « J’ai noté la phrase pour la remettre en main propre » ; elle n’est plus lisible après la fermeture du formulaire.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-3",
+          "origin": "product",
+          "statement": "La phrase n’est ni enregistrée en clair ni écrite au journal d’audit ; la réponse qui la porte n’est pas mise en cache ; la saisie d’un mot de passe choisi reste possible.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-USR-020": {
+      "name": "ACCESS_REVOCATION_AND_REACTIVATION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-29"
+      },
+      "statement": "Révoquer l’accès désactive le compte et ferme ses sessions ; la réactivation le rend actif avec une nouvelle phrase de passe affichée une seule fois.",
+      "acceptanceCriteria": [
+        "« Révoquer l’accès » désactive le compte et supprime ses sessions : une session ouverte dans un autre navigateur est refusée à sa prochaine requête et aucune connexion n’est possible ; la liste montre « Désactivé ».",
+        "Le journal d’audit enregistre l’action user.revoke-access, distincte de user.disable, comme motif de la désactivation ; le dernier administrateur actif ne peut pas être révoqué.",
+        "« Réactiver » rend actif un compte désactivé avec une nouvelle phrase de passe générée par Hall, affichée une seule fois avec « Copier » et la confirmation de remise ; l’ancienne ne connecte plus ; un compte de conseiller exige toujours un mandat actif."
+      ],
+      "clauses": [
+        {
+          "key": "criterion-1",
+          "origin": "product",
+          "statement": "« Révoquer l’accès » désactive le compte et supprime ses sessions : une session ouverte dans un autre navigateur est refusée à sa prochaine requête et aucune connexion n’est possible ; la liste montre « Désactivé ». Décision du 29 octobre 2026 (c6de82d1) : aucun état nouveau ; révoquer l’accès désactive le compte et ferme ses sessions ; la réactivation regénère une phrase affichée une fois ; la liste montre « Désactivé » ; le journal d’audit garde le motif.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-2",
+          "origin": "product",
+          "statement": "Le journal d’audit enregistre l’action user.revoke-access, distincte de user.disable, comme motif de la désactivation ; le dernier administrateur actif ne peut pas être révoqué.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-3",
+          "origin": "product",
+          "statement": "« Réactiver » rend actif un compte désactivé avec une nouvelle phrase de passe générée par Hall, affichée une seule fois avec « Copier » et la confirmation de remise ; l’ancienne ne connecte plus ; un compte de conseiller exige toujours un mandat actif.",
           "sourceIds": []
         }
       ]

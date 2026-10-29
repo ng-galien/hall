@@ -38,3 +38,23 @@ export async function resetUserPassword(id: string, newPassword: string): Promis
   await submitSirenAction(user.representation, "user.reset-password", { newPassword });
   if (session.id === id) window.dispatchEvent(new Event(AUTHENTICATION_REQUIRED_EVENT));
 }
+
+export const generatePassphrase = () =>
+  submitSirenActionAt<{ passphrase: string }>("/users", "user.generate-passphrase", {}).then(
+    (result) => result.data.passphrase,
+  );
+
+export const revokeUserAccess = (id: string) =>
+  getUserSiren(id).then(({ representation }) => {
+    if (!representation) throw new Error("Missing user Siren representation");
+    return submitSirenAction<ApiUser>(representation, "user.revoke-access", {}).then((result) => {
+      window.dispatchEvent(new Event(USER_ACCESS_CHANGED_EVENT));
+      return result;
+    });
+  });
+
+export const reactivateUser = (id: string) =>
+  getUserSiren(id).then(({ representation }) => {
+    if (!representation) throw new Error("Missing user Siren representation");
+    return submitSirenAction<ApiUser & { passphrase: string }>(representation, "user.reactivate", {});
+  });

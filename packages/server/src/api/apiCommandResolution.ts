@@ -230,6 +230,7 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method === "PUT" && id && !child) return auditIntent("user.update", id, body && { contactId: body.contactId });
     if (method === "POST" && id && child === "reset-password" && !childId)
       return auditIntent("user.reset-password", id);
+    if (method === "POST" && id === "passphrases" && !child) return auditIntent("user.generate-passphrase");
     if (method === "POST" && !id)
       return auditIntent(
         "user.create",
@@ -242,6 +243,8 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method === "PUT" && id && child === "roles" && !childId)
       return auditIntent("user.assign-role", id, body && { roles: Array.isArray(body.roles) ? body.roles : undefined });
     if (method === "POST" && id && child === "disable" && !childId) return auditIntent("user.disable", id);
+    if (method === "POST" && id && child === "revoke-access" && !childId) return auditIntent("user.revoke-access", id);
+    if (method === "POST" && id && child === "reactivate" && !childId) return auditIntent("user.reactivate", id);
     return null;
   }
   if (root === "settings") return method === "PUT" && !id ? auditIntent("settings.update", "hall") : null;

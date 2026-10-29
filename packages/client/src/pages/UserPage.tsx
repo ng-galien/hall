@@ -7,12 +7,13 @@ import { Label } from "@/components/ui/label";
 import { DeleteIcon, EditIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { GeneratedPassphrase } from "../features/users/GeneratedPassphrase";
 import { PasswordDialog } from "../features/users/PasswordDialog";
 import { UserRoles } from "../features/users/UserRoles";
 import { useUserIdentity } from "../features/users/useUserIdentity";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
-import { resetUserPassword } from "../services/usersApi";
+import { generatePassphrase, resetUserPassword } from "../services/usersApi";
 import { useContactsStore } from "../stores/contactsStore";
 import { useUsersStore } from "../stores/usersStore";
 
@@ -28,8 +29,12 @@ export function UserPage() {
     canAssignRoles,
     canResetPassword,
     canDisable,
+    canRevokeAccess,
+    canReactivate,
     assignRoles,
     disable,
+    revokeAccess,
+    reactivate,
     clearError,
   } = useUsersStore();
   const { submitting, run } = useSubmitting();
@@ -37,6 +42,9 @@ export function UserPage() {
   const [passwordReset, setPasswordReset] = useState(false);
   const [rolesOpen, setRolesOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
+  const [revokeOpen, setRevokeOpen] = useState(false);
+  const [reactivatedPassphrase, setReactivatedPassphrase] = useState<string | null>(null);
+  const [handedOver, setHandedOver] = useState(false);
   const [roles, setRoles] = useState<ApiRole[]>([]);
   const fieldId = useId();
   const user = users.find((entry) => entry.id === userId);
@@ -66,7 +74,7 @@ export function UserPage() {
     <div className="page">
       <PageHeader title={user?.displayName ?? t("users.title")} description={t("users.detailDescription")} />
       <div className="page-content admin-detail-page">
-        {!rolesOpen && !disableOpen && <RequestErrorBanner error={error} />}
+        {!rolesOpen && !disableOpen && !revokeOpen && <RequestErrorBanner error={error} />}
         {loading ? (
           <EmptyState>{t("common.loading")}</EmptyState>
         ) : !user ? (
@@ -215,6 +223,53 @@ export function UserPage() {
                 )}
               </section>
             )}
+            {canReactivate[userId] && (
+              <section className="admin-record" aria-labelledby={`${fieldId}-reactivate`}>
+                <div className="admin-section-heading">
+                  <div>
+                    <h2 id={`${fieldId}-reactivate`}>{t("users.reactivate")}</h2>
+                    <p>{t("users.reactivateDescription")}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    disabled={submitting}
+                    data-testid="user-reactivate"
+                    onClick={() =>
+                      void run(async () => {
+                        clearError();
+                        const generated = await reactivate(userId);
+                        if (generated) {
+                          setHandedOver(false);
+                          setReactivatedPassphrase(generated);
+                        }
+                        return Boolean(generated);
+                      })
+                    }
+                  >
+                    {t("users.reactivate")}
+                  </Button>
+                </div>
+              </section>
+            )}
+            {canRevokeAccess[userId] && (
+              <div className="admin-danger-zone">
+                <div>
+                  <strong>{t("users.revokeAccess")}</strong>
+                  <p>{t("users.revokeAccessDescription")}</p>
+                </div>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    if (!(await flush())) return;
+                    clearError();
+                    setRevokeOpen(true);
+                  }}
+                  data-testid="user-revoke-access"
+                >
+                  {t("users.revokeAccess")}
+                </Button>
+              </div>
+            )}
             {canDisable[userId] && (
               <div className="admin-danger-zone">
                 <div>
@@ -240,6 +295,7 @@ export function UserPage() {
         {passwordOpen && (
           <PasswordDialog
             title={t("users.resetPassword")}
+            onGenerate={generatePassphrase}
             onClose={() => setPasswordOpen(false)}
             onSubmit={async ({ newPassword }) => {
               if (!(await flush())) throw new Error("Pending identity update failed");
@@ -292,6 +348,57 @@ export function UserPage() {
               }
             >
               {t(submitting ? "common.saving" : "users.disable")}
+            </Button>
+          </div>
+        </Modal>
+        <Modal
+          open={revokeOpen}
+          title={t("users.revokeAccess")}
+          onClose={() => {
+            if (!submitting) setRevokeOpen(false);
+          }}
+        >
+          <div className="modal-form">
+            <RequestErrorBanner error={error} />
+            <p>{t("users.revokeAccessConfirm", { name: user?.displayName ?? "" })}</p>
+            <Button
+              variant="destructive"
+              disabled={submitting}
+              data-testid="user-revoke-access-confirm"
+              onClick={() =>
+                void run(async () => {
+                  if (!(await flush())) return false;
+                  const saved = await revokeAccess(userId);
+                  if (saved) setRevokeOpen(false);
+                  return saved;
+                })
+              }
+            >
+              {t(submitting ? "common.saving" : "users.revokeAccess")}
+            </Button>
+          </div>
+        </Modal>
+        <Modal
+          open={reactivatedPassphrase !== null}
+          title={t("users.reactivated")}
+          onClose={() => {
+            if (handedOver) setReactivatedPassphrase(null);
+          }}
+        >
+          <div className="modal-form" data-testid="user-reactivated">
+            {reactivatedPassphrase && (
+              <GeneratedPassphrase
+                passphrase={reactivatedPassphrase}
+                handedOver={handedOver}
+                onHandedOverChange={setHandedOver}
+              />
+            )}
+            <Button
+              disabled={!handedOver}
+              data-testid="user-reactivated-close"
+              onClick={() => setReactivatedPassphrase(null)}
+            >
+              {t("common.close")}
             </Button>
           </div>
         </Modal>

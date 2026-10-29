@@ -136,6 +136,17 @@ export function createSecurityRepository({ sqlExecutor }: { sqlExecutor: SqlExec
       if (result.changes !== 0) await sqlExecutor.run("security.deleteSessionsForUser", { userId: id });
       return result.changes !== 0;
     },
+    reactivateUser(id: string, passwordHash: string) {
+      return sqlExecutor.execute(async () => {
+        const result = await sqlExecutor.run("security.reactivateUser", {
+          id,
+          passwordHash,
+          updatedAt: new Date().toISOString(),
+        });
+        if (result.changes === 0) return null;
+        return mapUser(sqlExecutor, (await sqlExecutor.get("security.findUserById", { value: id }))!);
+      });
+    },
     disableUser(id: string) {
       return sqlExecutor.execute(async () => {
         const result = await sqlExecutor.run("security.disableUser", { id, updatedAt: new Date().toISOString() });

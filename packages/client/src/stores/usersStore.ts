@@ -12,12 +12,17 @@ interface UsersState {
   canAssignRoles: Record<string, boolean>;
   canResetPassword: Record<string, boolean>;
   canDisable: Record<string, boolean>;
+  canRevokeAccess: Record<string, boolean>;
+  canReactivate: Record<string, boolean>;
+  canGeneratePassphrase: boolean;
   load(): Promise<void>;
   loadDetail(id: string): Promise<void>;
   create(input: Record<string, unknown>): Promise<ApiUser | null>;
   update(id: string, input: Record<string, unknown>): Promise<ApiUser | null>;
   assignRoles(id: string, roles: ApiRole[]): Promise<boolean>;
   disable(id: string): Promise<boolean>;
+  revokeAccess(id: string): Promise<boolean>;
+  reactivate(id: string): Promise<string | null>;
   clearError(): void;
 }
 
@@ -43,6 +48,16 @@ export const useUsersStore = create<UsersState>((set, get) => {
         ...state.canDisable,
         [result.data.id]: Boolean(result.representation && findSirenAction(result.representation, "user.disable")),
       },
+      canRevokeAccess: {
+        ...state.canRevokeAccess,
+        [result.data.id]: Boolean(
+          result.representation && findSirenAction(result.representation, "user.revoke-access"),
+        ),
+      },
+      canReactivate: {
+        ...state.canReactivate,
+        [result.data.id]: Boolean(result.representation && findSirenAction(result.representation, "user.reactivate")),
+      },
     }));
   const mutate = async (operation: () => Promise<SirenApiResult<ApiUser>>) => {
     set({ error: null });
@@ -63,6 +78,9 @@ export const useUsersStore = create<UsersState>((set, get) => {
     canAssignRoles: {},
     canResetPassword: {},
     canDisable: {},
+    canRevokeAccess: {},
+    canReactivate: {},
+    canGeneratePassphrase: false,
     clearError: () => set({ error: null }),
     async load() {
       set({
@@ -74,12 +92,18 @@ export const useUsersStore = create<UsersState>((set, get) => {
         canAssignRoles: {},
         canResetPassword: {},
         canDisable: {},
+        canRevokeAccess: {},
+        canReactivate: {},
+        canGeneratePassphrase: false,
       });
       try {
         const result = await api.listUsersSiren();
         set({
           users: result.data,
           canCreate: Boolean(result.representation && findSirenAction(result.representation, "user.create")),
+          canGeneratePassphrase: Boolean(
+            result.representation && findSirenAction(result.representation, "user.generate-passphrase"),
+          ),
         });
       } catch (error) {
         set({ error: apiErrorCode(error) });
@@ -96,6 +120,8 @@ export const useUsersStore = create<UsersState>((set, get) => {
         canAssignRoles: {},
         canResetPassword: {},
         canDisable: {},
+        canRevokeAccess: {},
+        canReactivate: {},
       });
       try {
         accept(await api.getUserSiren(id));
@@ -129,5 +155,18 @@ export const useUsersStore = create<UsersState>((set, get) => {
     },
     assignRoles: (id, roles) => mutate(() => api.assignUserRoles(id, roles)),
     disable: (id) => mutate(() => api.disableUser(id)),
+    revokeAccess: (id) => mutate(() => api.revokeUserAccess(id)),
+    async reactivate(id) {
+      set({ error: null });
+      try {
+        const result = await api.reactivateUser(id);
+        const { passphrase, ...user } = result.data;
+        accept({ ...result, data: user });
+        return passphrase;
+      } catch (error) {
+        set({ error: apiErrorCode(error) });
+        return null;
+      }
+    },
   };
 });

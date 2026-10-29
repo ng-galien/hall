@@ -59,6 +59,8 @@ export const queries = {
     WHERE id=:id AND password_hash=:previousHash`,
   "security.deleteRoles": "DELETE FROM user_roles WHERE user_id = :userId",
   "security.disableUser": `UPDATE users SET status = 'disabled', updated_at = :updatedAt WHERE id = :id`,
+  "security.reactivateUser": `UPDATE users SET status = 'active', password_hash = :passwordHash, updated_at = :updatedAt
+    WHERE id = :id AND status = 'disabled'`,
   "security.deleteSessionsForUser": "DELETE FROM sessions WHERE user_id = :userId",
   "security.insertSession": `INSERT INTO sessions (id, user_id, token_hash, created_at, expires_at)
     VALUES (:id, :userId, :tokenHash, :createdAt, :expiresAt)`,

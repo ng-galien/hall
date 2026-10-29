@@ -6,15 +6,18 @@ import { Label } from "../../components/ui/label";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import { GeneratedPassphrase } from "./GeneratedPassphrase";
 
 export function PasswordDialog({
   title,
   requireCurrent = false,
+  onGenerate,
   onClose,
   onSubmit,
 }: {
   title: string;
   requireCurrent?: boolean;
+  onGenerate?(): Promise<string>;
   onClose(): void;
   onSubmit(input: { currentPassword: string; newPassword: string }): Promise<void>;
 }) {
@@ -26,6 +29,13 @@ export function PasswordDialog({
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const [mismatch, setMismatch] = useState(false);
+  const [passphrase, setPassphrase] = useState<string | null>(null);
+  const [handedOver, setHandedOver] = useState(false);
+  const typed = (setter: (value: string) => void) => (value: string) => {
+    setter(value);
+    setPassphrase(null);
+    setHandedOver(false);
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -76,19 +86,43 @@ export function PasswordDialog({
             <Label htmlFor={`${id}-new`}>{t("users.newPassword")}</Label>
             <Input
               id={`${id}-new`}
-              type="password"
               autoComplete="new-password"
               required
               minLength={12}
               maxLength={256}
+              type={passphrase ? "text" : "password"}
               value={newPassword}
-              onChange={(event) => setNewPassword(event.currentTarget.value)}
+              onChange={(event) => typed(setNewPassword)(event.currentTarget.value)}
               aria-describedby={`${id}-hint`}
               data-testid="password-new"
             />
             <p className="text-sm text-muted-foreground" id={`${id}-hint`}>
               {t("users.passwordHint")}
             </p>
+            {onGenerate && (
+              <Button
+                type="button"
+                variant="outline"
+                data-testid="passphrase-generate"
+                onClick={() =>
+                  void onGenerate().then(
+                    (generated) => {
+                      setError(null);
+                      setNewPassword(generated);
+                      setConfirmation(generated);
+                      setPassphrase(generated);
+                      setHandedOver(false);
+                    },
+                    (failure) => setError(apiErrorCode(failure)),
+                  )
+                }
+              >
+                {t("users.passphraseGenerate")}
+              </Button>
+            )}
+            {passphrase && (
+              <GeneratedPassphrase passphrase={passphrase} handedOver={handedOver} onHandedOverChange={setHandedOver} />
+            )}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-confirmation`}>{t("users.confirmPassword")}</Label>
@@ -98,7 +132,7 @@ export function PasswordDialog({
               autoComplete="new-password"
               required
               value={confirmation}
-              onChange={(event) => setConfirmation(event.currentTarget.value)}
+              onChange={(event) => typed(setConfirmation)(event.currentTarget.value)}
               aria-invalid={mismatch}
               data-testid="password-confirmation"
             />
@@ -109,7 +143,11 @@ export function PasswordDialog({
             {t("users.passwordMismatch")}
           </p>
         )}
-        <Button type="submit" disabled={submitting} data-testid="password-submit">
+        <Button
+          type="submit"
+          disabled={submitting || (passphrase !== null && !handedOver)}
+          data-testid="password-submit"
+        >
           {t(submitting ? "common.saving" : "users.confirmPasswordChange")}
         </Button>
       </form>

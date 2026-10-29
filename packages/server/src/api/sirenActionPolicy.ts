@@ -333,7 +333,10 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
     "template-preview": () => [],
     "template-reference": () => [],
     user: () =>
-      canExecuteAction(request, "user.create") ? [action("user.create", "POST", "/api/users", "Create a user")] : [],
+      authorizedActions(request, [
+        action("user.create", "POST", "/api/users", "Create a user"),
+        action("user.generate-passphrase", "POST", "/api/users/passphrases", "Generate a passphrase"),
+      ]),
   });
 }
 
@@ -793,6 +796,12 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
       ];
       if (!primary?.protectedFromDisable && primary?.status === "active") {
         actions.push(action("user.disable", "POST", `/api/users/${id}/disable`, "Disable the user"));
+        actions.push(action("user.revoke-access", "POST", `/api/users/${id}/revoke-access`, "Revoke the access"));
+      }
+      if (primary?.status === "disabled") {
+        actions.push(
+          action("user.reactivate", "POST", `/api/users/${id}/reactivate`, "Reactivate with a new passphrase"),
+        );
       }
       return authorizedActions(request, actions);
     },
