@@ -4,21 +4,21 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 import { JSDOM } from "jsdom";
-import { act, createElement, useEffect, useState } from "react";
+import { act, createElement, useCallback, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { test } from "vitest";
 
 const clientRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 // @verifies-requirement HALL-FR-MTG-320
-test("a passive reader returns to the current item after meeting events while the conductor keeps its selection", async () => {
+test("a passive reader keeps its choice until a meeting event or a reconnection, while the conductor keeps its selection", async () => {
   const temporary = mkdtempSync(join(clientRoot, ".tmp-meeting-live-follow-"));
   const entry = join(temporary, "entry.ts");
   const output = join(temporary, "entry.mjs");
   writeFileSync(
     entry,
     `export { useConductAgendaSelection } from ${JSON.stringify(join(clientRoot, "src/pages/council-meetings/live/useConductAgendaSelection.ts"))};\n` +
-      `export { subscribeLiveUpdates } from ${JSON.stringify(join(clientRoot, "src/services/liveUpdates.ts"))};\n`,
+      `export { useMeetingLiveRevision } from ${JSON.stringify(join(clientRoot, "src/hooks/useMeetingLiveRevision.ts"))};\n`,
   );
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: "http://localhost/app/" });
   const globals = ["window", "document", "WebSocket", "HTMLElement", "Event", "IS_REACT_ACT_ENVIRONMENT"];
@@ -67,19 +67,16 @@ test("a passive reader returns to the current item after meeting events while th
       packages: "external",
       logLevel: "silent",
     });
-    const { useConductAgendaSelection, subscribeLiveUpdates } = await import(pathToFileURL(output).href);
+    const { useConductAgendaSelection, useMeetingLiveRevision } = await import(pathToFileURL(output).href);
     function MeetingView({ conducts }) {
       const [items, setItems] = useState(canonicalItems);
-      const [liveRevision, setLiveRevision] = useState(0);
-      const selection = useConductAgendaSelection(items, liveRevision, { conducts });
-      useEffect(() => {
-        const reread = () => {
-          reads += 1;
-          setItems(canonicalItems);
-          setLiveRevision((revision) => revision + 1);
-        };
-        return subscribeLiveUpdates({ kind: "meeting", id: meetingId }, reread, reread);
+      const load = useCallback(async () => {
+        reads += 1;
+        setItems(canonicalItems);
+        return true;
       }, []);
+      const liveRevision = useMeetingLiveRevision(meetingId, load);
+      const selection = useConductAgendaSelection(items, liveRevision, { conducts });
       return createElement(
         "div",
         null,
@@ -90,12 +87,31 @@ test("a passive reader returns to the current item after meeting events while th
         ),
         createElement(
           "button",
-          { type: "button", "data-testid": "choose-a", onClick: () => selection.setSelectedItemId(itemA.id) },
+          { type: "button", "data-testid": "choose-opening", onClick: () => selection.setOpeningSelected(true) },
+          "Opening",
+        ),
+        createElement(
+          "button",
+          {
+            type: "button",
+            "data-testid": "choose-a",
+            onClick: () => {
+              selection.setOpeningSelected(false);
+              selection.setSelectedItemId(itemA.id);
+            },
+          },
           "A",
         ),
         createElement(
           "button",
-          { type: "button", "data-testid": "choose-b", onClick: () => selection.setSelectedItemId(itemB.id) },
+          {
+            type: "button",
+            "data-testid": "choose-b",
+            onClick: () => {
+              selection.setOpeningSelected(false);
+              selection.setSelectedItemId(itemB.id);
+            },
+          },
           "B",
         ),
       );
@@ -107,8 +123,11 @@ test("a passive reader returns to the current item after meeting events while th
       act(async () => dom.window.document.querySelector(`[data-testid="choose-${name}"]`).click());
     assert.equal(sockets.length, 1);
     assert.equal(new URL(sockets[0].url).searchParams.get("id"), meetingId);
-    await act(async () => sockets[0].emit("open"));
     assert.equal(selected(), itemA.id);
+    await choose("opening");
+    await act(async () => sockets[0].emit("open"));
+    assert.equal(reads, 1, "the first connection rereads the canonical server state");
+    assert.equal(selected(), "opening", "the first connection keeps the step the reader chose before it");
     await choose("b");
     assert.equal(selected(), itemB.id, "the reader can navigate between conduct signals");
     await choose("a");

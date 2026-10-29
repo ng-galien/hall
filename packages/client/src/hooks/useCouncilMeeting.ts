@@ -48,7 +48,6 @@ import {
   startMeetingAgendaItem,
   updateMeetingAgendaItemNotes,
 } from "../services/councilMeetingsApi";
-import { subscribeLiveUpdates } from "../services/liveUpdates";
 import {
   correctMeetingAuxiliaryAttendance,
   declareMeetingAuxiliaryAttendance,
@@ -64,6 +63,7 @@ import { freezeMeetingAgenda, reopenMeetingAgenda } from "../services/meetingNot
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
+import { useMeetingLiveRevision } from "./useMeetingLiveRevision";
 
 type LiveActionName = ApiActionName | "meeting.set-officers" | "ballot.record";
 
@@ -94,7 +94,6 @@ export function useCouncilMeeting(meetingReference: string) {
   const [representations, setRepresentations] = useState<SirenEntity<Record<string, unknown>>[]>([]);
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
-  const [liveRevision, setLiveRevision] = useState(0);
   const [ballotVotes, setBallotVotes] = useState<ReadonlyMap<string, Awaited<ReturnType<typeof listBallotVotes>>>>(
     new Map(),
   );
@@ -207,24 +206,7 @@ export function useCouncilMeeting(meetingReference: string) {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (!workspace?.meeting.id) return;
-    let active = true;
-    const refreshFromStream = () => {
-      void load().then((refreshed) => {
-        if (active && refreshed) setLiveRevision((revision) => revision + 1);
-      });
-    };
-    const unsubscribe = subscribeLiveUpdates(
-      { kind: "meeting", id: workspace.meeting.id },
-      refreshFromStream,
-      refreshFromStream,
-    );
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [load, workspace?.meeting.id]);
+  const liveRevision = useMeetingLiveRevision(workspace?.meeting.id, load);
 
   async function mutate(action: () => Promise<unknown>): Promise<boolean> {
     setActionError(null);
