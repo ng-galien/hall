@@ -29,4 +29,3 @@ export function createPostgresAuthorizationClient({
     allowedActions: async (target = null) => new Set(await postgresAuthorization.allowedActions(request(), target)),
   };
 }
-

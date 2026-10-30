@@ -20,6 +20,7 @@ import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import { createSqlExecutor } from "../infrastructure/database/factory.js";
 import { createMarkdownDocumentPreviewConverter } from "../infrastructure/documents/markdownDocumentPreviewConverter.js";
 import { createLegifranceProvider } from "../infrastructure/legal/legifranceProvider.js";
+import { createPostgresAuthorizationClient } from "../infrastructure/postgres/authorizationClient.js";
 import { createPostgresCouncilClient } from "../infrastructure/postgres/councilClient.js";
 import { createPostgresCouncilDecisionClient } from "../infrastructure/postgres/councilDecisionClient.js";
 import { createPostgresDirectoryClient } from "../infrastructure/postgres/directoryClient.js";
@@ -32,7 +33,6 @@ import { createContentTemplateRepository } from "../repositories/contentTemplate
 import type { ContentTemplateRepository, HallSettingsRepository, UnitOfWork } from "../repositories/contracts.js";
 import { createHallSettingsRepository } from "../repositories/hallSettingsRepository.js";
 import { createSecurityRepository, type SecurityRepository } from "../repositories/securityRepository.js";
-import { createPostgresAuthorizationClient } from "../infrastructure/postgres/authorizationClient.js";
 import type { AuthorizationClient } from "../security/authorization.js";
 import { RequestContextStore } from "../security/requestContext.js";
 import { type AuthService, createAuthService } from "../services/authService.js";
