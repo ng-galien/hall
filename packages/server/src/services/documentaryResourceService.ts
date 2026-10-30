@@ -123,9 +123,6 @@ function verificationDueAt(fetchedAt: string): string {
   return new Date(Date.parse(fetchedAt) + 24 * 60 * 60 * 1000).toISOString();
 }
 
-// @implements-requirement HALL-FR-DOC-280
-// @implements-requirement HALL-FR-DOC-230
-// @implements-requirement HALL-FR-WSP-380 (personalWorkspace)
 const maximumNameNumber = 100;
 
 const takenNameConstraints = new Set([
@@ -144,6 +141,9 @@ export function numberedName(name: string, number: number) {
   return dot > 0 ? `${name.slice(0, dot)} (${number})${name.slice(dot)}` : `${name} (${number})`;
 }
 
+// @implements-requirement HALL-FR-DOC-280
+// @implements-requirement HALL-FR-DOC-230
+// @implements-requirement HALL-FR-WSP-380 (personalWorkspace)
 export function createDocumentaryResourceService({
   resourcesClient,
   documentPreviewConverter,
