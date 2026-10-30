@@ -11,7 +11,7 @@ const postgresTest = databaseUrl ? it : it.skip;
 const execute = promisify(execFile);
 
 postgresTest.each(["preparation", "default", "minutes"])(
-  "seed %s keeps durable businesses, shared evidence and meeting histories",
+  "seed %s keeps durable businesses, their evidence and meeting histories",
   async (scenario) => {
     const pool = new Pool({ connectionString: databaseUrl });
     await resetPostgresTestDatabase(pool);
@@ -84,7 +84,10 @@ postgresTest.each(["preparation", "default", "minutes"])(
       expect(names).not.toContain("Affectation du grenier de Cornu aux réserves");
       expect(names).not.toContain("Répartition des réserves de céréales");
       const subjects = await get("/council-business/prepared-subjects");
-      expect(subjects).toHaveLength(13);
+      expect(subjects).toHaveLength(15);
+      expect(subjects.map((subject: { title: string }) => subject.title)).toEqual(
+        expect.arrayContaining(["Relève des veilleurs du rempart nord", "Choix du passage des messagers"]),
+      );
       const property = businesses.find((business: { title: string }) => business.title === "Réserves et bâtiments");
       const propertySubjects = subjects.filter(
         (subject: { councilBusinessId: string }) => subject.councilBusinessId === property.id,
@@ -112,27 +115,43 @@ postgresTest.each(["preparation", "default", "minutes"])(
       const sharedRules = catalog.find(
         (resource: { name: string }) => resource.name === "Règlement de mise à disposition",
       );
-      expect(propertyResources.some((entry: { resourceId: string }) => entry.resourceId === sharedRules.id)).toBe(true);
       expect(associationResources.some((entry: { resourceId: string }) => entry.resourceId === sharedRules.id)).toBe(
         true,
       );
-      expect(sharedRules.path).toBe("reserves/abris");
+      expect(propertyResources.some((entry: { resourceId: string }) => entry.resourceId === sharedRules.id)).toBe(
+        false,
+      );
+      expect(sharedRules.path).toBe("Soutien");
       const meetings = await get("/council-meetings");
       if (scenario === "preparation") {
-        expect(meetings).toHaveLength(1);
-        expect(meetings[0]).toMatchObject({ startedAt: null, closedAt: null });
-        expect(await get(`/council-meetings/${meetings[0].id}/agenda-items`)).toEqual([]);
-        expect((await pool.query("SELECT count(*)::int count FROM hall.ballots")).rows[0].count).toBe(0);
+        expect(meetings).toHaveLength(2);
+        const closed = meetings.find((meeting: { number: number }) => meeting.number === 1);
+        const next = meetings.find((meeting: { number: number }) => meeting.number === 2);
+        expect(closed.closedAt).not.toBeNull();
+        expect(next).toMatchObject({ scheduledAt: null, startedAt: null, closedAt: null });
+        const nextAgenda = await get(`/council-meetings/${next.id}/agenda-items`);
+        expect(nextAgenda).toHaveLength(5);
+        expect(nextAgenda.map((item: { title: string }) => item.title)).toEqual(
+          expect.arrayContaining([
+            "Moyens attribués aux équipes de soutien",
+            "Motion de liaison avec les alliés",
+            "Accueil des habitants - capacités de réserve",
+            "Acheminement des vivres entre le grenier et les abris",
+          ]),
+        );
+        expect(
+          (await pool.query("SELECT mode, count(*)::int count FROM hall.ballots GROUP BY mode ORDER BY mode")).rows,
+        ).toEqual([{ mode: "public", count: 3 }]);
         return;
       }
       expect(
         (await pool.query("SELECT mode, count(*)::int count FROM hall.ballots GROUP BY mode ORDER BY mode")).rows,
       ).toEqual([
-        { mode: "public", count: 6 },
+        { mode: "public", count: 7 },
         { mode: "secret", count: 1 },
       ]);
       const decisions = await get("/council-decisions");
-      expect(decisions).toHaveLength(5);
+      expect(decisions).toHaveLength(6);
       const priceDecision = decisions.find(
         (decision: { title: string }) => decision.title === "Répartition des réserves de céréales",
       );
