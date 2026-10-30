@@ -1,4 +1,8 @@
 import { expect, request as requestFactory, test } from "@playwright/test";
+import { clearTestDatabase } from "../fixtures/application";
+
+// Each journey bootstraps the first administrator of an empty Hall.
+test.beforeEach(() => clearTestDatabase());
 
 // @verifies-requirement HALL-FR-USR-010
 // @verifies-requirement HALL-FR-USR-020

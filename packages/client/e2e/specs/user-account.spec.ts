@@ -1,4 +1,8 @@
 import { expect, request as requestFactory, test } from "@playwright/test";
+import { clearTestDatabase } from "../fixtures/application";
+
+// Each journey bootstraps the first administrator of an empty Hall.
+test.beforeEach(() => clearTestDatabase());
 
 test("edits account identity with autosave and safely changes and resets passwords with real sessions", async ({
   page,

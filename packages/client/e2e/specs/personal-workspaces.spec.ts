@@ -1,4 +1,5 @@
 import { type APIRequestContext, type Browser, expect, type Locator, type Page, test } from "@playwright/test";
+import { clearTestDatabase } from "../fixtures/application";
 
 const password = "Hall-personal-2026!";
 const aliceFolder = "Espaces personnels/Alice Martin";
@@ -96,6 +97,9 @@ async function sessionPage(browser: Browser, baseURL: string, email: string): Pr
   page.setDefaultTimeout(20_000);
   return page;
 }
+
+// Each journey bootstraps the first administrator of an empty Hall.
+test.beforeEach(() => clearTestDatabase());
 
 // @verifies-requirement HALL-FR-DIR-150
 // @verifies-requirement HALL-FR-DIR-160

@@ -17,10 +17,9 @@ function testDatabaseName() {
   return name;
 }
 
-function resetAndSeedTestDatabase(seedScenario: "fresh" | "preparation" | "default" | "minutes") {
+/** Empties the dedicated browser test database, keeping its schema and settings row; nothing is seeded. */
+export function clearTestDatabase() {
   const databaseName = testDatabaseName();
-  const serverPort = process.env.HALL_E2E_SERVER_PORT;
-  if (!serverPort) throw new Error("The dedicated browser test server port is required");
   const reset = spawnSync(
     "docker",
     [
@@ -60,6 +59,12 @@ COMMIT;
   if (reset.error || reset.status !== 0) {
     throw new Error(`Could not clear the dedicated browser test database: ${reset.error ?? reset.stderr}`);
   }
+}
+
+function resetAndSeedTestDatabase(seedScenario: "fresh" | "preparation" | "default" | "minutes") {
+  const serverPort = process.env.HALL_E2E_SERVER_PORT;
+  if (!serverPort) throw new Error("The dedicated browser test server port is required");
+  clearTestDatabase();
   const seed = spawnSync(process.execPath, [join(projectDirectory, "scripts/seed/seed-dev.mjs")], {
     cwd: projectDirectory,
     env: { ...process.env, SEED_MEETING_SCENARIO: seedScenario, SEED_API: `http://127.0.0.1:${serverPort}/api` },

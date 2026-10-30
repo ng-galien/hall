@@ -1,4 +1,5 @@
 import { type APIResponse, type Browser, expect, type Page, test } from "@playwright/test";
+import { clearTestDatabase } from "../fixtures/application";
 
 const password = "Hall-roles-2026!";
 
@@ -15,6 +16,9 @@ async function sessionPage(browser: Browser, baseURL: string, email: string): Pr
   page.setDefaultTimeout(20_000);
   return page;
 }
+
+// Each journey bootstraps the first administrator of an empty Hall.
+test.beforeEach(() => clearTestDatabase());
 
 // @verifies-requirement HALL-FR-USR-040
 // @verifies-requirement HALL-FR-USR-050
