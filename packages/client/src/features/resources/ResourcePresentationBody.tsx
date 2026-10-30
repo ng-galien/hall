@@ -49,6 +49,7 @@ export function ResourcePresentationBody({
   onRemoteUrlChange,
   onRemoteSubmit,
   onUploadImage,
+  onUploadPhoto,
   onResolvedLegalReference,
   onRefreshLegalReference,
   onError,
@@ -72,6 +73,8 @@ export function ResourcePresentationBody({
   onRemoteUrlChange(url: string): void;
   onRemoteSubmit(): Promise<boolean>;
   onUploadImage?(file: File): Promise<UploadedResourceImage>;
+  /** Imports the photos of the editor's photo buttons as files; dropped and pasted images use onUploadImage. */
+  onUploadPhoto?(file: File): Promise<UploadedResourceImage>;
   onResolvedLegalReference(resource: Extract<ResourceDetail, { kind: "legalReference" }>): void;
   onRefreshLegalReference(): void;
   onError(error: ApiErrorCode | null): void;
@@ -99,6 +102,7 @@ export function ResourcePresentationBody({
             mentionables={mentionables}
             searchContext={entry.path}
             onUploadImage={canUploadImage && capabilities.updateContent ? onUploadImage : undefined}
+            onUploadPhoto={capabilities.updateContent ? onUploadPhoto : undefined}
             onUploadDocument={capabilities.updateContent ? uploadDocument : undefined}
             readOnly={!editingResource}
             variant={layout === "extended" ? "enriched" : "compact"}

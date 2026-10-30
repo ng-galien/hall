@@ -19,7 +19,7 @@ export function InlineResourceContent({
   actionsHost,
   uploadPhoto,
 }: {
-  /** Replaces the editor image upload: the photo is imported as a file and the note shows it. */
+  /** Imports the photos of the editor's photo buttons as files that the note shows; dropped and pasted images stay images of the text. */
   uploadPhoto?: EditorImageUpload;
   resourceId: string;
   heading?: string;
@@ -50,13 +50,14 @@ export function InlineResourceContent({
           content={session.content}
           remoteUrl={session.remoteUrl}
           mentionables={mentionables}
-          canUploadImage={Boolean(uploadPhoto) || canUpload}
+          canUploadImage={canUpload}
           submitting={session.submitting}
           refreshConflict={session.refreshConflict}
           onContentChange={session.setContent}
           onRemoteUrlChange={session.setRemoteUrl}
           onRemoteSubmit={() => session.save()}
-          onUploadImage={uploadPhoto ?? ((file) => uploadImage(file, { kind: "textResourceContent", id: resourceId }))}
+          onUploadImage={(file) => uploadImage(file, { kind: "textResourceContent", id: resourceId })}
+          onUploadPhoto={uploadPhoto}
           onResolvedLegalReference={session.adoptResolvedResource}
           onRefreshLegalReference={session.refreshLegalReference}
           onError={session.setActionError}

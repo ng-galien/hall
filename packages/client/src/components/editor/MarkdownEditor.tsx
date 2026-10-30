@@ -68,6 +68,8 @@ export interface MarkdownEditorProps {
   searchContext?: string;
   /** Enables image upload; resolves to the archived resource id and label. */
   onUploadImage?(image: File): Promise<{ id: string; label: string }>;
+  /** Imports the photos of the Take a photo and Choose a photo buttons; dropped and pasted images keep onUploadImage. */
+  onUploadPhoto?: EditorImageUpload;
   /** Enables the upload of dropped files as documents cited by a reference at the drop point. */
   onUploadDocument?: EditorDocumentUpload;
   readOnly?: boolean;
@@ -630,6 +632,7 @@ export function MarkdownEditor({
   mentionables,
   searchContext,
   onUploadImage,
+  onUploadPhoto,
   onUploadDocument,
   readOnly = false,
   variant = "compact",
@@ -803,6 +806,7 @@ export function MarkdownEditor({
         members={members}
         context={context}
         onUploadImage={onUploadImage}
+        onUploadPhoto={onUploadPhoto}
         onUploadDocument={onUploadDocument}
         imageStatus={imageStatus}
         onImageStatus={setImageStatus}
@@ -822,8 +826,13 @@ export function MarkdownEditor({
         className="markdown-editor markdown-editor-compact"
         data-testid={testId ?? "markdown-editor-compact"}
       >
-        {inline && !readOnly && onUploadImage ? (
-          <ImageFileControls editor={inline} upload={onUploadImage} status={imageStatus} onStatus={setImageStatus} />
+        {inline && !readOnly && (onUploadPhoto ?? onUploadImage) ? (
+          <ImageFileControls
+            editor={inline}
+            upload={(onUploadPhoto ?? onUploadImage)!}
+            status={imageStatus}
+            onStatus={setImageStatus}
+          />
         ) : null}
         <div
           ref={compactToolbar}
@@ -913,6 +922,7 @@ export function MarkdownEditor({
               members={members}
               context={context}
               onUploadImage={onUploadImage}
+              onUploadPhoto={onUploadPhoto}
               onUploadDocument={onUploadDocument}
               imageStatus={imageStatus}
               onImageStatus={setImageStatus}
@@ -936,6 +946,7 @@ function EnrichedEditor({
   members,
   context,
   onUploadImage,
+  onUploadPhoto,
   onUploadDocument,
   imageStatus,
   onImageStatus,
@@ -948,6 +959,7 @@ function EnrichedEditor({
   members: RefObject<Mentionable[]>;
   context: RefObject<string | undefined>;
   onUploadImage?: EditorImageUpload;
+  onUploadPhoto?: EditorImageUpload;
   onUploadDocument?: EditorDocumentUpload;
   imageStatus: ImageUploadStatus;
   onImageStatus(status: ImageUploadStatus): void;
@@ -1002,8 +1014,13 @@ function EnrichedEditor({
 
   return (
     <div className="markdown-editor markdown-editor-large" data-testid={testId ?? "markdown-editor-enriched"}>
-      {editor && onUploadImage ? (
-        <ImageFileControls editor={editor} upload={onUploadImage} status={imageStatus} onStatus={onImageStatus} />
+      {editor && (onUploadPhoto ?? onUploadImage) ? (
+        <ImageFileControls
+          editor={editor}
+          upload={(onUploadPhoto ?? onUploadImage)!}
+          status={imageStatus}
+          onStatus={onImageStatus}
+        />
       ) : null}
       <div role="toolbar" aria-label={t("editor.enrich")}>
         {editor && state ? (
