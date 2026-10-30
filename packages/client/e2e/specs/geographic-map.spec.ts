@@ -208,6 +208,7 @@ test("a drawn area too small on screen becomes a selectable marker and its geome
 
 // @verifies-requirement HALL-FR-DOC-430
 // @verifies-requirement HALL-FR-DOC-470
+// @verifies-requirement HALL-FR-WSP-460
 test("a drawn element carries a rich-text note that survives a reload and outlives the element", async ({
   appPage: page,
 }) => {
@@ -336,6 +337,32 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   await expect(card.locator(`[data-resource-id="${inlinePasteId}"] img`)).toBeVisible();
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(inlinePasteId);
 
+  const chooseFile = async (button: string, name: string) => {
+    const chooser = page.waitForEvent("filechooser");
+    await card.getByTestId(button).click();
+    await (await chooser).setFiles({ name, mimeType: "image/png", buffer: Buffer.from(png) });
+  };
+  await writingArea.click();
+  await page.keyboard.press("End");
+  const uploadedImage = nextUpload();
+  await chooseFile("editor-upload-image", "chene-bouton.png");
+  const buttonImageId = await uploadedId(uploadedImage);
+  await expect(card.locator(`[data-resource-id="${buttonImageId}"] img`)).toBeVisible();
+  await expect.poll(noteContent, { timeout: 15_000 }).toContain(buttonImageId);
+  await writingArea.click();
+  await page.keyboard.press("End");
+  const importedPhoto = page.waitForResponse(
+    (response) => response.url().endsWith("/api/resources/documents") && response.request().method() === "POST",
+  );
+  await chooseFile("editor-choose-image", "chene-galerie.png");
+  const photoResponse = await importedPhoto;
+  expect(photoResponse.status()).toBe(201);
+  const photoFile = (await photoResponse.json()).properties as { id: string; kind: string; name: string; path: string };
+  expect(photoFile).toMatchObject({ kind: "document", path: "seed" });
+  expect(photoFile.name).toMatch(/^Photo of \d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2}( \(\d+\))?\.png$/);
+  await expect(card.locator(`[data-resource-id="${photoFile.id}"] img`)).toBeVisible();
+  await expect.poll(noteContent, { timeout: 15_000 }).toContain(photoFile.id);
+
   await writingArea.click();
   await card.getByTestId("editor-open-enriched").click();
   const enriched = page.getByTestId("markdown-editor-enriched");
@@ -355,7 +382,7 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   await rows.first().locator(".geographic-composition-feature-select").click();
   await expect(card.getByTestId("editor-writing-area")).toContainText("Chêne à conserver");
-  for (const imageId of [inlineDropId, inlinePasteId, photoId, enrichedPasteId]) {
+  for (const imageId of [inlineDropId, inlinePasteId, buttonImageId, photoFile.id, photoId, enrichedPasteId]) {
     await expect(card.getByTestId(`editor-image-${imageId}`)).toBeVisible();
   }
 

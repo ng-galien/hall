@@ -68,7 +68,7 @@ export interface MarkdownEditorProps {
   searchContext?: string;
   /** Enables image upload; resolves to the archived resource id and label. */
   onUploadImage?(image: File): Promise<{ id: string; label: string }>;
-  /** Imports the photos of the Take a photo and Choose a photo buttons; dropped and pasted images keep onUploadImage. */
+  /** Imports the photos of the Take a photo and Choose a photo buttons as files; Upload an image, dropped and pasted images keep onUploadImage. */
   onUploadPhoto?: EditorImageUpload;
   /** Enables the upload of dropped files as documents cited by a reference at the drop point. */
   onUploadDocument?: EditorDocumentUpload;
@@ -829,7 +829,8 @@ export function MarkdownEditor({
         {inline && !readOnly && (onUploadPhoto ?? onUploadImage) ? (
           <ImageFileControls
             editor={inline}
-            upload={(onUploadPhoto ?? onUploadImage)!}
+            upload={onUploadImage}
+            uploadPhoto={onUploadPhoto}
             status={imageStatus}
             onStatus={setImageStatus}
           />
@@ -1017,7 +1018,8 @@ function EnrichedEditor({
       {editor && (onUploadPhoto ?? onUploadImage) ? (
         <ImageFileControls
           editor={editor}
-          upload={(onUploadPhoto ?? onUploadImage)!}
+          upload={onUploadImage}
+          uploadPhoto={onUploadPhoto}
           status={imageStatus}
           onStatus={onImageStatus}
         />
