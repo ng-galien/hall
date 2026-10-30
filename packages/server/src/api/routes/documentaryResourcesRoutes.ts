@@ -149,6 +149,7 @@ export function createDocumentaryResourcesRouter({
           name: request.body.name ? String(request.body.name) : request.file.originalname,
           fileName: request.file.originalname,
           content: request.file.buffer,
+          numberTakenName: request.body.onNameConflict === "suffix",
         }),
       );
     },

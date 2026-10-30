@@ -68,12 +68,13 @@ export function useEditorDocumentUpload(
         form.set("file", file);
         return convertSpreadsheetTable(representation, form);
       },
-      async upload(file) {
+      async upload(file, options) {
         const spreadsheet = isSpreadsheet(file);
         const form = new FormData();
         if (business) form.set("councilBusinessId", business.id);
         form.set("path", path);
         form.set("name", spreadsheet ? file.name.slice(0, -extensionOf(file).length) : file.name);
+        if (options?.numberTakenName && !spreadsheet) form.set("onNameConflict", "suffix");
         form.set("file", file);
         const resources = useWorkspaceResourcesStore.getState();
         const created = spreadsheet

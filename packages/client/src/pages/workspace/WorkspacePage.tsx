@@ -296,7 +296,7 @@ export function WorkspacePage() {
     });
   };
 
-  const importFile = (file: File) => {
+  const importFile = (file: File, { numberTakenName = false }: { numberTakenName?: boolean } = {}) => {
     const business = creationBusinessRef.current;
     const source = business ? councilBusinessStore.representationsById[business.id] : undefined;
     const form = new FormData();
@@ -313,6 +313,7 @@ export function WorkspacePage() {
         return spreadsheet;
       }
       form.set("name", file.name);
+      if (numberTakenName) form.set("onNameConflict", "suffix");
       const uploaded = await resourcesStore.uploadDocument(form, source);
       if (uploaded) {
         if (business) await councilBusinessStore.loadResources(business.id);
@@ -522,7 +523,11 @@ export function WorkspacePage() {
               aria-label={t(photo.capture ? "workspace.takePhoto" : "workspace.choosePhoto")}
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0];
-                if (file) importFile(photoFile(file, (date) => t("workspace.photoName", { date })));
+                if (file)
+                  importFile(
+                    photoFile(file, (date) => t("workspace.photoName", { date })),
+                    { numberTakenName: true },
+                  );
                 event.currentTarget.value = "";
               }}
             />

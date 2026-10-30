@@ -20,6 +20,7 @@ import { collectResourceReferences, parse } from "@hall/templating";
 import type { ResourceContent, ResourcesClient } from "../clients/resourcesClient.js";
 import { documentPreviewModeForMediaType, inspectDocument } from "../domain/documentPolicy.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
+import { PersistenceError } from "../repositories/errors.js";
 import type { SecurityRepository } from "../repositories/securityRepository.js";
 import type { DocumentPreviewConverter } from "./documentPreviewConverter.js";
 import { DomainError } from "./errors.js";
@@ -51,6 +52,8 @@ export interface DocumentaryResourceService {
     name: string;
     fileName: string;
     content: Buffer;
+    /** When the name is already taken at the location, numbers it « name (2).ext », « name (3).ext »… instead of refusing. */
+    numberTakenName?: boolean;
   }): Promise<SirenEntity>;
   createEditorAsset(input: {
     ownerId: string;
@@ -123,6 +126,24 @@ function verificationDueAt(fetchedAt: string): string {
 // @implements-requirement HALL-FR-DOC-280
 // @implements-requirement HALL-FR-DOC-230
 // @implements-requirement HALL-FR-WSP-380 (personalWorkspace)
+const maximumNameNumber = 100;
+
+const takenNameConstraints = new Set([
+  "resource_location_unique",
+  "resource_folder_target",
+  "one_resource_title_per_folder",
+]);
+
+function isTakenName(error: unknown) {
+  return error instanceof PersistenceError && takenNameConstraints.has(error.constraint ?? "");
+}
+
+/** « Photo du 2026-10-30 10-15-02.jpg » numbered 2 becomes « Photo du 2026-10-30 10-15-02 (2).jpg ». */
+export function numberedName(name: string, number: number) {
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? `${name.slice(0, dot)} (${number})${name.slice(dot)}` : `${name} (${number})`;
+}
+
 export function createDocumentaryResourceService({
   resourcesClient,
   documentPreviewConverter,
@@ -234,17 +255,27 @@ export function createDocumentaryResourceService({
       });
       return created.representation;
     },
+    // @implements-requirement HALL-FR-WSP-460
     async createDocument(input) {
       const inspection = await inspectDocument(input.fileName, input.content);
-      return resourcesClient
-        .createDocument({
-          path: input.path,
-          name: input.name,
-          content: input.content,
-          mediaType: inspection.mediaType,
-          councilBusinessId: input.councilBusinessId,
-        })
-        .then(({ representation }) => representation);
+      const create = (name: string) =>
+        resourcesClient
+          .createDocument({
+            path: input.path,
+            name,
+            content: input.content,
+            mediaType: inspection.mediaType,
+            councilBusinessId: input.councilBusinessId,
+          })
+          .then(({ representation }) => representation);
+      if (!input.numberTakenName) return create(input.name);
+      for (let number = 1; ; number += 1) {
+        try {
+          return await create(number === 1 ? input.name : numberedName(input.name, number));
+        } catch (error) {
+          if (number >= maximumNameNumber || !isTakenName(error)) throw error;
+        }
+      }
     },
     async createEditorAsset(input) {
       const owner = await resourcesClient.open(input.ownerId);

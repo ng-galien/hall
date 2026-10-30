@@ -27,7 +27,8 @@ export interface EditorDocumentUpload {
   accepts(file: File): boolean;
   /** Accepted extensions, as shown in the refusal message. */
   accepted: string;
-  upload(file: File): Promise<{ id: string; label: string }>;
+  /** With numberTakenName, a name already taken at the location is numbered instead of refused. */
+  upload(file: File, options?: { numberTakenName?: boolean }): Promise<{ id: string; label: string }>;
   /** True for a spreadsheet file that can be inserted as a table of the text instead of being attached. */
   convertsToTable(file: File): boolean;
   /** Converts the first sheet of the file into a Markdown table; the counts exclude the header row. */

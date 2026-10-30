@@ -130,7 +130,13 @@ export function GeographicResourceMap({
   const uploadDrawingPhoto = useMemo(
     () =>
       documentUpload
-        ? (photo: File) => documentUpload.upload(photoFile(photo, (date) => t("workspace.photoName", { date })))
+        ? (photo: File) =>
+            documentUpload.upload(
+              photoFile(photo, (date) => t("workspace.photoName", { date })),
+              {
+                numberTakenName: true,
+              },
+            )
         : undefined,
     [documentUpload, t],
   );

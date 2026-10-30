@@ -77,6 +77,7 @@ function resourceCreationActions(request: Request, councilBusinessId?: string): 
         { name: "file", type: "file", accept: acceptedDocumentExtensions.join(",") },
         { name: "name", type: "text" },
         { name: "path", type: "text", value: "" },
+        { name: "onNameConflict", type: "text" },
         ...contextFields,
       ],
     },
