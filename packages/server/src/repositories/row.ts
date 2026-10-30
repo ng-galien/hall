@@ -14,17 +14,6 @@ export function asNullableString(value: unknown, field = "nullable string"): str
   return asString(value, field);
 }
 
-export function asBoolean(value: unknown, field = "boolean"): boolean {
-  if (value === true || value === 1) return true;
-  if (value === false || value === 0) return false;
-  throw persistedTypeError(field, "a boolean or 0/1", value);
-}
-
-export function asNullableBoolean(value: unknown, field = "nullable boolean"): boolean | null {
-  if (value === null) return null;
-  return asBoolean(value, field);
-}
-
 export function asInteger(value: unknown, field = "integer"): number {
   const parsed =
     typeof value === "number" ? value : typeof value === "string" && /^-?\d+$/.test(value) ? Number(value) : Number.NaN;
