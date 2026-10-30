@@ -10,7 +10,7 @@ import { main as seed } from "../../scripts/seed/seed-dev.mjs";
 // Each demonstration scenario of the Alésia dataset loads end to end through
 // the public API on an empty disposable database.
 describe("demonstration seed", () => {
-  it.each(["preparation", "default", "minutes"])("loads the alesia %s scenario", async (scenario) => {
+  it.each(["fresh", "preparation", "default", "minutes"])("loads the alesia %s scenario", async (scenario) => {
     const { databaseUrl, pool } = createPostgresTestPool();
     await resetPostgresTestDatabase(pool);
     const server = await startHttpServer({

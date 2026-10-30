@@ -1,9 +1,14 @@
 import { alesiaAdministrator } from "./datasets/alesia/directory.mjs";
 import { seedAlesia } from "./datasets/alesia/index.mjs";
+import { seedFresh } from "./scenarios/fresh.mjs";
 import { seedHistory } from "./scenarios/history.mjs";
 import { seedPreparation } from "./scenarios/preparation.mjs";
 
 export const scenarios = {
+  fresh: {
+    description: "Une séance provisionnée sans date, ordre du jour vide, aucun scrutin.",
+    run: seedFresh,
+  },
   preparation: {
     description:
       "Une séance close à trois scrutins, puis la séance suivante en préparation, sans date, avec cinq points.",
@@ -23,7 +28,7 @@ export const datasets = {
   alesia: {
     description:
       "Commune fictive : 15 élus, 2 contacts externes, 2 commissions de quatre membres, 5 comptes, 8 affaires, 16 sujets, deux cartes, trois tableurs, ressources et templates.",
-    scenarios: ["preparation", "default", "minutes"],
+    scenarios: ["fresh", "preparation", "default", "minutes"],
     administrator: alesiaAdministrator,
     run: seedAlesia,
   },

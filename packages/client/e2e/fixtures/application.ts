@@ -17,7 +17,7 @@ function testDatabaseName() {
   return name;
 }
 
-function resetAndSeedTestDatabase(seedScenario: "preparation" | "default" | "minutes") {
+function resetAndSeedTestDatabase(seedScenario: "fresh" | "preparation" | "default" | "minutes") {
   const databaseName = testDatabaseName();
   const serverPort = process.env.HALL_E2E_SERVER_PORT;
   if (!serverPort) throw new Error("The dedicated browser test server port is required");
@@ -76,11 +76,11 @@ interface ApplicationFixtures {
 }
 
 interface ApplicationOptions {
-  seedScenario: "preparation" | "default" | "minutes";
+  seedScenario: "fresh" | "preparation" | "default" | "minutes";
 }
 
 export const test = base.extend<ApplicationFixtures & ApplicationOptions>({
-  seedScenario: ["preparation", { option: true }],
+  seedScenario: ["fresh", { option: true }],
   isolatedDatabase: [
     async ({ seedScenario }, use) => {
       resetAndSeedTestDatabase(seedScenario);

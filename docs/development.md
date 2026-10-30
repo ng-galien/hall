@@ -35,6 +35,7 @@ Alésia is the only maintained dataset. It is fictional and contains municipal s
 
 | Scenario | Result |
 | --- | --- |
+| `fresh` | One meeting in preparation, without a date, with an empty agenda and no ballot; the default state of the regular browser suite |
 | `preparation` | One closed meeting with three ballots, then the next meeting in preparation, without a date, with five agenda items: minutes approval, two decision proposals, one information item and one open question |
 | `default` | Two closed meetings with three ballots each, plus one meeting in progress |
 | `minutes` | The same history with the current meeting closed, its minutes still editable, and the next meeting dated two weeks ahead |

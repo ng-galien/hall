@@ -1,6 +1,8 @@
 import type { APIResponse } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
+test.use({ seedScenario: "preparation" });
+
 interface Entity<T> {
   properties: T;
   actions?: { name: string }[];

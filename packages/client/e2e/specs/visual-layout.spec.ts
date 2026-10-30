@@ -1,6 +1,8 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
+test.use({ seedScenario: "preparation" });
+
 /* Layout assertions on the Alésia screens, on a desktop and on a phone: header buttons whose icons cover their
    label, pages left on the loading indicator, and the page scrolling under an open dialog. */
 
