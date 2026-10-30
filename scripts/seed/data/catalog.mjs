@@ -27,7 +27,7 @@ export const scenarios = {
 export const datasets = {
   alesia: {
     description:
-      "Commune fictive : 15 élus, 2 contacts externes, 2 commissions de quatre membres, 5 comptes, 8 affaires, 16 sujets, deux cartes, trois tableurs, ressources et templates.",
+      "Commune fictive : 15 élus, 2 contacts externes, 2 commissions de quatre membres, 5 comptes, 8 affaires, 15 sujets, deux cartes, trois tableurs, ressources et templates.",
     scenarios: ["fresh", "preparation", "default", "minutes"],
     administrator: alesiaAdministrator,
     run: seedAlesia,
