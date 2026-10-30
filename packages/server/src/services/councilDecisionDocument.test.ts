@@ -82,6 +82,23 @@ describe("council decision documentary facts", () => {
     expect(html).toContain("17 heures 00 UTC");
     expect(html).toContain("Commune non renseignée");
   });
+  it("names the chair role, the second-convocation opening and the recused members", () => {
+    const opening = { attendance: facts.attendance, quorum: { ...facts.quorum, verdict: "exempt" as const } };
+    const recusal = {
+      id: "recusal",
+      member: { id: "recused", name: "Paul <Déporté>" },
+      declaredAt: "2026-06-26T17:05:00Z",
+      legalBasis: "personalInterest" as const,
+    };
+    const rendered = (chairRole: "mayor" | "deputyMayor" | "councillor") =>
+      renderCouncilDecisionFacts({ ...facts, opening, recusals: [recusal], meeting: { ...facts.meeting, chairRole } });
+    expect(rendered("mayor")).toContain("Marie &lt;Martin&gt;, maire");
+    expect(rendered("deputyMayor")).toContain("Marie &lt;Martin&gt;, adjoint au maire");
+    const html = rendered("councillor");
+    expect(html).toContain("Marie &lt;Martin&gt;, membre du conseil municipal");
+    expect(html).toContain("L’ouverture relève du régime de seconde convocation.");
+    expect(html).toContain("<strong>Déports pour cette délibération :</strong> Paul &lt;Déporté&gt;");
+  });
   it("uses only aggregate choices for the secret ballot", () => {
     const html = renderCouncilDecisionResult({
       ...facts,

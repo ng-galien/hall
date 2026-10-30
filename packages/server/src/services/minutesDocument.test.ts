@@ -310,4 +310,104 @@ describe("minutes generated document", () => {
     };
     expect(renderMinutesSections(minutes).facts).toContain("Jean Dupont - Représenté par Marie Martin");
   });
+  it("prints the quorum verdicts, every named public choice and every handover basis", () => {
+    const observation = (
+      id: string,
+      agendaItemId: string | null,
+      verdict: "met" | "notMet" | "exempt",
+    ): MinutesDetail["facts"]["conduct"]["quorumObservations"][number] => ({
+      id,
+      councilMeetingId: "meeting",
+      observedAt: "2026-09-05T18:10:00Z",
+      recordedAt: "2026-09-05T18:10:00Z",
+      recordedBy: "clerk",
+      agendaItemId,
+      facts: {
+        membershipRecordId: "membership",
+        membersInOffice: [{ councilMemberId: "chair", name: "Marie Martin" }],
+        membershipObservedAt: "2026-09-05T18:00:00Z",
+        membershipSourceReference: "Tableau du conseil",
+        memberCount: 15,
+        excludedMemberIds: [],
+        denominatorExcludedMemberIds: [],
+        denominator: 15,
+        requiredPresent: 8,
+        presentMemberIds: [],
+        presentCount: 7,
+        regime: verdict === "exempt" ? "secondConvocation" : "ordinary",
+        verdict,
+        reconvocationId: null,
+        attendance: [],
+        remainingAgendaItemIds: [],
+      },
+    });
+    const minutes = structuredClone(fixture);
+    const member = (name: string) => ({ id: name, name });
+    minutes.facts.ballots[0]!.votes = [
+      { choice: "approve", count: 1, member: member("Votant Pour") },
+      { choice: "reject", count: 1, member: member("Votant Contre") },
+      { choice: "abstain", count: 1, member: member("Votant Abstention") },
+      { choice: "blank", count: 1, member: member("Votant Blanc") },
+      { choice: "invalid", count: 1, member: member("Votant Nul") },
+    ];
+    minutes.facts.conduct.quorumObservations = [
+      observation("opening", null, "notMet"),
+      observation("item-met", "agenda", "met"),
+      observation("item-not-met", "agenda", "notMet"),
+      observation("item-exempt", "agenda", "exempt"),
+    ];
+    const handover = {
+      councilMeetingId: "meeting",
+      office: "chair" as const,
+      councilMemberId: "deputy",
+      observedAt: "2026-09-05T18:30:00Z",
+      recordedAt: "2026-09-05T18:30:00Z",
+      recordedBy: "clerk",
+    };
+    minutes.facts.conduct.officerChanges = [
+      { ...handover, id: "mayor", basis: "mayor", memberName: "Le Maire" },
+      { ...handover, id: "designated", basis: "councilDesignation", memberName: "Élu désigné" },
+    ];
+    minutes.facts.conduct.closedSessions = [
+      {
+        id: "closed",
+        councilMeetingId: "meeting",
+        requesters: [
+          { councilMemberId: "first", name: "Première <Élue>" },
+          { councilMemberId: "second", name: "Second Élu" },
+          { councilMemberId: "third", name: "Troisième Élu" },
+        ],
+        approvals: 6,
+        presentOrRepresented: 9,
+        wholeMeeting: true,
+        agendaItemIds: [],
+        observedAt: "2026-09-05T18:40:00Z",
+        recordedAt: "2026-09-05T18:40:00Z",
+        recordedBy: "clerk",
+      },
+    ];
+    const { facts, proceedings } = renderMinutesSections(minutes);
+    expect(facts).toContain("Quorum à l’ouverture : non atteint, 7 présents sur 8 requis.");
+    expect(facts).toContain("présidence confiée à Le Maire (reprise par le maire)");
+    expect(facts).toContain("présidence confiée à Élu désigné (désignation par le conseil)");
+    expect(facts).toContain(
+      "sur demande de Première &lt;Élue&gt;, Second Élu, Troisième Élu, par 6 voix sur 9 membres présents ou représentés, pour la suite de la séance",
+    );
+    expect(proceedings).toContain("7 présents retenus sur 15 membres pris en compte, seuil 8 : atteint.");
+    expect(proceedings).toContain("seuil 8 : non atteint.");
+    expect(proceedings).toContain("seuil 8 : seconde convocation, dispense de quorum.");
+    for (const line of [
+      "Votant Pour : Pour",
+      "Votant Contre : Contre",
+      "Votant Abstention : Abstention",
+      "Votant Blanc : Blanc",
+      "Votant Nul : Nul",
+    ])
+      expect(proceedings).toContain(line);
+
+    minutes.facts.conduct.quorumObservations = [observation("opening", null, "exempt")];
+    expect(renderMinutesSections(minutes).facts).toContain(
+      "Quorum à l’ouverture : seconde convocation, sans condition de quorum, 7 présents sur 8 requis.",
+    );
+  });
 });

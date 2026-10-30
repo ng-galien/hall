@@ -586,3 +586,93 @@ it("renders inserted text and event content through the authoritative renderer",
   expect(preview.html).toContain("Présentation du dossier");
   expect(preview.html).toContain("Mairie");
 });
+
+it("names the expected resource kind when a presentation does not fit the resource", async () => {
+  const { container } = await createServiceTestServer();
+  const folder = (await container.cradle.resourcesClient.create({ kind: "folder", name: "Dossier", path: "seed" }))
+    .data;
+  const expected = {
+    text: "a TextResource",
+    event: "an EventResource",
+    image: "a JPEG or PNG DocumentResource",
+    document: "a DocumentResource",
+    link: "a RemoteResource",
+    "legal-citation": "a LegalReferenceResource",
+    map: "a GeographicResource",
+    table: "a SpreadsheetResource",
+  };
+  for (const [presentation, kind] of Object.entries(expected)) {
+    const preview = await container.cradle.templateRenderingService.preview(
+      template(
+        `::resource-embed[Libellé conservé]{#${folder.id} presentation="${presentation}"${presentation === "table" ? ' sheet="sheet" range="A1:B2"' : ""}}`,
+      ),
+    );
+    expect(preview.diagnostics).toEqual([
+      expect.objectContaining({
+        code: "incompatible_resource",
+        message: `The "${presentation}" presentation requires ${kind}; resource ${folder.id} is folder`,
+      }),
+    ]);
+    expect(preview.printHtml).toContain("Libellé conservé");
+  }
+});
+
+it("prints a non-PDF document by its name and format, and inline references by their current names", async () => {
+  const { container } = await createServiceTestServer();
+  const resources = container.cradle.resourcesClient;
+  const image = (
+    await resources.createDocument({
+      name: "Photo du chantier",
+      path: "seed",
+      mediaType: "image/png",
+      content: Buffer.from("89504e470d0a1a0a", "hex"),
+    })
+  ).data;
+  const spreadsheet = (
+    await resources.create({
+      kind: "spreadsheet",
+      name: "Tableau des devis",
+      path: "seed",
+      document: {
+        schemaVersion: 2,
+        workbook: {
+          id: "quotes",
+          name: "Tableau des devis",
+          sheetOrder: ["sheet"],
+          sheets: { sheet: { id: "sheet", name: "Devis", rowCount: 2, columnCount: 2, cellData: {} } },
+        },
+      },
+    })
+  ).data;
+  const geography = (
+    await resources.create({ kind: "geographic", name: "Plan des travaux", path: "seed", document: geographicDocument })
+  ).data;
+  const event = (
+    await resources.create({
+      kind: "event",
+      name: "Visite du chantier",
+      path: "seed",
+      document: {
+        content: "Contenu de l’événement non recopié",
+        location: "Chantier",
+        participants: [],
+        schedule: { kind: "timed", start: "2026-09-11T10:00:00Z", end: "2026-09-11T11:00:00Z" },
+      },
+    })
+  ).data;
+  const preview = await container.cradle.templateRenderingService.preview(
+    template(
+      [
+        `::resource-embed[Photo]{#${image.id} presentation="document"}`,
+        ...[spreadsheet, geography, event].map(({ id }) => `:resource[Ancien libellé]{#${id}}`),
+      ].join("\n\n"),
+    ),
+  );
+  expect(preview.diagnostics).toEqual([]);
+  expect(preview.printHtml).toContain("<strong>Photo du chantier</strong> (Document PNG)");
+  for (const name of ["Tableau des devis", "Plan des travaux", "Visite du chantier"])
+    expect(preview.printHtml).toContain(name);
+  expect(preview.printHtml).not.toContain("Ancien libellé");
+  expect(preview.printHtml).not.toContain("Contenu de l’événement non recopié");
+  expect(preview.pdfAttachments).toEqual([]);
+});
