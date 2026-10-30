@@ -457,12 +457,15 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
   const original = await page.request.get(`/api/resources/${spreadsheet!.id}`);
   expect(original.ok()).toBeTruthy();
   const source = (await original.json()).properties;
+  // The seeded costing lines are removed from the copy so that the edited cells start empty.
+  const workbookDocument = structuredClone(source.document);
+  workbookDocument.workbook.sheets.defense.cellData = { 0: workbookDocument.workbook.sheets.defense.cellData[0] };
   const created = await page.request.post("/api/resources", {
     data: {
       kind: "spreadsheet",
       path: "",
       name: `Concurrent workbook ${crypto.randomUUID()}`,
-      document: source.document,
+      document: workbookDocument,
     },
   });
   expect(created.status()).toBe(201);
@@ -732,12 +735,15 @@ test.describe("workspace explorer", () => {
       .locator('[data-testid^="workspace-resource-title-"]')
       .filter({ hasText: "État des réserves de Cornu" });
 
-    await expect(document).toBeVisible();
     const business = page.locator('[data-testid^="workspace-business-title-"]').first();
     await expect(business).toBeVisible();
     await expect(business).not.toContainText("pièce");
     await expect(page.locator(".workspace-explorer-count")).toHaveCount(0);
     await expect(page.locator(".workspace-tree-count")).toHaveCount(0);
+
+    // The document is attached to the business Réserves et bâtiments, so the documents view lists it in its folder.
+    await page.getByTestId("workspace-view-resources").click();
+    await expect(document).toBeVisible();
 
     await page.getByTestId("workspace-tree-filter").fill("État des réserves de Cornu");
     await expect(document).toBeVisible();
@@ -1110,7 +1116,7 @@ test("HALL-FR-WSP-250 HALL-FR-WSP-260 demo folder is at root and document folder
   const catalog = (await response.json()).entities.map(
     (entry: { properties: { fullPath: string } }) => entry.properties,
   );
-  expect(catalog.find((entry: { fullPath: string }) => entry.fullPath === "acces")).toMatchObject({
+  expect(catalog.find((entry: { fullPath: string }) => entry.fullPath === "Accès")).toMatchObject({
     path: "",
     kind: "folder",
   });
@@ -1118,7 +1124,7 @@ test("HALL-FR-WSP-250 HALL-FR-WSP-260 demo folder is at root and document folder
   expect(businessesResponse.ok()).toBeTruthy();
   const business = (await businessesResponse.json()).entities
     .map((entry: { properties: { id: string; folderPath: string } }) => entry.properties)
-    .find((entry: { folderPath: string }) => entry.folderPath === "acces");
+    .find((entry: { folderPath: string }) => entry.folderPath === "Réserves");
   expect(business).toBeTruthy();
   await page.goto(`/app/workspace?${new URLSearchParams({ path: business.folderPath, councilBusiness: business.id })}`);
   await expect(page.getByTestId("council-business-workbench")).toBeVisible();
@@ -1156,6 +1162,8 @@ test("HALL-FR-WSP-270 opens root documents from the shared explorer and returns 
   await expect(page.getByTestId("workspace-tree-root")).toContainText("Workspace");
   await expect(page.locator(".whome")).toHaveCount(0);
   await expect(page.getByTestId(`workspace-folder-toggle-${folder.fullPath}`)).toBeVisible();
+  // The root document is attached to a business: the documents view lists it at the root.
+  await page.getByTestId("workspace-view-resources").click();
   const row = page.getByTestId(`workspace-resource-title-${document.id}`);
   await expect(row).toBeVisible();
   await row.click();
