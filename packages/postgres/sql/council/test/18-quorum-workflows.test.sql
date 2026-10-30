@@ -78,9 +78,12 @@ INSERT INTO meeting_attendance(id,council_member,council_meeting,status,declared
  SELECT test_uuid('renewed:again:att:'||i),test_uuid('renewed:member:'||i),(SELECT id FROM reconvened),
   CASE WHEN i<=7 THEN 'present'::meeting_attendance_status ELSE 'absent'::meeting_attendance_status END,'2026-01-05 09:00Z' FROM generate_series(1,15) i;
 INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids)
- SELECT (SELECT id FROM reconvened),'2026-01-05 09:00Z','Reconfirmed mandates',member_ids FROM meeting_membership_record WHERE council_meeting=test_uuid('renewed:meeting');
+ SELECT (SELECT id FROM reconvened),'2026-01-04 18:00Z','Mandates confirmed before the second convocation',member_ids FROM meeting_membership_record WHERE council_meeting=test_uuid('renewed:meeting');
 SELECT set_council_meeting_officers((SELECT id FROM reconvened),test_uuid('renewed:member:1'),test_uuid('renewed:member:2'));
 SELECT test_prepare_notice((SELECT id FROM reconvened));
+SELECT throws_ok($$SELECT start_council_meeting((SELECT id FROM reconvened),'2026-01-05 09:00Z')$$,'HV149',NULL,'the reconvened meeting requires a membership observed at the second convocation');
+INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids)
+ SELECT (SELECT id FROM reconvened),'2026-01-05 09:00Z','Reconfirmed mandates',member_ids FROM meeting_membership_record WHERE council_meeting=test_uuid('renewed:meeting');
 SELECT lives_ok($$SELECT start_council_meeting((SELECT id FROM reconvened),'2026-01-05 09:00Z')$$,'second call admits opening below ordinary quorum');
 SELECT is((SELECT secretary_member FROM council_meetings WHERE id=(SELECT id FROM reconvened)),test_uuid('renewed:member:2'),'the reconvened meeting has its own secretary');
 SELECT is((SELECT facts->>'verdict' FROM meeting_quorum_observation WHERE council_meeting=(SELECT id FROM reconvened) AND agenda_item IS NULL),'exempt','the opening of the reconvened meeting is exempt from quorum');
