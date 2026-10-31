@@ -1,0 +1,53 @@
+.launch-stage svg {
+  --px: 1;
+  overflow: visible;
+}
+
+.launch-stage path {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.trace-graticule path {
+  stroke: var(--slate-300);
+  stroke-width: calc(var(--px) * 0.6px);
+  opacity: 0.7;
+}
+
+.trace-departement,
+.trace-france,
+.trace-commune,
+.trace-target,
+.trace-highlight {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+}
+
+.trace-france {
+  stroke: var(--slate-700);
+  stroke-width: calc(var(--px) * 1.6px);
+}
+
+.trace-departement {
+  stroke: var(--slate-500);
+  stroke-width: calc(var(--px) * 0.8px);
+}
+
+.trace-commune {
+  stroke: var(--slate-500);
+  stroke-width: calc(var(--px) * 0.6px);
+  opacity: 0.75;
+}
+
+.trace-target {
+  stroke: var(--slate-950);
+  stroke-width: calc(var(--px) * 1.8px);
+}
+
+.launch-stage .trace-highlight {
+  stroke: var(--blue);
+  stroke-width: calc(var(--px) * 2px);
+  fill: var(--blue);
+  fill-opacity: 0;
+}
