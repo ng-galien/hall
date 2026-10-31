@@ -1,0 +1,41 @@
+Sources des géométries de l'écran de lancement (packages/desktop/geodata)
+=========================================================================
+
+Téléchargement : 31 octobre 2026.
+
+1. Communes des 96 départements de France métropolitaine (Corse comprise), contours
+   URL : https://geo.api.gouv.fr/departements/<code>/communes?format=geojson&geometry=contour&fields=code,nom
+   Producteur : API Découpage administratif (geo.api.gouv.fr), Étalab / DINUM,
+   à partir d'Admin Express de l'IGN.
+   Fichiers produits : communes/<code du département>.json (champs code, name, polygons)
+
+2. Départements de France métropolitaine (96 départements)
+   URL : https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements.geojson
+   Producteur : dépôt france-geojson (Grégoire David), dérivé d'Admin Express de l'IGN.
+   L'API geo.api.gouv.fr ne fournit pas de contour pour la liste des départements.
+   Fichier produit : departements.json (champs code, name, polygons, et la projection employée)
+
+3. Grandes cités antiques et point focal du site d'Alésia (plateau de Cornu, 5,957 E, 46,6677 N)
+   Source : cadrage documentaire du topic hall-alesia-jura-framing (clés villes_antiques et
+   emprise.point_focal), 31 octobre 2026 ; graphies françaises et attestations antiques qui y sont citées.
+   Positions : coordonnées des villes actuelles.
+   Fichier produit : landmarks.json
+
+Licence
+-------
+Données 1 et 2 : Licence Ouverte / Open Licence version 2.0 d'Étalab
+https://www.etalab.gouv.fr/licence-ouverte-open-licence/
+Mention de la source : « IGN, Admin Express ; Étalab, API Découpage administratif ».
+
+Traitements
+-----------
+Script : packages/desktop/scripts/prepare-launch-geodata.mjs
+  node scripts/prepare-launch-geodata.mjs <dossier téléchargé> [chemin de mapshaper]
+Outil : mapshaper 0.7.68 (celui de prototypes/launch-screen par défaut).
+- conservation des champs code et nom ;
+- simplification Visvalingam pondérée, 6 % des sommets pour les départements, 7 % pour les communes,
+  avec conservation de toutes les formes (keep-shapes) et réparation des intersections (clean) ;
+- projection conique conforme de Lambert sur la sphère (parallèles 44° et 49°, méridien central 3° E),
+  emprise de la métropole ramenée à 1000 unités ;
+- coordonnées entières au vingtième d'unité, premier point absolu puis écarts au point précédent.
+Poids total : environ 7,6 Mo.
