@@ -304,7 +304,7 @@ function writePlace(communeName: string, departementName: string): void {
 function showFinal(scene: LaunchScene | null, still = true): void {
   if (still) scene?.renderStill();
   root.style.setProperty("--brand-opacity", "1");
-  for (const name of ["--reveal-name", "--reveal-place", "--reveal-note"]) root.style.setProperty(name, "1");
+  for (const name of ["--reveal-name", "--reveal-dash", "--reveal-tagline", "--reveal-place", "--reveal-note"]) root.style.setProperty(name, "1");
   setState("final");
   recording = true;
   requestAnimationFrame(reportStarted);
@@ -336,6 +336,8 @@ function play(scene: LaunchScene): void {
 function writeBrand(elapsed: number, duration: number): void {
   const reveal = (from: number, to: number) => easeOutCubic(phase(elapsed, from, to)).toFixed(3);
   root.style.setProperty("--reveal-name", reveal(0.5, 1.9));
+  root.style.setProperty("--reveal-dash", reveal(1.9, 2.5));
+  root.style.setProperty("--reveal-tagline", reveal(2.3, 3.6));
   root.style.setProperty("--reveal-place", reveal(duration * 0.52, duration * 0.68));
   root.style.setProperty("--reveal-note", reveal(duration * 0.7, duration * 0.88));
 }

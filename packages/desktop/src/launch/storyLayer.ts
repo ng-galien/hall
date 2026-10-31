@@ -44,6 +44,10 @@ const storyPlaces: StoryPlace[] = [
 /** Mauve des ancrages au sol : une seule teinte, accordée à l'ardoise et au bleu, déclinée en opacité. */
 const anchorMauve = 0x7d5f96;
 
+/** Volume de chaque lieu : hauteur au-dessus du terrain et enfoncement sous le terrain, en unités du relief. */
+const volumeHeight = 12;
+const volumeDepth = 8;
+
 /** Intervalle entre deux lieux, et durées du trait, de l'étiquette et du retour du bleu à l'ardoise, en secondes. */
 const cadence = 1.15;
 const drawing = 1.4;
@@ -58,12 +62,14 @@ interface PlaceModel {
   top: THREE.Vector3;
   stemHeight: number;
   outline: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
-  area: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
-  stem: THREE.Line<THREE.BufferGeometry, THREE.LineBasicMaterial>;
+  area: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshLambertMaterial>;
+  stem: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial>;
   works: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial> | null;
   label: HTMLElement;
   leader: SVGPathElement;
   shown: { x: number; y: number } | null;
+  slot: { level: number; side: number } | null;
+  blocked: number;
   entry: HTMLElement;
   delay: number;
 }
@@ -143,21 +149,25 @@ export function createStoryLayer(ground: Ground, labels: HTMLElement, list: HTML
   const models: PlaceModel[] = storyPlaces.map((place, index) => {
     const base = groundPoint(ground, place.at, 1.5);
     const outline = new THREE.Mesh(
-      new THREE.RingGeometry(15, 20, 48),
+      new THREE.RingGeometry(16.5, 19.5, 48),
       new THREE.MeshBasicMaterial({ color: palette.blue, transparent: true, depthWrite: false, side: THREE.DoubleSide }),
     );
     outline.rotation.x = -Math.PI / 2;
     outline.position.copy(base);
     const area = new THREE.Mesh(
-      new THREE.CircleGeometry(16, 48),
-      new THREE.MeshBasicMaterial({ color: palette.blue, transparent: true, depthWrite: false, side: THREE.DoubleSide }),
+      new THREE.CylinderGeometry(18, 19.5, volumeDepth + volumeHeight, 48).translate(
+        0,
+        (volumeHeight - volumeDepth) / 2,
+        0,
+      ),
+      new THREE.MeshLambertMaterial({ color: palette.blue, transparent: true, depthWrite: false }),
     );
-    area.rotation.x = -Math.PI / 2;
     area.position.copy(base);
-    const stem = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([base, base.clone()]),
-      new THREE.LineBasicMaterial({ color: palette.blue, transparent: true }),
+    const stem = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.1, 1.1, 1, 8).translate(0, 0.5, 0),
+      new THREE.MeshBasicMaterial({ color: palette.blue, transparent: true }),
     );
+    stem.position.copy(base).setY(base.y + volumeHeight);
     const works = place.works
       ? new THREE.LineSegments(
           worksGeometry(ground, place.works),
@@ -183,6 +193,8 @@ export function createStoryLayer(ground: Ground, labels: HTMLElement, list: HTML
       label,
       leader,
       shown: null,
+      slot: null,
+      blocked: 0,
       entry: listEntry(list, index, place),
       delay: index * cadence,
     };
@@ -193,27 +205,53 @@ export function createStoryLayer(ground: Ground, labels: HTMLElement, list: HTML
   const placed: Box[] = [];
   const gap = 6;
 
+  /** Boîte occupée par une étiquette (coin bas gauche en `left`, `bottom`) avec sa marge. */
+  function boxOf(left: number, bottom: number, w: number, h: number): Box {
+    return { left: left - gap, right: left + w + gap, top: bottom - h - gap, bottom: bottom + gap / 2 };
+  }
+
+  function free(box: Box, width: number): boolean {
+    return box.left > 4 && box.right < width - 4 && box.top > 4 && !placed.some((other) => overlaps(box, other));
+  }
+
   /**
-   * Position de l'étiquette (coin bas gauche) : au bout du trait si la place est libre, sinon plus haut, ou décalée
-   * à droite ou à gauche avec un trait coudé ; jamais sur une étiquette déjà placée ni hors de l'écran.
+   * Place d'une étiquette : au bout du trait, plus haut, ou décalée à droite ou à gauche avec un trait coudé ; jamais
+   * sur une étiquette déjà placée ni hors de l'écran. La place précédente est gardée tant qu'elle reste libre, et
+   * encore une demi-seconde quand une autre étiquette vient la gêner : l'étiquette ne change de place que si le
+   * chevauchement dure.
    */
-  function layoutLabel(x: number, y: number, w: number, h: number, width: number, height: number) {
+  function layoutLabel(model: PlaceModel, x: number, y: number, width: number): { x: number; y: number } | null {
+    const w = model.label.offsetWidth;
+    const h = model.label.offsetHeight;
     const sides = [0, 28, -(w + 28), 28 + w * 0.6, -(w * 1.6 + 28)];
-    let chosen: { x: number; y: number } | null = null;
-    for (let level = 0; level < 7 && !chosen; level += 1) {
-      for (const side of sides) {
-        const left = x + (side === 0 ? -1 : side);
-        const bottom = y - level * (h + gap);
-        const box = { left: left - gap, right: left + w + gap, top: bottom - h - gap, bottom: bottom + gap / 2 };
-        const inside = box.left > 4 && box.right < width - 4 && box.top > 4;
-        if (inside && !placed.some((other) => overlaps(box, other))) {
-          chosen = { x: left, y: bottom };
+    const at = (slot: { level: number; side: number }) => ({
+      x: x + (sides[slot.side] === 0 ? -1 : sides[slot.side]!),
+      y: y - slot.level * (h + gap),
+    });
+    if (model.slot) {
+      const kept = at(model.slot);
+      const box = boxOf(kept.x, kept.y, w, h);
+      if (free(box, width)) model.blocked = 0;
+      else model.blocked += 1;
+      if (model.blocked < 30) {
+        placed.push(box);
+        return kept;
+      }
+    }
+    for (let level = 0; level < 7; level += 1) {
+      for (let side = 0; side < sides.length; side += 1) {
+        const slot = { level, side };
+        const candidate = at(slot);
+        const box = boxOf(candidate.x, candidate.y, w, h);
+        if (free(box, width)) {
+          model.slot = slot;
+          model.blocked = 0;
           placed.push(box);
-          break;
+          return candidate;
         }
       }
     }
-    return chosen ?? { x: x - 1, y };
+    return null;
   }
   return {
     group,
@@ -233,14 +271,16 @@ export function createStoryLayer(ground: Ground, labels: HTMLElement, list: HTML
         for (const material of [model.outline.material, model.area.material, model.stem.material]) {
           material.color.copy(tint);
         }
+        const spread = 0.4 + 0.6 * ground;
         model.outline.material.opacity = ground * 0.95;
-        model.outline.scale.setScalar(0.4 + 0.6 * ground);
-        model.area.material.opacity = ground * 0.32;
-        model.area.scale.setScalar(0.4 + 0.6 * ground);
-        const top = model.base.y + model.stemHeight * rising;
-        const position = model.stem.geometry.getAttribute("position") as THREE.BufferAttribute;
-        position.setY(1, top);
-        position.needsUpdate = true;
+        model.outline.scale.setScalar(spread);
+        model.outline.position.y = model.base.y + volumeHeight * ground + 0.2;
+        model.area.material.opacity = ground * 0.55;
+        model.area.scale.set(spread, Math.max(0.001, ground), spread);
+        model.area.visible = ground > 0;
+        model.outline.visible = ground > 0;
+        const top = model.base.y + volumeHeight + model.stemHeight * rising;
+        model.stem.scale.y = Math.max(0.001, model.stemHeight * rising);
         model.stem.visible = rising > 0;
         model.stem.material.opacity = 0.9;
         if (model.works) {
@@ -263,10 +303,16 @@ export function createStoryLayer(ground: Ground, labels: HTMLElement, list: HTML
         }
         const anchorX = ((projected.x + 1) / 2) * width;
         const anchorY = ((1 - projected.y) / 2) * height;
-        const target = layoutLabel(anchorX, anchorY, model.label.offsetWidth, model.label.offsetHeight, width, height);
+        const target = layoutLabel(model, anchorX, anchorY, width);
+        if (!target) {
+          model.label.style.visibility = "hidden";
+          model.leader.style.visibility = "hidden";
+          model.shown = null;
+          continue;
+        }
         const shown = model.shown ?? { ...target };
-        shown.x += (target.x - shown.x) * 0.18;
-        shown.y += (target.y - shown.y) * 0.18;
+        shown.x += (target.x - shown.x) * 0.06;
+        shown.y += (target.y - shown.y) * 0.06;
         model.shown = shown;
         const rise = 10 * (1 - naming);
         model.label.style.opacity = clamp01(naming).toFixed(3);

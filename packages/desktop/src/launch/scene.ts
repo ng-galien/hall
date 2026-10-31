@@ -415,21 +415,31 @@ function reliefFinalPose(): CameraPose {
   return { look, eye };
 }
 
-/** Amplitude et période du balancement lent de la caméra autour du site, dans l'axe de la vue d'ensemble. */
-const swingDegrees = 28;
-const swingSeconds = 46;
+/** Période de l'orbite complète autour du site, et durée de sa mise en mouvement, en secondes. */
+const orbitSeconds = 64;
+const orbitRamp = 5;
 
 /**
- * Pose de la rotation lente autour du point visé, `seconds` après la fin du récit : l'azimut oscille autour de l'axe
- * Cornu–Syam, avec une mise en mouvement progressive ; avant la fin du récit, la pose finale.
+ * Pose de l'orbite cyclique, `seconds` après la fin du récit : un tour complet autour du point visé par période,
+ * avec un rapprochement puis un léger recul, et une hauteur de caméra qui varie le long du tour ; toutes les
+ * variations sont périodiques et nulles au départ, sans rupture au raccord du cycle ; avant la fin du récit, la
+ * pose finale.
  */
 function orbit(pose: CameraPose, seconds: number, into: CameraPose): void {
   into.look.copy(pose.look);
   const offset = new THREE.Vector3().subVectors(pose.eye, pose.look);
   if (seconds > 0) {
-    const ramp = easeInOutCubic(phase(seconds, 0, 4));
-    const angle = THREE.MathUtils.degToRad(swingDegrees) * Math.sin((2 * Math.PI * seconds) / swingSeconds) * ramp;
-    offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+    const travelled = seconds < orbitRamp ? (seconds * seconds) / (2 * orbitRamp) : seconds - orbitRamp / 2;
+    const theta = (2 * Math.PI * travelled) / orbitSeconds;
+    const distance = offset.length() * (1 + 0.13 * (Math.cos(theta) - 1) + 0.06 * (Math.cos(2 * theta + 1) - Math.cos(1)));
+    const elevation =
+      Math.asin(offset.y / offset.length()) + THREE.MathUtils.degToRad(7 * Math.sin(theta) + 3 * Math.sin(2 * theta));
+    const azimuth = Math.atan2(offset.x, offset.z) - theta;
+    offset.set(
+      Math.sin(azimuth) * Math.cos(elevation),
+      Math.sin(elevation),
+      Math.cos(azimuth) * Math.cos(elevation),
+    ).multiplyScalar(distance);
   }
   into.eye.copy(pose.look).add(offset);
 }
