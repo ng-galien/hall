@@ -67,7 +67,7 @@ postgresTest.each(["preparation", "default", "minutes"])(
         ]),
       );
       expect(JSON.stringify(contacts)).not.toMatch(/Delcourt|Lefèvre|Préfecture|Perrin/);
-      expect(businesses).toHaveLength(8);
+      expect(businesses).toHaveLength(10);
       const names = businesses.map((business: { title: string }) => business.title);
       expect(names).toEqual(
         expect.arrayContaining([
@@ -79,12 +79,14 @@ postgresTest.each(["preparation", "default", "minutes"])(
           "Équipes de soutien",
           "Accueil des habitants",
           "Accès et convois",
+          "Armée de secours",
+          "Correspondance avec le proconsul",
         ]),
       );
       expect(names).not.toContain("Affectation du grenier de Cornu aux réserves");
       expect(names).not.toContain("Répartition des réserves de céréales");
       const subjects = await get("/council-business/prepared-subjects");
-      expect(subjects).toHaveLength(15);
+      expect(subjects).toHaveLength(16);
       expect(subjects.map((subject: { title: string }) => subject.title)).toEqual(
         expect.arrayContaining(["Relève des veilleurs du rempart nord", "Choix du passage des messagers"]),
       );

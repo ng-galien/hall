@@ -50,4 +50,67 @@ describe("demonstration seed", () => {
       await pool.end();
     }
   });
+
+  it("places the alesia maps on Cornu and adds the storyboard elements", async () => {
+    const { databaseUrl, pool } = createPostgresTestPool();
+    await resetPostgresTestDatabase(pool);
+    const server = await startHttpServer({
+      host: "127.0.0.1",
+      port: 0,
+      database: { kind: "postgres", url: databaseUrl },
+      environment: "test",
+      devAutoLogin: true,
+    });
+    try {
+      await seed(["--dataset", "alesia", "--scenario", "default"], { SEED_API: `${server.url}/api` });
+      const api = createSeedApi(`${server.url}/api`);
+      const resources = await api.get("/resources/catalog");
+      const maps = resources.filter((resource) => resource.kind === "geographic");
+      expect(maps.map(({ name }) => name).sort()).toEqual(["Défenses de l’oppidum", "Repérage du plateau de Cornu"]);
+      for (const map of maps) {
+        const detail = await api.get(`/resources/${map.id}`);
+        expect(detail.document.view.center, map.name).toEqual([5.957, 46.668]);
+        for (const feature of detail.document.hallLayer.features) {
+          const points = JSON.stringify(feature.geometry.coordinates)
+            .match(/-?\d+\.\d+/g)
+            .map(Number);
+          for (let index = 0; index < points.length; index += 2) {
+            expect(points[index], feature.properties.label).toBeGreaterThan(5.95);
+            expect(points[index], feature.properties.label).toBeLessThan(5.964);
+            expect(points[index + 1], feature.properties.label).toBeGreaterThan(46.664);
+            expect(points[index + 1], feature.properties.label).toBeLessThan(46.672);
+          }
+        }
+      }
+      const businessList = await api.get("/council-business");
+      const businessNamed = (name) =>
+        businessList.find((business) =>
+          resources.some((resource) => resource.id === business.folderResourceId && resource.name === name),
+        );
+      expect(businessNamed("Armée de secours")).toBeTruthy();
+      expect(businessNamed("Correspondance avec le proconsul")).toBeTruthy();
+      const attachedNames = async (businessName) => {
+        const business = businessNamed(businessName);
+        const attached = new Set(
+          (await api.get(`/council-business/${business.id}/resources`)).map((entry) => entry.resourceId ?? entry.id),
+        );
+        return resources.filter((resource) => attached.has(resource.id)).map(({ name }) => name);
+      };
+      expect(await attachedNames("Veille autour de l’oppidum")).toContain("Ouvrages romains observés");
+      expect(await attachedNames("Correspondance avec le proconsul")).toEqual(
+        expect.arrayContaining(["Courrier au proconsul", "Pourparlers avec Jules César"]),
+      );
+      const meeting = resources.find(({ name }) => name === "Pourparlers avec Jules César");
+      expect((await api.get(`/resources/${meeting.id}`)).document.location).toBe("Plaine au pied de l’oppidum");
+      const [delegation] = await api.get("/council-delegations");
+      expect(delegation.name).toBe("Armée de secours des cités de Gaule");
+      const memberships = await api.get(`/council-delegations/${delegation.id}/memberships`);
+      const contacts = await api.get("/contacts");
+      const chiefs = memberships.map(({ contactId }) => contacts.find(({ id }) => id === contactId).firstName);
+      expect(chiefs.sort()).toEqual(["Commius", "Vercassivellaunos", "Viridomaros", "Éporédorix"]);
+    } finally {
+      await server.close();
+      await pool.end();
+    }
+  });
 });

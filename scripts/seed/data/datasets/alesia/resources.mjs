@@ -12,6 +12,8 @@ const folders = {
   legal: "Guide/Références juridiques",
   supply: "Ravitaillement",
   allies: "Relations",
+  proconsul: "Relations/Proconsul",
+  reliefArmy: "Relations/Armée de secours",
   reserves: "Réserves",
   reserveShelters: "Réserves/Abris",
   support: "Soutien",
@@ -245,6 +247,28 @@ function supportWorkbook(daysFromNow) {
   return makeXlsx(rows, "Suivi hebdomadaire");
 }
 
+function romanWorksWorkbook(daysFromNow) {
+  const observations = [
+    [-15, "Fossé de la plaine, tronçon ouest", 120, "Tour de guet nord"],
+    [-14, "Tour de bois sur la ligne intérieure", 40, "Tour de guet nord"],
+    [-12, "Camp au pied du coteau nord", 2_000, "Rempart nord"],
+    [-11, "Fossé de la plaine, tronçon est", 150, "Rempart nord"],
+    [-9, "Pièges devant le fossé intérieur", 60, "Tour de guet nord"],
+    [-8, "Tour de bois sur la ligne intérieure", 35, "Rempart ouest"],
+    [-6, "Ligne extérieure, terrassement", 300, "Rempart nord"],
+    [-5, "Camp de cavalerie vers l’est", 800, "Tour de guet nord"],
+    [-3, "Ligne extérieure, palissade", 250, "Rempart ouest"],
+    [-1, "Tour de bois sur la ligne extérieure", 45, "Tour de guet nord"],
+  ];
+  return makeXlsx(
+    [
+      ["Date", "Ouvrage observé", "Effectif estimé", "Poste d’observation"],
+      ...observations.map(([days, work, strength, post]) => [frenchDate(daysFromNow(days)), work, strength, post]),
+    ],
+    "Observations",
+  );
+}
+
 function plateauPlan() {
   return makePng({
     width: 640,
@@ -318,10 +342,10 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
   }
 
   console.log("- Cartes");
-  const view = { kind: "center", center: [4.438, 47.5583], zoom: 16 };
+  const view = { kind: "center", center: [5.957, 46.668], zoom: 16 };
   const layers = [{ id: "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2", visible: true, opacity: 1 }];
   await createGeographicResource({
-    name: "Défenses de Cornu",
+    name: "Défenses de l’oppidum",
     path: folders.root,
     tags: ["défense", "carte"],
     view,
@@ -339,17 +363,17 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
         { color: colors.slate, label: "Dépôt de pierre : déplacé au sud pour libérer le chemin du grenier" },
       ],
       features: [
-        marker("Poste de commandement", [4.438, 47.558], colors.navy, "large"),
-        marker("Porte ouest des convois", [4.433, 47.5575], colors.navy),
-        marker("Tour de guet nord", [4.4385, 47.5605], colors.navy),
+        marker("Poste de commandement", [5.957, 46.6677], colors.navy, "large"),
+        marker("Porte ouest des convois", [5.952, 46.6672], colors.navy),
+        marker("Tour de guet nord", [5.9575, 46.6702], colors.navy),
         line(
           "Fossé extérieur de l’oppidum",
           [
-            [4.432, 47.5555],
-            [4.4325, 47.56],
-            [4.437, 47.5615],
-            [4.442, 47.5605],
-            [4.444, 47.5565],
+            [5.951, 46.6652],
+            [5.9515, 46.6697],
+            [5.956, 46.6712],
+            [5.961, 46.6702],
+            [5.963, 46.6662],
           ],
           colors.red,
           4,
@@ -357,9 +381,9 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
         line(
           "Liaison intérieure des défenses",
           [
-            [4.438, 47.558],
-            [4.44, 47.559],
-            [4.442, 47.56],
+            [5.957, 46.6677],
+            [5.959, 46.6687],
+            [5.961, 46.6697],
           ],
           colors.navy,
           3,
@@ -367,11 +391,11 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
         area(
           "Chantier de la seconde ligne",
           [
-            [4.436, 47.557],
-            [4.44, 47.557],
-            [4.44, 47.559],
-            [4.436, 47.559],
-            [4.436, 47.557],
+            [5.955, 46.6667],
+            [5.959, 46.6667],
+            [5.959, 46.6687],
+            [5.955, 46.6687],
+            [5.955, 46.6667],
           ],
           colors.blue,
           colors.navy,
@@ -379,11 +403,11 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
         area(
           "Dépôt de pierre",
           [
-            [4.437, 47.555],
-            [4.439, 47.555],
-            [4.439, 47.556],
-            [4.437, 47.556],
-            [4.437, 47.555],
+            [5.956, 46.6647],
+            [5.958, 46.6647],
+            [5.958, 46.6657],
+            [5.956, 46.6657],
+            [5.956, 46.6647],
           ],
           colors.slate,
           colors.slate,
@@ -393,10 +417,10 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     },
   });
   const convoyPath = [
-    [4.44, 47.559],
-    [4.4385, 47.5585],
-    [4.4365, 47.559],
-    [4.4355, 47.56],
+    [5.959, 46.6687],
+    [5.9575, 46.6682],
+    [5.9555, 46.6687],
+    [5.9545, 46.6697],
   ];
   await createGeographicResource({
     name: "Repérage du plateau de Cornu",
@@ -420,27 +444,27 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
         area(
           "Enceinte de l’oppidum",
           [
-            [4.432, 47.555],
-            [4.444, 47.555],
-            [4.444, 47.5615],
-            [4.432, 47.5615],
-            [4.432, 47.555],
+            [5.951, 46.6647],
+            [5.963, 46.6647],
+            [5.963, 46.6712],
+            [5.951, 46.6712],
+            [5.951, 46.6647],
           ],
           colors.grey,
           colors.slate,
           0.1,
         ),
-        marker("Grenier de Cornu", [4.44, 47.559], colors.blue, "large"),
-        marker("Abri nord des habitants", [4.4355, 47.56], colors.slate),
-        marker("Abri sud des habitants", [4.435, 47.5565], colors.slate),
-        marker("Point d’eau de l’oppidum", [4.437, 47.5578], colors.green),
+        marker("Grenier de Cornu", [5.959, 46.6687], colors.blue, "large"),
+        marker("Abri nord des habitants", [5.9545, 46.6697], colors.slate),
+        marker("Abri sud des habitants", [5.954, 46.6662], colors.slate),
+        marker("Point d’eau de l’oppidum", [5.956, 46.6675], colors.green),
         line("Chemin des convois", convoyPath, colors.navy, 4, "forward"),
         line(
           "Chemin des abris sud",
           [
-            [4.4365, 47.559],
-            [4.4355, 47.5575],
-            [4.435, 47.5565],
+            [5.9555, 46.6687],
+            [5.9545, 46.6672],
+            [5.954, 46.6662],
           ],
           colors.navy,
           3,
@@ -467,8 +491,8 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
       path: folders.allies,
       document: {
         content:
-          "Vercingétorix rencontre Jules César pour demander une trêve permettant le passage des habitants les plus vulnérables. Préparer les conditions du passage et les garanties réciproques.",
-        location: "Entre les lignes gauloises et romaines, au pied de Cornu",
+          "Vercingétorix rencontre Jules César pour demander une trêve permettant le passage des habitants les plus vulnérables. Préparer les conditions du passage et les garanties réciproques. Ces pourparlers sont une invention du jeu : César n’en rapporte aucun avant la reddition.",
+        location: "Plaine au pied de l’oppidum",
         schedule: { kind: "timed", start: daysFromNow(1, 10, 0), end: daysFromNow(1, 11, 0) },
         participants: [
           { kind: "contact", contactId: memberContactIds["Vercingétorix"] },
@@ -513,6 +537,13 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     folderPath: folders.supply,
     content: distributionCsv(daysFromNow),
     mediaType: "text/csv",
+  });
+  await importSpreadsheet({
+    title: "Ouvrages romains observés",
+    fileName: "ouvrages-romains-observes.xlsx",
+    folderPath: folders.watch,
+    content: romanWorksWorkbook(daysFromNow),
+    mediaType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
   await importSpreadsheet({
     title: "Suivi des moyens de soutien",
@@ -607,6 +638,18 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
       "Consigne de circulation - accès de Cornu",
       ["convois"],
       "## Consigne de circulation\n\nConserver un passage aux équipes de ravitaillement pendant les travaux de défense. Les chariots montent aux heures paires et descendent aux heures impaires.",
+    ],
+    [
+      folders.proconsul,
+      "Courrier au proconsul",
+      ["proconsul", "courrier"],
+      "## Courrier au proconsul\n\nÀ Jules César, proconsul.\n\nLe conseil de l’oppidum d’Alésia demande une trêve pour le passage des habitants les plus vulnérables : enfants, blessés et personnes âgées accueillis dans les abris.\n\nVercingétorix, maire d’Alésia, propose de vous rencontrer dans la plaine au pied de l’oppidum pour fixer les conditions du passage et les garanties réciproques. L’invitation au rendez-vous est jointe.\n\nPour le conseil, Convictolitavis l’Éduen, secrétaire.",
+    ],
+    [
+      folders.reliefArmy,
+      "Lettre de mission des chefs de l’armée de secours",
+      ["armée de secours"],
+      "## Lettre de mission\n\nL’assemblée des cités lève une armée de secours. Le conseil désigne pour le représenter auprès d’elle Commius l’Atrébate, Viridomaros l’Éduen, Éporédorix l’Éduen et Vercassivellaunos l’Arverne.\n\nIls rendent compte au conseil par les messagers de la motion de liaison.",
     ],
   ];
   for (const [path, name, tags, content] of texts) {
@@ -703,5 +746,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     ),
     mediaType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
-  console.log(`  ${texts.length} textes, ${pdfs.length} PDF, une image, un document Word, trois tableurs, deux cartes`);
+  console.log(
+    `  ${texts.length} textes, ${pdfs.length} PDF, une image, un document Word, quatre tableurs, deux cartes`,
+  );
 }

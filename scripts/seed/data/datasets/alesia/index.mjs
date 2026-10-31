@@ -1,5 +1,6 @@
 import { daysFromNow } from "../../common/dates.mjs";
 import { seedBusinesses } from "./businesses.mjs";
+import { seedDelegations } from "./delegations.mjs";
 import { seedDirectory } from "./directory.mjs";
 import { seedResources } from "./resources.mjs";
 import { seedTemplates } from "./templates.mjs";
@@ -11,6 +12,7 @@ export async function seedAlesia(api, options) {
   });
   await seedResources(api, { daysFromNow, memberContactIds, caesarContactId });
   const subjects = await seedBusinesses(api, { committees });
+  await seedDelegations(api, { daysFromNow, memberContactIds });
   await seedTemplates(api);
   const memberLabels = {
     Commius: "Commius l’Atrébate",

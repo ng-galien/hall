@@ -27,7 +27,11 @@ La commission propose une relève toutes les quatre heures et la tenue d’un re
 Le conseil est invité à dire s’il retient cette organisation et à désigner le conseiller chargé de présenter les relevés en séance.`,
         },
       ],
-      resourceNames: ["Registre des observations de la tour nord", "Consigne de relève des veilleurs"],
+      resourceNames: [
+        "Registre des observations de la tour nord",
+        "Consigne de relève des veilleurs",
+        "Ouvrages romains observés",
+      ],
     },
     {
       key: "property",
@@ -218,7 +222,7 @@ La commission présentera les besoins de consolidation de chaque secteur et l’
         },
       ],
       resourceNames: [
-        "Défenses de Cornu",
+        "Défenses de l’oppidum",
         "Chiffrage de la seconde ligne",
         "Rapport - renforcement de la seconde ligne",
         "État des défenses - première ligne",
@@ -354,6 +358,53 @@ Après en avoir délibéré,
         },
       ],
       resourceNames: ["Inventaire des chemins de liaison", "Plan du plateau de Cornu", "Repérage du plateau de Cornu"],
+    },
+    {
+      key: "reliefArmy",
+      path: "Relations/Armée de secours",
+      name: "Armée de secours",
+      committee: "defense",
+      reportContent: `L’assemblée des cités de Gaule lève une armée de secours pour dégager l’oppidum. Son commandement est confié à quatre membres du conseil : Commius l’Atrébate, Viridomaros l’Éduen, Éporédorix l’Éduen et Vercassivellaunos l’Arverne.
+
+Le conseil inscrit leur désignation dans les représentations extérieures, avec une lettre de mission qui fixe leur compte rendu par les messagers de la motion de liaison.
+
+Pendant leur absence, les commissions gardent leur composition ; les pouvoirs nécessaires aux séances seront donnés à l’appel.
+
+Un projet de délibération désignant les quatre représentants est préparé pour la prochaine séance.`,
+      subjects: [
+        {
+          key: "reliefArmyRepresentatives",
+          kind: "councilDecisionProposal",
+          name: "Désignation des représentants auprès de l’armée de secours",
+          content: `## Désignation des représentants auprès de l’armée de secours
+
+Le conseil de l’oppidum,
+
+Considérant que l’assemblée des cités lève une armée de secours et en confie le commandement à des membres du conseil ;
+
+Après en avoir délibéré,
+
+**Décide :**
+
+1. de désigner Commius l’Atrébate, Viridomaros l’Éduen, Éporédorix l’Éduen et Vercassivellaunos l’Arverne pour représenter le conseil auprès de l’armée de secours ;
+2. de leur remettre la lettre de mission jointe ;
+3. de leur demander un compte rendu par les messagers de la motion de liaison.`,
+        },
+      ],
+      resourceNames: ["Lettre de mission des chefs de l’armée de secours"],
+    },
+    {
+      key: "proconsul",
+      path: "Relations/Proconsul",
+      name: "Correspondance avec le proconsul",
+      committee: "supply",
+      reportContent: `Le conseil demande à Jules César, proconsul, une trêve pour le passage des habitants les plus vulnérables accueillis dans les abris.
+
+Le secrétariat prépare le courrier au proconsul et l’invitation au rendez-vous « Pourparlers avec Jules César », fixé dans la plaine au pied de l’oppidum. Hall prépare le courriel depuis le modèle d’invitation ; l’envoi reste fait par le secrétariat.
+
+Ces pourparlers sont une invention du jeu : César rapporte seulement qu’il refusa de recevoir les habitants dans ses lignes.`,
+      subjects: [],
+      resourceNames: ["Courrier au proconsul", "Pourparlers avec Jules César"],
     },
   ];
   const seededBusinesses = new Map();
