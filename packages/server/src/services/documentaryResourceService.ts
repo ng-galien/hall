@@ -144,6 +144,7 @@ export function numberedName(name: string, number: number) {
 // @implements-requirement HALL-FR-DOC-280
 // @implements-requirement HALL-FR-DOC-230
 // @implements-requirement HALL-FR-WSP-380 (personalWorkspace)
+// @implements-requirement HALL-FR-WSP-460
 export function createDocumentaryResourceService({
   resourcesClient,
   documentPreviewConverter,
@@ -255,7 +256,6 @@ export function createDocumentaryResourceService({
       });
       return created.representation;
     },
-    // @implements-requirement HALL-FR-WSP-460
     async createDocument(input) {
       const inspection = await inspectDocument(input.fileName, input.content);
       const create = (name: string) =>
