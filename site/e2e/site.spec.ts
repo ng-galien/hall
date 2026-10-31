@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { installationGuides, installationIntroduction } from "../src/installation";
 
 const order = [
   "ouverture",
@@ -39,10 +40,19 @@ async function expectNoHorizontalScroll(page: Page) {
 }
 
 async function expectLinks(page: Page) {
-  await expect(page.getByTestId("download-link")).toHaveAttribute("href", releases);
+  for (const system of ["windows", "macos", "linux"]) {
+    await expect(page.getByTestId(`download-link-${system}`)).toHaveAttribute("href", releases);
+  }
   await expect(page.getByTestId("documentation-link")).toHaveAttribute("href", documentation);
-  await expect(page.getByTestId("footer-download-link")).toHaveAttribute("href", releases);
-  await expect(page.getByTestId("footer-documentation-link")).toHaveAttribute("href", documentation);
+  await expect(page.getByTestId("releases-link")).toHaveAttribute("href", releases);
+}
+
+/** Retire les espaces insécables ajoutés par la typographie française pour comparer au texte du guide. */
+function plain(text: string): string {
+  return text
+    .replace(/[\u202f\u00a0]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const axisOf: Record<(typeof order)[number], "ouverture" | "preparer" | "sieger"> = {
@@ -462,6 +472,124 @@ test.describe("version sans 3D", () => {
       await expectCapturesLoaded(page, `#lieu-${id}`);
     }
     await expectNoHorizontalScroll(page);
+  });
+});
+
+test.describe("niveau de détail du relief", () => {
+  test("le relief s’affine en s’approchant et s’allège en s’éloignant", async ({ page }) => {
+    const levels = async () =>
+      ((await page.getByTestId("terrain-stage").getAttribute("data-lod")) ?? "").split(",").map(Number);
+    await page.goto("./");
+    await sceneReady(page);
+    const far = await levels();
+    expect(far).toHaveLength(3);
+    expect(far.reduce((a, b) => a + b)).toBeGreaterThan(100);
+    await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-contour", "40");
+    await page.goto("./#carte");
+    await expect(page.getByTestId("scenario-carte")).toBeVisible();
+    await sceneReady(page);
+    await expect.poll(async () => (await levels())[2]).toBeLessThan(far[2]);
+    const near = await levels();
+    expect(near[0] + near[1]).toBeGreaterThan(far[0] + far[1]);
+    await expect
+      .poll(async () => Number(await page.getByTestId("terrain-stage").getAttribute("data-contour")))
+      .toBeLessThanOrEqual(20);
+    await page.getByTestId("scenario-close").click();
+    await expect.poll(async () => (await levels())[2]).toBeGreaterThan(near[2]);
+  });
+});
+
+test.describe("sections de la page", () => {
+  test("l’en-tête mène aux sections dans l’ordre et marque la section visible", async ({ page }) => {
+    await page.goto("./");
+    const ids = ["decouvrir", "telecharger", "installer", "documentation"];
+    const tops: number[] = [];
+    for (const id of ids) {
+      await expect(page.getByTestId(`nav-${id}`)).toHaveAttribute("href", `#${id}`);
+      const box = await page.getByTestId(`section-${id}`).boundingBox();
+      if (!box) throw new Error(`Section ${id} absente`);
+      tops.push(box.y);
+    }
+    expect([...tops].sort((a, b) => a - b)).toEqual(tops);
+    for (const id of ids.slice(1)) {
+      await page.getByTestId(`nav-${id}`).click();
+      await expect(page.getByTestId(`section-${id}`)).toBeInViewport();
+      await expect(page.getByTestId(`nav-${id}`)).toHaveAttribute("aria-current", "true");
+    }
+    await page.getByTestId("nav-telecharger").click();
+    await expect(page.getByTestId("nav-telecharger")).toHaveAttribute("aria-current", "true");
+    await expect(page.getByTestId("nav-installer")).not.toHaveAttribute("aria-current", "true");
+    await expectNoHorizontalScroll(page);
+    const header = await page.getByTestId("site-header").boundingBox();
+    const nav = await page.getByTestId("nav-documentation").boundingBox();
+    const viewport = page.viewportSize();
+    if (!header || !nav || !viewport) throw new Error("En-tête absent");
+    expect(nav.x + nav.width).toBeLessThanOrEqual(viewport.width);
+  });
+
+  test("le téléchargement propose un bouton par système et mène à son installation", async ({ page }) => {
+    await page.goto("./#telecharger");
+    await expectLinks(page);
+    for (const guide of installationGuides) {
+      const row = page.getByTestId(`download-${guide.system}`);
+      await expect(row).toContainText(guide.title);
+      expect(plain(await row.innerText())).toContain(plain(guide.versions));
+      await expect(page.getByTestId(`download-link-${guide.system}`)).toHaveText(`Télécharger pour ${guide.title}`);
+    }
+    await page.getByTestId("download-how-linux").click();
+    await expect(page.getByTestId("install-tab-linux")).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("install-panel-linux")).toBeInViewport();
+    await expect(page.locator(".site-footer")).not.toContainText("Télécharger");
+    await expectNoHorizontalScroll(page);
+  });
+
+  test("l’installation montre chaque étape et chaque remarque du guide, par système", async ({ page }) => {
+    await page.goto("./#installer");
+    const intro = plain(await page.getByTestId("install-introduction").innerText());
+    for (const line of installationIntroduction) expect(intro).toContain(plain(line));
+    for (const guide of installationGuides) {
+      await page.getByTestId(`install-tab-${guide.system}`).click();
+      const panel = page.getByTestId(`install-panel-${guide.system}`);
+      await expect(panel).toBeVisible();
+      for (const other of installationGuides.filter((g) => g.system !== guide.system)) {
+        await expect(page.getByTestId(`install-panel-${other.system}`)).toBeHidden();
+      }
+      const steps = panel.getByTestId("install-step");
+      const expected = guide.paths.flatMap((path) => path.steps);
+      await expect(steps).toHaveCount(expected.length);
+      for (const [index, step] of expected.entries()) {
+        const text = plain(await steps.nth(index).innerText());
+        expect(text).toContain("À l’écran");
+        expect(text).toContain("À faire");
+        expect(text).toContain(plain(step.sees));
+        expect(text.replace(/ ?Copier ?/g, " ").replace(/\s+/g, " ")).toContain(plain(step.does));
+      }
+      for (const path of guide.paths) await expect(panel).toContainText(path.title);
+      await expect(panel.getByTestId("install-note")).toHaveCount(guide.notes.length);
+      await expectNoHorizontalScroll(page);
+    }
+    await page.getByTestId("install-tab-linux").click();
+    await expect(page.getByTestId("install-panel-linux").getByTestId("command-text")).toHaveText([
+      "sudo apt install ./linux-x64-*.deb",
+      "sudo dnf install ./linux-x64-*.rpm",
+    ]);
+    await page.getByTestId("install-tab-macos").click();
+    await expect(page.getByTestId("install-panel-macos").getByTestId("command-text")).toHaveText(
+      "xattr -dr com.apple.quarantine /Applications/Hall.app",
+    );
+    await page.getByTestId("install-tab-macos").focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(page.getByTestId("install-tab-linux")).toHaveAttribute("aria-selected", "true");
+  });
+
+  test("la version sans 3D garde les mêmes sections", async ({ page }) => {
+    await page.goto("./?vue=sans-3d");
+    for (const id of ["decouvrir", "telecharger", "installer", "documentation"]) {
+      await expect(page.getByTestId(`section-${id}`)).toBeAttached();
+    }
+    await page.getByTestId("nav-installer").click();
+    await expect(page.getByTestId("section-installer")).toBeInViewport();
+    await expectLinks(page);
   });
 });
 
