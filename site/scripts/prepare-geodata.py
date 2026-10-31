@@ -1,9 +1,9 @@
 # Prépare les données géographiques embarquées du site à partir des extractions IGN.
 # Usage : python3 -I scripts/prepare-geodata.py <dossier des téléchargements> <dossier de sortie>
-# Entrées : alti-1282.bil (RGE ALTI, WMS-R Géoplateforme, 1282 x 1282, EPSG:4326, moyenné 2 x 2 en 641 x 641), couches BD TOPO V3 en GeoJSON
-# (WFS Géoplateforme) et contours communaux geo.api.gouv.fr (commune-<code>.json).
+# Entrées : alti-fine.bil (RGE ALTI, WMS-R Géoplateforme, 1282 x 1450 points, EPSG:4326, moyenné 2 x 2 en 641 x 725),
+# couches BD TOPO V3 en GeoJSON (WFS Géoplateforme) et contours communaux geo.api.gouv.fr (commune-<code>.json).
 # Sorties : terrain.bin (altitudes Uint16 en décimètres au-dessus du minimum), landcover.bin (Uint8 :
-# 1 forêt, 2 eau), terrain.json (métadonnées et vecteurs simplifiés en mètres locaux, x vers l'est, y vers le nord).
+# bit 1 forêt, bit 2 eau, bit 4 territoire de Chaux-des-Crotenay), terrain.json (métadonnées et vecteurs simplifiés en mètres locaux, x vers l'est, y vers le nord).
 
 import json
 import math
@@ -12,8 +12,9 @@ from pathlib import Path
 
 import numpy as np
 
-BBOX = {"west": 5.915, "south": 46.630, "east": 6.025, "north": 46.705}
-GRID = 641
+BBOX = {"west": 5.925, "south": 46.635, "east": 6.035, "north": 46.72}
+COLS = 641
+ROWS = 725
 LAT0 = (BBOX["south"] + BBOX["north"]) / 2
 LON0 = (BBOX["west"] + BBOX["east"]) / 2
 EARTH = 6371008.8
@@ -25,6 +26,19 @@ COMMUNES = [
     ("39178", "Crans", False),
     ("39424", "Les Planches-en-Montagne", False),
 ]
+TOPONYMS = {
+    "Cornu",
+    "Chaux-des-Crotenay",
+    "Syam",
+    "Crans",
+    "Les Planches-en-Montagne",
+    "le Pont de la Chaux",
+    "Gorges de la Langouette",
+    "Bois derrière Cornu",
+    "Belvédère du Rachet",
+    "Belvédère des Prés Grillet",
+    "Belvédère à Taiclet",
+}
 FORESTS = {
     "Bois",
     "Forêt fermée de feuillus",
@@ -148,13 +162,13 @@ def main() -> None:
     east_x, north_y = local(BBOX["east"], BBOX["north"])
     half_w, half_h = (east_x - west_x) / 2, (north_y - south_y) / 2
 
-    fine = np.fromfile(source / "alti-1282.bil", dtype="<f4").reshape(2 * GRID, 2 * GRID)
-    altitudes = fine.reshape(GRID, 2, GRID, 2).mean(axis=(1, 3))
+    fine = np.fromfile(source / "alti-fine.bil", dtype="<f4").reshape(2 * ROWS, 2 * COLS)
+    altitudes = fine.reshape(ROWS, 2, COLS, 2).mean(axis=(1, 3))
     minimum = float(np.floor(altitudes.min()))
     heights = np.round((altitudes - minimum) * 10).astype("<u2")
     heights.tofile(target / "terrain.bin")
 
-    cover = np.zeros((GRID, GRID), dtype=np.uint8)
+    cover = np.zeros((ROWS, COLS), dtype=np.uint8)
     for feature in load(source, "zone_de_vegetation"):
         if feature["properties"].get("nature") in FORESTS:
             for ring in rings(feature["geometry"]):
@@ -163,6 +177,11 @@ def main() -> None:
         for feature in load(source, name):
             for ring in rings(feature["geometry"]):
                 fill(cover, [local(c[0], c[1]) for c in ring], 2, half_w, half_h)
+    main_code = next(code for code, _, main_commune in COMMUNES if main_commune)
+    main_data = json.loads((source / f"commune-{main_code}.json").read_text())
+    main_data = main_data[0] if isinstance(main_data, list) else main_data
+    for ring in rings(main_data["contour"]):
+        fill(cover, [local(c[0], c[1]) for c in ring], 4, half_w, half_h)
     cover.tofile(target / "landcover.bin")
 
     roads = []
@@ -176,6 +195,15 @@ def main() -> None:
             points = project(line, tolerance)
             if inside_extent(points, half_w, half_h):
                 roads.append({"r": rank, "n": props.get("cpx_numero"), "p": flat(points)})
+
+    railway = []
+    for feature in load(source, "troncon_de_voie_ferree"):
+        props = feature["properties"]
+        level = str(props.get("position_par_rapport_au_sol") or "0")
+        for line in lines(feature["geometry"]):
+            points = project(line, 4.0)
+            if inside_extent(points, half_w, half_h):
+                railway.append({"t": level.startswith("-"), "p": flat(points)})
 
     rivers = []
     for feature in load(source, "troncon_hydrographique"):
@@ -220,23 +248,24 @@ def main() -> None:
             communes.append({"code": code, "name": name, "main": main_commune, "p": flat(project_ring(ring, 5.0))})
 
     toponyms = []
-    for layer in ("zone_d_habitation", "lieu_dit_non_habite", "detail_orographique", "plan_d_eau"):
+    for layer in ("zone_d_habitation", "lieu_dit_non_habite", "detail_orographique", "plan_d_eau", "zone_d_activite_ou_d_interet"):
         for feature in load(source, layer):
             props = feature["properties"]
             name = props.get("toponyme")
-            if not name or "Foncine" in name:
+            if name not in TOPONYMS:
                 continue
             x, y = label_point(feature)
             if abs(x) <= half_w and abs(y) <= half_h:
                 toponyms.append({"t": name, "k": props.get("nature"), "x": round(x), "y": round(y)})
 
     meta = {
-        "grid": {"cols": GRID, "rows": GRID, "width": round(2 * half_w, 1), "height": round(2 * half_h, 1)},
+        "grid": {"cols": COLS, "rows": ROWS, "width": round(2 * half_w, 1), "height": round(2 * half_h, 1)},
         "altitude": {"minimum": minimum, "unit": 0.1, "maximum": round(float(altitudes.max()), 1)},
         "bbox": BBOX,
         "origin": {"lon": LON0, "lat": LAT0},
         "communes": communes,
         "roads": roads,
+        "railway": railway,
         "rivers": rivers,
         "lakes": lakes,
         "buildings": buildings,

@@ -4,10 +4,10 @@ import "@fontsource/public-sans/700.css";
 import "@fontsource/public-sans/800.css";
 import "./styles.css";
 import { type PlaceId, type Scene, scenes } from "./scenes";
-import type { Town } from "./town";
+import type { TerrainView } from "./terrain";
 import { supportsWebGL } from "./webgl";
 
-type ViewMode = "town" | "plain";
+type ViewMode = "terrain" | "plain";
 
 const base = import.meta.env.BASE_URL;
 
@@ -29,22 +29,49 @@ function html(tag: string, className?: string, text?: string): HTMLElement {
   return node;
 }
 
-function renderScenario(scene: Scene, headingLevel: "h2" | "h3", onClose?: () => void): HTMLElement {
+interface StepNavigation {
+  onClose: () => void;
+  onMove: (id: PlaceId) => void;
+}
+
+function renderStepNavigation(scene: Scene, navigation: StepNavigation): HTMLElement {
+  const index = scenes.findIndex((s) => s.id === scene.id);
+  const nav = html("nav", "step-nav");
+  nav.setAttribute("aria-label", "Étapes du récit");
+  const position = html("span", "step-position", `Étape ${index + 1} sur ${scenes.length}`);
+  nav.append(position);
+  const previous = scenes[index - 1];
+  const next = scenes[index + 1];
+  for (const [target, text, testId] of [
+    [previous, "Étape précédente", "step-previous"],
+    [next, "Étape suivante", "step-next"],
+  ] as const) {
+    const button = html("button", "step-button", target ? `${text} : ${target.place}` : text) as HTMLButtonElement;
+    button.type = "button";
+    button.dataset.testid = testId;
+    button.disabled = !target;
+    if (target) button.addEventListener("click", () => navigation.onMove(target.id));
+    nav.append(button);
+  }
+  return nav;
+}
+
+function renderScenario(scene: Scene, headingLevel: "h2" | "h3", navigation?: StepNavigation): HTMLElement {
   const article = html("article", "scenario");
   article.dataset.testid = `scenario-${scene.id}`;
   const head = html("div", "scenario-head");
   const titles = html("div");
   titles.append(html("p", "scenario-place", scene.place), html(headingLevel, undefined, scene.title));
   head.append(titles);
-  if (onClose) {
+  if (navigation) {
     const close = html("button", "close-button", "×") as HTMLButtonElement;
     close.type = "button";
     close.setAttribute("aria-label", "Fermer le scénario");
     close.dataset.testid = "scenario-close";
-    close.addEventListener("click", onClose);
+    close.addEventListener("click", navigation.onClose);
     head.append(close);
   }
-  article.append(head, html("p", "scenario-lead", scene.lead));
+  article.append(head, html("p", "scenario-where", scene.where), html("p", "scenario-lead", scene.lead));
   const steps = html("ol", "steps");
   for (const step of scene.steps) {
     steps.append(html("li", `tone-${step.tone ?? "neutral"}`, step.text));
@@ -65,6 +92,7 @@ function renderScenario(scene: Scene, headingLevel: "h2" | "h3", onClose?: () =>
     captures.append(figure);
   }
   article.append(captures);
+  if (navigation) article.append(renderStepNavigation(scene, navigation));
   return article;
 }
 
@@ -75,7 +103,7 @@ function prefersReducedMotion(): boolean {
 function requestedMode(): ViewMode | null {
   const value = new URLSearchParams(window.location.search).get("vue");
   if (value === "sans-3d") return "plain";
-  if (value === "3d") return "town";
+  if (value === "3d") return "terrain";
   return null;
 }
 
@@ -93,7 +121,7 @@ function renderPlain(root: HTMLElement, notice: string) {
   note.dataset.testid = "plain-notice";
   root.append(note);
   const index = html("nav", "plain-index");
-  index.setAttribute("aria-label", "Lieux de la commune");
+  index.setAttribute("aria-label", "Étapes du récit");
   for (const scene of scenes) {
     const link = html("a", undefined, scene.place) as HTMLAnchorElement;
     link.href = `#lieu-${scene.id}`;
@@ -112,14 +140,14 @@ function renderPlain(root: HTMLElement, notice: string) {
   }
 }
 
-async function renderTown(root: HTMLElement) {
-  document.body.classList.add("has-town");
+async function renderTerrain(root: HTMLElement) {
+  document.body.classList.add("has-terrain");
   root.hidden = false;
-  root.dataset.view = "town";
+  root.dataset.view = "terrain";
   const bar = element("place-bar");
   const panel = element("scenario-panel");
   const buttons = new Map<PlaceId, HTMLButtonElement>();
-  let town: Town | null = null;
+  let terrain: TerrainView | null = null;
   let current: PlaceId | null = null;
 
   function open(id: PlaceId | null, fromHash = false) {
@@ -128,23 +156,23 @@ async function renderTown(root: HTMLElement) {
     panel.replaceChildren();
     const scene = scenes.find((s) => s.id === id);
     if (scene) {
-      panel.append(renderScenario(scene, "h2", () => open(null)));
+      panel.append(renderScenario(scene, "h2", { onClose: () => open(null), onMove: (next) => open(next) }));
       panel.hidden = false;
       panel.scrollTop = 0;
     } else {
       panel.hidden = true;
     }
     document.body.classList.toggle("has-scenario", Boolean(scene));
-    town?.focus(id);
+    terrain?.focus(id);
     if (!fromHash) history.replaceState(null, "", id ? `#${id}` : `${location.pathname}${location.search}`);
   }
 
-  for (const scene of scenes) {
+  for (const [index, scene] of scenes.entries()) {
     const button = html("button", "place-button") as HTMLButtonElement;
     button.type = "button";
     button.dataset.testid = `place-${scene.id}`;
     button.setAttribute("aria-pressed", "false");
-    button.append(html("span", "dot"), html("span", undefined, scene.place));
+    button.append(html("span", "step-number", String(index + 1)), html("span", undefined, scene.place));
     button.addEventListener("click", () => open(current === scene.id ? null : scene.id));
     bar.append(button);
     buttons.set(scene.id, button);
@@ -154,11 +182,11 @@ async function renderTown(root: HTMLElement) {
     if (event.key === "Escape" && current) open(null);
   });
 
-  const { createTown } = await import("./town");
-  town = createTown({
-    stage: element("town-stage"),
-    labels: root.querySelector(".town-labels") as HTMLElement,
-    places: scenes.map(({ id, place }) => ({ id, name: place })),
+  const { createTerrain } = await import("./terrain");
+  terrain = await createTerrain({
+    stage: element("terrain-stage"),
+    labels: root.querySelector(".terrain-labels") as HTMLElement,
+    places: scenes.map(({ id, place, anchor }) => ({ id, name: place, ...anchor })),
     onSelect: (id) => open(id),
   });
   const placeFromHash = () => scenes.find((s) => `#${s.id}` === window.location.hash)?.id ?? null;
@@ -174,26 +202,26 @@ async function start() {
   const webgl = supportsWebGL();
   const reduced = prefersReducedMotion();
   const requested = requestedMode();
-  const mode: ViewMode = webgl && (requested === "town" || (requested === null && !reduced)) ? "town" : "plain";
+  const mode: ViewMode = webgl && (requested === "terrain" || (requested === null && !reduced)) ? "terrain" : "plain";
   document.documentElement.dataset.view = mode;
 
   const viewSwitch = element<HTMLButtonElement>("view-switch");
-  if (mode === "town") {
+  if (mode === "terrain") {
     viewSwitch.textContent = "Afficher la version sans 3D";
     viewSwitch.addEventListener("click", () => setMode("plain"));
-    await renderTown(element("town"));
+    await renderTerrain(element("terrain"));
   } else {
     if (webgl) {
-      viewSwitch.textContent = "Afficher la commune en 3D";
-      viewSwitch.addEventListener("click", () => setMode("town"));
+      viewSwitch.textContent = "Afficher le relief en 3D";
+      viewSwitch.addEventListener("click", () => setMode("terrain"));
     } else {
       viewSwitch.parentElement?.remove();
     }
     renderPlain(
       element("plain-view"),
       webgl
-        ? "Version sans animation : les lieux de la commune sont présentés ci-dessous."
-        : "Cet appareil n’affiche pas la 3D : les lieux de la commune sont présentés ci-dessous.",
+        ? "Version sans animation : les étapes du récit sont présentées ci-dessous."
+        : "Cet appareil n’affiche pas la 3D : les étapes du récit sont présentées ci-dessous.",
     );
   }
 }

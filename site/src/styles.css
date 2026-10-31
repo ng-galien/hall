@@ -172,86 +172,186 @@ a {
   font-size: 0.95rem;
 }
 
-/* Scène 3D */
-.town {
+/* Scène 3D : le relief est présenté sur fond ardoise sombre, en salle obscure. */
+.terrain {
   position: relative;
   height: max(34rem, calc(100svh - var(--masthead)));
-  margin-top: calc(-1 * var(--town-overlap, 0px));
   overflow: hidden;
-  background: radial-gradient(120% 90% at 50% 35%, var(--slate-50) 0%, var(--slate-100) 55%, var(--slate-200) 100%);
+  background: var(--slate-950);
 }
 
-/* Le texte d'accueil est posé au-dessus de la maquette ; à partir de 1280 px il passe à sa gauche. */
-.has-town .intro {
+body.has-terrain {
+  background: var(--slate-950);
+}
+
+.has-terrain .masthead {
+  background: color-mix(in srgb, var(--slate-950) 88%, transparent);
+  border-bottom-color: var(--slate-800);
+}
+
+.has-terrain .brand {
+  color: var(--slate-50);
+}
+
+.has-terrain .brand-mark {
+  background: var(--slate-50);
+  color: var(--slate-950);
+}
+
+.has-terrain .link-quiet {
+  color: var(--slate-200);
+}
+
+.has-terrain .link-quiet:hover {
+  background: var(--slate-800);
+}
+
+.has-terrain .intro {
   padding-bottom: 0.5rem;
+  color: var(--slate-50);
 }
 
-.has-town .intro h1 {
+.has-terrain .intro h1 {
   font-size: clamp(1.75rem, 1.1rem + 2vw, 2.6rem);
 }
 
+.has-terrain .intro p {
+  color: var(--slate-300);
+}
+
+.has-terrain .intro .intro-note {
+  color: var(--slate-400);
+}
+
 @media (min-width: 1280px) {
-  .has-town .intro {
+  .has-terrain .intro {
     position: absolute;
     z-index: 10;
     top: calc(var(--masthead) + 0.5rem);
     left: 0;
     pointer-events: none;
     max-width: 30rem;
+    text-shadow: 0 1px 12px var(--slate-950);
   }
 
-  .has-town.has-scenario .intro {
+  .has-terrain.has-scenario .intro {
     visibility: hidden;
   }
 }
 
-.town-stage {
+.terrain-stage {
   position: absolute;
   inset: 0;
   cursor: grab;
   touch-action: none;
 }
 
-.town-stage canvas {
+.terrain-stage canvas {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-.town-stage.is-pointing {
+.terrain-stage.is-pointing {
   cursor: pointer;
 }
 
-.town-labels {
+.terrain-labels {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.town-label {
+.terrain-label {
   position: absolute;
   left: 0;
   top: 0;
   transform: translate(-50%, -100%);
-  padding: 0.2rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem;
   border-radius: 999px;
-  background: var(--paper);
-  color: var(--slate-800);
-  border: 1px solid var(--slate-300);
+  background: color-mix(in srgb, var(--slate-800) 88%, transparent);
+  color: var(--slate-50);
+  border: 1px solid var(--slate-600);
   font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--slate-950) 18%, transparent);
   transition:
     background-color 160ms ease,
-    color 160ms ease,
     border-color 160ms ease;
 }
 
-.town-label.is-active {
+.terrain-label-number {
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.terrain-label-name {
+  display: none;
+  padding-right: 0.5rem;
+}
+
+.terrain-label.is-active .terrain-label-name,
+.terrain-label.is-hovered .terrain-label-name {
+  display: inline;
+}
+
+.terrain-label.is-hovered {
+  border-color: var(--slate-300);
+}
+
+.terrain-label.is-active {
   background: var(--blue);
   border-color: var(--blue);
-  color: var(--paper);
+}
+
+.terrain-toponym {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--slate-400);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-shadow:
+    0 0 4px var(--slate-950),
+    0 0 10px var(--slate-950);
+}
+
+.terrain-toponym.is-major {
+  color: var(--slate-200);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.terrain-toponym.is-site {
+  color: var(--slate-300);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.terrain-toponym.is-river {
+  color: color-mix(in srgb, var(--blue) 55%, var(--slate-50));
+  font-style: italic;
+}
+
+.terrain-credit {
+  position: absolute;
+  z-index: 11;
+  right: var(--gutter);
+  top: 0.75rem;
+  margin: 0;
+  max-width: 22rem;
+  color: var(--slate-500);
+  font-size: 0.75rem;
+  text-align: right;
 }
 
 .place-bar {
@@ -273,10 +373,10 @@ a {
   gap: 0.5rem;
   min-height: 2.75rem;
   padding: 0 1rem;
-  border: 1px solid var(--slate-300);
+  border: 1px solid var(--slate-600);
   border-radius: 0.6rem;
-  background: var(--paper);
-  color: var(--slate-800);
+  background: color-mix(in srgb, var(--slate-800) 90%, transparent);
+  color: var(--slate-50);
   font: inherit;
   font-weight: 600;
   font-size: 0.95rem;
@@ -284,24 +384,28 @@ a {
 }
 
 .place-button:hover {
-  border-color: var(--slate-500);
+  border-color: var(--slate-300);
 }
 
 .place-button[aria-pressed="true"] {
-  background: var(--slate-800);
-  border-color: var(--slate-800);
+  background: var(--blue);
+  border-color: var(--blue);
   color: var(--paper);
 }
 
-.place-button .dot {
-  width: 0.55rem;
-  height: 0.55rem;
+.place-button .step-number {
+  display: grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
   border-radius: 50%;
-  background: var(--slate-400);
+  border: 1px solid var(--slate-400);
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
-.place-button[aria-pressed="true"] .dot {
-  background: var(--blue);
+.place-button[aria-pressed="true"] .step-number {
+  border-color: var(--paper);
 }
 
 /* Panneau de scénario */
@@ -346,9 +450,54 @@ a {
   text-wrap: balance;
 }
 
+.scenario-where {
+  margin: 0 0 0.6rem;
+  color: var(--blue);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .scenario-lead {
   margin: 0 0 1.25rem;
   color: var(--slate-700);
+}
+
+.step-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--slate-200);
+}
+
+.step-position {
+  flex: 1 0 100%;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.step-button {
+  min-height: 2.5rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--slate-300);
+  border-radius: 0.5rem;
+  background: var(--paper);
+  color: var(--slate-800);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.step-button:hover:not(:disabled) {
+  border-color: var(--slate-500);
+}
+
+.step-button:disabled {
+  color: var(--slate-400);
+  cursor: default;
 }
 
 .close-button {
@@ -536,13 +685,29 @@ a {
     display: none;
   }
 
-  .town {
+  .terrain {
     height: auto;
   }
 
-  .town-stage {
+  .terrain-stage {
     position: relative;
-    height: 25rem;
+    height: 26rem;
+  }
+
+  .terrain-labels {
+    height: 26rem;
+  }
+
+  .terrain-toponym.is-minor,
+  .terrain-toponym.is-site {
+    display: none;
+  }
+
+  .terrain-credit {
+    position: static;
+    max-width: none;
+    padding: 0 0.75rem 1rem;
+    text-align: left;
   }
 
   .place-bar {
