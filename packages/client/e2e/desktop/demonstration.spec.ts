@@ -30,10 +30,12 @@ test("opens the Alésia demonstration signed in after the Alésia launch screen 
     const launch = application.windows().find((page) => page.url().startsWith("hall-launch:"))!;
     await expect(launch.locator("html")).toHaveAttribute("data-commune", "39129");
     await expect(launch.locator("html")).toHaveAttribute("data-state", "final", { timeout: 15_000 });
-    await expect(launch.getByTestId("launch-place")).toHaveText("Alésia, Cornu – Chaux-des-Crotenay, Jura");
+    await expect(launch.getByTestId("launch-place")).toHaveText("Alésia, territoire des Mandubiens");
+    await expect(launch.getByTestId("launch-open")).toBeEnabled({ timeout: 8 * 60_000 });
+    await launch.getByTestId("launch-open").click();
     await expect
-      .poll(() => application.windows().some((page) => page.url().includes("/app/")), { timeout: 8 * 60_000 })
-      .toBe(true);
+      .poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:")), { timeout: 5_000 })
+      .toBe(false);
     const window = application.windows().find((page) => page.url().includes("/app/"))!;
     await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible({ timeout: 8 * 60_000 });
     expect(new URL(window.url()).pathname).toBe("/app/");
