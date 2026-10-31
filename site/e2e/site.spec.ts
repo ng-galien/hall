@@ -66,6 +66,14 @@ test.describe("commune en 3D", () => {
   });
 });
 
+test("le quorum atteint est une étape valide, sans rouge", async ({ page }) => {
+  await page.goto("./?vue=sans-3d");
+  const steps = page.locator('[data-testid="scenario-conseil"] .steps li');
+  const quorum = steps.filter({ hasText: "12 présents pour 8 requis" });
+  await expect(quorum).toHaveClass(/tone-valid/);
+  await expect(page.locator(".steps li.tone-blocking")).toHaveCount(0);
+});
+
 test.describe("mise en page du texte d’accueil", () => {
   test("à 1024 px le texte est au-dessus de la scène", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 768 });

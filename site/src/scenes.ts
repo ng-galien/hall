@@ -52,7 +52,7 @@ export const scenes: Scene[] = [
       },
       {
         text: "Le quorum est constaté à l’ouverture : 12 présents pour 8 requis. Sans quorum, la séance ne s’ouvre pas et le conseil est convoqué à nouveau.",
-        tone: "blocking",
+        tone: "valid",
       },
       {
         text: "Chaque point est discuté puis voté. L’affectation du grenier de Cornu est adoptée par 10 voix pour, 2 contre et 1 abstention.",
