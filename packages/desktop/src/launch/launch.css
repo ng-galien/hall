@@ -278,7 +278,7 @@ html[data-application="ready"] .launch-progress {
 
 .launch-scale {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   height: 7px;
   border-left: 1px solid var(--slate-700);
 }
@@ -300,16 +300,6 @@ html[data-application="ready"] .launch-progress {
   background: var(--blue);
   transform: scaleX(var(--fill, 0));
   transform-origin: left;
-  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-
-.launch-scale-segment[data-state="done"]::after {
-  --fill: 1;
-}
-
-.launch-scale-segment[data-state="current"]::after {
-  --fill: 0.85;
-  transition-duration: 9s;
 }
 
 html[data-motion="reduced"] .launch-actions {
@@ -318,11 +308,6 @@ html[data-motion="reduced"] .launch-actions {
 
 html[data-motion="reduced"] .launch-open,
 html[data-motion="reduced"] .launch-key,
-html[data-motion="reduced"] .launch-progress,
-html[data-motion="reduced"] .launch-scale-segment::after {
+html[data-motion="reduced"] .launch-progress {
   transition: none;
-}
-
-html[data-motion="reduced"] .launch-scale-segment[data-state="current"]::after {
-  --fill: 0.5;
 }

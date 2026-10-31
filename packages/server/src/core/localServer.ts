@@ -4,10 +4,13 @@ import { type HttpServerHandle, startHttpServer } from "../server.js";
 export interface LocalServerOptions {
   dataDirectory: string;
   clientDirectory?: string;
+  /** Appelé quand PostgreSQL embarqué est prêt, avant le démarrage du serveur HTTP. */
+  onDatabaseReady?: () => void;
 }
 
 export async function startLocalHttpServer(options: LocalServerOptions): Promise<HttpServerHandle> {
   const database = await startEmbeddedPostgresRuntime(options.dataDirectory);
+  options.onDatabaseReady?.();
   try {
     const server = await startHttpServer(
       {

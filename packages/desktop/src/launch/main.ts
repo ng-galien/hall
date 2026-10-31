@@ -1,15 +1,27 @@
 import "./launch.css";
+import { createFrameProbe } from "./frames.js";
 import { loadGeodata } from "./geodata.js";
 import { createLaunchScene, launchDuration } from "./scene.js";
 import { easeOutCubic, phase } from "./timeline.js";
 
 type Presentation = "alesia" | "official";
-type Stage = "server-local" | "server-shared" | "application" | "ready";
+type Phase = "database" | "server" | "dataset" | "interface";
+
+interface PlannedPhase {
+  phase: Phase;
+  expectedMs: number;
+}
+
+type ProgressMessage =
+  | { type: "plan"; phases: PlannedPhase[] }
+  | { type: "phase"; phase: Phase; status: "start" | "end" }
+  | { type: "ready" };
 
 interface LaunchBridge {
+  reportStarted(): void;
   reportLeft(): void;
   open(): void;
-  onStage(listener: (stage: Stage) => void): void;
+  onProgress(listener: (message: ProgressMessage) => void): void;
   onLeave(listener: () => void): void;
 }
 
@@ -21,12 +33,15 @@ declare global {
 
 const alesiaLabel = "Alésia";
 const alesiaTerritory = "territoire des Mandubiens";
-const stages: Record<Stage, { step: number; label: string }> = {
-  "server-local": { step: 1, label: "Démarrage du serveur local" },
-  "server-shared": { step: 1, label: "Connexion au serveur Hall" },
-  application: { step: 2, label: "Chargement de l’espace de travail" },
-  ready: { step: 3, label: "Espace de travail prêt" },
+const phaseLabels: Record<Phase, string> = {
+  database: "Préparation de la base",
+  server: "Démarrage du serveur",
+  dataset: "Chargement du jeu Alésia",
+  interface: "Chargement de l’interface",
 };
+const readyLabel = "Espace de travail prêt";
+/** Constante de temps du rattrapage de la barre vers sa position cible, en millisecondes. */
+const catchUpMilliseconds = 140;
 const alesiaNote = "Oppidum du plateau de Cornu, entre la Lemme et la Saine. Le maire est Vercingétorix.";
 
 const root = document.documentElement;
@@ -63,22 +78,203 @@ function enableOpening(): void {
   focusOpenButton();
 }
 
-/** Affiche l'étape de préparation sur l'échelle : segments terminés, segment en cours, compteur. */
-function showStage(stage: Stage): void {
-  if (!Object.hasOwn(stages, stage)) return;
-  const { step, label } = stages[stage];
-  const progress = document.querySelector<HTMLElement>("[data-testid='launch-loader']");
+/**
+ * Position de la barre dans une phase en cours : linéaire jusqu'à 80 % de la durée prévue, puis ralentie en
+ * raison inverse du temps écoulé ; elle continue d'avancer quand la phase dure plus que prévu.
+ */
+function phaseFraction(elapsedMs: number, expectedMs: number): number {
+  const knee = 0.8 * expectedMs;
+  if (elapsedMs <= knee) return elapsedMs / expectedMs;
+  return 1 - (0.2 * knee) / elapsedMs;
+}
+
+const progress = {
+  phases: [] as PlannedPhase[],
+  starts: new Map<Phase, number>(),
+  ends: new Set<Phase>(),
+  ready: false,
+  shown: 0,
+  written: -1,
+  percent: -1,
+  lastFrame: null as number | null,
+};
+
+/** Bornes de chaque phase sur la barre, proportionnelles à leurs durées prévues. */
+function phaseBounds(): { phase: Phase; from: number; to: number; expectedMs: number }[] {
+  const total = progress.phases.reduce((sum, planned) => sum + planned.expectedMs, 0) || 1;
+  let from = 0;
+  return progress.phases.map((planned) => {
+    const to = from + planned.expectedMs / total;
+    const bounds = { phase: planned.phase, from, to, expectedMs: planned.expectedMs };
+    from = to;
+    return bounds;
+  });
+}
+
+/** Position que la barre doit atteindre, d'après les signaux reçus et le temps écoulé depuis le dernier. */
+function targetProgress(now: number): number {
+  if (progress.ready) return 1;
+  let target = 0;
+  for (const bounds of phaseBounds()) {
+    const startedAt = progress.starts.get(bounds.phase);
+    if (progress.ends.has(bounds.phase)) target = bounds.to;
+    else if (startedAt !== undefined) {
+      target = bounds.from + (bounds.to - bounds.from) * phaseFraction(now - startedAt, bounds.expectedMs);
+    }
+  }
+  return target;
+}
+
+function currentPhaseIndex(): number {
+  const bounds = phaseBounds();
+  const running = bounds.findIndex((phase) => progress.starts.has(phase.phase) && !progress.ends.has(phase.phase));
+  if (running >= 0) return running;
+  return Math.max(0, bounds.filter((phase) => progress.ends.has(phase.phase)).length - 1);
+}
+
+/** Dessine les segments de la barre, un par phase, à la largeur de sa durée prévue. */
+function buildScale(): void {
+  const scale = document.querySelector<HTMLElement>(".launch-scale");
+  if (!scale) return;
+  scale.style.gridTemplateColumns = progress.phases.map((planned) => `${Math.max(planned.expectedMs, 1)}fr`).join(" ");
+  scale.replaceChildren(
+    ...progress.phases.map((planned, index) => {
+      const segment = document.createElement("span");
+      segment.className = "launch-scale-segment";
+      segment.dataset.step = String(index + 1);
+      segment.dataset.phase = planned.phase;
+      segment.dataset.state = "pending";
+      return segment;
+    }),
+  );
+}
+
+/** Met à jour l'intitulé, le compteur et le remplissage des segments. */
+function renderProgress(): void {
+  const loader = document.querySelector<HTMLElement>("[data-testid='launch-loader']");
   const name = document.querySelector<HTMLElement>("[data-testid='launch-step']");
   const count = document.querySelector<HTMLElement>("[data-testid='launch-step-count']");
-  if (!progress || !name || !count) return;
-  progress.setAttribute("aria-valuenow", String(stage === "ready" ? 3 : step - 1));
-  name.textContent = label;
-  count.textContent = `${step} sur 3`;
-  for (const segment of progress.querySelectorAll<HTMLElement>(".launch-scale-segment")) {
-    const index = Number(segment.dataset.step);
-    segment.dataset.state = index < step || stage === "ready" ? "done" : index === step ? "current" : "pending";
+  if (!loader || !name || !count || progress.phases.length === 0) return;
+  const total = progress.phases.length;
+  const index = currentPhaseIndex();
+  const label = progress.ready ? readyLabel : phaseLabels[progress.phases[index]!.phase];
+  if (name.textContent !== label) name.textContent = label;
+  const counted = `${progress.ready ? total : index + 1} sur ${total}`;
+  if (count.textContent !== counted) count.textContent = counted;
+  const segments = loader.querySelectorAll<HTMLElement>(".launch-scale-segment");
+  for (const [position, bounds] of phaseBounds().entries()) {
+    const segment = segments[position];
+    if (!segment) continue;
+    const fill = Math.min(1, Math.max(0, (progress.shown - bounds.from) / (bounds.to - bounds.from)));
+    segment.style.setProperty("--fill", fill.toFixed(4));
+    const state = fill >= 0.999 ? "done" : fill > 0 ? "current" : "pending";
+    if (segment.dataset.state !== state) segment.dataset.state = state;
   }
-  if (stage === "ready") enableOpening();
+  const percent = Math.round(progress.shown * 100);
+  if (percent !== progress.percent) {
+    progress.percent = percent;
+    loader.setAttribute("aria-valuenow", String(percent));
+  }
+  if (Math.abs(progress.shown - progress.written) >= 0.0005 || (progress.shown === 1 && progress.written !== 1)) {
+    progress.written = progress.shown;
+    loader.dataset.progress = progress.shown.toFixed(4);
+  }
+}
+
+/** Avance la barre d'une image : elle rejoint sa cible en douceur, sans jamais reculer. */
+function advanceProgress(now: number): void {
+  if (progress.phases.length === 0) return;
+  const target = targetProgress(now);
+  const elapsed = progress.lastFrame === null ? 0 : now - progress.lastFrame;
+  progress.lastFrame = now;
+  const next = reducedMotion
+    ? target
+    : progress.shown + (target - progress.shown) * (1 - Math.exp(-elapsed / catchUpMilliseconds));
+  progress.shown = progress.ready && target - next < 0.001 ? 1 : Math.max(progress.shown, next);
+  renderProgress();
+}
+
+const phaseTimes: Partial<Record<Phase, { startMs?: number; endMs?: number }>> = {};
+
+/** Inscrit sur la barre l'instant de chaque signal de phase, en millisecondes depuis le chargement de la page. */
+function recordPhase(phase: Phase, status: "start" | "end", now: number): void {
+  const times = phaseTimes[phase] ?? {};
+  phaseTimes[phase] = times;
+  if (status === "start") times.startMs = Math.round(now);
+  else times.endMs = Math.round(now);
+  const loader = document.querySelector<HTMLElement>("[data-testid='launch-loader']");
+  if (loader) loader.dataset.phases = JSON.stringify(phaseTimes);
+}
+
+function receiveProgress(message: ProgressMessage): void {
+  const now = performance.now();
+  if (message.type === "plan") {
+    progress.phases = message.phases;
+    buildScale();
+  } else if (message.type === "phase") {
+    if (message.status === "start") progress.starts.set(message.phase, now);
+    else {
+      if (!progress.starts.has(message.phase)) progress.starts.set(message.phase, now);
+      progress.ends.add(message.phase);
+    }
+    recordPhase(message.phase, message.status, now);
+  } else {
+    progress.ready = true;
+    enableOpening();
+  }
+  advanceProgress(now);
+}
+
+const frameProbe = createFrameProbe();
+let looping = true;
+let recording = false;
+const motion = { previous: 0, maxStep: 0, still: 0, longestStill: 0, backwards: 0, lastAt: null as number | null };
+
+/** Relève la régularité de la barre : plus grand pas entre deux images, plus long arrêt avant l'état prêt. */
+function recordMotion(now: number): void {
+  if (progress.phases.length === 0) return;
+  const step = progress.shown - motion.previous;
+  if (step < 0) motion.backwards += 1;
+  motion.maxStep = Math.max(motion.maxStep, step);
+  if (motion.lastAt !== null && step <= 0.00001 && !progress.ready) {
+    motion.still += now - motion.lastAt;
+    motion.longestStill = Math.max(motion.longestStill, motion.still);
+  } else motion.still = 0;
+  motion.previous = progress.shown;
+  motion.lastAt = now;
+}
+
+/**
+ * Boucle d'images de la page jusqu'au remplissage complet de la barre : elle anime la progression et relève
+ * la cadence de rendu du début de l'animation, après les images de préparation, jusqu'à l'application prête.
+ */
+function startFrameLoop(): void {
+  const tick = (now: number) => {
+    if (recording) frameProbe.record(now);
+    advanceProgress(now);
+    recordMotion(now);
+    if (progress.ready && progress.shown >= 1) {
+      looping = false;
+      root.dataset.frameStatistics = JSON.stringify(frameProbe.statistics());
+      root.dataset.progressStatistics = JSON.stringify({
+        maxStepPerFrame: Math.round(motion.maxStep * 10_000) / 10_000,
+        longestStillMs: Math.round(motion.longestStill),
+        backwards: motion.backwards,
+      });
+    }
+    if (looping) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+let startReported = false;
+
+/** Signale au processus principal que l'écran est affiché ; le démarrage du serveur attend ce signal. */
+function reportStarted(): void {
+  if (startReported) return;
+  startReported = true;
+  root.dataset.firstFrameAt = String(Math.round(performance.now()));
+  window.hallLaunch?.reportStarted();
 }
 
 function openApplication(): void {
@@ -108,10 +304,30 @@ function showFinal(render: ((t: number) => void) | null): void {
   render?.(launchDuration);
   root.style.setProperty("--brand-opacity", "1");
   setState("final");
+  recording = true;
+  requestAnimationFrame(reportStarted);
 }
 
-/** Joue l'animation une fois selon l'horloge, puis tient l'état final jusqu'à l'ordre de départ. */
+/** Images de préparation dessinées avant de lancer l'horloge : compilation des shaders et envoi des géométries. */
+const warmUpFrames = 3;
+
+/**
+ * Dessine la première image et attend que le rendu soit prêt, puis joue l'animation une fois selon l'horloge et
+ * tient l'état final jusqu'à l'ordre de départ ; le coût du premier rendu ne fait donc pas sauter l'animation.
+ */
 function play(render: (t: number) => void): void {
+  render(0);
+  let remaining = warmUpFrames;
+  const warmUp = () => {
+    remaining -= 1;
+    if (remaining > 0) requestAnimationFrame(warmUp);
+    else runTimeline(render);
+  };
+  requestAnimationFrame(warmUp);
+}
+
+function runTimeline(render: (t: number) => void): void {
+  recording = true;
   const brandIn = launchDuration - 0.9;
   const start = performance.now();
   root.dataset.startedAt = String(Math.round(start));
@@ -125,16 +341,18 @@ function play(render: (t: number) => void): void {
     root.style.setProperty("--brand-opacity", String(easeOutCubic(phase(elapsed, brandIn, launchDuration))));
     render(elapsed);
     requestAnimationFrame(frame);
+    if (!startReported) requestAnimationFrame(reportStarted);
   };
   requestAnimationFrame(frame);
 }
 
 async function start(): Promise<void> {
+  startFrameLoop();
   root.dataset.commune = communeCode;
   root.dataset.departement = departementCode;
   root.dataset.presentation = presentation;
   if (reducedMotion) root.dataset.motion = "reduced";
-  window.hallLaunch?.onStage(showStage);
+  window.hallLaunch?.onProgress(receiveProgress);
   openButton()?.addEventListener("click", openApplication);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Enter") openApplication();

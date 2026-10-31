@@ -7,7 +7,7 @@
   "type": "module",
   "main": "dist/main.js",
   "scripts": {
-    "build": "rimraf dist && esbuild src/main.ts --outfile=dist/main.js --bundle --packages=external --platform=node --target=node22 --format=esm --external:electron --sourcemap && esbuild src/preload.ts --outfile=dist/preload.cjs --bundle --packages=external --platform=node --target=node22 --format=cjs --external:electron --sourcemap && esbuild src/launchPreload.ts --outfile=dist/launch-preload.cjs --bundle --packages=external --platform=node --target=node22 --format=cjs --external:electron --sourcemap && node scripts/build-launch.mjs",
+    "build": "rimraf dist && esbuild src/main.ts --outfile=dist/main.js --bundle --packages=external --platform=node --target=node22 --format=esm --external:electron --sourcemap && esbuild src/serverProcess.ts --outfile=dist/server-process.js --bundle --packages=external --platform=node --target=node22 --format=esm --external:electron --sourcemap && esbuild src/preload.ts --outfile=dist/preload.cjs --bundle --packages=external --platform=node --target=node22 --format=cjs --external:electron --sourcemap && esbuild src/launchPreload.ts --outfile=dist/launch-preload.cjs --bundle --packages=external --platform=node --target=node22 --format=cjs --external:electron --sourcemap && node scripts/build-launch.mjs",
     "start": "npm run build && electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",

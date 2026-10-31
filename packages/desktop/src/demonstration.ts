@@ -25,6 +25,10 @@ export type DemonstrationProfile = {
   userDataPath: string;
   applicationVersion: string;
   startServer: () => Promise<HttpServerHandle>;
+  /** Annonce, avant le démarrage du serveur, si le jeu de démonstration sera chargé. */
+  onPlan?: (seeding: boolean) => void;
+  /** Signale le début et la fin du chargement du jeu. */
+  onDataset?: (status: "start" | "end") => void;
 };
 
 function parseEdition(value: unknown, source: string): DesktopEdition {
@@ -132,8 +136,10 @@ export async function openDemonstration(profile: DemonstrationProfile): Promise<
   const { userDataPath, applicationVersion } = profile;
   const current = await readState(userDataPath);
   if (current?.status === "ready" && current.version === applicationVersion) {
+    profile.onPlan?.(false);
     return { server: await profile.startServer(), state: current };
   }
+  profile.onPlan?.(true);
   await eraseDemonstration(userDataPath);
   const state: DemonstrationState = {
     status: "seeding",
@@ -144,7 +150,9 @@ export async function openDemonstration(profile: DemonstrationProfile): Promise<
   await writeState(userDataPath, state);
   const server = await profile.startServer();
   try {
+    profile.onDataset?.("start");
     await seed(server, state);
+    profile.onDataset?.("end");
   } catch (error) {
     await server.close();
     throw error;

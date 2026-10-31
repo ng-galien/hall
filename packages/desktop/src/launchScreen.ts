@@ -13,18 +13,35 @@ import {
   WebContentsView,
 } from "electron";
 import { inseeCodeOfSettings, type LaunchTarget, writeStoredInseeCode } from "./launchTerritory.js";
+import type { StartupPhase } from "./startupProtocol.js";
 
 const launchScheme = "hall-launch";
 const launchOrigin = `${launchScheme}://screen`;
 const leaveTimeoutMilliseconds = 1_500;
 const settingsTimeoutMilliseconds = 3_000;
+const startTimeoutMilliseconds = 4_000;
 
-/** Étapes de préparation affichées par l'écran de lancement. */
-export type LaunchStage = "server-local" | "server-shared" | "application" | "ready";
+/** Phase prévue du démarrage, avec sa durée attendue d'après le lancement précédent. */
+export interface PlannedPhase {
+  phase: StartupPhase;
+  expectedMs: number;
+}
+
+/** Message de progression envoyé à la page de lancement. */
+type ProgressMessage =
+  | { type: "plan"; phases: PlannedPhase[] }
+  | { type: "phase"; phase: StartupPhase; status: "start" | "end" }
+  | { type: "ready" };
 
 export interface LaunchScreen {
-  /** Signale l'étape de préparation à l'écran ; « ready » active le bouton d'ouverture. */
-  showStage(stage: LaunchStage): void;
+  /** Résolue quand la page montre sa première image, ou après un délai de garde. */
+  started: Promise<void>;
+  /** Annonce les phases du démarrage et leurs durées attendues. */
+  plan(phases: PlannedPhase[]): void;
+  /** Signale le début ou la fin d'une phase. */
+  phase(phase: StartupPhase, status: "start" | "end"): void;
+  /** Signale l'application chargée ; active le bouton d'ouverture. */
+  ready(): void;
   /** Résolue quand l'utilisateur ouvre l'application, ou quand la page de lancement s'arrête. */
   opened: Promise<void>;
   /** Efface l'écran en fondu puis retire la vue. */
@@ -138,16 +155,21 @@ export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): L
   fit();
   window.on("resize", fit);
   const opened = waitFor(view.webContents, "hall-launch:open");
+  const started = waitFor(view.webContents, "hall-launch:started", startTimeoutMilliseconds);
   let pageLoaded = false;
-  let stage: LaunchStage | null = null;
-  const signalStage = () => {
-    if (!pageLoaded || !stage || view.webContents.isDestroyed()) return;
-    view.webContents.send("hall-launch:stage", stage);
-    if (stage === "ready") view.webContents.focus();
+  const messages: ProgressMessage[] = [];
+  const deliver = (message: ProgressMessage) => {
+    if (!pageLoaded || view.webContents.isDestroyed()) return;
+    view.webContents.send("hall-launch:progress", message);
+    if (message.type === "ready") view.webContents.focus();
+  };
+  const signal = (message: ProgressMessage) => {
+    messages.push(message);
+    deliver(message);
   };
   view.webContents.on("did-finish-load", () => {
     pageLoaded = true;
-    signalStage();
+    for (const message of messages) deliver(message);
   });
   void view.webContents.loadURL(launchUrl(target));
   let removed = false;
@@ -164,10 +186,10 @@ export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): L
   window.once("closed", remove);
   return {
     opened,
-    showStage(next) {
-      stage = next;
-      signalStage();
-    },
+    started,
+    plan: (phases) => signal({ type: "plan", phases }),
+    phase: (phase, status) => signal({ type: "phase", phase, status }),
+    ready: () => signal({ type: "ready" }),
     async leave() {
       if (removed || view.webContents.isDestroyed()) return remove();
       const left = waitFor(view.webContents, "hall-launch:left", leaveTimeoutMilliseconds);

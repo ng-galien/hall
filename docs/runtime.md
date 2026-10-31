@@ -75,6 +75,17 @@ HALL_DESKTOP_EDITION=demonstration npm run desktop:make
 HALL_DESKTOP_EDITION=demonstration HALL_USER_DATA_PATH=/tmp/hall-demo npm run start -w @hall/desktop
 ```
 
+#### Startup order and progress
+
+1. The main process creates the window and the launch view. The launch page loads its geometries, draws a first frame and three warm-up frames (shader compilation and geometry upload), then starts the animation clock and signals `hall-launch:started`. The main process waits for this signal (4 s at most) before starting any server work.
+2. The main process forks `dist/server-process.js` (`packages/desktop/src/serverProcess.ts`) with Electron `utilityProcess` and lowers its priority to nice 10; embedded PostgreSQL inherits it. The main process, the GPU process and the renderers keep their normal priority.
+3. The server process reports its phases: **database** (embedded PostgreSQL initialised and started; `startLocalHttpServer` calls `onDatabaseReady`), **server** (HTTP server, schema installation or verification), then, on the first launch of a demonstration profile or after a reset, **dataset** (Alésia dataset and `default` scenario loaded through the public API). It then signs in to the demonstration and sends the server address and session cookie to the main process, which sets the cookie.
+4. The main process loads `/app/` under the launch view: **interface** phase. The launch page then shows « Espace de travail prêt » and enables **Ouvrir Hall**.
+
+The progress bar has one segment per phase, sized by the phase duration measured at the previous launch (`launch-timings.json` in the user-data directory; default values on a new profile). Within a running phase the bar advances with time, linearly up to 80 % of the expected duration, then more slowly without stopping; at each real end-of-phase signal it reaches the phase boundary in a short transition. It never moves backwards. The page records frame statistics (`data-frame-statistics`), bar regularity (`data-progress-statistics`) and phase times (`data-phases` on the progress bar).
+
+Closing Hall or resetting the demonstration asks the server process to close the HTTP server and PostgreSQL, then waits for it to exit (15 s at most before it is killed).
+
 On macOS, `desktop:make` produces the DMG disk image `packages/desktop/out/make/dmg/darwin/<arch>/Hall-<version>-<arch>.dmg`; the installation steps for each system are in [Installer la démonstration](distribution.md#installer-la-démonstration).
 
 On the first launch, `packages/desktop/src/demonstration.ts` starts the embedded server, creates the Alésia administrator through the first-administrator endpoint with a password generated for the profile, loads the Alésia dataset with the `default` scenario through the public API, signs in through `/api/auth/login`, and opens `/app/` with that session. The state, account and password are stored in `demonstration.json` (mode 0600) in the user-data directory; the data never leaves the computer. Later launches sign in again with the stored account.

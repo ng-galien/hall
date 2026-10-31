@@ -1,14 +1,18 @@
+import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import type { HttpServerHandle } from "@hall/server";
-import { app, BrowserWindow, dialog, Menu, type MenuItemConstructorOptions, session, shell } from "electron";
+import { setPriority } from "node:os";
+import { basename, join, resolve } from "node:path";
 import {
-  type DesktopEdition,
-  eraseDemonstration,
-  openDemonstration,
-  resolveDesktopEdition,
-  signInToDemonstration,
-} from "./demonstration.js";
+  app,
+  BrowserWindow,
+  dialog,
+  Menu,
+  type MenuItemConstructorOptions,
+  session,
+  shell,
+  utilityProcess,
+} from "electron";
+import { type DesktopEdition, eraseDemonstration, resolveDesktopEdition } from "./demonstration.js";
 import { isSafeExternalUrl } from "./externalUrl.js";
 import {
   installLaunchProtocol,
@@ -19,9 +23,26 @@ import {
   showLaunchScreen,
 } from "./launchScreen.js";
 import { readStoredInseeCode, resolveLaunchTarget } from "./launchTerritory.js";
+import type { ServerCommand, ServerEvent } from "./startupProtocol.js";
+import {
+  createStartupTracker,
+  readStartupTimings,
+  type StartupTracker,
+  writeStartupTimings,
+} from "./startupTimings.js";
+
+/** Le serveur embarqué, dans son processus utilitaire. */
+interface EmbeddedServer {
+  url: string;
+  close(): Promise<void>;
+}
+
+/** Priorité abaissée du processus serveur et de PostgreSQL embarqué, qui en hérite. */
+const serverProcessNice = 10;
+const serverCloseTimeoutMilliseconds = 15_000;
 
 let mainWindow: BrowserWindow | null = null;
-let embeddedServer: Promise<HttpServerHandle> | null = null;
+let embeddedServer: Promise<EmbeddedServer> | null = null;
 let quitting = false;
 let resetting = false;
 let edition: DesktopEdition = "local";
@@ -58,50 +79,83 @@ async function sharedRendererUrl(): Promise<string | null> {
   }
 }
 
-async function startEmbeddedServer(): Promise<HttpServerHandle> {
-  const clientDirectory = app.isPackaged
-    ? join(process.resourcesPath, "dist")
-    : join(app.getAppPath(), "../client/dist");
-  if (app.isPackaged) process.env.PLAYWRIGHT_BROWSERS_PATH = join(process.resourcesPath, "playwright");
-  const { startLocalHttpServer } = await import("@hall/server");
-  return startLocalHttpServer({
-    dataDirectory: join(app.getPath("userData"), "postgres"),
-    clientDirectory,
-  });
+function clientDirectory(): string {
+  return app.isPackaged ? join(process.resourcesPath, "dist") : join(app.getAppPath(), "../client/dist");
 }
 
-async function startDemonstrationServer(): Promise<HttpServerHandle> {
-  const { server, state } = await openDemonstration({
+/**
+ * Démarre PostgreSQL embarqué et le serveur local dans un processus utilitaire de priorité abaissée,
+ * charge la démonstration si besoin et pose sa session ; le processus principal reste libre.
+ */
+function startEmbeddedServer(tracker: StartupTracker | null): Promise<EmbeddedServer> {
+  const command: ServerCommand = {
+    type: "start",
+    edition,
     userDataPath: app.getPath("userData"),
     applicationVersion: app.getVersion(),
-    startServer: startEmbeddedServer,
+    clientDirectory: clientDirectory(),
+    browsersPath: app.isPackaged ? join(process.resourcesPath, "playwright") : null,
+  };
+  const child = utilityProcess.fork(join(import.meta.dirname, "server-process.js"), [], {
+    serviceName: "Hall server",
+    stdio: "inherit",
   });
-  try {
-    const cookie = await signInToDemonstration(server, state);
-    await session.defaultSession.cookies.set({
-      url: new URL("/", server.url).href,
-      name: cookie.name,
-      value: cookie.value,
-      path: "/",
-      httpOnly: true,
-      sameSite: "strict",
+  const exited = new Promise<number>((resolveExit) => child.once("exit", resolveExit));
+  const close = async () => {
+    child.postMessage({ type: "close" } satisfies ServerCommand);
+    const timeout = new Promise<null>((resolveTimeout) =>
+      setTimeout(() => resolveTimeout(null), serverCloseTimeoutMilliseconds),
+    );
+    if ((await Promise.race([exited, timeout])) === null) child.kill();
+  };
+  child.once("spawn", () => {
+    if (child.pid !== undefined) setPriority(child.pid, serverProcessNice);
+    child.postMessage(command);
+  });
+  return new Promise((resolveServer, reject) => {
+    let settled = false;
+    child.on("message", (event: ServerEvent) => {
+      if (event.type === "plan") tracker?.plan(event.phases);
+      else if (event.type === "phase") tracker?.phase(event.phase, event.status);
+      else if (event.type === "ready") {
+        settled = true;
+        void (async () => {
+          if (event.cookie) {
+            await session.defaultSession.cookies.set({
+              url: new URL("/", event.url).href,
+              name: event.cookie.name,
+              value: event.cookie.value,
+              path: "/",
+              httpOnly: true,
+              sameSite: "strict",
+            });
+          }
+          resolveServer({ url: event.url, close });
+        })().catch(reject);
+      } else if (event.type === "failed") {
+        settled = true;
+        const error = new Error(event.message);
+        if (event.stack) error.stack = event.stack;
+        child.kill();
+        reject(error);
+      }
     });
-  } catch (error) {
-    await server.close();
-    throw error;
-  }
-  return server;
+    void exited.then((code) => {
+      if (!settled) reject(new Error(`Le serveur embarqué de Hall s’est arrêté pendant le démarrage (code ${code}).`));
+    });
+  });
 }
 
-async function resolveRendererUrl(): Promise<string> {
+async function resolveRendererUrl(tracker: StartupTracker | null): Promise<string> {
   if (edition === "local") {
     const sharedServerUrl = await sharedRendererUrl();
     if (sharedServerUrl) {
       apiBaseUrl = sharedServerUrl;
+      tracker?.plan([]);
       return sharedServerUrl;
     }
   }
-  embeddedServer ??= edition === "demonstration" ? startDemonstrationServer() : startEmbeddedServer();
+  embeddedServer ??= startEmbeddedServer(tracker);
   apiBaseUrl = (await embeddedServer).url;
   return process.env.HALL_RENDERER_URL ?? applicationUrl(apiBaseUrl);
 }
@@ -141,7 +195,7 @@ async function resetDemonstration(): Promise<void> {
     if (server) await (await server).close();
     await session.defaultSession.clearStorageData({ storages: ["cookies"] });
     await eraseDemonstration(app.getPath("userData"));
-    await mainWindow.loadURL(await resolveRendererUrl());
+    await mainWindow.loadURL(await resolveRendererUrl(null));
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
     dialog.showErrorBox(
@@ -202,16 +256,24 @@ async function createMainWindow(): Promise<void> {
   void openApplication(window, launchScreen).catch(reportStartupFailure);
 }
 
-/** Charge l'application sous l'écran de lancement, puis la montre quand l'utilisateur l'ouvre. */
+/**
+ * Montre l'écran de lancement, attend sa première image, puis démarre le serveur et charge l'application
+ * dessous ; la montre quand l'utilisateur l'ouvre.
+ */
 async function openApplication(window: BrowserWindow, launchScreen: LaunchScreen): Promise<void> {
   try {
-    const shared = edition === "local" && (await sharedRendererUrl()) !== null;
-    launchScreen.showStage(shared ? "server-shared" : "server-local");
-    const rendererUrl = await resolveRendererUrl();
+    await launchScreen.started;
+    const userDataPath = app.getPath("userData");
+    const tracker = createStartupTracker(launchScreen, await readStartupTimings(userDataPath));
+    const rendererUrl = await resolveRendererUrl(tracker);
     void rememberInseeCode();
-    launchScreen.showStage("application");
+    tracker.phase("interface", "start");
     await window.loadURL(rendererUrl);
-    launchScreen.showStage("ready");
+    tracker.phase("interface", "end");
+    tracker.ready();
+    void writeStartupTimings(userDataPath, tracker.measured()).catch((error: unknown) =>
+      process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`),
+    );
     await launchScreen.opened;
     await launchScreen.leave();
   } catch (error) {
@@ -234,9 +296,34 @@ function reportStartupFailure(error: unknown): void {
   app.quit();
 }
 
-const ownsSingleInstance = app.requestSingleInstanceLock();
-if (!ownsSingleInstance) app.quit();
-else {
+/** Événement de l'installeur Squirrel de Windows passé en premier argument, ou null. */
+function squirrelEvent(): string | null {
+  const argument = process.argv[1];
+  return process.platform === "win32" && argument?.startsWith("--squirrel-") ? argument : null;
+}
+
+/**
+ * Traite un événement de l'installeur Squirrel : raccourcis du Bureau et du menu Démarrer créés à
+ * l'installation et à la mise à jour, retirés à la désinstallation ; l'application quitte aussitôt.
+ */
+function handleSquirrelEvent(event: string): void {
+  const updateExecutable = resolve(process.execPath, "..", "..", "Update.exe");
+  const shortcut = basename(process.execPath);
+  const update = (argument: string) =>
+    spawn(updateExecutable, [argument], { detached: true })
+      .once("error", () => app.quit())
+      .once("close", () => app.quit());
+  if (event === "--squirrel-install" || event === "--squirrel-updated") update(`--createShortcut=${shortcut}`);
+  else if (event === "--squirrel-uninstall") update(`--removeShortcut=${shortcut}`);
+  else if (event === "--squirrel-firstrun") startApplication();
+  else app.quit();
+}
+
+function startApplication(): void {
+  if (!app.requestSingleInstanceLock()) {
+    app.quit();
+    return;
+  }
   app.on("second-instance", () => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
@@ -269,3 +356,7 @@ else {
       .finally(() => app.quit());
   });
 }
+
+const installerEvent = squirrelEvent();
+if (installerEvent) handleSquirrelEvent(installerEvent);
+else startApplication();

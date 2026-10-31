@@ -32,6 +32,19 @@ test("opens the Alésia demonstration signed in after the Alésia launch screen 
     await expect(launch.locator("html")).toHaveAttribute("data-state", "final", { timeout: 15_000 });
     await expect(launch.getByTestId("launch-place")).toHaveText("Alésia, territoire des Mandubiens");
     await expect(launch.getByTestId("launch-open")).toBeEnabled({ timeout: 8 * 60_000 });
+    await expect(launch.getByTestId("launch-step-count")).toHaveText("4 sur 4");
+    await expect(launch.locator("html")).toHaveAttribute("data-progress-statistics", /.+/, { timeout: 5_000 });
+    const firstFrameAt = Number(await launch.locator("html").getAttribute("data-first-frame-at"));
+    const phases = JSON.parse((await launch.getByTestId("launch-loader").getAttribute("data-phases")) ?? "{}");
+    expect(Object.keys(phases)).toEqual(["database", "server", "dataset", "interface"]);
+    expect(phases.database.startMs).toBeGreaterThanOrEqual(firstFrameAt);
+    expect(phases.server.startMs).toBeGreaterThanOrEqual(phases.database.endMs);
+    expect(phases.dataset.startMs).toBeGreaterThanOrEqual(phases.server.endMs);
+    expect(phases.interface.startMs).toBeGreaterThanOrEqual(phases.dataset.endMs);
+    const motion = JSON.parse((await launch.locator("html").getAttribute("data-progress-statistics")) ?? "{}");
+    expect(motion.backwards).toBe(0);
+    expect(motion.longestStillMs).toBeLessThan(1_000);
+    expect(motion.maxStepPerFrame).toBeLessThan(0.05);
     await launch.getByTestId("launch-open").click();
     await expect
       .poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:")), { timeout: 5_000 })

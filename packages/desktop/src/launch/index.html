@@ -25,7 +25,7 @@
           role="progressbar"
           aria-label="Préparation de Hall"
           aria-valuemin="0"
-          aria-valuemax="3"
+          aria-valuemax="100"
           aria-valuenow="0"
         >
           <div class="launch-progress-head">
@@ -33,9 +33,7 @@
             <span class="launch-progress-count" data-testid="launch-step-count"></span>
           </div>
           <div class="launch-scale" aria-hidden="true">
-            <span class="launch-scale-segment" data-step="1"></span>
-            <span class="launch-scale-segment" data-step="2"></span>
-            <span class="launch-scale-segment" data-step="3"></span>
+            <span class="launch-scale-segment" data-state="pending"></span>
           </div>
         </div>
       </div>
