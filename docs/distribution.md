@@ -3,12 +3,26 @@
 Hall's standalone package contains the compiled server, the web interface, the SQL
 manifest and migrations. The PostgreSQL catalog is an exact-version dependency
 installed from the npm registry.
-The source workspaces remain private. PostgreSQL is a separate service; installing
-the npm package does not install PostgreSQL, start Hall, or migrate a database.
+PostgreSQL is a separate service; installing the npm package does not install
+PostgreSQL, start Hall, or migrate a database.
+
+## Public repository and licence
+
+The sources, the desktop demonstration downloads and the GitHub Pages site are
+published from the same repository, `ng-galien/hall`. The repository becomes
+public once the site has been validated; until then it remains private. The
+desktop demonstration executables are built by
+[`.github/workflows/release.yml`](../.github/workflows/release.yml) into a draft
+GitHub release and are not signed; see the
+[demonstration edition](runtime.md#demonstration-edition).
+
+The licence has not been chosen. The repository has no `LICENSE` file and the
+staged package declares `UNLICENSED` until a licence is selected. The npm
+workspaces remain `private` and are not published to the npm registry.
 
 The staged package name is `@ng-galien/hall`. Building a tarball does not publish
-it or reserve that name. The staged license is `UNLICENSED`; a public release must
-have an explicitly selected license and package ownership.
+it or reserve that name. An npm publication requires the selected licence and
+package ownership.
 
 For the complete municipal restore, account setup and operating procedure, use
 [Municipal installation and recovery](municipal-bootstrap.md).

@@ -1,6 +1,22 @@
 # Hall
 
-Hall supports the work of a French municipal council: preparing council business, conducting meetings, and preserving minutes and resulting acts.
+Hall supports the work of a French municipal council: preparing council business, conducting meetings, and preserving minutes and resulting acts. Its interface is in French.
+
+## Try the demonstration
+
+The desktop demonstration runs Hall on your computer with the fictional municipality of Alésia. On first launch it loads the dataset and opens signed in as the Alésia administrator, with no account to create and no password to enter. It lets you browse the councillors, committees and contacts; prepare council business and agenda items; follow two closed meetings with their ballots and a meeting in progress; and open the documents, maps, spreadsheets and templates of the dataset. The data stays on your computer in an embedded database. The **Démonstration** menu resets the dataset.
+
+Download the executable for your system from the [GitHub releases](https://github.com/ng-galien/hall/releases):
+
+- Windows: the `Setup.exe` installer.
+- macOS: the `.zip` archive for Apple silicon (`arm64`) or Intel (`x64`).
+- Linux: the `.deb` or `.rpm` package.
+
+The executables are not signed. Windows SmartScreen and macOS Gatekeeper show a warning on first launch; the release notes give the steps to open Hall anyway. The release workflow is [`.github/workflows/release.yml`](.github/workflows/release.yml) and the demonstration edition is described in [`docs/runtime.md`](docs/runtime.md#demonstration-edition).
+
+## Licence
+
+The licence has not been chosen yet; the repository has no licence file.
 
 ## Repository structure
 
@@ -23,7 +39,8 @@ Read [`docs/README.md`](docs/README.md) for the documentation map, [`requirement
 
 Build a server and web-interface tarball with `npm run pack:distribution`. See
 [installation, configuration, updates and recovery](docs/distribution.md). The
-root workspace remains private; publication is a separate release action.
+npm workspaces are not published to the npm registry; publication is a separate
+release action.
 
 ## Development
 
