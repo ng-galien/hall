@@ -12,6 +12,7 @@ import {
 import { isSafeExternalUrl } from "./externalUrl.js";
 import {
   installLaunchProtocol,
+  type LaunchScreen,
   launchCommuneExists,
   registerLaunchScheme,
   rememberSettingsInseeCode,
@@ -193,13 +194,25 @@ async function createMainWindow(): Promise<void> {
     return { action: "deny" };
   });
   const window = mainWindow;
+  window.on("closed", () => {
+    if (mainWindow === window) mainWindow = null;
+  });
   const target = await resolveLaunchTarget(await readStoredInseeCode(app.getPath("userData")), launchCommuneExists);
   const launchScreen = showLaunchScreen(window, target);
+  void openApplication(window, launchScreen).catch(reportStartupFailure);
+}
+
+/** Charge l'application sous l'écran de lancement, puis la montre quand l'utilisateur l'ouvre. */
+async function openApplication(window: BrowserWindow, launchScreen: LaunchScreen): Promise<void> {
   try {
+    const shared = edition === "local" && (await sharedRendererUrl()) !== null;
+    launchScreen.showStage(shared ? "server-shared" : "server-local");
     const rendererUrl = await resolveRendererUrl();
     void rememberInseeCode();
+    launchScreen.showStage("application");
     await window.loadURL(rendererUrl);
-    await launchScreen.final;
+    launchScreen.showStage("ready");
+    await launchScreen.opened;
     await launchScreen.leave();
   } catch (error) {
     launchScreen.remove();
@@ -213,9 +226,12 @@ async function createMainWindow(): Promise<void> {
       { mode: 0o600 },
     );
   }
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-  });
+}
+
+function reportStartupFailure(error: unknown): void {
+  process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
+  dialog.showErrorBox("Impossible de démarrer Hall", error instanceof Error ? error.message : String(error));
+  app.quit();
 }
 
 const ownsSingleInstance = app.requestSingleInstanceLock();
@@ -235,11 +251,7 @@ else {
       if (edition === "demonstration") installDemonstrationMenu();
       await createMainWindow();
     })
-    .catch((error) => {
-      process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
-      dialog.showErrorBox("Impossible de démarrer Hall", error instanceof Error ? error.message : String(error));
-      app.quit();
-    });
+    .catch(reportStartupFailure);
   app.on("activate", () => {
     if (!mainWindow) void createMainWindow();
   });

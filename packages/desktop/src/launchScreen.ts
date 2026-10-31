@@ -16,13 +16,17 @@ import { inseeCodeOfSettings, type LaunchTarget, writeStoredInseeCode } from "./
 
 const launchScheme = "hall-launch";
 const launchOrigin = `${launchScheme}://screen`;
-const finalTimeoutMilliseconds = 15_000;
 const leaveTimeoutMilliseconds = 1_500;
 const settingsTimeoutMilliseconds = 3_000;
 
+/** Étapes de préparation affichées par l'écran de lancement. */
+export type LaunchStage = "server-local" | "server-shared" | "application" | "ready";
+
 export interface LaunchScreen {
-  /** Résolue quand l'animation a atteint son état final, ou au plus tard après un délai de garde. */
-  final: Promise<void>;
+  /** Signale l'étape de préparation à l'écran ; « ready » active le bouton d'ouverture. */
+  showStage(stage: LaunchStage): void;
+  /** Résolue quand l'utilisateur ouvre l'application, ou quand la page de lancement s'arrête. */
+  opened: Promise<void>;
   /** Efface l'écran en fondu puis retire la vue. */
   leave(): Promise<void>;
   /** Retire la vue sans fondu. */
@@ -85,15 +89,21 @@ export async function launchCommuneExists(departementCode: string, communeCode: 
   return (await departementCommunes.get(departementCode)!).has(communeCode);
 }
 
-function waitFor(sender: Electron.WebContents, channel: string, timeout: number): Promise<void> {
+function waitFor(sender: Electron.WebContents, channel: string, timeout?: number): Promise<void> {
   return new Promise((resolve) => {
-    const timer = setTimeout(done, timeout);
+    const timer = timeout === undefined ? undefined : setTimeout(done, timeout);
+    sender.once("render-process-gone", done);
+    sender.once("destroyed", done);
     function listener(event: IpcMainEvent) {
       if (event.sender === sender) done();
     }
     function done() {
       clearTimeout(timer);
       ipcMain.off(channel, listener);
+      if (!sender.isDestroyed()) {
+        sender.off("render-process-gone", done);
+        sender.off("destroyed", done);
+      }
       resolve();
     }
     ipcMain.on(channel, listener);
@@ -127,7 +137,18 @@ export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): L
   };
   fit();
   window.on("resize", fit);
-  const final = waitFor(view.webContents, "hall-launch:final", finalTimeoutMilliseconds);
+  const opened = waitFor(view.webContents, "hall-launch:open");
+  let pageLoaded = false;
+  let stage: LaunchStage | null = null;
+  const signalStage = () => {
+    if (!pageLoaded || !stage || view.webContents.isDestroyed()) return;
+    view.webContents.send("hall-launch:stage", stage);
+    if (stage === "ready") view.webContents.focus();
+  };
+  view.webContents.on("did-finish-load", () => {
+    pageLoaded = true;
+    signalStage();
+  });
   void view.webContents.loadURL(launchUrl(target));
   let removed = false;
   const remove = () => {
@@ -135,12 +156,18 @@ export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): L
     removed = true;
     if (!window.isDestroyed()) {
       window.off("resize", fit);
+      window.off("closed", remove);
       window.contentView.removeChildView(view);
     }
     if (!view.webContents.isDestroyed()) view.webContents.close();
   };
+  window.once("closed", remove);
   return {
-    final,
+    opened,
+    showStage(next) {
+      stage = next;
+      signalStage();
+    },
     async leave() {
       if (removed || view.webContents.isDestroyed()) return remove();
       const left = waitFor(view.webContents, "hall-launch:left", leaveTimeoutMilliseconds);

@@ -4,10 +4,12 @@ import { createLaunchScene, launchDuration } from "./scene.js";
 import { easeOutCubic, phase } from "./timeline.js";
 
 type Presentation = "alesia" | "official";
+type Stage = "server-local" | "server-shared" | "application" | "ready";
 
 interface LaunchBridge {
-  reportFinal(): void;
   reportLeft(): void;
+  open(): void;
+  onStage(listener: (stage: Stage) => void): void;
   onLeave(listener: () => void): void;
 }
 
@@ -18,8 +20,14 @@ declare global {
 }
 
 const alesiaLabel = "Alésia";
-const alesiaLegend = "Cornu – Chaux-des-Crotenay, Jura";
-const alesiaNote = "Alésia, plateau de Cornu (Jura) : un clin d’œil à la thèse d’André Berthier.";
+const alesiaTerritory = "territoire des Mandubiens";
+const stages: Record<Stage, { step: number; label: string }> = {
+  "server-local": { step: 1, label: "Démarrage du serveur local" },
+  "server-shared": { step: 1, label: "Connexion au serveur Hall" },
+  application: { step: 2, label: "Chargement de l’espace de travail" },
+  ready: { step: 3, label: "Espace de travail prêt" },
+};
+const alesiaNote = "Oppidum du plateau de Cornu, entre la Lemme et la Saine. Le maire est Vercingétorix.";
 
 const root = document.documentElement;
 const parameters = new URLSearchParams(location.search);
@@ -33,8 +41,51 @@ function setState(state: "playing" | "final"): void {
   root.dataset.state = state;
   if (state === "final") {
     root.dataset.finalAt = String(Math.round(performance.now()));
-    window.hallLaunch?.reportFinal();
+    focusOpenButton();
   }
+}
+
+function openButton(): HTMLButtonElement | null {
+  return document.querySelector<HTMLButtonElement>("[data-testid='launch-open']");
+}
+
+function focusOpenButton(): void {
+  const button = openButton();
+  if (button && !button.disabled && root.dataset.state === "final") button.focus();
+}
+
+/** Active le bouton d'ouverture quand l'application est chargée sous l'écran. */
+function enableOpening(): void {
+  const button = openButton();
+  if (!button) return;
+  root.dataset.application = "ready";
+  button.disabled = false;
+  focusOpenButton();
+}
+
+/** Affiche l'étape de préparation sur l'échelle : segments terminés, segment en cours, compteur. */
+function showStage(stage: Stage): void {
+  if (!Object.hasOwn(stages, stage)) return;
+  const { step, label } = stages[stage];
+  const progress = document.querySelector<HTMLElement>("[data-testid='launch-loader']");
+  const name = document.querySelector<HTMLElement>("[data-testid='launch-step']");
+  const count = document.querySelector<HTMLElement>("[data-testid='launch-step-count']");
+  if (!progress || !name || !count) return;
+  progress.setAttribute("aria-valuenow", String(stage === "ready" ? 3 : step - 1));
+  name.textContent = label;
+  count.textContent = `${step} sur 3`;
+  for (const segment of progress.querySelectorAll<HTMLElement>(".launch-scale-segment")) {
+    const index = Number(segment.dataset.step);
+    segment.dataset.state = index < step || stage === "ready" ? "done" : index === step ? "current" : "pending";
+  }
+  if (stage === "ready") enableOpening();
+}
+
+function openApplication(): void {
+  const button = openButton();
+  if (!button || button.disabled || root.dataset.state !== "final" || root.dataset.leaving) return;
+  button.disabled = true;
+  window.hallLaunch?.open();
 }
 
 function writePlace(communeName: string, departementName: string): void {
@@ -44,7 +95,7 @@ function writePlace(communeName: string, departementName: string): void {
   const name = document.createElement("strong");
   if (presentation === "alesia") {
     name.textContent = alesiaLabel;
-    place.replaceChildren(name, document.createTextNode(`, ${alesiaLegend}`));
+    place.replaceChildren(name, document.createTextNode(`, ${alesiaTerritory}`));
     note.textContent = alesiaNote;
     note.hidden = false;
   } else {
@@ -83,6 +134,11 @@ async function start(): Promise<void> {
   root.dataset.departement = departementCode;
   root.dataset.presentation = presentation;
   if (reducedMotion) root.dataset.motion = "reduced";
+  window.hallLaunch?.onStage(showStage);
+  openButton()?.addEventListener("click", openApplication);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") openApplication();
+  });
   window.hallLaunch?.onLeave(() => {
     root.dataset.leaving = "true";
     setTimeout(() => window.hallLaunch?.reportLeft(), 420);

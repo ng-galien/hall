@@ -14,9 +14,30 @@
       <h1 class="launch-name">Hall</h1>
       <p class="launch-place" data-testid="launch-place"></p>
       <p class="launch-note" data-testid="launch-note" hidden></p>
-      <div class="launch-loader" data-testid="launch-loader" role="progressbar" aria-label="Préparation de Hall">
-        <span class="launch-track"></span>
-        <span>Préparation de l’espace de travail</span>
+      <div class="launch-actions">
+        <button class="launch-open" type="button" data-testid="launch-open" disabled>
+          <span class="launch-open-label">Ouvrir Hall</span>
+          <kbd class="launch-key" aria-label="Touche Entrée">Entrée <span aria-hidden="true">↵</span></kbd>
+        </button>
+        <div
+          class="launch-progress"
+          data-testid="launch-loader"
+          role="progressbar"
+          aria-label="Préparation de Hall"
+          aria-valuemin="0"
+          aria-valuemax="3"
+          aria-valuenow="0"
+        >
+          <div class="launch-progress-head">
+            <span class="launch-progress-step" data-testid="launch-step">Préparation de l’espace de travail</span>
+            <span class="launch-progress-count" data-testid="launch-step-count"></span>
+          </div>
+          <div class="launch-scale" aria-hidden="true">
+            <span class="launch-scale-segment" data-step="1"></span>
+            <span class="launch-scale-segment" data-step="2"></span>
+            <span class="launch-scale-segment" data-step="3"></span>
+          </div>
+        </div>
       </div>
     </section>
     <script type="module" src="./main.js"></script>
