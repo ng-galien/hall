@@ -126,7 +126,7 @@ jobs:
 
           ## Licence
 
-          La licence de Hall n’est pas encore choisie.
+          Hall est distribué sous la licence publique de l’Union européenne, version 1.2 (EUPL-1.2). Titulaire des droits : Alexandre Boyer. Le texte de la licence est dans le fichier [LICENSE](https://github.com/ng-galien/hall/blob/main/LICENSE) du dépôt.
           NOTICE
       - name: Create or update the draft release
         run: |

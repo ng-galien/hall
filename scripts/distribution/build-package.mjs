@@ -106,12 +106,13 @@ await writeFile(join(stage, "licenses/client-dependencies.json"), `${JSON.string
 await cp(join(root, "docs/distribution.md"), join(stage, "README.md"));
 await cp(join(root, "docs/distribution.md"), join(stage, "distribution.md"));
 await cp(join(root, "docs/municipal-bootstrap.md"), join(stage, "municipal-bootstrap.md"));
+await cp(join(root, "LICENSE"), join(stage, "LICENSE"));
 const manifest = {
   name: "@ng-galien/hall",
   version: metadata.version,
   description: "Standalone Hall municipal council server and web interface",
   type: "module",
-  license: "UNLICENSED",
+  license: "EUPL-1.2",
   engines: { node: ">=22.12.0" },
   bin: { hall: "bin/hall.mjs" },
   files: ["bin", "client", "sql", "licenses", "release.json", "README.md", "distribution.md", "municipal-bootstrap.md"],

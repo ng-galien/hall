@@ -16,7 +16,7 @@ The executables are not signed. Windows SmartScreen and macOS Gatekeeper show a 
 
 ## Licence
 
-The licence has not been chosen yet; the repository has no licence file.
+Hall is licensed under the European Union Public Licence, version 1.2 (EUPL-1.2). The copyright holder is Alexandre Boyer. The full text of the licence is in [`LICENSE`](LICENSE).
 
 ## Repository structure
 

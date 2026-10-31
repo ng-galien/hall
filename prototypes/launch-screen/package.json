@@ -1,6 +1,7 @@
 {
   "name": "hall-launch-screen-prototypes",
   "private": true,
+  "license": "EUPL-1.2",
   "version": "0.1.0",
   "type": "module",
   "description": "Three animated launch-screen proposals for the Hall desktop application, built on real French administrative boundaries.",

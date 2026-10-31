@@ -16,13 +16,14 @@ desktop demonstration executables are built by
 GitHub release and are not signed; see the
 [demonstration edition](runtime.md#demonstration-edition).
 
-The licence has not been chosen. The repository has no `LICENSE` file and the
-staged package declares `UNLICENSED` until a licence is selected. The npm
-workspaces remain `private` and are not published to the npm registry.
+Hall is licensed under the European Union Public Licence, version 1.2
+(EUPL-1.2); the copyright holder is Alexandre Boyer. The text of the licence is
+in [`LICENSE`](../LICENSE). The staged package declares `EUPL-1.2` and includes
+the `LICENSE` file. The npm workspaces remain `private` and are not published
+to the npm registry.
 
 The staged package name is `@ng-galien/hall`. Building a tarball does not publish
-it or reserve that name. An npm publication requires the selected licence and
-package ownership.
+it or reserve that name. An npm publication requires package ownership.
 
 For the complete municipal restore, account setup and operating procedure, use
 [Municipal installation and recovery](municipal-bootstrap.md).
