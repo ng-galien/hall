@@ -410,8 +410,8 @@ export function createLaunchScene(
 
 /** Pose finale sur le relief : la vue d'ensemble du site public, dans l'axe Cornu–Syam, à la même échelle. */
 function reliefFinalPose(): CameraPose {
-  const look = new THREE.Vector3(-90, 40, 30);
-  const eye = look.clone().addScaledVector(new THREE.Vector3(0.28, 0.6, 1).normalize(), 2300);
+  const look = new THREE.Vector3(-40, 40, 80);
+  const eye = look.clone().addScaledVector(new THREE.Vector3(0.28, 0.6, 1).normalize(), 2600);
   return { look, eye };
 }
 

@@ -7,6 +7,7 @@ import { clamp01, easeInOutCubic, easeOutCubic, phase } from "./timeline.js";
 /** Lieu du récit d'Alésia sur le relief : position en mètres du site, hauteur de son trait en unités du relief. */
 interface StoryPlace {
   name: string;
+  role: string;
   at: Spot;
   stem: number;
   works?: Spot[];
@@ -28,17 +29,18 @@ const romanWorks: Spot[] = [
   wgs(5.964, 46.6936),
 ];
 
-/** Lieux du récit dans l'ordre d'apparition : l'oppidum d'abord, puis ses défenses, l'eau, la plaine et César. */
+/** Lieux du récit dans l'ordre d'apparition, avec leur rôle dans le récit du siège. */
 const storyPlaces: StoryPlace[] = [
-  { name: "Oppidum de Cornu", at: wgs(5.957, 46.6677), stem: 120 },
-  { name: "Maison commune de l’oppidum", at: placeAt("maison"), stem: 90 },
-  { name: "Place de l’assemblée", at: placeAt("place"), stem: 140 },
-  { name: "Rempart ouest", at: placeAt("rempart"), stem: 100 },
-  { name: "Tour de guet nord", at: placeAt("tour"), stem: 130 },
-  { name: "Point d’eau", at: wgs(5.9468, 46.6651), stem: 70 },
-  { name: "Camp de César", at: wgs(5.9505, 46.6935), stem: 150 },
-  { name: "Ouvrages de César", at: wgs(5.9575, 46.6972), stem: 110, works: romanWorks },
-  { name: "Belvédère des Trois Vallées", at: placeAt("belvedere"), stem: 210 },
+  { name: "Oppidum de Cornu", role: "le refuge", at: wgs(5.957, 46.6677), stem: 120 },
+  { name: "Grenier de Cornu", role: "les vivres", at: wgs(5.959, 46.6687), stem: 70 },
+  { name: "Maison commune", role: "le conseil", at: placeAt("maison"), stem: 90 },
+  { name: "Place de l’assemblée", role: "les votes", at: placeAt("place"), stem: 140 },
+  { name: "Rempart ouest", role: "la défense", at: placeAt("rempart"), stem: 100 },
+  { name: "Tour nord", role: "la veille", at: placeAt("tour"), stem: 130 },
+  { name: "Point d’eau", role: "l’eau des assiégés", at: wgs(5.9468, 46.6651), stem: 70 },
+  { name: "Plaine de Syam", role: "camp de César", at: wgs(5.9505, 46.6935), stem: 150 },
+  { name: "Ouvrages de César", role: "les lignes romaines", at: wgs(5.9575, 46.6972), stem: 110, works: romanWorks },
+  { name: "Belvédère des Trois Vallées", role: "l’armée de secours", at: placeAt("belvedere"), stem: 210 },
 ];
 
 /** Mauve des ancrages au sol : une seule teinte, accordée à l'ardoise et au bleu, déclinée en opacité. */
@@ -80,19 +82,7 @@ export interface StoryLayer {
   update(seconds: number | null, camera: THREE.Camera, width: number, height: number): void;
 }
 
-const originLon = 5.98;
-const originLat = 46.6775;
-const metresPerDegreeLat = 111_132;
-const metresPerDegreeLon = 111_320 * Math.cos((originLat * Math.PI) / 180);
-
-/** Coordonnées d'un lieu en degrés décimaux, trois décimales, comme sur une carte d'état-major. */
-function coordinates(spot: Spot): string {
-  const lat = originLat + spot.y / metresPerDegreeLat;
-  const lon = originLon + spot.x / metresPerDegreeLon;
-  return `${lat.toFixed(3).replace(".", ",")} N  ${lon.toFixed(3).replace(".", ",")} E`;
-}
-
-/** Ligne de la liste du récit : numéro, nom qui s'écrit, coordonnées et trait fin qui s'étend. */
+/** Ligne de la liste du récit : numéro, nom qui s'écrit, rôle dans le récit et trait fin qui s'étend. */
 function listEntry(list: HTMLElement, index: number, place: StoryPlace): HTMLElement {
   const entry = document.createElement("li");
   entry.className = "launch-story-entry";
@@ -104,10 +94,10 @@ function listEntry(list: HTMLElement, index: number, place: StoryPlace): HTMLEle
   const name = document.createElement("span");
   name.className = "launch-story-name";
   name.textContent = place.name;
-  const position = document.createElement("span");
-  position.className = "launch-story-position";
-  position.textContent = coordinates(place.at);
-  entry.append(number, name, position);
+  const role = document.createElement("span");
+  role.className = "launch-story-role";
+  role.textContent = place.role;
+  entry.append(number, name, role);
   list.append(entry);
   return entry;
 }

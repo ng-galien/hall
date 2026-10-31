@@ -239,11 +239,10 @@ html[data-leaving] body {
   clip-path: inset(0 calc((1 - var(--write, 0)) * 100%) 0 0);
 }
 
-.launch-story-position {
-  font-size: 0.82em;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  white-space: pre;
+.launch-story-role {
+  font-size: 0.9em;
+  font-weight: 350;
+  white-space: nowrap;
   color: var(--slate-600);
   opacity: var(--write, 0);
 }
@@ -256,7 +255,7 @@ html[data-leaving] body {
     font-size: 12.5px;
   }
 
-  .launch-story-position {
+  .launch-story-role {
     display: none;
   }
 }
