@@ -262,8 +262,8 @@ function romanWorksWorkbook(daysFromNow) {
   ];
   return makeXlsx(
     [
-      ["Date", "Ouvrage observé", "Effectif estimé", "Poste d’observation"],
-      ...observations.map(([days, work, strength, post]) => [frenchDate(daysFromNow(days)), work, strength, post]),
+      ["Date", "Poste d’observation", "Ouvrage observé", "Effectif estimé"],
+      ...observations.map(([days, work, strength, post]) => [frenchDate(daysFromNow(days)), post, work, strength]),
     ],
     "Observations",
   );
@@ -491,7 +491,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
       path: folders.allies,
       document: {
         content:
-          "Vercingétorix rencontre Jules César pour demander une trêve permettant le passage des habitants les plus vulnérables. Préparer les conditions du passage et les garanties réciproques. Ces pourparlers sont une invention du jeu : César n’en rapporte aucun avant la reddition.",
+          "Vercingétorix rencontre Jules César pour demander une trêve permettant le passage des habitants les plus vulnérables. Préparer les conditions du passage et les garanties réciproques.",
         location: "Plaine au pied de l’oppidum",
         schedule: { kind: "timed", start: daysFromNow(1, 10, 0), end: daysFromNow(1, 11, 0) },
         participants: [

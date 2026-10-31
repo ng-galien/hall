@@ -400,9 +400,9 @@ Après en avoir délibéré,
       committee: "supply",
       reportContent: `Le conseil demande à Jules César, proconsul, une trêve pour le passage des habitants les plus vulnérables accueillis dans les abris.
 
-Le secrétariat prépare le courrier au proconsul et l’invitation au rendez-vous « Pourparlers avec Jules César », fixé dans la plaine au pied de l’oppidum. Hall prépare le courriel depuis le modèle d’invitation ; l’envoi reste fait par le secrétariat.
+Le secrétariat prépare le courrier au proconsul et l’invitation au rendez-vous « Pourparlers avec Jules César », fixé dans la plaine au pied de l’oppidum. Le courriel d’invitation est préparé depuis le modèle du conseil ; l’envoi reste fait par le secrétariat.
 
-Ces pourparlers sont une invention du jeu : César rapporte seulement qu’il refusa de recevoir les habitants dans ses lignes.`,
+Le conseil sait que César a déjà refusé de recevoir dans ses lignes des habitants sortis de l’oppidum ; le courrier rappelle que la trêve ne concerne que les plus vulnérables.`,
       subjects: [],
       resourceNames: ["Courrier au proconsul", "Pourparlers avec Jules César"],
     },
