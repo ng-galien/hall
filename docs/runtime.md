@@ -42,6 +42,28 @@ Packaging includes the server runtime, the PostgreSQL binaries for the target pl
 
 Local mode verifies the schema fingerprint and does not run the schema upgrade (`packages/server/src/core/localServer.ts` uses `verify-only`). A desktop database created before the geographic layers schema (requirement HALL-TR-DOC-080) is therefore refused at startup and must be recreated. Desktop local mode has no upgrade path yet.
 
+### Launch screen
+
+At every launch, the main window shows the launch screen in a view placed over the window content while the embedded PostgreSQL server and the local server start (or while the connected server loads). The France forms from its departments, the main ancient cities appear with their Gaulish or Roman names, then the camera moves to a department and settles on a commune. The application loads under the view; when it has loaded and the animation has reached its final state (Hall, the commune, the preparation bar), the view fades out and is removed. With reduced motion requested by the system (`prefers-reduced-motion` or Electron `getAnimationSettings().prefersReducedMotion`), the final state is shown immediately.
+
+The commune shown is chosen by `packages/desktop/src/launchTerritory.ts`:
+
+1. The INSEE code stored in `launch-territory.json` in the user-data directory, when the embedded geometries contain that commune. The commune and its department are shown under their official names.
+2. Otherwise, in every edition: Chaux-des-Crotenay (39129, Jura), shown as « Alésia », with the plateau of Cornu as the final framing.
+
+The main process reads `inseeCode` from `GET /api/settings` with the session cookies of the application as soon as the server answers, and again when the application quits, before the embedded server stops; the value is stored in `launch-territory.json` for the next launch. Without a signed-in session the request is refused and the stored value is unchanged, so a commune recorded in the settings is shown from the launch that follows a quit with an open session.
+
+The page is served from the application through the private `hall-launch://` protocol and makes no network request. Its geometries are in `packages/desktop/geodata/`: the 96 metropolitan departments, one file of communes per department loaded on demand, and the ancient cities; sources, licence and processing are in `packages/desktop/geodata/SOURCES`, and `packages/desktop/scripts/prepare-launch-geodata.mjs` regenerates them from downloaded files.
+
+The focused journey uses a stub Hall server in connected mode:
+
+```sh
+cd packages/client
+HALL_E2E_DESKTOP=true npx playwright test --config e2e/playwright.config.ts --project=desktop e2e/desktop/launch-screen.spec.ts
+```
+
+It requires `npm run build -w @hall/desktop`.
+
 ### Demonstration edition
 
 The demonstration edition is the desktop application distributed on the GitHub release page. It uses the same embedded server and production authentication as local mode; it does not use `HALL_DEV_AUTO_LOGIN`, `HALL_SERVER_URL` or `connection.json`.

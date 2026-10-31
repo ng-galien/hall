@@ -16,7 +16,7 @@ async function resourcesContainMarker(page: Page): Promise<boolean> {
   );
 }
 
-test("opens the Alésia demonstration signed in and resets it from the Démonstration menu", async () => {
+test("opens the Alésia demonstration signed in after the Alésia launch screen and resets it from the Démonstration menu", async () => {
   const userDataPath = await mkdtemp(join(tmpdir(), "hall-demonstration-"));
   const application = await electron.launch({
     executablePath: require("electron") as unknown as string,
@@ -24,7 +24,17 @@ test("opens the Alésia demonstration signed in and resets it from the Démonstr
     env: { ...process.env, HALL_USER_DATA_PATH: userDataPath, HALL_DESKTOP_EDITION: "demonstration" },
   });
   try {
-    const window = await application.firstWindow();
+    await expect
+      .poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:")), { timeout: 15_000 })
+      .toBe(true);
+    const launch = application.windows().find((page) => page.url().startsWith("hall-launch:"))!;
+    await expect(launch.locator("html")).toHaveAttribute("data-commune", "39129");
+    await expect(launch.locator("html")).toHaveAttribute("data-state", "final", { timeout: 15_000 });
+    await expect(launch.getByTestId("launch-place")).toHaveText("Alésia, Cornu – Chaux-des-Crotenay, Jura");
+    await expect
+      .poll(() => application.windows().some((page) => page.url().includes("/app/")), { timeout: 8 * 60_000 })
+      .toBe(true);
+    const window = application.windows().find((page) => page.url().includes("/app/"))!;
     await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible({ timeout: 8 * 60_000 });
     expect(new URL(window.url()).pathname).toBe("/app/");
 
