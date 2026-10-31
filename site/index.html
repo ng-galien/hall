@@ -6,20 +6,20 @@
     <meta name="theme-color" content="#0f1723" />
     <meta
       name="description"
-      content="Hall, logiciel du conseil municipal : préparer les affaires, tenir la séance, rédiger les actes. Démonstration : le conseil d’Alésia pendant le siège, sur le plateau de Cornu, dans le Jura."
+      content="Hall, gestion de l’activité communale : un logiciel pour gérer l’activité d’une commune, de la préparation du conseil municipal jusqu’à la séance et aux actes, pour le secrétariat de mairie et les élus. Démonstration : la commune fictive d’Alésia, sur le plateau de Cornu, dans le Jura."
     />
-    <title>Hall, logiciel du conseil municipal</title>
+    <title>Hall, gestion de l’activité communale</title>
   </head>
   <body>
     <header class="masthead" data-testid="site-header">
       <a class="brand" href="#decouvrir" aria-label="Hall, haut de la page">
         <span class="brand-mark" aria-hidden="true">H</span>
         <span class="brand-name">Hall</span>
+        <span class="brand-qualification">Gestion de l’activité communale</span>
       </a>
       <nav class="section-nav" aria-label="Sections de la page" data-testid="section-nav">
         <a data-testid="nav-decouvrir" href="#decouvrir">Découvrir</a>
         <a data-testid="nav-telecharger" href="#telecharger">Télécharger</a>
-        <a data-testid="nav-installer" href="#installer">Installer</a>
         <a data-testid="nav-documentation" href="#documentation">Documentation</a>
       </nav>
     </header>
@@ -27,15 +27,22 @@
     <main id="app" data-testid="site-main">
       <section id="decouvrir" class="discover" data-testid="section-decouvrir" aria-label="Découvrir Hall">
         <div class="intro" data-testid="intro">
-          <h1>Le conseil municipal, de la préparation à l’acte</h1>
+          <h1>
+            <span class="intro-name">Hall</span>
+            <span class="intro-qualification" data-testid="intro-qualification">Gestion de l’activité communale</span>
+          </h1>
           <p>
-            Hall accompagne le secrétariat et les élus&#8239;: préparer les affaires, convoquer le conseil, tenir la
-            séance, rédiger le procès-verbal et les délibérations, situer les projets sur la carte.
+            Hall est un logiciel pour gérer l’activité d’une commune, de la préparation du conseil municipal jusqu’à la
+            séance et aux actes.
           </p>
+          <p>
+            Il réunit les dossiers et leurs pièces, les cartes, les tableurs, les convocations, les scrutins, les
+            procès-verbaux et les délibérations.
+          </p>
+          <p>Il sert au secrétariat de mairie et aux élus.</p>
           <p class="intro-note">
-            Alésia, ville des Mandubiens, est assiégée par César. Son maire, Vercingétorix, et son conseil préparent
-            les affaires du siège, puis siègent. Le relief est celui du plateau de Cornu, dans le Jura, autour de
-            Chaux-des-Crotenay.
+            La démonstration suit une commune fictive, Alésia, ville des Mandubiens, sur le relief réel du plateau de
+            Cornu, près de Chaux-des-Crotenay, dans le Jura.
           </p>
         </div>
 
@@ -53,8 +60,6 @@
       </section>
 
       <section id="telecharger" class="page-section" data-testid="section-telecharger"></section>
-
-      <section id="installer" class="page-section" data-testid="section-installer"></section>
 
       <section id="documentation" class="page-section" data-testid="section-documentation">
         <div class="section-inner">
@@ -84,8 +89,9 @@
     </main>
 
     <footer class="site-footer">
+      <p class="site-signature" data-testid="site-signature">Hall, le conseil municipal en séance</p>
       <p>
-        Hall, logiciel du conseil municipal. Les personnes, les affaires et les délibérations de la démonstration sont
+        Hall, gestion de l’activité communale. Les personnes, les affaires et les délibérations de la démonstration sont
         fictives.
       </p>
       <p>

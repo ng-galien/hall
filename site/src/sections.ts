@@ -73,11 +73,12 @@ interface InstallTabs {
   select: (system: System) => void;
 }
 
-function renderInstall(root: HTMLElement): InstallTabs {
-  const inner = node("div", "section-inner");
-  const head = node("header", "section-head");
+function renderInstall(inner: HTMLElement): InstallTabs {
+  const part = node("div", "install-part", undefined, "install-part");
+  part.id = "marche-a-suivre";
+  const head = node("header", "install-head");
   head.append(
-    node("h2", undefined, "Installer la démonstration"),
+    node("h3", undefined, "Marche à suivre"),
     node("p", "section-lead", "Choisissez votre système, puis suivez les étapes dans l’ordre."),
   );
   const before = node("ul", "install-before", undefined, "install-introduction");
@@ -128,7 +129,7 @@ function renderInstall(root: HTMLElement): InstallTabs {
     panel.append(facts);
     for (const path of guide.paths) {
       const block = node("section", "install-path");
-      block.append(node("h3", undefined, path.title));
+      block.append(node("h4", undefined, path.title));
       const steps = node("ol", "install-steps");
       for (const step of path.steps) {
         const item = node("li", "install-step", undefined, "install-step");
@@ -144,7 +145,7 @@ function renderInstall(root: HTMLElement): InstallTabs {
     }
     if (guide.notes.length > 0) {
       const notes = node("section", "install-notes");
-      notes.append(node("h3", undefined, "Bon à savoir"));
+      notes.append(node("h4", undefined, "Bon à savoir"));
       const list = node("ul");
       for (const note of guide.notes) {
         const item = node("li", undefined, undefined, "install-note");
@@ -157,14 +158,13 @@ function renderInstall(root: HTMLElement): InstallTabs {
     panels.append(panel);
     entries.push({ system: guide.system, tab, panel });
   }
-  inner.append(head, before, tabs, panels);
-  root.append(inner);
+  part.append(head, before, tabs, panels);
+  inner.append(part);
   select(detectedSystem());
   return { select };
 }
 
-function renderDownload(root: HTMLElement, install: InstallTabs) {
-  const inner = node("div", "section-inner");
+function renderDownload(inner: HTMLElement): (install: InstallTabs) => void {
   const head = node("header", "section-head");
   head.append(
     node("h2", undefined, "Télécharger la démonstration"),
@@ -175,6 +175,7 @@ function renderDownload(root: HTMLElement, install: InstallTabs) {
     ),
   );
   const list = node("ul", "download-list");
+  const hows: { system: System; how: HTMLAnchorElement }[] = [];
   for (const guide of installationGuides) {
     const row = node("li", "download-row", undefined, `download-${guide.system}`);
     const system = node("div", "download-system");
@@ -183,9 +184,9 @@ function renderDownload(root: HTMLElement, install: InstallTabs) {
     const actions = node("div", "download-actions");
     const link = node("a", "button-primary", `Télécharger pour ${guide.title}`, `download-link-${guide.system}`);
     link.href = releasesUrl;
-    const how = node("a", "link-plain", `Installer sur ${guide.title}`, `download-how-${guide.system}`);
-    how.href = "#installer";
-    how.addEventListener("click", () => install.select(guide.system));
+    const how = node("a", "link-plain", `Marche à suivre pour ${guide.title}`, `download-how-${guide.system}`);
+    how.href = "#marche-a-suivre";
+    hows.push({ system: guide.system, how });
     actions.append(link, how);
     row.append(system, file, actions);
     list.append(row);
@@ -193,19 +194,22 @@ function renderDownload(root: HTMLElement, install: InstallTabs) {
   const warning = node(
     "p",
     "download-warning",
-    "À la première ouverture, l’ordinateur affiche un avertissement parce que Hall n’est pas signé auprès d’Apple ni de Microsoft. La section Installer montre quoi faire, écran par écran.",
+    "À la première ouverture, l’ordinateur affiche un avertissement parce que Hall n’est pas signé auprès d’Apple ni de Microsoft. La marche à suivre ci-dessous montre quoi faire, écran par écran.",
   );
   inner.append(head, list, warning);
-  root.append(inner);
+  return (install) => {
+    for (const { system, how } of hows) how.addEventListener("click", () => install.select(system));
+  };
 }
 
-/** Construit les sections Télécharger et Installer et marque la section visible dans l'en-tête. */
+/** Construit la section Télécharger, fichiers puis marche à suivre, et marque la section visible dans l'en-tête. */
 export function renderSections() {
   const download = document.querySelector<HTMLElement>('[data-testid="section-telecharger"]');
-  const installRoot = document.querySelector<HTMLElement>('[data-testid="section-installer"]');
-  if (!download || !installRoot) return;
-  const install = renderInstall(installRoot);
-  renderDownload(download, install);
+  if (!download) return;
+  const inner = node("div", "section-inner");
+  download.append(inner);
+  const connect = renderDownload(inner);
+  connect(renderInstall(inner));
 
   const links = new Map<string, HTMLElement>();
   for (const link of document.querySelectorAll<HTMLAnchorElement>(".section-nav a")) {

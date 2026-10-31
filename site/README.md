@@ -37,8 +37,13 @@ Run from this directory:
 - `src/main.ts`: page wiring, discovery menu (opening, then "Préparer" and "Siéger" groups that unfold
   into their named scenes, current scene marked), scenario panel, automatic reading of the story, address
   fragment, version without 3D.
-- `src/sections.ts`: the "Télécharger" and "Installer" sections and the header marking of the visible
-  section. The installation text comes from `src/installation.ts`, maintained with the release notes and
+- `index.html`: header and opening text: "Hall" followed by the qualification "Gestion de l'activité
+  communale" and three plain sentences on what the software does and for whom; the footer carries the
+  signature "Hall, le conseil municipal en séance". The header navigation is Découvrir, Télécharger,
+  Documentation.
+- `src/sections.ts`: the "Télécharger" section, the file to download for each system followed by the
+  step-by-step installation per system (tabs), and the header marking of the visible section. The
+  installation text comes from `src/installation.ts`, maintained with the release notes and
   `docs/distribution.md`.
 - `src/viewer.ts`: full-screen viewer of the Hall captures of a scenario, with pins and their legend,
   navigation between captures, closing by button, Escape or a click outside the image.
@@ -46,8 +51,8 @@ Run from this directory:
 - `public/terrain/`: embedded geographic data, produced by `scripts/prepare-geodata.py`.
 - `public/captures/`: Hall screenshots shown in each step, taken on a disposable Hall server loaded
   with the Alésia dataset (`npm run seed:dev -w @hall/server -- --dataset alesia`); the convocation
-  comes from the `minutes` scenario, the other screens from the `default` scenario. The header and
-  breadcrumb show the public name "Hall".
+  comes from the `minutes` scenario, the other screens from the `default` scenario. The screens are shown
+  as the client displays them, with the name "Hall" in the header and breadcrumb.
 
 ## Geographic data
 
