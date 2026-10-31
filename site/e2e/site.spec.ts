@@ -45,6 +45,75 @@ async function expectLinks(page: Page) {
   await expect(page.getByTestId("footer-documentation-link")).toHaveAttribute("href", documentation);
 }
 
+const axisOf: Record<(typeof order)[number], "ouverture" | "preparer" | "sieger"> = {
+  ouverture: "ouverture",
+  veille: "preparer",
+  carte: "preparer",
+  grenier: "preparer",
+  ouvrages: "preparer",
+  defense: "preparer",
+  convocation: "sieger",
+  appel: "sieger",
+  rationnement: "sieger",
+  motion: "sieger",
+  actes: "sieger",
+};
+const technicalCodes = /\b[PS][1-5]\b/;
+
+async function choose(page: Page, id: (typeof order)[number]) {
+  const axis = axisOf[id];
+  if (axis !== "ouverture") {
+    const toggle = page.getByTestId(`menu-group-${axis}`);
+    if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  }
+  await page.getByTestId(`menu-item-${id}`).click();
+}
+
+interface Zone {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** Partie visible de la scène que ni l'en-tête, ni le panneau, ni le menu ne couvrent, en coordonnées de la page. */
+async function freeZone(page: Page): Promise<Zone> {
+  return page.evaluate(() => {
+    const rect = (testId: string) =>
+      (document.querySelector(`[data-testid="${testId}"]`) as HTMLElement).getBoundingClientRect();
+    const stage = rect("terrain-stage");
+    let zone = {
+      left: Math.max(0, stage.left),
+      top: Math.max(stage.top, rect("site-header").bottom),
+      right: Math.min(stage.right, window.innerWidth),
+      bottom: Math.min(stage.bottom, window.innerHeight),
+    };
+    for (const cover of [rect("scenario-panel"), rect("menu-bar")]) {
+      if (cover.left >= zone.right || cover.right <= zone.left || cover.top >= zone.bottom || cover.bottom <= zone.top)
+        continue;
+      const options = [
+        { ...zone, right: Math.min(zone.right, cover.left) },
+        { ...zone, left: Math.max(zone.left, cover.right) },
+        { ...zone, bottom: Math.min(zone.bottom, cover.top) },
+        { ...zone, top: Math.max(zone.top, cover.bottom) },
+      ];
+      const area = (z: typeof zone) => Math.max(0, z.right - z.left) * Math.max(0, z.bottom - z.top);
+      zone = options.reduce((best, z) => (area(z) > area(best) ? z : best));
+    }
+    return zone;
+  });
+}
+
+async function projectedTarget(page: Page): Promise<{ x: number; y: number }> {
+  const stage = page.getByTestId("terrain-stage");
+  const box = await stage.boundingBox();
+  if (!box) throw new Error("Scène absente");
+  return {
+    x: box.x + Number(await stage.getAttribute("data-target-x")),
+    y: box.y + Number(await stage.getAttribute("data-target-y")),
+  };
+}
+
 async function sceneReady(page: Page) {
   await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
   await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-motion", "done");
@@ -62,10 +131,10 @@ test.describe("relief en 3D", () => {
     await expectNoHorizontalScroll(page);
 
     for (const id of order) {
-      await page.getByTestId(`place-${id}`).click();
+      await choose(page, id);
       await expect(page.getByTestId("scenario-panel")).toBeVisible();
       await expect(page.getByTestId(`scenario-${id}`)).toBeVisible();
-      await expect(page.getByTestId(`place-${id}`)).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByTestId(`menu-item-${id}`)).toHaveAttribute("aria-current", "step");
       if (id !== "ouverture") await expectCapturesLoaded(page, `[data-testid="scenario-${id}"]`);
       await expectNoHorizontalScroll(page);
       await page.getByTestId("scenario-close").click();
@@ -130,6 +199,113 @@ test.describe("relief en 3D", () => {
     await expect(page.getByTestId("terrain-mark").filter({ hasText: "7 pour, 4 contre" })).toBeVisible();
   });
 
+  test("le menu de découverte nomme les scénarios de chaque groupe, sans code", async ({ page }) => {
+    await page.goto("./");
+    await sceneReady(page);
+    await expect(page.getByTestId("menu-item-ouverture")).toContainText("Alésia");
+    await expect(page.getByTestId("menu-group-preparer")).toContainText("Préparer");
+    await expect(page.getByTestId("menu-group-sieger")).toContainText("Siéger");
+    await expect(page.getByTestId("menu-list-preparer")).toBeHidden();
+    await page.getByTestId("menu-group-preparer").click();
+    await expect(page.getByTestId("menu-group-preparer")).toHaveAttribute("aria-expanded", "true");
+    const list = page.getByTestId("menu-list-preparer");
+    await expect(list).toBeVisible();
+    const names = ["La veille", "La carte", "Le grenier", "Les ouvrages", "La défense"];
+    for (const [index, name] of names.entries()) {
+      const item = page.getByTestId(`menu-item-${order[index + 1]}`);
+      await expect(item).toBeVisible();
+      await expect(item).toContainText(`${index + 1}`);
+      await expect(item).toContainText(name);
+    }
+    await expectNoHorizontalScroll(page);
+    await page.getByTestId("menu-group-sieger").click();
+    await expect(list).toBeHidden();
+    await expect(page.getByTestId("menu-list-sieger")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("menu-list-sieger")).toBeHidden();
+    await choose(page, "carte");
+    await expect(page.getByTestId("menu-list-preparer")).toBeHidden();
+    await expect(page.getByTestId("menu-group-state-preparer")).toHaveText("La carte, 2 sur 5");
+    await expect(page.getByTestId("scenario-carte")).toContainText("Préparer, étape 2 sur 5");
+    await expect(page.getByTestId("step-next")).toHaveText("Étape suivante\u202f: Le grenier");
+    expect(await page.locator("body").innerText()).not.toMatch(technicalCodes);
+    await page.getByTestId("menu-group-preparer").click();
+    expect(await page.locator("body").innerText()).not.toMatch(technicalCodes);
+  });
+
+  test("chaque capture s’ouvre en plein écran avec ses pastilles et leur légende", async ({ page }) => {
+    await page.goto("./#actes");
+    await expect(page.getByTestId("scenario-actes")).toBeVisible();
+    const opener = page.getByTestId("capture-open-sieger-calendrier");
+    await opener.click();
+    const viewer = page.getByTestId("viewer");
+    await expect(viewer).toBeVisible();
+    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 3 sur 5");
+    await expect(page.getByTestId("viewer-title")).toContainText("calendrier");
+    await expect
+      .poll(() =>
+        page.getByTestId("viewer-image").evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth),
+      )
+      .toBeGreaterThan(0);
+    const shot = await page.getByTestId("viewer-shot").boundingBox();
+    const viewport = page.viewportSize();
+    if (!shot || !viewport) throw new Error("Capture absente");
+    expect(shot.width).toBeGreaterThan(viewport.width * 0.8 - 400);
+    const pins = page.getByTestId("viewer-pin");
+    await expect(pins).toHaveCount(4);
+    await expect(page.getByTestId("viewer-legend-item")).toHaveCount(4);
+    for (let i = 0; i < 4; i++) {
+      const pin = await pins.nth(i).boundingBox();
+      if (!pin) throw new Error("Pastille absente");
+      await expect(pins.nth(i)).toHaveText(String(i + 1));
+      expect(pin.x + pin.width).toBeGreaterThan(shot.x);
+      expect(pin.x).toBeLessThan(shot.x + shot.width);
+      expect(pin.y + pin.height / 2).toBeGreaterThanOrEqual(shot.y);
+      expect(pin.y + pin.height / 2).toBeLessThanOrEqual(shot.y + shot.height);
+    }
+    await expect(page.getByTestId("viewer-legend-item").nth(1)).toContainText("Pourparlers avec Jules César");
+    await pins.nth(1).focus();
+    await expect(page.getByTestId("viewer-legend-item").nth(1)).toHaveClass(/is-lit/);
+    await page.getByTestId("viewer-next").click();
+    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 4 sur 5");
+    await page.keyboard.press("ArrowRight");
+    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 5 sur 5");
+    await expect(page.getByTestId("viewer-next")).toBeDisabled();
+    await page.getByTestId("viewer-previous").click();
+    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 4 sur 5");
+    await page.keyboard.press("Escape");
+    await expect(viewer).toBeHidden();
+    await expect(page.getByTestId("scenario-actes")).toBeVisible();
+    await expect(opener).toBeFocused();
+    await opener.click();
+    await page.getByTestId("viewer-close").click();
+    await expect(viewer).toBeHidden();
+    await opener.click();
+    await expect(viewer).toBeVisible();
+    await page.mouse.click(4, Math.round((viewport.height * 2) / 3));
+    await expect(viewer).toBeHidden();
+    await expect(page.getByTestId("scenario-actes")).toBeVisible();
+  });
+
+  test("chaque capture du récit a des pastilles légendées", async ({ page }) => {
+    await page.goto("./");
+    await sceneReady(page);
+    for (const id of withCaptures) {
+      await choose(page, id);
+      const openers = page.locator(`[data-testid="scenario-${id}"] [data-testid^="capture-open-"]`);
+      const count = await openers.count();
+      expect(count, id).toBeGreaterThan(0);
+      for (let i = 0; i < count; i++) {
+        await openers.nth(i).click();
+        const pins = await page.getByTestId("viewer-pin").count();
+        expect(pins, id).toBeGreaterThanOrEqual(2);
+        await expect(page.getByTestId("viewer-legend-item")).toHaveCount(pins);
+        await page.getByTestId("viewer-close").click();
+      }
+      await page.getByTestId("scenario-close").click();
+    }
+  });
+
   test("un clic sur la maison commune dans la scène ouvre la convocation", async ({ page }) => {
     await page.goto("./");
     await sceneReady(page);
@@ -190,12 +366,12 @@ test("le fragment d’adresse ouvre le scénario pendant la visite et la fermetu
     window.location.hash = "grenier";
   });
   await expect(page.getByTestId("scenario-grenier")).toBeVisible();
-  await expect(page.getByTestId("place-grenier")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("menu-item-grenier")).toHaveAttribute("aria-current", "step");
   await page.getByTestId("scenario-close").click();
   await expect(page.getByTestId("scenario-panel")).toBeHidden();
   expect(new URL(page.url()).hash).toBe("");
   expect(await page.evaluate(() => window.location.href.includes("#"))).toBe(false);
-  await page.getByTestId("place-actes").click();
+  await choose(page, "actes");
   expect(new URL(page.url()).hash).toBe("#actes");
 });
 
@@ -286,5 +462,69 @@ test.describe("version sans 3D", () => {
       await expectCapturesLoaded(page, `#lieu-${id}`);
     }
     await expectNoHorizontalScroll(page);
+  });
+});
+
+test.describe("cadrage de la scène avec le panneau ouvert", () => {
+  const sizes: Record<string, { width: number; height: number }[]> = {
+    bureau: [
+      { width: 1024, height: 768 },
+      { width: 1280, height: 800 },
+      { width: 1440, height: 900 },
+      { width: 1920, height: 1080 },
+    ],
+    telephone: [
+      { width: 390, height: 844 },
+      { width: 360, height: 740 },
+    ],
+  };
+
+  test("la cible de chaque vol reste dans la partie libre de la scène", async ({ page }, testInfo) => {
+    test.setTimeout(240_000);
+    const measured: string[] = [];
+    const wanted = sizes[testInfo.project.name] ?? [];
+    for (const size of wanted) {
+      await page.setViewportSize(size);
+      await page.goto("./");
+      await sceneReady(page);
+      for (const id of order) {
+        await page.evaluate((hash) => {
+          window.location.hash = hash;
+        }, id);
+        await expect(page.getByTestId(`scenario-${id}`)).toBeVisible();
+        await sceneReady(page);
+        const label = `${id} à ${size.width}×${size.height}`;
+        await expect
+          .poll(async () => {
+            const zone = await freeZone(page);
+            const target = await projectedTarget(page);
+            return (
+              zone.right - zone.left > 120 &&
+              zone.bottom - zone.top > 120 &&
+              target.x >= zone.left &&
+              target.x <= zone.right &&
+              target.y >= zone.top &&
+              target.y <= zone.bottom
+            );
+          }, label)
+          .toBe(true);
+        measured.push(label);
+        const zone = await freeZone(page);
+        const marks = page.getByTestId("terrain-mark");
+        for (let i = 0; i < (await marks.count()); i++) {
+          const mark = marks.nth(i);
+          if (!(await mark.isVisible())) continue;
+          const box = await mark.boundingBox();
+          if (!box) continue;
+          const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+          expect(centre.x, `${label}, repère ${await mark.innerText()}`).toBeGreaterThanOrEqual(zone.left);
+          expect(centre.x, `${label}, repère ${await mark.innerText()}`).toBeLessThanOrEqual(zone.right);
+          expect(centre.y, `${label}, repère ${await mark.innerText()}`).toBeGreaterThanOrEqual(zone.top);
+          expect(centre.y, `${label}, repère ${await mark.innerText()}`).toBeLessThanOrEqual(zone.bottom);
+        }
+      }
+    }
+    expect(measured).toHaveLength(order.length * wanted.length);
+    expect(wanted.length).toBeGreaterThan(0);
   });
 });
