@@ -75,7 +75,7 @@ test.describe("navigation and settings", () => {
 
     await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
-    await expect(page).toHaveTitle("Mairie, municipal council");
+    await expect(page).toHaveTitle("Hall, municipal council");
 
     await page.reload();
 

@@ -395,10 +395,10 @@ export const fr: Messages = {
   "minutes.download": "Télécharger le PDF",
   "minutes.view": "Ouvrir le procès-verbal",
   "minutes.notGenerated": "Procès-verbal à générer",
-  "app.name": "MAIRIE",
-  "app.home": "Accueil Mairie",
+  "app.name": "Hall",
+  "app.home": "Accueil Hall",
   "app.subtitle": "Administration du conseil municipal",
-  "app.windowTitle": "Mairie, conseil municipal",
+  "app.windowTitle": "Hall, conseil municipal",
   "app.shortName": "Hall",
   "app.offlineHeading": "Hors connexion",
   "app.offlineMessage":
