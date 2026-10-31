@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#eef2f6" />
+    <meta name="theme-color" content="#0f1723" />
     <meta
       name="description"
-      content="Hall, logiciel du conseil municipal : préparation des affaires, séances, procès-verbaux, délibérations et cartes. Démonstration sur la commune fictive d’Alésia."
+      content="Hall, logiciel du conseil municipal : préparation des affaires, séances, procès-verbaux, délibérations et cartes. Démonstration sur Alésia, commune fictive placée sur le plateau de Cornu, dans le Jura."
     />
     <title>Hall, logiciel du conseil municipal</title>
   </head>
@@ -30,14 +30,18 @@
           rédiger le procès-verbal et les délibérations, situer les projets sur la carte.
         </p>
         <p class="intro-note">
-          Visitez Alésia, commune de démonstration. Les personnes et les données sont fictives.
+          La démonstration place Alésia sur le plateau de Cornu, dans le Jura&#8239;: relief, rivières, routes et bâti
+          réels autour de Chaux-des-Crotenay. Les personnes et les affaires sont fictives.
         </p>
       </section>
 
-      <section class="town" data-testid="town" hidden>
-        <div class="town-stage" data-testid="town-stage"></div>
-        <div class="town-labels" aria-hidden="true"></div>
-        <nav class="place-bar" aria-label="Lieux de la commune" data-testid="place-bar"></nav>
+      <section class="terrain" data-testid="terrain" hidden>
+        <div class="terrain-stage" data-testid="terrain-stage"></div>
+        <div class="terrain-labels" aria-hidden="true"></div>
+        <nav class="place-bar" aria-label="Étapes du récit" data-testid="place-bar"></nav>
+        <p class="terrain-credit" data-testid="terrain-credit">
+          Relief RGE ALTI, bâti, routes et eau BD TOPO © IGN, licence ouverte Etalab 2.0
+        </p>
         <aside class="scenario-panel" data-testid="scenario-panel" aria-live="polite" hidden></aside>
       </section>
 
@@ -45,7 +49,15 @@
     </main>
 
     <footer class="site-footer">
-      <p>Hall, logiciel du conseil municipal. Alésia est une commune fictive créée pour la démonstration.</p>
+      <p>
+        Hall, logiciel du conseil municipal. Alésia, plateau de Cornu (Jura)&#8239;: un clin d’œil à la thèse d’André
+        Berthier. Les personnes, les affaires et les délibérations de la démonstration sont fictives et ne concernent pas les
+        communes réelles.
+      </p>
+      <p>
+        Données géographiques&#8239;: IGN, RGE ALTI et BD TOPO, licence ouverte Etalab 2.0&#8239;; contours communaux
+        de geo.api.gouv.fr.
+      </p>
       <p class="footer-links">
         <a data-testid="footer-download-link" href="https://github.com/ng-galien/hall/releases">Télécharger la démonstration</a>
         <a data-testid="footer-documentation-link" href="https://github.com/ng-galien/hall/tree/main/packages/client/src/docs/content/fr">Documentation utilisateur</a>

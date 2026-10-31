@@ -12,9 +12,19 @@ export interface Capture {
   caption: string;
 }
 
+/** Position du lieu réel en mètres autour du centre de l'emprise (x vers l'est, y vers le nord), rayon du repère et distance de vue. */
+export interface Anchor {
+  x: number;
+  y: number;
+  radius: number;
+  view: number;
+}
+
 export interface Scene {
   id: PlaceId;
   place: string;
+  where: string;
+  anchor: Anchor;
   title: string;
   lead: string;
   steps: ScenarioStep[];
@@ -25,6 +35,8 @@ export const scenes: Scene[] = [
   {
     id: "mairie",
     place: "Mairie",
+    where: "Décor réel : mairie de Chaux-des-Crotenay, au centre du village",
+    anchor: { x: -1170, y: -2230, radius: 70, view: 1500 },
     title: "Préparation d’une affaire et convocation du conseil",
     lead: "À la maison commune, le secrétariat prépare l’affaire « Réserves et bâtiments » avant la séance du conseil.",
     steps: [
@@ -44,6 +56,8 @@ export const scenes: Scene[] = [
   {
     id: "conseil",
     place: "Salle du conseil",
+    where: "Décor réel : salle polyvalente du village de Chaux-des-Crotenay",
+    anchor: { x: -1037, y: -2204, radius: 70, view: 1500 },
     title: "Séance du conseil : appel, pouvoirs et scrutins",
     lead: "Le conseil de l’oppidum siège sous la présidence de Vercingétorix l’Arverne. Convictolitavis l’Éduen est secrétaire de séance.",
     steps: [
@@ -74,6 +88,8 @@ export const scenes: Scene[] = [
   {
     id: "place",
     place: "Place",
+    where: "Décor réel : devant l’église Sainte-Marguerite, à Chaux-des-Crotenay",
+    anchor: { x: -1191, y: -2495, radius: 70, view: 1500 },
     title: "Procès-verbal et délibérations",
     lead: "Sur la place, le panneau d’affichage présente les actes de la commune. Après la séance, Hall rédige ces actes à partir des faits enregistrés pendant la séance.",
     steps: [
@@ -99,6 +115,8 @@ export const scenes: Scene[] = [
   {
     id: "ecole",
     place: "École",
+    where: "Décor réel : école du village de Chaux-des-Crotenay",
+    anchor: { x: -999, y: -2235, radius: 70, view: 1500 },
     title: "Pièce rattachée à une affaire",
     lead: "Dans la commune de démonstration, l’école accueille les habitants mis à l’abri. Leur accueil est suivi par une affaire de la commission ravitaillement et accueil.",
     steps: [
@@ -122,6 +140,8 @@ export const scenes: Scene[] = [
   {
     id: "territoire",
     place: "Territoire",
+    where: "Décor réel : plateau de Cornu, entre les gorges de la Lemme et de la Saine",
+    anchor: { x: -1755, y: -1090, radius: 320, view: 3600 },
     title: "Carte du plateau de Cornu",
     lead: "La carte « Repérage du plateau de Cornu » situe le grenier, les abris et le point d’eau sur le plan IGN.",
     steps: [
