@@ -410,8 +410,9 @@ export function createTown(options: TownOptions): Town {
   /** Décalage horizontal de la vue : la maquette laisse la place au texte d'accueil ou au panneau du scénario. */
   let shift = 0;
   function desiredShift(): number {
-    if (stage.clientWidth < 760) return 0;
-    return active ? -0.17 : 0.16;
+    const width = stage.clientWidth;
+    if (active) return width < 760 ? 0 : -0.17;
+    return width < 1280 ? 0 : 0.19;
   }
   function applyShift() {
     const width = stage.clientWidth;

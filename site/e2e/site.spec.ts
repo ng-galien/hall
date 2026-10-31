@@ -66,6 +66,37 @@ test.describe("commune en 3D", () => {
   });
 });
 
+test.describe("mise en page du texte d’accueil", () => {
+  test("à 1024 px le texte est au-dessus de la scène", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto("./");
+    await expect(page.getByTestId("town-stage")).toHaveAttribute("data-ready", "true");
+    const intro = await page.getByTestId("intro").boundingBox();
+    const stage = await page.getByTestId("town-stage").boundingBox();
+    if (!intro || !stage) throw new Error("Texte ou scène absent");
+    expect(intro.y + intro.height).toBeLessThanOrEqual(stage.y);
+  });
+
+  test("à 1280 px les étiquettes des lieux ne passent pas sous le texte", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("./");
+    await expect(page.getByTestId("town-stage")).toHaveAttribute("data-ready", "true");
+    await page.waitForTimeout(1500);
+    const intro = await page.getByTestId("intro").boundingBox();
+    if (!intro) throw new Error("Texte absent");
+    for (const place of places) {
+      const label = await page.getByTestId(`town-label-${place}`).boundingBox();
+      if (!label) throw new Error(`Étiquette ${place} absente`);
+      const overlaps =
+        label.x < intro.x + intro.width &&
+        label.x + label.width > intro.x &&
+        label.y < intro.y + intro.height &&
+        label.y + label.height > intro.y;
+      expect(overlaps, place).toBe(false);
+    }
+  });
+});
+
 test.describe("version sans 3D", () => {
   test("préférence pour moins de mouvement", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });

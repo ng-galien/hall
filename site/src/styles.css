@@ -181,21 +181,28 @@ a {
   background: radial-gradient(120% 90% at 50% 35%, var(--slate-50) 0%, var(--slate-100) 55%, var(--slate-200) 100%);
 }
 
+/* Le texte d'accueil est posé au-dessus de la maquette ; à partir de 1280 px il passe à sa gauche. */
 .has-town .intro {
-  position: absolute;
-  z-index: 10;
-  top: calc(var(--masthead) + 0.5rem);
-  left: 0;
-  pointer-events: none;
-  max-width: 34rem;
-}
-
-.has-town.has-scenario .intro {
-  visibility: hidden;
+  padding-bottom: 0.5rem;
 }
 
 .has-town .intro h1 {
   font-size: clamp(1.75rem, 1.1rem + 2vw, 2.6rem);
+}
+
+@media (min-width: 1280px) {
+  .has-town .intro {
+    position: absolute;
+    z-index: 10;
+    top: calc(var(--masthead) + 0.5rem);
+    left: 0;
+    pointer-events: none;
+    max-width: 30rem;
+  }
+
+  .has-town.has-scenario .intro {
+    visibility: hidden;
+  }
 }
 
 .town-stage {
@@ -523,16 +530,6 @@ a {
   .link-strong {
     padding: 0 0.7rem;
     font-size: 0.875rem;
-  }
-
-  .has-town.has-scenario .intro {
-    visibility: visible;
-  }
-
-  .has-town .intro {
-    position: static;
-    pointer-events: auto;
-    padding-bottom: 0.5rem;
   }
 
   .wide-only {
